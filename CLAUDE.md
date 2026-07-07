@@ -20,7 +20,7 @@ Only the current version of every document is kept — if you're ever tempted to
 
 ## Current state
 
-`go test -race ./...` → all green, 57 tests. Coverage: `internal/sync` 100%, `internal/store` 82.5%, `internal/api` 77%.
+`go test -race ./...` → all green, 62 tests. Coverage: `internal/sync` 100%, `internal/store` 82.5%, `internal/api` 77%.
 
 **Built:**
 - `internal/sync` — HLC generator + field-level merge algorithm (NFR-4.2a). Pure, zero I/O.
@@ -30,7 +30,7 @@ Only the current version of every document is kept — if you're ever tempted to
 
 **Not built yet, in the order I'd tackle them:**
 
-1. **`cmd/jitpackd` main wiring** — typed `Config` from env vars (declarative, per PRD Section 2), picks `api.New` vs `api.NewSingleUser`, DI, serve. Nothing here yet; both constructors are ready to be wired.
+1. ~~**`cmd/jitpackd` main wiring**~~ — **DONE.** `cmd/jitpackd/main.go` + `config.go`: env-based Config, picks `api.New` vs `api.NewSingleUser`, graceful shutdown. 5 table-driven config tests.
 2. **Dockerfile / docker-compose.yml** — single container per ADR-001. Do this right after #1 so there's an actual deployable artifact to test against.
 3. **WebSocket hub + presence** — `docs/Sync_API_Spec_v1.3.md` §7 (event catalog, `in_sync` computation), `docs/UI_Spec_v1.8.md` G-10 (facepile + group-sync badge). No WebSocket code exists at all yet — this is new infrastructure, not an extension of something present.
 4. **Portable YAML export/import** — `docs/PRD_Addendum_v2.8.md` §3.18 (FR-18.1–18.6), `docs/Sync_API_Spec_v1.3.md` §8 (four new RPC endpoints), `docs/UI_Spec_v1.8.md` M18. No YAML marshaling exists yet.
