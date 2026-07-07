@@ -32,10 +32,12 @@ type Server struct {
 	secret         []byte
 	singleUserMode bool
 	localUserID    string
+	hub            *Hub
 }
 
 func New(st *store.Store, secret []byte) *Server {
-	return &Server{store: st, secret: secret}
+	hub := NewHub(st.HeadSeq)
+	return &Server{store: st, secret: secret, hub: hub}
 }
 
 // NewSingleUser builds a Server for Single-User Mode (Addendum FR-17.2):
@@ -44,7 +46,8 @@ func New(st *store.Store, secret []byte) *Server {
 // choice (FR-17.11), never a per-request toggle — there is exactly one
 // constructor path for each mode, not a runtime flag inside Server.
 func NewSingleUser(st *store.Store, localUserID string) *Server {
-	return &Server{store: st, singleUserMode: true, localUserID: localUserID}
+	hub := NewHub(st.HeadSeq)
+	return &Server{store: st, singleUserMode: true, localUserID: localUserID, hub: hub}
 }
 
 // Handler returns the routed HTTP handler.
@@ -55,6 +58,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/users/{userID}/avatar", s.handleGetAvatar)
 	mux.HandleFunc("PUT /api/v1/users/{userID}/avatar", s.authed(s.handlePutAvatar))
 	mux.HandleFunc("PUT /api/v1/users/{userID}/display-name", s.authed(s.handlePutDisplayName))
+	mux.HandleFunc("GET /ws", s.authed(s.handleWS))
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
@@ -228,6 +232,11 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, out)
+
+	// Notify subscribed WebSocket clients so they pull the new state.
+	if out.PullHint.NextCursor > 0 {
+		s.hub.NotifyTripChanged(tripID, out.PullHint.NextCursor)
+	}
 }
 
 func toWireConflicts(conflicts []syncpkg.Conflict) []wireConflict {
