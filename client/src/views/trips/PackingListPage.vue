@@ -6,8 +6,9 @@
  * - Sticky header: trip name, KPI strip, back button
  * - Grouping switcher (category/container/person/status)
  * - Item rows with G-6 stepper, mode chips, sliding actions
+ * - Inline quick-add for new items without leaving context
+ * - Skip action: mark items as "consciously not packing" (FR-5.5)
  * - Filter bar: my items, open only
- * - FAB for ad-hoc item add
  */
 import {
   IonPage,
@@ -29,23 +30,23 @@ import {
   IonItemOption,
   IonChip,
   IonIcon,
-  IonFab,
-  IonFabButton,
   IonRefresher,
   IonRefresherContent,
   IonToggle,
 } from '@ionic/vue'
 import {
-  addOutline,
   cartOutline,
   bagHandleOutline,
   timeOutline,
   funnelOutline,
+  eyeOffOutline,
+  eyeOutline,
 } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 import { useTripStore } from '@/stores/tripStore'
 import type { GroupBy, TripItem } from '@/types/domain'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
+import QuickAddItem from '@/components/global/QuickAddItem.vue'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -54,18 +55,59 @@ const store = useTripStore()
 const trip = computed(() => store.getTrip(props.tripId))
 const kpis = computed(() => store.kpis(props.tripId))
 const groupBy = computed(() => store.getGroupBy(props.tripId))
-const groups = computed(() => store.groupedItems(props.tripId))
+const isActive = computed(() => trip.value?.status === 'active' || trip.value?.status === 'repack')
 
 const showFilters = ref(false)
 const openOnly = ref(false)
 const myItemsOnly = ref(false)
+const showSkipped = ref(false)
+
+/** Items split into regular and skipped. */
+const allItems = computed(() => store.getItems(props.tripId))
+
+const skippedItems = computed(() =>
+  allItems.value.filter((i) => i.state === 'skipped'),
+)
+
+const activeItems = computed(() =>
+  allItems.value.filter((i) => i.state !== 'skipped'),
+)
+
+/** Grouped active (non-skipped) items. */
+const groups = computed(() => {
+  const gb = store.getGroupBy(props.tripId)
+  const grouped = new Map<string, TripItem[]>()
+
+  for (const item of activeItems.value) {
+    let key: string
+    switch (gb) {
+      case 'category':
+        key = item.category_name ?? 'Uncategorized'
+        break
+      case 'container':
+        key = item.container_id ?? 'Unassigned'
+        break
+      case 'person':
+        key = item.assigned_traveler_id ?? 'Unassigned'
+        break
+      case 'status':
+        key = item.state
+        break
+    }
+    const group = grouped.get(key) ?? []
+    group.push(item)
+    grouped.set(key, group)
+  }
+
+  return grouped
+})
 
 const filteredGroups = computed(() => {
   const result = new Map<string, TripItem[]>()
   for (const [key, items] of groups.value) {
     let filtered = items
     if (openOnly.value) {
-      filtered = filtered.filter((i) => i.state !== 'packed' && i.state !== 'skipped')
+      filtered = filtered.filter((i) => i.state !== 'packed')
     }
     if (filtered.length > 0) {
       result.set(key, filtered)
@@ -97,6 +139,89 @@ function modeLabel(mode: string): string {
 
 function formatWeight(grams: number): string {
   return grams >= 1000 ? `${(grams / 1000).toFixed(1)} kg` : `${grams} g`
+}
+
+// --- Action handlers (placeholders — will wire to outbox) ---
+
+function onQuickAdd(item: { name: string; sourceItemId: string | null; weightGrams: number | null; valueCents: number | null; categoryName: string | null }) {
+  // Will create a mutation via outbox: upsert trip_item
+  // For now, optimistic insert into store
+  const id = crypto.randomUUID()
+  store.applyChange({
+    seq: 0,
+    table: 'trip_items',
+    id,
+    deleted: false,
+    row: {
+      trip_id: props.tripId,
+      name: item.name,
+      source_item_id: item.sourceItemId,
+      weight_grams: item.weightGrams,
+      value_cents: item.valueCents,
+      category_name: item.categoryName,
+      quantity: 1,
+      packed_count: 0,
+      state: 'open',
+      mode: 'pack',
+      flag_missing: isActive.value ? 1 : 0,
+      updated_hlc: '',
+    },
+  })
+}
+
+function onSkipItem(item: TripItem) {
+  // Mark as "consciously not packing" — sets state to skipped, quantity to 0
+  store.applyChange({
+    seq: 0,
+    table: 'trip_items',
+    id: item.id,
+    deleted: false,
+    row: {
+      ...tripItemToRow(item),
+      quantity: 0,
+      packed_count: 0,
+      state: 'skipped',
+    },
+  })
+}
+
+function onUnskipItem(item: TripItem) {
+  // Restore from skipped back to open with quantity 1
+  store.applyChange({
+    seq: 0,
+    table: 'trip_items',
+    id: item.id,
+    deleted: false,
+    row: {
+      ...tripItemToRow(item),
+      quantity: 1,
+      packed_count: 0,
+      state: 'open',
+    },
+  })
+}
+
+function tripItemToRow(item: TripItem): Record<string, unknown> {
+  return {
+    trip_id: item.trip_id,
+    name: item.name,
+    source_item_id: item.source_item_id,
+    weight_grams: item.weight_grams,
+    value_cents: item.value_cents,
+    category_name: item.category_name,
+    quantity: item.quantity,
+    packed_count: item.packed_count,
+    state: item.state,
+    mode: item.mode,
+    late_packer: item.late_packer ? 1 : 0,
+    assigned_traveler_id: item.assigned_traveler_id,
+    packer_user_id: item.packer_user_id,
+    container_id: item.container_id,
+    packing_now_by: item.packing_now_by,
+    flag_unused: item.flag_unused ? 1 : 0,
+    flag_missing: item.flag_missing ? 1 : 0,
+    updated_hlc: item.updated_hlc,
+  }
 }
 
 async function handleRefresh(event: CustomEvent) {
@@ -166,15 +291,22 @@ async function handleRefresh(event: CustomEvent) {
         </div>
       </div>
 
+      <!-- Inline quick-add -->
+      <QuickAddItem
+        :trip-id="tripId"
+        :is-active="isActive"
+        @add="onQuickAdd"
+      />
+
       <!-- Empty state -->
-      <div v-if="filteredGroups.size === 0" class="empty-state">
+      <div v-if="filteredGroups.size === 0 && skippedItems.length === 0" class="empty-state">
         <IonIcon :icon="bagHandleOutline" class="empty-icon" />
-        <p v-if="store.getItems(tripId).length === 0">No items yet</p>
+        <p v-if="allItems.length === 0">No items yet — add one above</p>
         <p v-else>All items filtered out</p>
       </div>
 
       <!-- Grouped item list -->
-      <IonList v-else>
+      <IonList v-if="filteredGroups.size > 0">
         <IonItemGroup v-for="[group, items] in filteredGroups" :key="group">
           <IonItemDivider sticky>
             <IonLabel>{{ group }}</IonLabel>
@@ -187,7 +319,6 @@ async function handleRefresh(event: CustomEvent) {
               :router-link="`/trips/${tripId}/items/${item.id}`"
               :class="{
                 'item-packed': item.state === 'packed',
-                'item-skipped': item.state === 'skipped',
               }"
             >
               <div slot="start">
@@ -224,6 +355,11 @@ async function handleRefresh(event: CustomEvent) {
               <IonChip v-if="item.late_packer" slot="end" color="danger" outline>
                 <IonIcon :icon="timeOutline" />
               </IonChip>
+
+              <!-- Missing flag -->
+              <IonChip v-if="item.flag_missing" slot="end" color="danger" outline>
+                Missing
+              </IonChip>
             </IonItem>
 
             <!-- Swipe actions -->
@@ -231,18 +367,38 @@ async function handleRefresh(event: CustomEvent) {
               <IonItemOption color="primary">Pack</IonItemOption>
             </IonItemOptions>
             <IonItemOptions side="end">
+              <IonItemOption color="medium" @click="onSkipItem(item)">
+                <IonIcon slot="icon-only" :icon="eyeOffOutline" />
+              </IonItemOption>
               <IonItemOption color="secondary">Assign</IonItemOption>
             </IonItemOptions>
           </IonItemSliding>
         </IonItemGroup>
       </IonList>
 
-      <!-- FAB: add ad-hoc item -->
-      <IonFab vertical="bottom" horizontal="end" slot="fixed">
-        <IonFabButton aria-label="Add item">
-          <IonIcon :icon="addOutline" />
-        </IonFabButton>
-      </IonFab>
+      <!-- Skipped items section (FR-5.5) -->
+      <div v-if="skippedItems.length > 0" class="skipped-section">
+        <button class="skipped-header" @click="showSkipped = !showSkipped">
+          <IonIcon :icon="eyeOffOutline" />
+          <span>Consciously skipped ({{ skippedItems.length }})</span>
+          <span class="chevron" :class="{ open: showSkipped }">&#9662;</span>
+        </button>
+
+        <IonList v-if="showSkipped">
+          <IonItemSliding v-for="item in skippedItems" :key="item.id">
+            <IonItem class="item-skipped">
+              <IonLabel>
+                <h3>{{ item.name }}</h3>
+              </IonLabel>
+            </IonItem>
+            <IonItemOptions side="end">
+              <IonItemOption color="success" @click="onUnskipItem(item)">
+                <IonIcon slot="icon-only" :icon="eyeOutline" />
+              </IonItemOption>
+            </IonItemOptions>
+          </IonItemSliding>
+        </IonList>
+      </div>
     </IonContent>
   </IonPage>
 </template>
@@ -328,8 +484,39 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 .item-skipped {
-  opacity: 0.4;
+  opacity: 0.5;
+}
+
+.item-skipped h3 {
   text-decoration: line-through;
+}
+
+/* Skipped section */
+.skipped-section {
+  margin-top: 16px;
+  border-top: 1px solid var(--ion-color-light-shade);
+}
+
+.skipped-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--ion-color-light);
+  border: none;
+  cursor: pointer;
+  color: var(--ion-color-medium);
+  font-size: 0.9rem;
+}
+
+.chevron {
+  margin-left: auto;
+  transition: transform 0.2s;
+}
+
+.chevron.open {
+  transform: rotate(180deg);
 }
 
 /* Empty state */
@@ -345,6 +532,4 @@ async function handleRefresh(event: CustomEvent) {
   font-size: 64px;
   margin-bottom: 16px;
 }
-
-/* Desktop: M5 side panel is handled by router config, not here */
 </style>
