@@ -1,0 +1,11 @@
+.git
+.github
+.claude
+docs
+*.md
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+.mcp.json

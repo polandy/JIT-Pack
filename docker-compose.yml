@@ -1,0 +1,24 @@
+volumes:
+  data:
+
+services:
+  app:
+    build: .
+    container_name: jitpack-app
+    restart: unless-stopped
+    mem_limit: 128m
+    ports:
+      - "8080:8080"
+    volumes:
+      - data:/data
+    environment:
+      JITPACK_LISTEN: ":8080"
+      JITPACK_DB_PATH: "/data/jitpack.db"
+      JITPACK_SINGLE_USER: "true"
+      JITPACK_LOCAL_USER_ID: "local"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
