@@ -88,3 +88,48 @@ export interface Container {
   carrier_traveler_id: string | null
   max_weight_grams: number | null
 }
+
+// --- Master data ---
+
+export interface Category {
+  id: string
+  name: string
+  sort_order: number
+}
+
+export type ItemUnit = 'pieces' | 'pairs' | 'per_day'
+
+export interface MasterItem {
+  id: string
+  name: string
+  category_id: string | null
+  category_name?: string
+  weight_grams: number | null
+  value_cents: number | null
+  is_consumable: boolean
+  unit: ItemUnit
+  per_day_rate: number | null
+}
+
+export interface Template {
+  id: string
+  owner_id: string
+  name: string
+  is_published: boolean
+}
+
+export type TemplateAssignment = 'per_person' | 'trip_global'
+export type TemplateDedup = 'max' | 'sum'
+
+export interface TemplateItem {
+  id: string
+  template_id: string
+  item_id: string
+  item_name?: string
+  quantity_formula: string
+  assignment: TemplateAssignment
+  dedup: TemplateDedup
+  conditions: Record<string, unknown> | null
+  default_mode: ItemMode
+  late_packer: boolean
+}
