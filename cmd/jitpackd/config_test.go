@@ -45,9 +45,26 @@ func TestLoadConfig(t *testing.T) {
 			},
 		},
 		{
-			name:    "multi-user missing secret",
+			name: "multi-user with JWKS URL",
+			env:  map[string]string{"JITPACK_JWKS_URL": "https://auth.example.com/.well-known/jwks.json"},
+			want: Config{
+				Listen:  ":8080",
+				DBPath:  "jitpack.db",
+				JWKSURL: "https://auth.example.com/.well-known/jwks.json",
+			},
+		},
+		{
+			name: "multi-user both secret and JWKS",
+			env: map[string]string{
+				"JITPACK_JWT_SECRET": "s3cret",
+				"JITPACK_JWKS_URL":  "https://auth.example.com/.well-known/jwks.json",
+			},
+			wantErr: "mutually exclusive",
+		},
+		{
+			name:    "multi-user missing secret and JWKS",
 			env:     map[string]string{},
-			wantErr: "JITPACK_JWT_SECRET is required",
+			wantErr: "JITPACK_JWT_SECRET or JITPACK_JWKS_URL is required",
 		},
 		{
 			name: "single-user missing local user ID",

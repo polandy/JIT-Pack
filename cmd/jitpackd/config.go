@@ -12,7 +12,8 @@ type Config struct {
 	DBPath      string // JITPACK_DB_PATH, default "jitpack.db"
 	SingleUser  bool   // JITPACK_SINGLE_USER, "true" enables
 	LocalUserID string // JITPACK_LOCAL_USER_ID, required when SingleUser
-	JWTSecret   string // JITPACK_JWT_SECRET, required when !SingleUser
+	JWTSecret   string // JITPACK_JWT_SECRET, HS256 secret (multi-user)
+	JWKSURL     string // JITPACK_JWKS_URL, RS256 JWKS endpoint (multi-user)
 }
 
 // LoadConfig reads configuration from the environment. It returns an
@@ -29,6 +30,7 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 		SingleUser:  getenv("JITPACK_SINGLE_USER") == "true",
 		LocalUserID: getenv("JITPACK_LOCAL_USER_ID"),
 		JWTSecret:   getenv("JITPACK_JWT_SECRET"),
+		JWKSURL:     getenv("JITPACK_JWKS_URL"),
 	}
 
 	if c.SingleUser {
@@ -36,8 +38,11 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 			return Config{}, errors.New("JITPACK_LOCAL_USER_ID is required in single-user mode")
 		}
 	} else {
-		if c.JWTSecret == "" {
-			return Config{}, errors.New("JITPACK_JWT_SECRET is required in multi-user mode")
+		if c.JWTSecret == "" && c.JWKSURL == "" {
+			return Config{}, errors.New("JITPACK_JWT_SECRET or JITPACK_JWKS_URL is required in multi-user mode")
+		}
+		if c.JWTSecret != "" && c.JWKSURL != "" {
+			return Config{}, errors.New("JITPACK_JWT_SECRET and JITPACK_JWKS_URL are mutually exclusive")
 		}
 	}
 	return c, nil
