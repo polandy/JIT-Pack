@@ -58,6 +58,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/users/{userID}/avatar", s.handleGetAvatar)
 	mux.HandleFunc("PUT /api/v1/users/{userID}/avatar", s.authed(s.handlePutAvatar))
 	mux.HandleFunc("PUT /api/v1/users/{userID}/display-name", s.authed(s.handlePutDisplayName))
+	mux.HandleFunc("GET /api/v1/templates/{templateID}/export", s.authed(s.handleExportTemplate))
+	mux.HandleFunc("POST /api/v1/templates/import", s.authed(s.handleImportTemplate))
+	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.yaml", s.authed(s.handleExportTrip))
+	mux.HandleFunc("POST /api/v1/trips/import", s.authed(s.handleImportTrip))
 	mux.HandleFunc("GET /ws", s.authed(s.handleWS))
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
