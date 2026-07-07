@@ -1,0 +1,39 @@
+# Binaries
+/jitpackd
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test output
+*.test
+*.out
+cover.html
+coverage.txt
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+/dist/
+/bin/
+
+# SQLite databases (runtime)
+*.db
+*.db-wal
+*.db-shm
+
+# Environment
+.env
+.env.*
+
+# MCP config (contains API keys)
+.mcp.json
