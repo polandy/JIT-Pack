@@ -24,21 +24,30 @@ import {
 } from '@ionic/vue'
 import { addOutline, airplaneOutline, archiveOutline } from 'ionicons/icons'
 import { ref, computed } from 'vue'
+import { useTripStore } from '@/stores/tripStore'
 import type { Trip, TripStatus } from '@/types/domain'
 
-const filter = ref<TripStatus>('active')
-const trips = ref<Trip[]>([])
-const loading = ref(false)
+const store = useTripStore()
 
-const filteredTrips = computed(() =>
-  trips.value.filter((t) => t.status === filter.value),
-)
+// Map DB 'planning' to display filter 'planned' for UI clarity
+type FilterStatus = 'active' | 'planned' | 'archived'
+const filter = ref<FilterStatus>('active')
 
-const isEmpty = computed(() => filteredTrips.value.length === 0 && !loading.value)
+function matchesFilter(trip: Trip): boolean {
+  switch (filter.value) {
+    case 'active': return trip.status === 'active' || trip.status === 'repack'
+    case 'planned': return trip.status === 'planning'
+    case 'archived': return trip.status === 'archived'
+  }
+}
+
+const filteredTrips = computed(() => store.tripList.filter(matchesFilter))
+const isEmpty = computed(() => filteredTrips.value.length === 0)
 
 function progressPercent(trip: Trip): number {
-  if (trip.item_count === 0) return 0
-  return Math.round((trip.packed_count / trip.item_count) * 100)
+  const k = store.kpis(trip.id)
+  if (k.totalItems === 0) return 0
+  return Math.round((k.packedItems / k.totalItems) * 100)
 }
 
 function progressColor(trip: Trip): string {
@@ -48,13 +57,17 @@ function progressColor(trip: Trip): string {
   return 'var(--ion-color-warning)'
 }
 
+function itemSummary(trip: Trip): string {
+  const k = store.kpis(trip.id)
+  return `${k.packedItems}/${k.totalItems} packed`
+}
+
 function onFilterChange(event: CustomEvent) {
-  filter.value = event.detail.value as TripStatus
+  filter.value = event.detail.value as FilterStatus
 }
 
 async function handleRefresh(event: CustomEvent) {
   const refresher = event.target as HTMLIonRefresherElement
-  // Placeholder: await sync
   refresher.complete()
 }
 </script>
@@ -126,11 +139,11 @@ async function handleRefresh(event: CustomEvent) {
             </div>
             <IonLabel>
               <h2>{{ trip.name }}</h2>
-              <p v-if="trip.start_date">
+              <p>
                 {{ trip.start_date }}
                 <span v-if="trip.end_date"> &ndash; {{ trip.end_date }}</span>
               </p>
-              <p>{{ trip.packed_count }}/{{ trip.item_count }} packed</p>
+              <p>{{ itemSummary(trip) }}</p>
             </IonLabel>
           </IonItem>
 
@@ -207,8 +220,7 @@ async function handleRefresh(event: CustomEvent) {
   transform-origin: 18px 18px;
 }
 
-/* G-9: on desktop the FAB could be inline in header;
-   for now keep it but adjust position */
+/* G-9: on desktop the FAB could be inline in header */
 @media (min-width: 900px) {
   .mobile-fab {
     bottom: 24px;

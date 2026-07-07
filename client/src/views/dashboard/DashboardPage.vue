@@ -22,12 +22,17 @@ import {
   IonRefresherContent,
 } from '@ionic/vue'
 import { airplaneOutline, addOutline } from 'ionicons/icons'
-import { ref, computed } from 'vue'
-import type { DashboardTrip } from '@/types/domain'
+import { computed } from 'vue'
+import { useTripStore } from '@/stores/tripStore'
+import type { Trip } from '@/types/domain'
 
-// Placeholder — will be wired to a real store/composable
-const trips = ref<DashboardTrip[]>([])
-const loading = ref(false)
+const store = useTripStore()
+
+const activeTrips = computed(() =>
+  store.tripList.filter((t) => t.status === 'active'),
+)
+
+const isEmpty = computed(() => activeTrips.value.length === 0)
 
 const greeting = computed(() => {
   const hour = new Date().getHours()
@@ -36,17 +41,29 @@ const greeting = computed(() => {
   return 'Good evening'
 })
 
-const isEmpty = computed(() => trips.value.length === 0 && !loading.value)
+function tripKpis(trip: Trip) {
+  return store.kpis(trip.id)
+}
 
-function progressFraction(trip: DashboardTrip): number {
-  if (trip.trip.item_count === 0) return 0
-  return trip.trip.packed_count / trip.trip.item_count
+function progressFraction(trip: Trip): number {
+  const k = tripKpis(trip)
+  if (k.totalItems === 0) return 0
+  return k.packedItems / k.totalItems
+}
+
+function previewItems(tripId: string) {
+  return store
+    .getItems(tripId)
+    .filter((i) => i.state !== 'packed' && i.state !== 'skipped')
+    .slice(0, 3)
+}
+
+function openItemCount(tripId: string): number {
+  return store.getItems(tripId).filter((i) => i.state !== 'packed' && i.state !== 'skipped').length
 }
 
 async function handleRefresh(event: CustomEvent) {
-  // Will trigger sync drain
   const refresher = event.target as HTMLIonRefresherElement
-  // Placeholder: await sync
   refresher.complete()
 }
 </script>
@@ -73,51 +90,51 @@ async function handleRefresh(event: CustomEvent) {
 
       <!-- Trip cards -->
       <IonCard
-        v-for="dt in trips"
-        :key="dt.trip.id"
+        v-for="trip in activeTrips"
+        :key="trip.id"
         button
-        :router-link="`/trips/${dt.trip.id}`"
+        :router-link="`/trips/${trip.id}`"
       >
         <IonCardHeader>
-          <IonCardTitle>{{ dt.trip.name }}</IonCardTitle>
-          <p class="trip-dates" v-if="dt.trip.start_date">
-            {{ dt.trip.start_date }}
-            <span v-if="dt.trip.end_date"> &ndash; {{ dt.trip.end_date }}</span>
+          <IonCardTitle>{{ trip.name }}</IonCardTitle>
+          <p class="trip-dates">
+            {{ trip.start_date }}
+            <span v-if="trip.end_date"> &ndash; {{ trip.end_date }}</span>
           </p>
         </IonCardHeader>
 
-        <IonProgressBar :value="progressFraction(dt)" />
+        <IonProgressBar :value="progressFraction(trip)" />
 
         <IonCardContent>
           <p class="item-summary">
-            {{ dt.trip.packed_count }}/{{ dt.trip.item_count }} packed
-            <span v-if="dt.myItemCount > 0">
-              &middot; {{ dt.myItemCount }} items for you
+            {{ tripKpis(trip).packedItems }}/{{ tripKpis(trip).totalItems }} packed
+            <span v-if="openItemCount(trip.id) > 0">
+              &middot; {{ openItemCount(trip.id) }} open
             </span>
           </p>
 
           <IonItem
-            v-for="item in dt.myItems"
+            v-for="item in previewItems(trip.id)"
             :key="item.id"
             lines="none"
             class="dashboard-item"
           >
             <IonCheckbox
               slot="start"
-              :checked="item.packed >= item.quantity"
-              :indeterminate="item.packed > 0 && item.packed < item.quantity"
+              :checked="item.packed_count >= item.quantity"
+              :indeterminate="item.packed_count > 0 && item.packed_count < item.quantity"
               disabled
             />
             <IonLabel>
               <span>{{ item.name }}</span>
               <span v-if="item.quantity > 1" class="qty-badge">
-                {{ item.packed }}/{{ item.quantity }}
+                {{ item.packed_count }}/{{ item.quantity }}
               </span>
             </IonLabel>
           </IonItem>
 
-          <p v-if="dt.myItemCount > 3" class="more-items">
-            +{{ dt.myItemCount - 3 }} more
+          <p v-if="openItemCount(trip.id) > 3" class="more-items">
+            +{{ openItemCount(trip.id) - 3 }} more
           </p>
         </IonCardContent>
       </IonCard>
