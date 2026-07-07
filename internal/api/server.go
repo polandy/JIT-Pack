@@ -24,20 +24,40 @@ const (
 	maxPushBatch     = 200
 )
 
-// Server wires the sync endpoints. The signing secret is HS256 for the
-// walking skeleton; RS256 against the IdP's JWKS replaces it before any
-// real deployment (tracked as an open task, not a code TODO).
+// Server wires the sync endpoints. Authentication supports HS256
+// (shared secret, for testing or simple setups) and RS256 (JWKS from
+// an IdP such as Authelia, for production multi-user deployments).
 type Server struct {
 	store          *store.Store
-	secret         []byte
+	keyFunc        jwt.Keyfunc
+	validMethods   []string
 	singleUserMode bool
 	localUserID    string
 	hub            *Hub
 }
 
+// New creates a Server that validates JWTs with HS256 using the given
+// shared secret. Suitable for tests and single-secret deployments.
 func New(st *store.Store, secret []byte) *Server {
 	hub := NewHub(st.HeadSeq)
-	return &Server{store: st, secret: secret, hub: hub}
+	return &Server{
+		store:        st,
+		keyFunc:      func(*jwt.Token) (any, error) { return secret, nil },
+		validMethods: []string{"HS256"},
+		hub:          hub,
+	}
+}
+
+// NewWithJWKS creates a Server that validates JWTs with RS256 using
+// keys fetched from the given JWKS provider.
+func NewWithJWKS(st *store.Store, jwks *JWKSProvider) *Server {
+	hub := NewHub(st.HeadSeq)
+	return &Server{
+		store:        st,
+		keyFunc:      jwks.KeyFunc,
+		validMethods: []string{"RS256"},
+		hub:          hub,
+	}
 }
 
 // NewSingleUser builds a Server for Single-User Mode (Addendum FR-17.2):
@@ -86,9 +106,8 @@ func (s *Server) authed(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		claims := jwt.MapClaims{}
-		_, err := jwt.ParseWithClaims(raw, claims,
-			func(*jwt.Token) (any, error) { return s.secret, nil },
-			jwt.WithValidMethods([]string{"HS256"}))
+		_, err := jwt.ParseWithClaims(raw, claims, s.keyFunc,
+			jwt.WithValidMethods(s.validMethods))
 		if err != nil {
 			writeError(w, http.StatusUnauthorized, "unauthorized", "invalid token")
 			return

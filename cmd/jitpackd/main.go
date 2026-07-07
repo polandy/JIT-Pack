@@ -31,8 +31,16 @@ func main() {
 	if cfg.SingleUser {
 		log.Printf("starting in single-user mode (user=%s)", cfg.LocalUserID)
 		srv = api.NewSingleUser(st, cfg.LocalUserID)
+	} else if cfg.JWKSURL != "" {
+		log.Printf("starting in multi-user mode (JWKS: %s)", cfg.JWKSURL)
+		jwks, err := api.NewJWKSProvider(cfg.JWKSURL)
+		if err != nil {
+			log.Fatalf("jwks: %v", err)
+		}
+		defer jwks.Close()
+		srv = api.NewWithJWKS(st, jwks)
 	} else {
-		log.Print("starting in multi-user mode")
+		log.Print("starting in multi-user mode (HS256)")
 		srv = api.New(st, []byte(cfg.JWTSecret))
 	}
 
