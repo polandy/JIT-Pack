@@ -14,6 +14,7 @@ import type {
   GroupBy,
   Traveler,
   Container,
+  ItemTodo,
 } from '@/types/domain'
 import type { PullChange } from '@/api/types'
 
@@ -22,6 +23,7 @@ export const useTripStore = defineStore('trips', () => {
   const tripItems = ref<Map<string, TripItem[]>>(new Map())
   const travelers = ref<Map<string, Traveler[]>>(new Map())
   const containers = ref<Map<string, Container[]>>(new Map())
+  const todos = ref<Map<string, ItemTodo[]>>(new Map())
   const groupByPrefs = ref<Map<string, GroupBy>>(new Map())
 
   // --- Getters ---
@@ -44,12 +46,42 @@ export const useTripStore = defineStore('trips', () => {
     return containers.value.get(tripId) ?? []
   }
 
+  function getTodos(tripId: string): ItemTodo[] {
+    return todos.value.get(tripId) ?? []
+  }
+
+  function getItemTodos(tripId: string, tripItemId: string): ItemTodo[] {
+    return getTodos(tripId).filter((t) => t.trip_item_id === tripItemId)
+  }
+
+  function getOpenTodos(tripId: string): ItemTodo[] {
+    return getTodos(tripId).filter((t) => t.task_state === 'open')
+  }
+
+  /** Items that are packed but still have open prep todos. */
+  function itemsWithOpenPrep(tripId: string): Array<{ item: TripItem; openTodos: ItemTodo[] }> {
+    const items = getItems(tripId)
+    const tripTodos = getTodos(tripId)
+    const result: Array<{ item: TripItem; openTodos: ItemTodo[] }> = []
+
+    for (const item of items) {
+      const openTodos = tripTodos.filter(
+        (t) => t.trip_item_id === item.id && t.task_state === 'open',
+      )
+      if (openTodos.length > 0) {
+        result.push({ item, openTodos })
+      }
+    }
+    return result
+  }
+
   function getGroupBy(tripId: string): GroupBy {
     return groupByPrefs.value.get(tripId) ?? 'category'
   }
 
   function kpis(tripId: string): TripKPIs {
     const items = getItems(tripId)
+    const tripTodos = getTodos(tripId)
     let totalItems = 0
     let packedItems = 0
     let totalWeight = 0
@@ -70,7 +102,10 @@ export const useTripStore = defineStore('trips', () => {
       }
     }
 
-    return { totalItems, packedItems, totalWeight, packedWeight, totalValue, packedValue }
+    const totalTodos = tripTodos.length
+    const resolvedTodos = tripTodos.filter((t) => t.task_state === 'resolved').length
+
+    return { totalItems, packedItems, totalWeight, packedWeight, totalValue, packedValue, totalTodos, resolvedTodos }
   }
 
   function groupedItems(tripId: string): Map<string, TripItem[]> {
@@ -113,6 +148,7 @@ export const useTripStore = defineStore('trips', () => {
     tripItems.value.delete(id)
     travelers.value.delete(id)
     containers.value.delete(id)
+    todos.value.delete(id)
   }
 
   function setGroupBy(tripId: string, groupBy: GroupBy): void {
@@ -153,6 +189,14 @@ export const useTripStore = defineStore('trips', () => {
           removeContainer(change.id)
         } else if (row) {
           upsertContainer(rowToContainer(change.id, row))
+        }
+        break
+
+      case 'comments':
+        if (change.deleted) {
+          removeTodo(change.id)
+        } else if (row && row['is_task']) {
+          upsertTodo(rowToTodo(change.id, row))
         }
         break
     }
@@ -229,6 +273,27 @@ export const useTripStore = defineStore('trips', () => {
     }
   }
 
+  function upsertTodo(todo: ItemTodo): void {
+    const list = todos.value.get(todo.trip_id) ?? []
+    const idx = list.findIndex((t) => t.id === todo.id)
+    if (idx >= 0) {
+      list[idx] = todo
+    } else {
+      list.push(todo)
+    }
+    todos.value.set(todo.trip_id, list)
+  }
+
+  function removeTodo(id: string): void {
+    for (const [tripId, list] of todos.value) {
+      const filtered = list.filter((t) => t.id !== id)
+      if (filtered.length !== list.length) {
+        todos.value.set(tripId, filtered)
+        break
+      }
+    }
+  }
+
   return {
     trips,
     tripList,
@@ -236,6 +301,10 @@ export const useTripStore = defineStore('trips', () => {
     getItems,
     getTravelers,
     getContainers,
+    getTodos,
+    getItemTodos,
+    getOpenTodos,
+    itemsWithOpenPrep,
     getGroupBy,
     kpis,
     groupedItems,
@@ -306,5 +375,16 @@ function rowToContainer(id: string, row: Record<string, unknown>): Container {
     name: row['name'] as string,
     carrier_traveler_id: (row['carrier_traveler_id'] as string) ?? null,
     max_weight_grams: (row['max_weight_grams'] as number) ?? null,
+  }
+}
+
+function rowToTodo(id: string, row: Record<string, unknown>): ItemTodo {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    trip_item_id: row['trip_item_id'] as string,
+    author_id: row['author_id'] as string,
+    body: row['body'] as string,
+    task_state: (row['task_state'] as ItemTodo['task_state']) ?? 'open',
   }
 }

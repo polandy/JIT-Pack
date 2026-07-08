@@ -122,6 +122,38 @@ export function useMutations(hlc: HLCGenerator) {
     return make('delete', 'trip_items', itemId)
   }
 
+  // --- Preparation todo mutations (FR-7.3) ---
+
+  function addTodo(
+    tripId: string,
+    tripItemId: string,
+    authorId: string,
+    body: string,
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const mutation = make('insert', 'comments', id, {
+      trip_id: tripId,
+      trip_item_id: tripItemId,
+      author_id: authorId,
+      body,
+      is_task: 1,
+      task_state: 'open',
+    })
+    return { mutation, id }
+  }
+
+  function resolveTodo(todoId: string): Mutation {
+    return make('upsert', 'comments', todoId, { task_state: 'resolved' })
+  }
+
+  function reopenTodo(todoId: string): Mutation {
+    return make('upsert', 'comments', todoId, { task_state: 'open' })
+  }
+
+  function deleteTodo(todoId: string): Mutation {
+    return make('delete', 'comments', todoId)
+  }
+
   // --- Trip mutations ---
 
   function createTrip(
@@ -261,6 +293,11 @@ export function useMutations(hlc: HLCGenerator) {
     setLatePacker,
     addTripItem,
     deleteTripItem,
+    // Todos
+    addTodo,
+    resolveTodo,
+    reopenTodo,
+    deleteTodo,
     // Trips
     createTrip,
     updateTripStatus,

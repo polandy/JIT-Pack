@@ -234,4 +234,96 @@ describe('tripStore', () => {
     store.applyChange({ seq: 2, table: 'containers', id: 'c1', deleted: true, row: null })
     expect(store.getContainers('t1')).toHaveLength(0)
   })
+
+  // --- Preparation Todos (FR-7.3) ---
+
+  it('applies comment with is_task as todo', () => {
+    const store = useTripStore()
+    store.applyChange({
+      seq: 1, table: 'comments', id: 'todo1', deleted: false,
+      row: { trip_id: 't1', trip_item_id: 'i1', author_id: 'u1', body: 'Charge battery', is_task: 1, task_state: 'open' },
+    })
+    expect(store.getTodos('t1')).toHaveLength(1)
+    expect(store.getTodos('t1')[0].body).toBe('Charge battery')
+    expect(store.getTodos('t1')[0].task_state).toBe('open')
+  })
+
+  it('ignores non-task comments', () => {
+    const store = useTripStore()
+    store.applyChange({
+      seq: 1, table: 'comments', id: 'c1', deleted: false,
+      row: { trip_id: 't1', trip_item_id: 'i1', author_id: 'u1', body: 'just a comment', is_task: 0, task_state: null },
+    })
+    expect(store.getTodos('t1')).toHaveLength(0)
+  })
+
+  it('upserts existing todo (resolve)', () => {
+    const store = useTripStore()
+    store.applyChange({
+      seq: 1, table: 'comments', id: 'todo1', deleted: false,
+      row: { trip_id: 't1', trip_item_id: 'i1', author_id: 'u1', body: 'Charge battery', is_task: 1, task_state: 'open' },
+    })
+    store.applyChange({
+      seq: 2, table: 'comments', id: 'todo1', deleted: false,
+      row: { trip_id: 't1', trip_item_id: 'i1', author_id: 'u1', body: 'Charge battery', is_task: 1, task_state: 'resolved' },
+    })
+    expect(store.getTodos('t1')).toHaveLength(1)
+    expect(store.getTodos('t1')[0].task_state).toBe('resolved')
+  })
+
+  it('deletes a todo', () => {
+    const store = useTripStore()
+    store.applyChange({
+      seq: 1, table: 'comments', id: 'todo1', deleted: false,
+      row: { trip_id: 't1', trip_item_id: 'i1', author_id: 'u1', body: 'Charge battery', is_task: 1, task_state: 'open' },
+    })
+    store.applyChange({ seq: 2, table: 'comments', id: 'todo1', deleted: true, row: null })
+    expect(store.getTodos('t1')).toHaveLength(0)
+  })
+
+  it('getItemTodos filters by trip item', () => {
+    const store = useTripStore()
+    store.applyChanges([
+      { seq: 1, table: 'comments', id: 'todo1', deleted: false, row: { trip_id: 't1', trip_item_id: 'i1', author_id: 'u1', body: 'Task A', is_task: 1, task_state: 'open' } },
+      { seq: 2, table: 'comments', id: 'todo2', deleted: false, row: { trip_id: 't1', trip_item_id: 'i2', author_id: 'u1', body: 'Task B', is_task: 1, task_state: 'open' } },
+      { seq: 3, table: 'comments', id: 'todo3', deleted: false, row: { trip_id: 't1', trip_item_id: 'i1', author_id: 'u1', body: 'Task C', is_task: 1, task_state: 'resolved' } },
+    ])
+    expect(store.getItemTodos('t1', 'i1')).toHaveLength(2)
+    expect(store.getItemTodos('t1', 'i2')).toHaveLength(1)
+  })
+
+  it('getOpenTodos returns only open todos', () => {
+    const store = useTripStore()
+    store.applyChanges([
+      { seq: 1, table: 'comments', id: 'todo1', deleted: false, row: { trip_id: 't1', trip_item_id: 'i1', author_id: 'u1', body: 'Open', is_task: 1, task_state: 'open' } },
+      { seq: 2, table: 'comments', id: 'todo2', deleted: false, row: { trip_id: 't1', trip_item_id: 'i1', author_id: 'u1', body: 'Done', is_task: 1, task_state: 'resolved' } },
+    ])
+    expect(store.getOpenTodos('t1')).toHaveLength(1)
+    expect(store.getOpenTodos('t1')[0].body).toBe('Open')
+  })
+
+  it('itemsWithOpenPrep returns items with open todos', () => {
+    const store = useTripStore()
+    store.applyChanges([
+      { seq: 1, table: 'trip_items', id: 'i1', deleted: false, row: { trip_id: 't1', name: 'Camera', quantity: 1, packed_count: 1, state: 'packed', mode: 'pack', updated_hlc: 'h1' } },
+      { seq: 2, table: 'trip_items', id: 'i2', deleted: false, row: { trip_id: 't1', name: 'Clothes', quantity: 1, packed_count: 0, state: 'open', mode: 'pack', updated_hlc: 'h2' } },
+      { seq: 3, table: 'comments', id: 'todo1', deleted: false, row: { trip_id: 't1', trip_item_id: 'i1', author_id: 'u1', body: 'Charge battery', is_task: 1, task_state: 'open' } },
+    ])
+    const result = store.itemsWithOpenPrep('t1')
+    expect(result).toHaveLength(1)
+    expect(result[0].item.name).toBe('Camera')
+    expect(result[0].openTodos).toHaveLength(1)
+  })
+
+  it('KPIs include todo counts', () => {
+    const store = useTripStore()
+    store.applyChanges([
+      { seq: 1, table: 'trip_items', id: 'i1', deleted: false, row: { trip_id: 't1', name: 'A', quantity: 1, packed_count: 0, state: 'open', mode: 'pack', updated_hlc: 'h1' } },
+      { seq: 2, table: 'comments', id: 'todo1', deleted: false, row: { trip_id: 't1', trip_item_id: 'i1', author_id: 'u1', body: 'Task A', is_task: 1, task_state: 'open' } },
+      { seq: 3, table: 'comments', id: 'todo2', deleted: false, row: { trip_id: 't1', trip_item_id: 'i1', author_id: 'u1', body: 'Task B', is_task: 1, task_state: 'resolved' } },
+    ])
+    const k = store.kpis('t1')
+    expect(k.totalTodos).toBe(2)
+    expect(k.resolvedTodos).toBe(1)
+  })
 })

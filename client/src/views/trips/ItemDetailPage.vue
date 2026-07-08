@@ -26,15 +26,20 @@ import {
   IonNote,
 } from '@ionic/vue'
 import {
+  IonInput,
+  IonCheckbox,
+} from '@ionic/vue'
+import {
   bagHandleOutline,
   cartOutline,
   timeOutline,
   alertCircleOutline,
   removeCircleOutline,
+  buildOutline,
 } from 'ionicons/icons'
-import { computed, inject } from 'vue'
+import { computed, inject, ref } from 'vue'
 import { useTripStore } from '@/stores/tripStore'
-import type { ItemMode } from '@/types/domain'
+import type { ItemMode, ItemTodo } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 
@@ -52,6 +57,28 @@ const travelers = computed(() => tripStore.getTravelers(props.tripId))
 const containers = computed(() => tripStore.getContainers(props.tripId))
 
 const isActive = computed(() => trip.value?.status === 'active' || trip.value?.status === 'repack')
+
+const itemTodos = computed(() => tripStore.getItemTodos(props.tripId, props.itemId))
+const openTodoCount = computed(() => itemTodos.value.filter((t) => t.task_state === 'open').length)
+const hasPrepWithPacked = computed(() =>
+  item.value?.state === 'packed' && openTodoCount.value > 0,
+)
+const newTodoText = ref('')
+
+function addTodo() {
+  const body = newTodoText.value.trim()
+  if (!body) return
+  orchestrator.addPrepTodo(props.tripId, props.itemId, 'current-user', body)
+  newTodoText.value = ''
+}
+
+function toggleTodo(todo: ItemTodo) {
+  if (todo.task_state === 'open') {
+    orchestrator.resolvePrepTodo(props.tripId, todo)
+  } else {
+    orchestrator.reopenPrepTodo(props.tripId, todo)
+  }
+}
 
 function formatWeight(grams: number): string {
   return grams >= 1000 ? `${(grams / 1000).toFixed(1)} kg` : `${grams} g`
@@ -152,7 +179,12 @@ function itemToRow(i: typeof item.value & object): Record<string, unknown> {
               @zero="onZero"
               @toggle="onToggle"
             />
-            <span class="state-badge" :class="item.state">{{ item.state }}</span>
+            <span
+              class="state-badge"
+              :class="[item.state, { 'packed-open-prep': hasPrepWithPacked }]"
+            >
+              {{ hasPrepWithPacked ? 'packed (prep open)' : item.state }}
+            </span>
           </div>
         </div>
 
@@ -261,6 +293,37 @@ function itemToRow(i: typeof item.value & object): Record<string, unknown> {
           </IonList>
         </div>
 
+        <!-- Preparation Todos (FR-7.3) -->
+        <div class="detail-section">
+          <h2 class="section-title">
+            <IonIcon :icon="buildOutline" />
+            Preparation
+            <span v-if="openTodoCount > 0" class="prep-count">({{ openTodoCount }} open)</span>
+          </h2>
+          <IonList>
+            <IonItem v-for="todo in itemTodos" :key="todo.id" lines="inset">
+              <IonCheckbox
+                slot="start"
+                :checked="todo.task_state === 'resolved'"
+                @ionChange="toggleTodo(todo)"
+              />
+              <IonLabel :class="{ 'todo-resolved': todo.task_state === 'resolved' }">
+                {{ todo.body }}
+              </IonLabel>
+            </IonItem>
+            <IonItem lines="none">
+              <IonInput
+                v-model="newTodoText"
+                placeholder="Add prep todo..."
+                @keyup.enter="addTodo"
+              />
+            </IonItem>
+          </IonList>
+          <div v-if="hasPrepWithPacked" class="prep-warning">
+            Packed but has open prep tasks
+          </div>
+        </div>
+
         <!-- Lock overlay (G-3) -->
         <div v-if="item.packing_now_by" class="lock-banner">
           <IonChip color="primary">
@@ -328,6 +391,30 @@ function itemToRow(i: typeof item.value & object): Record<string, unknown> {
   justify-content: center;
   padding: 12px;
   background: var(--ion-background-color);
+}
+
+.todo-resolved {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.prep-count {
+  font-weight: 400;
+  color: var(--ion-color-warning);
+}
+
+.prep-warning {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  color: var(--ion-color-warning-shade);
+  background: var(--ion-color-warning-tint);
+  border-radius: 4px;
+  margin: 8px 16px;
+}
+
+.state-badge.packed-open-prep {
+  background: var(--ion-color-warning-tint);
+  color: var(--ion-color-warning-shade);
 }
 
 .empty-state {

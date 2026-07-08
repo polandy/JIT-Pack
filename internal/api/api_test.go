@@ -36,7 +36,7 @@ func newTestServer(t *testing.T) *httptest.Server {
 		`INSERT INTO users (id, oidc_subject, display_name) VALUES ('user-x', 'auth|x', 'Stranger')`,
 		`INSERT INTO trips (id, name, start_date, end_date) VALUES ('trip-samedan', 'Samedan 2026', '2026-07-10', '2026-07-20')`,
 		`INSERT INTO trip_members (trip_id, user_id, role) VALUES ('trip-samedan', 'user-a', 'owner')`,
-		`INSERT INTO trip_members (trip_id, user_id, role) VALUES ('trip-samedan', 'user-b', 'collaborator')`,
+		`INSERT INTO trip_members (trip_id, user_id, role) VALUES ('trip-samedan', 'user-b', 'editor')`,
 	}
 	for _, q := range seed {
 		if _, err := st.DB().Exec(q); err != nil {

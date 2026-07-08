@@ -123,4 +123,45 @@ describe('useMutations', () => {
     expect(mutation.table).toBe('items')
     expect(mutation.fields?.['name']).toBe('Soap')
   })
+
+  // --- Preparation Todos (FR-7.3) ---
+
+  it('addTodo creates insert on comments table', () => {
+    const m = useMutations(mockHLC())
+    const { mutation, id } = m.addTodo('t1', 'i1', 'u1', 'Charge battery')
+    expect(mutation.op).toBe('insert')
+    expect(mutation.table).toBe('comments')
+    expect(mutation.id).toBe(id)
+    expect(mutation.fields).toEqual({
+      trip_id: 't1',
+      trip_item_id: 'i1',
+      author_id: 'u1',
+      body: 'Charge battery',
+      is_task: 1,
+      task_state: 'open',
+    })
+  })
+
+  it('resolveTodo sets task_state to resolved', () => {
+    const m = useMutations(mockHLC())
+    const mut = m.resolveTodo('todo1')
+    expect(mut.op).toBe('upsert')
+    expect(mut.table).toBe('comments')
+    expect(mut.id).toBe('todo1')
+    expect(mut.fields).toEqual({ task_state: 'resolved' })
+  })
+
+  it('reopenTodo sets task_state to open', () => {
+    const m = useMutations(mockHLC())
+    const mut = m.reopenTodo('todo1')
+    expect(mut.fields).toEqual({ task_state: 'open' })
+  })
+
+  it('deleteTodo creates delete mutation', () => {
+    const m = useMutations(mockHLC())
+    const mut = m.deleteTodo('todo1')
+    expect(mut.op).toBe('delete')
+    expect(mut.table).toBe('comments')
+    expect(mut.id).toBe('todo1')
+  })
 })

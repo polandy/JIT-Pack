@@ -15,10 +15,13 @@ export interface Trip {
   imported: boolean
 }
 
+export type TripRole = 'owner' | 'admin' | 'editor'
+
 export interface TripParticipant {
   user_id: string
   display_name: string
   avatar_url: string | null
+  role: TripRole
 }
 
 export type ItemState = 'open' | 'packing_now' | 'partial' | 'packed' | 'skipped'
@@ -57,6 +60,8 @@ export interface TripKPIs {
   packedWeight: number
   totalValue: number
   packedValue: number
+  totalTodos: number
+  resolvedTodos: number
 }
 
 export interface DashboardTrip {
@@ -87,6 +92,19 @@ export interface Container {
   name: string
   carrier_traveler_id: string | null
   max_weight_grams: number | null
+}
+
+// --- Preparation Todos (FR-7.3) ---
+
+export type TodoState = 'open' | 'resolved'
+
+export interface ItemTodo {
+  id: string
+  trip_id: string
+  trip_item_id: string
+  author_id: string
+  body: string
+  task_state: TodoState
 }
 
 // --- Master data ---

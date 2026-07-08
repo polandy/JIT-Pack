@@ -270,3 +270,166 @@ func (s *Store) mustApply(t *testing.T, tripID string, m sync.Mutation) {
 		t.Fatalf("ApplyMutation(%s): %v", m.MutationID, err)
 	}
 }
+
+// --- Multi-table sync (FR-7.3, FR-10.1, FR-2.5) ---
+
+func TestApplyMutation_CommentsTable_InsertAndPull(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+
+	// Insert a trip item first (comments reference trip_items)
+	s.mustApply(t, testTrip, sync.Mutation{
+		MutationID: "m0", Op: sync.OpInsert, Table: "trip_items", ID: "item-1",
+		Fields: map[string]any{"trip_id": testTrip, "name": "Camera"},
+		HLC:    sync.HLC("0000000001000-0000-aaaaaaaa"),
+	})
+
+	// Insert a prep todo (task-type comment)
+	m := sync.Mutation{
+		MutationID: "m1", Op: sync.OpInsert, Table: "comments", ID: "todo-1",
+		Fields: map[string]any{
+			"trip_id": testTrip, "trip_item_id": "item-1", "author_id": testUser,
+			"body": "Charge battery", "is_task": 1, "task_state": "open",
+		},
+		HLC: sync.HLC("0000000001000-0001-aaaaaaaa"),
+	}
+	res, err := s.ApplyMutation(ctx, testTrip, m)
+	if err != nil {
+		t.Fatalf("ApplyMutation: %v", err)
+	}
+	if res.Outcome != "applied" {
+		t.Errorf("outcome = %q, want applied", res.Outcome)
+	}
+
+	// Verify it appears in pull
+	page, err := s.Pull(ctx, testTrip, 0, 100)
+	if err != nil {
+		t.Fatalf("Pull: %v", err)
+	}
+	var foundTodo bool
+	for _, c := range page.Changes {
+		if c.Table == "comments" && c.ID == "todo-1" {
+			foundTodo = true
+			if c.Row["body"] != "Charge battery" {
+				t.Errorf("todo body = %v, want 'Charge battery'", c.Row["body"])
+			}
+		}
+	}
+	if !foundTodo {
+		t.Error("todo not found in pull response")
+	}
+}
+
+func TestApplyMutation_TravelersTable(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	m := sync.Mutation{
+		MutationID: "m1", Op: sync.OpInsert, Table: "travelers", ID: "trav-1",
+		Fields: map[string]any{"trip_id": testTrip, "name": "Alice", "profile": "adult"},
+		HLC:    sync.HLC("0000000001000-0000-aaaaaaaa"),
+	}
+	res, err := s.ApplyMutation(ctx, testTrip, m)
+	if err != nil {
+		t.Fatalf("ApplyMutation: %v", err)
+	}
+	if res.Outcome != "applied" {
+		t.Errorf("outcome = %q, want applied", res.Outcome)
+	}
+
+	var name string
+	if err := s.db.QueryRow(`SELECT name FROM travelers WHERE id = 'trav-1'`).Scan(&name); err != nil {
+		t.Fatalf("row not persisted: %v", err)
+	}
+	if name != "Alice" {
+		t.Errorf("name = %q, want Alice", name)
+	}
+}
+
+func TestApplyMutation_ContainersTable(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	m := sync.Mutation{
+		MutationID: "m1", Op: sync.OpInsert, Table: "containers", ID: "cont-1",
+		Fields: map[string]any{"trip_id": testTrip, "name": "Suitcase", "max_weight_grams": 23000},
+		HLC:    sync.HLC("0000000001000-0000-aaaaaaaa"),
+	}
+	res, err := s.ApplyMutation(ctx, testTrip, m)
+	if err != nil {
+		t.Fatalf("ApplyMutation: %v", err)
+	}
+	if res.Outcome != "applied" {
+		t.Errorf("outcome = %q, want applied", res.Outcome)
+	}
+}
+
+// --- Roles (FR-4.5/4.7) ---
+
+func TestGetMemberRole(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO trip_members (trip_id, user_id, role) VALUES (?, ?, 'owner')`, testTrip, testUser)
+
+	role, ok, err := s.GetMemberRole(ctx, testTrip, testUser)
+	if err != nil {
+		t.Fatalf("GetMemberRole: %v", err)
+	}
+	if !ok || role != "owner" {
+		t.Errorf("got role=%q ok=%v, want owner/true", role, ok)
+	}
+
+	_, ok, err = s.GetMemberRole(ctx, testTrip, "nonexistent")
+	if err != nil {
+		t.Fatalf("GetMemberRole: %v", err)
+	}
+	if ok {
+		t.Error("expected ok=false for nonexistent user")
+	}
+}
+
+func TestIsTripCreator(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `UPDATE trips SET created_by = ? WHERE id = ?`, testUser, testTrip)
+
+	ok, err := s.IsTripCreator(ctx, testTrip, testUser)
+	if err != nil {
+		t.Fatalf("IsTripCreator: %v", err)
+	}
+	if !ok {
+		t.Error("expected true for trip creator")
+	}
+
+	ok, err = s.IsTripCreator(ctx, testTrip, "someone-else")
+	if err != nil {
+		t.Fatalf("IsTripCreator: %v", err)
+	}
+	if ok {
+		t.Error("expected false for non-creator")
+	}
+}
+
+func TestCanManageTravelers(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO users (id, oidc_subject, display_name) VALUES ('user-admin', 'auth|admin', 'Admin')`)
+	mustExec(t, s, `INSERT INTO users (id, oidc_subject, display_name) VALUES ('user-editor', 'auth|editor', 'Editor')`)
+	mustExec(t, s, `INSERT INTO trip_members (trip_id, user_id, role) VALUES (?, 'user-admin', 'admin')`, testTrip)
+	mustExec(t, s, `INSERT INTO trip_members (trip_id, user_id, role) VALUES (?, 'user-editor', 'editor')`, testTrip)
+
+	cases := []struct {
+		user string
+		want bool
+	}{
+		{"user-admin", true},
+		{"user-editor", false},
+	}
+	for _, tc := range cases {
+		ok, err := s.CanManageTravelers(ctx, testTrip, tc.user)
+		if err != nil {
+			t.Fatalf("CanManageTravelers(%s): %v", tc.user, err)
+		}
+		if ok != tc.want {
+			t.Errorf("CanManageTravelers(%s) = %v, want %v", tc.user, ok, tc.want)
+		}
+	}
+}

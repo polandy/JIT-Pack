@@ -18,7 +18,7 @@ import { useSyncStatus, type SyncStatus } from './useSyncStatus'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type { PullChange, WSEvent } from '@/api/types'
-import type { ItemMode, TripItem } from '@/types/domain'
+import type { ItemMode, TripItem, ItemTodo } from '@/types/domain'
 
 export interface SyncOrchestratorConfig {
   baseUrl: string
@@ -252,6 +252,55 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
+  // --- Todo actions (FR-7.3) ---
+
+  function addPrepTodo(tripId: string, tripItemId: string, authorId: string, body: string) {
+    const { mutation, id } = mutations.addTodo(tripId, tripItemId, authorId, body)
+    enqueueAndDrain('trip', tripId, {
+      mutation,
+      optimistic: {
+        seq: 0, table: 'comments', id, deleted: false,
+        row: mutation.fields as Record<string, unknown>,
+      },
+    })
+  }
+
+  function resolvePrepTodo(tripId: string, todo: ItemTodo) {
+    const mut = mutations.resolveTodo(todo.id)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0, table: 'comments', id: todo.id, deleted: false,
+        row: {
+          trip_id: todo.trip_id,
+          trip_item_id: todo.trip_item_id,
+          author_id: todo.author_id,
+          body: todo.body,
+          is_task: 1,
+          task_state: 'resolved',
+        },
+      },
+    })
+  }
+
+  function reopenPrepTodo(tripId: string, todo: ItemTodo) {
+    const mut = mutations.reopenTodo(todo.id)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0, table: 'comments', id: todo.id, deleted: false,
+        row: {
+          trip_id: todo.trip_id,
+          trip_item_id: todo.trip_item_id,
+          author_id: todo.author_id,
+          body: todo.body,
+          is_task: 1,
+          task_state: 'open',
+        },
+      },
+    })
+  }
+
   // --- Lifecycle ---
 
   function connect() {
@@ -285,6 +334,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     unskipItem,
     setMode,
     quickAddItem,
+
+    // Todos
+    addPrepTodo,
+    resolvePrepTodo,
+    reopenPrepTodo,
 
     // Lifecycle
     connect,

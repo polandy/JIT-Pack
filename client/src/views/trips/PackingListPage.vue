@@ -33,6 +33,8 @@ import {
   IonRefresher,
   IonRefresherContent,
   IonToggle,
+  IonBadge,
+  IonCheckbox,
 } from '@ionic/vue'
 import {
   cartOutline,
@@ -41,10 +43,11 @@ import {
   funnelOutline,
   eyeOffOutline,
   eyeOutline,
+  buildOutline,
 } from 'ionicons/icons'
 import { computed, inject, ref, onMounted } from 'vue'
 import { useTripStore } from '@/stores/tripStore'
-import type { GroupBy, TripItem } from '@/types/domain'
+import type { GroupBy, TripItem, ItemTodo } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
@@ -68,6 +71,23 @@ const showFilters = ref(false)
 const openOnly = ref(false)
 const myItemsOnly = ref(false)
 const showSkipped = ref(false)
+const showPrep = ref(false)
+
+const itemsWithOpenPrep = computed(() => store.itemsWithOpenPrep(props.tripId))
+const openTodoCount = computed(() => store.getOpenTodos(props.tripId).length)
+
+/** Count of open todos per item, for badge display. */
+function itemOpenTodoCount(itemId: string): number {
+  return store.getItemTodos(props.tripId, itemId).filter((t) => t.task_state === 'open').length
+}
+
+function togglePrepTodo(todo: ItemTodo) {
+  if (todo.task_state === 'open') {
+    orchestrator.resolvePrepTodo(props.tripId, todo)
+  } else {
+    orchestrator.reopenPrepTodo(props.tripId, todo)
+  }
+}
 
 /** Items split into regular and skipped. */
 const allItems = computed(() => store.getItems(props.tripId))
@@ -218,6 +238,12 @@ async function handleRefresh(event: CustomEvent) {
             <span class="kpi-value">{{ formatWeight(kpis.packedWeight) }}</span>
             <span class="kpi-label">of {{ formatWeight(kpis.totalWeight) }}</span>
           </div>
+          <div class="kpi" v-if="kpis.totalTodos > 0">
+            <span class="kpi-value" :class="{ 'prep-open': kpis.resolvedTodos < kpis.totalTodos }">
+              {{ kpis.resolvedTodos }}/{{ kpis.totalTodos }}
+            </span>
+            <span class="kpi-label">Prep</span>
+          </div>
         </div>
       </IonToolbar>
 
@@ -282,7 +308,8 @@ async function handleRefresh(event: CustomEvent) {
               button
               :router-link="`/trips/${tripId}/items/${item.id}`"
               :class="{
-                'item-packed': item.state === 'packed',
+                'item-packed': item.state === 'packed' && itemOpenTodoCount(item.id) === 0,
+                'item-packed-open-prep': item.state === 'packed' && itemOpenTodoCount(item.id) > 0,
               }"
             >
               <div slot="start">
@@ -298,7 +325,16 @@ async function handleRefresh(event: CustomEvent) {
               </div>
 
               <IonLabel>
-                <h3>{{ item.name }}</h3>
+                <h3>
+                  {{ item.name }}
+                  <IonBadge
+                    v-if="itemOpenTodoCount(item.id) > 0"
+                    color="warning"
+                    class="prep-badge"
+                  >
+                    <IonIcon :icon="buildOutline" /> {{ itemOpenTodoCount(item.id) }}
+                  </IonBadge>
+                </h3>
                 <p v-if="item.category_name && groupBy !== 'category'">
                   {{ item.category_name }}
                 </p>
@@ -339,6 +375,34 @@ async function handleRefresh(event: CustomEvent) {
           </IonItemSliding>
         </IonItemGroup>
       </IonList>
+
+      <!-- Preparation section (FR-7.3) -->
+      <div v-if="itemsWithOpenPrep.length > 0" class="prep-section">
+        <button class="prep-header" @click="showPrep = !showPrep">
+          <IonIcon :icon="buildOutline" />
+          <span>Preparation ({{ openTodoCount }} open)</span>
+          <span class="chevron" :class="{ open: showPrep }">&#9662;</span>
+        </button>
+
+        <IonList v-if="showPrep">
+          <IonItemGroup v-for="{ item, openTodos } in itemsWithOpenPrep" :key="item.id">
+            <IonItemDivider>
+              <IonLabel>{{ item.name }}</IonLabel>
+              <IonBadge slot="end" :color="item.state === 'packed' ? 'warning' : 'medium'">
+                {{ item.state === 'packed' ? 'packed, prep open' : item.state }}
+              </IonBadge>
+            </IonItemDivider>
+            <IonItem v-for="todo in openTodos" :key="todo.id" lines="inset">
+              <IonCheckbox
+                slot="start"
+                :checked="false"
+                @ionChange="togglePrepTodo(todo)"
+              />
+              <IonLabel>{{ todo.body }}</IonLabel>
+            </IonItem>
+          </IonItemGroup>
+        </IonList>
+      </div>
 
       <!-- Skipped items section (FR-5.5) -->
       <div v-if="skippedItems.length > 0" class="skipped-section">
@@ -442,9 +506,24 @@ async function handleRefresh(event: CustomEvent) {
   color: var(--ion-color-medium);
 }
 
+/* KPI prep open */
+.prep-open {
+  color: var(--ion-color-warning);
+}
+
 /* Item states */
 .item-packed {
   opacity: 0.5;
+}
+
+.item-packed-open-prep {
+  border-left: 3px solid var(--ion-color-warning);
+}
+
+.prep-badge {
+  font-size: 0.65rem;
+  vertical-align: middle;
+  margin-left: 6px;
 }
 
 .item-skipped {
@@ -453,6 +532,25 @@ async function handleRefresh(event: CustomEvent) {
 
 .item-skipped h3 {
   text-decoration: line-through;
+}
+
+/* Preparation section */
+.prep-section {
+  margin-top: 16px;
+  border-top: 1px solid var(--ion-color-light-shade);
+}
+
+.prep-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--ion-color-warning-tint);
+  border: none;
+  cursor: pointer;
+  color: var(--ion-color-warning-shade);
+  font-size: 0.9rem;
 }
 
 /* Skipped section */
