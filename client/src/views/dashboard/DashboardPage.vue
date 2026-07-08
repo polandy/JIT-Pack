@@ -22,11 +22,13 @@ import {
   IonRefresherContent,
 } from '@ionic/vue'
 import { airplaneOutline, addOutline } from 'ionicons/icons'
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip } from '@/types/domain'
+import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const store = useTripStore()
+const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
 const activeTrips = computed(() =>
   store.tripList.filter((t) => t.status === 'active'),
@@ -64,6 +66,8 @@ function openItemCount(tripId: string): number {
 
 async function handleRefresh(event: CustomEvent) {
   const refresher = event.target as HTMLIonRefresherElement
+  const tripIds = activeTrips.value.map((t) => t.id)
+  await orchestrator.drainAll(tripIds)
   refresher.complete()
 }
 </script>

@@ -49,6 +49,18 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/trips/ItemDetailPage.vue'),
     props: true,
   },
+  {
+    path: '/templates/:templateId',
+    name: 'template-editor',
+    component: () => import('@/views/templates/TemplateEditorPage.vue'),
+    props: true,
+  },
+  {
+    path: '/items/:itemId',
+    name: 'item-editor',
+    component: () => import('@/views/items/ItemEditorPage.vue'),
+    props: true,
+  },
 ]
 
 const router = createRouter({

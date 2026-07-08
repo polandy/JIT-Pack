@@ -42,15 +42,22 @@ import {
   eyeOffOutline,
   eyeOutline,
 } from 'ionicons/icons'
-import { computed, ref } from 'vue'
+import { computed, inject, ref, onMounted } from 'vue'
 import { useTripStore } from '@/stores/tripStore'
 import type { GroupBy, TripItem } from '@/types/domain'
+import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 
 const props = defineProps<{ tripId: string }>()
 
 const store = useTripStore()
+const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+
+onMounted(() => {
+  orchestrator.subscribeTrip(props.tripId)
+  orchestrator.drainTrip(props.tripId)
+})
 
 const trip = computed(() => store.getTrip(props.tripId))
 const kpis = computed(() => store.kpis(props.tripId))
@@ -141,91 +148,48 @@ function formatWeight(grams: number): string {
   return grams >= 1000 ? `${(grams / 1000).toFixed(1)} kg` : `${grams} g`
 }
 
-// --- Action handlers (placeholders — will wire to outbox) ---
+// --- Action handlers (wired to sync orchestrator) ---
 
 function onQuickAdd(item: { name: string; sourceItemId: string | null; weightGrams: number | null; valueCents: number | null; categoryName: string | null }) {
-  // Will create a mutation via outbox: upsert trip_item
-  // For now, optimistic insert into store
-  const id = crypto.randomUUID()
-  store.applyChange({
-    seq: 0,
-    table: 'trip_items',
-    id,
-    deleted: false,
-    row: {
-      trip_id: props.tripId,
-      name: item.name,
-      source_item_id: item.sourceItemId,
-      weight_grams: item.weightGrams,
-      value_cents: item.valueCents,
-      category_name: item.categoryName,
-      quantity: 1,
-      packed_count: 0,
-      state: 'open',
-      mode: 'pack',
-      flag_missing: isActive.value ? 1 : 0,
-      updated_hlc: '',
-    },
-  })
+  orchestrator.quickAddItem(props.tripId, item.name, {
+    sourceItemId: item.sourceItemId,
+    weightGrams: item.weightGrams,
+    valueCents: item.valueCents,
+    categoryName: item.categoryName,
+  }, isActive.value)
 }
 
 function onSkipItem(item: TripItem) {
-  // Mark as "consciously not packing" — sets state to skipped, quantity to 0
-  store.applyChange({
-    seq: 0,
-    table: 'trip_items',
-    id: item.id,
-    deleted: false,
-    row: {
-      ...tripItemToRow(item),
-      quantity: 0,
-      packed_count: 0,
-      state: 'skipped',
-    },
-  })
+  orchestrator.skipItem(props.tripId, item)
 }
 
 function onUnskipItem(item: TripItem) {
-  // Restore from skipped back to open with quantity 1
-  store.applyChange({
-    seq: 0,
-    table: 'trip_items',
-    id: item.id,
-    deleted: false,
-    row: {
-      ...tripItemToRow(item),
-      quantity: 1,
-      packed_count: 0,
-      state: 'open',
-    },
-  })
+  orchestrator.unskipItem(props.tripId, item)
 }
 
-function tripItemToRow(item: TripItem): Record<string, unknown> {
-  return {
-    trip_id: item.trip_id,
-    name: item.name,
-    source_item_id: item.source_item_id,
-    weight_grams: item.weight_grams,
-    value_cents: item.value_cents,
-    category_name: item.category_name,
-    quantity: item.quantity,
-    packed_count: item.packed_count,
-    state: item.state,
-    mode: item.mode,
-    late_packer: item.late_packer ? 1 : 0,
-    assigned_traveler_id: item.assigned_traveler_id,
-    packer_user_id: item.packer_user_id,
-    container_id: item.container_id,
-    packing_now_by: item.packing_now_by,
-    flag_unused: item.flag_unused ? 1 : 0,
-    flag_missing: item.flag_missing ? 1 : 0,
-    updated_hlc: item.updated_hlc,
-  }
+function onIncrement(item: TripItem) {
+  orchestrator.packIncrement(props.tripId, item)
+}
+
+function onDecrement(item: TripItem) {
+  orchestrator.packDecrement(props.tripId, item)
+}
+
+function onComplete(item: TripItem) {
+  orchestrator.packComplete(props.tripId, item)
+}
+
+function onZero(item: TripItem) {
+  orchestrator.packZero(props.tripId, item)
+}
+
+function onToggle(item: TripItem) {
+  orchestrator.packToggle(props.tripId, item)
 }
 
 async function handleRefresh(event: CustomEvent) {
   const refresher = event.target as HTMLIonRefresherElement
+  await orchestrator.drainTrip(props.tripId)
   refresher.complete()
 }
 </script>
@@ -325,11 +289,11 @@ async function handleRefresh(event: CustomEvent) {
                 <QuantityStepper
                   :quantity="item.quantity"
                   :packed="item.packed_count"
-                  @increment="() => {}"
-                  @decrement="() => {}"
-                  @complete="() => {}"
-                  @zero="() => {}"
-                  @toggle="() => {}"
+                  @increment="onIncrement(item)"
+                  @decrement="onDecrement(item)"
+                  @complete="onComplete(item)"
+                  @zero="onZero(item)"
+                  @toggle="onToggle(item)"
                 />
               </div>
 

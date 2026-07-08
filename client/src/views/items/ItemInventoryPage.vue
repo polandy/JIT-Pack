@@ -103,7 +103,7 @@ async function handleRefresh(event: CustomEvent) {
             <span slot="end" class="group-count">{{ items.length }}</span>
           </IonItemDivider>
 
-          <IonItem v-for="item in items" :key="item.id" button>
+          <IonItem v-for="item in items" :key="item.id" button :router-link="`/items/${item.id}`">
             <IonLabel>
               <h2>{{ item.name }}</h2>
               <p>

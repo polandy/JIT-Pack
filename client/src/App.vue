@@ -3,15 +3,36 @@
  * Root app component — provides AppHeader (G-9) and responsive layout.
  * Desktop (≥900px): left nav rail + content area.
  * Mobile (<900px): content area + bottom tabs (in TabsLayout).
+ *
+ * Creates and provides the sync orchestrator for the entire app.
  */
 import { IonApp, IonRouterOutlet } from '@ionic/vue'
 import AppHeader from '@/components/global/AppHeader.vue'
 import NavRail from '@/components/global/NavRail.vue'
-import { useSyncStatus } from '@/composables/useSyncStatus'
-import { provide } from 'vue'
+import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { provide, onMounted, onUnmounted } from 'vue'
 
-const syncStatus = useSyncStatus()
-provide('syncStatus', syncStatus)
+// TODO: make baseUrl configurable via env
+const baseUrl = import.meta.env.VITE_API_URL as string ?? 'http://localhost:8080'
+
+const orchestrator = useSyncOrchestrator({
+  baseUrl,
+  getToken: () => null, // Single-User mode default; OIDC wires auth.getToken here
+})
+
+provide('orchestrator', orchestrator)
+
+const { syncStatus } = orchestrator
+
+onMounted(() => {
+  orchestrator.connect()
+  // Initial pull of master data
+  orchestrator.drainMaster()
+})
+
+onUnmounted(() => {
+  orchestrator.disconnect()
+})
 </script>
 
 <template>
