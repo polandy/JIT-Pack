@@ -144,8 +144,10 @@ async function handleRefresh(event: CustomEvent) {
             <IonLabel>
               <h2>{{ trip.name }}</h2>
               <p>
-                {{ trip.start_date }}
-                <span v-if="trip.end_date"> &ndash; {{ trip.end_date }}</span>
+                <template v-if="trip.start_date">
+                  {{ trip.start_date }} &ndash; {{ trip.end_date }}
+                </template>
+                <template v-else>until {{ trip.end_date }}</template>
               </p>
               <p>{{ itemSummary(trip) }}</p>
             </IonLabel>

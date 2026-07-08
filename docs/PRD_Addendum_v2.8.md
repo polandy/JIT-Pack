@@ -113,6 +113,7 @@ Single-User Mode and Demo Mode are two **orthogonal** declarative flags. Single-
 
 ### 3.2 Trip Management
 
+* **FR-2.1a (Optional Start Date — refines FR-2.1):** The trip start date is optional. A trip without a start date has no computed duration and no departure-day triggers (Late Packer promotion, Repack Mode availability). Quantity formulas referencing `trip_duration` evaluate to `NULL` and fall back to a quantity of 1. The end date remains required (it is the trip's planning anchor). When a start date is later filled in, duration and all dependent formulas recompute automatically.
 * **FR-2.3a (Deduplication Default — refines FR-2.3):** The default merge strategy for overlapping items across templates is *maximum value* (the larger of the two quantities wins), with an override configurable per item category (e.g., always *sum* for consumables like sunscreen, always *max* for durable gear).
 * **FR-2.5 (Traveler vs. User Separation):** The system strictly distinguishes between a *Traveler* (a trip-level record with name and profile type *Adult*/*Child*) and a *User* (an OIDC-provisioned account per Section 2, or the implicit local user per FR-17.2). A Traveler can optionally be linked to a User account; Travelers without accounts (typically children) are fully supported. All *Assigned to* references (FR-4.2) point to Travelers; all *Packed by* references point to Users.
 

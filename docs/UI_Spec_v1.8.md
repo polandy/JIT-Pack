@@ -73,7 +73,7 @@ These patterns apply to every screen and are specified once.
 ### M3 — Trip Creation Wizard
 
 * **Purpose:** Generate a trip instance from templates with correct quantities on the first pass.
-* **Step 1 — Metadata:** Name, series picker (or "New series"), start/end date (duration auto-computed and displayed, FR-2.1), attribute chips: season, transport, accommodation (FR-15.1; prefilled from series defaults).
+* **Step 1 — Metadata:** Name, series picker (or "New series"), optional start date and end date (duration auto-computed and displayed when both dates are set, FR-2.1/2.1a), attribute chips: season, transport, accommodation (FR-15.1; prefilled from series defaults).
 * **Step 2 — Travelers:** Add travelers (name + Adult/Child, FR-2.5), optionally link to a registered user account; share the trip with user accounts and assign roles: Owner (creator, immutable), Admin (can manage travelers and roles), Editor (default — can edit items but not manage travelers) (FR-4.5/4.7). In Single-User Mode (Addendum FR-17.3), the sharing and role-assignment part of this step is hidden entirely — only traveler add/edit remains, and the sole user is silently the trip's Owner.
 * **Step 3 — Templates:** Checkbox list of available templates (own + published, FR-1.6); live preview footer: resulting item count, deduplicated overlaps listed with the applied merge strategy (FR-2.3); items excluded by conditional rules (FR-15.2) shown collapsed with reason ("skipped: season ≠ winter").
 * **Step 4 — Quantity Review:** Virtualized list of all generated items; each row: name, computed quantity with formula tooltip, history hint "2024: 5 · 2025: 6 → suggested 6" with one-tap accept (FR-14.1/14.2); destination checklist offer if the series has one (FR-13.3).
