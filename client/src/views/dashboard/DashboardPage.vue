@@ -163,8 +163,10 @@ async function handleRefresh(event: CustomEvent) {
         <IonCardHeader>
           <IonCardTitle>{{ trip.name }}</IonCardTitle>
           <p class="trip-dates">
-            {{ trip.start_date }}
-            <span v-if="trip.end_date"> &ndash; {{ trip.end_date }}</span>
+            <template v-if="trip.start_date">
+              {{ trip.start_date }} &ndash; {{ trip.end_date }}
+            </template>
+            <template v-else>until {{ trip.end_date }}</template>
           </p>
         </IonCardHeader>
 

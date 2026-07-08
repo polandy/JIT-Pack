@@ -6,9 +6,9 @@ export interface Trip {
   id: string
   name: string
   status: TripStatus
-  start_date: string
+  start_date: string | null
   end_date: string
-  duration_days: number
+  duration_days: number | null
   series_id: string | null
   series_name: string | null
   attributes: Record<string, unknown> | null

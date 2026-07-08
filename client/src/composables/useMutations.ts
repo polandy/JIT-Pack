@@ -158,7 +158,7 @@ export function useMutations(hlc: HLCGenerator) {
 
   function createTrip(
     name: string,
-    startDate: string,
+    startDate: string | null,
     endDate: string,
     opts: { seriesId?: string | null; attributes?: Record<string, unknown> | null } = {},
   ): { mutation: Mutation; id: string } {

@@ -126,7 +126,8 @@ func (s *Store) ImportTemplate(ctx context.Context, ownerID string, doc portable
 // ExportTrip builds a portable Document from a stored trip (FR-18.3).
 // If includeProgress is true, packed_count is included; otherwise it is omitted.
 func (s *Store) ExportTrip(ctx context.Context, tripID string, includeProgress bool) (portable.Document, error) {
-	var name, startDate, endDate string
+	var name, endDate string
+	var startDate sql.NullString
 	err := s.db.QueryRowContext(ctx,
 		`SELECT name, start_date, end_date FROM trips WHERE id = ?`, tripID).
 		Scan(&name, &startDate, &endDate)
@@ -153,7 +154,7 @@ func (s *Store) ExportTrip(ctx context.Context, tripID string, includeProgress b
 		Kind:          "trip",
 		SchemaVersion: 1,
 		Name:          name,
-		StartDate:     startDate,
+		StartDate:     startDate.String,
 		EndDate:       endDate,
 		Travelers:     travelers,
 		Containers:    containers,
@@ -264,10 +265,14 @@ func (s *Store) ImportTrip(ctx context.Context, ownerID string, doc portable.Doc
 	defer tx.Rollback()
 
 	tripID := randomID()
+	var startDateArg any
+	if doc.StartDate != "" {
+		startDateArg = doc.StartDate
+	}
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO trips (id, name, start_date, end_date, status)
 		VALUES (?, ?, ?, ?, 'planning')`,
-		tripID, doc.Name, doc.StartDate, doc.EndDate); err != nil {
+		tripID, doc.Name, startDateArg, doc.EndDate); err != nil {
 		return "", fmt.Errorf("insert trip: %w", err)
 	}
 
