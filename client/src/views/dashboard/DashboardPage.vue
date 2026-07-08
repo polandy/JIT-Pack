@@ -21,10 +21,10 @@ import {
   IonRefresher,
   IonRefresherContent,
 } from '@ionic/vue'
-import { airplaneOutline, addOutline } from 'ionicons/icons'
+import { airplaneOutline, addOutline, buildOutline } from 'ionicons/icons'
 import { computed, inject } from 'vue'
 import { useTripStore } from '@/stores/tripStore'
-import type { Trip } from '@/types/domain'
+import type { Trip, ItemTodo } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const store = useTripStore()
@@ -64,6 +64,36 @@ function openItemCount(tripId: string): number {
   return store.getItems(tripId).filter((i) => i.state !== 'packed' && i.state !== 'skipped').length
 }
 
+/** All open prep todos across active trips, grouped by item name. */
+const prepTodos = computed(() => {
+  const result: Array<{ tripId: string; tripName: string; itemName: string; todos: ItemTodo[] }> = []
+
+  for (const trip of activeTrips.value) {
+    const withPrep = store.itemsWithOpenPrep(trip.id)
+    for (const { item, openTodos } of withPrep) {
+      result.push({
+        tripId: trip.id,
+        tripName: trip.name,
+        itemName: item.name,
+        todos: openTodos,
+      })
+    }
+  }
+  return result
+})
+
+const totalOpenTodos = computed(() =>
+  prepTodos.value.reduce((sum, g) => sum + g.todos.length, 0),
+)
+
+function toggleDashboardTodo(tripId: string, todo: ItemTodo) {
+  if (todo.task_state === 'open') {
+    orchestrator.resolvePrepTodo(tripId, todo)
+  } else {
+    orchestrator.reopenPrepTodo(tripId, todo)
+  }
+}
+
 async function handleRefresh(event: CustomEvent) {
   const refresher = event.target as HTMLIonRefresherElement
   const tripIds = activeTrips.value.map((t) => t.id)
@@ -91,6 +121,37 @@ async function handleRefresh(event: CustomEvent) {
           Plan a trip
         </IonButton>
       </div>
+
+      <!-- Prep to do (FR-7.3) -->
+      <IonCard v-if="totalOpenTodos > 0" class="prep-card">
+        <IonCardHeader>
+          <IonCardTitle>
+            <IonIcon :icon="buildOutline" />
+            Prep to do ({{ totalOpenTodos }})
+          </IonCardTitle>
+        </IonCardHeader>
+        <IonCardContent>
+          <div v-for="group in prepTodos" :key="`${group.tripId}-${group.itemName}`" class="prep-group">
+            <p class="prep-item-name">
+              {{ group.itemName }}
+              <span class="prep-trip-label">{{ group.tripName }}</span>
+            </p>
+            <IonItem
+              v-for="todo in group.todos"
+              :key="todo.id"
+              lines="none"
+              class="dashboard-item"
+            >
+              <IonCheckbox
+                slot="start"
+                :checked="false"
+                @ionChange="toggleDashboardTodo(group.tripId, todo)"
+              />
+              <IonLabel>{{ todo.body }}</IonLabel>
+            </IonItem>
+          </div>
+        </IonCardContent>
+      </IonCard>
 
       <!-- Trip cards -->
       <IonCard
@@ -200,5 +261,26 @@ async function handleRefresh(event: CustomEvent) {
   color: var(--ion-color-primary);
   padding-left: 40px;
   margin-top: 4px;
+}
+
+.prep-card {
+  border-left: 3px solid var(--ion-color-warning);
+}
+
+.prep-group {
+  margin-bottom: 12px;
+}
+
+.prep-item-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin: 0 0 4px;
+}
+
+.prep-trip-label {
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: var(--ion-color-medium);
+  margin-left: 8px;
 }
 </style>

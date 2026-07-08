@@ -20,11 +20,11 @@ Only the current version of every document is kept — if you're ever tempted to
 
 ## Current state
 
-`go test -race ./...` → all green, 94 tests.
+`go test -race ./...` → all green, 100 tests.
 
 **Built:**
 - `internal/sync` — HLC generator + field-level merge algorithm (NFR-4.2a). Pure, zero I/O.
-- `internal/store` — SQLite repositories: change_log/conflict_log, pull with tombstone+compaction, push with idempotent mutation replay, Single-User bootstrap, avatar + display-name, template/trip export+import.
+- `internal/store` — SQLite repositories: change_log/conflict_log, pull with tombstone+compaction, push with idempotent mutation replay (multi-table: trip_items, travelers, containers, comments), Single-User bootstrap, avatar + display-name, template/trip export+import. Membership with three-tier role model (owner/admin/editor, FR-4.5/4.7).
 - `internal/api` — HTTP handlers: pull/push, JWT auth (HS256 shared secret or RS256 via JWKS from IdP), trip-membership enforcement, Single-User Mode (`api.NewSingleUser`, bypasses auth *and* membership per FR-17.3), avatar upload/download with ETag, display-name endpoint. WebSocket hub (`hub.go`/`ws.go`): per-trip subscriptions, `trip.changed` broadcast on push, presence with `in_sync` computation. Portable YAML export/import endpoints for templates and trips. JWKS provider (`jwks.go`): fetches RSA public keys on startup, refreshes every 5 min, key lookup by `kid`.
 - `internal/portable` — YAML wire types for portable template/trip export/import (FR-18.1–18.6). Pure marshal/unmarshal, no I/O deps. `gopkg.in/yaml.v3`.
 - Two-client end-to-end tests (`internal/api/e2e_test.go`) proving concurrent offline edits converge per NFR-4.2a over real HTTP.
@@ -36,14 +36,14 @@ Only the current version of every document is kept — if you're ever tempted to
 3. ~~**WebSocket hub + presence**~~ — **DONE.** `internal/api/hub.go` + `ws.go`: in-memory hub, per-trip subscriptions, `trip.changed` on push, presence with `in_sync` (cursor vs `store.HeadSeq`). `github.com/coder/websocket`. 10 new tests (6 hub unit + 4 WS integration). `item.locked`/`item.unlocked` and `notification.created` events not yet implemented (depend on locking UI and notification system).
 4. ~~**Portable YAML export/import**~~ — **DONE.** `internal/portable` (YAML types + marshal/unmarshal), `internal/store/export.go` (template/trip export+import), `internal/api/export.go` (four endpoints: `GET /templates/{id}/export`, `POST /templates/import`, `GET /trips/{id}/export.yaml`, `POST /trips/import`). `gopkg.in/yaml.v3`. 19 new tests (8 portable, 6 store, 5 API). Item dedup/near-duplicate prompts (FR-16.3-style) not yet implemented — requires the master item matching UI.
 5. ~~**RS256/JWKS against a real IdP**~~ — **DONE.** `internal/api/jwks.go`: JWKS provider with background refresh, RSA public key parsing from JWK, key lookup by `kid`. `api.NewWithJWKS(st, jwks)` constructor for RS256 mode. Config: `JITPACK_JWKS_URL` (mutually exclusive with `JITPACK_JWT_SECRET`). 7 new tests (4 JWKS unit + 1 full API integration + 2 config). HS256 remains available for tests and simple setups.
-6. ~~**Vue 3 + Capacitor client**~~ — **IN PROGRESS.** 93 client tests passing. Built so far:
+6. ~~**Vue 3 + Capacitor client**~~ — **IN PROGRESS.** 105 client tests passing. Built so far:
    - **Scaffold:** Ionic Vue + Capacitor + Pinia + Vitest + TypeScript. Router with tab layout + detail routes.
    - **Sync layer:** HLC generator (TS port), APIClient, SyncOutbox, WebSocket composable, Auth composable (single-user + OIDC).
-   - **Stores:** `tripStore` (trips, trip_items, travelers, containers, KPIs, grouping), `masterStore` (categories, items, templates, template_items, search).
-   - **Sync orchestrator:** Wires stores ↔ outbox ↔ WebSocket. Optimistic UI (G-5): mutations apply locally first, drain fires in background. Pull changes auto-route to correct store. WebSocket `trip.changed`/`master.changed` trigger drains.
+   - **Stores:** `tripStore` (trips, trip_items, travelers, containers, todos/prep, KPIs, grouping), `masterStore` (categories, items, templates, template_items, search).
+   - **Sync orchestrator:** Wires stores ↔ outbox ↔ WebSocket. Optimistic UI (G-5): mutations apply locally first, drain fires in background. Pull changes auto-route to correct store. WebSocket `trip.changed`/`master.changed` trigger drains. Todo actions (add/resolve/reopen FR-7.3).
    - **Global patterns:** G-2 sync indicator (synced/syncing/offline), G-6 quantity stepper (checkbox for qty=1, +/- for qty>1), G-9 responsive layout (desktop nav rail ≥900px, mobile bottom tabs).
-   - **Screens:** M1 Dashboard (greeting, trip cards, KPIs), M2 Trip List (filter, progress rings, FAB), M4 Packing List (KPI strip, grouping, stepper, skip/unskip, inline quick-add FR-5.6), M5 Item Detail (stepper, mode, assignment, flags), M7 Template List (my/published, item count), M9 Item Inventory (search, category groups, unit/consumable chips).
-   - **Not yet built:** M3 Trip Creation Wizard, M6 Shopping Views, M8 Template Editor, M10 Item Editor, M11–M18 (P2 screens). Mutation wiring for M5/M7/M9 actions. OIDC login flow UI.
+   - **Screens:** M1 Dashboard (greeting, trip cards, KPIs, prep todos FR-7.3), M2 Trip List (filter, progress rings, FAB), M4 Packing List (KPI strip with prep counter, grouping, stepper, skip/unskip, inline quick-add FR-5.6, collapsible prep section, item prep badges), M5 Item Detail (stepper, mode, assignment, flags, preparation todos section), M7 Template List (my/published, item count), M8 Template Editor (item picker, quantity formula, swipe-to-delete), M9 Item Inventory (search, category groups, unit/consumable chips), M10 Item Editor (name, category, weight, value, unit, consumable).
+   - **Not yet built:** M3 Trip Creation Wizard, M6 Shopping Views, M11–M18 (P2 screens). OIDC login flow UI.
 
 ## Known deviation — read before touching `internal/store`
 

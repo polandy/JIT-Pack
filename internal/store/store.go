@@ -37,6 +37,17 @@ var syncableColumns = map[string]map[string]bool{
 		"packing_now_by", "packing_now_at", "flag_unused", "flag_missing",
 		"outbound_packed",
 	),
+	"travelers": toSet(
+		"trip_id", "name", "profile", "linked_user_id",
+	),
+	"containers": toSet(
+		"trip_id", "name", "carrier_traveler_id", "max_weight_grams",
+		"paired_container_id",
+	),
+	"comments": toSet(
+		"trip_id", "trip_item_id", "author_id", "body",
+		"is_task", "task_state",
+	),
 }
 
 // Store owns the SQLite handle. SQLite has a single writer; capping the
@@ -113,14 +124,14 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID string, m sync.Mutatio
 		return recorded, nil
 	}
 
-	current, currentHLC, exists, err := loadTripItem(ctx, tx, m.ID)
+	current, currentHLC, exists, err := loadRow(ctx, tx, m.Table, m.ID)
 	if err != nil {
 		return MutationResult{}, err
 	}
 	merged := sync.Merge(current, currentHLC, exists, m)
 
 	res := MutationResult{MutationID: m.MutationID, Outcome: string(merged.Outcome), Conflicts: merged.Conflicts}
-	changed, err := persist(ctx, tx, m, merged, exists)
+	changed, err := persist(ctx, tx, m.Table, m, merged, exists)
 	if err != nil {
 		return MutationResult{}, err
 	}
@@ -188,10 +199,10 @@ func recordResult(ctx context.Context, tx *sql.Tx, res MutationResult) error {
 	return nil
 }
 
-func loadTripItem(ctx context.Context, tx *sql.Tx, id string) (fields map[string]any, hlc sync.HLC, exists bool, err error) {
-	cols := columnList("trip_items")
+func loadRow(ctx context.Context, tx *sql.Tx, table, id string) (fields map[string]any, hlc sync.HLC, exists bool, err error) {
+	cols := columnList(table)
 	row := tx.QueryRowContext(ctx, fmt.Sprintf(
-		`SELECT %s, updated_hlc FROM trip_items WHERE id = ?`, strings.Join(cols, ", ")), id)
+		`SELECT %s, updated_hlc FROM %s WHERE id = ?`, strings.Join(cols, ", "), table), id)
 
 	values := make([]any, len(cols)+1)
 	ptrs := make([]any, len(values))
@@ -201,7 +212,7 @@ func loadTripItem(ctx context.Context, tx *sql.Tx, id string) (fields map[string
 	if err := row.Scan(ptrs...); errors.Is(err, sql.ErrNoRows) {
 		return nil, "", false, nil
 	} else if err != nil {
-		return nil, "", false, fmt.Errorf("load trip_item %s: %w", id, err)
+		return nil, "", false, fmt.Errorf("load %s %s: %w", table, id, err)
 	}
 
 	fields = make(map[string]any, len(cols))
@@ -212,21 +223,21 @@ func loadTripItem(ctx context.Context, tx *sql.Tx, id string) (fields map[string
 	return fields, sync.HLC(hlcStr), true, nil
 }
 
-func persist(ctx context.Context, tx *sql.Tx, m sync.Mutation, merged sync.MergeResult, exists bool) (changed bool, err error) {
+func persist(ctx context.Context, tx *sql.Tx, table string, m sync.Mutation, merged sync.MergeResult, exists bool) (changed bool, err error) {
 	switch {
 	case merged.Deleted:
-		_, err = tx.ExecContext(ctx, `DELETE FROM trip_items WHERE id = ?`, m.ID)
+		_, err = tx.ExecContext(ctx, fmt.Sprintf(`DELETE FROM %s WHERE id = ?`, table), m.ID)
 		return err == nil, err
 	case !exists:
-		return true, insertRow(ctx, tx, m.ID, merged)
+		return true, insertRow(ctx, tx, table, m.ID, merged)
 	case len(merged.Applied) > 0:
-		return true, updateRow(ctx, tx, m.ID, merged)
+		return true, updateRow(ctx, tx, table, m.ID, merged)
 	default:
 		return false, nil
 	}
 }
 
-func insertRow(ctx context.Context, tx *sql.Tx, id string, merged sync.MergeResult) error {
+func insertRow(ctx context.Context, tx *sql.Tx, table, id string, merged sync.MergeResult) error {
 	cols := []string{"id", "updated_hlc"}
 	args := []any{id, string(merged.RowHLC)}
 	for f, v := range merged.Applied {
@@ -234,14 +245,14 @@ func insertRow(ctx context.Context, tx *sql.Tx, id string, merged sync.MergeResu
 		args = append(args, v)
 	}
 	placeholders := strings.TrimSuffix(strings.Repeat("?, ", len(cols)), ", ")
-	query := fmt.Sprintf(`INSERT INTO trip_items (%s) VALUES (%s)`, strings.Join(cols, ", "), placeholders)
+	query := fmt.Sprintf(`INSERT INTO %s (%s) VALUES (%s)`, table, strings.Join(cols, ", "), placeholders)
 	if _, err := tx.ExecContext(ctx, query, args...); err != nil {
-		return fmt.Errorf("insert trip_item %s: %w", id, err)
+		return fmt.Errorf("insert %s %s: %w", table, id, err)
 	}
 	return nil
 }
 
-func updateRow(ctx context.Context, tx *sql.Tx, id string, merged sync.MergeResult) error {
+func updateRow(ctx context.Context, tx *sql.Tx, table, id string, merged sync.MergeResult) error {
 	assignments := []string{"updated_hlc = ?"}
 	args := []any{string(merged.RowHLC)}
 	for f, v := range merged.Applied {
@@ -249,9 +260,9 @@ func updateRow(ctx context.Context, tx *sql.Tx, id string, merged sync.MergeResu
 		args = append(args, v)
 	}
 	args = append(args, id)
-	query := fmt.Sprintf(`UPDATE trip_items SET %s WHERE id = ?`, strings.Join(assignments, ", "))
+	query := fmt.Sprintf(`UPDATE %s SET %s WHERE id = ?`, table, strings.Join(assignments, ", "))
 	if _, err := tx.ExecContext(ctx, query, args...); err != nil {
-		return fmt.Errorf("update trip_item %s: %w", id, err)
+		return fmt.Errorf("update %s %s: %w", table, id, err)
 	}
 	return nil
 }
@@ -338,9 +349,11 @@ func (s *Store) Pull(ctx context.Context, tripID string, cursor int64, limit int
 
 	for _, c := range compact(entries) {
 		if !c.Deleted {
-			c.Row, _, _, err = s.loadSnapshot(ctx, c.ID)
-			if err != nil {
-				return PullPage{}, err
+			if _, ok := syncableColumns[c.Table]; ok {
+				c.Row, _, _, err = s.loadSnapshot(ctx, c.Table, c.ID)
+				if err != nil {
+					return PullPage{}, err
+				}
 			}
 		}
 		page.Changes = append(page.Changes, c)
@@ -364,13 +377,13 @@ func compact(entries []Change) []Change {
 	return out
 }
 
-func (s *Store) loadSnapshot(ctx context.Context, id string) (map[string]any, sync.HLC, bool, error) {
+func (s *Store) loadSnapshot(ctx context.Context, table, id string) (map[string]any, sync.HLC, bool, error) {
 	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return nil, "", false, fmt.Errorf("begin snapshot read: %w", err)
 	}
 	defer tx.Rollback()
-	return loadTripItem(ctx, tx, id)
+	return loadRow(ctx, tx, table, id)
 }
 
 func columnList(table string) []string {
