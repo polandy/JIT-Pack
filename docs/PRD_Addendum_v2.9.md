@@ -1,8 +1,8 @@
-# PRD Addendum (Consolidated): „JIT-Pack" — Extensions & Clarifications (v2.8)
+# PRD Addendum (Consolidated): „JIT-Pack" — Extensions & Clarifications (v2.9)
 
 **Document Status:** Accepted
-**Supersedes:** Addendum v2.7 (adds Section 3.18: portable, human-readable YAML export/import for individual templates and trip packing lists, distinct from the full JSON backup of NFR-4.5 and the legacy spreadsheet import of 3.16; no other changes)
-**Scope:** New functional sections 3.10–3.18, clarifications to existing FRs, and refined/added NFRs. Numbering continues the base PRD.
+**Supersedes:** Addendum v2.8 (adds Section 3.19: Local Mode — a backend-free client deployment shape with on-device persistence — plus NFR-4.11 on local storage durability; no other changes)
+**Scope:** New functional sections 3.10–3.19, clarifications to existing FRs, and refined/added NFRs. Numbering continues the base PRD.
 
 ---
 
@@ -102,6 +102,17 @@ Single-User Mode and Demo Mode are two **orthogonal** declarative flags. Single-
 * **FR-18.5 (Format Stability):** Every exported file carries an explicit `schema_version` field. Imports ignore unrecognized fields rather than failing outright, so a file exported by an older or newer app version remains importable.
 * **FR-18.6 (Distinct from Full Backup):** This format is explicitly not a substitute for the full-instance backup (NFR-4.5): it captures exactly one template or one trip's packing list, with no user accounts, sync metadata, or conflict history — it exists for sharing and portability, not disaster recovery.
 
+### 3.19 Local Mode (Backend-Free Operation)
+
+Local Mode is a **client-only deployment shape**: the app runs entirely from on-device persistence — in the browser or in the Capacitor shell — with **no JIT-Pack server at all**. It is distinct from, and orthogonal to, Single-User Mode (3.17): Single-User Mode still runs the full server and sync stack and merely bypasses authentication; Local Mode removes the server entirely. Everything inherently multi-user or multi-device is unavailable by construction.
+
+* **FR-19.1 (Mode Selection):** On first launch, the client asks the user to choose between *Local Mode* and *Server Mode* (entering a server URL). The choice is persisted on the device and is not silently switchable: leaving Local Mode goes through the explicit migration path of FR-19.5, never through a toggle that could strand or shadow data. Local Mode is inherently **single-device** — multi-device use by one person requires a server, even in Single-User Mode (FR-17.5).
+* **FR-19.2 (On-Device Persistence):** All data — master items, categories, templates, trips, packing history — persists on the device (IndexedDB in browser and Capacitor WebView). Rows are stored in the same shape the sync protocol delivers (Sync-API Spec §4), so the store layer loads local data through the identical code path as a server pull. Consequence for the write path: in Local Mode the client-side mutation layer is the **sole authority** over row contents — every mutation must produce a complete, correct row on its own, with no server-side completion or later correction. (In Server Mode the same rows are merely optimistic previews per UI-Spec G-5; this requirement makes them trustworthy in both modes.)
+* **FR-19.3 (Collaboration Inert):** Mirroring FR-17.3, multi-user constructs remain in the data model unchanged but are inert and hidden in the UI: no trip sharing, roles, delegation, presence (G-10), collision locking, comments by others, or push notifications. The implicit local user is automatically Owner and Packer of every trip and item. **Travelers are unaffected:** they are trip-level records, not accounts (FR-2.5), so families with children, per-traveler assignment, and per-person formulas work fully in Local Mode.
+* **FR-19.4 (Feature Parity):** Everything not inherently multi-user or multi-device behaves identically to Server Mode: templates and quantity formulas (FR-1.3/1.5), conditional items (3.15), trip series and historical insights (3.13/3.14), repack (3.11), cloning (3.12), analytics (FR-8.x), spreadsheet import (3.16), and portable YAML export/import (3.18). The portable export doubles as the Local Mode **backup and transfer** mechanism.
+* **FR-19.5 (Migration Path to a Server):** Moving from Local Mode to a server instance is done via portable YAML export/import (FR-18.2/18.3) per template and trip. A native one-shot "adopt local data into server" flow — replaying the local state as sync mutations, which is architecturally possible since HLC timestamps and device ids are already generated client-side — is a potential later extension, not committed in this revision.
+* **FR-19.6 (Sync Indicator in Local Mode):** The G-2 glyph shows a distinct *local* state instead of synced/syncing/offline. Tapping it opens a storage & backup detail — persistence status per NFR-4.11, time of last portable export, one-tap export — instead of the conflict log: with a single user on a single device, conflicts cannot occur, so the conflict log is meaningless here.
+
 ## Part B — Clarifications & Extensions to Existing Sections
 
 ### 3.1 Template & Master Data Management
@@ -144,6 +155,7 @@ Single-User Mode and Demo Mode are two **orthogonal** declarative flags. Single-
 * **NFR-4.8 (Single-User Mode Independence):** Single-User Mode (3.17) must not require network access to an identity provider under any circumstance, including first boot — it is fully self-contained and works on a fresh, offline deployment. This applies whether or not Demo Mode is layered on top.
 * **NFR-4.9 (Public Exposure Guidance):** Because Single-User Mode and Demo Mode perform no per-request authentication, the deployment documentation must state explicitly that such an instance must only be exposed to a network the operator trusts (e.g., home LAN, VPN/Tailscale) or protected by an additional layer — reverse-proxy Basic Auth, IP allowlisting, or the optional passphrase of FR-17.12 — before being reachable from the public internet. The documentation must include at least one concrete, copy-pasteable example (e.g., a Caddy or Traefik Basic-Auth snippet) so operators are not left to work this out themselves.
 * **NFR-4.10 (Demo Rate Limiting):** A public Demo Mode instance is expected to receive uncoordinated, potentially abusive traffic. The `rate_limited` error path (Sync-API Spec §9) must be enabled by default whenever Demo Mode is active, with conservative default thresholds, even in configurations where rate limiting is otherwise optional.
+* **NFR-4.11 (Local Storage Durability):** Browser-managed storage is evictable under storage pressure. In Local Mode (3.19) the client must request persistent storage (`navigator.storage.persist()`) on first launch and surface a visible, non-blocking warning in the G-2 storage detail (FR-19.6) whenever persistence is not granted. Because there is no server copy, the storage detail must always offer a one-tap portable YAML export (FR-18.2/18.3) as backup, and the app shows an unobtrusive, dismissible export reminder when the last export is older than 30 days (configurable). On native Capacitor builds, storage is app-scoped and durable; the persistence warning does not apply there, but the export reminder does.
 
 ---
 

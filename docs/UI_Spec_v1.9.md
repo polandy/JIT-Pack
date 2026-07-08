@@ -1,8 +1,8 @@
-# UI Specification: „JIT-Pack" — Screens & Interaction Design (v1.8)
+# UI Specification: „JIT-Pack" — Screens & Interaction Design (v1.9)
 
 **Document Status:** Proposed for Review
-**Basis:** Base PRD + Addendum v2.8 (Consolidated)
-**Revision Note (v1.8):** Adds M18 (Portable Import Preview) for the new human-readable YAML template/trip export-import (Addendum 3.18); wires Export/Import entry points into M7 and M2. No other changes from v1.7.
+**Basis:** Base PRD + Addendum v2.9 (Consolidated)
+**Revision Note (v1.9):** Adds Local Mode touchpoints (Addendum 3.19): M19 (First-Launch Mode Selection), a *local* state for the G-2 sync glyph with a storage & backup detail replacing the conflict log, and a Local Mode note in G-8. No other changes from v1.8.
 **Platform Targets:** Mobile-first (Capacitor iOS/Android), responsive web — mobile is the primary design target, but every screen must remain fully and comfortably usable on desktop (G-9). All screens must function fully offline (NFR-4.1); sync state is surfaced globally, not per screen.
 
 ---
@@ -12,13 +12,13 @@
 These patterns apply to every screen and are specified once.
 
 * **G-1 (Navigation Model):** Bottom tab bar with four tabs: *Dashboard*, *Trips*, *Templates*, *Items*. Everything else is reached contextually (drill-down, bottom sheets, wizards). Settings via avatar in the top bar. In Single-User Mode (Addendum FR-17.2), there is no account to display, so the avatar is replaced by a plain settings-gear icon; it still opens M17.
-* **G-2 (Sync Indicator):** A persistent, unobtrusive status glyph in the top bar: synced / syncing / offline (queued changes count). Tapping it opens the sync detail incl. the conflict log (NFR-4.2a).
+* **G-2 (Sync Indicator):** A persistent, unobtrusive status glyph in the top bar: synced / syncing / offline (queued changes count). Tapping it opens the sync detail incl. the conflict log (NFR-4.2a). **Local Mode (Addendum 3.19):** the glyph shows a distinct *local* state (device icon) instead of the three network states; tapping it opens the storage & backup detail (FR-19.6: persistence status per NFR-4.11, last portable export, one-tap export) instead of the conflict log — conflicts cannot occur in Local Mode.
 * **G-3 (Presence & Locks):** Items locked via *Packing Now* (FR-5.3) render with the locker's avatar and name ("In progress by Andy") and are non-interactive for others except viewing.
 * **G-4 (Deep Linking):** Every notification and dashboard entry resolves to `trip/{id}/item/{id}`; the target screen scrolls to the item, flashes it once, and expands attached comments/tasks (FR-6.3).
 * **G-5 (Optimistic UI):** All mutations commit locally first and render immediately; server confirmation is silent. Failures surface via the sync indicator, never as blocking dialogs.
 * **G-6 (Quantity Stepper):** Wherever quantities appear, a unified stepper component is used: tap = ±1, long-press = complete/zero, unit label per FR-1.8. **Decided: items with quantity = 1 use a plain checkbox instead of the stepper**; the stepper itself only ever appears for quantity > 1.
 * **G-7 (Empty States):** Every list screen defines an empty state with a single primary action (e.g., Templates empty → "Create first template" / "Import from spreadsheet").
-* **G-8 (Single-User & Demo Mode):** When Demo Mode is active (Addendum FR-17.10), a persistent, dismissible-per-session banner appears at the top of every screen stating that data resets periodically and will not be retained. Single-User Mode alone (without Demo Mode, Addendum FR-17.1) shows no banner — it is visually indistinguishable from normal operation except for the absence of sharing, delegation, and notification UI, hidden per screen as noted in M2, M3, M5, and M17 below.
+* **G-8 (Single-User & Demo Mode):** When Demo Mode is active (Addendum FR-17.10), a persistent, dismissible-per-session banner appears at the top of every screen stating that data resets periodically and will not be retained. Single-User Mode alone (without Demo Mode, Addendum FR-17.1) shows no banner — it is visually indistinguishable from normal operation except for the absence of sharing, delegation, and notification UI, hidden per screen as noted in M2, M3, M5, and M17 below. **Local Mode (Addendum FR-19.3)** hides the same collaboration UI the same way and likewise shows no banner; its only visible marker is the G-2 *local* glyph.
 * **G-9 (Header & Desktop Navigation):** The top bar shows, left to right: the app logo — a compact mark on mobile, full wordmark from the desktop breakpoint up — followed by the sync glyph (G-2) and the avatar/settings control (G-1) on the right. The logo is a link/tap-target to M1 (Dashboard) from anywhere in the app, including from within a trip, template, or wizard; it is the app's one universal "home" action. **Desktop breakpoint (≥ 900 px, resolving Open UI Decision #4):** the bottom tab bar (G-1) is replaced by a persistent left-side navigation rail carrying the same four tabs (Dashboard/Trips/Templates/Items); the top bar then spans the remaining width and additionally hosts page-level primary actions inline (e.g., M2's "New trip" FAB, M4's KPI strip) instead of floating over content. Below the breakpoint, the mobile layout (bottom tabs, floating FAB, compact logo mark) applies unchanged.
 * **G-10 (Trip Presence & Group Sync):** Distinct from G-2, which reflects only *your own* device's connection state, this pattern shows who else is currently on the same trip and whether the *group* is caught up. It lives in the trip-level header (M4's sticky header, not the global app header of G-9), since presence is meaningless outside a specific trip.
   * **Facepile:** overlapping circular avatars of everyone currently viewing/editing this trip (sourced from the `presence` WebSocket event, Sync-API Spec §7). Mobile shows up to 2 avatars plus a "+N" overflow bubble; desktop (≥ 900 px) shows up to 4 before overflow, simply reflecting the wider header.
@@ -49,6 +49,7 @@ These patterns apply to every screen and are specified once.
 | M16 | Series & Destination Profile | P2 | 13.1–13.3 |
 | M17 | Settings & Notifications | P2 | 6.2, NFR-4.5/4.6 |
 | M18 | Portable Import Preview | P2 | Addendum 3.18 |
+| M19 | First-Launch Mode Selection | P2 | Addendum 3.19 |
 
 ---
 
@@ -204,6 +205,14 @@ These patterns apply to every screen and are specified once.
 * **Actions:** *Import* commits — a template import creates a new, private, owned template (FR-1.6); a trip import creates a new trip in *planning* status (FR-18.4); *Cancel* discards with no residue.
 * **States:** A `schema_version` newer than the app understands shows a plain warning but still attempts best-effort import, ignoring unrecognized fields (FR-18.5); a malformed file is rejected before this screen is ever shown, with an inline error at the file-picker step.
 * **Navigation:** From M7 (template import) and M2 (trip import).
+
+### M19 — First-Launch Mode Selection
+
+* **Purpose:** One-time choice between Local Mode and Server Mode on first app launch (Addendum FR-19.1). Shown exactly once; the decision is persisted on-device and never re-asked.
+* **Elements:** Two large option cards: *"Just on this device"* (Local Mode — one sentence explaining data stays on the device, no account or server needed, single device only) and *"Connect to a server"* (Server Mode — server URL input with connectivity check on confirm). Below the cards, one line noting that Local Mode data can later be moved to a server via export (FR-19.5).
+* **Actions:** Selecting Local Mode requests persistent storage (NFR-4.11) and lands on M1 with an empty state (G-7). Selecting Server Mode validates the URL against the server's health endpoint, then proceeds to login (OIDC) or straight to M1 (Single-User instance).
+* **States:** Unreachable server URL shows an inline error and keeps the user on this screen; Local Mode has no failure state (a denied persistent-storage request is not blocking — it surfaces later as the NFR-4.11 warning in the G-2 detail).
+* **Navigation:** Entry point of the app on first launch only. Not reachable from anywhere afterwards; switching modes later is the explicit migration path of FR-19.5, not a revisit of this screen.
 
 
 

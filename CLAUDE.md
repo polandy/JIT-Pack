@@ -9,8 +9,8 @@ If you're picking this up fresh: read this file fully before touching code. It r
 | Question | File |
 |---|---|
 | What does the product do? | `docs/PRD_Base.md` (original vision) |
-| What changed/was added since? | `docs/PRD_Addendum_v2.8.md` — **always authoritative over PRD_Base.md where they differ** |
-| What do the screens look like? | `docs/UI_Spec_v1.8.md` — 18 screens (M1–M18), global patterns G-1–G-10 |
+| What changed/was added since? | `docs/PRD_Addendum_v2.9.md` — **always authoritative over PRD_Base.md where they differ** |
+| What do the screens look like? | `docs/UI_Spec_v1.9.md` — 19 screens (M1–M19), global patterns G-1–G-10 |
 | What's the wire protocol? | `docs/Sync_API_Spec_v1.3.md` — pull/push envelopes, HLC format, merge algorithm, WebSocket events, RPC endpoints |
 | What's the DB schema? | `internal/store/migrations/001_schema.sql` — **single source of truth, do not duplicate it into docs/** |
 | Why was X chosen over Y? | `docs/ADR-00N_*.md` — six ADRs, each: options considered, weighted decision matrix, consequences, revisit trigger |
@@ -44,6 +44,14 @@ Only the current version of every document is kept — if you're ever tempted to
    - **Global patterns:** G-2 sync indicator (synced/syncing/offline), G-6 quantity stepper (checkbox for qty=1, +/- for qty>1), G-9 responsive layout (desktop nav rail ≥900px, mobile bottom tabs).
    - **Screens:** M1 Dashboard (greeting, trip cards, KPIs, prep todos FR-7.3), M2 Trip List (filter, progress rings, FAB), M4 Packing List (KPI strip with prep counter, grouping, stepper, skip/unskip, inline quick-add FR-5.6, collapsible prep section, item prep badges), M5 Item Detail (stepper, mode, assignment, flags, preparation todos section), M7 Template List (my/published, item count), M8 Template Editor (item picker, quantity formula, swipe-to-delete), M9 Item Inventory (search, category groups, unit/consumable chips), M10 Item Editor (name, category, weight, value, unit, consumable).
    - **Not yet built:** M3 Trip Creation Wizard, M6 Shopping Views, M11–M18 (P2 screens). OIDC login flow UI.
+
+7. **Local Mode — backend-free client (Addendum 3.19, UI-Spec M19/G-2 local state).** Client persists to IndexedDB, no server at all; collaboration UI inert per FR-19.3. The architecture is already 90% there (optimistic full-row mutations + generic `applyChanges`), so this is mostly a persistence layer plus an orchestrator variant. Task order:
+   1. **Mutation completeness audit** — in Local Mode the optimistic rows in `useMutations.ts`/`useSyncOrchestrator.ts` become authoritative (FR-19.2); audit every mutation for missing fields (`created_at` etc.) against the schema, add table-driven tests. Benefits Server Mode too.
+   2. **Persistence layer** — IndexedDB adapter storing rows as `table+id → row` (same shape as `PullChange`); load on startup via existing `applyChanges`; `navigator.storage.persist()` + status surface (NFR-4.11).
+   3. **Local orchestrator** — same interface as `useSyncOrchestrator`, `enqueueAndDrain` becomes apply-optimistic + persist; no outbox/WS. `App.vue` picks the implementation by persisted mode.
+   4. **M19 mode selection** + G-2 *local* state with storage & backup detail (FR-19.6).
+   5. **Collaboration UI gating** per FR-19.3 (mirrors existing single-user hiding, G-8).
+   Note for M3 wizard (item 6): template-instantiation/formula evaluation must live client-side (or shared), so Local Mode gets it for free.
 
 ## Known deviation — read before touching `internal/store`
 
