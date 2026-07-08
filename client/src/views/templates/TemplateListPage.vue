@@ -69,7 +69,7 @@ async function handleRefresh(event: CustomEvent) {
             <IonLabel>My Templates</IonLabel>
           </IonItemDivider>
 
-          <IonItem v-for="tpl in myTemplates" :key="tpl.id" button>
+          <IonItem v-for="tpl in myTemplates" :key="tpl.id" button :router-link="`/templates/${tpl.id}`">
             <IonLabel>
               <h2>{{ tpl.name }}</h2>
               <p>{{ store.templateItemCount(tpl.id) }} items</p>
@@ -89,7 +89,7 @@ async function handleRefresh(event: CustomEvent) {
             <IonLabel>Published</IonLabel>
           </IonItemDivider>
 
-          <IonItem v-for="tpl in publishedTemplates" :key="tpl.id" button>
+          <IonItem v-for="tpl in publishedTemplates" :key="tpl.id" button :router-link="`/templates/${tpl.id}`">
             <IonIcon :icon="gitBranchOutline" slot="start" color="medium" />
             <IonLabel>
               <h2>{{ tpl.name }}</h2>

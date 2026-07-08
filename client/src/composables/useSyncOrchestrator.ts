@@ -1,0 +1,325 @@
+/**
+ * Sync orchestrator — the central glue between stores, outbox, and WebSocket.
+ *
+ * Responsibilities:
+ * 1. Creates APIClient, HLC, SyncOutbox, WebSocket, Mutations
+ * 2. Routes pull changes to the right store (trip vs master)
+ * 3. Handles WebSocket events (trip.changed → drain trip, master.changed → drain master)
+ * 4. Exposes action methods that create mutations → optimistic store update → enqueue
+ * 5. Manages sync status for G-2 indicator
+ */
+
+import { APIClient } from '@/api/client'
+import { HLCGenerator } from '@/sync/hlc'
+import { SyncOutbox } from './useSyncOutbox'
+import { useWebSocket } from './useWebSocket'
+import { useMutations } from './useMutations'
+import { useSyncStatus, type SyncStatus } from './useSyncStatus'
+import { useTripStore } from '@/stores/tripStore'
+import { useMasterStore } from '@/stores/masterStore'
+import type { PullChange, WSEvent } from '@/api/types'
+import type { ItemMode, TripItem } from '@/types/domain'
+
+export interface SyncOrchestratorConfig {
+  baseUrl: string
+  getToken: () => string | null
+}
+
+export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
+  const tripStore = useTripStore()
+  const masterStore = useMasterStore()
+  const syncStatus = useSyncStatus()
+
+  const client = new APIClient(config.baseUrl, config.getToken)
+
+  const deviceId = localStorage.getItem('jitpack_device_id') ?? generateDeviceId()
+  localStorage.setItem('jitpack_device_id', deviceId)
+
+  const hlc = new HLCGenerator(() => Date.now(), deviceId)
+  const mutations = useMutations(hlc)
+
+  const outbox = new SyncOutbox(client, hlc, onPullChanges)
+
+  const ws = useWebSocket({
+    baseUrl: config.baseUrl,
+    getToken: config.getToken,
+    onEvent: onWSEvent,
+  })
+
+  // --- Pull change routing ---
+
+  function onPullChanges(changes: PullChange[]) {
+    const tripTables = new Set(['trips', 'trip_items', 'travelers', 'containers', 'comments', 'notifications'])
+    const masterTables = new Set(['categories', 'items', 'templates', 'template_items'])
+
+    const tripChanges: PullChange[] = []
+    const masterChanges: PullChange[] = []
+
+    for (const c of changes) {
+      if (tripTables.has(c.table)) {
+        tripChanges.push(c)
+      } else if (masterTables.has(c.table)) {
+        masterChanges.push(c)
+      }
+    }
+
+    if (tripChanges.length > 0) tripStore.applyChanges(tripChanges)
+    if (masterChanges.length > 0) masterStore.applyChanges(masterChanges)
+  }
+
+  // --- WebSocket event handling ---
+
+  function onWSEvent(event: WSEvent) {
+    switch (event.type) {
+      case 'trip.changed': {
+        const tripId = event.payload['trip_id'] as string | undefined
+        if (tripId) {
+          drainTrip(tripId)
+        }
+        break
+      }
+      case 'master.changed':
+        drainMaster()
+        break
+      case 'presence':
+        // Future: update presence store
+        break
+    }
+  }
+
+  // --- Drain operations ---
+
+  async function drainTrip(tripId: string): Promise<void> {
+    syncStatus.setSyncing()
+    try {
+      await outbox.drain('trip', tripId)
+      syncStatus.setPendingCount(outbox.totalPending())
+      syncStatus.setSynced()
+    } catch {
+      syncStatus.setOffline()
+    }
+  }
+
+  async function drainMaster(): Promise<void> {
+    syncStatus.setSyncing()
+    try {
+      await outbox.drain('master', null)
+      syncStatus.setPendingCount(outbox.totalPending())
+      syncStatus.setSynced()
+    } catch {
+      syncStatus.setOffline()
+    }
+  }
+
+  async function drainAll(tripIds: string[]): Promise<void> {
+    syncStatus.setSyncing()
+    try {
+      await drainMaster()
+      for (const id of tripIds) {
+        await drainTrip(id)
+      }
+      syncStatus.setSynced()
+    } catch {
+      syncStatus.setOffline()
+    }
+  }
+
+  // --- High-level actions (optimistic + enqueue) ---
+
+  function enqueueAndDrain(
+    type: 'trip' | 'master',
+    id: string | null,
+    ...muts: { mutation: ReturnType<typeof mutations.skipItem>; optimistic?: PullChange }[]
+  ) {
+    for (const m of muts) {
+      if (m.optimistic) {
+        onPullChanges([m.optimistic])
+      }
+      outbox.enqueue(type, id, m.mutation)
+    }
+    syncStatus.setPendingCount(outbox.totalPending())
+
+    // Fire-and-forget drain
+    const drainFn = type === 'master' ? drainMaster() : drainTrip(id!)
+    drainFn.catch(() => {})
+  }
+
+  /** Pack: increment packed count on a trip item. */
+  function packIncrement(tripId: string, item: TripItem) {
+    const mut = mutations.incrementPacked(item.id, item.packed_count, item.quantity)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0, table: 'trip_items', id: item.id, deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  function packDecrement(tripId: string, item: TripItem) {
+    const mut = mutations.decrementPacked(item.id, item.packed_count)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0, table: 'trip_items', id: item.id, deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  function packComplete(tripId: string, item: TripItem) {
+    const mut = mutations.completePacked(item.id, item.quantity)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0, table: 'trip_items', id: item.id, deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  function packZero(tripId: string, item: TripItem) {
+    const mut = mutations.zeroPacked(item.id)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0, table: 'trip_items', id: item.id, deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  function packToggle(tripId: string, item: TripItem) {
+    const mut = mutations.togglePacked(item.id, item.packed_count)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0, table: 'trip_items', id: item.id, deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  function skipItem(tripId: string, item: TripItem) {
+    const mut = mutations.skipItem(item.id)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0, table: 'trip_items', id: item.id, deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  function unskipItem(tripId: string, item: TripItem) {
+    const mut = mutations.unskipItem(item.id)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0, table: 'trip_items', id: item.id, deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  function setMode(tripId: string, item: TripItem, mode: ItemMode) {
+    const mut = mutations.setItemMode(item.id, mode)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0, table: 'trip_items', id: item.id, deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  function quickAddItem(
+    tripId: string,
+    name: string,
+    opts: { sourceItemId?: string | null; weightGrams?: number | null; valueCents?: number | null; categoryName?: string | null },
+    isActive: boolean,
+  ) {
+    const { mutation, id } = mutations.addTripItem(tripId, name, {
+      ...opts,
+      flagMissing: isActive,
+    })
+    enqueueAndDrain('trip', tripId, {
+      mutation,
+      optimistic: {
+        seq: 0, table: 'trip_items', id, deleted: false,
+        row: mutation.fields as Record<string, unknown>,
+      },
+    })
+  }
+
+  // --- Lifecycle ---
+
+  function connect() {
+    ws.connect()
+  }
+
+  function subscribeTrip(tripId: string) {
+    ws.subscribe([`trip:${tripId}`])
+  }
+
+  function disconnect() {
+    ws.disconnect()
+  }
+
+  return {
+    syncStatus,
+    outbox,
+
+    // Drain
+    drainTrip,
+    drainMaster,
+    drainAll,
+
+    // Actions
+    packIncrement,
+    packDecrement,
+    packComplete,
+    packZero,
+    packToggle,
+    skipItem,
+    unskipItem,
+    setMode,
+    quickAddItem,
+
+    // Lifecycle
+    connect,
+    subscribeTrip,
+    disconnect,
+  }
+}
+
+// --- Helpers ---
+
+function generateDeviceId(): string {
+  const bytes = new Uint8Array(4)
+  crypto.getRandomValues(bytes)
+  return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+function itemRow(item: TripItem): Record<string, unknown> {
+  return {
+    trip_id: item.trip_id,
+    name: item.name,
+    source_item_id: item.source_item_id,
+    weight_grams: item.weight_grams,
+    value_cents: item.value_cents,
+    category_name: item.category_name,
+    quantity: item.quantity,
+    packed_count: item.packed_count,
+    state: item.state,
+    mode: item.mode,
+    late_packer: item.late_packer ? 1 : 0,
+    assigned_traveler_id: item.assigned_traveler_id,
+    packer_user_id: item.packer_user_id,
+    container_id: item.container_id,
+    packing_now_by: item.packing_now_by,
+    flag_unused: item.flag_unused ? 1 : 0,
+    flag_missing: item.flag_missing ? 1 : 0,
+    updated_hlc: item.updated_hlc,
+  }
+}

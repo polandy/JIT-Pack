@@ -23,11 +23,13 @@ import {
   IonItemOption,
 } from '@ionic/vue'
 import { addOutline, airplaneOutline, archiveOutline } from 'ionicons/icons'
-import { ref, computed } from 'vue'
+import { ref, computed, inject } from 'vue'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip, TripStatus } from '@/types/domain'
+import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const store = useTripStore()
+const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
 // Map DB 'planning' to display filter 'planned' for UI clarity
 type FilterStatus = 'active' | 'planned' | 'archived'
@@ -68,6 +70,8 @@ function onFilterChange(event: CustomEvent) {
 
 async function handleRefresh(event: CustomEvent) {
   const refresher = event.target as HTMLIonRefresherElement
+  const tripIds = store.tripList.map((t) => t.id)
+  await orchestrator.drainAll(tripIds)
   refresher.complete()
 }
 </script>
