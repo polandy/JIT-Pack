@@ -56,14 +56,11 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 	res.Outcome = string(merged.Outcome)
 	res.Conflicts = merged.Conflicts
 
-	// Deleting a template cascades its template_items (FK); collect their
-	// ids up front so the cascade can be tombstoned for clients.
-	var cascaded []string
-	if merged.Deleted && m.Table == "templates" && exists {
-		if cascaded, err = childIDs(ctx, tx,
-			`SELECT id FROM template_items WHERE template_id = ?`, m.ID); err != nil {
-			return MutationResult{}, err
-		}
+	// FK cascades delete child rows silently; collect their ids up front
+	// so the whole cascade can be tombstoned for clients.
+	cascaded, err := cascadeChildren(ctx, tx, m, merged.Deleted, exists)
+	if err != nil {
+		return MutationResult{}, err
 	}
 
 	changed, err := persist(ctx, tx, m.Table, m, merged, exists)
@@ -82,8 +79,8 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 		if err != nil {
 			return MutationResult{}, err
 		}
-		for _, id := range cascaded {
-			tombstone := sync.Mutation{Table: "template_items", ID: id, HLC: m.HLC}
+		for _, c := range cascaded {
+			tombstone := sync.Mutation{Table: c.table, ID: c.id, HLC: m.HLC}
 			if _, err := appendChangeLog(ctx, tx, nil, tombstone, true); err != nil {
 				return MutationResult{}, err
 			}
@@ -140,33 +137,31 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 	case "template_items":
 		// Both the current and the target template must be owned by the
 		// pusher — otherwise items could be moved into foreign templates.
-		templateIDs := map[string]bool{}
-		if exists {
-			if id, ok := current["template_id"].(string); ok {
-				templateIDs[id] = true
+		return ownsAll(ctx, tx, userID,
+			`SELECT owner_id FROM templates WHERE id = ?`,
+			parentIDs(current, m, "template_id"))
+
+	case "trip_series":
+		if !exists {
+			if m.Op != sync.OpDelete {
+				setField(m, "owner_id", userID)
 			}
+			return true, nil
 		}
-		if id, ok := m.Fields["template_id"].(string); ok {
-			templateIDs[id] = true
-		}
-		if len(templateIDs) == 0 {
-			return false, nil
-		}
-		for id := range templateIDs {
-			var owner string
-			err := tx.QueryRowContext(ctx,
-				`SELECT owner_id FROM templates WHERE id = ?`, id).Scan(&owner)
-			if errors.Is(err, sql.ErrNoRows) {
-				return false, nil
-			}
-			if err != nil {
-				return false, fmt.Errorf("template owner lookup: %w", err)
-			}
-			if owner != userID {
-				return false, nil
-			}
-		}
-		return true, nil
+		return current["owner_id"] == userID, nil
+
+	case "destination_profiles":
+		// Ownership follows the series chain (FR-13.2) — current and
+		// target series alike, so profiles can't move to foreign series.
+		return ownsAll(ctx, tx, userID,
+			`SELECT owner_id FROM trip_series WHERE id = ?`,
+			parentIDs(current, m, "series_id"))
+
+	case "destination_checklist_items":
+		return ownsAll(ctx, tx, userID,
+			`SELECT s.owner_id FROM destination_profiles p
+			 JOIN trip_series s ON s.id = p.series_id WHERE p.id = ?`,
+			parentIDs(current, m, "profile_id"))
 
 	case "trips":
 		if !exists {
@@ -193,11 +188,90 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 	return false, nil
 }
 
+// parentIDs collects the parent references of a child row from both the
+// existing row and the mutation fields — authorization must hold for the
+// current parent *and* the target parent.
+func parentIDs(current map[string]any, m *sync.Mutation, field string) map[string]bool {
+	ids := map[string]bool{}
+	if id, ok := current[field].(string); ok {
+		ids[id] = true
+	}
+	if id, ok := m.Fields[field].(string); ok {
+		ids[id] = true
+	}
+	return ids
+}
+
+// ownsAll reports whether ownerQuery resolves to userID for every id.
+// An empty id set or a missing parent row denies.
+func ownsAll(ctx context.Context, tx *sql.Tx, userID, ownerQuery string, ids map[string]bool) (bool, error) {
+	if len(ids) == 0 {
+		return false, nil
+	}
+	for id := range ids {
+		var owner string
+		err := tx.QueryRowContext(ctx, ownerQuery, id).Scan(&owner)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		if err != nil {
+			return false, fmt.Errorf("owner lookup: %w", err)
+		}
+		if owner != userID {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 func setField(m *sync.Mutation, field, value string) {
 	if m.Fields == nil {
 		m.Fields = map[string]any{}
 	}
 	m.Fields[field] = value
+}
+
+// cascadeRow identifies one child row an FK cascade will delete.
+type cascadeRow struct{ table, id string }
+
+// cascadeChildren returns the child rows a delete will cascade to, in
+// leaf-first order so clients can apply the tombstones verbatim.
+func cascadeChildren(ctx context.Context, tx *sql.Tx, m sync.Mutation, deleted, exists bool) ([]cascadeRow, error) {
+	if !deleted || !exists {
+		return nil, nil
+	}
+	collect := func(table, query string) ([]cascadeRow, error) {
+		ids, err := childIDs(ctx, tx, query, m.ID)
+		if err != nil {
+			return nil, err
+		}
+		rows := make([]cascadeRow, 0, len(ids))
+		for _, id := range ids {
+			rows = append(rows, cascadeRow{table, id})
+		}
+		return rows, nil
+	}
+	switch m.Table {
+	case "templates":
+		return collect("template_items", `SELECT id FROM template_items WHERE template_id = ?`)
+	case "trip_series":
+		items, err := collect("destination_checklist_items",
+			`SELECT ci.id FROM destination_checklist_items ci
+			 JOIN destination_profiles p ON p.id = ci.profile_id WHERE p.series_id = ?`)
+		if err != nil {
+			return nil, err
+		}
+		profiles, err := collect("destination_profiles",
+			`SELECT id FROM destination_profiles WHERE series_id = ?`)
+		if err != nil {
+			return nil, err
+		}
+		return append(items, profiles...), nil
+	case "destination_profiles":
+		return collect("destination_checklist_items",
+			`SELECT id FROM destination_checklist_items WHERE profile_id = ?`)
+	}
+	return nil, nil
 }
 
 func childIDs(ctx context.Context, tx *sql.Tx, query string, args ...any) ([]string, error) {
@@ -315,6 +389,35 @@ func (s *Store) masterVisible(ctx context.Context, userID, table, id string) (bo
 
 	case "trips":
 		return s.IsTripMember(ctx, id, userID)
+
+	case "trip_series":
+		return s.ownedBy(ctx, userID,
+			`SELECT owner_id FROM trip_series WHERE id = ?`, id)
+
+	case "destination_profiles":
+		return s.ownedBy(ctx, userID,
+			`SELECT s.owner_id FROM destination_profiles p
+			 JOIN trip_series s ON s.id = p.series_id WHERE p.id = ?`, id)
+
+	case "destination_checklist_items":
+		return s.ownedBy(ctx, userID,
+			`SELECT s.owner_id FROM destination_checklist_items ci
+			 JOIN destination_profiles p ON p.id = ci.profile_id
+			 JOIN trip_series s ON s.id = p.series_id WHERE ci.id = ?`, id)
 	}
 	return false, nil
+}
+
+// ownedBy resolves query's single owner column for id and compares it to
+// userID; a missing row denies (its tombstone follows in the feed).
+func (s *Store) ownedBy(ctx context.Context, userID, query, id string) (bool, error) {
+	var owner string
+	err := s.db.QueryRowContext(ctx, query, id).Scan(&owner)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("ownership visibility: %w", err)
+	}
+	return owner == userID, nil
 }
