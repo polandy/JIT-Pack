@@ -55,6 +55,10 @@ Only the current version of every document is kept — if you're ever tempted to
    - Test infra: `fake-indexeddb` (dev dep — jsdom has no IndexedDB).
    - Still open: FR-19.3 collaboration-UI gating is trivially satisfied today (no collaboration UI exists yet) — gate it when sharing/presence UI lands. NFR-4.11 export reminder (>30 days) and storage-detail popover not built. FR-19.5 migration flow relies on portable YAML export/import UI (M18).
 
+## Backlog (documented, not scheduled)
+
+- **Item Dependencies / "Companion Items" (Addendum 3.20, FR-20.1–20.4).** Master items can declare a dependency on another master item (e.g., spare battery → camera), with `required`/`suggested` modes; dependents are resolved at template instantiation, co-skipped when their main item is skipped (reuses FR-5.5), and deduplicated against already-explicit items via the existing `source_item_id` dedup (FR-2.3a) rather than a new mechanism. Not started — no `item_dependencies` table, no resolution logic, no M10 UI. See docs/PRD_Addendum_v2.9.md §3.20 for the full spec and architecture notes before implementing.
+
 ## Deviations
 
 None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
