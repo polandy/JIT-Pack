@@ -37,6 +37,7 @@ import {
   warningOutline,
 } from 'ionicons/icons'
 import { computed, ref } from 'vue'
+import { validateFormula } from '@/domain/formula'
 import { useMasterStore } from '@/stores/masterStore'
 
 const props = defineProps<{ templateId: string }>()
@@ -107,9 +108,20 @@ function onRemoveItem(templateItemId: string) {
   })
 }
 
+// FR-1.5: invalid formulas cannot be persisted — the error stays inline
+// until the input parses, the last valid formula remains stored.
+const formulaErrors = ref<Record<string, string>>({})
+
 function onFormulaChange(templateItemId: string, formula: string) {
   const ti = templateItems.value.find((t) => t.id === templateItemId)
   if (!ti) return
+  const result = validateFormula(formula)
+  if (!result.ok) {
+    formulaErrors.value = { ...formulaErrors.value, [templateItemId]: result.error }
+    return
+  }
+  const { [templateItemId]: _cleared, ...rest } = formulaErrors.value
+  formulaErrors.value = rest
   masterStore.applyChange({
     seq: 0, table: 'template_items', id: templateItemId, deleted: false,
     row: { ...tiToRow(ti), quantity_formula: formula },
@@ -222,6 +234,10 @@ function tiToRow(ti: (typeof templateItems.value)[number]): Record<string, unkno
                     {{ dedupLabel(ti.dedup) }}
                   </IonChip>
                 </div>
+                <IonNote v-if="formulaErrors[ti.id]" color="danger" class="formula-error">
+                  <IonIcon :icon="warningOutline" />
+                  {{ formulaErrors[ti.id] }}
+                </IonNote>
               </IonLabel>
             </IonItem>
             <IonItemOptions side="end">
@@ -314,6 +330,14 @@ function tiToRow(ti: (typeof templateItems.value)[number]): Record<string, unkno
 .ti-label {
   font-size: 0.75rem;
   color: var(--ion-color-medium);
+}
+
+.formula-error {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  margin-top: 4px;
 }
 
 .formula-input {
