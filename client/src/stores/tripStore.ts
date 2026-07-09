@@ -14,6 +14,7 @@ import type {
   GroupBy,
   Traveler,
   Container,
+  ItemComment,
   ItemTodo,
 } from '@/types/domain'
 import type { PullChange } from '@/api/types'
@@ -24,6 +25,7 @@ export const useTripStore = defineStore('trips', () => {
   const travelers = ref<Map<string, Traveler[]>>(new Map())
   const containers = ref<Map<string, Container[]>>(new Map())
   const todos = ref<Map<string, ItemTodo[]>>(new Map())
+  const comments = ref<Map<string, ItemComment[]>>(new Map())
   const groupByPrefs = ref<Map<string, GroupBy>>(new Map())
 
   // --- Getters ---
@@ -69,6 +71,16 @@ export const useTripStore = defineStore('trips', () => {
 
   function getOpenTodos(tripId: string): ItemTodo[] {
     return getTodos(tripId).filter((t) => t.task_state === 'open')
+  }
+
+  /** Plain comments anchored to one item (FR-7.1). */
+  function getItemComments(tripId: string, tripItemId: string): ItemComment[] {
+    return (comments.value.get(tripId) ?? []).filter((c) => c.trip_item_id === tripItemId)
+  }
+
+  /** Plain comments anchored to the trip itself (FR-7.1). */
+  function getTripComments(tripId: string): ItemComment[] {
+    return (comments.value.get(tripId) ?? []).filter((c) => c.trip_item_id === null)
   }
 
   /** Items that are packed but still have open prep todos. */
@@ -206,10 +218,18 @@ export const useTripStore = defineStore('trips', () => {
         break
 
       case 'comments':
+        // One table, two layers: is_task rows are todos/tickets
+        // (FR-7.2/7.3), the rest plain comments (FR-7.1). Flagging
+        // moves a row between the two, so always clear the other side.
         if (change.deleted) {
           removeTodo(change.id)
+          removeComment(change.id)
         } else if (row && row['is_task']) {
           upsertTodo(rowToTodo(change.id, row))
+          removeComment(change.id)
+        } else if (row) {
+          upsertComment(rowToComment(change.id, row))
+          removeTodo(change.id)
         }
         break
     }
@@ -286,6 +306,26 @@ export const useTripStore = defineStore('trips', () => {
     }
   }
 
+  function upsertComment(comment: ItemComment): void {
+    const list = comments.value.get(comment.trip_id) ?? []
+    const idx = list.findIndex((c) => c.id === comment.id)
+    if (idx >= 0) {
+      list[idx] = comment
+    } else {
+      list.push(comment)
+    }
+    comments.value.set(comment.trip_id, list)
+  }
+
+  function removeComment(id: string): void {
+    for (const [tripId, list] of comments.value) {
+      const filtered = list.filter((c) => c.id !== id)
+      if (filtered.length !== list.length) {
+        comments.value.set(tripId, filtered)
+      }
+    }
+  }
+
   function upsertTodo(todo: ItemTodo): void {
     const list = todos.value.get(todo.trip_id) ?? []
     const idx = list.findIndex((t) => t.id === todo.id)
@@ -318,6 +358,8 @@ export const useTripStore = defineStore('trips', () => {
     getTodos,
     getItemTodos,
     getOpenTodos,
+    getItemComments,
+    getTripComments,
     itemsWithOpenPrep,
     getGroupBy,
     kpis,
@@ -389,6 +431,17 @@ function rowToContainer(id: string, row: Record<string, unknown>): Container {
     name: row['name'] as string,
     carrier_traveler_id: (row['carrier_traveler_id'] as string) ?? null,
     max_weight_grams: (row['max_weight_grams'] as number) ?? null,
+  }
+}
+
+function rowToComment(id: string, row: Record<string, unknown>): ItemComment {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    trip_item_id: (row['trip_item_id'] as string) ?? null,
+    author_id: row['author_id'] as string,
+    body: row['body'] as string,
+    created_at: (row['created_at'] as string) ?? null,
   }
 }
 
