@@ -22,23 +22,21 @@ import {
   IonToggle,
   IonNote,
 } from '@ionic/vue'
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 import { useMasterStore } from '@/stores/masterStore'
-import type { MasterItem } from '@/types/domain'
+import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const props = defineProps<{ itemId: string }>()
 
 const masterStore = useMasterStore()
+const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
 const item = computed(() => masterStore.getItem(props.itemId))
 const categories = computed(() => masterStore.categoryList)
 
 function updateField(field: string, value: unknown) {
   if (!item.value) return
-  masterStore.applyChange({
-    seq: 0, table: 'items', id: item.value.id, deleted: false,
-    row: { ...itemToRow(item.value), [field]: value },
-  })
+  orchestrator.updateMasterItem(item.value, { [field]: value })
 }
 
 function onNameChange(event: CustomEvent) {
@@ -73,17 +71,6 @@ function onConsumableChange(event: CustomEvent) {
   updateField('is_consumable', event.detail.checked ? 1 : 0)
 }
 
-function itemToRow(i: MasterItem): Record<string, unknown> {
-  return {
-    name: i.name,
-    category_id: i.category_id,
-    weight_grams: i.weight_grams,
-    value_cents: i.value_cents,
-    unit: i.unit,
-    is_consumable: i.is_consumable ? 1 : 0,
-    per_day_rate: i.per_day_rate,
-  }
-}
 </script>
 
 <template>

@@ -36,13 +36,15 @@ import {
   trashOutline,
   warningOutline,
 } from 'ionicons/icons'
-import { computed, ref } from 'vue'
+import { computed, inject, ref } from 'vue'
 import { validateFormula } from '@/domain/formula'
 import { useMasterStore } from '@/stores/masterStore'
+import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const props = defineProps<{ templateId: string }>()
 
 const masterStore = useMasterStore()
+const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
 const template = computed(() => masterStore.getTemplate(props.templateId))
 const templateItems = computed(() => masterStore.getTemplateItems(props.templateId))
@@ -83,29 +85,14 @@ function resolveItemName(itemId: string): string {
   return masterStore.getItem(itemId)?.name ?? 'Unknown item'
 }
 
-// Placeholder handlers — will wire to orchestrator mutations on master partition
 function onAddItem(itemId: string) {
   showItemPicker.value = false
   itemSearch.value = ''
-  // Optimistic add
-  masterStore.applyChange({
-    seq: 0, table: 'template_items', id: crypto.randomUUID(), deleted: false,
-    row: {
-      template_id: props.templateId,
-      item_id: itemId,
-      quantity_formula: '1',
-      assignment: 'per_person',
-      dedup: 'max',
-      default_mode: 'pack',
-      late_packer: 0,
-    },
-  })
+  orchestrator.addTemplateItem(props.templateId, itemId)
 }
 
 function onRemoveItem(templateItemId: string) {
-  masterStore.applyChange({
-    seq: 0, table: 'template_items', id: templateItemId, deleted: true, row: null,
-  })
+  orchestrator.deleteTemplateItem(templateItemId)
 }
 
 // FR-1.5: invalid formulas cannot be persisted — the error stays inline
@@ -122,49 +109,25 @@ function onFormulaChange(templateItemId: string, formula: string) {
   }
   const { [templateItemId]: _cleared, ...rest } = formulaErrors.value
   formulaErrors.value = rest
-  masterStore.applyChange({
-    seq: 0, table: 'template_items', id: templateItemId, deleted: false,
-    row: { ...tiToRow(ti), quantity_formula: formula },
-  })
+  orchestrator.updateTemplateItem(ti, { quantity_formula: formula })
 }
 
 function onAssignmentChange(templateItemId: string, assignment: string) {
   const ti = templateItems.value.find((t) => t.id === templateItemId)
   if (!ti) return
-  masterStore.applyChange({
-    seq: 0, table: 'template_items', id: templateItemId, deleted: false,
-    row: { ...tiToRow(ti), assignment },
-  })
+  orchestrator.updateTemplateItem(ti, { assignment })
 }
 
 function onDedupChange(templateItemId: string, dedup: string) {
   const ti = templateItems.value.find((t) => t.id === templateItemId)
   if (!ti) return
-  masterStore.applyChange({
-    seq: 0, table: 'template_items', id: templateItemId, deleted: false,
-    row: { ...tiToRow(ti), dedup },
-  })
+  orchestrator.updateTemplateItem(ti, { dedup })
 }
 
 function onModeChange(templateItemId: string, mode: string) {
   const ti = templateItems.value.find((t) => t.id === templateItemId)
   if (!ti) return
-  masterStore.applyChange({
-    seq: 0, table: 'template_items', id: templateItemId, deleted: false,
-    row: { ...tiToRow(ti), default_mode: mode },
-  })
-}
-
-function tiToRow(ti: (typeof templateItems.value)[number]): Record<string, unknown> {
-  return {
-    template_id: ti.template_id,
-    item_id: ti.item_id,
-    quantity_formula: ti.quantity_formula,
-    assignment: ti.assignment,
-    dedup: ti.dedup,
-    default_mode: ti.default_mode,
-    late_packer: ti.late_packer ? 1 : 0,
-  }
+  orchestrator.updateTemplateItem(ti, { default_mode: mode })
 }
 </script>
 
