@@ -1,6 +1,6 @@
 # JIT-Pack
 
-Self-hosted, offline-first packing-list app. Go + embedded SQLite backend, Vue 3 + Capacitor client.
+Self-hosted, offline-first packing-list app with dynamic quantity formulas, real-time collaboration, and post-trip optimization. Go + embedded SQLite backend, Vue 3 + Capacitor client.
 
 ## For humans
 
