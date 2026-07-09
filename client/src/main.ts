@@ -16,7 +16,14 @@ import '@ionic/vue/css/text-alignment.css'
 import '@ionic/vue/css/text-transformation.css'
 import '@ionic/vue/css/flex-utils.css'
 import '@ionic/vue/css/display.css'
-import '@ionic/vue/css/palettes/dark.system.css'
+
+/* App-owned theme (Addendum 3.21): Catppuccin, dark by default in every
+ * mode and independent of the OS preference — deliberately replaces
+ * Ionic's prefers-color-scheme palette (FR-21.1). */
+import './theme/catppuccin.css'
+import { initTheme } from './theme/theme'
+
+initTheme()
 
 const app = createApp(App)
 
