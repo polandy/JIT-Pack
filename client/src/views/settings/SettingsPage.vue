@@ -36,11 +36,15 @@ import { computed, inject, onMounted, ref } from 'vue'
 
 import { loadTokens } from '@/auth/tokens'
 import { serverBaseUrl } from '@/config'
+import { serializeTemplate, serializeTrip } from '@/domain/portable'
+import { safeFilename, saveBlob, saveText } from '@/lib/download'
+import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 const tripStore = useTripStore()
+const masterStore = useMasterStore()
 
 const mode = localStorage.getItem('jitpack_mode') as 'local' | 'server' | null
 /** OIDC session → profile is IdP-sourced and read-only (UI-Spec M17). */
@@ -93,17 +97,35 @@ async function onAvatarFile(event: Event) {
   avatarVersion.value++
 }
 
-// --- Data section (NFR-4.5) ---
+// --- Data section (NFR-4.5; Local Mode: portable YAML per NFR-4.11) ---
 
 const csvTripId = ref('')
+const yamlTripId = ref('')
+const yamlTemplateId = ref('')
 
-function saveBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
+/** Local Mode backup: client-side YAML — there is no server to ask. */
+function exportTripYAML() {
+  const trip = tripStore.getTrip(yamlTripId.value)
+  if (!trip) return
+  const yaml = serializeTrip({
+    trip,
+    items: tripStore.getItems(trip.id),
+    travelers: tripStore.getTravelers(trip.id),
+    containers: tripStore.getContainers(trip.id),
+    includeProgress: true,
+  })
+  saveText(yaml, `${safeFilename(trip.name)}.yaml`)
+}
+
+function exportTemplateYAML() {
+  const template = masterStore.getTemplate(yamlTemplateId.value)
+  if (!template) return
+  const yaml = serializeTemplate(
+    template,
+    masterStore.getTemplateItems(template.id),
+    (id) => masterStore.getItem(id),
+  )
+  saveText(yaml, `${safeFilename(template.name)}.yaml`)
 }
 
 async function exportFull() {
@@ -183,9 +205,41 @@ async function exportTripCSV() {
       <h2 class="section-title">Data</h2>
       <template v-if="mode === 'local'">
         <IonNote>
-          Backup in Local Mode is the portable YAML export per trip and template —
-          there is no server copy of your data.
+          Backup in Local Mode is the portable YAML export — there is no server
+          copy of your data. Files re-import via the trip/template import.
         </IonNote>
+        <IonList>
+          <IonItem>
+            <IonSelect
+              label="Trip (YAML)"
+              interface="popover"
+              :value="yamlTripId"
+              @ionChange="(e: CustomEvent) => (yamlTripId = e.detail.value)"
+            >
+              <IonSelectOption v-for="trip in tripStore.tripList" :key="trip.id" :value="trip.id">
+                {{ trip.name }}
+              </IonSelectOption>
+            </IonSelect>
+            <IonButton slot="end" size="small" :disabled="!yamlTripId" @click="exportTripYAML">
+              Download
+            </IonButton>
+          </IonItem>
+          <IonItem>
+            <IonSelect
+              label="Template (YAML)"
+              interface="popover"
+              :value="yamlTemplateId"
+              @ionChange="(e: CustomEvent) => (yamlTemplateId = e.detail.value)"
+            >
+              <IonSelectOption v-for="tpl in masterStore.templateList" :key="tpl.id" :value="tpl.id">
+                {{ tpl.name }}
+              </IonSelectOption>
+            </IonSelect>
+            <IonButton slot="end" size="small" :disabled="!yamlTemplateId" @click="exportTemplateYAML">
+              Download
+            </IonButton>
+          </IonItem>
+        </IonList>
       </template>
       <template v-else>
         <IonList>
