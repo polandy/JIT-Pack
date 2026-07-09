@@ -45,6 +45,7 @@ import {
   eyeOffOutline,
   eyeOutline,
   buildOutline,
+  lockClosedOutline,
 } from 'ionicons/icons'
 import { computed, inject, ref, onMounted } from 'vue'
 import { useTripStore } from '@/stores/tripStore'
@@ -77,6 +78,15 @@ const shoppingCount = computed(() => {
 
 // G-10: facepile only with company — hides in Single-User/Local (G-8).
 const presenceUsers = computed(() => orchestrator.getPresence(props.tripId))
+
+// G-3: item locked by someone else's packing-now claim.
+function locked(item: TripItem): boolean {
+  return orchestrator.isLockedByOther(props.tripId, item)
+}
+
+function onPackingNow(item: TripItem) {
+  orchestrator.packingNow(props.tripId, item)
+}
 
 const showFilters = ref(false)
 const openOnly = ref(false)
@@ -334,10 +344,14 @@ async function handleRefresh(event: CustomEvent) {
               :class="{
                 'item-packed': item.state === 'packed' && itemOpenTodoCount(item.id) === 0,
                 'item-packed-open-prep': item.state === 'packed' && itemOpenTodoCount(item.id) > 0,
+                'item-locked': locked(item),
               }"
             >
               <div slot="start">
+                <!-- G-3: locked items are non-interactive for others -->
+                <IonIcon v-if="locked(item)" :icon="lockClosedOutline" class="lock-icon" />
                 <QuantityStepper
+                  v-else
                   :quantity="item.quantity"
                   :packed="item.packed_count"
                   @increment="onIncrement(item)"
@@ -384,13 +398,22 @@ async function handleRefresh(event: CustomEvent) {
               <IonChip v-if="item.flag_missing" slot="end" color="danger" outline>
                 Missing
               </IonChip>
+
+              <!-- Packing-now state: locked for others, badge for self -->
+              <IonChip v-if="locked(item)" slot="end" color="primary" outline>
+                <IonIcon :icon="lockClosedOutline" />
+                <IonLabel>Packing…</IonLabel>
+              </IonChip>
+              <IonChip v-else-if="item.state === 'packing_now'" slot="end" color="success" outline>
+                <IonLabel>Packing now</IonLabel>
+              </IonChip>
             </IonItem>
 
-            <!-- Swipe actions -->
-            <IonItemOptions side="start">
-              <IonItemOption color="primary">Pack</IonItemOption>
+            <!-- Swipe actions (none while locked by someone else, G-3) -->
+            <IonItemOptions v-if="!locked(item)" side="start">
+              <IonItemOption color="primary" @click="onPackingNow(item)">Packing Now</IonItemOption>
             </IonItemOptions>
-            <IonItemOptions side="end">
+            <IonItemOptions v-if="!locked(item)" side="end">
               <IonItemOption color="medium" @click="onSkipItem(item)">
                 <IonIcon slot="icon-only" :icon="eyeOffOutline" />
               </IonItemOption>
@@ -622,5 +645,15 @@ async function handleRefresh(event: CustomEvent) {
 .shopping-badge {
   margin-left: 4px;
   font-size: 0.7rem;
+}
+
+.item-locked {
+  opacity: 0.65;
+}
+
+.lock-icon {
+  font-size: 22px;
+  color: var(--ion-color-primary);
+  padding: 8px;
 }
 </style>

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 
@@ -234,40 +235,107 @@ type pushResponse struct {
 
 func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 	tripID := r.PathValue("tripID")
-	out, ok := applyPushBatch(w, r, func(m syncpkg.Mutation) (store.MutationResult, error) {
-		return s.store.ApplyMutation(r.Context(), tripID, m)
-	})
+	userID, _ := r.Context().Value(userIDKey).(string)
+	out, muts, ok := applyPushBatch(w, r,
+		func(m *syncpkg.Mutation) { stampActor(m, userID) },
+		func(m syncpkg.Mutation) (store.MutationResult, error) {
+			return s.store.ApplyMutation(r.Context(), tripID, m)
+		})
 	if !ok {
 		return
 	}
 	writeJSON(w, out)
 
-	// Notify subscribed WebSocket clients so they pull the new state.
+	// Ephemeral G-3 lock events first (§7 fast path), then the
+	// trip.changed ping so clients pull the persisted state.
+	s.notifyLockEvents(tripID, userID, muts, out.Results)
 	if out.PullHint.NextCursor > 0 {
 		s.hub.NotifyTripChanged(tripID, out.PullHint.NextCursor)
 	}
 }
 
+// stampActor fills server-owned actor columns from the authenticated
+// pusher (FR-4.2): comment authors, the packing-now locker, and the
+// packer. Client-sent values are placeholders (the client may not know
+// its user id) and are never trusted.
+func stampActor(m *syncpkg.Mutation, userID string) {
+	switch m.Table {
+	case "comments":
+		if m.Op == syncpkg.OpInsert {
+			setMutationField(m, "author_id", userID)
+		}
+	case "trip_items":
+		state, _ := m.Fields["state"].(string)
+		switch state {
+		case "packing_now":
+			setMutationField(m, "packing_now_by", userID)
+			if at, _ := m.Fields["packing_now_at"].(string); at == "" {
+				setMutationField(m, "packing_now_at", time.Now().UTC().Format(time.RFC3339))
+			}
+		case "packed":
+			setMutationField(m, "packer_user_id", userID)
+		}
+	}
+}
+
+func setMutationField(m *syncpkg.Mutation, field string, value any) {
+	if m.Fields == nil {
+		m.Fields = map[string]any{}
+	}
+	m.Fields[field] = value
+}
+
+// notifyLockEvents emits item.locked/item.unlocked for state changes
+// that touched packing_now. Over-notifying on merges is fine — the
+// events are ephemeral hints, clients converge via pull (§7).
+func (s *Server) notifyLockEvents(tripID, userID string, muts []syncpkg.Mutation, results []pushResult) {
+	for i, m := range muts {
+		if i >= len(results) || m.Table != "trip_items" {
+			continue
+		}
+		if results[i].Outcome != "applied" && results[i].Outcome != "merged" {
+			continue
+		}
+		state, ok := m.Fields["state"].(string)
+		if !ok {
+			continue
+		}
+		name, _ := m.Fields["name"].(string)
+		if state == "packing_now" {
+			s.hub.NotifyItemLocked(tripID, m.ID, userID, name)
+		} else {
+			s.hub.NotifyItemUnlocked(tripID, m.ID, userID, name)
+		}
+	}
+}
+
 // applyPushBatch decodes the push envelope and applies each mutation via
-// apply. It reports ok=false after writing an error response itself.
-func applyPushBatch(w http.ResponseWriter, r *http.Request, apply func(syncpkg.Mutation) (store.MutationResult, error)) (pushResponse, bool) {
+// apply, calling prepare (if set) first. It reports ok=false after
+// writing an error response itself.
+func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpkg.Mutation), apply func(syncpkg.Mutation) (store.MutationResult, error)) (pushResponse, []syncpkg.Mutation, bool) {
 	var req pushRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusUnprocessableEntity, "validation", "malformed push envelope")
-		return pushResponse{}, false
+		return pushResponse{}, nil, false
 	}
 	if len(req.Mutations) > maxPushBatch {
 		writeError(w, http.StatusUnprocessableEntity, "validation",
 			fmt.Sprintf("batch exceeds %d mutations", maxPushBatch))
-		return pushResponse{}, false
+		return pushResponse{}, nil, false
 	}
 
 	var out pushResponse
+	muts := make([]syncpkg.Mutation, 0, len(req.Mutations))
 	for _, m := range req.Mutations {
-		res, err := apply(syncpkg.Mutation{
+		mut := syncpkg.Mutation{
 			MutationID: m.MutationID, Op: syncpkg.Op(m.Op), Table: m.Table,
 			ID: m.ID, Fields: m.Fields, HLC: syncpkg.HLC(m.HLC),
-		})
+		}
+		if prepare != nil {
+			prepare(&mut)
+		}
+		muts = append(muts, mut)
+		res, err := apply(mut)
 		switch {
 		case errors.Is(err, store.ErrUnknownTable), errors.Is(err, store.ErrUnknownColumn):
 			out.Results = append(out.Results, pushResult{
@@ -276,7 +344,7 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, apply func(syncpkg.M
 			continue
 		case err != nil:
 			writeError(w, http.StatusInternalServerError, "internal", "push failed")
-			return pushResponse{}, false
+			return pushResponse{}, nil, false
 		}
 		out.Results = append(out.Results, pushResult{
 			MutationID: res.MutationID, Outcome: res.Outcome, Conflicts: toWireConflicts(res.Conflicts),
@@ -285,7 +353,7 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, apply func(syncpkg.M
 			out.PullHint.NextCursor = res.Seq
 		}
 	}
-	return out, true
+	return out, muts, true
 }
 
 func toWireConflicts(conflicts []syncpkg.Conflict) []wireConflict {

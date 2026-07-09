@@ -45,6 +45,7 @@ export interface TripItem {
   packer_user_id: string | null
   container_id: string | null
   packing_now_by: string | null
+  packing_now_at: string | null
   flag_unused: boolean
   flag_missing: boolean
   updated_hlc: string

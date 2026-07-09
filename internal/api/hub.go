@@ -121,6 +121,22 @@ func (h *Hub) NotifyTripChanged(tripID string, headSeq int64) {
 	h.broadcast(tripID, evt)
 }
 
+// NotifyItemLocked broadcasts the ephemeral G-3 lock event (spec §7).
+// The lock is also persisted via the normal mutation; this only lowers
+// latency for connected clients.
+func (h *Hub) NotifyItemLocked(tripID, itemID, byUser, name string) {
+	h.broadcast(tripID, Event{Type: "item.locked", Payload: map[string]any{
+		"trip_id": tripID, "item_id": itemID, "by_user": byUser, "name": name,
+	}})
+}
+
+// NotifyItemUnlocked broadcasts the ephemeral G-3 unlock event (spec §7).
+func (h *Hub) NotifyItemUnlocked(tripID, itemID, byUser, name string) {
+	h.broadcast(tripID, Event{Type: "item.unlocked", Payload: map[string]any{
+		"trip_id": tripID, "item_id": itemID, "by_user": byUser, "name": name,
+	}})
+}
+
 // NotifyMasterChanged sends a master.changed event to every connection
 // of the given user (Sync-API Spec §7) — the master partition has no
 // subscriptions, and other users discover shared changes lazily on

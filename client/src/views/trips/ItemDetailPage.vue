@@ -360,7 +360,7 @@ function onToggle() {
         </div>
 
         <!-- Lock overlay (G-3) -->
-        <div v-if="item.packing_now_by" class="lock-banner">
+        <div v-if="orchestrator.isLockedByOther(props.tripId, item)" class="lock-banner">
           <IonChip color="primary">
             <IonLabel>In progress by another user</IonLabel>
           </IonChip>
