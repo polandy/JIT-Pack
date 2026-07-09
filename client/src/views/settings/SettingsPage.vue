@@ -15,6 +15,9 @@
  * Notifications (FR-6.2/NFR-4.6): per-kind toggles + the Web Push
  * opt-in for this device. Only with an OIDC session — Single-User and
  * Local Mode have no second party (FR-17.3/FR-19.3, G-8).
+ *
+ * Appearance (FR-21.3): opt-in light theme (Catppuccin Latte), a
+ * device-local display preference — shown in every mode, never synced.
  */
 import {
   IonPage,
@@ -46,6 +49,7 @@ import { serializeTemplate, serializeTrip } from '@/domain/portable'
 import { safeFilename, saveBlob, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
+import { currentTheme, setTheme } from '@/theme/theme'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
@@ -71,6 +75,15 @@ onMounted(async () => {
     pushOn.value = await pushRegistered()
   }
 })
+
+// --- Appearance (FR-21.3, device-local) ---
+
+const lightTheme = ref(currentTheme() === 'latte')
+
+function toggleLightTheme(enabled: boolean) {
+  setTheme(enabled ? 'latte' : 'mocha')
+  lightTheme.value = enabled
+}
 
 // --- Notifications (FR-6.2 / NFR-4.6) ---
 
@@ -239,6 +252,23 @@ async function exportTripCSV() {
         <IonNote v-else-if="!editable">Profile is managed by your identity provider.</IonNote>
       </template>
       <IonNote v-else>Profile unavailable — server not reachable.</IonNote>
+
+      <!-- Appearance (FR-21.3) — every mode, this device only -->
+      <h2 class="section-title">Appearance</h2>
+      <IonList>
+        <IonItem>
+          <IonLabel>
+            <h3>Light theme</h3>
+            <p>Catppuccin Latte — dark (Mocha) is the default. This device only.</p>
+          </IonLabel>
+          <IonToggle
+            slot="end"
+            :checked="lightTheme"
+            aria-label="Light theme"
+            @ionChange="(e: CustomEvent) => toggleLightTheme(e.detail.checked)"
+          />
+        </IonItem>
+      </IonList>
 
       <!-- Notifications (FR-6.2 / NFR-4.6) — multi-user only (G-8) -->
       <template v-if="collaborative">
