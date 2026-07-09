@@ -84,6 +84,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/sync/master", s.authed(s.handlePullMaster))
 	mux.HandleFunc("POST /api/v1/sync/master", s.authed(s.handlePushMaster))
 	mux.HandleFunc("GET /api/v1/me", s.authed(s.handleMe))
+	mux.HandleFunc("GET /api/v1/notifications", s.authed(s.handleListNotifications))
+	mux.HandleFunc("POST /api/v1/notifications/{notificationID}/read", s.authed(s.handleMarkNotificationRead))
+	mux.HandleFunc("GET /api/v1/me/notification-prefs", s.authed(s.handleGetNotificationPrefs))
+	mux.HandleFunc("PUT /api/v1/me/notification-prefs", s.authed(s.handlePutNotificationPrefs))
 	mux.HandleFunc("GET /api/v1/export/full", s.authed(s.handleExportFull))
 	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.csv", s.authed(s.member(s.handleExportTripCSV)))
 	mux.HandleFunc("GET /api/v1/users/{userID}/avatar", s.handleGetAvatar)
@@ -272,6 +276,11 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 	s.notifyLockEvents(tripID, userID, muts, out.Results)
 	if out.PullHint.NextCursor > 0 {
 		s.hub.NotifyTripChanged(tripID, out.PullHint.NextCursor)
+	}
+	// FR-6.2 side effects last — FR-17.3: no second party in Single-User
+	// Mode, so no detection at all.
+	if !s.singleUserMode {
+		s.emitNotifications(r.Context(), tripID, userID, muts, out.Results)
 	}
 }
 

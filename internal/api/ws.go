@@ -68,8 +68,9 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		for _, channel := range msg.Subscribe {
-			// user:<id> channels are accepted but carry no events yet
-			// (notification.created will use them).
+			// user:<id> frames are accepted but redundant:
+			// notification.created is delivered by the connection's
+			// authenticated identity (hub.NotifyNotificationCreated).
 			if tripID, ok := strings.CutPrefix(channel, "trip:"); ok {
 				if s.singleUserMode || s.isMember(r, tripID, userID) {
 					s.hub.Subscribe(c, tripID)
