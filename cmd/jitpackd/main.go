@@ -47,6 +47,9 @@ func main() {
 		log.Print("starting in multi-user mode (HS256)")
 		srv = api.New(st, []byte(cfg.JWTSecret))
 	}
+	if cfg.PushContact != "" {
+		srv.SetPushContact(cfg.PushContact)
+	}
 
 	httpSrv := &http.Server{
 		Addr:         cfg.Listen,

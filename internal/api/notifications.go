@@ -203,6 +203,9 @@ func (s *Server) createAndNotify(ctx context.Context, userID, kind string, paylo
 		return // preference-suppressed (M17)
 	}
 	s.hub.NotifyNotificationCreated(userID, id)
+	// Web Push rides along detached (NFR-4.6): the response and the WS
+	// ping must never wait on a third-party push service.
+	go s.sendWebPush(userID, id, kind, payload)
 }
 
 // mentionTargets returns the user ids of members whose display name
