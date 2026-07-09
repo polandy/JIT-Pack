@@ -118,6 +118,28 @@ func (h *Hub) NotifyTripChanged(tripID string, headSeq int64) {
 	h.broadcast(tripID, evt)
 }
 
+// NotifyMasterChanged sends a master.changed event to every connection
+// of the given user (Sync-API Spec §7) — the master partition has no
+// subscriptions, and other users discover shared changes lazily on
+// their next pull (spec §8).
+func (h *Hub) NotifyMasterChanged(userID string, seq int64) {
+	evt := Event{
+		Type: "master.changed",
+		Data: map[string]any{"seq": seq},
+	}
+
+	h.mu.Lock()
+	targets := make([]*conn, 0)
+	for c := range h.conns {
+		if c.userID == userID {
+			targets = append(targets, c)
+		}
+	}
+	h.mu.Unlock()
+
+	h.send(targets, evt)
+}
+
 // Subscribers returns the number of connections subscribed to a trip.
 func (h *Hub) Subscribers(tripID string) int {
 	h.mu.Lock()
@@ -133,12 +155,6 @@ func (h *Hub) Subscribers(tripID string) int {
 
 // broadcast sends an event to all connections subscribed to a trip.
 func (h *Hub) broadcast(tripID string, evt Event) {
-	data, err := json.Marshal(evt)
-	if err != nil {
-		slog.Error("marshal event", "error", err)
-		return
-	}
-
 	h.mu.Lock()
 	targets := make([]*conn, 0)
 	for c := range h.conns {
@@ -148,6 +164,16 @@ func (h *Hub) broadcast(tripID string, evt Event) {
 	}
 	h.mu.Unlock()
 
+	h.send(targets, evt)
+}
+
+// send writes an event to the given connections.
+func (h *Hub) send(targets []*conn, evt Event) {
+	data, err := json.Marshal(evt)
+	if err != nil {
+		slog.Error("marshal event", "error", err)
+		return
+	}
 	for _, c := range targets {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		if err := c.ws.Write(ctx, websocket.MessageText, data); err != nil {
