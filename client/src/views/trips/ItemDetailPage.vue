@@ -99,20 +99,17 @@ function onModeChange(mode: ItemMode) {
 
 function onTravelerChange(id: string | null) {
   if (!item.value) return
-  // Uses mutation factory via orchestrator pattern
-  const mut = { mutation_id: crypto.randomUUID(), op: 'upsert' as const, table: 'trip_items', id: item.value.id, fields: { assigned_traveler_id: id }, hlc: '' }
-  // Direct optimistic + enqueue
-  tripStore.applyChange({ seq: 0, table: 'trip_items', id: item.value.id, deleted: false, row: { ...itemToRow(item.value), assigned_traveler_id: id } })
+  orchestrator.assignTraveler(props.tripId, item.value, id)
 }
 
 function onContainerChange(id: string | null) {
   if (!item.value) return
-  tripStore.applyChange({ seq: 0, table: 'trip_items', id: item.value.id, deleted: false, row: { ...itemToRow(item.value), container_id: id } })
+  orchestrator.assignContainer(props.tripId, item.value, id)
 }
 
 function onLatePacker(val: boolean) {
   if (!item.value) return
-  tripStore.applyChange({ seq: 0, table: 'trip_items', id: item.value.id, deleted: false, row: { ...itemToRow(item.value), late_packer: val ? 1 : 0 } })
+  orchestrator.setLatePacker(props.tripId, item.value, val)
 }
 
 function onIncrement() {
@@ -136,17 +133,6 @@ function onToggle() {
   orchestrator.packToggle(props.tripId, item.value)
 }
 
-function itemToRow(i: typeof item.value & object): Record<string, unknown> {
-  return {
-    trip_id: i.trip_id, name: i.name, source_item_id: i.source_item_id,
-    weight_grams: i.weight_grams, value_cents: i.value_cents, category_name: i.category_name,
-    quantity: i.quantity, packed_count: i.packed_count, state: i.state, mode: i.mode,
-    late_packer: i.late_packer ? 1 : 0, assigned_traveler_id: i.assigned_traveler_id,
-    packer_user_id: i.packer_user_id, container_id: i.container_id,
-    packing_now_by: i.packing_now_by, flag_unused: i.flag_unused ? 1 : 0,
-    flag_missing: i.flag_missing ? 1 : 0, updated_hlc: i.updated_hlc,
-  }
-}
 </script>
 
 <template>

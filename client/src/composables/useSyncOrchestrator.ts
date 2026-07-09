@@ -19,7 +19,7 @@ import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type { PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
-import type { ItemMode, TripItem, ItemTodo } from '@/types/domain'
+import type { ItemMode, ItemTodo, MasterItem, Template, TemplateItem, TripItem } from '@/types/domain'
 
 /** Everything the M3 wizard collected before "Create trip". */
 export interface TripWizardDraft {
@@ -244,6 +244,39 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
+  function assignTraveler(tripId: string, item: TripItem, travelerId: string | null) {
+    const mut = mutations.assignTraveler(item.id, travelerId)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0, table: 'trip_items', id: item.id, deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  function assignContainer(tripId: string, item: TripItem, containerId: string | null) {
+    const mut = mutations.assignContainer(item.id, containerId)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0, table: 'trip_items', id: item.id, deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  function setLatePacker(tripId: string, item: TripItem, latePacker: boolean) {
+    const mut = mutations.setLatePacker(item.id, latePacker)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0, table: 'trip_items', id: item.id, deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
   function quickAddItem(
     tripId: string,
     name: string,
@@ -301,6 +334,77 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     syncStatus.setPendingCount(outbox.totalPending())
     drainMaster().then(() => drainTrip(tripId)).catch(() => {})
     return tripId
+  }
+
+  // --- Master data actions (M7–M10; master partition) ---
+
+  function createMasterItem(
+    name: string,
+    opts: Parameters<typeof mutations.createMasterItem>[1] = {},
+  ): string {
+    const { mutation, id } = mutations.createMasterItem(name, opts)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: { seq: 0, table: 'items', id, deleted: false, row: mutation.fields as Record<string, unknown> },
+    })
+    return id
+  }
+
+  function updateMasterItem(item: MasterItem, fields: Record<string, unknown>) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.updateMasterItem(item.id, fields),
+      optimistic: {
+        seq: 0, table: 'items', id: item.id, deleted: false,
+        row: { ...masterItemRow(item), ...fields },
+      },
+    })
+  }
+
+  function deleteMasterItem(itemId: string) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.deleteMasterItem(itemId),
+      optimistic: { seq: 0, table: 'items', id: itemId, deleted: true, row: null },
+    })
+  }
+
+  function updateTemplate(template: Template, fields: Record<string, unknown>) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.updateTemplate(template.id, fields),
+      optimistic: {
+        seq: 0, table: 'templates', id: template.id, deleted: false,
+        row: { ...templateRow(template), ...fields },
+      },
+    })
+  }
+
+  function addTemplateItem(
+    templateId: string,
+    itemId: string,
+    opts: Parameters<typeof mutations.addTemplateItem>[2] = {},
+  ): string {
+    const { mutation, id } = mutations.addTemplateItem(templateId, itemId, opts)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: { seq: 0, table: 'template_items', id, deleted: false, row: mutation.fields as Record<string, unknown> },
+    })
+    return id
+  }
+
+  function updateTemplateItem(templateItem: TemplateItem, fields: Record<string, unknown>) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.updateTemplateItem(templateItem.id, fields),
+      optimistic: {
+        seq: 0, table: 'template_items', id: templateItem.id, deleted: false,
+        row: { ...templateItemRow(templateItem), ...fields },
+      },
+    })
+  }
+
+  function deleteTemplateItem(templateItemId: string) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.deleteTemplateItem(templateItemId),
+      optimistic: { seq: 0, table: 'template_items', id: templateItemId, deleted: true, row: null },
+    })
   }
 
   // --- Todo actions (FR-7.3) ---
@@ -385,7 +489,19 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     skipItem,
     unskipItem,
     setMode,
+    assignTraveler,
+    assignContainer,
+    setLatePacker,
     quickAddItem,
+
+    // Master data
+    createMasterItem,
+    updateMasterItem,
+    deleteMasterItem,
+    updateTemplate,
+    addTemplateItem,
+    updateTemplateItem,
+    deleteTemplateItem,
 
     // Todos
     addPrepTodo,
@@ -405,6 +521,39 @@ function generateDeviceId(): string {
   const bytes = new Uint8Array(4)
   crypto.getRandomValues(bytes)
   return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+function masterItemRow(item: MasterItem): Record<string, unknown> {
+  return {
+    name: item.name,
+    category_id: item.category_id,
+    weight_grams: item.weight_grams,
+    value_cents: item.value_cents,
+    is_consumable: item.is_consumable ? 1 : 0,
+    unit: item.unit,
+    per_day_rate: item.per_day_rate,
+  }
+}
+
+function templateRow(template: Template): Record<string, unknown> {
+  return {
+    owner_id: template.owner_id,
+    name: template.name,
+    is_published: template.is_published ? 1 : 0,
+  }
+}
+
+function templateItemRow(ti: TemplateItem): Record<string, unknown> {
+  return {
+    template_id: ti.template_id,
+    item_id: ti.item_id,
+    quantity_formula: ti.quantity_formula,
+    assignment: ti.assignment,
+    dedup: ti.dedup,
+    conditions: ti.conditions ? JSON.stringify(ti.conditions) : null,
+    default_mode: ti.default_mode,
+    late_packer: ti.late_packer ? 1 : 0,
+  }
 }
 
 function itemRow(item: TripItem): Record<string, unknown> {
