@@ -47,8 +47,11 @@ import {
   buildOutline,
   lockClosedOutline,
   repeatOutline,
+  archiveOutline,
+  sparklesOutline,
 } from 'ionicons/icons'
 import { computed, inject, ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useTripStore } from '@/stores/tripStore'
 import type { GroupBy, TripItem, ItemTodo } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -59,7 +62,14 @@ import QuickAddItem from '@/components/global/QuickAddItem.vue'
 const props = defineProps<{ tripId: string }>()
 
 const store = useTripStore()
+const router = useRouter()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+
+/** Archive completes the trip and launches the M14 review (FR-9.2). */
+function onArchive() {
+  orchestrator.archiveTrip(props.tripId)
+  router.push(`/trips/${props.tripId}/review`)
+}
 
 onMounted(() => {
   orchestrator.subscribeTrip(props.tripId)
@@ -254,6 +264,22 @@ async function handleRefresh(event: CustomEvent) {
             aria-label="Start repack"
           >
             <IonIcon slot="icon-only" :icon="repeatOutline" />
+          </IonButton>
+          <!-- M14: archive triggers the review assistant (FR-9.2) -->
+          <IonButton
+            v-if="trip?.status === 'active'"
+            aria-label="Archive trip"
+            @click="onArchive"
+          >
+            <IonIcon slot="icon-only" :icon="archiveOutline" />
+          </IonButton>
+          <!-- M14: review is re-openable on archived trips -->
+          <IonButton
+            v-if="trip?.status === 'archived'"
+            :router-link="`/trips/${tripId}/review`"
+            aria-label="Post-trip review"
+          >
+            <IonIcon slot="icon-only" :icon="sparklesOutline" />
           </IonButton>
           <!-- M6 entry point: hidden when both shopping lists are empty -->
           <IonButton

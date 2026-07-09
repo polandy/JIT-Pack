@@ -21,6 +21,7 @@ import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type { PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
+import type { ReviewProposal } from '@/domain/review'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import type { Container, ItemComment, ItemMode, ItemTodo, MasterItem, Template, TemplateItem, Trip, TripItem, TripStatus } from '@/types/domain'
 
@@ -634,6 +635,60 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
+  // --- Post-trip review (FR-9.2, M14) ---
+
+  /** archiveTrip completes the trip; archiving is the M14 review trigger. */
+  function archiveTrip(tripId: string) {
+    setTripStatus(tripId, 'archived')
+  }
+
+  /**
+   * applyReviewProposal writes one review card back to master data
+   * (FR-9.2). With opts.fork the source template is copied first and
+   * the change lands on the private copy — foreign published templates
+   * are never written directly (FR-1.6). Returns the id of the template
+   * that received the change.
+   */
+  function applyReviewProposal(proposal: ReviewProposal, opts: { fork?: boolean } = {}): string {
+    const templateId = opts.fork ? forkTemplate(proposal.templateId) : proposal.templateId
+    if (proposal.kind === 'reduce_quantity') {
+      // Look the row up by item, not by proposal.templateItemId — after
+      // a fork the copy has fresh ids.
+      const target = masterStore
+        .getTemplateItems(templateId)
+        .find((ti) => ti.item_id === proposal.itemId)
+      if (target) updateTemplateItem(target, { quantity_formula: '0' })
+      return templateId
+    }
+    const itemId = proposal.itemId ?? createMasterItem(proposal.itemName)
+    addTemplateItem(templateId, itemId)
+    return templateId
+  }
+
+  /**
+   * forkTemplate creates a private copy of a template including all its
+   * items (FR-1.6). owner_id is stamped server-side on push, so the
+   * placeholder never reaches the database.
+   */
+  function forkTemplate(templateId: string): string {
+    const source = masterStore.getTemplate(templateId)
+    const { mutation, id } = mutations.createTemplate(`${source?.name ?? 'Template'} (fork)`, '')
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: { seq: 0, table: 'templates', id, deleted: false, row: mutation.fields as Record<string, unknown> },
+    })
+    for (const ti of masterStore.getTemplateItems(templateId)) {
+      addTemplateItem(id, ti.item_id, {
+        quantityFormula: ti.quantity_formula,
+        assignment: ti.assignment,
+        dedup: ti.dedup,
+        defaultMode: ti.default_mode,
+        latePacker: ti.late_packer,
+      })
+    }
+    return id
+  }
+
   // --- Container actions (FR-10.1, M11) ---
 
   function addContainer(
@@ -802,6 +857,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // Repack (FR-11.1, M13)
     startRepack,
     completeRepack,
+
+    // Post-trip review (FR-9.2, M14)
+    archiveTrip,
+    applyReviewProposal,
+    forkTemplate,
 
     // Lifecycle
     connect,
