@@ -119,13 +119,13 @@ Field groups: `packed_count`+`state` merge as one unit (they are causally couple
 
 ## 8. Non-Synced Operations (RPC-style REST)
 
-Server-side computations that must not run on clients:
+Server-side computations that must not run on clients. **Decided (Local Mode, Addendum 3.19): trip generation and repack run client-side instead** — formula evaluation/conditions/dedup (FR-1.3/1.5/15.2/2.3) and the FR-11 bulk reset are pure client logic committed as ordinary push mutations, so Local Mode keeps feature parity without a server. The `POST /trips` and `POST /trips/{id}/repack` rows below are therefore **not implemented as endpoints**:
 
 | Endpoint | Purpose |
 |---|---|
-| `POST /trips` | Create trip **and** generate items from templates: body carries template_ids, travelers, attributes; server evaluates formulas (FR-1.3/1.5), conditions (FR-15.2), dedup (FR-2.3) |
+| ~~`POST /trips`~~ | superseded: the M3 wizard generates client-side and pushes trips (master partition) + travelers/trip_items (trip partition) |
 | `POST /trips/{id}/clone` | FR-12.1/12.2 with carry-over options |
-| `POST /trips/{id}/repack` | FR-11.1/11.2: bulk reset, returns affected count |
+| ~~`POST /trips/{id}/repack`~~ | superseded: M13 resets client-side via ordinary mutations (`outbound_packed` preserves the outbound history) |
 | `POST /trips/{id}/archive` | Archive + compute review proposals (FR-9.2) |
 | `GET /trips/{id}/review` / `POST /trips/{id}/review/{proposalId}` | Fetch / apply-skip-never review cards |
 | `POST /import/analyze` · `POST /import/commit` | FR-16.x wizard: multipart upload → mapping preview → transactional commit |

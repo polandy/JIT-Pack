@@ -22,7 +22,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import type { PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import type { IndexedDBPersistence } from '@/local/persistence'
-import type { Container, ItemComment, ItemMode, ItemTodo, MasterItem, Template, TemplateItem, TripItem } from '@/types/domain'
+import type { Container, ItemComment, ItemMode, ItemTodo, MasterItem, Template, TemplateItem, Trip, TripItem, TripStatus } from '@/types/domain'
 
 /** One entry of a trip's presence facepile (G-10, Sync-API §7). */
 export interface PresenceUser {
@@ -589,6 +589,51 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return resp.conflicts
   }
 
+  // --- Repack actions (FR-11.1, M13) ---
+
+  /**
+   * startRepack resets the chosen items to Open for the return leg
+   * (outbound history preserved via outbound_packed) and flips the
+   * trip to repack status. The status lives on the master partition.
+   */
+  function startRepack(tripId: string, itemIds: string[]) {
+    const itemsByID = new Map(tripStore.getItems(tripId).map((i) => [i.id, i]))
+    const muts: Parameters<typeof enqueueAndDrain>[2][] = []
+    for (const id of itemIds) {
+      const item = itemsByID.get(id)
+      if (!item) continue
+      const mut = mutations.resetForRepack(item.id, item.packed_count > 0)
+      muts.push({
+        mutation: mut,
+        optimistic: {
+          seq: 0, table: 'trip_items', id: item.id, deleted: false,
+          row: { ...itemRow(item), ...mut.fields },
+        },
+      })
+    }
+    if (muts.length > 0) {
+      enqueueAndDrain('trip', tripId, ...muts)
+    }
+    setTripStatus(tripId, 'repack')
+  }
+
+  /** completeRepack ends Return Packing Mode (M13). */
+  function completeRepack(tripId: string) {
+    setTripStatus(tripId, 'active')
+  }
+
+  function setTripStatus(tripId: string, status: TripStatus) {
+    const trip = tripStore.getTrip(tripId)
+    if (!trip) return
+    enqueueAndDrain('master', null, {
+      mutation: mutations.updateTripStatus(tripId, status),
+      optimistic: {
+        seq: 0, table: 'trips', id: tripId, deleted: false,
+        row: { ...tripRow(trip), status },
+      },
+    })
+  }
+
   // --- Container actions (FR-10.1, M11) ---
 
   function addContainer(
@@ -754,6 +799,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     updateContainer,
     deleteContainer,
 
+    // Repack (FR-11.1, M13)
+    startRepack,
+    completeRepack,
+
     // Lifecycle
     connect,
     subscribeTrip,
@@ -767,6 +816,19 @@ function generateDeviceId(): string {
   const bytes = new Uint8Array(4)
   crypto.getRandomValues(bytes)
   return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+function tripRow(trip: Trip): Record<string, unknown> {
+  return {
+    name: trip.name,
+    status: trip.status,
+    start_date: trip.start_date,
+    end_date: trip.end_date,
+    duration_days: trip.duration_days,
+    series_id: trip.series_id,
+    attributes: trip.attributes ? JSON.stringify(trip.attributes) : null,
+    imported: trip.imported ? 1 : 0,
+  }
 }
 
 function containerRow(container: Container): Record<string, unknown> {
