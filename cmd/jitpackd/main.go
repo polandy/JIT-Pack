@@ -39,6 +39,10 @@ func main() {
 		}
 		defer jwks.Close()
 		srv = api.NewWithJWKS(st, jwks)
+		if cfg.OIDCTokenURL != "" {
+			log.Printf("OIDC exchange enabled (token endpoint: %s)", cfg.OIDCTokenURL)
+			srv.EnableOIDCExchange(cfg.OIDCTokenURL, cfg.OIDCClientID, cfg.OIDCAuthorizeURL)
+		}
 	} else {
 		log.Print("starting in multi-user mode (HS256)")
 		srv = api.New(st, []byte(cfg.JWTSecret))

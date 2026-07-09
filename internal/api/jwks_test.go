@@ -178,8 +178,9 @@ func TestRS256_AuthThroughAPI(t *testing.T) {
 	srv := httptest.NewServer(api.NewWithJWKS(st, provider).Handler())
 	t.Cleanup(srv.Close)
 
-	// Valid RS256 token → 200
-	tok := rsaToken(t, key, kid, "user-a")
+	// Valid RS256 token → 200. The sub is the OIDC subject; the server
+	// maps it to the seeded users.id 'user-a' (§2).
+	tok := rsaToken(t, key, kid, "auth|a")
 	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/api/v1/sync/trips/trip1?cursor=0", nil)
 	req.Header.Set("Authorization", "Bearer "+tok)
 	resp, err := http.DefaultClient.Do(req)

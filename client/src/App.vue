@@ -12,7 +12,9 @@ import { IonApp, IonRouterOutlet } from '@ionic/vue'
 import AppHeader from '@/components/global/AppHeader.vue'
 import NavRail from '@/components/global/NavRail.vue'
 import ModeSelectionPage from '@/views/ModeSelectionPage.vue'
+import { loadTokens } from '@/auth/tokens'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { serverBaseUrl } from '@/config'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { provide, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -30,14 +32,12 @@ function chooseMode(selected: 'local' | 'server', serverUrl: string | null) {
   window.location.reload()
 }
 
-const baseUrl =
-  localStorage.getItem(SERVER_URL_KEY) ??
-  ((import.meta.env.VITE_API_URL as string) || 'http://localhost:8080')
-
 const orchestrator = mode.value
   ? useSyncOrchestrator({
-      baseUrl,
-      getToken: () => null, // Single-User mode default; OIDC wires auth.getToken here
+      baseUrl: serverBaseUrl(),
+      // Single-User servers need no token (their middleware injects the
+      // implicit user); OIDC servers get the persisted access token.
+      getToken: () => loadTokens()?.access_token ?? null,
       local: mode.value === 'local' ? new IndexedDBPersistence() : undefined,
     })
   : null
@@ -46,7 +46,19 @@ provide('orchestrator', orchestrator)
 
 const syncStatus = orchestrator?.syncStatus ?? null
 
-onMounted(() => {
+onMounted(async () => {
+  // Server Mode without a session: if the server offers OIDC, log in
+  // first (Single-User/HS256 servers answer 501 → proceed without).
+  if (mode.value === 'server' && !loadTokens() && !window.location.pathname.startsWith('/auth/')) {
+    try {
+      const resp = await fetch(`${serverBaseUrl()}/api/v1/auth/config`)
+      if (resp.ok) {
+        router.replace('/login')
+      }
+    } catch {
+      // Server unreachable — the sync indicator will show offline.
+    }
+  }
   orchestrator?.connect()
   // Initial pull of master data (no-op in Local Mode)
   orchestrator?.drainMaster()
