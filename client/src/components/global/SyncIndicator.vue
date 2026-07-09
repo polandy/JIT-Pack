@@ -4,6 +4,7 @@ import {
   cloudDoneOutline,
   syncOutline,
   cloudOfflineOutline,
+  phonePortraitOutline,
 } from 'ionicons/icons'
 import { computed } from 'vue'
 import type { SyncState } from '@/composables/useSyncStatus'
@@ -26,6 +27,9 @@ const icon = computed(() => {
       return syncOutline
     case 'offline':
       return cloudOfflineOutline
+    case 'local':
+      // FR-19.6: everything lives on this device, no server involved.
+      return phonePortraitOutline
   }
 })
 </script>
@@ -66,6 +70,10 @@ const icon = computed(() => {
 
 .sync-indicator.offline {
   color: var(--ion-color-warning);
+}
+
+.sync-indicator.local {
+  color: var(--ion-color-medium);
 }
 
 .spinning {

@@ -36,7 +36,7 @@ Only the current version of every document is kept — if you're ever tempted to
 3. ~~**WebSocket hub + presence**~~ — **DONE.** `internal/api/hub.go` + `ws.go`: in-memory hub, per-trip subscriptions, `trip.changed` on push, presence with `in_sync` (cursor vs `store.HeadSeq`). `github.com/coder/websocket`. 10 new tests (6 hub unit + 4 WS integration). `item.locked`/`item.unlocked` and `notification.created` events not yet implemented (depend on locking UI and notification system).
 4. ~~**Portable YAML export/import**~~ — **DONE.** `internal/portable` (YAML types + marshal/unmarshal), `internal/store/export.go` (template/trip export+import), `internal/api/export.go` (four endpoints: `GET /templates/{id}/export`, `POST /templates/import`, `GET /trips/{id}/export.yaml`, `POST /trips/import`). `gopkg.in/yaml.v3`. 19 new tests (8 portable, 6 store, 5 API). Item dedup/near-duplicate prompts (FR-16.3-style) not yet implemented — requires the master item matching UI.
 5. ~~**RS256/JWKS against a real IdP**~~ — **DONE.** `internal/api/jwks.go`: JWKS provider with background refresh, RSA public key parsing from JWK, key lookup by `kid`. `api.NewWithJWKS(st, jwks)` constructor for RS256 mode. Config: `JITPACK_JWKS_URL` (mutually exclusive with `JITPACK_JWT_SECRET`). 7 new tests (4 JWKS unit + 1 full API integration + 2 config). HS256 remains available for tests and simple setups.
-6. ~~**Vue 3 + Capacitor client**~~ — **IN PROGRESS.** 158 client tests passing. Built so far:
+6. ~~**Vue 3 + Capacitor client**~~ — **IN PROGRESS.** 166 client tests passing. Built so far:
    - **Scaffold:** Ionic Vue + Capacitor + Pinia + Vitest + TypeScript. Router with tab layout + detail routes.
    - **Sync layer:** HLC generator (TS port), APIClient, SyncOutbox, WebSocket composable, Auth composable (single-user + OIDC).
    - **Stores:** `tripStore` (trips, trip_items, travelers, containers, todos/prep, KPIs, grouping), `masterStore` (categories, items, templates, template_items, search).
@@ -47,13 +47,13 @@ Only the current version of every document is kept — if you're ever tempted to
    - **Persistence wiring:** all editor mutations go through the orchestrator — M8/M10 master edits (`createMasterItem`/`updateMasterItem`/`deleteMasterItem`/`updateTemplate`/`addTemplateItem`/`updateTemplateItem`/`deleteTemplateItem` actions on the master partition), M5 assignment controls (`assignTraveler`/`assignContainer`/`setLatePacker` on the trip partition). No store-local placeholder mutations remain.
    - **Not yet built:** M11–M18 (P2 screens). OIDC login flow UI. M3 deferred bits: series picker (FR-13.1), sharing/role step (FR-4.5), history suggestions (FR-14.2). Template/item *creation* UI in M7/M9 (orchestrator actions exist).
 
-7. **Local Mode — backend-free client (Addendum 3.19, UI-Spec M19/G-2 local state).** Client persists to IndexedDB, no server at all; collaboration UI inert per FR-19.3. The architecture is already 90% there (optimistic full-row mutations + generic `applyChanges`), so this is mostly a persistence layer plus an orchestrator variant. Task order:
-   1. **Mutation completeness audit** — in Local Mode the optimistic rows in `useMutations.ts`/`useSyncOrchestrator.ts` become authoritative (FR-19.2); audit every mutation for missing fields (`created_at` etc.) against the schema, add table-driven tests. Benefits Server Mode too.
-   2. **Persistence layer** — IndexedDB adapter storing rows as `table+id → row` (same shape as `PullChange`); load on startup via existing `applyChanges`; `navigator.storage.persist()` + status surface (NFR-4.11).
-   3. **Local orchestrator** — same interface as `useSyncOrchestrator`, `enqueueAndDrain` becomes apply-optimistic + persist; no outbox/WS. `App.vue` picks the implementation by persisted mode.
-   4. **M19 mode selection** + G-2 *local* state with storage & backup detail (FR-19.6).
-   5. **Collaboration UI gating** per FR-19.3 (mirrors existing single-user hiding, G-8).
-   Note for M3 wizard (item 6): template-instantiation/formula evaluation must live client-side (or shared), so Local Mode gets it for free.
+7. ~~**Local Mode — backend-free client (Addendum 3.19, UI-Spec M19/G-2 local state).**~~ — **DONE** (2026-07-09):
+   - `src/local/persistence.ts` — IndexedDB adapter, rows as `table/id → row` in `PullChange` shape; `requestDurability()` per NFR-4.11.
+   - Local Mode is a config variant of `useSyncOrchestrator` (`local: IndexedDBPersistence`), not a parallel composable: `onPullChanges` is the single funnel and persists every change; enqueue/drain/WS are no-ops; `connect()` loads from IndexedDB through the same `applyChanges` path as a server pull (FR-19.2).
+   - M19 `ModeSelectionPage` rendered by `App.vue` before the router until a mode is persisted (`jitpack_mode`, plus `jitpack_server_url` for Server Mode); switching later requires the FR-19.5 export/import path, no toggle.
+   - G-2 shows the `local` state (new `SyncState` value, phone glyph, FR-19.6).
+   - Test infra: `fake-indexeddb` (dev dep — jsdom has no IndexedDB).
+   - Still open: FR-19.3 collaboration-UI gating is trivially satisfied today (no collaboration UI exists yet) — gate it when sharing/presence UI lands. NFR-4.11 export reminder (>30 days) and storage-detail popover not built. FR-19.5 migration flow relies on portable YAML export/import UI (M18).
 
 ## Deviations
 

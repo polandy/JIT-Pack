@@ -4,50 +4,76 @@
  * Desktop (≥900px): left nav rail + content area.
  * Mobile (<900px): content area + bottom tabs (in TabsLayout).
  *
- * Creates and provides the sync orchestrator for the entire app.
+ * First launch shows M19 (FR-19.1) until a mode is chosen; afterwards
+ * the persisted mode decides whether the orchestrator runs against a
+ * server or against IndexedDB (Local Mode, Addendum 3.19).
  */
 import { IonApp, IonRouterOutlet } from '@ionic/vue'
 import AppHeader from '@/components/global/AppHeader.vue'
 import NavRail from '@/components/global/NavRail.vue'
+import ModeSelectionPage from '@/views/ModeSelectionPage.vue'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
-import { provide, onMounted, onUnmounted } from 'vue'
+import { IndexedDBPersistence } from '@/local/persistence'
+import { provide, onMounted, onUnmounted, ref } from 'vue'
 
-// TODO: make baseUrl configurable via env
-const baseUrl = import.meta.env.VITE_API_URL as string ?? 'http://localhost:8080'
+const MODE_KEY = 'jitpack_mode'
+const SERVER_URL_KEY = 'jitpack_server_url'
 
-const orchestrator = useSyncOrchestrator({
-  baseUrl,
-  getToken: () => null, // Single-User mode default; OIDC wires auth.getToken here
-})
+const mode = ref(localStorage.getItem(MODE_KEY) as 'local' | 'server' | null)
+
+function chooseMode(selected: 'local' | 'server', serverUrl: string | null) {
+  localStorage.setItem(MODE_KEY, selected)
+  if (serverUrl) localStorage.setItem(SERVER_URL_KEY, serverUrl)
+  mode.value = selected
+  // Clean re-init: the orchestrator is constructed once per app start.
+  window.location.reload()
+}
+
+const baseUrl =
+  localStorage.getItem(SERVER_URL_KEY) ??
+  ((import.meta.env.VITE_API_URL as string) || 'http://localhost:8080')
+
+const orchestrator = mode.value
+  ? useSyncOrchestrator({
+      baseUrl,
+      getToken: () => null, // Single-User mode default; OIDC wires auth.getToken here
+      local: mode.value === 'local' ? new IndexedDBPersistence() : undefined,
+    })
+  : null
 
 provide('orchestrator', orchestrator)
 
-const { syncStatus } = orchestrator
+const syncStatus = orchestrator?.syncStatus ?? null
 
 onMounted(() => {
-  orchestrator.connect()
-  // Initial pull of master data
-  orchestrator.drainMaster()
+  orchestrator?.connect()
+  // Initial pull of master data (no-op in Local Mode)
+  orchestrator?.drainMaster()
 })
 
 onUnmounted(() => {
-  orchestrator.disconnect()
+  orchestrator?.disconnect()
 })
 </script>
 
 <template>
   <IonApp>
-    <AppHeader
-      :sync-state="syncStatus.state.value"
-      :sync-pending-count="syncStatus.pendingCount.value"
-      :sync-label="syncStatus.label.value"
-    />
-    <div class="app-body">
-      <NavRail class="desktop-nav" />
-      <main class="app-content">
-        <IonRouterOutlet />
-      </main>
-    </div>
+    <!-- M19: one-time mode selection before anything else exists -->
+    <ModeSelectionPage v-if="!mode" @select="chooseMode" />
+
+    <template v-else-if="syncStatus">
+      <AppHeader
+        :sync-state="syncStatus.state.value"
+        :sync-pending-count="syncStatus.pendingCount.value"
+        :sync-label="syncStatus.label.value"
+      />
+      <div class="app-body">
+        <NavRail class="desktop-nav" />
+        <main class="app-content">
+          <IonRouterOutlet />
+        </main>
+      </div>
+    </template>
   </IonApp>
 </template>
 
