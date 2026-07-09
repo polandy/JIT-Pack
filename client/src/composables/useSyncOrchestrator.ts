@@ -22,7 +22,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import type { PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import type { IndexedDBPersistence } from '@/local/persistence'
-import type { ItemComment, ItemMode, ItemTodo, MasterItem, Template, TemplateItem, TripItem } from '@/types/domain'
+import type { Container, ItemComment, ItemMode, ItemTodo, MasterItem, Template, TemplateItem, TripItem } from '@/types/domain'
 
 /** One entry of a trip's presence facepile (G-10, Sync-API §7). */
 export interface PresenceUser {
@@ -589,6 +589,56 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return resp.conflicts
   }
 
+  // --- Container actions (FR-10.1, M11) ---
+
+  function addContainer(
+    tripId: string,
+    name: string,
+    opts: Parameters<typeof mutations.addContainer>[2] = {},
+  ): string {
+    const { mutation, id } = mutations.addContainer(tripId, name, opts)
+    enqueueAndDrain('trip', tripId, {
+      mutation,
+      optimistic: { seq: 0, table: 'containers', id, deleted: false, row: mutation.fields as Record<string, unknown> },
+    })
+    return id
+  }
+
+  function updateContainer(tripId: string, container: Container, fields: Record<string, unknown>) {
+    enqueueAndDrain('trip', tripId, {
+      mutation: mutations.updateContainer(container.id, fields),
+      optimistic: {
+        seq: 0, table: 'containers', id: container.id, deleted: false,
+        row: { ...containerRow(container), ...fields },
+      },
+    })
+  }
+
+  /**
+   * deleteContainer unassigns the container's items first —
+   * trip_items.container_id is a plain FK, a dangling reference would
+   * reject the delete server-side.
+   */
+  function deleteContainer(tripId: string, containerId: string) {
+    const muts: Parameters<typeof enqueueAndDrain>[2][] = []
+    for (const item of tripStore.getItems(tripId)) {
+      if (item.container_id !== containerId) continue
+      const mut = mutations.assignContainer(item.id, null)
+      muts.push({
+        mutation: mut,
+        optimistic: {
+          seq: 0, table: 'trip_items', id: item.id, deleted: false,
+          row: { ...itemRow(item), container_id: null },
+        },
+      })
+    }
+    muts.push({
+      mutation: mutations.deleteContainer(containerId),
+      optimistic: { seq: 0, table: 'containers', id: containerId, deleted: true, row: null },
+    })
+    enqueueAndDrain('trip', tripId, ...muts)
+  }
+
   // --- Comment actions (FR-7.1/7.2) ---
 
   function addComment(tripId: string, tripItemId: string | null, authorId: string, body: string): string {
@@ -699,6 +749,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     flagCommentAsTask,
     deleteComment,
 
+    // Containers (FR-10.1, M11)
+    addContainer,
+    updateContainer,
+    deleteContainer,
+
     // Lifecycle
     connect,
     subscribeTrip,
@@ -712,6 +767,16 @@ function generateDeviceId(): string {
   const bytes = new Uint8Array(4)
   crypto.getRandomValues(bytes)
   return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+function containerRow(container: Container): Record<string, unknown> {
+  return {
+    trip_id: container.trip_id,
+    name: container.name,
+    carrier_traveler_id: container.carrier_traveler_id,
+    max_weight_grams: container.max_weight_grams,
+    paired_container_id: container.paired_container_id,
+  }
 }
 
 function masterItemRow(item: MasterItem): Record<string, unknown> {

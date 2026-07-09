@@ -297,6 +297,13 @@ async function handleRefresh(event: CustomEvent) {
         <IonRefresherContent />
       </IonRefresher>
 
+      <!-- M11 entry: container grouping exposes the editor (UI-Spec M11) -->
+      <div v-if="groupBy === 'container'" class="edit-containers">
+        <IonButton size="small" fill="outline" :router-link="`/trips/${tripId}/containers`">
+          Edit containers
+        </IonButton>
+      </div>
+
       <!-- Filter bar -->
       <div class="filter-bar">
         <button class="filter-toggle" @click="showFilters = !showFilters">
@@ -649,6 +656,10 @@ async function handleRefresh(event: CustomEvent) {
 
 .item-locked {
   opacity: 0.65;
+}
+
+.edit-containers {
+  padding: 8px 16px 0;
 }
 
 .lock-icon {
