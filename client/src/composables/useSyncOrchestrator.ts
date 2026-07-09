@@ -22,6 +22,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import type { PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import { planClone, type CloneOptions } from '@/domain/clone'
+import type { ImportPlan } from '@/domain/spreadsheet'
 import type { ReviewProposal } from '@/domain/review'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import type { Container, DestinationChecklistItem, DestinationProfile, ItemComment, ItemMode, ItemTodo, MasterItem, Template, TemplateItem, Trip, TripItem, TripSeries, TripStatus } from '@/types/domain'
@@ -583,6 +584,75 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return tripId
   }
 
+  /**
+   * commitImport lands an M15 import plan (FR-16.2): categories and
+   * master items on the master partition (merging where the dedup step
+   * decided), then one archived `imported` trip per selected column with
+   * its original quantities as packed rows; '?' noise becomes an open
+   * task on the affected row (NFR-4.7). NFR-4.7's transactional rollback
+   * is approximated client-side: the plan is fully validated before any
+   * mutation is enqueued, parents precede children in the queues, and
+   * mutation replay is idempotent — there is no server-side transaction
+   * across a push batch.
+   */
+  function commitImport(plan: ImportPlan): { tripIds: string[] } {
+    // Categories: reuse by (case-insensitive) name, create the rest.
+    const categoryIDs = new Map<string, string>()
+    for (const cat of masterStore.categoryList) {
+      categoryIDs.set(cat.name.toLowerCase(), cat.id)
+    }
+    for (const name of plan.newCategories) {
+      if (categoryIDs.has(name.toLowerCase())) continue
+      const { mutation, id } = mutations.createCategory(name)
+      onPullChanges([{ seq: 0, table: 'categories', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
+      if (!local) outbox.enqueue('master', null, mutation)
+      categoryIDs.set(name.toLowerCase(), id)
+    }
+
+    const itemIDs: (string | null)[] = plan.items.map((item) => {
+      if (item.existingItemId) return item.existingItemId
+      const { mutation, id } = mutations.createMasterItem(item.name, {
+        categoryId: item.categoryName ? categoryIDs.get(item.categoryName.toLowerCase()) ?? null : null,
+      })
+      onPullChanges([{ seq: 0, table: 'items', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
+      if (!local) outbox.enqueue('master', null, mutation)
+      return id
+    })
+
+    const tripIds: string[] = []
+    for (const trip of plan.trips) {
+      const { mutation: tripMut, id: tripId } = mutations.createImportedTrip(trip.name, trip.endDate, trip.seriesId)
+      onPullChanges([{ seq: 0, table: 'trips', id: tripId, deleted: false, row: tripMut.fields as Record<string, unknown> }])
+      if (!local) outbox.enqueue('master', null, tripMut)
+      tripIds.push(tripId)
+
+      for (const entry of trip.items) {
+        const item = plan.items[entry.itemIndex]
+        const { mutation, id } = mutations.addImportedTripItem(tripId, {
+          name: item.name,
+          sourceItemId: itemIDs[entry.itemIndex],
+          categoryName: item.categoryName,
+          quantity: entry.quantity,
+        })
+        onPullChanges([{ seq: 0, table: 'trip_items', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
+        if (!local) outbox.enqueue('trip', tripId, mutation)
+
+        if (item.hasOpenTask) {
+          // Author placeholder — the server stamps author_id on insert.
+          const todo = mutations.addTodo(tripId, id, 'import', `Imported with '?' — clarify: ${item.name}`)
+          onPullChanges([{ seq: 0, table: 'comments', id: todo.id, deleted: false, row: todo.mutation.fields as Record<string, unknown> }])
+          if (!local) outbox.enqueue('trip', tripId, todo.mutation)
+        }
+      }
+    }
+
+    if (!local) {
+      syncStatus.setPendingCount(outbox.totalPending())
+      drainMaster().then(() => Promise.all(tripIds.map((id) => drainTrip(id)))).catch(() => {})
+    }
+    return { tripIds }
+  }
+
   // --- Master data actions (M7–M10; master partition) ---
 
   function createMasterItem(
@@ -1027,6 +1097,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // Actions
     createTripFromWizard,
     cloneTrip,
+    commitImport,
     packIncrement,
     packDecrement,
     packComplete,

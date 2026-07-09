@@ -21,8 +21,9 @@ import {
   IonItemSliding,
   IonItemOptions,
   IonItemOption,
+  IonButton,
 } from '@ionic/vue'
-import { addOutline, airplaneOutline, albumsOutline, archiveOutline, copyOutline } from 'ionicons/icons'
+import { addOutline, airplaneOutline, albumsOutline, archiveOutline, cloudUploadOutline, copyOutline } from 'ionicons/icons'
 import { ref, computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMasterStore } from '@/stores/masterStore'
@@ -117,7 +118,13 @@ async function handleRefresh(event: CustomEvent) {
       </IonRefresher>
 
       <div class="ion-padding">
-        <h1 class="page-title">Trips</h1>
+        <div class="title-row">
+          <h1 class="page-title">Trips</h1>
+          <!-- M15: legacy spreadsheet import (FR-16.1) -->
+          <IonButton fill="clear" size="small" aria-label="Import spreadsheet" router-link="/import">
+            <IonIcon slot="icon-only" :icon="cloudUploadOutline" />
+          </IonButton>
+        </div>
 
         <IonSegment :value="filter" @ionChange="onFilterChange">
           <IonSegmentButton value="active">
@@ -240,6 +247,12 @@ async function handleRefresh(event: CustomEvent) {
   font-size: 1.8rem;
   font-weight: 700;
   margin: 16px 0 16px;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .empty-state {
