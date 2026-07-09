@@ -91,6 +91,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/sync/master", s.authed(s.handlePullMaster))
 	mux.HandleFunc("POST /api/v1/sync/master", s.authed(s.handlePushMaster))
 	mux.HandleFunc("GET /api/v1/me", s.authed(s.handleMe))
+	mux.HandleFunc("GET /api/v1/users", s.authed(s.handleListUsers))
 	mux.HandleFunc("GET /api/v1/notifications", s.authed(s.handleListNotifications))
 	mux.HandleFunc("POST /api/v1/notifications/{notificationID}/read", s.authed(s.handleMarkNotificationRead))
 	mux.HandleFunc("GET /api/v1/me/notification-prefs", s.authed(s.handleGetNotificationPrefs))

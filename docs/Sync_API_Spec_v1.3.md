@@ -54,7 +54,9 @@
 
 ### `GET /sync/master?cursor={seq}&limit={n}`
 
-Same envelope for the user's master partition. `change_log.trip_id` is NULL for master rows (schema note: column becomes nullable in migration 005); visibility is filtered per user (own + published templates, member trips).
+Same envelope for the user's master partition. `change_log.trip_id` is NULL for master rows (schema note: column becomes nullable in migration 005); visibility is filtered per user (own + published templates, member trips, rosters of member trips).
+
+`trip_members` syncs through the master partition since migration 009 (FR-4.5/4.7): rows carry `{trip_id, user_id, role}`, are managed only by Owner/Admin, never carry `role: "owner"` from a client (the creator's server-created row is the only Owner and is immutable — no demotion, no removal), and a duplicate `(trip_id, user_id)` insert is `rejected`. Two server-side feed guarantees make late sharing work: (a) creating a trip also logs the auto-created owner membership row, and (b) applying a membership grant re-logs the `trips` row, because the new member's pull cursor is already past the trip's original change_log entry. Removal delivers a plain tombstone; the removed member's device keeps its local copy until it discards it (lazy, same semantics as trip deletes).
 
 ## 5. Push Protocol
 
@@ -133,6 +135,7 @@ Server-side computations that must not run on clients. **Decided (Local Mode, Ad
 | `GET /trips/{id}/export.yaml` · `POST /trips/import` | Addendum FR-18.3/18.4: portable YAML trip export/import — distinct from `export.csv` below (NFR-4.5), which is a flat data dump, not round-trippable |
 | `GET /export/full` · `GET /trips/{id}/export.csv` | NFR-4.5 — implemented: full export is a versioned JSON envelope `{version, exported_at, data:{table:[rows]}}` filtered to the caller's pull visibility (users/avatars excluded); CSV columns `item,category,quantity,packed_count,mode,traveler,container` |
 | `GET /me` | Own identity `{user_id, display_name}` — the client needs its `users.id` to address the avatar/display-name endpoints (M17 profile) |
+| `GET /users` | Instance user directory `{users:[{user_id, display_name}]}`, ordered by name — backs the M3 sharing picker (FR-4.5). Any authenticated user may list; a self-hosted instance's roster is not a secret to its users |
 | `GET /notifications` | FR-6.2 — implemented: own notifications newest first (`?unread=1` filters, `?limit=` ≤ 200), each `{id, kind, payload, created_at, read_at}`. Kinds: `delegation` (a push set `packer_user_id` to another member), `mention` (`@display-name` in a comment body, case-insensitive, name may contain spaces), `task` (task comment on an item whose packer is another member; a packer who is also mentioned gets only the task). `payload` carries the FR-6.3 deep-link context: `trip_id`, `item_id`, `comment_id`, `actor_id`, `actor_name`, `item_name`, `preview` (comment excerpt ≤ 120 chars). Created server-side during push handling; suppressed per-kind by the target's M17 prefs; never in Single-User Mode (FR-17.3). Notification rows never flow through pull |
 | `POST /notifications/{id}/read` | FR-6.2 — implemented: stamp `read_at`; owner-scoped (foreign id → 404), idempotent |
 | `GET /me/notification-prefs` · `PUT /me/notification-prefs` | UI-Spec M17 — implemented: per-kind toggles `{"delegation":bool,"mention":bool,"task":bool}`; missing keys default to enabled, unknown keys are dropped. Checked at *creation* time, so a disabled kind produces neither push nor in-app notification |

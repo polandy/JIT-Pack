@@ -64,6 +64,26 @@ func (s *Store) CanManageTravelers(ctx context.Context, tripID, userID string) (
 	return role == "owner" || role == "admin", nil
 }
 
+// ListUsers returns every account on the instance with its display name,
+// ordered by name — the M3 sharing step's user picker (FR-4.5).
+func (s *Store) ListUsers(ctx context.Context) ([]MemberName, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, display_name FROM users ORDER BY display_name, id`)
+	if err != nil {
+		return nil, fmt.Errorf("list users: %w", err)
+	}
+	defer rows.Close()
+	var users []MemberName
+	for rows.Next() {
+		var u MemberName
+		if err := rows.Scan(&u.UserID, &u.DisplayName); err != nil {
+			return nil, fmt.Errorf("scan user: %w", err)
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
+}
+
 // DB exposes the underlying handle for wiring (health checks) and test
 // fixtures. Escape hatch until dedicated repositories for users, trips,
 // and members exist; production handlers must not use it.
