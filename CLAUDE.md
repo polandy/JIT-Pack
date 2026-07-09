@@ -10,7 +10,7 @@ If you're picking this up fresh: read this file fully before touching code. It r
 |---|---|
 | What does the product do? | `docs/PRD_Base.md` (original vision) |
 | What changed/was added since? | `docs/PRD_Addendum_v2.10.md` — **always authoritative over PRD_Base.md where they differ** |
-| What do the screens look like? | `docs/UI_Spec_v1.10.md` — 19 screens (M1–M19), global patterns G-1–G-10 |
+| What do the screens look like? | `docs/UI_Spec_v1.10.md` — 19 screens (M1–M19), global patterns G-1–G-11 |
 | What's the wire protocol? | `docs/Sync_API_Spec_v1.3.md` — pull/push envelopes, HLC format, merge algorithm, WebSocket events, RPC endpoints |
 | What's the DB schema? | `internal/store/migrations/001_schema.sql` — **single source of truth, do not duplicate it into docs/** |
 | Why was X chosen over Y? | `docs/ADR-00N_*.md` — six ADRs, each: options considered, weighted decision matrix, consequences, revisit trigger |
@@ -58,6 +58,7 @@ Only the current version of every document is kept — if you're ever tempted to
 ## Backlog (documented, not scheduled)
 
 - **Item Dependencies / "Companion Items" (Addendum 3.20, FR-20.1–20.4).** Master items can declare a dependency on another master item (e.g., spare battery → camera), with `required`/`suggested` modes; dependents are resolved at template instantiation, co-skipped when their main item is skipped (reuses FR-5.5), and deduplicated against already-explicit items via the existing `source_item_id` dedup (FR-2.3a) rather than a new mechanism. Not started — no `item_dependencies` table, no resolution logic, no M10 UI. See docs/PRD_Addendum_v2.10.md §3.20 for the full spec and architecture notes before implementing.
+- **Theming / Dark Mode Default (Addendum 3.21, FR-21.1–21.4, UI-Spec G-11).** App-owned theme replacing Ionic's stock palette + OS-driven `dark.system.css`: dark by default in every mode (Catppuccin Mocha), opt-in light theme (Catppuccin Latte) via a new M17 Appearance toggle, device-local preference applied before first paint. Not started — no token stylesheet, no toggle, `dark.system.css` still wired in `client/src/main.ts`. See docs/PRD_Addendum_v2.10.md §3.21 for the palette/token mapping and architecture notes before implementing.
 
 ## Deviations
 
