@@ -29,7 +29,25 @@ export function useMutations(hlc: HLCGenerator) {
   // --- Trip item mutations ---
 
   function packItem(itemId: string, packedCount: number, state: string): Mutation {
-    return make('upsert', 'trip_items', itemId, { packed_count: packedCount, state })
+    // Any pack-state transition releases a packing-now claim (FR-5.3).
+    return make('upsert', 'trip_items', itemId, {
+      packed_count: packedCount,
+      state,
+      packing_now_by: null,
+      packing_now_at: null,
+    })
+  }
+
+  /**
+   * startPackingNow claims the item (FR-5.2). The server stamps the
+   * real locker (FR-4.2); the timestamp feeds the §7 staleness rule.
+   */
+  function startPackingNow(itemId: string): Mutation {
+    return make('upsert', 'trip_items', itemId, {
+      state: 'packing_now',
+      packing_now_by: 'current-user',
+      packing_now_at: new Date().toISOString(),
+    })
   }
 
   function incrementPacked(itemId: string, currentPacked: number, quantity: number): Mutation {
@@ -364,6 +382,7 @@ export function useMutations(hlc: HLCGenerator) {
 
   return {
     // Trip items
+    startPackingNow,
     incrementPacked,
     decrementPacked,
     completePacked,

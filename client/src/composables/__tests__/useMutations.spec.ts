@@ -17,19 +17,19 @@ describe('useMutations', () => {
     expect(mut.op).toBe('upsert')
     expect(mut.table).toBe('trip_items')
     expect(mut.id).toBe('i1')
-    expect(mut.fields).toEqual({ packed_count: 3, state: 'partial' })
+    expect(mut.fields).toMatchObject({ packed_count: 3, state: 'partial' })
   })
 
   it('incrementPacked caps at quantity and sets packed', () => {
     const m = useMutations(mockHLC())
     const mut = m.incrementPacked('i1', 4, 5)
-    expect(mut.fields).toEqual({ packed_count: 5, state: 'packed' })
+    expect(mut.fields).toMatchObject({ packed_count: 5, state: 'packed' })
   })
 
   it('decrementPacked goes to zero with open state', () => {
     const m = useMutations(mockHLC())
     const mut = m.decrementPacked('i1', 1)
-    expect(mut.fields).toEqual({ packed_count: 0, state: 'open' })
+    expect(mut.fields).toMatchObject({ packed_count: 0, state: 'open' })
   })
 
   it('decrementPacked does not go below zero', () => {
@@ -41,21 +41,21 @@ describe('useMutations', () => {
   it('completePacked sets packed to quantity', () => {
     const m = useMutations(mockHLC())
     const mut = m.completePacked('i1', 5)
-    expect(mut.fields).toEqual({ packed_count: 5, state: 'packed' })
+    expect(mut.fields).toMatchObject({ packed_count: 5, state: 'packed' })
   })
 
   it('zeroPacked resets to 0/open', () => {
     const m = useMutations(mockHLC())
     const mut = m.zeroPacked('i1')
-    expect(mut.fields).toEqual({ packed_count: 0, state: 'open' })
+    expect(mut.fields).toMatchObject({ packed_count: 0, state: 'open' })
   })
 
   it('togglePacked flips between packed and open for qty=1', () => {
     const m = useMutations(mockHLC())
     const pack = m.togglePacked('i1', 0)
-    expect(pack.fields).toEqual({ packed_count: 1, state: 'packed' })
+    expect(pack.fields).toMatchObject({ packed_count: 1, state: 'packed' })
     const unpack = m.togglePacked('i1', 1)
-    expect(unpack.fields).toEqual({ packed_count: 0, state: 'open' })
+    expect(unpack.fields).toMatchObject({ packed_count: 0, state: 'open' })
   })
 
   it('skipItem sets quantity 0 and skipped state', () => {

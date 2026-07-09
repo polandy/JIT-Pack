@@ -408,6 +408,7 @@ function rowToTripItem(id: string, row: Record<string, unknown>): TripItem {
     packer_user_id: (row['packer_user_id'] as string) ?? null,
     container_id: (row['container_id'] as string) ?? null,
     packing_now_by: (row['packing_now_by'] as string) ?? null,
+    packing_now_at: (row['packing_now_at'] as string) ?? null,
     flag_unused: Boolean(row['flag_unused']),
     flag_missing: Boolean(row['flag_missing']),
     updated_hlc: (row['updated_hlc'] as string) ?? '',

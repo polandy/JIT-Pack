@@ -77,6 +77,42 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return presence.value.get(tripId) ?? []
   }
 
+  // G-3 locking (FR-5.3): ephemeral locks from item.locked events plus
+  // the synced packing_now state. myLocks marks claims made on this
+  // device — the client may not know its own user id, so identity
+  // comparison against packing_now_by is not reliable.
+  const LOCK_TIMEOUT_MS = 15 * 60 * 1000 // §7 staleness rule
+  const itemLocks = ref<Map<string, Map<string, { by_user: string; at: number }>>>(new Map())
+  const myLocks = new Set<string>()
+
+  function isLockedByOther(tripId: string, item: TripItem): boolean {
+    if (myLocks.has(item.id)) return false
+    const ephemeral = itemLocks.value.get(tripId)?.get(item.id)
+    if (ephemeral && Date.now() - ephemeral.at < LOCK_TIMEOUT_MS) return true
+    if (item.state !== 'packing_now') return false
+    if (!item.packing_now_at) return true // no timestamp — assume fresh
+    return Date.now() - Date.parse(item.packing_now_at) < LOCK_TIMEOUT_MS
+  }
+
+  function setItemLock(tripId: string, itemId: string, byUser: string) {
+    const next = new Map(itemLocks.value)
+    const tripLocks = new Map(next.get(tripId) ?? [])
+    tripLocks.set(itemId, { by_user: byUser, at: Date.now() })
+    next.set(tripId, tripLocks)
+    itemLocks.value = next
+  }
+
+  function clearItemLock(tripId: string, itemId: string) {
+    const tripLocks = itemLocks.value.get(tripId)
+    if (!tripLocks?.has(itemId)) return
+    const next = new Map(itemLocks.value)
+    const cleared = new Map(tripLocks)
+    cleared.delete(itemId)
+    next.set(tripId, cleared)
+    itemLocks.value = next
+    myLocks.delete(itemId)
+  }
+
   const client = new APIClient(config.baseUrl, config.getToken)
 
   const deviceId = localStorage.getItem('jitpack_device_id') ?? generateDeviceId()
@@ -139,6 +175,22 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
           const next = new Map(presence.value)
           next.set(tripId, users)
           presence.value = next
+        }
+        break
+      }
+      case 'item.locked': {
+        const tripId = event.payload['trip_id'] as string | undefined
+        const itemId = event.payload['item_id'] as string | undefined
+        if (tripId && itemId && !myLocks.has(itemId)) {
+          setItemLock(tripId, itemId, (event.payload['by_user'] as string) ?? '')
+        }
+        break
+      }
+      case 'item.unlocked': {
+        const tripId = event.payload['trip_id'] as string | undefined
+        const itemId = event.payload['item_id'] as string | undefined
+        if (tripId && itemId) {
+          clearItemLock(tripId, itemId)
         }
         break
       }
@@ -290,6 +342,19 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   function setMode(tripId: string, item: TripItem, mode: ItemMode) {
     const mut = mutations.setItemMode(item.id, mode)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0, table: 'trip_items', id: item.id, deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  /** Claim an item for packing (FR-5.2); locks it for others (G-3). */
+  function packingNow(tripId: string, item: TripItem) {
+    const mut = mutations.startPackingNow(item.id)
+    myLocks.add(item.id)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
       optimistic: {
@@ -592,6 +657,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     outbox,
     getPresence,
     fetchConflicts,
+    isLockedByOther,
 
     // Drain
     drainTrip,
@@ -608,6 +674,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     skipItem,
     unskipItem,
     setMode,
+    packingNow,
     assignTraveler,
     assignContainer,
     setLatePacker,

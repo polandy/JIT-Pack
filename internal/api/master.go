@@ -28,7 +28,7 @@ func (s *Server) handlePullMaster(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handlePushMaster(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(userIDKey).(string)
-	out, ok := applyPushBatch(w, r, func(m syncpkg.Mutation) (store.MutationResult, error) {
+	out, _, ok := applyPushBatch(w, r, nil, func(m syncpkg.Mutation) (store.MutationResult, error) {
 		return s.store.ApplyMasterMutation(r.Context(), userID, m)
 	})
 	if !ok {
