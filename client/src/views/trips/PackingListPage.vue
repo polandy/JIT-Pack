@@ -34,6 +34,7 @@ import {
   IonRefresherContent,
   IonToggle,
   IonBadge,
+  IonButton,
   IonCheckbox,
 } from '@ionic/vue'
 import {
@@ -66,6 +67,12 @@ const trip = computed(() => store.getTrip(props.tripId))
 const kpis = computed(() => store.kpis(props.tripId))
 const groupBy = computed(() => store.getGroupBy(props.tripId))
 const isActive = computed(() => trip.value?.status === 'active' || trip.value?.status === 'repack')
+
+// M6 toolbar badge: open procurement items; entry hidden at zero.
+const shoppingCount = computed(() => {
+  const lists = store.getShoppingItems(props.tripId)
+  return lists.buyBefore.length + lists.buyLocal.length
+})
 
 const showFilters = ref(false)
 const openOnly = ref(false)
@@ -222,6 +229,17 @@ async function handleRefresh(event: CustomEvent) {
           <IonBackButton default-href="/tabs/trips" />
         </IonButtons>
         <IonTitle>{{ trip?.name ?? 'Packing List' }}</IonTitle>
+        <IonButtons slot="end">
+          <!-- M6 entry point: hidden when both shopping lists are empty -->
+          <IonButton
+            v-if="shoppingCount > 0"
+            :router-link="`/trips/${tripId}/shopping`"
+            aria-label="Shopping lists"
+          >
+            <IonIcon slot="icon-only" :icon="cartOutline" />
+            <IonBadge color="primary" class="shopping-badge">{{ shoppingCount }}</IonBadge>
+          </IonButton>
+        </IonButtons>
       </IonToolbar>
 
       <!-- KPI strip -->
@@ -593,5 +611,10 @@ async function handleRefresh(event: CustomEvent) {
 .empty-icon {
   font-size: 64px;
   margin-bottom: 16px;
+}
+
+.shopping-badge {
+  margin-left: 4px;
+  font-size: 0.7rem;
 }
 </style>

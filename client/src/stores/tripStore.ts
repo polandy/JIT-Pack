@@ -38,6 +38,19 @@ export const useTripStore = defineStore('trips', () => {
     return tripItems.value.get(tripId) ?? []
   }
 
+  /**
+   * getShoppingItems derives the M6 procurement lists (FR-3.2): open
+   * BUY_BEFORE and BUY_LOCAL items. Purchased BUY_BEFORE items flip to
+   * PACK (FR-3.3) and thereby leave the list.
+   */
+  function getShoppingItems(tripId: string): { buyBefore: TripItem[]; buyLocal: TripItem[] } {
+    const open = getItems(tripId).filter((i) => i.state !== 'packed' && i.state !== 'skipped')
+    return {
+      buyBefore: open.filter((i) => i.mode === 'buy_before'),
+      buyLocal: open.filter((i) => i.mode === 'buy_local'),
+    }
+  }
+
   function getTravelers(tripId: string): Traveler[] {
     return travelers.value.get(tripId) ?? []
   }
@@ -299,6 +312,7 @@ export const useTripStore = defineStore('trips', () => {
     tripList,
     getTrip,
     getItems,
+    getShoppingItems,
     getTravelers,
     getContainers,
     getTodos,

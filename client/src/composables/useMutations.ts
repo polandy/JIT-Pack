@@ -99,6 +99,7 @@ export function useMutations(hlc: HLCGenerator) {
       valueCents?: number | null
       categoryName?: string | null
       flagMissing?: boolean
+      mode?: ItemMode
     } = {},
   ): { mutation: Mutation; id: string } {
     const id = crypto.randomUUID()
@@ -112,7 +113,7 @@ export function useMutations(hlc: HLCGenerator) {
       quantity: 1,
       packed_count: 0,
       state: 'open',
-      mode: 'pack',
+      mode: opts.mode ?? 'pack',
       flag_missing: opts.flagMissing ? 1 : 0,
     })
     return { mutation, id }
