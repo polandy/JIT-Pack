@@ -26,7 +26,7 @@ import {
   IonIcon,
   IonNote,
 } from '@ionic/vue'
-import { addOutline, closeOutline, trendingUpOutline } from 'ionicons/icons'
+import { addOutline, closeOutline, copyOutline, trendingUpOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 
 import { useMasterStore } from '@/stores/masterStore'
@@ -104,6 +104,9 @@ function tripStats(trip: Trip): string {
 
 /** Trend shortcut (M12): analytics of the series' most recent trip. */
 const trendTripId = computed(() => seriesTrips.value[0]?.id ?? null)
+
+/** FR-12.1: the series' most recent archived trip is the default clone source. */
+const cloneSource = computed(() => seriesTrips.value.find((t) => t.status === 'archived') ?? null)
 </script>
 
 <template>
@@ -263,7 +266,15 @@ const trendTripId = computed(() => seriesTrips.value[0]?.id ?? null)
         </IonList>
 
         <div class="actions">
-          <IonButton expand="block" :router-link="`/trips/new?series=${seriesId}`">
+          <IonButton
+            v-if="cloneSource"
+            expand="block"
+            :router-link="`/trips/${cloneSource.id}/clone`"
+          >
+            <IonIcon slot="start" :icon="copyOutline" />
+            Clone "{{ cloneSource.name }}"
+          </IonButton>
+          <IonButton expand="block" :fill="cloneSource ? 'outline' : 'solid'" :router-link="`/trips/new?series=${seriesId}`">
             New trip in series
           </IonButton>
           <IonButton

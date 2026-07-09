@@ -71,6 +71,12 @@ const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    path: '/trips/:tripId/clone',
+    name: 'trip-clone',
+    component: () => import('@/views/trips/ClonePage.vue'),
+    props: true,
+  },
+  {
     path: '/trips/:tripId/review',
     name: 'trip-review',
     component: () => import('@/views/trips/ReviewPage.vue'),
