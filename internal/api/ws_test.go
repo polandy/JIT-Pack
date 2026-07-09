@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -29,13 +30,14 @@ func wsConnectAuth(t *testing.T, srv *testWSServer, userID string) *websocket.Co
 }
 
 type testWSServer struct {
-	url string
+	url   string
+	inner *httptest.Server
 }
 
 func newTestWSServer(t *testing.T) *testWSServer {
 	t.Helper()
 	srv := newTestServer(t)
-	return &testWSServer{url: srv.URL}
+	return &testWSServer{url: srv.URL, inner: srv}
 }
 
 func wsSendMsg(t *testing.T, ws *websocket.Conn, msg any) {

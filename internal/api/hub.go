@@ -142,21 +142,35 @@ func (h *Hub) NotifyItemUnlocked(tripID, itemID, byUser, name string) {
 // subscriptions, and other users discover shared changes lazily on
 // their next pull (spec §8).
 func (h *Hub) NotifyMasterChanged(userID string, seq int64) {
-	evt := Event{
+	h.send(h.connsOf(userID), Event{
 		Type:    "master.changed",
 		Payload: map[string]any{"seq": seq},
-	}
+	})
+}
 
+// NotifyNotificationCreated sends notification.created to every
+// connection of the target user (spec §7). Delivery keys off the
+// connection's authenticated identity — the user: subscribe frame is
+// accepted but redundant, so a client can never miss (or steal) the
+// event by (mis)subscribing.
+func (h *Hub) NotifyNotificationCreated(userID, notificationID string) {
+	h.send(h.connsOf(userID), Event{
+		Type:    "notification.created",
+		Payload: map[string]any{"notification_id": notificationID},
+	})
+}
+
+// connsOf returns all connections authenticated as the given user.
+func (h *Hub) connsOf(userID string) []*conn {
 	h.mu.Lock()
+	defer h.mu.Unlock()
 	targets := make([]*conn, 0)
 	for c := range h.conns {
 		if c.userID == userID {
 			targets = append(targets, c)
 		}
 	}
-	h.mu.Unlock()
-
-	h.send(targets, evt)
+	return targets
 }
 
 // Subscribers returns the number of connections subscribed to a trip.
