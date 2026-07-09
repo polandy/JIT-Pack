@@ -44,6 +44,10 @@ export class APIClient {
     return this.request<T>('PUT', `${this.baseUrl}${path}`, body)
   }
 
+  async delete<T = unknown>(path: string, body?: unknown): Promise<T> {
+    return this.request<T>('DELETE', `${this.baseUrl}${path}`, body)
+  }
+
   /** putRaw sends a binary body (e.g. the M17 avatar JPEG). */
   async putRaw(path: string, body: Blob, contentType: string): Promise<void> {
     const resp = await this.authedFetch(`${this.baseUrl}${path}`, { method: 'PUT', body }, {

@@ -10,8 +10,11 @@
  * no server identity, so the section is a note.
  *
  * Data: NFR-4.5 exports (full JSON, per-trip CSV). Local Mode points to
- * the portable YAML path instead. Notification preferences are absent —
- * the notification system (FR-6.2/NFR-4.6) is not built yet.
+ * the portable YAML path instead.
+ *
+ * Notifications (FR-6.2/NFR-4.6): per-kind toggles + the Web Push
+ * opt-in for this device. Only with an OIDC session — Single-User and
+ * Local Mode have no second party (FR-17.3/FR-19.3, G-8).
  */
 import {
   IonPage,
@@ -30,12 +33,15 @@ import {
   IonSelectOption,
   IonNote,
   IonIcon,
+  IonToggle,
 } from '@ionic/vue'
 import { downloadOutline, personCircleOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, ref } from 'vue'
 
 import { loadTokens } from '@/auth/tokens'
 import { serverBaseUrl } from '@/config'
+import type { NotificationPrefs } from '@/notifications/format'
+import { pushRegistered, pushSupported, registerPush, unregisterPush } from '@/notifications/push'
 import { serializeTemplate, serializeTrip } from '@/domain/portable'
 import { safeFilename, saveBlob, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
@@ -49,6 +55,8 @@ const masterStore = useMasterStore()
 const mode = localStorage.getItem('jitpack_mode') as 'local' | 'server' | null
 /** OIDC session → profile is IdP-sourced and read-only (UI-Spec M17). */
 const editable = mode === 'server' && !loadTokens()
+/** Multi-user instance → notifications exist (FR-17.3/FR-19.3 hide them otherwise). */
+const collaborative = mode === 'server' && !!loadTokens()
 
 const me = ref<{ user_id: string; display_name: string } | null>(null)
 const nameDraft = ref('')
@@ -58,7 +66,38 @@ const avatarVersion = ref(0)
 onMounted(async () => {
   me.value = await orchestrator.fetchMe()
   nameDraft.value = me.value?.display_name ?? ''
+  if (collaborative) {
+    prefs.value = await orchestrator.fetchNotificationPrefs()
+    pushOn.value = await pushRegistered()
+  }
 })
+
+// --- Notifications (FR-6.2 / NFR-4.6) ---
+
+const prefs = ref<NotificationPrefs | null>(null)
+const pushOn = ref(false)
+const pushAvailable = pushSupported()
+
+const prefLabels: { kind: keyof NotificationPrefs; label: string; hint: string }[] = [
+  { kind: 'delegation', label: 'Delegations', hint: 'An item was handed to you to pack' },
+  { kind: 'mention', label: 'Mentions', hint: 'Someone wrote @you in a comment' },
+  { kind: 'task', label: 'Tasks', hint: 'A task was opened on your item' },
+]
+
+async function togglePref(kind: keyof NotificationPrefs, enabled: boolean) {
+  if (!prefs.value) return
+  prefs.value = { ...prefs.value, [kind]: enabled }
+  await orchestrator.saveNotificationPrefs(prefs.value)
+}
+
+async function togglePush(enabled: boolean) {
+  if (enabled) {
+    pushOn.value = await registerPush(orchestrator.pushApi)
+  } else {
+    await unregisterPush(orchestrator.pushApi)
+    pushOn.value = false
+  }
+}
 
 // FR-17.13: max 50 chars, [A-Za-z0-9._-] only, validated inline.
 const nameValid = computed(() => /^[A-Za-z0-9._-]{1,50}$/.test(nameDraft.value))
@@ -200,6 +239,39 @@ async function exportTripCSV() {
         <IonNote v-else-if="!editable">Profile is managed by your identity provider.</IonNote>
       </template>
       <IonNote v-else>Profile unavailable — server not reachable.</IonNote>
+
+      <!-- Notifications (FR-6.2 / NFR-4.6) — multi-user only (G-8) -->
+      <template v-if="collaborative">
+        <h2 class="section-title">Notifications</h2>
+        <IonList v-if="prefs">
+          <IonItem v-for="p in prefLabels" :key="p.kind">
+            <IonLabel>
+              <h3>{{ p.label }}</h3>
+              <p>{{ p.hint }}</p>
+            </IonLabel>
+            <IonToggle
+              slot="end"
+              :checked="prefs[p.kind]"
+              :aria-label="p.label"
+              @ionChange="(e: CustomEvent) => togglePref(p.kind, e.detail.checked)"
+            />
+          </IonItem>
+          <IonItem>
+            <IonLabel>
+              <h3>Push on this device</h3>
+              <p>{{ pushAvailable ? 'OS notifications while the app is closed' : 'Not supported by this browser' }}</p>
+            </IonLabel>
+            <IonToggle
+              slot="end"
+              :checked="pushOn"
+              :disabled="!pushAvailable"
+              aria-label="Push on this device"
+              @ionChange="(e: CustomEvent) => togglePush(e.detail.checked)"
+            />
+          </IonItem>
+        </IonList>
+        <IonNote v-else>Notification settings unavailable — server not reachable.</IonNote>
+      </template>
 
       <!-- Data (NFR-4.5) -->
       <h2 class="section-title">Data</h2>
