@@ -227,6 +227,32 @@ export function useMutations(hlc: HLCGenerator) {
     return make('delete', 'comments', todoId)
   }
 
+  // --- Container mutations (FR-10.1) ---
+
+  function addContainer(
+    tripId: string,
+    name: string,
+    opts: { carrierTravelerId?: string | null; maxWeightGrams?: number | null } = {},
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const mutation = make('insert', 'containers', id, {
+      trip_id: tripId,
+      name,
+      carrier_traveler_id: opts.carrierTravelerId ?? null,
+      max_weight_grams: opts.maxWeightGrams ?? null,
+      paired_container_id: null,
+    })
+    return { mutation, id }
+  }
+
+  function updateContainer(containerId: string, fields: Record<string, unknown>): Mutation {
+    return make('upsert', 'containers', containerId, fields)
+  }
+
+  function deleteContainer(containerId: string): Mutation {
+    return make('delete', 'containers', containerId)
+  }
+
   // --- Comment mutations (FR-7.1/7.2) ---
 
   /** addComment creates a plain comment; tripItemId null anchors it to the trip. */
@@ -406,6 +432,9 @@ export function useMutations(hlc: HLCGenerator) {
     addComment,
     flagCommentAsTask,
     deleteComment,
+    addContainer,
+    updateContainer,
+    deleteContainer,
     // Trips
     createTrip,
     updateTripStatus,

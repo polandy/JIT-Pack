@@ -93,6 +93,8 @@ export interface Container {
   name: string
   carrier_traveler_id: string | null
   max_weight_grams: number | null
+  /** Pairs two containers (e.g. left/right pannier) for FR-10.3 imbalance checks. */
+  paired_container_id: string | null
 }
 
 // --- Comments (FR-7.1) ---

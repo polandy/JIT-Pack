@@ -432,6 +432,7 @@ function rowToContainer(id: string, row: Record<string, unknown>): Container {
     name: row['name'] as string,
     carrier_traveler_id: (row['carrier_traveler_id'] as string) ?? null,
     max_weight_grams: (row['max_weight_grams'] as number) ?? null,
+    paired_container_id: (row['paired_container_id'] as string) ?? null,
   }
 }
 
