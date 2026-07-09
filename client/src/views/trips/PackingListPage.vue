@@ -258,9 +258,14 @@ async function handleRefresh(event: CustomEvent) {
         </IonButtons>
       </IonToolbar>
 
-      <!-- KPI strip -->
+      <!-- KPI strip — tap opens M12 analytics (UI-Spec M4) -->
       <IonToolbar class="kpi-strip">
-        <div class="kpi-row">
+        <div
+          class="kpi-row kpi-tappable"
+          role="link"
+          aria-label="Open analytics"
+          @click="$router.push(`/trips/${tripId}/analytics`)"
+        >
           <div class="kpi">
             <span class="kpi-value">{{ kpis.packedItems }}/{{ kpis.totalItems }}</span>
             <span class="kpi-label">Packed</span>
@@ -660,6 +665,10 @@ async function handleRefresh(event: CustomEvent) {
 
 .edit-containers {
   padding: 8px 16px 0;
+}
+
+.kpi-tappable {
+  cursor: pointer;
 }
 
 .lock-icon {

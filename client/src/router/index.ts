@@ -59,6 +59,12 @@ const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    path: '/trips/:tripId/analytics',
+    name: 'trip-analytics',
+    component: () => import('@/views/trips/AnalyticsPage.vue'),
+    props: true,
+  },
+  {
     path: '/trips/:tripId/containers',
     name: 'trip-containers',
     component: () => import('@/views/trips/ContainerPage.vue'),
