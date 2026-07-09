@@ -19,6 +19,7 @@ import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type { PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
+import type { IndexedDBPersistence } from '@/local/persistence'
 import type { ItemMode, ItemTodo, MasterItem, Template, TemplateItem, TripItem } from '@/types/domain'
 
 /** Everything the M3 wizard collected before "Create trip". */
@@ -34,12 +35,20 @@ export interface TripWizardDraft {
 export interface SyncOrchestratorConfig {
   baseUrl: string
   getToken: () => string | null
+  /**
+   * Local Mode (Addendum 3.19, FR-19.2): when set, mutations persist to
+   * this store instead of the sync outbox, and no network or WebSocket
+   * is ever touched. The optimistic rows are authoritative.
+   */
+  local?: IndexedDBPersistence
 }
 
 export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const tripStore = useTripStore()
   const masterStore = useMasterStore()
   const syncStatus = useSyncStatus()
+  const local = config.local ?? null
+  if (local) syncStatus.setLocal()
 
   const client = new APIClient(config.baseUrl, config.getToken)
 
@@ -76,6 +85,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     if (tripChanges.length > 0) tripStore.applyChanges(tripChanges)
     if (masterChanges.length > 0) masterStore.applyChanges(masterChanges)
+
+    // FR-19.2: in Local Mode every applied change is durable — this is
+    // the single funnel all mutations and startup loads pass through.
+    if (local) local.save(changes).catch(() => {})
   }
 
   // --- WebSocket event handling ---
@@ -101,6 +114,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   // --- Drain operations ---
 
   async function drainTrip(tripId: string): Promise<void> {
+    if (local) return
     syncStatus.setSyncing()
     try {
       await outbox.drain('trip', tripId)
@@ -112,6 +126,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   }
 
   async function drainMaster(): Promise<void> {
+    if (local) return
     syncStatus.setSyncing()
     try {
       await outbox.drain('master', null)
@@ -123,6 +138,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   }
 
   async function drainAll(tripIds: string[]): Promise<void> {
+    if (local) return
     syncStatus.setSyncing()
     try {
       await drainMaster()
@@ -146,8 +162,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       if (m.optimistic) {
         onPullChanges([m.optimistic])
       }
-      outbox.enqueue(type, id, m.mutation)
+      if (!local) {
+        outbox.enqueue(type, id, m.mutation)
+      }
     }
+    if (local) return
     syncStatus.setPendingCount(outbox.totalPending())
 
     // Fire-and-forget drain
@@ -314,12 +333,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         duration_days: durationDays(draft.startDate, draft.endDate),
       },
     }])
-    outbox.enqueue('master', null, tripMut)
+    if (!local) outbox.enqueue('master', null, tripMut)
 
     const travelerIds = draft.travelers.map((tr) => {
       const { mutation, id } = mutations.addTraveler(tripId, tr.name, tr.profile, tr.linkedUserId ?? null)
       onPullChanges([{ seq: 0, table: 'travelers', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
-      outbox.enqueue('trip', tripId, mutation)
+      if (!local) outbox.enqueue('trip', tripId, mutation)
       return id
     })
 
@@ -328,9 +347,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         item.traveler_index === null ? null : travelerIds[item.traveler_index] ?? null
       const { mutation, id } = mutations.addGeneratedTripItem(tripId, item, assignedTravelerId)
       onPullChanges([{ seq: 0, table: 'trip_items', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
-      outbox.enqueue('trip', tripId, mutation)
+      if (!local) outbox.enqueue('trip', tripId, mutation)
     }
 
+    if (local) return tripId
     syncStatus.setPendingCount(outbox.totalPending())
     drainMaster().then(() => drainTrip(tripId)).catch(() => {})
     return tripId
@@ -458,15 +478,24 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   // --- Lifecycle ---
 
-  function connect() {
+  async function connect(): Promise<void> {
+    if (local) {
+      // FR-19.2: startup load goes through the same applyChanges path
+      // as a server pull; NFR-4.11: ask for storage durability.
+      onPullChanges(await local.load())
+      void local.requestDurability()
+      return
+    }
     ws.connect()
   }
 
   function subscribeTrip(tripId: string) {
+    if (local) return
     ws.subscribe([`trip:${tripId}`])
   }
 
   function disconnect() {
+    if (local) return
     ws.disconnect()
   }
 

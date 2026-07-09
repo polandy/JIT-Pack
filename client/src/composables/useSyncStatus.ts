@@ -7,7 +7,7 @@
 
 import { ref, computed, type Ref, type ComputedRef } from 'vue'
 
-export type SyncState = 'synced' | 'syncing' | 'offline'
+export type SyncState = 'synced' | 'syncing' | 'offline' | 'local'
 
 export interface SyncStatus {
   /** Current connection/sync state. */
@@ -23,6 +23,8 @@ export interface SyncStatus {
   setSynced(): void
   /** Mark the connection as offline. */
   setOffline(): void
+  /** Enter Local Mode (FR-19.6): a fixed state, no server involved. */
+  setLocal(): void
   /** Update the pending mutation count. */
   setPendingCount(n: number): void
 }
@@ -30,9 +32,11 @@ export interface SyncStatus {
 export function useSyncStatus(): SyncStatus {
   const connectionState = ref<'connected' | 'offline'>('connected')
   const isSyncing = ref(false)
+  const isLocal = ref(false)
   const pendingCount = ref(0)
 
   const state = computed<SyncState>(() => {
+    if (isLocal.value) return 'local'
     if (connectionState.value === 'offline') return 'offline'
     if (isSyncing.value) return 'syncing'
     return 'synced'
@@ -44,6 +48,8 @@ export function useSyncStatus(): SyncStatus {
         return 'Synced'
       case 'syncing':
         return 'Syncing...'
+      case 'local':
+        return 'Local'
       case 'offline':
         return pendingCount.value > 0
           ? `Offline (${pendingCount.value} queued)`
@@ -65,9 +71,13 @@ export function useSyncStatus(): SyncStatus {
     isSyncing.value = false
   }
 
+  function setLocal() {
+    isLocal.value = true
+  }
+
   function setPendingCount(n: number) {
     pendingCount.value = n
   }
 
-  return { state, pendingCount, label, setSyncing, setSynced, setOffline, setPendingCount }
+  return { state, pendingCount, label, setSyncing, setSynced, setOffline, setLocal, setPendingCount }
 }
