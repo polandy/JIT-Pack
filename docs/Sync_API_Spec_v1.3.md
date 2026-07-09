@@ -131,7 +131,8 @@ Server-side computations that must not run on clients. **Decided (Local Mode, Ad
 | ~~`POST /import/analyze`~~ · ~~`POST /import/commit`~~ | superseded: the M15 wizard parses/analyzes/commits client-side (FR-19.4 lists the import as Local-Mode parity). CSV only — XLSX deferred (parser dependency vs NFR-4.3; spreadsheets export CSV). NFR-4.7 transactionality is approximated: full pre-validation before enqueue, parents-first ordering, idempotent replay — there is no cross-mutation server transaction |
 | `GET /templates/{id}/export` · `POST /templates/import` | Addendum FR-18.2/18.4: portable YAML template export/import |
 | `GET /trips/{id}/export.yaml` · `POST /trips/import` | Addendum FR-18.3/18.4: portable YAML trip export/import — distinct from `export.csv` below (NFR-4.5), which is a flat data dump, not round-trippable |
-| `GET /export/full` · `GET /trips/{id}/export.csv` | NFR-4.5 |
+| `GET /export/full` · `GET /trips/{id}/export.csv` | NFR-4.5 — implemented: full export is a versioned JSON envelope `{version, exported_at, data:{table:[rows]}}` filtered to the caller's pull visibility (users/avatars excluded); CSV columns `item,category,quantity,packed_count,mode,traveler,container` |
+| `GET /me` | Own identity `{user_id, display_name}` — the client needs its `users.id` to address the avatar/display-name endpoints (M17 profile) |
 | `POST /push/subscriptions` | Register Web-Push/UnifiedPush endpoint (NFR-4.6) |
 | `GET /suggestions/trips/{id}` | FR-14.2 quantity suggestions (duration-normalized median) |
 | `GET /trips/{id}/conflicts` | Per-trip conflict log for the G-2 view (NFR-4.2a) — read-only: `{conflicts:[{id, entity_table, entity_id, field, losing_value, winning_value, resolved_at}]}`, newest first; conflict rows never flow through pull |

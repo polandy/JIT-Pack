@@ -785,6 +785,34 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return resp.conflicts
   }
 
+  // --- Profile & data (M17) ---
+
+  /** fetchMe resolves the own identity; null in Local Mode (no server). */
+  async function fetchMe(): Promise<{ user_id: string; display_name: string } | null> {
+    if (local) return null
+    try {
+      return await client.get<{ user_id: string; display_name: string }>('/api/v1/me', {})
+    } catch {
+      return null
+    }
+  }
+
+  async function saveDisplayName(userId: string, name: string): Promise<void> {
+    if (local) return
+    await client.put(`/api/v1/users/${userId}/display-name`, { display_name: name })
+  }
+
+  async function uploadAvatar(userId: string, jpeg: Blob): Promise<void> {
+    if (local) return
+    await client.putRaw(`/api/v1/users/${userId}/avatar`, jpeg, 'image/jpeg')
+  }
+
+  /** downloadExport fetches an NFR-4.5 export with the auth header. */
+  async function downloadExport(path: string): Promise<Blob | null> {
+    if (local) return null
+    return client.getBlob(path)
+  }
+
   // --- Repack actions (FR-11.1, M13) ---
 
   /**
@@ -1149,6 +1177,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     addChecklistItem,
     updateChecklistItem,
     deleteChecklistItem,
+
+    // Profile & data (M17)
+    fetchMe,
+    saveDisplayName,
+    uploadAvatar,
+    downloadExport,
 
     // Post-trip review (FR-9.2, M14)
     archiveTrip,
