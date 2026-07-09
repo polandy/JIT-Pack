@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"jitpack/internal/sync"
@@ -26,7 +27,7 @@ var (
 	ErrUnknownColumn = errors.New("column not syncable")
 )
 
-// syncableColumns whitelists the tables and columns the push endpoint may
+// syncableColumns whitelists the tables and columns the push endpoints may
 // touch; everything else is rejected before any SQL is built.
 var syncableColumns = map[string]map[string]bool{
 	"trip_items": toSet(
@@ -48,7 +49,33 @@ var syncableColumns = map[string]map[string]bool{
 		"trip_id", "trip_item_id", "author_id", "body",
 		"is_task", "task_state",
 	),
+	"categories": toSet(
+		"name", "sort_order",
+	),
+	"items": toSet(
+		"name", "category_id", "weight_grams", "value_cents",
+		"is_consumable", "unit", "per_day_rate", "created_by",
+	),
+	"templates": toSet(
+		"owner_id", "name", "is_published",
+	),
+	"template_items": toSet(
+		"template_id", "item_id", "quantity_formula", "assignment",
+		"dedup", "conditions", "default_mode", "late_packer",
+	),
+	"trips": toSet(
+		"series_id", "name", "start_date", "end_date", "status",
+		"attributes", "imported", "created_by",
+	),
 }
+
+// Partition membership per Sync-API Spec P-3: a mutation is only valid
+// on the endpoint of its partition, otherwise changes would leak into
+// the wrong change feed.
+var (
+	tripPartitionTables   = toSet("trip_items", "travelers", "containers", "comments")
+	masterPartitionTables = toSet("categories", "items", "templates", "template_items", "trips")
+)
 
 // Store owns the SQLite handle. SQLite has a single writer; capping the
 // pool at one connection makes that explicit and keeps :memory: databases
@@ -76,7 +103,15 @@ func Open(dsn string) (*Store, error) {
 
 func (s *Store) Close() error { return s.db.Close() }
 
+// migrate applies embedded migrations in lexical order, skipping those
+// already recorded in PRAGMA user_version so reopening a persistent
+// database is safe.
 func migrate(db *sql.DB) error {
+	var version int64
+	if err := db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
+		return fmt.Errorf("read user_version: %w", err)
+	}
+
 	entries, err := migrations.ReadDir("migrations")
 	if err != nil {
 		return fmt.Errorf("read migrations: %w", err)
@@ -87,12 +122,22 @@ func migrate(db *sql.DB) error {
 	}
 	sort.Strings(names)
 	for _, name := range names {
+		v, err := strconv.ParseInt(name[:strings.Index(name, "_")], 10, 64)
+		if err != nil {
+			return fmt.Errorf("migration %s has no numeric prefix: %w", name, err)
+		}
+		if v <= version {
+			continue
+		}
 		ddl, err := migrations.ReadFile("migrations/" + name)
 		if err != nil {
 			return fmt.Errorf("read migration %s: %w", name, err)
 		}
 		if _, err := db.Exec(string(ddl)); err != nil {
 			return fmt.Errorf("apply migration %s: %w", name, err)
+		}
+		if _, err := db.Exec(fmt.Sprintf(`PRAGMA user_version = %d`, v)); err != nil {
+			return fmt.Errorf("record user_version %d: %w", v, err)
 		}
 	}
 	return nil
@@ -106,10 +151,11 @@ type MutationResult struct {
 	Seq        int64
 }
 
-// ApplyMutation resolves one mutation transactionally: idempotency memo,
-// merge per NFR-4.2a, persistence, conflict_log, change_log.
+// ApplyMutation resolves one trip-partition mutation transactionally:
+// idempotency memo, merge per NFR-4.2a, persistence, conflict_log,
+// change_log.
 func (s *Store) ApplyMutation(ctx context.Context, tripID string, m sync.Mutation) (MutationResult, error) {
-	if err := validate(m); err != nil {
+	if err := validate(m, tripPartitionTables); err != nil {
 		return MutationResult{}, err
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -153,11 +199,11 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID string, m sync.Mutatio
 	return res, nil
 }
 
-func validate(m sync.Mutation) error {
-	columns, ok := syncableColumns[m.Table]
-	if !ok {
+func validate(m sync.Mutation, partition map[string]bool) error {
+	if !partition[m.Table] {
 		return fmt.Errorf("%w: %s", ErrUnknownTable, m.Table)
 	}
+	columns := syncableColumns[m.Table]
 	for field := range m.Fields {
 		if !columns[field] {
 			return fmt.Errorf("%w: %s.%s", ErrUnknownColumn, m.Table, field)
@@ -267,7 +313,9 @@ func updateRow(ctx context.Context, tx *sql.Tx, table, id string, merged sync.Me
 	return nil
 }
 
-func appendChangeLog(ctx context.Context, tx *sql.Tx, tripID string, m sync.Mutation, deleted bool) (int64, error) {
+// appendChangeLog writes one change feed entry; tripID is a string for
+// the trip partition or nil for the master partition (spec §4).
+func appendChangeLog(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutation, deleted bool) (int64, error) {
 	res, err := tx.ExecContext(ctx,
 		`INSERT INTO change_log (trip_id, entity_table, entity_id, deleted, hlc) VALUES (?, ?, ?, ?, ?)`,
 		tripID, m.Table, m.ID, boolToInt(deleted), string(m.HLC))
@@ -281,7 +329,7 @@ func appendChangeLog(ctx context.Context, tx *sql.Tx, tripID string, m sync.Muta
 	return seq, nil
 }
 
-func logConflicts(ctx context.Context, tx *sql.Tx, tripID string, m sync.Mutation, conflicts []sync.Conflict) error {
+func logConflicts(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutation, conflicts []sync.Conflict) error {
 	for _, c := range conflicts {
 		losing, winning := jsonValue(c.LosingValue), jsonValue(c.WinningValue)
 		_, err := tx.ExecContext(ctx,
@@ -323,18 +371,9 @@ func (s *Store) Pull(ctx context.Context, tripID string, cursor int64, limit int
 	}
 	defer rows.Close()
 
-	var entries []Change
-	for rows.Next() {
-		var c Change
-		var deleted int
-		if err := rows.Scan(&c.Seq, &c.Table, &c.ID, &deleted); err != nil {
-			return PullPage{}, fmt.Errorf("scan change: %w", err)
-		}
-		c.Deleted = deleted == 1
-		entries = append(entries, c)
-	}
-	if err := rows.Err(); err != nil {
-		return PullPage{}, fmt.Errorf("iterate changes: %w", err)
+	entries, err := scanChanges(rows)
+	if err != nil {
+		return PullPage{}, err
 	}
 
 	page := PullPage{HasMore: len(entries) > limit}
@@ -359,6 +398,23 @@ func (s *Store) Pull(ctx context.Context, tripID string, cursor int64, limit int
 		page.Changes = append(page.Changes, c)
 	}
 	return page, nil
+}
+
+func scanChanges(rows *sql.Rows) ([]Change, error) {
+	var entries []Change
+	for rows.Next() {
+		var c Change
+		var deleted int
+		if err := rows.Scan(&c.Seq, &c.Table, &c.ID, &deleted); err != nil {
+			return nil, fmt.Errorf("scan change: %w", err)
+		}
+		c.Deleted = deleted == 1
+		entries = append(entries, c)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate changes: %w", err)
+	}
+	return entries, nil
 }
 
 // compact keeps only the latest change per entity, preserving seq order —
