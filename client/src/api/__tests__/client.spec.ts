@@ -76,4 +76,67 @@ describe('APIClient', () => {
       'http://localhost:8080/api/v1/sync/trips/t1?cursor=42&limit=100',
     )
   })
+
+  it('awaits an async token provider', async () => {
+    fetchSpy.mockResolvedValueOnce(new Response(JSON.stringify({}), { status: 200 }))
+    const client = new APIClient('http://localhost:8080', async () => 'async-jwt')
+    await client.get('/api/v1/health')
+    expect(fetchSpy.mock.calls[0]![1].headers.Authorization).toBe('Bearer async-jwt')
+  })
+
+  it('retries once with a fresh token after a 401', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
+    const onUnauthorized = vi.fn().mockResolvedValue('fresh-jwt')
+    const client = new APIClient('http://localhost:8080', () => 'stale-jwt', onUnauthorized)
+
+    const result = await client.get('/api/v1/sync/master')
+
+    expect(result).toEqual({ ok: true })
+    expect(onUnauthorized).toHaveBeenCalledOnce()
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+    expect(fetchSpy.mock.calls[1]![1].headers.Authorization).toBe('Bearer fresh-jwt')
+  })
+
+  it('throws the 401 when the refresh yields no token', async () => {
+    fetchSpy.mockResolvedValueOnce(new Response(null, { status: 401 }))
+    const onUnauthorized = vi.fn().mockResolvedValue(null)
+    const client = new APIClient('http://localhost:8080', () => 'stale-jwt', onUnauthorized)
+
+    await expect(client.get('/api/v1/sync/master')).rejects.toMatchObject({ status: 401 })
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not retry more than once on repeated 401s', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+    const onUnauthorized = vi.fn().mockResolvedValue('still-rejected')
+    const client = new APIClient('http://localhost:8080', () => 'stale-jwt', onUnauthorized)
+
+    await expect(client.get('/api/v1/sync/master')).rejects.toMatchObject({ status: 401 })
+    expect(onUnauthorized).toHaveBeenCalledOnce()
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+  })
+
+  it('throws 401 without a refresh hook (single-user servers)', async () => {
+    fetchSpy.mockResolvedValueOnce(new Response(null, { status: 401 }))
+    const client = new APIClient('http://localhost:8080', () => null)
+    await expect(client.get('/api/v1/health')).rejects.toMatchObject({ status: 401 })
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('retries blob downloads after a 401 (M17 exports)', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response('data', { status: 200 }))
+    const onUnauthorized = vi.fn().mockResolvedValue('fresh-jwt')
+    const client = new APIClient('http://localhost:8080', () => 'stale-jwt', onUnauthorized)
+
+    const blob = await client.getBlob('/api/v1/export/full')
+
+    expect(await blob.text()).toBe('data')
+    expect(fetchSpy.mock.calls[1]![1].headers.Authorization).toBe('Bearer fresh-jwt')
+  })
 })

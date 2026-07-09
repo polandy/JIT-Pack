@@ -10,13 +10,22 @@ export class APIRequestError extends Error {
   }
 }
 
+/** May be async: the OIDC refresher checks expiry before handing out a token. */
+export type TokenProvider = () => string | null | Promise<string | null>
+
 export class APIClient {
   private readonly baseUrl: string
-  private readonly getToken: () => string | null
+  private readonly getToken: TokenProvider
+  private readonly onUnauthorized?: () => Promise<string | null>
 
-  constructor(baseUrl: string, getToken: () => string | null) {
+  constructor(
+    baseUrl: string,
+    getToken: TokenProvider,
+    onUnauthorized?: () => Promise<string | null>,
+  ) {
     this.baseUrl = baseUrl.replace(/\/+$/, '')
     this.getToken = getToken
+    this.onUnauthorized = onUnauthorized
   }
 
   async get<T = unknown>(path: string, params?: Record<string, string>): Promise<T> {
@@ -37,38 +46,50 @@ export class APIClient {
 
   /** putRaw sends a binary body (e.g. the M17 avatar JPEG). */
   async putRaw(path: string, body: Blob, contentType: string): Promise<void> {
-    const headers: Record<string, string> = { 'Content-Type': contentType }
-    const token = this.getToken()
-    if (token) headers['Authorization'] = `Bearer ${token}`
-    const resp = await fetch(`${this.baseUrl}${path}`, { method: 'PUT', headers, body })
+    const resp = await this.authedFetch(`${this.baseUrl}${path}`, { method: 'PUT', body }, {
+      'Content-Type': contentType,
+    })
     if (!resp.ok) throw new APIRequestError(resp.status, null)
   }
 
   /** getBlob downloads a file with the auth header (M17 data exports). */
   async getBlob(path: string): Promise<Blob> {
-    const headers: Record<string, string> = {}
-    const token = this.getToken()
-    if (token) headers['Authorization'] = `Bearer ${token}`
-    const resp = await fetch(`${this.baseUrl}${path}`, { headers })
+    const resp = await this.authedFetch(`${this.baseUrl}${path}`, {}, {})
     if (!resp.ok) throw new APIRequestError(resp.status, null)
     return resp.blob()
   }
 
+  /**
+   * authedFetch injects the auth header and, when a refresher is wired,
+   * retries exactly once with a fresh token after a 401 — the reactive
+   * half of the OIDC refresh (the proactive half lives in the provider).
+   */
+  private async authedFetch(
+    url: string,
+    init: Omit<RequestInit, 'headers'>,
+    headers: Record<string, string>,
+  ): Promise<Response> {
+    const token = await this.getToken()
+    if (token) headers = { ...headers, Authorization: `Bearer ${token}` }
+
+    const resp = await fetch(url, { ...init, headers })
+    if (resp.status !== 401 || !this.onUnauthorized) return resp
+
+    const fresh = await this.onUnauthorized()
+    if (!fresh) return resp
+    return fetch(url, { ...init, headers: { ...headers, Authorization: `Bearer ${fresh}` } })
+  }
+
   private async request<T>(method: string, url: string, body?: unknown): Promise<T> {
     const headers: Record<string, string> = {}
-    const token = this.getToken()
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
     if (body !== undefined) {
       headers['Content-Type'] = 'application/json'
     }
 
-    const resp = await fetch(url, {
+    const resp = await this.authedFetch(url, {
       method,
-      headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
-    })
+    }, headers)
 
     if (!resp.ok) {
       let apiError = null

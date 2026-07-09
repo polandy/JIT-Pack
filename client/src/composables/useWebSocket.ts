@@ -1,10 +1,11 @@
 /** WebSocket composable — thin event pings, not data carriers (P-1, Sync-API §7). */
 
+import type { TokenProvider } from '@/api/client'
 import type { WSEvent } from '@/api/types'
 
 export interface WSOptions {
   baseUrl: string
-  getToken: () => string | null
+  getToken: TokenProvider
   onEvent: (event: WSEvent) => void
 }
 
@@ -16,8 +17,9 @@ export function useWebSocket(opts: WSOptions) {
   let socket: WebSocket | null = null
   let pendingChannels: string[] = []
 
-  function connect() {
-    const token = opts.getToken()
+  // Async because the token provider may refresh first (?token= dial, §7).
+  async function connect() {
+    const token = await opts.getToken()
     const wsUrl = `${httpToWs(opts.baseUrl)}/ws?token=${token}`
     socket = new WebSocket(wsUrl)
 

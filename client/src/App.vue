@@ -12,6 +12,7 @@ import { IonApp, IonRouterOutlet } from '@ionic/vue'
 import AppHeader from '@/components/global/AppHeader.vue'
 import NavRail from '@/components/global/NavRail.vue'
 import ModeSelectionPage from '@/views/ModeSelectionPage.vue'
+import { AUTH_EXPIRED_EVENT, createAuthRefresher } from '@/auth/refresh'
 import { loadTokens } from '@/auth/tokens'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { serverBaseUrl } from '@/config'
@@ -32,12 +33,16 @@ function chooseMode(selected: 'local' | 'server', serverUrl: string | null) {
   window.location.reload()
 }
 
+// OIDC token lifecycle (Sync-API §2): the refresher renews the access
+// token shortly before expiry and after a 401; without stored tokens
+// (Single-User servers, Local Mode) it stays inert and hands out null.
+const refresher = mode.value === 'server' ? createAuthRefresher(serverBaseUrl()) : null
+
 const orchestrator = mode.value
   ? useSyncOrchestrator({
       baseUrl: serverBaseUrl(),
-      // Single-User servers need no token (their middleware injects the
-      // implicit user); OIDC servers get the persisted access token.
-      getToken: () => loadTokens()?.access_token ?? null,
+      getToken: refresher ? () => refresher.freshToken() : () => loadTokens()?.access_token ?? null,
+      onUnauthorized: refresher ? () => refresher.refresh() : undefined,
       local: mode.value === 'local' ? new IndexedDBPersistence() : undefined,
     })
   : null
@@ -59,14 +64,21 @@ onMounted(async () => {
       // Server unreachable — the sync indicator will show offline.
     }
   }
+  // Session ended for real (IdP rejected the refresh token) → log in again.
+  window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired)
   orchestrator?.connect()
   // Initial pull of master data (no-op in Local Mode)
   orchestrator?.drainMaster()
 })
 
 onUnmounted(() => {
+  window.removeEventListener(AUTH_EXPIRED_EVENT, onAuthExpired)
   orchestrator?.disconnect()
 })
+
+function onAuthExpired() {
+  router.replace('/login')
+}
 
 // G-2: tapping the sync indicator inside a trip opens its conflict log.
 const route = useRoute()
