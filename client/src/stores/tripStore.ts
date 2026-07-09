@@ -16,6 +16,7 @@ import type {
   Container,
   ItemComment,
   ItemTodo,
+  TripMember,
 } from '@/types/domain'
 import type { PullChange } from '@/api/types'
 
@@ -26,6 +27,7 @@ export const useTripStore = defineStore('trips', () => {
   const containers = ref<Map<string, Container[]>>(new Map())
   const todos = ref<Map<string, ItemTodo[]>>(new Map())
   const comments = ref<Map<string, ItemComment[]>>(new Map())
+  const members = ref<Map<string, TripMember[]>>(new Map())
   const groupByPrefs = ref<Map<string, GroupBy>>(new Map())
 
   // --- Getters ---
@@ -59,6 +61,11 @@ export const useTripStore = defineStore('trips', () => {
 
   function getContainers(tripId: string): Container[] {
     return containers.value.get(tripId) ?? []
+  }
+
+  /** The trip's synced roster (FR-4.5). */
+  function getMembers(tripId: string): TripMember[] {
+    return members.value.get(tripId) ?? []
   }
 
   function getTodos(tripId: string): ItemTodo[] {
@@ -217,6 +224,14 @@ export const useTripStore = defineStore('trips', () => {
         }
         break
 
+      case 'trip_members':
+        if (change.deleted) {
+          removeMember(change.id)
+        } else if (row) {
+          upsertMember(rowToMember(change.id, row))
+        }
+        break
+
       case 'comments':
         // One table, two layers: is_task rows are todos/tickets
         // (FR-7.2/7.3), the rest plain comments (FR-7.1). Flagging
@@ -280,6 +295,27 @@ export const useTripStore = defineStore('trips', () => {
       const filtered = list.filter((t) => t.id !== id)
       if (filtered.length !== list.length) {
         travelers.value.set(tripId, filtered)
+        break
+      }
+    }
+  }
+
+  function upsertMember(member: TripMember): void {
+    const list = members.value.get(member.trip_id) ?? []
+    const idx = list.findIndex((m) => m.id === member.id)
+    if (idx >= 0) {
+      list[idx] = member
+    } else {
+      list.push(member)
+    }
+    members.value.set(member.trip_id, list)
+  }
+
+  function removeMember(id: string): void {
+    for (const [tripId, list] of members.value) {
+      const filtered = list.filter((m) => m.id !== id)
+      if (filtered.length !== list.length) {
+        members.value.set(tripId, filtered)
         break
       }
     }
@@ -355,6 +391,7 @@ export const useTripStore = defineStore('trips', () => {
     getShoppingItems,
     getTravelers,
     getContainers,
+    getMembers,
     getTodos,
     getItemTodos,
     getOpenTodos,
@@ -422,6 +459,15 @@ function rowToTraveler(id: string, row: Record<string, unknown>): Traveler {
     name: row['name'] as string,
     profile: (row['profile'] as Traveler['profile']) ?? 'adult',
     linked_user_id: (row['linked_user_id'] as string) ?? null,
+  }
+}
+
+function rowToMember(id: string, row: Record<string, unknown>): TripMember {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    user_id: row['user_id'] as string,
+    role: (row['role'] as TripMember['role']) ?? 'editor',
   }
 }
 

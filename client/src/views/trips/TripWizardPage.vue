@@ -3,14 +3,15 @@
  * M3 — Trip Creation Wizard
  *
  * Four steps: metadata (FR-2.1/2.1a, attributes FR-15.1) → travelers
- * (FR-2.5) → template selection with live dedup/exclusion preview
- * (FR-2.2/2.3a/15.2) → quantity review. "Create trip" commits the
- * cascade through the orchestrator and opens M4. The draft lives in
- * component state until then — Cancel leaves no residue.
+ * + sharing/roles (FR-2.5, FR-4.5/4.7) → template selection with live
+ * dedup/exclusion preview (FR-2.2/2.3a/15.2) → quantity review.
+ * "Create trip" commits the cascade through the orchestrator and opens
+ * M4. The draft lives in component state until then — Cancel leaves no
+ * residue.
  *
- * Sharing/role assignment of step 2 is not rendered yet: membership
- * sync is not built, and in Single-User/Local Mode it is hidden anyway
- * (FR-17.3/19.3).
+ * The sharing part of step 2 renders only with an OIDC session — in
+ * Single-User and Local Mode there is no second account to share with
+ * (FR-17.3/FR-19.3/G-8).
  */
 import {
   IonPage,
@@ -35,9 +36,10 @@ import {
   IonChip,
 } from '@ionic/vue'
 import { addOutline, closeOutline, personOutline } from 'ionicons/icons'
-import { computed, inject, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { loadTokens } from '@/auth/tokens'
 import { durationDays, generateTripItems } from '@/domain/instantiate'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -101,6 +103,45 @@ function addTraveler() {
 
 function removeTraveler(index: number) {
   travelers.value = travelers.value.filter((_, i) => i !== index)
+}
+
+// --- Step 2: sharing & roles (FR-4.5/4.7) ---
+const mode = localStorage.getItem('jitpack_mode') as 'local' | 'server' | null
+const collaborative = mode === 'server' && !!loadTokens()
+
+const directory = ref<{ user_id: string; display_name: string }[]>([])
+const myUserId = ref<string | null>(null)
+const shares = ref<{ userId: string; role: 'admin' | 'editor' }[]>([])
+
+onMounted(async () => {
+  if (!collaborative) return
+  const [users, me] = await Promise.all([orchestrator.fetchUsers(), orchestrator.fetchMe()])
+  directory.value = users
+  myUserId.value = me?.user_id ?? null
+})
+
+/** Accounts still shareable: not me (Owner anyway), not already added. */
+const shareCandidates = computed(() =>
+  directory.value.filter(
+    (u) => u.user_id !== myUserId.value && !shares.value.some((s) => s.userId === u.user_id),
+  ),
+)
+
+function addShare(userId: string) {
+  if (!userId || shares.value.some((s) => s.userId === userId)) return
+  shares.value = [...shares.value, { userId, role: 'editor' }]
+}
+
+function setShareRole(index: number, role: 'admin' | 'editor') {
+  shares.value = shares.value.map((s, i) => (i === index ? { ...s, role } : s))
+}
+
+function removeShare(index: number) {
+  shares.value = shares.value.filter((_, i) => i !== index)
+}
+
+function shareName(userId: string): string {
+  return directory.value.find((u) => u.user_id === userId)?.display_name ?? userId
 }
 
 // --- Step 3: template selection + live preview (FR-2.2/2.3a/15.2) ---
@@ -189,6 +230,7 @@ function createTrip() {
     checklistItems: includeChecklist.value
       ? offeredChecklist.value.map((c) => ({ label: c.label, mode: c.mode }))
       : [],
+    members: shares.value,
   })
   router.replace(`/trips/${tripId}`)
 }
@@ -350,6 +392,47 @@ function createTrip() {
           <IonIcon slot="start" :icon="addOutline" />
           Add traveler
         </IonButton>
+
+        <!-- Sharing & roles (FR-4.5/4.7) — OIDC sessions only (G-8) -->
+        <template v-if="collaborative">
+          <h2 class="section-title">Share with</h2>
+          <IonList v-if="shares.length > 0">
+            <IonItem v-for="(share, index) in shares" :key="share.userId">
+              <IonLabel>{{ shareName(share.userId) }}</IonLabel>
+              <IonSelect
+                interface="popover"
+                aria-label="Role"
+                :value="share.role"
+                @ionChange="(e: CustomEvent) => setShareRole(index, e.detail.value)"
+              >
+                <IonSelectOption value="editor">Editor</IonSelectOption>
+                <IonSelectOption value="admin">Admin</IonSelectOption>
+              </IonSelect>
+              <IonButton slot="end" fill="clear" color="medium" aria-label="Remove share" @click="removeShare(index)">
+                <IonIcon slot="icon-only" :icon="closeOutline" />
+              </IonButton>
+            </IonItem>
+          </IonList>
+          <IonItem v-if="shareCandidates.length > 0" lines="none">
+            <IonSelect
+              interface="popover"
+              placeholder="Add user…"
+              aria-label="Add user"
+              :value="null"
+              @ionChange="(e: CustomEvent) => addShare(e.detail.value)"
+            >
+              <IonSelectOption v-for="u in shareCandidates" :key="u.user_id" :value="u.user_id">
+                {{ u.display_name }}
+              </IonSelectOption>
+            </IonSelect>
+          </IonItem>
+          <IonNote v-else-if="shares.length === 0" class="empty-hint">
+            No other accounts on this server yet.
+          </IonNote>
+          <IonNote class="share-note">
+            You stay the trip's Owner. Admins manage travelers and roles; Editors pack and comment (FR-4.5).
+          </IonNote>
+        </template>
       </section>
 
       <!-- Step 3: templates + preview -->
@@ -454,6 +537,12 @@ function createTrip() {
 .empty-hint {
   color: var(--ion-color-medium);
   font-size: 0.9rem;
+  margin: 8px 0 16px;
+}
+
+.share-note {
+  display: block;
+  font-size: 0.8rem;
   margin: 8px 0 16px;
 }
 

@@ -597,6 +597,32 @@ export function useMutations(hlc: HLCGenerator) {
     return make('delete', 'template_items', templateItemId)
   }
 
+  // --- Trip membership mutations (FR-4.5/4.7, master partition) ---
+
+  function addTripMember(
+    tripId: string,
+    userId: string,
+    role: 'admin' | 'editor' = 'editor',
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    // 'owner' is never client-assignable — the server creates the
+    // creator's owner row itself (FR-4.5).
+    const mutation = make('insert', 'trip_members', id, {
+      trip_id: tripId,
+      user_id: userId,
+      role,
+    })
+    return { mutation, id }
+  }
+
+  function setTripMemberRole(memberId: string, role: 'admin' | 'editor'): Mutation {
+    return make('upsert', 'trip_members', memberId, { role })
+  }
+
+  function removeTripMember(memberId: string): Mutation {
+    return make('delete', 'trip_members', memberId)
+  }
+
   // --- Category mutations ---
 
   function createCategory(name: string, sortOrder: number = 0): { mutation: Mutation; id: string } {
@@ -661,6 +687,10 @@ export function useMutations(hlc: HLCGenerator) {
     addTemplateItem,
     updateTemplateItem,
     deleteTemplateItem,
+    // Trip membership
+    addTripMember,
+    setTripMemberRole,
+    removeTripMember,
     // Categories
     createCategory,
   }
