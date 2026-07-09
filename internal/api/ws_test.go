@@ -82,8 +82,8 @@ func TestWS_SubscribeAndReceiveTripChanged(t *testing.T) {
 	srv := newTestWSServer(t)
 	ws := wsConnectAuth(t, srv, userA)
 
-	// Subscribe to the trip.
-	wsSendMsg(t, ws, map[string]string{"action": "subscribe", "trip_id": trip})
+	// Subscribe to the trip (spec §7 channel list).
+	wsSendMsg(t, ws, map[string]any{"subscribe": []string{"trip:" + trip}})
 
 	// Read the initial presence event.
 	evt := wsReadMsg(t, ws)
@@ -108,12 +108,33 @@ func TestWS_SubscribeAndReceiveTripChanged(t *testing.T) {
 	if evt["type"] != "trip.changed" {
 		t.Fatalf("type = %v, want trip.changed", evt["type"])
 	}
-	data := evt["data"].(map[string]any)
-	if data["trip_id"] != trip {
-		t.Errorf("trip_id = %v, want %s", data["trip_id"], trip)
+	payload := evt["payload"].(map[string]any)
+	if payload["trip_id"] != trip {
+		t.Errorf("trip_id = %v, want %s", payload["trip_id"], trip)
 	}
-	if data["head_seq"].(float64) < 1 {
+	if payload["head_seq"].(float64) < 1 {
 		t.Error("head_seq should be >= 1")
+	}
+}
+
+// Spec §7: browsers cannot set headers on WebSocket dials — the token
+// must be accepted as ?token= query parameter.
+func TestWS_QueryParamAuth(t *testing.T) {
+	srv := newTestWSServer(t)
+	url := "ws" + strings.TrimPrefix(srv.url, "http") + "/ws?token=" + token(t, userA, testSecret)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	ws, _, err := websocket.Dial(ctx, url, nil)
+	if err != nil {
+		t.Fatalf("dial with query token: %v", err)
+	}
+	defer ws.CloseNow()
+
+	wsSendMsg(t, ws, map[string]any{"subscribe": []string{"trip:" + trip}})
+	evt := wsReadMsg(t, ws)
+	if evt["type"] != "presence" {
+		t.Fatalf("type = %v, want presence", evt["type"])
 	}
 }
 
@@ -122,7 +143,7 @@ func TestWS_NonMemberCannotSubscribe(t *testing.T) {
 	// user-x is not a trip member.
 	ws := wsConnectAuth(t, srv, "user-x")
 
-	wsSendMsg(t, ws, map[string]string{"action": "subscribe", "trip_id": trip})
+	wsSendMsg(t, ws, map[string]any{"subscribe": []string{"trip:" + trip}})
 
 	// Should NOT receive any presence event (subscription denied).
 	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
@@ -133,17 +154,33 @@ func TestWS_NonMemberCannotSubscribe(t *testing.T) {
 	}
 }
 
+// Presence payload per spec §7: users:[{user_id, device_count, in_sync}].
 func TestWS_CursorUpdateTriggersPresence(t *testing.T) {
 	srv := newTestWSServer(t)
 	ws := wsConnectAuth(t, srv, userA)
 
-	wsSendMsg(t, ws, map[string]string{"action": "subscribe", "trip_id": trip})
+	wsSendMsg(t, ws, map[string]any{"subscribe": []string{"trip:" + trip}})
 	wsReadMsg(t, ws) // initial presence
 
-	wsSendMsg(t, ws, map[string]any{"action": "cursor", "trip_id": trip, "cursor": 999})
+	wsSendMsg(t, ws, map[string]any{"cursor": map[string]any{"trip_id": trip, "seq": 999}})
 
 	evt := wsReadMsg(t, ws)
 	if evt["type"] != "presence" {
 		t.Fatalf("type = %v, want presence", evt["type"])
+	}
+	payload := evt["payload"].(map[string]any)
+	users := payload["users"].([]any)
+	if len(users) != 1 {
+		t.Fatalf("users = %v, want exactly one", users)
+	}
+	u := users[0].(map[string]any)
+	if u["user_id"] != userA {
+		t.Errorf("user_id = %v, want %s", u["user_id"], userA)
+	}
+	if u["device_count"].(float64) != 1 {
+		t.Errorf("device_count = %v, want 1", u["device_count"])
+	}
+	if u["in_sync"] != true {
+		t.Errorf("in_sync = %v, want true (cursor ahead of empty head)", u["in_sync"])
 	}
 }

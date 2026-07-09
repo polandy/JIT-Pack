@@ -125,11 +125,11 @@ func TestHub_Subscribe_ReceivesPresence(t *testing.T) {
 	if evt.Type != "presence" {
 		t.Fatalf("type = %q, want presence", evt.Type)
 	}
-	data := evt.Data.(map[string]any)
+	data := evt.Payload.(map[string]any)
 	if data["trip_id"] != "trip-1" {
 		t.Errorf("trip_id = %v, want trip-1", data["trip_id"])
 	}
-	members := data["members"].([]any)
+	members := data["users"].([]any)
 	if len(members) != 1 {
 		t.Fatalf("members = %d, want 1", len(members))
 	}
@@ -163,7 +163,7 @@ func TestHub_TripChanged_BroadcastToSubscribers(t *testing.T) {
 		if evt.Type != "trip.changed" {
 			t.Errorf("type = %q, want trip.changed", evt.Type)
 		}
-		data := evt.Data.(map[string]any)
+		data := evt.Payload.(map[string]any)
 		if data["head_seq"] != float64(42) {
 			t.Errorf("head_seq = %v, want 42", data["head_seq"])
 		}
@@ -210,7 +210,7 @@ func TestHub_InSync_Computation(t *testing.T) {
 	// Subscribe with no cursor (0) — head is 10, so not in sync.
 	wsSend(t, ws, map[string]string{"action": "subscribe", "trip_id": "trip-1"})
 	evt := wsRead(t, ws)
-	members := evt.Data.(map[string]any)["members"].([]any)
+	members := evt.Payload.(map[string]any)["users"].([]any)
 	m := members[0].(map[string]any)
 	if m["in_sync"] != false {
 		t.Error("expected in_sync=false when cursor < head")
@@ -219,7 +219,7 @@ func TestHub_InSync_Computation(t *testing.T) {
 	// Update cursor to head — should now be in sync.
 	wsSend(t, ws, map[string]any{"action": "cursor", "trip_id": "trip-1", "cursor": 10})
 	evt = wsRead(t, ws)
-	members = evt.Data.(map[string]any)["members"].([]any)
+	members = evt.Payload.(map[string]any)["users"].([]any)
 	m = members[0].(map[string]any)
 	if m["in_sync"] != true {
 		t.Error("expected in_sync=true when cursor >= head")

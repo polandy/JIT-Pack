@@ -50,6 +50,7 @@ import { computed, inject, ref, onMounted } from 'vue'
 import { useTripStore } from '@/stores/tripStore'
 import type { GroupBy, TripItem, ItemTodo } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 
@@ -73,6 +74,9 @@ const shoppingCount = computed(() => {
   const lists = store.getShoppingItems(props.tripId)
   return lists.buyBefore.length + lists.buyLocal.length
 })
+
+// G-10: facepile only with company — hides in Single-User/Local (G-8).
+const presenceUsers = computed(() => orchestrator.getPresence(props.tripId))
 
 const showFilters = ref(false)
 const openOnly = ref(false)
@@ -230,6 +234,8 @@ async function handleRefresh(event: CustomEvent) {
         </IonButtons>
         <IonTitle>{{ trip?.name ?? 'Packing List' }}</IonTitle>
         <IonButtons slot="end">
+          <!-- G-10: trip presence facepile + group-sync badge -->
+          <PresenceFacepile v-if="presenceUsers.length > 1" :users="presenceUsers" />
           <!-- M6 entry point: hidden when both shopping lists are empty -->
           <IonButton
             v-if="shoppingCount > 0"

@@ -9,6 +9,8 @@
  * 5. Manages sync status for G-2 indicator
  */
 
+import { ref } from 'vue'
+
 import { APIClient } from '@/api/client'
 import { HLCGenerator } from '@/sync/hlc'
 import { SyncOutbox } from './useSyncOutbox'
@@ -21,6 +23,13 @@ import type { PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import type { ItemComment, ItemMode, ItemTodo, MasterItem, Template, TemplateItem, TripItem } from '@/types/domain'
+
+/** One entry of a trip's presence facepile (G-10, Sync-API §7). */
+export interface PresenceUser {
+  user_id: string
+  device_count: number
+  in_sync: boolean
+}
 
 /** Everything the M3 wizard collected before "Create trip". */
 export interface TripWizardDraft {
@@ -49,6 +58,13 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const syncStatus = useSyncStatus()
   const local = config.local ?? null
   if (local) syncStatus.setLocal()
+
+  // G-10: per-trip presence, fed by the WS presence event.
+  const presence = ref<Map<string, PresenceUser[]>>(new Map())
+
+  function getPresence(tripId: string): PresenceUser[] {
+    return presence.value.get(tripId) ?? []
+  }
 
   const client = new APIClient(config.baseUrl, config.getToken)
 
@@ -105,9 +121,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       case 'master.changed':
         drainMaster()
         break
-      case 'presence':
-        // Future: update presence store
+      case 'presence': {
+        const tripId = event.payload['trip_id'] as string | undefined
+        if (tripId) {
+          const users = (event.payload['users'] as PresenceUser[] | undefined) ?? []
+          const next = new Map(presence.value)
+          next.set(tripId, users)
+          presence.value = next
+        }
         break
+      }
     }
   }
 
@@ -120,6 +143,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       await outbox.drain('trip', tripId)
       syncStatus.setPendingCount(outbox.totalPending())
       syncStatus.setSynced()
+      // Report the new cursor so the server recomputes in_sync (§7).
+      ws.sendCursor(tripId, outbox.getCursor('trip', tripId))
     } catch {
       syncStatus.setOffline()
     }
@@ -542,6 +567,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   return {
     syncStatus,
     outbox,
+    getPresence,
 
     // Drain
     drainTrip,
