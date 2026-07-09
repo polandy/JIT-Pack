@@ -88,4 +88,4 @@ System and environment configurations are 100% declarative, managed strictly via
 
 ---
 
-*Superseded by, and to be read alongside, `docs/PRD_Addendum_v2.9.md`, which is authoritative wherever the two disagree (notably NFR-4.2, revised from a central PostgreSQL backend to embedded SQLite per ADR-001 v2).*
+*Superseded by, and to be read alongside, `docs/PRD_Addendum_v2.10.md`, which is authoritative wherever the two disagree (notably NFR-4.2, revised from a central PostgreSQL backend to embedded SQLite per ADR-001 v2).*

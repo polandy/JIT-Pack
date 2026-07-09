@@ -52,5 +52,5 @@
 ## Consequences
 
 1. `internal/notify` (per CODING_PRINCIPLES package layout) sits behind a small interface so VAPID, UnifiedPush, and the optional FCM/APNs build variant are swappable implementations, not hardwired into handlers.
-2. Deployment documentation must cover generating VAPID keys and selecting/configuring a UnifiedPush distributor — an obligation parallel to the NFR-4.9 exposure documentation already required for Single-User/Demo Mode.
+2. Deployment documentation must cover generating VAPID keys and selecting/configuring a UnifiedPush distributor — an obligation parallel to the NFR-4.9 exposure documentation already required for Single-User Mode.
 3. **Revisit trigger:** if real-world background-delivery reliability on iOS proves unacceptable to users despite Option A, the already-supported opt-in APNs build configuration (NFR-4.6) is the escape hatch — no architecture change required, just enabling what's already designed in.

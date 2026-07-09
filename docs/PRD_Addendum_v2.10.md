@@ -1,8 +1,8 @@
-# PRD Addendum (Consolidated): „JIT-Pack" — Extensions & Clarifications (v2.9)
+# PRD Addendum (Consolidated): „JIT-Pack" — Extensions & Clarifications (v2.10)
 
 **Document Status:** Accepted
-**Supersedes:** Addendum v2.8 (adds Section 3.19: Local Mode — a backend-free client deployment shape with on-device persistence — plus NFR-4.11 on local storage durability; no other changes)
-**Scope:** New functional sections 3.10–3.19, clarifications to existing FRs, and refined/added NFRs. Numbering continues the base PRD.
+**Supersedes:** Addendum v2.9 (removes Demo Mode entirely — FR-17.6–17.10, FR-17.12, NFR-4.10 — since no public demo deployment is planned; Single-User Mode is unaffected, and NFR-4.9 is rewritten without the demo passphrase. FR/NFR numbering is kept stable with removal stubs; no other changes)
+**Scope:** New functional sections 3.10–3.20, clarifications to existing FRs, and refined/added NFRs. Numbering continues the base PRD.
 
 ---
 
@@ -50,9 +50,9 @@
 * **FR-16.2 (History Preservation):** Imported trips are created as archived trips with their original quantities, so Historical Quantity Insights (3.14) work from day one — including up to a decade of pre-existing data.
 * **FR-16.3 (Deduplication on Import):** The wizard detects near-duplicate item names across imports and existing master data and offers merge suggestions before committing.
 
-### 3.17 Single-User Mode & Demo Mode
+### 3.17 Single-User Mode
 
-Single-User Mode and Demo Mode are two **orthogonal** declarative flags. Single-User Mode changes *authentication*; Demo Mode changes *persistence*. Demo Mode requires Single-User Mode to be enabled — a demo instance is, by definition, single-user — but Single-User Mode is fully usable on its own for permanent, real households.
+Single-User Mode is a declarative flag that changes *authentication* for a genuinely single-person household. (A second, orthogonal *Demo Mode* flag — ephemeral persistence for public evaluation instances — existed in this section through v2.9 and was removed in v2.10: no public demo deployment is planned. FR-17.6–17.10 and FR-17.12 below are removal stubs so historical references stay resolvable.)
 
 **Single-User Mode (permanent use)**
 
@@ -67,14 +67,9 @@ Single-User Mode and Demo Mode are two **orthogonal** declarative flags. Single-
   * *Profile picture:* the user selects a source photo and positions a circular crop over it (pan/zoom); the client then renders the selected region to a **256×256 px square JPEG (quality ≈ 0.8)** on an offscreen canvas and uploads that — the user is never asked about resolution, format, or file size. The circular presentation is a CSS mask applied at display time (`border-radius: 50%`); the stored asset itself stays a plain square, keeping the format simple and avoiding an alpha channel. **Server-side hard limits (defense in depth, enforced independently of client behavior):** the upload must be JPEG and ≤ 100 KB, checked at the database layer via a `CHECK` constraint, not by a resizing library — non-conforming uploads are rejected outright (client is expected to already conform; no server-side re-processing). The avatar is never displayed above ~96×96 CSS pixels anywhere in the UI, so 256 px storage comfortably covers even high pixel-density displays without over-provisioning.
   This customization is scoped to Single-User Mode; how (or whether) avatars are sourced for OIDC-managed users is out of scope for this addendum.
 
-**Demo Mode (ephemeral, evaluation only)**
+**Demo Mode — removed in v2.10**
 
-* **FR-17.6 (Demo Toggle, Requires Single-User Mode):** *Demo Mode* is a second declarative flag, valid only in combination with Single-User Mode. The instance rejects startup with a configuration error if Demo Mode is enabled while Single-User Mode is not — this guards against ever accidentally wiping a real multi-user deployment's data (FR-17.9).
-* **FR-17.7 (Seeded Example Data):** On (re-)start with Demo Mode enabled, the instance seeds one example trip using the Base Travel template so the demo is immediately explorable without manual setup.
-* **FR-17.8 (Periodic Reset):** Demo Mode periodically discards all data and re-seeds it: a full wipe (drop and recreate the database file) rather than selective cleanup. Both trigger modes are supported and configurable: a scheduled interval (**default: nightly**, for a long-running public demo) and reset-on-every-process-restart (useful for ephemeral container orchestration). Because the reset is a full recreation, no per-entity cleanup logic is required in the application.
-* **FR-17.9 (Fail-Safe Isolation):** Demo Mode must never be combinable with normal OIDC mode; the reset job itself refuses to run if any user row lacks the `is_local_singleuser` marker (FR-17.2) — i.e., if a real OIDC account exists — as a second independent guard beyond the startup check in FR-17.6.
-* **FR-17.10 (In-App Reset Notice):** While Demo Mode is active, the UI shows a persistent, dismissible-per-session banner stating that data resets periodically and will not be retained, so evaluators are not surprised by disappearing trips.
-* **FR-17.12 (Optional Demo Access Passphrase):** Demo Mode may additionally require a single shared passphrase, configured via one environment variable and checked by a lightweight middleware ahead of every API request. This is deliberately not a user-account system — no per-user credentials, no registration, no password reset flow — and therefore does not conflict with the no-internal-password-database principle of Section 2; it is a coarse gate (comparable to a locked door's shared key), not an authentication system. Disabled by default; recommended whenever a Demo Mode instance is reachable beyond a trusted network.
+* **FR-17.6 – FR-17.10, FR-17.12:** Removed in v2.10 (Demo Mode: demo toggle, seeded example data, periodic reset, fail-safe isolation, reset notice banner, optional access passphrase). No public demo deployment is planned, so the entire feature — and its operational surface (reset jobs, seeding, rate limiting per NFR-4.10) — was dropped rather than left speculative. Nothing of it was ever implemented. The numbers are retired and must not be reused.
 
 ---
 
@@ -168,9 +163,9 @@ Local Mode is a **client-only deployment shape**: the app runs entirely from on-
 * **NFR-4.5 (Export & Backup):** The system provides a full instance export (all templates, items, trips, history) as versioned JSON via UI and CLI, plus a per-trip CSV export of the packing list. The deployment documentation includes a reference backup strategy suitable for home-lab operation.
 * **NFR-4.6 (Self-Hosted Notification Architecture):** Push notifications (FR-6.2) must function without mandatory dependence on third-party cloud services. Web clients use standards-based Web Push with self-generated VAPID keys. Native mobile clients prefer UnifiedPush; FCM/APNs support is an optional, explicitly opt-in build configuration. In-app notifications over the existing WebSocket channel (FR-4.4) serve as the universal fallback. Not applicable in Single-User Mode (FR-17.3).
 * **NFR-4.7 (Import Robustness):** The import wizard (3.16) must tolerate real-world spreadsheet noise: merged category header rows, empty columns, trailing question marks in item names (imported as an attached open task per FR-7.2), and mixed-language labels. Imports are transactional: a failed import leaves no partial data behind.
-* **NFR-4.8 (Single-User Mode Independence):** Single-User Mode (3.17) must not require network access to an identity provider under any circumstance, including first boot — it is fully self-contained and works on a fresh, offline deployment. This applies whether or not Demo Mode is layered on top.
-* **NFR-4.9 (Public Exposure Guidance):** Because Single-User Mode and Demo Mode perform no per-request authentication, the deployment documentation must state explicitly that such an instance must only be exposed to a network the operator trusts (e.g., home LAN, VPN/Tailscale) or protected by an additional layer — reverse-proxy Basic Auth, IP allowlisting, or the optional passphrase of FR-17.12 — before being reachable from the public internet. The documentation must include at least one concrete, copy-pasteable example (e.g., a Caddy or Traefik Basic-Auth snippet) so operators are not left to work this out themselves.
-* **NFR-4.10 (Demo Rate Limiting):** A public Demo Mode instance is expected to receive uncoordinated, potentially abusive traffic. The `rate_limited` error path (Sync-API Spec §9) must be enabled by default whenever Demo Mode is active, with conservative default thresholds, even in configurations where rate limiting is otherwise optional.
+* **NFR-4.8 (Single-User Mode Independence):** Single-User Mode (3.17) must not require network access to an identity provider under any circumstance, including first boot — it is fully self-contained and works on a fresh, offline deployment.
+* **NFR-4.9 (Public Exposure Guidance):** Because Single-User Mode performs no per-request authentication, the deployment documentation must state explicitly that such an instance must only be exposed to a network the operator trusts (e.g., home LAN, VPN/Tailscale) or protected by an additional layer — reverse-proxy Basic Auth or IP allowlisting — before being reachable from the public internet. The documentation must include at least one concrete, copy-pasteable example (e.g., a Caddy or Traefik Basic-Auth snippet) so operators are not left to work this out themselves.
+* **NFR-4.10:** Removed in v2.10 (demo rate limiting — Demo Mode was dropped, see 3.17). The generic `rate_limited` error path in Sync-API Spec §9 remains available but is no longer mandatory anywhere. The number is retired and must not be reused.
 * **NFR-4.11 (Local Storage Durability):** Browser-managed storage is evictable under storage pressure. In Local Mode (3.19) the client must request persistent storage (`navigator.storage.persist()`) on first launch and surface a visible, non-blocking warning in the G-2 storage detail (FR-19.6) whenever persistence is not granted. Because there is no server copy, the storage detail must always offer a one-tap portable YAML export (FR-18.2/18.3) as backup, and the app shows an unobtrusive, dismissible export reminder when the last export is older than 30 days (configurable). On native Capacitor builds, storage is app-scoped and durable; the persistence warning does not apply there, but the export reminder does.
 
 ---

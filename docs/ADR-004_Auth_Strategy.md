@@ -1,6 +1,7 @@
 # ADR-004: Authentication Strategy — OIDC+PKCE with a Single-User Bypass
 
 **Status:** Accepted (already specified — Addendum v2.7 FR-17.1/17.2/17.11, Schema v0.3 `is_local_singleuser`, implemented in `internal/api`)
+**Note (2026-07-09):** Demo Mode (incl. its optional passphrase, FR-17.12) was removed in Addendum v2.10. Mentions of it below are part of the historical analysis and stand as written; the decision itself is unaffected — public exposure of Single-User Mode is handled by NFR-4.9 operator documentation alone.
 **Related:** Base PRD Section 2 (OIDC/PKCE, declarative infrastructure, no internal password database), Addendum v2.7 §3.17 (Single-User & Demo Mode), NFR-4.4/4.8/4.9
 
 **Decision Drivers (in priority order):**
@@ -51,4 +52,4 @@
 
 1. `main` wiring (`cmd/jitpackd`) selects between the two middleware chains once at startup based on the declarative flag (Section 2) — never a runtime toggle (FR-17.11), keeping the security model auditable in one place.
 2. Any new authenticated endpoint works in both modes automatically without special-casing, since both paths converge on "a user id in the request context" before reaching business logic.
-3. The public-exposure risk of Single-User/Demo Mode is handled entirely by operator-facing documentation and the optional Demo passphrase (NFR-4.9/FR-17.12), not by weakening the zero-setup promise of the common case.
+3. The public-exposure risk of Single-User Mode is handled entirely by operator-facing documentation (NFR-4.9: reverse-proxy Basic Auth, VPN, IP allowlisting), not by weakening the zero-setup promise of the common case. (Originally this also named the optional Demo passphrase FR-17.12; Demo Mode was removed in Addendum v2.10.)
