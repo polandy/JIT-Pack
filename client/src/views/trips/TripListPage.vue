@@ -22,10 +22,13 @@ import {
   IonItemOptions,
   IonItemOption,
   IonButton,
+  actionSheetController,
 } from '@ionic/vue'
-import { addOutline, airplaneOutline, albumsOutline, archiveOutline, cloudUploadOutline, copyOutline, documentTextOutline } from 'ionicons/icons'
+import { addOutline, airplaneOutline, albumsOutline, archiveOutline, cloudUploadOutline, copyOutline, documentTextOutline, downloadOutline } from 'ionicons/icons'
 import { ref, computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
+import { serializeTrip } from '@/domain/portable'
+import { safeFilename, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip, TripStatus } from '@/types/domain'
@@ -100,6 +103,29 @@ const router = useRouter()
 function archiveTrip(tripId: string) {
   orchestrator.archiveTrip(tripId)
   router.push(`/trips/${tripId}/review`)
+}
+
+/** FR-18.3: the user chooses progress vs clean; generated client-side. */
+async function exportTrip(trip: Trip) {
+  const sheet = await actionSheetController.create({
+    header: `Export "${trip.name}"`,
+    buttons: [
+      { text: 'With pack progress', data: true },
+      { text: 'Clean list (unpacked)', data: false },
+      { text: 'Cancel', role: 'cancel' },
+    ],
+  })
+  await sheet.present()
+  const { data, role } = await sheet.onDidDismiss()
+  if (role === 'cancel' || typeof data !== 'boolean') return
+  const yaml = serializeTrip({
+    trip,
+    items: store.getItems(trip.id),
+    travelers: store.getTravelers(trip.id),
+    containers: store.getContainers(trip.id),
+    includeProgress: data,
+  })
+  saveText(yaml, `${safeFilename(trip.name)}.yaml`)
 }
 
 async function handleRefresh(event: CustomEvent) {
@@ -215,6 +241,14 @@ async function handleRefresh(event: CustomEvent) {
           </IonItem>
 
           <IonItemOptions side="end">
+            <!-- FR-18.3: portable YAML export with progress choice -->
+            <IonItemOption
+              color="tertiary"
+              aria-label="Export trip"
+              @click="exportTrip(trip)"
+            >
+              <IonIcon slot="icon-only" :icon="downloadOutline" />
+            </IonItemOption>
             <!-- FR-12.1: clone from archive -->
             <IonItemOption
               v-if="trip.status === 'archived'"

@@ -9,10 +9,18 @@
  * dependency — zero added footprint).
  */
 
-import { parse } from 'yaml'
+import { parse, stringify } from 'yaml'
 
 import { findDuplicates } from './spreadsheet'
-import type { MasterItem } from '@/types/domain'
+import type {
+  Container,
+  MasterItem,
+  Template,
+  TemplateItem,
+  Traveler,
+  Trip,
+  TripItem,
+} from '@/types/domain'
 
 /** The schema this app writes and fully understands (FR-18.5). */
 export const PORTABLE_SCHEMA_VERSION = 1
@@ -136,6 +144,92 @@ export function matchPortableItems(
       existingId: match.existingId,
       existingName: match.existingName,
     }
+  })
+}
+
+// --- Serialization (FR-18.2/18.3) ---
+//
+// The client writes the same shape as the server's internal/portable —
+// field names, omit-empty semantics, and by-name ordering all match, so
+// a file exported here imports there and vice versa. In Local Mode this
+// serializer *is* the backup path (NFR-4.11): there is no server to ask.
+
+/** serializeTemplate writes an owned template as environment-agnostic YAML (FR-18.2). */
+export function serializeTemplate(
+  template: Template,
+  templateItems: TemplateItem[],
+  masterItem: (id: string) => MasterItem | undefined,
+): string {
+  const items = templateItems
+    .map((ti) => {
+      const master = masterItem(ti.item_id)
+      return {
+        name: master?.name ?? 'Unknown item',
+        quantity: ti.quantity_formula,
+        assignment: ti.assignment,
+        unit: master?.unit ?? 'pieces',
+        ...(ti.conditions ? { conditions: ti.conditions } : {}),
+        default_mode: ti.default_mode,
+        ...(ti.late_packer ? { late_packer: true } : {}),
+        dedup: ti.dedup,
+      }
+    })
+    .sort((a, b) => a.name.localeCompare(b.name))
+  return stringify({
+    kind: 'template',
+    schema_version: PORTABLE_SCHEMA_VERSION,
+    name: template.name,
+    items,
+  })
+}
+
+/** serializeTrip writes a trip's packing list, clean or with progress (FR-18.3). */
+export function serializeTrip(args: {
+  trip: Trip
+  items: TripItem[]
+  travelers: Traveler[]
+  containers: Container[]
+  includeProgress: boolean
+}): string {
+  const travelerNames = new Map(args.travelers.map((t) => [t.id, t.name]))
+  const containerNames = new Map(args.containers.map((c) => [c.id, c.name]))
+
+  const travelers = [...args.travelers]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((t) => ({ name: t.name, profile: t.profile }))
+
+  const containers = [...args.containers]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((c) => ({
+      name: c.name,
+      ...(c.carrier_traveler_id ? { carrier: travelerNames.get(c.carrier_traveler_id) } : {}),
+      ...(c.max_weight_grams ? { max_weight_grams: c.max_weight_grams } : {}),
+    }))
+
+  const items = [...args.items]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((item) => ({
+      name: item.name,
+      quantity: String(item.quantity),
+      mode: item.mode,
+      ...(item.category_name ? { category: item.category_name } : {}),
+      ...(item.assigned_traveler_id
+        ? { traveler: travelerNames.get(item.assigned_traveler_id) }
+        : {}),
+      ...(item.container_id ? { container: containerNames.get(item.container_id) } : {}),
+      ...(args.includeProgress ? { packed_count: item.packed_count } : {}),
+      ...(item.late_packer ? { late_packer: true } : {}),
+    }))
+
+  return stringify({
+    kind: 'trip',
+    schema_version: PORTABLE_SCHEMA_VERSION,
+    name: args.trip.name,
+    ...(args.trip.start_date ? { start_date: args.trip.start_date } : {}),
+    end_date: args.trip.end_date,
+    ...(travelers.length > 0 ? { travelers } : {}),
+    ...(containers.length > 0 ? { containers } : {}),
+    items,
   })
 }
 

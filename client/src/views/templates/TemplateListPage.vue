@@ -22,11 +22,20 @@ import {
   IonRefresherContent,
   IonButton,
 } from '@ionic/vue'
-import { addOutline, documentTextOutline, listOutline, gitBranchOutline } from 'ionicons/icons'
+import { addOutline, documentTextOutline, downloadOutline, listOutline, gitBranchOutline } from 'ionicons/icons'
 import { computed } from 'vue'
+import { serializeTemplate } from '@/domain/portable'
+import { safeFilename, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
+import type { Template } from '@/types/domain'
 
 const store = useMasterStore()
+
+/** FR-18.2: client-side export — works identically in Local Mode. */
+function exportTemplate(tpl: Template) {
+  const yaml = serializeTemplate(tpl, store.getTemplateItems(tpl.id), (id) => store.getItem(id))
+  saveText(yaml, `${safeFilename(tpl.name)}.yaml`)
+}
 
 // TODO: filter by current user's ID when auth is wired
 const myTemplates = computed(() =>
@@ -81,6 +90,16 @@ async function handleRefresh(event: CustomEvent) {
               <h2>{{ tpl.name }}</h2>
               <p>{{ store.templateItemCount(tpl.id) }} items</p>
             </IonLabel>
+            <!-- FR-18.2: portable YAML export, generated client-side -->
+            <IonButton
+              slot="end"
+              fill="clear"
+              color="medium"
+              aria-label="Export template"
+              @click.stop.prevent="exportTemplate(tpl)"
+            >
+              <IonIcon slot="icon-only" :icon="downloadOutline" />
+            </IonButton>
             <IonToggle
               slot="end"
               :checked="tpl.is_published"
