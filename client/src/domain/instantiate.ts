@@ -64,6 +64,14 @@ export interface GenerationResult {
   merged: MergedOverlap[]
 }
 
+/** Inclusive day count matching the trips.duration_days DB definition (FR-2.1a: null without start date). */
+export function durationDays(startDate: string | null, endDate: string): number | null {
+  if (!startDate || !endDate) return null
+  const ms = Date.parse(endDate) - Date.parse(startDate)
+  if (Number.isNaN(ms)) return null
+  return Math.round(ms / 86_400_000) + 1
+}
+
 export function generateTripItems(input: GenerationInput): GenerationResult {
   const selected = new Set(input.templates.map((t) => t.id))
   const itemsByID = new Map(input.masterItems.map((i) => [i.id, i]))

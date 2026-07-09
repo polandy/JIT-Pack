@@ -122,6 +122,60 @@ export function useMutations(hlc: HLCGenerator) {
     return make('delete', 'trip_items', itemId)
   }
 
+  function addTraveler(
+    tripId: string,
+    name: string,
+    profile: 'adult' | 'child',
+    linkedUserId: string | null = null,
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const mutation = make('insert', 'travelers', id, {
+      trip_id: tripId,
+      name,
+      profile,
+      linked_user_id: linkedUserId,
+    })
+    return { mutation, id }
+  }
+
+  /**
+   * addGeneratedTripItem materializes one M3 wizard result row.
+   * Quantity zero means considered-and-skipped (FR-5.5), not omitted.
+   */
+  function addGeneratedTripItem(
+    tripId: string,
+    item: {
+      source_item_id: string | null
+      source_template_id: string | null
+      name: string
+      category_name: string | null
+      weight_grams: number | null
+      value_cents: number | null
+      quantity: number
+      mode: ItemMode
+      late_packer: boolean
+    },
+    assignedTravelerId: string | null,
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const mutation = make('insert', 'trip_items', id, {
+      trip_id: tripId,
+      name: item.name,
+      source_item_id: item.source_item_id,
+      source_template_id: item.source_template_id,
+      category_name: item.category_name,
+      weight_grams: item.weight_grams,
+      value_cents: item.value_cents,
+      quantity: item.quantity,
+      packed_count: 0,
+      state: item.quantity === 0 ? 'skipped' : 'open',
+      mode: item.mode,
+      late_packer: item.late_packer ? 1 : 0,
+      assigned_traveler_id: assignedTravelerId,
+    })
+    return { mutation, id }
+  }
+
   // --- Preparation todo mutations (FR-7.3) ---
 
   function addTodo(
@@ -293,6 +347,8 @@ export function useMutations(hlc: HLCGenerator) {
     setLatePacker,
     addTripItem,
     deleteTripItem,
+    addTraveler,
+    addGeneratedTripItem,
     // Todos
     addTodo,
     resolveTodo,

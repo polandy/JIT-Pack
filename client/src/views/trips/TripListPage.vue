@@ -163,7 +163,7 @@ async function handleRefresh(event: CustomEvent) {
 
       <!-- FAB: New Trip -->
       <IonFab vertical="bottom" horizontal="end" slot="fixed" class="mobile-fab">
-        <IonFabButton aria-label="New trip">
+        <IonFabButton aria-label="New trip" router-link="/trips/new">
           <IonIcon :icon="addOutline" />
         </IonFabButton>
       </IonFab>
