@@ -65,9 +65,10 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 
 	changed, err := persist(ctx, tx, m.Table, m, merged, exists)
 	if err != nil {
-		if isFKViolation(err) {
-			// e.g. deleting an item still referenced by a template: the
-			// statement failed, the transaction survives — reject cleanly.
+		if isConstraintViolation(err) {
+			// e.g. deleting an item still referenced by a template, or two
+			// admins racing to add the same member (UNIQUE): the statement
+			// failed, the transaction survives — reject cleanly.
 			res.Outcome = "rejected"
 			res.Conflicts = nil
 			return res, finalize(ctx, tx, res)
@@ -86,12 +87,28 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 			}
 		}
 		if m.Table == "trips" && !exists && !merged.Deleted {
-			// The creator becomes the trip's Owner (FR-4.5); without this
-			// row the trip-partition endpoints would reject them.
+			// The creator becomes the trip's Owner (FR-4.5); the membership
+			// row syncs like any other so every device learns the roster.
+			memberID := randomID()
 			if _, err := tx.ExecContext(ctx,
-				`INSERT OR IGNORE INTO trip_members (trip_id, user_id, role) VALUES (?, ?, 'owner')`,
-				m.ID, userID); err != nil {
+				`INSERT INTO trip_members (id, trip_id, user_id, role, updated_hlc) VALUES (?, ?, ?, 'owner', ?)`,
+				memberID, m.ID, userID, string(m.HLC)); err != nil {
 				return MutationResult{}, fmt.Errorf("creator membership: %w", err)
+			}
+			member := sync.Mutation{Table: "trip_members", ID: memberID, HLC: m.HLC}
+			if _, err := appendChangeLog(ctx, tx, nil, member, false); err != nil {
+				return MutationResult{}, err
+			}
+		}
+		if m.Table == "trip_members" && !merged.Deleted {
+			// A grant must resurface the trips row: the new member's pull
+			// cursor is already past the trip's original change_log entry,
+			// so without a fresh one they would never see the trip.
+			if tripID, ok := memberTrip(current, m); ok {
+				touch := sync.Mutation{Table: "trips", ID: tripID, HLC: m.HLC}
+				if _, err := appendChangeLog(ctx, tx, nil, touch, false); err != nil {
+					return MutationResult{}, err
+				}
 			}
 		}
 	}
@@ -170,23 +187,63 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 			}
 			return true, nil
 		}
-		var role string
-		err := tx.QueryRowContext(ctx,
-			`SELECT role FROM trip_members WHERE trip_id = ? AND user_id = ?`,
-			m.ID, userID).Scan(&role)
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
-		}
+		role, err := memberRole(ctx, tx, m.ID, userID)
 		if err != nil {
-			return false, fmt.Errorf("trip role lookup: %w", err)
+			return false, err
+		}
+		if role == "" {
+			return false, nil
 		}
 		if m.Op == sync.OpDelete {
 			return role == "owner" || role == "admin", nil
 		}
 		return true, nil
+
+	case "trip_members":
+		// Clients can never grant 'owner' — the creator's server-created
+		// row is the trip's only Owner (FR-4.5).
+		if role, ok := m.Fields["role"].(string); ok && role == "owner" {
+			return false, nil
+		}
+		// The creator's row is the only one with role 'owner' and is
+		// immutable — no demotion, no removal, not even by an Admin
+		// (FR-4.7).
+		if exists && current["role"] == "owner" {
+			return false, nil
+		}
+		trips := parentIDs(current, m, "trip_id")
+		if len(trips) == 0 {
+			return false, nil
+		}
+		for tripID := range trips {
+			role, err := memberRole(ctx, tx, tripID, userID)
+			if err != nil {
+				return false, err
+			}
+			if role != "owner" && role != "admin" {
+				return false, nil // FR-4.7: only Owner/Admin manage members
+			}
+		}
+		return true, nil
 	}
 	return false, nil
 }
+
+// memberRole returns userID's role on the trip, or "" for non-members.
+func memberRole(ctx context.Context, tx *sql.Tx, tripID, userID string) (string, error) {
+	var role string
+	err := tx.QueryRowContext(ctx,
+		`SELECT role FROM trip_members WHERE trip_id = ? AND user_id = ?`,
+		tripID, userID).Scan(&role)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("trip role lookup: %w", err)
+	}
+	return role, nil
+}
+
 
 // parentIDs collects the parent references of a child row from both the
 // existing row and the mutation fields — authorization must hold for the
@@ -291,8 +348,22 @@ func childIDs(ctx context.Context, tx *sql.Tx, query string, args ...any) ([]str
 	return ids, rows.Err()
 }
 
-func isFKViolation(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "FOREIGN KEY constraint")
+// isConstraintViolation matches FK, UNIQUE, and CHECK failures — all
+// cases where the client's data, not the server, is at fault.
+func isConstraintViolation(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "constraint failed")
+}
+
+// memberTrip resolves a trip_members mutation's trip id from the
+// existing row or the mutation fields.
+func memberTrip(current map[string]any, m sync.Mutation) (string, bool) {
+	if id, ok := m.Fields["trip_id"].(string); ok && id != "" {
+		return id, true
+	}
+	if id, ok := current["trip_id"].(string); ok && id != "" {
+		return id, true
+	}
+	return "", false
 }
 
 // PullMaster returns master-partition changes after the cursor, filtered
@@ -389,6 +460,20 @@ func (s *Store) masterVisible(ctx context.Context, userID, table, id string) (bo
 
 	case "trips":
 		return s.IsTripMember(ctx, id, userID)
+
+	case "trip_members":
+		// The roster is visible to every member of its trip — including
+		// the row's subject, who becomes a member through this very row.
+		var tripID string
+		err := s.db.QueryRowContext(ctx,
+			`SELECT trip_id FROM trip_members WHERE id = ?`, id).Scan(&tripID)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		if err != nil {
+			return false, fmt.Errorf("trip_members visibility: %w", err)
+		}
+		return s.IsTripMember(ctx, tripID, userID)
 
 	case "trip_series":
 		return s.ownedBy(ctx, userID,
