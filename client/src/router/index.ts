@@ -38,6 +38,11 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/trips/new',
+    name: 'trip-wizard',
+    component: () => import('@/views/trips/TripWizardPage.vue'),
+  },
+  {
     path: '/trips/:tripId',
     name: 'trip-packing',
     component: () => import('@/views/trips/PackingListPage.vue'),

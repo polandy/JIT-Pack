@@ -18,7 +18,18 @@ import { useSyncStatus, type SyncStatus } from './useSyncStatus'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type { PullChange, WSEvent } from '@/api/types'
+import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import type { ItemMode, TripItem, ItemTodo } from '@/types/domain'
+
+/** Everything the M3 wizard collected before "Create trip". */
+export interface TripWizardDraft {
+  name: string
+  startDate: string | null
+  endDate: string
+  attributes: Record<string, unknown> | null
+  travelers: { name: string; profile: 'adult' | 'child'; linkedUserId?: string | null }[]
+  items: GeneratedItem[]
+}
 
 export interface SyncOrchestratorConfig {
   baseUrl: string
@@ -252,6 +263,46 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
+  /**
+   * createTripFromWizard commits an M3 draft: the trips row goes to the
+   * master partition, travelers and generated items to the new trip's
+   * partition. The master partition drains first — the server creates
+   * the trip row and the creator's owner membership there, without
+   * which the trip-partition push would be rejected (403/FK).
+   */
+  function createTripFromWizard(draft: TripWizardDraft): string {
+    const { mutation: tripMut, id: tripId } = mutations.createTrip(
+      draft.name, draft.startDate, draft.endDate, { attributes: draft.attributes },
+    )
+    onPullChanges([{
+      seq: 0, table: 'trips', id: tripId, deleted: false,
+      row: {
+        ...tripMut.fields,
+        duration_days: durationDays(draft.startDate, draft.endDate),
+      },
+    }])
+    outbox.enqueue('master', null, tripMut)
+
+    const travelerIds = draft.travelers.map((tr) => {
+      const { mutation, id } = mutations.addTraveler(tripId, tr.name, tr.profile, tr.linkedUserId ?? null)
+      onPullChanges([{ seq: 0, table: 'travelers', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
+      outbox.enqueue('trip', tripId, mutation)
+      return id
+    })
+
+    for (const item of draft.items) {
+      const assignedTravelerId =
+        item.traveler_index === null ? null : travelerIds[item.traveler_index] ?? null
+      const { mutation, id } = mutations.addGeneratedTripItem(tripId, item, assignedTravelerId)
+      onPullChanges([{ seq: 0, table: 'trip_items', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
+      outbox.enqueue('trip', tripId, mutation)
+    }
+
+    syncStatus.setPendingCount(outbox.totalPending())
+    drainMaster().then(() => drainTrip(tripId)).catch(() => {})
+    return tripId
+  }
+
   // --- Todo actions (FR-7.3) ---
 
   function addPrepTodo(tripId: string, tripItemId: string, authorId: string, body: string) {
@@ -325,6 +376,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     drainAll,
 
     // Actions
+    createTripFromWizard,
     packIncrement,
     packDecrement,
     packComplete,

@@ -116,7 +116,7 @@ async function handleRefresh(event: CustomEvent) {
       <div v-if="isEmpty" class="empty-state">
         <IonIcon :icon="airplaneOutline" class="empty-icon" />
         <p>No active trips</p>
-        <IonButton router-link="/tabs/trips" expand="block">
+        <IonButton router-link="/trips/new" expand="block">
           <IonIcon slot="start" :icon="addOutline" />
           Plan a trip
         </IonButton>
