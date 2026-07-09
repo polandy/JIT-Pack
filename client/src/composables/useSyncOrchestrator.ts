@@ -247,7 +247,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function quickAddItem(
     tripId: string,
     name: string,
-    opts: { sourceItemId?: string | null; weightGrams?: number | null; valueCents?: number | null; categoryName?: string | null },
+    opts: { sourceItemId?: string | null; weightGrams?: number | null; valueCents?: number | null; categoryName?: string | null; mode?: ItemMode },
     isActive: boolean,
   ) {
     const { mutation, id } = mutations.addTripItem(tripId, name, {

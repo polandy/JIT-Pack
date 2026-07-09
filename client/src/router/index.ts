@@ -49,6 +49,12 @@ const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    path: '/trips/:tripId/shopping',
+    name: 'trip-shopping',
+    component: () => import('@/views/trips/ShoppingPage.vue'),
+    props: true,
+  },
+  {
     path: '/trips/:tripId/items/:itemId',
     name: 'item-detail',
     component: () => import('@/views/trips/ItemDetailPage.vue'),
