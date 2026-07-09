@@ -15,6 +15,7 @@ import ModeSelectionPage from '@/views/ModeSelectionPage.vue'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { provide, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const MODE_KEY = 'jitpack_mode'
 const SERVER_URL_KEY = 'jitpack_server_url'
@@ -54,6 +55,17 @@ onMounted(() => {
 onUnmounted(() => {
   orchestrator?.disconnect()
 })
+
+// G-2: tapping the sync indicator inside a trip opens its conflict log.
+const route = useRoute()
+const router = useRouter()
+
+function onSyncTap() {
+  const tripId = route.params['tripId']
+  if (typeof tripId === 'string' && tripId) {
+    router.push(`/trips/${tripId}/conflicts`)
+  }
+}
 </script>
 
 <template>
@@ -66,6 +78,7 @@ onUnmounted(() => {
         :sync-state="syncStatus.state.value"
         :sync-pending-count="syncStatus.pendingCount.value"
         :sync-label="syncStatus.label.value"
+        @sync-tap="onSyncTap"
       />
       <div class="app-body">
         <NavRail class="desktop-nav" />

@@ -31,6 +31,17 @@ export interface PresenceUser {
   in_sync: boolean
 }
 
+/** One audited LWW loser from the trip's conflict log (G-2, NFR-4.2a). */
+export interface ConflictEntry {
+  id: string
+  entity_table: string
+  entity_id: string
+  field: string
+  losing_value: string
+  winning_value: string
+  resolved_at: string
+}
+
 /** Everything the M3 wizard collected before "Create trip". */
 export interface TripWizardDraft {
   name: string
@@ -501,6 +512,18 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
+  /**
+   * fetchConflicts loads the trip's conflict log for the G-2 view.
+   * Local Mode has one writer and therefore no conflicts (FR-19.6).
+   */
+  async function fetchConflicts(tripId: string): Promise<ConflictEntry[]> {
+    if (local) return []
+    const resp = await client.get<{ conflicts: ConflictEntry[] }>(
+      `/api/v1/trips/${tripId}/conflicts`, {},
+    )
+    return resp.conflicts
+  }
+
   // --- Comment actions (FR-7.1/7.2) ---
 
   function addComment(tripId: string, tripItemId: string | null, authorId: string, body: string): string {
@@ -568,6 +591,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     syncStatus,
     outbox,
     getPresence,
+    fetchConflicts,
 
     // Drain
     drainTrip,
