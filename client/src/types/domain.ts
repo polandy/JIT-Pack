@@ -17,6 +17,14 @@ export interface Trip {
 
 export type TripRole = 'owner' | 'admin' | 'editor'
 
+/** One synced roster row (FR-4.5) — master partition since migration 009. */
+export interface TripMember {
+  id: string
+  trip_id: string
+  user_id: string
+  role: TripRole
+}
+
 export interface TripParticipant {
   user_id: string
   display_name: string

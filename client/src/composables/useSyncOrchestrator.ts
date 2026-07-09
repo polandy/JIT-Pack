@@ -28,7 +28,7 @@ import type { NotificationPrefs, ServerNotification } from '@/notifications/form
 import type { PushServerAPI } from '@/notifications/push'
 import type { ReviewProposal } from '@/domain/review'
 import type { IndexedDBPersistence } from '@/local/persistence'
-import type { Container, DestinationChecklistItem, DestinationProfile, ItemComment, ItemMode, ItemTodo, MasterItem, Template, TemplateItem, Trip, TripItem, TripSeries, TripStatus } from '@/types/domain'
+import type { Container, DestinationChecklistItem, DestinationProfile, ItemComment, ItemMode, ItemTodo, MasterItem, Template, TemplateItem, Trip, TripItem, TripMember, TripSeries, TripStatus } from '@/types/domain'
 
 /** One entry of a trip's presence facepile (G-10, Sync-API §7). */
 export interface PresenceUser {
@@ -62,6 +62,8 @@ export interface TripWizardDraft {
   newSeriesName?: string | null
   /** Accepted destination checklist items (FR-13.3) — become trip items. */
   checklistItems?: { label: string; mode: ItemMode }[]
+  /** Share with user accounts (FR-4.5) — the creator's Owner row is server-made. */
+  members?: { userId: string; role: 'admin' | 'editor' }[]
 }
 
 /** cloneTrip input (FR-12.2): fresh name/dates plus the carry-over options. */
@@ -164,7 +166,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   // --- Pull change routing ---
 
   function onPullChanges(changes: PullChange[]) {
-    const tripTables = new Set(['trips', 'trip_items', 'travelers', 'containers', 'comments', 'notifications'])
+    // trip_members travels the *master* partition (spec P-3) but is
+    // per-trip state — routing is by owning store, not by partition.
+    const tripTables = new Set(['trips', 'trip_items', 'travelers', 'containers', 'comments', 'notifications', 'trip_members'])
     const masterTables = new Set([
       'categories', 'items', 'templates', 'template_items',
       'trip_series', 'destination_profiles', 'destination_checklist_items',
@@ -540,6 +544,14 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       },
     }])
     if (!local) outbox.enqueue('master', null, tripMut)
+
+    // Member grants follow the trips insert in the same master queue —
+    // the server authorizes them against the freshly created trip.
+    for (const member of draft.members ?? []) {
+      const { mutation, id } = mutations.addTripMember(tripId, member.userId, member.role)
+      onPullChanges([{ seq: 0, table: 'trip_members', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
+      if (!local) outbox.enqueue('master', null, mutation)
+    }
 
     const travelerIds = draft.travelers.map((tr) => {
       const { mutation, id } = mutations.addTraveler(tripId, tr.name, tr.profile, tr.linkedUserId ?? null)
@@ -1037,6 +1049,49 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
+  // --- Trip membership actions (FR-4.5/4.7) ---
+
+  /** addTripMember shares the trip with a user account; returns the row id. */
+  function addTripMember(tripId: string, userId: string, role: 'admin' | 'editor' = 'editor'): string {
+    const { mutation, id } = mutations.addTripMember(tripId, userId, role)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: { seq: 0, table: 'trip_members', id, deleted: false, row: mutation.fields as Record<string, unknown> },
+    })
+    return id
+  }
+
+  function setTripMemberRole(member: TripMember, role: 'admin' | 'editor') {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.setTripMemberRole(member.id, role),
+      optimistic: {
+        seq: 0, table: 'trip_members', id: member.id, deleted: false,
+        row: { trip_id: member.trip_id, user_id: member.user_id, role },
+      },
+    })
+  }
+
+  function removeTripMember(memberId: string) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.removeTripMember(memberId),
+      optimistic: { seq: 0, table: 'trip_members', id: memberId, deleted: true, row: null },
+    })
+  }
+
+  /**
+   * fetchUsers loads the instance's user directory for the M3 sharing
+   * picker (FR-4.5); empty offline or in Local Mode (no accounts).
+   */
+  async function fetchUsers(): Promise<{ user_id: string; display_name: string }[]> {
+    if (local) return []
+    try {
+      const resp = await client.get<{ users: { user_id: string; display_name: string }[] }>('/api/v1/users', {})
+      return resp.users ?? []
+    } catch {
+      return []
+    }
+  }
+
   // --- Series & destination actions (FR-13.1/13.2, M16) ---
 
   function createSeries(name: string, defaultAttributes: Record<string, unknown> | null = null): string {
@@ -1349,6 +1404,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // Repack (FR-11.1, M13)
     startRepack,
     completeRepack,
+
+    // Trip membership (FR-4.5/4.7)
+    addTripMember,
+    setTripMemberRole,
+    removeTripMember,
+    fetchUsers,
 
     // Series & destinations (FR-13.1/13.2, M16)
     createSeries,
