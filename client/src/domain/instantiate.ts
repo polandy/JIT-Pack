@@ -146,7 +146,8 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
   return { items, excluded, merged }
 }
 
-function buildVariables(trip: GenerationTrip): FormulaVariables {
+/** buildVariables derives the FR-1.5 variable catalog from a trip draft. */
+export function buildVariables(trip: GenerationTrip): FormulaVariables {
   const attrs = trip.attributes ?? {}
   const str = (key: string) => (typeof attrs[key] === 'string' ? (attrs[key] as string) : null)
   return {
@@ -196,7 +197,7 @@ function conditionFailure(
  * trips fall back to a single day), clamps at 0, and rounds up — a
  * fractional result must never under-pack.
  */
-function computeQuantity(ti: TemplateItem, master: MasterItem, vars: FormulaVariables): number {
+export function computeQuantity(ti: TemplateItem, master: MasterItem, vars: FormulaVariables): number {
   const base = evaluateFormula(ti.quantity_formula, vars) ?? 1
   let quantity = base
   if (master.unit === 'per_day' && master.per_day_rate !== null) {

@@ -195,6 +195,48 @@ export function useMutations(hlc: HLCGenerator) {
     return { mutation, id }
   }
 
+  /** addClonedTripItem inserts one FR-12 clone row — fresh pack state, remapped links. */
+  function addClonedTripItem(
+    tripId: string,
+    item: {
+      name: string
+      source_item_id: string | null
+      source_template_id: string | null
+      category_name: string | null
+      weight_grams: number | null
+      value_cents: number | null
+      quantity: number
+      state: 'open' | 'skipped'
+      mode: ItemMode
+      late_packer: boolean
+      packer_user_id: string | null
+    },
+    assignedTravelerId: string | null,
+    containerId: string | null,
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const mutation = make('insert', 'trip_items', id, {
+      trip_id: tripId,
+      name: item.name,
+      source_item_id: item.source_item_id,
+      source_template_id: item.source_template_id,
+      category_name: item.category_name,
+      weight_grams: item.weight_grams,
+      value_cents: item.value_cents,
+      quantity: item.quantity,
+      packed_count: 0,
+      state: item.state,
+      mode: item.mode,
+      late_packer: item.late_packer ? 1 : 0,
+      assigned_traveler_id: assignedTravelerId,
+      container_id: containerId,
+      packer_user_id: item.packer_user_id,
+      flag_unused: 0,
+      flag_missing: 0,
+    })
+    return { mutation, id }
+  }
+
   // --- Preparation todo mutations (FR-7.3) ---
 
   function addTodo(
@@ -497,6 +539,7 @@ export function useMutations(hlc: HLCGenerator) {
     deleteTripItem,
     addTraveler,
     addGeneratedTripItem,
+    addClonedTripItem,
     // Todos
     addTodo,
     resolveTodo,

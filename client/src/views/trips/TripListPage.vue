@@ -22,8 +22,9 @@ import {
   IonItemOptions,
   IonItemOption,
 } from '@ionic/vue'
-import { addOutline, airplaneOutline, albumsOutline, archiveOutline } from 'ionicons/icons'
+import { addOutline, airplaneOutline, albumsOutline, archiveOutline, copyOutline } from 'ionicons/icons'
 import { ref, computed, inject } from 'vue'
+import { useRouter } from 'vue-router'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip, TripStatus } from '@/types/domain'
@@ -90,6 +91,14 @@ function itemSummary(trip: Trip): string {
 
 function onFilterChange(event: CustomEvent) {
   filter.value = event.detail.value as FilterStatus
+}
+
+const router = useRouter()
+
+/** Archive completes the trip and launches the M14 review (FR-9.2). */
+function archiveTrip(tripId: string) {
+  orchestrator.archiveTrip(tripId)
+  router.push(`/trips/${tripId}/review`)
 }
 
 async function handleRefresh(event: CustomEvent) {
@@ -193,7 +202,22 @@ async function handleRefresh(event: CustomEvent) {
           </IonItem>
 
           <IonItemOptions side="end">
-            <IonItemOption color="medium">
+            <!-- FR-12.1: clone from archive -->
+            <IonItemOption
+              v-if="trip.status === 'archived'"
+              color="primary"
+              aria-label="Clone trip"
+              @click="$router.push(`/trips/${trip.id}/clone`)"
+            >
+              <IonIcon slot="icon-only" :icon="copyOutline" />
+            </IonItemOption>
+            <!-- Archive → M14 review (FR-9.2) -->
+            <IonItemOption
+              v-else-if="trip.status === 'active'"
+              color="medium"
+              aria-label="Archive trip"
+              @click="archiveTrip(trip.id)"
+            >
               <IonIcon slot="icon-only" :icon="archiveOutline" />
             </IonItemOption>
           </IonItemOptions>

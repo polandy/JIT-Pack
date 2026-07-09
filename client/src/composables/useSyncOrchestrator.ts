@@ -21,6 +21,7 @@ import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type { PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
+import { planClone, type CloneOptions } from '@/domain/clone'
 import type { ReviewProposal } from '@/domain/review'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import type { Container, DestinationChecklistItem, DestinationProfile, ItemComment, ItemMode, ItemTodo, MasterItem, Template, TemplateItem, Trip, TripItem, TripSeries, TripStatus } from '@/types/domain'
@@ -57,6 +58,14 @@ export interface TripWizardDraft {
   newSeriesName?: string | null
   /** Accepted destination checklist items (FR-13.3) — become trip items. */
   checklistItems?: { label: string; mode: ItemMode }[]
+}
+
+/** cloneTrip input (FR-12.2): fresh name/dates plus the carry-over options. */
+export interface CloneDraft {
+  name: string
+  startDate: string | null
+  endDate: string
+  options: CloneOptions
 }
 
 export interface SyncOrchestratorConfig {
@@ -474,6 +483,96 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     for (const chk of draft.checklistItems ?? []) {
       const { mutation, id } = mutations.addTripItem(tripId, chk.label, { mode: chk.mode })
+      onPullChanges([{ seq: 0, table: 'trip_items', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
+      if (!local) outbox.enqueue('trip', tripId, mutation)
+    }
+
+    if (local) return tripId
+    syncStatus.setPendingCount(outbox.totalPending())
+    drainMaster().then(() => drainTrip(tripId)).catch(() => {})
+    return tripId
+  }
+
+  /**
+   * cloneTrip duplicates an archived trip per FR-12.1/12.2: the plan
+   * comes from the pure domain (`planClone`), the cascade mirrors
+   * createTripFromWizard — trips row to the master partition first,
+   * then travelers, containers (pairing as a second pass, a forward
+   * pair reference would violate the FK), then items with remapped
+   * links. Returns the new trip id, or null when the source is unknown.
+   */
+  function cloneTrip(sourceTripId: string, draft: CloneDraft): string | null {
+    const source = tripStore.getTrip(sourceTripId)
+    if (!source) return null
+
+    const plan = planClone(
+      {
+        trip: source,
+        items: tripStore.getItems(sourceTripId),
+        travelers: tripStore.getTravelers(sourceTripId),
+        containers: tripStore.getContainers(sourceTripId),
+      },
+      draft.options,
+      {
+        templateItem: (templateId, itemId) =>
+          masterStore.getTemplateItems(templateId).find((ti) => ti.item_id === itemId),
+        masterItem: (id) => masterStore.getItem(id),
+      },
+      durationDays(draft.startDate, draft.endDate),
+    )
+
+    const { mutation: tripMut, id: tripId } = mutations.createTrip(
+      draft.name, draft.startDate, draft.endDate,
+      { seriesId: source.series_id, attributes: source.attributes },
+    )
+    onPullChanges([{
+      seq: 0, table: 'trips', id: tripId, deleted: false,
+      row: { ...tripMut.fields, duration_days: durationDays(draft.startDate, draft.endDate) },
+    }])
+    if (!local) outbox.enqueue('master', null, tripMut)
+
+    const travelerIds = plan.travelers.map((tr) => {
+      const { mutation, id } = mutations.addTraveler(tripId, tr.name, tr.profile, null)
+      onPullChanges([{ seq: 0, table: 'travelers', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
+      if (!local) outbox.enqueue('trip', tripId, mutation)
+      return id
+    })
+
+    const containerIds = plan.containers.map((c) => {
+      const { mutation, id } = mutations.addContainer(tripId, c.name, {
+        carrierTravelerId: c.carrier_traveler_index === null ? null : travelerIds[c.carrier_traveler_index] ?? null,
+        maxWeightGrams: c.max_weight_grams,
+      })
+      onPullChanges([{ seq: 0, table: 'containers', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
+      if (!local) outbox.enqueue('trip', tripId, mutation)
+      return id
+    })
+    plan.containers.forEach((c, i) => {
+      if (c.paired_container_index === null) return
+      const mutation = mutations.updateContainer(containerIds[i], {
+        paired_container_id: containerIds[c.paired_container_index],
+      })
+      const base = plan.containers[i]
+      onPullChanges([{
+        seq: 0, table: 'containers', id: containerIds[i], deleted: false,
+        row: {
+          trip_id: tripId,
+          name: base.name,
+          carrier_traveler_id: base.carrier_traveler_index === null ? null : travelerIds[base.carrier_traveler_index] ?? null,
+          max_weight_grams: base.max_weight_grams,
+          paired_container_id: containerIds[c.paired_container_index],
+        },
+      }])
+      if (!local) outbox.enqueue('trip', tripId, mutation)
+    })
+
+    for (const item of plan.items) {
+      const { mutation, id } = mutations.addClonedTripItem(
+        tripId,
+        item,
+        item.traveler_index === null ? null : travelerIds[item.traveler_index] ?? null,
+        item.container_index === null ? null : containerIds[item.container_index] ?? null,
+      )
       onPullChanges([{ seq: 0, table: 'trip_items', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
       if (!local) outbox.enqueue('trip', tripId, mutation)
     }
@@ -927,6 +1026,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     // Actions
     createTripFromWizard,
+    cloneTrip,
     packIncrement,
     packDecrement,
     packComplete,
