@@ -35,6 +35,10 @@ type Server struct {
 	singleUserMode bool
 	localUserID    string
 	hub            *Hub
+	oidc           *oidcExchange
+	// mapOIDCSubject: token sub is an OIDC subject (JWKS mode) and must
+	// be mapped to users.id; HS256 tokens carry users.id directly.
+	mapOIDCSubject bool
 }
 
 // New creates a Server that validates JWTs with HS256 using the given
@@ -54,10 +58,11 @@ func New(st *store.Store, secret []byte) *Server {
 func NewWithJWKS(st *store.Store, jwks *JWKSProvider) *Server {
 	hub := NewHub(st.HeadSeq)
 	return &Server{
-		store:        st,
-		keyFunc:      jwks.KeyFunc,
-		validMethods: []string{"RS256"},
-		hub:          hub,
+		store:          st,
+		keyFunc:        jwks.KeyFunc,
+		validMethods:   []string{"RS256"},
+		hub:            hub,
+		mapOIDCSubject: true,
 	}
 }
 
@@ -86,6 +91,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/trips/{tripID}/conflicts", s.authed(s.member(s.handleListConflicts)))
 	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.yaml", s.authed(s.handleExportTrip))
 	mux.HandleFunc("POST /api/v1/trips/import", s.authed(s.handleImportTrip))
+	mux.HandleFunc("POST /api/v1/auth/token", s.handleAuthToken)
+	mux.HandleFunc("POST /api/v1/auth/refresh", s.handleAuthRefresh)
+	mux.HandleFunc("GET /api/v1/auth/config", s.handleAuthConfig)
 	mux.HandleFunc("GET /ws", s.wsAuth(s.handleWS))
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -121,7 +129,17 @@ func (s *Server) authed(next http.HandlerFunc) http.HandlerFunc {
 			writeError(w, http.StatusUnauthorized, "unauthorized", "token has no subject")
 			return
 		}
-		next(w, r.WithContext(context.WithValue(r.Context(), userIDKey, sub)))
+		userID := sub
+		if s.mapOIDCSubject {
+			// JWKS mode: sub is the OIDC subject — map to users.id,
+			// provisioning on first sight (§2).
+			userID, err = s.store.EnsureOIDCUser(r.Context(), sub, displayNameClaim(claims))
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "internal", "user mapping failed")
+				return
+			}
+		}
+		next(w, r.WithContext(context.WithValue(r.Context(), userIDKey, userID)))
 	}
 }
 

@@ -38,6 +38,16 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/login',
+    name: 'login',
+    component: () => import('@/views/auth/LoginPage.vue'),
+  },
+  {
+    path: '/auth/callback',
+    name: 'auth-callback',
+    component: () => import('@/views/auth/CallbackPage.vue'),
+  },
+  {
     path: '/trips/new',
     name: 'trip-wizard',
     component: () => import('@/views/trips/TripWizardPage.vue'),

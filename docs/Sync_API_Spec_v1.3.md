@@ -18,9 +18,10 @@
 ## 2. Authentication
 
 * **Flow:** OIDC Authorization Code + PKCE against the configured IdP (Authelia). Native apps use a secure in-app browser (Section 2 of the PRD).
-* **Token exchange:** `POST /auth/token` — body `{ "code": "...", "code_verifier": "...", "redirect_uri": "..." }` → `{ "access_token": <JWT>, "refresh_token": "...", "expires_in": 3600 }`. First successful exchange JIT-provisions the user row.
-* **Refresh:** `POST /auth/refresh` with the refresh token; refresh tokens are long-lived (configurable, default 90 days) to survive offline periods (NFR-4.4).
-* **JWT claims:** `sub` (users.id), `oidc_sub`, `exp`, `iat`. All endpoints below require `Authorization: Bearer <JWT>`; validation is stateless (no IdP round-trip).
+* **Token exchange:** `POST /api/v1/auth/token` — body `{ "code": "...", "code_verifier": "...", "redirect_uri": "..." }` → `{ "access_token": <JWT>, "refresh_token": "...", "expires_in": 3600 }`. The server brokers the exchange with the IdP token endpoint (env: `JITPACK_OIDC_TOKEN_URL`, `JITPACK_OIDC_AUTHORIZE_URL`, `JITPACK_OIDC_CLIENT_ID`; requires JWKS mode), verifies the returned token against the JWKS, and passes the IdP token set through. First successful exchange JIT-provisions the user row.
+* **Refresh:** `POST /api/v1/auth/refresh` with the refresh token (proxied to the IdP's refresh grant); refresh tokens are long-lived (IdP-configurable, default 90 days) to survive offline periods (NFR-4.4).
+* **Client discovery:** `GET /api/v1/auth/config` (unauthenticated) → `{ "authorize_url", "client_id" }` so the client needs only the server URL; servers without OIDC answer 501.
+* **JWT claims:** `sub` is the OIDC subject; the server maps it to `users.id` on every request (JIT-provisioning on first sight), so all server-side attribution uses `users.id`. `exp`/`iat` per IdP. All endpoints below require `Authorization: Bearer <JWT>`; validation is stateless (no IdP round-trip).
 
 ## 3. Hybrid Logical Clock (HLC)
 

@@ -14,6 +14,11 @@ type Config struct {
 	LocalUserID string // JITPACK_LOCAL_USER_ID, required when SingleUser
 	JWTSecret   string // JITPACK_JWT_SECRET, HS256 secret (multi-user)
 	JWKSURL     string // JITPACK_JWKS_URL, RS256 JWKS endpoint (multi-user)
+
+	// OIDC code-exchange broker (Sync-API §2); requires JWKSURL.
+	OIDCTokenURL     string // JITPACK_OIDC_TOKEN_URL, IdP token endpoint
+	OIDCAuthorizeURL string // JITPACK_OIDC_AUTHORIZE_URL, IdP authorize endpoint
+	OIDCClientID     string // JITPACK_OIDC_CLIENT_ID
 }
 
 // LoadConfig reads configuration from the environment. It returns an
@@ -31,6 +36,10 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 		LocalUserID: getenv("JITPACK_LOCAL_USER_ID"),
 		JWTSecret:   getenv("JITPACK_JWT_SECRET"),
 		JWKSURL:     getenv("JITPACK_JWKS_URL"),
+
+		OIDCTokenURL:     getenv("JITPACK_OIDC_TOKEN_URL"),
+		OIDCAuthorizeURL: getenv("JITPACK_OIDC_AUTHORIZE_URL"),
+		OIDCClientID:     getenv("JITPACK_OIDC_CLIENT_ID"),
 	}
 
 	if c.SingleUser {
@@ -43,6 +52,22 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 		}
 		if c.JWTSecret != "" && c.JWKSURL != "" {
 			return Config{}, errors.New("JITPACK_JWT_SECRET and JITPACK_JWKS_URL are mutually exclusive")
+		}
+	}
+
+	oidcVars := []string{c.OIDCTokenURL, c.OIDCAuthorizeURL, c.OIDCClientID}
+	oidcSet := 0
+	for _, v := range oidcVars {
+		if v != "" {
+			oidcSet++
+		}
+	}
+	if oidcSet > 0 {
+		if oidcSet < len(oidcVars) {
+			return Config{}, errors.New("JITPACK_OIDC_TOKEN_URL, JITPACK_OIDC_AUTHORIZE_URL, and JITPACK_OIDC_CLIENT_ID must be set together")
+		}
+		if c.JWKSURL == "" {
+			return Config{}, errors.New("the OIDC exchange requires JITPACK_JWKS_URL (brokered tokens are JWKS-verified)")
 		}
 	}
 	return c, nil
