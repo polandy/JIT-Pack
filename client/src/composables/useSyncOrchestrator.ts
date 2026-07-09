@@ -23,6 +23,7 @@ import type { PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import { planClone, type CloneOptions } from '@/domain/clone'
 import type { ImportPlan } from '@/domain/spreadsheet'
+import type { PortableDocument, PortableItem } from '@/domain/portable'
 import type { ReviewProposal } from '@/domain/review'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import type { Container, DestinationChecklistItem, DestinationProfile, ItemComment, ItemMode, ItemTodo, MasterItem, Template, TemplateItem, Trip, TripItem, TripSeries, TripStatus } from '@/types/domain'
@@ -653,6 +654,111 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return { tripIds }
   }
 
+  /**
+   * commitPortableImport lands an M18 portable YAML document (FR-18.4):
+   * a template becomes a new private owned template (FR-1.6) with its
+   * master items merged per the dedup decisions (imported name →
+   * existing item id) or created; a trip becomes a *planning* trip with
+   * travelers/containers remapped by name and pack progress preserved.
+   */
+  function commitPortableImport(
+    doc: PortableDocument,
+    mergeDecisions: Map<string, string>,
+  ): { kind: 'template' | 'trip'; id: string } {
+    const resolveItem = (item: PortableItem): string | null => {
+      const merged = mergeDecisions.get(item.name)
+      if (merged) return merged
+      if (doc.kind === 'trip') return null // unmatched trip rows stay ad-hoc
+      const unit = item.unit === 'pairs' || item.unit === 'per_day' ? item.unit : 'pieces'
+      const { mutation, id } = mutations.createMasterItem(item.name, { unit })
+      onPullChanges([{ seq: 0, table: 'items', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
+      if (!local) outbox.enqueue('master', null, mutation)
+      return id
+    }
+
+    if (doc.kind === 'template') {
+      // UNIQUE(owner_id, name): dodge collisions with a visible suffix.
+      const taken = new Set(masterStore.templateList.map((t) => t.name))
+      const name = taken.has(doc.name) ? `${doc.name} (import)` : doc.name
+      const { mutation, id: templateId } = mutations.createTemplate(name, '')
+      onPullChanges([{ seq: 0, table: 'templates', id: templateId, deleted: false, row: mutation.fields as Record<string, unknown> }])
+      if (!local) outbox.enqueue('master', null, mutation)
+
+      for (const item of doc.items) {
+        const itemId = resolveItem(item)!
+        const ti = mutations.addTemplateItem(templateId, itemId, {
+          quantityFormula: item.quantity,
+          assignment: item.assignment ?? 'per_person',
+          dedup: item.dedup ?? 'max',
+          defaultMode: item.default_mode ?? 'pack',
+          latePacker: item.late_packer,
+          conditions: item.conditions,
+        })
+        onPullChanges([{ seq: 0, table: 'template_items', id: ti.id, deleted: false, row: ti.mutation.fields as Record<string, unknown> }])
+        if (!local) outbox.enqueue('master', null, ti.mutation)
+      }
+
+      if (!local) {
+        syncStatus.setPendingCount(outbox.totalPending())
+        drainMaster().catch(() => {})
+      }
+      return { kind: 'template', id: templateId }
+    }
+
+    // Trip import — planning status (FR-18.4), fresh trip partition.
+    const endDate = doc.end_date ?? new Date().toISOString().slice(0, 10)
+    const { mutation: tripMut, id: tripId } = mutations.createTrip(doc.name, doc.start_date, endDate)
+    onPullChanges([{
+      seq: 0, table: 'trips', id: tripId, deleted: false,
+      row: { ...tripMut.fields, duration_days: durationDays(doc.start_date, endDate) },
+    }])
+    if (!local) outbox.enqueue('master', null, tripMut)
+
+    const travelerIDs = new Map<string, string>()
+    for (const traveler of doc.travelers) {
+      const { mutation, id } = mutations.addTraveler(tripId, traveler.name, traveler.profile, null)
+      onPullChanges([{ seq: 0, table: 'travelers', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
+      if (!local) outbox.enqueue('trip', tripId, mutation)
+      travelerIDs.set(traveler.name, id)
+    }
+
+    const containerIDs = new Map<string, string>()
+    for (const container of doc.containers) {
+      const { mutation, id } = mutations.addContainer(tripId, container.name, {
+        carrierTravelerId: container.carrier ? travelerIDs.get(container.carrier) ?? null : null,
+        maxWeightGrams: container.max_weight_grams,
+      })
+      onPullChanges([{ seq: 0, table: 'containers', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
+      if (!local) outbox.enqueue('trip', tripId, mutation)
+      containerIDs.set(container.name, id)
+    }
+
+    for (const item of doc.items) {
+      const { mutation, id } = mutations.addPortableTripItem(
+        tripId,
+        {
+          name: item.name,
+          sourceItemId: resolveItem(item),
+          categoryName: item.category,
+          quantity: Math.max(0, Math.ceil(Number(item.quantity) || 0)),
+          packedCount: item.packed_count ?? 0,
+          mode: item.mode === 'buy_before' || item.mode === 'buy_local' ? item.mode : 'pack',
+          latePacker: item.late_packer,
+        },
+        item.traveler ? travelerIDs.get(item.traveler) ?? null : null,
+        item.container ? containerIDs.get(item.container) ?? null : null,
+      )
+      onPullChanges([{ seq: 0, table: 'trip_items', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
+      if (!local) outbox.enqueue('trip', tripId, mutation)
+    }
+
+    if (!local) {
+      syncStatus.setPendingCount(outbox.totalPending())
+      drainMaster().then(() => drainTrip(tripId)).catch(() => {})
+    }
+    return { kind: 'trip', id: tripId }
+  }
+
   // --- Master data actions (M7–M10; master partition) ---
 
   function createMasterItem(
@@ -1126,6 +1232,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     createTripFromWizard,
     cloneTrip,
     commitImport,
+    commitPortableImport,
     packIncrement,
     packDecrement,
     packComplete,
