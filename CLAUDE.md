@@ -53,11 +53,9 @@ Only the current version of every document is kept — if you're ever tempted to
    5. **Collaboration UI gating** per FR-19.3 (mirrors existing single-user hiding, G-8).
    Note for M3 wizard (item 6): template-instantiation/formula evaluation must live client-side (or shared), so Local Mode gets it for free.
 
-## Known deviation — read before touching `internal/store`
+## Deviations
 
-`internal/store` imports `github.com/mattn/go-sqlite3` (CGO) instead of the CODING_PRINCIPLES-approved pure-Go `modernc.org/sqlite`, purely because the sandbox this was built in couldn't reach `modernc.org` on its network allowlist. Full note in `DEVIATIONS.md`.
-
-**If your environment has normal internet access:** switch to `modernc.org/sqlite` first, before building anything else. It's a one-line import change (driver name `"sqlite"` instead of `"sqlite3"`) and removes the CGO/C-toolchain build requirement, restoring the static, dependency-free binary ADR-001 is actually optimizing for.
+None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` now uses the pure-Go `modernc.org/sqlite`, builds with `CGO_ENABLED=0`, and the Dockerfile needs no C toolchain. History in `DEVIATIONS.md`.
 
 ## Working agreement (non-negotiable, see CODING_PRINCIPLES.md for full detail)
 
