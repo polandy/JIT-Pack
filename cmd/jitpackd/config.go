@@ -19,6 +19,11 @@ type Config struct {
 	OIDCTokenURL     string // JITPACK_OIDC_TOKEN_URL, IdP token endpoint
 	OIDCAuthorizeURL string // JITPACK_OIDC_AUTHORIZE_URL, IdP authorize endpoint
 	OIDCClientID     string // JITPACK_OIDC_CLIENT_ID
+
+	// Web Push (NFR-4.6): operator contact for the VAPID sub claim,
+	// e.g. "mailto:ops@example.com". Optional — the keys themselves are
+	// self-generated on first use.
+	PushContact string // JITPACK_PUSH_CONTACT
 }
 
 // LoadConfig reads configuration from the environment. It returns an
@@ -40,6 +45,8 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 		OIDCTokenURL:     getenv("JITPACK_OIDC_TOKEN_URL"),
 		OIDCAuthorizeURL: getenv("JITPACK_OIDC_AUTHORIZE_URL"),
 		OIDCClientID:     getenv("JITPACK_OIDC_CLIENT_ID"),
+
+		PushContact: getenv("JITPACK_PUSH_CONTACT"),
 	}
 
 	if c.SingleUser {

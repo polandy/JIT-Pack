@@ -23,6 +23,11 @@ const (
 )
 
 func newTestServer(t *testing.T) *httptest.Server {
+	srv, _ := newTestServerWithStore(t)
+	return srv
+}
+
+func newTestServerWithStore(t *testing.T) (*httptest.Server, *store.Store) {
 	t.Helper()
 	st, err := store.Open(":memory:")
 	if err != nil {
@@ -45,7 +50,7 @@ func newTestServer(t *testing.T) *httptest.Server {
 	}
 	srv := httptest.NewServer(api.New(st, testSecret).Handler())
 	t.Cleanup(srv.Close)
-	return srv
+	return srv, st
 }
 
 func token(t *testing.T, sub string, secret []byte) string {

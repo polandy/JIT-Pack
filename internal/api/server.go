@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -36,6 +37,12 @@ type Server struct {
 	localUserID    string
 	hub            *Hub
 	oidc           *oidcExchange
+	// Web Push (NFR-4.6): VAPID keypair lazily loaded/generated via the
+	// store; contact is the RFC 8292 sub claim.
+	pushContact string
+	vapidMu     sync.Mutex
+	vapidPub    string
+	vapidPriv   string
 	// mapOIDCSubject: token sub is an OIDC subject (JWKS mode) and must
 	// be mapped to users.id; HS256 tokens carry users.id directly.
 	mapOIDCSubject bool
@@ -88,6 +95,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/notifications/{notificationID}/read", s.authed(s.handleMarkNotificationRead))
 	mux.HandleFunc("GET /api/v1/me/notification-prefs", s.authed(s.handleGetNotificationPrefs))
 	mux.HandleFunc("PUT /api/v1/me/notification-prefs", s.authed(s.handlePutNotificationPrefs))
+	mux.HandleFunc("GET /api/v1/push/vapid-key", s.authed(s.handleGetVAPIDKey))
+	mux.HandleFunc("POST /api/v1/push/subscriptions", s.authed(s.handleRegisterPushSubscription))
+	mux.HandleFunc("DELETE /api/v1/push/subscriptions", s.authed(s.handleDeletePushSubscription))
 	mux.HandleFunc("GET /api/v1/export/full", s.authed(s.handleExportFull))
 	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.csv", s.authed(s.member(s.handleExportTripCSV)))
 	mux.HandleFunc("GET /api/v1/users/{userID}/avatar", s.handleGetAvatar)
