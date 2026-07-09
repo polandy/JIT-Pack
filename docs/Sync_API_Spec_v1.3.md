@@ -128,7 +128,7 @@ Server-side computations that must not run on clients. **Decided (Local Mode, Ad
 | ~~`POST /trips/{id}/repack`~~ | superseded: M13 resets client-side via ordinary mutations (`outbound_packed` preserves the outbound history) |
 | ~~`POST /trips/{id}/archive`~~ | superseded: archiving is a plain `trips.status` upsert on the master partition. Open server-side follow-up: the NFR-4.2a conflict-log compaction on archive has no trigger yet |
 | ~~`GET /trips/{id}/review`~~ / ~~`POST /trips/{id}/review/{proposalId}`~~ | superseded: M14 derives proposals client-side from FR-9.1 flags and current template state (applied cards vanish on recomputation → resumability for free); apply/fork are ordinary master mutations, "Never ask again" is a device-local dismissal store scoped to the item–template pair |
-| `POST /import/analyze` · `POST /import/commit` | FR-16.x wizard: multipart upload → mapping preview → transactional commit |
+| ~~`POST /import/analyze`~~ · ~~`POST /import/commit`~~ | superseded: the M15 wizard parses/analyzes/commits client-side (FR-19.4 lists the import as Local-Mode parity). CSV only — XLSX deferred (parser dependency vs NFR-4.3; spreadsheets export CSV). NFR-4.7 transactionality is approximated: full pre-validation before enqueue, parents-first ordering, idempotent replay — there is no cross-mutation server transaction |
 | `GET /templates/{id}/export` · `POST /templates/import` | Addendum FR-18.2/18.4: portable YAML template export/import |
 | `GET /trips/{id}/export.yaml` · `POST /trips/import` | Addendum FR-18.3/18.4: portable YAML trip export/import — distinct from `export.csv` below (NFR-4.5), which is a flat data dump, not round-trippable |
 | `GET /export/full` · `GET /trips/{id}/export.csv` | NFR-4.5 |

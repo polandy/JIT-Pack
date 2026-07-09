@@ -362,6 +362,50 @@ export function useMutations(hlc: HLCGenerator) {
     return make('upsert', 'trips', tripId, { status })
   }
 
+  // --- Import mutations (FR-16.2, M15) ---
+
+  /** createImportedTrip inserts a historical trip: archived, marked imported. */
+  function createImportedTrip(
+    name: string,
+    endDate: string,
+    seriesId: string | null,
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const mutation = make('insert', 'trips', id, {
+      name,
+      start_date: null,
+      end_date: endDate,
+      status: 'archived',
+      series_id: seriesId,
+      imported: 1,
+    })
+    return { mutation, id }
+  }
+
+  /** addImportedTripItem inserts one historical row with its original quantity as packed. */
+  function addImportedTripItem(
+    tripId: string,
+    item: {
+      name: string
+      sourceItemId: string | null
+      categoryName: string | null
+      quantity: number
+    },
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const mutation = make('insert', 'trip_items', id, {
+      trip_id: tripId,
+      name: item.name,
+      source_item_id: item.sourceItemId,
+      category_name: item.categoryName,
+      quantity: item.quantity,
+      packed_count: item.quantity,
+      state: 'packed',
+      mode: 'pack',
+    })
+    return { mutation, id }
+  }
+
   // --- Series & destination mutations (FR-13.1/13.2) ---
 
   function setTripSeries(tripId: string, seriesId: string | null): Mutation {
@@ -555,6 +599,8 @@ export function useMutations(hlc: HLCGenerator) {
     // Trips
     createTrip,
     updateTripStatus,
+    createImportedTrip,
+    addImportedTripItem,
     setTripSeries,
     createSeries,
     updateSeries,

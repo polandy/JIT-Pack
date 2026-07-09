@@ -22,8 +22,9 @@ import {
   IonNote,
   IonRefresher,
   IonRefresherContent,
+  IonButton,
 } from '@ionic/vue'
-import { addOutline, cubeOutline, leafOutline } from 'ionicons/icons'
+import { addOutline, cloudUploadOutline, cubeOutline, leafOutline } from 'ionicons/icons'
 import { ref, computed } from 'vue'
 import { useMasterStore } from '@/stores/masterStore'
 import type { MasterItem } from '@/types/domain'
@@ -83,11 +84,15 @@ async function handleRefresh(event: CustomEvent) {
         />
       </div>
 
-      <!-- Empty state (G-7) -->
+      <!-- Empty state (G-7) — M15 entry per UI spec -->
       <div v-if="isEmpty" class="empty-state">
         <IonIcon :icon="cubeOutline" class="empty-icon" />
         <p>No items in your inventory</p>
         <p class="empty-hint">Add items to build your packing templates</p>
+        <IonButton fill="outline" size="small" router-link="/import">
+          <IonIcon slot="start" :icon="cloudUploadOutline" />
+          Import spreadsheet
+        </IonButton>
       </div>
 
       <!-- No search results -->
