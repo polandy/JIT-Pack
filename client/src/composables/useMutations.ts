@@ -320,6 +320,65 @@ export function useMutations(hlc: HLCGenerator) {
     return make('upsert', 'trips', tripId, { status })
   }
 
+  // --- Series & destination mutations (FR-13.1/13.2) ---
+
+  function setTripSeries(tripId: string, seriesId: string | null): Mutation {
+    return make('upsert', 'trips', tripId, { series_id: seriesId })
+  }
+
+  function createSeries(
+    name: string,
+    defaultAttributes: Record<string, unknown> | null = null,
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    // owner_id is stamped server-side on push (FR-13.1 ownership).
+    const mutation = make('insert', 'trip_series', id, {
+      owner_id: '',
+      name,
+      default_attributes: defaultAttributes ? JSON.stringify(defaultAttributes) : null,
+    })
+    return { mutation, id }
+  }
+
+  function updateSeries(seriesId: string, fields: Record<string, unknown>): Mutation {
+    return make('upsert', 'trip_series', seriesId, fields)
+  }
+
+  function createDestinationProfile(seriesId: string): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const mutation = make('insert', 'destination_profiles', id, {
+      series_id: seriesId,
+      notes: null,
+    })
+    return { mutation, id }
+  }
+
+  function updateDestinationProfile(profileId: string, fields: Record<string, unknown>): Mutation {
+    return make('upsert', 'destination_profiles', profileId, fields)
+  }
+
+  function addChecklistItem(
+    profileId: string,
+    label: string,
+    mode: ItemMode,
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const mutation = make('insert', 'destination_checklist_items', id, {
+      profile_id: profileId,
+      label,
+      mode,
+    })
+    return { mutation, id }
+  }
+
+  function updateChecklistItem(itemId: string, fields: Record<string, unknown>): Mutation {
+    return make('upsert', 'destination_checklist_items', itemId, fields)
+  }
+
+  function deleteChecklistItem(itemId: string): Mutation {
+    return make('delete', 'destination_checklist_items', itemId)
+  }
+
   // --- Master data mutations ---
 
   function createMasterItem(
@@ -453,6 +512,14 @@ export function useMutations(hlc: HLCGenerator) {
     // Trips
     createTrip,
     updateTripStatus,
+    setTripSeries,
+    createSeries,
+    updateSeries,
+    createDestinationProfile,
+    updateDestinationProfile,
+    addChecklistItem,
+    updateChecklistItem,
+    deleteChecklistItem,
     // Master items
     createMasterItem,
     updateMasterItem,

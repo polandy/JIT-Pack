@@ -23,7 +23,7 @@ import type { PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import type { ReviewProposal } from '@/domain/review'
 import type { IndexedDBPersistence } from '@/local/persistence'
-import type { Container, ItemComment, ItemMode, ItemTodo, MasterItem, Template, TemplateItem, Trip, TripItem, TripStatus } from '@/types/domain'
+import type { Container, DestinationChecklistItem, DestinationProfile, ItemComment, ItemMode, ItemTodo, MasterItem, Template, TemplateItem, Trip, TripItem, TripSeries, TripStatus } from '@/types/domain'
 
 /** One entry of a trip's presence facepile (G-10, Sync-API §7). */
 export interface PresenceUser {
@@ -51,6 +51,12 @@ export interface TripWizardDraft {
   attributes: Record<string, unknown> | null
   travelers: { name: string; profile: 'adult' | 'child'; linkedUserId?: string | null }[]
   items: GeneratedItem[]
+  /** Attach to an existing series (FR-13.1). */
+  seriesId?: string | null
+  /** Create a series inline; its defaults seed from the trip attributes. */
+  newSeriesName?: string | null
+  /** Accepted destination checklist items (FR-13.3) — become trip items. */
+  checklistItems?: { label: string; mode: ItemMode }[]
 }
 
 export interface SyncOrchestratorConfig {
@@ -134,7 +140,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   function onPullChanges(changes: PullChange[]) {
     const tripTables = new Set(['trips', 'trip_items', 'travelers', 'containers', 'comments', 'notifications'])
-    const masterTables = new Set(['categories', 'items', 'templates', 'template_items'])
+    const masterTables = new Set([
+      'categories', 'items', 'templates', 'template_items',
+      'trip_series', 'destination_profiles', 'destination_checklist_items',
+    ])
 
     const tripChanges: PullChange[] = []
     const masterChanges: PullChange[] = []
@@ -425,8 +434,19 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * which the trip-partition push would be rejected (403/FK).
    */
   function createTripFromWizard(draft: TripWizardDraft): string {
+    // An inline-created series must precede the trip in the same master
+    // queue — a separate drain could race and push the trip's series_id
+    // reference before the series row exists.
+    let seriesId = draft.seriesId ?? null
+    if (draft.newSeriesName) {
+      const { mutation, id } = mutations.createSeries(draft.newSeriesName, draft.attributes)
+      onPullChanges([{ seq: 0, table: 'trip_series', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
+      if (!local) outbox.enqueue('master', null, mutation)
+      seriesId = id
+    }
+
     const { mutation: tripMut, id: tripId } = mutations.createTrip(
-      draft.name, draft.startDate, draft.endDate, { attributes: draft.attributes },
+      draft.name, draft.startDate, draft.endDate, { attributes: draft.attributes, seriesId },
     )
     onPullChanges([{
       seq: 0, table: 'trips', id: tripId, deleted: false,
@@ -448,6 +468,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       const assignedTravelerId =
         item.traveler_index === null ? null : travelerIds[item.traveler_index] ?? null
       const { mutation, id } = mutations.addGeneratedTripItem(tripId, item, assignedTravelerId)
+      onPullChanges([{ seq: 0, table: 'trip_items', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
+      if (!local) outbox.enqueue('trip', tripId, mutation)
+    }
+
+    for (const chk of draft.checklistItems ?? []) {
+      const { mutation, id } = mutations.addTripItem(tripId, chk.label, { mode: chk.mode })
       onPullChanges([{ seq: 0, table: 'trip_items', id, deleted: false, row: mutation.fields as Record<string, unknown> }])
       if (!local) outbox.enqueue('trip', tripId, mutation)
     }
@@ -632,6 +658,91 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         seq: 0, table: 'trips', id: tripId, deleted: false,
         row: { ...tripRow(trip), status },
       },
+    })
+  }
+
+  // --- Series & destination actions (FR-13.1/13.2, M16) ---
+
+  function createSeries(name: string, defaultAttributes: Record<string, unknown> | null = null): string {
+    const { mutation, id } = mutations.createSeries(name, defaultAttributes)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: { seq: 0, table: 'trip_series', id, deleted: false, row: mutation.fields as Record<string, unknown> },
+    })
+    return id
+  }
+
+  function updateSeries(series: TripSeries, fields: Record<string, unknown>) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.updateSeries(series.id, fields),
+      optimistic: {
+        seq: 0, table: 'trip_series', id: series.id, deleted: false,
+        row: { ...seriesRow(series), ...fields },
+      },
+    })
+  }
+
+  /** setTripSeries attaches (or, with null, detaches) a trip to a series. */
+  function setTripSeries(tripId: string, seriesId: string | null) {
+    const trip = tripStore.getTrip(tripId)
+    if (!trip) return
+    enqueueAndDrain('master', null, {
+      mutation: mutations.setTripSeries(tripId, seriesId),
+      optimistic: {
+        seq: 0, table: 'trips', id: tripId, deleted: false,
+        row: { ...tripRow(trip), series_id: seriesId },
+      },
+    })
+  }
+
+  /**
+   * ensureDestinationProfile returns the series' profile id, creating
+   * the (unique, FR-13.2) profile on first use.
+   */
+  function ensureDestinationProfile(seriesId: string): string {
+    const existing = masterStore.getDestinationProfile(seriesId)
+    if (existing) return existing.id
+    const { mutation, id } = mutations.createDestinationProfile(seriesId)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: { seq: 0, table: 'destination_profiles', id, deleted: false, row: mutation.fields as Record<string, unknown> },
+    })
+    return id
+  }
+
+  function updateDestinationProfile(profile: DestinationProfile, fields: Record<string, unknown>) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.updateDestinationProfile(profile.id, fields),
+      optimistic: {
+        seq: 0, table: 'destination_profiles', id: profile.id, deleted: false,
+        row: { series_id: profile.series_id, notes: profile.notes, ...fields },
+      },
+    })
+  }
+
+  function addChecklistItem(profileId: string, label: string, mode: ItemMode): string {
+    const { mutation, id } = mutations.addChecklistItem(profileId, label, mode)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: { seq: 0, table: 'destination_checklist_items', id, deleted: false, row: mutation.fields as Record<string, unknown> },
+    })
+    return id
+  }
+
+  function updateChecklistItem(item: DestinationChecklistItem, fields: Record<string, unknown>) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.updateChecklistItem(item.id, fields),
+      optimistic: {
+        seq: 0, table: 'destination_checklist_items', id: item.id, deleted: false,
+        row: { profile_id: item.profile_id, label: item.label, mode: item.mode, ...fields },
+      },
+    })
+  }
+
+  function deleteChecklistItem(itemId: string) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.deleteChecklistItem(itemId),
+      optimistic: { seq: 0, table: 'destination_checklist_items', id: itemId, deleted: true, row: null },
     })
   }
 
@@ -858,6 +969,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     startRepack,
     completeRepack,
 
+    // Series & destinations (FR-13.1/13.2, M16)
+    createSeries,
+    updateSeries,
+    setTripSeries,
+    ensureDestinationProfile,
+    updateDestinationProfile,
+    addChecklistItem,
+    updateChecklistItem,
+    deleteChecklistItem,
+
     // Post-trip review (FR-9.2, M14)
     archiveTrip,
     applyReviewProposal,
@@ -888,6 +1009,16 @@ function tripRow(trip: Trip): Record<string, unknown> {
     series_id: trip.series_id,
     attributes: trip.attributes ? JSON.stringify(trip.attributes) : null,
     imported: trip.imported ? 1 : 0,
+  }
+}
+
+function seriesRow(series: TripSeries): Record<string, unknown> {
+  return {
+    owner_id: series.owner_id,
+    name: series.name,
+    default_attributes: series.default_attributes
+      ? JSON.stringify(series.default_attributes)
+      : null,
   }
 }
 
