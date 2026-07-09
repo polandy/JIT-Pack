@@ -2,7 +2,7 @@
 
 **Document Status:** Accepted
 **Supersedes:** Addendum v2.9 (removes Demo Mode entirely — FR-17.6–17.10, FR-17.12, NFR-4.10 — since no public demo deployment is planned; Single-User Mode is unaffected, and NFR-4.9 is rewritten without the demo passphrase. FR/NFR numbering is kept stable with removal stubs; no other changes)
-**Scope:** New functional sections 3.10–3.20, clarifications to existing FRs, and refined/added NFRs. Numbering continues the base PRD.
+**Scope:** New functional sections 3.10–3.21, clarifications to existing FRs, and refined/added NFRs. Numbering continues the base PRD.
 
 ---
 
@@ -123,6 +123,23 @@ Local Mode is a **client-only deployment shape**: the app runs entirely from on-
 * **Runtime behavior:** skipping a main item in M4 cascades to co-skip its companions with a reason (reuse of the FR-5.5 section); quick-adding an item with required companions (FR-5.6) proposes them alongside it.
 * **Cycle detection:** belongs in save-time validation, analogous to the FR-1.5 formula validator — a dependency cycle cannot be persisted.
 * **UI:** managed in M10 (Item Editor) as a new "Depends on / Companions" section with a required/suggested mode toggle per dependency; surfaced as a preview note in M3 and a hint in M5 per FR-20.4.
+
+### 3.21 Theming (Dark Mode Default)
+
+**Status: proposed, not yet built** — captured here so the palette and the default are agreed before implementation starts; see CLAUDE.md backlog.
+
+The client currently carries no app-owned theme: it renders with Ionic's stock palette and follows the OS light/dark preference via `@ionic/vue/css/palettes/dark.system.css`. This section replaces that with an explicit theme, defaulting to dark, styled on the [Catppuccin](https://catppuccin.com) palette.
+
+* **FR-21.1 (Dark Default, Independent of OS Preference):** Every new install, in every mode (Server, Single-User, Local, 3.17/3.19), renders with a dark theme active by default. This is an app-level default, not a reflection of `prefers-color-scheme` — a device set to light mode still opens JIT-Pack in dark, until the user opts out via FR-21.3.
+* **FR-21.2 (Catppuccin Palette):** Theme colors are drawn from the Catppuccin palette rather than invented ad hoc. The default dark theme uses the **Mocha** flavor; the opt-in light theme (FR-21.3) uses **Latte**. Semantic mapping: `crust`/`mantle`/`base` for background depth (app background, cards, sunken sections), `surface0`–`surface2` for elevated controls, dividers, and inputs, `text`/`subtext0`/`subtext1` for typography hierarchy, and the accent set (`blue`, `mauve`, `green`, `peach`, `red`, `yellow`, etc.) mapped onto the app's existing color-coded semantics rather than introduced per component: primary actions/links, packed/success state, container-weight warnings (FR-10.3's amber/red thresholds), destructive/skip actions, and informational badges/flags. This mapping is a single fixed token table, so a future palette adjustment touches one file, not every component.
+* **FR-21.3 (Opt-In Light Theme & Persistence):** Users can switch to the light theme (Catppuccin Latte) from M17 Settings. The choice is a **device-local display preference** — not a synced account field (distinct from the FR-17.13 profile edits) and not per-trip — persisted the same way other device-local UI state is (e.g., FR-19.2-style on-device storage), and read synchronously at boot, before first paint, per FR-21.4. Local Mode behaves identically: dark by default, light opt-in, both fully offline.
+* **FR-21.4 (No Flash of Unstyled/Wrong Theme):** Because the app's default no longer follows the OS, the resolved theme (persisted choice, or dark if none yet set) must be applied before first paint, not from a mounted-hook check — otherwise every load would flash the wrong theme before switching to the persisted one.
+
+**Architecture notes for implementation:**
+* `src/main.ts` currently imports `@ionic/vue/css/palettes/dark.system.css`, which drives dark mode off `prefers-color-scheme`. This import is replaced, not layered on top of: Ionic supports a manually-toggled dark palette (class/attribute-scoped rather than media-query-scoped) for exactly this case.
+* Catppuccin Mocha and Latte are each defined once as a full CSS custom-property block (e.g. `client/src/theme/catppuccin.css`), selected by a root-level attribute/class; Ionic's own `--ion-color-*`/`--ion-background-color`/etc. variables and any app-specific component styles both consume the same custom properties — no second, parallel color system.
+* The M17 toggle is a new control in the existing Settings screen, not a new screen.
+* No server or sync involvement: purely a display-time, on-device setting.
 
 ## Part B — Clarifications & Extensions to Existing Sections
 
