@@ -15,7 +15,7 @@ import (
 
 	"jitpack/internal/sync"
 
-	_ "github.com/mattn/go-sqlite3" // deviation D-001, see DEVIATIONS.md
+	_ "modernc.org/sqlite" // pure-Go driver per ADR-001; D-001 resolved
 )
 
 //go:embed migrations/*.sql
@@ -60,7 +60,7 @@ type Store struct {
 // Open connects, enforces foreign keys, and applies embedded migrations
 // in lexical order.
 func Open(dsn string) (*Store, error) {
-	db, err := sql.Open("sqlite3", dsn)
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
