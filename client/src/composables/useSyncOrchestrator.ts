@@ -11,7 +11,7 @@
 
 import { ref } from 'vue'
 
-import { APIClient } from '@/api/client'
+import { APIClient, type TokenProvider } from '@/api/client'
 import { HLCGenerator } from '@/sync/hlc'
 import { SyncOutbox } from './useSyncOutbox'
 import { useWebSocket } from './useWebSocket'
@@ -72,7 +72,12 @@ export interface CloneDraft {
 
 export interface SyncOrchestratorConfig {
   baseUrl: string
-  getToken: () => string | null
+  getToken: TokenProvider
+  /**
+   * OIDC only: called when a request 401s despite the provided token —
+   * forces a token refresh, and the request is retried once (Sync-API §2).
+   */
+  onUnauthorized?: () => Promise<string | null>
   /**
    * Local Mode (Addendum 3.19, FR-19.2): when set, mutations persist to
    * this store instead of the sync outbox, and no network or WebSocket
@@ -131,7 +136,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     myLocks.delete(itemId)
   }
 
-  const client = new APIClient(config.baseUrl, config.getToken)
+  const client = new APIClient(config.baseUrl, config.getToken, config.onUnauthorized)
 
   const deviceId = localStorage.getItem('jitpack_device_id') ?? generateDeviceId()
   localStorage.setItem('jitpack_device_id', deviceId)

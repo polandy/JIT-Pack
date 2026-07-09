@@ -46,27 +46,27 @@ describe('useWebSocket', () => {
     vi.restoreAllMocks()
   })
 
-  it('connects with token in query param', () => {
+  it('connects with token in query param', async () => {
     const opts: WSOptions = {
       baseUrl: 'http://localhost:8080',
       getToken: () => 'my-jwt',
       onEvent: vi.fn(),
     }
     const ws = useWebSocket(opts)
-    ws.connect()
+    await ws.connect()
 
     expect(MockWebSocket.instances).toHaveLength(1)
     expect(MockWebSocket.instances[0]!.url).toBe('ws://localhost:8080/ws?token=my-jwt')
   })
 
-  it('subscribes to channels after open', () => {
+  it('subscribes to channels after open', async () => {
     const opts: WSOptions = {
       baseUrl: 'http://localhost:8080',
       getToken: () => 'jwt',
       onEvent: vi.fn(),
     }
     const ws = useWebSocket(opts)
-    ws.connect()
+    await ws.connect()
     ws.subscribe(['trip:t1', 'user:u1'])
 
     const mock = MockWebSocket.instances[0]!
@@ -76,7 +76,7 @@ describe('useWebSocket', () => {
     expect(JSON.parse(mock.sent[0]!)).toEqual({ subscribe: ['trip:t1', 'user:u1'] })
   })
 
-  it('dispatches events to handler', () => {
+  it('dispatches events to handler', async () => {
     const handler = vi.fn()
     const opts: WSOptions = {
       baseUrl: 'http://localhost:8080',
@@ -84,7 +84,7 @@ describe('useWebSocket', () => {
       onEvent: handler,
     }
     const ws = useWebSocket(opts)
-    ws.connect()
+    await ws.connect()
 
     const mock = MockWebSocket.instances[0]!
     mock.simulateOpen()
@@ -95,24 +95,24 @@ describe('useWebSocket', () => {
     expect(handler).toHaveBeenCalledWith(event)
   })
 
-  it('converts http to ws protocol', () => {
+  it('converts http to ws protocol', async () => {
     const ws = useWebSocket({
       baseUrl: 'https://example.com',
       getToken: () => 'jwt',
       onEvent: vi.fn(),
     })
-    ws.connect()
+    await ws.connect()
     expect(MockWebSocket.instances[0]!.url).toBe('wss://example.com/ws?token=jwt')
   })
 
-  it('queues subscriptions before connection opens', () => {
+  it('queues subscriptions before connection opens', async () => {
     const opts: WSOptions = {
       baseUrl: 'http://localhost:8080',
       getToken: () => 'jwt',
       onEvent: vi.fn(),
     }
     const ws = useWebSocket(opts)
-    ws.connect()
+    await ws.connect()
     ws.subscribe(['trip:t1'])
 
     const mock = MockWebSocket.instances[0]!
@@ -122,14 +122,14 @@ describe('useWebSocket', () => {
     expect(mock.sent).toHaveLength(1) // sent on open
   })
 
-  it('disconnect closes the socket', () => {
+  it('disconnect closes the socket', async () => {
     const opts: WSOptions = {
       baseUrl: 'http://localhost:8080',
       getToken: () => 'jwt',
       onEvent: vi.fn(),
     }
     const ws = useWebSocket(opts)
-    ws.connect()
+    await ws.connect()
 
     const mock = MockWebSocket.instances[0]!
     mock.simulateOpen()

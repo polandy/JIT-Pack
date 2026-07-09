@@ -108,7 +108,7 @@ describe('useMutations wizard additions', () => {
 })
 
 describe('createTripFromWizard', () => {
-  it('creates trip, travelers, and items optimistically with traveler assignment', () => {
+  it('creates trip, travelers, and items optimistically with traveler assignment', async () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()
     mockPush()
@@ -145,6 +145,9 @@ describe('createTripFromWizard', () => {
     const perPerson = items.find((i) => i.assigned_traveler_id === andy.id)
     expect(perPerson?.quantity).toBe(5)
     expect(items.find((i) => i.name === 'Zelt')?.assigned_traveler_id).toBeNull()
+
+    // Let the background drains finish so they don't leak into the next test.
+    await vi.waitFor(() => expect(fetchMock.mock.calls.length).toBe(4))
   })
 
   it('drains the master partition before the trip partition (FK + membership)', async () => {
