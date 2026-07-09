@@ -11,6 +11,9 @@ import type { HLCGenerator } from '@/sync/hlc'
 
 type PartitionType = 'trip' | 'master'
 
+/** Server-side push limit per batch (Sync-API §9). */
+const MAX_PUSH_BATCH = 200
+
 function partitionKey(type: PartitionType, id: string | null): string {
   return type === 'master' ? 'master' : `trip:${id}`
 }
@@ -60,12 +63,19 @@ export class SyncOutbox {
     if (queue.length > 0) {
       const path =
         type === 'master' ? '/api/v1/sync/master' : `/api/v1/sync/trips/${id}`
-      const resp = await this.client.post<PushResponse>(path, {
-        client_hlc: this.hlc.next(),
-        mutations: queue,
-      })
-      cursor = resp.pull_hint.next_cursor
-      this.queues.set(key, [])
+      // The server caps a push at 200 mutations (Sync-API §9) — chunk
+      // big batches (large repacks, wizard-generated trips) instead of
+      // getting the whole queue rejected.
+      for (let offset = 0; offset < queue.length; offset += MAX_PUSH_BATCH) {
+        const chunk = queue.slice(offset, offset + MAX_PUSH_BATCH)
+        const resp = await this.client.post<PushResponse>(path, {
+          client_hlc: this.hlc.next(),
+          mutations: chunk,
+        })
+        cursor = resp.pull_hint.next_cursor
+        // Drop only what was pushed — a failure keeps the rest queued.
+        this.queues.set(key, this.queues.get(key)!.slice(chunk.length))
+      }
     }
 
     const pullPath =

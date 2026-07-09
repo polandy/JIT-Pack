@@ -227,6 +227,20 @@ export function useMutations(hlc: HLCGenerator) {
     return make('delete', 'comments', todoId)
   }
 
+  /**
+   * resetForRepack reopens an item for the return leg (FR-11.1),
+   * recording whether it traveled outbound for the M14 review.
+   */
+  function resetForRepack(itemId: string, wasPacked: boolean): Mutation {
+    return make('upsert', 'trip_items', itemId, {
+      packed_count: 0,
+      state: 'open',
+      outbound_packed: wasPacked ? 1 : 0,
+      packing_now_by: null,
+      packing_now_at: null,
+    })
+  }
+
   // --- Container mutations (FR-10.1) ---
 
   function addContainer(
@@ -435,6 +449,7 @@ export function useMutations(hlc: HLCGenerator) {
     addContainer,
     updateContainer,
     deleteContainer,
+    resetForRepack,
     // Trips
     createTrip,
     updateTripStatus,
