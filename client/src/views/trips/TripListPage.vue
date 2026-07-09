@@ -23,7 +23,7 @@ import {
   IonItemOption,
   IonButton,
 } from '@ionic/vue'
-import { addOutline, airplaneOutline, albumsOutline, archiveOutline, cloudUploadOutline, copyOutline } from 'ionicons/icons'
+import { addOutline, airplaneOutline, albumsOutline, archiveOutline, cloudUploadOutline, copyOutline, documentTextOutline } from 'ionicons/icons'
 import { ref, computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMasterStore } from '@/stores/masterStore'
@@ -120,10 +120,16 @@ async function handleRefresh(event: CustomEvent) {
       <div class="ion-padding">
         <div class="title-row">
           <h1 class="page-title">Trips</h1>
-          <!-- M15: legacy spreadsheet import (FR-16.1) -->
-          <IonButton fill="clear" size="small" aria-label="Import spreadsheet" router-link="/import">
-            <IonIcon slot="icon-only" :icon="cloudUploadOutline" />
-          </IonButton>
+          <div>
+            <!-- M18: portable trip import (FR-18.4) -->
+            <IonButton fill="clear" size="small" aria-label="Import trip from file" router-link="/portable-import">
+              <IonIcon slot="icon-only" :icon="documentTextOutline" />
+            </IonButton>
+            <!-- M15: legacy spreadsheet import (FR-16.1) -->
+            <IonButton fill="clear" size="small" aria-label="Import spreadsheet" router-link="/import">
+              <IonIcon slot="icon-only" :icon="cloudUploadOutline" />
+            </IonButton>
+          </div>
         </div>
 
         <IonSegment :value="filter" @ionChange="onFilterChange">

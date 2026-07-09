@@ -20,8 +20,9 @@ import {
   IonBadge,
   IonRefresher,
   IonRefresherContent,
+  IonButton,
 } from '@ionic/vue'
-import { addOutline, listOutline, gitBranchOutline } from 'ionicons/icons'
+import { addOutline, documentTextOutline, listOutline, gitBranchOutline } from 'ionicons/icons'
 import { computed } from 'vue'
 import { useMasterStore } from '@/stores/masterStore'
 
@@ -52,7 +53,13 @@ async function handleRefresh(event: CustomEvent) {
       </IonRefresher>
 
       <div class="ion-padding">
-        <h1 class="page-title">Templates</h1>
+        <div class="title-row">
+          <h1 class="page-title">Templates</h1>
+          <!-- M18: portable template import (FR-18.4) -->
+          <IonButton fill="clear" size="small" aria-label="Import template from file" router-link="/portable-import">
+            <IonIcon slot="icon-only" :icon="documentTextOutline" />
+          </IonButton>
+        </div>
       </div>
 
       <!-- Empty state (G-7) -->
@@ -115,6 +122,12 @@ async function handleRefresh(event: CustomEvent) {
   font-size: 1.8rem;
   font-weight: 700;
   margin: 16px 0 16px;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .empty-state {

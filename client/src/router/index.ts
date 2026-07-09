@@ -75,6 +75,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/import/ImportPage.vue'),
   },
   {
+    path: '/portable-import',
+    name: 'portable-import',
+    component: () => import('@/views/import/PortableImportPage.vue'),
+  },
+  {
     path: '/series/:seriesId',
     name: 'series-profile',
     component: () => import('@/views/series/SeriesPage.vue'),

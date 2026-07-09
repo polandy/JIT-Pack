@@ -237,6 +237,44 @@ export function useMutations(hlc: HLCGenerator) {
     return { mutation, id }
   }
 
+  /** addPortableTripItem inserts one M18 trip-import row, state derived from progress. */
+  function addPortableTripItem(
+    tripId: string,
+    item: {
+      name: string
+      sourceItemId: string | null
+      categoryName: string | null
+      quantity: number
+      packedCount: number
+      mode: string
+      latePacker: boolean
+    },
+    assignedTravelerId: string | null,
+    containerId: string | null,
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const packed = Math.min(item.packedCount, item.quantity)
+    const state =
+      item.quantity === 0 ? 'skipped'
+      : packed === 0 ? 'open'
+      : packed >= item.quantity ? 'packed'
+      : 'partial'
+    const mutation = make('insert', 'trip_items', id, {
+      trip_id: tripId,
+      name: item.name,
+      source_item_id: item.sourceItemId,
+      category_name: item.categoryName,
+      quantity: item.quantity,
+      packed_count: packed,
+      state,
+      mode: item.mode,
+      late_packer: item.latePacker ? 1 : 0,
+      assigned_traveler_id: assignedTravelerId,
+      container_id: containerId,
+    })
+    return { mutation, id }
+  }
+
   // --- Preparation todo mutations (FR-7.3) ---
 
   function addTodo(
@@ -534,6 +572,7 @@ export function useMutations(hlc: HLCGenerator) {
       dedup?: string
       defaultMode?: string
       latePacker?: boolean
+      conditions?: Record<string, unknown> | null
     } = {},
   ): { mutation: Mutation; id: string } {
     const id = crypto.randomUUID()
@@ -545,6 +584,7 @@ export function useMutations(hlc: HLCGenerator) {
       dedup: opts.dedup ?? 'max',
       default_mode: opts.defaultMode ?? 'pack',
       late_packer: opts.latePacker ? 1 : 0,
+      conditions: opts.conditions ? JSON.stringify(opts.conditions) : null,
     })
     return { mutation, id }
   }
@@ -584,6 +624,7 @@ export function useMutations(hlc: HLCGenerator) {
     addTraveler,
     addGeneratedTripItem,
     addClonedTripItem,
+    addPortableTripItem,
     // Todos
     addTodo,
     resolveTodo,
