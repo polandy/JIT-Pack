@@ -53,7 +53,7 @@
 
 ### `GET /sync/master?cursor={seq}&limit={n}`
 
-Same envelope for the user's master partition. `change_log.trip_id` is NULL for master rows (schema note: column becomes nullable in migration 003); visibility is filtered per user (own + published templates, member trips).
+Same envelope for the user's master partition. `change_log.trip_id` is NULL for master rows (schema note: column becomes nullable in migration 005); visibility is filtered per user (own + published templates, member trips).
 
 ## 5. Push Protocol
 

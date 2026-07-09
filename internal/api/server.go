@@ -75,6 +75,8 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/sync/trips/{tripID}", s.authed(s.member(s.handlePull)))
 	mux.HandleFunc("POST /api/v1/sync/trips/{tripID}", s.authed(s.member(s.handlePush)))
+	mux.HandleFunc("GET /api/v1/sync/master", s.authed(s.handlePullMaster))
+	mux.HandleFunc("POST /api/v1/sync/master", s.authed(s.handlePushMaster))
 	mux.HandleFunc("GET /api/v1/users/{userID}/avatar", s.handleGetAvatar)
 	mux.HandleFunc("PUT /api/v1/users/{userID}/avatar", s.authed(s.handlePutAvatar))
 	mux.HandleFunc("PUT /api/v1/users/{userID}/display-name", s.authed(s.handlePutDisplayName))
@@ -158,14 +160,8 @@ type pullResponse struct {
 }
 
 func (s *Server) handlePull(w http.ResponseWriter, r *http.Request) {
-	cursor, err := queryInt(r, "cursor", 0)
-	if err != nil {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "cursor must be an integer")
-		return
-	}
-	limit, err := queryInt(r, "limit", defaultPullLimit)
-	if err != nil || limit < 1 || limit > maxPullLimit {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "limit must be 1..1000")
+	cursor, limit, ok := parsePullQuery(w, r)
+	if !ok {
 		return
 	}
 
@@ -174,7 +170,24 @@ func (s *Server) handlePull(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal", "pull failed")
 		return
 	}
+	writePullPage(w, page)
+}
 
+func parsePullQuery(w http.ResponseWriter, r *http.Request) (cursor, limit int64, ok bool) {
+	cursor, err := queryInt(r, "cursor", 0)
+	if err != nil {
+		writeError(w, http.StatusUnprocessableEntity, "validation", "cursor must be an integer")
+		return 0, 0, false
+	}
+	limit, err = queryInt(r, "limit", defaultPullLimit)
+	if err != nil || limit < 1 || limit > maxPullLimit {
+		writeError(w, http.StatusUnprocessableEntity, "validation", "limit must be 1..1000")
+		return 0, 0, false
+	}
+	return cursor, limit, true
+}
+
+func writePullPage(w http.ResponseWriter, page store.PullPage) {
 	out := pullResponse{Changes: []wireChange{}, NextCursor: page.NextCursor, HasMore: page.HasMore}
 	for _, c := range page.Changes {
 		out.Changes = append(out.Changes, wireChange{
@@ -219,21 +232,38 @@ type pushResponse struct {
 }
 
 func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
+	tripID := r.PathValue("tripID")
+	out, ok := applyPushBatch(w, r, func(m syncpkg.Mutation) (store.MutationResult, error) {
+		return s.store.ApplyMutation(r.Context(), tripID, m)
+	})
+	if !ok {
+		return
+	}
+	writeJSON(w, out)
+
+	// Notify subscribed WebSocket clients so they pull the new state.
+	if out.PullHint.NextCursor > 0 {
+		s.hub.NotifyTripChanged(tripID, out.PullHint.NextCursor)
+	}
+}
+
+// applyPushBatch decodes the push envelope and applies each mutation via
+// apply. It reports ok=false after writing an error response itself.
+func applyPushBatch(w http.ResponseWriter, r *http.Request, apply func(syncpkg.Mutation) (store.MutationResult, error)) (pushResponse, bool) {
 	var req pushRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusUnprocessableEntity, "validation", "malformed push envelope")
-		return
+		return pushResponse{}, false
 	}
 	if len(req.Mutations) > maxPushBatch {
 		writeError(w, http.StatusUnprocessableEntity, "validation",
 			fmt.Sprintf("batch exceeds %d mutations", maxPushBatch))
-		return
+		return pushResponse{}, false
 	}
 
-	tripID := r.PathValue("tripID")
 	var out pushResponse
 	for _, m := range req.Mutations {
-		res, err := s.store.ApplyMutation(r.Context(), tripID, syncpkg.Mutation{
+		res, err := apply(syncpkg.Mutation{
 			MutationID: m.MutationID, Op: syncpkg.Op(m.Op), Table: m.Table,
 			ID: m.ID, Fields: m.Fields, HLC: syncpkg.HLC(m.HLC),
 		})
@@ -245,7 +275,7 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 			continue
 		case err != nil:
 			writeError(w, http.StatusInternalServerError, "internal", "push failed")
-			return
+			return pushResponse{}, false
 		}
 		out.Results = append(out.Results, pushResult{
 			MutationID: res.MutationID, Outcome: res.Outcome, Conflicts: toWireConflicts(res.Conflicts),
@@ -254,12 +284,7 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 			out.PullHint.NextCursor = res.Seq
 		}
 	}
-	writeJSON(w, out)
-
-	// Notify subscribed WebSocket clients so they pull the new state.
-	if out.PullHint.NextCursor > 0 {
-		s.hub.NotifyTripChanged(tripID, out.PullHint.NextCursor)
-	}
+	return out, true
 }
 
 func toWireConflicts(conflicts []syncpkg.Conflict) []wireConflict {
