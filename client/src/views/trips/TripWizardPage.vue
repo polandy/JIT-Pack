@@ -10,7 +10,7 @@
  *
  * Sharing/role assignment of step 2 is not rendered yet: membership
  * sync is not built, and in Single-User/Local Mode it is hidden anyway
- * (FR-17.3/19.3). The series picker (FR-13.1) waits for series support.
+ * (FR-17.3/19.3).
  */
 import {
   IonPage,
@@ -36,12 +36,13 @@ import {
 } from '@ionic/vue'
 import { addOutline, closeOutline, personOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { durationDays, generateTripItems } from '@/domain/instantiate'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
+const route = useRoute()
 const router = useRouter()
 const masterStore = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
@@ -56,6 +57,28 @@ const season = ref('')
 const transportMode = ref('')
 const accommodation = ref('')
 const tagsInput = ref('')
+
+// --- Series picker (FR-13.1) — '' none, 'new' inline creation ---
+const seriesChoice = ref<string>('')
+const newSeriesName = ref('')
+
+/** Picking a series prefills empty attribute chips from its defaults. */
+function pickSeries(choice: string) {
+  seriesChoice.value = choice
+  const defaults = choice && choice !== 'new'
+    ? masterStore.getSeries(choice)?.default_attributes
+    : null
+  if (!defaults) return
+  if (!season.value && typeof defaults.season === 'string') season.value = defaults.season
+  if (!transportMode.value && typeof defaults.transport_mode === 'string') transportMode.value = defaults.transport_mode
+  if (!accommodation.value && typeof defaults.accommodation === 'string') accommodation.value = defaults.accommodation
+}
+
+// M16 "New trip in series" arrives with ?series=<id>.
+const preselect = route.query.series
+if (typeof preselect === 'string' && masterStore.getSeries(preselect)) {
+  pickSeries(preselect)
+}
 
 const duration = computed(() => durationDays(startDate.value || null, endDate.value))
 
@@ -104,8 +127,15 @@ const generation = computed(() => {
   })
 })
 
-// --- Step 4: quantity review ---
+// --- Step 4: quantity review + destination checklist offer (FR-13.3) ---
 const quantityOverrides = ref<Record<number, number>>({})
+const includeChecklist = ref(true)
+
+const offeredChecklist = computed(() => {
+  if (!seriesChoice.value || seriesChoice.value === 'new') return []
+  const profile = masterStore.getDestinationProfile(seriesChoice.value)
+  return profile ? masterStore.getChecklistItems(profile.id) : []
+})
 
 function reviewQuantity(index: number): number {
   return quantityOverrides.value[index] ?? generation.value.items[index].quantity
@@ -123,7 +153,13 @@ function travelerName(index: number | null): string | null {
 
 // --- Navigation ---
 const stepValid = computed(() => {
-  if (step.value === 1) return name.value.trim() !== '' && endDate.value !== ''
+  if (step.value === 1) {
+    return (
+      name.value.trim() !== '' &&
+      endDate.value !== '' &&
+      (seriesChoice.value !== 'new' || newSeriesName.value.trim() !== '')
+    )
+  }
   if (step.value === 2) return travelers.value.every((t) => t.name.trim() !== '')
   return true
 })
@@ -148,6 +184,11 @@ function createTrip() {
     attributes: attributes.value,
     travelers: travelers.value.map((t) => ({ name: t.name.trim(), profile: t.profile })),
     items,
+    seriesId: seriesChoice.value && seriesChoice.value !== 'new' ? seriesChoice.value : null,
+    newSeriesName: seriesChoice.value === 'new' ? newSeriesName.value.trim() : null,
+    checklistItems: includeChecklist.value
+      ? offeredChecklist.value.map((c) => ({ label: c.label, mode: c.mode }))
+      : [],
   })
   router.replace(`/trips/${tripId}`)
 }
@@ -198,6 +239,29 @@ function createTrip() {
           </IonItem>
           <IonItem v-if="duration !== null" lines="none">
             <IonNote>Duration: {{ duration }} days</IonNote>
+          </IonItem>
+          <IonItem>
+            <IonSelect
+              label="Series"
+              interface="popover"
+              :value="seriesChoice"
+              @ionChange="(e: CustomEvent) => pickSeries(e.detail.value)"
+            >
+              <IonSelectOption value="">No series</IonSelectOption>
+              <IonSelectOption v-for="s in masterStore.seriesList" :key="s.id" :value="s.id">
+                {{ s.name }}
+              </IonSelectOption>
+              <IonSelectOption value="new">New series…</IonSelectOption>
+            </IonSelect>
+          </IonItem>
+          <IonItem v-if="seriesChoice === 'new'">
+            <IonInput
+              label="Series name"
+              label-placement="stacked"
+              placeholder="e.g. Samedan Summer"
+              :value="newSeriesName"
+              @ionInput="(e: CustomEvent) => (newSeriesName = e.detail.value ?? '')"
+            />
           </IonItem>
         </IonList>
 
@@ -347,6 +411,23 @@ function createTrip() {
           </IonItem>
         </IonList>
         <div v-else class="empty-hint">No items generated — the trip starts empty.</div>
+
+        <!-- FR-13.3: destination checklist offer from the series profile -->
+        <template v-if="offeredChecklist.length > 0">
+          <h2 class="section-title">Destination checklist</h2>
+          <IonItem lines="none">
+            <IonCheckbox
+              slot="start"
+              :checked="includeChecklist"
+              @ionChange="(e: CustomEvent) => (includeChecklist = e.detail.checked)"
+            />
+            <IonLabel>
+              Add {{ offeredChecklist.length }} item{{ offeredChecklist.length === 1 ? '' : 's' }}
+              from the destination checklist
+            </IonLabel>
+          </IonItem>
+          <IonNote>{{ offeredChecklist.map((c) => c.label).join(', ') }}</IonNote>
+        </template>
       </section>
 
       <!-- Wizard navigation -->

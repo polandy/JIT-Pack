@@ -65,6 +65,12 @@ const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    path: '/series/:seriesId',
+    name: 'series-profile',
+    component: () => import('@/views/series/SeriesPage.vue'),
+    props: true,
+  },
+  {
     path: '/trips/:tripId/review',
     name: 'trip-review',
     component: () => import('@/views/trips/ReviewPage.vue'),

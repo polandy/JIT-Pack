@@ -155,6 +155,28 @@ export interface Template {
   is_published: boolean
 }
 
+// --- Trip series & destination profiles (FR-13.1/13.2) ---
+
+export interface TripSeries {
+  id: string
+  owner_id: string
+  name: string
+  default_attributes: Record<string, unknown> | null
+}
+
+export interface DestinationProfile {
+  id: string
+  series_id: string
+  notes: string | null
+}
+
+export interface DestinationChecklistItem {
+  id: string
+  profile_id: string
+  label: string
+  mode: ItemMode
+}
+
 export type TemplateAssignment = 'per_person' | 'trip_global'
 export type TemplateDedup = 'max' | 'sum'
 

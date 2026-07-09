@@ -8,9 +8,12 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type {
   Category,
+  DestinationChecklistItem,
+  DestinationProfile,
   MasterItem,
   Template,
   TemplateItem,
+  TripSeries,
 } from '@/types/domain'
 import type { PullChange } from '@/api/types'
 
@@ -19,6 +22,9 @@ export const useMasterStore = defineStore('master', () => {
   const items = ref<Map<string, MasterItem>>(new Map())
   const templates = ref<Map<string, Template>>(new Map())
   const templateItems = ref<Map<string, TemplateItem[]>>(new Map())
+  const series = ref<Map<string, TripSeries>>(new Map())
+  const profiles = ref<Map<string, DestinationProfile>>(new Map())
+  const checklistItems = ref<Map<string, DestinationChecklistItem>>(new Map())
 
   // --- Getters ---
 
@@ -44,6 +50,21 @@ export const useMasterStore = defineStore('master', () => {
 
   function templateItemCount(templateId: string): number {
     return getTemplateItems(templateId).length
+  }
+
+  const seriesList = computed(() => [...series.value.values()])
+
+  function getSeries(id: string): TripSeries | undefined {
+    return series.value.get(id)
+  }
+
+  /** The series' destination profile — unique per series (FR-13.2). */
+  function getDestinationProfile(seriesId: string): DestinationProfile | undefined {
+    return [...profiles.value.values()].find((p) => p.series_id === seriesId)
+  }
+
+  function getChecklistItems(profileId: string): DestinationChecklistItem[] {
+    return [...checklistItems.value.values()].filter((c) => c.profile_id === profileId)
   }
 
   /** Items grouped by category name, sorted by category sort_order. */
@@ -108,6 +129,30 @@ export const useMasterStore = defineStore('master', () => {
           upsertTemplateItem(rowToTemplateItem(change.id, row))
         }
         break
+
+      case 'trip_series':
+        if (change.deleted) {
+          series.value.delete(change.id)
+        } else if (row) {
+          series.value.set(change.id, rowToSeries(change.id, row))
+        }
+        break
+
+      case 'destination_profiles':
+        if (change.deleted) {
+          profiles.value.delete(change.id)
+        } else if (row) {
+          profiles.value.set(change.id, rowToProfile(change.id, row))
+        }
+        break
+
+      case 'destination_checklist_items':
+        if (change.deleted) {
+          checklistItems.value.delete(change.id)
+        } else if (row) {
+          checklistItems.value.set(change.id, rowToChecklistItem(change.id, row))
+        }
+        break
     }
   }
 
@@ -151,6 +196,10 @@ export const useMasterStore = defineStore('master', () => {
     getTemplate,
     getTemplateItems,
     templateItemCount,
+    seriesList,
+    getSeries,
+    getDestinationProfile,
+    getChecklistItems,
     itemsByCategory,
     searchItems,
     applyChange,
@@ -187,6 +236,34 @@ function rowToTemplate(id: string, row: Record<string, unknown>): Template {
     owner_id: row['owner_id'] as string,
     name: row['name'] as string,
     is_published: Boolean(row['is_published']),
+  }
+}
+
+function rowToSeries(id: string, row: Record<string, unknown>): TripSeries {
+  return {
+    id,
+    owner_id: row['owner_id'] as string,
+    name: row['name'] as string,
+    default_attributes: row['default_attributes']
+      ? JSON.parse(row['default_attributes'] as string)
+      : null,
+  }
+}
+
+function rowToProfile(id: string, row: Record<string, unknown>): DestinationProfile {
+  return {
+    id,
+    series_id: row['series_id'] as string,
+    notes: (row['notes'] as string) ?? null,
+  }
+}
+
+function rowToChecklistItem(id: string, row: Record<string, unknown>): DestinationChecklistItem {
+  return {
+    id,
+    profile_id: row['profile_id'] as string,
+    label: row['label'] as string,
+    mode: (row['mode'] as DestinationChecklistItem['mode']) ?? 'buy_local',
   }
 }
 

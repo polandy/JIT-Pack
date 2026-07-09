@@ -22,13 +22,15 @@ import {
   IonItemOptions,
   IonItemOption,
 } from '@ionic/vue'
-import { addOutline, airplaneOutline, archiveOutline } from 'ionicons/icons'
+import { addOutline, airplaneOutline, albumsOutline, archiveOutline } from 'ionicons/icons'
 import { ref, computed, inject } from 'vue'
+import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip, TripStatus } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const store = useTripStore()
+const masterStore = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
 // Map DB 'planning' to display filter 'planned' for UI clarity
@@ -45,6 +47,28 @@ function matchesFilter(trip: Trip): boolean {
 
 const filteredTrips = computed(() => store.tripList.filter(matchesFilter))
 const isEmpty = computed(() => filteredTrips.value.length === 0)
+
+/**
+ * FR-13.1: trips grouped by series with a tappable header (→ M16);
+ * series-less trips follow in a trailing unlabeled group.
+ */
+const groupedTrips = computed(() => {
+  const groups: { seriesId: string | null; seriesName: string | null; trips: Trip[] }[] = []
+  const index = new Map<string | null, number>()
+  for (const trip of filteredTrips.value) {
+    const key = trip.series_id
+    if (!index.has(key)) {
+      index.set(key, groups.length)
+      groups.push({
+        seriesId: key,
+        seriesName: key ? (masterStore.getSeries(key)?.name ?? 'Series') : null,
+        trips: [],
+      })
+    }
+    groups[index.get(key)!].trips.push(trip)
+  }
+  return groups.sort((a, b) => Number(a.seriesId === null) - Number(b.seriesId === null))
+})
 
 function progressPercent(trip: Trip): number {
   const k = store.kpis(trip.id)
@@ -107,9 +131,24 @@ async function handleRefresh(event: CustomEvent) {
         <p v-else>No archived trips</p>
       </div>
 
-      <!-- Trip list -->
+      <!-- Trip list, grouped by series (FR-13.1) -->
       <IonList v-else>
-        <IonItemSliding v-for="trip in filteredTrips" :key="trip.id">
+        <template v-for="group in groupedTrips" :key="group.seriesId ?? 'none'">
+        <!-- Series header → M16 -->
+        <IonItem
+          v-if="group.seriesId"
+          button
+          detail
+          class="series-header"
+          :router-link="`/series/${group.seriesId}`"
+        >
+          <IonIcon slot="start" :icon="albumsOutline" />
+          <IonLabel>
+            <h2>{{ group.seriesName }}</h2>
+            <p>{{ group.trips.length }} trip{{ group.trips.length === 1 ? '' : 's' }}</p>
+          </IonLabel>
+        </IonItem>
+        <IonItemSliding v-for="trip in group.trips" :key="trip.id">
           <IonItem
             button
             :router-link="`/trips/${trip.id}`"
@@ -159,6 +198,7 @@ async function handleRefresh(event: CustomEvent) {
             </IonItemOption>
           </IonItemOptions>
         </IonItemSliding>
+        </template>
       </IonList>
 
       <!-- FAB: New Trip -->
@@ -195,6 +235,11 @@ async function handleRefresh(event: CustomEvent) {
 
 .archived {
   opacity: 0.6;
+}
+
+.series-header {
+  --background: var(--ion-color-light, #f4f5f8);
+  font-weight: 600;
 }
 
 /* Progress ring */
