@@ -24,6 +24,8 @@ import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import { planClone, type CloneOptions } from '@/domain/clone'
 import type { ImportPlan } from '@/domain/spreadsheet'
 import type { PortableDocument, PortableItem } from '@/domain/portable'
+import type { NotificationPrefs, ServerNotification } from '@/notifications/format'
+import type { PushServerAPI } from '@/notifications/push'
 import type { ReviewProposal } from '@/domain/review'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import type { Container, DestinationChecklistItem, DestinationProfile, ItemComment, ItemMode, ItemTodo, MasterItem, Template, TemplateItem, Trip, TripItem, TripSeries, TripStatus } from '@/types/domain'
@@ -84,6 +86,13 @@ export interface SyncOrchestratorConfig {
    * is ever touched. The optimistic rows are authoritative.
    */
   local?: IndexedDBPersistence
+  /**
+   * FR-6.2 in-app channel: invoked for each incoming notification —
+   * live ones (notification.created) and unread ones found on connect.
+   * The callee surfaces it (toast) and marks it read via
+   * markNotificationRead. No-op in Local Mode.
+   */
+  onNotification?: (n: ServerNotification) => void
 }
 
 export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
@@ -220,7 +229,66 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         }
         break
       }
+      case 'notification.created':
+        // Thin ping (§7): the row itself comes via GET /notifications.
+        void surfaceUnreadNotifications()
+        break
     }
+  }
+
+  // --- Notifications (FR-6.2) ---
+
+  // Guards against surfacing the same notification twice when several
+  // notification.created pings arrive before the first fetch settles.
+  const surfacedNotifications = new Set<string>()
+
+  async function surfaceUnreadNotifications(): Promise<void> {
+    if (local || !config.onNotification) return
+    try {
+      const resp = await client.get<{ notifications: ServerNotification[] }>(
+        '/api/v1/notifications', { unread: '1' },
+      )
+      for (const n of resp.notifications ?? []) {
+        if (surfacedNotifications.has(n.id)) continue
+        surfacedNotifications.add(n.id)
+        config.onNotification(n)
+      }
+    } catch {
+      // Offline — unread notifications resurface on the next connect.
+    }
+  }
+
+  async function markNotificationRead(id: string): Promise<void> {
+    try {
+      await client.post(`/api/v1/notifications/${id}/read`)
+    } catch {
+      // Offline: stays unread server-side and resurfaces at most once.
+    }
+  }
+
+  async function fetchNotificationPrefs(): Promise<NotificationPrefs | null> {
+    try {
+      return await client.get<NotificationPrefs>('/api/v1/me/notification-prefs')
+    } catch {
+      return null
+    }
+  }
+
+  async function saveNotificationPrefs(prefs: NotificationPrefs): Promise<void> {
+    await client.put('/api/v1/me/notification-prefs', prefs)
+  }
+
+  /** Server half of the Web Push dance (NFR-4.6) for notifications/push.ts. */
+  const pushApi: PushServerAPI = {
+    async getVapidKey() {
+      return (await client.get<{ key: string }>('/api/v1/push/vapid-key')).key
+    },
+    async registerSubscription(sub) {
+      await client.post('/api/v1/push/subscriptions', sub)
+    },
+    async unregisterSubscription(endpoint) {
+      await client.delete('/api/v1/push/subscriptions', { endpoint })
+    },
   }
 
   // --- Drain operations ---
@@ -1209,6 +1277,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       return
     }
     ws.connect()
+    // FR-6.2: notifications that arrived while this device was away.
+    void surfaceUnreadNotifications()
   }
 
   function subscribeTrip(tripId: string) {
@@ -1295,6 +1365,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     saveDisplayName,
     uploadAvatar,
     downloadExport,
+
+    // Notifications (FR-6.2 / NFR-4.6)
+    markNotificationRead,
+    fetchNotificationPrefs,
+    saveNotificationPrefs,
+    pushApi,
 
     // Post-trip review (FR-9.2, M14)
     archiveTrip,
