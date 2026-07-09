@@ -50,10 +50,17 @@ export function useWebSocket(opts: WSOptions) {
     }
   }
 
+  /** Report the pull cursor so the server can compute in_sync (§7). */
+  function sendCursor(tripId: string, seq: number) {
+    if (socket && socket.readyState === 1) {
+      socket.send(JSON.stringify({ cursor: { trip_id: tripId, seq } }))
+    }
+  }
+
   function disconnect() {
     socket?.close()
     socket = null
   }
 
-  return { connect, subscribe, disconnect }
+  return { connect, subscribe, sendCursor, disconnect }
 }

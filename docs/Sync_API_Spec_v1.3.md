@@ -100,8 +100,9 @@ Field groups: `packed_count`+`state` merge as one unit (they are causally couple
 
 ## 7. WebSocket — `GET /ws` (Upgrade)
 
-* Auth via `?token=` query param or first frame `{"auth": "<JWT>"}`.
-* Client subscribes: `{"subscribe": ["trip:<id>", "user:<own-id>"]}`.
+* Auth via `?token=` query param (implemented) or first frame `{"auth": "<JWT>"}` (reserved, not implemented).
+* Server → client envelope: `{"type": "<event>", "payload": {…}}`.
+* Client → server frames: `{"subscribe": ["trip:<id>", "user:<own-id>"]}`, `{"unsubscribe": ["trip:<id>"]}`, and `{"cursor": {"trip_id": "<id>", "seq": <n>}}` — the client reports its pull cursor after each trip pull so the server can recompute `in_sync`. `user:` channels are accepted but carry no events yet (`notification.created` will use them).
 * **Event catalog (server → client), all thin:**
 
 | Event | Payload | Client reaction |
@@ -113,7 +114,7 @@ Field groups: `packed_count`+`state` merge as one unit (they are causally couple
 | `notification.created` | `{notification_id}` | pull + OS notification if app foregrounded |
 
 * Locks (`packing_now`) are **also** persisted via normal mutations; the ephemeral event only lowers latency. Offline devices converge via pull — a stale lock older than 15 min is ignored by clients (timeout rule). **Decided: 15 minutes is the shipped default, configurable via an environment variable** per the declarative-config principle (Section 2), not adjustable from within the UI.
-* **Group-sync computation (`presence.users[].in_sync`):** for each WebSocket connection subscribed to `trip:<id>`, the server tracks the cursor of that connection's most recent `GET /sync/trips/{tripId}` pull. `in_sync` is `true` when that cursor equals the trip's current `change_log` head sequence. This is necessarily best-effort: it reflects only devices currently connected via WebSocket, says nothing about a fully offline device's local outbox, and is advisory UI signal only (UI-Spec G-10) — it never gates any mutation or pull.
+* **Group-sync computation (`presence.users[].in_sync`):** for each WebSocket connection subscribed to `trip:<id>`, the server tracks the connection's last client-reported pull cursor (the `cursor` frame above). `in_sync` is `true` when that cursor is at or beyond the trip's current `change_log` head sequence. This is necessarily best-effort: it reflects only devices currently connected via WebSocket, says nothing about a fully offline device's local outbox, and is advisory UI signal only (UI-Spec G-10) — it never gates any mutation or pull.
 
 ## 8. Non-Synced Operations (RPC-style REST)
 

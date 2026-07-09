@@ -153,8 +153,8 @@ func TestWS_MasterChangedNotifiesSameUserOnly(t *testing.T) {
 	if evt["type"] != "master.changed" {
 		t.Fatalf("type = %v, want master.changed", evt["type"])
 	}
-	data := evt["data"].(map[string]any)
-	if data["seq"].(float64) < 1 {
+	payload := evt["payload"].(map[string]any)
+	if payload["seq"].(float64) < 1 {
 		t.Error("seq should be >= 1")
 	}
 

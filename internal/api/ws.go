@@ -4,20 +4,44 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/coder/websocket"
 )
 
-// wsMessage is the client→server envelope.
+// wsMessage is the client→server envelope (Sync-API Spec §7):
+//
+//	{"subscribe":   ["trip:<id>", "user:<own-id>"]}
+//	{"unsubscribe": ["trip:<id>"]}
+//	{"cursor":      {"trip_id": "...", "seq": 123}}
 type wsMessage struct {
-	Action string `json:"action"` // subscribe, unsubscribe, cursor
-	TripID string `json:"trip_id"`
-	Cursor int64  `json:"cursor,omitempty"`
+	Subscribe   []string  `json:"subscribe,omitempty"`
+	Unsubscribe []string  `json:"unsubscribe,omitempty"`
+	Cursor      *wsCursor `json:"cursor,omitempty"`
 }
 
-// handleWS upgrades the HTTP connection to WebSocket. Authentication
-// uses the same middleware as other endpoints — the user ID is already
-// in the context by the time this handler runs.
+type wsCursor struct {
+	TripID string `json:"trip_id"`
+	Seq    int64  `json:"seq"`
+}
+
+// wsAuth wraps authed for the WebSocket route: browsers cannot set
+// headers on WebSocket dials, so the token is also accepted as a
+// ?token= query parameter (spec §7).
+func (s *Server) wsAuth(next http.HandlerFunc) http.HandlerFunc {
+	authed := s.authed(next)
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") == "" {
+			if tok := r.URL.Query().Get("token"); tok != "" {
+				r.Header.Set("Authorization", "Bearer "+tok)
+			}
+		}
+		authed(w, r)
+	}
+}
+
+// handleWS upgrades the HTTP connection to WebSocket. The user ID is
+// already in the context by the time this handler runs.
 func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(userIDKey).(string)
 
@@ -43,15 +67,22 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 		if err := json.Unmarshal(data, &msg); err != nil {
 			continue
 		}
-		switch msg.Action {
-		case "subscribe":
-			if s.singleUserMode || s.isMember(r, msg.TripID, userID) {
-				s.hub.Subscribe(c, msg.TripID)
+		for _, channel := range msg.Subscribe {
+			// user:<id> channels are accepted but carry no events yet
+			// (notification.created will use them).
+			if tripID, ok := strings.CutPrefix(channel, "trip:"); ok {
+				if s.singleUserMode || s.isMember(r, tripID, userID) {
+					s.hub.Subscribe(c, tripID)
+				}
 			}
-		case "unsubscribe":
-			s.hub.Unsubscribe(c, msg.TripID)
-		case "cursor":
-			s.hub.UpdateCursor(c, msg.TripID, msg.Cursor)
+		}
+		for _, channel := range msg.Unsubscribe {
+			if tripID, ok := strings.CutPrefix(channel, "trip:"); ok {
+				s.hub.Unsubscribe(c, tripID)
+			}
+		}
+		if msg.Cursor != nil {
+			s.hub.UpdateCursor(c, msg.Cursor.TripID, msg.Cursor.Seq)
 		}
 	}
 }

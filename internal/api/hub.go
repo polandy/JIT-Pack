@@ -13,16 +13,19 @@ import (
 	"github.com/coder/websocket"
 )
 
-// Event is the server→client envelope sent over the WebSocket.
+// Event is the server→client envelope sent over the WebSocket
+// (Sync-API Spec §7: {"type": ..., "payload": {...}}).
 type Event struct {
-	Type string `json:"type"`
-	Data any    `json:"data"`
+	Type    string `json:"type"`
+	Payload any    `json:"payload"`
 }
 
-// PresenceMember is one entry in the presence facepile.
+// PresenceMember is one entry in the presence facepile (spec §7:
+// users:[{user_id, device_count, in_sync}]).
 type PresenceMember struct {
-	UserID  string `json:"user_id"`
-	InSync  bool   `json:"in_sync"`
+	UserID      string `json:"user_id"`
+	DeviceCount int    `json:"device_count"`
+	InSync      bool   `json:"in_sync"`
 }
 
 // conn is a tracked WebSocket connection.
@@ -112,8 +115,8 @@ func (h *Hub) UpdateCursor(c *conn, tripID string, cursor int64) {
 // subscribed to the given trip.
 func (h *Hub) NotifyTripChanged(tripID string, headSeq int64) {
 	evt := Event{
-		Type: "trip.changed",
-		Data: map[string]any{"trip_id": tripID, "head_seq": headSeq},
+		Type:    "trip.changed",
+		Payload: map[string]any{"trip_id": tripID, "head_seq": headSeq},
 	}
 	h.broadcast(tripID, evt)
 }
@@ -124,8 +127,8 @@ func (h *Hub) NotifyTripChanged(tripID string, headSeq int64) {
 // their next pull (spec §8).
 func (h *Hub) NotifyMasterChanged(userID string, seq int64) {
 	evt := Event{
-		Type: "master.changed",
-		Data: map[string]any{"seq": seq},
+		Type:    "master.changed",
+		Payload: map[string]any{"seq": seq},
 	}
 
 	h.mu.Lock()
@@ -187,10 +190,11 @@ func (h *Hub) send(targets []*conn, evt Event) {
 // to all subscribed connections.
 func (h *Hub) broadcastPresence(tripID string) {
 	h.mu.Lock()
-	// Collect unique users and their best cursor.
+	// Collect unique users, their device count, and their best cursor.
 	type userState struct {
-		userID string
-		cursor int64
+		userID  string
+		devices int
+		cursor  int64
 	}
 	users := map[string]*userState{}
 	for c := range h.conns {
@@ -198,14 +202,16 @@ func (h *Hub) broadcastPresence(tripID string) {
 			continue
 		}
 		if existing, ok := users[c.userID]; ok {
+			existing.devices++
 			// Take the highest cursor among the user's connections.
 			if c.pullCursors[tripID] > existing.cursor {
 				existing.cursor = c.pullCursors[tripID]
 			}
 		} else {
 			users[c.userID] = &userState{
-				userID: c.userID,
-				cursor: c.pullCursors[tripID],
+				userID:  c.userID,
+				devices: 1,
+				cursor:  c.pullCursors[tripID],
 			}
 		}
 	}
@@ -224,16 +230,17 @@ func (h *Hub) broadcastPresence(tripID string) {
 	members := make([]PresenceMember, 0, len(users))
 	for _, u := range users {
 		members = append(members, PresenceMember{
-			UserID: u.userID,
-			InSync: headSeq == 0 || u.cursor >= headSeq,
+			UserID:      u.userID,
+			DeviceCount: u.devices,
+			InSync:      headSeq == 0 || u.cursor >= headSeq,
 		})
 	}
 
 	evt := Event{
 		Type: "presence",
-		Data: map[string]any{
+		Payload: map[string]any{
 			"trip_id": tripID,
-			"members": members,
+			"users":   members,
 		},
 	}
 	h.broadcast(tripID, evt)
