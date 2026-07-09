@@ -209,6 +209,35 @@ export function useMutations(hlc: HLCGenerator) {
     return make('delete', 'comments', todoId)
   }
 
+  // --- Comment mutations (FR-7.1/7.2) ---
+
+  /** addComment creates a plain comment; tripItemId null anchors it to the trip. */
+  function addComment(
+    tripId: string,
+    tripItemId: string | null,
+    authorId: string,
+    body: string,
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const mutation = make('insert', 'comments', id, {
+      trip_id: tripId,
+      trip_item_id: tripItemId,
+      author_id: authorId,
+      body,
+      is_task: 0,
+    })
+    return { mutation, id }
+  }
+
+  /** flagCommentAsTask promotes a comment into an open ticket (FR-7.2). */
+  function flagCommentAsTask(commentId: string): Mutation {
+    return make('upsert', 'comments', commentId, { is_task: 1, task_state: 'open' })
+  }
+
+  function deleteComment(commentId: string): Mutation {
+    return make('delete', 'comments', commentId)
+  }
+
   // --- Trip mutations ---
 
   function createTrip(
@@ -355,6 +384,9 @@ export function useMutations(hlc: HLCGenerator) {
     resolveTodo,
     reopenTodo,
     deleteTodo,
+    addComment,
+    flagCommentAsTask,
+    deleteComment,
     // Trips
     createTrip,
     updateTripStatus,

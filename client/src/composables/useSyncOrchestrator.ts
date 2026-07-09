@@ -20,7 +20,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import type { PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import type { IndexedDBPersistence } from '@/local/persistence'
-import type { ItemMode, ItemTodo, MasterItem, Template, TemplateItem, TripItem } from '@/types/domain'
+import type { ItemComment, ItemMode, ItemTodo, MasterItem, Template, TemplateItem, TripItem } from '@/types/domain'
 
 /** Everything the M3 wizard collected before "Create trip". */
 export interface TripWizardDraft {
@@ -476,6 +476,46 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
+  // --- Comment actions (FR-7.1/7.2) ---
+
+  function addComment(tripId: string, tripItemId: string | null, authorId: string, body: string): string {
+    const { mutation, id } = mutations.addComment(tripId, tripItemId, authorId, body)
+    enqueueAndDrain('trip', tripId, {
+      mutation,
+      optimistic: {
+        seq: 0, table: 'comments', id, deleted: false,
+        row: mutation.fields as Record<string, unknown>,
+      },
+    })
+    return id
+  }
+
+  /** Promote a plain comment into an open ticket (FR-7.2). */
+  function flagCommentAsTask(tripId: string, comment: ItemComment) {
+    const mut = mutations.flagCommentAsTask(comment.id)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0, table: 'comments', id: comment.id, deleted: false,
+        row: {
+          trip_id: comment.trip_id,
+          trip_item_id: comment.trip_item_id,
+          author_id: comment.author_id,
+          body: comment.body,
+          is_task: 1,
+          task_state: 'open',
+        },
+      },
+    })
+  }
+
+  function deleteComment(tripId: string, commentId: string) {
+    enqueueAndDrain('trip', tripId, {
+      mutation: mutations.deleteComment(commentId),
+      optimistic: { seq: 0, table: 'comments', id: commentId, deleted: true, row: null },
+    })
+  }
+
   // --- Lifecycle ---
 
   async function connect(): Promise<void> {
@@ -536,6 +576,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     addPrepTodo,
     resolvePrepTodo,
     reopenPrepTodo,
+
+    // Comments (FR-7.1/7.2)
+    addComment,
+    flagCommentAsTask,
+    deleteComment,
 
     // Lifecycle
     connect,

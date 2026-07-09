@@ -15,6 +15,7 @@ import {
   IonContent,
   IonBackButton,
   IonButtons,
+  IonButton,
   IonList,
   IonItem,
   IonLabel,
@@ -36,10 +37,11 @@ import {
   alertCircleOutline,
   removeCircleOutline,
   buildOutline,
+  chatbubbleOutline,
 } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 import { useTripStore } from '@/stores/tripStore'
-import type { ItemMode, ItemTodo } from '@/types/domain'
+import type { ItemComment, ItemMode, ItemTodo } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 
@@ -78,6 +80,22 @@ function toggleTodo(todo: ItemTodo) {
   } else {
     orchestrator.reopenPrepTodo(props.tripId, todo)
   }
+}
+
+// --- Comment thread (FR-7.1/7.2) ---
+const itemComments = computed(() => tripStore.getItemComments(props.tripId, props.itemId))
+const newCommentText = ref('')
+
+function addComment() {
+  const body = newCommentText.value.trim()
+  if (!body) return
+  orchestrator.addComment(props.tripId, props.itemId, 'current-user', body)
+  newCommentText.value = ''
+}
+
+/** FR-7.2: promoting a comment moves it into the Preparation section above. */
+function flagAsTask(comment: ItemComment) {
+  orchestrator.flagCommentAsTask(props.tripId, comment)
 }
 
 function formatWeight(grams: number): string {
@@ -308,6 +326,37 @@ function onToggle() {
           <div v-if="hasPrepWithPacked" class="prep-warning">
             Packed but has open prep tasks
           </div>
+        </div>
+
+        <!-- Comment thread (FR-7.1/7.2) -->
+        <div class="detail-section">
+          <h2 class="section-title">
+            <IonIcon :icon="chatbubbleOutline" />
+            Comments
+          </h2>
+          <IonList>
+            <IonItem v-for="comment in itemComments" :key="comment.id" lines="inset">
+              <IonLabel class="comment-body">
+                <p>{{ comment.body }}</p>
+              </IonLabel>
+              <IonButton
+                slot="end"
+                fill="clear"
+                size="small"
+                title="Flag as task"
+                @click="flagAsTask(comment)"
+              >
+                <IonIcon slot="icon-only" :icon="buildOutline" />
+              </IonButton>
+            </IonItem>
+            <IonItem lines="none">
+              <IonInput
+                v-model="newCommentText"
+                placeholder="Add comment..."
+                @keyup.enter="addComment"
+              />
+            </IonItem>
+          </IonList>
         </div>
 
         <!-- Lock overlay (G-3) -->

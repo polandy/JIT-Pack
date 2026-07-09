@@ -94,6 +94,22 @@ export interface Container {
   max_weight_grams: number | null
 }
 
+// --- Comments (FR-7.1) ---
+
+/**
+ * A plain comment (comments row with is_task = 0). Flagging it as task
+ * (FR-7.2) turns the same row into an ItemTodo. trip_item_id null means
+ * the comment anchors to the trip itself.
+ */
+export interface ItemComment {
+  id: string
+  trip_id: string
+  trip_item_id: string | null
+  author_id: string
+  body: string
+  created_at: string | null
+}
+
 // --- Preparation Todos (FR-7.3) ---
 
 export type TodoState = 'open' | 'resolved'
