@@ -16,13 +16,11 @@ beforeEach(() => {
   setActivePinia(createPinia())
   vi.stubGlobal(
     'fetch',
-    vi
-      .fn()
-      .mockResolvedValue(
-        new Response(JSON.stringify({ results: [], pull_hint: { next_cursor: 1 } }), {
-          status: 200,
-        }),
-      ),
+    vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ results: [], pull_hint: { next_cursor: 1 } }), {
+        status: 200,
+      }),
+    ),
   )
   vi.stubGlobal('WebSocket', vi.fn())
   const storage = new Map<string, string>()
