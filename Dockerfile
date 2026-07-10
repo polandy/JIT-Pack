@@ -9,7 +9,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /jitpackd ./cmd/jitpackd
 
 # Runtime stage
-FROM alpine:3.21
+FROM alpine:3.24
 
 RUN apk add --no-cache ca-certificates wget
 
