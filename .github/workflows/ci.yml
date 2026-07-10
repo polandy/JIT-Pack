@@ -110,3 +110,24 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: docker build .
+
+  # Merges patch/minor Dependabot PRs once every check above is green.
+  # Branch protection with required status checks is unavailable on a
+  # free-plan private repo, so the gate lives here instead: `needs` makes
+  # the merge wait for green by construction. Major updates stay open
+  # for manual review.
+  dependabot-merge:
+    needs: [go, go-lint, client, docker-build]
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: dependabot/fetch-metadata@v2
+        id: metadata
+      - if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+        run: gh pr merge --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
