@@ -73,7 +73,8 @@ export interface TripWizardDraft {
   endDate: string
   attributes: Record<string, unknown> | null
   travelers: { name: string; profile: 'adult' | 'child'; linkedUserId?: string | null }[]
-  items: GeneratedItem[]
+  /** Generated rows — template items, or companions without a template (FR-20.2). */
+  items: (Omit<GeneratedItem, 'source_template_id'> & { source_template_id: string | null })[]
   /** Attach to an existing series (FR-13.1). */
   seriesId?: string | null
   /** Create a series inline; its defaults seed from the trip attributes. */
@@ -1332,7 +1333,13 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function deleteItemDependency(dependencyId: string) {
     enqueueAndDrain('master', null, {
       mutation: mutations.deleteItemDependency(dependencyId),
-      optimistic: { seq: 0, table: 'item_dependencies', id: dependencyId, deleted: true, row: null },
+      optimistic: {
+        seq: 0,
+        table: 'item_dependencies',
+        id: dependencyId,
+        deleted: true,
+        row: null,
+      },
     })
   }
 

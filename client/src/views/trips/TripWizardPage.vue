@@ -40,7 +40,8 @@ import { computed, inject, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { loadTokens } from '@/auth/tokens'
-import { durationDays, generateTripItems } from '@/domain/instantiate'
+import { resolveDependencies } from '@/domain/dependencies'
+import { buildVariables, durationDays, generateTripItems } from '@/domain/instantiate'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
@@ -172,6 +173,59 @@ const generation = computed(() => {
   })
 })
 
+// --- Companion items (FR-20.2–20.4) ---
+
+const companionResolution = computed(() =>
+  resolveDependencies({
+    onList: generation.value.items.map((i) => ({
+      source_item_id: i.source_item_id,
+      quantity: i.quantity,
+    })),
+    dependencies: masterStore.dependencyList,
+    masterItems: masterStore.itemList,
+    vars: buildVariables({
+      duration_days: duration.value,
+      attributes: attributes.value,
+      travelers: travelers.value,
+    }),
+  }),
+)
+
+// FR-20.4: suggested companions never join without the user's tap.
+const acceptedSuggestions = ref<Set<string>>(new Set())
+
+function toggleSuggestion(itemId: string, checked: boolean) {
+  const next = new Set(acceptedSuggestions.value)
+  if (checked) next.add(itemId)
+  else next.delete(itemId)
+  acceptedSuggestions.value = next
+}
+
+/** Companion rows for the draft — required plus accepted suggestions. */
+function companionRows() {
+  const row = (itemId: string, name: string, quantity: number) => {
+    const master = masterStore.getItem(itemId)
+    return {
+      source_item_id: itemId,
+      source_template_id: null,
+      name,
+      category_name: master?.category_name ?? null,
+      weight_grams: master?.weight_grams ?? null,
+      value_cents: master?.value_cents ?? null,
+      quantity,
+      mode: 'pack' as const,
+      late_packer: false,
+      traveler_index: null,
+    }
+  }
+  return [
+    ...companionResolution.value.required.map((c) => row(c.item_id, c.name, c.quantity)),
+    ...companionResolution.value.suggested
+      .filter((s) => acceptedSuggestions.value.has(s.item_id))
+      .map((s) => row(s.item_id, s.name, s.quantity)),
+  ]
+}
+
 // --- Step 4: quantity review + destination checklist offer (FR-13.3) ---
 const quantityOverrides = ref<Record<number, number>>({})
 const includeChecklist = ref(true)
@@ -218,10 +272,14 @@ function back() {
 }
 
 function createTrip() {
-  const items = generation.value.items.map((item, index) => ({
-    ...item,
-    quantity: reviewQuantity(index),
-  }))
+  const items = [
+    ...generation.value.items.map((item, index) => ({
+      ...item,
+      source_template_id: item.source_template_id as string | null,
+      quantity: reviewQuantity(index),
+    })),
+    ...companionRows(),
+  ]
   const tripId = orchestrator.createTripFromWizard({
     name: name.value.trim(),
     startDate: startDate.value || null,
@@ -470,6 +528,13 @@ function createTrip() {
 
         <div class="preview-footer">
           <IonChip color="primary" outline>{{ generation.items.length }} items</IonChip>
+          <!-- FR-20.2: required companions pulled in by dependencies -->
+          <IonChip v-if="companionResolution.required.length > 0" color="secondary" outline>
+            + {{ companionResolution.required.length }} companion item{{
+              companionResolution.required.length === 1 ? '' : 's'
+            }}
+            ({{ companionResolution.required.map((c) => c.name).join(', ') }})
+          </IonChip>
           <div v-if="generation.merged.length > 0" class="preview-block">
             <h3>Merged overlaps</h3>
             <p v-for="(m, i) in generation.merged" :key="i">
@@ -513,6 +578,44 @@ function createTrip() {
           </IonItem>
         </IonList>
         <div v-else class="empty-hint">No items generated — the trip starts empty.</div>
+
+        <!-- FR-20.2/20.3: companions of on-list items join automatically -->
+        <template
+          v-if="companionResolution.required.length > 0 || companionResolution.deduped.length > 0"
+        >
+          <h2 class="section-title">Companion items</h2>
+          <IonList v-if="companionResolution.required.length > 0">
+            <IonItem v-for="c in companionResolution.required" :key="c.item_id">
+              <IonLabel>
+                <h3>{{ c.name }}</h3>
+                <p>with {{ c.via_item_name }}</p>
+              </IonLabel>
+              <IonNote slot="end">×{{ c.quantity }}</IonNote>
+            </IonItem>
+          </IonList>
+          <IonNote v-for="d in companionResolution.deduped" :key="d.item_id" class="dedup-note">
+            {{ d.name }}: already on the list, not duplicated
+          </IonNote>
+        </template>
+
+        <!-- FR-20.4: suggested companions, one tap each -->
+        <template v-if="companionResolution.suggested.length > 0">
+          <h2 class="section-title">Suggested companions</h2>
+          <IonList>
+            <IonItem v-for="s in companionResolution.suggested" :key="s.item_id">
+              <IonCheckbox
+                slot="start"
+                :checked="acceptedSuggestions.has(s.item_id)"
+                @ionChange="(e: CustomEvent) => toggleSuggestion(s.item_id, e.detail.checked)"
+              />
+              <IonLabel>
+                <h3>{{ s.name }}</h3>
+                <p>suggested with {{ s.via_item_name }}</p>
+              </IonLabel>
+              <IonNote slot="end">×{{ s.quantity }}</IonNote>
+            </IonItem>
+          </IonList>
+        </template>
 
         <!-- FR-13.3: destination checklist offer from the series profile -->
         <template v-if="offeredChecklist.length > 0">
@@ -578,6 +681,12 @@ function createTrip() {
 .preview-block summary {
   font-size: 0.9rem;
   font-weight: 600;
+}
+
+.dedup-note {
+  display: block;
+  font-size: 0.8rem;
+  margin: 4px 0;
 }
 
 .preview-block p {

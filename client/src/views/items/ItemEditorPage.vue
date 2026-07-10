@@ -2,7 +2,8 @@
 /**
  * M10 — Item Editor
  *
- * Edit one master item: name, category, weight, value, unit, consumable.
+ * Edit one master item: name, category, weight, value, unit, consumable,
+ * and its companion dependencies (Addendum 3.20).
  * Every change commits immediately (G-5).
  */
 import {
@@ -21,8 +22,13 @@ import {
   IonSelectOption,
   IonToggle,
   IonNote,
+  IonButton,
+  IonIcon,
+  IonSearchbar,
 } from '@ionic/vue'
-import { computed, inject } from 'vue'
+import { addOutline, trashOutline, warningOutline } from 'ionicons/icons'
+import { computed, inject, ref } from 'vue'
+import { dependencyCycleError } from '@/domain/dependencies'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
@@ -33,6 +39,55 @@ const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrato
 
 const item = computed(() => masterStore.getItem(props.itemId))
 const categories = computed(() => masterStore.categoryList)
+
+// --- Depends on / Companions (FR-20.1/20.4) ---
+
+const dependsOn = computed(() => masterStore.getItemDependencies(props.itemId))
+const companions = computed(() => masterStore.getCompanionDependencies(props.itemId))
+
+const showMainPicker = ref(false)
+const mainSearch = ref('')
+const dependencyError = ref('')
+
+const pickableMains = computed(() => {
+  const taken = new Set(dependsOn.value.map((d) => d.depends_on_item_id))
+  const pool = mainSearch.value ? masterStore.searchItems(mainSearch.value) : masterStore.itemList
+  return pool.filter((i) => i.id !== props.itemId && !taken.has(i.id)).slice(0, 10)
+})
+
+function itemName(id: string): string {
+  return masterStore.getItem(id)?.name ?? 'Unknown item'
+}
+
+function closeMainPicker() {
+  showMainPicker.value = false
+  mainSearch.value = ''
+}
+
+function onAddDependency(mainItemId: string) {
+  // A cycle cannot be persisted (save-time validation like FR-1.5).
+  const error = dependencyCycleError(
+    masterStore.dependencyList,
+    { item_id: props.itemId, depends_on_item_id: mainItemId },
+    itemName,
+  )
+  if (error) {
+    dependencyError.value = error
+    return
+  }
+  dependencyError.value = ''
+  closeMainPicker()
+  orchestrator.addItemDependency(props.itemId, mainItemId)
+}
+
+function onDependencyModeChange(dependencyId: string, mode: string) {
+  const dep = dependsOn.value.find((d) => d.id === dependencyId)
+  if (dep) orchestrator.updateItemDependency(dep, { mode })
+}
+
+function onRemoveDependency(dependencyId: string) {
+  orchestrator.deleteItemDependency(dependencyId)
+}
 
 function updateField(field: string, value: unknown) {
   if (!item.value) return
@@ -166,6 +221,80 @@ function onConsumableChange(event: CustomEvent) {
             </IonNote>
           </IonItem>
         </IonList>
+
+        <!-- Depends on / Companions (FR-20.1/20.4) -->
+        <h2 class="section-title">Depends on</h2>
+        <p class="section-hint">
+          Only packed when its main item is on the trip — required joins automatically, suggested
+          asks first.
+        </p>
+
+        <IonList v-if="dependsOn.length > 0">
+          <IonItem v-for="dep in dependsOn" :key="dep.id">
+            <IonLabel>{{ itemName(dep.depends_on_item_id) }}</IonLabel>
+            <IonSelect
+              :value="dep.mode"
+              interface="popover"
+              slot="end"
+              @ionChange="(e: CustomEvent) => onDependencyModeChange(dep.id, e.detail.value)"
+            >
+              <IonSelectOption value="required">Required</IonSelectOption>
+              <IonSelectOption value="suggested">Suggested</IonSelectOption>
+            </IonSelect>
+            <IonButton fill="clear" color="danger" slot="end" @click="onRemoveDependency(dep.id)">
+              <IonIcon slot="icon-only" :icon="trashOutline" />
+            </IonButton>
+          </IonItem>
+        </IonList>
+
+        <IonNote v-if="dependencyError" color="danger" class="dependency-error">
+          <IonIcon :icon="warningOutline" />
+          {{ dependencyError }}
+        </IonNote>
+
+        <IonButton
+          v-if="!showMainPicker"
+          expand="block"
+          fill="outline"
+          @click="showMainPicker = true"
+        >
+          <IonIcon slot="start" :icon="addOutline" />
+          Add dependency
+        </IonButton>
+
+        <div v-else class="main-picker">
+          <IonSearchbar
+            :value="mainSearch"
+            placeholder="Search items..."
+            :debounce="200"
+            @ionInput="(e: CustomEvent) => (mainSearch = e.detail.value ?? '')"
+          />
+          <IonList>
+            <IonItem
+              v-for="main in pickableMains"
+              :key="main.id"
+              button
+              @click="onAddDependency(main.id)"
+            >
+              <IonLabel>{{ main.name }}</IonLabel>
+            </IonItem>
+            <IonItem v-if="pickableMains.length === 0" lines="none">
+              <IonLabel color="medium">No matching items</IonLabel>
+            </IonItem>
+          </IonList>
+          <IonButton fill="clear" expand="block" @click="closeMainPicker()">Cancel</IonButton>
+        </div>
+
+        <template v-if="companions.length > 0">
+          <h2 class="section-title">Companions</h2>
+          <p class="section-hint">These items depend on {{ item.name }}:</p>
+          <IonList>
+            <IonItem v-for="dep in companions" :key="dep.id" lines="none">
+              <IonLabel>{{ itemName(dep.item_id) }}</IonLabel>
+              <IonNote slot="end">{{ dep.mode }}</IonNote>
+            </IonItem>
+          </IonList>
+        </template>
       </template>
     </IonContent>
   </IonPage>
@@ -177,5 +306,34 @@ function onConsumableChange(event: CustomEvent) {
   justify-content: center;
   padding: 48px;
   color: var(--ion-color-medium);
+}
+
+.section-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--ion-color-medium);
+  margin: 24px 0 4px;
+}
+
+.section-hint {
+  font-size: 0.8rem;
+  color: var(--ion-color-medium);
+  margin: 0 0 8px;
+}
+
+.dependency-error {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  margin: 8px 0;
+}
+
+.main-picker {
+  border: 1px solid var(--ion-color-primary);
+  border-radius: 8px;
+  padding: 8px;
+  margin-top: 8px;
 }
 </style>

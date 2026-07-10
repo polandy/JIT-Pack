@@ -35,8 +35,12 @@ import {
   removeCircleOutline,
   buildOutline,
   chatbubbleOutline,
+  linkOutline,
 } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
+import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
+import { buildVariables } from '@/domain/instantiate'
+import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { ItemComment, ItemMode, ItemTodo } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -45,6 +49,7 @@ import QuantityStepper from '@/components/global/QuantityStepper.vue'
 const props = defineProps<{ tripId: string; itemId: string }>()
 
 const tripStore = useTripStore()
+const masterStore = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
 const item = computed(() => tripStore.getItems(props.tripId).find((i) => i.id === props.itemId))
@@ -54,6 +59,37 @@ const travelers = computed(() => tripStore.getTravelers(props.tripId))
 const containers = computed(() => tripStore.getContainers(props.tripId))
 
 const isActive = computed(() => trip.value?.status === 'active' || trip.value?.status === 'repack')
+
+// FR-20.4: suggested companions of this item not yet on the list — the
+// M5 hint with one-tap add. Required ones joined at generation already.
+const suggestedCompanions = computed(() => {
+  const source = item.value?.source_item_id
+  if (!source) return []
+  return resolveDependencies({
+    onList: tripStore.getItems(props.tripId),
+    dependencies: masterStore.getCompanionDependencies(source),
+    masterItems: masterStore.itemList,
+    vars: buildVariables({
+      duration_days: trip.value?.duration_days ?? null,
+      attributes: trip.value?.attributes ?? null,
+      travelers: travelers.value,
+    }),
+  }).suggested
+})
+
+function addCompanion(s: SuggestedCompanion) {
+  const master = masterStore.getItem(s.item_id)
+  orchestrator.quickAddItem(
+    props.tripId,
+    s.name,
+    {
+      sourceItemId: s.item_id,
+      weightGrams: master?.weight_grams ?? null,
+      valueCents: master?.value_cents ?? null,
+    },
+    isActive.value,
+  )
+}
 
 const itemTodos = computed(() => tripStore.getItemTodos(props.tripId, props.itemId))
 const openTodoCount = computed(() => itemTodos.value.filter((t) => t.task_state === 'open').length)
@@ -277,6 +313,25 @@ function onToggle() {
             <IonItem v-if="isActive && item.flag_missing" lines="none">
               <IonIcon :icon="alertCircleOutline" slot="start" color="danger" />
               <IonLabel color="danger">Flagged missing</IonLabel>
+            </IonItem>
+          </IonList>
+        </div>
+
+        <!-- Suggested companions (FR-20.4) -->
+        <div v-if="suggestedCompanions.length > 0" class="detail-section">
+          <h2 class="section-title">
+            <IonIcon :icon="linkOutline" />
+            Companions
+          </h2>
+          <IonList>
+            <IonItem v-for="s in suggestedCompanions" :key="s.item_id" lines="inset">
+              <IonLabel>
+                <h3>{{ s.name }}</h3>
+                <p>suggested companion</p>
+              </IonLabel>
+              <IonButton slot="end" fill="outline" size="small" @click="addCompanion(s)">
+                Add
+              </IonButton>
             </IonItem>
           </IonList>
         </div>
