@@ -35,5 +35,7 @@ describe('pkce', () => {
     expect(url.searchParams.get('code_challenge_method')).toBe('S256')
     expect(url.searchParams.get('state')).toBe('ST')
     expect(url.searchParams.get('scope')).toContain('offline_access')
+    // FR-23.1: the email claim feeds the instance-admin allowlist.
+    expect(url.searchParams.get('scope')).toContain('email')
   })
 })

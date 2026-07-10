@@ -122,6 +122,11 @@ const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    path: '/admin',
+    name: 'admin',
+    component: () => import('@/views/settings/AdminPage.vue'),
+  },
+  {
     path: '/trips/:tripId/shopping',
     name: 'trip-shopping',
     component: () => import('@/views/trips/ShoppingPage.vue'),

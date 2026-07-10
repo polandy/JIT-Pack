@@ -26,6 +26,7 @@ import type { ImportPlan } from '@/domain/spreadsheet'
 import type { PortableDocument, PortableItem } from '@/domain/portable'
 import type { NotificationPrefs, ServerNotification } from '@/notifications/format'
 import type { PushServerAPI } from '@/notifications/push'
+import type { AdminUserRow } from '@/domain/admin'
 import type { ReviewProposal } from '@/domain/review'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import type { Container, DestinationChecklistItem, DestinationProfile, ItemComment, ItemMode, ItemTodo, MasterItem, Template, TemplateItem, Trip, TripItem, TripMember, TripSeries, TripStatus } from '@/types/domain'
@@ -979,14 +980,42 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   // --- Profile & data (M17) ---
 
-  /** fetchMe resolves the own identity; null in Local Mode (no server). */
-  async function fetchMe(): Promise<{ user_id: string; display_name: string } | null> {
+  /**
+   * fetchMe resolves the own identity; null in Local Mode (no server).
+   * is_instance_admin gates the M20 entry point (FR-23.2).
+   */
+  async function fetchMe(): Promise<{ user_id: string; display_name: string; is_instance_admin?: boolean } | null> {
     if (local) return null
     try {
-      return await client.get<{ user_id: string; display_name: string }>('/api/v1/me', {})
+      return await client.get<{ user_id: string; display_name: string; is_instance_admin?: boolean }>('/api/v1/me', {})
     } catch {
       return null
     }
+  }
+
+  // --- Instance user management (Addendum 3.23, M20) ---
+  // Plain REST, admin-gated server-side; nothing here touches the sync
+  // partitions (users is outside both).
+
+  async function fetchAdminUsers(): Promise<AdminUserRow[]> {
+    const resp = await client.get<{ users: AdminUserRow[] }>('/api/v1/admin/users', {})
+    return resp.users ?? []
+  }
+
+  async function deactivateUser(userID: string): Promise<void> {
+    await client.post(`/api/v1/admin/users/${userID}/deactivate`, {})
+  }
+
+  async function reactivateUser(userID: string): Promise<void> {
+    await client.post(`/api/v1/admin/users/${userID}/reactivate`, {})
+  }
+
+  async function adminResetAvatar(userID: string): Promise<void> {
+    await client.delete(`/api/v1/admin/users/${userID}/avatar`)
+  }
+
+  async function adminResetDisplayName(userID: string): Promise<void> {
+    await client.delete(`/api/v1/admin/users/${userID}/display-name`)
   }
 
   async function saveDisplayName(userId: string, name: string): Promise<void> {
@@ -1427,6 +1456,13 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     saveDisplayName,
     uploadAvatar,
     downloadExport,
+
+    // Instance user management (Addendum 3.23, M20)
+    fetchAdminUsers,
+    deactivateUser,
+    reactivateUser,
+    adminResetAvatar,
+    adminResetDisplayName,
 
     // Notifications (FR-6.2 / NFR-4.6)
     markNotificationRead,

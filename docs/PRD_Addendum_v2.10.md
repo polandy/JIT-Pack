@@ -169,7 +169,7 @@ Master items (FR-1.1) can optionally carry a single reference photo (e.g., a pho
 
 ### 3.23 Instance User Management
 
-**Status: proposed, not yet built** — captured here so the scope and the Section-2 boundary are agreed before implementation starts; see CLAUDE.md backlog.
+**Status: implemented** (2026-07-10) — server (migration 010, `/api/v1/admin/` endpoints, `authed`/WS enforcement) and client (M20, M17 entry) as specified below.
 
 JIT provisioning (Section 2) means every account that exists at the IdP gets full access to the instance the moment it first authenticates — there is no instance-level counterpart to the per-trip role model (FR-4.5): no way to see who has been provisioned, to revoke an account's access, or to correct an inappropriate display name or avatar. This section adds a deliberately *small* user management to close that gap. It does not touch identity itself — account creation, passwords, e-mail, and sessions remain entirely the IdP's job, and JIT provisioning stays open (FR-23.6).
 
