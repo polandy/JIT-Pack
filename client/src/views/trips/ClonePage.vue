@@ -17,7 +17,6 @@ import {
   IonButton,
   IonList,
   IonItem,
-  IonLabel,
   IonInput,
   IonToggle,
   IonNote,

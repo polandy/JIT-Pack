@@ -57,7 +57,7 @@ function attribute(key: string): string {
 
 function saveAttribute(key: string, value: string) {
   if (!series.value) return
-  const attrs = { ...(series.value.default_attributes ?? {}) }
+  const attrs = { ...series.value.default_attributes }
   if (value) attrs[key] = value
   else delete attrs[key]
   orchestrator.updateSeries(series.value, {

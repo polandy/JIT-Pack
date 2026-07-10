@@ -21,7 +21,6 @@ import {
   IonInput,
   IonSelect,
   IonSelectOption,
-  IonToggle,
   IonIcon,
   IonButton,
   IonChip,
@@ -64,21 +63,8 @@ const availableItems = computed(() =>
   searchResults.value.filter((i) => !existingItemIds.value.has(i.id)),
 )
 
-function assignmentLabel(assignment: string): string {
-  return assignment === 'per_person' ? 'Per person' : 'Trip global'
-}
-
 function dedupLabel(dedup: string): string {
   return dedup === 'max' ? 'Max' : 'Sum'
-}
-
-function modeLabel(mode: string): string {
-  switch (mode) {
-    case 'pack': return 'Pack'
-    case 'buy_before': return 'Buy before'
-    case 'buy_local': return 'Buy local'
-    default: return mode
-  }
 }
 
 function resolveItemName(itemId: string): string {
@@ -116,12 +102,6 @@ function onAssignmentChange(templateItemId: string, assignment: string) {
   const ti = templateItems.value.find((t) => t.id === templateItemId)
   if (!ti) return
   orchestrator.updateTemplateItem(ti, { assignment })
-}
-
-function onDedupChange(templateItemId: string, dedup: string) {
-  const ti = templateItems.value.find((t) => t.id === templateItemId)
-  if (!ti) return
-  orchestrator.updateTemplateItem(ti, { dedup })
 }
 
 function onModeChange(templateItemId: string, mode: string) {

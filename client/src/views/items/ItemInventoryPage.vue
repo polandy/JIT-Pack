@@ -19,7 +19,6 @@ import {
   IonChip,
   IonFab,
   IonFabButton,
-  IonNote,
   IonRefresher,
   IonRefresherContent,
   IonButton,

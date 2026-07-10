@@ -6,5 +6,10 @@
   },
   "categories": {
     "correctness": "error"
+  },
+  "rules": {
+    // Mock types are already checked by vue-tsc from assignment/usage
+    // context; annotating every vi.fn() adds noise without safety.
+    "vitest/require-mock-type-parameters": "off"
   }
 }

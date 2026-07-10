@@ -6,7 +6,6 @@
 import { IonIcon, IonLabel } from '@ionic/vue'
 import { homeOutline, airplaneOutline, listOutline, cubeOutline } from 'ionicons/icons'
 import { useRoute } from 'vue-router'
-import { computed } from 'vue'
 
 const route = useRoute()
 

@@ -32,7 +32,7 @@ import { serializeTrip } from '@/domain/portable'
 import { safeFilename, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { Trip, TripStatus } from '@/types/domain'
+import type { Trip } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const store = useTripStore()

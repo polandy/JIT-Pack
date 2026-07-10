@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { useAuth, type AuthConfig } from '../useAuth'
+import { useAuth } from '../useAuth'
 
 describe('useAuth — Single-User Mode', () => {
   it('auto-authenticates with no token needed', () => {
