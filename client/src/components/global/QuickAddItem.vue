@@ -18,7 +18,15 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  add: [item: { name: string; sourceItemId: string | null; weightGrams: number | null; valueCents: number | null; categoryName: string | null }]
+  add: [
+    item: {
+      name: string
+      sourceItemId: string | null
+      weightGrams: number | null
+      valueCents: number | null
+      categoryName: string | null
+    },
+  ]
 }>()
 
 const masterStore = useMasterStore()
@@ -122,7 +130,13 @@ function onKeydown(event: KeyboardEvent) {
         >
           <IonLabel>
             <h3>{{ item.name }}</h3>
-            <p v-if="item.weight_grams">{{ item.weight_grams >= 1000 ? `${(item.weight_grams / 1000).toFixed(1)} kg` : `${item.weight_grams} g` }}</p>
+            <p v-if="item.weight_grams">
+              {{
+                item.weight_grams >= 1000
+                  ? `${(item.weight_grams / 1000).toFixed(1)} kg`
+                  : `${item.weight_grams} g`
+              }}
+            </p>
           </IonLabel>
           <IonChip v-if="item.unit !== 'pieces'" slot="end" color="medium" outline>
             {{ item.unit }}

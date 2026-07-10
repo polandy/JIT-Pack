@@ -66,8 +66,16 @@ describe('generateTripItems', () => {
     const res = generateTripItems(
       input({
         templates: [template('t1', 'Basis')],
-        masterItems: [masterItem('i1', 'Sonnencreme', { weight_grams: 250, value_cents: 1200, category_name: 'Pflege' })],
-        templateItems: [templateItem('ti1', 't1', 'i1', { quantity_formula: 'ceil(trip_duration / 7)' })],
+        masterItems: [
+          masterItem('i1', 'Sonnencreme', {
+            weight_grams: 250,
+            value_cents: 1200,
+            category_name: 'Pflege',
+          }),
+        ],
+        templateItems: [
+          templateItem('ti1', 't1', 'i1', { quantity_formula: 'ceil(trip_duration / 7)' }),
+        ],
       }),
     )
 
@@ -92,7 +100,10 @@ describe('generateTripItems', () => {
         templates: [template('t1', 'Basis')],
         masterItems: [masterItem('i1', 'Unterhosen')],
         templateItems: [
-          templateItem('ti1', 't1', 'i1', { assignment: 'per_person', quantity_formula: 'trip_duration / 2' }),
+          templateItem('ti1', 't1', 'i1', {
+            assignment: 'per_person',
+            quantity_formula: 'trip_duration / 2',
+          }),
         ],
       }),
     )
@@ -107,7 +118,9 @@ describe('generateTripItems', () => {
       input({
         templates: [template('t1', 'Basis')],
         masterItems: [masterItem('i1', 'Sonnencreme')],
-        templateItems: [templateItem('ti1', 't1', 'i1', { quantity_formula: 'ceil(trip_duration / 7)' })],
+        templateItems: [
+          templateItem('ti1', 't1', 'i1', { quantity_formula: 'ceil(trip_duration / 7)' }),
+        ],
         trip: { duration_days: null, attributes: null, travelers: twoAdults },
       }),
     )
@@ -162,7 +175,12 @@ describe('generateTripItems', () => {
     expect(res.items).toHaveLength(1)
     expect(res.items[0]!.quantity).toBe(3)
     expect(res.merged).toHaveLength(1)
-    expect(res.merged[0]).toMatchObject({ item_name: 'Handtuch', strategy: 'max', quantities: [2, 3], quantity: 3 })
+    expect(res.merged[0]).toMatchObject({
+      item_name: 'Handtuch',
+      strategy: 'max',
+      quantities: [2, 3],
+      quantity: 3,
+    })
   })
 
   it('sums overlaps when any side requests sum (consumables, FR-2.3a)', () => {
@@ -202,7 +220,11 @@ describe('generateTripItems', () => {
       input({
         templates: [template('t1', 'Basis')],
         masterItems: [
-          masterItem('i1', 'Kontaktlinsen', { unit: 'per_day', per_day_rate: 2, is_consumable: true }),
+          masterItem('i1', 'Kontaktlinsen', {
+            unit: 'per_day',
+            per_day_rate: 2,
+            is_consumable: true,
+          }),
         ],
         templateItems: [templateItem('ti1', 't1', 'i1', { assignment: 'per_person' })],
         trip: { duration_days: 10, attributes: null, travelers: twoAdults },

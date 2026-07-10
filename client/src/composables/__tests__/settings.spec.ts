@@ -26,9 +26,9 @@ beforeEach(() => {
 
 describe('M17 profile & data actions', () => {
   it('fetchMe returns the identity from GET /api/v1/me', async () => {
-    fetchMock.mockResolvedValueOnce(new Response(
-      JSON.stringify({ user_id: 'u1', display_name: 'Andy' }), { status: 200 },
-    ))
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ user_id: 'u1', display_name: 'Andy' }), { status: 200 }),
+    )
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => 'tok' })
 
     const me = await orch.fetchMe()

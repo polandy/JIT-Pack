@@ -61,13 +61,15 @@ export class IndexedDBPersistence {
       const tx = db.transaction(STORE, 'readonly')
       const req = tx.objectStore(STORE).getAll()
       req.onsuccess = () => {
-        resolve((req.result as StoredRow[]).map((s) => ({
-          seq: 0,
-          table: s.table,
-          id: s.id,
-          deleted: false,
-          row: s.row,
-        })))
+        resolve(
+          (req.result as StoredRow[]).map((s) => ({
+            seq: 0,
+            table: s.table,
+            id: s.id,
+            deleted: false,
+            row: s.row,
+          })),
+        )
       }
       req.onerror = () => reject(req.error)
     })

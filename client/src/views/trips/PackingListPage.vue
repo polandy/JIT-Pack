@@ -124,13 +124,9 @@ function togglePrepTodo(todo: ItemTodo) {
 /** Items split into regular and skipped. */
 const allItems = computed(() => store.getItems(props.tripId))
 
-const skippedItems = computed(() =>
-  allItems.value.filter((i) => i.state === 'skipped'),
-)
+const skippedItems = computed(() => allItems.value.filter((i) => i.state === 'skipped'))
 
-const activeItems = computed(() =>
-  allItems.value.filter((i) => i.state !== 'skipped'),
-)
+const activeItems = computed(() => allItems.value.filter((i) => i.state !== 'skipped'))
 
 /** Grouped active (non-skipped) items. */
 const groups = computed(() => {
@@ -190,9 +186,12 @@ function modeIcon(mode: string): string {
 
 function modeLabel(mode: string): string {
   switch (mode) {
-    case 'buy_before': return 'Buy before'
-    case 'buy_local': return 'Buy local'
-    default: return ''
+    case 'buy_before':
+      return 'Buy before'
+    case 'buy_local':
+      return 'Buy local'
+    default:
+      return ''
   }
 }
 
@@ -202,13 +201,24 @@ function formatWeight(grams: number): string {
 
 // --- Action handlers (wired to sync orchestrator) ---
 
-function onQuickAdd(item: { name: string; sourceItemId: string | null; weightGrams: number | null; valueCents: number | null; categoryName: string | null }) {
-  orchestrator.quickAddItem(props.tripId, item.name, {
-    sourceItemId: item.sourceItemId,
-    weightGrams: item.weightGrams,
-    valueCents: item.valueCents,
-    categoryName: item.categoryName,
-  }, isActive.value)
+function onQuickAdd(item: {
+  name: string
+  sourceItemId: string | null
+  weightGrams: number | null
+  valueCents: number | null
+  categoryName: string | null
+}) {
+  orchestrator.quickAddItem(
+    props.tripId,
+    item.name,
+    {
+      sourceItemId: item.sourceItemId,
+      weightGrams: item.weightGrams,
+      valueCents: item.valueCents,
+      categoryName: item.categoryName,
+    },
+    isActive.value,
+  )
 }
 
 function onSkipItem(item: TripItem) {
@@ -266,11 +276,7 @@ async function handleRefresh(event: CustomEvent) {
             <IonIcon slot="icon-only" :icon="repeatOutline" />
           </IonButton>
           <!-- M14: archive triggers the review assistant (FR-9.2) -->
-          <IonButton
-            v-if="trip?.status === 'active'"
-            aria-label="Archive trip"
-            @click="onArchive"
-          >
+          <IonButton v-if="trip?.status === 'active'" aria-label="Archive trip" @click="onArchive">
             <IonIcon slot="icon-only" :icon="archiveOutline" />
           </IonButton>
           <!-- M14: review is re-openable on archived trips -->
@@ -372,11 +378,7 @@ async function handleRefresh(event: CustomEvent) {
       </div>
 
       <!-- Inline quick-add -->
-      <QuickAddItem
-        :trip-id="tripId"
-        :is-active="isActive"
-        @add="onQuickAdd"
-      />
+      <QuickAddItem :trip-id="tripId" :is-active="isActive" @add="onQuickAdd" />
 
       <!-- Empty state -->
       <div v-if="filteredGroups.size === 0 && skippedItems.length === 0" class="empty-state">
@@ -496,11 +498,7 @@ async function handleRefresh(event: CustomEvent) {
               </IonBadge>
             </IonItemDivider>
             <IonItem v-for="todo in openTodos" :key="todo.id" lines="inset">
-              <IonCheckbox
-                slot="start"
-                :checked="false"
-                @ionChange="togglePrepTodo(todo)"
-              />
+              <IonCheckbox slot="start" :checked="false" @ionChange="togglePrepTodo(todo)" />
               <IonLabel>{{ todo.body }}</IonLabel>
             </IonItem>
           </IonItemGroup>

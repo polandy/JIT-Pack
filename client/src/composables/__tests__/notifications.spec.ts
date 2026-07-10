@@ -29,8 +29,12 @@ beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock)
   vi.stubGlobal('WebSocket', function () {
     const inst: WSStub = {
-      send: vi.fn(), close: vi.fn(), readyState: 1,
-      onopen: null, onmessage: null, onclose: null,
+      send: vi.fn(),
+      close: vi.fn(),
+      readyState: 1,
+      onopen: null,
+      onmessage: null,
+      onclose: null,
     }
     wsInstances.push(inst)
     return inst
@@ -52,9 +56,7 @@ function notif(id: string): ServerNotification {
 }
 
 function mockNotificationList(...notifications: ServerNotification[]) {
-  fetchMock.mockResolvedValueOnce(new Response(
-    JSON.stringify({ notifications }), { status: 200 },
-  ))
+  fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ notifications }), { status: 200 }))
 }
 
 describe('notification.created handling', () => {
@@ -146,7 +148,11 @@ describe('notification endpoints', () => {
     const [url, init] = fetchMock.mock.calls[0]!
     expect(String(url)).toContain('/api/v1/me/notification-prefs')
     expect(init.method).toBe('PUT')
-    expect(JSON.parse(init.body as string)).toEqual({ delegation: false, mention: true, task: true })
+    expect(JSON.parse(init.body as string)).toEqual({
+      delegation: false,
+      mention: true,
+      task: true,
+    })
   })
 
   it('pushApi wires vapid key, register, and unregister', async () => {

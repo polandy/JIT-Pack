@@ -69,9 +69,7 @@ function checkOff(item: TripItem) {
   }
 }
 
-const isActive = computed(
-  () => trip.value?.status === 'active' || trip.value?.status === 'repack',
-)
+const isActive = computed(() => trip.value?.status === 'active' || trip.value?.status === 'repack')
 
 function quickAdd(item: {
   name: string
@@ -105,10 +103,7 @@ function quickAdd(item: {
         <IonTitle>Shopping · {{ trip?.name ?? '' }}</IonTitle>
       </IonToolbar>
       <IonToolbar>
-        <IonSegment
-          :value="tab"
-          @ionChange="(e: CustomEvent) => (tab = e.detail.value)"
-        >
+        <IonSegment :value="tab" @ionChange="(e: CustomEvent) => (tab = e.detail.value)">
           <IonSegmentButton value="buy_before">
             <IonLabel>Before departure ({{ lists.buyBefore.length }})</IonLabel>
           </IonSegmentButton>

@@ -21,13 +21,15 @@ describe('pkce', () => {
   })
 
   it('assembles the authorize redirect', () => {
-    const url = new URL(buildAuthorizeURL({
-      authorizeUrl: 'https://idp.example.com/authorize',
-      clientId: 'jitpack',
-      redirectUri: 'https://app.example.com/auth/callback',
-      challenge: 'CH',
-      state: 'ST',
-    }))
+    const url = new URL(
+      buildAuthorizeURL({
+        authorizeUrl: 'https://idp.example.com/authorize',
+        clientId: 'jitpack',
+        redirectUri: 'https://app.example.com/auth/callback',
+        challenge: 'CH',
+        state: 'ST',
+      }),
+    )
 
     expect(url.origin + url.pathname).toBe('https://idp.example.com/authorize')
     expect(url.searchParams.get('response_type')).toBe('code')

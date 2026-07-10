@@ -71,9 +71,7 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function togglePacked(itemId: string, currentPacked: number): Mutation {
-    return currentPacked > 0
-      ? packItem(itemId, 0, 'open')
-      : packItem(itemId, 1, 'packed')
+    return currentPacked > 0 ? packItem(itemId, 0, 'open') : packItem(itemId, 1, 'packed')
   }
 
   function skipItem(itemId: string): Mutation {
@@ -255,10 +253,13 @@ export function useMutations(hlc: HLCGenerator) {
     const id = crypto.randomUUID()
     const packed = Math.min(item.packedCount, item.quantity)
     const state =
-      item.quantity === 0 ? 'skipped'
-      : packed === 0 ? 'open'
-      : packed >= item.quantity ? 'packed'
-      : 'partial'
+      item.quantity === 0
+        ? 'skipped'
+        : packed === 0
+          ? 'open'
+          : packed >= item.quantity
+            ? 'packed'
+            : 'partial'
     const mutation = make('insert', 'trip_items', id, {
       trip_id: tripId,
       name: item.name,
@@ -529,10 +530,7 @@ export function useMutations(hlc: HLCGenerator) {
     return { mutation, id }
   }
 
-  function updateMasterItem(
-    itemId: string,
-    fields: Record<string, unknown>,
-  ): Mutation {
+  function updateMasterItem(itemId: string, fields: Record<string, unknown>): Mutation {
     return make('upsert', 'items', itemId, fields)
   }
 
@@ -542,10 +540,7 @@ export function useMutations(hlc: HLCGenerator) {
 
   // --- Template mutations ---
 
-  function createTemplate(
-    name: string,
-    ownerId: string,
-  ): { mutation: Mutation; id: string } {
+  function createTemplate(name: string, ownerId: string): { mutation: Mutation; id: string } {
     const id = crypto.randomUUID()
     const mutation = make('insert', 'templates', id, {
       owner_id: ownerId,

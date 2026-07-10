@@ -10,7 +10,12 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { IndexedDBPersistence } from '../persistence'
 import type { PullChange } from '@/api/types'
 
-function change(table: string, id: string, row: Record<string, unknown> | null, deleted = false): PullChange {
+function change(
+  table: string,
+  id: string,
+  row: Record<string, unknown> | null,
+  deleted = false,
+): PullChange {
   return { seq: 0, table, id, deleted, row }
 }
 

@@ -192,7 +192,15 @@ const cloneSource = computed(() => seriesTrips.value.find((t) => t.status === 'a
           <IonItem v-for="entry in checklist" :key="entry.id">
             <IonLabel>
               <h3>{{ entry.label }}</h3>
-              <p>{{ entry.mode === 'buy_local' ? 'Buy there' : entry.mode === 'buy_before' ? 'Buy before' : 'Pack' }}</p>
+              <p>
+                {{
+                  entry.mode === 'buy_local'
+                    ? 'Buy there'
+                    : entry.mode === 'buy_before'
+                      ? 'Buy before'
+                      : 'Pack'
+                }}
+              </p>
             </IonLabel>
             <IonButton
               slot="end"
@@ -231,10 +239,18 @@ const cloneSource = computed(() => seriesTrips.value.find((t) => t.status === 'a
 
         <h2 class="section-title">Trips in this series</h2>
         <IonList v-if="seriesTrips.length > 0">
-          <IonItem v-for="trip in seriesTrips" :key="trip.id" button :router-link="`/trips/${trip.id}`">
+          <IonItem
+            v-for="trip in seriesTrips"
+            :key="trip.id"
+            button
+            :router-link="`/trips/${trip.id}`"
+          >
             <IonLabel>
               <h3>{{ trip.name }}</h3>
-              <p>{{ trip.start_date ? `${trip.start_date} – ` : 'until ' }}{{ trip.end_date }} · {{ tripStats(trip) }}</p>
+              <p>
+                {{ trip.start_date ? `${trip.start_date} – ` : 'until ' }}{{ trip.end_date }} ·
+                {{ tripStats(trip) }}
+              </p>
             </IonLabel>
             <IonButton
               slot="end"
@@ -255,7 +271,10 @@ const cloneSource = computed(() => seriesTrips.value.find((t) => t.status === 'a
               label="Attach existing trip"
               interface="popover"
               :value="''"
-              @ionChange="(e: CustomEvent) => e.detail.value && orchestrator.setTripSeries(e.detail.value, seriesId)"
+              @ionChange="
+                (e: CustomEvent) =>
+                  e.detail.value && orchestrator.setTripSeries(e.detail.value, seriesId)
+              "
             >
               <IonSelectOption value="">—</IonSelectOption>
               <IonSelectOption v-for="trip in attachableTrips" :key="trip.id" :value="trip.id">
@@ -274,7 +293,11 @@ const cloneSource = computed(() => seriesTrips.value.find((t) => t.status === 'a
             <IonIcon slot="start" :icon="copyOutline" />
             Clone "{{ cloneSource.name }}"
           </IonButton>
-          <IonButton expand="block" :fill="cloneSource ? 'outline' : 'solid'" :router-link="`/trips/new?series=${seriesId}`">
+          <IonButton
+            expand="block"
+            :fill="cloneSource ? 'outline' : 'solid'"
+            :router-link="`/trips/new?series=${seriesId}`"
+          >
             New trip in series
           </IonButton>
           <IonButton

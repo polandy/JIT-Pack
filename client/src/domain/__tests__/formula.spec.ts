@@ -58,14 +58,12 @@ describe('evaluateFormula', () => {
 })
 
 describe('validateFormula', () => {
-  it.each([
-    '1',
-    'ceil(trip_duration / 2)',
-    'num_travelers * 2 + 1',
-    '(season == "winter") * 2',
-  ])('accepts %s', (src) => {
-    expect(validateFormula(src).ok).toBe(true)
-  })
+  it.each(['1', 'ceil(trip_duration / 2)', 'num_travelers * 2 + 1', '(season == "winter") * 2'])(
+    'accepts %s',
+    (src) => {
+      expect(validateFormula(src).ok).toBe(true)
+    },
+  )
 
   it.each([
     ['', /empty/i],

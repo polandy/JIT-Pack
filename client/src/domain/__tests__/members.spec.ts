@@ -18,10 +18,7 @@ function member(id: string, userId: string, role: TripMember['role']): TripMembe
   return { id, trip_id: 'trip-1', user_id: userId, role }
 }
 
-const roster = [
-  member('mem-b', 'user-b', 'editor'),
-  member('mem-a', 'user-a', 'owner'),
-]
+const roster = [member('mem-b', 'user-b', 'editor'), member('mem-a', 'user-a', 'owner')]
 
 describe('buildRosterView', () => {
   it('lets the owner manage everyone but the owner row', () => {

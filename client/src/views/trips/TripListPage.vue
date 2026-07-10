@@ -24,7 +24,17 @@ import {
   IonButton,
   actionSheetController,
 } from '@ionic/vue'
-import { addOutline, airplaneOutline, albumsOutline, archiveOutline, cloudUploadOutline, copyOutline, documentTextOutline, downloadOutline, peopleOutline } from 'ionicons/icons'
+import {
+  addOutline,
+  airplaneOutline,
+  albumsOutline,
+  archiveOutline,
+  cloudUploadOutline,
+  copyOutline,
+  documentTextOutline,
+  downloadOutline,
+  peopleOutline,
+} from 'ionicons/icons'
 import { ref, computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { loadTokens } from '@/auth/tokens'
@@ -45,9 +55,12 @@ const filter = ref<FilterStatus>('active')
 
 function matchesFilter(trip: Trip): boolean {
   switch (filter.value) {
-    case 'active': return trip.status === 'active' || trip.status === 'repack'
-    case 'planned': return trip.status === 'planning'
-    case 'archived': return trip.status === 'archived'
+    case 'active':
+      return trip.status === 'active' || trip.status === 'repack'
+    case 'planned':
+      return trip.status === 'planning'
+    case 'archived':
+      return trip.status === 'archived'
   }
 }
 
@@ -102,8 +115,7 @@ const router = useRouter()
 
 // Share is omitted without an OIDC session — Single-User and Local
 // Mode have no second account to share with (FR-17.3/FR-19.3/G-8).
-const collaborative =
-  localStorage.getItem('jitpack_mode') === 'server' && !!loadTokens()
+const collaborative = localStorage.getItem('jitpack_mode') === 'server' && !!loadTokens()
 
 /** Archive completes the trip and launches the M14 review (FR-9.2). */
 function archiveTrip(tripId: string) {
@@ -154,11 +166,21 @@ async function handleRefresh(event: CustomEvent) {
           <h1 class="page-title">Trips</h1>
           <div>
             <!-- M18: portable trip import (FR-18.4) -->
-            <IonButton fill="clear" size="small" aria-label="Import trip from file" router-link="/portable-import">
+            <IonButton
+              fill="clear"
+              size="small"
+              aria-label="Import trip from file"
+              router-link="/portable-import"
+            >
               <IonIcon slot="icon-only" :icon="documentTextOutline" />
             </IonButton>
             <!-- M15: legacy spreadsheet import (FR-16.1) -->
-            <IonButton fill="clear" size="small" aria-label="Import spreadsheet" router-link="/import">
+            <IonButton
+              fill="clear"
+              size="small"
+              aria-label="Import spreadsheet"
+              router-link="/import"
+            >
               <IonIcon slot="icon-only" :icon="cloudUploadOutline" />
             </IonButton>
           </div>
@@ -188,102 +210,89 @@ async function handleRefresh(event: CustomEvent) {
       <!-- Trip list, grouped by series (FR-13.1) -->
       <IonList v-else>
         <template v-for="group in groupedTrips" :key="group.seriesId ?? 'none'">
-        <!-- Series header → M16 -->
-        <IonItem
-          v-if="group.seriesId"
-          button
-          detail
-          class="series-header"
-          :router-link="`/series/${group.seriesId}`"
-        >
-          <IonIcon slot="start" :icon="albumsOutline" />
-          <IonLabel>
-            <h2>{{ group.seriesName }}</h2>
-            <p>{{ group.trips.length }} trip{{ group.trips.length === 1 ? '' : 's' }}</p>
-          </IonLabel>
-        </IonItem>
-        <IonItemSliding v-for="trip in group.trips" :key="trip.id">
+          <!-- Series header → M16 -->
           <IonItem
+            v-if="group.seriesId"
             button
-            :router-link="`/trips/${trip.id}`"
-            :class="{ archived: trip.status === 'archived' }"
+            detail
+            class="series-header"
+            :router-link="`/series/${group.seriesId}`"
           >
-            <div slot="start" class="progress-ring">
-              <svg viewBox="0 0 36 36" class="ring-svg">
-                <circle
-                  class="ring-bg"
-                  cx="18"
-                  cy="18"
-                  r="15.5"
-                  fill="none"
-                  stroke-width="3"
-                />
-                <circle
-                  class="ring-fg"
-                  cx="18"
-                  cy="18"
-                  r="15.5"
-                  fill="none"
-                  stroke-width="3"
-                  :stroke="progressColor(trip)"
-                  :stroke-dasharray="`${progressPercent(trip)} 100`"
-                  stroke-linecap="round"
-                />
-                <text x="18" y="20.5" class="ring-text">
-                  {{ progressPercent(trip) }}%
-                </text>
-              </svg>
-            </div>
+            <IonIcon slot="start" :icon="albumsOutline" />
             <IonLabel>
-              <h2>{{ trip.name }}</h2>
-              <p>
-                <template v-if="trip.start_date">
-                  {{ trip.start_date }} &ndash; {{ trip.end_date }}
-                </template>
-                <template v-else>until {{ trip.end_date }}</template>
-              </p>
-              <p>{{ itemSummary(trip) }}</p>
+              <h2>{{ group.seriesName }}</h2>
+              <p>{{ group.trips.length }} trip{{ group.trips.length === 1 ? '' : 's' }}</p>
             </IonLabel>
           </IonItem>
+          <IonItemSliding v-for="trip in group.trips" :key="trip.id">
+            <IonItem
+              button
+              :router-link="`/trips/${trip.id}`"
+              :class="{ archived: trip.status === 'archived' }"
+            >
+              <div slot="start" class="progress-ring">
+                <svg viewBox="0 0 36 36" class="ring-svg">
+                  <circle class="ring-bg" cx="18" cy="18" r="15.5" fill="none" stroke-width="3" />
+                  <circle
+                    class="ring-fg"
+                    cx="18"
+                    cy="18"
+                    r="15.5"
+                    fill="none"
+                    stroke-width="3"
+                    :stroke="progressColor(trip)"
+                    :stroke-dasharray="`${progressPercent(trip)} 100`"
+                    stroke-linecap="round"
+                  />
+                  <text x="18" y="20.5" class="ring-text">{{ progressPercent(trip) }}%</text>
+                </svg>
+              </div>
+              <IonLabel>
+                <h2>{{ trip.name }}</h2>
+                <p>
+                  <template v-if="trip.start_date">
+                    {{ trip.start_date }} &ndash; {{ trip.end_date }}
+                  </template>
+                  <template v-else>until {{ trip.end_date }}</template>
+                </p>
+                <p>{{ itemSummary(trip) }}</p>
+              </IonLabel>
+            </IonItem>
 
-          <IonItemOptions side="end">
-            <!-- FR-18.3: portable YAML export with progress choice -->
-            <IonItemOption
-              color="tertiary"
-              aria-label="Export trip"
-              @click="exportTrip(trip)"
-            >
-              <IonIcon slot="icon-only" :icon="downloadOutline" />
-            </IonItemOption>
-            <!-- FR-4.5: member management (Share) -->
-            <IonItemOption
-              v-if="collaborative"
-              color="secondary"
-              aria-label="Share"
-              @click="$router.push(`/trips/${trip.id}/members`)"
-            >
-              <IonIcon slot="icon-only" :icon="peopleOutline" />
-            </IonItemOption>
-            <!-- FR-12.1: clone from archive -->
-            <IonItemOption
-              v-if="trip.status === 'archived'"
-              color="primary"
-              aria-label="Clone trip"
-              @click="$router.push(`/trips/${trip.id}/clone`)"
-            >
-              <IonIcon slot="icon-only" :icon="copyOutline" />
-            </IonItemOption>
-            <!-- Archive → M14 review (FR-9.2) -->
-            <IonItemOption
-              v-else-if="trip.status === 'active'"
-              color="medium"
-              aria-label="Archive trip"
-              @click="archiveTrip(trip.id)"
-            >
-              <IonIcon slot="icon-only" :icon="archiveOutline" />
-            </IonItemOption>
-          </IonItemOptions>
-        </IonItemSliding>
+            <IonItemOptions side="end">
+              <!-- FR-18.3: portable YAML export with progress choice -->
+              <IonItemOption color="tertiary" aria-label="Export trip" @click="exportTrip(trip)">
+                <IonIcon slot="icon-only" :icon="downloadOutline" />
+              </IonItemOption>
+              <!-- FR-4.5: member management (Share) -->
+              <IonItemOption
+                v-if="collaborative"
+                color="secondary"
+                aria-label="Share"
+                @click="$router.push(`/trips/${trip.id}/members`)"
+              >
+                <IonIcon slot="icon-only" :icon="peopleOutline" />
+              </IonItemOption>
+              <!-- FR-12.1: clone from archive -->
+              <IonItemOption
+                v-if="trip.status === 'archived'"
+                color="primary"
+                aria-label="Clone trip"
+                @click="$router.push(`/trips/${trip.id}/clone`)"
+              >
+                <IonIcon slot="icon-only" :icon="copyOutline" />
+              </IonItemOption>
+              <!-- Archive → M14 review (FR-9.2) -->
+              <IonItemOption
+                v-else-if="trip.status === 'active'"
+                color="medium"
+                aria-label="Archive trip"
+                @click="archiveTrip(trip.id)"
+              >
+                <IonIcon slot="icon-only" :icon="archiveOutline" />
+              </IonItemOption>
+            </IonItemOptions>
+          </IonItemSliding>
         </template>
       </IonList>
 

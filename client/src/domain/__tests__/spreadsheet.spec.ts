@@ -115,7 +115,7 @@ describe('buildImportPlan (FR-16.2, NFR-4.7)', () => {
   }
 
   it('groups items under category rows and merges decided duplicates', () => {
-    const plan = buildImportPlan(grid, mapping, new Map([['Unterhosen', 'i1']]), )
+    const plan = buildImportPlan(grid, mapping, new Map([['Unterhosen', 'i1']]))
 
     expect(plan.newCategories).toEqual(['Kleidung', 'Ausrüstung'])
     const unterhosen = plan.items.find((i) => i.name === 'Unterhosen')!
@@ -153,10 +153,14 @@ describe('buildImportPlan (FR-16.2, NFR-4.7)', () => {
   })
 
   it('treats x marks as quantity 1', () => {
-    const plan = buildImportPlan(grid, {
-      ...mapping,
-      trips: [{ column: 2, name: 'Engadin 2024', endDate: '2024-12-31', seriesId: null }],
-    }, new Map())
+    const plan = buildImportPlan(
+      grid,
+      {
+        ...mapping,
+        trips: [{ column: 2, name: 'Engadin 2024', endDate: '2024-12-31', seriesId: null }],
+      },
+      new Map(),
+    )
     const socken = plan.items.findIndex((i) => i.name === 'Socken')
     const entry = plan.trips[0]!.items.find((ti) => ti.itemIndex === socken)
     expect(entry?.quantity).toBe(1)

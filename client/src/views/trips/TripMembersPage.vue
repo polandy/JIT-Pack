@@ -133,7 +133,8 @@ function roleLabel(role: string): string {
         </IonItem>
         <IonNote v-else class="hint">Everyone on this server is already a member.</IonNote>
         <IonNote class="hint">
-          Admins manage travelers and roles; Editors pack and comment. The Owner cannot be changed (FR-4.5).
+          Admins manage travelers and roles; Editors pack and comment. The Owner cannot be changed
+          (FR-4.5).
         </IonNote>
       </template>
       <IonNote v-else-if="view.myRole === 'editor'" class="hint">

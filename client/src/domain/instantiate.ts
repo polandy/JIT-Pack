@@ -78,7 +78,10 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
   const vars = buildVariables(input.trip)
 
   const excluded: ExcludedItem[] = []
-  const byKey = new Map<string, { item: GeneratedItem; dedups: TemplateDedup[]; quantities: number[] }>()
+  const byKey = new Map<
+    string,
+    { item: GeneratedItem; dedups: TemplateDedup[]; quantities: number[] }
+  >()
 
   for (const ti of input.templateItems) {
     if (!selected.has(ti.template_id)) continue
@@ -197,7 +200,11 @@ function conditionFailure(
  * trips fall back to a single day), clamps at 0, and rounds up — a
  * fractional result must never under-pack.
  */
-export function computeQuantity(ti: TemplateItem, master: MasterItem, vars: FormulaVariables): number {
+export function computeQuantity(
+  ti: TemplateItem,
+  master: MasterItem,
+  vars: FormulaVariables,
+): number {
   const base = evaluateFormula(ti.quantity_formula, vars) ?? 1
   let quantity = base
   if (master.unit === 'per_day' && master.per_day_rate !== null) {

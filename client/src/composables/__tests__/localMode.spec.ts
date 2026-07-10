@@ -55,7 +55,13 @@ describe('Local Mode', () => {
   it('connect() loads persisted rows through applyChanges (FR-19.2)', async () => {
     const persistence = new IndexedDBPersistence()
     await persistence.save([
-      { seq: 0, table: 'trips', id: 't1', deleted: false, row: { name: 'Engadin', end_date: '2026-08-10', status: 'planning' } },
+      {
+        seq: 0,
+        table: 'trips',
+        id: 't1',
+        deleted: false,
+        row: { name: 'Engadin', end_date: '2026-08-10', status: 'planning' },
+      },
       { seq: 0, table: 'items', id: 'i1', deleted: false, row: { name: 'Socken', unit: 'pieces' } },
     ])
 
@@ -77,11 +83,20 @@ describe('Local Mode', () => {
       endDate: '2026-08-10',
       attributes: null,
       travelers: [{ name: 'Andy', profile: 'adult' }],
-      items: [{
-        source_item_id: 'i1', source_template_id: 'tpl1', name: 'Socken',
-        category_name: null, weight_grams: null, value_cents: null,
-        quantity: 2, mode: 'pack', late_packer: false, traveler_index: 0,
-      }],
+      items: [
+        {
+          source_item_id: 'i1',
+          source_template_id: 'tpl1',
+          name: 'Socken',
+          category_name: null,
+          weight_grams: null,
+          value_cents: null,
+          quantity: 2,
+          mode: 'pack',
+          late_packer: false,
+          traveler_index: 0,
+        },
+      ],
     })
 
     await vi.waitFor(async () => {

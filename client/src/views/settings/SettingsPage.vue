@@ -124,7 +124,9 @@ async function saveName() {
 }
 
 const avatarUrl = computed(() =>
-  me.value ? `${serverBaseUrl()}/api/v1/users/${me.value.user_id}/avatar?v=${avatarVersion.value}` : null,
+  me.value
+    ? `${serverBaseUrl()}/api/v1/users/${me.value.user_id}/avatar?v=${avatarVersion.value}`
+    : null,
 )
 
 /** Center-crop the picked photo to a 256×256 JPEG on-device (FR-17.13). */
@@ -136,11 +138,19 @@ async function onAvatarFile(event: Event) {
   const canvas = document.createElement('canvas')
   canvas.width = 256
   canvas.height = 256
-  canvas.getContext('2d')!.drawImage(
-    bitmap,
-    (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side,
-    0, 0, 256, 256,
-  )
+  canvas
+    .getContext('2d')!
+    .drawImage(
+      bitmap,
+      (bitmap.width - side) / 2,
+      (bitmap.height - side) / 2,
+      side,
+      side,
+      0,
+      0,
+      256,
+      256,
+    )
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, 'image/jpeg', 0.8),
   )
@@ -172,10 +182,8 @@ function exportTripYAML() {
 function exportTemplateYAML() {
   const template = masterStore.getTemplate(yamlTemplateId.value)
   if (!template) return
-  const yaml = serializeTemplate(
-    template,
-    masterStore.getTemplateItems(template.id),
-    (id) => masterStore.getItem(id),
+  const yaml = serializeTemplate(template, masterStore.getTemplateItems(template.id), (id) =>
+    masterStore.getItem(id),
   )
   saveText(yaml, `${safeFilename(template.name)}.yaml`)
 }
@@ -289,7 +297,13 @@ async function exportTripCSV() {
           <IonItem>
             <IonLabel>
               <h3>Push on this device</h3>
-              <p>{{ pushAvailable ? 'OS notifications while the app is closed' : 'Not supported by this browser' }}</p>
+              <p>
+                {{
+                  pushAvailable
+                    ? 'OS notifications while the app is closed'
+                    : 'Not supported by this browser'
+                }}
+              </p>
             </IonLabel>
             <IonToggle
               slot="end"
@@ -307,8 +321,8 @@ async function exportTripCSV() {
       <h2 class="section-title">Data</h2>
       <template v-if="mode === 'local'">
         <IonNote>
-          Backup in Local Mode is the portable YAML export — there is no server
-          copy of your data. Files re-import via the trip/template import.
+          Backup in Local Mode is the portable YAML export — there is no server copy of your data.
+          Files re-import via the trip/template import.
         </IonNote>
         <IonList>
           <IonItem>
@@ -333,11 +347,20 @@ async function exportTripCSV() {
               :value="yamlTemplateId"
               @ionChange="(e: CustomEvent) => (yamlTemplateId = e.detail.value)"
             >
-              <IonSelectOption v-for="tpl in masterStore.templateList" :key="tpl.id" :value="tpl.id">
+              <IonSelectOption
+                v-for="tpl in masterStore.templateList"
+                :key="tpl.id"
+                :value="tpl.id"
+              >
                 {{ tpl.name }}
               </IonSelectOption>
             </IonSelect>
-            <IonButton slot="end" size="small" :disabled="!yamlTemplateId" @click="exportTemplateYAML">
+            <IonButton
+              slot="end"
+              size="small"
+              :disabled="!yamlTemplateId"
+              @click="exportTemplateYAML"
+            >
               Download
             </IonButton>
           </IonItem>
@@ -387,8 +410,8 @@ async function exportTripCSV() {
       <!-- Conflict log pointer (G-2) -->
       <h2 class="section-title">Conflict log</h2>
       <IonNote>
-        Automatic merge resolutions are logged per trip — open a trip and tap the
-        sync indicator in the header to review them.
+        Automatic merge resolutions are logged per trip — open a trip and tap the sync indicator in
+        the header to review them.
       </IonNote>
 
       <!-- App info -->
@@ -397,7 +420,10 @@ async function exportTripCSV() {
         <IonItem lines="none">
           <IonLabel>
             <h3>JIT-Pack</h3>
-            <p>Mode: {{ mode === 'local' ? 'Local (this device only)' : `Server (${serverBaseUrl()})` }}</p>
+            <p>
+              Mode:
+              {{ mode === 'local' ? 'Local (this device only)' : `Server (${serverBaseUrl()})` }}
+            </p>
           </IonLabel>
         </IonItem>
       </IonList>

@@ -70,7 +70,6 @@ function onRateChange(event: CustomEvent) {
 function onConsumableChange(event: CustomEvent) {
   updateField('is_consumable', event.detail.checked ? 1 : 0)
 }
-
 </script>
 
 <template>
@@ -107,11 +106,7 @@ function onConsumableChange(event: CustomEvent) {
               @ionChange="onCategoryChange"
             >
               <IonSelectOption :value="null">None</IonSelectOption>
-              <IonSelectOption
-                v-for="cat in categories"
-                :key="cat.id"
-                :value="cat.id"
-              >
+              <IonSelectOption v-for="cat in categories" :key="cat.id" :value="cat.id">
                 {{ cat.name }}
               </IonSelectOption>
             </IonSelect>
@@ -143,11 +138,7 @@ function onConsumableChange(event: CustomEvent) {
           <!-- Unit (FR-1.8) -->
           <IonItem>
             <IonLabel position="stacked">Unit</IonLabel>
-            <IonSelect
-              :value="item.unit"
-              interface="popover"
-              @ionChange="onUnitChange"
-            >
+            <IonSelect :value="item.unit" interface="popover" @ionChange="onUnitChange">
               <IonSelectOption value="pieces">Pieces</IonSelectOption>
               <IonSelectOption value="pairs">Pairs</IonSelectOption>
               <IonSelectOption value="per_day">Per day</IonSelectOption>
@@ -169,10 +160,7 @@ function onConsumableChange(event: CustomEvent) {
           <!-- Consumable (FR-1.7) -->
           <IonItem>
             <IonLabel>Consumable</IonLabel>
-            <IonToggle
-              :checked="item.is_consumable"
-              @ionChange="onConsumableChange"
-            />
+            <IonToggle :checked="item.is_consumable" @ionChange="onConsumableChange" />
             <IonNote slot="helper">
               Consumable items are expected to be repurchased between trips
             </IonNote>

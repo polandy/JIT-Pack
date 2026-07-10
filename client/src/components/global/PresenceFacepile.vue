@@ -19,7 +19,12 @@ const props = defineProps<{ users: PresenceUser[] }>()
 const allInSync = computed(() => props.users.length > 0 && props.users.every((u) => u.in_sync))
 
 function initials(userId: string): string {
-  return userId.replace(/[^a-z0-9]/gi, '').slice(0, 2).toUpperCase() || '?'
+  return (
+    userId
+      .replace(/[^a-z0-9]/gi, '')
+      .slice(0, 2)
+      .toUpperCase() || '?'
+  )
 }
 </script>
 
@@ -34,7 +39,12 @@ function initials(userId: string): string {
     >
       {{ initials(user.user_id) }}
     </span>
-    <IonChip v-if="allInSync" color="success" class="group-sync" title="Everyone has the latest state">
+    <IonChip
+      v-if="allInSync"
+      color="success"
+      class="group-sync"
+      title="Everyone has the latest state"
+    >
       <IonIcon :icon="checkmarkDoneOutline" />
       <IonLabel>In sync</IonLabel>
     </IonChip>

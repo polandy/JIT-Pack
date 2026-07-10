@@ -31,12 +31,7 @@ const icon = computed(() => icons[props.state])
 </script>
 
 <template>
-  <button
-    class="sync-indicator"
-    :class="state"
-    :title="label"
-    @click="emit('tap')"
-  >
+  <button class="sync-indicator" :class="state" :title="label" @click="emit('tap')">
     <IonIcon :icon="icon" :class="{ spinning: state === 'syncing' }" />
     <IonBadge v-if="state === 'offline' && pendingCount > 0" color="warning">
       {{ pendingCount }}

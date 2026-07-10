@@ -162,7 +162,10 @@ export function findDuplicates(names: string[], existing: MasterItem[]): DedupMa
         best = { imported: name, existingId: item.id, existingName: item.name, exact: true }
         break
       }
-      if (levenshtein(normalized, existingNorm) <= 2 && Math.min(normalized.length, existingNorm.length) >= 4) {
+      if (
+        levenshtein(normalized, existingNorm) <= 2 &&
+        Math.min(normalized.length, existingNorm.length) >= 4
+      ) {
         best ??= { imported: name, existingId: item.id, existingName: item.name, exact: false }
       }
     }

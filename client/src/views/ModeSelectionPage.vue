@@ -44,7 +44,9 @@ const serverUrlValid = computed(() => {
     <IonContent class="ion-padding">
       <div class="mode-selection">
         <h1>Welcome to JIT-Pack</h1>
-        <p class="intro">Where should your packing data live? This is a one-time choice per device.</p>
+        <p class="intro">
+          Where should your packing data live? This is a one-time choice per device.
+        </p>
 
         <IonCard>
           <IonCardHeader>
@@ -54,7 +56,10 @@ const serverUrlValid = computed(() => {
             </IonCardTitle>
           </IonCardHeader>
           <IonCardContent>
-            <p>Everything stays in this browser/app. No server, no account. Sharing and multi-device sync are unavailable; regular exports are your backup.</p>
+            <p>
+              Everything stays in this browser/app. No server, no account. Sharing and multi-device
+              sync are unavailable; regular exports are your backup.
+            </p>
             <IonButton expand="block" @click="emit('select', 'local', null)">
               Use Local Mode
             </IonButton>

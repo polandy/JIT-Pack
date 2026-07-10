@@ -58,7 +58,9 @@ function isActive(match: string): boolean {
   font-size: 11px;
   border-radius: 8px;
   margin: 2px 8px;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .nav-rail-item:hover {

@@ -67,8 +67,12 @@ function toggleOverride(itemId: string, include: boolean) {
   overrides.value = next
 }
 
-const consumableCount = computed(() => plan.value.excluded.filter((e) => e.reason === 'consumable').length)
-const buyLocalCount = computed(() => plan.value.excluded.filter((e) => e.reason === 'buy_local').length)
+const consumableCount = computed(
+  () => plan.value.excluded.filter((e) => e.reason === 'consumable').length,
+)
+const buyLocalCount = computed(
+  () => plan.value.excluded.filter((e) => e.reason === 'buy_local').length,
+)
 const resetCount = computed(() => plan.value.reset.length + overrides.value.size)
 
 function confirmRepack() {
@@ -85,8 +89,10 @@ const checklistGroups = computed(() => {
     if (item.state === 'skipped') continue
     const key =
       checklistGroupBy.value === 'container'
-        ? (store.getContainers(props.tripId).find((c) => c.id === item.container_id)?.name ?? 'Unassigned')
-        : (store.getTravelers(props.tripId).find((t) => t.id === item.assigned_traveler_id)?.name ?? 'Unassigned')
+        ? (store.getContainers(props.tripId).find((c) => c.id === item.container_id)?.name ??
+          'Unassigned')
+        : (store.getTravelers(props.tripId).find((t) => t.id === item.assigned_traveler_id)?.name ??
+          'Unassigned')
     groups.set(key, [...(groups.get(key) ?? []), item])
   }
   return [...groups.entries()]
@@ -119,9 +125,14 @@ function finishRepack() {
         <div class="summary">
           <IonIcon :icon="repeatOutline" class="summary-icon" />
           <p>
-            <strong>{{ resetCount }}</strong> item{{ resetCount === 1 ? '' : 's' }} will be reset to Open<template v-if="plan.excluded.length > 0">;
-            {{ consumableCount }} consumable{{ consumableCount === 1 ? '' : 's' }} and
-            {{ buyLocalCount }} locally bought item{{ buyLocalCount === 1 ? '' : 's' }} excluded</template>.
+            <strong>{{ resetCount }}</strong> item{{ resetCount === 1 ? '' : 's' }} will be reset to
+            Open<template v-if="plan.excluded.length > 0"
+              >; {{ consumableCount }} consumable{{ consumableCount === 1 ? '' : 's' }} and
+              {{ buyLocalCount }} locally bought item{{
+                buyLocalCount === 1 ? '' : 's'
+              }}
+              excluded</template
+            >.
           </p>
         </div>
 
@@ -149,7 +160,12 @@ function finishRepack() {
         </IonList>
         <IonNote v-if="showExceptions">Toggle on to reset an excluded item anyway.</IonNote>
 
-        <IonButton expand="block" class="confirm" :disabled="resetCount === 0" @click="confirmRepack">
+        <IonButton
+          expand="block"
+          class="confirm"
+          :disabled="resetCount === 0"
+          @click="confirmRepack"
+        >
           Start return packing
         </IonButton>
       </template>
@@ -167,9 +183,19 @@ function finishRepack() {
         <IonList>
           <IonItemGroup v-for="[group, groupItems] in checklistGroups" :key="group">
             <IonItemDivider>
-              <IonLabel>{{ group }} — {{ packedCount(groupItems) }}/{{ groupItems.length }} packed</IonLabel>
+              <IonLabel
+                >{{ group }} — {{ packedCount(groupItems) }}/{{
+                  groupItems.length
+                }}
+                packed</IonLabel
+              >
             </IonItemDivider>
-            <IonItem v-for="item in groupItems" :key="item.id" :router-link="`/trips/${tripId}/items/${item.id}`" button>
+            <IonItem
+              v-for="item in groupItems"
+              :key="item.id"
+              :router-link="`/trips/${tripId}/items/${item.id}`"
+              button
+            >
               <IonIcon
                 slot="start"
                 :icon="item.state === 'packed' ? checkmarkCircle : ellipseOutline"
@@ -183,7 +209,10 @@ function finishRepack() {
         <IonButton expand="block" class="confirm" @click="finishRepack">
           Complete repack
         </IonButton>
-        <IonNote>Packing itself happens in the list — this view is for clearing rooms and vehicles.</IonNote>
+        <IonNote
+          >Packing itself happens in the list — this view is for clearing rooms and
+          vehicles.</IonNote
+        >
       </template>
     </IonContent>
   </IonPage>

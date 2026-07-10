@@ -220,7 +220,8 @@ function check(node: Node): StaticType {
       }
       return 'number'
     case 'unary':
-      if (check(node.operand) !== 'number') throw new FormulaError('negation needs a numeric operand')
+      if (check(node.operand) !== 'number')
+        throw new FormulaError('negation needs a numeric operand')
       return 'number'
     case 'binary': {
       const left = check(node.left)

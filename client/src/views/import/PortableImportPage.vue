@@ -120,9 +120,10 @@ function commit() {
           <div>
             <h2 class="summary-name">{{ doc.name }}</h2>
             <p class="summary-meta">
-              {{ doc.kind === 'template' ? 'Template' : 'Trip' }} ·
-              {{ doc.items.length }} item{{ doc.items.length === 1 ? '' : 's' }} ·
-              schema v{{ doc.schema_version }}
+              {{ doc.kind === 'template' ? 'Template' : 'Trip' }} · {{ doc.items.length }} item{{
+                doc.items.length === 1 ? '' : 's'
+              }}
+              · schema v{{ doc.schema_version }}
             </p>
           </div>
         </div>
@@ -153,7 +154,9 @@ function commit() {
               @ionChange="(e: CustomEvent) => setMerge(match.name, e.detail.value === 'merge')"
             >
               <IonSegmentButton value="merge"><IonLabel>Merge</IonLabel></IonSegmentButton>
-              <IonSegmentButton value="separate"><IonLabel>Keep separate</IonLabel></IonSegmentButton>
+              <IonSegmentButton value="separate"
+                ><IonLabel>Keep separate</IonLabel></IonSegmentButton
+              >
             </IonSegment>
           </IonItem>
         </IonList>

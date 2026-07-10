@@ -14,10 +14,20 @@ let fetchMock: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
   setActivePinia(createPinia())
-  fetchMock = vi.fn().mockResolvedValue(new Response(
-    JSON.stringify({ results: [], pull_hint: { next_cursor: 1 }, changes: [], next_cursor: 1, has_more: false }),
-    { status: 200 },
-  ))
+  fetchMock = vi
+    .fn()
+    .mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          results: [],
+          pull_hint: { next_cursor: 1 },
+          changes: [],
+          next_cursor: 1,
+          has_more: false,
+        }),
+        { status: 200 },
+      ),
+    )
   vi.stubGlobal('fetch', fetchMock)
   vi.stubGlobal('WebSocket', vi.fn())
   const storage = new Map<string, string>()
@@ -29,15 +39,33 @@ beforeEach(() => {
 
 function seedTrip(store: ReturnType<typeof useTripStore>) {
   store.applyChange({
-    seq: 0, table: 'trips', id: 't1', deleted: false,
+    seq: 0,
+    table: 'trips',
+    id: 't1',
+    deleted: false,
     row: { name: 'Engadin', status: 'active', end_date: '2026-08-10' },
   })
 }
 
-function seedItem(store: ReturnType<typeof useTripStore>, id: string, row: Record<string, unknown> = {}) {
+function seedItem(
+  store: ReturnType<typeof useTripStore>,
+  id: string,
+  row: Record<string, unknown> = {},
+) {
   store.applyChange({
-    seq: 0, table: 'trip_items', id, deleted: false,
-    row: { trip_id: 't1', name: id, quantity: 2, packed_count: 2, state: 'packed', mode: 'pack', ...row },
+    seq: 0,
+    table: 'trip_items',
+    id,
+    deleted: false,
+    row: {
+      trip_id: 't1',
+      name: id,
+      quantity: 2,
+      packed_count: 2,
+      state: 'packed',
+      mode: 'pack',
+      ...row,
+    },
   })
 }
 
@@ -94,7 +122,10 @@ describe('outbox push chunking', () => {
       return fetchMock.mock.calls
         .map((c) => c[1] as RequestInit | undefined)
         .filter((init) => init?.method === 'POST' && init.body)
-        .map((init) => (JSON.parse(String(init!.body)) as { mutations?: unknown[] }).mutations?.length ?? 0)
+        .map(
+          (init) =>
+            (JSON.parse(String(init!.body)) as { mutations?: unknown[] }).mutations?.length ?? 0,
+        )
         .filter((n) => n > 0)
     }
   })

@@ -78,7 +78,9 @@ describe('HLC observe', () => {
 describe('HLC comparison', () => {
   it('lexicographic order equals causal order', () => {
     expect(compareHLC('0000000001000-0000-abcd1234', '0000000002000-0000-abcd1234')).toBeLessThan(0)
-    expect(compareHLC('0000000001000-0001-abcd1234', '0000000001000-0000-abcd1234')).toBeGreaterThan(0)
+    expect(
+      compareHLC('0000000001000-0001-abcd1234', '0000000001000-0000-abcd1234'),
+    ).toBeGreaterThan(0)
     expect(compareHLC('0000000001000-0000-abcd1234', '0000000001000-0000-abcd1234')).toBe(0)
   })
 })

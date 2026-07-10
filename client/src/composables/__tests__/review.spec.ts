@@ -17,10 +17,20 @@ let fetchMock: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
   setActivePinia(createPinia())
-  fetchMock = vi.fn().mockResolvedValue(new Response(
-    JSON.stringify({ results: [], pull_hint: { next_cursor: 1 }, changes: [], next_cursor: 1, has_more: false }),
-    { status: 200 },
-  ))
+  fetchMock = vi
+    .fn()
+    .mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          results: [],
+          pull_hint: { next_cursor: 1 },
+          changes: [],
+          next_cursor: 1,
+          has_more: false,
+        }),
+        { status: 200 },
+      ),
+    )
   vi.stubGlobal('fetch', fetchMock)
   vi.stubGlobal('WebSocket', vi.fn())
   const storage = new Map<string, string>()
@@ -51,12 +61,26 @@ function proposal(over: Partial<ReviewProposal> = {}): ReviewProposal {
 
 function seedTemplate(master: ReturnType<typeof useMasterStore>) {
   master.applyChange({
-    seq: 0, table: 'templates', id: 'tpl1', deleted: false,
+    seq: 0,
+    table: 'templates',
+    id: 'tpl1',
+    deleted: false,
     row: { owner_id: 'me', name: 'Base Travel', is_published: 0 },
   })
   master.applyChange({
-    seq: 0, table: 'template_items', id: 'tpl-item-1', deleted: false,
-    row: { template_id: 'tpl1', item_id: 'item1', quantity_formula: '2', assignment: 'per_person', dedup: 'max', default_mode: 'pack', late_packer: 0 },
+    seq: 0,
+    table: 'template_items',
+    id: 'tpl-item-1',
+    deleted: false,
+    row: {
+      template_id: 'tpl1',
+      item_id: 'item1',
+      quantity_formula: '2',
+      assignment: 'per_person',
+      dedup: 'max',
+      default_mode: 'pack',
+      late_packer: 0,
+    },
   })
 }
 
@@ -65,7 +89,10 @@ describe('archiveTrip (FR-9.2 trigger)', () => {
     const orch = newOrch()
     const trips = useTripStore()
     trips.applyChange({
-      seq: 0, table: 'trips', id: 't1', deleted: false,
+      seq: 0,
+      table: 'trips',
+      id: 't1',
+      deleted: false,
       row: { name: 'Engadin', status: 'active', end_date: '2026-08-10' },
     })
 
@@ -92,12 +119,20 @@ describe('applyReviewProposal', () => {
     const master = useMasterStore()
     seedTemplate(master)
     master.applyChange({
-      seq: 0, table: 'items', id: 'item9', deleted: false,
+      seq: 0,
+      table: 'items',
+      id: 'item9',
+      deleted: false,
       row: { name: 'Sonnencreme', unit: 'pieces', is_consumable: 0 },
     })
 
     orch.applyReviewProposal(
-      proposal({ kind: 'add_item', itemId: 'item9', itemName: 'Sonnencreme', templateItemId: null }),
+      proposal({
+        kind: 'add_item',
+        itemId: 'item9',
+        itemName: 'Sonnencreme',
+        templateItemId: null,
+      }),
     )
 
     const added = master.getTemplateItems('tpl1').find((ti) => ti.item_id === 'item9')
@@ -123,16 +158,41 @@ describe('applyReviewProposal', () => {
     const orch = newOrch()
     const master = useMasterStore()
     master.applyChange({
-      seq: 0, table: 'templates', id: 'tpl1', deleted: false,
+      seq: 0,
+      table: 'templates',
+      id: 'tpl1',
+      deleted: false,
       row: { owner_id: 'someone-else', name: 'Base Travel', is_published: 1 },
     })
     master.applyChange({
-      seq: 0, table: 'template_items', id: 'tpl-item-1', deleted: false,
-      row: { template_id: 'tpl1', item_id: 'item1', quantity_formula: '2', assignment: 'per_person', dedup: 'max', default_mode: 'pack', late_packer: 0 },
+      seq: 0,
+      table: 'template_items',
+      id: 'tpl-item-1',
+      deleted: false,
+      row: {
+        template_id: 'tpl1',
+        item_id: 'item1',
+        quantity_formula: '2',
+        assignment: 'per_person',
+        dedup: 'max',
+        default_mode: 'pack',
+        late_packer: 0,
+      },
     })
     master.applyChange({
-      seq: 0, table: 'template_items', id: 'tpl-item-2', deleted: false,
-      row: { template_id: 'tpl1', item_id: 'item2', quantity_formula: 'num_travelers', assignment: 'trip_global', dedup: 'sum', default_mode: 'buy_before', late_packer: 1 },
+      seq: 0,
+      table: 'template_items',
+      id: 'tpl-item-2',
+      deleted: false,
+      row: {
+        template_id: 'tpl1',
+        item_id: 'item2',
+        quantity_formula: 'num_travelers',
+        assignment: 'trip_global',
+        dedup: 'sum',
+        default_mode: 'buy_before',
+        late_packer: 1,
+      },
     })
 
     const forkId = orch.applyReviewProposal(proposal({ requiresFork: true }), { fork: true })
@@ -142,14 +202,19 @@ describe('applyReviewProposal', () => {
     expect(fork?.name).toBe('Base Travel (fork)')
     expect(fork?.is_published).toBe(false)
     // Original untouched, fork carries the zeroed item plus the copy.
-    expect(master.getTemplateItems('tpl1').find((ti) => ti.item_id === 'item1')?.quantity_formula).toBe('2')
+    expect(
+      master.getTemplateItems('tpl1').find((ti) => ti.item_id === 'item1')?.quantity_formula,
+    ).toBe('2')
     const forkItems = master.getTemplateItems(forkId)
     expect(forkItems).toHaveLength(2)
     expect(forkItems.find((ti) => ti.item_id === 'item1')?.quantity_formula).toBe('0')
     const copied = forkItems.find((ti) => ti.item_id === 'item2')
     expect(copied).toMatchObject({
-      quantity_formula: 'num_travelers', assignment: 'trip_global', dedup: 'sum',
-      default_mode: 'buy_before', late_packer: true,
+      quantity_formula: 'num_travelers',
+      assignment: 'trip_global',
+      dedup: 'sum',
+      default_mode: 'buy_before',
+      late_packer: true,
     })
   })
 })

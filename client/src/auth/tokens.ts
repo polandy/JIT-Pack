@@ -13,7 +13,11 @@ export interface StoredTokens {
   expires_at: number
 }
 
-export function saveTokens(set: { access_token: string; refresh_token: string; expires_in: number }): void {
+export function saveTokens(set: {
+  access_token: string
+  refresh_token: string
+  expires_in: number
+}): void {
   const stored: StoredTokens = {
     access_token: set.access_token,
     refresh_token: set.refresh_token,

@@ -128,7 +128,9 @@ function neverAskAgain(p: ReviewProposal) {
     <IonContent class="ion-padding">
       <!-- Proposal card stack -->
       <template v-if="current">
-        <IonNote>{{ proposals.length }} proposal{{ proposals.length === 1 ? '' : 's' }} to review</IonNote>
+        <IonNote
+          >{{ proposals.length }} proposal{{ proposals.length === 1 ? '' : 's' }} to review</IonNote
+        >
         <IonCard class="proposal-card">
           <IonCardContent>
             <IonIcon :icon="sparklesOutline" class="card-icon" />
@@ -156,14 +158,21 @@ function neverAskAgain(p: ReviewProposal) {
           <IonIcon :icon="checkmarkCircleOutline" color="success" class="done-icon" />
           <h2 v-if="applied.length > 0">Templates updated</h2>
           <h2 v-else>Nothing to review</h2>
-          <p v-if="applied.length === 0">No flags on this trip — your templates are already in shape.</p>
+          <p v-if="applied.length === 0">
+            No flags on this trip — your templates are already in shape.
+          </p>
         </div>
         <IonList v-if="applied.length > 0">
           <IonItem v-for="(entry, i) in applied" :key="i" lines="inset">
             <IonLabel>{{ entry }}</IonLabel>
           </IonItem>
         </IonList>
-        <IonButton expand="block" class="done-button" :router-link="`/trips/${tripId}`" router-direction="back">
+        <IonButton
+          expand="block"
+          class="done-button"
+          :router-link="`/trips/${tripId}`"
+          router-direction="back"
+        >
           Done
         </IonButton>
       </template>

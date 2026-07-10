@@ -49,9 +49,7 @@ const slices = computed(() =>
   }),
 )
 
-const maxPlanned = computed(() =>
-  Math.max(1, ...slices.value.map((s) => s.plannedWeight)),
-)
+const maxPlanned = computed(() => Math.max(1, ...slices.value.map((s) => s.plannedWeight)))
 
 // --- Trends (FR-14.3) ---
 const trend = computed(() => {
@@ -62,7 +60,9 @@ const trend = computed(() => {
 
 const maxTrend = computed(() => Math.max(1, ...trend.value.map((t) => t.plannedWeight)))
 
-const mostMissing = computed(() => topFlagged(store.tripList, (id) => store.getItems(id), 'missing'))
+const mostMissing = computed(() =>
+  topFlagged(store.tripList, (id) => store.getItems(id), 'missing'),
+)
 const mostUnused = computed(() => topFlagged(store.tripList, (id) => store.getItems(id), 'unused'))
 
 function openSlice() {
@@ -117,17 +117,27 @@ function yearOf(date: string | null): string {
             </span>
           </div>
           <div class="bar">
-            <div class="bar-planned" :style="{ width: `${(slice.plannedWeight / maxPlanned) * 100}%` }">
+            <div
+              class="bar-planned"
+              :style="{ width: `${(slice.plannedWeight / maxPlanned) * 100}%` }"
+            >
               <div
                 class="bar-packed"
-                :style="{ width: slice.plannedWeight > 0 ? `${(slice.packedWeight / slice.plannedWeight) * 100}%` : '0%' }"
+                :style="{
+                  width:
+                    slice.plannedWeight > 0
+                      ? `${(slice.packedWeight / slice.plannedWeight) * 100}%`
+                      : '0%',
+                }"
               />
             </div>
           </div>
           <div class="slice-foot">
             <span v-if="slice.totalValue > 0">Value {{ formatValue(slice.totalValue) }}</span>
             <span v-if="slice.unweightedCount > 0" class="unweighted">
-              unweighted ({{ slice.unweightedCount }} item{{ slice.unweightedCount === 1 ? '' : 's' }})
+              unweighted ({{ slice.unweightedCount }} item{{
+                slice.unweightedCount === 1 ? '' : 's'
+              }})
             </span>
           </div>
         </button>
@@ -141,7 +151,10 @@ function yearOf(date: string | null): string {
           <div v-for="point in trend" :key="point.tripId" class="trend-row">
             <span class="trend-year">{{ yearOf(point.startDate) }}</span>
             <div class="bar trend-bar">
-              <div class="bar-planned" :style="{ width: `${(point.plannedWeight / maxTrend) * 100}%` }" />
+              <div
+                class="bar-planned"
+                :style="{ width: `${(point.plannedWeight / maxTrend) * 100}%` }"
+              />
             </div>
             <span class="trend-weight">{{ formatWeight(point.plannedWeight) }}</span>
           </div>

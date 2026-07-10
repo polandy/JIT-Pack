@@ -19,14 +19,17 @@ beforeEach(() => {
   setActivePinia(createPinia())
   fetchMock = vi.fn()
   vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal('WebSocket', vi.fn(() => ({
-    send: vi.fn(),
-    close: vi.fn(),
-    readyState: 1,
-    onopen: null,
-    onmessage: null,
-    onclose: null,
-  })))
+  vi.stubGlobal(
+    'WebSocket',
+    vi.fn(() => ({
+      send: vi.fn(),
+      close: vi.fn(),
+      readyState: 1,
+      onopen: null,
+      onmessage: null,
+      onclose: null,
+    })),
+  )
   const storage = new Map<string, string>()
   vi.stubGlobal('localStorage', {
     getItem: (k: string) => storage.get(k) ?? null,
@@ -35,17 +38,21 @@ beforeEach(() => {
 })
 
 function mockPush() {
-  fetchMock.mockResolvedValueOnce(new Response(
-    JSON.stringify({ results: [], pull_hint: { next_cursor: 1 } } satisfies PushResponse),
-    { status: 200 },
-  ))
+  fetchMock.mockResolvedValueOnce(
+    new Response(
+      JSON.stringify({ results: [], pull_hint: { next_cursor: 1 } } satisfies PushResponse),
+      { status: 200 },
+    ),
+  )
 }
 
 function mockPull() {
-  fetchMock.mockResolvedValueOnce(new Response(
-    JSON.stringify({ changes: [], next_cursor: 1, has_more: false } satisfies PullResponse),
-    { status: 200 },
-  ))
+  fetchMock.mockResolvedValueOnce(
+    new Response(
+      JSON.stringify({ changes: [], next_cursor: 1, has_more: false } satisfies PullResponse),
+      { status: 200 },
+    ),
+  )
 }
 
 function generated(overrides: Partial<GeneratedItem> = {}): GeneratedItem {

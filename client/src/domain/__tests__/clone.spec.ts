@@ -88,7 +88,12 @@ describe('planClone — carry-over options (FR-12.2)', () => {
       container('c2', { paired_container_id: 'c1' }),
     ],
     items: [
-      tripItem({ id: 'a', assigned_traveler_id: 'tr1', container_id: 'c2', packer_user_id: 'user-9' }),
+      tripItem({
+        id: 'a',
+        assigned_traveler_id: 'tr1',
+        container_id: 'c2',
+        packer_user_id: 'user-9',
+      }),
     ],
   }
 
@@ -101,7 +106,10 @@ describe('planClone — carry-over options (FR-12.2)', () => {
     ])
     expect(plan.containers).toHaveLength(2)
     expect(plan.containers[0]).toMatchObject({
-      name: 'Container c1', carrier_traveler_index: 1, max_weight_grams: 9000, paired_container_index: null,
+      name: 'Container c1',
+      carrier_traveler_index: 1,
+      max_weight_grams: 9000,
+      paired_container_index: null,
     })
     expect(plan.containers[1]!.paired_container_index).toBe(0)
 
@@ -115,7 +123,12 @@ describe('planClone — carry-over options (FR-12.2)', () => {
   it.each([
     ['travelerAssignments', { ...allOn, travelerAssignments: false }, { traveler_index: null }, 2],
     ['packerDelegations', { ...allOn, packerDelegations: false }, { packer_user_id: null }, 2],
-    ['containerAssignments', { ...allOn, containerAssignments: false }, { container_index: null }, 0],
+    [
+      'containerAssignments',
+      { ...allOn, containerAssignments: false },
+      { container_index: null },
+      0,
+    ],
   ])('dropping %s clears the corresponding links', (_name, options, cleared, containerCount) => {
     const plan = planClone(source, options as CloneOptions, noLookup, 4)
     expect(plan.items[0]).toMatchObject(cleared)
