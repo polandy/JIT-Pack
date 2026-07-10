@@ -227,7 +227,7 @@ function onModeChange(templateItemId: string, mode: string) {
               :value="itemSearch"
               placeholder="Search items..."
               @ionInput="(e: CustomEvent) => itemSearch = e.detail.value ?? ''"
-              debounce="200"
+              :debounce="200"
             />
             <IonList>
               <IonItem

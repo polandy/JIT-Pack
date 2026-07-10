@@ -64,7 +64,7 @@ describe('master data actions', () => {
     expect(item.weight_grams).toBe(500)
     expect(item.name).toBe('Socken')
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
-    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/v1/sync/master')
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/sync/master')
   })
 
   it('template item lifecycle: add, update preserving fields, delete', () => {
@@ -77,8 +77,8 @@ describe('master data actions', () => {
     const tiId = orch.addTemplateItem('tpl-1', 'i1', { quantityFormula: 'num_travelers' })
     expect(master.getTemplateItems('tpl-1')).toHaveLength(1)
 
-    orch.updateTemplateItem(master.getTemplateItems('tpl-1')[0], { dedup: 'sum' })
-    const ti = master.getTemplateItems('tpl-1')[0]
+    orch.updateTemplateItem(master.getTemplateItems('tpl-1')[0]!, { dedup: 'sum' })
+    const ti = master.getTemplateItems('tpl-1')[0]!
     expect(ti.dedup).toBe('sum')
     expect(ti.quantity_formula).toBe('num_travelers')
 
@@ -110,11 +110,11 @@ describe('M5 assignment actions on the trip partition', () => {
     })
     mockDrain()
 
-    orch.assignTraveler('t1', trips.getItems('t1')[0], 'trav-9')
+    orch.assignTraveler('t1', trips.getItems('t1')[0]!, 'trav-9')
 
-    expect(trips.getItems('t1')[0].assigned_traveler_id).toBe('trav-9')
+    expect(trips.getItems('t1')[0]!.assigned_traveler_id).toBe('trav-9')
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
-    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/v1/sync/trips/t1')
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/sync/trips/t1')
   })
 
   it('setLatePacker and assignContainer keep remaining fields intact', () => {
@@ -127,10 +127,10 @@ describe('M5 assignment actions on the trip partition', () => {
     mockDrain()
     mockDrain()
 
-    orch.assignContainer('t1', trips.getItems('t1')[0], 'cont-1')
-    orch.setLatePacker('t1', trips.getItems('t1')[0], true)
+    orch.assignContainer('t1', trips.getItems('t1')[0]!, 'cont-1')
+    orch.setLatePacker('t1', trips.getItems('t1')[0]!, true)
 
-    const item = trips.getItems('t1')[0]
+    const item = trips.getItems('t1')[0]!
     expect(item.container_id).toBe('cont-1')
     expect(item.late_packer).toBe(true)
     expect(item.packed_count).toBe(2)

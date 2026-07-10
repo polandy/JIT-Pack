@@ -50,7 +50,7 @@ function newOrchestrator() {
 }
 
 function pushedMutations(callIndex: number): { table: string; op: string; fields?: Record<string, unknown> }[] {
-  const body = JSON.parse(fetchMock.mock.calls[callIndex][1].body as string)
+  const body = JSON.parse(fetchMock.mock.calls[callIndex]![1].body as string)
   return body.mutations
 }
 
@@ -68,7 +68,7 @@ describe('membership actions', () => {
     expect(members[0]).toMatchObject({ id: memberId, trip_id: 'trip-1', user_id: 'user-b', role: 'editor' })
 
     await vi.waitFor(() => expect(fetchMock.mock.calls.length).toBe(2))
-    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/v1/sync/master')
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/sync/master')
     const muts = pushedMutations(0)
     expect(muts).toHaveLength(1)
     expect(muts[0]).toMatchObject({
@@ -87,9 +87,9 @@ describe('membership actions', () => {
     mockPush()
     mockPull()
 
-    orch.setTripMemberRole(tripStore.getMembers('trip-1')[0], 'admin')
+    orch.setTripMemberRole(tripStore.getMembers('trip-1')[0]!, 'admin')
 
-    expect(tripStore.getMembers('trip-1')[0].role).toBe('admin')
+    expect(tripStore.getMembers('trip-1')[0]!.role).toBe('admin')
     await vi.waitFor(() => expect(fetchMock.mock.calls.length).toBe(2))
     const muts = pushedMutations(0)
     expect(muts[0]).toMatchObject({
@@ -162,7 +162,7 @@ describe('wizard sharing step (M3 step 2, FR-4.5)', () => {
     // The trip must precede its memberships in the same batch — the
     // server authorizes the grant against the freshly created trip.
     expect(tables).toEqual(['trips', 'trip_members', 'trip_members'])
-    expect(masterMuts[2].fields).toMatchObject({ trip_id: tripId, user_id: 'user-c', role: 'admin' })
+    expect(masterMuts[2]!.fields).toMatchObject({ trip_id: tripId, user_id: 'user-c', role: 'admin' })
   })
 })
 
@@ -179,7 +179,7 @@ describe('user directory (GET /users)', () => {
 
     const users = await orch.fetchUsers()
 
-    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/v1/users')
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/users')
     expect(users.map((u) => u.display_name)).toEqual(['Andy', 'Sarah'])
   })
 

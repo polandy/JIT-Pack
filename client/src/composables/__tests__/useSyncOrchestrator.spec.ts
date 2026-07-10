@@ -55,8 +55,8 @@ describe('useSyncOrchestrator', () => {
 
     const items = tripStore.getItems('t1')
     expect(items).toHaveLength(1)
-    expect(items[0].name).toBe('Towel')
-    expect(items[0].state).toBe('open')
+    expect(items[0]!.name).toBe('Towel')
+    expect(items[0]!.state).toBe('open')
   })
 
   it('quickAddItem flags missing on active trips', () => {
@@ -68,7 +68,7 @@ describe('useSyncOrchestrator', () => {
 
     orch.quickAddItem('t1', 'Sunscreen', {}, true)
 
-    expect(tripStore.getItems('t1')[0].flag_missing).toBe(true)
+    expect(tripStore.getItems('t1')[0]!.flag_missing).toBe(true)
   })
 
   it('packToggle flips item between open and packed', () => {
@@ -84,11 +84,11 @@ describe('useSyncOrchestrator', () => {
     mockPush()
     mockPull()
 
-    const item = tripStore.getItems('t1')[0]
+    const item = tripStore.getItems('t1')[0]!
     orch.packToggle('t1', item)
 
-    expect(tripStore.getItems('t1')[0].packed_count).toBe(1)
-    expect(tripStore.getItems('t1')[0].state).toBe('packed')
+    expect(tripStore.getItems('t1')[0]!.packed_count).toBe(1)
+    expect(tripStore.getItems('t1')[0]!.state).toBe('packed')
   })
 
   it('skipItem sets state to skipped optimistically', () => {
@@ -103,10 +103,10 @@ describe('useSyncOrchestrator', () => {
     mockPush()
     mockPull()
 
-    const item = tripStore.getItems('t1')[0]
+    const item = tripStore.getItems('t1')[0]!
     orch.skipItem('t1', item)
 
-    const updated = tripStore.getItems('t1')[0]
+    const updated = tripStore.getItems('t1')[0]!
     expect(updated.state).toBe('skipped')
     expect(updated.quantity).toBe(0)
   })
@@ -123,10 +123,10 @@ describe('useSyncOrchestrator', () => {
     mockPush()
     mockPull()
 
-    const item = tripStore.getItems('t1')[0]
+    const item = tripStore.getItems('t1')[0]!
     orch.unskipItem('t1', item)
 
-    const updated = tripStore.getItems('t1')[0]
+    const updated = tripStore.getItems('t1')[0]!
     expect(updated.state).toBe('open')
     expect(updated.quantity).toBe(1)
   })

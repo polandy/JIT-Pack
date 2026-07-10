@@ -80,7 +80,7 @@ async function handleRefresh(event: CustomEvent) {
           :value="searchQuery"
           placeholder="Search items..."
           @ionInput="onSearch"
-          debounce="200"
+          :debounce="200"
         />
       </div>
 

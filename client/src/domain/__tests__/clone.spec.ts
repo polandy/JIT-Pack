@@ -103,7 +103,7 @@ describe('planClone — carry-over options (FR-12.2)', () => {
     expect(plan.containers[0]).toMatchObject({
       name: 'Container c1', carrier_traveler_index: 1, max_weight_grams: 9000, paired_container_index: null,
     })
-    expect(plan.containers[1].paired_container_index).toBe(0)
+    expect(plan.containers[1]!.paired_container_index).toBe(0)
 
     expect(plan.items[0]).toMatchObject({
       traveler_index: 0,
@@ -118,7 +118,7 @@ describe('planClone — carry-over options (FR-12.2)', () => {
     ['containerAssignments', { ...allOn, containerAssignments: false }],
   ])('dropping %s clears the corresponding links', (_name, options) => {
     const plan = planClone(source, options as CloneOptions, noLookup, 4)
-    const item = plan.items[0]
+    const item = plan.items[0]!
     if (!options.travelerAssignments) expect(item.traveler_index).toBeNull()
     if (!options.packerDelegations) expect(item.packer_user_id).toBeNull()
     if (!options.containerAssignments) {
@@ -148,7 +148,7 @@ describe('planClone — fresh pack state (FR-12.1)', () => {
 
     expect(plan.items.map((i) => i.state)).toEqual(['open', 'skipped', 'open'])
     expect(plan.items.every((i) => !i.flag_unused && !i.flag_missing)).toBe(true)
-    expect(plan.items[0].quantity).toBe(2)
+    expect(plan.items[0]!.quantity).toBe(2)
   })
 })
 
@@ -195,7 +195,7 @@ describe('planClone — formula re-evaluation (FR-12.2)', () => {
       3,
     )
 
-    expect(plan.items[0].quantity).toBe(4) // 3 + 1, not the old 8
+    expect(plan.items[0]!.quantity).toBe(4) // 3 + 1, not the old 8
     expect(plan.reevaluated).toBe(1)
   })
 
@@ -212,7 +212,7 @@ describe('planClone — formula re-evaluation (FR-12.2)', () => {
       lookup,
       3,
     )
-    expect(plan.items[0].quantity).toBe(5)
+    expect(plan.items[0]!.quantity).toBe(5)
     expect(plan.reevaluated).toBe(0)
   })
 })

@@ -183,7 +183,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
     const clean = parsePortable(
       serializeTrip({ trip, items, travelers, containers, includeProgress: false }),
     ).doc!
-    expect(clean.items[0].packed_count).toBeNull()
+    expect(clean.items[0]!.packed_count).toBeNull()
   })
 })
 

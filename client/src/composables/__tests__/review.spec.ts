@@ -84,7 +84,7 @@ describe('applyReviewProposal', () => {
     const target = orch.applyReviewProposal(proposal())
 
     expect(target).toBe('tpl1')
-    expect(master.getTemplateItems('tpl1')[0].quantity_formula).toBe('0')
+    expect(master.getTemplateItems('tpl1')[0]!.quantity_formula).toBe('0')
   })
 
   it('add_item adds an existing master item to the template', () => {

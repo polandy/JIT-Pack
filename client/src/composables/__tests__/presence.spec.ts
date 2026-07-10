@@ -56,7 +56,7 @@ describe('presence handling (G-10)', () => {
     const orch = newOrch()
     await orch.connect()
 
-    wsInstances[0].onmessage!({
+    wsInstances[0]!.onmessage!({
       data: JSON.stringify({
         type: 'presence',
         payload: {
@@ -85,7 +85,7 @@ describe('presence handling (G-10)', () => {
 
     await orch.drainTrip('t1')
 
-    const cursorFrames = wsInstances[0].send.mock.calls
+    const cursorFrames = wsInstances[0]!.send.mock.calls
       .map((c) => JSON.parse(String(c[0])))
       .filter((m) => m.cursor)
     expect(cursorFrames).toHaveLength(1)

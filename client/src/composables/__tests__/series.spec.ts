@@ -81,7 +81,7 @@ describe('series actions (FR-13.1)', () => {
       default_attributes: { season: 'winter' },
     })
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
-    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/v1/sync/master')
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/sync/master')
   })
 
   it('updateSeries patches fields and keeps the rest', () => {
@@ -199,7 +199,7 @@ describe('destination profile actions (FR-13.2/13.3)', () => {
     const itemId = orch.addChecklistItem(profileId, 'Milch', 'buy_local')
     expect(master.getChecklistItems(profileId)).toHaveLength(1)
 
-    orch.updateChecklistItem(master.getChecklistItems(profileId)[0], { label: 'Hafermilch' })
+    orch.updateChecklistItem(master.getChecklistItems(profileId)[0]!, { label: 'Hafermilch' })
     expect(master.getChecklistItems(profileId)[0]).toMatchObject({ label: 'Hafermilch', mode: 'buy_local' })
 
     orch.deleteChecklistItem(itemId)

@@ -86,7 +86,7 @@ describe('cloneTrip (FR-12)', () => {
     expect(containers).toHaveLength(2)
     const left = containers.find((c) => c.name === 'Radtasche links')!
     const right = containers.find((c) => c.name === 'Radtasche rechts')!
-    expect(left.carrier_traveler_id).toBe(travelers[0].id)
+    expect(left.carrier_traveler_id).toBe(travelers[0]!.id)
     expect(left.paired_container_id).toBe(right.id)
     expect(right.paired_container_id).toBe(left.id)
 
@@ -94,7 +94,7 @@ describe('cloneTrip (FR-12)', () => {
     const zelt = items.find((i) => i.name === 'Zelt')!
     expect(zelt).toMatchObject({
       state: 'open', packed_count: 0, flag_unused: false,
-      assigned_traveler_id: travelers[0].id,
+      assigned_traveler_id: travelers[0]!.id,
       container_id: right.id,
       packer_user_id: 'user-9',
     })

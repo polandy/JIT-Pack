@@ -78,7 +78,7 @@ describe('analyzeByDimension (FR-8.2)', () => {
       unweightedCount: 1,
       itemCount: 2,
     })
-    const technik = slices[1]
+    const technik = slices[1]!
     expect(technik.plannedWeight).toBe(500) // skipped item excluded
     expect(technik.totalValue).toBe(90000)
   })

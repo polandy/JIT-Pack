@@ -112,7 +112,7 @@ describe('generateTripItems', () => {
       }),
     )
 
-    expect(res.items[0].quantity).toBe(1)
+    expect(res.items[0]!.quantity).toBe(1)
   })
 
   it('excludes items whose conditions do not match, with reason (FR-15.2)', () => {
@@ -131,7 +131,7 @@ describe('generateTripItems', () => {
     expect(res.items.map((i) => i.name)).toEqual(['Lange Unterwäsche'])
     expect(res.excluded).toHaveLength(1)
     expect(res.excluded[0]).toMatchObject({ item_name: 'Sonnenhut' })
-    expect(res.excluded[0].reason).toContain('season')
+    expect(res.excluded[0]!.reason).toContain('season')
   })
 
   it('matches tag conditions against the trip tag list', () => {
@@ -160,7 +160,7 @@ describe('generateTripItems', () => {
     )
 
     expect(res.items).toHaveLength(1)
-    expect(res.items[0].quantity).toBe(3)
+    expect(res.items[0]!.quantity).toBe(3)
     expect(res.merged).toHaveLength(1)
     expect(res.merged[0]).toMatchObject({ item_name: 'Handtuch', strategy: 'max', quantities: [2, 3], quantity: 3 })
   })
@@ -177,8 +177,8 @@ describe('generateTripItems', () => {
       }),
     )
 
-    expect(res.items[0].quantity).toBe(3)
-    expect(res.merged[0].strategy).toBe('sum')
+    expect(res.items[0]!.quantity).toBe(3)
+    expect(res.merged[0]!.strategy).toBe('sum')
   })
 
   it('dedupes per traveler, not across travelers', () => {
@@ -237,6 +237,6 @@ describe('generateTripItems', () => {
 
     // Two adults, no children → quantity 0 → generated as skipped item.
     expect(res.items).toHaveLength(1)
-    expect(res.items[0].quantity).toBe(0)
+    expect(res.items[0]!.quantity).toBe(0)
   })
 })

@@ -217,7 +217,7 @@ describe('buildReviewProposals — dismissals, fork, history', () => {
 
   it('filters proposals dismissed via "Never ask again" (item–template pair)', () => {
     const [proposal] = buildReviewProposals(base)
-    const filtered = buildReviewProposals({ ...base, isDismissed: (key) => key === proposal.key })
+    const filtered = buildReviewProposals({ ...base, isDismissed: (key) => key === proposal!.key })
     expect(filtered).toHaveLength(0)
   })
 

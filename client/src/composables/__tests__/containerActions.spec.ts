@@ -62,7 +62,7 @@ describe('orchestrator container actions', () => {
     const pairId = orch.addContainer('t1', 'Right Pannier', {})
     expect(store.getContainers('t1')).toHaveLength(2)
 
-    orch.updateContainer('t1', store.getContainers('t1')[0], { paired_container_id: pairId })
+    orch.updateContainer('t1', store.getContainers('t1')[0]!, { paired_container_id: pairId })
     const updated = store.getContainers('t1').find((c) => c.id === id)
     expect(updated?.paired_container_id).toBe(pairId)
     expect(updated?.max_weight_grams).toBe(12000)
@@ -80,7 +80,7 @@ describe('orchestrator container actions', () => {
     orch.deleteContainer('t1', containerId)
 
     expect(store.getContainers('t1')).toHaveLength(0)
-    expect(store.getItems('t1')[0].container_id).toBeNull()
+    expect(store.getItems('t1')[0]!.container_id).toBeNull()
 
     // Both mutations land in one push batch: unassign before delete.
     interface WireMutation { table: string; op: string }

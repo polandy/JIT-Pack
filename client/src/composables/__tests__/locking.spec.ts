@@ -50,7 +50,7 @@ function seedItem(store: ReturnType<typeof useTripStore>, row: Record<string, un
     seq: 0, table: 'trip_items', id: 'ti1', deleted: false,
     row: { trip_id: 't1', name: 'Zelt', quantity: 1, packed_count: 0, state: 'open', mode: 'pack', ...row },
   })
-  return store.getItems('t1')[0]
+  return store.getItems('t1')[0]!
 }
 
 describe('packing-now mutations', () => {
@@ -59,8 +59,8 @@ describe('packing-now mutations', () => {
   it('startPackingNow claims the item with a timestamp', () => {
     const mut = mutations.startPackingNow('ti1')
 
-    expect(mut.fields['state']).toBe('packing_now')
-    expect(mut.fields['packing_now_at']).toBeTruthy()
+    expect(mut.fields!['state']).toBe('packing_now')
+    expect(mut.fields!['packing_now_at']).toBeTruthy()
   })
 
   it('any pack transition releases the claim (FR-5.3)', () => {
@@ -82,7 +82,7 @@ describe('lock state (G-3)', () => {
 
     orch.packingNow('t1', item)
 
-    const claimed = store.getItems('t1')[0]
+    const claimed = store.getItems('t1')[0]!
     expect(claimed.state).toBe('packing_now')
     expect(orch.isLockedByOther('t1', claimed)).toBe(false)
   })
@@ -93,7 +93,7 @@ describe('lock state (G-3)', () => {
     const item = seedItem(store)
     await orch.connect()
 
-    wsInstances[0].onmessage!({
+    wsInstances[0]!.onmessage!({
       data: JSON.stringify({
         type: 'item.locked',
         payload: { trip_id: 't1', item_id: 'ti1', by_user: 'sarah', name: 'Zelt' },
@@ -101,7 +101,7 @@ describe('lock state (G-3)', () => {
     })
     expect(orch.isLockedByOther('t1', item)).toBe(true)
 
-    wsInstances[0].onmessage!({
+    wsInstances[0]!.onmessage!({
       data: JSON.stringify({
         type: 'item.unlocked',
         payload: { trip_id: 't1', item_id: 'ti1', by_user: 'sarah', name: 'Zelt' },
