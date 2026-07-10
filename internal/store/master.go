@@ -142,6 +142,11 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 		}
 		return true, nil
 
+	case "item_dependencies":
+		// Shared like the items they connect (FR-20.1): anyone may relate
+		// two master items; invalid endpoints fail the FK and reject.
+		return true, nil
+
 	case "templates":
 		if !exists {
 			if m.Op != sync.OpDelete {
@@ -310,6 +315,9 @@ func cascadeChildren(ctx context.Context, tx *sql.Tx, m sync.Mutation, deleted, 
 	switch m.Table {
 	case "templates":
 		return collect("template_items", `SELECT id FROM template_items WHERE template_id = ?`)
+	case "items":
+		return collect("item_dependencies",
+			`SELECT id FROM item_dependencies WHERE item_id = ?1 OR depends_on_item_id = ?1`)
 	case "trip_series":
 		items, err := collect("destination_checklist_items",
 			`SELECT ci.id FROM destination_checklist_items ci
@@ -427,7 +435,7 @@ func (s *Store) HeadSeqMaster(ctx context.Context) (int64, error) {
 
 func (s *Store) masterVisible(ctx context.Context, userID, table, id string) (bool, error) {
 	switch table {
-	case "categories", "items":
+	case "categories", "items", "item_dependencies":
 		return true, nil
 
 	case "templates":

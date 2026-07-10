@@ -79,6 +79,9 @@ var syncableColumns = map[string]map[string]bool{
 	"trip_members": toSet(
 		"trip_id", "user_id", "role",
 	),
+	"item_dependencies": toSet(
+		"item_id", "depends_on_item_id", "mode", "quantity_formula",
+	),
 }
 
 // Partition membership per Sync-API Spec P-3: a mutation is only valid
@@ -87,7 +90,8 @@ var syncableColumns = map[string]map[string]bool{
 var (
 	tripPartitionTables   = toSet("trip_items", "travelers", "containers", "comments")
 	masterPartitionTables = toSet("categories", "items", "templates", "template_items", "trips",
-		"trip_series", "destination_profiles", "destination_checklist_items", "trip_members")
+		"trip_series", "destination_profiles", "destination_checklist_items", "trip_members",
+		"item_dependencies")
 )
 
 // Store owns the SQLite handle. SQLite has a single writer; capping the
