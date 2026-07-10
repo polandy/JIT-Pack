@@ -179,6 +179,35 @@ describe('createTripFromWizard', () => {
     expect(urls[2]).toContain(`/api/v1/sync/trips/${tripId}`)
   })
 
+  it('accepts companion rows without a source template (FR-20.2)', async () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const tripStore = useTripStore()
+    mockPush()
+    mockPull()
+    mockPush()
+    mockPull()
+
+    const tripId = orch.createTripFromWizard({
+      name: 'Fototour',
+      startDate: null,
+      endDate: '2026-08-10',
+      attributes: null,
+      travelers: [],
+      items: [
+        generated({ source_item_id: 'camera', name: 'Kamera', quantity: 1 }),
+        {
+          ...generated({ source_item_id: 'battery', name: 'Ersatzakku', quantity: 2 }),
+          source_template_id: null,
+        },
+      ],
+    })
+
+    const battery = tripStore.getItems(tripId).find((i) => i.name === 'Ersatzakku')
+    expect(battery?.source_template_id).toBeNull()
+    expect(battery?.quantity).toBe(2)
+    await vi.waitFor(() => expect(fetchMock.mock.calls.length).toBe(4))
+  })
+
   it('computes no duration without a start date (FR-2.1a)', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()

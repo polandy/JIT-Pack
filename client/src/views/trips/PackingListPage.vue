@@ -52,6 +52,7 @@ import {
 } from 'ionicons/icons'
 import { computed, inject, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { GroupBy, TripItem, ItemTodo } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -62,6 +63,7 @@ import QuickAddItem from '@/components/global/QuickAddItem.vue'
 const props = defineProps<{ tripId: string }>()
 
 const store = useTripStore()
+const masterStore = useMasterStore()
 const router = useRouter()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
@@ -125,6 +127,22 @@ function togglePrepTodo(todo: ItemTodo) {
 const allItems = computed(() => store.getItems(props.tripId))
 
 const skippedItems = computed(() => allItems.value.filter((i) => i.state === 'skipped'))
+
+/**
+ * FR-20.2: a co-skipped companion shows why — its main item is skipped
+ * or off the list entirely.
+ */
+function coSkipReason(item: TripItem): string | null {
+  if (!item.source_item_id) return null
+  for (const dep of masterStore.getItemDependencies(item.source_item_id)) {
+    const main = allItems.value.find((i) => i.source_item_id === dep.depends_on_item_id)
+    if (!main || main.state === 'skipped') {
+      const mainName = masterStore.getItem(dep.depends_on_item_id)?.name ?? main?.name
+      if (mainName) return `skipped: ${mainName} not on this trip`
+    }
+  }
+  return null
+}
 
 const activeItems = computed(() => allItems.value.filter((i) => i.state !== 'skipped'))
 
@@ -518,6 +536,7 @@ async function handleRefresh(event: CustomEvent) {
             <IonItem class="item-skipped">
               <IonLabel>
                 <h3>{{ item.name }}</h3>
+                <p v-if="coSkipReason(item)">{{ coSkipReason(item) }}</p>
               </IonLabel>
             </IonItem>
             <IonItemOptions side="end">

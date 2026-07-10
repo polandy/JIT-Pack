@@ -78,9 +78,7 @@ describe('resolveDependencies', () => {
   })
 
   it('defaults the quantity to 1 without a formula', () => {
-    const res = resolveDependencies(
-      input({ dependencies: [dep('d1', 'battery', 'camera')] }),
-    )
+    const res = resolveDependencies(input({ dependencies: [dep('d1', 'battery', 'camera')] }))
     expect(res.required[0]!.quantity).toBe(1)
   })
 
@@ -184,9 +182,7 @@ describe('resolveDependencies', () => {
   })
 
   it('ignores dependencies whose companion item is unknown', () => {
-    const res = resolveDependencies(
-      input({ dependencies: [dep('d1', 'ghost', 'camera')] }),
-    )
+    const res = resolveDependencies(input({ dependencies: [dep('d1', 'ghost', 'camera')] }))
     expect(res.required).toEqual([])
   })
 })
@@ -233,7 +229,11 @@ describe('dependencyCycleError', () => {
   it('rejects a transitive cycle', () => {
     const existing = [dep('d1', 'battery', 'camera'), dep('d2', 'charger', 'battery')]
     expect(
-      dependencyCycleError([...existing], { item_id: 'camera', depends_on_item_id: 'charger' }, nameOf),
+      dependencyCycleError(
+        [...existing],
+        { item_id: 'camera', depends_on_item_id: 'charger' },
+        nameOf,
+      ),
     ).toMatch(/cycle/i)
   })
 
