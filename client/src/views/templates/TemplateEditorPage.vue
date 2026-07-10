@@ -67,9 +67,13 @@ function resolveItemName(itemId: string): string {
   return masterStore.getItem(itemId)?.name ?? 'Unknown item'
 }
 
-function onAddItem(itemId: string) {
+function closeItemPicker() {
   showItemPicker.value = false
   itemSearch.value = ''
+}
+
+function onAddItem(itemId: string) {
+  closeItemPicker()
   orchestrator.addTemplateItem(props.templateId, itemId)
 }
 
@@ -229,16 +233,7 @@ function onModeChange(templateItemId: string, mode: string) {
                 <IonLabel color="medium">No matching items</IonLabel>
               </IonItem>
             </IonList>
-            <IonButton
-              fill="clear"
-              expand="block"
-              @click="
-                showItemPicker = false
-                itemSearch = ''
-              "
-            >
-              Cancel
-            </IonButton>
+            <IonButton fill="clear" expand="block" @click="closeItemPicker()"> Cancel </IonButton>
           </div>
         </div>
       </template>
