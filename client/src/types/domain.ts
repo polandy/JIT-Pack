@@ -185,6 +185,20 @@ export interface DestinationChecklistItem {
   mode: ItemMode
 }
 
+// --- Item dependencies / companion items (Addendum 3.20, FR-20.1) ---
+
+export type DependencyMode = 'required' | 'suggested'
+
+export interface ItemDependency {
+  id: string
+  /** The dependent companion (spare battery). */
+  item_id: string
+  /** The main item it belongs to (camera). */
+  depends_on_item_id: string
+  mode: DependencyMode
+  quantity_formula: string | null
+}
+
 export type TemplateAssignment = 'per_person' | 'trip_global'
 export type TemplateDedup = 'max' | 'sum'
 
