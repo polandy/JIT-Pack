@@ -18,7 +18,7 @@ import (
 // list revokes the role at the next login. The token's email claim is
 // stamped into users.email on every login (keeps the FR-23.2 overview
 // current when the IdP-side address changes); an empty claim leaves
-// the stored address alone. A display name reset to '' by an instance
+// the stored address alone. A display name reset to ” by an instance
 // admin (FR-23.4) is re-stamped from the IdP claim here, exactly like
 // initial provisioning. Deactivation is never touched — a login must
 // not resurrect a deactivated account (FR-23.3/23.6).

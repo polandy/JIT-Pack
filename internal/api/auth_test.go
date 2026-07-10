@@ -15,15 +15,15 @@ import (
 // code+PKCE to the IdP, verifies the returned token against the JWKS,
 // JIT-provisions the user, and passes the token set through.
 
-type fakeIdP struct {
+type fakeIDP struct {
 	srv        *httptest.Server
 	lastForm   url.Values
 	tokenValue string
 }
 
-func newFakeIdP(t *testing.T, accessToken string) *fakeIdP {
+func newFakeIDP(t *testing.T, accessToken string) *fakeIDP {
 	t.Helper()
-	idp := &fakeIdP{tokenValue: accessToken}
+	idp := &fakeIDP{tokenValue: accessToken}
 	idp.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseForm(); err != nil {
 			t.Errorf("idp parse form: %v", err)
@@ -41,7 +41,7 @@ func newFakeIdP(t *testing.T, accessToken string) *fakeIdP {
 	return idp
 }
 
-func newOIDCServer(t *testing.T) (*httptest.Server, *fakeIdP, *store.Store, string) {
+func newOIDCServer(t *testing.T) (*httptest.Server, *fakeIDP, *store.Store, string) {
 	t.Helper()
 	key := generateRSAKey(t)
 	kid := "idp-key-1"
@@ -53,7 +53,7 @@ func newOIDCServer(t *testing.T) (*httptest.Server, *fakeIdP, *store.Store, stri
 	t.Cleanup(func() { provider.Close() })
 
 	accessToken := rsaToken(t, key, kid, "auth|sarah")
-	idp := newFakeIdP(t, accessToken)
+	idp := newFakeIDP(t, accessToken)
 
 	st, err := store.Open(":memory:")
 	if err != nil {

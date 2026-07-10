@@ -32,8 +32,8 @@ type Item struct {
 	Conditions map[string]any `yaml:"conditions,omitempty"` // template only
 	Mode       string         `yaml:"mode,omitempty"`       // trip only
 	Category   string         `yaml:"category,omitempty"`
-	Traveler   string         `yaml:"traveler,omitempty"`   // trip only, by name
-	Container  string         `yaml:"container,omitempty"`  // trip only, by name
+	Traveler   string         `yaml:"traveler,omitempty"`  // trip only, by name
+	Container  string         `yaml:"container,omitempty"` // trip only, by name
 
 	// PackedCount is a pointer so that nil (omit) vs 0 (explicit) is
 	// distinguishable — FR-18.3 lets the user choose clean vs progress export.

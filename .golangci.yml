@@ -1,0 +1,29 @@
+version: "2"
+
+linters:
+  settings:
+    errcheck:
+      exclude-functions:
+        # Idiomatic sites where the error is meaningless or surfaces
+        # elsewhere: deferred cleanup (Rollback after Commit, Rows/Body
+        # Close, test-cleanup Store.Close, WebSocket teardown) and HTTP
+        # response writing, where a failure means the client is gone.
+        # csv.Writer errors surface via cw.Error() after Flush.
+        - (net/http.ResponseWriter).Write
+        - (*encoding/json.Encoder).Encode
+        - (*encoding/csv.Writer).Write
+        - (*database/sql.Tx).Rollback
+        - (*database/sql.Rows).Close
+        - (io.ReadCloser).Close
+        - (*jitpack/internal/store.Store).Close
+        - (*github.com/coder/websocket.Conn).CloseNow
+    staticcheck:
+      checks:
+        - all
+        # Test assertions deliberately state the asserted property
+        # (`if !(before < after)`) instead of its De Morgan inverse.
+        - -QF1001
+  exclusions:
+    paths:
+      # The Vue client (and its node_modules) is linted by oxlint/eslint.
+      - ^client/
