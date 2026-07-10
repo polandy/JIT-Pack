@@ -110,7 +110,7 @@ Local Mode is a **client-only deployment shape**: the app runs entirely from on-
 
 ### 3.20 Item Dependencies ("Companion Items")
 
-**Status: proposed, not yet built** — captured here so the shape is agreed before implementation starts; see CLAUDE.md backlog.
+**Status: implemented (2026-07-10)** — migration 011 (`item_dependencies`), `client/src/domain/dependencies.ts` (resolver + cycle validator), M10 Depends-on section, M3 companion preview/suggestions, M4 co-skip cascade + quick-add companions, M5 suggestion hint.
 
 * **FR-20.1 (Dependency Declaration):** A master item (FR-1.1) can declare that it depends on another master item ("companion of"). Examples: a spare camera battery is only relevant if the camera is packed; a screwdriver is only relevant if the drone is packed; a spare Arca-Swiss plate is an optional companion to a telephoto lens. A dependency is a relation with its own attributes (mode, FR-20.4; optional quantity formula, FR-1.3), not a single foreign key on the item — one item can have several dependencies, in either direction.
 * **FR-20.2 (Resolution at Instantiation & Packing):** A dependent item appears on a trip's packing list only if its main item is on the list and not skipped (FR-5.5). If the main item is later skipped or removed, its dependents are marked "co-skipped" and surfaced in the existing FR-5.5 "Consciously skipped" section with a reason ("skipped: drone not on this trip") rather than being silently deleted.
