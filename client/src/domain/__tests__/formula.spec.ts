@@ -77,10 +77,9 @@ describe('validateFormula', () => {
     ['2 == 2 == 2', /comparison/i],
     ['(2 + 3', /\)/],
   ])('rejects %s', (src, pattern) => {
-    const res = validateFormula(src)
-    expect(res.ok).toBe(false)
-    if (!res.ok) {
-      expect(res.error).toMatch(pattern)
-    }
+    expect(validateFormula(src)).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(pattern),
+    })
   })
 })

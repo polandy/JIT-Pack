@@ -8,11 +8,11 @@
  */
 import { IonInput, IonList, IonItem, IonLabel, IonIcon, IonChip } from '@ionic/vue'
 import { addCircleOutline, closeCircleOutline } from 'ionicons/icons'
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useMasterStore } from '@/stores/masterStore'
 import type { MasterItem } from '@/types/domain'
 
-const props = defineProps<{
+defineProps<{
   tripId: string
   isActive: boolean
 }>()

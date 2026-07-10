@@ -46,18 +46,21 @@ describe('APIClient', () => {
     )
     const client = new APIClient('http://localhost:8080', () => 'jwt')
     await expect(client.get('/api/v1/foo')).rejects.toThrow(APIRequestError)
-    try {
-      fetchSpy.mockResolvedValueOnce(
-        new Response(JSON.stringify({ error: { code: 'forbidden', message: 'nope' } }), {
-          status: 403,
-        }),
-      )
-      await client.get('/api/v1/foo')
-    } catch (e) {
-      expect(e).toBeInstanceOf(APIRequestError)
-      expect((e as APIRequestError).status).toBe(403)
-      expect((e as APIRequestError).apiError?.code).toBe('forbidden')
-    }
+
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: { code: 'forbidden', message: 'nope' } }), {
+        status: 403,
+      }),
+    )
+    const err: APIRequestError = await client.get('/api/v1/foo').then(
+      () => {
+        throw new Error('expected the request to reject')
+      },
+      (e) => e as APIRequestError,
+    )
+    expect(err).toBeInstanceOf(APIRequestError)
+    expect(err.status).toBe(403)
+    expect(err.apiError?.code).toBe('forbidden')
   })
 
   it('omits auth header when token is null', async () => {

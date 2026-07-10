@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useMasterStore } from '../masterStore'
-import type { PullChange } from '@/api/types'
 
 describe('masterStore', () => {
   beforeEach(() => {

@@ -28,5 +28,20 @@ export default defineConfigWithVueTs(
 
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
 
+  {
+    name: 'app/rule-overrides',
+    rules: {
+      // Ionic components are web components: they need the native `slot`
+      // attribute, and this rule's autofix (v-slot) would break them.
+      'vue/no-deprecated-slot-attribute': 'off',
+      // `const { key: _dropped, ...rest } = obj` is the idiomatic way to
+      // remove a key immutably; the rest-sibling discard is intentional.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
+    },
+  },
+
   skipFormatting,
 )

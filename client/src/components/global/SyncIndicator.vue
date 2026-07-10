@@ -19,19 +19,15 @@ const emit = defineEmits<{
   tap: []
 }>()
 
-const icon = computed(() => {
-  switch (props.state) {
-    case 'synced':
-      return cloudDoneOutline
-    case 'syncing':
-      return syncOutline
-    case 'offline':
-      return cloudOfflineOutline
-    case 'local':
-      // FR-19.6: everything lives on this device, no server involved.
-      return phonePortraitOutline
-  }
-})
+const icons: Record<SyncState, string> = {
+  synced: cloudDoneOutline,
+  syncing: syncOutline,
+  offline: cloudOfflineOutline,
+  // FR-19.6: everything lives on this device, no server involved.
+  local: phonePortraitOutline,
+}
+
+const icon = computed(() => icons[props.state])
 </script>
 
 <template>

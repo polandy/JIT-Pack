@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useTripStore } from '../tripStore'
 import type { PullChange } from '@/api/types'
-import type { Trip, TripItem } from '@/types/domain'
+import type { Trip } from '@/types/domain'
 
 function makeTrip(overrides: Partial<Trip> = {}): Trip {
   return {
@@ -16,33 +16,6 @@ function makeTrip(overrides: Partial<Trip> = {}): Trip {
     series_name: null,
     attributes: null,
     imported: false,
-    ...overrides,
-  }
-}
-
-function makeItem(overrides: Partial<TripItem> = {}): TripItem {
-  return {
-    id: 'i1',
-    trip_id: 't1',
-    source_item_id: null,
-    source_template_id: null,
-    name: 'Sunscreen',
-    weight_grams: 200,
-    value_cents: 1500,
-    category_name: 'Toiletries',
-    quantity: 2,
-    packed_count: 0,
-    state: 'open',
-    mode: 'pack',
-    late_packer: false,
-    assigned_traveler_id: null,
-    packer_user_id: null,
-    container_id: null,
-    packing_now_by: null,
-    packing_now_at: null,
-    flag_unused: false,
-    flag_missing: false,
-    updated_hlc: '0000000001000-0000-abcd1234',
     ...overrides,
   }
 }

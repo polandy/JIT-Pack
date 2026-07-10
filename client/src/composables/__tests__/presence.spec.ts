@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
-import type { PullResponse, PushResponse } from '@/api/types'
+import type { PullResponse } from '@/api/types'
 
 interface WSStub {
   send: ReturnType<typeof vi.fn>

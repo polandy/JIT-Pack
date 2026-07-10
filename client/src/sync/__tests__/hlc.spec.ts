@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { HLCGenerator, parseHLC, compareHLC, type HLC } from '../hlc'
+import { HLCGenerator, parseHLC, compareHLC } from '../hlc'
 
 describe('HLC format', () => {
   it('generates a valid HLC string', () => {
@@ -17,9 +17,9 @@ describe('HLC format', () => {
   })
 
   it('rejects malformed HLC strings', () => {
-    expect(() => parseHLC('short')).toThrow()
-    expect(() => parseHLC('1783862400123-ZZZZ-a1b2c3d4')).toThrow()
-    expect(() => parseHLC('1783862400123-0000-ZZZZZZZZ')).toThrow()
+    expect(() => parseHLC('short')).toThrow(/malformed HLC/)
+    expect(() => parseHLC('1783862400123-ZZZZ-a1b2c3d4')).toThrow(/counter/)
+    expect(() => parseHLC('1783862400123-0000-ZZZZZZZZ')).toThrow(/device id/)
   })
 })
 
@@ -85,8 +85,8 @@ describe('HLC comparison', () => {
 
 describe('HLCGenerator validation', () => {
   it('rejects invalid device ids', () => {
-    expect(() => new HLCGenerator(() => 0, 'short')).toThrow()
-    expect(() => new HLCGenerator(() => 0, 'ABCD1234')).toThrow()
-    expect(() => new HLCGenerator(() => 0, '12345678901')).toThrow()
+    expect(() => new HLCGenerator(() => 0, 'short')).toThrow(/device id/)
+    expect(() => new HLCGenerator(() => 0, 'ABCD1234')).toThrow(/device id/)
+    expect(() => new HLCGenerator(() => 0, '12345678901')).toThrow(/device id/)
   })
 })

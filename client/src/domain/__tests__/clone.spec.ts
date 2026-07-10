@@ -113,18 +113,13 @@ describe('planClone — carry-over options (FR-12.2)', () => {
   })
 
   it.each([
-    ['travelerAssignments', { ...allOn, travelerAssignments: false }],
-    ['packerDelegations', { ...allOn, packerDelegations: false }],
-    ['containerAssignments', { ...allOn, containerAssignments: false }],
-  ])('dropping %s clears the corresponding links', (_name, options) => {
+    ['travelerAssignments', { ...allOn, travelerAssignments: false }, { traveler_index: null }, 2],
+    ['packerDelegations', { ...allOn, packerDelegations: false }, { packer_user_id: null }, 2],
+    ['containerAssignments', { ...allOn, containerAssignments: false }, { container_index: null }, 0],
+  ])('dropping %s clears the corresponding links', (_name, options, cleared, containerCount) => {
     const plan = planClone(source, options as CloneOptions, noLookup, 4)
-    const item = plan.items[0]!
-    if (!options.travelerAssignments) expect(item.traveler_index).toBeNull()
-    if (!options.packerDelegations) expect(item.packer_user_id).toBeNull()
-    if (!options.containerAssignments) {
-      expect(item.container_index).toBeNull()
-      expect(plan.containers).toHaveLength(0)
-    }
+    expect(plan.items[0]).toMatchObject(cleared)
+    expect(plan.containers).toHaveLength(containerCount)
   })
 })
 
