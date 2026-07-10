@@ -16,20 +16,18 @@ let fetchMock: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
   setActivePinia(createPinia())
-  fetchMock = vi
-    .fn()
-    .mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          results: [],
-          pull_hint: { next_cursor: 1 },
-          changes: [],
-          next_cursor: 1,
-          has_more: false,
-        }),
-        { status: 200 },
-      ),
-    )
+  fetchMock = vi.fn().mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        results: [],
+        pull_hint: { next_cursor: 1 },
+        changes: [],
+        next_cursor: 1,
+        has_more: false,
+      }),
+      { status: 200 },
+    ),
+  )
   vi.stubGlobal('fetch', fetchMock)
   vi.stubGlobal('WebSocket', vi.fn())
   const storage = new Map<string, string>()
