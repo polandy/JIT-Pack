@@ -20,7 +20,8 @@ import { useSyncStatus } from './useSyncStatus'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type { PullChange, WSEvent } from '@/api/types'
-import { durationDays, type GeneratedItem } from '@/domain/instantiate'
+import { buildVariables, durationDays, type GeneratedItem } from '@/domain/instantiate'
+import { dependentsOf, resolveDependencies } from '@/domain/dependencies'
 import { planClone, type CloneOptions } from '@/domain/clone'
 import type { ImportPlan } from '@/domain/spreadsheet'
 import type { PortableDocument, PortableItem } from '@/domain/portable'
@@ -34,6 +35,7 @@ import type {
   DestinationChecklistItem,
   DestinationProfile,
   ItemComment,
+  ItemDependency,
   ItemMode,
   ItemTodo,
   MasterItem,
@@ -201,6 +203,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       'trip_series',
       'destination_profiles',
       'destination_checklist_items',
+      'item_dependencies',
     ])
 
     const tripChanges: PullChange[] = []
@@ -462,17 +465,36 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   }
 
   function skipItem(tripId: string, item: TripItem) {
-    const mut = mutations.skipItem(item.id)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: 'trip_items',
-        id: item.id,
-        deleted: false,
-        row: { ...itemRow(item), ...mut.fields },
-      },
-    })
+    const skipOne = (target: TripItem) => {
+      const mut = mutations.skipItem(target.id)
+      return {
+        mutation: mut,
+        optimistic: {
+          seq: 0,
+          table: 'trip_items',
+          id: target.id,
+          deleted: false,
+          row: { ...itemRow(target), ...mut.fields },
+        } satisfies PullChange,
+      }
+    }
+    const muts = [skipOne(item)]
+    // FR-20.2: skipping a main item co-skips its (transitive) companions —
+    // they stay in the FR-5.5 skipped section instead of vanishing.
+    if (item.source_item_id) {
+      const dependents = dependentsOf(item.source_item_id, masterStore.dependencyList)
+      for (const other of tripStore.getItems(tripId)) {
+        if (
+          other.id !== item.id &&
+          other.source_item_id !== null &&
+          dependents.has(other.source_item_id) &&
+          other.state !== 'skipped'
+        ) {
+          muts.push(skipOne(other))
+        }
+      }
+    }
+    enqueueAndDrain('trip', tripId, ...muts)
   }
 
   function unskipItem(tripId: string, item: TripItem) {
@@ -587,6 +609,56 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         row: mutation.fields as Record<string, unknown>,
       },
     })
+    if (opts.sourceItemId) {
+      addRequiredCompanions(tripId)
+    }
+  }
+
+  /**
+   * addRequiredCompanions pulls the list's missing required companions in
+   * (FR-20.4: without prompting, FR-20.3: never duplicating) — called
+   * after a quick-add that matched a master item.
+   */
+  function addRequiredCompanions(tripId: string) {
+    const trip = tripStore.getTrip(tripId)
+    const onList = tripStore.getItems(tripId)
+    const resolution = resolveDependencies({
+      onList,
+      dependencies: masterStore.dependencyList,
+      masterItems: masterStore.itemList,
+      vars: buildVariables({
+        duration_days: trip?.duration_days ?? null,
+        attributes: trip?.attributes ?? null,
+        travelers: tripStore.getTravelers(tripId),
+      }),
+    })
+    for (const companion of resolution.required) {
+      const { mutation, id } = mutations.addGeneratedTripItem(
+        tripId,
+        {
+          source_item_id: companion.item_id,
+          source_template_id: null,
+          name: companion.name,
+          category_name: companion.category_name,
+          weight_grams: companion.weight_grams,
+          value_cents: companion.value_cents,
+          quantity: companion.quantity,
+          mode: 'pack',
+          late_packer: false,
+        },
+        null,
+      )
+      enqueueAndDrain('trip', tripId, {
+        mutation,
+        optimistic: {
+          seq: 0,
+          table: 'trip_items',
+          id,
+          deleted: false,
+          row: mutation.fields as Record<string, unknown>,
+        },
+      })
+    }
   }
 
   /**
@@ -1223,6 +1295,47 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
+  // --- Item dependency actions (Addendum 3.20, FR-20.1) ---
+
+  function addItemDependency(
+    itemId: string,
+    dependsOnItemId: string,
+    opts: Parameters<typeof mutations.addItemDependency>[2] = {},
+  ): string {
+    const { mutation, id } = mutations.addItemDependency(itemId, dependsOnItemId, opts)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: {
+        seq: 0,
+        table: 'item_dependencies',
+        id,
+        deleted: false,
+        row: mutation.fields as Record<string, unknown>,
+      },
+    })
+    return id
+  }
+
+  function updateItemDependency(dependency: ItemDependency, fields: Record<string, unknown>) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.updateItemDependency(dependency.id, fields),
+      optimistic: {
+        seq: 0,
+        table: 'item_dependencies',
+        id: dependency.id,
+        deleted: false,
+        row: { ...dependencyRow(dependency), ...fields },
+      },
+    })
+  }
+
+  function deleteItemDependency(dependencyId: string) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.deleteItemDependency(dependencyId),
+      optimistic: { seq: 0, table: 'item_dependencies', id: dependencyId, deleted: true, row: null },
+    })
+  }
+
   // --- Todo actions (FR-7.3) ---
 
   function addPrepTodo(tripId: string, tripItemId: string, authorId: string, body: string) {
@@ -1829,6 +1942,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     addTemplateItem,
     updateTemplateItem,
     deleteTemplateItem,
+    addItemDependency,
+    updateItemDependency,
+    deleteItemDependency,
 
     // Todos
     addPrepTodo,
@@ -1967,6 +2083,15 @@ function templateItemRow(ti: TemplateItem): Record<string, unknown> {
     conditions: ti.conditions ? JSON.stringify(ti.conditions) : null,
     default_mode: ti.default_mode,
     late_packer: ti.late_packer ? 1 : 0,
+  }
+}
+
+function dependencyRow(d: ItemDependency): Record<string, unknown> {
+  return {
+    item_id: d.item_id,
+    depends_on_item_id: d.depends_on_item_id,
+    mode: d.mode,
+    quantity_formula: d.quantity_formula,
   }
 }
 

@@ -252,4 +252,48 @@ describe('masterStore', () => {
     expect(store.templateItemCount('t1')).toBe(2)
     expect(store.templateItemCount('nonexistent')).toBe(0)
   })
+
+  it('applies item_dependencies changes (FR-20.1)', () => {
+    const store = useMasterStore()
+    store.applyChange({
+      seq: 1,
+      table: 'item_dependencies',
+      id: 'dep1',
+      deleted: false,
+      row: {
+        item_id: 'battery',
+        depends_on_item_id: 'camera',
+        mode: 'suggested',
+        quantity_formula: '2',
+      },
+    })
+
+    expect(store.dependencyList).toEqual([
+      {
+        id: 'dep1',
+        item_id: 'battery',
+        depends_on_item_id: 'camera',
+        mode: 'suggested',
+        quantity_formula: '2',
+      },
+    ])
+    expect(store.getItemDependencies('battery')).toHaveLength(1)
+    expect(store.getItemDependencies('camera')).toHaveLength(0)
+    expect(store.getCompanionDependencies('camera')).toHaveLength(1)
+
+    store.applyChange({ seq: 2, table: 'item_dependencies', id: 'dep1', deleted: true, row: null })
+    expect(store.dependencyList).toEqual([])
+  })
+
+  it('defaults dependency mode to required and formula to null', () => {
+    const store = useMasterStore()
+    store.applyChange({
+      seq: 1,
+      table: 'item_dependencies',
+      id: 'dep2',
+      deleted: false,
+      row: { item_id: 'battery', depends_on_item_id: 'camera' },
+    })
+    expect(store.dependencyList[0]).toMatchObject({ mode: 'required', quantity_formula: null })
+  })
 })

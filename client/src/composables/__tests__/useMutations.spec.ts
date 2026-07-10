@@ -164,4 +164,37 @@ describe('useMutations', () => {
     expect(mut.table).toBe('comments')
     expect(mut.id).toBe('todo1')
   })
+
+  it('addItemDependency inserts a master-partition relation (FR-20.1)', () => {
+    const m = useMutations(mockHLC())
+    const { mutation } = m.addItemDependency('battery', 'camera', {
+      mode: 'suggested',
+      quantityFormula: '2',
+    })
+    expect(mutation.op).toBe('insert')
+    expect(mutation.table).toBe('item_dependencies')
+    expect(mutation.fields).toEqual({
+      item_id: 'battery',
+      depends_on_item_id: 'camera',
+      mode: 'suggested',
+      quantity_formula: '2',
+    })
+  })
+
+  it('addItemDependency defaults to required without a formula', () => {
+    const m = useMutations(mockHLC())
+    const { mutation } = m.addItemDependency('battery', 'camera')
+    expect(mutation.fields).toMatchObject({ mode: 'required', quantity_formula: null })
+  })
+
+  it('updateItemDependency and deleteItemDependency target the relation row', () => {
+    const m = useMutations(mockHLC())
+    const upd = m.updateItemDependency('dep1', { mode: 'required' })
+    expect(upd.op).toBe('upsert')
+    expect(upd.table).toBe('item_dependencies')
+    expect(upd.fields).toEqual({ mode: 'required' })
+    const del = m.deleteItemDependency('dep1')
+    expect(del.op).toBe('delete')
+    expect(del.id).toBe('dep1')
+  })
 })
