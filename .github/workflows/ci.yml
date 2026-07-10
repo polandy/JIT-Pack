@@ -4,36 +4,109 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
-  test:
+  go:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
         with:
-          go-version: "1.22"
-
-      - name: Install dependencies
-        run: go mod download
-
-      - name: Vet
-        run: go vet ./...
-
-      - name: Test
-        run: go test -race -count=1 -coverprofile=coverage.txt ./...
-
-      - name: Check coverage
+          go-version-file: go.mod
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go test ./... -race -count=1 -coverprofile=coverage.txt
+      - name: Enforce coverage gates (working agreement)
         run: |
-          go tool cover -func=coverage.txt
-          overall=$(go tool cover -func=coverage.txt | grep total | awk '{print $3}' | tr -d '%')
-          echo "Overall coverage: ${overall}%"
-          if [ "$(echo "$overall < 75" | bc -l)" -eq 1 ]; then
-            echo "::error::Coverage ${overall}% is below 75% threshold"
-            exit 1
+          check() {
+            echo "$1 coverage: $2% (minimum $3%)"
+            if awk -v c="$2" -v m="$3" 'BEGIN { exit !(c < m) }'; then
+              echo "::error::$1 coverage $2% is below the $3% minimum"
+              exit 1
+            fi
+          }
+          overall=$(go tool cover -func=coverage.txt | awk '/^total:/ {gsub(/%/, ""); print $3}')
+          sync=$(go test -cover ./internal/sync | awk '{for (i=1; i<=NF; i++) if ($i == "coverage:") {gsub(/%/, "", $(i+1)); print $(i+1)}}')
+          check overall "$overall" 75
+          check internal/sync "$sync" 90
+      - name: Check go.mod is tidy
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+  go-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12
+
+  client:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      # The package scripts lint with --fix for local use; CI only checks.
+      - run: npx oxlint .
+      - run: npx eslint .
+      - run: npm run build # runs type-check and the production build
+      - run: npx vitest run
+
+  # Formats Go (gofmt) and the client (prettier) and pushes the fixes back,
+  # so formatting is never a red build — it just gets applied. Skipped for
+  # fork PRs, where GITHUB_TOKEN cannot push to the head branch.
+  autoformat:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: gofmt -w cmd internal
+      - run: npm ci
+        working-directory: client
+      - run: npm run format
+        working-directory: client
+      - name: Commit formatting fixes
+        run: |
+          if git diff --quiet; then
+            echo "already formatted"
+            exit 0
           fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -am "style: apply automatic formatting"
+          git push
+
+  # Verifies the image still builds on every change; docker.yml only
+  # builds and pushes on release tags.
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build .

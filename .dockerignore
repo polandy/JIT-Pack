@@ -1,6 +1,8 @@
 .git
 .github
 .claude
+client/node_modules
+client/dist
 docs
 *.md
 *.db
