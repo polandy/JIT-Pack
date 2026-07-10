@@ -25,8 +25,8 @@ func TestLoadConfig(t *testing.T) {
 			name: "multi-user custom listen and db",
 			env: map[string]string{
 				"JITPACK_JWT_SECRET": "s3cret",
-				"JITPACK_LISTEN":    ":9090",
-				"JITPACK_DB_PATH":   "/data/app.db",
+				"JITPACK_LISTEN":     ":9090",
+				"JITPACK_DB_PATH":    "/data/app.db",
 			},
 			want: Config{
 				Listen:    ":9090",
@@ -59,13 +59,13 @@ func TestLoadConfig(t *testing.T) {
 		{
 			name: "admin emails parsed and trimmed (FR-23.1)",
 			env: map[string]string{
-				"JITPACK_JWT_SECRET":     "s3cret",
+				"JITPACK_JWT_SECRET":   "s3cret",
 				"JITPACK_ADMIN_EMAILS": "andy@example.com, sarah@example.com ,,",
 			},
 			want: Config{
-				Listen:        ":8080",
-				DBPath:        "jitpack.db",
-				JWTSecret:     "s3cret",
+				Listen:      ":8080",
+				DBPath:      "jitpack.db",
+				JWTSecret:   "s3cret",
 				AdminEmails: []string{"andy@example.com", "sarah@example.com"},
 			},
 		},
@@ -73,7 +73,7 @@ func TestLoadConfig(t *testing.T) {
 			name: "multi-user both secret and JWKS",
 			env: map[string]string{
 				"JITPACK_JWT_SECRET": "s3cret",
-				"JITPACK_JWKS_URL":  "https://auth.example.com/.well-known/jwks.json",
+				"JITPACK_JWKS_URL":   "https://auth.example.com/.well-known/jwks.json",
 			},
 			wantErr: "mutually exclusive",
 		},

@@ -86,7 +86,7 @@ func TestEnsureOIDCUser_StampsEmail(t *testing.T) {
 	}
 }
 
-// FR-23.4: a reset display name ('') falls back to the IdP-provided
+// FR-23.4: a reset display name (”) falls back to the IdP-provided
 // name at the account's next login, exactly like initial provisioning.
 func TestEnsureOIDCUser_RestampsResetDisplayName(t *testing.T) {
 	s := openTestStore(t)

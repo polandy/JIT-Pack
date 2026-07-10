@@ -3,6 +3,7 @@
 // pull-visibility rules (master.go) so a backup never leaks foreign
 // private data. Users (and their avatar blobs) are deliberately not
 // included — identity is owned by the IdP, not the backup.
+
 package store
 
 import (

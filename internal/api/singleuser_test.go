@@ -3,7 +3,6 @@ package api_test
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -148,7 +147,9 @@ func TestAvatar_UploadThenDownloadRoundTrips(t *testing.T) {
 		t.Error("expected an ETag header for caching")
 	}
 	var got bytes.Buffer
-	got.ReadFrom(getResp.Body)
+	if _, err := got.ReadFrom(getResp.Body); err != nil {
+		t.Fatalf("read body: %v", err)
+	}
 	if !bytes.Equal(got.Bytes(), jpeg) {
 		t.Error("downloaded avatar bytes don't match the upload")
 	}
@@ -205,12 +206,5 @@ func TestDisplayName_InvalidCharsetRejected(t *testing.T) {
 
 	if resp.StatusCode != http.StatusUnprocessableEntity {
 		t.Errorf("status = %d, want 422", resp.StatusCode)
-	}
-}
-
-func mustDecode(t *testing.T, raw []byte, v any) {
-	t.Helper()
-	if err := json.Unmarshal(raw, v); err != nil {
-		t.Fatalf("decode: %v (%s)", err, raw)
 	}
 }

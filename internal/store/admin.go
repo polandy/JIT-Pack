@@ -142,7 +142,7 @@ func (s *Store) IsInstanceAdmin(ctx context.Context, userID string) (bool, error
 	return admin == 1, nil
 }
 
-// ResetDisplayName clears the name to '' (FR-23.4); EnsureOIDCUser
+// ResetDisplayName clears the name to ” (FR-23.4); EnsureOIDCUser
 // re-stamps the IdP-provided name at the account's next login.
 func (s *Store) ResetDisplayName(ctx context.Context, userID string) error {
 	res, err := s.db.ExecContext(ctx,

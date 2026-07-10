@@ -244,7 +244,6 @@ func memberRole(ctx context.Context, tx *sql.Tx, tripID, userID string) (string,
 	return role, nil
 }
 
-
 // parentIDs collects the parent references of a child row from both the
 // existing row and the mutation fields — authorization must hold for the
 // current parent *and* the target parent.
