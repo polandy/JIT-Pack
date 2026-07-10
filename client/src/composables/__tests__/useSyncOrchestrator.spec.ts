@@ -12,14 +12,17 @@ beforeEach(() => {
   setActivePinia(createPinia())
   fetchMock = vi.fn()
   vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal('WebSocket', vi.fn(() => ({
-    send: vi.fn(),
-    close: vi.fn(),
-    readyState: 1,
-    onopen: null,
-    onmessage: null,
-    onclose: null,
-  })))
+  vi.stubGlobal(
+    'WebSocket',
+    vi.fn(() => ({
+      send: vi.fn(),
+      close: vi.fn(),
+      readyState: 1,
+      onopen: null,
+      onmessage: null,
+      onclose: null,
+    })),
+  )
   // Stub localStorage
   const storage = new Map<string, string>()
   vi.stubGlobal('localStorage', {
@@ -29,17 +32,21 @@ beforeEach(() => {
 })
 
 function mockPush(results: PushResponse['results'] = []) {
-  fetchMock.mockResolvedValueOnce(new Response(
-    JSON.stringify({ results, pull_hint: { next_cursor: 1 } } satisfies PushResponse),
-    { status: 200 },
-  ))
+  fetchMock.mockResolvedValueOnce(
+    new Response(
+      JSON.stringify({ results, pull_hint: { next_cursor: 1 } } satisfies PushResponse),
+      { status: 200 },
+    ),
+  )
 }
 
 function mockPull(changes: PullResponse['changes'] = []) {
-  fetchMock.mockResolvedValueOnce(new Response(
-    JSON.stringify({ changes, next_cursor: 1, has_more: false } satisfies PullResponse),
-    { status: 200 },
-  ))
+  fetchMock.mockResolvedValueOnce(
+    new Response(
+      JSON.stringify({ changes, next_cursor: 1, has_more: false } satisfies PullResponse),
+      { status: 200 },
+    ),
+  )
 }
 
 describe('useSyncOrchestrator', () => {
@@ -77,8 +84,19 @@ describe('useSyncOrchestrator', () => {
 
     // Seed an item
     tripStore.applyChange({
-      seq: 1, table: 'trip_items', id: 'i1', deleted: false,
-      row: { trip_id: 't1', name: 'Hat', quantity: 1, packed_count: 0, state: 'open', mode: 'pack', updated_hlc: '' },
+      seq: 1,
+      table: 'trip_items',
+      id: 'i1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Hat',
+        quantity: 1,
+        packed_count: 0,
+        state: 'open',
+        mode: 'pack',
+        updated_hlc: '',
+      },
     })
 
     mockPush()
@@ -96,8 +114,19 @@ describe('useSyncOrchestrator', () => {
     const tripStore = useTripStore()
 
     tripStore.applyChange({
-      seq: 1, table: 'trip_items', id: 'i1', deleted: false,
-      row: { trip_id: 't1', name: 'Umbrella', quantity: 2, packed_count: 0, state: 'open', mode: 'pack', updated_hlc: '' },
+      seq: 1,
+      table: 'trip_items',
+      id: 'i1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Umbrella',
+        quantity: 2,
+        packed_count: 0,
+        state: 'open',
+        mode: 'pack',
+        updated_hlc: '',
+      },
     })
 
     mockPush()
@@ -116,8 +145,19 @@ describe('useSyncOrchestrator', () => {
     const tripStore = useTripStore()
 
     tripStore.applyChange({
-      seq: 1, table: 'trip_items', id: 'i1', deleted: false,
-      row: { trip_id: 't1', name: 'Umbrella', quantity: 0, packed_count: 0, state: 'skipped', mode: 'pack', updated_hlc: '' },
+      seq: 1,
+      table: 'trip_items',
+      id: 'i1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Umbrella',
+        quantity: 0,
+        packed_count: 0,
+        state: 'skipped',
+        mode: 'pack',
+        updated_hlc: '',
+      },
     })
 
     mockPush()
@@ -134,10 +174,15 @@ describe('useSyncOrchestrator', () => {
   it('drainTrip updates sync status', async () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
 
-    mockPull([{
-      seq: 1, table: 'trips', id: 't1', deleted: false,
-      row: { name: 'Test', status: 'active', start_date: '2026-08-01', end_date: '2026-08-05' },
-    }])
+    mockPull([
+      {
+        seq: 1,
+        table: 'trips',
+        id: 't1',
+        deleted: false,
+        row: { name: 'Test', status: 'active', start_date: '2026-08-01', end_date: '2026-08-05' },
+      },
+    ])
 
     await orch.drainTrip('t1')
 
@@ -150,8 +195,20 @@ describe('useSyncOrchestrator', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
 
     mockPull([
-      { seq: 1, table: 'categories', id: 'c1', deleted: false, row: { name: 'Clothes', sort_order: 0 } },
-      { seq: 2, table: 'items', id: 'i1', deleted: false, row: { name: 'Shirt', category_id: 'c1', unit: 'pieces' } },
+      {
+        seq: 1,
+        table: 'categories',
+        id: 'c1',
+        deleted: false,
+        row: { name: 'Clothes', sort_order: 0 },
+      },
+      {
+        seq: 2,
+        table: 'items',
+        id: 'i1',
+        deleted: false,
+        row: { name: 'Shirt', category_id: 'c1', unit: 'pieces' },
+      },
     ])
 
     await orch.drainMaster()

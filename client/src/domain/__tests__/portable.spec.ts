@@ -5,8 +5,21 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { matchPortableItems, parsePortable, serializeTemplate, serializeTrip } from '@/domain/portable'
-import type { Container, MasterItem, Template, TemplateItem, Traveler, Trip, TripItem } from '@/types/domain'
+import {
+  matchPortableItems,
+  parsePortable,
+  serializeTemplate,
+  serializeTrip,
+} from '@/domain/portable'
+import type {
+  Container,
+  MasterItem,
+  Template,
+  TemplateItem,
+  Traveler,
+  Trip,
+  TripItem,
+} from '@/types/domain'
 
 function masterItem(id: string, name: string): MasterItem {
   return {
@@ -68,7 +81,9 @@ describe('parsePortable (FR-18.5)', () => {
     })
     expect(result.doc!.items).toHaveLength(2)
     expect(result.doc!.items[0]).toMatchObject({
-      name: 'Unterhosen', quantity: 'trip_duration + 1', assignment: 'per_person',
+      name: 'Unterhosen',
+      quantity: 'trip_duration + 1',
+      assignment: 'per_person',
     })
   })
 
@@ -79,7 +94,10 @@ describe('parsePortable (FR-18.5)', () => {
     expect(result.doc!.travelers).toEqual([{ name: 'Andy', profile: 'adult' }])
     expect(result.doc!.containers[0]).toMatchObject({ name: 'Radtasche', carrier: 'Andy' })
     expect(result.doc!.items[0]).toMatchObject({
-      name: 'Zelt', traveler: 'Andy', container: 'Radtasche', packed_count: 1,
+      name: 'Zelt',
+      traveler: 'Andy',
+      container: 'Radtasche',
+      packed_count: 1,
     })
   })
 
@@ -87,7 +105,10 @@ describe('parsePortable (FR-18.5)', () => {
     ['not YAML at all', '::: {{{'],
     ['unknown kind', 'kind: recipe\nschema_version: 1\nname: X\nitems: []'],
     ['missing name', 'kind: template\nschema_version: 1\nitems: []'],
-    ['item without a name', 'kind: template\nschema_version: 1\nname: X\nitems:\n  - quantity: "1"'],
+    [
+      'item without a name',
+      'kind: template\nschema_version: 1\nname: X\nitems:\n  - quantity: "1"',
+    ],
   ])('rejects %s with an error', (_name, text) => {
     const result = parsePortable(text)
     expect(result.doc).toBeNull()
@@ -110,17 +131,34 @@ describe('parsePortable (FR-18.5)', () => {
 
 describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () => {
   it('round-trips a template with formulas, conditions, and flags', () => {
-    const template: Template = { id: 'tpl1', owner_id: 'me', name: 'Base Travel', is_published: false }
+    const template: Template = {
+      id: 'tpl1',
+      owner_id: 'me',
+      name: 'Base Travel',
+      is_published: false,
+    }
     const items: TemplateItem[] = [
       {
-        id: 'ti1', template_id: 'tpl1', item_id: 'i1',
-        quantity_formula: 'trip_duration + 1', assignment: 'per_person', dedup: 'max',
-        conditions: null, default_mode: 'pack', late_packer: false,
+        id: 'ti1',
+        template_id: 'tpl1',
+        item_id: 'i1',
+        quantity_formula: 'trip_duration + 1',
+        assignment: 'per_person',
+        dedup: 'max',
+        conditions: null,
+        default_mode: 'pack',
+        late_packer: false,
       },
       {
-        id: 'ti2', template_id: 'tpl1', item_id: 'i2',
-        quantity_formula: '1', assignment: 'trip_global', dedup: 'sum',
-        conditions: { season: 'winter' }, default_mode: 'buy_before', late_packer: true,
+        id: 'ti2',
+        template_id: 'tpl1',
+        item_id: 'i2',
+        quantity_formula: '1',
+        assignment: 'trip_global',
+        dedup: 'sum',
+        conditions: { season: 'winter' },
+        default_mode: 'buy_before',
+        late_packer: true,
       },
     ]
     const master = new Map<string, MasterItem>([
@@ -136,8 +174,13 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
     // Items sorted by name, matching the server export (ORDER BY name).
     expect(result.doc!.items.map((i) => i.name)).toEqual(['Skibrille', 'Unterhosen'])
     expect(result.doc!.items[0]).toMatchObject({
-      quantity: '1', assignment: 'trip_global', dedup: 'sum', unit: 'pairs',
-      conditions: { season: 'winter' }, default_mode: 'buy_before', late_packer: true,
+      quantity: '1',
+      assignment: 'trip_global',
+      dedup: 'sum',
+      unit: 'pairs',
+      conditions: { season: 'winter' },
+      default_mode: 'buy_before',
+      late_packer: true,
     })
     // Environment-agnostic: no internal ids anywhere (FR-18.2).
     expect(yaml).not.toContain('tpl1')
@@ -146,38 +189,78 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
 
   it('round-trips a trip, with progress only when requested (FR-18.3)', () => {
     const trip: Trip = {
-      id: 't1', name: 'Engadin 2026', status: 'active',
-      start_date: '2026-08-01', end_date: '2026-08-10', duration_days: 10,
-      series_id: 'ser-1', series_name: null, attributes: null, imported: false,
+      id: 't1',
+      name: 'Engadin 2026',
+      status: 'active',
+      start_date: '2026-08-01',
+      end_date: '2026-08-10',
+      duration_days: 10,
+      series_id: 'ser-1',
+      series_name: null,
+      attributes: null,
+      imported: false,
     }
     const travelers: Traveler[] = [
       { id: 'tr1', trip_id: 't1', name: 'Andy', profile: 'adult', linked_user_id: null },
     ]
     const containers: Container[] = [
-      { id: 'c1', trip_id: 't1', name: 'Radtasche', carrier_traveler_id: 'tr1', max_weight_grams: 9000, paired_container_id: null },
+      {
+        id: 'c1',
+        trip_id: 't1',
+        name: 'Radtasche',
+        carrier_traveler_id: 'tr1',
+        max_weight_grams: 9000,
+        paired_container_id: null,
+      },
     ]
-    const items: TripItem[] = [{
-      id: 'a', trip_id: 't1', source_item_id: null, source_template_id: null,
-      name: 'Zelt', weight_grams: null, value_cents: null, category_name: 'Outdoor',
-      quantity: 2, packed_count: 1, state: 'partial', mode: 'pack', late_packer: false,
-      assigned_traveler_id: 'tr1', packer_user_id: null, container_id: 'c1',
-      packing_now_by: null, packing_now_at: null, flag_unused: false, flag_missing: false,
-      updated_hlc: '',
-    }]
+    const items: TripItem[] = [
+      {
+        id: 'a',
+        trip_id: 't1',
+        source_item_id: null,
+        source_template_id: null,
+        name: 'Zelt',
+        weight_grams: null,
+        value_cents: null,
+        category_name: 'Outdoor',
+        quantity: 2,
+        packed_count: 1,
+        state: 'partial',
+        mode: 'pack',
+        late_packer: false,
+        assigned_traveler_id: 'tr1',
+        packer_user_id: null,
+        container_id: 'c1',
+        packing_now_by: null,
+        packing_now_at: null,
+        flag_unused: false,
+        flag_missing: false,
+        updated_hlc: '',
+      },
+    ]
 
     const withProgress = parsePortable(
       serializeTrip({ trip, items, travelers, containers, includeProgress: true }),
     ).doc!
     expect(withProgress).toMatchObject({
-      kind: 'trip', name: 'Engadin 2026', start_date: '2026-08-01', end_date: '2026-08-10',
+      kind: 'trip',
+      name: 'Engadin 2026',
+      start_date: '2026-08-01',
+      end_date: '2026-08-10',
     })
     expect(withProgress.travelers).toEqual([{ name: 'Andy', profile: 'adult' }])
     expect(withProgress.containers[0]).toMatchObject({
-      name: 'Radtasche', carrier: 'Andy', max_weight_grams: 9000,
+      name: 'Radtasche',
+      carrier: 'Andy',
+      max_weight_grams: 9000,
     })
     expect(withProgress.items[0]).toMatchObject({
-      name: 'Zelt', quantity: '2', category: 'Outdoor',
-      traveler: 'Andy', container: 'Radtasche', packed_count: 1,
+      name: 'Zelt',
+      quantity: '2',
+      category: 'Outdoor',
+      traveler: 'Andy',
+      container: 'Radtasche',
+      packed_count: 1,
     })
 
     const clean = parsePortable(

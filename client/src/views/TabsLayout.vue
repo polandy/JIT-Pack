@@ -3,14 +3,7 @@
  * Tab layout — mobile bottom tabs (G-1).
  * Hidden on desktop ≥900px where NavRail (G-9) takes over.
  */
-import {
-  IonTabBar,
-  IonTabButton,
-  IonTabs,
-  IonIcon,
-  IonLabel,
-  IonRouterOutlet,
-} from '@ionic/vue'
+import { IonTabBar, IonTabButton, IonTabs, IonIcon, IonLabel, IonRouterOutlet } from '@ionic/vue'
 import { homeOutline, airplaneOutline, listOutline, cubeOutline } from 'ionicons/icons'
 </script>
 

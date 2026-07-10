@@ -4,7 +4,9 @@ import { loadTokens } from '../tokens'
 
 const KEY = 'jitpack_tokens'
 
-function storeTokens(overrides: Partial<{ access_token: string; refresh_token: string; expires_at: number }> = {}) {
+function storeTokens(
+  overrides: Partial<{ access_token: string; refresh_token: string; expires_at: number }> = {},
+) {
   localStorage.setItem(
     KEY,
     JSON.stringify({

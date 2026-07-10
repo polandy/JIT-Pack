@@ -158,10 +158,15 @@ function clone() {
         <IonNote v-if="preview">
           {{ preview.items.length }} items, {{ preview.travelers.length }} travelers<template
             v-if="preview.containers.length > 0"
-          >, {{ preview.containers.length }} containers</template>.
+            >, {{ preview.containers.length }} containers</template
+          >.
           <template v-if="preview.reevaluated > 0">
-            {{ preview.reevaluated }} quantit{{ preview.reevaluated === 1 ? 'y' : 'ies' }}
-            re-evaluated from formulas<template v-if="!startDate"> (no start date — duration falls back to a single day)</template>.
+            {{ preview.reevaluated }} quantit{{
+              preview.reevaluated === 1 ? 'y' : 'ies'
+            }}
+            re-evaluated from formulas<template v-if="!startDate">
+              (no start date — duration falls back to a single day)</template
+            >.
           </template>
         </IonNote>
 

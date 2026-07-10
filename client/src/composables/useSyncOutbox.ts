@@ -25,11 +25,7 @@ export class SyncOutbox {
   private readonly hlc: HLCGenerator
   private readonly onChanges: (changes: PullChange[]) => void
 
-  constructor(
-    client: APIClient,
-    hlc: HLCGenerator,
-    onChanges: (changes: PullChange[]) => void,
-  ) {
+  constructor(client: APIClient, hlc: HLCGenerator, onChanges: (changes: PullChange[]) => void) {
     this.client = client
     this.hlc = hlc
     this.onChanges = onChanges
@@ -61,8 +57,7 @@ export class SyncOutbox {
     let cursor = this.cursors.get(key) ?? 0
 
     if (queue.length > 0) {
-      const path =
-        type === 'master' ? '/api/v1/sync/master' : `/api/v1/sync/trips/${id}`
+      const path = type === 'master' ? '/api/v1/sync/master' : `/api/v1/sync/trips/${id}`
       // The server caps a push at 200 mutations (Sync-API §9) — chunk
       // big batches (large repacks, wizard-generated trips) instead of
       // getting the whole queue rejected.
@@ -78,10 +73,7 @@ export class SyncOutbox {
       }
     }
 
-    const pullPath =
-      type === 'master'
-        ? '/api/v1/sync/master'
-        : `/api/v1/sync/trips/${id}`
+    const pullPath = type === 'master' ? '/api/v1/sync/master' : `/api/v1/sync/trips/${id}`
 
     const pullResp = await this.client.get<PullResponse>(pullPath, {
       cursor: String(cursor),

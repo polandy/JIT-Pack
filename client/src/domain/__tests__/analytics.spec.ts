@@ -55,14 +55,33 @@ const travelers: Traveler[] = [
   { id: 'trav-1', trip_id: 't1', name: 'Andy', profile: 'adult', linked_user_id: null },
 ]
 const containers: Container[] = [
-  { id: 'c1', trip_id: 't1', name: 'Left Pannier', carrier_traveler_id: null, max_weight_grams: null, paired_container_id: null },
+  {
+    id: 'c1',
+    trip_id: 't1',
+    name: 'Left Pannier',
+    carrier_traveler_id: null,
+    max_weight_grams: null,
+    paired_container_id: null,
+  },
 ]
 
 describe('analyzeByDimension (FR-8.2)', () => {
   const items = [
-    item({ category_name: 'Kleidung', weight_grams: 200, quantity: 3, packed_count: 1, value_cents: 1000 }),
+    item({
+      category_name: 'Kleidung',
+      weight_grams: 200,
+      quantity: 3,
+      packed_count: 1,
+      value_cents: 1000,
+    }),
     item({ category_name: 'Kleidung', weight_grams: null, value_cents: null }),
-    item({ category_name: 'Technik', weight_grams: 500, quantity: 1, packed_count: 1, value_cents: 90000 }),
+    item({
+      category_name: 'Technik',
+      weight_grams: 500,
+      quantity: 1,
+      packed_count: 1,
+      value_cents: 90000,
+    }),
     item({ category_name: 'Technik', state: 'skipped', quantity: 0, weight_grams: 999 }),
   ]
 
@@ -106,7 +125,9 @@ describe('seriesWeightTrend (FR-14.3)', () => {
       trip('t-other-series', { series_id: 's2' }),
     ]
     const itemsByTrip = (id: string) =>
-      id === 't2024' ? [item({ trip_id: id, weight_grams: 1000 })] : [item({ trip_id: id, weight_grams: 2000 })]
+      id === 't2024'
+        ? [item({ trip_id: id, weight_grams: 1000 })]
+        : [item({ trip_id: id, weight_grams: 2000 })]
 
     const trend = seriesWeightTrend(trips, itemsByTrip, 's1')
 
@@ -119,10 +140,11 @@ describe('topFlagged (FR-14.3)', () => {
   it('counts flags across archived trips only, most frequent first', () => {
     const trips = [trip('a1'), trip('a2'), trip('active', { status: 'active' })]
     const itemsByTrip = (id: string) => {
-      if (id === 'a1') return [
-        item({ trip_id: id, name: 'Sonnencreme', flag_missing: true }),
-        item({ trip_id: id, name: 'Ladekabel', flag_missing: true }),
-      ]
+      if (id === 'a1')
+        return [
+          item({ trip_id: id, name: 'Sonnencreme', flag_missing: true }),
+          item({ trip_id: id, name: 'Ladekabel', flag_missing: true }),
+        ]
       if (id === 'a2') return [item({ trip_id: id, name: 'Sonnencreme', flag_missing: true })]
       return [item({ trip_id: id, name: 'Aktiv', flag_missing: true })]
     }

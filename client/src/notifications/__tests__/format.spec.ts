@@ -48,8 +48,9 @@ describe('describeNotification', () => {
 
 describe('notificationRoute (G-4)', () => {
   it('routes to the item context when the payload has one', () => {
-    expect(notificationRoute(notif('delegation', { trip_id: 't1', item_id: 'i1' })))
-      .toBe('/trips/t1/items/i1')
+    expect(notificationRoute(notif('delegation', { trip_id: 't1', item_id: 'i1' }))).toBe(
+      '/trips/t1/items/i1',
+    )
   })
 
   it('routes to the trip without an item', () => {

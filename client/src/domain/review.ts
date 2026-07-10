@@ -53,7 +53,10 @@ export function buildReviewProposals(args: ReviewArgs): ReviewProposal[] {
   const templatesByID = new Map(args.templates.map((t) => [t.id, t]))
   const proposals: ReviewProposal[] = []
 
-  const push = (p: Omit<ReviewProposal, 'key' | 'requiresFork' | 'flagCount'>, flag: 'unused' | 'missing') => {
+  const push = (
+    p: Omit<ReviewProposal, 'key' | 'requiresFork' | 'flagCount'>,
+    flag: 'unused' | 'missing',
+  ) => {
     const itemRef = p.itemId ?? `name:${p.itemName.toLowerCase()}`
     const key = `${itemRef}::${p.templateId}`
     if (dismissed(key) || proposals.some((existing) => existing.key === key)) return

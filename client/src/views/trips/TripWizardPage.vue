@@ -67,13 +67,14 @@ const newSeriesName = ref('')
 /** Picking a series prefills empty attribute chips from its defaults. */
 function pickSeries(choice: string) {
   seriesChoice.value = choice
-  const defaults = choice && choice !== 'new'
-    ? masterStore.getSeries(choice)?.default_attributes
-    : null
+  const defaults =
+    choice && choice !== 'new' ? masterStore.getSeries(choice)?.default_attributes : null
   if (!defaults) return
   if (!season.value && typeof defaults.season === 'string') season.value = defaults.season
-  if (!transportMode.value && typeof defaults.transport_mode === 'string') transportMode.value = defaults.transport_mode
-  if (!accommodation.value && typeof defaults.accommodation === 'string') accommodation.value = defaults.accommodation
+  if (!transportMode.value && typeof defaults.transport_mode === 'string')
+    transportMode.value = defaults.transport_mode
+  if (!accommodation.value && typeof defaults.accommodation === 'string')
+    accommodation.value = defaults.accommodation
 }
 
 // M16 "New trip in series" arrives with ?series=<id>.
@@ -89,7 +90,10 @@ const attributes = computed<Record<string, unknown> | null>(() => {
   if (season.value) attrs.season = season.value
   if (transportMode.value) attrs.transport_mode = transportMode.value
   if (accommodation.value) attrs.accommodation = accommodation.value
-  const tags = tagsInput.value.split(',').map((t) => t.trim()).filter(Boolean)
+  const tags = tagsInput.value
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean)
   if (tags.length > 0) attrs.tags = tags
   return Object.keys(attrs).length > 0 ? attrs : null
 })
@@ -380,14 +384,18 @@ function createTrip() {
               <IonSegmentButton value="adult">Adult</IonSegmentButton>
               <IonSegmentButton value="child">Child</IonSegmentButton>
             </IonSegment>
-            <IonButton slot="end" fill="clear" color="medium" aria-label="Remove traveler" @click="removeTraveler(index)">
+            <IonButton
+              slot="end"
+              fill="clear"
+              color="medium"
+              aria-label="Remove traveler"
+              @click="removeTraveler(index)"
+            >
               <IonIcon slot="icon-only" :icon="closeOutline" />
             </IonButton>
           </IonItem>
         </IonList>
-        <div v-else class="empty-hint">
-          No travelers yet — per-person items need at least one.
-        </div>
+        <div v-else class="empty-hint">No travelers yet — per-person items need at least one.</div>
         <IonButton fill="outline" size="small" @click="addTraveler">
           <IonIcon slot="start" :icon="addOutline" />
           Add traveler
@@ -408,7 +416,13 @@ function createTrip() {
                 <IonSelectOption value="editor">Editor</IonSelectOption>
                 <IonSelectOption value="admin">Admin</IonSelectOption>
               </IonSelect>
-              <IonButton slot="end" fill="clear" color="medium" aria-label="Remove share" @click="removeShare(index)">
+              <IonButton
+                slot="end"
+                fill="clear"
+                color="medium"
+                aria-label="Remove share"
+                @click="removeShare(index)"
+              >
                 <IonIcon slot="icon-only" :icon="closeOutline" />
               </IonButton>
             </IonItem>
@@ -430,7 +444,8 @@ function createTrip() {
             No other accounts on this server yet.
           </IonNote>
           <IonNote class="share-note">
-            You stay the trip's Owner. Admins manage travelers and roles; Editors pack and comment (FR-4.5).
+            You stay the trip's Owner. Admins manage travelers and roles; Editors pack and comment
+            (FR-4.5).
           </IonNote>
         </template>
       </section>
@@ -458,7 +473,9 @@ function createTrip() {
           <div v-if="generation.merged.length > 0" class="preview-block">
             <h3>Merged overlaps</h3>
             <p v-for="(m, i) in generation.merged" :key="i">
-              {{ m.item_name }}: {{ m.quantities.join(' / ') }} → {{ m.quantity }} ({{ m.strategy }})
+              {{ m.item_name }}: {{ m.quantities.join(' / ') }} → {{ m.quantity }} ({{
+                m.strategy
+              }})
             </p>
           </div>
           <details v-if="generation.excluded.length > 0" class="preview-block">
@@ -478,7 +495,9 @@ function createTrip() {
             <IonLabel>
               <h3>{{ item.name }}</h3>
               <p>
-                <template v-if="travelerName(item.traveler_index)">{{ travelerName(item.traveler_index) }} · </template>
+                <template v-if="travelerName(item.traveler_index)"
+                  >{{ travelerName(item.traveler_index) }} ·
+                </template>
                 <template v-if="item.category_name">{{ item.category_name }}</template>
               </p>
             </IonLabel>

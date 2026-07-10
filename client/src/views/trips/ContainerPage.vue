@@ -158,9 +158,17 @@ function onAssign(itemId: string, containerId: string | null) {
           <IonInput
             class="container-name"
             :value="container.name"
-            @ionBlur="(e: CustomEvent) => onRename(container, (e.target as HTMLIonInputElement).value as string)"
+            @ionBlur="
+              (e: CustomEvent) =>
+                onRename(container, (e.target as HTMLIonInputElement).value as string)
+            "
           />
-          <IonButton fill="clear" color="medium" aria-label="Delete container" @click="onDelete(container.id)">
+          <IonButton
+            fill="clear"
+            color="medium"
+            aria-label="Delete container"
+            @click="onDelete(container.id)"
+          >
             <IonIcon slot="icon-only" :icon="trashOutline" />
           </IonButton>
         </div>
@@ -195,14 +203,19 @@ function onAssign(itemId: string, containerId: string | null) {
             @ionChange="(e: CustomEvent) => onCarrier(container, e.detail.value)"
           >
             <IonSelectOption value="">—</IonSelectOption>
-            <IonSelectOption v-for="t in travelers" :key="t.id" :value="t.id">{{ t.name }}</IonSelectOption>
+            <IonSelectOption v-for="t in travelers" :key="t.id" :value="t.id">{{
+              t.name
+            }}</IonSelectOption>
           </IonSelect>
           <IonInput
             label="Max (kg)"
             type="number"
             class="max-input"
             :value="container.max_weight_grams ? container.max_weight_grams / 1000 : ''"
-            @ionBlur="(e: CustomEvent) => onMaxWeight(container, (e.target as HTMLIonInputElement).value as string)"
+            @ionBlur="
+              (e: CustomEvent) =>
+                onMaxWeight(container, (e.target as HTMLIonInputElement).value as string)
+            "
           />
           <IonSelect
             label="Paired with"
@@ -211,7 +224,9 @@ function onAssign(itemId: string, containerId: string | null) {
             @ionChange="(e: CustomEvent) => onPair(container, e.detail.value)"
           >
             <IonSelectOption value="">—</IonSelectOption>
-            <IonSelectOption v-for="c in pairOptions(container)" :key="c.id" :value="c.id">{{ c.name }}</IonSelectOption>
+            <IonSelectOption v-for="c in pairOptions(container)" :key="c.id" :value="c.id">{{
+              c.name
+            }}</IonSelectOption>
           </IonSelect>
         </div>
         <IonNote v-if="carrierName(container.carrier_traveler_id)">
@@ -234,7 +249,9 @@ function onAssign(itemId: string, containerId: string | null) {
             :value="''"
             @ionChange="(e: CustomEvent) => onAssign(item.id, e.detail.value)"
           >
-            <IonSelectOption v-for="c in containers" :key="c.id" :value="c.id">{{ c.name }}</IonSelectOption>
+            <IonSelectOption v-for="c in containers" :key="c.id" :value="c.id">{{
+              c.name
+            }}</IonSelectOption>
           </IonSelect>
         </IonItem>
       </IonList>

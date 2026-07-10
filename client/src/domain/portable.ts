@@ -128,12 +128,12 @@ export interface PortableMatch {
   existingName: string | null
 }
 
-export function matchPortableItems(
-  doc: PortableDocument,
-  existing: MasterItem[],
-): PortableMatch[] {
+export function matchPortableItems(doc: PortableDocument, existing: MasterItem[]): PortableMatch[] {
   const matches = new Map(
-    findDuplicates(doc.items.map((i) => i.name), existing).map((m) => [m.imported, m]),
+    findDuplicates(
+      doc.items.map((i) => i.name),
+      existing,
+    ).map((m) => [m.imported, m]),
   )
   return doc.items.map((item) => {
     const match = matches.get(item.name)
@@ -247,7 +247,10 @@ function toItem(entry: unknown): PortableItem | null {
   return {
     name,
     quantity: typeof o['quantity'] === 'string' ? o['quantity'] : String(o['quantity'] ?? '1'),
-    assignment: o['assignment'] === 'per_person' || o['assignment'] === 'trip_global' ? o['assignment'] : null,
+    assignment:
+      o['assignment'] === 'per_person' || o['assignment'] === 'trip_global'
+        ? o['assignment']
+        : null,
     dedup: o['dedup'] === 'sum' || o['dedup'] === 'max' ? o['dedup'] : null,
     conditions:
       typeof o['conditions'] === 'object' && o['conditions'] !== null

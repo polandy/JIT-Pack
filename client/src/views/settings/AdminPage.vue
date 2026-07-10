@@ -83,10 +83,18 @@ async function runAction(action: AdminAction, user: AdminUserRow) {
   if (action === 'deactivate' && !(await confirmDeactivation(user))) return
   try {
     switch (action) {
-      case 'deactivate': await orchestrator.deactivateUser(user.user_id); break
-      case 'reactivate': await orchestrator.reactivateUser(user.user_id); break
-      case 'reset-avatar': await orchestrator.adminResetAvatar(user.user_id); break
-      case 'reset-name': await orchestrator.adminResetDisplayName(user.user_id); break
+      case 'deactivate':
+        await orchestrator.deactivateUser(user.user_id)
+        break
+      case 'reactivate':
+        await orchestrator.reactivateUser(user.user_id)
+        break
+      case 'reset-avatar':
+        await orchestrator.adminResetAvatar(user.user_id)
+        break
+      case 'reset-name':
+        await orchestrator.adminResetDisplayName(user.user_id)
+        break
     }
   } catch {
     // Offline or rejected — the reload below shows the actual state.
@@ -153,8 +161,8 @@ function provisioned(user: AdminUserRow): string {
             </h3>
             <p v-if="user.email">{{ user.email }}</p>
             <p>
-              Provisioned {{ provisioned(user) }} ·
-              {{ user.trip_count }} trip(s) · {{ user.template_count }} template(s)
+              Provisioned {{ provisioned(user) }} · {{ user.trip_count }} trip(s) ·
+              {{ user.template_count }} template(s)
             </p>
           </IonLabel>
           <IonChip v-if="user.is_instance_admin" outline disabled>Admin</IonChip>

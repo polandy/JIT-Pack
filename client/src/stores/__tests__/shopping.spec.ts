@@ -36,7 +36,9 @@ describe('tripStore.getShoppingItems', () => {
     const store = useTripStore()
     store.applyChange(itemChange('pack-item'))
     store.applyChange(itemChange('before', { mode: 'buy_before' }))
-    store.applyChange(itemChange('before-packed', { mode: 'buy_before', state: 'packed', packed_count: 1 }))
+    store.applyChange(
+      itemChange('before-packed', { mode: 'buy_before', state: 'packed', packed_count: 1 }),
+    )
     store.applyChange(itemChange('local', { mode: 'buy_local' }))
 
     const { buyBefore, buyLocal } = store.getShoppingItems('t1')

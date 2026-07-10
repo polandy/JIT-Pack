@@ -16,10 +16,20 @@ let fetchMock: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
   setActivePinia(createPinia())
-  fetchMock = vi.fn().mockResolvedValue(new Response(
-    JSON.stringify({ results: [], pull_hint: { next_cursor: 1 }, changes: [], next_cursor: 1, has_more: false }),
-    { status: 200 },
-  ))
+  fetchMock = vi
+    .fn()
+    .mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          results: [],
+          pull_hint: { next_cursor: 1 },
+          changes: [],
+          next_cursor: 1,
+          has_more: false,
+        }),
+        { status: 200 },
+      ),
+    )
   vi.stubGlobal('fetch', fetchMock)
   vi.stubGlobal('WebSocket', vi.fn())
   const storage = new Map<string, string>()
@@ -54,7 +64,10 @@ items:
     const orch = newOrch()
     const master = useMasterStore()
     master.applyChange({
-      seq: 0, table: 'items', id: 'i1', deleted: false,
+      seq: 0,
+      table: 'items',
+      id: 'i1',
+      deleted: false,
       row: { name: 'Unterhosen', unit: 'pieces', is_consumable: 0 },
     })
 
@@ -68,11 +81,17 @@ items:
     const items = master.getTemplateItems(result.id)
     expect(items).toHaveLength(2)
     const unterhosen = items.find((ti) => ti.item_id === 'i1')!
-    expect(unterhosen).toMatchObject({ quantity_formula: 'trip_duration + 1', assignment: 'per_person' })
+    expect(unterhosen).toMatchObject({
+      quantity_formula: 'trip_duration + 1',
+      assignment: 'per_person',
+    })
 
     const skibrille = items.find((ti) => ti.item_id !== 'i1')!
     expect(skibrille).toMatchObject({
-      quantity_formula: '1', assignment: 'trip_global', dedup: 'sum', late_packer: true,
+      quantity_formula: '1',
+      assignment: 'trip_global',
+      dedup: 'sum',
+      late_packer: true,
       conditions: { season: 'winter' },
     })
     expect(master.itemList.find((i) => i.name === 'Skibrille')).toBeDefined()
@@ -82,7 +101,10 @@ items:
     const orch = newOrch()
     const master = useMasterStore()
     master.applyChange({
-      seq: 0, table: 'templates', id: 'tpl-1', deleted: false,
+      seq: 0,
+      table: 'templates',
+      id: 'tpl-1',
+      deleted: false,
       row: { owner_id: 'me', name: 'Base Travel', is_published: 0 },
     })
 
@@ -134,8 +156,12 @@ items:
 
     const item = trips.getItems(result.id)[0]!
     expect(item).toMatchObject({
-      name: 'Zelt', quantity: 2, packed_count: 1, state: 'partial',
-      category_name: 'Outdoor', mode: 'pack',
+      name: 'Zelt',
+      quantity: 2,
+      packed_count: 1,
+      state: 'partial',
+      category_name: 'Outdoor',
+      mode: 'pack',
     })
     expect(item.assigned_traveler_id).toBe(travelers[0]!.id)
     expect(item.container_id).toBe(containers[0]!.id)

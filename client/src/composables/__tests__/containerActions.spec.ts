@@ -14,9 +14,16 @@ import { useTripStore } from '@/stores/tripStore'
 
 beforeEach(() => {
   setActivePinia(createPinia())
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
-    JSON.stringify({ results: [], pull_hint: { next_cursor: 1 } }), { status: 200 },
-  )))
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ results: [], pull_hint: { next_cursor: 1 } }), {
+          status: 200,
+        }),
+      ),
+  )
   vi.stubGlobal('WebSocket', vi.fn())
   const storage = new Map<string, string>()
   vi.stubGlobal('localStorage', {
@@ -73,8 +80,19 @@ describe('orchestrator container actions', () => {
     const store = useTripStore()
     const containerId = orch.addContainer('t1', 'Roof Box', {})
     store.applyChange({
-      seq: 0, table: 'trip_items', id: 'ti1', deleted: false,
-      row: { trip_id: 't1', name: 'Zelt', quantity: 1, packed_count: 0, state: 'open', mode: 'pack', container_id: containerId },
+      seq: 0,
+      table: 'trip_items',
+      id: 'ti1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Zelt',
+        quantity: 1,
+        packed_count: 0,
+        state: 'open',
+        mode: 'pack',
+        container_id: containerId,
+      },
     })
 
     orch.deleteContainer('t1', containerId)
@@ -83,7 +101,10 @@ describe('orchestrator container actions', () => {
     expect(store.getItems('t1')[0]!.container_id).toBeNull()
 
     // Both mutations land in one push batch: unassign before delete.
-    interface WireMutation { table: string; op: string }
+    interface WireMutation {
+      table: string
+      op: string
+    }
     const fetchMock = globalThis.fetch as unknown as ReturnType<typeof vi.fn>
     await vi.waitFor(() => {
       const batch = deleteBatch(fetchMock)

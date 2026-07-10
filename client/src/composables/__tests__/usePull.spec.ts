@@ -20,8 +20,20 @@ describe('usePull', () => {
   it('pulls trip changes from cursor 0', async () => {
     const resp: PullResponse = {
       changes: [
-        { seq: 1, table: 'trip_items', id: 'i1', deleted: false, row: { name: 'Socks', quantity: 3 } },
-        { seq: 2, table: 'trip_items', id: 'i2', deleted: false, row: { name: 'Shirt', quantity: 1 } },
+        {
+          seq: 1,
+          table: 'trip_items',
+          id: 'i1',
+          deleted: false,
+          row: { name: 'Socks', quantity: 3 },
+        },
+        {
+          seq: 2,
+          table: 'trip_items',
+          id: 'i2',
+          deleted: false,
+          row: { name: 'Shirt', quantity: 1 },
+        },
       ],
       next_cursor: 2,
       has_more: false,
@@ -64,7 +76,13 @@ describe('usePull', () => {
   it('observes HLCs from pulled changes', async () => {
     const resp: PullResponse = {
       changes: [
-        { seq: 1, table: 'trip_items', id: 'i1', deleted: false, row: { updated_hlc: '0000000005000-0001-deadbeef' } },
+        {
+          seq: 1,
+          table: 'trip_items',
+          id: 'i1',
+          deleted: false,
+          row: { updated_hlc: '0000000005000-0001-deadbeef' },
+        },
       ],
       next_cursor: 1,
       has_more: false,

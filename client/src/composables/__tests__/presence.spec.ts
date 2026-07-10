@@ -78,10 +78,12 @@ describe('presence handling (G-10)', () => {
   it('reports the pull cursor over the WebSocket after a trip drain', async () => {
     const orch = newOrch()
     await orch.connect()
-    fetchMock.mockResolvedValueOnce(new Response(
-      JSON.stringify({ changes: [], next_cursor: 7, has_more: false } satisfies PullResponse),
-      { status: 200 },
-    ))
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ changes: [], next_cursor: 7, has_more: false } satisfies PullResponse),
+        { status: 200 },
+      ),
+    )
 
     await orch.drainTrip('t1')
 

@@ -50,9 +50,12 @@ function formatWeight(grams: number): string {
 
 function unitLabel(item: MasterItem): string {
   switch (item.unit) {
-    case 'pairs': return 'pairs'
-    case 'per_day': return `${item.per_day_rate ?? 1}/day`
-    default: return ''
+    case 'pairs':
+      return 'pairs'
+    case 'per_day':
+      return `${item.per_day_rate ?? 1}/day`
+    default:
+      return ''
   }
 }
 

@@ -30,11 +30,7 @@ import {
   IonItemOption,
   IonSearchbar,
 } from '@ionic/vue'
-import {
-  addOutline,
-  trashOutline,
-  warningOutline,
-} from 'ionicons/icons'
+import { addOutline, trashOutline, warningOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 import { validateFormula } from '@/domain/formula'
 import { useMasterStore } from '@/stores/masterStore'
@@ -149,7 +145,10 @@ function onModeChange(templateItemId: string, mode: string) {
                       :value="ti.quantity_formula"
                       placeholder="1"
                       class="formula-input"
-                      @ionBlur="(e: CustomEvent) => onFormulaChange(ti.id, (e.target as HTMLIonInputElement).value as string)"
+                      @ionBlur="
+                        (e: CustomEvent) =>
+                          onFormulaChange(ti.id, (e.target as HTMLIonInputElement).value as string)
+                      "
                     />
                   </div>
                   <div class="ti-field">
@@ -197,7 +196,12 @@ function onModeChange(templateItemId: string, mode: string) {
 
         <!-- Add item button / picker -->
         <div class="add-section">
-          <IonButton v-if="!showItemPicker" expand="block" fill="outline" @click="showItemPicker = true">
+          <IonButton
+            v-if="!showItemPicker"
+            expand="block"
+            fill="outline"
+            @click="showItemPicker = true"
+          >
             <IonIcon slot="start" :icon="addOutline" />
             Add item from inventory
           </IonButton>
@@ -206,7 +210,7 @@ function onModeChange(templateItemId: string, mode: string) {
             <IonSearchbar
               :value="itemSearch"
               placeholder="Search items..."
-              @ionInput="(e: CustomEvent) => itemSearch = e.detail.value ?? ''"
+              @ionInput="(e: CustomEvent) => (itemSearch = e.detail.value ?? '')"
               :debounce="200"
             />
             <IonList>
@@ -225,7 +229,14 @@ function onModeChange(templateItemId: string, mode: string) {
                 <IonLabel color="medium">No matching items</IonLabel>
               </IonItem>
             </IonList>
-            <IonButton fill="clear" expand="block" @click="showItemPicker = false; itemSearch = ''">
+            <IonButton
+              fill="clear"
+              expand="block"
+              @click="
+                showItemPicker = false
+                itemSearch = ''
+              "
+            >
               Cancel
             </IonButton>
           </div>

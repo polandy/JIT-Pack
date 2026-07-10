@@ -25,15 +25,21 @@ let wsInstances: WSStub[]
 
 beforeEach(() => {
   setActivePinia(createPinia())
-  fetchMock = vi.fn().mockResolvedValue(new Response(
-    JSON.stringify({ results: [], pull_hint: { next_cursor: 1 } }), { status: 200 },
-  ))
+  fetchMock = vi
+    .fn()
+    .mockResolvedValue(
+      new Response(JSON.stringify({ results: [], pull_hint: { next_cursor: 1 } }), { status: 200 }),
+    )
   wsInstances = []
   vi.stubGlobal('fetch', fetchMock)
   vi.stubGlobal('WebSocket', function () {
     const inst: WSStub = {
-      send: vi.fn(), close: vi.fn(), readyState: 1,
-      onopen: null, onmessage: null, onclose: null,
+      send: vi.fn(),
+      close: vi.fn(),
+      readyState: 1,
+      onopen: null,
+      onmessage: null,
+      onclose: null,
     }
     wsInstances.push(inst)
     return inst
@@ -47,8 +53,19 @@ beforeEach(() => {
 
 function seedItem(store: ReturnType<typeof useTripStore>, row: Record<string, unknown> = {}) {
   store.applyChange({
-    seq: 0, table: 'trip_items', id: 'ti1', deleted: false,
-    row: { trip_id: 't1', name: 'Zelt', quantity: 1, packed_count: 0, state: 'open', mode: 'pack', ...row },
+    seq: 0,
+    table: 'trip_items',
+    id: 'ti1',
+    deleted: false,
+    row: {
+      trip_id: 't1',
+      name: 'Zelt',
+      quantity: 1,
+      packed_count: 0,
+      state: 'open',
+      mode: 'pack',
+      ...row,
+    },
   })
   return store.getItems('t1')[0]!
 }
@@ -114,7 +131,8 @@ describe('lock state (G-3)', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const store = useTripStore()
     const item = seedItem(store, {
-      state: 'packing_now', packing_now_by: 'sarah',
+      state: 'packing_now',
+      packing_now_by: 'sarah',
       packing_now_at: new Date().toISOString(),
     })
 
@@ -126,7 +144,9 @@ describe('lock state (G-3)', () => {
     const store = useTripStore()
     const stale = new Date(Date.now() - 20 * 60 * 1000).toISOString()
     const item = seedItem(store, {
-      state: 'packing_now', packing_now_by: 'sarah', packing_now_at: stale,
+      state: 'packing_now',
+      packing_now_by: 'sarah',
+      packing_now_at: stale,
     })
 
     expect(orch.isLockedByOther('t1', item)).toBe(false)

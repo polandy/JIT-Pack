@@ -50,9 +50,13 @@ export class APIClient {
 
   /** putRaw sends a binary body (e.g. the M17 avatar JPEG). */
   async putRaw(path: string, body: Blob, contentType: string): Promise<void> {
-    const resp = await this.authedFetch(`${this.baseUrl}${path}`, { method: 'PUT', body }, {
-      'Content-Type': contentType,
-    })
+    const resp = await this.authedFetch(
+      `${this.baseUrl}${path}`,
+      { method: 'PUT', body },
+      {
+        'Content-Type': contentType,
+      },
+    )
     if (!resp.ok) throw new APIRequestError(resp.status, null)
   }
 
@@ -90,10 +94,14 @@ export class APIClient {
       headers['Content-Type'] = 'application/json'
     }
 
-    const resp = await this.authedFetch(url, {
-      method,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    }, headers)
+    const resp = await this.authedFetch(
+      url,
+      {
+        method,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      },
+      headers,
+    )
 
     if (!resp.ok) {
       let apiError = null

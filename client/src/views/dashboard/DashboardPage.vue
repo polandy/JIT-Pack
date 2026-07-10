@@ -30,9 +30,7 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 const store = useTripStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
-const activeTrips = computed(() =>
-  store.tripList.filter((t) => t.status === 'active'),
-)
+const activeTrips = computed(() => store.tripList.filter((t) => t.status === 'active'))
 
 const isEmpty = computed(() => activeTrips.value.length === 0)
 
@@ -66,7 +64,8 @@ function openItemCount(tripId: string): number {
 
 /** All open prep todos across active trips, grouped by item name. */
 const prepTodos = computed(() => {
-  const result: Array<{ tripId: string; tripName: string; itemName: string; todos: ItemTodo[] }> = []
+  const result: Array<{ tripId: string; tripName: string; itemName: string; todos: ItemTodo[] }> =
+    []
 
   for (const trip of activeTrips.value) {
     const withPrep = store.itemsWithOpenPrep(trip.id)
@@ -82,9 +81,7 @@ const prepTodos = computed(() => {
   return result
 })
 
-const totalOpenTodos = computed(() =>
-  prepTodos.value.reduce((sum, g) => sum + g.todos.length, 0),
-)
+const totalOpenTodos = computed(() => prepTodos.value.reduce((sum, g) => sum + g.todos.length, 0))
 
 function toggleDashboardTodo(tripId: string, todo: ItemTodo) {
   if (todo.task_state === 'open') {
@@ -131,17 +128,16 @@ async function handleRefresh(event: CustomEvent) {
           </IonCardTitle>
         </IonCardHeader>
         <IonCardContent>
-          <div v-for="group in prepTodos" :key="`${group.tripId}-${group.itemName}`" class="prep-group">
+          <div
+            v-for="group in prepTodos"
+            :key="`${group.tripId}-${group.itemName}`"
+            class="prep-group"
+          >
             <p class="prep-item-name">
               {{ group.itemName }}
               <span class="prep-trip-label">{{ group.tripName }}</span>
             </p>
-            <IonItem
-              v-for="todo in group.todos"
-              :key="todo.id"
-              lines="none"
-              class="dashboard-item"
-            >
+            <IonItem v-for="todo in group.todos" :key="todo.id" lines="none" class="dashboard-item">
               <IonCheckbox
                 slot="start"
                 :checked="false"
@@ -154,12 +150,7 @@ async function handleRefresh(event: CustomEvent) {
       </IonCard>
 
       <!-- Trip cards -->
-      <IonCard
-        v-for="trip in activeTrips"
-        :key="trip.id"
-        button
-        :router-link="`/trips/${trip.id}`"
-      >
+      <IonCard v-for="trip in activeTrips" :key="trip.id" button :router-link="`/trips/${trip.id}`">
         <IonCardHeader>
           <IonCardTitle>{{ trip.name }}</IonCardTitle>
           <p class="trip-dates">

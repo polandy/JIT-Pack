@@ -14,7 +14,11 @@ import NavRail from '@/components/global/NavRail.vue'
 import ModeSelectionPage from '@/views/ModeSelectionPage.vue'
 import { AUTH_EXPIRED_EVENT, createAuthRefresher } from '@/auth/refresh'
 import { loadTokens } from '@/auth/tokens'
-import { describeNotification, notificationRoute, type ServerNotification } from '@/notifications/format'
+import {
+  describeNotification,
+  notificationRoute,
+  type ServerNotification,
+} from '@/notifications/format'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { serverBaseUrl } from '@/config'
 import { IndexedDBPersistence } from '@/local/persistence'
@@ -59,7 +63,14 @@ async function showNotificationToast(n: ServerNotification) {
     duration: 6000,
     position: 'top',
     buttons: route
-      ? [{ text: 'Open', handler: () => { router.push(route) } }]
+      ? [
+          {
+            text: 'Open',
+            handler: () => {
+              router.push(route)
+            },
+          },
+        ]
       : [{ text: 'OK', role: 'cancel' }],
   })
   toast.onDidDismiss().then(() => orchestrator?.markNotificationRead(n.id))

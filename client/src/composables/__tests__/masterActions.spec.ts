@@ -18,14 +18,17 @@ beforeEach(() => {
   setActivePinia(createPinia())
   fetchMock = vi.fn()
   vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal('WebSocket', vi.fn(() => ({
-    send: vi.fn(),
-    close: vi.fn(),
-    readyState: 1,
-    onopen: null,
-    onmessage: null,
-    onclose: null,
-  })))
+  vi.stubGlobal(
+    'WebSocket',
+    vi.fn(() => ({
+      send: vi.fn(),
+      close: vi.fn(),
+      readyState: 1,
+      onopen: null,
+      onmessage: null,
+      onclose: null,
+    })),
+  )
   const storage = new Map<string, string>()
   vi.stubGlobal('localStorage', {
     getItem: (k: string) => storage.get(k) ?? null,
@@ -34,14 +37,18 @@ beforeEach(() => {
 })
 
 function mockDrain() {
-  fetchMock.mockResolvedValueOnce(new Response(
-    JSON.stringify({ results: [], pull_hint: { next_cursor: 1 } } satisfies PushResponse),
-    { status: 200 },
-  ))
-  fetchMock.mockResolvedValueOnce(new Response(
-    JSON.stringify({ changes: [], next_cursor: 1, has_more: false } satisfies PullResponse),
-    { status: 200 },
-  ))
+  fetchMock.mockResolvedValueOnce(
+    new Response(
+      JSON.stringify({ results: [], pull_hint: { next_cursor: 1 } } satisfies PushResponse),
+      { status: 200 },
+    ),
+  )
+  fetchMock.mockResolvedValueOnce(
+    new Response(
+      JSON.stringify({ changes: [], next_cursor: 1, has_more: false } satisfies PullResponse),
+      { status: 200 },
+    ),
+  )
 }
 
 function newOrch() {
@@ -53,7 +60,10 @@ describe('master data actions', () => {
     const orch = newOrch()
     const master = useMasterStore()
     master.applyChange({
-      seq: 0, table: 'items', id: 'i1', deleted: false,
+      seq: 0,
+      table: 'items',
+      id: 'i1',
+      deleted: false,
       row: { name: 'Socken', unit: 'pieces', weight_grams: 80 },
     })
     mockDrain()
@@ -105,8 +115,18 @@ describe('M5 assignment actions on the trip partition', () => {
     const orch = newOrch()
     const trips = useTripStore()
     trips.applyChange({
-      seq: 0, table: 'trip_items', id: 'ti1', deleted: false,
-      row: { trip_id: 't1', name: 'Socken', quantity: 1, packed_count: 0, state: 'open', mode: 'pack' },
+      seq: 0,
+      table: 'trip_items',
+      id: 'ti1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Socken',
+        quantity: 1,
+        packed_count: 0,
+        state: 'open',
+        mode: 'pack',
+      },
     })
     mockDrain()
 
@@ -121,8 +141,18 @@ describe('M5 assignment actions on the trip partition', () => {
     const orch = newOrch()
     const trips = useTripStore()
     trips.applyChange({
-      seq: 0, table: 'trip_items', id: 'ti1', deleted: false,
-      row: { trip_id: 't1', name: 'Socken', quantity: 3, packed_count: 2, state: 'partial', mode: 'pack' },
+      seq: 0,
+      table: 'trip_items',
+      id: 'ti1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Socken',
+        quantity: 3,
+        packed_count: 2,
+        state: 'partial',
+        mode: 'pack',
+      },
     })
     mockDrain()
     mockDrain()

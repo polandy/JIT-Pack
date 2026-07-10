@@ -76,7 +76,9 @@ export const useMasterStore = defineStore('master', () => {
 
     const groups = new Map<string, MasterItem[]>()
     for (const item of items.value.values()) {
-      const catName = item.category_id ? (catMap.get(item.category_id) ?? 'Uncategorized') : 'Uncategorized'
+      const catName = item.category_id
+        ? (catMap.get(item.category_id) ?? 'Uncategorized')
+        : 'Uncategorized'
       const group = groups.get(catName) ?? []
       group.push({ ...item, category_name: catName })
       groups.set(catName, group)

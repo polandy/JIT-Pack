@@ -84,9 +84,7 @@ describe('buildReviewProposals — unused flags (reduce quantity)', () => {
   it('proposes setting the template quantity to 0 for an unused templated item', () => {
     const proposals = buildReviewProposals({
       ...base,
-      items: [
-        tripItem({ flag_unused: true, source_item_id: 'item1', source_template_id: 'tpl1' }),
-      ],
+      items: [tripItem({ flag_unused: true, source_item_id: 'item1', source_template_id: 'tpl1' })],
     })
 
     expect(proposals).toHaveLength(1)
@@ -107,7 +105,9 @@ describe('buildReviewProposals — unused flags (reduce quantity)', () => {
         ...base,
         templateItems: (id: string) =>
           id === 'tpl1' ? [templateItem({ quantity_formula: '0' })] : [],
-        items: [tripItem({ flag_unused: true, source_item_id: 'item1', source_template_id: 'tpl1' })],
+        items: [
+          tripItem({ flag_unused: true, source_item_id: 'item1', source_template_id: 'tpl1' }),
+        ],
       },
     ],
     [
@@ -119,10 +119,15 @@ describe('buildReviewProposals — unused flags (reduce quantity)', () => {
       {
         ...base,
         templateItems: () => [] as TemplateItem[],
-        items: [tripItem({ flag_unused: true, source_item_id: 'item1', source_template_id: 'tpl1' })],
+        items: [
+          tripItem({ flag_unused: true, source_item_id: 'item1', source_template_id: 'tpl1' }),
+        ],
       },
     ],
-    ['no flags at all', { ...base, items: [tripItem({ source_item_id: 'item1', source_template_id: 'tpl1' })] }],
+    [
+      'no flags at all',
+      { ...base, items: [tripItem({ source_item_id: 'item1', source_template_id: 'tpl1' })] },
+    ],
   ])('yields nothing when %s', (_name, args) => {
     expect(buildReviewProposals(args)).toHaveLength(0)
   })
@@ -184,8 +189,7 @@ describe('buildReviewProposals — missing flags (add to template)', () => {
   it('skips items the target template already contains', () => {
     const proposals = buildReviewProposals({
       templates,
-      templateItems: (id: string) =>
-        id === 'tpl1' ? [templateItem({ item_id: 'item9' })] : [],
+      templateItems: (id: string) => (id === 'tpl1' ? [templateItem({ item_id: 'item9' })] : []),
       masterItems: [masterItem('item9', 'Sonnencreme')],
       items: [
         ...tripItems,
@@ -222,9 +226,19 @@ describe('buildReviewProposals — dismissals, fork, history', () => {
   })
 
   it.each([
-    ['published foreign template', template('tpl1', { is_published: true, owner_id: 'someone' }), 'me', true],
+    [
+      'published foreign template',
+      template('tpl1', { is_published: true, owner_id: 'someone' }),
+      'me',
+      true,
+    ],
     ['published template, identity unknown', template('tpl1', { is_published: true }), null, true],
-    ['own published template', template('tpl1', { is_published: true, owner_id: 'me' }), 'me', false],
+    [
+      'own published template',
+      template('tpl1', { is_published: true, owner_id: 'me' }),
+      'me',
+      false,
+    ],
     ['private template', template('tpl1'), null, false],
   ])('requiresFork: %s → %s', (_name, tpl, ownUserId, want) => {
     const proposals = buildReviewProposals({ ...base, templates: [tpl], ownUserId })

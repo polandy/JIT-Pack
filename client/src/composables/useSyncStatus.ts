@@ -51,9 +51,7 @@ export function useSyncStatus(): SyncStatus {
       case 'local':
         return 'Local'
       case 'offline':
-        return pendingCount.value > 0
-          ? `Offline (${pendingCount.value} queued)`
-          : 'Offline'
+        return pendingCount.value > 0 ? `Offline (${pendingCount.value} queued)` : 'Offline'
     }
   })
 
@@ -79,5 +77,14 @@ export function useSyncStatus(): SyncStatus {
     pendingCount.value = n
   }
 
-  return { state, pendingCount, label, setSyncing, setSynced, setOffline, setLocal, setPendingCount }
+  return {
+    state,
+    pendingCount,
+    label,
+    setSyncing,
+    setSynced,
+    setOffline,
+    setLocal,
+    setPendingCount,
+  }
 }

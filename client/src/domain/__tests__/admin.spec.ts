@@ -23,22 +23,28 @@ function row(overrides: Partial<AdminUserRow> = {}): AdminUserRow {
 
 describe('adminActionsFor', () => {
   it('offers deactivate and profile resets on an active member', () => {
-    expect(adminActionsFor(row(), 'user-a'))
-      .toEqual(['deactivate', 'reset-avatar', 'reset-name'])
+    expect(adminActionsFor(row(), 'user-a')).toEqual(['deactivate', 'reset-avatar', 'reset-name'])
   })
 
   it('never offers deactivate on instance admins (FR-23.3)', () => {
-    expect(adminActionsFor(row({ is_instance_admin: true }), 'user-a'))
-      .toEqual(['reset-avatar', 'reset-name'])
+    expect(adminActionsFor(row({ is_instance_admin: true }), 'user-a')).toEqual([
+      'reset-avatar',
+      'reset-name',
+    ])
   })
 
   it('never offers deactivate on the own account', () => {
-    expect(adminActionsFor(row({ user_id: 'user-a' }), 'user-a'))
-      .toEqual(['reset-avatar', 'reset-name'])
+    expect(adminActionsFor(row({ user_id: 'user-a' }), 'user-a')).toEqual([
+      'reset-avatar',
+      'reset-name',
+    ])
   })
 
   it('offers reactivate instead on a deactivated row', () => {
-    expect(adminActionsFor(row({ deactivated_at: '2026-07-09T00:00:00Z' }), 'user-a'))
-      .toEqual(['reactivate', 'reset-avatar', 'reset-name'])
+    expect(adminActionsFor(row({ deactivated_at: '2026-07-09T00:00:00Z' }), 'user-a')).toEqual([
+      'reactivate',
+      'reset-avatar',
+      'reset-name',
+    ])
   })
 })

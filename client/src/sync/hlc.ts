@@ -66,9 +66,7 @@ export class HLCGenerator {
 
   constructor(nowMillis: () => number, deviceId: string) {
     if (deviceId.length !== DEVICE_ID_LEN || !isLowerHex(deviceId)) {
-      throw new Error(
-        `device id must be ${DEVICE_ID_LEN} lowercase hex chars, got "${deviceId}"`,
-      )
+      throw new Error(`device id must be ${DEVICE_ID_LEN} lowercase hex chars, got "${deviceId}"`)
     }
     this.nowMillis = nowMillis
     this.deviceId = deviceId

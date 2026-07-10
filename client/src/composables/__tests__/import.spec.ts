@@ -16,10 +16,20 @@ let fetchMock: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
   setActivePinia(createPinia())
-  fetchMock = vi.fn().mockResolvedValue(new Response(
-    JSON.stringify({ results: [], pull_hint: { next_cursor: 1 }, changes: [], next_cursor: 1, has_more: false }),
-    { status: 200 },
-  ))
+  fetchMock = vi
+    .fn()
+    .mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          results: [],
+          pull_hint: { next_cursor: 1 },
+          changes: [],
+          next_cursor: 1,
+          has_more: false,
+        }),
+        { status: 200 },
+      ),
+    )
   vi.stubGlobal('fetch', fetchMock)
   vi.stubGlobal('WebSocket', vi.fn())
   const storage = new Map<string, string>()
@@ -38,14 +48,18 @@ const plan: ImportPlan = {
   ],
   trips: [
     {
-      name: 'Engadin 2023', endDate: '2023-12-31', seriesId: null,
+      name: 'Engadin 2023',
+      endDate: '2023-12-31',
+      seriesId: null,
       items: [
         { itemIndex: 0, quantity: 5 },
         { itemIndex: 2, quantity: 1 },
       ],
     },
     {
-      name: 'Engadin 2025', endDate: '2025-12-31', seriesId: 'ser-1',
+      name: 'Engadin 2025',
+      endDate: '2025-12-31',
+      seriesId: 'ser-1',
       items: [{ itemIndex: 1, quantity: 6 }],
     },
   ],
@@ -57,7 +71,10 @@ describe('commitImport (FR-16.2)', () => {
     const master = useMasterStore()
     const trips = useTripStore()
     master.applyChange({
-      seq: 0, table: 'items', id: 'i-exist', deleted: false,
+      seq: 0,
+      table: 'items',
+      id: 'i-exist',
+      deleted: false,
       row: { name: 'Unterhosen', unit: 'pieces', is_consumable: 0 },
     })
 
@@ -66,9 +83,11 @@ describe('commitImport (FR-16.2)', () => {
     // Master data: one new category, two new items, merge reused.
     const kleidung = master.categoryList.find((c) => c.name === 'Kleidung')
     expect(kleidung).toBeDefined()
-    expect(master.itemList.map((i) => i.name).sort()).toEqual(
-      ['Regenschutz Rucksack', 'Socken', 'Unterhosen'],
-    )
+    expect(master.itemList.map((i) => i.name).sort()).toEqual([
+      'Regenschutz Rucksack',
+      'Socken',
+      'Unterhosen',
+    ])
     expect(master.itemList.find((i) => i.name === 'Socken')?.category_id).toBe(kleidung!.id)
 
     // Trips: archived, imported, original quantities as packed.
@@ -78,7 +97,10 @@ describe('commitImport (FR-16.2)', () => {
     const items2023 = trips.getItems(t2023.id)
     const unterhosen = items2023.find((i) => i.name === 'Unterhosen')!
     expect(unterhosen).toMatchObject({
-      quantity: 5, packed_count: 5, state: 'packed', source_item_id: 'i-exist',
+      quantity: 5,
+      packed_count: 5,
+      state: 'packed',
+      source_item_id: 'i-exist',
     })
 
     const t2025 = trips.getTrip(result.tripIds[1]!)!
@@ -96,7 +118,10 @@ describe('commitImport (FR-16.2)', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const master = useMasterStore()
     master.applyChange({
-      seq: 0, table: 'categories', id: 'cat-1', deleted: false,
+      seq: 0,
+      table: 'categories',
+      id: 'cat-1',
+      deleted: false,
       row: { name: 'Kleidung', sort_order: 0 },
     })
 

@@ -26,10 +26,7 @@ import {
   IonIcon,
   IonNote,
 } from '@ionic/vue'
-import {
-  IonInput,
-  IonCheckbox,
-} from '@ionic/vue'
+import { IonInput, IonCheckbox } from '@ionic/vue'
 import {
   bagHandleOutline,
   cartOutline,
@@ -50,9 +47,7 @@ const props = defineProps<{ tripId: string; itemId: string }>()
 const tripStore = useTripStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
-const item = computed(() =>
-  tripStore.getItems(props.tripId).find((i) => i.id === props.itemId),
-)
+const item = computed(() => tripStore.getItems(props.tripId).find((i) => i.id === props.itemId))
 
 const trip = computed(() => tripStore.getTrip(props.tripId))
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
@@ -62,9 +57,7 @@ const isActive = computed(() => trip.value?.status === 'active' || trip.value?.s
 
 const itemTodos = computed(() => tripStore.getItemTodos(props.tripId, props.itemId))
 const openTodoCount = computed(() => itemTodos.value.filter((t) => t.task_state === 'open').length)
-const hasPrepWithPacked = computed(() =>
-  item.value?.state === 'packed' && openTodoCount.value > 0,
-)
+const hasPrepWithPacked = computed(() => item.value?.state === 'packed' && openTodoCount.value > 0)
 const newTodoText = ref('')
 
 function addTodo() {
@@ -150,7 +143,6 @@ function onToggle() {
   if (!item.value) return
   orchestrator.packToggle(props.tripId, item.value)
 }
-
 </script>
 
 <template>
@@ -243,11 +235,7 @@ function onToggle() {
                 @ionChange="(e: CustomEvent) => onTravelerChange(e.detail.value)"
               >
                 <IonSelectOption :value="null">Unassigned</IonSelectOption>
-                <IonSelectOption
-                  v-for="t in travelers"
-                  :key="t.id"
-                  :value="t.id"
-                >
+                <IonSelectOption v-for="t in travelers" :key="t.id" :value="t.id">
                   {{ t.name }}
                 </IonSelectOption>
               </IonSelect>
@@ -261,11 +249,7 @@ function onToggle() {
                 @ionChange="(e: CustomEvent) => onContainerChange(e.detail.value)"
               >
                 <IonSelectOption :value="null">None</IonSelectOption>
-                <IonSelectOption
-                  v-for="c in containers"
-                  :key="c.id"
-                  :value="c.id"
-                >
+                <IonSelectOption v-for="c in containers" :key="c.id" :value="c.id">
                   {{ c.name }}
                 </IonSelectOption>
               </IonSelect>
@@ -323,9 +307,7 @@ function onToggle() {
               />
             </IonItem>
           </IonList>
-          <div v-if="hasPrepWithPacked" class="prep-warning">
-            Packed but has open prep tasks
-          </div>
+          <div v-if="hasPrepWithPacked" class="prep-warning">Packed but has open prep tasks</div>
         </div>
 
         <!-- Comment thread (FR-7.1/7.2) -->

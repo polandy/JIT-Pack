@@ -137,7 +137,16 @@ export const useTripStore = defineStore('trips', () => {
     const totalTodos = tripTodos.length
     const resolvedTodos = tripTodos.filter((t) => t.task_state === 'resolved').length
 
-    return { totalItems, packedItems, totalWeight, packedWeight, totalValue, packedValue, totalTodos, resolvedTodos }
+    return {
+      totalItems,
+      packedItems,
+      totalWeight,
+      packedWeight,
+      totalValue,
+      packedValue,
+      totalTodos,
+      resolvedTodos,
+    }
   }
 
   function groupedItems(tripId: string): Map<string, TripItem[]> {

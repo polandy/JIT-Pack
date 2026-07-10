@@ -17,11 +17,17 @@ describe('masterStore', () => {
   it('applies category changes', () => {
     const store = useMasterStore()
     store.applyChange({
-      seq: 1, table: 'categories', id: 'c1', deleted: false,
+      seq: 1,
+      table: 'categories',
+      id: 'c1',
+      deleted: false,
       row: { name: 'Clothes', sort_order: 1 },
     })
     store.applyChange({
-      seq: 2, table: 'categories', id: 'c2', deleted: false,
+      seq: 2,
+      table: 'categories',
+      id: 'c2',
+      deleted: false,
       row: { name: 'Tech', sort_order: 0 },
     })
 
@@ -33,8 +39,17 @@ describe('masterStore', () => {
   it('applies item changes', () => {
     const store = useMasterStore()
     store.applyChange({
-      seq: 1, table: 'items', id: 'i1', deleted: false,
-      row: { name: 'T-Shirt', category_id: 'c1', weight_grams: 200, unit: 'pieces', is_consumable: 0 },
+      seq: 1,
+      table: 'items',
+      id: 'i1',
+      deleted: false,
+      row: {
+        name: 'T-Shirt',
+        category_id: 'c1',
+        weight_grams: 200,
+        unit: 'pieces',
+        is_consumable: 0,
+      },
     })
 
     const item = store.getItem('i1')
@@ -46,7 +61,10 @@ describe('masterStore', () => {
   it('deletes items', () => {
     const store = useMasterStore()
     store.applyChange({
-      seq: 1, table: 'items', id: 'i1', deleted: false,
+      seq: 1,
+      table: 'items',
+      id: 'i1',
+      deleted: false,
       row: { name: 'Soap', unit: 'pieces' },
     })
     store.applyChange({ seq: 2, table: 'items', id: 'i1', deleted: true, row: null })
@@ -56,7 +74,10 @@ describe('masterStore', () => {
   it('applies template changes', () => {
     const store = useMasterStore()
     store.applyChange({
-      seq: 1, table: 'templates', id: 't1', deleted: false,
+      seq: 1,
+      table: 'templates',
+      id: 't1',
+      deleted: false,
       row: { owner_id: 'u1', name: 'Beach Essentials', is_published: 1 },
     })
 
@@ -68,12 +89,25 @@ describe('masterStore', () => {
   it('deletes template and its items', () => {
     const store = useMasterStore()
     store.applyChange({
-      seq: 1, table: 'templates', id: 't1', deleted: false,
+      seq: 1,
+      table: 'templates',
+      id: 't1',
+      deleted: false,
       row: { owner_id: 'u1', name: 'T', is_published: 0 },
     })
     store.applyChange({
-      seq: 2, table: 'template_items', id: 'ti1', deleted: false,
-      row: { template_id: 't1', item_id: 'i1', quantity_formula: '2', assignment: 'per_person', dedup: 'max', default_mode: 'pack' },
+      seq: 2,
+      table: 'template_items',
+      id: 'ti1',
+      deleted: false,
+      row: {
+        template_id: 't1',
+        item_id: 'i1',
+        quantity_formula: '2',
+        assignment: 'per_person',
+        dedup: 'max',
+        default_mode: 'pack',
+      },
     })
     expect(store.getTemplateItems('t1')).toHaveLength(1)
 
@@ -85,12 +119,32 @@ describe('masterStore', () => {
   it('upserts template items', () => {
     const store = useMasterStore()
     store.applyChange({
-      seq: 1, table: 'template_items', id: 'ti1', deleted: false,
-      row: { template_id: 't1', item_id: 'i1', quantity_formula: '1', assignment: 'per_person', dedup: 'max', default_mode: 'pack' },
+      seq: 1,
+      table: 'template_items',
+      id: 'ti1',
+      deleted: false,
+      row: {
+        template_id: 't1',
+        item_id: 'i1',
+        quantity_formula: '1',
+        assignment: 'per_person',
+        dedup: 'max',
+        default_mode: 'pack',
+      },
     })
     store.applyChange({
-      seq: 2, table: 'template_items', id: 'ti1', deleted: false,
-      row: { template_id: 't1', item_id: 'i1', quantity_formula: '3', assignment: 'trip_global', dedup: 'sum', default_mode: 'buy_before' },
+      seq: 2,
+      table: 'template_items',
+      id: 'ti1',
+      deleted: false,
+      row: {
+        template_id: 't1',
+        item_id: 'i1',
+        quantity_formula: '3',
+        assignment: 'trip_global',
+        dedup: 'sum',
+        default_mode: 'buy_before',
+      },
     })
 
     const tis = store.getTemplateItems('t1')
@@ -102,10 +156,34 @@ describe('masterStore', () => {
   it('groups items by category', () => {
     const store = useMasterStore()
     store.applyChanges([
-      { seq: 1, table: 'categories', id: 'c1', deleted: false, row: { name: 'Clothes', sort_order: 0 } },
-      { seq: 2, table: 'items', id: 'i1', deleted: false, row: { name: 'Shirt', category_id: 'c1', unit: 'pieces' } },
-      { seq: 3, table: 'items', id: 'i2', deleted: false, row: { name: 'Pants', category_id: 'c1', unit: 'pieces' } },
-      { seq: 4, table: 'items', id: 'i3', deleted: false, row: { name: 'Charger', unit: 'pieces' } },
+      {
+        seq: 1,
+        table: 'categories',
+        id: 'c1',
+        deleted: false,
+        row: { name: 'Clothes', sort_order: 0 },
+      },
+      {
+        seq: 2,
+        table: 'items',
+        id: 'i1',
+        deleted: false,
+        row: { name: 'Shirt', category_id: 'c1', unit: 'pieces' },
+      },
+      {
+        seq: 3,
+        table: 'items',
+        id: 'i2',
+        deleted: false,
+        row: { name: 'Pants', category_id: 'c1', unit: 'pieces' },
+      },
+      {
+        seq: 4,
+        table: 'items',
+        id: 'i3',
+        deleted: false,
+        row: { name: 'Charger', unit: 'pieces' },
+      },
     ])
 
     const groups = store.itemsByCategory()
@@ -116,8 +194,20 @@ describe('masterStore', () => {
   it('searches items by name', () => {
     const store = useMasterStore()
     store.applyChanges([
-      { seq: 1, table: 'items', id: 'i1', deleted: false, row: { name: 'Sunscreen', unit: 'pieces' } },
-      { seq: 2, table: 'items', id: 'i2', deleted: false, row: { name: 'Sunglasses', unit: 'pieces' } },
+      {
+        seq: 1,
+        table: 'items',
+        id: 'i1',
+        deleted: false,
+        row: { name: 'Sunscreen', unit: 'pieces' },
+      },
+      {
+        seq: 2,
+        table: 'items',
+        id: 'i2',
+        deleted: false,
+        row: { name: 'Sunglasses', unit: 'pieces' },
+      },
       { seq: 3, table: 'items', id: 'i3', deleted: false, row: { name: 'Towel', unit: 'pieces' } },
     ])
 
@@ -129,8 +219,34 @@ describe('masterStore', () => {
   it('returns template item count', () => {
     const store = useMasterStore()
     store.applyChanges([
-      { seq: 1, table: 'template_items', id: 'ti1', deleted: false, row: { template_id: 't1', item_id: 'i1', quantity_formula: '1', assignment: 'per_person', dedup: 'max', default_mode: 'pack' } },
-      { seq: 2, table: 'template_items', id: 'ti2', deleted: false, row: { template_id: 't1', item_id: 'i2', quantity_formula: '2', assignment: 'per_person', dedup: 'max', default_mode: 'pack' } },
+      {
+        seq: 1,
+        table: 'template_items',
+        id: 'ti1',
+        deleted: false,
+        row: {
+          template_id: 't1',
+          item_id: 'i1',
+          quantity_formula: '1',
+          assignment: 'per_person',
+          dedup: 'max',
+          default_mode: 'pack',
+        },
+      },
+      {
+        seq: 2,
+        table: 'template_items',
+        id: 'ti2',
+        deleted: false,
+        row: {
+          template_id: 't1',
+          item_id: 'i2',
+          quantity_formula: '2',
+          assignment: 'per_person',
+          dedup: 'max',
+          default_mode: 'pack',
+        },
+      },
     ])
 
     expect(store.templateItemCount('t1')).toBe(2)

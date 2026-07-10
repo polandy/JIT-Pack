@@ -4,7 +4,13 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-import { pushSupported, registerPush, unregisterPush, urlBase64ToUint8Array, type PushServerAPI } from '../push'
+import {
+  pushSupported,
+  registerPush,
+  unregisterPush,
+  urlBase64ToUint8Array,
+  type PushServerAPI,
+} from '../push'
 
 function fakeApi(): PushServerAPI & { registered: unknown[]; unregistered: string[] } {
   const registered: unknown[] = []
@@ -13,8 +19,12 @@ function fakeApi(): PushServerAPI & { registered: unknown[]; unregistered: strin
     registered,
     unregistered,
     getVapidKey: vi.fn().mockResolvedValue('BPY0zpo_1BHle-1LDXm1QSLNVsA1S7Jr8_ZFm2FCbP0'),
-    registerSubscription: vi.fn(async (s: unknown) => { registered.push(s) }),
-    unregisterSubscription: vi.fn(async (e: string) => { unregistered.push(e) }),
+    registerSubscription: vi.fn(async (s: unknown) => {
+      registered.push(s)
+    }),
+    unregisterSubscription: vi.fn(async (e: string) => {
+      unregistered.push(e)
+    }),
   }
 }
 
@@ -60,10 +70,12 @@ describe('registerPush', () => {
     const ok = await registerPush(api)
 
     expect(ok).toBe(true)
-    expect(pushManager.subscribe).toHaveBeenCalledWith(expect.objectContaining({
-      userVisibleOnly: true,
-      applicationServerKey: expect.any(Uint8Array),
-    }))
+    expect(pushManager.subscribe).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userVisibleOnly: true,
+        applicationServerKey: expect.any(Uint8Array),
+      }),
+    )
     expect(api.registered).toEqual([
       { endpoint: 'https://push.example/sub-1', keys: { p256dh: 'p', auth: 'a' } },
     ])

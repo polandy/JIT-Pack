@@ -5,13 +5,7 @@
  * redirects to the IdP. Servers without OIDC (Single-User, plain
  * HS256) answer 501 — no login is needed there.
  */
-import {
-  IonPage,
-  IonContent,
-  IonButton,
-  IonIcon,
-  IonNote,
-} from '@ionic/vue'
+import { IonPage, IonContent, IonButton, IonIcon, IonNote } from '@ionic/vue'
 import { logInOutline } from 'ionicons/icons'
 import { onMounted, ref } from 'vue'
 
@@ -68,7 +62,9 @@ async function signIn() {
           This server does not require a login — you can head back to the app.
         </p>
         <template v-else>
-          <p class="hint">Your identity provider handles the login; JIT-Pack never sees your password.</p>
+          <p class="hint">
+            Your identity provider handles the login; JIT-Pack never sees your password.
+          </p>
           <IonButton expand="block" @click="signIn">
             <IonIcon slot="start" :icon="logInOutline" />
             Sign in with SSO

@@ -14,10 +14,20 @@ let fetchMock: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
   setActivePinia(createPinia())
-  fetchMock = vi.fn().mockResolvedValue(new Response(
-    JSON.stringify({ results: [], pull_hint: { next_cursor: 1 }, changes: [], next_cursor: 1, has_more: false }),
-    { status: 200 },
-  ))
+  fetchMock = vi
+    .fn()
+    .mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          results: [],
+          pull_hint: { next_cursor: 1 },
+          changes: [],
+          next_cursor: 1,
+          has_more: false,
+        }),
+        { status: 200 },
+      ),
+    )
   vi.stubGlobal('fetch', fetchMock)
   vi.stubGlobal('WebSocket', vi.fn())
   const storage = new Map<string, string>()
@@ -29,34 +39,77 @@ beforeEach(() => {
 
 function seedSource(store: ReturnType<typeof useTripStore>) {
   store.applyChange({
-    seq: 0, table: 'trips', id: 'src', deleted: false,
+    seq: 0,
+    table: 'trips',
+    id: 'src',
+    deleted: false,
     row: {
-      name: 'Engadin 2025', status: 'archived', start_date: '2025-08-01', end_date: '2025-08-07',
-      series_id: 'ser-1', attributes: '{"season":"summer"}',
+      name: 'Engadin 2025',
+      status: 'archived',
+      start_date: '2025-08-01',
+      end_date: '2025-08-07',
+      series_id: 'ser-1',
+      attributes: '{"season":"summer"}',
     },
   })
   store.applyChange({
-    seq: 0, table: 'travelers', id: 'tr1', deleted: false,
+    seq: 0,
+    table: 'travelers',
+    id: 'tr1',
+    deleted: false,
     row: { trip_id: 'src', name: 'Andy', profile: 'adult' },
   })
   store.applyChange({
-    seq: 0, table: 'containers', id: 'c1', deleted: false,
-    row: { trip_id: 'src', name: 'Radtasche links', carrier_traveler_id: 'tr1', max_weight_grams: 9000, paired_container_id: 'c2' },
-  })
-  store.applyChange({
-    seq: 0, table: 'containers', id: 'c2', deleted: false,
-    row: { trip_id: 'src', name: 'Radtasche rechts', paired_container_id: 'c1' },
-  })
-  store.applyChange({
-    seq: 0, table: 'trip_items', id: 'a', deleted: false,
+    seq: 0,
+    table: 'containers',
+    id: 'c1',
+    deleted: false,
     row: {
-      trip_id: 'src', name: 'Zelt', quantity: 1, packed_count: 1, state: 'packed', mode: 'pack',
-      assigned_traveler_id: 'tr1', container_id: 'c2', packer_user_id: 'user-9', flag_unused: 1,
+      trip_id: 'src',
+      name: 'Radtasche links',
+      carrier_traveler_id: 'tr1',
+      max_weight_grams: 9000,
+      paired_container_id: 'c2',
     },
   })
   store.applyChange({
-    seq: 0, table: 'trip_items', id: 'b', deleted: false,
-    row: { trip_id: 'src', name: 'Schneeschuhe', quantity: 0, packed_count: 0, state: 'skipped', mode: 'pack' },
+    seq: 0,
+    table: 'containers',
+    id: 'c2',
+    deleted: false,
+    row: { trip_id: 'src', name: 'Radtasche rechts', paired_container_id: 'c1' },
+  })
+  store.applyChange({
+    seq: 0,
+    table: 'trip_items',
+    id: 'a',
+    deleted: false,
+    row: {
+      trip_id: 'src',
+      name: 'Zelt',
+      quantity: 1,
+      packed_count: 1,
+      state: 'packed',
+      mode: 'pack',
+      assigned_traveler_id: 'tr1',
+      container_id: 'c2',
+      packer_user_id: 'user-9',
+      flag_unused: 1,
+    },
+  })
+  store.applyChange({
+    seq: 0,
+    table: 'trip_items',
+    id: 'b',
+    deleted: false,
+    row: {
+      trip_id: 'src',
+      name: 'Schneeschuhe',
+      quantity: 0,
+      packed_count: 0,
+      state: 'skipped',
+      mode: 'pack',
+    },
   })
 }
 
@@ -75,7 +128,9 @@ describe('cloneTrip (FR-12)', () => {
 
     const trip = store.getTrip(tripId)!
     expect(trip).toMatchObject({
-      name: 'Engadin 2026', status: 'planning', series_id: 'ser-1',
+      name: 'Engadin 2026',
+      status: 'planning',
+      series_id: 'ser-1',
       attributes: { season: 'summer' },
     })
 
@@ -93,7 +148,9 @@ describe('cloneTrip (FR-12)', () => {
     const items = store.getItems(tripId)
     const zelt = items.find((i) => i.name === 'Zelt')!
     expect(zelt).toMatchObject({
-      state: 'open', packed_count: 0, flag_unused: false,
+      state: 'open',
+      packed_count: 0,
+      flag_unused: false,
       assigned_traveler_id: travelers[0]!.id,
       container_id: right.id,
       packer_user_id: 'user-9',
@@ -110,7 +167,11 @@ describe('cloneTrip (FR-12)', () => {
       name: 'Engadin 2026',
       startDate: null,
       endDate: '2026-08-10',
-      options: { travelerAssignments: false, packerDelegations: false, containerAssignments: false },
+      options: {
+        travelerAssignments: false,
+        packerDelegations: false,
+        containerAssignments: false,
+      },
     })!
 
     expect(store.getContainers(tripId)).toHaveLength(0)

@@ -13,8 +13,12 @@ export interface PushServerAPI {
 
 /** Feature detection — false on iOS Safari without PWA install, jsdom, etc. */
 export function pushSupported(): boolean {
-  return typeof navigator !== 'undefined' && 'serviceWorker' in navigator &&
-    typeof window !== 'undefined' && 'PushManager' in window
+  return (
+    typeof navigator !== 'undefined' &&
+    'serviceWorker' in navigator &&
+    typeof window !== 'undefined' &&
+    'PushManager' in window
+  )
 }
 
 /** Whether this device currently holds a push subscription. */

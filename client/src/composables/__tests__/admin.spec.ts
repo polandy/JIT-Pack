@@ -13,10 +13,17 @@ beforeEach(() => {
   setActivePinia(createPinia())
   fetchMock = vi.fn()
   vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal('WebSocket', vi.fn(() => ({
-    send: vi.fn(), close: vi.fn(), readyState: 1,
-    onopen: null, onmessage: null, onclose: null,
-  })))
+  vi.stubGlobal(
+    'WebSocket',
+    vi.fn(() => ({
+      send: vi.fn(),
+      close: vi.fn(),
+      readyState: 1,
+      onopen: null,
+      onmessage: null,
+      onclose: null,
+    })),
+  )
   const storage = new Map<string, string>()
   vi.stubGlobal('localStorage', {
     getItem: (k: string) => storage.get(k) ?? null,

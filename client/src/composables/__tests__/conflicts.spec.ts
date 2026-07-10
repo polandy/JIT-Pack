@@ -26,13 +26,24 @@ beforeEach(() => {
 
 describe('fetchConflicts', () => {
   it('fetches the trip conflict log from the server', async () => {
-    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
-      conflicts: [{
-        id: 'c1', entity_table: 'trip_items', entity_id: 'i1',
-        field: 'quantity', losing_value: '9', winning_value: '5',
-        resolved_at: '2026-07-09T10:00:00Z',
-      }],
-    }), { status: 200 }))
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          conflicts: [
+            {
+              id: 'c1',
+              entity_table: 'trip_items',
+              entity_id: 'i1',
+              field: 'quantity',
+              losing_value: '9',
+              winning_value: '5',
+              resolved_at: '2026-07-09T10:00:00Z',
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    )
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
 
     const conflicts = await orch.fetchConflicts('t1')
@@ -44,7 +55,9 @@ describe('fetchConflicts', () => {
 
   it('resolves empty in Local Mode without a network call', async () => {
     const orch = useSyncOrchestrator({
-      baseUrl: '', getToken: () => null, local: new IndexedDBPersistence(),
+      baseUrl: '',
+      getToken: () => null,
+      local: new IndexedDBPersistence(),
     })
 
     expect(await orch.fetchConflicts('t1')).toEqual([])

@@ -81,7 +81,9 @@ function analyze() {
 // --- Step 2: mapping (FR-16.1) ---
 const itemColumn = ref(0)
 const categoryRows = ref<Set<number>>(new Set())
-const trips = ref<{ column: number; include: boolean; name: string; date: string; seriesId: string }[]>([])
+const trips = ref<
+  { column: number; include: boolean; name: string; date: string; seriesId: string }[]
+>([])
 
 function toggleCategoryRow(rowIdx: number, on: boolean) {
   const next = new Set(categoryRows.value)
@@ -90,9 +92,12 @@ function toggleCategoryRow(rowIdx: number, on: boolean) {
   categoryRows.value = next
 }
 
-const mappingValid = computed(() =>
-  trips.value.some((t) => t.include) &&
-  trips.value.filter((t) => t.include).every((t) => t.name.trim() !== '' && normalizeTripDate(t.date) !== null),
+const mappingValid = computed(
+  () =>
+    trips.value.some((t) => t.include) &&
+    trips.value
+      .filter((t) => t.include)
+      .every((t) => t.name.trim() !== '' && normalizeTripDate(t.date) !== null),
 )
 
 const mapping = computed(() => ({
@@ -118,7 +123,10 @@ const namedRows = computed(() =>
 // --- Step 3: dedup (FR-16.3) ---
 const duplicates = computed(() => {
   const preview = buildImportPlan(grid.value, mapping.value, new Map())
-  return findDuplicates(preview.items.map((i) => i.name), master.itemList)
+  return findDuplicates(
+    preview.items.map((i) => i.name),
+    master.itemList,
+  )
 })
 /** imported name → merge decision; exact matches default to merge. */
 const mergeChoices = ref<Map<string, boolean>>(new Map())
@@ -169,8 +177,8 @@ function commit() {
       <section v-if="step === 1">
         <h2 class="section-title">Spreadsheet (CSV)</h2>
         <p class="hint">
-          Rows are items (with category grouping rows), columns are trips with quantities.
-          XLSX? Export it as CSV first.
+          Rows are items (with category grouping rows), columns are trips with quantities. XLSX?
+          Export it as CSV first.
         </p>
         <input type="file" accept=".csv,text/csv" @change="onFile" />
         <IonTextarea
@@ -220,18 +228,16 @@ function commit() {
             </IonSelect>
           </IonItem>
         </IonList>
-        <IonNote v-if="!mappingValid">Each included trip needs a name and a year (e.g. 2024) or date.</IonNote>
+        <IonNote v-if="!mappingValid"
+          >Each included trip needs a name and a year (e.g. 2024) or date.</IonNote
+        >
 
         <h2 class="section-title">Item column</h2>
         <IonSegment
           :value="String(itemColumn)"
           @ionChange="(e: CustomEvent) => (itemColumn = Number(e.detail.value))"
         >
-          <IonSegmentButton
-            v-for="(header, idx) in grid[0]"
-            :key="idx"
-            :value="String(idx)"
-          >
+          <IonSegmentButton v-for="(header, idx) in grid[0]" :key="idx" :value="String(idx)">
             <IonLabel>{{ header || `Col ${idx + 1}` }}</IonLabel>
           </IonSegmentButton>
         </IonSegment>
@@ -244,7 +250,9 @@ function commit() {
               :checked="categoryRows.has(row.idx)"
               @ionChange="(e: CustomEvent) => toggleCategoryRow(row.idx, e.detail.checked)"
             />
-            <IonLabel :class="{ 'category-label': categoryRows.has(row.idx) }">{{ row.name }}</IonLabel>
+            <IonLabel :class="{ 'category-label': categoryRows.has(row.idx) }">{{
+              row.name
+            }}</IonLabel>
           </IonItem>
         </IonList>
 
@@ -270,7 +278,9 @@ function commit() {
               @ionChange="(e: CustomEvent) => setMerge(match.imported, e.detail.value === 'merge')"
             >
               <IonSegmentButton value="merge"><IonLabel>Merge</IonLabel></IonSegmentButton>
-              <IonSegmentButton value="separate"><IonLabel>Keep separate</IonLabel></IonSegmentButton>
+              <IonSegmentButton value="separate"
+                ><IonLabel>Keep separate</IonLabel></IonSegmentButton
+              >
             </IonSegment>
           </IonItem>
         </IonList>
@@ -287,9 +297,12 @@ function commit() {
           <IonItem lines="none">
             <IonLabel>
               {{ plan.trips.length }} archived trip{{ plan.trips.length === 1 ? '' : 's' }},
-              {{ newItemCount }} new item{{ newItemCount === 1 ? '' : 's' }}
-              ({{ plan.items.length - newItemCount }} merged),
-              {{ plan.newCategories.length }} categor{{ plan.newCategories.length === 1 ? 'y' : 'ies' }}
+              {{ newItemCount }} new item{{ newItemCount === 1 ? '' : 's' }} ({{
+                plan.items.length - newItemCount
+              }}
+              merged), {{ plan.newCategories.length }} categor{{
+                plan.newCategories.length === 1 ? 'y' : 'ies'
+              }}
             </IonLabel>
           </IonItem>
           <IonItem v-for="trip in plan.trips" :key="trip.name" lines="none">

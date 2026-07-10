@@ -5,9 +5,7 @@
  * the server's api.NewSingleUser middleware injects the implicit local user.
  */
 
-export type AuthConfig =
-  | { mode: 'single-user' }
-  | { mode: 'oidc'; baseUrl: string }
+export type AuthConfig = { mode: 'single-user' } | { mode: 'oidc'; baseUrl: string }
 
 interface TokenSet {
   accessToken: string
