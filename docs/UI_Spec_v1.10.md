@@ -220,7 +220,7 @@ These patterns apply to every screen and are specified once.
 
 **Proposed, not yet built (Addendum 3.23).**
 
-* **Purpose:** The small instance-level user management of Addendum 3.23 — see who is provisioned, revoke access, moderate profiles. Application-data administration only; who *holds* the admin role stays declarative (`JITPACK_ADMIN_SUBJECTS`, FR-23.1) and is deliberately not editable here.
+* **Purpose:** The small instance-level user management of Addendum 3.23 — see who is provisioned, revoke access, moderate profiles. Application-data administration only; who *holds* the admin role stays declarative (`JITPACK_ADMIN_EMAILS`, FR-23.1) and is deliberately not editable here.
 * **Elements:** List of all provisioned accounts: avatar, display name, e-mail, provisioning date, status chip (active / deactivated), lightweight usage indicators (trips as member, owned templates) per FR-23.2. Instance admins are marked with a chip; the own account's row carries a "you" marker.
 * **Actions:** Per-account ActionSheet: *Deactivate* (confirmation dialog spelling out the FR-23.3 consequences: access revoked, data and attributions untouched, JIT login does not restore access) / *Reactivate*; *Remove avatar* and *Reset display name* (FR-23.4). The own row and rows of instance admins offer no *Deactivate* (FR-23.3); there is no delete action anywhere (FR-23.5) and no role toggle (FR-23.1).
 * **States:** Deactivated rows render dimmed with the status chip; empty state cannot occur (the viewing admin is always listed).
