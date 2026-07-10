@@ -46,6 +46,27 @@ type Server struct {
 	// mapOIDCSubject: token sub is an OIDC subject (JWKS mode) and must
 	// be mapped to users.id; HS256 tokens carry users.id directly.
 	mapOIDCSubject bool
+	// adminEmails (FR-23.1): lowercased e-mail addresses holding the
+	// instance-admin role, from JITPACK_ADMIN_EMAILS — declarative,
+	// matched against the token's email claim and stamped on login.
+	adminEmails map[string]bool
+}
+
+// SetAdminEmails declares which accounts hold the instance-admin role
+// (FR-23.1), matched case-insensitively against the token's email
+// claim. The list is authoritative in both directions and is stamped
+// into users.is_instance_admin at every login.
+func (s *Server) SetAdminEmails(emails []string) {
+	s.adminEmails = make(map[string]bool, len(emails))
+	for _, e := range emails {
+		s.adminEmails[strings.ToLower(e)] = true
+	}
+}
+
+// isAdminEmail resolves the FR-23.1 allowlist; a token without an
+// email claim simply yields no admin role.
+func (s *Server) isAdminEmail(email string) bool {
+	return email != "" && s.adminEmails[strings.ToLower(email)]
 }
 
 // New creates a Server that validates JWTs with HS256 using the given
@@ -92,6 +113,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/sync/master", s.authed(s.handlePushMaster))
 	mux.HandleFunc("GET /api/v1/me", s.authed(s.handleMe))
 	mux.HandleFunc("GET /api/v1/users", s.authed(s.handleListUsers))
+	mux.HandleFunc("GET /api/v1/admin/users", s.authed(s.adminOnly(s.handleAdminUsers)))
+	mux.HandleFunc("POST /api/v1/admin/users/{userID}/deactivate", s.authed(s.adminOnly(s.handleDeactivateUser)))
+	mux.HandleFunc("POST /api/v1/admin/users/{userID}/reactivate", s.authed(s.adminOnly(s.handleReactivateUser)))
+	mux.HandleFunc("DELETE /api/v1/admin/users/{userID}/avatar", s.authed(s.adminOnly(s.handleAdminResetAvatar)))
+	mux.HandleFunc("DELETE /api/v1/admin/users/{userID}/display-name", s.authed(s.adminOnly(s.handleAdminResetDisplayName)))
 	mux.HandleFunc("GET /api/v1/notifications", s.authed(s.handleListNotifications))
 	mux.HandleFunc("POST /api/v1/notifications/{notificationID}/read", s.authed(s.handleMarkNotificationRead))
 	mux.HandleFunc("GET /api/v1/me/notification-prefs", s.authed(s.handleGetNotificationPrefs))
@@ -150,14 +176,43 @@ func (s *Server) authed(next http.HandlerFunc) http.HandlerFunc {
 		userID := sub
 		if s.mapOIDCSubject {
 			// JWKS mode: sub is the OIDC subject — map to users.id,
-			// provisioning on first sight (§2).
-			userID, err = s.store.EnsureOIDCUser(r.Context(), sub, displayNameClaim(claims))
+			// provisioning on first sight (§2), stamping the declarative
+			// instance-admin role (FR-23.1).
+			email := emailClaim(claims)
+			userID, err = s.store.EnsureOIDCUser(r.Context(), sub, displayNameClaim(claims), email, s.isAdminEmail(email))
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, "internal", "user mapping failed")
 				return
 			}
 		}
+		// FR-23.3: a deactivated account loses all access — distinct
+		// error code so the client can tell it from a stale token.
+		if deactivated, err := s.store.UserDeactivated(r.Context(), userID); err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "account lookup failed")
+			return
+		} else if deactivated {
+			writeError(w, http.StatusForbidden, "account_deactivated", "account is deactivated")
+			return
+		}
 		next(w, r.WithContext(context.WithValue(r.Context(), userIDKey, userID)))
+	}
+}
+
+// adminOnly layers on authed: only instance admins pass (FR-23.2) —
+// endpoints reject with 403, the screen is never merely hidden.
+func (s *Server) adminOnly(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := r.Context().Value(userIDKey).(string)
+		admin, err := s.store.IsInstanceAdmin(r.Context(), userID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "admin lookup failed")
+			return
+		}
+		if !admin {
+			writeError(w, http.StatusForbidden, "forbidden", "instance admin role required")
+			return
+		}
+		next(w, r)
 	}
 }
 

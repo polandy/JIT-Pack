@@ -75,7 +75,8 @@ func (s *Server) handleAuthToken(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized", "IdP token has no subject")
 		return
 	}
-	if _, err := s.store.EnsureOIDCUser(r.Context(), sub, displayNameClaim(claims)); err != nil {
+	email := emailClaim(claims)
+	if _, err := s.store.EnsureOIDCUser(r.Context(), sub, displayNameClaim(claims), email, s.isAdminEmail(email)); err != nil {
 		writeError(w, http.StatusInternalServerError, "internal", "user provisioning failed")
 		return
 	}
@@ -149,6 +150,15 @@ func displayNameClaim(claims jwt.MapClaims) string {
 		if v, ok := claims[key].(string); ok && v != "" {
 			return v
 		}
+	}
+	return ""
+}
+
+// emailClaim reads the token's email claim (requires the email scope
+// in the client authorize request, FR-23.1); "" when absent.
+func emailClaim(claims jwt.MapClaims) string {
+	if v, ok := claims["email"].(string); ok {
+		return v
 	}
 	return ""
 }

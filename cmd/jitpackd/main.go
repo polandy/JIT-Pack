@@ -50,6 +50,10 @@ func main() {
 	if cfg.PushContact != "" {
 		srv.SetPushContact(cfg.PushContact)
 	}
+	if len(cfg.AdminEmails) > 0 {
+		log.Printf("instance admins: %d address(es) (FR-23.1)", len(cfg.AdminEmails))
+		srv.SetAdminEmails(cfg.AdminEmails)
+	}
 
 	httpSrv := &http.Server{
 		Addr:         cfg.Listen,

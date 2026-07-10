@@ -19,10 +19,18 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal", "display name lookup failed")
 		return
 	}
+	// is_instance_admin tells the client whether to render the M20
+	// entry point (FR-23.2); the admin endpoints enforce it regardless.
+	admin, err := s.store.IsInstanceAdmin(r.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal", "admin lookup failed")
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"user_id":      userID,
-		"display_name": name,
+	json.NewEncoder(w).Encode(map[string]any{
+		"user_id":           userID,
+		"display_name":      name,
+		"is_instance_admin": admin,
 	})
 }
 
