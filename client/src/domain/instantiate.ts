@@ -201,7 +201,7 @@ function conditionFailure(
  * fractional result must never under-pack.
  */
 export function computeQuantity(
-  ti: TemplateItem,
+  ti: Pick<TemplateItem, 'quantity_formula'>,
   master: MasterItem,
   vars: FormulaVariables,
 ): number {
