@@ -111,7 +111,7 @@ describe('orchestrator comment actions', () => {
     const id = orch.addComment('t1', 'ti1', 'u1', 'Ventil prüfen')
     expect(store.getItemComments('t1', 'ti1')).toHaveLength(1)
 
-    orch.flagCommentAsTask('t1', store.getItemComments('t1', 'ti1')[0])
+    orch.flagCommentAsTask('t1', store.getItemComments('t1', 'ti1')[0]!)
     expect(store.getItemComments('t1', 'ti1')).toHaveLength(0)
     const todos = store.getItemTodos('t1', 'ti1')
     expect(todos).toHaveLength(1)

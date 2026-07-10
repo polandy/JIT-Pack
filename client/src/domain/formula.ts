@@ -54,14 +54,14 @@ function tokenize(source: string): Token[] {
   const tokens: Token[] = []
   let i = 0
   while (i < source.length) {
-    const ch = source[i]
+    const ch = source[i]!
     if (/\s/.test(ch)) {
       i++
       continue
     }
     if (/[0-9.]/.test(ch)) {
       let j = i
-      while (j < source.length && /[0-9.]/.test(source[j])) j++
+      while (j < source.length && /[0-9.]/.test(source[j]!)) j++
       const raw = source.slice(i, j)
       const value = Number(raw)
       if (Number.isNaN(value)) throw new FormulaError(`invalid number "${raw}"`)
@@ -71,7 +71,7 @@ function tokenize(source: string): Token[] {
     }
     if (/[a-z_]/i.test(ch)) {
       let j = i
-      while (j < source.length && /[a-z0-9_]/i.test(source[j])) j++
+      while (j < source.length && /[a-z0-9_]/i.test(source[j]!)) j++
       tokens.push({ kind: 'ident', value: source.slice(i, j) })
       i = j
       continue
@@ -194,7 +194,7 @@ function parse(source: string): Node {
 
   const root = comparison()
   if (pos < tokens.length) {
-    throw new FormulaError(`unexpected "${tokens[pos].value}" after end of formula`)
+    throw new FormulaError(`unexpected "${tokens[pos]!.value}" after end of formula`)
   }
   return root
 }
@@ -258,11 +258,12 @@ function evaluate(node: Node, vars: FormulaVariables): Value {
     case 'string':
       return node.value
     case 'variable':
-      return (vars as Record<string, Value | undefined>)[node.name] ?? null
+      return (vars as unknown as Record<string, Value | undefined>)[node.name] ?? null
     case 'call': {
       const arg = evaluate(node.arg, vars)
       if (arg === null) return null
-      return FUNCTIONS[node.name](arg as number)
+      // check() guarantees the function exists.
+      return FUNCTIONS[node.name]!(arg as number)
     }
     case 'unary': {
       const v = evaluate(node.operand, vars)

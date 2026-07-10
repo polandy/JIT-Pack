@@ -179,7 +179,7 @@ const offeredChecklist = computed(() => {
 })
 
 function reviewQuantity(index: number): number {
-  return quantityOverrides.value[index] ?? generation.value.items[index].quantity
+  return quantityOverrides.value[index] ?? generation.value.items[index]!.quantity
 }
 
 function overrideQuantity(index: number, value: string) {

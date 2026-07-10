@@ -34,7 +34,7 @@ describe('M17 profile & data actions', () => {
     const me = await orch.fetchMe()
 
     expect(me).toEqual({ user_id: 'u1', display_name: 'Andy' })
-    const [url, init] = fetchMock.mock.calls[0]
+    const [url, init] = fetchMock.mock.calls[0]!
     expect(String(url)).toContain('/api/v1/me')
     expect((init as RequestInit).headers).toMatchObject({ Authorization: 'Bearer tok' })
   })
@@ -45,7 +45,7 @@ describe('M17 profile & data actions', () => {
 
     await orch.saveDisplayName('u1', 'Andy_2')
 
-    const [url, init] = fetchMock.mock.calls[0]
+    const [url, init] = fetchMock.mock.calls[0]!
     expect(String(url)).toContain('/api/v1/users/u1/display-name')
     expect((init as RequestInit).method).toBe('PUT')
     expect(JSON.parse(String((init as RequestInit).body))).toEqual({ display_name: 'Andy_2' })
@@ -57,7 +57,7 @@ describe('M17 profile & data actions', () => {
 
     await orch.uploadAvatar('u1', new Blob(['jpeg-bytes'], { type: 'image/jpeg' }))
 
-    const [url, init] = fetchMock.mock.calls[0]
+    const [url, init] = fetchMock.mock.calls[0]!
     expect(String(url)).toContain('/api/v1/users/u1/avatar')
     expect((init as RequestInit).headers).toMatchObject({ 'Content-Type': 'image/jpeg' })
   })

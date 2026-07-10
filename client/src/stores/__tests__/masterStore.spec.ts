@@ -27,8 +27,8 @@ describe('masterStore', () => {
     })
 
     expect(store.categoryList).toHaveLength(2)
-    expect(store.categoryList[0].name).toBe('Tech')
-    expect(store.categoryList[1].name).toBe('Clothes')
+    expect(store.categoryList[0]!.name).toBe('Tech')
+    expect(store.categoryList[1]!.name).toBe('Clothes')
   })
 
   it('applies item changes', () => {
@@ -96,8 +96,8 @@ describe('masterStore', () => {
 
     const tis = store.getTemplateItems('t1')
     expect(tis).toHaveLength(1)
-    expect(tis[0].quantity_formula).toBe('3')
-    expect(tis[0].assignment).toBe('trip_global')
+    expect(tis[0]!.quantity_formula).toBe('3')
+    expect(tis[0]!.assignment).toBe('trip_global')
   })
 
   it('groups items by category', () => {

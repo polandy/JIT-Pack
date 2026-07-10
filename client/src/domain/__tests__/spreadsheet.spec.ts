@@ -135,10 +135,10 @@ describe('buildImportPlan (FR-16.2, NFR-4.7)', () => {
     const plan = buildImportPlan(grid, mapping, new Map())
 
     expect(plan.trips).toHaveLength(2)
-    const t2023 = plan.trips[0]
+    const t2023 = plan.trips[0]!
     expect(t2023).toMatchObject({ name: 'Engadin 2023', endDate: '2023-12-31', seriesId: 'ser-1' })
     const quantities = t2023.items.map((ti) => ({
-      name: plan.items[ti.itemIndex].name,
+      name: plan.items[ti.itemIndex]!.name,
       quantity: ti.quantity,
     }))
     expect(quantities).toEqual([
@@ -148,7 +148,7 @@ describe('buildImportPlan (FR-16.2, NFR-4.7)', () => {
     ])
 
     // 2025: Socken column has 'x' in 2024 (not imported) — 2025 has 6.
-    const t2025 = plan.trips[1]
+    const t2025 = plan.trips[1]!
     expect(t2025.items.map((ti) => ti.quantity)).toEqual([6, 6, 1])
   })
 
@@ -158,7 +158,7 @@ describe('buildImportPlan (FR-16.2, NFR-4.7)', () => {
       trips: [{ column: 2, name: 'Engadin 2024', endDate: '2024-12-31', seriesId: null }],
     }, new Map())
     const socken = plan.items.findIndex((i) => i.name === 'Socken')
-    const entry = plan.trips[0].items.find((ti) => ti.itemIndex === socken)
+    const entry = plan.trips[0]!.items.find((ti) => ti.itemIndex === socken)
     expect(entry?.quantity).toBe(1)
   })
 })

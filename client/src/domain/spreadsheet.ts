@@ -95,7 +95,7 @@ export function analyzeGrid(grid: string[][]): GridAnalysis {
   for (let col = 0; col < width; col++) {
     let text = 0
     for (let rowIdx = 1; rowIdx < grid.length; rowIdx++) {
-      const value = grid[rowIdx][col] ?? ''
+      const value = grid[rowIdx]?.[col] ?? ''
       if (value !== '' && parseQuantity(value) === null) text++
     }
     if (text > bestText) {
@@ -109,14 +109,14 @@ export function analyzeGrid(grid: string[][]): GridAnalysis {
     if (col === itemColumn) continue
     const hasQuantity = grid.some((r, rowIdx) => rowIdx > 0 && parseQuantity(r[col] ?? '') !== null)
     if (!hasQuantity) continue
-    tripColumns.push({ index: col, header: grid[0][col] ?? '' })
+    tripColumns.push({ index: col, header: grid[0]?.[col] ?? '' })
   }
 
   const categoryRows: number[] = []
   for (let rowIdx = 1; rowIdx < grid.length; rowIdx++) {
-    const name = grid[rowIdx][itemColumn] ?? ''
+    const name = grid[rowIdx]?.[itemColumn] ?? ''
     if (name === '') continue
-    const empty = tripColumns.every((t) => (grid[rowIdx][t.index] ?? '') === '')
+    const empty = tripColumns.every((t) => (grid[rowIdx]?.[t.index] ?? '') === '')
     if (empty) categoryRows.push(rowIdx)
   }
 
@@ -182,14 +182,14 @@ function levenshtein(a: string, b: string): number {
     const curr = [i]
     for (let j = 1; j <= b.length; j++) {
       curr[j] = Math.min(
-        prev[j] + 1,
-        curr[j - 1] + 1,
-        prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+        prev[j]! + 1,
+        curr[j - 1]! + 1,
+        prev[j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1),
       )
     }
     prev = curr
   }
-  return prev[b.length]
+  return prev[b.length]!
 }
 
 // --- Import plan (FR-16.2) ---
@@ -240,7 +240,7 @@ export function buildImportPlan(
 
   let currentCategory: string | null = null
   for (let rowIdx = 1; rowIdx < grid.length; rowIdx++) {
-    const raw = (grid[rowIdx][mapping.itemColumn] ?? '').trim()
+    const raw = (grid[rowIdx]?.[mapping.itemColumn] ?? '').trim()
     if (raw === '') continue
     if (categoryRows.has(rowIdx)) {
       currentCategory = raw
@@ -261,7 +261,7 @@ export function buildImportPlan(
   const trips: ImportPlanTrip[] = mapping.trips.map((trip) => {
     const tripItems: { itemIndex: number; quantity: number }[] = []
     for (const [rowIdx, itemIndex] of rowToItemIndex) {
-      const quantity = parseQuantity(grid[rowIdx][trip.column] ?? '')
+      const quantity = parseQuantity(grid[rowIdx]?.[trip.column] ?? '')
       if (quantity !== null) tripItems.push({ itemIndex, quantity })
     }
     return { name: trip.name, endDate: trip.endDate, seriesId: trip.seriesId, items: tripItems }

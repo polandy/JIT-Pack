@@ -39,6 +39,7 @@ function makeItem(overrides: Partial<TripItem> = {}): TripItem {
     packer_user_id: null,
     container_id: null,
     packing_now_by: null,
+    packing_now_at: null,
     flag_unused: false,
     flag_missing: false,
     updated_hlc: '0000000001000-0000-abcd1234',
@@ -123,8 +124,8 @@ describe('tripStore', () => {
 
     const items = store.getItems('t1')
     expect(items).toHaveLength(2)
-    expect(items[0].name).toBe('Towel')
-    expect(items[0].packed_count).toBe(1)
+    expect(items[0]!.name).toBe('Towel')
+    expect(items[0]!.packed_count).toBe(1)
   })
 
   it('upserts existing trip item', () => {
@@ -146,7 +147,7 @@ describe('tripStore', () => {
 
     const items = store.getItems('t1')
     expect(items).toHaveLength(1)
-    expect(items[0].packed_count).toBe(2)
+    expect(items[0]!.packed_count).toBe(2)
   })
 
   it('deletes trip item', () => {
@@ -217,7 +218,7 @@ describe('tripStore', () => {
       row: { trip_id: 't1', name: 'Alice', profile: 'adult' },
     })
     expect(store.getTravelers('t1')).toHaveLength(1)
-    expect(store.getTravelers('t1')[0].name).toBe('Alice')
+    expect(store.getTravelers('t1')[0]!.name).toBe('Alice')
 
     store.applyChange({ seq: 2, table: 'travelers', id: 'tv1', deleted: true, row: null })
     expect(store.getTravelers('t1')).toHaveLength(0)
@@ -244,8 +245,8 @@ describe('tripStore', () => {
       row: { trip_id: 't1', trip_item_id: 'i1', author_id: 'u1', body: 'Charge battery', is_task: 1, task_state: 'open' },
     })
     expect(store.getTodos('t1')).toHaveLength(1)
-    expect(store.getTodos('t1')[0].body).toBe('Charge battery')
-    expect(store.getTodos('t1')[0].task_state).toBe('open')
+    expect(store.getTodos('t1')[0]!.body).toBe('Charge battery')
+    expect(store.getTodos('t1')[0]!.task_state).toBe('open')
   })
 
   it('ignores non-task comments', () => {
@@ -268,7 +269,7 @@ describe('tripStore', () => {
       row: { trip_id: 't1', trip_item_id: 'i1', author_id: 'u1', body: 'Charge battery', is_task: 1, task_state: 'resolved' },
     })
     expect(store.getTodos('t1')).toHaveLength(1)
-    expect(store.getTodos('t1')[0].task_state).toBe('resolved')
+    expect(store.getTodos('t1')[0]!.task_state).toBe('resolved')
   })
 
   it('deletes a todo', () => {
@@ -299,7 +300,7 @@ describe('tripStore', () => {
       { seq: 2, table: 'comments', id: 'todo2', deleted: false, row: { trip_id: 't1', trip_item_id: 'i1', author_id: 'u1', body: 'Done', is_task: 1, task_state: 'resolved' } },
     ])
     expect(store.getOpenTodos('t1')).toHaveLength(1)
-    expect(store.getOpenTodos('t1')[0].body).toBe('Open')
+    expect(store.getOpenTodos('t1')[0]!.body).toBe('Open')
   })
 
   it('itemsWithOpenPrep returns items with open todos', () => {
@@ -311,8 +312,8 @@ describe('tripStore', () => {
     ])
     const result = store.itemsWithOpenPrep('t1')
     expect(result).toHaveLength(1)
-    expect(result[0].item.name).toBe('Camera')
-    expect(result[0].openTodos).toHaveLength(1)
+    expect(result[0]!.item.name).toBe('Camera')
+    expect(result[0]!.openTodos).toHaveLength(1)
   })
 
   it('KPIs include todo counts', () => {

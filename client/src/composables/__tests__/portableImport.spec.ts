@@ -130,14 +130,14 @@ items:
 
     const containers = trips.getContainers(result.id)
     expect(containers[0]).toMatchObject({ name: 'Radtasche', max_weight_grams: 9000 })
-    expect(containers[0].carrier_traveler_id).toBe(travelers[0].id)
+    expect(containers[0]!.carrier_traveler_id).toBe(travelers[0]!.id)
 
-    const item = trips.getItems(result.id)[0]
+    const item = trips.getItems(result.id)[0]!
     expect(item).toMatchObject({
       name: 'Zelt', quantity: 2, packed_count: 1, state: 'partial',
       category_name: 'Outdoor', mode: 'pack',
     })
-    expect(item.assigned_traveler_id).toBe(travelers[0].id)
-    expect(item.container_id).toBe(containers[0].id)
+    expect(item.assigned_traveler_id).toBe(travelers[0]!.id)
+    expect(item.container_id).toBe(containers[0]!.id)
   })
 })

@@ -54,8 +54,8 @@ export async function unregisterPush(api: PushServerAPI): Promise<void> {
   await sub.unsubscribe()
 }
 
-/** VAPID keys travel base64url-encoded; PushManager wants raw bytes. */
-export function urlBase64ToUint8Array(base64url: string): Uint8Array {
+/** VAPID keys travel base64url-encoded; PushManager wants raw bytes (ArrayBuffer-backed per BufferSource). */
+export function urlBase64ToUint8Array(base64url: string): Uint8Array<ArrayBuffer> {
   const padded = base64url + '='.repeat((4 - (base64url.length % 4)) % 4)
   const base64 = padded.replace(/-/g, '+').replace(/_/g, '/')
   const raw = atob(base64)

@@ -70,7 +70,7 @@ describe('notification.created handling', () => {
     await orch.connect()
     await vi.waitFor(() => expect(surfaced).toHaveLength(2))
 
-    const url = String(fetchMock.mock.calls[0][0])
+    const url = String(fetchMock.mock.calls[0]![0])
     expect(url).toContain('/api/v1/notifications')
     expect(url).toContain('unread=1')
   })
@@ -87,14 +87,14 @@ describe('notification.created handling', () => {
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
 
     mockNotificationList(notif('n1'))
-    wsInstances[0].onmessage!({
+    wsInstances[0]!.onmessage!({
       data: JSON.stringify({ type: 'notification.created', payload: { notification_id: 'n1' } }),
     })
     await vi.waitFor(() => expect(surfaced).toHaveLength(1))
 
     // Second ping returns the same still-unread row — no double toast.
     mockNotificationList(notif('n1'), notif('n2'))
-    wsInstances[0].onmessage!({
+    wsInstances[0]!.onmessage!({
       data: JSON.stringify({ type: 'notification.created', payload: { notification_id: 'n2' } }),
     })
     await vi.waitFor(() => expect(surfaced).toHaveLength(2))
@@ -133,8 +133,8 @@ describe('notification endpoints', () => {
 
     await orch.markNotificationRead('n1')
 
-    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/v1/notifications/n1/read')
-    expect(fetchMock.mock.calls[0][1].method).toBe('POST')
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/notifications/n1/read')
+    expect(fetchMock.mock.calls[0]![1].method).toBe('POST')
   })
 
   it('saveNotificationPrefs puts the toggles', async () => {
@@ -143,7 +143,7 @@ describe('notification endpoints', () => {
 
     await orch.saveNotificationPrefs({ delegation: false, mention: true, task: true })
 
-    const [url, init] = fetchMock.mock.calls[0]
+    const [url, init] = fetchMock.mock.calls[0]!
     expect(String(url)).toContain('/api/v1/me/notification-prefs')
     expect(init.method).toBe('PUT')
     expect(JSON.parse(init.body as string)).toEqual({ delegation: false, mention: true, task: true })
@@ -154,15 +154,15 @@ describe('notification endpoints', () => {
 
     fetchMock.mockResolvedValueOnce(new Response('{"key":"BPub"}', { status: 200 }))
     expect(await orch.pushApi.getVapidKey()).toBe('BPub')
-    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/v1/push/vapid-key')
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/push/vapid-key')
 
     fetchMock.mockResolvedValueOnce(new Response('{"ok":true}', { status: 200 }))
     await orch.pushApi.registerSubscription({ endpoint: 'e', keys: { p256dh: 'p', auth: 'a' } })
-    expect(fetchMock.mock.calls[1][1].method).toBe('POST')
+    expect(fetchMock.mock.calls[1]![1].method).toBe('POST')
 
     fetchMock.mockResolvedValueOnce(new Response('{"ok":true}', { status: 200 }))
     await orch.pushApi.unregisterSubscription('e')
-    expect(fetchMock.mock.calls[2][1].method).toBe('DELETE')
-    expect(JSON.parse(fetchMock.mock.calls[2][1].body as string)).toEqual({ endpoint: 'e' })
+    expect(fetchMock.mock.calls[2]![1].method).toBe('DELETE')
+    expect(JSON.parse(fetchMock.mock.calls[2]![1].body as string)).toEqual({ endpoint: 'e' })
   })
 })

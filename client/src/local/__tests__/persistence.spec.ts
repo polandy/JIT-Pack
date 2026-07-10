@@ -42,7 +42,7 @@ describe('IndexedDBPersistence', () => {
 
     const loaded = await p.load()
     expect(loaded).toHaveLength(1)
-    expect(loaded[0].row).toMatchObject({ weight_grams: 100 })
+    expect(loaded[0]!.row).toMatchObject({ weight_grams: 100 })
   })
 
   it('tombstones remove the stored row', async () => {

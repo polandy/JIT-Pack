@@ -39,7 +39,7 @@ describe('fetchConflicts', () => {
 
     expect(conflicts).toHaveLength(1)
     expect(conflicts[0]).toMatchObject({ field: 'quantity', losing_value: '9' })
-    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/v1/trips/t1/conflicts')
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/trips/t1/conflicts')
   })
 
   it('resolves empty in Local Mode without a network call', async () => {

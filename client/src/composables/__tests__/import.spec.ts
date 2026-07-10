@@ -73,7 +73,7 @@ describe('commitImport (FR-16.2)', () => {
 
     // Trips: archived, imported, original quantities as packed.
     expect(result.tripIds).toHaveLength(2)
-    const t2023 = trips.getTrip(result.tripIds[0])!
+    const t2023 = trips.getTrip(result.tripIds[0]!)!
     expect(t2023).toMatchObject({ name: 'Engadin 2023', status: 'archived', imported: true })
     const items2023 = trips.getItems(t2023.id)
     const unterhosen = items2023.find((i) => i.name === 'Unterhosen')!
@@ -81,7 +81,7 @@ describe('commitImport (FR-16.2)', () => {
       quantity: 5, packed_count: 5, state: 'packed', source_item_id: 'i-exist',
     })
 
-    const t2025 = trips.getTrip(result.tripIds[1])!
+    const t2025 = trips.getTrip(result.tripIds[1]!)!
     expect(t2025.series_id).toBe('ser-1')
     expect(trips.getItems(t2025.id)[0]).toMatchObject({ name: 'Socken', quantity: 6 })
 
@@ -89,7 +89,7 @@ describe('commitImport (FR-16.2)', () => {
     const regen = items2023.find((i) => i.name === 'Regenschutz Rucksack')!
     const todos = trips.getItemTodos(t2023.id, regen.id)
     expect(todos).toHaveLength(1)
-    expect(todos[0].task_state).toBe('open')
+    expect(todos[0]!.task_state).toBe('open')
   })
 
   it('reuses an existing category instead of duplicating it', () => {

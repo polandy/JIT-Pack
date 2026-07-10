@@ -636,12 +636,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
     plan.containers.forEach((c, i) => {
       if (c.paired_container_index === null) return
-      const mutation = mutations.updateContainer(containerIds[i], {
+      const mutation = mutations.updateContainer(containerIds[i]!, {
         paired_container_id: containerIds[c.paired_container_index],
       })
-      const base = plan.containers[i]
+      const base = plan.containers[i]!
       onPullChanges([{
-        seq: 0, table: 'containers', id: containerIds[i], deleted: false,
+        seq: 0, table: 'containers', id: containerIds[i]!, deleted: false,
         row: {
           trip_id: tripId,
           name: base.name,
@@ -713,10 +713,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       tripIds.push(tripId)
 
       for (const entry of trip.items) {
-        const item = plan.items[entry.itemIndex]
+        // buildImportPlan only emits in-range item indexes.
+        const item = plan.items[entry.itemIndex]!
         const { mutation, id } = mutations.addImportedTripItem(tripId, {
           name: item.name,
-          sourceItemId: itemIDs[entry.itemIndex],
+          sourceItemId: itemIDs[entry.itemIndex] ?? null,
           categoryName: item.categoryName,
           quantity: entry.quantity,
         })
