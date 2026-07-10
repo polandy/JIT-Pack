@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestLoadConfig(t *testing.T) {
 	tests := []struct {
@@ -54,6 +57,19 @@ func TestLoadConfig(t *testing.T) {
 			},
 		},
 		{
+			name: "admin emails parsed and trimmed (FR-23.1)",
+			env: map[string]string{
+				"JITPACK_JWT_SECRET":     "s3cret",
+				"JITPACK_ADMIN_EMAILS": "andy@example.com, sarah@example.com ,,",
+			},
+			want: Config{
+				Listen:        ":8080",
+				DBPath:        "jitpack.db",
+				JWTSecret:     "s3cret",
+				AdminEmails: []string{"andy@example.com", "sarah@example.com"},
+			},
+		},
+		{
 			name: "multi-user both secret and JWKS",
 			env: map[string]string{
 				"JITPACK_JWT_SECRET": "s3cret",
@@ -92,7 +108,7 @@ func TestLoadConfig(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if got != tt.want {
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Fatalf("got %+v, want %+v", got, tt.want)
 			}
 		})

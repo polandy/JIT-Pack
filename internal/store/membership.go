@@ -64,11 +64,12 @@ func (s *Store) CanManageTravelers(ctx context.Context, tripID, userID string) (
 	return role == "owner" || role == "admin", nil
 }
 
-// ListUsers returns every account on the instance with its display name,
-// ordered by name — the M3 sharing step's user picker (FR-4.5).
+// ListUsers returns every active account on the instance with its
+// display name, ordered by name — the M3 sharing step's user picker
+// (FR-4.5). Deactivated accounts are excluded (FR-23.3).
 func (s *Store) ListUsers(ctx context.Context) ([]MemberName, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, display_name FROM users ORDER BY display_name, id`)
+		`SELECT id, display_name FROM users WHERE deactivated_at IS NULL ORDER BY display_name, id`)
 	if err != nil {
 		return nil, fmt.Errorf("list users: %w", err)
 	}

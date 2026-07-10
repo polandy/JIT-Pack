@@ -41,6 +41,13 @@ type Notification struct {
 // disabled the kind in their preferences (M17). Returns the new id, or
 // "" when the preference suppressed it.
 func (s *Store) CreateNotification(ctx context.Context, userID, kind string, payload map[string]any) (string, error) {
+	// Deactivated accounts receive nothing (FR-23.3) — checked here so
+	// Web Push and the in-app channel are silenced at the single source.
+	if deactivated, err := s.UserDeactivated(ctx, userID); err != nil {
+		return "", err
+	} else if deactivated {
+		return "", nil
+	}
 	prefs, err := s.NotificationPrefs(ctx, userID)
 	if err != nil {
 		return "", err

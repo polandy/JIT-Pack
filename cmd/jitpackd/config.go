@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"os"
+	"strings"
 )
 
 // Config holds the startup-time configuration read from environment
@@ -24,6 +25,11 @@ type Config struct {
 	// e.g. "mailto:ops@example.com". Optional — the keys themselves are
 	// self-generated on first use.
 	PushContact string // JITPACK_PUSH_CONTACT
+
+	// Instance admins (FR-23.1): comma-separated e-mail addresses,
+	// matched case-insensitively against the token's email claim and
+	// stamped on every login. Empty ⇒ the feature is dormant.
+	AdminEmails []string // JITPACK_ADMIN_EMAILS
 }
 
 // LoadConfig reads configuration from the environment. It returns an
@@ -47,6 +53,8 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 		OIDCClientID:     getenv("JITPACK_OIDC_CLIENT_ID"),
 
 		PushContact: getenv("JITPACK_PUSH_CONTACT"),
+
+		AdminEmails: splitList(getenv("JITPACK_ADMIN_EMAILS")),
 	}
 
 	if c.SingleUser {
@@ -85,4 +93,19 @@ func envOr(getenv func(string) string, key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// splitList parses a comma-separated env value, trimming whitespace and
+// dropping empty entries; nil for an unset variable.
+func splitList(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+	var out []string
+	for part := range strings.SplitSeq(raw, ",") {
+		if p := strings.TrimSpace(part); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }

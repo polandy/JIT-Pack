@@ -12,7 +12,7 @@ func TestEnsureOIDCUser_ProvisionsOnce(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()
 
-	id1, err := s.EnsureOIDCUser(ctx, "auth|sarah", "Sarah")
+	id1, err := s.EnsureOIDCUser(ctx, "auth|sarah", "Sarah", "sarah@example.com", false)
 	if err != nil {
 		t.Fatalf("EnsureOIDCUser: %v", err)
 	}
@@ -29,7 +29,7 @@ func TestEnsureOIDCUser_ProvisionsOnce(t *testing.T) {
 	}
 
 	// Second call: same id, display name untouched.
-	id2, err := s.EnsureOIDCUser(ctx, "auth|sarah", "Ignored")
+	id2, err := s.EnsureOIDCUser(ctx, "auth|sarah", "Ignored", "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestEnsureOIDCUser_LinksExistingSubject(t *testing.T) {
 	s := openTestStore(t)
 
 	// testUser is seeded with oidc_subject 'auth|andy'.
-	id, err := s.EnsureOIDCUser(context.Background(), "auth|andy", "")
+	id, err := s.EnsureOIDCUser(context.Background(), "auth|andy", "", "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestEnsureOIDCUser_FallbackDisplayName(t *testing.T) {
 	s := openTestStore(t)
 
 	long := "auth|" + strings.Repeat("x", 100)
-	id, err := s.EnsureOIDCUser(context.Background(), long, "")
+	id, err := s.EnsureOIDCUser(context.Background(), long, "", "", false)
 	if err != nil {
 		t.Fatalf("EnsureOIDCUser with long subject: %v", err)
 	}
