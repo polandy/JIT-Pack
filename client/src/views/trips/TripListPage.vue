@@ -24,9 +24,10 @@ import {
   IonButton,
   actionSheetController,
 } from '@ionic/vue'
-import { addOutline, airplaneOutline, albumsOutline, archiveOutline, cloudUploadOutline, copyOutline, documentTextOutline, downloadOutline } from 'ionicons/icons'
+import { addOutline, airplaneOutline, albumsOutline, archiveOutline, cloudUploadOutline, copyOutline, documentTextOutline, downloadOutline, peopleOutline } from 'ionicons/icons'
 import { ref, computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
+import { loadTokens } from '@/auth/tokens'
 import { serializeTrip } from '@/domain/portable'
 import { safeFilename, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
@@ -70,7 +71,7 @@ const groupedTrips = computed(() => {
         trips: [],
       })
     }
-    groups[index.get(key)!].trips.push(trip)
+    groups[index.get(key)!]!.trips.push(trip)
   }
   return groups.sort((a, b) => Number(a.seriesId === null) - Number(b.seriesId === null))
 })
@@ -98,6 +99,11 @@ function onFilterChange(event: CustomEvent) {
 }
 
 const router = useRouter()
+
+// Share is omitted without an OIDC session — Single-User and Local
+// Mode have no second account to share with (FR-17.3/FR-19.3/G-8).
+const collaborative =
+  localStorage.getItem('jitpack_mode') === 'server' && !!loadTokens()
 
 /** Archive completes the trip and launches the M14 review (FR-9.2). */
 function archiveTrip(tripId: string) {
@@ -248,6 +254,15 @@ async function handleRefresh(event: CustomEvent) {
               @click="exportTrip(trip)"
             >
               <IonIcon slot="icon-only" :icon="downloadOutline" />
+            </IonItemOption>
+            <!-- FR-4.5: member management (Share) -->
+            <IonItemOption
+              v-if="collaborative"
+              color="secondary"
+              aria-label="Share"
+              @click="$router.push(`/trips/${trip.id}/members`)"
+            >
+              <IonIcon slot="icon-only" :icon="peopleOutline" />
             </IonItemOption>
             <!-- FR-12.1: clone from archive -->
             <IonItemOption
