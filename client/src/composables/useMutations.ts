@@ -592,6 +592,31 @@ export function useMutations(hlc: HLCGenerator) {
     return make('delete', 'template_items', templateItemId)
   }
 
+  // --- Item dependency mutations (Addendum 3.20, master partition) ---
+
+  function addItemDependency(
+    itemId: string,
+    dependsOnItemId: string,
+    opts: { mode?: 'required' | 'suggested'; quantityFormula?: string | null } = {},
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const mutation = make('insert', 'item_dependencies', id, {
+      item_id: itemId,
+      depends_on_item_id: dependsOnItemId,
+      mode: opts.mode ?? 'required',
+      quantity_formula: opts.quantityFormula ?? null,
+    })
+    return { mutation, id }
+  }
+
+  function updateItemDependency(dependencyId: string, fields: Record<string, unknown>): Mutation {
+    return make('upsert', 'item_dependencies', dependencyId, fields)
+  }
+
+  function deleteItemDependency(dependencyId: string): Mutation {
+    return make('delete', 'item_dependencies', dependencyId)
+  }
+
   // --- Trip membership mutations (FR-4.5/4.7, master partition) ---
 
   function addTripMember(
@@ -682,6 +707,9 @@ export function useMutations(hlc: HLCGenerator) {
     addTemplateItem,
     updateTemplateItem,
     deleteTemplateItem,
+    addItemDependency,
+    updateItemDependency,
+    deleteItemDependency,
     // Trip membership
     addTripMember,
     setTripMemberRole,

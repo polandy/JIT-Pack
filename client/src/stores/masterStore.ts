@@ -10,6 +10,7 @@ import type {
   Category,
   DestinationChecklistItem,
   DestinationProfile,
+  ItemDependency,
   MasterItem,
   Template,
   TemplateItem,
@@ -25,6 +26,7 @@ export const useMasterStore = defineStore('master', () => {
   const series = ref<Map<string, TripSeries>>(new Map())
   const profiles = ref<Map<string, DestinationProfile>>(new Map())
   const checklistItems = ref<Map<string, DestinationChecklistItem>>(new Map())
+  const dependencies = ref<Map<string, ItemDependency>>(new Map())
 
   // --- Getters ---
 
@@ -65,6 +67,20 @@ export const useMasterStore = defineStore('master', () => {
 
   function getChecklistItems(profileId: string): DestinationChecklistItem[] {
     return [...checklistItems.value.values()].filter((c) => c.profile_id === profileId)
+  }
+
+  // --- Item dependencies (Addendum 3.20, FR-20.1) ---
+
+  const dependencyList = computed(() => [...dependencies.value.values()])
+
+  /** What this item depends on — the "Depends on" rows in M10. */
+  function getItemDependencies(itemId: string): ItemDependency[] {
+    return dependencyList.value.filter((d) => d.item_id === itemId)
+  }
+
+  /** This item's companions — dependencies pointing at it as the main item. */
+  function getCompanionDependencies(itemId: string): ItemDependency[] {
+    return dependencyList.value.filter((d) => d.depends_on_item_id === itemId)
   }
 
   /** Items grouped by category name, sorted by category sort_order. */
@@ -155,6 +171,14 @@ export const useMasterStore = defineStore('master', () => {
           checklistItems.value.set(change.id, rowToChecklistItem(change.id, row))
         }
         break
+
+      case 'item_dependencies':
+        if (change.deleted) {
+          dependencies.value.delete(change.id)
+        } else if (row) {
+          dependencies.value.set(change.id, rowToDependency(change.id, row))
+        }
+        break
     }
   }
 
@@ -202,6 +226,9 @@ export const useMasterStore = defineStore('master', () => {
     getSeries,
     getDestinationProfile,
     getChecklistItems,
+    dependencyList,
+    getItemDependencies,
+    getCompanionDependencies,
     itemsByCategory,
     searchItems,
     applyChange,
@@ -266,6 +293,16 @@ function rowToChecklistItem(id: string, row: Record<string, unknown>): Destinati
     profile_id: row['profile_id'] as string,
     label: row['label'] as string,
     mode: (row['mode'] as DestinationChecklistItem['mode']) ?? 'buy_local',
+  }
+}
+
+function rowToDependency(id: string, row: Record<string, unknown>): ItemDependency {
+  return {
+    id,
+    item_id: row['item_id'] as string,
+    depends_on_item_id: row['depends_on_item_id'] as string,
+    mode: (row['mode'] as ItemDependency['mode']) ?? 'required',
+    quantity_formula: (row['quantity_formula'] as string) ?? null,
   }
 }
 
