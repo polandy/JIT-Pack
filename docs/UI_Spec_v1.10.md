@@ -51,7 +51,7 @@ These patterns apply to every screen and are specified once.
 | M17 | Settings & Notifications | P2 | 6.2, NFR-4.5/4.6 |
 | M18 | Portable Import Preview | P2 | Addendum 3.18 |
 | M19 | First-Launch Mode Selection | P2 | Addendum 3.19 |
-| M20 | User Administration *(proposed)* | P3 | Addendum 3.23 |
+| M20 | User Administration | P3 | Addendum 3.23 |
 
 ---
 
@@ -195,9 +195,9 @@ These patterns apply to every screen and are specified once.
 ### M17 — Settings & Notifications
 
 * **Purpose:** Personal preferences within the declarative-infrastructure constraint (Section 2: no administrative *infrastructure* changes via the UI; application-level user administration lives in M20, proposed per Addendum 3.23).
-* **Elements:** Profile (read-only, OIDC-sourced); notification preferences per event type: delegation, mention, task assigned (FR-6.2) with channel status (push registered via VAPID/UnifiedPush, NFR-4.6); data section: JSON full export, per-trip CSV export (NFR-4.5); conflict log viewer (G-2 target); app info/version. Appearance section with a dark (default, Catppuccin Mocha) / light (Catppuccin Latte) toggle (G-11, Addendum 3.21) — shown in every mode, device-local. **Proposed, not yet built (Addendum 3.23):** an Administration row → M20, rendered only for instance admins with an OIDC session (FR-23.1).
+* **Elements:** Profile (read-only, OIDC-sourced); notification preferences per event type: delegation, mention, task assigned (FR-6.2) with channel status (push registered via VAPID/UnifiedPush, NFR-4.6); data section: JSON full export, per-trip CSV export (NFR-4.5); conflict log viewer (G-2 target); app info/version. Appearance section with a dark (default, Catppuccin Mocha) / light (Catppuccin Latte) toggle (G-11, Addendum 3.21) — shown in every mode, device-local. An Administration row → M20, rendered only for instance admins with an OIDC session (FR-23.1).
 * **Single-User Mode variant (Addendum 3.17):** The Profile section replaces the read-only OIDC fields with two editable controls: a display-name text field (max 50 characters, `[A-Za-z0-9._-]` only, inline validation) and an avatar picture control (Addendum FR-17.13) — the user picks a source photo, positions a circular crop overlay on it via pan/zoom, and confirms; the app renders the selected region to a 256×256 px JPEG on-device and uploads only that, with no separate resize/format step exposed to the user. Both controls save immediately (G-5) and are reflected wherever an avatar/name appears (dashboard greeting, "Packed by" tag, presence facepile per G-10) — always rendered as a circle via a display-time mask, never stored as one. The *notification preferences* section is hidden entirely, since there is no second party to notify or delegate to (Addendum FR-17.3). All other elements (data export, conflict log, app info) remain, unchanged from normal mode.
-* **Explicitly absent:** instance configuration, OIDC settings, admin-role assignment — all declarative (Section 2). User administration (deactivate, profile moderation) is application data, not infrastructure, and lives in M20 (Addendum 3.23, proposed).
+* **Explicitly absent:** instance configuration, OIDC settings, admin-role assignment — all declarative (Section 2). User administration (deactivate, profile moderation) is application data, not infrastructure, and lives in M20 (Addendum 3.23).
 * **Navigation:** Avatar in top bar.
 
 ### M18 — Portable Import Preview
@@ -218,7 +218,7 @@ These patterns apply to every screen and are specified once.
 
 ### M20 — User Administration
 
-**Proposed, not yet built (Addendum 3.23).**
+**Implemented (Addendum 3.23).**
 
 * **Purpose:** The small instance-level user management of Addendum 3.23 — see who is provisioned, revoke access, moderate profiles. Application-data administration only; who *holds* the admin role stays declarative (`JITPACK_ADMIN_EMAILS`, FR-23.1) and is deliberately not editable here.
 * **Elements:** List of all provisioned accounts: avatar, display name, e-mail, provisioning date, status chip (active / deactivated), lightweight usage indicators (trips as member, owned templates) per FR-23.2. Instance admins are marked with a chip; the own account's row carries a "you" marker.

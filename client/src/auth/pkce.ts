@@ -34,7 +34,8 @@ export function buildAuthorizeURL(opts: {
   url.searchParams.set('response_type', 'code')
   url.searchParams.set('client_id', opts.clientId)
   url.searchParams.set('redirect_uri', opts.redirectUri)
-  url.searchParams.set('scope', 'openid profile offline_access')
+  // email feeds the FR-23.1 admin allowlist and the M20 overview.
+  url.searchParams.set('scope', 'openid profile email offline_access')
   url.searchParams.set('code_challenge', opts.challenge)
   url.searchParams.set('code_challenge_method', 'S256')
   url.searchParams.set('state', opts.state)

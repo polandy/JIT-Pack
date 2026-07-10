@@ -62,7 +62,7 @@ const editable = mode === 'server' && !loadTokens()
 /** Multi-user instance → notifications exist (FR-17.3/FR-19.3 hide them otherwise). */
 const collaborative = mode === 'server' && !!loadTokens()
 
-const me = ref<{ user_id: string; display_name: string } | null>(null)
+const me = ref<{ user_id: string; display_name: string; is_instance_admin?: boolean } | null>(null)
 const nameDraft = ref('')
 const nameSaved = ref(false)
 const avatarVersion = ref(0)
@@ -366,6 +366,20 @@ async function exportTripCSV() {
             <IonButton slot="end" size="small" :disabled="!csvTripId" @click="exportTripCSV">
               Download
             </IonButton>
+          </IonItem>
+        </IonList>
+      </template>
+
+      <!-- Administration entry (Addendum 3.23, FR-23.2): instance
+           admins with an OIDC session only — same gating as M20. -->
+      <template v-if="collaborative && me?.is_instance_admin">
+        <h2 class="section-title">Administration</h2>
+        <IonList>
+          <IonItem button lines="none" @click="$router.push('/admin')">
+            <IonLabel>
+              <h3>User administration</h3>
+              <p>Provisioned accounts, deactivation, profile moderation</p>
+            </IonLabel>
           </IonItem>
         </IonList>
       </template>
