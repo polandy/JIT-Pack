@@ -96,4 +96,5 @@ None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` n
 - Coverage: ≥90% on `internal/sync` and `internal/domain` (when it exists), ≥75% overall.
 - English throughout; comments only for *why*, never *what*; godoc mandatory on exported symbols.
 - Standard library first — any new dependency needs a one-line justification, footprint is a first-class concern (NFR-4.3).
+- **Dependency pinning (supply-chain, 2026-07-11):** everything resolves to an exact version verified by hash. Application deps: npm via `package-lock.json` (sha512 integrity, CI installs with `npm ci`), Go via `go.sum`. Build/CI supply chain: Docker base images pinned by `@sha256:` digest (tag kept as a readable suffix), GitHub Actions pinned by full commit SHA (`@<sha> # vN`). Never reference a Docker base image or Action by bare tag. Dependabot (docker + github-actions ecosystems) updates the digests/SHAs, so pinning costs no freshness.
 - Package boundaries: `api → domain/sync/store`, `store → domain`; `domain` and `sync` import nothing internal, ever.
