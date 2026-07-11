@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.0](https://github.com/polandy/JIT-Pack/compare/v0.1.0...v0.2.0) (2026-07-11)
+
+
+### Features
+
+* brand logo + item reference photos (FR-22) ([#14](https://github.com/polandy/JIT-Pack/issues/14)) ([106f2fa](https://github.com/polandy/JIT-Pack/commit/106f2fad287d04853b12aa6c9560615c273116f3))
+* export reminder, avatar crop, history suggestions (NFR-4.11 / FR-17.13 / FR-14.2) ([#17](https://github.com/polandy/JIT-Pack/issues/17)) ([34e8fca](https://github.com/polandy/JIT-Pack/commit/34e8fca4b3b7be40a7265c5a6fd180ccbf232053))
+* small client gaps — M2 delete, M7/M9 creation, G-4 highlight ([#16](https://github.com/polandy/JIT-Pack/issues/16)) ([d26a2bf](https://github.com/polandy/JIT-Pack/commit/d26a2bf52e7608b9a170a6535abb128b531b3f76))
+
 ## 0.1.0 (2026-07-10)
 
 
