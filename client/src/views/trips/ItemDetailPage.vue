@@ -45,6 +45,7 @@ import { useTripStore } from '@/stores/tripStore'
 import type { ItemComment, ItemMode, ItemTodo } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
+import ItemThumbnail from '@/components/items/ItemThumbnail.vue'
 
 const props = defineProps<{ tripId: string; itemId: string }>()
 
@@ -53,6 +54,14 @@ const masterStore = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
 const item = computed(() => tripStore.getItems(props.tripId).find((i) => i.id === props.itemId))
+
+// The master item behind this trip row carries the reference photo
+// (FR-22.1) — ad-hoc rows without a source_item_id simply have none.
+const photoItem = computed(() => {
+  const source = item.value?.source_item_id
+  const master = source ? masterStore.getItem(source) : undefined
+  return master?.image_hash ? master : undefined
+})
 
 const trip = computed(() => tripStore.getTrip(props.tripId))
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
@@ -198,6 +207,11 @@ function onToggle() {
       </div>
 
       <template v-else>
+        <!-- Reference photo (FR-22.1) -->
+        <div v-if="photoItem" class="detail-photo">
+          <ItemThumbnail :item="photoItem" :size="200" />
+        </div>
+
         <!-- Quantity stepper -->
         <div class="detail-section">
           <h2 class="section-title">Quantity</h2>
@@ -409,6 +423,12 @@ function onToggle() {
 
 <style scoped>
 .detail-section {
+  margin-bottom: 24px;
+}
+
+.detail-photo {
+  display: flex;
+  justify-content: center;
   margin-bottom: 24px;
 }
 

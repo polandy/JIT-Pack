@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"jitpack/internal/sync"
 
@@ -55,6 +56,7 @@ var syncableColumns = map[string]map[string]bool{
 	"items": toSet(
 		"name", "category_id", "weight_grams", "value_cents",
 		"is_consumable", "unit", "per_day_rate", "created_by",
+		"image_hash",
 	),
 	"templates": toSet(
 		"owner_id", "name", "is_published",
@@ -99,7 +101,18 @@ var (
 // on a single connection in tests.
 type Store struct {
 	db *sql.DB
+	// hlc stamps change_log entries the server originates itself — facts
+	// with no client mutation behind them, currently the item_images
+	// upload hint (FR-22). A random per-process device id is fine: the
+	// physical-ms component keeps HLCs increasing across restarts, and the
+	// device id only breaks ties within the same millisecond and counter.
+	hlc *sync.Generator
 }
+
+// wallClock is the production Clock: real time in milliseconds.
+type wallClock struct{}
+
+func (wallClock) NowMillis() int64 { return time.Now().UnixMilli() }
 
 // Open connects, enforces foreign keys, and applies embedded migrations
 // in lexical order.
@@ -115,7 +128,11 @@ func Open(dsn string) (*Store, error) {
 	if err := migrate(db); err != nil {
 		return nil, err
 	}
-	return &Store{db: db}, nil
+	gen, err := sync.NewGenerator(wallClock{}, randomID()[:8])
+	if err != nil {
+		return nil, fmt.Errorf("server hlc generator: %w", err)
+	}
+	return &Store{db: db, hlc: gen}, nil
 }
 
 func (s *Store) Close() error { return s.db.Close() }

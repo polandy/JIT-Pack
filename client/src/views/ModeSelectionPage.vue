@@ -22,6 +22,7 @@ import {
 } from '@ionic/vue'
 import { phonePortraitOutline, serverOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
+import BrandMark from '@/components/global/BrandMark.vue'
 
 const emit = defineEmits<{
   select: [mode: 'local' | 'server', serverUrl: string | null]
@@ -43,6 +44,7 @@ const serverUrlValid = computed(() => {
   <IonPage>
     <IonContent class="ion-padding">
       <div class="mode-selection">
+        <BrandMark :size="56" class="welcome-mark" />
         <h1>Welcome to JIT-Pack</h1>
         <p class="intro">
           Where should your packing data live? This is a one-time choice per device.
@@ -106,6 +108,10 @@ const serverUrlValid = computed(() => {
   max-width: 480px;
   margin: 0 auto;
   padding-top: 32px;
+}
+
+.welcome-mark {
+  margin-bottom: 12px;
 }
 
 .mode-selection h1 {
