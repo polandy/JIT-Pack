@@ -4,8 +4,9 @@ on:
   push:
     tags:
       - "v*"
-  # Dispatched by the release workflow with --ref <tag>, because tags
-  # created with the default GITHUB_TOKEN do not trigger push events.
+  # release-please creates the tag with a PAT (see release.yml), so the tag
+  # push above triggers this build directly. Kept for manual re-builds of an
+  # existing tag.
   workflow_dispatch:
 
 env:
