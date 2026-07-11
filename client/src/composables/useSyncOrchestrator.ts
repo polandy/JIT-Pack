@@ -1307,6 +1307,25 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return `${config.baseUrl}/api/v1/items/${item.id}/image?v=${item.image_hash}`
   }
 
+  /** createTemplate makes a new private template (FR-1.6). owner_id is
+   * stamped server-side on push; the optimistic row leaves it empty, which
+   * is fine because M7 groups "my" templates by `!is_published`, not owner.
+   * Returns the new id so the caller can open M8. */
+  function createTemplate(name: string): string {
+    const { mutation, id } = mutations.createTemplate(name, '')
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: {
+        seq: 0,
+        table: 'templates',
+        id,
+        deleted: false,
+        row: mutation.fields as Record<string, unknown>,
+      },
+    })
+    return id
+  }
+
   function updateTemplate(template: Template, fields: Record<string, unknown>) {
     enqueueAndDrain('master', null, {
       mutation: mutations.updateTemplate(template.id, fields),
@@ -2011,6 +2030,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     setItemImage,
     deleteItemImage,
     itemImageUrl,
+    createTemplate,
     updateTemplate,
     addTemplateItem,
     updateTemplateItem,
