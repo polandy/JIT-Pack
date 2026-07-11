@@ -27,7 +27,9 @@ self.addEventListener('push', (event) => {
       body = item ? `${actor} delegated “${item}” to you` : `${actor} delegated an item to you`
       break
     case 'mention':
-      body = payload.preview ? `${actor} mentioned you: ${payload.preview}` : `${actor} mentioned you`
+      body = payload.preview
+        ? `${actor} mentioned you: ${payload.preview}`
+        : `${actor} mentioned you`
       break
     case 'task':
       body = item ? `${actor} opened a task on “${item}”` : `${actor} opened a task for you`
