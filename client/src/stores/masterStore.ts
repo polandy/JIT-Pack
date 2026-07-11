@@ -256,6 +256,7 @@ function rowToItem(id: string, row: Record<string, unknown>): MasterItem {
     is_consumable: Boolean(row['is_consumable']),
     unit: (row['unit'] as MasterItem['unit']) ?? 'pieces',
     per_day_rate: (row['per_day_rate'] as number) ?? null,
+    image_hash: (row['image_hash'] as string) ?? null,
   }
 }
 

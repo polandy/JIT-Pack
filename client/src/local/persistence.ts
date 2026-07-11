@@ -10,6 +10,11 @@ import type { PullChange } from '@/api/types'
 
 const DB_NAME = 'jitpack-local'
 const STORE = 'rows'
+// FR-22: item reference photos live here as blobs, keyed by item id.
+// They are deliberately outside the row store (which mirrors the sync
+// envelope) — the same separation the server makes with item_images.
+const IMAGES = 'images'
+const DB_VERSION = 2
 
 interface StoredRow {
   table: string
@@ -22,9 +27,11 @@ export class IndexedDBPersistence {
 
   private open(): Promise<IDBDatabase> {
     this.db ??= new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, 1)
+      const req = indexedDB.open(DB_NAME, DB_VERSION)
       req.onupgradeneeded = () => {
-        req.result.createObjectStore(STORE)
+        const db = req.result
+        if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE)
+        if (!db.objectStoreNames.contains(IMAGES)) db.createObjectStore(IMAGES)
       }
       req.onsuccess = () => resolve(req.result)
       req.onerror = () => reject(req.error)
@@ -72,6 +79,47 @@ export class IndexedDBPersistence {
         )
       }
       req.onerror = () => reject(req.error)
+    })
+  }
+
+  /** putImage stores (or replaces) an item's reference photo (FR-22.5).
+   * The bytes are kept as a plain ArrayBuffer, not a Blob: ArrayBuffers
+   * structured-clone identically across every runtime, whereas a Blob's
+   * cloneability varies by engine. */
+  async putImage(itemId: string, blob: Blob): Promise<void> {
+    const buffer = await blob.arrayBuffer()
+    const db = await this.open()
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(IMAGES, 'readwrite')
+      tx.objectStore(IMAGES).put({ buffer, type: blob.type || 'image/jpeg' }, itemId)
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+      tx.onabort = () => reject(tx.error)
+    })
+  }
+
+  /** getImage returns an item's stored photo, or null when it has none. */
+  async getImage(itemId: string): Promise<Blob | null> {
+    const db = await this.open()
+    return new Promise((resolve, reject) => {
+      const req = db.transaction(IMAGES, 'readonly').objectStore(IMAGES).get(itemId)
+      req.onsuccess = () => {
+        const stored = req.result as { buffer: ArrayBuffer; type: string } | undefined
+        resolve(stored ? new Blob([stored.buffer], { type: stored.type }) : null)
+      }
+      req.onerror = () => reject(req.error)
+    })
+  }
+
+  /** deleteImage removes an item's stored photo (FR-22.5). */
+  async deleteImage(itemId: string): Promise<void> {
+    const db = await this.open()
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(IMAGES, 'readwrite')
+      tx.objectStore(IMAGES).delete(itemId)
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+      tx.onabort = () => reject(tx.error)
     })
   }
 
