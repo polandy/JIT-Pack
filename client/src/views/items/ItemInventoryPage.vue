@@ -22,15 +22,39 @@ import {
   IonRefresher,
   IonRefresherContent,
   IonButton,
+  alertController,
 } from '@ionic/vue'
 import { addOutline, cloudUploadOutline, cubeOutline, leafOutline } from 'ionicons/icons'
-import { ref, computed } from 'vue'
+import { ref, computed, inject } from 'vue'
+import { useRouter } from 'vue-router'
 import { useMasterStore } from '@/stores/masterStore'
 import ItemThumbnail from '@/components/items/ItemThumbnail.vue'
+import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import type { MasterItem } from '@/types/domain'
 
 const store = useMasterStore()
+const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const router = useRouter()
 const searchQuery = ref('')
+
+/** New master item (FR-1.1): prompt for a name, create it, open M10 so
+ * the user can fill in category, weight, photo, etc. */
+async function newItem() {
+  const alert = await alertController.create({
+    header: 'New item',
+    inputs: [{ name: 'name', type: 'text', placeholder: 'Item name' }],
+    buttons: [
+      { text: 'Cancel', role: 'cancel' },
+      { text: 'Create', role: 'confirm' },
+    ],
+  })
+  await alert.present()
+  const { data, role } = await alert.onDidDismiss()
+  const name = (data?.values?.name ?? '').trim()
+  if (role !== 'confirm' || !name) return
+  const id = orchestrator.createMasterItem(name)
+  router.push(`/items/${id}`)
+}
 
 const filteredItems = computed(() => store.searchItems(searchQuery.value))
 
@@ -137,7 +161,7 @@ async function handleRefresh(event: CustomEvent) {
 
       <!-- FAB: New item -->
       <IonFab vertical="bottom" horizontal="end" slot="fixed">
-        <IonFabButton aria-label="New item">
+        <IonFabButton aria-label="New item" @click="newItem">
           <IonIcon :icon="addOutline" />
         </IonFabButton>
       </IonFab>

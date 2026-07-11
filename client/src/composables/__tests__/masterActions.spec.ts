@@ -108,6 +108,21 @@ describe('master data actions', () => {
     orch.deleteMasterItem(id)
     expect(master.getItem(id)).toBeUndefined()
   })
+
+  it('createTemplate adds an unpublished template and pushes to master (M7)', async () => {
+    const orch = newOrch()
+    const master = useMasterStore()
+    mockDrain()
+
+    const id = orch.createTemplate('Ski-Trip')
+
+    const tpl = master.getTemplate(id)
+    expect(tpl?.name).toBe('Ski-Trip')
+    // Unpublished, so it lands under "my templates" (grouped by !is_published).
+    expect(tpl?.is_published).toBe(false)
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/sync/master')
+  })
 })
 
 describe('M5 assignment actions on the trip partition', () => {

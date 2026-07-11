@@ -23,6 +23,7 @@ import {
   IonItemOption,
   IonButton,
   actionSheetController,
+  alertController,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -34,8 +35,9 @@ import {
   documentTextOutline,
   downloadOutline,
   peopleOutline,
+  trashOutline,
 } from 'ionicons/icons'
-import { ref, computed, inject } from 'vue'
+import { ref, computed, inject, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { loadTokens } from '@/auth/tokens'
 import { serializeTrip } from '@/domain/portable'
@@ -116,6 +118,35 @@ const router = useRouter()
 // Share is omitted without an OIDC session — Single-User and Local
 // Mode have no second account to share with (FR-17.3/FR-19.3/G-8).
 const collaborative = localStorage.getItem('jitpack_mode') === 'server' && !!loadTokens()
+
+// Delete is Owner-only (destructive, FR-4.5). Outside collaborative mode
+// there is a single account that owns everything, so it's always allowed;
+// in collaborative mode we check the roster against our own id.
+const myUserId = ref<string | null>(null)
+onMounted(async () => {
+  if (collaborative) myUserId.value = (await orchestrator.fetchMe())?.user_id ?? null
+})
+
+function canDelete(trip: Trip): boolean {
+  if (!collaborative) return true
+  return store.getMembers(trip.id).some((m) => m.user_id === myUserId.value && m.role === 'owner')
+}
+
+/** Delete removes the trip entirely after an explicit confirm (M2). */
+async function deleteTrip(trip: Trip) {
+  const alert = await alertController.create({
+    header: `Delete "${trip.name}"?`,
+    message:
+      'This permanently removes the trip and its packing list, travelers and containers for everyone. This cannot be undone.',
+    buttons: [
+      { text: 'Cancel', role: 'cancel' },
+      { text: 'Delete', role: 'destructive' },
+    ],
+  })
+  await alert.present()
+  const { role } = await alert.onDidDismiss()
+  if (role === 'destructive') orchestrator.deleteTrip(trip.id)
+}
 
 /** Archive completes the trip and launches the M14 review (FR-9.2). */
 function archiveTrip(tripId: string) {
@@ -290,6 +321,15 @@ async function handleRefresh(event: CustomEvent) {
                 @click="archiveTrip(trip.id)"
               >
                 <IonIcon slot="icon-only" :icon="archiveOutline" />
+              </IonItemOption>
+              <!-- Delete (destructive, Owner-only FR-4.5) -->
+              <IonItemOption
+                v-if="canDelete(trip)"
+                color="danger"
+                aria-label="Delete trip"
+                @click="deleteTrip(trip)"
+              >
+                <IonIcon slot="icon-only" :icon="trashOutline" />
               </IonItemOption>
             </IonItemOptions>
           </IonItemSliding>

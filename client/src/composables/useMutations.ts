@@ -401,6 +401,13 @@ export function useMutations(hlc: HLCGenerator) {
     return make('upsert', 'trips', tripId, { status })
   }
 
+  /** deleteTrip tombstones the trip on the master partition. The server
+   * authorizes this for Owner/Admin only (FR-4.5) and cascades the trip's
+   * items, travelers, containers and members. */
+  function deleteTrip(tripId: string): Mutation {
+    return make('delete', 'trips', tripId)
+  }
+
   // --- Import mutations (FR-16.2, M15) ---
 
   /** createImportedTrip inserts a historical trip: archived, marked imported. */
@@ -686,6 +693,7 @@ export function useMutations(hlc: HLCGenerator) {
     // Trips
     createTrip,
     updateTripStatus,
+    deleteTrip,
     createImportedTrip,
     addImportedTripItem,
     setTripSeries,

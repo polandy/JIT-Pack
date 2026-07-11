@@ -21,6 +21,7 @@ import {
   IonRefresher,
   IonRefresherContent,
   IonButton,
+  alertController,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -29,13 +30,35 @@ import {
   listOutline,
   gitBranchOutline,
 } from 'ionicons/icons'
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
+import { useRouter } from 'vue-router'
 import { serializeTemplate } from '@/domain/portable'
 import { safeFilename, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
+import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import type { Template } from '@/types/domain'
 
 const store = useMasterStore()
+const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const router = useRouter()
+
+/** New template (FR-1.6): prompt for a name, create it, open M8. */
+async function newTemplate() {
+  const alert = await alertController.create({
+    header: 'New template',
+    inputs: [{ name: 'name', type: 'text', placeholder: 'Template name' }],
+    buttons: [
+      { text: 'Cancel', role: 'cancel' },
+      { text: 'Create', role: 'confirm' },
+    ],
+  })
+  await alert.present()
+  const { data, role } = await alert.onDidDismiss()
+  const name = (data?.values?.name ?? '').trim()
+  if (role !== 'confirm' || !name) return
+  const id = orchestrator.createTemplate(name)
+  router.push(`/templates/${id}`)
+}
 
 /** FR-18.2: client-side export — works identically in Local Mode. */
 function exportTemplate(tpl: Template) {
@@ -140,7 +163,7 @@ async function handleRefresh(event: CustomEvent) {
 
       <!-- FAB: New template -->
       <IonFab vertical="bottom" horizontal="end" slot="fixed">
-        <IonFabButton aria-label="New template">
+        <IonFabButton aria-label="New template" @click="newTemplate">
           <IonIcon :icon="addOutline" />
         </IonFabButton>
       </IonFab>
