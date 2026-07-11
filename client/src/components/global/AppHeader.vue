@@ -6,6 +6,7 @@
 import { IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon } from '@ionic/vue'
 import { settingsOutline } from 'ionicons/icons'
 import { useRouter } from 'vue-router'
+import BrandMark from './BrandMark.vue'
 import SyncIndicator from './SyncIndicator.vue'
 import type { SyncState } from '@/composables/useSyncStatus'
 
@@ -30,8 +31,10 @@ function goHome() {
   <IonHeader>
     <IonToolbar>
       <IonTitle slot="start" class="app-logo" @click="goHome">
-        <span class="logo-mark">JP</span>
-        <span class="logo-wordmark">JIT-Pack</span>
+        <span class="logo-row">
+          <BrandMark :size="22" />
+          <span class="logo-wordmark">JIT<i class="logo-dot">·</i>Pack</span>
+        </span>
       </IonTitle>
 
       <IonButtons slot="end">
@@ -54,22 +57,27 @@ function goHome() {
   cursor: pointer;
 }
 
-.logo-mark {
-  font-weight: 700;
-  font-size: 1.1rem;
+.logo-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  vertical-align: middle;
 }
 
 .logo-wordmark {
   font-weight: 700;
   font-size: 1.1rem;
+  letter-spacing: -0.02em;
   display: none;
 }
 
-/* G-9: show full wordmark on desktop */
+.logo-dot {
+  font-style: normal;
+  color: var(--ion-color-primary);
+}
+
+/* G-9: mark only on mobile, mark + wordmark on desktop */
 @media (min-width: 900px) {
-  .logo-mark {
-    display: none;
-  }
   .logo-wordmark {
     display: inline;
   }

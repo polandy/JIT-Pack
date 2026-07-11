@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- JIT-Pack brand mark (Check-Latch). The check is a mask cutout so the
+       page background shows through; the accent follows the browser theme
+       because the app's manual Mocha/Latte toggle is invisible to favicons. -->
+  <style>
+    :root { color: #1e66f5 }
+    @media (prefers-color-scheme: dark) { :root { color: #89b4fa } }
+  </style>
+  <defs>
+    <mask id="check">
+      <rect width="64" height="64" fill="#fff"/>
+      <polyline points="22 38.5,29.5 46,43 30.5" fill="none" stroke="#000" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <path d="M24 20.5v-4a8 8 0 0 1 16 0v4" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+  <rect x="8" y="20.5" width="48" height="37" rx="10.5" fill="currentColor" mask="url(#check)"/>
+</svg>
