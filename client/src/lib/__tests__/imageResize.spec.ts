@@ -53,6 +53,7 @@ describe('backoffEncode', () => {
       onStep: (_, __, q) => qualities.push(q),
     })
     // First attempt is the highest quality, later attempts are lower.
-    expect(qualities[0]).toBeGreaterThan(qualities[qualities.length - 1])
+    expect(qualities.length).toBeGreaterThan(1)
+    expect(qualities[0]!).toBeGreaterThan(qualities[qualities.length - 1]!)
   })
 })

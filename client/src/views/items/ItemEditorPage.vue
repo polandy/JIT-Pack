@@ -26,8 +26,8 @@ import {
   IonIcon,
   IonSearchbar,
 } from '@ionic/vue'
-import { addOutline, trashOutline, warningOutline } from 'ionicons/icons'
-import { computed, inject, ref } from 'vue'
+import { addOutline, cameraOutline, trashOutline, warningOutline } from 'ionicons/icons'
+import { computed, inject, onUnmounted, ref, watch } from 'vue'
 import { dependencyCycleError } from '@/domain/dependencies'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -39,6 +39,54 @@ const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrato
 
 const item = computed(() => masterStore.getItem(props.itemId))
 const categories = computed(() => masterStore.categoryList)
+
+// --- Reference photo (Addendum 3.22, FR-22.1/22.5) ---
+
+const photoInput = ref<HTMLInputElement | null>(null)
+const photoUrl = ref<string | null>(null)
+const photoBusy = ref(false)
+
+/** Revoke any object URL we own before replacing/clearing it — Server Mode
+ * URLs are plain strings, Local Mode ones need releasing. */
+function releasePhotoUrl() {
+  if (photoUrl.value?.startsWith('blob:')) URL.revokeObjectURL(photoUrl.value)
+  photoUrl.value = null
+}
+
+// Reload the preview whenever the item's photo hash changes (a sync pull
+// or our own upload). The hash in the URL doubles as a cache-buster.
+watch(
+  () => item.value?.image_hash,
+  async () => {
+    releasePhotoUrl()
+    if (item.value) photoUrl.value = await orchestrator.itemImageUrl(item.value)
+  },
+  { immediate: true },
+)
+
+onUnmounted(releasePhotoUrl)
+
+async function onPhotoFile(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file || !item.value) return
+  photoBusy.value = true
+  try {
+    await orchestrator.setItemImage(item.value, file)
+  } finally {
+    photoBusy.value = false
+    if (photoInput.value) photoInput.value.value = ''
+  }
+}
+
+async function removePhoto() {
+  if (!item.value) return
+  photoBusy.value = true
+  try {
+    await orchestrator.deleteItemImage(item.value)
+  } finally {
+    photoBusy.value = false
+  }
+}
 
 // --- Depends on / Companions (FR-20.1/20.4) ---
 
@@ -222,6 +270,44 @@ function onConsumableChange(event: CustomEvent) {
           </IonItem>
         </IonList>
 
+        <!-- Reference photo (FR-22.1/22.5) -->
+        <h2 class="section-title">Photo</h2>
+        <p class="section-hint">
+          An optional reference photo, shared with everyone who sees this item. Resized
+          automatically before upload.
+        </p>
+
+        <div class="photo-section">
+          <img v-if="photoUrl" :src="photoUrl" alt="Item photo" class="photo-preview" />
+          <div v-else class="photo-placeholder">
+            <IonIcon :icon="cameraOutline" />
+          </div>
+
+          <div class="photo-actions">
+            <input ref="photoInput" type="file" accept="image/*" hidden @change="onPhotoFile" />
+            <IonButton
+              expand="block"
+              fill="outline"
+              :disabled="photoBusy"
+              @click="photoInput?.click()"
+            >
+              <IonIcon slot="start" :icon="cameraOutline" />
+              {{ item.image_hash ? 'Replace photo' : 'Add photo' }}
+            </IonButton>
+            <IonButton
+              v-if="item.image_hash"
+              expand="block"
+              fill="clear"
+              color="danger"
+              :disabled="photoBusy"
+              @click="removePhoto"
+            >
+              <IonIcon slot="start" :icon="trashOutline" />
+              Remove photo
+            </IonButton>
+          </div>
+        </div>
+
         <!-- Depends on / Companions (FR-20.1/20.4) -->
         <h2 class="section-title">Depends on</h2>
         <p class="section-hint">
@@ -328,6 +414,34 @@ function onConsumableChange(event: CustomEvent) {
   gap: 4px;
   font-size: 0.8rem;
   margin: 8px 0;
+}
+
+.photo-section {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.photo-preview,
+.photo-placeholder {
+  width: 96px;
+  height: 96px;
+  border-radius: 12px;
+  flex: none;
+  object-fit: cover;
+  background: var(--ion-color-light);
+}
+
+.photo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ion-color-medium);
+  font-size: 2rem;
+}
+
+.photo-actions {
+  flex: 1;
 }
 
 .main-picker {

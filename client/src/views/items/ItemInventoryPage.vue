@@ -26,6 +26,7 @@ import {
 import { addOutline, cloudUploadOutline, cubeOutline, leafOutline } from 'ionicons/icons'
 import { ref, computed } from 'vue'
 import { useMasterStore } from '@/stores/masterStore'
+import ItemThumbnail from '@/components/items/ItemThumbnail.vue'
 import type { MasterItem } from '@/types/domain'
 
 const store = useMasterStore()
@@ -111,6 +112,7 @@ async function handleRefresh(event: CustomEvent) {
           </IonItemDivider>
 
           <IonItem v-for="item in items" :key="item.id" button :router-link="`/items/${item.id}`">
+            <ItemThumbnail v-if="item.image_hash" slot="start" :item="item" :size="40" />
             <IonLabel>
               <h2>{{ item.name }}</h2>
               <p>
