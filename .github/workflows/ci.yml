@@ -67,6 +67,44 @@ jobs:
       - run: npm run build # runs type-check and the production build
       - run: npx vitest run
 
+  # Headless-browser E2E (docs/UI_Test_Spec_v1.0.md). Drives the built
+  # client (vite preview) in Chromium + WebKit. Gated after `client` so
+  # it only runs on a green build; the backend-backed modes (single/
+  # server) and their jitpackd harness land in later milestones, so this
+  # currently exercises the backend-free smoke path only.
+  e2e:
+    needs: [client]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      # Cache the browser binaries; the key follows the lockfile, so a
+      # Dependabot @playwright/test bump invalidates it automatically.
+      - name: Cache Playwright browsers
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('client/package-lock.json') }}
+      # `install` skips already-cached browsers; --with-deps still ensures
+      # the apt system libraries each run (cheap, not cached).
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npm run build # vite preview serves this bundle
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: client/playwright-report/
+          retention-days: 7
+
   # Formats Go (gofmt) and the client (prettier) and pushes the fixes back,
   # so formatting is never a red build — it just gets applied. Skipped for
   # fork PRs, where GITHUB_TOKEN cannot push to the head branch.
@@ -117,7 +155,7 @@ jobs:
   # the merge wait for green by construction. Major updates stay open
   # for manual review.
   dependabot-merge:
-    needs: [go, go-lint, client, docker-build]
+    needs: [go, go-lint, client, e2e, docker-build]
     if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:

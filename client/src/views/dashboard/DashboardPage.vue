@@ -106,14 +106,14 @@ async function handleRefresh(event: CustomEvent) {
         <IonRefresherContent />
       </IonRefresher>
 
-      <h1 class="dashboard-greeting">{{ greeting }}</h1>
+      <h1 class="dashboard-greeting" data-testid="dashboard-greeting">{{ greeting }}</h1>
       <p class="dashboard-subtitle">Your packing tasks</p>
 
       <!-- Empty state (G-7) -->
-      <div v-if="isEmpty" class="empty-state">
+      <div v-if="isEmpty" class="empty-state" data-testid="dashboard-empty">
         <IonIcon :icon="airplaneOutline" class="empty-icon" />
         <p>No active trips</p>
-        <IonButton router-link="/trips/new" expand="block">
+        <IonButton router-link="/trips/new" expand="block" data-testid="dashboard-plan-trip">
           <IonIcon slot="start" :icon="addOutline" />
           Plan a trip
         </IonButton>
