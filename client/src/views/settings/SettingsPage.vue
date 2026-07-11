@@ -4,10 +4,10 @@
  * instance is configured declaratively per PRD Section 2).
  *
  * Profile: in Single-User Mode (no OIDC session) the display name and
- * avatar are editable per FR-17.13 — the avatar is center-cropped to a
- * 256×256 JPEG on-device (pan/zoom crop positioning deferred). With an
- * OIDC session the profile is read-only (IdP-sourced). Local Mode has
- * no server identity, so the section is a note.
+ * avatar are editable per FR-17.13 — the avatar is pan/zoom cropped to a
+ * 256×256 JPEG on-device (AvatarCropModal). With an OIDC session the
+ * profile is read-only (IdP-sourced). Local Mode has no server identity,
+ * so the section is a note.
  *
  * Data: NFR-4.5 exports (full JSON, per-trip CSV). Local Mode points to
  * the portable YAML path instead.
@@ -57,6 +57,7 @@ import { safeFilename, saveBlob, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { currentTheme, setTheme } from '@/theme/theme'
+import AvatarCropModal from '@/components/settings/AvatarCropModal.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
@@ -136,32 +137,23 @@ const avatarUrl = computed(() =>
     : null,
 )
 
-/** Center-crop the picked photo to a 256×256 JPEG on-device (FR-17.13). */
-async function onAvatarFile(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
+// FR-17.13: the picked photo opens the pan/zoom crop modal; the modal
+// hands back a ready 256×256 JPEG.
+const cropFile = ref<File | null>(null)
+const cropOpen = ref(false)
+
+function onAvatarFile(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = '' // allow re-picking the same file after cancel
   if (!file || !me.value) return
-  const bitmap = await createImageBitmap(file)
-  const side = Math.min(bitmap.width, bitmap.height)
-  const canvas = document.createElement('canvas')
-  canvas.width = 256
-  canvas.height = 256
-  canvas
-    .getContext('2d')!
-    .drawImage(
-      bitmap,
-      (bitmap.width - side) / 2,
-      (bitmap.height - side) / 2,
-      side,
-      side,
-      0,
-      0,
-      256,
-      256,
-    )
-  const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, 'image/jpeg', 0.8),
-  )
-  if (!blob) return
+  cropFile.value = file
+  cropOpen.value = true
+}
+
+async function onAvatarCropped(blob: Blob) {
+  cropOpen.value = false
+  if (!me.value) return
   await orchestrator.uploadAvatar(me.value.user_id, blob)
   avatarVersion.value++
 }
@@ -278,6 +270,12 @@ async function exportTripCSV() {
             <input type="file" accept="image/*" hidden @change="onAvatarFile" />
           </label>
         </div>
+        <AvatarCropModal
+          :open="cropOpen"
+          :file="cropFile"
+          @crop="onAvatarCropped"
+          @cancel="cropOpen = false"
+        />
         <IonList>
           <IonItem>
             <IonInput
