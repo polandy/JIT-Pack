@@ -37,7 +37,8 @@ import {
   chatbubbleOutline,
   linkOutline,
 } from 'ionicons/icons'
-import { computed, inject, ref } from 'vue'
+import { computed, inject, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
 import { buildVariables } from '@/domain/instantiate'
 import { useMasterStore } from '@/stores/masterStore'
@@ -123,6 +124,31 @@ function toggleTodo(todo: ItemTodo) {
 // --- Comment thread (FR-7.1/7.2) ---
 const itemComments = computed(() => tripStore.getItemComments(props.tripId, props.itemId))
 const newCommentText = ref('')
+
+// G-4: a notification deep link (?comment=) scrolls to the referenced
+// message and flashes it. The thread may still be syncing when we arrive,
+// so this watches the comment list and fires once the target appears.
+const route = useRoute()
+const flashedCommentId = ref<string | null>(null)
+watch(
+  itemComments,
+  (comments) => {
+    const target = route.query.comment
+    if (typeof target !== 'string' || flashedCommentId.value === target) return
+    if (!comments.some((c) => c.id === target)) return
+    flashedCommentId.value = target
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`comment-${target}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+    // Clear the highlight after the flash so it doesn't linger on revisits.
+    setTimeout(() => {
+      if (flashedCommentId.value === target) flashedCommentId.value = null
+    }, 2400)
+  },
+  { immediate: true },
+)
 
 function addComment() {
   const body = newCommentText.value.trim()
@@ -386,7 +412,13 @@ function onToggle() {
             Comments
           </h2>
           <IonList>
-            <IonItem v-for="comment in itemComments" :key="comment.id" lines="inset">
+            <IonItem
+              v-for="comment in itemComments"
+              :id="`comment-${comment.id}`"
+              :key="comment.id"
+              lines="inset"
+              :class="{ 'comment-flash': flashedCommentId === comment.id }"
+            >
               <IonLabel class="comment-body">
                 <p>{{ comment.body }}</p>
               </IonLabel>
@@ -430,6 +462,22 @@ function onToggle() {
   display: flex;
   justify-content: center;
   margin-bottom: 24px;
+}
+
+/* G-4: briefly highlight a comment arrived at from a notification. */
+.comment-flash {
+  --background: var(--ion-color-primary-tint);
+  animation: comment-flash-fade 2.4s ease-out;
+}
+
+@keyframes comment-flash-fade {
+  0%,
+  40% {
+    --background: var(--ion-color-primary-tint);
+  }
+  100% {
+    --background: var(--ion-background-color);
+  }
 }
 
 .section-title {
