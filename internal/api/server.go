@@ -129,6 +129,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.csv", s.authed(s.member(s.handleExportTripCSV)))
 	mux.HandleFunc("GET /api/v1/users/{userID}/avatar", s.handleGetAvatar)
 	mux.HandleFunc("PUT /api/v1/users/{userID}/avatar", s.authed(s.handlePutAvatar))
+	// Item images (FR-22): GET public like avatars; PUT/DELETE need only
+	// authentication (FR-22.6) — items carry no trip role to check.
+	mux.HandleFunc("GET /api/v1/items/{itemID}/image", s.handleGetItemImage)
+	mux.HandleFunc("PUT /api/v1/items/{itemID}/image", s.authed(s.handlePutItemImage))
+	mux.HandleFunc("DELETE /api/v1/items/{itemID}/image", s.authed(s.handleDeleteItemImage))
 	mux.HandleFunc("PUT /api/v1/users/{userID}/display-name", s.authed(s.handlePutDisplayName))
 	mux.HandleFunc("GET /api/v1/templates/{templateID}/export", s.authed(s.handleExportTemplate))
 	mux.HandleFunc("POST /api/v1/templates/import", s.authed(s.handleImportTemplate))

@@ -67,4 +67,22 @@ describe('IndexedDBPersistence', () => {
 
     expect(await p.load()).toHaveLength(2)
   })
+
+  it('stores, retrieves, and removes item image blobs (FR-22 Local Mode)', async () => {
+    const p = new IndexedDBPersistence()
+    const blob = new Blob([new Uint8Array([1, 2, 3, 4])], { type: 'image/jpeg' })
+
+    await p.putImage('item-1', blob)
+    const got = await p.getImage('item-1')
+    expect(got).not.toBeNull()
+    expect(got!.size).toBe(blob.size)
+
+    await p.deleteImage('item-1')
+    expect(await p.getImage('item-1')).toBeNull()
+  })
+
+  it('returns null for an unknown image', async () => {
+    const p = new IndexedDBPersistence()
+    expect(await p.getImage('nope')).toBeNull()
+  })
 })

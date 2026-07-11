@@ -1,10 +1,16 @@
-# JIT-Pack
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/logo-light.svg">
+    <img alt="JIT-Pack" src="docs/assets/logo-light.svg" width="300">
+  </picture>
+</p>
 
 Self-hosted, offline-first packing-list app with dynamic quantity formulas, real-time collaboration, and post-trip optimization. Go + embedded SQLite backend, Vue 3 + Capacitor client.
 
 ## For humans
 
-Full specification set lives in `docs/` — start with `docs/PRD_Base.md` and `docs/PRD_Addendum_v2.8.md` for what the product does, `docs/UI_Spec_v1.8.md` for the screens, and the `docs/ADR-*.md` files for why the architecture looks the way it does.
+Full specification set lives in `docs/` — start with `docs/PRD_Base.md` and `docs/PRD_Addendum_v2.10.md` for what the product does, `docs/UI_Spec_v1.10.md` for the screens, and the `docs/ADR-*.md` files for why the architecture looks the way it does.
 
 ## For Claude Code / an AI coding assistant
 

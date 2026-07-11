@@ -23,6 +23,7 @@ import type { PullChange, WSEvent } from '@/api/types'
 import { buildVariables, durationDays, type GeneratedItem } from '@/domain/instantiate'
 import { dependentsOf, resolveDependencies } from '@/domain/dependencies'
 import { planClone, type CloneOptions } from '@/domain/clone'
+import { optimizeItemImage } from '@/lib/imageResize'
 import type { ImportPlan } from '@/domain/spreadsheet'
 import type { PortableDocument, PortableItem } from '@/domain/portable'
 import type { NotificationPrefs, ServerNotification } from '@/notifications/format'
@@ -1244,6 +1245,68 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
+  /**
+   * setItemImage attaches or replaces an item's reference photo (FR-22.1/
+   * 22.5). The source is optimized on-device first (FR-22.2/22.3), then in
+   * Server Mode uploaded (the server stamps items.image_hash, which a
+   * master drain pulls back) and in Local Mode written to IndexedDB with a
+   * locally computed hash funneled through the same change path.
+   */
+  async function setItemImage(item: MasterItem, source: Blob): Promise<void> {
+    const optimized = await optimizeItemImage(source)
+    if (local) {
+      await local.putImage(item.id, optimized)
+      const hash = await hashBlob(optimized)
+      onPullChanges([
+        {
+          seq: 0,
+          table: 'items',
+          id: item.id,
+          deleted: false,
+          row: { ...masterItemRow(item), image_hash: hash },
+        },
+      ])
+      return
+    }
+    await client.putRaw(`/api/v1/items/${item.id}/image`, optimized, 'image/jpeg')
+    await drainMaster()
+  }
+
+  /** deleteItemImage removes an item's photo (FR-22.5). */
+  async function deleteItemImage(item: MasterItem): Promise<void> {
+    if (local) {
+      await local.deleteImage(item.id)
+      onPullChanges([
+        {
+          seq: 0,
+          table: 'items',
+          id: item.id,
+          deleted: false,
+          row: { ...masterItemRow(item), image_hash: null },
+        },
+      ])
+      return
+    }
+    await client.delete(`/api/v1/items/${item.id}/image`)
+    await drainMaster()
+  }
+
+  /**
+   * itemImageUrl resolves a displayable URL for an item's photo, or null
+   * when it has none. Server Mode returns the public GET endpoint (with the
+   * hash as a cache-buster); Local Mode returns an object URL the caller
+   * must revoke. Callers guard on item.image_hash to avoid a needless
+   * lookup.
+   */
+  async function itemImageUrl(item: MasterItem): Promise<string | null> {
+    if (!item.image_hash) return null
+    if (local) {
+      const blob = await local.getImage(item.id)
+      return blob ? URL.createObjectURL(blob) : null
+    }
+    return `${config.baseUrl}/api/v1/items/${item.id}/image?v=${item.image_hash}`
+  }
+
   function updateTemplate(template: Template, fields: Record<string, unknown>) {
     enqueueAndDrain('master', null, {
       mutation: mutations.updateTemplate(template.id, fields),
@@ -1945,6 +2008,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     createMasterItem,
     updateMasterItem,
     deleteMasterItem,
+    setItemImage,
+    deleteItemImage,
+    itemImageUrl,
     updateTemplate,
     addTemplateItem,
     updateTemplateItem,
@@ -2058,6 +2124,16 @@ function containerRow(container: Container): Record<string, unknown> {
     max_weight_grams: container.max_weight_grams,
     paired_container_id: container.paired_container_id,
   }
+}
+
+/** hashBlob mirrors the server's image_hash: the hex of the first 8 bytes
+ * of the SHA-256 digest. Used in Local Mode, where there is no server to
+ * stamp the change signal (FR-22 sync hint). */
+async function hashBlob(blob: Blob): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer())
+  return Array.from(new Uint8Array(digest).slice(0, 8))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
 }
 
 function masterItemRow(item: MasterItem): Record<string, unknown> {

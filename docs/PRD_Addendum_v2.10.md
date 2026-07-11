@@ -144,7 +144,7 @@ Before this section the client carried no app-owned theme: it rendered with Ioni
 
 ### 3.22 Item Images
 
-**Status: proposed, not yet built** — captured here so the storage shape is agreed before implementation starts; see CLAUDE.md backlog.
+**Status: implemented** (2026-07-11) — server (migration 012 `item_images` + `items.image_hash`, `GET`/`PUT`/`DELETE /api/v1/items/{id}/image`, server-side HLC change-log stamp) and client (on-device optimizer with FR-22.3 backoff, Local Mode blob store, M10 editor + M9/M5 display) as specified below.
 
 Master items (FR-1.1) can optionally carry a single reference photo (e.g., a photo of a specific piece of gear), shown in M9 (Item Inventory thumbnail), M10 (Item Editor), and M5 (Item Detail). The central product commitment, per the original request driving this section, is that **the user never has to think about file size, resolution, or format** — the client resizes and re-encodes automatically, the same way it already does for avatars (FR-17.13), so an item photo taken straight from a phone camera never reaches the server unprocessed.
 

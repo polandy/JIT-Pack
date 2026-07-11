@@ -154,6 +154,9 @@ export interface MasterItem {
   is_consumable: boolean
   unit: ItemUnit
   per_day_rate: number | null
+  /** FR-22.1: hash of the item's reference photo, null when it has none.
+   * The bytes are fetched lazily via GET /items/{id}/image (never synced). */
+  image_hash?: string | null
 }
 
 export interface Template {
