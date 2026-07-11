@@ -156,9 +156,12 @@ describe('dependency master actions', () => {
     orch.deleteItemDependency(id)
     expect(masterStore.dependencyList).toHaveLength(2)
 
-    orch.updateItemDependency(masterStore.dependencyList.find((d) => d.id === 'dep2')!, {
-      mode: 'required',
-    })
+    orch.updateItemDependency(
+      masterStore.dependencyList.find((d) => d.id === 'dep2')!,
+      {
+        mode: 'required',
+      },
+    )
     expect(masterStore.dependencyList.find((d) => d.id === 'dep2')?.mode).toBe('required')
   })
 })
