@@ -43,11 +43,17 @@ export function describeNotification(n: ServerNotification): string {
 
 /**
  * Deep-link route for a notification (G-4): item context when the
- * payload carries one, otherwise the trip, otherwise nowhere.
+ * payload carries one, otherwise the trip, otherwise nowhere. A
+ * mention/task notification also carries the comment id as `?comment=`,
+ * so M5 can scroll to and flash that specific message in the thread.
  */
 export function notificationRoute(n: ServerNotification): string | null {
   const tripId = str(n.payload, 'trip_id')
   if (!tripId) return null
   const itemId = str(n.payload, 'item_id')
-  return itemId ? `/trips/${tripId}/items/${itemId}` : `/trips/${tripId}`
+  if (!itemId) return `/trips/${tripId}`
+  const commentId = str(n.payload, 'comment_id')
+  return commentId
+    ? `/trips/${tripId}/items/${itemId}?comment=${commentId}`
+    : `/trips/${tripId}/items/${itemId}`
 }

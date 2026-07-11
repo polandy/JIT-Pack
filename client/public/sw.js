@@ -38,11 +38,17 @@ self.addEventListener('push', (event) => {
       body = `${actor} sent you a notification`
   }
 
-  const url = payload.trip_id
-    ? payload.item_id
-      ? `/trips/${payload.trip_id}/items/${payload.item_id}`
-      : `/trips/${payload.trip_id}`
-    : '/'
+  // Mirrors notificationRoute() (G-4): item context, plus the comment id
+  // as ?comment= so M5 scrolls to and flashes the message.
+  let url = '/'
+  if (payload.trip_id) {
+    if (payload.item_id) {
+      url = `/trips/${payload.trip_id}/items/${payload.item_id}`
+      if (payload.comment_id) url += `?comment=${payload.comment_id}`
+    } else {
+      url = `/trips/${payload.trip_id}`
+    }
+  }
 
   event.waitUntil(
     self.registration.showNotification('JIT-Pack', {

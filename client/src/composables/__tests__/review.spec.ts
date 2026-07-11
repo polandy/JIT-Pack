@@ -100,6 +100,33 @@ describe('archiveTrip (FR-9.2 trigger)', () => {
   })
 })
 
+describe('deleteTrip (M2, Owner-only)', () => {
+  it('tombstones the trip locally and removes it from the store', () => {
+    const orch = newOrch()
+    const trips = useTripStore()
+    trips.applyChange({
+      seq: 0,
+      table: 'trips',
+      id: 't1',
+      deleted: false,
+      row: { name: 'Engadin', status: 'planning', end_date: '2026-08-10' },
+    })
+    trips.applyChange({
+      seq: 0,
+      table: 'trip_items',
+      id: 'ti1',
+      deleted: false,
+      row: { trip_id: 't1', name: 'Socken', quantity: 1 },
+    })
+
+    orch.deleteTrip('t1')
+
+    expect(trips.getTrip('t1')).toBeUndefined()
+    // Child rows go with it (local cascade mirrors the server FK cascade).
+    expect(trips.getItems('t1')).toHaveLength(0)
+  })
+})
+
 describe('applyReviewProposal', () => {
   it('reduce_quantity zeroes the template item formula', () => {
     const orch = newOrch()
