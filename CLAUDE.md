@@ -14,6 +14,7 @@ If you're picking this up fresh: read this file fully before touching code. It r
 | What's the wire protocol? | `docs/Sync_API_Spec_v1.3.md` — pull/push envelopes, HLC format, merge algorithm, WebSocket events, RPC endpoints |
 | What's the DB schema? | `internal/store/migrations/001_schema.sql` — **single source of truth, do not duplicate it into docs/** |
 | Why was X chosen over Y? | `docs/ADR-00N_*.md` — six ADRs, each: options considered, weighted decision matrix, consequences, revisit trigger |
+| What must the UI test suite cover? | `docs/UI_Test_Spec_v1.0.md` — headless-browser (Playwright) E2E scope: per-screen cases, cross-screen flows, full FR/NFR traceability matrix. Layered over the existing unit tests; not yet implemented |
 | How do I write code here? | `docs/CODING_PRINCIPLES.md` — **binding**, read before writing anything |
 
 Only the current version of every document is kept — if you're ever tempted to write "v2" of something, replace the file and update its own revision note instead of leaving both around.

@@ -43,7 +43,7 @@ const serverUrlValid = computed(() => {
 <template>
   <IonPage>
     <IonContent class="ion-padding">
-      <div class="mode-selection">
+      <div class="mode-selection" data-testid="mode-selection">
         <BrandMark :size="56" class="welcome-mark" />
         <h1>Welcome to JIT-Pack</h1>
         <p class="intro">
@@ -62,7 +62,11 @@ const serverUrlValid = computed(() => {
               Everything stays in this browser/app. No server, no account. Sharing and multi-device
               sync are unavailable; regular exports are your backup.
             </p>
-            <IonButton expand="block" @click="emit('select', 'local', null)">
+            <IonButton
+              expand="block"
+              data-testid="mode-local"
+              @click="emit('select', 'local', null)"
+            >
               Use Local Mode
             </IonButton>
           </IonCardContent>
@@ -82,6 +86,7 @@ const serverUrlValid = computed(() => {
               label-placement="stacked"
               placeholder="https://jitpack.example.com"
               type="url"
+              data-testid="mode-server-url"
               :value="serverUrl"
               @ionInput="(e: CustomEvent) => (serverUrl = e.detail.value ?? '')"
             />
@@ -91,6 +96,7 @@ const serverUrlValid = computed(() => {
             <IonButton
               expand="block"
               fill="outline"
+              data-testid="mode-server-connect"
               :disabled="!serverUrlValid"
               @click="emit('select', 'server', serverUrl)"
             >
