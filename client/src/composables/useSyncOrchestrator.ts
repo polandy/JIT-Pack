@@ -1801,6 +1801,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     setTripStatus(tripId, 'archived')
   }
 
+  /** deleteTrip removes a trip entirely (M2, Owner/Admin only — the server
+   * enforces the role, this is the optimistic tombstone). Cascades on the
+   * server; the local store drops the trip and its child rows at once. */
+  function deleteTrip(tripId: string) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.deleteTrip(tripId),
+      optimistic: { seq: 0, table: 'trips', id: tripId, deleted: true, row: null },
+    })
+  }
+
   /**
    * applyReviewProposal writes one review card back to master data
    * (FR-9.2). With opts.fork the source template is copied first and
@@ -2095,6 +2105,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     // Post-trip review (FR-9.2, M14)
     archiveTrip,
+    deleteTrip,
     applyReviewProposal,
     forkTemplate,
 
