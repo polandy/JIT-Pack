@@ -42,12 +42,15 @@ import { useRoute, useRouter } from 'vue-router'
 import { loadTokens } from '@/auth/tokens'
 import { resolveDependencies } from '@/domain/dependencies'
 import { buildVariables, durationDays, generateTripItems } from '@/domain/instantiate'
+import { suggestQuantities, type QuantitySuggestion } from '@/domain/suggestions'
 import { useMasterStore } from '@/stores/masterStore'
+import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const route = useRoute()
 const router = useRouter()
 const masterStore = useMasterStore()
+const tripStore = useTripStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
 const step = ref(1)
@@ -244,6 +247,46 @@ function overrideQuantity(index: number, value: string) {
   const qty = Number(value)
   if (!Number.isFinite(qty) || qty < 0) return
   quantityOverrides.value = { ...quantityOverrides.value, [index]: Math.floor(qty) }
+}
+
+// FR-14.2: duration-normalized median of the series' recent trips (synced
+// on-device), so step 4 can offer a one-tap history default per item.
+const suggestions = computed(() => {
+  const seriesId = seriesChoice.value && seriesChoice.value !== 'new' ? seriesChoice.value : null
+  if (!seriesId) return new Map<string, QuantitySuggestion>()
+  // Fall back an unknown duration to the target, making normalization a
+  // no-op for that trip rather than distorting it (FR-2.1a spirit).
+  const target = duration.value ?? 1
+  const history = tripStore.tripList
+    .filter((t) => t.series_id === seriesId)
+    .map((t) => ({
+      id: t.id,
+      endDate: t.end_date,
+      durationDays: durationDays(t.start_date, t.end_date) ?? target,
+      items: tripStore
+        .getItems(t.id)
+        .filter((i) => i.source_item_id)
+        .map((i) => ({ sourceItemId: i.source_item_id as string, quantity: i.quantity })),
+    }))
+  return suggestQuantities(history, target)
+})
+
+/** The history suggestion for a row, only when it differs from the value
+ * currently shown (nothing to offer otherwise). */
+function suggestionFor(index: number): QuantitySuggestion | null {
+  const src = generation.value.items[index]?.source_item_id
+  if (!src) return null
+  const s = suggestions.value.get(src)
+  return s && s.suggested !== reviewQuantity(index) ? s : null
+}
+
+function suggestionHint(s: QuantitySuggestion): string {
+  return s.history.map((h) => `${h.year}: ${h.quantity}`).join(' · ')
+}
+
+function acceptSuggestion(index: number) {
+  const s = suggestionFor(index)
+  if (s) quantityOverrides.value = { ...quantityOverrides.value, [index]: s.suggested }
 }
 
 function travelerName(index: number | null): string | null {
@@ -565,6 +608,16 @@ function createTrip() {
                 </template>
                 <template v-if="item.category_name">{{ item.category_name }}</template>
               </p>
+              <!-- FR-14.2: history hint "2024: 5 · 2025: 6 → suggested 6" -->
+              <button
+                v-if="suggestionFor(index)"
+                type="button"
+                class="history-hint"
+                @click="acceptSuggestion(index)"
+              >
+                {{ suggestionHint(suggestionFor(index)!) }} → use
+                {{ suggestionFor(index)!.suggested }}
+              </button>
             </IonLabel>
             <IonInput
               slot="end"
@@ -697,6 +750,17 @@ function createTrip() {
 .qty-input {
   max-width: 72px;
   text-align: right;
+}
+
+.history-hint {
+  margin-top: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--ion-color-primary);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ion-color-primary);
+  font-size: 0.75rem;
+  cursor: pointer;
 }
 
 .wizard-nav {

@@ -4,10 +4,10 @@
  * instance is configured declaratively per PRD Section 2).
  *
  * Profile: in Single-User Mode (no OIDC session) the display name and
- * avatar are editable per FR-17.13 — the avatar is center-cropped to a
- * 256×256 JPEG on-device (pan/zoom crop positioning deferred). With an
- * OIDC session the profile is read-only (IdP-sourced). Local Mode has
- * no server identity, so the section is a note.
+ * avatar are editable per FR-17.13 — the avatar is pan/zoom cropped to a
+ * 256×256 JPEG on-device (AvatarCropModal). With an OIDC session the
+ * profile is read-only (IdP-sourced). Local Mode has no server identity,
+ * so the section is a note.
  *
  * Data: NFR-4.5 exports (full JSON, per-trip CSV). Local Mode points to
  * the portable YAML path instead.
@@ -37,9 +37,16 @@ import {
   IonNote,
   IonIcon,
   IonToggle,
+  alertController,
 } from '@ionic/vue'
-import { downloadOutline, personCircleOutline } from 'ionicons/icons'
+import { downloadOutline, personCircleOutline, warningOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, ref } from 'vue'
+import {
+  EXPORT_REMINDER_DAYS,
+  lastExportAt,
+  markExported,
+  reminderState,
+} from '@/local/exportReminder'
 
 import { loadTokens } from '@/auth/tokens'
 import { serverBaseUrl } from '@/config'
@@ -50,6 +57,7 @@ import { safeFilename, saveBlob, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { currentTheme, setTheme } from '@/theme/theme'
+import AvatarCropModal from '@/components/settings/AvatarCropModal.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
@@ -129,32 +137,23 @@ const avatarUrl = computed(() =>
     : null,
 )
 
-/** Center-crop the picked photo to a 256×256 JPEG on-device (FR-17.13). */
-async function onAvatarFile(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
+// FR-17.13: the picked photo opens the pan/zoom crop modal; the modal
+// hands back a ready 256×256 JPEG.
+const cropFile = ref<File | null>(null)
+const cropOpen = ref(false)
+
+function onAvatarFile(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = '' // allow re-picking the same file after cancel
   if (!file || !me.value) return
-  const bitmap = await createImageBitmap(file)
-  const side = Math.min(bitmap.width, bitmap.height)
-  const canvas = document.createElement('canvas')
-  canvas.width = 256
-  canvas.height = 256
-  canvas
-    .getContext('2d')!
-    .drawImage(
-      bitmap,
-      (bitmap.width - side) / 2,
-      (bitmap.height - side) / 2,
-      side,
-      side,
-      0,
-      0,
-      256,
-      256,
-    )
-  const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, 'image/jpeg', 0.8),
-  )
-  if (!blob) return
+  cropFile.value = file
+  cropOpen.value = true
+}
+
+async function onAvatarCropped(blob: Blob) {
+  cropOpen.value = false
+  if (!me.value) return
   await orchestrator.uploadAvatar(me.value.user_id, blob)
   avatarVersion.value++
 }
@@ -164,6 +163,19 @@ async function onAvatarFile(event: Event) {
 const csvTripId = ref('')
 const yamlTripId = ref('')
 const yamlTemplateId = ref('')
+
+// NFR-4.11 export reminder: recomputed on demand so it clears the moment
+// a Local Mode backup is downloaded.
+const exportReminder = ref(reminderState(lastExportAt(), Date.now()))
+function refreshReminder() {
+  exportReminder.value = reminderState(lastExportAt(), Date.now())
+}
+
+/** Stamp a successful Local Mode backup so the reminder resets (NFR-4.11). */
+function recordBackup() {
+  markExported()
+  refreshReminder()
+}
 
 /** Local Mode backup: client-side YAML — there is no server to ask. */
 function exportTripYAML() {
@@ -177,6 +189,7 @@ function exportTripYAML() {
     includeProgress: true,
   })
   saveText(yaml, `${safeFilename(trip.name)}.yaml`)
+  recordBackup()
 }
 
 function exportTemplateYAML() {
@@ -186,6 +199,30 @@ function exportTemplateYAML() {
     masterStore.getItem(id),
   )
   saveText(yaml, `${safeFilename(template.name)}.yaml`)
+  recordBackup()
+}
+
+/** Storage-detail popover (NFR-4.11): how much of the origin's quota the
+ * on-device data uses, and whether the browser has promised not to evict
+ * it. Both come from the Storage API; absence is reported honestly. */
+async function showStorageDetails() {
+  let message = 'Storage details are unavailable in this browser.'
+  if (typeof navigator !== 'undefined' && navigator.storage?.estimate) {
+    const { usage = 0, quota = 0 } = await navigator.storage.estimate()
+    const persisted = (await navigator.storage.persisted?.()) ?? false
+    const mb = (n: number) => (n / (1024 * 1024)).toFixed(1)
+    message =
+      `Used ${mb(usage)} MB of ${mb(quota)} MB available on this device.\n\n` +
+      (persisted
+        ? 'Storage is persistent — the browser will not evict it automatically.'
+        : 'Storage is not marked persistent, so the browser may evict it under pressure. Keep a recent export.')
+  }
+  const alert = await alertController.create({
+    header: 'On-device storage',
+    message,
+    buttons: ['OK'],
+  })
+  await alert.present()
 }
 
 async function exportFull() {
@@ -233,6 +270,12 @@ async function exportTripCSV() {
             <input type="file" accept="image/*" hidden @change="onAvatarFile" />
           </label>
         </div>
+        <AvatarCropModal
+          :open="cropOpen"
+          :file="cropFile"
+          @crop="onAvatarCropped"
+          @cancel="cropOpen = false"
+        />
         <IonList>
           <IonItem>
             <IonInput
@@ -320,6 +363,16 @@ async function exportTripCSV() {
       <!-- Data (NFR-4.5) -->
       <h2 class="section-title">Data</h2>
       <template v-if="mode === 'local'">
+        <div v-if="exportReminder.due" class="export-reminder">
+          <IonIcon :icon="warningOutline" />
+          <span>
+            {{
+              exportReminder.lastAt === null
+                ? "You haven't backed up yet — download a copy so your data survives this browser."
+                : `Last backup was ${exportReminder.daysSince} days ago. Download a fresh copy (every ${EXPORT_REMINDER_DAYS} days is a good habit).`
+            }}
+          </span>
+        </div>
         <IonNote>
           Backup in Local Mode is the portable YAML export — there is no server copy of your data.
           Files re-import via the trip/template import.
@@ -363,6 +416,10 @@ async function exportTripCSV() {
             >
               Download
             </IonButton>
+          </IonItem>
+          <IonItem button :detail="false" @click="showStorageDetails">
+            <IonLabel>Storage details</IonLabel>
+            <IonNote slot="end">On-device usage</IonNote>
           </IonItem>
         </IonList>
       </template>
@@ -436,6 +493,23 @@ async function exportTripCSV() {
   font-size: 1rem;
   font-weight: 600;
   margin: 20px 0 8px;
+}
+
+.export-reminder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: var(--ion-color-warning-tint);
+  color: var(--ion-color-warning-contrast);
+  font-size: 0.85rem;
+}
+
+.export-reminder ion-icon {
+  flex: none;
+  font-size: 1.2rem;
 }
 
 .avatar-row {
