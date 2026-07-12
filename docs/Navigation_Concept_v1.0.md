@@ -1,7 +1,8 @@
-# Navigation & Overall Concept: „JIT-Pack" — Information Architecture (v1.0)
+# Navigation & Overall Concept: „JIT-Pack" — Information Architecture (v1.1)
 
-**Document Status:** Proposed for Review — first consolidated IA draft
+**Document Status:** Proposed for Review — consolidated IA draft
 **Basis:** UI_Spec_v1.10 (screen inventory M1–M20, global patterns G-1–G-11) + the live client router (`client/src/router/index.ts`)
+**Revision Note (v1.1):** Added **Part II** — full, code-grounded elaboration of the six structural points (desktop rail, trip-context entries, back-stack, onboarding, empty states, cross-cluster edges). Part II states *As built* vs *Proposal* per point and corrects Part I's "trip toolbar" simplification (the entries are distributed and status-gated, not a single toolbar).
 **Revision Note (v1.0):** New document. The per-screen designs already existed in `UI_Spec_v1.10.md`; what was missing was the connective tissue — *how the app is navigated as a whole*. This document is the single home for that. It does not restate each screen's internal design (that stays in the UI Spec); it defines the **structure between** screens: the navigation model, the screen graph, and the routing that realises it.
 
 > An interactive version of this concept (clickable phone prototype + navigation map) is maintained as a Claude Artifact and is the visual companion to this text. This markdown file is the authoritative written form; the two are kept in sync when the IA changes.
@@ -159,17 +160,144 @@ No mode adds or removes an *anchor*; modes only reveal or hide leaves and top-ba
 
 ---
 
-## 5. Open points to flesh out
+# Part II — Detailed elaborations
 
-This v1.0 fixes the skeleton. The following are the detailed elaborations to work through next (each will expand into its own subsection or companion note):
+Part I fixed the skeleton. This part fleshes out each structural point in full, **grounded in the shipping code** (`client/src/…`). Where the as-built behaviour and the ideal diverge, both are stated: **As built** = what the code does today; **Proposal** = the recommended target. Nothing here is invented — every "As built" claim traces to a named file.
 
-1. **Desktop nav-rail state** — exact rail contents, collapsed/expanded behaviour, where inline page actions live per screen.
-2. **Trip-context toolbar** — canonical order, overflow behaviour, which entries are mode-gated, badge rules.
-3. **Deep-link & back-stack semantics** — what "back" means across drill-downs, wizards, and deep links; history behaviour on `createWebHistory`.
-4. **Onboarding path** — the exact first-launch sequence M19 → (Login?) → M1, and re-entry after mode switch (FR-19.5).
-5. **Empty-state matrix** (G-7) — the single primary action per list screen.
-6. **Cross-cluster edges** — a complete edge list (§2.5 is the seed) as a reference for link/route audits.
+## 5. Desktop nav-rail
+
+*Source: `components/global/NavRail.vue`, `App.vue`, `views/TabsLayout.vue`.*
+
+**As built.** Below 900 px the bottom tab bar (`TabsLayout.vue`) is shown and the rail is `display:none`; at ≥ 900 px `App.vue`'s media query flips `.desktop-nav` to `display:flex` and Ionic hides the bottom tabs. The rail is a fixed **80 px** column pinned left of the scrolling content area (`.app-body` is a flexbox: rail + `main.app-content{flex:1;overflow:auto}`), sitting *below* the full-width header (header height 56 px). It carries the four anchors only — Dashboard, Trips, Templates, Items — each an icon-over-label link. Active state = primary tint background + primary text, matched by `route.path.includes('/tabs/{match}')`; hover = light surface.
+
+**Gaps & proposals.**
+
+| # | Observation (as built) | Proposal |
+|---|---|---|
+| 5a | **The rail has no Settings entry** — Settings is reached only via the header gear, in both form factors. The interactive concept sketched a Settings entry at the rail foot; the code does not have one. | Keep Settings in the header (consistent across breakpoints) **or** add a foot-of-rail Settings link for desktop parity. Pick one and make the concept + code agree. Recommendation: add it to the rail foot — desktop has the vertical room and it mirrors the mobile "always-present gear". |
+| 5b | **Deep routes lose the highlight.** Inside a trip (`/trips/:id`) or a master editor (`/templates/:id`) the path is not `/tabs/*`, so `isActive()` matches nothing and **no rail item is lit** — the user loses their "you are here" anchor on desktop. | Broaden the active match: light **Trips** for any `/trips/*`, **Templates** for `/templates/*`, **Items** for `/items/*` and `/series/*`. The rail should reflect the *cluster* you're in, not only the exact tab route. |
+| 5c | Rail is fixed-width, label-always-visible. | Fine at 80 px; no collapse needed. Revisit only if a fifth destination ever appears (it should not — that breaks the four-anchor thesis). |
+
+**Inline page actions (G-9).** On desktop the FAB is not used; each page mounts its primary actions in its own `IonToolbar`/`IonButtons`. This is already the case (e.g. M4's header buttons). The concept's rule stands: **page-level primary actions render inline in the top bar on desktop, as a floating FAB on mobile.**
 
 ---
 
-*Derived from `client/src/router/index.ts` and `UI_Spec_v1.10.md`. Proposal for discussion; all 20 screens are already implemented (server + client).*
+## 6. Trip-context entry points
+
+*Source: `views/trips/PackingListPage.vue` (M4), `App.vue` (`onSyncTap`), `views/trips/TripListPage.vue` (M2 slide actions).*
+
+**Correction to Part I.** The concept described M4 as carrying "its own contextual **toolbar**". In the shipping code there is **no single toolbar** — the trip-scoped screens are reached from *distributed, gated* affordances on M4 (and two from outside M4). This is the accurate map:
+
+| Entry | Lives on | Gating (as built) | Target |
+|---|---|---|---|
+| Presence facepile (G-10) | M4 header end | `presenceUsers.length > 1` | presence sheet |
+| Repack | M4 header end | `trip.status === 'active'` | `/trips/:id/repack` |
+| Archive → Review | M4 header end | `trip.status === 'active'` | archives, auto-opens `/review` |
+| Review (sparkles) | M4 header end | `trip.status === 'archived'` | `/trips/:id/review` |
+| Shopping | M4 header end | `shoppingCount > 0` (badge) | `/trips/:id/shopping` |
+| Analytics | M4 KPI strip | tap on the strip | `/trips/:id/analytics` |
+| Repack (banner) | M4 body | `trip.status === 'repack'` | `/trips/:id/repack` |
+| Edit containers | M4 body | `groupBy === 'container'` | `/trips/:id/containers` |
+| Item detail (M5) | M4 list row | always | `/trips/:id/items/:itemId` |
+| Conflict log | **top-bar sync glyph** | inside any trip (`onSyncTap`) | `/trips/:id/conflicts` |
+| Members | **M2 slide action** | Owner/Admin + OIDC session (G-8) | `/trips/:id/members` |
+| Clone | **M2 slide action** | archived trips (also M16) | `/trips/:id/clone` |
+
+**Reading of this.** The status of the trip is the primary gate — an `active` trip shows Repack/Archive, an `archived` trip shows Review/Clone, a `repack` trip shows the banner. Two capabilities (Shopping, Containers) are content-gated (only appear when there's something to show), honouring G-7's "no dead ends". Members/Clone/Conflicts deliberately live *off* M4.
+
+**Proposal.** Keep the status-driven gating (it's good), but make the **discoverability** explicit rather than emergent:
+
+- 6a. **A canonical order** for the M4 header cluster, left→right: `presence · shopping · [status action] · overflow`. On mobile, collapse everything past the status action into a single **overflow "⋯" menu** (Analytics, Containers, Members, Clone, Conflict log) so the header never crowds. On desktop (wider bar) show them inline.
+- 6b. **Surface Containers without the grouping detour.** Today Containers is only reachable by switching `groupBy` to `container`. Add it to the overflow menu so it's discoverable regardless of grouping.
+- 6c. **Badges** are consistent: a count badge on Shopping (open procurement items) and on the prep/KPI counters; presence uses the facepile, never a number badge.
+- 6d. **Mode-gating is one rule:** Members and presence appear only with an OIDC session (`collaborative`); in Single-User/Local they vanish with no gap (G-8).
+
+---
+
+## 7. Deep-link & back-stack semantics
+
+*Source: `router/index.ts` (`createWebHistory`), `App.vue` (`onSyncTap`, `onAuthExpired`), `notifications/format.ts` (`notificationRoute`).*
+
+**As built.** History is the browser stack (`createWebHistory`). Back = the platform back gesture / button. Deep links exist for notifications (G-4 → `/trips/:id/items/:itemId?comment=…`) and the sync-glyph → conflict log.
+
+**The three problem cases and the rule for each.**
+
+1. **Wizard/flow completion.** M3 (`/trips/new`) is `push`ed, so after creating a trip the browser back returns *into the finished wizard* — wrong. **Rule:** completing a create/import flow (M3, M15, M18, Clone) must `router.replace` to the result (the new trip/M4), not `push`. Back then skips the consumed wizard.
+2. **Cold-start deep link.** A notification opened from a killed app lands on M5 with a one-entry history — "back" has nowhere sane to go. **Rule:** the **logo = home** affordance (G-9) is the guaranteed escape; additionally, a deep-linked detail should ensure its parent trip (M4) is reachable in one step (synthesise the M4 entry, or route detail→M4 on back).
+3. **Modal-ish sub-screens** (Conflict log, presence sheet). **Rule:** these `push` and rely on back to dismiss; they must never be a dead end — each has a visible close/back to its origin trip.
+
+**Proposal.** Document a small back-target contract per route class: *tab roots* → OS handles (exit); *drill-downs* → parent list; *flows* → replace-on-done; *deep links* → parent trip guaranteed. This belongs next to the route table in `router/index.ts` as a comment block.
+
+---
+
+## 8. Onboarding path
+
+*Source: `App.vue` (`mode` ref, `chooseMode`, `onMounted`), `ModeSelectionPage.vue` (M19), `auth/` (OIDC).*
+
+**As built — the exact decision tree.**
+
+```
+first launch
+  └─ localStorage 'jitpack_mode' unset?  ── yes ─▶ M19 ModeSelectionPage
+                                                     ├─ "Local Mode"  → persist mode=local
+                                                     └─ "Server Mode" → persist mode=server (+ jitpack_server_url)
+  └─ mode resolved ▶ mount app (header + rail/tabs + router → M1)
+        onMounted, if mode=server AND no tokens AND path∉/auth/*:
+            GET {server}/api/v1/auth/config
+              ├─ 200 (OIDC offered)      → router.replace('/login') → /auth/callback → M1
+              └─ 501 / unreachable        → proceed unauthenticated (Single-User/HS256/offline)
+        AUTH_EXPIRED event (IdP rejected refresh) → router.replace('/login')
+```
+
+Local Mode never touches auth. Single-User servers answer `/auth/config` with 501, so the client silently proceeds — this is the "log in by opening the app" path the local Docker stack uses.
+
+**Re-entry after a mode switch (FR-19.5).** There is deliberately **no toggle** between Local and Server. Switching modes goes through the export/import path (portable YAML): export from the old mode, re-run M19, import via M18. Part I §4 states this; the onboarding doc is where the *steps* live.
+
+**Proposal.** Two refinements: (8a) M19 should state, per option, what it commits to and how to leave it (sets expectation for the no-toggle rule); (8b) the `auth/config` probe should show a brief "connecting…" state rather than a blank frame, so a slow server doesn't look like a hang.
+
+---
+
+## 9. Empty-state matrix (G-7)
+
+*Source: the `empty-state` blocks across `views/`.*
+
+Every list screen must offer **one** primary action when empty. Audit of the current state:
+
+| Screen | Empty copy (as built) | Primary action today | Verdict |
+|---|---|---|---|
+| M1 Dashboard | greeting + CTA | **"Plan a trip"** button → `/trips/new` | ✅ explicit |
+| M2 Trip List | — | FAB → `/trips/new` | ⚠ relies on FAB, no in-body CTA |
+| M7 Templates | "Create your first template…" | hint text + FAB | ⚠ hint, not a button |
+| M9 Items | "Add items to build your packing templates" | hint text + FAB | ⚠ hint, not a button |
+| M4 Packing | "No items yet — add one above" | inline quick-add | ✅ (points at the add field) |
+| M2 Members | pre-sync roster notice | informational | ✅ (correct — nothing to do) |
+
+**Proposal.** Bring M2/M7/M9 up to the Dashboard's standard: an explicit in-body primary button (Templates/Items also carry a secondary "Import from spreadsheet" → `/import`, per the UI-Spec G-7 example). A FAB is a shortcut, not an empty-state answer — G-7 asks for a *single obvious action in the empty body*.
+
+---
+
+## 10. Cross-cluster edge list
+
+The complete reference of navigational edges beyond primary drill-down, for link/route audits. (Primary drills — list→detail — are omitted as implied.)
+
+| From | To | Trigger |
+|---|---|---|
+| M1 Dashboard | M5 Item / M4 Trip | task card / deep link (G-4) |
+| M2 Trips | M3 Wizard | FAB / empty CTA |
+| M16 Series | M3 Wizard (`?series=`) | "New trip in series" |
+| M2 Trips | Clone / Members / M14 / YAML export | slide actions (status-gated) |
+| M2 title / M9 empty | M15 Import | upload icon / empty CTA |
+| M7 / M2 title | M18 Portable Import | import entry |
+| M4 sync glyph | Conflict log | `onSyncTap` inside a trip |
+| M4 KPI strip | M12 Analytics | tap |
+| M4 header | M6 / M13 / M14 | status-gated buttons |
+| M4 grouping | M11 Containers | `groupBy=container` → edit |
+| M12 slice | M4 (grouped) | tap a slice |
+| M16 | M12 | trends shortcut (newest trip) |
+| Logo (any screen) | M1 Dashboard | universal home (G-9) |
+| top-bar gear/avatar | M17 Settings | any screen |
+| M17 | M20 Admin | `collaborative && is_instance_admin` |
+
+---
+
+*Derived from `client/src/router/index.ts`, `client/src/App.vue`, `client/src/components/global/*`, `client/src/views/**`, and `UI_Spec_v1.10.md`. Proposal for discussion; all 20 screens are already implemented (server + client).*
