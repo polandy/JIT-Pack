@@ -1,3 +1,16 @@
+# Local test stack for the full app (backend + UI) on a single origin.
+#
+# Mode: Single-User (no OIDC, no IdP). The server bypasses auth and
+# membership (FR-17.3); the client detects no OIDC (/auth/config → 501)
+# and skips the login screen. So you "log in" simply by opening the app.
+#
+#   docker compose up --build      →  open http://localhost:3000
+#   In the first-run screen pick "Server Mode" and enter:
+#       http://localhost:3000
+#
+# The `web` container (nginx) serves the SPA and reverse-proxies /api,
+# /ws and /health to `app` — same origin, so the CORS-less API works.
+
 volumes:
   data:
 
@@ -7,8 +20,8 @@ services:
     container_name: jitpack-app
     restart: unless-stopped
     mem_limit: 128m
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     volumes:
       - data:/data
     environment:
@@ -22,3 +35,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 5s
+
+  web:
+    build: ./client
+    container_name: jitpack-web
+    restart: unless-stopped
+    mem_limit: 64m
+    ports:
+      - "3000:80"
+    depends_on:
+      app:
+        condition: service_healthy
