@@ -3,6 +3,7 @@ package store
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"errors"
 	"strings"
 	"testing"
@@ -53,6 +54,61 @@ func TestEnsureLocalSingleUser_DefaultsDisplayNameToDemoUser(t *testing.T) {
 	}
 	if name != "Demo User" {
 		t.Errorf("display_name = %q, want %q", name, "Demo User")
+	}
+}
+
+func TestEnsureLocalSingleUserID_SeedsConfiguredIDAndIsIdempotent(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+
+	// The single-user server attributes every request to the id from
+	// JITPACK_LOCAL_USER_ID; that row must exist so owner_id foreign keys
+	// (trips, memberships) resolve. Seeding it is what main.go calls.
+	if err := s.EnsureLocalSingleUserID(ctx, "local"); err != nil {
+		t.Fatalf("EnsureLocalSingleUserID: %v", err)
+	}
+
+	var (
+		count   int
+		isLocal int
+		name    string
+		oidc    sql.NullString
+	)
+	if err := s.db.QueryRow(
+		`SELECT count(*), max(is_local_singleuser), max(display_name), max(oidc_subject)
+		   FROM users WHERE id = ?`, "local").Scan(&count, &isLocal, &name, &oidc); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("rows for id=local = %d, want 1", count)
+	}
+	if isLocal != 1 {
+		t.Errorf("is_local_singleuser = %d, want 1", isLocal)
+	}
+	if name != "Demo User" {
+		t.Errorf("display_name = %q, want %q", name, "Demo User")
+	}
+	if oidc.Valid {
+		t.Errorf("oidc_subject = %q, want NULL", oidc.String)
+	}
+
+	// Idempotent: a second call neither errors nor duplicates the row,
+	// and does not overwrite a display name the user has since changed.
+	if err := s.SetDisplayName(ctx, "local", "Renamed"); err != nil {
+		t.Fatalf("SetDisplayName: %v", err)
+	}
+	if err := s.EnsureLocalSingleUserID(ctx, "local"); err != nil {
+		t.Fatalf("EnsureLocalSingleUserID (second call): %v", err)
+	}
+	if err := s.db.QueryRow(`SELECT count(*), max(display_name) FROM users WHERE id = ?`, "local").
+		Scan(&count, &name); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Errorf("rows after second call = %d, want 1", count)
+	}
+	if name != "Renamed" {
+		t.Errorf("display_name overwritten: got %q, want %q", name, "Renamed")
 	}
 }
 

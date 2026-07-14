@@ -46,6 +46,24 @@ func (s *Store) EnsureLocalSingleUser(ctx context.Context) (string, error) {
 	return id, nil
 }
 
+// EnsureLocalSingleUserID seeds the implicit local user under a caller-
+// supplied id (Addendum FR-17.2). The single-user server attributes every
+// request to JITPACK_LOCAL_USER_ID, so that exact row must exist or
+// owner_id foreign keys (trips, memberships) reject on first write. Unlike
+// EnsureLocalSingleUser, which mints its own id, this honours the operator's
+// configured id. Idempotent: an existing row (by id) is left untouched, so a
+// display name the user later changed is preserved across restarts.
+func (s *Store) EnsureLocalSingleUserID(ctx context.Context, id string) error {
+	if _, err := s.db.ExecContext(ctx,
+		`INSERT INTO users (id, is_local_singleuser, display_name)
+		 VALUES (?, 1, ?)
+		 ON CONFLICT(id) DO NOTHING`,
+		id, localSingleUserDefaultName); err != nil {
+		return fmt.Errorf("seed local single user %q: %w", id, err)
+	}
+	return nil
+}
+
 // SetDisplayName validates and persists a user's display name
 // (Addendum FR-17.13). Validation happens here as well as on the client;
 // this is the server-side half of "validated client- and server-side."

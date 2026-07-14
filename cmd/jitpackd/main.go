@@ -30,6 +30,11 @@ func main() {
 	var srv *api.Server
 	if cfg.SingleUser {
 		log.Printf("starting in single-user mode (user=%s)", cfg.LocalUserID)
+		// The server attributes every request to this id; seed the row so
+		// owner_id foreign keys (trips, memberships) resolve (FR-17.2).
+		if err := st.EnsureLocalSingleUserID(context.Background(), cfg.LocalUserID); err != nil {
+			log.Fatalf("seed local user: %v", err)
+		}
 		srv = api.NewSingleUser(st, cfg.LocalUserID)
 	} else if cfg.JWKSURL != "" {
 		log.Printf("starting in multi-user mode (JWKS: %s)", cfg.JWKSURL)
