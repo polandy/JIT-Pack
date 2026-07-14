@@ -3,6 +3,7 @@
 **Document Status:** Accepted
 **Supersedes:** Addendum v2.9 (removes Demo Mode entirely — FR-17.6–17.10, FR-17.12, NFR-4.10 — since no public demo deployment is planned; Single-User Mode is unaffected, and NFR-4.9 is rewritten without the demo passphrase. FR/NFR numbering is kept stable with removal stubs; no other changes)
 **Scope:** New functional sections 3.10–3.23, clarifications to existing FRs, and refined/added NFRs. Numbering continues the base PRD.
+**Forward direction (non-binding):** A north-star expansion of the product beyond packing — into a full family vacation companion (idea board, scheduling, live during-trip collaboration) — is captured in `Vision_NorthStar_v1.0.md`. It adds no FRs/NFRs here and does not change any scope below; clusters graduate into numbered sections only when picked up, and packing ships first.
 
 ---
 

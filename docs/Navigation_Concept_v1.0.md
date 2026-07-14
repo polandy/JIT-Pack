@@ -26,6 +26,13 @@ The four anchors map directly to the four nouns the product is built on:
 
 Settings (M17) is deliberately **not** a fifth anchor — it lives in the top bar (gear/avatar), because it is chrome, not content (G-1).
 
+> **Forward note (non-binding, see `Vision_NorthStar_v1.0.md`):** The product's north star expands
+> a trip from *a packing effort* into *a phased vacation* (Plan/Prepare/During/After). The decided
+> consequence for this IA is that new surfaces (Idea Board, Day Plan, Map) enter as **phase sections
+> within a trip**, reached by drill-down (§1.3) — **not** as new anchors. The four-anchor skeleton
+> and the top-bar chrome are held fixed. Full screen designs come with each cluster; nothing here
+> changes until then.
+
 ---
 
 ## 1. The navigation model

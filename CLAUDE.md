@@ -16,6 +16,7 @@ If you're picking this up fresh: read this file fully before touching code. It r
 | Why was X chosen over Y? | `docs/ADR-00N_*.md` — six ADRs, each: options considered, weighted decision matrix, consequences, revisit trigger |
 | What must the UI test suite cover? | `docs/UI_Test_Spec_v1.0.md` — headless-browser (Playwright) E2E scope: per-screen cases, cross-screen flows, full FR/NFR traceability matrix. Layered over the existing unit tests; not yet implemented |
 | How do I write code here? | `docs/CODING_PRINCIPLES.md` — **binding**, read before writing anything |
+| Where is the product headed? | `docs/Vision_NorthStar_v1.0.md` — directional expansion from packing app to family vacation companion (phases Plan/Prepare/During/After). **Not authoritative over shipped scope**, drives no implementation; packing ships first. Flags ADR-007 (outbound fetching) as the gate for planning features. |
 
 Only the current version of every document is kept — if you're ever tempted to write "v2" of something, replace the file and update its own revision note instead of leaving both around.
 
