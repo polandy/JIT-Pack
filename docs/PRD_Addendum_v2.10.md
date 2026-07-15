@@ -2,7 +2,7 @@
 
 **Document Status:** Accepted
 **Supersedes:** Addendum v2.9 (removes Demo Mode entirely — FR-17.6–17.10, FR-17.12, NFR-4.10 — since no public demo deployment is planned; Single-User Mode is unaffected, and NFR-4.9 is rewritten without the demo passphrase. FR/NFR numbering is kept stable with removal stubs; no other changes)
-**Scope:** New functional sections 3.10–3.23, clarifications to existing FRs, and refined/added NFRs. Numbering continues the base PRD.
+**Scope:** New functional sections 3.10–3.23 (accepted) plus **3.24 (proposed, item tags & master-item lifecycle)**, clarifications to existing FRs, and refined/added NFRs. Numbering continues the base PRD.
 **Forward direction (non-binding):** A north-star expansion of the product beyond packing — into a full family vacation companion (idea board, scheduling, live during-trip collaboration) — is captured in `Vision_NorthStar_v1.0.md`. It adds no FRs/NFRs here and does not change any scope below; clusters graduate into numbered sections only when picked up, and packing ships first.
 
 ---
@@ -191,6 +191,20 @@ JIT provisioning (Section 2) means every account that exists at the IdP gets ful
 * **Deactivation side effects:** delete the account's rows from `push_subscriptions` (`internal/store/push.go` already owns that table's semantics); the notification-creation path (`internal/api/notifications.go`) skips deactivated targets the same way it already skips per-kind preference opt-outs.
 * **UI:** a dedicated screen (UI-Spec M20) entered from a new Administration row in M17, rendered only when `me.is_instance_admin` and an OIDC session exists — the exact gating pattern of M17's Notifications section (FR-17.3/FR-19.3/G-8).
 
+### 3.24 Item Tags & Master-Item Lifecycle
+
+**Status: proposed** (concept, 2026-07-15) — captured from the UI-concept prototype, **not yet implemented** (no migration, no code). Two changes to the central item database (FR-1.1): items carry multiple tags instead of one category, and deletion becomes lifecycle-aware. To be moved to *accepted* and given a schema/migration when the UI concept is locked.
+
+* **FR-24.1 (Multi-Tag Categorisation — supersedes the single "default category" of FR-1.1):** A master item carries a **set of tags** (zero or more) rather than a single category. Tags serve simultaneously as categories and as free-form labels (e.g., an item can be tagged `Kleidung`, `Sommer`, and `Strand` at once). The **first tag is the item's *primary* tag**, used wherever exactly one grouping key is needed (so an item appears once in a grouped list). Rationale: an item legitimately belongs to several axes at the same time — a swimsuit is Clothing *and* Summer *and* Beach — and a single mandatory category throws away filter reach the user expects. Tags are **shared master data**, governed exactly like the item itself (the FR-22.6 model): any authenticated user creates a tag simply by typing it in the item editor; there is no separate tag-management screen and no fixed taxonomy. Considered and rejected: a privileged *category* field plus optional tags (keeps a special primary but duplicates the concept); a rigid, admin-curated tag list (governance overhead disproportionate for a home-lab instance).
+* **FR-24.2 (Tag Filtering & Grouping in Inventory):** The Item Inventory (M9) filters by tag: an item matches a tag filter when that tag is in its set, so the same item surfaces under **every** one of its tags. The grouped default view groups by **primary tag** so each row appears exactly once; each row still displays all of its tags. This is the item-editor counterpart to the reusable filter bar used across the list screens (search + chip axis).
+* **FR-24.3 (Lifecycle-Aware Deletion of Master Items):** Deleting a master item behaves differently according to whether it has ever been used:
+  * **Ever referenced** — a trip item was instantiated from it (historical or active), or a template includes it — deletion is **logical only**: the row is **tombstoned** (hidden from the inventory, from item pickers, and from quick-add autocomplete) but retained, so historical trips, analytics (FR-8, FR-14), and attributions keep resolving against it.
+  * **Never referenced anywhere** — deletion is **physical**: the row is removed outright.
+
+  This is the item-granularity counterpart of the account-deletion reasoning in FR-23.5 (an id that is a foreign-key target across history cannot simply vanish), while keeping the common case — deleting a just-created mistake — clean and tombstone-free. The Item Editor (M10) surfaces the item's usage count and states, *before* the user confirms, which of the two deletions will happen. Sync consequence (master partition): a logical delete is an ordinary tombstone in the master change-log; a physical delete is safe precisely because, by definition, nothing references the row. A future "restore deleted item" affordance is free, since logically-deleted items retain everything.
+
+**Architecture note (for the implementation phase, not binding here):** the model implication is an item→tags many-to-many relation instead of a `category` column, plus a soft-delete marker (or tombstone) on items; the exact schema — including whether tags are a first-class table with their own ids (enabling rename) or denormalised strings — is owned by the migrations per CLAUDE.md and is deliberately **not** fixed in this document.
+
 ## Part B — Clarifications & Extensions to Existing Sections
 
 ### 3.1 Template & Master Data Management
@@ -199,6 +213,7 @@ JIT provisioning (Section 2) means every account that exists at the IdP gets ful
 * **FR-1.6 (Template Ownership & Scope):** Templates are owned by a single user account. Owners can optionally publish a template instance-wide in read-only mode; other users consume it by reference or fork a private copy. The Review Assistant (FR-9.2) writes optimizations only to templates owned by the confirming user; for shared templates it offers to fork instead.
 * **FR-1.7 (Consumable Flag):** Items in the central item database support an optional *Consumable* attribute, consumed by Repack Mode (FR-11.2) and excludable from return-weight analytics.
 * **FR-1.8 (Quantity Units):** Items support a quantity unit: *pieces* (default), *pairs*, or *per-day consumable* (e.g., contact lenses at 1/day yielding 30 for a 30-day trip via `trip_duration * rate`). Units are displayed throughout packing views and analytics.
+* **FR-1.1 refinement (see §3.24, proposed):** the "default category" of FR-1.1 is superseded by **multiple tags** per item (FR-24.1), and master-item deletion becomes lifecycle-aware — logical tombstone if ever used, physical delete if never referenced (FR-24.3). Status *proposed* until the concept is locked.
 
 ### 3.2 Trip Management
 

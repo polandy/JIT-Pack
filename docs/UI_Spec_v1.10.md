@@ -133,16 +133,16 @@ These patterns apply to every screen and are specified once.
 
 ### M9 — Item Inventory
 
-* **Purpose:** Central item database (FR-1.1).
-* **Elements:** Searchable, category-grouped list; per row: name, weight, value, unit chip, consumable chip.
+* **Purpose:** Central item database (FR-1.1) — the master-data screen for every item that can be packed.
+* **Elements:** Filter bar (search + tag chip axis, the shared list-filter pattern); tag-grouped list — grouped by each item's **primary tag** so a row appears once (FR-24.2, proposed); per row: name, its **tags** as chips, weight, value, unit chip, consumable chip. Logically-deleted items (FR-24.3) are hidden.
 * **Actions:** Tap → M10; FAB → new item; merge duplicates via multi-select (supports FR-16.3 cleanup).
 * **Navigation:** Tab 4.
 
 ### M10 — Item Editor
 
 * **Purpose:** Edit one master item.
-* **Elements:** Name, category picker (inline-create), weight (g), value (instance currency), unit selector *pieces/pairs/per-day* with rate field when per-day (FR-1.8), consumable toggle (FR-1.7). **Implemented (Addendum 3.20):** a "Depends on" section listing this item's declared dependencies with a required/suggested mode toggle per row, an add-picker with save-time cycle rejection, and a read-only "Companions" list of items depending on this one (FR-20.1/20.4).
-* **States:** Shows usage footer: "Used in 4 templates, 12 archived trips" — deletion blocked while referenced by templates; archived trip snapshots are unaffected by edits (FR-2.4, stated in UI copy).
+* **Elements:** Name, **multi-tag selector** — assign several tags/categories, toggle existing ones and inline-create new (FR-24.1, proposed; supersedes the single category picker), weight (g), value (instance currency), unit selector *pieces/pairs/per-day* with rate field when per-day (FR-1.8), consumable toggle (FR-1.7). **Implemented (Addendum 3.20):** a "Depends on" section listing this item's declared dependencies with a required/suggested mode toggle per row, an add-picker with save-time cycle rejection, and a read-only "Companions" list of items depending on this one (FR-20.1/20.4).
+* **States:** Shows usage footer: "Used in 4 templates, 12 archived trips"; archived trip snapshots are unaffected by edits (FR-2.4, stated in UI copy). **Lifecycle-aware delete (FR-24.3, proposed):** the footer states which deletion will occur — an item **ever used** deletes *logically* (tombstoned, kept for history/analytics), an item **never referenced** deletes *physically*; the earlier "deletion blocked while referenced" rule is replaced by this.
 * **Navigation:** From M9 or inline from M8.
 
 ### M11 — Container Management
