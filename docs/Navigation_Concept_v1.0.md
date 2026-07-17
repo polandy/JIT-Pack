@@ -54,6 +54,8 @@ Left → right (G-9):
 2. **Sync glyph** (G-2) — `synced` / `syncing` / `offline` / `local`. Tapping opens the sync detail; inside a trip it also exposes the conflict log (NFR-4.2a). In Local Mode it shows a device glyph and opens storage & backup detail instead.
 3. **Settings / avatar** (G-1) — the gear (Single-User/Local) or the account avatar (collaborative) opens M17.
 
+**Height & style (concept-review, 2026-07-17):** the top bar is deliberately **low** — a **short, single-line title with no subtitle**, a compact status area, and small logo/gear targets — so it never steals room from content. The **logo is a lightweight line mark** (a suitcase, tinted with the brand accent), not a filled tile. On **M4 (packing list)** the bar additionally participates in a **collapsing-header** interaction: scrolling the list down hides the packing sub-header and **migrates the trip name + presence facepile up into this bar**; scrolling up restores both (see Addendum §3.25 / UI-Spec M4). This collapse is M4-specific for now and may extend to other long lists later.
+
 ### 1.3 "Everything else is context" — the three ways down
 
 Every non-anchor screen is reached by exactly one of three motions:
