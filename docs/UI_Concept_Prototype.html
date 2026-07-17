@@ -231,6 +231,17 @@ body{
 .gb{white-space:nowrap;font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px;border:1px solid var(--s0);
   background:transparent;color:var(--sub0);cursor:pointer;flex:none}
 .gb.on{background:var(--text);color:var(--crust);border-color:var(--text)}
+/* per-person: "who" pill on a flat per-person row (grouped by person, or a lone instance) */
+.whochip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--sub1);
+  background:var(--mantle);border:1px solid var(--s0);border-radius:20px;padding:2px 9px 2px 3px}
+/* per-person cluster (variant B) */
+.ppcluster{border-left:2px solid var(--mauve);margin:2px 0 2px 2px}
+.pphead{display:flex;align-items:center;gap:8px;padding:9px 12px 5px 12px;font-weight:700;font-size:14.5px}
+.pphead .ppname{color:var(--text)}
+.pphead .ppcount{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--o0)}
+.ppkids .li.ppkid{padding-left:14px}
+.ppkids .li.ppkid .name{font-weight:600;font-size:14px}
+.ppkids .swipe+.swipe .swipe-inner{border-top:1px solid var(--s0)}
 
 .collapsed{display:flex;align-items:center;gap:10px;padding:12px 14px;color:var(--sub0);font-size:13px;cursor:pointer}
 .collapsed svg{width:17px;height:17px}
@@ -844,13 +855,36 @@ const AV = {Andy:['A','var(--peach)'],Sia:['S','var(--mauve)'],Leonardo:['L','va
 let groupMode = 'cat';
 let showDone = false;                       // FR-25.x: hide fully-packed rows, reveal via toggle
 const isDone = it => it.packed>=it.qty && !it.prep;   // "komplett gepackt" = packed & no open prep
+
+// FR-25.1: a per-person item (it.pp) is N real packing units, one per traveler.
+// Flatten every item to countable "leaves"; a plain item is one leaf, a per-person
+// item is one leaf per traveler. Grouping, counting and hide-done all run on leaves.
+function itemLeaves(it){
+  if(!it.pp) return [{key:String(it.id), it, e:null, ppIndex:null,
+    name:it.name, trav:it.trav, qty:it.qty, packed:it.packed, packedBy:it.packedBy,
+    prep:it.prep, cat:it.cat, cont:it.cont, mode:it.mode, unit:it.unit, cons:it.cons, missing:it.missing}];
+  return it.pp.map((e,k)=>({key:'pp:'+it.id+':'+k, it, e, ppIndex:k,
+    name:it.name, trav:e.trav, qty:e.qty, packed:e.packed, packedBy:e.packedBy,
+    prep:e.prep, cat:it.cat, cont:it.cont, mode:it.mode, unit:it.unit, cons:it.cons, missing:it.missing}));
+}
+const allLeaves = () => P.items.flatMap(itemLeaves);
+const leafDone = l => l.packed>=l.qty && !l.prep;
+function resolveLeaf(key){
+  if(String(key).startsWith('pp:')){ const p=String(key).split(':'); const it=P.items.find(x=>x.id==p[1]); return {it, e: it? it.pp[+p[2]] : null}; }
+  const it=P.items.find(x=>x.id==key); return {it, e:null};
+}
 let pvToolsOpen = false, lastPackScroll = 0, packHeadCollapsed = false;
 const P = {
   items:[
     {id:1,name:'Wandersocken',cat:'Kleidung',qty:6,packed:4,unit:'Paar',mode:'pack',trav:'Alle',cont:'—',w:60},
     {id:2,name:'Icebreaker Merino-Shirt',cat:'Kleidung',qty:3,packed:3,mode:'pack',trav:'Andy',cont:'Koffer',w:150},
     {id:3,name:'Karierte kurze Hose',cat:'Kleidung',qty:2,packed:2,mode:'pack',trav:'Andy',cont:'Koffer',w:220},
-    {id:4,name:'Regenjacke',cat:'Kleidung',qty:3,packed:1,mode:'pack',trav:'Alle',cont:'Rucksack',w:300},
+    {id:4,name:'Regenjacke',cat:'Kleidung',mode:'pack',cont:'Rucksack',w:300,pp:[
+      {trav:'Andy',qty:1,packed:1,packedBy:'Andy'},{trav:'Sia',qty:1,packed:0},{trav:'Leonardo',qty:1,packed:0}]},
+    {id:17,name:'Badehose',cat:'Kleidung',mode:'pack',cont:'Koffer',w:80,pp:[
+      {trav:'Andy',qty:1,packed:0},{trav:'Sia',qty:1,packed:0},{trav:'Leonardo',qty:1,packed:0}]},
+    {id:18,name:'Kurze Hosen',cat:'Kleidung',mode:'pack',cont:'Koffer',w:200,pp:[
+      {trav:'Andy',qty:2,packed:2},{trav:'Sia',qty:1,packed:0},{trav:'Leonardo',qty:3,packed:1}]},
     {id:5,name:'Sonnencreme',cat:'Bad',qty:1,packed:0,mode:'buy_local',trav:'Alle',cont:'—',w:150,cons:true},
     {id:6,name:'Taschentücher',cat:'Bad',qty:4,packed:1,mode:'pack',trav:'Alle',cont:'Kulturbeutel',w:40,cons:true},
     {id:7,name:'Velohelme',cat:'Aktivität',qty:2,packed:1,mode:'pack',trav:'Alle',cont:'Auto',w:300},
@@ -877,42 +911,85 @@ const P = {
 const MODE = {buy_before:['vor Abreise','warm'], buy_local:['vor Ort','blue']};
 let nextId = 100;
 
-function groupKey(it){
-  if(groupMode==='cat') return it.cat;
-  if(groupMode==='trav') return it.trav;
-  if(groupMode==='cont') return it.cont==='—'?'Ohne Gepäck':it.cont;
-  return it.packed===0?'Offen':(it.packed<it.qty?'Teilweise':'Gepackt');
+function groupKey(l){
+  if(groupMode==='cat') return l.cat;
+  if(groupMode==='trav') return l.trav;           // per-person leaf → its own traveler
+  if(groupMode==='cont') return l.cont==='—'?'Ohne Gepäck':l.cont;
+  return l.packed===0?'Offen':(l.packed<l.qty?'Teilweise':'Gepackt');
 }
 function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 
-function itemRowHTML(it){
-  const full = it.packed>=it.qty;
-  const amber = full && it.prep;                     // packed with open prep (spec)
-  const isCheckbox = it.qty===1;
-  let ctrl;
-  if(isCheckbox){
-    ctrl = `<div class="check ${full?(amber?'amber on':'on'):''}" data-act="check" data-id="${it.id}"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>`;
-  } else {
-    ctrl = `<div class="stepper"><button data-act="dec" data-id="${it.id}">–</button><b>${it.packed}/${it.qty}</b><button data-act="inc" data-id="${it.id}">+</button></div>`;
-  }
-  const chips = [];
-  if(MODE[it.mode]) chips.push(`<span class="chip ${MODE[it.mode][1]}">${MODE[it.mode][0]}</span>`);
-  if(it.missing) chips.push(`<span class="chip warm">fehlt</span>`);
-  if(it.trav && AV[it.trav]) chips.push(`<span class="mini-av" style="background:${AV[it.trav][1]}">${AV[it.trav][0]}</span>`);
-  const prepBadge = it.prep ? `<span class="prepbadge">🔧 ${it.prep}</span>` : '';
-  const sub = it.packedBy ? `gepackt von ${it.packedBy}` : (groupMode!=='cont' && it.cont!=='—' ? it.cont : (it.unit?`${it.qty} ${it.unit}`:''));
-  return `<div class="swipe" data-id="${it.id}">
+function ctrlHTML(l){
+  const full=l.packed>=l.qty, amber=full&&l.prep;
+  return l.qty===1
+    ? `<div class="check ${full?(amber?'amber on':'on'):''}" data-act="check" data-id="${l.key}"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>`
+    : `<div class="stepper"><button data-act="dec" data-id="${l.key}">–</button><b>${l.packed}/${l.qty}</b><button data-act="inc" data-id="${l.key}">+</button></div>`;
+}
+// a flat packing row (regular item, or a per-person leaf in variant A — then labelled "Name · Person")
+function leafRowHTML(l){
+  const isCheckbox=l.qty===1, ctrl=ctrlHTML(l);
+  const chips=[];
+  if(MODE[l.mode]) chips.push(`<span class="chip ${MODE[l.mode][1]}">${MODE[l.mode][0]}</span>`);
+  if(l.missing) chips.push(`<span class="chip warm">fehlt</span>`);
+  if(l.ppIndex!=null){ const av=AV[l.trav]||['?','var(--s2)'];
+    chips.push(`<span class="whochip"><span class="mini-av" style="background:${av[1]}">${av[0]}</span>${esc(l.trav)}</span>`);
+  } else if(l.trav && AV[l.trav]) chips.push(`<span class="mini-av" style="background:${AV[l.trav][1]}">${AV[l.trav][0]}</span>`);
+  const prepBadge=l.prep?`<span class="prepbadge">🔧 ${l.prep}</span>`:'';
+  const sub=l.packedBy?`gepackt von ${l.packedBy}`:(groupMode!=='cont'&&l.cont!=='—'?l.cont:(l.unit?`${l.qty} ${l.unit}`:''));
+  return `<div class="swipe" data-id="${l.key}">
     <div class="swipe-bg left">Packen ✓</div>
     <div class="swipe-bg right">Überspringen</div>
-    <div class="swipe-inner li ${isDone(it)?'done':''}">
+    <div class="swipe-inner li ${leafDone(l)?'done':''}">
       ${isCheckbox?ctrl:''}
-      <div class="grow"><div class="name row">${esc(it.name)}${prepBadge}</div>${sub?`<div class="desc">${esc(sub)}</div>`:''}</div>
+      <div class="grow"><div class="name row">${esc(l.name)}${prepBadge}</div>${sub?`<div class="desc">${esc(sub)}</div>`:''}</div>
       <div style="display:flex;align-items:center;gap:8px">${chips.join('')}${isCheckbox?'':ctrl}</div>
     </div></div>`;
 }
+// variant B: a per-person cluster — item named once, one indented child row per traveler
+function ppChildHTML(l){
+  const isCheckbox=l.qty===1, ctrl=ctrlHTML(l), av=AV[l.trav]||['?','var(--s2)'];
+  const sub=l.packedBy?`gepackt von ${l.packedBy}`:(l.qty>1?`${l.packed}/${l.qty} gepackt`:'');
+  return `<div class="swipe" data-id="${l.key}">
+    <div class="swipe-bg left">Packen ✓</div>
+    <div class="swipe-bg right">Überspringen</div>
+    <div class="swipe-inner li ppkid ${leafDone(l)?'done':''}">
+      ${isCheckbox?ctrl:''}
+      <span class="mini-av" style="background:${av[1]}">${av[0]}</span>
+      <div class="grow"><div class="name">${esc(l.trav)}</div>${sub?`<div class="desc">${esc(sub)}</div>`:''}</div>
+      ${isCheckbox?'':ctrl}
+    </div></div>`;
+}
+function clusterHTML(it, sibs){
+  const vis=showDone?sibs:sibs.filter(l=>!leafDone(l));
+  if(!vis.length) return '';                         // all instances done → cluster gone
+  const doneN=sibs.filter(leafDone).length;
+  const modeChip=MODE[it.mode]?`<span class="chip ${MODE[it.mode][1]}">${MODE[it.mode][0]}</span>`:'';
+  return `<div class="ppcluster">
+    <div class="pphead"><span class="ppname">${esc(it.name)}</span>${modeChip}<span class="ppcount">${doneN}/${sibs.length}</span></div>
+    <div class="ppkids">${vis.map(ppChildHTML).join('')}</div></div>`;
+}
+// render one group's body (FR-25.1): per-person items become a named cluster with one
+// child row per traveler; regular items — and any per-person item with a single leaf in
+// this group (e.g. when grouped by person) — render as a flat row.
+function groupBodyHTML(groupLeaves){
+  const byParent=new Map();
+  groupLeaves.forEach(l=>{ if(l.ppIndex!=null){ const a=byParent.get(l.it.id)||[]; a.push(l); byParent.set(l.it.id,a);} });
+  const emitted=new Set(); let html='';
+  for(const l of groupLeaves){
+    if(l.ppIndex!=null && byParent.get(l.it.id).length>=2){   // cluster only when ≥2 siblings share this group
+      if(emitted.has(l.it.id)) continue;
+      emitted.add(l.it.id); html+=clusterHTML(l.it, byParent.get(l.it.id));
+    } else {
+      if(!showDone && leafDone(l)) continue;
+      html+=leafRowHTML(l);
+    }
+  }
+  return html;
+}
 
 function renderPack(){
-  const total=P.items.length, done=P.items.filter(i=>i.packed>=i.qty).length;
+  const L=allLeaves();
+  const total=L.length, done=L.filter(l=>l.packed>=l.qty).length;
   const openPrep=P.prep.filter(p=>!p.done).length;
   const shopN=P.items.filter(i=>MODE[i.mode]).length;
 
@@ -931,17 +1008,19 @@ function renderPack(){
   const qa=document.getElementById('qaTrigger');
   qa.style.display=qa.classList.contains('qa-open')?'':'none';
 
-  // grouped list — fully-packed rows drop out unless the toggle is on
+  // grouped list — runs on leaves; fully-packed rows drop out unless the toggle is on
   const groups={};
-  P.items.forEach(it=>{const k=groupKey(it);(groups[k]=groups[k]||[]).push(it);});
-  const doneN=P.items.filter(isDone).length;
+  L.forEach(l=>{const k=groupKey(l);(groups[k]=groups[k]||[]).push(l);});
+  const doneN=L.filter(leafDone).length;
   const order=Object.keys(groups);
   const groupsHTML = order.map(k=>{
     const all=groups[k];
-    const vis=showDone?all:all.filter(i=>!isDone(i));
+    const vis=showDone?all:all.filter(l=>!leafDone(l));
     if(!vis.length) return '';                 // whole group packed → header gone too
-    return `<div class="grouphead">${esc(k)}<span class="n">${all.filter(isDone).length}/${all.length}</span></div>
-     <div class="card">${vis.map(itemRowHTML).join('')}</div>`;
+    const body=groupBodyHTML(all);
+    if(!body) return '';
+    return `<div class="grouphead">${esc(k)}<span class="n">${all.filter(leafDone).length}/${all.length}</span></div>
+     <div class="card">${body}</div>`;
   }).join('');
   const toggle = doneN ? `<div class="donebar ${showDone?'on':''}" id="doneToggle">
       <svg viewBox="0 0 24 24"><use href="#i-check"/></svg>
@@ -976,7 +1055,7 @@ function applyPackChrome(){
 }
 
 // animate a just-completed row out of the list, then re-render; snackbar offers undo
-function packAway(row, it, prevPacked){
+function packAway(row, name, undo){
   if(!row){ renderPack(); return; }
   row.classList.add('packing-out');
   row.style.height=row.offsetHeight+'px';
@@ -985,7 +1064,7 @@ function packAway(row, it, prevPacked){
   let fired=false;
   const finish=()=>{ if(fired)return; fired=true;
     renderPack();
-    snack('„'+it.name+'“ gepackt ✓', ()=>{ it.packed=prevPacked; renderPack(); }); };
+    snack('„'+name+'“ gepackt ✓', ()=>{ undo(); renderPack(); }); };
   // only the outer row's height transition ends the animation (inner fade bubbles up too)
   row.addEventListener('transitionend',e=>{ if(e.target===row && e.propertyName==='height') finish(); });
   setTimeout(finish,820);                    // fallback if transitionend is missed
@@ -1002,12 +1081,14 @@ function bindPack(){
       e.stopPropagation();
       const a=el.dataset.act;
       if(a==='prep'){P.prep[+el.dataset.i].done=!P.prep[+el.dataset.i].done; const wasOpen=document.getElementById('secPrep').classList.contains('open'); renderPack(); if(wasOpen)document.getElementById('secPrep').classList.add('open'); return;}
-      const it=P.items.find(x=>x.id==el.dataset.id); if(!it)return;
-      const prev=it.packed, wasDone=isDone(it);
-      if(a==='inc') it.packed=Math.min(it.qty,it.packed+1);
-      if(a==='dec') it.packed=Math.max(0,it.packed-1);
-      if(a==='check') it.packed=it.packed>=it.qty?0:it.qty;
-      if(isDone(it) && !wasDone && !showDone) packAway(el.closest('.swipe'), it, prev);
+      const {it,e:ent}=resolveLeaf(el.dataset.id); if(!it)return;
+      const tgt=ent||it;                                 // mutate the per-person entry or the plain item
+      const prev=tgt.packed, wasDone=(tgt.packed>=tgt.qty && !tgt.prep);
+      if(a==='inc') tgt.packed=Math.min(tgt.qty,tgt.packed+1);
+      if(a==='dec') tgt.packed=Math.max(0,tgt.packed-1);
+      if(a==='check') tgt.packed=tgt.packed>=tgt.qty?0:tgt.qty;
+      const nowDone=(tgt.packed>=tgt.qty && !tgt.prep);
+      if(nowDone && !wasDone && !showDone) packAway(el.closest('.swipe'), ent?it.name+' · '+ent.trav:it.name, ()=>{tgt.packed=prev;});
       else renderPack();
     };
   });
@@ -1015,7 +1096,7 @@ function bindPack(){
   document.querySelectorAll('.swipe').forEach(sw=>attachSwipe(sw));
   // row tap → M5 (only if not swiped)
   document.querySelectorAll('#packList .swipe-inner').forEach(inner=>{
-    inner.addEventListener('click',e=>{ if(inner.dataset.swiped)return; if(e.target.closest('[data-act]'))return; openItem(inner.closest('.swipe').dataset.id); });
+    inner.addEventListener('click',e=>{ if(inner.dataset.swiped)return; if(e.target.closest('[data-act]'))return; const it=resolveLeaf(inner.closest('.swipe').dataset.id).it; if(it) openItem(it.id); });
   });
 }
 
@@ -1037,12 +1118,14 @@ function attachSwipe(sw){
       if(dx>T){ const s=P.skipped.splice(+sw.dataset.skip,1)[0];
         P.items.push({id:nextId++,name:s.name,cat:'Wieder aufgenommen',qty:1,packed:0,mode:'pack',trav:'Alle',cont:'—'}); renderPack(); return; }
     } else {
-      const it=P.items.find(x=>x.id==sw.dataset.id);
-      if(dx>T && it){ const prev=it.packed, wasDone=isDone(it); it.packed=it.qty;   // swipe right → Packen
-        if(isDone(it)&&!wasDone&&!showDone){ packAway(sw,it,prev); return; }
+      const {it,e}=resolveLeaf(sw.dataset.id);
+      if(dx>T && it){ const tgt=e||it, prev=tgt.packed, wasDone=(tgt.packed>=tgt.qty&&!tgt.prep); tgt.packed=tgt.qty;   // swipe right → Packen
+        if(tgt.packed>=tgt.qty && !tgt.prep && !wasDone && !showDone){ packAway(sw, e?it.name+' · '+e.trav:it.name, ()=>{tgt.packed=prev;}); return; }
         renderPack(); return; }
-      if(dx<-T && it){ P.items=P.items.filter(x=>x!==it);
-        P.skipped.push({name:it.name,reason:'bewusst übersprungen'}); renderPack(); const o=document.getElementById('secSkip'); return; }
+      if(dx<-T && it){                                                              // swipe left → überspringen
+        if(e){ const nm=it.name+' · '+e.trav; it.pp.splice(it.pp.indexOf(e),1); if(!it.pp.length) P.items=P.items.filter(x=>x!==it); P.skipped.push({name:nm,reason:'bewusst übersprungen'}); }
+        else { P.items=P.items.filter(x=>x!==it); P.skipped.push({name:it.name,reason:'bewusst übersprungen'}); }
+        renderPack(); return; }
     }
     inner.style.transform='';                       // snap back
     setTimeout(()=>{delete inner.dataset.swiped;},0);
@@ -1141,7 +1224,9 @@ function optHTML(val,cur,act){ return AV[val]
   : `<button class="opt ${val===cur?'sel':''}" data-act="${act}" data-v="${val}">${val==='—'?'ohne':val}</button>`; }
 
 function renderItem(){
-  const it=P.items.find(x=>x.id==curItem); if(!it)return;
+  const raw=P.items.find(x=>x.id==curItem); if(!raw)return;
+  // per-person parent → derived aggregate view for M5 (full per-person M5 is out of this mockup's scope)
+  const it=raw.pp ? {...raw, qty:raw.pp.reduce((a,e)=>a+e.qty,0), packed:raw.pp.reduce((a,e)=>a+e.packed,0), trav:'Alle', packedBy:''} : raw;
   const full=it.packed>=it.qty;
   const state=it.packed===0?['Offen','var(--o1)']:(full?(it.prep?['Gepackt · Prep offen','var(--peach)']:['Gepackt','var(--green)']):['Teilweise','var(--yellow)']);
   const stepper=it.qty===1
