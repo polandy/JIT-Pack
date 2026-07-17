@@ -157,12 +157,12 @@ die Checkboxen sind deine Prüfpunkte.</p>
     <div class="chead"><span class="mid">M5</span><span class="cname">Artikel-Detail (Sheet)</span><span class="status">TESTEN</span></div>
     <div class="path"><b>Pfad:</b> Zeile in M4 antippen · schließen: Griff nach unten ziehen</div>
     <ul class="check">
-      <li>„Verwendet von“ (Reisende) vs. „Gepackt von“ (Person) getrennt</li>
-      <li>Modus Vor Abreise → „Jetzt gekauft“ mit Undo-Snackbar</li>
-      <li>Verlaufs-Sparkline (’23–’25); Vorbereitungen hinzufügen/abhaken</li>
-      <li>Kommentar „als Aufgabe markieren“ → wird Vorbereitung (Zähler in M4)</li>
+      <li><b>Aufgeräumt via Progressive Disclosure (18.07.):</b> Ebene 1 = Kopf + kompakte Übersichts-Chips + Vorbereitung + Kommentare (mit Eingabefeld); alles Weitere hinter „Details ▾“</li>
+      <li><b>„Verwendet von“ entfernt (18.07.):</b> stattdessen „Wer braucht das?“ — Gemeinsam / Reisende-Mehrfachauswahl; Person hinzufügen legt eine eigene Packlisten-Zeile an (z. B. Sonnenbrille für Leonardo → FR-25.1/25.10)</li>
+      <li>Delegieren rücknehmbar: „Gepackt von“ hat ein „niemand“; Modus-Labels 🧳🛒📍, Später-Packer als ⏰-Flag</li>
+      <li>Modus Vorher kaufen → „Jetzt gekauft“ mit Undo-Snackbar; Verlaufs-Sparkline; Vorbereitungen hinzufügen/abhaken; Kommentar „als Aufgabe“ → Vorbereitung</li>
     </ul>
-    <div class="todo"><b>TODO</b> · Delegieren klar rücknehmbar machen · Kommentar-Eingabefeld ergänzen · Container-Zuweisung optional &amp; Default „ohne“ (entprominenter) · Modus-Labels klären, Später-Packer als eigenes Flag (§3.25, 17.07.).</div>
+    <div class="todo"><b>Erledigt (§3.25, 18.07.):</b> Delegieren rücknehmbar, Kommentar-Eingabefeld, Container optional hinter „Details“, Modus-Labels + Später-Packer-Flag, Progressive Disclosure. — Zu klären: Shopping-„für wen“ (FR-25.6) neu denken, da „Used by“ raus (FR-25.10); Prototyp-Bugfix: `bindPack` band `[data-act]` dokumentweit und überschrieb die Sheet-Handler (jetzt auf M4-Container begrenzt).</div>
   </div>
 
   <div class="card done">

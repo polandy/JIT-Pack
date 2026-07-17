@@ -417,6 +417,17 @@ body{
 .addprep{display:flex;gap:8px;margin-top:8px}
 .addprep input{flex:1;background:var(--mantle);border:1px solid var(--s1);border-radius:11px;color:var(--text);font:500 13.5px var(--ui);padding:9px 11px;outline:none}
 .addprep input:focus{border-color:var(--blue)}
+/* progressive disclosure (M5): compact glance chips + a Details toggle over the advanced blocks */
+.metarow{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:12px 0 4px}
+.mchip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:5px 10px;border-radius:9px;background:var(--mantle);border:1px solid var(--s0);color:var(--sub1)}
+.mchip .mini-av{width:18px;height:18px;font-size:9px}
+.mchip.buy{background:rgba(250,179,135,.15);color:var(--peach);border-color:transparent}
+.mchip.loc{background:rgba(137,180,250,.15);color:var(--blue);border-color:transparent}
+.mchip.late{background:rgba(249,226,175,.16);color:var(--yellow);border-color:transparent}
+.detbtn{margin-left:auto;display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--sub0);background:none;border:1px solid var(--s0);border-radius:20px;padding:5px 12px}
+.detbtn .car{transition:transform .2s;font-size:10px}
+.detbtn.on .car{transform:rotate(180deg)}
+.detwrap{border-top:1px solid var(--s0);margin-top:10px;padding-top:2px;animation:rise .2s ease}
 
 /* ---------- M3 creation wizard ---------- */
 .wiz-steps{display:flex;gap:6px;padding:4px 2px 12px}
@@ -908,6 +919,8 @@ const P = {
       {trav:'Andy',qty:1,packed:0},{trav:'Sia',qty:1,packed:0},{trav:'Leonardo',qty:1,packed:0}]},
     {id:18,name:'Kurze Hosen',cat:'Kleidung',mode:'pack',cont:'Koffer',w:200,pp:[
       {trav:'Andy',qty:2,packed:2,packedBy:'Andy'},{trav:'Sia',qty:1,packed:0},{trav:'Leonardo',qty:3,packed:1,packedBy:'Sia'}]},
+    {id:19,name:'Sonnenbrille',cat:'Kleidung',mode:'pack',cont:'Koffer',w:30,pp:[
+      {trav:'Andy',qty:1,packed:0},{trav:'Sia',qty:1,packed:0}]},
     {id:5,name:'Sonnencreme',cat:'Bad',qty:1,packed:0,mode:'buy_local',trav:'Alle',cont:'—',w:150,cons:true},
     {id:6,name:'Taschentücher',cat:'Bad',qty:4,packed:1,mode:'pack',trav:'Alle',cont:'Kulturbeutel',w:40,cons:true,packedBy:'Sia',late:true},
     {id:7,name:'Velohelme',cat:'Aktivität',qty:2,packed:1,mode:'pack',trav:'Alle',cont:'Auto',w:300,packedBy:'Andy'},
@@ -976,9 +989,9 @@ function leafRowHTML(l){
   const isCheckbox=l.qty===1, ctrl=ctrlHTML(l);
   const chips=[];
   if(l.missing) chips.push(`<span class="chip warm">fehlt</span>`);
-  if(l.ppIndex!=null){ const av=AV[l.trav]||['?','var(--s2)'];
+  if(l.ppIndex!=null){ const av=AV[l.trav]||['?','var(--s2)'];   // per-person leaf keeps its owner avatar
     chips.push(`<span class="whochip"><span class="mini-av" style="background:${av[1]}">${av[0]}</span>${esc(l.trav)}</span>`);
-  } else if(l.trav && AV[l.trav]) chips.push(`<span class="mini-av" style="background:${AV[l.trav][1]}">${AV[l.trav][0]}</span>`);
+  }   // "Used by" attribution avatar on shared rows removed (concept dropped 2026-07-18)
   const prepBadge=l.prep?`<span class="prepbadge">🔧 ${l.prep}</span>`:'';
   const sub=(groupMode!=='cont'&&l.cont!=='—'?l.cont:(l.unit?`${l.qty} ${l.unit}`:''));  // packer now shown as an avatar (FR-25.3), not text
   return `<div class="swipe" data-id="${l.key}">
@@ -1136,8 +1149,9 @@ function bindPack(){
     renderPack();
   });
   const dt=document.getElementById('doneToggle'); if(dt) dt.onclick=()=>{ showDone=!showDone; renderPack(); };
-  // stepper / check / prep taps
-  document.querySelectorAll('[data-act]').forEach(el=>{
+  // stepper / check / prep taps — scoped to the M4 regions so it never rebinds the M5 sheet's
+  // own [data-act] handlers (renderPack runs after sheet actions; a document-wide select clobbered them)
+  document.querySelectorAll('#packList [data-act], #prepList [data-act]').forEach(el=>{
     el.onclick=(e)=>{
       e.stopPropagation();
       const a=el.dataset.act;
@@ -1272,17 +1286,36 @@ function addQuick(name,cat){
 const TRAVELERS=['Alle','Andy','Sia','Leonardo'];
 const USERS=['Andy','Sia'];
 const CONTAINERS=['Koffer 1','Koffer 2','Rucksack','Kulturbeutel','—'];
-const MODES=[['pack','Packen'],['buy_before','Vor Abreise'],['buy_local','Vor Ort']];
+const MODES=[['pack','🧳 Packen'],['buy_before','🛒 Vorher'],['buy_local','📍 Vor Ort']];  // FR-25.4 clarified labels
 const HIST={1:[['’24',6],['’25',6],['’26',6]],2:[['’24',3],['’25',3],['’26',3]],7:[['’25',2],['’26',2]]};
 const COMMENTS={
   10:[{who:'Sia',text:'Offline-Karten nicht vergessen — auf der Alp kein Netz.',task:true},{who:'Andy',text:'Tastatur-Akku war letztes Mal leer.',task:false}],
   15:[{who:'Sia',text:'Leonardo will das Wimmelbuch mit.',task:false}],
 };
 let curItem=null;
+let sheetDetails=false;   // progressive disclosure — advanced blocks collapsed by default
 
 function optHTML(val,cur,act){ return AV[val]
   ? `<span class="mini-av pk ${val===cur?'sel':''}" style="background:${AV[val][1]};width:28px;height:28px;font-size:12px" data-act="${act}" data-v="${val}">${AV[val][0]}</span>`
   : `<button class="opt ${val===cur?'sel':''}" data-act="${act}" data-v="${val}">${val==='—'?'ohne':val}</button>`; }
+
+// "Used by" (attribution) is removed. What stays is *who needs the item* (FR-1.4/25.1):
+// empty set = one shared row for everyone ("Gemeinsam"); any travelers = one own,
+// independently-packable row per person (adding Leonardo puts a row on his list).
+function neededSet(raw){ return raw.pp ? new Set(raw.pp.map(e=>e.trav)) : new Set(); }
+function setNeededBy(raw, sel){
+  const people=[...sel];
+  if(people.length===0){                              // shared — one row for all
+    if(raw.pp) delete raw.pp;
+    raw.trav='Alle'; if(raw.qty==null) raw.qty=1; if(raw.packed==null) raw.packed=0;
+  } else {                                            // per-person — one row each (1..N)
+    const prior = raw.pp ? new Map(raw.pp.map(e=>[e.trav,e])) : new Map();
+    const flatSeed = (!raw.pp && raw.trav && raw.trav!=='Alle')
+      ? {trav:raw.trav, qty:raw.qty??1, packed:raw.packed??0} : null;
+    raw.pp = people.map(t => prior.get(t) || (flatSeed && flatSeed.trav===t ? flatSeed : {trav:t, qty:1, packed:0}));
+    delete raw.trav; delete raw.packedBy; delete raw.qty; delete raw.packed;
+  }
+}
 
 function renderItem(){
   const raw=P.items.find(x=>x.id==curItem); if(!raw)return;
@@ -1299,23 +1332,44 @@ function renderItem(){
   const comm=(COMMENTS[it.id]||[]);
   const prepItems=P.prep.map((p,i)=>({p,i})).filter(o=>o.p.item===it.name);
 
-  document.getElementById('sheetBody').innerHTML=`
-    <div class="ihead"><div class="grow"><div class="iname">${esc(it.name)}</div>
-      <div class="desc">${esc(it.cat)}${it.unit?' · '+it.unit:''} · <span style="color:${state[1]};font-weight:600">${state[0]}</span></div></div>
-      ${stepper}</div>
+  // level-1 glance chips (read-only summary of the advanced blocks)
+  const mm=MODE[it.mode], meta=[];
+  meta.push(raw.pp
+    ? `<span class="mchip">Für ${raw.pp.map(e=>e.trav).join(', ')}</span>`
+    : `<span class="mchip">Gemeinsam</span>`);
+  meta.push(it.mode==='pack'
+    ? `<span class="mchip">Packen</span>`
+    : `<span class="mchip ${it.mode==='buy_before'?'buy':'loc'}">${mm.icon} ${mm.label} kaufen</span>`);
+  if(it.cont && it.cont!=='—') meta.push(`<span class="mchip">Gepäck · ${esc(it.cont)}</span>`);
+  if(it.late) meta.push(`<span class="mchip late">⏰ Später</span>`);
+  if(it.packed>=1 && it.packedBy && AV[it.packedBy]) meta.push(`<span class="mchip"><span class="mini-av" style="background:${AV[it.packedBy][1]};box-shadow:0 0 0 1.5px var(--green)">${AV[it.packedBy][0]}</span>gepackt</span>`);
 
-    <div class="assign"><div class="lbl">Verwendet von · Reisende</div>
-      <div class="pickrow">${TRAVELERS.map(t=>optHTML(t,it.trav,'trav')).join('')}</div></div>
+  // level-2 advanced blocks, revealed only on demand (progressive disclosure)
+  // "Wer braucht das?" — multi-select over travelers; adding a person adds their own list row
+  const sel=neededSet(raw), shared=sel.size===0, PEOPLE=['Andy','Sia','Leonardo'];
+  const needRow=`<button class="opt ${shared?'sel':''}" data-act="needby" data-v="__all">Gemeinsam</button>`+
+    PEOPLE.map(t=>`<span class="mini-av pk ${sel.has(t)?'sel':''}" style="background:${AV[t][1]};width:28px;height:28px;font-size:12px" data-act="needby" data-v="${t}" title="${t}">${AV[t][0]}</span>`).join('');
+  const missing=PEOPLE.filter(t=>!sel.has(t));
+  const needHint = shared
+    ? 'Gemeinsam — eine Zeile für alle.'
+    : `Je eine eigene Zeile für: <b style="color:var(--sub1)">${[...sel].join(', ')}</b>.`+
+      (missing.length?` <span style="color:var(--o1)">Antippen legt auch ${missing.join(' / ')} eine auf die Liste.</span>`:'');
+
+  const details=`<div class="detwrap">
+    <div class="assign"><div class="lbl">Wer braucht das?</div>
+      <div class="pickrow">${needRow}</div>
+      <div class="tiny" style="margin-top:9px;color:var(--sub0)">${needHint}</div></div>
 
     <div class="assign packer"><div class="lbl">Gepackt von · Person</div>
       <div class="pickrow">${USERS.map(u=>optHTML(u,it.packedBy||'','packer')).join('')}
+        <button class="opt ${!it.packedBy?'sel':''}" data-act="packer" data-v="">niemand</button>
         <span class="tiny muted" style="margin-left:4px">Delegieren löst Push aus (FR-6.2)</span></div></div>
 
     <div class="section-h">Modus</div>
     <div class="seg">${MODES.map(m=>`<button class="${m[0]===it.mode?'sel':''}" data-act="mode" data-v="${m[0]}">${m[1]}</button>`).join('')}</div>
     ${it.mode==='buy_before'?`<button class="buynow" data-act="buynow">Jetzt gekauft → auf „Packen“</button>`:''}
 
-    <div class="section-h">Gepäck</div>
+    <div class="section-h">Gepäck · optional</div>
     <div class="pickrow">${CONTAINERS.map(c=>optHTML(c,it.cont,'cont')).join('')}</div>
 
     <div class="toggle" style="border-top:1px solid var(--s0);margin-top:14px">
@@ -1327,6 +1381,16 @@ function renderItem(){
       <span class="flagchip ${it.missing?'on':''}" data-act="flag" data-v="missing">Fehlt</span></div>
 
     <div class="section-h">Verlauf · frühere Reisen der Serie</div>${spark}
+  </div>`;
+
+  document.getElementById('sheetBody').innerHTML=`
+    <div class="ihead"><div class="grow"><div class="iname">${esc(it.name)}</div>
+      <div class="desc">${esc(it.cat)}${it.unit?' · '+it.unit:''} · <span style="color:${state[1]};font-weight:600">${state[0]}</span></div></div>
+      ${stepper}</div>
+
+    <div class="metarow">${meta.join('')}
+      <button class="detbtn ${sheetDetails?'on':''}" data-act="details">${sheetDetails?'Weniger':'Details'}<span class="car">▾</span></button></div>
+    ${sheetDetails?details:''}
 
     <div class="section-h">Vorbereitung</div>
     ${prepItems.length?prepItems.map(o=>`<div class="li" style="padding-left:0;padding-right:0">
@@ -1340,6 +1404,7 @@ function renderItem(){
       <div class="bub"><div class="who">${c.who}</div><div class="txt">${esc(c.text)}</div>
       <span class="tflag ${c.task?'on':''}" data-act="commtask" data-ci="${ci}">🔧 ${c.task?'ist Aufgabe':'als Aufgabe markieren'}</span></div></div>`).join('')
       :'<div class="tiny muted">Noch keine Kommentare.</div>'}
+    <div class="addprep"><input id="commInput" placeholder="Kommentar schreiben…" autocomplete="off"><button class="opt" data-act="commadd">Senden</button></div>
   `;
   bindSheet(it);
 }
@@ -1351,7 +1416,8 @@ function bindSheet(it){
       if(a==='inc') it.packed=Math.min(it.qty,it.packed+1);
       else if(a==='dec') it.packed=Math.max(0,it.packed-1);
       else if(a==='check') it.packed=it.packed>=it.qty?0:it.qty;
-      else if(a==='trav') it.trav=v;
+      else if(a==='needby'){ const raw=P.items.find(x=>x.id==curItem); const s=neededSet(raw);
+        if(v==='__all') s.clear(); else (s.has(v)?s.delete(v):s.add(v)); setNeededBy(raw,s); }
       else if(a==='packer') it.packedBy=(it.packedBy===v?null:v);
       else if(a==='mode') it.mode=v;
       else if(a==='cont') it.cont=v;
@@ -1361,14 +1427,18 @@ function bindSheet(it){
       else if(a==='prepdone'){ P.prep[+el.dataset.i].done=!P.prep[+el.dataset.i].done; }
       else if(a==='prepadd'){ const inp=document.getElementById('prepInput'); if(inp.value.trim()){ P.prep.push({item:it.name,task:inp.value.trim(),who:'Andy',done:false}); it.prep=(it.prep||0)+1; } }
       else if(a==='commtask'){ const c=COMMENTS[it.id][+el.dataset.ci]; c.task=!c.task; if(c.task){ P.prep.push({item:it.name,task:c.text,who:c.who,done:false}); it.prep=(it.prep||0)+1; } }
+      else if(a==='details'){ sheetDetails=!sheetDetails; }
+      else if(a==='commadd'){ const ci=document.getElementById('commInput'); if(ci.value.trim()){ (COMMENTS[it.id]=COMMENTS[it.id]||[]).push({who:'Andy',text:ci.value.trim(),task:false}); } }
       renderItem(); renderPack();
     };
   });
   const inp=document.getElementById('prepInput');
   if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&inp.value.trim()){ P.prep.push({item:it.name,task:inp.value.trim(),who:'Andy',done:false}); it.prep=(it.prep||0)+1; renderItem(); renderPack(); }});
+  const cinp=document.getElementById('commInput');
+  if(cinp) cinp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&cinp.value.trim()){ (COMMENTS[it.id]=COMMENTS[it.id]||[]).push({who:'Andy',text:cinp.value.trim(),task:false}); renderItem(); }});
 }
 
-function openItem(id){ curItem=id; renderItem();
+function openItem(id){ curItem=id; sheetDetails=false; renderItem();
   document.getElementById('sheetScrim').classList.add('open');
   document.getElementById('itemSheet').classList.add('open');
   document.getElementById('itemSheet').style.transform=''; }
