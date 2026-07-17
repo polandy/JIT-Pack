@@ -2,7 +2,7 @@
 
 **Document Status:** Accepted
 **Supersedes:** Addendum v2.9 (removes Demo Mode entirely — FR-17.6–17.10, FR-17.12, NFR-4.10 — since no public demo deployment is planned; Single-User Mode is unaffected, and NFR-4.9 is rewritten without the demo passphrase. FR/NFR numbering is kept stable with removal stubs; no other changes)
-**Scope:** New functional sections 3.10–3.23 (accepted) plus **3.24 (proposed, item tags & master-item lifecycle)** and **3.25 (proposed, packing-screen M2/M4/M5/M6/M8 refinements)**, clarifications to existing FRs, and refined/added NFRs (incl. **NFR-4.12 i18n, proposed**). Numbering continues the base PRD.
+**Scope:** New functional sections 3.10–3.23 (accepted) plus **3.24 (proposed, item tags & master-item lifecycle)**, **3.25 (proposed, packing-screen M2/M4/M5/M6/M8 refinements)** and **3.26 (proposed, calendar-reminder iCalendar subscription — Variant B)**, clarifications to existing FRs, and refined/added NFRs (incl. **NFR-4.12 i18n, proposed**). Numbering continues the base PRD.
 **Forward direction (non-binding):** A north-star expansion of the product beyond packing — into a full family vacation companion (idea board, scheduling, live during-trip collaboration) — is captured in `Vision_NorthStar_v1.0.md`. It adds no FRs/NFRs here and does not change any scope below; clusters graduate into numbered sections only when picked up, and packing ships first.
 
 ---
@@ -233,6 +233,19 @@ JIT provisioning (Section 2) means every account that exists at the IdP gets ful
 * **M5 comment entry:** the comment/task thread (FR-7.1) needs a **visible composer** to add a comment from the detail screen.
 * **M5 preparation lifecycle:** make explicit what happens to an item's *Preparation todos* (FR-7.3) — added, resolved/reopened, and that an item can be *packed with open prep* (amber) — so the section is self-explanatory.
 * **M2 default ordering:** trips are **sorted by date, newest first**, *not* grouped by series by default (series grouping becomes an optional view). Refines the M2 presentation under FR-2.1.
+
+### 3.26 Calendar Reminders (iCalendar Subscription)
+
+**Status: proposed** (idea captured 2026-07-18) — **not yet implemented** (no schema, no code, no UI). Direction chosen: a **read-only iCalendar subscription feed (Variant B)**, deliberately *not* a writing CalDAV push. Relates to the North-Star "Prepare" phase (`Vision_NorthStar_v1.0.md`). Details below are the intent; the open questions must be resolved before this moves to *accepted*.
+
+* **FR-26.1 (Calendar Reminder Feed):** JIT-Pack exposes, per user, a stable **read-only iCalendar (`.ics`) subscription URL** (`webcal://…`) that the user subscribes to **once** in their calendar app (Apple / Google / Nextcloud / Thunderbird / …). The calendar client *pulls* the feed on its own sync schedule; JIT-Pack **never writes into, nor authenticates against, the user's calendar**. Rationale for choosing this over a writing CalDAV integration: it keeps the app offline-first and self-hosted, stores no third-party calendar credentials, and adds **no outbound network from the JIT-Pack server** — so it **does not trip ADR-007** (that gate concerns JIT-Pack *fetching* external content; here JIT-Pack is the one being fetched, read-only). Trade-off accepted: no actively-pushed alarms and updates appear only at the calendar client's next sync, not instantly.
+* **FR-26.2 (What becomes an event — to specify):** candidate sources: **(a)** a trip's **departure date** → an all-day "Für &lt;Trip&gt; packen" event; **(b)** **preparation todos** (FR-7.3) that carry a due date; **(c)** the **late-packer** departure-day reminder (FR-5.1). The exact set is open — likely (a) first, (b)/(c) as opt-ins.
+* **FR-26.3 (Lead time / VALARM — to specify):** each event carries a configurable reminder **lead time** (e.g. a `VALARM` at −1 day). Default value and whether it is per-source configurable are open.
+* **FR-26.4 (Feed scope & security):** the feed URL embeds an **unguessable, revocable per-user token** (bearer capability — no login in the calendar client, rotatable if leaked). Multi-user: **each member gets their own feed**, visibility-filtered to that member's trips (mirrors the sync visibility rules). Whether a *shared per-trip* calendar is additionally offered is open (FR-26.2/26.4 interact).
+* **FR-26.5 (Stable event identity):** each event uses a **deterministic `UID`** derived from its source (trip id / todo id) so the feed updates **in place** — changing a trip's dates moves the event, removing the source drops it — on the calendar client's next pull. No duplicate events on re-sync.
+* **FR-26.6 (Local Mode — no server, no feed):** Local Mode (3.19) has no server to host a subscription URL, so the live feed is a **Server-Mode-only** feature (FR-19.3-style gating). Local Mode instead offers a one-tap **`.ics` file download** (like the portable-YAML backup, FR-18.2) that the user imports into their calendar manually — non-live, but serverless-consistent.
+
+**Open questions to resolve before *accepted*:** exact trigger set (FR-26.2); default lead time(s) (FR-26.3); per-member vs. additional shared trip calendar (FR-26.4); feed refresh cadence expectations to document for users (calendar clients poll on their own, often only every few hours).
 
 ## Part B — Clarifications & Extensions to Existing Sections
 

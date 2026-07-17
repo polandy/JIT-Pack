@@ -79,6 +79,11 @@ Unordered within a phase; each is a future PRD-Addendum candidate, not a commitm
   help judge feasibility.
 
 ### 3.2 Plan / During — Scheduling
+- **Calendar reminders (Prepare).** Surface packing/prep deadlines in the user's own calendar via a
+  **read-only iCalendar subscription feed** — captured as proposed **PRD-Addendum §3.26 / FR-26**
+  (Variant B). Note: because the feed is *pulled* by the calendar client (JIT-Pack writes nothing
+  outbound), this one **does not depend on ADR-007** — unlike the fetch/weather features in §4.2 — so
+  it can proceed independently of the Plan-phase gate.
 - **Transport / timetable.** Attach a connection ("Fahrplan") to an idea or activity.
 - **Weekday proposal.** Propose an activity for a specific day, weather-permitting.
 - **Weather suitability.** Tag an activity (sunny / rain-proof / indifferent); the app suggests
