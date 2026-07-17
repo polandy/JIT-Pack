@@ -309,6 +309,12 @@ body{
 .donebar.on{color:var(--text);border-style:solid}
 .donebar svg{width:16px;height:16px;fill:currentColor}
 .mini-av{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;color:var(--crust);flex:none}
+/* FR-25.3: who packed it — a packer circle on the right edge, green ring + check badge to
+   set it apart from the plain traveler mini-av ("for whom", left). */
+.packerav{position:relative;display:inline-flex;flex:none}
+.packerav .mini-av{box-shadow:0 0 0 1.6px var(--green)}
+.packerav::after{content:'✓';position:absolute;right:-3px;bottom:-3px;width:11px;height:11px;border-radius:50%;
+  background:var(--green);color:var(--crust);font-size:8px;font-weight:800;line-height:1;display:grid;place-items:center;box-shadow:0 0 0 1.4px var(--base)}
 
 /* quick add */
 .qa{display:flex;align-items:center;gap:10px;padding:13px 15px;color:var(--sub0);font-size:14px;cursor:text}
@@ -876,22 +882,22 @@ function resolveLeaf(key){
 let pvToolsOpen = false, lastPackScroll = 0, packHeadCollapsed = false;
 const P = {
   items:[
-    {id:1,name:'Wandersocken',cat:'Kleidung',qty:6,packed:4,unit:'Paar',mode:'pack',trav:'Alle',cont:'—',w:60},
-    {id:2,name:'Icebreaker Merino-Shirt',cat:'Kleidung',qty:3,packed:3,mode:'pack',trav:'Andy',cont:'Koffer',w:150},
-    {id:3,name:'Karierte kurze Hose',cat:'Kleidung',qty:2,packed:2,mode:'pack',trav:'Andy',cont:'Koffer',w:220},
+    {id:1,name:'Wandersocken',cat:'Kleidung',qty:6,packed:4,unit:'Paar',mode:'pack',trav:'Alle',cont:'—',w:60,packedBy:'Andy'},
+    {id:2,name:'Icebreaker Merino-Shirt',cat:'Kleidung',qty:3,packed:3,mode:'pack',trav:'Andy',cont:'Koffer',w:150,packedBy:'Andy'},
+    {id:3,name:'Karierte kurze Hose',cat:'Kleidung',qty:2,packed:2,mode:'pack',trav:'Andy',cont:'Koffer',w:220,packedBy:'Sia'},
     {id:4,name:'Regenjacke',cat:'Kleidung',mode:'pack',cont:'Rucksack',w:300,pp:[
       {trav:'Andy',qty:1,packed:1,packedBy:'Andy'},{trav:'Sia',qty:1,packed:0},{trav:'Leonardo',qty:1,packed:0}]},
     {id:17,name:'Badehose',cat:'Kleidung',mode:'pack',cont:'Koffer',w:80,pp:[
       {trav:'Andy',qty:1,packed:0},{trav:'Sia',qty:1,packed:0},{trav:'Leonardo',qty:1,packed:0}]},
     {id:18,name:'Kurze Hosen',cat:'Kleidung',mode:'pack',cont:'Koffer',w:200,pp:[
-      {trav:'Andy',qty:2,packed:2},{trav:'Sia',qty:1,packed:0},{trav:'Leonardo',qty:3,packed:1}]},
+      {trav:'Andy',qty:2,packed:2,packedBy:'Andy'},{trav:'Sia',qty:1,packed:0},{trav:'Leonardo',qty:3,packed:1,packedBy:'Sia'}]},
     {id:5,name:'Sonnencreme',cat:'Bad',qty:1,packed:0,mode:'buy_local',trav:'Alle',cont:'—',w:150,cons:true},
-    {id:6,name:'Taschentücher',cat:'Bad',qty:4,packed:1,mode:'pack',trav:'Alle',cont:'Kulturbeutel',w:40,cons:true},
-    {id:7,name:'Velohelme',cat:'Aktivität',qty:2,packed:1,mode:'pack',trav:'Alle',cont:'Auto',w:300},
+    {id:6,name:'Taschentücher',cat:'Bad',qty:4,packed:1,mode:'pack',trav:'Alle',cont:'Kulturbeutel',w:40,cons:true,packedBy:'Sia'},
+    {id:7,name:'Velohelme',cat:'Aktivität',qty:2,packed:1,mode:'pack',trav:'Alle',cont:'Auto',w:300,packedBy:'Andy'},
     {id:8,name:'Wanderstöcke',cat:'Aktivität',qty:1,packed:0,mode:'pack',trav:'Andy',cont:'Auto',w:500},
     {id:9,name:'Mehrfach-Stromstecker',cat:'Technik',qty:1,packed:1,mode:'pack',trav:'Alle',cont:'Rucksack',w:180,packedBy:'Sia'},
     {id:10,name:'iPad Pro + Tastatur',cat:'Technik',qty:1,packed:0,mode:'pack',trav:'Andy',cont:'Rucksack',w:600,prep:1},
-    {id:11,name:'Pass / ID',cat:'Dokumente',qty:3,packed:2,mode:'pack',trav:'Alle',cont:'Rucksack',w:20,prep:1},
+    {id:11,name:'Pass / ID',cat:'Dokumente',qty:3,packed:2,mode:'pack',trav:'Alle',cont:'Rucksack',w:20,prep:1,packedBy:'Sia'},
     {id:12,name:'Kaffee',cat:'Küche',qty:1,packed:0,mode:'buy_before',trav:'Alle',cont:'—',w:500},
     {id:13,name:'Bouillon · Salz · Pfeffer',cat:'Küche',qty:1,packed:0,mode:'pack',trav:'Alle',cont:'Küchenkiste',w:300},
     {id:14,name:'Leonardos Regenzeug',cat:'Für Leonardo',qty:1,packed:0,mode:'pack',trav:'Leonardo',cont:'Koffer',w:250},
@@ -925,6 +931,13 @@ function ctrlHTML(l){
     ? `<div class="check ${full?(amber?'amber on':'on'):''}" data-act="check" data-id="${l.key}"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>`
     : `<div class="stepper"><button data-act="dec" data-id="${l.key}">–</button><b>${l.packed}/${l.qty}</b><button data-act="inc" data-id="${l.key}">+</button></div>`;
 }
+// FR-25.3: packer attribution on the row — the avatar of who packed it, shown once anything is
+// packed. Distinct from the traveler avatar ("for whom") by the green ring + check badge (see CSS).
+function packerHTML(l){
+  if(l.packed<1 || !l.packedBy) return '';
+  const av=AV[l.packedBy]||['?','var(--s2)'];
+  return `<span class="packerav" title="gepackt von ${esc(l.packedBy)}"><span class="mini-av" style="background:${av[1]}">${av[0]}</span></span>`;
+}
 // a flat packing row (regular item, or a per-person leaf in variant A — then labelled "Name · Person")
 function leafRowHTML(l){
   const isCheckbox=l.qty===1, ctrl=ctrlHTML(l);
@@ -935,20 +948,20 @@ function leafRowHTML(l){
     chips.push(`<span class="whochip"><span class="mini-av" style="background:${av[1]}">${av[0]}</span>${esc(l.trav)}</span>`);
   } else if(l.trav && AV[l.trav]) chips.push(`<span class="mini-av" style="background:${AV[l.trav][1]}">${AV[l.trav][0]}</span>`);
   const prepBadge=l.prep?`<span class="prepbadge">🔧 ${l.prep}</span>`:'';
-  const sub=l.packedBy?`gepackt von ${l.packedBy}`:(groupMode!=='cont'&&l.cont!=='—'?l.cont:(l.unit?`${l.qty} ${l.unit}`:''));
+  const sub=(groupMode!=='cont'&&l.cont!=='—'?l.cont:(l.unit?`${l.qty} ${l.unit}`:''));  // packer now shown as an avatar (FR-25.3), not text
   return `<div class="swipe" data-id="${l.key}">
     <div class="swipe-bg left">Packen ✓</div>
     <div class="swipe-bg right">Überspringen</div>
     <div class="swipe-inner li ${leafDone(l)?'done':''}">
       ${isCheckbox?ctrl:''}
       <div class="grow"><div class="name row">${esc(l.name)}${prepBadge}</div>${sub?`<div class="desc">${esc(sub)}</div>`:''}</div>
-      <div style="display:flex;align-items:center;gap:8px">${chips.join('')}${isCheckbox?'':ctrl}</div>
+      <div style="display:flex;align-items:center;gap:8px">${chips.join('')}${packerHTML(l)}${isCheckbox?'':ctrl}</div>
     </div></div>`;
 }
 // variant B: a per-person cluster — item named once, one indented child row per traveler
 function ppChildHTML(l){
   const isCheckbox=l.qty===1, ctrl=ctrlHTML(l), av=AV[l.trav]||['?','var(--s2)'];
-  const sub=l.packedBy?`gepackt von ${l.packedBy}`:(l.qty>1?`${l.packed}/${l.qty} gepackt`:'');
+  const sub=l.qty>1?`${l.packed}/${l.qty} gepackt`:'';  // packer now shown as an avatar (FR-25.3), not text
   return `<div class="swipe" data-id="${l.key}">
     <div class="swipe-bg left">Packen ✓</div>
     <div class="swipe-bg right">Überspringen</div>
@@ -956,7 +969,7 @@ function ppChildHTML(l){
       ${isCheckbox?ctrl:''}
       <span class="mini-av" style="background:${av[1]}">${av[0]}</span>
       <div class="grow"><div class="name">${esc(l.trav)}</div>${sub?`<div class="desc">${esc(sub)}</div>`:''}</div>
-      ${isCheckbox?'':ctrl}
+      <div style="display:flex;align-items:center;gap:8px">${packerHTML(l)}${isCheckbox?'':ctrl}</div>
     </div></div>`;
 }
 function clusterHTML(it, sibs){
