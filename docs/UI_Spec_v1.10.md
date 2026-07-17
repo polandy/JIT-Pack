@@ -135,7 +135,7 @@ These patterns apply to every screen and are specified once.
 
 * **Purpose:** Central item database (FR-1.1) — the master-data screen for every item that can be packed.
 * **Elements:** Filter bar (search + tag chip axis, the shared list-filter pattern); tag-grouped list — grouped by each item's **primary tag** so a row appears once (FR-24.2, proposed); per row: name, its **tags** as chips, weight, value, unit chip, consumable chip. Logically-deleted items (FR-24.3) are hidden.
-* **Actions:** Tap → M10; FAB → new item; merge duplicates via multi-select (supports FR-16.3 cleanup).
+* **Actions:** Tap → M10; FAB → new item; merge duplicates via multi-select (supports FR-16.3 cleanup). **Swipe row → delete (proposed, 2026-07-17):** delete directly from the list without opening M10, applying the FR-24.3 lifecycle rule — an item ever used is tombstoned (logical), a never-referenced item is removed physically. The swipe reveal states which of the two will happen (distinct label, e.g. "Ausblenden" vs. "Endgültig löschen") so the user is never surprised; an undo snackbar covers slips in both cases. Complements the delete inside M10, same rule, same wording.
 * **Navigation:** Tab 4.
 
 ### M10 — Item Editor
