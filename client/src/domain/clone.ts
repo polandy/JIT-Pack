@@ -7,7 +7,7 @@
  * assignments. Quantity formulas of template-sourced items re-evaluate
  * against the new duration; manual quantities survive as-is.
  *
- * Runs client-side like generation/repack/review (Addendum 3.19), so
+ * Runs client-side like generation/review (Addendum 3.19), so
  * Local Mode clones without a server.
  */
 

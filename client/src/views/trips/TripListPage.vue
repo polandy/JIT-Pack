@@ -58,7 +58,7 @@ const filter = ref<FilterStatus>('active')
 function matchesFilter(trip: Trip): boolean {
   switch (filter.value) {
     case 'active':
-      return trip.status === 'active' || trip.status === 'repack'
+      return trip.status === 'active'
     case 'planned':
       return trip.status === 'planning'
     case 'archived':

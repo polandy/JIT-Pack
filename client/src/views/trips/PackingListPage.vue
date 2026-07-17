@@ -46,7 +46,6 @@ import {
   eyeOutline,
   buildOutline,
   lockClosedOutline,
-  repeatOutline,
   archiveOutline,
   sparklesOutline,
 } from 'ionicons/icons'
@@ -81,7 +80,7 @@ onMounted(() => {
 const trip = computed(() => store.getTrip(props.tripId))
 const kpis = computed(() => store.kpis(props.tripId))
 const groupBy = computed(() => store.getGroupBy(props.tripId))
-const isActive = computed(() => trip.value?.status === 'active' || trip.value?.status === 'repack')
+const isActive = computed(() => trip.value?.status === 'active')
 
 // M6 toolbar badge: open procurement items; entry hidden at zero.
 const shoppingCount = computed(() => {
@@ -285,14 +284,6 @@ async function handleRefresh(event: CustomEvent) {
         <IonButtons slot="end">
           <!-- G-10: trip presence facepile + group-sync badge -->
           <PresenceFacepile v-if="presenceUsers.length > 1" :users="presenceUsers" />
-          <!-- M13 entry: start repack (active trips only) -->
-          <IonButton
-            v-if="trip?.status === 'active'"
-            :router-link="`/trips/${tripId}/repack`"
-            aria-label="Start repack"
-          >
-            <IonIcon slot="icon-only" :icon="repeatOutline" />
-          </IonButton>
           <!-- M14: archive triggers the review assistant (FR-9.2) -->
           <IonButton v-if="trip?.status === 'active'" aria-label="Archive trip" @click="onArchive">
             <IonIcon slot="icon-only" :icon="archiveOutline" />
@@ -360,15 +351,6 @@ async function handleRefresh(event: CustomEvent) {
       <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
         <IonRefresherContent />
       </IonRefresher>
-
-      <!-- M13: repack banner, visible to all participants via sync -->
-      <div v-if="trip?.status === 'repack'" class="repack-banner">
-        <IonIcon :icon="repeatOutline" />
-        Return packing in progress
-        <IonButton size="small" fill="clear" :router-link="`/trips/${tripId}/repack`">
-          Checklist
-        </IonButton>
-      </div>
 
       <!-- M11 entry: container grouping exposes the editor (UI-Spec M11) -->
       <div v-if="groupBy === 'container'" class="edit-containers">
@@ -730,16 +712,6 @@ async function handleRefresh(event: CustomEvent) {
 
 .kpi-tappable {
   cursor: pointer;
-}
-
-.repack-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: var(--ion-color-warning-tint, #ffd67e);
-  color: var(--ion-color-warning-contrast, #000);
-  font-size: 0.9rem;
 }
 
 .lock-icon {

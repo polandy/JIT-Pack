@@ -59,8 +59,8 @@ export class SyncOutbox {
     if (queue.length > 0) {
       const path = type === 'master' ? '/api/v1/sync/master' : `/api/v1/sync/trips/${id}`
       // The server caps a push at 200 mutations (Sync-API §9) — chunk
-      // big batches (large repacks, wizard-generated trips) instead of
-      // getting the whole queue rejected.
+      // big batches (e.g. wizard-generated trips) instead of getting the
+      // whole queue rejected.
       for (let offset = 0; offset < queue.length; offset += MAX_PUSH_BATCH) {
         const chunk = queue.slice(offset, offset + MAX_PUSH_BATCH)
         const resp = await this.client.post<PushResponse>(path, {

@@ -44,7 +44,7 @@ These patterns apply to every screen and are specified once.
 | M10 | Item Editor | MVP | 1.1, 1.7, 1.8 |
 | M11 | Container Management | P2 | 10.1–10.3 |
 | M12 | Analytics | P2 | 8.1, 8.2, 14.3 |
-| M13 | Repack Mode | P2 | 11.1–11.3 |
+| ~~M13~~ | ~~Repack Mode~~ — removed (§3.11) | — | — |
 | M14 | Post-Trip Review Assistant | P2 | 9.1, 9.2 |
 | M15 | Import Wizard | P2 | 16.1–16.3, NFR-4.7 |
 | M16 | Series & Destination Profile | P2 | 13.1–13.3 |
@@ -98,7 +98,7 @@ These patterns apply to every screen and are specified once.
   * Item rows with open prep todos show a small **prep badge** (wrench icon + count) next to the item name. Packed items with open todos use a distinct "packed with open prep" style (e.g., amber checkbox instead of green) to signal incomplete readiness.
   * **Consciously skipped section (FR-5.5):** Collapsed by default at the bottom of the list. Header shows count. Expanding reveals skipped items with strikethrough styling. Swipe-to-unskip restores them to open state with quantity 1. Purpose: explicitly acknowledge that an item was considered but deliberately not packed — distinguishing "forgot" from "decided against."
   * Filter bar: my items only, open only, per traveler.
-* **Actions:** Swipe right → *Packing Now* (FR-5.2); swipe left on active item → context options: *assign-to-me* (FR-4.3) or *skip* (marks as consciously skipped, FR-5.5); swipe left on skipped item → *unskip* (restores to open); tap row → M5; long-press checkbox → complete item; toolbar: open shopping views (M6), start Repack (M13, only when trip is active), archive trip (→ triggers M14). **Implemented (Addendum 3.20):** skipping an item cascades to co-skip its dependent companion items into the same "Consciously skipped" section with a reason (e.g., "skipped: drone not on this trip", FR-20.2); a quick-add that matches a master item pulls its missing required companions in automatically (FR-20.4).
+* **Actions:** Swipe right → *Packing Now* (FR-5.2); swipe left on active item → context options: *assign-to-me* (FR-4.3) or *skip* (marks as consciously skipped, FR-5.5); swipe left on skipped item → *unskip* (restores to open); tap row → M5; long-press checkbox → complete item; toolbar: open shopping views (M6), archive trip (→ triggers M14). **Implemented (Addendum 3.20):** skipping an item cascades to co-skip its dependent companion items into the same "Consciously skipped" section with a reason (e.g., "skipped: drone not on this trip", FR-20.2); a quick-add that matches a master item pulls its missing required companions in automatically (FR-20.4).
 * **States:** Real-time: rows animate on remote changes with actor attribution ("packed by Sarah"); item blocked by open tasks shows a task badge and refuses completion with inline hint (FR-7.2); offline behaves identically (G-5).
 * **Navigation:** From M1, M2, notifications. Deep-link anchor target (G-4). **Desktop (≥ 900 px, per G-9): two-pane layout** — M4's list occupies the left/main pane while M5 opens as a **persistent side panel** on the right rather than a bottom sheet; selecting a different row swaps the panel's content in place. Below the breakpoint, M5 remains the mobile overlay sheet described above.
 

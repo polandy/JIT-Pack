@@ -94,7 +94,6 @@ A trip is **not** a tab. It is opened from the Trip List (M2) and becomes the hu
 | **M6** Shopping | `/trips/:id/shopping` | buy-before / buy-local lists |
 | **M11** Containers | `/trips/:id/containers` | weights, pairing, assignment |
 | **M12** Analytics | `/trips/:id/analytics` | weight/value per dimension, series trend |
-| **M13** Repack | `/trips/:id/repack` | return-journey mode (FR-11) |
 | **M14** Review | `/trips/:id/review` | post-trip proposals for the template |
 | Clone | `/trips/:id/clone` | trip as a starting point (FR-12) |
 | Members | `/trips/:id/members` | roles Owner/Admin/Editor (FR-4.5) |
@@ -128,7 +127,7 @@ The clusters above describe *primary* origin. In practice several screens are re
 
 - **M1 → M4/M5:** dashboard task cards deep-link straight into a trip item (G-4).
 - **M2 → M3:** the FAB / empty state starts the wizard; **M16 → M3** (`?series=`) starts it pre-seeded from a series.
-- **M4 sync glyph → Conflict Log;** **M4 toolbar → M6/M11/M12/M13/M14/Members.**
+- **M4 sync glyph → Conflict Log;** **M4 toolbar → M6/M11/M12/M14/Members.**
 - **M2 slide actions → Clone / Members / Archive→M14 / YAML export.**
 - **M7 → M8, M9 → M10** (drill); **M9 empty / M2 title → M15** (import).
 - **Logo (everywhere) → M1** (universal home, G-9).
@@ -198,19 +197,17 @@ Part I fixed the skeleton. This part fleshes out each structural point in full, 
 | Entry | Lives on | Gating (as built) | Target |
 |---|---|---|---|
 | Presence facepile (G-10) | M4 header end | `presenceUsers.length > 1` | presence sheet |
-| Repack | M4 header end | `trip.status === 'active'` | `/trips/:id/repack` |
 | Archive → Review | M4 header end | `trip.status === 'active'` | archives, auto-opens `/review` |
 | Review (sparkles) | M4 header end | `trip.status === 'archived'` | `/trips/:id/review` |
 | Shopping | M4 header end | `shoppingCount > 0` (badge) | `/trips/:id/shopping` |
 | Analytics | M4 KPI strip | tap on the strip | `/trips/:id/analytics` |
-| Repack (banner) | M4 body | `trip.status === 'repack'` | `/trips/:id/repack` |
 | Edit containers | M4 body | `groupBy === 'container'` | `/trips/:id/containers` |
 | Item detail (M5) | M4 list row | always | `/trips/:id/items/:itemId` |
 | Conflict log | **top-bar sync glyph** | inside any trip (`onSyncTap`) | `/trips/:id/conflicts` |
 | Members | **M2 slide action** | Owner/Admin + OIDC session (G-8) | `/trips/:id/members` |
 | Clone | **M2 slide action** | archived trips (also M16) | `/trips/:id/clone` |
 
-**Reading of this.** The status of the trip is the primary gate — an `active` trip shows Repack/Archive, an `archived` trip shows Review/Clone, a `repack` trip shows the banner. Two capabilities (Shopping, Containers) are content-gated (only appear when there's something to show), honouring G-7's "no dead ends". Members/Clone/Conflicts deliberately live *off* M4.
+**Reading of this.** The status of the trip is the primary gate — an `active` trip shows Archive, an `archived` trip shows Review/Clone. Two capabilities (Shopping, Containers) are content-gated (only appear when there's something to show), honouring G-7's "no dead ends". Members/Clone/Conflicts deliberately live *off* M4. (Note: the M4 toolbar itself is slated for a slim-down redesign — see UI-Spec M4 / Addendum §3.25 — but the entry *set* stays; only its presentation changes.)
 
 **Proposal.** Keep the status-driven gating (it's good), but make the **discoverability** explicit rather than emergent:
 
@@ -297,7 +294,7 @@ The complete reference of navigational edges beyond primary drill-down, for link
 | M7 / M2 title | M18 Portable Import | import entry |
 | M4 sync glyph | Conflict log | `onSyncTap` inside a trip |
 | M4 KPI strip | M12 Analytics | tap |
-| M4 header | M6 / M13 / M14 | status-gated buttons |
+| M4 header | M6 / M14 | status-gated buttons |
 | M4 grouping | M11 Containers | `groupBy=container` → edit |
 | M12 slice | M4 (grouped) | tap a slice |
 | M16 | M12 | trends shortcut (newest trip) |

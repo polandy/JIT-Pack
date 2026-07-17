@@ -69,7 +69,7 @@ function checkOff(item: TripItem) {
   }
 }
 
-const isActive = computed(() => trip.value?.status === 'active' || trip.value?.status === 'repack')
+const isActive = computed(() => trip.value?.status === 'active')
 
 function quickAdd(item: {
   name: string

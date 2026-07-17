@@ -1560,42 +1560,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return client.getBlob(path)
   }
 
-  // --- Repack actions (FR-11.1, M13) ---
-
-  /**
-   * startRepack resets the chosen items to Open for the return leg
-   * (outbound history preserved via outbound_packed) and flips the
-   * trip to repack status. The status lives on the master partition.
-   */
-  function startRepack(tripId: string, itemIds: string[]) {
-    const itemsByID = new Map(tripStore.getItems(tripId).map((i) => [i.id, i]))
-    const muts: Parameters<typeof enqueueAndDrain>[2][] = []
-    for (const id of itemIds) {
-      const item = itemsByID.get(id)
-      if (!item) continue
-      const mut = mutations.resetForRepack(item.id, item.packed_count > 0)
-      muts.push({
-        mutation: mut,
-        optimistic: {
-          seq: 0,
-          table: 'trip_items',
-          id: item.id,
-          deleted: false,
-          row: { ...itemRow(item), ...mut.fields },
-        },
-      })
-    }
-    if (muts.length > 0) {
-      enqueueAndDrain('trip', tripId, ...muts)
-    }
-    setTripStatus(tripId, 'repack')
-  }
-
-  /** completeRepack ends Return Packing Mode (M13). */
-  function completeRepack(tripId: string) {
-    setTripStatus(tripId, 'active')
-  }
-
   function setTripStatus(tripId: string, status: TripStatus) {
     const trip = tripStore.getTrip(tripId)
     if (!trip) return
@@ -2063,10 +2027,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     addContainer,
     updateContainer,
     deleteContainer,
-
-    // Repack (FR-11.1, M13)
-    startRepack,
-    completeRepack,
 
     // Trip membership (FR-4.5/4.7)
     addTripMember,

@@ -124,13 +124,12 @@ Field groups: `packed_count`+`state` merge as one unit (they are causally couple
 
 ## 8. Non-Synced Operations (RPC-style REST)
 
-Server-side computations that must not run on clients. **Decided (Local Mode, Addendum 3.19): trip generation, cloning, repack, and the post-trip review run client-side instead** — formula evaluation/conditions/dedup (FR-1.3/1.5/15.2/2.3), the FR-12 clone plan, the FR-11 bulk reset, and FR-9.2 proposal generation are pure client logic committed as ordinary push mutations, so Local Mode keeps feature parity without a server. The `POST /trips`, `POST /trips/{id}/clone`, `POST /trips/{id}/repack`, `POST /trips/{id}/archive`, and review rows below are therefore **not implemented as endpoints**:
+Server-side computations that must not run on clients. **Decided (Local Mode, Addendum 3.19): trip generation, cloning, and the post-trip review run client-side instead** — formula evaluation/conditions/dedup (FR-1.3/1.5/15.2/2.3), the FR-12 clone plan, and FR-9.2 proposal generation are pure client logic committed as ordinary push mutations, so Local Mode keeps feature parity without a server. The `POST /trips`, `POST /trips/{id}/clone`, `POST /trips/{id}/archive`, and review rows below are therefore **not implemented as endpoints**:
 
 | Endpoint | Purpose |
 |---|---|
 | ~~`POST /trips`~~ | superseded: the M3 wizard generates client-side and pushes trips (master partition) + travelers/trip_items (trip partition) |
 | ~~`POST /trips/{id}/clone`~~ | superseded: FR-12 clones client-side (`planClone` + ordinary mutations — traveler/container links remapped, formulas re-evaluated against the new duration), same cascade as trip generation |
-| ~~`POST /trips/{id}/repack`~~ | superseded: M13 resets client-side via ordinary mutations (`outbound_packed` preserves the outbound history) |
 | ~~`POST /trips/{id}/archive`~~ | superseded: archiving is a plain `trips.status` upsert on the master partition. Open server-side follow-up: the NFR-4.2a conflict-log compaction on archive has no trigger yet |
 | ~~`GET /trips/{id}/review`~~ / ~~`POST /trips/{id}/review/{proposalId}`~~ | superseded: M14 derives proposals client-side from FR-9.1 flags and current template state (applied cards vanish on recomputation → resumability for free); apply/fork are ordinary master mutations, "Never ask again" is a device-local dismissal store scoped to the item–template pair |
 | ~~`POST /import/analyze`~~ · ~~`POST /import/commit`~~ | superseded: the M15 wizard parses/analyzes/commits client-side (FR-19.4 lists the import as Local-Mode parity). CSV only — XLSX deferred (parser dependency vs NFR-4.3; spreadsheets export CSV). NFR-4.7 transactionality is approximated: full pre-validation before enqueue, parents-first ordering, idempotent replay — there is no cross-mutation server transaction |

@@ -6,7 +6,7 @@
  * the next computation — that is the whole resumability story (UI-Spec
  * M14 "resumable if interrupted"), no session state to persist.
  *
- * Runs client-side like trip generation and repack (Addendum 3.19):
+ * Runs client-side like trip generation (Addendum 3.19):
  * write-backs are ordinary master-partition mutations, so Local Mode
  * gets the assistant for free.
  */

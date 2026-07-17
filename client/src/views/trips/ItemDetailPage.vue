@@ -68,7 +68,7 @@ const trip = computed(() => tripStore.getTrip(props.tripId))
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
 const containers = computed(() => tripStore.getContainers(props.tripId))
 
-const isActive = computed(() => trip.value?.status === 'active' || trip.value?.status === 'repack')
+const isActive = computed(() => trip.value?.status === 'active')
 
 // FR-20.4: suggested companions of this item not yet on the list — the
 // M5 hint with one-tap add. Required ones joined at generation already.

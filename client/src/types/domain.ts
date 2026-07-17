@@ -1,6 +1,6 @@
 /** Client-side domain types — shaped from pull responses and DB schema. */
 
-export type TripStatus = 'planning' | 'active' | 'repack' | 'archived'
+export type TripStatus = 'planning' | 'active' | 'archived'
 
 export interface Trip {
   id: string

@@ -14,7 +14,7 @@
 
 The client already ships **412 Vitest unit/component tests** and a fully unit-tested pure domain layer (`src/domain/`, `src/lib/`, `src/local/`, `src/notifications/`). The E2E suite does **not** re-derive that logic. It sits one layer above:
 
-* **Unit tests own the algorithm** — quantity formulas (FR-1.3/1.5/15.3), dedup/instantiation (FR-2.2/2.3/2.3a), analytics math (FR-8.2/10.4/14.3), repack/clone/review planning (FR-11/12/9), spreadsheet & portable parsing (FR-16/18), dependency resolution (FR-20), image/avatar geometry (FR-22.2/22.3), HLC + merge (NFR-4.2a). These are proven in isolation and must stay there.
+* **Unit tests own the algorithm** — quantity formulas (FR-1.3/1.5/15.3), dedup/instantiation (FR-2.2/2.3/2.3a), analytics math (FR-8.2/10.4/14.3), clone/review planning (FR-12/9), spreadsheet & portable parsing (FR-16/18), dependency resolution (FR-20), image/avatar geometry (FR-22.2/22.3), HLC + merge (NFR-4.2a). These are proven in isolation and must stay there.
 * **E2E owns the journey** — that a real user, in a real browser, driving the real built app, can reach a screen, perform the requirement's action, and observe the correct result *including its persistence and (where relevant) cross-device propagation*. E2E verifies the wiring: store ↔ outbox ↔ WebSocket ↔ server ↔ DOM.
 
 Every FR/NFR in §7 is tagged **E2E** (a browser case exists), **UNIT** (logic already covered; E2E only touches it incidentally through a journey), **SERVER** (backend/API concern with no UI surface — covered by Go tests, listed here for completeness), or **DOC/N-A** (documentation-only or retired).
@@ -126,8 +126,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M4-08** `all` (FR-7.3): open prep todos render a prep badge; a packed item with open prep uses the amber "packed with open prep" style.
 * **E2E-M4-09** `all` (FR-7.2): an item with open tasks refuses completion with an inline hint.
 * **E2E-M4-10** `server` (FR-4.4): remote pack animates in with actor attribution ("packed by Bob"), no refresh.
-* **E2E-M4-11** `all` (FR-3.2): toolbar opens M6 (badge hidden when both shopping lists empty); Repack entry only on active trips; archive → launches M14.
-* **E2E-M4-12** `all` (FR-11.x): repack banner state renders (and, `server`, is visible to the other client after their master drain).
+* **E2E-M4-11** `all` (FR-3.2): toolbar opens M6 (badge hidden when both shopping lists empty); archive → launches M14.
 
 ### M5 — Item Detail
 * **E2E-M5-01** `all` (FR-4.2): distinct *Used by* (traveler) vs *Packed by* (user) sections.
@@ -189,11 +188,8 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M12-03** `all` (FR-14.3): series trend section (weight over years, top Missing/Unused) shown when the trip has a series.
 * **E2E-M12-04** `all` (FR-8.2): tap a bar segment → M4 filtered to that slice.
 
-### M13 — Repack Mode
-* **E2E-M13-01** `all` (FR-11.1/11.2): entry dialog summarizes reset counts and lists excluded consumables/local buys with per-item override toggles.
-* **E2E-M13-02** `all` (FR-11.1): confirm resets packed PACK items to Open; outbound history retained.
-* **E2E-M13-03** `all` (FR-11.3): "Nothing left behind" checklist grouped by container/traveler.
-* **E2E-M13-04** `server` (FR-11.1): repack banner appears on the other client after their next master drain.
+### M13 — Repack Mode — **REMOVED (2026-07-17)**
+Feature removed from the product (PRD Addendum §3.11); its E2E cases are retired.
 
 ### M14 — Post-Trip Review Assistant
 * **E2E-M14-01** `all` (FR-9.1/9.2): archiving a flagged trip auto-launches the card stack; a proposal reads correctly (e.g. "Unused on N trips → set qty 0").
@@ -322,9 +318,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-10.2 | E2E | M11-03, M5-02 |
 | FR-10.3 | E2E+UNIT | M11-02/04; containers.ts |
 | FR-10.4 | UNIT | analytics.ts (container weight); surfaced M12-01 |
-| FR-11.1 | E2E | M13-02, M13-04 |
-| FR-11.2 | E2E+UNIT | M13-01; repack.ts |
-| FR-11.3 | E2E | M13-03 |
+| FR-11.1–11.3 | — | removed (Repack feature dropped, Addendum §3.11) |
 | FR-12.1 | E2E | M2-04 |
 | FR-12.2 | E2E+UNIT | ClonePage toggles; clone.ts |
 | FR-13.1 | E2E | M2-02, M16-01 |
