@@ -260,6 +260,12 @@ body{
 /* V1 hide-on-scroll-down / show-on-scroll-up */
 #packheadWrap{transition:transform .28s cubic-bezier(.2,.7,.2,1)}
 #packheadWrap.packhead-hidden{transform:translateY(-108%)}
+/* full-screen packing (Vollbild): the bottom tab bar slides away on M4 */
+.tabbar{transition:transform .32s cubic-bezier(.2,.7,.2,1)}
+.tabbar.tabbar-hidden{transform:translateY(130%)}
+.fab{transition:bottom .32s cubic-bezier(.2,.7,.2,1),transform .18s ease}
+.fab.fab-low{bottom:26px}
+.body.tabs-gone{padding-bottom:40px}
 
 .grouphead{display:flex;align-items:center;gap:8px;font:600 12px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;
   color:var(--o1);margin:20px 4px 10px}
@@ -815,6 +821,7 @@ function render(name){
   if(name==='containers') renderContainers();
   if(name==='analytics') renderAnalytics();
   document.getElementById('body').scrollTop = 0;
+  applyPackChrome();   // reset/apply the tab-bar variant when entering or leaving M4
 }
 function fabAction(){ const top=stack[stack.length-1];
   if(top==='dashboard'||top==='trips'){ resetWizard(); go('wizard'); }
@@ -957,6 +964,15 @@ function renderPack(){
       <div class="desc">übersprungen: ${esc(s.reason)}</div></div></div></div>`).join('');
 
   bindPack();
+  applyPackChrome();
+}
+
+// full-screen packing: hide the bottom tab bar (and tighten padding, drop the FAB) while on M4
+function applyPackChrome(){
+  const onPack = stack[stack.length-1]==='pack';
+  document.querySelector('.tabbar').classList.toggle('tabbar-hidden', onPack);
+  document.getElementById('fab').classList.toggle('fab-low', onPack);
+  document.getElementById('body').classList.toggle('tabs-gone', onPack);
 }
 
 // animate a just-completed row out of the list, then re-render; snackbar offers undo
