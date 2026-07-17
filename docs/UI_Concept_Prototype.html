@@ -316,6 +316,23 @@ body{
 .packerav::after{content:'✓';position:absolute;right:-3px;bottom:-3px;width:11px;height:11px;border-radius:50%;
   background:var(--green);color:var(--crust);font-size:8px;font-weight:800;line-height:1;display:grid;place-items:center;box-shadow:0 0 0 1.4px var(--base)}
 
+/* FR-25.4: procurement mode as a distinct glyph on every row — 🧳 packen · 🛒 vorher kaufen ·
+   📍 vor Ort kaufen. Pack (the default, dominant case) is deliberately low-emphasis so the two
+   shopping modes stand out as the exceptions worth noticing. Orthogonal to the ⏰ late-packer flag. */
+.modeicon{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:7px;font-size:12px;line-height:1}
+.modeicon.m-buy{background:rgba(250,179,135,.18)}
+.modeicon.m-loc{background:rgba(137,180,250,.18)}
+.lateflag{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:7px;font-size:12px;line-height:1;background:rgba(249,226,175,.16)}
+/* mode filter strip (sits under the group bar; scrolls horizontally, hides with the header) */
+.modebar{display:flex;gap:6px;overflow-x:auto;padding:2px 0 2px;margin-top:6px;scrollbar-width:none}
+.modebar::-webkit-scrollbar{display:none}
+.mf{flex:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer;
+  font-size:12px;font-weight:600;padding:5px 11px;border-radius:20px;border:1px solid var(--s0);background:var(--mantle);color:var(--sub0)}
+.mf .g{font-size:13px;line-height:1}
+.mf i{font-style:normal;font-size:11px;font-weight:700;color:var(--o1)}
+.mf.on{background:var(--s1);color:var(--text);border-color:var(--s2)}
+.mf.on i{color:var(--sub1)}
+
 /* quick add */
 .qa{display:flex;align-items:center;gap:10px;padding:13px 15px;color:var(--sub0);font-size:14px;cursor:text}
 .qa svg{width:18px;height:18px;color:var(--blue)}
@@ -892,11 +909,11 @@ const P = {
     {id:18,name:'Kurze Hosen',cat:'Kleidung',mode:'pack',cont:'Koffer',w:200,pp:[
       {trav:'Andy',qty:2,packed:2,packedBy:'Andy'},{trav:'Sia',qty:1,packed:0},{trav:'Leonardo',qty:3,packed:1,packedBy:'Sia'}]},
     {id:5,name:'Sonnencreme',cat:'Bad',qty:1,packed:0,mode:'buy_local',trav:'Alle',cont:'—',w:150,cons:true},
-    {id:6,name:'Taschentücher',cat:'Bad',qty:4,packed:1,mode:'pack',trav:'Alle',cont:'Kulturbeutel',w:40,cons:true,packedBy:'Sia'},
+    {id:6,name:'Taschentücher',cat:'Bad',qty:4,packed:1,mode:'pack',trav:'Alle',cont:'Kulturbeutel',w:40,cons:true,packedBy:'Sia',late:true},
     {id:7,name:'Velohelme',cat:'Aktivität',qty:2,packed:1,mode:'pack',trav:'Alle',cont:'Auto',w:300,packedBy:'Andy'},
     {id:8,name:'Wanderstöcke',cat:'Aktivität',qty:1,packed:0,mode:'pack',trav:'Andy',cont:'Auto',w:500},
     {id:9,name:'Mehrfach-Stromstecker',cat:'Technik',qty:1,packed:1,mode:'pack',trav:'Alle',cont:'Rucksack',w:180,packedBy:'Sia'},
-    {id:10,name:'iPad Pro + Tastatur',cat:'Technik',qty:1,packed:0,mode:'pack',trav:'Andy',cont:'Rucksack',w:600,prep:1},
+    {id:10,name:'iPad Pro + Tastatur',cat:'Technik',qty:1,packed:0,mode:'pack',trav:'Andy',cont:'Rucksack',w:600,prep:1,late:true},
     {id:11,name:'Pass / ID',cat:'Dokumente',qty:3,packed:2,mode:'pack',trav:'Alle',cont:'Rucksack',w:20,prep:1,packedBy:'Sia'},
     {id:12,name:'Kaffee',cat:'Küche',qty:1,packed:0,mode:'buy_before',trav:'Alle',cont:'—',w:500},
     {id:13,name:'Bouillon · Salz · Pfeffer',cat:'Küche',qty:1,packed:0,mode:'pack',trav:'Alle',cont:'Küchenkiste',w:300},
@@ -914,7 +931,14 @@ const P = {
     {item:'Velohelme',task:'Passt Leonardos Helm noch?',who:'Andy',done:false},
   ],
 };
-const MODE = {buy_before:['vor Abreise','warm'], buy_local:['vor Ort','blue']};
+// FR-25.4: every item carries a procurement mode. pack is the default; the two buy modes feed M6.
+const MODE = {
+  pack:      {icon:'🧳', label:'Packen',  cls:'m-pack'},
+  buy_before:{icon:'🛒', label:'Vorher',  cls:'m-buy'},
+  buy_local: {icon:'📍', label:'Vor Ort', cls:'m-loc'},
+};
+const isBuy = m => m==='buy_before' || m==='buy_local';
+const modeSel = new Set();   // FR-25.4: multi-select mode filter; empty = "Alle" (no filter)
 let nextId = 100;
 
 function groupKey(l){
@@ -938,11 +962,19 @@ function packerHTML(l){
   const av=AV[l.packedBy]||['?','var(--s2)'];
   return `<span class="packerav" title="gepackt von ${esc(l.packedBy)}"><span class="mini-av" style="background:${av[1]}">${av[0]}</span></span>`;
 }
+// FR-25.4: the procurement-mode glyph. Only the two buy modes (🛒/📍) carry an icon — pack is the
+// silent default (owner decision 2026-07-18), so the exceptions worth acting on stand out.
+function modeIconHTML(mode){
+  if(!isBuy(mode)) return '';
+  const m=MODE[mode];
+  return `<span class="modeicon ${m.cls}" title="${m.label} kaufen">${m.icon}</span>`;
+}
+// FR-5.1 late packer — a separate ⏰ flag, orthogonal to the mode (pack it on departure day).
+function lateHTML(l){ return l.late ? `<span class="lateflag" title="Später packen — erst am Abreisetag">⏰</span>` : ''; }
 // a flat packing row (regular item, or a per-person leaf in variant A — then labelled "Name · Person")
 function leafRowHTML(l){
   const isCheckbox=l.qty===1, ctrl=ctrlHTML(l);
   const chips=[];
-  if(MODE[l.mode]) chips.push(`<span class="chip ${MODE[l.mode][1]}">${MODE[l.mode][0]}</span>`);
   if(l.missing) chips.push(`<span class="chip warm">fehlt</span>`);
   if(l.ppIndex!=null){ const av=AV[l.trav]||['?','var(--s2)'];
     chips.push(`<span class="whochip"><span class="mini-av" style="background:${av[1]}">${av[0]}</span>${esc(l.trav)}</span>`);
@@ -955,7 +987,7 @@ function leafRowHTML(l){
     <div class="swipe-inner li ${leafDone(l)?'done':''}">
       ${isCheckbox?ctrl:''}
       <div class="grow"><div class="name row">${esc(l.name)}${prepBadge}</div>${sub?`<div class="desc">${esc(sub)}</div>`:''}</div>
-      <div style="display:flex;align-items:center;gap:8px">${chips.join('')}${packerHTML(l)}${isCheckbox?'':ctrl}</div>
+      <div style="display:flex;align-items:center;gap:7px">${modeIconHTML(l.mode)}${lateHTML(l)}${chips.join('')}${packerHTML(l)}${isCheckbox?'':ctrl}</div>
     </div></div>`;
 }
 // variant B: a per-person cluster — item named once, one indented child row per traveler
@@ -976,9 +1008,8 @@ function clusterHTML(it, sibs){
   const vis=showDone?sibs:sibs.filter(l=>!leafDone(l));
   if(!vis.length) return '';                         // all instances done → cluster gone
   const doneN=sibs.filter(leafDone).length;
-  const modeChip=MODE[it.mode]?`<span class="chip ${MODE[it.mode][1]}">${MODE[it.mode][0]}</span>`:'';
   return `<div class="ppcluster">
-    <div class="pphead"><span class="ppname">${esc(it.name)}</span>${modeChip}<span class="ppcount">${doneN}/${sibs.length}</span></div>
+    <div class="pphead"><span class="ppname">${esc(it.name)}</span>${modeIconHTML(it.mode)}${lateHTML(it)}<span class="ppcount">${doneN}/${sibs.length}</span></div>
     <div class="ppkids">${vis.map(ppChildHTML).join('')}</div></div>`;
 }
 // render one group's body (FR-25.1): per-person items become a named cluster with one
@@ -1004,7 +1035,11 @@ function renderPack(){
   const L=allLeaves();
   const total=L.length, done=L.filter(l=>l.packed>=l.qty).length;
   const openPrep=P.prep.filter(p=>!p.done).length;
-  const shopN=P.items.filter(i=>MODE[i.mode]).length;
+  const shopN=P.items.filter(i=>isBuy(i.mode)).length;
+  // FR-25.4 mode filter — counts over all leaves, then the list narrows to the picked mode
+  const modeCount={all:L.length, pack:0, buy_before:0, buy_local:0};
+  L.forEach(l=>{ modeCount[l.mode]=(modeCount[l.mode]||0)+1; });
+  const Lf = modeSel.size===0 ? L : L.filter(l=>modeSel.has(l.mode));
 
   // header — single compact line; tools behind ⋯; hides on scroll-down (§3.25)
   const facepile=`<div class="stack"><span class="avatar" style="background:var(--peach)">A</span><span class="avatar" style="background:var(--mauve)">S</span></div>`;
@@ -1013,9 +1048,14 @@ function renderPack(){
     `<button class="tbtn" onclick="go('analytics')"><svg viewBox="0 0 24 24"><use href="#i-spark"/></svg>Auswertung</button></div>`;
   const groupbar=`<div class="groupbar">`+[['cat','Kategorie'],['trav','Person'],['cont','Gepäck'],['status','Status']]
     .map(g=>`<button class="gb ${groupMode===g[0]?'on':''}" data-g="${g[0]}">${g[1]}</button>`).join('')+`</div>`;
+  const modebar=`<div class="modebar">`+[
+      ['all','','Alle'],['pack','🧳','Packen'],['buy_before','🛒','Vorher'],['buy_local','📍','Vor Ort']
+    ].map(m=>{ const on = m[0]==='all' ? modeSel.size===0 : modeSel.has(m[0]);
+      return `<button class="mf ${on?'on':''}" data-m="${m[0]}">${m[1]?`<span class="g">${m[1]}</span>`:''}${m[2]}<i>${modeCount[m[0]]||0}</i></button>`;
+    }).join('')+`</div>`;
   document.getElementById('packHead').innerHTML=
     `<div class="pv1-line">${facepile}<div class="pv1-status">Samedan <span class="muted">· ${done}/${total} · 18 kg · Prep ${openPrep}</span></div>`+
-    `<button class="pv1-more" onclick="togglePvTools()">⋯</button></div>${pvToolsOpen?toolbarRow:''}${groupbar}`;
+    `<button class="pv1-more" onclick="togglePvTools()">⋯</button></div>${pvToolsOpen?toolbarRow:''}${groupbar}${modebar}`;
 
   // quick-add hidden unless actively adding (the ＋ FAB opens it)
   const qa=document.getElementById('qaTrigger');
@@ -1023,8 +1063,8 @@ function renderPack(){
 
   // grouped list — runs on leaves; fully-packed rows drop out unless the toggle is on
   const groups={};
-  L.forEach(l=>{const k=groupKey(l);(groups[k]=groups[k]||[]).push(l);});
-  const doneN=L.filter(leafDone).length;
+  Lf.forEach(l=>{const k=groupKey(l);(groups[k]=groups[k]||[]).push(l);});
+  const doneN=Lf.filter(leafDone).length;
   const order=Object.keys(groups);
   const groupsHTML = order.map(k=>{
     const all=groups[k];
@@ -1038,7 +1078,9 @@ function renderPack(){
   const toggle = doneN ? `<div class="donebar ${showDone?'on':''}" id="doneToggle">
       <svg viewBox="0 0 24 24"><use href="#i-check"/></svg>
       ${showDone?`${doneN} gepackte ausblenden`:`${doneN} gepackte anzeigen`}</div>` : '';
-  document.getElementById('packList').innerHTML = groupsHTML + toggle;
+  const emptyHint = (!groupsHTML && modeSel.size>0)
+    ? `<div class="li" style="justify-content:center;color:var(--o1)">Nichts in „${[...modeSel].map(m=>MODE[m].label).join(' + ')}“ offen</div>` : '';
+  document.getElementById('packList').innerHTML = groupsHTML + emptyHint + toggle;
 
   // prep section
   document.getElementById('prepCount').textContent = openPrep+' offen';
@@ -1087,6 +1129,12 @@ function bindPack(){
   const list=document.getElementById('packList');
   // grouping switch (wire the data-g buttons — previously inert)
   document.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ groupMode=b.dataset.g; renderPack(); });
+  document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{
+    const m=b.dataset.m;
+    if(m==='all') modeSel.clear();                              // "Alle" = clear the filter
+    else if(modeSel.has(m)) modeSel.delete(m); else modeSel.add(m);
+    renderPack();
+  });
   const dt=document.getElementById('doneToggle'); if(dt) dt.onclick=()=>{ showDone=!showDone; renderPack(); };
   // stepper / check / prep taps
   document.querySelectorAll('[data-act]').forEach(el=>{
@@ -2100,7 +2148,7 @@ function renderTplEdit(){
     const m=MASTER.find(x=>x.id===r.m)||{name:'?',tags:[]};
     const ev=evalFormula(r.q);
     const chips=[ ...(r.pp?['<span class="chip blue">pro Person</span>']:[]),
-      ...(MODE[r.mode]?[`<span class="chip ${MODE[r.mode][1]}">${MODE[r.mode][0]}</span>`]:[]),
+      ...(isBuy(r.mode)?[`<span class="chip ${r.mode==='buy_before'?'warm':'blue'}">${MODE[r.mode].icon} ${MODE[r.mode].label} kaufen</span>`]:[]),
       ...(r.late?['<span class="chip warm">Später-Packer</span>']:[]),
       ...condSummary(r.cond).map(c=>`<span class="chip mauve">${c}</span>`) ].join('');
     const open=M8.open===i&&mine;
