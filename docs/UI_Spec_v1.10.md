@@ -114,8 +114,9 @@ These patterns apply to every screen and are specified once.
 ### M6 — Shopping Views
 
 * **Purpose:** Focused procurement checklists (FR-3.2).
-* **Elements:** Two tabs: *Before departure* (BUY_BEFORE) and *At destination* (BUY_LOCAL); rows grouped by category; destination tab includes standing destination-checklist entries (FR-13.3) visually separated.
-* **Actions:** Check off → BUY_BEFORE items transition to PACK and leave this list with animation (FR-3.3); add free-text entry directly into either list.
+* **Concept-review additions (Addendum §3.25 / FR-25.6, proposed 2026-07-17):** each shopping row can be **assigned to a traveler** (*Used by*, FR-4.2) from here, and can carry a **per-item comment/note** (FR-7.1) — e.g., "war im Migros Eigerplatz, gab es dort nicht" — so where-looked / unavailable / substitution context lives on the item.
+* **Elements:** Two tabs: *Before departure* (BUY_BEFORE) and *At destination* (BUY_LOCAL); rows grouped by category; destination tab includes standing destination-checklist entries (FR-13.3) visually separated; per row optionally a traveler chip and a note indicator (§3.25).
+* **Actions:** Check off → BUY_BEFORE items transition to PACK and leave this list with animation (FR-3.3); add free-text entry directly into either list; **assign a row to a traveler**; **add a per-item comment/note** (§3.25).
 * **States:** Both lists empty → screen entry point hidden from M4 toolbar badge.
 * **Navigation:** From M4 toolbar; deep-linkable.
 
@@ -129,7 +130,8 @@ These patterns apply to every screen and are specified once.
 ### M8 — Template Editor
 
 * **Purpose:** Define items, formulas, and conditions of one template.
-* **Elements:** Item rows: name (picker from M9 inventory with inline-create), quantity field accepting number or formula with live validation and computed example preview ("for a 7-day trip: 8") (FR-1.3/1.5); per-item controls: assignment type *Per Person / Trip-Global* (FR-1.4), default mode, Late Packer default, dedup strategy (FR-2.3), condition chips (season/transport/accommodation, FR-15.2).
+* **⚠ Redesign pending (Addendum §3.25 / FR-25.7, proposed 2026-07-17 — to be re-mocked):** capturing a template item currently exposes *all* parameters at once (quantity/formula, per-person, mode, dedup, conditions, Late Packer), which is too heavy for a core feature. Redesign intent: **sensible defaults** (plain item = qty 1, trip-global, mode *Packen*, dedup *max*, no conditions, no Late Packer) and **advanced parameters revealed only on demand** (progressive disclosure) — adding a typical item is one or two taps. M8 is the dependent of the "M7 rework" the concept note refers to (M7 = list, M8 = this parameter editor). The bullets below describe the *current* prototype and will be superseded.
+* **Elements:** Item rows: name (picker from M9 inventory with inline-create), quantity field accepting number or formula with live validation and computed example preview ("for a 7-day trip: 8") (FR-1.3/1.5); per-item controls: assignment type *Per Person / Trip-Global* (FR-1.4), default mode, Late Packer default, dedup strategy (FR-2.3), condition chips (season/transport/accommodation, FR-15.2) — **to move behind progressive disclosure per §3.25**.
 * **Actions:** Add/remove/reorder items; save (blocked while any formula is invalid, with per-row error).
 * **States:** Editing a published template warns that consumers see changes on next trip generation only (decoupling per FR-2.4 protects existing trips).
 * **Navigation:** From M7.
