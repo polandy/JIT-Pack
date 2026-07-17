@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>JIT-Pack · UI-Konzept — Masken-Übersicht</title>
+<!--
+  Concept coverage overview for the clickable UI prototype (phase-hub concept).
+  Maintained in git (docs/); a copy is served next to the prototype on :3000 as /overview.html.
+  Update this file whenever a screen's concept status changes.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --crust:#11111b;--mantle:#181825;--base:#1e1e2e;--s0:#313244;--s1:#45475a;--s2:#585b70;
+  --o0:#6c7086;--o1:#7f849c;--text:#cdd6f4;--sub1:#bac2de;--sub0:#a6adc8;
+  --blue:#89b4fa;--teal:#94e2d5;--green:#a6e3a1;--yellow:#f9e2af;--peach:#fab387;
+  --red:#f38ba8;--mauve:#cba6f7;--rose:#f5e0dc;--sky:#89dceb;--sapphire:#74c7ec;
+  --ui:'Hanken Grotesk',system-ui,sans-serif;--display:'Fraunces',Georgia,serif;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--ui);color:var(--text);-webkit-font-smoothing:antialiased;
+  background:radial-gradient(70% 50% at 15% 0,rgba(203,166,247,.09),transparent 60%),
+             radial-gradient(55% 45% at 95% 100%,rgba(250,179,135,.08),transparent 60%),var(--crust);
+  padding:34px 20px 60px}
+.wrap{max-width:1060px;margin:0 auto}
+.kicker{font:600 12px/1 var(--ui);letter-spacing:.18em;text-transform:uppercase;color:var(--peach)}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(28px,4.5vw,40px);letter-spacing:-.01em;margin:.35em 0 .2em}
+h1 em{font-style:italic;color:var(--rose)}
+.sub{color:var(--sub0);font-size:15px;max-width:640px;line-height:1.55}
+.sub code{background:var(--base);border:1px solid var(--s0);border-radius:7px;padding:2px 7px;font-size:13px;color:var(--sky)}
+.meter{display:flex;align-items:center;gap:14px;margin:26px 0 10px}
+.meter .bar{flex:1;height:10px;border-radius:6px;background:var(--s0);overflow:hidden;display:flex}
+.meter .bar i{display:block;height:100%}
+.meter b{font-size:13px;white-space:nowrap}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0 30px;font-size:12.5px;color:var(--sub1)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.dot{width:10px;height:10px;border-radius:4px;flex:none}
+.sec{font:600 12px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--o1);margin:34px 2px 14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+.card{background:var(--base);border:1px solid var(--s0);border-left:4px solid var(--s1);border-radius:16px;padding:15px 16px 14px;
+  box-shadow:0 1px 0 rgba(255,255,255,.02) inset,0 10px 26px -14px rgba(0,0,0,.55)}
+.card.done{border-left-color:var(--green)}
+.card.hub{border-left-color:var(--peach);grid-column:1/-1;
+  background:radial-gradient(120% 130% at 100% 0,rgba(250,179,135,.12),transparent 55%),var(--base)}
+.card.open{border-left-color:var(--s2);opacity:.85}
+.card.depr{border-left-color:var(--o0);opacity:.62}
+.chead{display:flex;align-items:baseline;gap:9px}
+.mid{font-size:11px;font-weight:700;color:var(--o1);letter-spacing:.06em;flex:none}
+.cname{font-weight:700;font-size:15.5px;flex:1;min-width:0}
+.status{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:8px;white-space:nowrap;flex:none}
+.done .status{color:var(--green);background:rgba(166,227,161,.14)}
+.hub .status{color:var(--peach);background:rgba(250,179,135,.16)}
+.open .status{color:var(--sub0);background:var(--s0)}
+.depr .status{color:var(--o1);background:var(--mantle);border:1px solid var(--s0)}
+.path{margin:10px 0 8px;font-size:12px;color:var(--sky);background:var(--mantle);border:1px solid var(--s0);
+  border-radius:9px;padding:7px 10px;line-height:1.45}
+.path b{color:var(--sub1);font-weight:600}
+ul.check{margin:8px 0 0;padding:0;list-style:none;display:grid;gap:5px}
+ul.check li{font-size:12.5px;color:var(--sub0);line-height:1.45;padding-left:20px;position:relative}
+ul.check li::before{content:"☐";position:absolute;left:2px;color:var(--teal)}
+.note{font-size:12.5px;color:var(--sub0);margin-top:8px;line-height:1.5}
+.foot{margin-top:40px;border-top:1px solid var(--s0);padding-top:18px;font-size:12.5px;color:var(--o1);line-height:1.7;max-width:760px}
+.foot b{color:var(--sub1)}
+@media(max-width:640px){body{padding:24px 12px 50px}}
+</style>
+</head>
+<body><div class="wrap">
+
+<div class="kicker">JIT-Pack · UI-Konzept · Stand 17.07.2026</div>
+<h1>Masken-Übersicht — <em>was ist testbar?</em></h1>
+<p class="sub">Alle Screens der UI-Spec (M1–M20) und ihr Stand im anklickbaren Konzept-Prototyp.
+Prototyp öffnen: <code>http://&lt;host&gt;:3000</code> — grüne Karten sind fertig ausgestaltet und warten auf deinen Test;
+die Checkboxen sind deine Prüfpunkte.</p>
+
+<div class="meter">
+  <div class="bar">
+    <i style="width:60%;background:linear-gradient(90deg,var(--teal),var(--green))"></i>
+    <i style="width:5%;background:var(--o0)"></i>
+  </div>
+  <b>12 / 20 Masken im Konzept · +Phasen-Hub · 1 depriorisiert</b>
+</div>
+<div class="legend">
+  <span><span class="dot" style="background:var(--green)"></span>Konzept fertig — bitte testen</span>
+  <span><span class="dot" style="background:var(--peach)"></span>Konzept-Kern (neu, ohne M-Nummer)</span>
+  <span><span class="dot" style="background:var(--s2)"></span>noch offen</span>
+  <span><span class="dot" style="background:var(--o0)"></span>depriorisiert</span>
+</div>
+
+<div class="sec">Konzept-Kern</div>
+<div class="grid">
+  <div class="card hub">
+    <div class="chead"><span class="mid">HUB</span><span class="cname">Phasen-Hub — Trip als Ferien mit vier Phasen</span><span class="status">KONZEPT-KERN</span></div>
+    <div class="path"><b>Pfad:</b> Tab „Reisen“ → Toskana antippen → Phasen-Leiste oben</div>
+    <ul class="check">
+      <li>Vier Phasen umschalten: Planen · Vorbereiten · Unterwegs · Danach</li>
+      <li>Vorbereiten ist voll ausgestaltet (→ M4 ff.); Planen (Ideen-Board), Unterwegs (Tagesplan/Kasse) und Danach (Review-Statistik) sind bewusst nur Skizzen der North-Star-Vision</li>
+    </ul>
+  </div>
+</div>
+
+<div class="sec">Fertig im Konzept — bitte testen</div>
+<div class="grid">
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M1</span><span class="cname">Übersicht (Dashboard)</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> Tab „Übersicht“ (Start)</div>
+    <ul class="check">
+      <li>„Meine offenen Sachen“ — Checkbox hakt ab, Zähler zählt live</li>
+      <li>„Dir zum Packen übergeben“ — blaue Karte (Kinderbücher, von Sara)</li>
+      <li>Vorbereitungen: filtern (Suchfeld) + abhaken, Artikelname → M5</li>
+      <li>Hero-Karte → Phasen-Hub</li>
+    </ul>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M2</span><span class="cname">Reisen-Liste</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> Tab „Reisen“</div>
+    <ul class="check">
+      <li>Suche + Statusfilter (Alle/Aktiv/Geplant/Archiv)</li>
+      <li>Seriengruppe „◆ Toskana“ mit 3 Reisen, Archiv gedimmt</li>
+      <li>Fortschrittsringe je Status, Reise antippen → Hub</li>
+    </ul>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M3</span><span class="cname">Reise-Wizard (4 Schritte)</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> ＋-FAB auf „Übersicht“ oder „Reisen“</div>
+    <ul class="check">
+      <li>Schritt 1: Datum → Dauer live; Serie „Toskana“ befüllt leere Attribut-Chips</li>
+      <li>Schritt 2: Reisende Erwachsen/Kind; Teilen-Block (Editor/Admin)</li>
+      <li>Schritt 3: Vorlagen-Suche + Filter; Live-Footer (Duplikate, Saison-Ausschlüsse, Companions)</li>
+      <li>Schritt 4: Mengen mit Formel + Ein-Tipp-Verlaufsvorschlag; Ziel-Checkliste opt-out</li>
+    </ul>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M4</span><span class="cname">Packliste</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> Reise → „Vorbereiten“ → „Packliste öffnen“</div>
+    <ul class="check">
+      <li>Gruppierung Kategorie/Person/Gepäck/Status umschalten</li>
+      <li>Swipe rechts = packen · links = überspringen · im Übersprungen-Bereich rechts = zurückholen</li>
+      <li>Stepper (8/10) vs. Checkbox; amber = gepackt mit offener Vorbereitung</li>
+      <li>Schnellzugabe: bleibt offen, neue Artikel „fehlt“-markiert</li>
+      <li>Sektionen „Vorbereitung“ + „Bewusst übersprungen“ aufklappen</li>
+    </ul>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M5</span><span class="cname">Artikel-Detail (Sheet)</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> Zeile in M4 antippen · schließen: Griff nach unten ziehen</div>
+    <ul class="check">
+      <li>„Verwendet von“ (Reisende) vs. „Gepackt von“ (Person) getrennt</li>
+      <li>Modus Vor Abreise → „Jetzt gekauft“ mit Undo-Snackbar</li>
+      <li>Verlaufs-Sparkline (’23–’25); Vorbereitungen hinzufügen/abhaken</li>
+      <li>Kommentar „als Aufgabe markieren“ → wird Vorbereitung (Zähler in M4)</li>
+    </ul>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M6</span><span class="cname">Einkauf</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> M4-Toolbar „Einkauf“</div>
+    <ul class="check">
+      <li>Tabs „Vor Abreise“/„Vor Ort“ mit echten Zählern; Suche filtert</li>
+      <li>Abhaken vor Abreise → Artikel wandert auf die Packliste (Snackbar)</li>
+      <li>„Vor Ort“: Ziel-Checkliste der Serie (Feigen, Chianti, Pecorino)</li>
+    </ul>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M7</span><span class="cname">Vorlagen-Liste</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> Tab „Vorlagen“</div>
+    <ul class="check">
+      <li>Suche + Filter Alle/Meine/Veröffentlicht; fork-Chip bei fremden</li>
+      <li>Positionszahlen live (ändern sich nach M8-Edits)</li>
+    </ul>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M8</span><span class="cname">Vorlagen-Editor</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> Vorlage in M7 antippen · neu: ＋-FAB</div>
+    <ul class="check">
+      <li>Formel-Chip „ƒ → 28“; Zeile aufklappen → Live-Beispiel (14 Tage · 4 Reisende)</li>
+      <li>Ungültige Formel (z. B. „num_travelers * x“) → Fehler + „Speichern blockiert“</li>
+      <li>Pro Person/global · Modus · Dedup max/Summe · Bedingungs-Chips</li>
+      <li>Veröffentlichen-Warnung (FR-2.4); fremde Vorlage → read-only + „Fork erstellen“</li>
+      <li>Position hinzufügen: Suche + „neu anlegen“ (landet auch in M9)</li>
+    </ul>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M9</span><span class="cname">Inventar (Stammdaten)</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> Tab „Inventar“</div>
+    <ul class="check">
+      <li>Multi-Tags als Chips an jeder Zeile (neu, FR-24.1 proposed)</li>
+      <li>Tag-Filter „Sommer“ zeigt Artikel quer über Kategorien</li>
+      <li>Gruppierung nach primärem Tag; Zeile → M10</li>
+    </ul>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M10</span><span class="cname">Artikel-Editor (Stammdaten)</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> Artikel in M9 antippen · neu: ＋-FAB</div>
+    <ul class="check">
+      <li>Mehrere Tags zuweisen + neuen Tag inline anlegen</li>
+      <li>Gewicht / Wert / Einheit / Verbrauchsartikel</li>
+      <li>Löschen: verwendet → logisch (Hinweisbox) · nie verwendet → endgültig (FR-24.3 proposed)</li>
+    </ul>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M11</span><span class="cname">Gepäck &amp; Container</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> M4 → Gruppierung „Gepäck“ → „Container verwalten“</div>
+    <ul class="check">
+      <li>Gewichtsbalken: grün → amber (≥90 %) → rot (über Limit)</li>
+      <li>Koffer-Paar-Balance (±15 %): startet im Ungleichgewicht</li>
+      <li>Unzugewiesene zuweisen — Trinkwasser (18 kg) → Rucksack = rot ⚠</li>
+    </ul>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M12</span><span class="cname">Auswertung (Analytics)</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> M4 → KPI-Kachel „GEPACKT“ antippen</div>
+    <ul class="check">
+      <li>Dimension Person/Kategorie/Gepäck; Balken = gepackt/geplant</li>
+      <li>Balken antippen → M4 in dieser Gruppierung</li>
+      <li>„ohne Gewichtsangabe“-Hinweis (Schnellzugabe-Artikel tauchen dort auf)</li>
+      <li>Serien-Trend (kg pro Jahr) + „Häufig markiert“</li>
+    </ul>
+  </div>
+
+</div>
+
+<div class="sec">Noch offen</div>
+<div class="grid">
+  <div class="card open"><div class="chead"><span class="mid">M14</span><span class="cname">Review-Assistent (nach Archivierung)</span><span class="status">OFFEN</span></div>
+    <div class="note">Kartenstapel mit Vorschlägen aus „Ungenutzt/Fehlt“-Markierungen — nächster Kandidat fürs Konzept. Einstieg (M4-Toolbar „Archiv“) zeigt vorerst einen Hinweis.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M15</span><span class="cname">Import-Wizard (CSV)</span><span class="status">OFFEN</span></div>
+    <div class="note">Legacy-Spreadsheet-Import — im Konzept noch nicht dargestellt.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M16</span><span class="cname">Serie &amp; Reiseziel-Profil</span><span class="status">OFFEN</span></div>
+    <div class="note">Serienkopf in M2 zeigt vorerst nur einen Hinweis. Defaults/Ziel-Checkliste wirken aber schon in M3/M6.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M17</span><span class="cname">Einstellungen</span><span class="status">OFFEN</span></div>
+    <div class="note">Zahnrad oben rechts zeigt vorerst nur einen Hinweis.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M18</span><span class="cname">Portabler Import (YAML)</span><span class="status">OFFEN</span></div>
+    <div class="note">Vorschau/Zusammenführen beim YAML-Import — nicht dargestellt.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M19</span><span class="cname">Modus-Wahl (Erststart)</span><span class="status">OFFEN</span></div>
+    <div class="note">Der Prototyp startet direkt in der App; Local/Server-Wahl existiert real bereits im Client.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M20</span><span class="cname">Administration</span><span class="status">OFFEN</span></div>
+    <div class="note">Instanz-Verwaltung — real implementiert, im Konzept nicht dargestellt.</div></div>
+</div>
+
+<div class="sec">Depriorisiert</div>
+<div class="grid">
+  <div class="card depr"><div class="chead"><span class="mid">M13</span><span class="cname">Rückpacken (Repack)</span><span class="status">DEPRIORISIERT</span></div>
+    <div class="note">Entscheid 17.07.2026: nicht wichtig, bewusst keine Konzept-Darstellung. (Real ist das Feature im Client bereits implementiert; der Toolbar-Eintrag im Prototyp zeigt einen Hinweis.)</div></div>
+</div>
+
+<div class="foot">
+  <b>Querschnitt zum Mitprüfen:</b> die einheitliche <b>Filterleiste</b> (Suche + Chips, ✕-löschen, Fokus bleibt beim Tippen)
+  ist auf sechs Listen gespiegelt — M2, M6, M7, M9, Wizard-Schritt 3, Dashboard-Vorbereitungen. In der echten App wird das
+  <b>eine</b> wiederverwendbare Komponente.<br>
+  <b>Neu erfasste Anforderungen</b> aus dieser Konzeptarbeit: Multi-Tags &amp; lebenszyklus-bewusstes Löschen
+  (PRD-Addendum §3.24, FR-24.1–24.3, Status <i>proposed</i>).<br>
+  Diese Seite lebt in <code>docs/UI_Concept_Overview.html</code> und wird bei jeder Statusänderung nachgeführt;
+  eine Kopie liegt neben dem Prototyp auf <code>:3000/overview.html</code>.
+</div>
+
+</div></body>
+</html>
