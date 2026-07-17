@@ -16,11 +16,13 @@
 * **FR-10.3 (Weight Budgets & Warnings):** The system displays the live cumulative weight per container and issues a visual warning when a container exceeds its maximum weight (e.g., airline baggage limit) or when paired containers (e.g., left/right pannier) diverge beyond a configurable imbalance threshold. **Default threshold: 15 % weight difference**, configurable per trip.
 * **FR-10.4 (Analytics Integration):** Containers serve as the data source for the *Luggage Container* dimension defined in FR-8.2.
 
-### 3.11 Return-Trip Mode (Repack)
+### 3.11 Return-Trip Mode (Repack) — **REMOVED (2026-07-17)**
 
-* **FR-11.1 (Repack Trigger):** Before departure from the destination, any trip participant can activate *Return Packing Mode*. All items in mode PACK are reset to state *Open* for the return leg, while the original outbound packing history is preserved for the Post-Trip Review (FR-9.x).
-* **FR-11.2 (Consumables Exclusion):** Items flagged as *Consumable* (FR-1.7) and items originally in mode BUY_LOCAL are excluded from the repack reset by default, with a per-item override.
-* **FR-11.3 (Leave-Behind Check):** Repack Mode provides a dedicated checklist view ("Nothing left behind"), grouped by container and/or assigned Traveler, so rooms and vehicles can be cleared systematically.
+**Status: removed** — the Repack feature is dropped from the product by owner decision (2026-07-17): it is not wanted. FR-11.1–11.3 are retired; the numbers are kept stable (per this document's removal-stub convention) and must not be reused. UI-Spec M13 is removed accordingly. The `outbound_packed` column and any repack code/tests are scheduled for removal as a follow-up code cleanup; until then they are inert dead surface, not a supported feature. FR-11.2's consumable/BUY_LOCAL exclusion logic and any other reference to repack elsewhere in the specs are void.
+
+* ~~**FR-11.1 (Repack Trigger)**~~ — removed.
+* ~~**FR-11.2 (Consumables Exclusion)**~~ — removed.
+* ~~**FR-11.3 (Leave-Behind Check)**~~ — removed.
 
 ### 3.12 Trip Cloning
 

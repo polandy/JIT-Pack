@@ -165,13 +165,9 @@ These patterns apply to every screen and are specified once.
 * **States:** Items without weight metadata are aggregated as "unweighted (n items)" so totals are honest.
 * **Navigation:** From M4 KPI strip; trend section also from M16.
 
-### M13 — Repack Mode
+### M13 — Repack Mode — **REMOVED (2026-07-17)**
 
-* **Purpose:** Guided return packing (3.11).
-* **Elements:** Entry dialog: summary "42 items will be reset to Open; 6 consumables and 3 locally bought items excluded" with expandable exception list and per-item override toggles (FR-11.2); after confirmation M4 switches to a *Repack* banner state; "Nothing left behind" checklist grouped by container/traveler (FR-11.3).
-* **Actions:** Confirm reset (any participant, FR-11.1); complete repack → trip returns to normal active state, outbound history retained for M14.
-* **States:** Repack banner visible to all participants in real time.
-* **Navigation:** From M4 toolbar (active trips only).
+Screen removed together with the Repack feature (PRD Addendum §3.11, removed by owner decision — not wanted). The M-number is retired and must not be reused. No repack entry appears in the M4 toolbar.
 
 ### M14 — Post-Trip Review Assistant
 
