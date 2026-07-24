@@ -24,7 +24,7 @@
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/keyboard": "^8.0.5",
     "@capacitor/status-bar": "^8.0.3",
-    "@ionic/vue": "^8.8.13",
+    "@ionic/vue": "^8.8.15",
     "@ionic/vue-router": "^8.8.14",
     "ionicons": "^8.0.13",
     "pinia": "^3.0.4",
