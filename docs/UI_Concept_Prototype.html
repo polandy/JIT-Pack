@@ -276,7 +276,12 @@ body{
 .tabbar.tabbar-hidden{transform:translateY(130%)}
 .fab{transition:bottom .32s cubic-bezier(.2,.7,.2,1),transform .18s ease}
 .fab.fab-low{bottom:26px}
-.body.tabs-gone{padding-bottom:40px}
+/* FAB spans 104–160px above the viewport foot; the default 108px of list
+   padding leaves ~52px of the last row under it. Clear the whole footprint. */
+.body.pad-fab{padding-bottom:176px}
+/* Full-screen M4: the tab bar is gone, but the low FAB still occupies 26–82px,
+   so 40px of padding left the last row (and its packer avatar) underneath it. */
+.body.tabs-gone{padding-bottom:98px}
 
 .grouphead{display:flex;align-items:center;gap:8px;font:600 12px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;
   color:var(--o1);margin:20px 4px 10px}
@@ -844,6 +849,7 @@ body{
     <div class="view" data-view="shop">
       <div class="shtabs" id="shTabs"></div>
       <div id="shSearch"></div>
+      <div id="shFilter"></div>
       <!-- quick-add sits above the list and stays collapsed until the ＋ FAB
            opens it — same pattern as M4, so adding works identically everywhere -->
       <div class="card qa" id="shQa"></div>
@@ -1247,10 +1253,18 @@ function renderPack(){
 
 // full-screen packing: hide the bottom tab bar (and tighten padding, drop the FAB) while on M4
 function applyPackChrome(){
-  const onPack = stack[stack.length-1]==='pack';
+  const top = stack[stack.length-1];
+  const onPack = top==='pack';
   document.querySelector('.tabbar').classList.toggle('tabbar-hidden', onPack);
   document.getElementById('fab').classList.toggle('fab-low', onPack);
   document.getElementById('body').classList.toggle('tabs-gone', onPack);
+  // The FAB floats over the list, so the list has to be able to scroll clear of
+  // it — otherwise the last row sits permanently underneath and whatever lives
+  // at its right edge (the assignee mark in M6, the packer avatar in M4) is
+  // unreachable. Only needed where the FAB rides high above the tab bar; on M4
+  // it drops to the screen foot and the standard padding already clears it.
+  const fabHigh = !!meta[top]?.fab && !onPack;
+  document.getElementById('body').classList.toggle('pad-fab', fabHigh);
 }
 
 // animate a just-completed row out of the list, then re-render; snackbar offers undo
@@ -1382,7 +1396,8 @@ function renderQA(nameOverride){
       <button class="${qaMode==='person'?'on':''}" data-qamode="person">Pro Person</button></div>
     ${qaMode==='total'
       ? `<div class="qa-sugg">${QA_SUGG.map(s=>`<button data-n="${s[0]}" data-c="${s[1]}">+ ${s[0]} <b>·${s[1].split(' ')[0]}</b></button>`).join('')}</div>
-         <div class="qa-hint">Enter fügt hinzu (Menge 1). Auf aktiver Reise als „fehlt“ markiert (FR-9.1).</div>`
+         <button class="qa-add-btn" data-qaaddtotal="1">Hinzufügen</button>
+         <div class="qa-hint">Oder Enter. Auf aktiver Reise als „fehlt“ markiert (FR-9.1).</div>`
       : `<div class="qa-persons">${QA_TRAVELERS.map(t=>`<div class="qa-prow"><span class="mini-av" style="background:${AV[t][1]}">${AV[t][0]}</span>
            <span class="nm">${t}</span><div class="stepper"><button data-qap="${t}" data-d="-1">–</button><b>${qaPerson[t]}</b><button data-qap="${t}" data-d="1">+</button></div></div>`).join('')}</div>
          <button class="qa-add-btn" data-qaaddperson="1">Hinzufügen</button>
@@ -1394,6 +1409,10 @@ function renderQA(nameOverride){
   el.querySelectorAll('[data-qamode]').forEach(b=>b.onclick=()=>{ qaMode=b.dataset.qamode; renderQA(); });
   el.querySelectorAll('[data-qap]').forEach(b=>b.onclick=()=>{ const t=b.dataset.qap; qaPerson[t]=Math.max(0,qaPerson[t]+(+b.dataset.d)); renderQA(); });
   const addP=el.querySelector('[data-qaaddperson]'); if(addP) addP.onclick=addPerPerson;
+  // Same reasoning as M6: a phone has no Enter key in reach, so the commit must
+  // be a visible control on every quick-add mode, not only the per-person one.
+  const addT=el.querySelector('[data-qaaddtotal]');
+  if(addT) addT.onmousedown=e=>{ e.preventDefault(); if(inp.value.trim()){ addQuick(inp.value.trim(),'Schnell hinzugefügt'); inp.value=''; inp.focus(); } };
 }
 function addPerPerson(){
   const name=(document.getElementById('qaInput').value||'').trim();
@@ -1611,13 +1630,27 @@ function facetValues(key){
     return facetLabel(key,a[0]).localeCompare(facetLabel(key,b[0]));
   });
 }
+/* The filter sheet is shared between M4 and M6 rather than duplicated: a second
+   filter implementation is how two screens drift apart, which is exactly the
+   complaint that produced FR-25.13. A context supplies what differs — the facet
+   set, the state, how values are counted and labelled, and whether the screen
+   has a grouping axis at all. Everything else (markup, semantics, counts,
+   Alle/Keine, the outcome button) is the same code for both. */
+const CTX_PACK={
+  filt:FILT, facets:FACETS, grouping:true,
+  label:facetLabel, values:facetValues,
+  count:()=>allLeaves().filter(l=>leafPasses(l)&&!leafDone(l)).length,
+  rerender:()=>renderPack(),
+};
+let FCTX=CTX_PACK;
 function renderFilterSheet(){
-  const groupSeg=`<div class="fsegwrap"><div class="cap">Gruppieren nach</div><div class="groupbar">`+
+  const C=FCTX;
+  const groupSeg=C.grouping?`<div class="fsegwrap"><div class="cap">Gruppieren nach</div><div class="groupbar">`+
     [['cat','Kategorie'],['trav','Person'],['cont','Gepäck'],['status','Status']]
       .map(g=>`<button class="gb ${groupMode===g[0]?'on':''}" data-g="${g[0]}">${g[1]}</button>`).join('')+
-    `</div></div>`;
-  const groupsHTML=FACETS.map(f=>{
-    const vals=facetValues(f.key), sel=FILT[f.key];
+    `</div></div>`:'';
+  const groupsHTML=C.facets.map(f=>{
+    const vals=C.values(f.key), sel=C.filt[f.key];
     const open=fOpenGroups.has(f.key);
     const sum=sel.size?`${sel.size}/${vals.length}`:'alle';
     return `<div class="fgroup ${open?'open':''}" data-fg="${f.key}">
@@ -1627,35 +1660,35 @@ function renderFilterSheet(){
         <div class="fgactions"><button data-fall="${f.key}">Alle</button><button data-fnone="${f.key}">Keine</button></div>
         ${vals.map(([v,n])=>`<div class="fopt ${sel.has(v)?'on':''}" data-fopt="${f.key}" data-v="${esc(String(v))}">
           <span class="fbox"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span>
-          <span class="lbl">${esc(facetLabel(f.key,v))}</span><span class="n">${n}</span></div>`).join('')
+          <span class="lbl">${esc(C.label(f.key,v))}</span><span class="n">${n}</span></div>`).join('')
           || `<div class="fopt" style="color:var(--o0)">Nichts vorhanden</div>`}
       </div></div>`;
   }).join('');
   document.getElementById('filterBody').innerHTML=groupSeg+groupsHTML;
 
   const body=document.getElementById('filterBody');
-  body.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ groupMode=b.dataset.g; renderFilterSheet(); renderPack(); });
+  body.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ groupMode=b.dataset.g; renderFilterSheet(); C.rerender(); });
   body.querySelectorAll('[data-fgtoggle]').forEach(h=>h.onclick=()=>{
     const k=h.dataset.fgtoggle; if(fOpenGroups.has(k)) fOpenGroups.delete(k); else fOpenGroups.add(k);
     renderFilterSheet();
   });
   body.querySelectorAll('[data-fopt]').forEach(o=>o.onclick=()=>{
     const k=o.dataset.fopt, v=o.dataset.v;
-    if(FILT[k].has(v)) FILT[k].delete(v); else FILT[k].add(v);
-    renderFilterSheet(); renderPack();
+    if(C.filt[k].has(v)) C.filt[k].delete(v); else C.filt[k].add(v);
+    renderFilterSheet(); C.rerender();
   });
   body.querySelectorAll('[data-fall]').forEach(b=>b.onclick=()=>{
-    const k=b.dataset.fall; facetValues(k).forEach(([v])=>FILT[k].add(v)); renderFilterSheet(); renderPack();
+    const k=b.dataset.fall; C.values(k).forEach(([v])=>C.filt[k].add(v)); renderFilterSheet(); C.rerender();
   });
   body.querySelectorAll('[data-fnone]').forEach(b=>b.onclick=()=>{
-    FILT[b.dataset.fnone].clear(); renderFilterSheet(); renderPack();
+    C.filt[b.dataset.fnone].clear(); renderFilterSheet(); C.rerender();
   });
   // The apply button is a close button that also states the outcome, so the
   // count is visible before committing to it.
-  const n=allLeaves().filter(l=>leafPasses(l) && !leafDone(l)).length;
+  const n=C.count();
   document.getElementById('fApply').textContent=`${n} ${n===1?'Sache':'Sachen'} anzeigen`;
 }
-function openFilters(){ renderFilterSheet();
+function openFilters(ctx){ if(ctx) FCTX=ctx; renderFilterSheet();
   document.getElementById('filterScrim').classList.add('open');
   document.getElementById('filterSheet').classList.add('open'); }
 function closeFilters(){
@@ -1663,8 +1696,52 @@ function closeFilters(){
   document.getElementById('filterSheet').classList.remove('open'); }
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('fApply').onclick=closeFilters;
-  document.getElementById('fClear').onclick=()=>{ clearFilters(); renderFilterSheet(); renderPack(); };
+  document.getElementById('fClear').onclick=()=>{
+    FCTX.facets.forEach(f=>FCTX.filt[f.key].clear()); renderFilterSheet(); FCTX.rerender();
+  };
 });
+
+/* ---- M6's facet set: no grouping axis (the tabs already split the two buy
+   modes), and "Zugewiesen an" / "Für wen" are separate facets because they are
+   separate concepts (FR-25.12). ---- */
+const SFILT={buyer:new Set(), who:new Set(), cat:new Set()};
+const SFACETS=[{key:'buyer',label:'Zugewiesen an'},{key:'who',label:'Für wen'},{key:'cat',label:'Kategorie'}];
+const SH_NOBODY='—';
+function shopFacetVals(i,key){
+  if(key==='buyer') return [i.buyer||SH_NOBODY];
+  if(key==='cat')   return [i.cat];
+  return i.pp ? i.pp.map(e=>e.trav) : ['Alle'];      // derived recipients (FR-25.6)
+}
+function shopPasses(i, skipKey){
+  return SFACETS.every(f=>f.key===skipKey || SFILT[f.key].size===0
+    || shopFacetVals(i,f.key).some(v=>SFILT[f.key].has(v)));
+}
+function shopFacetLabel(key,v){
+  if(key==='buyer'&&v===SH_NOBODY) return 'niemand zugewiesen';
+  if(key==='who'&&v==='Alle') return 'Gemeinsam';
+  return v;
+}
+function shopFacetValues(key){
+  const base=shopOpen(SHOP.tab==='before'?'buy_before':'buy_local');
+  const counts=new Map();
+  base.forEach(i=>{ if(!shopPasses(i,key)) return;
+    shopFacetVals(i,key).forEach(v=>counts.set(v,(counts.get(v)||0)+1)); });
+  SFILT[key].forEach(v=>{ if(!counts.has(v)) counts.set(v,0); });
+  return [...counts.entries()].sort((a,b)=>{
+    // The "unassigned" and "shared" buckets lead their lists — they are the
+    // absence of a value, not one more name among the people.
+    if(key==='buyer'){ if(a[0]===SH_NOBODY) return -1; if(b[0]===SH_NOBODY) return 1; }
+    if(key==='who'){ if(a[0]==='Alle') return -1; if(b[0]==='Alle') return 1; }
+    return shopFacetLabel(key,a[0]).localeCompare(shopFacetLabel(key,b[0]));
+  });
+}
+const CTX_SHOP={
+  filt:SFILT, facets:SFACETS, grouping:false,
+  label:shopFacetLabel, values:shopFacetValues,
+  count:()=>shopOpen(SHOP.tab==='before'?'buy_before':'buy_local').filter(i=>shopPasses(i)).length,
+  rerender:()=>renderShop(),
+};
+const shopFilterCount=()=>SFACETS.reduce((n,f)=>n+SFILT[f.key].size,0);
 
 /* snackbar */
 let snackT=null;
@@ -2226,7 +2303,8 @@ function shopBuyerHTML(i){
 }
 function renderShList(){
   const q=SHOP.search.trim().toLowerCase();
-  const items=shopOpen(SHOP.tab==='before'?'buy_before':'buy_local').filter(i=>!q||i.name.toLowerCase().includes(q));
+  const all=shopOpen(SHOP.tab==='before'?'buy_before':'buy_local');
+  const items=all.filter(i=>shopPasses(i)).filter(i=>!q||i.name.toLowerCase().includes(q));
   const g={}; items.forEach(i=>(g[i.cat]=g[i.cat]||[]).push(i));
   let html=Object.keys(g).length?Object.keys(g).map(c=>`<div class="grouphead">${esc(c)}</div>
     <div class="card">${g[c].map(i=>`<div class="li"><div class="check" data-shbuy="${i.id}"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
@@ -2234,7 +2312,10 @@ function renderShList(){
         <div class="desc">${shopQty(i)} ${i.unit||'Stk'}${i.pp?` · für ${i.pp.map(e=>e.trav).join(', ')}`:''}</div>
         ${i.note?`<div class="shnote">📝 ${esc(i.note)}</div>`:''}</div>
       ${shopWhoHTML(i)}${shopBuyerHTML(i)}</div>`).join('')}</div>`).join('')
-    :`<div class="card"><div class="li"><div class="grow muted" style="text-align:center;padding:8px">${q?'Nichts gefunden.':'Liste leer 🎉'}</div></div></div>`;
+    :(shopFilterCount()
+      ? `<div class="emptyfilter"><b>Keine Treffer</b>${all.length} offene ${all.length===1?'Position liegt':'Positionen liegen'} hinter dem Filter.
+           <div><button id="shResetEmpty">Filter zurücksetzen</button></div></div>`
+      : `<div class="card"><div class="li"><div class="grow muted" style="text-align:center;padding:8px">${q?'Nichts gefunden.':'Liste leer 🎉'}</div></div></div>`);
   if(SHOP.tab==='local'){ const dl=DESTLIST.filter(d=>!q||d.toLowerCase().includes(q));
     if(dl.length) html+=`<div class="destsep">Ziel-Checkliste der Serie</div>
       <div class="card">${dl.map((d)=>`<div class="li"><div class="check" data-shdest="${esc(d)}"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
@@ -2248,6 +2329,25 @@ function renderShList(){
     renderShop(); });
   el.querySelectorAll('[data-shopen]').forEach(r=>r.onclick=()=>openShopItem(+r.dataset.shopen));
   el.querySelectorAll('[data-shdest]').forEach(ch=>ch.onclick=()=>ch.classList.toggle('on'));
+  const sre=document.getElementById('shResetEmpty');
+  if(sre) sre.onclick=()=>{ SFACETS.forEach(f=>SFILT[f.key].clear()); renderShop(); };
+}
+/* Same filter bar as M4 (FR-25.11a) — one Filter button with the active count,
+   a removable chip per active value. Shared markup, shared semantics. */
+function renderShopFilterBar(){
+  const n=shopFilterCount();
+  const chips=SFACETS.flatMap(f=>[...SFILT[f.key]].map(v=>
+    `<button class="fchip" data-sfchip="${f.key}" data-v="${esc(String(v))}"><b>${f.label}</b>${esc(shopFacetLabel(f.key,v))}<span class="x">×</span></button>`));
+  const el=document.getElementById('shFilter');
+  el.innerHTML=`<div class="filterbar">`+
+    `<button class="fbtn ${n?'active':''}" id="shFOpen">⚙ Filter${n?`<span class="cnt">${n}</span>`:''}</button>`+
+    chips.join('')+
+    (n?`<button class="freset" id="shFReset">Zurücksetzen</button>`:'')+
+    `</div>`;
+  document.getElementById('shFOpen').onclick=()=>openFilters(CTX_SHOP);
+  el.querySelectorAll('[data-sfchip]').forEach(b=>b.onclick=()=>{ SFILT[b.dataset.sfchip].delete(b.dataset.v); renderShop(); });
+  const r=document.getElementById('shFReset');
+  if(r) r.onclick=()=>{ SFACETS.forEach(f=>SFILT[f.key].clear()); renderShop(); };
 }
 /* M6 quick-add — same shape as M4's (FR-5.6 / §3.25 directive): collapsed by
    default, the ＋ FAB expands and focuses it, Enter adds, blur collapses.
@@ -2271,7 +2371,8 @@ function renderShQa(nameOverride){
     <input placeholder="Beschreibung (optional)" id="shQaDesc" class="sub" autocomplete="off">
     <div class="qa-assign"><span class="cap">Zugewiesen an</span>
       ${['—',...USERS].map(p=>`<button class="pchip sm ${shQaAssignee===p?'on':''}" data-shqaw="${esc(p)}">${p==='—'?'niemand':esc(p)}</button>`).join('')}</div>
-    <div class="qa-hint">Enter fügt zu „${where}“ hinzu — mit allem, was ausgefüllt ist.</div>`;
+    <button class="qa-add-btn" id="shQaAdd">Zu „${where}“ hinzufügen</button>
+    <div class="qa-hint">Oder Enter — das Feld bleibt für den nächsten Artikel offen.</div>`;
   const inp=document.getElementById('shQaInput'), desc=document.getElementById('shQaDesc');
   inp.focus(); const v=inp.value; try{inp.setSelectionRange(v.length,v.length);}catch(e){}
   // Chips toggle in place rather than re-rendering the form — a re-render would
@@ -2281,8 +2382,10 @@ function renderShQa(nameOverride){
     el.querySelectorAll('[data-shqaw]').forEach(x=>x.classList.toggle('on',x.dataset.shqaw===shQaAssignee));
   });
   const submit=()=>{ if(inp.value.trim()) shopAdd(inp.value.trim(), desc.value.trim(), shQaAssignee); };
-  // Enter commits from either field, so the description never forces a reach
-  // for a separate button.
+  // A visible confirm button is the primary commit: on a phone there is no
+  // Enter key in reach, and relying on the keyboard's return key leaves the
+  // action invisible. Enter stays as the desktop shortcut, from either field.
+  document.getElementById('shQaAdd').onmousedown=e=>{ e.preventDefault(); submit(); };
   [inp,desc].forEach(f=>f.addEventListener('keydown',e=>{ if(e.key==='Enter') submit(); }));
   // Collapse only when the whole form is empty — a typed description alone
   // must not vanish because focus moved to the name field.
@@ -2341,6 +2444,7 @@ function renderShop(){
     `<div class="search"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg>
       <input id="shSearchInput" placeholder="Einkaufsliste durchsuchen…" value="${esc(SHOP.search)}" autocomplete="off">
       <button class="clr ${SHOP.search?'show':''}" id="shClr" aria-label="Suche löschen">✕</button></div>`;
+  renderShopFilterBar();
   renderShList();
   document.querySelectorAll('[data-sh]').forEach(b=>b.onclick=()=>{ SHOP.tab=b.dataset.sh; renderShop(); });
   const s=document.getElementById('shSearchInput'); s.oninput=e=>{ SHOP.search=e.target.value; document.getElementById('shClr').classList.toggle('show',!!SHOP.search); renderShList(); };
