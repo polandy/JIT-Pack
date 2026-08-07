@@ -127,6 +127,9 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M4-09** `all` (FR-7.2): an item with open tasks refuses completion with an inline hint.
 * **E2E-M4-10** `server` (FR-4.4): remote pack animates in with actor attribution ("packed by Bob"), no refresh.
 * **E2E-M4-11** `all` (FR-3.2): toolbar opens M6 (badge hidden when both shopping lists empty); archive → launches M14.
+* **E2E-M4-12** `all` (FR-25.8/25.1): quick-add in *per person* mode for two travelers (e.g. "Jacke" — Andy 1, Sia 1) produces **one named cluster** "Jacke" with a `0/2` sub-header and exactly two indented child rows, each showing its traveler and its own check control. Asserts there is **no** second top-level row repeating the name — the regression found on 2026-08-07 was N separate items, where every individual row looked right and only the grouping was wrong, so the assertion must be on the cluster structure and the absence of duplicate top-level rows, not merely on "two rows named Jacke exist".
+* **E2E-M4-13** `all` (FR-25.1 flat fallback): the same quick-add for a **single** traveler produces an ordinary flat row labelled with that person ("Mütze · Andy"), **not** a one-child cluster.
+* **E2E-M4-14** `all` (FR-25.1/25.2): packing one instance of a two-person cluster keeps the cluster intact — the packed child drops out (hide-done), the sub-header still reads over the full set (`1/2`), and the remaining instance does **not** re-render as a flat row. Guards the "decide cluster-vs-flat over the full set" rule; getting this wrong makes the list restructure under the user's finger mid-tap.
 
 ### M5 — Item Detail
 * **E2E-M5-01** `all` (FR-4.2): distinct *Used by* (traveler) vs *Packed by* (user) sections.
@@ -369,6 +372,10 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-23.4 | E2E | M20-03 |
 | FR-23.5 | E2E | M20-04 |
 | FR-23.6 | SERVER | deactivation side-effects (push purge, notif suppress) — Go test; access-revocation asserted M20-02 |
+| FR-25.1 | E2E+UNIT | M4-12/13/14; packingView.ts (clustering, flat fallback, full-set decision) |
+| FR-25.2 | E2E+UNIT | M4-14; packingView.ts (isDone, hidden counts, full-set headers) |
+| FR-25.4 | UNIT | packingView.ts (multi-select mode filter, counts over open rows) — E2E case pending the M4 rebuild |
+| FR-25.8 | E2E | M4-12, M4-13 |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |
 | NFR-4.2a | E2E+UNIT | FLOW-08, NFR-04; sync merge tests |
