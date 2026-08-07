@@ -130,6 +130,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M4-06** `all` (FR-4.3/5.5): swipe left → assign-to-me or skip; skipped items move to the collapsed "Consciously skipped" section (strikethrough); swipe-to-unskip restores at qty 1.
 * **E2E-M4-07** `all` (FR-20.2): skipping cascades co-skip of dependent companions with a reason.
 * **E2E-M4-08** `all` (FR-7.3): open prep todos render a prep badge; a packed item with open prep uses the amber "packed with open prep" style.
+* **E2E-M4-25** `all` (FR-7.3/25.2): the full lifecycle in one case — an item packed while a prep todo is open stays **visible and amber** and does **not** count as done; **resolving its last todo makes it done and it leaves the list**; revealing packed rows brings it back without a prep badge. Regression guard: the open-prep count must be derived from the todos, not stored on the item, or resolving the last todo leaves the row stuck forever. Second direction: an item that has a todo but never had a stored count must still show its badge.
 * **E2E-M4-09** `all` (FR-7.2): an item with open tasks refuses completion with an inline hint.
 * **E2E-M4-10** `server` (FR-4.4): remote pack animates in with actor attribution ("packed by Bob"), no refresh.
 * **E2E-M4-11** `all` (FR-3.2): toolbar opens M6 (badge hidden when both shopping lists empty); archive → launches M14.

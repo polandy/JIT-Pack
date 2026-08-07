@@ -1047,7 +1047,13 @@ const AV = {Andy:['A','var(--peach)'],Sia:['S','var(--mauve)'],Leonardo:['L','va
 let groupMode = 'cat';
 let showDone = false;                       // FR-25.x: hide fully-packed rows, reveal via toggle
 const PACK = {search:'', searchOpen:false, collapsed:new Set()};  // G-12: search collapses behind its icon; collapsed = folded group keys
-const isDone = it => it.packed>=it.qty && !it.prep;   // "komplett gepackt" = packed & no open prep
+/* Open preparation is DERIVED from the todo list, never stored as a count on
+   the item. It used to be a static number in the seed while the todos carried
+   their own done flag, so resolving the last todo left the number at 1 and the
+   row could never become done — and an item with a todo but no number showed no
+   badge. One source of truth in both directions. */
+const openPrepOf = name => P.prep.filter(p=>p.item===name && !p.done).length;
+const isDone = it => it.packed>=it.qty && !openPrepOf(it.name);   // packed & no open prep
 
 // FR-25.1: a per-person item (it.pp) is N real packing units, one per traveler.
 // Flatten every item to countable "leaves"; a plain item is one leaf, a per-person
@@ -1055,11 +1061,11 @@ const isDone = it => it.packed>=it.qty && !it.prep;   // "komplett gepackt" = pa
 function itemLeaves(it){
   if(!it.pp) return [{key:String(it.id), it, e:null, ppIndex:null,
     name:it.name, trav:it.trav, qty:it.qty, packed:it.packed, packedBy:it.packedBy, packedAt:it.packedAt,
-    prep:it.prep, cat:it.cat, cont:it.cont, mode:it.mode, unit:it.unit, cons:it.cons, missing:it.missing,
+    prep:openPrepOf(it.name), cat:it.cat, cont:it.cont, mode:it.mode, unit:it.unit, cons:it.cons, missing:it.missing,
     late:it.late}];   // late was never copied onto the leaf, so ⏰ and the Merkmale facet both missed it
   return it.pp.map((e,k)=>({key:'pp:'+it.id+':'+k, it, e, ppIndex:k,
     name:it.name, trav:e.trav, qty:e.qty, packed:e.packed, packedBy:e.packedBy, packedAt:e.packedAt,
-    prep:e.prep, cat:it.cat, cont:it.cont, mode:it.mode, unit:it.unit, cons:it.cons, missing:it.missing,
+    prep:openPrepOf(it.name), cat:it.cat, cont:it.cont, mode:it.mode, unit:it.unit, cons:it.cons, missing:it.missing,
     late:it.late}));
 }
 const allLeaves = () => P.items.flatMap(itemLeaves);
@@ -1090,8 +1096,8 @@ const P = {
     {id:7,name:'Velohelme',cat:'Aktivität',qty:2,packed:1,mode:'pack',trav:'Alle',cont:'Auto',w:300,packedBy:'Andy'},
     {id:8,name:'Wanderstöcke',cat:'Aktivität',qty:1,packed:0,mode:'pack',trav:'Andy',cont:'Auto',w:500},
     {id:9,name:'Mehrfach-Stromstecker',cat:'Technik',qty:1,packed:1,mode:'pack',trav:'Alle',cont:'Rucksack',w:180,packedBy:'Sia'},
-    {id:10,name:'iPad Pro + Tastatur',cat:'Technik',qty:1,packed:0,mode:'pack',trav:'Andy',cont:'Rucksack',w:600,prep:1,late:true},
-    {id:11,name:'Pass / ID',cat:'Dokumente',qty:3,packed:2,mode:'pack',trav:'Alle',cont:'Rucksack',w:20,prep:1,packedBy:'Sia'},
+    {id:10,name:'iPad Pro + Tastatur',cat:'Technik',qty:1,packed:0,mode:'pack',trav:'Andy',cont:'Rucksack',w:600,late:true},
+    {id:11,name:'Pass / ID',cat:'Dokumente',qty:3,packed:2,mode:'pack',trav:'Alle',cont:'Rucksack',w:20,packedBy:'Sia'},
     {id:12,name:'Kaffee',cat:'Küche',qty:1,packed:0,mode:'buy_before',trav:'Alle',cont:'—',w:500},
     {id:13,name:'Bouillon · Salz · Pfeffer',cat:'Küche',qty:1,packed:0,mode:'pack',trav:'Alle',cont:'Küchenkiste',w:300},
     {id:14,name:'Leonardos Regenzeug',cat:'Für Leonardo',qty:1,packed:0,mode:'pack',trav:'Leonardo',cont:'Koffer',w:250},
@@ -1456,11 +1462,11 @@ function bindPack(){
       if(a==='prep'){P.prep[+el.dataset.i].done=!P.prep[+el.dataset.i].done; const wasOpen=document.getElementById('secPrep').classList.contains('open'); renderPack(); if(wasOpen)document.getElementById('secPrep').classList.add('open'); return;}
       const {it,e:ent}=resolveLeaf(el.dataset.id); if(!it)return;
       const tgt=ent||it;                                 // mutate the per-person entry or the plain item
-      const prev=tgt.packed, wasDone=(tgt.packed>=tgt.qty && !tgt.prep);
+      const prev=tgt.packed, wasDone=(tgt.packed>=tgt.qty && !openPrepOf(it.name));
       if(a==='inc') tgt.packed=Math.min(tgt.qty,tgt.packed+1);
       if(a==='dec') tgt.packed=Math.max(0,tgt.packed-1);
       if(a==='check') tgt.packed=tgt.packed>=tgt.qty?0:tgt.qty;
-      const nowDone=(tgt.packed>=tgt.qty && !tgt.prep);
+      const nowDone=(tgt.packed>=tgt.qty && !openPrepOf(it.name));
       // Stamp who and when at the moment of the tap (FR-25.3 extended): on a
       // shared list the question about a packed row is not whether it is done
       // but who dealt with it and how long ago. Cleared when it is un-packed,
@@ -1498,8 +1504,8 @@ function attachSwipe(sw){
         P.items.push({id:nextId++,name:s.name,cat:'Wieder aufgenommen',qty:1,packed:0,mode:'pack',trav:'Alle',cont:'—'}); renderPack(); return; }
     } else {
       const {it,e}=resolveLeaf(sw.dataset.id);
-      if(dx>T && it){ const tgt=e||it, prev=tgt.packed, wasDone=(tgt.packed>=tgt.qty&&!tgt.prep); tgt.packed=tgt.qty;   // swipe right → Packen
-        if(tgt.packed>=tgt.qty && !tgt.prep && !wasDone && !showDone){ packAway(sw, e?it.name+' · '+e.trav:it.name, ()=>{tgt.packed=prev;}); return; }
+      if(dx>T && it){ const tgt=e||it, prev=tgt.packed, wasDone=(tgt.packed>=tgt.qty&&!openPrepOf(it.name)); tgt.packed=tgt.qty;   // swipe right → Packen
+        if(tgt.packed>=tgt.qty && !openPrepOf(it.name) && !wasDone && !showDone){ packAway(sw, e?it.name+' · '+e.trav:it.name, ()=>{tgt.packed=prev;}); return; }
         renderPack(); return; }
       if(dx<-T && it){                                                              // swipe left → überspringen
         if(e){ const nm=it.name+' · '+e.trav; it.pp.splice(it.pp.indexOf(e),1); if(!it.pp.length) P.items=P.items.filter(x=>x!==it); P.skipped.push({name:nm,reason:'bewusst übersprungen'}); }
@@ -1673,7 +1679,7 @@ function renderItem(){
   // per-person parent → derived aggregate view for M5 (full per-person M5 is out of this mockup's scope)
   const it=raw.pp ? {...raw, qty:raw.pp.reduce((a,e)=>a+e.qty,0), packed:raw.pp.reduce((a,e)=>a+e.packed,0), trav:'Alle', packedBy:''} : raw;
   const full=it.packed>=it.qty;
-  const state=it.packed===0?['Offen','var(--o1)']:(full?(it.prep?['Gepackt · Prep offen','var(--peach)']:['Gepackt','var(--green)']):['Teilweise','var(--yellow)']);
+  const state=it.packed===0?['Offen','var(--o1)']:(full?(openPrepOf(it.name)?['Gepackt · Prep offen','var(--peach)']:['Gepackt','var(--green)']):['Teilweise','var(--yellow)']);
   // A per-person item has no single quantity to step: "+1" would not say for
   // whom. Its total is therefore a read-only progress chip, and the actual
   // controls sit on the per-traveler rows below, where they mean something.
