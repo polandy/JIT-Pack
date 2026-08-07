@@ -10,27 +10,43 @@ same commit.
 
 Explicitly flagged as open in the entries below — the natural feed for `/next`:
 
-**Concept phase — this is the active work.** The packing screens are being re-specified against the
-clickable prototype (`docs/UI_Concept_Prototype.html`, coverage overview in
-`docs/UI_Concept_Overview.html`) before any of it is built. Everything in PRD Addendum
-§3.24/§3.25/§3.26 carries **status: proposed** — no migration, no code. The concept locks
-(→ *accepted* + schema) only once M6 and M8 are re-mocked:
+### MVP scope (owner decision, 2026-08-07)
 
-- **M6 re-mock (shopping views)** — **the next step.** FR-25.6 is explicitly unresolved: since
-  free-form *Used by* was removed (FR-25.10), "assign to a traveler" must be reframed as either a
-  per-person shopping row (FR-25.1 shape) or a lightweight "for whom" note.
-- **M8 re-mock (template-item editor)** — FR-25.7 progressive disclosure + sensible defaults;
-  carries FR-25.9 (adult/child per-person quantities). Depends on the M7 list rework.
-- **§3.24 Item tags & lifecycle-aware delete** (FR-24.1–24.3) — proposed, awaiting the concept lock.
-- **§3.26 Calendar reminders / iCalendar feed** (FR-26.1–26.6) — proposed; four open questions
-  (trigger set, default lead time, per-member vs. additional shared trip calendar, refresh cadence).
-- **NFR-4.12 i18n** (de/en, German default) — proposed. Deliberately captured *before* the M4/M5
-  rebuild so the new screens are string-externalized from the start rather than retrofitted.
+**The goal is a running MVP with the packing feature completely finished — not more
+specification.** The concept phase (§3.24–§3.26, North Star) had grown open-ended; it is now
+bounded. Two decisions fix the scope:
 
-Once the concept is locked: the **M4/M5 rebuild** itself (FR-25.1–25.10). M4 is the product's core
-screen and is to be built from the re-mocked design, not patched into the current implementation.
+1. **The surrounding features stay as they are.** M1/M2/M3/M7/M9/M10/M16/M17/M20, Local Mode,
+   import/export and the whole backend are *not* reworked to the new concept (no top-bar
+   slim-down, no `Navigation_Concept` rebuild) — they already work. Only what packing needs gets
+   touched.
+2. **i18n ships with the MVP** (NFR-4.12, now *accepted*): **English is the primary/default
+   language, German is fully supported.** The client is currently hard-coded English, so this is
+   externalizing ~300 existing strings plus a German catalogue — done *before* the M4/M5 rebuild
+   so the new screens are localized from the start rather than retrofitted. Implemented in-house,
+   no `vue-i18n` (footprint justification and revisit trigger in NFR-4.12).
 
-Independent of the concept phase:
+**In the MVP, in order:**
+
+- **i18n foundation** — the module, both catalogues, locale switch in M17, existing screens
+  migrated. First, because everything after it writes user-facing strings.
+- **M4/M5 rebuild** (FR-25.1–25.10) — the core screen, built from the re-mocked design rather
+  than patched into the current implementation.
+- **M6/M8** — only as far as M4/M5 actually depend on them. M8 carries FR-25.9 (adult/child
+  per-person quantities); M6 is where the two buy modes land. FR-25.6 is still open: since
+  free-form *Used by* was removed (FR-25.10), "assign to a traveler" in the shopping views must be
+  reframed — per-person row (FR-25.1 shape) vs. lightweight "for whom" note. **Decide when M6 is
+  actually reached, not before.**
+
+**Parked until the MVP ships** (specified, not deleted — do not start these):
+
+- **§3.24 Item tags & lifecycle-aware delete** (FR-24.1–24.3) — needs a migration and changes the
+  item model without making packing better.
+- **§3.26 Calendar reminders / iCalendar feed** (FR-26.1–26.6) — own endpoint, own security model,
+  four open questions.
+- **North-Star phases** (`Vision_NorthStar_v1.0.md`) — directional only, drives nothing now.
+
+Independent of the MVP:
 
 - **UI test suite (Playwright E2E)** — `docs/UI_Test_Spec_v1.0.md` is written and the harness is
   scaffolded (`client/e2e/`, `playwright.config.ts`, smoke spec, CI job); the per-screen cases are
