@@ -391,6 +391,8 @@ body{
 /* revealed bought rows — de-emphasised but still interactive, so a mistap is undoable */
 .li.shdone{opacity:.45}
 .li.shdone .name{text-decoration:line-through}
+.shstamp{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--o1);margin-top:3px}
+.shstamp .mini-av{width:15px;height:15px;font-size:8px}
 .shbuyer{position:relative;flex:none;cursor:pointer;display:grid;place-items:center;margin-left:6px}
 .shbuyer .mini-av{box-shadow:0 0 0 2px var(--blue)}
 .shbuyer i{position:absolute;right:-4px;bottom:-4px;font-style:normal;font-size:9px;line-height:1;
@@ -597,6 +599,19 @@ body{
 .shtabs .ico .cnt{position:absolute;top:2px;right:1px;font-size:9px;font-weight:700;line-height:13px;
   min-width:13px;background:var(--blue);color:var(--crust);border-radius:7px;padding:0 3px}
 .shtabs .sep{flex:0 0 1px;align-self:stretch;background:var(--s0);margin:4px 3px}
+
+/* G-12 toolbar icon cluster — the same shape wherever a list carries actions:
+   search collapses behind a magnifier, filter carries its count as a badge,
+   the rest goes behind ⋯. Keeps a working screen to one header line. */
+.hicons{display:flex;align-items:center;gap:2px;flex:none;margin-left:auto}
+.hicons button{position:relative;width:34px;height:34px;border:0;border-radius:11px;background:none;
+  color:var(--sub0);display:grid;place-items:center;cursor:pointer}
+.hicons button svg{width:19px;height:19px}
+.hicons button.on{background:var(--s1);color:var(--text)}
+.hicons .cnt{position:absolute;top:1px;right:0;font-size:9px;font-weight:700;line-height:13px;min-width:13px;
+  background:var(--blue);color:var(--crust);border-radius:7px;padding:0 3px}
+.hicons .cnt.warm{background:var(--peach)}
+.hicons .dots{font-size:17px;font-weight:700;line-height:1}
 .destsep{display:flex;align-items:center;gap:9px;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
   color:var(--mauve);margin:18px 4px 9px}
 .destsep::after{content:"";flex:1;height:1px;background:var(--s0)}
@@ -670,6 +685,8 @@ body{
 <g id="i-wifi"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0M12 19h.01" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></g>
 <g id="i-search"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m20 20-3.4-3.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></g>
 <g id="i-filter"><path d="M4 6h16M7 12h10M10 18h4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></g>
+<g id="i-cart"><path d="M3 4h2.2l2.3 10.2a1.5 1.5 0 0 0 1.5 1.2h7.4a1.5 1.5 0 0 0 1.5-1.15L20 7.5H6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="19.5" r="1.4" fill="currentColor"/><circle cx="16.5" cy="19.5" r="1.4" fill="currentColor"/></g>
+<g id="i-luggage"><rect x="4.5" y="7.5" width="15" height="12.5" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M9.5 7.5V5.6c0-.6.5-1.1 1.1-1.1h2.8c.6 0 1.1.5 1.1 1.1v1.9M9.5 11v5.5m5-5.5v5.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></g>
 </defs></svg>
 
 <div class="caption">
@@ -999,6 +1016,7 @@ function setPhase(p){
 const AV = {Andy:['A','var(--peach)'],Sia:['S','var(--mauve)'],Leonardo:['L','var(--sky)']};
 let groupMode = 'cat';
 let showDone = false;                       // FR-25.x: hide fully-packed rows, reveal via toggle
+const PACK = {search:'', searchOpen:false};  // G-12: search collapses behind its icon
 const isDone = it => it.packed>=it.qty && !it.prep;   // "komplett gepackt" = packed & no open prep
 
 // FR-25.1: a per-person item (it.pp) is N real packing units, one per traveler.
@@ -1191,28 +1209,39 @@ function renderPack(){
   const total=L.length, done=L.filter(l=>l.packed>=l.qty).length;
   const openPrep=P.prep.filter(p=>!p.done).length;
   const shopN=P.items.filter(i=>isBuy(i.mode)).length;
-  const Lf = L.filter(l=>leafPasses(l));
+  const q=PACK.search.trim().toLowerCase();
+  const Lf = L.filter(l=>leafPasses(l)).filter(l=>!q||l.name.toLowerCase().includes(q));
 
-  // header — single compact line; tools behind ⋯; hides on scroll-down (§3.25)
+  // G-12: one header line — identity and progress on the left, actions as an
+  // icon cluster on the right. Replaces the previous two full rows of controls
+  // (⚙-Filter bar + "Gruppiert nach"), which made the working screen restless.
   const facepile=`<div class="stack"><span class="avatar" style="background:var(--peach)">A</span><span class="avatar" style="background:var(--mauve)">S</span></div>`;
-  const toolbarRow=`<div class="toolbar"><button class="tbtn" onclick="go('shop')"><svg viewBox="0 0 24 24"><use href="#i-item"/></svg>Einkauf<span class="badge">${shopN}</span></button>`+
-    `<button class="tbtn" onclick="go('containers')"><svg viewBox="0 0 24 24"><use href="#i-item"/></svg>Gepäck</button>`+
+  const toolbarRow=`<div class="toolbar"><button class="tbtn" onclick="go('containers')"><svg viewBox="0 0 24 24"><use href="#i-luggage"/></svg>Gepäck</button>`+
     `<button class="tbtn" onclick="go('analytics')"><svg viewBox="0 0 24 24"><use href="#i-spark"/></svg>Auswertung</button></div>`;
-  // One collapsed filter row replaces the old group bar + mode strip. Active
-  // facets stay visible as removable chips: on a packing list an invisible
-  // filter is a hazard, because a filtered-empty list reads as "all done".
   const nF=filterCount();
+  const icons=`<div class="hicons">`+
+    `<button class="${PACK.searchOpen||PACK.search?'on':''}" id="pkSearchBtn" aria-label="Suchen"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg></button>`+
+    `<button class="${nF?'on':''}" id="fOpen" aria-label="Filter"><svg viewBox="0 0 24 24"><use href="#i-filter"/></svg>${nF?`<span class="cnt">${nF}</span>`:''}</button>`+
+    // Shopping keeps its own icon rather than sitting behind ⋯: it is the one
+    // secondary screen reached *during* packing, and §3.25 recorded that these
+    // entries were hard to find. Containers and analytics stay in the overflow.
+    `<button id="pkShopBtn" aria-label="Einkauf"><svg viewBox="0 0 24 24"><use href="#i-cart"/></svg>${shopN?`<span class="cnt warm">${shopN}</span>`:''}</button>`+
+    `<button class="${pvToolsOpen?'on':''}" id="pkMoreBtn" aria-label="Mehr"><span class="dots">⋯</span></button>`+
+    `</div>`;
+  // Active facets stay visible as removable chips: on a packing list an
+  // invisible filter is a hazard, because a filtered-empty list reads as
+  // "all done". The row appears only when something is actually filtered.
   const chips=FACETS.flatMap(f=>[...FILT[f.key]].map(v=>
     `<button class="fchip" data-fchip="${f.key}" data-v="${esc(String(v))}"><b>${f.label}</b>${esc(facetLabel(f.key,v))}<span class="x">×</span></button>`));
-  const filterbar=`<div class="filterbar">`+
-    `<button class="fbtn ${nF?'active':''}" id="fOpen">⚙ Filter${nF?`<span class="cnt">${nF}</span>`:''}</button>`+
-    chips.join('')+
-    (nF?`<button class="freset" id="fResetInline">Zurücksetzen</button>`:
-        `<span class="freset" style="color:var(--o0)">Gruppiert nach ${{cat:'Kategorie',trav:'Person',cont:'Gepäck',status:'Status'}[groupMode]}</span>`)+
-    `</div>`;
+  const filterbar=nF?`<div class="filterbar">`+chips.join('')+
+    `<button class="freset" id="fResetInline">Zurücksetzen</button></div>`:'';
+  const searchRow=(PACK.searchOpen||PACK.search)
+    ? `<div class="search"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg>
+        <input id="pkSearchInput" placeholder="Packliste durchsuchen…" value="${esc(PACK.search)}" autocomplete="off">
+        <button class="clr show" id="pkClr" aria-label="Suche schliessen">✕</button></div>` : '';
   document.getElementById('packHead').innerHTML=
-    `<div class="pv1-line">${facepile}<div class="pv1-status">Samedan <span class="muted">· ${done}/${total} · 18 kg · Prep ${openPrep}</span></div>`+
-    `<button class="pv1-more" onclick="togglePvTools()">⋯</button></div>${pvToolsOpen?toolbarRow:''}${filterbar}`;
+    `<div class="pv1-line">${facepile}<div class="pv1-status">Samedan <span class="muted">· ${done}/${total} · 18 kg · Prep ${openPrep}</span></div>${icons}</div>`+
+    `${pvToolsOpen?toolbarRow:''}${searchRow}${filterbar}`;
 
   // quick-add hidden unless actively adding (the ＋ FAB opens it)
   const qa=document.getElementById('qaTrigger');
@@ -1304,6 +1333,14 @@ function bindPack(){
   // Must pass the context explicitly: `onclick=openFilters` handed the click
   // event in as the context, so M4 opened whatever context was last used.
   const fo=document.getElementById('fOpen'); if(fo) fo.onclick=()=>openFilters(CTX_PACK);
+  const sb=document.getElementById('pkSearchBtn');
+  if(sb) sb.onclick=()=>{ PACK.searchOpen=!PACK.searchOpen; if(!PACK.searchOpen) PACK.search=''; renderPack(); };
+  const si=document.getElementById('pkSearchInput');
+  if(si){ si.focus({preventScroll:true});
+    si.oninput=e=>{ PACK.search=e.target.value; renderPack(); const f=document.getElementById('pkSearchInput'); if(f){f.focus({preventScroll:true}); f.setSelectionRange(f.value.length,f.value.length);} };
+    document.getElementById('pkClr').onclick=()=>{ PACK.search=''; PACK.searchOpen=false; renderPack(); }; }
+  const shb=document.getElementById('pkShopBtn'); if(shb) shb.onclick=()=>go('shop');
+  const mb=document.getElementById('pkMoreBtn'); if(mb) mb.onclick=togglePvTools;
   document.querySelectorAll('[data-fchip]').forEach(b=>b.onclick=()=>{
     FILT[b.dataset.fchip].delete(b.dataset.v); renderPack();
   });
@@ -2317,6 +2354,20 @@ const shopPacked = i => i.pp ? i.pp.reduce((a,e)=>a+e.packed,0) : i.packed;
 const shopOpen=mode=>P.items.filter(i=>!i.bought&&i.mode===mode&&shopPacked(i)<shopQty(i));
 /** Items already bought off this list — kept findable so a mistap is undoable. */
 const shopDone=mode=>P.items.filter(i=>i.bought===mode);
+/** "gekauft von Andy · heute 14:32" — relative day, absolute time, because on a
+    shared list "wann" is the question that decides whether to buy it again. */
+function boughtStampHTML(i){
+  if(!i.boughtBy&&!i.boughtAt) return '';
+  const d=new Date(i.boughtAt), now=new Date();
+  const day=new Date(d.getFullYear(),d.getMonth(),d.getDate()),
+        today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const diff=Math.round((today-day)/86400000);
+  const when=diff===0?'heute':diff===1?'gestern':d.toLocaleDateString('de-CH',{day:'numeric',month:'short'});
+  const time=d.toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
+  const av=AV[i.boughtBy]||['?','var(--s2)'];
+  return `<span class="mini-av" style="background:${av[1]}">${av[0]}</span>`+
+         `gekauft von ${esc(i.boughtBy||'—')} · ${when} ${time}`;
+}
 function shopUncheck(it){
   if(it.bought==='buy_before') it.mode='buy_before';
   else { if(it.pp) it.pp.forEach(e=>e.packed=0); else it.packed=0; }
@@ -2367,7 +2418,8 @@ function renderShList(){
     html+=`<div class="destsep">Gekauft</div><div class="card">${doneList.map(i=>
       `<div class="li shdone"><div class="check on" data-shbuy="${i.id}"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
         <div class="grow" data-shopen="${i.id}"><div class="name">${esc(i.name)}</div>
-          <div class="desc">${shopQty(i)} ${i.unit||'Stk'}${i.bought==='buy_before'?' · auf der Packliste':''}</div></div>
+          <div class="desc">${shopQty(i)} ${i.unit||'Stk'}${i.bought==='buy_before'?' · auf der Packliste':''}</div>
+          <div class="shstamp">${boughtStampHTML(i)}</div></div>
         ${shopWhoHTML(i)}${shopBuyerHTML(i)}</div>`).join('')}</div>`;
   }
   if(SHOP.tab==='local'){ const dl=DESTLIST.filter(d=>!q||d.toLowerCase().includes(q));
@@ -2381,6 +2433,11 @@ function renderShList(){
     // FR-3.3: BUY_BEFORE becomes something to pack, BUY_LOCAL is done on purchase.
     // `bought` records which list it left, because a BUY_BEFORE item changes
     // mode and would otherwise be unfindable from the shopping side entirely.
+    // Who and when, recorded at the moment of the tap: on a shared list the
+    // useful question about a bought row is not "is it done" but "did someone
+    // already get this, and how long ago" — the same attribution FR-25.3 puts
+    // on a packed row, applied to buying.
+    it.boughtBy=ME; it.boughtAt=Date.now();
     if(SHOP.tab==='before'){ it.bought='buy_before'; it.mode='pack'; snack('„'+it.name+'“ gekauft → Packliste'); }
     else { it.bought='buy_local'; if(it.pp) it.pp.forEach(e=>e.packed=e.qty); else it.packed=it.qty; snack('„'+it.name+'“ gekauft ✓'); }
     renderShop(); });
