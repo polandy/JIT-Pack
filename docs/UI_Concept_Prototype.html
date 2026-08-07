@@ -628,7 +628,7 @@ body{
 .gh-toggle{cursor:pointer;user-select:none}
 .gh-toggle .car{display:inline-block;font-size:11px;color:var(--o1);margin-right:6px;transition:transform .18s}
 .gh-toggle.shut .car{transform:rotate(-90deg)}
-.ghstub{font-size:12px;color:var(--o0);padding:2px 4px 10px;cursor:pointer}
+.gh-toggle.shut{margin-bottom:2px}
 .tripnav{margin-left:6px}
 .tripnav button{width:32px;height:32px}
 .tipbubble{position:absolute;top:calc(100% + 6px);right:0;z-index:30;white-space:nowrap;
@@ -1305,11 +1305,15 @@ function renderPack(){
     // shut turns M4 into a table of contents: on a long list you work one
     // category at a time, and the rest is noise until you get to it.
     const shut=PACK.collapsed.has(k);
-    const openN=vis.length;
+    const openN=all.filter(l=>!leafDone(l)).length;
+    // Collapsed, the header is the only thing left of the group, so it has to
+    // answer the question the rows would have: how much is still open. A
+    // separate stub line below said the same thing while costing a row and
+    // splitting one statement across two lines.
     return `<div class="grouphead gh-toggle ${shut?'shut':''}" data-grp="${esc(k)}">
         <span class="car">▾</span>${esc(k)}
-        <span class="n">${all.filter(leafDone).length}/${all.length}</span></div>
-     ${shut?`<div class="ghstub" data-grp="${esc(k)}">${openN} offen</div>`:`<div class="card">${body}</div>`}`;
+        <span class="n">${shut?`${openN} offen`:`${all.filter(leafDone).length}/${all.length}`}</span></div>
+     ${shut?'':`<div class="card">${body}</div>`}`;
   }).join('');
   const toggle = doneN ? `<div class="donebar ${showDone?'on':''}" id="doneToggle">
       <svg viewBox="0 0 24 24"><use href="#i-check"/></svg>
