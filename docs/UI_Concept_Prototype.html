@@ -1320,12 +1320,19 @@ function renderPack(){
       ${showDone?`${doneN} gepackte ausblenden`:`${doneN} gepackte anzeigen`}</div>` : '';
   // An empty list has two very different meanings, and conflating them is how a
   // packing app tells someone they are finished when they are not.
+  // "Alles gepackt" may only ever appear when *nothing* is narrowing the list.
+  // A search or a filter that matches nothing is "keine Treffer" — announcing
+  // completion there is the exact failure FR-25.11e exists to prevent.
   let emptyHint='';
   if(!groupsHTML){
-    const hiddenByFilter = L.filter(l=>!leafDone(l)).length - Lf.filter(l=>!leafDone(l)).length;
-    emptyHint = nF
-      ? `<div class="emptyfilter"><b>Keine Treffer</b>${hiddenByFilter} offene ${hiddenByFilter===1?'Sache liegt':'Sachen liegen'} hinter dem Filter.
-           <div><button id="fResetEmpty">Filter zurücksetzen</button></div></div>`
+    const narrowing = nF>0 || q.length>0;
+    const hidden = L.filter(l=>!leafDone(l)).length - Lf.filter(l=>!leafDone(l)).length;
+    const what = q.length>0
+      ? (nF ? `Nichts passt zu „${esc(PACK.search.trim())}“ und dem Filter.` : `Nichts passt zu „${esc(PACK.search.trim())}“.`)
+      : `${hidden} offene ${hidden===1?'Sache liegt':'Sachen liegen'} hinter dem Filter.`;
+    emptyHint = narrowing
+      ? `<div class="emptyfilter"><b>Keine Treffer</b>${what}
+           <div><button id="fResetEmpty">${q.length>0&&!nF?'Suche löschen':'Suche und Filter zurücksetzen'}</button></div></div>`
       : `<div class="emptyfilter"><b>Alles gepackt 🎉</b>Nichts mehr offen für diese Reise.</div>`;
   }
   document.getElementById('packList').innerHTML = groupsHTML + emptyHint + toggle;
@@ -1435,7 +1442,10 @@ function bindPack(){
     FILT[b.dataset.fchip].delete(b.dataset.v); renderPack();
   });
   const fri=document.getElementById('fResetInline'); if(fri) fri.onclick=()=>{ clearFilters(); renderPack(); };
-  const fre=document.getElementById('fResetEmpty'); if(fre) fre.onclick=()=>{ clearFilters(); renderPack(); };
+  // Clears everything that is narrowing the list, not just the filter — a reset
+  // that leaves the search in place still shows "keine Treffer".
+  const fre=document.getElementById('fResetEmpty');
+  if(fre) fre.onclick=()=>{ clearFilters(); PACK.search=''; PACK.searchOpen=false; renderPack(); };
   const dt=document.getElementById('doneToggle'); if(dt) dt.onclick=()=>{ showDone=!showDone; renderPack(); };
   // stepper / check / prep taps — scoped to the M4 regions so it never rebinds the M5 sheet's
   // own [data-act] handlers (renderPack runs after sheet actions; a document-wide select clobbered them)
