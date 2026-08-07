@@ -28,11 +28,15 @@ bounded. Two decisions fix the scope:
 
 **In the MVP, in order:**
 
-- **i18n foundation** — module + both catalogues + M17 switch **done 2026-08-07** (item 16);
-  **migrating the ~300 existing strings is still open** and is the immediate next task. First in
-  the order, because everything after it writes user-facing strings.
+- **i18n foundation** — module + both catalogues + M17 switch **done 2026-08-07** (item 16).
 - **M4/M5 rebuild** (FR-25.1–25.10) — the core screen, built from the re-mocked design rather
-  than patched into the current implementation.
+  than patched into the current implementation, and localized with `t()` from the first line.
+  **In progress:** the pure view model (`src/domain/packingView.ts`) is done; the screen itself
+  is not rebuilt yet.
+- **Translate the surrounding screens** — the ~300 existing hard-coded English strings across
+  M1/M2/M3/M7/M9/M10/M16/M17/M20. Deliberately sequenced *after* the M4/M5 rebuild (owner
+  decision 2026-08-07): those two screens are being replaced anyway, so translating their old
+  markup first would be thrown away.
 - **M6/M8** — only as far as M4/M5 actually depend on them. M8 carries FR-25.9 (adult/child
   per-person quantities); M6 is where the two buy modes land. FR-25.6 is still open: since
   free-form *Used by* was removed (FR-25.10), "assign to a traveler" in the shopping views must be
@@ -147,7 +151,11 @@ Deliberate cuts (revisit only with cause): M15 XLSX support (CSV only, NFR-4.3, 
     - Locale is a Vue `ref`, so `t()` in a template re-evaluates on language change — no reload. Resolution order: persisted choice → browser locale if German → English. Persisted device-local under `jitpack_locale`, the same pattern and failure handling as the theme (FR-21.3); `initLocale()` runs before mount in `main.ts` next to `initTheme()`, and sets `document.documentElement.lang`. An unknown key renders as the key itself rather than blank, so gaps are visible in review.
     - Plural rule is `n === 1` → singular, everything else plural (so zero takes the plural form, correct for both locales). An unmatched `{placeholder}` is left verbatim — a visible `{n}` is a bug report, "undefined" reads as data loss.
     - M17 gained a Language row (IonSelect, English/German) beside the Appearance toggle. 24 tests.
-    - **Open:** the ~300 existing hard-coded English strings across 35 `.vue` files are **not yet externalized** — only the new Language row uses `t()`. Until that migration lands, switching to German changes very little on screen.
+    - **Open:** the ~300 existing hard-coded English strings across 35 `.vue` files are **not yet externalized** — only the new Language row uses `t()`. Until that migration lands, switching to German changes very little on screen. Sequenced after the M4/M5 rebuild on purpose (see the MVP order above).
+17. **M4/M5 rebuild (§3.25, FR-25.1–25.10)** — **IN PROGRESS** (started 2026-08-07).
+    - **Done: the pure view model** `client/src/domain/packingView.ts` (26 tests). `buildPackingView` turns items + travelers + containers into groups of entries, where an entry is either a flat row or a per-person **cluster**. It owns the three behaviours that are pure list arithmetic: FR-25.1 clustering, FR-25.2 hiding done rows, FR-25.4 the multi-select mode filter. `isDone` is the single definition of "done" — fully packed **or** skipped, but *never* a packed row with an open preparation todo (FR-7.3), because hiding that is exactly the false "all done" the state exists to prevent.
+    - Invariant worth keeping: **headers count over the full set, lists render the filtered set.** Group headers, cluster headers and the mode pills all tally over every row, so a group reading "3/8" while showing five rows is honest. Two consequences are deliberate and tested: cluster-vs-flat is decided over the full set (packing one instance must not restructure the list), and mode counts are taken over *open* rows before filtering (so the pills do not renumber as you toggle them).
+    - Not yet built: the screen itself — lean header + overflow, full-screen (hidden tab bar), collapsing header, pack-out animation + undo snackbar, packer avatar (FR-25.3), quick-add FAB behaviour.
 
 ## Deviations
 
