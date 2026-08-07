@@ -604,6 +604,8 @@ body{
    search collapses behind a magnifier, filter carries its count as a badge,
    the rest goes behind ⋯. Keeps a working screen to one header line. */
 .hicons{display:flex;align-items:center;gap:2px;flex:none;margin-left:auto}
+.appbar .hicons{margin-left:0}
+.appbar .hicons button{width:32px;height:32px}
 .hicons button{position:relative;width:34px;height:34px;border:0;border-radius:11px;background:none;
   color:var(--sub0);display:grid;place-items:center;cursor:pointer}
 .hicons button svg{width:19px;height:19px}
@@ -718,7 +720,12 @@ body{
     <div class="title" id="barTitle">Übersicht</div>
     <span class="bar-facepile" id="barCtxAv" style="display:none"></span>
     <button class="iconbtn" id="backBtn" style="display:none" onclick="back()"><svg viewBox="0 0 24 24"><use href="#i-back"/></svg></button>
-    <button class="iconbtn" onclick="alert('Einstellungen (M17) — im Konzept nur angedeutet)')"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></button>
+    <!-- G-12: on a detail screen the app bar carries that screen's actions in
+         place of the gear. The gear is a global, rarely-used destination and has
+         no business competing for space on a screen you work on; the actions do,
+         and up here they survive the sub-header collapsing on scroll. -->
+    <span class="hicons" id="barActions"></span>
+    <button class="iconbtn" id="gearBtn" onclick="alert('Einstellungen (M17) — im Konzept nur angedeutet)')"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></button>
   </div>
 
   <!-- SCROLL BODY -->
@@ -976,6 +983,7 @@ function render(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.dataset.view===name));
   document.getElementById('barTitle').textContent = m.t;
   packHeadCollapsed=false; { const av=document.getElementById('barCtxAv'); if(av) av.style.display='none'; } // reset migrated context on navigation
+  setBarActions('');   // each screen re-publishes its own cluster while rendering
   document.getElementById('backBtn').style.display = m.back ? 'grid':'none';
   document.getElementById('fab').style.display = m.fab ? 'grid':'none';
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===m.tab));
@@ -1239,8 +1247,9 @@ function renderPack(){
     ? `<div class="search"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg>
         <input id="pkSearchInput" placeholder="Packliste durchsuchen…" value="${esc(PACK.search)}" autocomplete="off">
         <button class="clr show" id="pkClr" aria-label="Suche schliessen">✕</button></div>` : '';
+  setBarActions(icons);
   document.getElementById('packHead').innerHTML=
-    `<div class="pv1-line">${facepile}<div class="pv1-status">Samedan <span class="muted">· ${done}/${total} · 18 kg · Prep ${openPrep}</span></div>${icons}</div>`+
+    `<div class="pv1-line">${facepile}<div class="pv1-status">Samedan <span class="muted">· ${done}/${total} · 18 kg · Prep ${openPrep}</span></div></div>`+
     `${pvToolsOpen?toolbarRow:''}${searchRow}${filterbar}`;
 
   // quick-add hidden unless actively adding (the ＋ FAB opens it)
@@ -1296,6 +1305,13 @@ function renderPack(){
 }
 
 // full-screen packing: hide the bottom tab bar (and tighten padding, drop the FAB) while on M4
+/* Hands a screen's G-12 cluster to the app bar and hides the gear while it is
+   there. Called from each screen's render, cleared by go() on navigation. */
+function setBarActions(html){
+  const el=document.getElementById('barActions');
+  el.innerHTML=html||'';
+  document.getElementById('gearBtn').style.display=html?'none':'';
+}
 function applyPackChrome(){
   const top = stack[stack.length-1];
   const onPack = top==='pack';
@@ -2598,10 +2614,10 @@ function renderShop(){
   const nF=shopFilterCount();
   document.getElementById('shTabs').innerHTML=
     `<button class="${SHOP.tab==='before'?'on':''}" data-sh="before">Vor Abreise<span class="b">${shopOpen('buy_before').length}</span></button>
-     <button class="${SHOP.tab==='local'?'on':''}" data-sh="local">Vor Ort<span class="b">${shopOpen('buy_local').length}</span></button>
-     <span class="sep"></span>
-     <button class="ico ${SHOP.searchOpen||SHOP.search?'on':''}" id="shSearchBtn" aria-label="Suchen"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg></button>
-     <button class="ico ${nF?'on':''}" id="shFOpen" aria-label="Filter"><svg viewBox="0 0 24 24"><use href="#i-filter"/></svg>${nF?`<span class="cnt">${nF}</span>`:''}</button>`;
+     <button class="${SHOP.tab==='local'?'on':''}" data-sh="local">Vor Ort<span class="b">${shopOpen('buy_local').length}</span></button>`;
+  setBarActions(
+    `<button class="${SHOP.searchOpen||SHOP.search?'on':''}" id="shSearchBtn" aria-label="Suchen"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg></button>`+
+    `<button class="${nF?'on':''}" id="shFOpen" aria-label="Filter"><svg viewBox="0 0 24 24"><use href="#i-filter"/></svg>${nF?`<span class="cnt">${nF}</span>`:''}</button>`);
   document.getElementById('shSearch').innerHTML=(SHOP.searchOpen||SHOP.search)
     ? `<div class="search"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg>
       <input id="shSearchInput" placeholder="Einkaufsliste durchsuchen…" value="${esc(SHOP.search)}" autocomplete="off">

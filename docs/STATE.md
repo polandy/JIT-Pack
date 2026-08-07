@@ -39,6 +39,13 @@ bounded. Two decisions fix the scope:
   markup first would be thrown away.
 - **M6** — re-mocked 2026-08-07, **FR-25.6 resolved**: "for whom" is derived from membership and
   shown on one aggregated buy row, not re-entered and not split per traveler. Per-item notes in.
+  Grew from there: faceted filter (FR-25.11g), assignee + description at add time (FR-25.12/13a),
+  category with master-item autocomplete (FR-25.13b), reveal-bought with who/when (FR-25.11i/j).
+- **G-12 (UI-Spec) — new pattern, 2026-08-07:** screen actions live as an icon cluster **in the
+  app bar**, replacing the settings gear on detail screens; search collapses behind its icon and
+  the filter carries its count. M4 was converted to it and is back to a one-line header. The
+  app-bar placement matters beyond tidiness: M4's sub-header collapses on scroll, so a cluster
+  sitting there would slide away mid-task (measured, E2E-G12-03).
 - **M8** — **still open.** Carries FR-25.7 (progressive disclosure, sensible defaults) and
   FR-25.9 (adult/child per-person quantities); depends on the M7 list rework.
 
