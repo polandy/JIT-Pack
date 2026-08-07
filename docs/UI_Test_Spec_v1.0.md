@@ -78,7 +78,8 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G10-01 | G-10 Trip presence | server | Facepile of others on the trip + group-sync badge (green→amber as a device lags); tap opens the per-person sync list. |
 | E2E-G11-01 | G-11 Theming | all | Dark (Mocha) is default before first paint with no preference; M17 toggle switches to Latte and persists device-local across reload; no flash of wrong theme. |
 | E2E-G12-01 | G-12 Actions in the app bar | all | On a detail screen (M4, M6) the app bar carries that screen's icon cluster and the settings **gear is hidden**; on a root/tab screen the gear is back and no cluster is shown. Navigating away clears the previous screen's cluster — asserts M6's icons do not linger on the next screen. |
-| E2E-G12-02 | G-12 Cluster contents | all | M4's cluster is search, filter, Shopping (with open-item count) and ⋯; ⋯ holds containers and analytics only. Shopping is reachable **without** opening ⋯ — the discoverability failure §3.25 recorded. M6's cluster is search and filter. |
+| E2E-G12-02 | G-12 Two clusters, no overflow | all | M4's app-bar cluster is search + filter; Shopping (with open-item count), Luggage and Analytics sit on the trip title line. **No ⋯ exists** — all three destinations are reachable in one tap, which is what §3.25's discoverability directive asked for. M6's app-bar cluster is search + filter. |
+| E2E-G12-06 | G-12 Icon-only is still nameable | all | Every unlabelled navigation icon exposes its name via `title`, and a long-press shows it as a bubble on touch. A plain tap **navigates** and shows no bubble — learning a glyph must never cost an extra tap. |
 | E2E-G12-03 | G-12 Actions survive the collapsing header | all | Scrolling M4 down collapses its sub-header, and search and filter **remain tappable** in the app bar throughout. This is the reason the cluster lives there rather than on the status line. |
 | E2E-G12-04 | G-12 One header line | all | M4's own header renders a single line (name, progress, presence); the search field and the filter chip row appear below it **only** when respectively opened and active, and neither is present in the default state. |
 | E2E-G12-05 | G-12 Literal icons | all | Shopping uses a cart glyph and Luggage a suitcase — distinct from each other and from the Inventory cube. Guards the regression where one generic glyph stood for several destinations, which defeats dropping the labels. |
@@ -142,6 +143,8 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M4-14** `all` (FR-25.1/25.2): packing one instance of a two-person cluster keeps the cluster intact — the packed child drops out (hide-done), the sub-header still reads over the full set (`1/2`), and the remaining instance does **not** re-render as a flat row. Guards the "decide cluster-vs-flat over the full set" rule; getting this wrong makes the list restructure under the user's finger mid-tap.
 
 ### M5 — Item Detail
+* **E2E-M5-06** `all` (FR-25.14): opening a **per-person** item shows its total as a **read-only chip** ("0/3") with **no** +/− control on it, and one row per traveler each carrying its own check or stepper. Packing one traveler's instance raises the total and leaves the others untouched. Guards the regression where the summed quantity sat in a stepper that could not be operated.
+* **E2E-M5-07** `all` (FR-25.15): the sheet has **no Save button**; any edit flips the indicator to amber "Wird gespeichert…" and back to green "✓ Gespeichert" once settled. The *Details* toggle, which only folds the sheet open, must **not** flip it. Asserts the indicator is separate from the G-2 sync glyph.
 * **E2E-M5-01** `all` (FR-4.2): distinct *Used by* (traveler) vs *Packed by* (user) sections.
 * **E2E-M5-02** `all` (FR-3.1/10.2): mode selector PACK/BUY_BEFORE/BUY_LOCAL; container picker.
 * **E2E-M5-03** `all` (FR-9.1): Unused/Missing flags visible only on active trips.
@@ -413,7 +416,9 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-25.11i | E2E | M6-17; M4-14 (reveal, dimmed, still interactive) |
 | FR-25.11j | E2E | M6-17 (BUY_BEFORE leaves the list and comes back) |
 | FR-25.11k | E2E | M6-18, G12-01/04 (collapsed search, filter icon with badge, one header line) |
-| G-12 | E2E | G12-01…05 (app-bar placement, cluster contents, survives collapse, one line, literal icons) |
+| G-12 | E2E | G12-01…06 (app-bar placement, two clusters + no overflow, survives collapse, one line, literal icons, nameable glyphs) |
+| FR-25.14 | E2E | M5-06 (read-only aggregate, per-traveler controls) |
+| FR-25.15 | E2E | M5-07 (auto-save indicator, distinct from G-2) |
 | FR-25.13b | E2E | M6-19 (autocomplete adopts the category; manual fallback) |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |

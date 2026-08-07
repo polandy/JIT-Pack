@@ -399,6 +399,16 @@ body{
   background:var(--base);border-radius:50%;padding:1px}
 .shbuyer.empty{width:26px;height:26px;border-radius:50%;border:1.5px dashed var(--s2);color:var(--o0);font-size:13px;font-weight:700}
 .assign .cap{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--o0);margin-bottom:7px}
+/* per-person total: a read-only progress chip, deliberately not a stepper */
+.ppsum{flex:none;font-size:14px;font-weight:700;color:var(--sub1);background:var(--mantle);
+  border:1px solid var(--s1);border-radius:12px;padding:7px 12px;margin-top:2px}
+.pprow{display:flex;align-items:center;gap:9px;padding:6px 0}
+.pprow .nm{flex:1;font-size:14px;font-weight:600}
+/* auto-save confirmation (distinct from G-2's sync glyph) */
+.savechip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;
+  padding:3px 9px;border-radius:11px;margin:2px 0 6px;transition:color .2s,background .2s}
+.savechip.saved{color:var(--green);background:color-mix(in srgb,var(--green) 14%,transparent)}
+.savechip.dirty{color:var(--yellow);background:color-mix(in srgb,var(--yellow) 16%,transparent)}
 .chiprow{display:flex;flex-wrap:wrap;gap:7px}
 .pchip{cursor:pointer;font-size:13px;font-weight:600;padding:6px 12px;border-radius:16px;
   border:1px solid var(--s1);background:var(--mantle);color:var(--sub0)}
@@ -614,6 +624,11 @@ body{
   background:var(--blue);color:var(--crust);border-radius:7px;padding:0 3px}
 .hicons .cnt.warm{background:var(--peach)}
 .hicons .dots{font-size:17px;font-weight:700;line-height:1}
+.tripnav{margin-left:6px}
+.tripnav button{width:32px;height:32px}
+.tipbubble{position:absolute;top:calc(100% + 6px);right:0;z-index:30;white-space:nowrap;
+  font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:9px;
+  background:var(--s2);color:var(--text);box-shadow:0 6px 18px -8px rgba(0,0,0,.8);animation:rise .16s both}
 .destsep{display:flex;align-items:center;gap:9px;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
   color:var(--mauve);margin:18px 4px 9px}
 .destsep::after{content:"";flex:1;height:1px;background:var(--s0)}
@@ -1224,17 +1239,23 @@ function renderPack(){
   // icon cluster on the right. Replaces the previous two full rows of controls
   // (⚙-Filter bar + "Gruppiert nach"), which made the working screen restless.
   const facepile=`<div class="stack"><span class="avatar" style="background:var(--peach)">A</span><span class="avatar" style="background:var(--mauve)">S</span></div>`;
-  const toolbarRow=`<div class="toolbar"><button class="tbtn" onclick="go('containers')"><svg viewBox="0 0 24 24"><use href="#i-luggage"/></svg>Gepäck</button>`+
-    `<button class="tbtn" onclick="go('analytics')"><svg viewBox="0 0 24 24"><use href="#i-spark"/></svg>Auswertung</button></div>`;
   const nF=filterCount();
+  // Two clusters, split by what they act on. The app bar carries actions on
+  // *this list* (search, filter). The trip line carries the trip's other
+  // views — shopping, luggage, analytics — because they are navigation within
+  // the same trip, not operations on the list. No overflow: three destinations
+  // hidden behind ⋯ was exactly the discoverability failure §3.25 recorded,
+  // and an unlabelled ⋯ tells you nothing about what is inside.
   const icons=`<div class="hicons">`+
     `<button class="${PACK.searchOpen||PACK.search?'on':''}" id="pkSearchBtn" aria-label="Suchen"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg></button>`+
     `<button class="${nF?'on':''}" id="fOpen" aria-label="Filter"><svg viewBox="0 0 24 24"><use href="#i-filter"/></svg>${nF?`<span class="cnt">${nF}</span>`:''}</button>`+
-    // Shopping keeps its own icon rather than sitting behind ⋯: it is the one
-    // secondary screen reached *during* packing, and §3.25 recorded that these
-    // entries were hard to find. Containers and analytics stay in the overflow.
-    `<button id="pkShopBtn" aria-label="Einkauf"><svg viewBox="0 0 24 24"><use href="#i-cart"/></svg>${shopN?`<span class="cnt warm">${shopN}</span>`:''}</button>`+
-    `<button class="${pvToolsOpen?'on':''}" id="pkMoreBtn" aria-label="Mehr"><span class="dots">⋯</span></button>`+
+    `</div>`;
+  // Labels are dropped, so each icon carries its name for hover (desktop) and
+  // on long-press (touch) — see tipify(). Never on tap: tapping must navigate.
+  const tripNav=`<div class="hicons tripnav">`+
+    `<button data-tip="Einkauf" onclick="go('shop')" aria-label="Einkauf"><svg viewBox="0 0 24 24"><use href="#i-cart"/></svg>${shopN?`<span class="cnt warm">${shopN}</span>`:''}</button>`+
+    `<button data-tip="Gepäck" onclick="go('containers')" aria-label="Gepäck"><svg viewBox="0 0 24 24"><use href="#i-luggage"/></svg></button>`+
+    `<button data-tip="Auswertung" onclick="go('analytics')" aria-label="Auswertung"><svg viewBox="0 0 24 24"><use href="#i-spark"/></svg></button>`+
     `</div>`;
   // Active facets stay visible as removable chips: on a packing list an
   // invisible filter is a hazard, because a filtered-empty list reads as
@@ -1249,8 +1270,9 @@ function renderPack(){
         <button class="clr show" id="pkClr" aria-label="Suche schliessen">✕</button></div>` : '';
   setBarActions(icons);
   document.getElementById('packHead').innerHTML=
-    `<div class="pv1-line">${facepile}<div class="pv1-status">Samedan <span class="muted">· ${done}/${total} · 18 kg · Prep ${openPrep}</span></div></div>`+
-    `${pvToolsOpen?toolbarRow:''}${searchRow}${filterbar}`;
+    `<div class="pv1-line">${facepile}<div class="pv1-status">Samedan <span class="muted">· ${done}/${total} · 18 kg · Prep ${openPrep}</span></div>${tripNav}</div>`+
+    `${searchRow}${filterbar}`;
+  tipify(document.getElementById('packHead'));
 
   // quick-add hidden unless actively adding (the ＋ FAB opens it)
   const qa=document.getElementById('qaTrigger');
@@ -1305,6 +1327,24 @@ function renderPack(){
 }
 
 // full-screen packing: hide the bottom tab bar (and tighten padding, drop the FAB) while on M4
+/* Icon-only controls need their name available without a label. Hover covers
+   the desktop; on touch there is no hover, so a long press shows the same name
+   as a bubble and swallows the release — tapping must still navigate, so the
+   name can never cost an extra tap. */
+function tipify(root){
+  root.querySelectorAll('[data-tip]').forEach(b=>{
+    b.title=b.dataset.tip;
+    let t=null, shown=false;
+    const show=()=>{ shown=true;
+      const bub=document.createElement('span');
+      bub.className='tipbubble'; bub.textContent=b.dataset.tip;
+      b.appendChild(bub); setTimeout(()=>bub.remove(),1400); };
+    b.addEventListener('touchstart',()=>{ shown=false; t=setTimeout(show,450); },{passive:true});
+    b.addEventListener('touchend',e=>{ clearTimeout(t); if(shown){ e.preventDefault(); } },{passive:false});
+    b.addEventListener('touchmove',()=>clearTimeout(t),{passive:true});
+  });
+}
+
 /* Hands a screen's G-12 cluster to the app bar and hides the gear while it is
    there. Called from each screen's render, cleared by go() on navigation. */
 function setBarActions(html){
@@ -1356,7 +1396,6 @@ function bindPack(){
     si.oninput=e=>{ PACK.search=e.target.value; renderPack(); const f=document.getElementById('pkSearchInput'); if(f){f.focus({preventScroll:true}); f.setSelectionRange(f.value.length,f.value.length);} };
     document.getElementById('pkClr').onclick=()=>{ PACK.search=''; PACK.searchOpen=false; renderPack(); }; }
   const shb=document.getElementById('pkShopBtn'); if(shb) shb.onclick=()=>go('shop');
-  const mb=document.getElementById('pkMoreBtn'); if(mb) mb.onclick=togglePvTools;
   document.querySelectorAll('[data-fchip]').forEach(b=>b.onclick=()=>{
     FILT[b.dataset.fchip].delete(b.dataset.v); renderPack();
   });
@@ -1428,7 +1467,8 @@ const QA_SUGG=[['Reisehandtücher','Bad & Gesundheit'],['Powerbank','Technik'],[
 const QA_TRAVELERS=['Andy','Sia','Leonardo'];
 let qaMode='total', qaPerson={Andy:0,Sia:0,Leonardo:0};
 /* header-variant controls (mockup) */
-function togglePvTools(){ pvToolsOpen=!pvToolsOpen; renderPack(); }
+// The ⋯ overflow is gone (2026-08-07): its three destinations now sit as icons
+// on the trip line, which is what §3.25 asked for all along.
 function packFabAdd(){ const el=document.getElementById('qaTrigger'); el.style.display=''; openQA(); el.scrollIntoView({block:'nearest'}); }
 /* On the packing list, scrolling down hides the packing sub-header and
    migrates the trip name + presence avatars up into the top app bar;
@@ -1507,6 +1547,26 @@ function addQuick(name,cat){
   document.getElementById('qaTrigger').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
+/* Editing saves as you go — there is no Save button, and on a phone there is
+   nowhere sensible to put one. What is missing without it is confirmation, so
+   the sheet states it: amber "wird gespeichert" the moment something changes,
+   green "gespeichert" once it has settled.
+   Deliberately distinct from G-2, the global sync glyph: this says the change
+   is captured on *this device*, G-2 says whether it reached the server. Offline
+   that difference is the whole story, so the two must not be merged. */
+const SAVE={state:'saved'};
+let saveT=null;
+function markDirty(){
+  SAVE.state='dirty'; paintSaveChip();
+  clearTimeout(saveT);
+  saveT=setTimeout(()=>{ SAVE.state='saved'; paintSaveChip(); }, 600);
+}
+function paintSaveChip(){
+  const c=document.getElementById('saveChip'); if(!c) return;
+  c.className='savechip '+SAVE.state;
+  c.textContent=SAVE.state==='dirty'?'● Wird gespeichert…':'✓ Gespeichert';
+}
+
 /* ============ M5 item detail sheet ============ */
 const TRAVELERS=['Alle','Andy','Sia','Leonardo'];
 const USERS=['Andy','Sia'];
@@ -1548,9 +1608,22 @@ function renderItem(){
   const it=raw.pp ? {...raw, qty:raw.pp.reduce((a,e)=>a+e.qty,0), packed:raw.pp.reduce((a,e)=>a+e.packed,0), trav:'Alle', packedBy:''} : raw;
   const full=it.packed>=it.qty;
   const state=it.packed===0?['Offen','var(--o1)']:(full?(it.prep?['Gepackt · Prep offen','var(--peach)']:['Gepackt','var(--green)']):['Teilweise','var(--yellow)']);
-  const stepper=it.qty===1
-    ? `<div class="check ${full?'on':''}" data-act="check"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>`
-    : `<div class="stepper"><button data-act="dec">–</button><b>${it.packed}/${it.qty}</b><button data-act="inc">+</button></div>`;
+  // A per-person item has no single quantity to step: "+1" would not say for
+  // whom. Its total is therefore a read-only progress chip, and the actual
+  // controls sit on the per-traveler rows below, where they mean something.
+  const stepper=raw.pp
+    ? `<div class="ppsum" title="Gesamt über alle Personen">${it.packed}/${it.qty}</div>`
+    : (it.qty===1
+      ? `<div class="check ${full?'on':''}" data-act="check"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>`
+      : `<div class="stepper"><button data-act="dec">–</button><b>${it.packed}/${it.qty}</b><button data-act="inc">+</button></div>`);
+  const ppRows=raw.pp?`<div class="assign"><div class="cap">Pro Person</div>${raw.pp.map((e,k)=>{
+      const av=AV[e.trav]||['?','var(--s2)'], done=e.packed>=e.qty;
+      return `<div class="pprow"><span class="mini-av" style="background:${av[1]}">${av[0]}</span>
+        <span class="nm">${esc(e.trav)}</span>
+        ${e.qty===1
+          ? `<div class="check ${done?'on':''}" data-act="ppcheck" data-k="${k}"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>`
+          : `<div class="stepper"><button data-act="ppdec" data-k="${k}">–</button><b>${e.packed}/${e.qty}</b><button data-act="ppinc" data-k="${k}">+</button></div>`}
+      </div>`;}).join('')}</div>`:'';
   const hist=HIST[it.id]; const mx=hist?Math.max(...hist.map(h=>h[1])):1;
   const spark=hist?`<div class="spark">${hist.map(h=>`<div class="bar" style="height:${16+h[1]/mx*32}px"><span>${h[1]}</span><b>${h[0]}</b></div>`).join('')}
     <div style="align-self:center;margin-left:8px" class="tiny muted">jetzt: <b style="color:var(--text)">${it.qty}</b></div></div>`:'<div class="tiny muted">Keine früheren Reisen.</div>';
@@ -1612,9 +1685,11 @@ function renderItem(){
     <div class="ihead"><div class="grow"><div class="iname">${esc(it.name)}</div>
       <div class="desc">${esc(it.cat)}${it.unit?' · '+it.unit:''} · <span style="color:${state[1]};font-weight:600">${state[0]}</span></div></div>
       ${stepper}</div>
+    <div class="savechip ${SAVE.state}" id="saveChip">${SAVE.state==='dirty'?'● Wird gespeichert…':'✓ Gespeichert'}</div>
 
     <div class="metarow">${meta.join('')}
       <button class="detbtn ${sheetDetails?'on':''}" data-act="details">${sheetDetails?'Weniger':'Details'}<span class="car">▾</span></button></div>
+    ${ppRows}
     ${sheetDetails?details:''}
 
     <div class="section-h">Vorbereitung</div>
@@ -1638,9 +1713,18 @@ function bindSheet(it){
   document.getElementById('sheetBody').querySelectorAll('[data-act]').forEach(el=>{
     el.onclick=()=>{
       const a=el.dataset.act, v=el.dataset.v;
+      // 'details' only folds the sheet open; it changes no data, so it must not
+      // claim to have saved anything.
+      if(a!=='details') markDirty();
+      const raw0=P.items.find(x=>x.id==curItem);
+      const ppE=(raw0&&raw0.pp&&el.dataset.k!==undefined)?raw0.pp[+el.dataset.k]:null;
       if(a==='inc') it.packed=Math.min(it.qty,it.packed+1);
       else if(a==='dec') it.packed=Math.max(0,it.packed-1);
       else if(a==='check') it.packed=it.packed>=it.qty?0:it.qty;
+      // per-traveler controls act on that traveler's own instance
+      else if(a==='ppinc'&&ppE) ppE.packed=Math.min(ppE.qty,ppE.packed+1);
+      else if(a==='ppdec'&&ppE) ppE.packed=Math.max(0,ppE.packed-1);
+      else if(a==='ppcheck'&&ppE) ppE.packed=ppE.packed>=ppE.qty?0:ppE.qty;
       else if(a==='needby'){ const raw=P.items.find(x=>x.id==curItem); const s=neededSet(raw);
         if(v==='__all') s.clear(); else (s.has(v)?s.delete(v):s.add(v)); setNeededBy(raw,s); }
       else if(a==='packer') it.packedBy=(it.packedBy===v?null:v);
