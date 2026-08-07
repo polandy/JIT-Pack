@@ -144,13 +144,17 @@ die Checkboxen sind deine Prüfpunkte.</p>
     <div class="chead"><span class="mid">M4</span><span class="cname">Packliste</span><span class="status">TESTEN</span></div>
     <div class="path"><b>Pfad:</b> Reise → „Vorbereiten“ → „Packliste öffnen“</div>
     <ul class="check">
-      <li>Gruppierung Kategorie/Person/Gepäck/Status umschalten</li>
+      <li><b>Kopfleiste (G-12):</b> 🔍 Suchen · Filter (Zähler als Abzeichen) · Falten — oben in der App-Leiste, wo sonst das Zahnrad sitzt. Auf der Reisetitel-Zeile: 🛒 Einkauf (mit Anzahl) · 🧳 Gepäck · 📊 Auswertung. <b>Kein ⋯ mehr.</b> Langdrücken zeigt den Namen als Bubble</li>
+      <li><b>Filter-Sheet:</b> Gruppieren nach · Erledigte · Person / Kategorie / Beschaffung / Gepäck / Merkmale. Innerhalb einer Gruppe ODER, zwischen Gruppen UND; aktive Werte als entfernbare Chips unter dem Kopf</li>
+      <li><b>Gruppen falten:</b> Kopfzeile antippen → Gruppe klappt auf ihre Zeile zusammen und zeigt dort „N offen“; Falt-Icon klappt alles zu</li>
+      <li><b>Gepackte verschwinden</b>, „Erledigte“ blendet sie ausgegraut wieder ein — mit <b>„gepackt von … · heute 14:32“</b>. Eine ganz gepackte Gruppe verschwindet komplett</li>
       <li>Swipe rechts = packen · links = überspringen · im Übersprungen-Bereich rechts = zurückholen</li>
-      <li>Stepper (8/10) vs. Checkbox; amber = gepackt mit offener Vorbereitung</li>
-      <li>Schnellzugabe: bleibt offen, neue Artikel „fehlt“-markiert; <b>„Pro Person“-Modus</b> mit Menge je Reisende:r (Andy 2 · Leo 3 · Mia 0 → Zeile je Person &gt; 0, FR-25.8)</li>
+      <li>Stepper (8/10) vs. Checkbox; amber = gepackt mit offener Vorbereitung. <b>Letzte Vorbereitung abhaken → Artikel gilt als fertig und verlässt die Liste</b></li>
+      <li>Schnellzugabe: ＋-FAB öffnet und fokussiert sie, sichtbarer Bestätigen-Knopf; <b>„Pro Person“-Modus</b> mit Menge je Reisende:r (Andy 2 · Leo 3 · Mia 0 → <b>ein</b> Artikel als Cluster, FR-25.8/25.1)</li>
+      <li>Leerzustand ehrlich: „Alles gepackt 🎉“ nur ohne Suche <i>und</i> ohne Filter — sonst „Keine Treffer“ mit Zurücksetzen</li>
       <li>Sektionen „Vorbereitung“ + „Bewusst übersprungen“ aufklappen</li>
     </ul>
-    <div class="todo"><b>KOPF ENTSCHIEDEN (17.07.)</b> · schlanke Ein-Zeilen-Kopfzeile (Trip · gepackt · Gewicht · Prep), Tools hinter ⋯; beim Runterscrollen blendet die Kopfzeile aus und <b>Trip-Name + Präsenz wandern in die Top-Bar</b> (Collapsing-Header), beim Hochscrollen zurück; Schnellzugabe per ＋-FAB; obere App-Leiste flacher (Ein-Zeilen-Titel, dezentes Linien-Logo). <b>Erledigt (17.07.):</b> gepackte Zeilen fallen aus der Liste, „N gepackte anzeigen“-Toggle blendet sie ausgegraut (45 %) wieder ein; „gepackt mit offener Vorbereitung“ bleibt sichtbar (FR-25.2). <b>Vollbild-Packen (17.07.):</b> die untere Tab-Leiste ist auf M4 ausgeblendet (Vollbild), ＋-FAB rutscht nach unten, zurück über ‹ (aus 3 Varianten gewählt). <b>Pro-Person entschieden (17.07.):</b> Per-Person-Artikel als <b>benannter Cluster</b> — Artikelname einmal als Unterkopf mit <code>erledigt/gesamt</code>, darunter eine eingerückte Kindzeile je Reisende:r (Avatar + Name + eigene Checkbox/Stepper, einzeln packbar); bei Gruppierung <i>nach Person</i> (oder einer einzelnen Instanz) Rückfall auf flache „Artikel · Person“-Zeile; folgt der Ausblend-Regel FR-25.2 (aus 2 Varianten A flach / B Cluster gewählt). <b>Packer-Avatar entschieden (17.07.):</b> wer gepackt hat, erscheint als Avatar am <b>rechten</b> Zeilenrand — abgesetzt vom Reisenden-Avatar (links, „für wen“) durch <b>Grün-Ring + ✓-Badge</b>; sichtbar sobald etwas gepackt ist (auch teil-gepackte Stepper-Zeile), bei Cluster je gepackte Kindzeile; ersetzt den bisherigen „gepackt von …“-Untertitel (FR-25.3). <b>Modus &amp; Filter entschieden (18.07.):</b> Beschaffungsmodus als Glyph <b>nur bei den Kauf-Modi</b> (🛒 Vorher · 📍 Vor Ort) — 🧳 Packen bleibt icon-frei, damit die Kauf-Ausnahmen auffallen; bei Cluster einmal am Kopf. Darunter eine <b>Mehrfach-Filterleiste</b> (Alle · 🧳 · 🛒 · 📍 mit Live-Zählern), die Modus-Pills kombinierbar (z. B. Vorher + Vor Ort), „Alle“ setzt zurück. Später-Packer bleibt ein <b>eigenes ⏰-Flag</b>, orthogonal zum Modus (FR-25.4). Damit ist §3.25 für M4 vollständig abgehandelt.</div>
+    <div class="todo"><b>KOPF ENTSCHIEDEN (17.07.)</b> · schlanke Ein-Zeilen-Kopfzeile (Trip · gepackt · Gewicht · Prep), Tools hinter ⋯; beim Runterscrollen blendet die Kopfzeile aus und <b>Trip-Name + Präsenz wandern in die Top-Bar</b> (Collapsing-Header), beim Hochscrollen zurück; Schnellzugabe per ＋-FAB; obere App-Leiste flacher (Ein-Zeilen-Titel, dezentes Linien-Logo). <b>Erledigt (17.07.):</b> gepackte Zeilen fallen aus der Liste, „N gepackte anzeigen“-Toggle blendet sie ausgegraut (45 %) wieder ein; „gepackt mit offener Vorbereitung“ bleibt sichtbar (FR-25.2). <b>Vollbild-Packen (17.07.):</b> die untere Tab-Leiste ist auf M4 ausgeblendet (Vollbild), ＋-FAB rutscht nach unten, zurück über ‹ (aus 3 Varianten gewählt). <b>Pro-Person entschieden (17.07.):</b> Per-Person-Artikel als <b>benannter Cluster</b> — Artikelname einmal als Unterkopf mit <code>erledigt/gesamt</code>, darunter eine eingerückte Kindzeile je Reisende:r (Avatar + Name + eigene Checkbox/Stepper, einzeln packbar); bei Gruppierung <i>nach Person</i> (oder einer einzelnen Instanz) Rückfall auf flache „Artikel · Person“-Zeile; folgt der Ausblend-Regel FR-25.2 (aus 2 Varianten A flach / B Cluster gewählt). <b>Packer-Avatar entschieden (17.07.):</b> wer gepackt hat, erscheint als Avatar am <b>rechten</b> Zeilenrand — abgesetzt vom Reisenden-Avatar (links, „für wen“) durch <b>Grün-Ring + ✓-Badge</b>; sichtbar sobald etwas gepackt ist (auch teil-gepackte Stepper-Zeile), bei Cluster je gepackte Kindzeile; ersetzt den bisherigen „gepackt von …“-Untertitel (FR-25.3). <b>Modus &amp; Filter entschieden (18.07.):</b> Beschaffungsmodus als Glyph <b>nur bei den Kauf-Modi</b> (🛒 Vorher · 📍 Vor Ort) — 🧳 Packen bleibt icon-frei, damit die Kauf-Ausnahmen auffallen; bei Cluster einmal am Kopf. Darunter eine <b>Mehrfach-Filterleiste</b> (Alle · 🧳 · 🛒 · 📍 mit Live-Zählern), die Modus-Pills kombinierbar (z. B. Vorher + Vor Ort), „Alle“ setzt zurück. Später-Packer bleibt ein <b>eigenes ⏰-Flag</b>, orthogonal zum Modus (FR-25.4). Damit ist §3.25 für M4 vollständig abgehandelt. <b>M4 abgeschlossen (08.08.):</b> Modus-Pillenleiste und Gruppierungsleiste sind im <b>Facetten-Filter</b> (FR-25.11) aufgegangen, das <b>⋯-Overflow ist entfallen</b> — die drei Reise-Ansichten sitzen als Icons auf der Titelzeile, Suche/Filter/Falten oben in der App-Leiste (G-12). Dazu: <b>faltbare Gruppen</b> mit „N offen“ auf der Kopfzeile (FR-25.16), <b>„gepackt von … · wann“</b> auf eingeblendeten Zeilen (FR-25.17), <b>Suche</b> in M4, und drei beim Testen gefundene Fehler behoben — Leerzustand meldete „Alles gepackt“ bei erfolgloser Suche (FR-25.11e war zu eng formuliert), offene Vorbereitung war als Zahl gespeichert statt aus den Aufgaben abgeleitet (Artikel konnte nie fertig werden, FR-7.3), und der FAB verdeckte dauerhaft die letzte Zeile (FR-25.11h).</div>
   </div>
 
   <div class="card done">
@@ -162,18 +166,22 @@ die Checkboxen sind deine Prüfpunkte.</p>
       <li>Delegieren rücknehmbar: „Gepackt von“ hat ein „niemand“; Modus-Labels 🧳🛒📍, Später-Packer als ⏰-Flag</li>
       <li>Modus Vorher kaufen → „Jetzt gekauft“ mit Undo-Snackbar; Verlaufs-Sparkline; Vorbereitungen hinzufügen/abhaken; Kommentar „als Aufgabe“ → Vorbereitung</li>
     </ul>
-    <div class="todo"><b>Erledigt (§3.25, 18.07.):</b> Delegieren rücknehmbar, Kommentar-Eingabefeld, Container optional hinter „Details“, Modus-Labels + Später-Packer-Flag, Progressive Disclosure. — Zu klären: Shopping-„für wen“ (FR-25.6) neu denken, da „Used by“ raus (FR-25.10); Prototyp-Bugfix: `bindPack` band `[data-act]` dokumentweit und überschrieb die Sheet-Handler (jetzt auf M4-Container begrenzt).</div>
+    <div class="todo"><b>Erledigt (§3.25, 18.07.):</b> Delegieren rücknehmbar, Kommentar-Eingabefeld, Container optional hinter „Details“, Modus-Labels + Später-Packer-Flag, Progressive Disclosure. <b>Ergänzt (08.08.):</b> Per-Person-Artikel zeigen ihre Summe als <b>reines Anzeigefeld</b> (0/3) statt als Stepper — „+1“ könnte nicht sagen, für wen — und darunter <b>eine Zeile je Person</b> mit eigener Checkbox/Stepper (FR-25.14). <b>Kein Speichern-Knopf:</b> es speichert laufend, angezeigt durch gelb „wird gespeichert“ → grün „gespeichert“; bewusst getrennt von G-2, das nur den Server-Abgleich meint (FR-25.15). — Shopping-„für wen“ (FR-25.6) ist seit 07.08. aufgelöst, siehe M6. Prototyp-Bugfix (18.07.): `bindPack` band `[data-act]` dokumentweit und überschrieb die Sheet-Handler (jetzt auf M4-Container begrenzt).</div>
   </div>
 
   <div class="card done">
     <div class="chead"><span class="mid">M6</span><span class="cname">Einkauf</span><span class="status">TESTEN</span></div>
-    <div class="path"><b>Pfad:</b> M4-Toolbar „Einkauf“</div>
+    <div class="path"><b>Pfad:</b> 🛒-Icon auf der Reisetitel-Zeile in M4</div>
     <ul class="check">
-      <li>Tabs „Vor Abreise“/„Vor Ort“ mit echten Zählern; Suche filtert</li>
-      <li>Abhaken vor Abreise → Artikel wandert auf die Packliste (Snackbar)</li>
+      <li>Tabs „Vor Abreise“/„Vor Ort“ mit echten Zählern; 🔍 und Filter oben in der App-Leiste (G-12), Suchfeld erscheint erst auf Tippen</li>
+      <li><b>Filter</b> nach Zugewiesen an / Für wen / Kategorie — dasselbe Sheet wie M4, nur andere Facetten</li>
+      <li><b>Per-Person-Artikel als <i>eine</i> Kaufzeile</b> mit Summe und Empfängern („Sonnenhut 3 Stk · für Sia, Leonardo“) — abgeleitet, nicht eingegeben (FR-25.6). Abhaken erledigt alle Instanzen</li>
+      <li><b>Zugewiesen an</b> (wer kauft) + <b>Beschreibung</b> — im Zeilen-Sheet <i>und</i> direkt beim Hinzufügen; Zuweisung bleibt für den nächsten Artikel stehen</li>
+      <li><b>Kategorie beim Hinzufügen</b>, meist automatisch: Vervollständigung aus dem Artikelstamm übernimmt sie mit</li>
+      <li>Abhaken vor Abreise → Artikel wandert auf die Packliste (Snackbar); <b>„Erledigte“ im Filter holt Gekauftes zurück</b> — ausgegraut, mit „gekauft von … · wann“, nochmal tippen macht rückgängig</li>
       <li>„Vor Ort“: Ziel-Checkliste der Serie (Feigen, Chianti, Pecorino)</li>
     </ul>
-    <div class="todo"><b>TODO</b> · Element einer Person zuweisen · Kommentar pro Element (z. B. „war im Migros Eigerplatz, gab es nicht“) — §3.25 / FR-25.6, 17.07.</div>
+    <div class="todo"><b>Erledigt (§3.25, 07./08.08.):</b> FR-25.6 aufgelöst — „für wen“ wird <b>abgeleitet</b>, nicht neu erfasst; „zugewiesen an“ ist die Beschaffungs-Delegation und etwas anderes (FR-25.12). Dazu Facetten-Filter (FR-25.11g), Felder beim Hinzufügen (FR-25.13a), Kategorie + Autocomplete (FR-25.13b), Gekauftes wieder einblenden (FR-25.11i/j). <b>Fehler gefunden:</b> Per-Person-Artikel im Kaufmodus erschienen <i>gar nicht</i> im Einkauf (Menge lag auf den Instanzen, Vergleich lief gegen <code>undefined</code>).</div>
   </div>
 
   <div class="card done">
@@ -221,7 +229,7 @@ die Checkboxen sind deine Prüfpunkte.</p>
 
   <div class="card done">
     <div class="chead"><span class="mid">M11</span><span class="cname">Gepäck &amp; Container</span><span class="status">TESTEN</span></div>
-    <div class="path"><b>So findest du's:</b> Packliste → Gruppierungs-Umschalter oben auf <b>„Gepäck“</b> → dann erscheint der Knopf <b>„🧳 Container verwalten“</b>. (Einstieg war beim Test schwer auffindbar → §3.25.)</div>
+    <div class="path"><b>So findest du's:</b> Packliste → <b>🧳-Icon auf der Reisetitel-Zeile</b>. (War früher hinter dem Gruppierungs-Umschalter und danach hinter ⋯ vergraben — beim Test beide Male nicht gefunden; seit 08.08. ein eigenes Icon, G-12.)</div>
     <ul class="check">
       <li>Gewichtsbalken: grün → amber (≥90 %) → rot (über Limit)</li>
       <li>Koffer-Paar-Balance (±15 %): startet im Ungleichgewicht</li>
@@ -231,7 +239,7 @@ die Checkboxen sind deine Prüfpunkte.</p>
 
   <div class="card done">
     <div class="chead"><span class="mid">M12</span><span class="cname">Auswertung (Analytics)</span><span class="status">TESTEN</span></div>
-    <div class="path"><b>So findest du's:</b> Packliste → oben im KPI-Streifen auf die Kachel <b>„GEPACKT“</b> (z. B. „4/12“) tippen. (Ist gemockt, Einstieg war beim Test schwer auffindbar → §3.25.)</div>
+    <div class="path"><b>So findest du's:</b> Packliste → <b>📊-Icon auf der Reisetitel-Zeile</b>. (Der KPI-Streifen, über den man früher hierher kam, ist mit dem M4-Umbau entfallen; seit 08.08. ein eigenes Icon, G-12.)</div>
     <ul class="check">
       <li>Dimension Person/Kategorie/Gepäck; Balken = gepackt/geplant</li>
       <li>Balken antippen → M4 in dieser Gruppierung</li>

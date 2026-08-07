@@ -202,7 +202,7 @@ Part I fixed the skeleton. This part fleshes out each structural point in full, 
 | Archive → Review | M4 header end | `trip.status === 'active'` | archives, auto-opens `/review` |
 | Review (sparkles) | M4 header end | `trip.status === 'archived'` | `/trips/:id/review` |
 | Shopping | M4 header end | `shoppingCount > 0` (badge) | `/trips/:id/shopping` |
-| Analytics | M4 KPI strip | tap on the strip | `/trips/:id/analytics` |
+| Analytics | M4 trip title line | 📊 icon (G-12) | `/trips/:id/analytics` |
 | Edit containers | M4 body | `groupBy === 'container'` | `/trips/:id/containers` |
 | Item detail (M5) | M4 list row | always | `/trips/:id/items/:itemId` |
 | Conflict log | **top-bar sync glyph** | inside any trip (`onSyncTap`) | `/trips/:id/conflicts` |
@@ -213,7 +213,7 @@ Part I fixed the skeleton. This part fleshes out each structural point in full, 
 
 **Proposal.** Keep the status-driven gating (it's good), but make the **discoverability** explicit rather than emergent:
 
-- 6a. **A canonical order** for the M4 header cluster, left→right: `presence · shopping · [status action] · overflow`. On mobile, collapse everything past the status action into a single **overflow "⋯" menu** (Analytics, Containers, Members, Clone, Conflict log) so the header never crowds. On desktop (wider bar) show them inline.
+- 6a. ~~**A canonical order** for the M4 header cluster, left→right: `presence · shopping · [status action] · overflow`. On mobile, collapse everything past the status action into a single **overflow "⋯" menu** (Analytics, Containers, Members, Clone, Conflict log) so the header never crowds. On desktop (wider bar) show them inline.~~ **Superseded 2026-08-08 by UI-Spec G-12.** The overflow menu was mocked and rejected: an unlabelled ⋯ says nothing about what is inside, so in testing the entries behind it were simply never found — twice. M4 now splits its controls by *what they act on*: list actions (search, filter, fold) sit in the **app bar**, the trip's other views (Shopping, Luggage, Analytics) are **labelled-by-long-press icons on the trip title line**, and there is no overflow at all. Rarely-used entries (Members, Clone, Conflict log) are reached from M2 and the sync indicator rather than being hidden in a menu.
 - 6b. **Surface Containers without the grouping detour.** Today Containers is only reachable by switching `groupBy` to `container`. Add it to the overflow menu so it's discoverable regardless of grouping.
 - 6c. **Badges** are consistent: a count badge on Shopping (open procurement items) and on the prep/KPI counters; presence uses the facepile, never a number badge.
 - 6d. **Mode-gating is one rule:** Members and presence appear only with an OIDC session (`collaborative`); in Single-User/Local they vanish with no gap (G-8).
@@ -295,7 +295,7 @@ The complete reference of navigational edges beyond primary drill-down, for link
 | M2 title / M9 empty | M15 Import | upload icon / empty CTA |
 | M7 / M2 title | M18 Portable Import | import entry |
 | M4 sync glyph | Conflict log | `onSyncTap` inside a trip |
-| M4 KPI strip | M12 Analytics | tap |
+| M4 trip title line | M12 Analytics | 📊 icon (G-12) |
 | M4 header | M6 / M14 | status-gated buttons |
 | M4 grouping | M11 Containers | `groupBy=container` → edit |
 | M12 slice | M4 (grouped) | tap a slice |

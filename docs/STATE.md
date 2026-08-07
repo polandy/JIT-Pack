@@ -29,10 +29,10 @@ bounded. Two decisions fix the scope:
 **In the MVP, in order:**
 
 - **i18n foundation** — module + both catalogues + M17 switch **done 2026-08-07** (item 16).
-- **M4/M5 rebuild** (FR-25.1–25.10) — the core screen, built from the re-mocked design rather
-  than patched into the current implementation, and localized with `t()` from the first line.
-  **In progress:** the pure view model (`src/domain/packingView.ts`) is done; the screen itself
-  is not rebuilt yet.
+- **M4/M5 — concept CLOSED 2026-08-08.** Both are fully mocked and settled; the decisions live in
+  §3.25 (FR-25.1–25.17) and UI-Spec G-12, with E2E cases written. Implementation is still open:
+  the pure view model (`src/domain/packingView.ts`) exists, the screen itself is not rebuilt yet
+  and must be built from the mock and localized with `t()` from the first line.
 - **Translate the surrounding screens** — the ~300 existing hard-coded English strings across
   M1/M2/M3/M7/M9/M10/M16/M17/M20. Deliberately sequenced *after* the M4/M5 rebuild (owner
   decision 2026-08-07): those two screens are being replaced anyway, so translating their old
