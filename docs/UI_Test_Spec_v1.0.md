@@ -162,6 +162,10 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M6-16** `all` (FR-25.13a) / **E2E-M4-21** `all`: both quick-adds carry a **visible confirm button** in every mode, and adding works by tapping it alone — no keyboard involved. Guards the phone case, where relying on Enter leaves no reachable way to commit.
 * **E2E-M6-12** `all` (FR-25.13a): the quick-add offers name, description and a *Zugewiesen an* chip row. Adding with all three set produces a row carrying the description inline and the assignee mark. **Enter commits from the description field too.** Regression guard: tapping an assignee chip must **not** clear an already-typed description — the failure mode of re-rendering the form on selection.
 * **E2E-M6-13** `all` (FR-25.13a): after an add, the **assignee stays selected** for the next item while name and description are cleared. Asserts the carry-over is on the assignee only.
+* **E2E-M6-17** `all` (FR-25.11i/j): checking off a row hides it; the filter sheet's *Erledigte* section reveals it **dimmed and still interactive**, and tapping its control again restores it to the open list. Covers the **BUY_BEFORE** case specifically, where checking off changes the item's mode and would otherwise make it unreachable from the shopping side; the revealed row states where it went ("auf der Packliste"). Default is hidden.
+* **E2E-M6-18** `all` (FR-25.11k): M6 shows **no search field by default**; the magnifier in the tab row reveals and focuses it, typing filters the list, and ✕ **closes** the field rather than merely clearing it. The filter icon sits beside the magnifier and carries the active-count badge. Asserts the list regains its full height when the search is closed.
+* **E2E-M6-19** `all` (FR-25.13b): typing at least two characters offers master-item suggestions; picking one fills the name **and adopts that item's category**, including a category this trip has not used yet. Without a pick the category defaults to *Sonstiges* and can be set manually. Regression guard: choosing a suggestion must not clear an already-typed description, and the suggestion strip must redraw **without** re-rendering the form.
+* **E2E-M6-20** `all` (FR-25.12): a row with no assignee shows an **edit glyph**, not a plus.
 * **E2E-M6-14** `all` (FR-25.11g): M6 shows the same filter bar as M4; its sheet offers *Zugewiesen an*, *Für wen* and *Kategorie* and — unlike M4's — **no grouping section**. Filtering by an assignee narrows the list and shows the removable chip. The unassigned bucket reads "niemand zugewiesen" and leads the list. M4's and M6's filters are **independent**: setting one must not change the other.
 * **E2E-M6-15** `all` (FR-25.11h) / **E2E-M4-20** `all`: scrolled to the bottom of the list, the last row's bounding box does **not** intersect the ＋ FAB, on both screens. Guards the case where the right-edge marks (assignee, packer avatar) end up under the button.
 * **E2E-M6-09** `all` (FR-25.12): tapping a shopping row opens its sheet with *Zugewiesen an* and *Beschreibung*. Assigning a buyer shows that person on the **right** of the row with the 🛒 badge, while derived recipients stay on the **left** — asserts the two are visually distinct even when the buyer is also a recipient. "niemand" clears the assignment.
@@ -401,6 +405,10 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-25.11 | E2E | M4-15 (panel), M4-16 (OR/AND), M4-17 (counts), M4-18 (empty states), M4-19 (Gemeinsam) |
 | FR-25.11g | E2E | M6-14 (same panel, shop facets, independent state) |
 | FR-25.11h | E2E | M4-20, M6-15 (last row clears the FAB) |
+| FR-25.11i | E2E | M6-17; M4-14 (reveal, dimmed, still interactive) |
+| FR-25.11j | E2E | M6-17 (BUY_BEFORE leaves the list and comes back) |
+| FR-25.11k | E2E | M6-18 (collapsed search, filter icon with badge) |
+| FR-25.13b | E2E | M6-19 (autocomplete adopts the category; manual fallback) |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |
 | NFR-4.2a | E2E+UNIT | FLOW-08, NFR-04; sync merge tests |

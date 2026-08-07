@@ -388,6 +388,9 @@ body{
 .shwho{display:flex;gap:-4px;flex:none;margin-right:2px}
 .shwho .mini-av{margin-left:-5px;border:1.5px solid var(--base)}
 .shnote{font-size:12px;color:var(--peach);margin-top:3px;line-height:1.35}
+/* revealed bought rows — de-emphasised but still interactive, so a mistap is undoable */
+.li.shdone{opacity:.45}
+.li.shdone .name{text-decoration:line-through}
 .shbuyer{position:relative;flex:none;cursor:pointer;display:grid;place-items:center;margin-left:6px}
 .shbuyer .mini-av{box-shadow:0 0 0 2px var(--blue)}
 .shbuyer i{position:absolute;right:-4px;bottom:-4px;font-style:normal;font-size:9px;line-height:1;
@@ -406,6 +409,9 @@ body{
 .qa-assign{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:9px}
 .qa-assign .cap{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--o0);margin-right:2px}
 .pchip.sm{font-size:12px;padding:4px 10px}
+.qa-assign select{background:var(--mantle);border:1px solid var(--s1);border-radius:14px;color:var(--text);
+  padding:5px 10px;font:inherit;font-size:12px;font-weight:600}
+.qa-assign select:focus{border-color:var(--blue);outline:none}
 
 /* quick add */
 .qa{display:flex;align-items:center;gap:10px;padding:13px 15px;color:var(--sub0);font-size:14px;cursor:text}
@@ -583,6 +589,14 @@ body{
 .shtabs button.on{background:var(--blue);color:var(--crust)}
 .shtabs .b{display:inline-block;min-width:18px;margin-left:5px;font-size:11px;background:rgba(0,0,0,.18);border-radius:9px;padding:0 5px}
 .shtabs button.on .b{background:rgba(17,17,27,.22)}
+/* Search and filter sit as icons in the tab row: a permanent search field cost
+   a whole row of a list that has to be readable at arm's length in a shop. */
+.shtabs .ico{flex:0 0 auto;width:36px;padding:0;color:var(--sub0);display:grid;place-items:center}
+.shtabs .ico svg{width:19px;height:19px}
+.shtabs .ico.on{background:var(--s1);color:var(--text)}
+.shtabs .ico .cnt{position:absolute;top:2px;right:1px;font-size:9px;font-weight:700;line-height:13px;
+  min-width:13px;background:var(--blue);color:var(--crust);border-radius:7px;padding:0 3px}
+.shtabs .sep{flex:0 0 1px;align-self:stretch;background:var(--s0);margin:4px 3px}
 .destsep{display:flex;align-items:center;gap:9px;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
   color:var(--mauve);margin:18px 4px 9px}
 .destsep::after{content:"";flex:1;height:1px;background:var(--s0)}
@@ -655,6 +669,7 @@ body{
 <g id="i-chev"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></g>
 <g id="i-wifi"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0M12 19h.01" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></g>
 <g id="i-search"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m20 20-3.4-3.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></g>
+<g id="i-filter"><path d="M4 6h16M7 12h10M10 18h4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></g>
 </defs></svg>
 
 <div class="caption">
@@ -1286,7 +1301,9 @@ function packAway(row, name, undo){
 function bindPack(){
   const list=document.getElementById('packList');
   // filter bar: open the sheet, drop a single facet via its chip, or reset all
-  const fo=document.getElementById('fOpen'); if(fo) fo.onclick=openFilters;
+  // Must pass the context explicitly: `onclick=openFilters` handed the click
+  // event in as the context, so M4 opened whatever context was last used.
+  const fo=document.getElementById('fOpen'); if(fo) fo.onclick=()=>openFilters(CTX_PACK);
   document.querySelectorAll('[data-fchip]').forEach(b=>b.onclick=()=>{
     FILT[b.dataset.fchip].delete(b.dataset.v); renderPack();
   });
@@ -1641,6 +1658,9 @@ const CTX_PACK={
   label:facetLabel, values:facetValues,
   count:()=>allLeaves().filter(l=>leafPasses(l)&&!leafDone(l)).length,
   rerender:()=>renderPack(),
+  done:{ label:'Erledigte', hint:'Gepackte anzeigen',
+         get:()=>showDone, set:v=>{showDone=v;},
+         count:()=>allLeaves().filter(leafDone).length },
 };
 let FCTX=CTX_PACK;
 function renderFilterSheet(){
@@ -1649,7 +1669,15 @@ function renderFilterSheet(){
     [['cat','Kategorie'],['trav','Person'],['cont','Gepäck'],['status','Status']]
       .map(g=>`<button class="gb ${groupMode===g[0]?'on':''}" data-g="${g[0]}">${g[1]}</button>`).join('')+
     `</div></div>`:'';
-  const groupsHTML=C.facets.map(f=>{
+  // "Show done" belongs to the filter panel on every screen: hiding finished
+  // rows is a filter, and burying its only control elsewhere is how M6 ended up
+  // with items that vanished on tap and could not be brought back at all.
+  const doneSeg=C.done?`<div class="fgroup open"><div class="fghead" style="cursor:default">${C.done.label}
+      <span class="sum ${C.done.get()?'on':''}">${C.done.get()?'sichtbar':'ausgeblendet'}</span></div>
+      <div class="fgbody"><div class="fopt ${C.done.get()?'on':''}" id="fDoneToggle">
+        <span class="fbox"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span>
+        <span class="lbl">${C.done.hint}</span><span class="n">${C.done.count()}</span></div></div></div>`:'';
+  const groupsHTML=doneSeg+C.facets.map(f=>{
     const vals=C.values(f.key), sel=C.filt[f.key];
     const open=fOpenGroups.has(f.key);
     const sum=sel.size?`${sel.size}/${vals.length}`:'alle';
@@ -1667,6 +1695,8 @@ function renderFilterSheet(){
   document.getElementById('filterBody').innerHTML=groupSeg+groupsHTML;
 
   const body=document.getElementById('filterBody');
+  const dt=body.querySelector('#fDoneToggle');
+  if(dt) dt.onclick=()=>{ C.done.set(!C.done.get()); renderFilterSheet(); C.rerender(); };
   body.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ groupMode=b.dataset.g; renderFilterSheet(); C.rerender(); });
   body.querySelectorAll('[data-fgtoggle]').forEach(h=>h.onclick=()=>{
     const k=h.dataset.fgtoggle; if(fOpenGroups.has(k)) fOpenGroups.delete(k); else fOpenGroups.add(k);
@@ -1740,6 +1770,9 @@ const CTX_SHOP={
   label:shopFacetLabel, values:shopFacetValues,
   count:()=>shopOpen(SHOP.tab==='before'?'buy_before':'buy_local').filter(i=>shopPasses(i)).length,
   rerender:()=>renderShop(),
+  done:{ label:'Erledigte', hint:'Gekaufte anzeigen',
+         get:()=>SHOP.showChecked, set:v=>{SHOP.showChecked=v;},
+         count:()=>shopDone(SHOP.tab==='before'?'buy_before':'buy_local').length },
 };
 const shopFilterCount=()=>SFACETS.reduce((n,f)=>n+SFILT[f.key].size,0);
 
@@ -2274,14 +2307,21 @@ function renderContainers(){
 }
 
 /* ============ M6 shopping views ============ */
-const SHOP={tab:'before',search:''};
+const SHOP={tab:'before',search:'',showChecked:false};
 const DESTLIST=['Bündner Nusstorte','Engadiner Bergkäse','Röteli'];
 /* A per-person item carries no top-level qty/packed — those live on its pp
    entries. Reading i.packed<i.qty gave undefined<undefined = false, so any
    per-person item marked "buy" silently never reached the shopping list. */
 const shopQty    = i => i.pp ? i.pp.reduce((a,e)=>a+e.qty,0)    : i.qty;
 const shopPacked = i => i.pp ? i.pp.reduce((a,e)=>a+e.packed,0) : i.packed;
-const shopOpen=mode=>P.items.filter(i=>i.mode===mode&&shopPacked(i)<shopQty(i));
+const shopOpen=mode=>P.items.filter(i=>!i.bought&&i.mode===mode&&shopPacked(i)<shopQty(i));
+/** Items already bought off this list — kept findable so a mistap is undoable. */
+const shopDone=mode=>P.items.filter(i=>i.bought===mode);
+function shopUncheck(it){
+  if(it.bought==='buy_before') it.mode='buy_before';
+  else { if(it.pp) it.pp.forEach(e=>e.packed=0); else it.packed=0; }
+  it.bought=undefined; renderShop(); snack('„'+it.name+'“ wieder offen');
+}
 /* FR-25.6: "for whom" in the shopping list is *derived* from per-person
    membership, never a second free-form field — that is what FR-25.10 removed.
    One aggregated buy row per item (you buy once, in one go); the recipients
@@ -2297,7 +2337,10 @@ function shopWhoHTML(i){
    with a cart badge, mirroring how FR-25.3 sets the packer apart from the
    traveler, so the two person marks on one row can never be read as the same. */
 function shopBuyerHTML(i){
-  if(!i.buyer) return `<span class="shbuyer empty" data-shopen="${i.id}" title="Zugewiesen an — niemand">＋</span>`;
+  // Empty state is an *edit* affordance, not an add one: tapping it opens the
+  // row's sheet, where assignee and description are changed. A ＋ promised
+  // "add something" and delivered an editor.
+  if(!i.buyer) return `<span class="shbuyer empty" data-shopen="${i.id}" title="Bearbeiten — noch niemandem zugewiesen">✎</span>`;
   const av=AV[i.buyer]||['?','var(--s2)'];
   return `<span class="shbuyer" data-shopen="${i.id}" title="Zugewiesen an ${esc(i.buyer)}"><span class="mini-av" style="background:${av[1]}">${av[0]}</span><i>🛒</i></span>`;
 }
@@ -2316,16 +2359,30 @@ function renderShList(){
       ? `<div class="emptyfilter"><b>Keine Treffer</b>${all.length} offene ${all.length===1?'Position liegt':'Positionen liegen'} hinter dem Filter.
            <div><button id="shResetEmpty">Filter zurücksetzen</button></div></div>`
       : `<div class="card"><div class="li"><div class="grow muted" style="text-align:center;padding:8px">${q?'Nichts gefunden.':'Liste leer 🎉'}</div></div></div>`);
+  // Revealed done rows: dimmed, still interactive so a mistap can be undone
+  // (FR-25.2's rule, applied to the shopping lists).
+  const doneList=shopDone(SHOP.tab==='before'?'buy_before':'buy_local')
+    .filter(i=>!q||i.name.toLowerCase().includes(q));
+  if(SHOP.showChecked && doneList.length){
+    html+=`<div class="destsep">Gekauft</div><div class="card">${doneList.map(i=>
+      `<div class="li shdone"><div class="check on" data-shbuy="${i.id}"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
+        <div class="grow" data-shopen="${i.id}"><div class="name">${esc(i.name)}</div>
+          <div class="desc">${shopQty(i)} ${i.unit||'Stk'}${i.bought==='buy_before'?' · auf der Packliste':''}</div></div>
+        ${shopWhoHTML(i)}${shopBuyerHTML(i)}</div>`).join('')}</div>`;
+  }
   if(SHOP.tab==='local'){ const dl=DESTLIST.filter(d=>!q||d.toLowerCase().includes(q));
     if(dl.length) html+=`<div class="destsep">Ziel-Checkliste der Serie</div>
       <div class="card">${dl.map((d)=>`<div class="li"><div class="check" data-shdest="${esc(d)}"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
         <div class="grow"><div class="name">${esc(d)}</div></div><span class="chip mauve">Samedan</span></div>`).join('')}</div>`; }
   const el=document.getElementById('shList'); el.innerHTML=html;
   el.querySelectorAll('[data-shbuy]').forEach(ch=>ch.onclick=()=>{ const it=P.items.find(x=>x.id==ch.dataset.shbuy); if(!it)return;
+    if(it.bought){ shopUncheck(it); return; }             // tapping a revealed done row undoes it
     // Buying is one act, so checking off settles every instance at once —
     // FR-3.3: BUY_BEFORE becomes something to pack, BUY_LOCAL is done on purchase.
-    if(SHOP.tab==='before'){ it.mode='pack'; snack('„'+it.name+'“ gekauft → Packliste'); }
-    else { if(it.pp) it.pp.forEach(e=>e.packed=e.qty); else it.packed=it.qty; snack('„'+it.name+'“ gekauft ✓'); }
+    // `bought` records which list it left, because a BUY_BEFORE item changes
+    // mode and would otherwise be unfindable from the shopping side entirely.
+    if(SHOP.tab==='before'){ it.bought='buy_before'; it.mode='pack'; snack('„'+it.name+'“ gekauft → Packliste'); }
+    else { it.bought='buy_local'; if(it.pp) it.pp.forEach(e=>e.packed=e.qty); else it.packed=it.qty; snack('„'+it.name+'“ gekauft ✓'); }
     renderShop(); });
   el.querySelectorAll('[data-shopen]').forEach(r=>r.onclick=()=>openShopItem(+r.dataset.shopen));
   el.querySelectorAll('[data-shdest]').forEach(ch=>ch.onclick=()=>ch.classList.toggle('on'));
@@ -2334,26 +2391,44 @@ function renderShList(){
 }
 /* Same filter bar as M4 (FR-25.11a) — one Filter button with the active count,
    a removable chip per active value. Shared markup, shared semantics. */
+/* The filter *entry* is now the icon in the tab row; this bar carries only the
+   active-value chips, and disappears entirely when nothing is filtered — but it
+   must still appear whenever something is, per FR-25.11a: an invisible filter on
+   a shopping list is how you leave the shop without half of it. */
 function renderShopFilterBar(){
   const n=shopFilterCount();
+  const el=document.getElementById('shFilter');
+  if(!n){ el.innerHTML=''; return; }
   const chips=SFACETS.flatMap(f=>[...SFILT[f.key]].map(v=>
     `<button class="fchip" data-sfchip="${f.key}" data-v="${esc(String(v))}"><b>${f.label}</b>${esc(shopFacetLabel(f.key,v))}<span class="x">×</span></button>`));
-  const el=document.getElementById('shFilter');
-  el.innerHTML=`<div class="filterbar">`+
-    `<button class="fbtn ${n?'active':''}" id="shFOpen">⚙ Filter${n?`<span class="cnt">${n}</span>`:''}</button>`+
-    chips.join('')+
-    (n?`<button class="freset" id="shFReset">Zurücksetzen</button>`:'')+
-    `</div>`;
-  document.getElementById('shFOpen').onclick=()=>openFilters(CTX_SHOP);
+  el.innerHTML=`<div class="filterbar">`+chips.join('')+
+    `<button class="freset" id="shFReset">Zurücksetzen</button></div>`;
   el.querySelectorAll('[data-sfchip]').forEach(b=>b.onclick=()=>{ SFILT[b.dataset.sfchip].delete(b.dataset.v); renderShop(); });
-  const r=document.getElementById('shFReset');
-  if(r) r.onclick=()=>{ SFACETS.forEach(f=>SFILT[f.key].clear()); renderShop(); };
+  document.getElementById('shFReset').onclick=()=>{ SFACETS.forEach(f=>SFILT[f.key].clear()); renderShop(); };
 }
 /* M6 quick-add — same shape as M4's (FR-5.6 / §3.25 directive): collapsed by
    default, the ＋ FAB expands and focuses it, Enter adds, blur collapses.
    M6 previously had a permanent "Zur Liste hinzufügen" card and a prompt(),
    which made adding work differently on two screens that sit one tap apart. */
-let shQaAssignee='—';
+let shQaAssignee='—', shQaCat='Sonstiges';
+/* Categories offered when adding: the household's own vocabulary, not a fixed
+   taxonomy. Three sources, because any one alone loses cases — what the trip
+   already uses, the primary tags of every master item (so a suggestion's
+   category can always be adopted even if this trip has not used it yet), and
+   'Sonstiges' as the guaranteed fallback the default points at. */
+const shopCats=()=>[...new Set([
+  ...P.items.map(i=>i.cat),
+  ...MASTER.map(m=>m.tags[0]).filter(Boolean),
+  'Sonstiges',
+])].sort();
+/* FR-5.6 master-item autocomplete, which M6 lacked while M4 had it. It is what
+   makes the category question mostly disappear: a known item already carries
+   its category (its primary tag, FR-24.1), so asking would be asking for
+   something the system knows. Only genuinely new items fall back to the picker. */
+function shopSuggest(q){
+  const s=q.trim().toLowerCase(); if(s.length<2) return [];
+  return MASTER.filter(m=>m.name.toLowerCase().includes(s)).slice(0,4);
+}
 function shopFabAdd(){
   const el=document.getElementById('shQa');
   el.style.display='';
@@ -2368,20 +2443,43 @@ function renderShQa(nameOverride){
   // you know "50+, ohne Duft" is the moment you type the name. Requiring a
   // second visit to the row to record it loses the thought.
   el.innerHTML=`<input placeholder="Artikel eintippen…" id="shQaInput" autocomplete="off" value="${esc(name)}">
+    <div id="shQaSugg"></div>
     <input placeholder="Beschreibung (optional)" id="shQaDesc" class="sub" autocomplete="off">
     <div class="qa-assign"><span class="cap">Zugewiesen an</span>
       ${['—',...USERS].map(p=>`<button class="pchip sm ${shQaAssignee===p?'on':''}" data-shqaw="${esc(p)}">${p==='—'?'niemand':esc(p)}</button>`).join('')}</div>
+    <div class="qa-assign"><span class="cap">Kategorie</span>
+      <select id="shQaCat">${shopCats().map(c=>`<option ${c===shQaCat?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
     <button class="qa-add-btn" id="shQaAdd">Zu „${where}“ hinzufügen</button>
     <div class="qa-hint">Oder Enter — das Feld bleibt für den nächsten Artikel offen.</div>`;
-  const inp=document.getElementById('shQaInput'), desc=document.getElementById('shQaDesc');
+  const inp=document.getElementById('shQaInput'), desc=document.getElementById('shQaDesc'),
+        cat=document.getElementById('shQaCat'), sug=document.getElementById('shQaSugg');
   inp.focus(); const v=inp.value; try{inp.setSelectionRange(v.length,v.length);}catch(e){}
+  // Only the suggestion strip is redrawn while typing. Re-rendering the whole
+  // form on each keystroke would move the caret and clear the other fields.
+  function drawSugg(){
+    const list=shopSuggest(inp.value);
+    sug.innerHTML=list.length?`<div class="qa-sugg">${list.map(m=>
+      `<button data-shpick="${esc(m.name)}" data-cat="${esc(m.tags[0]||'Sonstiges')}">${esc(m.name)} <b>·${esc(m.tags[0]||'')}</b></button>`).join('')}</div>`:'';
+    sug.querySelectorAll('[data-shpick]').forEach(b=>b.onmousedown=e=>{ e.preventDefault();
+      // Picking a known item settles its category too — that is what makes the
+      // category question disappear for everything already in the inventory.
+      inp.value=b.dataset.shpick; shQaCat=b.dataset.cat;
+      // Adopt the category even if it is new to this trip — silently keeping the
+      // old selection is how "Badehose · Baden" ended up filed under Aktivität.
+      if(![...cat.options].some(o=>o.value===shQaCat)) cat.add(new Option(shQaCat,shQaCat));
+      cat.value=shQaCat;
+      sug.innerHTML=''; desc.focus();
+    });
+  }
+  inp.addEventListener('input',drawSugg); drawSugg();
+  cat.addEventListener('change',()=>{ shQaCat=cat.value; });
   // Chips toggle in place rather than re-rendering the form — a re-render would
   // wipe the description the user has already typed.
   el.querySelectorAll('[data-shqaw]').forEach(b=>b.onmousedown=e=>{ e.preventDefault();   // keep focus in the field
     shQaAssignee=b.dataset.shqaw;
     el.querySelectorAll('[data-shqaw]').forEach(x=>x.classList.toggle('on',x.dataset.shqaw===shQaAssignee));
   });
-  const submit=()=>{ if(inp.value.trim()) shopAdd(inp.value.trim(), desc.value.trim(), shQaAssignee); };
+  const submit=()=>{ if(inp.value.trim()) shopAdd(inp.value.trim(), desc.value.trim(), shQaAssignee, cat.value); };
   // A visible confirm button is the primary commit: on a phone there is no
   // Enter key in reach, and relying on the keyboard's return key leaves the
   // action invisible. Enter stays as the desktop shortcut, from either field.
@@ -2394,8 +2492,8 @@ function renderShQa(nameOverride){
     if(!inp.value.trim()&&!desc.value.trim()){ el.classList.remove('qa-open'); el.classList.add('qa'); el.style.display='none'; }
   },0)));
 }
-function shopAdd(name,note,assignee){
-  P.items.push({id:nextId++,name,cat:'Sonstiges',qty:1,packed:0,
+function shopAdd(name,note,assignee,cat){
+  P.items.push({id:nextId++,name,cat:cat||'Sonstiges',qty:1,packed:0,
     mode:SHOP.tab==='before'?'buy_before':'buy_local',trav:'Alle',cont:'—',w:0,
     note:(note||'').trim()||undefined,
     buyer:(assignee&&assignee!=='—')?assignee:undefined});
@@ -2437,18 +2535,33 @@ function renderShopSheet(){
   ta.addEventListener('input',()=>{ it.note=ta.value.trim()||undefined; });
 }
 function renderShop(){
+  // Search and filter are icons in the tab row; the search field only appears
+  // when asked for. A permanently open field cost a full row on the screen you
+  // read at arm's length in a shop, for something used occasionally.
+  const nF=shopFilterCount();
   document.getElementById('shTabs').innerHTML=
     `<button class="${SHOP.tab==='before'?'on':''}" data-sh="before">Vor Abreise<span class="b">${shopOpen('buy_before').length}</span></button>
-     <button class="${SHOP.tab==='local'?'on':''}" data-sh="local">Vor Ort<span class="b">${shopOpen('buy_local').length}</span></button>`;
-  document.getElementById('shSearch').innerHTML=
-    `<div class="search"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg>
+     <button class="${SHOP.tab==='local'?'on':''}" data-sh="local">Vor Ort<span class="b">${shopOpen('buy_local').length}</span></button>
+     <span class="sep"></span>
+     <button class="ico ${SHOP.searchOpen||SHOP.search?'on':''}" id="shSearchBtn" aria-label="Suchen"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg></button>
+     <button class="ico ${nF?'on':''}" id="shFOpen" aria-label="Filter"><svg viewBox="0 0 24 24"><use href="#i-filter"/></svg>${nF?`<span class="cnt">${nF}</span>`:''}</button>`;
+  document.getElementById('shSearch').innerHTML=(SHOP.searchOpen||SHOP.search)
+    ? `<div class="search"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg>
       <input id="shSearchInput" placeholder="Einkaufsliste durchsuchen…" value="${esc(SHOP.search)}" autocomplete="off">
-      <button class="clr ${SHOP.search?'show':''}" id="shClr" aria-label="Suche löschen">✕</button></div>`;
+      <button class="clr show" id="shClr" aria-label="Suche schliessen">✕</button></div>` : '';
   renderShopFilterBar();
   renderShList();
   document.querySelectorAll('[data-sh]').forEach(b=>b.onclick=()=>{ SHOP.tab=b.dataset.sh; renderShop(); });
-  const s=document.getElementById('shSearchInput'); s.oninput=e=>{ SHOP.search=e.target.value; document.getElementById('shClr').classList.toggle('show',!!SHOP.search); renderShList(); };
-  const c=document.getElementById('shClr'); c.onclick=()=>{ SHOP.search=''; const i=document.getElementById('shSearchInput'); i.value=''; c.classList.remove('show'); i.focus(); renderShList(); };
+  document.getElementById('shFOpen').onclick=()=>openFilters(CTX_SHOP);
+  document.getElementById('shSearchBtn').onclick=()=>{ SHOP.searchOpen=!SHOP.searchOpen;
+    if(!SHOP.searchOpen) SHOP.search=''; renderShop(); };
+  const s=document.getElementById('shSearchInput');
+  // preventScroll: focusing the field otherwise scrolls the list, and closing
+  // the search again leaves it parked away from the top for no reason.
+  if(s){ s.focus({preventScroll:true}); s.oninput=e=>{ SHOP.search=e.target.value; renderShList(); };
+    // ✕ closes the search entirely rather than only emptying it — leaving an
+    // empty field open would put the row back that the icon just reclaimed.
+    document.getElementById('shClr').onclick=()=>{ SHOP.search=''; SHOP.searchOpen=false; renderShop(); }; }
   const shq=document.getElementById('shQa');
   shq.style.display=shq.classList.contains('qa-open')?'':'none';
   if(shq.classList.contains('qa-open')) renderShQa();
