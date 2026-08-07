@@ -989,7 +989,7 @@ const meta = {
   templates:{t:'Vorlagen', s:'Wiederverwendbare Listen', tab:'templates', fab:1},
   items:{t:'Inventar', s:'Deine Sachen', tab:'items', fab:1},
   trip:{t:'Samedan Sommer 2026', s:'8.–22. August · 14 Tage', tab:'trips', back:1, fab:0},
-  pack:{t:'Packliste', s:'Samedan · Vorbereiten', tab:'trips', back:1, fab:1},
+  pack:{t:'Samedan', s:'Samedan · Vorbereiten', tab:'trips', back:1, fab:1},
   wizard:{t:'Neue Reise', s:'Schritt 1 von 4', tab:'trips', back:1, fab:0, hideTabs:1},
   shop:{t:'Einkauf', s:'Samedan', tab:'trips', back:1, fab:1},
   containers:{t:'Gepäck & Container', s:'Samedan', tab:'trips', back:1, fab:0},
@@ -1288,7 +1288,10 @@ function renderPack(){
         <button class="clr show" id="pkClr" aria-label="Suche schliessen">✕</button></div>` : '';
   setBarActions(icons);
   document.getElementById('packHead').innerHTML=
-    `<div class="pv1-line">${facepile}<div class="pv1-status">Samedan <span class="muted">· ${done}/${total} · 18 kg · Prep ${openPrep}</span></div>${tripNav}</div>`+
+    // The trip name belongs in the app-bar title, not here as well. Repeating it
+    // only cost width, and it cost it from the figures — which were the first
+    // thing to be cut off once the nav icons joined the line.
+    `<div class="pv1-line">${facepile}<div class="pv1-status">${done}/${total}<span class="muted"> · 18 kg · Prep ${openPrep}</span></div>${tripNav}</div>`+
     `${searchRow}${filterbar}`;
   tipify(document.getElementById('packHead'));
 
@@ -1541,7 +1544,7 @@ document.getElementById('body').addEventListener('scroll',()=>{
     av.style.display='';
   } else if((st<lastPackScroll-3 || st<8) && packHeadCollapsed){
     packHeadCollapsed=false; wrap.classList.remove('packhead-hidden');
-    document.getElementById('barTitle').textContent=meta.pack.t;
+    document.getElementById('barTitle').textContent=meta.pack.t;  // already the trip name
     av.style.display='none';
   }
   lastPackScroll=st;

@@ -68,15 +68,20 @@ ul.check li::before{content:"☐";position:absolute;left:2px;color:var(--teal)}
 .foot{margin-top:40px;border-top:1px solid var(--s0);padding-top:18px;font-size:12.5px;color:var(--o1);line-height:1.7;max-width:760px}
 .foot b{color:var(--sub1)}
 @media(max-width:640px){body{padding:24px 12px 50px}}
+
+.shots{display:flex;gap:10px;overflow-x:auto;padding:12px 0 4px;scrollbar-width:thin}
+.shots figure{margin:0;flex:0 0 auto;text-align:center}
+.shots img{display:block;width:186px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:#11111b}
+.shots figcaption{font-size:11px;opacity:.65;margin-top:5px;max-width:186px}
 </style>
 </head>
 <body><div class="wrap">
 
-<div class="kicker">JIT-Pack · UI-Konzept · Stand 17.07.2026</div>
+<div class="kicker">JIT-Pack · UI-Konzept · Stand 08.08.2026</div>
 <h1>Masken-Übersicht — <em>was ist testbar?</em></h1>
 <p class="sub">Alle Screens der UI-Spec (M1–M20) und ihr Stand im anklickbaren Konzept-Prototyp.
 Prototyp öffnen: <code>http://&lt;host&gt;:3000</code> — grüne Karten sind fertig ausgestaltet und warten auf deinen Test;
-die Checkboxen sind deine Prüfpunkte.</p>
+die Checkboxen sind deine Prüfpunkte. Die Screenshots zeigen den aktuellen Prototyp — sie werden mit <code>node docs/assets/shoot-screens.mjs</code> neu erzeugt, damit sie nicht veralten; Bild antippen öffnet es gross.</p>
 
 <div class="meter">
   <div class="bar">
@@ -110,6 +115,7 @@ die Checkboxen sind deine Prüfpunkte.</p>
   <div class="card done">
     <div class="chead"><span class="mid">M1</span><span class="cname">Übersicht (Dashboard)</span><span class="status">TESTEN</span></div>
     <div class="path"><b>Pfad:</b> Tab „Übersicht“ (Start)</div>
+    <div class="shots"><figure><a href="assets/screens/m1-dashboard.png" target="_blank"><img src="assets/screens/m1-dashboard.png" alt="M1 – Übersicht" loading="lazy"></a><figcaption>Übersicht</figcaption></figure></div>
     <ul class="check">
       <li>„Meine offenen Sachen“ — Checkbox hakt ab, Zähler zählt live</li>
       <li>„Dir zum Packen übergeben“ — blaue Karte (Kinderbücher, von Sara)</li>
@@ -121,6 +127,7 @@ die Checkboxen sind deine Prüfpunkte.</p>
   <div class="card done">
     <div class="chead"><span class="mid">M2</span><span class="cname">Reisen-Liste</span><span class="status">TESTEN</span></div>
     <div class="path"><b>Pfad:</b> Tab „Reisen“</div>
+    <div class="shots"><figure><a href="assets/screens/m2-trips.png" target="_blank"><img src="assets/screens/m2-trips.png" alt="M2 – Reisen" loading="lazy"></a><figcaption>Reisen</figcaption></figure></div>
     <ul class="check">
       <li>Suche + Statusfilter (Alle/Aktiv/Geplant/Archiv)</li>
       <li>Seriengruppe „◆ Toskana“ mit 3 Reisen, Archiv gedimmt</li>
@@ -132,6 +139,7 @@ die Checkboxen sind deine Prüfpunkte.</p>
   <div class="card done">
     <div class="chead"><span class="mid">M3</span><span class="cname">Reise-Wizard (4 Schritte)</span><span class="status">TESTEN</span></div>
     <div class="path"><b>Pfad:</b> ＋-FAB auf „Übersicht“ oder „Reisen“</div>
+    <div class="shots"><figure><a href="assets/screens/m3-wizard.png" target="_blank"><img src="assets/screens/m3-wizard.png" alt="M3 – Assistent Schritt 1" loading="lazy"></a><figcaption>Assistent Schritt 1</figcaption></figure></div>
     <ul class="check">
       <li>Schritt 1: Datum → Dauer live; Serie „Toskana“ befüllt leere Attribut-Chips</li>
       <li>Schritt 2: Reisende Erwachsen/Kind; Teilen-Block (Editor/Admin)</li>
@@ -143,6 +151,7 @@ die Checkboxen sind deine Prüfpunkte.</p>
   <div class="card done">
     <div class="chead"><span class="mid">M4</span><span class="cname">Packliste</span><span class="status">TESTEN</span></div>
     <div class="path"><b>Pfad:</b> Reise → „Vorbereiten“ → „Packliste öffnen“</div>
+    <div class="shots"><figure><a href="assets/screens/m4-packliste.png" target="_blank"><img src="assets/screens/m4-packliste.png" alt="M4 – Packliste" loading="lazy"></a><figcaption>Packliste</figcaption></figure><figure><a href="assets/screens/m4-filter.png" target="_blank"><img src="assets/screens/m4-filter.png" alt="M4 – Filter-Sheet" loading="lazy"></a><figcaption>Filter-Sheet</figcaption></figure><figure><a href="assets/screens/m4-gefaltet.png" target="_blank"><img src="assets/screens/m4-gefaltet.png" alt="M4 – alle Gruppen gefaltet" loading="lazy"></a><figcaption>alle Gruppen gefaltet</figcaption></figure></div>
     <ul class="check">
       <li><b>Kopfleiste (G-12):</b> 🔍 Suchen · Filter (Zähler als Abzeichen) · Falten — oben in der App-Leiste, wo sonst das Zahnrad sitzt. Auf der Reisetitel-Zeile: 🛒 Einkauf (mit Anzahl) · 🧳 Gepäck · 📊 Auswertung. <b>Kein ⋯ mehr.</b> Langdrücken zeigt den Namen als Bubble</li>
       <li><b>Filter-Sheet:</b> Gruppieren nach · Erledigte · Person / Kategorie / Beschaffung / Gepäck / Merkmale. Innerhalb einer Gruppe ODER, zwischen Gruppen UND; aktive Werte als entfernbare Chips unter dem Kopf</li>
@@ -160,6 +169,7 @@ die Checkboxen sind deine Prüfpunkte.</p>
   <div class="card done">
     <div class="chead"><span class="mid">M5</span><span class="cname">Artikel-Detail (Sheet)</span><span class="status">TESTEN</span></div>
     <div class="path"><b>Pfad:</b> Zeile in M4 antippen · schließen: Griff nach unten ziehen</div>
+    <div class="shots"><figure><a href="assets/screens/m5-sheet.png" target="_blank"><img src="assets/screens/m5-sheet.png" alt="M5 – Detail-Sheet, Per-Person" loading="lazy"></a><figcaption>Detail-Sheet, Per-Person</figcaption></figure></div>
     <ul class="check">
       <li><b>Aufgeräumt via Progressive Disclosure (18.07.):</b> Ebene 1 = Kopf + kompakte Übersichts-Chips + Vorbereitung + Kommentare (mit Eingabefeld); alles Weitere hinter „Details ▾“</li>
       <li><b>„Verwendet von“ entfernt (18.07.):</b> stattdessen „Wer braucht das?“ — Gemeinsam / Reisende-Mehrfachauswahl; Person hinzufügen legt eine eigene Packlisten-Zeile an (z. B. Sonnenbrille für Leonardo → FR-25.1/25.10)</li>
@@ -172,6 +182,7 @@ die Checkboxen sind deine Prüfpunkte.</p>
   <div class="card done">
     <div class="chead"><span class="mid">M6</span><span class="cname">Einkauf</span><span class="status">TESTEN</span></div>
     <div class="path"><b>Pfad:</b> 🛒-Icon auf der Reisetitel-Zeile in M4</div>
+    <div class="shots"><figure><a href="assets/screens/m6-einkauf.png" target="_blank"><img src="assets/screens/m6-einkauf.png" alt="M6 – Einkauf" loading="lazy"></a><figcaption>Einkauf</figcaption></figure><figure><a href="assets/screens/m6-hinzufuegen.png" target="_blank"><img src="assets/screens/m6-hinzufuegen.png" alt="M6 – Hinzufügen mit Beschreibung + Zuweisung" loading="lazy"></a><figcaption>Hinzufügen mit Beschreibung + Zuweisung</figcaption></figure></div>
     <ul class="check">
       <li>Tabs „Vor Abreise“/„Vor Ort“ mit echten Zählern; 🔍 und Filter oben in der App-Leiste (G-12), Suchfeld erscheint erst auf Tippen</li>
       <li><b>Filter</b> nach Zugewiesen an / Für wen / Kategorie — dasselbe Sheet wie M4, nur andere Facetten</li>
@@ -187,6 +198,7 @@ die Checkboxen sind deine Prüfpunkte.</p>
   <div class="card done">
     <div class="chead"><span class="mid">M7</span><span class="cname">Vorlagen-Liste</span><span class="status">TESTEN</span></div>
     <div class="path"><b>Pfad:</b> Tab „Vorlagen“</div>
+    <div class="shots"><figure><a href="assets/screens/m7-vorlagen.png" target="_blank"><img src="assets/screens/m7-vorlagen.png" alt="M7 – Vorlagen" loading="lazy"></a><figcaption>Vorlagen</figcaption></figure></div>
     <ul class="check">
       <li>Suche + Filter Alle/Meine/Veröffentlicht; fork-Chip bei fremden</li>
       <li>Positionszahlen live (ändern sich nach M8-Edits)</li>
@@ -196,6 +208,7 @@ die Checkboxen sind deine Prüfpunkte.</p>
   <div class="card done">
     <div class="chead"><span class="mid">M8</span><span class="cname">Vorlagen-Editor</span><span class="status">TESTEN</span></div>
     <div class="path"><b>Pfad:</b> Vorlage in M7 antippen · neu: ＋-FAB</div>
+    <div class="shots"><figure><a href="assets/screens/m8-vorlagen-editor.png" target="_blank"><img src="assets/screens/m8-vorlagen-editor.png" alt="M8 – Vorlagen-Editor" loading="lazy"></a><figcaption>Vorlagen-Editor</figcaption></figure></div>
     <ul class="check">
       <li>Formel-Chip „ƒ → 28“; Zeile aufklappen → Live-Beispiel (14 Tage · 4 Reisende)</li>
       <li>Ungültige Formel (z. B. „num_travelers * x“) → Fehler + „Speichern blockiert“</li>
@@ -209,6 +222,7 @@ die Checkboxen sind deine Prüfpunkte.</p>
   <div class="card done">
     <div class="chead"><span class="mid">M9</span><span class="cname">Inventar (Stammdaten)</span><span class="status">TESTEN</span></div>
     <div class="path"><b>Pfad:</b> Tab „Inventar“</div>
+    <div class="shots"><figure><a href="assets/screens/m9-inventar.png" target="_blank"><img src="assets/screens/m9-inventar.png" alt="M9 – Inventar" loading="lazy"></a><figcaption>Inventar</figcaption></figure></div>
     <ul class="check">
       <li>Multi-Tags als Chips an jeder Zeile (neu, FR-24.1 proposed)</li>
       <li>Tag-Filter „Sommer“ zeigt Artikel quer über Kategorien</li>
@@ -220,6 +234,7 @@ die Checkboxen sind deine Prüfpunkte.</p>
   <div class="card done">
     <div class="chead"><span class="mid">M10</span><span class="cname">Artikel-Editor (Stammdaten)</span><span class="status">TESTEN</span></div>
     <div class="path"><b>Pfad:</b> Artikel in M9 antippen · neu: ＋-FAB</div>
+    <div class="shots"><figure><a href="assets/screens/m10-artikel-editor.png" target="_blank"><img src="assets/screens/m10-artikel-editor.png" alt="M10 – Artikel-Editor" loading="lazy"></a><figcaption>Artikel-Editor</figcaption></figure></div>
     <ul class="check">
       <li>Mehrere Tags zuweisen + neuen Tag inline anlegen</li>
       <li>Gewicht / Wert / Einheit / Verbrauchsartikel</li>
@@ -230,6 +245,7 @@ die Checkboxen sind deine Prüfpunkte.</p>
   <div class="card done">
     <div class="chead"><span class="mid">M11</span><span class="cname">Gepäck &amp; Container</span><span class="status">TESTEN</span></div>
     <div class="path"><b>So findest du's:</b> Packliste → <b>🧳-Icon auf der Reisetitel-Zeile</b>. (War früher hinter dem Gruppierungs-Umschalter und danach hinter ⋯ vergraben — beim Test beide Male nicht gefunden; seit 08.08. ein eigenes Icon, G-12.)</div>
+    <div class="shots"><figure><a href="assets/screens/m11-gepaeck.png" target="_blank"><img src="assets/screens/m11-gepaeck.png" alt="M11 – Gepäck & Container" loading="lazy"></a><figcaption>Gepäck & Container</figcaption></figure></div>
     <ul class="check">
       <li>Gewichtsbalken: grün → amber (≥90 %) → rot (über Limit)</li>
       <li>Koffer-Paar-Balance (±15 %): startet im Ungleichgewicht</li>
@@ -240,6 +256,7 @@ die Checkboxen sind deine Prüfpunkte.</p>
   <div class="card done">
     <div class="chead"><span class="mid">M12</span><span class="cname">Auswertung (Analytics)</span><span class="status">TESTEN</span></div>
     <div class="path"><b>So findest du's:</b> Packliste → <b>📊-Icon auf der Reisetitel-Zeile</b>. (Der KPI-Streifen, über den man früher hierher kam, ist mit dem M4-Umbau entfallen; seit 08.08. ein eigenes Icon, G-12.)</div>
+    <div class="shots"><figure><a href="assets/screens/m12-auswertung.png" target="_blank"><img src="assets/screens/m12-auswertung.png" alt="M12 – Auswertung" loading="lazy"></a><figcaption>Auswertung</figcaption></figure></div>
     <ul class="check">
       <li>Dimension Person/Kategorie/Gepäck; Balken = gepackt/geplant</li>
       <li>Balken antippen → M4 in dieser Gruppierung</li>
