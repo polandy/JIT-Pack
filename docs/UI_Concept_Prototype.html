@@ -1270,7 +1270,13 @@ function addPerPerson(){
   if(!name){ document.getElementById('qaInput').focus(); return; }
   const picked=QA_TRAVELERS.filter(t=>qaPerson[t]>0);
   if(!picked.length) return;
-  picked.forEach(t=>P.items.unshift({id:nextId++,name,cat:'Schnell hinzugefügt',qty:qaPerson[t],packed:0,mode:'pack',trav:t,cont:'—',missing:true}));
+  // FR-25.1: ONE item carrying a per-traveler list — not one item per traveler.
+  // The cluster is keyed on the parent item, so N separate items can never group;
+  // they would render as N unrelated flat rows repeating the same name. With a
+  // single traveler the renderer degrades this to a flat "Name · Person" row by
+  // itself (groupBodyHTML clusters only at ≥2 siblings), so no special case here.
+  P.items.unshift({id:nextId++,name,cat:'Schnell hinzugefügt',mode:'pack',cont:'—',missing:true,
+    pp:picked.map(t=>({trav:t,qty:qaPerson[t],packed:0}))});
   const label=picked.map(t=>`${t} ${qaPerson[t]}`).join(' · ');
   qaPerson={Andy:0,Sia:0,Leonardo:0};
   renderPack(); renderQA('');
