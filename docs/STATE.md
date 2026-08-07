@@ -59,9 +59,16 @@ bounded. Two decisions fix the scope:
   — every template is a `Gruppe` (items only, includable) or a `Ferien-Vorlage` (groups + own
   items), declared at creation, guarded scope switch; two levels, so include cycles are
   structurally impossible (FR-27.1 refined, FR-27.6 new; M7-08/M8-10 added; 49 assertions).
-  Implementation open: `templates.kind` + `template_includes` migration + sync whitelist,
-  `instantiate.ts` include expansion, planning-trip refresh diff, M21 screen; UI-Spec entry
-  for M21 still to write.
+  **Third round: preparation tasks on template positions** (FR-27.7, owner request) — tasks
+  defined at the position instantiate as FR-7.3 todos on the generated trip item (open prep
+  blocks "done" via the existing FR-25.2 rule); edits propagate per FR-27.4; M8-11/M3-13
+  added. **Fourth round:** FR-25.7 realised in M8 (one-tap add, collapsed "Standard" row,
+  Menge + Vorbereitung first, rest behind "Mehr Optionen"; M8-12) and FR-27.8 new (M10
+  "Enthalten in" back-references with tap-through, per-trip usage history deliberately
+  deferred; M10-05). 59 assertions headless. Implementation open: `templates.kind` + `template_includes` (+ task
+  storage per FR-27.7) migration + sync whitelist, `instantiate.ts` include expansion + task
+  materialisation, planning-trip refresh diff, M21 screen; UI-Spec entry for M21 still to
+  write.
 
 **Parked until the MVP ships** (specified, not deleted — do not start these):
 

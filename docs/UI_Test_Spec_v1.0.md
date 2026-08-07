@@ -122,6 +122,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M3-10** `all` (FR-2.4/NFR-4.1): draft persists across steps offline; "Create trip" commits and opens M4; cancel leaves no residue.
 * **E2E-M3-11** `all` (FR-27.1/27.2/27.6): step 3 — the list separates *Ferien-Vorlagen* from *Zusätzliche Gruppen* (sections in "Alle", plus one tab per scope); a composed template's row lists its groups ("enthält: …"); selecting it plus a group that overlaps it resolves for real: the footer count matches the deduped set and the merge is **named** with both source groups ("Kamera nur 1× — in Makro & Wildlife").
 * **E2E-M3-12** `all` (FR-27.3): step 3 — single master items joined via the inventory search: an item **not** in the resolved set raises the footer count by one; an item already in it is reported "bereits enthalten, nicht doppelt" and leaves the count unchanged; added items appear as removable chips.
+* **E2E-M3-13** `all` (FR-27.7): step-3 footer reports the preparation tasks the selection carries ("📋 N Vorbereitungs-Aufgaben übernommen"); after creation each task exists as an FR-7.3 todo on its generated item, and that item stays un-done in M4 until the todo is resolved (blocking itself is covered by the M4 prep cases).
 
 ### M4 — Packing List (core)
 * **E2E-M4-01** `all` (FR-8.1/7.3): the single header line shows packed/total, weight and the open-prep count (the latter only when todos exist), and stays **unfiltered** while a filter or search narrows the list below it. Analytics is reached from the 📊 icon on the trip line, not from the header (the KPI-tile entry is gone, G-12).
@@ -205,6 +206,8 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M8-06** `all` (FR-1.2): add/remove/reorder items; swipe-to-delete.
 * **E2E-M8-07** `all` (FR-27.1/27.6): scope-shaped editor — a **Gruppe** shows only *Positionen* and no group picker; a **Ferien-Vorlage** shows the *Gruppen* section whose picker offers **groups only** (never vacation templates, never already-included groups) plus "Neue Gruppe anlegen…" inline (created group is immediately included); groups and own positions stay visually separate sections.
 * **E2E-M8-10** `all` (FR-27.6): guarded scope switch — a Vorlage with included groups refuses demotion to Gruppe (hint: remove groups first); a Gruppe included somewhere refuses promotion and the editor names its consumers ("Eingebunden in: …"); an unconstrained template switches freely.
+* **E2E-M8-11** `all` (FR-27.7): the expanded position form carries the preparation-task list (add via input/Enter, remove per row) with the blocking rule stated inline; the collapsed row shows a "📋 N Vorbereitung" count chip; adding/removing a task on a group used by a *planning* trip appears in that trip's FR-27.4 applied-changes log.
+* **E2E-M8-12** `all` (FR-25.7): adding a position via the picker is one tap — the row lands **collapsed** with the defaults (qty 1, trip-global, Packen, dedup max, no conditions, no Late-Packer) and reads "Standard"; expanding shows only Menge + Vorbereitung plus a "Mehr Optionen" toggle; the advanced parameters (per-person, procurement, dedup, conditions, Late-Packer) appear only after the toggle and collapse again with it.
 * **E2E-M8-08** `all` (FR-27.2): resolution footer shows the resolved item count over groups + own positions and **names** every dedup with its contributing groups ("Kamera nur 1× — in Makro & Wildlife").
 * **E2E-M8-09** `all` (FR-27.4): a template used by a *planning* trip shows the blast-radius note naming that trip; adding/removing a position then puts the "⟳ N Änderungen aus Gruppen übernommen" chip **only** on that planning trip's M2 row (never on active/archived rows); expanding the chip lists each change with its source group.
 
@@ -219,6 +222,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M10-02** `all` (FR-2.4): usage footer ("Used in N templates, M archived trips"); delete blocked while referenced by templates.
 * **E2E-M10-03** `all` (FR-20.1): "Depends on" section — add dependency with required/suggested mode; save-time cycle rejection with a readable error; read-only "Companions" list.
 * **E2E-M10-04** `all` (FR-22.1/22.4/22.5): Photo section — add/replace/remove with live preview; oversized source is optimized to ≤150 KB JPEG (asserted via the stored/served image).
+* **E2E-M10-05** `all` (FR-27.8): "Enthalten in" section lists every group/Ferien-Vorlage containing the item with its scope chip; tapping a row opens that template's M8 editor; an unreferenced item shows the empty note. The deferred per-trip usage history is visibly noted as planned, not silently absent.
 
 ### M11 — Container Management
 * **E2E-M11-01** `all` (FR-10.1): create/edit/delete containers with name, carrier, max weight.
@@ -446,6 +450,9 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-27.4 | E2E | M8-05 (warning wording), M8-09 (chip only on planning trips), M21-03, FLOW-09 |
 | FR-27.5 | E2E | M21-01/02/03, FLOW-09 |
 | FR-27.6 | E2E | M7-07 (scope tabs/sections), M7-08 (create chooser), M8-07 (scope-shaped editor), M8-10 (guarded switch), M3-11 (wizard sections) |
+| FR-27.7 | E2E | M8-11 (task list + count chip + propagation log), M3-13 (preview count, todo on the generated item); blocking = existing FR-7.3/25.2 M4 cases |
+| FR-27.8 | E2E | M10-05 (named back-references, tap-through); counts stay M10-02 |
+| FR-25.7 | E2E | M8-12 (one-tap add, "Standard" row, Mehr-Optionen disclosure) |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |
 | NFR-4.2a | E2E+UNIT | FLOW-08, NFR-04; sync merge tests |

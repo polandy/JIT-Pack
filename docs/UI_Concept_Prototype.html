@@ -2178,6 +2178,9 @@ function renderTplFoot(){
   const extraDup=W.extraItems.filter(id=>inRes.has(id));
   const comp=sel.length?2:0;
   const result=Math.max(0,res.rows.length-excl.length)+res.opaque+extraNew.length+comp;
+  /* FR-27.7: preparation tasks defined on the (non-excluded) positions ride
+     along into the trip as FR-7.3 todos — the preview says how many. */
+  const nTasks=res.rows.filter(r=>!excl.includes(r)).reduce((a,r)=>a+((r.tasks&&r.tasks.length)||0),0);
   const el=document.getElementById('tplFoot'); if(!el)return;
   el.innerHTML=`<div class="big">${result} Artikel</div>
     <div class="ln muted"><span class="chip green">✓ ${sel.length} Vorlage${sel.length===1?'':'n'}</span>
@@ -2187,7 +2190,8 @@ function renderTplFoot(){
     ${extraDup.length?`<div class="ln muted">${extraDup.map(id=>{const m=MASTER.find(x=>x.id===id);
       return `${esc(m?m.name:'?')}: bereits enthalten, nicht doppelt (FR-20.3)`;}).join(' · ')}</div>`:''}
     ${excl.length?`<div class="ln" style="color:var(--peach)">⊘ ${excl.length} Artikel ausgeschlossen — Saison ≠ ${excl[0].cond.season} (FR-15.2)</div>`:''}
-    ${comp?`<div class="ln" style="color:var(--sapphire)">+ ${comp} Companion-Artikel automatisch ergänzt (FR-20.3)</div>`:''}`;
+    ${comp?`<div class="ln" style="color:var(--sapphire)">+ ${comp} Companion-Artikel automatisch ergänzt (FR-20.3)</div>`:''}
+    ${nTasks?`<div class="ln" style="color:var(--green)">📋 ${nTasks} Vorbereitungs-Aufgabe${nTasks===1?'':'n'} übernommen (FR-27.7)</div>`:''}`;
 }
 function wStep3(){
   const selCount=TPL.filter(t=>W.templates[t.id]).length;
@@ -3047,6 +3051,15 @@ function renderItemEdit(){
     <div class="field"><label>Einheit</label><div class="seg">${UNITS.map(u=>`<button class="${it.unit===u?'sel':''}" data-edunit="${u}">${u}</button>`).join('')}</div></div>
     <div class="toggle" style="border-top:1px solid var(--s0)"><div class="grow"><div class="name">Verbrauchsartikel</div><div class="desc">wird pro Tag/Person verbraucht (FR-1.7)</div></div>
       <div class="sw ${it.consumable?'on':''}" data-edcons="1"></div></div>
+    <div class="field"><label>Enthalten in (FR-27.8)</label>
+      ${(()=>{const inTpls=TPL.filter(t=>(TPLITEMS[t.id]||[]).some(r=>r.m===it.id));
+        return inTpls.length?`<div class="card">${inTpls.map(t=>`<div class="li pressable" data-edtpl="${t.id}">
+            <span style="font-size:18px">${t.emoji}</span>
+            <div class="grow"><div class="name">${esc(t.name)}</div></div>
+            ${tplKind(t)==='group'?'<span class="chip mauve">Gruppe</span>':'<span class="chip">Ferien-Vorlage</span>'}
+            <svg viewBox="0 0 24 24" style="width:18px;color:var(--o0)"><use href="#i-chev"/></svg></div>`).join('')}</div>`
+          :'<div class="card"><div class="li"><div class="grow muted" style="text-align:center;padding:8px">In keiner Gruppe oder Vorlage.</div></div></div>';})()}
+      <div class="tiny muted" style="margin-top:7px">Geplant (offener Punkt §3.27): zusätzlich anzeigen, auf welchen Reisen der Artikel dabei war.</div></div>
     <div class="card" style="padding:12px 14px;margin-top:6px;${used?'background:rgba(250,179,135,.08);border-color:rgba(250,179,135,.3)':''}">
       <div class="tiny">${used
         ? `⚠ <b>Verwendet in ${used} Reisen.</b> Löschen entfernt den Artikel nur <b>logisch</b> — er verschwindet aus dem Inventar, bleibt aber für Historie & Auswertung erhalten.`
@@ -3055,6 +3068,7 @@ function renderItemEdit(){
       <button class="gb" style="flex:0 0 auto;padding:12px 16px;color:var(--red);border-color:rgba(243,139,168,.4)" data-eddel="1">Löschen</button>
       <button class="gb on" style="flex:1;padding:12px" data-eddone="1">Fertig</button></div>`;
   el.querySelectorAll('[data-edtag]').forEach(b=>b.onclick=()=>{ const t=b.dataset.edtag, i=it.tags.indexOf(t); i<0?it.tags.push(t):it.tags.splice(i,1); renderItemEdit(); });
+  el.querySelectorAll('[data-edtpl]').forEach(r=>r.onclick=()=>openM8(r.dataset.edtpl));
   const addTag=v=>{ v=v.trim(); if(v&&!it.tags.includes(v)){ it.tags.push(v); renderItemEdit(); } };
   el.querySelector('[data-ednewtag]').onclick=()=>addTag(document.getElementById('edNewTag').value);
   document.getElementById('edNewTag').onkeydown=e=>{ if(e.key==='Enter')addTag(e.target.value); };
@@ -3087,7 +3101,7 @@ const TPLITEMS={
     {m:60,q:'4',pp:false,mode:'pack',late:false,dedup:'sum',cond:{}},
     {m:97,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
     {m:108,q:'num_travelers',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
-    {m:142,q:'2',pp:false,mode:'pack',late:false,dedup:'max',cond:{transport:'Auto'}},
+    {m:142,q:'2',pp:false,mode:'pack',late:false,dedup:'max',cond:{transport:'Auto'},tasks:['Passt Leonardos Helm noch?']},
     {m:158,q:'num_children * 2',pp:false,mode:'buy_before',late:false,dedup:'sum',cond:{}},
   ],
   ski:[
@@ -3100,7 +3114,9 @@ const TPLITEMS={
   makro:[
     {m:74,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
     {m:186,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
-    {m:83,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
+    /* FR-27.7: a position can carry preparation tasks — instantiated as FR-7.3
+       todos on the generated trip item; open prep blocks "done" (FR-25.2). */
+    {m:83,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{},tasks:['Akkus laden']},
   ],
   wildlife:[
     {m:74,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
@@ -3196,7 +3212,7 @@ function evalFormula(f){
     return {ok:true,val:Math.max(0,Math.round(v))};
   }catch(e){ return {ok:false,err:'Formel ungültig (Klammern/Operatoren prüfen)'}; }
 }
-const M8={id:null,open:-1,picker:false,pick:'',gpicker:false};
+const M8={id:null,open:-1,picker:false,pick:'',gpicker:false,adv:false};
 let tplSeq=1;
 function openM8(id){ M8.id=id; M8.open=-1; M8.picker=false; M8.pick=''; M8.gpicker=false; go('templateedit'); }
 function openTplKind(){ document.getElementById('tplKindScrim').classList.add('open'); document.getElementById('tplKindSheet').classList.add('open'); }
@@ -3216,6 +3232,7 @@ function renderTplEdit(){
     const chips=[ ...(r.pp?['<span class="chip blue">pro Person</span>']:[]),
       ...(isBuy(r.mode)?[`<span class="chip ${r.mode==='buy_before'?'warm':'blue'}">${MODE[r.mode].icon} ${MODE[r.mode].label} kaufen</span>`]:[]),
       ...(r.late?['<span class="chip warm">Später-Packer</span>']:[]),
+      ...(r.tasks&&r.tasks.length?[`<span class="chip green">📋 ${r.tasks.length} Vorbereitung</span>`]:[]),
       ...condSummary(r.cond).map(c=>`<span class="chip mauve">${c}</span>`) ].join('');
     const open=M8.open===i&&mine;
     return `<div class="t8row">
@@ -3229,6 +3246,12 @@ function renderTplEdit(){
           <input class="finput ${ev.ok?'':'bad'}" data-t8q="${i}" value="${esc(r.q)}" autocomplete="off" spellcheck="false">
           ${ev.ok?`<div class="fex">Beispiel-Reise (${EX.trip_duration} Tage · ${EX.num_travelers} Reisende): <b>${ev.val}${r.pp?' pro Person':''}</b></div>`
                  :`<div class="ferr">${ev.err}</div>`}</div>
+        <div><label class="tiny muted" style="display:block;margin-bottom:6px">Vorbereitung — offene Aufgaben blockieren „erledigt“ auf der Packliste (FR-27.7)</label>
+          ${(r.tasks||[]).map((task,k)=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+            <span style="flex:none">📋</span><div class="tiny grow">${esc(task)}</div>
+            <button class="rm" data-t8trm="${i}:${k}">✕</button></div>`).join('')}
+          <div class="addprep"><input data-t8tin="${i}" placeholder="Aufgabe hinzufügen — z. B. „Akkus laden“…" autocomplete="off"><button class="opt" data-t8tadd="${i}">+</button></div></div>
+        ${M8.adv?`
         <div class="seg"><button class="${r.pp?'':'sel'}" data-t8pp="${i}" data-v="0">Reise-global</button>
           <button class="${r.pp?'sel':''}" data-t8pp="${i}" data-v="1">Pro Person</button></div>
         <div class="seg">${MODES.map(md=>`<button class="${r.mode===md[0]?'sel':''}" data-t8mode="${i}" data-v="${md[0]}">${md[1]}</button>`).join('')}</div>
@@ -3239,6 +3262,8 @@ function renderTplEdit(){
           ${TRANSPORTS.map(tr=>`<button class="opt ${r.cond.transport===tr?'sel':''}" data-t8ct="${i}" data-v="${tr}">${tr}</button>`).join('')}</div></div>
         <div class="toggle" style="padding:2px 0"><div class="grow"><div class="name" style="font-size:13.5px">Später-Packer</div></div>
           <div class="sw ${r.late?'on':''}" data-t8late="${i}"></div></div>
+        <button class="opt" data-t8adv="${i}" style="width:100%">Weniger Optionen ▴</button>`
+        :`<button class="opt" data-t8adv="${i}" style="width:100%">Mehr Optionen ▾ — pro Person · Kaufen · Dedup · Bedingungen · Später-Packer</button>`}
       </div>`:''}</div>`;
   };
   const pickList=M8.picker?MASTER.filter(x=>!x.deleted&&!rows.some(r=>r.m===x.id)&&(!M8.pick||x.name.toLowerCase().includes(M8.pick.toLowerCase()))).slice(0,6):[];
@@ -3286,7 +3311,8 @@ function renderTplEdit(){
       ${res.merged.length?`<div class="ln" style="color:var(--sapphire)">${res.merged.map(x=>`${esc(x.name)} nur 1× (${x.from.map(f=>esc(tplName(f))).join(' & ')})`).join(' · ')}</div>`:''}</div>`:''}`;
   // bindings
   const rerender=()=>renderTplEdit();
-  el.querySelectorAll('[data-t8open]').forEach(h=>h.onclick=e=>{ if(e.target.closest('[data-t8rm]'))return; const i=+h.dataset.t8open; M8.open=M8.open===i?-1:i; rerender(); });
+  el.querySelectorAll('[data-t8open]').forEach(h=>h.onclick=e=>{ if(e.target.closest('[data-t8rm]'))return; const i=+h.dataset.t8open; M8.open=M8.open===i?-1:i; M8.adv=false; rerender(); });
+  el.querySelectorAll('[data-t8adv]').forEach(b=>b.onclick=()=>{ M8.adv=!M8.adv; rerender(); });
   el.querySelectorAll('[data-t8rm]').forEach(b=>b.onclick=()=>{ const r=rows[+b.dataset.t8rm];
     const m=r&&MASTER.find(x=>x.id===r.m);
     rows.splice(+b.dataset.t8rm,1); M8.open=-1;
@@ -3320,6 +3346,18 @@ function renderTplEdit(){
   el.querySelectorAll('[data-t8cs]').forEach(b=>b.onclick=()=>{ const r=rows[+b.dataset.t8cs]; r.cond.season=r.cond.season===b.dataset.v?null:b.dataset.v; rerender(); });
   el.querySelectorAll('[data-t8ct]').forEach(b=>b.onclick=()=>{ const r=rows[+b.dataset.t8ct]; r.cond.transport=r.cond.transport===b.dataset.v?null:b.dataset.v; rerender(); });
   el.querySelectorAll('[data-t8late]').forEach(b=>b.onclick=()=>{ const r=rows[+b.dataset.t8late]; r.late=!r.late; rerender(); });
+  /* FR-27.7 task editing — additions/removals propagate like any other
+     position change (FR-27.4), so planned trips gain/lose the todo too. */
+  const addTask=i=>{ const inp=el.querySelector(`[data-t8tin="${i}"]`); const v=inp&&inp.value.trim(); if(!v)return;
+    const r=rows[i]; (r.tasks=r.tasks||[]).push(v);
+    const m=MASTER.find(x=>x.id===r.m);
+    logTplChange(t.id,'Aufgabe „'+v+'“ zu „'+(m?m.name:'?')+'“ hinzugefügt'); rerender(); };
+  el.querySelectorAll('[data-t8tadd]').forEach(b=>b.onclick=()=>addTask(+b.dataset.t8tadd));
+  el.querySelectorAll('[data-t8tin]').forEach(inp=>inp.onkeydown=e=>{ if(e.key==='Enter')addTask(+inp.dataset.t8tin); });
+  el.querySelectorAll('[data-t8trm]').forEach(b=>b.onclick=()=>{ const [i,k]=b.dataset.t8trm.split(':').map(Number);
+    const r=rows[i], m=MASTER.find(x=>x.id===r.m);
+    const gone=r.tasks.splice(k,1)[0];
+    logTplChange(t.id,'Aufgabe „'+gone+'“ bei „'+(m?m.name:'?')+'“ entfernt'); rerender(); });
   const nm=document.getElementById('t8name'); if(nm&&mine) nm.oninput=e=>{ t.name=e.target.value; };
   const pub=document.getElementById('t8pub'); if(pub) pub.onclick=()=>{ t.pub=!t.pub; rerender(); };
   const fork=document.getElementById('t8fork'); if(fork) fork.onclick=()=>{ const id='tpl'+(tplSeq++);
@@ -3328,11 +3366,15 @@ function renderTplEdit(){
     snack('Fork erstellt — deine private Kopie'); openM8(id); };
   const op=document.getElementById('t8openpick'); if(op) op.onclick=()=>{ M8.picker=true; rerender(); };
   const pk=document.getElementById('t8pick'); if(pk){ pk.oninput=e=>{ M8.pick=e.target.value; rerender(); const p=document.getElementById('t8pick'); if(p){p.focus();p.setSelectionRange(p.value.length,p.value.length);} }; }
-  el.querySelectorAll('[data-t8add]').forEach(b=>b.onclick=()=>{ rows.push({m:+b.dataset.t8add,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}}); M8.picker=false; M8.pick=''; M8.open=rows.length-1;
+  /* FR-25.7 (realised 2026-08-08): adding a position is ONE tap — the row lands
+     collapsed with sensible defaults (qty 1, trip-global, Packen, dedup max, no
+     conditions, no Late-Packer) and reads "Standard". It no longer auto-expands
+     the full parameter form; tuning is the exception, one tap away. */
+  el.querySelectorAll('[data-t8add]').forEach(b=>b.onclick=()=>{ rows.push({m:+b.dataset.t8add,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}}); M8.picker=false; M8.pick=''; M8.open=-1;
     const m=MASTER.find(x=>x.id===+b.dataset.t8add); if(m) logTplChange(t.id,'Position „'+m.name+'“ hinzugefügt');
     rerender(); });
   const cr=el.querySelector('[data-t8create]'); if(cr) cr.onclick=()=>{ const it={id:nextMasterId++,name:M8.pick.trim(),tags:[],w:0,val:0,unit:'Stk'}; MASTER.push(it);
-    rows.push({m:it.id,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}}); M8.picker=false; M8.pick=''; M8.open=rows.length-1;
+    rows.push({m:it.id,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}}); M8.picker=false; M8.pick=''; M8.open=-1;
     logTplChange(t.id,'Position „'+it.name+'“ hinzugefügt'); rerender(); };
 }
 
