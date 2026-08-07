@@ -382,9 +382,20 @@ body{
 /* M6 shopping row: derived recipients + per-item procurement note (FR-25.6) */
 .shwho{display:flex;gap:-4px;flex:none;margin-right:2px}
 .shwho .mini-av{margin-left:-5px;border:1.5px solid var(--base)}
-.shnote{font-size:12px;color:var(--peach);margin-top:3px;cursor:pointer;line-height:1.35}
-.shnotebtn{flex:none;cursor:pointer;width:28px;height:28px;border-radius:9px;border:1px solid var(--s1);
-  background:var(--mantle);color:var(--o1);font-size:13px;font-weight:700;display:grid;place-items:center}
+.shnote{font-size:12px;color:var(--peach);margin-top:3px;line-height:1.35}
+.shbuyer{position:relative;flex:none;cursor:pointer;display:grid;place-items:center;margin-left:6px}
+.shbuyer .mini-av{box-shadow:0 0 0 2px var(--blue)}
+.shbuyer i{position:absolute;right:-4px;bottom:-4px;font-style:normal;font-size:9px;line-height:1;
+  background:var(--base);border-radius:50%;padding:1px}
+.shbuyer.empty{width:26px;height:26px;border-radius:50%;border:1.5px dashed var(--s2);color:var(--o0);font-size:13px;font-weight:700}
+.assign .cap{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--o0);margin-bottom:7px}
+.chiprow{display:flex;flex-wrap:wrap;gap:7px}
+.pchip{cursor:pointer;font-size:13px;font-weight:600;padding:6px 12px;border-radius:16px;
+  border:1px solid var(--s1);background:var(--mantle);color:var(--sub0)}
+.pchip.on{background:var(--blue);border-color:var(--blue);color:var(--crust)}
+#shDesc{width:100%;background:var(--mantle);border:1px solid var(--s1);border-radius:11px;color:var(--text);
+  padding:10px 12px;font:inherit;font-size:14px;resize:vertical}
+#shDesc:focus{border-color:var(--blue);outline:none}
 
 /* quick add */
 .qa{display:flex;align-items:center;gap:10px;padding:13px 15px;color:var(--sub0);font-size:14px;cursor:text}
@@ -828,8 +839,10 @@ body{
     <div class="view" data-view="shop">
       <div class="shtabs" id="shTabs"></div>
       <div id="shSearch"></div>
+      <!-- quick-add sits above the list and stays collapsed until the ＋ FAB
+           opens it — same pattern as M4, so adding works identically everywhere -->
+      <div class="card qa" id="shQa"></div>
       <div id="shList"></div>
-      <div class="card qa" id="shAdd"><svg viewBox="0 0 24 24"><use href="#i-plus"/></svg> Zur Liste hinzufügen…</div>
     </div>
 
     <!-- ============ M11 CONTAINERS ============ -->
@@ -868,6 +881,13 @@ body{
     <div class="sheet-body" id="sheetBody"></div>
   </div>
 
+  <!-- M6 shopping-item sheet — buyer delegation + description -->
+  <div class="scrim" id="shopScrim" onclick="closeShopItem()"></div>
+  <div class="sheet" id="shopSheet">
+    <div class="handle"></div>
+    <div class="sheet-body" id="shopSheetBody"></div>
+  </div>
+
   <!-- M4 filter sheet — grouping + facet groups; opened from the filter bar -->
   <div class="scrim" id="filterScrim" onclick="closeFilters()"></div>
   <div class="sheet" id="filterSheet">
@@ -899,7 +919,7 @@ const meta = {
   trip:{t:'Samedan Sommer 2026', s:'8.–22. August · 14 Tage', tab:'trips', back:1, fab:0},
   pack:{t:'Packliste', s:'Samedan · Vorbereiten', tab:'trips', back:1, fab:1},
   wizard:{t:'Neue Reise', s:'Schritt 1 von 4', tab:'trips', back:1, fab:0, hideTabs:1},
-  shop:{t:'Einkauf', s:'Samedan', tab:'trips', back:1, fab:0},
+  shop:{t:'Einkauf', s:'Samedan', tab:'trips', back:1, fab:1},
   containers:{t:'Gepäck & Container', s:'Samedan', tab:'trips', back:1, fab:0},
   analytics:{t:'Auswertung', s:'Samedan', tab:'trips', back:1, fab:0},
   itemedit:{t:'Artikel', s:'Stammdaten', tab:'items', back:1, fab:0},
@@ -937,6 +957,7 @@ function fabAction(){ const top=stack[stack.length-1];
   else if(top==='items'){ openM10New(); }
   else if(top==='templates'){ openM8New(); }
   else if(top==='pack'){ packFabAdd(); }
+  else if(top==='shop'){ shopFabAdd(); }
   else alert('Neu anlegen'); }
 function go(name){
   if(anchors.includes(name)) stack = [name];
@@ -2187,7 +2208,16 @@ const shopOpen=mode=>P.items.filter(i=>i.mode===mode&&shopPacked(i)<shopQty(i));
 function shopWhoHTML(i){
   if(!i.pp) return '';
   return `<span class="shwho">${i.pp.map(e=>{const av=AV[e.trav]||['?','var(--s2)'];
-    return `<span class="mini-av" title="${esc(e.trav)} · ${e.qty}" style="background:${av[1]}">${av[0]}</span>`;}).join('')}</span>`;
+    return `<span class="mini-av" title="für ${esc(e.trav)} · ${e.qty}" style="background:${av[1]}">${av[0]}</span>`;}).join('')}</span>`;
+}
+/* FR-25.12: who *buys* it — a procurement delegation, deliberately a different
+   thing from "for whom" (which stays derived, FR-25.6). Rendered on the right
+   with a cart badge, mirroring how FR-25.3 sets the packer apart from the
+   traveler, so the two person marks on one row can never be read as the same. */
+function shopBuyerHTML(i){
+  if(!i.buyer) return `<span class="shbuyer empty" data-shopen="${i.id}" title="Wer kauft?">＋</span>`;
+  const av=AV[i.buyer]||['?','var(--s2)'];
+  return `<span class="shbuyer" data-shopen="${i.id}" title="${esc(i.buyer)} kauft"><span class="mini-av" style="background:${av[1]}">${av[0]}</span><i>🛒</i></span>`;
 }
 function renderShList(){
   const q=SHOP.search.trim().toLowerCase();
@@ -2195,11 +2225,10 @@ function renderShList(){
   const g={}; items.forEach(i=>(g[i.cat]=g[i.cat]||[]).push(i));
   let html=Object.keys(g).length?Object.keys(g).map(c=>`<div class="grouphead">${esc(c)}</div>
     <div class="card">${g[c].map(i=>`<div class="li"><div class="check" data-shbuy="${i.id}"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
-      <div class="grow"><div class="name">${esc(i.name)}</div>
+      <div class="grow" data-shopen="${i.id}"><div class="name">${esc(i.name)}</div>
         <div class="desc">${shopQty(i)} ${i.unit||'Stk'}${i.pp?` · für ${i.pp.map(e=>e.trav).join(', ')}`:''}</div>
-        ${i.note?`<div class="shnote" data-shnote="${i.id}">📝 ${esc(i.note)}</div>`:''}</div>
-      ${shopWhoHTML(i)}
-      <button class="shnotebtn" data-shnote="${i.id}" title="Notiz">${i.note?'✎':'＋'}</button></div>`).join('')}</div>`).join('')
+        ${i.note?`<div class="shnote">📝 ${esc(i.note)}</div>`:''}</div>
+      ${shopWhoHTML(i)}${shopBuyerHTML(i)}</div>`).join('')}</div>`).join('')
     :`<div class="card"><div class="li"><div class="grow muted" style="text-align:center;padding:8px">${q?'Nichts gefunden.':'Liste leer 🎉'}</div></div></div>`;
   if(SHOP.tab==='local'){ const dl=DESTLIST.filter(d=>!q||d.toLowerCase().includes(q));
     if(dl.length) html+=`<div class="destsep">Ziel-Checkliste der Serie</div>
@@ -2212,15 +2241,66 @@ function renderShList(){
     if(SHOP.tab==='before'){ it.mode='pack'; snack('„'+it.name+'“ gekauft → Packliste'); }
     else { if(it.pp) it.pp.forEach(e=>e.packed=e.qty); else it.packed=it.qty; snack('„'+it.name+'“ gekauft ✓'); }
     renderShop(); });
-  // FR-25.6 per-item note — procurement context ("war im Migros, gab's nicht")
-  // kept on the row where it is useful, without leaving M6.
-  el.querySelectorAll('[data-shnote]').forEach(b=>b.onclick=e=>{ e.stopPropagation();
-    const it=P.items.find(x=>x.id==b.dataset.shnote); if(!it)return;
-    const v=prompt('Notiz zu „'+it.name+'“', it.note||'');
-    if(v===null) return;
-    it.note=v.trim()||undefined; renderShop();
-  });
+  el.querySelectorAll('[data-shopen]').forEach(r=>r.onclick=()=>openShopItem(+r.dataset.shopen));
   el.querySelectorAll('[data-shdest]').forEach(ch=>ch.onclick=()=>ch.classList.toggle('on'));
+}
+/* M6 quick-add — same shape as M4's (FR-5.6 / §3.25 directive): collapsed by
+   default, the ＋ FAB expands and focuses it, Enter adds, blur collapses.
+   M6 previously had a permanent "Zur Liste hinzufügen" card and a prompt(),
+   which made adding work differently on two screens that sit one tap apart. */
+function shopFabAdd(){
+  const el=document.getElementById('shQa');
+  el.style.display='';
+  if(!el.classList.contains('qa-open')){ el.classList.remove('qa'); el.classList.add('qa-open'); }
+  renderShQa(''); el.scrollIntoView({block:'nearest'});
+}
+function renderShQa(nameOverride){
+  const el=document.getElementById('shQa'), cur=document.getElementById('shQaInput');
+  const name=nameOverride!==undefined?nameOverride:(cur?cur.value:'');
+  const where=SHOP.tab==='before'?'Vor Abreise':'Vor Ort';
+  el.innerHTML=`<input placeholder="Artikel eintippen…" id="shQaInput" autocomplete="off" value="${esc(name)}">
+    <div class="qa-hint">Enter fügt zu „${where}“ hinzu.</div>`;
+  const inp=document.getElementById('shQaInput');
+  inp.focus(); const v=inp.value; try{inp.setSelectionRange(v.length,v.length);}catch(e){}
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&inp.value.trim()){ shopAdd(inp.value.trim()); } });
+  inp.addEventListener('blur',()=>{ if(!inp.value.trim()){ el.classList.remove('qa-open'); el.classList.add('qa'); el.style.display='none'; } });
+}
+function shopAdd(name){
+  P.items.push({id:nextId++,name,cat:'Sonstiges',qty:1,packed:0,
+    mode:SHOP.tab==='before'?'buy_before':'buy_local',trav:'Alle',cont:'—',w:0});
+  renderShop(); renderShQa(''); snack('„'+name+'“ hinzugefügt');
+}
+/* M6 item sheet — the optional bits that do not belong on the row itself. */
+let curShop=null;
+function openShopItem(id){
+  curShop=id; renderShopSheet();
+  document.getElementById('shopScrim').classList.add('open');
+  document.getElementById('shopSheet').classList.add('open');
+}
+function closeShopItem(){
+  document.getElementById('shopScrim').classList.remove('open');
+  document.getElementById('shopSheet').classList.remove('open');
+  curShop=null; renderShop();
+}
+function renderShopSheet(){
+  const it=P.items.find(x=>x.id==curShop); if(!it) return;
+  const people=USERS;   // who can be asked to buy = the trip's users, not its travelers
+  document.getElementById('shopSheetBody').innerHTML=
+    `<div class="ihead"><div class="grow"><div class="iname">${esc(it.name)}</div>
+       <div class="desc">${shopQty(it)} ${it.unit||'Stk'} · ${it.mode==='buy_before'?'🛒 Vor Abreise':'📍 Vor Ort'}</div></div></div>
+     ${it.pp?`<div class="assign"><div class="cap">Für wen</div>
+       <div class="tiny muted">${it.pp.map(e=>`${esc(e.trav)} ${e.qty}`).join(' · ')} — ergibt sich aus der Zuordnung, hier nicht änderbar.</div></div>`:''}
+     <div class="assign"><div class="cap">Wer kauft?</div>
+       <div class="chiprow">${['—',...people].map(p=>
+         `<button class="pchip ${(it.buyer||'—')===p?'on':''}" data-shbuyer="${esc(p)}">${p==='—'?'niemand':esc(p)}</button>`).join('')}</div></div>
+     <div class="assign"><div class="cap">Beschreibung</div>
+       <textarea id="shDesc" rows="3" placeholder="z. B. 50+, ohne Duft — oder was im Laden aufgefallen ist">${esc(it.note||'')}</textarea></div>`;
+  const body=document.getElementById('shopSheetBody');
+  body.querySelectorAll('[data-shbuyer]').forEach(b=>b.onclick=()=>{
+    const v=b.dataset.shbuyer; it.buyer = v==='—' ? undefined : v; renderShopSheet();
+  });
+  const ta=body.querySelector('#shDesc');
+  ta.addEventListener('input',()=>{ it.note=ta.value.trim()||undefined; });
 }
 function renderShop(){
   document.getElementById('shTabs').innerHTML=
@@ -2234,7 +2314,9 @@ function renderShop(){
   document.querySelectorAll('[data-sh]').forEach(b=>b.onclick=()=>{ SHOP.tab=b.dataset.sh; renderShop(); });
   const s=document.getElementById('shSearchInput'); s.oninput=e=>{ SHOP.search=e.target.value; document.getElementById('shClr').classList.toggle('show',!!SHOP.search); renderShList(); };
   const c=document.getElementById('shClr'); c.onclick=()=>{ SHOP.search=''; const i=document.getElementById('shSearchInput'); i.value=''; c.classList.remove('show'); i.focus(); renderShList(); };
-  document.getElementById('shAdd').onclick=()=>{ const n=prompt('Was hinzufügen?'); if(n&&n.trim()){ P.items.push({id:nextId++,name:n.trim(),cat:'Sonstiges',qty:1,packed:0,mode:SHOP.tab==='before'?'buy_before':'buy_local',trav:'Alle',cont:'—',w:0}); renderShop(); }};
+  const shq=document.getElementById('shQa');
+  shq.style.display=shq.classList.contains('qa-open')?'':'none';
+  if(shq.classList.contains('qa-open')) renderShQa();
 }
 
 /* ============ M1 dashboard — "what do I have to do right now?" ============ */

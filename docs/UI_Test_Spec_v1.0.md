@@ -159,6 +159,9 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M6-06** `all` (FR-25.6/3.3): checking off that aggregated row settles **every** instance in one act — a BUY_LOCAL per-person item leaves the list fully packed for all recipients, and a BUY_BEFORE one moves to PACK for all of them. Asserts no instance is left behind.
 * **E2E-M6-07** `all` (FR-25.6): a per-item note can be added from the row, is shown inline on it, survives a re-render, and can be edited and cleared — without leaving M6.
 * **E2E-M6-08** `all` (FR-25.10): the shopping row offers **no free-form "for whom" control**; the recipients shown are derived from membership only. Guards against reintroducing the attribution FR-25.10 removed.
+* **E2E-M6-09** `all` (FR-25.12): tapping a shopping row opens its sheet with *Wer kauft?* and *Beschreibung*. Assigning a buyer shows that person on the **right** of the row with the 🛒 badge, while derived recipients stay on the **left** — asserts the two are visually distinct even when the buyer is also a recipient. "niemand" clears the assignment.
+* **E2E-M6-10** `all` (FR-25.12): a description entered in the sheet renders inline on the row, survives closing and reopening, and can be cleared. Both buyer and description are optional — a row with neither renders without either mark.
+* **E2E-M6-11** `all` (FR-25.13): M6 has **no permanent "add" row**; the ＋ FAB expands an inline quick-add above the list and focuses it, Enter adds to the currently open tab, and an empty field collapses it on blur — the same sequence as M4-04. Asserts no native `prompt()` is used.
 
 ### M7 — Template List
 * **E2E-M7-01** `all` (FR-1.2): My templates vs Published sections; per-row name + item count.
@@ -387,6 +390,8 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-25.8 | E2E | M4-12, M4-13 |
 | FR-25.6 | E2E | M6-05 (aggregated row), M6-06 (settles all instances), M6-07 (notes) |
 | FR-25.10 | E2E | M6-08 (no free-form "for whom"); M5 membership control |
+| FR-25.12 | E2E | M6-09 (buyer, kept distinct from recipients), M6-10 (description) |
+| FR-25.13 | E2E | M6-11; M4-04 (same quick-add sequence on both screens) |
 | FR-25.11 | E2E | M4-15 (panel), M4-16 (OR/AND), M4-17 (counts), M4-18 (empty states), M4-19 (Gemeinsam) |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |
