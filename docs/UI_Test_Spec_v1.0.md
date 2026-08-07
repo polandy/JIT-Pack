@@ -1,7 +1,7 @@
 # UI / End-to-End Test Specification — „JIT-Pack" (v1.0)
 
 **Document Status:** Proposed for Review
-**Basis:** UI_Spec_v1.10 (screens M1–M20, patterns G-1–G-11) + PRD_Base + PRD_Addendum_v2.10 (FR/NFR catalogue).
+**Basis:** UI_Spec_v1.10 (screens M1–M20, patterns G-1–G-11) + PRD_Base + PRD_Addendum_v2.10 (FR/NFR catalogue). M21 (Vorlage aus Reise, §3.27) is specified below ahead of its UI-Spec entry.
 **Purpose:** Define *what* the automated headless-browser test suite must cover so that every requirement with a UI surface is exercised through the real, built client. This document is the specification; implementation (Playwright config, fixtures, the tests themselves) follows and is tracked separately.
 
 > This file is authoritative for E2E scope. When a requirement changes, its row in the traceability matrix (§7) must change with it — same discipline as UI_Spec and Sync_API_Spec.
@@ -120,6 +120,8 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M3-08** `all` (FR-14.1/14.2): step 4 rows show computed quantity + formula tooltip and a one-tap history suggestion ("2024: 5 · 2025: 6 → 6").
 * **E2E-M3-09** `all` (FR-13.3): step 4 offers the series destination checklist as opt-out extra items.
 * **E2E-M3-10** `all` (FR-2.4/NFR-4.1): draft persists across steps offline; "Create trip" commits and opens M4; cancel leaves no residue.
+* **E2E-M3-11** `all` (FR-27.1/27.2): step 3 — a composed template's row lists its groups ("enthält: …"); selecting it plus a group that overlaps it resolves for real: the footer count matches the deduped set and the merge is **named** with both source groups ("Kamera nur 1× — in Makro & Wildlife").
+* **E2E-M3-12** `all` (FR-27.3): step 3 — single master items joined via the inventory search: an item **not** in the resolved set raises the footer count by one; an item already in it is reported "bereits enthalten, nicht doppelt" and leaves the count unchanged; added items appear as removable chips.
 
 ### M4 — Packing List (core)
 * **E2E-M4-01** `all` (FR-8.1/7.3): the single header line shows packed/total, weight and the open-prep count (the latter only when todos exist), and stays **unfiltered** while a filter or search narrows the list below it. Analytics is reached from the 📊 icon on the trip line, not from the header (the KPI-tile entry is gone, G-12).
@@ -191,14 +193,18 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M7-04** `all` (FR-18.2): long-press → Export → YAML download.
 * **E2E-M7-05** `all` (FR-18.4): FAB "+" menu → Import from file → M18.
 * **E2E-M7-06** `all` (G-7): empty state CTA (create / import).
+* **E2E-M7-07** `all` (FR-27.1/27.2): a composed template's row shows its group count, its **resolved** item count (not 0 for a template with no own positions), and an "enthält: …" line naming the included groups.
 
 ### M8 — Template Editor
 * **E2E-M8-01** `all` (FR-1.3/1.5): quantity field accepts a formula with live validation and computed example ("for a 7-day trip: 8"); save is blocked while any formula is invalid with a per-row error.
 * **E2E-M8-02** `all` (FR-1.4): per-item assignment type Per Person / Trip-Global.
 * **E2E-M8-03** `all` (FR-2.3/15.2): dedup strategy select; condition chips (season/transport/accommodation).
 * **E2E-M8-04** `all` (FR-1.1): item picker from M9 with inline-create.
-* **E2E-M8-05** `all` (FR-2.4): editing a published template shows the "consumers see changes next generation only" warning.
+* **E2E-M8-05** `all` (FR-2.4/27.4): editing a published template shows the propagation warning in its FR-27.4 wording — planning trips of consumers update immediately, everyone else sees changes at the next trip generation, running/past trips never.
 * **E2E-M8-06** `all` (FR-1.2): add/remove/reorder items; swipe-to-delete.
+* **E2E-M8-07** `all` (FR-27.1): "Eingebundene Gruppen" section — include another template via the picker, remove one; the picker **omits** the template itself and any candidate whose inclusion would close a cycle (A→B→A never offered); own positions and groups stay visually separate sections.
+* **E2E-M8-08** `all` (FR-27.2): resolution footer shows the resolved item count over groups + own positions and **names** every dedup with its contributing groups ("Kamera nur 1× — in Makro & Wildlife").
+* **E2E-M8-09** `all` (FR-27.4): a template used by a *planning* trip shows the blast-radius note naming that trip; adding/removing a position then puts the "⟳ N Änderungen aus Gruppen übernommen" chip **only** on that planning trip's M2 row (never on active/archived rows); expanding the chip lists each change with its source group.
 
 ### M9 — Item Inventory
 * **E2E-M9-01** `all` (FR-1.1): searchable, category-grouped list; per-row name/weight/value/unit/consumable chips; row thumbnail when a photo exists.
@@ -274,6 +280,11 @@ Feature removed from the product (PRD Addendum §3.11); its E2E cases are retire
 * **E2E-M20-04** `server` (FR-23.5/23.1): no delete action anywhere; no role toggle.
 * **E2E-M20-05** `server` (FR-23.1/G-8): a non-admin OIDC user cannot route to `/admin` (403 / redirect); hidden entirely in `single`/`local`.
 
+### M21 — Vorlage aus Reise (new screen, §3.27 — UI-Spec entry to follow)
+* **E2E-M21-01** `all` (FR-27.5): entry from the trip's *Danach* phase; the screen lists every recognised group with its on-trip item count and a "wird wiederverwendet" marker, and the loose ad-hoc rows (all pre-checked) under "Eigene Artikel".
+* **E2E-M21-02** `all` (FR-27.5): a group with on-trip deviations names them ("Auf der Reise ergänzt: Gimbal") and offers **Gruppe aktualisieren** (default) vs. **nur in diese Vorlage**; group positions absent from the trip are reported with the explicit "Gruppe bleibt unverändert" note.
+* **E2E-M21-03** `all` (FR-27.5/27.1/27.4): creating with defaults yields a composed template that **references** the recognised groups (not copies), carries the checked loose rows as own positions, and — where *aktualisieren* was chosen — the deviation lands in the group itself and surfaces as an applied change on planning trips using that group. The "Als neue Gruppe speichern" toggle bundles the loose rows into a fresh group instead.
+
 ---
 
 ## 5. Cross-Screen Flow Tests
@@ -288,6 +299,7 @@ These are full end-to-end journeys spanning several screens — the highest-valu
 * **E2E-FLOW-06 Offline round-trip** `single`: go offline → make edits (G-5 optimistic) → glyph shows queued → go online → silent sync, edits persist. (NFR-4.1, 4.2, G-2, G-5)
 * **E2E-FLOW-07 Local→Server migration** `local`→`server`: export portable YAML in Local Mode → import into a Server instance via M18 → data present. (FR-19.5, 18.x)
 * **E2E-FLOW-08 Concurrent-edit convergence** `server`: Alice and Bob edit the same trip offline simultaneously → both reconnect → field-level merge converges; a real conflict appears in the G-2 conflict log. (NFR-4.2a, G-2)
+* **E2E-FLOW-09 Template round-trip over a year** `single`: M3 creates a trip from a composed template + one extra overlapping group (camera deduped, named in the preview) → items added ad-hoc during the trip → archive → M21 creates next year's template: groups recognised & referenced, one deviation folded back into its group → the fold-back appears as an applied change on a *planning* trip using that group, while the archived source trip stays untouched → a new M3 run from the new template contains the full learned set. (FR-27.1–27.5, FR-2.3a)
 
 ---
 
@@ -426,6 +438,11 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-25.14 | E2E | M5-06 (read-only aggregate, per-traveler controls) |
 | FR-25.15 | E2E | M5-07 (auto-save indicator, distinct from G-2) |
 | FR-25.13b | E2E | M6-19 (autocomplete adopts the category; manual fallback) |
+| FR-27.1 | E2E | M8-07 (include/remove, cycle guard), M7-07, M21-03 |
+| FR-27.2 | E2E+UNIT | M3-11, M8-08; instantiate.ts (include expansion + named merge) |
+| FR-27.3 | E2E | M3-12 |
+| FR-27.4 | E2E | M8-05 (warning wording), M8-09 (chip only on planning trips), M21-03, FLOW-09 |
+| FR-27.5 | E2E | M21-01/02/03, FLOW-09 |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |
 | NFR-4.2a | E2E+UNIT | FLOW-08, NFR-04; sync merge tests |

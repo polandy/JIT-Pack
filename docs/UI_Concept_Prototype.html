@@ -113,6 +113,10 @@ body{
 .chip.mauve{background:rgba(203,166,247,.16);color:var(--mauve)}
 .pressable{cursor:pointer;transition:transform .12s ease, background .15s}
 .pressable:active{transform:scale(.985)}
+/* §3.27: applied-group-changes notice on a planned trip row (FR-27.4) */
+.m2upd{margin-top:6px}
+.m2upd button.chip{border:0;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600}
+.m2updlist{margin-top:6px;padding:8px 10px;border-left:2px solid rgba(137,180,250,.4);display:flex;flex-direction:column;gap:3px}
 
 /* ring */
 .ring{--p:0;--c:var(--teal);width:44px;height:44px;border-radius:50%;flex:none;display:grid;place-items:center;
@@ -847,6 +851,11 @@ body{
           <div class="card stat"><div class="n" style="color:var(--green)">84%</div><div class="l">der gepackten Sachen genutzt</div></div>
           <div class="card stat"><div class="n" style="color:var(--peach)">3</div><div class="l">nie gebraucht</div></div>
         </div>
+        <div class="card" style="margin-top:12px;padding:14px 16px">
+          <div class="name">🧩 Als Vorlage fürs nächste Mal</div>
+          <div class="tiny muted" style="margin:6px 0 12px">Gruppen dieser Reise werden erkannt und wiederverwendet; was du unterwegs ergänzt hast, kann in die Gruppe zurückfliessen (FR-27.5).</div>
+          <button class="gb on" style="width:100%;padding:11px" onclick="openTFT()">Vorlage aus dieser Reise erstellen →</button>
+        </div>
         <div class="section-h">Vorschläge fürs nächste Mal</div>
         <div class="card">
           <div class="li"><span class="chip mauve">Serie</span>
@@ -927,6 +936,11 @@ body{
       <div id="anaPage"></div>
     </div>
 
+    <!-- ============ §3.27 TEMPLATE FROM TRIP ============ -->
+    <div class="view" data-view="tplfromtrip">
+      <div id="tftPage"></div>
+    </div>
+
     <!-- ============ M3 CREATION WIZARD ============ -->
     <div class="view" data-view="wizard">
       <div class="wiz-steps" id="wizSteps"></div>
@@ -996,6 +1010,7 @@ const meta = {
   analytics:{t:'Auswertung', s:'Samedan', tab:'trips', back:1, fab:0},
   itemedit:{t:'Artikel', s:'Stammdaten', tab:'items', back:1, fab:0},
   templateedit:{t:'Vorlage', s:'Stammdaten', tab:'templates', back:1, fab:0},
+  tplfromtrip:{t:'Vorlage aus Reise', s:'Samedan Sommer 2026', tab:'trips', back:1, fab:0},
 };
 const anchors = ['dashboard','trips','templates','items'];
 let stack = ['dashboard'];
@@ -1018,6 +1033,7 @@ function render(name){
   if(name==='items') renderItems();
   if(name==='itemedit') renderItemEdit();
   if(name==='templateedit') renderTplEdit();
+  if(name==='tplfromtrip') renderTFT();
   if(name==='trips') renderTrips();
   if(name==='shop') renderShop();
   if(name==='containers') renderContainers();
@@ -1103,6 +1119,12 @@ const P = {
     {id:14,name:'Leonardos Regenzeug',cat:'Für Leonardo',qty:1,packed:0,mode:'pack',trav:'Leonardo',cont:'Koffer',w:250},
     {id:15,name:'Büechli für Leonardo',cat:'Für Leonardo',qty:2,packed:2,mode:'pack',trav:'Leonardo',cont:'Rucksack',w:200,packedBy:'Andy'},
     {id:16,name:'Ping-Pong-Schläger',cat:'Aktivität',qty:2,packed:0,mode:'buy_before',trav:'Alle',cont:'Auto',w:180},
+    // §3.27: photo gear on the trip, generated from the "Makro Fotografie" group.
+    // Gimbal was added during the trip under that group — the template-from-trip
+    // flow (FR-27.5) offers to fold it back into the group.
+    {id:21,name:'Spiegelreflex / Systemkamera',cat:'Technik',qty:1,packed:1,mode:'pack',trav:'Andy',cont:'Rucksack',w:700,packedBy:'Andy'},
+    {id:22,name:'Makro-Objektiv',cat:'Technik',qty:1,packed:1,mode:'pack',trav:'Andy',cont:'Rucksack',w:600,packedBy:'Andy'},
+    {id:23,name:'Gimbal',cat:'Technik',qty:1,packed:1,mode:'pack',trav:'Andy',cont:'Rucksack',w:400,packedBy:'Andy'},
   ],
   skipped:[
     {name:'Badetüechli',reason:'Wohnung hat Tücher'},
@@ -1114,6 +1136,11 @@ const P = {
     {item:'Velohelme',task:'Passt Leonardos Helm noch?',who:'Andy',done:false},
   ],
 };
+/* §3.27 provenance (mock of source_template_id): which group/template each row
+   was generated from. Ad-hoc adds carry none — they surface as "eigene Artikel"
+   in the template-from-trip flow (FR-27.5). */
+const TRIP_SRC={sommer:[1,2,3,4,5,6,7,9,11,13,15,17,18,19,20],makro:[21,22,23]};
+Object.entries(TRIP_SRC).forEach(([g,ids])=>ids.forEach(id=>{const it=P.items.find(x=>x.id===id); if(it)it.src=g;}));
 // FR-25.4: every item carries a procurement mode. pack is the default; the two buy modes feed M6.
 const MODE = {
   pack:      {icon:'🧳', label:'Packen',  cls:'m-pack'},
@@ -2017,6 +2044,12 @@ const TPL=[{id:'sommer',name:'Sommer · Familie',emoji:'☀️',items:32,season:
   {id:'strand',name:'Strandurlaub',emoji:'🏖️',items:24,season:'Sommer',owner:'mine'},
   {id:'baby',name:'Reisen mit Baby',emoji:'🍼',items:30,owner:'mine'},
   {id:'camping',name:'Camping & Zelt',emoji:'⛺',items:35,season:'Sommer',owner:'mine'},
+  /* §3.27: "Gruppen" are ordinary templates — small, focused ones. What makes a
+     template a group is being *included* by another template, not a second entity. */
+  {id:'makro',name:'Makro Fotografie',emoji:'📷',items:0,owner:'mine'},
+  {id:'wildlife',name:'Wildlife Fotografie',emoji:'🦅',items:0,owner:'mine'},
+  /* A composed template: mostly group references, few or no own positions. */
+  {id:'ferienfam',name:'Familienferien',emoji:'🏔️',items:0,owner:'mine',includes:['sommer','makro']},
   {id:'city',name:'Städtereise',emoji:'🌍',items:21,owner:'pub',pub:true},
   {id:'business',name:'Geschäftsreise',emoji:'💼',items:18,owner:'pub',pub:true},
   {id:'wander',name:'Wanderwochenende',emoji:'🥾',items:22,season:'Übergang',owner:'pub',pub:true},
@@ -2029,7 +2062,8 @@ const STEP_LBL=['Eckdaten','Reisende','Vorlagen','Mengen'];
 let W;
 function resetWizard(){ W={step:1,name:'',start:'',end:'',season:'',transport:'',accommodation:'',series:'',
   travelers:[{name:'Andy',kind:'adult'},{name:'Sia',kind:'adult'},{name:'Leonardo',kind:'child'}],
-  share:[{name:'Sia',role:'Admin'}], templates:{sommer:true}, tplSearch:'', tplTab:'all',
+  share:[{name:'Sia',role:'Admin'}], templates:{ferienfam:true}, tplSearch:'', tplTab:'all',
+  extraItems:[], extraSearch:'',
   dest:[{name:'Mückenspray',on:true},{name:'Wanderschuhe',on:true},{name:'Reiseföhn',on:false}], q:{}}; }
 resetWizard();
 
@@ -2097,30 +2131,38 @@ function renderTplList(){
     <div class="check ${W.templates[t.id]?'on':''}"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
     <span style="font-size:20px">${t.emoji}</span>
     <div class="grow"><div class="name">${t.name}${t.pub?' <span class="chip mauve" style="margin-left:4px">fork</span>':''}</div>
-      <div class="desc">${tplCount(t)} Artikel${t.season?' · '+t.season:''}${t.owner==='mine'?'':' · veröffentlicht'}</div></div></div>`).join('')}</div>`
+      <div class="desc">${tplCount(t)} Artikel${t.season?' · '+t.season:''}${t.owner==='mine'?'':' · veröffentlicht'}</div>
+      ${t.includes&&t.includes.length?`<div class="desc" style="margin-top:2px">enthält: ${t.includes.map(id=>{const g=TPL.find(x=>x.id===id);return g?g.emoji+' '+esc(g.name):id;}).join(' · ')}</div>`:''}</div></div>`).join('')}</div>`
     : `<div class="card"><div class="li"><div class="grow muted" style="text-align:center;padding:8px">Keine Vorlage gefunden.</div></div></div>`;
   // bind toggles on the freshly rendered rows (search re-renders only this list)
   el.querySelectorAll('[data-act="tpl"]').forEach(r=>r.onclick=()=>{ W.templates[r.dataset.id]=!W.templates[r.dataset.id]; renderTplList(); renderTplFoot(); });
 }
 function renderTplFoot(){
   const sel=TPL.filter(t=>W.templates[t.id]);
-  const gross=sel.reduce((a,t)=>a+tplCount(t),0);
-  const overlaps=Math.max(0,(sel.length-1))*4;
-  const excl=sel.filter(t=>t.season&&W.season&&t.season!==W.season);
-  const exclN=excl.reduce((a,t)=>a+Math.round(t.items*0.4),0);
+  /* §3.27: the preview resolves for real — includes expanded, dedup by master
+     item — so the footer can NAME what it merged instead of faking a count. */
+  const res=resolveTpls(sel.map(t=>t.id));
+  const excl=res.rows.filter(r=>r.cond&&r.cond.season&&W.season&&r.cond.season!==W.season);
+  const inRes=new Set(res.rows.map(r=>r.m));
+  const extraNew=W.extraItems.filter(id=>!inRes.has(id));
+  const extraDup=W.extraItems.filter(id=>inRes.has(id));
   const comp=sel.length?2:0;
-  const result=Math.max(0,gross-overlaps-exclN)+comp;
+  const result=Math.max(0,res.rows.length-excl.length)+res.opaque+extraNew.length+comp;
   const el=document.getElementById('tplFoot'); if(!el)return;
   el.innerHTML=`<div class="big">${result} Artikel</div>
     <div class="ln muted"><span class="chip green">✓ ${sel.length} Vorlage${sel.length===1?'':'n'}</span>
-      ${overlaps?`<span class="chip">${overlaps} Duplikate zusammengeführt</span>`:''}</div>
-    ${exclN?`<div class="ln" style="color:var(--peach)">⊘ ${exclN} Artikel ausgeschlossen — Saison ≠ ${excl[0].season} (FR-15.2)</div>`:''}
+      ${W.extraItems.length?`<span class="chip">+ ${W.extraItems.length} einzelne Artikel</span>`:''}</div>
+    ${res.merged.length?`<div class="ln" style="color:var(--sapphire)">${res.merged.map(x=>
+      `⇄ ${esc(x.name)} nur 1× — in ${x.from.map(f=>esc(tplName(f))).join(' & ')}`).join('<br>')}</div>`:''}
+    ${extraDup.length?`<div class="ln muted">${extraDup.map(id=>{const m=MASTER.find(x=>x.id===id);
+      return `${esc(m?m.name:'?')}: bereits enthalten, nicht doppelt (FR-20.3)`;}).join(' · ')}</div>`:''}
+    ${excl.length?`<div class="ln" style="color:var(--peach)">⊘ ${excl.length} Artikel ausgeschlossen — Saison ≠ ${excl[0].cond.season} (FR-15.2)</div>`:''}
     ${comp?`<div class="ln" style="color:var(--sapphire)">+ ${comp} Companion-Artikel automatisch ergänzt (FR-20.3)</div>`:''}`;
 }
 function wStep3(){
   const selCount=TPL.filter(t=>W.templates[t.id]).length;
   const tabs=[['all','Alle'],['mine','Meine'],['pub','Veröffentlicht'],['season',W.season?'Passend zu '+W.season:'Passend zur Saison']];
-  setTimeout(()=>{ renderTplList(); renderTplFoot(); },0);   // fill after wizBody is in the DOM
+  setTimeout(()=>{ renderTplList(); renderWExtra(); renderTplFoot(); },0);   // fill after wizBody is in the DOM
   return `<div style="display:flex;align-items:center;gap:8px;margin:2px 4px 10px">
       <div class="tiny muted grow">Vorlagen kombinieren · Überschneidungen werden zusammengeführt (FR-2.3)</div>
       ${selCount?`<span class="chip green">${selCount} gewählt</span>`:''}</div>
@@ -2130,7 +2172,31 @@ function wStep3(){
     <div class="groupbar" id="tplTabs">${tabs.map(t=>
       `<button class="gb ${W.tplTab===t[0]?'on':''}" data-act="tpltab" data-v="${t[0]}">${t[1]}</button>`).join('')}</div>
     <div id="tplList" style="margin-top:8px"></div>
+    <div class="section-h">Einzelne Artikel aus dem Inventar (FR-27.3)</div>
+    <div class="card" style="padding:12px 14px" id="wExtraWrap"></div>
     <div class="footer-note" id="tplFoot"></div>`;
+}
+/* §3.27 / FR-27.3: besides whole templates and groups, single master items can
+   join the trip right in the wizard — same dedup as everything else. */
+function renderWExtra(){
+  const el=document.getElementById('wExtraWrap'); if(!el)return;
+  const q=W.extraSearch.trim().toLowerCase();
+  const sugg=q.length>=2?MASTER.filter(m=>!m.deleted&&!W.extraItems.includes(m.id)&&m.name.toLowerCase().includes(q)).slice(0,4):[];
+  el.innerHTML=`
+    ${W.extraItems.length?`<div class="chips" style="margin-bottom:9px">${W.extraItems.map(id=>{const m=MASTER.find(x=>x.id===id);
+      return `<button class="opt sel" data-wexrm="${id}">${esc(m?m.name:'?')} ✕</button>`;}).join('')}</div>`:''}
+    <div class="search"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg>
+      <input id="wExtraInput" placeholder="Inventar durchsuchen…" value="${esc(W.extraSearch)}" autocomplete="off"></div>
+    ${sugg.length?`<div style="margin-top:8px">${sugg.map(m=>
+      `<button class="opt" style="margin:3px" data-wexadd="${m.id}">＋ ${esc(m.name)}</button>`).join('')}</div>`
+      :(q.length>=2?'<div class="tiny muted" style="margin-top:8px">Kein Treffer im Inventar.</div>':'')}`;
+  const inp=document.getElementById('wExtraInput');
+  inp.oninput=()=>{ W.extraSearch=inp.value; renderWExtra(); renderTplFoot();
+    const p=document.getElementById('wExtraInput'); if(p){p.focus();try{p.setSelectionRange(p.value.length,p.value.length);}catch(e){}} };
+  el.querySelectorAll('[data-wexadd]').forEach(b=>b.onclick=()=>{ W.extraItems.push(+b.dataset.wexadd); W.extraSearch='';
+    renderWExtra(); renderTplFoot(); });
+  el.querySelectorAll('[data-wexrm]').forEach(b=>b.onclick=()=>{ const i=W.extraItems.indexOf(+b.dataset.wexrm);
+    if(i>=0)W.extraItems.splice(i,1); renderWExtra(); renderTplFoot(); });
 }
 
 function wStep4(){ const n=nTrav(), d=dur()||7;
@@ -2192,7 +2258,8 @@ function renderM7List(){
   const list=m7Filtered(), el=document.getElementById('m7List'); if(!el)return;
   el.innerHTML = list.length ? `<div class="card">${list.map(t=>`<div class="tplrow" data-m7="${t.id}">
       <span style="font-size:20px">${t.emoji}</span>
-      <div class="grow"><div class="name">${t.name}</div><div class="desc">${tplCount(t)} Artikel${t.season?' · '+t.season:''}${t.owner==='mine'?'':' · veröffentlicht'}</div></div>
+      <div class="grow"><div class="name">${t.name}</div><div class="desc">${t.includes&&t.includes.length?`${t.includes.length} Gruppen · `:''}${tplCount(t)} Artikel${t.season?' · '+t.season:''}${t.owner==='mine'?'':' · veröffentlicht'}</div>
+        ${t.includes&&t.includes.length?`<div class="desc" style="margin-top:2px">enthält: ${t.includes.map(id=>{const g=TPL.find(x=>x.id===id);return g?g.emoji+' '+esc(g.name):id;}).join(' · ')}</div>`:''}</div>
       ${t.owner==='mine'?'<span class="chip">öffentlich</span>':'<span class="chip mauve">fork</span>'}
       <svg viewBox="0 0 24 24" style="width:18px;color:var(--o0)"><use href="#i-chev"/></svg></div>`).join('')}</div>`
     : `<div class="card"><div class="li"><div class="grow muted" style="text-align:center;padding:8px">Keine Vorlage gefunden.</div></div></div>`;
@@ -2399,8 +2466,9 @@ const MASTER=[
   {id:182,name:'Ipad Tastatur',tags:['Diverses'],w:520,val:800,unit:'Stk',used:2},
   {id:183,name:'Oberrohrtasche',tags:['Velo'],w:400,val:80,unit:'Stk'},
   {id:184,name:'Oberrohrtasche unten',tags:['Velo'],w:400,val:80,unit:'Stk'},
-  {id:185,name:'Trinkflasche',tags:['Velo'],w:400,val:80,unit:'Stk'}];
-let nextMasterId=100;
+  {id:185,name:'Trinkflasche',tags:['Velo'],w:400,val:80,unit:'Stk'},
+  {id:186,name:'Makro-Objektiv',tags:['Technik','Foto'],w:600,val:900,unit:'Stk',used:2}];
+let nextMasterId=200;   // was 100 — collided with real ids up to 186, so a newly created item could shadow an existing one
 const allTags=()=>[...new Set(MASTER.flatMap(i=>i.tags))];
 const M9={search:'',tab:'all'};
 function m9Filtered(){ const q=M9.search.trim().toLowerCase();
@@ -2443,6 +2511,7 @@ function renderItems(){
 /* ============ M2 trips list — mirrors the filter, axis = status, grouped by series ============ */
 const TRIPS=[
   {id:'sam26',name:'Samedan Sommer 2026',dates:'8.–22. August 2026',status:'active',phase:'Vorbereiten',prog:58,series:'Samedan',members:['Andy','Sia','Leonardo']},
+  {id:'sam27',name:'Samedan Sommer 2027',dates:'August 2027',status:'planned',phase:'Planen',prog:0,series:'Samedan',members:['Andy','Sia','Leonardo']},
   {id:'sam25',name:'Samedan 2025',dates:'August 2025',status:'archived',phase:'Danach',prog:100,series:'Samedan',members:['Andy','Sia','Leonardo']},
   {id:'sam24',name:'Samedan 2024',dates:'August 2024',status:'archived',phase:'Danach',prog:100,series:'Samedan',members:['Andy','Sia','Leonardo']},
   {id:'cannobio',name:'Cannobio 2025',dates:'Juli 2025',status:'archived',phase:'Danach',prog:100,series:null,members:['Andy','Sia','Leonardo']},
@@ -2454,11 +2523,21 @@ function m2Filtered(){ const q=M2S.search.trim().toLowerCase();
   return TRIPS.filter(t=>{ if(M2S.tab!=='all'&&t.status!==M2S.tab)return false;
     if(q&&!t.name.toLowerCase().includes(q))return false; return true; });
 }
+let m2UpdOpen=null;   // trip id whose applied-changes list is expanded
 function m2RowHTML(t){ const arch=t.status==='archived';
   const glyph=t.status==='planned'?'💡':(arch?'✓':t.prog);
+  const upd=TRIP_UPDATES[t.id]||[];
+  /* FR-27.4: a *planned* trip follows its source groups. The row says so when it
+     happened — quietly, expandable — because a list that changed under you
+     without a trace would read as data loss. Active/archived rows never get
+     this chip: they are frozen. */
+  const updHTML = (t.status==='planned'&&upd.length)
+    ? `<div class="m2upd"><button class="chip blue" data-m2upd="${t.id}">⟳ ${upd.length} Änderung${upd.length===1?'':'en'} aus Gruppen übernommen</button>
+        ${m2UpdOpen===t.id?`<div class="m2updlist">${upd.map(u=>`<div class="tiny muted">„${esc(u.grp)}“: ${esc(u.text)}</div>`).join('')}
+          <div class="tiny muted" style="margin-top:4px">Laufende & vergangene Reisen bleiben unverändert (FR-27.4).</div></div>`:''}</div>` : '';
   return `<div class="li pressable" data-trip="${t.id}" style="${arch?'opacity:.72':''}">
     <div class="ring" style="--p:${t.prog};--c:${STATUS[t.status][1]}"><span>${glyph}</span></div>
-    <div class="grow"><div class="name">${esc(t.name)}</div><div class="desc">${esc(t.dates)} · ${t.phase}</div></div>
+    <div class="grow"><div class="name">${esc(t.name)}</div><div class="desc">${esc(t.dates)} · ${t.phase}</div>${updHTML}</div>
     <div class="stack">${(t.members||[]).map(m=>`<span class="avatar" style="background:${AV[m]?AV[m][1]:'var(--s2)'}">${AV[m]?AV[m][0]:'?'}</span>`).join('')}</div></div>`; }
 function renderM2List(){
   const list=m2Filtered(), el=document.getElementById('m2List'); if(!el)return;
@@ -2469,6 +2548,8 @@ function renderM2List(){
     return `<div class="section-h" ${isSeries?`style="color:var(--mauve);cursor:pointer" data-series="${esc(k.slice(2))}"`:''}>${k}${isSeries?' ›':''}</div>
       <div class="card">${g[k].map(m2RowHTML).join('')}</div>`; }).join('');
   el.querySelectorAll('[data-trip]').forEach(r=>r.onclick=()=>go('trip'));
+  el.querySelectorAll('[data-m2upd]').forEach(b=>b.onclick=e=>{ e.stopPropagation();
+    m2UpdOpen=m2UpdOpen===b.dataset.m2upd?null:b.dataset.m2upd; renderM2List(); });
   el.querySelectorAll('[data-series]').forEach(h=>h.onclick=()=>alert('Serie & Reiseziel (M16) — '+h.dataset.series));
 }
 function renderTrips(){
@@ -2948,22 +3029,113 @@ function renderItemEdit(){
 
 /* ============ M8 template editor — items, formulas, conditions ============ */
 const TPLITEMS={
+  /* sommer mirrors the Samedan trip's provenance-tagged rows (TRIP_SRC), so the
+     FR-27.5 fold-back recognises the group instead of reporting everything as
+     "added on the trip". */
   sommer:[
-    {m:1,q:'num_travelers * ceil(trip_duration / 2)',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
-    {m:2,q:'1',pp:true,mode:'pack',late:false,dedup:'max',cond:{}},
-    {m:3,q:'1',pp:true,mode:'pack',late:false,dedup:'max',cond:{}},
-    {m:7,q:'ceil(trip_duration / 7)',pp:false,mode:'buy_before',late:false,dedup:'sum',cond:{season:'Sommer'}},
-    {m:10,q:'num_travelers',pp:false,mode:'pack',late:true,dedup:'max',cond:{}},
-    {m:15,q:'num_children * 2',pp:false,mode:'buy_before',late:false,dedup:'sum',cond:{}},
+    {m:4,q:'num_travelers * ceil(trip_duration / 2)',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
+    {m:10,q:'3',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
+    {m:18,q:'2',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
+    {m:22,q:'1',pp:true,mode:'pack',late:false,dedup:'max',cond:{}},
+    {m:26,q:'1',pp:true,mode:'pack',late:false,dedup:'max',cond:{season:'Sommer'}},
+    {m:34,q:'ceil(trip_duration / 7)',pp:false,mode:'buy_local',late:false,dedup:'sum',cond:{season:'Sommer'}},
+    {m:37,q:'1',pp:true,mode:'pack',late:false,dedup:'max',cond:{}},
+    {m:39,q:'1',pp:true,mode:'pack',late:false,dedup:'max',cond:{}},
+    {m:60,q:'4',pp:false,mode:'pack',late:false,dedup:'sum',cond:{}},
+    {m:97,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
+    {m:108,q:'num_travelers',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
+    {m:142,q:'2',pp:false,mode:'pack',late:false,dedup:'max',cond:{transport:'Auto'}},
+    {m:158,q:'num_children * 2',pp:false,mode:'buy_before',late:false,dedup:'sum',cond:{}},
   ],
   ski:[
     {m:4,q:'1',pp:true,mode:'pack',late:false,dedup:'max',cond:{season:'Winter'}},
     {m:8,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
   ],
   we:[ {m:6,q:'1',pp:true,mode:'pack',late:false,dedup:'max',cond:{}} ],
+  /* §3.27 groups — the camera sits in BOTH photo groups on purpose: selecting
+     them together is the dedup story (one Kamera row on the trip, FR-2.3a). */
+  makro:[
+    {m:74,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
+    {m:186,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
+    {m:83,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
+  ],
+  wildlife:[
+    {m:74,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
+    {m:77,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
+    {m:79,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}},
+  ],
+  ferienfam:[],   // composed template: lives from its includes, no own positions yet
 };
+
+/* ============ §3.27 template composition — resolution & dedup ============ */
+/* Expand a template to its positions, following includes transitively.
+   The visited set is shared across one resolution so a group reached twice
+   (selected directly AND via a composed template) contributes only once —
+   identical rows are not "duplicates to merge", they are the same rows. */
+function tplExpand(id,out,visited){
+  if(visited.has(id))return; visited.add(id);
+  (TPLITEMS[id]||[]).forEach(r=>out.push({...r,from:id}));
+  const t=TPL.find(x=>x.id===id);
+  ((t&&t.includes)||[]).forEach(sub=>tplExpand(sub,out,visited));
+}
+/* Would including `subId` in `id` create a cycle? Same guard idea as the
+   FR-20 dependency resolver: walk subId's includes and look for id. */
+function tplWouldCycle(id,subId){
+  if(id===subId)return true;
+  const seen=new Set(), q=[subId];
+  while(q.length){ const c=q.pop(); if(c===id)return true; if(seen.has(c))continue; seen.add(c);
+    const t=TPL.find(x=>x.id===c); ((t&&t.includes)||[]).forEach(s=>q.push(s)); }
+  return false;
+}
+/* Resolve a selection of templates to the deduped position set (FR-2.2/2.3a):
+   merge by master item, max by default, sum when any side asks for it.
+   `merged` reports every collapse with the groups it came from — the preview
+   footer shows names, not just a count. `opaque` counts positions of demo
+   templates that have no real item list (seed data only). */
+function resolveTpls(ids){
+  const raw=[], visited=new Set();
+  ids.forEach(id=>tplExpand(id,raw,visited));
+  const byM=new Map(), merged=[];
+  raw.forEach(r=>{
+    const ev=evalFormula(r.q), q=ev.ok?ev.val:1;
+    const ex=byM.get(r.m);
+    if(!ex){ byM.set(r.m,{...r,qty:q,from:[r.from]}); return; }
+    ex.qty = (ex.dedup==='sum'||r.dedup==='sum') ? ex.qty+q : Math.max(ex.qty,q);
+    ex.from.push(r.from);
+    const m=MASTER.find(x=>x.id===r.m);
+    let rec=merged.find(x=>x.m===r.m);
+    if(!rec){ rec={m:r.m,name:m?m.name:'?',from:[...ex.from]}; merged.push(rec); }
+    else rec.from=[...ex.from];
+  });
+  const opaque=ids.reduce((a,id)=>{ const t=TPL.find(x=>x.id===id);
+    return a+((TPLITEMS[id]||t&&t.includes)?0:(t?t.items:0)); },0);
+  return {rows:[...byM.values()],merged,opaque};
+}
+const tplName=id=>{const t=TPL.find(x=>x.id===id);return t?t.name:id;};
+
+/* ============ §3.27 group changes → planning trips only (FR-27.4) ============ */
+/* Which templates a *planned* trip was created from. Active/archived trips
+   deliberately have no entry: they are frozen — nothing propagates to them. */
+const TRIP_TPLS={sam27:['ferienfam','wildlife'],davos:['ski'],wien:['we']};
+/* Applied-change log per planned trip, newest last. Populated whenever a
+   template used by a planned trip is edited; M2 shows it on the trip row. */
+const TRIP_UPDATES={};
+function plannedTripsUsing(tplId){
+  return TRIPS.filter(t=>t.status==='planned').filter(t=>{
+    const used=TRIP_TPLS[t.id]||[]; const flat=new Set();
+    used.forEach(id=>{const o=[];tplExpand(id,o,flat);});
+    return flat.has(tplId);
+  });
+}
+function logTplChange(tplId,text){
+  plannedTripsUsing(tplId).forEach(t=>{
+    (TRIP_UPDATES[t.id]=TRIP_UPDATES[t.id]||[]).push({grp:tplName(tplId),text});
+  });
+}
 const EX={trip_duration:14,num_travelers:4,num_adults:2,num_children:2};
-const tplCount=t=>TPLITEMS[t.id]?TPLITEMS[t.id].length:t.items;
+/* Count = the *resolved* set (own positions + included groups, deduped) — a
+   composed template with zero own positions is not "0 Artikel". */
+const tplCount=t=>{ const r=resolveTpls([t.id]); return r.rows.length+r.opaque; };
 function evalFormula(f){
   const s=String(f).trim().toLowerCase();
   if(!s) return {ok:false,err:'Leer'};
@@ -2977,9 +3149,9 @@ function evalFormula(f){
     return {ok:true,val:Math.max(0,Math.round(v))};
   }catch(e){ return {ok:false,err:'Formel ungültig (Klammern/Operatoren prüfen)'}; }
 }
-const M8={id:null,open:-1,picker:false,pick:''};
+const M8={id:null,open:-1,picker:false,pick:'',gpicker:false};
 let tplSeq=1;
-function openM8(id){ M8.id=id; M8.open=-1; M8.picker=false; M8.pick=''; go('templateedit'); }
+function openM8(id){ M8.id=id; M8.open=-1; M8.picker=false; M8.pick=''; M8.gpicker=false; go('templateedit'); }
 function openM8New(){ const id='tpl'+(tplSeq++); TPL.push({id,name:'Neue Vorlage',emoji:'📋',items:0,owner:'mine'}); TPLITEMS[id]=[]; openM8(id); }
 function condSummary(c){ const p=[]; if(c.season)p.push(c.season); if(c.transport)p.push(c.transport); return p; }
 function renderTplEdit(){
@@ -3019,24 +3191,52 @@ function renderTplEdit(){
       </div>`:''}</div>`;
   };
   const pickList=M8.picker?MASTER.filter(x=>!x.deleted&&!rows.some(r=>r.m===x.id)&&(!M8.pick||x.name.toLowerCase().includes(M8.pick.toLowerCase()))).slice(0,6):[];
+  /* §3.27: included groups. Eligible = any other template that would not close
+     a cycle and is not already included. */
+  const incs=t.includes=t.includes||[];
+  const gpickList=M8.gpicker?TPL.filter(x=>!incs.includes(x.id)&&!tplWouldCycle(t.id,x.id)):[];
+  const res=resolveTpls([t.id]);
+  const planned=plannedTripsUsing(t.id);
+  const grpRow=id=>{ const g=TPL.find(x=>x.id===id); if(!g)return '';
+    return `<div class="li"><span style="font-size:20px">${g.emoji}</span>
+      <div class="grow"><div class="name">${esc(g.name)}</div><div class="desc">${tplCount(g)} Artikel</div></div>
+      ${mine?`<button class="rm" data-t8grm="${id}">✕</button>`:''}</div>`; };
   el.innerHTML=`
     <div class="field" style="margin-top:10px"><label>Name</label><input class="txt" id="t8name" value="${esc(t.name)}" ${mine?'':'disabled'}></div>
+    ${planned.length?`<div class="publish-note" id="t8planned">⟳ Änderungen hier wirken <b>sofort</b> auf ${planned.length} geplante Reise${planned.length===1?'':'n'} (${planned.map(p=>esc(p.name)).join(', ')}) — laufende & vergangene bleiben eingefroren (FR-27.4).</div>`:''}
     ${mine?`<div class="toggle"><div class="grow"><div class="name">Veröffentlichen</div><div class="desc">instanzweit lesbar, andere forken (FR-1.6)</div></div>
         <div class="sw ${t.pub?'on':''}" id="t8pub"></div></div>
-      ${t.pub?'<div class="publish-note">⚠ Veröffentlicht — Änderungen wirken für andere erst bei der nächsten Reise-Erstellung (FR-2.4); bestehende Reisen bleiben unberührt.</div>':''}`
+      ${t.pub?'<div class="publish-note">⚠ Veröffentlicht — für andere wirken Änderungen auf deren <b>geplante</b> Reisen und bei der nächsten Reise-Erstellung (FR-2.4 präzisiert durch FR-27.4); laufende & vergangene Reisen bleiben unberührt.</div>':''}`
      :`<div class="publish-note">🔒 Veröffentlichte Vorlage von jemand anderem — nur lesbar. <b id="t8fork" style="color:var(--blue);cursor:pointer">Fork erstellen →</b></div>`}
-    <div class="section-h">Positionen · ${rows.length}${invalid?` <span style="color:var(--red)">· ${invalid} Formel ungültig — Speichern blockiert</span>`:''}</div>
-    <div class="card">${rows.map(rowHTML).join('')||'<div class="li"><div class="grow muted" style="text-align:center;padding:8px">Noch keine Positionen.</div></div>'}</div>
+    <div class="section-h">Eingebundene Gruppen · ${incs.length}</div>
+    <div class="card">${incs.map(grpRow).join('')||'<div class="li"><div class="grow muted" style="text-align:center;padding:8px">Keine Gruppen eingebunden — Gruppen sind einfach andere Vorlagen.</div></div>'}</div>
+    ${mine?(M8.gpicker?`<div class="card" style="margin-top:10px;padding:12px 14px">
+        ${gpickList.map(x=>`<button class="opt" style="margin:3px" data-t8ginc="${x.id}">＋ ${x.emoji} ${esc(x.name)}</button>`).join('')||'<span class="tiny muted">Keine weitere Vorlage einbindbar (Zyklen sind blockiert).</span>'}</div>`
+      :`<div class="card qa" id="t8opengpick" style="margin-top:10px"><svg viewBox="0 0 24 24"><use href="#i-plus"/></svg> Gruppe einbinden…</div>`):''}
+    <div class="section-h">Eigene Positionen · ${rows.length}${invalid?` <span style="color:var(--red)">· ${invalid} Formel ungültig — Speichern blockiert</span>`:''}</div>
+    <div class="card">${rows.map(rowHTML).join('')||'<div class="li"><div class="grow muted" style="text-align:center;padding:8px">Noch keine eigenen Positionen.</div></div>'}</div>
     ${mine?(M8.picker?`<div class="card" style="margin-top:12px;padding:12px 14px">
         <div class="search" style="margin-bottom:8px"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg>
           <input id="t8pick" placeholder="Artikel suchen…" value="${esc(M8.pick)}" autocomplete="off"></div>
         ${pickList.map(x=>`<button class="opt" style="margin:3px" data-t8add="${x.id}">＋ ${esc(x.name)}</button>`).join('')||'<span class="tiny muted">Kein Treffer — </span>'}
         ${M8.pick&&!pickList.some(x=>x.name.toLowerCase()===M8.pick.toLowerCase())?`<button class="opt mauve sel" style="margin:3px" data-t8create="1">＋ „${esc(M8.pick)}“ neu anlegen</button>`:''}</div>`
-      :`<div class="card qa" id="t8openpick" style="margin-top:12px"><svg viewBox="0 0 24 24"><use href="#i-plus"/></svg> Position hinzufügen…</div>`):''}`;
+      :`<div class="card qa" id="t8openpick" style="margin-top:12px"><svg viewBox="0 0 24 24"><use href="#i-plus"/></svg> Position hinzufügen…</div>`):''}
+    ${incs.length?`<div class="footer-note" id="t8resolve"><div class="big">${res.rows.length} Artikel aufgelöst</div>
+      <div class="ln muted">${incs.length} Gruppe${incs.length===1?'':'n'} + ${rows.length} eigene Position${rows.length===1?'':'en'}</div>
+      ${res.merged.length?`<div class="ln" style="color:var(--sapphire)">${res.merged.map(x=>`${esc(x.name)} nur 1× (${x.from.map(f=>esc(tplName(f))).join(' & ')})`).join(' · ')}</div>`:''}</div>`:''}`;
   // bindings
   const rerender=()=>renderTplEdit();
   el.querySelectorAll('[data-t8open]').forEach(h=>h.onclick=e=>{ if(e.target.closest('[data-t8rm]'))return; const i=+h.dataset.t8open; M8.open=M8.open===i?-1:i; rerender(); });
-  el.querySelectorAll('[data-t8rm]').forEach(b=>b.onclick=()=>{ rows.splice(+b.dataset.t8rm,1); M8.open=-1; rerender(); });
+  el.querySelectorAll('[data-t8rm]').forEach(b=>b.onclick=()=>{ const r=rows[+b.dataset.t8rm];
+    const m=r&&MASTER.find(x=>x.id===r.m);
+    rows.splice(+b.dataset.t8rm,1); M8.open=-1;
+    if(m) logTplChange(t.id,'Position „'+m.name+'“ entfernt');
+    rerender(); });
+  el.querySelectorAll('[data-t8ginc]').forEach(b=>b.onclick=()=>{ incs.push(b.dataset.t8ginc); M8.gpicker=false;
+    logTplChange(t.id,'Gruppe „'+tplName(b.dataset.t8ginc)+'“ eingebunden'); rerender(); });
+  el.querySelectorAll('[data-t8grm]').forEach(b=>b.onclick=()=>{ const i=incs.indexOf(b.dataset.t8grm);
+    if(i>=0){ incs.splice(i,1); logTplChange(t.id,'Gruppe „'+tplName(b.dataset.t8grm)+'“ entfernt'); } rerender(); });
+  const ogp=document.getElementById('t8opengpick'); if(ogp) ogp.onclick=()=>{ M8.gpicker=true; rerender(); };
   el.querySelectorAll('[data-t8q]').forEach(inp=>{ inp.oninput=()=>{ rows[+inp.dataset.t8q].q=inp.value; };
     inp.onchange=rerender; inp.onkeydown=e=>{ if(e.key==='Enter')rerender(); }; });
   el.querySelectorAll('[data-t8pp]').forEach(b=>b.onclick=()=>{ rows[+b.dataset.t8pp].pp=b.dataset.v==='1'; rerender(); });
@@ -3053,9 +3253,108 @@ function renderTplEdit(){
     snack('Fork erstellt — deine private Kopie'); openM8(id); };
   const op=document.getElementById('t8openpick'); if(op) op.onclick=()=>{ M8.picker=true; rerender(); };
   const pk=document.getElementById('t8pick'); if(pk){ pk.oninput=e=>{ M8.pick=e.target.value; rerender(); const p=document.getElementById('t8pick'); if(p){p.focus();p.setSelectionRange(p.value.length,p.value.length);} }; }
-  el.querySelectorAll('[data-t8add]').forEach(b=>b.onclick=()=>{ rows.push({m:+b.dataset.t8add,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}}); M8.picker=false; M8.pick=''; M8.open=rows.length-1; rerender(); });
+  el.querySelectorAll('[data-t8add]').forEach(b=>b.onclick=()=>{ rows.push({m:+b.dataset.t8add,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}}); M8.picker=false; M8.pick=''; M8.open=rows.length-1;
+    const m=MASTER.find(x=>x.id===+b.dataset.t8add); if(m) logTplChange(t.id,'Position „'+m.name+'“ hinzugefügt');
+    rerender(); });
   const cr=el.querySelector('[data-t8create]'); if(cr) cr.onclick=()=>{ const it={id:nextMasterId++,name:M8.pick.trim(),tags:[],w:0,val:0,unit:'Stk'}; MASTER.push(it);
-    rows.push({m:it.id,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}}); M8.picker=false; M8.pick=''; M8.open=rows.length-1; rerender(); };
+    rows.push({m:it.id,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}}); M8.picker=false; M8.pick=''; M8.open=rows.length-1;
+    logTplChange(t.id,'Position „'+it.name+'“ hinzugefügt'); rerender(); };
+}
+
+/* ============ §3.27 template from trip (FR-27.5) ============ */
+/* Fold the trip's rows back into the groups they came from (provenance,
+   mock of source_template_id). Per group, diff against the group's CURRENT
+   positions: rows the trip added under it, and positions the trip never had. */
+/* Tolerant name match (either name contains the other, case-insensitive) — the
+   trip row says "Icebreaker Merino-Shirt", the master item says "Icebreaker".
+   Same spirit as the FR-9.2 / FR-16.3 matching. */
+const nameMatch=(a,b)=>{a=a.toLowerCase();b=b.toLowerCase();return a===b||a.includes(b)||b.includes(a);};
+function tftModel(){
+  const byGrp={};
+  P.items.forEach(it=>{ if(it.src)(byGrp[it.src]=byGrp[it.src]||[]).push(it); });
+  const groups=Object.keys(byGrp).map(id=>{
+    const tplRows=(TPLITEMS[id]||[]).map(r=>MASTER.find(x=>x.id===r.m)).filter(Boolean);
+    return {id, items:byGrp[id],
+      added: byGrp[id].filter(it=>!tplRows.some(m=>nameMatch(it.name,m.name))),
+      absent: tplRows.filter(m=>!byGrp[id].some(it=>nameMatch(it.name,m.name)))};
+  });
+  return {groups, loose:P.items.filter(it=>!it.src)};
+}
+let TFT=null;
+function openTFT(){
+  const m=tftModel();
+  TFT={name:'Samedan Sommer 2027', choice:{}, loose:{}, asGroup:false, groupName:'Samedan Extras'};
+  m.groups.forEach(g=>{ if(g.added.length) TFT.choice[g.id]='update'; });   // default: feed the group
+  m.loose.forEach(it=>TFT.loose[it.id]=true);
+  go('tplfromtrip');
+}
+function renderTFT(){
+  const el=document.getElementById('tftPage'); if(!el||!TFT)return;
+  const m=tftModel();
+  const nLoose=m.loose.filter(it=>TFT.loose[it.id]).length;
+  const grpCard=g=>{ const t=TPL.find(x=>x.id===g.id); if(!t)return '';
+    return `<div class="card" style="padding:12px 14px;margin-bottom:10px" data-tftgrp="${g.id}">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">${t.emoji}</span>
+        <div class="grow"><div class="name">${esc(t.name)}</div>
+          <div class="desc">${g.items.length} Artikel dieser Reise stammen daraus</div></div>
+        <span class="chip green">wird wiederverwendet ✓</span></div>
+      ${g.added.length?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--s0)">
+        <div class="tiny" style="margin-bottom:7px">Auf der Reise ergänzt: <b>${g.added.map(i=>esc(i.name)).join(', ')}</b></div>
+        <div class="seg"><button class="${TFT.choice[g.id]==='update'?'sel':''}" data-tftch="${g.id}" data-v="update">Gruppe aktualisieren</button>
+          <button class="${TFT.choice[g.id]==='local'?'sel':''}" data-tftch="${g.id}" data-v="local">Nur in diese Vorlage</button></div>
+        ${TFT.choice[g.id]==='update'?`<div class="tiny muted" style="margin-top:6px">Wirkt überall, wo die Gruppe eingebunden ist — geplante Reisen übernehmen es (FR-27.4).</div>`:''}</div>`:''}
+      ${g.absent.length?`<div class="tiny muted" style="margin-top:8px">${g.absent.length} Position${g.absent.length===1?'':'en'} der Gruppe (${g.absent.map(x=>esc(x.name)).join(', ')}) ${g.absent.length===1?'war':'waren'} auf dieser Reise nicht dabei — Gruppe bleibt unverändert.</div>`:''}</div>`; };
+  el.innerHTML=`
+    <div class="tiny muted" style="margin:10px 4px">Aus „Samedan Sommer 2026“ wird eine wiederverwendbare Vorlage. Erkannte Gruppen werden referenziert, nicht kopiert — sie bleiben eigenständig pflegbar (FR-27.5).</div>
+    <div class="field"><label>Name der Vorlage</label><input class="txt" id="tftName" value="${esc(TFT.name)}"></div>
+    <div class="section-h">Erkannte Gruppen · ${m.groups.length}</div>
+    ${m.groups.map(grpCard).join('')}
+    <div class="section-h">Eigene Artikel · ${nLoose} von ${m.loose.length}</div>
+    <div class="card">${m.loose.map(it=>`<div class="li"><div class="check ${TFT.loose[it.id]?'on':''}" data-tftls="${it.id}"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
+      <div class="grow"><div class="name">${esc(it.name)}</div><div class="desc">${esc(it.cat)} · ohne Gruppe hinzugefügt</div></div></div>`).join('')||'<div class="li"><div class="grow muted" style="text-align:center;padding:8px">Keine losen Artikel.</div></div>'}</div>
+    <div class="toggle"><div class="grow"><div class="name">Als neue Gruppe speichern</div><div class="desc">statt als lose Positionen der Vorlage</div></div>
+      <div class="sw ${TFT.asGroup?'on':''}" id="tftAsGrp"></div></div>
+    ${TFT.asGroup?`<div class="field"><label>Name der neuen Gruppe</label><input class="txt" id="tftGrpName" value="${esc(TFT.groupName)}"></div>`:''}
+    <button class="gb on" style="width:100%;padding:13px;margin-top:14px" id="tftCreate">Vorlage erstellen ✓</button>`;
+  el.querySelectorAll('[data-tftch]').forEach(b=>b.onclick=()=>{ TFT.choice[b.dataset.tftch]=b.dataset.v; renderTFT(); });
+  el.querySelectorAll('[data-tftls]').forEach(c=>c.onclick=()=>{ TFT.loose[+c.dataset.tftls]=!TFT.loose[+c.dataset.tftls]; renderTFT(); });
+  document.getElementById('tftName').oninput=e=>TFT.name=e.target.value;
+  const gn=document.getElementById('tftGrpName'); if(gn) gn.oninput=e=>TFT.groupName=e.target.value;
+  document.getElementById('tftAsGrp').onclick=()=>{ TFT.asGroup=!TFT.asGroup; renderTFT(); };
+  document.getElementById('tftCreate').onclick=createTFT;
+}
+/* Find-or-create the master item behind a trip row — the same fold the review
+   assistant does (FR-9.2): ad-hoc rows matched by name, unknown names become
+   master items first. */
+function tftMaster(name){
+  const m=MASTER.find(x=>!x.deleted&&x.name.toLowerCase()===name.toLowerCase());
+  if(m)return m.id;
+  const it={id:nextMasterId++,name,tags:[],w:0,val:0,unit:'Stk'}; MASTER.push(it); return it.id;
+}
+function createTFT(){
+  const m=tftModel();
+  const pos=n=>({m:tftMaster(n),q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}});
+  // 1. deviations chosen to flow back into their group
+  m.groups.forEach(g=>{ if(g.added.length&&TFT.choice[g.id]==='update'){
+    g.added.forEach(it=>{ TPLITEMS[g.id].push(pos(it.name));
+      logTplChange(g.id,'Position „'+it.name+'“ hinzugefügt (aus Reise „Samedan Sommer 2026“)'); });
+  }});
+  // 2. loose rows → own positions, or a fresh group
+  const looseRows=m.loose.filter(it=>TFT.loose[it.id]).map(it=>pos(it.name));
+  const localRows=m.groups.flatMap(g=>(g.added.length&&TFT.choice[g.id]==='local')?g.added.map(it=>pos(it.name)):[]);
+  const includes=m.groups.map(g=>g.id);
+  let own=[...localRows];
+  if(TFT.asGroup&&looseRows.length){
+    const gid='tpl'+(tplSeq++);
+    TPL.push({id:gid,name:TFT.groupName||'Neue Gruppe',emoji:'🧩',items:0,owner:'mine'});
+    TPLITEMS[gid]=looseRows; includes.push(gid);
+  } else own.push(...looseRows);
+  // 3. the composed template itself
+  const id='tpl'+(tplSeq++);
+  TPL.push({id,name:TFT.name||'Neue Vorlage',emoji:'🧳',items:0,owner:'mine',includes});
+  TPLITEMS[id]=own;
+  snack('Vorlage „'+(TFT.name||'Neue Vorlage')+'“ erstellt — Gruppen wiederverwendet ✓');
+  openM8(id);
 }
 
 render('dashboard');

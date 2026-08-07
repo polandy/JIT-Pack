@@ -48,6 +48,16 @@ bounded. Two decisions fix the scope:
   sitting there would slide away mid-task (measured, E2E-G12-03).
 - **M8** — **still open.** Carries FR-25.7 (progressive disclosure, sensible defaults) and
   FR-25.9 (adult/child per-person quantities); depends on the M7 list rework.
+- **§3.27 Template composition ("Gruppen") + trip→template round-trip — added to the MVP by
+  owner decision 2026-08-08** (explicitly asked whether to park it per the 2026-08-07 scope rule;
+  answer: "nein, das gehört zum MVP" — this amends decision 1 above for M3/M7/M8). **Concept
+  CLOSED 2026-08-08:** mocked end-to-end in the prototype (M7 composition display, M8 groups
+  section with cycle guard + resolution footer + blast-radius note, M3 real dedup preview with
+  named merges + single-item picker, M2 applied-changes chip, new M21 "Vorlage aus Reise"),
+  verified headless (41 assertions), written up as FR-27.1–27.5 with E2E cases M3-11/12, M7-07,
+  M8-07/08/09, M21-01…03, FLOW-09. Implementation open: `template_includes` migration + sync
+  whitelist, `instantiate.ts` include expansion, planning-trip refresh diff, M21 screen;
+  UI-Spec entry for M21 still to write.
 
 **Parked until the MVP ships** (specified, not deleted — do not start these):
 
