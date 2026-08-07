@@ -396,6 +396,11 @@ body{
 #shDesc{width:100%;background:var(--mantle);border:1px solid var(--s1);border-radius:11px;color:var(--text);
   padding:10px 12px;font:inherit;font-size:14px;resize:vertical}
 #shDesc:focus{border-color:var(--blue);outline:none}
+/* secondary field in the quick-add: present but visibly optional */
+.qa-open input.sub{margin-top:6px;font-size:13px;color:var(--sub0)}
+.qa-assign{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:9px}
+.qa-assign .cap{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--o0);margin-right:2px}
+.pchip.sm{font-size:12px;padding:4px 10px}
 
 /* quick add */
 .qa{display:flex;align-items:center;gap:10px;padding:13px 15px;color:var(--sub0);font-size:14px;cursor:text}
@@ -2215,9 +2220,9 @@ function shopWhoHTML(i){
    with a cart badge, mirroring how FR-25.3 sets the packer apart from the
    traveler, so the two person marks on one row can never be read as the same. */
 function shopBuyerHTML(i){
-  if(!i.buyer) return `<span class="shbuyer empty" data-shopen="${i.id}" title="Wer kauft?">＋</span>`;
+  if(!i.buyer) return `<span class="shbuyer empty" data-shopen="${i.id}" title="Zugewiesen an — niemand">＋</span>`;
   const av=AV[i.buyer]||['?','var(--s2)'];
-  return `<span class="shbuyer" data-shopen="${i.id}" title="${esc(i.buyer)} kauft"><span class="mini-av" style="background:${av[1]}">${av[0]}</span><i>🛒</i></span>`;
+  return `<span class="shbuyer" data-shopen="${i.id}" title="Zugewiesen an ${esc(i.buyer)}"><span class="mini-av" style="background:${av[1]}">${av[0]}</span><i>🛒</i></span>`;
 }
 function renderShList(){
   const q=SHOP.search.trim().toLowerCase();
@@ -2248,6 +2253,7 @@ function renderShList(){
    default, the ＋ FAB expands and focuses it, Enter adds, blur collapses.
    M6 previously had a permanent "Zur Liste hinzufügen" card and a prompt(),
    which made adding work differently on two screens that sit one tap apart. */
+let shQaAssignee='—';
 function shopFabAdd(){
   const el=document.getElementById('shQa');
   el.style.display='';
@@ -2258,17 +2264,42 @@ function renderShQa(nameOverride){
   const el=document.getElementById('shQa'), cur=document.getElementById('shQaInput');
   const name=nameOverride!==undefined?nameOverride:(cur?cur.value:'');
   const where=SHOP.tab==='before'?'Vor Abreise':'Vor Ort';
+  // The description sits in the add form, not only in the row sheet: the moment
+  // you know "50+, ohne Duft" is the moment you type the name. Requiring a
+  // second visit to the row to record it loses the thought.
   el.innerHTML=`<input placeholder="Artikel eintippen…" id="shQaInput" autocomplete="off" value="${esc(name)}">
-    <div class="qa-hint">Enter fügt zu „${where}“ hinzu.</div>`;
-  const inp=document.getElementById('shQaInput');
+    <input placeholder="Beschreibung (optional)" id="shQaDesc" class="sub" autocomplete="off">
+    <div class="qa-assign"><span class="cap">Zugewiesen an</span>
+      ${['—',...USERS].map(p=>`<button class="pchip sm ${shQaAssignee===p?'on':''}" data-shqaw="${esc(p)}">${p==='—'?'niemand':esc(p)}</button>`).join('')}</div>
+    <div class="qa-hint">Enter fügt zu „${where}“ hinzu — mit allem, was ausgefüllt ist.</div>`;
+  const inp=document.getElementById('shQaInput'), desc=document.getElementById('shQaDesc');
   inp.focus(); const v=inp.value; try{inp.setSelectionRange(v.length,v.length);}catch(e){}
-  inp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&inp.value.trim()){ shopAdd(inp.value.trim()); } });
-  inp.addEventListener('blur',()=>{ if(!inp.value.trim()){ el.classList.remove('qa-open'); el.classList.add('qa'); el.style.display='none'; } });
+  // Chips toggle in place rather than re-rendering the form — a re-render would
+  // wipe the description the user has already typed.
+  el.querySelectorAll('[data-shqaw]').forEach(b=>b.onmousedown=e=>{ e.preventDefault();   // keep focus in the field
+    shQaAssignee=b.dataset.shqaw;
+    el.querySelectorAll('[data-shqaw]').forEach(x=>x.classList.toggle('on',x.dataset.shqaw===shQaAssignee));
+  });
+  const submit=()=>{ if(inp.value.trim()) shopAdd(inp.value.trim(), desc.value.trim(), shQaAssignee); };
+  // Enter commits from either field, so the description never forces a reach
+  // for a separate button.
+  [inp,desc].forEach(f=>f.addEventListener('keydown',e=>{ if(e.key==='Enter') submit(); }));
+  // Collapse only when the whole form is empty — a typed description alone
+  // must not vanish because focus moved to the name field.
+  [inp,desc].forEach(f=>f.addEventListener('blur',()=>setTimeout(()=>{
+    if(document.activeElement===inp||document.activeElement===desc) return;
+    if(!inp.value.trim()&&!desc.value.trim()){ el.classList.remove('qa-open'); el.classList.add('qa'); el.style.display='none'; }
+  },0)));
 }
-function shopAdd(name){
+function shopAdd(name,note,assignee){
   P.items.push({id:nextId++,name,cat:'Sonstiges',qty:1,packed:0,
-    mode:SHOP.tab==='before'?'buy_before':'buy_local',trav:'Alle',cont:'—',w:0});
-  renderShop(); renderShQa(''); snack('„'+name+'“ hinzugefügt');
+    mode:SHOP.tab==='before'?'buy_before':'buy_local',trav:'Alle',cont:'—',w:0,
+    note:(note||'').trim()||undefined,
+    buyer:(assignee&&assignee!=='—')?assignee:undefined});
+  // The assignee is deliberately NOT reset between adds: shopping is entered in
+  // runs ("everything Sia picks up"), so carrying it forward saves a tap per row.
+  renderShop(); renderShQa('');
+  snack('„'+name+'“ hinzugefügt'+(assignee&&assignee!=='—'?' — '+assignee:''));
 }
 /* M6 item sheet — the optional bits that do not belong on the row itself. */
 let curShop=null;
@@ -2290,7 +2321,7 @@ function renderShopSheet(){
        <div class="desc">${shopQty(it)} ${it.unit||'Stk'} · ${it.mode==='buy_before'?'🛒 Vor Abreise':'📍 Vor Ort'}</div></div></div>
      ${it.pp?`<div class="assign"><div class="cap">Für wen</div>
        <div class="tiny muted">${it.pp.map(e=>`${esc(e.trav)} ${e.qty}`).join(' · ')} — ergibt sich aus der Zuordnung, hier nicht änderbar.</div></div>`:''}
-     <div class="assign"><div class="cap">Wer kauft?</div>
+     <div class="assign"><div class="cap">Zugewiesen an</div>
        <div class="chiprow">${['—',...people].map(p=>
          `<button class="pchip ${(it.buyer||'—')===p?'on':''}" data-shbuyer="${esc(p)}">${p==='—'?'niemand':esc(p)}</button>`).join('')}</div></div>
      <div class="assign"><div class="cap">Beschreibung</div>
