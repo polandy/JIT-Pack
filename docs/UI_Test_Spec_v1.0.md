@@ -140,6 +140,9 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M4-17** `all` (FR-25.11d): a facet value's count reflects the other active facets but not its own — selecting Andy leaves the Person counts for Sia and Leonardo readable against Andy's *other* filters, and the mode counts drop to Andy's items. A currently selected value stays listed even when its count falls to 0, so the filter can always be undone from the panel.
 * **E2E-M4-18** `all` (FR-25.11e): a filter combination with no matches shows the **"Keine Treffer"** state naming how many open items are hidden, with a working reset — explicitly **not** the "Alles gepackt 🎉" state. Conversely, packing everything with no filter active shows the celebration state. The two must never be interchangeable.
 * **E2E-M4-19** `all` (FR-25.11f): the Person facet lists the shared bucket as **"Gemeinsam"**, first in the list, and never as "Alle".
+* **E2E-M4-22** `all` (FR-25.16): tapping a group header folds it to a stub carrying its open count and leaves the other groups untouched; the app-bar fold-all control collapses every group to headers plus stubs (no rows) and its label flips to *Alle aufklappen*; pressing it again restores the full list. The folded set survives a re-render — packing a row must not unfold the rest.
+* **E2E-M4-23** `all` (FR-25.16/25.2): a group whose rows are **all** done disappears completely — no header and **no stub** — and reappears only when *Erledigte* is switched on. Asserts folding and doneness stay separate concepts: a folded group with open items is still on the list, an absent group is not.
+* **E2E-M4-24** `all` (FR-25.17): with packed rows revealed, each carries **"gepackt von ‹Name› · ‹Tag› ‹Uhrzeit›"** with the packer's avatar. Un-packing a row **clears** the stamp, so it can never outlive the state it describes.
 * **E2E-M4-14** `all` (FR-25.1/25.2): packing one instance of a two-person cluster keeps the cluster intact — the packed child drops out (hide-done), the sub-header still reads over the full set (`1/2`), and the remaining instance does **not** re-render as a flat row. Guards the "decide cluster-vs-flat over the full set" rule; getting this wrong makes the list restructure under the user's finger mid-tap.
 
 ### M5 — Item Detail
@@ -417,6 +420,8 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-25.11j | E2E | M6-17 (BUY_BEFORE leaves the list and comes back) |
 | FR-25.11k | E2E | M6-18, G12-01/04 (collapsed search, filter icon with badge, one header line) |
 | G-12 | E2E | G12-01…06 (app-bar placement, two clusters + no overflow, survives collapse, one line, literal icons, nameable glyphs) |
+| FR-25.16 | E2E | M4-22 (fold one / fold all), M4-23 (folding vs doneness stay separate) |
+| FR-25.17 | E2E | M4-24 (packed-by stamp, cleared on un-pack); M6-05 for the buying counterpart |
 | FR-25.14 | E2E | M5-06 (read-only aggregate, per-traveler controls) |
 | FR-25.15 | E2E | M5-07 (auto-save indicator, distinct from G-2) |
 | FR-25.13b | E2E | M6-19 (autocomplete adopts the category; manual fallback) |
