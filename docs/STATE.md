@@ -55,9 +55,13 @@ bounded. Two decisions fix the scope:
   section with cycle guard + resolution footer + blast-radius note, M3 real dedup preview with
   named merges + single-item picker, M2 applied-changes chip, new M21 "Vorlage aus Reise"),
   verified headless (41 assertions), written up as FR-27.1–27.5 with E2E cases M3-11/12, M7-07,
-  M8-07/08/09, M21-01…03, FLOW-09. Implementation open: `template_includes` migration + sync
-  whitelist, `instantiate.ts` include expansion, planning-trip refresh diff, M21 screen;
-  UI-Spec entry for M21 still to write.
+  M8-07/08/09, M21-01…03, FLOW-09. **Second round same day (owner proposal): explicit scopes**
+  — every template is a `Gruppe` (items only, includable) or a `Ferien-Vorlage` (groups + own
+  items), declared at creation, guarded scope switch; two levels, so include cycles are
+  structurally impossible (FR-27.1 refined, FR-27.6 new; M7-08/M8-10 added; 49 assertions).
+  Implementation open: `templates.kind` + `template_includes` migration + sync whitelist,
+  `instantiate.ts` include expansion, planning-trip refresh diff, M21 screen; UI-Spec entry
+  for M21 still to write.
 
 **Parked until the MVP ships** (specified, not deleted — do not start these):
 
