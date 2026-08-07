@@ -37,11 +37,10 @@ bounded. Two decisions fix the scope:
   M1/M2/M3/M7/M9/M10/M16/M17/M20. Deliberately sequenced *after* the M4/M5 rebuild (owner
   decision 2026-08-07): those two screens are being replaced anyway, so translating their old
   markup first would be thrown away.
-- **M6/M8** — only as far as M4/M5 actually depend on them. M8 carries FR-25.9 (adult/child
-  per-person quantities); M6 is where the two buy modes land. FR-25.6 is still open: since
-  free-form *Used by* was removed (FR-25.10), "assign to a traveler" in the shopping views must be
-  reframed — per-person row (FR-25.1 shape) vs. lightweight "for whom" note. **Decide when M6 is
-  actually reached, not before.**
+- **M6** — re-mocked 2026-08-07, **FR-25.6 resolved**: "for whom" is derived from membership and
+  shown on one aggregated buy row, not re-entered and not split per traveler. Per-item notes in.
+- **M8** — **still open.** Carries FR-25.7 (progressive disclosure, sensible defaults) and
+  FR-25.9 (adult/child per-person quantities); depends on the M7 list rework.
 
 **Parked until the MVP ships** (specified, not deleted — do not start these):
 

@@ -155,6 +155,10 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M6-02** `all` (FR-3.3): check off a BUY_BEFORE item → transitions to PACK and leaves the list with animation; BUY_LOCAL → packed.
 * **E2E-M6-03** `all` (FR-5.6): free-text add directly into either list.
 * **E2E-M6-04** `all` (FR-3.2): both lists empty → M4 toolbar entry/badge hidden.
+* **E2E-M6-05** `all` (FR-25.6): a **per-person** item in a buy mode appears in the shopping list at all — the regression was that it did not, because open-ness was decided from the item's own `packed`/`quantity`, which a per-person item does not carry. It renders as **one aggregated row** with the summed quantity ("3 Stk"), the recipients named ("für Sia, Leonardo") and their avatars — **not** one row per traveler.
+* **E2E-M6-06** `all` (FR-25.6/3.3): checking off that aggregated row settles **every** instance in one act — a BUY_LOCAL per-person item leaves the list fully packed for all recipients, and a BUY_BEFORE one moves to PACK for all of them. Asserts no instance is left behind.
+* **E2E-M6-07** `all` (FR-25.6): a per-item note can be added from the row, is shown inline on it, survives a re-render, and can be edited and cleared — without leaving M6.
+* **E2E-M6-08** `all` (FR-25.10): the shopping row offers **no free-form "for whom" control**; the recipients shown are derived from membership only. Guards against reintroducing the attribution FR-25.10 removed.
 
 ### M7 — Template List
 * **E2E-M7-01** `all` (FR-1.2): My templates vs Published sections; per-row name + item count.
@@ -381,6 +385,8 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-25.2 | E2E+UNIT | M4-14; packingView.ts (isDone, hidden counts, full-set headers) |
 | FR-25.4 | E2E+UNIT | mode glyph rules M4-15/16; packingView.ts — the pill strip itself is superseded by FR-25.11 |
 | FR-25.8 | E2E | M4-12, M4-13 |
+| FR-25.6 | E2E | M6-05 (aggregated row), M6-06 (settles all instances), M6-07 (notes) |
+| FR-25.10 | E2E | M6-08 (no free-form "for whom"); M5 membership control |
 | FR-25.11 | E2E | M4-15 (panel), M4-16 (OR/AND), M4-17 (counts), M4-18 (empty states), M4-19 (Gemeinsam) |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |

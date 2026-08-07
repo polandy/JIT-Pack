@@ -379,6 +379,13 @@ body{
 .emptyfilter button{margin-top:12px;cursor:pointer;font-size:13px;font-weight:600;padding:9px 16px;
   border-radius:14px;border:1px solid var(--s1);background:var(--mantle);color:var(--text)}
 
+/* M6 shopping row: derived recipients + per-item procurement note (FR-25.6) */
+.shwho{display:flex;gap:-4px;flex:none;margin-right:2px}
+.shwho .mini-av{margin-left:-5px;border:1.5px solid var(--base)}
+.shnote{font-size:12px;color:var(--peach);margin-top:3px;cursor:pointer;line-height:1.35}
+.shnotebtn{flex:none;cursor:pointer;width:28px;height:28px;border-radius:9px;border:1px solid var(--s1);
+  background:var(--mantle);color:var(--o1);font-size:13px;font-weight:700;display:grid;place-items:center}
+
 /* quick add */
 .qa{display:flex;align-items:center;gap:10px;padding:13px 15px;color:var(--sub0);font-size:14px;cursor:text}
 .qa svg{width:18px;height:18px;color:var(--blue)}
@@ -974,6 +981,9 @@ const P = {
     {id:3,name:'Karierte kurze Hose',cat:'Kleidung',qty:2,packed:2,mode:'pack',trav:'Andy',cont:'Koffer',w:220,packedBy:'Sia'},
     {id:4,name:'Regenjacke',cat:'Kleidung',mode:'pack',cont:'Rucksack',w:300,pp:[
       {trav:'Andy',qty:1,packed:1,packedBy:'Andy'},{trav:'Sia',qty:1,packed:0},{trav:'Leonardo',qty:1,packed:0}]},
+    // per-person item in a *buy* mode — the case M6 used to drop entirely (FR-25.6)
+    {id:20,name:'Sonnenhut',cat:'Kleidung',mode:'buy_before',cont:'—',w:80,pp:[
+      {trav:'Sia',qty:1,packed:0},{trav:'Leonardo',qty:2,packed:0}]},
     {id:17,name:'Badehose',cat:'Kleidung',mode:'pack',cont:'Koffer',w:80,pp:[
       {trav:'Andy',qty:1,packed:0},{trav:'Sia',qty:1,packed:0},{trav:'Leonardo',qty:1,packed:0}]},
     {id:18,name:'Kurze Hosen',cat:'Kleidung',mode:'pack',cont:'Koffer',w:200,pp:[
@@ -2163,14 +2173,33 @@ function renderContainers(){
 /* ============ M6 shopping views ============ */
 const SHOP={tab:'before',search:''};
 const DESTLIST=['Bündner Nusstorte','Engadiner Bergkäse','Röteli'];
-const shopOpen=mode=>P.items.filter(i=>i.mode===mode&&i.packed<i.qty);
+/* A per-person item carries no top-level qty/packed — those live on its pp
+   entries. Reading i.packed<i.qty gave undefined<undefined = false, so any
+   per-person item marked "buy" silently never reached the shopping list. */
+const shopQty    = i => i.pp ? i.pp.reduce((a,e)=>a+e.qty,0)    : i.qty;
+const shopPacked = i => i.pp ? i.pp.reduce((a,e)=>a+e.packed,0) : i.packed;
+const shopOpen=mode=>P.items.filter(i=>i.mode===mode&&shopPacked(i)<shopQty(i));
+/* FR-25.6: "for whom" in the shopping list is *derived* from per-person
+   membership, never a second free-form field — that is what FR-25.10 removed.
+   One aggregated buy row per item (you buy once, in one go); the recipients
+   ride along as avatars. Splitting the purchase into a row per person would
+   make the shop the place where you do the distributing, which is packing's job. */
+function shopWhoHTML(i){
+  if(!i.pp) return '';
+  return `<span class="shwho">${i.pp.map(e=>{const av=AV[e.trav]||['?','var(--s2)'];
+    return `<span class="mini-av" title="${esc(e.trav)} · ${e.qty}" style="background:${av[1]}">${av[0]}</span>`;}).join('')}</span>`;
+}
 function renderShList(){
   const q=SHOP.search.trim().toLowerCase();
   const items=shopOpen(SHOP.tab==='before'?'buy_before':'buy_local').filter(i=>!q||i.name.toLowerCase().includes(q));
   const g={}; items.forEach(i=>(g[i.cat]=g[i.cat]||[]).push(i));
   let html=Object.keys(g).length?Object.keys(g).map(c=>`<div class="grouphead">${esc(c)}</div>
     <div class="card">${g[c].map(i=>`<div class="li"><div class="check" data-shbuy="${i.id}"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
-      <div class="grow"><div class="name">${esc(i.name)}</div><div class="desc">${i.qty} ${i.unit||'Stk'}</div></div></div>`).join('')}</div>`).join('')
+      <div class="grow"><div class="name">${esc(i.name)}</div>
+        <div class="desc">${shopQty(i)} ${i.unit||'Stk'}${i.pp?` · für ${i.pp.map(e=>e.trav).join(', ')}`:''}</div>
+        ${i.note?`<div class="shnote" data-shnote="${i.id}">📝 ${esc(i.note)}</div>`:''}</div>
+      ${shopWhoHTML(i)}
+      <button class="shnotebtn" data-shnote="${i.id}" title="Notiz">${i.note?'✎':'＋'}</button></div>`).join('')}</div>`).join('')
     :`<div class="card"><div class="li"><div class="grow muted" style="text-align:center;padding:8px">${q?'Nichts gefunden.':'Liste leer 🎉'}</div></div></div>`;
   if(SHOP.tab==='local'){ const dl=DESTLIST.filter(d=>!q||d.toLowerCase().includes(q));
     if(dl.length) html+=`<div class="destsep">Ziel-Checkliste der Serie</div>
@@ -2178,8 +2207,19 @@ function renderShList(){
         <div class="grow"><div class="name">${esc(d)}</div></div><span class="chip mauve">Samedan</span></div>`).join('')}</div>`; }
   const el=document.getElementById('shList'); el.innerHTML=html;
   el.querySelectorAll('[data-shbuy]').forEach(ch=>ch.onclick=()=>{ const it=P.items.find(x=>x.id==ch.dataset.shbuy); if(!it)return;
-    if(SHOP.tab==='before'){ it.mode='pack'; snack('„'+it.name+'“ gekauft → Packliste'); } else { it.packed=it.qty; snack('„'+it.name+'“ gekauft ✓'); }
+    // Buying is one act, so checking off settles every instance at once —
+    // FR-3.3: BUY_BEFORE becomes something to pack, BUY_LOCAL is done on purchase.
+    if(SHOP.tab==='before'){ it.mode='pack'; snack('„'+it.name+'“ gekauft → Packliste'); }
+    else { if(it.pp) it.pp.forEach(e=>e.packed=e.qty); else it.packed=it.qty; snack('„'+it.name+'“ gekauft ✓'); }
     renderShop(); });
+  // FR-25.6 per-item note — procurement context ("war im Migros, gab's nicht")
+  // kept on the row where it is useful, without leaving M6.
+  el.querySelectorAll('[data-shnote]').forEach(b=>b.onclick=e=>{ e.stopPropagation();
+    const it=P.items.find(x=>x.id==b.dataset.shnote); if(!it)return;
+    const v=prompt('Notiz zu „'+it.name+'“', it.note||'');
+    if(v===null) return;
+    it.note=v.trim()||undefined; renderShop();
+  });
   el.querySelectorAll('[data-shdest]').forEach(ch=>ch.onclick=()=>ch.classList.toggle('on'));
 }
 function renderShop(){
