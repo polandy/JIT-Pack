@@ -333,6 +333,52 @@ body{
 .mf.on{background:var(--s1);color:var(--text);border-color:var(--s2)}
 .mf.on i{color:var(--sub1)}
 
+/* ---------- filter bar + filter sheet (galaxus-style facets) ----------
+   One collapsed row replaces the old group bar + mode strip: a Filter button
+   carrying the active count, then a chip per active facet so a filtered list
+   can never look like a complete one — the risk that matters on a packing
+   list, where a hidden row reads as "nothing left to do". */
+.filterbar{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:2px 0;margin-top:6px;scrollbar-width:none}
+.filterbar::-webkit-scrollbar{display:none}
+.fbtn{flex:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;
+  font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px;border:1px solid var(--s1);background:var(--mantle);color:var(--text)}
+.fbtn.active{border-color:var(--blue);color:var(--blue)}
+.fbtn .cnt{font-size:11px;font-weight:700;background:var(--blue);color:var(--crust);border-radius:9px;padding:0 6px;line-height:16px}
+.fchip{flex:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;cursor:pointer;
+  font-size:11.5px;font-weight:600;padding:5px 9px;border-radius:20px;background:var(--s1);color:var(--text);border:1px solid var(--s2)}
+.fchip b{font-weight:600;color:var(--sub1);font-size:10.5px}
+.fchip .x{color:var(--o1);font-weight:700}
+.freset{flex:none;cursor:pointer;font-size:11.5px;font-weight:600;color:var(--o1);background:none;border:none;padding:5px 4px;white-space:nowrap}
+
+.fgroup{border-bottom:1px solid var(--s0);padding:2px 0}
+.fghead{display:flex;align-items:center;gap:9px;cursor:pointer;padding:12px 2px;font-weight:600;font-size:14.5px}
+.fghead .car{color:var(--o1);font-size:11px;transition:transform .18s;flex:none}
+.fgroup.open .fghead .car{transform:rotate(90deg)}
+.fghead .sum{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--o0)}
+.fghead .sum.on{color:var(--blue)}
+.fgbody{display:none;padding:0 2px 12px}
+.fgroup.open .fgbody{display:block}
+.fopt{display:flex;align-items:center;gap:10px;padding:8px 2px;cursor:pointer}
+.fbox{width:19px;height:19px;flex:none;border-radius:6px;border:1.8px solid var(--s2);display:grid;place-items:center;background:var(--mantle)}
+.fbox svg{width:13px;height:13px;color:var(--crust);opacity:0}
+.fopt.on .fbox{background:var(--blue);border-color:var(--blue)}
+.fopt.on .fbox svg{opacity:1}
+.fopt .lbl{font-size:14px}
+.fopt .n{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--o0)}
+.fgactions{display:flex;gap:8px;padding:2px 2px 4px}
+.fgactions button{cursor:pointer;font-size:11px;font-weight:600;padding:4px 10px;border-radius:14px;
+  border:1px solid var(--s1);background:var(--mantle);color:var(--sub0)}
+.fsegwrap{padding:12px 2px 14px;border-bottom:1px solid var(--s0)}
+.fsegwrap .cap{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--o0);margin-bottom:8px}
+.ffoot{display:flex;gap:10px;align-items:center;padding:14px 18px calc(14px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--s0);background:var(--base);flex:none}
+.ffoot .apply{flex:1;cursor:pointer;font-size:14px;font-weight:700;padding:12px;border-radius:14px;border:none;background:var(--blue);color:var(--crust)}
+.ffoot .clear{cursor:pointer;font-size:13px;font-weight:600;padding:12px 14px;border-radius:14px;border:1px solid var(--s1);background:var(--mantle);color:var(--sub0)}
+.emptyfilter{text-align:center;padding:26px 18px;color:var(--o1)}
+.emptyfilter b{display:block;color:var(--text);font-size:15px;margin-bottom:4px}
+.emptyfilter button{margin-top:12px;cursor:pointer;font-size:13px;font-weight:600;padding:9px 16px;
+  border-radius:14px;border:1px solid var(--s1);background:var(--mantle);color:var(--text)}
+
 /* quick add */
 .qa{display:flex;align-items:center;gap:10px;padding:13px 15px;color:var(--sub0);font-size:14px;cursor:text}
 .qa svg{width:18px;height:18px;color:var(--blue)}
@@ -815,6 +861,17 @@ body{
     <div class="sheet-body" id="sheetBody"></div>
   </div>
 
+  <!-- M4 filter sheet — grouping + facet groups; opened from the filter bar -->
+  <div class="scrim" id="filterScrim" onclick="closeFilters()"></div>
+  <div class="sheet" id="filterSheet">
+    <div class="handle"></div>
+    <div class="sheet-body" id="filterBody"></div>
+    <div class="ffoot">
+      <button class="clear" id="fClear">Zurücksetzen</button>
+      <button class="apply" id="fApply">Anzeigen</button>
+    </div>
+  </div>
+
   <!-- undo snackbar -->
   <div class="snack" id="snack"><span class="grow" id="snackMsg"></span><button id="snackBtn">Rückgängig</button></div>
 
@@ -896,10 +953,12 @@ const isDone = it => it.packed>=it.qty && !it.prep;   // "komplett gepackt" = pa
 function itemLeaves(it){
   if(!it.pp) return [{key:String(it.id), it, e:null, ppIndex:null,
     name:it.name, trav:it.trav, qty:it.qty, packed:it.packed, packedBy:it.packedBy,
-    prep:it.prep, cat:it.cat, cont:it.cont, mode:it.mode, unit:it.unit, cons:it.cons, missing:it.missing}];
+    prep:it.prep, cat:it.cat, cont:it.cont, mode:it.mode, unit:it.unit, cons:it.cons, missing:it.missing,
+    late:it.late}];   // late was never copied onto the leaf, so ⏰ and the Merkmale facet both missed it
   return it.pp.map((e,k)=>({key:'pp:'+it.id+':'+k, it, e, ppIndex:k,
     name:it.name, trav:e.trav, qty:e.qty, packed:e.packed, packedBy:e.packedBy,
-    prep:e.prep, cat:it.cat, cont:it.cont, mode:it.mode, unit:it.unit, cons:it.cons, missing:it.missing}));
+    prep:e.prep, cat:it.cat, cont:it.cont, mode:it.mode, unit:it.unit, cons:it.cons, missing:it.missing,
+    late:it.late}));
 }
 const allLeaves = () => P.items.flatMap(itemLeaves);
 const leafDone = l => l.packed>=l.qty && !l.prep;
@@ -951,7 +1010,33 @@ const MODE = {
   buy_local: {icon:'📍', label:'Vor Ort', cls:'m-loc'},
 };
 const isBuy = m => m==='buy_before' || m==='buy_local';
-const modeSel = new Set();   // FR-25.4: multi-select mode filter; empty = "Alle" (no filter)
+/* Facet filters. Each facet is a Set; empty = "no restriction on this axis"
+   (never "show nothing"). Within a facet the values are OR'd, across facets
+   they are AND'ed — the convention every shop filter uses, so it needs no
+   explanation in the UI. FR-25.4's mode strip is now just the 'mode' facet. */
+const FILT = { trav:new Set(), cat:new Set(), mode:new Set(), cont:new Set(), flag:new Set() };
+const FACETS = [
+  {key:'trav', label:'Person'},
+  {key:'cat',  label:'Kategorie'},
+  {key:'mode', label:'Beschaffung'},
+  {key:'cont', label:'Gepäck'},
+  {key:'flag', label:'Merkmale'},
+];
+const FLAGS = { late:'⏰ Spätpacker', missing:'fehlt', prep:'Hat Vorbereitung' };
+/** The facet values a leaf satisfies — one place, so filtering and counting can never drift apart. */
+function leafFacet(l, key){
+  if(key==='trav') return [l.trav];
+  if(key==='cat')  return [l.cat];
+  if(key==='mode') return [l.mode];
+  if(key==='cont') return [l.cont==='—'?'Ohne Gepäck':l.cont];
+  return [l.late?'late':null, l.missing?'missing':null, l.prep?'prep':null].filter(Boolean);
+}
+function leafPasses(l, skipKey){
+  return FACETS.every(f => f.key===skipKey || FILT[f.key].size===0
+    || leafFacet(l, f.key).some(v => FILT[f.key].has(v)));
+}
+const filterCount = () => FACETS.reduce((n,f)=>n+FILT[f.key].size, 0);
+function clearFilters(){ FACETS.forEach(f=>FILT[f.key].clear()); }
 let nextId = 100;
 
 function groupKey(l){
@@ -1049,26 +1134,28 @@ function renderPack(){
   const total=L.length, done=L.filter(l=>l.packed>=l.qty).length;
   const openPrep=P.prep.filter(p=>!p.done).length;
   const shopN=P.items.filter(i=>isBuy(i.mode)).length;
-  // FR-25.4 mode filter — counts over all leaves, then the list narrows to the picked mode
-  const modeCount={all:L.length, pack:0, buy_before:0, buy_local:0};
-  L.forEach(l=>{ modeCount[l.mode]=(modeCount[l.mode]||0)+1; });
-  const Lf = modeSel.size===0 ? L : L.filter(l=>modeSel.has(l.mode));
+  const Lf = L.filter(l=>leafPasses(l));
 
   // header — single compact line; tools behind ⋯; hides on scroll-down (§3.25)
   const facepile=`<div class="stack"><span class="avatar" style="background:var(--peach)">A</span><span class="avatar" style="background:var(--mauve)">S</span></div>`;
   const toolbarRow=`<div class="toolbar"><button class="tbtn" onclick="go('shop')"><svg viewBox="0 0 24 24"><use href="#i-item"/></svg>Einkauf<span class="badge">${shopN}</span></button>`+
     `<button class="tbtn" onclick="go('containers')"><svg viewBox="0 0 24 24"><use href="#i-item"/></svg>Gepäck</button>`+
     `<button class="tbtn" onclick="go('analytics')"><svg viewBox="0 0 24 24"><use href="#i-spark"/></svg>Auswertung</button></div>`;
-  const groupbar=`<div class="groupbar">`+[['cat','Kategorie'],['trav','Person'],['cont','Gepäck'],['status','Status']]
-    .map(g=>`<button class="gb ${groupMode===g[0]?'on':''}" data-g="${g[0]}">${g[1]}</button>`).join('')+`</div>`;
-  const modebar=`<div class="modebar">`+[
-      ['all','','Alle'],['pack','🧳','Packen'],['buy_before','🛒','Vorher'],['buy_local','📍','Vor Ort']
-    ].map(m=>{ const on = m[0]==='all' ? modeSel.size===0 : modeSel.has(m[0]);
-      return `<button class="mf ${on?'on':''}" data-m="${m[0]}">${m[1]?`<span class="g">${m[1]}</span>`:''}${m[2]}<i>${modeCount[m[0]]||0}</i></button>`;
-    }).join('')+`</div>`;
+  // One collapsed filter row replaces the old group bar + mode strip. Active
+  // facets stay visible as removable chips: on a packing list an invisible
+  // filter is a hazard, because a filtered-empty list reads as "all done".
+  const nF=filterCount();
+  const chips=FACETS.flatMap(f=>[...FILT[f.key]].map(v=>
+    `<button class="fchip" data-fchip="${f.key}" data-v="${esc(String(v))}"><b>${f.label}</b>${esc(facetLabel(f.key,v))}<span class="x">×</span></button>`));
+  const filterbar=`<div class="filterbar">`+
+    `<button class="fbtn ${nF?'active':''}" id="fOpen">⚙ Filter${nF?`<span class="cnt">${nF}</span>`:''}</button>`+
+    chips.join('')+
+    (nF?`<button class="freset" id="fResetInline">Zurücksetzen</button>`:
+        `<span class="freset" style="color:var(--o0)">Gruppiert nach ${{cat:'Kategorie',trav:'Person',cont:'Gepäck',status:'Status'}[groupMode]}</span>`)+
+    `</div>`;
   document.getElementById('packHead').innerHTML=
     `<div class="pv1-line">${facepile}<div class="pv1-status">Samedan <span class="muted">· ${done}/${total} · 18 kg · Prep ${openPrep}</span></div>`+
-    `<button class="pv1-more" onclick="togglePvTools()">⋯</button></div>${pvToolsOpen?toolbarRow:''}${groupbar}${modebar}`;
+    `<button class="pv1-more" onclick="togglePvTools()">⋯</button></div>${pvToolsOpen?toolbarRow:''}${filterbar}`;
 
   // quick-add hidden unless actively adding (the ＋ FAB opens it)
   const qa=document.getElementById('qaTrigger');
@@ -1091,8 +1178,16 @@ function renderPack(){
   const toggle = doneN ? `<div class="donebar ${showDone?'on':''}" id="doneToggle">
       <svg viewBox="0 0 24 24"><use href="#i-check"/></svg>
       ${showDone?`${doneN} gepackte ausblenden`:`${doneN} gepackte anzeigen`}</div>` : '';
-  const emptyHint = (!groupsHTML && modeSel.size>0)
-    ? `<div class="li" style="justify-content:center;color:var(--o1)">Nichts in „${[...modeSel].map(m=>MODE[m].label).join(' + ')}“ offen</div>` : '';
+  // An empty list has two very different meanings, and conflating them is how a
+  // packing app tells someone they are finished when they are not.
+  let emptyHint='';
+  if(!groupsHTML){
+    const hiddenByFilter = L.filter(l=>!leafDone(l)).length - Lf.filter(l=>!leafDone(l)).length;
+    emptyHint = nF
+      ? `<div class="emptyfilter"><b>Keine Treffer</b>${hiddenByFilter} offene ${hiddenByFilter===1?'Sache liegt':'Sachen liegen'} hinter dem Filter.
+           <div><button id="fResetEmpty">Filter zurücksetzen</button></div></div>`
+      : `<div class="emptyfilter"><b>Alles gepackt 🎉</b>Nichts mehr offen für diese Reise.</div>`;
+  }
   document.getElementById('packList').innerHTML = groupsHTML + emptyHint + toggle;
 
   // prep section
@@ -1140,14 +1235,13 @@ function packAway(row, name, undo){
 
 function bindPack(){
   const list=document.getElementById('packList');
-  // grouping switch (wire the data-g buttons — previously inert)
-  document.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ groupMode=b.dataset.g; renderPack(); });
-  document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{
-    const m=b.dataset.m;
-    if(m==='all') modeSel.clear();                              // "Alle" = clear the filter
-    else if(modeSel.has(m)) modeSel.delete(m); else modeSel.add(m);
-    renderPack();
+  // filter bar: open the sheet, drop a single facet via its chip, or reset all
+  const fo=document.getElementById('fOpen'); if(fo) fo.onclick=openFilters;
+  document.querySelectorAll('[data-fchip]').forEach(b=>b.onclick=()=>{
+    FILT[b.dataset.fchip].delete(b.dataset.v); renderPack();
   });
+  const fri=document.getElementById('fResetInline'); if(fri) fri.onclick=()=>{ clearFilters(); renderPack(); };
+  const fre=document.getElementById('fResetEmpty'); if(fre) fre.onclick=()=>{ clearFilters(); renderPack(); };
   const dt=document.getElementById('doneToggle'); if(dt) dt.onclick=()=>{ showDone=!showDone; renderPack(); };
   // stepper / check / prep taps — scoped to the M4 regions so it never rebinds the M5 sheet's
   // own [data-act] handlers (renderPack runs after sheet actions; a document-wide select clobbered them)
@@ -1451,6 +1545,90 @@ function openItem(id){ curItem=id; sheetDetails=false; renderItem();
 function closeItem(){
   document.getElementById('sheetScrim').classList.remove('open');
   document.getElementById('itemSheet').classList.remove('open'); }
+
+/* ============ M4 filter sheet — grouping + facet groups ============ */
+let fOpenGroups = new Set(['trav']);   // remembers which accordions are unfolded
+
+/** Human label for a stored facet value (modes and flags are stored as codes). */
+function facetLabel(key, v){
+  if(key==='mode') return MODE[v] ? `${MODE[v].icon} ${MODE[v].label}` : v;
+  if(key==='flag') return FLAGS[v] || v;
+  // 'Alle' is the data model's sentinel for a trip-global item. As a filter
+  // option that label reads as "select everything", so it is shown under
+  // FR-25.10's term for the same thing.
+  if(key==='trav' && v==='Alle') return 'Gemeinsam';
+  return v;
+}
+/** Distinct values of a facet, with the count each would yield given the *other* facets. */
+function facetValues(key){
+  const L=allLeaves().filter(l=>!leafDone(l));      // offer only what is still open
+  const counts=new Map();
+  L.forEach(l=>{
+    if(!leafPasses(l, key)) return;                  // count against the other facets, not itself
+    leafFacet(l, key).forEach(v=>counts.set(v,(counts.get(v)||0)+1));
+  });
+  // Selected values survive even at count 0, so a filter can always be undone from the sheet.
+  FILT[key].forEach(v=>{ if(!counts.has(v)) counts.set(v,0); });
+  // "Gemeinsam" leads the person list — it is the whole-trip bucket, not a person.
+  return [...counts.entries()].sort((a,b)=>{
+    if(key==='trav'){ if(a[0]==='Alle') return -1; if(b[0]==='Alle') return 1; }
+    return facetLabel(key,a[0]).localeCompare(facetLabel(key,b[0]));
+  });
+}
+function renderFilterSheet(){
+  const groupSeg=`<div class="fsegwrap"><div class="cap">Gruppieren nach</div><div class="groupbar">`+
+    [['cat','Kategorie'],['trav','Person'],['cont','Gepäck'],['status','Status']]
+      .map(g=>`<button class="gb ${groupMode===g[0]?'on':''}" data-g="${g[0]}">${g[1]}</button>`).join('')+
+    `</div></div>`;
+  const groupsHTML=FACETS.map(f=>{
+    const vals=facetValues(f.key), sel=FILT[f.key];
+    const open=fOpenGroups.has(f.key);
+    const sum=sel.size?`${sel.size}/${vals.length}`:'alle';
+    return `<div class="fgroup ${open?'open':''}" data-fg="${f.key}">
+      <div class="fghead" data-fgtoggle="${f.key}"><span class="car">▶</span>${f.label}
+        <span class="sum ${sel.size?'on':''}">${sum}</span></div>
+      <div class="fgbody">
+        <div class="fgactions"><button data-fall="${f.key}">Alle</button><button data-fnone="${f.key}">Keine</button></div>
+        ${vals.map(([v,n])=>`<div class="fopt ${sel.has(v)?'on':''}" data-fopt="${f.key}" data-v="${esc(String(v))}">
+          <span class="fbox"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span>
+          <span class="lbl">${esc(facetLabel(f.key,v))}</span><span class="n">${n}</span></div>`).join('')
+          || `<div class="fopt" style="color:var(--o0)">Nichts vorhanden</div>`}
+      </div></div>`;
+  }).join('');
+  document.getElementById('filterBody').innerHTML=groupSeg+groupsHTML;
+
+  const body=document.getElementById('filterBody');
+  body.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ groupMode=b.dataset.g; renderFilterSheet(); renderPack(); });
+  body.querySelectorAll('[data-fgtoggle]').forEach(h=>h.onclick=()=>{
+    const k=h.dataset.fgtoggle; if(fOpenGroups.has(k)) fOpenGroups.delete(k); else fOpenGroups.add(k);
+    renderFilterSheet();
+  });
+  body.querySelectorAll('[data-fopt]').forEach(o=>o.onclick=()=>{
+    const k=o.dataset.fopt, v=o.dataset.v;
+    if(FILT[k].has(v)) FILT[k].delete(v); else FILT[k].add(v);
+    renderFilterSheet(); renderPack();
+  });
+  body.querySelectorAll('[data-fall]').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.fall; facetValues(k).forEach(([v])=>FILT[k].add(v)); renderFilterSheet(); renderPack();
+  });
+  body.querySelectorAll('[data-fnone]').forEach(b=>b.onclick=()=>{
+    FILT[b.dataset.fnone].clear(); renderFilterSheet(); renderPack();
+  });
+  // The apply button is a close button that also states the outcome, so the
+  // count is visible before committing to it.
+  const n=allLeaves().filter(l=>leafPasses(l) && !leafDone(l)).length;
+  document.getElementById('fApply').textContent=`${n} ${n===1?'Sache':'Sachen'} anzeigen`;
+}
+function openFilters(){ renderFilterSheet();
+  document.getElementById('filterScrim').classList.add('open');
+  document.getElementById('filterSheet').classList.add('open'); }
+function closeFilters(){
+  document.getElementById('filterScrim').classList.remove('open');
+  document.getElementById('filterSheet').classList.remove('open'); }
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('fApply').onclick=closeFilters;
+  document.getElementById('fClear').onclick=()=>{ clearFilters(); renderFilterSheet(); renderPack(); };
+});
 
 /* snackbar */
 let snackT=null;

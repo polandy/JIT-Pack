@@ -129,6 +129,11 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M4-11** `all` (FR-3.2): toolbar opens M6 (badge hidden when both shopping lists empty); archive → launches M14.
 * **E2E-M4-12** `all` (FR-25.8/25.1): quick-add in *per person* mode for two travelers (e.g. "Jacke" — Andy 1, Sia 1) produces **one named cluster** "Jacke" with a `0/2` sub-header and exactly two indented child rows, each showing its traveler and its own check control. Asserts there is **no** second top-level row repeating the name — the regression found on 2026-08-07 was N separate items, where every individual row looked right and only the grouping was wrong, so the assertion must be on the cluster structure and the absence of duplicate top-level rows, not merely on "two rows named Jacke exist".
 * **E2E-M4-13** `all` (FR-25.1 flat fallback): the same quick-add for a **single** traveler produces an ordinary flat row labelled with that person ("Mütze · Andy"), **not** a one-child cluster.
+* **E2E-M4-15** `all` (FR-25.11a/b): M4 shows a single filter row; tapping it opens the sheet with *Gruppieren nach* plus the five facet groups (Person, Kategorie, Beschaffung, Gepäck, Merkmale). Selecting a person narrows the list, and the selection appears as a removable chip in the collapsed row; tapping the chip's × restores the unfiltered list. Asserts the grouping switcher is **not** present as a second bar in the header.
+* **E2E-M4-16** `all` (FR-25.11c): two values inside one facet widen the result (Andy + Sia shows both), while a value from a second facet narrows it (Andy + 🛒 Vorher shows only Andy's purchases). Guards the OR-within / AND-across rule.
+* **E2E-M4-17** `all` (FR-25.11d): a facet value's count reflects the other active facets but not its own — selecting Andy leaves the Person counts for Sia and Leonardo readable against Andy's *other* filters, and the mode counts drop to Andy's items. A currently selected value stays listed even when its count falls to 0, so the filter can always be undone from the panel.
+* **E2E-M4-18** `all` (FR-25.11e): a filter combination with no matches shows the **"Keine Treffer"** state naming how many open items are hidden, with a working reset — explicitly **not** the "Alles gepackt 🎉" state. Conversely, packing everything with no filter active shows the celebration state. The two must never be interchangeable.
+* **E2E-M4-19** `all` (FR-25.11f): the Person facet lists the shared bucket as **"Gemeinsam"**, first in the list, and never as "Alle".
 * **E2E-M4-14** `all` (FR-25.1/25.2): packing one instance of a two-person cluster keeps the cluster intact — the packed child drops out (hide-done), the sub-header still reads over the full set (`1/2`), and the remaining instance does **not** re-render as a flat row. Guards the "decide cluster-vs-flat over the full set" rule; getting this wrong makes the list restructure under the user's finger mid-tap.
 
 ### M5 — Item Detail
@@ -374,8 +379,9 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-23.6 | SERVER | deactivation side-effects (push purge, notif suppress) — Go test; access-revocation asserted M20-02 |
 | FR-25.1 | E2E+UNIT | M4-12/13/14; packingView.ts (clustering, flat fallback, full-set decision) |
 | FR-25.2 | E2E+UNIT | M4-14; packingView.ts (isDone, hidden counts, full-set headers) |
-| FR-25.4 | UNIT | packingView.ts (multi-select mode filter, counts over open rows) — E2E case pending the M4 rebuild |
+| FR-25.4 | E2E+UNIT | mode glyph rules M4-15/16; packingView.ts — the pill strip itself is superseded by FR-25.11 |
 | FR-25.8 | E2E | M4-12, M4-13 |
+| FR-25.11 | E2E | M4-15 (panel), M4-16 (OR/AND), M4-17 (counts), M4-18 (empty states), M4-19 (Gemeinsam) |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |
 | NFR-4.2a | E2E+UNIT | FLOW-08, NFR-04; sync merge tests |
