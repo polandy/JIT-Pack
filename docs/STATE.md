@@ -28,8 +28,9 @@ bounded. Two decisions fix the scope:
 
 **In the MVP, in order:**
 
-- **i18n foundation** — the module, both catalogues, locale switch in M17, existing screens
-  migrated. First, because everything after it writes user-facing strings.
+- **i18n foundation** — module + both catalogues + M17 switch **done 2026-08-07** (item 16);
+  **migrating the ~300 existing strings is still open** and is the immediate next task. First in
+  the order, because everything after it writes user-facing strings.
 - **M4/M5 rebuild** (FR-25.1–25.10) — the core screen, built from the re-mocked design rather
   than patched into the current implementation.
 - **M6/M8** — only as far as M4/M5 actually depend on them. M8 carries FR-25.9 (adult/child
@@ -140,7 +141,13 @@ Deliberate cuts (revisit only with cause): M15 XLSX support (CSV only, NFR-4.3, 
     - `docs/UI_Concept_Prototype.html` — the clickable prototype every §3.25 decision was tested against. `docs/UI_Concept_Overview.html` — M1–M20 coverage overview.
     - `docs/Navigation_Concept_v1.0.md` — information architecture: nav rail, trip entry points, back-stack, onboarding, empty states, edge cases.
     - `docs/Vision_NorthStar_v1.0.md` — directional expansion from packing app to family vacation companion (Plan/Prepare/During/After). **Not authoritative over shipped scope**, drives no implementation. Flags **ADR-007 (outbound fetching)** as the gate for planning features — note that ADR is referenced but **not yet written** (`docs/` holds ADR-001…006).
-    - PRD Addendum gained §3.24 (item tags, lifecycle delete), §3.25 (packing-screen refinements, FR-25.1–25.10), §3.26 (calendar feed) and NFR-4.12 (i18n) — **all status: proposed**. §3.11 (Repack) retired.
+    - PRD Addendum gained §3.24 (item tags, lifecycle delete), §3.25 (packing-screen refinements, FR-25.1–25.10), §3.26 (calendar feed) and NFR-4.12 (i18n) — §3.24/§3.25/§3.26 **status: proposed**, NFR-4.12 **accepted 2026-08-07**. §3.11 (Repack) retired.
+16. **i18n (NFR-4.12)** — **FOUNDATION DONE** (2026-08-07), migration open. `client/src/i18n/`: `index.ts` (locale resolution, `t`, `Intl` wrappers) + `messages/en.ts` and `messages/de.ts`. **English is the primary/default locale and also the fallback; German is fully supported** (owner decision — the client was already written in English, so German is an addition, not a rewrite). **No `vue-i18n`**: two locales need only key lookup, `{placeholder}` interpolation and a one/other plural rule, and date/number formatting is `Intl` — justification and revisit trigger recorded in NFR-4.12. The call shape stays vue-i18n-compatible (`t('key', { n })`) so swapping the module later does not touch call sites.
+    - Keys are **flat and dot-namespaced** (`packing.itemsLeft`), not nested — a missing translation is a one-line diff, and the catalogue-integrity test can compare key sets directly. That test fails the build if an English key has no German counterpart, so a string cannot ship untranslated.
+    - Locale is a Vue `ref`, so `t()` in a template re-evaluates on language change — no reload. Resolution order: persisted choice → browser locale if German → English. Persisted device-local under `jitpack_locale`, the same pattern and failure handling as the theme (FR-21.3); `initLocale()` runs before mount in `main.ts` next to `initTheme()`, and sets `document.documentElement.lang`. An unknown key renders as the key itself rather than blank, so gaps are visible in review.
+    - Plural rule is `n === 1` → singular, everything else plural (so zero takes the plural form, correct for both locales). An unmatched `{placeholder}` is left verbatim — a visible `{n}` is a bug report, "undefined" reads as data loss.
+    - M17 gained a Language row (IonSelect, English/German) beside the Appearance toggle. 24 tests.
+    - **Open:** the ~300 existing hard-coded English strings across 35 `.vue` files are **not yet externalized** — only the new Language row uses `t()`. Until that migration lands, switching to German changes very little on screen.
 
 ## Deviations
 
