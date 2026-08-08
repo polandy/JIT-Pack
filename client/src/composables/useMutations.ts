@@ -308,20 +308,6 @@ export function useMutations(hlc: HLCGenerator) {
     return make('delete', 'comments', todoId)
   }
 
-  /**
-   * resetForRepack reopens an item for the return leg (FR-11.1),
-   * recording whether it traveled outbound for the M14 review.
-   */
-  function resetForRepack(itemId: string, wasPacked: boolean): Mutation {
-    return make('upsert', 'trip_items', itemId, {
-      packed_count: 0,
-      state: 'open',
-      outbound_packed: wasPacked ? 1 : 0,
-      packing_now_by: null,
-      packing_now_at: null,
-    })
-  }
-
   // --- Container mutations (FR-10.1) ---
 
   function addContainer(
@@ -519,9 +505,6 @@ export function useMutations(hlc: HLCGenerator) {
       categoryId?: string | null
       weightGrams?: number | null
       valueCents?: number | null
-      unit?: string
-      isConsumable?: boolean
-      perDayRate?: number | null
     } = {},
   ): { mutation: Mutation; id: string } {
     const id = crypto.randomUUID()
@@ -530,9 +513,6 @@ export function useMutations(hlc: HLCGenerator) {
       category_id: opts.categoryId ?? null,
       weight_grams: opts.weightGrams ?? null,
       value_cents: opts.valueCents ?? null,
-      unit: opts.unit ?? 'pieces',
-      is_consumable: opts.isConsumable ? 1 : 0,
-      per_day_rate: opts.perDayRate ?? null,
     })
     return { mutation, id }
   }
@@ -552,7 +532,6 @@ export function useMutations(hlc: HLCGenerator) {
     const mutation = make('insert', 'templates', id, {
       owner_id: ownerId,
       name,
-      is_published: 0,
     })
     return { mutation, id }
   }
@@ -569,7 +548,7 @@ export function useMutations(hlc: HLCGenerator) {
     templateId: string,
     itemId: string,
     opts: {
-      quantityFormula?: string
+      quantity?: number
       assignment?: string
       dedup?: string
       defaultMode?: string
@@ -581,7 +560,7 @@ export function useMutations(hlc: HLCGenerator) {
     const mutation = make('insert', 'template_items', id, {
       template_id: templateId,
       item_id: itemId,
-      quantity_formula: opts.quantityFormula ?? '1',
+      quantity: opts.quantity ?? 1,
       assignment: opts.assignment ?? 'per_person',
       dedup: opts.dedup ?? 'max',
       default_mode: opts.defaultMode ?? 'pack',
@@ -604,14 +583,14 @@ export function useMutations(hlc: HLCGenerator) {
   function addItemDependency(
     itemId: string,
     dependsOnItemId: string,
-    opts: { mode?: 'required' | 'suggested'; quantityFormula?: string | null } = {},
+    opts: { mode?: 'required' | 'suggested'; quantity?: number | null } = {},
   ): { mutation: Mutation; id: string } {
     const id = crypto.randomUUID()
     const mutation = make('insert', 'item_dependencies', id, {
       item_id: itemId,
       depends_on_item_id: dependsOnItemId,
       mode: opts.mode ?? 'required',
-      quantity_formula: opts.quantityFormula ?? null,
+      quantity: opts.quantity ?? null,
     })
     return { mutation, id }
   }
@@ -689,7 +668,6 @@ export function useMutations(hlc: HLCGenerator) {
     addContainer,
     updateContainer,
     deleteContainer,
-    resetForRepack,
     // Trips
     createTrip,
     updateTripStatus,

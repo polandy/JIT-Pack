@@ -1,7 +1,7 @@
 # UI / End-to-End Test Specification — „JIT-Pack" (v1.0)
 
 **Document Status:** Proposed for Review
-**Basis:** UI_Spec_v1.10 (screens M1–M20, patterns G-1–G-11) + PRD_Base + PRD_Addendum_v2.10 (FR/NFR catalogue).
+**Basis:** UI_Spec_v1.10 (screens M1–M21, patterns G-1–G-12) + PRD_Base + PRD_Addendum_v2.10 (FR/NFR catalogue).
 **Purpose:** Define *what* the automated headless-browser test suite must cover so that every requirement with a UI surface is exercised through the real, built client. This document is the specification; implementation (Playwright config, fixtures, the tests themselves) follows and is tracked separately.
 
 > This file is authoritative for E2E scope. When a requirement changes, its row in the traceability matrix (§7) must change with it — same discipline as UI_Spec and Sync_API_Spec.
@@ -14,7 +14,7 @@
 
 The client already ships **412 Vitest unit/component tests** and a fully unit-tested pure domain layer (`src/domain/`, `src/lib/`, `src/local/`, `src/notifications/`). The E2E suite does **not** re-derive that logic. It sits one layer above:
 
-* **Unit tests own the algorithm** — quantity formulas (FR-1.3/1.5/15.3), dedup/instantiation (FR-2.2/2.3/2.3a), analytics math (FR-8.2/10.4/14.3), repack/clone/review planning (FR-11/12/9), spreadsheet & portable parsing (FR-16/18), dependency resolution (FR-20), image/avatar geometry (FR-22.2/22.3), HLC + merge (NFR-4.2a). These are proven in isolation and must stay there.
+* **Unit tests own the algorithm** — dedup/instantiation (FR-2.2/2.3/2.3a), analytics math (FR-8.2/10.4/14.3), clone/review planning (FR-12/9), spreadsheet & portable parsing (FR-16/18), dependency resolution (FR-20), image/avatar geometry (FR-22.2/22.3), HLC + merge (NFR-4.2a). These are proven in isolation and must stay there.
 * **E2E owns the journey** — that a real user, in a real browser, driving the real built app, can reach a screen, perform the requirement's action, and observe the correct result *including its persistence and (where relevant) cross-device propagation*. E2E verifies the wiring: store ↔ outbox ↔ WebSocket ↔ server ↔ DOM.
 
 Every FR/NFR in §7 is tagged **E2E** (a browser case exists), **UNIT** (logic already covered; E2E only touches it incidentally through a journey), **SERVER** (backend/API concern with no UI surface — covered by Go tests, listed here for completeness), or **DOC/N-A** (documentation-only or retired).
@@ -70,13 +70,19 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G3-02 | G-3 Lock staleness | server | A lock older than 15 min (clock-advanced) is no longer treated as locking on the other client. |
 | E2E-G4-01 | G-4 Deep link | server | Opening a delegation notification lands on `trip/{id}/item/{id}`, scrolls to, flashes the item once, and expands its comments (also asserts the `?comment=` mention highlight). |
 | E2E-G5-01 | G-5 Optimistic UI | single | A mutation renders immediately before server confirmation; a forced failure surfaces only via the sync glyph, never a blocking dialog. |
-| E2E-G6-01 | G-6 Stepper/checkbox | all | qty=1 renders a checkbox; qty>1 renders the stepper ("3/5"); tap ±1, long-press completes/zeroes; unit label shown. |
+| E2E-G6-01 | G-6 Stepper/checkbox | all | qty=1 renders a checkbox; qty>1 renders the stepper ("3/5"); tap ±1, long-press completes/zeroes (units retired with FR-1.8). |
 | E2E-G7-01 | G-7 Empty states | all | Each list screen (Trips/Templates/Items/Dashboard) shows its empty state with the single primary CTA. |
 | E2E-G8-01 | G-8 Collaboration hidden | single/local | No Share/Delegate/Notification-prefs UI anywhere; no mode banner shown. |
 | E2E-G9-01 | G-9 Responsive | all | ≥900px shows the left nav rail + inline actions; <900px shows bottom tabs + FAB. Logo is a home link to M1 from within a trip. |
 | E2E-G9-02 | G-9 Two-pane M4/M5 | single | ≥900px: selecting a row opens M5 as a persistent right side-panel and swaps content in place; <900px it is a bottom sheet. |
 | E2E-G10-01 | G-10 Trip presence | server | Facepile of others on the trip + group-sync badge (green→amber as a device lags); tap opens the per-person sync list. |
 | E2E-G11-01 | G-11 Theming | all | Dark (Mocha) is default before first paint with no preference; M17 toggle switches to Latte and persists device-local across reload; no flash of wrong theme. |
+| E2E-G12-01 | G-12 Actions in the app bar | all | On a detail screen (M4, M6) the app bar carries that screen's icon cluster and the settings **gear is hidden**; on a root/tab screen the gear is back and no cluster is shown. Navigating away clears the previous screen's cluster — asserts M6's icons do not linger on the next screen. |
+| E2E-G12-02 | G-12 Two clusters, no overflow | all | M4's app-bar cluster is search + filter; Shopping (with open-item count), Luggage and Analytics sit on the trip title line. **No ⋯ exists** — all three destinations are reachable in one tap, which is what §3.25's discoverability directive asked for. M6's app-bar cluster is search + filter. |
+| E2E-G12-06 | G-12 Icon-only is still nameable | all | Every unlabelled navigation icon exposes its name via `title`, and a long-press shows it as a bubble on touch. A plain tap **navigates** and shows no bubble — learning a glyph must never cost an extra tap. |
+| E2E-G12-03 | G-12 Actions survive the collapsing header | all | Scrolling M4 down collapses its sub-header, and search and filter **remain tappable** in the app bar throughout. This is the reason the cluster lives there rather than on the status line. |
+| E2E-G12-04 | G-12 One header line | all | M4's own header renders a single line (name, progress, presence); the search field and the filter chip row appear below it **only** when respectively opened and active, and neither is present in the default state. |
+| E2E-G12-05 | G-12 Literal icons | all | Shopping uses a cart glyph and Luggage a suitcase — distinct from each other and from the Inventory cube. Guards the regression where one generic glyph stood for several destinations, which defeats dropping the labels. |
 
 ---
 
@@ -94,6 +100,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 
 ### M2 — Trip List
 * **E2E-M2-01** `all` (FR-2.1): segmented Active/Planned/Archived filter partitions trips; archived render muted with final stats.
+* **E2E-M2-06** `all` (M2 ordering, 2026-08-08): the list renders **flat** — asserts no series section headers — with the active trip first, upcoming trips **ascending** by date and archived ones descending. The series appears as a chip on the row and opens M16 without also opening the trip.
 * **E2E-M2-02** `all` (FR-13.1): trips group under series headers with destination + count; tap header → M16.
 * **E2E-M2-03** `all` (FR-2.1/8.1): per-trip row shows name, dates, progress ring, participant avatars.
 * **E2E-M2-04** `all` (FR-12.1): long-press → Clone → M-clone (ClonePage) opens with fresh dates.
@@ -106,17 +113,21 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 ### M3 — Trip Creation Wizard
 * **E2E-M3-01** `all` (FR-2.1/2.1a/15.1): step 1 metadata — name, dates auto-compute + display duration, attribute chips (season/transport/accommodation) set.
 * **E2E-M3-02** `all` (FR-13.1/13.2): series picker incl. inline "New series…"; picking a series prefills empty attribute chips from its defaults.
-* **E2E-M3-03** `all` (FR-2.5): step 2 adds travelers with Adult/Child.
+* **E2E-M3-03** `all` (FR-2.5): step 2 adds travelers **by name**; asserts there is **no** Adult/Child control and no type on the created traveler records (removed 2026-08-08 with FR-25.9).
 * **E2E-M3-04** `server` (FR-4.5/4.7): step 2 sharing — user picker (minus self), Editor/Admin role select; grants applied on create.
 * **E2E-M3-05** `single/local` (FR-17.3/G-8): step 2 sharing/role part hidden; only traveler add/edit remains.
 * **E2E-M3-06** `all` (FR-2.2/2.3/15.2): step 3 template checkboxes; live footer shows resulting count, deduped overlaps with strategy, and excluded items with reason ("skipped: season ≠ winter").
 * **E2E-M3-07** `all` (FR-20.3/20.4): step 3 footer reports auto-pulled companion items; step 4 lists them with their main item, dedup notes, and suggested companions as opt-in checkboxes.
-* **E2E-M3-08** `all` (FR-14.1/14.2): step 4 rows show computed quantity + formula tooltip and a one-tap history suggestion ("2024: 5 · 2025: 6 → 6").
+* **E2E-M3-08** `all` (FR-14.1/14.2): step 4 rows show the template quantity with a stepper and a one-tap history suggestion ("2024: 5 · 2025: 6 → 6").
 * **E2E-M3-09** `all` (FR-13.3): step 4 offers the series destination checklist as opt-out extra items.
 * **E2E-M3-10** `all` (FR-2.4/NFR-4.1): draft persists across steps offline; "Create trip" commits and opens M4; cancel leaves no residue.
+* **E2E-M3-11** `all` (FR-27.1/27.2/27.6): step 3 — the list separates *Ferien-Vorlagen* from *Zusätzliche Gruppen* (sections in "Alle", plus one tab per scope); a composed template's row lists its groups ("enthält: …"); selecting it plus a group that overlaps it resolves for real: the footer count matches the deduped set and the merge is **named** with both source groups ("Kamera nur 1× — in Makro & Wildlife").
+* **E2E-M3-12** `all` (FR-27.3): step 3 — single master items joined via the inventory search: an item **not** in the resolved set raises the footer count by one; an item already in it is reported "bereits enthalten, nicht doppelt" and leaves the count unchanged; added items appear as removable chips.
+* **E2E-M3-13** `all` (FR-27.7): step-3 footer reports the preparation tasks the selection carries ("📋 N Vorbereitungs-Aufgaben übernommen"); after creation each task exists as an FR-7.3 todo on its generated item, and that item stays un-done in M4 until the todo is resolved (blocking itself is covered by the M4 prep cases).
 
 ### M4 — Packing List (core)
-* **E2E-M4-01** `all` (FR-8.1/7.3): KPI strip shows packed/total, weight, value, and the prep counter (only when todos exist); tap KPI → M12.
+* **E2E-M4-01** `all` (FR-8.1/7.3): the single header line shows packed/total, weight and the open-prep count (the latter only when todos exist), and stays **unfiltered** while a filter or search narrows the list below it. Analytics is reached from the 📊 icon on the trip line, not from the header (the KPI-tile entry is gone, G-12).
+* **E2E-M4-29** `all` (trip screen, decided 2026-08-08): tapping a trip in M2 or M1 lands **directly** in M4 — asserts no intermediate hub screen and no phase tab bar anywhere in the app. On an **archived** trip M4 leads with the closing card offering *Vorlage aus dieser Reise* (M21) and the M14 suggestions; on an active trip that card is absent.
 * **E2E-M4-02** `all` (FR-8.2): grouping switcher Category/Container/Person/Status; selection persists per user per trip (survives reload; a second user/other trip unaffected).
 * **E2E-M4-03** `all` (FR-5.1/G-6): item rows show state, stepper/checkbox, mode/late-packer/traveler/packer/container chips.
 * **E2E-M4-04** `all` (FR-5.6/9.1): inline quick-add with master-item autocomplete; free text creates an ad-hoc item; on an active trip new items auto-flag *Missing*; input stays expanded.
@@ -124,12 +135,30 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M4-06** `all` (FR-4.3/5.5): swipe left → assign-to-me or skip; skipped items move to the collapsed "Consciously skipped" section (strikethrough); swipe-to-unskip restores at qty 1.
 * **E2E-M4-07** `all` (FR-20.2): skipping cascades co-skip of dependent companions with a reason.
 * **E2E-M4-08** `all` (FR-7.3): open prep todos render a prep badge; a packed item with open prep uses the amber "packed with open prep" style.
+* **E2E-M4-25** `all` (FR-7.3/25.2): the full lifecycle in one case — an item packed while a prep todo is open stays **visible and amber** and does **not** count as done; **resolving its last todo makes it done and it leaves the list**; revealing packed rows brings it back without a prep badge. Regression guard: the open-prep count must be derived from the todos, not stored on the item, or resolving the last todo leaves the row stuck forever. Second direction: an item that has a todo but never had a stored count must still show its badge.
 * **E2E-M4-09** `all` (FR-7.2): an item with open tasks refuses completion with an inline hint.
 * **E2E-M4-10** `server` (FR-4.4): remote pack animates in with actor attribution ("packed by Bob"), no refresh.
-* **E2E-M4-11** `all` (FR-3.2): toolbar opens M6 (badge hidden when both shopping lists empty); Repack entry only on active trips; archive → launches M14.
-* **E2E-M4-12** `all` (FR-11.x): repack banner state renders (and, `server`, is visible to the other client after their master drain).
+* **E2E-M4-11** `all` (FR-3.2): toolbar opens M6 (badge hidden when both shopping lists empty); archive → launches M14.
+* **E2E-M4-12** `all` (FR-25.8/25.1): quick-add in *per person* mode for two travelers (e.g. "Jacke" — Andy 1, Sia 1) produces **one named cluster** "Jacke" with a `0/2` sub-header and exactly two indented child rows, each showing its traveler and its own check control. Asserts there is **no** second top-level row repeating the name — the regression found on 2026-08-07 was N separate items, where every individual row looked right and only the grouping was wrong, so the assertion must be on the cluster structure and the absence of duplicate top-level rows, not merely on "two rows named Jacke exist".
+* **E2E-M4-13** `all` (FR-25.1 flat fallback): the same quick-add for a **single** traveler produces an ordinary flat row labelled with that person ("Mütze · Andy"), **not** a one-child cluster.
+* **E2E-M4-15** `all` (FR-25.11a/b): M4 shows a single filter row; tapping it opens the sheet with *Gruppieren nach* plus the five facet groups (Person, Kategorie, Beschaffung, Gepäck, Merkmale). Selecting a person narrows the list, and the selection appears as a removable chip in the collapsed row; tapping the chip's × restores the unfiltered list. Asserts the grouping switcher is **not** present as a second bar in the header.
+* **E2E-M4-16** `all` (FR-25.11c): two values inside one facet widen the result (Andy + Sia shows both), while a value from a second facet narrows it (Andy + 🛒 Vorher shows only Andy's purchases). Guards the OR-within / AND-across rule.
+* **E2E-M4-17** `all` (FR-25.11d): a facet value's count reflects the other active facets but not its own — selecting Andy leaves the Person counts for Sia and Leonardo readable against Andy's *other* filters, and the mode counts drop to Andy's items. A currently selected value stays listed even when its count falls to 0, so the filter can always be undone from the panel.
+* **E2E-M4-18** `all` (FR-25.11e): the "Alles gepackt 🎉" state appears **only** when nothing is narrowing the list. Four cases, all required: **search** with no match, **filter** with no match, **search + filter** together, and genuinely-everything-packed. The first three must all show "Keine Treffer" naming what is in force; only the fourth may celebrate. The reset offered clears **everything** narrowing — after pressing it, both the search term and the filter set are empty and the list is back. Regression guard: searching for a string the list does not contain announced completion, because the check looked at the filter count only.
+* **E2E-M4-19** `all` (FR-25.11f): the Person facet lists the shared bucket as **"Gemeinsam"**, first in the list, and never as "Alle".
+* **E2E-M4-22** `all` (FR-25.16): tapping a group header folds that group to **its header line alone**, which then reads "‹Gruppe› · N offen" — asserts **no** extra stub line is rendered and that N matches the group's open rows in the model. Other groups stay untouched. The app-bar fold-all control collapses every group to headers with **zero item rows** and flips its label to *Alle aufklappen*; pressing it again restores the full list. The folded set survives a re-render — packing a row must not unfold the rest.
+* **E2E-M4-23** `all` (FR-25.16/25.2): a group whose rows are **all** done disappears completely — no header and **no stub** — and reappears only when *Erledigte* is switched on. Asserts folding and doneness stay separate concepts: a folded group with open items is still on the list, an absent group is not.
+* **E2E-M4-24** `all` (FR-25.17): with packed rows revealed, each carries **"gepackt von ‹Name› · ‹Tag› ‹Uhrzeit›"** with the packer's avatar. Un-packing a row **clears** the stamp, so it can never outlive the state it describes.
+* **E2E-M4-30** `all` (FR-25.19): assigning a row to Sia and then packing it as Andy records **Andy** as the packer while responsibility stays with Sia; the M5 sheet labels the control *Verantwortliche Person* and shows the packing record as read-only. The row's right edge carries the responsible avatar while open and the packer avatar once packed — **never both**. Regression guard: the pre-split behaviour (keeping the assignee as packer) must fail this case.
+* **E2E-M4-31** `all` (FR-25.20): with a row assigned to another user, M4 opens **without** it while unassigned rows remain; the reveal bar states the count and names the person, and one tap shows the row. Asserts the header's packed/total is **identical** with the rows hidden and shown — a filtered list may never make the trip look further along than it is. The switch is also reachable in the filter panel, and the state persists for the session (FR-25.18); a fresh session returns to hidden.
+* **E2E-M4-26** `all` (FR-27.10): the M4 quick-add lists **groups** under *„Ganze Gruppe hinzufügen“* with their resolved position count; typing filters them. Tapping one adds **only the positions the trip does not already carry**, reports the result ("N Positionen, M schon dabei"), stamps the group's provenance on the new rows, and materialises the positions' FR-27.7 tasks as prep todos on them. Asserts the new rows are **not** flagged *Missing* — an added group is a grown plan, not a forgotten item, and flagging it would feed M14 a false signal.
+* **E2E-M4-27** `all` (FR-27.10): tapping a group whose positions are all present adds nothing and says so; the row count is unchanged. Second direction: on a *planning* trip the group becomes one of the trip's sources, so a subsequent edit to that group reaches the trip as an FR-27.4 applied change; on an active trip it does not — the trip is frozen.
+* **E2E-M4-28** `all` (FR-25.18): set two facet values and the *Erledigte* switch, leave M4 for M6 and return — the filter, the switch and the grouping are still in force **and their chips are visible** (FR-25.11a). Same after a reload. A **fresh session starts unfiltered**, and the search term is **not** restored. Regression guard: the chip row must appear together with the restored filter — a restored filter with no chip is an invisible filter, the exact failure FR-25.11a forbids.
+* **E2E-M4-14** `all` (FR-25.1/25.2): packing one instance of a two-person cluster keeps the cluster intact — the packed child drops out (hide-done), the sub-header still reads over the full set (`1/2`), and the remaining instance does **not** re-render as a flat row. Guards the "decide cluster-vs-flat over the full set" rule; getting this wrong makes the list restructure under the user's finger mid-tap.
 
 ### M5 — Item Detail
+* **E2E-M5-06** `all` (FR-25.14): opening a **per-person** item shows its total as a **read-only chip** ("0/3") with **no** +/− control on it, and one row per traveler each carrying its own check or stepper. Packing one traveler's instance raises the total and leaves the others untouched. Guards the regression where the summed quantity sat in a stepper that could not be operated.
+* **E2E-M5-07** `all` (FR-25.15): the sheet has **no Save button**; any edit flips the icon-only indicator to the amber pulsing ● and back to the green ✓ once settled — no text label (it wrapped next to long names), the meaning sits in the `title` tooltip. The *Details* toggle, which only folds the sheet open, must **not** flip it. Asserts the indicator is separate from the G-2 sync glyph.
 * **E2E-M5-01** `all` (FR-4.2): distinct *Used by* (traveler) vs *Packed by* (user) sections.
 * **E2E-M5-02** `all` (FR-3.1/10.2): mode selector PACK/BUY_BEFORE/BUY_LOCAL; container picker.
 * **E2E-M5-03** `all` (FR-9.1): Unused/Missing flags visible only on active trips.
@@ -148,56 +177,92 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M6-02** `all` (FR-3.3): check off a BUY_BEFORE item → transitions to PACK and leaves the list with animation; BUY_LOCAL → packed.
 * **E2E-M6-03** `all` (FR-5.6): free-text add directly into either list.
 * **E2E-M6-04** `all` (FR-3.2): both lists empty → M4 toolbar entry/badge hidden.
+* **E2E-M6-05** `all` (FR-25.6): a **per-person** item in a buy mode appears in the shopping list at all — the regression was that it did not, because open-ness was decided from the item's own `packed`/`quantity`, which a per-person item does not carry. It renders as **one aggregated row** with the summed quantity ("3 Stk"), the recipients named ("für Sia, Leonardo") and their avatars — **not** one row per traveler.
+* **E2E-M6-06** `all` (FR-25.6/3.3): checking off that aggregated row settles **every** instance in one act — a BUY_LOCAL per-person item leaves the list fully packed for all recipients, and a BUY_BEFORE one moves to PACK for all of them. Asserts no instance is left behind.
+* **E2E-M6-07** `all` (FR-25.6): a per-item note can be added from the row, is shown inline on it, survives a re-render, and can be edited and cleared — without leaving M6.
+* **E2E-M6-08** `all` (FR-25.10): the shopping row offers **no free-form "for whom" control**; the recipients shown are derived from membership only. Guards against reintroducing the attribution FR-25.10 removed.
+* **E2E-M6-16** `all` (FR-25.13a) / **E2E-M4-21** `all`: both quick-adds carry a **visible confirm button** in every mode, and adding works by tapping it alone — no keyboard involved. Guards the phone case, where relying on Enter leaves no reachable way to commit.
+* **E2E-M6-12** `all` (FR-25.13a): the quick-add offers name, description and a *Zugewiesen an* chip row. Adding with all three set produces a row carrying the description inline and the assignee mark. **Enter commits from the description field too.** Regression guard: tapping an assignee chip must **not** clear an already-typed description — the failure mode of re-rendering the form on selection.
+* **E2E-M6-13** `all` (FR-25.13a): after an add, the **assignee stays selected** for the next item while name and description are cleared. Asserts the carry-over is on the assignee only.
+* **E2E-M6-17** `all` (FR-25.11i/j): checking off a row hides it; the filter sheet's *Erledigte* section reveals it **dimmed and still interactive**, and tapping its control again restores it to the open list. Covers the **BUY_BEFORE** case specifically, where checking off changes the item's mode and would otherwise make it unreachable from the shopping side; the revealed row states where it went ("auf der Packliste"). Default is hidden.
+* **E2E-M6-18** `all` (FR-25.11k): M6 shows **no search field by default**; the magnifier in the tab row reveals and focuses it, typing filters the list, and ✕ **closes** the field rather than merely clearing it. The filter icon sits beside the magnifier and carries the active-count badge. Asserts the list regains its full height when the search is closed.
+* **E2E-M6-19** `all` (FR-25.13b): typing at least two characters offers master-item suggestions; picking one fills the name **and adopts that item's category**, including a category this trip has not used yet. Without a pick the category defaults to *Sonstiges* and can be set manually. Regression guard: choosing a suggestion must not clear an already-typed description, and the suggestion strip must redraw **without** re-rendering the form.
+* **E2E-M6-20** `all` (FR-25.12): a row with no assignee shows an **edit glyph**, not a plus.
+* **E2E-M6-14** `all` (FR-25.11g): M6 shows the same filter bar as M4; its sheet offers *Zugewiesen an*, *Für wen* and *Kategorie* and — unlike M4's — **no grouping section**. Filtering by an assignee narrows the list and shows the removable chip. The unassigned bucket reads "niemand zugewiesen" and leads the list. M4's and M6's filters are **independent**: setting one must not change the other.
+* **E2E-M6-15** `all` (FR-25.11h) / **E2E-M4-20** `all`: scrolled to the bottom of the list, the last row's bounding box does **not** intersect the ＋ FAB, on both screens. Guards the case where the right-edge marks (assignee, packer avatar) end up under the button.
+* **E2E-M6-09** `all` (FR-25.12): tapping a shopping row opens its sheet with *Zugewiesen an* and *Beschreibung*. Assigning a buyer shows that person on the **right** of the row with the 🛒 badge, while derived recipients stay on the **left** — asserts the two are visually distinct even when the buyer is also a recipient. "niemand" clears the assignment.
+* **E2E-M6-10** `all` (FR-25.12): a description entered in the sheet renders inline on the row, survives closing and reopening, and can be cleared. Both buyer and description are optional — a row with neither renders without either mark.
+* **E2E-M6-11** `all` (FR-25.13): M6 has **no permanent "add" row**; the ＋ FAB expands an inline quick-add above the list and focuses it, Enter adds to the currently open tab, and an empty field collapses it on blur — the same sequence as M4-04. Asserts no native `prompt()` is used.
 
 ### M7 — Template List
-* **E2E-M7-01** `all` (FR-1.2): My templates vs Published sections; per-row name + item count.
-* **E2E-M7-02** `server` (FR-1.6): fork a published template → editable copy under My templates.
+* **E2E-M7-01** `all` (FR-1.2/1.6): one shared instance-wide list (no my-vs-published split — FR-1.6 MVP simplification); per-row name + item count.
+* **E2E-M7-02** — **superseded by the FR-1.6 MVP simplification (2026-08-08):** no publishing, no forking; every template is editable by every account. Returns with the parked FR-1.6 model.
 * **E2E-M7-03** `all` (FR-1.2): FAB → name prompt → creates template → opens M8.
 * **E2E-M7-04** `all` (FR-18.2): long-press → Export → YAML download.
 * **E2E-M7-05** `all` (FR-18.4): FAB "+" menu → Import from file → M18.
 * **E2E-M7-06** `all` (G-7): empty state CTA (create / import).
+* **E2E-M7-07** `all` (FR-27.1/27.2/27.6): scope segmentation — *Alle* renders Ferien-Vorlagen and Gruppen as two sections (vacation templates first), the *Gruppen*/*Ferien-Vorlagen* tabs filter to one scope, group rows carry the *Gruppe* chip; a composed template's row shows its group count, its **resolved** item count (not 0 for a template with no own positions), and an "enthält: …" line naming the included groups.
+* **E2E-M7-08** `all` (FR-27.6): FAB opens the two-option scope chooser (Ferien-Vorlage / Gruppe with one-line explanations); each choice creates a template of that scope and opens the matching M8 editor shape.
 
 ### M8 — Template Editor
-* **E2E-M8-01** `all` (FR-1.3/1.5): quantity field accepts a formula with live validation and computed example ("for a 7-day trip: 8"); save is blocked while any formula is invalid with a per-row error.
+* **E2E-M8-01** `all` (FR-1.8/G-6): the position sheet's quantity is a numeric stepper (– n +), 0 allowed ("bewusst nicht dabei", FR-5.5); no formula input exists (FR-1.3/1.5 retired 2026-08-08).
 * **E2E-M8-02** `all` (FR-1.4): per-item assignment type Per Person / Trip-Global.
 * **E2E-M8-03** `all` (FR-2.3/15.2): dedup strategy select; condition chips (season/transport/accommodation).
-* **E2E-M8-04** `all` (FR-1.1): item picker from M9 with inline-create.
-* **E2E-M8-05** `all` (FR-2.4): editing a published template shows the "consumers see changes next generation only" warning.
+* **E2E-M8-04** `all` (FR-1.1/25.13): positions are added through the shared quick-add (see M8-13); a free-text name creates the master item inline.
+* **E2E-M8-05** `all` (FR-2.4/27.4): editing a template used by planning trips shows the FR-27.4 blast-radius note — those trips update immediately, everyone else sees changes at the next trip generation, running/past trips never (the separate publish warning fell with the FR-1.6 MVP simplification).
 * **E2E-M8-06** `all` (FR-1.2): add/remove/reorder items; swipe-to-delete.
+* **E2E-M8-07** `all` (FR-27.1/27.6): scope-shaped editor — a **Gruppe** shows only *Positionen* and no group picker; a **Ferien-Vorlage** shows the *Gruppen* section whose picker offers **groups only** (never vacation templates, never already-included groups) plus "Neue Gruppe anlegen…" inline (created group is immediately included); groups and own positions stay visually separate sections.
+* **E2E-M8-10** `all` (FR-27.6): guarded scope switch — a Vorlage with included groups refuses demotion to Gruppe (hint: remove groups first); a Gruppe included somewhere refuses promotion and the editor names its consumers ("Eingebunden in: …"); an unconstrained template switches freely.
+* **E2E-M8-11** `all` (FR-27.7): the expanded position form carries the preparation-task list (add via input/Enter, remove per row) with the blocking rule stated inline; the collapsed row shows a "📋 N Vorbereitung" count chip; adding/removing a task on a group used by a *planning* trip appears in that trip's FR-27.4 applied-changes log.
+* **E2E-M8-12** `all` (FR-25.7): adding a position via the quick-add suggestion is one tap — the row lands **collapsed** with the defaults (qty 1, trip-global, Packen, dedup max, no conditions, no Late-Packer), reads "Standard", and nothing auto-opens; the position sheet (M8-14) shows only Menge + Vorbereitung before its "Details ▾" toggle; the advanced parameters (per-person, procurement, dedup, conditions, Late-Packer) appear only after the toggle and collapse again with it.
+* **E2E-M8-14** `all` (FR-25.13/25.7/25.15): tapping a position opens the **M5-pattern bottom sheet** — name header, read-only glance-chip row, the icon-only auto-save indicator (● → ✓) flipping on edits, "Wer braucht das?" wording for the assignment (FR-25.10), scrim tap closes; no inline expanding row form exists.
+* **E2E-M8-13** `all` (FR-25.13/25.13a): M8's add is the packing list's quick-add, verbatim — collapsed card, ＋ FAB expands and focuses it, inventory autocomplete after two characters, visible confirm labelled for the scope ("Zur Gruppe/Vorlage hinzufügen"), Enter commits, the field stays open and empty for the next position, blur collapses it only when empty; an already-present name is reported ("schon drin — nicht doppelt") and not added twice; an unknown name creates the master item and the position in one step.
+* **E2E-M8-08** `all` (FR-27.2): resolution footer shows the resolved item count over groups + own positions and **names** every dedup with its contributing groups ("Kamera nur 1× — in Makro & Wildlife").
+* **E2E-M8-09** `all` (FR-27.4): a template used by a *planning* trip shows the blast-radius note naming that trip; adding/removing a position then puts the "⟳ N Änderungen aus Gruppen übernommen" chip **only** on that planning trip's M2 row (never on active/archived rows); expanding the chip lists each change with its source group.
 
 ### M9 — Item Inventory
-* **E2E-M9-01** `all` (FR-1.1): searchable, category-grouped list; per-row name/weight/value/unit/consumable chips; row thumbnail when a photo exists.
+* **E2E-M9-01** `all` (FR-1.1/24.4): searchable, tag-grouped list, **lean by default** — per row only primary-tag avatar + name (no tag chips, no weight/price); row thumbnail when a photo exists.
 * **E2E-M9-02** `all` (FR-1.1): FAB → name prompt → creates item → opens M10.
 * **E2E-M9-03** `all` (FR-16.3): multi-select merge of duplicates.
 * **E2E-M9-04** `all` (G-7/NFR-4.7): empty state → import entry (M15).
+* **E2E-M9-05** `all` (FR-24.4): the eye icon opens the "Angezeigte Eigenschaften" sheet; enabling Gewicht/Preis/Tags adds exactly those to the rows, the icon shows a count badge while anything is enabled, and the preference survives a reload **on this device only** (device-local, never synced).
 
 ### M10 — Item Editor
-* **E2E-M10-01** `all` (FR-1.1/1.7/1.8): name, category (inline-create), weight, value, unit selector pieces/pairs/per-day (rate field appears for per-day), consumable toggle.
+* **E2E-M10-01** `all` (FR-1.1): name, tags (inline-create), weight, price — no unit control (FR-1.8 retired).
+* **E2E-M10-08** `all` (FR-24.1): the tag input is a search field — typing filters the chips (assigned tags stay pinned), tapping a match assigns it; an unmatched name shows the "＋ „X“ neu anlegen" chip, and ＋/Enter creates and assigns the tag in one step, clearing the field for the next.
+* **E2E-M10-07** `all` (FR-24.5): creating an item shows the minimal form (name focused, tags, "Mehr — Gewicht & Preis ▾"; no Enthalten-in/Kommentare/Löschen sections); committing without a name is caught with a hint; after "Artikel anlegen" the full editor appears.
 * **E2E-M10-02** `all` (FR-2.4): usage footer ("Used in N templates, M archived trips"); delete blocked while referenced by templates.
+* **E2E-M10-09** `all` (FR-20.1/20.4): M10 lists the item's dependencies with a *nötig/empfohlen* toggle per row, and — read-only — the items that depend on it; the reverse list offers no editing, since the relation is owned by the item that needs the companion.
+* **E2E-M4-32** `all` (FR-20.4/20.2): quick-adding an item pulls its **required** companions onto the trip and reports it, while *suggested* ones are not added unasked; skipping the item co-skips those companions into the skipped section with the reason naming the parent.
 * **E2E-M10-03** `all` (FR-20.1): "Depends on" section — add dependency with required/suggested mode; save-time cycle rejection with a readable error; read-only "Companions" list.
 * **E2E-M10-04** `all` (FR-22.1/22.4/22.5): Photo section — add/replace/remove with live preview; oversized source is optimized to ≤150 KB JPEG (asserted via the stored/served image).
+* **E2E-M10-05** `all` (FR-27.8): "Enthalten in" section lists every group/Ferien-Vorlage containing the item with its scope chip; tapping a row opens that template's M8 editor; an unreferenced item shows the empty note. The deferred per-trip usage history is visibly noted as planned, not silently absent.
+* **E2E-M10-06** `all` (FR-27.9): "Kommentare aus Reisen" aggregates the comments written on this item's packing rows across trips — each entry carries author, source trip, and timestamp, newest first; comments from different trips appear together; an item without comments renders no section at all; entries are read-only (the editable thread stays on the trip item, FR-7.1).
 
 ### M11 — Container Management
 * **E2E-M11-01** `all` (FR-10.1): create/edit/delete containers with name, carrier, max weight.
+* **E2E-M11-05** `all` (FR-10.1/25.15/24.5): the ＋ FAB creates a container and opens its sheet; name and weight limit save on change with no Save button. Pairing is set **on both sides at once** and released on both when cleared or when one side is deleted.
+* **E2E-M11-06** `all` (FR-10.2/25.5): the unassigned bucket renders **one row per item** (asserts no per-container button grid); tapping a row opens the container picker with each container's current load, and choosing one assigns the item. Deleting a container **unassigns** its items — they must still be on the packing list afterwards.
 * **E2E-M11-02** `all` (FR-10.3): weight bar goes amber at ≥90%, red beyond max.
 * **E2E-M11-03** `all` (FR-10.2): unassigned bucket; assign items into/between containers; deleting a container unassigns its items first.
 * **E2E-M11-04** `all` (FR-10.3): pairing control shows a live imbalance indicator against the threshold.
 
 ### M12 — Analytics
 * **E2E-M12-01** `all` (FR-8.1/8.2): dimension switcher Person/Category/Container; stacked packed-vs-planned weight bars + value totals.
+* **E2E-M12-04** `all` (FR-8.2/25.11): tapping a bar lands on M4 **filtered** to that value — asserts the facet is set, the removable chip is visible, and the grouping matches the dimension. Regression guard: setting only the grouping (the pre-2026-08-08 behaviour) must fail this case.
+* **E2E-M12-05** `all` (FR-8.2/25.1): with a per-person item on the trip, the Person view shows **one contribution per traveler** and no `undefined` bucket; the Category view sums the same item's shares into a single bucket, so the totals match across dimensions.
 * **E2E-M12-02** `all` (FR-8.2): items without weight aggregate as "unweighted (n)".
 * **E2E-M12-03** `all` (FR-14.3): series trend section (weight over years, top Missing/Unused) shown when the trip has a series.
 * **E2E-M12-04** `all` (FR-8.2): tap a bar segment → M4 filtered to that slice.
 
-### M13 — Repack Mode
-* **E2E-M13-01** `all` (FR-11.1/11.2): entry dialog summarizes reset counts and lists excluded consumables/local buys with per-item override toggles.
-* **E2E-M13-02** `all` (FR-11.1): confirm resets packed PACK items to Open; outbound history retained.
-* **E2E-M13-03** `all` (FR-11.3): "Nothing left behind" checklist grouped by container/traveler.
-* **E2E-M13-04** `server` (FR-11.1): repack banner appears on the other client after their next master drain.
+### M13 — Repack Mode — **REMOVED (2026-07-17)**
+Feature removed from the product (PRD Addendum §3.11); its E2E cases are retired.
 
 ### M14 — Post-Trip Review Assistant
 * **E2E-M14-01** `all` (FR-9.1/9.2): archiving a flagged trip auto-launches the card stack; a proposal reads correctly (e.g. "Unused on N trips → set qty 0").
-* **E2E-M14-02** `all` (FR-9.2/1.6): Apply writes to the user's own template (asserted in M8); a foreign published source prompts Fork & apply.
+* **E2E-M14-04** `all` (FR-27.11): every proposal names a **group** as its target and the picker offers groups only — never a Ferien-Vorlage. An *unused* proposal defaults to the group the row came from; a *missing* ad-hoc row defaults to the trip's dominant group. Applying writes to that group and produces an FR-27.4 applied-change entry on each planning trip using it.
+* **E2E-M14-05** `all` (FR-27.11): the assistant renders as a **list with an open count**, not a card stack; applied and skipped rows remain visible and marked rather than disappearing, and "nie mehr fragen" removes the row for that item–group pair only.
+* **E2E-M14-02** `all` (FR-9.2/1.6): Apply writes directly to the source template — shared instance-wide per the FR-1.6 MVP simplification; no fork prompt exists.
 * **E2E-M14-03** `all` (FR-9.2): "Never ask again" scopes to the item–template pair (same item still surfaces for another template).
 * **E2E-M14-04** `all` (FR-9.2): no flags → "nothing to review" toast; re-openable from the archived trip; applied cards don't reappear (resumability).
 
@@ -242,6 +307,11 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M20-04** `server` (FR-23.5/23.1): no delete action anywhere; no role toggle.
 * **E2E-M20-05** `server` (FR-23.1/G-8): a non-admin OIDC user cannot route to `/admin` (403 / redirect); hidden entirely in `single`/`local`.
 
+### M21 — Vorlage aus Reise (new screen, §3.27)
+* **E2E-M21-01** `all` (FR-27.5): entry from the closing card at the top of M4 on an **archived** trip (an active trip shows no such card); the screen lists every recognised group with its on-trip item count and a "wird wiederverwendet" marker, and the loose ad-hoc rows (all pre-checked) under "Eigene Artikel".
+* **E2E-M21-02** `all` (FR-27.5): a group with on-trip deviations names them ("Auf der Reise ergänzt: Gimbal") and offers **Gruppe aktualisieren** (default) vs. **nur in diese Vorlage**; group positions absent from the trip are reported with the explicit "Gruppe bleibt unverändert" note.
+* **E2E-M21-03** `all` (FR-27.5/27.1/27.4): creating with defaults yields a composed template that **references** the recognised groups (not copies), carries the checked loose rows as own positions, and — where *aktualisieren* was chosen — the deviation lands in the group itself and surfaces as an applied change on planning trips using that group. The "Als neue Gruppe speichern" toggle bundles the loose rows into a fresh group instead.
+
 ---
 
 ## 5. Cross-Screen Flow Tests
@@ -256,6 +326,7 @@ These are full end-to-end journeys spanning several screens — the highest-valu
 * **E2E-FLOW-06 Offline round-trip** `single`: go offline → make edits (G-5 optimistic) → glyph shows queued → go online → silent sync, edits persist. (NFR-4.1, 4.2, G-2, G-5)
 * **E2E-FLOW-07 Local→Server migration** `local`→`server`: export portable YAML in Local Mode → import into a Server instance via M18 → data present. (FR-19.5, 18.x)
 * **E2E-FLOW-08 Concurrent-edit convergence** `server`: Alice and Bob edit the same trip offline simultaneously → both reconnect → field-level merge converges; a real conflict appears in the G-2 conflict log. (NFR-4.2a, G-2)
+* **E2E-FLOW-09 Template round-trip over a year** `single`: M3 creates a trip from a composed template + one extra overlapping group (camera deduped, named in the preview) → items added ad-hoc during the trip → archive → M21 creates next year's template: groups recognised & referenced, one deviation folded back into its group → the fold-back appears as an applied change on a *planning* trip using that group, while the archived source trip stays untouched → a new M3 run from the new template contains the full learned set. (FR-27.1–27.5, FR-2.3a)
 
 ---
 
@@ -281,12 +352,12 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 |---|---|---|
 | FR-1.1 | E2E | M9-01/02, M10-01, M8-04 |
 | FR-1.2 | E2E | M7-01/03, M8-06 |
-| FR-1.3 | E2E+UNIT | M8-01 (UI); formula.ts (logic) |
+| FR-1.3 | DOC/N-A | retired 2026-08-08 — plain integer quantities (M8-01 covers the stepper) |
 | FR-1.4 | E2E | M8-02 |
-| FR-1.5 | E2E+UNIT | M8-01; formula.ts `validateFormula` |
-| FR-1.6 | E2E | M7-02, M14-02, M18-01 |
-| FR-1.7 | E2E | M10-01 |
-| FR-1.8 | E2E | M10-01, G6-01 |
+| FR-1.5 | DOC/N-A | retired 2026-08-08 with FR-1.3 |
+| FR-1.6 | E2E | M7-01 (shared list), M14-02 (direct write), M18-01 — MVP shared model; publish/fork cases parked with the FR-1.6 stub |
+| FR-1.7 | DOC/N-A | retired 2026-08-08 (owner decision) — consumable flag and per-day unit removed |
+| FR-1.8 | DOC/N-A | retired 2026-08-08 — no units, everything counts in pieces |
 | FR-2.1 / 2.1a | E2E | M3-01, M2-01/03 |
 | FR-2.2 | E2E+UNIT | M3-06; instantiate.ts |
 | FR-2.3 / 2.3a | E2E+UNIT | M3-06, M8-03; instantiate.ts |
@@ -322,9 +393,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-10.2 | E2E | M11-03, M5-02 |
 | FR-10.3 | E2E+UNIT | M11-02/04; containers.ts |
 | FR-10.4 | UNIT | analytics.ts (container weight); surfaced M12-01 |
-| FR-11.1 | E2E | M13-02, M13-04 |
-| FR-11.2 | E2E+UNIT | M13-01; repack.ts |
-| FR-11.3 | E2E | M13-03 |
+| FR-11.1–11.3 | — | removed (Repack feature dropped, Addendum §3.11) |
 | FR-12.1 | E2E | M2-04 |
 | FR-12.2 | E2E+UNIT | ClonePage toggles; clone.ts |
 | FR-13.1 | E2E | M2-02, M16-01 |
@@ -335,7 +404,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-14.3 | E2E+UNIT | M12-03; analytics.ts |
 | FR-15.1 | E2E | M3-01, M16-01 |
 | FR-15.2 | E2E+UNIT | M3-06, M8-03; instantiate.ts |
-| FR-15.3 | UNIT | formula.ts variable catalogue; surfaced M8-01 |
+| FR-15.3 | DOC/N-A | void — retired with FR-1.3/1.5 (2026-08-08) |
 | FR-16.1 | E2E | M15-01 |
 | FR-16.2 | E2E | M2-08, M15-04 |
 | FR-16.3 | E2E+UNIT | M15-03, M18-03, M9-03; spreadsheet.ts |
@@ -375,6 +444,45 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-23.4 | E2E | M20-03 |
 | FR-23.5 | E2E | M20-04 |
 | FR-23.6 | SERVER | deactivation side-effects (push purge, notif suppress) — Go test; access-revocation asserted M20-02 |
+| FR-24.1 | E2E | M10-08 (filter-or-create tag capture); grouping/filtering M9-01/24.2 |
+| FR-24.4 | E2E | M9-01 (lean default), M9-05 (property sheet, device-local) |
+| FR-24.5 | E2E | M10-07 (minimal creation, sections absent) |
+| FR-25.1 | E2E+UNIT | M4-12/13/14; packingView.ts (clustering, flat fallback, full-set decision) |
+| FR-25.2 | E2E+UNIT | M4-14; packingView.ts (isDone, hidden counts, full-set headers) |
+| FR-25.4 | E2E+UNIT | mode glyph rules M4-15/16; packingView.ts — the pill strip itself is superseded by FR-25.11 |
+| FR-25.8 | E2E | M4-12, M4-13 |
+| FR-25.6 | E2E | M6-05 (aggregated row), M6-06 (settles all instances), M6-07 (notes) |
+| FR-25.10 | E2E | M6-08 (no free-form "for whom"); M5 membership control |
+| FR-25.12 | E2E | M6-09 (buyer, kept distinct from recipients), M6-10 (description) |
+| FR-25.13 | E2E | M6-11; M4-04; M8-13 (same quick-add on all three screens); M8-14 (same edit sheet) |
+| FR-25.13a | E2E | M6-12 (all three at add time, no wipe on chip tap), M6-13 (assignee carries over), M6-16/M4-21 (visible confirm, no keyboard) |
+| FR-25.11 | E2E | M4-15 (panel), M4-16 (OR/AND), M4-17 (counts), M4-18 (empty states), M4-19 (Gemeinsam) |
+| FR-25.11g | E2E | M6-14 (same panel, shop facets, independent state) |
+| FR-25.11h | E2E | M4-20, M6-15 (last row clears the FAB) |
+| FR-25.11i | E2E | M6-17; M4-14 (reveal, dimmed, still interactive) |
+| FR-25.11j | E2E | M6-17 (BUY_BEFORE leaves the list and comes back) |
+| FR-25.11k | E2E | M6-18, G12-01/04 (collapsed search, filter icon with badge, one header line) |
+| G-12 | E2E | G12-01…06 (app-bar placement, two clusters + no overflow, survives collapse, one line, literal icons, nameable glyphs) |
+| FR-25.16 | E2E | M4-22 (fold one / fold all), M4-23 (folding vs doneness stay separate) |
+| FR-25.17 | E2E | M4-24 (packed-by stamp, cleared on un-pack); M6-05 for the buying counterpart |
+| FR-25.18 | E2E | M4-28 (filter/switch/grouping survive navigation + reload, fresh session unfiltered, chips visible) |
+| FR-25.19 | E2E | M4-30 (responsibility vs. record, single right-edge avatar, record not editable) |
+| FR-25.20 | E2E | M4-31 (others' rows hidden by default, reveal bar names count + people, header unfiltered) |
+| FR-25.14 | E2E | M5-06 (read-only aggregate, per-traveler controls) |
+| FR-25.15 | E2E | M5-07 (auto-save indicator, distinct from G-2) |
+| FR-25.13b | E2E | M6-19 (autocomplete adopts the category; manual fallback) |
+| FR-27.1 | E2E | M8-07 (two-level include rules), M7-07, M21-03 |
+| FR-27.2 | E2E+UNIT | M3-11, M8-08; instantiate.ts (include expansion + named merge) |
+| FR-27.3 | E2E | M3-12 |
+| FR-27.4 | E2E | M8-05 (warning wording), M8-09 (chip only on planning trips), M21-03, FLOW-09 |
+| FR-27.5 | E2E | M21-01/02/03, FLOW-09 |
+| FR-27.6 | E2E | M7-07 (scope tabs/sections), M7-08 (create chooser), M8-07 (scope-shaped editor), M8-10 (guarded switch), M3-11 (wizard sections) |
+| FR-27.7 | E2E | M8-11 (task list + count chip + propagation log), M3-13 (preview count, todo on the generated item); blocking = existing FR-7.3/25.2 M4 cases |
+| FR-27.8 | E2E | M10-05 (named back-references, tap-through); counts stay M10-02 |
+| FR-27.9 | E2E | M10-06 (cross-trip comment aggregation with author/trip/timestamp) |
+| FR-27.10 | E2E | M4-26 (group add: dedup, provenance, tasks, no Missing flag), M4-27 (fully-present group, planning-trip propagation) |
+| FR-27.11 | E2E | M14-04 (group targets, blast radius, applied-change log), M14-05 (list not card stack, marked rows, per-pair dismissal) |
+| FR-25.7 | E2E | M8-12 (one-tap add, "Standard" row, Mehr-Optionen disclosure) |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |
 | NFR-4.2a | E2E+UNIT | FLOW-08, NFR-04; sync merge tests |

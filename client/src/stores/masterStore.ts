@@ -253,9 +253,6 @@ function rowToItem(id: string, row: Record<string, unknown>): MasterItem {
     category_id: (row['category_id'] as string) ?? null,
     weight_grams: (row['weight_grams'] as number) ?? null,
     value_cents: (row['value_cents'] as number) ?? null,
-    is_consumable: Boolean(row['is_consumable']),
-    unit: (row['unit'] as MasterItem['unit']) ?? 'pieces',
-    per_day_rate: (row['per_day_rate'] as number) ?? null,
     image_hash: (row['image_hash'] as string) ?? null,
   }
 }
@@ -265,7 +262,6 @@ function rowToTemplate(id: string, row: Record<string, unknown>): Template {
     id,
     owner_id: row['owner_id'] as string,
     name: row['name'] as string,
-    is_published: Boolean(row['is_published']),
   }
 }
 
@@ -303,7 +299,7 @@ function rowToDependency(id: string, row: Record<string, unknown>): ItemDependen
     item_id: row['item_id'] as string,
     depends_on_item_id: row['depends_on_item_id'] as string,
     mode: (row['mode'] as ItemDependency['mode']) ?? 'required',
-    quantity_formula: (row['quantity_formula'] as string) ?? null,
+    quantity: (row['quantity'] as number) ?? null,
   }
 }
 
@@ -312,7 +308,7 @@ function rowToTemplateItem(id: string, row: Record<string, unknown>): TemplateIt
     id,
     template_id: row['template_id'] as string,
     item_id: row['item_id'] as string,
-    quantity_formula: (row['quantity_formula'] as string) ?? '1',
+    quantity: (row['quantity'] as number) ?? 1,
     assignment: (row['assignment'] as TemplateItem['assignment']) ?? 'per_person',
     dedup: (row['dedup'] as TemplateItem['dedup']) ?? 'max',
     conditions: row['conditions'] ? JSON.parse(row['conditions'] as string) : null,

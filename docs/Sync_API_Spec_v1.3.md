@@ -55,9 +55,9 @@
 
 ### `GET /sync/master?cursor={seq}&limit={n}`
 
-Same envelope for the user's master partition. `change_log.trip_id` is NULL for master rows (schema note: column becomes nullable in migration 005); visibility is filtered per user (own + published templates, member trips, rosters of member trips).
+Same envelope for the user's master partition. `change_log.trip_id` is NULL for master rows (schema note: column becomes nullable in migration 005); visibility is filtered per user (member trips and their rosters, own series; categories, items and templates are instance-wide per the FR-1.6 MVP simplification).
 
-`item_dependencies` syncs through the master partition since migration 011 (Addendum 3.20, FR-20.1): rows carry `{item_id, depends_on_item_id, mode, quantity_formula}` and are shared like the items they connect — writable and visible to every authenticated user. Deleting an item cascades its relations (both directions) and tombstones them. A duplicate `(item_id, depends_on_item_id)` pair, a self-reference, or an unknown endpoint is `rejected` (UNIQUE/CHECK/FK). Cycle prevention is save-time client validation (like FR-1.5 formulas); the client resolver also tolerates cycles that slip in from another device.
+`item_dependencies` syncs through the master partition since migration 011 (Addendum 3.20, FR-20.1): rows carry `{item_id, depends_on_item_id, mode, quantity}` (plain integer since migration 014; formulas retired 2026-08-08) and are shared like the items they connect — writable and visible to every authenticated user. Deleting an item cascades its relations (both directions) and tombstones them. A duplicate `(item_id, depends_on_item_id)` pair, a self-reference, or an unknown endpoint is `rejected` (UNIQUE/CHECK/FK). Cycle prevention is save-time client validation; the client resolver also tolerates cycles that slip in from another device.
 
 `trip_members` syncs through the master partition since migration 009 (FR-4.5/4.7): rows carry `{trip_id, user_id, role}`, are managed only by Owner/Admin, never carry `role: "owner"` from a client (the creator's server-created row is the only Owner and is immutable — no demotion, no removal), and a duplicate `(trip_id, user_id)` insert is `rejected`. Two server-side feed guarantees make late sharing work: (a) creating a trip also logs the auto-created owner membership row, and (b) applying a membership grant re-logs the `trips` row, because the new member's pull cursor is already past the trip's original change_log entry. Removal delivers a plain tombstone; the removed member's device keeps its local copy until it discards it (lazy, same semantics as trip deletes).
 
@@ -124,13 +124,12 @@ Field groups: `packed_count`+`state` merge as one unit (they are causally couple
 
 ## 8. Non-Synced Operations (RPC-style REST)
 
-Server-side computations that must not run on clients. **Decided (Local Mode, Addendum 3.19): trip generation, cloning, repack, and the post-trip review run client-side instead** — formula evaluation/conditions/dedup (FR-1.3/1.5/15.2/2.3), the FR-12 clone plan, the FR-11 bulk reset, and FR-9.2 proposal generation are pure client logic committed as ordinary push mutations, so Local Mode keeps feature parity without a server. The `POST /trips`, `POST /trips/{id}/clone`, `POST /trips/{id}/repack`, `POST /trips/{id}/archive`, and review rows below are therefore **not implemented as endpoints**:
+Server-side computations that must not run on clients. **Decided (Local Mode, Addendum 3.19): trip generation, cloning, and the post-trip review run client-side instead** — quantity/conditions/dedup resolution (FR-15.2/2.3), the FR-12 clone plan, and FR-9.2 proposal generation are pure client logic committed as ordinary push mutations, so Local Mode keeps feature parity without a server. The `POST /trips`, `POST /trips/{id}/clone`, `POST /trips/{id}/archive`, and review rows below are therefore **not implemented as endpoints**:
 
 | Endpoint | Purpose |
 |---|---|
 | ~~`POST /trips`~~ | superseded: the M3 wizard generates client-side and pushes trips (master partition) + travelers/trip_items (trip partition) |
-| ~~`POST /trips/{id}/clone`~~ | superseded: FR-12 clones client-side (`planClone` + ordinary mutations — traveler/container links remapped, formulas re-evaluated against the new duration), same cascade as trip generation |
-| ~~`POST /trips/{id}/repack`~~ | superseded: M13 resets client-side via ordinary mutations (`outbound_packed` preserves the outbound history) |
+| ~~`POST /trips/{id}/clone`~~ | superseded: FR-12 clones client-side (`planClone` + ordinary mutations — traveler/container links remapped, quantities carried over unchanged), same cascade as trip generation |
 | ~~`POST /trips/{id}/archive`~~ | superseded: archiving is a plain `trips.status` upsert on the master partition. Open server-side follow-up: the NFR-4.2a conflict-log compaction on archive has no trigger yet |
 | ~~`GET /trips/{id}/review`~~ / ~~`POST /trips/{id}/review/{proposalId}`~~ | superseded: M14 derives proposals client-side from FR-9.1 flags and current template state (applied cards vanish on recomputation → resumability for free); apply/fork are ordinary master mutations, "Never ask again" is a device-local dismissal store scoped to the item–template pair |
 | ~~`POST /import/analyze`~~ · ~~`POST /import/commit`~~ | superseded: the M15 wizard parses/analyzes/commits client-side (FR-19.4 lists the import as Local-Mode parity). CSV only — XLSX deferred (parser dependency vs NFR-4.3; spreadsheets export CSV). NFR-4.7 transactionality is approximated: full pre-validation before enqueue, parents-first ordering, idempotent replay — there is no cross-mutation server transaction |
@@ -150,7 +149,7 @@ Server-side computations that must not run on clients. **Decided (Local Mode, Ad
 | ~~`GET /suggestions/trips/{id}`~~ | FR-14.2 quantity suggestions — **superseded**: computed client-side (`src/domain/suggestions.ts`, duration-normalized median of the series' last three trips) from already-synced series trips, like generation/analytics/review, so it works in Local Mode with no round-trip |
 | `GET /trips/{id}/conflicts` | Per-trip conflict log for the G-2 view (NFR-4.2a) — read-only: `{conflicts:[{id, entity_table, entity_id, field, losing_value, winning_value, resolved_at}]}`, newest first; conflict rows never flow through pull |
 
-All RPC results materialize as ordinary `change_log` entries — clients see the outcome through the normal pull, never through the RPC response body (P-1). RPC responses return only `{ok, pull_hint}` plus operation-specific metadata (e.g., import summary). **Decided: published-template changes use lazy discovery** — there is no `template.changed` WebSocket event; a consumer of a published template sees edits the next time it pulls its own master partition, keeping the event catalog (§7) minimal and the footprint goal (NFR-4.3) intact.
+All RPC results materialize as ordinary `change_log` entries — clients see the outcome through the normal pull, never through the RPC response body (P-1). RPC responses return only `{ok, pull_hint}` plus operation-specific metadata (e.g., import summary). **Decided: template changes use lazy discovery** — there is no `template.changed` WebSocket event; a consumer of a shared template sees edits the next time it pulls its own master partition, keeping the event catalog (§7) minimal and the footprint goal (NFR-4.3) intact.
 
 ## 9. Error Model & Limits
 
@@ -167,4 +166,4 @@ All RPC results materialize as ordinary `change_log` entries — clients see the
 
 ## Decisions (Resolved)
 
-All decisions originally listed as open here have been resolved and are now recorded directly in their owning section: field-group granularity (§6, no `mode`+`state` grouping), lock timeout (§7, 15 min default, env-configurable), and master-partition scope for published templates (§8, lazy discovery). No open decisions remain in this document.
+All decisions originally listed as open here have been resolved and are now recorded directly in their owning section: field-group granularity (§6, no `mode`+`state` grouping), lock timeout (§7, 15 min default, env-configurable), and master-partition scope for shared templates (§8, lazy discovery). No open decisions remain in this document.

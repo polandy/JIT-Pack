@@ -36,16 +36,24 @@ export interface PortableContainer {
   max_weight_grams: number | null
 }
 
+/** Legacy files carried string quantities — sometimes a formula. Numeric
+ * strings keep their value, formula strings fold to 1 (FR-18.4 tolerance;
+ * formulas retired with FR-1.3/1.5). */
+function coerceQuantity(raw: unknown): number {
+  if (typeof raw === 'number' && Number.isFinite(raw)) return Math.max(0, Math.floor(raw))
+  if (typeof raw === 'string' && /^\d+$/.test(raw.trim())) return parseInt(raw.trim(), 10)
+  return 1
+}
+
 export interface PortableItem {
   name: string
-  quantity: string
+  quantity: number
   // Template fields
   assignment: 'per_person' | 'trip_global' | null
   dedup: 'max' | 'sum' | null
   conditions: Record<string, unknown> | null
   default_mode: string | null
   late_packer: boolean
-  unit: string | null
   // Trip fields
   mode: string | null
   category: string | null
@@ -165,9 +173,8 @@ export function serializeTemplate(
       const master = masterItem(ti.item_id)
       return {
         name: master?.name ?? 'Unknown item',
-        quantity: ti.quantity_formula,
+        quantity: ti.quantity,
         assignment: ti.assignment,
-        unit: master?.unit ?? 'pieces',
         ...(ti.conditions ? { conditions: ti.conditions } : {}),
         default_mode: ti.default_mode,
         ...(ti.late_packer ? { late_packer: true } : {}),
@@ -210,7 +217,7 @@ export function serializeTrip(args: {
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((item) => ({
       name: item.name,
-      quantity: String(item.quantity),
+      quantity: item.quantity,
       mode: item.mode,
       ...(item.category_name ? { category: item.category_name } : {}),
       ...(item.assigned_traveler_id
@@ -246,7 +253,7 @@ function toItem(entry: unknown): PortableItem | null {
   if (name === '') return null
   return {
     name,
-    quantity: typeof o['quantity'] === 'string' ? o['quantity'] : String(o['quantity'] ?? '1'),
+    quantity: coerceQuantity(o['quantity']),
     assignment:
       o['assignment'] === 'per_person' || o['assignment'] === 'trip_global'
         ? o['assignment']
@@ -258,7 +265,6 @@ function toItem(entry: unknown): PortableItem | null {
         : null,
     default_mode: str(o['default_mode']),
     late_packer: o['late_packer'] === true,
-    unit: str(o['unit']),
     mode: str(o['mode']),
     category: str(o['category']),
     traveler: str(o['traveler']),
