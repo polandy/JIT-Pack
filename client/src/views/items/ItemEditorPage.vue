@@ -2,7 +2,7 @@
 /**
  * M10 — Item Editor
  *
- * Edit one master item: name, category, weight, value, unit, consumable,
+ * Edit one master item: name, category, weight, value, unit,
  * and its companion dependencies (Addendum 3.20).
  * Every change commits immediately (G-5).
  */
@@ -20,8 +20,6 @@ import {
   IonInput,
   IonSelect,
   IonSelectOption,
-  IonToggle,
-  IonNote,
   IonButton,
   IonIcon,
   IonSearchbar,
@@ -165,14 +163,6 @@ function onUnitChange(event: CustomEvent) {
   updateField('unit', event.detail.value)
 }
 
-function onRateChange(event: CustomEvent) {
-  const val = parseFloat((event.target as HTMLIonInputElement).value as string)
-  updateField('per_day_rate', isNaN(val) ? null : val)
-}
-
-function onConsumableChange(event: CustomEvent) {
-  updateField('is_consumable', event.detail.checked ? 1 : 0)
-}
 </script>
 
 <template>
@@ -244,29 +234,7 @@ function onConsumableChange(event: CustomEvent) {
             <IonSelect :value="item.unit" interface="popover" @ionChange="onUnitChange">
               <IonSelectOption value="pieces">Pieces</IonSelectOption>
               <IonSelectOption value="pairs">Pairs</IonSelectOption>
-              <IonSelectOption value="per_day">Per day</IonSelectOption>
             </IonSelect>
-          </IonItem>
-
-          <!-- Per-day rate (only for per_day unit) -->
-          <IonItem v-if="item.unit === 'per_day'">
-            <IonLabel position="stacked">Rate per day</IonLabel>
-            <IonInput
-              type="number"
-              step="0.1"
-              :value="item.per_day_rate ?? ''"
-              placeholder="1"
-              @ionBlur="onRateChange"
-            />
-          </IonItem>
-
-          <!-- Consumable (FR-1.7) -->
-          <IonItem>
-            <IonLabel>Consumable</IonLabel>
-            <IonToggle :checked="item.is_consumable" @ionChange="onConsumableChange" />
-            <IonNote slot="helper">
-              Consumable items are expected to be repurchased between trips
-            </IonNote>
           </IonItem>
         </IonList>
 

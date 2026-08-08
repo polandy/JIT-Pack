@@ -178,9 +178,7 @@ describe('planClone — formula re-evaluation (FR-12.2)', () => {
     category_id: null,
     weight_grams: null,
     value_cents: null,
-    is_consumable: false,
     unit: 'pieces',
-    per_day_rate: null,
   }
   const lookup = {
     templateItem: (tplId: string, itemId: string) =>

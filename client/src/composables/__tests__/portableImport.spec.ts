@@ -66,7 +66,7 @@ items:
       table: 'items',
       id: 'i1',
       deleted: false,
-      row: { name: 'Unterhosen', unit: 'pieces', is_consumable: 0 },
+      row: { name: 'Unterhosen', unit: 'pieces' },
     })
 
     const result = orch.commitPortableImport(doc, new Map([['Unterhosen', 'i1']]))

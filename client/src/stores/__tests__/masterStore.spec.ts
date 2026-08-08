@@ -48,14 +48,12 @@ describe('masterStore', () => {
         category_id: 'c1',
         weight_grams: 200,
         unit: 'pieces',
-        is_consumable: 0,
       },
     })
 
     const item = store.getItem('i1')
     expect(item?.name).toBe('T-Shirt')
     expect(item?.weight_grams).toBe(200)
-    expect(item?.is_consumable).toBe(false)
   })
 
   it('deletes items', () => {

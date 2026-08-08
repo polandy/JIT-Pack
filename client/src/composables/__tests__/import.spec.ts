@@ -73,7 +73,7 @@ describe('commitImport (FR-16.2)', () => {
       table: 'items',
       id: 'i-exist',
       deleted: false,
-      row: { name: 'Unterhosen', unit: 'pieces', is_consumable: 0 },
+      row: { name: 'Unterhosen', unit: 'pieces' },
     })
 
     const result = orch.commitImport(plan)

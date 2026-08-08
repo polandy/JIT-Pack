@@ -212,13 +212,13 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M8-09** `all` (FR-27.4): a template used by a *planning* trip shows the blast-radius note naming that trip; adding/removing a position then puts the "⟳ N Änderungen aus Gruppen übernommen" chip **only** on that planning trip's M2 row (never on active/archived rows); expanding the chip lists each change with its source group.
 
 ### M9 — Item Inventory
-* **E2E-M9-01** `all` (FR-1.1): searchable, category-grouped list; per-row name/weight/value/unit/consumable chips; row thumbnail when a photo exists.
+* **E2E-M9-01** `all` (FR-1.1): searchable, category-grouped list; per-row name/weight/value/unit chips; row thumbnail when a photo exists.
 * **E2E-M9-02** `all` (FR-1.1): FAB → name prompt → creates item → opens M10.
 * **E2E-M9-03** `all` (FR-16.3): multi-select merge of duplicates.
 * **E2E-M9-04** `all` (G-7/NFR-4.7): empty state → import entry (M15).
 
 ### M10 — Item Editor
-* **E2E-M10-01** `all` (FR-1.1/1.7/1.8): name, category (inline-create), weight, value, unit selector pieces/pairs/per-day (rate field appears for per-day), consumable toggle.
+* **E2E-M10-01** `all` (FR-1.1/1.8): name, category (inline-create), weight, value, unit selector pieces/pairs.
 * **E2E-M10-02** `all` (FR-2.4): usage footer ("Used in N templates, M archived trips"); delete blocked while referenced by templates.
 * **E2E-M10-03** `all` (FR-20.1): "Depends on" section — add dependency with required/suggested mode; save-time cycle rejection with a readable error; read-only "Companions" list.
 * **E2E-M10-04** `all` (FR-22.1/22.4/22.5): Photo section — add/replace/remove with live preview; oversized source is optimized to ≤150 KB JPEG (asserted via the stored/served image).
@@ -335,7 +335,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-1.4 | E2E | M8-02 |
 | FR-1.5 | E2E+UNIT | M8-01; formula.ts `validateFormula` |
 | FR-1.6 | E2E | M7-02, M14-02, M18-01 |
-| FR-1.7 | E2E | M10-01 |
+| FR-1.7 | DOC/N-A | retired 2026-08-08 (owner decision) — consumable flag and per-day unit removed |
 | FR-1.8 | E2E | M10-01, G6-01 |
 | FR-2.1 / 2.1a | E2E | M3-01, M2-01/03 |
 | FR-2.2 | E2E+UNIT | M3-06; instantiate.ts |

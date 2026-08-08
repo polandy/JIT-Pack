@@ -195,20 +195,17 @@ function conditionFailure(
 }
 
 /**
- * computeQuantity evaluates the formula (null → 1 per FR-2.1a), applies
- * the per-day consumable rate (FR-1.8: rate × duration, duration-less
- * trips fall back to a single day), clamps at 0, and rounds up — a
- * fractional result must never under-pack.
+ * computeQuantity evaluates the formula (null → 1 per FR-2.1a), clamps
+ * at 0, and rounds up — a fractional result must never under-pack.
+ * Per-day needs are expressed in the formula itself (FR-1.3, e.g.
+ * ceil(trip_duration / 7)); the dedicated per-day item rate was retired
+ * with FR-1.7 (owner decision 2026-08-08).
  */
 export function computeQuantity(
   ti: Pick<TemplateItem, 'quantity_formula'>,
-  master: MasterItem,
+  _master: MasterItem,
   vars: FormulaVariables,
 ): number {
   const base = evaluateFormula(ti.quantity_formula, vars) ?? 1
-  let quantity = base
-  if (master.unit === 'per_day' && master.per_day_rate !== null) {
-    quantity = base * master.per_day_rate * (vars.trip_duration ?? 1)
-  }
-  return Math.max(0, Math.ceil(quantity))
+  return Math.max(0, Math.ceil(base))
 }

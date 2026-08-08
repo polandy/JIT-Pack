@@ -74,7 +74,7 @@ func TestApplyMasterMutation_InsertWritesMasterChangeLog(t *testing.T) {
 		{
 			name: "items forces created_by",
 			m: masterMut(sync.OpInsert, "items", "item-m2", "mm-item",
-				map[string]any{"name": "Ladekabel", "unit": "pieces", "is_consumable": 0}, "0000000001001-0000-aaaaaaaa"),
+				map[string]any{"name": "Ladekabel", "unit": "pieces"}, "0000000001001-0000-aaaaaaaa"),
 			verify: func(t *testing.T) {
 				var createdBy string
 				if err := s.db.QueryRow(`SELECT created_by FROM items WHERE id = 'item-m2'`).Scan(&createdBy); err != nil {

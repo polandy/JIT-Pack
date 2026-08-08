@@ -3,7 +3,7 @@
  * M9 — Item Inventory
  *
  * Central item database. Searchable, category-grouped list.
- * Per row: name, weight, value, unit chip, consumable chip.
+ * Per row: name, weight, value, unit chip.
  * FAB for new item.
  */
 import {
@@ -24,7 +24,7 @@ import {
   IonButton,
   alertController,
 } from '@ionic/vue'
-import { addOutline, cloudUploadOutline, cubeOutline, leafOutline } from 'ionicons/icons'
+import { addOutline, cloudUploadOutline, cubeOutline } from 'ionicons/icons'
 import { ref, computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMasterStore } from '@/stores/masterStore'
@@ -74,14 +74,7 @@ function formatWeight(grams: number): string {
 }
 
 function unitLabel(item: MasterItem): string {
-  switch (item.unit) {
-    case 'pairs':
-      return 'pairs'
-    case 'per_day':
-      return `${item.per_day_rate ?? 1}/day`
-    default:
-      return ''
-  }
+  return item.unit === 'pairs' ? 'pairs' : ''
 }
 
 function onSearch(event: CustomEvent) {
@@ -149,11 +142,6 @@ async function handleRefresh(event: CustomEvent) {
             <!-- Unit chip (only for non-default) -->
             <IonChip v-if="item.unit !== 'pieces'" slot="end" color="medium" outline>
               {{ unitLabel(item) }}
-            </IonChip>
-
-            <!-- Consumable chip -->
-            <IonChip v-if="item.is_consumable" slot="end" color="success" outline>
-              <IonIcon :icon="leafOutline" />
             </IonChip>
           </IonItem>
         </IonItemGroup>

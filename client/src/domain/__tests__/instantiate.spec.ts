@@ -19,9 +19,7 @@ function masterItem(id: string, name: string, extra: Partial<MasterItem> = {}): 
     category_id: null,
     weight_grams: 100,
     value_cents: null,
-    is_consumable: false,
     unit: 'pieces',
-    per_day_rate: null,
     ...extra,
   }
 }
@@ -187,7 +185,7 @@ describe('generateTripItems', () => {
     const res = generateTripItems(
       input({
         templates: [template('t1', 'Basis'), template('t2', 'Strand')],
-        masterItems: [masterItem('i1', 'Sonnencreme', { is_consumable: true })],
+        masterItems: [masterItem('i1', 'Sonnencreme')],
         templateItems: [
           templateItem('ti1', 't1', 'i1', { quantity_formula: '1' }),
           templateItem('ti2', 't2', 'i1', { quantity_formula: '2', dedup: 'sum' }),
@@ -215,24 +213,6 @@ describe('generateTripItems', () => {
     expect(res.items.every((i) => i.quantity === 4)).toBe(true)
   })
 
-  it('computes per-day consumables from rate × duration (FR-1.8)', () => {
-    const res = generateTripItems(
-      input({
-        templates: [template('t1', 'Basis')],
-        masterItems: [
-          masterItem('i1', 'Kontaktlinsen', {
-            unit: 'per_day',
-            per_day_rate: 2,
-            is_consumable: true,
-          }),
-        ],
-        templateItems: [templateItem('ti1', 't1', 'i1', { assignment: 'per_person' })],
-        trip: { duration_days: 10, attributes: null, travelers: twoAdults },
-      }),
-    )
-
-    expect(res.items.every((i) => i.quantity === 20)).toBe(true)
-  })
 
   it('carries default_mode and late_packer into generated items', () => {
     const res = generateTripItems(

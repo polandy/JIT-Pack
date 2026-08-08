@@ -1093,11 +1093,11 @@ const isDone = it => it.packed>=it.qty && !openPrepOf(it.name);   // packed & no
 function itemLeaves(it){
   if(!it.pp) return [{key:String(it.id), it, e:null, ppIndex:null,
     name:it.name, trav:it.trav, qty:it.qty, packed:it.packed, packedBy:it.packedBy, packedAt:it.packedAt,
-    prep:openPrepOf(it.name), cat:it.cat, cont:it.cont, mode:it.mode, unit:it.unit, cons:it.cons, missing:it.missing,
+    prep:openPrepOf(it.name), cat:it.cat, cont:it.cont, mode:it.mode, unit:it.unit, missing:it.missing,
     late:it.late}];   // late was never copied onto the leaf, so ⏰ and the Merkmale facet both missed it
   return it.pp.map((e,k)=>({key:'pp:'+it.id+':'+k, it, e, ppIndex:k,
     name:it.name, trav:e.trav, qty:e.qty, packed:e.packed, packedBy:e.packedBy, packedAt:e.packedAt,
-    prep:openPrepOf(it.name), cat:it.cat, cont:it.cont, mode:it.mode, unit:it.unit, cons:it.cons, missing:it.missing,
+    prep:openPrepOf(it.name), cat:it.cat, cont:it.cont, mode:it.mode, unit:it.unit, missing:it.missing,
     late:it.late}));
 }
 const allLeaves = () => P.items.flatMap(itemLeaves);
@@ -1123,8 +1123,8 @@ const P = {
       {trav:'Andy',qty:2,packed:2,packedBy:'Andy'},{trav:'Sia',qty:1,packed:0},{trav:'Leonardo',qty:3,packed:1,packedBy:'Sia'}]},
     {id:19,name:'Sonnenbrille',cat:'Kleidung',mode:'pack',cont:'Koffer',w:30,pp:[
       {trav:'Andy',qty:1,packed:0},{trav:'Sia',qty:1,packed:0}]},
-    {id:5,name:'Sonnencreme',cat:'Bad',qty:1,packed:0,mode:'buy_local',trav:'Alle',cont:'—',w:150,cons:true},
-    {id:6,name:'Taschentücher',cat:'Bad',qty:4,packed:1,mode:'pack',trav:'Alle',cont:'Kulturbeutel',w:40,cons:true,packedBy:'Sia',late:true},
+    {id:5,name:'Sonnencreme',cat:'Bad',qty:1,packed:0,mode:'buy_local',trav:'Alle',cont:'—',w:150},
+    {id:6,name:'Taschentücher',cat:'Bad',qty:4,packed:1,mode:'pack',trav:'Alle',cont:'Kulturbeutel',w:40,packedBy:'Sia',late:true},
     {id:7,name:'Velohelme',cat:'Aktivität',qty:2,packed:1,mode:'pack',trav:'Alle',cont:'Auto',w:300,packedBy:'Andy'},
     {id:8,name:'Wanderstöcke',cat:'Aktivität',qty:1,packed:0,mode:'pack',trav:'Andy',cont:'Auto',w:500},
     {id:9,name:'Mehrfach-Stromstecker',cat:'Technik',qty:1,packed:1,mode:'pack',trav:'Alle',cont:'Rucksack',w:180,packedBy:'Sia'},
@@ -2075,7 +2075,7 @@ const TPL=[{id:'sommer',name:'Sommer · Basis',emoji:'☀️',items:32,season:'S
   {id:'kids',name:'Roadtrip mit Kindern',emoji:'🚗',items:27,owner:'pub',pub:true}];
 const QROWS=[{name:'T-Shirts',f:'num_travelers × ceil(dur/2)',calc:(n,d)=>n*Math.ceil(d/2),hist:'’24: 5 · ’25: 6',s:6},
   {name:'Unterwäsche',f:'num_travelers × (dur+2)',calc:(n,d)=>n*(d+2),hist:'’25: 30',s:30},
-  {name:'Sonnencreme',f:'ceil(dur/7) · pro Tag',calc:(n,d)=>Math.ceil(d/7),hist:null,s:null},
+  {name:'Sonnencreme',f:'ceil(dur/7)',calc:(n,d)=>Math.ceil(d/7),hist:null,s:null},
   {name:'Ladekabel',f:'num_travelers',calc:(n,d)=>n,hist:'’25: 3',s:3}];
 const STEP_LBL=['Eckdaten','Reisende','Vorlagen','Mengen'];
 let W;
@@ -2362,7 +2362,7 @@ const MASTER=[
   {id:31,name:'Tennis-Schuhe',tags:['Sport'],w:250,val:60,unit:'Paar',used:1},
   {id:32,name:'Lange/winter jogging Kleider',tags:['Sport','Winter'],w:250,val:60,unit:'Stk'},
   {id:33,name:'Fahrrad Schuhe',tags:['Sport','Velo'],w:250,val:60,unit:'Paar',used:1},
-  {id:34,name:'Sonnencreme',tags:['Diverses','Sommer'],w:150,val:20,unit:'Stk',consumable:true,used:26},
+  {id:34,name:'Sonnencreme',tags:['Diverses','Sommer'],w:150,val:20,unit:'Stk',used:26},
   {id:35,name:'Linsen',tags:['Diverses'],w:150,val:20,unit:'Stk',used:4},
   {id:36,name:'Gürtel',tags:['Diverses'],w:150,val:20,unit:'Stk',used:16},
   {id:37,name:'Sonnenhut',tags:['Diverses','Sommer'],w:150,val:20,unit:'Stk',used:26},
@@ -2375,28 +2375,28 @@ const MASTER=[
   {id:44,name:'Handschuhe',tags:['Diverses','Winter'],w:150,val:20,unit:'Paar',used:13},
   {id:45,name:'Velo Handschuhe',tags:['Diverses','Velo','Winter'],w:150,val:20,unit:'Paar',used:4},
   {id:46,name:'Brille',tags:['Diverses'],w:150,val:20,unit:'Stk',used:28},
-  {id:47,name:'Feuchtes Toilettenpapier',tags:['Diverses'],w:150,val:20,unit:'Stk',consumable:true,used:18},
+  {id:47,name:'Feuchtes Toilettenpapier',tags:['Diverses'],w:150,val:20,unit:'Stk',used:18},
   {id:48,name:'Stoffsack für schmutzige Wäsche',tags:['Diverses'],w:150,val:20,unit:'Stk',used:24},
   {id:49,name:'Taschenmesser',tags:['Diverses'],w:90,val:20,unit:'Stk',used:28},
   {id:50,name:'Regenschutz Rucksack',tags:['Diverses'],w:150,val:20,unit:'Stk',used:17},
   {id:51,name:'Schreibzeug, Notizblöckli',tags:['Diverses'],w:150,val:20,unit:'Stk',used:12},
   {id:52,name:'Lonely Planet',tags:['Diverses'],w:150,val:20,unit:'Stk',used:4},
   {id:53,name:'Karte',tags:['Diverses'],w:150,val:20,unit:'Stk',used:2},
-  {id:54,name:'Compeed',tags:['Diverses'],w:150,val:20,unit:'Stk',consumable:true,used:16},
-  {id:55,name:'Wundensalbe',tags:['Diverses'],w:150,val:20,unit:'Stk',consumable:true,used:18},
-  {id:56,name:'Apotheke',tags:['Diverses'],w:150,val:20,unit:'Stk',consumable:true,used:19},
-  {id:57,name:'Pflaster',tags:['Diverses'],w:150,val:20,unit:'Stk',consumable:true,used:10},
+  {id:54,name:'Compeed',tags:['Diverses'],w:150,val:20,unit:'Stk',used:16},
+  {id:55,name:'Wundensalbe',tags:['Diverses'],w:150,val:20,unit:'Stk',used:18},
+  {id:56,name:'Apotheke',tags:['Diverses'],w:150,val:20,unit:'Stk',used:19},
+  {id:57,name:'Pflaster',tags:['Diverses'],w:150,val:20,unit:'Stk',used:10},
   {id:58,name:'Trainerhose',tags:['Diverses'],w:150,val:20,unit:'Stk',used:7},
   {id:59,name:'Regenhosen',tags:['Diverses'],w:150,val:20,unit:'Stk',used:11},
-  {id:60,name:'Taschentücher',tags:['Bad'],w:80,val:8,unit:'Stk',consumable:true,used:27},
-  {id:61,name:'Shampoo & Duschgel',tags:['Bad'],w:80,val:8,unit:'Stk',consumable:true,used:19},
-  {id:62,name:'Deo',tags:['Bad'],w:80,val:8,unit:'Stk',consumable:true,used:23},
+  {id:60,name:'Taschentücher',tags:['Bad'],w:80,val:8,unit:'Stk',used:27},
+  {id:61,name:'Shampoo & Duschgel',tags:['Bad'],w:80,val:8,unit:'Stk',used:19},
+  {id:62,name:'Deo',tags:['Bad'],w:80,val:8,unit:'Stk',used:23},
   {id:63,name:'Zahnbürste',tags:['Bad'],w:80,val:8,unit:'Stk',used:18},
-  {id:64,name:'Zahnpasta',tags:['Bad'],w:80,val:8,unit:'Stk',consumable:true,used:23},
-  {id:65,name:'Watte für Nasenbluten',tags:['Bad'],w:80,val:8,unit:'Stk',consumable:true,used:26},
+  {id:64,name:'Zahnpasta',tags:['Bad'],w:80,val:8,unit:'Stk',used:23},
+  {id:65,name:'Watte für Nasenbluten',tags:['Bad'],w:80,val:8,unit:'Stk',used:26},
   {id:66,name:'Brillen Putzmittel / Tuch',tags:['Bad'],w:80,val:8,unit:'Stk',used:16},
-  {id:67,name:'Nasenspray',tags:['Bad'],w:80,val:8,unit:'Stk',consumable:true,used:3},
-  {id:68,name:'Nasensalbe',tags:['Bad'],w:80,val:8,unit:'Stk',consumable:true,used:10},
+  {id:67,name:'Nasenspray',tags:['Bad'],w:80,val:8,unit:'Stk',used:3},
+  {id:68,name:'Nasensalbe',tags:['Bad'],w:80,val:8,unit:'Stk',used:10},
   {id:69,name:'Kompaktkamera',tags:['Technik','Foto'],w:700,val:1200,unit:'Stk',used:2},
   {id:70,name:'Reiseadapter (Land)',tags:['Technik'],w:300,val:150,unit:'Stk',used:9},
   {id:71,name:'Kindle',tags:['Technik'],w:180,val:120,unit:'Stk',used:16},
@@ -2445,26 +2445,26 @@ const MASTER=[
   {id:114,name:'Reka Card',tags:['Dokumente'],w:20,val:0,unit:'Stk',used:10},
   {id:115,name:'US-Dollar',tags:['Dokumente'],w:20,val:0,unit:'Stk',used:6},
   {id:116,name:'Leonardos ID',tags:['Dokumente','Kind'],w:20,val:0,unit:'Stk',used:9},
-  {id:117,name:'Imodium',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',consumable:true,used:2},
-  {id:118,name:'Motilium lingual, gegen Übelkeit',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',consumable:true,used:3},
-  {id:119,name:'Dafalgan',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',consumable:true,used:13},
-  {id:120,name:'Neocitran',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',consumable:true,used:9},
-  {id:121,name:'Malarone',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',consumable:true,used:1},
-  {id:122,name:'Mückenschutz',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',consumable:true,used:9},
+  {id:117,name:'Imodium',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',used:2},
+  {id:118,name:'Motilium lingual, gegen Übelkeit',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',used:3},
+  {id:119,name:'Dafalgan',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',used:13},
+  {id:120,name:'Neocitran',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',used:9},
+  {id:121,name:'Malarone',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',used:1},
+  {id:122,name:'Mückenschutz',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',used:9},
   {id:123,name:'Anti-Juck Mittel',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',used:12},
   {id:124,name:'Tupperware',tags:['Küche'],w:200,val:10,unit:'Stk',used:8},
-  {id:125,name:'Kaffee',tags:['Küche'],w:500,val:8,unit:'Stk',consumable:true,used:6},
-  {id:126,name:'Caotina',tags:['Küche'],w:200,val:10,unit:'Stk',consumable:true,used:7},
-  {id:127,name:'Tee',tags:['Küche'],w:200,val:10,unit:'Stk',consumable:true,used:3},
-  {id:128,name:'Öl',tags:['Küche'],w:200,val:10,unit:'Stk',consumable:true,used:2},
-  {id:129,name:'Salz',tags:['Küche'],w:200,val:10,unit:'Stk',consumable:true,used:6},
-  {id:130,name:'Pfeffer',tags:['Küche'],w:200,val:10,unit:'Stk',consumable:true,used:8},
-  {id:131,name:'Bouillon',tags:['Küche'],w:200,val:10,unit:'Stk',consumable:true,used:5},
+  {id:125,name:'Kaffee',tags:['Küche'],w:500,val:8,unit:'Stk',used:6},
+  {id:126,name:'Caotina',tags:['Küche'],w:200,val:10,unit:'Stk',used:7},
+  {id:127,name:'Tee',tags:['Küche'],w:200,val:10,unit:'Stk',used:3},
+  {id:128,name:'Öl',tags:['Küche'],w:200,val:10,unit:'Stk',used:2},
+  {id:129,name:'Salz',tags:['Küche'],w:200,val:10,unit:'Stk',used:6},
+  {id:130,name:'Pfeffer',tags:['Küche'],w:200,val:10,unit:'Stk',used:8},
+  {id:131,name:'Bouillon',tags:['Küche'],w:200,val:10,unit:'Stk',used:5},
   {id:132,name:'Messer',tags:['Küche'],w:90,val:20,unit:'Stk',used:10},
-  {id:133,name:'Haushaltspapier',tags:['Küche'],w:200,val:10,unit:'Stk',consumable:true,used:3},
-  {id:134,name:'Scotch',tags:['Küche'],w:200,val:10,unit:'Stk',consumable:true,used:10},
-  {id:135,name:'Chräschlisäckli',tags:['Küche'],w:200,val:10,unit:'Stk',consumable:true,used:4},
-  {id:136,name:'Backpapier',tags:['Küche'],w:200,val:10,unit:'Stk',consumable:true,used:8},
+  {id:133,name:'Haushaltspapier',tags:['Küche'],w:200,val:10,unit:'Stk',used:3},
+  {id:134,name:'Scotch',tags:['Küche'],w:200,val:10,unit:'Stk',used:10},
+  {id:135,name:'Chräschlisäckli',tags:['Küche'],w:200,val:10,unit:'Stk',used:4},
+  {id:136,name:'Backpapier',tags:['Küche'],w:200,val:10,unit:'Stk',used:8},
   {id:137,name:'Schneidebretter',tags:['Küche'],w:200,val:10,unit:'Stk',used:2},
   {id:138,name:'Abwaschhandschuhe',tags:['Küche','Winter'],w:200,val:10,unit:'Paar',used:2},
   {id:139,name:'Jonglierbälle',tags:['Freizeit'],w:300,val:40,unit:'Stk',used:7},
@@ -2482,22 +2482,22 @@ const MASTER=[
   {id:151,name:'Gamaschen',tags:['Freizeit'],w:300,val:40,unit:'Stk',used:1},
   {id:152,name:'Ping pong schläger',tags:['Freizeit'],w:300,val:40,unit:'Stk',used:8},
   {id:153,name:'Ladegerär sram schaltung',tags:['Freizeit'],w:300,val:40,unit:'Stk',used:1},
-  {id:154,name:'Cr2032 batterien für sram',tags:['Freizeit'],w:300,val:40,unit:'Stk',consumable:true,used:1},
+  {id:154,name:'Cr2032 batterien für sram',tags:['Freizeit'],w:300,val:40,unit:'Stk',used:1},
   {id:155,name:'Leonardo regenzeug',tags:['Kind'],w:200,val:20,unit:'Stk',used:10},
-  {id:156,name:'Windeln',tags:['Kind'],w:200,val:20,unit:'Stk',consumable:true,used:7},
-  {id:157,name:'Badewindeln',tags:['Kind'],w:200,val:20,unit:'Stk',consumable:true,used:6},
+  {id:156,name:'Windeln',tags:['Kind'],w:200,val:20,unit:'Stk',used:7},
+  {id:157,name:'Badewindeln',tags:['Kind'],w:200,val:20,unit:'Stk',used:6},
   {id:158,name:'Büechli für Leonardo',tags:['Kind'],w:200,val:20,unit:'Stk',used:8},
   {id:159,name:'Badethermometer',tags:['Kind'],w:200,val:20,unit:'Stk'},
   {id:160,name:'Leonardos Sonnenbrille',tags:['Kind','Sommer'],w:200,val:20,unit:'Stk',used:11},
   {id:161,name:'Kinderbesteck',tags:['Kind'],w:200,val:20,unit:'Stk',used:2},
-  {id:162,name:'Handseife',tags:['Diverses'],w:150,val:20,unit:'Stk',consumable:true,used:4},
-  {id:163,name:'Kleiderwaschmittel',tags:['Diverses'],w:150,val:20,unit:'Stk',consumable:true,used:1},
-  {id:164,name:'Masken',tags:['Diverses'],w:150,val:20,unit:'Stk',consumable:true,used:2},
+  {id:162,name:'Handseife',tags:['Diverses'],w:150,val:20,unit:'Stk',used:4},
+  {id:163,name:'Kleiderwaschmittel',tags:['Diverses'],w:150,val:20,unit:'Stk',used:1},
+  {id:164,name:'Masken',tags:['Diverses'],w:150,val:20,unit:'Stk',used:2},
   {id:165,name:'Schuhlöffel',tags:['Diverses'],w:150,val:20,unit:'Stk',used:8},
   {id:166,name:'FVP-Ermässigungskarte',tags:['Diverses'],w:150,val:20,unit:'Stk',used:5},
-  {id:167,name:'Zündhölzli',tags:['Diverses'],w:150,val:20,unit:'Stk',consumable:true,used:4},
-  {id:168,name:'Frischhaltefolien',tags:['Diverses'],w:150,val:20,unit:'Stk',consumable:true,used:4},
-  {id:169,name:'Farmer & Knabberzeug',tags:['Diverses'],w:150,val:20,unit:'Stk',consumable:true,used:5},
+  {id:167,name:'Zündhölzli',tags:['Diverses'],w:150,val:20,unit:'Stk',used:4},
+  {id:168,name:'Frischhaltefolien',tags:['Diverses'],w:150,val:20,unit:'Stk',used:4},
+  {id:169,name:'Farmer & Knabberzeug',tags:['Diverses'],w:150,val:20,unit:'Stk',used:5},
   {id:170,name:'Sandspielzeug',tags:['Diverses'],w:150,val:20,unit:'Stk',used:3},
   {id:171,name:'FollowMe (Velo-Kupplung)',tags:['Diverses','Velo'],w:150,val:20,unit:'Stk'},
   {id:172,name:'Sonnenschirm',tags:['Diverses','Sommer'],w:150,val:20,unit:'Stk',used:2},
@@ -2521,8 +2521,7 @@ const M9={search:'',tab:'all'};
 function m9Filtered(){ const q=M9.search.trim().toLowerCase();
   return MASTER.filter(it=>{
     if(it.deleted)return false;
-    if(M9.tab==='consumable'&&!it.consumable)return false;
-    if(M9.tab!=='all'&&M9.tab!=='consumable'&&!it.tags.includes(M9.tab))return false;
+    if(M9.tab!=='all'&&!it.tags.includes(M9.tab))return false;
     if(q&&!it.name.toLowerCase().includes(q))return false;
     return true; });
 }
@@ -2530,7 +2529,7 @@ function m9RowHTML(it){ const primary=it.tags[0]||'';
   return `<div class="li" data-m9="${it.id}">
   <div class="avatar" style="background:var(--s1);width:34px;height:34px;border-radius:11px;font-size:15px">${CATEMO[primary]||'📦'}</div>
   <div class="grow"><div class="name">${esc(it.name)}</div>
-    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">${it.tags.map(t=>`<span class="chip" style="font-size:10px;padding:2px 7px">${esc(t)}</span>`).join('')}${it.consumable?'<span class="chip mauve" style="font-size:10px;padding:2px 7px">Verbrauch</span>':''}</div></div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">${it.tags.map(t=>`<span class="chip" style="font-size:10px;padding:2px 7px">${esc(t)}</span>`).join('')}</div></div>
   <div class="desc" style="text-align:right;white-space:nowrap;line-height:1.5">${it.w} g<br>${it.val||0} CHF</div>
   <svg viewBox="0 0 24 24" style="width:18px;color:var(--o0)"><use href="#i-chev"/></svg></div>`; }
 function renderM9List(){
@@ -2542,7 +2541,7 @@ function renderM9List(){
   el.querySelectorAll('[data-m9]').forEach(r=>r.onclick=()=>openM10(+r.dataset.m9));
 }
 function renderItems(){
-  const tabs=[['all','Alle'],...allTags().map(c=>[c,c]),['consumable','Verbrauch']];
+  const tabs=[['all','Alle'],...allTags().map(c=>[c,c])];
   document.getElementById('itemsPage').innerHTML=`
     <div class="search" style="margin-top:8px"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg>
       <input id="m9Search" placeholder="Inventar durchsuchen…" value="${esc(M9.search)}" autocomplete="off">
@@ -3032,7 +3031,7 @@ function renderAnalytics(){
 
 /* ============ M10 item editor — master data, multi-tag, soft/hard delete ============ */
 const EDIT={id:null};
-const UNITS=['Stk','Paar','pro Tag'];
+const UNITS=['Stk','Paar'];
 function openM10(id){ EDIT.id=id; go('itemedit'); }
 function openM10New(){ const it={id:nextMasterId++,name:'',tags:[],w:0,val:0,unit:'Stk'}; MASTER.push(it); EDIT.id=it.id; go('itemedit'); }
 function renderItemEdit(){
@@ -3049,8 +3048,6 @@ function renderItemEdit(){
       <input class="dt" type="number" id="edW" value="${it.w}"><span class="muted">g</span>
       <input class="dt" type="number" id="edVal" value="${it.val||0}"><span class="muted">CHF</span></div></div>
     <div class="field"><label>Einheit</label><div class="seg">${UNITS.map(u=>`<button class="${it.unit===u?'sel':''}" data-edunit="${u}">${u}</button>`).join('')}</div></div>
-    <div class="toggle" style="border-top:1px solid var(--s0)"><div class="grow"><div class="name">Verbrauchsartikel</div><div class="desc">wird pro Tag/Person verbraucht (FR-1.7)</div></div>
-      <div class="sw ${it.consumable?'on':''}" data-edcons="1"></div></div>
     <div class="field"><label>Enthalten in (FR-27.8)</label>
       ${(()=>{const inTpls=TPL.filter(t=>(TPLITEMS[t.id]||[]).some(r=>r.m===it.id));
         return inTpls.length?`<div class="card">${inTpls.map(t=>`<div class="li pressable" data-edtpl="${t.id}">
@@ -3073,7 +3070,6 @@ function renderItemEdit(){
   el.querySelector('[data-ednewtag]').onclick=()=>addTag(document.getElementById('edNewTag').value);
   document.getElementById('edNewTag').onkeydown=e=>{ if(e.key==='Enter')addTag(e.target.value); };
   el.querySelectorAll('[data-edunit]').forEach(b=>b.onclick=()=>{ it.unit=b.dataset.edunit; renderItemEdit(); });
-  el.querySelector('[data-edcons]').onclick=()=>{ it.consumable=!it.consumable; renderItemEdit(); };
   document.getElementById('edName').oninput=e=>it.name=e.target.value;
   document.getElementById('edW').oninput=e=>it.w=parseInt(e.target.value)||0;
   document.getElementById('edVal').oninput=e=>it.val=parseInt(e.target.value)||0;

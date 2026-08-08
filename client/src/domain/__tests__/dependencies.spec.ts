@@ -25,9 +25,7 @@ function master(id: string, name: string, extra: Partial<MasterItem> = {}): Mast
     category_id: null,
     weight_grams: null,
     value_cents: null,
-    is_consumable: false,
     unit: 'pieces',
-    per_day_rate: null,
     ...extra,
   }
 }
@@ -165,21 +163,6 @@ describe('resolveDependencies', () => {
     expect(res.required.map((c) => c.item_id)).toEqual(['battery'])
   })
 
-  it('applies the per-day consumable rate to companion quantities (FR-1.8)', () => {
-    const wipes = master('wipes', 'Linsentücher', {
-      is_consumable: true,
-      unit: 'per_day',
-      per_day_rate: 2,
-    })
-    const res = resolveDependencies(
-      input({
-        masterItems: [camera, wipes],
-        dependencies: [dep('d1', 'wipes', 'camera')],
-      }),
-    )
-    // 1 × rate 2 × 5 days
-    expect(res.required[0]!.quantity).toBe(10)
-  })
 
   it('ignores dependencies whose companion item is unknown', () => {
     const res = resolveDependencies(input({ dependencies: [dep('d1', 'ghost', 'camera')] }))

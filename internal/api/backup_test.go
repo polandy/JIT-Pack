@@ -85,7 +85,7 @@ func TestExportFull_VisibilityFiltered(t *testing.T) {
 				"fields": map[string]any{"name": "Privat", "is_published": 0},
 				"hlc":    "0000000001000-0000-bbbbbbbb"},
 			{"mutation_id": "xf-2", "op": "insert", "table": "items", "id": "item-shared",
-				"fields": map[string]any{"name": "Socken", "unit": "pieces", "is_consumable": 0},
+				"fields": map[string]any{"name": "Socken", "unit": "pieces"},
 				"hlc":    "0000000001001-0000-bbbbbbbb"},
 		},
 	}

@@ -28,9 +28,7 @@ function masterItem(id: string, name: string): MasterItem {
     category_id: null,
     weight_grams: null,
     value_cents: null,
-    is_consumable: false,
     unit: 'pieces',
-    per_day_rate: null,
   }
 }
 

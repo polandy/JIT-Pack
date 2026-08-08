@@ -1056,7 +1056,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       const merged = mergeDecisions.get(item.name)
       if (merged) return merged
       if (doc.kind === 'trip') return null // unmatched trip rows stay ad-hoc
-      const unit = item.unit === 'pairs' || item.unit === 'per_day' ? item.unit : 'pieces'
+      const unit = item.unit === 'pairs' ? item.unit : 'pieces'
       const { mutation, id } = mutations.createMasterItem(item.name, { unit })
       onPullChanges([
         {
@@ -2133,9 +2133,7 @@ function masterItemRow(item: MasterItem): Record<string, unknown> {
     category_id: item.category_id,
     weight_grams: item.weight_grams,
     value_cents: item.value_cents,
-    is_consumable: item.is_consumable ? 1 : 0,
     unit: item.unit,
-    per_day_rate: item.per_day_rate,
   }
 }
 

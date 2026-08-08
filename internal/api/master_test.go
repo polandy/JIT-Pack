@@ -25,7 +25,7 @@ func TestMasterPushPull_RoundTrip(t *testing.T) {
 	url := srv.URL + "/api/v1/sync/master"
 	body := map[string]any{"mutations": []any{
 		masterMutation("items", "item-m1", "mm-1", "insert",
-			map[string]any{"name": "Stirnlampe", "unit": "pieces", "is_consumable": 0},
+			map[string]any{"name": "Stirnlampe", "unit": "pieces"},
 			"0000000001000-0000-aaaaaaaa"),
 	}}
 
