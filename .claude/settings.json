@@ -1,33 +1,42 @@
 {
   "permissions": {
     "allow": [
-      "Bash(go test:*)",
       "Bash(go build:*)",
       "Bash(go vet:*)",
+      "Bash(go test:*)",
       "Bash(go tool cover:*)",
+      "Bash(go doc:*)",
       "Bash(go mod tidy)",
       "Bash(gofmt:*)",
       "Bash(golangci-lint run:*)",
+      "Bash(make:*)",
       "Bash(mise install)",
       "Bash(mise ls:*)",
-      "Bash(mise exec -- go test:*)",
       "Bash(mise exec -- go build:*)",
       "Bash(mise exec -- go vet:*)",
+      "Bash(mise exec -- go test:*)",
       "Bash(mise exec -- go tool cover:*)",
       "Bash(mise exec -- gofmt:*)",
       "Bash(mise exec -- golangci-lint run:*)",
-      "Bash(mise exec -- npm run:*)",
       "Bash(mise exec -- npm ci)",
+      "Bash(mise exec -- npm run:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
       "Bash(git show:*)",
       "Bash(git branch:*)",
       "Bash(npm ci)",
-      "Bash(npm run:*)",
-      "Bash(npx vitest run:*)",
-      "Bash(npx prettier:*)",
-      "Bash(npx vue-tsc:*)"
+      "Bash(npm run build:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx vue-tsc:*)",
+      "Bash(npx oxlint:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx prettier:*)"
+    ],
+    "deny": [
+      "Edit(client/node_modules/**)",
+      "Write(client/node_modules/**)",
+      "Edit(internal/store/migrations/**)"
     ]
   },
   "hooks": {

@@ -40,3 +40,12 @@ Thumbs.db
 
 # Dependencies
 node_modules/
+
+# Per-feature git worktrees (the working agreement puts them here); the
+# committed parts of .claude/ — commands, skills, settings.json — stay tracked.
+.claude/worktrees/
+.claude/settings.local.json
+
+# Playwright output
+client/playwright-report/
+client/test-results/

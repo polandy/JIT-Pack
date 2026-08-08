@@ -29,16 +29,17 @@
 ## 3. Architecture & Package Layout
 
 ```
-cmd/jitpackd/          main: wiring only (flags/env, DI, serve) — no logic
-internal/domain/       entities, state machine — zero I/O deps
-internal/sync/         HLC, merge algorithm, change-log semantics — zero I/O deps
-internal/store/        SQLite repositories; the only package importing database/sql
-internal/api/          HTTP handlers, WebSocket hub, JWT middleware
-internal/notify/       push (VAPID/UnifiedPush) behind an interface
-migrations/            embedded SQL migrations (//go:embed)
+cmd/jitpackd/                main: wiring only (flags/env, DI, serve) — no logic
+internal/sync/               HLC, merge algorithm, change-log semantics — zero I/O deps
+internal/portable/           YAML wire types for export/import — zero I/O deps
+internal/store/              SQLite repositories; the only package importing database/sql
+internal/store/migrations/   embedded SQL migrations (//go:embed)
+internal/api/                HTTP handlers, WebSocket hub, auth middleware, push
+client/src/domain/           entities, state machine, generation/analytics — pure, no I/O
 ```
 
-* **Dependency rule:** `api → domain/sync/store`, `store → domain`; `domain` and `sync` import nothing internal. This makes the two riskiest packages trivially unit-testable.
+* **Dependency rule:** `api → store, sync, portable`; `store → sync, portable`; **`sync` and `portable` import nothing internal, ever.** This makes the riskiest packages trivially unit-testable.
+* The pure domain rules deliberately live in `client/src/domain/` rather than an `internal/domain/`: Local Mode runs with no backend, so generation, dependency resolution, analytics and review have to execute on the client to exist in that mode at all. Push lives in `internal/api/push.go` rather than a separate `internal/notify/` — it is small enough that the package boundary would buy nothing.
 * **Accept interfaces, return structs.** Interfaces are declared where they are *consumed*, kept small (1–3 methods).
 * **No global state.** Everything enters through constructors (`New…`); `main` is the only place that wires.
 * Config exclusively via environment variables (PRD Section 2, declarative), parsed once at startup into a typed `Config` struct with validation.
