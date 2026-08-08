@@ -236,6 +236,8 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 
 ### M11 — Container Management
 * **E2E-M11-01** `all` (FR-10.1): create/edit/delete containers with name, carrier, max weight.
+* **E2E-M11-05** `all` (FR-10.1/25.15/24.5): the ＋ FAB creates a container and opens its sheet; name and weight limit save on change with no Save button. Pairing is set **on both sides at once** and released on both when cleared or when one side is deleted.
+* **E2E-M11-06** `all` (FR-10.2/25.5): the unassigned bucket renders **one row per item** (asserts no per-container button grid); tapping a row opens the container picker with each container's current load, and choosing one assigns the item. Deleting a container **unassigns** its items — they must still be on the packing list afterwards.
 * **E2E-M11-02** `all` (FR-10.3): weight bar goes amber at ≥90%, red beyond max.
 * **E2E-M11-03** `all` (FR-10.2): unassigned bucket; assign items into/between containers; deleting a container unassigns its items first.
 * **E2E-M11-04** `all` (FR-10.3): pairing control shows a live imbalance indicator against the threshold.

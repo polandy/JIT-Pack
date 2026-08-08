@@ -918,6 +918,13 @@ body{
     <div class="sheet-body" id="t8SheetBody"></div>
   </div>
 
+  <!-- M11 container sheet — same M5 grammar as M8's position sheet -->
+  <div class="scrim" id="contScrim" onclick="closeCont()"></div>
+  <div class="sheet" id="contSheet">
+    <div class="handle"></div>
+    <div class="sheet-body" id="contSheetBody"></div>
+  </div>
+
   <!-- M6 shopping-item sheet — buyer delegation + description -->
   <div class="scrim" id="shopScrim" onclick="closeShopItem()"></div>
   <div class="sheet" id="shopSheet">
@@ -956,7 +963,7 @@ const meta = {
   pack:{t:'Samedan', s:'Samedan · Vorbereiten', tab:'trips', back:1, fab:1},
   wizard:{t:'Neue Reise', s:'Schritt 1 von 4', tab:'trips', back:1, fab:0, hideTabs:1},
   shop:{t:'Einkauf', s:'Samedan', tab:'trips', back:1, fab:1},
-  containers:{t:'Gepäck & Container', s:'Samedan', tab:'trips', back:1, fab:0},
+  containers:{t:'Gepäck & Container', s:'Samedan', tab:'trips', back:1, fab:1},
   analytics:{t:'Auswertung', s:'Samedan', tab:'trips', back:1, fab:0},
   itemedit:{t:'Artikel', s:'Stammdaten', tab:'items', back:1, fab:0},
   templateedit:{t:'Vorlage', s:'Stammdaten', tab:'templates', back:1, fab:1},
@@ -1000,6 +1007,7 @@ function fabAction(){ const top=stack[stack.length-1];
   else if(top==='templateedit'){ t8FabAdd(); }
   else if(top==='pack'){ packFabAdd(); }
   else if(top==='shop'){ shopFabAdd(); }
+  else if(top==='containers'){ newContainer(); }
   else alert('Neu anlegen'); }
 function go(name){
   if(anchors.includes(name)) stack = [name];
@@ -2700,8 +2708,11 @@ function renderTrips(){
 }
 
 /* ============ M11 container management ============ */
+/* Two paired suitcases: FR-10.3's imbalance indicator only means something with
+   an actual pair, and the seed had none — the code was unreachable. */
 const LUGGAGE=[
-  {name:'Koffer',em:'🧳',carrier:'Andy',max:20000},
+  {name:'Koffer',em:'🧳',carrier:'Andy',max:20000,pair:'Koffer Sia'},
+  {name:'Koffer Sia',em:'🧳',carrier:'Sia',max:20000,pair:'Koffer'},
   {name:'Rucksack',em:'🎒',carrier:'Andy',max:8000},
   {name:'Kulturbeutel',em:'🧴',carrier:null,max:1500},
   {name:'Küchenkiste',em:'📦',carrier:'Sia',max:6000},
@@ -2717,19 +2728,99 @@ function renderContainers(){
     let pair='';
     if(c.pair){ const o=contWeight(c.pair), heavier=Math.max(cur,o), ip=heavier?Math.round(Math.abs(cur-o)/heavier*100):0;
       pair = ip>15?`<div class="pair warn">⚖ ${ip}% Ungleichgewicht ggü. ${c.pair}</div>`:`<div class="pair ok">⚖ ausgeglichen mit ${c.pair}</div>`; }
-    return `<div class="card cwrap"><div class="top"><span class="em">${c.em}</span>
+    return `<div class="card cwrap pressable" data-cont="${esc(c.name)}"><div class="top"><span class="em">${c.em}</span>
       <div class="grow"><div class="name">${c.name}</div><div class="desc">${c.carrier?c.carrier+' · ':''}${cnt} Artikel</div></div>
       <div class="kg">${kg(cur)}<span class="mx"> / ${c.max?kg(c.max)+' kg':'∞'}</span></div></div>
       ${c.max?`<div class="wbar ${cls}"><i style="width:${pct}%"></i></div>`:''}
       ${over?'<div class="pair warn" style="color:var(--red)">⚠ Limit überschritten</div>':''}${pair}</div>`;
   }).join('');
   const un=P.items.filter(i=>i.cont==='—');
+  // One row, one tap: a button per container per row grew a wall that scales
+  // with |containers| × |items| and buries the item name. Tapping the row opens
+  // the same picker the container sheet uses.
   const unSec=`<div class="section-h">Nicht zugewiesen · ${un.length}</div>`+(un.length
-    ?`<div class="card">${un.map(i=>`<div class="assignrow"><div class="grow"><div class="name">${esc(i.name)}</div><div class="desc">${kg((i.w||0)*i.qty)} kg</div></div>
-      <div class="picks">${LUGGAGE.map(c=>`<button class="opt" data-assign="${i.id}" data-c="${c.name}">${c.name.replace('Koffer ','K')}</button>`).join('')}</div></div>`).join('')}</div>`
+    ?`<div class="card">${un.map(i=>`<div class="li pressable" data-pick="${i.id}">
+      <div class="grow"><div class="name">${esc(i.name)}</div><div class="desc">${kg((i.w||0)*i.qty)} kg</div></div>
+      <span class="chip">zuordnen</span></div>`).join('')}</div>`
     :`<div class="card"><div class="li"><div class="grow muted" style="text-align:center;padding:8px">Alles zugewiesen ✓</div></div></div>`);
   el.innerHTML=`<div class="tiny muted" style="margin:6px 4px 10px">Gewicht pro Container · Warnung ab 90 % (amber) / über Limit (rot) · Paar-Balance ±15 % (FR-10.3)</div>`+cards+unSec;
-  el.querySelectorAll('[data-assign]').forEach(b=>b.onclick=()=>{ const it=P.items.find(x=>x.id==b.dataset.assign); if(it){ it.cont=b.dataset.c; renderContainers(); }});
+  el.querySelectorAll('[data-cont]').forEach(c=>c.onclick=()=>openCont(c.dataset.cont));
+  el.querySelectorAll('[data-pick]').forEach(r=>r.onclick=()=>openCont(null, +r.dataset.pick));
+}
+
+/* ============ M11 container sheet (concept round 2026-08-08) ============ */
+/* Same grammar as M8's position sheet and M5: a bottom sheet with the
+   auto-save chip (FR-25.15), the routinely-touched field first, the rest
+   plainly below. Creating a container is the FR-24.5 minimal form — a name is
+   enough, carrier and limit are set here afterwards. With `pickItem` the sheet
+   doubles as the assignment picker, so "which bag?" is answered in one place. */
+let CONT={name:null, pickItem:null};
+function openCont(name, pickItem){
+  CONT={name, pickItem:pickItem??null};
+  renderContSheet();
+  document.getElementById('contScrim').classList.add('open');
+  document.getElementById('contSheet').classList.add('open');
+}
+function closeCont(){
+  document.getElementById('contScrim').classList.remove('open');
+  document.getElementById('contSheet').classList.remove('open');
+  CONT={name:null,pickItem:null}; renderContainers();
+}
+function newContainer(){
+  let n='Neues Gepäckstück', i=2; while(LUGGAGE.some(c=>c.name===n)) n='Neues Gepäckstück '+(i++);
+  LUGGAGE.push({name:n,em:'📦',carrier:null,max:null});
+  renderContainers(); openCont(n);
+}
+function renderContSheet(){
+  const body=document.getElementById('contSheetBody'); if(!body)return;
+  if(CONT.pickItem!=null){
+    const it=P.items.find(x=>x.id===CONT.pickItem);
+    body.innerHTML=`<div class="ihead"><div class="grow"><div class="iname">${esc(it?it.name:'')}</div>
+        <div class="desc">In welches Gepäckstück?</div></div></div>
+      <div class="card" style="margin-top:10px">${LUGGAGE.map(c=>`<div class="li pressable" data-cassign="${esc(c.name)}">
+        <span class="em" style="font-size:18px">${c.em}</span>
+        <div class="grow"><div class="name">${esc(c.name)}</div><div class="desc">${c.carrier?c.carrier+' · ':''}${kg(contWeight(c.name))} kg${c.max?' / '+kg(c.max)+' kg':''}</div></div></div>`).join('')}</div>
+      <div class="tiny muted" style="margin-top:9px">Zuordnung ist optional und blockiert das Packen nie (FR-25.5).</div>`;
+    body.querySelectorAll('[data-cassign]').forEach(r=>r.onclick=()=>{
+      if(it) it.cont=r.dataset.cassign; snack(`„${it?it.name:''}“ → ${r.dataset.cassign}`); closeCont(); });
+    return;
+  }
+  const c=LUGGAGE.find(x=>x.name===CONT.name); if(!c)return;
+  const cur=contWeight(c.name), cnt=P.items.filter(i=>i.cont===c.name).length;
+  const others=LUGGAGE.filter(x=>x.name!==c.name);
+  body.innerHTML=`<div class="ihead"><div class="grow"><div class="iname">${c.em} ${esc(c.name)}</div>
+      <div class="desc">${cnt} Artikel · ${kg(cur)} kg${c.max?' von '+kg(c.max)+' kg':''}</div></div>
+      <span class="savechip saved" title="Gespeichert">✓</span></div>
+    <div class="field"><label>Name</label><input class="txt" id="cName" value="${esc(c.name)}"></div>
+    <div class="field"><label>Trägt</label>
+      <select class="txt" id="cCarrier"><option value="">— niemand —</option>
+        ${QA_TRAVELERS.map(t=>`<option ${c.carrier===t?'selected':''}>${t}</option>`).join('')}</select></div>
+    <div class="field"><label>Gewichtslimit (kg)</label>
+      <input class="txt" id="cMax" inputmode="decimal" value="${c.max?(c.max/1000):''}" placeholder="ohne Limit"></div>
+    <div class="field"><label>Paar mit (FR-10.3)</label>
+      <select class="txt" id="cPair"><option value="">— kein Paar —</option>
+        ${others.map(o=>`<option value="${esc(o.name)}" ${c.pair===o.name?'selected':''}>${esc(o.name)}</option>`).join('')}</select>
+      <div class="tiny muted" style="margin-top:6px">Gepaarte Stücke zeigen ihre Gewichts-Schieflage, sobald sie mehr als 15 % auseinanderliegen.</div></div>
+    <button class="gb" style="width:100%;padding:11px;margin-top:6px;color:var(--red)" id="cDel">Gepäckstück löschen</button>`;
+  const save=()=>{ renderContSheet(); };
+  document.getElementById('cName').onchange=e=>{ const old=c.name, nn=e.target.value.trim()||old;
+    P.items.forEach(i=>{ if(i.cont===old) i.cont=nn; });
+    LUGGAGE.forEach(x=>{ if(x.pair===old) x.pair=nn; });
+    c.name=nn; CONT.name=nn; save(); };
+  document.getElementById('cCarrier').onchange=e=>{ c.carrier=e.target.value||null; save(); };
+  document.getElementById('cMax').onchange=e=>{ const v=parseFloat(String(e.target.value).replace(',','.'));
+    c.max=isFinite(v)&&v>0?Math.round(v*1000):null; save(); };
+  document.getElementById('cPair').onchange=e=>{
+    LUGGAGE.forEach(x=>{ if(x.pair===c.name) x.pair=null; });   // a pair is exclusive on both sides
+    c.pair=e.target.value||null;
+    if(c.pair){ const o=LUGGAGE.find(x=>x.name===c.pair); if(o) o.pair=c.name; }
+    save(); };
+  document.getElementById('cDel').onclick=()=>{
+    // Items outlive their bag: unassign rather than delete, or packing loses rows.
+    P.items.forEach(i=>{ if(i.cont===c.name) i.cont='—'; });
+    LUGGAGE.forEach(x=>{ if(x.pair===c.name) x.pair=null; });
+    LUGGAGE.splice(LUGGAGE.indexOf(c),1);
+    snack(`„${c.name}“ gelöscht — ${cnt} Artikel sind jetzt ohne Gepäck`); closeCont(); };
 }
 
 /* ============ M6 shopping views ============ */

@@ -392,6 +392,45 @@ ok(!(await text('#reviewPage')).includes('nie mehr'), 'Nie-mehr-fragen entfernt 
 await page.evaluate(() => openPack('sam26'));
 ok((await page.locator('#tripDone').innerText()).trim() === '', 'aktive Reise zeigt weiterhin keine Abschluss-Karte');
 
+console.log('— M11 Gepäck: anlegen, bearbeiten, zuordnen —');
+await page.evaluate(() => go('containers'));
+let cts = await text('#contList');
+ok(cts.includes('ungleichgewicht') || cts.includes('ausgeglichen mit'),
+  'Paar-Balance ist sichtbar (FR-10.3) — im Seed gibt es jetzt wirklich ein Paar');
+ok((await page.locator('#contList .picks').count()) === 0,
+  'keine Knopfwand mehr in „Nicht zugewiesen“');
+
+const nUn = await page.evaluate(() => P.items.filter(i => i.cont === '—').length);
+await page.locator('[data-pick]').first().click();
+ok(await page.locator('#contSheet.open').count(), 'Tap auf eine nicht zugewiesene Zeile öffnet den Picker');
+await page.locator('[data-cassign="Rucksack"]').click();
+ok((await page.evaluate(() => P.items.filter(i => i.cont === '—').length)) === nUn - 1,
+  'Auswahl ordnet den Artikel zu und schliesst das Sheet');
+
+const nCont = await page.evaluate(() => LUGGAGE.length);
+await page.click('#fab');
+ok((await page.evaluate(() => LUGGAGE.length)) === nCont + 1, 'FAB legt ein Gepäckstück an (Minimalform)');
+ok(await page.locator('#contSheet.open').count(), 'und öffnet es direkt zum Ausfüllen');
+await page.fill('#cName', 'Dachbox');
+await page.dispatchEvent('#cName', 'change');
+await page.fill('#cMax', '45');
+await page.dispatchEvent('#cMax', 'change');
+ok(await page.evaluate(() => LUGGAGE.some(c => c.name === 'Dachbox' && c.max === 45000)),
+  'Name und Limit werden sofort gespeichert (FR-25.15)');
+await page.selectOption('#cPair', 'Rucksack');
+ok(await page.evaluate(() => {
+  const d = LUGGAGE.find(c => c.name === 'Dachbox'), r = LUGGAGE.find(c => c.name === 'Rucksack');
+  return d.pair === 'Rucksack' && r.pair === 'Dachbox';
+}), 'Paarung wird auf beiden Seiten gesetzt');
+
+const assigned = await page.evaluate(() => { P.items[0].cont = 'Dachbox'; return P.items[0].name; });
+await page.click('#cDel');
+ok(await page.evaluate(() => !LUGGAGE.some(c => c.name === 'Dachbox')), 'Löschen entfernt das Gepäckstück');
+ok(await page.evaluate(n => P.items.find(i => i.name === n).cont === '—', assigned),
+  'seine Artikel überleben ohne Zuordnung, statt mitgelöscht zu werden');
+ok(await page.evaluate(() => LUGGAGE.find(c => c.name === 'Rucksack').pair === null),
+  'die Gegenseite der Paarung wird mit aufgelöst');
+
 console.log('— Seitenfehler —');
 ok(errors.length === 0, 'keine JS-Fehler' + (errors.length ? ' — ' + errors.join(' | ') : ''));
 

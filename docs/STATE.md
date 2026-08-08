@@ -168,6 +168,18 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   prüfen →"), beside the M21 entry: M21 folds back structure, M14 folds back single items.
   E2E M14-04/05. Implementation open.
 
+- **M11 Gepäck & Container — Konzeptrunde nachgeholt 2026-08-08, mocked + specced:** three real
+  gaps closed. Containers could not be **created or edited** at all (the FAB did nothing here);
+  they now use the M5 sheet grammar — name, carrier, limit, pairing, delete, auto-save chip — and
+  creation is the FR-24.5 minimal form (FAB creates with a placeholder name and opens the sheet).
+  **Pairing was unreachable code** — the seed had no pair, so FR-10.3's imbalance indicator had
+  never rendered; the seed now has two paired suitcases, and pairing is set and released on *both*
+  sides (a half-set pair renders an imbalance against a container that disagrees). **Assignment
+  was a button wall** (one button per container per row, growing with containers × items); it is
+  now one tappable row opening the container picker, each option showing its current load.
+  Deleting a container **unassigns** its items instead of taking them down with it. E2E M11-05/06.
+  Implementation open.
+
 - **Inventar-UX-Runde (owner directives 2026-08-08, mocked + specced):** M9 is **lean by
   default** (primary-tag avatar + name); which extras show (Tags/Gewicht/Preis) is a
   device-local preference behind an eye icon with a settings sheet (FR-24.4 new). M10

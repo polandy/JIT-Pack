@@ -183,8 +183,12 @@ These patterns apply to every screen and are specified once.
 ### M11 — Container Management
 
 * **Purpose:** Define luggage containers and balance weight (3.10).
-* **Elements:** Per-trip container list: name, carrier avatar, weight bar (current/max) turning amber at 90 % and red beyond max (FR-10.3); pairing control linking two containers with a live imbalance indicator; "Unassigned items" bucket at bottom (FR-10.2).
-* **Actions:** Create/edit/delete containers; drag items (or multi-select + assign) from the unassigned bucket or between containers.
+* **Concept round 2026-08-08.** M11 was in the prototype but had never been through a round: containers could not be created or edited at all, the FR-10.3 pairing indicator was unreachable code (the seed had no pair), and assigning an item rendered *one button per container per row* — a wall that grows with containers × items and buries the item name.
+* **Elements:** Per-trip container list: name, carrier, weight bar (current/max) turning amber at 90 % and red beyond max (FR-10.3); the pairing imbalance line on paired containers; "Unassigned items" bucket at the bottom (FR-10.2), **one tappable row per item** rather than a grid of buttons.
+* **Editing is the M5 bottom sheet**, the same grammar as M8's position sheet: header with the container's load, then name, carrier, weight limit and the pairing selector, with the FR-25.15 auto-save chip — no Save button. **Pairing is exclusive and set on both sides at once**, and clearing or deleting one side releases the other; a half-set pair would render an imbalance against a container that does not consider itself paired.
+* **Creating is the FR-24.5 minimal form:** the ＋ FAB creates the container with a placeholder name and opens its sheet, so a name is enough to start and carrier/limit are filled in afterwards.
+* **Assigning:** tapping an unassigned row opens the same sheet as a **container picker**, each option showing its current load — so "which bag?" is answered where the load is visible. Assignment stays optional and never blocks packing (FR-25.5).
+* **Actions:** Create/edit/delete containers; assign items from the unassigned bucket via the picker. **Deleting a container unassigns its items rather than removing them** — items outlive their bag, and deleting rows with it would silently shorten the packing list.
 * **Navigation:** From M4 grouping switcher (*Container* mode exposes an "Edit containers" entry) and from M12.
 
 ### M12 — Analytics
