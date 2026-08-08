@@ -408,11 +408,15 @@ body{
   border:1px solid var(--s1);border-radius:12px;padding:7px 12px;margin-top:2px}
 .pprow{display:flex;align-items:center;gap:9px;padding:6px 0}
 .pprow .nm{flex:1;font-size:14px;font-weight:600}
-/* auto-save confirmation (distinct from G-2's sync glyph) */
-.savechip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;
-  padding:3px 9px;border-radius:11px;margin:2px 0 6px;transition:color .2s,background .2s}
+/* auto-save confirmation (distinct from G-2's sync glyph) — icon-only:
+   the labelled chip wrapped next to long item names in the sheet header
+   (owner 2026-08-08); the meaning rides on the title tooltip (G-12-06). */
+.savechip{display:grid;place-items:center;width:22px;height:22px;flex:none;font-size:12px;font-weight:700;
+  border-radius:50%;margin:2px 0 6px;transition:color .2s,background .2s;cursor:default}
 .savechip.saved{color:var(--green);background:color-mix(in srgb,var(--green) 14%,transparent)}
 .savechip.dirty{color:var(--yellow);background:color-mix(in srgb,var(--yellow) 16%,transparent)}
+@keyframes savepulse{50%{opacity:.35}}
+.savechip.dirty{animation:savepulse .8s ease-in-out infinite}
 .chiprow{display:flex;flex-wrap:wrap;gap:7px}
 .pchip{cursor:pointer;font-size:13px;font-weight:600;padding:6px 12px;border-radius:16px;
   border:1px solid var(--s1);background:var(--mantle);color:var(--sub0)}
@@ -1691,7 +1695,8 @@ function markDirty(){
 function paintSaveChip(){
   const c=document.getElementById('saveChip'); if(!c) return;
   c.className='savechip '+SAVE.state;
-  c.textContent=SAVE.state==='dirty'?'● Wird gespeichert…':'✓ Gespeichert';
+  c.textContent=SAVE.state==='dirty'?'●':'✓';
+  c.title=SAVE.state==='dirty'?'Wird gespeichert…':'Gespeichert';
 }
 
 /* ============ M5 item detail sheet ============ */
@@ -1812,7 +1817,7 @@ function renderItem(){
     <div class="ihead"><div class="grow"><div class="iname">${esc(it.name)}</div>
       <div class="desc">${esc(it.cat)}${it.unit?' · '+it.unit:''} · <span style="color:${state[1]};font-weight:600">${state[0]}</span></div></div>
       ${stepper}</div>
-    <div class="savechip ${SAVE.state}" id="saveChip">${SAVE.state==='dirty'?'● Wird gespeichert…':'✓ Gespeichert'}</div>
+    <div class="savechip ${SAVE.state}" id="saveChip" title="${SAVE.state==='dirty'?'Wird gespeichert…':'Gespeichert'}">${SAVE.state==='dirty'?'●':'✓'}</div>
 
     <div class="metarow">${meta.join('')}
       <button class="detbtn ${sheetDetails?'on':''}" data-act="details">${sheetDetails?'Weniger':'Details'}<span class="car">▾</span></button></div>
@@ -3349,7 +3354,7 @@ function renderT8Sheet(){
   body.innerHTML=`
     <div class="ihead"><div class="grow"><div class="iname">${esc(m.name)}</div>
       <div class="desc">${tplKind(t)==='group'?'Gruppe':'Ferien-Vorlage'} „${esc(t.name)}“ · Position</div></div>
-      <span class="savechip saved" id="saveChip">✓ Gespeichert</span></div>
+      <span class="savechip saved" id="saveChip" title="Gespeichert">✓</span></div>
     <div class="chiprow" style="margin:10px 0 2px">${glance}</div>
     <div class="assign"><div class="cap">Menge${r.pp?' — pro Person':''}</div>
       <div class="stepper"><button data-t8qdec="1">–</button><b>${qtyOf(r)}</b><button data-t8qinc="1">+</button></div>
