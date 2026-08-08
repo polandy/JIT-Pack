@@ -173,16 +173,16 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newIdPRefresh := sess.IdPRefreshToken
-	if sess.IdPRefreshToken != "" {
+	newIDPRefresh := sess.IDPRefreshToken
+	if sess.IDPRefreshToken != "" {
 		// Re-validate the account at the IdP once per refresh: a user
 		// disabled or logged out at Authelia is cut off at refresh
 		// cadence rather than never (ADR-007).
-		idpTokens, status := s.idpRefresh(sess.IdPRefreshToken)
+		idpTokens, status := s.idpRefresh(sess.IDPRefreshToken)
 		switch status {
 		case idpOK:
 			if idpTokens.RefreshToken != "" {
-				newIdPRefresh = idpTokens.RefreshToken
+				newIDPRefresh = idpTokens.RefreshToken
 			}
 			// Freshen identity and the FR-23.1 admin stamp from
 			// UserInfo. Best-effort: the IdP already vouched for the
@@ -218,7 +218,7 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 
 	newRefresh := newRefreshToken()
 	if _, err := s.store.RotateSession(r.Context(), oldHash, hashRefreshToken(newRefresh),
-		newIdPRefresh, now.Add(sessionRefreshTTL), now); err != nil {
+		newIDPRefresh, now.Add(sessionRefreshTTL), now); err != nil {
 		// Consumed by a concurrent rotation between peek and here —
 		// indistinguishable from a replay, and answered the same way.
 		writeError(w, http.StatusUnauthorized, "unauthorized", "unknown or expired session")

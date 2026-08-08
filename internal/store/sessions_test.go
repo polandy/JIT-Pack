@@ -39,8 +39,8 @@ func TestCreateSession_RotateReturnsTheSessionOnce(t *testing.T) {
 	if sess.UserID != userID {
 		t.Errorf("UserID = %q, want %q", sess.UserID, userID)
 	}
-	if sess.IdPRefreshToken != "idp-refresh-1" {
-		t.Errorf("IdPRefreshToken = %q, want the pre-rotation value for the IdP round-trip", sess.IdPRefreshToken)
+	if sess.IDPRefreshToken != "idp-refresh-1" {
+		t.Errorf("IDPRefreshToken = %q, want the pre-rotation value for the IdP round-trip", sess.IDPRefreshToken)
 	}
 
 	// The consumed hash must be dead: a replayed refresh token is the
@@ -67,7 +67,7 @@ func TestGetSessionByHash_PeeksWithoutConsuming(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if sess.UserID != userID || sess.IdPRefreshToken != "idp-refresh-1" {
+		if sess.UserID != userID || sess.IDPRefreshToken != "idp-refresh-1" {
 			t.Errorf("peeked session = %+v", sess)
 		}
 	}

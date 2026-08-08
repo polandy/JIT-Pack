@@ -46,19 +46,6 @@ func serveJWKS(t *testing.T, kid string, pub *rsa.PublicKey) *httptest.Server {
 	return srv
 }
 
-func rsaToken(t *testing.T, key *rsa.PrivateKey, kid, sub string) string {
-	t.Helper()
-	tok := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
-		"sub": sub,
-		"exp": time.Now().Add(time.Hour).Unix(),
-	})
-	tok.Header["kid"] = kid
-	signed, err := tok.SignedString(key)
-	if err != nil {
-		t.Fatalf("sign RS256 token: %v", err)
-	}
-	return signed
-}
 
 func TestJWKSProvider_FetchAndValidate(t *testing.T) {
 	key := generateRSAKey(t)

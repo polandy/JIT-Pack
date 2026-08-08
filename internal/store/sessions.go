@@ -20,7 +20,7 @@ var ErrSessionNotFound = errors.New("session not found")
 type Session struct {
 	ID              string
 	UserID          string
-	IdPRefreshToken string
+	IDPRefreshToken string
 	ExpiresAt       time.Time
 }
 
@@ -57,7 +57,7 @@ func (s *Store) GetSessionByHash(ctx context.Context, refreshHash string, now ti
 	)
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, user_id, COALESCE(idp_refresh_token, ''), expires_at FROM sessions WHERE refresh_hash = ?`,
-		refreshHash).Scan(&sess.ID, &sess.UserID, &sess.IdPRefreshToken, &expiry)
+		refreshHash).Scan(&sess.ID, &sess.UserID, &sess.IDPRefreshToken, &expiry)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Session{}, ErrSessionNotFound
 	}
@@ -80,15 +80,15 @@ func (s *Store) GetSessionByHash(ctx context.Context, refreshHash string, now ti
 // the stored IdP refresh token for its own rotation round-trip. A hash
 // that matches nothing live yields ErrSessionNotFound; single-use
 // hashes are what make a replayed refresh token worthless.
-func (s *Store) RotateSession(ctx context.Context, oldHash, newHash, newIdPRefreshToken string, newExpiry, now time.Time) (Session, error) {
+func (s *Store) RotateSession(ctx context.Context, oldHash, newHash, newIDPRefreshToken string, newExpiry, now time.Time) (Session, error) {
 	sess, err := s.GetSessionByHash(ctx, oldHash, now)
 	if err != nil {
 		return Session{}, err
 	}
 
 	var idpArg any
-	if newIdPRefreshToken != "" {
-		idpArg = newIdPRefreshToken
+	if newIDPRefreshToken != "" {
+		idpArg = newIDPRefreshToken
 	}
 	res, err := s.db.ExecContext(ctx,
 		`UPDATE sessions SET refresh_hash = ?, idp_refresh_token = ?,
