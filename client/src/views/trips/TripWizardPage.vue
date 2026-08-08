@@ -501,7 +501,12 @@ function createTrip() {
           </IonItem>
         </IonList>
         <div v-else class="empty-hint">No travelers yet — per-person items need at least one.</div>
-        <IonButton data-testid="wizard-add-traveler" fill="outline" size="small" @click="addTraveler">
+        <IonButton
+          data-testid="wizard-add-traveler"
+          fill="outline"
+          size="small"
+          @click="addTraveler"
+        >
           <IonIcon slot="start" :icon="addOutline" />
           Add traveler
         </IonButton>
@@ -700,7 +705,12 @@ function createTrip() {
         <IonButton v-if="step < 4" data-testid="wizard-next" :disabled="!stepValid" @click="next">
           Next
         </IonButton>
-        <IonButton v-if="step === 4" data-testid="wizard-create" color="primary" @click="createTrip">
+        <IonButton
+          v-if="step === 4"
+          data-testid="wizard-create"
+          color="primary"
+          @click="createTrip"
+        >
           Create trip
         </IonButton>
       </div>
