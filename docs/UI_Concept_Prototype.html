@@ -3030,6 +3030,15 @@ function renderAnalytics(){
 }
 
 /* ============ M10 item editor — master data, multi-tag, soft/hard delete ============ */
+/* FR-27.9: comments made on this item's packing rows, across trips. In the
+   real system this is an aggregation over comments → trip_items.source_item_id,
+   computed client-side over the trips synced to the device (M12-style honesty). */
+const ITEM_COMMENTS=[
+  {m:74,trip:'Samedan 2025',who:'Andy',when:'21. Aug 2025',text:'Nächstes Mal Ersatzakku mitnehmen — war am Muottas Muragl leer.'},
+  {m:74,trip:'Samedan 2024',who:'Sia',when:'18. Aug 2024',text:'Objektivdeckel fehlte — in die Fototasche packen, nicht lose.'},
+  {m:4,trip:'Samedan 2024',who:'Sia',when:'15. Aug 2024',text:'6 Paar waren zu viel, 4 reichen locker.'},
+  {m:34,trip:'Cannobio 2025',who:'Sia',when:'9. Jul 2025',text:'50+ kaufen — die 30er hat nicht gereicht.'},
+];
 const EDIT={id:null};
 const UNITS=['Stk','Paar'];
 function openM10(id){ EDIT.id=id; go('itemedit'); }
@@ -3057,6 +3066,15 @@ function renderItemEdit(){
             <svg viewBox="0 0 24 24" style="width:18px;color:var(--o0)"><use href="#i-chev"/></svg></div>`).join('')}</div>`
           :'<div class="card"><div class="li"><div class="grow muted" style="text-align:center;padding:8px">In keiner Gruppe oder Vorlage.</div></div></div>';})()}
       <div class="tiny muted" style="margin-top:7px">Geplant (offener Punkt §3.27): zusätzlich anzeigen, auf welchen Reisen der Artikel dabei war.</div></div>
+    ${(()=>{const cs=ITEM_COMMENTS.filter(c=>c.m===it.id);
+      if(!cs.length)return '';
+      return `<div class="field"><label>Kommentare aus Reisen · ${cs.length} (FR-27.9)</label>
+        <div class="card">${cs.map(c=>{const av=AV[c.who]||['?','var(--s2)'];
+          return `<div class="li" style="align-items:flex-start">
+            <span class="mini-av" style="background:${av[1]};width:26px;height:26px;font-size:11px;flex:none;margin-top:2px">${av[0]}</span>
+            <div class="grow"><div class="tiny">${esc(c.text)}</div>
+              <div class="tiny muted" style="margin-top:4px">${esc(c.who)} · <b style="color:var(--mauve)">${esc(c.trip)}</b> · ${esc(c.when)}</div></div></div>`;}).join('')}</div>
+        <div class="tiny muted" style="margin-top:7px">Aus den Packlisten-Einträgen dieses Artikels (FR-7.1) — so wandert die Erfahrung von Reise zu Reise in die Gruppen.</div></div>`;})()}
     <div class="card" style="padding:12px 14px;margin-top:6px;${used?'background:rgba(250,179,135,.08);border-color:rgba(250,179,135,.3)':''}">
       <div class="tiny">${used
         ? `⚠ <b>Verwendet in ${used} Reisen.</b> Löschen entfernt den Artikel nur <b>logisch</b> — er verschwindet aus dem Inventar, bleibt aber für Historie & Auswertung erhalten.`

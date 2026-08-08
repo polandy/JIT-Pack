@@ -223,6 +223,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M10-03** `all` (FR-20.1): "Depends on" section — add dependency with required/suggested mode; save-time cycle rejection with a readable error; read-only "Companions" list.
 * **E2E-M10-04** `all` (FR-22.1/22.4/22.5): Photo section — add/replace/remove with live preview; oversized source is optimized to ≤150 KB JPEG (asserted via the stored/served image).
 * **E2E-M10-05** `all` (FR-27.8): "Enthalten in" section lists every group/Ferien-Vorlage containing the item with its scope chip; tapping a row opens that template's M8 editor; an unreferenced item shows the empty note. The deferred per-trip usage history is visibly noted as planned, not silently absent.
+* **E2E-M10-06** `all` (FR-27.9): "Kommentare aus Reisen" aggregates the comments written on this item's packing rows across trips — each entry carries author, source trip, and timestamp, newest first; comments from different trips appear together; an item without comments renders no section at all; entries are read-only (the editable thread stays on the trip item, FR-7.1).
 
 ### M11 — Container Management
 * **E2E-M11-01** `all` (FR-10.1): create/edit/delete containers with name, carrier, max weight.
@@ -452,6 +453,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-27.6 | E2E | M7-07 (scope tabs/sections), M7-08 (create chooser), M8-07 (scope-shaped editor), M8-10 (guarded switch), M3-11 (wizard sections) |
 | FR-27.7 | E2E | M8-11 (task list + count chip + propagation log), M3-13 (preview count, todo on the generated item); blocking = existing FR-7.3/25.2 M4 cases |
 | FR-27.8 | E2E | M10-05 (named back-references, tap-through); counts stay M10-02 |
+| FR-27.9 | E2E | M10-06 (cross-trip comment aggregation with author/trip/timestamp) |
 | FR-25.7 | E2E | M8-12 (one-tap add, "Standard" row, Mehr-Optionen disclosure) |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |

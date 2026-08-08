@@ -65,7 +65,10 @@ bounded. Two decisions fix the scope:
   added. **Fourth round:** FR-25.7 realised in M8 (one-tap add, collapsed "Standard" row,
   Menge + Vorbereitung first, rest behind "Mehr Optionen"; M8-12) and FR-27.8 new (M10
   "Enthalten in" back-references with tap-through, per-trip usage history deliberately
-  deferred; M10-05). 59 assertions headless. Implementation open: `templates.kind` + `template_includes` (+ task
+  deferred; M10-05). **Fifth round: cross-trip comment history in M10** (FR-27.9, owner
+  request — "die Packliste kontinuierlich von Ferien zu Ferien verbessern"): comments from
+  this item's packing rows aggregated with author/trip/timestamp, client-side over synced
+  trips, read-only; M10-06. 64 assertions headless. Implementation open: `templates.kind` + `template_includes` (+ task
   storage per FR-27.7) migration + sync whitelist, `instantiate.ts` include expansion + task
   materialisation, planning-trip refresh diff, M21 screen; UI-Spec entry for M21 still to
   write.
