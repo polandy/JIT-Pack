@@ -1856,8 +1856,8 @@ function renderItem(){
       <div class="tiny" style="margin-top:9px;color:var(--sub0)">${needHint}</div></div>
 
     <div class="assign packer"><div class="lbl">Verantwortliche Person</div>
-      <div class="pickrow">${USERS.map(u=>optHTML(u,it.packedBy||'','packer')).join('')}
-        <button class="opt ${!it.packedBy?'sel':''}" data-act="packer" data-v="">niemand</button>
+      <div class="pickrow">${USERS.map(u=>optHTML(u,it.resp||'','packer')).join('')}
+        <button class="opt ${!it.resp?'sel':''}" data-act="packer" data-v="">niemand</button>
         <span class="tiny muted" style="margin-left:4px">Wer sich darum kümmert — Zuweisen löst Push aus (FR-6.2)</span></div>
       <div class="tiny muted" style="margin-top:9px">${it.packedBy
         ? `Gepackt hat es <b style="color:var(--sub1)">${esc(it.packedBy)}</b>${it.packedAt?' · '+new Date(it.packedAt).toLocaleString('de-CH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''} — automatisch festgehalten, nicht wählbar (FR-25.19).`

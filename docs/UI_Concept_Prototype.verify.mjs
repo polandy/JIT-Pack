@@ -479,6 +479,20 @@ const sh = await text('#itemSheet');
 ok(sh.includes('verantwortliche person'), 'das Sheet beschriftet die Zuweisung als Verantwortung');
 ok(sh.includes('gepackt hat es') && sh.includes('nicht wählbar'),
   'der Packbeleg steht daneben und ist ausdrücklich nicht wählbar');
+// Both pickers mark their selection the same way (.pk.sel — orange outline);
+// the responsible picker read a field it no longer wrote, so nothing was marked.
+ok(await page.evaluate(() => {
+  const rows = [...document.querySelectorAll('#itemSheet .assign')];
+  const resp = rows.find(r => /Verantwortliche Person/.test(r.textContent));
+  return !!resp && resp.querySelector('.pk.sel') !== null;
+}), 'die zuständige Person ist im Picker markiert');
+// Same markup hook in both rows, so the orange .pk.sel outline is identical
+// by construction rather than by two copies of the same styling.
+ok(await page.evaluate(() => {
+  const rows = [...document.querySelectorAll('#itemSheet .assign')];
+  const avatars = r => [...r.querySelectorAll('.mini-av')].every(a => a.classList.contains('pk'));
+  return rows.filter(r => /Wer braucht das|Verantwortliche Person/.test(r.textContent)).every(avatars);
+}), 'beide Picker benutzen denselben Auswahl-Haken (.pk) — gleicher oranger Rahmen');
 await page.evaluate(() => closeItem());
 
 console.log('— Seitenfehler —');
