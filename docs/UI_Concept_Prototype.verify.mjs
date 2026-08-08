@@ -542,6 +542,28 @@ ok(await page.evaluate(() => {
   return mine.length > 0;
 }), 'nicht zugewiesene Sachen bleiben sichtbar — sie gehören allen');
 
+console.log('— Konsistenz-Durchgang: keine wirkungslosen Bedienelemente —');
+await page.evaluate(() => { resetWizard(); go('wizard'); });
+await page.click('[data-act="series"][data-v="__new"]');
+ok(await page.locator('#wizSeriesNew').count(), 'neue Serie wird inline erfasst, nicht per prompt()');
+await page.fill('#wizSeriesNew', 'Toskana');
+await page.press('#wizSeriesNew', 'Enter');
+ok(await page.evaluate(() => W.series === 'Toskana'), 'Enter legt die Serie an');
+ok((await text('#wizBody')).includes('toskana'), 'und sie erscheint als gewählte Serie');
+
+await page.evaluate(() => { resetWizard(); go('wizard'); W.step = 4; renderWizard(); });
+let w4 = await text('#wizBody');
+ok(w4.includes('deckt sich mit dieser menge'),
+  'ein Verlauf, der die eingestellte Menge bestätigt, ist Text — kein Knopf');
+ok(await page.evaluate(() => [...document.querySelectorAll('#wizBody [data-act="sugg"]')]
+     .every(b => +b.dataset.q !== (W.q[b.dataset.name] != null ? W.q[b.dataset.name] : QROWS.find(r => r.name === b.dataset.name).base))),
+  'jeder angebotene Vorschlag verändert die Menge auch wirklich');
+const sugg = page.locator('#wizBody [data-act="sugg"]').first();
+const sName = await sugg.getAttribute('data-name');
+await sugg.click();
+ok(await page.evaluate(n => W.q[n] === 30, sName), 'Übernehmen setzt die Menge aus dem Verlauf');
+await page.evaluate(() => { resetWizard(); go('dashboard'); });
+
 console.log('— Seitenfehler —');
 ok(errors.length === 0, 'keine JS-Fehler' + (errors.length ? ' — ' + errors.join(' | ') : ''));
 

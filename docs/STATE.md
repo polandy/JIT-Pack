@@ -217,6 +217,21 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   header stays unfiltered per G-12, which is what makes a short list safe. Session-scoped like the
   rest of the view (FR-25.18). E2E M4-31. Implementation open.
 
+- **Konsistenz-Durchgang 2026-08-08 (owner request).** Method: every visible control on every
+  screen was clicked in isolation on a freshly loaded page and checked for *any* effect on DOM,
+  view or model — 258 controls; then the specs' concrete claims were probed against the mockup.
+  Note on method: the first pass compared DOM *lengths* and therefore missed class swaps (a
+  segment moving its `sel`), which produced false positives until it compared the DOM exactly.
+  **Two dead controls found and fixed:** the M3 "+ Neue Serie…" chip opened a native `prompt()` —
+  the only place in the app that left the inline-capture pattern (FR-25.13), and on a phone the
+  modal interruption the concept avoids everywhere else; and the FR-14.2 history suggestions in
+  M3 step 4 offered "→ 6 übernehmen" next to a 6, a button that could not change anything, now
+  rendered as a confirming line instead. **Three questions raised for the owner** (see below /
+  session notes): §3.20 item dependencies are implemented in code but absent from the concept;
+  M2's ordering contradicts its own spec entry; "Verantwortliche Person" (M5) and "Zugewiesen an"
+  (M6) name the same thing differently. Everything else the specs claim is realised was found
+  clickable.
+
 - **Inventar-UX-Runde (owner directives 2026-08-08, mocked + specced):** M9 is **lean by
   default** (primary-tag avatar + name); which extras show (Tags/Gewicht/Preis) is a
   device-local preference behind an eye icon with a settings sheet (FR-24.4 new). M10

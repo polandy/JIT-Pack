@@ -2204,6 +2204,7 @@ function resetWizard(){ W={step:1,name:'',start:'',end:'',season:'',transport:''
      Erwachsen/Kind type went with FR-25.9 — nothing evaluated it. */
   travelers:[{name:'Andy'},{name:'Sia'},{name:'Leonardo'}],
   share:[{name:'Sia',role:'Admin'}], templates:{ferienfam:true}, tplSearch:'', tplTab:'all',
+  seriesNew:false, seriesDraft:'',
   extraItems:[], extraSearch:'',
   dest:[{name:'Mückenspray',on:true},{name:'Wanderschuhe',on:true},{name:'Reiseföhn',on:false}], q:{}}; }
 resetWizard();
@@ -2229,7 +2230,9 @@ function wStep1(){ const d=dur();
     <span class="dur">${d?d+' Tage':''}</span></div></div>
   <div class="field"><label>Serie</label><div class="chips">
     <button class="opt mauve ${W.series==='Samedan'?'sel':''}" data-act="series" data-v="Samedan">◆ Samedan</button>
-    <button class="opt" data-act="series" data-v="__new">+ Neue Serie…</button></div>
+    ${W.series&&W.series!=='Samedan'?`<button class="opt mauve sel" data-act="series" data-v="__clear">◆ ${esc(W.series)}</button>`:''}
+    <button class="opt ${W.seriesNew?'sel':''}" data-act="series" data-v="__new">+ Neue Serie…</button></div>
+    ${W.seriesNew?`<input class="txt" id="wizSeriesNew" placeholder="Name der Serie — Enter" autocomplete="off" style="margin-top:8px" value="${esc(W.seriesDraft||'')}">`:''}
     ${W.series==='Samedan'?'<div class="tiny muted" style="margin-top:7px">Serien-Defaults übernommen: Flug · Agriturismo (leere Felder vorbefüllt, FR-13.2)</div>':''}</div>
   <div class="field"><label>Saison</label>${chipGroup('season',SEASONS,W.season,'warm')}</div>
   <div class="field"><label>Transport</label>${chipGroup('transport',TRANSPORTS,W.transport)}</div>
@@ -2357,7 +2360,12 @@ function wStep4(){
   return `<div class="tiny muted" style="margin:2px 4px 10px">Mengen aus den Vorlagen übernommen — hier für diese Reise anpassbar</div>
   <div class="card">${QROWS.map(r=>{ const q=W.q[r.name]!=null?W.q[r.name]:r.base;
     return `<div class="qrow"><div class="grow"><div class="name">${r.name}</div>
-      ${r.hist?`<span class="sugg" data-act="sugg" data-name="${r.name}" data-q="${r.s}">↩ ${r.hist} → ${r.s} übernehmen</span>`:''}</div>
+      ${r.hist ? (r.s!==q
+        // FR-14.2: only offer the history when it differs from what is set. A
+        // button labelled "→ 6 übernehmen" next to a 6 does nothing, and a
+        // control that does nothing teaches people to stop trusting the others.
+        ? `<span class="sugg" data-act="sugg" data-name="${r.name}" data-q="${r.s}">↩ ${r.hist} → ${r.s} übernehmen</span>`
+        : `<span class="tiny muted">↩ ${r.hist} — deckt sich mit dieser Menge</span>`) : ''}</div>
       <div class="stepper"><button data-act="qdec" data-name="${r.name}" data-def="${r.base}">–</button><b>${q}</b><button data-act="qinc" data-name="${r.name}" data-def="${r.base}">+</button></div></div>`;}).join('')}</div>
   <div class="section-h">Ziel-Checkliste der Serie · optional (FR-13.3)</div>
   <div class="card">${W.dest.map((x,i)=>`<div class="li"><div class="check ${x.on?'on':''}" data-act="dest" data-i="${i}"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
@@ -2368,7 +2376,11 @@ function bindWizard(){
   document.getElementById('wizBody').querySelectorAll('[data-act]').forEach(el=>{
     el.onclick=()=>{ const a=el.dataset.act;
       if(a==='attr'){ W[el.dataset.grp]=W[el.dataset.grp]===el.dataset.v?'':el.dataset.v; }
-      else if(a==='series'){ if(el.dataset.v==='__new'){ const nm=prompt('Name der neuen Serie:'); if(nm)W.series=nm; }
+      // Captured inline like every other name in the app (FR-25.13). A native
+      // prompt() was the one place that broke the pattern — and on a phone it is
+      // exactly the modal interruption the concept avoids everywhere else.
+      else if(a==='series'){ if(el.dataset.v==='__new'){ W.seriesNew=!W.seriesNew; W.seriesDraft=''; }
+        else if(el.dataset.v==='__clear'){ W.series=''; }
         else { W.series=W.series==='Samedan'?'':'Samedan'; const def=SERIES_DEF[W.series]; if(def){ if(!W.transport)W.transport=def.transport; if(!W.accommodation)W.accommodation=def.accommodation; } } }
       else if(a==='trm'){ W.travelers.splice(+el.dataset.i,1); }
       else if(a==='tadd'){ const inp=document.getElementById('travInput'); if(inp.value.trim()){ W.travelers.push({name:inp.value.trim()}); } }
@@ -2383,6 +2395,11 @@ function bindWizard(){
     };
   });
   const nm=document.getElementById('wizName'); if(nm) nm.oninput=e=>W.name=e.target.value;
+  const sn=document.getElementById('wizSeriesNew');
+  if(sn){ sn.focus(); try{sn.setSelectionRange(sn.value.length,sn.value.length);}catch(e){}
+    sn.oninput=e=>{ W.seriesDraft=e.target.value; };
+    sn.onkeydown=e=>{ if(e.key==='Enter'&&sn.value.trim()){ W.series=sn.value.trim(); W.seriesNew=false; W.seriesDraft=''; renderWizard(); }
+      if(e.key==='Escape'){ W.seriesNew=false; W.seriesDraft=''; renderWizard(); } }; }
   const ts=document.getElementById('tplSearch');
   if(ts) ts.oninput=e=>{ W.tplSearch=e.target.value; document.getElementById('tplClr').classList.toggle('show', !!W.tplSearch); renderTplList(); };
   const tc=document.getElementById('tplClr');
