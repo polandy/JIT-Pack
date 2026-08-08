@@ -209,6 +209,14 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   asserted what the sheet *does to the model* by setting fields directly, so no assertion ever
   clicked the control — that is how it survived. The new cases drive real clicks.
 
+- **Fremd zugewiesene Zeilen standardmässig ausgeblendet (FR-25.20, owner request 2026-08-08) —
+  mocked + specced:** M4 opens on your own work; rows whose FR-25.19 responsible person is someone
+  else are filtered out, unassigned rows always stay (nobody claimed them, so they are everyone's).
+  Never silent — a reveal bar at the foot names the count and the people, mirroring FR-25.2's done
+  bar, and the switch joins *Erledigte* in the filter panel (both render from one shape now). The
+  header stays unfiltered per G-12, which is what makes a short list safe. Session-scoped like the
+  rest of the view (FR-25.18). E2E M4-31. Implementation open.
+
 - **Inventar-UX-Runde (owner directives 2026-08-08, mocked + specced):** M9 is **lean by
   default** (primary-tag avatar + name); which extras show (Tags/Gewicht/Preis) is a
   device-local preference behind an eye icon with a settings sheet (FR-24.4 new). M10

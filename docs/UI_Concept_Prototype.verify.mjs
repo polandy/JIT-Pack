@@ -307,7 +307,7 @@ ok((await text('#snack')).includes('bereits vollständig'), 'zweiter Versuch mel
 console.log('— Packlisten-Filter überlebt die Session (FR-25.18) —');
 await page.evaluate(() => { go('pack'); openFilters(CTX_PACK); });
 await page.click('[data-fopt="trav"][data-v="Andy"]');   // Person is the default-open accordion
-await page.click('#fDoneToggle');
+await page.click('[data-fswitch="done"]');
 await page.evaluate(() => closeFilters());
 let chips = await text('#packHead');
 ok(chips.includes('andy'), 'aktiver Facettenwert erscheint als Chip (FR-25.11a)');
@@ -516,6 +516,31 @@ ok(await page.evaluate(id => P.items.find(i => i.id === id).late === true, ppId)
   'Spätpacker ebenso');
 await page.locator('#itemSheet [data-act="late"]').click();
 await page.evaluate(() => closeItem());
+
+console.log('— Fremd zugewiesene Sachen standardmässig ausgeblendet (FR-25.20) —');
+await page.evaluate(() => {
+  FACETS.forEach(f => FILT[f.key].clear()); showDone = false; showOthers = false;
+  P.items.forEach(i => { if (i.id === 14) i.resp = 'Sia'; });
+  persistPackFilter(); go('pack');
+});
+ok(await page.evaluate(() => !allLeaves().filter(l => l.resp === 'Sia' && !leafDone(l))
+     .some(l => [...document.querySelectorAll('#packList .name')].some(n => n.textContent === l.name))),
+  'eine Sia zugewiesene Zeile steht nicht in der Liste');
+let bar = await text('#othersToggle');
+ok(bar.includes('sia') && /\d/.test(bar), 'die Leiste nennt Anzahl und Person — nichts verschwindet stumm');
+const headBefore = await text('#packHead');
+await page.click('#othersToggle');
+ok(await page.evaluate(() => [...document.querySelectorAll('#packList .name')]
+     .some(n => n.textContent === 'Leonardos Regenzeug')), 'ein Tap zeigt sie');
+ok((await text('#packHead')) === headBefore,
+  'die Kopfzeile ändert sich nicht — gepackt/total bleibt ungefiltert (G-12)');
+await page.click('#othersToggle');
+ok(await page.evaluate(() => JSON.parse(sessionStorage.getItem('jitpack.m4filter.sam26')).others === false),
+  'der Zustand wird wie jeder andere Filter in der Session gehalten (FR-25.18)');
+ok(await page.evaluate(() => {
+  const mine = allLeaves().filter(l => !l.resp);
+  return mine.length > 0;
+}), 'nicht zugewiesene Sachen bleiben sichtbar — sie gehören allen');
 
 console.log('— Seitenfehler —');
 ok(errors.length === 0, 'keine JS-Fehler' + (errors.length ? ' — ' + errors.join(' | ') : ''));

@@ -1056,6 +1056,13 @@ function openPack(id){
 const AV = {Andy:['A','var(--peach)'],Sia:['S','var(--mauve)'],Leonardo:['L','var(--sky)']};
 let groupMode = 'cat';
 let showDone = false;                       // FR-25.x: hide fully-packed rows, reveal via toggle
+/* FR-25.20 (owner 2026-08-08): rows someone else is responsible for are hidden
+   by default — they are that person's job, and on a shared list they are noise
+   in the way of your own. Unassigned rows stay visible: nobody has claimed them,
+   so they are everyone's. Never silent — the reveal bar names the count, and the
+   header's packed/total stays unfiltered (G-12), so the trip's real state is
+   always on screen even while the list is short. */
+let showOthers = false;
 const PACK = {search:'', searchOpen:false, collapsed:new Set()};  // G-12: search collapses behind its icon; collapsed = folded group keys
 /* Open preparation is DERIVED from the todo list, never stored as a count on
    the item. It used to be a static number in the seed while the todos carried
@@ -1171,7 +1178,7 @@ const M4F_KEY='jitpack.m4filter.'+M4F_TRIP;
 function persistPackFilter(){
   try{ sessionStorage.setItem(M4F_KEY, JSON.stringify({
     facets:Object.fromEntries(FACETS.map(f=>[f.key,[...FILT[f.key]]])),
-    done:showDone, group:groupMode,
+    done:showDone, others:showOthers, group:groupMode,
   })); }catch(e){}   // private mode / disabled storage: filtering still works, it just forgets
 }
 function restorePackFilter(){
@@ -1181,6 +1188,7 @@ function restorePackFilter(){
   let s; try{ s=JSON.parse(raw); }catch(e){ return; }
   FACETS.forEach(f=>{ FILT[f.key]=new Set((s.facets&&s.facets[f.key])||[]); });
   if(typeof s.done==='boolean') showDone=s.done;
+  if(typeof s.others==='boolean') showOthers=s.others;
   if(s.group) groupMode=s.group;
 }
 const FACETS = [
@@ -1203,6 +1211,9 @@ function leafPasses(l, skipKey){
   return FACETS.every(f => f.key===skipKey || FILT[f.key].size===0
     || leafFacet(l, f.key).some(v => FILT[f.key].has(v)));
 }
+/* Someone else's job: assigned, and not to me. An unassigned row is nobody's
+   and therefore everybody's, so it never hides. */
+const othersJob = l => !!l.resp && l.resp !== ME;
 const filterCount = () => FACETS.reduce((n,f)=>n+FILT[f.key].size, 0);
 function clearFilters(){ FACETS.forEach(f=>FILT[f.key].clear()); }
 let nextId = 100;
@@ -1317,7 +1328,8 @@ function renderPack(){
   const openPrep=P.prep.filter(p=>!p.done).length;
   const shopN=P.items.filter(i=>isBuy(i.mode)).length;
   const q=PACK.search.trim().toLowerCase();
-  const Lf = L.filter(l=>leafPasses(l)).filter(l=>!q||l.name.toLowerCase().includes(q));
+  const Lf = L.filter(l=>leafPasses(l)).filter(l=>!q||l.name.toLowerCase().includes(q))
+              .filter(l=>showOthers || !othersJob(l));
 
   // G-12: one header line — identity and progress on the left, actions as an
   // icon cluster on the right. Replaces the previous two full rows of controls
@@ -1395,6 +1407,14 @@ function renderPack(){
   const toggle = doneN ? `<div class="donebar ${showDone?'on':''}" id="doneToggle">
       <svg viewBox="0 0 24 24"><use href="#i-check"/></svg>
       ${showDone?`${doneN} gepackte ausblenden`:`${doneN} gepackte anzeigen`}</div>` : '';
+  // Same affordance as the done bar: state the count, name the people, one tap
+  // to reveal. A default that hides rows without saying so would read as
+  // "nothing left to do" — the failure FR-25.11a exists to prevent.
+  const othersAll=L.filter(othersJob).filter(l=>showDone||!leafDone(l));
+  const who=[...new Set(othersAll.map(l=>l.resp))].join(' · ');
+  const othersBar = othersAll.length ? `<div class="donebar ${showOthers?'on':''}" id="othersToggle">
+      <svg viewBox="0 0 24 24"><use href="#i-comp"/></svg>
+      ${showOthers?`${othersAll.length} von ${who} ausblenden`:`${othersAll.length} ${othersAll.length===1?'Sache liegt':'Sachen liegen'} bei ${who} · anzeigen`}</div>` : '';
   // An empty list has two very different meanings, and conflating them is how a
   // packing app tells someone they are finished when they are not.
   // "Alles gepackt" may only ever appear when *nothing* is narrowing the list.
@@ -1413,7 +1433,7 @@ function renderPack(){
       : `<div class="emptyfilter"><b>Alles gepackt 🎉</b>Nichts mehr offen für diese Reise.</div>`;
   }
   renderTripDone();
-  document.getElementById('packList').innerHTML = groupsHTML + emptyHint + toggle;
+  document.getElementById('packList').innerHTML = groupsHTML + emptyHint + othersBar + toggle;
 
   // prep section
   document.getElementById('prepCount').textContent = openPrep+' offen';
@@ -1524,7 +1544,8 @@ function bindPack(){
   // that leaves the search in place still shows "keine Treffer".
   const fre=document.getElementById('fResetEmpty');
   if(fre) fre.onclick=()=>{ clearFilters(); PACK.search=''; PACK.searchOpen=false; renderPack(); };
-  const dt=document.getElementById('doneToggle'); if(dt) dt.onclick=()=>{ showDone=!showDone; renderPack(); };
+  const dt=document.getElementById('doneToggle'); if(dt) dt.onclick=()=>{ showDone=!showDone; persistPackFilter(); renderPack(); };
+  const ot=document.getElementById('othersToggle'); if(ot) ot.onclick=()=>{ showOthers=!showOthers; persistPackFilter(); renderPack(); };
   // stepper / check / prep taps — scoped to the M4 regions so it never rebinds the M5 sheet's
   // own [data-act] handlers (renderPack runs after sheet actions; a document-wide select clobbered them)
   document.querySelectorAll('#packList [data-act], #prepList [data-act]').forEach(el=>{
@@ -2006,6 +2027,9 @@ const CTX_PACK={
   done:{ label:'Erledigte', hint:'Gepackte anzeigen',
          get:()=>showDone, set:v=>{showDone=v;},
          count:()=>allLeaves().filter(leafDone).length },
+  others:{ label:'Anderen zugewiesen', hint:'Sachen anderer anzeigen',
+           get:()=>showOthers, set:v=>{showOthers=v;},
+           count:()=>allLeaves().filter(othersJob).length },
 };
 let FCTX=CTX_PACK;
 function renderFilterSheet(){
@@ -2017,11 +2041,15 @@ function renderFilterSheet(){
   // "Show done" belongs to the filter panel on every screen: hiding finished
   // rows is a filter, and burying its only control elsewhere is how M6 ended up
   // with items that vanished on tap and could not be brought back at all.
-  const doneSeg=C.done?`<div class="fgroup open"><div class="fghead" style="cursor:default">${C.done.label}
-      <span class="sum ${C.done.get()?'on':''}">${C.done.get()?'sichtbar':'ausgeblendet'}</span></div>
-      <div class="fgbody"><div class="fopt ${C.done.get()?'on':''}" id="fDoneToggle">
+  // Both "hide a class of rows" switches render from the same shape — done
+  // rows (FR-25.2) and other people's rows (FR-25.20). They are filters, so
+  // they belong in the filter panel, not scattered across the screen.
+  const switches=[['done',C.done],['others',C.others]].filter(([,s])=>!!s);
+  const doneSeg=switches.map(([k,s])=>`<div class="fgroup open"><div class="fghead" style="cursor:default">${s.label}
+      <span class="sum ${s.get()?'on':''}">${s.get()?'sichtbar':'ausgeblendet'}</span></div>
+      <div class="fgbody"><div class="fopt ${s.get()?'on':''}" data-fswitch="${k}">
         <span class="fbox"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span>
-        <span class="lbl">${C.done.hint}</span><span class="n">${C.done.count()}</span></div></div></div>`:'';
+        <span class="lbl">${s.hint}</span><span class="n">${s.count()}</span></div></div></div>`).join('');
   const groupsHTML=doneSeg+C.facets.map(f=>{
     const vals=C.values(f.key), sel=C.filt[f.key];
     const open=fOpenGroups.has(f.key);
@@ -2040,8 +2068,8 @@ function renderFilterSheet(){
   document.getElementById('filterBody').innerHTML=groupSeg+groupsHTML;
 
   const body=document.getElementById('filterBody');
-  const dt=body.querySelector('#fDoneToggle');
-  if(dt) dt.onclick=()=>{ C.done.set(!C.done.get()); renderFilterSheet(); C.rerender(); };
+  body.querySelectorAll('[data-fswitch]').forEach(b=>b.onclick=()=>{
+    const s=C[b.dataset.fswitch]; s.set(!s.get()); renderFilterSheet(); C.rerender(); });
   body.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{ groupMode=b.dataset.g; renderFilterSheet(); C.rerender(); });
   body.querySelectorAll('[data-fgtoggle]').forEach(h=>h.onclick=()=>{
     const k=h.dataset.fgtoggle; if(fOpenGroups.has(k)) fOpenGroups.delete(k); else fOpenGroups.add(k);
