@@ -63,7 +63,7 @@ The originally planned shape: `POST /trips` performs instantiation, `GET /sugges
 | Rule testability | 3 | 5 — pure functions | 4 — also good | 3 — harder to isolate |
 | Footprint / protocol simplicity | 3 | 4 — no new RPC | 2 — RPC per feature | 0 — very heavy |
 | Server-side enforcement | 2 | 1 — none | 5 — full | 5 — full |
-| **Total** | | **70** | **35** | **56** |
+| **Total** | | **74** | **32** | **59** |
 
 ---
 

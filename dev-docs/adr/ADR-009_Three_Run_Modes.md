@@ -15,7 +15,7 @@
 
 ### Option A — One artifact, mode selected at runtime *(recommended, accepted)*
 
-The client is a single bundle whose behaviour is decided by `jitpack_mode` in local storage (`local` / `single` / `server`, plus `jitpack_server_url`). The server is a single binary whose constructor is chosen from env: `api.New` (HS256), `api.NewWithJWKS` (RS256/OIDC) or `api.NewSingleUser` (auth and membership bypassed). Local Mode never contacts a server; `useSyncOrchestrator` takes an `IndexedDBPersistence` and its enqueue/drain/WebSocket paths become no-ops, while `onPullChanges` stays the single funnel every change flows through.
+The client is a single bundle whose behaviour is decided by `jitpack_mode` in local storage — which holds only `local` or `server`, plus `jitpack_server_url`. Single-User is **not** a client mode: a `server`-mode client discovers it by being offered no OIDC config and hides the collaborative surface accordingly (G-8). The server is a single binary whose constructor is chosen from env: `api.New` (HS256), `api.NewWithJWKS` (RS256/OIDC) or `api.NewSingleUser` (auth and membership bypassed). Local Mode never contacts a server; `useSyncOrchestrator` takes an `IndexedDBPersistence` and its enqueue/drain/WebSocket paths become no-ops, while `onPullChanges` stays the single funnel every change flows through.
 
 **Pros**
 - One bundle to build, sign, ship and cache; one Docker image.
@@ -59,7 +59,7 @@ Build-time flags produce a local-only bundle, a single-user bundle and a full bu
 | Migration path between modes | 4 | 5 | 1 | 0 |
 | One artifact / one test surface | 4 | 5 | 1 | 5 |
 | No dead controls in a mode | 3 | 3 — needs discipline | 5 — structural | 5 |
-| **Total** | | **74** | **43** | **40** |
+| **Total** | | **74** | **43** | **35** |
 
 ---
 
