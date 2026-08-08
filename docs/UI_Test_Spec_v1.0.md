@@ -188,8 +188,8 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M6-11** `all` (FR-25.13): M6 has **no permanent "add" row**; the ＋ FAB expands an inline quick-add above the list and focuses it, Enter adds to the currently open tab, and an empty field collapses it on blur — the same sequence as M4-04. Asserts no native `prompt()` is used.
 
 ### M7 — Template List
-* **E2E-M7-01** `all` (FR-1.2): My templates vs Published sections; per-row name + item count.
-* **E2E-M7-02** `server` (FR-1.6): fork a published template → editable copy under My templates.
+* **E2E-M7-01** `all` (FR-1.2/1.6): one shared instance-wide list (no my-vs-published split — FR-1.6 MVP simplification); per-row name + item count.
+* **E2E-M7-02** — **superseded by the FR-1.6 MVP simplification (2026-08-08):** no publishing, no forking; every template is editable by every account. Returns with the parked FR-1.6 model.
 * **E2E-M7-03** `all` (FR-1.2): FAB → name prompt → creates template → opens M8.
 * **E2E-M7-04** `all` (FR-18.2): long-press → Export → YAML download.
 * **E2E-M7-05** `all` (FR-18.4): FAB "+" menu → Import from file → M18.
@@ -202,7 +202,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M8-02** `all` (FR-1.4): per-item assignment type Per Person / Trip-Global.
 * **E2E-M8-03** `all` (FR-2.3/15.2): dedup strategy select; condition chips (season/transport/accommodation).
 * **E2E-M8-04** `all` (FR-1.1): item picker from M9 with inline-create.
-* **E2E-M8-05** `all` (FR-2.4/27.4): editing a published template shows the propagation warning in its FR-27.4 wording — planning trips of consumers update immediately, everyone else sees changes at the next trip generation, running/past trips never.
+* **E2E-M8-05** `all` (FR-2.4/27.4): editing a template used by planning trips shows the FR-27.4 blast-radius note — those trips update immediately, everyone else sees changes at the next trip generation, running/past trips never (the separate publish warning fell with the FR-1.6 MVP simplification).
 * **E2E-M8-06** `all` (FR-1.2): add/remove/reorder items; swipe-to-delete.
 * **E2E-M8-07** `all` (FR-27.1/27.6): scope-shaped editor — a **Gruppe** shows only *Positionen* and no group picker; a **Ferien-Vorlage** shows the *Gruppen* section whose picker offers **groups only** (never vacation templates, never already-included groups) plus "Neue Gruppe anlegen…" inline (created group is immediately included); groups and own positions stay visually separate sections.
 * **E2E-M8-10** `all` (FR-27.6): guarded scope switch — a Vorlage with included groups refuses demotion to Gruppe (hint: remove groups first); a Gruppe included somewhere refuses promotion and the editor names its consumers ("Eingebunden in: …"); an unconstrained template switches freely.
@@ -242,7 +242,7 @@ Feature removed from the product (PRD Addendum §3.11); its E2E cases are retire
 
 ### M14 — Post-Trip Review Assistant
 * **E2E-M14-01** `all` (FR-9.1/9.2): archiving a flagged trip auto-launches the card stack; a proposal reads correctly (e.g. "Unused on N trips → set qty 0").
-* **E2E-M14-02** `all` (FR-9.2/1.6): Apply writes to the user's own template (asserted in M8); a foreign published source prompts Fork & apply.
+* **E2E-M14-02** `all` (FR-9.2/1.6): Apply writes directly to the source template — shared instance-wide per the FR-1.6 MVP simplification; no fork prompt exists.
 * **E2E-M14-03** `all` (FR-9.2): "Never ask again" scopes to the item–template pair (same item still surfaces for another template).
 * **E2E-M14-04** `all` (FR-9.2): no flags → "nothing to review" toast; re-openable from the archived trip; applied cards don't reappear (resumability).
 
@@ -335,7 +335,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-1.3 | E2E+UNIT | M8-01 (UI); formula.ts (logic) |
 | FR-1.4 | E2E | M8-02 |
 | FR-1.5 | E2E+UNIT | M8-01; formula.ts `validateFormula` |
-| FR-1.6 | E2E | M7-02, M14-02, M18-01 |
+| FR-1.6 | E2E | M7-01 (shared list), M14-02 (direct write), M18-01 — MVP shared model; publish/fork cases parked with the FR-1.6 stub |
 | FR-1.7 | DOC/N-A | retired 2026-08-08 (owner decision) — consumable flag and per-day unit removed |
 | FR-1.8 | E2E | M10-01, G6-01 |
 | FR-2.1 / 2.1a | E2E | M3-01, M2-01/03 |

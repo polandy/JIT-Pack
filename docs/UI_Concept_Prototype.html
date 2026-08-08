@@ -2069,10 +2069,10 @@ const TPL=[{id:'sommer',name:'Sommer · Basis',emoji:'☀️',items:32,season:'S
   {id:'wildlife',name:'Wildlife Fotografie',emoji:'🦅',items:0,owner:'mine',kind:'group'},
   /* A Ferien-Vorlage: mostly group references, few or no own positions. */
   {id:'ferienfam',name:'Familienferien',emoji:'🏔️',items:0,owner:'mine',kind:'template',includes:['sommer','makro']},
-  {id:'city',name:'Städtereise',emoji:'🌍',items:21,owner:'pub',pub:true},
-  {id:'business',name:'Geschäftsreise',emoji:'💼',items:18,owner:'pub',pub:true},
-  {id:'wander',name:'Wanderwochenende',emoji:'🥾',items:22,season:'Übergang',owner:'pub',pub:true},
-  {id:'kids',name:'Roadtrip mit Kindern',emoji:'🚗',items:27,owner:'pub',pub:true}];
+  {id:'city',name:'Städtereise',emoji:'🌍',items:21,owner:'mine'},
+  {id:'business',name:'Geschäftsreise',emoji:'💼',items:18,owner:'mine'},
+  {id:'wander',name:'Wanderwochenende',emoji:'🥾',items:22,season:'Übergang',owner:'mine'},
+  {id:'kids',name:'Roadtrip mit Kindern',emoji:'🚗',items:27,owner:'mine'}];
 const QROWS=[{name:'T-Shirts',f:'num_travelers × ceil(dur/2)',calc:(n,d)=>n*Math.ceil(d/2),hist:'’24: 5 · ’25: 6',s:6},
   {name:'Unterwäsche',f:'num_travelers × (dur+2)',calc:(n,d)=>n*(d+2),hist:'’25: 30',s:30},
   {name:'Sonnencreme',f:'ceil(dur/7)',calc:(n,d)=>Math.ceil(d/7),hist:null,s:null},
@@ -2147,8 +2147,8 @@ function wTplRowHTML(t){
   return `<div class="tplrow" data-act="tpl" data-id="${t.id}">
     <div class="check ${W.templates[t.id]?'on':''}"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
     <span style="font-size:20px">${t.emoji}</span>
-    <div class="grow"><div class="name">${t.name}${t.pub?' <span class="chip mauve" style="margin-left:4px">fork</span>':''}</div>
-      <div class="desc">${tplCount(t)} Artikel${t.season?' · '+t.season:''}${t.owner==='mine'?'':' · veröffentlicht'}</div>
+    <div class="grow"><div class="name">${t.name}</div>
+      <div class="desc">${tplCount(t)} Artikel${t.season?' · '+t.season:''}</div>
       ${t.includes&&t.includes.length?`<div class="desc" style="margin-top:2px">enthält: ${t.includes.map(id=>{const g=TPL.find(x=>x.id===id);return g?g.emoji+' '+esc(g.name):id;}).join(' · ')}</div>`:''}</div></div>`;
 }
 function renderTplList(){
@@ -2285,17 +2285,15 @@ function m7Filtered(){ const q=M7.search.trim().toLowerCase();
   return TPL.filter(t=>{
     if(M7.tab==='template'&&tplKind(t)!=='template')return false;
     if(M7.tab==='group'&&tplKind(t)!=='group')return false;
-    if(M7.tab==='pub'&&t.owner!=='pub')return false;
     if(q&&!t.name.toLowerCase().includes(q))return false;
     return true; });
 }
 function m7RowHTML(t){
   return `<div class="tplrow" data-m7="${t.id}">
       <span style="font-size:20px">${t.emoji}</span>
-      <div class="grow"><div class="name">${t.name}</div><div class="desc">${t.includes&&t.includes.length?`${t.includes.length} Gruppen · `:''}${tplCount(t)} Artikel${t.season?' · '+t.season:''}${t.owner==='mine'?'':' · veröffentlicht'}</div>
+      <div class="grow"><div class="name">${t.name}</div><div class="desc">${t.includes&&t.includes.length?`${t.includes.length} Gruppen · `:''}${tplCount(t)} Artikel${t.season?' · '+t.season:''}</div>
         ${t.includes&&t.includes.length?`<div class="desc" style="margin-top:2px">enthält: ${t.includes.map(id=>{const g=TPL.find(x=>x.id===id);return g?g.emoji+' '+esc(g.name):id;}).join(' · ')}</div>`:''}</div>
       ${tplKind(t)==='group'?'<span class="chip mauve">Gruppe</span>':''}
-      ${t.owner==='mine'?'<span class="chip">öffentlich</span>':'<span class="chip mauve">fork</span>'}
       <svg viewBox="0 0 24 24" style="width:18px;color:var(--o0)"><use href="#i-chev"/></svg></div>`;
 }
 function renderM7List(){
@@ -2313,7 +2311,7 @@ function renderM7List(){
   el.querySelectorAll('[data-m7]').forEach(r=>r.onclick=()=>openM8(r.dataset.m7));
 }
 function renderTemplates(){
-  const tabs=[['all','Alle'],['template','Ferien-Vorlagen'],['group','Gruppen'],['pub','Veröffentlicht']];
+  const tabs=[['all','Alle'],['template','Ferien-Vorlagen'],['group','Gruppen']];
   document.getElementById('tplPage').innerHTML=`
     <div class="search" style="margin-top:8px"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg>
       <input id="m7Search" placeholder="Vorlagen durchsuchen…" value="${esc(M7.search)}" autocomplete="off">
@@ -3238,7 +3236,9 @@ function condSummary(c){ const p=[]; if(c.season)p.push(c.season); if(c.transpor
 function renderTplEdit(){
   const el=document.getElementById('tplEditPage'), t=TPL.find(x=>x.id===M8.id); if(!el||!t)return;
   const rows=TPLITEMS[t.id]||(TPLITEMS[t.id]=[]);
-  const mine=t.owner==='mine';
+  /* FR-1.6 MVP simplification (owner 2026-08-08): templates are shared
+     instance-wide like master items — everyone sees and edits everything. */
+  const mine=true;
   const invalid=rows.filter(r=>!evalFormula(r.q).ok).length;
   const rowHTML=(r,i)=>{
     const m=MASTER.find(x=>x.id===r.m)||{name:'?',tags:[]};
@@ -3302,10 +3302,6 @@ function renderTplEdit(){
         <button class="${kind==='template'?'sel':''}" data-t8kind="template">🧳 Ferien-Vorlage</button></div>
       ${kind==='group'&&usedIn.length?`<div class="tiny muted" style="margin-top:6px">Eingebunden in: ${usedIn.map(x=>esc(x.name)).join(', ')}</div>`:''}</div>`:''}
     ${planned.length?`<div class="publish-note" id="t8planned">⟳ Änderungen hier wirken <b>sofort</b> auf ${planned.length} geplante Reise${planned.length===1?'':'n'} (${planned.map(p=>esc(p.name)).join(', ')}) — laufende & vergangene bleiben eingefroren (FR-27.4).</div>`:''}
-    ${mine?`<div class="toggle"><div class="grow"><div class="name">Veröffentlichen</div><div class="desc">instanzweit lesbar, andere forken (FR-1.6)</div></div>
-        <div class="sw ${t.pub?'on':''}" id="t8pub"></div></div>
-      ${t.pub?'<div class="publish-note">⚠ Veröffentlicht — für andere wirken Änderungen auf deren <b>geplante</b> Reisen und bei der nächsten Reise-Erstellung (FR-2.4 präzisiert durch FR-27.4); laufende & vergangene Reisen bleiben unberührt.</div>':''}`
-     :`<div class="publish-note">🔒 Veröffentlichte Vorlage von jemand anderem — nur lesbar. <b id="t8fork" style="color:var(--blue);cursor:pointer">Fork erstellen →</b></div>`}
     ${kind==='template'?`<div class="section-h">Gruppen · ${incs.length}</div>
     <div class="card">${incs.map(grpRow).join('')||'<div class="li"><div class="grow muted" style="text-align:center;padding:8px">Noch keine Gruppen eingebunden.</div></div>'}</div>
     ${mine?(M8.gpicker?`<div class="card" style="margin-top:10px;padding:12px 14px">
@@ -3373,11 +3369,6 @@ function renderTplEdit(){
     const gone=r.tasks.splice(k,1)[0];
     logTplChange(t.id,'Aufgabe „'+gone+'“ bei „'+(m?m.name:'?')+'“ entfernt'); rerender(); });
   const nm=document.getElementById('t8name'); if(nm&&mine) nm.oninput=e=>{ t.name=e.target.value; };
-  const pub=document.getElementById('t8pub'); if(pub) pub.onclick=()=>{ t.pub=!t.pub; rerender(); };
-  const fork=document.getElementById('t8fork'); if(fork) fork.onclick=()=>{ const id='tpl'+(tplSeq++);
-    TPL.push({id,name:t.name+' (Kopie)',emoji:t.emoji,items:0,owner:'mine',kind:tplKind(t)});
-    TPLITEMS[id]=rows.map(r=>({...r,cond:{...r.cond}}));
-    snack('Fork erstellt — deine private Kopie'); openM8(id); };
   const op=document.getElementById('t8openpick'); if(op) op.onclick=()=>{ M8.picker=true; rerender(); };
   const pk=document.getElementById('t8pick'); if(pk){ pk.oninput=e=>{ M8.pick=e.target.value; rerender(); const p=document.getElementById('t8pick'); if(p){p.focus();p.setSelectionRange(p.value.length,p.value.length);} }; }
   /* FR-25.7 (realised 2026-08-08): adding a position is ONE tap — the row lands

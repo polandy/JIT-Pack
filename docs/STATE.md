@@ -68,7 +68,17 @@ bounded. Two decisions fix the scope:
   deferred; M10-05). **Fifth round: cross-trip comment history in M10** (FR-27.9, owner
   request — "die Packliste kontinuierlich von Ferien zu Ferien verbessern"): comments from
   this item's packing rows aggregated with author/trip/timestamp, client-side over synced
-  trips, read-only; M10-06. 64 assertions headless. Implementation open: `templates.kind` + `template_includes` (+ task
+  trips, read-only; M10-06. **Sixth round: FR-1.6 publish/fork removed from the MVP** (owner
+  decision 2026-08-08, "Jeder sieht einfach alles") — templates/groups are shared
+  instance-wide like master items (FR-22.6 model), owner_id stays as creator metadata;
+  publish toggle, my/published split and all fork paths gone from prototype and specs
+  (parked in the FR-1.6 stub with revisit trigger). 64 assertions headless.
+  **Implementation consequence, part of the open §3.27 package below:** relax server-side
+  template visibility/ownership (`internal/store/master.go` pull filter + mutation
+  authorization), drop the client fork paths (`requiresFork`/`forkTemplate` in review.ts,
+  M7/M8 publish UI) — bundled with the M7/M8 rebuild rather than churned now, since those
+  screens are being rebuilt for §3.27 anyway; until then the old enforcement only forbids
+  what will soon be allowed, it breaks nothing. Implementation open: `templates.kind` + `template_includes` (+ task
   storage per FR-27.7) migration + sync whitelist, `instantiate.ts` include expansion + task
   materialisation, planning-trip refresh diff, M21 screen; UI-Spec entry for M21 still to
   write.

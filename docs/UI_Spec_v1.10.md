@@ -88,7 +88,7 @@ These patterns apply to every screen and are specified once.
 * **Purpose:** Generate a trip instance from templates with correct quantities on the first pass.
 * **Step 1 — Metadata:** Name, series picker (or "New series"), optional start date and end date (duration auto-computed and displayed when both dates are set, FR-2.1/2.1a), attribute chips: season, transport, accommodation (FR-15.1; prefilled from series defaults).
 * **Step 2 — Travelers:** Add travelers (name + Adult/Child, FR-2.5), optionally link to a registered user account; share the trip with user accounts and assign roles: Owner (creator, immutable), Admin (can manage travelers and roles), Editor (default — can edit items but not manage travelers) (FR-4.5/4.7). In Single-User Mode (Addendum FR-17.3), the sharing and role-assignment part of this step is hidden entirely — only traveler add/edit remains, and the sole user is silently the trip's Owner.
-* **Step 3 — Templates:** Checkbox list of available templates (own + published, FR-1.6); live preview footer: resulting item count, deduplicated overlaps listed with the applied merge strategy (FR-2.3); items excluded by conditional rules (FR-15.2) shown collapsed with reason ("skipped: season ≠ winter"). **Implemented (Addendum 3.20):** the footer additionally reports companion items pulled in automatically ("+ 2 companion items (battery, screwdriver)"); step 4 lists them with their main item, notes FR-20.3 dedups ("already on the list, not duplicated"), and offers suggested companions as opt-in checkboxes (FR-20.4).
+* **Step 3 — Templates:** Checkbox list of all templates (shared instance-wide, FR-1.6 MVP simplification 2026-08-08); live preview footer: resulting item count, deduplicated overlaps listed with the applied merge strategy (FR-2.3); items excluded by conditional rules (FR-15.2) shown collapsed with reason ("skipped: season ≠ winter"). **Implemented (Addendum 3.20):** the footer additionally reports companion items pulled in automatically ("+ 2 companion items (battery, screwdriver)"); step 4 lists them with their main item, notes FR-20.3 dedups ("already on the list, not duplicated"), and offers suggested companions as opt-in checkboxes (FR-20.4).
 * **Step 4 — Quantity Review:** Virtualized list of all generated items; each row: name, computed quantity with formula tooltip, history hint "2024: 5 · 2025: 6 → suggested 6" with one-tap accept (FR-14.1/14.2); destination checklist offer if the series has one (FR-13.3).
 * **Actions:** Back/Next per step; "Create trip" commits and opens M4.
 * **States:** Draft persists locally between steps (offline-safe); formula errors impossible here (validated at template save, FR-1.5).
@@ -144,8 +144,8 @@ These patterns apply to every screen and are specified once.
 ### M7 — Template List
 
 * **Purpose:** Manage modular master templates (FR-1.2).
-* **Elements:** Two sections: *My templates* and *Published on this instance* (FR-1.6, read-only rows with fork icon); per row: name, item count, published toggle (own only).
-* **Actions:** Tap → M8; fork published template → editable copy in *My templates*; FAB → new template. Long-press a template in *My templates* → context menu adds *Export* (Addendum FR-18.2), producing a downloadable/shareable YAML file; the FAB's "+" menu also offers *Import from file* → M18.
+* **Elements:** One shared instance-wide list (FR-1.6 MVP simplification 2026-08-08 — no my/published split, no publish toggle); per row: name, item count.
+* **Actions:** Tap → M8 (every template is editable by every account); FAB → new template. Long-press a template in *My templates* → context menu adds *Export* (Addendum FR-18.2), producing a downloadable/shareable YAML file; the FAB's "+" menu also offers *Import from file* → M18.
 * **Navigation:** Tab 3.
 
 ### M8 — Template Editor
@@ -154,7 +154,7 @@ These patterns apply to every screen and are specified once.
 * **⚠ Redesign pending (Addendum §3.25 / FR-25.7, proposed 2026-07-17 — to be re-mocked):** capturing a template item currently exposes *all* parameters at once (quantity/formula, per-person, mode, dedup, conditions, Late Packer), which is too heavy for a core feature. Redesign intent: **sensible defaults** (plain item = qty 1, trip-global, mode *Packen*, dedup *max*, no conditions, no Late Packer) and **advanced parameters revealed only on demand** (progressive disclosure) — adding a typical item is one or two taps. One such advanced option: **per-person quantities differentiated by traveler type** (2 per adult / 3 per child, FR-25.9) — templates can't reference travelers by name, so the split is Adult/Child; the concrete per-name quantities are set on the trip (FR-25.8). M8 is the dependent of the "M7 rework" the concept note refers to (M7 = list, M8 = this parameter editor). The bullets below describe the *current* prototype and will be superseded.
 * **Elements:** Item rows: name (picker from M9 inventory with inline-create), quantity field accepting number or formula with live validation and computed example preview ("for a 7-day trip: 8") (FR-1.3/1.5); per-item controls: assignment type *Per Person / Trip-Global* (FR-1.4), default mode, Late Packer default, dedup strategy (FR-2.3), condition chips (season/transport/accommodation, FR-15.2) — **to move behind progressive disclosure per §3.25**.
 * **Actions:** Add/remove/reorder items; save (blocked while any formula is invalid, with per-row error).
-* **States:** Editing a published template warns that consumers see changes on next trip generation only (decoupling per FR-2.4 protects existing trips).
+* **States:** Editing a template used by *planning* trips shows the FR-27.4 blast-radius note (those trips update immediately; running/past trips are frozen; everyone else sees changes at the next trip generation per FR-2.4).
 * **Navigation:** From M7.
 
 ### M9 — Item Inventory
@@ -194,7 +194,7 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
 
 * **Purpose:** Close the feedback loop into master templates (FR-9.2).
 * **Elements:** Triggered on archive; card stack, one proposal per card: "'Lonely Planet' was flagged Unused on 3 consecutive trips — set quantity to 0 in template 'Base Travel'?" with actions *Apply / Skip / Never ask again*; final summary of applied changes.
-* **Actions:** Single-tap apply writes to the user's own templates only (FR-1.6); fork prompt when the source template is published by someone else. **Decided: "Never ask again" scopes to the specific item–template pair**, not the item globally — the same item can still surface a proposal for a different template.
+* **Actions:** Single-tap apply writes directly to the source template (shared instance-wide, FR-1.6 MVP simplification — no fork prompt). **Decided: "Never ask again" scopes to the specific item–template pair**, not the item globally — the same item can still surface a proposal for a different template.
 * **States:** No flags recorded → assistant skipped with a brief "nothing to review" toast; assistant is resumable if interrupted.
 * **Navigation:** Auto-launch on archive from M4/M2; re-openable from the archived trip.
 
