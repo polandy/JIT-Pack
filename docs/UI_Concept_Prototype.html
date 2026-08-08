@@ -1918,21 +1918,27 @@ function bindSheet(it){
       if(a!=='details') markDirty();
       const raw0=P.items.find(x=>x.id==curItem);
       const ppE=(raw0&&raw0.pp&&el.dataset.k!==undefined)?raw0.pp[+el.dataset.k]:null;
-      if(a==='inc') it.packed=Math.min(it.qty,it.packed+1);
-      else if(a==='dec') it.packed=Math.max(0,it.packed-1);
-      else if(a==='check') it.packed=it.packed>=it.qty?0:it.qty;
+      // Item-level edits must land on the stored item. For a per-person item
+      // `it` above is a derived aggregate ({...raw}) built for display, so
+      // writing to it dropped the change on the next render — responsibility,
+      // mode, luggage, late-packer and the flags all silently did nothing on
+      // exactly those rows. For a plain item tgt === it, so this is a no-op.
+      const tgt=raw0||it;
+      if(a==='inc') tgt.packed=Math.min(it.qty,it.packed+1);
+      else if(a==='dec') tgt.packed=Math.max(0,it.packed-1);
+      else if(a==='check') tgt.packed=it.packed>=it.qty?0:it.qty;
       // per-traveler controls act on that traveler's own instance
       else if(a==='ppinc'&&ppE) ppE.packed=Math.min(ppE.qty,ppE.packed+1);
       else if(a==='ppdec'&&ppE) ppE.packed=Math.max(0,ppE.packed-1);
       else if(a==='ppcheck'&&ppE) ppE.packed=ppE.packed>=ppE.qty?0:ppE.qty;
       else if(a==='needby'){ const raw=P.items.find(x=>x.id==curItem); const s=neededSet(raw);
         if(v==='__all') s.clear(); else (s.has(v)?s.delete(v):s.add(v)); setNeededBy(raw,s); }
-      else if(a==='packer') it.resp=(it.resp===v?null:v);
-      else if(a==='mode') it.mode=v;
-      else if(a==='cont') it.cont=v;
-      else if(a==='late') it.late=!it.late;
-      else if(a==='flag'){ it[v]=!it[v]; }
-      else if(a==='buynow'){ it.mode='pack'; snack('„'+it.name+'“ → Packen',()=>{it.mode='buy_before';renderItem();renderPack();}); }
+      else if(a==='packer') tgt.resp=(tgt.resp===v?null:v);
+      else if(a==='mode') tgt.mode=v;
+      else if(a==='cont') tgt.cont=v;
+      else if(a==='late') tgt.late=!tgt.late;
+      else if(a==='flag'){ tgt[v]=!tgt[v]; }
+      else if(a==='buynow'){ tgt.mode='pack'; snack('„'+it.name+'“ → Packen',()=>{tgt.mode='buy_before';renderItem();renderPack();}); }
       else if(a==='prepdone'){ P.prep[+el.dataset.i].done=!P.prep[+el.dataset.i].done; }
       else if(a==='prepadd'){ const inp=document.getElementById('prepInput'); if(inp.value.trim()){ P.prep.push({item:it.name,task:inp.value.trim(),who:'Andy',done:false}); it.prep=(it.prep||0)+1; } }
       else if(a==='commtask'){ const c=COMMENTS[it.id][+el.dataset.ci]; c.task=!c.task; if(c.task){ P.prep.push({item:it.name,task:c.text,who:c.who,done:false}); it.prep=(it.prep||0)+1; } }

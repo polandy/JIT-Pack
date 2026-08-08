@@ -495,6 +495,28 @@ ok(await page.evaluate(() => {
 }), 'beide Picker benutzen denselben Auswahl-Haken (.pk) — gleicher oranger Rahmen');
 await page.evaluate(() => closeItem());
 
+console.log('— Sheet-Bearbeitung an Pro-Person-Artikeln (Regression) —');
+// Driven by real clicks, not by setting the model: the bug was that item-level
+// edits landed on a display copy, which a model-level test cannot see.
+const ppId = await page.evaluate(() => P.items.find(i => i.pp)?.id);
+await page.evaluate(id => { go('pack'); openItem(id); sheetDetails = true; renderItem(); }, ppId);
+await page.locator('#itemSheet [data-act="packer"][data-v="Sia"]').click();
+ok(await page.evaluate(id => P.items.find(i => i.id === id).resp === 'Sia', ppId),
+  'Zuständigkeit haftet am Pro-Person-Artikel');
+ok(await page.evaluate(() =>
+  document.querySelector('#itemSheet [data-act="packer"][data-v="Sia"]').classList.contains('sel')),
+  'und ist unmittelbar nach dem Klick orange markiert');
+
+await page.locator('#itemSheet [data-act="mode"][data-v="buy_before"]').click();
+ok(await page.evaluate(id => P.items.find(i => i.id === id).mode === 'buy_before', ppId),
+  'auch der Modus haftet — vorher verpuffte er auf einer Kopie');
+await page.locator('#itemSheet [data-act="mode"][data-v="pack"]').click();
+await page.locator('#itemSheet [data-act="late"]').click();
+ok(await page.evaluate(id => P.items.find(i => i.id === id).late === true, ppId),
+  'Spätpacker ebenso');
+await page.locator('#itemSheet [data-act="late"]').click();
+await page.evaluate(() => closeItem());
+
 console.log('— Seitenfehler —');
 ok(errors.length === 0, 'keine JS-Fehler' + (errors.length ? ' — ' + errors.join(' | ') : ''));
 

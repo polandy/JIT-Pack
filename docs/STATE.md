@@ -200,6 +200,15 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   differ. M1's "Dir zum Packen übergeben" now reads responsibility. **Implementation open:** a
   second nullable column beside `packer_user_id` for the record. E2E M4-30.
 
+- **Prototype defect found by clicking, 2026-08-08 (pre-existing):** in the M5 sheet a
+  per-person item is rendered from a **derived aggregate copy** (`{...raw, …}`), and the action
+  handler wrote item-level edits to that copy — so on exactly those rows *responsibility, mode,
+  luggage, late-packer, the unused/missing flags and the buy-now undo* silently did nothing and
+  reverted on the next render. Fixed by writing to the stored item; for a plain item the two are
+  the same object, which is why it never showed there. **Method note:** the verify suite had
+  asserted what the sheet *does to the model* by setting fields directly, so no assertion ever
+  clicked the control — that is how it survived. The new cases drive real clicks.
+
 - **Inventar-UX-Runde (owner directives 2026-08-08, mocked + specced):** M9 is **lean by
   default** (primary-tag avatar + name); which extras show (Tags/Gewicht/Preis) is a
   device-local preference behind an eye icon with a settings sheet (FR-24.4 new). M10
