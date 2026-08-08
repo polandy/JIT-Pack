@@ -29,7 +29,7 @@ Client (`client/`):
 | What's built, how, and what's still open? | `docs/STATE.md` — implementation status, build history, open items. **Read the relevant section before touching a subsystem; update it when you finish something** |
 | What does the product do? | `docs/PRD_Base.md` (original vision) |
 | What changed/was added since? | `docs/PRD_Addendum_v2.10.md` — **always authoritative over PRD_Base.md where they differ** |
-| What do the screens look like? | `docs/UI_Spec_v1.10.md` — screens M1–M20, global patterns G-1–G-11 |
+| What do the screens look like? | `docs/UI_Spec_v1.10.md` — screens M1–M21, global patterns G-1–G-12 |
 | What's the wire protocol? | `docs/Sync_API_Spec_v1.3.md` — pull/push envelopes, HLC format, merge algorithm, WebSocket events, RPC endpoints |
 | What's the DB schema? | `internal/store/migrations/` — **single source of truth, do not duplicate it into docs/** |
 | Why was X chosen over Y? | `docs/ADR-00N_*.md` — six ADRs, each: options considered, weighted decision matrix, consequences, revisit trigger |

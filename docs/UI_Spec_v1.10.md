@@ -61,6 +61,7 @@ These patterns apply to every screen and are specified once.
 | M18 | Portable Import Preview | P2 | Addendum 3.18 |
 | M19 | First-Launch Mode Selection | P2 | Addendum 3.19 |
 | M20 | User Administration | P3 | Addendum 3.23 |
+| M21 | Vorlage aus Reise (Template from Trip) | MVP | Addendum 3.27 (27.5, 27.1, 27.4) |
 
 ---
 
@@ -249,7 +250,26 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
 * **Visibility:** Rendered and routable only for instance admins with an OIDC session; hidden entirely in Single-User and Local Mode (FR-17.3/FR-19.3, G-8). Non-admin API access is rejected with 403 — the screen is access-controlled, not merely unlinked.
 * **Navigation:** Administration row in M17 (only visible under the same conditions).
 
+### M21 — Vorlage aus Reise (Template from Trip)
 
+**Concept closed 2026-08-08 (Addendum §3.27, FR-27.5) — mocked in `UI_Concept_Prototype.html`, not implemented.**
+
+* **Purpose:** Turn a finished trip back into a reusable template, so the year's learning ends up in the templates instead of in the archive. The screen exists because the naive "save as template" (copy everything flat) destroys composition: the trip's rows came *from* groups, and a copy would fork them, so next year two divergent camera lists exist. M21 is that recognition step, and it is the closing half of the FR-27.1 round-trip (M3 instantiates a template into a trip, M21 folds a trip back into templates).
+* **Entry:** The trip's *Danach* phase carries one card — "🧩 Als Vorlage fürs nächste Mal", one line of explanation, one button "Vorlage aus dieser Reise erstellen →". Available on active and archived trips alike; nothing else in the app links here. Full-screen with a back chevron, no FAB, no G-12 cluster (there is no list to search or filter).
+* **Elements (top to bottom):**
+  * One explanatory line stating the screen's contract: recognised groups are **referenced, not copied**, and stay independently maintainable.
+  * **Name der Vorlage** — a text field, prefilled with a next-occurrence guess derived from the trip name.
+  * **Erkannte Gruppen · N** — one card per group the trip's rows trace back to (`source_template_id` provenance), each with the group's name, "*n* Artikel dieser Reise stammen daraus", and a green **"wird wiederverwendet ✓"** chip. Group membership is a fact of the data, not a user choice: recognised groups are always referenced, so there is no per-group opt-out here.
+  * **Per-group deviations.** A group whose trip rows contain additions names them literally — "Auf der Reise ergänzt: **Gimbal**" — followed by a two-option segment: **Gruppe aktualisieren** (default) vs. **Nur in diese Vorlage**. While *aktualisieren* is selected, a muted line spells out the blast radius: the change reaches everything that includes the group and planning trips take it immediately (FR-27.4). Defaulting to *update* is deliberate and matches M14's stance — a change made on the trip is treated as learned truth, not as an accident.
+  * **Absent positions are reported, never acted on.** Group positions the trip did not carry get one muted line ("… waren auf dieser Reise nicht dabei — Gruppe bleibt unverändert"). A skipped tripod is trip history; silently pruning the group over it would make every incomplete trip erode the master data.
+  * **Eigene Artikel · n von m** — the loose ad-hoc rows (no group provenance), each a checkbox row with its category and "ohne Gruppe hinzugefügt", **all pre-checked**. Unchecking is how trip-specific one-offs stay out of the template.
+  * **"Als neue Gruppe speichern"** toggle — bundles the checked loose rows into a *fresh group* (name field appears below, prefilled) instead of dropping them in as own positions, for the case where they form a reusable unit. Off by default: the common case is a handful of unrelated extras, and a group per trip would breed clutter.
+  * Primary action **"Vorlage erstellen ✓"**.
+* **Actions / result:** Creating writes, in this order — (1) deviations marked *aktualisieren* into their group, each recorded in the group's change history with its origin ("aus Reise „…“"), (2) the checked loose rows plus every deviation marked *nur in diese Vorlage* as own positions — or the loose rows into the new group when the toggle is on, (3) the composed **Ferien-Vorlage** itself (FR-27.6 scope, referencing the recognised groups and any freshly created one). Ad-hoc rows are matched to master items by tolerant name match (FR-16.3-style, the same fold M14 does); an unmatched name creates the master item first (FR-9.2 mechanics). A confirmation snackbar names the template, and the screen hands off **directly into M8** on the new template — creation ends where editing continues, and it is also the immediate proof that the groups were referenced rather than copied.
+* **States:** No recognised groups (a purely ad-hoc trip) → the *Erkannte Gruppen* section is absent and the screen degrades to "name it, pick the rows"; no loose rows → the *Eigene Artikel* card shows its empty line and the bundle toggle is inert. The source trip is **never modified** by this screen, archived or not.
+* **Navigation:** From the trip's *Danach* phase (M4); exits into M8 on success, back chevron to the trip otherwise.
+
+---
 
 ## 3. Cross-Screen Flows (Reference)
 
@@ -258,6 +278,7 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
 3. **Purchase transition:** M6 (Before departure) → check item → appears in M4 as PACK/Open (FR-3.3).
 4. **Feedback loop:** M4 flag *Missing* → trip archived → M14 proposes template addition → next M3 run includes the item.
 5. **Migration:** M15 import → M2 shows archived series trips → M3 step 4 surfaces historical suggestions (FR-14.2) immediately.
+6. **Template round-trip (§3.27):** M3 creates a trip from a Ferien-Vorlage plus extra groups (overlaps deduped in the preview) → items are added ad-hoc while packing → trip archived → M21 recognises the groups, folds the chosen deviations back into them → planning trips using those groups show the applied-changes chip on M2 (FR-27.4) → next year's M3 run starts from the new composed template.
 
 ---
 

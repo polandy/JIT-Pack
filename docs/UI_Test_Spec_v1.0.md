@@ -1,7 +1,7 @@
 # UI / End-to-End Test Specification — „JIT-Pack" (v1.0)
 
 **Document Status:** Proposed for Review
-**Basis:** UI_Spec_v1.10 (screens M1–M20, patterns G-1–G-11) + PRD_Base + PRD_Addendum_v2.10 (FR/NFR catalogue). M21 (Vorlage aus Reise, §3.27) is specified below ahead of its UI-Spec entry.
+**Basis:** UI_Spec_v1.10 (screens M1–M21, patterns G-1–G-12) + PRD_Base + PRD_Addendum_v2.10 (FR/NFR catalogue).
 **Purpose:** Define *what* the automated headless-browser test suite must cover so that every requirement with a UI surface is exercised through the real, built client. This document is the specification; implementation (Playwright config, fixtures, the tests themselves) follows and is tracked separately.
 
 > This file is authoritative for E2E scope. When a requirement changes, its row in the traceability matrix (§7) must change with it — same discipline as UI_Spec and Sync_API_Spec.
@@ -292,7 +292,7 @@ Feature removed from the product (PRD Addendum §3.11); its E2E cases are retire
 * **E2E-M20-04** `server` (FR-23.5/23.1): no delete action anywhere; no role toggle.
 * **E2E-M20-05** `server` (FR-23.1/G-8): a non-admin OIDC user cannot route to `/admin` (403 / redirect); hidden entirely in `single`/`local`.
 
-### M21 — Vorlage aus Reise (new screen, §3.27 — UI-Spec entry to follow)
+### M21 — Vorlage aus Reise (new screen, §3.27)
 * **E2E-M21-01** `all` (FR-27.5): entry from the trip's *Danach* phase; the screen lists every recognised group with its on-trip item count and a "wird wiederverwendet" marker, and the loose ad-hoc rows (all pre-checked) under "Eigene Artikel".
 * **E2E-M21-02** `all` (FR-27.5): a group with on-trip deviations names them ("Auf der Reise ergänzt: Gimbal") and offers **Gruppe aktualisieren** (default) vs. **nur in diese Vorlage**; group positions absent from the trip are reported with the explicit "Gruppe bleibt unverändert" note.
 * **E2E-M21-03** `all` (FR-27.5/27.1/27.4): creating with defaults yields a composed template that **references** the recognised groups (not copies), carries the checked loose rows as own positions, and — where *aktualisieren* was chosen — the deviation lands in the group itself and surfaces as an applied change on planning trips using that group. The "Als neue Gruppe speichern" toggle bundles the loose rows into a fresh group instead.

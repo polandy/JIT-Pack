@@ -88,8 +88,9 @@ bounded. Two decisions fix the scope:
   screens are being rebuilt for §3.27 anyway; until then the old enforcement only forbids
   what will soon be allowed, it breaks nothing. Implementation open: `templates.kind` + `template_includes` (+ task
   storage per FR-27.7) migration + sync whitelist, `instantiate.ts` include expansion + task
-  materialisation, planning-trip refresh diff, M21 screen; UI-Spec entry for M21 still to
-  write.
+  materialisation, planning-trip refresh diff, M21 screen. **UI-Spec entry for M21 written
+  2026-08-08** (screen inventory + full entry + cross-screen flow 6 in `UI_Spec_v1.10.md`,
+  documenting the mocked screen; the test spec's "entry to follow" note is gone).
 
 - **Inventar-UX-Runde (owner directives 2026-08-08, mocked + specced):** M9 is **lean by
   default** (primary-tag avatar + name); which extras show (Tags/Gewicht/Preis) is a
