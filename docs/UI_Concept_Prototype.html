@@ -983,6 +983,14 @@ body{
     </div>
   </div>
 
+  <!-- §3.25 consistency: M8 position sheet — the M5 pattern applied to a
+       template/group position (glance chips, auto-save chip, Details ▾) -->
+  <div class="scrim" id="t8Scrim" onclick="closeT8Item()"></div>
+  <div class="sheet" id="t8Sheet">
+    <div class="handle"></div>
+    <div class="sheet-body" id="t8SheetBody"></div>
+  </div>
+
   <!-- M6 shopping-item sheet — buyer delegation + description -->
   <div class="scrim" id="shopScrim" onclick="closeShopItem()"></div>
   <div class="sheet" id="shopSheet">
@@ -3249,37 +3257,12 @@ function renderTplEdit(){
       ...(r.late?['<span class="chip warm">Später-Packer</span>']:[]),
       ...(r.tasks&&r.tasks.length?[`<span class="chip green">📋 ${r.tasks.length} Vorbereitung</span>`]:[]),
       ...condSummary(r.cond).map(c=>`<span class="chip mauve">${c}</span>`) ].join('');
-    const open=M8.open===i&&mine;
     return `<div class="t8row">
       <div class="t8head" data-t8open="${i}">
         <div class="grow"><div class="name">${esc(m.name)}</div>
           <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">${chips||'<span class="tiny muted">Standard</span>'}</div></div>
         <span class="qtychip ${ev.ok?'':'err'}">${ev.ok?(ev.fixed?ev.val:'ƒ → '+ev.val):'✕ Formel'}</span>
-        ${mine?`<button class="rm" data-t8rm="${i}">✕</button>`:''}</div>
-      ${open?`<div class="t8body">
-        <div><label class="tiny muted" style="display:block;margin-bottom:6px">Menge — Zahl oder Formel</label>
-          <input class="finput ${ev.ok?'':'bad'}" data-t8q="${i}" value="${esc(r.q)}" autocomplete="off" spellcheck="false">
-          ${ev.ok?`<div class="fex">Beispiel-Reise (${EX.trip_duration} Tage · ${EX.num_travelers} Reisende): <b>${ev.val}${r.pp?' pro Person':''}</b></div>`
-                 :`<div class="ferr">${ev.err}</div>`}</div>
-        <div><label class="tiny muted" style="display:block;margin-bottom:6px">Vorbereitung — offene Aufgaben blockieren „erledigt“ auf der Packliste (FR-27.7)</label>
-          ${(r.tasks||[]).map((task,k)=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
-            <span style="flex:none">📋</span><div class="tiny grow">${esc(task)}</div>
-            <button class="rm" data-t8trm="${i}:${k}">✕</button></div>`).join('')}
-          <div class="addprep"><input data-t8tin="${i}" placeholder="Aufgabe hinzufügen — z. B. „Akkus laden“…" autocomplete="off"><button class="opt" data-t8tadd="${i}">+</button></div></div>
-        ${M8.adv?`
-        <div class="seg"><button class="${r.pp?'':'sel'}" data-t8pp="${i}" data-v="0">Reise-global</button>
-          <button class="${r.pp?'sel':''}" data-t8pp="${i}" data-v="1">Pro Person</button></div>
-        <div class="seg">${MODES.map(md=>`<button class="${r.mode===md[0]?'sel':''}" data-t8mode="${i}" data-v="${md[0]}">${md[1]}</button>`).join('')}</div>
-        <div class="seg"><button class="${r.dedup==='max'?'sel':''}" data-t8dd="${i}" data-v="max">Dedup: Maximum</button>
-          <button class="${r.dedup==='sum'?'sel':''}" data-t8dd="${i}" data-v="sum">Dedup: Summe</button></div>
-        <div><label class="tiny muted" style="display:block;margin-bottom:6px">Nur wenn … (Bedingungen, FR-15.2)</label>
-          <div class="chips">${SEASONS.map(s=>`<button class="opt warm ${r.cond.season===s?'sel':''}" data-t8cs="${i}" data-v="${s}">${s}</button>`).join('')}
-          ${TRANSPORTS.map(tr=>`<button class="opt ${r.cond.transport===tr?'sel':''}" data-t8ct="${i}" data-v="${tr}">${tr}</button>`).join('')}</div></div>
-        <div class="toggle" style="padding:2px 0"><div class="grow"><div class="name" style="font-size:13.5px">Später-Packer</div></div>
-          <div class="sw ${r.late?'on':''}" data-t8late="${i}"></div></div>
-        <button class="opt" data-t8adv="${i}" style="width:100%">Weniger Optionen ▴</button>`
-        :`<button class="opt" data-t8adv="${i}" style="width:100%">Mehr Optionen ▾ — pro Person · Kaufen · Dedup · Bedingungen · Später-Packer</button>`}
-      </div>`:''}</div>`;
+        ${mine?`<button class="rm" data-t8rm="${i}">✕</button>`:''}</div></div>`;
   };
   /* §3.27/FR-27.6: scope decides the editor's shape. A group carries only
      positions; a Ferien-Vorlage carries groups + own positions. The picker
@@ -3316,8 +3299,7 @@ function renderTplEdit(){
       ${res.merged.length?`<div class="ln" style="color:var(--sapphire)">${res.merged.map(x=>`${esc(x.name)} nur 1× (${x.from.map(f=>esc(tplName(f))).join(' & ')})`).join(' · ')}</div>`:''}</div>`:''}`;
   // bindings
   const rerender=()=>renderTplEdit();
-  el.querySelectorAll('[data-t8open]').forEach(h=>h.onclick=e=>{ if(e.target.closest('[data-t8rm]'))return; const i=+h.dataset.t8open; M8.open=M8.open===i?-1:i; M8.adv=false; rerender(); });
-  el.querySelectorAll('[data-t8adv]').forEach(b=>b.onclick=()=>{ M8.adv=!M8.adv; rerender(); });
+  el.querySelectorAll('[data-t8open]').forEach(h=>h.onclick=e=>{ if(e.target.closest('[data-t8rm]'))return; openT8Item(+h.dataset.t8open); });
   el.querySelectorAll('[data-t8rm]').forEach(b=>b.onclick=()=>{ const r=rows[+b.dataset.t8rm];
     const m=r&&MASTER.find(x=>x.id===r.m);
     rows.splice(+b.dataset.t8rm,1); M8.open=-1;
@@ -3343,26 +3325,6 @@ function renderTplEdit(){
     TPLITEMS[gid]=[]; incs.push(gid); M8.gpicker=false;
     logTplChange(t.id,'Gruppe „'+nm.trim()+'“ eingebunden');
     snack('Gruppe „'+nm.trim()+'“ angelegt und eingebunden'); rerender(); };
-  el.querySelectorAll('[data-t8q]').forEach(inp=>{ inp.oninput=()=>{ rows[+inp.dataset.t8q].q=inp.value; };
-    inp.onchange=rerender; inp.onkeydown=e=>{ if(e.key==='Enter')rerender(); }; });
-  el.querySelectorAll('[data-t8pp]').forEach(b=>b.onclick=()=>{ rows[+b.dataset.t8pp].pp=b.dataset.v==='1'; rerender(); });
-  el.querySelectorAll('[data-t8mode]').forEach(b=>b.onclick=()=>{ rows[+b.dataset.t8mode].mode=b.dataset.v; rerender(); });
-  el.querySelectorAll('[data-t8dd]').forEach(b=>b.onclick=()=>{ rows[+b.dataset.t8dd].dedup=b.dataset.v; rerender(); });
-  el.querySelectorAll('[data-t8cs]').forEach(b=>b.onclick=()=>{ const r=rows[+b.dataset.t8cs]; r.cond.season=r.cond.season===b.dataset.v?null:b.dataset.v; rerender(); });
-  el.querySelectorAll('[data-t8ct]').forEach(b=>b.onclick=()=>{ const r=rows[+b.dataset.t8ct]; r.cond.transport=r.cond.transport===b.dataset.v?null:b.dataset.v; rerender(); });
-  el.querySelectorAll('[data-t8late]').forEach(b=>b.onclick=()=>{ const r=rows[+b.dataset.t8late]; r.late=!r.late; rerender(); });
-  /* FR-27.7 task editing — additions/removals propagate like any other
-     position change (FR-27.4), so planned trips gain/lose the todo too. */
-  const addTask=i=>{ const inp=el.querySelector(`[data-t8tin="${i}"]`); const v=inp&&inp.value.trim(); if(!v)return;
-    const r=rows[i]; (r.tasks=r.tasks||[]).push(v);
-    const m=MASTER.find(x=>x.id===r.m);
-    logTplChange(t.id,'Aufgabe „'+v+'“ zu „'+(m?m.name:'?')+'“ hinzugefügt'); rerender(); };
-  el.querySelectorAll('[data-t8tadd]').forEach(b=>b.onclick=()=>addTask(+b.dataset.t8tadd));
-  el.querySelectorAll('[data-t8tin]').forEach(inp=>inp.onkeydown=e=>{ if(e.key==='Enter')addTask(+inp.dataset.t8tin); });
-  el.querySelectorAll('[data-t8trm]').forEach(b=>b.onclick=()=>{ const [i,k]=b.dataset.t8trm.split(':').map(Number);
-    const r=rows[i], m=MASTER.find(x=>x.id===r.m);
-    const gone=r.tasks.splice(k,1)[0];
-    logTplChange(t.id,'Aufgabe „'+gone+'“ bei „'+(m?m.name:'?')+'“ entfernt'); rerender(); });
   const nm=document.getElementById('t8name'); if(nm&&mine) nm.oninput=e=>{ t.name=e.target.value; };
   renderT8Qa();
   /* FR-25.7 (realised 2026-08-08): adding a position is ONE tap — the row lands
@@ -3371,6 +3333,81 @@ function renderTplEdit(){
      the full parameter form; tuning is the exception, one tap away. */
 }
 
+
+/* §3.25 consistency directive, part 2 (owner 2026-08-08): EDITING a position
+   also behaves like the packing list — tapping the row opens the M5-style
+   bottom sheet: name header, read-only glance-chip row, auto-save chip
+   (FR-25.15), the routinely-touched sections first (Menge, Vorbereitung), and
+   everything else behind "Details ▾" (FR-25.7 progressive disclosure), exactly
+   like M5 keeps its advanced blocks behind the same toggle. */
+function openT8Item(i){ M8.open=i; M8.adv=false; renderT8Sheet();
+  document.getElementById('t8Scrim').classList.add('open');
+  document.getElementById('t8Sheet').classList.add('open'); }
+function closeT8Item(){
+  document.getElementById('t8Scrim').classList.remove('open');
+  document.getElementById('t8Sheet').classList.remove('open');
+  M8.open=-1; renderTplEdit(); }
+function renderT8Sheet(){
+  const t=TPL.find(x=>x.id===M8.id); if(!t)return;
+  const rows=TPLITEMS[t.id]||[]; const r=rows[M8.open]; if(!r)return;
+  const m=MASTER.find(x=>x.id===r.m)||{name:'?',tags:[]};
+  const ev=evalFormula(r.q);
+  const glance=[ `<span class="chip">${ev.ok?(ev.fixed?ev.val+'×':'ƒ → '+ev.val):'✕ Formel'}</span>`,
+    ...(r.pp?['<span class="chip blue">pro Person</span>']:[]),
+    ...(isBuy(r.mode)?[`<span class="chip ${r.mode==='buy_before'?'warm':'blue'}">${MODE[r.mode].icon} ${MODE[r.mode].label} kaufen</span>`]:[]),
+    ...(r.late?['<span class="chip warm">⏰ Später-Packer</span>']:[]),
+    ...(r.tasks&&r.tasks.length?[`<span class="chip green">📋 ${r.tasks.length}</span>`]:[]),
+    ...condSummary(r.cond).map(c=>`<span class="chip mauve">${c}</span>`) ].join('');
+  const body=document.getElementById('t8SheetBody');
+  body.innerHTML=`
+    <div class="ihead"><div class="grow"><div class="iname">${esc(m.name)}</div>
+      <div class="desc">${tplKind(t)==='group'?'Gruppe':'Ferien-Vorlage'} „${esc(t.name)}“ · Position</div></div>
+      <span class="savechip saved" id="saveChip">✓ Gespeichert</span></div>
+    <div class="chiprow" style="margin:10px 0 2px">${glance}</div>
+    <div class="assign"><div class="cap">Menge — Zahl oder Formel</div>
+      <input class="finput ${ev.ok?'':'bad'}" data-t8q="1" value="${esc(r.q)}" autocomplete="off" spellcheck="false">
+      ${ev.ok?`<div class="fex">Beispiel-Reise (${EX.trip_duration} Tage · ${EX.num_travelers} Reisende): <b>${ev.val}${r.pp?' pro Person':''}</b></div>`
+             :`<div class="ferr">${ev.err}</div>`}</div>
+    <div class="assign"><div class="cap">Vorbereitung — offene Aufgaben blockieren „erledigt“ auf der Packliste (FR-27.7)</div>
+      ${(r.tasks||[]).map((task,k)=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+        <span style="flex:none">📋</span><div class="tiny grow">${esc(task)}</div>
+        <button class="rm" data-t8trm="${k}">✕</button></div>`).join('')}
+      <div class="addprep"><input id="t8TaskIn" placeholder="Aufgabe hinzufügen — z. B. „Akkus laden“…" autocomplete="off"><button class="opt" id="t8TaskAdd">+</button></div></div>
+    ${M8.adv?`
+    <div class="assign"><div class="cap">Wer braucht das?</div>
+      <div class="seg"><button class="${r.pp?'':'sel'}" data-t8pp="0">Reise-global</button>
+        <button class="${r.pp?'sel':''}" data-t8pp="1">Pro Person</button></div></div>
+    <div class="assign"><div class="cap">Beschaffung</div>
+      <div class="seg">${MODES.map(md=>`<button class="${r.mode===md[0]?'sel':''}" data-t8mode="${md[0]}">${md[1]}</button>`).join('')}</div></div>
+    <div class="assign"><div class="cap">Dedup bei Überschneidung (FR-2.3a)</div>
+      <div class="seg"><button class="${r.dedup==='max'?'sel':''}" data-t8dd="max">Dedup: Maximum</button>
+        <button class="${r.dedup==='sum'?'sel':''}" data-t8dd="sum">Dedup: Summe</button></div></div>
+    <div class="assign"><div class="cap">Nur wenn … (Bedingungen, FR-15.2)</div>
+      <div class="chips">${SEASONS.map(x=>`<button class="opt warm ${r.cond.season===x?'sel':''}" data-t8cs="${x}">${x}</button>`).join('')}
+      ${TRANSPORTS.map(x=>`<button class="opt ${r.cond.transport===x?'sel':''}" data-t8ct="${x}">${x}</button>`).join('')}</div></div>
+    <div class="toggle" style="padding:2px 0"><div class="grow"><div class="name" style="font-size:13.5px">Später-Packer</div></div>
+      <div class="sw ${r.late?'on':''}" id="t8Late"></div></div>
+    <button class="opt" id="t8Adv" style="width:100%">Details ▴</button>`
+    :`<button class="opt" id="t8Adv" style="width:100%">Details ▾ — pro Person · Kaufen · Dedup · Bedingungen · Später-Packer</button>`}`;
+  // bindings — every change saves as it happens (G-5), the chip confirms it (FR-25.15)
+  const touch=()=>{ markDirty(); renderT8Sheet(); renderTplEdit(); };
+  const qin=body.querySelector('[data-t8q]');
+  qin.oninput=()=>{ r.q=qin.value; markDirty(); };
+  qin.onchange=touch; qin.onkeydown=e=>{ if(e.key==='Enter')touch(); };
+  const addTask=()=>{ const inp=document.getElementById('t8TaskIn'); const v=inp&&inp.value.trim(); if(!v)return;
+    (r.tasks=r.tasks||[]).push(v); logTplChange(t.id,'Aufgabe „'+v+'“ zu „'+m.name+'“ hinzugefügt'); touch(); };
+  document.getElementById('t8TaskAdd').onclick=addTask;
+  document.getElementById('t8TaskIn').onkeydown=e=>{ if(e.key==='Enter')addTask(); };
+  body.querySelectorAll('[data-t8trm]').forEach(b=>b.onclick=()=>{ const gone=r.tasks.splice(+b.dataset.t8trm,1)[0];
+    logTplChange(t.id,'Aufgabe „'+gone+'“ bei „'+m.name+'“ entfernt'); touch(); });
+  document.getElementById('t8Adv').onclick=()=>{ M8.adv=!M8.adv; renderT8Sheet(); };
+  body.querySelectorAll('[data-t8pp]').forEach(b=>b.onclick=()=>{ r.pp=b.dataset.t8pp==='1'; touch(); });
+  body.querySelectorAll('[data-t8mode]').forEach(b=>b.onclick=()=>{ r.mode=b.dataset.t8mode; touch(); });
+  body.querySelectorAll('[data-t8dd]').forEach(b=>b.onclick=()=>{ r.dedup=b.dataset.t8dd; touch(); });
+  body.querySelectorAll('[data-t8cs]').forEach(b=>b.onclick=()=>{ r.cond.season=r.cond.season===b.dataset.t8cs?null:b.dataset.t8cs; touch(); });
+  body.querySelectorAll('[data-t8ct]').forEach(b=>b.onclick=()=>{ r.cond.transport=r.cond.transport===b.dataset.t8ct?null:b.dataset.t8ct; touch(); });
+  const late=document.getElementById('t8Late'); if(late) late.onclick=()=>{ r.late=!r.late; touch(); };
+}
 
 /* §3.25 consistency directive (owner 2026-08-08): adding a position to a
    template/group looks and behaves EXACTLY like the packing list's quick-add

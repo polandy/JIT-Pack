@@ -76,8 +76,11 @@ bounded. Two decisions fix the scope:
   (owner directive, "identisch wie in der Packliste") — the position picker replaced by the
   M4/M6 quick-add pattern verbatim (FAB expansion, master autocomplete, visible scope-labelled
   confirm, Enter, stays open, blur-collapse when empty, duplicate report instead of double
-  add, free text creates the master item); M8-13 added, M8-04/M8-12 reworded. 71 assertions
-  headless.
+  add, free text creates the master item); M8-13 added, M8-04/M8-12 reworded. **Eighth round:
+  position editing = the M5 sheet** (owner directive, "gleich wie in der Packliste-Ansicht")
+  — tapping a position opens the M5-pattern bottom sheet with glance chips, FR-25.15
+  auto-save chip, Menge + Vorbereitung first and "Details ▾" for the rest; the inline
+  expanding row form is gone; M8-14 added. 74 assertions headless.
   **Implementation consequence, part of the open §3.27 package below:** relax server-side
   template visibility/ownership (`internal/store/master.go` pull filter + mutation
   authorization), drop the client fork paths (`requiresFork`/`forkTemplate` in review.ts,
