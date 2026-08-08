@@ -15,7 +15,7 @@ Work through **all** sections below in order. Collect findings as you go and fix
 - `gh pr view <PR> --json title,body,baseRefName,headRefName,mergeStateStatus,statusCheckRollup` for metadata and CI status.
 - `gh pr diff <PR>` for the full diff; check out the PR branch (or its worktree under `.claude/worktrees/` if one exists) so you can build and test.
 - Read the PR description and any linked ADR or FR/NFR id first — the review checks the implementation *against its stated intent*.
-- **Load the project standard**: read `CLAUDE.md` (§Invariants, §Working agreement) and `docs/CODING_PRINCIPLES.md` — these are binding and authoritative. Section 3 below distills the highest-signal checks, but the *files* win where they disagree with this skill. Also skim `.golangci.yml` for the enabled linters.
+- **Load the project standard**: read `CLAUDE.md` (§Invariants, §Working agreement) and `dev-docs/CODING_PRINCIPLES.md` — these are binding and authoritative. Section 3 below distills the highest-signal checks, but the *files* win where they disagree with this skill. Also skim `.golangci.yml` for the enabled linters.
 
 ## 1. Documentation ↔ implementation sync
 
@@ -24,12 +24,12 @@ Every requirement or behaviour change is reflected in its spec **in the same PR*
 - `docs/PRD_Addendum_v2.10.md` — the authoritative requirement source (it overrides `PRD_Base.md`). New/changed FR or NFR text belongs here.
 - `docs/UI_Spec_v1.10.md` — any new screen, global pattern (G-n) or changed screen behaviour.
 - `docs/Sync_API_Spec_v1.3.md` — new endpoints, envelope fields, WebSocket frames, merge-rule changes.
-- `docs/UI_Test_Spec_v1.0.md` — new UI behaviour adds its case + traceability-matrix row.
+- `dev-docs/UI_Test_Spec_v1.0.md` — new UI behaviour adds its case + traceability-matrix row.
 - **Schema**: `internal/store/migrations/*.sql` is the single source of truth — flag any attempt to duplicate the schema into `docs/`.
 - Check the reverse too: no doc may still describe behaviour this PR removed or changed.
 - Doc comments on exported symbols must match actual behaviour; godoc on exported symbols is mandatory.
 
-## 2. ADRs (`docs/ADR-00N_*.md`)
+## 2. ADRs (`dev-docs/adr/ADR-00N_*.md`)
 
 - Does the PR decide a real tradeoff — options weighed, one chosen at a cost — that needs a **new ADR** and doesn't have one? Additive config fields, endpoints following an existing pattern, and mechanical refactors do **not** need one.
 - Does the PR contradict or supersede an **existing ADR**? Then that ADR needs a status update, or the PR needs to change.
@@ -37,7 +37,7 @@ Every requirement or behaviour change is reflected in its spec **in the same PR*
 
 ## 3. Implementation quality — against the project standard
 
-`CLAUDE.md` §Invariants and `docs/CODING_PRINCIPLES.md` are the standard; apply them to the diff rather than re-deriving them. Flag freshly introduced violations:
+`CLAUDE.md` §Invariants and `dev-docs/CODING_PRINCIPLES.md` are the standard; apply them to the diff rather than re-deriving them. Flag freshly introduced violations:
 
 - **Package boundaries** (the invariant most worth checking every time): `api → domain/sync/store`, `store → domain`; `domain` and `sync` import nothing internal, ever. A single wrong import destroys the testability those two packages exist for.
 - **Migrations**: applied migrations are never edited — a change means a new numbered migration.
@@ -63,7 +63,7 @@ Test-first is non-negotiable: every new behaviour has a driving test, every bug 
 
 If the PR touches `client/src`:
 
-- **`docs/UI_Spec_v1.10.md` must be updated** in the same PR to describe the new surface, and `docs/UI_Test_Spec_v1.0.md` gains the corresponding case.
+- **`docs/UI_Spec_v1.10.md` must be updated** in the same PR to describe the new surface, and `dev-docs/UI_Test_Spec_v1.0.md` gains the corresponding case.
 - **The feature's UI ships with the feature.** A backend capability with "UI in a follow-up" is a blocker, not a note.
 - **e2e**: new UI behaviour needs a Playwright case in `client/e2e` — one test unit per PR. Check that behaviour assertions exist and that the case runs in the mode(s) the feature actually supports (`jitpack_mode` seeding, see `client/e2e/fixtures.ts`).
 - **Manual-test-first**: if the maintainer hasn't eyeballed the rendered UI yet, flag that as a gate before the e2e case is finalized — do not silently skip it. Never judge visibility or layout from the stylesheet; render it.

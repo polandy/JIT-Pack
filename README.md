@@ -10,7 +10,7 @@ Self-hosted, offline-first packing-list app with dynamic quantity formulas, real
 
 ## For humans
 
-Full specification set lives in `docs/` — start with `docs/PRD_Base.md` and `docs/PRD_Addendum_v2.10.md` for what the product does, `docs/UI_Spec_v1.10.md` for the screens, and the `docs/ADR-*.md` files for why the architecture looks the way it does.
+Full specification set lives in `docs/` — start with `docs/PRD_Base.md` and `docs/PRD_Addendum_v2.10.md` for what the product does, `docs/UI_Spec_v1.10.md` for the screens, and the `dev-docs/adr/` records for why the architecture looks the way it does.
 
 ## For Claude Code / an AI coding assistant
 

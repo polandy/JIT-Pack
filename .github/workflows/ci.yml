@@ -57,7 +57,7 @@ jobs:
       - run: npm run build # runs type-check and the production build
       - run: npx vitest run
 
-  # Headless-browser E2E (docs/UI_Test_Spec_v1.0.md). Drives the built
+  # Headless-browser E2E (dev-docs/UI_Test_Spec_v1.0.md). Drives the built
   # client (vite preview) in Chromium + WebKit. Gated after `client` so
   # it only runs on a green build; the backend-backed modes (single/
   # server) and their jitpackd harness land in later milestones, so this
