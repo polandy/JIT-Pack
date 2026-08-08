@@ -1,0 +1,7 @@
+# Project toolchain — run `mise install` once per machine.
+# Versions track CI: go per go.mod/Dockerfile, node per ci.yml (24),
+# golangci-lint pinned to the version ci.yml uses.
+[tools]
+go = "1.26"
+node = "24"
+golangci-lint = "2.12"

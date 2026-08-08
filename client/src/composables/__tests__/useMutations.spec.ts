@@ -118,7 +118,7 @@ describe('useMutations', () => {
 
   it('createMasterItem', () => {
     const m = useMutations(mockHLC())
-    const { mutation } = m.createMasterItem('Soap', { categoryId: 'c1', unit: 'pieces' })
+    const { mutation } = m.createMasterItem('Soap', { categoryId: 'c1' })
     expect(mutation.op).toBe('insert')
     expect(mutation.table).toBe('items')
     expect(mutation.fields?.['name']).toBe('Soap')
@@ -169,7 +169,7 @@ describe('useMutations', () => {
     const m = useMutations(mockHLC())
     const { mutation } = m.addItemDependency('battery', 'camera', {
       mode: 'suggested',
-      quantityFormula: '2',
+      quantity: 2,
     })
     expect(mutation.op).toBe('insert')
     expect(mutation.table).toBe('item_dependencies')
@@ -177,14 +177,14 @@ describe('useMutations', () => {
       item_id: 'battery',
       depends_on_item_id: 'camera',
       mode: 'suggested',
-      quantity_formula: '2',
+      quantity: 2,
     })
   })
 
-  it('addItemDependency defaults to required without a formula', () => {
+  it('addItemDependency defaults to required without a quantity', () => {
     const m = useMutations(mockHLC())
     const { mutation } = m.addItemDependency('battery', 'camera')
-    expect(mutation.fields).toMatchObject({ mode: 'required', quantity_formula: null })
+    expect(mutation.fields).toMatchObject({ mode: 'required', quantity: null })
   })
 
   it('updateItemDependency and deleteItemDependency target the relation row', () => {

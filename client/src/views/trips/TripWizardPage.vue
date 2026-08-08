@@ -41,7 +41,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { loadTokens } from '@/auth/tokens'
 import { resolveDependencies } from '@/domain/dependencies'
-import { buildVariables, durationDays, generateTripItems } from '@/domain/instantiate'
+import { durationDays, generateTripItems } from '@/domain/instantiate'
 import { suggestQuantities, type QuantitySuggestion } from '@/domain/suggestions'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -186,11 +186,6 @@ const companionResolution = computed(() =>
     })),
     dependencies: masterStore.dependencyList,
     masterItems: masterStore.itemList,
-    vars: buildVariables({
-      duration_days: duration.value,
-      attributes: attributes.value,
-      travelers: travelers.value,
-    }),
   }),
 )
 

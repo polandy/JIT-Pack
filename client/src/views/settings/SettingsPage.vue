@@ -57,6 +57,7 @@ import { safeFilename, saveBlob, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { currentTheme, setTheme } from '@/theme/theme'
+import { type Locale, currentLocale, setLocale, t } from '@/i18n'
 import AvatarCropModal from '@/components/settings/AvatarCropModal.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
@@ -91,6 +92,15 @@ const lightTheme = ref(currentTheme() === 'latte')
 function toggleLightTheme(enabled: boolean) {
   setTheme(enabled ? 'latte' : 'mocha')
   lightTheme.value = enabled
+}
+
+// --- Language (NFR-4.12, device-local like the theme) ---
+
+const language = ref<Locale>(currentLocale())
+
+function changeLanguage(next: Locale) {
+  setLocale(next)
+  language.value = next
 }
 
 // --- Notifications (FR-6.2 / NFR-4.6) ---
@@ -318,6 +328,22 @@ async function exportTripCSV() {
             aria-label="Light theme"
             @ionChange="(e: CustomEvent) => toggleLightTheme(e.detail.checked)"
           />
+        </IonItem>
+        <IonItem>
+          <IonLabel>
+            <h3>{{ t('settings.language') }}</h3>
+            <p>{{ t('settings.languageHint') }}</p>
+          </IonLabel>
+          <IonSelect
+            slot="end"
+            :value="language"
+            interface="popover"
+            :aria-label="t('settings.language')"
+            @ionChange="(e: CustomEvent) => changeLanguage(e.detail.value)"
+          >
+            <IonSelectOption value="en">{{ t('settings.languageEnglish') }}</IonSelectOption>
+            <IonSelectOption value="de">{{ t('settings.languageGerman') }}</IonSelectOption>
+          </IonSelect>
         </IonItem>
       </IonList>
 

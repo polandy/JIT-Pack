@@ -15,10 +15,11 @@ import (
 )
 
 // ApplyMasterMutation resolves one master-partition mutation for userID.
-// Beyond the trip-partition pipeline it enforces ownership (FR-1.6,
-// FR-4.5): templates and template_items are writable only by the template
-// owner, trips only by members (delete: owner/admin), and server-owned
-// columns (owner_id, created_by) are stamped on insert. Unauthorized
+// Beyond the trip-partition pipeline it enforces authorization (FR-4.5):
+// trips are writable only by members (delete: owner/admin) and series only
+// by their owner, while templates and master items are shared instance-wide
+// (FR-1.6 MVP). Server-owned columns (owner_id, created_by) are stamped on
+// insert and never rewritten afterwards. Unauthorized
 // mutations return outcome "rejected" instead of an error so the push
 // batch continues (spec §5).
 func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.Mutation) (MutationResult, error) {
@@ -148,20 +149,31 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 		return true, nil
 
 	case "templates":
-		if !exists {
-			if m.Op != sync.OpDelete {
-				setField(m, "owner_id", userID)
-			}
+		// Shared instance-wide like master items (FR-1.6 MVP simplification,
+		// 2026-08-08): everyone edits every template. owner_id is stamped
+		// once as creator metadata and never rewritten afterwards — an
+		// editor is not an owner, and the FR-1.6 stub needs the creator back
+		// if the parked ownership model returns.
+		if !exists && m.Op != sync.OpDelete {
+			setField(m, "owner_id", userID)
+		}
+		return true, nil
+
+	case "template_items", "template_item_tasks":
+		// Positions and their preparation tasks (FR-27.7) follow their
+		// template's governance (FR-1.6 MVP): shared. An invalid parent id
+		// fails the FK and rejects.
+		return true, nil
+
+	case "template_includes":
+		// Shared like everything else, but structurally constrained: the
+		// two-level rule (FR-27.1) is what makes include cycles impossible,
+		// so a shape that would break it is refused here rather than
+		// discovered later by a resolver.
+		if m.Op == sync.OpDelete {
 			return true, nil
 		}
-		return current["owner_id"] == userID, nil
-
-	case "template_items":
-		// Both the current and the target template must be owned by the
-		// pusher — otherwise items could be moved into foreign templates.
-		return ownsAll(ctx, tx, userID,
-			`SELECT owner_id FROM templates WHERE id = ?`,
-			parentIDs(current, m, "template_id"))
+		return validInclude(ctx, tx, current, m)
 
 	case "trip_series":
 		if !exists {
@@ -252,6 +264,42 @@ func memberRole(ctx context.Context, tx *sql.Tx, tripID, userID string) (string,
 // parentIDs collects the parent references of a child row from both the
 // existing row and the mutation fields — authorization must hold for the
 // current parent *and* the target parent.
+// validInclude enforces the FR-27.1 two-level rule: only a Ferien-Vorlage
+// (kind 'template') may include, and only a Gruppe (kind 'group') may be
+// included. Both ends are checked against the row as it will read after the
+// mutation, so an include can never be re-pointed into an illegal shape.
+// A missing template denies — the FK would reject it anyway, and denying
+// keeps the answer a clean "rejected" instead of an error.
+func validInclude(ctx context.Context, tx *sql.Tx, current map[string]any, m *sync.Mutation) (bool, error) {
+	field := func(name string) string {
+		if v, ok := m.Fields[name].(string); ok {
+			return v
+		}
+		if v, ok := current[name].(string); ok {
+			return v
+		}
+		return ""
+	}
+	parent, child := field("template_id"), field("included_template_id")
+	if parent == "" || child == "" {
+		return false, nil
+	}
+	for _, want := range []struct{ id, kind string }{{parent, "template"}, {child, "group"}} {
+		var kind string
+		err := tx.QueryRowContext(ctx, `SELECT kind FROM templates WHERE id = ?`, want.id).Scan(&kind)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		if err != nil {
+			return false, fmt.Errorf("include scope lookup: %w", err)
+		}
+		if kind != want.kind {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 func parentIDs(current map[string]any, m *sync.Mutation, field string) map[string]bool {
 	ids := map[string]bool{}
 	if id, ok := current[field].(string); ok {
@@ -314,7 +362,28 @@ func cascadeChildren(ctx context.Context, tx *sql.Tx, m sync.Mutation, deleted, 
 	}
 	switch m.Table {
 	case "templates":
-		return collect("template_items", `SELECT id FROM template_items WHERE template_id = ?`)
+		// Leaf-first: the position tasks (FR-27.7) hang off the positions,
+		// which hang off the template, and the group includes (FR-27.1)
+		// vanish from both sides of the relation.
+		tasks, err := collect("template_item_tasks",
+			`SELECT t.id FROM template_item_tasks t
+			 JOIN template_items ti ON ti.id = t.template_item_id WHERE ti.template_id = ?`)
+		if err != nil {
+			return nil, err
+		}
+		positions, err := collect("template_items", `SELECT id FROM template_items WHERE template_id = ?`)
+		if err != nil {
+			return nil, err
+		}
+		includes, err := collect("template_includes",
+			`SELECT id FROM template_includes WHERE template_id = ?1 OR included_template_id = ?1`)
+		if err != nil {
+			return nil, err
+		}
+		return append(append(tasks, positions...), includes...), nil
+	case "template_items":
+		return collect("template_item_tasks",
+			`SELECT id FROM template_item_tasks WHERE template_item_id = ?`)
 	case "items":
 		return collect("item_dependencies",
 			`SELECT id FROM item_dependencies WHERE item_id = ?1 OR depends_on_item_id = ?1`)
@@ -374,9 +443,10 @@ func memberTrip(current map[string]any, m sync.Mutation) (string, bool) {
 }
 
 // PullMaster returns master-partition changes after the cursor, filtered
-// to what userID may see (spec §4): categories and items are shared,
-// templates require ownership or is_published, trips require membership.
-// Tombstones are always delivered — they carry only the entity id.
+// to what userID may see (spec §4): categories, items and templates are
+// instance-wide (FR-1.6 MVP), trips require membership, series follow
+// ownership. Tombstones are always delivered — they carry only the entity
+// id.
 func (s *Store) PullMaster(ctx context.Context, userID string, cursor int64, limit int) (PullPage, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT seq, entity_table, entity_id, deleted FROM change_log
@@ -438,32 +508,10 @@ func (s *Store) masterVisible(ctx context.Context, userID, table, id string) (bo
 	case "categories", "items", "item_dependencies":
 		return true, nil
 
-	case "templates":
-		var owner string
-		var published int
-		err := s.db.QueryRowContext(ctx,
-			`SELECT owner_id, is_published FROM templates WHERE id = ?`, id).Scan(&owner, &published)
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil // row already gone; its tombstone follows in the feed
-		}
-		if err != nil {
-			return false, fmt.Errorf("template visibility: %w", err)
-		}
-		return owner == userID || published == 1, nil
-
-	case "template_items":
-		var owner string
-		var published int
-		err := s.db.QueryRowContext(ctx,
-			`SELECT t.owner_id, t.is_published FROM template_items ti
-			 JOIN templates t ON t.id = ti.template_id WHERE ti.id = ?`, id).Scan(&owner, &published)
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
-		}
-		if err != nil {
-			return false, fmt.Errorf("template_items visibility: %w", err)
-		}
-		return owner == userID || published == 1, nil
+	case "templates", "template_items", "template_includes", "template_item_tasks":
+		// Instance-wide, like the master items they are built from (FR-1.6
+		// MVP simplification, 2026-08-08 — "Jeder sieht einfach alles").
+		return true, nil
 
 	case "trips":
 		return s.IsTripMember(ctx, id, userID)

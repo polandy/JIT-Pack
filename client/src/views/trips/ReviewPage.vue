@@ -3,9 +3,9 @@
  * M14 — Post-Trip Review Assistant (FR-9.2).
  *
  * Card stack over the proposals derived from the trip's FR-9.1 flags.
- * Apply writes to the user's own templates as ordinary master
- * mutations; foreign published templates are forked first (FR-1.6).
- * Proposals are recomputed from current state, so the assistant is
+ * Apply writes straight to the source template as an ordinary master
+ * mutation — templates are shared instance-wide (FR-1.6 MVP), so there is
+ * no fork step. Proposals are recomputed from current state, so the assistant is
  * naturally resumable — applied cards simply stop appearing.
  */
 import {
@@ -25,7 +25,7 @@ import {
   IonLabel,
   IonNote,
 } from '@ionic/vue'
-import { checkmarkCircleOutline, gitBranchOutline, sparklesOutline } from 'ionicons/icons'
+import { checkmarkCircleOutline, sparklesOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 
 import { buildReviewProposals, type ReviewProposal } from '@/domain/review'
@@ -96,12 +96,12 @@ function cardText(p: ReviewProposal): string {
 }
 
 function apply(p: ReviewProposal) {
-  orchestrator.applyReviewProposal(p, { fork: p.requiresFork })
+  orchestrator.applyReviewProposal(p)
   const action =
     p.kind === 'reduce_quantity'
       ? `Set '${p.itemName}' to 0 in '${p.templateName}'`
       : `Added '${p.itemName}' to '${p.templateName}'`
-  applied.value = [...applied.value, p.requiresFork ? `${action} (forked copy)` : action]
+  applied.value = [...applied.value, action]
 }
 
 function skip(p: ReviewProposal) {
@@ -135,14 +135,8 @@ function neverAskAgain(p: ReviewProposal) {
           <IonCardContent>
             <IonIcon :icon="sparklesOutline" class="card-icon" />
             <p class="card-text">{{ cardText(current) }}</p>
-            <p v-if="current.requiresFork" class="fork-note">
-              <IonIcon :icon="gitBranchOutline" />
-              This template is published by someone else — applying creates your own copy (FR-1.6).
-            </p>
             <div class="card-actions">
-              <IonButton expand="block" @click="apply(current)">
-                {{ current.requiresFork ? 'Fork & apply' : 'Apply' }}
-              </IonButton>
+              <IonButton expand="block" @click="apply(current)">Apply</IonButton>
               <IonButton expand="block" fill="outline" @click="skip(current)">Skip</IonButton>
               <IonButton expand="block" fill="clear" color="medium" @click="neverAskAgain(current)">
                 Never ask again
@@ -193,14 +187,6 @@ function neverAskAgain(p: ReviewProposal) {
 .card-text {
   font-size: 1.05rem;
   margin: 8px 0 4px;
-}
-
-.fork-note {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--ion-color-medium);
-  font-size: 0.85rem;
 }
 
 .card-actions {

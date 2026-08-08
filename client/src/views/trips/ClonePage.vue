@@ -4,7 +4,6 @@
  * archived trips and from M16 ("clone last trip"). Dates are entered
  * fresh; the three carry-over toggles gate traveler assignments, packer
  * delegations, and container assignments. The preview recomputes live,
- * including how many quantities re-evaluate from their formula.
  */
 import {
   IonPage,
@@ -160,14 +159,6 @@ function clone() {
             v-if="preview.containers.length > 0"
             >, {{ preview.containers.length }} containers</template
           >.
-          <template v-if="preview.reevaluated > 0">
-            {{ preview.reevaluated }} quantit{{
-              preview.reevaluated === 1 ? 'y' : 'ies'
-            }}
-            re-evaluated from formulas<template v-if="!startDate">
-              (no start date — duration falls back to a single day)</template
-            >.
-          </template>
         </IonNote>
 
         <IonButton expand="block" class="confirm" :disabled="!valid" @click="clone">

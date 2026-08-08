@@ -9,4 +9,6 @@ Review uncommitted or recently committed changes against project standards:
    - Exported symbols have godoc
    - Package boundaries respected: `api → domain/sync/store`, `store → domain`, `domain`/`sync` import nothing internal
    - No security issues (OWASP top 10)
+   - Commit messages follow Conventional Commits with FR/NFR references where applicable
+   - `CLAUDE.md`'s "Not built yet" updated if the change completes an item or opens a new gap, with the reasoning appended to `dev-docs/implementation-log.md`
 4. Report findings concisely: what's good, what needs fixing. If everything is clean, say so briefly.

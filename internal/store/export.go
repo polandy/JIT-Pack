@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"strconv"
 
 	"jitpack/internal/portable"
 )
@@ -22,7 +21,7 @@ func (s *Store) ExportTemplate(ctx context.Context, templateID string) (portable
 	}
 
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT i.name, ti.quantity_formula, ti.assignment, i.unit,
+		SELECT i.name, ti.quantity, ti.assignment,
 		       ti.conditions, ti.default_mode, ti.late_packer, ti.dedup
 		FROM template_items ti
 		JOIN items i ON i.id = ti.item_id
@@ -37,11 +36,12 @@ func (s *Store) ExportTemplate(ctx context.Context, templateID string) (portable
 	for rows.Next() {
 		var it portable.Item
 		var conditions sql.NullString
-		var latePacker int
-		if err := rows.Scan(&it.Name, &it.Quantity, &it.Assignment, &it.Unit,
+		var latePacker, quantity int
+		if err := rows.Scan(&it.Name, &quantity, &it.Assignment,
 			&conditions, &it.DefaultMode, &latePacker, &it.Dedup); err != nil {
 			return portable.Document{}, fmt.Errorf("scan template item: %w", err)
 		}
+		it.Quantity = portable.Quantity(quantity)
 		it.LatePacker = latePacker == 1
 		if conditions.Valid && conditions.String != "" {
 			var cond map[string]any
@@ -80,7 +80,7 @@ func (s *Store) ImportTemplate(ctx context.Context, ownerID string, doc portable
 	}
 
 	for _, item := range doc.Items {
-		itemID, err := ensureItem(ctx, tx, item.Name, item.Unit)
+		itemID, err := ensureItem(ctx, tx, item.Name)
 		if err != nil {
 			return "", err
 		}
@@ -109,9 +109,9 @@ func (s *Store) ImportTemplate(ctx context.Context, ownerID string, doc portable
 		}
 
 		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO template_items (id, template_id, item_id, quantity_formula, assignment, conditions, default_mode, late_packer, dedup)
+			INSERT INTO template_items (id, template_id, item_id, quantity, assignment, conditions, default_mode, late_packer, dedup)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			randomID(), templateID, itemID, item.Quantity,
+			randomID(), templateID, itemID, max(int(item.Quantity), 1),
 			assignment, condJSON, defaultMode, latePacker, dedup); err != nil {
 			return "", fmt.Errorf("insert template item %q: %w", item.Name, err)
 		}
@@ -236,7 +236,7 @@ func (s *Store) loadTripItemsForExport(ctx context.Context, tripID string, inclu
 			&travelerID, &containerID, &latePacker); err != nil {
 			return nil, fmt.Errorf("scan trip item: %w", err)
 		}
-		it.Quantity = strconv.Itoa(quantity)
+		it.Quantity = portable.Quantity(quantity)
 		if includeProgress {
 			pc := packedCount
 			it.PackedCount = &pc
@@ -321,10 +321,8 @@ func (s *Store) ImportTrip(ctx context.Context, ownerID string, doc portable.Doc
 	// Create trip items.
 	for _, item := range doc.Items {
 		quantity := 1
-		if item.Quantity != "" {
-			if q, err := strconv.Atoi(item.Quantity); err == nil {
-				quantity = q
-			}
+		if item.Quantity > 0 {
+			quantity = int(item.Quantity)
 		}
 		mode := item.Mode
 		if mode == "" {
@@ -367,20 +365,17 @@ func (s *Store) ImportTrip(ctx context.Context, ownerID string, doc portable.Doc
 }
 
 // ensureItem finds or creates a master item by name.
-func ensureItem(ctx context.Context, tx *sql.Tx, name, unit string) (string, error) {
+func ensureItem(ctx context.Context, tx *sql.Tx, name string) (string, error) {
 	var id string
 	err := tx.QueryRowContext(ctx,
 		`SELECT id FROM items WHERE name = ? LIMIT 1`, name).Scan(&id)
 	if err == nil {
 		return id, nil
 	}
-	if unit == "" {
-		unit = "pieces"
-	}
 	id = randomID()
 	if _, err := tx.ExecContext(ctx,
-		`INSERT INTO items (id, name, unit) VALUES (?, ?, ?)`,
-		id, name, unit); err != nil {
+		`INSERT INTO items (id, name) VALUES (?, ?)`,
+		id, name); err != nil {
 		return "", fmt.Errorf("insert item %q: %w", name, err)
 	}
 	return id, nil

@@ -47,15 +47,12 @@ describe('masterStore', () => {
         name: 'T-Shirt',
         category_id: 'c1',
         weight_grams: 200,
-        unit: 'pieces',
-        is_consumable: 0,
       },
     })
 
     const item = store.getItem('i1')
     expect(item?.name).toBe('T-Shirt')
     expect(item?.weight_grams).toBe(200)
-    expect(item?.is_consumable).toBe(false)
   })
 
   it('deletes items', () => {
@@ -65,7 +62,7 @@ describe('masterStore', () => {
       table: 'items',
       id: 'i1',
       deleted: false,
-      row: { name: 'Soap', unit: 'pieces' },
+      row: { name: 'Soap' },
     })
     store.applyChange({ seq: 2, table: 'items', id: 'i1', deleted: true, row: null })
     expect(store.getItem('i1')).toBeUndefined()
@@ -78,12 +75,12 @@ describe('masterStore', () => {
       table: 'templates',
       id: 't1',
       deleted: false,
-      row: { owner_id: 'u1', name: 'Beach Essentials', is_published: 1 },
+      row: { owner_id: 'u1', name: 'Beach Essentials' },
     })
 
     const tpl = store.getTemplate('t1')
     expect(tpl?.name).toBe('Beach Essentials')
-    expect(tpl?.is_published).toBe(true)
+    expect(tpl?.owner_id).toBe('u1')
   })
 
   it('deletes template and its items', () => {
@@ -93,7 +90,7 @@ describe('masterStore', () => {
       table: 'templates',
       id: 't1',
       deleted: false,
-      row: { owner_id: 'u1', name: 'T', is_published: 0 },
+      row: { owner_id: 'u1', name: 'T' },
     })
     store.applyChange({
       seq: 2,
@@ -103,7 +100,7 @@ describe('masterStore', () => {
       row: {
         template_id: 't1',
         item_id: 'i1',
-        quantity_formula: '2',
+        quantity: 2,
         assignment: 'per_person',
         dedup: 'max',
         default_mode: 'pack',
@@ -126,7 +123,7 @@ describe('masterStore', () => {
       row: {
         template_id: 't1',
         item_id: 'i1',
-        quantity_formula: '1',
+        quantity: 1,
         assignment: 'per_person',
         dedup: 'max',
         default_mode: 'pack',
@@ -140,7 +137,7 @@ describe('masterStore', () => {
       row: {
         template_id: 't1',
         item_id: 'i1',
-        quantity_formula: '3',
+        quantity: 3,
         assignment: 'trip_global',
         dedup: 'sum',
         default_mode: 'buy_before',
@@ -149,7 +146,7 @@ describe('masterStore', () => {
 
     const tis = store.getTemplateItems('t1')
     expect(tis).toHaveLength(1)
-    expect(tis[0]!.quantity_formula).toBe('3')
+    expect(tis[0]!.quantity).toBe(3)
     expect(tis[0]!.assignment).toBe('trip_global')
   })
 
@@ -168,21 +165,21 @@ describe('masterStore', () => {
         table: 'items',
         id: 'i1',
         deleted: false,
-        row: { name: 'Shirt', category_id: 'c1', unit: 'pieces' },
+        row: { name: 'Shirt', category_id: 'c1' },
       },
       {
         seq: 3,
         table: 'items',
         id: 'i2',
         deleted: false,
-        row: { name: 'Pants', category_id: 'c1', unit: 'pieces' },
+        row: { name: 'Pants', category_id: 'c1' },
       },
       {
         seq: 4,
         table: 'items',
         id: 'i3',
         deleted: false,
-        row: { name: 'Charger', unit: 'pieces' },
+        row: { name: 'Charger' },
       },
     ])
 
@@ -199,16 +196,16 @@ describe('masterStore', () => {
         table: 'items',
         id: 'i1',
         deleted: false,
-        row: { name: 'Sunscreen', unit: 'pieces' },
+        row: { name: 'Sunscreen' },
       },
       {
         seq: 2,
         table: 'items',
         id: 'i2',
         deleted: false,
-        row: { name: 'Sunglasses', unit: 'pieces' },
+        row: { name: 'Sunglasses' },
       },
-      { seq: 3, table: 'items', id: 'i3', deleted: false, row: { name: 'Towel', unit: 'pieces' } },
+      { seq: 3, table: 'items', id: 'i3', deleted: false, row: { name: 'Towel' } },
     ])
 
     expect(store.searchItems('sun')).toHaveLength(2)
@@ -227,7 +224,7 @@ describe('masterStore', () => {
         row: {
           template_id: 't1',
           item_id: 'i1',
-          quantity_formula: '1',
+          quantity: 1,
           assignment: 'per_person',
           dedup: 'max',
           default_mode: 'pack',
@@ -241,7 +238,7 @@ describe('masterStore', () => {
         row: {
           template_id: 't1',
           item_id: 'i2',
-          quantity_formula: '2',
+          quantity: 2,
           assignment: 'per_person',
           dedup: 'max',
           default_mode: 'pack',
@@ -264,7 +261,7 @@ describe('masterStore', () => {
         item_id: 'battery',
         depends_on_item_id: 'camera',
         mode: 'suggested',
-        quantity_formula: '2',
+        quantity: 2,
       },
     })
 
@@ -274,7 +271,7 @@ describe('masterStore', () => {
         item_id: 'battery',
         depends_on_item_id: 'camera',
         mode: 'suggested',
-        quantity_formula: '2',
+        quantity: 2,
       },
     ])
     expect(store.getItemDependencies('battery')).toHaveLength(1)
@@ -285,7 +282,7 @@ describe('masterStore', () => {
     expect(store.dependencyList).toEqual([])
   })
 
-  it('defaults dependency mode to required and formula to null', () => {
+  it('defaults dependency mode to required and quantity to null', () => {
     const store = useMasterStore()
     store.applyChange({
       seq: 1,
@@ -294,6 +291,6 @@ describe('masterStore', () => {
       deleted: false,
       row: { item_id: 'battery', depends_on_item_id: 'camera' },
     })
-    expect(store.dependencyList[0]).toMatchObject({ mode: 'required', quantity_formula: null })
+    expect(store.dependencyList[0]).toMatchObject({ mode: 'required', quantity: null })
   })
 })

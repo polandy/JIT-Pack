@@ -66,7 +66,7 @@ items:
       table: 'items',
       id: 'i1',
       deleted: false,
-      row: { name: 'Unterhosen', unit: 'pieces', is_consumable: 0 },
+      row: { name: 'Unterhosen' },
     })
 
     const result = orch.commitPortableImport(doc, new Map([['Unterhosen', 'i1']]))
@@ -74,19 +74,18 @@ items:
     expect(result.kind).toBe('template')
     const template = master.getTemplate(result.id)!
     expect(template.name).toBe('Base Travel')
-    expect(template.is_published).toBe(false)
 
     const items = master.getTemplateItems(result.id)
     expect(items).toHaveLength(2)
     const unterhosen = items.find((ti) => ti.item_id === 'i1')!
     expect(unterhosen).toMatchObject({
-      quantity_formula: 'trip_duration + 1',
+      quantity: 1, // legacy formula in the fixture YAML folds to 1 (FR-18.4 tolerance)
       assignment: 'per_person',
     })
 
     const skibrille = items.find((ti) => ti.item_id !== 'i1')!
     expect(skibrille).toMatchObject({
-      quantity_formula: '1',
+      quantity: 1,
       assignment: 'trip_global',
       dedup: 'sum',
       late_packer: true,
@@ -103,7 +102,7 @@ items:
       table: 'templates',
       id: 'tpl-1',
       deleted: false,
-      row: { owner_id: 'me', name: 'Base Travel', is_published: 0 },
+      row: { owner_id: 'me', name: 'Base Travel' },
     })
 
     const result = orch.commitPortableImport(doc, new Map())

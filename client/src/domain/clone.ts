@@ -4,14 +4,13 @@
  * The plan copies the source trip's curated list (all manual edits,
  * FR-2.4 decoupling) with fresh pack state; the three FR-12.2 carry-over
  * options gate traveler assignments, packer delegations, and container
- * assignments. Quantity formulas of template-sourced items re-evaluate
+ * assignments. Quantities carry over as-is (formulas retired 2026-08-08)
  * against the new duration; manual quantities survive as-is.
  *
- * Runs client-side like generation/repack/review (Addendum 3.19), so
+ * Runs client-side like generation/review (Addendum 3.19), so
  * Local Mode clones without a server.
  */
 
-import { buildVariables, computeQuantity } from './instantiate'
 import type {
   Container,
   ItemMode,
@@ -39,7 +38,7 @@ export interface CloneSource {
   containers: Container[]
 }
 
-/** Template lookups for the FR-12.2 formula re-evaluation. */
+/** Template lookups (kept for name/master joins). */
 export interface CloneLookup {
   templateItem: (templateId: string, itemId: string) => TemplateItem | undefined
   masterItem: (id: string) => MasterItem | undefined
@@ -82,15 +81,13 @@ export interface ClonePlan {
   travelers: ClonedTraveler[]
   containers: ClonedContainer[]
   items: ClonedItem[]
-  /** How many quantities were re-evaluated from their formula. */
-  reevaluated: number
 }
 
 export function planClone(
   source: CloneSource,
   options: CloneOptions,
-  lookup: CloneLookup,
-  newDurationDays: number | null,
+  _lookup: CloneLookup,
+  _newDurationDays: number | null,
 ): ClonePlan {
   const travelerIndex = new Map(source.travelers.map((t, i) => [t.id, i]))
   const travelers: ClonedTraveler[] = source.travelers.map((t) => ({
@@ -111,23 +108,11 @@ export function planClone(
       : null,
   }))
 
-  const vars = buildVariables({
-    duration_days: newDurationDays,
-    attributes: source.trip.attributes,
-    travelers,
-  })
-
-  let reevaluated = 0
+  // Quantities carry over unchanged — the FR-12.2 formula re-evaluation was
+  // retired with FR-1.3/1.5 (owner decision 2026-08-08); plain amounts have
+  // nothing to re-derive from a new duration.
   const items: ClonedItem[] = source.items.map((item) => {
-    let quantity = item.quantity
-    if (item.source_template_id && item.source_item_id) {
-      const ti = lookup.templateItem(item.source_template_id, item.source_item_id)
-      const master = lookup.masterItem(item.source_item_id)
-      if (ti && master) {
-        quantity = computeQuantity(ti, master, vars)
-        reevaluated++
-      }
-    }
+    const quantity = item.quantity
     return {
       name: item.name,
       source_item_id: item.source_item_id,
@@ -155,5 +140,5 @@ export function planClone(
     }
   })
 
-  return { travelers, containers, items, reevaluated }
+  return { travelers, containers, items }
 }

@@ -9,7 +9,6 @@
  * feature for free.
  */
 
-import type { FormulaVariables } from './formula'
 import { computeQuantity } from './instantiate'
 import type { ItemDependency, MasterItem } from '@/types/domain'
 
@@ -18,7 +17,6 @@ export interface DependencyResolutionInput {
   onList: { source_item_id: string | null; quantity: number }[]
   dependencies: ItemDependency[]
   masterItems: MasterItem[]
-  vars: FormulaVariables
 }
 
 /** A required companion to add — trip-global, mode pack, like any resolved item. */
@@ -88,11 +86,7 @@ export function resolveDependencies(input: DependencyResolutionInput): Dependenc
     for (const d of byMain.get(mainID) ?? []) {
       const companion = itemsByID.get(d.item_id)
       if (!companion || !main) continue
-      const quantity = computeQuantity(
-        { quantity_formula: d.quantity_formula ?? '1' },
-        companion,
-        input.vars,
-      )
+      const quantity = computeQuantity({ quantity: d.quantity ?? 1 })
 
       if (d.mode === 'suggested') {
         if (!explicit.has(d.item_id) && !added.has(d.item_id) && !suggestedIDs.has(d.item_id)) {
@@ -165,7 +159,7 @@ export function dependentsOf(itemID: string, dependencies: ItemDependency[]): Se
 
 /**
  * dependencyCycleError validates a new dependency edge at save time
- * (analogous to the FR-1.5 formula validator): a cycle cannot be
+ * (a save-time validator): a cycle cannot be
  * persisted. Returns a human-readable error, or null when acyclic.
  */
 export function dependencyCycleError(

@@ -40,7 +40,6 @@ import {
 import { computed, inject, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
-import { buildVariables } from '@/domain/instantiate'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { ItemComment, ItemMode, ItemTodo } from '@/types/domain'
@@ -68,7 +67,7 @@ const trip = computed(() => tripStore.getTrip(props.tripId))
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
 const containers = computed(() => tripStore.getContainers(props.tripId))
 
-const isActive = computed(() => trip.value?.status === 'active' || trip.value?.status === 'repack')
+const isActive = computed(() => trip.value?.status === 'active')
 
 // FR-20.4: suggested companions of this item not yet on the list — the
 // M5 hint with one-tap add. Required ones joined at generation already.
@@ -79,11 +78,6 @@ const suggestedCompanions = computed(() => {
     onList: tripStore.getItems(props.tripId),
     dependencies: masterStore.getCompanionDependencies(source),
     masterItems: masterStore.itemList,
-    vars: buildVariables({
-      duration_days: trip.value?.duration_days ?? null,
-      attributes: trip.value?.attributes ?? null,
-      travelers: travelers.value,
-    }),
   }).suggested
 })
 

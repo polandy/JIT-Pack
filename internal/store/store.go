@@ -55,15 +55,25 @@ var syncableColumns = map[string]map[string]bool{
 	),
 	"items": toSet(
 		"name", "category_id", "weight_grams", "value_cents",
-		"is_consumable", "unit", "per_day_rate", "created_by",
+		"created_by",
 		"image_hash",
 	),
+	// is_published stays in the schema but off this list: the publish gate
+	// is parked with the FR-1.6 MVP simplification (templates are shared
+	// instance-wide), and an unreadable column no client can set is the
+	// honest state until the stub's revisit trigger fires.
 	"templates": toSet(
-		"owner_id", "name", "is_published",
+		"owner_id", "name", "kind",
 	),
 	"template_items": toSet(
-		"template_id", "item_id", "quantity_formula", "assignment",
+		"template_id", "item_id", "quantity", "assignment",
 		"dedup", "conditions", "default_mode", "late_packer",
+	),
+	"template_includes": toSet(
+		"template_id", "included_template_id",
+	),
+	"template_item_tasks": toSet(
+		"template_item_id", "task",
 	),
 	"trips": toSet(
 		"series_id", "name", "start_date", "end_date", "status",
@@ -82,7 +92,7 @@ var syncableColumns = map[string]map[string]bool{
 		"trip_id", "user_id", "role",
 	),
 	"item_dependencies": toSet(
-		"item_id", "depends_on_item_id", "mode", "quantity_formula",
+		"item_id", "depends_on_item_id", "mode", "quantity",
 	),
 }
 
@@ -91,7 +101,8 @@ var syncableColumns = map[string]map[string]bool{
 // the wrong change feed.
 var (
 	tripPartitionTables   = toSet("trip_items", "travelers", "containers", "comments")
-	masterPartitionTables = toSet("categories", "items", "templates", "template_items", "trips",
+	masterPartitionTables = toSet("categories", "items", "templates", "template_items",
+		"template_includes", "template_item_tasks", "trips",
 		"trip_series", "destination_profiles", "destination_checklist_items", "trip_members",
 		"item_dependencies")
 )

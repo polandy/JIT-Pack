@@ -1,6 +1,6 @@
 /** Client-side domain types — shaped from pull responses and DB schema. */
 
-export type TripStatus = 'planning' | 'active' | 'repack' | 'archived'
+export type TripStatus = 'planning' | 'active' | 'archived'
 
 export interface Trip {
   id: string
@@ -142,8 +142,6 @@ export interface Category {
   sort_order: number
 }
 
-export type ItemUnit = 'pieces' | 'pairs' | 'per_day'
-
 export interface MasterItem {
   id: string
   name: string
@@ -151,9 +149,6 @@ export interface MasterItem {
   category_name?: string
   weight_grams: number | null
   value_cents: number | null
-  is_consumable: boolean
-  unit: ItemUnit
-  per_day_rate: number | null
   /** FR-22.1: hash of the item's reference photo, null when it has none.
    * The bytes are fetched lazily via GET /items/{id}/image (never synced). */
   image_hash?: string | null
@@ -161,9 +156,10 @@ export interface MasterItem {
 
 export interface Template {
   id: string
+  /** FR-1.6 MVP: creator metadata only — every account may edit every
+   * template, the same governance master items have (FR-22.6). */
   owner_id: string
   name: string
-  is_published: boolean
 }
 
 // --- Trip series & destination profiles (FR-13.1/13.2) ---
@@ -199,7 +195,8 @@ export interface ItemDependency {
   /** The main item it belongs to (camera). */
   depends_on_item_id: string
   mode: DependencyMode
-  quantity_formula: string | null
+  /** Companion amount; null = 1. Plain number since FR-1.3/1.5 were retired. */
+  quantity: number | null
 }
 
 export type TemplateAssignment = 'per_person' | 'trip_global'
@@ -210,7 +207,8 @@ export interface TemplateItem {
   template_id: string
   item_id: string
   item_name?: string
-  quantity_formula: string
+  /** Plain amount (FR-1.3/1.5 formulas retired 2026-08-08). */
+  quantity: number
   assignment: TemplateAssignment
   dedup: TemplateDedup
   conditions: Record<string, unknown> | null

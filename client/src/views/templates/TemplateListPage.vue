@@ -2,34 +2,26 @@
 /**
  * M7 — Template List
  *
- * Two sections: My Templates and Published. Per row shows name, item count,
- * published toggle. FAB for new template.
+ * One shared instance-wide list (FR-1.6 MVP simplification, 2026-08-08):
+ * every account sees and edits every template, so there is no my/published
+ * split and no publish toggle. Per row: name, item count, YAML export.
+ * FAB for new template.
  */
 import {
   IonPage,
   IonContent,
   IonList,
-  IonItemGroup,
-  IonItemDivider,
   IonItem,
   IonLabel,
   IonIcon,
-  IonToggle,
   IonFab,
   IonFabButton,
-  IonBadge,
   IonRefresher,
   IonRefresherContent,
   IonButton,
   alertController,
 } from '@ionic/vue'
-import {
-  addOutline,
-  documentTextOutline,
-  downloadOutline,
-  listOutline,
-  gitBranchOutline,
-} from 'ionicons/icons'
+import { addOutline, documentTextOutline, downloadOutline, listOutline } from 'ionicons/icons'
 import { computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { serializeTemplate } from '@/domain/portable'
@@ -65,11 +57,6 @@ function exportTemplate(tpl: Template) {
   const yaml = serializeTemplate(tpl, store.getTemplateItems(tpl.id), (id) => store.getItem(id))
   saveText(yaml, `${safeFilename(tpl.name)}.yaml`)
 }
-
-// TODO: filter by current user's ID when auth is wired
-const myTemplates = computed(() => store.templateList.filter((t) => !t.is_published))
-
-const publishedTemplates = computed(() => store.templateList.filter((t) => t.is_published))
 
 const isEmpty = computed(() => store.templateList.length === 0)
 
@@ -109,56 +96,27 @@ async function handleRefresh(event: CustomEvent) {
       </div>
 
       <IonList v-else>
-        <!-- My templates -->
-        <IonItemGroup v-if="myTemplates.length > 0">
-          <IonItemDivider sticky>
-            <IonLabel>My Templates</IonLabel>
-          </IonItemDivider>
-
-          <IonItem
-            v-for="tpl in myTemplates"
-            :key="tpl.id"
-            button
-            :router-link="`/templates/${tpl.id}`"
+        <IonItem
+          v-for="tpl in store.templateList"
+          :key="tpl.id"
+          button
+          :router-link="`/templates/${tpl.id}`"
+        >
+          <IonLabel>
+            <h2>{{ tpl.name }}</h2>
+            <p>{{ store.templateItemCount(tpl.id) }} items</p>
+          </IonLabel>
+          <!-- FR-18.2: portable YAML export, generated client-side -->
+          <IonButton
+            slot="end"
+            fill="clear"
+            color="medium"
+            aria-label="Export template"
+            @click.stop.prevent="exportTemplate(tpl)"
           >
-            <IonLabel>
-              <h2>{{ tpl.name }}</h2>
-              <p>{{ store.templateItemCount(tpl.id) }} items</p>
-            </IonLabel>
-            <!-- FR-18.2: portable YAML export, generated client-side -->
-            <IonButton
-              slot="end"
-              fill="clear"
-              color="medium"
-              aria-label="Export template"
-              @click.stop.prevent="exportTemplate(tpl)"
-            >
-              <IonIcon slot="icon-only" :icon="downloadOutline" />
-            </IonButton>
-            <IonToggle slot="end" :checked="tpl.is_published" aria-label="Published" @click.stop />
-          </IonItem>
-        </IonItemGroup>
-
-        <!-- Published templates (read-only, forkable) -->
-        <IonItemGroup v-if="publishedTemplates.length > 0">
-          <IonItemDivider sticky>
-            <IonLabel>Published</IonLabel>
-          </IonItemDivider>
-
-          <IonItem
-            v-for="tpl in publishedTemplates"
-            :key="tpl.id"
-            button
-            :router-link="`/templates/${tpl.id}`"
-          >
-            <IonIcon :icon="gitBranchOutline" slot="start" color="medium" />
-            <IonLabel>
-              <h2>{{ tpl.name }}</h2>
-              <p>{{ store.templateItemCount(tpl.id) }} items</p>
-            </IonLabel>
-            <IonBadge slot="end" color="light">Published</IonBadge>
-          </IonItem>
-        </IonItemGroup>
+            <IonIcon slot="icon-only" :icon="downloadOutline" />
+          </IonButton>
+        </IonItem>
       </IonList>
 
       <!-- FAB: New template -->

@@ -5,18 +5,7 @@ import {
   dependencyCycleError,
   type DependencyResolutionInput,
 } from '../dependencies'
-import type { FormulaVariables } from '../formula'
 import type { ItemDependency, MasterItem } from '@/types/domain'
-
-const vars: FormulaVariables = {
-  trip_duration: 5,
-  num_travelers: 2,
-  num_adults: 2,
-  num_children: 0,
-  season: 'summer',
-  transport_mode: 'car',
-  accommodation: 'hotel',
-}
 
 function master(id: string, name: string, extra: Partial<MasterItem> = {}): MasterItem {
   return {
@@ -25,9 +14,6 @@ function master(id: string, name: string, extra: Partial<MasterItem> = {}): Mast
     category_id: null,
     weight_grams: null,
     value_cents: null,
-    is_consumable: false,
-    unit: 'pieces',
-    per_day_rate: null,
     ...extra,
   }
 }
@@ -37,9 +23,9 @@ function dep(
   itemId: string,
   dependsOn: string,
   mode: ItemDependency['mode'] = 'required',
-  formula: string | null = null,
+  quantity: number | null = null,
 ): ItemDependency {
-  return { id, item_id: itemId, depends_on_item_id: dependsOn, mode, quantity_formula: formula }
+  return { id, item_id: itemId, depends_on_item_id: dependsOn, mode, quantity }
 }
 
 const camera = master('camera', 'Kamera')
@@ -52,15 +38,14 @@ function input(partial: Partial<DependencyResolutionInput>): DependencyResolutio
     onList: [{ source_item_id: 'camera', quantity: 1 }],
     dependencies: [],
     masterItems: [camera, battery, charger, plate],
-    vars,
     ...partial,
   }
 }
 
 describe('resolveDependencies', () => {
-  it('pulls in a required companion with its formula quantity', () => {
+  it('pulls in a required companion with its own quantity', () => {
     const res = resolveDependencies(
-      input({ dependencies: [dep('d1', 'battery', 'camera', 'required', '2')] }),
+      input({ dependencies: [dep('d1', 'battery', 'camera', 'required', 2)] }),
     )
     expect(res.required).toEqual([
       {
@@ -115,7 +100,7 @@ describe('resolveDependencies', () => {
           { source_item_id: 'camera', quantity: 1 },
           { source_item_id: 'battery', quantity: 3 },
         ],
-        dependencies: [dep('d1', 'battery', 'camera', 'required', '2')],
+        dependencies: [dep('d1', 'battery', 'camera', 'required', 2)],
       }),
     )
     expect(res.required).toEqual([])
@@ -147,8 +132,8 @@ describe('resolveDependencies', () => {
         ],
         masterItems: [camera, battery, drone],
         dependencies: [
-          dep('d1', 'battery', 'camera', 'required', '2'),
-          dep('d2', 'battery', 'drone', 'required', '4'),
+          dep('d1', 'battery', 'camera', 'required', 2),
+          dep('d2', 'battery', 'drone', 'required', 4),
         ],
       }),
     )
@@ -163,22 +148,6 @@ describe('resolveDependencies', () => {
       }),
     )
     expect(res.required.map((c) => c.item_id)).toEqual(['battery'])
-  })
-
-  it('applies the per-day consumable rate to companion quantities (FR-1.8)', () => {
-    const wipes = master('wipes', 'Linsentücher', {
-      is_consumable: true,
-      unit: 'per_day',
-      per_day_rate: 2,
-    })
-    const res = resolveDependencies(
-      input({
-        masterItems: [camera, wipes],
-        dependencies: [dep('d1', 'wipes', 'camera')],
-      }),
-    )
-    // 1 × rate 2 × 5 days
-    expect(res.required[0]!.quantity).toBe(10)
   })
 
   it('ignores dependencies whose companion item is unknown', () => {

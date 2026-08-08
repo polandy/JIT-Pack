@@ -12,8 +12,8 @@ func TestMarshalTemplate_RoundTrip(t *testing.T) {
 		SchemaVersion: 1,
 		Name:          "Base Travel",
 		Items: []portable.Item{
-			{Name: "Toothbrush", Quantity: "1", Assignment: "per_person", Unit: "pieces"},
-			{Name: "Sunscreen", Quantity: "ceil(trip_duration / 7)", Unit: "pieces",
+			{Name: "Toothbrush", Quantity: 1, Assignment: "per_person"},
+			{Name: "Sunscreen", Quantity: 2,
 				Conditions: map[string]any{"season": []any{"summer"}}},
 		},
 	}
@@ -43,8 +43,8 @@ func TestMarshalTemplate_RoundTrip(t *testing.T) {
 	if got.Items[0].Name != "Toothbrush" {
 		t.Errorf("items[0].name = %q, want Toothbrush", got.Items[0].Name)
 	}
-	if got.Items[1].Quantity != "ceil(trip_duration / 7)" {
-		t.Errorf("items[1].quantity = %q, want formula", got.Items[1].Quantity)
+	if got.Items[1].Quantity != 2 {
+		t.Errorf("items[1].quantity = %d, want 2", got.Items[1].Quantity)
 	}
 }
 
@@ -63,7 +63,7 @@ func TestMarshalTrip_RoundTrip(t *testing.T) {
 			{Name: "Backpack", Carrier: "Andy", MaxWeightGrams: 8000},
 		},
 		Items: []portable.Item{
-			{Name: "Toothbrush", Quantity: "1", Mode: "pack", Category: "Toiletries",
+			{Name: "Toothbrush", Quantity: 1, Mode: "pack", Category: "Toiletries",
 				Traveler: "Andy", Container: "Backpack", PackedCount: intPtr(0)},
 		},
 	}
@@ -152,7 +152,7 @@ func TestMarshalTrip_WithoutProgress(t *testing.T) {
 		StartDate:     "2026-01-01",
 		EndDate:       "2026-01-05",
 		Items: []portable.Item{
-			{Name: "Socks", Quantity: "3", Mode: "pack"},
+			{Name: "Socks", Quantity: 3, Mode: "pack"},
 		},
 	}
 

@@ -9,7 +9,7 @@ import { generateTripItems, type GenerationInput } from '../instantiate'
 import type { MasterItem, Template, TemplateItem } from '@/types/domain'
 
 function template(id: string, name: string): Template {
-  return { id, owner_id: 'user-a', name, is_published: false }
+  return { id, owner_id: 'user-a', name }
 }
 
 function masterItem(id: string, name: string, extra: Partial<MasterItem> = {}): MasterItem {
@@ -19,9 +19,6 @@ function masterItem(id: string, name: string, extra: Partial<MasterItem> = {}): 
     category_id: null,
     weight_grams: 100,
     value_cents: null,
-    is_consumable: false,
-    unit: 'pieces',
-    per_day_rate: null,
     ...extra,
   }
 }
@@ -36,7 +33,7 @@ function templateItem(
     id,
     template_id: templateId,
     item_id: itemId,
-    quantity_formula: '1',
+    quantity: 1,
     assignment: 'trip_global',
     dedup: 'max',
     conditions: null,
@@ -62,7 +59,7 @@ function input(overrides: Partial<GenerationInput>): GenerationInput {
 }
 
 describe('generateTripItems', () => {
-  it('evaluates formulas and copies master metadata', () => {
+  it('copies the plain quantity and master metadata', () => {
     const res = generateTripItems(
       input({
         templates: [template('t1', 'Basis')],
@@ -73,9 +70,7 @@ describe('generateTripItems', () => {
             category_name: 'Pflege',
           }),
         ],
-        templateItems: [
-          templateItem('ti1', 't1', 'i1', { quantity_formula: 'ceil(trip_duration / 7)' }),
-        ],
+        templateItems: [templateItem('ti1', 't1', 'i1', { quantity: 2 })],
       }),
     )
 
@@ -102,7 +97,7 @@ describe('generateTripItems', () => {
         templateItems: [
           templateItem('ti1', 't1', 'i1', {
             assignment: 'per_person',
-            quantity_formula: 'trip_duration / 2',
+            quantity: 5,
           }),
         ],
       }),
@@ -113,13 +108,13 @@ describe('generateTripItems', () => {
     expect(res.items.every((i) => i.quantity === 5)).toBe(true)
   })
 
-  it('falls back to quantity 1 when trip_duration is null (FR-2.1a)', () => {
+  it('a missing quantity falls back to 1', () => {
     const res = generateTripItems(
       input({
         templates: [template('t1', 'Basis')],
         masterItems: [masterItem('i1', 'Sonnencreme')],
         templateItems: [
-          templateItem('ti1', 't1', 'i1', { quantity_formula: 'ceil(trip_duration / 7)' }),
+          { ...templateItem('ti1', 't1', 'i1'), quantity: undefined as unknown as number },
         ],
         trip: { duration_days: null, attributes: null, travelers: twoAdults },
       }),
@@ -166,8 +161,8 @@ describe('generateTripItems', () => {
         templates: [template('t1', 'Basis'), template('t2', 'Strand')],
         masterItems: [masterItem('i1', 'Handtuch')],
         templateItems: [
-          templateItem('ti1', 't1', 'i1', { quantity_formula: '2' }),
-          templateItem('ti2', 't2', 'i1', { quantity_formula: '3' }),
+          templateItem('ti1', 't1', 'i1', { quantity: 2 }),
+          templateItem('ti2', 't2', 'i1', { quantity: 3 }),
         ],
       }),
     )
@@ -187,10 +182,10 @@ describe('generateTripItems', () => {
     const res = generateTripItems(
       input({
         templates: [template('t1', 'Basis'), template('t2', 'Strand')],
-        masterItems: [masterItem('i1', 'Sonnencreme', { is_consumable: true })],
+        masterItems: [masterItem('i1', 'Sonnencreme')],
         templateItems: [
-          templateItem('ti1', 't1', 'i1', { quantity_formula: '1' }),
-          templateItem('ti2', 't2', 'i1', { quantity_formula: '2', dedup: 'sum' }),
+          templateItem('ti1', 't1', 'i1', { quantity: 1 }),
+          templateItem('ti2', 't2', 'i1', { quantity: 2, dedup: 'sum' }),
         ],
       }),
     )
@@ -205,33 +200,14 @@ describe('generateTripItems', () => {
         templates: [template('t1', 'A'), template('t2', 'B')],
         masterItems: [masterItem('i1', 'Socken')],
         templateItems: [
-          templateItem('ti1', 't1', 'i1', { assignment: 'per_person', quantity_formula: '2' }),
-          templateItem('ti2', 't2', 'i1', { assignment: 'per_person', quantity_formula: '4' }),
+          templateItem('ti1', 't1', 'i1', { assignment: 'per_person', quantity: 2 }),
+          templateItem('ti2', 't2', 'i1', { assignment: 'per_person', quantity: 4 }),
         ],
       }),
     )
 
     expect(res.items).toHaveLength(2)
     expect(res.items.every((i) => i.quantity === 4)).toBe(true)
-  })
-
-  it('computes per-day consumables from rate × duration (FR-1.8)', () => {
-    const res = generateTripItems(
-      input({
-        templates: [template('t1', 'Basis')],
-        masterItems: [
-          masterItem('i1', 'Kontaktlinsen', {
-            unit: 'per_day',
-            per_day_rate: 2,
-            is_consumable: true,
-          }),
-        ],
-        templateItems: [templateItem('ti1', 't1', 'i1', { assignment: 'per_person' })],
-        trip: { duration_days: 10, attributes: null, travelers: twoAdults },
-      }),
-    )
-
-    expect(res.items.every((i) => i.quantity === 20)).toBe(true)
   })
 
   it('carries default_mode and late_packer into generated items', () => {
@@ -253,11 +229,11 @@ describe('generateTripItems', () => {
       input({
         templates: [template('t1', 'Basis')],
         masterItems: [masterItem('i1', 'Kindersitz')],
-        templateItems: [templateItem('ti1', 't1', 'i1', { quantity_formula: 'num_children' })],
+        templateItems: [templateItem('ti1', 't1', 'i1', { quantity: 0 })],
       }),
     )
 
-    // Two adults, no children → quantity 0 → generated as skipped item.
+    // Quantity 0 → generated as skipped item.
     expect(res.items).toHaveLength(1)
     expect(res.items[0]!.quantity).toBe(0)
   })

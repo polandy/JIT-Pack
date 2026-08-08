@@ -2,8 +2,8 @@
 /**
  * M8 — Template Editor
  *
- * Define items, formulas, and conditions of one template.
- * Item rows with name picker (from M9 inventory), quantity formula,
+ * Define items, quantities, and conditions of one template.
+ * Item rows with name picker (from M9 inventory), plain quantity,
  * assignment type, default mode, dedup strategy.
  * Every change commits immediately (G-5).
  */
@@ -24,15 +24,13 @@ import {
   IonIcon,
   IonButton,
   IonChip,
-  IonNote,
   IonItemSliding,
   IonItemOptions,
   IonItemOption,
   IonSearchbar,
 } from '@ionic/vue'
-import { addOutline, trashOutline, warningOutline } from 'ionicons/icons'
+import { addOutline, trashOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
-import { validateFormula } from '@/domain/formula'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
@@ -81,21 +79,12 @@ function onRemoveItem(templateItemId: string) {
   orchestrator.deleteTemplateItem(templateItemId)
 }
 
-// FR-1.5: invalid formulas cannot be persisted — the error stays inline
-// until the input parses, the last valid formula remains stored.
-const formulaErrors = ref<Record<string, string>>({})
-
-function onFormulaChange(templateItemId: string, formula: string) {
+// Plain integer quantity — formulas retired (FR-1.3/1.5, 2026-08-08).
+function onQuantityChange(templateItemId: string, raw: string) {
   const ti = templateItems.value.find((t) => t.id === templateItemId)
   if (!ti) return
-  const result = validateFormula(formula)
-  if (!result.ok) {
-    formulaErrors.value = { ...formulaErrors.value, [templateItemId]: result.error }
-    return
-  }
-  const { [templateItemId]: _cleared, ...rest } = formulaErrors.value
-  formulaErrors.value = rest
-  orchestrator.updateTemplateItem(ti, { quantity_formula: formula })
+  const parsed = parseInt(raw, 10)
+  orchestrator.updateTemplateItem(ti, { quantity: Number.isNaN(parsed) ? 1 : Math.max(0, parsed) })
 }
 
 function onAssignmentChange(templateItemId: string, assignment: string) {
@@ -128,12 +117,6 @@ function onModeChange(templateItemId: string, mode: string) {
       </div>
 
       <template v-else>
-        <!-- Published warning -->
-        <div v-if="template.is_published" class="published-warning">
-          <IonIcon :icon="warningOutline" />
-          <span>Published — changes apply to new trips only</span>
-        </div>
-
         <!-- Template items list -->
         <h2 class="section-title">Items ({{ templateItems.length }})</h2>
 
@@ -146,12 +129,15 @@ function onModeChange(templateItemId: string, mode: string) {
                   <div class="ti-field">
                     <span class="ti-label">Qty</span>
                     <IonInput
-                      :value="ti.quantity_formula"
+                      :value="ti.quantity"
+                      type="number"
+                      inputmode="numeric"
+                      min="0"
                       placeholder="1"
-                      class="formula-input"
+                      class="quantity-input"
                       @ionBlur="
                         (e: CustomEvent) =>
-                          onFormulaChange(ti.id, (e.target as HTMLIonInputElement).value as string)
+                          onQuantityChange(ti.id, (e.target as HTMLIonInputElement).value as string)
                       "
                     />
                   </div>
@@ -180,10 +166,6 @@ function onModeChange(templateItemId: string, mode: string) {
                     {{ dedupLabel(ti.dedup) }}
                   </IonChip>
                 </div>
-                <IonNote v-if="formulaErrors[ti.id]" color="danger" class="formula-error">
-                  <IonIcon :icon="warningOutline" />
-                  {{ formulaErrors[ti.id] }}
-                </IonNote>
               </IonLabel>
             </IonItem>
             <IonItemOptions side="end">
@@ -250,18 +232,6 @@ function onModeChange(templateItemId: string, mode: string) {
   margin: 16px 0 8px;
 }
 
-.published-warning {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--ion-color-warning-tint);
-  color: var(--ion-color-warning-shade);
-  border-radius: 8px;
-  font-size: 0.85rem;
-  margin-bottom: 16px;
-}
-
 .ti-controls {
   display: flex;
   align-items: center;
@@ -281,15 +251,7 @@ function onModeChange(templateItemId: string, mode: string) {
   color: var(--ion-color-medium);
 }
 
-.formula-error {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.8rem;
-  margin-top: 4px;
-}
-
-.formula-input {
+.quantity-input {
   max-width: 60px;
   --padding-start: 4px;
   --padding-end: 4px;

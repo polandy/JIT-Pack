@@ -20,7 +20,7 @@ import { useSyncStatus } from './useSyncStatus'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type { PullChange, WSEvent } from '@/api/types'
-import { buildVariables, durationDays, type GeneratedItem } from '@/domain/instantiate'
+import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import { dependentsOf, resolveDependencies } from '@/domain/dependencies'
 import { planClone, type CloneOptions } from '@/domain/clone'
 import { optimizeItemImage } from '@/lib/imageResize'
@@ -622,17 +622,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * after a quick-add that matched a master item.
    */
   function addRequiredCompanions(tripId: string) {
-    const trip = tripStore.getTrip(tripId)
     const onList = tripStore.getItems(tripId)
     const resolution = resolveDependencies({
       onList,
       dependencies: masterStore.dependencyList,
       masterItems: masterStore.itemList,
-      vars: buildVariables({
-        duration_days: trip?.duration_days ?? null,
-        attributes: trip?.attributes ?? null,
-        travelers: tripStore.getTravelers(tripId),
-      }),
     })
     for (const companion of resolution.required) {
       const { mutation, id } = mutations.addGeneratedTripItem(
@@ -1056,8 +1050,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       const merged = mergeDecisions.get(item.name)
       if (merged) return merged
       if (doc.kind === 'trip') return null // unmatched trip rows stay ad-hoc
-      const unit = item.unit === 'pairs' || item.unit === 'per_day' ? item.unit : 'pieces'
-      const { mutation, id } = mutations.createMasterItem(item.name, { unit })
+      const { mutation, id } = mutations.createMasterItem(item.name)
       onPullChanges([
         {
           seq: 0,
@@ -1090,7 +1083,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       for (const item of doc.items) {
         const itemId = resolveItem(item)!
         const ti = mutations.addTemplateItem(templateId, itemId, {
-          quantityFormula: item.quantity,
+          quantity: item.quantity,
           assignment: item.assignment ?? 'per_person',
           dedup: item.dedup ?? 'max',
           defaultMode: item.default_mode ?? 'pack',
@@ -1307,9 +1300,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return `${config.baseUrl}/api/v1/items/${item.id}/image?v=${item.image_hash}`
   }
 
-  /** createTemplate makes a new private template (FR-1.6). owner_id is
-   * stamped server-side on push; the optimistic row leaves it empty, which
-   * is fine because M7 groups "my" templates by `!is_published`, not owner.
+  /** createTemplate makes a new template. Templates are shared
+   * instance-wide (FR-1.6 MVP), so owner_id is creator metadata only; it is
+   * stamped server-side on push and the optimistic row leaves it empty.
    * Returns the new id so the caller can open M8. */
   function createTemplate(name: string): string {
     const { mutation, id } = mutations.createTemplate(name, '')
@@ -1560,42 +1553,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return client.getBlob(path)
   }
 
-  // --- Repack actions (FR-11.1, M13) ---
-
-  /**
-   * startRepack resets the chosen items to Open for the return leg
-   * (outbound history preserved via outbound_packed) and flips the
-   * trip to repack status. The status lives on the master partition.
-   */
-  function startRepack(tripId: string, itemIds: string[]) {
-    const itemsByID = new Map(tripStore.getItems(tripId).map((i) => [i.id, i]))
-    const muts: Parameters<typeof enqueueAndDrain>[2][] = []
-    for (const id of itemIds) {
-      const item = itemsByID.get(id)
-      if (!item) continue
-      const mut = mutations.resetForRepack(item.id, item.packed_count > 0)
-      muts.push({
-        mutation: mut,
-        optimistic: {
-          seq: 0,
-          table: 'trip_items',
-          id: item.id,
-          deleted: false,
-          row: { ...itemRow(item), ...mut.fields },
-        },
-      })
-    }
-    if (muts.length > 0) {
-      enqueueAndDrain('trip', tripId, ...muts)
-    }
-    setTripStatus(tripId, 'repack')
-  }
-
-  /** completeRepack ends Return Packing Mode (M13). */
-  function completeRepack(tripId: string) {
-    setTripStatus(tripId, 'active')
-  }
-
   function setTripStatus(tripId: string, status: TripStatus) {
     const trip = tripStore.getTrip(tripId)
     if (!trip) return
@@ -1813,55 +1770,24 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   /**
    * applyReviewProposal writes one review card back to master data
-   * (FR-9.2). With opts.fork the source template is copied first and
-   * the change lands on the private copy — foreign published templates
-   * are never written directly (FR-1.6). Returns the id of the template
-   * that received the change.
+   * (FR-9.2). Templates are shared instance-wide (FR-1.6 MVP), so the
+   * change lands on the source template itself — there is no fork step.
+   * Returns the id of the template that received the change.
    */
-  function applyReviewProposal(proposal: ReviewProposal, opts: { fork?: boolean } = {}): string {
-    const templateId = opts.fork ? forkTemplate(proposal.templateId) : proposal.templateId
+  function applyReviewProposal(proposal: ReviewProposal): string {
+    const templateId = proposal.templateId
     if (proposal.kind === 'reduce_quantity') {
-      // Look the row up by item, not by proposal.templateItemId — after
-      // a fork the copy has fresh ids.
+      // Look the row up by item, not by proposal.templateItemId: the
+      // proposal may predate an edit that replaced the row.
       const target = masterStore
         .getTemplateItems(templateId)
         .find((ti) => ti.item_id === proposal.itemId)
-      if (target) updateTemplateItem(target, { quantity_formula: '0' })
+      if (target) updateTemplateItem(target, { quantity: 0 })
       return templateId
     }
     const itemId = proposal.itemId ?? createMasterItem(proposal.itemName)
     addTemplateItem(templateId, itemId)
     return templateId
-  }
-
-  /**
-   * forkTemplate creates a private copy of a template including all its
-   * items (FR-1.6). owner_id is stamped server-side on push, so the
-   * placeholder never reaches the database.
-   */
-  function forkTemplate(templateId: string): string {
-    const source = masterStore.getTemplate(templateId)
-    const { mutation, id } = mutations.createTemplate(`${source?.name ?? 'Template'} (fork)`, '')
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: {
-        seq: 0,
-        table: 'templates',
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
-    })
-    for (const ti of masterStore.getTemplateItems(templateId)) {
-      addTemplateItem(id, ti.item_id, {
-        quantityFormula: ti.quantity_formula,
-        assignment: ti.assignment,
-        dedup: ti.dedup,
-        defaultMode: ti.default_mode,
-        latePacker: ti.late_packer,
-      })
-    }
-    return id
   }
 
   // --- Container actions (FR-10.1, M11) ---
@@ -2064,10 +1990,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     updateContainer,
     deleteContainer,
 
-    // Repack (FR-11.1, M13)
-    startRepack,
-    completeRepack,
-
     // Trip membership (FR-4.5/4.7)
     addTripMember,
     setTripMemberRole,
@@ -2107,7 +2029,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     archiveTrip,
     deleteTrip,
     applyReviewProposal,
-    forkTemplate,
 
     // Lifecycle
     connect,
@@ -2173,9 +2094,6 @@ function masterItemRow(item: MasterItem): Record<string, unknown> {
     category_id: item.category_id,
     weight_grams: item.weight_grams,
     value_cents: item.value_cents,
-    is_consumable: item.is_consumable ? 1 : 0,
-    unit: item.unit,
-    per_day_rate: item.per_day_rate,
   }
 }
 
@@ -2183,7 +2101,6 @@ function templateRow(template: Template): Record<string, unknown> {
   return {
     owner_id: template.owner_id,
     name: template.name,
-    is_published: template.is_published ? 1 : 0,
   }
 }
 
@@ -2191,7 +2108,7 @@ function templateItemRow(ti: TemplateItem): Record<string, unknown> {
   return {
     template_id: ti.template_id,
     item_id: ti.item_id,
-    quantity_formula: ti.quantity_formula,
+    quantity: ti.quantity,
     assignment: ti.assignment,
     dedup: ti.dedup,
     conditions: ti.conditions ? JSON.stringify(ti.conditions) : null,
@@ -2205,7 +2122,7 @@ function dependencyRow(d: ItemDependency): Record<string, unknown> {
     item_id: d.item_id,
     depends_on_item_id: d.depends_on_item_id,
     mode: d.mode,
-    quantity_formula: d.quantity_formula,
+    quantity: d.quantity,
   }
 }
 
