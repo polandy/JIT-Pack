@@ -8,7 +8,7 @@
 # Everything CI checks that runs fast and needs no browser or docker daemon.
 # `e2e` (Playwright browsers) and `docker-build` (needs dockerd) are separate
 # on purpose — run them explicitly when you touch the client UI or the image.
-ci: fmt-check test go-lint client
+ci: fmt-check test tidy-check go-lint client
 
 # The full set, including the two slow jobs.
 all: ci e2e docker-build
@@ -34,7 +34,7 @@ fmt-check:
 	@test -z "$$(gofmt -l cmd internal)" || \
 		{ echo "gofmt needed:"; gofmt -l cmd internal; exit 1; }
 
-fmt:
+fmt: $(CLIENT_DEPS)
 	gofmt -w cmd internal
 	cd client && npm run format
 
@@ -51,6 +51,10 @@ cover:
 go-lint:
 	golangci-lint run $(GO_PKGS)
 
+# Unlike the targets above, `go mod tidy` takes no package list, so it also
+# scans client/node_modules. Today the Go source in there imports only the
+# standard library and nothing leaks into go.mod; if that ever changes, this
+# target is where it will show up.
 tidy-check:
 	go mod tidy
 	git diff --exit-code go.mod go.sum
