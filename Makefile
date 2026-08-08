@@ -14,11 +14,18 @@ ci: fmt-check test go-lint client
 all: ci e2e docker-build
 
 ## --- go job ---------------------------------------------------------------
+# NOT `./...`: client/node_modules ships Go source (the npm package `flatted`
+# vendors a Go implementation), and `go test ./...` picks it up as soon as the
+# client dependencies are installed — dragging overall coverage below the gate.
+# CI never sees it because its go job runs on a fresh checkout, which is
+# exactly the local/CI divergence this Makefile exists to prevent.
+GO_PKGS := ./cmd/... ./internal/...
+
 build:
-	go build ./...
+	go build $(GO_PKGS)
 
 vet:
-	go vet ./...
+	go vet $(GO_PKGS)
 
 # `gofmt -l` exits 0 even when files need formatting, so the emptiness of its
 # output is the actual assertion. CI's autoformat job would fix this for you,
@@ -32,7 +39,7 @@ fmt:
 	cd client && npm run format
 
 test: build vet
-	go test ./... -race -count=1 -coverprofile=coverage.txt
+	go test $(GO_PKGS) -race -count=1 -coverprofile=coverage.txt
 	@$(MAKE) --no-print-directory cover
 
 # Thresholds live in the script, shared with the ci.yml `go` job.
@@ -42,7 +49,7 @@ cover:
 # The nix-free way to get the CI version: see .github/workflows/ci.yml for the
 # pinned golangci-lint version and keep the two in step.
 go-lint:
-	golangci-lint run ./...
+	golangci-lint run $(GO_PKGS)
 
 tidy-check:
 	go mod tidy

@@ -16,9 +16,12 @@ jobs:
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
           go-version-file: go.mod
-      - run: go build ./...
-      - run: go vet ./...
-      - run: go test ./... -race -count=1 -coverprofile=coverage.txt
+      # Scoped, not ./... — see the GO_PKGS comment in the Makefile: an
+      # installed client/node_modules puts third-party Go source in the
+      # module tree. CI has no node_modules, but the two must not diverge.
+      - run: go build ./cmd/... ./internal/...
+      - run: go vet ./cmd/... ./internal/...
+      - run: go test ./cmd/... ./internal/... -race -count=1 -coverprofile=coverage.txt
       # Thresholds live in the script, so `make cover` enforces the same ones.
       - name: Enforce coverage gates (working agreement)
         run: ./scripts/coverage-gate.sh coverage.txt
