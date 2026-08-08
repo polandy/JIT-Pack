@@ -326,6 +326,14 @@ await page.evaluate(() => closeFilters());
 ok(await page.evaluate(() => JSON.parse(sessionStorage.getItem('jitpack.m4filter.sam26')).facets.trav.length === 0),
   'Zurücksetzen wird ebenfalls gespeichert');
 
+console.log('— Reisende ohne Typ (FR-25.9/FR-2.5 zurückgezogen) —');
+await page.evaluate(() => { resetWizard(); go('wizard'); W.step = 2; renderWizard(); });
+const w2 = await text('#wizBody');
+ok(!w2.includes('erwachsen') && !w2.includes('kind'), 'Schritt 2 kennt keinen Erwachsen/Kind-Schalter mehr');
+ok(w2.includes('andy') && w2.includes('leonardo'), 'Reisende weiterhin mit Namen gelistet');
+ok(await page.evaluate(() => W.travelers.every(t => !('kind' in t))), 'kein Typ mehr im Reisenden-Modell');
+await page.evaluate(() => { resetWizard(); go('dashboard'); });
+
 console.log('— Seitenfehler —');
 ok(errors.length === 0, 'keine JS-Fehler' + (errors.length ? ' — ' + errors.join(' | ') : ''));
 

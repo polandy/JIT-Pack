@@ -62,8 +62,20 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   the filter carries its count. M4 was converted to it and is back to a one-line header. The
   app-bar placement matters beyond tidiness: M4's sub-header collapses on scroll, so a cluster
   sitting there would slide away mid-task (measured, E2E-G12-03).
-- **M8** — **still open.** Carries FR-25.7 (progressive disclosure, sensible defaults) and
-  FR-25.9 (adult/child per-person quantities); depends on the M7 list rework.
+- **M8 — concept CLOSED 2026-08-08.** FR-25.7 (progressive disclosure, sensible defaults),
+  FR-25.13 quick-add, M5-sheet position editing, FR-27.6 scope shaping and FR-27.7 tasks are all
+  mocked; the UI-Spec M7/M8 entries were rewritten to match on 2026-08-08 (they still carried the
+  "redesign pending" note). Implementation open, sequenced behind the concept per the decision
+  above.
+
+- **FR-25.9 Erwachsen/Kind-Mengen — REMOVED (owner decision 2026-08-08,** "es gibt keine
+  Unterscheidung von Erwachsenen- und Kind-Mengen"**), and with it the traveler *type* itself
+  (FR-2.5):** a per-person position carries one quantity for everyone; concrete per-person numbers
+  are set on the trip (FR-25.8), where the actual people are known. The Adult/Child field was the
+  only thing FR-25.9 read, so it went too — asked and confirmed rather than assumed. Prototype,
+  PRD (FR-25.9 stub + FR-2.5), UI-Spec M3/M8 and E2E-M3-03 updated. **Implementation open** (not
+  started, per the concept-first decision): migration dropping `travelers.profile`, sync whitelist,
+  client traveler type and the M3 step-2 control.
 - **§3.27 Template composition ("Gruppen") + trip→template round-trip — added to the MVP by
   owner decision 2026-08-08** (explicitly asked whether to park it per the 2026-08-07 scope rule;
   answer: "nein, das gehört zum MVP" — this amends decision 1 above for M3/M7/M8). **Concept
