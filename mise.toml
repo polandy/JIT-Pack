@@ -1,6 +1,14 @@
-# Project toolchain — run `mise install` once per machine.
-# Versions track CI: go per go.mod/Dockerfile, node per ci.yml (24),
-# golangci-lint pinned to the version ci.yml uses.
+# The project toolchain — the single mechanism, deleting the nix devShell that
+# used to pin the same three tools to different versions. Run `mise install`
+# once per machine; the Makefile re-execs through `mise exec` when these are not
+# already on PATH.
+#
+# Every version here mirrors what CI resolves, because a local `make ci` that
+# runs different tools than the pipeline is worse than no local check at all:
+#   go            — ci.yml uses `go-version-file: go.mod`, so this tracks go.mod
+#   node          — ci.yml's setup-node `node-version`
+#   golangci-lint — ci.yml's golangci-lint-action `version`
+# When you change one of those in ci.yml or go.mod, change it here too.
 [tools]
 go = "1.26"
 node = "24"

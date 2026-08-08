@@ -6,6 +6,7 @@ Read this file fully before touching code. It is the orientation document: what 
 
 ## Commands
 
+- Toolchain: pinned once in `mise.toml` (go, node, golangci-lint, at the versions CI resolves). Run `mise install` per machine; the Makefile re-execs through `mise exec` when they are not already on PATH, so `make ci` works from a plain shell in a fresh clone.
 - Build: `go build ./...` (binary: `go build -o jitpackd ./cmd/jitpackd`)
 - Test: `go test ./... -race` — fast, no docker or network; store/api tests run against real in-memory SQLite
 - **Verify before finishing any change: `make ci`** — it mirrors the CI jobs 1:1 (gofmt, build, vet, race tests, coverage gates, golangci-lint, client lint/build/vitest), so green here predicts a green pipeline
@@ -38,26 +39,24 @@ PRD §3.25/§3.27, UI-Spec and UI-Test-Spec — and open as implementation. Owne
 domain-free basics (login, users, code base) rather than with packing features. The reasoning
 for each item below is in `dev-docs/implementation-log.md`, section "Concept phase".
 
-1. **The basics first** — login/users/sync/CI already exist and are green, so the open question
-   is audit-and-harden versus deliberate rework, not build-from-scratch.
-2. **One toolchain, not two.** `make ci` is documented above as *the* pre-finish check, but it
-   calls `go`, `gofmt` and `golangci-lint` bare and dies with `go: No such file or directory`
-   unless the nix devShell is active — while `mise.toml` pins those same three tools and
-   `mise exec -- make ci` works. Two mechanisms for one job, and the failure lands on the very
-   command people are told to trust. Pick one (devShell only, mise only, or let the Makefile
-   detect and re-exec), then delete the other; whichever wins, `make ci` must work from a plain
-   shell in a fresh clone.
-3. **§3.27 client package** — `instantiate.ts` include expansion + FR-27.7 task materialisation,
+1. **The basics first** — login/users/sync/CI already exist and are green. Owner decision
+   2026-08-08: **audit-and-harden**, not rework. Four fields, in order: the auth and
+   authorization paths (including the FR-1.6 relaxation, which *removed* a check — templates
+   are now writable by every authenticated account), test coverage where it matters rather
+   than in total, supply-chain pinning against NFR-4.3 and invariant 8, and the two migrations
+   in item 5. The toolchain half of this item is **done** — see the implementation log.
+2. **§3.27 client package** — `instantiate.ts` include expansion + FR-27.7 task materialisation,
    the FR-27.4 planning-trip refresh diff, the M21 screen, portable YAML for includes and tasks.
    Schema and sync wiring are done (migration 016).
-4. **Screen rebuilds from the mock**, localized with `t()` from the first line: M4/M5, then
+3. **Screen rebuilds from the mock**, localized with `t()` from the first line: M4/M5, then
    M7/M8 (scopes, quick-add, sheet editing), M9/M10 (lean inventory, minimal creation),
    M11 (container sheet, picker), M12 (slice filtering, per-person shares), M14 (group-aware list).
-5. **i18n migration** — ~300 hard-coded English strings across the surrounding screens; the module
+   **None of the rebuilt screens has been rendered and eyeballed yet** — only the prototype was.
+4. **i18n migration** — ~300 hard-coded English strings across the surrounding screens; the module
    and both catalogues exist.
-6. **Two migrations owed by concept decisions** — drop `travelers.profile` (FR-25.9 retired), and
+5. **Two migrations owed by concept decisions** — drop `travelers.profile` (FR-25.9 retired), and
    add the record column beside `packer_user_id` (FR-25.19 splits assignment from packing record).
-7. **Playwright suite** — `docs/UI_Test_Spec_v1.0.md` is written and the harness scaffolded; the
+6. **Playwright suite** — `docs/UI_Test_Spec_v1.0.md` is written and the harness scaffolded; the
    per-screen cases are not implemented, deliberately sequenced after the rebuilds.
 
 **Parked, specified, do not start:** §3.24 item tags & lifecycle delete, §3.26 calendar feed,

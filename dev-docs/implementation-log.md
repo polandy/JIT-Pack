@@ -409,3 +409,37 @@ Independent of the MVP:
 - **TypeScript 7 bump** — blocked by vue-tsc incompatibility (dependabot PR #4 left open).
 
 Deliberate cuts (revisit only with cause): M15 XLSX support (CSV only, NFR-4.3, spec §8); avatar-style pan/zoom crop for item photos (FR-22.3 keeps aspect ratio); no backfill for rosters of trips created before migration 009 (recreate or re-share affected trips, consistent with 005/006).
+
+## Basics audit, 2026-08-08 — one toolchain
+
+Owner decision after the concept merged (PR #51 / `259fdac`): the build starts with the
+domain-free basics, and because login/users/sync/CI already exist and are green, the mode
+is **audit-and-harden, not rework**. First finding, and the one that had to go first
+because it is the *verification* command everything else leans on:
+
+- **`flake.nix` and `mise.toml` pinned the same three tools to different versions.** Worse
+  than the "two mechanisms for one job" the backlog item described. The devShell listed only
+  `x86_64-linux` and `aarch64-linux`, so on the maintainer's darwin machine it could never
+  have worked at all; it pinned `go_1_25` where `mise.toml` said 1.26; and it took
+  `golangci-lint` unpinned from `nixos-unstable`, which is the bare-tag pattern invariant 8
+  forbids everywhere else. **`flake.nix` + `flake.lock` deleted**, mise is the single
+  mechanism, and its comment now names which CI field each version mirrors.
+
+- **The local toolchain diverged from CI, latently.** `ci.yml` resolves Go through
+  `go-version-file: go.mod` (1.25.0) while mise installed 1.26 — both green, so nothing was
+  failing, but the Makefile exists precisely to keep local and CI in step, and `gofmt` output
+  has changed between Go releases before. A `fmt-check` that can be green locally and red in
+  CI defeats the target's whole purpose. Resolved in the direction the owner chose:
+  **`go.mod` 1.25.0 → 1.26.0**, so CI, mise and the `golang:1.26-alpine` build image now
+  agree. `go mod tidy` was a no-op beyond that line and `go.sum` did not move.
+
+- **`make ci` now works from a plain shell in a fresh clone**, which is what CLAUDE.md
+  promises. The Makefile probes for `go gofmt golangci-lint node npm`; if all are present it
+  calls them directly (`RUN` empty, recipes unchanged), otherwise it prefixes every recipe
+  with `mise exec --`, and if mise is missing too it stops at parse time with an instruction
+  to install it instead of `go: No such file or directory`. All three paths were exercised
+  with a stripped `env -i` PATH, including really building through the re-exec, not just
+  `make -n`.
+
+No ADR: the choice was forced rather than weighed — one of the two mechanisms could not run
+on the maintainer's platform and violated an existing invariant.
