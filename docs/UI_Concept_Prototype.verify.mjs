@@ -182,8 +182,8 @@ await page.click('[data-edtpl="makro"]');
 ok(await page.evaluate(() => M8.id === 'makro' && stack[stack.length-1] === 'templateedit'), 'Gruppen-Zeile navigiert in den M8-Editor');
 
 console.log('— Vorlage aus Reise (FR-27.5) —');
-await page.evaluate(() => { go('trip'); setPhase('after'); });
-await page.click('[data-panel="after"] button.gb.on');
+await page.evaluate(() => openPack('sam25'));   // an archived trip opens M4 with the closing card
+await page.click('#tripDoneTpl');
 let tft = await text('#tftPage');
 ok(tft.includes('erkannte gruppen · 2'), 'beide Gruppen erkannt');
 ok(tft.includes('auf der reise ergänzt: gimbal'), 'Makro-Abweichung (Gimbal) erkannt');
@@ -333,6 +333,26 @@ ok(!w2.includes('erwachsen') && !w2.includes('kind'), 'Schritt 2 kennt keinen Er
 ok(w2.includes('andy') && w2.includes('leonardo'), 'Reisende weiterhin mit Namen gelistet');
 ok(await page.evaluate(() => W.travelers.every(t => !('kind' in t))), 'kein Typ mehr im Reisenden-Modell');
 await page.evaluate(() => { resetWizard(); go('dashboard'); });
+
+console.log('— Reise öffnet direkt die Packliste (kein Phasen-Hub) —');
+await page.evaluate(() => go('trips'));
+await page.click('[data-trip="sam26"]');
+ok(await page.evaluate(() => stack[stack.length - 1] === 'pack'),
+  'Tap auf eine Reise landet direkt in M4, ohne Zwischenschritt');
+ok((await text('#packHead')).includes('31/50') || (await text('#packHead')).includes('/'),
+  'Fortschritt steht in der M4-Kopfzeile, nicht in einem Hub davor');
+ok((await page.locator('#tripDone').innerText()).trim() === '',
+  'aktive Reise zeigt keine Abschluss-Karte');
+ok((await page.evaluate(() => document.querySelectorAll('[data-view="trip"], .phase').length)) === 0,
+  'der Phasen-Hub ist vollständig entfernt');
+
+await page.evaluate(() => { go('trips'); });
+await page.click('[data-trip="sam25"]');
+let done = await text('#tripDone');
+ok(done.includes('reise abgeschlossen'), 'archivierte Reise führt mit der Abschluss-Karte');
+ok(done.includes('vorlage aus dieser reise'), 'M21-Einstieg sitzt jetzt hier (FR-27.5)');
+ok(done.includes('vorschläge fürs nächste mal'), 'M14-Vorschläge ebenfalls');
+await page.evaluate(() => openPack('sam26'));
 
 console.log('— Seitenfehler —');
 ok(errors.length === 0, 'keine JS-Fehler' + (errors.length ? ' — ' + errors.join(' | ') : ''));

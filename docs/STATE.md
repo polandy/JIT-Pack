@@ -147,6 +147,16 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   left to do" (FR-25.11a); a fresh session starts unfiltered. The search term is not restored.
   E2E M4-28.
 
+- **Phasen-Hub gestrichen, M4 *ist* der Reise-Screen (owner decision 2026-08-08) — mocked +
+  specced:** a trip opens straight into its packing list; the four-phase hub
+  (Planen/Vorbereiten/Unterwegs/Danach) is gone from the prototype. Three of its four panels were
+  North-Star content with nothing behind them (idea board, day plan, expenses), and its entries
+  duplicated M4's G-12 trip line. What was real about *Danach* survives as M4's **closing card on
+  an archived trip**: "Vorlage aus dieser Reise" (M21/FR-27.5, whose entry moved here) plus the
+  M14 suggestions. Re-entry point recorded in UI-Spec M4 and `Vision_NorthStar_v1.0.md` §2 so the
+  phase model is picked up deliberately when Plan/During get content — the frame then goes *above*
+  M4. E2E M4-29, M21-01 reworded.
+
 - **Inventar-UX-Runde (owner directives 2026-08-08, mocked + specced):** M9 is **lean by
   default** (primary-tag avatar + name); which extras show (Tags/Gewicht/Preis) is a
   device-local preference behind an eye icon with a settings sheet (FR-24.4 new). M10

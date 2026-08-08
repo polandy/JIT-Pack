@@ -61,6 +61,13 @@ Three forks were resolved up front so the concept below is concrete:
 A trip carries a **phase**, but phases are *soft*: nothing forbids adding an idea mid-trip or
 packing after departure. The phase drives emphasis (what the trip screen leads with), not locks.
 
+**Where this attaches (decided 2026-08-08).** A four-phase hub was mocked during the packing
+concept and then dropped: with Plan and During empty, it was two dead tabs in front of the app's
+most frequent action, and it duplicated entries M4 already carries. In the MVP **M4 *is* the trip
+screen** — a trip opens straight into its packing list. When Plan and During acquire real content,
+the phase frame goes **above M4**, which becomes the *Prepare* phase; the *After* phase already
+exists in miniature as M4's closing card on an archived trip (M14 suggestions + M21).
+
 ---
 
 ## 3. Feature backlog by phase

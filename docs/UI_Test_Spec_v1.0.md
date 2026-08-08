@@ -126,6 +126,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 
 ### M4 — Packing List (core)
 * **E2E-M4-01** `all` (FR-8.1/7.3): the single header line shows packed/total, weight and the open-prep count (the latter only when todos exist), and stays **unfiltered** while a filter or search narrows the list below it. Analytics is reached from the 📊 icon on the trip line, not from the header (the KPI-tile entry is gone, G-12).
+* **E2E-M4-29** `all` (trip screen, decided 2026-08-08): tapping a trip in M2 or M1 lands **directly** in M4 — asserts no intermediate hub screen and no phase tab bar anywhere in the app. On an **archived** trip M4 leads with the closing card offering *Vorlage aus dieser Reise* (M21) and the M14 suggestions; on an active trip that card is absent.
 * **E2E-M4-02** `all` (FR-8.2): grouping switcher Category/Container/Person/Status; selection persists per user per trip (survives reload; a second user/other trip unaffected).
 * **E2E-M4-03** `all` (FR-5.1/G-6): item rows show state, stepper/checkbox, mode/late-packer/traveler/packer/container chips.
 * **E2E-M4-04** `all` (FR-5.6/9.1): inline quick-add with master-item autocomplete; free text creates an ad-hoc item; on an active trip new items auto-flag *Missing*; input stays expanded.
@@ -296,7 +297,7 @@ Feature removed from the product (PRD Addendum §3.11); its E2E cases are retire
 * **E2E-M20-05** `server` (FR-23.1/G-8): a non-admin OIDC user cannot route to `/admin` (403 / redirect); hidden entirely in `single`/`local`.
 
 ### M21 — Vorlage aus Reise (new screen, §3.27)
-* **E2E-M21-01** `all` (FR-27.5): entry from the trip's *Danach* phase; the screen lists every recognised group with its on-trip item count and a "wird wiederverwendet" marker, and the loose ad-hoc rows (all pre-checked) under "Eigene Artikel".
+* **E2E-M21-01** `all` (FR-27.5): entry from the closing card at the top of M4 on an **archived** trip (an active trip shows no such card); the screen lists every recognised group with its on-trip item count and a "wird wiederverwendet" marker, and the loose ad-hoc rows (all pre-checked) under "Eigene Artikel".
 * **E2E-M21-02** `all` (FR-27.5): a group with on-trip deviations names them ("Auf der Reise ergänzt: Gimbal") and offers **Gruppe aktualisieren** (default) vs. **nur in diese Vorlage**; group positions absent from the trip are reported with the explicit "Gruppe bleibt unverändert" note.
 * **E2E-M21-03** `all` (FR-27.5/27.1/27.4): creating with defaults yields a composed template that **references** the recognised groups (not copies), carries the checked loose rows as own positions, and — where *aktualisieren* was chosen — the deviation lands in the group itself and surfaces as an applied change on planning trips using that group. The "Als neue Gruppe speichern" toggle bundles the loose rows into a fresh group instead.
 

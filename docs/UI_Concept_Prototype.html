@@ -775,110 +775,17 @@ body{
       <div id="tripsPage"></div>
     </div>
 
-    <!-- ============ TRIP = PHASE HUB ============ -->
-    <div class="view" data-view="trip">
-      <div class="phases">
-        <button class="phase" data-phase="plan" onclick="setPhase('plan')"><svg viewBox="0 0 24 24"><use href="#i-bulb"/></svg>Planen<small>8 Ideen</small></button>
-        <button class="phase on" data-phase="prep" onclick="setPhase('prep')"><svg viewBox="0 0 24 24"><use href="#i-bag"/></svg>Vorbereiten<small>62%</small></button>
-        <button class="phase" data-phase="during" onclick="setPhase('during')"><svg viewBox="0 0 24 24"><use href="#i-comp"/></svg>Unterwegs<small>Tag 3</small></button>
-        <button class="phase" data-phase="after" onclick="setPhase('after')"><svg viewBox="0 0 24 24"><use href="#i-spark"/></svg>Danach<small>—</small></button>
-      </div>
-
-      <!-- PLAN -->
-      <div class="panel" data-panel="plan">
-        <div class="card addbar pressable" style="margin-top:12px"><svg viewBox="0 0 24 24"><use href="#i-plus"/></svg> Link oder Idee einfügen…</div>
-        <div class="card idea">
-          <div class="thumb" style="background-image:linear-gradient(120deg,#6b5b3e,#3a3a2a)"><span class="src">engadin.ch</span></div>
-          <div class="b"><h3>Chesa Arsa — Ferienwohnung</h3>
-            <div class="tiny muted">Bio-Hof mit Pool, eigene Käserei. Frei ab 17. Juli.</div>
-            <div class="foot"><span class="votes">👍 2</span><span class="chip">💬 3</span><span class="chip green">Unterkunft ✓</span></div>
-          </div>
-        </div>
-        <div class="card idea">
-          <div class="thumb" style="background-image:linear-gradient(120deg,#2a5a6b,#264a52)"><span class="src">graubuenden.ch</span></div>
-          <div class="b"><h3>Muottas Muragl</h3>
-            <div class="tiny muted">„Kostenlos & offen bis spät!“ — Sia</div>
-            <div class="foot"><span class="votes">👍 1</span><span class="chip">💬 2</span><span class="chip warm"><svg viewBox="0 0 24 24" style="width:12px"><use href="#i-sun"/></svg>Schönwetter</span></div>
-          </div>
-        </div>
-        <div class="card idea">
-          <div class="b" style="padding-top:14px"><h3>Segantini Museum</h3>
-            <div class="tiny muted">Regentauglich — falls das Wetter kippt.</div>
-            <div class="foot"><span class="votes">👍 1</span><span class="chip">💬 0</span><span class="chip blue">Aktivität · indoor</span></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- PREPARE (concrete) -->
-      <div class="panel active" data-panel="prep">
-        <div class="card hero" style="margin-top:12px;border-radius:var(--r)">
-          <div style="display:flex;align-items:center;gap:14px">
-            <div class="ring" style="--p:62;--c:var(--green);width:56px;height:56px"><span style="font-size:13px">62%</span></div>
-            <div class="grow"><div style="font-weight:600;font-size:15px">Packliste</div>
-              <div class="tiny muted">31 von 50 gepackt · 18,4 kg · 3 Vorbereitungen offen</div></div>
-          </div>
-          <button class="gb on" style="margin-top:14px;width:100%;padding:11px" onclick="go('pack')">Packliste öffnen →</button>
-        </div>
-
-        <div class="section-h">Buchungen</div>
-        <div class="card">
-          <div class="li"><span class="chip green"><svg viewBox="0 0 24 24" style="width:13px"><use href="#i-check"/></svg></span>
-            <div class="grow"><div class="name">Agriturismo Chesa Arsa</div><div class="desc">17.–31. Juli · bestätigt</div></div></div>
-          <div class="li"><span class="chip green"><svg viewBox="0 0 24 24" style="width:13px"><use href="#i-check"/></svg></span>
-            <div class="grow"><div class="name">Mietwagen — Kombi</div><div class="desc">Pisa Flughafen · PDF hinterlegt</div></div>
-            <svg viewBox="0 0 24 24" style="width:18px;color:var(--o0)"><use href="#i-chev"/></svg></div>
-          <div class="li"><span class="chip warm">offen</span>
-            <div class="grow"><div class="name">Bergbahn Muottas Muragl</div><div class="desc">noch nicht gebucht</div></div></div>
-        </div>
-      </div>
-
-      <!-- DURING -->
-      <div class="panel" data-panel="during">
-        <div class="banner" style="margin-top:12px">
-          <svg viewBox="0 0 24 24"><use href="#i-sun"/></svg>
-          <div class="grow"><b style="font-size:13.5px">Freitag Regen gemeldet</b>
-            <div class="tiny muted">Pizzakurs (indoor) auf Freitag vorziehen?</div></div>
-          <button>Umplanen</button>
-        </div>
-        <div class="section-h">Tag 3 · Do 16. Juli · ☀️ 29°</div>
-        <div class="card" style="padding:16px 16px 4px">
-          <div class="tl">
-            <div class="tevent"><div class="t">09:30</div><div class="a">Frühstück am Hof</div><span class="chip">Agriturismo</span></div>
-            <div class="tevent"><div class="t">11:00 · 🚗 25 min</div><div class="a">Muottas Muragl</div><span class="chip warm">Schönwetter ✓</span></div>
-            <div class="tevent"><div class="t">19:30</div><div class="a">Segantini Museum</div><span class="chip blue">indoor</span></div>
-          </div>
-        </div>
-        <div class="section-h">Gemeinsame Kasse</div>
-        <div class="card"><div class="li"><div class="grow"><div class="name">Ausgaben bisher</div><div class="desc">Andy 340 € · Sia 280 €</div></div>
-          <b style="font-family:var(--display);font-size:18px">620 €</b></div></div>
-      </div>
-
-      <!-- AFTER -->
-      <div class="panel" data-panel="after">
-        <div class="stats">
-          <div class="card stat"><div class="n" style="color:var(--green)">84%</div><div class="l">der gepackten Sachen genutzt</div></div>
-          <div class="card stat"><div class="n" style="color:var(--peach)">3</div><div class="l">nie gebraucht</div></div>
-        </div>
-        <div class="card" style="margin-top:12px;padding:14px 16px">
-          <div class="name">🧩 Als Vorlage fürs nächste Mal</div>
-          <div class="tiny muted" style="margin:6px 0 12px">Gruppen dieser Reise werden erkannt und wiederverwendet; was du unterwegs ergänzt hast, kann in die Gruppe zurückfliessen (FR-27.5).</div>
-          <button class="gb on" style="width:100%;padding:11px" onclick="openTFT()">Vorlage aus dieser Reise erstellen →</button>
-        </div>
-        <div class="section-h">Vorschläge fürs nächste Mal</div>
-        <div class="card">
-          <div class="li"><span class="chip mauve">Serie</span>
-            <div class="grow"><div class="name">Regenjacken weglassen</div><div class="desc">2 Reisen nicht genutzt</div></div>
-            <button class="gb on" style="padding:6px 12px">Anwenden</button></div>
-          <div class="li"><span class="chip warm">fehlte</span>
-            <div class="grow"><div class="name">Reiseadapter aufnehmen</div><div class="desc">unterwegs nachgekauft</div></div>
-            <button class="gb" style="padding:6px 12px">+ Vorlage</button></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ============ PACKING LIST (drill from Prepare) — data-driven ============ -->
+    <!-- ============ PACKING LIST = THE TRIP SCREEN (M4) ============ -->
+    <!-- Owner decision 2026-08-08: a trip opens straight into its packing list.
+         The phase hub that used to sit in between carried mostly North-Star
+         content (idea board, day plan, expenses) and doubled the entries M4
+         already has on its trip line. What was real about its "Danach" panel —
+         the review suggestions and "Vorlage aus Reise" — now appears here once
+         the trip is archived. -->
     <div class="view" data-view="pack">
       <div class="packhead" id="packheadWrap"><div id="packHead"></div></div>
+
+      <div id="tripDone"></div>
 
       <div class="card qa" id="qaTrigger"><svg viewBox="0 0 24 24"><use href="#i-plus"/></svg> Artikel hinzufügen…</div>
 
@@ -1041,7 +948,6 @@ const meta = {
   trips:{t:'Reisen', s:'3 aktiv · 1 geplant', tab:'trips', fab:1},
   templates:{t:'Vorlagen', s:'Wiederverwendbare Listen', tab:'templates', fab:1},
   items:{t:'Inventar', s:'Deine Sachen', tab:'items', fab:1},
-  trip:{t:'Samedan Sommer 2026', s:'8.–22. August · 14 Tage', tab:'trips', back:1, fab:0},
   pack:{t:'Samedan', s:'Samedan · Vorbereiten', tab:'trips', back:1, fab:1},
   wizard:{t:'Neue Reise', s:'Schritt 1 von 4', tab:'trips', back:1, fab:0, hideTabs:1},
   shop:{t:'Einkauf', s:'Samedan', tab:'trips', back:1, fab:1},
@@ -1094,9 +1000,37 @@ function go(name){
   render(name);
 }
 function back(){ if(stack.length>1){ stack.pop(); render(stack[stack.length-1]); } }
-function setPhase(p){
-  document.querySelectorAll('.phase').forEach(b=>b.classList.toggle('on', b.dataset.phase===p));
-  document.querySelectorAll('.panel').forEach(b=>b.classList.toggle('active', b.dataset.panel===p));
+/* An archived trip leads with what to do *next* with it: apply the FR-9.2
+   suggestions, and turn the trip into a template (FR-27.5). Both used to live
+   in the phase hub's "Danach" panel — the only part of it that was real. */
+function renderTripDone(){
+  const el=document.getElementById('tripDone'); if(!el) return;
+  if(!PACK_TRIP.archived){ el.innerHTML=''; return; }
+  el.innerHTML=`<div class="card" id="tripDoneCard" style="margin-top:12px;padding:14px 16px">
+      <div class="name">🧩 Reise abgeschlossen</div>
+      <div class="tiny muted" style="margin:6px 0 12px">Gruppen dieser Reise werden erkannt und wiederverwendet;
+        was du unterwegs ergänzt hast, kann in die Gruppe zurückfliessen (FR-27.5).</div>
+      <button class="gb on" style="width:100%;padding:11px" id="tripDoneTpl">Vorlage aus dieser Reise erstellen →</button>
+      <div class="section-h" style="margin-top:14px">Vorschläge fürs nächste Mal</div>
+      <div class="li" style="padding-left:0"><span class="chip mauve">Serie</span>
+        <div class="grow"><div class="name">Regenjacken weglassen</div><div class="desc">2 Reisen nicht genutzt</div></div>
+        <button class="gb on" style="padding:6px 12px">Anwenden</button></div>
+      <div class="li" style="padding-left:0"><span class="chip warm">fehlte</span>
+        <div class="grow"><div class="name">Reiseadapter aufnehmen</div><div class="desc">unterwegs nachgekauft</div></div>
+        <button class="gb" style="padding:6px 12px">+ Vorlage</button></div>
+    </div>`;
+  document.getElementById('tripDoneTpl').onclick=openTFT;
+}
+
+/* Which trip M4 is showing. Archived trips render read-through with the
+   closing card (M14 suggestions, M21 template-from-trip) at the top. */
+let PACK_TRIP = TRIPS_BOOT();
+function TRIPS_BOOT(){ return {id:'sam26', name:'Samedan Sommer 2026', archived:false}; }
+function openPack(id){
+  const t=(typeof TRIPS!=='undefined') ? TRIPS.find(x=>x.id===id) : null;
+  PACK_TRIP = t ? {id:t.id, name:t.name, archived:t.status==='archived'} : TRIPS_BOOT();
+  meta.pack.t = PACK_TRIP.name;
+  go('pack');
 }
 /* ============ M4 packing list model & rendering ============ */
 const AV = {Andy:['A','var(--peach)'],Sia:['S','var(--mauve)'],Leonardo:['L','var(--sky)']};
@@ -1444,6 +1378,7 @@ function renderPack(){
            <div><button id="fResetEmpty">${q.length>0&&!nF?'Suche löschen':'Suche und Filter zurücksetzen'}</button></div></div>`
       : `<div class="emptyfilter"><b>Alles gepackt 🎉</b>Nichts mehr offen für diese Reise.</div>`;
   }
+  renderTripDone();
   document.getElementById('packList').innerHTML = groupsHTML + emptyHint + toggle;
 
   // prep section
@@ -2733,7 +2668,7 @@ function renderM2List(){
   el.innerHTML=keys.map(k=>{ const isSeries=k.startsWith('◆');
     return `<div class="section-h" ${isSeries?`style="color:var(--mauve);cursor:pointer" data-series="${esc(k.slice(2))}"`:''}>${k}${isSeries?' ›':''}</div>
       <div class="card">${g[k].map(m2RowHTML).join('')}</div>`; }).join('');
-  el.querySelectorAll('[data-trip]').forEach(r=>r.onclick=()=>go('trip'));
+  el.querySelectorAll('[data-trip]').forEach(r=>r.onclick=()=>openPack(r.dataset.trip));
   el.querySelectorAll('[data-m2upd]').forEach(b=>b.onclick=e=>{ e.stopPropagation();
     m2UpdOpen=m2UpdOpen===b.dataset.m2upd?null:b.dataset.m2upd; renderM2List(); });
   el.querySelectorAll('[data-series]').forEach(h=>h.onclick=()=>alert('Serie & Reiseziel (M16) — '+h.dataset.series));
@@ -3071,7 +3006,7 @@ function renderDashboard(){
   active.forEach(t=>{
     const mine=dashMyOpen(), next3=mine.slice(0,3);
     const deleg=P.items.filter(i=>i.packedBy===ME&&i.packed<i.qty);
-    html+=`<div class="hero pressable" onclick="go('trip')" style="margin-top:12px">
+    html+=`<div class="hero pressable" onclick="openPack('${t.id}')" style="margin-top:12px">
       <span class="eyebrow">🎒 Vorbereiten · in 2 Tagen</span><h2>${esc(t.name)}</h2>
       <div class="meta">${t.dates} · Chesa Arsa</div>
       <div class="row"><div class="stack">${(t.members||[]).map(m=>`<span class="avatar" style="background:${AV[m]?AV[m][1]:'var(--s2)'}">${AV[m]?AV[m][0]:'?'}</span>`).join('')}</div>
@@ -3085,11 +3020,6 @@ function renderDashboard(){
         <div class="grow" data-dashgo="1"><div class="name">${esc(i.name)}</div><div class="desc">von Sia · ${i.packed}/${i.qty}</div></div>
         <span class="deleg-badge">für dich</span></div>`).join('')}</div>`;
   });
-  html+=`<div class="section-h">Von Sia</div>
-    <div class="card notif pressable" onclick="go('trip'); setPhase('plan')"><span class="unread"></span>
-      <div class="grow"><div style="font-weight:600;font-size:14px">Neue Idee: „Muottas Muragl“</div>
-        <div class="tiny muted">Sia hat einen Link hinzugefügt · gerade eben</div></div>
-      <svg viewBox="0 0 24 24" style="width:18px;color:var(--o0)"><use href="#i-chev"/></svg></div>`;
   const openCount=P.prep.filter(p=>!p.done).length;
   html+=`<div class="section-h">Vorbereitungen · ${openCount}</div>`;
   if(openCount) html+=`<div class="search"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg>
