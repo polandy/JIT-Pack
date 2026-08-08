@@ -201,13 +201,14 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M8-01** `all` (FR-1.3/1.5): quantity field accepts a formula with live validation and computed example ("for a 7-day trip: 8"); save is blocked while any formula is invalid with a per-row error.
 * **E2E-M8-02** `all` (FR-1.4): per-item assignment type Per Person / Trip-Global.
 * **E2E-M8-03** `all` (FR-2.3/15.2): dedup strategy select; condition chips (season/transport/accommodation).
-* **E2E-M8-04** `all` (FR-1.1): item picker from M9 with inline-create.
+* **E2E-M8-04** `all` (FR-1.1/25.13): positions are added through the shared quick-add (see M8-13); a free-text name creates the master item inline.
 * **E2E-M8-05** `all` (FR-2.4/27.4): editing a template used by planning trips shows the FR-27.4 blast-radius note — those trips update immediately, everyone else sees changes at the next trip generation, running/past trips never (the separate publish warning fell with the FR-1.6 MVP simplification).
 * **E2E-M8-06** `all` (FR-1.2): add/remove/reorder items; swipe-to-delete.
 * **E2E-M8-07** `all` (FR-27.1/27.6): scope-shaped editor — a **Gruppe** shows only *Positionen* and no group picker; a **Ferien-Vorlage** shows the *Gruppen* section whose picker offers **groups only** (never vacation templates, never already-included groups) plus "Neue Gruppe anlegen…" inline (created group is immediately included); groups and own positions stay visually separate sections.
 * **E2E-M8-10** `all` (FR-27.6): guarded scope switch — a Vorlage with included groups refuses demotion to Gruppe (hint: remove groups first); a Gruppe included somewhere refuses promotion and the editor names its consumers ("Eingebunden in: …"); an unconstrained template switches freely.
 * **E2E-M8-11** `all` (FR-27.7): the expanded position form carries the preparation-task list (add via input/Enter, remove per row) with the blocking rule stated inline; the collapsed row shows a "📋 N Vorbereitung" count chip; adding/removing a task on a group used by a *planning* trip appears in that trip's FR-27.4 applied-changes log.
-* **E2E-M8-12** `all` (FR-25.7): adding a position via the picker is one tap — the row lands **collapsed** with the defaults (qty 1, trip-global, Packen, dedup max, no conditions, no Late-Packer) and reads "Standard"; expanding shows only Menge + Vorbereitung plus a "Mehr Optionen" toggle; the advanced parameters (per-person, procurement, dedup, conditions, Late-Packer) appear only after the toggle and collapse again with it.
+* **E2E-M8-12** `all` (FR-25.7): adding a position via the quick-add suggestion is one tap — the row lands **collapsed** with the defaults (qty 1, trip-global, Packen, dedup max, no conditions, no Late-Packer) and reads "Standard"; expanding shows only Menge + Vorbereitung plus a "Mehr Optionen" toggle; the advanced parameters (per-person, procurement, dedup, conditions, Late-Packer) appear only after the toggle and collapse again with it.
+* **E2E-M8-13** `all` (FR-25.13/25.13a): M8's add is the packing list's quick-add, verbatim — collapsed card, ＋ FAB expands and focuses it, inventory autocomplete after two characters, visible confirm labelled for the scope ("Zur Gruppe/Vorlage hinzufügen"), Enter commits, the field stays open and empty for the next position, blur collapses it only when empty; an already-present name is reported ("schon drin — nicht doppelt") and not added twice; an unknown name creates the master item and the position in one step.
 * **E2E-M8-08** `all` (FR-27.2): resolution footer shows the resolved item count over groups + own positions and **names** every dedup with its contributing groups ("Kamera nur 1× — in Makro & Wildlife").
 * **E2E-M8-09** `all` (FR-27.4): a template used by a *planning* trip shows the blast-radius note naming that trip; adding/removing a position then puts the "⟳ N Änderungen aus Gruppen übernommen" chip **only** on that planning trip's M2 row (never on active/archived rows); expanding the chip lists each change with its source group.
 
@@ -431,7 +432,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-25.6 | E2E | M6-05 (aggregated row), M6-06 (settles all instances), M6-07 (notes) |
 | FR-25.10 | E2E | M6-08 (no free-form "for whom"); M5 membership control |
 | FR-25.12 | E2E | M6-09 (buyer, kept distinct from recipients), M6-10 (description) |
-| FR-25.13 | E2E | M6-11; M4-04 (same quick-add sequence on both screens) |
+| FR-25.13 | E2E | M6-11; M4-04; M8-13 (same quick-add sequence on all three screens) |
 | FR-25.13a | E2E | M6-12 (all three at add time, no wipe on chip tap), M6-13 (assignee carries over), M6-16/M4-21 (visible confirm, no keyboard) |
 | FR-25.11 | E2E | M4-15 (panel), M4-16 (OR/AND), M4-17 (counts), M4-18 (empty states), M4-19 (Gemeinsam) |
 | FR-25.11g | E2E | M6-14 (same panel, shop facets, independent state) |

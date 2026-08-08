@@ -1025,7 +1025,7 @@ const meta = {
   containers:{t:'Gepäck & Container', s:'Samedan', tab:'trips', back:1, fab:0},
   analytics:{t:'Auswertung', s:'Samedan', tab:'trips', back:1, fab:0},
   itemedit:{t:'Artikel', s:'Stammdaten', tab:'items', back:1, fab:0},
-  templateedit:{t:'Vorlage', s:'Stammdaten', tab:'templates', back:1, fab:0},
+  templateedit:{t:'Vorlage', s:'Stammdaten', tab:'templates', back:1, fab:1},
   tplfromtrip:{t:'Vorlage aus Reise', s:'Samedan Sommer 2026', tab:'trips', back:1, fab:0},
 };
 const anchors = ['dashboard','trips','templates','items'];
@@ -1061,6 +1061,7 @@ function fabAction(){ const top=stack[stack.length-1];
   if(top==='dashboard'||top==='trips'){ resetWizard(); go('wizard'); }
   else if(top==='items'){ openM10New(); }
   else if(top==='templates'){ openTplKind(); }
+  else if(top==='templateedit'){ t8FabAdd(); }
   else if(top==='pack'){ packFabAdd(); }
   else if(top==='shop'){ shopFabAdd(); }
   else alert('Neu anlegen'); }
@@ -3224,9 +3225,9 @@ function evalFormula(f){
     return {ok:true,val:Math.max(0,Math.round(v))};
   }catch(e){ return {ok:false,err:'Formel ungültig (Klammern/Operatoren prüfen)'}; }
 }
-const M8={id:null,open:-1,picker:false,pick:'',gpicker:false,adv:false};
+const M8={id:null,open:-1,gpicker:false,adv:false,qaOpen:false,qaName:''};
 let tplSeq=1;
-function openM8(id){ M8.id=id; M8.open=-1; M8.picker=false; M8.pick=''; M8.gpicker=false; go('templateedit'); }
+function openM8(id){ M8.id=id; M8.open=-1; M8.gpicker=false; M8.adv=false; M8.qaOpen=false; M8.qaName=''; go('templateedit'); }
 function openTplKind(){ document.getElementById('tplKindScrim').classList.add('open'); document.getElementById('tplKindSheet').classList.add('open'); }
 function closeTplKind(){ document.getElementById('tplKindScrim').classList.remove('open'); document.getElementById('tplKindSheet').classList.remove('open'); }
 function openM8New(kind){ closeTplKind(); const id='tpl'+(tplSeq++);
@@ -3280,7 +3281,6 @@ function renderTplEdit(){
         :`<button class="opt" data-t8adv="${i}" style="width:100%">Mehr Optionen ▾ — pro Person · Kaufen · Dedup · Bedingungen · Später-Packer</button>`}
       </div>`:''}</div>`;
   };
-  const pickList=M8.picker?MASTER.filter(x=>!x.deleted&&!rows.some(r=>r.m===x.id)&&(!M8.pick||x.name.toLowerCase().includes(M8.pick.toLowerCase()))).slice(0,6):[];
   /* §3.27/FR-27.6: scope decides the editor's shape. A group carries only
      positions; a Ferien-Vorlage carries groups + own positions. The picker
      offers groups only — the two-level rule makes cycles impossible, the
@@ -3310,12 +3310,7 @@ function renderTplEdit(){
       :`<div class="card qa" id="t8opengpick" style="margin-top:10px"><svg viewBox="0 0 24 24"><use href="#i-plus"/></svg> Gruppe einbinden…</div>`):''}`:''}
     <div class="section-h">${kind==='group'?'Positionen':'Eigene Positionen'} · ${rows.length}${invalid?` <span style="color:var(--red)">· ${invalid} Formel ungültig — Speichern blockiert</span>`:''}</div>
     <div class="card">${rows.map(rowHTML).join('')||'<div class="li"><div class="grow muted" style="text-align:center;padding:8px">Noch keine eigenen Positionen.</div></div>'}</div>
-    ${mine?(M8.picker?`<div class="card" style="margin-top:12px;padding:12px 14px">
-        <div class="search" style="margin-bottom:8px"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg>
-          <input id="t8pick" placeholder="Artikel suchen…" value="${esc(M8.pick)}" autocomplete="off"></div>
-        ${pickList.map(x=>`<button class="opt" style="margin:3px" data-t8add="${x.id}">＋ ${esc(x.name)}</button>`).join('')||'<span class="tiny muted">Kein Treffer — </span>'}
-        ${M8.pick&&!pickList.some(x=>x.name.toLowerCase()===M8.pick.toLowerCase())?`<button class="opt mauve sel" style="margin:3px" data-t8create="1">＋ „${esc(M8.pick)}“ neu anlegen</button>`:''}</div>`
-      :`<div class="card qa" id="t8openpick" style="margin-top:12px"><svg viewBox="0 0 24 24"><use href="#i-plus"/></svg> Position hinzufügen…</div>`):''}
+    ${mine?`<div class="card qa" id="t8qa" style="margin-top:12px"></div>`:``}
     ${incs.length?`<div class="footer-note" id="t8resolve"><div class="big">${res.rows.length} Artikel aufgelöst</div>
       <div class="ln muted">${incs.length} Gruppe${incs.length===1?'':'n'} + ${rows.length} eigene Position${rows.length===1?'':'en'}</div>
       ${res.merged.length?`<div class="ln" style="color:var(--sapphire)">${res.merged.map(x=>`${esc(x.name)} nur 1× (${x.from.map(f=>esc(tplName(f))).join(' & ')})`).join(' · ')}</div>`:''}</div>`:''}`;
@@ -3369,18 +3364,72 @@ function renderTplEdit(){
     const gone=r.tasks.splice(k,1)[0];
     logTplChange(t.id,'Aufgabe „'+gone+'“ bei „'+(m?m.name:'?')+'“ entfernt'); rerender(); });
   const nm=document.getElementById('t8name'); if(nm&&mine) nm.oninput=e=>{ t.name=e.target.value; };
-  const op=document.getElementById('t8openpick'); if(op) op.onclick=()=>{ M8.picker=true; rerender(); };
-  const pk=document.getElementById('t8pick'); if(pk){ pk.oninput=e=>{ M8.pick=e.target.value; rerender(); const p=document.getElementById('t8pick'); if(p){p.focus();p.setSelectionRange(p.value.length,p.value.length);} }; }
+  renderT8Qa();
   /* FR-25.7 (realised 2026-08-08): adding a position is ONE tap — the row lands
      collapsed with sensible defaults (qty 1, trip-global, Packen, dedup max, no
      conditions, no Late-Packer) and reads "Standard". It no longer auto-expands
      the full parameter form; tuning is the exception, one tap away. */
-  el.querySelectorAll('[data-t8add]').forEach(b=>b.onclick=()=>{ rows.push({m:+b.dataset.t8add,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}}); M8.picker=false; M8.pick=''; M8.open=-1;
-    const m=MASTER.find(x=>x.id===+b.dataset.t8add); if(m) logTplChange(t.id,'Position „'+m.name+'“ hinzugefügt');
-    rerender(); });
-  const cr=el.querySelector('[data-t8create]'); if(cr) cr.onclick=()=>{ const it={id:nextMasterId++,name:M8.pick.trim(),tags:[],w:0,val:0,unit:'Stk'}; MASTER.push(it);
-    rows.push({m:it.id,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}}); M8.picker=false; M8.pick=''; M8.open=-1;
-    logTplChange(t.id,'Position „'+it.name+'“ hinzugefügt'); rerender(); };
+}
+
+
+/* §3.25 consistency directive (owner 2026-08-08): adding a position to a
+   template/group looks and behaves EXACTLY like the packing list's quick-add
+   (FR-25.13) — same collapsed card, same FAB expansion, same autocomplete,
+   same visible confirm, Enter as the desktop shortcut, field stays open for
+   rapid entry. Picking a known item is the FR-25.7 one-tap add; a free-text
+   name creates the master item first (FR-1.1), like the old inline-create. */
+function t8FabAdd(){ M8.qaOpen=true; renderT8Qa();
+  const el=document.getElementById('t8qa'); if(el) el.scrollIntoView({block:'nearest'}); }
+function t8QaSuggest(q){
+  const t=TPL.find(x=>x.id===M8.id); const rows=(t&&TPLITEMS[t.id])||[];
+  const sq=q.trim().toLowerCase(); if(sq.length<2) return [];
+  return MASTER.filter(m=>!m.deleted&&!rows.some(r=>r.m===m.id)&&m.name.toLowerCase().includes(sq)).slice(0,4);
+}
+function t8QaAdd(name){
+  const t=TPL.find(x=>x.id===M8.id); if(!t)return;
+  const rows=TPLITEMS[t.id]||(TPLITEMS[t.id]=[]);
+  let m=MASTER.find(x=>!x.deleted&&x.name.toLowerCase()===name.toLowerCase());
+  if(!m){ m={id:nextMasterId++,name,tags:[],w:0,val:0,unit:'Stk'}; MASTER.push(m); }
+  if(rows.some(r=>r.m===m.id)){ snack('„'+m.name+'“ ist schon drin — nicht doppelt (FR-20.3)'); return; }
+  rows.push({m:m.id,q:'1',pp:false,mode:'pack',late:false,dedup:'max',cond:{}});
+  M8.open=-1; M8.qaName='';
+  logTplChange(t.id,'Position „'+m.name+'“ hinzugefügt');
+  renderTplEdit(); snack('„'+m.name+'“ hinzugefügt');
+}
+function renderT8Qa(){
+  const el=document.getElementById('t8qa'); if(!el)return;
+  const t=TPL.find(x=>x.id===M8.id); if(!t)return;
+  if(!M8.qaOpen){
+    el.classList.remove('qa-open'); el.classList.add('qa');
+    el.innerHTML=`<svg viewBox="0 0 24 24"><use href="#i-plus"/></svg> Position hinzufügen…`;
+    el.onclick=()=>{ M8.qaOpen=true; renderT8Qa(); };
+    return;
+  }
+  el.classList.remove('qa'); el.classList.add('qa-open'); el.onclick=null;
+  el.innerHTML=`<input placeholder="Artikel eintippen…" id="t8qaInput" autocomplete="off" value="${esc(M8.qaName)}">
+    <div id="t8qaSugg"></div>
+    <button class="qa-add-btn" id="t8qaAdd">Zur ${tplKind(t)==='group'?'Gruppe':'Vorlage'} hinzufügen</button>
+    <div class="qa-hint">Oder Enter — das Feld bleibt für die nächste Position offen. Neue Namen legen den Artikel im Inventar an (FR-1.1).</div>`;
+  const inp=document.getElementById('t8qaInput'), sug=document.getElementById('t8qaSugg');
+  inp.focus(); const v=inp.value; try{inp.setSelectionRange(v.length,v.length);}catch(e){}
+  // Only the suggestion strip redraws while typing — re-rendering the whole
+  // editor per keystroke would move the caret (same rule as M6's quick-add).
+  function drawSugg(){
+    const list=t8QaSuggest(inp.value);
+    sug.innerHTML=list.length?`<div class="qa-sugg">${list.map(m=>
+      `<button data-t8qadd="${m.id}">+ ${esc(m.name)} <b>·${esc(m.tags[0]||'')}</b></button>`).join('')}</div>`:'';
+    sug.querySelectorAll('[data-t8qadd]').forEach(b=>b.onmousedown=e=>{ e.preventDefault();
+      const m=MASTER.find(x=>x.id===+b.dataset.t8qadd); if(m) t8QaAdd(m.name); });
+  }
+  inp.addEventListener('input',()=>{ M8.qaName=inp.value; drawSugg(); }); drawSugg();
+  const submit=()=>{ if(inp.value.trim()) t8QaAdd(inp.value.trim()); };
+  document.getElementById('t8qaAdd').onmousedown=e=>{ e.preventDefault(); submit(); };
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter')submit(); });
+  // Collapse only when empty — same blur rule as M4/M6 (FR-25.13a).
+  inp.addEventListener('blur',()=>setTimeout(()=>{
+    if(document.activeElement===inp) return;
+    if(!inp.value.trim()){ M8.qaOpen=false; M8.qaName=''; renderT8Qa(); }
+  },0));
 }
 
 /* ============ §3.27 template from trip (FR-27.5) ============ */

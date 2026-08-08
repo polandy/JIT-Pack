@@ -72,7 +72,12 @@ bounded. Two decisions fix the scope:
   decision 2026-08-08, "Jeder sieht einfach alles") — templates/groups are shared
   instance-wide like master items (FR-22.6 model), owner_id stays as creator metadata;
   publish toggle, my/published split and all fork paths gone from prototype and specs
-  (parked in the FR-1.6 stub with revisit trigger). 64 assertions headless.
+  (parked in the FR-1.6 stub with revisit trigger). **Seventh round: FR-25.13 extended to M8**
+  (owner directive, "identisch wie in der Packliste") — the position picker replaced by the
+  M4/M6 quick-add pattern verbatim (FAB expansion, master autocomplete, visible scope-labelled
+  confirm, Enter, stays open, blur-collapse when empty, duplicate report instead of double
+  add, free text creates the master item); M8-13 added, M8-04/M8-12 reworded. 71 assertions
+  headless.
   **Implementation consequence, part of the open §3.27 package below:** relax server-side
   template visibility/ownership (`internal/store/master.go` pull filter + mutation
   authorization), drop the client fork paths (`requiresFork`/`forkTemplate` in review.ts,
