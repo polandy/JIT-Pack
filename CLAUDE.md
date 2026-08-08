@@ -26,7 +26,6 @@ Read this file fully before touching code. It is the orientation document: what 
 | What must the UI test suite cover? | `docs/UI_Test_Spec_v1.0.md` — Playwright scope: per-screen cases, cross-screen flows, FR/NFR traceability matrix |
 | How do I write code here? | `docs/CODING_PRINCIPLES.md` — **binding**, read before writing anything |
 | What was already built, and why that way? | `dev-docs/implementation-log.md` — append-only history |
-| Where is the product headed? | `docs/Vision_NorthStar_v1.0.md` — directional only; **not authoritative over shipped scope** |
 
 Only the current version of each document is kept. Never write a "v2" of a doc — replace the file and update its own revision note.
 
