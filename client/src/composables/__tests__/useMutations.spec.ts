@@ -118,7 +118,7 @@ describe('useMutations', () => {
 
   it('createMasterItem', () => {
     const m = useMutations(mockHLC())
-    const { mutation } = m.createMasterItem('Soap', { categoryId: 'c1', unit: 'pieces' })
+    const { mutation } = m.createMasterItem('Soap', { categoryId: 'c1' })
     expect(mutation.op).toBe('insert')
     expect(mutation.table).toBe('items')
     expect(mutation.fields?.['name']).toBe('Soap')

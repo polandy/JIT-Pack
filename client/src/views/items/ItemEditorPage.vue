@@ -2,7 +2,7 @@
 /**
  * M10 — Item Editor
  *
- * Edit one master item: name, category, weight, value, unit,
+ * Edit one master item: name, category, weight, value,
  * and its companion dependencies (Addendum 3.20).
  * Every change commits immediately (G-5).
  */
@@ -159,10 +159,6 @@ function onValueChange(event: CustomEvent) {
   updateField('value_cents', isNaN(val) ? null : Math.round(val * 100))
 }
 
-function onUnitChange(event: CustomEvent) {
-  updateField('unit', event.detail.value)
-}
-
 </script>
 
 <template>
@@ -228,14 +224,6 @@ function onUnitChange(event: CustomEvent) {
             />
           </IonItem>
 
-          <!-- Unit (FR-1.8) -->
-          <IonItem>
-            <IonLabel position="stacked">Unit</IonLabel>
-            <IonSelect :value="item.unit" interface="popover" @ionChange="onUnitChange">
-              <IonSelectOption value="pieces">Pieces</IonSelectOption>
-              <IonSelectOption value="pairs">Pairs</IonSelectOption>
-            </IonSelect>
-          </IonItem>
         </IonList>
 
         <!-- Reference photo (FR-22.1/22.5) -->

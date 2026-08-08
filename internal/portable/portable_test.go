@@ -12,8 +12,8 @@ func TestMarshalTemplate_RoundTrip(t *testing.T) {
 		SchemaVersion: 1,
 		Name:          "Base Travel",
 		Items: []portable.Item{
-			{Name: "Toothbrush", Quantity: 1, Assignment: "per_person", Unit: "pieces"},
-			{Name: "Sunscreen", Quantity: 2, Unit: "pieces",
+			{Name: "Toothbrush", Quantity: 1, Assignment: "per_person"},
+			{Name: "Sunscreen", Quantity: 2,
 				Conditions: map[string]any{"season": []any{"summer"}}},
 		},
 	}

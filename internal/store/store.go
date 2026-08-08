@@ -55,7 +55,7 @@ var syncableColumns = map[string]map[string]bool{
 	),
 	"items": toSet(
 		"name", "category_id", "weight_grams", "value_cents",
-		"unit", "created_by",
+		"created_by",
 		"image_hash",
 	),
 	"templates": toSet(

@@ -148,7 +148,7 @@ describe('applyReviewProposal', () => {
       table: 'items',
       id: 'item9',
       deleted: false,
-      row: { name: 'Sonnencreme', unit: 'pieces' },
+      row: { name: 'Sonnencreme' },
     })
 
     orch.applyReviewProposal(

@@ -64,7 +64,7 @@ describe('master data actions', () => {
       table: 'items',
       id: 'i1',
       deleted: false,
-      row: { name: 'Socken', unit: 'pieces', weight_grams: 80 },
+      row: { name: 'Socken', weight_grams: 80 },
     })
     mockDrain()
 
@@ -102,7 +102,7 @@ describe('master data actions', () => {
     mockDrain()
     mockDrain()
 
-    const id = orch.createMasterItem('Stirnlampe', { unit: 'pieces' })
+    const id = orch.createMasterItem('Stirnlampe')
     expect(master.getItem(id)?.name).toBe('Stirnlampe')
 
     orch.deleteMasterItem(id)

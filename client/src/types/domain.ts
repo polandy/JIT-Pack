@@ -142,8 +142,6 @@ export interface Category {
   sort_order: number
 }
 
-export type ItemUnit = 'pieces' | 'pairs'
-
 export interface MasterItem {
   id: string
   name: string
@@ -151,7 +149,6 @@ export interface MasterItem {
   category_name?: string
   weight_grams: number | null
   value_cents: number | null
-  unit: ItemUnit
   /** FR-22.1: hash of the item's reference photo, null when it has none.
    * The bytes are fetched lazily via GET /items/{id}/image (never synced). */
   image_hash?: string | null

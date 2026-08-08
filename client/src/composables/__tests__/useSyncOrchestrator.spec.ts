@@ -207,7 +207,7 @@ describe('useSyncOrchestrator', () => {
         table: 'items',
         id: 'i1',
         deleted: false,
-        row: { name: 'Shirt', category_id: 'c1', unit: 'pieces' },
+        row: { name: 'Shirt', category_id: 'c1' },
       },
     ])
 

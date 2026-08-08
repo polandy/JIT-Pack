@@ -62,7 +62,7 @@ describe('Local Mode', () => {
         deleted: false,
         row: { name: 'Engadin', end_date: '2026-08-10', status: 'planning' },
       },
-      { seq: 0, table: 'items', id: 'i1', deleted: false, row: { name: 'Socken', unit: 'pieces' } },
+      { seq: 0, table: 'items', id: 'i1', deleted: false, row: { name: 'Socken' } },
     ])
 
     const orch = newLocalOrch(persistence)

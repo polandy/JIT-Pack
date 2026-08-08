@@ -54,7 +54,6 @@ export interface PortableItem {
   conditions: Record<string, unknown> | null
   default_mode: string | null
   late_packer: boolean
-  unit: string | null
   // Trip fields
   mode: string | null
   category: string | null
@@ -176,7 +175,6 @@ export function serializeTemplate(
         name: master?.name ?? 'Unknown item',
         quantity: ti.quantity,
         assignment: ti.assignment,
-        unit: master?.unit ?? 'pieces',
         ...(ti.conditions ? { conditions: ti.conditions } : {}),
         default_mode: ti.default_mode,
         ...(ti.late_packer ? { late_packer: true } : {}),
@@ -267,7 +265,6 @@ function toItem(entry: unknown): PortableItem | null {
         : null,
     default_mode: str(o['default_mode']),
     late_packer: o['late_packer'] === true,
-    unit: str(o['unit']),
     mode: str(o['mode']),
     category: str(o['category']),
     traveler: str(o['traveler']),

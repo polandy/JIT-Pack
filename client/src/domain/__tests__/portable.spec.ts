@@ -28,8 +28,7 @@ function masterItem(id: string, name: string): MasterItem {
     category_id: null,
     weight_grams: null,
     value_cents: null,
-    unit: 'pieces',
-  }
+      }
 }
 
 const templateYAML = `kind: template
@@ -161,7 +160,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
     ]
     const master = new Map<string, MasterItem>([
       ['i1', masterItem('i1', 'Unterhosen')],
-      ['i2', { ...masterItem('i2', 'Skibrille'), unit: 'pairs' }],
+      ['i2', masterItem('i2', 'Skibrille')],
     ])
 
     const yaml = serializeTemplate(template, items, (id) => master.get(id))
@@ -175,7 +174,6 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
       quantity: 1,
       assignment: 'trip_global',
       dedup: 'sum',
-      unit: 'pairs',
       conditions: { season: 'winter' },
       default_mode: 'buy_before',
       late_packer: true,

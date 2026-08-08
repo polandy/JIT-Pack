@@ -714,6 +714,7 @@ body{
 <g id="i-chev"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></g>
 <g id="i-wifi"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0M12 19h.01" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></g>
 <g id="i-search"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m20 20-3.4-3.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></g>
+<g id="i-eye"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/></g>
 <g id="i-filter"><path d="M4 6h16M7 12h10M10 18h4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></g>
 <g id="i-fold"><path d="M8 4.5 12 8l4-3.5M16 19.5 12 16l-4 3.5M3.5 12h17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></g>
 <g id="i-unfold"><path d="M8 8.5 12 5l4 3.5M16 15.5 12 19l-4-3.5M3.5 12h17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></g>
@@ -987,6 +988,13 @@ body{
     </div>
   </div>
 
+  <!-- M9 property sheet — which extras the lean inventory list shows -->
+  <div class="scrim" id="m9PropScrim" onclick="closeM9Props()"></div>
+  <div class="sheet" id="m9PropSheet">
+    <div class="handle"></div>
+    <div class="sheet-body" id="m9PropBody"></div>
+  </div>
+
   <!-- §3.25 consistency: M8 position sheet — the M5 pattern applied to a
        template/group position (glance chips, auto-save chip, Details ▾) -->
   <div class="scrim" id="t8Scrim" onclick="closeT8Item()"></div>
@@ -1106,11 +1114,11 @@ const isDone = it => it.packed>=it.qty && !openPrepOf(it.name);   // packed & no
 function itemLeaves(it){
   if(!it.pp) return [{key:String(it.id), it, e:null, ppIndex:null,
     name:it.name, trav:it.trav, qty:it.qty, packed:it.packed, packedBy:it.packedBy, packedAt:it.packedAt,
-    prep:openPrepOf(it.name), cat:it.cat, cont:it.cont, mode:it.mode, unit:it.unit, missing:it.missing,
+    prep:openPrepOf(it.name), cat:it.cat, cont:it.cont, mode:it.mode, missing:it.missing,
     late:it.late}];   // late was never copied onto the leaf, so ⏰ and the Merkmale facet both missed it
   return it.pp.map((e,k)=>({key:'pp:'+it.id+':'+k, it, e, ppIndex:k,
     name:it.name, trav:e.trav, qty:e.qty, packed:e.packed, packedBy:e.packedBy, packedAt:e.packedAt,
-    prep:openPrepOf(it.name), cat:it.cat, cont:it.cont, mode:it.mode, unit:it.unit, missing:it.missing,
+    prep:openPrepOf(it.name), cat:it.cat, cont:it.cont, mode:it.mode, missing:it.missing,
     late:it.late}));
 }
 const allLeaves = () => P.items.flatMap(itemLeaves);
@@ -1122,7 +1130,7 @@ function resolveLeaf(key){
 let pvToolsOpen = false, lastPackScroll = 0, packHeadCollapsed = false;
 const P = {
   items:[
-    {id:1,name:'Wandersocken',cat:'Kleidung',qty:6,packed:4,unit:'Paar',mode:'pack',trav:'Alle',cont:'—',w:60,packedBy:'Andy'},
+    {id:1,name:'Wandersocken',cat:'Kleidung',qty:6,packed:4,mode:'pack',trav:'Alle',cont:'—',w:60,packedBy:'Andy'},
     {id:2,name:'Icebreaker Merino-Shirt',cat:'Kleidung',qty:3,packed:3,mode:'pack',trav:'Andy',cont:'Koffer',w:150,packedBy:'Andy'},
     {id:3,name:'Karierte kurze Hose',cat:'Kleidung',qty:2,packed:2,mode:'pack',trav:'Andy',cont:'Koffer',w:220,packedBy:'Sia'},
     {id:4,name:'Regenjacke',cat:'Kleidung',mode:'pack',cont:'Rucksack',w:300,pp:[
@@ -1247,7 +1255,7 @@ function leafRowHTML(l){
     chips.push(`<span class="whochip"><span class="mini-av" style="background:${av[1]}">${av[0]}</span>${esc(l.trav)}</span>`);
   }   // "Used by" attribution avatar on shared rows removed (concept dropped 2026-07-18)
   const prepBadge=l.prep?`<span class="prepbadge">🔧 ${l.prep}</span>`:'';
-  const sub=(groupMode!=='cont'&&l.cont!=='—'?l.cont:(l.unit?`${l.qty} ${l.unit}`:''));  // packer now shown as an avatar (FR-25.3), not text
+  const sub=(groupMode!=='cont'&&l.cont!=='—'?l.cont:'');  // packer now shown as an avatar (FR-25.3), not text
   return `<div class="swipe" data-id="${l.key}">
     <div class="swipe-bg left">Packen ✓</div>
     <div class="swipe-bg right">Überspringen</div>
@@ -1815,7 +1823,7 @@ function renderItem(){
 
   document.getElementById('sheetBody').innerHTML=`
     <div class="ihead"><div class="grow"><div class="iname">${esc(it.name)}</div>
-      <div class="desc">${esc(it.cat)}${it.unit?' · '+it.unit:''} · <span style="color:${state[1]};font-weight:600">${state[0]}</span></div></div>
+      <div class="desc">${esc(it.cat)} · <span style="color:${state[1]};font-weight:600">${state[0]}</span></div></div>
       ${stepper}</div>
     <div class="savechip ${SAVE.state}" id="saveChip" title="${SAVE.state==='dirty'?'Wird gespeichert…':'Gespeichert'}">${SAVE.state==='dirty'?'●':'✓'}</div>
 
@@ -2343,195 +2351,199 @@ function renderTemplates(){
 /* ============ M9 item inventory — mirrors the filter, axis = category ============ */
 const CATEMO={Bad:'🧴',Baden:'🩱',Camping:'⛺',Diverses:'🎒',Dokumente:'📄',Foto:'📷',Freizeit:'🎲',Gesundheit:'⚕️',Hose:'👖',Jacke:'🧥',Kind:'🧒',Kleidung:'👕',Küche:'🍳',Oberteil:'👕',Schuhe:'👟',Sommer:'☀️',Sport:'🏃',Technik:'🔌',Unterwäsche:'🩲',Velo:'🚲',Wandern:'🥾',Winter:'❄️'};
 const MASTER=[
-  {id:1,name:'Wanderschuhe',tags:['Schuhe','Kleidung','Wandern'],w:900,val:140,unit:'Paar',used:19},
-  {id:2,name:'Flip Flops',tags:['Schuhe','Kleidung'],w:800,val:120,unit:'Paar',used:17},
-  {id:3,name:'Sandalen',tags:['Schuhe','Kleidung'],w:800,val:120,unit:'Paar',used:8},
-  {id:4,name:'Wandersocken',tags:['Unterwäsche','Kleidung','Wandern'],w:60,val:20,unit:'Paar',used:22},
-  {id:5,name:'Normale Socken',tags:['Unterwäsche','Kleidung'],w:60,val:20,unit:'Paar',used:29},
-  {id:6,name:'Unterhosen',tags:['Unterwäsche','Kleidung'],w:60,val:20,unit:'Stk',used:31},
-  {id:7,name:'Lange Unterhose',tags:['Unterwäsche','Kleidung'],w:60,val:20,unit:'Stk',used:6},
-  {id:8,name:'Nike Sportunterhose',tags:['Unterwäsche','Kleidung'],w:60,val:20,unit:'Stk',used:19},
-  {id:9,name:'Merino',tags:['Unterwäsche','Kleidung'],w:60,val:20,unit:'Stk',used:4},
-  {id:10,name:'Icebreaker',tags:['Oberteil','Kleidung'],w:180,val:40,unit:'Stk',used:22},
-  {id:11,name:'Normale T-Shirt',tags:['Oberteil','Kleidung'],w:180,val:40,unit:'Stk',used:29},
-  {id:12,name:'Langarm Shirt',tags:['Oberteil','Kleidung'],w:180,val:40,unit:'Stk',used:27},
-  {id:13,name:'Pijama Shirt',tags:['Oberteil','Kleidung'],w:180,val:40,unit:'Stk',used:29},
-  {id:14,name:'Langarm',tags:['Oberteil','Kleidung'],w:180,val:40,unit:'Stk',used:7},
-  {id:15,name:'Kurzarm',tags:['Oberteil','Kleidung'],w:180,val:40,unit:'Stk',used:21},
-  {id:16,name:'Rollkragen',tags:['Oberteil','Kleidung'],w:180,val:40,unit:'Stk',used:22},
-  {id:17,name:'Jäckchen',tags:['Oberteil','Kleidung'],w:180,val:40,unit:'Stk',used:16},
-  {id:18,name:'Karierte Kurze Hose',tags:['Hose','Kleidung'],w:320,val:70,unit:'Stk',used:13},
-  {id:19,name:'Ripcurl kurze Hose / Prana',tags:['Hose','Kleidung'],w:320,val:70,unit:'Stk',used:13},
-  {id:20,name:'Lange Wanderhosen',tags:['Hose','Kleidung','Wandern'],w:320,val:70,unit:'Stk',used:28},
-  {id:21,name:'Normale Hose',tags:['Hose','Kleidung'],w:320,val:70,unit:'Stk',used:13},
-  {id:22,name:'Regenjacke',tags:['Jacke','Kleidung'],w:320,val:150,unit:'Stk',used:29},
-  {id:23,name:'Badetüechli klein (Transa)',tags:['Baden','Kleidung'],w:300,val:30,unit:'Stk',used:13},
-  {id:24,name:'Badetüechli klein, blau',tags:['Baden','Kleidung'],w:300,val:30,unit:'Stk',used:9},
-  {id:25,name:'Badetüchli gross (m-Budget)',tags:['Baden','Kleidung'],w:300,val:30,unit:'Stk',used:13},
-  {id:26,name:'Badehose',tags:['Baden','Kleidung'],w:300,val:30,unit:'Stk',used:22},
-  {id:27,name:'Sporthose',tags:['Sport'],w:250,val:60,unit:'Stk',used:21},
-  {id:28,name:'Sport-Shirt',tags:['Sport'],w:250,val:60,unit:'Stk',used:22},
-  {id:29,name:'Jogging Schuhe',tags:['Sport'],w:250,val:60,unit:'Paar',used:12},
-  {id:30,name:'Hallen-Turnschuhe',tags:['Sport'],w:250,val:60,unit:'Paar',used:1},
-  {id:31,name:'Tennis-Schuhe',tags:['Sport'],w:250,val:60,unit:'Paar',used:1},
-  {id:32,name:'Lange/winter jogging Kleider',tags:['Sport','Winter'],w:250,val:60,unit:'Stk'},
-  {id:33,name:'Fahrrad Schuhe',tags:['Sport','Velo'],w:250,val:60,unit:'Paar',used:1},
-  {id:34,name:'Sonnencreme',tags:['Diverses','Sommer'],w:150,val:20,unit:'Stk',used:26},
-  {id:35,name:'Linsen',tags:['Diverses'],w:150,val:20,unit:'Stk',used:4},
-  {id:36,name:'Gürtel',tags:['Diverses'],w:150,val:20,unit:'Stk',used:16},
-  {id:37,name:'Sonnenhut',tags:['Diverses','Sommer'],w:150,val:20,unit:'Stk',used:26},
-  {id:38,name:'Schlafsack',tags:['Diverses','Camping'],w:900,val:120,unit:'Stk',used:10},
-  {id:39,name:'Sonnenbrille',tags:['Diverses','Sommer'],w:150,val:20,unit:'Stk',used:31},
-  {id:40,name:'Kappe',tags:['Diverses'],w:150,val:20,unit:'Stk',used:19},
-  {id:41,name:'Halstuch (Buff)',tags:['Diverses'],w:150,val:20,unit:'Stk',used:22},
-  {id:42,name:'Halstuch',tags:['Diverses'],w:150,val:20,unit:'Stk',used:6},
-  {id:43,name:'Finken',tags:['Diverses'],w:150,val:20,unit:'Paar',used:22},
-  {id:44,name:'Handschuhe',tags:['Diverses','Winter'],w:150,val:20,unit:'Paar',used:13},
-  {id:45,name:'Velo Handschuhe',tags:['Diverses','Velo','Winter'],w:150,val:20,unit:'Paar',used:4},
-  {id:46,name:'Brille',tags:['Diverses'],w:150,val:20,unit:'Stk',used:28},
-  {id:47,name:'Feuchtes Toilettenpapier',tags:['Diverses'],w:150,val:20,unit:'Stk',used:18},
-  {id:48,name:'Stoffsack für schmutzige Wäsche',tags:['Diverses'],w:150,val:20,unit:'Stk',used:24},
-  {id:49,name:'Taschenmesser',tags:['Diverses'],w:90,val:20,unit:'Stk',used:28},
-  {id:50,name:'Regenschutz Rucksack',tags:['Diverses'],w:150,val:20,unit:'Stk',used:17},
-  {id:51,name:'Schreibzeug, Notizblöckli',tags:['Diverses'],w:150,val:20,unit:'Stk',used:12},
-  {id:52,name:'Lonely Planet',tags:['Diverses'],w:150,val:20,unit:'Stk',used:4},
-  {id:53,name:'Karte',tags:['Diverses'],w:150,val:20,unit:'Stk',used:2},
-  {id:54,name:'Compeed',tags:['Diverses'],w:150,val:20,unit:'Stk',used:16},
-  {id:55,name:'Wundensalbe',tags:['Diverses'],w:150,val:20,unit:'Stk',used:18},
-  {id:56,name:'Apotheke',tags:['Diverses'],w:150,val:20,unit:'Stk',used:19},
-  {id:57,name:'Pflaster',tags:['Diverses'],w:150,val:20,unit:'Stk',used:10},
-  {id:58,name:'Trainerhose',tags:['Diverses'],w:150,val:20,unit:'Stk',used:7},
-  {id:59,name:'Regenhosen',tags:['Diverses'],w:150,val:20,unit:'Stk',used:11},
-  {id:60,name:'Taschentücher',tags:['Bad'],w:80,val:8,unit:'Stk',used:27},
-  {id:61,name:'Shampoo & Duschgel',tags:['Bad'],w:80,val:8,unit:'Stk',used:19},
-  {id:62,name:'Deo',tags:['Bad'],w:80,val:8,unit:'Stk',used:23},
-  {id:63,name:'Zahnbürste',tags:['Bad'],w:80,val:8,unit:'Stk',used:18},
-  {id:64,name:'Zahnpasta',tags:['Bad'],w:80,val:8,unit:'Stk',used:23},
-  {id:65,name:'Watte für Nasenbluten',tags:['Bad'],w:80,val:8,unit:'Stk',used:26},
-  {id:66,name:'Brillen Putzmittel / Tuch',tags:['Bad'],w:80,val:8,unit:'Stk',used:16},
-  {id:67,name:'Nasenspray',tags:['Bad'],w:80,val:8,unit:'Stk',used:3},
-  {id:68,name:'Nasensalbe',tags:['Bad'],w:80,val:8,unit:'Stk',used:10},
-  {id:69,name:'Kompaktkamera',tags:['Technik','Foto'],w:700,val:1200,unit:'Stk',used:2},
-  {id:70,name:'Reiseadapter (Land)',tags:['Technik'],w:300,val:150,unit:'Stk',used:9},
-  {id:71,name:'Kindle',tags:['Technik'],w:180,val:120,unit:'Stk',used:16},
-  {id:72,name:'Tablet',tags:['Technik'],w:520,val:700,unit:'Stk',used:3},
-  {id:73,name:'Laptop',tags:['Technik'],w:1600,val:1500,unit:'Stk',used:15},
-  {id:74,name:'Spiegelreflex / Systemkamera',tags:['Technik','Foto'],w:700,val:1200,unit:'Stk',used:26},
-  {id:75,name:'GPS Tracker / Garmin Fenix',tags:['Technik'],w:300,val:150,unit:'Stk',used:20},
-  {id:76,name:'Stirnlampe',tags:['Technik'],w:90,val:40,unit:'Stk',used:26},
-  {id:77,name:'Stativ',tags:['Technik','Foto'],w:300,val:150,unit:'Stk',used:25},
-  {id:78,name:'Camera Clip',tags:['Technik','Foto'],w:300,val:150,unit:'Stk',used:4},
-  {id:79,name:'Tele',tags:['Technik','Foto'],w:300,val:150,unit:'Stk',used:3},
-  {id:80,name:'Gimbal',tags:['Technik','Foto'],w:400,val:300,unit:'Stk',used:1},
-  {id:81,name:'Airpods',tags:['Technik'],w:300,val:150,unit:'Stk',used:1},
-  {id:82,name:'NC Kopfhörer',tags:['Technik'],w:300,val:150,unit:'Stk',used:1},
-  {id:83,name:'Ladegerät für Kamera',tags:['Technik','Foto'],w:700,val:1200,unit:'Stk',used:19},
-  {id:84,name:'Ladegerät Fujifilm X-T2',tags:['Technik','Foto'],w:300,val:150,unit:'Stk',used:12},
-  {id:85,name:'Ladegerät Handy',tags:['Technik'],w:300,val:150,unit:'Stk',used:30},
-  {id:86,name:'HDMI Kabel',tags:['Technik'],w:300,val:150,unit:'Stk',used:16},
-  {id:87,name:'Speicherkartenleser',tags:['Technik'],w:300,val:150,unit:'Stk',used:21},
-  {id:88,name:'Ladegerät Uhr',tags:['Technik'],w:300,val:150,unit:'Stk',used:25},
-  {id:89,name:'Powerbank inkl. Kabel',tags:['Technik'],w:220,val:25,unit:'Stk',used:23},
-  {id:90,name:'Wasserschutz für Handy',tags:['Technik'],w:300,val:150,unit:'Stk',used:1},
-  {id:91,name:'Wasserschutz für Tablet',tags:['Technik'],w:520,val:700,unit:'Stk',used:1},
-  {id:92,name:'Wasserschutz für eReader',tags:['Technik'],w:180,val:120,unit:'Stk',used:1},
-  {id:93,name:'Solarpanel',tags:['Technik'],w:300,val:150,unit:'Stk'},
-  {id:94,name:'USB-Ladegerät für Auto',tags:['Technik'],w:300,val:150,unit:'Stk',used:6},
-  {id:95,name:'Handy Befestigung für Auto',tags:['Technik'],w:300,val:150,unit:'Stk',used:5},
-  {id:96,name:'Reise-Steckdose',tags:['Technik'],w:300,val:150,unit:'Stk',used:9},
-  {id:97,name:'Mehrfach-Stromstecker',tags:['Technik'],w:300,val:150,unit:'Stk',used:7},
-  {id:98,name:'Nvidia shield',tags:['Technik'],w:300,val:150,unit:'Stk',used:5},
-  {id:99,name:'Nvidia shield Fernbedienung',tags:['Technik'],w:300,val:150,unit:'Stk',used:3},
-  {id:100,name:'Teleconverter',tags:['Technik','Foto'],w:300,val:150,unit:'Stk',used:1},
-  {id:101,name:'Drohne nd filters',tags:['Technik','Foto'],w:900,val:1000,unit:'Stk',used:2},
-  {id:102,name:'Drohne',tags:['Technik','Foto'],w:900,val:1000,unit:'Stk',used:2},
-  {id:103,name:'Drohne ersatzpropeller',tags:['Technik','Foto'],w:900,val:1000,unit:'Stk',used:2},
-  {id:104,name:'Drohne Schraubenzieher',tags:['Technik','Foto'],w:900,val:1000,unit:'Stk',used:2},
-  {id:105,name:'Nintendo Switch',tags:['Technik'],w:400,val:350,unit:'Stk',used:1},
-  {id:106,name:'Steam Deck',tags:['Technik'],w:680,val:600,unit:'Stk',used:1},
-  {id:107,name:'Externer Bildschirm',tags:['Technik'],w:300,val:150,unit:'Stk',used:1},
-  {id:108,name:'Pass / ID',tags:['Dokumente'],w:20,val:0,unit:'Stk',used:14},
-  {id:109,name:'Impfausweis',tags:['Dokumente'],w:20,val:0,unit:'Stk',used:3},
-  {id:110,name:'Flugtickets / Zugtickets',tags:['Dokumente'],w:20,val:0,unit:'Stk',used:6},
-  {id:111,name:'FIP',tags:['Dokumente'],w:20,val:0,unit:'Stk',used:1},
-  {id:112,name:'Pass Kopie',tags:['Dokumente'],w:20,val:0,unit:'Stk',used:1},
-  {id:113,name:'Passfotos',tags:['Dokumente'],w:20,val:0,unit:'Stk',used:2},
-  {id:114,name:'Reka Card',tags:['Dokumente'],w:20,val:0,unit:'Stk',used:10},
-  {id:115,name:'US-Dollar',tags:['Dokumente'],w:20,val:0,unit:'Stk',used:6},
-  {id:116,name:'Leonardos ID',tags:['Dokumente','Kind'],w:20,val:0,unit:'Stk',used:9},
-  {id:117,name:'Imodium',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',used:2},
-  {id:118,name:'Motilium lingual, gegen Übelkeit',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',used:3},
-  {id:119,name:'Dafalgan',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',used:13},
-  {id:120,name:'Neocitran',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',used:9},
-  {id:121,name:'Malarone',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',used:1},
-  {id:122,name:'Mückenschutz',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',used:9},
-  {id:123,name:'Anti-Juck Mittel',tags:['Gesundheit','Bad'],w:30,val:12,unit:'Stk',used:12},
-  {id:124,name:'Tupperware',tags:['Küche'],w:200,val:10,unit:'Stk',used:8},
-  {id:125,name:'Kaffee',tags:['Küche'],w:500,val:8,unit:'Stk',used:6},
-  {id:126,name:'Caotina',tags:['Küche'],w:200,val:10,unit:'Stk',used:7},
-  {id:127,name:'Tee',tags:['Küche'],w:200,val:10,unit:'Stk',used:3},
-  {id:128,name:'Öl',tags:['Küche'],w:200,val:10,unit:'Stk',used:2},
-  {id:129,name:'Salz',tags:['Küche'],w:200,val:10,unit:'Stk',used:6},
-  {id:130,name:'Pfeffer',tags:['Küche'],w:200,val:10,unit:'Stk',used:8},
-  {id:131,name:'Bouillon',tags:['Küche'],w:200,val:10,unit:'Stk',used:5},
-  {id:132,name:'Messer',tags:['Küche'],w:90,val:20,unit:'Stk',used:10},
-  {id:133,name:'Haushaltspapier',tags:['Küche'],w:200,val:10,unit:'Stk',used:3},
-  {id:134,name:'Scotch',tags:['Küche'],w:200,val:10,unit:'Stk',used:10},
-  {id:135,name:'Chräschlisäckli',tags:['Küche'],w:200,val:10,unit:'Stk',used:4},
-  {id:136,name:'Backpapier',tags:['Küche'],w:200,val:10,unit:'Stk',used:8},
-  {id:137,name:'Schneidebretter',tags:['Küche'],w:200,val:10,unit:'Stk',used:2},
-  {id:138,name:'Abwaschhandschuhe',tags:['Küche','Winter'],w:200,val:10,unit:'Paar',used:2},
-  {id:139,name:'Jonglierbälle',tags:['Freizeit'],w:300,val:40,unit:'Stk',used:7},
-  {id:140,name:'Spiele',tags:['Freizeit'],w:300,val:40,unit:'Stk',used:3},
-  {id:141,name:'Boombox',tags:['Freizeit'],w:300,val:40,unit:'Stk',used:9},
-  {id:142,name:'Velohelme',tags:['Freizeit','Velo'],w:300,val:90,unit:'Stk',used:2},
-  {id:143,name:'Velo',tags:['Freizeit','Velo'],w:300,val:40,unit:'Stk',used:1},
-  {id:144,name:'Lenkertasche',tags:['Freizeit'],w:300,val:40,unit:'Stk'},
-  {id:145,name:'Velohosen',tags:['Freizeit','Velo'],w:300,val:40,unit:'Stk'},
-  {id:146,name:'Anhänger',tags:['Freizeit'],w:300,val:40,unit:'Stk',used:3},
-  {id:147,name:'Handyhalterung velo',tags:['Freizeit','Velo'],w:300,val:40,unit:'Stk',used:2},
-  {id:148,name:'Sp-connect hülle',tags:['Freizeit'],w:300,val:40,unit:'Stk',used:2},
-  {id:149,name:'Wanderstöcke',tags:['Freizeit','Wandern'],w:500,val:60,unit:'Stk',used:11},
-  {id:150,name:'Kindersitz',tags:['Freizeit','Kind'],w:300,val:40,unit:'Stk',used:1},
-  {id:151,name:'Gamaschen',tags:['Freizeit'],w:300,val:40,unit:'Stk',used:1},
-  {id:152,name:'Ping pong schläger',tags:['Freizeit'],w:300,val:40,unit:'Stk',used:8},
-  {id:153,name:'Ladegerär sram schaltung',tags:['Freizeit'],w:300,val:40,unit:'Stk',used:1},
-  {id:154,name:'Cr2032 batterien für sram',tags:['Freizeit'],w:300,val:40,unit:'Stk',used:1},
-  {id:155,name:'Leonardo regenzeug',tags:['Kind'],w:200,val:20,unit:'Stk',used:10},
-  {id:156,name:'Windeln',tags:['Kind'],w:200,val:20,unit:'Stk',used:7},
-  {id:157,name:'Badewindeln',tags:['Kind'],w:200,val:20,unit:'Stk',used:6},
-  {id:158,name:'Büechli für Leonardo',tags:['Kind'],w:200,val:20,unit:'Stk',used:8},
-  {id:159,name:'Badethermometer',tags:['Kind'],w:200,val:20,unit:'Stk'},
-  {id:160,name:'Leonardos Sonnenbrille',tags:['Kind','Sommer'],w:200,val:20,unit:'Stk',used:11},
-  {id:161,name:'Kinderbesteck',tags:['Kind'],w:200,val:20,unit:'Stk',used:2},
-  {id:162,name:'Handseife',tags:['Diverses'],w:150,val:20,unit:'Stk',used:4},
-  {id:163,name:'Kleiderwaschmittel',tags:['Diverses'],w:150,val:20,unit:'Stk',used:1},
-  {id:164,name:'Masken',tags:['Diverses'],w:150,val:20,unit:'Stk',used:2},
-  {id:165,name:'Schuhlöffel',tags:['Diverses'],w:150,val:20,unit:'Stk',used:8},
-  {id:166,name:'FVP-Ermässigungskarte',tags:['Diverses'],w:150,val:20,unit:'Stk',used:5},
-  {id:167,name:'Zündhölzli',tags:['Diverses'],w:150,val:20,unit:'Stk',used:4},
-  {id:168,name:'Frischhaltefolien',tags:['Diverses'],w:150,val:20,unit:'Stk',used:4},
-  {id:169,name:'Farmer & Knabberzeug',tags:['Diverses'],w:150,val:20,unit:'Stk',used:5},
-  {id:170,name:'Sandspielzeug',tags:['Diverses'],w:150,val:20,unit:'Stk',used:3},
-  {id:171,name:'FollowMe (Velo-Kupplung)',tags:['Diverses','Velo'],w:150,val:20,unit:'Stk'},
-  {id:172,name:'Sonnenschirm',tags:['Diverses','Sommer'],w:150,val:20,unit:'Stk',used:2},
-  {id:173,name:'Picknick Decke',tags:['Diverses'],w:150,val:20,unit:'Stk',used:6},
-  {id:174,name:'Abwaschschwamm',tags:['Diverses'],w:150,val:20,unit:'Stk',used:1},
-  {id:175,name:'Abwaschseife',tags:['Diverses'],w:150,val:20,unit:'Stk',used:1},
-  {id:176,name:'Kleiner Rucksack für Tagesausflug',tags:['Diverses'],w:150,val:20,unit:'Stk',used:4},
-  {id:177,name:'Feldstecher',tags:['Diverses'],w:150,val:20,unit:'Stk',used:1},
-  {id:178,name:'Shokz',tags:['Diverses'],w:150,val:20,unit:'Stk',used:3},
-  {id:179,name:'Ipad mini',tags:['Diverses'],w:520,val:800,unit:'Stk',used:2},
-  {id:180,name:'Ipad pro',tags:['Diverses'],w:520,val:800,unit:'Stk',used:3},
-  {id:181,name:'Usb-c hub',tags:['Diverses'],w:150,val:20,unit:'Stk',used:2},
-  {id:182,name:'Ipad Tastatur',tags:['Diverses'],w:520,val:800,unit:'Stk',used:2},
-  {id:183,name:'Oberrohrtasche',tags:['Velo'],w:400,val:80,unit:'Stk'},
-  {id:184,name:'Oberrohrtasche unten',tags:['Velo'],w:400,val:80,unit:'Stk'},
-  {id:185,name:'Trinkflasche',tags:['Velo'],w:400,val:80,unit:'Stk'},
-  {id:186,name:'Makro-Objektiv',tags:['Technik','Foto'],w:600,val:900,unit:'Stk',used:2}];
+  {id:1,name:'Wanderschuhe',tags:['Schuhe','Kleidung','Wandern'],w:900,val:140,used:19},
+  {id:2,name:'Flip Flops',tags:['Schuhe','Kleidung'],w:800,val:120,used:17},
+  {id:3,name:'Sandalen',tags:['Schuhe','Kleidung'],w:800,val:120,used:8},
+  {id:4,name:'Wandersocken',tags:['Unterwäsche','Kleidung','Wandern'],w:60,val:20,used:22},
+  {id:5,name:'Normale Socken',tags:['Unterwäsche','Kleidung'],w:60,val:20,used:29},
+  {id:6,name:'Unterhosen',tags:['Unterwäsche','Kleidung'],w:60,val:20,used:31},
+  {id:7,name:'Lange Unterhose',tags:['Unterwäsche','Kleidung'],w:60,val:20,used:6},
+  {id:8,name:'Nike Sportunterhose',tags:['Unterwäsche','Kleidung'],w:60,val:20,used:19},
+  {id:9,name:'Merino',tags:['Unterwäsche','Kleidung'],w:60,val:20,used:4},
+  {id:10,name:'Icebreaker',tags:['Oberteil','Kleidung'],w:180,val:40,used:22},
+  {id:11,name:'Normale T-Shirt',tags:['Oberteil','Kleidung'],w:180,val:40,used:29},
+  {id:12,name:'Langarm Shirt',tags:['Oberteil','Kleidung'],w:180,val:40,used:27},
+  {id:13,name:'Pijama Shirt',tags:['Oberteil','Kleidung'],w:180,val:40,used:29},
+  {id:14,name:'Langarm',tags:['Oberteil','Kleidung'],w:180,val:40,used:7},
+  {id:15,name:'Kurzarm',tags:['Oberteil','Kleidung'],w:180,val:40,used:21},
+  {id:16,name:'Rollkragen',tags:['Oberteil','Kleidung'],w:180,val:40,used:22},
+  {id:17,name:'Jäckchen',tags:['Oberteil','Kleidung'],w:180,val:40,used:16},
+  {id:18,name:'Karierte Kurze Hose',tags:['Hose','Kleidung'],w:320,val:70,used:13},
+  {id:19,name:'Ripcurl kurze Hose / Prana',tags:['Hose','Kleidung'],w:320,val:70,used:13},
+  {id:20,name:'Lange Wanderhosen',tags:['Hose','Kleidung','Wandern'],w:320,val:70,used:28},
+  {id:21,name:'Normale Hose',tags:['Hose','Kleidung'],w:320,val:70,used:13},
+  {id:22,name:'Regenjacke',tags:['Jacke','Kleidung'],w:320,val:150,used:29},
+  {id:23,name:'Badetüechli klein (Transa)',tags:['Baden','Kleidung'],w:300,val:30,used:13},
+  {id:24,name:'Badetüechli klein, blau',tags:['Baden','Kleidung'],w:300,val:30,used:9},
+  {id:25,name:'Badetüchli gross (m-Budget)',tags:['Baden','Kleidung'],w:300,val:30,used:13},
+  {id:26,name:'Badehose',tags:['Baden','Kleidung'],w:300,val:30,used:22},
+  {id:27,name:'Sporthose',tags:['Sport'],w:250,val:60,used:21},
+  {id:28,name:'Sport-Shirt',tags:['Sport'],w:250,val:60,used:22},
+  {id:29,name:'Jogging Schuhe',tags:['Sport'],w:250,val:60,used:12},
+  {id:30,name:'Hallen-Turnschuhe',tags:['Sport'],w:250,val:60,used:1},
+  {id:31,name:'Tennis-Schuhe',tags:['Sport'],w:250,val:60,used:1},
+  {id:32,name:'Lange/winter jogging Kleider',tags:['Sport','Winter'],w:250,val:60},
+  {id:33,name:'Fahrrad Schuhe',tags:['Sport','Velo'],w:250,val:60,used:1},
+  {id:34,name:'Sonnencreme',tags:['Diverses','Sommer'],w:150,val:20,used:26},
+  {id:35,name:'Linsen',tags:['Diverses'],w:150,val:20,used:4},
+  {id:36,name:'Gürtel',tags:['Diverses'],w:150,val:20,used:16},
+  {id:37,name:'Sonnenhut',tags:['Diverses','Sommer'],w:150,val:20,used:26},
+  {id:38,name:'Schlafsack',tags:['Diverses','Camping'],w:900,val:120,used:10},
+  {id:39,name:'Sonnenbrille',tags:['Diverses','Sommer'],w:150,val:20,used:31},
+  {id:40,name:'Kappe',tags:['Diverses'],w:150,val:20,used:19},
+  {id:41,name:'Halstuch (Buff)',tags:['Diverses'],w:150,val:20,used:22},
+  {id:42,name:'Halstuch',tags:['Diverses'],w:150,val:20,used:6},
+  {id:43,name:'Finken',tags:['Diverses'],w:150,val:20,used:22},
+  {id:44,name:'Handschuhe',tags:['Diverses','Winter'],w:150,val:20,used:13},
+  {id:45,name:'Velo Handschuhe',tags:['Diverses','Velo','Winter'],w:150,val:20,used:4},
+  {id:46,name:'Brille',tags:['Diverses'],w:150,val:20,used:28},
+  {id:47,name:'Feuchtes Toilettenpapier',tags:['Diverses'],w:150,val:20,used:18},
+  {id:48,name:'Stoffsack für schmutzige Wäsche',tags:['Diverses'],w:150,val:20,used:24},
+  {id:49,name:'Taschenmesser',tags:['Diverses'],w:90,val:20,used:28},
+  {id:50,name:'Regenschutz Rucksack',tags:['Diverses'],w:150,val:20,used:17},
+  {id:51,name:'Schreibzeug, Notizblöckli',tags:['Diverses'],w:150,val:20,used:12},
+  {id:52,name:'Lonely Planet',tags:['Diverses'],w:150,val:20,used:4},
+  {id:53,name:'Karte',tags:['Diverses'],w:150,val:20,used:2},
+  {id:54,name:'Compeed',tags:['Diverses'],w:150,val:20,used:16},
+  {id:55,name:'Wundensalbe',tags:['Diverses'],w:150,val:20,used:18},
+  {id:56,name:'Apotheke',tags:['Diverses'],w:150,val:20,used:19},
+  {id:57,name:'Pflaster',tags:['Diverses'],w:150,val:20,used:10},
+  {id:58,name:'Trainerhose',tags:['Diverses'],w:150,val:20,used:7},
+  {id:59,name:'Regenhosen',tags:['Diverses'],w:150,val:20,used:11},
+  {id:60,name:'Taschentücher',tags:['Bad'],w:80,val:8,used:27},
+  {id:61,name:'Shampoo & Duschgel',tags:['Bad'],w:80,val:8,used:19},
+  {id:62,name:'Deo',tags:['Bad'],w:80,val:8,used:23},
+  {id:63,name:'Zahnbürste',tags:['Bad'],w:80,val:8,used:18},
+  {id:64,name:'Zahnpasta',tags:['Bad'],w:80,val:8,used:23},
+  {id:65,name:'Watte für Nasenbluten',tags:['Bad'],w:80,val:8,used:26},
+  {id:66,name:'Brillen Putzmittel / Tuch',tags:['Bad'],w:80,val:8,used:16},
+  {id:67,name:'Nasenspray',tags:['Bad'],w:80,val:8,used:3},
+  {id:68,name:'Nasensalbe',tags:['Bad'],w:80,val:8,used:10},
+  {id:69,name:'Kompaktkamera',tags:['Technik','Foto'],w:700,val:1200,used:2},
+  {id:70,name:'Reiseadapter (Land)',tags:['Technik'],w:300,val:150,used:9},
+  {id:71,name:'Kindle',tags:['Technik'],w:180,val:120,used:16},
+  {id:72,name:'Tablet',tags:['Technik'],w:520,val:700,used:3},
+  {id:73,name:'Laptop',tags:['Technik'],w:1600,val:1500,used:15},
+  {id:74,name:'Spiegelreflex / Systemkamera',tags:['Technik','Foto'],w:700,val:1200,used:26},
+  {id:75,name:'GPS Tracker / Garmin Fenix',tags:['Technik'],w:300,val:150,used:20},
+  {id:76,name:'Stirnlampe',tags:['Technik'],w:90,val:40,used:26},
+  {id:77,name:'Stativ',tags:['Technik','Foto'],w:300,val:150,used:25},
+  {id:78,name:'Camera Clip',tags:['Technik','Foto'],w:300,val:150,used:4},
+  {id:79,name:'Tele',tags:['Technik','Foto'],w:300,val:150,used:3},
+  {id:80,name:'Gimbal',tags:['Technik','Foto'],w:400,val:300,used:1},
+  {id:81,name:'Airpods',tags:['Technik'],w:300,val:150,used:1},
+  {id:82,name:'NC Kopfhörer',tags:['Technik'],w:300,val:150,used:1},
+  {id:83,name:'Ladegerät für Kamera',tags:['Technik','Foto'],w:700,val:1200,used:19},
+  {id:84,name:'Ladegerät Fujifilm X-T2',tags:['Technik','Foto'],w:300,val:150,used:12},
+  {id:85,name:'Ladegerät Handy',tags:['Technik'],w:300,val:150,used:30},
+  {id:86,name:'HDMI Kabel',tags:['Technik'],w:300,val:150,used:16},
+  {id:87,name:'Speicherkartenleser',tags:['Technik'],w:300,val:150,used:21},
+  {id:88,name:'Ladegerät Uhr',tags:['Technik'],w:300,val:150,used:25},
+  {id:89,name:'Powerbank inkl. Kabel',tags:['Technik'],w:220,val:25,used:23},
+  {id:90,name:'Wasserschutz für Handy',tags:['Technik'],w:300,val:150,used:1},
+  {id:91,name:'Wasserschutz für Tablet',tags:['Technik'],w:520,val:700,used:1},
+  {id:92,name:'Wasserschutz für eReader',tags:['Technik'],w:180,val:120,used:1},
+  {id:93,name:'Solarpanel',tags:['Technik'],w:300,val:150},
+  {id:94,name:'USB-Ladegerät für Auto',tags:['Technik'],w:300,val:150,used:6},
+  {id:95,name:'Handy Befestigung für Auto',tags:['Technik'],w:300,val:150,used:5},
+  {id:96,name:'Reise-Steckdose',tags:['Technik'],w:300,val:150,used:9},
+  {id:97,name:'Mehrfach-Stromstecker',tags:['Technik'],w:300,val:150,used:7},
+  {id:98,name:'Nvidia shield',tags:['Technik'],w:300,val:150,used:5},
+  {id:99,name:'Nvidia shield Fernbedienung',tags:['Technik'],w:300,val:150,used:3},
+  {id:100,name:'Teleconverter',tags:['Technik','Foto'],w:300,val:150,used:1},
+  {id:101,name:'Drohne nd filters',tags:['Technik','Foto'],w:900,val:1000,used:2},
+  {id:102,name:'Drohne',tags:['Technik','Foto'],w:900,val:1000,used:2},
+  {id:103,name:'Drohne ersatzpropeller',tags:['Technik','Foto'],w:900,val:1000,used:2},
+  {id:104,name:'Drohne Schraubenzieher',tags:['Technik','Foto'],w:900,val:1000,used:2},
+  {id:105,name:'Nintendo Switch',tags:['Technik'],w:400,val:350,used:1},
+  {id:106,name:'Steam Deck',tags:['Technik'],w:680,val:600,used:1},
+  {id:107,name:'Externer Bildschirm',tags:['Technik'],w:300,val:150,used:1},
+  {id:108,name:'Pass / ID',tags:['Dokumente'],w:20,val:0,used:14},
+  {id:109,name:'Impfausweis',tags:['Dokumente'],w:20,val:0,used:3},
+  {id:110,name:'Flugtickets / Zugtickets',tags:['Dokumente'],w:20,val:0,used:6},
+  {id:111,name:'FIP',tags:['Dokumente'],w:20,val:0,used:1},
+  {id:112,name:'Pass Kopie',tags:['Dokumente'],w:20,val:0,used:1},
+  {id:113,name:'Passfotos',tags:['Dokumente'],w:20,val:0,used:2},
+  {id:114,name:'Reka Card',tags:['Dokumente'],w:20,val:0,used:10},
+  {id:115,name:'US-Dollar',tags:['Dokumente'],w:20,val:0,used:6},
+  {id:116,name:'Leonardos ID',tags:['Dokumente','Kind'],w:20,val:0,used:9},
+  {id:117,name:'Imodium',tags:['Gesundheit','Bad'],w:30,val:12,used:2},
+  {id:118,name:'Motilium lingual, gegen Übelkeit',tags:['Gesundheit','Bad'],w:30,val:12,used:3},
+  {id:119,name:'Dafalgan',tags:['Gesundheit','Bad'],w:30,val:12,used:13},
+  {id:120,name:'Neocitran',tags:['Gesundheit','Bad'],w:30,val:12,used:9},
+  {id:121,name:'Malarone',tags:['Gesundheit','Bad'],w:30,val:12,used:1},
+  {id:122,name:'Mückenschutz',tags:['Gesundheit','Bad'],w:30,val:12,used:9},
+  {id:123,name:'Anti-Juck Mittel',tags:['Gesundheit','Bad'],w:30,val:12,used:12},
+  {id:124,name:'Tupperware',tags:['Küche'],w:200,val:10,used:8},
+  {id:125,name:'Kaffee',tags:['Küche'],w:500,val:8,used:6},
+  {id:126,name:'Caotina',tags:['Küche'],w:200,val:10,used:7},
+  {id:127,name:'Tee',tags:['Küche'],w:200,val:10,used:3},
+  {id:128,name:'Öl',tags:['Küche'],w:200,val:10,used:2},
+  {id:129,name:'Salz',tags:['Küche'],w:200,val:10,used:6},
+  {id:130,name:'Pfeffer',tags:['Küche'],w:200,val:10,used:8},
+  {id:131,name:'Bouillon',tags:['Küche'],w:200,val:10,used:5},
+  {id:132,name:'Messer',tags:['Küche'],w:90,val:20,used:10},
+  {id:133,name:'Haushaltspapier',tags:['Küche'],w:200,val:10,used:3},
+  {id:134,name:'Scotch',tags:['Küche'],w:200,val:10,used:10},
+  {id:135,name:'Chräschlisäckli',tags:['Küche'],w:200,val:10,used:4},
+  {id:136,name:'Backpapier',tags:['Küche'],w:200,val:10,used:8},
+  {id:137,name:'Schneidebretter',tags:['Küche'],w:200,val:10,used:2},
+  {id:138,name:'Abwaschhandschuhe',tags:['Küche','Winter'],w:200,val:10,used:2},
+  {id:139,name:'Jonglierbälle',tags:['Freizeit'],w:300,val:40,used:7},
+  {id:140,name:'Spiele',tags:['Freizeit'],w:300,val:40,used:3},
+  {id:141,name:'Boombox',tags:['Freizeit'],w:300,val:40,used:9},
+  {id:142,name:'Velohelme',tags:['Freizeit','Velo'],w:300,val:90,used:2},
+  {id:143,name:'Velo',tags:['Freizeit','Velo'],w:300,val:40,used:1},
+  {id:144,name:'Lenkertasche',tags:['Freizeit'],w:300,val:40},
+  {id:145,name:'Velohosen',tags:['Freizeit','Velo'],w:300,val:40},
+  {id:146,name:'Anhänger',tags:['Freizeit'],w:300,val:40,used:3},
+  {id:147,name:'Handyhalterung velo',tags:['Freizeit','Velo'],w:300,val:40,used:2},
+  {id:148,name:'Sp-connect hülle',tags:['Freizeit'],w:300,val:40,used:2},
+  {id:149,name:'Wanderstöcke',tags:['Freizeit','Wandern'],w:500,val:60,used:11},
+  {id:150,name:'Kindersitz',tags:['Freizeit','Kind'],w:300,val:40,used:1},
+  {id:151,name:'Gamaschen',tags:['Freizeit'],w:300,val:40,used:1},
+  {id:152,name:'Ping pong schläger',tags:['Freizeit'],w:300,val:40,used:8},
+  {id:153,name:'Ladegerär sram schaltung',tags:['Freizeit'],w:300,val:40,used:1},
+  {id:154,name:'Cr2032 batterien für sram',tags:['Freizeit'],w:300,val:40,used:1},
+  {id:155,name:'Leonardo regenzeug',tags:['Kind'],w:200,val:20,used:10},
+  {id:156,name:'Windeln',tags:['Kind'],w:200,val:20,used:7},
+  {id:157,name:'Badewindeln',tags:['Kind'],w:200,val:20,used:6},
+  {id:158,name:'Büechli für Leonardo',tags:['Kind'],w:200,val:20,used:8},
+  {id:159,name:'Badethermometer',tags:['Kind'],w:200,val:20},
+  {id:160,name:'Leonardos Sonnenbrille',tags:['Kind','Sommer'],w:200,val:20,used:11},
+  {id:161,name:'Kinderbesteck',tags:['Kind'],w:200,val:20,used:2},
+  {id:162,name:'Handseife',tags:['Diverses'],w:150,val:20,used:4},
+  {id:163,name:'Kleiderwaschmittel',tags:['Diverses'],w:150,val:20,used:1},
+  {id:164,name:'Masken',tags:['Diverses'],w:150,val:20,used:2},
+  {id:165,name:'Schuhlöffel',tags:['Diverses'],w:150,val:20,used:8},
+  {id:166,name:'FVP-Ermässigungskarte',tags:['Diverses'],w:150,val:20,used:5},
+  {id:167,name:'Zündhölzli',tags:['Diverses'],w:150,val:20,used:4},
+  {id:168,name:'Frischhaltefolien',tags:['Diverses'],w:150,val:20,used:4},
+  {id:169,name:'Farmer & Knabberzeug',tags:['Diverses'],w:150,val:20,used:5},
+  {id:170,name:'Sandspielzeug',tags:['Diverses'],w:150,val:20,used:3},
+  {id:171,name:'FollowMe (Velo-Kupplung)',tags:['Diverses','Velo'],w:150,val:20},
+  {id:172,name:'Sonnenschirm',tags:['Diverses','Sommer'],w:150,val:20,used:2},
+  {id:173,name:'Picknick Decke',tags:['Diverses'],w:150,val:20,used:6},
+  {id:174,name:'Abwaschschwamm',tags:['Diverses'],w:150,val:20,used:1},
+  {id:175,name:'Abwaschseife',tags:['Diverses'],w:150,val:20,used:1},
+  {id:176,name:'Kleiner Rucksack für Tagesausflug',tags:['Diverses'],w:150,val:20,used:4},
+  {id:177,name:'Feldstecher',tags:['Diverses'],w:150,val:20,used:1},
+  {id:178,name:'Shokz',tags:['Diverses'],w:150,val:20,used:3},
+  {id:179,name:'Ipad mini',tags:['Diverses'],w:520,val:800,used:2},
+  {id:180,name:'Ipad pro',tags:['Diverses'],w:520,val:800,used:3},
+  {id:181,name:'Usb-c hub',tags:['Diverses'],w:150,val:20,used:2},
+  {id:182,name:'Ipad Tastatur',tags:['Diverses'],w:520,val:800,used:2},
+  {id:183,name:'Oberrohrtasche',tags:['Velo'],w:400,val:80},
+  {id:184,name:'Oberrohrtasche unten',tags:['Velo'],w:400,val:80},
+  {id:185,name:'Trinkflasche',tags:['Velo'],w:400,val:80},
+  {id:186,name:'Makro-Objektiv',tags:['Technik','Foto'],w:600,val:900,used:2}];
 let nextMasterId=200;   // was 100 — collided with real ids up to 186, so a newly created item could shadow an existing one
 const allTags=()=>[...new Set(MASTER.flatMap(i=>i.tags))];
-const M9={search:'',tab:'all'};
+/* UX round 2026-08-08: the list is LEAN by default — name + primary-tag
+   avatar. Which extra properties show (tags, weight, price) is a device-local
+   preference behind the eye icon, not a fixed layout: the inventory is a
+   lookup surface, not a spreadsheet. */
+const M9={search:'',tab:'all',show:{tags:false,weight:false,price:false}};
 function m9Filtered(){ const q=M9.search.trim().toLowerCase();
   return MASTER.filter(it=>{
     if(it.deleted)return false;
@@ -2540,11 +2552,12 @@ function m9Filtered(){ const q=M9.search.trim().toLowerCase();
     return true; });
 }
 function m9RowHTML(it){ const primary=it.tags[0]||'';
+  const extras=[ ...(M9.show.weight?[`${it.w} g`]:[]), ...(M9.show.price?[`${it.val||0} CHF`]:[]) ];
   return `<div class="li" data-m9="${it.id}">
   <div class="avatar" style="background:var(--s1);width:34px;height:34px;border-radius:11px;font-size:15px">${CATEMO[primary]||'📦'}</div>
   <div class="grow"><div class="name">${esc(it.name)}</div>
-    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">${it.tags.map(t=>`<span class="chip" style="font-size:10px;padding:2px 7px">${esc(t)}</span>`).join('')}</div></div>
-  <div class="desc" style="text-align:right;white-space:nowrap;line-height:1.5">${it.w} g<br>${it.val||0} CHF</div>
+    ${M9.show.tags?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">${it.tags.map(t=>`<span class="chip" style="font-size:10px;padding:2px 7px">${esc(t)}</span>`).join('')}</div>`:''}</div>
+  ${extras.length?`<div class="desc" style="text-align:right;white-space:nowrap;line-height:1.5">${extras.join('<br>')}</div>`:''}
   <svg viewBox="0 0 24 24" style="width:18px;color:var(--o0)"><use href="#i-chev"/></svg></div>`; }
 function renderM9List(){
   const list=m9Filtered(), el=document.getElementById('m9List'); if(!el)return;
@@ -2556,16 +2569,43 @@ function renderM9List(){
 }
 function renderItems(){
   const tabs=[['all','Alle'],...allTags().map(c=>[c,c])];
+  const nShown=Object.values(M9.show).filter(Boolean).length;
   document.getElementById('itemsPage').innerHTML=`
-    <div class="search" style="margin-top:8px"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg>
-      <input id="m9Search" placeholder="Inventar durchsuchen…" value="${esc(M9.search)}" autocomplete="off">
-      <button class="clr ${M9.search?'show':''}" id="m9Clr" aria-label="Suche löschen">✕</button></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+      <div class="search grow" style="margin:0"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg>
+        <input id="m9Search" placeholder="Inventar durchsuchen…" value="${esc(M9.search)}" autocomplete="off">
+        <button class="clr ${M9.search?'show':''}" id="m9Clr" aria-label="Suche löschen">✕</button></div>
+      <button class="iconbtn ${nShown?'on':''}" id="m9Props" title="Angezeigte Eigenschaften" style="position:relative;flex:none;background:${nShown?'var(--s1)':'none'}">
+        <svg viewBox="0 0 24 24" style="width:19px"><use href="#i-eye"/></svg>
+        ${nShown?`<span class="cnt" style="position:absolute;top:1px;right:0;font-size:9px;font-weight:700;line-height:13px;min-width:13px;border-radius:7px;background:var(--blue);color:var(--crust)">${nShown}</span>`:''}
+      </button></div>
     <div class="groupbar">${tabs.map(t=>`<button class="gb ${M9.tab===t[0]?'on':''}" data-m9tab="${t[0]}">${t[1]}</button>`).join('')}</div>
     <div id="m9List" style="margin-top:8px"></div>`;
   renderM9List();
   document.querySelectorAll('[data-m9tab]').forEach(b=>b.onclick=()=>{ M9.tab=b.dataset.m9tab; renderItems(); });
+  document.getElementById('m9Props').onclick=openM9Props;
   const s=document.getElementById('m9Search'); s.oninput=e=>{ M9.search=e.target.value; document.getElementById('m9Clr').classList.toggle('show',!!M9.search); renderM9List(); };
   const c=document.getElementById('m9Clr'); c.onclick=()=>{ M9.search=''; const i=document.getElementById('m9Search'); i.value=''; c.classList.remove('show'); i.focus(); renderM9List(); };
+}
+/* Property sheet — which columns the lean list additionally shows.
+   Device-local preference (localStorage in the real client), same
+   persistence class as the FR-25.2 reveal-done toggle. */
+const M9_PROPS=[['tags','Tags'],['weight','Gewicht'],['price','Preis']];
+function openM9Props(){ renderM9Props();
+  document.getElementById('m9PropScrim').classList.add('open');
+  document.getElementById('m9PropSheet').classList.add('open'); }
+function closeM9Props(){
+  document.getElementById('m9PropScrim').classList.remove('open');
+  document.getElementById('m9PropSheet').classList.remove('open');
+  renderItems(); }
+function renderM9Props(){
+  document.getElementById('m9PropBody').innerHTML=`
+    <div class="ihead"><div class="grow"><div class="iname">Angezeigte Eigenschaften</div>
+      <div class="desc">Was die Inventarliste zusätzlich zum Namen zeigt — gilt für dieses Gerät.</div></div></div>
+    ${M9_PROPS.map(([k,label])=>`<div class="toggle"><div class="grow"><div class="name">${label}</div></div>
+      <div class="sw ${M9.show[k]?'on':''}" data-m9prop="${k}"></div></div>`).join('')}`;
+  document.querySelectorAll('[data-m9prop]').forEach(t=>t.onclick=()=>{ const k=t.dataset.m9prop;
+    M9.show[k]=!M9.show[k]; renderM9Props(); });
 }
 
 /* ============ M2 trips list — mirrors the filter, axis = status, grouped by series ============ */
@@ -2706,7 +2746,7 @@ function renderShList(){
   let html=Object.keys(g).length?Object.keys(g).map(c=>`<div class="grouphead">${esc(c)}</div>
     <div class="card">${g[c].map(i=>`<div class="li"><div class="check" data-shbuy="${i.id}"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
       <div class="grow" data-shopen="${i.id}"><div class="name">${esc(i.name)}</div>
-        <div class="desc">${shopQty(i)} ${i.unit||'Stk'}${i.pp?` · für ${i.pp.map(e=>e.trav).join(', ')}`:''}</div>
+        <div class="desc">${shopQty(i)}×${i.pp?` · für ${i.pp.map(e=>e.trav).join(', ')}`:''}</div>
         ${i.note?`<div class="shnote">📝 ${esc(i.note)}</div>`:''}</div>
       ${shopWhoHTML(i)}${shopBuyerHTML(i)}</div>`).join('')}</div>`).join('')
     :(shopFilterCount()
@@ -2721,7 +2761,7 @@ function renderShList(){
     html+=`<div class="destsep">Gekauft</div><div class="card">${doneList.map(i=>
       `<div class="li shdone"><div class="check on" data-shbuy="${i.id}"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></div>
         <div class="grow" data-shopen="${i.id}"><div class="name">${esc(i.name)}</div>
-          <div class="desc">${shopQty(i)} ${i.unit||'Stk'}${i.bought==='buy_before'?' · auf der Packliste':''}</div>
+          <div class="desc">${shopQty(i)}×${i.bought==='buy_before'?' · auf der Packliste':''}</div>
           <div class="shstamp">${boughtStampHTML(i)}</div></div>
         ${shopWhoHTML(i)}${shopBuyerHTML(i)}</div>`).join('')}</div>`;
   }
@@ -2879,7 +2919,7 @@ function renderShopSheet(){
   const people=USERS;   // who can be asked to buy = the trip's users, not its travelers
   document.getElementById('shopSheetBody').innerHTML=
     `<div class="ihead"><div class="grow"><div class="iname">${esc(it.name)}</div>
-       <div class="desc">${shopQty(it)} ${it.unit||'Stk'} · ${it.mode==='buy_before'?'🛒 Vor Abreise':'📍 Vor Ort'}</div></div></div>
+       <div class="desc">${shopQty(it)}× · ${it.mode==='buy_before'?'🛒 Vor Abreise':'📍 Vor Ort'}</div></div></div>
      ${it.pp?`<div class="assign"><div class="cap">Für wen</div>
        <div class="tiny muted">${it.pp.map(e=>`${esc(e.trav)} ${e.qty}`).join(' · ')} — ergibt sich aus der Zuordnung, hier nicht änderbar.</div></div>`:''}
      <div class="assign"><div class="cap">Zugewiesen an</div>
@@ -3053,25 +3093,29 @@ const ITEM_COMMENTS=[
   {m:4,trip:'Samedan 2024',who:'Sia',when:'15. Aug 2024',text:'6 Paar waren zu viel, 4 reichen locker.'},
   {m:34,trip:'Cannobio 2025',who:'Sia',when:'9. Jul 2025',text:'50+ kaufen — die 30er hat nicht gereicht.'},
 ];
-const EDIT={id:null};
-const UNITS=['Stk','Paar'];
-function openM10(id){ EDIT.id=id; go('itemedit'); }
-function openM10New(){ const it={id:nextMasterId++,name:'',tags:[],w:0,val:0,unit:'Stk'}; MASTER.push(it); EDIT.id=it.id; go('itemedit'); }
+const EDIT={id:null,isNew:false,more:false};
+function openM10(id){ EDIT.id=id; EDIT.isNew=false; go('itemedit'); }
+function openM10New(){ const it={id:nextMasterId++,name:'',tags:[],w:0,val:0}; MASTER.push(it); EDIT.id=it.id; EDIT.isNew=true; EDIT.more=false; go('itemedit'); }
 function renderItemEdit(){
   const el=document.getElementById('itemEditPage'), it=MASTER.find(x=>x.id==EDIT.id); if(!el||!it)return;
   const tags=allTags(), used=it.used||0;
+  /* UX round 2026-08-08: creation is a MINIMAL form — name + tags, weight/price
+     behind "Mehr" (FR-25.7 principle). The existing-item sections (Enthalten in,
+     Kommentare, Löschen) make no sense for an item that does not exist yet and
+     are simply absent, not emptied. */
   el.innerHTML=`
+    ${EDIT.isNew?`<div class="tiny muted" style="margin:10px 4px 0">Neuer Artikel — nur der Name ist nötig, alles Weitere ist optional.</div>`:''}
     <div class="field" style="margin-top:10px"><label>Name</label><input class="txt" id="edName" placeholder="Artikelname" value="${esc(it.name)}"></div>
     <div class="field"><label>Kategorien / Tags · mehrere möglich</label>
       <div class="chips">${tags.map(t=>`<button class="opt ${it.tags.includes(t)?'sel':''}" data-edtag="${esc(t)}">${CATEMO[t]?CATEMO[t]+' ':''}${esc(t)}</button>`).join('')}</div>
       <div class="addprep" style="margin-top:9px"><input id="edNewTag" placeholder="Neuen Tag hinzufügen…" autocomplete="off"><button class="opt" data-ednewtag="1">+</button></div>
       ${it.tags.length?`<div class="tiny muted" style="margin-top:8px">Im Inventar unter: ${it.tags.map(esc).join(', ')} · primär ${esc(it.tags[0])}</div>`
         :`<div class="tiny" style="margin-top:8px;color:var(--peach)">Mindestens einen Tag wählen</div>`}</div>
-    <div class="field"><label>Gewicht (g) · Wert (CHF)</label><div class="datewrap">
+    ${!EDIT.isNew||EDIT.more?`<div class="field"><label>Gewicht (g) · Preis (CHF)</label><div class="datewrap">
       <input class="dt" type="number" id="edW" value="${it.w}"><span class="muted">g</span>
-      <input class="dt" type="number" id="edVal" value="${it.val||0}"><span class="muted">CHF</span></div></div>
-    <div class="field"><label>Einheit</label><div class="seg">${UNITS.map(u=>`<button class="${it.unit===u?'sel':''}" data-edunit="${u}">${u}</button>`).join('')}</div></div>
-    <div class="field"><label>Enthalten in (FR-27.8)</label>
+      <input class="dt" type="number" id="edVal" value="${it.val||0}"><span class="muted">CHF</span></div></div>`
+     :`<button class="opt" id="edMore" style="width:100%">Mehr — Gewicht &amp; Preis ▾</button>`}
+    ${EDIT.isNew?`<button class="gb on" style="width:100%;padding:13px;margin-top:14px" data-edcreate="1">Artikel anlegen ✓</button>`:`<div class="field"><label>Enthalten in (FR-27.8)</label>
       ${(()=>{const inTpls=TPL.filter(t=>(TPLITEMS[t.id]||[]).some(r=>r.m===it.id));
         return inTpls.length?`<div class="card">${inTpls.map(t=>`<div class="li pressable" data-edtpl="${t.id}">
             <span style="font-size:18px">${t.emoji}</span>
@@ -3079,8 +3123,8 @@ function renderItemEdit(){
             ${tplKind(t)==='group'?'<span class="chip mauve">Gruppe</span>':'<span class="chip">Ferien-Vorlage</span>'}
             <svg viewBox="0 0 24 24" style="width:18px;color:var(--o0)"><use href="#i-chev"/></svg></div>`).join('')}</div>`
           :'<div class="card"><div class="li"><div class="grow muted" style="text-align:center;padding:8px">In keiner Gruppe oder Vorlage.</div></div></div>';})()}
-      <div class="tiny muted" style="margin-top:7px">Geplant (offener Punkt §3.27): zusätzlich anzeigen, auf welchen Reisen der Artikel dabei war.</div></div>
-    ${(()=>{const cs=ITEM_COMMENTS.filter(c=>c.m===it.id);
+      <div class="tiny muted" style="margin-top:7px">Geplant (offener Punkt §3.27): zusätzlich anzeigen, auf welchen Reisen der Artikel dabei war.</div></div>`}
+    ${EDIT.isNew?'':(()=>{const cs=ITEM_COMMENTS.filter(c=>c.m===it.id);
       if(!cs.length)return '';
       return `<div class="field"><label>Kommentare aus Reisen · ${cs.length} (FR-27.9)</label>
         <div class="card">${cs.map(c=>{const av=AV[c.who]||['?','var(--s2)'];
@@ -3089,27 +3133,32 @@ function renderItemEdit(){
             <div class="grow"><div class="tiny">${esc(c.text)}</div>
               <div class="tiny muted" style="margin-top:4px">${esc(c.who)} · <b style="color:var(--mauve)">${esc(c.trip)}</b> · ${esc(c.when)}</div></div></div>`;}).join('')}</div>
         <div class="tiny muted" style="margin-top:7px">Aus den Packlisten-Einträgen dieses Artikels (FR-7.1) — so wandert die Erfahrung von Reise zu Reise in die Gruppen.</div></div>`;})()}
-    <div class="card" style="padding:12px 14px;margin-top:6px;${used?'background:rgba(250,179,135,.08);border-color:rgba(250,179,135,.3)':''}">
+    ${EDIT.isNew?'':`<div class="card" style="padding:12px 14px;margin-top:6px;${used?'background:rgba(250,179,135,.08);border-color:rgba(250,179,135,.3)':''}">
       <div class="tiny">${used
         ? `⚠ <b>Verwendet in ${used} Reisen.</b> Löschen entfernt den Artikel nur <b>logisch</b> — er verschwindet aus dem Inventar, bleibt aber für Historie & Auswertung erhalten.`
         : `Noch nie verwendet. Löschen entfernt den Artikel <b>endgültig</b> (physisch).`}</div></div>
     <div style="display:flex;gap:10px;margin-top:14px">
       <button class="gb" style="flex:0 0 auto;padding:12px 16px;color:var(--red);border-color:rgba(243,139,168,.4)" data-eddel="1">Löschen</button>
-      <button class="gb on" style="flex:1;padding:12px" data-eddone="1">Fertig</button></div>`;
+      <button class="gb on" style="flex:1;padding:12px" data-eddone="1">Fertig</button></div>`}`;
   el.querySelectorAll('[data-edtag]').forEach(b=>b.onclick=()=>{ const t=b.dataset.edtag, i=it.tags.indexOf(t); i<0?it.tags.push(t):it.tags.splice(i,1); renderItemEdit(); });
   el.querySelectorAll('[data-edtpl]').forEach(r=>r.onclick=()=>openM8(r.dataset.edtpl));
   const addTag=v=>{ v=v.trim(); if(v&&!it.tags.includes(v)){ it.tags.push(v); renderItemEdit(); } };
   el.querySelector('[data-ednewtag]').onclick=()=>addTag(document.getElementById('edNewTag').value);
   document.getElementById('edNewTag').onkeydown=e=>{ if(e.key==='Enter')addTag(e.target.value); };
-  el.querySelectorAll('[data-edunit]').forEach(b=>b.onclick=()=>{ it.unit=b.dataset.edunit; renderItemEdit(); });
   document.getElementById('edName').oninput=e=>it.name=e.target.value;
-  document.getElementById('edW').oninput=e=>it.w=parseInt(e.target.value)||0;
-  document.getElementById('edVal').oninput=e=>it.val=parseInt(e.target.value)||0;
-  el.querySelector('[data-eddel]').onclick=()=>{
+  const w=document.getElementById('edW'); if(w) w.oninput=e=>it.w=parseInt(e.target.value)||0;
+  const v=document.getElementById('edVal'); if(v) v.oninput=e=>it.val=parseInt(e.target.value)||0;
+  const more=document.getElementById('edMore'); if(more) more.onclick=()=>{ EDIT.more=true; renderItemEdit(); };
+  const create=el.querySelector('[data-edcreate]');
+  if(create) create.onclick=()=>{
+    if(!it.name.trim()){ snack('Der Artikel braucht einen Namen.'); document.getElementById('edName').focus(); return; }
+    EDIT.isNew=false; snack('„'+it.name.trim()+'“ im Inventar angelegt ✓'); renderItemEdit(); };
+  if(EDIT.isNew){ const nm=document.getElementById('edName'); nm.focus(); }
+  const del=el.querySelector('[data-eddel]'); if(del) del.onclick=()=>{
     if(used>0){ it.deleted=true; snack('„'+(it.name||'Artikel')+'“ logisch gelöscht — in '+used+' Reisen verwendet, bleibt erhalten'); }
     else { const idx=MASTER.indexOf(it); if(idx>=0)MASTER.splice(idx,1); snack('„'+(it.name||'Artikel')+'“ endgültig gelöscht (nie verwendet)'); }
     go('items'); };
-  el.querySelector('[data-eddone]').onclick=()=>go('items');
+  const done=el.querySelector('[data-eddone]'); if(done) done.onclick=()=>go('items');
 }
 
 /* ============ M8 template editor — items, quantities, conditions ============ */
@@ -3416,7 +3465,7 @@ function t8QaAdd(name){
   const t=TPL.find(x=>x.id===M8.id); if(!t)return;
   const rows=TPLITEMS[t.id]||(TPLITEMS[t.id]=[]);
   let m=MASTER.find(x=>!x.deleted&&x.name.toLowerCase()===name.toLowerCase());
-  if(!m){ m={id:nextMasterId++,name,tags:[],w:0,val:0,unit:'Stk'}; MASTER.push(m); }
+  if(!m){ m={id:nextMasterId++,name,tags:[],w:0,val:0}; MASTER.push(m); }
   if(rows.some(r=>r.m===m.id)){ snack('„'+m.name+'“ ist schon drin — nicht doppelt (FR-20.3)'); return; }
   rows.push({m:m.id,q:1,pp:false,mode:'pack',late:false,dedup:'max',cond:{}});
   M8.open=-1; M8.qaName='';
@@ -3527,7 +3576,7 @@ function renderTFT(){
 function tftMaster(name){
   const m=MASTER.find(x=>!x.deleted&&x.name.toLowerCase()===name.toLowerCase());
   if(m)return m.id;
-  const it={id:nextMasterId++,name,tags:[],w:0,val:0,unit:'Stk'}; MASTER.push(it); return it.id;
+  const it={id:nextMasterId++,name,tags:[],w:0,val:0}; MASTER.push(it); return it.id;
 }
 function createTFT(){
   const m=tftModel();

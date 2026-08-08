@@ -253,7 +253,6 @@ function rowToItem(id: string, row: Record<string, unknown>): MasterItem {
     category_id: (row['category_id'] as string) ?? null,
     weight_grams: (row['weight_grams'] as number) ?? null,
     value_cents: (row['value_cents'] as number) ?? null,
-    unit: (row['unit'] as MasterItem['unit']) ?? 'pieces',
     image_hash: (row['image_hash'] as string) ?? null,
   }
 }

@@ -505,7 +505,6 @@ export function useMutations(hlc: HLCGenerator) {
       categoryId?: string | null
       weightGrams?: number | null
       valueCents?: number | null
-      unit?: string
     } = {},
   ): { mutation: Mutation; id: string } {
     const id = crypto.randomUUID()
@@ -514,7 +513,6 @@ export function useMutations(hlc: HLCGenerator) {
       category_id: opts.categoryId ?? null,
       weight_grams: opts.weightGrams ?? null,
       value_cents: opts.valueCents ?? null,
-      unit: opts.unit ?? 'pieces',
     })
     return { mutation, id }
   }

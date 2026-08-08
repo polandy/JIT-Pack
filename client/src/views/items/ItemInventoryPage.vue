@@ -3,7 +3,7 @@
  * M9 — Item Inventory
  *
  * Central item database. Searchable, category-grouped list.
- * Per row: name, weight, value, unit chip.
+ * Per row: name (lean by default).
  * FAB for new item.
  */
 import {
@@ -16,7 +16,6 @@ import {
   IonItem,
   IonLabel,
   IonIcon,
-  IonChip,
   IonFab,
   IonFabButton,
   IonRefresher,
@@ -30,7 +29,6 @@ import { useRouter } from 'vue-router'
 import { useMasterStore } from '@/stores/masterStore'
 import ItemThumbnail from '@/components/items/ItemThumbnail.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
-import type { MasterItem } from '@/types/domain'
 
 const store = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
@@ -71,10 +69,6 @@ const noResults = computed(() => searchQuery.value && filteredItems.value.length
 
 function formatWeight(grams: number): string {
   return grams >= 1000 ? `${(grams / 1000).toFixed(1)} kg` : `${grams} g`
-}
-
-function unitLabel(item: MasterItem): string {
-  return item.unit === 'pairs' ? 'pairs' : ''
 }
 
 function onSearch(event: CustomEvent) {
@@ -139,10 +133,6 @@ async function handleRefresh(event: CustomEvent) {
               </p>
             </IonLabel>
 
-            <!-- Unit chip (only for non-default) -->
-            <IonChip v-if="item.unit !== 'pieces'" slot="end" color="medium" outline>
-              {{ unitLabel(item) }}
-            </IonChip>
           </IonItem>
         </IonItemGroup>
       </IonList>

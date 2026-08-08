@@ -47,8 +47,7 @@ describe('masterStore', () => {
         name: 'T-Shirt',
         category_id: 'c1',
         weight_grams: 200,
-        unit: 'pieces',
-      },
+              },
     })
 
     const item = store.getItem('i1')
@@ -63,7 +62,7 @@ describe('masterStore', () => {
       table: 'items',
       id: 'i1',
       deleted: false,
-      row: { name: 'Soap', unit: 'pieces' },
+      row: { name: 'Soap' },
     })
     store.applyChange({ seq: 2, table: 'items', id: 'i1', deleted: true, row: null })
     expect(store.getItem('i1')).toBeUndefined()
@@ -166,21 +165,21 @@ describe('masterStore', () => {
         table: 'items',
         id: 'i1',
         deleted: false,
-        row: { name: 'Shirt', category_id: 'c1', unit: 'pieces' },
+        row: { name: 'Shirt', category_id: 'c1' },
       },
       {
         seq: 3,
         table: 'items',
         id: 'i2',
         deleted: false,
-        row: { name: 'Pants', category_id: 'c1', unit: 'pieces' },
+        row: { name: 'Pants', category_id: 'c1' },
       },
       {
         seq: 4,
         table: 'items',
         id: 'i3',
         deleted: false,
-        row: { name: 'Charger', unit: 'pieces' },
+        row: { name: 'Charger' },
       },
     ])
 
@@ -197,16 +196,16 @@ describe('masterStore', () => {
         table: 'items',
         id: 'i1',
         deleted: false,
-        row: { name: 'Sunscreen', unit: 'pieces' },
+        row: { name: 'Sunscreen' },
       },
       {
         seq: 2,
         table: 'items',
         id: 'i2',
         deleted: false,
-        row: { name: 'Sunglasses', unit: 'pieces' },
+        row: { name: 'Sunglasses' },
       },
-      { seq: 3, table: 'items', id: 'i3', deleted: false, row: { name: 'Towel', unit: 'pieces' } },
+      { seq: 3, table: 'items', id: 'i3', deleted: false, row: { name: 'Towel' } },
     ])
 
     expect(store.searchItems('sun')).toHaveLength(2)

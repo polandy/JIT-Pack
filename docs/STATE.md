@@ -91,6 +91,20 @@ bounded. Two decisions fix the scope:
   materialisation, planning-trip refresh diff, M21 screen; UI-Spec entry for M21 still to
   write.
 
+- **Inventar-UX-Runde (owner directives 2026-08-08, mocked + specced):** M9 is **lean by
+  default** (primary-tag avatar + name); which extras show (Tags/Gewicht/Preis) is a
+  device-local preference behind an eye icon with a settings sheet (FR-24.4 new). M10
+  **creation is a minimal form** (name + tags, Gewicht/Preis behind "Mehr ▾"; the
+  existing-item sections Enthalten-in/Kommentare/Löschen are absent until the item exists
+  — FR-24.5 new). E2E M9-01/05, M10-01/07 + matrix. Implementation of the two FRs is open
+  (client M9/M10 rework).
+
+- **FR-1.8 Einheiten — REMOVED end-to-end (owner decision 2026-08-08,** "wir haben nur
+  Stück"**):** `items.unit` dropped (migration 015), sync whitelist trimmed, portable YAML
+  `unit` field gone (legacy files import fine — unknown fields ignored, FR-18.5), client
+  type/editor/inventory/quick-add cleaned, prototype unit chips and M10 segment removed,
+  G-6 unit-label clause void. All suites green.
+
 - **FR-1.3/1.5 Mengenformeln — REMOVED end-to-end (owner decision 2026-08-08,** "entferne
   all das Formel-Zeugs"**):** quantities are plain integers everywhere. Migration 014 rebuilds
   `template_items` (`quantity_formula` → `quantity INTEGER NOT NULL DEFAULT 1`) and

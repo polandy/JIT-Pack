@@ -19,8 +19,7 @@ function masterItem(id: string, name: string, extra: Partial<MasterItem> = {}): 
     category_id: null,
     weight_grams: 100,
     value_cents: null,
-    unit: 'pieces',
-    ...extra,
+        ...extra,
   }
 }
 

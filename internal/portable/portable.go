@@ -28,7 +28,6 @@ type Item struct {
 	Name       string         `yaml:"name"`
 	Quantity   Quantity       `yaml:"quantity"`
 	Assignment string         `yaml:"assignment,omitempty"` // template only
-	Unit       string         `yaml:"unit,omitempty"`
 	Conditions map[string]any `yaml:"conditions,omitempty"` // template only
 	Mode       string         `yaml:"mode,omitempty"`       // trip only
 	Category   string         `yaml:"category,omitempty"`

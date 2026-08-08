@@ -70,7 +70,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G3-02 | G-3 Lock staleness | server | A lock older than 15 min (clock-advanced) is no longer treated as locking on the other client. |
 | E2E-G4-01 | G-4 Deep link | server | Opening a delegation notification lands on `trip/{id}/item/{id}`, scrolls to, flashes the item once, and expands its comments (also asserts the `?comment=` mention highlight). |
 | E2E-G5-01 | G-5 Optimistic UI | single | A mutation renders immediately before server confirmation; a forced failure surfaces only via the sync glyph, never a blocking dialog. |
-| E2E-G6-01 | G-6 Stepper/checkbox | all | qty=1 renders a checkbox; qty>1 renders the stepper ("3/5"); tap ±1, long-press completes/zeroes; unit label shown. |
+| E2E-G6-01 | G-6 Stepper/checkbox | all | qty=1 renders a checkbox; qty>1 renders the stepper ("3/5"); tap ±1, long-press completes/zeroes (units retired with FR-1.8). |
 | E2E-G7-01 | G-7 Empty states | all | Each list screen (Trips/Templates/Items/Dashboard) shows its empty state with the single primary CTA. |
 | E2E-G8-01 | G-8 Collaboration hidden | single/local | No Share/Delegate/Notification-prefs UI anywhere; no mode banner shown. |
 | E2E-G9-01 | G-9 Responsive | all | ≥900px shows the left nav rail + inline actions; <900px shows bottom tabs + FAB. Logo is a home link to M1 from within a trip. |
@@ -214,13 +214,15 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M8-09** `all` (FR-27.4): a template used by a *planning* trip shows the blast-radius note naming that trip; adding/removing a position then puts the "⟳ N Änderungen aus Gruppen übernommen" chip **only** on that planning trip's M2 row (never on active/archived rows); expanding the chip lists each change with its source group.
 
 ### M9 — Item Inventory
-* **E2E-M9-01** `all` (FR-1.1): searchable, category-grouped list; per-row name/weight/value/unit chips; row thumbnail when a photo exists.
+* **E2E-M9-01** `all` (FR-1.1/24.4): searchable, tag-grouped list, **lean by default** — per row only primary-tag avatar + name (no tag chips, no weight/price); row thumbnail when a photo exists.
 * **E2E-M9-02** `all` (FR-1.1): FAB → name prompt → creates item → opens M10.
 * **E2E-M9-03** `all` (FR-16.3): multi-select merge of duplicates.
 * **E2E-M9-04** `all` (G-7/NFR-4.7): empty state → import entry (M15).
+* **E2E-M9-05** `all` (FR-24.4): the eye icon opens the "Angezeigte Eigenschaften" sheet; enabling Gewicht/Preis/Tags adds exactly those to the rows, the icon shows a count badge while anything is enabled, and the preference survives a reload **on this device only** (device-local, never synced).
 
 ### M10 — Item Editor
-* **E2E-M10-01** `all` (FR-1.1/1.8): name, category (inline-create), weight, value, unit selector pieces/pairs.
+* **E2E-M10-01** `all` (FR-1.1): name, tags (inline-create), weight, price — no unit control (FR-1.8 retired).
+* **E2E-M10-07** `all` (FR-24.5): creating an item shows the minimal form (name focused, tags, "Mehr — Gewicht & Preis ▾"; no Enthalten-in/Kommentare/Löschen sections); committing without a name is caught with a hint; after "Artikel anlegen" the full editor appears.
 * **E2E-M10-02** `all` (FR-2.4): usage footer ("Used in N templates, M archived trips"); delete blocked while referenced by templates.
 * **E2E-M10-03** `all` (FR-20.1): "Depends on" section — add dependency with required/suggested mode; save-time cycle rejection with a readable error; read-only "Companions" list.
 * **E2E-M10-04** `all` (FR-22.1/22.4/22.5): Photo section — add/replace/remove with live preview; oversized source is optimized to ≤150 KB JPEG (asserted via the stored/served image).
@@ -339,7 +341,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-1.5 | DOC/N-A | retired 2026-08-08 with FR-1.3 |
 | FR-1.6 | E2E | M7-01 (shared list), M14-02 (direct write), M18-01 — MVP shared model; publish/fork cases parked with the FR-1.6 stub |
 | FR-1.7 | DOC/N-A | retired 2026-08-08 (owner decision) — consumable flag and per-day unit removed |
-| FR-1.8 | E2E | M10-01, G6-01 |
+| FR-1.8 | DOC/N-A | retired 2026-08-08 — no units, everything counts in pieces |
 | FR-2.1 / 2.1a | E2E | M3-01, M2-01/03 |
 | FR-2.2 | E2E+UNIT | M3-06; instantiate.ts |
 | FR-2.3 / 2.3a | E2E+UNIT | M3-06, M8-03; instantiate.ts |
@@ -426,6 +428,8 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-23.4 | E2E | M20-03 |
 | FR-23.5 | E2E | M20-04 |
 | FR-23.6 | SERVER | deactivation side-effects (push purge, notif suppress) — Go test; access-revocation asserted M20-02 |
+| FR-24.4 | E2E | M9-01 (lean default), M9-05 (property sheet, device-local) |
+| FR-24.5 | E2E | M10-07 (minimal creation, sections absent) |
 | FR-25.1 | E2E+UNIT | M4-12/13/14; packingView.ts (clustering, flat fallback, full-set decision) |
 | FR-25.2 | E2E+UNIT | M4-14; packingView.ts (isDone, hidden counts, full-set headers) |
 | FR-25.4 | E2E+UNIT | mode glyph rules M4-15/16; packingView.ts — the pill strip itself is superseded by FR-25.11 |

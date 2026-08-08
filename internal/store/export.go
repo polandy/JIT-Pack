@@ -21,7 +21,7 @@ func (s *Store) ExportTemplate(ctx context.Context, templateID string) (portable
 	}
 
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT i.name, ti.quantity, ti.assignment, i.unit,
+		SELECT i.name, ti.quantity, ti.assignment,
 		       ti.conditions, ti.default_mode, ti.late_packer, ti.dedup
 		FROM template_items ti
 		JOIN items i ON i.id = ti.item_id
@@ -37,7 +37,7 @@ func (s *Store) ExportTemplate(ctx context.Context, templateID string) (portable
 		var it portable.Item
 		var conditions sql.NullString
 		var latePacker, quantity int
-		if err := rows.Scan(&it.Name, &quantity, &it.Assignment, &it.Unit,
+		if err := rows.Scan(&it.Name, &quantity, &it.Assignment,
 			&conditions, &it.DefaultMode, &latePacker, &it.Dedup); err != nil {
 			return portable.Document{}, fmt.Errorf("scan template item: %w", err)
 		}
@@ -80,7 +80,7 @@ func (s *Store) ImportTemplate(ctx context.Context, ownerID string, doc portable
 	}
 
 	for _, item := range doc.Items {
-		itemID, err := ensureItem(ctx, tx, item.Name, item.Unit)
+		itemID, err := ensureItem(ctx, tx, item.Name)
 		if err != nil {
 			return "", err
 		}
@@ -365,20 +365,17 @@ func (s *Store) ImportTrip(ctx context.Context, ownerID string, doc portable.Doc
 }
 
 // ensureItem finds or creates a master item by name.
-func ensureItem(ctx context.Context, tx *sql.Tx, name, unit string) (string, error) {
+func ensureItem(ctx context.Context, tx *sql.Tx, name string) (string, error) {
 	var id string
 	err := tx.QueryRowContext(ctx,
 		`SELECT id FROM items WHERE name = ? LIMIT 1`, name).Scan(&id)
 	if err == nil {
 		return id, nil
 	}
-	if unit == "" {
-		unit = "pieces"
-	}
 	id = randomID()
 	if _, err := tx.ExecContext(ctx,
-		`INSERT INTO items (id, name, unit) VALUES (?, ?, ?)`,
-		id, name, unit); err != nil {
+		`INSERT INTO items (id, name) VALUES (?, ?)`,
+		id, name); err != nil {
 		return "", fmt.Errorf("insert item %q: %w", name, err)
 	}
 	return id, nil
