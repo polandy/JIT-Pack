@@ -20,7 +20,7 @@ import { useSyncStatus } from './useSyncStatus'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type { PullChange, WSEvent } from '@/api/types'
-import { buildVariables, durationDays, type GeneratedItem } from '@/domain/instantiate'
+import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import { dependentsOf, resolveDependencies } from '@/domain/dependencies'
 import { planClone, type CloneOptions } from '@/domain/clone'
 import { optimizeItemImage } from '@/lib/imageResize'
@@ -622,17 +622,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * after a quick-add that matched a master item.
    */
   function addRequiredCompanions(tripId: string) {
-    const trip = tripStore.getTrip(tripId)
     const onList = tripStore.getItems(tripId)
     const resolution = resolveDependencies({
       onList,
       dependencies: masterStore.dependencyList,
       masterItems: masterStore.itemList,
-      vars: buildVariables({
-        duration_days: trip?.duration_days ?? null,
-        attributes: trip?.attributes ?? null,
-        travelers: tripStore.getTravelers(tripId),
-      }),
     })
     for (const companion of resolution.required) {
       const { mutation, id } = mutations.addGeneratedTripItem(
@@ -1090,7 +1084,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       for (const item of doc.items) {
         const itemId = resolveItem(item)!
         const ti = mutations.addTemplateItem(templateId, itemId, {
-          quantityFormula: item.quantity,
+          quantity: item.quantity,
           assignment: item.assignment ?? 'per_person',
           dedup: item.dedup ?? 'max',
           defaultMode: item.default_mode ?? 'pack',
@@ -1790,7 +1784,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       const target = masterStore
         .getTemplateItems(templateId)
         .find((ti) => ti.item_id === proposal.itemId)
-      if (target) updateTemplateItem(target, { quantity_formula: '0' })
+      if (target) updateTemplateItem(target, { quantity: 0 })
       return templateId
     }
     const itemId = proposal.itemId ?? createMasterItem(proposal.itemName)
@@ -1818,7 +1812,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
     for (const ti of masterStore.getTemplateItems(templateId)) {
       addTemplateItem(id, ti.item_id, {
-        quantityFormula: ti.quantity_formula,
+        quantity: ti.quantity,
         assignment: ti.assignment,
         dedup: ti.dedup,
         defaultMode: ti.default_mode,
@@ -2149,7 +2143,7 @@ function templateItemRow(ti: TemplateItem): Record<string, unknown> {
   return {
     template_id: ti.template_id,
     item_id: ti.item_id,
-    quantity_formula: ti.quantity_formula,
+    quantity: ti.quantity,
     assignment: ti.assignment,
     dedup: ti.dedup,
     conditions: ti.conditions ? JSON.stringify(ti.conditions) : null,
@@ -2163,7 +2157,7 @@ function dependencyRow(d: ItemDependency): Record<string, unknown> {
     item_id: d.item_id,
     depends_on_item_id: d.depends_on_item_id,
     mode: d.mode,
-    quantity_formula: d.quantity_formula,
+    quantity: d.quantity,
   }
 }
 

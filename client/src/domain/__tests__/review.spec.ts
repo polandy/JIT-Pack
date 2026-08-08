@@ -44,7 +44,7 @@ function templateItem(over: Partial<TemplateItem> = {}): TemplateItem {
     id: 'tpl-item-1',
     template_id: 'tpl1',
     item_id: 'item1',
-    quantity_formula: '1',
+    quantity: 1,
     assignment: 'trip_global',
     dedup: 'max',
     conditions: null,
@@ -102,7 +102,7 @@ describe('buildReviewProposals — unused flags (reduce quantity)', () => {
       {
         ...base,
         templateItems: (id: string) =>
-          id === 'tpl1' ? [templateItem({ quantity_formula: '0' })] : [],
+          id === 'tpl1' ? [templateItem({ quantity: 0 })] : [],
         items: [
           tripItem({ flag_unused: true, source_item_id: 'item1', source_template_id: 'tpl1' }),
         ],

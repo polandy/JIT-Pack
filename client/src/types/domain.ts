@@ -197,7 +197,8 @@ export interface ItemDependency {
   /** The main item it belongs to (camera). */
   depends_on_item_id: string
   mode: DependencyMode
-  quantity_formula: string | null
+  /** Companion amount; null = 1. Plain number since FR-1.3/1.5 were retired. */
+  quantity: number | null
 }
 
 export type TemplateAssignment = 'per_person' | 'trip_global'
@@ -208,7 +209,8 @@ export interface TemplateItem {
   template_id: string
   item_id: string
   item_name?: string
-  quantity_formula: string
+  /** Plain amount (FR-1.3/1.5 formulas retired 2026-08-08). */
+  quantity: number
   assignment: TemplateAssignment
   dedup: TemplateDedup
   conditions: Record<string, unknown> | null

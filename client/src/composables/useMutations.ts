@@ -551,7 +551,7 @@ export function useMutations(hlc: HLCGenerator) {
     templateId: string,
     itemId: string,
     opts: {
-      quantityFormula?: string
+      quantity?: number
       assignment?: string
       dedup?: string
       defaultMode?: string
@@ -563,7 +563,7 @@ export function useMutations(hlc: HLCGenerator) {
     const mutation = make('insert', 'template_items', id, {
       template_id: templateId,
       item_id: itemId,
-      quantity_formula: opts.quantityFormula ?? '1',
+      quantity: opts.quantity ?? 1,
       assignment: opts.assignment ?? 'per_person',
       dedup: opts.dedup ?? 'max',
       default_mode: opts.defaultMode ?? 'pack',
@@ -586,14 +586,14 @@ export function useMutations(hlc: HLCGenerator) {
   function addItemDependency(
     itemId: string,
     dependsOnItemId: string,
-    opts: { mode?: 'required' | 'suggested'; quantityFormula?: string | null } = {},
+    opts: { mode?: 'required' | 'suggested'; quantity?: number | null } = {},
   ): { mutation: Mutation; id: string } {
     const id = crypto.randomUUID()
     const mutation = make('insert', 'item_dependencies', id, {
       item_id: itemId,
       depends_on_item_id: dependsOnItemId,
       mode: opts.mode ?? 'required',
-      quantity_formula: opts.quantityFormula ?? null,
+      quantity: opts.quantity ?? null,
     })
     return { mutation, id }
   }

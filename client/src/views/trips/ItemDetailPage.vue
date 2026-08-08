@@ -40,7 +40,6 @@ import {
 import { computed, inject, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
-import { buildVariables } from '@/domain/instantiate'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { ItemComment, ItemMode, ItemTodo } from '@/types/domain'
@@ -79,11 +78,6 @@ const suggestedCompanions = computed(() => {
     onList: tripStore.getItems(props.tripId),
     dependencies: masterStore.getCompanionDependencies(source),
     masterItems: masterStore.itemList,
-    vars: buildVariables({
-      duration_days: trip.value?.duration_days ?? null,
-      attributes: trip.value?.attributes ?? null,
-      travelers: travelers.value,
-    }),
   }).suggested
 })
 

@@ -77,7 +77,7 @@ export function buildReviewProposals(args: ReviewArgs): ReviewProposal[] {
     const templateItem = args
       .templateItems(item.source_template_id)
       .find((ti) => ti.item_id === item.source_item_id)
-    if (!templateItem || templateItem.quantity_formula === '0') continue
+    if (!templateItem || templateItem.quantity === 0) continue
     push(
       {
         kind: 'reduce_quantity',

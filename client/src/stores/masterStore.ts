@@ -301,7 +301,7 @@ function rowToDependency(id: string, row: Record<string, unknown>): ItemDependen
     item_id: row['item_id'] as string,
     depends_on_item_id: row['depends_on_item_id'] as string,
     mode: (row['mode'] as ItemDependency['mode']) ?? 'required',
-    quantity_formula: (row['quantity_formula'] as string) ?? null,
+    quantity: (row['quantity'] as number) ?? null,
   }
 }
 
@@ -310,7 +310,7 @@ function rowToTemplateItem(id: string, row: Record<string, unknown>): TemplateIt
     id,
     template_id: row['template_id'] as string,
     item_id: row['item_id'] as string,
-    quantity_formula: (row['quantity_formula'] as string) ?? '1',
+    quantity: (row['quantity'] as number) ?? 1,
     assignment: (row['assignment'] as TemplateItem['assignment']) ?? 'per_person',
     dedup: (row['dedup'] as TemplateItem['dedup']) ?? 'max',
     conditions: row['conditions'] ? JSON.parse(row['conditions'] as string) : null,

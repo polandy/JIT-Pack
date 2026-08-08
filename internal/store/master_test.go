@@ -104,7 +104,7 @@ func TestApplyMasterMutation_InsertWritesMasterChangeLog(t *testing.T) {
 			m: masterMut(sync.OpInsert, "template_items", "ti-1", "mm-ti",
 				map[string]any{
 					"template_id": "tpl-seed", "item_id": "item-m1",
-					"quantity_formula": "days", "assignment": "per_person",
+					"quantity": 2, "assignment": "per_person",
 					"dedup": "max", "default_mode": "pack", "late_packer": 0,
 				}, "0000000001003-0000-aaaaaaaa"),
 		},
@@ -188,7 +188,7 @@ func TestApplyMasterMutation_TemplateOwnershipEnforced(t *testing.T) {
 		{"foreign delete", masterMut(sync.OpDelete, "templates", "tpl-a", "to-3", nil,
 			"0000000002001-0000-bbbbbbbb")},
 		{"foreign template_items insert", masterMut(sync.OpInsert, "template_items", "ti-b", "to-4",
-			map[string]any{"template_id": "tpl-a", "item_id": "nope", "quantity_formula": "1"},
+			map[string]any{"template_id": "tpl-a", "item_id": "nope", "quantity": 1},
 			"0000000002002-0000-bbbbbbbb")},
 	}
 	for _, tt := range tests {
@@ -258,7 +258,7 @@ func TestApplyMasterMutation_TemplateDeleteTombstonesItems(t *testing.T) {
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "templates", "tpl-c", "td-1",
 		map[string]any{"name": "Cascade"}, "0000000001000-0000-aaaaaaaa"))
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "template_items", "ti-c", "td-2",
-		map[string]any{"template_id": "tpl-c", "item_id": "item-c", "quantity_formula": "1"},
+		map[string]any{"template_id": "tpl-c", "item_id": "item-c", "quantity": 1},
 		"0000000001001-0000-aaaaaaaa"))
 
 	applyMaster(t, s, testUser, masterMut(sync.OpDelete, "templates", "tpl-c", "td-3", nil,
@@ -283,7 +283,7 @@ func TestApplyMasterMutation_DeleteReferencedItemRejected(t *testing.T) {
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "templates", "tpl-ref", "dr-1",
 		map[string]any{"name": "Ref"}, "0000000001000-0000-aaaaaaaa"))
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "template_items", "ti-ref", "dr-2",
-		map[string]any{"template_id": "tpl-ref", "item_id": "item-ref", "quantity_formula": "1"},
+		map[string]any{"template_id": "tpl-ref", "item_id": "item-ref", "quantity": 1},
 		"0000000001001-0000-aaaaaaaa"))
 
 	res := applyMaster(t, s, testUser, masterMut(sync.OpDelete, "items", "item-ref", "dr-3", nil,

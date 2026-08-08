@@ -18,10 +18,10 @@ func TestExportTemplate(t *testing.T) {
 		`INSERT INTO items (id, name, category_id, unit) VALUES ('i1', 'Toothbrush', 'cat1', 'pieces')`,
 		`INSERT INTO items (id, name, category_id, unit) VALUES ('i2', 'Sunscreen', 'cat1', 'pieces')`,
 		`INSERT INTO templates (id, owner_id, name) VALUES ('t1', 'u1', 'Base Travel')`,
-		`INSERT INTO template_items (id, template_id, item_id, quantity_formula, assignment, conditions)
-		 VALUES ('ti1', 't1', 'i1', '1', 'per_person', NULL)`,
-		`INSERT INTO template_items (id, template_id, item_id, quantity_formula, assignment, conditions)
-		 VALUES ('ti2', 't1', 'i2', 'ceil(trip_duration / 7)', 'trip_global', '{"season":["summer"]}')`,
+		`INSERT INTO template_items (id, template_id, item_id, quantity, assignment, conditions)
+		 VALUES ('ti1', 't1', 'i1', 1, 'per_person', NULL)`,
+		`INSERT INTO template_items (id, template_id, item_id, quantity, assignment, conditions)
+		 VALUES ('ti2', 't1', 'i2', 2, 'trip_global', '{"season":["summer"]}')`,
 	} {
 		if _, err := st.DB().Exec(q); err != nil {
 			t.Fatalf("seed: %v", err)
@@ -49,8 +49,8 @@ func TestExportTemplate(t *testing.T) {
 	if doc.Items[0].Name != "Sunscreen" {
 		t.Errorf("items[0].name = %q, want Sunscreen", doc.Items[0].Name)
 	}
-	if doc.Items[0].Quantity != "ceil(trip_duration / 7)" {
-		t.Errorf("items[0].quantity = %q", doc.Items[0].Quantity)
+	if doc.Items[0].Quantity != 2 {
+		t.Errorf("items[0].quantity = %d", doc.Items[0].Quantity)
 	}
 	if doc.Items[0].Assignment != "trip_global" {
 		t.Errorf("items[0].assignment = %q", doc.Items[0].Assignment)
@@ -86,8 +86,8 @@ func TestImportTemplate(t *testing.T) {
 		SchemaVersion: 1,
 		Name:          "Imported Template",
 		Items: []portable.Item{
-			{Name: "Toothbrush", Quantity: "1", Assignment: "per_person", Unit: "pieces"},
-			{Name: "Sunscreen", Quantity: "2", Assignment: "trip_global", Unit: "pieces",
+			{Name: "Toothbrush", Quantity: 1, Assignment: "per_person", Unit: "pieces"},
+			{Name: "Sunscreen", Quantity: 2, Assignment: "trip_global", Unit: "pieces",
 				DefaultMode: "buy_before", LatePacker: true, Dedup: "sum"},
 		},
 	}
@@ -232,9 +232,9 @@ func TestImportTrip(t *testing.T) {
 			{Name: "Backpack", Carrier: "Andy", MaxWeightGrams: 8000},
 		},
 		Items: []portable.Item{
-			{Name: "Toothbrush", Quantity: "1", Mode: "pack", Category: "Toiletries",
+			{Name: "Toothbrush", Quantity: 1, Mode: "pack", Category: "Toiletries",
 				Traveler: "Andy", Container: "Backpack"},
-			{Name: "Socks", Quantity: "3", Mode: "buy_before"},
+			{Name: "Socks", Quantity: 3, Mode: "buy_before"},
 		},
 	}
 

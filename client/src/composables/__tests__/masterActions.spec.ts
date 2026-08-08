@@ -84,13 +84,13 @@ describe('master data actions', () => {
     mockDrain()
     mockDrain()
 
-    const tiId = orch.addTemplateItem('tpl-1', 'i1', { quantityFormula: 'num_travelers' })
+    const tiId = orch.addTemplateItem('tpl-1', 'i1', { quantity: 3 })
     expect(master.getTemplateItems('tpl-1')).toHaveLength(1)
 
     orch.updateTemplateItem(master.getTemplateItems('tpl-1')[0]!, { dedup: 'sum' })
     const ti = master.getTemplateItems('tpl-1')[0]!
     expect(ti.dedup).toBe('sum')
-    expect(ti.quantity_formula).toBe('num_travelers')
+    expect(ti.quantity).toBe(3)
 
     orch.deleteTemplateItem(tiId)
     expect(master.getTemplateItems('tpl-1')).toHaveLength(0)

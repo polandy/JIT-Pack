@@ -80,7 +80,7 @@ describe('parsePortable (FR-18.5)', () => {
     expect(result.doc!.items).toHaveLength(2)
     expect(result.doc!.items[0]).toMatchObject({
       name: 'Unterhosen',
-      quantity: 'trip_duration + 1',
+      quantity: 1, // legacy formula string in the YAML folds to 1 (FR-18.4 tolerance)
       assignment: 'per_person',
     })
   })
@@ -140,7 +140,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
         id: 'ti1',
         template_id: 'tpl1',
         item_id: 'i1',
-        quantity_formula: 'trip_duration + 1',
+        quantity: 2,
         assignment: 'per_person',
         dedup: 'max',
         conditions: null,
@@ -151,7 +151,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
         id: 'ti2',
         template_id: 'tpl1',
         item_id: 'i2',
-        quantity_formula: '1',
+        quantity: 1,
         assignment: 'trip_global',
         dedup: 'sum',
         conditions: { season: 'winter' },
@@ -172,7 +172,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
     // Items sorted by name, matching the server export (ORDER BY name).
     expect(result.doc!.items.map((i) => i.name)).toEqual(['Skibrille', 'Unterhosen'])
     expect(result.doc!.items[0]).toMatchObject({
-      quantity: '1',
+      quantity: 1,
       assignment: 'trip_global',
       dedup: 'sum',
       unit: 'pairs',
@@ -254,7 +254,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
     })
     expect(withProgress.items[0]).toMatchObject({
       name: 'Zelt',
-      quantity: '2',
+      quantity: 2,
       category: 'Outdoor',
       traveler: 'Andy',
       container: 'Radtasche',

@@ -73,7 +73,7 @@ function seedTemplate(master: ReturnType<typeof useMasterStore>) {
     row: {
       template_id: 'tpl1',
       item_id: 'item1',
-      quantity_formula: '2',
+      quantity: 2,
       assignment: 'per_person',
       dedup: 'max',
       default_mode: 'pack',
@@ -128,7 +128,7 @@ describe('deleteTrip (M2, Owner-only)', () => {
 })
 
 describe('applyReviewProposal', () => {
-  it('reduce_quantity zeroes the template item formula', () => {
+  it('reduce_quantity zeroes the template item quantity', () => {
     const orch = newOrch()
     const master = useMasterStore()
     seedTemplate(master)
@@ -136,7 +136,7 @@ describe('applyReviewProposal', () => {
     const target = orch.applyReviewProposal(proposal())
 
     expect(target).toBe('tpl1')
-    expect(master.getTemplateItems('tpl1')[0]!.quantity_formula).toBe('0')
+    expect(master.getTemplateItems('tpl1')[0]!.quantity).toBe(0)
   })
 
   it('add_item adds an existing master item to the template', () => {
@@ -162,7 +162,7 @@ describe('applyReviewProposal', () => {
 
     const added = master.getTemplateItems('tpl1').find((ti) => ti.item_id === 'item9')
     expect(added).toBeDefined()
-    expect(added?.quantity_formula).toBe('1')
+    expect(added?.quantity).toBe(1)
   })
 
   it('add_item creates the master item first for an ad-hoc name', () => {
@@ -197,7 +197,7 @@ describe('applyReviewProposal', () => {
       row: {
         template_id: 'tpl1',
         item_id: 'item1',
-        quantity_formula: '2',
+        quantity: 2,
         assignment: 'per_person',
         dedup: 'max',
         default_mode: 'pack',
@@ -212,7 +212,7 @@ describe('applyReviewProposal', () => {
       row: {
         template_id: 'tpl1',
         item_id: 'item2',
-        quantity_formula: 'num_travelers',
+        quantity: 3,
         assignment: 'trip_global',
         dedup: 'sum',
         default_mode: 'buy_before',
@@ -228,14 +228,14 @@ describe('applyReviewProposal', () => {
     expect(fork?.is_published).toBe(false)
     // Original untouched, fork carries the zeroed item plus the copy.
     expect(
-      master.getTemplateItems('tpl1').find((ti) => ti.item_id === 'item1')?.quantity_formula,
-    ).toBe('2')
+      master.getTemplateItems('tpl1').find((ti) => ti.item_id === 'item1')?.quantity,
+    ).toBe(2)
     const forkItems = master.getTemplateItems(forkId)
     expect(forkItems).toHaveLength(2)
-    expect(forkItems.find((ti) => ti.item_id === 'item1')?.quantity_formula).toBe('0')
+    expect(forkItems.find((ti) => ti.item_id === 'item1')?.quantity).toBe(0)
     const copied = forkItems.find((ti) => ti.item_id === 'item2')
     expect(copied).toMatchObject({
-      quantity_formula: 'num_travelers',
+      quantity: 3,
       assignment: 'trip_global',
       dedup: 'sum',
       default_mode: 'buy_before',

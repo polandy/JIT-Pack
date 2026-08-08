@@ -160,12 +160,12 @@ describe('planClone — fresh pack state (FR-12.1)', () => {
   })
 })
 
-describe('planClone — formula re-evaluation (FR-12.2)', () => {
+describe('planClone — quantities carry over (FR-12.2, formulas retired 2026-08-08)', () => {
   const templateItem: TemplateItem = {
     id: 'tpl-item-1',
     template_id: 'tpl1',
     item_id: 'item1',
-    quantity_formula: 'trip_duration + 1',
+    quantity: 4,
     assignment: 'per_person',
     dedup: 'max',
     conditions: null,
@@ -186,7 +186,7 @@ describe('planClone — formula re-evaluation (FR-12.2)', () => {
     masterItem: (id: string) => (id === 'item1' ? masterItem : undefined),
   }
 
-  it('re-evaluates templated items against the new duration', () => {
+  it('a templated item keeps the quantity the trip had', () => {
     const plan = planClone(
       {
         trip: trip(),
@@ -201,8 +201,7 @@ describe('planClone — formula re-evaluation (FR-12.2)', () => {
       3,
     )
 
-    expect(plan.items[0]!.quantity).toBe(4) // 3 + 1, not the old 8
-    expect(plan.reevaluated).toBe(1)
+    expect(plan.items[0]!.quantity).toBe(8) // carried over, no re-derivation
   })
 
   it.each([
@@ -219,6 +218,5 @@ describe('planClone — formula re-evaluation (FR-12.2)', () => {
       3,
     )
     expect(plan.items[0]!.quantity).toBe(5)
-    expect(plan.reevaluated).toBe(0)
   })
 })

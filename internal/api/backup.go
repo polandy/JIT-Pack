@@ -70,7 +70,7 @@ func (s *Server) handleExportTripCSV(w http.ResponseWriter, r *http.Request) {
 			packed = strconv.Itoa(*item.PackedCount)
 		}
 		cw.Write([]string{
-			item.Name, item.Category, item.Quantity, packed,
+			item.Name, item.Category, strconv.Itoa(int(item.Quantity)), packed,
 			item.Mode, item.Traveler, item.Container,
 		})
 	}

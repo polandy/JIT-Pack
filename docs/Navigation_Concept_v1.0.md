@@ -107,7 +107,7 @@ Reusable across all trips — which is *why* they are their own anchors rather t
 
 | Screen | Route | Role |
 |---|---|---|
-| **M8** Template Editor | `/templates/:id` | item picker, quantity formula, conditions |
+| **M8** Template Editor | `/templates/:id` | quick-add, quantity stepper, conditions |
 | **M10** Item Editor | `/items/:id` | weight, value, unit, photo, companions |
 | **M16** Series & Destination Profile | `/series/:id` | default attributes, destination checklist, history |
 

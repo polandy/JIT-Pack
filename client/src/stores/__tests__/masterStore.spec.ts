@@ -101,7 +101,7 @@ describe('masterStore', () => {
       row: {
         template_id: 't1',
         item_id: 'i1',
-        quantity_formula: '2',
+        quantity: 2,
         assignment: 'per_person',
         dedup: 'max',
         default_mode: 'pack',
@@ -124,7 +124,7 @@ describe('masterStore', () => {
       row: {
         template_id: 't1',
         item_id: 'i1',
-        quantity_formula: '1',
+        quantity: 1,
         assignment: 'per_person',
         dedup: 'max',
         default_mode: 'pack',
@@ -138,7 +138,7 @@ describe('masterStore', () => {
       row: {
         template_id: 't1',
         item_id: 'i1',
-        quantity_formula: '3',
+        quantity: 3,
         assignment: 'trip_global',
         dedup: 'sum',
         default_mode: 'buy_before',
@@ -147,7 +147,7 @@ describe('masterStore', () => {
 
     const tis = store.getTemplateItems('t1')
     expect(tis).toHaveLength(1)
-    expect(tis[0]!.quantity_formula).toBe('3')
+    expect(tis[0]!.quantity).toBe(3)
     expect(tis[0]!.assignment).toBe('trip_global')
   })
 
@@ -225,7 +225,7 @@ describe('masterStore', () => {
         row: {
           template_id: 't1',
           item_id: 'i1',
-          quantity_formula: '1',
+          quantity: 1,
           assignment: 'per_person',
           dedup: 'max',
           default_mode: 'pack',
@@ -239,7 +239,7 @@ describe('masterStore', () => {
         row: {
           template_id: 't1',
           item_id: 'i2',
-          quantity_formula: '2',
+          quantity: 2,
           assignment: 'per_person',
           dedup: 'max',
           default_mode: 'pack',
@@ -262,7 +262,7 @@ describe('masterStore', () => {
         item_id: 'battery',
         depends_on_item_id: 'camera',
         mode: 'suggested',
-        quantity_formula: '2',
+        quantity: 2,
       },
     })
 
@@ -272,7 +272,7 @@ describe('masterStore', () => {
         item_id: 'battery',
         depends_on_item_id: 'camera',
         mode: 'suggested',
-        quantity_formula: '2',
+        quantity: 2,
       },
     ])
     expect(store.getItemDependencies('battery')).toHaveLength(1)
@@ -283,7 +283,7 @@ describe('masterStore', () => {
     expect(store.dependencyList).toEqual([])
   })
 
-  it('defaults dependency mode to required and formula to null', () => {
+  it('defaults dependency mode to required and quantity to null', () => {
     const store = useMasterStore()
     store.applyChange({
       seq: 1,
@@ -292,6 +292,6 @@ describe('masterStore', () => {
       deleted: false,
       row: { item_id: 'battery', depends_on_item_id: 'camera' },
     })
-    expect(store.dependencyList[0]).toMatchObject({ mode: 'required', quantity_formula: null })
+    expect(store.dependencyList[0]).toMatchObject({ mode: 'required', quantity: null })
   })
 })

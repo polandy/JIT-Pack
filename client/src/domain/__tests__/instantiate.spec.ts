@@ -34,7 +34,7 @@ function templateItem(
     id,
     template_id: templateId,
     item_id: itemId,
-    quantity_formula: '1',
+    quantity: 1,
     assignment: 'trip_global',
     dedup: 'max',
     conditions: null,
@@ -60,7 +60,7 @@ function input(overrides: Partial<GenerationInput>): GenerationInput {
 }
 
 describe('generateTripItems', () => {
-  it('evaluates formulas and copies master metadata', () => {
+  it('copies the plain quantity and master metadata', () => {
     const res = generateTripItems(
       input({
         templates: [template('t1', 'Basis')],
@@ -72,7 +72,7 @@ describe('generateTripItems', () => {
           }),
         ],
         templateItems: [
-          templateItem('ti1', 't1', 'i1', { quantity_formula: 'ceil(trip_duration / 7)' }),
+          templateItem('ti1', 't1', 'i1', { quantity: 2 }),
         ],
       }),
     )
@@ -100,7 +100,7 @@ describe('generateTripItems', () => {
         templateItems: [
           templateItem('ti1', 't1', 'i1', {
             assignment: 'per_person',
-            quantity_formula: 'trip_duration / 2',
+            quantity: 5,
           }),
         ],
       }),
@@ -111,13 +111,13 @@ describe('generateTripItems', () => {
     expect(res.items.every((i) => i.quantity === 5)).toBe(true)
   })
 
-  it('falls back to quantity 1 when trip_duration is null (FR-2.1a)', () => {
+  it('a missing quantity falls back to 1', () => {
     const res = generateTripItems(
       input({
         templates: [template('t1', 'Basis')],
         masterItems: [masterItem('i1', 'Sonnencreme')],
         templateItems: [
-          templateItem('ti1', 't1', 'i1', { quantity_formula: 'ceil(trip_duration / 7)' }),
+          { ...templateItem('ti1', 't1', 'i1'), quantity: undefined as unknown as number },
         ],
         trip: { duration_days: null, attributes: null, travelers: twoAdults },
       }),
@@ -164,8 +164,8 @@ describe('generateTripItems', () => {
         templates: [template('t1', 'Basis'), template('t2', 'Strand')],
         masterItems: [masterItem('i1', 'Handtuch')],
         templateItems: [
-          templateItem('ti1', 't1', 'i1', { quantity_formula: '2' }),
-          templateItem('ti2', 't2', 'i1', { quantity_formula: '3' }),
+          templateItem('ti1', 't1', 'i1', { quantity: 2 }),
+          templateItem('ti2', 't2', 'i1', { quantity: 3 }),
         ],
       }),
     )
@@ -187,8 +187,8 @@ describe('generateTripItems', () => {
         templates: [template('t1', 'Basis'), template('t2', 'Strand')],
         masterItems: [masterItem('i1', 'Sonnencreme')],
         templateItems: [
-          templateItem('ti1', 't1', 'i1', { quantity_formula: '1' }),
-          templateItem('ti2', 't2', 'i1', { quantity_formula: '2', dedup: 'sum' }),
+          templateItem('ti1', 't1', 'i1', { quantity: 1 }),
+          templateItem('ti2', 't2', 'i1', { quantity: 2, dedup: 'sum' }),
         ],
       }),
     )
@@ -203,8 +203,8 @@ describe('generateTripItems', () => {
         templates: [template('t1', 'A'), template('t2', 'B')],
         masterItems: [masterItem('i1', 'Socken')],
         templateItems: [
-          templateItem('ti1', 't1', 'i1', { assignment: 'per_person', quantity_formula: '2' }),
-          templateItem('ti2', 't2', 'i1', { assignment: 'per_person', quantity_formula: '4' }),
+          templateItem('ti1', 't1', 'i1', { assignment: 'per_person', quantity: 2 }),
+          templateItem('ti2', 't2', 'i1', { assignment: 'per_person', quantity: 4 }),
         ],
       }),
     )
@@ -233,11 +233,11 @@ describe('generateTripItems', () => {
       input({
         templates: [template('t1', 'Basis')],
         masterItems: [masterItem('i1', 'Kindersitz')],
-        templateItems: [templateItem('ti1', 't1', 'i1', { quantity_formula: 'num_children' })],
+        templateItems: [templateItem('ti1', 't1', 'i1', { quantity: 0 })],
       }),
     )
 
-    // Two adults, no children → quantity 0 → generated as skipped item.
+    // Quantity 0 → generated as skipped item.
     expect(res.items).toHaveLength(1)
     expect(res.items[0]!.quantity).toBe(0)
   })

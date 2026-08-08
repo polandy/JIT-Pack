@@ -1,7 +1,7 @@
 /**
  * Template instantiation (FR-2.2/FR-2.3a/FR-1.4/FR-1.8/FR-15.2) — pure,
  * no I/O. Turns selected templates into concrete trip items:
- * conditions filter, formulas evaluate, per_person expands to one row
+ * conditions filter, quantities apply, per_person expands to one row
  * per traveler, overlaps across templates deduplicate.
  *
  * Living client-side keeps Local Mode (Addendum 3.19) at feature parity
@@ -9,7 +9,6 @@
  * sync outbox, Local Mode persists them directly.
  */
 
-import { evaluateFormula, type FormulaVariables } from './formula'
 import type { ItemMode, MasterItem, Template, TemplateDedup, TemplateItem } from '@/types/domain'
 
 export interface GenerationTraveler {
@@ -75,7 +74,6 @@ export function durationDays(startDate: string | null, endDate: string): number 
 export function generateTripItems(input: GenerationInput): GenerationResult {
   const selected = new Set(input.templates.map((t) => t.id))
   const itemsByID = new Map(input.masterItems.map((i) => [i.id, i]))
-  const vars = buildVariables(input.trip)
 
   const excluded: ExcludedItem[] = []
   const byKey = new Map<
@@ -94,7 +92,7 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
       continue
     }
 
-    const quantity = computeQuantity(ti, master, vars)
+    const quantity = computeQuantity(ti)
     const targets: (number | null)[] =
       ti.assignment === 'per_person' ? input.trip.travelers.map((_, idx) => idx) : [null]
 
@@ -149,21 +147,6 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
   return { items, excluded, merged }
 }
 
-/** buildVariables derives the FR-1.5 variable catalog from a trip draft. */
-export function buildVariables(trip: GenerationTrip): FormulaVariables {
-  const attrs = trip.attributes ?? {}
-  const str = (key: string) => (typeof attrs[key] === 'string' ? (attrs[key] as string) : null)
-  return {
-    trip_duration: trip.duration_days,
-    num_travelers: trip.travelers.length,
-    num_adults: trip.travelers.filter((t) => t.profile === 'adult').length,
-    num_children: trip.travelers.filter((t) => t.profile === 'child').length,
-    season: str('season'),
-    transport_mode: str('transport_mode'),
-    accommodation: str('accommodation'),
-  }
-}
-
 /**
  * conditionFailure returns null when all conditions match the trip
  * attributes, otherwise a human-readable reason for the M3 preview
@@ -195,17 +178,10 @@ function conditionFailure(
 }
 
 /**
- * computeQuantity evaluates the formula (null → 1 per FR-2.1a), clamps
- * at 0, and rounds up — a fractional result must never under-pack.
- * Per-day needs are expressed in the formula itself (FR-1.3, e.g.
- * ceil(trip_duration / 7)); the dedicated per-day item rate was retired
- * with FR-1.7 (owner decision 2026-08-08).
+ * computeQuantity clamps the position's plain amount at 0. Formulas were
+ * retired (FR-1.3/1.5, owner decision 2026-08-08) — trip-specific amounts
+ * are set in the M3 quantity review instead.
  */
-export function computeQuantity(
-  ti: Pick<TemplateItem, 'quantity_formula'>,
-  _master: MasterItem,
-  vars: FormulaVariables,
-): number {
-  const base = evaluateFormula(ti.quantity_formula, vars) ?? 1
-  return Math.max(0, Math.ceil(base))
+export function computeQuantity(ti: Pick<TemplateItem, 'quantity'>): number {
+  return Math.max(0, Math.floor(ti.quantity ?? 1))
 }

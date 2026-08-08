@@ -14,7 +14,7 @@
 
 The client already ships **412 Vitest unit/component tests** and a fully unit-tested pure domain layer (`src/domain/`, `src/lib/`, `src/local/`, `src/notifications/`). The E2E suite does **not** re-derive that logic. It sits one layer above:
 
-* **Unit tests own the algorithm** — quantity formulas (FR-1.3/1.5/15.3), dedup/instantiation (FR-2.2/2.3/2.3a), analytics math (FR-8.2/10.4/14.3), clone/review planning (FR-12/9), spreadsheet & portable parsing (FR-16/18), dependency resolution (FR-20), image/avatar geometry (FR-22.2/22.3), HLC + merge (NFR-4.2a). These are proven in isolation and must stay there.
+* **Unit tests own the algorithm** — dedup/instantiation (FR-2.2/2.3/2.3a), analytics math (FR-8.2/10.4/14.3), clone/review planning (FR-12/9), spreadsheet & portable parsing (FR-16/18), dependency resolution (FR-20), image/avatar geometry (FR-22.2/22.3), HLC + merge (NFR-4.2a). These are proven in isolation and must stay there.
 * **E2E owns the journey** — that a real user, in a real browser, driving the real built app, can reach a screen, perform the requirement's action, and observe the correct result *including its persistence and (where relevant) cross-device propagation*. E2E verifies the wiring: store ↔ outbox ↔ WebSocket ↔ server ↔ DOM.
 
 Every FR/NFR in §7 is tagged **E2E** (a browser case exists), **UNIT** (logic already covered; E2E only touches it incidentally through a journey), **SERVER** (backend/API concern with no UI surface — covered by Go tests, listed here for completeness), or **DOC/N-A** (documentation-only or retired).
@@ -117,7 +117,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M3-05** `single/local` (FR-17.3/G-8): step 2 sharing/role part hidden; only traveler add/edit remains.
 * **E2E-M3-06** `all` (FR-2.2/2.3/15.2): step 3 template checkboxes; live footer shows resulting count, deduped overlaps with strategy, and excluded items with reason ("skipped: season ≠ winter").
 * **E2E-M3-07** `all` (FR-20.3/20.4): step 3 footer reports auto-pulled companion items; step 4 lists them with their main item, dedup notes, and suggested companions as opt-in checkboxes.
-* **E2E-M3-08** `all` (FR-14.1/14.2): step 4 rows show computed quantity + formula tooltip and a one-tap history suggestion ("2024: 5 · 2025: 6 → 6").
+* **E2E-M3-08** `all` (FR-14.1/14.2): step 4 rows show the template quantity with a stepper and a one-tap history suggestion ("2024: 5 · 2025: 6 → 6").
 * **E2E-M3-09** `all` (FR-13.3): step 4 offers the series destination checklist as opt-out extra items.
 * **E2E-M3-10** `all` (FR-2.4/NFR-4.1): draft persists across steps offline; "Create trip" commits and opens M4; cancel leaves no residue.
 * **E2E-M3-11** `all` (FR-27.1/27.2/27.6): step 3 — the list separates *Ferien-Vorlagen* from *Zusätzliche Gruppen* (sections in "Alle", plus one tab per scope); a composed template's row lists its groups ("enthält: …"); selecting it plus a group that overlaps it resolves for real: the footer count matches the deduped set and the merge is **named** with both source groups ("Kamera nur 1× — in Makro & Wildlife").
@@ -198,7 +198,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M7-08** `all` (FR-27.6): FAB opens the two-option scope chooser (Ferien-Vorlage / Gruppe with one-line explanations); each choice creates a template of that scope and opens the matching M8 editor shape.
 
 ### M8 — Template Editor
-* **E2E-M8-01** `all` (FR-1.3/1.5): quantity field accepts a formula with live validation and computed example ("for a 7-day trip: 8"); save is blocked while any formula is invalid with a per-row error.
+* **E2E-M8-01** `all` (FR-1.8/G-6): the position sheet's quantity is a numeric stepper (– n +), 0 allowed ("bewusst nicht dabei", FR-5.5); no formula input exists (FR-1.3/1.5 retired 2026-08-08).
 * **E2E-M8-02** `all` (FR-1.4): per-item assignment type Per Person / Trip-Global.
 * **E2E-M8-03** `all` (FR-2.3/15.2): dedup strategy select; condition chips (season/transport/accommodation).
 * **E2E-M8-04** `all` (FR-1.1/25.13): positions are added through the shared quick-add (see M8-13); a free-text name creates the master item inline.
@@ -334,9 +334,9 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 |---|---|---|
 | FR-1.1 | E2E | M9-01/02, M10-01, M8-04 |
 | FR-1.2 | E2E | M7-01/03, M8-06 |
-| FR-1.3 | E2E+UNIT | M8-01 (UI); formula.ts (logic) |
+| FR-1.3 | DOC/N-A | retired 2026-08-08 — plain integer quantities (M8-01 covers the stepper) |
 | FR-1.4 | E2E | M8-02 |
-| FR-1.5 | E2E+UNIT | M8-01; formula.ts `validateFormula` |
+| FR-1.5 | DOC/N-A | retired 2026-08-08 with FR-1.3 |
 | FR-1.6 | E2E | M7-01 (shared list), M14-02 (direct write), M18-01 — MVP shared model; publish/fork cases parked with the FR-1.6 stub |
 | FR-1.7 | DOC/N-A | retired 2026-08-08 (owner decision) — consumable flag and per-day unit removed |
 | FR-1.8 | E2E | M10-01, G6-01 |
@@ -386,7 +386,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-14.3 | E2E+UNIT | M12-03; analytics.ts |
 | FR-15.1 | E2E | M3-01, M16-01 |
 | FR-15.2 | E2E+UNIT | M3-06, M8-03; instantiate.ts |
-| FR-15.3 | UNIT | formula.ts variable catalogue; surfaced M8-01 |
+| FR-15.3 | DOC/N-A | void — retired with FR-1.3/1.5 (2026-08-08) |
 | FR-16.1 | E2E | M15-01 |
 | FR-16.2 | E2E | M2-08, M15-04 |
 | FR-16.3 | E2E+UNIT | M15-03, M18-03, M9-03; spreadsheet.ts |

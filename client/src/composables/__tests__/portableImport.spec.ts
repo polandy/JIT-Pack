@@ -80,13 +80,13 @@ items:
     expect(items).toHaveLength(2)
     const unterhosen = items.find((ti) => ti.item_id === 'i1')!
     expect(unterhosen).toMatchObject({
-      quantity_formula: 'trip_duration + 1',
+      quantity: 1, // legacy formula in the fixture YAML folds to 1 (FR-18.4 tolerance)
       assignment: 'per_person',
     })
 
     const skibrille = items.find((ti) => ti.item_id !== 'i1')!
     expect(skibrille).toMatchObject({
-      quantity_formula: '1',
+      quantity: 1,
       assignment: 'trip_global',
       dedup: 'sum',
       late_packer: true,

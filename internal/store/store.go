@@ -62,7 +62,7 @@ var syncableColumns = map[string]map[string]bool{
 		"owner_id", "name", "is_published",
 	),
 	"template_items": toSet(
-		"template_id", "item_id", "quantity_formula", "assignment",
+		"template_id", "item_id", "quantity", "assignment",
 		"dedup", "conditions", "default_mode", "late_packer",
 	),
 	"trips": toSet(
@@ -82,7 +82,7 @@ var syncableColumns = map[string]map[string]bool{
 		"trip_id", "user_id", "role",
 	),
 	"item_dependencies": toSet(
-		"item_id", "depends_on_item_id", "mode", "quantity_formula",
+		"item_id", "depends_on_item_id", "mode", "quantity",
 	),
 }
 
