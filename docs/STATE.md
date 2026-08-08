@@ -190,6 +190,16 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   — one contribution per traveler by Person, summed back into one bucket by Kategorie/Gepäck.
   E2E M12-04/05. Implementation open.
 
+- **Zuständigkeit ≠ Packbeleg (FR-25.19, owner correction 2026-08-08) — mocked + specced:** the M5
+  control read *„Gepackt von · Person“* but assigned the row (its own hint said „Delegieren löst
+  Push aus“), and the FR-25.3 avatar plus FR-25.17 stamp read that same field as a record — so
+  delegating to Sia and packing it yourself claimed Sia had packed it. Now two things:
+  **Verantwortliche Person** is assigned (push, FR-6.2), **who packed it** is written automatically
+  from the acting user and cleared on un-pack. The row keeps **one** right-edge avatar (responsible
+  → blue ring, packer → green ring + check); both are named in the sheet and the stamp where they
+  differ. M1's "Dir zum Packen übergeben" now reads responsibility. **Implementation open:** a
+  second nullable column beside `packer_user_id` for the record. E2E M4-30.
+
 - **Inventar-UX-Runde (owner directives 2026-08-08, mocked + specced):** M9 is **lean by
   default** (primary-tag avatar + name); which extras show (Tags/Gewicht/Preis) is a
   device-local preference behind an eye icon with a settings sheet (FR-24.4 new). M10

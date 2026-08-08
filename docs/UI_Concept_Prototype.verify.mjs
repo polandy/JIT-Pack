@@ -447,6 +447,40 @@ ok(await page.evaluate(() => JSON.parse(sessionStorage.getItem('jitpack.m4filter
   'der aus M12 gesetzte Filter überlebt die Session wie jeder andere (FR-25.18)');
 await page.evaluate(() => { FACETS.forEach(f => FILT[f.key].clear()); persistPackFilter(); });
 
+console.log('— Zuständigkeit vs. Packbeleg (FR-25.19) —');
+await page.evaluate(() => { FACETS.forEach(f => FILT[f.key].clear()); persistPackFilter(); go('pack'); });
+ok(await page.evaluate(() => document.querySelector('.respav') !== null),
+  'eine zugewiesene, noch offene Zeile zeigt die zuständige Person (blauer Ring)');
+ok(await page.evaluate(() => {
+  const l = allLeaves().find(x => x.resp && x.packed >= 1 && x.packedBy);
+  return !!l && l.resp !== l.packedBy;
+}), 'Seed enthält den Fall zugewiesen an A, gepackt von B');
+ok(await page.evaluate(() => {
+  const rows = [...document.querySelectorAll('.swipe')];
+  return rows.every(r => !(r.querySelector('.respav') && r.querySelector('.packerav')));
+}), 'nie beide Avatare gleichzeitig auf einer Zeile');
+
+// Packing writes the acting user, never the assignee.
+const target = await page.evaluate(() => {
+  const it = P.items.find(i => i.resp === 'Andy' && !i.pp && i.packed < i.qty);
+  it.resp = 'Sia'; it.packed = 0; it.packedBy = null; renderPack(); return it.id;
+});
+await page.evaluate(id => {
+  const it = P.items.find(i => i.id === id);
+  it.packed = it.qty; it.packedBy = ME; it.packedAt = Date.now(); renderPack();
+}, target);
+ok(await page.evaluate(id => {
+  const it = P.items.find(i => i.id === id);
+  return it.packedBy === ME && it.resp === 'Sia';
+}, target), 'Abhaken schreibt die handelnde Person, die Zuständigkeit bleibt unverändert');
+
+await page.evaluate(id => { openItem(id); sheetDetails = true; renderItem(); }, target);
+const sh = await text('#itemSheet');
+ok(sh.includes('verantwortliche person'), 'das Sheet beschriftet die Zuweisung als Verantwortung');
+ok(sh.includes('gepackt hat es') && sh.includes('nicht wählbar'),
+  'der Packbeleg steht daneben und ist ausdrücklich nicht wählbar');
+await page.evaluate(() => closeItem());
+
 console.log('— Seitenfehler —');
 ok(errors.length === 0, 'keine JS-Fehler' + (errors.length ? ' — ' + errors.join(' | ') : ''));
 
