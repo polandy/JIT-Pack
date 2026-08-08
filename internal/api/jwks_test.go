@@ -46,7 +46,6 @@ func serveJWKS(t *testing.T, kid string, pub *rsa.PublicKey) *httptest.Server {
 	return srv
 }
 
-
 func TestJWKSProvider_FetchAndValidate(t *testing.T) {
 	key := generateRSAKey(t)
 	kid := "test-key-1"
