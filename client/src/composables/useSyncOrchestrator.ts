@@ -1300,9 +1300,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return `${config.baseUrl}/api/v1/items/${item.id}/image?v=${item.image_hash}`
   }
 
-  /** createTemplate makes a new private template (FR-1.6). owner_id is
-   * stamped server-side on push; the optimistic row leaves it empty, which
-   * is fine because M7 groups "my" templates by `!is_published`, not owner.
+  /** createTemplate makes a new template. Templates are shared
+   * instance-wide (FR-1.6 MVP), so owner_id is creator metadata only; it is
+   * stamped server-side on push and the optimistic row leaves it empty.
    * Returns the new id so the caller can open M8. */
   function createTemplate(name: string): string {
     const { mutation, id } = mutations.createTemplate(name, '')
@@ -1770,16 +1770,15 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   /**
    * applyReviewProposal writes one review card back to master data
-   * (FR-9.2). With opts.fork the source template is copied first and
-   * the change lands on the private copy — foreign published templates
-   * are never written directly (FR-1.6). Returns the id of the template
-   * that received the change.
+   * (FR-9.2). Templates are shared instance-wide (FR-1.6 MVP), so the
+   * change lands on the source template itself — there is no fork step.
+   * Returns the id of the template that received the change.
    */
-  function applyReviewProposal(proposal: ReviewProposal, opts: { fork?: boolean } = {}): string {
-    const templateId = opts.fork ? forkTemplate(proposal.templateId) : proposal.templateId
+  function applyReviewProposal(proposal: ReviewProposal): string {
+    const templateId = proposal.templateId
     if (proposal.kind === 'reduce_quantity') {
-      // Look the row up by item, not by proposal.templateItemId — after
-      // a fork the copy has fresh ids.
+      // Look the row up by item, not by proposal.templateItemId: the
+      // proposal may predate an edit that replaced the row.
       const target = masterStore
         .getTemplateItems(templateId)
         .find((ti) => ti.item_id === proposal.itemId)
@@ -1789,36 +1788,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const itemId = proposal.itemId ?? createMasterItem(proposal.itemName)
     addTemplateItem(templateId, itemId)
     return templateId
-  }
-
-  /**
-   * forkTemplate creates a private copy of a template including all its
-   * items (FR-1.6). owner_id is stamped server-side on push, so the
-   * placeholder never reaches the database.
-   */
-  function forkTemplate(templateId: string): string {
-    const source = masterStore.getTemplate(templateId)
-    const { mutation, id } = mutations.createTemplate(`${source?.name ?? 'Template'} (fork)`, '')
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: {
-        seq: 0,
-        table: 'templates',
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
-    })
-    for (const ti of masterStore.getTemplateItems(templateId)) {
-      addTemplateItem(id, ti.item_id, {
-        quantity: ti.quantity,
-        assignment: ti.assignment,
-        dedup: ti.dedup,
-        defaultMode: ti.default_mode,
-        latePacker: ti.late_packer,
-      })
-    }
-    return id
   }
 
   // --- Container actions (FR-10.1, M11) ---
@@ -2060,7 +2029,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     archiveTrip,
     deleteTrip,
     applyReviewProposal,
-    forkTemplate,
 
     // Lifecycle
     connect,
@@ -2133,7 +2101,6 @@ function templateRow(template: Template): Record<string, unknown> {
   return {
     owner_id: template.owner_id,
     name: template.name,
-    is_published: template.is_published ? 1 : 0,
   }
 }
 

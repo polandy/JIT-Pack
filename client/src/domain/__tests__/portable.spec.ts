@@ -28,7 +28,7 @@ function masterItem(id: string, name: string): MasterItem {
     category_id: null,
     weight_grams: null,
     value_cents: null,
-      }
+  }
 }
 
 const templateYAML = `kind: template
@@ -132,7 +132,6 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
       id: 'tpl1',
       owner_id: 'me',
       name: 'Base Travel',
-      is_published: false,
     }
     const items: TemplateItem[] = [
       {

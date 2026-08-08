@@ -74,14 +74,16 @@ func TestMasterPushPull_RoundTrip(t *testing.T) {
 	}
 }
 
-func TestMasterPull_TemplateVisibilityBetweenUsers(t *testing.T) {
+// FR-1.6 MVP simplification (2026-08-08): every account sees every template,
+// exactly as it already sees every master item.
+func TestMasterPull_TemplatesVisibleToEveryone(t *testing.T) {
 	srv := newTestServer(t)
 	url := srv.URL + "/api/v1/sync/master"
 	body := map[string]any{"mutations": []any{
-		masterMutation("templates", "tpl-priv", "mv-1", "insert",
-			map[string]any{"name": "Privat", "is_published": 0}, "0000000001000-0000-aaaaaaaa"),
-		masterMutation("templates", "tpl-pub", "mv-2", "insert",
-			map[string]any{"name": "Publik", "is_published": 1}, "0000000001001-0000-aaaaaaaa"),
+		masterMutation("templates", "tpl-eins", "mv-1", "insert",
+			map[string]any{"name": "Basis"}, "0000000001000-0000-aaaaaaaa"),
+		masterMutation("templates", "tpl-zwei", "mv-2", "insert",
+			map[string]any{"name": "Sommer"}, "0000000001001-0000-aaaaaaaa"),
 	}}
 	resp, raw := doJSON(t, http.MethodPost, url, token(t, userA, testSecret), body)
 	if resp.StatusCode != http.StatusOK {
@@ -100,8 +102,12 @@ func TestMasterPull_TemplateVisibilityBetweenUsers(t *testing.T) {
 	if err := json.Unmarshal(raw, &pullOut); err != nil {
 		t.Fatalf("decode pull: %v (%s)", err, raw)
 	}
-	if len(pullOut.Changes) != 1 || pullOut.Changes[0].ID != "tpl-pub" {
-		t.Errorf("user B sees %+v, want only tpl-pub", pullOut.Changes)
+	seen := map[string]bool{}
+	for _, c := range pullOut.Changes {
+		seen[c.ID] = true
+	}
+	if !seen["tpl-eins"] || !seen["tpl-zwei"] {
+		t.Errorf("user B sees %+v, want both templates", pullOut.Changes)
 	}
 }
 

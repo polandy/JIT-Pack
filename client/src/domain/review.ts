@@ -31,8 +31,6 @@ export interface ReviewProposal {
   templateItemId: string | null
   /** Trips (including this one) on which the item carried the flag. */
   flagCount: number
-  /** FR-1.6: the target template is published and not the user's own. */
-  requiresFork: boolean
 }
 
 export interface ReviewArgs {
@@ -42,8 +40,6 @@ export interface ReviewArgs {
   masterItems: MasterItem[]
   /** "Never ask again" filter, keyed by ReviewProposal.key. */
   isDismissed?: (key: string) => boolean
-  /** Own users.id when known; null pre-OIDC (fork conservatively). */
-  ownUserId?: string | null
   /** Historical flag occurrences across archived series trips (M12-style). */
   flaggedTripCount?: (itemName: string, flag: 'unused' | 'missing') => number
 }
@@ -53,20 +49,14 @@ export function buildReviewProposals(args: ReviewArgs): ReviewProposal[] {
   const templatesByID = new Map(args.templates.map((t) => [t.id, t]))
   const proposals: ReviewProposal[] = []
 
-  const push = (
-    p: Omit<ReviewProposal, 'key' | 'requiresFork' | 'flagCount'>,
-    flag: 'unused' | 'missing',
-  ) => {
+  const push = (p: Omit<ReviewProposal, 'key' | 'flagCount'>, flag: 'unused' | 'missing') => {
     const itemRef = p.itemId ?? `name:${p.itemName.toLowerCase()}`
     const key = `${itemRef}::${p.templateId}`
     if (dismissed(key) || proposals.some((existing) => existing.key === key)) return
-    const template = templatesByID.get(p.templateId)!
     proposals.push({
       ...p,
       key,
       flagCount: Math.max(1, args.flaggedTripCount?.(p.itemName, flag) ?? 1),
-      requiresFork:
-        template.is_published && (args.ownUserId == null || template.owner_id !== args.ownUserId),
     })
   }
 

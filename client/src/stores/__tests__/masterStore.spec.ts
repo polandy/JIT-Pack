@@ -47,7 +47,7 @@ describe('masterStore', () => {
         name: 'T-Shirt',
         category_id: 'c1',
         weight_grams: 200,
-              },
+      },
     })
 
     const item = store.getItem('i1')
@@ -75,12 +75,12 @@ describe('masterStore', () => {
       table: 'templates',
       id: 't1',
       deleted: false,
-      row: { owner_id: 'u1', name: 'Beach Essentials', is_published: 1 },
+      row: { owner_id: 'u1', name: 'Beach Essentials' },
     })
 
     const tpl = store.getTemplate('t1')
     expect(tpl?.name).toBe('Beach Essentials')
-    expect(tpl?.is_published).toBe(true)
+    expect(tpl?.owner_id).toBe('u1')
   })
 
   it('deletes template and its items', () => {
@@ -90,7 +90,7 @@ describe('masterStore', () => {
       table: 'templates',
       id: 't1',
       deleted: false,
-      row: { owner_id: 'u1', name: 'T', is_published: 0 },
+      row: { owner_id: 'u1', name: 'T' },
     })
     store.applyChange({
       seq: 2,

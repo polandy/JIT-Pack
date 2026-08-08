@@ -227,7 +227,7 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
 
 * **Purpose:** A lightweight, single-screen confirmation for importing a portable YAML template or trip file (Addendum FR-18.4) — deliberately not a multi-step wizard like M15, since the file is our own well-structured format and needs no column mapping.
 * **Elements:** File summary header (kind: Template/Trip, name, item count, `schema_version`); item list preview with per-item state: *new* (no local match), *near-duplicate* (name closely matches an existing item, FR-16.3-style), or *matched* (exact name match) — each near-duplicate row offers *merge* or *keep separate*, reusing the same dedup component as M15 Step 3.
-* **Actions:** *Import* commits — a template import creates a new, private, owned template (FR-1.6); a trip import creates a new trip in *planning* status (FR-18.4); *Cancel* discards with no residue.
+* **Actions:** *Import* commits — a template import creates a new template, shared instance-wide like every other (FR-1.6 MVP); a trip import creates a new trip in *planning* status (FR-18.4); *Cancel* discards with no residue.
 * **States:** A `schema_version` newer than the app understands shows a plain warning but still attempts best-effort import, ignoring unrecognized fields (FR-18.5); a malformed file is rejected before this screen is ever shown, with an inline error at the file-picker step.
 * **Navigation:** From M7 (template import) and M2 (trip import).
 

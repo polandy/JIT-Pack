@@ -22,7 +22,7 @@ function masterItem(id: string, name: string): MasterItem {
     category_id: null,
     weight_grams: null,
     value_cents: null,
-      }
+  }
 }
 
 // The classic legacy layout: header row, category rows, item rows.

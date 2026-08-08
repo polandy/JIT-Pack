@@ -262,7 +262,6 @@ function rowToTemplate(id: string, row: Record<string, unknown>): Template {
     id,
     owner_id: row['owner_id'] as string,
     name: row['name'] as string,
-    is_published: Boolean(row['is_published']),
   }
 }
 

@@ -158,7 +158,6 @@ function onValueChange(event: CustomEvent) {
   const val = parseFloat((event.target as HTMLIonInputElement).value as string)
   updateField('value_cents', isNaN(val) ? null : Math.round(val * 100))
 }
-
 </script>
 
 <template>
@@ -223,7 +222,6 @@ function onValueChange(event: CustomEvent) {
               @ionBlur="onValueChange"
             />
           </IonItem>
-
         </IonList>
 
         <!-- Reference photo (FR-22.1/22.5) -->

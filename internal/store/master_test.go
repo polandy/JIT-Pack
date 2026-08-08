@@ -9,8 +9,9 @@ import (
 )
 
 // Master-partition sync tests (Sync-API Spec §4/§5): change_log.trip_id
-// is NULL for master rows, ownership is enforced per FR-1.6/FR-4.5, and
-// pull visibility is per user (own + published templates, member trips).
+// is NULL for master rows, trip authorization is enforced per FR-4.5, and
+// pull visibility is per user (member trips; templates and master items are
+// instance-wide per the FR-1.6 MVP simplification).
 
 const testUserB = "user-berta"
 
@@ -88,7 +89,7 @@ func TestApplyMasterMutation_InsertWritesMasterChangeLog(t *testing.T) {
 		{
 			name: "templates forces owner_id",
 			m: masterMut(sync.OpInsert, "templates", "tpl-1", "mm-tpl",
-				map[string]any{"name": "Basis", "is_published": 0}, "0000000001002-0000-aaaaaaaa"),
+				map[string]any{"name": "Basis"}, "0000000001002-0000-aaaaaaaa"),
 			verify: func(t *testing.T) {
 				var owner string
 				if err := s.db.QueryRow(`SELECT owner_id FROM templates WHERE id = 'tpl-1'`).Scan(&owner); err != nil {
@@ -173,9 +174,15 @@ func TestApplyMutation_PartitionMismatchRejected(t *testing.T) {
 	}
 }
 
-func TestApplyMasterMutation_TemplateOwnershipEnforced(t *testing.T) {
+// FR-1.6 MVP simplification (owner decision 2026-08-08, "Jeder sieht einfach
+// alles"): templates and their positions are shared instance-wide like master
+// items (the FR-22.6 governance model). owner_id survives as *creator*
+// metadata — it is stamped on insert and never rewritten by a foreign edit,
+// but it grants no exclusivity.
+func TestApplyMasterMutation_TemplatesSharedInstanceWide(t *testing.T) {
 	s := openTestStore(t)
 	seedUserB(t, s)
+	mustExec(t, s, `INSERT INTO items (id, name) VALUES ('item-shared', 'Zelt')`)
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "templates", "tpl-a", "to-1",
 		map[string]any{"name": "Andys Basis"}, "0000000001000-0000-aaaaaaaa"))
 
@@ -184,28 +191,36 @@ func TestApplyMasterMutation_TemplateOwnershipEnforced(t *testing.T) {
 		m    sync.Mutation
 	}{
 		{"foreign upsert", masterMut(sync.OpUpsert, "templates", "tpl-a", "to-2",
-			map[string]any{"name": "Gekapert"}, "0000000002000-0000-bbbbbbbb")},
-		{"foreign delete", masterMut(sync.OpDelete, "templates", "tpl-a", "to-3", nil,
-			"0000000002001-0000-bbbbbbbb")},
+			map[string]any{"name": "Gemeinsame Basis"}, "0000000002000-0000-bbbbbbbb")},
 		{"foreign template_items insert", masterMut(sync.OpInsert, "template_items", "ti-b", "to-4",
-			map[string]any{"template_id": "tpl-a", "item_id": "nope", "quantity": 1},
+			map[string]any{"template_id": "tpl-a", "item_id": "item-shared", "quantity": 1},
 			"0000000002002-0000-bbbbbbbb")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			res := applyMaster(t, s, testUserB, tt.m)
-			if res.Outcome != "rejected" {
-				t.Errorf("outcome = %q, want rejected", res.Outcome)
+			if res.Outcome != "applied" {
+				t.Errorf("outcome = %q, want applied", res.Outcome)
 			}
 		})
 	}
 
-	var name string
-	if err := s.db.QueryRow(`SELECT name FROM templates WHERE id = 'tpl-a'`).Scan(&name); err != nil {
+	var name, owner string
+	if err := s.db.QueryRow(`SELECT name, owner_id FROM templates WHERE id = 'tpl-a'`).
+		Scan(&name, &owner); err != nil {
 		t.Fatalf("template must still exist: %v", err)
 	}
-	if name != "Andys Basis" {
-		t.Errorf("name = %q, foreign write must not stick", name)
+	if name != "Gemeinsame Basis" {
+		t.Errorf("name = %q, the foreign edit must stick", name)
+	}
+	if owner != testUser {
+		t.Errorf("owner_id = %q, want %q — creator metadata, not rewritten by an editor", owner, testUser)
+	}
+
+	res := applyMaster(t, s, testUserB, masterMut(sync.OpDelete, "templates", "tpl-a", "to-3", nil,
+		"0000000003000-0000-bbbbbbbb"))
+	if res.Outcome != "applied" {
+		t.Errorf("foreign delete outcome = %q, want applied", res.Outcome)
 	}
 }
 
@@ -306,10 +321,8 @@ func TestPullMaster_VisibilityPerUser(t *testing.T) {
 	hlc := "0000000001000-0000-aaaaaaaa"
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "categories", "cat-v", "pv-1",
 		map[string]any{"name": "Kleidung"}, hlc))
-	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "templates", "tpl-priv", "pv-2",
-		map[string]any{"name": "Privat", "is_published": 0}, hlc))
-	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "templates", "tpl-pub", "pv-3",
-		map[string]any{"name": "Publik", "is_published": 1}, hlc))
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "templates", "tpl-andy", "pv-2",
+		map[string]any{"name": "Andys Basis"}, hlc))
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trips", "trip-v", "pv-4",
 		map[string]any{"name": "Nur Andy", "end_date": "2026-08-01"}, hlc))
 
@@ -326,11 +339,12 @@ func TestPullMaster_VisibilityPerUser(t *testing.T) {
 		return got
 	}
 
+	// Templates follow master items: instance-wide (FR-1.6 MVP). Trips stay
+	// membership-gated (FR-4.5) — that is the visibility line that remains.
 	gotB := pull(testUserB)
 	for id, want := range map[string]bool{
 		"categories/cat-v":   true,
-		"templates/tpl-pub":  true,
-		"templates/tpl-priv": false,
+		"templates/tpl-andy": true,
 		"trips/trip-v":       false,
 	} {
 		if gotB[id] != want {
@@ -339,7 +353,7 @@ func TestPullMaster_VisibilityPerUser(t *testing.T) {
 	}
 
 	gotA := pull(testUser)
-	for _, id := range []string{"categories/cat-v", "templates/tpl-priv", "templates/tpl-pub", "trips/trip-v"} {
+	for _, id := range []string{"categories/cat-v", "templates/tpl-andy", "trips/trip-v"} {
 		if !gotA[id] {
 			t.Errorf("owner must see %s", id)
 		}

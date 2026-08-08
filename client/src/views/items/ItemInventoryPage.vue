@@ -132,7 +132,6 @@ async function handleRefresh(event: CustomEvent) {
                 <span v-if="item.value_cents">{{ (item.value_cents / 100).toFixed(2) }}</span>
               </p>
             </IonLabel>
-
           </IonItem>
         </IonItemGroup>
       </IonList>

@@ -178,7 +178,7 @@ describe('planClone — quantities carry over (FR-12.2, formulas retired 2026-08
     category_id: null,
     weight_grams: null,
     value_cents: null,
-      }
+  }
   const lookup = {
     templateItem: (tplId: string, itemId: string) =>
       tplId === 'tpl1' && itemId === 'item1' ? templateItem : undefined,

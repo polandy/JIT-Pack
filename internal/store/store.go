@@ -58,8 +58,12 @@ var syncableColumns = map[string]map[string]bool{
 		"created_by",
 		"image_hash",
 	),
+	// is_published stays in the schema but off this list: the publish gate
+	// is parked with the FR-1.6 MVP simplification (templates are shared
+	// instance-wide), and an unreadable column no client can set is the
+	// honest state until the stub's revisit trigger fires.
 	"templates": toSet(
-		"owner_id", "name", "is_published",
+		"owner_id", "name",
 	),
 	"template_items": toSet(
 		"template_id", "item_id", "quantity", "assignment",

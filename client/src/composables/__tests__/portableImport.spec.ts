@@ -74,7 +74,6 @@ items:
     expect(result.kind).toBe('template')
     const template = master.getTemplate(result.id)!
     expect(template.name).toBe('Base Travel')
-    expect(template.is_published).toBe(false)
 
     const items = master.getTemplateItems(result.id)
     expect(items).toHaveLength(2)
@@ -103,7 +102,7 @@ items:
       table: 'templates',
       id: 'tpl-1',
       deleted: false,
-      row: { owner_id: 'me', name: 'Base Travel', is_published: 0 },
+      row: { owner_id: 'me', name: 'Base Travel' },
     })
 
     const result = orch.commitPortableImport(doc, new Map())

@@ -52,7 +52,6 @@ function proposal(over: Partial<ReviewProposal> = {}): ReviewProposal {
     templateName: 'Base Travel',
     templateItemId: 'tpl-item-1',
     flagCount: 1,
-    requiresFork: false,
     ...over,
   }
 }
@@ -63,7 +62,7 @@ function seedTemplate(master: ReturnType<typeof useMasterStore>) {
     table: 'templates',
     id: 'tpl1',
     deleted: false,
-    row: { owner_id: 'me', name: 'Base Travel', is_published: 0 },
+    row: { owner_id: 'me', name: 'Base Travel' },
   })
   master.applyChange({
     seq: 0,
@@ -179,7 +178,10 @@ describe('applyReviewProposal', () => {
     expect(master.getTemplateItems('tpl1').some((ti) => ti.item_id === created!.id)).toBe(true)
   })
 
-  it('fork copies the template and applies the change to the copy (FR-1.6)', () => {
+  // FR-1.6 MVP simplification (2026-08-08): no copy is made for a template
+  // someone else created — templates are shared, so the optimisation lands
+  // where the item actually came from and everyone gets it.
+  it('writes to a foreign template in place, without forking (FR-1.6 MVP)', () => {
     const orch = newOrch()
     const master = useMasterStore()
     master.applyChange({
@@ -187,7 +189,7 @@ describe('applyReviewProposal', () => {
       table: 'templates',
       id: 'tpl1',
       deleted: false,
-      row: { owner_id: 'someone-else', name: 'Base Travel', is_published: 1 },
+      row: { owner_id: 'someone-else', name: 'Base Travel' },
     })
     master.applyChange({
       seq: 0,
@@ -204,43 +206,12 @@ describe('applyReviewProposal', () => {
         late_packer: 0,
       },
     })
-    master.applyChange({
-      seq: 0,
-      table: 'template_items',
-      id: 'tpl-item-2',
-      deleted: false,
-      row: {
-        template_id: 'tpl1',
-        item_id: 'item2',
-        quantity: 3,
-        assignment: 'trip_global',
-        dedup: 'sum',
-        default_mode: 'buy_before',
-        late_packer: 1,
-      },
-    })
 
-    const forkId = orch.applyReviewProposal(proposal({ requiresFork: true }), { fork: true })
+    const targetId = orch.applyReviewProposal(proposal())
 
-    expect(forkId).not.toBe('tpl1')
-    const fork = master.getTemplate(forkId)
-    expect(fork?.name).toBe('Base Travel (fork)')
-    expect(fork?.is_published).toBe(false)
-    // Original untouched, fork carries the zeroed item plus the copy.
-    expect(
-      master.getTemplateItems('tpl1').find((ti) => ti.item_id === 'item1')?.quantity,
-    ).toBe(2)
-    const forkItems = master.getTemplateItems(forkId)
-    expect(forkItems).toHaveLength(2)
-    expect(forkItems.find((ti) => ti.item_id === 'item1')?.quantity).toBe(0)
-    const copied = forkItems.find((ti) => ti.item_id === 'item2')
-    expect(copied).toMatchObject({
-      quantity: 3,
-      assignment: 'trip_global',
-      dedup: 'sum',
-      default_mode: 'buy_before',
-      late_packer: true,
-    })
+    expect(targetId).toBe('tpl1')
+    expect(master.templateList).toHaveLength(1)
+    expect(master.getTemplateItems('tpl1').find((ti) => ti.item_id === 'item1')?.quantity).toBe(0)
   })
 })
 

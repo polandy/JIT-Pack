@@ -532,7 +532,6 @@ export function useMutations(hlc: HLCGenerator) {
     const mutation = make('insert', 'templates', id, {
       owner_id: ownerId,
       name,
-      is_published: 0,
     })
     return { mutation, id }
   }

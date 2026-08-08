@@ -9,7 +9,7 @@ import { generateTripItems, type GenerationInput } from '../instantiate'
 import type { MasterItem, Template, TemplateItem } from '@/types/domain'
 
 function template(id: string, name: string): Template {
-  return { id, owner_id: 'user-a', name, is_published: false }
+  return { id, owner_id: 'user-a', name }
 }
 
 function masterItem(id: string, name: string, extra: Partial<MasterItem> = {}): MasterItem {
@@ -19,7 +19,7 @@ function masterItem(id: string, name: string, extra: Partial<MasterItem> = {}): 
     category_id: null,
     weight_grams: 100,
     value_cents: null,
-        ...extra,
+    ...extra,
   }
 }
 
@@ -70,9 +70,7 @@ describe('generateTripItems', () => {
             category_name: 'Pflege',
           }),
         ],
-        templateItems: [
-          templateItem('ti1', 't1', 'i1', { quantity: 2 }),
-        ],
+        templateItems: [templateItem('ti1', 't1', 'i1', { quantity: 2 })],
       }),
     )
 
@@ -211,7 +209,6 @@ describe('generateTripItems', () => {
     expect(res.items).toHaveLength(2)
     expect(res.items.every((i) => i.quantity === 4)).toBe(true)
   })
-
 
   it('carries default_mode and late_packer into generated items', () => {
     const res = generateTripItems(

@@ -14,7 +14,7 @@ function master(id: string, name: string, extra: Partial<MasterItem> = {}): Mast
     category_id: null,
     weight_grams: null,
     value_cents: null,
-        ...extra,
+    ...extra,
   }
 }
 
@@ -149,7 +149,6 @@ describe('resolveDependencies', () => {
     )
     expect(res.required.map((c) => c.item_id)).toEqual(['battery'])
   })
-
 
   it('ignores dependencies whose companion item is unknown', () => {
     const res = resolveDependencies(input({ dependencies: [dep('d1', 'ghost', 'camera')] }))

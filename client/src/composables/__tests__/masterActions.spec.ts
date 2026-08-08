@@ -109,7 +109,7 @@ describe('master data actions', () => {
     expect(master.getItem(id)).toBeUndefined()
   })
 
-  it('createTemplate adds an unpublished template and pushes to master (M7)', async () => {
+  it('createTemplate adds the template and pushes to master (M7)', async () => {
     const orch = newOrch()
     const master = useMasterStore()
     mockDrain()
@@ -118,8 +118,8 @@ describe('master data actions', () => {
 
     const tpl = master.getTemplate(id)
     expect(tpl?.name).toBe('Ski-Trip')
-    // Unpublished, so it lands under "my templates" (grouped by !is_published).
-    expect(tpl?.is_published).toBe(false)
+    // One shared list (FR-1.6 MVP) — there is no publish state to land under.
+    expect(master.templateList.map((t) => t.id)).toContain(id)
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
     expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/sync/master')
   })

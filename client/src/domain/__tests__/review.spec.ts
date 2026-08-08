@@ -36,7 +36,7 @@ function tripItem(over: Partial<TripItem> = {}): TripItem {
 }
 
 function template(id: string, over: Partial<Template> = {}): Template {
-  return { id, owner_id: 'me', name: `Template ${id}`, is_published: false, ...over }
+  return { id, owner_id: 'me', name: `Template ${id}`, ...over }
 }
 
 function templateItem(over: Partial<TemplateItem> = {}): TemplateItem {
@@ -61,7 +61,7 @@ function masterItem(id: string, name: string): MasterItem {
     category_id: null,
     weight_grams: null,
     value_cents: null,
-      }
+  }
 }
 
 const noDeps = {
@@ -91,7 +91,6 @@ describe('buildReviewProposals — unused flags (reduce quantity)', () => {
       itemId: 'item1',
       templateId: 'tpl1',
       templateItemId: 'tpl-item-1',
-      requiresFork: false,
     })
   })
 
@@ -100,8 +99,7 @@ describe('buildReviewProposals — unused flags (reduce quantity)', () => {
       'template item already zeroed',
       {
         ...base,
-        templateItems: (id: string) =>
-          id === 'tpl1' ? [templateItem({ quantity: 0 })] : [],
+        templateItems: (id: string) => (id === 'tpl1' ? [templateItem({ quantity: 0 })] : []),
         items: [
           tripItem({ flag_unused: true, source_item_id: 'item1', source_template_id: 'tpl1' }),
         ],
@@ -207,7 +205,7 @@ describe('buildReviewProposals — missing flags (add to template)', () => {
   })
 })
 
-describe('buildReviewProposals — dismissals, fork, history', () => {
+describe('buildReviewProposals — dismissals, ownership, history', () => {
   const base = {
     templates: [template('tpl1')],
     templateItems: (id: string) =>
@@ -222,24 +220,13 @@ describe('buildReviewProposals — dismissals, fork, history', () => {
     expect(filtered).toHaveLength(0)
   })
 
-  it.each([
-    [
-      'published foreign template',
-      template('tpl1', { is_published: true, owner_id: 'someone' }),
-      'me',
-      true,
-    ],
-    ['published template, identity unknown', template('tpl1', { is_published: true }), null, true],
-    [
-      'own published template',
-      template('tpl1', { is_published: true, owner_id: 'me' }),
-      'me',
-      false,
-    ],
-    ['private template', template('tpl1'), null, false],
-  ])('requiresFork: %s → %s', (_name, tpl, ownUserId, want) => {
-    const proposals = buildReviewProposals({ ...base, templates: [tpl], ownUserId })
-    expect(proposals[0]?.requiresFork).toBe(want)
+  // FR-1.6 MVP simplification: templates are shared instance-wide, so a
+  // proposal targets its source template whoever created it — the fork
+  // branch that used to sit here is gone.
+  it('proposes against a foreign template like any other', () => {
+    const foreign = template('tpl1', { owner_id: 'someone-else' })
+    const proposals = buildReviewProposals({ ...base, templates: [foreign] })
+    expect(proposals[0]?.templateId).toBe('tpl1')
   })
 
   it('carries the historical flag count for the card wording', () => {

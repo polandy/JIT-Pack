@@ -29,7 +29,7 @@ import {
   IonItemOption,
   IonSearchbar,
 } from '@ionic/vue'
-import { addOutline, trashOutline, warningOutline } from 'ionicons/icons'
+import { addOutline, trashOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -117,12 +117,6 @@ function onModeChange(templateItemId: string, mode: string) {
       </div>
 
       <template v-else>
-        <!-- Published warning -->
-        <div v-if="template.is_published" class="published-warning">
-          <IonIcon :icon="warningOutline" />
-          <span>Published — changes apply to new trips only</span>
-        </div>
-
         <!-- Template items list -->
         <h2 class="section-title">Items ({{ templateItems.length }})</h2>
 
@@ -236,18 +230,6 @@ function onModeChange(templateItemId: string, mode: string) {
   text-transform: uppercase;
   color: var(--ion-color-medium);
   margin: 16px 0 8px;
-}
-
-.published-warning {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--ion-color-warning-tint);
-  color: var(--ion-color-warning-shade);
-  border-radius: 8px;
-  font-size: 0.85rem;
-  margin-bottom: 16px;
 }
 
 .ti-controls {

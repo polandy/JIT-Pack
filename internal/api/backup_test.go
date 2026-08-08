@@ -77,12 +77,14 @@ func TestExportTripCSV(t *testing.T) {
 func TestExportFull_VisibilityFiltered(t *testing.T) {
 	srv := newTestServer(t)
 
-	// user-b creates a private template — must not leak into user-a's export.
+	// user-b creates a template and an item — both instance-wide master data
+	// (FR-1.6 MVP), so both belong in user-a's export. The trip user-b is not
+	// a member of is what the filter still has to keep out.
 	push := map[string]any{
 		"client_hlc": "0000000001000-0000-bbbbbbbb",
 		"mutations": []map[string]any{
-			{"mutation_id": "xf-1", "op": "insert", "table": "templates", "id": "tpl-priv",
-				"fields": map[string]any{"name": "Privat", "is_published": 0},
+			{"mutation_id": "xf-1", "op": "insert", "table": "templates", "id": "tpl-bertas",
+				"fields": map[string]any{"name": "Bertas Basis"},
 				"hlc":    "0000000001000-0000-bbbbbbbb"},
 			{"mutation_id": "xf-2", "op": "insert", "table": "items", "id": "item-shared",
 				"fields": map[string]any{"name": "Socken"},
@@ -127,9 +129,7 @@ func TestExportFull_VisibilityFiltered(t *testing.T) {
 	if got := names("items", "name"); len(got) != 1 || got[0] != "Socken" {
 		t.Errorf("items = %v, want the shared inventory", got)
 	}
-	for _, tpl := range export.Data["templates"] {
-		if tpl["id"] == "tpl-priv" {
-			t.Error("foreign private template leaked into the export")
-		}
+	if got := names("templates", "id"); len(got) != 1 || got[0] != "tpl-bertas" {
+		t.Errorf("templates = %v, want [tpl-bertas] (shared instance-wide, FR-1.6 MVP)", got)
 	}
 }

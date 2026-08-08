@@ -55,7 +55,7 @@
 
 ### `GET /sync/master?cursor={seq}&limit={n}`
 
-Same envelope for the user's master partition. `change_log.trip_id` is NULL for master rows (schema note: column becomes nullable in migration 005); visibility is filtered per user (own + published templates, member trips, rosters of member trips).
+Same envelope for the user's master partition. `change_log.trip_id` is NULL for master rows (schema note: column becomes nullable in migration 005); visibility is filtered per user (member trips and their rosters, own series; categories, items and templates are instance-wide per the FR-1.6 MVP simplification).
 
 `item_dependencies` syncs through the master partition since migration 011 (Addendum 3.20, FR-20.1): rows carry `{item_id, depends_on_item_id, mode, quantity}` (plain integer since migration 014; formulas retired 2026-08-08) and are shared like the items they connect — writable and visible to every authenticated user. Deleting an item cascades its relations (both directions) and tombstones them. A duplicate `(item_id, depends_on_item_id)` pair, a self-reference, or an unknown endpoint is `rejected` (UNIQUE/CHECK/FK). Cycle prevention is save-time client validation; the client resolver also tolerates cycles that slip in from another device.
 
@@ -149,7 +149,7 @@ Server-side computations that must not run on clients. **Decided (Local Mode, Ad
 | ~~`GET /suggestions/trips/{id}`~~ | FR-14.2 quantity suggestions — **superseded**: computed client-side (`src/domain/suggestions.ts`, duration-normalized median of the series' last three trips) from already-synced series trips, like generation/analytics/review, so it works in Local Mode with no round-trip |
 | `GET /trips/{id}/conflicts` | Per-trip conflict log for the G-2 view (NFR-4.2a) — read-only: `{conflicts:[{id, entity_table, entity_id, field, losing_value, winning_value, resolved_at}]}`, newest first; conflict rows never flow through pull |
 
-All RPC results materialize as ordinary `change_log` entries — clients see the outcome through the normal pull, never through the RPC response body (P-1). RPC responses return only `{ok, pull_hint}` plus operation-specific metadata (e.g., import summary). **Decided: published-template changes use lazy discovery** — there is no `template.changed` WebSocket event; a consumer of a published template sees edits the next time it pulls its own master partition, keeping the event catalog (§7) minimal and the footprint goal (NFR-4.3) intact.
+All RPC results materialize as ordinary `change_log` entries — clients see the outcome through the normal pull, never through the RPC response body (P-1). RPC responses return only `{ok, pull_hint}` plus operation-specific metadata (e.g., import summary). **Decided: template changes use lazy discovery** — there is no `template.changed` WebSocket event; a consumer of a shared template sees edits the next time it pulls its own master partition, keeping the event catalog (§7) minimal and the footprint goal (NFR-4.3) intact.
 
 ## 9. Error Model & Limits
 
@@ -166,4 +166,4 @@ All RPC results materialize as ordinary `change_log` entries — clients see the
 
 ## Decisions (Resolved)
 
-All decisions originally listed as open here have been resolved and are now recorded directly in their owning section: field-group granularity (§6, no `mode`+`state` grouping), lock timeout (§7, 15 min default, env-configurable), and master-partition scope for published templates (§8, lazy discovery). No open decisions remain in this document.
+All decisions originally listed as open here have been resolved and are now recorded directly in their owning section: field-group granularity (§6, no `mode`+`state` grouping), lock timeout (§7, 15 min default, env-configurable), and master-partition scope for shared templates (§8, lazy discovery). No open decisions remain in this document.

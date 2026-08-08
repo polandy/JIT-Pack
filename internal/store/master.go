@@ -15,10 +15,11 @@ import (
 )
 
 // ApplyMasterMutation resolves one master-partition mutation for userID.
-// Beyond the trip-partition pipeline it enforces ownership (FR-1.6,
-// FR-4.5): templates and template_items are writable only by the template
-// owner, trips only by members (delete: owner/admin), and server-owned
-// columns (owner_id, created_by) are stamped on insert. Unauthorized
+// Beyond the trip-partition pipeline it enforces authorization (FR-4.5):
+// trips are writable only by members (delete: owner/admin) and series only
+// by their owner, while templates and master items are shared instance-wide
+// (FR-1.6 MVP). Server-owned columns (owner_id, created_by) are stamped on
+// insert and never rewritten afterwards. Unauthorized
 // mutations return outcome "rejected" instead of an error so the push
 // batch continues (spec §5).
 func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.Mutation) (MutationResult, error) {
@@ -148,20 +149,20 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 		return true, nil
 
 	case "templates":
-		if !exists {
-			if m.Op != sync.OpDelete {
-				setField(m, "owner_id", userID)
-			}
-			return true, nil
+		// Shared instance-wide like master items (FR-1.6 MVP simplification,
+		// 2026-08-08): everyone edits every template. owner_id is stamped
+		// once as creator metadata and never rewritten afterwards — an
+		// editor is not an owner, and the FR-1.6 stub needs the creator back
+		// if the parked ownership model returns.
+		if !exists && m.Op != sync.OpDelete {
+			setField(m, "owner_id", userID)
 		}
-		return current["owner_id"] == userID, nil
+		return true, nil
 
 	case "template_items":
-		// Both the current and the target template must be owned by the
-		// pusher — otherwise items could be moved into foreign templates.
-		return ownsAll(ctx, tx, userID,
-			`SELECT owner_id FROM templates WHERE id = ?`,
-			parentIDs(current, m, "template_id"))
+		// Positions follow their template's governance (FR-1.6 MVP): shared.
+		// An invalid template_id fails the FK and rejects.
+		return true, nil
 
 	case "trip_series":
 		if !exists {
@@ -374,9 +375,10 @@ func memberTrip(current map[string]any, m sync.Mutation) (string, bool) {
 }
 
 // PullMaster returns master-partition changes after the cursor, filtered
-// to what userID may see (spec §4): categories and items are shared,
-// templates require ownership or is_published, trips require membership.
-// Tombstones are always delivered — they carry only the entity id.
+// to what userID may see (spec §4): categories, items and templates are
+// instance-wide (FR-1.6 MVP), trips require membership, series follow
+// ownership. Tombstones are always delivered — they carry only the entity
+// id.
 func (s *Store) PullMaster(ctx context.Context, userID string, cursor int64, limit int) (PullPage, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT seq, entity_table, entity_id, deleted FROM change_log
@@ -438,32 +440,10 @@ func (s *Store) masterVisible(ctx context.Context, userID, table, id string) (bo
 	case "categories", "items", "item_dependencies":
 		return true, nil
 
-	case "templates":
-		var owner string
-		var published int
-		err := s.db.QueryRowContext(ctx,
-			`SELECT owner_id, is_published FROM templates WHERE id = ?`, id).Scan(&owner, &published)
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil // row already gone; its tombstone follows in the feed
-		}
-		if err != nil {
-			return false, fmt.Errorf("template visibility: %w", err)
-		}
-		return owner == userID || published == 1, nil
-
-	case "template_items":
-		var owner string
-		var published int
-		err := s.db.QueryRowContext(ctx,
-			`SELECT t.owner_id, t.is_published FROM template_items ti
-			 JOIN templates t ON t.id = ti.template_id WHERE ti.id = ?`, id).Scan(&owner, &published)
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
-		}
-		if err != nil {
-			return false, fmt.Errorf("template_items visibility: %w", err)
-		}
-		return owner == userID || published == 1, nil
+	case "templates", "template_items":
+		// Instance-wide, like the master items they are built from (FR-1.6
+		// MVP simplification, 2026-08-08 — "Jeder sieht einfach alles").
+		return true, nil
 
 	case "trips":
 		return s.IsTripMember(ctx, id, userID)

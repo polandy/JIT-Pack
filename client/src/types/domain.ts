@@ -156,9 +156,10 @@ export interface MasterItem {
 
 export interface Template {
   id: string
+  /** FR-1.6 MVP: creator metadata only — every account may edit every
+   * template, the same governance master items have (FR-22.6). */
   owner_id: string
   name: string
-  is_published: boolean
 }
 
 // --- Trip series & destination profiles (FR-13.1/13.2) ---
