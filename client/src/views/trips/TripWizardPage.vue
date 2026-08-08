@@ -354,11 +354,12 @@ function createTrip() {
 
     <IonContent class="ion-padding">
       <!-- Step 1: metadata -->
-      <section v-if="step === 1">
+      <section v-if="step === 1" data-testid="wizard-step-1">
         <h2 class="section-title">Trip</h2>
         <IonList>
           <IonItem>
             <IonInput
+              data-testid="wizard-name"
               label="Name"
               label-placement="stacked"
               placeholder="e.g. Engadin 2026"
@@ -368,6 +369,7 @@ function createTrip() {
           </IonItem>
           <IonItem>
             <IonInput
+              data-testid="wizard-start-date"
               label="Start date (optional)"
               label-placement="stacked"
               type="date"
@@ -377,6 +379,7 @@ function createTrip() {
           </IonItem>
           <IonItem>
             <IonInput
+              data-testid="wizard-end-date"
               label="End date"
               label-placement="stacked"
               type="date"
@@ -467,12 +470,13 @@ function createTrip() {
       </section>
 
       <!-- Step 2: travelers -->
-      <section v-if="step === 2">
+      <section v-if="step === 2" data-testid="wizard-step-2">
         <h2 class="section-title">Travelers</h2>
         <IonList v-if="travelers.length > 0">
           <IonItem v-for="(traveler, index) in travelers" :key="index">
             <IonIcon slot="start" :icon="personOutline" />
             <IonInput
+              data-testid="wizard-traveler-name"
               placeholder="Name"
               :value="traveler.name"
               @ionInput="(e: CustomEvent) => (traveler.name = e.detail.value ?? '')"
@@ -497,7 +501,12 @@ function createTrip() {
           </IonItem>
         </IonList>
         <div v-else class="empty-hint">No travelers yet — per-person items need at least one.</div>
-        <IonButton fill="outline" size="small" @click="addTraveler">
+        <IonButton
+          data-testid="wizard-add-traveler"
+          fill="outline"
+          size="small"
+          @click="addTraveler"
+        >
           <IonIcon slot="start" :icon="addOutline" />
           Add traveler
         </IonButton>
@@ -552,7 +561,7 @@ function createTrip() {
       </section>
 
       <!-- Step 3: templates + preview -->
-      <section v-if="step === 3">
+      <section v-if="step === 3" data-testid="wizard-step-3">
         <h2 class="section-title">Templates</h2>
         <IonList v-if="masterStore.templateList.length > 0">
           <IonItem v-for="template in masterStore.templateList" :key="template.id">
@@ -596,7 +605,7 @@ function createTrip() {
       </section>
 
       <!-- Step 4: quantity review -->
-      <section v-if="step === 4">
+      <section v-if="step === 4" data-testid="wizard-step-4">
         <h2 class="section-title">Review quantities</h2>
         <IonList v-if="generation.items.length > 0">
           <IonItem v-for="(item, index) in generation.items" :key="index">
@@ -690,9 +699,20 @@ function createTrip() {
 
       <!-- Wizard navigation -->
       <div class="wizard-nav">
-        <IonButton v-if="step > 1" fill="outline" @click="back">Back</IonButton>
-        <IonButton v-if="step < 4" :disabled="!stepValid" @click="next">Next</IonButton>
-        <IonButton v-if="step === 4" color="primary" @click="createTrip">Create trip</IonButton>
+        <IonButton v-if="step > 1" data-testid="wizard-back" fill="outline" @click="back">
+          Back
+        </IonButton>
+        <IonButton v-if="step < 4" data-testid="wizard-next" :disabled="!stepValid" @click="next">
+          Next
+        </IonButton>
+        <IonButton
+          v-if="step === 4"
+          data-testid="wizard-create"
+          color="primary"
+          @click="createTrip"
+        >
+          Create trip
+        </IonButton>
       </div>
     </IonContent>
   </IonPage>

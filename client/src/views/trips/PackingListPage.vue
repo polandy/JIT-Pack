@@ -281,7 +281,7 @@ async function handleRefresh(event: CustomEvent) {
         <IonButtons slot="start">
           <IonBackButton default-href="/tabs/trips" />
         </IonButtons>
-        <IonTitle>{{ trip?.name ?? 'Packing List' }}</IonTitle>
+        <IonTitle data-testid="packing-trip-name">{{ trip?.name ?? 'Packing List' }}</IonTitle>
         <IonButtons slot="end">
           <!-- G-10: trip presence facepile + group-sync badge -->
           <PresenceFacepile v-if="presenceUsers.length > 1" :users="presenceUsers" />
@@ -399,7 +399,11 @@ async function handleRefresh(event: CustomEvent) {
       <QuickAddItem :trip-id="tripId" :is-active="isActive" @add="onQuickAdd" />
 
       <!-- Empty state -->
-      <div v-if="filteredGroups.size === 0 && skippedItems.length === 0" class="empty-state">
+      <div
+        v-if="filteredGroups.size === 0 && skippedItems.length === 0"
+        class="empty-state"
+        data-testid="packing-empty"
+      >
         <IonIcon :icon="bagHandleOutline" class="empty-icon" />
         <p v-if="allItems.length === 0">No items yet — add one above</p>
         <p v-else>All items filtered out</p>
