@@ -147,6 +147,9 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M4-22** `all` (FR-25.16): tapping a group header folds that group to **its header line alone**, which then reads "‹Gruppe› · N offen" — asserts **no** extra stub line is rendered and that N matches the group's open rows in the model. Other groups stay untouched. The app-bar fold-all control collapses every group to headers with **zero item rows** and flips its label to *Alle aufklappen*; pressing it again restores the full list. The folded set survives a re-render — packing a row must not unfold the rest.
 * **E2E-M4-23** `all` (FR-25.16/25.2): a group whose rows are **all** done disappears completely — no header and **no stub** — and reappears only when *Erledigte* is switched on. Asserts folding and doneness stay separate concepts: a folded group with open items is still on the list, an absent group is not.
 * **E2E-M4-24** `all` (FR-25.17): with packed rows revealed, each carries **"gepackt von ‹Name› · ‹Tag› ‹Uhrzeit›"** with the packer's avatar. Un-packing a row **clears** the stamp, so it can never outlive the state it describes.
+* **E2E-M4-26** `all` (FR-27.10): the M4 quick-add lists **groups** under *„Ganze Gruppe hinzufügen“* with their resolved position count; typing filters them. Tapping one adds **only the positions the trip does not already carry**, reports the result ("N Positionen, M schon dabei"), stamps the group's provenance on the new rows, and materialises the positions' FR-27.7 tasks as prep todos on them. Asserts the new rows are **not** flagged *Missing* — an added group is a grown plan, not a forgotten item, and flagging it would feed M14 a false signal.
+* **E2E-M4-27** `all` (FR-27.10): tapping a group whose positions are all present adds nothing and says so; the row count is unchanged. Second direction: on a *planning* trip the group becomes one of the trip's sources, so a subsequent edit to that group reaches the trip as an FR-27.4 applied change; on an active trip it does not — the trip is frozen.
+* **E2E-M4-28** `all` (FR-25.18): set two facet values and the *Erledigte* switch, leave M4 for M6 and return — the filter, the switch and the grouping are still in force **and their chips are visible** (FR-25.11a). Same after a reload. A **fresh session starts unfiltered**, and the search term is **not** restored. Regression guard: the chip row must appear together with the restored filter — a restored filter with no chip is an invisible filter, the exact failure FR-25.11a forbids.
 * **E2E-M4-14** `all` (FR-25.1/25.2): packing one instance of a two-person cluster keeps the cluster intact — the packed child drops out (hide-done), the sub-header still reads over the full set (`1/2`), and the remaining instance does **not** re-render as a flat row. Guards the "decide cluster-vs-flat over the full set" rule; getting this wrong makes the list restructure under the user's finger mid-tap.
 
 ### M5 — Item Detail
@@ -450,6 +453,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | G-12 | E2E | G12-01…06 (app-bar placement, two clusters + no overflow, survives collapse, one line, literal icons, nameable glyphs) |
 | FR-25.16 | E2E | M4-22 (fold one / fold all), M4-23 (folding vs doneness stay separate) |
 | FR-25.17 | E2E | M4-24 (packed-by stamp, cleared on un-pack); M6-05 for the buying counterpart |
+| FR-25.18 | E2E | M4-28 (filter/switch/grouping survive navigation + reload, fresh session unfiltered, chips visible) |
 | FR-25.14 | E2E | M5-06 (read-only aggregate, per-traveler controls) |
 | FR-25.15 | E2E | M5-07 (auto-save indicator, distinct from G-2) |
 | FR-25.13b | E2E | M6-19 (autocomplete adopts the category; manual fallback) |
@@ -462,6 +466,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-27.7 | E2E | M8-11 (task list + count chip + propagation log), M3-13 (preview count, todo on the generated item); blocking = existing FR-7.3/25.2 M4 cases |
 | FR-27.8 | E2E | M10-05 (named back-references, tap-through); counts stay M10-02 |
 | FR-27.9 | E2E | M10-06 (cross-trip comment aggregation with author/trip/timestamp) |
+| FR-27.10 | E2E | M4-26 (group add: dedup, provenance, tasks, no Missing flag), M4-27 (fully-present group, planning-trip propagation) |
 | FR-25.7 | E2E | M8-12 (one-tap add, "Standard" row, Mehr-Optionen disclosure) |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |

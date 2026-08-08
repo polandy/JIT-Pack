@@ -258,6 +258,74 @@ ok(tagWrap.includes('im inventar unter: foto, nachtaufnahmen'), '+ legt den neue
 ok((await page.inputValue('#edTagQ')) === '', 'Suchfeld nach dem Anlegen geleert');
 await page.evaluate(() => go('items'));
 
+console.log('— Gruppe in die laufende Reise (FR-27.10) —');
+await page.evaluate(() => { go('pack'); packFabAdd(); });
+let qa = await text('#qaTrigger');
+ok(qa.includes('ganze gruppe hinzufügen'), 'Quick-Add bietet Gruppen an');
+ok(qa.includes('makro fotografie') && qa.includes('wildlife fotografie'), 'beide Gruppen vorgeschlagen');
+await page.fill('#qaInput', 'wild');
+qa = await text('#qaTrigger');
+ok(qa.includes('wildlife fotografie') && !qa.includes('makro fotografie'), 'Tippen filtert die Gruppen');
+const beforeRows = await page.evaluate(() => P.items.length);
+await page.locator('[data-qagrp="wildlife"]').dispatchEvent('mousedown');
+await page.waitForTimeout(50);
+ok((await page.evaluate(() => P.items.length)) === beforeRows + 2,
+  'Wildlife fügt 2 Positionen hinzu (Spiegelreflex war schon da)');
+ok((await text('#snack')).includes('2 positionen, 1 schon dabei'), 'Snackbar meldet Zugang und Dublette');
+ok(await page.evaluate(() => P.items.filter(i => i.src === 'wildlife').length === 2),
+  'neue Zeilen tragen die Gruppen-Herkunft (FR-27.5 erkennt sie später)');
+ok(await page.evaluate(() => !P.items.filter(i => i.src === 'wildlife').some(i => i.missing)),
+  'Gruppen-Zugang wird nicht als „fehlt“ markiert (FR-9.1 bleibt ehrlich)');
+
+// The Makro group carries an FR-27.7 task on its charger position.
+const prepBefore = await page.evaluate(() => P.prep.length);
+await page.evaluate(() => packFabAdd());
+await page.fill('#qaInput', 'makro');
+await page.locator('[data-qagrp="makro"]').dispatchEvent('mousedown');
+await page.waitForTimeout(50);
+// Counts are not hard-coded: earlier rounds in this script edited the Makro
+// group (M8 quick-add, FR-27.5 fold-back), so both numbers depend on run order.
+// What must hold is that only the genuinely absent positions are added.
+ok(/\d+ positionen?, \d+ schon dabei/.test(await text('#snack')),
+  'Makro: nur die fehlenden Positionen kommen dazu, der Rest wird als Dublette gemeldet');
+ok((await page.evaluate(() => P.prep.length)) === prepBefore + 1,
+  'FR-27.7-Aufgabe der Position wird als Vorbereitungs-Todo materialisiert');
+ok(await page.evaluate(() => P.prep.some(x => x.task === 'Akkus laden' && x.item === 'Ladegerät für Kamera')),
+  'Todo hängt am erzeugten Artikel');
+await page.locator('[data-qagrp="makro"]').dispatchEvent('mousedown');
+await page.waitForTimeout(50);
+ok((await text('#snack')).includes('bereits vollständig'), 'zweiter Versuch meldet „schon vollständig“ statt doppelt anzulegen');
+
+console.log('— Packlisten-Filter überlebt die Session (FR-25.18) —');
+await page.evaluate(() => { go('pack'); openFilters(CTX_PACK); });
+await page.click('[data-fopt="trav"][data-v="Andy"]');   // Person is the default-open accordion
+await page.click('#fDoneToggle');
+await page.evaluate(() => closeFilters());
+let chips = await text('#packHead');
+ok(chips.includes('andy'), 'aktiver Facettenwert erscheint als Chip (FR-25.11a)');
+ok(await page.evaluate(() => !!sessionStorage.getItem('jitpack.m4filter.sam26')),
+  'Filterzustand liegt in der Session, nicht dauerhaft');
+
+await page.reload();
+await page.waitForTimeout(300);
+ok(await page.evaluate(() => FILT.trav.has('Andy')), 'Facette überlebt den Reload');
+ok(await page.evaluate(() => showDone === true), '„Erledigte“-Schalter überlebt mit');
+await page.evaluate(() => go('pack'));
+ok((await text('#packHead')).includes('andy'), 'Chip nach dem Reload sofort sichtbar — kein unsichtbarer Filter');
+
+// A fresh session is the safety valve: no filter is carried into it.
+const fresh = await browser.newPage();
+await fresh.goto(FILE);
+await fresh.waitForTimeout(200);
+ok(await fresh.evaluate(() => FILT.trav.size === 0), 'neue Session startet ungefiltert');
+await fresh.close();
+
+await page.evaluate(() => { go('pack'); openFilters(CTX_PACK); });
+await page.click('#fClear');
+await page.evaluate(() => closeFilters());
+ok(await page.evaluate(() => JSON.parse(sessionStorage.getItem('jitpack.m4filter.sam26')).facets.trav.length === 0),
+  'Zurücksetzen wird ebenfalls gespeichert');
+
 console.log('— Seitenfehler —');
 ok(errors.length === 0, 'keine JS-Fehler' + (errors.length ? ' — ' + errors.join(' | ') : ''));
 

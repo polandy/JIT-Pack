@@ -444,6 +444,9 @@ body{
 .qa-sugg button{font-size:12px;font-weight:600;padding:6px 11px;border-radius:9px;border:1px solid var(--s0);
   background:var(--mantle);color:var(--sub1);cursor:pointer}
 .qa-sugg button b{color:var(--blue);font-weight:700}
+.qa-sugg button.grp{border-color:var(--mauve);color:var(--text)}
+.qa-sugg button.grp b{color:var(--mauve)}
+.qa-sugg-h{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--o0);margin-top:11px}
 .qa-hint{font-size:11px;color:var(--o0);margin-top:8px}
 .qa-modes{display:flex;gap:6px;margin-top:10px}
 .qa-modes button{flex:1;border:1px solid var(--s0);background:var(--mantle);color:var(--sub0);font-size:12.5px;font-weight:600;padding:7px;border-radius:9px;cursor:pointer}
@@ -1190,6 +1193,39 @@ const isBuy = m => m==='buy_before' || m==='buy_local';
    they are AND'ed — the convention every shop filter uses, so it needs no
    explanation in the UI. FR-25.4's mode strip is now just the 'mode' facet. */
 const FILT = { trav:new Set(), cat:new Set(), mode:new Set(), cont:new Set(), flag:new Set() };
+/* ============ FR-25.18: the M4 filter survives the session ============ */
+/* Owner request 2026-08-08 ("der Filter in der Packliste soll in der User
+   Session gespeichert werden"). Packing is interrupted constantly — you leave
+   for M5, M6, the dashboard, or the app is backgrounded and the web view is
+   reloaded — and re-picking four facet values each time is the kind of
+   friction that makes people stop filtering at all.
+   Scoped **per trip**, like the grouping choice (UI-Spec M4): a Person filter
+   on one trip means nothing on another.
+   Deliberately the *session*, not a durable preference — and deliberately
+   weaker than grouping, which does persist durably. A filter HIDES rows, and
+   FR-25.11a already argues that a hidden row reads as "nothing left to do".
+   Carrying a forgotten filter into next week's packing is exactly that failure
+   with no visible cause; a fresh session starting unfiltered is the safety
+   valve. Within the session the chip row (FR-25.11a) keeps it visible.
+   The search term is NOT restored: it is a momentary lookup, not a view, and
+   its field collapses (G-12) so a restored term would filter invisibly. */
+const M4F_TRIP='sam26';
+const M4F_KEY='jitpack.m4filter.'+M4F_TRIP;
+function persistPackFilter(){
+  try{ sessionStorage.setItem(M4F_KEY, JSON.stringify({
+    facets:Object.fromEntries(FACETS.map(f=>[f.key,[...FILT[f.key]]])),
+    done:showDone, group:groupMode,
+  })); }catch(e){}   // private mode / disabled storage: filtering still works, it just forgets
+}
+function restorePackFilter(){
+  let raw=null;
+  try{ raw=sessionStorage.getItem(M4F_KEY); }catch(e){ return; }
+  if(!raw) return;
+  let s; try{ s=JSON.parse(raw); }catch(e){ return; }
+  FACETS.forEach(f=>{ FILT[f.key]=new Set((s.facets&&s.facets[f.key])||[]); });
+  if(typeof s.done==='boolean') showDone=s.done;
+  if(s.group) groupMode=s.group;
+}
 const FACETS = [
   {key:'trav', label:'Person'},
   {key:'cat',  label:'Kategorie'},
@@ -1630,6 +1666,7 @@ function renderQA(nameOverride){
       <button class="${qaMode==='person'?'on':''}" data-qamode="person">Pro Person</button></div>
     ${qaMode==='total'
       ? `<div class="qa-sugg">${QA_SUGG.map(s=>`<button data-n="${s[0]}" data-c="${s[1]}">+ ${s[0]} <b>·${s[1].split(' ')[0]}</b></button>`).join('')}</div>
+         ${qaGroupStripHTML(name)}
          <button class="qa-add-btn" data-qaaddtotal="1">Hinzufügen</button>
          <div class="qa-hint">Oder Enter. Auf aktiver Reise als „fehlt“ markiert (FR-9.1).</div>`
       : `<div class="qa-persons">${QA_TRAVELERS.map(t=>`<div class="qa-prow"><span class="mini-av" style="background:${AV[t][1]}">${AV[t][0]}</span>
@@ -1639,7 +1676,11 @@ function renderQA(nameOverride){
   const inp=document.getElementById('qaInput');
   if(qaMode==='total'){ inp.focus(); const v=inp.value; try{inp.setSelectionRange(v.length,v.length);}catch(e){} }
   inp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&qaMode==='total'&&inp.value.trim()){ addQuick(inp.value.trim(),'Schnell hinzugefügt'); inp.value=''; } });
-  el.querySelectorAll('.qa-sugg button').forEach(b=>b.onclick=()=>{ addQuick(b.dataset.n,b.dataset.c); });
+  inp.addEventListener('input',()=>{ const strip=document.getElementById('qaGrpStrip');
+    if(strip) strip.outerHTML=qaGroupStripHTML(inp.value);
+    el.querySelectorAll('[data-qagrp]').forEach(b=>b.onmousedown=e=>{ e.preventDefault(); addGroupToTrip(b.dataset.qagrp); }); });
+  el.querySelectorAll('.qa-sugg button[data-n]').forEach(b=>b.onclick=()=>{ addQuick(b.dataset.n,b.dataset.c); });
+  el.querySelectorAll('[data-qagrp]').forEach(b=>b.onmousedown=e=>{ e.preventDefault(); addGroupToTrip(b.dataset.qagrp); });
   el.querySelectorAll('[data-qamode]').forEach(b=>b.onclick=()=>{ qaMode=b.dataset.qamode; renderQA(); });
   el.querySelectorAll('[data-qap]').forEach(b=>b.onclick=()=>{ const t=b.dataset.qap; qaPerson[t]=Math.max(0,qaPerson[t]+(+b.dataset.d)); renderQA(); });
   const addP=el.querySelector('[data-qaaddperson]'); if(addP) addP.onclick=addPerPerson;
@@ -1665,6 +1706,50 @@ function addPerPerson(){
   renderPack(); renderQA('');
   snack(`„${name}“ hinzugefügt — ${label}`);
 }
+/* ============ FR-27.10: add a whole group while the trip runs ============ */
+/* Owner request 2026-08-08 ("ich möchte auch in den Ferien eine Gruppe von
+   Pack-Elementen hinzufügen können, bspw. Makro Fotografie"). Not every scope
+   decision is made at trip creation — you decide on site that you will shoot
+   macro this time. The same quick-add answers it (FR-25.13 pattern, verbatim):
+   typing filters groups alongside items, one tap expands the whole group. */
+const qaGroupSuggest=q=>{ q=q.trim().toLowerCase();
+  return TPL.filter(t=>tplKind(t)==='group').filter(t=>!q||t.name.toLowerCase().includes(q)).slice(0,4); };
+function qaGroupStripHTML(q){
+  const gs=qaGroupSuggest(q||'');
+  if(!gs.length) return '<div id="qaGrpStrip"></div>';
+  return `<div id="qaGrpStrip"><div class="qa-sugg-h">Ganze Gruppe hinzufügen</div>
+    <div class="qa-sugg">${gs.map(g=>`<button class="grp" data-qagrp="${g.id}">${g.emoji} ${esc(g.name)} <b>·${tplCount(g)} Positionen</b></button>`).join('')}</div></div>`;
+}
+/* Expanding a group here is the same resolution M3 does at generation, minus
+   the wizard: dedup against what the trip already carries (by name, FR-2.3
+   spirit), provenance stamped so FR-27.5 recognises the rows again a year
+   later, FR-27.7 tasks materialised as FR-7.3 todos.
+   Deliberately NOT flagged "fehlt" the way a single ad-hoc add is (FR-9.1):
+   the item was never missing from the plan — the plan just grew. Flagging it
+   would feed the review assistant a lie.
+   Propagation: on a *planning* trip the group is also registered as a source,
+   so later group edits reach the trip per FR-27.4. The mock's trip is active
+   and therefore frozen, so nothing is registered here. */
+function addGroupToTrip(id){
+  const g=TPL.find(x=>x.id===id); if(!g)return;
+  const rows=resolveTpls([id]).rows;
+  const added=[], dup=[];
+  rows.forEach(r=>{
+    const m=MASTER.find(x=>x.id===r.m); if(!m)return;
+    if(P.items.some(it=>it.name.toLowerCase()===m.name.toLowerCase())){ dup.push(m.name); return; }
+    const row={id:nextId++,name:m.name,cat:m.tags[0]||'—',mode:r.mode,cont:'—',w:m.w,src:id};
+    if(r.pp) row.pp=QA_TRAVELERS.map(t=>({trav:t,qty:r.qty,packed:0}));
+    else { row.qty=r.qty; row.packed=0; row.trav='Alle'; }
+    P.items.unshift(row);
+    (r.tasks||[]).forEach(task=>P.prep.push({item:m.name,task,who:'Andy',done:false}));
+    added.push(m.name);
+  });
+  renderPack(); renderQA('');
+  if(!added.length) snack(`„${g.name}“ ist bereits vollständig auf der Reise`);
+  else snack(`Gruppe „${g.name}“ hinzugefügt — ${added.length} Position${added.length===1?'':'en'}`
+    +(dup.length?`, ${dup.length} schon dabei`:''));
+}
+
 function addQuick(name,cat){
   P.items.unshift({id:nextId++,name,cat,qty:1,packed:0,mode:'pack',trav:'Alle',cont:'—',missing:true});
   renderPack();
@@ -1934,7 +2019,9 @@ const CTX_PACK={
   filt:FILT, facets:FACETS, grouping:true,
   label:facetLabel, values:facetValues,
   count:()=>allLeaves().filter(l=>leafPasses(l)&&!leafDone(l)).length,
-  rerender:()=>renderPack(),
+  // Every filter mutation goes through rerender, so this is the one place
+  // that has to remember — no handler can forget to call it.
+  rerender:()=>{ persistPackFilter(); renderPack(); },
   done:{ label:'Erledigte', hint:'Gepackte anzeigen',
          get:()=>showDone, set:v=>{showDone=v;},
          count:()=>allLeaves().filter(leafDone).length },
@@ -3637,6 +3724,7 @@ function createTFT(){
   openM8(id);
 }
 
+restorePackFilter();   // FR-25.18: before the first paint, so M4 never flashes unfiltered
 render('dashboard');
 </script>
 </body>

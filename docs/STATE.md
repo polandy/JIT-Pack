@@ -103,6 +103,22 @@ bounded. Two decisions fix the scope:
   2026-08-08** (screen inventory + full entry + cross-screen flow 6 in `UI_Spec_v1.10.md`,
   documenting the mocked screen; the test spec's "entry to follow" note is gone).
 
+- **Gruppe in die laufende Reise (FR-27.10, owner request 2026-08-08) — mocked + specced,
+  implementation open:** the M4 quick-add adds **whole groups**, not only items ("ich möchte auch
+  in den Ferien eine Gruppe von Pack-Elementen hinzufügen können, bspw. Makro Fotografie").
+  Group suggestions filter as you type under *„Ganze Gruppe hinzufügen“*; one tap runs the same
+  resolution M3 does at generation — dedup against the trip's existing rows, provenance stamped
+  (so FR-27.5 still recognises them), FR-27.7 tasks materialised as prep todos — and reports the
+  outcome. Not flagged *Missing* on purpose: an added group is a grown plan, not a forgotten item,
+  and the flag would feed M14 a false signal. E2E M4-26/27.
+
+- **Packlisten-Filter überlebt die Session (FR-25.18, owner request 2026-08-08) — mocked +
+  specced, implementation open:** filter, *Erledigte* switch and grouping are remembered per trip
+  for the session (restored before first paint, so M4 never flashes unfiltered). Session-scoped on
+  purpose where grouping is durable — a filter hides rows, and a forgotten one reads as "nothing
+  left to do" (FR-25.11a); a fresh session starts unfiltered. The search term is not restored.
+  E2E M4-28.
+
 - **Inventar-UX-Runde (owner directives 2026-08-08, mocked + specced):** M9 is **lean by
   default** (primary-tag avatar + name); which extras show (Tags/Gewicht/Preis) is a
   device-local preference behind an eye icon with a settings sheet (FR-24.4 new). M10
