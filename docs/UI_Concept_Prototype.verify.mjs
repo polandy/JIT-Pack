@@ -187,19 +187,27 @@ await page.click('#tripDoneTpl');
 let tft = await text('#tftPage');
 ok(tft.includes('erkannte gruppen · 2'), 'beide Gruppen erkannt');
 ok(tft.includes('auf der reise ergänzt: gimbal'), 'Makro-Abweichung (Gimbal) erkannt');
-ok(/eigene artikel · 5 von 5/.test(tft), 'lose Artikel gelistet (5)');
+// Derived, not hard-coded: the seed's loose-row count changes whenever a
+// round adds a trip item, and the assertion is about "all of them, pre-checked".
+const looseN = await page.evaluate(() => P.items.filter(i => !i.src).length);
+ok(tft.includes(`eigene artikel · ${looseN} von ${looseN}`), `lose Artikel gelistet (${looseN}), alle vorausgewählt`);
 const makroBefore = await page.evaluate(() => TPLITEMS.makro.length);
 await page.click('#tftCreate');
 await page.waitForTimeout(50);
 m8 = await text('#tplEditPage');
 ok(m8.includes('gruppen · 2'), 'neue Vorlage referenziert beide Gruppen');
-ok(m8.includes('eigene positionen · 5'), 'lose Artikel (5) als eigene Positionen');
+ok(m8.includes(`eigene positionen · ${looseN}`), `lose Artikel (${looseN}) als eigene Positionen`);
 ok(await page.locator('[data-t8kind="template"].sel').count(), 'neue Vorlage hat Scope Ferien-Vorlage');
 const makroAfter = await page.evaluate(() => TPLITEMS.makro.length);
 ok(makroAfter === makroBefore + 1, 'Gimbal in die Makro-Gruppe zurückgeflossen');
 await page.evaluate(() => go('trips'));
 m2 = await text('#m2List');
-ok(m2.includes('7 änderungen aus gruppen übernommen'), 'Rückfluss-Änderungen (4 vorher + 2× Sommer + Gimbal) auf der geplanten Reise');
+// Derived: how many changes the fold-back produced depends on the seed's
+// provenance, which later rounds adjust. What must hold is that every logged
+// change surfaces on the planning trip's row — none may be applied silently.
+const upd = await page.evaluate(() => (TRIP_UPDATES['sam27'] || []).length);
+ok(upd > 0 && m2.includes(`${upd} änderungen aus gruppen übernommen`),
+  `alle ${upd} Rückfluss-Änderungen stehen auf der geplanten Reise (FR-27.4)`);
 
 console.log('— M9 schlank + Eigenschaften-Panel (UX-Runde) —');
 await page.evaluate(() => { M9.show={tags:false,weight:false,price:false}; go('items'); });
@@ -353,6 +361,36 @@ ok(done.includes('reise abgeschlossen'), 'archivierte Reise führt mit der Absch
 ok(done.includes('vorlage aus dieser reise'), 'M21-Einstieg sitzt jetzt hier (FR-27.5)');
 ok(done.includes('vorschläge fürs nächste mal'), 'M14-Vorschläge ebenfalls');
 await page.evaluate(() => openPack('sam26'));
+
+console.log('— M14 Rückblick, gruppen-bewusst (FR-9.2 / §3.27) —');
+await page.evaluate(() => openPack('sam25'));
+let card = await text('#tripDone');
+ok(/vorschläge fürs nächste mal · \d+/.test(card), 'Abschluss-Karte nennt die Anzahl Vorschläge');
+ok((await page.locator('#tripDone .li').count()) === 2,
+  'Karte zeigt zwei Beispielzeilen als Vorschau, nicht die ganze Liste');
+await page.click('#tripDoneRev');
+let rv = await text('#reviewPage');
+ok(await page.evaluate(() => stack[stack.length - 1] === 'review'), 'Einstieg führt auf den M14-Screen');
+ok(rv.includes('offen ·'), 'M14 ist eine Liste mit sichtbarer Restmenge, kein Kartenstapel');
+ok(rv.includes('ungenutzt') && rv.includes('fehlte'), 'beide Vorschlagsarten in einer Liste');
+ok(rv.includes('reiseadapter'), 'der nachgekaufte Artikel steht auf der vollständigen Liste');
+ok((await page.locator('[data-revtgt]').count()) > 0, 'jede Zeile nennt ihre Ziel-Gruppe und lässt sie ändern');
+ok(await page.evaluate(() => [...document.querySelectorAll('[data-revtgt] option')]
+     .every(o => TPL.find(x => x.id === o.value && (x.kind || 'template') === 'group'))),
+  'Ziel-Auswahl bietet nur Gruppen an, keine Ferien-Vorlagen');
+
+const addRow = await page.locator('[data-revapply]').first();
+const grpBefore = await page.evaluate(() => Object.fromEntries(Object.entries(TPLITEMS).map(([k, v]) => [k, v.length])));
+await addRow.click();
+rv = await text('#reviewPage');
+ok(rv.includes('übernommen'), 'übernommener Vorschlag bleibt sichtbar und markiert — verschwindet nicht spurlos');
+ok(await page.evaluate(() => Object.keys(TRIP_UPDATES).length > 0),
+  'die Änderung ist als FR-27.4-Änderung an geplanten Reisen protokolliert');
+
+await page.click('[data-revnever]');
+ok(!(await text('#reviewPage')).includes('nie mehr'), 'Nie-mehr-fragen entfernt die Zeile aus der Liste');
+await page.evaluate(() => openPack('sam26'));
+ok((await page.locator('#tripDone').innerText()).trim() === '', 'aktive Reise zeigt weiterhin keine Abschluss-Karte');
 
 console.log('— Seitenfehler —');
 ok(errors.length === 0, 'keine JS-Fehler' + (errors.length ? ' — ' + errors.join(' | ') : ''));

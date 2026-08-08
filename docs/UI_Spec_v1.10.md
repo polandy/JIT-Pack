@@ -202,10 +202,11 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
 ### M14 — Post-Trip Review Assistant
 
 * **Purpose:** Close the feedback loop into master templates (FR-9.2).
-* **Elements:** Triggered on archive; card stack, one proposal per card: "'Lonely Planet' was flagged Unused on 3 consecutive trips — set quantity to 0 in template 'Base Travel'?" with actions *Apply / Skip / Never ask again*; final summary of applied changes.
-* **Actions:** Single-tap apply writes directly to the source template (shared instance-wide, FR-1.6 MVP simplification — no fork prompt). **Decided: "Never ask again" scopes to the specific item–template pair**, not the item globally — the same item can still surface a proposal for a different template.
+* **Concept round 2026-08-08 (FR-27.11).** Two changes against the 2026-07 draft: the assistant is **a list, not a card stack**, and its proposals target **groups**, not the composed vacation template.
+* **Elements:** One row per proposal: a kind chip (*ungenutzt* / *fehlte*), the item name, why it is being proposed ("auf dieser Reise nicht gebraucht", "unterwegs nachgekauft — fehlte auf der Liste"), and the **target group named in a picker that offers groups only** (FR-27.11). When the target group is used by planning trips, the row states the blast radius ("Wirkt auf N geplante Reisen …", FR-27.4). Per row: *Übernehmen · Überspringen · ✕ (nie mehr fragen)*. A header states how many are still open; applied and skipped rows stay in place, marked, and a footer counts what was written.
+* **Actions:** Single-tap apply writes directly to the target group (shared instance-wide, FR-1.6 MVP simplification — no fork prompt) and logs an FR-27.4 applied change on every planning trip using it. **Decided: "Never ask again" scopes to the specific item–group pair**, not the item globally — the same item can still surface a proposal for a different group.
 * **States:** No flags recorded → assistant skipped with a brief "nothing to review" toast; assistant is resumable if interrupted.
-* **Navigation:** Auto-launch on archive from M4/M2; re-openable from the archived trip.
+* **Navigation:** Auto-launch on archive from M4/M2; afterwards from the **closing card at the top of M4 on the archived trip**, which teases the first two proposals and links to the full list. Sits beside the M21 entry there — M21 folds back structure, M14 folds back individual items.
 
 ### M15 — Import Wizard
 

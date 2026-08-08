@@ -851,6 +851,11 @@ body{
       <div id="anaPage"></div>
     </div>
 
+    <!-- ============ M14 REVIEW ASSISTANT ============ -->
+    <div class="view" data-view="review">
+      <div id="reviewPage"></div>
+    </div>
+
     <!-- ============ §3.27 TEMPLATE FROM TRIP ============ -->
     <div class="view" data-view="tplfromtrip">
       <div id="tftPage"></div>
@@ -955,6 +960,7 @@ const meta = {
   analytics:{t:'Auswertung', s:'Samedan', tab:'trips', back:1, fab:0},
   itemedit:{t:'Artikel', s:'Stammdaten', tab:'items', back:1, fab:0},
   templateedit:{t:'Vorlage', s:'Stammdaten', tab:'templates', back:1, fab:1},
+  review:{t:'Vorschläge fürs nächste Mal', s:'Samedan 2025', tab:'trips', back:1, fab:0},
   tplfromtrip:{t:'Vorlage aus Reise', s:'Samedan Sommer 2026', tab:'trips', back:1, fab:0},
 };
 const anchors = ['dashboard','trips','templates','items'];
@@ -979,6 +985,7 @@ function render(name){
   if(name==='itemedit') renderItemEdit();
   if(name==='templateedit') renderTplEdit();
   if(name==='tplfromtrip') renderTFT();
+  if(name==='review') renderReview();
   if(name==='trips') renderTrips();
   if(name==='shop') renderShop();
   if(name==='containers') renderContainers();
@@ -1006,20 +1013,23 @@ function back(){ if(stack.length>1){ stack.pop(); render(stack[stack.length-1]);
 function renderTripDone(){
   const el=document.getElementById('tripDone'); if(!el) return;
   if(!PACK_TRIP.archived){ el.innerHTML=''; return; }
+  // Teaser, not the whole list: two rows say what kind of harvest this was,
+  // the entry says how much there is. The judging happens on M14, where the
+  // full set is visible at once.
+  const props=reviewModel().filter(p=>!REVIEW.done[p.key]);
+  const revHTML = props.length ? `<div class="section-h" style="margin-top:14px">Vorschläge fürs nächste Mal · ${props.length}</div>
+      ${props.slice(0,2).map(p=>`<div class="li" style="padding-left:0"><span class="chip ${p.kind==='remove'?'mauve':'warm'}">${p.kind==='remove'?'ungenutzt':'fehlte'}</span>
+        <div class="grow"><div class="name">${esc(p.name)}</div><div class="desc">${p.why}</div></div></div>`).join('')}
+      <button class="gb" style="width:100%;padding:10px;margin-top:10px" id="tripDoneRev">Alle ${props.length} Vorschläge prüfen →</button>` : '';
   el.innerHTML=`<div class="card" id="tripDoneCard" style="margin-top:12px;padding:14px 16px">
       <div class="name">🧩 Reise abgeschlossen</div>
       <div class="tiny muted" style="margin:6px 0 12px">Gruppen dieser Reise werden erkannt und wiederverwendet;
         was du unterwegs ergänzt hast, kann in die Gruppe zurückfliessen (FR-27.5).</div>
       <button class="gb on" style="width:100%;padding:11px" id="tripDoneTpl">Vorlage aus dieser Reise erstellen →</button>
-      <div class="section-h" style="margin-top:14px">Vorschläge fürs nächste Mal</div>
-      <div class="li" style="padding-left:0"><span class="chip mauve">Serie</span>
-        <div class="grow"><div class="name">Regenjacken weglassen</div><div class="desc">2 Reisen nicht genutzt</div></div>
-        <button class="gb on" style="padding:6px 12px">Anwenden</button></div>
-      <div class="li" style="padding-left:0"><span class="chip warm">fehlte</span>
-        <div class="grow"><div class="name">Reiseadapter aufnehmen</div><div class="desc">unterwegs nachgekauft</div></div>
-        <button class="gb" style="padding:6px 12px">+ Vorlage</button></div>
+      ${revHTML}
     </div>`;
   document.getElementById('tripDoneTpl').onclick=openTFT;
+  const rv=document.getElementById('tripDoneRev'); if(rv) rv.onclick=()=>go('review');
 }
 
 /* Which trip M4 is showing. Archived trips render read-through with the
@@ -1084,7 +1094,7 @@ const P = {
     {id:5,name:'Sonnencreme',cat:'Bad',qty:1,packed:0,mode:'buy_local',trav:'Alle',cont:'—',w:150},
     {id:6,name:'Taschentücher',cat:'Bad',qty:4,packed:1,mode:'pack',trav:'Alle',cont:'Kulturbeutel',w:40,packedBy:'Sia',late:true},
     {id:7,name:'Velohelme',cat:'Aktivität',qty:2,packed:1,mode:'pack',trav:'Alle',cont:'Auto',w:300,packedBy:'Andy'},
-    {id:8,name:'Wanderstöcke',cat:'Aktivität',qty:1,packed:0,mode:'pack',trav:'Andy',cont:'Auto',w:500},
+    {id:8,name:'Wanderstöcke',cat:'Aktivität',qty:1,packed:0,mode:'pack',trav:'Andy',cont:'Auto',w:500,unused:true},
     {id:9,name:'Mehrfach-Stromstecker',cat:'Technik',qty:1,packed:1,mode:'pack',trav:'Alle',cont:'Rucksack',w:180,packedBy:'Sia'},
     {id:10,name:'iPad Pro + Tastatur',cat:'Technik',qty:1,packed:0,mode:'pack',trav:'Andy',cont:'Rucksack',w:600,late:true},
     {id:11,name:'Pass / ID',cat:'Dokumente',qty:3,packed:2,mode:'pack',trav:'Alle',cont:'Rucksack',w:20,packedBy:'Sia'},
@@ -1092,13 +1102,15 @@ const P = {
     {id:13,name:'Bouillon · Salz · Pfeffer',cat:'Küche',qty:1,packed:0,mode:'pack',trav:'Alle',cont:'Küchenkiste',w:300},
     {id:14,name:'Leonardos Regenzeug',cat:'Für Leonardo',qty:1,packed:0,mode:'pack',trav:'Leonardo',cont:'Koffer',w:250},
     {id:15,name:'Büechli für Leonardo',cat:'Für Leonardo',qty:2,packed:2,mode:'pack',trav:'Leonardo',cont:'Rucksack',w:200,packedBy:'Andy'},
-    {id:16,name:'Ping-Pong-Schläger',cat:'Aktivität',qty:2,packed:0,mode:'buy_before',trav:'Alle',cont:'Auto',w:180},
+    {id:16,name:'Ping-Pong-Schläger',cat:'Aktivität',qty:2,packed:0,mode:'buy_before',trav:'Alle',cont:'Auto',w:180,unused:true},
     // §3.27: photo gear on the trip, generated from the "Makro Fotografie" group.
     // Gimbal was added during the trip under that group — the template-from-trip
     // flow (FR-27.5) offers to fold it back into the group.
     {id:21,name:'Spiegelreflex / Systemkamera',cat:'Technik',qty:1,packed:1,mode:'pack',trav:'Andy',cont:'Rucksack',w:700,packedBy:'Andy'},
     {id:22,name:'Makro-Objektiv',cat:'Technik',qty:1,packed:1,mode:'pack',trav:'Andy',cont:'Rucksack',w:600,packedBy:'Andy'},
     {id:23,name:'Gimbal',cat:'Technik',qty:1,packed:1,mode:'pack',trav:'Andy',cont:'Rucksack',w:400,packedBy:'Andy'},
+    // Bought on the road because it was not on the list — the FR-9.1 "fehlt" case M14 feeds on.
+    {id:24,name:'Reiseadapter',cat:'Technik',qty:1,packed:1,mode:'pack',trav:'Alle',cont:'Rucksack',w:90,packedBy:'Sia',missing:true},
   ],
   skipped:[
     {name:'Badetüechli',reason:'Wohnung hat Tücher'},
@@ -1113,7 +1125,7 @@ const P = {
 /* §3.27 provenance (mock of source_template_id): which group/template each row
    was generated from. Ad-hoc adds carry none — they surface as "eigene Artikel"
    in the template-from-trip flow (FR-27.5). */
-const TRIP_SRC={sommer:[1,2,3,4,5,6,7,9,11,13,15,17,18,19,20],makro:[21,22,23]};
+const TRIP_SRC={sommer:[1,2,3,4,5,6,7,8,9,11,13,15,16,17,18,19,20],makro:[21,22,23]};
 Object.entries(TRIP_SRC).forEach(([g,ids])=>ids.forEach(id=>{const it=P.items.find(x=>x.id===id); if(it)it.src=g;}));
 // FR-25.4: every item carries a procurement mode. pack is the default; the two buy modes feed M6.
 const MODE = {
@@ -3555,6 +3567,80 @@ function renderT8Qa(){
     if(document.activeElement===inp) return;
     if(!inp.value.trim()){ M8.qaOpen=false; M8.qaName=''; renderT8Qa(); }
   },0));
+}
+
+/* ============ M14 review assistant (FR-9.2), group-aware ============ */
+/* Concept round 2026-08-08. Two things changed against the 2026-07 spec:
+   (a) a **list, not a card stack**. The harvest of a trip is a handful of
+   one-line yes/no judgements; a stack shows one at a time and hides how much
+   is left, which is the same dishonesty FR-25.11a forbids on the packing list.
+   Seeing all of it is what lets you judge it.
+   (b) **the target is a Gruppe, not "the dominant template"**. With §3.27 an
+   item comes *from* a group, and that is where the fix belongs — writing it to
+   the composed Ferien-Vorlage would fork the knowledge away from every other
+   trip using the group. Same stance as FR-27.5's fold-back. The target is named
+   on every row and can be changed. */
+const REVIEW={done:{}, target:{}, dismissed:new Set()};
+/* The group a trip row came from (FR-27.5 provenance); ad-hoc rows have none,
+   so a "fehlt" proposal needs a target — the group that contributed most of
+   this trip, which is also the one the user thinks of as "the list". */
+function dominantGroup(){
+  const n={}; P.items.forEach(i=>{ if(i.src) n[i.src]=(n[i.src]||0)+1; });
+  const best=Object.keys(n).sort((a,b)=>n[b]-n[a])[0];
+  return best||null;
+}
+function reviewModel(){
+  const out=[];
+  P.items.forEach(it=>{
+    const key='p'+it.id;
+    if(REVIEW.dismissed.has(key)) return;
+    if(it.unused && it.src) out.push({key, kind:'remove', name:it.name,
+      why:'auf dieser Reise nicht gebraucht', target:REVIEW.target[key]||it.src});
+    else if(it.missing) out.push({key, kind:'add', name:it.name,
+      why:'unterwegs nachgekauft — fehlte auf der Liste', target:REVIEW.target[key]||dominantGroup()});
+  });
+  return out.filter(p=>p.target);
+}
+function renderReview(){
+  const el=document.getElementById('reviewPage'); if(!el)return;
+  const props=reviewModel(), open=props.filter(p=>!REVIEW.done[p.key]);
+  const groups=TPL.filter(x=>tplKind(x)==='group');
+  const row=p=>{
+    const t=TPL.find(x=>x.id===p.target), planned=plannedTripsUsing(p.target).length;
+    const state=REVIEW.done[p.key];
+    return `<div class="card" style="padding:12px 14px;margin-bottom:10px;${state?'opacity:.55':''}" data-rev="${p.key}">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="chip ${p.kind==='remove'?'mauve':'warm'}">${p.kind==='remove'?'ungenutzt':'fehlte'}</span>
+        <div class="grow"><div class="name">${esc(p.name)}</div><div class="desc">${p.why}</div></div>
+        ${state?`<span class="chip green">${state==='applied'?'übernommen ✓':'übersprungen'}</span>`:''}</div>
+      <div class="tiny muted" style="margin-top:9px">${p.kind==='remove'?'Aus':'In'} Gruppe
+        <select data-revtgt="${p.key}" style="background:var(--mantle);border:1px solid var(--s1);border-radius:9px;color:var(--text);padding:3px 7px">
+          ${groups.map(g=>`<option value="${g.id}" ${g.id===p.target?'selected':''}>${esc(g.name)}</option>`).join('')}
+        </select></div>
+      ${planned?`<div class="tiny muted" style="margin-top:6px">Wirkt auf ${planned} geplante Reise${planned===1?'':'n'}, die „${esc(t?t.name:'')}“ einbindet (FR-27.4).</div>`:''}
+      ${state?'':`<div style="display:flex;gap:8px;margin-top:11px">
+        <button class="gb on" style="flex:1;padding:8px" data-revapply="${p.key}">Übernehmen</button>
+        <button class="gb" style="flex:1;padding:8px" data-revskip="${p.key}">Überspringen</button>
+        <button class="gb" style="padding:8px 10px" data-revnever="${p.key}" title="Nie mehr fragen">✕</button></div>`}</div>`;
+  };
+  const appliedN=props.filter(p=>REVIEW.done[p.key]==='applied').length;
+  el.innerHTML=`<div class="tiny muted" style="margin:10px 4px">Was diese Reise über deine Gruppen gelernt hat.
+      Änderungen gehen in die <b>Gruppe</b>, aus der der Artikel stammt — nicht in die Ferien-Vorlage,
+      sonst lernt nur diese eine Reise dazu (FR-27.5-Logik).</div>
+    <div class="section-h">Offen · ${open.length}</div>
+    ${props.length?props.map(row).join(''):'<div class="card"><div class="li"><div class="grow muted" style="text-align:center;padding:10px">Nichts zu prüfen — keine Merkmale gesetzt.</div></div></div>'}
+    ${appliedN?`<div class="section-h">Übernommen · ${appliedN}</div>
+      <div class="card"><div class="li"><div class="grow tiny muted" style="padding:4px">${appliedN} Änderung${appliedN===1?'':'en'} in die Gruppen geschrieben. Geplante Reisen übernehmen sie sofort.</div></div></div>`:''}`;
+  el.querySelectorAll('[data-revtgt]').forEach(s=>s.onchange=()=>{ REVIEW.target[s.dataset.revtgt]=s.value; renderReview(); });
+  el.querySelectorAll('[data-revapply]').forEach(b=>b.onclick=()=>{
+    const p=props.find(x=>x.key===b.dataset.revapply); if(!p)return;
+    REVIEW.done[p.key]='applied';
+    logTplChange(p.target, (p.kind==='add'?'Position „'+p.name+'“ hinzugefügt':'Position „'+p.name+'“ entfernt')+' (aus Reise-Rückblick)');
+    snack((p.kind==='add'?'„'+p.name+'“ in ':'„'+p.name+'“ aus ')+'Gruppe „'+tplName(p.target)+'“ '+(p.kind==='add'?'aufgenommen':'entfernt'));
+    renderReview(); });
+  el.querySelectorAll('[data-revskip]').forEach(b=>b.onclick=()=>{ REVIEW.done[b.dataset.revskip]='skipped'; renderReview(); });
+  el.querySelectorAll('[data-revnever]').forEach(b=>b.onclick=()=>{ REVIEW.dismissed.add(b.dataset.revnever); renderReview();
+    snack('Wird für diesen Artikel und diese Gruppe nicht mehr vorgeschlagen'); });
 }
 
 /* ============ §3.27 template from trip (FR-27.5) ============ */

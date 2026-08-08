@@ -157,6 +157,17 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   phase model is picked up deliberately when Plan/During get content — the frame then goes *above*
   M4. E2E M4-29, M21-01 reworded.
 
+- **M14 Review-Assistent — Konzeptrunde nachgeholt 2026-08-08 (FR-27.11), mocked + specced:**
+  the screen existed only as two hard-coded rows in the dropped phase hub. Now a real screen:
+  proposals derived from the trip's FR-9.1 flags, **each targeting the Gruppe the item came from**
+  (picker offers groups only; an ad-hoc "fehlte" row defaults to the trip's dominant group), with
+  the FR-27.4 blast radius on the row and an applied-change log entry on every planning trip using
+  it. **A list with an open count, not a card stack** — that 2026-07-17 decision is superseded:
+  a stack hides how much is left, which is what FR-25.11a rejects on the packing list. Applied and
+  skipped rows stay visible and marked. Reached from M4's closing card (teaser of two + "Alle N
+  prüfen →"), beside the M21 entry: M21 folds back structure, M14 folds back single items.
+  E2E M14-04/05. Implementation open.
+
 - **Inventar-UX-Runde (owner directives 2026-08-08, mocked + specced):** M9 is **lean by
   default** (primary-tag avatar + name); which extras show (Tags/Gewicht/Preis) is a
   device-local preference behind an eye icon with a settings sheet (FR-24.4 new). M10

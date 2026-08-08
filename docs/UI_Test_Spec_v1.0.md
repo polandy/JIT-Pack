@@ -251,6 +251,8 @@ Feature removed from the product (PRD Addendum §3.11); its E2E cases are retire
 
 ### M14 — Post-Trip Review Assistant
 * **E2E-M14-01** `all` (FR-9.1/9.2): archiving a flagged trip auto-launches the card stack; a proposal reads correctly (e.g. "Unused on N trips → set qty 0").
+* **E2E-M14-04** `all` (FR-27.11): every proposal names a **group** as its target and the picker offers groups only — never a Ferien-Vorlage. An *unused* proposal defaults to the group the row came from; a *missing* ad-hoc row defaults to the trip's dominant group. Applying writes to that group and produces an FR-27.4 applied-change entry on each planning trip using it.
+* **E2E-M14-05** `all` (FR-27.11): the assistant renders as a **list with an open count**, not a card stack; applied and skipped rows remain visible and marked rather than disappearing, and "nie mehr fragen" removes the row for that item–group pair only.
 * **E2E-M14-02** `all` (FR-9.2/1.6): Apply writes directly to the source template — shared instance-wide per the FR-1.6 MVP simplification; no fork prompt exists.
 * **E2E-M14-03** `all` (FR-9.2): "Never ask again" scopes to the item–template pair (same item still surfaces for another template).
 * **E2E-M14-04** `all` (FR-9.2): no flags → "nothing to review" toast; re-openable from the archived trip; applied cards don't reappear (resumability).
@@ -468,6 +470,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-27.8 | E2E | M10-05 (named back-references, tap-through); counts stay M10-02 |
 | FR-27.9 | E2E | M10-06 (cross-trip comment aggregation with author/trip/timestamp) |
 | FR-27.10 | E2E | M4-26 (group add: dedup, provenance, tasks, no Missing flag), M4-27 (fully-present group, planning-trip propagation) |
+| FR-27.11 | E2E | M14-04 (group targets, blast radius, applied-change log), M14-05 (list not card stack, marked rows, per-pair dismissal) |
 | FR-25.7 | E2E | M8-12 (one-tap add, "Standard" row, Mehr-Optionen disclosure) |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |
