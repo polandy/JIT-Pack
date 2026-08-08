@@ -22,10 +22,15 @@ Read this file fully before touching code. It is the orientation document: what 
 | What do the screens look like? | `docs/UI_Spec_v1.10.md` — screens M1–M20, global patterns G-1–G-11 |
 | What's the wire protocol? | `docs/Sync_API_Spec_v1.3.md` — pull/push envelopes, HLC format, merge algorithm, WebSocket events, RPC endpoints |
 | What's the DB schema? | `internal/store/migrations/*.sql` — **single source of truth, never duplicated into docs/** |
-| Why was X chosen over Y? | `docs/ADR-00N_*.md` — options considered, weighted decision matrix, consequences, revisit trigger |
-| What must the UI test suite cover? | `docs/UI_Test_Spec_v1.0.md` — Playwright scope: per-screen cases, cross-screen flows, FR/NFR traceability matrix |
-| How do I write code here? | `docs/CODING_PRINCIPLES.md` — **binding**, read before writing anything |
+| Why was X chosen over Y? | [`dev-docs/adr/`](dev-docs/adr/README.md) — one record per real tradeoff: options considered, weighted decision matrix, consequences, revisit trigger |
+| What must the UI test suite cover? | `dev-docs/UI_Test_Spec_v1.0.md` — Playwright scope: per-screen cases, cross-screen flows, FR/NFR traceability matrix |
+| How do I write code here? | `dev-docs/CODING_PRINCIPLES.md` — **binding**, read before writing anything |
 | What was already built, and why that way? | `dev-docs/implementation-log.md` — append-only history |
+
+The split is deliberate and answers "which file do I have to touch?" mechanically:
+
+- **`docs/`** — what the product *is*. The requirement and interface surface: PRD, UI spec, sync API spec. Change behaviour, change these.
+- **`dev-docs/`** — how we *build* it and why it looks this way: coding principles, ADRs (`dev-docs/adr/`, see its README), the UI test spec, the implementation log. Change the approach, change these.
 
 Only the current version of each document is kept. Never write a "v2" of a doc — replace the file and update its own revision note.
 
@@ -43,8 +48,8 @@ Only the current version of each document is kept. Never write a "v2" of a doc �
 1. **Dependency direction**, as it actually is today (verified with `go list -deps`): `api → store, sync, portable`; `store → sync, portable`; **`sync` and `portable` import nothing internal, ever**. Those two leaves are trivially unit-testable precisely because of that, and that is the point. The pure domain rules live in `client/src/domain` (invariant 4), not in a Go `internal/domain`.
 2. **Applied migrations are never edited.** A change means a new numbered migration. Dead schema from a retired feature stays inert rather than being cleaned up — the `outbound_packed` column and the `repack` status value are there for exactly that reason. `PRAGMA user_version` tracks the applied level and must stay reopen-safe.
 3. **The client's identity claims are never trusted.** The server stamps actor columns itself (`stampActor` in `internal/api/server.go`: comment `author_id`, `packing_now_by`/`packing_now_at`, `packer_user_id`). A client placeholder like `'current-user'` must never reach a foreign key. Likewise, clients can never grant the `owner` role, and the trip creator's membership row is immutable.
-4. **Generation runs client-side.** Template instantiation, dependency resolution, quantity suggestions, analytics, the review assistant, cloning and import all live in `client/src/domain`, not on the server — because **Local Mode has no server** and must keep every one of those features. Moving one of them server-side silently removes it from a supported mode.
-5. **Three modes, one artifact.** Behaviour is selected at runtime, never by a separate build — but note where each switch lives: the client's `jitpack_mode` is only `local` or `server`; **Single-User is a server-side configuration** (`api.NewSingleUser`) that a `server`-mode client discovers by being offered no OIDC. There is no third client mode. Every feature must answer: what happens in Single-User Mode (auth and membership are bypassed — anything gated on `authed` is inert) and in Local Mode (no network)? Server-only surfaces are hidden per G-8, not left broken.
+4. **Generation runs client-side** (ADR-008). Template instantiation, dependency resolution, quantity suggestions, analytics, the review assistant, cloning and import all live in `client/src/domain`, not on the server — because **Local Mode has no server** and must keep every one of those features. Moving one of them server-side silently removes it from a supported mode.
+5. **Three modes, one artifact** (ADR-009). Behaviour is selected at runtime, never by a separate build — but note where each switch lives: the client's `jitpack_mode` is only `local` or `server`; **Single-User is a server-side configuration** (`api.NewSingleUser`) that a `server`-mode client discovers by being offered no OIDC. There is no third client mode. Every feature must answer: what happens in Single-User Mode (auth and membership are bypassed — anything gated on `authed` is inert) and in Local Mode (no network)? Server-only surfaces are hidden per G-8, not left broken.
 6. **Item image BLOBs stay outside the sync envelope** (ADR-002). Only `items.image_hash` flows through the master feed; the bytes move over their own endpoints. The 150 KB / JPEG limit is enforced at handler, store and CHECK constraint — three layers on purpose.
 7. **Coverage gates are enforced, not aspirational**: ≥75 % overall, ≥90 % `internal/sync`. An uncovered branch in merge logic fails review regardless of the total.
 8. **Everything resolves to an exact version verified by hash.** npm via `package-lock.json`, Go via `go.sum`, Docker base images by `@sha256:` digest, GitHub Actions by full commit SHA with the tag as a readable comment. Never a bare tag. Dependabot updates the digests, so pinning costs no freshness.
