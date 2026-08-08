@@ -40,17 +40,24 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
 
 1. **The basics first** — login/users/sync/CI already exist and are green, so the open question
    is audit-and-harden versus deliberate rework, not build-from-scratch.
-2. **§3.27 client package** — `instantiate.ts` include expansion + FR-27.7 task materialisation,
+2. **One toolchain, not two.** `make ci` is documented above as *the* pre-finish check, but it
+   calls `go`, `gofmt` and `golangci-lint` bare and dies with `go: No such file or directory`
+   unless the nix devShell is active — while `mise.toml` pins those same three tools and
+   `mise exec -- make ci` works. Two mechanisms for one job, and the failure lands on the very
+   command people are told to trust. Pick one (devShell only, mise only, or let the Makefile
+   detect and re-exec), then delete the other; whichever wins, `make ci` must work from a plain
+   shell in a fresh clone.
+3. **§3.27 client package** — `instantiate.ts` include expansion + FR-27.7 task materialisation,
    the FR-27.4 planning-trip refresh diff, the M21 screen, portable YAML for includes and tasks.
    Schema and sync wiring are done (migration 016).
-3. **Screen rebuilds from the mock**, localized with `t()` from the first line: M4/M5, then
+4. **Screen rebuilds from the mock**, localized with `t()` from the first line: M4/M5, then
    M7/M8 (scopes, quick-add, sheet editing), M9/M10 (lean inventory, minimal creation),
    M11 (container sheet, picker), M12 (slice filtering, per-person shares), M14 (group-aware list).
-4. **i18n migration** — ~300 hard-coded English strings across the surrounding screens; the module
+5. **i18n migration** — ~300 hard-coded English strings across the surrounding screens; the module
    and both catalogues exist.
-5. **Two migrations owed by concept decisions** — drop `travelers.profile` (FR-25.9 retired), and
+6. **Two migrations owed by concept decisions** — drop `travelers.profile` (FR-25.9 retired), and
    add the record column beside `packer_user_id` (FR-25.19 splits assignment from packing record).
-6. **Playwright suite** — `docs/UI_Test_Spec_v1.0.md` is written and the harness scaffolded; the
+7. **Playwright suite** — `docs/UI_Test_Spec_v1.0.md` is written and the harness scaffolded; the
    per-screen cases are not implemented, deliberately sequenced after the rebuilds.
 
 **Parked, specified, do not start:** §3.24 item tags & lifecycle delete, §3.26 calendar feed,
