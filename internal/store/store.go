@@ -63,11 +63,17 @@ var syncableColumns = map[string]map[string]bool{
 	// instance-wide), and an unreadable column no client can set is the
 	// honest state until the stub's revisit trigger fires.
 	"templates": toSet(
-		"owner_id", "name",
+		"owner_id", "name", "kind",
 	),
 	"template_items": toSet(
 		"template_id", "item_id", "quantity", "assignment",
 		"dedup", "conditions", "default_mode", "late_packer",
+	),
+	"template_includes": toSet(
+		"template_id", "included_template_id",
+	),
+	"template_item_tasks": toSet(
+		"template_item_id", "task",
 	),
 	"trips": toSet(
 		"series_id", "name", "start_date", "end_date", "status",
@@ -95,7 +101,8 @@ var syncableColumns = map[string]map[string]bool{
 // the wrong change feed.
 var (
 	tripPartitionTables   = toSet("trip_items", "travelers", "containers", "comments")
-	masterPartitionTables = toSet("categories", "items", "templates", "template_items", "trips",
+	masterPartitionTables = toSet("categories", "items", "templates", "template_items",
+		"template_includes", "template_item_tasks", "trips",
 		"trip_series", "destination_profiles", "destination_checklist_items", "trip_members",
 		"item_dependencies")
 )

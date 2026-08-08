@@ -290,6 +290,114 @@ func TestApplyMasterMutation_TemplateDeleteTombstonesItems(t *testing.T) {
 	}
 }
 
+// FR-27.1/27.6: every template declares a scope — 'group' (positions only,
+// includable) or 'template' (a Ferien-Vorlage, includes groups). 'template'
+// is the default so pre-§3.27 rows keep working.
+func TestApplyMasterMutation_TemplateScopes(t *testing.T) {
+	s := openTestStore(t)
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "templates", "tpl-default", "sc-1",
+		map[string]any{"name": "Ohne Scope"}, "0000000001000-0000-aaaaaaaa"))
+	var kind string
+	if err := s.db.QueryRow(`SELECT kind FROM templates WHERE id = 'tpl-default'`).Scan(&kind); err != nil {
+		t.Fatal(err)
+	}
+	if kind != "template" {
+		t.Errorf("default kind = %q, want template", kind)
+	}
+
+	if res := applyMaster(t, s, testUser, masterMut(sync.OpInsert, "templates", "grp-1", "sc-2",
+		map[string]any{"name": "Makro", "kind": "group"},
+		"0000000001001-0000-aaaaaaaa")); res.Outcome != "applied" {
+		t.Errorf("group insert outcome = %q, want applied", res.Outcome)
+	}
+	if res := applyMaster(t, s, testUser, masterMut(sync.OpInsert, "templates", "bogus", "sc-3",
+		map[string]any{"name": "Quatsch", "kind": "bundle"},
+		"0000000001002-0000-aaaaaaaa")); res.Outcome != "rejected" {
+		t.Errorf("unknown kind outcome = %q, want rejected (CHECK)", res.Outcome)
+	}
+}
+
+// FR-27.1: the hierarchy is exactly two levels — a Ferien-Vorlage includes
+// groups, nothing else includes anything. That is what makes cycles
+// structurally impossible, so the store refuses every other shape.
+func TestApplyMasterMutation_TemplateIncludesTwoLevelsOnly(t *testing.T) {
+	s := openTestStore(t)
+	seed := func(id, kind string, mutID string) {
+		t.Helper()
+		applyMaster(t, s, testUser, masterMut(sync.OpInsert, "templates", id, mutID,
+			map[string]any{"name": id, "kind": kind}, "0000000001000-0000-aaaaaaaa"))
+	}
+	seed("vorlage-a", "template", "in-s1")
+	seed("vorlage-b", "template", "in-s2")
+	seed("gruppe-a", "group", "in-s3")
+	seed("gruppe-b", "group", "in-s4")
+
+	tests := []struct {
+		name          string
+		parent, child string
+		mutationID    string
+		want          string
+	}{
+		{"vacation template includes a group", "vorlage-a", "gruppe-a", "in-1", "applied"},
+		{"group includes a group", "gruppe-a", "gruppe-b", "in-2", "rejected"},
+		{"template includes a template", "vorlage-a", "vorlage-b", "in-3", "rejected"},
+		{"template includes itself", "vorlage-a", "vorlage-a", "in-4", "rejected"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res := applyMaster(t, s, testUser, masterMut(sync.OpInsert, "template_includes",
+				"inc-"+tt.mutationID, tt.mutationID,
+				map[string]any{"template_id": tt.parent, "included_template_id": tt.child},
+				"0000000002000-0000-aaaaaaaa"))
+			if res.Outcome != tt.want {
+				t.Errorf("outcome = %q, want %q", res.Outcome, tt.want)
+			}
+		})
+	}
+}
+
+// FR-27.7: a position can carry preparation tasks, which instantiate as
+// FR-7.3 todos. Deleting the template must tombstone the whole composition
+// — positions, their tasks, and the group includes on either side.
+func TestApplyMasterMutation_TemplateDeleteTombstonesComposition(t *testing.T) {
+	s := openTestStore(t)
+	mustExec(t, s, `INSERT INTO items (id, name) VALUES ('item-k', 'Kamera')`)
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "templates", "vorlage", "cp-1",
+		map[string]any{"name": "Sommer", "kind": "template"}, "0000000001000-0000-aaaaaaaa"))
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "templates", "gruppe", "cp-2",
+		map[string]any{"name": "Makro", "kind": "group"}, "0000000001001-0000-aaaaaaaa"))
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "template_includes", "inc-1", "cp-3",
+		map[string]any{"template_id": "vorlage", "included_template_id": "gruppe"},
+		"0000000001002-0000-aaaaaaaa"))
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "template_items", "pos-1", "cp-4",
+		map[string]any{"template_id": "gruppe", "item_id": "item-k", "quantity": 1},
+		"0000000001003-0000-aaaaaaaa"))
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "template_item_tasks", "task-1", "cp-5",
+		map[string]any{"template_item_id": "pos-1", "task": "Akkus laden"},
+		"0000000001004-0000-aaaaaaaa"))
+
+	if res := applyMaster(t, s, testUser, masterMut(sync.OpDelete, "templates", "gruppe", "cp-6",
+		nil, "0000000002000-0000-aaaaaaaa")); res.Outcome != "applied" {
+		t.Fatalf("delete outcome = %q, want applied", res.Outcome)
+	}
+
+	for _, want := range []struct{ table, id string }{
+		{"template_item_tasks", "task-1"},
+		{"template_items", "pos-1"},
+		{"template_includes", "inc-1"},
+	} {
+		var n int
+		if err := s.db.QueryRow(`SELECT count(*) FROM change_log
+			WHERE entity_table = ? AND entity_id = ? AND deleted = 1 AND trip_id IS NULL`,
+			want.table, want.id).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		if n != 1 {
+			t.Errorf("%s/%s tombstones = %d, want 1", want.table, want.id, n)
+		}
+	}
+}
+
 // Deleting an item still referenced by a template must not 500 — the FK
 // violation maps to a rejected outcome.
 func TestApplyMasterMutation_DeleteReferencedItemRejected(t *testing.T) {

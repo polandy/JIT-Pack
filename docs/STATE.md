@@ -89,9 +89,17 @@ bounded. Two decisions fix the scope:
   from the type, store, mutations and portable export, `forkTemplate`/`requiresFork` and the
   `applyReviewProposal({fork})` branch removed, M7 is one shared list without the publish
   toggle, M8's published warning and M14's fork card are gone. Docs (Sync-API §4/§8, UI-Spec
-  M18, FR-18.2/18.4) follow. Implementation open: `templates.kind` + `template_includes` (+ task
-  storage per FR-27.7) migration + sync whitelist, `instantiate.ts` include expansion + task
-  materialisation, planning-trip refresh diff, M21 screen. **UI-Spec entry for M21 written
+  M18, FR-18.2/18.4) follow. **Schema + sync wiring IMPLEMENTED 2026-08-08 (migration 016):**
+  `templates.kind` (`CHECK ('group','template')`, default `template` so existing rows become
+  Ferien-Vorlagen), `template_includes` (unique pair, self-include CHECK, index on the
+  included side) and `template_item_tasks` (a row per task, *not* a JSON column — field-level
+  LWW would treat a blob as one field and lose concurrent edits); all three on the master
+  partition whitelist, shared visibility, FR-27.1's two-level rule enforced in
+  `validInclude` (a Gruppe including a Gruppe rejects like any invalid mutation), and a
+  template delete now tombstones tasks → positions → includes on both sides. Implementation
+  open: `instantiate.ts` include expansion + task
+  materialisation, planning-trip refresh diff, M21 screen, portable YAML for includes/tasks
+  (FR-18.2), and the M7/M8 client rework. **UI-Spec entry for M21 written
   2026-08-08** (screen inventory + full entry + cross-screen flow 6 in `UI_Spec_v1.10.md`,
   documenting the mocked screen; the test spec's "entry to follow" note is gone).
 

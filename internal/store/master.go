@@ -159,10 +159,21 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 		}
 		return true, nil
 
-	case "template_items":
-		// Positions follow their template's governance (FR-1.6 MVP): shared.
-		// An invalid template_id fails the FK and rejects.
+	case "template_items", "template_item_tasks":
+		// Positions and their preparation tasks (FR-27.7) follow their
+		// template's governance (FR-1.6 MVP): shared. An invalid parent id
+		// fails the FK and rejects.
 		return true, nil
+
+	case "template_includes":
+		// Shared like everything else, but structurally constrained: the
+		// two-level rule (FR-27.1) is what makes include cycles impossible,
+		// so a shape that would break it is refused here rather than
+		// discovered later by a resolver.
+		if m.Op == sync.OpDelete {
+			return true, nil
+		}
+		return validInclude(ctx, tx, current, m)
 
 	case "trip_series":
 		if !exists {
@@ -253,6 +264,42 @@ func memberRole(ctx context.Context, tx *sql.Tx, tripID, userID string) (string,
 // parentIDs collects the parent references of a child row from both the
 // existing row and the mutation fields — authorization must hold for the
 // current parent *and* the target parent.
+// validInclude enforces the FR-27.1 two-level rule: only a Ferien-Vorlage
+// (kind 'template') may include, and only a Gruppe (kind 'group') may be
+// included. Both ends are checked against the row as it will read after the
+// mutation, so an include can never be re-pointed into an illegal shape.
+// A missing template denies — the FK would reject it anyway, and denying
+// keeps the answer a clean "rejected" instead of an error.
+func validInclude(ctx context.Context, tx *sql.Tx, current map[string]any, m *sync.Mutation) (bool, error) {
+	field := func(name string) string {
+		if v, ok := m.Fields[name].(string); ok {
+			return v
+		}
+		if v, ok := current[name].(string); ok {
+			return v
+		}
+		return ""
+	}
+	parent, child := field("template_id"), field("included_template_id")
+	if parent == "" || child == "" {
+		return false, nil
+	}
+	for _, want := range []struct{ id, kind string }{{parent, "template"}, {child, "group"}} {
+		var kind string
+		err := tx.QueryRowContext(ctx, `SELECT kind FROM templates WHERE id = ?`, want.id).Scan(&kind)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		if err != nil {
+			return false, fmt.Errorf("include scope lookup: %w", err)
+		}
+		if kind != want.kind {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 func parentIDs(current map[string]any, m *sync.Mutation, field string) map[string]bool {
 	ids := map[string]bool{}
 	if id, ok := current[field].(string); ok {
@@ -315,7 +362,28 @@ func cascadeChildren(ctx context.Context, tx *sql.Tx, m sync.Mutation, deleted, 
 	}
 	switch m.Table {
 	case "templates":
-		return collect("template_items", `SELECT id FROM template_items WHERE template_id = ?`)
+		// Leaf-first: the position tasks (FR-27.7) hang off the positions,
+		// which hang off the template, and the group includes (FR-27.1)
+		// vanish from both sides of the relation.
+		tasks, err := collect("template_item_tasks",
+			`SELECT t.id FROM template_item_tasks t
+			 JOIN template_items ti ON ti.id = t.template_item_id WHERE ti.template_id = ?`)
+		if err != nil {
+			return nil, err
+		}
+		positions, err := collect("template_items", `SELECT id FROM template_items WHERE template_id = ?`)
+		if err != nil {
+			return nil, err
+		}
+		includes, err := collect("template_includes",
+			`SELECT id FROM template_includes WHERE template_id = ?1 OR included_template_id = ?1`)
+		if err != nil {
+			return nil, err
+		}
+		return append(append(tasks, positions...), includes...), nil
+	case "template_items":
+		return collect("template_item_tasks",
+			`SELECT id FROM template_item_tasks WHERE template_item_id = ?`)
 	case "items":
 		return collect("item_dependencies",
 			`SELECT id FROM item_dependencies WHERE item_id = ?1 OR depends_on_item_id = ?1`)
@@ -440,7 +508,7 @@ func (s *Store) masterVisible(ctx context.Context, userID, table, id string) (bo
 	case "categories", "items", "item_dependencies":
 		return true, nil
 
-	case "templates", "template_items":
+	case "templates", "template_items", "template_includes", "template_item_tasks":
 		// Instance-wide, like the master items they are built from (FR-1.6
 		// MVP simplification, 2026-08-08 — "Jeder sieht einfach alles").
 		return true, nil

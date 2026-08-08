@@ -33,6 +33,8 @@ func (s *Store) ExportFull(ctx context.Context, userID string) (FullExport, erro
 		// export unfiltered like categories and items.
 		{"templates", `SELECT * FROM templates`, nil},
 		{"template_items", `SELECT * FROM template_items`, nil},
+		{"template_includes", `SELECT * FROM template_includes`, nil},
+		{"template_item_tasks", `SELECT * FROM template_item_tasks`, nil},
 		{"trip_series", `SELECT * FROM trip_series WHERE owner_id = ?`, one},
 		{"destination_profiles", `SELECT p.* FROM destination_profiles p
 			JOIN trip_series s ON s.id = p.series_id WHERE s.owner_id = ?`, one},
