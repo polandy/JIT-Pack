@@ -476,14 +476,14 @@ ok(await page.evaluate(id => {
 
 await page.evaluate(id => { openItem(id); sheetDetails = true; renderItem(); }, target);
 const sh = await text('#itemSheet');
-ok(sh.includes('verantwortliche person'), 'das Sheet beschriftet die Zuweisung als Verantwortung');
+ok(sh.includes('zugewiesen an'), 'das Sheet beschriftet die Zuweisung wie M6 — ein Begriff für eine Sache');
 ok(sh.includes('gepackt hat es') && sh.includes('nicht wählbar'),
   'der Packbeleg steht daneben und ist ausdrücklich nicht wählbar');
 // Both pickers mark their selection the same way (.pk.sel — orange outline);
 // the responsible picker read a field it no longer wrote, so nothing was marked.
 ok(await page.evaluate(() => {
   const rows = [...document.querySelectorAll('#itemSheet .assign')];
-  const resp = rows.find(r => /Verantwortliche Person/.test(r.textContent));
+  const resp = rows.find(r => /Zugewiesen an/.test(r.textContent));
   return !!resp && resp.querySelector('.pk.sel') !== null;
 }), 'die zuständige Person ist im Picker markiert');
 // Same markup hook in both rows, so the orange .pk.sel outline is identical
@@ -491,7 +491,7 @@ ok(await page.evaluate(() => {
 ok(await page.evaluate(() => {
   const rows = [...document.querySelectorAll('#itemSheet .assign')];
   const avatars = r => [...r.querySelectorAll('.mini-av')].every(a => a.classList.contains('pk'));
-  return rows.filter(r => /Wer braucht das|Verantwortliche Person/.test(r.textContent)).every(avatars);
+  return rows.filter(r => /Wer braucht das|Zugewiesen an/.test(r.textContent)).every(avatars);
 }), 'beide Picker benutzen denselben Auswahl-Haken (.pk) — gleicher oranger Rahmen');
 await page.evaluate(() => closeItem());
 
@@ -563,6 +563,61 @@ const sName = await sugg.getAttribute('data-name');
 await sugg.click();
 ok(await page.evaluate(n => W.q[n] === 30, sName), 'Übernehmen setzt die Menge aus dem Verlauf');
 await page.evaluate(() => { resetWizard(); go('dashboard'); });
+
+console.log('— M2 flach, nach Nutzen sortiert —');
+await page.evaluate(() => { M2S.tab = 'all'; M2S.search = ''; go('trips'); });
+ok((await page.locator('#m2List .section-h').count()) === 0, 'keine Serien-Sektionen mehr — eine flache Liste');
+const ord = await page.evaluate(() => [...document.querySelectorAll('#m2List [data-trip]')].map(e => e.dataset.trip));
+ok(ord[0] === 'sam26', 'die laufende Reise steht oben');
+ok(ord.indexOf('wien') < ord.indexOf('davos') && ord.indexOf('davos') < ord.indexOf('sam27'),
+  'geplante Reisen aufsteigend — die nächste zuerst, nicht die fernste');
+ok(ord.indexOf('sam25') < ord.indexOf('cannobio') && ord.indexOf('cannobio') < ord.indexOf('sam24'),
+  'archivierte Reisen absteigend — Geschichte liest sich rückwärts');
+ok((await text('#m2List')).includes('◆ samedan'), 'die Serie bleibt als Chip auf der Zeile sichtbar');
+await page.locator('[data-series]').first().click();
+ok(await page.evaluate(() => stack[stack.length - 1] === 'trips'),
+  'der Serien-Chip führt nicht versehentlich in die Reise');
+
+console.log('— Abhängigkeiten §3.20 (FR-20.1/20.2/20.4) —');
+await page.evaluate(() => openM10(74));
+let ed = await text('#itemEditPage');
+ok(ed.includes('hängt ab von'), 'M10 zeigt das nötige Zubehör');
+ok(ed.includes('ladegerät für kamera') && ed.includes('nötig'), 'Ladegerät als nötig gelistet');
+ok(ed.includes('makro-objektiv') && ed.includes('empfohlen'), 'Makro-Objektiv nur empfohlen');
+await page.evaluate(() => openM10(83));
+ed = await text('#itemEditPage');
+ok(ed.includes('wird gebraucht von'), 'die Gegenrichtung steht beim Zubehör');
+ok((await page.locator('#itemEditPage [data-eddep]').count()) === 0,
+  'die Gegenrichtung ist nur zur Ansicht — geändert wird beim Artikel, der sie braucht');
+
+// FR-20.4: quick-add pulls the required companion in.
+await page.evaluate(() => {
+  P.items = P.items.filter(i => !/Systemkamera|Ladegerät/i.test(i.name));
+  openPack('sam26'); packFabAdd();
+});
+await page.fill('#qaInput', 'Spiegelreflex / Systemkamera');
+await page.press('#qaInput', 'Enter');
+await page.waitForTimeout(60);
+ok(await page.evaluate(() => P.items.some(i => i.name === 'Ladegerät für Kamera')),
+  'die Kamera bringt ihr Ladegerät mit');
+ok((await text('#snack')).includes('gehört dazu'), 'und sagt, dass sie es getan hat');
+ok(!(await page.evaluate(() => P.items.some(i => i.name === 'Makro-Objektiv' && i.missing))),
+  'nur „nötig“ kommt mit, „empfohlen“ nicht ungefragt');
+
+// FR-20.2: skipping takes it along again, with a reason.
+await page.evaluate(() => {
+  const cam = P.items.find(i => i.name === 'Spiegelreflex / Systemkamera');
+  const comps = tripCompanions(cam.name);
+  P.items = P.items.filter(x => x !== cam);
+  P.skipped.push({ name: cam.name, reason: 'bewusst übersprungen' });
+  comps.forEach(c => { P.items = P.items.filter(x => x !== c);
+    P.skipped.push({ name: c.name, reason: 'übersprungen: ' + cam.name + ' nicht dabei' }); });
+  renderPack();
+});
+ok(await page.evaluate(() => P.skipped.some(s => /übersprungen: Spiegelreflex/.test(s.reason))),
+  'das Zubehör wird mit übersprungen und nennt den Grund');
+ok(await page.evaluate(() => !P.items.some(i => i.name === 'Ladegerät für Kamera')),
+  'es liegt nicht mehr auf der Packliste');
 
 console.log('— Seitenfehler —');
 ok(errors.length === 0, 'keine JS-Fehler' + (errors.length ? ' — ' + errors.join(' | ') : ''));

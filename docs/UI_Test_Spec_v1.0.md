@@ -100,6 +100,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 
 ### M2 — Trip List
 * **E2E-M2-01** `all` (FR-2.1): segmented Active/Planned/Archived filter partitions trips; archived render muted with final stats.
+* **E2E-M2-06** `all` (M2 ordering, 2026-08-08): the list renders **flat** — asserts no series section headers — with the active trip first, upcoming trips **ascending** by date and archived ones descending. The series appears as a chip on the row and opens M16 without also opening the trip.
 * **E2E-M2-02** `all` (FR-13.1): trips group under series headers with destination + count; tap header → M16.
 * **E2E-M2-03** `all` (FR-2.1/8.1): per-trip row shows name, dates, progress ring, participant avatars.
 * **E2E-M2-04** `all` (FR-12.1): long-press → Clone → M-clone (ClonePage) opens with fresh dates.
@@ -231,6 +232,8 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M10-08** `all` (FR-24.1): the tag input is a search field — typing filters the chips (assigned tags stay pinned), tapping a match assigns it; an unmatched name shows the "＋ „X“ neu anlegen" chip, and ＋/Enter creates and assigns the tag in one step, clearing the field for the next.
 * **E2E-M10-07** `all` (FR-24.5): creating an item shows the minimal form (name focused, tags, "Mehr — Gewicht & Preis ▾"; no Enthalten-in/Kommentare/Löschen sections); committing without a name is caught with a hint; after "Artikel anlegen" the full editor appears.
 * **E2E-M10-02** `all` (FR-2.4): usage footer ("Used in N templates, M archived trips"); delete blocked while referenced by templates.
+* **E2E-M10-09** `all` (FR-20.1/20.4): M10 lists the item's dependencies with a *nötig/empfohlen* toggle per row, and — read-only — the items that depend on it; the reverse list offers no editing, since the relation is owned by the item that needs the companion.
+* **E2E-M4-32** `all` (FR-20.4/20.2): quick-adding an item pulls its **required** companions onto the trip and reports it, while *suggested* ones are not added unasked; skipping the item co-skips those companions into the skipped section with the reason naming the parent.
 * **E2E-M10-03** `all` (FR-20.1): "Depends on" section — add dependency with required/suggested mode; save-time cycle rejection with a readable error; read-only "Companions" list.
 * **E2E-M10-04** `all` (FR-22.1/22.4/22.5): Photo section — add/replace/remove with live preview; oversized source is optimized to ≤150 KB JPEG (asserted via the stored/served image).
 * **E2E-M10-05** `all` (FR-27.8): "Enthalten in" section lists every group/Ferien-Vorlage containing the item with its scope chip; tapping a row opens that template's M8 editor; an unreferenced item shows the empty note. The deferred per-trip usage history is visibly noted as planned, not silently absent.

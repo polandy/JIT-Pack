@@ -1605,7 +1605,15 @@ function attachSwipe(sw){
         renderPack(); return; }
       if(dx<-T && it){                                                              // swipe left → überspringen
         if(e){ const nm=it.name+' · '+e.trav; it.pp.splice(it.pp.indexOf(e),1); if(!it.pp.length) P.items=P.items.filter(x=>x!==it); P.skipped.push({name:nm,reason:'bewusst übersprungen'}); }
-        else { P.items=P.items.filter(x=>x!==it); P.skipped.push({name:it.name,reason:'bewusst übersprungen'}); }
+        else {
+          // FR-20.2: a companion that only exists for its parent goes with it —
+          // and says why, so the row does not appear to vanish on its own.
+          const comps=tripCompanions(it.name);
+          P.items=P.items.filter(x=>x!==it); P.skipped.push({name:it.name,reason:'bewusst übersprungen'});
+          comps.forEach(c=>{ P.items=P.items.filter(x=>x!==c);
+            P.skipped.push({name:c.name,reason:'übersprungen: '+it.name+' nicht dabei'}); });
+          if(comps.length) snack(`„${it.name}“ übersprungen — ${comps.map(c=>'„'+c.name+'“').join(', ')} ${comps.length===1?'ging':'gingen'} mit`);
+        }
         renderPack(); return; }
     }
     inner.style.transform='';                       // snap back
@@ -1745,6 +1753,17 @@ function addGroupToTrip(id){
 
 function addQuick(name,cat){
   P.items.unshift({id:nextId++,name,cat,qty:1,packed:0,mode:'pack',trav:'Alle',cont:'—',missing:true});
+  // FR-20.4: adding the camera without its charger is the mistake the model
+  // exists to prevent — pull required companions in, and say that you did.
+  const m=masterByName(name);
+  if(m){
+    const pulled=depsOf(m.id).filter(d=>d.mode==='required')
+      .map(d=>MASTER.find(x=>x.id===d.dep)).filter(Boolean)
+      .filter(dm=>!P.items.some(i=>i.name.toLowerCase()===dm.name.toLowerCase()));
+    pulled.forEach(dm=>P.items.unshift({id:nextId++,name:dm.name,cat:dm.tags[0]||'—',qty:1,packed:0,
+      mode:'pack',trav:'Alle',cont:'—',w:dm.w,missing:true}));
+    if(pulled.length) snack(`„${name}“ hinzugefügt — ${pulled.map(x=>'„'+x.name+'“').join(', ')} ${pulled.length===1?'gehört':'gehören'} dazu und ${pulled.length===1?'kam':'kamen'} mit`);
+  }
   renderPack();
   document.getElementById('qaTrigger').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
@@ -1876,7 +1895,7 @@ function renderItem(){
       <div class="pickrow">${needRow}</div>
       <div class="tiny" style="margin-top:9px;color:var(--sub0)">${needHint}</div></div>
 
-    <div class="assign packer"><div class="lbl">Verantwortliche Person</div>
+    <div class="assign packer"><div class="lbl">Zugewiesen an</div>
       <div class="pickrow">${USERS.map(u=>optHTML(u,it.resp||'','packer')).join('')}
         <button class="opt ${!it.resp?'sel':''}" data-act="packer" data-v="">niemand</button>
         <span class="tiny muted" style="margin-left:4px">Wer sich darum kümmert — Zuweisen löst Push aus (FR-6.2)</span></div>
@@ -2722,13 +2741,13 @@ function renderM9Props(){
 
 /* ============ M2 trips list — mirrors the filter, axis = status, grouped by series ============ */
 const TRIPS=[
-  {id:'sam26',name:'Samedan Sommer 2026',dates:'8.–22. August 2026',status:'active',phase:'Vorbereiten',prog:58,series:'Samedan',members:['Andy','Sia','Leonardo']},
-  {id:'sam27',name:'Samedan Sommer 2027',dates:'August 2027',status:'planned',phase:'Planen',prog:0,series:'Samedan',members:['Andy','Sia','Leonardo']},
-  {id:'sam25',name:'Samedan 2025',dates:'August 2025',status:'archived',phase:'Danach',prog:100,series:'Samedan',members:['Andy','Sia','Leonardo']},
-  {id:'sam24',name:'Samedan 2024',dates:'August 2024',status:'archived',phase:'Danach',prog:100,series:'Samedan',members:['Andy','Sia','Leonardo']},
-  {id:'cannobio',name:'Cannobio 2025',dates:'Juli 2025',status:'archived',phase:'Danach',prog:100,series:null,members:['Andy','Sia','Leonardo']},
-  {id:'davos',name:'Skiwochenende Davos',dates:'Dezember 2026',status:'planned',phase:'Planen',prog:12,series:null,members:['Andy','Sia']},
-  {id:'wien',name:'Städtetrip Wien',dates:'März 2026',status:'planned',phase:'Planen',prog:5,series:null,members:['Andy']}];
+  {id:'sam26',name:'Samedan Sommer 2026',dates:'8.–22. August 2026',start:'2026-08-08',status:'active',phase:'Vorbereiten',prog:58,series:'Samedan',members:['Andy','Sia','Leonardo']},
+  {id:'sam27',name:'Samedan Sommer 2027',dates:'August 2027',start:'2027-08-01',status:'planned',phase:'Planen',prog:0,series:'Samedan',members:['Andy','Sia','Leonardo']},
+  {id:'sam25',name:'Samedan 2025',dates:'August 2025',start:'2025-08-01',status:'archived',phase:'Danach',prog:100,series:'Samedan',members:['Andy','Sia','Leonardo']},
+  {id:'sam24',name:'Samedan 2024',dates:'August 2024',start:'2024-08-01',status:'archived',phase:'Danach',prog:100,series:'Samedan',members:['Andy','Sia','Leonardo']},
+  {id:'cannobio',name:'Cannobio 2025',dates:'Juli 2025',start:'2025-07-01',status:'archived',phase:'Danach',prog:100,series:null,members:['Andy','Sia','Leonardo']},
+  {id:'davos',name:'Skiwochenende Davos',dates:'Dezember 2026',start:'2026-12-01',status:'planned',phase:'Planen',prog:12,series:null,members:['Andy','Sia']},
+  {id:'wien',name:'Städtetrip Wien',dates:'März 2026',start:'2026-03-01',status:'planned',phase:'Planen',prog:5,series:null,members:['Andy']}];
 const STATUS={active:['Aktiv','var(--teal)'],planned:['Geplant','var(--sapphire)'],archived:['Archiv','var(--o1)']};
 const M2S={search:'',tab:'all'};
 function m2Filtered(){ const q=M2S.search.trim().toLowerCase();
@@ -2749,20 +2768,35 @@ function m2RowHTML(t){ const arch=t.status==='archived';
           <div class="tiny muted" style="margin-top:4px">Laufende & vergangene Reisen bleiben unverändert (FR-27.4).</div></div>`:''}</div>` : '';
   return `<div class="li pressable" data-trip="${t.id}" style="${arch?'opacity:.72':''}">
     <div class="ring" style="--p:${t.prog};--c:${STATUS[t.status][1]}"><span>${glyph}</span></div>
-    <div class="grow"><div class="name">${esc(t.name)}</div><div class="desc">${esc(t.dates)} · ${t.phase}</div>${updHTML}</div>
+    <div class="grow"><div class="name">${esc(t.name)}</div>
+      <div class="desc">${esc(t.dates)} · ${t.phase}</div>
+      ${t.series?`<button class="chip mauve" data-series="${esc(t.series)}" style="margin-top:5px">◆ ${esc(t.series)} ›</button>`:''}${updHTML}</div>
     <div class="stack">${(t.members||[]).map(m=>`<span class="avatar" style="background:${AV[m]?AV[m][1]:'var(--s2)'}">${AV[m]?AV[m][0]:'?'}</span>`).join('')}</div></div>`; }
 function renderM2List(){
   const list=m2Filtered(), el=document.getElementById('m2List'); if(!el)return;
   if(!list.length){ el.innerHTML='<div class="card"><div class="li"><div class="grow muted" style="text-align:center;padding:8px">Keine Reise gefunden.</div></div></div>'; return; }
-  const g={}; list.forEach(t=>{ const k=t.series?('◆ '+t.series):'Andere'; (g[k]=g[k]||[]).push(t); });
-  const keys=Object.keys(g).sort((a,b)=>(a==='Andere')-(b==='Andere'));
-  el.innerHTML=keys.map(k=>{ const isSeries=k.startsWith('◆');
-    return `<div class="section-h" ${isSeries?`style="color:var(--mauve);cursor:pointer" data-series="${esc(k.slice(2))}"`:''}>${k}${isSeries?' ›':''}</div>
-      <div class="card">${g[k].map(m2RowHTML).join('')}</div>`; }).join('');
+  /* One flat list, not grouped by series (UI-Spec M2). M2 is the main entry
+     since the phase hub went, and what you need there is the trip you are
+     packing for — not a taxonomy of your holidays. The series stays visible as
+     a chip on the row and remains the way into M16.
+     Ordering is by usefulness, not literally "newest first": the *active* trip
+     leads, then upcoming ones **soonest first** — a trip in three weeks matters
+     more than one in eighteen months, which pure date-descending would put on
+     top — and archived ones newest first, because history reads backwards. */
+  const rank={active:0,planned:1,archived:2};
+  const sorted=[...list].sort((a,b)=>{
+    const r=rank[a.status]-rank[b.status]; if(r) return r;
+    if(a.status==='planned') return (a.start||'').localeCompare(b.start||'');   // soonest first
+    return (b.start||'').localeCompare(a.start||'');                            // newest first
+  });
+  el.innerHTML=`<div class="card">${sorted.map(m2RowHTML).join('')}</div>`;
   el.querySelectorAll('[data-trip]').forEach(r=>r.onclick=()=>openPack(r.dataset.trip));
   el.querySelectorAll('[data-m2upd]').forEach(b=>b.onclick=e=>{ e.stopPropagation();
     m2UpdOpen=m2UpdOpen===b.dataset.m2upd?null:b.dataset.m2upd; renderM2List(); });
-  el.querySelectorAll('[data-series]').forEach(h=>h.onclick=()=>alert('Serie & Reiseziel (M16) — '+h.dataset.series));
+  // M16 (Serie & Reiseziel) is outside this mockup's scope; the chip stands in
+  // for its entry so the navigation is at least visible and testable.
+  el.querySelectorAll('[data-series]').forEach(h=>h.onclick=e=>{ e.stopPropagation();
+    snack('Serie & Reiseziel (M16) — '+h.dataset.series); });
 }
 function renderTrips(){
   const tabs=[['all','Alle'],['active','Aktiv'],['planned','Geplant'],['archived','Archiv']];
@@ -2776,6 +2810,30 @@ function renderTrips(){
   document.querySelectorAll('[data-m2tab]').forEach(b=>b.onclick=()=>{ M2S.tab=b.dataset.m2tab; renderTrips(); });
   const s=document.getElementById('m2Search'); s.oninput=e=>{ M2S.search=e.target.value; document.getElementById('m2Clr').classList.toggle('show',!!M2S.search); renderM2List(); };
   const c=document.getElementById('m2Clr'); c.onclick=()=>{ M2S.search=''; const i=document.getElementById('m2Search'); i.value=''; c.classList.remove('show'); i.focus(); renderM2List(); };
+}
+
+/* ============ §3.20 item dependencies (FR-20.1/20.2/20.4) ============ */
+/* Implemented in the product since 2026-07 but never present in this mockup, so
+   the rebuild would have dropped it silently — found by the 2026-08-08
+   consistency sweep. Modelled on master items: "the camera is useless without
+   its charger". `required` companions travel with the item; `suggested` ones
+   are only offered. */
+const DEPS=[
+  {m:74,  dep:83,  mode:'required'},   // Systemkamera → Ladegerät
+  {m:74,  dep:186, mode:'suggested'},  // Systemkamera → Makro-Objektiv
+  {m:186, dep:74,  mode:'required'},   // Makro-Objektiv → Kamera
+];
+const depsOf      = id => DEPS.filter(d=>d.m===id);
+const companionsOf= id => DEPS.filter(d=>d.dep===id);
+const masterByName= n => MASTER.find(x=>!x.deleted && x.name.toLowerCase()===String(n).toLowerCase());
+/* Required companions of a trip row that are themselves on the trip — what a
+   skip has to take with it (FR-20.2). */
+function tripCompanions(name){
+  const m=masterByName(name); if(!m) return [];
+  return depsOf(m.id).filter(d=>d.mode==='required')
+    .map(d=>MASTER.find(x=>x.id===d.dep)).filter(Boolean)
+    .map(dm=>P.items.find(i=>i.name.toLowerCase()===dm.name.toLowerCase()))
+    .filter(Boolean);
 }
 
 /* ============ M11 container management ============ */
@@ -3372,7 +3430,22 @@ function renderItemEdit(){
             ${tplKind(t)==='group'?'<span class="chip mauve">Gruppe</span>':'<span class="chip">Ferien-Vorlage</span>'}
             <svg viewBox="0 0 24 24" style="width:18px;color:var(--o0)"><use href="#i-chev"/></svg></div>`).join('')}</div>`
           :'<div class="card"><div class="li"><div class="grow muted" style="text-align:center;padding:8px">In keiner Gruppe oder Vorlage.</div></div></div>';})()}
-      <div class="tiny muted" style="margin-top:7px">Geplant (offener Punkt §3.27): zusätzlich anzeigen, auf welchen Reisen der Artikel dabei war.</div></div>`}
+      <div class="tiny muted" style="margin-top:7px">Geplant (offener Punkt §3.27): zusätzlich anzeigen, auf welchen Reisen der Artikel dabei war.</div></div>
+    <div class="field"><label>Hängt ab von (FR-20.1)</label>
+      ${(()=>{const ds=depsOf(it.id);
+        return ds.length?`<div class="card">${ds.map(d=>{const dm=MASTER.find(x=>x.id===d.dep)||{name:'?'};
+          return `<div class="li"><div class="grow"><div class="name">${esc(dm.name)}</div></div>
+            <div class="seg mini"><button class="${d.mode==='required'?'sel':''}" data-eddep="${d.dep}" data-v="required">nötig</button>
+              <button class="${d.mode==='suggested'?'sel':''}" data-eddep="${d.dep}" data-v="suggested">empfohlen</button></div>
+            <button class="iconbtn" data-eddeprm="${d.dep}" style="width:28px;height:28px">✕</button></div>`;}).join('')}</div>`
+          :'<div class="card"><div class="li"><div class="grow muted" style="text-align:center;padding:8px">Kein Zubehör nötig.</div></div></div>';})()}
+      <div class="tiny muted" style="margin-top:7px">„Nötig“ kommt beim Erfassen automatisch mit und wird beim Überspringen mit übersprungen (FR-20.2/20.4). „Empfohlen“ wird nur vorgeschlagen.</div></div>
+    ${(()=>{const cs=companionsOf(it.id);
+      return cs.length?`<div class="field"><label>Wird gebraucht von · ${cs.length} (FR-20.4)</label>
+        <div class="card">${cs.map(c=>{const cm=MASTER.find(x=>x.id===c.m)||{name:'?'};
+          return `<div class="li"><div class="grow"><div class="name">${esc(cm.name)}</div></div>
+            <span class="chip ${c.mode==='required'?'warm':''}">${c.mode==='required'?'nötig':'empfohlen'}</span></div>`;}).join('')}</div>
+        <div class="tiny muted" style="margin-top:7px">Nur zur Ansicht — geändert wird die Abhängigkeit beim Artikel, der sie braucht.</div></div>`:'';})()}`}
     ${EDIT.isNew?'':(()=>{const cs=ITEM_COMMENTS.filter(c=>c.m===it.id);
       if(!cs.length)return '';
       return `<div class="field"><label>Kommentare aus Reisen · ${cs.length} (FR-27.9)</label>
@@ -3389,6 +3462,12 @@ function renderItemEdit(){
     <div style="display:flex;gap:10px;margin-top:14px">
       <button class="gb" style="flex:0 0 auto;padding:12px 16px;color:var(--red);border-color:rgba(243,139,168,.4)" data-eddel="1">Löschen</button>
       <button class="gb on" style="flex:1;padding:12px" data-eddone="1">Fertig</button></div>`}`;
+  el.querySelectorAll('[data-eddep]').forEach(b=>b.onclick=()=>{
+    const d=DEPS.find(x=>x.m===it.id&&x.dep===+b.dataset.eddep); if(d){ d.mode=b.dataset.v; renderItemEdit(); } });
+  el.querySelectorAll('[data-eddeprm]').forEach(b=>b.onclick=()=>{
+    const i=DEPS.findIndex(x=>x.m===it.id&&x.dep===+b.dataset.eddeprm);
+    if(i>=0){ const gone=MASTER.find(x=>x.id===DEPS[i].dep); DEPS.splice(i,1); renderItemEdit();
+      snack('„'+(gone?gone.name:'')+'“ ist kein Zubehör mehr'); } });
   el.querySelectorAll('[data-edtpl]').forEach(r=>r.onclick=()=>openM8(r.dataset.edtpl));
   renderEdTags(it);
   document.getElementById('edName').oninput=e=>it.name=e.target.value;

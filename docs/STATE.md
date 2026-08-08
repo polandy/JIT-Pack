@@ -232,6 +232,21 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   (M6) name the same thing differently. Everything else the specs claim is realised was found
   clickable.
 
+- **Die drei Fragen des Konsistenz-Durchgangs, beantwortet 2026-08-08 (owner) und umgesetzt:**
+  - **§3.20 Abhängigkeiten bleiben — nachgemockt.** M10 lists *Hängt ab von* with a
+    nötig/empfohlen toggle and, read-only, *Wird gebraucht von*; the M4 quick-add pulls required
+    companions onto the trip and says so, and skipping an item co-skips them with the reason
+    naming the parent (FR-20.1/20.2/20.4). The feature had been shipped since 2026-07 but was
+    invisible in the concept, so the rebuild would have dropped it.
+  - **M2 wird flach.** No series grouping; ordering by usefulness rather than literal
+    newest-first: active trip on top, upcoming **soonest first** (a trip in three weeks beats one
+    in eighteen months, which date-descending would rank above it), archived newest first. The
+    series moves onto the row as a chip and stays the entry to M16; the optional grouped view is
+    dropped. E2E M2-06.
+  - **Ein Begriff: „Zugewiesen an“** in M4/M5 and M6 alike, replacing „Verantwortliche Person“ from
+    the FR-25.19 round the same day. The substance of FR-25.19 — assignment vs. automatic record —
+    is unchanged; only the word is now shared with the shopping list, which had it first.
+
 - **Inventar-UX-Runde (owner directives 2026-08-08, mocked + specced):** M9 is **lean by
   default** (primary-tag avatar + name); which extras show (Tags/Gewicht/Preis) is a
   device-local preference behind an eye icon with a settings sheet (FR-24.4 new). M10
