@@ -76,7 +76,8 @@ func (s *Server) handleAuthToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	email := emailClaim(claims)
-	if _, err := s.store.EnsureOIDCUser(r.Context(), sub, displayNameClaim(claims), email, s.isAdminEmail(email)); err != nil {
+	if _, err := s.store.EnsureOIDCUser(r.Context(), sub, displayNameClaim(claims), email,
+		s.isAdminEmail(email, emailVerifiedClaim(claims))); err != nil {
 		writeError(w, http.StatusInternalServerError, "internal", "user provisioning failed")
 		return
 	}
@@ -161,4 +162,19 @@ func emailClaim(claims jwt.MapClaims) string {
 		return v
 	}
 	return ""
+}
+
+// emailVerifiedClaim reports whether the IdP asserts that it verified the
+// email claim (OIDC Core §5.7). Providers serialise the flag as a JSON
+// bool or, less often, as a string, so both are accepted; anything else —
+// an absent claim included — reads as unverified, because a provider that
+// asserts nothing has not verified anything.
+func emailVerifiedClaim(claims jwt.MapClaims) bool {
+	switch v := claims["email_verified"].(type) {
+	case bool:
+		return v
+	case string:
+		return v == "true"
+	}
+	return false
 }
