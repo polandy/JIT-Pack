@@ -12,6 +12,12 @@
 # shell where `mise activate` has already run. So: use the tools directly when
 # they are on PATH, otherwise route each recipe through `mise exec`, and fail
 # with an instruction rather than a bare `go: No such file or directory`.
+#
+# The failure is deliberately at parse time, which costs `make docker-build` its
+# former independence from the Go toolchain. Deferring it into the recipes would
+# be worse: `fmt-check` reads its assertion out of a command substitution, so a
+# tool that fails inside `$(...)` yields empty output and the target would pass
+# while checking nothing.
 TOOLS := go gofmt golangci-lint node npm
 MISSING := $(strip $(foreach t,$(TOOLS),$(if $(shell command -v $(t) 2>/dev/null),,$(t))))
 

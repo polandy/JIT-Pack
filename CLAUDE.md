@@ -44,7 +44,9 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    authorization paths (including the FR-1.6 relaxation, which *removed* a check — templates
    are now writable by every authenticated account), test coverage where it matters rather
    than in total, supply-chain pinning against NFR-4.3 and invariant 8, and the two migrations
-   in item 5. The toolchain half of this item is **done** — see the implementation log.
+   in item 5. The toolchain item that used to sit beside this one is **done** — `mise.toml` is
+   now the single pinning mechanism and `make ci` runs from a plain shell; see the
+   implementation log.
 2. **§3.27 client package** — `instantiate.ts` include expansion + FR-27.7 task materialisation,
    the FR-27.4 planning-trip refresh diff, the M21 screen, portable YAML for includes and tasks.
    Schema and sync wiring are done (migration 016).

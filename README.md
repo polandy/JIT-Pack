@@ -14,7 +14,7 @@ Full specification set lives in `docs/` — start with `docs/PRD_Base.md` and `d
 
 ## For Claude Code / an AI coding assistant
 
-Read `CLAUDE.md` in this root first — it's written specifically to orient a fresh session without needing prior conversation context: current implementation status, what's built vs. not, in what order to build the rest, and a known environment deviation to check before touching the database layer.
+Read `CLAUDE.md` in this root first — it's written specifically to orient a fresh session without needing prior conversation context: current implementation status, what's built vs. not, in what order to build the rest, and the invariants that must not break.
 
 ## Configuration
 
@@ -84,10 +84,23 @@ volumes:
   data:
 ```
 
-## Running the tests
+## Building and testing
+
+The toolchain (Go, Node, golangci-lint) is pinned in `mise.toml`. Install [mise](https://mise.jdx.dev) once, then:
 
 ```
-go test -race -cover ./...
+mise install
+make ci
 ```
 
-Requires a C toolchain (CGO) for the current SQLite driver — see the deviation note in `CLAUDE.md` if that's a problem in your environment.
+`make ci` mirrors the CI pipeline job for job — gofmt, build, vet, race tests, coverage gates, golangci-lint, and the client's lint/build/vitest — so a green run here predicts a green pipeline. It works from a plain shell: the Makefile calls the pinned tools through `mise exec` when they are not already on your `PATH`.
+
+To run only the Go tests:
+
+```
+go test -race -cover ./cmd/... ./internal/...
+```
+
+Scoped rather than `./...` on purpose: once the client dependencies are installed, `client/node_modules` contains vendored Go source that `./...` picks up, which drags the coverage number below the gate. CI never sees it, because its Go job runs on a fresh checkout.
+
+No C toolchain is needed — `internal/store` uses the pure-Go `modernc.org/sqlite` driver and the binary builds with `CGO_ENABLED=0` (see `DEVIATIONS.md`, D-001).
