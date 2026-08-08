@@ -3161,12 +3161,24 @@ const FLAGGED=[{name:'Badetüechli',flag:'2× ungenutzt',c:'var(--peach)'},{name
 function renderAnalytics(){
   const el=document.getElementById('anaPage'); if(!el)return;
   const dim=ANA.dim;
-  const key=it=> dim==='cat'?it.cat : dim==='trav'?it.trav : (it.cont==='—'?'Ohne Gepäck':it.cont);
+  /* A per-person item carries no top-level trav/qty — those live on its pp
+     entries (FR-25.1). Reading it.trav gave undefined, so every per-person item
+     was bucketed under "undefined" in the Person view and counted with
+     quantity undefined everywhere else. Expand to (traveler, qty, packed)
+     shares instead; by Person that is one share per traveler, by Kategorie or
+     Gepäck the shares sum back into one bucket. */
+  const shares=it=> it.pp
+    ? it.pp.map(e=>({trav:e.trav, qty:e.qty, packed:e.packed}))
+    : [{trav:it.trav||'Gemeinsam', qty:it.qty, packed:it.packed}];
+  const key=(it,s)=> dim==='cat'?it.cat : dim==='trav'?s.trav : (it.cont==='—'?'Ohne Gepäck':it.cont);
   const g={}; let unw=0, totVal=0, totPlan=0, totPack=0;
-  P.items.forEach(it=>{ totVal+=(VAL[it.name]||0)*it.qty;
+  P.items.forEach(it=>{
+    const sh=shares(it), qty=sh.reduce((a,s)=>a+s.qty,0);
+    totVal+=(VAL[it.name]||0)*qty;
     if(!it.w){ unw++; return; }
-    const k=key(it), o=g[k]=g[k]||{plan:0,pack:0,cnt:0};
-    o.plan+=it.w*it.qty; o.pack+=it.w*it.packed; o.cnt++; totPlan+=it.w*it.qty; totPack+=it.w*it.packed; });
+    sh.forEach(s=>{ const k=key(it,s), o=g[k]=g[k]||{plan:0,pack:0,cnt:0};
+      o.plan+=it.w*s.qty; o.pack+=it.w*s.packed; o.cnt++;
+      totPlan+=it.w*s.qty; totPack+=it.w*s.packed; }); });
   const keys=Object.keys(g).sort((a,b)=>g[b].plan-g[a].plan);
   const maxPlan=Math.max(1,...keys.map(k=>g[k].plan));
   const dims=[['trav','Person'],['cat','Kategorie'],['cont','Gepäck']];
@@ -3199,7 +3211,18 @@ function renderAnalytics(){
       <div class="grow"><div class="name">${esc(f.name)}</div></div><span class="chip" style="color:${f.c}">${f.flag}</span></div>`).join('')}</div>`;
 
   el.querySelectorAll('[data-anadim]').forEach(b=>b.onclick=()=>{ ANA.dim=b.dataset.anadim; renderAnalytics(); });
-  el.querySelectorAll('[data-slice]').forEach(r=>r.onclick=()=>{ groupMode=ANA.dim; go('pack'); });
+  /* The spec says "tap a slice → M4 filtered to that slice", but this only ever
+     set the grouping: tapping "Technik · 3,2 kg" landed on the whole list, and
+     the number you tapped was nowhere to be seen. Set the FR-25.11 facet for
+     the tapped value instead — the chip row then names it (FR-25.11a) and the
+     session keeps it (FR-25.18). Grouping follows along so the slice sits
+     together. */
+  el.querySelectorAll('[data-slice]').forEach(r=>r.onclick=()=>{
+    const v=r.dataset.slice;
+    FACETS.forEach(f=>FILT[f.key].clear());
+    if(FILT[ANA.dim]) FILT[ANA.dim].add(v==='Ohne Gepäck'?'—':v);
+    groupMode=ANA.dim; persistPackFilter(); go('pack');
+    snack(`Packliste gefiltert: ${v}`); });
 }
 
 /* ============ M10 item editor — master data, multi-tag, soft/hard delete ============ */

@@ -244,6 +244,8 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 
 ### M12 — Analytics
 * **E2E-M12-01** `all` (FR-8.1/8.2): dimension switcher Person/Category/Container; stacked packed-vs-planned weight bars + value totals.
+* **E2E-M12-04** `all` (FR-8.2/25.11): tapping a bar lands on M4 **filtered** to that value — asserts the facet is set, the removable chip is visible, and the grouping matches the dimension. Regression guard: setting only the grouping (the pre-2026-08-08 behaviour) must fail this case.
+* **E2E-M12-05** `all` (FR-8.2/25.1): with a per-person item on the trip, the Person view shows **one contribution per traveler** and no `undefined` bucket; the Category view sums the same item's shares into a single bucket, so the totals match across dimensions.
 * **E2E-M12-02** `all` (FR-8.2): items without weight aggregate as "unweighted (n)".
 * **E2E-M12-03** `all` (FR-14.3): series trend section (weight over years, top Missing/Unused) shown when the trip has a series.
 * **E2E-M12-04** `all` (FR-8.2): tap a bar segment → M4 filtered to that slice.

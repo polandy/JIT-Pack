@@ -195,7 +195,9 @@ These patterns apply to every screen and are specified once.
 
 * **Purpose:** Weight/value insight (3.8) and long-term trends (FR-14.3).
 * **Elements:** Dimension switcher *Person / Category / Container* (FR-8.2); stacked bar per dimension value: packed vs. planned weight; value total per dimension; series trend section (archived trips): weight over the years, top *Missing*/*Unused* items.
-* **Actions:** Tap any bar segment → M4 filtered to that slice.
+* **Concept round 2026-08-08.** Two defects found by clicking: tapping a bar only changed M4's *grouping* — the list arrived unfiltered, so the number you tapped was nowhere on screen — and per-person items (FR-25.1), which carry no top-level traveler or quantity, were bucketed under `undefined` in the Person view and counted with an undefined quantity elsewhere.
+* **Actions:** Tapping a bar **sets the FR-25.11 facet** for that value and opens M4, where the chip row names the filter (FR-25.11a) and the session keeps it (FR-25.18); the grouping follows the dimension so the slice sits together.
+* **Per-person items are expanded into shares** before aggregation — one (traveler, quantity, packed) share per traveler. By *Person* that is one contribution each; by *Category* or *Container* the shares sum back into a single bucket. Items with no traveler count as *Gemeinsam* (FR-25.11f's term).
 * **States:** Items without weight metadata are aggregated as "unweighted (n items)" so totals are honest.
 * **Navigation:** From M4 KPI strip; trend section also from M16.
 

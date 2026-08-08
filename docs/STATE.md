@@ -180,6 +180,16 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   Deleting a container **unassigns** its items instead of taking them down with it. E2E M11-05/06.
   Implementation open.
 
+- **M12 Auswertung — Konzeptrunde nachgeholt 2026-08-08, mocked + specced:** two defects found by
+  clicking. Tapping a bar only set M4's **grouping**, never the filter — you tapped "Technik ·
+  3,2 kg" and got the whole list, with the number you tapped nowhere on screen; it now sets the
+  FR-25.11 facet, so the chip names it (FR-25.11a) and the session keeps it (FR-25.18).
+  And **per-person items were bucketed under `undefined`**: they carry no top-level `trav`/`qty`
+  (those live on the pp entries, FR-25.1), so the Person view invented a group and the weight math
+  used undefined quantities. Aggregation now expands each item into (traveler, qty, packed) shares
+  — one contribution per traveler by Person, summed back into one bucket by Kategorie/Gepäck.
+  E2E M12-04/05. Implementation open.
+
 - **Inventar-UX-Runde (owner directives 2026-08-08, mocked + specced):** M9 is **lean by
   default** (primary-tag avatar + name); which extras show (Tags/Gewicht/Preis) is a
   device-local preference behind an eye icon with a settings sheet (FR-24.4 new). M10

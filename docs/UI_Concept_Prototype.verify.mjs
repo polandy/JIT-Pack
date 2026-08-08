@@ -431,6 +431,22 @@ ok(await page.evaluate(n => P.items.find(i => i.name === n).cont === '—', assi
 ok(await page.evaluate(() => LUGGAGE.find(c => c.name === 'Rucksack').pair === null),
   'die Gegenseite der Paarung wird mit aufgelöst');
 
+console.log('— M12 Auswertung: Slice filtert wirklich, Pro-Person zählt richtig —');
+await page.evaluate(() => { FACETS.forEach(f => FILT[f.key].clear()); ANA.dim = 'trav'; go('analytics'); });
+let ana = await text('#anaPage');
+ok(!ana.includes('undefined'), 'keine „undefined“-Gruppe mehr — Pro-Person-Artikel werden aufgeteilt');
+ok(ana.includes('andy') && ana.includes('sia') && ana.includes('leonardo'),
+  'jede reisende Person bekommt ihren Anteil in der Person-Sicht');
+
+await page.locator('[data-slice="Andy"]').click();
+ok(await page.evaluate(() => stack[stack.length - 1] === 'pack'), 'Balken-Tap führt in die Packliste');
+ok(await page.evaluate(() => FILT.trav.has('Andy') && FILT.trav.size === 1),
+  'und filtert wirklich auf den angetippten Wert, statt nur zu gruppieren');
+ok((await text('#packHead')).includes('andy'), 'der Filter ist als Chip sichtbar (FR-25.11a)');
+ok(await page.evaluate(() => JSON.parse(sessionStorage.getItem('jitpack.m4filter.sam26')).facets.trav.includes('Andy')),
+  'der aus M12 gesetzte Filter überlebt die Session wie jeder andere (FR-25.18)');
+await page.evaluate(() => { FACETS.forEach(f => FILT[f.key].clear()); persistPackFilter(); });
+
 console.log('— Seitenfehler —');
 ok(errors.length === 0, 'keine JS-Fehler' + (errors.length ? ' — ' + errors.join(' | ') : ''));
 
