@@ -222,6 +222,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 
 ### M10 — Item Editor
 * **E2E-M10-01** `all` (FR-1.1): name, tags (inline-create), weight, price — no unit control (FR-1.8 retired).
+* **E2E-M10-08** `all` (FR-24.1): the tag input is a search field — typing filters the chips (assigned tags stay pinned), tapping a match assigns it; an unmatched name shows the "＋ „X“ neu anlegen" chip, and ＋/Enter creates and assigns the tag in one step, clearing the field for the next.
 * **E2E-M10-07** `all` (FR-24.5): creating an item shows the minimal form (name focused, tags, "Mehr — Gewicht & Preis ▾"; no Enthalten-in/Kommentare/Löschen sections); committing without a name is caught with a hint; after "Artikel anlegen" the full editor appears.
 * **E2E-M10-02** `all` (FR-2.4): usage footer ("Used in N templates, M archived trips"); delete blocked while referenced by templates.
 * **E2E-M10-03** `all` (FR-20.1): "Depends on" section — add dependency with required/suggested mode; save-time cycle rejection with a readable error; read-only "Companions" list.
@@ -428,6 +429,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-23.4 | E2E | M20-03 |
 | FR-23.5 | E2E | M20-04 |
 | FR-23.6 | SERVER | deactivation side-effects (push purge, notif suppress) — Go test; access-revocation asserted M20-02 |
+| FR-24.1 | E2E | M10-08 (filter-or-create tag capture); grouping/filtering M9-01/24.2 |
 | FR-24.4 | E2E | M9-01 (lean default), M9-05 (property sheet, device-local) |
 | FR-24.5 | E2E | M10-07 (minimal creation, sections absent) |
 | FR-25.1 | E2E+UNIT | M4-12/13/14; packingView.ts (clustering, flat fallback, full-set decision) |

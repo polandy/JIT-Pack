@@ -3093,9 +3093,49 @@ const ITEM_COMMENTS=[
   {m:4,trip:'Samedan 2024',who:'Sia',when:'15. Aug 2024',text:'6 Paar waren zu viel, 4 reichen locker.'},
   {m:34,trip:'Cannobio 2025',who:'Sia',when:'9. Jul 2025',text:'50+ kaufen — die 30er hat nicht gereicht.'},
 ];
-const EDIT={id:null,isNew:false,more:false};
-function openM10(id){ EDIT.id=id; EDIT.isNew=false; go('itemedit'); }
-function openM10New(){ const it={id:nextMasterId++,name:'',tags:[],w:0,val:0}; MASTER.push(it); EDIT.id=it.id; EDIT.isNew=true; EDIT.more=false; go('itemedit'); }
+const EDIT={id:null,isNew:false,more:false,tagQ:''};
+function openM10(id){ EDIT.id=id; EDIT.isNew=false; EDIT.tagQ=''; go('itemedit'); }
+function openM10New(){ const it={id:nextMasterId++,name:'',tags:[],w:0,val:0}; MASTER.push(it); EDIT.id=it.id; EDIT.isNew=true; EDIT.more=false; EDIT.tagQ=''; go('itemedit'); }
+/* Tag capture (owner 2026-08-08): the input is a SEARCH field — typing filters
+   the tag chips; assigned tags stay pinned regardless of the filter. When the
+   typed name matches nothing, ＋ (or Enter) creates the tag and assigns it —
+   the same filter-or-create idiom as the quick-add (FR-25.13 family). Only
+   this block redraws while typing, so the caret never jumps. */
+function renderEdTags(it){
+  const wrap=document.getElementById('edTagsWrap'); if(!wrap)return;
+  const q=EDIT.tagQ.trim().toLowerCase();
+  const pool=allTags();
+  const matches=pool.filter(t=>!it.tags.includes(t)&&(!q||t.toLowerCase().includes(q)));
+  const exact=pool.some(t=>t.toLowerCase()===q);
+  const chip=(t,sel)=>`<button class="opt ${sel?'sel':''}" data-edtag="${esc(t)}">${CATEMO[t]?CATEMO[t]+' ':''}${esc(t)}</button>`;
+  wrap.innerHTML=`
+    <div class="search" style="margin-bottom:9px"><svg viewBox="0 0 24 24"><use href="#i-search"/></svg>
+      <input id="edTagQ" placeholder="Tags durchsuchen — oder neu anlegen…" value="${esc(EDIT.tagQ)}" autocomplete="off">
+      <button class="opt" data-edtagadd="1" title="${q&&!exact?'„'+esc(EDIT.tagQ.trim())+'“ neu anlegen':'Tag zuweisen'}" style="flex:none;margin-left:6px">+</button></div>
+    <div class="chips">
+      ${it.tags.map(t=>chip(t,true)).join('')}
+      ${matches.map(t=>chip(t,false)).join('')}
+      ${q&&!exact?`<button class="opt mauve sel" data-edtagnew="1">＋ „${esc(EDIT.tagQ.trim())}“ neu anlegen</button>`:''}
+    </div>
+    ${!matches.length&&!q?'':''}
+    ${it.tags.length?`<div class="tiny muted" style="margin-top:8px">Im Inventar unter: ${it.tags.map(esc).join(', ')} · primär ${esc(it.tags[0])}</div>`
+      :`<div class="tiny" style="margin-top:8px;color:var(--peach)">Mindestens einen Tag wählen</div>`}`;
+  const inp=document.getElementById('edTagQ');
+  inp.oninput=()=>{ EDIT.tagQ=inp.value; renderEdTags(it);
+    const p=document.getElementById('edTagQ'); if(p){p.focus();try{p.setSelectionRange(p.value.length,p.value.length);}catch(e){}} };
+  const commit=()=>{ const v=EDIT.tagQ.trim(); if(!v)return;
+    const hit=pool.find(t=>t.toLowerCase()===v.toLowerCase());
+    const tag=hit||v;
+    if(!it.tags.includes(tag)) it.tags.push(tag);
+    EDIT.tagQ=''; renderEdTags(it); document.getElementById('edTagQ').focus(); };
+  inp.onkeydown=e=>{ if(e.key==='Enter')commit(); };
+  wrap.querySelector('[data-edtagadd]').onmousedown=e=>{ e.preventDefault(); commit(); };
+  const nw=wrap.querySelector('[data-edtagnew]'); if(nw) nw.onmousedown=e=>{ e.preventDefault(); commit(); };
+  wrap.querySelectorAll('[data-edtag]').forEach(b=>b.onclick=()=>{
+    const t=b.dataset.edtag, i=it.tags.indexOf(t);
+    i<0?it.tags.push(t):it.tags.splice(i,1);
+    renderEdTags(it); });
+}
 function renderItemEdit(){
   const el=document.getElementById('itemEditPage'), it=MASTER.find(x=>x.id==EDIT.id); if(!el||!it)return;
   const tags=allTags(), used=it.used||0;
@@ -3106,11 +3146,7 @@ function renderItemEdit(){
   el.innerHTML=`
     ${EDIT.isNew?`<div class="tiny muted" style="margin:10px 4px 0">Neuer Artikel — nur der Name ist nötig, alles Weitere ist optional.</div>`:''}
     <div class="field" style="margin-top:10px"><label>Name</label><input class="txt" id="edName" placeholder="Artikelname" value="${esc(it.name)}"></div>
-    <div class="field"><label>Kategorien / Tags · mehrere möglich</label>
-      <div class="chips">${tags.map(t=>`<button class="opt ${it.tags.includes(t)?'sel':''}" data-edtag="${esc(t)}">${CATEMO[t]?CATEMO[t]+' ':''}${esc(t)}</button>`).join('')}</div>
-      <div class="addprep" style="margin-top:9px"><input id="edNewTag" placeholder="Neuen Tag hinzufügen…" autocomplete="off"><button class="opt" data-ednewtag="1">+</button></div>
-      ${it.tags.length?`<div class="tiny muted" style="margin-top:8px">Im Inventar unter: ${it.tags.map(esc).join(', ')} · primär ${esc(it.tags[0])}</div>`
-        :`<div class="tiny" style="margin-top:8px;color:var(--peach)">Mindestens einen Tag wählen</div>`}</div>
+    <div class="field"><label>Kategorien / Tags · mehrere möglich</label><div id="edTagsWrap"></div></div>
     ${!EDIT.isNew||EDIT.more?`<div class="field"><label>Gewicht (g) · Preis (CHF)</label><div class="datewrap">
       <input class="dt" type="number" id="edW" value="${it.w}"><span class="muted">g</span>
       <input class="dt" type="number" id="edVal" value="${it.val||0}"><span class="muted">CHF</span></div></div>`
@@ -3140,11 +3176,8 @@ function renderItemEdit(){
     <div style="display:flex;gap:10px;margin-top:14px">
       <button class="gb" style="flex:0 0 auto;padding:12px 16px;color:var(--red);border-color:rgba(243,139,168,.4)" data-eddel="1">Löschen</button>
       <button class="gb on" style="flex:1;padding:12px" data-eddone="1">Fertig</button></div>`}`;
-  el.querySelectorAll('[data-edtag]').forEach(b=>b.onclick=()=>{ const t=b.dataset.edtag, i=it.tags.indexOf(t); i<0?it.tags.push(t):it.tags.splice(i,1); renderItemEdit(); });
   el.querySelectorAll('[data-edtpl]').forEach(r=>r.onclick=()=>openM8(r.dataset.edtpl));
-  const addTag=v=>{ v=v.trim(); if(v&&!it.tags.includes(v)){ it.tags.push(v); renderItemEdit(); } };
-  el.querySelector('[data-ednewtag]').onclick=()=>addTag(document.getElementById('edNewTag').value);
-  document.getElementById('edNewTag').onkeydown=e=>{ if(e.key==='Enter')addTag(e.target.value); };
+  renderEdTags(it);
   document.getElementById('edName').oninput=e=>it.name=e.target.value;
   const w=document.getElementById('edW'); if(w) w.oninput=e=>it.w=parseInt(e.target.value)||0;
   const v=document.getElementById('edVal'); if(v) v.oninput=e=>it.val=parseInt(e.target.value)||0;

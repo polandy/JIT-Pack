@@ -96,7 +96,7 @@ bounded. Two decisions fix the scope:
   device-local preference behind an eye icon with a settings sheet (FR-24.4 new). M10
   **creation is a minimal form** (name + tags, Gewicht/Preis behind "Mehr ▾"; the
   existing-item sections Enthalten-in/Kommentare/Löschen are absent until the item exists
-  — FR-24.5 new). E2E M9-01/05, M10-01/07 + matrix. Implementation of the two FRs is open
+  — FR-24.5 new). Tag capture is a **filter-or-create search field** (FR-24.1 refinement; typing filters chips, ＋/Enter creates unmatched names). E2E M9-01/05, M10-01/07/08 + matrix. Implementation of the two FRs is open
   (client M9/M10 rework).
 
 - **FR-1.8 Einheiten — REMOVED end-to-end (owner decision 2026-08-08,** "wir haben nur
