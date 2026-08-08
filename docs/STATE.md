@@ -26,6 +26,22 @@ bounded. Two decisions fix the scope:
    so the new screens are localized from the start rather than retrofitted. Implemented in-house,
    no `vue-i18n` (footprint justification and revisit trigger in NFR-4.12).
 
+**Sequencing decision (owner, 2026-08-08) — concept first, then the foundation:**
+
+1. **Everything around packing is finished conceptually and as a mockup *before* effective
+   implementation starts.** Reason: every concept round so far has invalidated code that was
+   already written — units, quantity formulas, consumables and publish/fork were each built and
+   then removed again. Implementing a moving target is the expensive failure this rule prevents.
+   Concept and mockup rounds (per the mockup-first agreement) are the work until the owner
+   declares the packing concept closed.
+2. **When implementation starts, it starts with the domain-free basics** — login, users, code
+   base — not with packing features. Note for that moment: much of this already exists
+   (OIDC/JWT/JWKS, sync, store, CI); the question to raise then is audit-and-harden vs. rework,
+   not build-from-scratch.
+
+Work done *before* this decision on 2026-08-08 (FR-1.6 relaxation, migration 016) is kept, not
+reverted — it is green, and the schema it adds is what the closed §3.27 concept calls for.
+
 **In the MVP, in order:**
 
 - **i18n foundation** — module + both catalogues + M17 switch **done 2026-08-07** (item 16).
