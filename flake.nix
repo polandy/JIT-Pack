@@ -13,7 +13,9 @@
       devShells = forAllSystems (pkgs: {
         default = pkgs.mkShell {
           packages = [
-            pkgs.go
+            # go.mod says 1.25 and CI resolves it via go-version-file, so the
+            # shell must not hand you a newer compiler than the pipeline uses.
+            pkgs.go_1_25
             pkgs.gnumake
             # Keep in step with the golangci-lint-action version in
             # .github/workflows/ci.yml — a local lint that runs a different

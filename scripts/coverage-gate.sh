@@ -32,10 +32,13 @@ overall=$(go tool cover -func="$profile" | awk '/^total:/ { gsub(/%/, ""); print
 # -func` only reports per-function percentages, which cannot be averaged back
 # into a statement-weighted number — so sum the profile's own statement counts
 # instead. Profile line: <file>:<span> <numStatements> <executionCount>.
+# An empty result means the profile does not cover this package at all —
+# report that rather than a 0% that looks like untested code.
 sync=$(awk -v pkg="/internal/sync/" '
 	index($1, pkg) { total += $2; if ($3 > 0) covered += $2 }
-	END { if (total) printf "%.1f", 100 * covered / total; else print "0" }
+	END { if (total) printf "%.1f", 100 * covered / total }
 ' "$profile")
+[ -n "$sync" ] || fail "no internal/sync data in $profile — was it produced by a partial test run?"
 
 [ -n "$overall" ] || fail "could not read total coverage from $profile"
 
