@@ -19,7 +19,8 @@ Read this file fully before touching code. It is the orientation document: what 
 |---|---|
 | What does the product do? | `docs/PRD_Base.md` (original vision) |
 | What changed or was added since? | `docs/PRD_Addendum_v2.10.md` — **always authoritative over PRD_Base.md where they differ** |
-| What do the screens look like? | `docs/UI_Spec_v1.10.md` — screens M1–M20, global patterns G-1–G-11 |
+| What do the screens look like? | `docs/UI_Spec_v1.10.md` — screens M1–M21, global patterns G-1–G-12 |
+| What is the packing concept supposed to feel like? | `docs/UI_Concept_Prototype.html` — the clickable mockup every §3.25/§3.27 decision was tested against; **`node docs/UI_Concept_Prototype.verify.mjs` drives it headless and must stay green** |
 | What's the wire protocol? | `docs/Sync_API_Spec_v1.3.md` — pull/push envelopes, HLC format, merge algorithm, WebSocket events, RPC endpoints |
 | What's the DB schema? | `internal/store/migrations/*.sql` — **single source of truth, never duplicated into docs/** |
 | Why was X chosen over Y? | `docs/ADR-00N_*.md` — options considered, weighted decision matrix, consequences, revisit trigger |
@@ -28,6 +29,33 @@ Read this file fully before touching code. It is the orientation document: what 
 | What was already built, and why that way? | `dev-docs/implementation-log.md` — append-only history |
 
 Only the current version of each document is kept. Never write a "v2" of a doc — replace the file and update its own revision note.
+
+## Not built yet
+
+The packing concept is **closed as a concept** — mocked in the prototype and written up in
+PRD §3.25/§3.27, UI-Spec and UI-Test-Spec — and open as implementation. Owner decision
+2026-08-08 on sequencing: **finish the concept before implementing**, then start with the
+domain-free basics (login, users, code base) rather than with packing features. The reasoning
+for each item below is in `dev-docs/implementation-log.md`, section "Concept phase".
+
+1. **The basics first** — login/users/sync/CI already exist and are green, so the open question
+   is audit-and-harden versus deliberate rework, not build-from-scratch.
+2. **§3.27 client package** — `instantiate.ts` include expansion + FR-27.7 task materialisation,
+   the FR-27.4 planning-trip refresh diff, the M21 screen, portable YAML for includes and tasks.
+   Schema and sync wiring are done (migration 016).
+3. **Screen rebuilds from the mock**, localized with `t()` from the first line: M4/M5, then
+   M7/M8 (scopes, quick-add, sheet editing), M9/M10 (lean inventory, minimal creation),
+   M11 (container sheet, picker), M12 (slice filtering, per-person shares), M14 (group-aware list).
+4. **i18n migration** — ~300 hard-coded English strings across the surrounding screens; the module
+   and both catalogues exist.
+5. **Two migrations owed by concept decisions** — drop `travelers.profile` (FR-25.9 retired), and
+   add the record column beside `packer_user_id` (FR-25.19 splits assignment from packing record).
+6. **Playwright suite** — `docs/UI_Test_Spec_v1.0.md` is written and the harness scaffolded; the
+   per-screen cases are not implemented, deliberately sequenced after the rebuilds.
+
+**Parked, specified, do not start:** §3.24 item tags & lifecycle delete, §3.26 calendar feed,
+the North-Star Plan/During phases, FR-27.8's per-trip usage history, and FR-1.6's publish/fork
+ownership model (each carries a revisit trigger in its stub).
 
 ## Packages
 
