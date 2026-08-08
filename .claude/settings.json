@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go build:*)",
+      "Bash(go vet:*)",
+      "Bash(go test:*)",
+      "Bash(go tool cover:*)",
+      "Bash(go doc:*)",
+      "Bash(go mod tidy)",
+      "Bash(gofmt:*)",
+      "Bash(golangci-lint run:*)",
+      "Bash(make:*)",
+      "Bash(npm ci)",
+      "Bash(npm run build:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx vue-tsc:*)",
+      "Bash(npx oxlint:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx prettier:*)"
+    ],
+    "deny": [
+      "Edit(client/node_modules/**)",
+      "Write(client/node_modules/**)",
+      "Edit(internal/store/migrations/**)"
+    ]
+  }
+}
