@@ -74,7 +74,15 @@ The server brokers the OIDC login (code + PKCE) as a confidential client, valida
   token_endpoint_auth_method: "client_secret_basic"
 ```
 
-`offline_access` and the `refresh_token` grant keep sessions alive across offline periods; each refresh re-validates the account at Authelia, so a user disabled there is cut off within one access-token lifetime (15 minutes).
+`offline_access` and the `refresh_token` grant keep sessions alive across offline periods. Each refresh replays the stored IdP refresh token, so whatever Authelia rejects there ends the session within one access-token lifetime (15 minutes).
+
+What that does and does not cover is worth being precise about, because it decides how an account is actually shut out:
+
+- **Ends the session at the next refresh:** revoking the token at Authelia (RFC 7009, `POST /api/oidc/revocation`), or an operator revoking the subject's OIDC sessions in Authelia's storage. Both make the refresh grant fail, which deletes the session row.
+- **Ends the session immediately, without waiting for a refresh:** deactivating the account in JIT-Pack itself (FR-23.3). This is the only lever that bites on the current access token.
+- **Does _not_ end the session:** marking the user `disabled` in Authelia. That blocks new logins, but Authelia keeps honouring refresh tokens it has already issued — per [Authelia ADR1](https://www.authelia.com/reference/architecture-decision-log/1/), authorization policies are evaluated during the Authorization Request and not in any subsequent flow. Verified against Authelia 4.39.20 with the file backend. Disabling an account therefore has to be paired with revoking its tokens, or with deactivating it in JIT-Pack.
+
+One related detail: for a disabled account Authelia still answers UserInfo with 200 and drops the standard claims. JIT-Pack treats a response without an email claim as *no information* about the FR-23.1 role rather than as "not an admin", so a degraded UserInfo response cannot silently demote an instance admin.
 
 ### Docker Compose
 
