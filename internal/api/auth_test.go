@@ -42,8 +42,10 @@ type fakeIDP struct {
 	idTokenIss  string          // "" → own URL
 	idTokenAud  string          // "" → clientID
 	idTokenKey  *rsa.PrivateKey // nil → key (set to a stranger's for forgery)
-	omitIDToken bool
-	tokenStatus int    // 0 → 200; e.g. 400 (rejection) or 503 (outage)
+	omitIDToken    bool
+	omitIDTokenSub bool
+	userinfoStatus int // 0 → 200; non-zero served verbatim (outage scenarios)
+	tokenStatus    int // 0 → 200; e.g. 400 (rejection) or 503 (outage)
 	tokenBody   string // body served with tokenStatus; "" → empty
 	tokenCT     string // Content-Type for tokenBody; "" → application/json
 	idpRefresh  string // refresh token returned by grants; "" → "idp-refresh-1"
@@ -119,6 +121,10 @@ func newFakeIDP(t *testing.T) *fakeIDP {
 		writeJSONTo(t, w, resp)
 	})
 	mux.HandleFunc("GET /userinfo", func(w http.ResponseWriter, r *http.Request) {
+		if idp.userinfoStatus != 0 {
+			w.WriteHeader(idp.userinfoStatus)
+			return
+		}
 		if r.Header.Get("Authorization") != "Bearer "+idp.lastAccess {
 			// The broker must present the access token it was just
 			// handed — anything else is a wiring bug.
@@ -154,10 +160,14 @@ func (f *fakeIDP) signIDToken() string {
 	if f.idTokenKey != nil {
 		key = f.idTokenKey
 	}
-	tok := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
+	claims := jwt.MapClaims{
 		"iss": iss, "aud": aud, "sub": f.sub,
 		"exp": time.Now().Add(time.Hour).Unix(), "iat": time.Now().Unix(),
-	})
+	}
+	if f.omitIDTokenSub {
+		delete(claims, "sub")
+	}
+	tok := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	tok.Header["kid"] = f.kid
 	signed, err := tok.SignedString(key)
 	if err != nil {
@@ -758,5 +768,99 @@ func TestFetchDiscovery_RejectsIssuerMismatch(t *testing.T) {
 
 	if _, err := api.FetchDiscovery(srv.URL); err == nil {
 		t.Error("issuer mismatch accepted — the discovery spec makes this check mandatory")
+	}
+}
+
+// The wire contract's rejection shapes (§2): malformed requests are 422,
+// and a server without the broker answers 501 on every auth endpoint.
+func TestAuthEndpoints_RejectMalformedRequests(t *testing.T) {
+	idp := newFakeIDP(t)
+	srv, _ := newBrokerServer(t, idp)
+
+	tests := []struct {
+		name string
+		path string
+		body map[string]any
+	}{
+		{"token without code", "/api/v1/auth/token", map[string]any{"code_verifier": "v"}},
+		{"token with empty body", "/api/v1/auth/token", map[string]any{}},
+		{"refresh without token", "/api/v1/auth/refresh", map[string]any{}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			resp, raw := doJSON(t, http.MethodPost, srv.URL+tc.path, "", tc.body)
+			if resp.StatusCode != http.StatusUnprocessableEntity {
+				t.Errorf("status = %d, want 422 (body %s)", resp.StatusCode, raw)
+			}
+		})
+	}
+
+	// Refresh mirrors token/config: not configured is 501, not 404.
+	plain := newTestServer(t)
+	resp, _ := doJSON(t, http.MethodPost, plain.URL+"/api/v1/auth/refresh", "", map[string]any{"refresh_token": "x"})
+	if resp.StatusCode != http.StatusNotImplemented {
+		t.Errorf("unconfigured refresh: status = %d, want 501", resp.StatusCode)
+	}
+}
+
+// An ID token without a subject identifies nobody — the login must fail
+// closed instead of provisioning an empty-subject account.
+func TestAuthToken_RejectsIDTokenWithoutSubject(t *testing.T) {
+	idp := newFakeIDP(t)
+	idp.omitIDTokenSub = true
+	srv, st := newBrokerServer(t, idp)
+
+	resp, raw := doJSON(t, http.MethodPost, srv.URL+"/api/v1/auth/token", "", map[string]any{
+		"code": "abc", "code_verifier": "ver", "redirect_uri": "https://app/cb",
+	})
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401 (body %s)", resp.StatusCode, raw)
+	}
+	var n int
+	if err := st.DB().QueryRow(`SELECT COUNT(*) FROM users`).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 0 {
+		t.Errorf("rejected login provisioned %d user(s)", n)
+	}
+}
+
+// UserInfo down during login is an outage (502), not an auth failure —
+// and it must not leave a half-provisioned user behind.
+func TestAuthToken_UserinfoOutageIs502(t *testing.T) {
+	idp := newFakeIDP(t)
+	idp.userinfoStatus = http.StatusServiceUnavailable
+	srv, st := newBrokerServer(t, idp)
+
+	resp, raw := doJSON(t, http.MethodPost, srv.URL+"/api/v1/auth/token", "", map[string]any{
+		"code": "abc", "code_verifier": "ver", "redirect_uri": "https://app/cb",
+	})
+	if resp.StatusCode != http.StatusBadGateway {
+		t.Errorf("status = %d, want 502 (body %s)", resp.StatusCode, raw)
+	}
+	var n int
+	if err := st.DB().QueryRow(`SELECT COUNT(*) FROM users`).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 0 {
+		t.Errorf("failed login provisioned %d user(s)", n)
+	}
+}
+
+// A session token without a subject authenticates nobody (invariant 3:
+// attribution always resolves to a users.id).
+func TestAuthed_TokenWithoutSubjectRejected(t *testing.T) {
+	srv := newTestServer(t)
+
+	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"exp": time.Now().Add(time.Hour).Unix(),
+	})
+	signed, err := tok.SignedString(testSecret)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, raw := doJSON(t, http.MethodGet, srv.URL+"/api/v1/me", signed, nil)
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401 (body %s)", resp.StatusCode, raw)
 	}
 }

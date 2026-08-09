@@ -232,3 +232,81 @@ func TestListUsers(t *testing.T) {
 		t.Errorf("user ids = %+v", users)
 	}
 }
+
+// Roster rows are member-only (§5): a non-member's pull must not carry
+// them, while the trip's owner sees the row that made them owner.
+func TestPullMaster_RosterRowInvisibleToNonMember(t *testing.T) {
+	s := openTestStore(t)
+	seedUserB(t, s)
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trips", "trip-vis", "rv-1",
+		map[string]any{"name": "Sichtbarkeit", "end_date": "2026-09-01", "status": "planning"},
+		"0000000006000-0000-aaaaaaaa"))
+
+	pull := func(userID string) (roster int) {
+		t.Helper()
+		page, err := s.PullMaster(context.Background(), userID, 0, 100)
+		if err != nil {
+			t.Fatalf("PullMaster(%s): %v", userID, err)
+		}
+		for _, c := range page.Changes {
+			if c.Table == "trip_members" && !c.Deleted {
+				roster++
+			}
+		}
+		return roster
+	}
+	if got := pull(testUser); got != 1 {
+		t.Errorf("owner sees %d roster rows, want 1 (their own)", got)
+	}
+	if got := pull(testUserB); got != 0 {
+		t.Errorf("non-member sees %d roster rows, want 0", got)
+	}
+}
+
+// A roster row whose deletion lies beyond the page window must not leak
+// as a live row: the insert entry resolves against the already-deleted
+// table row and is skipped, and the tombstone arrives with the next page.
+func TestPullMaster_RemovedRosterRowNotLeakedMidWindow(t *testing.T) {
+	s := openTestStore(t)
+	seedUserB(t, s)
+	ctx := context.Background()
+
+	// seq 1: trips insert, seq 2: creator's owner row.
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trips", "trip-win", "wl-1",
+		map[string]any{"name": "Fenster", "end_date": "2026-09-01", "status": "planning"},
+		"0000000007000-0000-aaaaaaaa"))
+	// seq 3: B's membership, seq 4: the trips touch that resurfaces the trip.
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trip_members", "mem-win", "wl-2",
+		map[string]any{"trip_id": "trip-win", "user_id": testUserB, "role": "editor"},
+		"0000000007001-0000-aaaaaaaa"))
+	// seq 5: the removal's tombstone — deliberately beyond the first page.
+	applyMaster(t, s, testUser, masterMut(sync.OpDelete, "trip_members", "mem-win", "wl-3", nil,
+		"0000000007002-0000-aaaaaaaa"))
+
+	page1, err := s.PullMaster(ctx, testUser, 0, 4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !page1.HasMore {
+		t.Fatal("test setup: the tombstone must lie beyond page 1")
+	}
+	for _, c := range page1.Changes {
+		if c.Table == "trip_members" && c.ID == "mem-win" && !c.Deleted {
+			t.Error("page 1 leaked the removed roster row as live")
+		}
+	}
+
+	page2, err := s.PullMaster(ctx, testUser, page1.NextCursor, 4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tombstone bool
+	for _, c := range page2.Changes {
+		if c.Table == "trip_members" && c.ID == "mem-win" && c.Deleted {
+			tombstone = true
+		}
+	}
+	if !tombstone {
+		t.Error("page 2 must deliver the roster tombstone")
+	}
+}
