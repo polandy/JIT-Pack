@@ -409,3 +409,39 @@ Independent of the MVP:
 - **TypeScript 7 bump** — blocked by vue-tsc incompatibility (dependabot PR #4 left open).
 
 Deliberate cuts (revisit only with cause): M15 XLSX support (CSV only, NFR-4.3, spec §8); avatar-style pan/zoom crop for item photos (FR-22.3 keeps aspect ratio); no backfill for rosters of trips created before migration 009 (recreate or re-share affected trips, consistent with 005/006).
+
+## Basics audit, 2026-08-08 — FR-23.1 required an unverified claim
+
+Second finding of the auth-path audit, and a live privilege-escalation path rather
+than a latent one.
+
+`authed` (`server.go`) re-derived the instance-admin role on **every** request from
+`s.isAdminEmail(emailClaim(claims))`, and `email_verified` did not appear anywhere in
+the repository. OIDC Core §5.7 is explicit that `email` carries no verification
+guarantee by itself — `email_verified` does — so against an IdP with self-service
+profiles, any account could set its address to the one in `JITPACK_ADMIN_EMAILS` and
+be stamped `is_instance_admin = 1` on its next request, with the admin surface
+opening immediately. The driving test confirmed it before the fix: `GET
+/api/v1/admin/users` answered 200 with `"is_instance_admin":true` both for
+`email_verified: false` and for a token with no such claim at all.
+
+The fix is small because the allowlist was the only consumer: `isAdminEmail` now
+takes the verification flag and requires it, and `emailVerifiedClaim` reads the claim
+as a JSON bool or the string `"true"` (providers differ), treating everything else —
+absent included — as unverified. Both call sites, the `authed` middleware and the
+OIDC broker's JIT provisioning in `auth.go`, were updated.
+
+Two properties worth keeping in the tests: the role is *re-stamped* per request, so
+withdrawing verification has to take the role away again rather than leave a permanent
+admin behind; and the tests assert the consequence — whether the admin-only surface
+opens — instead of reading `users.is_instance_admin`, so they still describe the rule
+if the storage changes.
+
+**Operator consequence, recorded in FR-23.1:** an IdP that does not release
+`email_verified` now grants no instance admin at all. That is the correct default —
+the alternative is trusting a self-declared address — but it is a behaviour change for
+an existing deployment whose IdP omits the claim.
+
+Still open from this audit, deliberately not fixed here because it needs a
+compatibility decision: neither `authed` nor the OIDC broker validates `aud` or `iss`,
+so on a shared IdP a token minted for a different application validates here.

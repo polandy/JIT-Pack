@@ -65,8 +65,14 @@ func (s *Server) SetAdminEmails(emails []string) {
 
 // isAdminEmail resolves the FR-23.1 allowlist; a token without an
 // email claim simply yields no admin role.
-func (s *Server) isAdminEmail(email string) bool {
-	return email != "" && s.adminEmails[strings.ToLower(email)]
+//
+// The address only counts when the IdP also asserts that it verified it.
+// OIDC Core §5.7 gives `email` no verification guarantee of its own —
+// `email_verified` carries that — so on any IdP with self-service
+// profiles an unverified claim would let an account name the configured
+// admin address and inherit the role on its next request.
+func (s *Server) isAdminEmail(email string, verified bool) bool {
+	return verified && email != "" && s.adminEmails[strings.ToLower(email)]
 }
 
 // New creates a Server that validates JWTs with HS256 using the given
@@ -184,7 +190,8 @@ func (s *Server) authed(next http.HandlerFunc) http.HandlerFunc {
 			// provisioning on first sight (§2), stamping the declarative
 			// instance-admin role (FR-23.1).
 			email := emailClaim(claims)
-			userID, err = s.store.EnsureOIDCUser(r.Context(), sub, displayNameClaim(claims), email, s.isAdminEmail(email))
+			userID, err = s.store.EnsureOIDCUser(r.Context(), sub, displayNameClaim(claims), email,
+				s.isAdminEmail(email, emailVerifiedClaim(claims)))
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, "internal", "user mapping failed")
 				return
