@@ -66,10 +66,10 @@ ownership model (each carries a revisit trigger in its stub).
 
 ## Packages
 
-- `cmd/jitpackd` — wiring only: env-parsed `Config`, picks `api.New` / `api.NewWithJWKS` / `api.NewSingleUser`, graceful shutdown. No logic.
+- `cmd/jitpackd` — wiring only: env-parsed `Config`, picks `api.New` (+ `EnableOIDC` after discovery) / `api.NewSingleUser`, graceful shutdown. No logic.
 - `internal/sync` — HLC generator + field-level merge algorithm (NFR-4.2a). Pure, zero I/O, zero internal imports.
 - `internal/store` — the only package that imports `database/sql`. SQLite repositories, change-log/conflict-log, the two sync partitions (`master.go` for categories/items/templates/trips/series/members, the trip partition for trip_items/travelers/containers/comments), migrations via `PRAGMA user_version`.
-- `internal/api` — HTTP handlers, WebSocket hub (`hub.go`/`ws.go`), JWT/JWKS auth, OIDC brokering, notifications, Web Push, admin surface, export/import.
+- `internal/api` — HTTP handlers, WebSocket hub (`hub.go`/`ws.go`), first-party session auth + OIDC login broker (ADR-007), notifications, Web Push, admin surface, export/import.
 - `internal/portable` — YAML wire types for portable template/trip export/import. Pure marshal/unmarshal.
 - `client/src/domain` — the pure client-side rules: quantity formulas, template instantiation, dependencies, containers, analytics, review, clone, spreadsheet import, members. No I/O, exhaustively unit-tested. **This is where the Go layout's planned `internal/domain` actually ended up** — deliberately, see invariant 4.
 
