@@ -229,3 +229,35 @@ func TestExportTrip_Unauthenticated(t *testing.T) {
 func parseJSON(data []byte, v any) error {
 	return json.Unmarshal(data, v)
 }
+
+// A trip export is trip data, so it needs the same membership check the CSV
+// export has always had. Without it any account on the instance could read any
+// trip by guessing or learning its id — the YAML route was wired with `authed`
+// alone, which authenticates the caller but authorizes nothing.
+func TestExportTrip_NonMemberIsRefused(t *testing.T) {
+	srv := newTestServer(t)
+
+	req, _ := http.NewRequest(http.MethodGet, srv.URL+"/api/v1/trips/"+trip+"/export.yaml", nil)
+	req.Header.Set("Authorization", "Bearer "+token(t, "user-x", testSecret))
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusForbidden {
+		t.Errorf("status = %d, want 403 for a non-member", resp.StatusCode)
+	}
+
+	req, _ = http.NewRequest(http.MethodGet, srv.URL+"/api/v1/trips/"+trip+"/export.yaml", nil)
+	req.Header.Set("Authorization", "Bearer "+token(t, userB, testSecret))
+	member, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer member.Body.Close()
+
+	if member.StatusCode != http.StatusOK {
+		t.Errorf("status = %d, want 200 for a member", member.StatusCode)
+	}
+}

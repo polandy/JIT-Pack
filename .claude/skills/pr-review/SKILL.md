@@ -21,9 +21,9 @@ Work through **all** sections below in order. Collect findings as you go and fix
 
 Every requirement or behaviour change is reflected in its spec **in the same PR** — never as a follow-up.
 
-- `docs/PRD_Addendum_v2.10.md` — the authoritative requirement source (it overrides `PRD_Base.md`). New/changed FR or NFR text belongs here.
-- `docs/UI_Spec_v1.10.md` — any new screen, global pattern (G-n) or changed screen behaviour.
-- `docs/Sync_API_Spec_v1.3.md` — new endpoints, envelope fields, WebSocket frames, merge-rule changes.
+- `dev-docs/PRD_Addendum_v2.10.md` — the authoritative requirement source (it overrides `PRD_Base.md`). New/changed FR or NFR text belongs here.
+- `dev-docs/UI_Spec_v1.10.md` — any new screen, global pattern (G-n) or changed screen behaviour.
+- `dev-docs/Sync_API_Spec_v1.3.md` — new endpoints, envelope fields, WebSocket frames, merge-rule changes.
 - `dev-docs/UI_Test_Spec_v1.0.md` — new UI behaviour adds its case + traceability-matrix row.
 - **Schema**: `internal/store/migrations/*.sql` is the single source of truth — flag any attempt to duplicate the schema into `docs/`.
 - Check the reverse too: no doc may still describe behaviour this PR removed or changed.
@@ -63,7 +63,7 @@ Test-first is non-negotiable: every new behaviour has a driving test, every bug 
 
 If the PR touches `client/src`:
 
-- **`docs/UI_Spec_v1.10.md` must be updated** in the same PR to describe the new surface, and `dev-docs/UI_Test_Spec_v1.0.md` gains the corresponding case.
+- **`dev-docs/UI_Spec_v1.10.md` must be updated** in the same PR to describe the new surface, and `dev-docs/UI_Test_Spec_v1.0.md` gains the corresponding case.
 - **The feature's UI ships with the feature.** A backend capability with "UI in a follow-up" is a blocker, not a note.
 - **e2e**: new UI behaviour needs a Playwright case in `client/e2e` — one test unit per PR. Check that behaviour assertions exist and that the case runs in the mode(s) the feature actually supports (`jitpack_mode` seeding, see `client/e2e/fixtures.ts`).
 - **Manual-test-first**: if the maintainer hasn't eyeballed the rendered UI yet, flag that as a gate before the e2e case is finalized — do not silently skip it. Never judge visibility or layout from the stylesheet; render it.

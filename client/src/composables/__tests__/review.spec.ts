@@ -52,7 +52,6 @@ function proposal(over: Partial<ReviewProposal> = {}): ReviewProposal {
     templateName: 'Base Travel',
     templateItemId: 'tpl-item-1',
     flagCount: 1,
-    requiresFork: false,
     ...over,
   }
 }
@@ -63,7 +62,7 @@ function seedTemplate(master: ReturnType<typeof useMasterStore>) {
     table: 'templates',
     id: 'tpl1',
     deleted: false,
-    row: { owner_id: 'me', name: 'Base Travel', is_published: 0 },
+    row: { owner_id: 'me', name: 'Base Travel' },
   })
   master.applyChange({
     seq: 0,
@@ -73,7 +72,7 @@ function seedTemplate(master: ReturnType<typeof useMasterStore>) {
     row: {
       template_id: 'tpl1',
       item_id: 'item1',
-      quantity_formula: '2',
+      quantity: 2,
       assignment: 'per_person',
       dedup: 'max',
       default_mode: 'pack',
@@ -128,7 +127,7 @@ describe('deleteTrip (M2, Owner-only)', () => {
 })
 
 describe('applyReviewProposal', () => {
-  it('reduce_quantity zeroes the template item formula', () => {
+  it('reduce_quantity zeroes the template item quantity', () => {
     const orch = newOrch()
     const master = useMasterStore()
     seedTemplate(master)
@@ -136,7 +135,7 @@ describe('applyReviewProposal', () => {
     const target = orch.applyReviewProposal(proposal())
 
     expect(target).toBe('tpl1')
-    expect(master.getTemplateItems('tpl1')[0]!.quantity_formula).toBe('0')
+    expect(master.getTemplateItems('tpl1')[0]!.quantity).toBe(0)
   })
 
   it('add_item adds an existing master item to the template', () => {
@@ -148,7 +147,7 @@ describe('applyReviewProposal', () => {
       table: 'items',
       id: 'item9',
       deleted: false,
-      row: { name: 'Sonnencreme', unit: 'pieces', is_consumable: 0 },
+      row: { name: 'Sonnencreme' },
     })
 
     orch.applyReviewProposal(
@@ -162,7 +161,7 @@ describe('applyReviewProposal', () => {
 
     const added = master.getTemplateItems('tpl1').find((ti) => ti.item_id === 'item9')
     expect(added).toBeDefined()
-    expect(added?.quantity_formula).toBe('1')
+    expect(added?.quantity).toBe(1)
   })
 
   it('add_item creates the master item first for an ad-hoc name', () => {
@@ -179,7 +178,10 @@ describe('applyReviewProposal', () => {
     expect(master.getTemplateItems('tpl1').some((ti) => ti.item_id === created!.id)).toBe(true)
   })
 
-  it('fork copies the template and applies the change to the copy (FR-1.6)', () => {
+  // FR-1.6 MVP simplification (2026-08-08): no copy is made for a template
+  // someone else created — templates are shared, so the optimisation lands
+  // where the item actually came from and everyone gets it.
+  it('writes to a foreign template in place, without forking (FR-1.6 MVP)', () => {
     const orch = newOrch()
     const master = useMasterStore()
     master.applyChange({
@@ -187,7 +189,7 @@ describe('applyReviewProposal', () => {
       table: 'templates',
       id: 'tpl1',
       deleted: false,
-      row: { owner_id: 'someone-else', name: 'Base Travel', is_published: 1 },
+      row: { owner_id: 'someone-else', name: 'Base Travel' },
     })
     master.applyChange({
       seq: 0,
@@ -197,50 +199,19 @@ describe('applyReviewProposal', () => {
       row: {
         template_id: 'tpl1',
         item_id: 'item1',
-        quantity_formula: '2',
+        quantity: 2,
         assignment: 'per_person',
         dedup: 'max',
         default_mode: 'pack',
         late_packer: 0,
       },
     })
-    master.applyChange({
-      seq: 0,
-      table: 'template_items',
-      id: 'tpl-item-2',
-      deleted: false,
-      row: {
-        template_id: 'tpl1',
-        item_id: 'item2',
-        quantity_formula: 'num_travelers',
-        assignment: 'trip_global',
-        dedup: 'sum',
-        default_mode: 'buy_before',
-        late_packer: 1,
-      },
-    })
 
-    const forkId = orch.applyReviewProposal(proposal({ requiresFork: true }), { fork: true })
+    const targetId = orch.applyReviewProposal(proposal())
 
-    expect(forkId).not.toBe('tpl1')
-    const fork = master.getTemplate(forkId)
-    expect(fork?.name).toBe('Base Travel (fork)')
-    expect(fork?.is_published).toBe(false)
-    // Original untouched, fork carries the zeroed item plus the copy.
-    expect(
-      master.getTemplateItems('tpl1').find((ti) => ti.item_id === 'item1')?.quantity_formula,
-    ).toBe('2')
-    const forkItems = master.getTemplateItems(forkId)
-    expect(forkItems).toHaveLength(2)
-    expect(forkItems.find((ti) => ti.item_id === 'item1')?.quantity_formula).toBe('0')
-    const copied = forkItems.find((ti) => ti.item_id === 'item2')
-    expect(copied).toMatchObject({
-      quantity_formula: 'num_travelers',
-      assignment: 'trip_global',
-      dedup: 'sum',
-      default_mode: 'buy_before',
-      late_packer: true,
-    })
+    expect(targetId).toBe('tpl1')
+    expect(master.templateList).toHaveLength(1)
+    expect(master.getTemplateItems('tpl1').find((ti) => ti.item_id === 'item1')?.quantity).toBe(0)
   })
 })
 

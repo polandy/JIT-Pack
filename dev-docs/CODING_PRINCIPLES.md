@@ -18,7 +18,7 @@
 * **Naming as specification:** `TestMerge_PackedBeatsPackingNow_RegardlessOfHLC`, `TestPull_TombstonesIncludedUntilArchive`. A failing test name alone must tell you which rule broke (FR/NFR reference in the test body where applicable).
 * **Table-driven tests** with named cases and `t.Run` subtests are the default for domain logic.
 * **Test pyramid:**
-  * *Unit* — merge algorithm, HLC, formula evaluation: pure functions, no I/O, exhaustive cases.
+  * *Unit* — merge algorithm, HLC, instantiation/dedup: pure functions, no I/O, exhaustive cases.
   * *Integration* — repositories and sync endpoints against a **real in-memory SQLite** (`:memory:`), never mocks of the database.
   * *End-to-end* — the walking-skeleton scenario: two simulated clients, concurrent offline edits, convergence per NFR-4.2a.
 * **Coverage target:** ≥ 90 % for `internal/sync` and `internal/domain`, ≥ 75 % overall. Coverage is a smoke detector, not a goal — an uncovered branch in merge logic fails review regardless of the total.
@@ -35,7 +35,7 @@ internal/portable/           YAML wire types for export/import — zero I/O deps
 internal/store/              SQLite repositories; the only package importing database/sql
 internal/store/migrations/   embedded SQL migrations (//go:embed)
 internal/api/                HTTP handlers, WebSocket hub, auth middleware, push
-client/src/domain/           entities, state machine, formula eval — pure, no I/O
+client/src/domain/           entities, state machine, generation/analytics — pure, no I/O
 ```
 
 * **Dependency rule:** `api → store, sync, portable`; `store → sync, portable`; **`sync` and `portable` import nothing internal, ever.** This makes the riskiest packages trivially unit-testable.

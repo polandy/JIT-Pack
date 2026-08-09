@@ -24,7 +24,7 @@ func TestApplyMasterMutation_ItemDependencyInsert(t *testing.T) {
 	res := applyMaster(t, s, testUser, masterMut(sync.OpInsert, "item_dependencies", "dep-1", "dep-mm-1",
 		map[string]any{
 			"item_id": "item-battery", "depends_on_item_id": "item-camera",
-			"mode": "required", "quantity_formula": "2",
+			"mode": "required", "quantity": 2,
 		}, "0000000001000-0000-aaaaaaaa"))
 	if res.Outcome != "applied" {
 		t.Fatalf("outcome = %q, want applied", res.Outcome)
@@ -38,13 +38,14 @@ func TestApplyMasterMutation_ItemDependencyInsert(t *testing.T) {
 		t.Errorf("change_log.trip_id = %v, want NULL for master partition", tripID)
 	}
 
-	var mode, formula string
-	err := s.db.QueryRow(`SELECT mode, quantity_formula FROM item_dependencies WHERE id = 'dep-1'`).Scan(&mode, &formula)
+	var mode string
+	var quantity int
+	err := s.db.QueryRow(`SELECT mode, quantity FROM item_dependencies WHERE id = 'dep-1'`).Scan(&mode, &quantity)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if mode != "required" || formula != "2" {
-		t.Errorf("persisted (mode, formula) = (%q, %q), want (required, 2)", mode, formula)
+	if mode != "required" || quantity != 2 {
+		t.Errorf("persisted (mode, quantity) = (%q, %d), want (required, 2)", mode, quantity)
 	}
 }
 

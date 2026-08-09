@@ -6,7 +6,7 @@
 **Decision Drivers (in priority order):**
 1. **Local Mode must not be a degraded product.** It runs with no backend at all (FR-19.x). A feature implemented server-side simply does not exist there.
 2. **One implementation, not two.** A rule that runs in both modes must not be written twice, in two languages, and kept in agreement by hand.
-3. Testability of the rules themselves — quantity formulas, dedup, instantiation are the product's actual intelligence and deserve exhaustive, I/O-free unit tests.
+3. Testability of the rules themselves — quantity derivation, dedup, instantiation are the product's actual intelligence and deserve exhaustive, I/O-free unit tests.
 4. Server footprint (NFR-4.3) and the ability to keep the sync protocol generic rather than growing a feature-specific RPC per capability.
 
 ---
@@ -15,7 +15,7 @@
 
 ### Option A — Rules live in `client/src/domain`, the server only stores and syncs *(recommended, accepted)*
 
-Template instantiation, quantity formulas, dependency resolution, container weight math, analytics, the review assistant, cloning, spreadsheet import and portable import are pure TypeScript modules in `client/src/domain`. They read the synced stores and emit ordinary mutations. The server sees only those mutations and never knows a "generate" or "import" operation happened.
+Template instantiation, dependency resolution, container weight math, analytics, the review assistant, cloning, spreadsheet import and portable import are pure TypeScript modules in `client/src/domain`. (The quantity-formula engine was one of them until it was retired on 2026-08-08; its removal changed what the client computes, not where.) They read the synced stores and emit ordinary mutations. The server sees only those mutations and never knows a "generate" or "import" operation happened.
 
 **Pros**
 - Local Mode gets every one of these features for free, with no second code path — the mutations go into IndexedDB through the same funnel instead of the outbox.

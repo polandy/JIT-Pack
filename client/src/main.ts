@@ -23,7 +23,13 @@ import '@ionic/vue/css/display.css'
 import './theme/catppuccin.css'
 import { initTheme } from './theme/theme'
 
+/* Language (NFR-4.12): English default, German fully supported. Resolved
+ * before mount for the same reason as the theme — the first paint should
+ * already be in the user's language, not switch under them. */
+import { initLocale } from './i18n'
+
 initTheme()
+initLocale()
 
 const app = createApp(App)
 

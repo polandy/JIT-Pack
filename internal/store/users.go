@@ -15,14 +15,18 @@ import (
 //
 // isAdmin stamps users.is_instance_admin in both directions (FR-23.1):
 // the JITPACK_ADMIN_EMAILS list is authoritative, so removal from the
-// list revokes the role at the next login. The token's email claim is
+// list revokes the role at the next login. A nil isAdmin means the IdP
+// gave nothing to resolve the role from and the stored flag is left
+// untouched — "no information" must not read as "not an admin", or a
+// degraded UserInfo response silently demotes every instance admin.
+// On first provisioning nil creates a non-admin row. The token's email claim is
 // stamped into users.email on every login (keeps the FR-23.2 overview
 // current when the IdP-side address changes); an empty claim leaves
 // the stored address alone. A display name reset to ” by an instance
 // admin (FR-23.4) is re-stamped from the IdP claim here, exactly like
 // initial provisioning. Deactivation is never touched — a login must
 // not resurrect a deactivated account (FR-23.3/23.6).
-func (s *Store) EnsureOIDCUser(ctx context.Context, subject, displayName, email string, isAdmin bool) (string, error) {
+func (s *Store) EnsureOIDCUser(ctx context.Context, subject, displayName, email string, isAdmin *bool) (string, error) {
 	name := strings.TrimSpace(displayName)
 	if name == "" {
 		name = subject
@@ -31,19 +35,26 @@ func (s *Store) EnsureOIDCUser(ctx context.Context, subject, displayName, email 
 		name = name[:50] // users.display_name CHECK constraint
 	}
 
+	// NULL carries "leave the role as it stands" all the way into SQL, so
+	// the unknown case cannot be mistaken for a false.
+	var adminArg any
+	if isAdmin != nil {
+		adminArg = boolToInt(*isAdmin)
+	}
+
 	var id string
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id FROM users WHERE oidc_subject = ?`, subject).Scan(&id)
 	if err == nil {
 		// Conditional write keeps the per-request hot path read-only.
 		if _, err := s.db.ExecContext(ctx,
-			`UPDATE users SET is_instance_admin = ?,
+			`UPDATE users SET is_instance_admin = CASE WHEN ? IS NULL THEN is_instance_admin ELSE ? END,
 			        display_name = CASE WHEN display_name = '' THEN ? ELSE display_name END,
 			        email = CASE WHEN ? = '' THEN email ELSE ? END
-			 WHERE id = ? AND (is_instance_admin != ? OR display_name = ''
+			 WHERE id = ? AND ((? IS NOT NULL AND is_instance_admin IS NOT ?) OR display_name = ''
 			        OR (? != '' AND email IS NOT ?))`,
-			boolToInt(isAdmin), name, email, email,
-			id, boolToInt(isAdmin), email, email); err != nil {
+			adminArg, adminArg, name, email, email,
+			id, adminArg, adminArg, email, email); err != nil {
 			return "", fmt.Errorf("stamp oidc user: %w", err)
 		}
 		return id, nil
@@ -58,7 +69,7 @@ func (s *Store) EnsureOIDCUser(ctx context.Context, subject, displayName, email 
 	}
 	err = s.db.QueryRowContext(ctx,
 		`INSERT INTO users (oidc_subject, display_name, email, is_instance_admin) VALUES (?, ?, ?, ?) RETURNING id`,
-		subject, name, emailArg, boolToInt(isAdmin)).Scan(&id)
+		subject, name, emailArg, boolToInt(isAdmin != nil && *isAdmin)).Scan(&id)
 	if err != nil {
 		// Concurrent provisioning of the same subject: the UNIQUE
 		// constraint lost — the winner's row is what we want.
