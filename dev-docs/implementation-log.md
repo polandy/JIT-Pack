@@ -574,3 +574,26 @@ earlier), `EnsureOIDCUser`'s concurrent-provisioning race arm and
 `RotateSession`'s rows-affected race arm (both need a mutation between two
 statements of one call — not deterministically reachable, and the race rule
 forbids probabilistic tests), and DB-error plumbing throughout.
+
+## Basics audit, 2026-08-09 — supply-chain pinning (NFR-4.3 / invariant 8)
+
+Fourth audit field. The established surfaces were already clean — Actions by
+full commit SHA, Docker bases by digest, `go mod verify` green, npm via the
+lockfile — but the docs restructure had quietly opened a new one: the MkDocs
+toolchain installed via pip with only `mkdocs-material==9.6.14` pinned. The
+version pin held for one package; every transitive (mkdocs, jinja2, pygments,
+…) resolved to whatever was newest at build time, unverified — exactly the
+bare-tag pattern invariant 8 forbids, on the pipeline that publishes the
+manual.
+
+Closed with the same shape the other ecosystems use: `docs/requirements.in`
+is the human-edited input, `docs/requirements.txt` is compiled from it with
+`uv pip compile --generate-hashes --universal` (354 hashes, transitives
+included), the workflow installs with an explicit `--require-hashes` so an
+unhashed edit fails instead of silently reopening the gap, and Dependabot
+gains the `pip` ecosystem so the pins stay fresh like all the others.
+Verified by building the site strict from a fresh venv off the hashed set.
+
+Also checked and fine as-is: the only npm packages with install scripts are
+the two `fsevents` copies (macOS watcher, optional), which npm blocks by
+default — no allowlist needed until something else appears.
