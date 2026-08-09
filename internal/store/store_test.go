@@ -15,6 +15,11 @@ const (
 	testTrip = "trip-samedan"
 )
 
+// adminRole spells out the known half of EnsureOIDCUser's tri-state role
+// argument; nil is passed literally where "the IdP said nothing about
+// the role" is the case under test.
+func adminRole(v bool) *bool { return &v }
+
 func openTestStore(t *testing.T) *Store {
 	t.Helper()
 	s, err := Open(":memory:")

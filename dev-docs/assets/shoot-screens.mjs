@@ -6,10 +6,10 @@
  * exists. So they are generated, never hand-made: re-run this after any change
  * to UI_Concept_Prototype.html and commit the result alongside it.
  *
- *   cd client && node ../docs/assets/shoot-screens.mjs
+ *   cd client && node ../dev-docs/assets/shoot-screens.mjs
  *
  * Requires the Playwright Chromium that the client dev-dependency installs
- * (`npx playwright install chromium`). Writes docs/assets/screens/*.png.
+ * (`npx playwright install chromium`). Writes dev-docs/assets/screens/*.png.
  */
 import { mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'

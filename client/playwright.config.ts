@@ -4,7 +4,7 @@ import { defineConfig, devices } from '@playwright/test'
  * Playwright E2E configuration for the JIT-Pack client.
  *
  * Scope, modes, and per-case coverage are specified in
- * docs/UI_Test_Spec_v1.0.md — this file is only the runner wiring.
+ * dev-docs/UI_Test_Spec_v1.0.md — this file is only the runner wiring.
  *
  * The suite drives the *built* client (`vite preview`) in a headless
  * browser. Chromium and WebKit both run; WebKit is deliberate — the

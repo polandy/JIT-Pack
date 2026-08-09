@@ -82,10 +82,10 @@ System and environment configurations are 100% declarative, managed strictly via
 ## 4. Non-Functional Requirements (NFR)
 
 * **NFR-4.1 (Offline-First):** Mobile clients must remain completely functional without a network connection (e.g., in basements, garages, or remote areas). All read/write actions must instantly commit to a local device database.
-* **NFR-4.2 (Background Sync):** When a network connection becomes available, the app silently synchronizes upstream with the central database, handling data conflicts gracefully. *(Superseded by Addendum ADR-001 v2: the backend is embedded SQLite, not PostgreSQL — see `docs/ADR-001_v2_Stack_Sync.md`.)*
+* **NFR-4.2 (Background Sync):** When a network connection becomes available, the app silently synchronizes upstream with the central database, handling data conflicts gracefully. *(Superseded by Addendum ADR-001 v2: the backend is embedded SQLite, not PostgreSQL — see `dev-docs/adr/ADR-001_v2_Stack_Sync.md`.)*
 * **NFR-4.3 (Resource Efficiency):** The backend must be exceptionally lightweight and containerized (Docker), enabling it to run smoothly on standard home lab infrastructure (e.g., local NAS or low-power mini-PC) with minimal RAM footprints.
 * **NFR-4.4 (Security):** Local API interaction relies on decoupled JWT validation so that routine sync procedures bypass active Authelia session checks, ensuring smooth offline-to-online transitions.
 
 ---
 
-*Superseded by, and to be read alongside, `docs/PRD_Addendum_v2.10.md`, which is authoritative wherever the two disagree (notably NFR-4.2, revised from a central PostgreSQL backend to embedded SQLite per ADR-001 v2).*
+*Superseded by, and to be read alongside, `dev-docs/PRD_Addendum_v2.10.md`, which is authoritative wherever the two disagree (notably NFR-4.2, revised from a central PostgreSQL backend to embedded SQLite per ADR-001 v2).*

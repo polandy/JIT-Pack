@@ -279,7 +279,7 @@ JIT provisioning (Section 2) means every account that exists at the IdP gets ful
 
 ### 3.27 Template Composition ("Gruppen"), Trip→Template Round-Trip & Planning-Trip Refresh
 
-*Added 2026-08-08 on owner request; declared **part of the packing MVP**. Concept realised and click-tested in `docs/UI_Concept_Prototype.html` the same day.*
+*Added 2026-08-08 on owner request; declared **part of the packing MVP**. Concept realised and click-tested in `dev-docs/UI_Concept_Prototype.html` the same day.*
 
 The driving scenario, from the owner: reusable **groups** like *Makro Fotografie* (camera + macro lens) and *Wildlife Fotografie* (camera + tripod + tele lens); a **vacation template** composed of such groups, where the shared camera lands on the packing list **once**; trip planning that combines a template with **additional groups and single inventory items**; turning a finished (and mutated) trip back **into a template for next year**, with the groups recognised and *reused, not copied*; and group edits that reach **pending** trips but never touch running or past ones.
 

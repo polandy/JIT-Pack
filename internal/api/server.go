@@ -123,17 +123,17 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/export/full", s.authed(s.handleExportFull))
 	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.csv", s.authed(s.member(s.handleExportTripCSV)))
 	mux.HandleFunc("GET /api/v1/users/{userID}/avatar", s.handleGetAvatar)
-	mux.HandleFunc("PUT /api/v1/users/{userID}/avatar", s.authed(s.handlePutAvatar))
+	mux.HandleFunc("PUT /api/v1/users/{userID}/avatar", s.authed(s.self(s.handlePutAvatar)))
 	// Item images (FR-22): GET public like avatars; PUT/DELETE need only
 	// authentication (FR-22.6) — items carry no trip role to check.
 	mux.HandleFunc("GET /api/v1/items/{itemID}/image", s.handleGetItemImage)
 	mux.HandleFunc("PUT /api/v1/items/{itemID}/image", s.authed(s.handlePutItemImage))
 	mux.HandleFunc("DELETE /api/v1/items/{itemID}/image", s.authed(s.handleDeleteItemImage))
-	mux.HandleFunc("PUT /api/v1/users/{userID}/display-name", s.authed(s.handlePutDisplayName))
+	mux.HandleFunc("PUT /api/v1/users/{userID}/display-name", s.authed(s.self(s.handlePutDisplayName)))
 	mux.HandleFunc("GET /api/v1/templates/{templateID}/export", s.authed(s.handleExportTemplate))
 	mux.HandleFunc("POST /api/v1/templates/import", s.authed(s.handleImportTemplate))
 	mux.HandleFunc("GET /api/v1/trips/{tripID}/conflicts", s.authed(s.member(s.handleListConflicts)))
-	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.yaml", s.authed(s.handleExportTrip))
+	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.yaml", s.authed(s.member(s.handleExportTrip)))
 	mux.HandleFunc("POST /api/v1/trips/import", s.authed(s.handleImportTrip))
 	mux.HandleFunc("POST /api/v1/auth/token", s.handleAuthToken)
 	mux.HandleFunc("POST /api/v1/auth/refresh", s.handleAuthRefresh)
@@ -223,6 +223,26 @@ func (s *Server) member(next http.HandlerFunc) http.HandlerFunc {
 		}
 		if !ok {
 			writeError(w, http.StatusForbidden, "forbidden", "not a member of this trip")
+			return
+		}
+		next(w, r)
+	}
+}
+
+// self restricts a route addressed by {userID} to the account that owns
+// it. The path names the target row, so without this the client picks
+// whose profile it writes to — and the client's identity claims are never
+// trusted (invariant 3). Instance admins reach the same rows through the
+// /admin/users/{userID} endpoints, which carry their own authorization.
+func (s *Server) self(next http.HandlerFunc) http.HandlerFunc {
+	if s.singleUserMode {
+		// One implicit user: whoever the path names, it is them.
+		return next
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, _ := r.Context().Value(userIDKey).(string)
+		if userID == "" || r.PathValue("userID") != userID {
+			writeError(w, http.StatusForbidden, "forbidden", "cannot modify another user's profile")
 			return
 		}
 		next(w, r)

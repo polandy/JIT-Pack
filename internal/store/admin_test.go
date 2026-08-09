@@ -16,7 +16,7 @@ func TestEnsureOIDCUser_StampsInstanceAdmin(t *testing.T) {
 	ctx := context.Background()
 
 	// First sight with the subject on the admin list.
-	id, err := s.EnsureOIDCUser(ctx, "auth|dana", "Dana", "dana@example.com", true)
+	id, err := s.EnsureOIDCUser(ctx, "auth|dana", "Dana", "dana@example.com", adminRole(true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,17 +34,55 @@ func TestEnsureOIDCUser_StampsInstanceAdmin(t *testing.T) {
 
 	// The env list is authoritative in both directions (FR-23.1):
 	// removal from the list revokes at the next login.
-	if _, err := s.EnsureOIDCUser(ctx, "auth|dana", "Dana", "dana@example.com", false); err != nil {
+	if _, err := s.EnsureOIDCUser(ctx, "auth|dana", "Dana", "dana@example.com", adminRole(false)); err != nil {
 		t.Fatal(err)
 	}
 	if adminFlag() != 0 {
 		t.Error("re-login without isAdmin must revoke the flag")
 	}
-	if _, err := s.EnsureOIDCUser(ctx, "auth|dana", "Dana", "dana@example.com", true); err != nil {
+	if _, err := s.EnsureOIDCUser(ctx, "auth|dana", "Dana", "dana@example.com", adminRole(true)); err != nil {
 		t.Fatal(err)
 	}
 	if adminFlag() != 1 {
 		t.Error("re-login with isAdmin must restore the flag")
+	}
+
+	// An unknown role must not read as a revocation: a UserInfo response
+	// stripped of its email claim carries no verdict, and treating that
+	// gap as "not an admin" demoted instance admins silently.
+	if _, err := s.EnsureOIDCUser(ctx, "auth|dana", "Dana", "dana@example.com", nil); err != nil {
+		t.Fatal(err)
+	}
+	if adminFlag() != 1 {
+		t.Error("a nil role must leave an existing admin flag standing")
+	}
+	if _, err := s.EnsureOIDCUser(ctx, "auth|dana", "Dana", "dana@example.com", adminRole(false)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.EnsureOIDCUser(ctx, "auth|dana", "Dana", "dana@example.com", nil); err != nil {
+		t.Fatal(err)
+	}
+	if adminFlag() != 0 {
+		t.Error("a nil role must leave a non-admin as it stands too")
+	}
+}
+
+// A subject first seen through a degraded UserInfo response gets no
+// role: unknown may preserve what is stored, but it must never grant.
+func TestEnsureOIDCUser_NilRoleProvisionsNonAdmin(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+
+	id, err := s.EnsureOIDCUser(ctx, "auth|eve", "Eve", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var flag int
+	if err := s.db.QueryRow(`SELECT is_instance_admin FROM users WHERE id = ?`, id).Scan(&flag); err != nil {
+		t.Fatal(err)
+	}
+	if flag != 0 {
+		t.Errorf("is_instance_admin = %d, want 0 on first provisioning with an unknown role", flag)
 	}
 }
 
@@ -55,7 +93,7 @@ func TestEnsureOIDCUser_StampsEmail(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()
 
-	id, err := s.EnsureOIDCUser(ctx, "auth|gina", "Gina", "gina@example.com", false)
+	id, err := s.EnsureOIDCUser(ctx, "auth|gina", "Gina", "gina@example.com", adminRole(false))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,14 +109,14 @@ func TestEnsureOIDCUser_StampsEmail(t *testing.T) {
 		t.Errorf("email = %q after provisioning", email())
 	}
 
-	if _, err := s.EnsureOIDCUser(ctx, "auth|gina", "Gina", "gina@new.example", false); err != nil {
+	if _, err := s.EnsureOIDCUser(ctx, "auth|gina", "Gina", "gina@new.example", adminRole(false)); err != nil {
 		t.Fatal(err)
 	}
 	if email() != "gina@new.example" {
 		t.Errorf("email = %q, want the IdP-side change followed", email())
 	}
 
-	if _, err := s.EnsureOIDCUser(ctx, "auth|gina", "Gina", "", false); err != nil {
+	if _, err := s.EnsureOIDCUser(ctx, "auth|gina", "Gina", "", adminRole(false)); err != nil {
 		t.Fatal(err)
 	}
 	if email() != "gina@new.example" {
@@ -92,7 +130,7 @@ func TestEnsureOIDCUser_RestampsResetDisplayName(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()
 
-	id, err := s.EnsureOIDCUser(ctx, "auth|erik", "Rude Name", "", false)
+	id, err := s.EnsureOIDCUser(ctx, "auth|erik", "Rude Name", "", adminRole(false))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +145,7 @@ func TestEnsureOIDCUser_RestampsResetDisplayName(t *testing.T) {
 		t.Fatalf("reset name = %q, want empty", name)
 	}
 
-	if _, err := s.EnsureOIDCUser(ctx, "auth|erik", "Erik", "", false); err != nil {
+	if _, err := s.EnsureOIDCUser(ctx, "auth|erik", "Erik", "", adminRole(false)); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.db.QueryRow(`SELECT display_name FROM users WHERE id = ?`, id).Scan(&name); err != nil {
@@ -119,7 +157,7 @@ func TestEnsureOIDCUser_RestampsResetDisplayName(t *testing.T) {
 
 	// A user-chosen name survives logins untouched.
 	mustExec(t, s, `UPDATE users SET display_name = 'Custom' WHERE id = ?`, id)
-	if _, err := s.EnsureOIDCUser(ctx, "auth|erik", "Erik", "", false); err != nil {
+	if _, err := s.EnsureOIDCUser(ctx, "auth|erik", "Erik", "", adminRole(false)); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.db.QueryRow(`SELECT display_name FROM users WHERE id = ?`, id).Scan(&name); err != nil {
@@ -236,7 +274,7 @@ func TestDeactivatedUser_ExcludedFromDirectoryAndNotifications(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()
 
-	id, err := s.EnsureOIDCUser(ctx, "auth|frida", "Frida", "", false)
+	id, err := s.EnsureOIDCUser(ctx, "auth|frida", "Frida", "", adminRole(false))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -263,7 +301,7 @@ func TestDeactivatedUser_ExcludedFromDirectoryAndNotifications(t *testing.T) {
 	}
 
 	// JIT provisioning does not reactivate (FR-23.3/23.6).
-	again, err := s.EnsureOIDCUser(ctx, "auth|frida", "Frida", "", false)
+	again, err := s.EnsureOIDCUser(ctx, "auth|frida", "Frida", "", adminRole(false))
 	if err != nil {
 		t.Fatal(err)
 	}

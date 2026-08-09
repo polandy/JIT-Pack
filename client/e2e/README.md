@@ -1,7 +1,7 @@
 # E2E tests (Playwright)
 
 Headless-browser tests driving the **built** client. Scope and per-case
-coverage are specified in [`docs/UI_Test_Spec_v1.0.md`](../../docs/UI_Test_Spec_v1.0.md);
+coverage are specified in [`dev-docs/UI_Test_Spec_v1.0.md`](../../dev-docs/UI_Test_Spec_v1.0.md);
 this directory is the implementation of that spec.
 
 ## Running

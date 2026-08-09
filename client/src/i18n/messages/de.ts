@@ -4,7 +4,7 @@
  * Must define exactly the key set of en.ts; the catalogue-integrity test
  * enforces that, so a new English string cannot ship untranslated.
  *
- * Wording follows the concept prototype (docs/UI_Concept_Prototype.html),
+ * Wording follows the concept prototype (dev-docs/UI_Concept_Prototype.html),
  * which was written and tested in German — the informal "du" address it uses
  * is deliberate for a household app.
  */
