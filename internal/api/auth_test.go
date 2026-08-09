@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
+	"io"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -43,6 +44,8 @@ type fakeIDP struct {
 	idTokenKey  *rsa.PrivateKey // nil → key (set to a stranger's for forgery)
 	omitIDToken bool
 	tokenStatus int    // 0 → 200; e.g. 400 (rejection) or 503 (outage)
+	tokenBody   string // body served with tokenStatus; "" → empty
+	tokenCT     string // Content-Type for tokenBody; "" → application/json
 	idpRefresh  string // refresh token returned by grants; "" → "idp-refresh-1"
 
 	// Recorded by the handlers.
@@ -91,7 +94,15 @@ func newFakeIDP(t *testing.T) *fakeIDP {
 		idp.lastTokenForm = r.PostForm
 		idp.lastBasicUser, idp.lastBasicPass, _ = r.BasicAuth()
 		if idp.tokenStatus != 0 {
+			ct := idp.tokenCT
+			if ct == "" {
+				ct = "application/json; charset=utf-8"
+			}
+			w.Header().Set("Content-Type", ct)
 			w.WriteHeader(idp.tokenStatus)
+			if _, err := io.WriteString(w, idp.tokenBody); err != nil {
+				t.Errorf("idp write body: %v", err)
+			}
 			return
 		}
 		idp.accessCounter++
@@ -433,52 +444,206 @@ func TestAuthRefresh_RotatesAndReplayDies(t *testing.T) {
 	}
 }
 
-func TestAuthRefresh_IdPRejectionEndsSession(t *testing.T) {
-	idp := newFakeIDP(t)
-	srv, _ := newBrokerServer(t, idp)
-	_, refresh := login(t, srv.URL)
-
-	// Authelia says invalid_grant — the user was disabled or logged out.
-	idp.tokenStatus = http.StatusBadRequest
-	resp, _ := doJSON(t, http.MethodPost, srv.URL+"/api/v1/auth/refresh", "", map[string]any{
-		"refresh_token": refresh,
-	})
-	if resp.StatusCode != http.StatusUnauthorized {
-		t.Fatalf("rejected refresh: status = %d, want 401", resp.StatusCode)
+// TestAuthRefresh_ClassifiesIdPFailures pins the one distinction the
+// whole session model rests on (ADR-007, spec §2): only an RFC 6749
+// §5.2 `invalid_grant` ends a session; everything else leaves the chain
+// intact and answers 502, because behind a reverse proxy an outage is
+// far more likely to arrive as a 404 HTML error page than as a 5xx.
+// Each case asserts both halves — the immediate answer, and whether the
+// same refresh token still works once the IdP is healthy again.
+func TestAuthRefresh_ClassifiesIdPFailures(t *testing.T) {
+	tests := []struct {
+		name        string
+		status      int
+		contentType string
+		body        string
+		wantStatus  int  // answer while the IdP is failing
+		wantSurvive bool // does the chain still work after recovery?
+	}{
+		{
+			// The bug: Traefik drops Authelia's router with the
+			// container, so the token POST hits the catch-all error page.
+			name:        "proxy 404 with an HTML error page",
+			status:      http.StatusNotFound,
+			contentType: "text/html; charset=utf-8",
+			body:        "<!doctype html><title>404</title><h1>Not Found</h1>",
+			wantStatus:  http.StatusBadGateway,
+			wantSurvive: true,
+		},
+		{
+			name:        "proxy 502 while the IdP restarts",
+			status:      http.StatusBadGateway,
+			contentType: "text/plain; charset=utf-8",
+			body:        "Bad Gateway",
+			wantStatus:  http.StatusBadGateway,
+			wantSurvive: true,
+		},
+		{
+			name:        "IdP 503",
+			status:      http.StatusServiceUnavailable,
+			wantStatus:  http.StatusBadGateway,
+			wantSurvive: true,
+		},
+		{
+			// A route that no longer POSTs to a token endpoint says
+			// nothing about the user's grant.
+			name:        "405 from a misrouted endpoint",
+			status:      http.StatusMethodNotAllowed,
+			contentType: "text/plain; charset=utf-8",
+			body:        "405 Method Not Allowed",
+			wantStatus:  http.StatusBadGateway,
+			wantSurvive: true,
+		},
+		{
+			name:        "429 from a rate limiter",
+			status:      http.StatusTooManyRequests,
+			contentType: "text/plain; charset=utf-8",
+			body:        "Too Many Requests",
+			wantStatus:  http.StatusBadGateway,
+			wantSurvive: true,
+		},
+		{
+			// The only genuine rejection: Authelia's answer once the
+			// token is revoked or its login is gone.
+			name:        "400 invalid_grant",
+			status:      http.StatusBadRequest,
+			body:        `{"error":"invalid_grant","error_description":"The provided authorization grant is invalid, expired or revoked."}`,
+			wantStatus:  http.StatusUnauthorized,
+			wantSurvive: false,
+		},
+		{
+			// The broker's own secret is wrong — broken for every user
+			// at once. Deleting sessions would make a config typo
+			// unrecoverable for the whole instance.
+			name:        "401 invalid_client",
+			status:      http.StatusUnauthorized,
+			body:        `{"error":"invalid_client","error_description":"The provided client secret did not match the registered client secret."}`,
+			wantStatus:  http.StatusBadGateway,
+			wantSurvive: true,
+		},
+		{
+			// Same reasoning: a malformed request is the broker's bug.
+			name:        "400 invalid_request",
+			status:      http.StatusBadRequest,
+			body:        `{"error":"invalid_request","error_description":"The request is malformed."}`,
+			wantStatus:  http.StatusBadGateway,
+			wantSurvive: true,
+		},
+		{
+			// A 4xx that carries no OAuth error body did not come from a
+			// token endpoint.
+			name:        "400 with an empty body",
+			status:      http.StatusBadRequest,
+			wantStatus:  http.StatusBadGateway,
+			wantSurvive: true,
+		},
+		{
+			name:        "400 with valid JSON but no error field",
+			status:      http.StatusBadRequest,
+			body:        `{"message":"blocked by policy"}`,
+			wantStatus:  http.StatusBadGateway,
+			wantSurvive: true,
+		},
 	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			idp := newFakeIDP(t)
+			srv, st := newBrokerServer(t, idp)
+			_, refresh := login(t, srv.URL)
 
-	// The chain is dead even after the IdP recovers: rejection deletes
-	// the session, it does not merely fail the request.
-	idp.tokenStatus = 0
-	resp, _ = doJSON(t, http.MethodPost, srv.URL+"/api/v1/auth/refresh", "", map[string]any{
-		"refresh_token": refresh,
-	})
-	if resp.StatusCode != http.StatusUnauthorized {
-		t.Errorf("refresh after recovery: status = %d, want 401 (session must be gone)", resp.StatusCode)
+			idp.tokenStatus, idp.tokenCT, idp.tokenBody = tc.status, tc.contentType, tc.body
+			resp, raw := doJSON(t, http.MethodPost, srv.URL+"/api/v1/auth/refresh", "", map[string]any{
+				"refresh_token": refresh,
+			})
+			if resp.StatusCode != tc.wantStatus {
+				t.Fatalf("status = %d, want %d (body %s)", resp.StatusCode, tc.wantStatus, raw)
+			}
+
+			var sessions int
+			if err := st.DB().QueryRow(`SELECT COUNT(*) FROM sessions`).Scan(&sessions); err != nil {
+				t.Fatal(err)
+			}
+			if want := map[bool]int{true: 1, false: 0}[tc.wantSurvive]; sessions != want {
+				t.Errorf("sessions rows = %d, want %d", sessions, want)
+			}
+
+			// The decisive assertion: after the IdP is healthy again,
+			// only a real rejection may still be a logout.
+			idp.tokenStatus, idp.tokenCT, idp.tokenBody = 0, "", ""
+			resp, raw = doJSON(t, http.MethodPost, srv.URL+"/api/v1/auth/refresh", "", map[string]any{
+				"refresh_token": refresh,
+			})
+			want := http.StatusUnauthorized
+			if tc.wantSurvive {
+				want = http.StatusOK
+			}
+			if resp.StatusCode != want {
+				t.Errorf("refresh after recovery: status = %d, want %d (body %s)", resp.StatusCode, want, raw)
+			}
+		})
 	}
 }
 
-func TestAuthRefresh_IdPOutageKeepsSession(t *testing.T) {
-	idp := newFakeIDP(t)
-	srv, _ := newBrokerServer(t, idp)
-	_, refresh := login(t, srv.URL)
+// TestAuthToken_ClassifiesIdPFailures is the login-side half: the same
+// classification decides whether the client is told "the IdP said no"
+// (401, re-login) or "the IdP is unreachable" (502, retry later).
+func TestAuthToken_ClassifiesIdPFailures(t *testing.T) {
+	tests := []struct {
+		name        string
+		status      int
+		contentType string
+		body        string
+		wantStatus  int
+	}{
+		{
+			name:        "proxy 404 with an HTML error page",
+			status:      http.StatusNotFound,
+			contentType: "text/html; charset=utf-8",
+			body:        "<!doctype html><title>404</title>",
+			wantStatus:  http.StatusBadGateway,
+		},
+		{
+			// A spent or forged authorization code.
+			name:       "400 invalid_grant",
+			status:     http.StatusBadRequest,
+			body:       `{"error":"invalid_grant","error_description":"The authorization code has already been used."}`,
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
+			name:       "401 invalid_client",
+			status:     http.StatusUnauthorized,
+			body:       `{"error":"invalid_client","error_description":"Client authentication failed."}`,
+			wantStatus: http.StatusBadGateway,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			idp := newFakeIDP(t)
+			idp.tokenStatus, idp.tokenCT, idp.tokenBody = tc.status, tc.contentType, tc.body
+			srv, _ := newBrokerServer(t, idp)
 
-	// A 503 is the IdP being down, not the IdP saying no. Offline is
-	// normal (§2): the chain survives untouched.
-	idp.tokenStatus = http.StatusServiceUnavailable
-	resp, _ := doJSON(t, http.MethodPost, srv.URL+"/api/v1/auth/refresh", "", map[string]any{
-		"refresh_token": refresh,
+			resp, raw := doJSON(t, http.MethodPost, srv.URL+"/api/v1/auth/token", "", map[string]any{
+				"code": "abc", "code_verifier": "ver", "redirect_uri": "https://app/cb",
+			})
+			if resp.StatusCode != tc.wantStatus {
+				t.Errorf("status = %d, want %d (body %s)", resp.StatusCode, tc.wantStatus, raw)
+			}
+		})
+	}
+}
+
+// A 200 that is not a token set is a captive portal or a misrouted
+// proxy, never a grant — and must not read as one.
+func TestAuthToken_NonJSONSuccessIsAnOutage(t *testing.T) {
+	idp := newFakeIDP(t)
+	idp.tokenStatus, idp.tokenCT, idp.tokenBody = http.StatusOK, "text/html; charset=utf-8", "<html>sign in</html>"
+	srv, _ := newBrokerServer(t, idp)
+
+	resp, raw := doJSON(t, http.MethodPost, srv.URL+"/api/v1/auth/token", "", map[string]any{
+		"code": "abc", "code_verifier": "ver", "redirect_uri": "https://app/cb",
 	})
 	if resp.StatusCode != http.StatusBadGateway {
-		t.Fatalf("refresh during outage: status = %d, want 502", resp.StatusCode)
-	}
-
-	idp.tokenStatus = 0
-	resp, _ = doJSON(t, http.MethodPost, srv.URL+"/api/v1/auth/refresh", "", map[string]any{
-		"refresh_token": refresh,
-	})
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("refresh after outage: status = %d, want 200 (chain must have survived)", resp.StatusCode)
+		t.Errorf("status = %d, want 502 (body %s)", resp.StatusCode, raw)
 	}
 }
 

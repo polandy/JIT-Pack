@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -302,6 +303,26 @@ const (
 	idpUnreachable
 )
 
+// oauthErrorResponse is the token endpoint's error body (RFC 6749
+// §5.2). Its presence is the signal that the IdP itself answered:
+// proxies and error pages serve HTML or plain text, IdPs serve this.
+type oauthErrorResponse struct {
+	Code        string `json:"error"`
+	Description string `json:"error_description"`
+}
+
+const (
+	// errInvalidGrant is the only RFC 6749 §5.2 code that says anything
+	// about *this user's* grant — the refresh token or code is expired,
+	// revoked, or was never valid. It is what Authelia returns (400)
+	// once a token is revoked or the login it belongs to is gone.
+	errInvalidGrant = "invalid_grant"
+	// errInvalidClient means the broker's own credentials were refused
+	// (Authelia answers 401). Identical for every user, so it is a
+	// deployment fault, never a per-user rejection.
+	errInvalidClient = "invalid_client"
+)
+
 // idpTokenRequest posts to the IdP token endpoint as a confidential
 // client and decodes the token set. Reports ok=false after writing the
 // error response.
@@ -349,20 +370,63 @@ func (s *Server) idpTokenPost(form url.Values) (idpTokenSet, idpStatus) {
 	if err != nil {
 		return idpTokenSet{}, idpUnreachable
 	}
-	if resp.StatusCode >= http.StatusInternalServerError {
-		// A 5xx is the IdP being down, not the IdP saying no — the
-		// distinction decides whether a session survives (offline is
-		// normal, spec §2), so it must never collapse into rejection.
-		return idpTokenSet{}, idpUnreachable
-	}
-	if resp.StatusCode != http.StatusOK {
-		return idpTokenSet{}, idpRejected
+	if status := classifyTokenResponse(resp.StatusCode, body); status != idpOK {
+		return idpTokenSet{}, status
 	}
 	var tokens idpTokenSet
 	if err := json.Unmarshal(body, &tokens); err != nil || tokens.AccessToken == "" {
+		// A 200 that is not a token set never came from a token
+		// endpoint — a captive portal or a misrouted proxy, not a grant.
 		return idpTokenSet{}, idpUnreachable
 	}
 	return tokens, idpOK
+}
+
+// classifyTokenResponse decides whether the token endpoint said no or
+// was never reached — the distinction that decides whether a session
+// survives (ADR-007, spec §2), so it must never collapse into
+// rejection.
+//
+// A rejection is only an RFC 6749 §5.2 error response: 400 (or 401,
+// which some IdPs use) carrying a JSON object with an `error` field,
+// and among those codes only `invalid_grant`. Everything else is an
+// outage:
+//
+//   - Status codes outside 400/401, and any body that is not a JSON
+//     OAuth error. Behind a reverse proxy — the reference deployment —
+//     the IdP going down does not produce a 5xx at all: Traefik drops
+//     the router with the container and the POST lands on the catch-all
+//     error page, which answers 404 with HTML. That is the ordinary
+//     shape of "Authelia is down".
+//   - `invalid_client` and the remaining §5.2 codes. They describe the
+//     broker's registration or request, are identical for every user,
+//     and would turn one wrong secret into a fleet-wide permanent
+//     logout. Logged instead, because nothing else surfaces them.
+//
+// The asymmetry is deliberate. Reading a rejection as an outage costs a
+// session row that lingers to its absolute expiry while the user is cut
+// off anyway (no refresh ever succeeds); reading an outage as a
+// rejection destroys the session for good. Only the latter is
+// unrecoverable, so anything ambiguous resolves to outage.
+func classifyTokenResponse(statusCode int, body []byte) idpStatus {
+	if statusCode == http.StatusOK {
+		return idpOK
+	}
+	var oauthErr oauthErrorResponse
+	if err := json.Unmarshal(body, &oauthErr); err != nil || oauthErr.Code == "" {
+		return idpUnreachable
+	}
+	if statusCode != http.StatusBadRequest && statusCode != http.StatusUnauthorized {
+		return idpUnreachable
+	}
+	if oauthErr.Code != errInvalidGrant {
+		if oauthErr.Code == errInvalidClient {
+			slog.Error("IdP refused the broker's client credentials — check JITPACK_OIDC_CLIENT_ID and JITPACK_OIDC_CLIENT_SECRET",
+				"error", oauthErr.Code, "description", oauthErr.Description)
+		}
+		return idpUnreachable
+	}
+	return idpRejected
 }
 
 // fetchUserinfo wraps userinfoRequest with the broker's error
