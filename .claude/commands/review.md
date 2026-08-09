@@ -1,7 +1,7 @@
 Review uncommitted or recently committed changes against project standards:
 
 1. Run `git diff HEAD` (or `git diff HEAD~1` if working tree is clean) to see changes
-2. Read `docs/CODING_PRINCIPLES.md`
+2. Read `dev-docs/CODING_PRINCIPLES.md`
 3. Check the changes against these criteria:
    - Test-first: is there a driving test for each new behavior?
    - No unnecessary dependencies or abstractions

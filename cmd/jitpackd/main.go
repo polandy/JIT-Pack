@@ -36,21 +36,26 @@ func main() {
 			log.Fatalf("seed local user: %v", err)
 		}
 		srv = api.NewSingleUser(st, cfg.LocalUserID)
-	} else if cfg.JWKSURL != "" {
-		log.Printf("starting in multi-user mode (JWKS: %s)", cfg.JWKSURL)
-		jwks, err := api.NewJWKSProvider(cfg.JWKSURL)
-		if err != nil {
-			log.Fatalf("jwks: %v", err)
-		}
-		defer jwks.Close()
-		srv = api.NewWithJWKS(st, jwks)
-		if cfg.OIDCTokenURL != "" {
-			log.Printf("OIDC exchange enabled (token endpoint: %s)", cfg.OIDCTokenURL)
-			srv.EnableOIDCExchange(cfg.OIDCTokenURL, cfg.OIDCClientID, cfg.OIDCAuthorizeURL)
-		}
 	} else {
-		log.Print("starting in multi-user mode (HS256)")
-		srv = api.New(st, []byte(cfg.JWTSecret))
+		srv = api.New(st, []byte(cfg.SessionSecret))
+		if cfg.OIDCIssuer != "" {
+			// One configured endpoint, everything else discovered —
+			// authorize/token/userinfo for the broker, jwks_uri for the
+			// ID-token check (ADR-007).
+			d, err := api.FetchDiscovery(cfg.OIDCIssuer)
+			if err != nil {
+				log.Fatalf("oidc discovery: %v", err)
+			}
+			jwks, err := api.NewJWKSProvider(d.JWKSURI)
+			if err != nil {
+				log.Fatalf("jwks: %v", err)
+			}
+			defer jwks.Close()
+			srv.EnableOIDC(d, cfg.OIDCClientID, cfg.OIDCClientSecret, jwks)
+			log.Printf("starting in multi-user mode (OIDC broker: %s)", cfg.OIDCIssuer)
+		} else {
+			log.Print("starting in multi-user mode (externally minted session tokens)")
+		}
 	}
 	if cfg.PushContact != "" {
 		srv.SetPushContact(cfg.PushContact)

@@ -5,7 +5,19 @@ import (
 	"testing"
 )
 
+// The configuration surface follows the session-brokering model (ADR-007):
+// JIT-Pack always signs its own session tokens (JITPACK_SESSION_SECRET), and
+// the OIDC group — issuer, client id, client secret — configures the login
+// broker on top. The issuer is the only OIDC endpoint the operator provides;
+// authorize/token/JWKS/userinfo all come from its discovery document.
 func TestLoadConfig(t *testing.T) {
+	oidc := map[string]string{
+		"JITPACK_SESSION_SECRET":     "s3cret",
+		"JITPACK_OIDC_ISSUER":        "https://auth.example.com",
+		"JITPACK_OIDC_CLIENT_ID":     "jitpack",
+		"JITPACK_OIDC_CLIENT_SECRET": "confidential",
+	}
+
 	tests := []struct {
 		name    string
 		env     map[string]string
@@ -14,24 +26,24 @@ func TestLoadConfig(t *testing.T) {
 	}{
 		{
 			name: "multi-user with defaults",
-			env:  map[string]string{"JITPACK_JWT_SECRET": "s3cret"},
+			env:  map[string]string{"JITPACK_SESSION_SECRET": "s3cret"},
 			want: Config{
-				Listen:    ":8080",
-				DBPath:    "jitpack.db",
-				JWTSecret: "s3cret",
+				Listen:        ":8080",
+				DBPath:        "jitpack.db",
+				SessionSecret: "s3cret",
 			},
 		},
 		{
 			name: "multi-user custom listen and db",
 			env: map[string]string{
-				"JITPACK_JWT_SECRET": "s3cret",
-				"JITPACK_LISTEN":     ":9090",
-				"JITPACK_DB_PATH":    "/data/app.db",
+				"JITPACK_SESSION_SECRET": "s3cret",
+				"JITPACK_LISTEN":         ":9090",
+				"JITPACK_DB_PATH":        "/data/app.db",
 			},
 			want: Config{
-				Listen:    ":9090",
-				DBPath:    "/data/app.db",
-				JWTSecret: "s3cret",
+				Listen:        ":9090",
+				DBPath:        "/data/app.db",
+				SessionSecret: "s3cret",
 			},
 		},
 		{
@@ -48,39 +60,66 @@ func TestLoadConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "multi-user with JWKS URL",
-			env:  map[string]string{"JITPACK_JWKS_URL": "https://auth.example.com/.well-known/jwks.json"},
+			name: "multi-user with OIDC broker",
+			env:  oidc,
 			want: Config{
-				Listen:  ":8080",
-				DBPath:  "jitpack.db",
-				JWKSURL: "https://auth.example.com/.well-known/jwks.json",
+				Listen:           ":8080",
+				DBPath:           "jitpack.db",
+				SessionSecret:    "s3cret",
+				OIDCIssuer:       "https://auth.example.com",
+				OIDCClientID:     "jitpack",
+				OIDCClientSecret: "confidential",
+			},
+		},
+		{
+			// Discovery URLs are built by appending to the issuer, so a
+			// trailing slash would produce double-slash paths.
+			name: "issuer trailing slash trimmed",
+			env: merge(oidc, map[string]string{
+				"JITPACK_OIDC_ISSUER": "https://auth.example.com/",
+			}),
+			want: Config{
+				Listen:           ":8080",
+				DBPath:           "jitpack.db",
+				SessionSecret:    "s3cret",
+				OIDCIssuer:       "https://auth.example.com",
+				OIDCClientID:     "jitpack",
+				OIDCClientSecret: "confidential",
 			},
 		},
 		{
 			name: "admin emails parsed and trimmed (FR-23.1)",
 			env: map[string]string{
-				"JITPACK_JWT_SECRET":   "s3cret",
-				"JITPACK_ADMIN_EMAILS": "andy@example.com, sarah@example.com ,,",
+				"JITPACK_SESSION_SECRET": "s3cret",
+				"JITPACK_ADMIN_EMAILS":   "andy@example.com, sarah@example.com ,,",
 			},
 			want: Config{
-				Listen:      ":8080",
-				DBPath:      "jitpack.db",
-				JWTSecret:   "s3cret",
-				AdminEmails: []string{"andy@example.com", "sarah@example.com"},
+				Listen:        ":8080",
+				DBPath:        "jitpack.db",
+				SessionSecret: "s3cret",
+				AdminEmails:   []string{"andy@example.com", "sarah@example.com"},
 			},
 		},
 		{
-			name: "multi-user both secret and JWKS",
-			env: map[string]string{
-				"JITPACK_JWT_SECRET": "s3cret",
-				"JITPACK_JWKS_URL":   "https://auth.example.com/.well-known/jwks.json",
-			},
-			wantErr: "mutually exclusive",
-		},
-		{
-			name:    "multi-user missing secret and JWKS",
+			name:    "multi-user missing session secret",
 			env:     map[string]string{},
-			wantErr: "JITPACK_JWT_SECRET or JITPACK_JWKS_URL is required",
+			wantErr: "JITPACK_SESSION_SECRET is required",
+		},
+		{
+			// The session secret signs what the broker issues; OIDC config
+			// alone cannot stand in for it.
+			name: "multi-user OIDC without session secret",
+			env: merge(oidc, map[string]string{
+				"JITPACK_SESSION_SECRET": "",
+			}),
+			wantErr: "JITPACK_SESSION_SECRET is required",
+		},
+		{
+			name: "OIDC group incomplete",
+			env: merge(oidc, map[string]string{
+				"JITPACK_OIDC_CLIENT_SECRET": "",
+			}),
+			wantErr: "must be set together",
 		},
 		{
 			name: "single-user missing local user ID",
@@ -113,6 +152,17 @@ func TestLoadConfig(t *testing.T) {
 			}
 		})
 	}
+}
+
+func merge(base, override map[string]string) map[string]string {
+	out := make(map[string]string, len(base)+len(override))
+	for k, v := range base {
+		out[k] = v
+	}
+	for k, v := range override {
+		out[k] = v
+	}
+	return out
 }
 
 func contains(s, substr string) bool {

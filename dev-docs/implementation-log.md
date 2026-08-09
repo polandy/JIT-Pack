@@ -84,11 +84,11 @@ this log alone is not where a binding rule should live.
    - **UI**: M10 ItemEditorPage "Photo" section (add/replace/remove, live preview, object-URL lifecycle managed); reusable `ItemThumbnail.vue` (resolves the URL via the orchestrator, owns its lifecycle, renders nothing without a photo); M9 ItemInventoryPage row thumbnails; M5 ItemDetailPage shows the source master item's photo.
    - Open: avatar-style pan/zoom crop is intentionally absent (a reference photo keeps its aspect ratio, FR-22.3). Revisit trigger unchanged from ADR-002 — filesystem/object storage if photos grow past ~150 KB or the deployment leaves home-lab scale.
 13. ~~**Single-origin deployment (nginx client container).**~~ — **DONE** (2026-07-14). `client/Dockerfile` builds the SPA and serves it from nginx; `client/nginx.conf` reverse-proxies `/api`, `/ws` and `/health` to the backend, so the deliberately CORS-less API is reached same-origin. `docker-compose.yml` gained a `web` service on `:3000` and the `app` service became internal-only. Single-User Mode is now a genuine open-and-use path: open the app, pick Server Mode, no login. Shipped with `fix(singleuser)`: `EnsureLocalSingleUserID` (`internal/store/singleuser.go`) seeds the configured `JITPACK_LOCAL_USER_ID` row on startup — the single-user server attributes every request to that id, so without the row the first write failed on the `owner_id` foreign key (trips, memberships). Idempotent, and it preserves a display name the user later changed (FR-17.2).
-14. ~~**Playwright E2E harness scaffold.**~~ — **SCAFFOLD ONLY.** `client/playwright.config.ts`, `client/e2e/` (`fixtures.ts`, `smoke.spec.ts`, `README.md`), a CI job, and `docs/UI_Test_Spec_v1.0.md` (per-screen cases + FR/NFR traceability matrix). The **cases themselves are not written** — and per the Open-items note above they should wait for the M4/M5/M6/M8 concept lock, since the redesign rewrites them.
+14. ~~**Playwright E2E harness scaffold.**~~ — **SCAFFOLD ONLY.** `client/playwright.config.ts`, `client/e2e/` (`fixtures.ts`, `smoke.spec.ts`, `README.md`), a CI job, and `dev-docs/UI_Test_Spec_v1.0.md` (per-screen cases + FR/NFR traceability matrix). The **cases themselves are not written** — and per the Open-items note above they should wait for the M4/M5/M6/M8 concept lock, since the redesign rewrites them.
 15. **Concept & direction documents** (2026-07-12 – 2026-07-18) — the current phase's output, all *specification*, no code:
-    - `docs/UI_Concept_Prototype.html` — the clickable prototype every §3.25 decision was tested against. `docs/UI_Concept_Overview.html` — M1–M20 coverage overview.
-    - `docs/Navigation_Concept_v1.0.md` — information architecture: nav rail, trip entry points, back-stack, onboarding, empty states, edge cases.
-    - `docs/Vision_NorthStar_v1.0.md` — directional expansion from packing app to family vacation companion (Plan/Prepare/During/After). **Not authoritative over shipped scope**, drives no implementation. Flags **ADR-007 (outbound fetching)** as the gate for planning features — note that ADR is referenced but **not yet written** (`docs/` holds ADR-001…006).
+    - `dev-docs/UI_Concept_Prototype.html` — the clickable prototype every §3.25 decision was tested against. `dev-docs/UI_Concept_Overview.html` — M1–M20 coverage overview.
+    - `dev-docs/Navigation_Concept_v1.0.md` — information architecture: nav rail, trip entry points, back-stack, onboarding, empty states, edge cases.
+    - `dev-docs/Vision_NorthStar_v1.0.md` — directional expansion from packing app to family vacation companion (Plan/Prepare/During/After). **Not authoritative over shipped scope**, drives no implementation. Flags **ADR-007 (outbound fetching)** as the gate for planning features — note that ADR is referenced but **not yet written**, and its number has since been taken — ADR-007 is now Session Brokering — so the outbound-fetching decision gets the next free number when written.
     - PRD Addendum gained §3.24 (item tags, lifecycle delete), §3.25 (packing-screen refinements, FR-25.1–25.10), §3.26 (calendar feed) and NFR-4.12 (i18n) — §3.24/§3.25/§3.26 **status: proposed**, NFR-4.12 **accepted 2026-08-07**. §3.11 (Repack) retired.
 16. **i18n (NFR-4.12)** — **FOUNDATION DONE** (2026-08-07), migration open. `client/src/i18n/`: `index.ts` (locale resolution, `t`, `Intl` wrappers) + `messages/en.ts` and `messages/de.ts`. **English is the primary/default locale and also the fallback; German is fully supported** (owner decision — the client was already written in English, so German is an addition, not a rewrite). **No `vue-i18n`**: two locales need only key lookup, `{placeholder}` interpolation and a one/other plural rule, and date/number formatting is `Intl` — justification and revisit trigger recorded in NFR-4.12. The call shape stays vue-i18n-compatible (`t('key', { n })`) so swapping the module later does not touch call sites.
     - Keys are **flat and dot-namespaced** (`packing.itemsLeft`), not nested — a missing translation is a one-line diff, and the catalogue-integrity test can compare key sets directly. That test fails the build if an English key has no German counterpart, so a string cannot ship untranslated.
@@ -110,8 +110,8 @@ None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` n
 Recorded here because it is history: what was decided, mocked and specced, and
 why. The remaining *work* is listed in CLAUDE.md under "Not built yet"; this
 section is the reasoning behind it. Everything below was settled in the clickable
-prototype (`docs/UI_Concept_Prototype.html`, driven headless by
-`docs/UI_Concept_Prototype.verify.mjs`) before being written up.
+prototype (`dev-docs/UI_Concept_Prototype.html`, driven headless by
+`dev-docs/UI_Concept_Prototype.verify.mjs`) before being written up.
 
 Explicitly flagged as open in the entries below — the natural feed for `/next`:
 
@@ -397,7 +397,7 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
 
 Independent of the MVP:
 
-- **UI test suite (Playwright E2E)** — `docs/UI_Test_Spec_v1.0.md` is written and the harness is
+- **UI test suite (Playwright E2E)** — `dev-docs/UI_Test_Spec_v1.0.md` is written and the harness is
   scaffolded (`client/e2e/`, `playwright.config.ts`, smoke spec, CI job); the per-screen cases are
   not implemented. Sequencing note: the M4/M5/M6/M8 cases get rewritten by the redesign, so writing
   them before the concept locks is wasted work.
@@ -443,3 +443,92 @@ because it is the *verification* command everything else leans on:
 
 No ADR: the choice was forced rather than weighed — one of the two mechanisms could not run
 on the maintainer's platform and violated an existing invariant.
+
+## Basics audit, 2026-08-08 — FR-23.1 required an unverified claim
+
+Second finding of the auth-path audit, and a live privilege-escalation path rather
+than a latent one.
+
+`authed` (`server.go`) re-derived the instance-admin role on **every** request from
+`s.isAdminEmail(emailClaim(claims))`, and `email_verified` did not appear anywhere in
+the repository. OIDC Core §5.7 is explicit that `email` carries no verification
+guarantee by itself — `email_verified` does — so against an IdP with self-service
+profiles, any account could set its address to the one in `JITPACK_ADMIN_EMAILS` and
+be stamped `is_instance_admin = 1` on its next request, with the admin surface
+opening immediately. The driving test confirmed it before the fix: `GET
+/api/v1/admin/users` answered 200 with `"is_instance_admin":true` both for
+`email_verified: false` and for a token with no such claim at all.
+
+The fix is small because the allowlist was the only consumer: `isAdminEmail` now
+takes the verification flag and requires it, and `emailVerifiedClaim` reads the claim
+as a JSON bool or the string `"true"` (providers differ), treating everything else —
+absent included — as unverified. Both call sites, the `authed` middleware and the
+OIDC broker's JIT provisioning in `auth.go`, were updated.
+
+Two properties worth keeping in the tests: the role is *re-stamped* per request, so
+withdrawing verification has to take the role away again rather than leave a permanent
+admin behind; and the tests assert the consequence — whether the admin-only surface
+opens — instead of reading `users.is_instance_admin`, so they still describe the rule
+if the storage changes.
+
+**Operator consequence, recorded in FR-23.1:** an IdP that does not release
+`email_verified` now grants no instance admin at all. That is the correct default —
+the alternative is trusting a self-declared address — but it is a behaviour change for
+an existing deployment whose IdP omits the claim.
+
+Still open from this audit, deliberately not fixed here because it needs a
+compatibility decision: neither `authed` nor the OIDC broker validates `aud` or `iss`,
+so on a shared IdP a token minted for a different application validates here.
+
+## Basics audit, 2026-08-08 — first-party sessions (ADR-007)
+
+Owner directive during the audit: **Authelia is the reference IdP — where it
+prescribes something, JIT-Pack conforms.** Held against that, the auth layer was
+wrong at its root, not at its edges: the broker passed the IdP token set through
+and `authed` validated the IdP *access token* per request, reading identity out
+of it. Authelia's access tokens are opaque by default, carry no identity claims
+unless a claims policy copies them in, and their `aud` is the introspection
+endpoint — the owner's real deployment (`access_token_signed_response_alg:
+"none"`, no claims policy) could never have run this flow. Meanwhile the ID
+token, the credential actually minted for this application, arrived in every
+token response and was discarded unread.
+
+Rebuilt per ADR-007 (options weighed there: JWT access tokens, introspection,
+first-party sessions):
+
+- **Login** (`/auth/token`): confidential-client code exchange
+  (`client_secret_basic` — the secret finally exists, `JITPACK_OIDC_CLIENT_SECRET`),
+  ID token validated against the discovered JWKS with `iss` and `aud` = client id
+  (closing the audit's Finding B at the only place identity is established),
+  identity from UserInfo (sub must match the ID token per OIDC Core §5.3.2),
+  then JIT-Pack's own tokens: 15-min HS256 access (`sub` = `users.id`) + rotating
+  single-use refresh token, SHA-256-hashed into the new `sessions` table
+  (migration 017). The IdP token set never reaches the client.
+- **Refresh** (`/auth/refresh`): peek → replay the stored IdP refresh token at
+  Authelia (4xx deletes the session, 5xx/network leaves the chain untouched —
+  offline is normal) → re-read UserInfo, re-stamping FR-23.1 at refresh cadence →
+  rotate own token, slide the 90-day expiry (NFR-4.4). Replayed links die.
+- **Per request**: `authed` shrank to signature check + FR-23.3 deactivation
+  lookup. No JWKS, no `EnsureOIDCUser`, no identity mapping — `NewWithJWKS` and
+  `mapOIDCSubject` are gone.
+- **Config**: clean break, owner-approved. `JITPACK_SESSION_SECRET` required in
+  multi-user mode; OIDC group is issuer + client id + client secret, everything
+  else via `/.well-known/openid-configuration` at startup (which also closed the
+  gap that no UserInfo URL was configurable at all). `JITPACK_JWT_SECRET`,
+  `JITPACK_JWKS_URL`, `JITPACK_OIDC_TOKEN_URL`, `JITPACK_OIDC_AUTHORIZE_URL`
+  deleted.
+- **Client**: zero changes — the wire shape of `/auth/token`, `/auth/refresh`,
+  `/auth/config` is identical; `expires_in` 3600 → 900 is absorbed by the
+  existing proactive refresh. Verified against `client/src/auth/`.
+- **Specs**: Sync-API §2 rewritten (it had promised the pass-through), FR-23.1
+  moved to the UserInfo source with revocation-at-refresh semantics, README got
+  the stock Authelia client block (identical shape to the owner's other
+  clients, `"none"` algs included).
+
+The fake IdP in `auth_test.go` serves discovery, JWKS, token and userinfo and is
+steerable per test (wrong `aud`/`iss`, forged key, missing id_token, 4xx vs 5xx,
+rotating IdP refresh tokens). The FR-23.1 table from the `email_verified` fix
+carries over against UserInfo, plus revocation-at-refresh. Store sessions are
+clock-injected throughout — an earlier draft of `CreateSession` called
+`time.Now()` internally and promptly broke its own purge test; the parameter is
+what makes the expiry tests deterministic.

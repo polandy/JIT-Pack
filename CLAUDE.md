@@ -18,18 +18,37 @@ Read this file fully before touching code. It is the orientation document: what 
 
 | Question | File |
 |---|---|
-| What does the product do? | `docs/PRD_Base.md` (original vision) |
-| What changed or was added since? | `docs/PRD_Addendum_v2.10.md` — **always authoritative over PRD_Base.md where they differ** |
-| What do the screens look like? | `docs/UI_Spec_v1.10.md` — screens M1–M21, global patterns G-1–G-12 |
-| What is the packing concept supposed to feel like? | `docs/UI_Concept_Prototype.html` — the clickable mockup every §3.25/§3.27 decision was tested against; **`node docs/UI_Concept_Prototype.verify.mjs` drives it headless and must stay green** |
-| What's the wire protocol? | `docs/Sync_API_Spec_v1.3.md` — pull/push envelopes, HLC format, merge algorithm, WebSocket events, RPC endpoints |
+| What does the product do? | `dev-docs/PRD_Base.md` (original vision) |
+| What changed or was added since? | `dev-docs/PRD_Addendum_v2.10.md` — **always authoritative over PRD_Base.md where they differ** |
+| What do the screens look like? | `dev-docs/UI_Spec_v1.10.md` — screens M1–M21, global patterns G-1–G-12 |
+| What is the packing concept supposed to feel like? | `dev-docs/UI_Concept_Prototype.html` — the clickable mockup every §3.25/§3.27 decision was tested against; **`node dev-docs/UI_Concept_Prototype.verify.mjs` drives it headless and must stay green** |
+| What's the wire protocol? | `dev-docs/Sync_API_Spec_v1.3.md` — pull/push envelopes, HLC format, merge algorithm, WebSocket events, RPC endpoints |
 | What's the DB schema? | `internal/store/migrations/*.sql` — **single source of truth, never duplicated into docs/** |
-| Why was X chosen over Y? | `docs/ADR-00N_*.md` — options considered, weighted decision matrix, consequences, revisit trigger |
-| What must the UI test suite cover? | `docs/UI_Test_Spec_v1.0.md` — Playwright scope: per-screen cases, cross-screen flows, FR/NFR traceability matrix |
-| How do I write code here? | `docs/CODING_PRINCIPLES.md` — **binding**, read before writing anything |
+| Why was X chosen over Y? | `dev-docs/adr/ADR-00N_*.md` — options considered, weighted decision matrix, consequences, revisit trigger |
+| How do I run and operate this? | `docs/` — the published user manual; `docs/index.md` is its landing page |
+| What must the UI test suite cover? | `dev-docs/UI_Test_Spec_v1.0.md` — Playwright scope: per-screen cases, cross-screen flows, FR/NFR traceability matrix |
+| How do I write code here? | `dev-docs/CODING_PRINCIPLES.md` — **binding**, read before writing anything |
 | What was already built, and why that way? | `dev-docs/implementation-log.md` — append-only history |
 
 Only the current version of each document is kept. Never write a "v2" of a doc — replace the file and update its own revision note.
+
+## Documentation layout — three tiers, and they do not mix
+
+Modelled on [skipper-cd](https://github.com/polandy/skipper-cd). Which tier a document belongs to is decided by **who reads it**, never by what it is about:
+
+| Tier | Audience | Content |
+|---|---|---|
+| `README.md` | someone deciding whether to care | Short and appealing: what JIT-Pack is, why it exists, a quickstart, and links onward. It is a shop window, not a manual — no configuration reference, no deployment detail. |
+| `docs/` | people **running** JIT-Pack | The user manual, published to GitHub Pages via MkDocs Material (`mkdocs.yml`, `.github/workflows/docs.yml`). Install, configure, authenticate, operate, troubleshoot. Second person, task-oriented. |
+| `dev-docs/` | people **developing** JIT-Pack | PRDs, ADRs, specs, the implementation log, the concept prototype. Deliberately outside `docs/` so it is never published; read on GitHub. Indexed by `dev-docs/README.md`. |
+
+Rules that follow from this:
+
+- **A user-visible change updates `docs/`, not just the spec.** A feature is not complete when the spec is written; it is complete when the person running the instance can find out how to use it.
+- **Never document what is not implemented.** Large parts of the UI are still being rebuilt (see "Not built yet"), so the manual covers server operation and stops there. Adding a page for a screen that does not exist is worse than having no page.
+- **Every claim in `docs/` is verified against the code**, not against the spec — the spec says what is intended, the code says what runs.
+- Adding a page means adding it to `nav:` in `mkdocs.yml`; CI runs `mkdocs build --strict`, so an orphan page or a broken link fails the PR.
+- `dev-docs/` is not published. Never link to it from `docs/` with a relative path expecting it to resolve on the site — link to GitHub, or restate what the reader needs.
 
 ## Not built yet
 
@@ -58,7 +77,7 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    and both catalogues exist.
 5. **Two migrations owed by concept decisions** — drop `travelers.profile` (FR-25.9 retired), and
    add the record column beside `packer_user_id` (FR-25.19 splits assignment from packing record).
-6. **Playwright suite** — `docs/UI_Test_Spec_v1.0.md` is written and the harness scaffolded; the
+6. **Playwright suite** — `dev-docs/UI_Test_Spec_v1.0.md` is written and the harness scaffolded; the
    per-screen cases are not implemented, deliberately sequenced after the rebuilds.
 
 **Parked, specified, do not start:** §3.24 item tags & lifecycle delete, §3.26 calendar feed,
@@ -67,10 +86,10 @@ ownership model (each carries a revisit trigger in its stub).
 
 ## Packages
 
-- `cmd/jitpackd` — wiring only: env-parsed `Config`, picks `api.New` / `api.NewWithJWKS` / `api.NewSingleUser`, graceful shutdown. No logic.
+- `cmd/jitpackd` — wiring only: env-parsed `Config`, picks `api.New` (+ `EnableOIDC` after discovery) / `api.NewSingleUser`, graceful shutdown. No logic.
 - `internal/sync` — HLC generator + field-level merge algorithm (NFR-4.2a). Pure, zero I/O, zero internal imports.
 - `internal/store` — the only package that imports `database/sql`. SQLite repositories, change-log/conflict-log, the two sync partitions (`master.go` for categories/items/templates/trips/series/members, the trip partition for trip_items/travelers/containers/comments), migrations via `PRAGMA user_version`.
-- `internal/api` — HTTP handlers, WebSocket hub (`hub.go`/`ws.go`), JWT/JWKS auth, OIDC brokering, notifications, Web Push, admin surface, export/import.
+- `internal/api` — HTTP handlers, WebSocket hub (`hub.go`/`ws.go`), first-party session auth + OIDC login broker (ADR-007), notifications, Web Push, admin surface, export/import.
 - `internal/portable` — YAML wire types for portable template/trip export/import. Pure marshal/unmarshal.
 - `client/src/domain` — the pure client-side rules: quantity formulas, template instantiation, dependencies, containers, analytics, review, clone, spreadsheet import, members. No I/O, exhaustively unit-tested. **This is where the Go layout's planned `internal/domain` actually ended up** — deliberately, see invariant 4.
 
@@ -100,7 +119,7 @@ Test-first: every behaviour starts as a failing test that reads as its specifica
 ## Working agreement (see CODING_PRINCIPLES.md for the full detail)
 
 - **Never commit to `main`.** One git worktree per feature under `.claude/worktrees/`, branched from `origin/main` → PR → green CI → **wait for the merge go-ahead**. Merge with a hand-written squash subject; release-please derives the changelog from it.
-- **A feature PR is complete**: backend + the client UI that exposes it + the spec update (PRD Addendum / UI-Spec / Sync-API-Spec / UI-Test-Spec) + an ADR when a real tradeoff was decided. Never "UI in a follow-up", never "docs later".
+- **A feature PR is complete**: backend + the client UI that exposes it + the spec update in `dev-docs/` (PRD Addendum / UI-Spec / Sync-API-Spec / UI-Test-Spec) + an ADR when a real tradeoff was decided + the `docs/` page when the change is visible to whoever runs the instance. Never "UI in a follow-up", never "docs later".
 - **An ADR is owed only for a real tradeoff** — options weighed, one chosen at a cost. Not for additive config fields or mechanical refactors.
 - Run `/pr-review` on your own PR before asking for the go-ahead.
 - English throughout. Comments justify *why*, never *what*; godoc on exported symbols is mandatory.
