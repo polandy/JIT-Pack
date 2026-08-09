@@ -13,13 +13,22 @@ type Config struct {
 	DBPath      string // JITPACK_DB_PATH, default "jitpack.db"
 	SingleUser  bool   // JITPACK_SINGLE_USER, "true" enables
 	LocalUserID string // JITPACK_LOCAL_USER_ID, required when SingleUser
-	JWTSecret   string // JITPACK_JWT_SECRET, HS256 secret (multi-user)
-	JWKSURL     string // JITPACK_JWKS_URL, RS256 JWKS endpoint (multi-user)
 
-	// OIDC code-exchange broker (Sync-API §2); requires JWKSURL.
-	OIDCTokenURL     string // JITPACK_OIDC_TOKEN_URL, IdP token endpoint
-	OIDCAuthorizeURL string // JITPACK_OIDC_AUTHORIZE_URL, IdP authorize endpoint
+	// SessionSecret signs the HS256 session tokens JIT-Pack issues for
+	// its own API (ADR-007). Required in multi-user mode: with the OIDC
+	// broker configured it signs what the broker hands out after login,
+	// and without one it validates externally minted tokens (tests,
+	// scripted deployments).
+	SessionSecret string // JITPACK_SESSION_SECRET
+
+	// OIDC login broker (ADR-007, Sync-API §2). The issuer is the only
+	// endpoint the operator provides — authorize/token/JWKS/userinfo are
+	// resolved from {issuer}/.well-known/openid-configuration at startup.
+	// JIT-Pack is a confidential client (client_secret_basic), so the
+	// secret lives here, server-side, never in the SPA.
+	OIDCIssuer       string // JITPACK_OIDC_ISSUER, no trailing slash
 	OIDCClientID     string // JITPACK_OIDC_CLIENT_ID
+	OIDCClientSecret string // JITPACK_OIDC_CLIENT_SECRET
 
 	// Web Push (NFR-4.6): operator contact for the VAPID sub claim,
 	// e.g. "mailto:ops@example.com". Optional — the keys themselves are
@@ -27,14 +36,14 @@ type Config struct {
 	PushContact string // JITPACK_PUSH_CONTACT
 
 	// Instance admins (FR-23.1): comma-separated e-mail addresses,
-	// matched case-insensitively against the token's email claim and
-	// stamped on every login. Empty ⇒ the feature is dormant.
+	// matched case-insensitively against the verified email the UserInfo
+	// endpoint reports at login. Empty ⇒ the feature is dormant.
 	AdminEmails []string // JITPACK_ADMIN_EMAILS
 }
 
 // LoadConfig reads configuration from the environment. It returns an
 // error if the combination of values is invalid (e.g. multi-user mode
-// without a JWT secret).
+// without a session secret).
 func LoadConfig() (Config, error) {
 	return loadConfigFrom(os.Getenv)
 }
@@ -45,12 +54,12 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 		DBPath:      envOr(getenv, "JITPACK_DB_PATH", "jitpack.db"),
 		SingleUser:  getenv("JITPACK_SINGLE_USER") == "true",
 		LocalUserID: getenv("JITPACK_LOCAL_USER_ID"),
-		JWTSecret:   getenv("JITPACK_JWT_SECRET"),
-		JWKSURL:     getenv("JITPACK_JWKS_URL"),
 
-		OIDCTokenURL:     getenv("JITPACK_OIDC_TOKEN_URL"),
-		OIDCAuthorizeURL: getenv("JITPACK_OIDC_AUTHORIZE_URL"),
+		SessionSecret: getenv("JITPACK_SESSION_SECRET"),
+
+		OIDCIssuer:       strings.TrimRight(getenv("JITPACK_OIDC_ISSUER"), "/"),
 		OIDCClientID:     getenv("JITPACK_OIDC_CLIENT_ID"),
+		OIDCClientSecret: getenv("JITPACK_OIDC_CLIENT_SECRET"),
 
 		PushContact: getenv("JITPACK_PUSH_CONTACT"),
 
@@ -61,29 +70,22 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 		if c.LocalUserID == "" {
 			return Config{}, errors.New("JITPACK_LOCAL_USER_ID is required in single-user mode")
 		}
-	} else {
-		if c.JWTSecret == "" && c.JWKSURL == "" {
-			return Config{}, errors.New("JITPACK_JWT_SECRET or JITPACK_JWKS_URL is required in multi-user mode")
-		}
-		if c.JWTSecret != "" && c.JWKSURL != "" {
-			return Config{}, errors.New("JITPACK_JWT_SECRET and JITPACK_JWKS_URL are mutually exclusive")
-		}
+		return c, nil
 	}
 
-	oidcVars := []string{c.OIDCTokenURL, c.OIDCAuthorizeURL, c.OIDCClientID}
+	if c.SessionSecret == "" {
+		return Config{}, errors.New("JITPACK_SESSION_SECRET is required in multi-user mode (it signs the sessions JIT-Pack issues, see ADR-007)")
+	}
+
+	oidcVars := []string{c.OIDCIssuer, c.OIDCClientID, c.OIDCClientSecret}
 	oidcSet := 0
 	for _, v := range oidcVars {
 		if v != "" {
 			oidcSet++
 		}
 	}
-	if oidcSet > 0 {
-		if oidcSet < len(oidcVars) {
-			return Config{}, errors.New("JITPACK_OIDC_TOKEN_URL, JITPACK_OIDC_AUTHORIZE_URL, and JITPACK_OIDC_CLIENT_ID must be set together")
-		}
-		if c.JWKSURL == "" {
-			return Config{}, errors.New("the OIDC exchange requires JITPACK_JWKS_URL (brokered tokens are JWKS-verified)")
-		}
+	if oidcSet > 0 && oidcSet < len(oidcVars) {
+		return Config{}, errors.New("JITPACK_OIDC_ISSUER, JITPACK_OIDC_CLIENT_ID, and JITPACK_OIDC_CLIENT_SECRET must be set together")
 	}
 	return c, nil
 }

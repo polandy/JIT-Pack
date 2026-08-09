@@ -26,10 +26,12 @@ All configuration is via environment variables.
 | `JITPACK_DB_PATH` | no | `jitpack.db` | Path to the SQLite database file |
 | `JITPACK_SINGLE_USER` | no | `false` | Set to `true` for single-user mode (no authentication) |
 | `JITPACK_LOCAL_USER_ID` | single-user | — | User ID attributed to all requests in single-user mode |
-| `JITPACK_JWT_SECRET` | multi-user¹ | — | Shared secret for HS256 JWT validation |
-| `JITPACK_JWKS_URL` | multi-user¹ | — | JWKS endpoint URL for RS256 JWT validation (e.g. from Authelia) |
+| `JITPACK_SESSION_SECRET` | multi-user | — | Secret signing JIT-Pack's own HS256 session tokens (ADR-007) |
+| `JITPACK_OIDC_ISSUER` | with OIDC¹ | — | IdP issuer URL, e.g. `https://auth.example.com` — all endpoints discovered from it |
+| `JITPACK_OIDC_CLIENT_ID` | with OIDC¹ | — | OIDC client id |
+| `JITPACK_OIDC_CLIENT_SECRET` | with OIDC¹ | — | OIDC client secret (JIT-Pack is a confidential client) |
 
-¹ In multi-user mode, exactly one of `JITPACK_JWT_SECRET` or `JITPACK_JWKS_URL` must be set. They are mutually exclusive.
+¹ The three OIDC variables are set together or not at all. Without them, the server accepts externally minted HS256 tokens signed with the session secret — useful for tests and scripting, not for production.
 
 ### Single-user mode (homelab, no IdP)
 
@@ -42,25 +44,37 @@ JITPACK_DB_PATH=/data/jitpack.db \
 
 No authentication is performed — every request is attributed to the configured user.
 
-### Multi-user mode with JWKS (recommended for production)
+### Multi-user mode with Authelia (recommended for production)
 
 ```bash
-JITPACK_JWKS_URL=https://auth.example.com/.well-known/jwks.json \
+JITPACK_SESSION_SECRET=$(openssl rand -hex 32) \
+JITPACK_OIDC_ISSUER=https://auth.example.com \
+JITPACK_OIDC_CLIENT_ID=jitpack \
+JITPACK_OIDC_CLIENT_SECRET=... \
 JITPACK_DB_PATH=/data/jitpack.db \
   jitpackd
 ```
 
-JWTs must be signed with RS256 and include a `kid` header matching a key in the JWKS endpoint. Keys are fetched on startup and refreshed every 5 minutes. The `sub` claim is used as the user ID.
+The server brokers the OIDC login (code + PKCE) as a confidential client, validates the ID token against the discovered JWKS, reads identity from the UserInfo endpoint, and issues its own short-lived session tokens — the IdP token set never reaches the app (ADR-007). The matching Authelia client is the stock confidential-client shape:
 
-### Multi-user mode with shared secret (testing only)
-
-```bash
-JITPACK_JWT_SECRET=your-secret-here \
-JITPACK_DB_PATH=/data/jitpack.db \
-  jitpackd
+```yaml
+- client_id: "jitpack"
+  client_secret: "..."
+  public: false
+  authorization_policy: "two_factor"
+  require_pkce: true
+  pkce_challenge_method: "S256"
+  redirect_uris:
+    - https://jitpack.example.com/auth/callback
+  scopes: ["openid", "profile", "email", "offline_access"]
+  response_types: ["code"]
+  grant_types: ["authorization_code", "refresh_token"]
+  access_token_signed_response_alg: "none"   # opaque — JIT-Pack never parses it
+  userinfo_signed_response_alg: "none"
+  token_endpoint_auth_method: "client_secret_basic"
 ```
 
-JWTs must be signed with HS256 using the provided secret. Suitable for development and testing — use JWKS for production.
+`offline_access` and the `refresh_token` grant keep sessions alive across offline periods; each refresh re-validates the account at Authelia, so a user disabled there is cut off within one access-token lifetime (15 minutes).
 
 ### Docker Compose
 
@@ -77,8 +91,11 @@ services:
       # Single-user mode:
       JITPACK_SINGLE_USER: "true"
       JITPACK_LOCAL_USER_ID: "local"
-      # Or multi-user with JWKS:
-      # JITPACK_JWKS_URL: "https://auth.example.com/.well-known/jwks.json"
+      # Or multi-user with Authelia:
+      # JITPACK_SESSION_SECRET: "..."
+      # JITPACK_OIDC_ISSUER: "https://auth.example.com"
+      # JITPACK_OIDC_CLIENT_ID: "jitpack"
+      # JITPACK_OIDC_CLIENT_SECRET: "..."
 
 volumes:
   data:

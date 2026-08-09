@@ -1,125 +1,72 @@
 package api_test
 
 import (
-	"crypto/rsa"
+	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"testing"
-	"time"
-
-	"jitpack/internal/api"
-	"jitpack/internal/store"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
-// FR-23.1 grants the instance-admin role by matching the token's `email`
-// claim against a configured allowlist. OIDC Core §5.7 is explicit that
-// `email` carries no verification guarantee on its own — `email_verified`
-// does — so an IdP that lets an account set its own address would let
-// anyone claim the configured admin address and inherit the role. The
-// allowlist must therefore ignore an unverified claim.
+// FR-23.1 grants the instance-admin role by matching the verified email
+// against a configured allowlist. Since ADR-007 the claims come from the
+// IdP's UserInfo endpoint at login and at each refresh — the rule is
+// unchanged: OIDC Core §5.7 gives `email` no verification guarantee on
+// its own, so an unverified address must never mint an admin.
 //
 // These tests assert the consequence rather than the column: whether the
-// admin-only surface opens.
+// admin-only surface opens for the issued session.
 
-// rsaTokenWith signs an RS256 token carrying arbitrary extra claims, so a
-// test can state exactly which claim combination it is about.
-func rsaTokenWith(t *testing.T, key *rsa.PrivateKey, kid, sub string, extra map[string]any) string {
-	t.Helper()
-	claims := jwt.MapClaims{"sub": sub, "exp": time.Now().Add(time.Hour).Unix()}
-	for k, v := range extra {
-		claims[k] = v
-	}
-	tok := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	tok.Header["kid"] = kid
-	signed, err := tok.SignedString(key)
-	if err != nil {
-		t.Fatalf("sign RS256 token: %v", err)
-	}
-	return signed
-}
-
-// newAdminAllowlistServer builds a JWKS-mode server whose FR-23.1 allowlist
-// holds a single address, and returns a signer for tokens it will accept.
-func newAdminAllowlistServer(t *testing.T, adminEmail string) (string, func(sub string, extra map[string]any) string) {
-	t.Helper()
-	key := generateRSAKey(t)
-	kid := "idp-key-1"
-	jwksSrv := serveJWKS(t, kid, &key.PublicKey)
-	provider, err := api.NewJWKSProvider(jwksSrv.URL)
-	if err != nil {
-		t.Fatalf("NewJWKSProvider: %v", err)
-	}
-	t.Cleanup(provider.Close)
-
-	st, err := store.Open(":memory:")
-	if err != nil {
-		t.Fatalf("store.Open: %v", err)
-	}
-	t.Cleanup(func() { st.Close() })
-
-	apiSrv := api.NewWithJWKS(st, provider)
-	apiSrv.SetAdminEmails([]string{adminEmail})
-	srv := httptest.NewServer(apiSrv.Handler())
-	t.Cleanup(srv.Close)
-
-	return srv.URL, func(sub string, extra map[string]any) string {
-		return rsaTokenWith(t, key, kid, sub, extra)
-	}
-}
-
-func TestAuthed_AdminEmail_GrantsRoleOnlyWhenVerified(t *testing.T) {
+func TestLogin_AdminEmail_GrantsRoleOnlyWhenVerified(t *testing.T) {
 	const adminEmail = "andy@example.com"
 
 	tests := []struct {
 		name       string
-		claims     map[string]any
+		userinfo   map[string]any
 		wantStatus int
 	}{
 		{
-			// The allowlisted address with the verification flag — the
-			// intended FR-23.1 path, and the reason this cannot simply
-			// stop trusting the claim altogether.
+			// The intended FR-23.1 path — and the reason the rule cannot
+			// simply stop trusting the claim altogether.
 			name:       "verified allowlisted address is admin",
-			claims:     map[string]any{"email": adminEmail, "email_verified": true},
+			userinfo:   map[string]any{"email": adminEmail, "email_verified": true},
 			wantStatus: http.StatusOK,
 		},
 		{
-			// The escalation: an IdP that does not verify addresses, or a
-			// self-service account that set one. Same claim value, no proof.
+			// The escalation: a self-service account naming the admin
+			// address. Same claim value, no proof.
 			name:       "unverified allowlisted address is not admin",
-			claims:     map[string]any{"email": adminEmail, "email_verified": false},
+			userinfo:   map[string]any{"email": adminEmail, "email_verified": false},
 			wantStatus: http.StatusForbidden,
 		},
 		{
-			// Absent is not verified. Providers omit the flag when they have
-			// nothing to assert, which must read as "no" and not as "yes".
+			// Absent is not verified: a provider that asserts nothing
+			// has verified nothing.
 			name:       "missing email_verified is not admin",
-			claims:     map[string]any{"email": adminEmail},
+			userinfo:   map[string]any{"email": adminEmail},
 			wantStatus: http.StatusForbidden,
 		},
 		{
-			// Some IdPs serialise the flag as a JSON string. It is still a
-			// claim of verification and must be honoured, not silently
-			// dropped into the deny branch for the wrong reason.
+			// Some IdPs serialise the flag as a JSON string; it is still
+			// an assertion of verification and must be honoured.
 			name:       "string-typed true is honoured",
-			claims:     map[string]any{"email": adminEmail, "email_verified": "true"},
+			userinfo:   map[string]any{"email": adminEmail, "email_verified": "true"},
 			wantStatus: http.StatusOK,
 		},
 		{
 			name:       "verified non-allowlisted address is not admin",
-			claims:     map[string]any{"email": "mallory@example.com", "email_verified": true},
+			userinfo:   map[string]any{"email": "mallory@example.com", "email_verified": true},
 			wantStatus: http.StatusForbidden,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			baseURL, sign := newAdminAllowlistServer(t, adminEmail)
-			token := sign("auth|"+tc.name, tc.claims)
+			idp := newFakeIDP(t)
+			idp.userinfo = tc.userinfo
+			srv, _, apiSrv := newBrokerParts(t, idp)
+			apiSrv.SetAdminEmails([]string{adminEmail})
 
-			resp, raw := doJSON(t, http.MethodGet, baseURL+"/api/v1/admin/users", token, nil)
+			access, _ := login(t, srv.URL)
+			resp, raw := doJSON(t, http.MethodGet, srv.URL+"/api/v1/admin/users", access, nil)
 			if resp.StatusCode != tc.wantStatus {
 				t.Errorf("GET /admin/users = %d, want %d (body %s)", resp.StatusCode, tc.wantStatus, raw)
 			}
@@ -127,20 +74,37 @@ func TestAuthed_AdminEmail_GrantsRoleOnlyWhenVerified(t *testing.T) {
 	}
 }
 
-// The role is re-stamped on every request, so losing verification must take
-// the role away again — otherwise one unverified request would be enough to
-// leave a permanent admin behind.
-func TestAuthed_AdminRoleIsRevokedWhenVerificationDisappears(t *testing.T) {
+// The admin stamp is refreshed from UserInfo at every session refresh
+// (ADR-007), so losing verification — or leaving the allowlist — takes
+// the role away at refresh cadence rather than never.
+func TestRefresh_AdminRoleIsRevokedWhenVerificationDisappears(t *testing.T) {
 	const adminEmail = "andy@example.com"
-	baseURL, sign := newAdminAllowlistServer(t, adminEmail)
+	idp := newFakeIDP(t)
+	idp.userinfo = map[string]any{"email": adminEmail, "email_verified": true}
+	srv, _, apiSrv := newBrokerParts(t, idp)
+	apiSrv.SetAdminEmails([]string{adminEmail})
 
-	verified := sign("auth|andy", map[string]any{"email": adminEmail, "email_verified": true})
-	if resp, raw := doJSON(t, http.MethodGet, baseURL+"/api/v1/admin/users", verified, nil); resp.StatusCode != http.StatusOK {
+	access, refresh := login(t, srv.URL)
+	if resp, raw := doJSON(t, http.MethodGet, srv.URL+"/api/v1/admin/users", access, nil); resp.StatusCode != http.StatusOK {
 		t.Fatalf("verified admin = %d, want 200 (body %s)", resp.StatusCode, raw)
 	}
 
-	unverified := sign("auth|andy", map[string]any{"email": adminEmail, "email_verified": false})
-	if resp, raw := doJSON(t, http.MethodGet, baseURL+"/api/v1/admin/users", unverified, nil); resp.StatusCode != http.StatusForbidden {
-		t.Errorf("same account, verification withdrawn = %d, want 403 (body %s)", resp.StatusCode, raw)
+	// The IdP withdraws verification; the next refresh re-stamps.
+	idp.userinfo["email_verified"] = false
+	resp, raw := doJSON(t, http.MethodPost, srv.URL+"/api/v1/auth/refresh", "", map[string]any{
+		"refresh_token": refresh,
+	})
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("refresh: status = %d, body %s", resp.StatusCode, raw)
+	}
+	var out struct {
+		AccessToken string `json:"access_token"`
+	}
+	if err := json.Unmarshal(raw, &out); err != nil {
+		t.Fatal(err)
+	}
+
+	if resp, raw := doJSON(t, http.MethodGet, srv.URL+"/api/v1/admin/users", out.AccessToken, nil); resp.StatusCode != http.StatusForbidden {
+		t.Errorf("after verification withdrawn = %d, want 403 (body %s)", resp.StatusCode, raw)
 	}
 }

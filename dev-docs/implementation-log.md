@@ -445,3 +445,56 @@ an existing deployment whose IdP omits the claim.
 Still open from this audit, deliberately not fixed here because it needs a
 compatibility decision: neither `authed` nor the OIDC broker validates `aud` or `iss`,
 so on a shared IdP a token minted for a different application validates here.
+
+## Basics audit, 2026-08-08 — first-party sessions (ADR-007)
+
+Owner directive during the audit: **Authelia is the reference IdP — where it
+prescribes something, JIT-Pack conforms.** Held against that, the auth layer was
+wrong at its root, not at its edges: the broker passed the IdP token set through
+and `authed` validated the IdP *access token* per request, reading identity out
+of it. Authelia's access tokens are opaque by default, carry no identity claims
+unless a claims policy copies them in, and their `aud` is the introspection
+endpoint — the owner's real deployment (`access_token_signed_response_alg:
+"none"`, no claims policy) could never have run this flow. Meanwhile the ID
+token, the credential actually minted for this application, arrived in every
+token response and was discarded unread.
+
+Rebuilt per ADR-007 (options weighed there: JWT access tokens, introspection,
+first-party sessions):
+
+- **Login** (`/auth/token`): confidential-client code exchange
+  (`client_secret_basic` — the secret finally exists, `JITPACK_OIDC_CLIENT_SECRET`),
+  ID token validated against the discovered JWKS with `iss` and `aud` = client id
+  (closing the audit's Finding B at the only place identity is established),
+  identity from UserInfo (sub must match the ID token per OIDC Core §5.3.2),
+  then JIT-Pack's own tokens: 15-min HS256 access (`sub` = `users.id`) + rotating
+  single-use refresh token, SHA-256-hashed into the new `sessions` table
+  (migration 017). The IdP token set never reaches the client.
+- **Refresh** (`/auth/refresh`): peek → replay the stored IdP refresh token at
+  Authelia (4xx deletes the session, 5xx/network leaves the chain untouched —
+  offline is normal) → re-read UserInfo, re-stamping FR-23.1 at refresh cadence →
+  rotate own token, slide the 90-day expiry (NFR-4.4). Replayed links die.
+- **Per request**: `authed` shrank to signature check + FR-23.3 deactivation
+  lookup. No JWKS, no `EnsureOIDCUser`, no identity mapping — `NewWithJWKS` and
+  `mapOIDCSubject` are gone.
+- **Config**: clean break, owner-approved. `JITPACK_SESSION_SECRET` required in
+  multi-user mode; OIDC group is issuer + client id + client secret, everything
+  else via `/.well-known/openid-configuration` at startup (which also closed the
+  gap that no UserInfo URL was configurable at all). `JITPACK_JWT_SECRET`,
+  `JITPACK_JWKS_URL`, `JITPACK_OIDC_TOKEN_URL`, `JITPACK_OIDC_AUTHORIZE_URL`
+  deleted.
+- **Client**: zero changes — the wire shape of `/auth/token`, `/auth/refresh`,
+  `/auth/config` is identical; `expires_in` 3600 → 900 is absorbed by the
+  existing proactive refresh. Verified against `client/src/auth/`.
+- **Specs**: Sync-API §2 rewritten (it had promised the pass-through), FR-23.1
+  moved to the UserInfo source with revocation-at-refresh semantics, README got
+  the stock Authelia client block (identical shape to the owner's other
+  clients, `"none"` algs included).
+
+The fake IdP in `auth_test.go` serves discovery, JWKS, token and userinfo and is
+steerable per test (wrong `aud`/`iss`, forged key, missing id_token, 4xx vs 5xx,
+rotating IdP refresh tokens). The FR-23.1 table from the `email_verified` fix
+carries over against UserInfo, plus revocation-at-refresh. Store sessions are
+clock-injected throughout — an earlier draft of `CreateSession` called
+`time.Now()` internally and promptly broke its own purge test; the parameter is
+what makes the expiry tests deterministic.

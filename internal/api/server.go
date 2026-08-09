@@ -26,26 +26,24 @@ const (
 	maxPushBatch     = 200
 )
 
-// Server wires the sync endpoints. Authentication supports HS256
-// (shared secret, for testing or simple setups) and RS256 (JWKS from
-// an IdP such as Authelia, for production multi-user deployments).
+// Server wires the sync endpoints. Per-request authentication is
+// always against JIT-Pack's own HS256 session tokens (ADR-007); the
+// IdP is involved only at login and refresh, inside the OIDC broker.
 type Server struct {
 	store          *store.Store
+	sessionSecret  []byte
 	keyFunc        jwt.Keyfunc
 	validMethods   []string
 	singleUserMode bool
 	localUserID    string
 	hub            *Hub
-	oidc           *oidcExchange
+	oidc           *oidcBroker
 	// Web Push (NFR-4.6): VAPID keypair lazily loaded/generated via the
 	// store; contact is the RFC 8292 sub claim.
 	pushContact string
 	vapidMu     sync.Mutex
 	vapidPub    string
 	vapidPriv   string
-	// mapOIDCSubject: token sub is an OIDC subject (JWKS mode) and must
-	// be mapped to users.id; HS256 tokens carry users.id directly.
-	mapOIDCSubject bool
 	// adminEmails (FR-23.1): lowercased e-mail addresses holding the
 	// instance-admin role, from JITPACK_ADMIN_EMAILS — declarative,
 	// matched against the token's email claim and stamped on login.
@@ -75,28 +73,19 @@ func (s *Server) isAdminEmail(email string, verified bool) bool {
 	return verified && email != "" && s.adminEmails[strings.ToLower(email)]
 }
 
-// New creates a Server that validates JWTs with HS256 using the given
-// shared secret. Suitable for tests and single-secret deployments.
+// New creates the multi-user Server. The secret signs and validates
+// JIT-Pack's own HS256 session tokens (ADR-007): with the OIDC broker
+// enabled (EnableOIDC) the login flow issues them; without it, tokens
+// minted externally with the same secret are accepted — which is how
+// the tests drive authenticated endpoints directly.
 func New(st *store.Store, secret []byte) *Server {
 	hub := NewHub(st.HeadSeq)
 	return &Server{
-		store:        st,
-		keyFunc:      func(*jwt.Token) (any, error) { return secret, nil },
-		validMethods: []string{"HS256"},
-		hub:          hub,
-	}
-}
-
-// NewWithJWKS creates a Server that validates JWTs with RS256 using
-// keys fetched from the given JWKS provider.
-func NewWithJWKS(st *store.Store, jwks *JWKSProvider) *Server {
-	hub := NewHub(st.HeadSeq)
-	return &Server{
-		store:          st,
-		keyFunc:        jwks.KeyFunc,
-		validMethods:   []string{"RS256"},
-		hub:            hub,
-		mapOIDCSubject: true,
+		store:         st,
+		sessionSecret: secret,
+		keyFunc:       func(*jwt.Token) (any, error) { return secret, nil },
+		validMethods:  []string{"HS256"},
+		hub:           hub,
 	}
 }
 
@@ -184,19 +173,9 @@ func (s *Server) authed(next http.HandlerFunc) http.HandlerFunc {
 			writeError(w, http.StatusUnauthorized, "unauthorized", "token has no subject")
 			return
 		}
+		// Session tokens carry users.id directly (ADR-007): identity was
+		// established once, at login, by the broker — never per request.
 		userID := sub
-		if s.mapOIDCSubject {
-			// JWKS mode: sub is the OIDC subject — map to users.id,
-			// provisioning on first sight (§2), stamping the declarative
-			// instance-admin role (FR-23.1).
-			email := emailClaim(claims)
-			userID, err = s.store.EnsureOIDCUser(r.Context(), sub, displayNameClaim(claims), email,
-				s.isAdminEmail(email, emailVerifiedClaim(claims)))
-			if err != nil {
-				writeError(w, http.StatusInternalServerError, "internal", "user mapping failed")
-				return
-			}
-		}
 		// FR-23.3: a deactivated account loses all access — distinct
 		// error code so the client can tell it from a stale token.
 		if deactivated, err := s.store.UserDeactivated(r.Context(), userID); err != nil {
