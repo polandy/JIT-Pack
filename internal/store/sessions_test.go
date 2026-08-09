@@ -16,7 +16,7 @@ func sessionsFixture(t *testing.T) (*Store, context.Context, string, time.Time) 
 	t.Helper()
 	s := openTestStore(t)
 	ctx := context.Background()
-	userID, err := s.EnsureOIDCUser(ctx, "auth|sarah", "Sarah", "", false)
+	userID, err := s.EnsureOIDCUser(ctx, "auth|sarah", "Sarah", "", adminRole(false))
 	if err != nil {
 		t.Fatal(err)
 	}

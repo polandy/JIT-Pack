@@ -133,3 +133,45 @@ func TestExportFull_VisibilityFiltered(t *testing.T) {
 		t.Errorf("templates = %v, want [tpl-bertas] (shared instance-wide, FR-1.6 MVP)", got)
 	}
 }
+
+// The {userID} in the path names the row that gets written, so it must be the
+// caller's own. Both routes previously carried `authed` alone, which let any
+// account overwrite any other account's avatar or display name (invariant 3).
+func TestProfileWrites_RefuseAnotherUser(t *testing.T) {
+	srv := newTestServer(t)
+
+	t.Run("display name", func(t *testing.T) {
+		resp, raw := doJSON(t, http.MethodPut, srv.URL+"/api/v1/users/"+userB+"/display-name",
+			token(t, userA, testSecret), map[string]any{"display_name": "Hijacked"})
+		if resp.StatusCode != http.StatusForbidden {
+			t.Errorf("status = %d, want 403 (body %s)", resp.StatusCode, raw)
+		}
+
+		resp, raw = doJSON(t, http.MethodPut, srv.URL+"/api/v1/users/"+userA+"/display-name",
+			token(t, userA, testSecret), map[string]any{"display_name": "Andy.P"})
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("own display name: status = %d, want 200 (body %s)", resp.StatusCode, raw)
+		}
+	})
+
+	t.Run("avatar", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodPut,
+			srv.URL+"/api/v1/users/"+userB+"/avatar", strings.NewReader("not-really-a-jpeg"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Authorization", "Bearer "+token(t, userA, testSecret))
+		req.Header.Set("Content-Type", "image/jpeg")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		// 403 before the body is even read: authorization precedes validation,
+		// so a rejected caller never reaches the JPEG check.
+		if resp.StatusCode != http.StatusForbidden {
+			t.Errorf("status = %d, want 403", resp.StatusCode)
+		}
+	})
+}
