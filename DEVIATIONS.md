@@ -1,4 +1,4 @@
-# Deviations from CODING_PRINCIPLES.md
+# Deviations from dev-docs/CODING_PRINCIPLES.md
 
 ## D-001: SQLite driver `mattn/go-sqlite3` instead of `modernc.org/sqlite` — RESOLVED
 Originally the approved pure-Go driver was unreachable from the build
