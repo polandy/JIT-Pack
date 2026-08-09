@@ -243,10 +243,24 @@ func (s *Server) handleAuthConfig(w http.ResponseWriter, _ *http.Request) {
 // provisioning, display name, e-mail, and the FR-23.1 admin stamp —
 // which requires the IdP's email_verified assertion, exactly as the
 // token-claim variant did before ADR-007 moved the source here.
+//
+// A response without an email claim resolves the role to *unknown*
+// rather than to false. UserInfo answering 200 with the standard claims
+// stripped is a real shape — Authelia returns exactly that for an
+// account disabled after the token was issued — and since the re-stamp
+// on refresh is best-effort (consequence 6), treating the gap as "not
+// an admin" silently demoted every instance admin at their next
+// refresh, with no error raised and only a fresh login to recover.
+// Revocation still works whenever the IdP does supply an address: that
+// is the case FR-23.1 is about.
 func (s *Server) provisionFromUserinfo(w http.ResponseWriter, ctx context.Context, sub string, info map[string]any) (string, bool) {
 	email := stringClaim(info, "email")
-	userID, err := s.store.EnsureOIDCUser(ctx, sub, displayNameClaim(info), email,
-		s.isAdminEmail(email, emailVerifiedClaim(info)))
+	var isAdmin *bool
+	if email != "" {
+		admin := s.isAdminEmail(email, emailVerifiedClaim(info))
+		isAdmin = &admin
+	}
+	userID, err := s.store.EnsureOIDCUser(ctx, sub, displayNameClaim(info), email, isAdmin)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "internal", "user provisioning failed")
 		return "", false

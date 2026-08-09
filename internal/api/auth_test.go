@@ -397,6 +397,73 @@ func TestAuthToken_DeactivatedAccountRefused(t *testing.T) {
 	}
 }
 
+// Authelia answers UserInfo with 200 and the standard claims stripped —
+// sub, aud, iss and little else — for an account disabled after its
+// token was issued. Resolving the FR-23.1 role from that missing address
+// demoted the admin on the spot, silently, on a path documented as
+// best-effort. The role must survive a response that says nothing about
+// it; only an address the IdP actually supplies may revoke.
+func TestAuthRefresh_StrippedUserinfoKeepsAdminRole(t *testing.T) {
+	idp := newFakeIDP(t)
+	srv, _, apiSrv := newBrokerParts(t, idp)
+	apiSrv.SetAdminEmails([]string{"sarah@example.com"})
+
+	access, refresh := login(t, srv.URL)
+	isAdmin := func(token string) bool {
+		t.Helper()
+		resp, raw := doJSON(t, http.MethodGet, srv.URL+"/api/v1/me", token, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("/me: status = %d, body %s", resp.StatusCode, raw)
+		}
+		var me struct {
+			IsInstanceAdmin bool `json:"is_instance_admin"`
+		}
+		if err := json.Unmarshal(raw, &me); err != nil {
+			t.Fatal(err)
+		}
+		return me.IsInstanceAdmin
+	}
+	if !isAdmin(access) {
+		t.Fatal("login with an allowlisted address must stamp the admin role")
+	}
+
+	// Disabled at the IdP: the grant still succeeds, but UserInfo now
+	// carries no identity claims at all.
+	idp.userinfo = map[string]any{}
+	resp, raw := doJSON(t, http.MethodPost, srv.URL+"/api/v1/auth/refresh", "", map[string]any{
+		"refresh_token": refresh,
+	})
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("refresh: status = %d, body %s", resp.StatusCode, raw)
+	}
+	var rotated struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	if err := json.Unmarshal(raw, &rotated); err != nil {
+		t.Fatal(err)
+	}
+	if !isAdmin(rotated.AccessToken) {
+		t.Error("a UserInfo response without an email claim must not revoke the admin role")
+	}
+
+	// An address the IdP does supply still revokes (FR-23.1).
+	apiSrv.SetAdminEmails(nil)
+	idp.userinfo = map[string]any{"name": "Sarah", "email": "sarah@example.com", "email_verified": true}
+	resp, raw = doJSON(t, http.MethodPost, srv.URL+"/api/v1/auth/refresh", "", map[string]any{
+		"refresh_token": rotated.RefreshToken,
+	})
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("second refresh: status = %d, body %s", resp.StatusCode, raw)
+	}
+	if err := json.Unmarshal(raw, &rotated); err != nil {
+		t.Fatal(err)
+	}
+	if isAdmin(rotated.AccessToken) {
+		t.Error("removal from the allowlist must still revoke when UserInfo supplies the address")
+	}
+}
+
 func TestAuthRefresh_RotatesAndReplayDies(t *testing.T) {
 	idp := newFakeIDP(t)
 	srv, _ := newBrokerServer(t, idp)
