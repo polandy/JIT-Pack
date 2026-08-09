@@ -33,4 +33,3 @@ func TestIsTripMember(t *testing.T) {
 		})
 	}
 }
-

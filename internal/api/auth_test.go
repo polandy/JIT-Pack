@@ -39,16 +39,16 @@ type fakeIDP struct {
 	userinfo     map[string]any // served claims; "sub" injected unless set
 
 	// Steering knobs.
-	idTokenIss  string          // "" → own URL
-	idTokenAud  string          // "" → clientID
-	idTokenKey  *rsa.PrivateKey // nil → key (set to a stranger's for forgery)
+	idTokenIss     string          // "" → own URL
+	idTokenAud     string          // "" → clientID
+	idTokenKey     *rsa.PrivateKey // nil → key (set to a stranger's for forgery)
 	omitIDToken    bool
 	omitIDTokenSub bool
-	userinfoStatus int // 0 → 200; non-zero served verbatim (outage scenarios)
-	tokenStatus    int // 0 → 200; e.g. 400 (rejection) or 503 (outage)
-	tokenBody   string // body served with tokenStatus; "" → empty
-	tokenCT     string // Content-Type for tokenBody; "" → application/json
-	idpRefresh  string // refresh token returned by grants; "" → "idp-refresh-1"
+	userinfoStatus int    // 0 → 200; non-zero served verbatim (outage scenarios)
+	tokenStatus    int    // 0 → 200; e.g. 400 (rejection) or 503 (outage)
+	tokenBody      string // body served with tokenStatus; "" → empty
+	tokenCT        string // Content-Type for tokenBody; "" → application/json
+	idpRefresh     string // refresh token returned by grants; "" → "idp-refresh-1"
 
 	// Recorded by the handlers.
 	lastTokenForm url.Values
