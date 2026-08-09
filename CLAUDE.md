@@ -1,6 +1,6 @@
 # CLAUDE.md — JIT-Pack
 
-Self-hosted, offline-first, multi-user packing-list app. Go backend with embedded SQLite; Vue 3 + Ionic + Capacitor client. Runs in three modes from one artifact: **Server** (multi-user, OIDC), **Single-User** (no auth, no membership) and **Local** (no backend at all, IndexedDB).
+Self-hosted, offline-first, multi-user packing-list app. Go backend with embedded SQLite; Vue 3 + Ionic client (a Capacitor native shell stays planned per ADR-006 — the `@capacitor/*` packages were removed while unused and come back when the native build actually starts). Runs in three modes from one artifact: **Server** (multi-user, OIDC), **Single-User** (no auth, no membership) and **Local** (no backend at all, IndexedDB).
 
 Read this file fully before touching code. It is the orientation document: what exists, where it lives, and the rules that must not break. It is deliberately short — the running history of what was built lives in `dev-docs/implementation-log.md`.
 
@@ -77,8 +77,10 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    and both catalogues exist.
 5. **Two migrations owed by concept decisions** — drop `travelers.profile` (FR-25.9 retired), and
    add the record column beside `packer_user_id` (FR-25.19 splits assignment from packing record).
-6. **Playwright suite** — `dev-docs/UI_Test_Spec_v1.0.md` is written and the harness scaffolded; the
-   per-screen cases are not implemented, deliberately sequenced after the rebuilds.
+6. **Playwright suite** — `dev-docs/UI_Test_Spec_v1.0.md` is written, the harness is scaffolded and
+   the first unit (M3 trip creation) has landed; the remaining per-screen cases are deliberately
+   sequenced after the rebuilds. `dev-docs/e2e-tests.md` is the ledger of what is actually covered —
+   a green `e2e` job is not the same as a verified UI.
 
 **Parked, specified, do not start:** §3.24 item tags & lifecycle delete, §3.26 calendar feed,
 the North-Star Plan/During phases, FR-27.8's per-trip usage history, and FR-1.6's publish/fork

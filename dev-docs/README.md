@@ -34,6 +34,8 @@ replace the file and update its own revision note.
   together.
 - [`UI_Test_Spec_v1.0.md`](UI_Test_Spec_v1.0.md) — the Playwright scope: per-screen
   cases, cross-screen flows, and the FR/NFR traceability matrix.
+- [`e2e-tests.md`](e2e-tests.md) — which of those cases are actually implemented, and
+  where. The spec says what *should* be covered; the ledger says what *is*.
 
 The database schema has no spec file on purpose: `internal/store/migrations/*.sql` is
 its single source of truth and is never duplicated into prose.
