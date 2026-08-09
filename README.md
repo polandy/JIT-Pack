@@ -72,8 +72,9 @@ New here? The **[Getting Started walkthrough](https://polandy.github.io/JIT-Pack
 `CLAUDE.md` in this root is the orientation document for anyone — human or AI assistant — starting on the codebase: what exists, where it lives, and the invariants that must not break. [`dev-docs/CODING_PRINCIPLES.md`](dev-docs/CODING_PRINCIPLES.md) is binding for code.
 
 ```bash
+mise install     # once per machine — mise.toml pins the toolchain at the versions CI uses
 make ci          # mirrors the CI pipeline 1:1 — green here predicts a green pipeline
-go test ./... -race
+go test -race ./cmd/... ./internal/...   # Go tests only; scoped because client/node_modules vendors Go source
 ```
 
 ## Releases
