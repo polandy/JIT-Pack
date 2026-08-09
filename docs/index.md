@@ -9,8 +9,7 @@
 
 Packing lists that remember. Items are per-person or per-trip, so party size takes care of itself, and how *many* of each comes from what you actually took on your last trips — rescaled to this one's length and offered as a one-tap default. Check something off and it disappears from everyone else's screen at the same moment. It runs on your own machine: a single Go binary with an embedded SQLite database, and a client that keeps working with no network at all.
 
-!!! note "Status"
-    The sync engine, the login broker and the API are in place and tested; large parts of the user interface are being rebuilt against a closed concept. This manual documents **running** a JIT-Pack server, which is the part that is stable. It deliberately does not document screens that are still being rebuilt.
+This manual covers **running** a JIT-Pack server: installing it, configuring it, wiring up authentication, and keeping it healthy.
 
 ## Quickstart
 
