@@ -29,10 +29,12 @@ func (s *Store) ExportFull(ctx context.Context, userID string) (FullExport, erro
 	}{
 		{"categories", `SELECT * FROM categories`, nil},
 		{"items", `SELECT * FROM items`, nil},
-		{"templates", `SELECT * FROM templates WHERE owner_id = ? OR is_published = 1`, one},
-		{"template_items", `SELECT ti.* FROM template_items ti
-			JOIN templates t ON t.id = ti.template_id
-			WHERE t.owner_id = ? OR t.is_published = 1`, one},
+		// Templates are instance-wide master data (FR-1.6 MVP), so they
+		// export unfiltered like categories and items.
+		{"templates", `SELECT * FROM templates`, nil},
+		{"template_items", `SELECT * FROM template_items`, nil},
+		{"template_includes", `SELECT * FROM template_includes`, nil},
+		{"template_item_tasks", `SELECT * FROM template_item_tasks`, nil},
 		{"trip_series", `SELECT * FROM trip_series WHERE owner_id = ?`, one},
 		{"destination_profiles", `SELECT p.* FROM destination_profiles p
 			JOIN trip_series s ON s.id = p.series_id WHERE s.owner_id = ?`, one},

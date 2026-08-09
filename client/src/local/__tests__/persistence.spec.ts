@@ -29,7 +29,7 @@ describe('IndexedDBPersistence', () => {
     const first = new IndexedDBPersistence()
     await first.save([
       change('trips', 't1', { name: 'Engadin', end_date: '2026-08-10' }),
-      change('items', 'i1', { name: 'Socken', unit: 'pieces' }),
+      change('items', 'i1', { name: 'Socken' }),
     ])
 
     const second = new IndexedDBPersistence()

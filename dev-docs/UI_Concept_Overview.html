@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>JIT-Pack · UI-Konzept — Masken-Übersicht</title>
+<!--
+  Concept coverage overview for the clickable UI prototype (phase-hub concept).
+  Maintained in git (docs/); a copy is served next to the prototype on :3000 as /overview.html.
+  Update this file whenever a screen's concept status changes.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --crust:#11111b;--mantle:#181825;--base:#1e1e2e;--s0:#313244;--s1:#45475a;--s2:#585b70;
+  --o0:#6c7086;--o1:#7f849c;--text:#cdd6f4;--sub1:#bac2de;--sub0:#a6adc8;
+  --blue:#89b4fa;--teal:#94e2d5;--green:#a6e3a1;--yellow:#f9e2af;--peach:#fab387;
+  --red:#f38ba8;--mauve:#cba6f7;--rose:#f5e0dc;--sky:#89dceb;--sapphire:#74c7ec;
+  --ui:'Hanken Grotesk',system-ui,sans-serif;--display:'Fraunces',Georgia,serif;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--ui);color:var(--text);-webkit-font-smoothing:antialiased;
+  background:radial-gradient(70% 50% at 15% 0,rgba(203,166,247,.09),transparent 60%),
+             radial-gradient(55% 45% at 95% 100%,rgba(250,179,135,.08),transparent 60%),var(--crust);
+  padding:34px 20px 60px}
+.wrap{max-width:1060px;margin:0 auto}
+.kicker{font:600 12px/1 var(--ui);letter-spacing:.18em;text-transform:uppercase;color:var(--peach)}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(28px,4.5vw,40px);letter-spacing:-.01em;margin:.35em 0 .2em}
+h1 em{font-style:italic;color:var(--rose)}
+.sub{color:var(--sub0);font-size:15px;max-width:640px;line-height:1.55}
+.sub code{background:var(--base);border:1px solid var(--s0);border-radius:7px;padding:2px 7px;font-size:13px;color:var(--sky)}
+.meter{display:flex;align-items:center;gap:14px;margin:26px 0 10px}
+.meter .bar{flex:1;height:10px;border-radius:6px;background:var(--s0);overflow:hidden;display:flex}
+.meter .bar i{display:block;height:100%}
+.meter b{font-size:13px;white-space:nowrap}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0 30px;font-size:12.5px;color:var(--sub1)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.dot{width:10px;height:10px;border-radius:4px;flex:none}
+.sec{font:600 12px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--o1);margin:34px 2px 14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+.card{background:var(--base);border:1px solid var(--s0);border-left:4px solid var(--s1);border-radius:16px;padding:15px 16px 14px;
+  box-shadow:0 1px 0 rgba(255,255,255,.02) inset,0 10px 26px -14px rgba(0,0,0,.55)}
+.card.done{border-left-color:var(--green)}
+.card.hub{border-left-color:var(--peach);grid-column:1/-1;
+  background:radial-gradient(120% 130% at 100% 0,rgba(250,179,135,.12),transparent 55%),var(--base)}
+.card.open{border-left-color:var(--s2);opacity:.85}
+.card.depr{border-left-color:var(--o0);opacity:.62}
+.chead{display:flex;align-items:baseline;gap:9px}
+.mid{font-size:11px;font-weight:700;color:var(--o1);letter-spacing:.06em;flex:none}
+.cname{font-weight:700;font-size:15.5px;flex:1;min-width:0}
+.status{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:8px;white-space:nowrap;flex:none}
+.done .status{color:var(--green);background:rgba(166,227,161,.14)}
+.hub .status{color:var(--peach);background:rgba(250,179,135,.16)}
+.open .status{color:var(--sub0);background:var(--s0)}
+.depr .status{color:var(--o1);background:var(--mantle);border:1px solid var(--s0)}
+.path{margin:10px 0 8px;font-size:12px;color:var(--sky);background:var(--mantle);border:1px solid var(--s0);
+  border-radius:9px;padding:7px 10px;line-height:1.45}
+.path b{color:var(--sub1);font-weight:600}
+ul.check{margin:8px 0 0;padding:0;list-style:none;display:grid;gap:5px}
+ul.check li{font-size:12.5px;color:var(--sub0);line-height:1.45;padding-left:20px;position:relative}
+ul.check li::before{content:"☐";position:absolute;left:2px;color:var(--teal)}
+.note{font-size:12.5px;color:var(--sub0);margin-top:8px;line-height:1.5}
+.todo{margin-top:10px;font-size:12px;color:var(--peach);background:rgba(250,179,135,.1);
+  border:1px dashed rgba(250,179,135,.4);border-radius:9px;padding:7px 10px;line-height:1.45}
+.todo b{letter-spacing:.06em}
+.foot{margin-top:40px;border-top:1px solid var(--s0);padding-top:18px;font-size:12.5px;color:var(--o1);line-height:1.7;max-width:760px}
+.foot b{color:var(--sub1)}
+@media(max-width:640px){body{padding:24px 12px 50px}}
+
+.shots{display:flex;gap:10px;overflow-x:auto;padding:12px 0 4px;scrollbar-width:thin}
+.shots figure{margin:0;flex:0 0 auto;text-align:center}
+.shots img{display:block;width:186px;border-radius:12px;border:1px solid rgba(255,255,255,.10);background:#11111b}
+.shots figcaption{font-size:11px;opacity:.65;margin-top:5px;max-width:186px}
+</style>
+</head>
+<body><div class="wrap">
+
+<div class="kicker">JIT-Pack · UI-Konzept · Stand 08.08.2026</div>
+<h1>Masken-Übersicht — <em>was ist testbar?</em></h1>
+<p class="sub">Alle Screens der UI-Spec (M1–M20) und ihr Stand im anklickbaren Konzept-Prototyp.
+Prototyp öffnen: <code>http://&lt;host&gt;:3000</code> — grüne Karten sind fertig ausgestaltet und warten auf deinen Test;
+die Checkboxen sind deine Prüfpunkte. Die Screenshots zeigen den aktuellen Prototyp — sie werden mit <code>node dev-docs/assets/shoot-screens.mjs</code> neu erzeugt, damit sie nicht veralten; Bild antippen öffnet es gross.</p>
+
+<div class="meter">
+  <div class="bar">
+    <i style="width:60%;background:linear-gradient(90deg,var(--teal),var(--green))"></i>
+    <i style="width:5%;background:var(--o0)"></i>
+  </div>
+  <b>12 / 19 Masken im Konzept · +Phasen-Hub · M13 entfernt</b>
+</div>
+<div class="legend">
+  <span><span class="dot" style="background:var(--green)"></span>Konzept fertig — bitte testen</span>
+  <span><span class="dot" style="background:var(--peach)"></span>Konzept-Kern (neu, ohne M-Nummer)</span>
+  <span><span class="dot" style="background:var(--s2)"></span>noch offen</span>
+  <span><span class="dot" style="background:var(--o0)"></span>entfernt (nicht Teil des Produkts)</span>
+</div>
+
+<div class="sec">Konzept-Kern</div>
+<div class="grid">
+  <div class="card hub">
+    <div class="chead"><span class="mid">HUB</span><span class="cname">Phasen-Hub — Trip als Ferien mit vier Phasen</span><span class="status">KONZEPT-KERN</span></div>
+    <div class="path"><b>Pfad:</b> Tab „Reisen“ → Toskana antippen → Phasen-Leiste oben</div>
+    <ul class="check">
+      <li>Vier Phasen umschalten: Planen · Vorbereiten · Unterwegs · Danach</li>
+      <li>Vorbereiten ist voll ausgestaltet (→ M4 ff.); Planen (Ideen-Board), Unterwegs (Tagesplan/Kasse) und Danach (Review-Statistik) sind bewusst nur Skizzen der North-Star-Vision</li>
+    </ul>
+  </div>
+</div>
+
+<div class="sec">Fertig im Konzept — bitte testen</div>
+<div class="grid">
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M1</span><span class="cname">Übersicht (Dashboard)</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> Tab „Übersicht“ (Start)</div>
+    <div class="shots"><figure><a href="assets/screens/m1-dashboard.png" target="_blank"><img src="assets/screens/m1-dashboard.png" alt="M1 – Übersicht" loading="lazy"></a><figcaption>Übersicht</figcaption></figure></div>
+    <ul class="check">
+      <li>„Meine offenen Sachen“ — Checkbox hakt ab, Zähler zählt live</li>
+      <li>„Dir zum Packen übergeben“ — blaue Karte (Kinderbücher, von Sara)</li>
+      <li>Vorbereitungen: filtern (Suchfeld) + abhaken, Artikelname → M5</li>
+      <li>Hero-Karte → Phasen-Hub</li>
+    </ul>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M2</span><span class="cname">Reisen-Liste</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> Tab „Reisen“</div>
+    <div class="shots"><figure><a href="assets/screens/m2-trips.png" target="_blank"><img src="assets/screens/m2-trips.png" alt="M2 – Reisen" loading="lazy"></a><figcaption>Reisen</figcaption></figure></div>
+    <ul class="check">
+      <li>Suche + Statusfilter (Alle/Aktiv/Geplant/Archiv)</li>
+      <li>Seriengruppe „◆ Toskana“ mit 3 Reisen, Archiv gedimmt</li>
+      <li>Fortschrittsringe je Status, Reise antippen → Hub</li>
+    </ul>
+    <div class="todo"><b>TODO</b> · Standard-Sortierung nach Datum (jüngste zuoberst), keine Serien-Gruppierung als Default — Serie wird optionale Ansicht (§3.25, 17.07.).</div>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M3</span><span class="cname">Reise-Wizard (4 Schritte)</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> ＋-FAB auf „Übersicht“ oder „Reisen“</div>
+    <div class="shots"><figure><a href="assets/screens/m3-wizard.png" target="_blank"><img src="assets/screens/m3-wizard.png" alt="M3 – Assistent Schritt 1" loading="lazy"></a><figcaption>Assistent Schritt 1</figcaption></figure></div>
+    <ul class="check">
+      <li>Schritt 1: Datum → Dauer live; Serie „Toskana“ befüllt leere Attribut-Chips</li>
+      <li>Schritt 2: Reisende Erwachsen/Kind; Teilen-Block (Editor/Admin)</li>
+      <li>Schritt 3: Vorlagen-Suche + Filter; Live-Footer (Duplikate, Saison-Ausschlüsse, Companions)</li>
+      <li>Schritt 4: Mengen aus den Vorlagen + Ein-Tipp-Verlaufsvorschlag; Ziel-Checkliste opt-out</li>
+    </ul>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M4</span><span class="cname">Packliste</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> Reise → „Vorbereiten“ → „Packliste öffnen“</div>
+    <div class="shots"><figure><a href="assets/screens/m4-packliste.png" target="_blank"><img src="assets/screens/m4-packliste.png" alt="M4 – Packliste" loading="lazy"></a><figcaption>Packliste</figcaption></figure><figure><a href="assets/screens/m4-filter.png" target="_blank"><img src="assets/screens/m4-filter.png" alt="M4 – Filter-Sheet" loading="lazy"></a><figcaption>Filter-Sheet</figcaption></figure><figure><a href="assets/screens/m4-gefaltet.png" target="_blank"><img src="assets/screens/m4-gefaltet.png" alt="M4 – alle Gruppen gefaltet" loading="lazy"></a><figcaption>alle Gruppen gefaltet</figcaption></figure></div>
+    <ul class="check">
+      <li><b>Kopfleiste (G-12):</b> 🔍 Suchen · Filter (Zähler als Abzeichen) · Falten — oben in der App-Leiste, wo sonst das Zahnrad sitzt. Auf der Reisetitel-Zeile: 🛒 Einkauf (mit Anzahl) · 🧳 Gepäck · 📊 Auswertung. <b>Kein ⋯ mehr.</b> Langdrücken zeigt den Namen als Bubble</li>
+      <li><b>Filter-Sheet:</b> Gruppieren nach · Erledigte · Person / Kategorie / Beschaffung / Gepäck / Merkmale. Innerhalb einer Gruppe ODER, zwischen Gruppen UND; aktive Werte als entfernbare Chips unter dem Kopf</li>
+      <li><b>Gruppen falten:</b> Kopfzeile antippen → Gruppe klappt auf ihre Zeile zusammen und zeigt dort „N offen“; Falt-Icon klappt alles zu</li>
+      <li><b>Gepackte verschwinden</b>, „Erledigte“ blendet sie ausgegraut wieder ein — mit <b>„gepackt von … · heute 14:32“</b>. Eine ganz gepackte Gruppe verschwindet komplett</li>
+      <li>Swipe rechts = packen · links = überspringen · im Übersprungen-Bereich rechts = zurückholen</li>
+      <li>Stepper (8/10) vs. Checkbox; amber = gepackt mit offener Vorbereitung. <b>Letzte Vorbereitung abhaken → Artikel gilt als fertig und verlässt die Liste</b></li>
+      <li>Schnellzugabe: ＋-FAB öffnet und fokussiert sie, sichtbarer Bestätigen-Knopf; <b>„Pro Person“-Modus</b> mit Menge je Reisende:r (Andy 2 · Leo 3 · Mia 0 → <b>ein</b> Artikel als Cluster, FR-25.8/25.1)</li>
+      <li>Leerzustand ehrlich: „Alles gepackt 🎉“ nur ohne Suche <i>und</i> ohne Filter — sonst „Keine Treffer“ mit Zurücksetzen</li>
+      <li>Sektionen „Vorbereitung“ + „Bewusst übersprungen“ aufklappen</li>
+    </ul>
+    <div class="todo"><b>KOPF ENTSCHIEDEN (17.07.)</b> · schlanke Ein-Zeilen-Kopfzeile (Trip · gepackt · Gewicht · Prep), Tools hinter ⋯; beim Runterscrollen blendet die Kopfzeile aus und <b>Trip-Name + Präsenz wandern in die Top-Bar</b> (Collapsing-Header), beim Hochscrollen zurück; Schnellzugabe per ＋-FAB; obere App-Leiste flacher (Ein-Zeilen-Titel, dezentes Linien-Logo). <b>Erledigt (17.07.):</b> gepackte Zeilen fallen aus der Liste, „N gepackte anzeigen“-Toggle blendet sie ausgegraut (45 %) wieder ein; „gepackt mit offener Vorbereitung“ bleibt sichtbar (FR-25.2). <b>Vollbild-Packen (17.07.):</b> die untere Tab-Leiste ist auf M4 ausgeblendet (Vollbild), ＋-FAB rutscht nach unten, zurück über ‹ (aus 3 Varianten gewählt). <b>Pro-Person entschieden (17.07.):</b> Per-Person-Artikel als <b>benannter Cluster</b> — Artikelname einmal als Unterkopf mit <code>erledigt/gesamt</code>, darunter eine eingerückte Kindzeile je Reisende:r (Avatar + Name + eigene Checkbox/Stepper, einzeln packbar); bei Gruppierung <i>nach Person</i> (oder einer einzelnen Instanz) Rückfall auf flache „Artikel · Person“-Zeile; folgt der Ausblend-Regel FR-25.2 (aus 2 Varianten A flach / B Cluster gewählt). <b>Packer-Avatar entschieden (17.07.):</b> wer gepackt hat, erscheint als Avatar am <b>rechten</b> Zeilenrand — abgesetzt vom Reisenden-Avatar (links, „für wen“) durch <b>Grün-Ring + ✓-Badge</b>; sichtbar sobald etwas gepackt ist (auch teil-gepackte Stepper-Zeile), bei Cluster je gepackte Kindzeile; ersetzt den bisherigen „gepackt von …“-Untertitel (FR-25.3). <b>Modus &amp; Filter entschieden (18.07.):</b> Beschaffungsmodus als Glyph <b>nur bei den Kauf-Modi</b> (🛒 Vorher · 📍 Vor Ort) — 🧳 Packen bleibt icon-frei, damit die Kauf-Ausnahmen auffallen; bei Cluster einmal am Kopf. Darunter eine <b>Mehrfach-Filterleiste</b> (Alle · 🧳 · 🛒 · 📍 mit Live-Zählern), die Modus-Pills kombinierbar (z. B. Vorher + Vor Ort), „Alle“ setzt zurück. Später-Packer bleibt ein <b>eigenes ⏰-Flag</b>, orthogonal zum Modus (FR-25.4). Damit ist §3.25 für M4 vollständig abgehandelt. <b>M4 abgeschlossen (08.08.):</b> Modus-Pillenleiste und Gruppierungsleiste sind im <b>Facetten-Filter</b> (FR-25.11) aufgegangen, das <b>⋯-Overflow ist entfallen</b> — die drei Reise-Ansichten sitzen als Icons auf der Titelzeile, Suche/Filter/Falten oben in der App-Leiste (G-12). Dazu: <b>faltbare Gruppen</b> mit „N offen“ auf der Kopfzeile (FR-25.16), <b>„gepackt von … · wann“</b> auf eingeblendeten Zeilen (FR-25.17), <b>Suche</b> in M4, und drei beim Testen gefundene Fehler behoben — Leerzustand meldete „Alles gepackt“ bei erfolgloser Suche (FR-25.11e war zu eng formuliert), offene Vorbereitung war als Zahl gespeichert statt aus den Aufgaben abgeleitet (Artikel konnte nie fertig werden, FR-7.3), und der FAB verdeckte dauerhaft die letzte Zeile (FR-25.11h).</div>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M5</span><span class="cname">Artikel-Detail (Sheet)</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> Zeile in M4 antippen · schließen: Griff nach unten ziehen</div>
+    <div class="shots"><figure><a href="assets/screens/m5-sheet.png" target="_blank"><img src="assets/screens/m5-sheet.png" alt="M5 – Detail-Sheet, Per-Person" loading="lazy"></a><figcaption>Detail-Sheet, Per-Person</figcaption></figure></div>
+    <ul class="check">
+      <li><b>Aufgeräumt via Progressive Disclosure (18.07.):</b> Ebene 1 = Kopf + kompakte Übersichts-Chips + Vorbereitung + Kommentare (mit Eingabefeld); alles Weitere hinter „Details ▾“</li>
+      <li><b>„Verwendet von“ entfernt (18.07.):</b> stattdessen „Wer braucht das?“ — Gemeinsam / Reisende-Mehrfachauswahl; Person hinzufügen legt eine eigene Packlisten-Zeile an (z. B. Sonnenbrille für Leonardo → FR-25.1/25.10)</li>
+      <li>Delegieren rücknehmbar: „Gepackt von“ hat ein „niemand“; Modus-Labels 🧳🛒📍, Später-Packer als ⏰-Flag</li>
+      <li>Modus Vorher kaufen → „Jetzt gekauft“ mit Undo-Snackbar; Verlaufs-Sparkline; Vorbereitungen hinzufügen/abhaken; Kommentar „als Aufgabe“ → Vorbereitung</li>
+    </ul>
+    <div class="todo"><b>Erledigt (§3.25, 18.07.):</b> Delegieren rücknehmbar, Kommentar-Eingabefeld, Container optional hinter „Details“, Modus-Labels + Später-Packer-Flag, Progressive Disclosure. <b>Ergänzt (08.08.):</b> Per-Person-Artikel zeigen ihre Summe als <b>reines Anzeigefeld</b> (0/3) statt als Stepper — „+1“ könnte nicht sagen, für wen — und darunter <b>eine Zeile je Person</b> mit eigener Checkbox/Stepper (FR-25.14). <b>Kein Speichern-Knopf:</b> es speichert laufend, angezeigt durch gelb „wird gespeichert“ → grün „gespeichert“; bewusst getrennt von G-2, das nur den Server-Abgleich meint (FR-25.15). — Shopping-„für wen“ (FR-25.6) ist seit 07.08. aufgelöst, siehe M6. Prototyp-Bugfix (18.07.): `bindPack` band `[data-act]` dokumentweit und überschrieb die Sheet-Handler (jetzt auf M4-Container begrenzt).</div>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M6</span><span class="cname">Einkauf</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> 🛒-Icon auf der Reisetitel-Zeile in M4</div>
+    <div class="shots"><figure><a href="assets/screens/m6-einkauf.png" target="_blank"><img src="assets/screens/m6-einkauf.png" alt="M6 – Einkauf" loading="lazy"></a><figcaption>Einkauf</figcaption></figure><figure><a href="assets/screens/m6-hinzufuegen.png" target="_blank"><img src="assets/screens/m6-hinzufuegen.png" alt="M6 – Hinzufügen mit Beschreibung + Zuweisung" loading="lazy"></a><figcaption>Hinzufügen mit Beschreibung + Zuweisung</figcaption></figure></div>
+    <ul class="check">
+      <li>Tabs „Vor Abreise“/„Vor Ort“ mit echten Zählern; 🔍 und Filter oben in der App-Leiste (G-12), Suchfeld erscheint erst auf Tippen</li>
+      <li><b>Filter</b> nach Zugewiesen an / Für wen / Kategorie — dasselbe Sheet wie M4, nur andere Facetten</li>
+      <li><b>Per-Person-Artikel als <i>eine</i> Kaufzeile</b> mit Summe und Empfängern („Sonnenhut 3 Stk · für Sia, Leonardo“) — abgeleitet, nicht eingegeben (FR-25.6). Abhaken erledigt alle Instanzen</li>
+      <li><b>Zugewiesen an</b> (wer kauft) + <b>Beschreibung</b> — im Zeilen-Sheet <i>und</i> direkt beim Hinzufügen; Zuweisung bleibt für den nächsten Artikel stehen</li>
+      <li><b>Kategorie beim Hinzufügen</b>, meist automatisch: Vervollständigung aus dem Artikelstamm übernimmt sie mit</li>
+      <li>Abhaken vor Abreise → Artikel wandert auf die Packliste (Snackbar); <b>„Erledigte“ im Filter holt Gekauftes zurück</b> — ausgegraut, mit „gekauft von … · wann“, nochmal tippen macht rückgängig</li>
+      <li>„Vor Ort“: Ziel-Checkliste der Serie (Feigen, Chianti, Pecorino)</li>
+    </ul>
+    <div class="todo"><b>Erledigt (§3.25, 07./08.08.):</b> FR-25.6 aufgelöst — „für wen“ wird <b>abgeleitet</b>, nicht neu erfasst; „zugewiesen an“ ist die Beschaffungs-Delegation und etwas anderes (FR-25.12). Dazu Facetten-Filter (FR-25.11g), Felder beim Hinzufügen (FR-25.13a), Kategorie + Autocomplete (FR-25.13b), Gekauftes wieder einblenden (FR-25.11i/j). <b>Fehler gefunden:</b> Per-Person-Artikel im Kaufmodus erschienen <i>gar nicht</i> im Einkauf (Menge lag auf den Instanzen, Vergleich lief gegen <code>undefined</code>).</div>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M7</span><span class="cname">Vorlagen-Liste</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> Tab „Vorlagen“</div>
+    <div class="shots"><figure><a href="assets/screens/m7-vorlagen.png" target="_blank"><img src="assets/screens/m7-vorlagen.png" alt="M7 – Vorlagen" loading="lazy"></a><figcaption>Vorlagen</figcaption></figure></div>
+    <ul class="check">
+      <li>Suche + Filter Alle/Meine/Veröffentlicht; fork-Chip bei fremden</li>
+      <li>Positionszahlen live (ändern sich nach M8-Edits)</li>
+    </ul>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M8</span><span class="cname">Vorlagen-Editor</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> Vorlage in M7 antippen · neu: ＋-FAB</div>
+    <div class="shots"><figure><a href="assets/screens/m8-vorlagen-editor.png" target="_blank"><img src="assets/screens/m8-vorlagen-editor.png" alt="M8 – Vorlagen-Editor" loading="lazy"></a><figcaption>Vorlagen-Editor</figcaption></figure></div>
+    <ul class="check">
+      <li>Mengen-Chip „6ד; Position antippen → M5-Sheet mit Mengen-Stepper</li>
+      <li>Formeln entfernt (FR-1.3/1.5 retired 2026-08-08) — Mengen sind einfache Zahlen</li>
+      <li>Pro Person/global · Modus · Dedup max/Summe · Bedingungs-Chips</li>
+      <li>Veröffentlichen-Warnung (FR-2.4); fremde Vorlage → read-only + „Fork erstellen“</li>
+      <li>Position hinzufügen: Suche + „neu anlegen“ (landet auch in M9)</li>
+    </ul>
+    <div class="todo"><b>REDESIGN</b> · Kernfeature — Position erfassen ist mit allen Parametern zu schwer. Vernünftige Defaults + Parameter nur on demand (progressive disclosure); neu mocken. §3.25 / FR-25.7. <b>+ Mengen pro Personentyp</b> (Erwachsen/Kind, FR-25.9). 17.07.</div>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M9</span><span class="cname">Inventar (Stammdaten)</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> Tab „Inventar“</div>
+    <div class="shots"><figure><a href="assets/screens/m9-inventar.png" target="_blank"><img src="assets/screens/m9-inventar.png" alt="M9 – Inventar" loading="lazy"></a><figcaption>Inventar</figcaption></figure></div>
+    <ul class="check">
+      <li>Multi-Tags als Chips an jeder Zeile (neu, FR-24.1 proposed)</li>
+      <li>Tag-Filter „Sommer“ zeigt Artikel quer über Kategorien</li>
+      <li>Gruppierung nach primärem Tag; Zeile → M10</li>
+    </ul>
+    <div class="todo"><b>TODO</b> · Swipe-Löschen direkt in der Liste (spezifiziert 17.07., UI-Spec M9): Swipe zeigt je nach Verwendung „Ausblenden“ (logisch) oder „Endgültig löschen“ (physisch, FR-24.3) + Undo — noch nicht im Prototyp.</div>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M10</span><span class="cname">Artikel-Editor (Stammdaten)</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>Pfad:</b> Artikel in M9 antippen · neu: ＋-FAB</div>
+    <div class="shots"><figure><a href="assets/screens/m10-artikel-editor.png" target="_blank"><img src="assets/screens/m10-artikel-editor.png" alt="M10 – Artikel-Editor" loading="lazy"></a><figcaption>Artikel-Editor</figcaption></figure></div>
+    <ul class="check">
+      <li>Mehrere Tags zuweisen + neuen Tag inline anlegen</li>
+      <li>Schlank: Name + Primär-Tag; Gewicht/Preis/Tags per Auge-Icon konfigurierbar</li>
+      <li>Löschen: verwendet → logisch (Hinweisbox) · nie verwendet → endgültig (FR-24.3 proposed)</li>
+    </ul>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M11</span><span class="cname">Gepäck &amp; Container</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>So findest du's:</b> Packliste → <b>🧳-Icon auf der Reisetitel-Zeile</b>. (War früher hinter dem Gruppierungs-Umschalter und danach hinter ⋯ vergraben — beim Test beide Male nicht gefunden; seit 08.08. ein eigenes Icon, G-12.)</div>
+    <div class="shots"><figure><a href="assets/screens/m11-gepaeck.png" target="_blank"><img src="assets/screens/m11-gepaeck.png" alt="M11 – Gepäck & Container" loading="lazy"></a><figcaption>Gepäck & Container</figcaption></figure></div>
+    <ul class="check">
+      <li>Gewichtsbalken: grün → amber (≥90 %) → rot (über Limit)</li>
+      <li>Koffer-Paar-Balance (±15 %): startet im Ungleichgewicht</li>
+      <li>Unzugewiesene zuweisen — Trinkwasser (18 kg) → Rucksack = rot ⚠</li>
+    </ul>
+  </div>
+
+  <div class="card done">
+    <div class="chead"><span class="mid">M12</span><span class="cname">Auswertung (Analytics)</span><span class="status">TESTEN</span></div>
+    <div class="path"><b>So findest du's:</b> Packliste → <b>📊-Icon auf der Reisetitel-Zeile</b>. (Der KPI-Streifen, über den man früher hierher kam, ist mit dem M4-Umbau entfallen; seit 08.08. ein eigenes Icon, G-12.)</div>
+    <div class="shots"><figure><a href="assets/screens/m12-auswertung.png" target="_blank"><img src="assets/screens/m12-auswertung.png" alt="M12 – Auswertung" loading="lazy"></a><figcaption>Auswertung</figcaption></figure></div>
+    <ul class="check">
+      <li>Dimension Person/Kategorie/Gepäck; Balken = gepackt/geplant</li>
+      <li>Balken antippen → M4 in dieser Gruppierung</li>
+      <li>„ohne Gewichtsangabe“-Hinweis (Schnellzugabe-Artikel tauchen dort auf)</li>
+      <li>Serien-Trend (kg pro Jahr) + „Häufig markiert“</li>
+    </ul>
+  </div>
+
+</div>
+
+<div class="sec">Noch offen</div>
+<div class="grid">
+  <div class="card open"><div class="chead"><span class="mid">M14</span><span class="cname">Review-Assistent (nach Archivierung)</span><span class="status">OFFEN</span></div>
+    <div class="note">Kartenstapel mit Vorschlägen aus „Ungenutzt/Fehlt“-Markierungen — nächster Kandidat fürs Konzept. Einstieg (M4-Toolbar „Archiv“) zeigt vorerst einen Hinweis.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M15</span><span class="cname">Import-Wizard (CSV)</span><span class="status">OFFEN</span></div>
+    <div class="note">Legacy-Spreadsheet-Import — im Konzept noch nicht dargestellt.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M16</span><span class="cname">Serie &amp; Reiseziel-Profil</span><span class="status">OFFEN</span></div>
+    <div class="note">Serienkopf in M2 zeigt vorerst nur einen Hinweis. Defaults/Ziel-Checkliste wirken aber schon in M3/M6.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M17</span><span class="cname">Einstellungen</span><span class="status">OFFEN</span></div>
+    <div class="note">Zahnrad oben rechts zeigt vorerst nur einen Hinweis.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M18</span><span class="cname">Portabler Import (YAML)</span><span class="status">OFFEN</span></div>
+    <div class="note">Vorschau/Zusammenführen beim YAML-Import — nicht dargestellt.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M19</span><span class="cname">Modus-Wahl (Erststart)</span><span class="status">OFFEN</span></div>
+    <div class="note">Der Prototyp startet direkt in der App; Local/Server-Wahl existiert real bereits im Client.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M20</span><span class="cname">Administration</span><span class="status">OFFEN</span></div>
+    <div class="note">Instanz-Verwaltung — real implementiert, im Konzept nicht dargestellt.</div></div>
+</div>
+
+<div class="sec">Entfernt</div>
+<div class="grid">
+  <div class="card depr"><div class="chead"><span class="mid">M13</span><span class="cname">Rückpacken (Repack)</span><span class="status">ENTFERNT</span></div>
+    <div class="note">Entscheid 17.07.2026: nicht gewünscht, aus dem Produkt entfernt. Spec zurückgezogen (PRD §3.11, UI-Spec M13). Aus dem Prototyp raus (Toolbar zeigt jetzt „Gepäck“ + „Auswertung“). Der bereits im Client vorhandene Code (`domain/repack.ts`, `RepackPage.vue`, Tests, `outbound_packed`-Spalten) wird als separater Code-Cleanup entfernt.</div></div>
+</div>
+
+<div class="foot">
+  <b>Querschnitt zum Mitprüfen:</b> die einheitliche <b>Filterleiste</b> (Suche + Chips, ✕-löschen, Fokus bleibt beim Tippen)
+  ist auf sechs Listen gespiegelt — M2, M6, M7, M9, Wizard-Schritt 3, Dashboard-Vorbereitungen. In der echten App wird das
+  <b>eine</b> wiederverwendbare Komponente.<br>
+  <b>Neu erfasste Anforderungen</b> aus dieser Konzeptarbeit (alle <i>proposed</i>): Multi-Tags &amp; lebenszyklus-bewusstes Löschen
+  (§3.24, FR-24), Packmasken-Verfeinerungen M2/M4/M5 (§3.25, FR-25), und <b>Mehrsprachigkeit</b> Deutsch + Englisch,
+  Deutsch primär (NFR-4.12) — neue Screens werden von Anfang an string-externalisiert gebaut.<br>
+  Diese Seite lebt in <code>dev-docs/UI_Concept_Overview.html</code> und wird bei jeder Statusänderung nachgeführt;
+  eine Kopie liegt neben dem Prototyp auf <code>:3000/overview.html</code>.
+</div>
+
+</div></body>
+</html>

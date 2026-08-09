@@ -12,10 +12,12 @@ One file per decision, named `ADR-00N_Short_Title.md`, numbered in the order the
 | [004](ADR-004_Auth_Strategy.md) | Authentication strategy | Accepted |
 | [005](ADR-005_Push_Notifications.md) | Push notifications | Accepted |
 | [006](ADR-006_Client_Framework.md) | Client framework | Accepted |
-| 007 | **Reserved** — Outbound Content Fetching. Not written yet; `Vision_NorthStar` names it as the gate that must exist before any Plan-phase feature that makes the server fetch external content. Do not reuse this number. | Not written |
+| [007](ADR-007_Session_Brokering.md) | First-party sessions brokered from the IdP | Accepted |
 | [008](ADR-008_Client_Side_Generation.md) | Generation and import run on the client, not the server | Accepted |
 | [009](ADR-009_Three_Run_Modes.md) | Three run modes from one artifact | Accepted |
 | [010](ADR-010_CSV_Only_Import.md) | Spreadsheet import accepts CSV only, not XLSX | Accepted |
+
+**Outbound Content Fetching** — `Vision_NorthStar` names this as the gate that must exist before any Plan-phase feature makes the server fetch external content. It had informally reserved number 007, which Session Brokering has since taken; it gets the next free number when it is written.
 
 ## When an ADR is owed
 

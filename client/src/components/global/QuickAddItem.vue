@@ -6,7 +6,7 @@
  * Enter creates the trip_item immediately via outbox (G-5).
  * If the trip is active, new items are auto-flagged missing (FR-9.1).
  */
-import { IonInput, IonList, IonItem, IonLabel, IonIcon, IonChip } from '@ionic/vue'
+import { IonInput, IonList, IonItem, IonLabel, IonIcon } from '@ionic/vue'
 import { addCircleOutline, closeCircleOutline } from 'ionicons/icons'
 import { ref, computed } from 'vue'
 import { useMasterStore } from '@/stores/masterStore'
@@ -138,9 +138,6 @@ function onKeydown(event: KeyboardEvent) {
               }}
             </p>
           </IonLabel>
-          <IonChip v-if="item.unit !== 'pieces'" slot="end" color="medium" outline>
-            {{ item.unit }}
-          </IonChip>
         </IonItem>
       </IonList>
 
