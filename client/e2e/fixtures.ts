@@ -41,6 +41,51 @@ interface Fixtures {
   seedMode: (opts: SeedOptions) => Promise<void>
 }
 
+/** Minimum a trip needs to be creatable — the wizard's step-1 gate. */
+export interface TripSeed {
+  name: string
+  /** `YYYY-MM-DD`. Required: FR-2.1 gates step 1 on it. */
+  endDate: string
+  startDate?: string
+  /** Traveler names; each is added as an Adult (FR-2.5). */
+  travelers?: string[]
+}
+
+/**
+ * Create a trip by driving M3, and return the new trip's path.
+ *
+ * Spec §2.4 requires preconditions to be built through the app's own
+ * mutation paths rather than injected, so every later unit that needs a
+ * trip comes through here. Call after `seed`/`seedMode` — it navigates.
+ */
+export async function createTripViaWizard(page: Page, trip: TripSeed): Promise<string> {
+  await page.goto('/trips/new')
+
+  await page.getByTestId('wizard-name').locator('input').fill(trip.name)
+  if (trip.startDate) {
+    await page.getByTestId('wizard-start-date').locator('input').fill(trip.startDate)
+  }
+  await page.getByTestId('wizard-end-date').locator('input').fill(trip.endDate)
+  await page.getByTestId('wizard-next').click()
+
+  await expect(page.getByTestId('wizard-step-2')).toBeVisible()
+  for (const name of trip.travelers ?? []) {
+    await page.getByTestId('wizard-add-traveler').click()
+    await page.getByTestId('wizard-traveler-name').last().locator('input').fill(name)
+  }
+  await page.getByTestId('wizard-next').click()
+
+  await expect(page.getByTestId('wizard-step-3')).toBeVisible()
+  await page.getByTestId('wizard-next').click()
+
+  await expect(page.getByTestId('wizard-step-4')).toBeVisible()
+  await page.getByTestId('wizard-create').click()
+
+  // M4 has opened on the new trip; its path is the handle later steps need.
+  await expect(page.getByTestId('packing-trip-name')).toHaveText(trip.name)
+  return new URL(page.url()).pathname
+}
+
 export const test = base.extend<Fixtures>({
   seedMode: async ({ page }, use) => {
     await use((opts: SeedOptions) => seed(page, opts))
