@@ -186,13 +186,8 @@ item,category,quantity,packed_count,mode,traveler,container
 Rain jacket,Clothing,1,1,carry,Alice,Big duffel
 ```
 
-!!! warning "Known gap — do not rely on this"
-    The **CSV** endpoint requires you to be a member of the trip (`403 forbidden`,
-    `not a member of this trip`, otherwise). The **YAML** endpoint checks only that the
-    request carries a valid token, so any account on the instance can export any trip if
-    it knows the trip id. This is an inconsistency in the route wiring rather than an
-    intended capability, and it will be closed — treat the YAML endpoint as
-    member-only when deciding who gets an account.
+Both trip exports require you to be a member of the trip; anyone else gets
+`403 forbidden`, `not a member of this trip`.
 
 ### Template export and import
 

@@ -240,7 +240,7 @@ and the admin role) to the client registration.
 ## `403 forbidden` with `not a member of this trip`
 
 **Cause:** the account is not a member of the trip it is trying to sync, read conflicts
-for, or export as CSV. Membership is enforced server-side on every trip-scoped route.
+for, or export. Membership is enforced server-side on every trip-scoped route.
 
 **Fix:** add them to the trip. Note that the WebSocket subscribe for a trip is checked the
 same way — a non-member's subscription is silently ignored rather than erroring, so
