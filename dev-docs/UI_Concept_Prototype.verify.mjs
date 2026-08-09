@@ -1,5 +1,5 @@
-// Headless verification of docs/UI_Concept_Prototype.html — run after every
-// mockup change (mockup-first working agreement): node docs/UI_Concept_Prototype.verify.mjs
+// Headless verification of dev-docs/UI_Concept_Prototype.html — run after every
+// mockup change (mockup-first working agreement): node dev-docs/UI_Concept_Prototype.verify.mjs
 // Covers §3.27 (groups/templates, scopes, tasks, round-trip), the M8 quick-add/
 // M5-sheet consistency (FR-25.13), the inventory UX round (FR-24.1/24.4/24.5),
 // and the FR-1.3/1.5/1.7/1.8 removals. Grows with each concept round.

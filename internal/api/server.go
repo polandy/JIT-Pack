@@ -26,26 +26,24 @@ const (
 	maxPushBatch     = 200
 )
 
-// Server wires the sync endpoints. Authentication supports HS256
-// (shared secret, for testing or simple setups) and RS256 (JWKS from
-// an IdP such as Authelia, for production multi-user deployments).
+// Server wires the sync endpoints. Per-request authentication is
+// always against JIT-Pack's own HS256 session tokens (ADR-007); the
+// IdP is involved only at login and refresh, inside the OIDC broker.
 type Server struct {
 	store          *store.Store
+	sessionSecret  []byte
 	keyFunc        jwt.Keyfunc
 	validMethods   []string
 	singleUserMode bool
 	localUserID    string
 	hub            *Hub
-	oidc           *oidcExchange
+	oidc           *oidcBroker
 	// Web Push (NFR-4.6): VAPID keypair lazily loaded/generated via the
 	// store; contact is the RFC 8292 sub claim.
 	pushContact string
 	vapidMu     sync.Mutex
 	vapidPub    string
 	vapidPriv   string
-	// mapOIDCSubject: token sub is an OIDC subject (JWKS mode) and must
-	// be mapped to users.id; HS256 tokens carry users.id directly.
-	mapOIDCSubject bool
 	// adminEmails (FR-23.1): lowercased e-mail addresses holding the
 	// instance-admin role, from JITPACK_ADMIN_EMAILS — declarative,
 	// matched against the token's email claim and stamped on login.
@@ -65,32 +63,29 @@ func (s *Server) SetAdminEmails(emails []string) {
 
 // isAdminEmail resolves the FR-23.1 allowlist; a token without an
 // email claim simply yields no admin role.
-func (s *Server) isAdminEmail(email string) bool {
-	return email != "" && s.adminEmails[strings.ToLower(email)]
+//
+// The address only counts when the IdP also asserts that it verified it.
+// OIDC Core §5.7 gives `email` no verification guarantee of its own —
+// `email_verified` carries that — so on any IdP with self-service
+// profiles an unverified claim would let an account name the configured
+// admin address and inherit the role on its next request.
+func (s *Server) isAdminEmail(email string, verified bool) bool {
+	return verified && email != "" && s.adminEmails[strings.ToLower(email)]
 }
 
-// New creates a Server that validates JWTs with HS256 using the given
-// shared secret. Suitable for tests and single-secret deployments.
+// New creates the multi-user Server. The secret signs and validates
+// JIT-Pack's own HS256 session tokens (ADR-007): with the OIDC broker
+// enabled (EnableOIDC) the login flow issues them; without it, tokens
+// minted externally with the same secret are accepted — which is how
+// the tests drive authenticated endpoints directly.
 func New(st *store.Store, secret []byte) *Server {
 	hub := NewHub(st.HeadSeq)
 	return &Server{
-		store:        st,
-		keyFunc:      func(*jwt.Token) (any, error) { return secret, nil },
-		validMethods: []string{"HS256"},
-		hub:          hub,
-	}
-}
-
-// NewWithJWKS creates a Server that validates JWTs with RS256 using
-// keys fetched from the given JWKS provider.
-func NewWithJWKS(st *store.Store, jwks *JWKSProvider) *Server {
-	hub := NewHub(st.HeadSeq)
-	return &Server{
-		store:          st,
-		keyFunc:        jwks.KeyFunc,
-		validMethods:   []string{"RS256"},
-		hub:            hub,
-		mapOIDCSubject: true,
+		store:         st,
+		sessionSecret: secret,
+		keyFunc:       func(*jwt.Token) (any, error) { return secret, nil },
+		validMethods:  []string{"HS256"},
+		hub:           hub,
 	}
 }
 
@@ -128,17 +123,17 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/export/full", s.authed(s.handleExportFull))
 	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.csv", s.authed(s.member(s.handleExportTripCSV)))
 	mux.HandleFunc("GET /api/v1/users/{userID}/avatar", s.handleGetAvatar)
-	mux.HandleFunc("PUT /api/v1/users/{userID}/avatar", s.authed(s.handlePutAvatar))
+	mux.HandleFunc("PUT /api/v1/users/{userID}/avatar", s.authed(s.self(s.handlePutAvatar)))
 	// Item images (FR-22): GET public like avatars; PUT/DELETE need only
 	// authentication (FR-22.6) — items carry no trip role to check.
 	mux.HandleFunc("GET /api/v1/items/{itemID}/image", s.handleGetItemImage)
 	mux.HandleFunc("PUT /api/v1/items/{itemID}/image", s.authed(s.handlePutItemImage))
 	mux.HandleFunc("DELETE /api/v1/items/{itemID}/image", s.authed(s.handleDeleteItemImage))
-	mux.HandleFunc("PUT /api/v1/users/{userID}/display-name", s.authed(s.handlePutDisplayName))
+	mux.HandleFunc("PUT /api/v1/users/{userID}/display-name", s.authed(s.self(s.handlePutDisplayName)))
 	mux.HandleFunc("GET /api/v1/templates/{templateID}/export", s.authed(s.handleExportTemplate))
 	mux.HandleFunc("POST /api/v1/templates/import", s.authed(s.handleImportTemplate))
 	mux.HandleFunc("GET /api/v1/trips/{tripID}/conflicts", s.authed(s.member(s.handleListConflicts)))
-	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.yaml", s.authed(s.handleExportTrip))
+	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.yaml", s.authed(s.member(s.handleExportTrip)))
 	mux.HandleFunc("POST /api/v1/trips/import", s.authed(s.handleImportTrip))
 	mux.HandleFunc("POST /api/v1/auth/token", s.handleAuthToken)
 	mux.HandleFunc("POST /api/v1/auth/refresh", s.handleAuthRefresh)
@@ -178,18 +173,9 @@ func (s *Server) authed(next http.HandlerFunc) http.HandlerFunc {
 			writeError(w, http.StatusUnauthorized, "unauthorized", "token has no subject")
 			return
 		}
+		// Session tokens carry users.id directly (ADR-007): identity was
+		// established once, at login, by the broker — never per request.
 		userID := sub
-		if s.mapOIDCSubject {
-			// JWKS mode: sub is the OIDC subject — map to users.id,
-			// provisioning on first sight (§2), stamping the declarative
-			// instance-admin role (FR-23.1).
-			email := emailClaim(claims)
-			userID, err = s.store.EnsureOIDCUser(r.Context(), sub, displayNameClaim(claims), email, s.isAdminEmail(email))
-			if err != nil {
-				writeError(w, http.StatusInternalServerError, "internal", "user mapping failed")
-				return
-			}
-		}
 		// FR-23.3: a deactivated account loses all access — distinct
 		// error code so the client can tell it from a stale token.
 		if deactivated, err := s.store.UserDeactivated(r.Context(), userID); err != nil {
@@ -237,6 +223,26 @@ func (s *Server) member(next http.HandlerFunc) http.HandlerFunc {
 		}
 		if !ok {
 			writeError(w, http.StatusForbidden, "forbidden", "not a member of this trip")
+			return
+		}
+		next(w, r)
+	}
+}
+
+// self restricts a route addressed by {userID} to the account that owns
+// it. The path names the target row, so without this the client picks
+// whose profile it writes to — and the client's identity claims are never
+// trusted (invariant 3). Instance admins reach the same rows through the
+// /admin/users/{userID} endpoints, which carry their own authorization.
+func (s *Server) self(next http.HandlerFunc) http.HandlerFunc {
+	if s.singleUserMode {
+		// One implicit user: whoever the path names, it is them.
+		return next
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, _ := r.Context().Value(userIDKey).(string)
+		if userID == "" || r.PathValue("userID") != userID {
+			writeError(w, http.StatusForbidden, "forbidden", "cannot modify another user's profile")
 			return
 		}
 		next(w, r)

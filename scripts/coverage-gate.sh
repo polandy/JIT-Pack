@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Enforces the coverage thresholds from the working agreement
-# (docs/CODING_PRINCIPLES.md §2). Used by both `make cover` and the `go`
+# (dev-docs/CODING_PRINCIPLES.md §2). Used by both `make cover` and the `go`
 # job in .github/workflows/ci.yml, so a local run and CI apply the same
 # numbers — the thresholds exist exactly once, here.
 #
