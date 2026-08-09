@@ -29,7 +29,7 @@ Every requirement or behaviour change is reflected in its spec **in the same PR*
 - Check the reverse too: no doc may still describe behaviour this PR removed or changed.
 - Doc comments on exported symbols must match actual behaviour; godoc on exported symbols is mandatory.
 
-## 2. ADRs (`docs/ADR-00N_*.md`)
+## 2. ADRs (`dev-docs/adr/ADR-00N_*.md`)
 
 - Does the PR decide a real tradeoff — options weighed, one chosen at a cost — that needs a **new ADR** and doesn't have one? Additive config fields, endpoints following an existing pattern, and mechanical refactors do **not** need one.
 - Does the PR contradict or supersede an **existing ADR**? Then that ADR needs a status update, or the PR needs to change.
