@@ -27,7 +27,8 @@ test('M19: the server URL is pre-filled with the page origin @smoke @m19', async
   await page.goto('/')
 
   await expect(page.getByTestId('mode-server-url').locator('input')).toHaveValue(baseURL!)
-  // A wrong prefill would leave Connect disabled — assert it is live.
+  // Reach through to the inner button: `toBeEnabled()` on the ion-button
+  // host is false-green, since the custom element is never DOM-disabled.
   await expect(page.getByTestId('mode-server-connect').locator('button')).toBeEnabled()
 })
 
