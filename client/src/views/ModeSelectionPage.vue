@@ -23,12 +23,16 @@ import {
 import { phonePortraitOutline, serverOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 import BrandMark from '@/components/global/BrandMark.vue'
+import { defaultServerBaseUrl } from '@/config'
 
 const emit = defineEmits<{
   select: [mode: 'local' | 'server', serverUrl: string | null]
 }>()
 
-const serverUrl = ref('')
+// Pre-filled, not just placeheld: a self-hosted instance serves this
+// page from the very origin the server listens on, so the field starts
+// out already correct and Connect works without typing.
+const serverUrl = ref(defaultServerBaseUrl())
 
 const serverUrlValid = computed(() => {
   try {
