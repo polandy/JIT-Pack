@@ -158,7 +158,6 @@ start_date: "2026-06-01"
 end_date: "2026-06-14"
 travelers:
   - name: Alice
-    profile: adult
 containers:
   - name: Big duffel
     carrier: Alice

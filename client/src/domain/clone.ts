@@ -46,7 +46,6 @@ export interface CloneLookup {
 
 export interface ClonedTraveler {
   name: string
-  profile: 'adult' | 'child'
 }
 
 export interface ClonedContainer {
@@ -90,10 +89,7 @@ export function planClone(
   _newDurationDays: number | null,
 ): ClonePlan {
   const travelerIndex = new Map(source.travelers.map((t, i) => [t.id, i]))
-  const travelers: ClonedTraveler[] = source.travelers.map((t) => ({
-    name: t.name,
-    profile: t.profile,
-  }))
+  const travelers: ClonedTraveler[] = source.travelers.map((t) => ({ name: t.name }))
 
   const sourceContainers = options.containerAssignments ? source.containers : []
   const containerIndex = new Map(sourceContainers.map((c, i) => [c.id, i]))

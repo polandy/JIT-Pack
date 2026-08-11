@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -38,9 +39,15 @@ var syncableColumns = map[string]map[string]bool{
 		"assigned_traveler_id", "packer_user_id", "container_id",
 		"packing_now_by", "packing_now_at", "flag_unused", "flag_missing",
 		"outbound_packed",
+		// Listed so the server's own stamp can be persisted through the
+		// push path; stampActor discards any client-sent value first
+		// (FR-25.19, invariant 3).
+		"packed_by_user_id",
 	),
+	// profile is gone with FR-25.9 (migration 018) — a client still
+	// sending it is rejected rather than silently ignored.
 	"travelers": toSet(
-		"trip_id", "name", "profile", "linked_user_id",
+		"trip_id", "name", "linked_user_id",
 	),
 	"containers": toSet(
 		"trip_id", "name", "carrier_traveler_id", "max_weight_grams",
@@ -148,10 +155,21 @@ func Open(dsn string) (*Store, error) {
 
 func (s *Store) Close() error { return s.db.Close() }
 
+// allMigrations is the ceiling of migrateTo: apply everything embedded.
+const allMigrations = int64(math.MaxInt64)
+
 // migrate applies embedded migrations in lexical order, skipping those
 // already recorded in PRAGMA user_version so reopening a persistent
 // database is safe.
 func migrate(db *sql.DB) error {
+	return migrateTo(db, allMigrations)
+}
+
+// migrateTo applies embedded migrations up to and including target.
+// Production always passes allMigrations; the bound exists so a test can
+// stage a database at the schema level a migration is written against
+// and assert what that migration does to real rows.
+func migrateTo(db *sql.DB, target int64) error {
 	var version int64
 	if err := db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
 		return fmt.Errorf("read user_version: %w", err)
@@ -173,6 +191,9 @@ func migrate(db *sql.DB) error {
 		}
 		if v <= version {
 			continue
+		}
+		if v > target {
+			break
 		}
 		ddl, err := migrations.ReadFile("migrations/" + name)
 		if err != nil {

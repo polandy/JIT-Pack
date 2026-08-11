@@ -532,3 +532,56 @@ carries over against UserInfo, plus revocation-at-refresh. Store sessions are
 clock-injected throughout — an earlier draft of `CreateSession` called
 `time.Now()` internally and promptly broke its own purge test; the parameter is
 what makes the expiry tests deterministic.
+
+## Migrations 018/019: the two schema debts the concept left open (FR-25.9, FR-25.19)
+
+Item 5 of "Not built yet", cleared 2026-08-11 on owner instruction. Both
+migrations turned out to be one statement each — the owner's steer was explicit:
+still in development, so the pragmatic route that loses no data, not a ceremony.
+
+**018 — `travelers.profile` is gone.** The first draft was migration 004's
+twelve-step table rebuild, on the assumption that SQLite refuses `DROP COLUMN`
+while a `CHECK` names the column. Tried it against the real driver before
+writing it: `ALTER TABLE travelers DROP COLUMN profile` succeeds, rows intact.
+The rebuild would have been thirty lines of risk (two inbound foreign keys) for
+nothing. Unlike `outbound_packed`, which stays inert because nothing asks for
+it, this field was on the sync whitelist and on a screen — so it goes rather
+than lingering: schema, whitelist (a client still sending it is now *rejected*,
+not ignored), the portable YAML type, the client traveler type, and the M3
+step-2 Adult/Child segment. A trip exported before this still imports; yaml.v3
+ignores unknown keys, so the retired field is dropped rather than refused, and
+the api export round-trip test was left carrying `profile: adult` on purpose as
+the proof.
+
+**019 — `packed_by_user_id` beside `packer_user_id`.** The interesting half.
+`stampActor` used to write `packer_user_id` on `state=packed`, which is exactly
+the conflation FR-25.19 corrects. Now: `packer_user_id` is the assignment and is
+the client's to set (which is also what makes the FR-6.2 delegation notification
+read correctly — it fires on a deliberate assignment and nothing else), while
+the record is server-owned. Three rules, all tested: set from the acting user on
+`packed`, cleared on any other state (FR-25.17 — a stamp must not outlive the
+state it describes), and **stripped from every `trip_items` mutation before
+either**, so it cannot be forged on a push that touches no state at all. That
+last one is the invariant-3 case and it does not follow from the first two.
+
+The backfill copies `packer_user_id` into the record for rows already in state
+`packed` and touches nothing else: on those rows the person genuinely was the
+packer, while inventing a record for an unpacked row would claim work nobody
+did.
+
+Two things worth keeping:
+
+- `migrate` grew a `migrateTo(db, target)` seam so a test can stage a database
+  at 018 and assert what 019 does to real rows. A migration that transforms data
+  is behaviour, and behaviour that only ever runs against an empty schema in
+  tests is untested.
+- Changing `addTraveler`'s signature dropped a positional argument, and
+  `vue-tsc` was happy: the old third argument `'child'` slid silently into
+  `linkedUserId`, both `string`. Only the test caught it. The three production
+  call sites were correct; the lesson is that a positional signature change is
+  not type-safe when the neighbours share a type.
+
+Not built here, deliberately: the M4/M5 presentation of the split — the two
+rings and „gepackt von Andy · zuständig war Sia“ — belongs to the screen
+rebuilds. No `.vue` file reads either column today, so there is no half-built
+surface left behind.

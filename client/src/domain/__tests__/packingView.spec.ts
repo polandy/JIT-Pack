@@ -36,6 +36,7 @@ function item(over: Partial<TripItem> = {}): TripItem {
     late_packer: false,
     assigned_traveler_id: null,
     packer_user_id: null,
+    packed_by_user_id: null,
     container_id: null,
     packing_now_by: null,
     packing_now_at: null,
@@ -55,21 +56,18 @@ const andy: Traveler = {
   id: 'tr1',
   trip_id: 't1',
   name: 'Andy',
-  profile: 'adult',
   linked_user_id: null,
 }
 const leo: Traveler = {
   id: 'tr2',
   trip_id: 't1',
   name: 'Leo',
-  profile: 'child',
   linked_user_id: null,
 }
 const mia: Traveler = {
   id: 'tr3',
   trip_id: 't1',
   name: 'Mia',
-  profile: 'child',
   linked_user_id: null,
 }
 const travelers = [andy, leo, mia]

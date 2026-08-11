@@ -55,7 +55,7 @@ function seedSource(store: ReturnType<typeof useTripStore>) {
     table: 'travelers',
     id: 'tr1',
     deleted: false,
-    row: { trip_id: 'src', name: 'Andy', profile: 'adult' },
+    row: { trip_id: 'src', name: 'Andy' },
   })
   store.applyChange({
     seq: 0,

@@ -44,8 +44,8 @@ function templateItem(
 }
 
 const twoAdults = [
-  { name: 'Andy', profile: 'adult' as const },
-  { name: 'Sarah', profile: 'adult' as const },
+  { name: 'Andy' },
+  { name: 'Sarah' },
 ]
 
 function input(overrides: Partial<GenerationInput>): GenerationInput {

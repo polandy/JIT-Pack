@@ -75,14 +75,13 @@ describe('useMutations wizard additions', () => {
   const mutations = useMutations(new HLCGenerator(() => Date.now(), 'aabbccdd'))
 
   it('addTraveler builds a travelers insert on the trip partition', () => {
-    const { mutation } = mutations.addTraveler('trip-1', 'Ronja', 'child')
+    const { mutation } = mutations.addTraveler('trip-1', 'Ronja')
 
     expect(mutation.op).toBe('insert')
     expect(mutation.table).toBe('travelers')
     expect(mutation.fields).toMatchObject({
       trip_id: 'trip-1',
       name: 'Ronja',
-      profile: 'child',
       linked_user_id: null,
     })
   })
@@ -129,8 +128,8 @@ describe('createTripFromWizard', () => {
       endDate: '2026-08-10',
       attributes: { season: 'summer' },
       travelers: [
-        { name: 'Andy', profile: 'adult' },
-        { name: 'Ronja', profile: 'child' },
+        { name: 'Andy' },
+        { name: 'Ronja' },
       ],
       items: [
         generated({ traveler_index: 0, quantity: 5 }),
@@ -169,7 +168,7 @@ describe('createTripFromWizard', () => {
       startDate: null,
       endDate: '2026-08-10',
       attributes: null,
-      travelers: [{ name: 'Andy', profile: 'adult' }],
+      travelers: [{ name: 'Andy' }],
       items: [generated()],
     })
     await vi.waitFor(() => expect(fetchMock.mock.calls.length).toBe(4))

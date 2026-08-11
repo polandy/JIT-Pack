@@ -330,7 +330,7 @@ func TestApplyMutation_TravelersTable(t *testing.T) {
 	ctx := context.Background()
 	m := sync.Mutation{
 		MutationID: "m1", Op: sync.OpInsert, Table: "travelers", ID: "trav-1",
-		Fields: map[string]any{"trip_id": testTrip, "name": "Alice", "profile": "adult"},
+		Fields: map[string]any{"trip_id": testTrip, "name": "Alice"},
 		HLC:    sync.HLC("0000000001000-0000-aaaaaaaa"),
 	}
 	res, err := s.ApplyMutation(ctx, testTrip, m)
