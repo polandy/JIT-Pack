@@ -115,7 +115,11 @@ func TestMigrate019_BackfillsRecordFromPackedRows_FR25_19(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
-	defer db.Close()
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("close staged db: %v", err)
+		}
+	})
 
 	// Stop one migration short of the split, then seed the old shape.
 	if err := migrateTo(db, 18); err != nil {
