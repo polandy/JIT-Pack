@@ -52,9 +52,7 @@ function trip(id: string, overrides: Partial<Trip> = {}): Trip {
   }
 }
 
-const travelers: Traveler[] = [
-  { id: 'trav-1', trip_id: 't1', name: 'Andy', linked_user_id: null },
-]
+const travelers: Traveler[] = [{ id: 'trav-1', trip_id: 't1', name: 'Andy', linked_user_id: null }]
 const containers: Container[] = [
   {
     id: 'c1',
