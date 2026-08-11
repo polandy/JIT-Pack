@@ -127,10 +127,7 @@ describe('createTripFromWizard', () => {
       startDate: '2026-08-01',
       endDate: '2026-08-10',
       attributes: { season: 'summer' },
-      travelers: [
-        { name: 'Andy' },
-        { name: 'Ronja' },
-      ],
+      travelers: [{ name: 'Andy' }, { name: 'Ronja' }],
       items: [
         generated({ traveler_index: 0, quantity: 5 }),
         generated({ traveler_index: 1, quantity: 3 }),

@@ -43,10 +43,7 @@ function templateItem(
   }
 }
 
-const twoAdults = [
-  { name: 'Andy' },
-  { name: 'Sarah' },
-]
+const twoAdults = [{ name: 'Andy' }, { name: 'Sarah' }]
 
 function input(overrides: Partial<GenerationInput>): GenerationInput {
   return {

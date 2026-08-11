@@ -197,9 +197,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
       attributes: null,
       imported: false,
     }
-    const travelers: Traveler[] = [
-      { id: 'tr1', trip_id: 't1', name: 'Andy', linked_user_id: null },
-    ]
+    const travelers: Traveler[] = [{ id: 'tr1', trip_id: 't1', name: 'Andy', linked_user_id: null }]
     const containers: Container[] = [
       {
         id: 'c1',
