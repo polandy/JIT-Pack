@@ -70,6 +70,19 @@ func TestStampActor_PackingRecord_FR25_19(t *testing.T) {
 	}
 }
 
+// A delete carries no fields at all. stampActor still runs on it, so the
+// nil map must survive both the strip and the state switch — a panic
+// here would 500 every item deletion.
+func TestStampActor_DeleteWithoutFields_DoesNotPanic(t *testing.T) {
+	m := &syncpkg.Mutation{Table: "trip_items", Op: syncpkg.OpDelete}
+
+	stampActor(m, "user-andy")
+
+	if len(m.Fields) != 0 {
+		t.Errorf("a delete grew fields: %v", m.Fields)
+	}
+}
+
 // assertField compares one mutation field against an expectation, where
 // nil means the key must not be present at all — the difference between
 // "clear it" (explicit nil value) and "do not touch it" matters here.
