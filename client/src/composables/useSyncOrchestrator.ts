@@ -73,7 +73,7 @@ export interface TripWizardDraft {
   startDate: string | null
   endDate: string
   attributes: Record<string, unknown> | null
-  travelers: { name: string; profile: 'adult' | 'child'; linkedUserId?: string | null }[]
+  travelers: { name: string; linkedUserId?: string | null }[]
   /** Generated rows — template items, or companions without a template (FR-20.2). */
   items: (Omit<GeneratedItem, 'source_template_id'> & { source_template_id: string | null })[]
   /** Attach to an existing series (FR-13.1). */
@@ -721,12 +721,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     }
 
     const travelerIds = draft.travelers.map((tr) => {
-      const { mutation, id } = mutations.addTraveler(
-        tripId,
-        tr.name,
-        tr.profile,
-        tr.linkedUserId ?? null,
-      )
+      const { mutation, id } = mutations.addTraveler(tripId, tr.name, tr.linkedUserId ?? null)
       onPullChanges([
         {
           seq: 0,
@@ -824,7 +819,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     if (!local) outbox.enqueue('master', null, tripMut)
 
     const travelerIds = plan.travelers.map((tr) => {
-      const { mutation, id } = mutations.addTraveler(tripId, tr.name, tr.profile, null)
+      const { mutation, id } = mutations.addTraveler(tripId, tr.name, null)
       onPullChanges([
         {
           seq: 0,
@@ -1129,7 +1124,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     const travelerIDs = new Map<string, string>()
     for (const traveler of doc.travelers) {
-      const { mutation, id } = mutations.addTraveler(tripId, traveler.name, traveler.profile, null)
+      const { mutation, id } = mutations.addTraveler(tripId, traveler.name, null)
       onPullChanges([
         {
           seq: 0,
