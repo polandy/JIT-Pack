@@ -574,3 +574,31 @@ earlier), `EnsureOIDCUser`'s concurrent-provisioning race arm and
 `RotateSession`'s rows-affected race arm (both need a mutation between two
 statements of one call — not deterministically reachable, and the race rule
 forbids probabilistic tests), and DB-error plumbing throughout.
+
+## Brand mark: Check-Latch → Packed Backpack (2026-08-12)
+
+The owner rejected the Check-Latch mark and asked for playful, simple
+variants in the spirit of the skipper-cd logo. Six directions were
+explored (backpack, suitcase-in-motion, cube stack, tote, checklist,
+luggage tag), then four backpack refinements; the owner picked the
+original open-backpack motif: an open backpack with two packing cubes
+peeking out, thick rounded lavender outline, teal/peach cube accents —
+all Catppuccin values, matching the app's own palette.
+
+Where it landed, and why that shape:
+
+- `client/public/favicon.svg` and `docs/assets/mark.svg` carry the mark
+  on its Mocha tile. The dark tile makes the icon self-contained on any
+  background, so the favicon's previous `prefers-color-scheme` handling
+  became unnecessary and was dropped.
+- `BrandMark.vue` stays tileless and reads every color from `--ct-*`
+  tokens, so the in-app mark follows the active Mocha/Latte flavor
+  (G-11, invariant 9) instead of hard-coding one flavor's values.
+- `docs/assets/logo-light.svg` / `logo-dark.svg` remain the wordmark
+  lockups (Latte/Mocha text); `mkdocs.yml` now points its header logo
+  and favicon at the square `mark.svg` instead of scaling down the
+  300px-wide lockup.
+
+No ADR: an aesthetic choice among equivalent options, not an
+engineering tradeoff. No spec update owed: neither the UI-Spec nor the
+manual describes the mark's artwork.
