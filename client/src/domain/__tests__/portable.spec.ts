@@ -88,7 +88,9 @@ describe('parsePortable (FR-18.5)', () => {
     const result = parsePortable(tripYAML)
     expect(result.error).toBeNull()
     expect(result.doc).toMatchObject({ kind: 'trip', end_date: '2026-08-10' })
-    expect(result.doc!.travelers).toEqual([{ name: 'Andy', profile: 'adult' }])
+    // The fixture above still carries the retired `profile:` key —
+    // a pre-FR-25.9 export must parse, with the key simply dropped.
+    expect(result.doc!.travelers).toEqual([{ name: 'Andy' }])
     expect(result.doc!.containers[0]).toMatchObject({ name: 'Radtasche', carrier: 'Andy' })
     expect(result.doc!.items[0]).toMatchObject({
       name: 'Zelt',
@@ -195,9 +197,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
       attributes: null,
       imported: false,
     }
-    const travelers: Traveler[] = [
-      { id: 'tr1', trip_id: 't1', name: 'Andy', profile: 'adult', linked_user_id: null },
-    ]
+    const travelers: Traveler[] = [{ id: 'tr1', trip_id: 't1', name: 'Andy', linked_user_id: null }]
     const containers: Container[] = [
       {
         id: 'c1',
@@ -225,6 +225,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
         late_packer: false,
         assigned_traveler_id: 'tr1',
         packer_user_id: null,
+        packed_by_user_id: null,
         container_id: 'c1',
         packing_now_by: null,
         packing_now_at: null,
@@ -243,7 +244,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
       start_date: '2026-08-01',
       end_date: '2026-08-10',
     })
-    expect(withProgress.travelers).toEqual([{ name: 'Andy', profile: 'adult' }])
+    expect(withProgress.travelers).toEqual([{ name: 'Andy' }])
     expect(withProgress.containers[0]).toMatchObject({
       name: 'Radtasche',
       carrier: 'Andy',

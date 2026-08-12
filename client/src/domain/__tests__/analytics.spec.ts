@@ -25,6 +25,7 @@ function item(overrides: Partial<TripItem>): TripItem {
     late_packer: false,
     assigned_traveler_id: null,
     packer_user_id: null,
+    packed_by_user_id: null,
     container_id: null,
     packing_now_by: null,
     packing_now_at: null,
@@ -51,9 +52,7 @@ function trip(id: string, overrides: Partial<Trip> = {}): Trip {
   }
 }
 
-const travelers: Traveler[] = [
-  { id: 'trav-1', trip_id: 't1', name: 'Andy', profile: 'adult', linked_user_id: null },
-]
+const travelers: Traveler[] = [{ id: 'trav-1', trip_id: 't1', name: 'Andy', linked_user_id: null }]
 const containers: Container[] = [
   {
     id: 'c1',

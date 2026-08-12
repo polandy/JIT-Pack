@@ -82,7 +82,7 @@ describe('Local Mode', () => {
       startDate: null,
       endDate: '2026-08-10',
       attributes: null,
-      travelers: [{ name: 'Andy', profile: 'adult' }],
+      travelers: [{ name: 'Andy' }],
       items: [
         {
           source_item_id: 'i1',

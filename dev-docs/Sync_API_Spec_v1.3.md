@@ -80,6 +80,7 @@ Same envelope for the user's master partition. `change_log.trip_id` is NULL for 
 ```
 
 * Mutations are applied **in order, atomically per mutation** (not per batch): a rejected mutation does not roll back earlier ones.
+* **Server-stamped fields.** Before merging, the server overwrites the actor columns from the authenticated pusher, so a client value is never trusted (`stampActor`): comment `author_id` on insert; `packing_now_by`/`packing_now_at` when the state becomes `packing_now`; and `trip_items.packed_by_user_id` — set when the state becomes `packed`, cleared on any other state, and **stripped from every `trip_items` mutation first**, so it cannot be forged on a push that touches no state (FR-25.19). `packer_user_id` is *not* stamped: since FR-25.19 it carries the assignment, which is the client's to choose.
 * **Response** per mutation: `applied` | `merged` (some fields lost per conflict rules, `conflicts[]` lists them) | `duplicate` (mutation_id seen before, recorded result returned) | `rejected` (validation/permission, with `error`).
 * After processing, the response includes `pull_hint: {next_cursor}` so the client immediately pulls its own (possibly merged) canonical state — closing the loop through the single read path (P-1).
 

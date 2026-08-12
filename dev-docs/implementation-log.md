@@ -575,6 +575,107 @@ earlier), `EnsureOIDCUser`'s concurrent-provisioning race arm and
 statements of one call — not deterministically reachable, and the race rule
 forbids probabilistic tests), and DB-error plumbing throughout.
 
+## Basics audit, 2026-08-09 — supply-chain pinning (NFR-4.3 / invariant 8)
+
+Fourth audit field. The established surfaces were already clean — Actions by
+full commit SHA, Docker bases by digest, `go mod verify` green, npm via the
+lockfile — but the docs restructure had quietly opened a new one: the MkDocs
+toolchain installed via pip with only `mkdocs-material==9.6.14` pinned. The
+version pin held for one package; every transitive (mkdocs, jinja2, pygments,
+…) resolved to whatever was newest at build time, unverified — exactly the
+bare-tag pattern invariant 8 forbids, on the pipeline that publishes the
+manual.
+
+Closed with the same shape the other ecosystems use: `docs/requirements.in`
+is the human-edited input, `docs/requirements.txt` is compiled from it with
+`uv pip compile --generate-hashes --universal` (354 hashes, transitives
+included), the workflow installs with an explicit `--require-hashes` so an
+unhashed edit fails instead of silently reopening the gap, and Dependabot
+gains the `pip` ecosystem so the pins stay fresh like all the others.
+Verified by building the site strict from a fresh venv off the hashed set.
+
+Also checked and fine as-is: the only npm packages with install scripts are
+the two `fsevents` copies (macOS watcher, optional), which npm blocks by
+default — no allowlist needed until something else appears.
+## M19: the server URL arrives pre-filled (FR-19.1)
+
+Found while deploying the compose stack for manual testing: the first-launch
+screen offered an empty field with a `https://jitpack.example.com` placeholder,
+so every tester had to type their own address before Connect became clickable —
+and the one plausible-looking wrong answer, the backend port, is exactly what
+`docs/getting-started.md` already needed a warning box against.
+
+The right default was never ambiguous. The API sets no CORS headers, so a
+self-hosted instance *must* serve the SPA and the API from one origin (that is
+what `client/nginx.conf` is for). `window.location.origin` is therefore correct
+by construction in every real deployment, and the two exceptions are both
+explicit: a build-time `VITE_API_URL` still wins, and the Vite dev server keeps
+pointing at `http://localhost:8080` because there the two genuinely do split.
+
+The logic sits in `defaultServerBaseUrl()` in `client/src/config.ts` rather than
+in the component, so it is a pure function with a unit test; `ModeSelectionPage`
+just seeds its ref from it. `serverBaseUrl()` now shares that fallback instead of
+repeating the literal.
+
+Both new tests were run red against the old implementation before being kept —
+the vitest cases fail with `http://localhost:8080`, and the e2e case
+(E2E-M19-04) fails the same way on Chromium *and* WebKit. That mattered here:
+the natural `toBeEnabled()` assertion on the Connect `ion-button` is false-green
+(the custom element is never "disabled" in the DOM sense), so the case asserts
+the input's value and reaches through to the inner `button`.
+## Migrations 018/019: the two schema debts the concept left open (FR-25.9, FR-25.19)
+
+Item 5 of "Not built yet", cleared 2026-08-11 on owner instruction. Both
+migrations turned out to be one statement each — the owner's steer was explicit:
+still in development, so the pragmatic route that loses no data, not a ceremony.
+
+**018 — `travelers.profile` is gone.** The first draft was migration 004's
+twelve-step table rebuild, on the assumption that SQLite refuses `DROP COLUMN`
+while a `CHECK` names the column. Tried it against the real driver before
+writing it: `ALTER TABLE travelers DROP COLUMN profile` succeeds, rows intact.
+The rebuild would have been thirty lines of risk (two inbound foreign keys) for
+nothing. Unlike `outbound_packed`, which stays inert because nothing asks for
+it, this field was on the sync whitelist and on a screen — so it goes rather
+than lingering: schema, whitelist (a client still sending it is now *rejected*,
+not ignored), the portable YAML type, the client traveler type, and the M3
+step-2 Adult/Child segment. A trip exported before this still imports; yaml.v3
+ignores unknown keys, so the retired field is dropped rather than refused, and
+the api export round-trip test was left carrying `profile: adult` on purpose as
+the proof.
+
+**019 — `packed_by_user_id` beside `packer_user_id`.** The interesting half.
+`stampActor` used to write `packer_user_id` on `state=packed`, which is exactly
+the conflation FR-25.19 corrects. Now: `packer_user_id` is the assignment and is
+the client's to set (which is also what makes the FR-6.2 delegation notification
+read correctly — it fires on a deliberate assignment and nothing else), while
+the record is server-owned. Three rules, all tested: set from the acting user on
+`packed`, cleared on any other state (FR-25.17 — a stamp must not outlive the
+state it describes), and **stripped from every `trip_items` mutation before
+either**, so it cannot be forged on a push that touches no state at all. That
+last one is the invariant-3 case and it does not follow from the first two.
+
+The backfill copies `packer_user_id` into the record for rows already in state
+`packed` and touches nothing else: on those rows the person genuinely was the
+packer, while inventing a record for an unpacked row would claim work nobody
+did.
+
+Two things worth keeping:
+
+- `migrate` grew a `migrateTo(db, target)` seam so a test can stage a database
+  at 018 and assert what 019 does to real rows. A migration that transforms data
+  is behaviour, and behaviour that only ever runs against an empty schema in
+  tests is untested.
+- Changing `addTraveler`'s signature dropped a positional argument, and
+  `vue-tsc` was happy: the old third argument `'child'` slid silently into
+  `linkedUserId`, both `string`. Only the test caught it. The three production
+  call sites were correct; the lesson is that a positional signature change is
+  not type-safe when the neighbours share a type.
+
+Not built here, deliberately: the M4/M5 presentation of the split — the two
+rings and „gepackt von Andy · zuständig war Sia“ — belongs to the screen
+rebuilds. No `.vue` file reads either column today, so there is no half-built
+surface left behind.
+
 ## Brand mark: Check-Latch → Packed Backpack (2026-08-12)
 
 The owner rejected the Check-Latch mark and asked for playful, simple

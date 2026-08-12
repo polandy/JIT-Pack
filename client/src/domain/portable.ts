@@ -27,7 +27,6 @@ export const PORTABLE_SCHEMA_VERSION = 1
 
 export interface PortableTraveler {
   name: string
-  profile: 'adult' | 'child'
 }
 
 export interface PortableContainer {
@@ -203,7 +202,7 @@ export function serializeTrip(args: {
 
   const travelers = [...args.travelers]
     .sort((a, b) => a.name.localeCompare(b.name))
-    .map((t) => ({ name: t.name, profile: t.profile }))
+    .map((t) => ({ name: t.name }))
 
   const containers = [...args.containers]
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -280,7 +279,8 @@ function toTravelers(v: unknown): PortableTraveler[] {
     const o = entry as Record<string, unknown>
     const name = typeof o?.['name'] === 'string' ? o['name'].trim() : ''
     if (name === '') continue
-    out.push({ name, profile: o['profile'] === 'child' ? 'child' : 'adult' })
+    // A pre-FR-25.9 document carries `profile`; it is dropped, not an error.
+    out.push({ name })
   }
   return out
 }

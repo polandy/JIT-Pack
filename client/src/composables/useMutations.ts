@@ -142,14 +142,12 @@ export function useMutations(hlc: HLCGenerator) {
   function addTraveler(
     tripId: string,
     name: string,
-    profile: 'adult' | 'child',
     linkedUserId: string | null = null,
   ): { mutation: Mutation; id: string } {
     const id = crypto.randomUUID()
     const mutation = make('insert', 'travelers', id, {
       trip_id: tripId,
       name,
-      profile,
       linked_user_id: linkedUserId,
     })
     return { mutation, id }

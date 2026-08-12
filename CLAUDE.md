@@ -63,7 +63,7 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    authorization paths (including the FR-1.6 relaxation, which *removed* a check — templates
    are now writable by every authenticated account), test coverage where it matters rather
    than in total, supply-chain pinning against NFR-4.3 and invariant 8, and the two migrations
-   in item 5. The toolchain item that used to sit beside this one is **done** — `mise.toml` is
+   in item 5 (**done**). The toolchain item that used to sit beside this one is **done** — `mise.toml` is
    now the single pinning mechanism and `make ci` runs from a plain shell; see the
    implementation log.
 2. **§3.27 client package** — `instantiate.ts` include expansion + FR-27.7 task materialisation,
@@ -75,8 +75,10 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    **None of the rebuilt screens has been rendered and eyeballed yet** — only the prototype was.
 4. **i18n migration** — ~300 hard-coded English strings across the surrounding screens; the module
    and both catalogues exist.
-5. **Two migrations owed by concept decisions** — drop `travelers.profile` (FR-25.9 retired), and
-   add the record column beside `packer_user_id` (FR-25.19 splits assignment from packing record).
+5. ~~**Two migrations owed by concept decisions**~~ — **done** (migrations 018/019): `travelers.profile`
+   is dropped and `trip_items.packed_by_user_id` carries the packing record, with `packer_user_id`
+   left as the assignment. The M4/M5 *presentation* of that split (two rings, „gepackt von … ·
+   zuständig war …“) is part of the screen rebuilds in item 3.
 6. **Playwright suite** — `dev-docs/UI_Test_Spec_v1.0.md` is written, the harness is scaffolded and
    the first unit (M3 trip creation) has landed; the remaining per-screen cases are deliberately
    sequenced after the rebuilds. `dev-docs/e2e-tests.md` is the ledger of what is actually covered —
@@ -99,7 +101,7 @@ ownership model (each carries a revisit trigger in its stub).
 
 1. **Dependency direction**, as it actually is today (verified with `go list -deps`): `api → store, sync, portable`; `store → sync, portable`; **`sync` and `portable` import nothing internal, ever**. Those two leaves are trivially unit-testable precisely because of that, and that is the point. The pure domain rules live in `client/src/domain` (invariant 4), not in a Go `internal/domain`.
 2. **Applied migrations are never edited.** A change means a new numbered migration. Dead schema from a retired feature stays inert rather than being cleaned up — the `outbound_packed` column and the `repack` status value are there for exactly that reason. `PRAGMA user_version` tracks the applied level and must stay reopen-safe.
-3. **The client's identity claims are never trusted.** The server stamps actor columns itself (`stampActor` in `internal/api/server.go`: comment `author_id`, `packing_now_by`/`packing_now_at`, `packer_user_id`). A client placeholder like `'current-user'` must never reach a foreign key. Likewise, clients can never grant the `owner` role, and the trip creator's membership row is immutable.
+3. **The client's identity claims are never trusted.** The server stamps actor columns itself (`stampActor` in `internal/api/server.go`: comment `author_id`, `packing_now_by`/`packing_now_at`, and `packed_by_user_id` — which is also stripped from every incoming `trip_items` mutation so it cannot be forged. `packer_user_id` is deliberately *not* stamped: since FR-25.19 it is the assignment, which the client chooses). A client placeholder like `'current-user'` must never reach a foreign key. Likewise, clients can never grant the `owner` role, and the trip creator's membership row is immutable.
 4. **Generation runs client-side.** Template instantiation, dependency resolution, quantity suggestions, analytics, the review assistant, cloning and import all live in `client/src/domain`, not on the server — because **Local Mode has no server** and must keep every one of those features. Moving one of them server-side silently removes it from a supported mode.
 5. **Three modes, one artifact.** Behaviour is selected at runtime, never by a separate build — but note where each switch lives: the client's `jitpack_mode` is only `local` or `server`; **Single-User is a server-side configuration** (`api.NewSingleUser`) that a `server`-mode client discovers by being offered no OIDC. There is no third client mode. Every feature must answer: what happens in Single-User Mode (auth and membership are bypassed — anything gated on `authed` is inert) and in Local Mode (no network)? Server-only surfaces are hidden per G-8, not left broken.
 6. **Item image BLOBs stay outside the sync envelope** (ADR-002). Only `items.image_hash` flows through the master feed; the bytes move over their own endpoints. The 150 KB / JPEG limit is enforced at handler, store and CHECK constraint — three layers on purpose.

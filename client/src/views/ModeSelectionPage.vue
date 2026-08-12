@@ -23,12 +23,14 @@ import {
 import { phonePortraitOutline, serverOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 import BrandMark from '@/components/global/BrandMark.vue'
+import { defaultServerBaseUrl } from '@/config'
 
 const emit = defineEmits<{
   select: [mode: 'local' | 'server', serverUrl: string | null]
 }>()
 
-const serverUrl = ref('')
+// Pre-filled rather than merely placeheld — see defaultServerBaseUrl().
+const serverUrl = ref(defaultServerBaseUrl())
 
 const serverUrlValid = computed(() => {
   try {

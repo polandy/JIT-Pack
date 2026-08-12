@@ -13,7 +13,6 @@ import type { ItemMode, MasterItem, Template, TemplateDedup, TemplateItem } from
 
 export interface GenerationTraveler {
   name: string
-  profile: 'adult' | 'child'
 }
 
 export interface GenerationTrip {

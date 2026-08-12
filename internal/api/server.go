@@ -372,15 +372,28 @@ func stampActor(m *syncpkg.Mutation, userID string) {
 			setMutationField(m, "author_id", userID)
 		}
 	case "trip_items":
-		state, _ := m.Fields["state"].(string)
-		switch state {
-		case "packing_now":
+		// FR-25.19: packer_user_id is the *assignment* and belongs to the
+		// client, so it is left untouched here. The record of who packed
+		// the row is server-owned — a record you can pick is not a record
+		// — so whatever the client sent is discarded first, before the
+		// state below decides what the record should be.
+		delete(m.Fields, "packed_by_user_id")
+
+		state, hasState := m.Fields["state"].(string)
+		switch {
+		case state == "packing_now":
 			setMutationField(m, "packing_now_by", userID)
 			if at, _ := m.Fields["packing_now_at"].(string); at == "" {
 				setMutationField(m, "packing_now_at", time.Now().UTC().Format(time.RFC3339))
 			}
-		case "packed":
-			setMutationField(m, "packer_user_id", userID)
+			setMutationField(m, "packed_by_user_id", nil)
+		case state == "packed":
+			setMutationField(m, "packed_by_user_id", userID)
+		case hasState:
+			// Un-packed in any way (open, partial, skipped): the stamp is
+			// cleared with the state it described (FR-25.17), never left
+			// to outlive it.
+			setMutationField(m, "packed_by_user_id", nil)
 		}
 	}
 }
