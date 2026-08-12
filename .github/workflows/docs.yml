@@ -39,7 +39,10 @@ jobs:
         with:
           python-version: "3.x"
           cache: pip
-      - run: pip install -r docs/requirements.txt
+      # --require-hashes is implied once the file carries hashes, but saying
+      # it makes the intent enforceable: an unhashed edit fails instead of
+      # silently reopening the gap (invariant 8).
+      - run: pip install --require-hashes -r docs/requirements.txt
       - run: mkdocs build --strict
       # Only the main-branch push needs to publish; PR runs stop at the strict
       # build above as a validation gate.
