@@ -68,16 +68,16 @@ The display name is a seeded default that you can change later in the app; the `
 
 Go to <http://localhost:3000>.
 
-On first launch the client asks a one-time question per device: keep the data **local to this device**, or connect to a **server**. Choose **Server**, enter the same address you just opened:
+On first launch the client asks a one-time question per device: keep the data **local to this device**, or connect to a **server**. Choose **Server** and connect — the URL field already contains the address you are on:
 
 ```
 http://localhost:3000
 ```
 
-and connect. The client stores that URL and reloads. It then asks the server whether OIDC login is available; a single-user server answers that it is not, so the client skips the login screen entirely and drops you straight into the app. There is no password to set and no account to create — you are already the user `local`.
+The client stores that URL and reloads. It then asks the server whether OIDC login is available; a single-user server answers that it is not, so the client skips the login screen entirely and drops you straight into the app. There is no password to set and no account to create — you are already the user `local`.
 
-!!! note "Enter the origin, not the backend port"
-    The server URL you type must be the address the browser itself is on — `http://localhost:3000`, not `http://localhost:8080`. The backend port is not published by this stack, and even if it were, requests to it from a page served on another port would be blocked by the browser and the WebSocket handshake would be refused.
+!!! note "Keep the origin, don't swap in the backend port"
+    The pre-filled value is the address the browser itself is on — `http://localhost:3000`. Should you ever change it by hand, it must stay that origin and must not become `http://localhost:8080`. The backend port is not published by this stack, and even if it were, requests to it from a page served on another port would be blocked by the browser and the WebSocket handshake would be refused.
 
 ## Step 4 — Know where your data is
 

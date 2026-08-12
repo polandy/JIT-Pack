@@ -299,6 +299,7 @@ Feature removed from the product (PRD Addendum §3.11); its E2E cases are retire
 * **E2E-M19-01** `local` (FR-19.1): first launch shows the two cards; "Just on this device" requests persistent storage and lands on M1 empty state; shown exactly once (not re-asked after reload).
 * **E2E-M19-02** `server/single` (FR-19.1): "Connect to a server" validates the URL against the health endpoint, then proceeds to OIDC login (`server`) or straight to M1 (`single`).
 * **E2E-M19-03** `local` (FR-19.1): unreachable server URL → inline error, stays on the screen.
+* **E2E-M19-04** `local` (FR-19.1): the server URL field is pre-filled with the page's own origin and Connect is enabled without typing.
 
 ### M20 — User Administration
 * **E2E-M20-01** `server` (FR-23.2): admin sees the account list (avatar, name, email, provisioning date, status chip, usage counts, admin chip, "you" marker).

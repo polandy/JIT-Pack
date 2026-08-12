@@ -597,3 +597,29 @@ Verified by building the site strict from a fresh venv off the hashed set.
 Also checked and fine as-is: the only npm packages with install scripts are
 the two `fsevents` copies (macOS watcher, optional), which npm blocks by
 default — no allowlist needed until something else appears.
+## M19: the server URL arrives pre-filled (FR-19.1)
+
+Found while deploying the compose stack for manual testing: the first-launch
+screen offered an empty field with a `https://jitpack.example.com` placeholder,
+so every tester had to type their own address before Connect became clickable —
+and the one plausible-looking wrong answer, the backend port, is exactly what
+`docs/getting-started.md` already needed a warning box against.
+
+The right default was never ambiguous. The API sets no CORS headers, so a
+self-hosted instance *must* serve the SPA and the API from one origin (that is
+what `client/nginx.conf` is for). `window.location.origin` is therefore correct
+by construction in every real deployment, and the two exceptions are both
+explicit: a build-time `VITE_API_URL` still wins, and the Vite dev server keeps
+pointing at `http://localhost:8080` because there the two genuinely do split.
+
+The logic sits in `defaultServerBaseUrl()` in `client/src/config.ts` rather than
+in the component, so it is a pure function with a unit test; `ModeSelectionPage`
+just seeds its ref from it. `serverBaseUrl()` now shares that fallback instead of
+repeating the literal.
+
+Both new tests were run red against the old implementation before being kept —
+the vitest cases fail with `http://localhost:8080`, and the e2e case
+(E2E-M19-04) fails the same way on Chromium *and* WebKit. That mattered here:
+the natural `toBeEnabled()` assertion on the Connect `ion-button` is false-green
+(the custom element is never "disabled" in the DOM sense), so the case asserts
+the input's value and reaches through to the inner `button`.
