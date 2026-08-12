@@ -9,7 +9,10 @@
 *.test
 *.out
 cover.html
-coverage.txt
+# coverage.txt is the gated profile; coverage-*.txt covers the ad-hoc
+# cross-package profiles the audits produce (-coverpkg), one of which
+# was committed by accident.
+coverage*.txt
 
 # IDE
 .idea/
