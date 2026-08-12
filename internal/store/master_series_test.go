@@ -162,3 +162,106 @@ func TestApplyMasterMutation_DeleteReferencedSeriesRejected(t *testing.T) {
 		t.Error("series must survive the rejected delete")
 	}
 }
+
+// The destination chain denies malformed parents outright (FR-13.2):
+// a missing or unknown series/profile id rejects — even for the caller
+// who owns everything else — instead of falling through to an FK error.
+func TestApplyMasterMutation_DestinationChainRejectsUnknownParents(t *testing.T) {
+	s := openTestStore(t)
+	seedSeries(t, s)
+
+	tests := []struct {
+		name string
+		m    sync.Mutation
+	}{
+		{"profile without series_id", masterMut(sync.OpInsert, "destination_profiles", "prof-x", "up-1",
+			map[string]any{"notes": "verwaist"}, "0000000003000-0000-aaaaaaaa")},
+		{"profile on unknown series", masterMut(sync.OpInsert, "destination_profiles", "prof-y", "up-2",
+			map[string]any{"series_id": "ser-ghost", "notes": "nirgendwo"}, "0000000003001-0000-aaaaaaaa")},
+		{"checklist item without profile_id", masterMut(sync.OpInsert, "destination_checklist_items", "chk-x", "up-3",
+			map[string]any{"label": "verwaist", "mode": "buy_local"}, "0000000003002-0000-aaaaaaaa")},
+		{"checklist item on unknown profile", masterMut(sync.OpInsert, "destination_checklist_items", "chk-y", "up-4",
+			map[string]any{"profile_id": "prof-ghost", "label": "nirgendwo", "mode": "buy_local"},
+			"0000000003003-0000-aaaaaaaa")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res := applyMaster(t, s, testUser, tt.m)
+			if res.Outcome != "rejected" {
+				t.Errorf("outcome = %q, want rejected", res.Outcome)
+			}
+		})
+	}
+}
+
+// Deleting a profile cascades its checklist items (FK); the tombstones
+// must reach clients — the middle level of the chain, beside the
+// series-level cascade covered above.
+func TestApplyMasterMutation_ProfileDeleteTombstonesChecklistItems(t *testing.T) {
+	s := openTestStore(t)
+	seedSeries(t, s)
+
+	res := applyMaster(t, s, testUser, masterMut(sync.OpDelete, "destination_profiles", "prof-1", "pd-1", nil,
+		"0000000003100-0000-aaaaaaaa"))
+	if res.Outcome != "applied" {
+		t.Fatalf("outcome = %q, want applied", res.Outcome)
+	}
+
+	page, err := s.PullMaster(context.Background(), testUser, 0, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var chkTombstone bool
+	for _, c := range page.Changes {
+		if c.Table == "destination_checklist_items" && c.ID == "chk-1" && c.Deleted {
+			chkTombstone = true
+		}
+	}
+	if !chkTombstone {
+		t.Error("deleting the profile must tombstone its checklist items for clients")
+	}
+}
+
+// Same page-window rule as the roster: a series whose deletion lies
+// beyond the page must not leak as a live row — its ownership lookup
+// resolves against the already-deleted table row and denies, and the
+// tombstone follows on the next page.
+func TestPullMaster_DeletedSeriesNotLeakedMidWindow(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+
+	// seq 1: the series; seq 2: a pagination filler; seq 3: the delete.
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trip_series", "ser-win", "sw-1",
+		map[string]any{"name": "Fenster"}, "0000000008000-0000-aaaaaaaa"))
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "categories", "cat-win", "sw-2",
+		map[string]any{"name": "Filler"}, "0000000008001-0000-aaaaaaaa"))
+	applyMaster(t, s, testUser, masterMut(sync.OpDelete, "trip_series", "ser-win", "sw-3", nil,
+		"0000000008002-0000-aaaaaaaa"))
+
+	page1, err := s.PullMaster(ctx, testUser, 0, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !page1.HasMore {
+		t.Fatal("test setup: the tombstone must lie beyond page 1")
+	}
+	for _, c := range page1.Changes {
+		if c.Table == "trip_series" && c.ID == "ser-win" && !c.Deleted {
+			t.Error("page 1 leaked the deleted series as live")
+		}
+	}
+
+	page2, err := s.PullMaster(ctx, testUser, page1.NextCursor, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tombstone bool
+	for _, c := range page2.Changes {
+		if c.Table == "trip_series" && c.ID == "ser-win" && c.Deleted {
+			tombstone = true
+		}
+	}
+	if !tombstone {
+		t.Error("page 2 must deliver the series tombstone")
+	}
+}

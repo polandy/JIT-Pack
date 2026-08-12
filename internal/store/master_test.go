@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -496,5 +497,107 @@ func TestPullMaster_ExcludesTripPartition(t *testing.T) {
 		if c.Table == "categories" {
 			t.Error("trip pull leaked master partition change")
 		}
+	}
+}
+
+// FR-27.7: deleting a position must tombstone its preparation tasks.
+// The FK cascade removes the rows silently, so only the change log can
+// tell clients about them — same rule as the series cascade.
+func TestApplyMasterMutation_TemplateItemDeleteTombstonesTasks(t *testing.T) {
+	s := openTestStore(t)
+	mustExec(t, s, `INSERT INTO items (id, name) VALUES ('item-tt', 'Socken')`)
+	mustExec(t, s, `INSERT INTO templates (id, owner_id, name) VALUES ('tpl-tt', ?, 'Sommer')`, testUser)
+	mustExec(t, s, `INSERT INTO template_items (id, template_id, item_id) VALUES ('ti-tt', 'tpl-tt', 'item-tt')`)
+	mustExec(t, s, `INSERT INTO template_item_tasks (id, template_item_id, task) VALUES ('task-tt', 'ti-tt', 'waschen')`)
+
+	res := applyMaster(t, s, testUser, masterMut(sync.OpDelete, "template_items", "ti-tt", "mm-ti-del", nil,
+		"0000000003000-0000-aaaaaaaa"))
+	if res.Outcome != "applied" {
+		t.Fatalf("outcome = %q, want applied", res.Outcome)
+	}
+
+	page, err := s.PullMaster(context.Background(), testUser, 0, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var taskTombstone bool
+	for _, c := range page.Changes {
+		if c.Table == "template_item_tasks" && c.ID == "task-tt" && c.Deleted {
+			taskTombstone = true
+		}
+	}
+	if !taskTombstone {
+		t.Error("deleting the position must tombstone its task for clients")
+	}
+}
+
+// FR-27.1: only a Ferien-Vorlage may include, only a Gruppe may be
+// included, and both ends must exist — malformed shapes are rejected
+// cleanly rather than left to the FK.
+func TestApplyMasterMutation_IncludeEnforcesTwoLevelRule(t *testing.T) {
+	s := openTestStore(t)
+	mustExec(t, s, `INSERT INTO templates (id, owner_id, name, kind) VALUES ('tpl-fer', ?, 'Ferien', 'template')`, testUser)
+	mustExec(t, s, `INSERT INTO templates (id, owner_id, name, kind) VALUES ('tpl-grp', ?, 'Hygiene', 'group')`, testUser)
+
+	tests := []struct {
+		name    string
+		fields  map[string]any
+		outcome string
+	}{
+		{"template includes group", map[string]any{"template_id": "tpl-fer", "included_template_id": "tpl-grp"}, "applied"},
+		{"missing parent field", map[string]any{"included_template_id": "tpl-grp"}, "rejected"},
+		{"missing child field", map[string]any{"template_id": "tpl-fer"}, "rejected"},
+		{"unknown parent", map[string]any{"template_id": "tpl-ghost", "included_template_id": "tpl-grp"}, "rejected"},
+		{"unknown child", map[string]any{"template_id": "tpl-fer", "included_template_id": "tpl-ghost"}, "rejected"},
+		{"group as parent", map[string]any{"template_id": "tpl-grp", "included_template_id": "tpl-grp"}, "rejected"},
+		{"template as child", map[string]any{"template_id": "tpl-fer", "included_template_id": "tpl-fer"}, "rejected"},
+	}
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := masterMut(sync.OpInsert, "template_includes", fmt.Sprintf("inc-%d", i),
+				fmt.Sprintf("mm-inc-%d", i), tt.fields, fmt.Sprintf("000000000400%d-0000-aaaaaaaa", i))
+			res := applyMaster(t, s, testUser, m)
+			if res.Outcome != tt.outcome {
+				t.Errorf("outcome = %q, want %q", res.Outcome, tt.outcome)
+			}
+		})
+	}
+}
+
+// Pull pagination (§4): a page smaller than the backlog reports has_more
+// with a resumable cursor, and an empty page leaves the cursor where it was.
+func TestPullMaster_PaginationSignalsHasMore(t *testing.T) {
+	s := openTestStore(t)
+	for i := range 3 {
+		applyMaster(t, s, testUser, masterMut(sync.OpInsert, "categories", fmt.Sprintf("cat-p%d", i),
+			fmt.Sprintf("mm-page-%d", i), map[string]any{"name": fmt.Sprintf("Kat %d", i)},
+			fmt.Sprintf("000000000500%d-0000-aaaaaaaa", i)))
+	}
+	ctx := context.Background()
+
+	page1, err := s.PullMaster(ctx, testUser, 0, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !page1.HasMore || len(page1.Changes) != 2 {
+		t.Fatalf("page 1: has_more=%v changes=%d, want true/2", page1.HasMore, len(page1.Changes))
+	}
+
+	page2, err := s.PullMaster(ctx, testUser, page1.NextCursor, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if page2.HasMore || len(page2.Changes) != 1 {
+		t.Fatalf("page 2: has_more=%v changes=%d, want false/1", page2.HasMore, len(page2.Changes))
+	}
+
+	// Fully caught up: the cursor must hold its position, not reset.
+	page3, err := s.PullMaster(ctx, testUser, page2.NextCursor, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page3.Changes) != 0 || page3.NextCursor != page2.NextCursor {
+		t.Errorf("page 3: changes=%d cursor=%d, want 0 and cursor unchanged (%d)",
+			len(page3.Changes), page3.NextCursor, page2.NextCursor)
 	}
 }

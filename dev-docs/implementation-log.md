@@ -532,3 +532,45 @@ carries over against UserInfo, plus revocation-at-refresh. Store sessions are
 clock-injected throughout — an earlier draft of `CreateSession` called
 `time.Now()` internally and promptly broke its own purge test; the parameter is
 what makes the expiry tests deterministic.
+
+## Basics audit, 2026-08-09 — failure-path coverage
+
+Third audit field: not the coverage total (the gates were green throughout) but
+whether the rules that enforce authorization and correctness cover their
+*rejection* branches — CODING_PRINCIPLES §2's "an uncovered branch in merge
+logic fails review regardless of the total".
+
+Method worth keeping: the gate profile is per-package, so functions exercised
+only through another package's tests read as 0 % — `store.IsInstanceAdmin`
+looked dead while `adminOnly` covered it from the api tests. A second profile
+with `-coverpkg=./cmd/...,./internal/...` separates real gaps from that
+artifact. After filtering plain `if err != nil` plumbing (untestable without
+fault injection, and not what the rule is about), **17 genuinely uncovered
+behavior branches** remained; all are covered now:
+
+- **FR-4.7 / §5 visibility:** roster rows invisible to non-members; the deny
+  sides of `CanManageTravelers` (non-member) and `IsTripCreator` (unknown trip,
+  legacy NULL creator).
+- **FR-13.2 destination chain:** missing and unknown parents deny cleanly for
+  the owner too (`ownsAll` empty-set / no-rows); profile deletes tombstone
+  their checklist items — the middle level beside the already-tested series
+  cascade.
+- **FR-27.1 includes:** the full two-level table — missing/unknown ends, group
+  as parent, template as child.
+- **FR-27.7:** deleting a position tombstones its tasks.
+- **§4 pagination:** `has_more` + cursor advance + cursor hold on an empty
+  page, and the page-window rule twice (roster row and series deleted beyond
+  the window must not leak as live; the tombstone follows) — the second one is
+  what finally exercised `ownedBy`'s no-rows branch, and both document real
+  protocol behavior rather than chasing a percentage.
+- **Broker contract:** 422 shapes, refresh-501, ID token without subject,
+  UserInfo outage at login (502, no half-provisioned user), and a session
+  token without `sub` (invariant 3: attribution always resolves to users.id).
+
+Left uncovered deliberately, with reasons: the defensive `return false` tails
+of `authorizeMaster`/`masterVisible` and `memberTrip`'s unresolvable branch
+(unreachable through the public API — `validate` and `authorizeMaster` gate
+earlier), `EnsureOIDCUser`'s concurrent-provisioning race arm and
+`RotateSession`'s rows-affected race arm (both need a mutation between two
+statements of one call — not deterministically reachable, and the race rule
+forbids probabilistic tests), and DB-error plumbing throughout.
