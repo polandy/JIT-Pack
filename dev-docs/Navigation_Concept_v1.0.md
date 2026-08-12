@@ -2,6 +2,8 @@
 
 **Document Status:** Proposed for Review — consolidated IA draft
 **Basis:** UI_Spec_v1.10 (screen inventory M1–M20, global patterns G-1–G-11) + the live client router (`client/src/router/index.ts`)
+**Revision Note (v1.2, 2026-08-13):** §1.2 rewritten — the app has **one** header bar whose left slot switches between the logo (tab roots) and `‹ back` + title (everything else), decided in [ADR-011](adr/ADR-011_One_Header_Bar.md) after the back affordance was found to be built but invisible on seventeen screens. §7's back-stack proposal is promoted from proposal to **binding contract**, because the logo is no longer the universal escape it was written to be.
+
 **Revision Note (v1.1):** Added **Part II** — full, code-grounded elaboration of the six structural points (desktop rail, trip-context entries, back-stack, onboarding, empty states, cross-cluster edges). Part II states *As built* vs *Proposal* per point and corrects Part I's "trip toolbar" simplification (the entries are distributed and status-gated, not a single toolbar).
 **Revision Note (v1.0):** New document. The per-screen designs already existed in `UI_Spec_v1.10.md`; what was missing was the connective tissue — *how the app is navigated as a whole*. This document is the single home for that. It does not restate each screen's internal design (that stays in the UI Spec); it defines the **structure between** screens: the navigation model, the screen graph, and the routing that realises it.
 
@@ -46,11 +48,22 @@ The same four destinations are presented differently by breakpoint; the *structu
 
 The breakpoint is the only thing that differs. A user who resizes the window moves between these two presentations of the identical graph.
 
-### 1.2 The top bar is global chrome
+### 1.2 One header bar, whose left slot switches
 
-Left → right (G-9):
+**There is exactly one header bar** (ADR-011). `App.vue` renders it on every screen; no screen brings its own. What changes by route class is the **left slot**:
 
-1. **Logo** — compact mark on mobile, full wordmark from the desktop breakpoint up. It is a universal "home" tap-target to M1 (Dashboard) from *anywhere*, including inside a trip, template, or wizard.
+| Route class | Left slot | Right group |
+|---|---|---|
+| The four tab roots | logo (home) | sync glyph · settings/avatar |
+| Everything else (drill-down, flow, sheet-ish) | `‹ back` + the page title | sync glyph · settings/avatar |
+
+The right-hand group is **unconditional** — it is what makes the bar global. In particular the sync glyph stays on drill-downs because inside a trip it is the only route to the conflict log (§6), which is exactly where NFR-4.2a needs it.
+
+*Why this needed deciding:* seventeen screens had shipped a correct `IonBackButton` that no user could reach. `.app-content` lacked `position: relative`, so Ionic's absolutely-positioned router outlet resolved against `ion-app` and covered the viewport; each page's own header landed at `y=0` beneath the global one, and a click on the back button timed out against the occluding bar. The options and their costs are weighed in ADR-011; the accepted cost is the item below.
+
+Left → right (G-9, as amended by ADR-011):
+
+1. **Logo — on the tab roots only.** A "home" tap-target to M1. It is *not* present on drill-downs: `‹ back` occupies that slot there, and the guaranteed way out is the back-target contract of §7, not the logo. (G-9's older wording — "from anywhere, including inside a trip, template, or wizard" — is superseded.)
 2. **Sync glyph** (G-2) — `synced` / `syncing` / `offline` / `local`. Tapping opens the sync detail; inside a trip it also exposes the conflict log (NFR-4.2a). In Local Mode it shows a device glyph and opens storage & backup detail instead.
 3. **Settings / avatar** (G-1) — the gear (Single-User/Local) or the account avatar (collaborative) opens M17.
 
@@ -229,10 +242,19 @@ Part I fixed the skeleton. This part fleshes out each structural point in full, 
 **The three problem cases and the rule for each.**
 
 1. **Wizard/flow completion.** M3 (`/trips/new`) is `push`ed, so after creating a trip the browser back returns *into the finished wizard* — wrong. **Rule:** completing a create/import flow (M3, M15, M18, Clone) must `router.replace` to the result (the new trip/M4), not `push`. Back then skips the consumed wizard.
-2. **Cold-start deep link.** A notification opened from a killed app lands on M5 with a one-entry history — "back" has nowhere sane to go. **Rule:** the **logo = home** affordance (G-9) is the guaranteed escape; additionally, a deep-linked detail should ensure its parent trip (M4) is reachable in one step (synthesise the M4 entry, or route detail→M4 on back).
+2. **Cold-start deep link.** A notification opened from a killed app lands on M5 with a one-entry history — "back" has nowhere sane to go. **Rule (revised by ADR-011):** the logo is no longer on screen here, so it cannot be the escape. The declared parent is: `‹ back` routes to the parent trip (M4) even when history is empty, and from there to M2. The contract below is what guarantees it.
 3. **Modal-ish sub-screens** (Conflict log, presence sheet). **Rule:** these `push` and rely on back to dismiss; they must never be a dead end — each has a visible close/back to its origin trip.
 
-**Proposal.** Document a small back-target contract per route class: *tab roots* → OS handles (exit); *drill-downs* → parent list; *flows* → replace-on-done; *deep links* → parent trip guaranteed. This belongs next to the route table in `router/index.ts` as a comment block.
+**The back-target contract (binding since ADR-011).** With the logo gone from drill-downs, `‹ back` is *the* way out, so every non-root route must know where "out" is. Each route declares its parent; the header derives the back target from it rather than from history alone, which is what makes a cold-start deep link survivable.
+
+| Route class | Back target | Rule |
+|---|---|---|
+| Tab roots | none — the platform handles it (exit / OS back) | the bar shows the logo, not `‹` |
+| Drill-downs (M4, M5, M8, M10, containers, analytics, …) | the declared parent, *not* whatever is on the history stack | a deep-linked child still goes to its parent trip |
+| Flows (M3, M15, M18, Clone) | the origin the flow was entered from | completing the flow `replace`s, so back never re-enters a consumed wizard |
+| Modal-ish (conflict log, presence) | the trip they were opened from | never a dead end |
+
+The declaration lives with the route in `router/index.ts` (a `meta.parent`), so adding a screen without a back target is a visible omission rather than a silent one.
 
 ---
 

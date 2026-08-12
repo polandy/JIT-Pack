@@ -703,3 +703,43 @@ Where it landed, and why that shape:
 No ADR: an aesthetic choice among equivalent options, not an
 engineering tradeoff. No spec update owed: neither the UI-Spec nor the
 manual describes the mark's artwork.
+
+## Navigation: the back button that was built but unreachable (ADR-011)
+
+Reported by the owner while looking at M3 — "es fehlt ein zurück button". It was
+there: `TripWizardPage.vue` has an `IonBackButton` with a `default-href`, and so
+do sixteen other screens. Measuring instead of reading the stylesheet found why
+nobody had ever seen one.
+
+`App.vue` renders the global header, then `.app-body` holding the router outlet.
+`.app-content` has no `position: relative`, so Ionic's absolutely-positioned
+`ion-router-outlet` resolves against `ion-app` and covers the whole viewport:
+
+```
+.app-body      0,56  430x844      correct, below the header
+.app-content   position: static   ← the cause
+ion-page       0,0   430x900      escapes, covers the full window
+```
+
+Each drill-down's own header therefore lands at `y=0`, under the global one.
+`isVisible()` says true — Playwright does not test occlusion — but `click()`
+times out against the covering bar. That distinction is the whole diagnosis, and
+it is why the earlier screenshots showed no page titles either.
+
+The one-line CSS fix would have left two stacked bars, 112 px of chrome, on a
+product whose §3.25 decision is that the bar stays low and M4 hides the tab bar
+to buy height. So the layout bug forced an architectural question rather than
+being the whole of it. ADR-011 weighs the three options; the owner chose one bar
+whose left slot switches — logo on the four tab roots, `‹ back` + title
+everywhere else, sync glyph and settings unconditional on the right.
+
+The accepted cost is real and worth restating: **G-9's "home from anywhere" is
+gone.** It was load-bearing — Navigation_Concept §7's cold-start deep-link case
+named the logo as the guaranteed escape. That guarantee moves to a back-target
+contract: every non-root route declares its parent, so `‹ back` leads somewhere
+real even when history has one entry. §7's former *proposal* is now binding, and
+the declaration belongs in `router/index.ts` where a missing parent is visible.
+
+Concept and specs are updated ahead of the code, deliberately — the owner asked
+to sharpen the concept before anything is built. Nothing in `client/` changed
+here.
