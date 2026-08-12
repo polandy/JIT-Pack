@@ -411,6 +411,16 @@ func TestIsTripCreator(t *testing.T) {
 	if ok {
 		t.Error("expected false for non-creator")
 	}
+
+	// An unknown trip has no creator — deny, not error (FR-4.7's check
+	// must fail closed when the row is gone).
+	ok, err = s.IsTripCreator(ctx, "trip-nowhere", testUser)
+	if err != nil {
+		t.Fatalf("IsTripCreator(unknown trip): %v", err)
+	}
+	if ok {
+		t.Error("expected false for unknown trip")
+	}
 }
 
 func TestCanManageTravelers(t *testing.T) {
@@ -427,6 +437,9 @@ func TestCanManageTravelers(t *testing.T) {
 	}{
 		{"user-admin", true},
 		{"user-editor", false},
+		// A non-member is denied before any role comparison — the deny
+		// side FR-4.7 exists for.
+		{"user-outside", false},
 	}
 	for _, tc := range cases {
 		ok, err := s.CanManageTravelers(ctx, testTrip, tc.user)

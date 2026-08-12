@@ -16,3 +16,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+  - package-ecosystem: pip
+    # The docs toolchain (mkdocs-material + transitives, hash-pinned via
+    # `uv pip compile --generate-hashes`, see docs/requirements.in).
+    directory: /docs
+    schedule:
+      interval: weekly

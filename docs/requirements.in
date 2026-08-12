@@ -1,0 +1,6 @@
+# Documentation site toolchain (GitHub Pages via .github/workflows/docs.yml).
+# This is the human-edited input; docs/requirements.txt is compiled from it
+# with hashes for every package INCLUDING transitives (invariant 8):
+#   mise x uv@0.9 -- uv pip compile docs/requirements.in --generate-hashes --universal -o docs/requirements.txt
+# Bump deliberately, then recompile.
+mkdocs-material==9.7.7
