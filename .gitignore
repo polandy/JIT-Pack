@@ -49,3 +49,6 @@ node_modules/
 # Playwright output
 client/playwright-report/
 client/test-results/
+
+# mkdocs build output (docs.yml builds it in CI; local `mkdocs build` too)
+site/
