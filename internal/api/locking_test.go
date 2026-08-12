@@ -95,7 +95,7 @@ func TestPush_PackingNow_StampsLockerAndEmitsLockEvents(t *testing.T) {
 		t.Fatalf("expected trip.changed after lock, got %v", evt["type"])
 	}
 
-	// Completing the pack stamps the packer and unlocks.
+	// Completing the pack writes the packing record and unlocks.
 	pushOne(t, srv.url, userA, map[string]any{
 		"mutation_id": "pn-2", "op": "upsert", "table": "trip_items", "id": "item-pn",
 		"fields": map[string]any{
@@ -128,8 +128,13 @@ func TestPush_PackingNow_StampsLockerAndEmitsLockEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 	row := pull.Changes[0].Row
-	if row["packer_user_id"] != userA {
-		t.Errorf("packer_user_id = %v, want %s (FR-4.2)", row["packer_user_id"], userA)
+	// FR-25.19: the record, not packer_user_id — that column is now the
+	// assignment and nobody assigned this row.
+	if row["packed_by_user_id"] != userA {
+		t.Errorf("packed_by_user_id = %v, want %s (FR-25.19)", row["packed_by_user_id"], userA)
+	}
+	if row["packer_user_id"] != nil {
+		t.Errorf("packer_user_id = %v, want nil — packing must not invent an assignment", row["packer_user_id"])
 	}
 	if row["packing_now_by"] != nil {
 		t.Errorf("packing_now_by = %v, want cleared", row["packing_now_by"])

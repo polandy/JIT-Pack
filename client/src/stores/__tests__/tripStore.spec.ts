@@ -346,7 +346,7 @@ describe('tripStore', () => {
       table: 'travelers',
       id: 'tv1',
       deleted: false,
-      row: { trip_id: 't1', name: 'Alice', profile: 'adult' },
+      row: { trip_id: 't1', name: 'Alice' },
     })
     expect(store.getTravelers('t1')).toHaveLength(1)
     expect(store.getTravelers('t1')[0]!.name).toBe('Alice')

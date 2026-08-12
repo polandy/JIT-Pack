@@ -131,8 +131,8 @@ func TestExportTrip(t *testing.T) {
 		`INSERT INTO users (id, oidc_subject, display_name) VALUES ('u1', 'auth|u1', 'Alice')`,
 		`INSERT INTO trips (id, name, start_date, end_date) VALUES ('trip1', 'Summer 2026', '2026-07-01', '2026-07-10')`,
 		`INSERT INTO trip_members (trip_id, user_id, role) VALUES ('trip1', 'u1', 'owner')`,
-		`INSERT INTO travelers (id, trip_id, name, profile) VALUES ('trav1', 'trip1', 'Andy', 'adult')`,
-		`INSERT INTO travelers (id, trip_id, name, profile) VALUES ('trav2', 'trip1', 'Lisa', 'child')`,
+		`INSERT INTO travelers (id, trip_id, name) VALUES ('trav1', 'trip1', 'Andy')`,
+		`INSERT INTO travelers (id, trip_id, name) VALUES ('trav2', 'trip1', 'Lisa')`,
 		`INSERT INTO containers (id, trip_id, name, carrier_traveler_id, max_weight_grams) VALUES ('c1', 'trip1', 'Backpack', 'trav1', 8000)`,
 		`INSERT INTO trip_items (id, trip_id, name, quantity, packed_count, mode, category_name, assigned_traveler_id, container_id, updated_hlc)
 		 VALUES ('ti1', 'trip1', 'Toothbrush', 1, 0, 'pack', 'Toiletries', 'trav1', 'c1', '0001')`,
@@ -223,7 +223,7 @@ func TestImportTrip(t *testing.T) {
 		StartDate:     "2026-08-01",
 		EndDate:       "2026-08-10",
 		Travelers: []portable.Traveler{
-			{Name: "Andy", Profile: "adult"},
+			{Name: "Andy"},
 		},
 		Containers: []portable.Container{
 			{Name: "Backpack", Carrier: "Andy", MaxWeightGrams: 8000},

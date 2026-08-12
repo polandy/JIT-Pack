@@ -50,7 +50,10 @@ export interface TripItem {
   mode: ItemMode
   late_packer: boolean
   assigned_traveler_id: string | null
+  /** Assignment — "Zugewiesen an", chosen deliberately (FR-25.19). */
   packer_user_id: string | null
+  /** Record of who actually packed it; server-stamped, never picked (FR-25.19). */
+  packed_by_user_id: string | null
   container_id: string | null
   packing_now_by: string | null
   packing_now_at: string | null
@@ -91,7 +94,6 @@ export interface Traveler {
   id: string
   trip_id: string
   name: string
-  profile: 'adult' | 'child'
   linked_user_id: string | null
 }
 

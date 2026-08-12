@@ -42,6 +42,7 @@ function tripItem(over: Partial<TripItem> = {}): TripItem {
     late_packer: false,
     assigned_traveler_id: null,
     packer_user_id: null,
+    packed_by_user_id: null,
     container_id: null,
     packing_now_by: null,
     packing_now_at: null,
@@ -52,8 +53,8 @@ function tripItem(over: Partial<TripItem> = {}): TripItem {
   }
 }
 
-function traveler(id: string, name: string, profile: 'adult' | 'child' = 'adult'): Traveler {
-  return { id, trip_id: 'src', name, profile, linked_user_id: null }
+function traveler(id: string, name: string): Traveler {
+  return { id, trip_id: 'src', name, linked_user_id: null }
 }
 
 function container(id: string, over: Partial<Container> = {}): Container {
@@ -82,7 +83,7 @@ const noLookup = {
 describe('planClone — carry-over options (FR-12.2)', () => {
   const source = {
     trip: trip(),
-    travelers: [traveler('tr1', 'Andy'), traveler('tr2', 'Kind', 'child')],
+    travelers: [traveler('tr1', 'Andy'), traveler('tr2', 'Kind')],
     containers: [
       container('c1', { carrier_traveler_id: 'tr2', max_weight_grams: 9000 }),
       container('c2', { paired_container_id: 'c1' }),
@@ -100,10 +101,7 @@ describe('planClone — carry-over options (FR-12.2)', () => {
   it('remaps traveler and container links by index with everything on', () => {
     const plan = planClone(source, allOn, noLookup, 4)
 
-    expect(plan.travelers).toEqual([
-      { name: 'Andy', profile: 'adult' },
-      { name: 'Kind', profile: 'child' },
-    ])
+    expect(plan.travelers).toEqual([{ name: 'Andy' }, { name: 'Kind' }])
     expect(plan.containers).toHaveLength(2)
     expect(plan.containers[0]).toMatchObject({
       name: 'Container c1',

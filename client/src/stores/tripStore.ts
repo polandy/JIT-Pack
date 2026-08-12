@@ -452,6 +452,7 @@ function rowToTripItem(id: string, row: Record<string, unknown>): TripItem {
     late_packer: Boolean(row['late_packer']),
     assigned_traveler_id: (row['assigned_traveler_id'] as string) ?? null,
     packer_user_id: (row['packer_user_id'] as string) ?? null,
+    packed_by_user_id: (row['packed_by_user_id'] as string) ?? null,
     container_id: (row['container_id'] as string) ?? null,
     packing_now_by: (row['packing_now_by'] as string) ?? null,
     packing_now_at: (row['packing_now_at'] as string) ?? null,
@@ -466,7 +467,6 @@ function rowToTraveler(id: string, row: Record<string, unknown>): Traveler {
     id,
     trip_id: row['trip_id'] as string,
     name: row['name'] as string,
-    profile: (row['profile'] as Traveler['profile']) ?? 'adult',
     linked_user_id: (row['linked_user_id'] as string) ?? null,
   }
 }

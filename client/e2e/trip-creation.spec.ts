@@ -80,6 +80,12 @@ test('M3: step 2 requires every added traveler to be named @local @m3', async ({
   await page.getByTestId('wizard-add-traveler').click()
   await expectBlocked(page.getByTestId('wizard-next'))
 
+  // A traveler is a name and nothing else — the Adult/Child type went
+  // with FR-25.9 (migration 018). The name field above is the positive
+  // signal that the row itself rendered, so this absence is real.
+  await expect(page.getByTestId('wizard-traveler-name')).toBeVisible()
+  await expect(page.locator('ion-segment')).toHaveCount(0)
+
   await page.getByTestId('wizard-traveler-name').locator('input').fill('Alex')
   await page.getByTestId('wizard-next').click()
   await expect(page.getByTestId('wizard-step-3')).toBeVisible()

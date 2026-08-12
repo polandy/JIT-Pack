@@ -56,8 +56,8 @@ func TestMarshalTrip_RoundTrip(t *testing.T) {
 		StartDate:     "2026-07-01",
 		EndDate:       "2026-07-10",
 		Travelers: []portable.Traveler{
-			{Name: "Andy", Profile: "adult"},
-			{Name: "Lisa", Profile: "child"},
+			{Name: "Andy"},
+			{Name: "Lisa"},
 		},
 		Containers: []portable.Container{
 			{Name: "Backpack", Carrier: "Andy", MaxWeightGrams: 8000},

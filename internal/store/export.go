@@ -164,7 +164,7 @@ func (s *Store) ExportTrip(ctx context.Context, tripID string, includeProgress b
 
 func (s *Store) loadTravelers(ctx context.Context, tripID string) ([]portable.Traveler, map[string]string, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, name, profile FROM travelers WHERE trip_id = ? ORDER BY name`, tripID)
+		`SELECT id, name FROM travelers WHERE trip_id = ? ORDER BY name`, tripID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("travelers: %w", err)
 	}
@@ -175,7 +175,7 @@ func (s *Store) loadTravelers(ctx context.Context, tripID string) ([]portable.Tr
 	for rows.Next() {
 		var id string
 		var t portable.Traveler
-		if err := rows.Scan(&id, &t.Name, &t.Profile); err != nil {
+		if err := rows.Scan(&id, &t.Name); err != nil {
 			return nil, nil, fmt.Errorf("scan traveler: %w", err)
 		}
 		travelers = append(travelers, t)
@@ -288,8 +288,8 @@ func (s *Store) ImportTrip(ctx context.Context, ownerID string, doc portable.Doc
 	for _, trav := range doc.Travelers {
 		id := randomID()
 		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO travelers (id, trip_id, name, profile)
-			VALUES (?, ?, ?, ?)`, id, tripID, trav.Name, trav.Profile); err != nil {
+			INSERT INTO travelers (id, trip_id, name)
+			VALUES (?, ?, ?)`, id, tripID, trav.Name); err != nil {
 			return "", fmt.Errorf("insert traveler %q: %w", trav.Name, err)
 		}
 		travelerIDs[trav.Name] = id

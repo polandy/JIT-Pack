@@ -43,10 +43,11 @@ type Item struct {
 	Dedup       string `yaml:"dedup,omitempty"` // template only
 }
 
-// Traveler is a named person in a trip export.
+// Traveler is a named person in a trip export. The Adult/Child type was
+// retired with FR-25.9; yaml.v3 ignores unknown keys, so a document
+// exported before that still imports — its profile is simply dropped.
 type Traveler struct {
-	Name    string `yaml:"name"`
-	Profile string `yaml:"profile"`
+	Name string `yaml:"name"`
 }
 
 // Container is a named luggage container in a trip export.

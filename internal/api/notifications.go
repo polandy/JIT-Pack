@@ -138,8 +138,10 @@ func (s *Server) emitNotifications(ctx context.Context, tripID, actor string, mu
 }
 
 // notifyDelegation fires when a push hands packing responsibility to
-// someone else (FR-4.3 → FR-6.2). state=packed self-stamps the actor via
-// stampActor, so those never reach the target != actor check.
+// someone else (FR-4.3 → FR-6.2). Since FR-25.19 packer_user_id *is*
+// that responsibility and nothing else — packing a row writes the
+// separate record column instead — so this reads a deliberate
+// assignment rather than having to tell the two apart.
 func (s *Server) notifyDelegation(ctx context.Context, tripID, actor, actorName string, m syncpkg.Mutation) {
 	target, _ := m.Fields["packer_user_id"].(string)
 	if target == "" || target == actor {

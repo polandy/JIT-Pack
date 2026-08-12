@@ -180,7 +180,7 @@ describe('wizard sharing step (M3 step 2, FR-4.5)', () => {
       startDate: null,
       endDate: '2026-08-10',
       attributes: null,
-      travelers: [{ name: 'Andy', profile: 'adult' }],
+      travelers: [{ name: 'Andy' }],
       items: [],
       members: [
         { userId: 'user-b', role: 'editor' },

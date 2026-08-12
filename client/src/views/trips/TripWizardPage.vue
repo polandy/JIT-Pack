@@ -28,8 +28,6 @@ import {
   IonInput,
   IonSelect,
   IonSelectOption,
-  IonSegment,
-  IonSegmentButton,
   IonCheckbox,
   IonIcon,
   IonNote,
@@ -103,10 +101,10 @@ const attributes = computed<Record<string, unknown> | null>(() => {
 })
 
 // --- Step 2: travelers (FR-2.5) ---
-const travelers = ref<{ name: string; profile: 'adult' | 'child' }[]>([])
+const travelers = ref<{ name: string }[]>([])
 
 function addTraveler() {
-  travelers.value = [...travelers.value, { name: '', profile: 'adult' }]
+  travelers.value = [...travelers.value, { name: '' }]
 }
 
 function removeTraveler(index: number) {
@@ -323,7 +321,7 @@ function createTrip() {
     startDate: startDate.value || null,
     endDate: endDate.value,
     attributes: attributes.value,
-    travelers: travelers.value.map((t) => ({ name: t.name.trim(), profile: t.profile })),
+    travelers: travelers.value.map((t) => ({ name: t.name.trim() })),
     items,
     seriesId: seriesChoice.value && seriesChoice.value !== 'new' ? seriesChoice.value : null,
     newSeriesName: seriesChoice.value === 'new' ? newSeriesName.value.trim() : null,
@@ -476,14 +474,6 @@ function createTrip() {
               :value="traveler.name"
               @ionInput="(e: CustomEvent) => (traveler.name = e.detail.value ?? '')"
             />
-            <IonSegment
-              class="profile-segment"
-              :value="traveler.profile"
-              @ionChange="(e: CustomEvent) => (traveler.profile = e.detail.value)"
-            >
-              <IonSegmentButton value="adult">Adult</IonSegmentButton>
-              <IonSegmentButton value="child">Child</IonSegmentButton>
-            </IonSegment>
             <IonButton
               slot="end"
               fill="clear"
@@ -718,10 +708,6 @@ function createTrip() {
   font-size: 1rem;
   font-weight: 600;
   margin: 16px 0 8px;
-}
-
-.profile-segment {
-  max-width: 160px;
 }
 
 .empty-hint {

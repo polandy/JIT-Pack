@@ -121,6 +121,10 @@ func TestImportTemplate_InvalidYAML(t *testing.T) {
 	}
 }
 
+// The traveler `profile:` key below is deliberate: it is the shape
+// exported before FR-25.9 retired the Adult/Child type (migration 018).
+// A document written by an older instance must still import — the
+// retired key is ignored, not an error, so nobody's backup goes stale.
 func TestImportExportTrip_RoundTrip(t *testing.T) {
 	srv := newTestServer(t)
 

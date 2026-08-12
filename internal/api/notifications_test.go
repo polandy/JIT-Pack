@@ -84,12 +84,34 @@ func TestNotifications_SelfPackDoesNotNotify(t *testing.T) {
 	srv := newTestServer(t)
 	seedItem(t, srv, "item-1", "Zelt")
 
-	// Packing stamps packer_user_id = actor (stampActor) — never a delegation.
+	// Packing writes the FR-25.19 record column, never packer_user_id, so
+	// it cannot read as handing the row to anyone.
 	pushAs(t, srv, userB, mutation("item-1", "m-pack", "upsert",
 		map[string]any{"state": "packed", "packed_count": 1}, "0000000002000-0000-bbbbbbbb"))
 
 	if got := listNotifications(t, srv, userB, ""); len(got.Notifications) != 0 {
-		t.Errorf("notifications = %d, want 0", len(got.Notifications))
+		t.Errorf("actor notifications = %d, want 0", len(got.Notifications))
+	}
+	// The one that would actually be wrong: a delegation goes to the
+	// *other* member, so the actor's own empty inbox proves nothing.
+	if got := listNotifications(t, srv, userA, ""); len(got.Notifications) != 0 {
+		t.Errorf("packing notified the other member: %+v", got.Notifications)
+	}
+}
+
+// FR-25.19: assigning is still a delegation even in the same push that
+// packs the row — the two fields are independent now.
+func TestNotifications_AssignmentAlongsidePackStillDelegates_FR25_19(t *testing.T) {
+	srv := newTestServer(t)
+	seedItem(t, srv, "item-1", "Zelt")
+
+	pushAs(t, srv, userB, mutation("item-1", "m-pack-assign", "upsert",
+		map[string]any{"state": "packed", "packed_count": 1, "packer_user_id": userA},
+		"0000000002000-0000-bbbbbbbb"))
+
+	got := listNotifications(t, srv, userA, "")
+	if len(got.Notifications) != 1 || got.Notifications[0].Kind != "delegation" {
+		t.Fatalf("notifications = %+v, want one delegation", got.Notifications)
 	}
 }
 
