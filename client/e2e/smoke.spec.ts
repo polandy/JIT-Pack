@@ -17,6 +17,21 @@ test('M19: first launch shows mode selection @smoke @m19', async ({ page }) => {
   await expect(page.getByTestId('mode-server-connect')).toBeVisible()
 })
 
+// E2E-M19-04: the URL field arrives pre-filled with this page's origin —
+// a self-hosted instance serves the SPA from the very origin the server
+// listens on, so Connect is reachable without typing (FR-19.1).
+test('M19: the server URL is pre-filled with the page origin @smoke @m19', async ({
+  page,
+  baseURL,
+}) => {
+  await page.goto('/')
+
+  await expect(page.getByTestId('mode-server-url').locator('input')).toHaveValue(baseURL!)
+  // Reach through to the inner button: `toBeEnabled()` on the ion-button
+  // host is false-green, since the custom element is never DOM-disabled.
+  await expect(page.getByTestId('mode-server-connect').locator('button')).toBeEnabled()
+})
+
 // E2E-G7-01 / M1 (Local): a seeded Local Mode boots straight into the
 // Dashboard, whose empty state offers the single "Plan a trip" CTA.
 test('M1: local mode boots into an empty dashboard @smoke @local', async ({
