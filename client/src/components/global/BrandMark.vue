@@ -1,43 +1,35 @@
 <script setup lang="ts">
 /**
- * JIT-Pack brand mark ("Check-Latch"): a suitcase whose latch is a cut-out
- * checkmark. Single color via --ion-color-primary so it follows the active
- * flavor (G-11), and the mask cutout lets the surface show through — the
- * same mark works on any background in both Mocha and Latte.
+ * JIT-Pack brand mark ("Packed Backpack"): an open backpack with two packing
+ * cubes peeking out. In-app it renders without the tile the favicon carries,
+ * and every color is a --ct-* token so the mark follows the active flavor
+ * (G-11) on any background in both Mocha and Latte.
  */
 withDefaults(defineProps<{ size?: number }>(), { size: 24 })
 </script>
 
 <template>
-  <svg :width="size" :height="size" viewBox="0 0 64 64" aria-hidden="true" class="brand-mark">
-    <defs>
-      <mask id="brand-mark-check">
-        <rect width="64" height="64" fill="#fff" />
-        <polyline
-          points="22 38.5,29.5 46,43 30.5"
-          fill="none"
-          stroke="#000"
-          stroke-width="7"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-      </mask>
-    </defs>
-    <path
-      d="M24 20.5v-4a8 8 0 0 1 16 0v4"
-      fill="none"
-      stroke="var(--ion-color-primary)"
-      stroke-width="5"
-      stroke-linecap="round"
-    />
+  <svg :width="size" :height="size" viewBox="88 96 336 336" aria-hidden="true" class="brand-mark">
+    <rect x="156" y="128" width="96" height="72" rx="18" fill="var(--ct-teal)" />
+    <rect x="268" y="112" width="80" height="88" rx="18" fill="var(--ct-peach)" />
     <rect
-      x="8"
-      y="20.5"
-      width="48"
-      height="37"
-      rx="10.5"
-      fill="var(--ion-color-primary)"
-      mask="url(#brand-mark-check)"
+      x="136"
+      y="196"
+      width="240"
+      height="220"
+      rx="52"
+      fill="none"
+      stroke="var(--ct-lavender)"
+      stroke-width="32"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M180 414 V348 q0 -26 26 -26 h100 q26 0 26 26 v66"
+      fill="none"
+      stroke="var(--ct-lavender)"
+      stroke-width="24"
+      stroke-linejoin="round"
+      stroke-linecap="butt"
     />
   </svg>
 </template>

@@ -8,8 +8,8 @@ copyright: JIT-Pack
 
 theme:
   name: material
-  logo: assets/logo-dark.svg
-  favicon: assets/logo-dark.svg
+  logo: assets/mark.svg
+  favicon: assets/mark.svg
   icon:
     repo: fontawesome/brands/github
   features:
