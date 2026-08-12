@@ -1,15 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64" fill="none">
-  <!-- JIT-Pack brand lockup, Latte (light backgrounds). Check is a transparent
-       cutout so the page shows through; accent is Catppuccin blue. -->
-  <defs>
-    <mask id="check-light">
-      <rect width="64" height="64" fill="#fff"/>
-      <polyline points="22 38.5,29.5 46,43 30.5" fill="none" stroke="#000" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-    </mask>
-  </defs>
-  <path d="M24 20.5v-4a8 8 0 0 1 16 0v4" fill="none" stroke="#1e66f5" stroke-width="5" stroke-linecap="round"/>
-  <rect x="8" y="20.5" width="48" height="37" rx="10.5" fill="#1e66f5" mask="url(#check-light)"/>
+  <!-- JIT-Pack brand lockup for light backgrounds: the "Packed Backpack" mark
+       on its Mocha tile (the tile is theme-independent artwork), wordmark in
+       Catppuccin Latte text with a Latte lavender dot. -->
+  <g transform="scale(0.125)">
+    <rect width="512" height="512" rx="118" fill="#1e1e2e"/>
+    <rect x="156" y="128" width="96" height="72" rx="18" fill="#94e2d5"/>
+    <rect x="268" y="112" width="80" height="88" rx="18" fill="#fab387"/>
+    <rect x="136" y="196" width="240" height="220" rx="52" fill="none" stroke="#b4befe" stroke-width="32" stroke-linejoin="round"/>
+    <path d="M180 414 V348 q0 -26 26 -26 h100 q26 0 26 26 v66" fill="none" stroke="#b4befe" stroke-width="24" stroke-linejoin="round" stroke-linecap="butt"/>
+  </g>
   <text x="78" y="42" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="30" font-weight="700" letter-spacing="-0.5">
-    <tspan fill="#4c4f69">JIT</tspan><tspan fill="#1e66f5">·</tspan><tspan fill="#4c4f69">Pack</tspan>
+    <tspan fill="#4c4f69">JIT</tspan><tspan fill="#7287fd">·</tspan><tspan fill="#4c4f69">Pack</tspan>
   </text>
 </svg>
