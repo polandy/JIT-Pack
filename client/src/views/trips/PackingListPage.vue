@@ -688,7 +688,11 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
                     :class="{ done: child.done, locked: locked(child.item) }"
                     :router-link="`/trips/${tripId}/items/${child.item.id}`"
                   >
-                    <div slot="start" class="row-start" @click.stop>
+                    <!-- `.prevent` as well as `.stop`: Ionic wraps a router-link item in
+                         an anchor, and an anchor's jump is a *default action* — stopping
+                         propagation never cancelled it, so every tap on the stepper opened
+                         the sheet instead of counting. -->
+                    <div slot="start" class="row-start" @click.stop.prevent>
                       <IonIcon v-if="locked(child.item)" :icon="lockClosedOutline" class="lock" />
                       <QuantityStepper
                         v-else
@@ -746,7 +750,11 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
                   :data-testid="`m4-row-${entry.item.name}`"
                   :router-link="`/trips/${tripId}/items/${entry.item.id}`"
                 >
-                  <div slot="start" class="row-start" @click.stop>
+                  <!-- `.prevent` as well as `.stop`: Ionic wraps a router-link item in
+                         an anchor, and an anchor's jump is a *default action* — stopping
+                         propagation never cancelled it, so every tap on the stepper opened
+                         the sheet instead of counting. -->
+                  <div slot="start" class="row-start" @click.stop.prevent>
                     <IonIcon v-if="locked(entry.item)" :icon="lockClosedOutline" class="lock" />
                     <QuantityStepper
                       v-else

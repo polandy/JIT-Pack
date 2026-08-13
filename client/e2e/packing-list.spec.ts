@@ -71,6 +71,58 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(input).toHaveValue('')
   })
 
+  // E2E-G6-02 (G-6, UI-Spec M4 "tap row → M5"): the row's control counts
+  // and only the row's body opens the sheet. Reported as "wenn ich bei
+  // Taschentücher auf das + klicke, kommt item not found": Ionic wraps a
+  // router-link row in an anchor, and an anchor's jump is a *default
+  // action*, so `@click.stop` on the control never cancelled it — every
+  // tap on a stepper opened the sheet instead of packing anything.
+  //
+  // It needs a row with a quantity above one, and the only path to one
+  // that goes through the app is the M18 import (spec §2.4).
+  test('E2E-G6-02: the stepper counts without leaving the list, while the row body opens M5', async ({
+    page,
+  }) => {
+    await page.goto('/portable-import')
+    await page
+      .getByTestId('portable-paste')
+      .locator('textarea')
+      .fill(
+        [
+          'kind: trip',
+          'schema_version: 1',
+          'name: Steppertest',
+          'end_date: "2026-12-31"',
+          'travelers: []',
+          'containers: []',
+          'items:',
+          '  - name: Taschentücher',
+          '    quantity: 4',
+          '    packed_count: 0',
+          '    category: Bad',
+          '    mode: pack',
+          '    late_packer: false',
+        ].join('\n'),
+      )
+    await page.getByTestId('portable-preview').click()
+    await page.getByTestId('portable-commit').click()
+
+    const row = page.getByTestId('m4-row-Taschentücher')
+    await expect(row).toBeVisible()
+
+    await row.getByTestId('row-plus').click()
+
+    // Counted, and still on the list: the control acted, it did not navigate.
+    await expect(row).toContainText('1/4')
+    await expect(page.getByTestId('m4-header')).toBeVisible()
+    await expect(page).toHaveURL(/\/trips\/[^/]+$/)
+
+    // The body of the same row is what opens the sheet — and it resolves.
+    await row.getByRole('heading').click()
+    await expect(page).toHaveURL(/\/items\//)
+    await expect(page.getByText('not found')).toHaveCount(0)
+  })
+
   // E2E-M4-18 (FR-25.11e): "Alles gepackt" may appear only when nothing is
   // narrowing the list. The regression this guards actually happened: the
   // check looked at the filter count alone, so an unmatched *search*
