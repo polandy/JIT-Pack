@@ -335,7 +335,6 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
 <template>
   <IonPage>
-
     <IonContent class="ion-padding">
       <!-- Step 1: metadata -->
       <section v-if="step === 1" data-testid="wizard-step-1">

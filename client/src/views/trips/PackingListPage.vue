@@ -275,34 +275,33 @@ setHeaderTitle(() => trip.value?.name ?? 'Packing List')
 
 <template>
   <IonPage>
-
     <IonContent>
       <!-- ADR-011: M4's own sub-header is page content; the one app bar
            carries only the trip name and the actions teleported below. -->
       <Teleport to="#header-actions">
-          <!-- G-10: trip presence facepile + group-sync badge -->
-          <PresenceFacepile v-if="presenceUsers.length > 1" :users="presenceUsers" />
-          <!-- M14: archive triggers the review assistant (FR-9.2) -->
-          <IonButton v-if="trip?.status === 'active'" aria-label="Archive trip" @click="onArchive">
-            <IonIcon slot="icon-only" :icon="archiveOutline" />
-          </IonButton>
-          <!-- M14: review is re-openable on archived trips -->
-          <IonButton
-            v-if="trip?.status === 'archived'"
-            :router-link="`/trips/${tripId}/review`"
-            aria-label="Post-trip review"
-          >
-            <IonIcon slot="icon-only" :icon="sparklesOutline" />
-          </IonButton>
-          <!-- M6 entry point: hidden when both shopping lists are empty -->
-          <IonButton
-            v-if="shoppingCount > 0"
-            :router-link="`/trips/${tripId}/shopping`"
-            aria-label="Shopping lists"
-          >
-            <IonIcon slot="icon-only" :icon="cartOutline" />
-            <IonBadge color="primary" class="shopping-badge">{{ shoppingCount }}</IonBadge>
-          </IonButton>
+        <!-- G-10: trip presence facepile + group-sync badge -->
+        <PresenceFacepile v-if="presenceUsers.length > 1" :users="presenceUsers" />
+        <!-- M14: archive triggers the review assistant (FR-9.2) -->
+        <IonButton v-if="trip?.status === 'active'" aria-label="Archive trip" @click="onArchive">
+          <IonIcon slot="icon-only" :icon="archiveOutline" />
+        </IonButton>
+        <!-- M14: review is re-openable on archived trips -->
+        <IonButton
+          v-if="trip?.status === 'archived'"
+          :router-link="`/trips/${tripId}/review`"
+          aria-label="Post-trip review"
+        >
+          <IonIcon slot="icon-only" :icon="sparklesOutline" />
+        </IonButton>
+        <!-- M6 entry point: hidden when both shopping lists are empty -->
+        <IonButton
+          v-if="shoppingCount > 0"
+          :router-link="`/trips/${tripId}/shopping`"
+          aria-label="Shopping lists"
+        >
+          <IonIcon slot="icon-only" :icon="cartOutline" />
+          <IonBadge color="primary" class="shopping-badge">{{ shoppingCount }}</IonBadge>
+        </IonButton>
       </Teleport>
       <IonToolbar class="kpi-strip">
         <div

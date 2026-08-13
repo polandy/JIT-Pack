@@ -84,7 +84,6 @@ setHeaderTitle(() => `Clone · ${source.value?.name ?? ''}`)
 
 <template>
   <IonPage>
-
     <IonContent class="ion-padding">
       <template v-if="source">
         <IonList>

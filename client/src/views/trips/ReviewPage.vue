@@ -115,7 +115,6 @@ setHeaderTitle(() => `Review · ${trip.value?.name ?? ''}`)
 
 <template>
   <IonPage>
-
     <IonContent class="ion-padding">
       <!-- Proposal card stack -->
       <template v-if="current">

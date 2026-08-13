@@ -101,7 +101,6 @@ setHeaderTitle(() => template.value?.name ?? 'Template')
 
 <template>
   <IonPage>
-
     <IonContent class="ion-padding">
       <div v-if="!template" class="empty-state">
         <p>Template not found</p>

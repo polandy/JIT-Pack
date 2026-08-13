@@ -162,7 +162,6 @@ setHeaderTitle(() => `Import · step ${step.value}/4`)
 
 <template>
   <IonPage>
-
     <IonContent class="ion-padding">
       <!-- Step 1: file -->
       <section v-if="step === 1">

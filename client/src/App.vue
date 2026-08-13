@@ -161,5 +161,4 @@ function onSyncTap() {
      (ADR-011). */
   position: relative;
 }
-
 </style>

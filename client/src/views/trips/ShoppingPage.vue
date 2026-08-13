@@ -94,17 +94,16 @@ setHeaderTitle(() => `Shopping · ${trip.value?.name ?? ''}`)
 
 <template>
   <IonPage>
-
     <IonContent>
       <!-- ADR-011: a view switcher is page content, not header chrome. -->
       <IonSegment :value="tab" @ionChange="(e: CustomEvent) => (tab = e.detail.value)">
-          <IonSegmentButton value="buy_before">
-            <IonLabel>Before departure ({{ lists.buyBefore.length }})</IonLabel>
-          </IonSegmentButton>
-          <IonSegmentButton value="buy_local">
-            <IonLabel>At destination ({{ lists.buyLocal.length }})</IonLabel>
-          </IonSegmentButton>
-        </IonSegment>
+        <IonSegmentButton value="buy_before">
+          <IonLabel>Before departure ({{ lists.buyBefore.length }})</IonLabel>
+        </IonSegmentButton>
+        <IonSegmentButton value="buy_local">
+          <IonLabel>At destination ({{ lists.buyLocal.length }})</IonLabel>
+        </IonSegmentButton>
+      </IonSegment>
 
       <QuickAddItem :trip-id="tripId" :is-active="isActive" @add="quickAdd" />
 

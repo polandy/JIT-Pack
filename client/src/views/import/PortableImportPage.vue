@@ -79,7 +79,6 @@ function commit() {
 
 <template>
   <IonPage>
-
     <IonContent class="ion-padding">
       <!-- File picker / paste -->
       <template v-if="!doc">
