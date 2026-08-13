@@ -12,6 +12,7 @@ describe('header titles are keyed by route path', () => {
   beforeEach(() => {
     clearTitleFor('/trips/t1')
     clearTitleFor('/trips/new')
+    clearTitleFor('/trips/t2')
   })
 
   it('returns null for a path nobody registered', () => {

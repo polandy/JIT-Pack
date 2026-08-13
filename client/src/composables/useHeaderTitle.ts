@@ -38,6 +38,16 @@ export function clearTitleFor(path: string): void {
  * first render.
  */
 export function setHeaderTitle(getter: () => string | null | undefined): void {
+  // The path is captured once, at setup, deliberately. `useRoute()`
+  // returns the *global* reactive route, so reading it inside the effect
+  // makes every still-mounted page re-register under whatever path the
+  // app navigated to — Ionic keeps the outgoing page alive, so that
+  // clobbers the incoming title and was measurably flaky.
+  //
+  // The cost: if vue-router ever reuses this component for a different
+  // param, the title stays keyed to the path the user left and the
+  // header falls back to `meta.title`. That degrades to a generic title,
+  // never a wrong one, and no route reaches a sibling directly today.
   const path = useRoute().path
   watchEffect(() => setTitleFor(path, getter() || null))
   onUnmounted(() => clearTitleFor(path))
