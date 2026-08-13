@@ -215,7 +215,15 @@ test.describe('M4 packing list @local @m4', () => {
     await page.getByTestId('m4-done-bar').click()
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
 
-    await page.getByTestId('m4-search').click() // any in-app detour and back
+    // A real round trip: out to the shopping list and back into M4. The
+    // first version of this case only *left* M4 and asserted the row was
+    // still there — which passed for the wrong reason, because back used
+    // to leave the packing list mounted underneath the page it opened.
+    await page.getByTestId('m4-nav-shopping').click()
+    // Ionic keeps the page it came from mounted, so this asks whether M4
+    // is on *screen*, not whether it is in the DOM.
+    await expect(page.getByTestId('m4-progress')).toBeHidden()
+
     await page.getByTestId('header-back').click()
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
   })

@@ -558,6 +558,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
             fill="clear"
             size="small"
             :router-link="`/trips/${tripId}/shopping`"
+            data-testid="m4-nav-shopping"
             :aria-label="t('packing.shopping')"
             :title="t('packing.shopping')"
           >
@@ -570,6 +571,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
             fill="clear"
             size="small"
             :router-link="`/trips/${tripId}/containers`"
+            data-testid="m4-nav-luggage"
             :aria-label="t('packing.luggage')"
             :title="t('packing.luggage')"
           >
@@ -579,6 +581,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
             fill="clear"
             size="small"
             :router-link="`/trips/${tripId}/analytics`"
+            data-testid="m4-nav-analytics"
             :aria-label="t('packing.analytics')"
             :title="t('packing.analytics')"
           >
