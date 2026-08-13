@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import TabsLayout from '@/views/TabsLayout.vue'
 
 /**
  * Route table. Every non-root route carries `meta.parent` — the
@@ -15,41 +14,42 @@ export const routes: RouteRecordRaw[] = [
     path: '/',
     redirect: '/tabs/dashboard',
   },
+  // Flat, deliberately: every route lives in the one router outlet in
+  // App.vue. The four anchors used to be children of an `IonTabs`
+  // layout, which brought a *second* outlet with it — and crossing
+  // between the two left the outgoing page on screen while the URL
+  // changed underneath it (ADR-012). The `/tabs/` prefix stays so no
+  // bookmark, link or test id has to move; it names the group, not a
+  // layout.
   {
     path: '/tabs/',
-    component: TabsLayout,
-    children: [
-      {
-        path: '',
-        redirect: '/tabs/dashboard',
-      },
-      {
-        path: 'dashboard',
-        name: 'dashboard',
-        component: () => import('@/views/dashboard/DashboardPage.vue'),
-      },
-      {
-        path: 'trips',
-        name: 'trips',
-        component: () => import('@/views/trips/TripListPage.vue'),
-      },
-      {
-        path: 'templates',
-        name: 'templates',
-        component: () => import('@/views/templates/TemplateListPage.vue'),
-      },
-      {
-        path: 'items',
-        name: 'items',
-        component: () => import('@/views/items/ItemInventoryPage.vue'),
-      },
-      {
-        path: 'settings',
-        name: 'settings',
-        meta: { parent: '/tabs/dashboard', title: 'Settings' },
-        component: () => import('@/views/settings/SettingsPage.vue'),
-      },
-    ],
+    redirect: '/tabs/dashboard',
+  },
+  {
+    path: '/tabs/dashboard',
+    name: 'dashboard',
+    component: () => import('@/views/dashboard/DashboardPage.vue'),
+  },
+  {
+    path: '/tabs/trips',
+    name: 'trips',
+    component: () => import('@/views/trips/TripListPage.vue'),
+  },
+  {
+    path: '/tabs/templates',
+    name: 'templates',
+    component: () => import('@/views/templates/TemplateListPage.vue'),
+  },
+  {
+    path: '/tabs/items',
+    name: 'items',
+    component: () => import('@/views/items/ItemInventoryPage.vue'),
+  },
+  {
+    path: '/tabs/settings',
+    name: 'settings',
+    meta: { parent: '/tabs/dashboard', title: 'Settings' },
+    component: () => import('@/views/settings/SettingsPage.vue'),
   },
   {
     path: '/login',

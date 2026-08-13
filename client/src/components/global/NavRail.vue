@@ -4,34 +4,25 @@
  * Replaces the bottom tab bar with a persistent left-side rail.
  */
 import { IonIcon, IonLabel } from '@ionic/vue'
-import { homeOutline, airplaneOutline, listOutline, cubeOutline } from 'ionicons/icons'
 import { useRoute } from 'vue-router'
 
+import { NAV_ANCHORS, isAnchorActive } from '@/router/anchors'
+
 const route = useRoute()
-
-const tabs = [
-  { name: 'Dashboard', icon: homeOutline, href: '/tabs/dashboard', match: 'dashboard' },
-  { name: 'Trips', icon: airplaneOutline, href: '/tabs/trips', match: 'trips' },
-  { name: 'Templates', icon: listOutline, href: '/tabs/templates', match: 'templates' },
-  { name: 'Items', icon: cubeOutline, href: '/tabs/items', match: 'items' },
-] as const
-
-function isActive(match: string): boolean {
-  return route.path.includes(`/tabs/${match}`)
-}
 </script>
 
 <template>
   <nav class="nav-rail">
     <router-link
-      v-for="tab in tabs"
-      :key="tab.match"
-      :to="tab.href"
+      v-for="anchor in NAV_ANCHORS"
+      :key="anchor.match"
+      :to="anchor.href"
       class="nav-rail-item"
-      :class="{ active: isActive(tab.match) }"
+      :class="{ active: isAnchorActive(route.path, anchor.match) }"
+      :data-testid="`rail-${anchor.match}`"
     >
-      <IonIcon :icon="tab.icon" />
-      <IonLabel>{{ tab.name }}</IonLabel>
+      <IonIcon :icon="anchor.icon" />
+      <IonLabel>{{ anchor.name }}</IonLabel>
     </router-link>
   </nav>
 </template>
