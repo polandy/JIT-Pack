@@ -896,3 +896,66 @@ is asserted in the `usePackingFilter` unit test, where it is deterministic.
 UI on purpose, because most screens are still being rebuilt; a page for M4
 alone would be an island next to M5, M9 and M11 that do not have one. It is
 owed as a set once the rebuilds land, and this is the note that says so.
+
+## What hand-testing M4 turned up — and why the suite had not
+
+The maintainer opened the rebuilt screen and hit four things in a row: the
+desktop rail did nothing, mobile had no navigation at all, `‹ back` did
+nothing, and the search icon kept filtering a screen he had already left. A
+fifth complaint — "my trip wasn't persisted" — turned out to be two more
+defects wearing that costume.
+
+His verdict on the process is the important part and is now in the working
+agreement: *„dir wäre das nicht passiert, wenn du saubere e2e ui tests
+gemacht hättest. das gehört immer dazu."* He is right, and the failure mode
+is specific: the M3 and M4 units were both green throughout. A per-screen
+suite proves the screen. Nothing exercised getting to it, leaving it, or
+what the app bar did afterwards — and the cases for exactly that
+(E2E-G1-01, G9-01…08, G12-01) had been *written* since the UI-Test-Spec was
+drafted and never implemented. A specified case nobody runs is a comment.
+
+**One cause under three symptoms.** The four anchors lived under an
+`IonTabs` layout, which carries its own router outlet, while every other
+route rendered in the root one. Crossing between them left the outgoing
+page painted while the URL moved on — so the rail, the tab bar and back
+all "did nothing" in the only sense a user cares about. It also threw the
+`classList` error that a session in August reproduced on the pre-ADR-011
+build and filed as *cosmetic*; it was this, and the exemption in
+`navigation.spec.ts` was quietly hiding the evidence. ADR-012 removes the
+second outlet, `TabBar.vue` becomes plain links beside the one that
+remains, and the exemption is gone with the error.
+
+**"Not persisted" was two defects, neither of them persistence.** The rows
+were in IndexedDB and on their way into the store the whole time. First,
+M4's app-bar actions were `<Teleport>`ed into the header's DOM — which
+Ionic relocates after mount — so on a cold boot Vue patched a container
+that had moved and threw `emitsOptions of null` mid-patch, aborting the
+render. An empty screen reads as lost data; it was a crash. Actions are
+now *described* (`useHeaderActions`) and the header owns its own DOM, the
+same shape `useHeaderTitle` already had. Second, and genuinely a
+durability bug: the Local Mode save was fire-and-forget, so a row added
+and immediately followed by a reload went into a transaction the
+navigation cancelled — FR-19.2 promises durability and the app said
+"saved" while the write was still open. Writes are serialised now, and
+the G-2 indicator reports *syncing* until the write lands.
+
+That last part is also what made the case testable without a sleep. The
+rule the suite already had — no waiting on durations — forced the right
+fix rather than a longer timeout: if there is nothing observable to wait
+for, the missing signal *is* the defect.
+
+**The duplicate that hid behind back.** With the outlets merged, `‹ back`
+still left two live instances of the trip list, because it navigated with
+the default *push*. The stale instance kept winning the header's action
+registry, so the search field rendered on a page nobody could see. Back
+replaces now.
+
+**A sample trip, and what it is not.** `src/dev/sampleTrip.ts` seeds an
+active trip with categories, both buy modes, a late packer and two
+per-person clusters. It is dev-only (`import.meta.env.DEV`), so it leaves
+the production bundle entirely, and E2E-G8-02 asserts that — Demo Mode was
+removed in Addendum v2.10 as a *product* surface and is not returning
+through a side door. It lands through the existing M18 portable-import
+path rather than a second way of building a trip, and `activateTrip` had
+to be added because the wizard only ever produced planning trips: until
+now nothing in the app could move one to *active* at all.
