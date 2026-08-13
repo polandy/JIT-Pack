@@ -16,6 +16,7 @@ One file per decision, named `ADR-00N_Short_Title.md`, numbered in the order the
 | [008](ADR-008_Client_Side_Generation.md) | Generation and import run on the client, not the server | Accepted |
 | [009](ADR-009_Three_Run_Modes.md) | Three run modes from one artifact | Accepted |
 | [010](ADR-010_CSV_Only_Import.md) | Spreadsheet import accepts CSV only, not XLSX | Accepted |
+| [011](ADR-011_One_Header_Bar.md) | One header bar whose left slot switches, rather than a global bar plus per-screen headers | Accepted |
 
 **Outbound Content Fetching** — `Vision_NorthStar` names this as the gate that must exist before any Plan-phase feature makes the server fetch external content. It had informally reserved number 007, which Session Brokering has since taken; it gets the next free number when it is written.
 
