@@ -785,3 +785,38 @@ red against a deliberately broken `goBack` before being kept.
 
 `E2E-G9-01`'s "Logo is a home link to M1 from within a trip" is retired in the
 same pass — the clause the ADR knowingly gave up.
+
+## A pre-existing Ionic transition error, found by asserting for it
+
+Deploying merged `main` and driving the seeded trip surfaced an uncaught
+`TypeError: Cannot read properties of undefined (reading 'classList')` on the
+way back from a trip to the trip list. The navigation itself works — the URL
+changes, the list renders — so nothing in the suite had ever noticed.
+
+The first diagnosis was wrong and worth recording as such. `goBack` asked Ionic
+for the `'pop'` action, and since the declared parent is frequently *not* the
+entry Ionic pushed (a deep-linked child has no such entry at all), unwinding a
+stack that does not match looked like an obvious cause. Changing it moved the
+message from `classList` to `ionPageElement` — a symptom shifting, not a fix.
+Trying all four variants (`'back'`, no direction, `router.push`, `router.replace`)
+produced the error every time, which ruled out the call shape entirely.
+
+**It predates ADR-011.** Built the commit before the one-header change, drove
+list → trip → *browser* back, and got the identical error. The single header bar
+did not introduce it; it made the path a one-tap affordance instead of a
+gesture, and the new assertion made it visible. The real shape is Ionic
+animating from a root-outlet page back to a route that lives inside the nested
+tabs outlet.
+
+What ships here is therefore smaller than "a fix": the `'pop'` action is dropped
+because it is wrong on its own terms — the parent is not the popped entry — and
+E2E-G9-08 covers the round trip entered through the list, which nothing else
+did. The known error is **filtered by its whole dereference, not by property name**,
+so a new runtime error still fails the case — matching bare `classList` would
+have swallowed a genuine error of ours that merely mentions the property. Chromium and WebKit word the same
+failure differently (`reading 'x'` vs `undefined is not an object (evaluating
+'o.x')`), which the first filter missed and WebKit caught.
+
+Left open deliberately: the Ionic transition itself. It is cosmetic today —
+nothing user-visible fails — and chasing a cross-outlet animation bug in a
+minified dependency is its own piece of work, not a rider on this one.
