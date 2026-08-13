@@ -46,6 +46,10 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import SearchRow from '@/components/global/SearchRow.vue'
+import { t } from '@/i18n'
+import { useContextSearch } from '@/composables/useContextSearch'
+import { setHeaderActions } from '@/composables/useHeaderActions'
 
 const store = useTripStore()
 const masterStore = useMasterStore()
@@ -66,7 +70,30 @@ function matchesFilter(trip: Trip): boolean {
   }
 }
 
-const filteredTrips = computed(() => store.tripList.filter(matchesFilter))
+/**
+ * Dev only (see src/dev/sampleTrip.ts): `import.meta.env.DEV` is false in
+ * every build, so both the button and the module behind it are gone from
+ * a production bundle. This is not Demo Mode returning.
+ */
+const isDev = import.meta.env.DEV
+
+async function addSampleTrip() {
+  const { seedSampleTrip } = await import('@/dev/sampleTrip')
+  router.push(`/trips/${seedSampleTrip(orchestrator)}`)
+}
+
+const {
+  term: search,
+  isOpen: searchOpen,
+  toggle: toggleSearch,
+  action,
+  matches,
+} = useContextSearch()
+setHeaderActions(() => [action()])
+
+const filteredTrips = computed(() =>
+  store.tripList.filter((trip) => matchesFilter(trip) && matches(trip.name)),
+)
 const isEmpty = computed(() => filteredTrips.value.length === 0)
 
 /**
@@ -192,6 +219,14 @@ async function handleRefresh(event: CustomEvent) {
         <IonRefresherContent />
       </IonRefresher>
 
+      <SearchRow
+        v-if="searchOpen || search"
+        v-model="search"
+        testid="trips-search-input"
+        :placeholder="t('trips.searchPlaceholder')"
+        @close="toggleSearch"
+      />
+
       <div class="ion-padding">
         <div class="title-row">
           <h1 class="page-title">Trips</h1>
@@ -218,13 +253,13 @@ async function handleRefresh(event: CustomEvent) {
         </div>
 
         <IonSegment :value="filter" @ionChange="onFilterChange">
-          <IonSegmentButton value="active">
+          <IonSegmentButton value="active" data-testid="trips-filter-active">
             <IonLabel>Active</IonLabel>
           </IonSegmentButton>
-          <IonSegmentButton value="planned">
+          <IonSegmentButton value="planned" data-testid="trips-filter-planned">
             <IonLabel>Planned</IonLabel>
           </IonSegmentButton>
-          <IonSegmentButton value="archived">
+          <IonSegmentButton value="archived" data-testid="trips-filter-archived">
             <IonLabel>Archived</IonLabel>
           </IonSegmentButton>
         </IonSegment>
@@ -236,6 +271,16 @@ async function handleRefresh(event: CustomEvent) {
         <p v-if="filter === 'active'">No active trips</p>
         <p v-else-if="filter === 'planned'">No planned trips</p>
         <p v-else>No archived trips</p>
+        <!-- Dev only, and gone from any build — see addSampleTrip. -->
+        <IonButton
+          v-if="isDev"
+          size="small"
+          fill="outline"
+          data-testid="dev-sample-trip"
+          @click="addSampleTrip"
+        >
+          Beispielreise anlegen (Dev)
+        </IonButton>
       </div>
 
       <!-- Trip list, grouped by series (FR-13.1) -->
@@ -258,6 +303,7 @@ async function handleRefresh(event: CustomEvent) {
           <IonItemSliding v-for="trip in group.trips" :key="trip.id">
             <IonItem
               button
+              :data-testid="`trip-row-${trip.name}`"
               :router-link="`/trips/${trip.id}`"
               :class="{ archived: trip.status === 'archived' }"
             >

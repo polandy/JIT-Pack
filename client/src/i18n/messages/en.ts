@@ -91,6 +91,11 @@ export const en = {
   'packing.tripFinished': '🧩 Trip finished',
   'packing.reviewSuggestions': 'Review suggestions →',
 
+  // The app bar's magnifier, per screen (G-12, FR-25.11k).
+  'trips.searchPlaceholder': 'Search trips…',
+  'templates.searchPlaceholder': 'Search templates…',
+  'items.searchPlaceholder': 'Search items…',
+
   // Quick-add (FR-5.6, FR-25.13a).
   'quickAdd.trigger': 'Add item…',
   'quickAdd.placeholder': 'Item name…',

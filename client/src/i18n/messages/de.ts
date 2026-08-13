@@ -89,6 +89,11 @@ export const de: Record<keyof typeof en, string> = {
   'packing.tripFinished': '🧩 Reise abgeschlossen',
   'packing.reviewSuggestions': 'Vorschläge ansehen →',
 
+  // Die Lupe in der App-Bar, pro Screen (G-12, FR-25.11k).
+  'trips.searchPlaceholder': 'Reisen durchsuchen…',
+  'templates.searchPlaceholder': 'Vorlagen durchsuchen…',
+  'items.searchPlaceholder': 'Sachen durchsuchen…',
+
   // Schnell-Hinzufügen (FR-5.6, FR-25.13a).
   'quickAdd.trigger': 'Sache hinzufügen…',
   'quickAdd.placeholder': 'Name der Sache…',

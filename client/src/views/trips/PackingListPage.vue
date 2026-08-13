@@ -49,19 +49,17 @@ import {
   buildOutline,
   cartOutline,
   chevronDownOutline,
-  closeOutline,
   contractOutline,
   expandOutline,
   funnelOutline,
   briefcaseOutline,
   lockClosedOutline,
   locationOutline,
-  searchOutline,
   sparklesOutline,
   statsChartOutline,
   timeOutline,
 } from 'ionicons/icons'
-import { computed, inject, nextTick, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import FilterSheet, {
@@ -69,11 +67,14 @@ import FilterSheet, {
   type FilterOption,
 } from '@/components/global/FilterSheet.vue'
 import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
+import SearchRow from '@/components/global/SearchRow.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
+import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { useContextSearch } from '@/composables/useContextSearch'
 import { usePackingFilter } from '@/composables/usePackingFilter'
 import { buildPackingView, FACET_KEYS, NO_VALUE, type PackingRow } from '@/domain/packingView'
 import { relativeStamp } from '@/domain/stamp'
@@ -144,8 +145,12 @@ const { facets, showDone, showOthers, groupBy, reset, toggleValue, clearFacet } 
   props.tripId,
 )
 
-const search = ref('')
-const searchOpen = ref(false)
+const {
+  term: search,
+  isOpen: searchOpen,
+  toggle: toggleSearch,
+  action: searchAction,
+} = useContextSearch('m4-search')
 const collapsedGroups = ref<string[]>([])
 const showPrep = ref(false)
 const filterOpen = ref(false)
@@ -211,19 +216,6 @@ function onScroll(event: CustomEvent<{ scrollTop: number }>) {
 
 // --- App-bar cluster (G-12) --------------------------------------------
 
-const searchInput = ref<HTMLInputElement | null>(null)
-
-/** Closing the search closes it rather than only emptying it (FR-25.11k). */
-async function toggleSearch() {
-  searchOpen.value = !searchOpen.value
-  if (!searchOpen.value) {
-    search.value = ''
-    return
-  }
-  await nextTick()
-  searchInput.value?.focus()
-}
-
 const allFolded = computed(
   () => view.value.groups.length > 0 && view.value.groups.every((g) => g.collapsed),
 )
@@ -238,6 +230,41 @@ function toggleGroup(key: string) {
     ? collapsedGroups.value.filter((k) => k !== key)
     : [...collapsedGroups.value, key]
 }
+
+/**
+ * G-12: the cluster acts on *this list*, so it lives in the one app bar
+ * where it stays reachable while the header line below scrolls away.
+ * Described rather than teleported — see useHeaderActions for the render
+ * crash that mechanism caused on a cold boot.
+ */
+setHeaderActions(() => {
+  const items: HeaderAction[] = [
+    searchAction(),
+    {
+      id: 'm4-filter',
+      icon: funnelOutline,
+      label: t('filter.open'),
+      active: view.value.activeFacetCount > 0,
+      badge: view.value.activeFacetCount,
+      onClick: () => (filterOpen.value = true),
+    },
+    {
+      id: 'm4-fold-all',
+      icon: allFolded.value ? expandOutline : contractOutline,
+      label: allFolded.value ? t('packing.unfoldAll') : t('packing.foldAll'),
+      onClick: toggleFoldAll,
+    },
+  ]
+  if (isActive.value) {
+    items.push({
+      id: 'm4-archive',
+      icon: archiveOutline,
+      label: t('packing.archive'),
+      onClick: onArchive,
+    })
+  }
+  return items
+})
 
 // --- Rows ---------------------------------------------------------------
 
@@ -509,45 +536,6 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 <template>
   <IonPage>
     <IonContent class="pack-content" :scroll-events="true" @ion-scroll="onScroll">
-      <!-- G-12: actions on *this list* live in the one app bar, so they stay
-           reachable while the header line below scrolls away. -->
-      <Teleport to="#header-actions">
-        <IonButton
-          data-testid="m4-search"
-          :aria-label="t('common.search')"
-          :color="searchOpen || search ? 'primary' : undefined"
-          @click="toggleSearch"
-        >
-          <IonIcon slot="icon-only" :icon="searchOutline" />
-        </IonButton>
-        <IonButton
-          data-testid="m4-filter"
-          :aria-label="t('filter.open')"
-          :color="view.activeFacetCount > 0 ? 'primary' : undefined"
-          @click="filterOpen = true"
-        >
-          <IonIcon slot="icon-only" :icon="funnelOutline" />
-          <IonBadge v-if="view.activeFacetCount > 0" color="primary" class="filter-count">
-            {{ view.activeFacetCount }}
-          </IonBadge>
-        </IonButton>
-        <IonButton
-          data-testid="m4-fold-all"
-          :aria-label="allFolded ? t('packing.unfoldAll') : t('packing.foldAll')"
-          @click="toggleFoldAll"
-        >
-          <IonIcon slot="icon-only" :icon="allFolded ? expandOutline : contractOutline" />
-        </IonButton>
-        <IonButton
-          v-if="isActive"
-          data-testid="m4-archive"
-          :aria-label="t('packing.archive')"
-          @click="onArchive"
-        >
-          <IonIcon slot="icon-only" :icon="archiveOutline" />
-        </IonButton>
-      </Teleport>
-
       <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
         <IonRefresherContent />
       </IonRefresher>
@@ -600,19 +588,13 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
       </div>
 
       <!-- FR-25.11k: the field exists only while it is being used. -->
-      <div v-if="searchOpen || search" class="search-row">
-        <IonIcon :icon="searchOutline" />
-        <input
-          ref="searchInput"
-          v-model="search"
-          data-testid="m4-search-input"
-          :placeholder="t('packing.searchPlaceholder')"
-          autocomplete="off"
-        />
-        <button :aria-label="t('packing.closeSearch')" @click="toggleSearch">
-          <IonIcon :icon="closeOutline" />
-        </button>
-      </div>
+      <SearchRow
+        v-if="searchOpen || search"
+        v-model="search"
+        testid="m4-search-input"
+        :placeholder="t('packing.searchPlaceholder')"
+        @close="toggleSearch"
+      />
 
       <!-- FR-25.11a: an active filter is never invisible — every value is a
            removable chip. With none set the row states the grouping instead,
@@ -1065,32 +1047,6 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 .grouped-by {
   color: var(--ct-subtext0);
   font-size: 0.78rem;
-}
-
-/* --- Search ----------------------------------------------------------- */
-.search-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-}
-
-.search-row input {
-  flex: 1;
-  min-width: 0;
-  background: var(--ct-surface0);
-  border: none;
-  border-radius: 10px;
-  padding: 8px 10px;
-  color: var(--ct-text);
-  font-size: 0.95rem;
-}
-
-.search-row button {
-  background: none;
-  border: none;
-  color: var(--ct-subtext0);
-  cursor: pointer;
 }
 
 /* --- Groups and rows -------------------------------------------------- */
