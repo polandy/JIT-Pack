@@ -379,6 +379,15 @@ func stampActor(m *syncpkg.Mutation, userID string) {
 		// state below decides what the record should be.
 		delete(m.Fields, "packed_by_user_id")
 
+		// The *when* of the record (FR-25.17) is server-owned in the same
+		// way, with one deliberate difference: a client may name the moment
+		// it was tapped, because packing happens offline and the push can
+		// land days later. A clock is not an identity claim, so invariant 3
+		// does not reach it; an unparseable value is replaced rather than
+		// trusted. Same shape as packing_now_at beside it.
+		tapped, _ := m.Fields["packed_at"].(string)
+		delete(m.Fields, "packed_at")
+
 		state, hasState := m.Fields["state"].(string)
 		switch {
 		case state == "packing_now":
@@ -387,15 +396,28 @@ func stampActor(m *syncpkg.Mutation, userID string) {
 				setMutationField(m, "packing_now_at", time.Now().UTC().Format(time.RFC3339))
 			}
 			setMutationField(m, "packed_by_user_id", nil)
+			setMutationField(m, "packed_at", nil)
 		case state == "packed":
 			setMutationField(m, "packed_by_user_id", userID)
+			setMutationField(m, "packed_at", packedAt(tapped))
 		case hasState:
 			// Un-packed in any way (open, partial, skipped): the stamp is
 			// cleared with the state it described (FR-25.17), never left
 			// to outlive it.
 			setMutationField(m, "packed_by_user_id", nil)
+			setMutationField(m, "packed_at", nil)
 		}
 	}
+}
+
+// packedAt keeps the client's tap time when it is a real instant and
+// falls back to now otherwise, so an offline row keeps the moment it was
+// actually packed instead of the moment its push arrived.
+func packedAt(tapped string) string {
+	if _, err := time.Parse(time.RFC3339, tapped); err == nil {
+		return tapped
+	}
+	return time.Now().UTC().Format(time.RFC3339)
 }
 
 func setMutationField(m *syncpkg.Mutation, field string, value any) {

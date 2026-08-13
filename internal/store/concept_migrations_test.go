@@ -174,3 +174,20 @@ func TestMigrate019_BackfillsRecordFromPackedRows_FR25_19(t *testing.T) {
 		t.Errorf("unpacked row got a fabricated packing record: %q", record.String)
 	}
 }
+
+// FR-25.17: the record's *when*, added by 020. Nullable on purpose —
+// rows packed before the migration have a packer and no known moment,
+// and the screen states the packer alone rather than inventing a time.
+func TestMigrate_AddsPackedAtColumn_FR25_17(t *testing.T) {
+	s := openTestStore(t)
+
+	if !columns(t, s.db, "trip_items")["packed_at"] {
+		t.Fatal("trip_items.packed_at missing — FR-25.17 needs the time beside the packer")
+	}
+
+	if _, err := s.db.Exec(
+		`INSERT INTO trip_items (id, trip_id, name) VALUES ('ti-no-time', ?, 'Zelt')`,
+		testTrip); err != nil {
+		t.Fatalf("packed_at is not nullable: %v", err)
+	}
+}

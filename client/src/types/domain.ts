@@ -54,6 +54,12 @@ export interface TripItem {
   packer_user_id: string | null
   /** Record of who actually packed it; server-stamped, never picked (FR-25.19). */
   packed_by_user_id: string | null
+  /**
+   * When it was packed (FR-25.17). Null on rows packed before migration
+   * 020 — the stamp then names the packer without a time rather than
+   * inventing one.
+   */
+  packed_at: string | null
   container_id: string | null
   packing_now_by: string | null
   packing_now_at: string | null

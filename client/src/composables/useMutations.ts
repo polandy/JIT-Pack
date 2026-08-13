@@ -35,6 +35,10 @@ export function useMutations(hlc: HLCGenerator) {
       state,
       packing_now_by: null,
       packing_now_at: null,
+      // FR-25.17: the moment of the tap, not of the push. Packing happens
+      // offline and the envelope can land days later; the server keeps
+      // this value when it parses and stamps its own clock otherwise.
+      packed_at: state === 'packed' ? new Date().toISOString() : null,
     })
   }
 

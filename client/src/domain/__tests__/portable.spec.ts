@@ -226,6 +226,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
         assigned_traveler_id: 'tr1',
         packer_user_id: null,
         packed_by_user_id: null,
+        packed_at: null,
         container_id: 'c1',
         packing_now_by: null,
         packing_now_at: null,
