@@ -13,12 +13,7 @@
  */
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonBackButton,
-  IonButtons,
   IonSegment,
   IonSegmentButton,
   IonLabel,
@@ -36,6 +31,7 @@ import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import { useTripStore } from '@/stores/tripStore'
 import type { TripItem } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -91,30 +87,24 @@ function quickAdd(item: {
     isActive.value,
   )
 }
+
+// ADR-011: the one header bar renders this page's title.
+setHeaderTitle(() => `Shopping · ${trip.value?.name ?? ''}`)
 </script>
 
 <template>
   <IonPage>
-    <IonHeader>
-      <IonToolbar>
-        <IonButtons slot="start">
-          <IonBackButton :default-href="`/trips/${tripId}`" />
-        </IonButtons>
-        <IonTitle>Shopping · {{ trip?.name ?? '' }}</IonTitle>
-      </IonToolbar>
-      <IonToolbar>
-        <IonSegment :value="tab" @ionChange="(e: CustomEvent) => (tab = e.detail.value)">
-          <IonSegmentButton value="buy_before">
-            <IonLabel>Before departure ({{ lists.buyBefore.length }})</IonLabel>
-          </IonSegmentButton>
-          <IonSegmentButton value="buy_local">
-            <IonLabel>At destination ({{ lists.buyLocal.length }})</IonLabel>
-          </IonSegmentButton>
-        </IonSegment>
-      </IonToolbar>
-    </IonHeader>
-
     <IonContent>
+      <!-- ADR-011: a view switcher is page content, not header chrome. -->
+      <IonSegment :value="tab" @ionChange="(e: CustomEvent) => (tab = e.detail.value)">
+        <IonSegmentButton value="buy_before">
+          <IonLabel>Before departure ({{ lists.buyBefore.length }})</IonLabel>
+        </IonSegmentButton>
+        <IonSegmentButton value="buy_local">
+          <IonLabel>At destination ({{ lists.buyLocal.length }})</IonLabel>
+        </IonSegmentButton>
+      </IonSegment>
+
       <QuickAddItem :trip-id="tripId" :is-active="isActive" @add="quickAdd" />
 
       <IonList v-if="grouped.length > 0">

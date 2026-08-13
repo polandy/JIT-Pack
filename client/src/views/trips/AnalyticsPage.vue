@@ -9,19 +9,7 @@
  * trend section shows the series' archived weight history and the most
  * frequently Missing/Unused items — with whatever history is synced.
  */
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonContent,
-  IonBackButton,
-  IonButtons,
-  IonSegment,
-  IonSegmentButton,
-  IonLabel,
-  IonNote,
-} from '@ionic/vue'
+import { IonPage, IonContent, IonSegment, IonSegmentButton, IonLabel, IonNote } from '@ionic/vue'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -33,6 +21,7 @@ import {
 } from '@/domain/analytics'
 import { useTripStore } from '@/stores/tripStore'
 import type { GroupBy } from '@/types/domain'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -83,30 +72,21 @@ function formatValue(cents: number): string {
 function yearOf(date: string | null): string {
   return date ? date.slice(0, 4) : '—'
 }
+
+// ADR-011: the one header bar renders this page's title.
+setHeaderTitle(() => `Analytics · ${trip.value?.name ?? ''}`)
 </script>
 
 <template>
   <IonPage>
-    <IonHeader>
-      <IonToolbar>
-        <IonButtons slot="start">
-          <IonBackButton :default-href="`/trips/${tripId}`" />
-        </IonButtons>
-        <IonTitle>Analytics · {{ trip?.name ?? '' }}</IonTitle>
-      </IonToolbar>
-      <IonToolbar>
-        <IonSegment
-          :value="dimension"
-          @ionChange="(e: CustomEvent) => (dimension = e.detail.value)"
-        >
-          <IonSegmentButton value="person"><IonLabel>Person</IonLabel></IonSegmentButton>
-          <IonSegmentButton value="category"><IonLabel>Category</IonLabel></IonSegmentButton>
-          <IonSegmentButton value="container"><IonLabel>Container</IonLabel></IonSegmentButton>
-        </IonSegment>
-      </IonToolbar>
-    </IonHeader>
-
     <IonContent class="ion-padding">
+      <!-- ADR-011: a view switcher is page content, not header chrome. -->
+      <IonSegment :value="dimension" @ionChange="(e: CustomEvent) => (dimension = e.detail.value)">
+        <IonSegmentButton value="person"><IonLabel>Person</IonLabel></IonSegmentButton>
+        <IonSegmentButton value="category"><IonLabel>Category</IonLabel></IonSegmentButton>
+        <IonSegmentButton value="container"><IonLabel>Container</IonLabel></IonSegmentButton>
+      </IonSegment>
+
       <!-- Dimension slices (FR-8.2) -->
       <div v-if="slices.length > 0" class="slices">
         <button v-for="slice in slices" :key="slice.key" class="slice" @click="openSlice()">

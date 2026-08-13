@@ -7,12 +7,7 @@
  */
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonBackButton,
-  IonButtons,
   IonButton,
   IonList,
   IonItem,
@@ -28,6 +23,7 @@ import { durationDays } from '@/domain/instantiate'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -81,19 +77,13 @@ function clone() {
   })
   if (tripId) router.replace(`/trips/${tripId}`)
 }
+
+// ADR-011: the one header bar renders this page's title.
+setHeaderTitle(() => `Clone · ${source.value?.name ?? ''}`)
 </script>
 
 <template>
   <IonPage>
-    <IonHeader>
-      <IonToolbar>
-        <IonButtons slot="start">
-          <IonBackButton default-href="/tabs/trips" />
-        </IonButtons>
-        <IonTitle>Clone · {{ source?.name ?? '' }}</IonTitle>
-      </IonToolbar>
-    </IonHeader>
-
     <IonContent class="ion-padding">
       <template v-if="source">
         <IonList>

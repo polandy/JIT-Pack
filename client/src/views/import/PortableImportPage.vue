@@ -9,12 +9,7 @@
  */
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonBackButton,
-  IonButtons,
   IonButton,
   IonList,
   IonItem,
@@ -84,15 +79,6 @@ function commit() {
 
 <template>
   <IonPage>
-    <IonHeader>
-      <IonToolbar>
-        <IonButtons slot="start">
-          <IonBackButton default-href="/tabs/trips" />
-        </IonButtons>
-        <IonTitle>Import file</IonTitle>
-      </IonToolbar>
-    </IonHeader>
-
     <IonContent class="ion-padding">
       <!-- File picker / paste -->
       <template v-if="!doc">

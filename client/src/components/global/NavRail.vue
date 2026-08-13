@@ -37,8 +37,15 @@ function isActive(match: string): boolean {
 </template>
 
 <style scoped>
+/*
+ * G-9: the rail is the desktop presentation of the four anchors; below
+ * the breakpoint the bottom tab bar carries them instead. The rule lives
+ * here rather than in App.vue because a scoped `.nav-rail` outranks an
+ * unscoped `.desktop-nav`, so the outside rule never won and the rail
+ * showed at every width.
+ */
 .nav-rail {
-  display: flex;
+  display: none;
   flex-direction: column;
   width: 80px;
   min-height: 100%;
@@ -78,5 +85,11 @@ function isActive(match: string): boolean {
 
 .nav-rail-item ion-label {
   font-size: 11px;
+}
+
+@media (min-width: 900px) {
+  .nav-rail {
+    display: flex;
+  }
 }
 </style>
