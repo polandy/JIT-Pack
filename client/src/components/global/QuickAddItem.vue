@@ -12,8 +12,14 @@
  * which was desktop thinking. Enter stays as the desktop shortcut.
  *
  * The form stays open after adding, because rows are entered in runs, and
- * collapses on blur only when it is empty — collapsing over typed text
- * would throw the text away.
+ * it closes only when asked to: ✕, Escape, or the FAB again.
+ *
+ * **Deliberately no collapse-on-blur**, which FR-25.13a's wording allows
+ * for an empty form. Collapsing removes a block from the flow *above* the
+ * list, so the rows move between the pointer going down and coming up and
+ * the browser dispatches no click at all — the first tap after adding an
+ * item was swallowed, every time. An open form the user closes is better
+ * than a list that ignores one tap in a place nobody would look for it.
  */
 import { IonInput, IonList, IonItem, IonLabel, IonIcon, IonButton } from '@ionic/vue'
 import { addCircleOutline, checkmarkOutline, closeCircleOutline } from 'ionicons/icons'
@@ -117,11 +123,6 @@ function onKeydown(event: KeyboardEvent) {
     close()
   }
 }
-
-/** Only an empty form collapses — otherwise a stray tap eats what was typed. */
-function onBlur() {
-  if (!query.value.trim()) expanded.value = false
-}
 </script>
 
 <template>
@@ -140,7 +141,6 @@ function onBlur() {
           :placeholder="t('quickAdd.placeholder')"
           :clear-input="true"
           @keydown="onKeydown"
-          @ion-blur="onBlur"
         />
         <!-- The primary commit, and deliberately a button: see the header. -->
         <IonButton

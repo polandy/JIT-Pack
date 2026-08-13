@@ -93,8 +93,7 @@ function toggleGroup(key: string) {
 <template>
   <IonModal
     :is-open="open"
-    :initial-breakpoint="0.8"
-    :breakpoints="[0, 0.8, 1]"
+    class="sheet-modal"
     data-testid="filter-sheet"
     @did-dismiss="emit('close')"
   >
@@ -207,6 +206,16 @@ function toggleGroup(key: string) {
 </template>
 
 <style scoped>
+/* A bottom sheet by height and anchoring rather than by Ionic's drag
+   breakpoints: with breakpoints the modal box stays full-height and is
+   translated down, which pushes ion-footer — the panel's outcome line and
+   its Zurücksetzen — clean off the bottom of the screen. */
+.sheet-modal {
+  --height: 82%;
+  --border-radius: 16px 16px 0 0;
+  align-items: flex-end;
+}
+
 .sheet {
   --padding-top: 4px;
   --padding-bottom: 16px;

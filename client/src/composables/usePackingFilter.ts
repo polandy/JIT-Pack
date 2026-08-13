@@ -77,7 +77,7 @@ export function usePackingFilter(tripId: string) {
   if (raw) {
     try {
       const stored = JSON.parse(raw) as StoredFilter
-      facets.value = { ...noFacets(), ...(stored.facets ?? {}) }
+      facets.value = { ...noFacets(), ...stored.facets }
       showDone.value = stored.showDone === true
       showOthers.value = stored.showOthers === true
     } catch {

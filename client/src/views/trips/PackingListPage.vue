@@ -636,7 +636,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
           <button
             class="group-head"
             :class="{ shut: group.collapsed }"
-            :data-testid="`m4-group-${group.key}`"
+            :data-testid="`m4-group-${group.key || 'none'}`"
             @click="toggleGroup(group.key)"
           >
             <IonIcon :icon="chevronDownOutline" class="caret" />
@@ -681,10 +681,11 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
                   <IonItem
                     button
                     class="child-row"
+                    :data-testid="`m4-child-${entry.name}-${child.traveler?.name ?? ''}`"
                     :class="{ done: child.done, locked: locked(child.item) }"
                     :router-link="`/trips/${tripId}/items/${child.item.id}`"
                   >
-                    <div slot="start" class="row-start">
+                    <div slot="start" class="row-start" @click.stop>
                       <IonIcon v-if="locked(child.item)" :icon="lockClosedOutline" class="lock" />
                       <QuantityStepper
                         v-else
@@ -739,10 +740,10 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
                 <IonItem
                   button
                   :class="{ done: entry.done, locked: locked(entry.item) }"
-                  :data-testid="`m4-row-${entry.item.id}`"
+                  :data-testid="`m4-row-${entry.item.name}`"
                   :router-link="`/trips/${tripId}/items/${entry.item.id}`"
                 >
-                  <div slot="start" class="row-start">
+                  <div slot="start" class="row-start" @click.stop>
                     <IonIcon v-if="locked(entry.item)" :icon="lockClosedOutline" class="lock" />
                     <QuantityStepper
                       v-else

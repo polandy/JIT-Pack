@@ -128,10 +128,7 @@ test('G9: sync and settings stay present on a drill-down @local @g9', async ({
 // else in this file exercises entering through the list, which is how
 // most navigation actually happens and the only path that reaches
 // Ionic's cross-outlet transition.
-test('G9: list → trip → back returns to the trip list @local @g9', async ({
-  page,
-  seedMode,
-}) => {
+test('G9: list → trip → back returns to the trip list @local @g9', async ({ page, seedMode }) => {
   await seedMode({ mode: 'local' })
   const errors = collectPageErrors(page)
   await createTripViaWizard(page, {
@@ -141,7 +138,10 @@ test('G9: list → trip → back returns to the trip list @local @g9', async ({
   })
 
   await page.goto('/tabs/trips')
-  await page.locator('ion-segment-button').filter({ hasText: /planned/i }).click()
+  await page
+    .locator('ion-segment-button')
+    .filter({ hasText: /planned/i })
+    .click()
   const row = page.locator('ion-item, ion-card').filter({ hasText: 'Samedan 2026' }).first()
   await row.click()
   await expect(page).toHaveURL(/\/trips\/[^/]+$/)
