@@ -161,7 +161,6 @@ setHeaderTitle(() => item.value?.name ?? 'Item')
 
 <template>
   <IonPage>
-
     <IonContent class="ion-padding">
       <div v-if="!item" class="empty-state">
         <p>Item not found</p>

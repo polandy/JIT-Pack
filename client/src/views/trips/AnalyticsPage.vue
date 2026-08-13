@@ -9,14 +9,7 @@
  * trend section shows the series' archived weight history and the most
  * frequently Missing/Unused items — with whatever history is synced.
  */
-import {
-  IonPage,
-  IonContent,
-  IonSegment,
-  IonSegmentButton,
-  IonLabel,
-  IonNote,
-} from '@ionic/vue'
+import { IonPage, IonContent, IonSegment, IonSegmentButton, IonLabel, IonNote } from '@ionic/vue'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -86,17 +79,13 @@ setHeaderTitle(() => `Analytics · ${trip.value?.name ?? ''}`)
 
 <template>
   <IonPage>
-
     <IonContent class="ion-padding">
       <!-- ADR-011: a view switcher is page content, not header chrome. -->
-      <IonSegment
-          :value="dimension"
-          @ionChange="(e: CustomEvent) => (dimension = e.detail.value)"
-        >
-          <IonSegmentButton value="person"><IonLabel>Person</IonLabel></IonSegmentButton>
-          <IonSegmentButton value="category"><IonLabel>Category</IonLabel></IonSegmentButton>
-          <IonSegmentButton value="container"><IonLabel>Container</IonLabel></IonSegmentButton>
-        </IonSegment>
+      <IonSegment :value="dimension" @ionChange="(e: CustomEvent) => (dimension = e.detail.value)">
+        <IonSegmentButton value="person"><IonLabel>Person</IonLabel></IonSegmentButton>
+        <IonSegmentButton value="category"><IonLabel>Category</IonLabel></IonSegmentButton>
+        <IonSegmentButton value="container"><IonLabel>Container</IonLabel></IonSegmentButton>
+      </IonSegment>
 
       <!-- Dimension slices (FR-8.2) -->
       <div v-if="slices.length > 0" class="slices">

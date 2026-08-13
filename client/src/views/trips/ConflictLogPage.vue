@@ -57,7 +57,6 @@ function formatTime(iso: string): string {
 
 <template>
   <IonPage>
-
     <IonContent>
       <IonRefresher slot="fixed" @ionRefresh="onRefresh">
         <IonRefresherContent />

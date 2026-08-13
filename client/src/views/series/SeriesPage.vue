@@ -110,7 +110,6 @@ setHeaderTitle(() => series.value?.name ?? 'Series')
 
 <template>
   <IonPage>
-
     <IonContent class="ion-padding">
       <template v-if="series">
         <h2 class="section-title">Series</h2>

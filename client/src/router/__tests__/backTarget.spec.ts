@@ -19,9 +19,9 @@ describe('backTarget', () => {
   })
 
   it('fills the parent pattern from the current route params', () => {
-    expect(
-      backTarget({ meta: { parent: '/trips/:tripId' }, params: { tripId: 'trip-1' } }),
-    ).toBe('/trips/trip-1')
+    expect(backTarget({ meta: { parent: '/trips/:tripId' }, params: { tripId: 'trip-1' } })).toBe(
+      '/trips/trip-1',
+    )
   })
 
   it('fills every parameter, not only the first', () => {

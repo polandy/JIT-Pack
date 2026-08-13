@@ -128,7 +128,6 @@ setHeaderTitle(() => `Luggage · ${trip.value?.name ?? ''}`)
 
 <template>
   <IonPage>
-
     <IonContent class="ion-padding">
       <!-- Add container -->
       <div class="add-row">

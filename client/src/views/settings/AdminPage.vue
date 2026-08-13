@@ -126,7 +126,6 @@ function provisioned(user: AdminUserRow): string {
 
 <template>
   <IonPage>
-
     <IonContent>
       <IonNote v-if="failed" class="hint">
         Overview unavailable — instance admins only, and a server connection is required.

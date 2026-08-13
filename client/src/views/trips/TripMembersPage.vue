@@ -68,7 +68,6 @@ setHeaderTitle(() => `Members · ${tripStore.getTrip(props.tripId)?.name ?? ''}`
 
 <template>
   <IonPage>
-
     <IonContent>
       <IonList v-if="view.rows.length > 0">
         <IonItem v-for="row in view.rows" :key="row.member.id" lines="inset">

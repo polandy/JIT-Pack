@@ -245,7 +245,6 @@ async function exportTripCSV() {
 
 <template>
   <IonPage>
-
     <IonContent class="ion-padding">
       <!-- Profile (FR-17.13) -->
       <h2 class="section-title">Profile</h2>
