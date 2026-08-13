@@ -16,7 +16,17 @@ export default defineConfigWithVueTs(
     files: ['**/*.{vue,ts,mts,tsx}'],
   },
 
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**']),
+  // Build and test *output*, not source. playwright-report and
+  // test-results are git-ignored but eslint knew nothing about them,
+  // so a local e2e run followed by `npm run lint` reported ~80 errors
+  // from Playwright's own bundled report assets.
+  globalIgnores([
+    '**/dist/**',
+    '**/dist-ssr/**',
+    '**/coverage/**',
+    '**/playwright-report/**',
+    '**/test-results/**',
+  ]),
 
   ...pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
