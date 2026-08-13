@@ -51,9 +51,15 @@ function goHome() {
  * The declared parent, not history.back(): a deep link opened from a
  * notification has a one-entry stack, and §7's contract is that back
  * still lands on the parent trip rather than leaving the app.
+ *
+ * Direction 'back' animates backwards; the action stays the default
+ * push. 'pop' would tell Ionic to unwind its own stack, and the parent
+ * is frequently not the entry we arrived from — a deep-linked child has
+ * no such entry at all — which left Ionic dereferencing an undefined
+ * page mid-transition.
  */
 function goBack() {
-  if (back.value) ionRouter.navigate(back.value, 'back', 'pop')
+  if (back.value) ionRouter.navigate(back.value, 'back')
 }
 </script>
 
