@@ -820,3 +820,79 @@ failure differently (`reading 'x'` vs `undefined is not an object (evaluating
 Left open deliberately: the Ionic transition itself. It is cosmetic today —
 nothing user-visible fails — and chasing a cross-outlet animation bug in a
 minified dependency is its own piece of work, not a rider on this one.
+
+## M4, built from the mock
+
+The first screen rebuild (backlog item 3). The concept has been settled since
+2026-08-08 and mocked in the prototype; this is the same screen in Vue, with
+the arithmetic where it can be tested and the wording where it can be
+translated.
+
+**The view model came first, and grew three axes.** `packingView.ts` already
+carried clustering, hide-done and the mode counts from the concept phase —
+written then, never wired to anything. It gained the facet filter (OR within,
+AND across), the FR-25.20 default that hides other people's rows, and the fold
+state, and lost its own mode filter: FR-25.4's pill strip is the *Beschaffung*
+facet now, and keeping a second path to the same question is how two filters
+start disagreeing.
+
+Three rules there are worth stating because getting them wrong is invisible on
+screen. Facet counts run against the *other* active facets but not the value's
+own, so a number says what picking it would yield rather than what is already
+shown; a selected value survives at zero, since a filter you cannot undo from
+inside the panel is a trap; an unselected dead end is not offered at all. The
+FR-25.20 reveal bar counts only what revealing would actually show — the mock
+counts over the unfiltered set, which promises rows that one tap does not
+deliver, and that is a deliberate deviation. And `narrowed` carries FR-25.11e
+in one flag, so the component cannot re-derive "is anything hiding rows?" per
+empty state, which is exactly how the original implementation came to announce
+"Alles gepackt" over an unmatched search.
+
+**FR-25.17 needed a column.** „gepackt von Andy · heute 14:32" wants a *when*,
+and nothing on the row could stand in: `updated_hlc` is the last touch of any
+kind, so a comment added afterwards would redate the packing. Migration 020
+adds `trip_items.packed_at`, stamped and cleared by `stampActor` with the
+record it belongs to. One deliberate difference from the user id beside it: a
+client-supplied RFC 3339 value is *kept*, because packing happens offline and
+the envelope can land days later. A clock is not an identity claim — invariant
+3 governs actors and foreign keys — and `packing_now_at` has taken client
+values since it was written. Unparseable values are replaced rather than
+trusted, so the column always holds a real instant. Rows packed before the
+migration keep their packer and get no time; the screen names the packer alone
+there rather than inventing one.
+
+**What the screen dropped.** The KPI tile strip, the grouping segment bar and
+the two filter toggles are gone — none survived the redesign. The separate
+"consciously skipped" section went with them: FR-25.2 counts a skipped row as
+done, so it is revealed by the same *Erledigte* switch as a packed one, and two
+mechanisms for one class of rows would have shown them twice with both on. The
+UI-Spec's Elements list still described that section and has been corrected.
+Archive kept its app-bar button although the mock has no such control anywhere:
+it is the only path to M14 today, and matching a mock that never modelled
+archiving would have removed a working feature.
+
+**Three defects surfaced while writing the Playwright unit, none of them test
+artefacts.** Tapping a row's checkbox opened M5 *and* packed the row, because
+the control sits inside a row that is a link. The first tap after adding an
+item was swallowed entirely: the quick-add collapsed on blur, which removes a
+block from the flow above the list, so the rows moved between pointer-down and
+pointer-up and the browser dispatched no click at all — the form now closes
+only when asked to, which FR-25.13a permits and which is the better trade
+against a list that ignores one tap in a place nobody would look for it. And
+the filter sheet's footer — the outcome line and *Zurücksetzen*, the two things
+FR-25.11b puts there — sat below the viewport, because Ionic's drag breakpoints
+keep the modal box full-height and translate it down; the sheet is sized and
+anchored instead.
+
+**Found and not fixed:** in Local Mode a trip's *items* do not come back after
+a reload, though the trip itself does and the rows are demonstrably in
+IndexedDB (`jitpack-local` / `rows`). It is the local persistence path rather
+than the packing list, so it was reported instead of being repaired inside an
+M4 change; the one e2e case that would have crossed it was rewritten to leave
+M4 through the app instead of reloading, and the fresh-session half of FR-25.18
+is asserted in the `usePackingFilter` unit test, where it is deterministic.
+
+**No `docs/` page.** The manual covers running an instance and stops before the
+UI on purpose, because most screens are still being rebuilt; a page for M4
+alone would be an island next to M5, M9 and M11 that do not have one. It is
+owed as a set once the rebuilds land, and this is the note that says so.

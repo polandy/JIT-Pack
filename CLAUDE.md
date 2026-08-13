@@ -58,30 +58,33 @@ PRD §3.25/§3.27, UI-Spec and UI-Test-Spec — and open as implementation. Owne
 domain-free basics (login, users, code base) rather than with packing features. The reasoning
 for each item below is in `dev-docs/implementation-log.md`, section "Concept phase".
 
-1. **The basics first** — login/users/sync/CI already exist and are green. Owner decision
-   2026-08-08: **audit-and-harden**, not rework. Four fields, in order: the auth and
-   authorization paths (including the FR-1.6 relaxation, which *removed* a check — templates
-   are now writable by every authenticated account), test coverage where it matters rather
-   than in total, supply-chain pinning against NFR-4.3 and invariant 8, and the two migrations
-   in item 5 (**done**). The toolchain item that used to sit beside this one is **done** — `mise.toml` is
-   now the single pinning mechanism and `make ci` runs from a plain shell; see the
-   implementation log.
+1. ~~**The basics first**~~ — **done.** The audit-and-harden pass the owner chose on
+   2026-08-08 is closed on all four fields: the auth and authorization paths (ADR-007 stack,
+   PRs #54–#56), failure-path coverage (#57), supply-chain pinning against NFR-4.3 and
+   invariant 8 (#58), and the two migrations in item 5 (#60). The toolchain item beside it is
+   done too — `mise.toml` is the single pinning mechanism and `make ci` runs from a plain
+   shell. History in the implementation log.
 2. **§3.27 client package** — `instantiate.ts` include expansion + FR-27.7 task materialisation,
    the FR-27.4 planning-trip refresh diff, the M21 screen, portable YAML for includes and tasks.
    Schema and sync wiring are done (migration 016).
-3. **Screen rebuilds from the mock**, localized with `t()` from the first line: M4/M5, then
-   M7/M8 (scopes, quick-add, sheet editing), M9/M10 (lean inventory, minimal creation),
-   M11 (container sheet, picker), M12 (slice filtering, per-person shares), M14 (group-aware list).
-   **None of the rebuilt screens has been rendered and eyeballed yet** — only the prototype was.
-4. **i18n migration** — ~300 hard-coded English strings across the surrounding screens; the module
-   and both catalogues exist.
+3. **Screen rebuilds from the mock**, localized with `t()` from the first line. **M4 is
+   done** (2026-08-13): header line, G-12 app-bar cluster, facet sheet with per-trip session
+   persistence, clusters, folding, both reveal bars, the FR-25.17 stamp, quick-add at the FAB.
+   Remaining, in order: **M5**, then M7/M8 (scopes, quick-add, sheet editing), M9/M10 (lean
+   inventory, minimal creation), M11 (container sheet, picker), M12 (slice filtering,
+   per-person shares), M14 (group-aware list). M4 has been rendered and screenshotted;
+   **none of the others has been eyeballed** — only the prototype was.
+4. **i18n migration** — the hard-coded English strings across the screens M4 did not touch;
+   the module and both catalogues exist and M4 + the quick-add + the filter sheet are done.
 5. ~~**Two migrations owed by concept decisions**~~ — **done** (migrations 018/019): `travelers.profile`
    is dropped and `trip_items.packed_by_user_id` carries the packing record, with `packer_user_id`
    left as the assignment. The M4/M5 *presentation* of that split (two rings, „gepackt von … ·
    zuständig war …“) is part of the screen rebuilds in item 3.
 6. **Playwright suite** — `dev-docs/UI_Test_Spec_v1.0.md` is written, the harness is scaffolded and
-   the first unit (M3 trip creation) has landed; the remaining per-screen cases are deliberately
-   sequenced after the rebuilds. `dev-docs/e2e-tests.md` is the ledger of what is actually covered —
+   two units have landed (M3 trip creation, M4 packing list); the remaining per-screen cases are
+   deliberately sequenced after the rebuilds. **Open defect found there and not yet fixed:** in
+   Local Mode a trip's *items* do not survive a reload, though the trip does and the rows reach
+   IndexedDB. `dev-docs/e2e-tests.md` is the ledger of what is actually covered —
    a green `e2e` job is not the same as a verified UI.
 
 **Parked, specified, do not start:** §3.24 item tags & lifecycle delete, §3.26 calendar feed,
