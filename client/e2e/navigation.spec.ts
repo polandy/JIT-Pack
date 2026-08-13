@@ -21,10 +21,13 @@ import type { Page } from '@playwright/test'
  * asserted, so these tests still catch any *new* runtime error instead
  * of being disabled by a known one. See the implementation log.
  */
-// Matched on the property name only: Chromium says "Cannot read
-// properties of undefined (reading 'x')" where WebKit says "undefined is
-// not an object (evaluating 'o.x')".
-const KNOWN_IONIC_TRANSITION_ERRORS = [/classList/, /ionPageElement/]
+// Matched on the *whole* dereference, not just the property name: the
+// two engines word it differently, and a bare /classList/ would also
+// swallow a genuine error of ours that merely mentions the property.
+const KNOWN_IONIC_TRANSITION_ERRORS = [
+  /Cannot read properties of undefined \(reading '(classList|ionPageElement)'\)/,
+  /undefined is not an object \(evaluating '[^']*\.(classList|ionPageElement)'\)/,
+]
 
 /**
  * Collect uncaught page errors, minus the known Ionic noise above.

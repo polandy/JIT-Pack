@@ -811,8 +811,9 @@ tabs outlet.
 What ships here is therefore smaller than "a fix": the `'pop'` action is dropped
 because it is wrong on its own terms — the parent is not the popped entry — and
 E2E-G9-08 covers the round trip entered through the list, which nothing else
-did. The known error is **filtered by property name, not asserted away**, so a
-new runtime error still fails the case. Chromium and WebKit word the same
+did. The known error is **filtered by its whole dereference, not by property name**,
+so a new runtime error still fails the case — matching bare `classList` would
+have swallowed a genuine error of ours that merely mentions the property. Chromium and WebKit word the same
 failure differently (`reading 'x'` vs `undefined is not an object (evaluating
 'o.x')`), which the first filter missed and WebKit caught.
 
