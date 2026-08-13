@@ -102,19 +102,37 @@ onMounted(async () => {
   myUserId.value = me?.user_id ?? null
 })
 
-const participants = computed<TripParticipant[]>(() =>
-  store.getMembers(props.tripId).map((member) => ({
-    user_id: member.user_id,
-    display_name:
-      directory.value.find((u) => u.user_id === member.user_id)?.display_name ?? member.user_id,
-    avatar_url: null,
-    role: member.role,
-  })),
-)
+/**
+ * Everyone a row could name. Deliberately the directory *and* the member
+ * rows rather than membership alone: Single-User Mode bypasses membership
+ * entirely, so a trip there has no member rows at all and every packing
+ * record would otherwise render as a raw user id.
+ */
+const participants = computed<TripParticipant[]>(() => {
+  const members = new Map(store.getMembers(props.tripId).map((m) => [m.user_id, m.role]))
+  const known = new Map<string, TripParticipant>()
+  for (const user of directory.value) {
+    known.set(user.user_id, {
+      user_id: user.user_id,
+      display_name: user.display_name,
+      avatar_url: null,
+      role: members.get(user.user_id) ?? 'editor',
+    })
+  }
+  for (const [user_id, role] of members) {
+    // A member the directory does not carry (removed account, offline
+    // first paint): countable, nameable only by id.
+    if (!known.has(user_id)) {
+      known.set(user_id, { user_id, display_name: user_id, avatar_url: null, role })
+    }
+  }
+  return [...known.values()]
+})
 
+/** `null` where nobody is named — the stamp then states the act without a who. */
 function nameOf(userId: string | null): string | null {
   if (!userId) return null
-  return participants.value.find((p) => p.user_id === userId)?.display_name ?? userId
+  return participants.value.find((p) => p.user_id === userId)?.display_name ?? null
 }
 
 // --- View state ---------------------------------------------------------
