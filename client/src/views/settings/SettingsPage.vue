@@ -21,12 +21,7 @@
  */
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonBackButton,
-  IonButtons,
   IonButton,
   IonList,
   IonItem,
@@ -250,14 +245,6 @@ async function exportTripCSV() {
 
 <template>
   <IonPage>
-    <IonHeader>
-      <IonToolbar>
-        <IonButtons slot="start">
-          <IonBackButton default-href="/tabs/dashboard" />
-        </IonButtons>
-        <IonTitle>Settings</IonTitle>
-      </IonToolbar>
-    </IonHeader>
 
     <IonContent class="ion-padding">
       <!-- Profile (FR-17.13) -->

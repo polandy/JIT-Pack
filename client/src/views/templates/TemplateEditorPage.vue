@@ -9,12 +9,7 @@
  */
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonBackButton,
-  IonButtons,
   IonList,
   IonItem,
   IonLabel,
@@ -33,6 +28,7 @@ import { addOutline, trashOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 
 const props = defineProps<{ templateId: string }>()
 
@@ -98,18 +94,13 @@ function onModeChange(templateItemId: string, mode: string) {
   if (!ti) return
   orchestrator.updateTemplateItem(ti, { default_mode: mode })
 }
+
+// ADR-011: the one header bar renders this page's title.
+setHeaderTitle(() => template.value?.name ?? 'Template')
 </script>
 
 <template>
   <IonPage>
-    <IonHeader>
-      <IonToolbar>
-        <IonButtons slot="start">
-          <IonBackButton default-href="/tabs/templates" />
-        </IonButtons>
-        <IonTitle>{{ template?.name ?? 'Template' }}</IonTitle>
-      </IonToolbar>
-    </IonHeader>
 
     <IonContent class="ion-padding">
       <div v-if="!template" class="empty-state">

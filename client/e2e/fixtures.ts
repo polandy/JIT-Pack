@@ -82,7 +82,7 @@ export async function createTripViaWizard(page: Page, trip: TripSeed): Promise<s
   await page.getByTestId('wizard-create').click()
 
   // M4 has opened on the new trip; its path is the handle later steps need.
-  await expect(page.getByTestId('packing-trip-name')).toHaveText(trip.name)
+  await expect(page.getByTestId('header-title')).toHaveText(trip.name)
   return new URL(page.url()).pathname
 }
 

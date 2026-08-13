@@ -135,7 +135,7 @@ function onSyncTap() {
         @sync-tap="onSyncTap"
       />
       <div class="app-body">
-        <NavRail class="desktop-nav" />
+        <NavRail />
         <main class="app-content">
           <IonRouterOutlet />
         </main>
@@ -152,19 +152,14 @@ function onSyncTap() {
   height: calc(100% - 56px); /* below the header toolbar */
 }
 
-.desktop-nav {
-  display: none;
-}
-
 .app-content {
   flex: 1;
   overflow: auto;
+  /* Ionic's router outlet is position:absolute. Without a positioned
+     ancestor here it resolves against ion-app and covers the header
+     strip, which is how seventeen back buttons ended up unreachable
+     (ADR-011). */
+  position: relative;
 }
 
-/* G-9: desktop breakpoint */
-@media (min-width: 900px) {
-  .desktop-nav {
-    display: flex;
-  }
-}
 </style>

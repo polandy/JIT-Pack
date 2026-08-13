@@ -8,12 +8,7 @@
  */
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonBackButton,
-  IonButtons,
   IonList,
   IonItem,
   IonLabel,
@@ -29,6 +24,7 @@ import { computed, inject, onUnmounted, ref, watch } from 'vue'
 import { dependencyCycleError } from '@/domain/dependencies'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 
 const props = defineProps<{ itemId: string }>()
 
@@ -158,18 +154,13 @@ function onValueChange(event: CustomEvent) {
   const val = parseFloat((event.target as HTMLIonInputElement).value as string)
   updateField('value_cents', isNaN(val) ? null : Math.round(val * 100))
 }
+
+// ADR-011: the one header bar renders this page's title.
+setHeaderTitle(() => item.value?.name ?? 'Item')
 </script>
 
 <template>
   <IonPage>
-    <IonHeader>
-      <IonToolbar>
-        <IonButtons slot="start">
-          <IonBackButton default-href="/tabs/items" />
-        </IonButtons>
-        <IonTitle>{{ item?.name ?? 'Item' }}</IonTitle>
-      </IonToolbar>
-    </IonHeader>
 
     <IonContent class="ion-padding">
       <div v-if="!item" class="empty-state">

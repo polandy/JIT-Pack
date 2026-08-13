@@ -9,12 +9,7 @@
  */
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonBackButton,
-  IonButtons,
   IonButton,
   IonList,
   IonItem,
@@ -33,6 +28,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { ItemMode, Trip } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 
 const props = defineProps<{ seriesId: string }>()
 
@@ -107,18 +103,13 @@ const trendTripId = computed(() => seriesTrips.value[0]?.id ?? null)
 
 /** FR-12.1: the series' most recent archived trip is the default clone source. */
 const cloneSource = computed(() => seriesTrips.value.find((t) => t.status === 'archived') ?? null)
+
+// ADR-011: the one header bar renders this page's title.
+setHeaderTitle(() => series.value?.name ?? 'Series')
 </script>
 
 <template>
   <IonPage>
-    <IonHeader>
-      <IonToolbar>
-        <IonButtons slot="start">
-          <IonBackButton default-href="/tabs/trips" />
-        </IonButtons>
-        <IonTitle>{{ series?.name ?? 'Series' }}</IonTitle>
-      </IonToolbar>
-    </IonHeader>
 
     <IonContent class="ion-padding">
       <template v-if="series">

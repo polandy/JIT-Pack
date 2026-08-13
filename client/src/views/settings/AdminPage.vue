@@ -12,12 +12,7 @@
  */
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonBackButton,
-  IonButtons,
   IonList,
   IonItem,
   IonLabel,
@@ -131,14 +126,6 @@ function provisioned(user: AdminUserRow): string {
 
 <template>
   <IonPage>
-    <IonHeader>
-      <IonToolbar>
-        <IonButtons slot="start">
-          <IonBackButton default-href="/tabs/settings" />
-        </IonButtons>
-        <IonTitle>User administration</IonTitle>
-      </IonToolbar>
-    </IonHeader>
 
     <IonContent>
       <IonNote v-if="failed" class="hint">

@@ -15,13 +15,8 @@
  */
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonButtons,
   IonButton,
-  IonBackButton,
   IonList,
   IonItem,
   IonLabel,
@@ -44,6 +39,7 @@ import { suggestQuantities, type QuantitySuggestion } from '@/domain/suggestions
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 
 const route = useRoute()
 const router = useRouter()
@@ -332,18 +328,13 @@ function createTrip() {
   })
   router.replace(`/trips/${tripId}`)
 }
+
+// ADR-011: the one header bar renders this page's title.
+setHeaderTitle(() => `New trip · step ${step.value}/4`)
 </script>
 
 <template>
   <IonPage>
-    <IonHeader>
-      <IonToolbar>
-        <IonButtons slot="start">
-          <IonBackButton default-href="/tabs/trips" />
-        </IonButtons>
-        <IonTitle>New trip · step {{ step }}/4</IonTitle>
-      </IonToolbar>
-    </IonHeader>
 
     <IonContent class="ion-padding">
       <!-- Step 1: metadata -->

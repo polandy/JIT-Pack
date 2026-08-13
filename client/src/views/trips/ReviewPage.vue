@@ -10,12 +10,7 @@
  */
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonBackButton,
-  IonButtons,
   IonButton,
   IonCard,
   IonCardContent,
@@ -33,6 +28,7 @@ import { dismissProposal, isDismissed } from '@/local/reviewDismissals'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -112,18 +108,13 @@ function neverAskAgain(p: ReviewProposal) {
   dismissProposal(p.key)
   dismissedVersion.value++
 }
+
+// ADR-011: the one header bar renders this page's title.
+setHeaderTitle(() => `Review · ${trip.value?.name ?? ''}`)
 </script>
 
 <template>
   <IonPage>
-    <IonHeader>
-      <IonToolbar>
-        <IonButtons slot="start">
-          <IonBackButton :default-href="`/trips/${tripId}`" />
-        </IonButtons>
-        <IonTitle>Review · {{ trip?.name ?? '' }}</IonTitle>
-      </IonToolbar>
-    </IonHeader>
 
     <IonContent class="ion-padding">
       <!-- Proposal card stack -->

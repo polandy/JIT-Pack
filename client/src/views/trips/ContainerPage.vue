@@ -10,12 +10,7 @@
  */
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonBackButton,
-  IonButtons,
   IonButton,
   IonList,
   IonItem,
@@ -40,6 +35,7 @@ import {
 import { useTripStore } from '@/stores/tripStore'
 import type { Container } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -125,18 +121,13 @@ function onAssign(itemId: string, containerId: string | null) {
     orchestrator.assignContainer(props.tripId, item, containerId)
   }
 }
+
+// ADR-011: the one header bar renders this page's title.
+setHeaderTitle(() => `Luggage · ${trip.value?.name ?? ''}`)
 </script>
 
 <template>
   <IonPage>
-    <IonHeader>
-      <IonToolbar>
-        <IonButtons slot="start">
-          <IonBackButton :default-href="`/trips/${tripId}`" />
-        </IonButtons>
-        <IonTitle>Containers · {{ trip?.name ?? '' }}</IonTitle>
-      </IonToolbar>
-    </IonHeader>
 
     <IonContent class="ion-padding">
       <!-- Add container -->

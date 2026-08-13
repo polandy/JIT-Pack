@@ -12,12 +12,8 @@
  */
 import {
   IonPage,
-  IonHeader,
   IonToolbar,
-  IonTitle,
   IonContent,
-  IonBackButton,
-  IonButtons,
   IonSegment,
   IonSegmentButton,
   IonLabel,
@@ -58,6 +54,7 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -271,17 +268,18 @@ async function handleRefresh(event: CustomEvent) {
   await orchestrator.drainTrip(props.tripId)
   refresher.complete()
 }
+
+// ADR-011: the one header bar renders this page's title.
+setHeaderTitle(() => trip.value?.name ?? 'Packing List')
 </script>
 
 <template>
   <IonPage>
-    <IonHeader>
-      <IonToolbar>
-        <IonButtons slot="start">
-          <IonBackButton default-href="/tabs/trips" />
-        </IonButtons>
-        <IonTitle data-testid="packing-trip-name">{{ trip?.name ?? 'Packing List' }}</IonTitle>
-        <IonButtons slot="end">
+
+    <IonContent>
+      <!-- ADR-011: M4's own sub-header is page content; the one app bar
+           carries only the trip name and the actions teleported below. -->
+      <Teleport to="#header-actions">
           <!-- G-10: trip presence facepile + group-sync badge -->
           <PresenceFacepile v-if="presenceUsers.length > 1" :users="presenceUsers" />
           <!-- M14: archive triggers the review assistant (FR-9.2) -->
@@ -305,10 +303,7 @@ async function handleRefresh(event: CustomEvent) {
             <IonIcon slot="icon-only" :icon="cartOutline" />
             <IonBadge color="primary" class="shopping-badge">{{ shoppingCount }}</IonBadge>
           </IonButton>
-        </IonButtons>
-      </IonToolbar>
-
-      <!-- KPI strip — tap opens M12 analytics (UI-Spec M4) -->
+      </Teleport>
       <IonToolbar class="kpi-strip">
         <div
           class="kpi-row kpi-tappable"
@@ -335,8 +330,6 @@ async function handleRefresh(event: CustomEvent) {
           </div>
         </div>
       </IonToolbar>
-
-      <!-- Grouping switcher -->
       <IonToolbar>
         <IonSegment :value="groupBy" @ionChange="onGroupByChange">
           <IonSegmentButton value="category"><IonLabel>Category</IonLabel></IonSegmentButton>
@@ -345,9 +338,7 @@ async function handleRefresh(event: CustomEvent) {
           <IonSegmentButton value="container"><IonLabel>Container</IonLabel></IonSegmentButton>
         </IonSegment>
       </IonToolbar>
-    </IonHeader>
 
-    <IonContent>
       <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
         <IonRefresherContent />
       </IonRefresher>

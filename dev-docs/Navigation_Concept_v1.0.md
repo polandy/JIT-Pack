@@ -189,7 +189,7 @@ Part I fixed the skeleton. This part fleshes out each structural point in full, 
 
 *Source: `components/global/NavRail.vue`, `App.vue`, `views/TabsLayout.vue`.*
 
-**As built.** Below 900 px the bottom tab bar (`TabsLayout.vue`) is shown and the rail is `display:none`; at ≥ 900 px `App.vue`'s media query flips `.desktop-nav` to `display:flex` and Ionic hides the bottom tabs. The rail is a fixed **80 px** column pinned left of the scrolling content area (`.app-body` is a flexbox: rail + `main.app-content{flex:1;overflow:auto}`), sitting *below* the full-width header (header height 56 px). It carries the four anchors only — Dashboard, Trips, Templates, Items — each an icon-over-label link. Active state = primary tint background + primary text, matched by `route.path.includes('/tabs/{match}')`; hover = light surface.
+**As built.** Below 900 px the bottom tab bar (`TabsLayout.vue`) is shown and the rail is hidden. *(Until 2026-08-13 this paragraph was wrong: the hiding rule lived on `.desktop-nav` in `App.vue` and lost to `NavRail.vue`'s own scoped `.nav-rail`, so the rail rendered at every width. The breakpoint now lives in the component that owns it.)* at ≥ 900 px `App.vue`'s media query flips `.desktop-nav` to `display:flex` and Ionic hides the bottom tabs. The rail is a fixed **80 px** column pinned left of the scrolling content area (`.app-body` is a flexbox: rail + `main.app-content{flex:1;overflow:auto}`), sitting *below* the full-width header (header height 56 px). It carries the four anchors only — Dashboard, Trips, Templates, Items — each an icon-over-label link. Active state = primary tint background + primary text, matched by `route.path.includes('/tabs/{match}')`; hover = light surface.
 
 **Gaps & proposals.**
 
