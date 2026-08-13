@@ -39,8 +39,11 @@ import {
   IonCheckbox,
   IonRefresher,
   IonRefresherContent,
+  IonFab,
+  IonFabButton,
 } from '@ionic/vue'
 import {
+  addOutline,
   archiveOutline,
   bagHandleOutline,
   buildOutline,
@@ -128,6 +131,11 @@ const searchOpen = ref(false)
 const collapsedGroups = ref<string[]>([])
 const showPrep = ref(false)
 const filterOpen = ref(false)
+const quickAdd = ref<InstanceType<typeof QuickAddItem> | null>(null)
+
+function openQuickAdd() {
+  void quickAdd.value?.open()
+}
 
 const trip = computed(() => store.getTrip(props.tripId))
 const kpis = computed(() => store.kpis(props.tripId))
@@ -482,7 +490,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 
 <template>
   <IonPage>
-    <IonContent :scroll-events="true" @ion-scroll="onScroll">
+    <IonContent class="pack-content" :scroll-events="true" @ion-scroll="onScroll">
       <!-- G-12: actions on *this list* live in the one app bar, so they stay
            reachable while the header line below scrolls away. -->
       <Teleport to="#header-actions">
@@ -621,7 +629,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
         </IonButton>
       </div>
 
-      <QuickAddItem :trip-id="tripId" :is-active="isActive" @add="onQuickAdd" />
+      <QuickAddItem ref="quickAdd" :trip-id="tripId" :is-active="isActive" @add="onQuickAdd" />
 
       <IonList v-if="view.groups.length > 0">
         <template v-for="group in view.groups" :key="group.key">
@@ -895,6 +903,15 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
           </template>
         </IonList>
       </div>
+      <!-- FR-25.13a: the ＋ opens *and focuses* the quick-add. Expanding it
+           without focus costs a second tap on the only path that has to be
+           one-handed. -->
+      <IonFab slot="fixed" vertical="bottom" horizontal="end">
+        <IonFabButton data-testid="m4-fab" :aria-label="t('common.add')" @click="openQuickAdd">
+          <IonIcon :icon="addOutline" />
+        </IonFabButton>
+      </IonFab>
+
       <FilterSheet
         :open="filterOpen"
         :facets="filterFacets"
@@ -915,6 +932,13 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 </template>
 
 <style scoped>
+/* FR-25.11h: nothing may sit permanently under the FAB. The list has to be
+   able to scroll clear of its whole footprint, or the last row's right edge
+   — where the packer avatar lives — is both unreadable and untappable. */
+.pack-content {
+  --padding-bottom: 96px;
+}
+
 /* --- Header line ------------------------------------------------------ */
 .trip-line {
   display: flex;

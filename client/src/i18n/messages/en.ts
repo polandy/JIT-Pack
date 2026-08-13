@@ -91,6 +91,12 @@ export const en = {
   'packing.tripFinished': '🧩 Trip finished',
   'packing.reviewSuggestions': 'Review suggestions →',
 
+  // Quick-add (FR-5.6, FR-25.13a).
+  'quickAdd.trigger': 'Add item…',
+  'quickAdd.placeholder': 'Item name…',
+  'quickAdd.missingHint': 'New items are flagged as missing',
+  'quickAdd.newItem': 'Add “{name}” as a new item',
+
   // Faceted filter panel (FR-25.11), shared by M4 and M6.
   'filter.title': 'Filter',
   'filter.open': 'Filter',

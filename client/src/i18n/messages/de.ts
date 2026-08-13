@@ -89,6 +89,12 @@ export const de: Record<keyof typeof en, string> = {
   'packing.tripFinished': '🧩 Reise abgeschlossen',
   'packing.reviewSuggestions': 'Vorschläge ansehen →',
 
+  // Schnell-Hinzufügen (FR-5.6, FR-25.13a).
+  'quickAdd.trigger': 'Sache hinzufügen…',
+  'quickAdd.placeholder': 'Name der Sache…',
+  'quickAdd.missingHint': 'Neue Sachen werden als „fehlt“ markiert',
+  'quickAdd.newItem': '„{name}“ als neue Sache hinzufügen',
+
   // Facetten-Filter (FR-25.11), geteilt von M4 und M6.
   'filter.title': 'Filter',
   'filter.open': 'Filter',
