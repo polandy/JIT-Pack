@@ -91,6 +91,36 @@ export const en = {
   'packing.tripFinished': '🧩 Trip finished',
   'packing.reviewSuggestions': 'Review suggestions →',
 
+  // Faceted filter panel (FR-25.11), shared by M4 and M6.
+  'filter.title': 'Filter',
+  'filter.open': 'Filter',
+  'filter.groupBy': 'Group by',
+  'filter.reset': 'Reset',
+  'filter.show': 'Show {n}',
+  'filter.allValues': 'all',
+  'filter.groupedBy': 'Grouped by {axis}',
+  'filter.doneLabel': 'Packed',
+  'filter.doneHint': 'Show packed items',
+  'filter.othersLabel': 'Assigned to others',
+  'filter.othersHint': 'Show other people’s items',
+
+  'facet.person': 'Person',
+  'facet.category': 'Category',
+  'facet.mode': 'Procurement',
+  'facet.container': 'Luggage',
+  'facet.flag': 'Traits',
+  'facet.shared': 'Shared',
+  'facet.noCategory': 'No category',
+  'facet.noLuggage': 'No luggage',
+  'facet.flagLate': '⏰ Late packer',
+  'facet.flagMissing': 'Missing',
+  'facet.flagPrep': 'Has preparation',
+
+  'group.category': 'Category',
+  'group.person': 'Person',
+  'group.container': 'Luggage',
+  'group.status': 'Status',
+
   // Procurement modes (FR-25.4).
   'mode.pack': 'Pack',
   'mode.buyBefore': 'Buy before',

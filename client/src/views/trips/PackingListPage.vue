@@ -49,6 +49,7 @@ import {
   closeOutline,
   contractOutline,
   expandOutline,
+  funnelOutline,
   briefcaseOutline,
   lockClosedOutline,
   locationOutline,
@@ -60,17 +61,22 @@ import {
 import { computed, inject, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import FilterSheet, {
+  type FilterFacet,
+  type FilterOption,
+} from '@/components/global/FilterSheet.vue'
 import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
-import { buildPackingView, noFacets, type PackingRow } from '@/domain/packingView'
+import { usePackingFilter } from '@/composables/usePackingFilter'
+import { buildPackingView, FACET_KEYS, NO_VALUE, type PackingRow } from '@/domain/packingView'
 import { relativeStamp } from '@/domain/stamp'
 import { currentLocale, t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
-import type { ItemTodo, TripItem, TripParticipant } from '@/types/domain'
+import type { FacetKey, GroupBy, ItemTodo, TripItem, TripParticipant } from '@/types/domain'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -109,16 +115,19 @@ function nameOf(userId: string | null): string | null {
 }
 
 // --- View state ---------------------------------------------------------
-// The facet panel and its persistence (FR-25.11/25.18) land in their own
-// change; the two reveal switches are already reachable from the list-foot
-// bars, which is where FR-25.2 and FR-25.20 put them.
-const facets = ref(noFacets())
+// The filter, the two reveal switches and the grouping live in their own
+// composable because they outlive this component (FR-25.18): the filter
+// for the session, the grouping durably. The search term deliberately
+// does not — see there.
+const { facets, showDone, showOthers, groupBy, reset, toggleValue, clearFacet } = usePackingFilter(
+  props.tripId,
+)
+
 const search = ref('')
 const searchOpen = ref(false)
-const showDone = ref(false)
-const showOthers = ref(false)
 const collapsedGroups = ref<string[]>([])
 const showPrep = ref(false)
+const filterOpen = ref(false)
 
 const trip = computed(() => store.getTrip(props.tripId))
 const kpis = computed(() => store.kpis(props.tripId))
@@ -132,7 +141,7 @@ const view = computed(() =>
     travelers: store.getTravelers(props.tripId),
     containers: store.getContainers(props.tripId),
     participants: participants.value,
-    groupBy: store.getGroupBy(props.tripId),
+    groupBy: groupBy.value,
     showDone: showDone.value,
     facets: facets.value,
     search: search.value,
@@ -277,12 +286,121 @@ const emptyReason = computed(() => {
   return t('packing.noMatchesFilter', { n: hiddenOpenCount.value })
 })
 
+/**
+ * FR-25.11e: a reset that leaves part of the narrowing behind re-renders
+ * the same empty screen, so this clears all of it — search, facets and
+ * both reveal switches.
+ */
 function resetNarrowing() {
   search.value = ''
   searchOpen.value = false
-  facets.value = noFacets()
+  reset()
   showOthers.value = true
 }
+
+// --- The filter panel (FR-25.11) ---------------------------------------
+
+const FACET_LABELS: Record<FacetKey, string> = {
+  person: 'facet.person',
+  category: 'facet.category',
+  mode: 'facet.mode',
+  container: 'facet.container',
+  flag: 'facet.flag',
+}
+
+const MODE_LABELS: Record<string, string> = {
+  pack: 'mode.pack',
+  buy_before: 'mode.buyBefore',
+  buy_local: 'mode.buyLocal',
+}
+
+const FLAG_LABELS: Record<string, string> = {
+  late: 'facet.flagLate',
+  missing: 'facet.flagMissing',
+  prep: 'facet.flagPrep',
+}
+
+/**
+ * The view model labels what is data (a person's name, a category) and
+ * leaves everything that is UI copy to be worded here — the absence
+ * buckets above all. "Gemeinsam" rather than "Alle": an option labelled
+ * *all* reads as *select everything* rather than *the shared items*.
+ */
+function optionLabel(key: FacetKey, value: string, label: string | null): string {
+  if (label !== null) return label
+  if (value === NO_VALUE) {
+    if (key === 'person') return t('facet.shared')
+    if (key === 'container') return t('facet.noLuggage')
+    return t('facet.noCategory')
+  }
+  if (key === 'mode') return t(MODE_LABELS[value] as Parameters<typeof t>[0])
+  if (key === 'flag') return t(FLAG_LABELS[value] as Parameters<typeof t>[0])
+  return value
+}
+
+const filterFacets = computed<FilterFacet[]>(() =>
+  FACET_KEYS.map((key) => ({
+    key,
+    label: t(FACET_LABELS[key] as Parameters<typeof t>[0]),
+    options: view.value.facetValues[key].map<FilterOption>((value) => ({
+      value: value.value,
+      label: optionLabel(key, value.value, value.label),
+      count: value.count,
+      selected: value.selected,
+    })),
+  })).filter((facet) => facet.options.length > 0),
+)
+
+const GROUPINGS: GroupBy[] = ['category', 'person', 'container', 'status']
+
+const grouping = computed(() => ({
+  value: groupBy.value,
+  options: GROUPINGS.map((value) => ({ value, label: t(`group.${value}` as const) })),
+}))
+
+/** Both switches hide a class of rows, so they render from one shape. */
+const filterSwitches = computed(() => [
+  {
+    key: 'done',
+    label: t('filter.doneLabel'),
+    hint: t('filter.doneHint'),
+    on: showDone.value,
+    count: kpis.value.packedItems,
+  },
+  {
+    key: 'others',
+    label: t('filter.othersLabel'),
+    hint: t('filter.othersHint'),
+    on: showOthers.value,
+    count: view.value.hiddenOtherCount,
+  },
+])
+
+function onToggleSwitch(key: string) {
+  if (key === 'done') showDone.value = !showDone.value
+  else showOthers.value = !showOthers.value
+}
+
+function onSelectAll(key: string) {
+  const facet = view.value.facetValues[key as FacetKey]
+  facets.value = { ...facets.value, [key]: facet.map((option) => option.value) }
+}
+
+/** The chip row (FR-25.11a): an active filter must never be invisible. */
+const activeChips = computed(() =>
+  FACET_KEYS.flatMap((key) =>
+    facets.value[key].map((value) => ({
+      key,
+      value,
+      facetLabel: t(FACET_LABELS[key] as Parameters<typeof t>[0]),
+      label: optionLabel(
+        key,
+        value,
+        view.value.facetValues[key].find((option) => option.value === value)?.label ?? null,
+      ),
+    })),
+  ),
+)
 
 // --- Actions ------------------------------------------------------------
 
@@ -377,6 +495,17 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
           <IonIcon slot="icon-only" :icon="searchOutline" />
         </IonButton>
         <IonButton
+          data-testid="m4-filter"
+          :aria-label="t('filter.open')"
+          :color="view.activeFacetCount > 0 ? 'primary' : undefined"
+          @click="filterOpen = true"
+        >
+          <IonIcon slot="icon-only" :icon="funnelOutline" />
+          <IonBadge v-if="view.activeFacetCount > 0" color="primary" class="filter-count">
+            {{ view.activeFacetCount }}
+          </IonBadge>
+        </IonButton>
+        <IonButton
           data-testid="m4-fold-all"
           :aria-label="allFolded ? t('packing.unfoldAll') : t('packing.foldAll')"
           @click="toggleFoldAll"
@@ -457,6 +586,29 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
         <button :aria-label="t('packing.closeSearch')" @click="toggleSearch">
           <IonIcon :icon="closeOutline" />
         </button>
+      </div>
+
+      <!-- FR-25.11a: an active filter is never invisible — every value is a
+           removable chip. With none set the row states the grouping instead,
+           which is the other thing arranging the list. -->
+      <div class="filter-bar" data-testid="m4-filter-bar">
+        <template v-if="activeChips.length > 0">
+          <button
+            v-for="chip in activeChips"
+            :key="`${chip.key}:${chip.value}`"
+            class="chip"
+            :data-testid="`m4-chip-${chip.key}-${chip.value}`"
+            @click="toggleValue(chip.key, chip.value)"
+          >
+            <b>{{ chip.facetLabel }}</b> {{ chip.label }} <span class="x">×</span>
+          </button>
+          <button class="chip-reset" data-testid="m4-chip-reset" @click="reset">
+            {{ t('filter.reset') }}
+          </button>
+        </template>
+        <span v-else class="grouped-by">
+          {{ t('filter.groupedBy', { axis: t(`group.${groupBy}` as const) }) }}
+        </span>
       </div>
 
       <!-- The one real remnant of the dropped "Danach" phase: an archived
@@ -743,6 +895,21 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
           </template>
         </IonList>
       </div>
+      <FilterSheet
+        :open="filterOpen"
+        :facets="filterFacets"
+        :switches="filterSwitches"
+        :grouping="grouping"
+        :match-count="view.matchCount"
+        :active-count="view.activeFacetCount"
+        @close="filterOpen = false"
+        @toggle-value="(facet, value) => toggleValue(facet as FacetKey, value)"
+        @select-all="onSelectAll"
+        @clear-facet="(facet) => clearFacet(facet as FacetKey)"
+        @toggle-switch="onToggleSwitch"
+        @set-grouping="(value) => (groupBy = value as GroupBy)"
+        @reset="reset"
+      />
     </IonContent>
   </IonPage>
 </template>
@@ -803,6 +970,58 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
   right: 0;
   font-size: 0.6rem;
   padding: 2px 4px;
+}
+
+.filter-count {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  font-size: 0.6rem;
+  padding: 2px 4px;
+}
+
+/* --- Filter chip row -------------------------------------------------- */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 6px 12px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 1px solid var(--ct-blue);
+  border-radius: 999px;
+  background: none;
+  color: var(--ct-text);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.chip b {
+  color: var(--ct-subtext0);
+  font-weight: 600;
+}
+
+.chip .x {
+  color: var(--ct-subtext0);
+}
+
+.chip-reset {
+  background: none;
+  border: none;
+  color: var(--ct-blue);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.grouped-by {
+  color: var(--ct-subtext0);
+  font-size: 0.78rem;
 }
 
 /* --- Search ----------------------------------------------------------- */
