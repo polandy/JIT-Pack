@@ -1,13 +1,30 @@
 <script setup lang="ts">
 /**
- * Global app header (G-9): logo (links to dashboard), sync indicator (G-2),
- * settings icon (G-1 — gear in single-user mode, avatar otherwise).
+ * The app's one header bar (G-9, ADR-011).
+ *
+ * There is exactly one; no screen supplies its own. The right-hand group
+ * — sync indicator (G-2) and settings/avatar (G-1) — is unconditional,
+ * which is what keeps the conflict log reachable from inside a trip.
+ * The left slot switches: the logo on a tab root, `‹ back` plus the page
+ * title everywhere else. Pages needing their own actions teleport them
+ * into `#header-actions`.
  */
-import { IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon } from '@ionic/vue'
-import { settingsOutline } from 'ionicons/icons'
-import { useRouter } from 'vue-router'
+import {
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonButton,
+  IonIcon,
+  useIonRouter,
+} from '@ionic/vue'
+import { chevronBackOutline, settingsOutline } from 'ionicons/icons'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import BrandMark from './BrandMark.vue'
 import SyncIndicator from './SyncIndicator.vue'
+import { backTarget } from '@/router/backTarget'
+import { titleFor } from '@/composables/useHeaderTitle'
 import type { SyncState } from '@/composables/useSyncStatus'
 
 defineProps<{
@@ -20,17 +37,37 @@ const emit = defineEmits<{
   syncTap: []
 }>()
 
-const router = useRouter()
+const route = useRoute()
+const ionRouter = useIonRouter()
+
+const back = computed(() => backTarget(route))
+const title = computed(() => titleFor(route.path) ?? route.meta.title ?? '')
 
 function goHome() {
-  router.push('/tabs/dashboard')
+  ionRouter.navigate('/tabs/dashboard', 'back', 'replace')
+}
+
+/**
+ * The declared parent, not history.back(): a deep link opened from a
+ * notification has a one-entry stack, and §7's contract is that back
+ * still lands on the parent trip rather than leaving the app.
+ */
+function goBack() {
+  if (back.value) ionRouter.navigate(back.value, 'back', 'pop')
 }
 </script>
 
 <template>
   <IonHeader>
     <IonToolbar>
-      <IonTitle slot="start" class="app-logo" @click="goHome">
+      <IonButtons v-if="back" slot="start">
+        <IonButton data-testid="header-back" aria-label="Back" @click="goBack">
+          <IonIcon slot="icon-only" :icon="chevronBackOutline" />
+        </IonButton>
+      </IonButtons>
+
+      <IonTitle v-if="back" data-testid="header-title" class="page-title">{{ title }}</IonTitle>
+      <IonTitle v-else slot="start" class="app-logo" data-testid="header-logo" @click="goHome">
         <span class="logo-row">
           <BrandMark :size="22" />
           <span class="logo-wordmark">JIT<i class="logo-dot">·</i>Pack</span>
@@ -38,6 +75,8 @@ function goHome() {
       </IonTitle>
 
       <IonButtons slot="end">
+        <!-- Pages teleport their own actions here (M4's G-12 cluster). -->
+        <span id="header-actions" class="header-actions" />
         <SyncIndicator
           :state="syncState"
           :pending-count="syncPendingCount"
@@ -55,6 +94,14 @@ function goHome() {
 <style scoped>
 .app-logo {
   cursor: pointer;
+}
+
+.page-title {
+  padding-inline-start: 0;
+}
+
+.header-actions {
+  display: contents;
 }
 
 .logo-row {

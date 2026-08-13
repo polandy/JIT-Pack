@@ -743,3 +743,45 @@ the declaration belongs in `router/index.ts` where a missing parent is visible.
 Concept and specs are updated ahead of the code, deliberately — the owner asked
 to sharpen the concept before anything is built. Nothing in `client/` changed
 here.
+
+## One header bar, built (ADR-011)
+
+The implementation of the decision recorded a day earlier. `App.vue` renders the
+only `ion-header`; the seventeen per-screen headers are gone. Its left slot is
+the logo on a tab root and `‹ back` plus the title elsewhere, and `.app-content`
+finally has the `position: relative` that stops Ionic's outlet from escaping.
+
+**The back target comes from the route, not from history.** `meta.parent` is a
+path pattern filled from the current route's params (`router/backTarget.ts`).
+Two tests guard it: the resolution itself, and a sweep over the *real* route
+table asserting every non-root route declares a parent — which is what makes
+"someone adds a screen without a way back" a failing build rather than a thing
+noticed months later. That sweep carries a second assertion that it inspected
+more than ten routes, so a broken flattening cannot make it pass vacuously.
+
+**Two bugs surfaced while building, neither of them the one we set out to fix.**
+
+*The title vanished on M4.* Coming from the wizard, the header rendered empty. A
+single shared ref for the dynamic title looked obvious and was wrong: Ionic keeps
+the outgoing page mounted through the transition, so the wizard's `onUnmounted`
+fires *after* M4 has set its title and wiped it. Titles are now keyed by route
+path, which makes the outcome independent of unmount ordering instead of racing
+it — the same reflex the no-timing rule asks for. Five unit tests pin the
+ordering, including the late-unmount case directly.
+
+*The desktop rail rendered at every width.* Pre-existing, and visible on the
+deployed build too — checked before assuming it was mine. `.desktop-nav` in
+`App.vue` (specificity 0,1,0) never beat `NavRail.vue`'s scoped `.nav-rail`
+(0,2,0), so `display: none` never applied and the media query was decorative.
+The breakpoint moved into the component that owns the rail; `App.vue` no longer
+has an opinion about it, so there is one place rather than two. The concept's
+Part II claimed the old behaviour as "as built" and has been corrected.
+
+**On the e2e cases.** `E2E-G9-01`/`-02` were already taken, so the new unit is
+`-03` … `-07`; the collision would have gone unnoticed until someone searched by
+id. Every case **clicks** rather than asserting the control is visible, because
+`toBeVisible()` is exactly what passed all along on the occluded build. Verified
+red against a deliberately broken `goBack` before being kept.
+
+`E2E-G9-01`'s "Logo is a home link to M1 from within a trip" is retired in the
+same pass — the clause the ADR knowingly gave up.

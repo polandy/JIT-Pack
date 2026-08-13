@@ -9,12 +9,7 @@
  */
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonBackButton,
-  IonButtons,
   IonList,
   IonItem,
   IonLabel,
@@ -62,15 +57,6 @@ function formatTime(iso: string): string {
 
 <template>
   <IonPage>
-    <IonHeader>
-      <IonToolbar>
-        <IonButtons slot="start">
-          <IonBackButton :default-href="`/trips/${tripId}`" />
-        </IonButtons>
-        <IonTitle>Conflict log</IonTitle>
-      </IonToolbar>
-    </IonHeader>
-
     <IonContent>
       <IonRefresher slot="fixed" @ionRefresh="onRefresh">
         <IonRefresherContent />

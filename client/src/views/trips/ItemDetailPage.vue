@@ -9,12 +9,7 @@
  */
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonBackButton,
-  IonButtons,
   IonButton,
   IonList,
   IonItem,
@@ -46,6 +41,7 @@ import type { ItemComment, ItemMode, ItemTodo } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import ItemThumbnail from '@/components/items/ItemThumbnail.vue'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 
 const props = defineProps<{ tripId: string; itemId: string }>()
 
@@ -208,19 +204,13 @@ function onToggle() {
   if (!item.value) return
   orchestrator.packToggle(props.tripId, item.value)
 }
+
+// ADR-011: the one header bar renders this page's title.
+setHeaderTitle(() => item.value?.name ?? 'Item')
 </script>
 
 <template>
   <IonPage>
-    <IonHeader>
-      <IonToolbar>
-        <IonButtons slot="start">
-          <IonBackButton :default-href="`/trips/${tripId}`" />
-        </IonButtons>
-        <IonTitle>{{ item?.name ?? 'Item' }}</IonTitle>
-      </IonToolbar>
-    </IonHeader>
-
     <IonContent class="ion-padding">
       <div v-if="!item" class="empty-state">
         <p>Item not found</p>

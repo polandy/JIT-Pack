@@ -140,9 +140,10 @@ test('M3: the dashboard CTA leads through the wizard to a created trip @local @m
   await expect(page.getByTestId('wizard-step-4')).toBeVisible()
   await page.getByTestId('wizard-create').click()
 
-  // The cascade committed and M4 opened on the new trip.
+  // The cascade committed and M4 opened on the new trip. Since
+  // ADR-011 the trip name is the one header bar's title, not M4's own.
   await expect(page).toHaveURL(/\/trips\/[^/]+$/)
-  await expect(page.getByTestId('packing-trip-name')).toHaveText(TRIP.name)
+  await expect(page.getByTestId('header-title')).toHaveText(TRIP.name)
   await expect(page.getByTestId('packing-empty')).toBeVisible()
 })
 
@@ -157,5 +158,5 @@ test('M3: a trip created in local mode survives a reload @local @m3', async ({
 
   // A full boot: the app reloads and rehydrates from persistence alone.
   await page.goto(tripPath)
-  await expect(page.getByTestId('packing-trip-name')).toHaveText(TRIP.name)
+  await expect(page.getByTestId('header-title')).toHaveText(TRIP.name)
 })

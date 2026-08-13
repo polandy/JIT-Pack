@@ -11,12 +11,7 @@
  */
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonBackButton,
-  IonButtons,
   IonButton,
   IonList,
   IonItem,
@@ -33,6 +28,7 @@ import { computed, inject, onMounted, ref } from 'vue'
 import { buildRosterView, type DirectoryUser } from '@/domain/members'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -65,19 +61,13 @@ function changeRole(memberId: string, role: 'admin' | 'editor') {
 function roleLabel(role: string): string {
   return role.charAt(0).toUpperCase() + role.slice(1)
 }
+
+// ADR-011: the one header bar renders this page's title.
+setHeaderTitle(() => `Members · ${tripStore.getTrip(props.tripId)?.name ?? ''}`)
 </script>
 
 <template>
   <IonPage>
-    <IonHeader>
-      <IonToolbar>
-        <IonButtons slot="start">
-          <IonBackButton default-href="/tabs/trips" />
-        </IonButtons>
-        <IonTitle>Members · {{ tripStore.getTrip(tripId)?.name ?? '' }}</IonTitle>
-      </IonToolbar>
-    </IonHeader>
-
     <IonContent>
       <IonList v-if="view.rows.length > 0">
         <IonItem v-for="row in view.rows" :key="row.member.id" lines="inset">

@@ -73,8 +73,13 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G6-01 | G-6 Stepper/checkbox | all | qty=1 renders a checkbox; qty>1 renders the stepper ("3/5"); tap ±1, long-press completes/zeroes (units retired with FR-1.8). |
 | E2E-G7-01 | G-7 Empty states | all | Each list screen (Trips/Templates/Items/Dashboard) shows its empty state with the single primary CTA. |
 | E2E-G8-01 | G-8 Collaboration hidden | single/local | No Share/Delegate/Notification-prefs UI anywhere; no mode banner shown. |
-| E2E-G9-01 | G-9 Responsive | all | ≥900px shows the left nav rail + inline actions; <900px shows bottom tabs + FAB. Logo is a home link to M1 from within a trip. |
+| E2E-G9-01 | G-9 Responsive | all | ≥900px shows the left nav rail + inline actions; <900px hides the rail and shows bottom tabs + FAB. (The logo-from-within-a-trip clause is retired by ADR-011 — see E2E-G9-04.) |
 | E2E-G9-02 | G-9 Two-pane M4/M5 | single | ≥900px: selecting a row opens M5 as a persistent right side-panel and swaps content in place; <900px it is a bottom sheet. |
+| E2E-G9-03 | G-9 One header bar | all | A drill-down renders exactly **one** `ion-header`, carrying `‹ back` and the page title; no screen supplies its own (ADR-011). |
+| E2E-G9-04 | G-9 Root vs. drill-down | all | A tab root shows the logo and **no** back control; a drill-down shows back and no logo. |
+| E2E-G9-05 | G-9 Back is reachable | all | Back is **clicked**, not merely asserted visible, and lands on the route's declared parent. Occlusion is invisible to `toBeVisible()` — this is the case the pre-ADR-011 build failed. |
+| E2E-G9-06 | G-9 Cold-start deep link | all | Opening a nested screen directly, with a one-entry history, still returns to the parent trip on back (Navigation_Concept §7 contract). |
+| E2E-G9-07 | G-9 Global group survives | all | Sync glyph (G-2) and settings (G-1) remain present on a drill-down — the reason a per-screen bar was rejected, since the conflict log has no other entry inside a trip. |
 | E2E-G10-01 | G-10 Trip presence | server | Facepile of others on the trip + group-sync badge (green→amber as a device lags); tap opens the per-person sync list. |
 | E2E-G11-01 | G-11 Theming | all | Dark (Mocha) is default before first paint with no preference; M17 toggle switches to Latte and persists device-local across reload; no flash of wrong theme. |
 | E2E-G12-01 | G-12 Actions in the app bar | all | On a detail screen (M4, M6) the app bar carries that screen's icon cluster and the settings **gear is hidden**; on a root/tab screen the gear is back and no cluster is shown. Navigating away clears the previous screen's cluster — asserts M6's icons do not linger on the next screen. |

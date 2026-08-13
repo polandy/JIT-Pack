@@ -15,6 +15,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Unit | Spec cases | Mode | File |
 |---|---|---|---|
 | Harness smoke | E2E-M19-01 (partial), E2E-M19-04, E2E-G7-01 | `local` | [`smoke.spec.ts`](../client/e2e/smoke.spec.ts) |
+| Navigation / one header bar | E2E-G9-03 … E2E-G9-07 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
 | M3 trip creation | E2E-M3-01, E2E-M3-03 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M1-05 | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 
 **Not yet covered:** everything else in spec §3 (global patterns G-1–G-12), §4 (M1–M21 beyond the above), §5 (cross-screen flows) and §6 (non-functional journeys). The `single` and `server` modes have no coverage at all — they need a real `jitpackd` harness and, for `server`, a mock IdP (spec §10 steps 3 and 5).

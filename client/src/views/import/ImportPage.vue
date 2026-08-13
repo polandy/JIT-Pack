@@ -10,12 +10,7 @@
  */
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonBackButton,
-  IonButtons,
   IonButton,
   IonList,
   IonItem,
@@ -42,6 +37,7 @@ import {
 } from '@/domain/spreadsheet'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 
 const router = useRouter()
 const master = useMasterStore()
@@ -159,19 +155,13 @@ function commit() {
   orchestrator.commitImport(plan.value)
   router.replace('/tabs/trips')
 }
+
+// ADR-011: the one header bar renders this page's title.
+setHeaderTitle(() => `Import · step ${step.value}/4`)
 </script>
 
 <template>
   <IonPage>
-    <IonHeader>
-      <IonToolbar>
-        <IonButtons slot="start">
-          <IonBackButton default-href="/tabs/trips" />
-        </IonButtons>
-        <IonTitle>Import · step {{ step }}/4</IonTitle>
-      </IonToolbar>
-    </IonHeader>
-
     <IonContent class="ion-padding">
       <!-- Step 1: file -->
       <section v-if="step === 1">
