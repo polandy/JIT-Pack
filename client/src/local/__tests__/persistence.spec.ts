@@ -86,3 +86,34 @@ describe('IndexedDBPersistence', () => {
     expect(await p.getImage('nope')).toBeNull()
   })
 })
+
+/**
+ * FR-19.2 — a save the caller can wait for.
+ *
+ * The regression: `save()` was fire-and-forget, so a row added and
+ * followed straight away by a reload was written into a transaction the
+ * navigation cancelled. The row was gone and the app had already shown
+ * it as stored, which reads as data loss rather than as a race.
+ */
+describe('durability (FR-19.2)', () => {
+  it('whenSettled resolves only after the write is readable again', async () => {
+    const store = new IndexedDBPersistence()
+
+    store.save([{ seq: 0, table: 'trip_items', id: 'i1', deleted: false, row: { name: 'Zelt' } }])
+    await store.whenSettled()
+
+    const rows = await store.load()
+    expect(rows.map((r) => r.id)).toEqual(['i1'])
+  })
+
+  it('serialises overlapping saves, so the last write of a key wins', async () => {
+    const store = new IndexedDBPersistence()
+
+    store.save([{ seq: 0, table: 'trip_items', id: 'i1', deleted: false, row: { name: 'first' } }])
+    store.save([{ seq: 0, table: 'trip_items', id: 'i1', deleted: false, row: { name: 'second' } }])
+    await store.whenSettled()
+
+    const rows = await store.load()
+    expect(rows[0]?.row).toEqual({ name: 'second' })
+  })
+})

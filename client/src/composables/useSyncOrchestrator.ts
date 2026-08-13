@@ -183,6 +183,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     onEvent: onWSEvent,
   })
 
+  /** Whether another save has been queued behind the one just finished. */
+  let localWrites = 0
+  function localWritesPending(): boolean {
+    return localWrites > 0
+  }
+
   // --- Pull change routing ---
 
   function onPullChanges(changes: PullChange[]) {
@@ -224,7 +230,21 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     // FR-19.2: in Local Mode every applied change is durable — this is
     // the single funnel all mutations and startup loads pass through.
-    if (local) local.save(changes).catch(() => {})
+    // The indicator follows the write rather than the tap, so "on this
+    // device" means the row is *on* the device: a fire-and-forget save
+    // told the user it was safe while the transaction was still open,
+    // and a reload in that window lost the row.
+    if (local && changes.length > 0) {
+      localWrites += 1
+      syncStatus.setSyncing()
+      local
+        .save(changes)
+        .finally(() => (localWrites -= 1))
+        .then(() => {
+          if (!localWritesPending()) syncStatus.setLocal()
+        })
+        .catch(() => syncStatus.setOffline())
+    }
   }
 
   // --- WebSocket event handling ---
@@ -1748,6 +1768,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   // --- Post-trip review (FR-9.2, M14) ---
 
+  /**
+   * activateTrip moves a planning trip into packing. The wizard only ever
+   * creates planning trips, so without this a trip could reach *active*
+   * nowhere in the app — the state that decides FR-9.1's Missing flagging
+   * and M4's archive action.
+   */
+  function activateTrip(tripId: string) {
+    setTripStatus(tripId, 'active')
+  }
+
   /** archiveTrip completes the trip; archiving is the M14 review trigger. */
   function archiveTrip(tripId: string) {
     setTripStatus(tripId, 'archived')
@@ -2021,6 +2051,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     pushApi,
 
     // Post-trip review (FR-9.2, M14)
+    activateTrip,
     archiveTrip,
     deleteTrip,
     applyReviewProposal,
