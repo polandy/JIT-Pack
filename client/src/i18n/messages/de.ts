@@ -41,12 +41,53 @@ export const de: Record<keyof typeof en, string> = {
   'packing.title': 'Packliste',
   'packing.itemsLeft': '{n} Sache offen | {n} Sachen offen',
   'packing.showPacked': '{n} gepackte anzeigen',
-  'packing.hidePacked': 'Gepackte ausblenden',
+  'packing.hidePacked': '{n} gepackte ausblenden',
   'packing.allDone': 'Alles gepackt 🎉',
+  'packing.allDoneHint': 'Nichts mehr offen für diese Reise.',
   'packing.skipped': 'Bewusst weggelassen',
   'packing.undo': 'Rückgängig',
   'packing.packedToast': '„{name}“ gepackt ✓',
   'packing.openPrep': '{n} Vorbereitung offen | {n} Vorbereitungen offen',
+  'packing.prepSection': 'Vorbereitung',
+  'packing.empty': 'Noch nichts auf dieser Liste',
+  'packing.emptyHint': 'Mit ＋ die erste Sache hinzufügen.',
+
+  // M4-Kopfzeile und Icon-Cluster in der App-Bar (G-12).
+  'packing.progress': '{packed}/{total}',
+  'packing.searchPlaceholder': 'Packliste durchsuchen…',
+  'packing.closeSearch': 'Suche schliessen',
+  'packing.foldAll': 'Alle zuklappen',
+  'packing.unfoldAll': 'Alle aufklappen',
+  'packing.groupOpen': '{n} offen',
+  'packing.shopping': 'Einkauf',
+  'packing.luggage': 'Gepäck',
+  'packing.analytics': 'Auswertung',
+  'packing.archive': 'Reise abschliessen',
+
+  // FR-25.20 — Sachen, für die jemand anderes zuständig ist.
+  'packing.othersHidden':
+    '{n} Sache liegt bei {who} · anzeigen | {n} Sachen liegen bei {who} · anzeigen',
+  'packing.othersShown': '{n} von {who} ausblenden',
+
+  // FR-25.17 — wer eine Zeile gepackt hat, und wann.
+  'packing.packedBy': 'gepackt von {who} · {when}',
+  'packing.packedByUnknown': 'gepackt · {when}',
+  'packing.responsibleWas': 'zuständig war {who}',
+  'stamp.today': 'heute',
+  'stamp.yesterday': 'gestern',
+
+  // FR-25.11e — eine leere Liste bedeutet zweierlei sehr Verschiedenes.
+  'packing.noMatches': 'Keine Treffer',
+  'packing.noMatchesSearch': 'Nichts passt zu „{term}“.',
+  'packing.noMatchesFilter':
+    '{n} offene Sache liegt hinter dem Filter. | {n} offene Sachen liegen hinter dem Filter.',
+  'packing.noMatchesBoth': 'Nichts passt zu „{term}“ und dem Filter.',
+  'packing.resetSearch': 'Suche löschen',
+  'packing.resetAll': 'Suche und Filter zurücksetzen',
+
+  // FR-27.5 — die Abschlusskarte auf einer archivierten Reise.
+  'packing.tripFinished': '🧩 Reise abgeschlossen',
+  'packing.reviewSuggestions': 'Vorschläge ansehen →',
 
   'mode.pack': 'Packen',
   'mode.buyBefore': 'Vorher kaufen',

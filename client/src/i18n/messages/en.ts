@@ -44,12 +44,52 @@ export const en = {
   'packing.title': 'Packing list',
   'packing.itemsLeft': '{n} item left | {n} items left',
   'packing.showPacked': 'Show {n} packed',
-  'packing.hidePacked': 'Hide packed',
+  'packing.hidePacked': 'Hide {n} packed',
   'packing.allDone': 'All packed 🎉',
+  'packing.allDoneHint': 'Nothing left for this trip.',
   'packing.skipped': 'Deliberately skipped',
   'packing.undo': 'Undo',
   'packing.packedToast': '“{name}” packed ✓',
   'packing.openPrep': '{n} preparation open | {n} preparations open',
+  'packing.prepSection': 'Preparation',
+  'packing.empty': 'Nothing on this list yet',
+  'packing.emptyHint': 'Add the first item with ＋.',
+
+  // M4 header line and app-bar cluster (G-12).
+  'packing.progress': '{packed}/{total}',
+  'packing.searchPlaceholder': 'Search the packing list…',
+  'packing.closeSearch': 'Close search',
+  'packing.foldAll': 'Collapse all groups',
+  'packing.unfoldAll': 'Expand all groups',
+  'packing.groupOpen': '{n} open',
+  'packing.shopping': 'Shopping',
+  'packing.luggage': 'Luggage',
+  'packing.analytics': 'Analytics',
+  'packing.archive': 'Finish trip',
+
+  // FR-25.20 — rows somebody else is responsible for.
+  'packing.othersHidden': '{n} item is with {who} · show | {n} items are with {who} · show',
+  'packing.othersShown': 'Hide {n} from {who}',
+
+  // FR-25.17 — who packed a row, and when.
+  'packing.packedBy': 'packed by {who} · {when}',
+  'packing.packedByUnknown': 'packed · {when}',
+  'packing.responsibleWas': 'assigned to {who}',
+  'stamp.today': 'today',
+  'stamp.yesterday': 'yesterday',
+
+  // FR-25.11e — an empty list means one of two very different things.
+  'packing.noMatches': 'No matches',
+  'packing.noMatchesSearch': 'Nothing matches “{term}”.',
+  'packing.noMatchesFilter':
+    '{n} open item is behind the filter. | {n} open items are behind the filter.',
+  'packing.noMatchesBoth': 'Nothing matches “{term}” and the filter.',
+  'packing.resetSearch': 'Clear search',
+  'packing.resetAll': 'Clear search and filter',
+
+  // FR-27.5 — the closing card on an archived trip.
+  'packing.tripFinished': '🧩 Trip finished',
+  'packing.reviewSuggestions': 'Review suggestions →',
 
   // Procurement modes (FR-25.4).
   'mode.pack': 'Pack',

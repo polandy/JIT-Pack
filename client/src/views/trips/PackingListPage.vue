@@ -1,238 +1,293 @@
 <script setup lang="ts">
 /**
- * M4 — Packing List (Trip Detail) — core screen.
+ * M4 — Packing list, and since the phase hub was dropped (2026-08-08) the
+ * trip screen itself: tapping a trip opens this, with nothing in between.
  *
- * Live collaborative packing workspace with:
- * - Sticky header: trip name, KPI strip, back button
- * - Grouping switcher (category/container/person/status)
- * - Item rows with G-6 stepper, mode chips, sliding actions
- * - Inline quick-add for new items without leaving context
- * - Skip action: mark items as "consciously not packing" (FR-5.5)
- * - Filter bar: my items, open only
+ * Rebuilt from the concept mock (UI-Spec M4, Addendum §3.25). What the
+ * shape is answering, in one line each:
+ *
+ *  - **One header line** (trip line): progress, weight, open prep, the
+ *    presence facepile and the trip's *other views* as labelled icons.
+ *    It stays unfiltered whatever the list shows (G-12), so a short list
+ *    is never mistaken for a finished trip. It hides on scroll-down and
+ *    returns on any upward scroll, which is where the list height comes
+ *    from; the trip name lives in the one app bar permanently (ADR-011),
+ *    so nothing has to migrate up there as it goes.
+ *  - **Actions in the app bar** (G-12): search behind its icon (FR-25.11k)
+ *    and fold-all (FR-25.16). No ⋯ overflow — three destinations behind an
+ *    unlabelled glyph is exactly where concept testing kept failing.
+ *  - **Rows** come from `buildPackingView`: per-person clusters (FR-25.1),
+ *    done rows dropping out (FR-25.2), one avatar at the right edge that
+ *    is the assignee while open and the packer once packed (FR-25.19).
+ *  - **Nothing hides silently.** The done bar (FR-25.2) and the reveal bar
+ *    (FR-25.20) name their counts, and an empty list distinguishes "all
+ *    packed" from "nothing matches" (FR-25.11e) — announcing completion
+ *    over a narrowed list is the failure that rule exists to prevent.
  */
 import {
   IonPage,
-  IonToolbar,
   IonContent,
-  IonSegment,
-  IonSegmentButton,
-  IonLabel,
   IonList,
-  IonItemGroup,
-  IonItemDivider,
   IonItem,
   IonItemSliding,
   IonItemOptions,
   IonItemOption,
-  IonChip,
   IonIcon,
-  IonRefresher,
-  IonRefresherContent,
-  IonToggle,
+  IonLabel,
   IonBadge,
   IonButton,
   IonCheckbox,
+  IonRefresher,
+  IonRefresherContent,
 } from '@ionic/vue'
 import {
-  cartOutline,
-  bagHandleOutline,
-  timeOutline,
-  funnelOutline,
-  eyeOffOutline,
-  eyeOutline,
-  buildOutline,
-  lockClosedOutline,
   archiveOutline,
+  bagHandleOutline,
+  buildOutline,
+  cartOutline,
+  chevronDownOutline,
+  closeOutline,
+  contractOutline,
+  expandOutline,
+  briefcaseOutline,
+  lockClosedOutline,
+  locationOutline,
+  searchOutline,
   sparklesOutline,
+  statsChartOutline,
+  timeOutline,
 } from 'ionicons/icons'
-import { computed, inject, ref, onMounted } from 'vue'
+import { computed, inject, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useMasterStore } from '@/stores/masterStore'
-import { useTripStore } from '@/stores/tripStore'
-import type { GroupBy, TripItem, ItemTodo } from '@/types/domain'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+
 import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
+import UserAvatar from '@/components/global/UserAvatar.vue'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { buildPackingView, noFacets, type PackingRow } from '@/domain/packingView'
+import { relativeStamp } from '@/domain/stamp'
+import { currentLocale, t } from '@/i18n'
+import { useTripStore } from '@/stores/tripStore'
+import type { ItemTodo, TripItem, TripParticipant } from '@/types/domain'
 
 const props = defineProps<{ tripId: string }>()
 
 const store = useTripStore()
-const masterStore = useMasterStore()
 const router = useRouter()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
-/** Archive completes the trip and launches the M14 review (FR-9.2). */
-function onArchive() {
-  orchestrator.archiveTrip(props.tripId)
-  router.push(`/trips/${props.tripId}/review`)
-}
+// --- Identity, for FR-25.19/25.20 ---------------------------------------
+// Both come from the server and both are simply absent in Local Mode, which
+// is the correct answer there: nothing is assignable, so nothing is hidden
+// and no row can name a packer.
+const myUserId = ref<string | null>(null)
+const directory = ref<{ user_id: string; display_name: string }[]>([])
 
-onMounted(() => {
+onMounted(async () => {
   orchestrator.subscribeTrip(props.tripId)
   orchestrator.drainTrip(props.tripId)
+  const [users, me] = await Promise.all([orchestrator.fetchUsers(), orchestrator.fetchMe()])
+  directory.value = users
+  myUserId.value = me?.user_id ?? null
 })
+
+const participants = computed<TripParticipant[]>(() =>
+  store.getMembers(props.tripId).map((member) => ({
+    user_id: member.user_id,
+    display_name:
+      directory.value.find((u) => u.user_id === member.user_id)?.display_name ?? member.user_id,
+    avatar_url: null,
+    role: member.role,
+  })),
+)
+
+function nameOf(userId: string | null): string | null {
+  if (!userId) return null
+  return participants.value.find((p) => p.user_id === userId)?.display_name ?? userId
+}
+
+// --- View state ---------------------------------------------------------
+// The facet panel and its persistence (FR-25.11/25.18) land in their own
+// change; the two reveal switches are already reachable from the list-foot
+// bars, which is where FR-25.2 and FR-25.20 put them.
+const facets = ref(noFacets())
+const search = ref('')
+const searchOpen = ref(false)
+const showDone = ref(false)
+const showOthers = ref(false)
+const collapsedGroups = ref<string[]>([])
+const showPrep = ref(false)
 
 const trip = computed(() => store.getTrip(props.tripId))
 const kpis = computed(() => store.kpis(props.tripId))
-const groupBy = computed(() => store.getGroupBy(props.tripId))
 const isActive = computed(() => trip.value?.status === 'active')
+const allItems = computed(() => store.getItems(props.tripId))
+const openPrepItems = computed(() => store.itemsWithOpenPrep(props.tripId))
 
-// M6 toolbar badge: open procurement items; entry hidden at zero.
+const view = computed(() =>
+  buildPackingView({
+    items: allItems.value,
+    travelers: store.getTravelers(props.tripId),
+    containers: store.getContainers(props.tripId),
+    participants: participants.value,
+    groupBy: store.getGroupBy(props.tripId),
+    showDone: showDone.value,
+    facets: facets.value,
+    search: search.value,
+    currentUserId: myUserId.value,
+    showOthers: showOthers.value,
+    collapsedGroups: collapsedGroups.value,
+    itemsWithOpenPrep: openPrepItems.value.map((entry) => entry.item.id),
+  }),
+)
+
+// --- Header line --------------------------------------------------------
+
+const presenceUsers = computed(() => orchestrator.getPresence(props.tripId))
+const openPrepCount = computed(() => store.getOpenTodos(props.tripId).length)
+
+// M6 entry: the count is what makes the icon worth a tap; it stays visible
+// at zero because the destination exists either way (G-12 has no overflow
+// to hide it in).
 const shoppingCount = computed(() => {
   const lists = store.getShoppingItems(props.tripId)
   return lists.buyBefore.length + lists.buyLocal.length
 })
 
-// G-10: facepile only with company — hides in Single-User/Local (G-8).
-const presenceUsers = computed(() => orchestrator.getPresence(props.tripId))
-
-// G-3: item locked by someone else's packing-now claim.
-function locked(item: TripItem): boolean {
-  return orchestrator.isLockedByOther(props.tripId, item)
-}
-
-function onPackingNow(item: TripItem) {
-  orchestrator.packingNow(props.tripId, item)
-}
-
-const showFilters = ref(false)
-const openOnly = ref(false)
-const myItemsOnly = ref(false)
-const showSkipped = ref(false)
-const showPrep = ref(false)
-
-const itemsWithOpenPrep = computed(() => store.itemsWithOpenPrep(props.tripId))
-const openTodoCount = computed(() => store.getOpenTodos(props.tripId).length)
-
-/** Count of open todos per item, for badge display. */
-function itemOpenTodoCount(itemId: string): number {
-  return store.getItemTodos(props.tripId, itemId).filter((t) => t.task_state === 'open').length
-}
-
-function togglePrepTodo(todo: ItemTodo) {
-  if (todo.task_state === 'open') {
-    orchestrator.resolvePrepTodo(props.tripId, todo)
-  } else {
-    orchestrator.reopenPrepTodo(props.tripId, todo)
-  }
-}
-
-/** Items split into regular and skipped. */
-const allItems = computed(() => store.getItems(props.tripId))
-
-const skippedItems = computed(() => allItems.value.filter((i) => i.state === 'skipped'))
-
-/**
- * FR-20.2: a co-skipped companion shows why — its main item is skipped
- * or off the list entirely.
- */
-function coSkipReason(item: TripItem): string | null {
-  if (!item.source_item_id) return null
-  for (const dep of masterStore.getItemDependencies(item.source_item_id)) {
-    const main = allItems.value.find((i) => i.source_item_id === dep.depends_on_item_id)
-    if (!main || main.state === 'skipped') {
-      const mainName = masterStore.getItem(dep.depends_on_item_id)?.name ?? main?.name
-      if (mainName) return `skipped: ${mainName} not on this trip`
-    }
-  }
-  return null
-}
-
-const activeItems = computed(() => allItems.value.filter((i) => i.state !== 'skipped'))
-
-/** Grouped active (non-skipped) items. */
-const groups = computed(() => {
-  const gb = store.getGroupBy(props.tripId)
-  const grouped = new Map<string, TripItem[]>()
-
-  for (const item of activeItems.value) {
-    let key: string
-    switch (gb) {
-      case 'category':
-        key = item.category_name ?? 'Uncategorized'
-        break
-      case 'container':
-        key = item.container_id ?? 'Unassigned'
-        break
-      case 'person':
-        key = item.assigned_traveler_id ?? 'Unassigned'
-        break
-      case 'status':
-        key = item.state
-        break
-    }
-    const group = grouped.get(key) ?? []
-    group.push(item)
-    grouped.set(key, group)
-  }
-
-  return grouped
-})
-
-const filteredGroups = computed(() => {
-  const result = new Map<string, TripItem[]>()
-  for (const [key, items] of groups.value) {
-    let filtered = items
-    if (openOnly.value) {
-      filtered = filtered.filter((i) => i.state !== 'packed')
-    }
-    if (filtered.length > 0) {
-      result.set(key, filtered)
-    }
-  }
-  return result
-})
-
-const progressPercent = computed(() => {
-  if (kpis.value.totalItems === 0) return 0
-  return Math.round((kpis.value.packedItems / kpis.value.totalItems) * 100)
-})
-
-function onGroupByChange(event: CustomEvent) {
-  store.setGroupBy(props.tripId, event.detail.value as GroupBy)
-}
-
-function modeIcon(mode: string): string {
-  return mode === 'buy_before' || mode === 'buy_local' ? cartOutline : bagHandleOutline
-}
-
-function modeLabel(mode: string): string {
-  switch (mode) {
-    case 'buy_before':
-      return 'Buy before'
-    case 'buy_local':
-      return 'Buy local'
-    default:
-      return ''
-  }
-}
-
 function formatWeight(grams: number): string {
   return grams >= 1000 ? `${(grams / 1000).toFixed(1)} kg` : `${grams} g`
 }
 
-// --- Action handlers (wired to sync orchestrator) ---
+/**
+ * The header line yields to the list on the way down and comes back on any
+ * upward scroll. A threshold keeps it from flickering on the rubber-band
+ * overscroll at the top, where the direction flips every frame.
+ */
+const headCollapsed = ref(false)
+let lastScrollTop = 0
+function onScroll(event: CustomEvent<{ scrollTop: number }>) {
+  const top = event.detail.scrollTop
+  if (Math.abs(top - lastScrollTop) < 8) return
+  headCollapsed.value = top > lastScrollTop && top > 48
+  lastScrollTop = top
+}
 
-function onQuickAdd(item: {
-  name: string
-  sourceItemId: string | null
-  weightGrams: number | null
-  valueCents: number | null
-  categoryName: string | null
-}) {
-  orchestrator.quickAddItem(
-    props.tripId,
-    item.name,
-    {
-      sourceItemId: item.sourceItemId,
-      weightGrams: item.weightGrams,
-      valueCents: item.valueCents,
-      categoryName: item.categoryName,
-    },
-    isActive.value,
-  )
+// --- App-bar cluster (G-12) --------------------------------------------
+
+const searchInput = ref<HTMLInputElement | null>(null)
+
+/** Closing the search closes it rather than only emptying it (FR-25.11k). */
+async function toggleSearch() {
+  searchOpen.value = !searchOpen.value
+  if (!searchOpen.value) {
+    search.value = ''
+    return
+  }
+  await nextTick()
+  searchInput.value?.focus()
+}
+
+const allFolded = computed(
+  () => view.value.groups.length > 0 && view.value.groups.every((g) => g.collapsed),
+)
+
+/** Fold-all turns the list into a table of contents, and back (FR-25.16). */
+function toggleFoldAll() {
+  collapsedGroups.value = allFolded.value ? [] : view.value.groups.map((g) => g.key)
+}
+
+function toggleGroup(key: string) {
+  collapsedGroups.value = collapsedGroups.value.includes(key)
+    ? collapsedGroups.value.filter((k) => k !== key)
+    : [...collapsedGroups.value, key]
+}
+
+// --- Rows ---------------------------------------------------------------
+
+/** 🛒 / 📍 only: 🧳 is the dominant case and stays silent (FR-25.4a). */
+function modeIcon(mode: TripItem['mode']): string | null {
+  if (mode === 'buy_before') return cartOutline
+  if (mode === 'buy_local') return locationOutline
+  return null
+}
+
+function modeLabel(mode: TripItem['mode']): string {
+  return mode === 'buy_before' ? t('mode.buyBefore') : t('mode.buyLocal')
+}
+
+function openTodoCount(itemId: string): number {
+  return store.getItemTodos(props.tripId, itemId).filter((todo) => todo.task_state === 'open')
+    .length
+}
+
+function locked(item: TripItem): boolean {
+  return orchestrator.isLockedByOther(props.tripId, item)
+}
+
+/**
+ * The one avatar at the right edge (FR-25.19): who packed it once it is
+ * packed, who is responsible for it while it is open. Never both — the
+ * revealed row's stamp below names them both where they differ, which is
+ * where there is room for it.
+ */
+function edgeAvatar(item: TripItem): { variant: 'assignee' | 'packer'; id: string } | null {
+  if (item.packed_by_user_id) return { variant: 'packer', id: item.packed_by_user_id }
+  if (item.packer_user_id) return { variant: 'assignee', id: item.packer_user_id }
+  return null
+}
+
+/** FR-25.17: "gepackt von Andy · heute 14:32", on revealed rows only. */
+function packedStamp(item: TripItem): string | null {
+  if (!item.packed_at && !item.packed_by_user_id) return null
+  const stamp = item.packed_at ? relativeStamp(item.packed_at, new Date(), currentLocale()) : null
+  const when = stamp
+    ? `${stamp.dayKey ? t(stamp.dayKey === 'today' ? 'stamp.today' : 'stamp.yesterday') : stamp.date} ${stamp.time}`
+    : ''
+  const who = nameOf(item.packed_by_user_id)
+  if (!who) return when ? t('packing.packedByUnknown', { when }) : null
+  return t('packing.packedBy', { who, when })
+}
+
+/** Named only where it differs from the packer — otherwise it is noise. */
+function responsibleNote(item: TripItem): string | null {
+  if (!item.packer_user_id || item.packer_user_id === item.packed_by_user_id) return null
+  const who = nameOf(item.packer_user_id)
+  return who ? t('packing.responsibleWas', { who }) : null
+}
+
+// --- Empty states (FR-25.11e) ------------------------------------------
+
+const visibleOpenRows = computed(
+  () =>
+    view.value.groups
+      .flatMap((group) => group.entries)
+      .flatMap((entry) => (entry.kind === 'item' ? [entry] : entry.children))
+      .filter((row: PackingRow) => !row.done).length,
+)
+
+const openTotal = computed(() => Math.max(kpis.value.totalItems - kpis.value.packedItems, 0))
+const hiddenOpenCount = computed(() => Math.max(openTotal.value - visibleOpenRows.value, 0))
+
+const emptyReason = computed(() => {
+  const term = search.value.trim()
+  if (term && view.value.activeFacetCount > 0) return t('packing.noMatchesBoth', { term })
+  if (term) return t('packing.noMatchesSearch', { term })
+  return t('packing.noMatchesFilter', { n: hiddenOpenCount.value })
+})
+
+function resetNarrowing() {
+  search.value = ''
+  searchOpen.value = false
+  facets.value = noFacets()
+  showOthers.value = true
+}
+
+// --- Actions ------------------------------------------------------------
+
+function onPackingNow(item: TripItem) {
+  orchestrator.packingNow(props.tripId, item)
 }
 
 function onSkipItem(item: TripItem) {
@@ -263,6 +318,40 @@ function onToggle(item: TripItem) {
   orchestrator.packToggle(props.tripId, item)
 }
 
+function togglePrepTodo(todo: ItemTodo) {
+  if (todo.task_state === 'open') {
+    orchestrator.resolvePrepTodo(props.tripId, todo)
+  } else {
+    orchestrator.reopenPrepTodo(props.tripId, todo)
+  }
+}
+
+function onQuickAdd(item: {
+  name: string
+  sourceItemId: string | null
+  weightGrams: number | null
+  valueCents: number | null
+  categoryName: string | null
+}) {
+  orchestrator.quickAddItem(
+    props.tripId,
+    item.name,
+    {
+      sourceItemId: item.sourceItemId,
+      weightGrams: item.weightGrams,
+      valueCents: item.valueCents,
+      categoryName: item.categoryName,
+    },
+    isActive.value,
+  )
+}
+
+/** Archiving completes the trip and opens the M14 review (FR-9.2). */
+function onArchive() {
+  orchestrator.archiveTrip(props.tripId)
+  router.push(`/trips/${props.tripId}/review`)
+}
+
 async function handleRefresh(event: CustomEvent) {
   const refresher = event.target as HTMLIonRefresherElement
   await orchestrator.drainTrip(props.tripId)
@@ -270,257 +359,388 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 // ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() => trip.value?.name ?? 'Packing List')
+setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 </script>
 
 <template>
   <IonPage>
-    <IonContent>
-      <!-- ADR-011: M4's own sub-header is page content; the one app bar
-           carries only the trip name and the actions teleported below. -->
+    <IonContent :scroll-events="true" @ion-scroll="onScroll">
+      <!-- G-12: actions on *this list* live in the one app bar, so they stay
+           reachable while the header line below scrolls away. -->
       <Teleport to="#header-actions">
-        <!-- G-10: trip presence facepile + group-sync badge -->
-        <PresenceFacepile v-if="presenceUsers.length > 1" :users="presenceUsers" />
-        <!-- M14: archive triggers the review assistant (FR-9.2) -->
-        <IonButton v-if="trip?.status === 'active'" aria-label="Archive trip" @click="onArchive">
+        <IonButton
+          data-testid="m4-search"
+          :aria-label="t('common.search')"
+          :color="searchOpen || search ? 'primary' : undefined"
+          @click="toggleSearch"
+        >
+          <IonIcon slot="icon-only" :icon="searchOutline" />
+        </IonButton>
+        <IonButton
+          data-testid="m4-fold-all"
+          :aria-label="allFolded ? t('packing.unfoldAll') : t('packing.foldAll')"
+          @click="toggleFoldAll"
+        >
+          <IonIcon slot="icon-only" :icon="allFolded ? expandOutline : contractOutline" />
+        </IonButton>
+        <IonButton
+          v-if="isActive"
+          data-testid="m4-archive"
+          :aria-label="t('packing.archive')"
+          @click="onArchive"
+        >
           <IonIcon slot="icon-only" :icon="archiveOutline" />
         </IonButton>
-        <!-- M14: review is re-openable on archived trips -->
-        <IonButton
-          v-if="trip?.status === 'archived'"
-          :router-link="`/trips/${tripId}/review`"
-          aria-label="Post-trip review"
-        >
-          <IonIcon slot="icon-only" :icon="sparklesOutline" />
-        </IonButton>
-        <!-- M6 entry point: hidden when both shopping lists are empty -->
-        <IonButton
-          v-if="shoppingCount > 0"
-          :router-link="`/trips/${tripId}/shopping`"
-          aria-label="Shopping lists"
-        >
-          <IonIcon slot="icon-only" :icon="cartOutline" />
-          <IonBadge color="primary" class="shopping-badge">{{ shoppingCount }}</IonBadge>
-        </IonButton>
       </Teleport>
-      <IonToolbar class="kpi-strip">
-        <div
-          class="kpi-row kpi-tappable"
-          role="link"
-          aria-label="Open analytics"
-          @click="$router.push(`/trips/${tripId}/analytics`)"
-        >
-          <div class="kpi">
-            <span class="kpi-value">{{ kpis.packedItems }}/{{ kpis.totalItems }}</span>
-            <span class="kpi-label">Packed</span>
-          </div>
-          <div class="kpi-progress">
-            <div class="kpi-progress-bar" :style="{ width: `${progressPercent}%` }" />
-          </div>
-          <div class="kpi" v-if="kpis.totalWeight > 0">
-            <span class="kpi-value">{{ formatWeight(kpis.packedWeight) }}</span>
-            <span class="kpi-label">of {{ formatWeight(kpis.totalWeight) }}</span>
-          </div>
-          <div class="kpi" v-if="kpis.totalTodos > 0">
-            <span class="kpi-value" :class="{ 'prep-open': kpis.resolvedTodos < kpis.totalTodos }">
-              {{ kpis.resolvedTodos }}/{{ kpis.totalTodos }}
-            </span>
-            <span class="kpi-label">Prep</span>
-          </div>
-        </div>
-      </IonToolbar>
-      <IonToolbar>
-        <IonSegment :value="groupBy" @ionChange="onGroupByChange">
-          <IonSegmentButton value="category"><IonLabel>Category</IonLabel></IonSegmentButton>
-          <IonSegmentButton value="status"><IonLabel>Status</IonLabel></IonSegmentButton>
-          <IonSegmentButton value="person"><IonLabel>Person</IonLabel></IonSegmentButton>
-          <IonSegmentButton value="container"><IonLabel>Container</IonLabel></IonSegmentButton>
-        </IonSegment>
-      </IonToolbar>
 
       <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
         <IonRefresherContent />
       </IonRefresher>
 
-      <!-- M11 entry: container grouping exposes the editor (UI-Spec M11) -->
-      <div v-if="groupBy === 'container'" class="edit-containers">
-        <IonButton size="small" fill="outline" :router-link="`/trips/${tripId}/containers`">
-          Edit containers
-        </IonButton>
-      </div>
-
-      <!-- Filter bar -->
-      <div class="filter-bar">
-        <button class="filter-toggle" @click="showFilters = !showFilters">
-          <IonIcon :icon="funnelOutline" />
-          Filters
-        </button>
-        <div v-if="showFilters" class="filter-options">
-          <IonItem lines="none">
-            <IonLabel>Open only</IonLabel>
-            <IonToggle v-model="openOnly" />
-          </IonItem>
-          <IonItem lines="none">
-            <IonLabel>My items</IonLabel>
-            <IonToggle v-model="myItemsOnly" />
-          </IonItem>
+      <!-- One header line (G-12): what the trip stands at, and where else to
+           go within it. Deliberately unfiltered — see FR-25.20. -->
+      <div class="trip-line" :class="{ collapsed: headCollapsed }" data-testid="m4-header">
+        <PresenceFacepile v-if="presenceUsers.length > 1" :users="presenceUsers" />
+        <div class="progress" data-testid="m4-progress">
+          <strong>{{ kpis.packedItems }}/{{ kpis.totalItems }}</strong>
+          <span v-if="kpis.totalWeight > 0" class="muted">
+            · {{ formatWeight(kpis.totalWeight) }}
+          </span>
+          <span v-if="openPrepCount > 0" class="muted prep">
+            · {{ t('packing.openPrep', { n: openPrepCount }) }}
+          </span>
+        </div>
+        <div class="trip-nav">
+          <IonButton
+            fill="clear"
+            size="small"
+            :router-link="`/trips/${tripId}/shopping`"
+            :aria-label="t('packing.shopping')"
+            :title="t('packing.shopping')"
+          >
+            <IonIcon slot="icon-only" :icon="cartOutline" />
+            <IonBadge v-if="shoppingCount > 0" color="warning" class="nav-count">
+              {{ shoppingCount }}
+            </IonBadge>
+          </IonButton>
+          <IonButton
+            fill="clear"
+            size="small"
+            :router-link="`/trips/${tripId}/containers`"
+            :aria-label="t('packing.luggage')"
+            :title="t('packing.luggage')"
+          >
+            <IonIcon slot="icon-only" :icon="briefcaseOutline" />
+          </IonButton>
+          <IonButton
+            fill="clear"
+            size="small"
+            :router-link="`/trips/${tripId}/analytics`"
+            :aria-label="t('packing.analytics')"
+            :title="t('packing.analytics')"
+          >
+            <IonIcon slot="icon-only" :icon="statsChartOutline" />
+          </IonButton>
         </div>
       </div>
 
-      <!-- Inline quick-add -->
+      <!-- FR-25.11k: the field exists only while it is being used. -->
+      <div v-if="searchOpen || search" class="search-row">
+        <IonIcon :icon="searchOutline" />
+        <input
+          ref="searchInput"
+          v-model="search"
+          data-testid="m4-search-input"
+          :placeholder="t('packing.searchPlaceholder')"
+          autocomplete="off"
+        />
+        <button :aria-label="t('packing.closeSearch')" @click="toggleSearch">
+          <IonIcon :icon="closeOutline" />
+        </button>
+      </div>
+
+      <!-- The one real remnant of the dropped "Danach" phase: an archived
+           trip leads with what to do next with it. -->
+      <div v-if="trip?.status === 'archived'" class="closing-card">
+        <h2>{{ t('packing.tripFinished') }}</h2>
+        <IonButton size="small" fill="outline" :router-link="`/trips/${tripId}/review`">
+          <IonIcon slot="start" :icon="sparklesOutline" />
+          {{ t('packing.reviewSuggestions') }}
+        </IonButton>
+      </div>
+
       <QuickAddItem :trip-id="tripId" :is-active="isActive" @add="onQuickAdd" />
 
-      <!-- Empty state -->
-      <div
-        v-if="filteredGroups.size === 0 && skippedItems.length === 0"
-        class="empty-state"
-        data-testid="packing-empty"
-      >
-        <IonIcon :icon="bagHandleOutline" class="empty-icon" />
-        <p v-if="allItems.length === 0">No items yet — add one above</p>
-        <p v-else>All items filtered out</p>
-      </div>
+      <IonList v-if="view.groups.length > 0">
+        <template v-for="group in view.groups" :key="group.key">
+          <button
+            class="group-head"
+            :class="{ shut: group.collapsed }"
+            :data-testid="`m4-group-${group.key}`"
+            @click="toggleGroup(group.key)"
+          >
+            <IonIcon :icon="chevronDownOutline" class="caret" />
+            <span class="group-name">{{ group.name ?? t('common.none') }}</span>
+            <!-- Collapsed, the header is all that is left of the group, so it
+                 answers what the hidden rows would have (FR-25.16). -->
+            <span class="group-count">
+              {{
+                group.collapsed
+                  ? t('packing.groupOpen', { n: group.openCount })
+                  : `${group.doneCount}/${group.totalCount}`
+              }}
+            </span>
+          </button>
 
-      <!-- Grouped item list -->
-      <IonList v-if="filteredGroups.size > 0">
-        <IonItemGroup v-for="[group, items] in filteredGroups" :key="group">
-          <IonItemDivider sticky>
-            <IonLabel>{{ group }}</IonLabel>
-            <span slot="end" class="group-count">{{ items.length }}</span>
-          </IonItemDivider>
-
-          <IonItemSliding v-for="item in items" :key="item.id">
-            <IonItem
-              button
-              :router-link="`/trips/${tripId}/items/${item.id}`"
-              :class="{
-                'item-packed': item.state === 'packed' && itemOpenTodoCount(item.id) === 0,
-                'item-packed-open-prep': item.state === 'packed' && itemOpenTodoCount(item.id) > 0,
-                'item-locked': locked(item),
-              }"
+          <template v-if="!group.collapsed">
+            <template
+              v-for="entry in group.entries"
+              :key="entry.kind === 'item' ? entry.item.id : entry.key"
             >
-              <div slot="start">
-                <!-- G-3: locked items are non-interactive for others -->
-                <IonIcon v-if="locked(item)" :icon="lockClosedOutline" class="lock-icon" />
-                <QuantityStepper
-                  v-else
-                  :quantity="item.quantity"
-                  :packed="item.packed_count"
-                  @increment="onIncrement(item)"
-                  @decrement="onDecrement(item)"
-                  @complete="onComplete(item)"
-                  @zero="onZero(item)"
-                  @toggle="onToggle(item)"
-                />
+              <!-- FR-25.1: a per-person item is named once, with one child
+                   row per traveler under it. -->
+              <div v-if="entry.kind === 'cluster'" class="cluster">
+                <div class="cluster-head">
+                  <span class="cluster-name">{{ entry.name }}</span>
+                  <IonIcon
+                    v-if="modeIcon(entry.mode)"
+                    :icon="modeIcon(entry.mode)!"
+                    class="mode-icon"
+                    :title="modeLabel(entry.mode)"
+                  />
+                  <IonIcon
+                    v-if="entry.latePacker"
+                    :icon="timeOutline"
+                    class="late-icon"
+                    :title="t('mode.latePacker')"
+                  />
+                  <span class="cluster-count">{{ entry.doneCount }}/{{ entry.totalCount }}</span>
+                </div>
+
+                <IonItemSliding v-for="child in entry.children" :key="child.item.id">
+                  <IonItem
+                    button
+                    class="child-row"
+                    :class="{ done: child.done, locked: locked(child.item) }"
+                    :router-link="`/trips/${tripId}/items/${child.item.id}`"
+                  >
+                    <div slot="start" class="row-start">
+                      <IonIcon v-if="locked(child.item)" :icon="lockClosedOutline" class="lock" />
+                      <QuantityStepper
+                        v-else
+                        :quantity="child.item.quantity"
+                        :packed="child.item.packed_count"
+                        @increment="onIncrement(child.item)"
+                        @decrement="onDecrement(child.item)"
+                        @complete="onComplete(child.item)"
+                        @zero="onZero(child.item)"
+                        @toggle="onToggle(child.item)"
+                      />
+                      <UserAvatar :name="child.traveler?.name" :seed="child.traveler?.id" />
+                    </div>
+                    <IonLabel>
+                      <h3>{{ child.traveler?.name ?? child.label }}</h3>
+                      <p v-if="child.done && packedStamp(child.item)" class="stamp">
+                        {{ packedStamp(child.item) }}
+                        <span v-if="responsibleNote(child.item)" class="muted">
+                          · {{ responsibleNote(child.item) }}
+                        </span>
+                      </p>
+                    </IonLabel>
+                    <UserAvatar
+                      v-if="edgeAvatar(child.item)"
+                      slot="end"
+                      :variant="edgeAvatar(child.item)!.variant"
+                      :name="nameOf(edgeAvatar(child.item)!.id)"
+                      :seed="edgeAvatar(child.item)!.id"
+                    />
+                  </IonItem>
+                  <IonItemOptions v-if="!locked(child.item)" side="start">
+                    <IonItemOption color="primary" @click="onPackingNow(child.item)">
+                      {{ t('mode.pack') }}
+                    </IonItemOption>
+                  </IonItemOptions>
+                  <IonItemOptions v-if="!locked(child.item)" side="end">
+                    <IonItemOption
+                      v-if="child.item.state === 'skipped'"
+                      color="success"
+                      @click="onUnskipItem(child.item)"
+                    >
+                      {{ t('packing.undo') }}
+                    </IonItemOption>
+                    <IonItemOption v-else color="medium" @click="onSkipItem(child.item)">
+                      {{ t('packing.skipped') }}
+                    </IonItemOption>
+                  </IonItemOptions>
+                </IonItemSliding>
               </div>
 
-              <IonLabel>
-                <h3>
-                  {{ item.name }}
-                  <IonBadge
-                    v-if="itemOpenTodoCount(item.id) > 0"
-                    color="warning"
-                    class="prep-badge"
+              <IonItemSliding v-else>
+                <IonItem
+                  button
+                  :class="{ done: entry.done, locked: locked(entry.item) }"
+                  :data-testid="`m4-row-${entry.item.id}`"
+                  :router-link="`/trips/${tripId}/items/${entry.item.id}`"
+                >
+                  <div slot="start" class="row-start">
+                    <IonIcon v-if="locked(entry.item)" :icon="lockClosedOutline" class="lock" />
+                    <QuantityStepper
+                      v-else
+                      :quantity="entry.item.quantity"
+                      :packed="entry.item.packed_count"
+                      @increment="onIncrement(entry.item)"
+                      @decrement="onDecrement(entry.item)"
+                      @complete="onComplete(entry.item)"
+                      @zero="onZero(entry.item)"
+                      @toggle="onToggle(entry.item)"
+                    />
+                    <UserAvatar
+                      v-if="entry.traveler"
+                      :name="entry.traveler.name"
+                      :seed="entry.traveler.id"
+                    />
+                  </div>
+                  <IonLabel>
+                    <h3>
+                      {{ entry.label }}
+                      <IonBadge
+                        v-if="openTodoCount(entry.item.id) > 0"
+                        color="warning"
+                        class="prep"
+                      >
+                        <IonIcon :icon="buildOutline" /> {{ openTodoCount(entry.item.id) }}
+                      </IonBadge>
+                    </h3>
+                    <p v-if="entry.done && packedStamp(entry.item)" class="stamp">
+                      {{ packedStamp(entry.item) }}
+                      <span v-if="responsibleNote(entry.item)" class="muted">
+                        · {{ responsibleNote(entry.item) }}
+                      </span>
+                    </p>
+                  </IonLabel>
+                  <div slot="end" class="row-end">
+                    <IonIcon
+                      v-if="modeIcon(entry.item.mode)"
+                      :icon="modeIcon(entry.item.mode)!"
+                      class="mode-icon"
+                      :title="modeLabel(entry.item.mode)"
+                    />
+                    <IonIcon
+                      v-if="entry.item.late_packer"
+                      :icon="timeOutline"
+                      class="late-icon"
+                      :title="t('mode.latePacker')"
+                    />
+                    <UserAvatar
+                      v-if="edgeAvatar(entry.item)"
+                      :variant="edgeAvatar(entry.item)!.variant"
+                      :name="nameOf(edgeAvatar(entry.item)!.id)"
+                      :seed="edgeAvatar(entry.item)!.id"
+                    />
+                  </div>
+                </IonItem>
+                <IonItemOptions v-if="!locked(entry.item)" side="start">
+                  <IonItemOption color="primary" @click="onPackingNow(entry.item)">
+                    {{ t('mode.pack') }}
+                  </IonItemOption>
+                </IonItemOptions>
+                <IonItemOptions v-if="!locked(entry.item)" side="end">
+                  <IonItemOption
+                    v-if="entry.item.state === 'skipped'"
+                    color="success"
+                    @click="onUnskipItem(entry.item)"
                   >
-                    <IonIcon :icon="buildOutline" /> {{ itemOpenTodoCount(item.id) }}
-                  </IonBadge>
-                </h3>
-                <p v-if="item.category_name && groupBy !== 'category'">
-                  {{ item.category_name }}
-                </p>
-              </IonLabel>
-
-              <!-- Mode chip (only for buy modes) -->
-              <IonChip
-                v-if="item.mode !== 'pack'"
-                slot="end"
-                :color="item.mode === 'buy_before' ? 'warning' : 'tertiary'"
-                outline
-              >
-                <IonIcon :icon="modeIcon(item.mode)" />
-                <IonLabel>{{ modeLabel(item.mode) }}</IonLabel>
-              </IonChip>
-
-              <!-- Late packer flag -->
-              <IonChip v-if="item.late_packer" slot="end" color="danger" outline>
-                <IonIcon :icon="timeOutline" />
-              </IonChip>
-
-              <!-- Missing flag -->
-              <IonChip v-if="item.flag_missing" slot="end" color="danger" outline>
-                Missing
-              </IonChip>
-
-              <!-- Packing-now state: locked for others, badge for self -->
-              <IonChip v-if="locked(item)" slot="end" color="primary" outline>
-                <IonIcon :icon="lockClosedOutline" />
-                <IonLabel>Packing…</IonLabel>
-              </IonChip>
-              <IonChip v-else-if="item.state === 'packing_now'" slot="end" color="success" outline>
-                <IonLabel>Packing now</IonLabel>
-              </IonChip>
-            </IonItem>
-
-            <!-- Swipe actions (none while locked by someone else, G-3) -->
-            <IonItemOptions v-if="!locked(item)" side="start">
-              <IonItemOption color="primary" @click="onPackingNow(item)">Packing Now</IonItemOption>
-            </IonItemOptions>
-            <IonItemOptions v-if="!locked(item)" side="end">
-              <IonItemOption color="medium" @click="onSkipItem(item)">
-                <IonIcon slot="icon-only" :icon="eyeOffOutline" />
-              </IonItemOption>
-              <IonItemOption color="secondary">Assign</IonItemOption>
-            </IonItemOptions>
-          </IonItemSliding>
-        </IonItemGroup>
+                    {{ t('packing.undo') }}
+                  </IonItemOption>
+                  <IonItemOption v-else color="medium" @click="onSkipItem(entry.item)">
+                    {{ t('packing.skipped') }}
+                  </IonItemOption>
+                </IonItemOptions>
+              </IonItemSliding>
+            </template>
+          </template>
+        </template>
       </IonList>
 
-      <!-- Preparation section (FR-7.3) -->
-      <div v-if="itemsWithOpenPrep.length > 0" class="prep-section">
-        <button class="prep-header" @click="showPrep = !showPrep">
-          <IonIcon :icon="buildOutline" />
-          <span>Preparation ({{ openTodoCount }} open)</span>
-          <span class="chevron" :class="{ open: showPrep }">&#9662;</span>
-        </button>
-
-        <IonList v-if="showPrep">
-          <IonItemGroup v-for="{ item, openTodos } in itemsWithOpenPrep" :key="item.id">
-            <IonItemDivider>
-              <IonLabel>{{ item.name }}</IonLabel>
-              <IonBadge slot="end" :color="item.state === 'packed' ? 'warning' : 'medium'">
-                {{ item.state === 'packed' ? 'packed, prep open' : item.state }}
-              </IonBadge>
-            </IonItemDivider>
-            <IonItem v-for="todo in openTodos" :key="todo.id" lines="inset">
-              <IonCheckbox slot="start" :checked="false" @ionChange="togglePrepTodo(todo)" />
-              <IonLabel>{{ todo.body }}</IonLabel>
-            </IonItem>
-          </IonItemGroup>
-        </IonList>
+      <!-- An empty list means one of two things, and conflating them is how
+           a packing app tells someone they are finished when they are not. -->
+      <div v-else class="empty" data-testid="packing-empty">
+        <template v-if="view.narrowed">
+          <strong>{{ t('packing.noMatches') }}</strong>
+          <p>{{ emptyReason }}</p>
+          <IonButton size="small" fill="outline" data-testid="m4-reset" @click="resetNarrowing">
+            {{
+              search.trim() && view.activeFacetCount === 0
+                ? t('packing.resetSearch')
+                : t('packing.resetAll')
+            }}
+          </IonButton>
+        </template>
+        <template v-else-if="allItems.length === 0">
+          <IonIcon :icon="bagHandleOutline" class="empty-icon" />
+          <strong>{{ t('packing.empty') }}</strong>
+          <p>{{ t('packing.emptyHint') }}</p>
+        </template>
+        <template v-else>
+          <strong>{{ t('packing.allDone') }}</strong>
+          <p>{{ t('packing.allDoneHint') }}</p>
+        </template>
       </div>
 
-      <!-- Skipped items section (FR-5.5) -->
-      <div v-if="skippedItems.length > 0" class="skipped-section">
-        <button class="skipped-header" @click="showSkipped = !showSkipped">
-          <IonIcon :icon="eyeOffOutline" />
-          <span>Consciously skipped ({{ skippedItems.length }})</span>
-          <span class="chevron" :class="{ open: showSkipped }">&#9662;</span>
-        </button>
+      <!-- FR-25.2 / FR-25.20: two classes of hidden rows, one affordance —
+           state the count, name the people, one tap to reveal. -->
+      <button
+        v-if="view.hiddenDoneCount > 0 || showDone"
+        class="reveal-bar"
+        :class="{ on: showDone }"
+        data-testid="m4-done-bar"
+        @click="showDone = !showDone"
+      >
+        {{
+          showDone
+            ? t('packing.hidePacked', { n: kpis.packedItems })
+            : t('packing.showPacked', { n: view.hiddenDoneCount })
+        }}
+      </button>
+      <button
+        v-if="view.hiddenOtherCount > 0 || showOthers"
+        class="reveal-bar"
+        :class="{ on: showOthers }"
+        data-testid="m4-others-bar"
+        @click="showOthers = !showOthers"
+      >
+        {{
+          showOthers
+            ? t('packing.othersShown', {
+                n: view.hiddenOtherCount,
+                who: view.hiddenOtherNames.join(' · '),
+              })
+            : t('packing.othersHidden', {
+                n: view.hiddenOtherCount,
+                who: view.hiddenOtherNames.join(' · '),
+              })
+        }}
+      </button>
 
-        <IonList v-if="showSkipped">
-          <IonItemSliding v-for="item in skippedItems" :key="item.id">
-            <IonItem class="item-skipped">
-              <IonLabel>
-                <h3>{{ item.name }}</h3>
-                <p v-if="coSkipReason(item)">{{ coSkipReason(item) }}</p>
-              </IonLabel>
+      <!-- Preparation (FR-7.3): the open todos of the whole trip, resolvable
+           without opening each item. -->
+      <div v-if="openPrepItems.length > 0" class="prep-section">
+        <button class="prep-header" @click="showPrep = !showPrep">
+          <IonIcon :icon="buildOutline" />
+          <span
+            >{{ t('packing.prepSection') }} ·
+            {{ t('packing.openPrep', { n: openPrepCount }) }}</span
+          >
+          <IonIcon :icon="chevronDownOutline" class="caret" :class="{ open: showPrep }" />
+        </button>
+        <IonList v-if="showPrep">
+          <template v-for="{ item, openTodos } in openPrepItems" :key="item.id">
+            <div class="prep-item">{{ item.name }}</div>
+            <IonItem v-for="todo in openTodos" :key="todo.id" lines="inset">
+              <IonCheckbox slot="start" :checked="false" @ion-change="togglePrepTodo(todo)" />
+              <IonLabel>{{ todo.body }}</IonLabel>
             </IonItem>
-            <IonItemOptions side="end">
-              <IonItemOption color="success" @click="onUnskipItem(item)">
-                <IonIcon slot="icon-only" :icon="eyeOutline" />
-              </IonItemOption>
-            </IonItemOptions>
-          </IonItemSliding>
+          </template>
         </IonList>
       </div>
     </IonContent>
@@ -528,112 +748,257 @@ setHeaderTitle(() => trip.value?.name ?? 'Packing List')
 </template>
 
 <style scoped>
-/* KPI strip */
-.kpi-strip {
-  --min-height: 48px;
-}
-
-.kpi-row {
+/* --- Header line ------------------------------------------------------ */
+.trip-line {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 0 16px;
-  width: 100%;
-}
-
-.kpi {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  white-space: nowrap;
-}
-
-.kpi-value {
-  font-weight: 700;
-  font-size: 1rem;
-}
-
-.kpi-label {
-  font-size: 0.7rem;
-  color: var(--ion-color-medium);
-  text-transform: uppercase;
-}
-
-.kpi-progress {
-  flex: 1;
-  height: 6px;
-  background: var(--ion-color-light);
-  border-radius: 3px;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ct-surface0);
+  background: var(--ion-background-color);
+  position: sticky;
+  top: 0;
+  z-index: 2;
   overflow: hidden;
+  max-height: 52px;
+  transition:
+    max-height 0.18s ease,
+    padding 0.18s ease,
+    opacity 0.18s ease;
 }
 
-.kpi-progress-bar {
-  height: 100%;
-  background: var(--ion-color-primary);
-  border-radius: 3px;
-  transition: width 0.3s;
+.trip-line.collapsed {
+  max-height: 0;
+  padding-block: 0;
+  opacity: 0;
 }
 
-/* Filter bar */
-.filter-bar {
-  padding: 8px 16px;
+.progress {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.filter-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: 1px solid var(--ion-color-medium);
-  border-radius: 16px;
-  padding: 4px 12px;
+.muted {
+  color: var(--ct-subtext0);
   font-size: 0.85rem;
-  color: var(--ion-color-medium);
+}
+
+.prep {
+  color: var(--ct-yellow);
+}
+
+.trip-nav {
+  display: flex;
+  align-items: center;
+  flex: none;
+}
+
+.nav-count {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  font-size: 0.6rem;
+  padding: 2px 4px;
+}
+
+/* --- Search ----------------------------------------------------------- */
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.search-row input {
+  flex: 1;
+  min-width: 0;
+  background: var(--ct-surface0);
+  border: none;
+  border-radius: 10px;
+  padding: 8px 10px;
+  color: var(--ct-text);
+  font-size: 0.95rem;
+}
+
+.search-row button {
+  background: none;
+  border: none;
+  color: var(--ct-subtext0);
   cursor: pointer;
 }
 
-.filter-options {
-  margin-top: 8px;
+/* --- Groups and rows -------------------------------------------------- */
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px 6px;
+  background: none;
+  border: none;
+  color: var(--ct-subtext1);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
 }
 
-/* Group headers */
+.group-name {
+  flex: 1;
+  text-align: start;
+}
+
 .group-count {
-  font-size: 0.8rem;
-  color: var(--ion-color-medium);
+  color: var(--ct-subtext0);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
-/* KPI prep open */
-.prep-open {
-  color: var(--ion-color-warning);
+.caret {
+  transition: transform 0.18s ease;
 }
 
-/* Item states */
-.item-packed {
-  opacity: 0.5;
+.group-head.shut .caret {
+  transform: rotate(-90deg);
 }
 
-.item-packed-open-prep {
-  border-left: 3px solid var(--ion-color-warning);
+.prep-header .caret.open {
+  transform: rotate(180deg);
 }
 
-.prep-badge {
+.row-start {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.row-end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mode-icon {
+  color: var(--ct-peach);
+  font-size: 1.05rem;
+}
+
+.late-icon {
+  color: var(--ct-yellow);
+  font-size: 1.05rem;
+}
+
+.lock {
+  font-size: 22px;
+  color: var(--ct-blue);
+  padding: 8px;
+}
+
+.done {
+  opacity: 0.55;
+}
+
+.locked {
+  opacity: 0.65;
+}
+
+.stamp {
+  font-size: 0.75rem;
+}
+
+.prep {
   font-size: 0.65rem;
   vertical-align: middle;
   margin-left: 6px;
 }
 
-.item-skipped {
-  opacity: 0.5;
+/* --- Per-person cluster ----------------------------------------------- */
+.cluster {
+  border-inline-start: 2px solid var(--ct-surface1);
+  margin-inline-start: 12px;
 }
 
-.item-skipped h3 {
-  text-decoration: line-through;
+.cluster-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 2px;
+  font-weight: 600;
 }
 
-/* Preparation section */
+.cluster-name {
+  flex: 1;
+}
+
+.cluster-count {
+  color: var(--ct-subtext0);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.child-row {
+  --padding-start: 8px;
+}
+
+/* --- Bars, cards and sections ----------------------------------------- */
+.reveal-bar {
+  display: block;
+  width: calc(100% - 24px);
+  margin: 10px 12px;
+  padding: 10px;
+  border: 1px dashed var(--ct-surface2);
+  border-radius: 12px;
+  background: none;
+  color: var(--ct-subtext0);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.reveal-bar.on {
+  border-style: solid;
+  color: var(--ct-text);
+}
+
+.closing-card {
+  margin: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--ct-surface0);
+}
+
+.closing-card h2 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 48px 24px;
+  color: var(--ct-subtext0);
+  text-align: center;
+}
+
+.empty p {
+  margin: 0;
+}
+
+.empty-icon {
+  font-size: 56px;
+  margin-bottom: 8px;
+}
+
 .prep-section {
   margin-top: 16px;
-  border-top: 1px solid var(--ion-color-light-shade);
+  border-top: 1px solid var(--ct-surface0);
 }
 
 .prep-header {
@@ -641,76 +1006,17 @@ setHeaderTitle(() => trip.value?.name ?? 'Packing List')
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 12px 16px;
-  background: var(--ion-color-warning-tint);
+  padding: 12px 14px;
+  background: none;
   border: none;
-  cursor: pointer;
-  color: var(--ion-color-warning-shade);
+  color: var(--ct-yellow);
   font-size: 0.9rem;
-}
-
-/* Skipped section */
-.skipped-section {
-  margin-top: 16px;
-  border-top: 1px solid var(--ion-color-light-shade);
-}
-
-.skipped-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 12px 16px;
-  background: var(--ion-color-light);
-  border: none;
-  cursor: pointer;
-  color: var(--ion-color-medium);
-  font-size: 0.9rem;
-}
-
-.chevron {
-  margin-left: auto;
-  transition: transform 0.2s;
-}
-
-.chevron.open {
-  transform: rotate(180deg);
-}
-
-/* Empty state */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48px 24px;
-  color: var(--ion-color-medium);
-}
-
-.empty-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-}
-
-.shopping-badge {
-  margin-left: 4px;
-  font-size: 0.7rem;
-}
-
-.item-locked {
-  opacity: 0.65;
-}
-
-.edit-containers {
-  padding: 8px 16px 0;
-}
-
-.kpi-tappable {
   cursor: pointer;
 }
 
-.lock-icon {
-  font-size: 22px;
-  color: var(--ion-color-primary);
-  padding: 8px;
+.prep-item {
+  padding: 8px 14px 2px;
+  font-size: 0.8rem;
+  color: var(--ct-subtext0);
 }
 </style>
