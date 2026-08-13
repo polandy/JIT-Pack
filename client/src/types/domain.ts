@@ -64,6 +64,17 @@ export interface TripItem {
 
 export type GroupBy = 'category' | 'container' | 'person' | 'status'
 
+/** The axes M4's filter panel offers, in panel order (FR-25.11b). */
+export type FacetKey = 'person' | 'category' | 'mode' | 'container' | 'flag'
+
+/**
+ * The selected values per facet (FR-25.11c). An empty array means *no
+ * restriction on that axis*, never "show nothing". Values are strings
+ * throughout so the whole filter survives a round trip through session
+ * storage (FR-25.18).
+ */
+export type Facets = Record<FacetKey, string[]>
+
 /** Computed stats for a trip's packing list. */
 export interface TripKPIs {
   totalItems: number
