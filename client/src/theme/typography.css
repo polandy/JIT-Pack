@@ -116,17 +116,11 @@ body {
 /* --- Role classes ---------------------------------------------------- */
 
 /*
- * The display face, without a size — for the cases that bring their own.
- * The three sized roles below are the ones the app actually uses today;
- * a fourth is added when a screen needs it, not in advance.
+ * Three sized roles, which is what the app uses today. G-13's fifth role
+ * — the headline figure — has no screen yet, so it has no class yet: one
+ * kept here in advance would be a token nobody can check against a
+ * rendered pixel.
  */
-.jp-display {
-  font-family: var(--jp-font-display);
-  font-weight: var(--jp-weight-semibold);
-  letter-spacing: var(--jp-tracking-display);
-  line-height: var(--jp-leading-display);
-}
-
 .jp-page-title {
   font-family: var(--jp-font-display);
   font-weight: var(--jp-weight-semibold);

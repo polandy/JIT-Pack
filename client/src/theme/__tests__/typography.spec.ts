@@ -66,7 +66,7 @@ describe('typography.css', () => {
     // The point of the scale: PR 3's token gate can then reject bare px
     // everywhere else in client/src. A role that hard-codes 34px would
     // quietly recreate the magic numbers this file exists to retire.
-    const roleSection = css.slice(css.indexOf('.jp-display'))
+    const roleSection = css.slice(css.indexOf('.jp-page-title'))
     expect(roleSection).not.toMatch(/font-size:\s*\d/)
   })
 })
