@@ -91,6 +91,7 @@ These patterns apply to every screen and are specified once.
 
 ### M3 — Trip Creation Wizard
 
+* **Step 1 folds its optional fields (FR-2.1c, 2026-08-14):** name and year stand alone; dates, series and attributes live behind one *Mehr Optionen ▾* row that states what is set behind it.
 * **Step 1 requires a name and a year (FR-2.1b, 2026-08-14).** The year is a picker that opens on the current one, so the required field is satisfied on arrival; both dates are marked optional and neither gates *Next*. The duration line appears only when both dates are set.
 
 * **Purpose:** Generate a trip instance from templates with correct quantities on the first pass.

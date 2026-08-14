@@ -62,11 +62,16 @@ export async function createTripViaWizard(page: Page, trip: TripSeed): Promise<s
   await page.goto('/trips/new')
 
   await page.getByTestId('wizard-name').locator('input').fill(trip.name)
-  if (trip.startDate) {
-    await page.getByTestId('wizard-start-date').locator('input').fill(trip.startDate)
-  }
-  if (trip.endDate) {
-    await page.getByTestId('wizard-end-date').locator('input').fill(trip.endDate)
+  // FR-2.1c: the dates live behind the "More options" row, so a seed that
+  // wants them has to open it — a seed that does not never sees it.
+  if (trip.startDate || trip.endDate) {
+    await page.getByTestId('wizard-more').click()
+    if (trip.startDate) {
+      await page.getByTestId('wizard-start-date').locator('input').fill(trip.startDate)
+    }
+    if (trip.endDate) {
+      await page.getByTestId('wizard-end-date').locator('input').fill(trip.endDate)
+    }
   }
   await page.getByTestId('wizard-next').click()
 

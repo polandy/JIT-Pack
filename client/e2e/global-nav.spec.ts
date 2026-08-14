@@ -182,6 +182,25 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(row.getByTestId('trip-when')).toHaveText(String(new Date().getFullYear()))
   })
 
+  // E2E-M3-12 (FR-2.1c): step 1 shows what it requires and folds the rest
+  // away, but never hides *state*: a set value appears on the folded row.
+  test('E2E-M3-12: the optional trip fields are folded, and say so when set', async ({ page }) => {
+    await page.setViewportSize(DESKTOP)
+    await page.goto('/trips/new')
+
+    // Folded: the optional inputs are absent, not merely invisible.
+    await expect(page.getByTestId('wizard-start-date')).toHaveCount(0)
+    await expect(page.getByTestId('wizard-more-summary')).toBeVisible()
+
+    await page.getByTestId('wizard-more').click()
+    await page.getByTestId('wizard-end-date').locator('input').fill('2026-09-20')
+    await page.getByTestId('wizard-more').click()
+
+    // Folded again — with what was set now stated on the row itself.
+    await expect(page.getByTestId('wizard-end-date')).toHaveCount(0)
+    await expect(page.getByTestId('wizard-more-summary')).toContainText('2026-09-20')
+  })
+
   // E2E-G8-02: the dev sample-trip seed is a development affordance, not
   // Demo Mode returning. This suite runs the production build, where it
   // must not exist at all.

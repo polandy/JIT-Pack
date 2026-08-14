@@ -39,7 +39,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Harness smoke | E2E-M19-01 (partial), E2E-M19-04, E2E-G7-01 | `local` | [`smoke.spec.ts`](../client/e2e/smoke.spec.ts) |
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
 | M3 trip creation | E2E-M3-01, E2E-M3-03 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M1-05 | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
-| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G1-01 (partial), E2E-G1-02, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-M3-11, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
+| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G1-01 (partial), E2E-G1-02, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-M3-11, E2E-M3-12, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M4 packing list | E2E-M4-01, E2E-M4-04, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 
 **What the M4 unit deliberately leaves out, and why.** Every facet case

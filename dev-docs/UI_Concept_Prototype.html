@@ -375,6 +375,14 @@ body{
 .fsl .fres{margin-left:auto;text-transform:none;letter-spacing:0;font-size:12px;color:var(--blue);
   background:none;border:none;cursor:pointer;padding:0}
 .fchips{display:flex;flex-wrap:wrap;gap:7px}
+/* FR-2.1c: the one row that stands for every optional field. */
+.morerow{display:flex;align-items:center;gap:9px;width:100%;padding:12px 2px;margin-top:2px;
+  background:none;border:none;border-top:1px solid var(--s0);color:var(--sub1);
+  font-size:14px;font-weight:600;cursor:pointer;text-align:left}
+.morerow .car{color:var(--o1);font-size:11px;transition:transform .18s}
+.morerow.open .car{transform:rotate(90deg)}
+.morerow .grow{flex:1}
+.morebody{padding-top:4px}
 .fchip{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:999px;cursor:pointer;
   background:var(--s0);border:1px solid transparent;color:var(--sub1);font-size:13px}
 .fchip .n{color:var(--o0);font-size:11.5px}
@@ -2242,7 +2250,7 @@ const QROWS=[{name:'T-Shirts',base:6,hist:'’24: 5 · ’25: 6',s:6},
   {name:'Ladekabel',base:3,hist:'’25: 3',s:3}];
 const STEP_LBL=['Eckdaten','Reisende','Vorlagen','Mengen'];
 let W;
-function resetWizard(){ W={step:1,name:'',year:new Date().getFullYear(),start:'',end:'',season:'',transport:'',accommodation:'',series:'',
+function resetWizard(){ W={step:1,name:'',year:new Date().getFullYear(),more:false,start:'',end:'',season:'',transport:'',accommodation:'',series:'',
   /* FR-2.5 (2026-08-08): a traveler is a name (+ optional user link). The
      Erwachsen/Kind type went with FR-25.9 — nothing evaluated it. */
   travelers:[{name:'Andy'},{name:'Sia'},{name:'Leonardo'}],
@@ -2267,6 +2275,15 @@ function chipGroup(grp,vals,cur,cls){ return `<div class="chips">${vals.map(v=>
   `<button class="opt ${cls||''} ${v===cur?'sel':''}" data-act="attr" data-grp="${grp}" data-v="${v}">${v}</button>`).join('')}</div>`; }
 
 function wStep1(){ const d=dur();
+  // FR-2.1c: two required fields stand alone; everything optional lives
+  // behind one "Mehr Optionen" row — the FR-25.7/FR-24.5 idiom, applied to
+  // trip creation. A trip is created far more often than it is configured,
+  // and seven fields at once make the common case look like the rare one.
+  const optionalSummary = [
+    (W.start||W.end) ? (W.start&&W.end ? `${fmtShort(W.start)}–${fmtShort(W.end)}` : fmtShort(W.start||W.end)) : '',
+    W.series ? '◆ '+esc(W.series) : '',
+    W.season, W.transport, W.accommodation,
+  ].filter(Boolean).join(' · ');
   return `<div class="field"><label>Reisename</label><input class="txt" id="wizName" placeholder="z. B. Herbstferien Samedan" value="${esc(W.name)}"></div>
   <!-- FR-2.1b: das Jahr ist die einzige Pflichtangabe und ist vorgewählt;
        eine Reise wird geplant, lange bevor ihre Daten existieren. -->
@@ -2274,6 +2291,13 @@ function wStep1(){ const d=dur();
     Array.from({length:4},(_,i)=>new Date().getFullYear()-1+i).map(y=>
       `<button class="opt ${y===W.year?'sel':''}" data-act="year" data-v="${y}">${y}</button>`).join('')
   }</div></div>
+
+  <!-- Was gesetzt ist, steht auf der zugeklappten Zeile: eine Angabe, die
+       man nicht sieht, ist eine, die man vergisst (FR-25.11a sinngemäss). -->
+  <button class="morerow ${W.more?'open':''}" data-act="more" id="wizMore">
+    <span class="car">▶</span><span class="grow">Mehr Optionen</span>
+    <span class="tiny muted">${optionalSummary || 'Daten · Serie · Merkmale'}</span></button>
+  ${W.more?`<div class="morebody">
   <div class="field"><label>Reisedaten <span class="tiny muted">optional</span></label><div class="datewrap">
     <input class="dt" type="date" id="wizStart" value="${W.start}"><span class="muted">→</span><input class="dt" type="date" id="wizEnd" value="${W.end}">
     <span class="dur">${d?d+' Tage':''}</span></div></div>
@@ -2285,8 +2309,11 @@ function wStep1(){ const d=dur();
     ${W.series==='Samedan'?'<div class="tiny muted" style="margin-top:7px">Serien-Defaults übernommen: Flug · Agriturismo (leere Felder vorbefüllt, FR-13.2)</div>':''}</div>
   <div class="field"><label>Saison</label>${chipGroup('season',SEASONS,W.season,'warm')}</div>
   <div class="field"><label>Transport</label>${chipGroup('transport',TRANSPORTS,W.transport)}</div>
-  <div class="field"><label>Unterkunft</label>${chipGroup('accommodation',ACCOM,W.accommodation)}</div>`;
+  <div class="field"><label>Unterkunft</label>${chipGroup('accommodation',ACCOM,W.accommodation)}</div></div>`:''}`;
 }
+
+/** "2026-09-13" → "13.9." — enough to recognise a date on a folded row. */
+function fmtShort(iso){ if(!iso) return ''; const p=iso.split('-'); return `${+p[2]}.${+p[1]}.`; }
 
 function wStep2(){
   return `<div class="field"><label>Reisende (${W.travelers.length})</label><div class="card" style="padding:4px 14px">
@@ -2428,6 +2455,7 @@ function bindWizard(){
       // FR-2.1b: the year is required, so it toggles to nothing — picking
       // another year is the only move.
       else if(a==='year'){ W.year=Number(el.dataset.v); }
+      else if(a==='more'){ W.more=!W.more; }
       // Captured inline like every other name in the app (FR-25.13). A native
       // prompt() was the one place that broke the pattern — and on a phone it is
       // exactly the modal interruption the concept avoids everywhere else.

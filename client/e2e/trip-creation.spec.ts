@@ -54,6 +54,8 @@ test('M3: step 1 gates Next on the name, and derives the duration @local @m3', a
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
   await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
 
+  // FR-2.1c: the dates are optional and therefore folded away.
+  await page.getByTestId('wizard-more').click()
   await page.getByTestId('wizard-start-date').locator('input').fill('2026-09-13')
   await page.getByTestId('wizard-end-date').locator('input').fill('2026-09-20')
 
@@ -76,6 +78,7 @@ test('M3: step 2 requires every added traveler to be named @local @m3', async ({
   await page.goto('/trips/new')
 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
+  await page.getByTestId('wizard-more').click()
   await page.getByTestId('wizard-end-date').locator('input').fill(TRIP.endDate)
   await page.getByTestId('wizard-next').click()
 
@@ -104,6 +107,7 @@ test('M3: local mode hides the sharing section @local @m3 @g8', async ({ page, s
   await page.goto('/trips/new')
 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
+  await page.getByTestId('wizard-more').click()
   await page.getByTestId('wizard-end-date').locator('input').fill(TRIP.endDate)
   await page.getByTestId('wizard-next').click()
 
@@ -129,6 +133,7 @@ test('M3: the dashboard CTA leads through the wizard to a created trip @local @m
   await expect(page.getByTestId('wizard-step-1')).toBeVisible()
 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
+  await page.getByTestId('wizard-more').click()
   await page.getByTestId('wizard-end-date').locator('input').fill(TRIP.endDate)
   await page.getByTestId('wizard-next').click()
 

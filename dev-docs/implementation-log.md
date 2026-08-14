@@ -1068,3 +1068,25 @@ on the current year, so the required field is satisfied before the user
 arrives. E2E-M3-11 drives the whole wizard without touching a date and
 then checks that the trip reads by its year in the list — it fails against
 the old gate, which is what makes it a guard rather than a description.
+
+## Trip creation, folded (FR-2.1c)
+
+Owner: „beim trip erstellen, sollen die optionalen parameter weniger
+stark sichtbar sein, um den user nicht zu überfordern."
+
+The house already had the idiom — FR-25.7 for template positions, FR-24.5
+for master items, M5's own *Details ▾* — so this is that pattern applied
+to M3 rather than a new one invented for it. Name and year stand alone;
+dates, series and the three attributes sit behind one *Mehr Optionen* row.
+
+The part worth stating: the row **summarises what is set behind it**. A
+series prefills transport and accommodation (FR-13.2), so a fold that
+showed nothing would hide a change the user did not make themselves —
+which is FR-25.11a's argument about invisible filters, in a different
+screen. E2E-M3-12 asserts both halves: the inputs are absent while
+folded, and a value set behind the fold is stated on the row.
+
+The e2e fixture had to learn the same thing, and the way it broke is the
+useful part: six cases in three suites failed at once, all of them
+filling a date that had moved. A shared seed helper is a contract; when
+the screen it drives changes shape, that is where the change surfaces.
