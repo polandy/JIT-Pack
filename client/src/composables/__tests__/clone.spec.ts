@@ -44,6 +44,7 @@ function seedSource(store: ReturnType<typeof useTripStore>) {
     row: {
       name: 'Engadin 2025',
       status: 'archived',
+      year: 2026,
       start_date: '2025-08-01',
       end_date: '2025-08-07',
       series_id: 'ser-1',
@@ -119,6 +120,7 @@ describe('cloneTrip (FR-12)', () => {
 
     const tripId = orch.cloneTrip('src', {
       name: 'Engadin 2026',
+      year: 2026,
       startDate: '2026-08-01',
       endDate: '2026-08-10',
       options: { travelerAssignments: true, packerDelegations: true, containerAssignments: true },
@@ -163,6 +165,7 @@ describe('cloneTrip (FR-12)', () => {
 
     const tripId = orch.cloneTrip('src', {
       name: 'Engadin 2026',
+      year: 2026,
       startDate: null,
       endDate: '2026-08-10',
       options: {

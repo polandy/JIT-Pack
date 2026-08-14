@@ -189,6 +189,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
       id: 't1',
       name: 'Engadin 2026',
       status: 'active',
+      year: 2026,
       start_date: '2026-08-01',
       end_date: '2026-08-10',
       duration_days: 10,
@@ -226,6 +227,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
         assigned_traveler_id: 'tr1',
         packer_user_id: null,
         packed_by_user_id: null,
+        packed_at: null,
         container_id: 'c1',
         packing_now_by: null,
         packing_now_at: null,
@@ -241,6 +243,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
     expect(withProgress).toMatchObject({
       kind: 'trip',
       name: 'Engadin 2026',
+      year: 2026,
       start_date: '2026-08-01',
       end_date: '2026-08-10',
     })

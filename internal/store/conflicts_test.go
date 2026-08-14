@@ -55,7 +55,7 @@ func TestListConflicts_EmptyTrip(t *testing.T) {
 func TestListConflicts_ScopedToTrip(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()
-	mustExec(t, s, `INSERT INTO trips (id, name, start_date, end_date) VALUES ('trip-other', 'Other', '2026-07-01', '2026-07-05')`)
+	mustExec(t, s, `INSERT INTO trips (id, name, year, start_date, end_date) VALUES ('trip-other', 'Other', 2026, '2026-07-01', '2026-07-05')`)
 
 	seed := upsert("item-1", "sc-1", map[string]any{"trip_id": testTrip, "name": "Socken", "quantity": 5}, "0000000002000-0000-bbbbbbbb")
 	if _, err := s.ApplyMutation(ctx, testTrip, seed); err != nil {

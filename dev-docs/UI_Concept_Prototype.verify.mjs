@@ -544,6 +544,12 @@ ok(await page.evaluate(() => {
 
 console.log('— Konsistenz-Durchgang: keine wirkungslosen Bedienelemente —');
 await page.evaluate(() => { resetWizard(); go('wizard'); });
+// FR-2.1c: the optional fields — dates, series, attributes — live behind
+// one "Mehr Optionen" row now, so everything below opens it first.
+ok(!(await page.locator('[data-act="series"][data-v="__new"]').count()),
+  'optionale Felder sind zunächst eingeklappt');
+ok((await text('#wizBody')).includes('mehr optionen'), 'eine Zeile steht für alle optionalen Felder');
+await page.click('#wizMore');
 await page.click('[data-act="series"][data-v="__new"]');
 ok(await page.locator('#wizSeriesNew').count(), 'neue Serie wird inline erfasst, nicht per prompt()');
 await page.fill('#wizSeriesNew', 'Toskana');

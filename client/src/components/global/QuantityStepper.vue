@@ -62,7 +62,7 @@ function onMinusUp() {
 
 <template>
   <!-- qty=1: checkbox -->
-  <div v-if="isCheckbox" class="stepper-checkbox" @click="emit('toggle')">
+  <div v-if="isCheckbox" class="stepper-checkbox" data-testid="row-check" @click="emit('toggle')">
     <IonCheckbox :checked="isComplete" :indeterminate="false" />
   </div>
 
@@ -74,6 +74,7 @@ function onMinusUp() {
       @pointerdown="onMinusDown"
       @pointerup="onMinusUp"
       @pointerleave="onMinusUp"
+      data-testid="row-minus"
       aria-label="Decrease packed count"
     >
       <IonIcon :icon="removeOutline" />
@@ -87,6 +88,7 @@ function onMinusUp() {
       @pointerdown="onPlusDown"
       @pointerup="onPlusUp"
       @pointerleave="onPlusUp"
+      data-testid="row-plus"
       aria-label="Increase packed count"
     >
       <IonIcon :icon="addOutline" />

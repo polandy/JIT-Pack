@@ -29,6 +29,7 @@ import { useTripStore } from '@/stores/tripStore'
 import type { ItemMode, Trip } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { tripOrderKey } from '@/domain/trips'
 
 const props = defineProps<{ seriesId: string }>()
 
@@ -88,7 +89,7 @@ function addChecklistEntry() {
 const seriesTrips = computed(() =>
   tripStore.tripList
     .filter((t) => t.series_id === props.seriesId)
-    .sort((a, b) => b.end_date.localeCompare(a.end_date)),
+    .sort((a, b) => tripOrderKey(b).localeCompare(tripOrderKey(a))),
 )
 
 const attachableTrips = computed(() => tripStore.tripList.filter((t) => !t.series_id))

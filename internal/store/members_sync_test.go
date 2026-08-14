@@ -28,7 +28,7 @@ func TestApplyMasterMutation_TripMembersAuthorization(t *testing.T) {
 	seedUserB(t, s)
 	seedUserC(t, s)
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trips", "trip-m", "tm-0",
-		map[string]any{"name": "Engadin", "end_date": "2026-08-01"}, "0000000001000-0000-aaaaaaaa"))
+		map[string]any{"name": "Engadin", "year": 2026, "end_date": "2026-08-01"}, "0000000001000-0000-aaaaaaaa"))
 
 	fields := func(user, role string) map[string]any {
 		return map[string]any{"trip_id": "trip-m", "user_id": user, "role": role}
@@ -123,7 +123,7 @@ func TestApplyMasterMutation_TripMembersAuthorization(t *testing.T) {
 func TestApplyMasterMutation_TripInsertLogsCreatorMembership(t *testing.T) {
 	s := openTestStore(t)
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trips", "trip-cm", "cm-1",
-		map[string]any{"name": "Roster", "end_date": "2026-08-01"}, "0000000001000-0000-aaaaaaaa"))
+		map[string]any{"name": "Roster", "year": 2026, "end_date": "2026-08-01"}, "0000000001000-0000-aaaaaaaa"))
 
 	var rowID string
 	if err := s.db.QueryRow(
@@ -168,7 +168,7 @@ func TestPullMaster_LateMemberSeesTripAndRoster(t *testing.T) {
 	ctx := context.Background()
 
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trips", "trip-late", "lm-1",
-		map[string]any{"name": "Spät dabei", "end_date": "2026-08-01"}, "0000000001000-0000-aaaaaaaa"))
+		map[string]any{"name": "Spät dabei", "year": 2026, "end_date": "2026-08-01"}, "0000000001000-0000-aaaaaaaa"))
 
 	// B is fully caught up and sees nothing of the foreign trip.
 	first, err := s.PullMaster(ctx, testUserB, 0, 100)
@@ -239,7 +239,7 @@ func TestPullMaster_RosterRowInvisibleToNonMember(t *testing.T) {
 	s := openTestStore(t)
 	seedUserB(t, s)
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trips", "trip-vis", "rv-1",
-		map[string]any{"name": "Sichtbarkeit", "end_date": "2026-09-01", "status": "planning"},
+		map[string]any{"name": "Sichtbarkeit", "year": 2026, "end_date": "2026-09-01", "status": "planning"},
 		"0000000006000-0000-aaaaaaaa"))
 
 	pull := func(userID string) (roster int) {
@@ -273,7 +273,7 @@ func TestPullMaster_RemovedRosterRowNotLeakedMidWindow(t *testing.T) {
 
 	// seq 1: trips insert, seq 2: creator's owner row.
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trips", "trip-win", "wl-1",
-		map[string]any{"name": "Fenster", "end_date": "2026-09-01", "status": "planning"},
+		map[string]any{"name": "Fenster", "year": 2026, "end_date": "2026-09-01", "status": "planning"},
 		"0000000007000-0000-aaaaaaaa"))
 	// seq 3: B's membership, seq 4: the trips touch that resurfaces the trip.
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trip_members", "mem-win", "wl-2",

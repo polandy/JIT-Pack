@@ -27,7 +27,7 @@ import {
 } from '@ionic/vue'
 import {
   addOutline,
-  airplaneOutline,
+  trainOutline,
   albumsOutline,
   archiveOutline,
   cloudUploadOutline,
@@ -46,6 +46,11 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import SearchRow from '@/components/global/SearchRow.vue'
+import { tripOrderKey } from '@/domain/trips'
+import { t } from '@/i18n'
+import { useContextSearch } from '@/composables/useContextSearch'
+import { setHeaderActions } from '@/composables/useHeaderActions'
 
 const store = useTripStore()
 const masterStore = useMasterStore()
@@ -66,7 +71,43 @@ function matchesFilter(trip: Trip): boolean {
   }
 }
 
-const filteredTrips = computed(() => store.tripList.filter(matchesFilter))
+/**
+ * Dev only (see src/dev/sampleTrip.ts): `import.meta.env.DEV` is false in
+ * every build, so both the button and the module behind it are gone from
+ * a production bundle. This is not Demo Mode returning.
+ */
+const isDev = import.meta.env.DEV
+
+async function addSampleTrip() {
+  const { seedSampleTrip } = await import('@/dev/sampleTrip')
+  router.push(`/trips/${seedSampleTrip(orchestrator)}`)
+}
+
+const {
+  term: search,
+  isOpen: searchOpen,
+  toggle: toggleSearch,
+  action,
+  matches,
+} = useContextSearch()
+setHeaderActions(() => [action()])
+
+/** The temporal line under a trip's name, whatever it actually knows. */
+function tripWhen(trip: Trip): string {
+  if (trip.start_date && trip.end_date) return `${trip.start_date} – ${trip.end_date}`
+  if (trip.end_date) return t('trip.until', { date: trip.end_date })
+  if (trip.start_date) return t('trip.from', { date: trip.start_date })
+  return String(trip.year)
+}
+
+const filteredTrips = computed(() =>
+  store.tripList
+    .filter((trip) => matchesFilter(trip) && matches(trip.name))
+    // Newest first (Addendum, M2 default ordering). The key survives a
+    // trip that has only its year (FR-2.1b), which a raw date compare did
+    // not — it put such a trip wherever the sort happened to leave it.
+    .sort((a, b) => tripOrderKey(b).localeCompare(tripOrderKey(a))),
+)
 const isEmpty = computed(() => filteredTrips.value.length === 0)
 
 /**
@@ -192,6 +233,14 @@ async function handleRefresh(event: CustomEvent) {
         <IonRefresherContent />
       </IonRefresher>
 
+      <SearchRow
+        v-if="searchOpen || search"
+        v-model="search"
+        testid="trips-search-input"
+        :placeholder="t('trips.searchPlaceholder')"
+        @close="toggleSearch"
+      />
+
       <div class="ion-padding">
         <div class="title-row">
           <h1 class="page-title">Trips</h1>
@@ -218,13 +267,13 @@ async function handleRefresh(event: CustomEvent) {
         </div>
 
         <IonSegment :value="filter" @ionChange="onFilterChange">
-          <IonSegmentButton value="active">
+          <IonSegmentButton value="active" data-testid="trips-filter-active">
             <IonLabel>Active</IonLabel>
           </IonSegmentButton>
-          <IonSegmentButton value="planned">
+          <IonSegmentButton value="planned" data-testid="trips-filter-planned">
             <IonLabel>Planned</IonLabel>
           </IonSegmentButton>
-          <IonSegmentButton value="archived">
+          <IonSegmentButton value="archived" data-testid="trips-filter-archived">
             <IonLabel>Archived</IonLabel>
           </IonSegmentButton>
         </IonSegment>
@@ -232,10 +281,20 @@ async function handleRefresh(event: CustomEvent) {
 
       <!-- Empty state (G-7) -->
       <div v-if="isEmpty" class="empty-state">
-        <IonIcon :icon="airplaneOutline" class="empty-icon" />
+        <IonIcon :icon="trainOutline" class="empty-icon" />
         <p v-if="filter === 'active'">No active trips</p>
         <p v-else-if="filter === 'planned'">No planned trips</p>
         <p v-else>No archived trips</p>
+        <!-- Dev only, and gone from any build — see addSampleTrip. -->
+        <IonButton
+          v-if="isDev"
+          size="small"
+          fill="outline"
+          data-testid="dev-sample-trip"
+          @click="addSampleTrip"
+        >
+          Beispielreise anlegen (Dev)
+        </IonButton>
       </div>
 
       <!-- Trip list, grouped by series (FR-13.1) -->
@@ -258,6 +317,7 @@ async function handleRefresh(event: CustomEvent) {
           <IonItemSliding v-for="trip in group.trips" :key="trip.id">
             <IonItem
               button
+              :data-testid="`trip-row-${trip.name}`"
               :router-link="`/trips/${trip.id}`"
               :class="{ archived: trip.status === 'archived' }"
             >
@@ -280,12 +340,9 @@ async function handleRefresh(event: CustomEvent) {
               </div>
               <IonLabel>
                 <h2>{{ trip.name }}</h2>
-                <p>
-                  <template v-if="trip.start_date">
-                    {{ trip.start_date }} &ndash; {{ trip.end_date }}
-                  </template>
-                  <template v-else>until {{ trip.end_date }}</template>
-                </p>
+                <!-- FR-2.1b: a trip may have both dates, one, or neither.
+                     With neither, its year is what it is called by. -->
+                <p data-testid="trip-when">{{ tripWhen(trip) }}</p>
                 <p>{{ itemSummary(trip) }}</p>
               </IonLabel>
             </IonItem>

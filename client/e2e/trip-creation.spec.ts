@@ -31,9 +31,11 @@ async function expectBlocked(button: Locator) {
   await expect(button).toHaveAttribute('aria-disabled', 'true')
 }
 
-// E2E-M3-01 (FR-2.1/2.1a): step 1 takes the metadata, Next is gated on
-// the required fields, and the duration is computed from the dates.
-test('M3: step 1 gates Next until name and end date are set @local @m3', async ({
+// E2E-M3-01 (FR-2.1/2.1a/2.1b): step 1 takes the metadata, Next is gated
+// on the name alone — since FR-2.1b the year is the only required
+// temporal fact and it arrives preselected — and the duration is computed
+// from the dates when both are given.
+test('M3: step 1 gates Next on the name, and derives the duration @local @m3', async ({
   page,
   seedMode,
 }) => {
@@ -45,12 +47,17 @@ test('M3: step 1 gates Next until name and end date are set @local @m3', async (
   // Nothing entered yet → the step is invalid and cannot be left.
   await expectBlocked(page.getByTestId('wizard-next'))
 
-  // Name alone is not enough — FR-2.1 gates the step on the end date too.
-  await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
-  await expectBlocked(page.getByTestId('wizard-next'))
+  // The year needs no input: it opens on the current one (FR-2.1b).
+  await expect(page.getByTestId('wizard-year')).toContainText(String(new Date().getFullYear()))
 
+  // A name is now the whole gate — no date is required to leave step 1.
+  await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
+  await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
+
+  // FR-2.1c: the dates are optional and therefore folded away.
+  await page.getByTestId('wizard-more').click()
   await page.getByTestId('wizard-start-date').locator('input').fill('2026-09-13')
-  await page.getByTestId('wizard-end-date').locator('input').fill(TRIP.endDate)
+  await page.getByTestId('wizard-end-date').locator('input').fill('2026-09-20')
 
   // FR-2.1a: duration is derived from the dates, never entered — and it
   // counts both endpoints, so the 13th to the 20th is 8 travel days.
@@ -59,6 +66,36 @@ test('M3: step 1 gates Next until name and end date are set @local @m3', async (
   // Positive signal that the gate opened: the wizard actually advances.
   await page.getByTestId('wizard-next').click()
   await expect(page.getByTestId('wizard-step-2')).toBeVisible()
+})
+
+// E2E-M3-13 (FR-2.5a): the household's default travellers are configured
+// once in M17 and are already in the wizard afterwards — as a starting
+// point, so removing one there is still a normal edit.
+test('M3: the wizard starts with the configured default travellers @local @m3 @m17', async ({
+  page,
+  seedMode,
+}) => {
+  await seedMode({ mode: 'local' })
+  await page.goto('/tabs/settings')
+
+  for (const name of ['Andy', 'Sia', 'Leonardo']) {
+    await page.getByTestId('default-traveler-input').locator('input').fill(name)
+    await page.getByTestId('default-traveler-add').click()
+    await expect(page.getByTestId(`default-traveler-remove-${name}`)).toBeVisible()
+  }
+
+  await page.goto('/trips/new')
+  await page.getByTestId('wizard-name').locator('input').fill('Samedan')
+  await page.getByTestId('wizard-next').click()
+
+  await expect(page.getByTestId('wizard-step-2')).toBeVisible()
+  const names = page.getByTestId('wizard-traveler-name')
+  await expect(names).toHaveCount(3)
+  await expect(names.first().locator('input')).toHaveValue('Andy')
+
+  // A starting point, not a rule: the trip may drop one.
+  await page.getByTestId('wizard-traveler-remove').first().click()
+  await expect(page.getByTestId('wizard-traveler-name')).toHaveCount(2)
 })
 
 // E2E-M3-03 (FR-2.5): step 2 adds travelers, and an unnamed traveler
@@ -71,6 +108,7 @@ test('M3: step 2 requires every added traveler to be named @local @m3', async ({
   await page.goto('/trips/new')
 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
+  await page.getByTestId('wizard-more').click()
   await page.getByTestId('wizard-end-date').locator('input').fill(TRIP.endDate)
   await page.getByTestId('wizard-next').click()
 
@@ -99,6 +137,7 @@ test('M3: local mode hides the sharing section @local @m3 @g8', async ({ page, s
   await page.goto('/trips/new')
 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
+  await page.getByTestId('wizard-more').click()
   await page.getByTestId('wizard-end-date').locator('input').fill(TRIP.endDate)
   await page.getByTestId('wizard-next').click()
 
@@ -124,6 +163,7 @@ test('M3: the dashboard CTA leads through the wizard to a created trip @local @m
   await expect(page.getByTestId('wizard-step-1')).toBeVisible()
 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
+  await page.getByTestId('wizard-more').click()
   await page.getByTestId('wizard-end-date').locator('input').fill(TRIP.endDate)
   await page.getByTestId('wizard-next').click()
 

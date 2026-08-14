@@ -115,6 +115,22 @@ Because the logo is no longer present on drill-downs, **G-9's "home from anywher
 - Desktop is unaffected in structure: the rail keeps the four anchors, and `‹ back` appears in the same slot at both breakpoints.
 - The Local/Single-User gating of the right-hand group is unchanged (G-8): what is hidden today stays hidden.
 
+## Amendment (2026-08-14): the "small slot API" is a registry, not a `<Teleport>`
+
+The first implementation teleported a page's buttons into a
+`<span id="header-actions">` inside the header's `ion-buttons`. Ionic's web
+components relocate slotted DOM after mount, so on a cold boot straight into a
+drill-down Vue patched a teleported subtree whose container had moved and threw
+`Cannot read properties of null (reading 'emitsOptions')` mid-patch — which
+aborts the render. The screen came up empty, and it was reported as lost data.
+
+Pages now **describe** their actions (`useHeaderActions`:
+`{ id, icon, label, onClick, badge, active }`) and the header renders its own
+DOM from that, keyed by route path exactly as `useHeaderTitle` already was. The
+decision of this ADR is unchanged; only the mechanism behind "a small slot API"
+is. It settled a second defect on the way: actions belong to a path, so one
+screen's search icon can no longer linger in the bar of the next.
+
 ## Revisit Trigger
 
 A screen appears that genuinely cannot express its chrome through the slot API — concretely, one needing a second toolbar row that is not a filter/chip row, or a bar taller than 56 px. At that point the single-bar rule is costing more than the duplication it removed.

@@ -113,7 +113,7 @@ func TestApplyMasterMutation_InsertWritesMasterChangeLog(t *testing.T) {
 		{
 			name: "trips forces created_by and owner membership",
 			m: masterMut(sync.OpInsert, "trips", "trip-new", "mm-trip",
-				map[string]any{"name": "Engadin", "end_date": "2026-08-01", "status": "planning"}, "0000000001004-0000-aaaaaaaa"),
+				map[string]any{"name": "Engadin", "year": 2026, "end_date": "2026-08-01", "status": "planning"}, "0000000001004-0000-aaaaaaaa"),
 			verify: func(t *testing.T) {
 				var createdBy string
 				if err := s.db.QueryRow(`SELECT created_by FROM trips WHERE id = 'trip-new'`).Scan(&createdBy); err != nil {
@@ -229,7 +229,7 @@ func TestApplyMasterMutation_TripAuthorization(t *testing.T) {
 	s := openTestStore(t)
 	seedUserB(t, s)
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trips", "trip-auth", "ta-1",
-		map[string]any{"name": "Engadin", "end_date": "2026-08-01"}, "0000000001000-0000-aaaaaaaa"))
+		map[string]any{"name": "Engadin", "year": 2026, "end_date": "2026-08-01"}, "0000000001000-0000-aaaaaaaa"))
 
 	// Non-member update → rejected
 	res := applyMaster(t, s, testUserB, masterMut(sync.OpUpsert, "trips", "trip-auth", "ta-2",
@@ -433,7 +433,7 @@ func TestPullMaster_VisibilityPerUser(t *testing.T) {
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "templates", "tpl-andy", "pv-2",
 		map[string]any{"name": "Andys Basis"}, hlc))
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trips", "trip-v", "pv-4",
-		map[string]any{"name": "Nur Andy", "end_date": "2026-08-01"}, hlc))
+		map[string]any{"name": "Nur Andy", "year": 2026, "end_date": "2026-08-01"}, hlc))
 
 	pull := func(userID string) map[string]bool {
 		t.Helper()

@@ -14,33 +14,19 @@ import type { Page } from '@playwright/test'
  */
 
 /**
- * Ionic throws this while animating from a root-outlet page back to a
- * route inside the tabs outlet. It is **not ours**: the same message
- * appears on the build before ADR-011, reproduced with the browser back
- * button, so it predates the single header bar. Filtered rather than
- * asserted, so these tests still catch any *new* runtime error instead
- * of being disabled by a known one. See the implementation log.
- */
-// Matched on the *whole* dereference, not just the property name: the
-// two engines word it differently, and a bare /classList/ would also
-// swallow a genuine error of ours that merely mentions the property.
-const KNOWN_IONIC_TRANSITION_ERRORS = [
-  /Cannot read properties of undefined \(reading '(classList|ionPageElement)'\)/,
-  /undefined is not an object \(evaluating '[^']*\.(classList|ionPageElement)'\)/,
-]
-
-/**
- * Collect uncaught page errors, minus the known Ionic noise above.
- * Navigation can "work" — the URL changes and the page renders — while
- * something throws mid-transition, which a URL assertion cannot see.
+ * Collect uncaught page errors. Navigation can "work" — the URL changes
+ * and the page renders — while something throws mid-transition, which a
+ * URL assertion cannot see.
+ *
+ * **Nothing is filtered any more.** This used to exempt Ionic's
+ * `classList`/`ionPageElement` error, which was thrown animating from a
+ * root-outlet page back into the tabs outlet. ADR-012 removed the second
+ * outlet and the error with it, so an exemption would now only hide the
+ * next one.
  */
 function collectPageErrors(page: Page): string[] {
   const errors: string[] = []
-  page.on('pageerror', (e) => {
-    if (!KNOWN_IONIC_TRANSITION_ERRORS.some((known) => known.test(e.message))) {
-      errors.push(e.message)
-    }
-  })
+  page.on('pageerror', (e) => errors.push(e.message))
   return errors
 }
 
@@ -128,10 +114,7 @@ test('G9: sync and settings stay present on a drill-down @local @g9', async ({
 // else in this file exercises entering through the list, which is how
 // most navigation actually happens and the only path that reaches
 // Ionic's cross-outlet transition.
-test('G9: list → trip → back returns to the trip list @local @g9', async ({
-  page,
-  seedMode,
-}) => {
+test('G9: list → trip → back returns to the trip list @local @g9', async ({ page, seedMode }) => {
   await seedMode({ mode: 'local' })
   const errors = collectPageErrors(page)
   await createTripViaWizard(page, {
@@ -141,7 +124,10 @@ test('G9: list → trip → back returns to the trip list @local @g9', async ({
   })
 
   await page.goto('/tabs/trips')
-  await page.locator('ion-segment-button').filter({ hasText: /planned/i }).click()
+  await page
+    .locator('ion-segment-button')
+    .filter({ hasText: /planned/i })
+    .click()
   const row = page.locator('ion-item, ion-card').filter({ hasText: 'Samedan 2026' }).first()
   await row.click()
   await expect(page).toHaveURL(/\/trips\/[^/]+$/)

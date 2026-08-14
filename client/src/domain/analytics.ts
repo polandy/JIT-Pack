@@ -6,6 +6,7 @@
  */
 
 import type { Container, Traveler, Trip, TripItem } from '@/types/domain'
+import { tripOrderKey } from './trips'
 
 export type AnalyticsDimension = 'person' | 'category' | 'container'
 
@@ -100,7 +101,7 @@ export function seriesWeightTrend(
 ): SeriesTrendPoint[] {
   return trips
     .filter((t) => t.status === 'archived' && t.series_id === seriesId)
-    .sort((a, b) => (a.start_date ?? a.end_date).localeCompare(b.start_date ?? b.end_date))
+    .sort((a, b) => tripOrderKey(a).localeCompare(tripOrderKey(b)))
     .map((t) => ({
       tripId: t.id,
       tripName: t.name,

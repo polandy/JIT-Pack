@@ -79,6 +79,7 @@ describe('Local Mode', () => {
 
     orch.createTripFromWizard({
       name: 'Engadin',
+      year: 2026,
       startDate: null,
       endDate: '2026-08-10',
       attributes: null,

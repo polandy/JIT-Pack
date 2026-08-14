@@ -153,6 +153,7 @@ describe('wizard integration (FR-13.1/13.3)', () => {
 
     const tripId = orch.createTripFromWizard({
       name: 'Engadin 2026',
+      year: 2026,
       startDate: null,
       endDate: '2026-08-10',
       attributes: { season: 'summer' },
@@ -177,6 +178,7 @@ describe('wizard integration (FR-13.1/13.3)', () => {
 
     const tripId = orch.createTripFromWizard({
       name: 'Engadin 2026',
+      year: 2026,
       startDate: null,
       endDate: '2026-08-10',
       attributes: null,

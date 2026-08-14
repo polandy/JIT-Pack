@@ -15,6 +15,7 @@ import {
   IonTitle,
   IonButtons,
   IonButton,
+  IonBadge,
   IonIcon,
   useIonRouter,
 } from '@ionic/vue'
@@ -24,6 +25,7 @@ import { useRoute } from 'vue-router'
 import BrandMark from './BrandMark.vue'
 import SyncIndicator from './SyncIndicator.vue'
 import { backTarget } from '@/router/backTarget'
+import { actionsFor } from '@/composables/useHeaderActions'
 import { titleFor } from '@/composables/useHeaderTitle'
 import type { SyncState } from '@/composables/useSyncStatus'
 
@@ -43,6 +45,10 @@ const ionRouter = useIonRouter()
 const back = computed(() => backTarget(route))
 const title = computed(() => titleFor(route.path) ?? route.meta.title ?? '')
 
+// G-12: the current page's icon cluster, described by the page rather
+// than teleported into this toolbar — see useHeaderActions.
+const pageActions = computed(() => actionsFor(route.path))
+
 function goHome() {
   ionRouter.navigate('/tabs/dashboard', 'back', 'replace')
 }
@@ -52,14 +58,17 @@ function goHome() {
  * notification has a one-entry stack, and §7's contract is that back
  * still lands on the parent trip rather than leaving the app.
  *
- * Direction 'back' animates backwards; the action stays the default
- * push. 'pop' would tell Ionic to unwind its own stack, and the parent
- * is frequently not the entry we arrived from — a deep-linked child has
- * no such entry at all — which left Ionic dereferencing an undefined
- * page mid-transition.
+ * Direction 'back' animates backwards, and the action is **replace**.
+ * 'pop' would tell Ionic to unwind its own stack, and the declared
+ * parent is frequently not the entry we arrived from — a deep-linked
+ * child has no such entry at all. The default push is worse still: it
+ * leaves the page we came from mounted *and* mounts a second copy of the
+ * parent, so the route ends up with two live instances. The stale one
+ * kept winning the header's action registry, which is how the trip
+ * list's search field ended up rendered on a page nobody could see.
  */
 function goBack() {
-  if (back.value) ionRouter.navigate(back.value, 'back')
+  if (back.value) ionRouter.navigate(back.value, 'back', 'replace')
 }
 </script>
 
@@ -81,8 +90,21 @@ function goBack() {
       </IonTitle>
 
       <IonButtons slot="end">
-        <!-- Pages teleport their own actions here (M4's G-12 cluster). -->
-        <span id="header-actions" class="header-actions" />
+        <!-- The current page's G-12 cluster (useHeaderActions). -->
+        <IonButton
+          v-for="action in pageActions"
+          :key="action.id"
+          :data-testid="action.id"
+          :aria-label="action.label"
+          :title="action.label"
+          :color="action.active ? 'primary' : undefined"
+          @click="action.onClick"
+        >
+          <IonIcon slot="icon-only" :icon="action.icon" />
+          <IonBadge v-if="action.badge" color="primary" class="action-badge">
+            {{ action.badge }}
+          </IonBadge>
+        </IonButton>
         <SyncIndicator
           :state="syncState"
           :pending-count="syncPendingCount"
@@ -106,8 +128,12 @@ function goBack() {
   padding-inline-start: 0;
 }
 
-.header-actions {
-  display: contents;
+.action-badge {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  font-size: 0.6rem;
+  padding: 2px 4px;
 }
 
 .logo-row {

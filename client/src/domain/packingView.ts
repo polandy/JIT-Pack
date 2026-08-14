@@ -1,17 +1,57 @@
 /**
  * M4 packing-list view model (Addendum §3.25) — pure, no I/O, no Vue.
  *
- * The redesigned packing list has to answer three questions that are pure list
+ * The redesigned packing list has to answer questions that are pure list
  * arithmetic, so they live here instead of in the component: which rows are
- * still worth showing (FR-25.2), which rows belong together as one per-person
- * item (FR-25.1), and what the procurement-mode filter offers (FR-25.4).
+ * still worth showing (FR-25.2/25.11/25.20), which rows belong together as one
+ * per-person item (FR-25.1), and what the facet panel may offer (FR-25.11d).
  *
  * Counting rule that runs through all of it: **headers count over the full
  * set, lists render the filtered set.** A group that says "3/8" while showing
  * five rows is telling the truth — the other three are done and hidden. Losing
  * that distinction is the easiest way to make the screen lie.
  */
-import type { Container, GroupBy, ItemMode, TripItem, Traveler } from '@/types/domain'
+import type {
+  Container,
+  FacetKey,
+  Facets,
+  GroupBy,
+  ItemMode,
+  TripItem,
+  TripParticipant,
+  Traveler,
+} from '@/types/domain'
+
+/**
+ * The facets in panel order (FR-25.11b). Every value is a string so the whole
+ * filter survives a `JSON.stringify` into session storage (FR-25.18).
+ */
+export const FACET_KEYS: readonly FacetKey[] = [
+  'person',
+  'category',
+  'mode',
+  'container',
+  'flag',
+] as const
+
+/**
+ * The empty string addresses the *absence* of a value — shared items in the
+ * person facet (FR-25.11f), uncategorised rows, luggage-less rows. It is a
+ * value like any other, not "no selection": that is an empty array.
+ */
+export const NO_VALUE = ''
+
+/** Modes are offered in packing order, not alphabetically — 🧳 is the default case. */
+const MODE_VALUES: readonly ItemMode[] = ['pack', 'buy_before', 'buy_local'] as const
+
+/** The *Merkmale* facet (FR-25.11b): flags that cut across the other axes. */
+const FLAG_VALUES = ['late', 'missing', 'prep'] as const
+export type FlagFacetValue = (typeof FLAG_VALUES)[number]
+
+/** An unfiltered facet set — the state every fresh session starts from (FR-25.18). */
+export function noFacets(): Facets {
+  return { person: [], category: [], mode: [], container: [], flag: [] }
+}
 
 /** A single packable row — either a plain item or one traveler's instance of a per-person item. */
 export interface PackingRow {
@@ -48,26 +88,66 @@ export interface PackingGroup {
   /** Over the full set, so the header stays honest while done rows are hidden. */
   doneCount: number
   totalCount: number
+  /** What a folded header has to answer in place of done/total (FR-25.16). */
+  openCount: number
+  /** Folded shut by the user; the entries are still built so unfolding is free. */
+  collapsed: boolean
   entries: PackingEntry[]
+}
+
+/** One offer in the filter sheet (FR-25.11d). */
+export interface FacetValue {
+  value: string
+  /**
+   * `null` where the wording is UI copy rather than data — modes, flags and
+   * every absence bucket. Same convention as `PackingGroup.name`.
+   */
+  label: string | null
+  /** What picking this value would yield, given the *other* active facets. */
+  count: number
+  selected: boolean
 }
 
 export interface PackingView {
   groups: PackingGroup[]
   /** Feeds the "show N packed" toggle; zero once they are revealed. */
   hiddenDoneCount: number
-  /** Per-mode counts over the *open* rows, for the filter pills. */
-  modeCounts: Record<ItemMode, number>
+  /** Feeds the FR-25.20 reveal bar; zero once other people's rows are revealed. */
+  hiddenOtherCount: number
+  /** Who those rows belong to, so the bar can name them rather than just count. */
+  hiddenOtherNames: string[]
+  facetValues: Record<FacetKey, FacetValue[]>
+  /** The filter badge (FR-25.11a): how many facet values are in force. */
+  activeFacetCount: number
+  /** The sheet's footer promise ("14 Sachen anzeigen") — open rows passing the facets. */
+  matchCount: number
+  /**
+   * Something is hiding rows that are not merely done (FR-25.11e). An empty
+   * list may only read as "everything is packed" when this is false — a search,
+   * a facet or FR-25.20's default each make completion a lie.
+   */
+  narrowed: boolean
 }
 
 export interface PackingViewInput {
   items: TripItem[]
   travelers: Traveler[]
   containers: Container[]
+  /** Trip members, to name the people behind FR-25.20's reveal bar. */
+  participants: TripParticipant[]
   groupBy: GroupBy
   /** FR-25.2 reveal toggle — non-destructive and per-user. */
   showDone: boolean
-  /** FR-25.4b multi-select; empty means no filter rather than "nothing". */
-  modeFilter: ItemMode[]
+  /** FR-25.11: empty means no restriction on that axis, never "show nothing". */
+  facets: Facets
+  /** FR-25.11k: the collapsed search field's term; whitespace narrows nothing. */
+  search: string
+  /** Who "mine" is (FR-25.20). `null` in Single-User and Local Mode, where nothing is assignable. */
+  currentUserId: string | null
+  /** FR-25.20 reveal toggle. */
+  showOthers: boolean
+  /** Group keys folded shut (FR-25.16) — by key, so a re-render keeps the fold. */
+  collapsedGroups: string[]
   /** Ids of items carrying an unresolved preparation todo (FR-7.3). */
   itemsWithOpenPrep: string[]
 }
@@ -127,46 +207,124 @@ function byGroupName(a: PackingGroup, b: PackingGroup): number {
   return a.name.localeCompare(b.name)
 }
 
+/**
+ * The facet values a row satisfies — one place, so filtering and counting can
+ * never drift apart. All facets but *Merkmale* answer with exactly one value.
+ */
+function valuesOf(item: TripItem, key: FacetKey, hasOpenPrep: boolean): string[] {
+  switch (key) {
+    case 'person':
+      return [item.assigned_traveler_id ?? NO_VALUE]
+    case 'category':
+      return [item.category_name ?? NO_VALUE]
+    case 'mode':
+      return [item.mode]
+    case 'container':
+      return [item.container_id ?? NO_VALUE]
+    case 'flag': {
+      const flags: FlagFacetValue[] = []
+      if (item.late_packer) flags.push('late')
+      if (item.flag_missing) flags.push('missing')
+      if (hasOpenPrep) flags.push('prep')
+      return flags
+    }
+  }
+}
+
 export function buildPackingView(input: PackingViewInput): PackingView {
-  const { items, travelers, containers, groupBy, showDone, modeFilter, itemsWithOpenPrep } = input
+  const {
+    items,
+    travelers,
+    containers,
+    participants,
+    groupBy,
+    showDone,
+    facets,
+    search,
+    currentUserId,
+    showOthers,
+    collapsedGroups,
+    itemsWithOpenPrep,
+  } = input
 
   const travelerById = new Map(travelers.map((t) => [t.id, t]))
   const containerById = new Map(containers.map((c) => [c.id, c]))
   const travelerOrder = new Map(travelers.map((t, i) => [t.id, i]))
+  const nameByUserId = new Map(participants.map((p) => [p.user_id, p.display_name]))
   const openPrep = new Set(itemsWithOpenPrep)
+  const folded = new Set(collapsedGroups)
 
-  const modeCounts: Record<ItemMode, number> = { pack: 0, buy_before: 0, buy_local: 0 }
+  const done = (item: TripItem) => isDone(item, openPrep.has(item.id))
+
+  /** FR-25.11c: OR within a facet, AND across them. `skip` leaves one axis out (FR-25.11d). */
+  function passesFacets(item: TripItem, skip?: FacetKey): boolean {
+    return FACET_KEYS.every((key) => {
+      if (key === skip) return true
+      const selected = facets[key]
+      if (selected.length === 0) return true
+      return valuesOf(item, key, openPrep.has(item.id)).some((v) => selected.includes(v))
+    })
+  }
+
+  const term = search.trim().toLowerCase()
+  const matchesSearch = (item: TripItem) => term === '' || item.name.toLowerCase().includes(term)
+
+  /**
+   * FR-25.20: assigned, and not to me. An unassigned row is nobody's and
+   * therefore everybody's, so it never hides — and where there is no current
+   * user (Single-User, Local) nothing is assignable, so nothing hides either.
+   * Read from the *assignment*, never from the packing record (FR-25.19).
+   */
+  const othersJob = (item: TripItem) =>
+    currentUserId !== null && item.packer_user_id !== null && item.packer_user_id !== currentUserId
+
+  const matching = items.filter((item) => passesFacets(item) && matchesSearch(item))
+
+  // Offered for reveal only what revealing would actually show: rows already
+  // excluded by a facet, the search or the done rule stay out of the count, or
+  // the bar promises rows that one tap does not produce.
+  const others = matching.filter((item) => othersJob(item) && (showDone || !done(item)))
+  const hiddenOtherCount = showOthers ? 0 : others.length
+  const hiddenOtherNames = showOthers
+    ? []
+    : [
+        ...new Set(
+          others
+            .map((item) =>
+              item.packer_user_id ? nameByUserId.get(item.packer_user_id) : undefined,
+            )
+            .filter((name): name is string => name !== undefined),
+        ),
+      ].sort((a, b) => a.localeCompare(b))
+
+  const shown = showOthers ? matching : matching.filter((item) => !othersJob(item))
+
   let hiddenDoneCount = 0
-
-  // Mode filtering happens before grouping; mode *counts* are taken over the
-  // unfiltered open rows so the pills do not renumber as you toggle them.
-  const modeSelected = new Set(modeFilter)
   const visible: TripItem[] = []
-  for (const item of items) {
-    const done = isDone(item, openPrep.has(item.id))
-    if (!done) modeCounts[item.mode] += 1
-    if (modeSelected.size > 0 && !modeSelected.has(item.mode)) continue
-    if (done && !showDone) {
+  for (const item of shown) {
+    if (done(item) && !showDone) {
       hiddenDoneCount += 1
       continue
     }
     visible.push(item)
   }
 
-  // Full-set tallies per group, so headers can count what the list no longer shows.
+  // Full-set tallies per group, so headers can count what the list no longer
+  // shows. "Full set" means everything the filter lets through — a header
+  // counting rows the facet excluded would describe a different list.
   const totals = new Map<string, { done: number; total: number }>()
-  for (const item of items) {
-    if (modeSelected.size > 0 && !modeSelected.has(item.mode)) continue
+  for (const item of shown) {
     const { key } = groupOf(item, groupBy, travelerById, containerById)
     const tally = totals.get(key) ?? { done: 0, total: 0 }
     tally.total += 1
-    if (isDone(item, openPrep.has(item.id))) tally.done += 1
+    if (done(item)) tally.done += 1
     totals.set(key, tally)
   }
 
-  // Cluster sizes are measured over the full set too: whether a per-person item
-  // renders as a cluster or as a flat row must not flip just because one of its
-  // instances got packed and hidden.
+  // Cluster sizes are measured over *every* item, filtered or not: whether a
+  // per-person item renders as a cluster or as a flat row must not flip because
+  // one instance got packed, or because a facet hid a sibling. Shape is a
+  // property of the item, not of the current view.
   const clusterSizes = new Map<string, number>()
   if (groupBy !== 'person') {
     for (const item of items) {
@@ -186,7 +344,7 @@ export function buildPackingView(input: PackingViewInput): PackingView {
     // header carries that context. Grouped by traveler the header already does.
     const label =
       standalone && traveler && groupBy !== 'person' ? `${item.name} · ${traveler.name}` : item.name
-    return { kind: 'item', item, traveler, done: isDone(item, openPrep.has(item.id)), label }
+    return { kind: 'item', item, traveler, done: done(item), label }
   }
 
   for (const item of visible) {
@@ -194,7 +352,15 @@ export function buildPackingView(input: PackingViewInput): PackingView {
     let group = groups.get(groupKey)
     if (!group) {
       const tally = totals.get(groupKey) ?? { done: 0, total: 0 }
-      group = { key: groupKey, name, doneCount: tally.done, totalCount: tally.total, entries: [] }
+      group = {
+        key: groupKey,
+        name,
+        doneCount: tally.done,
+        totalCount: tally.total,
+        openCount: tally.total - tally.done,
+        collapsed: folded.has(groupKey),
+        entries: [],
+      }
       groups.set(groupKey, group)
     }
 
@@ -229,15 +395,14 @@ export function buildPackingView(input: PackingViewInput): PackingView {
   }
 
   // Cluster tallies over the full set, matching the group-header rule.
-  for (const item of items) {
-    if (modeSelected.size > 0 && !modeSelected.has(item.mode)) continue
+  for (const item of shown) {
     const clusterKey = clusterKeyOf(item)
     if (clusterKey === null || (clusterSizes.get(clusterKey) ?? 0) <= 1) continue
     const { key: groupKey } = groupOf(item, groupBy, travelerById, containerById)
     const cluster = clusters.get(`${groupKey}::${clusterKey}`)
     if (!cluster) continue
     cluster.totalCount += 1
-    if (isDone(item, openPrep.has(item.id))) cluster.doneCount += 1
+    if (done(item)) cluster.doneCount += 1
   }
 
   for (const cluster of clusters.values()) {
@@ -248,9 +413,107 @@ export function buildPackingView(input: PackingViewInput): PackingView {
     )
   }
 
+  const activeFacetCount = FACET_KEYS.reduce((n, key) => n + facets[key].length, 0)
+
   return {
     groups: [...groups.values()].sort(byGroupName),
     hiddenDoneCount,
-    modeCounts,
+    hiddenOtherCount,
+    hiddenOtherNames,
+    facetValues: buildFacetValues({
+      items,
+      facets,
+      passesFacets,
+      done,
+      hasOpenPrep: (item) => openPrep.has(item.id),
+      travelerById,
+      containerById,
+    }),
+    activeFacetCount,
+    matchCount: items.filter((item) => passesFacets(item) && !done(item)).length,
+    narrowed: activeFacetCount > 0 || term !== '' || hiddenOtherCount > 0,
   }
+}
+
+/**
+ * FR-25.11d — what each facet may offer, and what picking it would yield.
+ *
+ * Counts run over **open** rows only (offering to filter for finished work
+ * misleads) and against the *other* active facets but not the value's own, so
+ * the numbers say what picking it would do rather than what is on screen. A
+ * selected value is listed even at zero: a filter that cannot be undone from
+ * inside the panel is a trap. The search term deliberately does not enter here
+ * — it is a momentary lookup, not part of the filter the panel edits.
+ */
+function buildFacetValues(ctx: {
+  items: TripItem[]
+  facets: Facets
+  passesFacets: (item: TripItem, skip?: FacetKey) => boolean
+  done: (item: TripItem) => boolean
+  hasOpenPrep: (item: TripItem) => boolean
+  travelerById: Map<string, Traveler>
+  containerById: Map<string, Container>
+}): Record<FacetKey, FacetValue[]> {
+  const { items, facets, passesFacets, done, hasOpenPrep, travelerById, containerById } = ctx
+  const open = items.filter((item) => !done(item))
+
+  const result = {} as Record<FacetKey, FacetValue[]>
+  for (const key of FACET_KEYS) {
+    const counts = new Map<string, number>()
+    for (const item of open) {
+      if (!passesFacets(item, key)) continue
+      for (const value of valuesOf(item, key, hasOpenPrep(item))) {
+        counts.set(value, (counts.get(value) ?? 0) + 1)
+      }
+    }
+    for (const value of facets[key]) if (!counts.has(value)) counts.set(value, 0)
+
+    const values: FacetValue[] = [...counts.entries()].map(([value, count]) => ({
+      value,
+      label: labelFor(key, value, travelerById, containerById),
+      count,
+      selected: facets[key].includes(value),
+    }))
+    result[key] = sortFacetValues(key, values)
+  }
+  return result
+}
+
+function labelFor(
+  key: FacetKey,
+  value: string,
+  travelerById: Map<string, Traveler>,
+  containerById: Map<string, Container>,
+): string | null {
+  if (value === NO_VALUE) return null
+  switch (key) {
+    case 'person':
+      return travelerById.get(value)?.name ?? null
+    case 'container':
+      return containerById.get(value)?.name ?? null
+    case 'category':
+      return value
+    default:
+      // Modes and flags are UI copy — the caller words them through t().
+      return null
+  }
+}
+
+/**
+ * The absence bucket leads its facet (FR-25.11f/g): "Gemeinsam" and "kein
+ * Gepäck" are the absence of a value, not one more name among the people.
+ * Modes and flags keep their declared order, everything else sorts by label.
+ */
+function sortFacetValues(key: FacetKey, values: FacetValue[]): FacetValue[] {
+  if (key === 'mode') return orderBy(values, MODE_VALUES)
+  if (key === 'flag') return orderBy(values, FLAG_VALUES)
+  return [...values].sort((a, b) => {
+    if (a.value === NO_VALUE) return b.value === NO_VALUE ? 0 : -1
+    if (b.value === NO_VALUE) return 1
+    return (a.label ?? a.value).localeCompare(b.label ?? b.value)
+  })
+}
+
+function orderBy(values: FacetValue[], order: readonly string[]): FacetValue[] {
+  return [...values].sort((a, b) => order.indexOf(a.value) - order.indexOf(b.value))
 }

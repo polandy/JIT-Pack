@@ -87,6 +87,7 @@ function commit() {
         <input type="file" accept=".yaml,.yml,text/yaml" @change="onFile" />
         <IonTextarea
           class="paste-area"
+          data-testid="portable-paste"
           placeholder="…or paste YAML here"
           :value="rawText"
           :rows="8"
@@ -94,7 +95,12 @@ function commit() {
         />
         <!-- Malformed files are rejected here, before any preview -->
         <IonNote v-if="parsed?.error" color="danger">{{ parsed.error }}</IonNote>
-        <IonButton expand="block" :disabled="rawText.trim() === ''" @click="preview">
+        <IonButton
+          expand="block"
+          data-testid="portable-preview"
+          :disabled="rawText.trim() === ''"
+          @click="preview"
+        >
           Preview
         </IonButton>
       </template>
@@ -149,7 +155,7 @@ function commit() {
 
         <div class="actions">
           <IonButton fill="outline" @click="parsed = null">Cancel</IonButton>
-          <IonButton color="primary" @click="commit">
+          <IonButton color="primary" data-testid="portable-commit" @click="commit">
             Import {{ doc.kind === 'template' ? 'template' : 'trip' }}
           </IonButton>
         </div>

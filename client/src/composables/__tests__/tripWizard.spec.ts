@@ -124,6 +124,7 @@ describe('createTripFromWizard', () => {
 
     const tripId = orch.createTripFromWizard({
       name: 'Engadin',
+      year: 2026,
       startDate: '2026-08-01',
       endDate: '2026-08-10',
       attributes: { season: 'summer' },
@@ -162,6 +163,7 @@ describe('createTripFromWizard', () => {
 
     const tripId = orch.createTripFromWizard({
       name: 'Engadin',
+      year: 2026,
       startDate: null,
       endDate: '2026-08-10',
       attributes: null,
@@ -185,6 +187,7 @@ describe('createTripFromWizard', () => {
 
     const tripId = orch.createTripFromWizard({
       name: 'Fototour',
+      year: 2026,
       startDate: null,
       endDate: '2026-08-10',
       attributes: null,
@@ -214,6 +217,7 @@ describe('createTripFromWizard', () => {
 
     const tripId = orch.createTripFromWizard({
       name: 'Offen',
+      year: 2026,
       startDate: null,
       endDate: '2026-08-10',
       attributes: null,

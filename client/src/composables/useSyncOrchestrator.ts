@@ -25,6 +25,7 @@ import { dependentsOf, resolveDependencies } from '@/domain/dependencies'
 import { planClone, type CloneOptions } from '@/domain/clone'
 import { optimizeItemImage } from '@/lib/imageResize'
 import type { ImportPlan } from '@/domain/spreadsheet'
+import { portableYear } from '@/domain/portable'
 import type { PortableDocument, PortableItem } from '@/domain/portable'
 import type { NotificationPrefs, ServerNotification } from '@/notifications/format'
 import type { PushServerAPI } from '@/notifications/push'
@@ -70,8 +71,10 @@ export interface ConflictEntry {
 /** Everything the M3 wizard collected before "Create trip". */
 export interface TripWizardDraft {
   name: string
+  /** FR-2.1b: required, and the only temporal fact that is. */
+  year: number
   startDate: string | null
-  endDate: string
+  endDate: string | null
   attributes: Record<string, unknown> | null
   travelers: { name: string; linkedUserId?: string | null }[]
   /** Generated rows — template items, or companions without a template (FR-20.2). */
@@ -89,8 +92,10 @@ export interface TripWizardDraft {
 /** cloneTrip input (FR-12.2): fresh name/dates plus the carry-over options. */
 export interface CloneDraft {
   name: string
+  /** FR-2.1b: required on a clone too — a copy is a trip of its own year. */
+  year: number
   startDate: string | null
-  endDate: string
+  endDate: string | null
   options: CloneOptions
 }
 
@@ -183,6 +188,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     onEvent: onWSEvent,
   })
 
+  /** Whether another save has been queued behind the one just finished. */
+  let localWrites = 0
+  function localWritesPending(): boolean {
+    return localWrites > 0
+  }
+
   // --- Pull change routing ---
 
   function onPullChanges(changes: PullChange[]) {
@@ -224,7 +235,21 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     // FR-19.2: in Local Mode every applied change is durable — this is
     // the single funnel all mutations and startup loads pass through.
-    if (local) local.save(changes).catch(() => {})
+    // The indicator follows the write rather than the tap, so "on this
+    // device" means the row is *on* the device: a fire-and-forget save
+    // told the user it was safe while the transaction was still open,
+    // and a reload in that window lost the row.
+    if (local && changes.length > 0) {
+      localWrites += 1
+      syncStatus.setSyncing()
+      local
+        .save(changes)
+        .finally(() => (localWrites -= 1))
+        .then(() => {
+          if (!localWritesPending()) syncStatus.setLocal()
+        })
+        .catch(() => syncStatus.setOffline())
+    }
   }
 
   // --- WebSocket event handling ---
@@ -686,6 +711,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     const { mutation: tripMut, id: tripId } = mutations.createTrip(
       draft.name,
+      draft.year,
       draft.startDate,
       draft.endDate,
       { attributes: draft.attributes, seriesId },
@@ -803,6 +829,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     const { mutation: tripMut, id: tripId } = mutations.createTrip(
       draft.name,
+      draft.year,
       draft.startDate,
       draft.endDate,
       { seriesId: source.series_id, attributes: source.attributes },
@@ -1105,11 +1132,14 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     }
 
     // Trip import — planning status (FR-18.4), fresh trip partition.
-    const endDate = doc.end_date ?? new Date().toISOString().slice(0, 10)
+    // FR-2.1b: neither date has to be there any more, so an absent one
+    // stays absent rather than being invented as today's date; the year
+    // is what the document must yield, from its own field or its dates.
     const { mutation: tripMut, id: tripId } = mutations.createTrip(
       doc.name,
+      portableYear(doc),
       doc.start_date,
-      endDate,
+      doc.end_date,
     )
     onPullChanges([
       {
@@ -1117,7 +1147,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         table: 'trips',
         id: tripId,
         deleted: false,
-        row: { ...tripMut.fields, duration_days: durationDays(doc.start_date, endDate) },
+        row: { ...tripMut.fields, duration_days: durationDays(doc.start_date, doc.end_date) },
       },
     ])
     if (!local) outbox.enqueue('master', null, tripMut)
@@ -1748,6 +1778,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   // --- Post-trip review (FR-9.2, M14) ---
 
+  /**
+   * activateTrip moves a planning trip into packing. The wizard only ever
+   * creates planning trips, so without this a trip could reach *active*
+   * nowhere in the app — the state that decides FR-9.1's Missing flagging
+   * and M4's archive action.
+   */
+  function activateTrip(tripId: string) {
+    setTripStatus(tripId, 'active')
+  }
+
   /** archiveTrip completes the trip; archiving is the M14 review trigger. */
   function archiveTrip(tripId: string) {
     setTripStatus(tripId, 'archived')
@@ -2021,6 +2061,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     pushApi,
 
     // Post-trip review (FR-9.2, M14)
+    activateTrip,
     archiveTrip,
     deleteTrip,
     applyReviewProposal,

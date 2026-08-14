@@ -29,6 +29,10 @@ import { safeFilename, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import type { Template } from '@/types/domain'
+import SearchRow from '@/components/global/SearchRow.vue'
+import { useContextSearch } from '@/composables/useContextSearch'
+import { setHeaderActions } from '@/composables/useHeaderActions'
+import { t } from '@/i18n'
 
 const store = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
@@ -58,7 +62,17 @@ function exportTemplate(tpl: Template) {
   saveText(yaml, `${safeFilename(tpl.name)}.yaml`)
 }
 
-const isEmpty = computed(() => store.templateList.length === 0)
+const {
+  term: search,
+  isOpen: searchOpen,
+  toggle: toggleSearch,
+  action,
+  matches,
+} = useContextSearch()
+setHeaderActions(() => [action()])
+
+const visibleTemplates = computed(() => store.templateList.filter((tpl) => matches(tpl.name)))
+const isEmpty = computed(() => visibleTemplates.value.length === 0)
 
 async function handleRefresh(event: CustomEvent) {
   const refresher = event.target as HTMLIonRefresherElement
@@ -69,6 +83,14 @@ async function handleRefresh(event: CustomEvent) {
 <template>
   <IonPage>
     <IonContent>
+      <SearchRow
+        v-if="searchOpen || search"
+        v-model="search"
+        testid="templates-search-input"
+        :placeholder="t('templates.searchPlaceholder')"
+        @close="toggleSearch"
+      />
+
       <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
         <IonRefresherContent />
       </IonRefresher>
@@ -97,7 +119,7 @@ async function handleRefresh(event: CustomEvent) {
 
       <IonList v-else>
         <IonItem
-          v-for="tpl in store.templateList"
+          v-for="tpl in visibleTemplates"
           :key="tpl.id"
           button
           :router-link="`/templates/${tpl.id}`"

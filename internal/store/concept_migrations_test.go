@@ -174,3 +174,93 @@ func TestMigrate019_BackfillsRecordFromPackedRows_FR25_19(t *testing.T) {
 		t.Errorf("unpacked row got a fabricated packing record: %q", record.String)
 	}
 }
+
+// FR-25.17: the record's *when*, added by 020. Nullable on purpose —
+// rows packed before the migration have a packer and no known moment,
+// and the screen states the packer alone rather than inventing a time.
+func TestMigrate_AddsPackedAtColumn_FR25_17(t *testing.T) {
+	s := openTestStore(t)
+
+	if !columns(t, s.db, "trip_items")["packed_at"] {
+		t.Fatal("trip_items.packed_at missing — FR-25.17 needs the time beside the packer")
+	}
+
+	if _, err := s.db.Exec(
+		`INSERT INTO trip_items (id, trip_id, name) VALUES ('ti-no-time', ?, 'Zelt')`,
+		testTrip); err != nil {
+		t.Fatalf("packed_at is not nullable: %v", err)
+	}
+}
+
+// FR-2.1b: only the year is required. A trip planned before its dates
+// exist must be storable, and the year must survive as the anchor M2
+// sorts by.
+func TestMigrate_TripNeedsOnlyItsYear_FR2_1b(t *testing.T) {
+	s := openTestStore(t)
+
+	if !columns(t, s.db, "trips")["year"] {
+		t.Fatal("trips.year missing — FR-2.1b makes it the one required temporal fact")
+	}
+
+	// A trip with no dates at all.
+	if _, err := s.db.Exec(
+		`INSERT INTO trips (id, name, year) VALUES ('t-year-only', 'Samedan 2027', 2027)`); err != nil {
+		t.Fatalf("a trip with only a year was rejected: %v", err)
+	}
+	var duration sql.NullInt64
+	if err := s.db.QueryRow(
+		`SELECT duration_days FROM trips WHERE id = 't-year-only'`).Scan(&duration); err != nil {
+		t.Fatalf("read duration: %v", err)
+	}
+	if duration.Valid {
+		t.Errorf("a trip without dates has no duration, got %d", duration.Int64)
+	}
+
+	// The year is not optional in its turn.
+	if _, err := s.db.Exec(
+		`INSERT INTO trips (id, name) VALUES ('t-no-year', 'Irgendwann')`); err == nil {
+		t.Error("a trip without a year was accepted")
+	}
+
+	// Dates still constrain each other where both are given.
+	if _, err := s.db.Exec(
+		`INSERT INTO trips (id, name, year, start_date, end_date)
+		 VALUES ('t-backwards', 'Rückwärts', 2026, '2026-08-10', '2026-08-01')`); err == nil {
+		t.Error("end before start was accepted")
+	}
+}
+
+// The backfill has to derive the year from the date the trip already had,
+// or every existing trip would land in the wrong place in M2.
+func TestMigrate_021_DerivesYearFromTheExistingEndDate(t *testing.T) {
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("close staged db: %v", err)
+		}
+	})
+
+	if err := migrateTo(db, 20); err != nil {
+		t.Fatalf("migrate to 020: %v", err)
+	}
+	if _, err := db.Exec(
+		`INSERT INTO trips (id, name, start_date, end_date, status)
+		 VALUES ('t-old', 'Samedan 2025', '2025-08-01', '2025-08-14', 'archived')`); err != nil {
+		t.Fatalf("seed pre-021 trip: %v", err)
+	}
+
+	if err := migrateTo(db, 21); err != nil {
+		t.Fatalf("migrate to 021: %v", err)
+	}
+
+	var year int
+	if err := db.QueryRow(`SELECT year FROM trips WHERE id = 't-old'`).Scan(&year); err != nil {
+		t.Fatalf("read year: %v", err)
+	}
+	if year != 2025 {
+		t.Errorf("year = %d, want 2025 — derived from the end date it used to require", year)
+	}
+}

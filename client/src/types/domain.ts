@@ -6,8 +6,13 @@ export interface Trip {
   id: string
   name: string
   status: TripStatus
+  /**
+   * The one required temporal fact (FR-2.1b). A trip is planned long
+   * before its dates exist, and demanding a date meant inventing one.
+   */
+  year: number
   start_date: string | null
-  end_date: string
+  end_date: string | null
   duration_days: number | null
   series_id: string | null
   series_name: string | null
@@ -54,6 +59,12 @@ export interface TripItem {
   packer_user_id: string | null
   /** Record of who actually packed it; server-stamped, never picked (FR-25.19). */
   packed_by_user_id: string | null
+  /**
+   * When it was packed (FR-25.17). Null on rows packed before migration
+   * 020 — the stamp then names the packer without a time rather than
+   * inventing one.
+   */
+  packed_at: string | null
   container_id: string | null
   packing_now_by: string | null
   packing_now_at: string | null
@@ -63,6 +74,17 @@ export interface TripItem {
 }
 
 export type GroupBy = 'category' | 'container' | 'person' | 'status'
+
+/** The axes M4's filter panel offers, in panel order (FR-25.11b). */
+export type FacetKey = 'person' | 'category' | 'mode' | 'container' | 'flag'
+
+/**
+ * The selected values per facet (FR-25.11c). An empty array means *no
+ * restriction on that axis*, never "show nothing". Values are strings
+ * throughout so the whole filter survives a round trip through session
+ * storage (FR-25.18).
+ */
+export type Facets = Record<FacetKey, string[]>
 
 /** Computed stats for a trip's packing list. */
 export interface TripKPIs {

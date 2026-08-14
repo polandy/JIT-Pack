@@ -2,6 +2,7 @@ package api
 
 import (
 	"testing"
+	"time"
 
 	syncpkg "jitpack/internal/sync"
 )
@@ -66,6 +67,74 @@ func TestStampActor_PackingRecord_FR25_19(t *testing.T) {
 
 			assertField(t, m, "packed_by_user_id", tc.wantRecord)
 			assertField(t, m, "packer_user_id", tc.wantAssign)
+		})
+	}
+}
+
+// FR-25.17 needs the *when* beside the who: "gepackt von Andy · heute
+// 14:32". The time is part of the same record and follows the same rules
+// — written with the state it describes, cleared when that state goes.
+//
+// It differs from the record's user id in one deliberate way: a client
+// may supply its own tap time, because packing happens offline and the
+// moment the push finally lands is not the moment the row was packed.
+// Invariant 3 governs identity claims, not clocks, and the neighbouring
+// packing_now_at has taken client values since it was written.
+func TestStampActor_PackedAt_FR25_17(t *testing.T) {
+	const acting = "user-andy"
+	const tapped = "2026-08-01T10:00:00Z"
+
+	tests := []struct {
+		name   string
+		fields map[string]any
+		want   any // nil = absent or cleared; "" = any parseable server time
+	}{
+		{
+			name:   "packing stamps the time",
+			fields: map[string]any{"state": "packed"},
+			want:   "",
+		},
+		{
+			name:   "an offline client's own tap time survives the push",
+			fields: map[string]any{"state": "packed", "packed_at": tapped},
+			want:   tapped,
+		},
+		{
+			name:   "an unparseable time is replaced rather than stored",
+			fields: map[string]any{"state": "packed", "packed_at": "yesterday-ish"},
+			want:   "",
+		},
+		{
+			name:   "un-packing clears the time with the record it described",
+			fields: map[string]any{"state": "open", "packed_at": tapped},
+			want:   nil,
+		},
+		{
+			name:   "claiming the row clears a previous packing time",
+			fields: map[string]any{"state": "packing_now", "packed_at": tapped},
+			want:   nil,
+		},
+		{
+			name:   "a time smuggled in without a state change is dropped",
+			fields: map[string]any{"packed_count": 2, "packed_at": tapped},
+			want:   nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := &syncpkg.Mutation{Table: "trip_items", Op: syncpkg.OpUpsert, Fields: tc.fields}
+
+			stampActor(m, acting)
+
+			if tc.want == "" {
+				got, _ := m.Fields["packed_at"].(string)
+				if _, err := time.Parse(time.RFC3339, got); err != nil {
+					t.Fatalf("packed_at = %q, want a server-stamped RFC3339 time: %v", got, err)
+				}
+				return
+			}
+			assertField(t, m, "packed_at", tc.want)
 		})
 	}
 }

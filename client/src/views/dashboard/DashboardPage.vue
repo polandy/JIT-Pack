@@ -21,7 +21,7 @@ import {
   IonRefresher,
   IonRefresherContent,
 } from '@ionic/vue'
-import { airplaneOutline, addOutline, buildOutline } from 'ionicons/icons'
+import { trainOutline, addOutline, buildOutline } from 'ionicons/icons'
 import { computed, inject } from 'vue'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip, ItemTodo } from '@/types/domain'
@@ -111,7 +111,7 @@ async function handleRefresh(event: CustomEvent) {
 
       <!-- Empty state (G-7) -->
       <div v-if="isEmpty" class="empty-state" data-testid="dashboard-empty">
-        <IonIcon :icon="airplaneOutline" class="empty-icon" />
+        <IonIcon :icon="trainOutline" class="empty-icon" />
         <p>No active trips</p>
         <IonButton router-link="/trips/new" expand="block" data-testid="dashboard-plan-trip">
           <IonIcon slot="start" :icon="addOutline" />

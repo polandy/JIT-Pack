@@ -146,7 +146,7 @@ func TestApplyMasterMutation_DeleteReferencedSeriesRejected(t *testing.T) {
 	s := openTestStore(t)
 	seedSeries(t, s)
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trips", "trip-ser", "sr-1",
-		map[string]any{"name": "Engadin", "end_date": "2026-08-01", "series_id": "ser-1"},
+		map[string]any{"name": "Engadin", "year": 2026, "end_date": "2026-08-01", "series_id": "ser-1"},
 		"0000000002000-0000-aaaaaaaa"))
 
 	res := applyMaster(t, s, testUser, masterMut(sync.OpDelete, "trip_series", "ser-1", "sr-2", nil,

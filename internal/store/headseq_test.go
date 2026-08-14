@@ -53,7 +53,7 @@ func seedTrip(t *testing.T, st *store.Store) {
 	t.Helper()
 	seeds := []string{
 		`INSERT INTO users (id, oidc_subject, display_name) VALUES ('user-a', 'auth|a', 'Andy')`,
-		`INSERT INTO trips (id, name, start_date, end_date) VALUES ('trip-1', 'Test', '2026-01-01', '2026-01-10')`,
+		`INSERT INTO trips (id, name, year, start_date, end_date) VALUES ('trip-1', 'Test', 2026, '2026-01-01', '2026-01-10')`,
 		`INSERT INTO trip_members (trip_id, user_id, role) VALUES ('trip-1', 'user-a', 'owner')`,
 	}
 	for _, q := range seeds {

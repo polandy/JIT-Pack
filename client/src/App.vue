@@ -2,7 +2,8 @@
 /**
  * Root app component — provides AppHeader (G-9) and responsive layout.
  * Desktop (≥900px): left nav rail + content area.
- * Mobile (<900px): content area + bottom tabs (in TabsLayout).
+ * Mobile (<900px): content area + the bottom tab bar, which is a sibling
+ * of the outlet rather than an IonTabs layout around it (ADR-012).
  *
  * First launch shows M19 (FR-19.1) until a mode is chosen; afterwards
  * the persisted mode decides whether the orchestrator runs against a
@@ -11,6 +12,7 @@
 import { IonApp, IonRouterOutlet, toastController } from '@ionic/vue'
 import AppHeader from '@/components/global/AppHeader.vue'
 import NavRail from '@/components/global/NavRail.vue'
+import TabBar from '@/components/global/TabBar.vue'
 import ModeSelectionPage from '@/views/ModeSelectionPage.vue'
 import { AUTH_EXPIRED_EVENT, createAuthRefresher } from '@/auth/refresh'
 import { loadTokens } from '@/auth/tokens'
@@ -140,6 +142,7 @@ function onSyncTap() {
           <IonRouterOutlet />
         </main>
       </div>
+      <TabBar />
     </template>
   </IonApp>
 </template>

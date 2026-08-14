@@ -820,3 +820,336 @@ failure differently (`reading 'x'` vs `undefined is not an object (evaluating
 Left open deliberately: the Ionic transition itself. It is cosmetic today —
 nothing user-visible fails — and chasing a cross-outlet animation bug in a
 minified dependency is its own piece of work, not a rider on this one.
+
+## M4, built from the mock
+
+The first screen rebuild (backlog item 3). The concept has been settled since
+2026-08-08 and mocked in the prototype; this is the same screen in Vue, with
+the arithmetic where it can be tested and the wording where it can be
+translated.
+
+**The view model came first, and grew three axes.** `packingView.ts` already
+carried clustering, hide-done and the mode counts from the concept phase —
+written then, never wired to anything. It gained the facet filter (OR within,
+AND across), the FR-25.20 default that hides other people's rows, and the fold
+state, and lost its own mode filter: FR-25.4's pill strip is the *Beschaffung*
+facet now, and keeping a second path to the same question is how two filters
+start disagreeing.
+
+Three rules there are worth stating because getting them wrong is invisible on
+screen. Facet counts run against the *other* active facets but not the value's
+own, so a number says what picking it would yield rather than what is already
+shown; a selected value survives at zero, since a filter you cannot undo from
+inside the panel is a trap; an unselected dead end is not offered at all. The
+FR-25.20 reveal bar counts only what revealing would actually show — the mock
+counts over the unfiltered set, which promises rows that one tap does not
+deliver, and that is a deliberate deviation. And `narrowed` carries FR-25.11e
+in one flag, so the component cannot re-derive "is anything hiding rows?" per
+empty state, which is exactly how the original implementation came to announce
+"Alles gepackt" over an unmatched search.
+
+**FR-25.17 needed a column.** „gepackt von Andy · heute 14:32" wants a *when*,
+and nothing on the row could stand in: `updated_hlc` is the last touch of any
+kind, so a comment added afterwards would redate the packing. Migration 020
+adds `trip_items.packed_at`, stamped and cleared by `stampActor` with the
+record it belongs to. One deliberate difference from the user id beside it: a
+client-supplied RFC 3339 value is *kept*, because packing happens offline and
+the envelope can land days later. A clock is not an identity claim — invariant
+3 governs actors and foreign keys — and `packing_now_at` has taken client
+values since it was written. Unparseable values are replaced rather than
+trusted, so the column always holds a real instant. Rows packed before the
+migration keep their packer and get no time; the screen names the packer alone
+there rather than inventing one.
+
+**What the screen dropped.** The KPI tile strip, the grouping segment bar and
+the two filter toggles are gone — none survived the redesign. The separate
+"consciously skipped" section went with them: FR-25.2 counts a skipped row as
+done, so it is revealed by the same *Erledigte* switch as a packed one, and two
+mechanisms for one class of rows would have shown them twice with both on. The
+UI-Spec's Elements list still described that section and has been corrected.
+Archive kept its app-bar button although the mock has no such control anywhere:
+it is the only path to M14 today, and matching a mock that never modelled
+archiving would have removed a working feature.
+
+**Three defects surfaced while writing the Playwright unit, none of them test
+artefacts.** Tapping a row's checkbox opened M5 *and* packed the row, because
+the control sits inside a row that is a link. The first tap after adding an
+item was swallowed entirely: the quick-add collapsed on blur, which removes a
+block from the flow above the list, so the rows moved between pointer-down and
+pointer-up and the browser dispatched no click at all — the form now closes
+only when asked to, which FR-25.13a permits and which is the better trade
+against a list that ignores one tap in a place nobody would look for it. And
+the filter sheet's footer — the outcome line and *Zurücksetzen*, the two things
+FR-25.11b puts there — sat below the viewport, because Ionic's drag breakpoints
+keep the modal box full-height and translate it down; the sheet is sized and
+anchored instead.
+
+**Found and not fixed:** in Local Mode a trip's *items* do not come back after
+a reload, though the trip itself does and the rows are demonstrably in
+IndexedDB (`jitpack-local` / `rows`). It is the local persistence path rather
+than the packing list, so it was reported instead of being repaired inside an
+M4 change; the one e2e case that would have crossed it was rewritten to leave
+M4 through the app instead of reloading, and the fresh-session half of FR-25.18
+is asserted in the `usePackingFilter` unit test, where it is deterministic.
+
+**No `docs/` page.** The manual covers running an instance and stops before the
+UI on purpose, because most screens are still being rebuilt; a page for M4
+alone would be an island next to M5, M9 and M11 that do not have one. It is
+owed as a set once the rebuilds land, and this is the note that says so.
+
+## What hand-testing M4 turned up — and why the suite had not
+
+The maintainer opened the rebuilt screen and hit four things in a row: the
+desktop rail did nothing, mobile had no navigation at all, `‹ back` did
+nothing, and the search icon kept filtering a screen he had already left. A
+fifth complaint — "my trip wasn't persisted" — turned out to be two more
+defects wearing that costume.
+
+His verdict on the process is the important part and is now in the working
+agreement: *„dir wäre das nicht passiert, wenn du saubere e2e ui tests
+gemacht hättest. das gehört immer dazu."* He is right, and the failure mode
+is specific: the M3 and M4 units were both green throughout. A per-screen
+suite proves the screen. Nothing exercised getting to it, leaving it, or
+what the app bar did afterwards — and the cases for exactly that
+(E2E-G1-01, G9-01…08, G12-01) had been *written* since the UI-Test-Spec was
+drafted and never implemented. A specified case nobody runs is a comment.
+
+**One cause under three symptoms.** The four anchors lived under an
+`IonTabs` layout, which carries its own router outlet, while every other
+route rendered in the root one. Crossing between them left the outgoing
+page painted while the URL moved on — so the rail, the tab bar and back
+all "did nothing" in the only sense a user cares about. It also threw the
+`classList` error that a session in August reproduced on the pre-ADR-011
+build and filed as *cosmetic*; it was this, and the exemption in
+`navigation.spec.ts` was quietly hiding the evidence. ADR-012 removes the
+second outlet, `TabBar.vue` becomes plain links beside the one that
+remains, and the exemption is gone with the error.
+
+**"Not persisted" was two defects, neither of them persistence.** The rows
+were in IndexedDB and on their way into the store the whole time. First,
+M4's app-bar actions were `<Teleport>`ed into the header's DOM — which
+Ionic relocates after mount — so on a cold boot Vue patched a container
+that had moved and threw `emitsOptions of null` mid-patch, aborting the
+render. An empty screen reads as lost data; it was a crash. Actions are
+now *described* (`useHeaderActions`) and the header owns its own DOM, the
+same shape `useHeaderTitle` already had. Second, and genuinely a
+durability bug: the Local Mode save was fire-and-forget, so a row added
+and immediately followed by a reload went into a transaction the
+navigation cancelled — FR-19.2 promises durability and the app said
+"saved" while the write was still open. Writes are serialised now, and
+the G-2 indicator reports *syncing* until the write lands.
+
+That last part is also what made the case testable without a sleep. The
+rule the suite already had — no waiting on durations — forced the right
+fix rather than a longer timeout: if there is nothing observable to wait
+for, the missing signal *is* the defect.
+
+**The duplicate that hid behind back.** With the outlets merged, `‹ back`
+still left two live instances of the trip list, because it navigated with
+the default *push*. The stale instance kept winning the header's action
+registry, so the search field rendered on a page nobody could see. Back
+replaces now.
+
+**A sample trip, and what it is not.** `src/dev/sampleTrip.ts` seeds an
+active trip with categories, both buy modes, a late packer and two
+per-person clusters. It is dev-only (`import.meta.env.DEV`), so it leaves
+the production bundle entirely, and E2E-G8-02 asserts that — Demo Mode was
+removed in Addendum v2.10 as a *product* surface and is not returning
+through a side door. It lands through the existing M18 portable-import
+path rather than a second way of building a trip, and `activateTrip` had
+to be added because the wizard only ever produced planning trips: until
+now nothing in the app could move one to *active* at all.
+
+## The filter panel, reworked from mockups
+
+Owner verdict on the built panel: the filters should bite immediately and
+the apply button is not needed, the sheet sits too flat against the list
+behind it, the close control is unattractive, the axes want icons — and
+the whole thing is cluttered, so rework it with mockups.
+
+Three were drawn and driven: all values open as chips, a master/detail
+split with the facets on the left, and one row per facet showing its
+current selection. The owner chose the first. The trade is honest and
+worth recording: it is the longest panel of the three and it scrolls,
+which buys the thing the other two cannot — you see what is set *and*
+what picking anything else would yield, without a single tap.
+
+**The apply button was a fiction.** The list underneath had already
+changed by the time the footer offered to confirm it; the button asked
+for a tap to agree with something that had happened. The outcome line
+moved into the head, where it describes the state rather than promising
+one, and *Zurücksetzen* appears there only when there is something to
+undo.
+
+**The fold was what made it unreadable.** Reading the current filter cost
+one tap per axis, and FR-25.11d's counts — the ones that say what picking
+a value would yield, computed against the *other* facets — were hidden
+exactly while they were most useful. As chips they visibly shrink while
+you filter, so the rule is doing its work in the open. The per-facet
+*Alle*/*Keine* pair went with the fold: *Alle* is what an empty facet
+already means, and *Keine* is the facet's own *zurücksetzen*.
+
+The panel is now mantle against the page's base with a rim, a shadow and
+a dimmed backdrop; the way out is a ✕ in a circle; and every axis carries
+a glyph, the same one whether it appears as a grouping or as a facet.
+
+Both the prototype and the app carry it, and the prototype's headless
+verifier stayed green through the change — it clicks facet values by
+`data-fopt`, which survived the move from rows to chips because the
+attribute is the contract, not the markup.
+
+**The aeroplane is a train.** Trips are ground travel in this household;
+the icon is the first thing the app says about itself, and it was saying
+the wrong thing.
+
+## The list's own hierarchy
+
+Reported after looking at the rebuilt list: „der Titel Kleidung als
+Oberkategorie ist kleiner als die Unterkategorien Regenjacke und
+Sonnenhut", and the categories were hard to tell apart at all.
+
+Both were mine. The group header had shipped as G-12-style uppercase
+micro-type — 0.82rem against the rows' 0.88rem — so the heading was
+literally smaller than the things it was heading. And the mock wraps each
+group's rows in a card, which is what separates one category from the
+next; the Vue rebuild kept the header and dropped the card, leaving a
+slightly larger gap to do the work of an edge.
+
+Now: the category heads its block at 1.02rem, a per-person cluster names
+itself at 0.88rem in the muted tone, and the rows are plain — three
+levels, three weights, in the order they actually nest. Each group is a
+bordered card, so the seam between categories is an edge.
+
+Two things surfaced while checking it in the browser rather than in the
+stylesheet, which is why that rule exists. The sticky trip line was
+painted *through* by the rows: its background came from
+`--ion-background-color`, which resolves to nothing inside `ion-content`,
+and `ion-item-sliding` is positioned and transformed, so at `z-index: 2`
+the list won. And the line faded its opacity while collapsing, so
+mid-scroll the progress figure and a group header were legible on top of
+each other — it clips now instead of fading.
+
+E2E-M4-21 guards the ordering on computed font size. A class assertion
+would have proved nothing here: everything rendered correctly, in the
+wrong order of importance.
+
+## A trip needs a year, not a date (FR-2.1b)
+
+Owner decision: „Das Datum für einen Trip soll optional sein. Nur das Jahr
+ist required. bei der Selektion ist das aktuelle Jahr bereits vorgewählt."
+
+FR-2.1a had already made the *start* date optional and kept the end date
+as "the trip's planning anchor". That was the wrong anchor. A trip exists
+as a plan long before its dates do, so requiring the end date meant
+inventing one — and an invented date is worse than an absent one, because
+it then drove M2's ordering, the series history and the „bis …" line, all
+of them stating knowledge nobody had.
+
+Migration 021 adds `trips.year NOT NULL` and makes `end_date` nullable,
+backfilling the year out of the end date every existing trip was still
+required to have. `duration_days` needs both dates now; everything
+derived from it already had a no-duration path from FR-2.1a.
+
+**The rebuild swallowed a column, and the suite caught it.** Modelled on
+migration 004, the new `trips` table reproduced the shape from *then* —
+without `updated_hlc`, which 005 had added since. Every master pull of a
+trip broke instantly. A twelve-step rebuild has to carry every column the
+table has grown, and the only reliable way to know that is to read the
+migrations after the one being copied.
+
+Two places had been sorting trips by a date directly; both now use
+`tripOrderKey` (start date → end date → year), so a year-only trip has a
+defined place instead of wherever the engine left it. The quantity-history
+hint (FR-14.2) used to slice its year out of the end date and now reads
+the field, which is the same information without the assumption.
+
+The wizard's step 1 gate is a name and nothing else: the year picker opens
+on the current year, so the required field is satisfied before the user
+arrives. E2E-M3-11 drives the whole wizard without touching a date and
+then checks that the trip reads by its year in the list — it fails against
+the old gate, which is what makes it a guard rather than a description.
+
+## Trip creation, folded (FR-2.1c)
+
+Owner: „beim trip erstellen, sollen die optionalen parameter weniger
+stark sichtbar sein, um den user nicht zu überfordern."
+
+The house already had the idiom — FR-25.7 for template positions, FR-24.5
+for master items, M5's own *Details ▾* — so this is that pattern applied
+to M3 rather than a new one invented for it. Name and year stand alone;
+dates, series and the three attributes sit behind one *Mehr Optionen* row.
+
+The part worth stating: the row **summarises what is set behind it**. A
+series prefills transport and accommodation (FR-13.2), so a fold that
+showed nothing would hide a change the user did not make themselves —
+which is FR-25.11a's argument about invisible filters, in a different
+screen. E2E-M3-12 asserts both halves: the inputs are absent while
+folded, and a value set behind the fold is stated on the row.
+
+The e2e fixture had to learn the same thing, and the way it broke is the
+useful part: six cases in three suites failed at once, all of them
+filling a date that had moved. A shared seed helper is a contract; when
+the screen it drives changes shape, that is where the change surfaces.
+
+## Default travellers (FR-2.5a)
+
+Owner: „man sollte default travelers konfigurieren können, welche im
+wizard dann automatisch schon drin sind … Im Wizard sollte man das
+einfach anpassen können."
+
+Configured once in M17, present in M3's step 2, and fully editable there —
+the last part is what keeps them a starting point rather than a rule.
+
+**Device-local, and that is a trade, not an oversight.** A synced
+household list would need a schema, a partition and an account; Local
+Mode has none of those, and the feature has to work in all three modes
+(invariant 5). So it sits beside the theme and the language, and the cost
+— a second device configures its own — is written into the requirement
+with the revisit trigger that reverses it.
+
+The normalisation rules exist for the wizard's sake: a blank name would
+block step 2's validation, and two travellers with one name make every
+per-person row ambiguous. The setting refuses to produce either, so the
+screen downstream never has to.
+
+No prototype change: the mock has always shown Andy, Sia and Leonardo
+prefilled in step 2 — that *is* this behaviour, and what is new is where
+the three names come from, which is a settings list the mock has never
+modelled.
+
+## M5, rebuilt as a sheet
+
+Owner: „von einem packlisten element die detail ansicht ist nicht
+ansprechend und unübersichtlich. gestalte das als ux experte neu."
+
+The concept was never the problem — §3.25 settled M5 in the mock a week
+ago. The *build* had never followed it: nine equally loud sections, all
+expanded, in the order they happened to be written. Same story as M4.
+
+The order is now the order of the reasons someone opens the screen:
+identity, then **packing** as the biggest control on it, then a read-only
+glance row, then **preparation** and **notes** — the two things touched
+while packing — and everything else behind *Details ▾*. The photo shrank
+from 200 px to 44 px beside the title: it helps you recognise the thing,
+and most rows have none at all.
+
+**Presentation cost one architectural decision.** M5 is specified as a
+sheet over M4, so the item URL must render the list *and* the sheet.
+Making it its own route mounted a second copy of the list behind the
+sheet — Ionic keeps a page per matched path — so the item path is now an
+**alias of the trip route**, and opening or closing **replaces** rather
+than pushes. One list, one page, and the URL still says what is open.
+
+Two things fell out of that and are worth stating:
+
+`‹ back` means two things on one screen now — close the sheet, or leave
+the trip — so the route declares which via `meta.overlayParam`. On a
+phone it is moot: the sheet's backdrop covers the app bar, so ✕ or a
+swipe is the way out, and the e2e case says so rather than pretending
+back is reachable. The rule still governs the desktop panel and the
+browser's own back button, where it is unit-tested.
+
+Replacing the route re-renders the list, so opening an item scrolls it
+back to the top. That is the one regression against pushing, and it is
+recorded here rather than discovered later: restoring M4's scroll offset
+per trip is the fix when it starts to grate.
