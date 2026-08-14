@@ -5,7 +5,7 @@
  */
 import 'fake-indexeddb/auto'
 import { IDBFactory } from 'fake-indexeddb'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 import { IndexedDBPersistence } from '../persistence'
 import type { PullChange } from '@/api/types'
@@ -115,5 +115,48 @@ describe('durability (FR-19.2)', () => {
 
     const rows = await store.load()
     expect(rows[0]?.row).toEqual({ name: 'second' })
+  })
+
+  /**
+   * The serialisation above is what makes these two necessary: the chain
+   * that orders the writes must not become the thing that stops them. A
+   * quota error or a transaction the browser aborts is a normal event on
+   * a device, and FR-19.2 promises durability for every applied change,
+   * not for every change up to the first failure.
+   *
+   * `write` is stubbed rather than provoked through IndexedDB because the
+   * rule under test is the chaining, not the storage engine — and a real
+   * quota exhaustion is exactly the kind of "probably holds" setup the
+   * testing rules forbid.
+   */
+  interface WriteSeam {
+    write(changes: PullChange[]): Promise<void>
+  }
+
+  it('keeps writing after a failed write — one rejection may not silence the session (FR-19.2)', async () => {
+    const store = new IndexedDBPersistence()
+    vi.spyOn(store as unknown as WriteSeam, 'write').mockRejectedValueOnce(
+      new Error('QuotaExceededError'),
+    )
+
+    await expect(store.save([change('items', 'i1', { name: 'lost' })])).rejects.toThrow(
+      'QuotaExceededError',
+    )
+    await store.save([change('items', 'i2', { name: 'kept' })])
+
+    expect((await store.load()).map((r) => r.id)).toEqual(['i2'])
+  })
+
+  it('settles again after a failed write, so the G-2 glyph can leave the syncing state', async () => {
+    const store = new IndexedDBPersistence()
+    vi.spyOn(store as unknown as WriteSeam, 'write').mockRejectedValueOnce(
+      new Error('QuotaExceededError'),
+    )
+
+    await expect(store.save([change('items', 'i1', { name: 'lost' })])).rejects.toThrow(
+      'QuotaExceededError',
+    )
+
+    await expect(store.whenSettled()).resolves.toBeUndefined()
   })
 })

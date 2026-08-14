@@ -9,7 +9,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 
-import { usePackingFilter } from '../usePackingFilter'
+import { setStoredGroupBy, usePackingFilter } from '../usePackingFilter'
 
 beforeEach(() => {
   sessionStorage.clear()
@@ -136,5 +136,49 @@ describe('usePackingFilter (FR-25.18)', () => {
     await settle()
 
     expect(sessionStorage.getItem('jitpack.m4filter.trip-1')).not.toContain('search')
+  })
+})
+
+/**
+ * M12 sends the reader to M4 grouped by the dimension whose slice was
+ * tapped. It used to do that through a second grouping state on the trip
+ * store, which the M4 rebuild stopped reading — the tap navigated and the
+ * grouping silently stayed put. One state, and the screen that leaves has
+ * to write the one the screen that arrives reads.
+ */
+describe('setStoredGroupBy (FR-25.18)', () => {
+  it('is the grouping the next mount reads', () => {
+    setStoredGroupBy('trip-1', 'person')
+
+    expect(usePackingFilter('trip-1').groupBy.value).toBe('person')
+  })
+
+  it('scopes it per trip, like every other part of the view state', () => {
+    setStoredGroupBy('trip-1', 'container')
+
+    expect(usePackingFilter('trip-2').groupBy.value).toBe('category')
+  })
+
+  /**
+   * ADR-012 leaves one router outlet, so coming back from M12 does not
+   * remount M4 — it was never unmounted. Writing only the stored value
+   * therefore lands nowhere until the next cold start, which is exactly
+   * how the original defect looked: the tap navigated and the grouping
+   * stayed put. So the live instance has to move too.
+   */
+  it('moves an M4 that is already mounted, not just the next one', () => {
+    const mounted = usePackingFilter('trip-1')
+
+    setStoredGroupBy('trip-1', 'person')
+
+    expect(mounted.groupBy.value).toBe('person')
+  })
+
+  it('leaves the mounted instance of a different trip alone', () => {
+    const other = usePackingFilter('trip-2')
+
+    setStoredGroupBy('trip-1', 'person')
+
+    expect(other.groupBy.value).toBe('category')
   })
 })

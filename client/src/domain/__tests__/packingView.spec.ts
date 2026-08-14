@@ -152,14 +152,26 @@ describe('hiding done rows (FR-25.2)', () => {
     expect(visibleNames([item({ name: 'Socks' }), packed({ name: 'Towel' })])).toEqual(['Socks'])
   })
 
-  it('reports how many were hidden, to label the reveal toggle', () => {
-    expect(view([item(), packed(), packed()]).hiddenDoneCount).toBe(2)
+  it('reports how many are done, to label the reveal toggle', () => {
+    expect(view([item(), packed(), packed()]).doneCount).toBe(2)
+  })
+
+  /**
+   * The bar read "Show 3 packed" and then "Hide 5 packed" for the same
+   * rows: one direction counted rows, the other counted pieces. One
+   * number, one unit — the bar toggles rows, so it counts rows.
+   */
+  it('counts the same rows in both directions, so revealing them cannot change the number', () => {
+    const items = [item(), packed(), packed()]
+
+    expect(view(items).doneCount).toBe(2)
+    expect(view(items, { showDone: true }).doneCount).toBe(2)
   })
 
   it('reveals them when asked, without changing any state', () => {
     const result = view([item(), packed()], { showDone: true })
     expect(result.groups[0]?.entries).toHaveLength(2)
-    expect(result.hiddenDoneCount).toBe(0)
+    expect(result.doneCount).toBe(1)
   })
 
   it('keeps the group header counting over the full set while rows are hidden', () => {
@@ -180,7 +192,7 @@ describe('hiding done rows (FR-25.2)', () => {
     const withPrep = packed({ name: 'Camera' })
     const result = view([withPrep], { itemsWithOpenPrep: [withPrep.id] })
     expect(result.groups[0]?.entries).toHaveLength(1)
-    expect(result.hiddenDoneCount).toBe(0)
+    expect(result.doneCount).toBe(0)
   })
 
   it('hiding done rows is not a narrowing — it is what "everything is packed" means (FR-25.11e)', () => {

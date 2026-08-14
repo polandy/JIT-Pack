@@ -122,6 +122,38 @@ describe('useWebSocket', () => {
     expect(mock.sent).toHaveLength(1) // sent on open
   })
 
+  /**
+   * The token provider legitimately yields null — a Single-User instance
+   * is offered no OIDC, and a `server`-mode client can be logged out.
+   * Interpolating that sent `?token=null`, and `wsAuth` only tests for a
+   * non-empty value, so the literal string became `Bearer null` and a
+   * multi-user instance answered "invalid token" where the truth was
+   * "no token". (Verified by hand 2026-08-14: single-user bypasses
+   * `authed` entirely and upgrades either way, so nothing was *broken* —
+   * what was wrong is the diagnosis the server hands back.)
+   */
+  it('omits the token entirely when there is none, rather than sending "null"', async () => {
+    const ws = useWebSocket({
+      baseUrl: 'http://localhost:8080',
+      getToken: () => null,
+      onEvent: vi.fn(),
+    })
+    await ws.connect()
+
+    expect(MockWebSocket.instances[0]!.url).toBe('ws://localhost:8080/ws')
+  })
+
+  it('encodes a token that is not URL-safe', async () => {
+    const ws = useWebSocket({
+      baseUrl: 'http://localhost:8080',
+      getToken: () => 'a+b/c=',
+      onEvent: vi.fn(),
+    })
+    await ws.connect()
+
+    expect(MockWebSocket.instances[0]!.url).toBe('ws://localhost:8080/ws?token=a%2Bb%2Fc%3D')
+  })
+
   it('disconnect closes the socket', async () => {
     const opts: WSOptions = {
       baseUrl: 'http://localhost:8080',

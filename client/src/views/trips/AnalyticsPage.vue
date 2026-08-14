@@ -22,6 +22,7 @@ import {
 import { useTripStore } from '@/stores/tripStore'
 import type { GroupBy } from '@/types/domain'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { setStoredGroupBy } from '@/composables/usePackingFilter'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -57,7 +58,7 @@ const mostUnused = computed(() => topFlagged(store.tripList, (id) => store.getIt
 function openSlice() {
   // M4 filtered to the slice: approximated by grouping M4 by the
   // active dimension (per-slice deep filters are not built yet).
-  store.setGroupBy(props.tripId, dimension.value as GroupBy)
+  setStoredGroupBy(props.tripId, dimension.value as GroupBy)
   router.push(`/trips/${props.tripId}`)
 }
 
@@ -82,14 +83,26 @@ setHeaderTitle(() => `Analytics · ${trip.value?.name ?? ''}`)
     <IonContent class="ion-padding">
       <!-- ADR-011: a view switcher is page content, not header chrome. -->
       <IonSegment :value="dimension" @ionChange="(e: CustomEvent) => (dimension = e.detail.value)">
-        <IonSegmentButton value="person"><IonLabel>Person</IonLabel></IonSegmentButton>
-        <IonSegmentButton value="category"><IonLabel>Category</IonLabel></IonSegmentButton>
-        <IonSegmentButton value="container"><IonLabel>Container</IonLabel></IonSegmentButton>
+        <IonSegmentButton value="person" data-testid="analytics-dim-person"
+          ><IonLabel>Person</IonLabel></IonSegmentButton
+        >
+        <IonSegmentButton value="category" data-testid="analytics-dim-category"
+          ><IonLabel>Category</IonLabel></IonSegmentButton
+        >
+        <IonSegmentButton value="container" data-testid="analytics-dim-container"
+          ><IonLabel>Container</IonLabel></IonSegmentButton
+        >
       </IonSegment>
 
       <!-- Dimension slices (FR-8.2) -->
       <div v-if="slices.length > 0" class="slices">
-        <button v-for="slice in slices" :key="slice.key" class="slice" @click="openSlice()">
+        <button
+          v-for="slice in slices"
+          :key="slice.key"
+          class="slice"
+          :data-testid="`analytics-slice-${slice.key || 'none'}`"
+          @click="openSlice()"
+        >
           <div class="slice-head">
             <span class="slice-label">{{ slice.label }}</span>
             <span class="slice-weight">

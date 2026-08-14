@@ -110,8 +110,14 @@ export interface FacetValue {
 
 export interface PackingView {
   groups: PackingGroup[]
-  /** Feeds the "show N packed" toggle; zero once they are revealed. */
-  hiddenDoneCount: number
+  /**
+   * Feeds the reveal toggle in both directions (FR-25.2): done **rows**
+   * among the ones the filter lets through, whether they are currently
+   * hidden or shown. It does not drop to zero on reveal — the bar labels
+   * the same set either way, and a number that changed with the
+   * direction of the toggle described two different things.
+   */
+  doneCount: number
   /** Feeds the FR-25.20 reveal bar; zero once other people's rows are revealed. */
   hiddenOtherCount: number
   /** Who those rows belong to, so the bar can name them rather than just count. */
@@ -299,12 +305,12 @@ export function buildPackingView(input: PackingViewInput): PackingView {
 
   const shown = showOthers ? matching : matching.filter((item) => !othersJob(item))
 
-  let hiddenDoneCount = 0
+  let doneCount = 0
   const visible: TripItem[] = []
   for (const item of shown) {
-    if (done(item) && !showDone) {
-      hiddenDoneCount += 1
-      continue
+    if (done(item)) {
+      doneCount += 1
+      if (!showDone) continue
     }
     visible.push(item)
   }
@@ -417,7 +423,7 @@ export function buildPackingView(input: PackingViewInput): PackingView {
 
   return {
     groups: [...groups.values()].sort(byGroupName),
-    hiddenDoneCount,
+    doneCount,
     hiddenOtherCount,
     hiddenOtherNames,
     facetValues: buildFacetValues({

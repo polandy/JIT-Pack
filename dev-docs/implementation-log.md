@@ -1153,3 +1153,103 @@ Replacing the route re-renders the list, so opening an item scrolls it
 back to the top. That is the one regression against pushing, and it is
 recorded here rather than discovered later: restoring M4's scroll offset
 per trip is the fix when it starts to grate.
+
+## Post-#73 review remediation (2026-08-14)
+
+A three-way review of the merged M4/M5 rebuild — code, process, and the
+screens rendered beside the concept prototype — produced one critical
+finding, several real ones, and two claims that did not survive checking.
+This entry records both halves, because a review's misses are as useful
+to remember as its hits.
+
+**The critical one: a single failed IndexedDB write silenced the session.**
+`persistence.ts` serialises writes through a promise tail, which is what
+FR-19.2's durability rests on. The tail was the *uncaught* promise, so one
+rejection — a quota error, a transaction the browser aborted — left it
+rejected forever: every later `save()` chained `.then` onto a rejected
+promise, the callback never ran, and the change was dropped with no
+signal. In the one mode that has nowhere else to put the data. The tail is
+now the caught promise and the caller still receives its own rejection.
+`whenSettled()` therefore reports *drained*, not *succeeded* — which is
+what the G-2 glyph needs, since it has to leave the syncing state either
+way. Fixing that exposed a second leak behind it: `setLocal()` did not
+clear the offline flag, so the glyph would have stranded on "offline" for
+the rest of the session even once writes resumed. Local Mode has no
+connection to lose; a write that lands is the evidence the condition
+cleared.
+
+**The WebSocket dial sent the string `"null"` when it had no token.** It
+interpolated the token straight into the URL, and `wsAuth` promotes any
+non-empty `?token=` to an `Authorization` header, so an absent one
+arrived as `Bearer null`. No token now means no parameter, and a present
+token is percent-encoded.
+
+**How severe this is was got wrong first, and the correction is the
+useful part.** It was written up — in the review, in this log, in the PR
+body — as *"Single-User Mode could never open its WebSocket, rejected
+403"*. Running the branch by hand on 2026-08-14 disproved that in about a
+minute: `authed` **bypasses the token entirely in single-user mode**
+(`server.go:153`), so that mode upgraded to `101` with `?token=null` and
+without it alike. The real effect is narrower and lives in multi-user
+mode, where both forms are refused — but `?token=null` answers `401
+invalid token` while the truth is `401 missing bearer token`. Given the
+manual has a whole troubleshooting entry pointing at `?token=`, handing
+back the wrong one of those two is a real cost; it is just not a broken
+mode. The other half — the missing `encodeURIComponent` — stays a latent
+bug rather than an active one, since JWTs are base64url.
+
+Worth keeping as a habit: the claim survived a code review and a
+self-review because everyone read `wsAuth` and nobody read `authed`
+beside it. One `curl -i` against a running binary settled it.
+
+**One grouping state, not two.** M12's slice tap called
+`tripStore.setGroupBy`, which the M4 rebuild stopped reading — M4 takes
+its grouping from `usePackingFilter`. The tap navigated and the grouping
+silently stayed put. The store's copy (`groupByPrefs`, `getGroupBy`,
+`setGroupBy`, `groupedItems`) had no other reader and is gone;
+`setStoredGroupBy` is the one way for a departing screen to set what M4
+shows.
+
+The first attempt at it wrote only the stored value, and the e2e case
+written during the self-review is what caught that this was still broken:
+**ADR-012 leaves one router outlet, so M4 is not remounted on the way
+back from M12** — it was never unmounted — and a value in storage is read
+at mount and never again. The tap navigated and the grouping stayed put,
+exactly as before. Both unit tests were green throughout, because each
+side was correct about its own state; only a test that crossed the screen
+boundary could see it. So `setStoredGroupBy` writes storage *and* moves
+the live ref of the mount already on screen, which a small per-trip
+registry in `usePackingFilter` makes reachable. Worth remembering as a
+shape, not just a fix: **a handoff between two screens cannot be verified
+from either end.**
+
+**The reveal bar counted two different things.** "Show 3 packed" became
+"Hide 5 packed" for the same rows: one direction counted rows, the other
+summed `packed_count`. `hiddenDoneCount` is now `doneCount` — done rows
+among the ones the filter lets through, unchanged by the toggle, because
+the bar labels the same set in both directions.
+
+**`/trips/new` had lost its anchors.** The rule that makes M4 full-screen
+matched on path *shape*, and the wizard has the same one without being a
+drill-down. E2E-G1-03 covers it; the existing G1-02 asserted "hidden on
+M4 and nowhere else" and could not see it, because it only ever visited
+M4.
+
+Also: the strings the rebuild itself hard-coded are localized (M3 step 1
+and M20 in full, including the folded summary, which was printing raw
+enum values like `holiday_flat`), the duplicated amendment paragraph in
+the UI-Spec is gone, and the second `E2E-G12-02` is renumbered.
+
+**What the review got wrong.** `openSlice()` was reported as dead code;
+it is called, and `git blame` shows the call site landed with it. A
+hard-coded `rgba(137,180,250,.16)` was reported in `FilterSheet.vue`; it
+does not exist — that triplet appears only as `--ct-blue-rgb` in the
+token table. And the documentation contradiction was one stale file, not
+three: `e2e-tests.md` and this log already agreed with the code, and
+CLAUDE.md was corrected by #79.
+
+Three invariant-9 violations the rebuild did introduce — raw
+`rgba(0,0,0,…)` shadows in `FilterSheet.vue` and `PackingListPage.vue` —
+are deliberately **not** fixed here. There is no shadow token to move
+them onto; `catppuccin.css` carries colour and nothing else. They are
+part of the design-token work that comes before the next screen rebuilds.

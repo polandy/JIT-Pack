@@ -916,7 +916,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
       <!-- FR-25.2 / FR-25.20: two classes of hidden rows, one affordance —
            state the count, name the people, one tap to reveal. -->
       <button
-        v-if="view.hiddenDoneCount > 0 || showDone"
+        v-if="view.doneCount > 0"
         class="reveal-bar"
         :class="{ on: showDone }"
         data-testid="m4-done-bar"
@@ -924,8 +924,8 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
       >
         {{
           showDone
-            ? t('packing.hidePacked', { n: kpis.packedItems })
-            : t('packing.showPacked', { n: view.hiddenDoneCount })
+            ? t('packing.hidePacked', { n: view.doneCount })
+            : t('packing.showPacked', { n: view.doneCount })
         }}
       </button>
       <button

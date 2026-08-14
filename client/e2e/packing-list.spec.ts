@@ -322,6 +322,29 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('group-person')).toBeVisible()
   })
 
+  // E2E-M12-06 (FR-8.2/25.18): M12's slice tap is a handoff between two
+  // screens, and it broke silently when M4's rebuild moved the grouping to
+  // `usePackingFilter` while M12 went on writing the trip store's copy. No
+  // unit could see it — each side was correct about its own state — so the
+  // case has to cross the screen boundary. It is the *grouping* half only;
+  // E2E-M12-04's per-slice facet is unbuilt (CLAUDE.md item 3, "M12 slice
+  // filtering") and this case must not be read as covering it.
+  test('E2E-M12-06: a slice tapped in analytics is the grouping M4 comes back with', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zelt'])
+    await expect(page.getByTestId('m4-filter-bar')).toContainText(/Category/i)
+
+    await page.getByTestId('m4-nav-analytics').click()
+    // The button, not the label inside it: the segment button swallows a
+    // click aimed at its own `ion-label`.
+    await page.getByTestId('analytics-dim-person').click()
+    await page.getByTestId('analytics-slice-none').click()
+
+    await expect(page.getByTestId('m4-filter-bar')).toContainText(/Person/i)
+  })
+
   // E2E-M4-02 (FR-8.2/25.18): the grouping is durable per trip — it arranges
   // rows rather than hiding them, so nothing can be lost behind it.
   test('E2E-M4-02: the grouping choice survives a reload', async ({ page }) => {
