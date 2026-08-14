@@ -12,14 +12,17 @@ import (
 
 // Document is the top-level YAML envelope for both template and trip exports.
 type Document struct {
-	Kind          string      `yaml:"kind"`
-	SchemaVersion int         `yaml:"schema_version"`
-	Name          string      `yaml:"name"`
-	StartDate     string      `yaml:"start_date,omitempty"`
-	EndDate       string      `yaml:"end_date,omitempty"`
-	Travelers     []Traveler  `yaml:"travelers,omitempty"`
-	Containers    []Container `yaml:"containers,omitempty"`
-	Items         []Item      `yaml:"items"`
+	Kind          string `yaml:"kind"`
+	SchemaVersion int    `yaml:"schema_version"`
+	Name          string `yaml:"name"`
+	StartDate     string `yaml:"start_date,omitempty"`
+	EndDate       string `yaml:"end_date,omitempty"`
+	// FR-2.1b: the one required temporal fact. Absent in files written
+	// before it existed, where the end date carries the same information.
+	Year       int         `yaml:"year,omitempty"`
+	Travelers  []Traveler  `yaml:"travelers,omitempty"`
+	Containers []Container `yaml:"containers,omitempty"`
+	Items      []Item      `yaml:"items"`
 }
 
 // Item represents one entry in the portable format — shared between

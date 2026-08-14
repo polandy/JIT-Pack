@@ -32,6 +32,7 @@ function item(overrides: Partial<TripItem>): TripItem {
     assigned_traveler_id: null,
     packer_user_id: null,
     packed_by_user_id: null,
+    packed_at: null,
     container_id: null,
     packing_now_by: null,
     packing_now_at: null,

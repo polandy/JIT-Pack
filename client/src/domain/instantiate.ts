@@ -63,7 +63,7 @@ export interface GenerationResult {
 }
 
 /** Inclusive day count matching the trips.duration_days DB definition (FR-2.1a: null without start date). */
-export function durationDays(startDate: string | null, endDate: string): number | null {
+export function durationDays(startDate: string | null, endDate: string | null): number | null {
   if (!startDate || !endDate) return null
   const ms = Date.parse(endDate) - Date.parse(startDate)
   if (Number.isNaN(ms)) return null

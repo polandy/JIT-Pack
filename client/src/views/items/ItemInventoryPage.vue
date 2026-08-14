@@ -9,7 +9,6 @@
 import {
   IonPage,
   IonContent,
-  IonSearchbar,
   IonList,
   IonItemGroup,
   IonItemDivider,
@@ -24,16 +23,21 @@ import {
   alertController,
 } from '@ionic/vue'
 import { addOutline, cloudUploadOutline, cubeOutline } from 'ionicons/icons'
-import { ref, computed, inject } from 'vue'
+import { computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMasterStore } from '@/stores/masterStore'
 import ItemThumbnail from '@/components/items/ItemThumbnail.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import SearchRow from '@/components/global/SearchRow.vue'
+import { useContextSearch } from '@/composables/useContextSearch'
+import { setHeaderActions } from '@/composables/useHeaderActions'
+import { t } from '@/i18n'
 
 const store = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 const router = useRouter()
-const searchQuery = ref('')
+const { term: searchQuery, isOpen: searchOpen, toggle: toggleSearch, action } = useContextSearch()
+setHeaderActions(() => [action()])
 
 /** New master item (FR-1.1): prompt for a name, create it, open M10 so
  * the user can fill in category, weight, photo, etc. */
@@ -71,10 +75,6 @@ function formatWeight(grams: number): string {
   return grams >= 1000 ? `${(grams / 1000).toFixed(1)} kg` : `${grams} g`
 }
 
-function onSearch(event: CustomEvent) {
-  searchQuery.value = event.detail.value ?? ''
-}
-
 async function handleRefresh(event: CustomEvent) {
   const refresher = event.target as HTMLIonRefresherElement
   refresher.complete()
@@ -88,14 +88,16 @@ async function handleRefresh(event: CustomEvent) {
         <IonRefresherContent />
       </IonRefresher>
 
+      <SearchRow
+        v-if="searchOpen || searchQuery"
+        v-model="searchQuery"
+        testid="items-search-input"
+        :placeholder="t('items.searchPlaceholder')"
+        @close="toggleSearch"
+      />
+
       <div class="ion-padding">
         <h1 class="page-title">Items</h1>
-        <IonSearchbar
-          :value="searchQuery"
-          placeholder="Search items..."
-          @ionInput="onSearch"
-          :debounce="200"
-        />
       </div>
 
       <!-- Empty state (G-7) — M15 entry per UI spec -->

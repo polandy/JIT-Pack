@@ -12,6 +12,8 @@ import {
   IonList,
   IonItem,
   IonInput,
+  IonSelect,
+  IonSelectOption,
   IonToggle,
   IonNote,
 } from '@ionic/vue'
@@ -35,6 +37,12 @@ const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrato
 const source = computed(() => store.getTrip(props.tripId))
 
 const name = ref('')
+// FR-2.1b: a clone is a trip of its own year, and the year is the only
+// temporal fact it needs. Defaults to this one, like M3.
+const thisYear = new Date().getFullYear()
+const yearChoices = Array.from({ length: 6 }, (_, i) => thisYear - 1 + i)
+const year = ref(thisYear)
+
 const startDate = ref('')
 const endDate = ref('')
 const travelerAssignments = ref(true)
@@ -66,13 +74,14 @@ const preview = computed(() => {
   )
 })
 
-const valid = computed(() => name.value.trim() !== '' && endDate.value !== '')
+const valid = computed(() => name.value.trim() !== '')
 
 function clone() {
   const tripId = orchestrator.cloneTrip(props.tripId, {
     name: name.value.trim(),
+    year: year.value,
     startDate: startDate.value || null,
-    endDate: endDate.value,
+    endDate: endDate.value || null,
     options: options.value,
   })
   if (tripId) router.replace(`/trips/${tripId}`)
@@ -97,6 +106,20 @@ setHeaderTitle(() => `Clone · ${source.value?.name ?? ''}`)
             />
           </IonItem>
           <IonItem>
+            <IonSelect
+              data-testid="clone-year"
+              label="Year"
+              label-placement="stacked"
+              interface="popover"
+              :value="year"
+              @ionChange="(e: CustomEvent) => (year = Number(e.detail.value))"
+            >
+              <IonSelectOption v-for="option in yearChoices" :key="option" :value="option">
+                {{ option }}
+              </IonSelectOption>
+            </IonSelect>
+          </IonItem>
+          <IonItem>
             <IonInput
               label="Start date (optional)"
               label-placement="stacked"
@@ -107,7 +130,7 @@ setHeaderTitle(() => `Clone · ${source.value?.name ?? ''}`)
           </IonItem>
           <IonItem>
             <IonInput
-              label="End date"
+              label="End date (optional)"
               label-placement="stacked"
               type="date"
               :value="endDate"

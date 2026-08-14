@@ -47,7 +47,7 @@ func TestMasterPush_ShareTripGrantsAccess(t *testing.T) {
 
 	body := map[string]any{"mutations": []any{
 		masterMutation("trips", "trip-shared", "sh-1", "insert",
-			map[string]any{"name": "Geteilt", "end_date": "2026-09-01", "status": "planning"},
+			map[string]any{"name": "Geteilt", "year": 2026, "end_date": "2026-09-01", "status": "planning"},
 			"0000000001000-0000-aaaaaaaa"),
 	}}
 	resp, raw := doJSON(t, http.MethodPost, masterURL, token(t, userA, testSecret), body)

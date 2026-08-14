@@ -34,7 +34,14 @@ import {
   IonToggle,
   alertController,
 } from '@ionic/vue'
-import { downloadOutline, personCircleOutline, warningOutline } from 'ionicons/icons'
+import {
+  addOutline,
+  closeOutline,
+  downloadOutline,
+  personCircleOutline,
+  personOutline,
+  warningOutline,
+} from 'ionicons/icons'
 import { computed, inject, onMounted, ref } from 'vue'
 import {
   EXPORT_REMINDER_DAYS,
@@ -55,6 +62,7 @@ import { currentTheme, setTheme } from '@/theme/theme'
 import { type Locale, currentLocale, setLocale, t } from '@/i18n'
 import AvatarCropModal from '@/components/settings/AvatarCropModal.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { defaultTravelers } from '@/composables/useDefaultTravelers'
 
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 const tripStore = useTripStore()
@@ -81,6 +89,20 @@ onMounted(async () => {
 })
 
 // --- Appearance (FR-21.3, device-local) ---
+
+/**
+ * FR-2.5a: the people a new trip starts with. Device-local like the
+ * theme beside it, and a starting point rather than a rule — M3 edits
+ * them freely.
+ */
+const travelers = defaultTravelers()
+const travelerNames = travelers.names
+const newTraveler = ref('')
+
+function addTraveler() {
+  travelers.add(newTraveler.value)
+  newTraveler.value = ''
+}
 
 const lightTheme = ref(currentTheme() === 'latte')
 
@@ -330,6 +352,45 @@ async function exportTripCSV() {
             <IonSelectOption value="en">{{ t('settings.languageEnglish') }}</IonSelectOption>
             <IonSelectOption value="de">{{ t('settings.languageGerman') }}</IonSelectOption>
           </IonSelect>
+        </IonItem>
+      </IonList>
+
+      <!-- Default travelers (FR-2.5a) — every mode, this device only -->
+      <h2 class="section-title">{{ t('settings.defaultTravelers') }}</h2>
+      <p class="section-hint">{{ t('settings.defaultTravelersHint') }}</p>
+      <IonList>
+        <IonItem v-for="(traveler, index) in travelerNames" :key="`${traveler}-${index}`">
+          <IonIcon slot="start" :icon="personOutline" />
+          <IonLabel>{{ traveler }}</IonLabel>
+          <IonButton
+            slot="end"
+            fill="clear"
+            size="small"
+            :data-testid="`default-traveler-remove-${traveler}`"
+            :aria-label="t('common.remove')"
+            @click="travelers.remove(index)"
+          >
+            <IonIcon slot="icon-only" :icon="closeOutline" />
+          </IonButton>
+        </IonItem>
+        <IonItem>
+          <IonInput
+            data-testid="default-traveler-input"
+            :label="t('settings.addTraveler')"
+            label-placement="stacked"
+            :value="newTraveler"
+            @ionInput="(e: CustomEvent) => (newTraveler = e.detail.value ?? '')"
+            @keydown.enter="addTraveler"
+          />
+          <IonButton
+            slot="end"
+            size="small"
+            data-testid="default-traveler-add"
+            :disabled="newTraveler.trim() === ''"
+            @click="addTraveler"
+          >
+            <IonIcon slot="icon-only" :icon="addOutline" />
+          </IonButton>
         </IonItem>
       </IonList>
 

@@ -177,6 +177,7 @@ describe('wizard sharing step (M3 step 2, FR-4.5)', () => {
 
     const tripId = orch.createTripFromWizard({
       name: 'Geteilt',
+      year: 2026,
       startDate: null,
       endDate: '2026-08-10',
       attributes: null,

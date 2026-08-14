@@ -94,7 +94,7 @@ describe('useMutations', () => {
 
   it('createTrip creates insert with planning status', () => {
     const m = useMutations(mockHLC())
-    const { mutation, id } = m.createTrip('Beach', '2026-08-01', '2026-08-07')
+    const { mutation, id } = m.createTrip('Beach', 2026, '2026-08-01', '2026-08-07')
     expect(mutation.op).toBe('insert')
     expect(mutation.table).toBe('trips')
     expect(mutation.fields?.['name']).toBe('Beach')

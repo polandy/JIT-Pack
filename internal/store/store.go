@@ -41,8 +41,9 @@ var syncableColumns = map[string]map[string]bool{
 		"outbound_packed",
 		// Listed so the server's own stamp can be persisted through the
 		// push path; stampActor discards any client-sent value first
-		// (FR-25.19, invariant 3).
-		"packed_by_user_id",
+		// (FR-25.19, invariant 3). packed_at is the same record's time
+		// (FR-25.17) and goes through the same gate.
+		"packed_by_user_id", "packed_at",
 	),
 	// profile is gone with FR-25.9 (migration 018) — a client still
 	// sending it is rejected rather than silently ignored.
@@ -83,7 +84,7 @@ var syncableColumns = map[string]map[string]bool{
 		"template_item_id", "task",
 	),
 	"trips": toSet(
-		"series_id", "name", "start_date", "end_date", "status",
+		"series_id", "name", "year", "start_date", "end_date", "status",
 		"attributes", "imported", "created_by",
 	),
 	"trip_series": toSet(

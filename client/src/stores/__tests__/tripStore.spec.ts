@@ -9,6 +9,7 @@ function makeTrip(overrides: Partial<Trip> = {}): Trip {
     id: 't1',
     name: 'Beach Trip',
     status: 'active',
+    year: 2026,
     start_date: '2026-07-10',
     end_date: '2026-07-15',
     duration_days: 6,
@@ -72,6 +73,7 @@ describe('tripStore', () => {
       row: {
         name: 'Ski Trip',
         status: 'planning',
+        year: 2026,
         start_date: '2027-01-10',
         end_date: '2027-01-15',
         duration_days: 6,
