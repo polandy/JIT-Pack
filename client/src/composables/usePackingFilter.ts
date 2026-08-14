@@ -89,8 +89,8 @@ export function usePackingFilter(tripId: string) {
   const storedGroup = readStored(local, groupKey)
   if (isGroupBy(storedGroup)) groupBy.value = storedGroup
 
-  // One watcher over the whole filter, so no individual mutation site can
-  // forget to persist — the mistake the mock's `rerender` hook exists for.
+  // One watcher over the whole filter: with a save call per mutation site,
+  // the site added next is the one that forgets.
   watch(
     [facets, showDone, showOthers],
     () => {

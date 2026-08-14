@@ -363,7 +363,9 @@ const emit = defineEmits<{
 }
 
 .chip.on {
-  background: rgba(137, 180, 250, 0.16);
+  /* Mixed from the token, never re-typed as a literal: a second copy of
+     a palette value is a second place to change it (invariant 9). */
+  background: color-mix(in srgb, var(--ct-blue) 16%, transparent);
   border-color: var(--ct-blue);
   color: var(--ct-text);
 }

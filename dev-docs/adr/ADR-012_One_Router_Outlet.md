@@ -81,6 +81,26 @@ Catch the error, or force `router.replace` on every crossing.
 - The `classList` transition error is gone, and `navigation.spec.ts` no longer exempts it — an exemption would now only hide the next one.
 - `client/src/router/anchors.ts` becomes the single list of anchors, and `isAnchorActive` matches exactly: the old substring test lit *Items* while the user was inside a trip.
 
+## Amendment (2026-08-14): an overlay is an alias, and it replaces
+
+M5 is a sheet *over* the packing list (UI-Spec M5), so its URL has to render
+both. As its own route record it mounted a **second copy of the list** behind
+the sheet, because with one outlet Ionic keeps a page per matched *path*. The
+item path is therefore an **alias** of the trip route, and opening or closing
+the sheet uses `replace`, not `push`.
+
+**What it costs:** replacing re-renders the list, so opening an item returns it
+to the top. Pushing would preserve the scroll offset and mount a second live
+list — two subscriptions, and the list you were reading hidden under its own
+twin. The cheaper repair is on the other side: remember M4's offset per trip.
+Recorded here rather than left to be rediscovered.
+
+**Second consequence:** `‹ back` now means two things on one screen, so the
+route declares which via `meta.overlayParam` — close the overlay, then leave
+the screen. On a phone the sheet's backdrop covers the app bar, so ✕ or a swipe
+is the way out and back never comes into it; the rule governs the desktop panel
+and the browser's own back button.
+
 ## Revisit trigger
 
 If a tab grows a drill-down deep enough that users expect it to remember its own position when they come back to that tab — a per-tab stack is what Ionic's `IonTabs` buys, and at that point the trade flips. Nothing in the current screen set is more than two levels deep.

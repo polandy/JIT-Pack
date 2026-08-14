@@ -582,18 +582,18 @@ const packedStamp = computed(() => {
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 700;
-  background: rgba(166, 227, 161, 0.16);
+  background: color-mix(in srgb, var(--ct-green) 16%, transparent);
   color: var(--ct-green);
 }
 
 .state.open,
 .state.partial {
-  background: rgba(249, 226, 175, 0.16);
+  background: color-mix(in srgb, var(--ct-yellow) 16%, transparent);
   color: var(--ct-yellow);
 }
 
 .state.amber {
-  background: rgba(250, 179, 135, 0.18);
+  background: color-mix(in srgb, var(--ct-peach) 18%, transparent);
   color: var(--ct-peach);
 }
 
@@ -626,7 +626,7 @@ const packedStamp = computed(() => {
 }
 
 .chip.warn {
-  border-color: rgba(250, 179, 135, 0.5);
+  border-color: color-mix(in srgb, var(--ct-peach) 50%, transparent);
   color: var(--ct-peach);
 }
 
@@ -696,7 +696,7 @@ const packedStamp = computed(() => {
 @keyframes flash {
   0%,
   60% {
-    background: rgba(137, 180, 250, 0.16);
+    background: color-mix(in srgb, var(--ct-blue) 16%, transparent);
   }
   100% {
     background: transparent;
