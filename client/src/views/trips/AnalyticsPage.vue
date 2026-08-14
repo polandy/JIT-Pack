@@ -210,7 +210,7 @@ setHeaderTitle(() => `Analytics · ${trip.value?.name ?? ''}`)
 .bar {
   height: 14px;
   border-radius: 7px;
-  background: var(--ion-color-light, #eee);
+  background: var(--ion-color-light);
   overflow: hidden;
   margin: 4px 0;
 }
@@ -218,13 +218,13 @@ setHeaderTitle(() => `Analytics · ${trip.value?.name ?? ''}`)
 .bar-planned {
   height: 100%;
   border-radius: 7px;
-  background: var(--ion-color-primary-tint, #7aa7e0);
+  background: var(--ion-color-primary-tint);
   overflow: hidden;
 }
 
 .bar-packed {
   height: 100%;
-  background: var(--ion-color-primary, #3b6fb5);
+  background: var(--ion-color-primary);
 }
 
 .unweighted {

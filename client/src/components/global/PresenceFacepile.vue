@@ -68,7 +68,7 @@ function initials(userId: string): string {
   color: var(--ion-color-medium-contrast);
   font-size: 0.7rem;
   font-weight: 600;
-  border: 2px solid var(--ion-background-color, #fff);
+  border: 2px solid var(--ion-background-color);
   margin-left: -6px;
 }
 
