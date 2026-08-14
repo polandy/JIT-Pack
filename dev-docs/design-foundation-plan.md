@@ -111,6 +111,27 @@ That single line is why the app reads as a default Ionic app.
 - Checked checkboxes/toggles and progress bars → green/teal
 - `--ion-color-primary` **stays blue** — it is the action colour, not the brand
 
+**The brand is flavour-relative — decided by the owner 2026-08-14, after
+seeing it rendered.** The plan treated "peach is the brand" as one value.
+It is one *role* with two readings: Latte's peach (`#fe640b`) is a
+saturated orange on a near-white ground, Mocha's (`#fab387`) a pastel on a
+near-black one, so the light theme shouted. Measuring settled the direction
+— stock Latte peach managed **2.45:1** as an 11 px tab label on `mantle`,
+so the calmer choice was also the more legible one, and going *paler*
+(rosewater, 2.17:1) would have made it worse. Latte's brand is now
+`color-mix(in srgb, var(--ct-peach) 65%, var(--ct-text))` → **3.56:1**,
+derived from palette tokens rather than picked by eye.
+
+One correction inside that correction, and it took rendering to see: the
+FAB gradient's far stop cannot simply be deepened alongside it. Latte's
+maroon plus ink lands on **brick**, so the create button read as *danger*.
+The far stop stays in the peach family (`--ct-peach` at 42 %).
+
+**The rule this generalises to:** a role that lands differently in the two
+flavours is restated per flavour. Averaging them into a single value that
+suits neither is the failure mode — and it is why the anchors are tokens
+with a flavour override rather than one constant.
+
 **Two things the plan did not foresee, found while implementing.** Freeing peach
 for the brand leaves `warning` empty, and it has to go somewhere: caution moved to
 yellow, which also fixed a real confusion (an overweight container and the app's

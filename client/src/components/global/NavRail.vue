@@ -68,7 +68,7 @@ const route = useRoute()
 /* The desktop half of the same rule as TabBar (G-11). */
 .nav-rail-item.active {
   color: var(--jp-brand);
-  background: rgb(var(--jp-brand-rgb) / 0.12);
+  background: color-mix(in srgb, var(--jp-brand) 12%, transparent);
 }
 
 .nav-rail-item ion-icon {

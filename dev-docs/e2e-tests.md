@@ -47,8 +47,10 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 
 **What the colour unit does *not* prove.** That the palette is *pleasant* —
 only that each role landed on the component it belongs to and that the three
-stay apart. It also says nothing about contrast ratios; those are unmeasured
-here, and the baselines step is where a real check belongs.
+stay apart. It also asserts nothing about contrast: the ratios *were*
+measured while choosing Latte's brand (they are in
+`design-foundation-plan.md`), but nothing re-checks them when a token
+moves. Making that a gate belongs to the baselines step.
 
 **What the typography unit does *not* prove.** That the type is *right* —
 only that both faces reach the screen and that neither is fetched from

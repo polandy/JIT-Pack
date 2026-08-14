@@ -1375,3 +1375,36 @@ and the Latte case added here would have been the first victim. The option
 is typed as `Theme` now, and the case asserts `jitpack-latte` is on the
 root *before* it asserts anything about colour. Verified by seeding Mocha
 and watching it go red.
+
+**Latte reads the brand deeper (owner, 2026-08-14, after seeing it
+rendered).** "Peach is the brand" turned out to be one *role* with two
+readings rather than one value. Latte's peach is a saturated orange on a
+near-white ground where Mocha's is a pastel on a near-black one, so the
+light theme shouted.
+
+Measuring rather than guessing changed the answer. The obvious calmer
+choice — a paler, softer peach, or Latte's own rosewater — would have made
+things worse: stock Latte peach already managed only **2.45:1** as an
+11 px tab label, and rosewater is **2.17:1**. On a light ground quieter
+and darker are the same direction, so deepening the token calms the shout
+*and* fixes the legibility in one move (**3.56:1**). It is a `color-mix`
+of two palette tokens, not a picked hex, so it still follows the flavour.
+
+Rendering caught the correction inside the correction: deepening the FAB
+gradient's far stop alongside it lands on **brick**, because Latte's
+maroon plus ink is a red — the create button read as *danger*. The far
+stop stays in the peach family instead. That is not a detail a contrast
+number could have told me, which is the argument for looking at both.
+
+The general rule, now in G-11 and FR-21.7: **a role is flavour-relative.**
+Where a role lands differently in the two flavours it is restated per
+flavour, never averaged into one value that suits neither. The `--jp-*`
+tokens carry that naturally; a single constant could not have.
+
+One consequence worth guarding: CSS cannot derive an rgb triplet from a
+`color-mix()`, and Ionic's rgba() internals need one, so Latte writes
+`--jp-brand-rgb` by hand beside the mix. A unit case asserts the two are
+always restated together — otherwise they drift apart silently and only
+the ripples stay on the old hue. The FAB glow and the rail's active
+background were moved off the triplet onto `color-mix` for the same
+reason: fewer places that can disagree.

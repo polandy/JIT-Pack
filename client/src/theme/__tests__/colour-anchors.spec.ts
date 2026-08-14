@@ -46,6 +46,18 @@ describe('the three anchors (FR-21.7)', () => {
     expect(value('--jp-action')).toBe('var(--ct-blue)')
   })
 
+  it('lets Latte read the brand deeper, and keeps its rgb twin in step', () => {
+    // The light theme takes the same role at a lower lightness — see the
+    // block's own note for why that is legibility rather than taste. The
+    // pairing is what needs guarding: CSS cannot derive the rgb triplet
+    // from a color-mix(), so the two are written by hand and would drift
+    // apart silently, leaving Ionic's rgba() internals on the old hue.
+    const latte = /:root\.jitpack-latte\s*\{[^}]*--jp-brand:[^}]*\}/.exec(css)?.[0]
+    expect(latte, 'Latte does not restate the brand').toBeDefined()
+    expect(latte).toContain('color-mix')
+    expect(latte).toContain('--jp-brand-rgb')
+  })
+
   it('stops caution from borrowing the brand hue', () => {
     // Peach was `warning`, so a container overweight and the product's own
     // identity were the same colour. Caution moves to yellow; anything

@@ -105,6 +105,7 @@
   --ct-on-accent: var(--ct-base);
   --ct-on-accent-rgb: 239, 241, 245;
 
+
   --ct-mantle-rgb: 230, 233, 239;
   --ct-text-rgb: 76, 79, 105;
   --ct-blue-rgb: 30, 102, 245;
@@ -148,6 +149,29 @@
      progress bar reads as an alert rather than as headway. */
   --jp-done: var(--ct-green);
   --jp-done-far: var(--ct-teal);
+}
+
+/*
+ * Latte reads the brand deeper than Mocha does, and that is the palette
+ * being honest rather than an exception: Mocha's peach (#fab387) is a
+ * pastel on a near-black ground, Latte's (#fe640b) a saturated orange on
+ * a near-white one, so the same role arrives twice as loud in the light
+ * theme. It was also the less legible of the two — 2.45:1 as an 11 px tab
+ * label, under any bar worth the name — and on a light ground "quieter"
+ * and "darker" are the same direction, so one move fixes both (3.56:1).
+ *
+ * Mixed from two palette tokens rather than picked by eye, so it still
+ * follows the flavor (FR-21.2). The rgb triplet is the same colour in the
+ * form Ionic's rgba() internals need; a unit case keeps the two together,
+ * because CSS cannot derive one from the other.
+ */
+:root.jitpack-latte {
+  --jp-brand: color-mix(in srgb, var(--ct-peach) 65%, var(--ct-text));
+  --jp-brand-rgb: 192, 93, 44;
+  /* The far stop stays in the peach family here. Deepening Latte's maroon
+     instead lands on brick, which reads as danger — the gradient would be
+     saying "error" on the one control that creates things. */
+  --jp-brand-far: color-mix(in srgb, var(--ct-peach) 42%, var(--ct-text));
 }
 
 /* ------------------------------------------------------------------ */
@@ -332,7 +356,7 @@ ion-fab-button {
   --background-activated: var(--jp-brand-far);
   --background-hover: var(--jp-brand-far);
   --color: var(--jp-brand-contrast);
-  --box-shadow: 0 14px 30px -8px rgb(var(--jp-brand-rgb) / 0.55);
+  --box-shadow: 0 14px 30px -8px color-mix(in srgb, var(--jp-brand) 55%, transparent);
 }
 
 /* Checked means done, and done is green — not the action colour. A blue
