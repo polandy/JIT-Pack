@@ -122,6 +122,37 @@ describe('useWebSocket', () => {
     expect(mock.sent).toHaveLength(1) // sent on open
   })
 
+  /**
+   * Single-User Mode (invariant 5) is a `server`-mode client that is
+   * offered no OIDC, so the token provider legitimately yields null.
+   * Interpolating that into the URL sent `?token=null`, and `wsAuth`
+   * only tests for a non-empty value — so the literal string "null"
+   * became `Bearer null` and the dial was rejected 403. The server
+   * accepts the dial with no token at all, which is what an unauthed
+   * instance needs.
+   */
+  it('omits the token entirely when there is none, so Single-User can dial', async () => {
+    const ws = useWebSocket({
+      baseUrl: 'http://localhost:8080',
+      getToken: () => null,
+      onEvent: vi.fn(),
+    })
+    await ws.connect()
+
+    expect(MockWebSocket.instances[0]!.url).toBe('ws://localhost:8080/ws')
+  })
+
+  it('encodes a token that is not URL-safe', async () => {
+    const ws = useWebSocket({
+      baseUrl: 'http://localhost:8080',
+      getToken: () => 'a+b/c=',
+      onEvent: vi.fn(),
+    })
+    await ws.connect()
+
+    expect(MockWebSocket.instances[0]!.url).toBe('ws://localhost:8080/ws?token=a%2Bb%2Fc%3D')
+  })
+
   it('disconnect closes the socket', async () => {
     const opts: WSOptions = {
       baseUrl: 'http://localhost:8080',

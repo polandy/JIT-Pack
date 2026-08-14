@@ -22,6 +22,7 @@ import {
 import { useTripStore } from '@/stores/tripStore'
 import type { GroupBy } from '@/types/domain'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { setStoredGroupBy } from '@/composables/usePackingFilter'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -57,7 +58,7 @@ const mostUnused = computed(() => topFlagged(store.tripList, (id) => store.getIt
 function openSlice() {
   // M4 filtered to the slice: approximated by grouping M4 by the
   // active dimension (per-slice deep filters are not built yet).
-  store.setGroupBy(props.tripId, dimension.value as GroupBy)
+  setStoredGroupBy(props.tripId, dimension.value as GroupBy)
   router.push(`/trips/${props.tripId}`)
 }
 

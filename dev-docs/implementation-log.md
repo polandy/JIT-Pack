@@ -1153,3 +1153,75 @@ Replacing the route re-renders the list, so opening an item scrolls it
 back to the top. That is the one regression against pushing, and it is
 recorded here rather than discovered later: restoring M4's scroll offset
 per trip is the fix when it starts to grate.
+
+## Post-#73 review remediation (2026-08-14)
+
+A three-way review of the merged M4/M5 rebuild — code, process, and the
+screens rendered beside the concept prototype — produced one critical
+finding, several real ones, and two claims that did not survive checking.
+This entry records both halves, because a review's misses are as useful
+to remember as its hits.
+
+**The critical one: a single failed IndexedDB write silenced the session.**
+`persistence.ts` serialises writes through a promise tail, which is what
+FR-19.2's durability rests on. The tail was the *uncaught* promise, so one
+rejection — a quota error, a transaction the browser aborted — left it
+rejected forever: every later `save()` chained `.then` onto a rejected
+promise, the callback never ran, and the change was dropped with no
+signal. In the one mode that has nowhere else to put the data. The tail is
+now the caught promise and the caller still receives its own rejection.
+`whenSettled()` therefore reports *drained*, not *succeeded* — which is
+what the G-2 glyph needs, since it has to leave the syncing state either
+way. Fixing that exposed a second leak behind it: `setLocal()` did not
+clear the offline flag, so the glyph would have stranded on "offline" for
+the rest of the session even once writes resumed. Local Mode has no
+connection to lose; a write that lands is the evidence the condition
+cleared.
+
+**Single-User Mode could never open its WebSocket.** The dial interpolated
+the token straight into the URL, and a mode with no OIDC has no token, so
+it sent `?token=null`. `wsAuth` promotes any non-empty `?token=` to an
+`Authorization` header, and `"null"` is non-empty — the server rejected
+its own unauthenticated clients with a 403. No token now means no
+parameter, and a token that is present is encoded. Filed here because it
+had been visible since the first deployment and never written down.
+
+**One grouping state, not two.** M12's slice tap called
+`tripStore.setGroupBy`, which the M4 rebuild stopped reading — M4 takes
+its grouping from `usePackingFilter`. The tap navigated and the grouping
+silently stayed put. The store's copy (`groupByPrefs`, `getGroupBy`,
+`setGroupBy`, `groupedItems`) had no other reader and is gone;
+`setStoredGroupBy` is the one way for a departing screen to set what M4
+mounts with, and it writes the stored value rather than a ref because the
+composable's watcher flushes into a page that is already leaving.
+
+**The reveal bar counted two different things.** "Show 3 packed" became
+"Hide 5 packed" for the same rows: one direction counted rows, the other
+summed `packed_count`. `hiddenDoneCount` is now `doneCount` — done rows
+among the ones the filter lets through, unchanged by the toggle, because
+the bar labels the same set in both directions.
+
+**`/trips/new` had lost its anchors.** The rule that makes M4 full-screen
+matched on path *shape*, and the wizard has the same one without being a
+drill-down. E2E-G1-03 covers it; the existing G1-02 asserted "hidden on
+M4 and nowhere else" and could not see it, because it only ever visited
+M4.
+
+Also: the strings the rebuild itself hard-coded are localized (M3 step 1
+and M20 in full, including the folded summary, which was printing raw
+enum values like `holiday_flat`), the duplicated amendment paragraph in
+the UI-Spec is gone, and the second `E2E-G12-02` is renumbered.
+
+**What the review got wrong.** `openSlice()` was reported as dead code;
+it is called, and `git blame` shows the call site landed with it. A
+hard-coded `rgba(137,180,250,.16)` was reported in `FilterSheet.vue`; it
+does not exist — that triplet appears only as `--ct-blue-rgb` in the
+token table. And the documentation contradiction was one stale file, not
+three: `e2e-tests.md` and this log already agreed with the code, and
+CLAUDE.md was corrected by #79.
+
+Three invariant-9 violations the rebuild did introduce — raw
+`rgba(0,0,0,…)` shadows in `FilterSheet.vue` and `PackingListPage.vue` —
+are deliberately **not** fixed here. There is no shadow token to move
+them onto; `catppuccin.css` carries colour and nothing else. They are
+part of the design-token work that comes before the next screen rebuilds.

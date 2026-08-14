@@ -81,6 +81,22 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.getByTestId('tab-trips')).toBeVisible()
   })
 
+  // E2E-G1-03 (G-1, ADR-012): "nowhere else" above is the whole rule, and
+  // the rule was over-applied — `/trips/new` matched the same shape as
+  // `/trips/:id`, so the wizard silently lost its anchors too. Its own
+  // screen, because M3 is where a first-time user starts.
+  test('E2E-G1-03: the trip wizard keeps the tab bar — only the packing list drops it', async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE)
+    await page.goto('/tabs/trips')
+
+    await page.getByTestId('trips-new').click()
+
+    await expect(onVisibleScreen(page, 'wizard-step-1')).toBeVisible()
+    await expect(page.getByTestId('tab-trips')).toBeVisible()
+  })
+
   // E2E-G9-10 (ADR-011): back is the way out of a drill-down, so it has
   // to *land*. It moved the URL and left the packing list on screen.
   test('E2E-G9-10: back from the packing list renders the trip list', async ({ page }) => {

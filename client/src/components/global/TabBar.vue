@@ -20,8 +20,15 @@ import { NAV_ANCHORS, isAnchorActive } from '@/router/anchors'
 
 const route = useRoute()
 
-/** The trip screen only — its children (M5, M6, M11) keep the bar. */
-const fullScreen = computed(() => /^\/trips\/[^/]+$/.test(route.path))
+/**
+ * The trip screen only — its children (M5, M6, M11) keep the bar, and so
+ * does `/trips/new`: the wizard has the same path shape as a trip id but
+ * is a root-level flow, and hiding the anchors there took them from the
+ * one screen a first-time user starts on.
+ */
+const fullScreen = computed(
+  () => /^\/trips\/[^/]+$/.test(route.path) && route.path !== '/trips/new',
+)
 </script>
 
 <template>

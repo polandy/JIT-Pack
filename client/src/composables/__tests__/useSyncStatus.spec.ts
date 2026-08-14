@@ -88,4 +88,16 @@ describe('Local Mode writes (FR-19.2)', () => {
 
     expect(status.state.value).toBe('offline')
   })
+
+  it('clears that offline state once a later write lands', () => {
+    const status = useSyncStatus()
+    status.setLocal()
+    status.setSyncing()
+    status.setOffline()
+
+    status.setSyncing()
+    status.setLocal()
+
+    expect(status.state.value).toBe('local')
+  })
 })

@@ -58,6 +58,19 @@ function isGroupBy(value: string | null): value is GroupBy {
   return value === 'category' || value === 'container' || value === 'person' || value === 'status'
 }
 
+/**
+ * Sets the grouping M4 will mount with, for a screen that is about to
+ * send the reader there — M12's slice tap is the only one today.
+ *
+ * It writes the stored value rather than a live ref because the caller
+ * is leaving: the composable's own watcher runs after the current tick,
+ * which is a race against the navigation, and there is nothing left to
+ * observe on the page it flushes into.
+ */
+export function setStoredGroupBy(tripId: string, groupBy: GroupBy): void {
+  writeStored(globalThis.localStorage as Storage | undefined, GROUP_PREFIX + tripId, groupBy)
+}
+
 export function usePackingFilter(tripId: string) {
   // Read through globalThis rather than the bare globals so a caller can
   // hand in a throwing or absent storage in a test without stubbing the

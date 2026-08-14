@@ -35,7 +35,12 @@ export class IndexedDBPersistence {
    */
   private settled: Promise<void> = Promise.resolve()
 
-  /** Resolves once every save issued so far has reached the disk. */
+  /**
+   * Resolves once every save issued so far has finished. It reports that
+   * the queue has drained, not that every write succeeded — a failed
+   * write is reported to its own caller (see `save`), and never here,
+   * because G-2 must be able to leave the syncing state either way.
+   */
   whenSettled(): Promise<void> {
     return this.settled
   }
@@ -54,11 +59,21 @@ export class IndexedDBPersistence {
     return this.db
   }
 
-  /** save applies changes: upserts rows, tombstones delete them. */
+  /**
+   * save applies changes: upserts rows, tombstones delete them.
+   *
+   * The stored tail is deliberately the *caught* promise. Chaining onto
+   * a rejected one skips its callback, so a single failed write — a
+   * quota error, a transaction the browser aborted — would mean every
+   * later save silently never ran: permanent data loss in the one mode
+   * that has nowhere else to keep the data. The caller still learns
+   * about its own failure through the returned promise.
+   */
   save(changes: PullChange[]): Promise<void> {
     if (changes.length === 0) return this.settled
-    this.settled = this.settled.then(() => this.write(changes))
-    return this.settled
+    const written = this.settled.then(() => this.write(changes))
+    this.settled = written.catch(() => {})
+    return written
   }
 
   private async write(changes: PullChange[]): Promise<void> {
