@@ -82,7 +82,13 @@
   --jp-text-display-sm: 24px; /* sheet title     (.ihead .iname)         */
   --jp-text-display-xs: 18.5px; /* app-bar title (.appbar .title)        */
 
-  /* UI scale. */
+  /* UI scale. Unlike a role class, a scale is a table whose intermediate
+     steps mean nothing on their own, so it ships whole rather than one
+     step at a time — and today it ships ahead of its callers: the 185
+     hand-written type declarations across the views move onto it in the
+     surfaces step of design-foundation-plan.md, together with the lint
+     gate that makes a bare px outside this file an error. Deliberate, not
+     a leftover. */
   --jp-text-lg: 17px;
   --jp-text-md: 15px;
   --jp-text-base: 14px;

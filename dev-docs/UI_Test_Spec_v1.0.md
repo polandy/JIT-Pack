@@ -460,6 +460,8 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-21.1/21.2 | E2E | G11-01 (Mocha default) |
 | FR-21.3 | E2E | M17-06 |
 | FR-21.4 | E2E | G11-01 (no flash before paint) |
+| FR-21.5 | E2E+UNIT | G13-01 (both faces reach the screen); typography.css (roles carry the display face, sizes stay tokens) |
+| FR-21.6 | E2E+UNIT | G13-02 (no font CDN, every woff2 same-origin); typography.css (no remote `src`, both subsets present) |
 | FR-22.1 | E2E | M10-04, M9-01, M5-12 |
 | FR-22.2/22.3 | E2E+UNIT | M10-04; imageResize.ts |
 | FR-22.4 | E2E | M10-04 (add/replace/remove) |

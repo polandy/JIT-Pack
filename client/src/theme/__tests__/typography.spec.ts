@@ -10,7 +10,7 @@
  * third-party request on every boot and leaves Local Mode — which may
  * have no network at all — rendering in a fallback face.
  */
-import { readFileSync } from 'node:fs'
+import { globSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 import { describe, it, expect } from 'vitest'
@@ -68,5 +68,35 @@ describe('typography.css', () => {
     // quietly recreate the magic numbers this file exists to retire.
     const roleSection = css.slice(css.indexOf('.jp-page-title'))
     expect(roleSection).not.toMatch(/font-size:\s*\d/)
+  })
+})
+
+describe('the views do not decide type for themselves (G-13)', () => {
+  // The rule G-13 states, asserted rather than trusted: a screen applies a
+  // role, it does not pick a family or restate what a role already says.
+  // Both halves of this had a real violation when it was written —
+  // QuantityStepper carried its own tabular-figures rule, so `.jp-num`
+  // and the component disagreed about who owns it.
+  const vueFiles = globSync('src/**/*.vue', { cwd: process.cwd() })
+
+  it('finds the views to check at all', () => {
+    // Without this the two assertions below pass on an empty list.
+    expect(vueFiles.length).toBeGreaterThan(20)
+  })
+
+  it('never names a face outside the token table', () => {
+    for (const file of vueFiles) {
+      for (const decl of readFileSync(file, 'utf8').match(/font-family:[^;}]*/g) ?? []) {
+        expect(decl, `${file} names a family directly`).toContain('var(--jp-font-')
+      }
+    }
+  })
+
+  it('leaves tabular figures to .jp-num', () => {
+    for (const file of vueFiles) {
+      expect(readFileSync(file, 'utf8'), `${file} restates .jp-num`).not.toContain(
+        'font-variant-numeric',
+      )
+    }
   })
 })
