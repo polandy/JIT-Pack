@@ -832,11 +832,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
                   <IonLabel>
                     <h3>
                       {{ entry.label }}
-                      <IonBadge
-                        v-if="openTodoCount(entry.item.id) > 0"
-                        color="brand"
-                        class="prep"
-                      >
+                      <IonBadge v-if="openTodoCount(entry.item.id) > 0" color="brand" class="prep">
                         <IonIcon :icon="buildOutline" /> {{ openTodoCount(entry.item.id) }}
                       </IonBadge>
                     </h3>
