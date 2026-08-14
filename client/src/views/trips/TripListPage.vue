@@ -300,7 +300,7 @@ async function handleRefresh(event: CustomEvent) {
       </div>
 
       <!-- Trip list, grouped by series (FR-13.1) -->
-      <IonList v-else>
+      <IonList v-else class="trip-list" lines="none">
         <template v-for="group in groupedTrips" :key="group.seriesId ?? 'none'">
           <!-- Series header → M16 -->
           <IonItem
@@ -316,82 +316,84 @@ async function handleRefresh(event: CustomEvent) {
               <p>{{ group.trips.length }} trip{{ group.trips.length === 1 ? '' : 's' }}</p>
             </IonLabel>
           </IonItem>
-          <IonItemSliding v-for="trip in group.trips" :key="trip.id">
-            <IonItem
-              button
-              :data-testid="`trip-row-${trip.name}`"
-              :router-link="`/trips/${trip.id}`"
-              :class="{ archived: trip.status === 'archived' }"
-            >
-              <div slot="start" class="progress-ring">
-                <svg viewBox="0 0 36 36" class="ring-svg">
-                  <circle class="ring-bg" cx="18" cy="18" r="15.5" fill="none" stroke-width="3" />
-                  <circle
-                    class="ring-fg"
-                    cx="18"
-                    cy="18"
-                    r="15.5"
-                    fill="none"
-                    stroke-width="3"
-                    :stroke="progressColor(trip)"
-                    :stroke-dasharray="`${progressPercent(trip)} 100`"
-                    stroke-linecap="round"
-                  />
-                  <text x="18" y="20.5" class="ring-text">{{ progressPercent(trip) }}%</text>
-                </svg>
-              </div>
-              <IonLabel>
-                <h2>{{ trip.name }}</h2>
-                <!-- FR-2.1b: a trip may have both dates, one, or neither.
+          <div class="jp-card trip-card">
+            <IonItemSliding v-for="trip in group.trips" :key="trip.id">
+              <IonItem
+                button
+                :data-testid="`trip-row-${trip.name}`"
+                :router-link="`/trips/${trip.id}`"
+                :class="{ archived: trip.status === 'archived' }"
+              >
+                <div slot="start" class="progress-ring">
+                  <svg viewBox="0 0 36 36" class="ring-svg">
+                    <circle class="ring-bg" cx="18" cy="18" r="15.5" fill="none" stroke-width="3" />
+                    <circle
+                      class="ring-fg"
+                      cx="18"
+                      cy="18"
+                      r="15.5"
+                      fill="none"
+                      stroke-width="3"
+                      :stroke="progressColor(trip)"
+                      :stroke-dasharray="`${progressPercent(trip)} 100`"
+                      stroke-linecap="round"
+                    />
+                    <text x="18" y="20.5" class="ring-text">{{ progressPercent(trip) }}%</text>
+                  </svg>
+                </div>
+                <IonLabel>
+                  <h2>{{ trip.name }}</h2>
+                  <!-- FR-2.1b: a trip may have both dates, one, or neither.
                      With neither, its year is what it is called by. -->
-                <p data-testid="trip-when">{{ tripWhen(trip) }}</p>
-                <p>{{ itemSummary(trip) }}</p>
-              </IonLabel>
-            </IonItem>
+                  <p data-testid="trip-when">{{ tripWhen(trip) }}</p>
+                  <p>{{ itemSummary(trip) }}</p>
+                </IonLabel>
+              </IonItem>
 
-            <IonItemOptions side="end">
-              <!-- FR-18.3: portable YAML export with progress choice -->
-              <IonItemOption color="tertiary" aria-label="Export trip" @click="exportTrip(trip)">
-                <IonIcon slot="icon-only" :icon="downloadOutline" />
-              </IonItemOption>
-              <!-- FR-4.5: member management (Share) -->
-              <IonItemOption
-                v-if="collaborative"
-                color="secondary"
-                aria-label="Share"
-                @click="$router.push(`/trips/${trip.id}/members`)"
-              >
-                <IonIcon slot="icon-only" :icon="peopleOutline" />
-              </IonItemOption>
-              <!-- FR-12.1: clone from archive -->
-              <IonItemOption
-                v-if="trip.status === 'archived'"
-                color="primary"
-                aria-label="Clone trip"
-                @click="$router.push(`/trips/${trip.id}/clone`)"
-              >
-                <IonIcon slot="icon-only" :icon="copyOutline" />
-              </IonItemOption>
-              <!-- Archive → M14 review (FR-9.2) -->
-              <IonItemOption
-                v-else-if="trip.status === 'active'"
-                color="medium"
-                aria-label="Archive trip"
-                @click="archiveTrip(trip.id)"
-              >
-                <IonIcon slot="icon-only" :icon="archiveOutline" />
-              </IonItemOption>
-              <!-- Delete (destructive, Owner-only FR-4.5) -->
-              <IonItemOption
-                v-if="canDelete(trip)"
-                color="danger"
-                aria-label="Delete trip"
-                @click="deleteTrip(trip)"
-              >
-                <IonIcon slot="icon-only" :icon="trashOutline" />
-              </IonItemOption>
-            </IonItemOptions>
-          </IonItemSliding>
+              <IonItemOptions side="end">
+                <!-- FR-18.3: portable YAML export with progress choice -->
+                <IonItemOption color="tertiary" aria-label="Export trip" @click="exportTrip(trip)">
+                  <IonIcon slot="icon-only" :icon="downloadOutline" />
+                </IonItemOption>
+                <!-- FR-4.5: member management (Share) -->
+                <IonItemOption
+                  v-if="collaborative"
+                  color="secondary"
+                  aria-label="Share"
+                  @click="$router.push(`/trips/${trip.id}/members`)"
+                >
+                  <IonIcon slot="icon-only" :icon="peopleOutline" />
+                </IonItemOption>
+                <!-- FR-12.1: clone from archive -->
+                <IonItemOption
+                  v-if="trip.status === 'archived'"
+                  color="primary"
+                  aria-label="Clone trip"
+                  @click="$router.push(`/trips/${trip.id}/clone`)"
+                >
+                  <IonIcon slot="icon-only" :icon="copyOutline" />
+                </IonItemOption>
+                <!-- Archive → M14 review (FR-9.2) -->
+                <IonItemOption
+                  v-else-if="trip.status === 'active'"
+                  color="medium"
+                  aria-label="Archive trip"
+                  @click="archiveTrip(trip.id)"
+                >
+                  <IonIcon slot="icon-only" :icon="archiveOutline" />
+                </IonItemOption>
+                <!-- Delete (destructive, Owner-only FR-4.5) -->
+                <IonItemOption
+                  v-if="canDelete(trip)"
+                  color="danger"
+                  aria-label="Delete trip"
+                  @click="deleteTrip(trip)"
+                >
+                  <IonIcon slot="icon-only" :icon="trashOutline" />
+                </IonItemOption>
+              </IonItemOptions>
+            </IonItemSliding>
+          </div>
         </template>
       </IonList>
 
@@ -435,8 +437,22 @@ async function handleRefresh(event: CustomEvent) {
   opacity: 0.6;
 }
 
+/* The list is scaffolding now, not a surface: each series is its own card
+   on the page plane (G-14), so the list itself must not paint one. */
+.trip-list {
+  background: transparent;
+  padding: 0 8px;
+}
+
+.trip-card {
+  margin-bottom: 12px;
+}
+
+/* A series label belongs *above* its card, the way the concept prototype
+   sets it — a header row inside the card would read as the first trip. */
 .series-header {
-  --background: var(--ion-color-light);
+  --background: transparent;
+  --padding-start: 4px;
   font-weight: 600;
 }
 

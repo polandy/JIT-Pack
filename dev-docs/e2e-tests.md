@@ -44,6 +44,17 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
+| Surfaces | E2E-G14-01, E2E-G14-02 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
+
+**What the surfaces unit does *not* prove, and the one thing only it
+could.** It proves a card is painted a different plane than its page and
+that its shadow survives the flavour switch. It does not prove the *depth
+is right* — that a card looks lifted rather than floating — which stays an
+eyeball matter until the baselines land. What makes it worth having is the
+opposite direction: this defect was **invisible to the stylesheet**. The
+card asked for `--ct-mantle`, a real palette token, and passed the colour
+invariant and its unit suite while being the same colour as the page. A
+rendered pixel was the only witness.
 
 **What the colour unit does *not* prove.** That the palette is *pleasant* —
 only that each role landed on the component it belongs to and that the three

@@ -74,9 +74,13 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
      Fraunces and Hanken Grotesk self-hosted, one scale, role classes in
      `client/src/theme/typography.css` — see invariant 9). **Colour anchors are done too**
      (FR-21.7, G-11: brand/action/done named once, `--ion-color-primary` deliberately still
-     blue, caution moved off peach onto yellow). Remaining: surfaces plus a
-     non-colour token table as **invariant 9b** with a lint gate, the FR-25.2 pack-out
-     animation and undo, and visual baselines plus a dev gallery (owes ADR-013). Each acts
+     blue, caution moved off peach onto yellow). **Surfaces are done too** (FR-21.8, G-14,
+     invariant 9b: three planes, a five-step radius scale, elevation as one geometry in the
+     flavour's ink, `.jp-card`, and `scripts/design-tokens-gate.mjs` wired into `make client`
+     and CI). Remaining: **the type-scale migration** — the 123 raw `font-size` sites the
+     typography step shipped its scale ahead of, plus extending the gate to cover them; then
+     the FR-25.2 pack-out animation and undo, and visual baselines plus a dev gallery (owes
+     ADR-013). Each acts
      on every screen at once, which is why they come first: after six more rebuilds the same
      gap would have been built six more times.
    * **The rebuilds themselves**, localized with `t()` from the first line. **M4 and M5 are
@@ -127,6 +131,7 @@ ownership model (each carries a revisit trigger in its stub).
 7. **Coverage gates are enforced, not aspirational**: ≥75 % overall, ≥90 % `internal/sync`. An uncovered branch in merge logic fails review regardless of the total.
 8. **Everything resolves to an exact version verified by hash.** npm via `package-lock.json`, Go via `go.sum`, Docker base images by `@sha256:` digest, GitHub Actions by full commit SHA with the tag as a readable comment. Never a bare tag. Dependabot updates the digests, so pinning costs no freshness.
 9. **Colors come from one token table** — `client/src/theme/catppuccin.css` (`--ct-*`, Mocha as the dark default, Latte behind `jitpack-latte`). Ionic's variables consume those tokens; there is no parallel color system and no hard-coded color — **not even as a `var(--x, #fallback)`**, which is a second unreviewed palette that only paints when something is already wrong. Above the palette sit the three **role anchors** (`--jp-brand` peach, `--jp-action` blue, `--jp-done` green/teal, G-11/FR-21.7): a component asks for the role, and only that block decides which hue a role is. **Type comes from a second table beside it**, `client/src/theme/typography.css` (the two self-hosted faces, the `--jp-text-*` scale, the `.jp-*` role classes): which face and size a piece of text takes is decided by its role, each role is defined once there, and a view never sets its own `font-family` or `font-size` (G-13, FR-21.5/21.6).
+9b. **Shape comes from a third table, and the three are enforced by a gate** — `client/src/theme/surfaces.css` (the `--jp-r*` radius scale, the three elevation casts, `.jp-card`). Depth is a role like brand and action: **page → card → sunken**, named once as `--jp-surface-*`, and Ionic's background variables resolve *through* those roles. Elevation is **one geometry cast in the flavour's ink** — the offsets live in `surfaces.css`, the ink and its weight in `catppuccin.css`, because a shadow that reads as depth on near-black reads as dirt on near-white. `scripts/design-tokens-gate.mjs` (run by `make client` and the CI `client` job) rejects a raw colour, a raw `border-radius` length or a raw `box-shadow` anywhere in `client/src` outside the three theme files; `50%` and a `0 0 0 <n>px` ring pass by rule, not by allowlist. **What this invariant is actually for:** the M4 group card painted itself `--ct-mantle` — a valid palette token, passing invariant 9 — which was the exact colour of the page behind it. A card can satisfy every colour rule and still not be a card, and only a rendered pixel can tell you (G-14, FR-21.8).
 
 ## Testing
 

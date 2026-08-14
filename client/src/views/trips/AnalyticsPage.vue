@@ -209,7 +209,7 @@ setHeaderTitle(() => `Analytics · ${trip.value?.name ?? ''}`)
 
 .bar {
   height: 14px;
-  border-radius: 7px;
+  border-radius: var(--jp-r-pill);
   background: var(--ion-color-light);
   overflow: hidden;
   margin: 4px 0;
@@ -217,7 +217,7 @@ setHeaderTitle(() => `Analytics · ${trip.value?.name ?? ''}`)
 
 .bar-planned {
   height: 100%;
-  border-radius: 7px;
+  border-radius: var(--jp-r-pill);
   background: var(--ion-color-primary-tint);
   overflow: hidden;
 }

@@ -574,7 +574,7 @@ async function exportTripCSV() {
   gap: 8px;
   padding: 10px 12px;
   margin-bottom: 8px;
-  border-radius: 8px;
+  border-radius: var(--jp-r-sm);
   background: var(--ion-color-warning-tint);
   color: var(--ion-color-warning-contrast);
   font-size: 0.85rem;

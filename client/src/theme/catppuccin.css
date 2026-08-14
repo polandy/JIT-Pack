@@ -57,7 +57,9 @@
   --ct-on-accent: var(--ct-crust);
   --ct-on-accent-rgb: 17, 17, 27;
 
+  --ct-crust-rgb: 17, 17, 27;
   --ct-mantle-rgb: 24, 24, 37;
+  --ct-base-rgb: 30, 30, 46;
   --ct-text-rgb: 205, 214, 244;
   --ct-blue-rgb: 137, 180, 250;
   --ct-teal-rgb: 148, 226, 213;
@@ -105,7 +107,9 @@
   --ct-on-accent: var(--ct-base);
   --ct-on-accent-rgb: 239, 241, 245;
 
+  --ct-crust-rgb: 220, 224, 232;
   --ct-mantle-rgb: 230, 233, 239;
+  --ct-base-rgb: 239, 241, 245;
   --ct-text-rgb: 76, 79, 105;
   --ct-blue-rgb: 30, 102, 245;
   --ct-teal-rgb: 23, 146, 153;
@@ -148,6 +152,32 @@
      progress bar reads as an alert rather than as headway. */
   --jp-done: var(--ct-green);
   --jp-done-far: var(--ct-teal);
+
+  /* --- The three planes (G-14) ------------------------------------- */
+  /*
+   * Depth is a role too, and it was the one the app did not have: the M4
+   * group card painted itself `mantle` on a `mantle` page, so a 1px
+   * hairline was the only thing separating a card from the surface it sat
+   * on. Naming the planes is what makes "one step up from the page" a
+   * decision taken once instead of a background colour guessed per screen.
+   */
+  --jp-surface-page: var(--ct-mantle);
+  --jp-surface-card: var(--ct-base);
+  --jp-surface-sunken: var(--ct-crust);
+  --jp-surface-border: var(--ct-surface0);
+
+  /* --- Elevation ink ------------------------------------------------ */
+  /*
+   * The geometry of every shadow lives in surfaces.css; what belongs here
+   * is only which colour it is cast in and how hard, because that is a
+   * palette question and it is flavour-relative in the same way the brand
+   * is. Mocha casts in crust — the plane below the page — at full weight.
+   */
+  --jp-shadow-ink-rgb: var(--ct-crust-rgb);
+  --jp-shadow-alpha: 0.6;
+  /* The lit top edge of a raised surface. Mocha's brightest neutral at a
+     hair of opacity; a real highlight, not a white literal. */
+  --jp-shadow-rim: inset 0 1px 0 rgba(var(--ct-text-rgb), 0.04);
 }
 
 /*
@@ -174,6 +204,21 @@
      instead lands on brick, which reads as danger — the gradient would be
      saying "error" on the one control that creates things. */
   --jp-brand-far: color-mix(in srgb, var(--ct-peach) 42%, var(--ct-text));
+
+  /*
+   * Elevation is flavour-relative for the same reason the brand is. Crust
+   * is the plane *below* the page in both flavours, but in Latte that is
+   * a light grey — a shadow cast in it would be invisible. The light
+   * theme casts in its darkest neutral instead, and casts far softer:
+   * 0.6 alpha reads as depth on near-black and as dirt on near-white.
+   *
+   * The rim inverts with it. A lit top edge is a dark-ground device; on a
+   * light card the highlight has to come from the near-white end of the
+   * palette or it draws a dark line across the top of every card.
+   */
+  --jp-shadow-ink-rgb: var(--ct-text-rgb);
+  --jp-shadow-alpha: 0.22;
+  --jp-shadow-rim: inset 0 1px 0 rgba(var(--ct-base-rgb), 0.9);
 }
 
 /* ------------------------------------------------------------------ */
@@ -181,17 +226,19 @@
 /* ------------------------------------------------------------------ */
 
 :root {
-  /* Background depth: app on mantle, cards/items pop on base (G-11). */
-  --ion-background-color: var(--ct-mantle);
+  /* Background depth: app on the page plane, cards/items one step up
+     (G-14). Routed through the plane roles rather than the palette, so
+     "how deep is a card" is answered in the role block only. */
+  --ion-background-color: var(--jp-surface-page);
   --ion-background-color-rgb: var(--ct-mantle-rgb);
   --ion-text-color: var(--ct-text);
   --ion-text-color-rgb: var(--ct-text-rgb);
-  --ion-border-color: var(--ct-surface0);
-  --ion-item-background: var(--ct-base);
-  --ion-card-background: var(--ct-base);
-  --ion-toolbar-background: var(--ct-mantle);
-  --ion-tab-bar-background: var(--ct-base);
-  --ion-overlay-background-color: var(--ct-base);
+  --ion-border-color: var(--jp-surface-border);
+  --ion-item-background: var(--jp-surface-card);
+  --ion-card-background: var(--jp-surface-card);
+  --ion-toolbar-background: var(--jp-surface-page);
+  --ion-tab-bar-background: var(--jp-surface-card);
+  --ion-overlay-background-color: var(--jp-surface-card);
   --ion-placeholder-color: var(--ct-overlay1);
 
   /* Ionic's primary *is* the action role — it reaches the palette through

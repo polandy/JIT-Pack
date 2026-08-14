@@ -57,6 +57,9 @@ jobs:
       # The package scripts lint with --fix for local use; CI only checks.
       - run: npx oxlint .
       - run: npx eslint .
+      # Invariant 9b: colour, radius and elevation come from the three
+      # token tables, never from a view. Node built-ins only.
+      - run: node ../scripts/design-tokens-gate.mjs
       - run: npm run build # runs type-check and the production build
       - run: npx vitest run
 

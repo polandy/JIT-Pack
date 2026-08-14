@@ -712,7 +712,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
             </span>
           </button>
 
-          <div v-if="!group.collapsed" class="group-card">
+          <div v-if="!group.collapsed" class="group-card jp-card">
             <template
               v-for="entry in group.entries"
               :key="entry.kind === 'item' ? entry.item.id : entry.key"
@@ -1030,9 +1030,9 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
    the finger that opened it. */
 .item-modal {
   --height: 88%;
-  --border-radius: 22px 22px 0 0;
+  --border-radius: var(--jp-r-lg) var(--jp-r-lg) 0 0;
   --background: var(--ct-mantle);
-  --box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.62);
+  --box-shadow: var(--jp-shadow-sheet);
   --backdrop-opacity: 0.62;
   align-items: flex-end;
 }
@@ -1050,7 +1050,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
   overflow-y: auto;
   background: var(--ct-mantle);
   border-left: 1px solid var(--ct-surface1);
-  box-shadow: -16px 0 40px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--jp-shadow-panel);
   z-index: 20;
 }
 
@@ -1147,7 +1147,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
   gap: 5px;
   padding: 4px 9px;
   border: 1px solid var(--ct-blue);
-  border-radius: 999px;
+  border-radius: var(--jp-r-pill);
   background: none;
   color: var(--ct-text);
   font-size: 0.78rem;
@@ -1208,17 +1208,13 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 
 /* Each group is its own block, so the seam between two categories is a
    real edge rather than a slightly larger gap — which is what made them
-   run into each other on a long list. */
+   run into each other on a long list. The plane, rim, radius and lift all
+   come from .jp-card (G-14); this only places it. */
 .group-card {
   margin: 0 8px;
-  border: 1px solid var(--ct-surface0);
-  border-radius: 14px;
-  background: var(--ct-mantle);
-  overflow: hidden;
 }
 
 .group-card ion-item {
-  --background: transparent;
   --padding-start: 12px;
   --inner-padding-end: 10px;
 }
@@ -1322,7 +1318,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
   margin: 10px 12px;
   padding: 10px;
   border: 1px dashed var(--ct-surface2);
-  border-radius: 12px;
+  border-radius: var(--jp-r-md);
   background: none;
   color: var(--ct-subtext0);
   font-size: 0.85rem;
@@ -1337,7 +1333,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 .closing-card {
   margin: 12px;
   padding: 14px;
-  border-radius: 14px;
+  border-radius: var(--jp-r);
   background: var(--ct-surface0);
 }
 

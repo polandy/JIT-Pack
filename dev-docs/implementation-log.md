@@ -1424,3 +1424,65 @@ Worth keeping as a shape, since it is the second time in two PRs: **a test
 that asserts a rule is stated is not a test that the rule holds.** The
 typography suite had the same gap — asserting a role class exists rather
 than that no view contradicts it.
+
+### 2026-08-14 — Surfaces: three planes, a radius scale, and a gate (FR-21.8, G-14, invariant 9b)
+
+Third design-foundation step. The defect it closes is the most instructive one
+of the three, because **no rule then in force could see it**: `.group-card`
+declared `background: var(--ct-mantle)` — a real palette token, sourced from
+the token table, passing invariant 9 and its unit suite — and `--ct-mantle` is
+what `--ion-background-color` is set to. The card was painted the exact colour
+of the page behind it, so a 1px hairline was the entire distinction between an
+object and its background. A stylesheet reads as correct either way; only a
+rendered pixel says otherwise.
+
+So depth became a role, the way brand and action did: page → card → sunken,
+each named once, with Ionic's background variables resolving *through* the
+roles rather than beside them. `.jp-card` carries plane, rim, radius and lift
+together, and its children defer to it.
+
+**The radius scale is smaller than the values it replaced, and that is the
+finding.** Nine values were in use (2/4/7/8/10/12/14/22/999px) with no rule for
+picking one. But three of them were not a small step at all: every stray 2, 4
+and 7 px was **half the height of the bar or handle it rounded**, so all of
+them meant "fully round". They collapsed into one pill token rather than
+snapping onto an invented `--jp-r-xs`. Five steps, each with a job. `50%` stays
+raw on actual circles — a circle is a shape, not a size — and the gate allows
+that by rule rather than by allowlist, as it does the `0 0 0 <n>px` ring form,
+which casts no light and therefore is not elevation.
+
+Elevation is split across two files on purpose: the geometry in `surfaces.css`,
+the ink and its weight in `catppuccin.css`. Same reason FR-21.7's brand is
+flavour-relative — Mocha casts in crust, which in Latte is a light grey that
+would cast no shadow at all, and 0.6 alpha reads as depth on near-black and as
+dirt on near-white.
+
+**Two false greens, both caught by running the thing rather than reading it.**
+
+The gate had the defect it exists to prevent. Run from the wrong working
+directory it resolved a path that matched nothing, globbed zero files, and
+printed *ok*. It was found by accidentally running it from `client/src` — a
+gate that scans nothing now exits non-zero, because "ok" is the worst answer it
+could give.
+
+The Latte shadow e2e case passed against the bug it was written to catch. It
+asserted the shadow ink is darker than the card, and Latte's crust satisfies
+that (676 to the card's 725) while being useless as a shadow. Substituting
+Mocha's ink back in kept it green. The assertion that holds is that the ink is
+darker than the palette's darkest **surface** — anything lighter is a plane,
+and planes do not cast shadows. **Third occurrence in three PRs of one shape:
+a test that asserts a rule is stated is not a test that the rule holds.** It is
+worth treating as a standing check on any new guard: name the mutation it would
+catch, then make that mutation.
+
+**PR 3 was split, and the split is recorded in the plan.** It bundled the card
+planes, the radius scale, the elevation tokens and the 123-site type migration
+— four sweeps that each change how every screen looks. One PR containing all
+four cannot be eyeballed, since a regression in any one is indistinguishable
+from an intended change in the other three. Shape shipped here; the type
+migration is PR 3b, still ahead of the screen rebuilds, and extends the same
+gate. The spacing scale the plan asked for was dropped outright: with the gate
+scoped to colour, radius and elevation it would have had no consumers and no
+gate, which is the unused-token shape PR 1 already removed a class for. Spacing
+is also not one decision the way a radius is — a radius describes what kind of
+thing an element is, spacing describes one particular layout.

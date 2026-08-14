@@ -54,7 +54,7 @@ const route = useRoute()
   text-decoration: none;
   color: var(--ion-color-medium);
   font-size: 11px;
-  border-radius: 8px;
+  border-radius: var(--jp-r-sm);
   margin: 2px 8px;
   transition:
     background 0.15s,

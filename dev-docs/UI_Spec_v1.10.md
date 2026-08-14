@@ -8,6 +8,8 @@
 
 **Amendment (2026-08-14, colour anchors):** **G-11 gains the three anchors** — brand, action, done (Addendum FR-21.7). The pattern already said where colour comes from; it did not say what each hue *means*, and the built screens showed the cost: Ionic's own primary painted the tabs, the FAB and the checkboxes, so the app read as a stock Ionic app while the concept prototype puts peach on identity and keeps blue for what you act on. Second of the five design-foundation steps.
 
+**Amendment (2026-08-14, surfaces):** **G-14 is added** — shape and depth (Addendum FR-21.8), the third design-foundation step and the one that closes the trio with G-11 and G-13. The gap it names was found the only way it could be: rendered. A card painted in a valid palette token that matched the page behind it passes every colour rule and still is not a card.
+
 **Amendment (2026-08-14, typography):** **G-13** is added — the type counterpart to G-11, written after the built M4/M5 were compared with the concept prototype and the gap turned out to be form language rather than structure. It is the first of the five design-foundation steps in `dev-docs/design-foundation-plan.md`.
 
 **Platform Targets:** Mobile-first (Capacitor iOS/Android), responsive web — mobile is the primary design target, but every screen must remain fully and comfortably usable on desktop (G-9). All screens must function fully offline (NFR-4.1); sync state is surfaced globally, not per screen.
@@ -54,6 +56,13 @@ These patterns apply to every screen and are specified once.
   * **Roles are defined once.** Family, size, weight, line height and tracking live in one place per role; a screen applies the role and adds nothing. A screen that wants a size the scale does not have is a signal about the scale, not a licence for a magic number.
   * **Figures that change in place are tabular.** Counters, quantities and weights are set in tabular figures — M4's `12/48` reflows on every pack otherwise, which is exactly the moment the number needs to be readable.
   * **The faces are served from the instance, never from a font CDN** (Addendum FR-21.6). Local Mode may have no network at all, so a face fetched at boot is a face that is sometimes absent.
+
+* **G-14 (Surfaces — new 2026-08-14, third of the design-foundation steps):** The third of the pattern trio: G-11 says where colour comes from, G-13 where type does, G-14 where **shape and depth** do (Addendum FR-21.8). It exists because of a defect none of the other rules could see — the packing list's group card was painted in a legitimate palette token that was the *same colour as the page behind it*, which is invisible in a stylesheet and obvious in a screenshot.
+  * **Three planes, asked for by role.** **Page**, **card** — one step up, and where every list row lives — and **sunken**, one step down. A card is not a hairline: it is a lighter plane with a rim and a lift, and a component asks for `card` rather than for a palette token that happens to look right today.
+  * **One card class, not a card per screen.** `.jp-card` carries the plane, the border, the radius and the elevation together; a screen positions it and adds nothing. Its children defer to it, so no row can repaint itself a shade off the surface it sits in.
+  * **Radius is a five-step scale**: inline control, block, card, sheet, pill. A radius that is half its own element's height is a **pill**, not a small step — that is what the client's stray 2/4/7 px values all actually meant. A circle keeps `50%`, because a circle is a shape rather than a size.
+  * **Elevation is one geometry in the flavour's ink.** Offsets and blur are written once; which colour a shadow is cast in and how hard is restated per flavour, exactly as G-11 restates the brand. Reusing the dark theme's ink in the light one produces a shadow the same lightness as a surface — which is to say, no shadow.
+  * **The rule is enforced, not stated.** A view that writes a raw colour, radius or shadow fails the build (`scripts/design-tokens-gate.mjs`, invariant 9b). Six screen rebuilds are queued behind this pattern, and without the gate each would invent its own numbers again — which is precisely how the nine radii got there.
 
 ---
 

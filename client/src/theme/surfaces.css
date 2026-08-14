@@ -1,0 +1,85 @@
+/*
+ * Surfaces (Addendum 3.21, UI-Spec G-14).
+ *
+ * The third token table, and the one that owns everything shape: corner
+ * radius, elevation geometry, and the card the two of them add up to.
+ * catppuccin.css decides which hue a role is, typography.css decides
+ * which face a role takes, and this file decides how far a surface is
+ * lifted off the one behind it.
+ *
+ * Why elevation is split across two files. A shadow is a geometry cast in
+ * an ink: the offsets and blur below are the same in both flavours, the
+ * ink and its weight are not — a shadow that reads as depth on near-black
+ * reads as dirt on near-white. So the ink lives with the palette
+ * (`--jp-shadow-ink-rgb`, `--jp-shadow-alpha`, `--jp-shadow-rim`) and the
+ * geometry lives here, written once.
+ *
+ * `scripts/design-tokens-gate.mjs` enforces the split: outside the three
+ * theme files, a raw colour, a raw `border-radius` length and a raw
+ * `box-shadow` are all errors (invariant 9b).
+ */
+
+:root {
+  /* --- Radius -------------------------------------------------------
+   * Five steps, each with a job. The client had nine values before this
+   * (2, 4, 7, 8, 10, 12, 14, 22, 999) and no rule for picking one.
+   *
+   * The small three collapsed rather than snapped: 2/4/7 px were each
+   * half the height of the bar or handle they rounded, so what every one
+   * of them meant was "fully round" — they are pills, not a fourth small
+   * step. `border-radius: 50%` stays raw on the things that are actually
+   * circles: that is a shape, not a magic number, and the gate allows it.
+   */
+  --jp-r-sm: 10px; /* inline controls: chips, inputs, thumbnails, tiles */
+  --jp-r-md: 12px; /* blocks inside a card: reveal bars, form sections  */
+  --jp-r: 18px; /* the card itself         (prototype --r)          */
+  --jp-r-lg: 26px; /* sheet tops and heroes   (prototype --r-lg)       */
+  --jp-r-pill: 999px; /* anything whose radius is half its own height     */
+
+  /* --- Elevation ----------------------------------------------------
+   * Three casts, because the app raises surfaces in three directions and
+   * each needs its shadow thrown the other way: a card lifts off the
+   * page, a bottom sheet rises over it, a side panel sits beside it.
+   */
+  --jp-shadow:
+    var(--jp-shadow-rim), 0 12px 30px -12px rgba(var(--jp-shadow-ink-rgb), var(--jp-shadow-alpha));
+  --jp-shadow-sheet: 0 -16px 40px rgba(var(--jp-shadow-ink-rgb), var(--jp-shadow-alpha));
+  --jp-shadow-panel: -16px 0 40px
+    rgba(var(--jp-shadow-ink-rgb), calc(var(--jp-shadow-alpha) * 0.75));
+
+  /* A full-bleed dim behind an overlay. Same ink, so a modal backdrop and
+     the shadow its sheet casts are the same darkness by construction. */
+  --jp-scrim: rgba(var(--jp-shadow-ink-rgb), calc(var(--jp-shadow-alpha) * 0.9));
+}
+
+/* --- The card -------------------------------------------------------- */
+
+/*
+ * One class, because a card is one decision. Before this, the M4 group
+ * card set `background: var(--ct-mantle)` — the page's own colour — and
+ * then cancelled its children's `base` background to keep them matching,
+ * so the card was a hairline rectangle drawn on the page rather than a
+ * surface raised above it. The plane, the rim and the lift are what make
+ * it read as an object; all three come from tokens, none from the view.
+ *
+ * `overflow: hidden` is part of the card, not an extra: rows that run to
+ * the card's edge have to be clipped by its radius or the corners square
+ * off under the first and last row.
+ */
+.jp-card {
+  background: var(--jp-surface-card);
+  border: 1px solid var(--jp-surface-border);
+  border-radius: var(--jp-r);
+  box-shadow: var(--jp-shadow);
+  overflow: hidden;
+}
+
+/*
+ * Ionic paints item backgrounds from `--ion-item-background`, which is
+ * already the card plane — but an item inside a card must defer to the
+ * card so that a hover, a slider or a nested list cannot repaint one row
+ * a different shade than the surface it sits in.
+ */
+.jp-card ion-item {
+  --background: transparent;
+}
