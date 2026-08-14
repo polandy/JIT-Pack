@@ -27,7 +27,7 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.61.1",
+    "@playwright/test": "^1.62.1",
     "@tsconfig/node24": "^24.0.4",
     "@types/jsdom": "^28.0.3",
     "@types/node": "^26.1.2",
