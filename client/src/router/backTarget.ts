@@ -44,8 +44,7 @@ export interface BackTargetRoute {
  */
 export function backTarget(route: BackTargetRoute): string | null {
   const overlay = route.meta.overlayParam
-  const pattern =
-    overlay && route.params[overlay] ? route.meta.overlayParent : route.meta.parent
+  const pattern = overlay && route.params[overlay] ? route.meta.overlayParent : route.meta.parent
   if (!pattern) return null
 
   return pattern.replace(/:([A-Za-z0-9_]+)/g, (whole, name: string) => {
