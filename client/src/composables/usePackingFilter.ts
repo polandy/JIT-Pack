@@ -24,7 +24,7 @@
  * Storage refused by the browser (private mode, disabled) degrades to
  * today's behaviour: filtering still works, it simply forgets.
  */
-import { ref, watch } from 'vue'
+import { ref, watch, type Ref } from 'vue'
 
 import { noFacets } from '@/domain/packingView'
 import type { Facets, GroupBy } from '@/types/domain'
@@ -59,16 +59,28 @@ function isGroupBy(value: string | null): value is GroupBy {
 }
 
 /**
- * Sets the grouping M4 will mount with, for a screen that is about to
- * send the reader there — M12's slice tap is the only one today.
+ * The grouping ref of the M4 currently mounted for a trip, if there is
+ * one. ADR-012 leaves a single router outlet, so returning to M4 from
+ * M12 does not remount it — a grouping written only to storage would sit
+ * there unread until the next cold start, which is precisely how the
+ * defect this replaces presented. One entry per trip visited this
+ * session, replaced whenever M4 mounts again.
+ */
+const mountedGroupBy = new Map<string, Ref<GroupBy>>()
+
+/**
+ * Sets the grouping M4 shows, for a screen that is about to send the
+ * reader there — M12's slice tap is the only one today.
  *
- * It writes the stored value rather than a live ref because the caller
- * is leaving: the composable's own watcher runs after the current tick,
- * which is a race against the navigation, and there is nothing left to
- * observe on the page it flushes into.
+ * Storage is written synchronously rather than left to the composable's
+ * watcher, which flushes after the current tick and so races the
+ * navigation; the live ref is moved as well, for the mount that is
+ * already on screen.
  */
 export function setStoredGroupBy(tripId: string, groupBy: GroupBy): void {
   writeStored(globalThis.localStorage as Storage | undefined, GROUP_PREFIX + tripId, groupBy)
+  const mounted = mountedGroupBy.get(tripId)
+  if (mounted) mounted.value = groupBy
 }
 
 export function usePackingFilter(tripId: string) {
@@ -101,6 +113,7 @@ export function usePackingFilter(tripId: string) {
 
   const storedGroup = readStored(local, groupKey)
   if (isGroupBy(storedGroup)) groupBy.value = storedGroup
+  mountedGroupBy.set(tripId, groupBy)
 
   // One watcher over the whole filter: with a save call per mutation site,
   // the site added next is the one that forgets.

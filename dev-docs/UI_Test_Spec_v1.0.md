@@ -277,7 +277,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M12-05** `all` (FR-8.2/25.1): with a per-person item on the trip, the Person view shows **one contribution per traveler** and no `undefined` bucket; the Category view sums the same item's shares into a single bucket, so the totals match across dimensions.
 * **E2E-M12-02** `all` (FR-8.2): items without weight aggregate as "unweighted (n)".
 * **E2E-M12-03** `all` (FR-14.3): series trend section (weight over years, top Missing/Unused) shown when the trip has a series.
-* **E2E-M12-04** `all` (FR-8.2): tap a bar segment → M4 filtered to that slice.
+* **E2E-M12-06** `all` (FR-8.2/25.18): tapping a slice sets the grouping M4 comes back with — the *grouping half* of E2E-M12-04, which is what is built. Crosses the screen boundary on purpose: M12 and M4 each held their own grouping state and each was self-consistent, so no unit could see that the handoff between them had stopped working. ADR-012 leaves one router outlet, so M4 is **not** remounted on the way back and a value written only to storage would not be read until the next cold start.
 
 ### M13 — Repack Mode — **REMOVED (2026-07-17)**
 Feature removed from the product (PRD Addendum §3.11); its E2E cases are retired.
@@ -411,7 +411,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-7.2 | E2E | M5-05, M4-09 |
 | FR-7.3 | E2E | M1-02, M4-08, M5-06 |
 | FR-8.1 | E2E | M4-01, M12-01 |
-| FR-8.2 | E2E+UNIT | M12-01/04; analytics.ts |
+| FR-8.2 | E2E+UNIT | M12-01/04, **M12-06** (the grouping handoff, which is the part that is built); analytics.ts |
 | FR-9.1 | E2E | M5-03, M4-04, FLOW-04 |
 | FR-9.2 | E2E+UNIT | M14-01/02/03/04; review.ts |
 | FR-10.1 | E2E | M11-01 |

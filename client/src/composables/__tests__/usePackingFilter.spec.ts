@@ -158,4 +158,27 @@ describe('setStoredGroupBy (FR-25.18)', () => {
 
     expect(usePackingFilter('trip-2').groupBy.value).toBe('category')
   })
+
+  /**
+   * ADR-012 leaves one router outlet, so coming back from M12 does not
+   * remount M4 — it was never unmounted. Writing only the stored value
+   * therefore lands nowhere until the next cold start, which is exactly
+   * how the original defect looked: the tap navigated and the grouping
+   * stayed put. So the live instance has to move too.
+   */
+  it('moves an M4 that is already mounted, not just the next one', () => {
+    const mounted = usePackingFilter('trip-1')
+
+    setStoredGroupBy('trip-1', 'person')
+
+    expect(mounted.groupBy.value).toBe('person')
+  })
+
+  it('leaves the mounted instance of a different trip alone', () => {
+    const other = usePackingFilter('trip-2')
+
+    setStoredGroupBy('trip-1', 'person')
+
+    expect(other.groupBy.value).toBe('category')
+  })
 })

@@ -83,14 +83,26 @@ setHeaderTitle(() => `Analytics · ${trip.value?.name ?? ''}`)
     <IonContent class="ion-padding">
       <!-- ADR-011: a view switcher is page content, not header chrome. -->
       <IonSegment :value="dimension" @ionChange="(e: CustomEvent) => (dimension = e.detail.value)">
-        <IonSegmentButton value="person"><IonLabel>Person</IonLabel></IonSegmentButton>
-        <IonSegmentButton value="category"><IonLabel>Category</IonLabel></IonSegmentButton>
-        <IonSegmentButton value="container"><IonLabel>Container</IonLabel></IonSegmentButton>
+        <IonSegmentButton value="person" data-testid="analytics-dim-person"
+          ><IonLabel>Person</IonLabel></IonSegmentButton
+        >
+        <IonSegmentButton value="category" data-testid="analytics-dim-category"
+          ><IonLabel>Category</IonLabel></IonSegmentButton
+        >
+        <IonSegmentButton value="container" data-testid="analytics-dim-container"
+          ><IonLabel>Container</IonLabel></IonSegmentButton
+        >
       </IonSegment>
 
       <!-- Dimension slices (FR-8.2) -->
       <div v-if="slices.length > 0" class="slices">
-        <button v-for="slice in slices" :key="slice.key" class="slice" @click="openSlice()">
+        <button
+          v-for="slice in slices"
+          :key="slice.key"
+          class="slice"
+          :data-testid="`analytics-slice-${slice.key || 'none'}`"
+          @click="openSlice()"
+        >
           <div class="slice-head">
             <span class="slice-label">{{ slice.label }}</span>
             <span class="slice-weight">

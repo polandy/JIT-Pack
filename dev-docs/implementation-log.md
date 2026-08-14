@@ -1192,8 +1192,20 @@ its grouping from `usePackingFilter`. The tap navigated and the grouping
 silently stayed put. The store's copy (`groupByPrefs`, `getGroupBy`,
 `setGroupBy`, `groupedItems`) had no other reader and is gone;
 `setStoredGroupBy` is the one way for a departing screen to set what M4
-mounts with, and it writes the stored value rather than a ref because the
-composable's watcher flushes into a page that is already leaving.
+shows.
+
+The first attempt at it wrote only the stored value, and the e2e case
+written during the self-review is what caught that this was still broken:
+**ADR-012 leaves one router outlet, so M4 is not remounted on the way
+back from M12** — it was never unmounted — and a value in storage is read
+at mount and never again. The tap navigated and the grouping stayed put,
+exactly as before. Both unit tests were green throughout, because each
+side was correct about its own state; only a test that crossed the screen
+boundary could see it. So `setStoredGroupBy` writes storage *and* moves
+the live ref of the mount already on screen, which a small per-trip
+registry in `usePackingFilter` makes reachable. Worth remembering as a
+shape, not just a fix: **a handoff between two screens cannot be verified
+from either end.**
 
 **The reveal bar counted two different things.** "Show 3 packed" became
 "Hide 5 packed" for the same rows: one direction counted rows, the other
