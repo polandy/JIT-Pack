@@ -70,6 +70,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G3-02 | G-3 Lock staleness | server | A lock older than 15 min (clock-advanced) is no longer treated as locking on the other client. |
 | E2E-G4-01 | G-4 Deep link | server | Opening a delegation notification lands on `trip/{id}/item/{id}`, scrolls to, flashes the item once, and expands its comments (also asserts the `?comment=` mention highlight). |
 | E2E-G5-01 | G-5 Optimistic UI | single | A mutation renders immediately before server confirmation; a forced failure surfaces only via the sync glyph, never a blocking dialog. |
+| E2E-G6-02 | G-6 Controls do not navigate | all | On a row that is also a link, the stepper and the checkbox **act** — they never open the item sheet. Ionic wraps such a row in an anchor whose jump is a *default action*, so stopping propagation on the control is not enough; only the row's body opens M5. |
 | E2E-G6-01 | G-6 Stepper/checkbox | all | qty=1 renders a checkbox; qty>1 renders the stepper ("3/5"); tap ±1, long-press completes/zeroes (units retired with FR-1.8). |
 | E2E-G7-01 | G-7 Empty states | all | Each list screen (Trips/Templates/Items/Dashboard) shows its empty state with the single primary CTA. |
 | E2E-G8-01 | G-8 Collaboration hidden | single/local | No Share/Delegate/Notification-prefs UI anywhere; no mode banner shown. |
