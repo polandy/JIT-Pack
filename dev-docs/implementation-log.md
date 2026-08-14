@@ -1090,3 +1090,29 @@ The e2e fixture had to learn the same thing, and the way it broke is the
 useful part: six cases in three suites failed at once, all of them
 filling a date that had moved. A shared seed helper is a contract; when
 the screen it drives changes shape, that is where the change surfaces.
+
+## Default travellers (FR-2.5a)
+
+Owner: „man sollte default travelers konfigurieren können, welche im
+wizard dann automatisch schon drin sind … Im Wizard sollte man das
+einfach anpassen können."
+
+Configured once in M17, present in M3's step 2, and fully editable there —
+the last part is what keeps them a starting point rather than a rule.
+
+**Device-local, and that is a trade, not an oversight.** A synced
+household list would need a schema, a partition and an account; Local
+Mode has none of those, and the feature has to work in all three modes
+(invariant 5). So it sits beside the theme and the language, and the cost
+— a second device configures its own — is written into the requirement
+with the revisit trigger that reverses it.
+
+The normalisation rules exist for the wizard's sake: a blank name would
+block step 2's validation, and two travellers with one name make every
+per-person row ambiguous. The setting refuses to produce either, so the
+screen downstream never has to.
+
+No prototype change: the mock has always shown Andy, Sia and Leonardo
+prefilled in step 2 — that *is* this behaviour, and what is new is where
+the three names come from, which is a settings list the mock has never
+modelled.

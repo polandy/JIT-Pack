@@ -68,6 +68,36 @@ test('M3: step 1 gates Next on the name, and derives the duration @local @m3', a
   await expect(page.getByTestId('wizard-step-2')).toBeVisible()
 })
 
+// E2E-M3-13 (FR-2.5a): the household's default travellers are configured
+// once in M17 and are already in the wizard afterwards — as a starting
+// point, so removing one there is still a normal edit.
+test('M3: the wizard starts with the configured default travellers @local @m3 @m17', async ({
+  page,
+  seedMode,
+}) => {
+  await seedMode({ mode: 'local' })
+  await page.goto('/tabs/settings')
+
+  for (const name of ['Andy', 'Sia', 'Leonardo']) {
+    await page.getByTestId('default-traveler-input').locator('input').fill(name)
+    await page.getByTestId('default-traveler-add').click()
+    await expect(page.getByTestId(`default-traveler-remove-${name}`)).toBeVisible()
+  }
+
+  await page.goto('/trips/new')
+  await page.getByTestId('wizard-name').locator('input').fill('Samedan')
+  await page.getByTestId('wizard-next').click()
+
+  await expect(page.getByTestId('wizard-step-2')).toBeVisible()
+  const names = page.getByTestId('wizard-traveler-name')
+  await expect(names).toHaveCount(3)
+  await expect(names.first().locator('input')).toHaveValue('Andy')
+
+  // A starting point, not a rule: the trip may drop one.
+  await page.getByTestId('wizard-traveler-remove').first().click()
+  await expect(page.getByTestId('wizard-traveler-name')).toHaveCount(2)
+})
+
 // E2E-M3-03 (FR-2.5): step 2 adds travelers, and an unnamed traveler
 // blocks the step — the same validation shape as step 1's name.
 test('M3: step 2 requires every added traveler to be named @local @m3', async ({

@@ -41,6 +41,7 @@ import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { tripOrderKey } from '@/domain/trips'
+import { defaultTravelers } from '@/composables/useDefaultTravelers'
 
 const route = useRoute()
 const router = useRouter()
@@ -117,7 +118,9 @@ const attributes = computed<Record<string, unknown> | null>(() => {
 })
 
 // --- Step 2: travelers (FR-2.5) ---
-const travelers = ref<{ name: string }[]>([])
+// FR-2.5a: the household's default travellers are the starting point of
+// every trip; step 2 adds, renames and removes them exactly as before.
+const travelers = ref<{ name: string }[]>(defaultTravelers().names.value.map((name) => ({ name })))
 
 function addTraveler() {
   travelers.value = [...travelers.value, { name: '' }]
@@ -545,6 +548,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
               slot="end"
               fill="clear"
               color="medium"
+              data-testid="wizard-traveler-remove"
               aria-label="Remove traveler"
               @click="removeTraveler(index)"
             >

@@ -140,6 +140,10 @@ export const de: Record<keyof typeof en, string> = {
   'settings.title': 'Einstellungen',
   'settings.appearance': 'Darstellung',
   'settings.lightTheme': 'Helles Design',
+  'settings.defaultTravelers': 'Standard-Reisende',
+  'settings.defaultTravelersHint':
+    'Eine neue Reise startet mit diesen Personen. Nur auf diesem Gerät; pro Reise änderbar.',
+  'settings.addTraveler': 'Reisende:n hinzufügen',
   'settings.language': 'Sprache',
   'settings.languageHint': 'Nur auf diesem Gerät.',
   'settings.languageEnglish': 'Englisch',

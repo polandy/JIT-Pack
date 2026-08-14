@@ -91,6 +91,7 @@ These patterns apply to every screen and are specified once.
 
 ### M3 — Trip Creation Wizard
 
+* **Step 2 opens with the default travellers (FR-2.5a, 2026-08-14)** from M17, editable there like any other traveller.
 * **Step 1 folds its optional fields (FR-2.1c, 2026-08-14):** name and year stand alone; dates, series and attributes live behind one *Mehr Optionen ▾* row that states what is set behind it.
 * **Step 1 requires a name and a year (FR-2.1b, 2026-08-14).** The year is a picker that opens on the current one, so the required field is satisfied on arrival; both dates are marked optional and neither gates *Next*. The duration line appears only when both dates are set.
 
@@ -241,6 +242,8 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
 * **Navigation:** From M2 series headers.
 
 ### M17 — Settings & Notifications
+
+* **Default travellers (FR-2.5a, 2026-08-14):** a named list, added and removed inline, shown in every mode and stored on the device. Its hint says both things that matter: this device only, and changeable per trip.
 
 * **Purpose:** Personal preferences within the declarative-infrastructure constraint (Section 2: no administrative *infrastructure* changes via the UI; application-level user administration lives in M20, proposed per Addendum 3.23).
 * **Elements:** Profile (read-only, OIDC-sourced); notification preferences per event type: delegation, mention, task assigned (FR-6.2) with channel status (push registered via VAPID/UnifiedPush, NFR-4.6); data section: JSON full export, per-trip CSV export (NFR-4.5); conflict log viewer (G-2 target); app info/version. Appearance section with a dark (default, Catppuccin Mocha) / light (Catppuccin Latte) toggle (G-11, Addendum 3.21) — shown in every mode, device-local. An Administration row → M20, rendered only for instance admins with an OIDC session (FR-23.1).

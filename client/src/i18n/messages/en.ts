@@ -144,6 +144,10 @@ export const en = {
   'settings.title': 'Settings',
   'settings.appearance': 'Appearance',
   'settings.lightTheme': 'Light theme',
+  'settings.defaultTravelers': 'Default travellers',
+  'settings.defaultTravelersHint':
+    'A new trip starts with these people. This device only; you can change them per trip.',
+  'settings.addTraveler': 'Add a traveller',
   'settings.language': 'Language',
   'settings.languageHint': 'This device only.',
   'settings.languageEnglish': 'English',
