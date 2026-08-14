@@ -57,7 +57,7 @@ async function signIn() {
   <IonPage>
     <IonContent class="ion-padding">
       <div class="login">
-        <h1>Sign in</h1>
+        <h1 class="jp-sheet-title">Sign in</h1>
         <p v-if="loginRequired === false" class="hint">
           This server does not require a login — you can head back to the app.
         </p>
@@ -81,11 +81,6 @@ async function signIn() {
   max-width: 400px;
   margin: 0 auto;
   padding-top: 64px;
-}
-
-.login h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
 }
 
 .hint {

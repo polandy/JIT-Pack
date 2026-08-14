@@ -97,7 +97,7 @@ async function handleRefresh(event: CustomEvent) {
       />
 
       <div class="ion-padding">
-        <h1 class="page-title">Items</h1>
+        <h1 class="page-title jp-page-title">Items</h1>
       </div>
 
       <!-- Empty state (G-7) — M15 entry per UI spec -->
@@ -150,8 +150,6 @@ async function handleRefresh(event: CustomEvent) {
 
 <style scoped>
 .page-title {
-  font-size: 1.8rem;
-  font-weight: 700;
   margin: 16px 0 8px;
 }
 

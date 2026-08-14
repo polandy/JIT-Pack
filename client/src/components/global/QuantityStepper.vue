@@ -79,7 +79,7 @@ function onMinusUp() {
     >
       <IonIcon :icon="removeOutline" />
     </button>
-    <span class="stepper-count" :class="{ complete: isComplete, partial: isPartial }">
+    <span class="stepper-count jp-num" :class="{ complete: isComplete, partial: isPartial }">
       {{ packed }}/{{ quantity }}
     </span>
     <button
@@ -136,7 +136,6 @@ function onMinusUp() {
   min-width: 36px;
   text-align: center;
   font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
 }
 
 .stepper-count.complete {

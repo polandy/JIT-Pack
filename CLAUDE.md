@@ -70,8 +70,10 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
 3. **The design foundation, then the remaining screen rebuilds** — in that order, decided by
    the owner 2026-08-14 after M4 and M5 were compared with the prototype. The plan is
    `dev-docs/design-foundation-plan.md`; read it before starting either half.
-   * **The foundation, five small PRs, none started:** typography (the client has **no
-     `font-family` at all**), colour anchors (peach is the brand, blue the action colour —
+   * **The foundation, five small PRs. Typography is done** (FR-21.5/21.6, G-13:
+     Fraunces and Hanken Grotesk self-hosted, one scale, role classes in
+     `client/src/theme/typography.css` — see invariant 9). Remaining: colour anchors
+     (peach is the brand, blue the action colour —
      today `--ion-color-primary` is blue and peach is demoted to `warning`), surfaces plus a
      non-colour token table as **invariant 9b** with a lint gate, the FR-25.2 pack-out
      animation and undo, and visual baselines plus a dev gallery (owes ADR-013). Each acts
@@ -124,7 +126,7 @@ ownership model (each carries a revisit trigger in its stub).
 6. **Item image BLOBs stay outside the sync envelope** (ADR-002). Only `items.image_hash` flows through the master feed; the bytes move over their own endpoints. The 150 KB / JPEG limit is enforced at handler, store and CHECK constraint — three layers on purpose.
 7. **Coverage gates are enforced, not aspirational**: ≥75 % overall, ≥90 % `internal/sync`. An uncovered branch in merge logic fails review regardless of the total.
 8. **Everything resolves to an exact version verified by hash.** npm via `package-lock.json`, Go via `go.sum`, Docker base images by `@sha256:` digest, GitHub Actions by full commit SHA with the tag as a readable comment. Never a bare tag. Dependabot updates the digests, so pinning costs no freshness.
-9. **Colors come from one token table** — `client/src/theme/catppuccin.css` (`--ct-*`, Mocha as the dark default, Latte behind `jitpack-latte`). Ionic's variables consume those tokens; there is no parallel color system and no hard-coded color.
+9. **Colors come from one token table** — `client/src/theme/catppuccin.css` (`--ct-*`, Mocha as the dark default, Latte behind `jitpack-latte`). Ionic's variables consume those tokens; there is no parallel color system and no hard-coded color. **Type comes from a second table beside it**, `client/src/theme/typography.css` (the two self-hosted faces, the `--jp-text-*` scale, the `.jp-*` role classes): which face and size a piece of text takes is decided by its role, each role is defined once there, and a view never sets its own `font-family` or `font-size` (G-13, FR-21.5/21.6).
 
 ## Testing
 

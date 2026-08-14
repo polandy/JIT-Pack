@@ -97,7 +97,7 @@ async function handleRefresh(event: CustomEvent) {
 
       <div class="ion-padding">
         <div class="title-row">
-          <h1 class="page-title">Templates</h1>
+          <h1 class="page-title jp-page-title">Templates</h1>
           <!-- M18: portable template import (FR-18.4) -->
           <IonButton
             fill="clear"
@@ -153,8 +153,6 @@ async function handleRefresh(event: CustomEvent) {
 
 <style scoped>
 .page-title {
-  font-size: 1.8rem;
-  font-weight: 700;
   margin: 16px 0 16px;
 }
 

@@ -143,7 +143,10 @@ function goBack() {
   vertical-align: middle;
 }
 
+/* The wordmark is a lockup, not a title: it keeps the UI face while the
+   surrounding ion-title rule (G-13) sets display type for page titles. */
 .logo-wordmark {
+  font-family: var(--jp-font-ui);
   font-weight: 700;
   font-size: 1.1rem;
   letter-spacing: -0.02em;

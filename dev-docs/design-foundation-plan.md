@@ -43,6 +43,8 @@ starts from the tokens.
 
 ## PR 1 — Typography
 
+**Status: done** — `feat/design-typography`, FR-21.5/FR-21.6 and G-13.
+
 **The single biggest lever: one new CSS file changes every view.**
 
 The prototype loads its fonts from Google (`UI_Concept_Prototype.html:7-9`), which
@@ -57,8 +59,12 @@ New `client/src/theme/typography.css`, imported beside `catppuccin.css`:
 `@font-face` with `font-display: swap`, the two family tokens, a type scale, and
 `--ion-font-family: var(--jp-font-ui)`.
 
-Where the prototype puts the serif — these are all six of its `font-family`
-declarations, so this list is complete rather than a sample:
+Where the prototype puts the serif — **corrected while implementing PR 1: the
+table below is a sample, not the complete set.** The prototype also sets the
+display face on `.ihead .iname` (24px), `.greet h2` (28px), `.atot .box .n`
+(22px) and `.footer-note .big` (19px), and puts `.qrow .formula` in a mono
+stack. The scale shipped in `typography.css` covers all of them; do not treat a
+count read off this table as exhaustive next time.
 
 | Prototype | Role | Value |
 |---|---|---|
@@ -80,6 +86,12 @@ global pattern in `UI_Spec_v1.10.md` beside G-11, plus an FR in
 
 **Done when:** the app renders in Fraunces/Hanken Grotesk with no network request
 for a font, and the owner has seen M4 and M2 side by side with the prototype.
+
+**A trip row's name is not a title** — the second correction found while
+implementing. The prototype sets M2's rows in the UI face (`.li .nm`), so a
+blanket `h1, h2 { font-family: display }` would be wrong: it would put every
+card title in the serif and flatten the very hierarchy the serif exists to
+state. The face follows the role, never the tag; G-13 says so explicitly.
 
 ## PR 2 — Colour anchors
 

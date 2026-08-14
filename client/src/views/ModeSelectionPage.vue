@@ -47,7 +47,7 @@ const serverUrlValid = computed(() => {
     <IonContent class="ion-padding">
       <div class="mode-selection" data-testid="mode-selection">
         <BrandMark :size="56" class="welcome-mark" />
-        <h1>Welcome to JIT-Pack</h1>
+        <h1 class="jp-sheet-title">Welcome to JIT-Pack</h1>
         <p class="intro">
           Where should your packing data live? This is a one-time choice per device.
         </p>
@@ -120,11 +120,6 @@ const serverUrlValid = computed(() => {
 
 .welcome-mark {
   margin-bottom: 12px;
-}
-
-.mode-selection h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
 }
 
 .intro {
