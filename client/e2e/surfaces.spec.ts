@@ -81,6 +81,21 @@ test('G-14: the packing card is painted a different plane than its page @local @
   // carries the elevation token rather than a shadow of its own.
   expect(await computed(card, 'box-shadow')).not.toBe('none')
   expect(await computed(card, 'border-radius')).toBe('18px')
+
+  // The card must be raised above the *page*, not above a slab of its own
+  // colour. Ionic paints `ion-list` from `--ion-item-background`, which is
+  // the card plane — so the list holding these cards had a card-coloured
+  // background of its own and every shadow fell onto it. Nothing else here
+  // notices: the card/page comparison above stayed green throughout.
+  //
+  // It also exercises `ion-list:has(.jp-card)` in both engines, which is
+  // the whole mechanism and the one part of this PR that depends on `:has()`
+  // resolving the same way in Chromium and WebKit.
+  const listPaint = await toBytes(
+    page,
+    await computed(page.locator('ion-list').first(), 'background-color'),
+  )
+  expect(listPaint, 'the list behind the cards paints the card plane').not.toEqual(cardPaint)
 })
 
 // E2E-G14-03 (G-14/FR-21.8): a card gives the *group* an edge, not its

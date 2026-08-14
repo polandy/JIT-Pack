@@ -19,14 +19,14 @@ Playwright browser binaries by package version.
 
 ### The full suite runs on CI, not on the maintainer's machine
 
-Owner, 2026-08-15. Chromium *and* WebKit over the whole suite is several
+Owner, 2026-08-15. Chromium _and_ WebKit over the whole suite is several
 minutes of full CPU on a machine somebody is also using, and CI runs it on
 every push anyway, so a local run is duplicated work that only delays the
 answer. Push, then read `gh pr checks <PR>`.
 
 What stays local, because it is seconds and the feedback loop is the point:
 rendering a handful of screenshots for the eyeball pass, and running the
-*one* spec file while proving a new guard red-then-green.
+_one_ spec file while proving a new guard red-then-green.
 
 Note the `e2e` job is deliberately **not** a required check on `main` (see
 CLAUDE.md), so read its result rather than assuming it gates the merge.
