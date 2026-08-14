@@ -6,6 +6,8 @@
 
 **Amendment (2026-08-13, M4 built):** M4 is implemented from this spec, and three points are corrected against what the screen actually does — a spec that disagrees with the running code is worse than no spec. (1) M4's *"Consciously skipped"* collapsed section is **superseded by FR-25.2**: a skipped row *is* a done row, revealed by the same *Erledigte* switch as a packed one. Two mechanisms for one class of rows would show them twice with both switched on. (2) The header line **no longer migrates the trip name into the app bar** on scroll — ADR-011 put the name there permanently, so there is nothing to migrate; the line simply yields on the way down and returns on any upward scroll. (3) M4's app-bar cluster carries **archive** beside search, filter and fold-all: it is not in the mock, which never modelled archiving anywhere, and it is the only path to M14 today. It moves when the M2 trip actions are rebuilt.
 
+**Amendment (2026-08-14, typography):** **G-13** is added — the type counterpart to G-11, written after the built M4/M5 were compared with the concept prototype and the gap turned out to be form language rather than structure. It is the first of the five design-foundation steps in `dev-docs/design-foundation-plan.md`.
+
 **Platform Targets:** Mobile-first (Capacitor iOS/Android), responsive web — mobile is the primary design target, but every screen must remain fully and comfortably usable on desktop (G-9). All screens must function fully offline (NFR-4.1); sync state is surfaced globally, not per screen.
 
 ---
@@ -38,6 +40,12 @@ These patterns apply to every screen and are specified once.
   * **Active state still shows below.** When a filter is set, the removable chip row (FR-25.11a) appears under the header; when nothing is filtered, no row is drawn at all. The cluster is an entry point, not a status display — the badge says *that* something is filtered, the chips say *what*.
   * **Icons must be literal.** Concept testing rejected a generic cube standing in for both Shopping and Luggage: a cart means buying, a suitcase means luggage, and one glyph for two destinations defeats the point of shrinking labels away.
   * **Budget.** With back chevron, logo, title and the cluster, M4 reaches six elements in the bar — treat that as the ceiling. A screen needing more moves the surplus behind ⋯ rather than widening the cluster.
+* **G-13 (Typography — new 2026-08-14, from comparing the built M4/M5 with the concept prototype):** The app has two faces, and which one a piece of text takes is decided by its **role**, never by the screen it happens to be on (Addendum FR-21.5). This is the counterpart to G-11: G-11 says where colour comes from, G-13 says where type does. It exists because the rebuilt M4 and M5 landed the information architecture faithfully and still did not look like the prototype — the client declared **no `font-family` at all** and rendered in whatever Ionic's platform stack resolved to.
+  * **Two faces, one job each.** **Fraunces** — a serif with an optical-size axis — carries titles and headline figures. **Hanken Grotesk** carries everything else, including every control. Nothing is set in a third face.
+  * **The display face has five roles, and only those.** Page title (a tab root's own heading, e.g. *Trips*), hero/greeting (M1), sheet title (M5's item name), app-bar title (G-9), headline figure (a KPI number). Everything else — item names, group headings, chips, labels, buttons, body copy — is the UI face. A trip row's name is **not** a title: it is a list entry, and setting it in the serif would flatten the very hierarchy the serif exists to state.
+  * **Roles are defined once.** Family, size, weight, line height and tracking live in one place per role; a screen applies the role and adds nothing. A screen that wants a size the scale does not have is a signal about the scale, not a licence for a magic number.
+  * **Figures that change in place are tabular.** Counters, quantities and weights are set in tabular figures — M4's `12/48` reflows on every pack otherwise, which is exactly the moment the number needs to be readable.
+  * **The faces are served from the instance, never from a font CDN** (Addendum FR-21.6). Local Mode may have no network at all, so a face fetched at boot is a face that is sometimes absent.
 
 ---
 

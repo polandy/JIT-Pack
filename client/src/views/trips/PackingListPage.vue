@@ -599,7 +599,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
       <div class="trip-line" :class="{ collapsed: headCollapsed }" data-testid="m4-header">
         <PresenceFacepile v-if="presenceUsers.length > 1" :users="presenceUsers" />
         <div class="progress" data-testid="m4-progress">
-          <strong>{{ kpis.packedItems }}/{{ kpis.totalItems }}</strong>
+          <strong class="jp-num">{{ kpis.packedItems }}/{{ kpis.totalItems }}</strong>
           <span v-if="kpis.totalWeight > 0" class="muted">
             · {{ formatWeight(kpis.totalWeight) }}
           </span>

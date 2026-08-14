@@ -57,7 +57,7 @@ Client only, served by `vite preview`. IndexedDB is the store; enqueue/drain/Web
 
 ---
 
-## 3. Global Pattern Test Cases (G-1 – G-11)
+## 3. Global Pattern Test Cases (G-1 – G-13)
 
 Global patterns are asserted once as dedicated cases and then relied upon (not re-asserted) inside screen cases.
 
@@ -90,6 +90,8 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G1-02 | G-1 Full-screen packing | all | The tab bar is hidden on M4 (§3.25) and present on every other screen — including immediately after leaving M4, so the trip screen can never be an exit-less one. |
 | E2E-G12-02 | G-12 Search follows the screen | all | The magnifier opens the *current* screen's field (trip list, item inventory), and no other screen's field is in the DOM. Guards the pattern rather than one page. |
 | E2E-G8-02 | G-8 No dev affordances shipped | all | The dev sample-trip seed is absent from a production build. It is a development convenience, not Demo Mode (retired in Addendum v2.10) coming back. |
+| E2E-G13-01 | G-13 Type reaches the screen | all | The UI face carries an Ionic control (through `--ion-font-family`, not merely inherited from `body`) and the display face carries the page title, **and both faces report `loaded`** — a missing asset leaves the computed style intact and silently paints the fallback. |
+| E2E-G13-02 | G-13 Fonts are self-hosted | all | No request to any font CDN during a boot, and every `.woff2` the page did fetch came from the page's own origin (Addendum FR-21.6). The regression it guards is the prototype's Google Fonts link finding its way into the app, which would break Local Mode on a device with no network. |
 | E2E-G12-01 | G-12 Actions in the app bar | all | On a detail screen (M4, M6) the app bar carries that screen's icon cluster; navigating away clears it, so the previous screen's search never filters the next one. *(Corrected 2026-08-13: the original clause also demanded the settings gear be hidden on a detail screen. ADR-011 decided the opposite and gave its reason — the sync glyph and settings are the only route to the conflict log from inside a trip — so the gear stays.)* |
 | E2E-G12-07 | G-12 Two clusters, no overflow | all | M4's app-bar cluster is search + filter; Shopping (with open-item count), Luggage and Analytics sit on the trip title line. **No ⋯ exists** — all three destinations are reachable in one tap, which is what §3.25's discoverability directive asked for. M6's app-bar cluster is search + filter. |
 | E2E-G12-06 | G-12 Icon-only is still nameable | all | Every unlabelled navigation icon exposes its name via `title`, and a long-press shows it as a bubble on touch. A plain tap **navigates** and shows no bubble — learning a glyph must never cost an extra tap. |

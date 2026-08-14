@@ -243,7 +243,7 @@ async function handleRefresh(event: CustomEvent) {
 
       <div class="ion-padding">
         <div class="title-row">
-          <h1 class="page-title">Trips</h1>
+          <h1 class="page-title jp-page-title">Trips</h1>
           <div>
             <!-- M18: portable trip import (FR-18.4) -->
             <IonButton
@@ -405,8 +405,6 @@ async function handleRefresh(event: CustomEvent) {
 
 <style scoped>
 .page-title {
-  font-size: 1.8rem;
-  font-weight: 700;
   margin: 16px 0 16px;
 }
 
