@@ -123,15 +123,16 @@ describe('useWebSocket', () => {
   })
 
   /**
-   * Single-User Mode (invariant 5) is a `server`-mode client that is
-   * offered no OIDC, so the token provider legitimately yields null.
-   * Interpolating that into the URL sent `?token=null`, and `wsAuth`
-   * only tests for a non-empty value — so the literal string "null"
-   * became `Bearer null` and the dial was rejected 403. The server
-   * accepts the dial with no token at all, which is what an unauthed
-   * instance needs.
+   * The token provider legitimately yields null — a Single-User instance
+   * is offered no OIDC, and a `server`-mode client can be logged out.
+   * Interpolating that sent `?token=null`, and `wsAuth` only tests for a
+   * non-empty value, so the literal string became `Bearer null` and a
+   * multi-user instance answered "invalid token" where the truth was
+   * "no token". (Verified by hand 2026-08-14: single-user bypasses
+   * `authed` entirely and upgrades either way, so nothing was *broken* —
+   * what was wrong is the diagnosis the server hands back.)
    */
-  it('omits the token entirely when there is none, so Single-User can dial', async () => {
+  it('omits the token entirely when there is none, rather than sending "null"', async () => {
     const ws = useWebSocket({
       baseUrl: 'http://localhost:8080',
       getToken: () => null,

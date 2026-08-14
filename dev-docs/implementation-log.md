@@ -1178,13 +1178,29 @@ the rest of the session even once writes resumed. Local Mode has no
 connection to lose; a write that lands is the evidence the condition
 cleared.
 
-**Single-User Mode could never open its WebSocket.** The dial interpolated
-the token straight into the URL, and a mode with no OIDC has no token, so
-it sent `?token=null`. `wsAuth` promotes any non-empty `?token=` to an
-`Authorization` header, and `"null"` is non-empty — the server rejected
-its own unauthenticated clients with a 403. No token now means no
-parameter, and a token that is present is encoded. Filed here because it
-had been visible since the first deployment and never written down.
+**The WebSocket dial sent the string `"null"` when it had no token.** It
+interpolated the token straight into the URL, and `wsAuth` promotes any
+non-empty `?token=` to an `Authorization` header, so an absent one
+arrived as `Bearer null`. No token now means no parameter, and a present
+token is percent-encoded.
+
+**How severe this is was got wrong first, and the correction is the
+useful part.** It was written up — in the review, in this log, in the PR
+body — as *"Single-User Mode could never open its WebSocket, rejected
+403"*. Running the branch by hand on 2026-08-14 disproved that in about a
+minute: `authed` **bypasses the token entirely in single-user mode**
+(`server.go:153`), so that mode upgraded to `101` with `?token=null` and
+without it alike. The real effect is narrower and lives in multi-user
+mode, where both forms are refused — but `?token=null` answers `401
+invalid token` while the truth is `401 missing bearer token`. Given the
+manual has a whole troubleshooting entry pointing at `?token=`, handing
+back the wrong one of those two is a real cost; it is just not a broken
+mode. The other half — the missing `encodeURIComponent` — stays a latent
+bug rather than an active one, since JWTs are base64url.
+
+Worth keeping as a habit: the claim survived a code review and a
+self-review because everyone read `wsAuth` and nobody read `authed`
+beside it. One `curl -i` against a running binary settled it.
 
 **One grouping state, not two.** M12's slice tap called
 `tripStore.setGroupBy`, which the M4 rebuild stopped reading — M4 takes

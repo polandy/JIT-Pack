@@ -20,11 +20,11 @@ export function useWebSocket(opts: WSOptions) {
   // Async because the token provider may refresh first (?token= dial, §7).
   async function connect() {
     const token = await opts.getToken()
-    // No token means no token — not the string "null". Single-User Mode
-    // (invariant 5) has no OIDC and so no token to offer, and `wsAuth`
-    // promotes any non-empty ?token= value to an Authorization header,
-    // so interpolating a missing one had the server reject its own
-    // unauthenticated clients with a 403.
+    // No token means no token — not the string "null". `wsAuth` promotes
+    // any non-empty ?token= to an Authorization header, so an absent one
+    // interpolated into the URL arrived as `Bearer null` and came back
+    // "invalid token" where the truth was "no token": a wrong answer to
+    // the first question anyone debugging a dead socket asks.
     const query = token ? `?token=${encodeURIComponent(token)}` : ''
     socket = new WebSocket(`${httpToWs(opts.baseUrl)}/ws${query}`)
 
