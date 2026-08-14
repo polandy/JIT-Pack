@@ -108,6 +108,7 @@ Field groups: `packed_count`+`state` merge as one unit (they are causally couple
 ## 7. WebSocket — `GET /ws` (Upgrade)
 
 * Auth via `?token=` query param (implemented) or first frame `{"auth": "<JWT>"}` (reserved, not implemented).
+* **The parameter is omitted entirely when the client has no token** (clarified 2026-08-14). Single-User Mode is offered no OIDC and so has none, and the server promotes any *non-empty* `?token=` value to an `Authorization` header — so a client that sent the absent token anyway (`?token=null`) had the instance reject its own unauthenticated clients with a 403. Absent means absent; a present token is percent-encoded.
 * Server → client envelope: `{"type": "<event>", "payload": {…}}`.
 * Client → server frames: `{"subscribe": ["trip:<id>", "user:<own-id>"]}`, `{"unsubscribe": ["trip:<id>"]}`, and `{"cursor": {"trip_id": "<id>", "seq": <n>}}` — the client reports its pull cursor after each trip pull so the server can recompute `in_sync`. `user:` frames are accepted but redundant: `notification.created` is delivered to every connection *authenticated* as the target user, so a client can never miss (or steal) the event by (mis)subscribing.
 * **Event catalog (server → client), all thin:**
