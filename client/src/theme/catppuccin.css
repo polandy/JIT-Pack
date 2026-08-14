@@ -161,8 +161,11 @@
  *
  * Mixed from two palette tokens rather than picked by eye, so it still
  * follows the flavor (FR-21.2). The rgb triplet is the same colour in the
- * form Ionic's rgba() internals need; a unit case keeps the two together,
- * because CSS cannot derive one from the other.
+ * form Ionic's rgba() internals need. CSS cannot derive one from the
+ * other, so both are written here and two cases guard the pair: a unit
+ * one that they are restated together at all, and an e2e one that they
+ * actually resolve to the same paint — a stale triplet is invisible
+ * everywhere except in Ionic's ripples.
  */
 :root.jitpack-latte {
   --jp-brand: color-mix(in srgb, var(--ct-peach) 65%, var(--ct-text));

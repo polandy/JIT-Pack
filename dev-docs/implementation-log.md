@@ -1408,3 +1408,19 @@ always restated together — otherwise they drift apart silently and only
 the ripples stay on the old hue. The FAB glow and the rail's active
 background were moved off the triplet onto `color-mix` for the same
 reason: fewer places that can disagree.
+
+**Correction, same day, from reviewing that change:** the note above said a
+unit case keeps `--jp-brand-rgb` in step with the mix. It did not — it
+asserted only that the Latte block *restates both*, which catches
+forgetting one and nothing else. A hand-written triplet that is simply
+**wrong** passes it, and the only symptom would be Ionic's ripples sitting
+on the old hue. E2E-G11-05 now resolves both through a canvas — the one
+place a browser will normalise `color(srgb …)` and `rgb(…)` to the same
+bytes — and compares them per channel. Proved red by pasting the stock
+Latte peach back into the triplet: *"latte: --jp-brand 192,93,44 and
+--jp-brand-rgb 254,100,11 disagree"*.
+
+Worth keeping as a shape, since it is the second time in two PRs: **a test
+that asserts a rule is stated is not a test that the rule holds.** The
+typography suite had the same gap — asserting a role class exists rather
+than that no view contradicts it.

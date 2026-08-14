@@ -52,6 +52,25 @@ function roleToken(page: Page, token: string) {
   )
 }
 
+/**
+ * A colour resolved to bytes, whatever notation it was written in.
+ *
+ * Needed because `color-mix()` computes to `color(srgb …)` while a plain
+ * token computes to `rgb(…)`: the two describe the same paint and compare
+ * unequal as strings. A canvas is the one place the browser will normalise
+ * an arbitrary CSS colour for us.
+ */
+function toBytes(page: Page, value: string): Promise<number[]> {
+  return page.evaluate((v) => {
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = 1
+    const ctx = canvas.getContext('2d')!
+    ctx.fillStyle = v
+    ctx.fillRect(0, 0, 1, 1)
+    return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3)
+  }, value)
+}
+
 // E2E-G11-02 (G-11/FR-21.7): the brand marks where you are — in both
 // presentations of the anchors, which are one rule and must not drift.
 test('G-11: the anchor you are on is the brand, in bar and rail alike @local @g11', async ({
@@ -125,4 +144,33 @@ test('G-11: the roles hold in Latte, on different hues @local @g11', async ({ pa
   await expect(activeTab).toBeVisible()
   expect(await computed(activeTab, 'color')).toBe(brand)
   expect(await computed(page.getByTestId('tab-trips'), 'color')).not.toBe(brand)
+})
+
+// E2E-G11-05 (G-11/FR-21.7): the brand and its rgb twin are the same
+// colour. Latte writes the triplet by hand because CSS cannot derive one
+// from a color-mix(), and Ionic's rgba() internals are the only consumer —
+// so a stale triplet shows up as slightly-off ripples and nothing else.
+// The unit case asserts the two are restated together; only a browser can
+// say whether they agree.
+test('G-11: the brand and its rgb twin resolve to one colour, in both flavours @local @g11', async ({
+  page,
+  seedMode,
+}) => {
+  for (const theme of ['mocha', 'latte'] as const) {
+    await seedMode({ mode: 'local', theme })
+    await page.goto('/')
+    await expect(page.locator('html')).toHaveClass(theme === 'latte' ? /jitpack-latte/ : /^(?!.*jitpack-latte).*$/)
+
+    const [brand, twin] = await Promise.all([
+      toBytes(page, await roleToken(page, '--jp-brand')),
+      toBytes(page, `rgb(${await roleToken(page, '--jp-brand-rgb')})`),
+    ])
+    // One byte of slack: the mix is rounded on its way into the triplet.
+    for (const channel of [0, 1, 2]) {
+      expect(
+        Math.abs(brand[channel]! - twin[channel]!),
+        `${theme}: --jp-brand ${brand} and --jp-brand-rgb ${twin} disagree`,
+      ).toBeLessThanOrEqual(1)
+    }
+  }
 })
