@@ -47,9 +47,15 @@
   --jp-shadow-panel: -16px 0 40px
     rgba(var(--jp-shadow-ink-rgb), calc(var(--jp-shadow-alpha) * 0.75));
 
-  /* A full-bleed dim behind an overlay. Same ink, so a modal backdrop and
-     the shadow its sheet casts are the same darkness by construction. */
-  --jp-scrim: rgba(var(--jp-shadow-ink-rgb), calc(var(--jp-shadow-alpha) * 0.9));
+  /*
+   * A full-bleed dim behind an overlay. Same ink as the shadows, but
+   * deliberately **not** their alpha: a scrim is doing a job, not
+   * suggesting depth. The avatar crop mask has to make the circle
+   * legible against everything outside it, and Latte's shadow weight
+   * (0.22, chosen so a card does not look grimy) would dim it to almost
+   * nothing. Its own weight, restated per flavour beside the ink.
+   */
+  --jp-scrim: rgba(var(--jp-shadow-ink-rgb), var(--jp-scrim-alpha));
 }
 
 /* --- The card -------------------------------------------------------- */
@@ -82,4 +88,25 @@
  */
 .jp-card ion-item {
   --background: transparent;
+}
+
+/*
+ * A list that holds cards is scaffolding, not a plane.
+ *
+ * Ionic paints `ion-list` from `--ion-item-background`, which is now the
+ * card plane — so a list wrapping cards laid a card-coloured slab a few
+ * pixels wider than the cards on it, and each card's shadow fell onto its
+ * own container instead of onto the page. That is the original defect one
+ * plane up, and it was invisible in the stylesheet again: the giveaway was
+ * that the pixels under a card edge measured *lighter* than the page,
+ * which is the one thing a shadow cannot be.
+ *
+ * `:has()` rather than a class per screen, and rather than a blanket
+ * `ion-list` rule: this states the actual condition, applies to screens
+ * not built yet, and — not incidentally — outranks Ionic's own `.list-md`,
+ * which a bare element selector does not. A list *without* cards keeps its
+ * surface; its rows are the plane there.
+ */
+ion-list:has(.jp-card) {
+  background: transparent;
 }

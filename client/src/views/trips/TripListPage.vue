@@ -300,7 +300,7 @@ async function handleRefresh(event: CustomEvent) {
       </div>
 
       <!-- Trip list, grouped by series (FR-13.1) -->
-      <IonList v-else class="trip-list" lines="none">
+      <IonList v-else class="trip-list">
         <template v-for="group in groupedTrips" :key="group.seriesId ?? 'none'">
           <!-- Series header → M16 -->
           <IonItem
@@ -446,6 +446,14 @@ async function handleRefresh(event: CustomEvent) {
 
 .trip-card {
   margin-bottom: 12px;
+}
+
+/* Rows inside a card still need a seam between them: the card gives the
+   group an edge, not its entries. The last one's line is the card's own
+   bottom edge, so Ionic's is removed — `ion-list` does this itself for a
+   direct child, which a row inside a card is not. */
+.trip-card ion-item-sliding:last-child ion-item {
+  --inner-border-width: 0;
 }
 
 /* A series label belongs *above* its card, the way the concept prototype

@@ -70,7 +70,15 @@ function stripComments(source) {
 const clientDir = resolve(process.cwd().endsWith('client') ? '.' : 'client')
 const skip = new Set(TOKEN_FILES.map((f) => resolve(clientDir, f)))
 
-const sources = globSync('src/**/*.{vue,css,ts}', { cwd: clientDir })
+// Tests are excluded, and the reason is the rule rather than convenience:
+// this gate stops a *view* from deciding colour or shape. A test that
+// asserts what a token resolves to has to be able to write that token's
+// text, and it paints nothing — flagging it would be the gate arguing with
+// its own suite.
+const sources = globSync('src/**/*.{vue,css,ts}', {
+  cwd: clientDir,
+  exclude: (name) => /\.spec\.ts$|^__tests__$/.test(name),
+})
 
 // A gate that scans nothing reports "ok", which is the worst answer it
 // could give. Run from the wrong directory and that is exactly what

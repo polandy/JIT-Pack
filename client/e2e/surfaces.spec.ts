@@ -83,6 +83,50 @@ test('G-14: the packing card is painted a different plane than its page @local @
   expect(await computed(card, 'border-radius')).toBe('18px')
 })
 
+// E2E-G14-03 (G-14/FR-21.8): a card gives the *group* an edge, not its
+// entries — the rows inside still need a seam between them.
+test('G-14: rows inside a card keep a seam, and the last one does not @local @g14', async ({
+  page,
+  seedMode,
+}) => {
+  await seedMode({ mode: 'local' })
+  await page.setViewportSize(MOBILE)
+  for (const name of ['Erste Reise', 'Zweite Reise', 'Dritte Reise']) {
+    await createTripViaWizard(page, { name, travelers: ['Andy'] })
+    await page.goto('/tabs/trips')
+  }
+  await page.getByTestId('trips-filter-planned').click({ force: true })
+
+  const rows = page.locator('.trip-card ion-item-sliding ion-item')
+  await expect(rows).toHaveCount(3)
+
+  /**
+   * The seam as the browser actually drew it, off `.item-inner` inside
+   * `ion-item`'s shadow root.
+   *
+   * Not `--inner-border-width` on the host: the first version of this
+   * case read that, and it passed against `lines="none"` — the very bug
+   * it was written for. Ionic drives the line from an attribute selector
+   * in its own stylesheet, so the custom property is simply unset on a
+   * row nobody styled, and "unset" is not "0".
+   */
+  const seam = (i: number) =>
+    rows
+      .nth(i)
+      .locator('.item-inner')
+      .evaluate((n) => parseFloat(getComputedStyle(n).borderBottomWidth))
+
+  // Turning Ionic's lines off made three trips run together with nothing
+  // between them — the card's own edge is the group's boundary and says
+  // nothing about where one entry ends.
+  expect(await seam(0), 'no seam between two trips in one card').toBeGreaterThan(0)
+  expect(await seam(1)).toBeGreaterThan(0)
+
+  // The last row's seam *is* the card's bottom edge, so drawing it too
+  // puts a line a hair above the border it duplicates.
+  expect(await seam(2), 'the last row draws a line onto the card edge').toBe(0)
+})
+
 // E2E-G14-02 (G-14/FR-21.8): elevation is cast in the flavour's ink. In
 // Latte the shadow is thrown in the darkest neutral, not in crust — which
 // there is a light grey and would cast no shadow at all.

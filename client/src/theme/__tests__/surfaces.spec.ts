@@ -95,6 +95,30 @@ describe('elevation is one geometry cast in two inks (FR-21.8)', () => {
     const mocha = block(palette, ':root', 'jp-shadow-ink-rgb')
     expect(mocha).toContain('--jp-shadow-alpha')
   })
+
+  it('keeps a scrim at its own weight rather than the shadow weight', () => {
+    // A scrim is doing a job — making the avatar crop circle legible
+    // against everything outside it — while a shadow only suggests depth.
+    // Deriving one from the other is how the first version of this file
+    // dimmed Latte's crop mask to 0.198 from 0.55, because Latte's shadows
+    // are deliberately light so a card does not look grimy.
+    expect(value(surfaces, '--jp-scrim')).toBe(
+      'rgba(var(--jp-shadow-ink-rgb), var(--jp-scrim-alpha))',
+    )
+
+    // And what the scrim has to *do* does not change with the flavour,
+    // only which ink it does it in — so the two weights stay close.
+    const alpha = (css: string, sel: string) =>
+      Number(new RegExp(`${sel}\\s*\\{[^}]*--jp-scrim-alpha:\\s*([\\d.]+)`).exec(css)?.[1] ?? NaN)
+    const mochaScrim = alpha(palette, ':root')
+    const latteScrim = alpha(palette, ':root\\.jitpack-latte')
+    expect(mochaScrim).toBeGreaterThan(0)
+    expect(latteScrim).toBeGreaterThan(0)
+    expect(
+      Math.abs(mochaScrim - latteScrim),
+      'the two flavours dim an overlay differently',
+    ).toBeLessThan(0.15)
+  })
 })
 
 describe('the radius scale replaced the nine magic numbers (FR-21.8)', () => {

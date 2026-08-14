@@ -188,6 +188,27 @@ run: from the wrong working directory it globbed **zero files and reported
 "ok"**. A gate that scans nothing must never pass, so an empty sweep now
 exits non-zero. The same shape as the false-green tests below.
 
+**Two more defects, both found by rendering the Latte edge the owner asked
+about.** Routing `--ion-item-background` through the card plane also
+repainted every `ion-list`, because Ionic reads the same variable for the
+list itself — so a list laid a card-coloured slab a few pixels wider than
+the cards on it and each card's shadow fell onto its own container. The
+tell was that the pixels under a card edge measured *lighter* than the
+page, which is the one thing a shadow cannot be. `ion-list:has(.jp-card)`
+states the actual condition and, not incidentally, outranks Ionic's own
+`.list-md`, which a bare element selector does not.
+
+And the numbers then contradicted what this plan and the specs had claimed.
+Latte was described as casting "far softer" than Mocha. Measured off the
+rendered pixels, Latte darkens the page by **49/765** and Mocha by
+**10/765** — five times as hard at a third of the alpha. The cause is
+structural: crust sits seven units below mantle, so a shadow cast in crust
+on a mantle page cannot darken by more than seven units however hard it is
+thrown. **The dark flavour lifts by the plane step and the light one by the
+shadow**, each using what its ground supports. Raising Mocha's alpha buys
+nothing; the palette has no colour below crust to cast in, and inventing
+one would be a second palette.
+
 **The Latte shadow case was false-green on the first write.** It asserted
 the shadow ink is darker than the card — which Latte's *crust* satisfies
 (676 against the card's 725) — so substituting Mocha's ink in passed a test

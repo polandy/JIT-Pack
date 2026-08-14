@@ -169,12 +169,27 @@
   /* --- Elevation ink ------------------------------------------------ */
   /*
    * The geometry of every shadow lives in surfaces.css; what belongs here
-   * is only which colour it is cast in and how hard, because that is a
-   * palette question and it is flavour-relative in the same way the brand
-   * is. Mocha casts in crust — the plane below the page — at full weight.
+   * is which colour it is cast in and how hard, because that is a palette
+   * question and flavour-relative in the same way the brand is.
+   *
+   * **The two flavours lift a card by different means, and that is not a
+   * compromise.** Measured off the rendered pixels under a card edge:
+   * Mocha's shadow darkens the page by 10/765, Latte's by 49/765 — five
+   * times as much, at a third of the alpha. The reason is structural:
+   * crust and mantle are seven units apart, so a shadow cast in crust on
+   * a mantle page cannot darken by more than seven units however hard it
+   * is thrown. Raising the alpha buys nothing.
+   *
+   * So on the dark ground the lift is the **plane** — a card is 21 units
+   * lighter than its page — and the shadow is the faint bloom that keeps
+   * the edge from looking cut out. On the light ground it is the other
+   * way round. Each flavour uses the mechanism its ground actually
+   * supports, which is why the numbers below are not each other's mirror.
    */
   --jp-shadow-ink-rgb: var(--ct-crust-rgb);
   --jp-shadow-alpha: 0.6;
+  /* An overlay's dim. Its own weight — see --jp-scrim in surfaces.css. */
+  --jp-scrim-alpha: 0.55;
   /* The lit top edge of a raised surface. Mocha's brightest neutral at a
      hair of opacity; a real highlight, not a white literal. */
   --jp-shadow-rim: inset 0 1px 0 rgba(var(--ct-text-rgb), 0.04);
@@ -209,8 +224,12 @@
    * Elevation is flavour-relative for the same reason the brand is. Crust
    * is the plane *below* the page in both flavours, but in Latte that is
    * a light grey — a shadow cast in it would be invisible. The light
-   * theme casts in its darkest neutral instead, and casts far softer:
-   * 0.6 alpha reads as depth on near-black and as dirt on near-white.
+   * theme casts in its darkest neutral instead.
+   *
+   * The alpha is a third of Mocha's and still lands five times harder,
+   * because the ink is 442 units away from the page here and seven units
+   * away there (see the note in the Mocha block). 0.22 is where it reads
+   * as a lift; at Mocha's 0.6 it reads as grime.
    *
    * The rim inverts with it. A lit top edge is a dark-ground device; on a
    * light card the highlight has to come from the near-white end of the
@@ -218,6 +237,9 @@
    */
   --jp-shadow-ink-rgb: var(--ct-text-rgb);
   --jp-shadow-alpha: 0.22;
+  /* Held near Mocha's: what a scrim must do does not change with the
+     flavour, only which ink it does it in. */
+  --jp-scrim-alpha: 0.5;
   --jp-shadow-rim: inset 0 1px 0 rgba(var(--ct-base-rgb), 0.9);
 }
 

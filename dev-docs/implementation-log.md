@@ -1486,3 +1486,79 @@ scoped to colour, radius and elevation it would have had no consumers and no
 gate, which is the unused-token shape PR 1 already removed a class for. Spacing
 is also not one decision the way a radius is — a radius describes what kind of
 thing an element is, spacing describes one particular layout.
+
+**Two more findings from reviewing the same PR, and one of them is the
+fourth false green.**
+
+*The scrim.* `--jp-scrim` was derived from `--jp-shadow-alpha` on the
+reasoning that a backdrop and the shadow its sheet casts should be the same
+darkness. That is true of a backdrop and wrong of a scrim: the avatar crop
+mask is not suggesting depth, it is making a circle legible against
+everything outside it. Latte's shadow weight is deliberately light (0.22, so
+a card does not look grimy), which took the crop mask from 0.55 to 0.198 —
+a functional opacity quietly inheriting an aesthetic one. It has its own
+`--jp-scrim-alpha` now, restated per flavour and held near Mocha's, because
+what a scrim has to *do* does not change with the flavour, only which ink it
+does it in.
+
+*The M2 separators, and the test that did not catch them.* Wrapping each
+series in a card, I set `lines="none"` on the list to stop Ionic's
+full-width line spilling past the card's radius. Three trips in one card
+then ran together with nothing between them — a card bounds the *group*, not
+its entries. Found by rendering M2 with three trips rather than the one the
+screenshot happened to have.
+
+The guard written for it **passed against `lines="none"`**. It read
+`--inner-border-width` on the `ion-item` host; Ionic drives that line from an
+attribute selector in its own stylesheet, so on a row nobody styled the
+custom property is simply *unset* — and "unset" is not "0". It now measures
+the rendered `border-bottom-width` on `.item-inner` inside the shadow root,
+and is proved red in both directions: no seam between rows, and a seam on the
+last row that duplicates the card's own edge.
+
+**Fourth occurrence, and the pattern is now specific enough to act on.** All
+four had the same shape — the assertion was made against the *nearest
+readable thing* rather than against the rendered outcome: a token's presence
+instead of its value, a declared property instead of a painted pixel, "darker
+than the card" instead of "dark enough to be a shadow". The check that would
+have caught every one of them is cheap: **make the mutation the test claims
+to catch, and watch it fail.** That is now the standing rule for any new
+guard here, and it has caught more real defects in three PRs than the reviews
+did.
+
+One more, and it is the gate reviewing itself: it flagged the unit test that
+asserts what `--jp-scrim` resolves to. Tests are excluded now, and by rule
+rather than by convenience — the gate stops a *view* from deciding colour or
+shape, and a test that asserts a token's text paints nothing. Verified after
+the exclusion that a real view is still caught, by putting a raw radius back
+into `SearchRow.vue`.
+
+**Two more, both from the owner asking what the Latte shadow actually looks
+like — which is the whole argument for the eyeball pass in one example.**
+
+Routing `--ion-item-background` through the card plane repainted every
+`ion-list` as well: Ionic reads that same variable for the list element, so
+a list wrapping cards laid a card-coloured slab a few pixels wider than the
+cards on it, and each card's shadow fell onto its own container rather than
+onto the page. The original defect, one plane up. It was invisible in the
+stylesheet again; what gave it away was that the pixels under a card edge
+measured **lighter** than the page, which is the one thing a shadow cannot
+be. Fixed with `ion-list:has(.jp-card)` — the rule states the actual
+condition, covers screens not built yet, and outranks Ionic's `.list-md`,
+which a bare element selector does not.
+
+Then the measurement contradicted what had already been written into three
+documents. Latte was described as casting "far softer" than Mocha. Off the
+rendered pixels: **Latte darkens the page by 49/765, Mocha by 10/765** —
+five times as hard, at a third of the alpha. The cause is structural rather
+than a mistuned value: crust sits seven units below mantle, so a shadow cast
+in crust on a mantle page cannot darken by more than seven units however
+hard it is thrown, and raising the alpha buys nothing. **The dark flavour
+lifts a card by the plane step (+21) and the light one by the shadow (−49)**,
+each using the mechanism its ground supports. The palette holds nothing
+below crust to cast in, and inventing one would be a second palette — so
+this is the honest answer rather than a workaround.
+
+Worth keeping beside the false-green rule: **a plausible symmetry is a
+claim, and a claim about pixels is checked by reading pixels.** "Latte casts
+softer" was written from the alpha, which is the input, not the result.
