@@ -20,7 +20,7 @@
   "dependencies": {
     "@ionic/vue": "^8.8.16",
     "@ionic/vue-router": "^8.8.17",
-    "ionicons": "^8.0.13",
+    "ionicons": "^8.1.0",
     "pinia": "^4.0.2",
     "vue": "^3.5.38",
     "vue-router": "^5.2.0",
