@@ -278,7 +278,7 @@ const packedStamp = computed(() => {
            the first thing you see, on rows that mostly have none. -->
       <ItemThumbnail v-if="photoItem" :item="photoItem" :size="44" class="thumb" />
       <div class="titles">
-        <h1 data-testid="m5-name">{{ item.name }}</h1>
+        <h1 class="jp-sheet-title" data-testid="m5-name">{{ item.name }}</h1>
         <p v-if="contextLine" class="context">{{ contextLine }}</p>
       </div>
       <button
@@ -542,9 +542,6 @@ const packedStamp = computed(() => {
 
 .head h1 {
   margin: 0;
-  font-size: 1.3rem;
-  line-height: 1.2;
-  font-weight: 700;
 }
 
 .context {

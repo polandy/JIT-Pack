@@ -598,7 +598,10 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
            go within it. Deliberately unfiltered — see FR-25.20. -->
       <div class="trip-line" :class="{ collapsed: headCollapsed }" data-testid="m4-header">
         <PresenceFacepile v-if="presenceUsers.length > 1" :users="presenceUsers" />
-        <div class="progress" data-testid="m4-progress">
+        <!-- The whole line is tabular, not just the counter: the weight
+             beside it changes on the same tap and would shift the counter
+             sideways as it did. -->
+        <div class="progress jp-num" data-testid="m4-progress">
           <strong>{{ kpis.packedItems }}/{{ kpis.totalItems }}</strong>
           <span v-if="kpis.totalWeight > 0" class="muted">
             · {{ formatWeight(kpis.totalWeight) }}

@@ -106,7 +106,9 @@ async function handleRefresh(event: CustomEvent) {
         <IonRefresherContent />
       </IonRefresher>
 
-      <h1 class="dashboard-greeting" data-testid="dashboard-greeting">{{ greeting }}</h1>
+      <h1 class="dashboard-greeting jp-hero-title" data-testid="dashboard-greeting">
+        {{ greeting }}
+      </h1>
       <p class="dashboard-subtitle">Your packing tasks</p>
 
       <!-- Empty state (G-7) -->
@@ -202,8 +204,6 @@ async function handleRefresh(event: CustomEvent) {
 
 <style scoped>
 .dashboard-greeting {
-  font-size: 1.8rem;
-  font-weight: 700;
   margin: 16px 0 4px;
 }
 

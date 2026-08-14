@@ -1,0 +1,173 @@
+/*
+ * Typography (Addendum 3.21, UI-Spec G-13).
+ *
+ * The counterpart to catppuccin.css: that file owns colour and nothing
+ * else, this one owns the two faces, the type scale, and the handful of
+ * role classes that put the display face where the concept prototype
+ * puts it. Everything a component needs is a token or a role class —
+ * there is no second place where a family or a display size is decided.
+ *
+ * The faces are the prototype's (dev-docs/UI_Concept_Prototype.html):
+ * Fraunces for titles and figures, Hanken Grotesk for everything else.
+ * The prototype loads them from Google; the app **self-hosts** them,
+ * because NFR-4.3 rules out a third-party request on every boot and a
+ * self-hosted instance may have no internet at all. Local Mode is the
+ * sharp end of that: it must render correctly with the network gone.
+ *
+ * Subsets are latin + latin-ext only — latin-ext is not optional, the
+ * German catalogue needs it. Both files are the variable font, so one
+ * request per subset covers every weight in the range below.
+ */
+
+/* --- Fraunces (display), variable wght 400..600, opsz 9..144 --------- */
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('../assets/fonts/fraunces-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('../assets/fonts/fraunces-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+/* --- Hanken Grotesk (UI), variable wght 400..700 --------------------- */
+@font-face {
+  font-family: 'Hanken Grotesk';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('../assets/fonts/hanken-grotesk-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Hanken Grotesk';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('../assets/fonts/hanken-grotesk-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+:root {
+  /* The two faces. Each fallback is chosen so a swap-in changes weight
+     and width as little as possible, not just "a serif"/"a sans". */
+  --jp-font-ui:
+    'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --jp-font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+
+  /* Display scale — the prototype's five title sizes, no more. Raw px
+     lives here and only here; components reference the token. */
+  --jp-text-display-xl: 34px; /* page title      (prototype .caption h1) */
+  --jp-text-display-lg: 28px; /* greeting, KPI   (.greet h2 / .stat .n)  */
+  --jp-text-display-md: 26px; /* trip hero       (.hero h2)              */
+  --jp-text-display-sm: 24px; /* sheet title     (.ihead .iname)         */
+  --jp-text-display-xs: 18.5px; /* app-bar title (.appbar .title)        */
+
+  /* UI scale. Unlike a role class, a scale is a table whose intermediate
+     steps mean nothing on their own, so it ships whole rather than one
+     step at a time — and today it ships ahead of its callers: the 185
+     hand-written type declarations across the views move onto it in the
+     surfaces step of design-foundation-plan.md, together with the lint
+     gate that makes a bare px outside this file an error. Deliberate, not
+     a leftover. */
+  --jp-text-lg: 17px;
+  --jp-text-md: 15px;
+  --jp-text-base: 14px;
+  --jp-text-sm: 13px;
+  --jp-text-xs: 12px;
+  --jp-text-2xs: 11px;
+
+  --jp-weight-regular: 400;
+  --jp-weight-medium: 500;
+  --jp-weight-semibold: 600;
+  --jp-weight-bold: 700;
+
+  --jp-leading-display: 1.05;
+  --jp-leading-tight: 1.2;
+  --jp-leading-body: 1.45;
+  --jp-tracking-display: -0.01em;
+
+  /* Ionic derives every component's type from this one variable. */
+  --ion-font-family: var(--jp-font-ui);
+}
+
+body {
+  font-family: var(--jp-font-ui);
+  line-height: var(--jp-leading-body);
+  /* Fraunces carries an optical-size axis; letting the browser drive it
+     is the whole reason for shipping the variable file rather than three
+     static weights. */
+  font-optical-sizing: auto;
+}
+
+/* --- Role classes ---------------------------------------------------- */
+
+/*
+ * Three sized roles, which is what the app uses today. G-13's fifth role
+ * — the headline figure — has no screen yet, so it has no class yet: one
+ * kept here in advance would be a token nobody can check against a
+ * rendered pixel.
+ */
+.jp-page-title {
+  font-family: var(--jp-font-display);
+  font-weight: var(--jp-weight-semibold);
+  font-size: var(--jp-text-display-xl);
+  letter-spacing: var(--jp-tracking-display);
+  line-height: var(--jp-leading-display);
+}
+
+.jp-hero-title {
+  font-family: var(--jp-font-display);
+  font-weight: var(--jp-weight-semibold);
+  font-size: var(--jp-text-display-lg);
+  letter-spacing: var(--jp-tracking-display);
+  line-height: var(--jp-leading-display);
+}
+
+.jp-sheet-title {
+  font-family: var(--jp-font-display);
+  font-weight: var(--jp-weight-semibold);
+  font-size: var(--jp-text-display-sm);
+  letter-spacing: var(--jp-tracking-display);
+  line-height: var(--jp-leading-tight);
+}
+
+/*
+ * Figures that change in place — counters, quantities, weights. Without
+ * this the M4 header line reflows on every pack because the digits are
+ * proportionally spaced.
+ */
+.jp-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * G-9: there is exactly one header bar, and its title is display type in
+ * the prototype. A global element rule rather than a class, so a modal
+ * toolbar that grows a title later is not a second decision.
+ */
+ion-title {
+  font-family: var(--jp-font-display);
+  font-weight: var(--jp-weight-semibold);
+  font-size: var(--jp-text-display-xs);
+  letter-spacing: var(--jp-tracking-display);
+}

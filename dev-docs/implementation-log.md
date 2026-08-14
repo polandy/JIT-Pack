@@ -1253,3 +1253,54 @@ Three invariant-9 violations the rebuild did introduce — raw
 are deliberately **not** fixed here. There is no shadow token to move
 them onto; `catppuccin.css` carries colour and nothing else. They are
 part of the design-token work that comes before the next screen rebuilds.
+
+## The app gets its own two faces (FR-21.5/21.6, G-13)
+
+First of the five design-foundation PRs, and the one that touches every
+view from a single file. The finding that started it: the client declared
+**no `font-family` at all** — every screen rendered in whatever Ionic's
+platform stack resolved to, which is why the rebuilt M4 and M5 landed the
+concept's information architecture and still did not look like it.
+
+`client/src/theme/typography.css` now sits beside `catppuccin.css` and
+owns exactly one thing, the way that file owns colour: the `@font-face`
+rules, the two family tokens, the `--jp-text-*` scale, `--ion-font-family`
+and the `.jp-*` role classes. Fraunces is the display face, Hanken
+Grotesk the UI face, both variable woff2 in latin **and latin-ext** —
+the German catalogue needs the extended range.
+
+**Self-hosted and committed, not fetched.** Local Mode may have no
+network at all, so a font request per boot is not a slow path, it is a
+missing one; NFR-4.3 rules out the third-party request besides. The files
+are checked in rather than pulled through `@fontsource-*`: that package
+would satisfy invariant 8 through the lockfile just as well, but it adds
+two dependencies to ship four static assets.
+
+**The face follows the role, never the tag.** The tempting shortcut —
+`h1, h2 { font-family: display }` — is wrong, and the prototype says so:
+it sets M2's trip rows in the *UI* face. Putting every card title in the
+serif would flatten the hierarchy the serif exists to state. So each role
+is named once (`.jp-page-title`, `.jp-hero-title`, `.jp-sheet-title`,
+`.jp-num`) and applied where that role occurs. Every screen touched also
+**lost** the local `font-size`/`font-weight` it had been carrying, so
+there is one definition per role and no second opinion — the point of a
+token table, and the reason this file is now part of invariant 9.
+
+Raw `px` lives in `typography.css` and nowhere else, deliberately: PR 3's
+gate rejects bare `px` under `client/src` outside the token files, and a
+role class hard-coding `34px` would recreate the magic numbers the file
+exists to retire. A unit test asserts exactly that.
+
+**A note on how the unit tests read the CSS.** They load it with `fs`,
+not with an import. Vitest stubs CSS imports — including `?raw` — so the
+assertion runs against an empty string and passes forever. That was tried
+first, and it is the shape to remember: a test whose subject the test
+runner has replaced with nothing is green by construction.
+
+Two claims in `design-foundation-plan.md` did not survive implementation
+and are corrected in place: the prototype has more display-face
+declarations than the plan's table lists (it called the table complete),
+and the blanket `h1, h2` rule above. `docs/` is owed nothing here, and
+that is a decision rather than an omission — the published manual covers
+server operation, and self-hosting a font changes nothing an operator
+configures.
