@@ -68,8 +68,10 @@ const fullScreen = computed(
   font-size: 11px;
 }
 
+/* Identity, not action (G-11): the anchor you are on is the one place
+   the brand colour belongs in the chrome. */
 .tab.active {
-  color: var(--ct-blue);
+  color: var(--jp-brand);
 }
 
 .tab ion-icon {

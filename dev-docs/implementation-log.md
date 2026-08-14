@@ -1304,3 +1304,58 @@ and the blanket `h1, h2` rule above. `docs/` is owed nothing here, and
 that is a decision rather than an omission — the published manual covers
 server operation, and self-hosting a font changes nothing an operator
 configures.
+
+## The three colour anchors (FR-21.7, G-11)
+
+Second of the design-foundation steps, and the one that explains why the
+built screens still looked generic after the typography landed. The
+palette was never the problem — the **roles** were. `catppuccin.css`
+mapped blue onto `--ion-color-primary`, which Ionic paints on tabs, the
+FAB, checkboxes and segments without being asked, and demoted peach to
+`warning`. So the brand appeared nowhere and the action colour appeared
+everywhere: a default Ionic app wearing a Catppuccin palette.
+
+The anchors are now a block of their own, above the Ionic mapping:
+**peach = brand, blue = action, green/teal = done**. A component asks for
+the role; only that block decides which hue a role is.
+
+**The brand is deliberately not the primary.** It was tempting — one line
+and the whole app turns peach. But primary is what Ionic paints on
+buttons and links, and those are things you *act on*; repainting them
+would make every button shout the brand. Identity gets the few surfaces
+that carry it: the anchor you are on, the create FAB, the eyebrows, the
+preparation and shopping marks.
+
+**Two consequences the plan had not seen, both found by implementing.**
+Freeing peach leaves `warning` empty, and caution had to go somewhere:
+yellow. That fixed a real confusion rather than merely relocating one —
+while peach was `warning`, a container over its weight limit and the
+product's own identity were the same colour, and the louder reading won.
+The second: M2's trip ring ran peach below 50 %, blue to 99 %, green at
+100 %. Under the new anchors that meant an unpacked trip was marked in
+the brand colour, which reads as an alert. Progress now runs the done
+ramp end to end and nothing else — **progress is never the brand.**
+
+**Where the rules live matters as much as what they say.** FAB, checkbox,
+toggle and progress bar are element rules in the token table, not per
+screen, so a FAB added six rebuilds from now is not a fresh decision. And
+`color="brand"` is a real Ionic colour name now: without it the only way
+to reach peach from a template was `color="warning"`, which is precisely
+how the preparation badge and the shopping count came to be painted as
+cautions.
+
+**Twelve literal fallbacks are gone.** `var(--ion-color-light, #eee)` and
+its eleven siblings read as harmless defensive code, and the plan
+undercounted them at nine. Every one was a *light* colour sitting behind
+a dark-default theme, so the fallback could only ever paint the wrong
+thing, and only when something was already broken. A unit case now
+rejects a hex literal anywhere under `client/src`.
+
+Two notes on the tests. The e2e cases compare against the **role token**,
+not against a hex, so they hold in Latte as well as Mocha. And the first
+version of them failed against a correct page twice, both times for
+reasons worth keeping: a custom property computes to the token text it
+was given (`#fab387`) while `color` computes to `rgb(250, 179, 135)`, so
+the two need separate readers; and the tab bar is *hidden* at the default
+desktop viewport, where the rail carries the anchors instead — the case
+now asserts both presentations, which is what G-11 actually claims.

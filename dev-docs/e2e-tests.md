@@ -43,6 +43,12 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M5 item detail | E2E-M5-09 … E2E-M5-12 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
+| Colour anchors | E2E-G11-02, E2E-G11-03 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
+
+**What the colour unit does *not* prove.** That the palette is *pleasant* —
+only that each role landed on the component it belongs to and that the three
+stay apart. It also says nothing about contrast ratios; those are unmeasured
+here, and the baselines step is where a real check belongs.
 
 **What the typography unit does *not* prove.** That the type is *right* —
 only that both faces reach the screen and that neither is fetched from

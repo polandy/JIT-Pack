@@ -95,6 +95,8 @@ state. The face follows the role, never the tag; G-13 says so explicitly.
 
 ## PR 2 — Colour anchors
 
+**Status: done** — FR-21.7 and the G-11 amendment.
+
 ~30 lines in the Ionic mapping block of `client/src/theme/catppuccin.css`
 (the block starting at line 118).
 
@@ -108,6 +110,14 @@ That single line is why the app reads as a default Ionic app.
   (`box-shadow: 0 14px 30px -8px rgba(250,179,135,.55)`, prototype line 137)
 - Checked checkboxes/toggles and progress bars → green/teal
 - `--ion-color-primary` **stays blue** — it is the action colour, not the brand
+
+**Two things the plan did not foresee, found while implementing.** Freeing peach
+for the brand leaves `warning` empty, and it has to go somewhere: caution moved to
+yellow, which also fixed a real confusion (an overweight container and the app's
+identity were the same colour). And the FAB gradient is peach→**maroon** in the
+prototype (line 136), not peach→rose; rose is the `.phase.on` pill. The literal
+fallback list was also short by three — twelve `var(--x, #hex)` sites, not nine,
+and a unit case now rejects a hex literal anywhere under `client/src`.
 
 Clear the loud `var(--x, #literal)` fallbacks in the same pass (invariant 9):
 `AnalyticsPage.vue:200/208/214` (`#eee`, `#7aa7e0`, `#3b6fb5` — literal Ionic

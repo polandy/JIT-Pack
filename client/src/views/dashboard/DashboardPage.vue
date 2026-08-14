@@ -256,8 +256,9 @@ async function handleRefresh(event: CustomEvent) {
   margin-top: 4px;
 }
 
+/* Preparation is a brand affordance in the concept, not a caution. */
 .prep-card {
-  border-left: 3px solid var(--ion-color-warning);
+  border-left: 3px solid var(--jp-brand);
 }
 
 .prep-group {

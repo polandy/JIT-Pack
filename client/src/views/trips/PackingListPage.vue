@@ -620,7 +620,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
             :title="t('packing.shopping')"
           >
             <IonIcon slot="icon-only" :icon="cartOutline" />
-            <IonBadge v-if="shoppingCount > 0" color="warning" class="nav-count">
+            <IonBadge v-if="shoppingCount > 0" color="brand" class="nav-count">
               {{ shoppingCount }}
             </IonBadge>
           </IonButton>
@@ -834,7 +834,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
                       {{ entry.label }}
                       <IonBadge
                         v-if="openTodoCount(entry.item.id) > 0"
-                        color="warning"
+                        color="brand"
                         class="prep"
                       >
                         <IonIcon :icon="buildOutline" /> {{ openTodoCount(entry.item.id) }}
