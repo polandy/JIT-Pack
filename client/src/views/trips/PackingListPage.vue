@@ -46,6 +46,10 @@ import {
   addOutline,
   archiveOutline,
   bagHandleOutline,
+  contrastOutline,
+  flagOutline,
+  personOutline,
+  pricetagOutline,
   buildOutline,
   cartOutline,
   chevronDownOutline,
@@ -361,6 +365,22 @@ const FACET_LABELS: Record<FacetKey, string> = {
   flag: 'facet.flag',
 }
 
+/** One glyph per axis, so the panel is scannable before it is read. */
+const FACET_ICONS: Record<FacetKey, string> = {
+  person: personOutline,
+  category: pricetagOutline,
+  mode: cartOutline,
+  container: briefcaseOutline,
+  flag: flagOutline,
+}
+
+const GROUP_ICONS: Record<GroupBy, string> = {
+  category: pricetagOutline,
+  person: personOutline,
+  container: briefcaseOutline,
+  status: contrastOutline,
+}
+
 const MODE_LABELS: Record<string, string> = {
   pack: 'mode.pack',
   buy_before: 'mode.buyBefore',
@@ -395,6 +415,7 @@ const filterFacets = computed<FilterFacet[]>(() =>
   FACET_KEYS.map((key) => ({
     key,
     label: t(FACET_LABELS[key] as Parameters<typeof t>[0]),
+    icon: FACET_ICONS[key],
     options: view.value.facetValues[key].map<FilterOption>((value) => ({
       value: value.value,
       label: optionLabel(key, value.value, value.label),
@@ -408,7 +429,11 @@ const GROUPINGS: GroupBy[] = ['category', 'person', 'container', 'status']
 
 const grouping = computed(() => ({
   value: groupBy.value,
-  options: GROUPINGS.map((value) => ({ value, label: t(`group.${value}` as const) })),
+  options: GROUPINGS.map((value) => ({
+    value,
+    label: t(`group.${value}` as const),
+    icon: GROUP_ICONS[value],
+  })),
 }))
 
 /** Both switches hide a class of rows, so they render from one shape. */
@@ -432,11 +457,6 @@ const filterSwitches = computed(() => [
 function onToggleSwitch(key: string) {
   if (key === 'done') showDone.value = !showDone.value
   else showOthers.value = !showOthers.value
-}
-
-function onSelectAll(key: string) {
-  const facet = view.value.facetValues[key as FacetKey]
-  facets.value = { ...facets.value, [key]: facet.map((option) => option.value) }
 }
 
 /** The chip row (FR-25.11a): an active filter must never be invisible. */
@@ -933,7 +953,6 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
         :active-count="view.activeFacetCount"
         @close="filterOpen = false"
         @toggle-value="(facet, value) => toggleValue(facet as FacetKey, value)"
-        @select-all="onSelectAll"
         @clear-facet="(facet) => clearFacet(facet as FacetKey)"
         @toggle-switch="onToggleSwitch"
         @set-grouping="(value) => (groupBy = value as GroupBy)"

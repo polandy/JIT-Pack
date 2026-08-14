@@ -27,7 +27,7 @@ import {
 } from '@ionic/vue'
 import {
   addOutline,
-  airplaneOutline,
+  trainOutline,
   albumsOutline,
   archiveOutline,
   cloudUploadOutline,
@@ -267,7 +267,7 @@ async function handleRefresh(event: CustomEvent) {
 
       <!-- Empty state (G-7) -->
       <div v-if="isEmpty" class="empty-state">
-        <IonIcon :icon="airplaneOutline" class="empty-icon" />
+        <IonIcon :icon="trainOutline" class="empty-icon" />
         <p v-if="filter === 'active'">No active trips</p>
         <p v-else-if="filter === 'planned'">No planned trips</p>
         <p v-else>No archived trips</p>

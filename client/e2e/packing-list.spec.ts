@@ -219,6 +219,64 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('m4-row-Kocher')).toHaveCount(0)
   })
 
+  // E2E-M4-20 (FR-25.11b, rev. 2026-08-14): the panel has no apply button,
+  // because a tap is already in force behind it. Asserted from the outside
+  // — the list changes while the sheet is still open — and from the inside:
+  // the head's outcome line follows along.
+  //
+  // Two categories are needed for a facet value that changes anything, and
+  // the quick-add produces uncategorised rows, so the trip comes in through
+  // the M18 import (spec §2.4).
+  test('E2E-M4-20: a facet value takes effect immediately, with nothing to confirm', async ({
+    page,
+  }) => {
+    await page.goto('/portable-import')
+    await page
+      .getByTestId('portable-paste')
+      .locator('textarea')
+      .fill(
+        [
+          'kind: trip',
+          'schema_version: 1',
+          'name: Filtertest',
+          'end_date: "2026-12-31"',
+          'travelers: []',
+          'containers: []',
+          'items:',
+          '  - name: Zelt',
+          '    quantity: 1',
+          '    category: Aktivität',
+          '    mode: pack',
+          '    late_packer: false',
+          '  - name: Kaffee',
+          '    quantity: 1',
+          '    category: Küche',
+          '    mode: pack',
+          '    late_packer: false',
+        ].join('\n'),
+      )
+    await page.getByTestId('portable-preview').click()
+    await page.getByTestId('portable-commit').click()
+    await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
+
+    await page.getByTestId('m4-filter').click()
+    await expect(page.getByTestId('filter-sheet')).toBeVisible()
+    await expect(page.getByTestId('filter-count')).toContainText('2')
+    // There is no confirm affordance at all — not hidden, absent.
+    await expect(page.getByTestId('filter-apply')).toHaveCount(0)
+
+    await page.getByTestId('facet-category-Küche').click()
+
+    // In force while the panel is still open: nothing was confirmed.
+    await expect(page.getByTestId('filter-sheet')).toBeVisible()
+    await expect(page.getByTestId('filter-count')).toContainText('1')
+
+    await page.getByTestId('filter-close').click()
+    await expect(page.getByTestId('m4-row-Kaffee')).toBeVisible()
+    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
+    await expect(page.getByTestId('m4-chip-category-Küche')).toBeVisible()
+  })
+
   // E2E-M4-15 (FR-25.11a/b): one filter row, and the grouping lives inside
   // the sheet rather than as a second bar in the header.
   test('E2E-M4-15: the filter sheet holds the grouping and the facets, and the header has no second bar', async ({

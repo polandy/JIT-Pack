@@ -959,3 +959,45 @@ through a side door. It lands through the existing M18 portable-import
 path rather than a second way of building a trip, and `activateTrip` had
 to be added because the wizard only ever produced planning trips: until
 now nothing in the app could move one to *active* at all.
+
+## The filter panel, reworked from mockups
+
+Owner verdict on the built panel: the filters should bite immediately and
+the apply button is not needed, the sheet sits too flat against the list
+behind it, the close control is unattractive, the axes want icons — and
+the whole thing is cluttered, so rework it with mockups.
+
+Three were drawn and driven: all values open as chips, a master/detail
+split with the facets on the left, and one row per facet showing its
+current selection. The owner chose the first. The trade is honest and
+worth recording: it is the longest panel of the three and it scrolls,
+which buys the thing the other two cannot — you see what is set *and*
+what picking anything else would yield, without a single tap.
+
+**The apply button was a fiction.** The list underneath had already
+changed by the time the footer offered to confirm it; the button asked
+for a tap to agree with something that had happened. The outcome line
+moved into the head, where it describes the state rather than promising
+one, and *Zurücksetzen* appears there only when there is something to
+undo.
+
+**The fold was what made it unreadable.** Reading the current filter cost
+one tap per axis, and FR-25.11d's counts — the ones that say what picking
+a value would yield, computed against the *other* facets — were hidden
+exactly while they were most useful. As chips they visibly shrink while
+you filter, so the rule is doing its work in the open. The per-facet
+*Alle*/*Keine* pair went with the fold: *Alle* is what an empty facet
+already means, and *Keine* is the facet's own *zurücksetzen*.
+
+The panel is now mantle against the page's base with a rim, a shadow and
+a dimmed backdrop; the way out is a ✕ in a circle; and every axis carries
+a glyph, the same one whether it appears as a grouping or as a facet.
+
+Both the prototype and the app carry it, and the prototype's headless
+verifier stayed green through the change — it clicks facet values by
+`data-fopt`, which survived the move from rows to chips because the
+attribute is the contract, not the markup.
+
+**The aeroplane is a train.** Trips are ground travel in this household;
+the icon is the first thing the app says about itself, and it was saying
+the wrong thing.

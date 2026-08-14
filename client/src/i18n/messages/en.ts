@@ -107,7 +107,7 @@ export const en = {
   'filter.open': 'Filter',
   'filter.groupBy': 'Group by',
   'filter.reset': 'Reset',
-  'filter.show': 'Show {n}',
+  'filter.showing': 'showing {n} item | showing {n} items',
   'filter.allValues': 'all',
   'filter.groupedBy': 'Grouped by {axis}',
   'filter.doneLabel': 'Packed',

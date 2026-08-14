@@ -105,7 +105,7 @@ export const de: Record<keyof typeof en, string> = {
   'filter.open': 'Filter',
   'filter.groupBy': 'Gruppieren nach',
   'filter.reset': 'Zurücksetzen',
-  'filter.show': '{n} anzeigen',
+  'filter.showing': 'zeigt {n} Sache | zeigt {n} Sachen',
   'filter.allValues': 'alle',
   'filter.groupedBy': 'Gruppiert nach {axis}',
   'filter.doneLabel': 'Erledigte',

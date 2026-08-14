@@ -1,4 +1,4 @@
-import { airplaneOutline, cubeOutline, homeOutline, listOutline } from 'ionicons/icons'
+import { cubeOutline, homeOutline, listOutline, trainOutline } from 'ionicons/icons'
 
 /**
  * The four navigation anchors (G-1/G-9), in one place.
@@ -18,7 +18,9 @@ export interface NavAnchor {
 
 export const NAV_ANCHORS: readonly NavAnchor[] = [
   { match: 'dashboard', name: 'Dashboard', href: '/tabs/dashboard', icon: homeOutline },
-  { match: 'trips', name: 'Trips', href: '/tabs/trips', icon: airplaneOutline },
+  // A train, not a plane: this household's trips are ground travel, and
+  // the icon is the first thing that says what the app is about.
+  { match: 'trips', name: 'Trips', href: '/tabs/trips', icon: trainOutline },
   { match: 'templates', name: 'Templates', href: '/tabs/templates', icon: listOutline },
   { match: 'items', name: 'Items', href: '/tabs/items', icon: cubeOutline },
 ] as const
