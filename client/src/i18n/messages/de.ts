@@ -96,6 +96,27 @@ export const de: Record<keyof typeof en, string> = {
   'templates.searchPlaceholder': 'Vorlagen durchsuchen…',
   'items.searchPlaceholder': 'Sachen durchsuchen…',
 
+  // M5 Artikel-Detail.
+  'item.details': 'Details',
+  'item.detailsHint': 'Wer · Beschaffung · Gepäck · Flags',
+  'item.notes': 'Notizen',
+  'item.addNote': 'Notiz schreiben…',
+  'item.addPrep': 'Vorbereitung hinzufügen…',
+  'item.flagAsTask': 'Als Vorbereitung markieren',
+  'item.companions': 'Gehört dazu',
+  'item.usedBy': 'Wer braucht das?',
+  'item.luggageOptional': 'Gepäck · optional',
+  'item.latePackerHint': 'Erst am Abreisetag packen',
+  'item.flags': 'Markierungen',
+  'item.noFlags': 'keine',
+  'item.notFound': 'Diese Sache ist nicht auf der Liste.',
+  'item.stateOpen': 'offen',
+  'item.statePartial': 'teilweise',
+  'item.statePacked': 'gepackt',
+  'item.stateSkipped': 'weggelassen',
+  'item.statePackingNow': 'wird gepackt',
+  'item.statePackedOpenPrep': 'gepackt · Prep offen',
+
   // Schnell-Hinzufügen (FR-5.6, FR-25.13a).
   'quickAdd.trigger': 'Sache hinzufügen…',
   'quickAdd.placeholder': 'Name der Sache…',

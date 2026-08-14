@@ -1116,3 +1116,40 @@ No prototype change: the mock has always shown Andy, Sia and Leonardo
 prefilled in step 2 — that *is* this behaviour, and what is new is where
 the three names come from, which is a settings list the mock has never
 modelled.
+
+## M5, rebuilt as a sheet
+
+Owner: „von einem packlisten element die detail ansicht ist nicht
+ansprechend und unübersichtlich. gestalte das als ux experte neu."
+
+The concept was never the problem — §3.25 settled M5 in the mock a week
+ago. The *build* had never followed it: nine equally loud sections, all
+expanded, in the order they happened to be written. Same story as M4.
+
+The order is now the order of the reasons someone opens the screen:
+identity, then **packing** as the biggest control on it, then a read-only
+glance row, then **preparation** and **notes** — the two things touched
+while packing — and everything else behind *Details ▾*. The photo shrank
+from 200 px to 44 px beside the title: it helps you recognise the thing,
+and most rows have none at all.
+
+**Presentation cost one architectural decision.** M5 is specified as a
+sheet over M4, so the item URL must render the list *and* the sheet.
+Making it its own route mounted a second copy of the list behind the
+sheet — Ionic keeps a page per matched path — so the item path is now an
+**alias of the trip route**, and opening or closing **replaces** rather
+than pushes. One list, one page, and the URL still says what is open.
+
+Two things fell out of that and are worth stating:
+
+`‹ back` means two things on one screen now — close the sheet, or leave
+the trip — so the route declares which via `meta.overlayParam`. On a
+phone it is moot: the sheet's backdrop covers the app bar, so ✕ or a
+swipe is the way out, and the e2e case says so rather than pretending
+back is reachable. The rule still governs the desktop panel and the
+browser's own back button, where it is unit-tested.
+
+Replacing the route re-renders the list, so opening an item scrolls it
+back to the top. That is the one regression against pushing, and it is
+recorded here rather than discovered later: restoring M4's scroll offset
+per trip is the fix when it starts to grate.

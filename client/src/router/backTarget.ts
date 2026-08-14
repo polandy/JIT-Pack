@@ -17,6 +17,15 @@ declare module 'vue-router' {
      * Absent only on roots, where the header shows the logo instead.
      */
     parent?: string
+    /**
+     * A route parameter that opens an overlay on this same route — M5's
+     * sheet over the packing list. While it is present, `‹ back` closes
+     * the overlay instead of leaving the screen, which is what a user
+     * means by "back" with a sheet open in front of them.
+     */
+    overlayParam?: string
+    /** Where back leads while `overlayParam` is present. */
+    overlayParent?: string
     /** Static header title. Data-dependent titles use setHeaderTitle. */
     title?: string
   }
@@ -24,7 +33,7 @@ declare module 'vue-router' {
 
 /** The slice of a resolved route this module needs. */
 export interface BackTargetRoute {
-  meta: { parent?: string }
+  meta: { parent?: string; overlayParam?: string; overlayParent?: string }
   params: Record<string, string | string[]>
 }
 
@@ -34,7 +43,9 @@ export interface BackTargetRoute {
  * the header shows the logo instead of a back chevron.
  */
 export function backTarget(route: BackTargetRoute): string | null {
-  const pattern = route.meta.parent
+  const overlay = route.meta.overlayParam
+  const pattern =
+    overlay && route.params[overlay] ? route.meta.overlayParent : route.meta.parent
   if (!pattern) return null
 
   return pattern.replace(/:([A-Za-z0-9_]+)/g, (whole, name: string) => {

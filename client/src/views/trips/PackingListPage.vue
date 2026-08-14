@@ -41,6 +41,7 @@ import {
   IonRefresherContent,
   IonFab,
   IonFabButton,
+  IonModal,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -63,13 +64,14 @@ import {
   statsChartOutline,
   timeOutline,
 } from 'ionicons/icons'
-import { computed, inject, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import FilterSheet, {
   type FilterFacet,
   type FilterOption,
 } from '@/components/global/FilterSheet.vue'
+import ItemDetailSheet from '@/components/trips/ItemDetailSheet.vue'
 import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
@@ -86,7 +88,7 @@ import { currentLocale, t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
 import type { FacetKey, GroupBy, ItemTodo, TripItem, TripParticipant } from '@/types/domain'
 
-const props = defineProps<{ tripId: string }>()
+const props = defineProps<{ tripId: string; itemId?: string }>()
 
 const store = useTripStore()
 const router = useRouter()
@@ -186,6 +188,38 @@ const view = computed(() =>
     itemsWithOpenPrep: openPrepItems.value.map((entry) => entry.item.id),
   }),
 )
+
+// --- M5, as a sheet over this list (UI-Spec M5) --------------------------
+// Driven by the route rather than by local state: the same URL opens it
+// from a tap, a deep link and a reload, and `‹ back` closes it because
+// the item route's declared parent is the trip.
+const openItemId = computed(() => props.itemId ?? null)
+
+/**
+ * Opening and closing the sheet **replaces** the route rather than
+ * pushing: Ionic keeps one page per matched *path*, so a push would mount
+ * a second copy of this list behind the sheet — two live lists, both
+ * subscribed, and the one you were looking at hidden underneath its own
+ * twin. Replacing keeps exactly one.
+ */
+function openItem(itemId: string) {
+  router.replace(`/trips/${props.tripId}/items/${itemId}`)
+}
+
+function closeItem() {
+  router.replace(`/trips/${props.tripId}`)
+}
+
+/**
+ * G-9: below the breakpoint the detail is a bottom sheet; at or above it
+ * a persistent side panel beside the list, so selecting another row swaps
+ * the panel's content instead of covering the list.
+ */
+const isDesktop = ref(window.matchMedia('(min-width: 900px)').matches)
+const breakpoint = window.matchMedia('(min-width: 900px)')
+const onBreakpoint = (event: MediaQueryListEvent) => (isDesktop.value = event.matches)
+breakpoint.addEventListener('change', onBreakpoint)
+onUnmounted(() => breakpoint.removeEventListener('change', onBreakpoint))
 
 // --- Header line --------------------------------------------------------
 
@@ -706,7 +740,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
                     class="child-row"
                     :data-testid="`m4-child-${entry.name}-${child.traveler?.name ?? ''}`"
                     :class="{ done: child.done, locked: locked(child.item) }"
-                    :router-link="`/trips/${tripId}/items/${child.item.id}`"
+                    @click="openItem(child.item.id)"
                   >
                     <!-- `.prevent` as well as `.stop`: Ionic wraps a router-link item in
                          an anchor, and an anchor's jump is a *default action* — stopping
@@ -768,7 +802,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
                   button
                   :class="{ done: entry.done, locked: locked(entry.item) }"
                   :data-testid="`m4-row-${entry.item.name}`"
-                  :router-link="`/trips/${tripId}/items/${entry.item.id}`"
+                  @click="openItem(entry.item.id)"
                 >
                   <!-- `.prevent` as well as `.stop`: Ionic wraps a router-link item in
                          an anchor, and an anchor's jump is a *default action* — stopping
@@ -944,6 +978,34 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
         </IonFabButton>
       </IonFab>
 
+      <!-- M5 (UI-Spec M5 + G-9): a sheet on a phone, a side panel on a
+           desktop — one content component either way. -->
+      <IonModal
+        v-if="!isDesktop"
+        :is-open="openItemId !== null"
+        class="item-modal"
+        data-testid="m5-modal"
+        @did-dismiss="closeItem"
+      >
+        <IonContent class="item-sheet-content">
+          <ItemDetailSheet
+            v-if="openItemId"
+            :trip-id="tripId"
+            :item-id="openItemId"
+            :participants="participants"
+            @close="closeItem"
+          />
+        </IonContent>
+      </IonModal>
+      <aside v-else-if="openItemId" class="item-panel" data-testid="m5-panel">
+        <ItemDetailSheet
+          :trip-id="tripId"
+          :item-id="openItemId"
+          :participants="participants"
+          @close="closeItem"
+        />
+      </aside>
+
       <FilterSheet
         :open="filterOpen"
         :facets="filterFacets"
@@ -963,6 +1025,36 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 </template>
 
 <style scoped>
+/* M5 as a sheet (phone) or a panel (desktop, G-9). The panel is fixed to
+   the right edge rather than squeezing the list: the list keeps its
+   measurements, so opening a detail never re-flows the rows underneath
+   the finger that opened it. */
+.item-modal {
+  --height: 88%;
+  --border-radius: 22px 22px 0 0;
+  --background: var(--ct-mantle);
+  --box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.62);
+  --backdrop-opacity: 0.62;
+  align-items: flex-end;
+}
+
+.item-sheet-content {
+  --background: var(--ct-mantle);
+}
+
+.item-panel {
+  position: fixed;
+  top: 56px;
+  right: 0;
+  bottom: 0;
+  width: 400px;
+  overflow-y: auto;
+  background: var(--ct-mantle);
+  border-left: 1px solid var(--ct-surface1);
+  box-shadow: -16px 0 40px rgba(0, 0, 0, 0.45);
+  z-index: 20;
+}
+
 /* FR-25.11h: nothing may sit permanently under the FAB. The list has to be
    able to scroll clear of its whole footprint, or the last row's right edge
    — where the packer avatar lives — is both unreadable and untappable. */

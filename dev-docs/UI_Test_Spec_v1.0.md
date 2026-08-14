@@ -176,6 +176,10 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M4-14** `all` (FR-25.1/25.2): packing one instance of a two-person cluster keeps the cluster intact — the packed child drops out (hide-done), the sub-header still reads over the full set (`1/2`), and the remaining instance does **not** re-render as a flat row. Guards the "decide cluster-vs-flat over the full set" rule; getting this wrong makes the list restructure under the user's finger mid-tap.
 
 ### M5 — Item Detail
+* **E2E-M5-09** `all` (UI-Spec M5): tapping a row opens the detail **over** the list — M4 stays on screen — and the ✕ returns to the trip's own URL.
+* **E2E-M5-10** `all` (G-4): a cold boot straight onto an item URL opens the same sheet, since the route is the state. Its ✕ leads back to the trip.
+* **E2E-M5-11** `all` (UI-Spec M5 rework): packing, preparation and notes are on the first level; every attribute control is **absent** until *Details* is opened.
+* **E2E-M5-12** `all` (G-9): at desktop width the same content is a side panel beside the list, not a sheet over it.
 * **E2E-M5-06** `all` (FR-25.14): opening a **per-person** item shows its total as a **read-only chip** ("0/3") with **no** +/− control on it, and one row per traveler each carrying its own check or stepper. Packing one traveler's instance raises the total and leaves the others untouched. Guards the regression where the summed quantity sat in a stepper that could not be operated.
 * **E2E-M5-07** `all` (FR-25.15): the sheet has **no Save button**; any edit flips the icon-only indicator to the amber pulsing ● and back to the green ✓ once settled — no text label (it wrapped next to long names), the meaning sits in the `title` tooltip. The *Details* toggle, which only folds the sheet open, must **not** flip it. Asserts the indicator is separate from the G-2 sync glyph.
 * **E2E-M5-01** `all` (FR-4.2): distinct *Used by* (traveler) vs *Packed by* (user) sections.

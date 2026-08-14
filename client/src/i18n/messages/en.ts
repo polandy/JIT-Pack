@@ -98,6 +98,27 @@ export const en = {
   'templates.searchPlaceholder': 'Search templates…',
   'items.searchPlaceholder': 'Search items…',
 
+  // M5 item detail.
+  'item.details': 'Details',
+  'item.detailsHint': 'Who · procurement · luggage · flags',
+  'item.notes': 'Notes',
+  'item.addNote': 'Write a note…',
+  'item.addPrep': 'Add preparation…',
+  'item.flagAsTask': 'Turn into a preparation task',
+  'item.companions': 'Belongs with',
+  'item.usedBy': 'Who needs this?',
+  'item.luggageOptional': 'Luggage · optional',
+  'item.latePackerHint': 'Pack on departure day',
+  'item.flags': 'Flags',
+  'item.noFlags': 'none set',
+  'item.notFound': 'This item is not on the list.',
+  'item.stateOpen': 'open',
+  'item.statePartial': 'partly packed',
+  'item.statePacked': 'packed',
+  'item.stateSkipped': 'skipped',
+  'item.statePackingNow': 'packing now',
+  'item.statePackedOpenPrep': 'packed · prep open',
+
   // Quick-add (FR-5.6, FR-25.13a).
   'quickAdd.trigger': 'Add item…',
   'quickAdd.placeholder': 'Item name…',

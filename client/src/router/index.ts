@@ -68,9 +68,20 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/trips/TripWizardPage.vue'),
   },
   {
+    // The packing list, and — through the alias — the item sheet over it
+    // (UI-Spec M5). One route *record* on purpose: a second record would
+    // mount a second copy of the list behind the sheet, because Ionic
+    // keeps a page per matched record. With an alias only the params
+    // change, so the list stays the one the user was already looking at.
     path: '/trips/:tripId',
-    meta: { parent: '/tabs/trips' },
-    name: 'trip-packing',
+    alias: '/trips/:tripId/items/:itemId',
+    meta: {
+      parent: '/tabs/trips',
+      // With the sheet open, back closes it rather than leaving the trip.
+      overlayParam: 'itemId',
+      overlayParent: '/trips/:tripId',
+    },
+    name: 'trip-detail',
     component: () => import('@/views/trips/PackingListPage.vue'),
     props: true,
   },
@@ -146,13 +157,6 @@ export const routes: RouteRecordRaw[] = [
     meta: { parent: '/trips/:tripId' },
     name: 'trip-shopping',
     component: () => import('@/views/trips/ShoppingPage.vue'),
-    props: true,
-  },
-  {
-    path: '/trips/:tripId/items/:itemId',
-    meta: { parent: '/trips/:tripId' },
-    name: 'item-detail',
-    component: () => import('@/views/trips/ItemDetailPage.vue'),
     props: true,
   },
   {

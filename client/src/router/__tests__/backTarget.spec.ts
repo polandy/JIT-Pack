@@ -83,3 +83,26 @@ describe('the back-target contract over the real router', () => {
     expect(checked.length).toBeGreaterThan(10)
   })
 })
+
+/**
+ * M5 opens as an overlay on the packing list's own route (UI-Spec M5), so
+ * "back" has two meanings on one screen: close the sheet, or leave the
+ * trip. The route says which, rather than the header guessing.
+ */
+describe('an overlay on the same route (UI-Spec M5)', () => {
+  const tripRoute = {
+    meta: {
+      parent: '/tabs/trips',
+      overlayParam: 'itemId',
+      overlayParent: '/trips/:tripId',
+    },
+  }
+
+  it('closes the overlay while it is open', () => {
+    expect(backTarget({ ...tripRoute, params: { tripId: 't1', itemId: 'i9' } })).toBe('/trips/t1')
+  })
+
+  it('leaves the screen once the overlay is gone', () => {
+    expect(backTarget({ ...tripRoute, params: { tripId: 't1' } })).toBe('/tabs/trips')
+  })
+})
