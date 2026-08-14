@@ -86,11 +86,12 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G11-01 | G-11 Theming | all | Dark (Mocha) is default before first paint with no preference; M17 toggle switches to Latte and persists device-local across reload; no flash of wrong theme. |
 | E2E-G9-09 | G-9 Navigation repaints | all | A rail entry (≥900px) changes the URL **and** the rendered screen. Asserted against the *visible* page (`.ion-page:not(.ion-page-hidden)`), because the defect this exists for was a route change that never repainted — every URL assertion in the suite stayed green throughout it. |
 | E2E-G9-10 | G-9 Back lands | all | `‹ back` from M4 renders the trip list, and none of M4's app-bar actions survive the move. Complements E2E-G9-05, which proves back is *reachable*; this one proves it *arrives*. |
+| E2E-G1-03 | G-1 Only M4 is full-screen | all | `/trips/new` keeps the tab bar. The wizard shares M4's path shape without being a drill-down, and the rule that hides the anchors on the packing list took them from the screen a first-time user starts on. |
 | E2E-G1-02 | G-1 Full-screen packing | all | The tab bar is hidden on M4 (§3.25) and present on every other screen — including immediately after leaving M4, so the trip screen can never be an exit-less one. |
 | E2E-G12-02 | G-12 Search follows the screen | all | The magnifier opens the *current* screen's field (trip list, item inventory), and no other screen's field is in the DOM. Guards the pattern rather than one page. |
 | E2E-G8-02 | G-8 No dev affordances shipped | all | The dev sample-trip seed is absent from a production build. It is a development convenience, not Demo Mode (retired in Addendum v2.10) coming back. |
 | E2E-G12-01 | G-12 Actions in the app bar | all | On a detail screen (M4, M6) the app bar carries that screen's icon cluster; navigating away clears it, so the previous screen's search never filters the next one. *(Corrected 2026-08-13: the original clause also demanded the settings gear be hidden on a detail screen. ADR-011 decided the opposite and gave its reason — the sync glyph and settings are the only route to the conflict log from inside a trip — so the gear stays.)* |
-| E2E-G12-02 | G-12 Two clusters, no overflow | all | M4's app-bar cluster is search + filter; Shopping (with open-item count), Luggage and Analytics sit on the trip title line. **No ⋯ exists** — all three destinations are reachable in one tap, which is what §3.25's discoverability directive asked for. M6's app-bar cluster is search + filter. |
+| E2E-G12-07 | G-12 Two clusters, no overflow | all | M4's app-bar cluster is search + filter; Shopping (with open-item count), Luggage and Analytics sit on the trip title line. **No ⋯ exists** — all three destinations are reachable in one tap, which is what §3.25's discoverability directive asked for. M6's app-bar cluster is search + filter. |
 | E2E-G12-06 | G-12 Icon-only is still nameable | all | Every unlabelled navigation icon exposes its name via `title`, and a long-press shows it as a bubble on touch. A plain tap **navigates** and shows no bubble — learning a glyph must never cost an extra tap. |
 | E2E-G12-03 | G-12 Actions survive the collapsing header | all | Scrolling M4 down collapses its sub-header, and search and filter **remain tappable** in the app bar throughout. This is the reason the cluster lives there rather than on the status line. |
 | E2E-G12-04 | G-12 One header line | all | M4's own header renders a single line (name, progress, presence); the search field and the filter chip row appear below it **only** when respectively opened and active, and neither is present in the default state. |
@@ -276,7 +277,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M12-05** `all` (FR-8.2/25.1): with a per-person item on the trip, the Person view shows **one contribution per traveler** and no `undefined` bucket; the Category view sums the same item's shares into a single bucket, so the totals match across dimensions.
 * **E2E-M12-02** `all` (FR-8.2): items without weight aggregate as "unweighted (n)".
 * **E2E-M12-03** `all` (FR-14.3): series trend section (weight over years, top Missing/Unused) shown when the trip has a series.
-* **E2E-M12-04** `all` (FR-8.2): tap a bar segment → M4 filtered to that slice.
+* **E2E-M12-06** `all` (FR-8.2/25.18): tapping a slice sets the grouping M4 comes back with — the *grouping half* of E2E-M12-04, which is what is built. Crosses the screen boundary on purpose: M12 and M4 each held their own grouping state and each was self-consistent, so no unit could see that the handoff between them had stopped working. ADR-012 leaves one router outlet, so M4 is **not** remounted on the way back and a value written only to storage would not be read until the next cold start.
 
 ### M13 — Repack Mode — **REMOVED (2026-07-17)**
 Feature removed from the product (PRD Addendum §3.11); its E2E cases are retired.
@@ -410,7 +411,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-7.2 | E2E | M5-05, M4-09 |
 | FR-7.3 | E2E | M1-02, M4-08, M5-06 |
 | FR-8.1 | E2E | M4-01, M12-01 |
-| FR-8.2 | E2E+UNIT | M12-01/04; analytics.ts |
+| FR-8.2 | E2E+UNIT | M12-01/04, **M12-06** (the grouping handoff, which is the part that is built); analytics.ts |
 | FR-9.1 | E2E | M5-03, M4-04, FLOW-04 |
 | FR-9.2 | E2E+UNIT | M14-01/02/03/04; review.ts |
 | FR-10.1 | E2E | M11-01 |

@@ -11,7 +11,6 @@ import type {
   Trip,
   TripItem,
   TripKPIs,
-  GroupBy,
   Traveler,
   Container,
   ItemComment,
@@ -28,7 +27,6 @@ export const useTripStore = defineStore('trips', () => {
   const todos = ref<Map<string, ItemTodo[]>>(new Map())
   const comments = ref<Map<string, ItemComment[]>>(new Map())
   const members = ref<Map<string, TripMember[]>>(new Map())
-  const groupByPrefs = ref<Map<string, GroupBy>>(new Map())
 
   // --- Getters ---
 
@@ -107,10 +105,6 @@ export const useTripStore = defineStore('trips', () => {
     return result
   }
 
-  function getGroupBy(tripId: string): GroupBy {
-    return groupByPrefs.value.get(tripId) ?? 'category'
-  }
-
   function kpis(tripId: string): TripKPIs {
     const items = getItems(tripId)
     const tripTodos = getTodos(tripId)
@@ -149,35 +143,6 @@ export const useTripStore = defineStore('trips', () => {
     }
   }
 
-  function groupedItems(tripId: string): Map<string, TripItem[]> {
-    const items = getItems(tripId)
-    const groupBy = getGroupBy(tripId)
-    const groups = new Map<string, TripItem[]>()
-
-    for (const item of items) {
-      let key: string
-      switch (groupBy) {
-        case 'category':
-          key = item.category_name ?? 'Uncategorized'
-          break
-        case 'container':
-          key = item.container_id ?? 'Unassigned'
-          break
-        case 'person':
-          key = item.assigned_traveler_id ?? 'Unassigned'
-          break
-        case 'status':
-          key = item.state
-          break
-      }
-      const group = groups.get(key) ?? []
-      group.push(item)
-      groups.set(key, group)
-    }
-
-    return groups
-  }
-
   // --- Mutations ---
 
   function setTrip(trip: Trip): void {
@@ -190,10 +155,6 @@ export const useTripStore = defineStore('trips', () => {
     travelers.value.delete(id)
     containers.value.delete(id)
     todos.value.delete(id)
-  }
-
-  function setGroupBy(tripId: string, groupBy: GroupBy): void {
-    groupByPrefs.value.set(tripId, groupBy)
   }
 
   /** Apply a pull change to the local store. */
@@ -407,12 +368,9 @@ export const useTripStore = defineStore('trips', () => {
     getItemComments,
     getTripComments,
     itemsWithOpenPrep,
-    getGroupBy,
     kpis,
-    groupedItems,
     setTrip,
     removeTrip,
-    setGroupBy,
     applyChange,
     applyChanges,
   }

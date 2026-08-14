@@ -76,6 +76,11 @@ export function useSyncStatus(): SyncStatus {
   function setLocal() {
     isLocal.value = true
     isSyncing.value = false
+    // Local Mode has no connection to lose: 'offline' here only ever
+    // means a write did not land, and a write that *does* land is the
+    // evidence that the condition cleared. Leaving it set would strand
+    // the glyph on "offline" for the rest of the session.
+    connectionState.value = 'connected'
   }
 
   function setPendingCount(n: number) {

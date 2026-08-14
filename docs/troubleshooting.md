@@ -81,6 +81,11 @@ access log when the client connects. Browsers cannot set headers on a WebSocket 
 the client passes its token as a `?token=` query parameter instead — make sure your proxy
 does not strip the query string.
 
+On a **single-user instance** there is no token, and the client dials `/ws` with no query
+string at all. An access-log line without `?token=` is correct there, not a stripped
+parameter — so on such an instance, look at the routing and the upgrade headers rather
+than at the query string.
+
 ## `502` with code `idp_unreachable`
 
 **Symptom:** users are suddenly asked to log in again, or a refresh fails with:
