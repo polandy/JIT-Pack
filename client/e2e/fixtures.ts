@@ -1,6 +1,8 @@
 import { test as base, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
+import type { Theme } from '../src/theme/theme'
+
 /**
  * Shared E2E fixtures for JIT-Pack (dev-docs/UI_Test_Spec_v1.0.md §2.4).
  *
@@ -23,8 +25,15 @@ export interface SeedOptions {
   mode?: Mode
   /** `jitpack_server_url` for Server / Single-User mode. */
   serverUrl?: string
-  /** Device-local theme preference (`jitpack_theme`). */
-  theme?: 'dark' | 'light'
+  /**
+   * Device-local theme preference (`jitpack_theme`).
+   *
+   * These are the values `readTheme` actually recognises. It used to read
+   * `'dark' | 'light'`, which nothing in the app matches — anything but
+   * `'latte'` resolves to Mocha, so seeding a light theme silently gave a
+   * dark one and any case built on it would have been false-green.
+   */
+  theme?: Theme
 }
 
 /** Seed the app's localStorage before it boots. Call before `page.goto`. */
@@ -32,6 +41,8 @@ export async function seed(page: Page, opts: SeedOptions): Promise<void> {
   await page.addInitScript((o: SeedOptions) => {
     if (o.mode) localStorage.setItem('jitpack_mode', o.mode)
     if (o.serverUrl) localStorage.setItem('jitpack_server_url', o.serverUrl)
+    // Literal, not the exported constant: addInitScript serialises this
+    // function, so a closure variable would be undefined in the page.
     if (o.theme) localStorage.setItem('jitpack_theme', o.theme)
   }, opts)
 }

@@ -259,7 +259,7 @@ setHeaderTitle(() => `Luggage · ${trip.value?.name ?? ''}`)
 }
 
 .container-card {
-  border: 1px solid var(--ion-color-light-shade, #ddd);
+  border: 1px solid var(--ion-color-light-shade);
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 12px;
@@ -286,7 +286,7 @@ setHeaderTitle(() => `Luggage · ${trip.value?.name ?? ''}`)
 .weight-bar {
   height: 8px;
   border-radius: 4px;
-  background: var(--ion-color-light, #eee);
+  background: var(--ion-color-light);
   overflow: hidden;
   margin: 6px 0;
 }

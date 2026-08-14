@@ -140,9 +140,11 @@ function progressPercent(trip: Trip): number {
 
 function progressColor(trip: Trip): string {
   const pct = progressPercent(trip)
-  if (pct >= 100) return 'var(--ion-color-success)'
-  if (pct >= 50) return 'var(--ion-color-primary)'
-  return 'var(--ion-color-warning)'
+  // Headway only ever runs the done ramp (G-11). It used to end at
+  // peach below half, which now reads as the brand shouting at you for
+  // not having packed yet.
+  if (pct >= 100) return 'var(--jp-done)'
+  return 'var(--jp-done-far)'
 }
 
 function itemSummary(trip: Trip): string {
@@ -434,7 +436,7 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 .series-header {
-  --background: var(--ion-color-light, #f4f5f8);
+  --background: var(--ion-color-light);
   font-weight: 600;
 }
 

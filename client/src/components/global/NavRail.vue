@@ -40,8 +40,8 @@ const route = useRoute()
   flex-direction: column;
   width: 80px;
   min-height: 100%;
-  background: var(--ion-background-color, #fff);
-  border-right: 1px solid var(--ion-border-color, #e0e0e0);
+  background: var(--ion-background-color);
+  border-right: 1px solid var(--ion-border-color);
   padding-top: 12px;
 }
 
@@ -65,9 +65,10 @@ const route = useRoute()
   background: var(--ion-color-light);
 }
 
+/* The desktop half of the same rule as TabBar (G-11). */
 .nav-rail-item.active {
-  color: var(--ion-color-primary);
-  background: var(--ion-color-primary-tint, rgba(var(--ion-color-primary-rgb), 0.1));
+  color: var(--jp-brand);
+  background: color-mix(in srgb, var(--jp-brand) 12%, transparent);
 }
 
 .nav-rail-item ion-icon {

@@ -204,7 +204,7 @@ function cancel() {
   position: relative;
   overflow: hidden;
   touch-action: none;
-  background: var(--ion-color-step-100, #1e1e1e);
+  background: var(--ion-color-step-100);
   border-radius: 8px;
   cursor: grab;
 }

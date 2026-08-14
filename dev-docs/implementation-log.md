@@ -1304,3 +1304,123 @@ and the blanket `h1, h2` rule above. `docs/` is owed nothing here, and
 that is a decision rather than an omission — the published manual covers
 server operation, and self-hosting a font changes nothing an operator
 configures.
+
+## The three colour anchors (FR-21.7, G-11)
+
+Second of the design-foundation steps, and the one that explains why the
+built screens still looked generic after the typography landed. The
+palette was never the problem — the **roles** were. `catppuccin.css`
+mapped blue onto `--ion-color-primary`, which Ionic paints on tabs, the
+FAB, checkboxes and segments without being asked, and demoted peach to
+`warning`. So the brand appeared nowhere and the action colour appeared
+everywhere: a default Ionic app wearing a Catppuccin palette.
+
+The anchors are now a block of their own, above the Ionic mapping:
+**peach = brand, blue = action, green/teal = done**. A component asks for
+the role; only that block decides which hue a role is.
+
+**The brand is deliberately not the primary.** It was tempting — one line
+and the whole app turns peach. But primary is what Ionic paints on
+buttons and links, and those are things you *act on*; repainting them
+would make every button shout the brand. Identity gets the few surfaces
+that carry it: the anchor you are on, the create FAB, the eyebrows, the
+preparation and shopping marks.
+
+**Two consequences the plan had not seen, both found by implementing.**
+Freeing peach leaves `warning` empty, and caution had to go somewhere:
+yellow. That fixed a real confusion rather than merely relocating one —
+while peach was `warning`, a container over its weight limit and the
+product's own identity were the same colour, and the louder reading won.
+The second: M2's trip ring ran peach below 50 %, blue to 99 %, green at
+100 %. Under the new anchors that meant an unpacked trip was marked in
+the brand colour, which reads as an alert. Progress now runs the done
+ramp end to end and nothing else — **progress is never the brand.**
+
+**Where the rules live matters as much as what they say.** FAB, checkbox,
+toggle and progress bar are element rules in the token table, not per
+screen, so a FAB added six rebuilds from now is not a fresh decision. And
+`color="brand"` is a real Ionic colour name now: without it the only way
+to reach peach from a template was `color="warning"`, which is precisely
+how the preparation badge and the shopping count came to be painted as
+cautions.
+
+**Twelve literal fallbacks are gone.** `var(--ion-color-light, #eee)` and
+its eleven siblings read as harmless defensive code, and the plan
+undercounted them at nine. Every one was a *light* colour sitting behind
+a dark-default theme, so the fallback could only ever paint the wrong
+thing, and only when something was already broken. A unit case now
+rejects a hex literal anywhere under `client/src`.
+
+Two notes on the tests. The e2e cases compare against the **role token**,
+not against a hex, so they hold in Latte as well as Mocha. And the first
+version of them failed against a correct page twice, both times for
+reasons worth keeping: a custom property computes to the token text it
+was given (`#fab387`) while `color` computes to `rgb(250, 179, 135)`, so
+the two need separate readers; and the tab bar is *hidden* at the default
+desktop viewport, where the rail carries the anchors instead — the case
+now asserts both presentations, which is what G-11 actually claims.
+
+**Two things the self-review caught, both about rules that described
+themselves rather than the code.** `--ion-color-primary` still reached for
+`--ct-blue` directly, so `--jp-action` had no consumer at all and blue was
+decided in two places while peach and green were decided in one — the
+anchor block described a rule that two of its three roles followed. Primary
+now resolves *through* the role.
+
+And `seed({ theme })` in the e2e fixtures wrote `'dark'`/`'light'` into
+`jitpack_theme`, which `readTheme` does not recognise: anything but
+`'latte'` resolves to Mocha, so a light-theme case would have asserted the
+dark theme and passed. Nothing used it yet, which is why nobody noticed —
+and the Latte case added here would have been the first victim. The option
+is typed as `Theme` now, and the case asserts `jitpack-latte` is on the
+root *before* it asserts anything about colour. Verified by seeding Mocha
+and watching it go red.
+
+**Latte reads the brand deeper (owner, 2026-08-14, after seeing it
+rendered).** "Peach is the brand" turned out to be one *role* with two
+readings rather than one value. Latte's peach is a saturated orange on a
+near-white ground where Mocha's is a pastel on a near-black one, so the
+light theme shouted.
+
+Measuring rather than guessing changed the answer. The obvious calmer
+choice — a paler, softer peach, or Latte's own rosewater — would have made
+things worse: stock Latte peach already managed only **2.45:1** as an
+11 px tab label, and rosewater is **2.17:1**. On a light ground quieter
+and darker are the same direction, so deepening the token calms the shout
+*and* fixes the legibility in one move (**3.56:1**). It is a `color-mix`
+of two palette tokens, not a picked hex, so it still follows the flavour.
+
+Rendering caught the correction inside the correction: deepening the FAB
+gradient's far stop alongside it lands on **brick**, because Latte's
+maroon plus ink is a red — the create button read as *danger*. The far
+stop stays in the peach family instead. That is not a detail a contrast
+number could have told me, which is the argument for looking at both.
+
+The general rule, now in G-11 and FR-21.7: **a role is flavour-relative.**
+Where a role lands differently in the two flavours it is restated per
+flavour, never averaged into one value that suits neither. The `--jp-*`
+tokens carry that naturally; a single constant could not have.
+
+One consequence worth guarding: CSS cannot derive an rgb triplet from a
+`color-mix()`, and Ionic's rgba() internals need one, so Latte writes
+`--jp-brand-rgb` by hand beside the mix. A unit case asserts the two are
+always restated together — otherwise they drift apart silently and only
+the ripples stay on the old hue. The FAB glow and the rail's active
+background were moved off the triplet onto `color-mix` for the same
+reason: fewer places that can disagree.
+
+**Correction, same day, from reviewing that change:** the note above said a
+unit case keeps `--jp-brand-rgb` in step with the mix. It did not — it
+asserted only that the Latte block *restates both*, which catches
+forgetting one and nothing else. A hand-written triplet that is simply
+**wrong** passes it, and the only symptom would be Ionic's ripples sitting
+on the old hue. E2E-G11-05 now resolves both through a canvas — the one
+place a browser will normalise `color(srgb …)` and `rgb(…)` to the same
+bytes — and compares them per channel. Proved red by pasting the stock
+Latte peach back into the triplet: *"latte: --jp-brand 192,93,44 and
+--jp-brand-rgb 254,100,11 disagree"*.
+
+Worth keeping as a shape, since it is the second time in two PRs: **a test
+that asserts a rule is stated is not a test that the rule holds.** The
+typography suite had the same gap — asserting a role class exists rather
+than that no view contradicts it.

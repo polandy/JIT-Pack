@@ -13,8 +13,13 @@
  *
  * Semantic mapping (same table as the design-system project):
  *   primary=blue · secondary=teal · tertiary=mauve · success=green
- *   warning=peach · danger=red · light=surface0 · medium=overlay1
+ *   warning=yellow · danger=red · light=surface0 · medium=overlay1
  *   dark=text · app bg=mantle · card/item=base · borders=surface0
+ *
+ * Above that sits the role layer added 2026-08-14 (FR-21.7): brand=peach,
+ * action=blue, done=green/teal. Ionic's names are component slots, not
+ * meanings — a component asks for the role, and only the anchor block
+ * decides which hue a role is.
  */
 
 :root {
@@ -59,6 +64,7 @@
   --ct-mauve-rgb: 203, 166, 247;
   --ct-green-rgb: 166, 227, 161;
   --ct-peach-rgb: 250, 179, 135;
+  --ct-yellow-rgb: 249, 226, 175;
   --ct-red-rgb: 243, 139, 168;
   --ct-surface0-rgb: 49, 50, 68;
   --ct-overlay1-rgb: 127, 132, 156;
@@ -106,9 +112,68 @@
   --ct-mauve-rgb: 136, 57, 239;
   --ct-green-rgb: 64, 160, 43;
   --ct-peach-rgb: 254, 100, 11;
+  --ct-yellow-rgb: 223, 142, 29;
   --ct-red-rgb: 210, 15, 57;
   --ct-surface0-rgb: 204, 208, 218;
   --ct-overlay1-rgb: 140, 143, 161;
+}
+
+/* ------------------------------------------------------------------ */
+/* The three anchors (G-11) — role first, hue second.                 */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Peach is the brand, blue is the action, green/teal is done. The palette
+ * above says which hues exist; this block says what they *mean*, and it is
+ * the only place that decides. A component asks for the role.
+ *
+ * The distinction that matters: `--jp-brand` is not `--ion-color-primary`.
+ * Ionic paints primary on buttons and links — things you act on — so
+ * repainting it peach would make every button shout the brand. Identity
+ * goes on the few surfaces that carry it: the active tab, the FAB, the
+ * eyebrows.
+ */
+:root {
+  --jp-brand: var(--ct-peach);
+  --jp-brand-rgb: var(--ct-peach-rgb);
+  --jp-brand-contrast: var(--ct-on-accent);
+  /* The far stop of the FAB gradient (prototype line 136). */
+  --jp-brand-far: var(--ct-maroon);
+
+  --jp-action: var(--ct-blue);
+  --jp-action-rgb: var(--ct-blue-rgb);
+
+  /* Done runs teal → green: the prototype's progress fill and ring, and
+     the reason progress is never painted in the brand colour — a peach
+     progress bar reads as an alert rather than as headway. */
+  --jp-done: var(--ct-green);
+  --jp-done-far: var(--ct-teal);
+}
+
+/*
+ * Latte reads the brand deeper than Mocha does, and that is the palette
+ * being honest rather than an exception: Mocha's peach (#fab387) is a
+ * pastel on a near-black ground, Latte's (#fe640b) a saturated orange on
+ * a near-white one, so the same role arrives twice as loud in the light
+ * theme. It was also the less legible of the two — 2.45:1 as an 11 px tab
+ * label, under any bar worth the name — and on a light ground "quieter"
+ * and "darker" are the same direction, so one move fixes both (3.56:1).
+ *
+ * Mixed from two palette tokens rather than picked by eye, so it still
+ * follows the flavor (FR-21.2). The rgb triplet is the same colour in the
+ * form Ionic's rgba() internals need. CSS cannot derive one from the
+ * other, so both are written here and two cases guard the pair: a unit
+ * one that they are restated together at all, and an e2e one that they
+ * actually resolve to the same paint — a stale triplet is invisible
+ * everywhere except in Ionic's ripples.
+ */
+:root.jitpack-latte {
+  --jp-brand: color-mix(in srgb, var(--ct-peach) 65%, var(--ct-text));
+  --jp-brand-rgb: 192, 93, 44;
+  /* The far stop stays in the peach family here. Deepening Latte's maroon
+     instead lands on brick, which reads as danger — the gradient would be
+     saying "error" on the one control that creates things. */
+  --jp-brand-far: color-mix(in srgb, var(--ct-peach) 42%, var(--ct-text));
 }
 
 /* ------------------------------------------------------------------ */
@@ -129,12 +194,15 @@
   --ion-overlay-background-color: var(--ct-base);
   --ion-placeholder-color: var(--ct-overlay1);
 
-  --ion-color-primary: var(--ct-blue);
-  --ion-color-primary-rgb: var(--ct-blue-rgb);
+  /* Ionic's primary *is* the action role — it reaches the palette through
+     the anchor rather than beside it, so blue is decided in one place the
+     way peach and green are. */
+  --ion-color-primary: var(--jp-action);
+  --ion-color-primary-rgb: var(--jp-action-rgb);
   --ion-color-primary-contrast: var(--ct-on-accent);
   --ion-color-primary-contrast-rgb: var(--ct-on-accent-rgb);
-  --ion-color-primary-shade: color-mix(in srgb, #000 12%, var(--ct-blue));
-  --ion-color-primary-tint: color-mix(in srgb, #fff 10%, var(--ct-blue));
+  --ion-color-primary-shade: color-mix(in srgb, #000 12%, var(--jp-action));
+  --ion-color-primary-tint: color-mix(in srgb, #fff 10%, var(--jp-action));
 
   --ion-color-secondary: var(--ct-teal);
   --ion-color-secondary-rgb: var(--ct-teal-rgb);
@@ -157,12 +225,15 @@
   --ion-color-success-shade: color-mix(in srgb, #000 12%, var(--ct-green));
   --ion-color-success-tint: color-mix(in srgb, #fff 10%, var(--ct-green));
 
-  --ion-color-warning: var(--ct-peach);
-  --ion-color-warning-rgb: var(--ct-peach-rgb);
+  /* Caution is yellow, not peach: while peach was `warning`, a container
+     over its weight limit and the product's own identity were the same
+     colour, and the louder of the two won. */
+  --ion-color-warning: var(--ct-yellow);
+  --ion-color-warning-rgb: var(--ct-yellow-rgb);
   --ion-color-warning-contrast: var(--ct-on-accent);
   --ion-color-warning-contrast-rgb: var(--ct-on-accent-rgb);
-  --ion-color-warning-shade: color-mix(in srgb, #000 12%, var(--ct-peach));
-  --ion-color-warning-tint: color-mix(in srgb, #fff 10%, var(--ct-peach));
+  --ion-color-warning-shade: color-mix(in srgb, #000 12%, var(--ct-yellow));
+  --ion-color-warning-tint: color-mix(in srgb, #fff 10%, var(--ct-yellow));
 
   --ion-color-danger: var(--ct-red);
   --ion-color-danger-rgb: var(--ct-red-rgb);
@@ -253,4 +324,58 @@
   --ion-color-step-850: var(--ion-background-color-step-850);
   --ion-color-step-900: var(--ion-background-color-step-900);
   --ion-color-step-950: var(--ion-background-color-step-950);
+}
+
+/*
+ * The brand as an Ionic colour name, so `color="brand"` works on a chip or
+ * badge the way `color="danger"` does. Without it the only way to reach
+ * peach from a template was `color="warning"` — which is how preparation
+ * badges and the shopping count came to be painted as cautions.
+ */
+.ion-color-brand {
+  --ion-color-base: var(--jp-brand);
+  --ion-color-base-rgb: var(--jp-brand-rgb);
+  --ion-color-contrast: var(--jp-brand-contrast);
+  --ion-color-contrast-rgb: var(--ct-on-accent-rgb);
+  --ion-color-shade: color-mix(in srgb, #000 12%, var(--jp-brand));
+  --ion-color-tint: color-mix(in srgb, #fff 10%, var(--jp-brand));
+}
+
+/* ------------------------------------------------------------------ */
+/* Where the anchors land — the components Ionic would paint primary. */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Element rules rather than classes, for the same reason `ion-title` is
+ * one in typography.css: a FAB added on a screen six rebuilds from now
+ * must not be a fresh decision about what colour the brand is.
+ */
+
+/* The FAB is the single loudest brand surface — the prototype gives it a
+   peach→maroon gradient and a peach glow rather than a flat accent. */
+ion-fab-button {
+  --background: linear-gradient(150deg, var(--jp-brand), var(--jp-brand-far));
+  --background-activated: var(--jp-brand-far);
+  --background-hover: var(--jp-brand-far);
+  --color: var(--jp-brand-contrast);
+  --box-shadow: 0 14px 30px -8px color-mix(in srgb, var(--jp-brand) 55%, transparent);
+}
+
+/* Checked means done, and done is green — not the action colour. A blue
+   tick says "this is a control"; a green one says "this is finished". */
+ion-checkbox {
+  --checkbox-background-checked: var(--jp-done);
+  --border-color-checked: var(--jp-done);
+  --checkmark-color: var(--jp-brand-contrast);
+}
+
+ion-toggle {
+  --background-checked: var(--jp-done);
+  --handle-background-checked: var(--jp-brand-contrast);
+}
+
+/* Progress is headway, so it runs the done ramp end to end. */
+ion-progress-bar {
+  --progress-background: linear-gradient(90deg, var(--jp-done-far), var(--jp-done));
+  --background: var(--ct-surface0);
 }
