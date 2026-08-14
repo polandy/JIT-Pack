@@ -23,6 +23,9 @@ replace the file and update its own revision note.
   code.
 - [`implementation-log.md`](implementation-log.md) — append-only history of what was
   built and why it was built that way. Append; never restructure.
+- [`design-foundation-plan.md`](design-foundation-plan.md) — the five token-level PRs
+  that come **before** the remaining screen rebuilds, with the measured gap between
+  the prototype and the client that motivates each. Delete it once they have landed.
 
 ## Specifications
 

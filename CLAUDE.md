@@ -67,16 +67,26 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
 2. **§3.27 client package** — `instantiate.ts` include expansion + FR-27.7 task materialisation,
    the FR-27.4 planning-trip refresh diff, the M21 screen, portable YAML for includes and tasks.
    Schema and sync wiring are done (migration 016).
-3. **Screen rebuilds from the mock**, localized with `t()` from the first line. **M4 and M5
-   are done** (2026-08-14, PR #73): M4's header line, G-12 app-bar cluster, facet sheet that
-   applies as you tap, clusters, folding, both reveal bars, the FR-25.17 stamp and the FAB
-   quick-add; M5 as a sheet over the list (side panel on desktop) whose first level is
-   packing, preparation and notes. Both were rendered and eyeballed by the owner.
-   Remaining, in order: **M7/M8** (scopes, quick-add, sheet editing), M9/M10 (lean inventory,
-   minimal creation), M11 (container sheet, picker), M12 (slice filtering, per-person
-   shares), M14 (group-aware list) — **none of those has been eyeballed**, only the
-   prototype. Known cost carried over from the M5 rebuild: M4 loses its scroll position when
-   a detail opens (ADR-012's overlay amendment).
+3. **The design foundation, then the remaining screen rebuilds** — in that order, decided by
+   the owner 2026-08-14 after M4 and M5 were compared with the prototype. The plan is
+   `dev-docs/design-foundation-plan.md`; read it before starting either half.
+   * **The foundation, five small PRs, none started:** typography (the client has **no
+     `font-family` at all**), colour anchors (peach is the brand, blue the action colour —
+     today `--ion-color-primary` is blue and peach is demoted to `warning`), surfaces plus a
+     non-colour token table as **invariant 9b** with a lint gate, the FR-25.2 pack-out
+     animation and undo, and visual baselines plus a dev gallery (owes ADR-013). Each acts
+     on every screen at once, which is why they come first: after six more rebuilds the same
+     gap would have been built six more times.
+   * **The rebuilds themselves**, localized with `t()` from the first line. **M4 and M5 are
+     done** (2026-08-14, PR #73): M4's header line, G-12 app-bar cluster, facet sheet that
+     applies as you tap, clusters, folding, both reveal bars, the FR-25.17 stamp and the FAB
+     quick-add; M5 as a sheet over the list (side panel on desktop) whose first level is
+     packing, preparation and notes. Both were rendered and eyeballed by the owner.
+     Remaining, in order: **M7/M8** (scopes, quick-add, sheet editing), M9/M10 (lean
+     inventory, minimal creation), M11 (container sheet, picker), M12 (slice filtering,
+     per-person shares), M14 (group-aware list) — **none of those has been eyeballed**, only
+     the prototype. Known cost carried over from the M5 rebuild: M4 loses its scroll position
+     when a detail opens (ADR-012's overlay amendment).
 4. **i18n migration** — the hard-coded English strings across the screens M4 did not touch;
    the module and both catalogues exist and M4 + the quick-add + the filter sheet are done.
 5. ~~**Two migrations owed by concept decisions**~~ — **done** (migrations 018/019): `travelers.profile`
