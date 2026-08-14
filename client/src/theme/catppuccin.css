@@ -141,6 +141,7 @@
   --jp-brand-far: var(--ct-maroon);
 
   --jp-action: var(--ct-blue);
+  --jp-action-rgb: var(--ct-blue-rgb);
 
   /* Done runs teal → green: the prototype's progress fill and ring, and
      the reason progress is never painted in the brand colour — a peach
@@ -167,12 +168,15 @@
   --ion-overlay-background-color: var(--ct-base);
   --ion-placeholder-color: var(--ct-overlay1);
 
-  --ion-color-primary: var(--ct-blue);
-  --ion-color-primary-rgb: var(--ct-blue-rgb);
+  /* Ionic's primary *is* the action role — it reaches the palette through
+     the anchor rather than beside it, so blue is decided in one place the
+     way peach and green are. */
+  --ion-color-primary: var(--jp-action);
+  --ion-color-primary-rgb: var(--jp-action-rgb);
   --ion-color-primary-contrast: var(--ct-on-accent);
   --ion-color-primary-contrast-rgb: var(--ct-on-accent-rgb);
-  --ion-color-primary-shade: color-mix(in srgb, #000 12%, var(--ct-blue));
-  --ion-color-primary-tint: color-mix(in srgb, #fff 10%, var(--ct-blue));
+  --ion-color-primary-shade: color-mix(in srgb, #000 12%, var(--jp-action));
+  --ion-color-primary-tint: color-mix(in srgb, #fff 10%, var(--jp-action));
 
   --ion-color-secondary: var(--ct-teal);
   --ion-color-secondary-rgb: var(--ct-teal-rgb);

@@ -33,11 +33,17 @@ describe('the three anchors (FR-21.7)', () => {
     expect(value('--jp-done')).toBe('var(--ct-green)')
   })
 
-  it('keeps blue as the action colour Ionic paints', () => {
+  it('keeps blue as the action colour Ionic paints, and routes it through the role', () => {
     // The brand is not the primary: primary is what Ionic puts on buttons
     // and links, and those are actions. Repainting it peach would make
     // every button shout the brand.
-    expect(value('--ion-color-primary')).toBe('var(--ct-blue)')
+    //
+    // It resolves *through* --jp-action rather than reaching for the hue
+    // directly, so blue is decided in one place the way peach and green
+    // are — otherwise the anchor block would describe a rule two of the
+    // three roles actually followed.
+    expect(value('--ion-color-primary')).toBe('var(--jp-action)')
+    expect(value('--jp-action')).toBe('var(--ct-blue)')
   })
 
   it('stops caution from borrowing the brand hue', () => {

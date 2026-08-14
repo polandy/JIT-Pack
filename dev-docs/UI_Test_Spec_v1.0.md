@@ -92,6 +92,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G8-02 | G-8 No dev affordances shipped | all | The dev sample-trip seed is absent from a production build. It is a development convenience, not Demo Mode (retired in Addendum v2.10) coming back. |
 | E2E-G11-02 | G-11 The brand marks where you are | all | The anchor you are on is the brand colour and the others are not — asserted in **both** presentations, the mobile tab bar and the desktop rail, because they are one rule that has drifted apart before. Compared against the role token rather than a hex, so the case holds in Latte too. |
 | E2E-G11-03 | G-11 Brand, action and done stay apart | all | The FAB carries the brand gradient and contains no action colour; a packed checkbox is the done colour. Guards the drift this pattern exists to stop: Ionic paints its own primary on tabs, FABs and checkboxes unless told otherwise, one component at a time. |
+| E2E-G11-04 | G-11 The anchors survive the flavour | all | The same role assertions in Latte, whose peach is a different hue entirely (`#fe640b` vs Mocha's `#fab387`) — a rule written against a hex would pass here by accident. Asserts the flavour actually switched before asserting anything about it, since the theme seed is device-local and easy to get silently wrong. |
 | E2E-G13-01 | G-13 Type reaches the screen | all | The UI face carries an Ionic control (through `--ion-font-family`, not merely inherited from `body`) and the display face carries the page title, **and both faces report `loaded`** — a missing asset leaves the computed style intact and silently paints the fallback. |
 | E2E-G13-02 | G-13 Fonts are self-hosted | all | No request to any font CDN during a boot, and every `.woff2` the page did fetch came from the page's own origin (Addendum FR-21.6). The regression it guards is the prototype's Google Fonts link finding its way into the app, which would break Local Mode on a device with no network. |
 | E2E-G12-01 | G-12 Actions in the app bar | all | On a detail screen (M4, M6) the app bar carries that screen's icon cluster; navigating away clears it, so the previous screen's search never filters the next one. *(Corrected 2026-08-13: the original clause also demanded the settings gear be hidden on a detail screen. ADR-011 decided the opposite and gave its reason — the sync glyph and settings are the only route to the conflict log from inside a trip — so the gear stays.)* |
@@ -464,7 +465,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-21.4 | E2E | G11-01 (no flash before paint) |
 | FR-21.5 | E2E+UNIT | G13-01 (both faces reach the screen); typography.css (roles carry the display face, sizes stay tokens) |
 | FR-21.6 | E2E+UNIT | G13-02 (no font CDN, every woff2 same-origin); typography.css (no remote `src`, both subsets present) |
-| FR-21.7 | E2E+UNIT | G11-02, G11-03 (brand on identity, done on progress); catppuccin.css (roles named once, primary stays blue, no hex outside the table) |
+| FR-21.7 | E2E+UNIT | G11-02, G11-03, G11-04 (brand on identity, done on progress); catppuccin.css (roles named once, primary stays blue, no hex outside the table) |
 | FR-22.1 | E2E | M10-04, M9-01, M5-12 |
 | FR-22.2/22.3 | E2E+UNIT | M10-04; imageResize.ts |
 | FR-22.4 | E2E | M10-04 (add/replace/remove) |

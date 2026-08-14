@@ -106,3 +106,23 @@ test('G-11: the FAB is the brand and a packed box is done, never the action colo
   const box = page.getByTestId('m4-row-Zelt').getByTestId('row-check').locator('ion-checkbox')
   expect(await computed(box, '--checkbox-background-checked')).toBe(done)
 })
+
+// E2E-G11-04 (G-11/FR-21.7): the anchors are roles, so they survive the
+// flavour switch. Mocha's peach and Latte's are different hues entirely
+// (#fab387 vs #fe640b) — a rule written against a hex would pass here by
+// accident or fail here for the wrong reason.
+test('G-11: the roles hold in Latte, on different hues @local @g11', async ({ page, seedMode }) => {
+  await seedMode({ mode: 'local', theme: 'latte' })
+  await page.setViewportSize(MOBILE)
+  await page.goto('/')
+
+  // Prove the flavour actually switched before asserting anything about
+  // it — the seed key is device-local and easy to get silently wrong.
+  await expect(page.locator('html')).toHaveClass(/jitpack-latte/)
+
+  const brand = await rolePainted(page, '--jp-brand')
+  const activeTab = page.getByTestId('tab-dashboard')
+  await expect(activeTab).toBeVisible()
+  expect(await computed(activeTab, 'color')).toBe(brand)
+  expect(await computed(page.getByTestId('tab-trips'), 'color')).not.toBe(brand)
+})

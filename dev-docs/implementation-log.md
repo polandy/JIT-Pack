@@ -1359,3 +1359,19 @@ was given (`#fab387`) while `color` computes to `rgb(250, 179, 135)`, so
 the two need separate readers; and the tab bar is *hidden* at the default
 desktop viewport, where the rail carries the anchors instead — the case
 now asserts both presentations, which is what G-11 actually claims.
+
+**Two things the self-review caught, both about rules that described
+themselves rather than the code.** `--ion-color-primary` still reached for
+`--ct-blue` directly, so `--jp-action` had no consumer at all and blue was
+decided in two places while peach and green were decided in one — the
+anchor block described a rule that two of its three roles followed. Primary
+now resolves *through* the role.
+
+And `seed({ theme })` in the e2e fixtures wrote `'dark'`/`'light'` into
+`jitpack_theme`, which `readTheme` does not recognise: anything but
+`'latte'` resolves to Mocha, so a light-theme case would have asserted the
+dark theme and passed. Nothing used it yet, which is why nobody noticed —
+and the Latte case added here would have been the first victim. The option
+is typed as `Theme` now, and the case asserts `jitpack-latte` is on the
+root *before* it asserts anything about colour. Verified by seeding Mocha
+and watching it go red.
