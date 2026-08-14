@@ -1032,3 +1032,39 @@ each other — it clips now instead of fading.
 E2E-M4-21 guards the ordering on computed font size. A class assertion
 would have proved nothing here: everything rendered correctly, in the
 wrong order of importance.
+
+## A trip needs a year, not a date (FR-2.1b)
+
+Owner decision: „Das Datum für einen Trip soll optional sein. Nur das Jahr
+ist required. bei der Selektion ist das aktuelle Jahr bereits vorgewählt."
+
+FR-2.1a had already made the *start* date optional and kept the end date
+as "the trip's planning anchor". That was the wrong anchor. A trip exists
+as a plan long before its dates do, so requiring the end date meant
+inventing one — and an invented date is worse than an absent one, because
+it then drove M2's ordering, the series history and the „bis …" line, all
+of them stating knowledge nobody had.
+
+Migration 021 adds `trips.year NOT NULL` and makes `end_date` nullable,
+backfilling the year out of the end date every existing trip was still
+required to have. `duration_days` needs both dates now; everything
+derived from it already had a no-duration path from FR-2.1a.
+
+**The rebuild swallowed a column, and the suite caught it.** Modelled on
+migration 004, the new `trips` table reproduced the shape from *then* —
+without `updated_hlc`, which 005 had added since. Every master pull of a
+trip broke instantly. A twelve-step rebuild has to carry every column the
+table has grown, and the only reliable way to know that is to read the
+migrations after the one being copied.
+
+Two places had been sorting trips by a date directly; both now use
+`tripOrderKey` (start date → end date → year), so a year-only trip has a
+defined place instead of wherever the engine left it. The quantity-history
+hint (FR-14.2) used to slice its year out of the end date and now reads
+the field, which is the same information without the assumption.
+
+The wizard's step 1 gate is a name and nothing else: the year picker opens
+on the current year, so the required field is satisfied before the user
+arrives. E2E-M3-11 drives the whole wizard without touching a date and
+then checks that the trip reads by its year in the list — it fails against
+the old gate, which is what makes it a guard rather than a description.

@@ -84,7 +84,7 @@ var syncableColumns = map[string]map[string]bool{
 		"template_item_id", "task",
 	),
 	"trips": toSet(
-		"series_id", "name", "start_date", "end_date", "status",
+		"series_id", "name", "year", "start_date", "end_date", "status",
 		"attributes", "imported", "created_by",
 	),
 	"trip_series": toSet(

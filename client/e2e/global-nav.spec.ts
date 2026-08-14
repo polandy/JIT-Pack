@@ -156,6 +156,32 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.getByTestId('m4-progress')).toContainText('0/1')
   })
 
+  // E2E-M3-11 (FR-2.1b): a trip needs only its year. The wizard's step 1
+  // must let you through with a name alone — the year is preselected —
+  // and the trip then reads by its year where a date would have stood.
+  test('E2E-M3-11: a trip can be created with no dates at all', async ({ page }) => {
+    await page.setViewportSize(DESKTOP)
+    await page.goto('/trips/new')
+
+    await page.getByTestId('wizard-name').locator('input').fill('Samedan irgendwann')
+    // No date touched anywhere: straight through the wizard.
+    await expect(page.getByTestId('wizard-next')).toBeEnabled()
+    await page.getByTestId('wizard-next').click()
+    await expect(page.getByTestId('wizard-step-2')).toBeVisible()
+    await page.getByTestId('wizard-next').click()
+    await page.getByTestId('wizard-next').click()
+    await page.getByTestId('wizard-create').click()
+
+    await expect(page.getByTestId('m4-header')).toBeVisible()
+
+    // In the list it is named by its year, since nothing finer is known.
+    await page.getByTestId('header-back').click()
+    await page.getByTestId('trips-filter-planned').click()
+    const row = page.getByTestId('trip-row-Samedan irgendwann')
+    await expect(row).toBeVisible()
+    await expect(row.getByTestId('trip-when')).toHaveText(String(new Date().getFullYear()))
+  })
+
   // E2E-G8-02: the dev sample-trip seed is a development affordance, not
   // Demo Mode returning. This suite runs the production build, where it
   // must not exist at all.

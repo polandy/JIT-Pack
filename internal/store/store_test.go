@@ -29,7 +29,7 @@ func openTestStore(t *testing.T) *Store {
 	t.Cleanup(func() { s.Close() })
 
 	mustExec(t, s, `INSERT INTO users (id, oidc_subject, display_name) VALUES (?, 'auth|andy', 'Andy')`, testUser)
-	mustExec(t, s, `INSERT INTO trips (id, name, start_date, end_date) VALUES (?, 'Samedan 2026', '2026-07-10', '2026-07-20')`, testTrip)
+	mustExec(t, s, `INSERT INTO trips (id, name, year, start_date, end_date) VALUES (?, 'Samedan 2026', 2026, '2026-07-10', '2026-07-20')`, testTrip)
 	return s
 }
 

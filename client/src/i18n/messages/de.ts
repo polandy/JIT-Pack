@@ -34,6 +34,8 @@ export const de: Record<keyof typeof en, string> = {
 
   'trip.daysUntil': 'noch {n} Tage',
   'trip.departsToday': 'Heute geht es los',
+  'trip.until': 'bis {date}',
+  'trip.from': 'ab {date}',
   'trip.status.planning': 'In Planung',
   'trip.status.active': 'Aktiv',
   'trip.status.archived': 'Archiviert',

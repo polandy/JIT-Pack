@@ -40,6 +40,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { tripOrderKey } from '@/domain/trips'
 
 const route = useRoute()
 const router = useRouter()
@@ -51,6 +52,17 @@ const step = ref(1)
 
 // --- Step 1: metadata (FR-2.1/2.1a/15.1) ---
 const name = ref('')
+/**
+ * FR-2.1b: the year is the only temporal fact a trip needs, and it starts
+ * on the current one — the overwhelmingly common case is a trip this year
+ * or the next, and a preselected value means the required field is
+ * already satisfied when the screen opens.
+ */
+const YEAR_SPAN = 6
+const thisYear = new Date().getFullYear()
+const yearChoices = Array.from({ length: YEAR_SPAN }, (_, i) => thisYear - 1 + i)
+const year = ref(thisYear)
+
 const startDate = ref('')
 const endDate = ref('')
 const season = ref('')
@@ -250,7 +262,8 @@ const suggestions = computed(() => {
     .filter((t) => t.series_id === seriesId)
     .map((t) => ({
       id: t.id,
-      endDate: t.end_date,
+      orderKey: tripOrderKey(t),
+      year: t.year,
       durationDays: durationDays(t.start_date, t.end_date) ?? target,
       items: tripStore
         .getItems(t.id)
@@ -285,9 +298,10 @@ function travelerName(index: number | null): string | null {
 // --- Navigation ---
 const stepValid = computed(() => {
   if (step.value === 1) {
+    // No date gate any more (FR-2.1b): the year is preselected, so the
+    // only thing that can be missing here is a name.
     return (
       name.value.trim() !== '' &&
-      endDate.value !== '' &&
       (seriesChoice.value !== 'new' || newSeriesName.value.trim() !== '')
     )
   }
@@ -314,8 +328,9 @@ function createTrip() {
   ]
   const tripId = orchestrator.createTripFromWizard({
     name: name.value.trim(),
+    year: year.value,
     startDate: startDate.value || null,
-    endDate: endDate.value,
+    endDate: endDate.value || null,
     attributes: attributes.value,
     travelers: travelers.value.map((t) => ({ name: t.name.trim() })),
     items,
@@ -351,6 +366,20 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
             />
           </IonItem>
           <IonItem>
+            <IonSelect
+              data-testid="wizard-year"
+              label="Year"
+              label-placement="stacked"
+              interface="popover"
+              :value="year"
+              @ionChange="(e: CustomEvent) => (year = Number(e.detail.value))"
+            >
+              <IonSelectOption v-for="option in yearChoices" :key="option" :value="option">
+                {{ option }}
+              </IonSelectOption>
+            </IonSelect>
+          </IonItem>
+          <IonItem>
             <IonInput
               data-testid="wizard-start-date"
               label="Start date (optional)"
@@ -363,7 +392,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
           <IonItem>
             <IonInput
               data-testid="wizard-end-date"
-              label="End date"
+              label="End date (optional)"
               label-placement="stacked"
               type="date"
               :value="endDate"

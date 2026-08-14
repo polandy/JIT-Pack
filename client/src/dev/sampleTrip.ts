@@ -59,6 +59,7 @@ function sampleDocument(): PortableDocument {
     kind: 'trip',
     schema_version: PORTABLE_SCHEMA_VERSION,
     name: 'Samedan Sommer (Beispiel)',
+    year: new Date().getFullYear(),
     start_date: isoDay(-2),
     end_date: isoDay(12),
     travelers: TRAVELERS.map((name) => ({ name })),

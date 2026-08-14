@@ -36,6 +36,8 @@ export const en = {
   // Trips.
   'trip.daysUntil': '{n} days to go',
   'trip.departsToday': 'Departs today',
+  'trip.until': 'until {date}',
+  'trip.from': 'from {date}',
   'trip.status.planning': 'Planning',
   'trip.status.active': 'Active',
   'trip.status.archived': 'Archived',

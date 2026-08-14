@@ -369,13 +369,16 @@ export function useMutations(hlc: HLCGenerator) {
 
   function createTrip(
     name: string,
+    year: number,
     startDate: string | null,
-    endDate: string,
+    endDate: string | null,
     opts: { seriesId?: string | null; attributes?: Record<string, unknown> | null } = {},
   ): { mutation: Mutation; id: string } {
     const id = crypto.randomUUID()
     const mutation = make('insert', 'trips', id, {
       name,
+      // FR-2.1b: the year is the required fact; both dates may be absent.
+      year,
       start_date: startDate,
       end_date: endDate,
       status: 'planning',

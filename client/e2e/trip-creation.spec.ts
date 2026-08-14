@@ -31,9 +31,11 @@ async function expectBlocked(button: Locator) {
   await expect(button).toHaveAttribute('aria-disabled', 'true')
 }
 
-// E2E-M3-01 (FR-2.1/2.1a): step 1 takes the metadata, Next is gated on
-// the required fields, and the duration is computed from the dates.
-test('M3: step 1 gates Next until name and end date are set @local @m3', async ({
+// E2E-M3-01 (FR-2.1/2.1a/2.1b): step 1 takes the metadata, Next is gated
+// on the name alone — since FR-2.1b the year is the only required
+// temporal fact and it arrives preselected — and the duration is computed
+// from the dates when both are given.
+test('M3: step 1 gates Next on the name, and derives the duration @local @m3', async ({
   page,
   seedMode,
 }) => {
@@ -45,12 +47,15 @@ test('M3: step 1 gates Next until name and end date are set @local @m3', async (
   // Nothing entered yet → the step is invalid and cannot be left.
   await expectBlocked(page.getByTestId('wizard-next'))
 
-  // Name alone is not enough — FR-2.1 gates the step on the end date too.
+  // The year needs no input: it opens on the current one (FR-2.1b).
+  await expect(page.getByTestId('wizard-year')).toContainText(String(new Date().getFullYear()))
+
+  // A name is now the whole gate — no date is required to leave step 1.
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
-  await expectBlocked(page.getByTestId('wizard-next'))
+  await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
 
   await page.getByTestId('wizard-start-date').locator('input').fill('2026-09-13')
-  await page.getByTestId('wizard-end-date').locator('input').fill(TRIP.endDate)
+  await page.getByTestId('wizard-end-date').locator('input').fill('2026-09-20')
 
   // FR-2.1a: duration is derived from the dates, never entered — and it
   // counts both endpoints, so the 13th to the 20th is 8 travel days.

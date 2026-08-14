@@ -14,6 +14,7 @@ function trip(over: Partial<Trip> = {}): Trip {
     id: 'src',
     name: 'Engadin 2025',
     status: 'archived',
+    year: 2026,
     start_date: '2025-08-01',
     end_date: '2025-08-07',
     duration_days: 7,

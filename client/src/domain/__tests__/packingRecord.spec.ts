@@ -42,6 +42,7 @@ const sourceTrip: Trip = {
   id: 'trip-old',
   series_id: null,
   name: 'Samedan 2025',
+  year: 2025,
   start_date: '2025-09-01',
   end_date: '2025-09-21',
   duration_days: 21,

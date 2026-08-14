@@ -47,6 +47,7 @@ import { useTripStore } from '@/stores/tripStore'
 import type { Trip } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import SearchRow from '@/components/global/SearchRow.vue'
+import { tripOrderKey } from '@/domain/trips'
 import { t } from '@/i18n'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
@@ -91,8 +92,21 @@ const {
 } = useContextSearch()
 setHeaderActions(() => [action()])
 
+/** The temporal line under a trip's name, whatever it actually knows. */
+function tripWhen(trip: Trip): string {
+  if (trip.start_date && trip.end_date) return `${trip.start_date} – ${trip.end_date}`
+  if (trip.end_date) return t('trip.until', { date: trip.end_date })
+  if (trip.start_date) return t('trip.from', { date: trip.start_date })
+  return String(trip.year)
+}
+
 const filteredTrips = computed(() =>
-  store.tripList.filter((trip) => matchesFilter(trip) && matches(trip.name)),
+  store.tripList
+    .filter((trip) => matchesFilter(trip) && matches(trip.name))
+    // Newest first (Addendum, M2 default ordering). The key survives a
+    // trip that has only its year (FR-2.1b), which a raw date compare did
+    // not — it put such a trip wherever the sort happened to leave it.
+    .sort((a, b) => tripOrderKey(b).localeCompare(tripOrderKey(a))),
 )
 const isEmpty = computed(() => filteredTrips.value.length === 0)
 
@@ -326,12 +340,9 @@ async function handleRefresh(event: CustomEvent) {
               </div>
               <IonLabel>
                 <h2>{{ trip.name }}</h2>
-                <p>
-                  <template v-if="trip.start_date">
-                    {{ trip.start_date }} &ndash; {{ trip.end_date }}
-                  </template>
-                  <template v-else>until {{ trip.end_date }}</template>
-                </p>
+                <!-- FR-2.1b: a trip may have both dates, one, or neither.
+                     With neither, its year is what it is called by. -->
+                <p data-testid="trip-when">{{ tripWhen(trip) }}</p>
                 <p>{{ itemSummary(trip) }}</p>
               </IonLabel>
             </IonItem>

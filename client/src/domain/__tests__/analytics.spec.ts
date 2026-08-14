@@ -42,6 +42,7 @@ function trip(id: string, overrides: Partial<Trip> = {}): Trip {
     id,
     name: id,
     status: 'archived',
+    year: 2026,
     start_date: '2026-07-01',
     end_date: '2026-07-10',
     duration_days: 10,

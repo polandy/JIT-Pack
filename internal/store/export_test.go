@@ -129,7 +129,7 @@ func TestExportTrip(t *testing.T) {
 
 	for _, q := range []string{
 		`INSERT INTO users (id, oidc_subject, display_name) VALUES ('u1', 'auth|u1', 'Alice')`,
-		`INSERT INTO trips (id, name, start_date, end_date) VALUES ('trip1', 'Summer 2026', '2026-07-01', '2026-07-10')`,
+		`INSERT INTO trips (id, name, year, start_date, end_date) VALUES ('trip1', 'Summer 2026', 2026, '2026-07-01', '2026-07-10')`,
 		`INSERT INTO trip_members (trip_id, user_id, role) VALUES ('trip1', 'u1', 'owner')`,
 		`INSERT INTO travelers (id, trip_id, name) VALUES ('trav1', 'trip1', 'Andy')`,
 		`INSERT INTO travelers (id, trip_id, name) VALUES ('trav2', 'trip1', 'Lisa')`,

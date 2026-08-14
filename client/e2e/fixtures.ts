@@ -44,8 +44,8 @@ interface Fixtures {
 /** Minimum a trip needs to be creatable — the wizard's step-1 gate. */
 export interface TripSeed {
   name: string
-  /** `YYYY-MM-DD`. Required: FR-2.1 gates step 1 on it. */
-  endDate: string
+  /** Optional since FR-2.1b — only the year is required, and it is preselected. */
+  endDate?: string
   startDate?: string
   /** Traveler names; each is added as an Adult (FR-2.5). */
   travelers?: string[]
@@ -65,7 +65,9 @@ export async function createTripViaWizard(page: Page, trip: TripSeed): Promise<s
   if (trip.startDate) {
     await page.getByTestId('wizard-start-date').locator('input').fill(trip.startDate)
   }
-  await page.getByTestId('wizard-end-date').locator('input').fill(trip.endDate)
+  if (trip.endDate) {
+    await page.getByTestId('wizard-end-date').locator('input').fill(trip.endDate)
+  }
   await page.getByTestId('wizard-next').click()
 
   await expect(page.getByTestId('wizard-step-2')).toBeVisible()

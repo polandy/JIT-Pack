@@ -2242,7 +2242,7 @@ const QROWS=[{name:'T-Shirts',base:6,hist:'’24: 5 · ’25: 6',s:6},
   {name:'Ladekabel',base:3,hist:'’25: 3',s:3}];
 const STEP_LBL=['Eckdaten','Reisende','Vorlagen','Mengen'];
 let W;
-function resetWizard(){ W={step:1,name:'',start:'',end:'',season:'',transport:'',accommodation:'',series:'',
+function resetWizard(){ W={step:1,name:'',year:new Date().getFullYear(),start:'',end:'',season:'',transport:'',accommodation:'',series:'',
   /* FR-2.5 (2026-08-08): a traveler is a name (+ optional user link). The
      Erwachsen/Kind type went with FR-25.9 — nothing evaluated it. */
   travelers:[{name:'Andy'},{name:'Sia'},{name:'Leonardo'}],
@@ -2268,7 +2268,13 @@ function chipGroup(grp,vals,cur,cls){ return `<div class="chips">${vals.map(v=>
 
 function wStep1(){ const d=dur();
   return `<div class="field"><label>Reisename</label><input class="txt" id="wizName" placeholder="z. B. Herbstferien Samedan" value="${esc(W.name)}"></div>
-  <div class="field"><label>Reisedaten</label><div class="datewrap">
+  <!-- FR-2.1b: das Jahr ist die einzige Pflichtangabe und ist vorgewählt;
+       eine Reise wird geplant, lange bevor ihre Daten existieren. -->
+  <div class="field"><label>Jahr</label><div class="chips">${
+    Array.from({length:4},(_,i)=>new Date().getFullYear()-1+i).map(y=>
+      `<button class="opt ${y===W.year?'sel':''}" data-act="year" data-v="${y}">${y}</button>`).join('')
+  }</div></div>
+  <div class="field"><label>Reisedaten <span class="tiny muted">optional</span></label><div class="datewrap">
     <input class="dt" type="date" id="wizStart" value="${W.start}"><span class="muted">→</span><input class="dt" type="date" id="wizEnd" value="${W.end}">
     <span class="dur">${d?d+' Tage':''}</span></div></div>
   <div class="field"><label>Serie</label><div class="chips">
@@ -2419,6 +2425,9 @@ function bindWizard(){
   document.getElementById('wizBody').querySelectorAll('[data-act]').forEach(el=>{
     el.onclick=()=>{ const a=el.dataset.act;
       if(a==='attr'){ W[el.dataset.grp]=W[el.dataset.grp]===el.dataset.v?'':el.dataset.v; }
+      // FR-2.1b: the year is required, so it toggles to nothing — picking
+      // another year is the only move.
+      else if(a==='year'){ W.year=Number(el.dataset.v); }
       // Captured inline like every other name in the app (FR-25.13). A native
       // prompt() was the one place that broke the pattern — and on a phone it is
       // exactly the modal interruption the concept avoids everywhere else.

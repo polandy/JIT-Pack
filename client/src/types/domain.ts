@@ -6,8 +6,13 @@ export interface Trip {
   id: string
   name: string
   status: TripStatus
+  /**
+   * The one required temporal fact (FR-2.1b). A trip is planned long
+   * before its dates exist, and demanding a date meant inventing one.
+   */
+  year: number
   start_date: string | null
-  end_date: string
+  end_date: string | null
   duration_days: number | null
   series_id: string | null
   series_name: string | null
