@@ -675,7 +675,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
             </span>
           </button>
 
-          <template v-if="!group.collapsed">
+          <div v-if="!group.collapsed" class="group-card">
             <template
               v-for="entry in group.entries"
               :key="entry.kind === 'item' ? entry.item.id : entry.key"
@@ -850,7 +850,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
                 </IonItemOptions>
               </IonItemSliding>
             </template>
-          </template>
+          </div>
         </template>
       </IonList>
 
@@ -977,22 +977,28 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
   gap: 10px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--ct-surface0);
-  background: var(--ion-background-color);
+  /* An explicit token, not --ion-background-color: inside ion-content that
+     one resolves to nothing, so the sticky line was transparent and the
+     rows scrolled *through* the trip's progress figure. */
+  background: var(--ct-base);
   position: sticky;
   top: 0;
-  z-index: 2;
+  /* Above the rows: ion-item-sliding is a positioned, transformed element,
+     so at z-index 2 the list painted straight over the trip's figures. */
+  z-index: 10;
   overflow: hidden;
   max-height: 52px;
+  /* Clipped, never faded: a half-transparent sticky line reads as two
+     lines printed on top of each other while the list slides past it. */
   transition:
     max-height 0.18s ease,
-    padding 0.18s ease,
-    opacity 0.18s ease;
+    padding 0.18s ease;
 }
 
 .trip-line.collapsed {
   max-height: 0;
   padding-block: 0;
-  opacity: 0;
+  border-bottom-color: transparent;
 }
 
 .progress {
@@ -1082,17 +1088,19 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 /* --- Groups and rows -------------------------------------------------- */
 .group-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
   width: 100%;
-  padding: 10px 14px 6px;
+  padding: 20px 6px 8px;
   background: none;
   border: none;
-  color: var(--ct-subtext1);
-  font-size: 0.82rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: var(--ct-text);
+  /* A group heading outranks the rows under it. It used to be 0.82rem
+     uppercase micro-type — smaller than the item names it was heading,
+     which inverts the hierarchy it exists to state. */
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   cursor: pointer;
 }
 
@@ -1103,9 +1111,25 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 
 .group-count {
   color: var(--ct-subtext0);
+  font-size: 0.8rem;
   font-weight: 500;
-  text-transform: none;
-  letter-spacing: 0;
+}
+
+/* Each group is its own block, so the seam between two categories is a
+   real edge rather than a slightly larger gap — which is what made them
+   run into each other on a long list. */
+.group-card {
+  margin: 0 8px;
+  border: 1px solid var(--ct-surface0);
+  border-radius: 14px;
+  background: var(--ct-mantle);
+  overflow: hidden;
+}
+
+.group-card ion-item {
+  --background: transparent;
+  --padding-start: 12px;
+  --inner-padding-end: 10px;
 }
 
 .caret {
@@ -1176,8 +1200,14 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px 2px;
+  padding: 10px 14px 2px;
+  /* Three levels, three weights: the category heads the block, the
+     per-person item names itself once inside it, and the traveler rows
+     under that are plain. Two of them at the same size read as two
+     groups rather than as a group and its contents. */
+  font-size: 0.88rem;
   font-weight: 600;
+  color: var(--ct-subtext1);
 }
 
 .cluster-name {
@@ -1186,7 +1216,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 
 .cluster-count {
   color: var(--ct-subtext0);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 

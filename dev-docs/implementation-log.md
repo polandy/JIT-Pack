@@ -1001,3 +1001,34 @@ attribute is the contract, not the markup.
 **The aeroplane is a train.** Trips are ground travel in this household;
 the icon is the first thing the app says about itself, and it was saying
 the wrong thing.
+
+## The list's own hierarchy
+
+Reported after looking at the rebuilt list: „der Titel Kleidung als
+Oberkategorie ist kleiner als die Unterkategorien Regenjacke und
+Sonnenhut", and the categories were hard to tell apart at all.
+
+Both were mine. The group header had shipped as G-12-style uppercase
+micro-type — 0.82rem against the rows' 0.88rem — so the heading was
+literally smaller than the things it was heading. And the mock wraps each
+group's rows in a card, which is what separates one category from the
+next; the Vue rebuild kept the header and dropped the card, leaving a
+slightly larger gap to do the work of an edge.
+
+Now: the category heads its block at 1.02rem, a per-person cluster names
+itself at 0.88rem in the muted tone, and the rows are plain — three
+levels, three weights, in the order they actually nest. Each group is a
+bordered card, so the seam between categories is an edge.
+
+Two things surfaced while checking it in the browser rather than in the
+stylesheet, which is why that rule exists. The sticky trip line was
+painted *through* by the rows: its background came from
+`--ion-background-color`, which resolves to nothing inside `ion-content`,
+and `ion-item-sliding` is positioned and transformed, so at `z-index: 2`
+the list won. And the line faded its opacity while collapsing, so
+mid-scroll the progress figure and a group header were legible on top of
+each other — it clips now instead of fading.
+
+E2E-M4-21 guards the ordering on computed font size. A class assertion
+would have proved nothing here: everything rendered correctly, in the
+wrong order of importance.

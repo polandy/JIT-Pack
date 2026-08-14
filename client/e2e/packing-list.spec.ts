@@ -156,6 +156,32 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('packing-empty')).toContainText('🎉')
   })
 
+  // E2E-M4-21 (UI-Spec M4, reported 2026-08-14): a category heads the rows
+  // under it, so it has to *look* like their heading. It was 0.82rem
+  // uppercase micro-type — smaller than the item names it introduced — and
+  // the groups ran into each other with nothing but a gap between them.
+  test('E2E-M4-21: a group heading outranks its rows, and each group is its own block', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, ['Zelt', 'Kocher'])
+
+    const sizes = await page.evaluate(() => {
+      const px = (sel: string) => {
+        const el = document.querySelector(sel)
+        return el ? parseFloat(getComputedStyle(el).fontSize) : 0
+      }
+      return { heading: px('.group-head'), row: px('ion-item h3') }
+    })
+
+    expect(sizes.heading).toBeGreaterThan(sizes.row)
+
+    // The rows of a group live in one block, which is what makes the seam
+    // between two categories an edge rather than a slightly bigger gap.
+    const inGroup = page.locator('.group-card').first().getByTestId('m4-row-Zelt')
+    await expect(inGroup).toBeVisible()
+  })
+
   // E2E-M4-23 (FR-25.16/25.2): doneness removes a group entirely — header
   // and all — and the reveal bar brings it back. Folding is a different
   // concept and must not stand in for it.
