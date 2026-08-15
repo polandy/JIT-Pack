@@ -276,7 +276,7 @@ label that is not recessive stops being a label and nine call sites is nine
 chances to forget. **This is the one visible change in an otherwise mechanical
 pass**, which is why it shipped with before/after screenshots.
 
-The scale also grew one step: four sites sat below 11px with nowhere to go, so
+The scale also grew one step: seven sites sat below 11px with nowhere to go, so
 `--jp-text-3xs` was added rather than the sites rounded up out of their
 layouts. A size the table does not have is a signal about the table — which is
 what `typography.css` said it would be when the scale shipped ahead of its

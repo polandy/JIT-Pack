@@ -86,9 +86,9 @@
      steps mean nothing on their own, so it ships whole rather than one
      step at a time.
 
-     `3xs` was added when the views moved onto the scale: four sites
-     (a sync badge, an avatar tick, two micro-counts) sat below 11px and
-     had nowhere to go. That is the scale doing its job — a size the table
+     `3xs` was added when the views moved onto the scale: seven sites
+     (two badges, an avatar's initials and its tick, two counts and a
+     prep marker) sat below 11px and had nowhere to go. That is the scale doing its job — a size the table
      does not have is a signal about the table, which is why the step was
      added rather than the sites rounded up out of their layouts. */
   --jp-text-lg: 17px;

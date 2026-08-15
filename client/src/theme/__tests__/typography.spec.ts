@@ -115,8 +115,8 @@ describe('the scale carries the views now (FR-21.5)', () => {
   })
 
   it('grew the step the views actually needed rather than rounding them up', () => {
-    // Four sites (a sync badge, an avatar tick, two micro-counts) sat below
-    // 11px with nowhere to go. A size the table does not have is a signal
+    // Seven sites (two badges, an avatar's initials and its tick, two
+    // counts and a prep marker) sat below 11px with nowhere to go. A size the table does not have is a signal
     // about the table — that is the whole reason a scale is reviewed.
     expect(css).toMatch(/--jp-text-3xs:\s*10px/)
   })

@@ -1592,8 +1592,9 @@ stops being a label, and leaving that to nine call sites is nine chances to
 forget. **This is the one visible change in an otherwise mechanical pass**, so
 it shipped with before/after screenshots rather than as a footnote.
 
-*The scale grew where the app pushed on it.* Four sites — a sync badge, an
-avatar tick, two micro-counts — sat below 11px with nowhere to go, so
+*The scale grew where the app pushed on it.* Seven sites — two badges, an
+avatar's initials and its tick, two counts and a prep marker — sat below 11px
+with nowhere to go, so
 `--jp-text-3xs` was added rather than the sites rounded up out of their
 layouts. That is the mechanism `typography.css` predicted when the scale
 shipped ahead of its callers: a size the table does not have is a signal about
@@ -1618,3 +1619,19 @@ probe in a file that also held uncommitted migration work, and took the
 migration with it. The probe pattern used everywhere else in these PRs — copy
 to `/tmp`, restore from there — does not have that failure mode. The gate
 caught the loss immediately, which is the argument for having it.
+
+**Two corrections from reviewing the same PR.**
+
+The count was wrong: `--jp-text-3xs` has **seven** occupants, not the four
+stated in the token comment, the unit test, the plan and the log. Counted
+from `var(--jp-text-3xs)` rather than from memory — two badges, an avatar's
+initials and its tick, two counts and a prep marker. A number written into
+five places from an impression is five wrong places.
+
+And `.tick` was the one site the migration genuinely moved: 8px to 10px,
+inside a 12px circle. Measured rather than assumed — the glyph's line box
+comes out 13px, which reads as an overflow until you look: 13px is the em
+box, and the checkmark's *ink* stays inside the disc. Rendered at 6× beside
+the old size to confirm, and it is the more legible of the two at real size.
+Kept. The measurement is recorded because "13 in 12" is exactly the kind of
+number that would otherwise be re-discovered and 'fixed' later.
