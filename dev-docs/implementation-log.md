@@ -1931,10 +1931,15 @@ delete guarded like promotion: an included group names its consumer instead
 of cascading out of every Vorlage that builds on it.
 
 **Corrections against the spec, recorded as UI-Spec/UI-Test-Spec amendments:**
-no per-sheet auto-save indicator (the as-built M5 ships none; G-5 commits +
-G-2 in-flight reporting already state the fact), no swipe-to-delete and no
-reorder (no order column; the M7 render killed swipe-in-card), and the blast
-note deliberately also fires on a group reached through an including Vorlage.
+no swipe-to-delete and no reorder (no order column; the M7 render killed
+swipe-in-card), and the blast note deliberately also fires on a group reached
+through an including Vorlage. The first draft of the amendment also waved the
+FR-25.15 indicator away as "G-2 already says it" — the /pr-review pass caught
+that FR-25.15 *explicitly rejects that argument* (captured-here versus
+reached-the-server is the offline story), so the indicator was built instead
+of excused: one shared `SaveIndicator` (amber ● in flight → green ✓ settled,
+seam = the FR-19.2 orchestrator state), now in **both** sheets — the M5
+rebuild had quietly shipped without it. Flip unit-tested, mutation-checked.
 
 **Render pass:** built bundle, Local Mode, eight framed states (group editor,
 sheet collapsed/expanded, picker, composed Vorlage with merge line, inline

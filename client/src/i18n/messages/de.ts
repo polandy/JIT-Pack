@@ -185,6 +185,8 @@ export const de: Record<keyof typeof en, string> = {
   'item.latePackerHint': 'Erst am Abreisetag packen',
   'item.flags': 'Markierungen',
   'item.noFlags': 'keine',
+  'item.saving': 'Speichert…',
+  'item.saved': 'Gespeichert',
   'item.notFound': 'Diese Sache ist nicht auf der Liste.',
   'item.stateOpen': 'offen',
   'item.statePartial': 'teilweise',

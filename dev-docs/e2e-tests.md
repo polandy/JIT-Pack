@@ -162,8 +162,9 @@ chip on M2) and E2E-M8-11's propagation-log half assert the FR-27.4
 that exists today, in both directions (the Vorlage names the trip, and the
 group reaches it through the include), plus the absence case *before* the trip
 exists — a positive-signal pairing, not a lone not-there assertion. The sheet's
-auto-save has no indicator to flip (UI-Test-Spec amendment 2026-08-15 on
-M8-14); the cases assert the rendered result of each edit instead.
+FR-25.15 ●→✓ flip is unit-tested on `SaveIndicator` against a controlled
+state; e2e asserts presence and the settled tooltip — racing the transient
+● would be a forbidden timing dependency (M8-14 amendment 2026-08-15).
 
 ## Order of attack
 

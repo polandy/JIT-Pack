@@ -186,6 +186,8 @@ export const en = {
   'item.latePackerHint': 'Pack on departure day',
   'item.flags': 'Flags',
   'item.noFlags': 'none set',
+  'item.saving': 'Saving…',
+  'item.saved': 'Saved',
   'item.notFound': 'This item is not on the list.',
   'item.stateOpen': 'open',
   'item.statePartial': 'partly packed',

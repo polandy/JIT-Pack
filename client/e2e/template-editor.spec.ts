@@ -259,6 +259,11 @@ test.describe('M8 position sheet — the M5 pattern (FR-25.7, FR-27.7)', () => {
     await expect(glance).toContainText('Per person')
     await expect(glance).toContainText('Summer')
 
+    // FR-25.15: the sheet's indicator has settled back to ✓ — the transient
+    // ● is unit-tested (SaveIndicator), racing it here would be a timing bet.
+    const indicator = page.getByTestId('m8-position-sheet').getByTestId('save-indicator')
+    await expect(indicator).toHaveAttribute('title', 'Saved')
+
     // The fold collapses again, and the row below reflects the edits.
     await page.getByTestId('m8-details').click()
     await expect(page.getByTestId('m8-details-body')).toHaveCount(0)

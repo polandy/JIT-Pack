@@ -24,6 +24,8 @@ import {
 } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 
+import SaveIndicator from '@/components/global/SaveIndicator.vue'
+
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { t } from '@/i18n'
 import { ACCOMMODATIONS, SEASONS, TRANSPORT_MODES, attributeLabel } from '@/lib/attributeLabels'
@@ -48,6 +50,10 @@ const itemName = computed(
   () => masterStore.getItem(position.value?.item_id ?? '')?.name ?? t('templates.notFound'),
 )
 const tasks = computed(() => masterStore.getTemplateItemTasks(props.positionId))
+
+// FR-25.15: the indicator reads the orchestrator's state — an open Local
+// Mode write reports as `syncing` (FR-19.2), so "settled" is observed.
+const saveState = computed(() => orchestrator.syncStatus.state.value)
 
 /** Folded by default: the sheet opens on what is routinely touched (FR-25.7). */
 const detailsOpen = ref(false)
@@ -145,6 +151,7 @@ const MODES: Array<{ value: ItemMode; label: () => string }> = [
           {{ t('templates.positionOf', { scope: scopeName, name: template?.name ?? '' }) }}
         </p>
       </div>
+      <SaveIndicator :state="saveState" />
       <button
         class="x"
         data-testid="m8-position-close"

@@ -46,6 +46,7 @@ import { computed, inject, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import ItemThumbnail from '@/components/items/ItemThumbnail.vue'
+import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -74,6 +75,10 @@ const trip = computed(() => tripStore.getTrip(props.tripId))
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
 const containers = computed(() => tripStore.getContainers(props.tripId))
 const isActive = computed(() => trip.value?.status === 'active')
+
+// FR-25.15: owed since the M5 rebuild — the sheet says its edits are
+// captured on this device, distinct from G-2's server story.
+const saveState = computed(() => orchestrator.syncStatus.state.value)
 
 /** Folded by default: the sheet opens on what is used, not on everything. */
 const detailsOpen = ref(false)
@@ -281,6 +286,7 @@ const packedStamp = computed(() => {
         <h1 class="jp-sheet-title" data-testid="m5-name">{{ item.name }}</h1>
         <p v-if="contextLine" class="context">{{ contextLine }}</p>
       </div>
+      <SaveIndicator :state="saveState" />
       <button
         class="x"
         data-testid="m5-close"
