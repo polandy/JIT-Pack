@@ -1635,3 +1635,66 @@ box, and the checkmark's *ink* stays inside the disc. Rendered at 6× beside
 the old size to confirm, and it is the more legible of the two at real size.
 Kept. The measurement is recorded because "13 in 12" is exactly the kind of
 number that would otherwise be re-discovered and 'fixed' later.
+
+### 2026-08-15 — The pack-out: a row that leaves, and one undo (FR-25.2)
+
+Fourth design-foundation step, and the app's first motion of any kind — there
+was no `<Transition>`, no `<TransitionGroup>` and no keyframe anywhere in
+`client/src` before this. Packing a row dropped it from the array and Vue
+removed the node on the next tick: the snap was the entire feedback channel,
+and a mistap had no way back short of finding the reveal bar, showing the done
+rows, finding the row and un-checking it.
+
+**The plan's shape held. Three things inside it did not, and each was found by
+running rather than reading.**
+
+*No view-model change was needed.* The plan expected the list to hold a "still
+animating" set so a done row could outlive its own removal. `<TransitionGroup>`
+already owns exactly that, so `buildPackingView` is untouched and stays pure.
+
+*A custom property does not transition.* The wash was written first as
+`--background` — which is what Ionic reads — and unregistered custom properties
+animate discretely, so the green appeared and disappeared within one frame. It
+is a real `background` now. The split shade that showed while both the item and
+its slider carried the wash was settled by measurement rather than by argument:
+one side was the tint over `--ct-base`, the other the same tint over
+`--ct-surface0`, which named the duplication immediately.
+
+*The snackbar landed under the FAB* — on top of the one control it exists for.
+Ionic 8's `positionAnchor` puts it above, which is FR-25.11h's rule one layer up.
+
+**Two defects the new cases caught, both of them mine.**
+
+The outgoing snackbar's dismiss handler disarmed the **incoming** pack's undo:
+`announcePacked` awaited `packToast?.dismiss()` and the outgoing toast's
+`onDidDismiss` then found itself still current, so packing two rows in a row
+left the second with no undo. Clearing the handle *before* dismissing makes the
+outgoing handler's identity check fail, which is what it was for.
+
+And E2E-M4-35 — "un-packing announces nothing" — **passed against the build
+with its own guard removed.** The snackbar is created asynchronously, so an
+absence check arrives before it would have appeared and reports success on a
+page that was about to show one. It asserts a counter the page now renders
+(`data-pack-announcements`) instead: the same deterministic-seam move the G-2
+indicator made for Local Mode writes, and the reason CLAUDE.md phrases that
+rule as "if nothing observable exists to wait on, that absence is the defect".
+
+Worth noting as the fifth of its family: **an assertion about an absence needs
+a positive signal that is guaranteed to arrive later than the thing it denies.**
+"No toast is on screen right now" is not that signal. A counter is.
+
+**One deliberate piece of production code exists for a test**, and it is
+recorded here so it is not removed as cruft: `data-pack-announcements` on M4's
+content element. It makes an otherwise untestable rule testable, which is the
+trade CLAUDE.md endorses rather than a workaround for a lazy test.
+
+**One thing looked like a defect and is not, recorded so it is not "fixed"
+later.** In a frozen frame the leaving row reads two-tone: a pale block over
+the left third, green over the rest. Dumping every painted background inside
+the row named it — `div.ripple-effect`, Ionic's Material tap ripple, expanding
+from the checkbox in `--ct-text`. It is on every row tap in the app already
+(opening the sheet, un-packing) and predates this change; it lives for about
+200 ms and is gone before the collapse finishes. Stills make it look like a
+competing wash because a still is exactly what it is not. Whether Material
+ripples belong in this app at all is a separate decision about every tap
+target, not something to settle inside the pack-out.

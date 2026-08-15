@@ -310,6 +310,36 @@ would fail if one did.
 
 ## PR 4 — Pack-out choreography and undo
 
+**Status: done** — FR-25.2 as built, the M4 note in the UI-Spec, E2E-M4-33/34/35.
+
+**The plan's shape held; three things inside it did not.**
+
+*No view-model change was needed.* The plan expected the list to have to
+hold a "still animating" set so a done row could outlive its own removal.
+`<TransitionGroup>` already owns that — it keeps the node until the leave
+finishes — so `buildPackingView` is untouched and stays pure.
+
+*A custom property does not transition.* The wash was first written as
+`--background` on the row, which is what Ionic reads; unregistered custom
+properties animate discretely, so the green appeared and vanished in one
+frame. It is a real `background` now, on the item, and the split shade that
+appeared while both the item and its slider carried it was measured rather
+than guessed: one side was the tint over `--ct-base`, the other the same
+tint over `--ct-surface0`.
+
+*The snackbar landed under the FAB* — on top of the one control it exists
+for. Ionic 8's `positionAnchor` puts it above, which is the same rule
+FR-25.11h states one layer down.
+
+**Two defects the cases caught, both mine.** The outgoing snackbar's dismiss
+handler disarmed the *incoming* pack's undo, so packing two rows in a row
+left the second with none. And E2E-M4-35 — "un-packing announces nothing" —
+**passed against the build with its own guard removed**: the snackbar is
+created asynchronously, so an absence check arrives before it would have
+appeared. It asserts a counter the page renders now, which is the same
+deterministic-seam move the G-2 indicator made for Local Mode writes.
+
+
 **No new requirement is needed. FR-25.2 already specifies this in full** — check
 `PRD_Addendum_v2.10.md:220` before writing anything:
 

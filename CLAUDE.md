@@ -79,8 +79,9 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
      flavour's ink, `.jp-card`, and `scripts/design-tokens-gate.mjs` wired into `make client`
      and CI). **The type migration is done too** — all 123 `font-size`, 40 `font-weight` and
      7 `letter-spacing` sites across 31 screens are on the scale, icons have their own
-     `--jp-icon-*` table, and the gate covers type. Remaining: the FR-25.2 pack-out animation
-     and undo, and visual baselines plus a dev gallery (owes ADR-013). Each acts
+     `--jp-icon-*` table, and the gate covers type. **The FR-25.2 pack-out is done too** — the
+     row washes green, collapses and fades, with one undo snackbar and a `prefers-reduced-motion`
+     path. Remaining: visual baselines plus a dev gallery (owes ADR-013). Each acts
      on every screen at once, which is why they come first: after six more rebuilds the same
      gap would have been built six more times.
    * **The rebuilds themselves**, localized with `t()` from the first line. **M4 and M5 are
