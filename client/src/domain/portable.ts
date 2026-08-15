@@ -17,6 +17,7 @@ import type {
   MasterItem,
   Template,
   TemplateItem,
+  TemplateKind,
   Traveler,
   Trip,
   TripItem,
@@ -65,6 +66,13 @@ export interface PortableDocument {
   kind: 'template' | 'trip'
   schema_version: number
   name: string
+  /**
+   * FR-27.1: the template's own scope, distinct from `kind`, which says
+   * whether the document is a template or a trip. Absent on trips and on
+   * files written before scopes existed — those read back as `'template'`,
+   * the same default migration 016 applies.
+   */
+  scope?: TemplateKind
   /**
    * FR-2.1b: the trip's year. Absent in files written before it existed,
    * where the (then required) end date carries the same information —
@@ -115,12 +123,19 @@ export function parsePortable(text: string): ParseResult {
     items.push(item)
   }
 
+  const rawScope = obj['scope']
+  if (rawScope !== undefined && rawScope !== 'group' && rawScope !== 'template') {
+    return { doc: null, error: `unknown scope ${JSON.stringify(rawScope)}`, newerSchema: false }
+  }
+  const scope: TemplateKind = rawScope === 'group' ? 'group' : 'template'
+
   const schemaVersion = typeof obj['schema_version'] === 'number' ? obj['schema_version'] : 1
   return {
     doc: {
       kind,
       schema_version: schemaVersion,
       name,
+      ...(kind === 'template' ? { scope } : {}),
       start_date: str(obj['start_date']),
       year: num(obj['year']),
       end_date: str(obj['end_date']),
@@ -192,6 +207,7 @@ export function serializeTemplate(
     kind: 'template',
     schema_version: PORTABLE_SCHEMA_VERSION,
     name: template.name,
+    scope: template.kind,
     items,
   })
 }

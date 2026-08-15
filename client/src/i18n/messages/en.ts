@@ -96,6 +96,32 @@ export const en = {
   // The app bar's magnifier, per screen (G-12, FR-25.11k).
   'trips.searchPlaceholder': 'Search trips…',
   'templates.searchPlaceholder': 'Search templates…',
+
+  // M7 template list — the two scopes of §3.27 (FR-27.6).
+  'templates.title': 'Templates',
+  'templates.sectionTemplates': 'Vacation templates',
+  'templates.scopeTemplatesShort': 'Vacation',
+  'templates.sectionGroups': 'Groups',
+  'templates.sectionTemplate': 'Vacation template',
+  'templates.sectionGroup': 'Group',
+  'templates.groupChip': 'Group',
+  'templates.itemCount': '{n} item | {n} items',
+  'templates.groupCount': '{n} group | {n} groups',
+  'templates.contains': 'contains:',
+  'templates.empty': 'No templates yet',
+  'templates.emptyHint':
+    'Start with a group — a reusable block of items — or a vacation template built from groups.',
+  'templates.noMatch': 'No template found',
+  'templates.new': 'Create new',
+  'templates.newQuestion': 'What should it be?',
+  'templates.templateHint':
+    'The starting point for a trip — includes groups and can carry positions of its own.',
+  'templates.groupHint':
+    'A reusable block of items (say “Macro photography”) — included by vacation templates.',
+  'templates.namePlaceholder': 'Name',
+  'templates.create': 'Create',
+  'templates.export': 'Export template',
+  'templates.import': 'Import template from file',
   'items.searchPlaceholder': 'Search items…',
 
   // M5 item detail.

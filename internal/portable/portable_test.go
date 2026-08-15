@@ -172,3 +172,52 @@ func TestMarshalTrip_WithoutProgress(t *testing.T) {
 }
 
 func intPtr(n int) *int { return &n }
+
+// FR-27.1: a group must survive the round trip as a group. Without the scope
+// field it would import as a Ferien-Vorlage — the same name, the wrong thing.
+func TestMarshalUnmarshal_TemplateScopeRoundTrips(t *testing.T) {
+	doc := portable.Document{
+		Kind:          "template",
+		SchemaVersion: 1,
+		Name:          "Makro",
+		Scope:         "group",
+		Items:         []portable.Item{},
+	}
+	data, err := portable.Marshal(doc)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	got, err := portable.Unmarshal(data)
+	if err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	if got.Scope != "group" {
+		t.Errorf("scope = %q, want group", got.Scope)
+	}
+}
+
+func TestUnmarshal_ScopeOmittedIsNotAnError(t *testing.T) {
+	// Files written before scopes existed carry none; migration 016 reads
+	// those rows as Ferien-Vorlagen, and so does the importer.
+	got, err := portable.Unmarshal([]byte("kind: template\nschema_version: 1\nname: Sommer\nitems: []\n"))
+	if err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	if got.Scope != "" {
+		t.Errorf("scope = %q, want empty", got.Scope)
+	}
+}
+
+func TestUnmarshal_UnknownScopeRejected(t *testing.T) {
+	_, err := portable.Unmarshal([]byte("kind: template\nschema_version: 1\nname: Sommer\nscope: folder\nitems: []\n"))
+	if err == nil {
+		t.Error("expected error for unknown scope")
+	}
+}
+
+func TestUnmarshal_ScopeOnTripRejected(t *testing.T) {
+	_, err := portable.Unmarshal([]byte("kind: trip\nschema_version: 1\nname: Samedan\nscope: group\nitems: []\n"))
+	if err == nil {
+		t.Error("expected error for scope on a trip document")
+	}
+}

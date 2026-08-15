@@ -178,12 +178,28 @@ export interface MasterItem {
   image_hash?: string | null
 }
 
+/**
+ * FR-27.1/27.6: a template's scope, declared at creation and never derived
+ * from usage — a freshly created group nothing includes yet would otherwise
+ * be unclassifiable. `group` carries positions only and is includable;
+ * `template` is a Ferien-Vorlage, the thing a trip starts from.
+ */
+export type TemplateKind = 'group' | 'template'
+
 export interface Template {
   id: string
   /** FR-1.6 MVP: creator metadata only — every account may edit every
    * template, the same governance master items have (FR-22.6). */
   owner_id: string
   name: string
+  kind: TemplateKind
+}
+
+/** FR-27.1: one (Ferien-Vorlage, Gruppe) pair — groups are referenced, never copied. */
+export interface TemplateInclude {
+  id: string
+  template_id: string
+  included_template_id: string
 }
 
 // --- Trip series & destination profiles (FR-13.1/13.2) ---

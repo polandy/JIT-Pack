@@ -47,6 +47,42 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Visual baselines | E2E-VIS-01 … E2E-VIS-05 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
+| M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (partial), E2E-M7-08 | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
+
+**Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
+(create / import). The screen has neither as a button: create is the FAB and
+import is the header icon, both already on screen. The case asserts what the
+empty state does say and that the segment is absent; the UI-Spec now records
+the missing CTAs as a decision rather than an omission.
+
+**Why E2E-M7-07 is partial.** The case also asks for the *"2 Gruppen · 16
+Artikel"* prefix and the *enthält: …* line, which need a Ferien-Vorlage that
+actually includes a group — and nothing in the app can create an include yet,
+that write arrives with the M8 rebuild. Seeding one through the store instead
+of through the app would have made the case green without a path a user can
+walk; the resolution arithmetic behind those two lines is covered where it
+lives, in `client/src/domain/__tests__/templates.spec.ts`. One M7 case stays
+unimplemented because the surface does not exist: **E2E-M7-05** (Import from
+the FAB menu; import is a header icon).
+
+**How E2E-M7-04 is split, and why.** The e2e case drives the menu through
+`contextmenu` — the same handler the touch hold fires into — and asserts the
+guard both ways: a row click is inert while the menu lives (the sheet staying
+up is the positive signal), and the next tap after dismiss opens the row.
+The 500 ms themselves are unit-tested in
+`client/src/composables/__tests__/useLongPress.spec.ts` with fake timers,
+**not** e2e-tested: a real-time hold is a forbidden timing dependency, and
+`page.clock` turned out unable to drive Ionic's overlay presentation
+deterministically on a warm app (the sheet nondeterministically failed to
+attach under the faked clock — observed on chromium repeat runs and, wedged
+differently, on webkit, where an infinite spinner animation also defeats any
+`getAnimations()`-based settle). What this leaves untested is the one-line
+wiring from the row's `pointerdown` to the composable — accepted and stated
+here rather than covered by a wait-and-hope. The guard's first version was
+in fact wrong (a stale one-shot swallow-next-click flag that ate the next
+legitimate tap because the hold's release click usually lands on the
+overlay, not the row); the red case that caught it is the dismissed-then-tap
+assertion that survives in the contextmenu case.
 
 **The visual unit is the only one that asserts appearance, and it is not
 part of `npm run test:e2e`.** It runs under `make visual` and in its own CI

@@ -42,6 +42,7 @@ import type {
   ItemTodo,
   MasterItem,
   Template,
+  TemplateKind,
   TemplateItem,
   Trip,
   TripItem,
@@ -213,6 +214,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       'items',
       'templates',
       'template_items',
+      'template_includes',
       'trip_series',
       'destination_profiles',
       'destination_checklist_items',
@@ -1119,7 +1121,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       // UNIQUE(owner_id, name): dodge collisions with a visible suffix.
       const taken = new Set(masterStore.templateList.map((t) => t.name))
       const name = taken.has(doc.name) ? `${doc.name} (import)` : doc.name
-      const { mutation, id: templateId } = mutations.createTemplate(name, '')
+      // FR-27.1: a group must import back as a group, not silently promote.
+      const { mutation, id: templateId } = mutations.createTemplate(
+        name,
+        '',
+        doc.scope ?? 'template',
+      )
       onPullChanges([
         {
           seq: 0,
@@ -1357,9 +1364,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   /** createTemplate makes a new template. Templates are shared
    * instance-wide (FR-1.6 MVP), so owner_id is creator metadata only; it is
    * stamped server-side on push and the optimistic row leaves it empty.
-   * Returns the new id so the caller can open M8. */
-  function createTemplate(name: string): string {
-    const { mutation, id } = mutations.createTemplate(name, '')
+   * Returns the new id so the caller can open M8.
+   *
+   * The scope is chosen at creation and never derived from usage (FR-27.1):
+   * a group nothing includes yet would otherwise be unclassifiable. */
+  function createTemplate(name: string, kind: TemplateKind = 'template'): string {
+    const { mutation, id } = mutations.createTemplate(name, '', kind)
     enqueueAndDrain('master', null, {
       mutation,
       optimistic: {
@@ -2167,6 +2177,7 @@ function templateRow(template: Template): Record<string, unknown> {
   return {
     owner_id: template.owner_id,
     name: template.name,
+    kind: template.kind,
   }
 }
 

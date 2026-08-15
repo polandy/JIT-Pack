@@ -29,6 +29,7 @@ import { computed, inject, ref } from 'vue'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { t } from '@/i18n'
 
 const props = defineProps<{ templateId: string }>()
 
@@ -107,6 +108,15 @@ setHeaderTitle(() => template.value?.name ?? 'Template')
       </div>
 
       <template v-else>
+        <!-- FR-27.6: which scope this is decides what the editor may hold, so
+             it is stated before the positions. Switching it — and the groups
+             section a Ferien-Vorlage gets — belongs to the M8 rebuild. -->
+        <p class="scope-line jp-eyebrow" data-testid="m8-scope">
+          {{
+            template.kind === 'group' ? t('templates.sectionGroup') : t('templates.sectionTemplate')
+          }}
+        </p>
+
         <!-- Template items list -->
         <h2 class="section-title jp-eyebrow">Items ({{ templateItems.length }})</h2>
 
@@ -216,6 +226,10 @@ setHeaderTitle(() => template.value?.name ?? 'Template')
 <style scoped>
 .section-title {
   margin: 16px 0 8px;
+}
+
+.scope-line {
+  margin: 0;
 }
 
 .ti-controls {
