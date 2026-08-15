@@ -44,6 +44,11 @@ async function createTemplate(page: Page, kind: 'template' | 'group', name: stri
 async function backToList(page: Page) {
   await page.getByTestId('header-back').click()
   await expect(visible(page).getByTestId('m7-fab')).toBeVisible()
+  // Settled, not merely arriving: while the outgoing editor is still
+  // fading it counts as visible, and M8 now shares the `.section-head`
+  // grammar with M7 — a one-shot collection over the class would read
+  // both pages at once.
+  await expect(visible(page).getByTestId('m8-scope-switch')).toHaveCount(0)
 }
 
 /** FR-25.13: type into the open quick-add and commit with Enter. */
