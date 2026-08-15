@@ -32,15 +32,19 @@ import {
   IonButton,
   IonInput,
   actionSheetController,
+  alertController,
+  toastController,
 } from '@ionic/vue'
 import {
   addOutline,
   briefcaseOutline,
   chevronForwardOutline,
+  createOutline,
   cubeOutline,
   documentTextOutline,
   downloadOutline,
   listOutline,
+  trashOutline,
 } from 'ionicons/icons'
 import { computed, inject, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -185,9 +189,24 @@ async function openRowMenu(tpl: Template) {
       header: tpl.name,
       buttons: [
         {
+          text: t('templates.rename'),
+          icon: createOutline,
+          handler: () => {
+            void renameTemplate(tpl)
+          },
+        },
+        {
           text: t('templates.export'),
           icon: downloadOutline,
           handler: () => exportTemplate(tpl),
+        },
+        {
+          text: t('common.delete'),
+          icon: trashOutline,
+          role: 'destructive',
+          handler: () => {
+            void deleteTemplate(tpl)
+          },
         },
         { text: t('common.cancel'), role: 'cancel' },
       ],
@@ -199,6 +218,57 @@ async function openRowMenu(tpl: Template) {
     // list permanently tap-dead.
     rowMenuActive = false
   }
+}
+
+/** Rename in place — the row keeps only what identifies it (M7 decision). */
+async function renameTemplate(tpl: Template) {
+  const alert = await alertController.create({
+    header: t('templates.rename'),
+    inputs: [{ name: 'name', value: tpl.name, attributes: { 'aria-label': 'name' } }],
+    buttons: [
+      { text: t('common.cancel'), role: 'cancel' },
+      {
+        text: t('common.save'),
+        handler: (values: { name?: string }) => {
+          const name = values.name?.trim()
+          if (!name || name === tpl.name) return
+          orchestrator.updateTemplate(tpl, { name })
+        },
+      },
+    ],
+  })
+  await alert.present()
+}
+
+/**
+ * Delete, guarded the FR-27.6 way: a group something includes is a live
+ * structural reference, so the menu names the consumer instead of silently
+ * cascading it out of every Vorlage that builds on it. Archived trips keep
+ * their rows either way (FR-2.4 snapshots).
+ */
+async function deleteTemplate(tpl: Template) {
+  const consumers = store.getIncludedBy(tpl.id)
+  if (consumers.length > 0) {
+    const toast = await toastController.create({
+      message: t('templates.includedBlocked', { name: consumers[0]!.name }),
+      duration: 3000,
+      position: 'bottom',
+    })
+    await toast.present()
+    return
+  }
+  const alert = await alertController.create({
+    message: t('templates.deleteConfirm', { name: tpl.name }),
+    buttons: [
+      { text: t('common.cancel'), role: 'cancel' },
+      {
+        text: t('common.delete'),
+        role: 'destructive',
+        handler: () => orchestrator.deleteTemplate(tpl.id),
+      },
+    ],
+  })
+  await alert.present()
 }
 
 /** FR-18.2: client-side export — works identically in Local Mode. */

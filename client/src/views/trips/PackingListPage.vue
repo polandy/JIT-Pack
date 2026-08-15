@@ -818,7 +818,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
         </IonButton>
       </div>
 
-      <QuickAddItem ref="quickAdd" :trip-id="tripId" :is-active="isActive" @add="onQuickAdd" />
+      <QuickAddItem ref="quickAdd" :is-active="isActive" @add="onQuickAdd" />
 
       <IonList v-if="view.groups.length > 0">
         <template v-for="group in view.groups" :key="group.key">

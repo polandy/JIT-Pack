@@ -105,7 +105,7 @@ setHeaderTitle(() => `Shopping · ${trip.value?.name ?? ''}`)
         </IonSegmentButton>
       </IonSegment>
 
-      <QuickAddItem :trip-id="tripId" :is-active="isActive" @add="quickAdd" />
+      <QuickAddItem :is-active="isActive" @add="quickAdd" />
 
       <IonList v-if="grouped.length > 0">
         <IonItemGroup v-for="[category, items] in grouped" :key="category">

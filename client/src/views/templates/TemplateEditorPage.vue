@@ -1,11 +1,15 @@
 <script setup lang="ts">
 /**
- * M8 — Template Editor
+ * M8 — Template Editor (§3.27, FR-27.6/27.7), rebuilt from the concept.
  *
- * Define items, quantities, and conditions of one template.
- * Item rows with name picker (from M9 inventory), plain quantity,
- * assignment type, default mode, dedup strategy.
- * Every change commits immediately (G-5).
+ * The editor is **scope-shaped**: a Gruppe shows only *Positionen*; a
+ * Ferien-Vorlage additionally shows *Gruppen* — whose picker offers groups
+ * only, plus "Neue Gruppe anlegen…" inline — and a resolution footer that
+ * states what the composition actually yields after dedup (FR-27.2).
+ *
+ * Adding a position is the packing list's quick-add, verbatim (FR-25.13,
+ * §3.25 consistency directive); editing one is the M5-pattern bottom sheet
+ * (PositionSheet). Every change commits immediately (G-5).
  */
 import {
   IonPage,
@@ -13,266 +17,738 @@ import {
   IonList,
   IonItem,
   IonLabel,
-  IonInput,
-  IonSelect,
-  IonSelectOption,
   IonIcon,
-  IonButton,
-  IonChip,
-  IonItemSliding,
-  IonItemOptions,
-  IonItemOption,
-  IonSearchbar,
+  IonFab,
+  IonFabButton,
+  IonInput,
+  IonModal,
+  toastController,
 } from '@ionic/vue'
-import { addOutline, trashOutline } from 'ionicons/icons'
-import { computed, inject, ref } from 'vue'
-import { useMasterStore } from '@/stores/masterStore'
+import { addOutline, closeOutline, cubeOutline } from 'ionicons/icons'
+import { computed, inject, nextTick, ref } from 'vue'
+
+import QuickAddItem from '@/components/global/QuickAddItem.vue'
+import PositionSheet from '@/components/templates/PositionSheet.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { planningTripsUsing, scopeSwitchBlock } from '@/domain/templates'
 import { t } from '@/i18n'
+import { attributeLabel } from '@/lib/attributeLabels'
+import { useMasterStore } from '@/stores/masterStore'
+import { useTripStore } from '@/stores/tripStore'
+import type { TemplateItem, TemplateKind } from '@/types/domain'
 
 const props = defineProps<{ templateId: string }>()
 
 const masterStore = useMasterStore()
+const tripStore = useTripStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
 const template = computed(() => masterStore.getTemplate(props.templateId))
-const templateItems = computed(() => masterStore.getTemplateItems(props.templateId))
+const isGroup = computed(() => template.value?.kind === 'group')
+const includes = computed(() => masterStore.getIncludes(props.templateId))
+const includedBy = computed(() => masterStore.getIncludedBy(props.templateId))
+const resolution = computed(() => masterStore.resolve(props.templateId))
 
-const showItemPicker = ref(false)
-const itemSearch = ref('')
-
-const searchResults = computed(() => {
-  if (!itemSearch.value) return masterStore.itemList.slice(0, 10)
-  return masterStore.searchItems(itemSearch.value).slice(0, 10)
-})
-
-// IDs of items already in the template — used to hide them from picker
-const existingItemIds = computed(() => new Set(templateItems.value.map((ti) => ti.item_id)))
-
-const availableItems = computed(() =>
-  searchResults.value.filter((i) => !existingItemIds.value.has(i.id)),
+const positions = computed(() =>
+  [...masterStore.getTemplateItems(props.templateId)].sort((a, b) =>
+    itemName(a.item_id).localeCompare(itemName(b.item_id)),
+  ),
 )
 
-function dedupLabel(dedup: string): string {
-  return dedup === 'max' ? 'Max' : 'Sum'
-}
-
-function resolveItemName(itemId: string): string {
-  return masterStore.getItem(itemId)?.name ?? 'Unknown item'
-}
-
-function closeItemPicker() {
-  showItemPicker.value = false
-  itemSearch.value = ''
-}
-
-function onAddItem(itemId: string) {
-  closeItemPicker()
-  orchestrator.addTemplateItem(props.templateId, itemId)
-}
-
-function onRemoveItem(templateItemId: string) {
-  orchestrator.deleteTemplateItem(templateItemId)
-}
-
-// Plain integer quantity — formulas retired (FR-1.3/1.5, 2026-08-08).
-function onQuantityChange(templateItemId: string, raw: string) {
-  const ti = templateItems.value.find((t) => t.id === templateItemId)
-  if (!ti) return
-  const parsed = parseInt(raw, 10)
-  orchestrator.updateTemplateItem(ti, { quantity: Number.isNaN(parsed) ? 1 : Math.max(0, parsed) })
-}
-
-function onAssignmentChange(templateItemId: string, assignment: string) {
-  const ti = templateItems.value.find((t) => t.id === templateItemId)
-  if (!ti) return
-  orchestrator.updateTemplateItem(ti, { assignment })
-}
-
-function onModeChange(templateItemId: string, mode: string) {
-  const ti = templateItems.value.find((t) => t.id === templateItemId)
-  if (!ti) return
-  orchestrator.updateTemplateItem(ti, { default_mode: mode })
+function itemName(itemId: string): string {
+  return masterStore.getItem(itemId)?.name ?? t('templates.notFound')
 }
 
 // ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() => template.value?.name ?? 'Template')
+setHeaderTitle(() => template.value?.name ?? t('templates.notFound'))
+
+async function toast(message: string) {
+  const el = await toastController.create({ message, duration: 3000, position: 'bottom' })
+  await el.present()
+}
+
+// --- Name (auto-saves on commit, G-5) --------------------------------------
+
+function commitName(raw: string | null | undefined) {
+  const name = (raw ?? '').trim()
+  const tpl = template.value
+  if (!tpl || !name || name === tpl.name) return
+  orchestrator.updateTemplate(tpl, { name })
+}
+
+// --- Scope switch, guarded (FR-27.6) ---------------------------------------
+
+async function switchScope(target: TemplateKind) {
+  const tpl = template.value
+  if (!tpl || tpl.kind === target) return
+  const block = scopeSwitchBlock(target, includes.value, includedBy.value)
+  if (block === 'has-includes') {
+    await toast(t('templates.demoteBlocked'))
+    return
+  }
+  if (block === 'included-by') {
+    await toast(t('templates.includedBlocked', { name: includedBy.value[0]!.name }))
+    return
+  }
+  orchestrator.updateTemplate(tpl, { kind: target })
+}
+
+const includedInLine = computed(() =>
+  includedBy.value.length
+    ? t('templates.includedIn', { names: includedBy.value.map((c) => c.name).join(', ') })
+    : null,
+)
+
+// --- FR-27.4 blast radius ---------------------------------------------------
+
+const plannedTrips = computed(() =>
+  planningTripsUsing(props.templateId, {
+    trips: tripStore.tripList,
+    items: tripStore.tripList.flatMap((trip) => tripStore.getItems(trip.id)),
+    includes: masterStore.includeList,
+  }),
+)
+
+const blastNote = computed(() =>
+  plannedTrips.value.length
+    ? t('templates.blastRadius', {
+        n: plannedTrips.value.length,
+        names: plannedTrips.value.map((trip) => trip.name).join(', '),
+      })
+    : null,
+)
+
+// --- Gruppen section (Ferien-Vorlage only, FR-27.1) -------------------------
+
+const pickerOpen = ref(false)
+const newGroupOpen = ref(false)
+const newGroupName = ref('')
+const newGroupInput = ref<InstanceType<typeof IonInput> | null>(null)
+
+/** Groups only, never already-included ones — the two-level rule's picker. */
+const availableGroups = computed(() => {
+  const included = new Set(includes.value.map((inc) => inc.included_template_id))
+  return masterStore.templateList
+    .filter((tpl) => tpl.kind === 'group' && tpl.id !== props.templateId && !included.has(tpl.id))
+    .sort((a, b) => a.name.localeCompare(b.name))
+})
+
+function groupName(includedTemplateId: string): string {
+  return masterStore.getTemplate(includedTemplateId)?.name ?? t('templates.notFound')
+}
+
+function groupCount(includedTemplateId: string): number {
+  return masterStore.resolve(includedTemplateId).positions.length
+}
+
+function closePicker() {
+  pickerOpen.value = false
+  newGroupOpen.value = false
+  newGroupName.value = ''
+}
+
+function includeGroup(groupId: string) {
+  orchestrator.addTemplateInclude(props.templateId, groupId)
+  closePicker()
+}
+
+function removeInclude(includeId: string) {
+  orchestrator.removeTemplateInclude(includeId)
+}
+
+/** "Neue Gruppe anlegen…" — inline, so a missing block never detours via M7. */
+function openNewGroup() {
+  newGroupOpen.value = true
+  // The field is v-if-gated, so it exists only after this tick.
+  void nextTick(() => newGroupInput.value?.$el.setFocus())
+}
+
+async function commitNewGroup() {
+  const name = newGroupName.value.trim()
+  if (!name) return
+  const groupId = orchestrator.createTemplate(name, 'group')
+  orchestrator.addTemplateInclude(props.templateId, groupId)
+  closePicker()
+  await toast(t('templates.groupCreated', { name }))
+}
+
+// --- Positions --------------------------------------------------------------
+
+const quickAdd = ref<InstanceType<typeof QuickAddItem> | null>(null)
+
+function openQuickAdd() {
+  void quickAdd.value?.open()
+}
+
+/**
+ * FR-25.13 in M8: a suggestion or a free-text name lands as a position with
+ * the FR-25.7 defaults (qty 1, trip-global, Packen, dedup max). A name the
+ * inventory does not know creates the master item first (FR-1.1); a name the
+ * template already carries is reported, never added twice.
+ */
+async function onQuickAdd(entry: { name: string; sourceItemId: string | null }) {
+  const name = entry.name.trim()
+  const existing =
+    entry.sourceItemId != null
+      ? masterStore.getItem(entry.sourceItemId)
+      : masterStore.itemList.find((i) => i.name.toLowerCase() === name.toLowerCase())
+  const itemId = existing?.id ?? orchestrator.createMasterItem(name)
+
+  if (positions.value.some((pos) => pos.item_id === itemId)) {
+    await toast(t('templates.duplicate', { name: existing?.name ?? name }))
+    return
+  }
+  orchestrator.addTemplateItem(props.templateId, itemId, { assignment: 'trip_global' })
+  await toast(t('templates.added', { name: existing?.name ?? name }))
+}
+
+function removePosition(templateItemId: string) {
+  orchestrator.deleteTemplateItem(templateItemId)
+}
+
+/** The collapsed row's summary chips; "Standard" when nothing deviates. */
+function positionChips(pos: TemplateItem): string[] {
+  const chips: string[] = []
+  if (pos.assignment === 'per_person') chips.push(t('templates.perPerson'))
+  if (pos.default_mode === 'buy_before') chips.push(t('mode.buyBefore'))
+  if (pos.default_mode === 'buy_local') chips.push(t('mode.buyLocal'))
+  if (pos.late_packer) chips.push(t('mode.latePacker'))
+  const taskCount = masterStore.getTemplateItemTasks(pos.id).length
+  if (taskCount) chips.push(t('templates.prepChip', { n: taskCount }))
+  for (const value of Object.values(pos.conditions ?? {})) {
+    if (typeof value === 'string') chips.push(attributeLabel(value))
+  }
+  return chips
+}
+
+// --- Position sheet (M5 pattern) --------------------------------------------
+
+const openPositionId = ref<string | null>(null)
+
+// --- Resolution footer (FR-27.2) --------------------------------------------
+
+const mergeLines = computed(() =>
+  resolution.value.merges.map((merge) =>
+    t(merge.strategy === 'sum' ? 'templates.mergeSum' : 'templates.mergeMax', {
+      name: itemName(merge.item_id),
+      n: merge.quantity,
+      groups: merge.sources.map((s) => s.name).join(' & '),
+    }),
+  ),
+)
 </script>
 
 <template>
   <IonPage>
-    <IonContent class="ion-padding">
+    <IonContent>
       <div v-if="!template" class="empty-state">
-        <p>Template not found</p>
+        <p>{{ t('templates.notFound') }}</p>
       </div>
 
       <template v-else>
-        <!-- FR-27.6: which scope this is decides what the editor may hold, so
-             it is stated before the positions. Switching it — and the groups
-             section a Ferien-Vorlage gets — belongs to the M8 rebuild. -->
-        <p class="scope-line jp-eyebrow" data-testid="m8-scope">
-          {{
-            template.kind === 'group' ? t('templates.sectionGroup') : t('templates.sectionTemplate')
-          }}
+        <div class="ion-padding head-block">
+          <IonInput
+            :value="template.name"
+            class="name-field"
+            data-testid="m8-name"
+            :aria-label="t('templates.namePlaceholder')"
+            @ionBlur="(e: CustomEvent) => commitName((e.target as HTMLIonInputElement).value as string)"
+            @keyup.enter="(e: KeyboardEvent) => (e.target as HTMLElement).blur()"
+          />
+
+          <!-- FR-27.6: the scope decides the editor's shape, so it is stated
+               and switched before anything it shapes. -->
+          <p class="sl scope-label">{{ t('templates.scopeLabel') }}</p>
+          <div class="seg" role="group" data-testid="m8-scope-switch">
+            <button
+              :class="{ sel: isGroup }"
+              :aria-pressed="isGroup"
+              data-testid="m8-scope-group"
+              @click="switchScope('group')"
+            >
+              {{ t('templates.sectionGroup') }}
+            </button>
+            <button
+              :class="{ sel: !isGroup }"
+              :aria-pressed="!isGroup"
+              data-testid="m8-scope-template"
+              @click="switchScope('template')"
+            >
+              {{ t('templates.sectionTemplate') }}
+            </button>
+          </div>
+          <p v-if="isGroup && includedInLine" class="included-in" data-testid="m8-included-in">
+            {{ includedInLine }}
+          </p>
+
+          <p v-if="blastNote" class="blast-note" data-testid="m8-blast-note">{{ blastNote }}</p>
+        </div>
+
+        <!-- Gruppen (Ferien-Vorlage only): included by reference, FR-27.1. -->
+        <template v-if="!isGroup">
+          <h2 class="section-head" data-testid="m8-groups-head">
+            {{ t('templates.sectionGroups') }}
+            <span class="section-count">{{ includes.length }}</span>
+          </h2>
+
+          <IonList v-if="includes.length" class="section-card jp-card">
+            <IonItem
+              v-for="inc in includes"
+              :key="inc.id"
+              :detail="false"
+              :data-testid="`m8-group-${inc.included_template_id}`"
+            >
+              <IonIcon :icon="cubeOutline" class="group-icon" slot="start" />
+              <IonLabel>
+                <h2>{{ groupName(inc.included_template_id) }}</h2>
+                <p>{{ t('templates.itemCount', { n: groupCount(inc.included_template_id) }) }}</p>
+              </IonLabel>
+              <button
+                slot="end"
+                class="rm"
+                :aria-label="t('templates.removeGroup')"
+                :data-testid="`m8-group-remove-${inc.included_template_id}`"
+                @click="removeInclude(inc.id)"
+              >
+                <IonIcon :icon="closeOutline" />
+              </button>
+            </IonItem>
+          </IonList>
+          <p v-else class="empty-hint" data-testid="m8-groups-empty">
+            {{ t('templates.noGroups') }}
+          </p>
+
+          <!-- The picker: groups only, plus inline creation (FR-27.6). -->
+          <div class="picker-zone">
+            <button
+              v-if="!pickerOpen"
+              class="picker-trigger"
+              data-testid="m8-include-open"
+              @click="pickerOpen = true"
+            >
+              <IonIcon :icon="addOutline" />
+              {{ t('templates.includeGroup') }}
+            </button>
+
+            <div v-else class="picker jp-card" data-testid="m8-group-picker">
+              <p v-if="availableGroups.length === 0" class="picker-empty">
+                {{ t('templates.allGroupsIncluded') }}
+              </p>
+              <button
+                v-for="group in availableGroups"
+                :key="group.id"
+                class="pick"
+                :data-testid="`m8-pick-${group.id}`"
+                @click="includeGroup(group.id)"
+              >
+                ＋ {{ group.name }}
+              </button>
+
+              <button
+                v-if="!newGroupOpen"
+                class="pick new"
+                data-testid="m8-new-group"
+                @click="openNewGroup"
+              >
+                ＋ {{ t('templates.newGroupInline') }}
+              </button>
+              <div v-else class="name-row">
+                <IonInput
+                  ref="newGroupInput"
+                  :value="newGroupName"
+                  class="inline-name"
+                  data-testid="m8-new-group-name"
+                  :placeholder="t('templates.namePlaceholder')"
+                  :aria-label="t('templates.namePlaceholder')"
+                  @ionInput="(e: CustomEvent) => (newGroupName = e.detail.value ?? '')"
+                  @keyup.enter="commitNewGroup"
+                />
+                <button
+                  class="pick commit"
+                  data-testid="m8-new-group-commit"
+                  :aria-disabled="!newGroupName.trim() || undefined"
+                  @click="commitNewGroup"
+                >
+                  {{ t('templates.create') }}
+                </button>
+              </div>
+
+              <button class="picker-close" :aria-label="t('common.close')" @click="closePicker">
+                <IonIcon :icon="closeOutline" />
+              </button>
+            </div>
+          </div>
+        </template>
+
+        <!-- Positions: a Gruppe's whole content, a Vorlage's own share. -->
+        <h2 class="section-head" data-testid="m8-positions-head">
+          {{ isGroup ? t('templates.positions') : t('templates.ownPositions') }}
+          <span class="section-count">{{ positions.length }}</span>
+        </h2>
+
+        <IonList v-if="positions.length" class="section-card jp-card">
+          <IonItem
+            v-for="pos in positions"
+            :key="pos.id"
+            button
+            :detail="false"
+            :data-testid="`m8-position-${pos.id}`"
+            @click="openPositionId = pos.id"
+          >
+            <IonLabel>
+              <h2>{{ itemName(pos.item_id) }}</h2>
+              <p v-if="positionChips(pos).length" class="chip-line">
+                {{ positionChips(pos).join(' · ') }}
+              </p>
+              <p v-else class="chip-line standard">{{ t('templates.standardChip') }}</p>
+            </IonLabel>
+            <span slot="end" class="qty-chip jp-num">{{ pos.quantity }}×</span>
+            <button
+              slot="end"
+              class="rm"
+              :aria-label="t('templates.removePosition')"
+              :data-testid="`m8-position-remove-${pos.id}`"
+              @click.stop="removePosition(pos.id)"
+            >
+              <IonIcon :icon="closeOutline" />
+            </button>
+          </IonItem>
+        </IonList>
+        <p v-else class="empty-hint" data-testid="m8-positions-empty">
+          {{ t('templates.noPositions') }}
         </p>
 
-        <!-- Template items list -->
-        <h2 class="section-title jp-eyebrow">Items ({{ templateItems.length }})</h2>
+        <!-- FR-25.13, verbatim from the packing list; the confirm names the
+             scope so the commit says where the position lands. -->
+        <QuickAddItem
+          ref="quickAdd"
+          :confirm-label="isGroup ? t('templates.addToGroup') : t('templates.addToTemplate')"
+          :exclude-item-ids="positions.map((pos) => pos.item_id)"
+          @add="onQuickAdd"
+        />
 
-        <IonList v-if="templateItems.length > 0">
-          <IonItemSliding v-for="ti in templateItems" :key="ti.id">
-            <IonItem>
-              <IonLabel>
-                <h3>{{ resolveItemName(ti.item_id) }}</h3>
-                <div class="ti-controls">
-                  <div class="ti-field">
-                    <span class="ti-label">Qty</span>
-                    <IonInput
-                      :value="ti.quantity"
-                      type="number"
-                      inputmode="numeric"
-                      min="0"
-                      placeholder="1"
-                      class="quantity-input"
-                      @ionBlur="
-                        (e: CustomEvent) =>
-                          onQuantityChange(ti.id, (e.target as HTMLIonInputElement).value as string)
-                      "
-                    />
-                  </div>
-                  <div class="ti-field">
-                    <IonSelect
-                      :value="ti.assignment"
-                      interface="popover"
-                      @ionChange="(e: CustomEvent) => onAssignmentChange(ti.id, e.detail.value)"
-                    >
-                      <IonSelectOption value="per_person">Per person</IonSelectOption>
-                      <IonSelectOption value="trip_global">Trip global</IonSelectOption>
-                    </IonSelect>
-                  </div>
-                  <div class="ti-field">
-                    <IonSelect
-                      :value="ti.default_mode"
-                      interface="popover"
-                      @ionChange="(e: CustomEvent) => onModeChange(ti.id, e.detail.value)"
-                    >
-                      <IonSelectOption value="pack">Pack</IonSelectOption>
-                      <IonSelectOption value="buy_before">Buy before</IonSelectOption>
-                      <IonSelectOption value="buy_local">Buy local</IonSelectOption>
-                    </IonSelect>
-                  </div>
-                  <IonChip color="medium" outline>
-                    {{ dedupLabel(ti.dedup) }}
-                  </IonChip>
-                </div>
-              </IonLabel>
-            </IonItem>
-            <IonItemOptions side="end">
-              <IonItemOption color="danger" @click="onRemoveItem(ti.id)">
-                <IonIcon slot="icon-only" :icon="trashOutline" />
-              </IonItemOption>
-            </IonItemOptions>
-          </IonItemSliding>
-        </IonList>
-
-        <div v-else class="empty-hint">
-          <p>No items in this template yet</p>
+        <!-- FR-27.2: the footer names every merge — the merge is the
+             user-visible point of the whole feature. -->
+        <div
+          v-if="!isGroup && includes.length"
+          class="resolution jp-card"
+          data-testid="m8-resolution"
+        >
+          <p class="res-big">
+            {{ t('templates.resolvedCount', { n: resolution.positions.length }) }}
+          </p>
+          <p class="res-line">
+            {{ t('templates.groupCount', { n: includes.length }) }} +
+            {{ t('templates.ownPositionCount', { n: positions.length }) }}
+          </p>
+          <p v-for="line in mergeLines" :key="line" class="res-merge" data-testid="m8-merge-line">
+            {{ line }}
+          </p>
         </div>
 
-        <!-- Add item button / picker -->
-        <div class="add-section">
-          <IonButton
-            v-if="!showItemPicker"
-            expand="block"
-            fill="outline"
-            @click="showItemPicker = true"
+        <IonFab vertical="bottom" horizontal="end" slot="fixed">
+          <IonFabButton
+            :aria-label="t('templates.addPosition')"
+            data-testid="m8-fab"
+            @click="openQuickAdd"
           >
-            <IonIcon slot="start" :icon="addOutline" />
-            Add item from inventory
-          </IonButton>
+            <IonIcon :icon="addOutline" />
+          </IonFabButton>
+        </IonFab>
 
-          <div v-else class="item-picker">
-            <IonSearchbar
-              :value="itemSearch"
-              placeholder="Search items..."
-              @ionInput="(e: CustomEvent) => (itemSearch = e.detail.value ?? '')"
-              :debounce="200"
+        <!-- The M5-pattern sheet (§3.25 consistency directive). -->
+        <IonModal
+          :is-open="openPositionId !== null"
+          class="sheet-modal"
+          @did-dismiss="openPositionId = null"
+        >
+          <div class="sheet-box">
+            <div class="grab" />
+            <PositionSheet
+              v-if="openPositionId"
+              :template-id="props.templateId"
+              :position-id="openPositionId"
+              @close="openPositionId = null"
             />
-            <IonList>
-              <IonItem
-                v-for="item in availableItems"
-                :key="item.id"
-                button
-                @click="onAddItem(item.id)"
-              >
-                <IonLabel>
-                  <h3>{{ item.name }}</h3>
-                  <p v-if="item.weight_grams">{{ item.weight_grams }}g</p>
-                </IonLabel>
-              </IonItem>
-              <IonItem v-if="availableItems.length === 0" lines="none">
-                <IonLabel color="medium">No matching items</IonLabel>
-              </IonItem>
-            </IonList>
-            <IonButton fill="clear" expand="block" @click="closeItemPicker()"> Cancel </IonButton>
           </div>
-        </div>
+        </IonModal>
       </template>
     </IonContent>
   </IonPage>
 </template>
 
 <style scoped>
-.section-title {
-  margin: 16px 0 8px;
+.head-block {
+  padding-bottom: 4px;
 }
 
-.scope-line {
+/* The name is the page title (ADR-011 header shows it too); here it is
+   editable, quiet until touched. */
+.name-field {
+  --background: transparent;
+  --padding-start: 0;
+  font-size: var(--jp-text-2xl);
+  font-weight: var(--jp-weight-bold);
+  letter-spacing: var(--jp-tracking-display);
+}
+
+.sl {
+  margin: 12px 0 6px;
+  font-size: var(--jp-text-2xs);
+  font-weight: var(--jp-weight-semibold);
+  letter-spacing: var(--jp-tracking-label);
+  text-transform: uppercase;
+  color: var(--ct-subtext0);
+}
+
+.seg {
+  display: flex;
+  gap: 6px;
+}
+
+.seg button {
+  flex: 1;
+  padding: 9px 10px;
+  border: 1px solid var(--ct-surface1);
+  border-radius: var(--jp-r-md);
+  background: none;
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-sm);
+  cursor: pointer;
+}
+
+.seg button.sel {
+  border-color: var(--jp-action);
+  color: var(--jp-action);
+  background: color-mix(in srgb, var(--jp-action) 10%, transparent);
+}
+
+.included-in {
+  margin: 8px 0 0;
+  font-size: var(--jp-text-xs);
+  color: var(--ct-subtext0);
+}
+
+/* FR-27.4: a warning about reach, not an error — yellow, not red (G-11). */
+.blast-note {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: var(--jp-r-md);
+  background: color-mix(in srgb, var(--ct-yellow) 12%, transparent);
+  color: var(--ct-yellow);
+  font-size: var(--jp-text-xs);
+}
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   margin: 0;
+  padding: 18px 14px 8px;
+  font-size: var(--jp-text-lg);
+  font-weight: var(--jp-weight-bold);
+  letter-spacing: var(--jp-tracking-display);
 }
 
-.ti-controls {
+.section-count {
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+  font-weight: var(--jp-weight-medium);
+}
+
+.section-card {
+  margin: 0 8px 8px;
+}
+
+.group-icon {
+  color: var(--jp-brand);
+  font-size: var(--jp-icon-md);
+}
+
+.chip-line {
+  color: var(--ct-subtext0);
+}
+
+.chip-line.standard {
+  color: var(--ct-overlay0);
+}
+
+.qty-chip {
+  align-self: center;
+  padding: 3px 9px;
+  border-radius: var(--jp-r-pill);
+  background: var(--ct-surface0);
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-xs);
+  font-weight: var(--jp-weight-semibold);
+}
+
+.rm {
+  display: grid;
+  place-items: center;
+  align-self: center;
+  width: 30px;
+  height: 30px;
+  margin-inline-start: 4px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ct-overlay0);
+  font-size: var(--jp-icon-sm);
+  cursor: pointer;
+}
+
+.empty-hint {
+  margin: 0 8px 8px;
+  padding: 14px 16px;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+  text-align: center;
+}
+
+/* --- group picker --- */
+.picker-zone {
+  margin: 0 8px 8px;
+}
+
+.picker-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--ct-surface0);
+  border: 1px dashed var(--ct-surface2);
+  border-radius: var(--jp-r-sm);
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-md);
+  cursor: pointer;
+}
+
+.picker {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 40px 12px 14px;
+}
+
+.picker-empty {
+  margin: 0;
+  align-self: center;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+}
+
+.pick {
+  padding: 8px 12px;
+  border: 1px solid var(--ct-surface1);
+  border-radius: var(--jp-r-pill);
+  background: none;
+  color: var(--ct-text);
+  font-size: var(--jp-text-sm);
+  cursor: pointer;
+}
+
+.pick.new {
+  border-color: color-mix(in srgb, var(--jp-action) 50%, transparent);
+  color: var(--jp-action);
+}
+
+.pick.commit {
+  border-color: var(--jp-action);
+  color: var(--jp-action);
+}
+
+.pick.commit[aria-disabled] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.picker-close {
+  position: absolute;
+  top: 8px;
+  inset-inline-end: 8px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ct-overlay0);
+  font-size: var(--jp-icon-sm);
+  cursor: pointer;
+}
+
+.name-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 4px;
-  flex-wrap: wrap;
+  width: 100%;
 }
 
-.ti-field {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.ti-label {
-  font-size: var(--jp-text-xs);
-  color: var(--ion-color-medium);
-}
-
-.quantity-input {
-  max-width: 60px;
-  --padding-start: 4px;
-  --padding-end: 4px;
-  font-size: var(--jp-text-base);
-}
-
-.add-section {
-  margin-top: 16px;
-}
-
-.item-picker {
-  border: 1px solid var(--ion-color-primary);
+.inline-name {
+  flex: 1;
+  --background: var(--ct-surface0);
+  --padding-start: 12px;
+  --padding-end: 12px;
   border-radius: var(--jp-r-sm);
-  padding: 8px;
 }
 
-.empty-state,
-.empty-hint {
+/* --- resolution footer --- */
+.resolution {
+  margin: 8px 8px 96px;
+  padding: 14px 16px;
+}
+
+.res-big {
+  margin: 0;
+  font-size: var(--jp-text-lg);
+  font-weight: var(--jp-weight-bold);
+}
+
+.res-line {
+  margin: 2px 0 0;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+}
+
+.res-merge {
+  margin: 6px 0 0;
+  color: var(--jp-action);
+  font-size: var(--jp-text-sm);
+}
+
+.empty-state {
   display: flex;
   justify-content: center;
   padding: 24px;
-  color: var(--ion-color-medium);
+  color: var(--ct-subtext0);
+}
+
+/* --- the position sheet, in the app's sheet grammar --- */
+.sheet-modal {
+  --height: auto;
+  --border-radius: var(--jp-r-lg) var(--jp-r-lg) 0 0;
+  --background: var(--ct-mantle);
+  --box-shadow: var(--jp-shadow-sheet);
+  --backdrop-opacity: 0.62;
+  align-items: flex-end;
+}
+
+.sheet-box {
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.grab {
+  width: 36px;
+  height: 4px;
+  margin: 10px auto 4px;
+  border-radius: var(--jp-r-pill);
+  background: var(--ct-surface1);
 }
 </style>
