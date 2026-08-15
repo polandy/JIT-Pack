@@ -91,13 +91,17 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
      applies as you tap, clusters, folding, both reveal bars, the FR-25.17 stamp and the FAB
      quick-add; M5 as a sheet over the list (side panel on desktop) whose first level is
      packing, preparation and notes. Both were rendered and eyeballed by the owner.
-     Remaining, in order: **M7/M8** (scopes, quick-add, sheet editing), M9/M10 (lean
-     inventory, minimal creation), M11 (container sheet, picker), M12 (slice filtering,
-     per-person shares), M14 (group-aware list) — **none of those has been eyeballed**, only
-     the prototype. Known cost carried over from the M5 rebuild: M4 loses its scroll position
+     **M7 is done too** (2026-08-15, PR #88: scopes, long-press menu, name-in-sheet create)
+     and **M8 with it** (2026-08-15: the scope-shaped editor — groups picker with inline
+     creation, resolution footer, guarded switch, blast-radius note, quick-add verbatim,
+     M5-pattern position sheet with the FR-27.7 task list). Remaining, in order: M9/M10
+     (lean inventory, minimal creation), M11 (container sheet, picker), M12 (slice
+     filtering, per-person shares), M14 (group-aware list) — **none of those has been
+     eyeballed**, only the prototype. Known cost carried over from the M5 rebuild: M4 loses its scroll position
      when a detail opens (ADR-012's overlay amendment).
 4. **i18n migration** — the hard-coded English strings across the screens M4 did not touch;
-   the module and both catalogues exist and M4 + the quick-add + the filter sheet are done.
+   the module and both catalogues exist and M4 + the quick-add + the filter sheet + M7/M8
+   are done.
 5. ~~**Two migrations owed by concept decisions**~~ — **done** (migrations 018/019): `travelers.profile`
    is dropped and `trip_items.packed_by_user_id` carries the packing record, with `packer_user_id`
    left as the assignment. The M4/M5 *presentation* of that split (two rings, „gepackt von … ·

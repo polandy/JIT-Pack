@@ -588,6 +588,40 @@ export function useMutations(hlc: HLCGenerator) {
     return make('delete', 'template_items', templateItemId)
   }
 
+  /** addTemplateInclude references a Gruppe from a Ferien-Vorlage (FR-27.1). */
+  function addTemplateInclude(
+    templateId: string,
+    includedTemplateId: string,
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const mutation = make('insert', 'template_includes', id, {
+      template_id: templateId,
+      included_template_id: includedTemplateId,
+    })
+    return { mutation, id }
+  }
+
+  function removeTemplateInclude(includeId: string): Mutation {
+    return make('delete', 'template_includes', includeId)
+  }
+
+  /** addTemplateItemTask attaches one FR-27.7 preparation task to a position. */
+  function addTemplateItemTask(
+    templateItemId: string,
+    task: string,
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const mutation = make('insert', 'template_item_tasks', id, {
+      template_item_id: templateItemId,
+      task,
+    })
+    return { mutation, id }
+  }
+
+  function deleteTemplateItemTask(taskId: string): Mutation {
+    return make('delete', 'template_item_tasks', taskId)
+  }
+
   // --- Item dependency mutations (Addendum 3.20, master partition) ---
 
   function addItemDependency(
@@ -703,6 +737,10 @@ export function useMutations(hlc: HLCGenerator) {
     // Templates
     createTemplate,
     updateTemplate,
+    addTemplateInclude,
+    removeTemplateInclude,
+    addTemplateItemTask,
+    deleteTemplateItemTask,
     deleteTemplate,
     addTemplateItem,
     updateTemplateItem,

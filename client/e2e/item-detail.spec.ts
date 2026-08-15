@@ -78,6 +78,11 @@ test.describe('M5 item detail @local @m5', () => {
     await expect(page.getByTestId('m5-pack')).toBeVisible()
     await expect(page.getByTestId('m5-todo-input')).toBeVisible()
     await expect(page.getByTestId('m5-note-input')).toBeVisible()
+    // FR-25.15: the sheet confirms local capture — settled ✓ once open.
+    await expect(page.getByTestId('m5-sheet').getByTestId('save-indicator')).toHaveAttribute(
+      'title',
+      'Saved',
+    )
     // Folded: absent, not merely out of sight.
     await expect(page.getByTestId('m5-mode')).toHaveCount(0)
 

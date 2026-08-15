@@ -378,4 +378,41 @@ describe('masterStore', () => {
     expect(store.getIncludes('vac')).toEqual([])
     expect(store.resolve('vac').includedTemplates).toEqual([])
   })
+
+  // --- Preparation tasks on positions (FR-27.7) ---
+
+  function seedTask(store: ReturnType<typeof useMasterStore>): void {
+    seedComposition(store)
+    store.applyChange({
+      seq: 5,
+      table: 'template_item_tasks',
+      id: 'task1',
+      deleted: false,
+      row: { template_item_id: 'p1', task: 'Akkus laden' },
+    })
+  }
+
+  it('applies and removes template_item_tasks rows (FR-27.7)', () => {
+    const store = useMasterStore()
+    seedTask(store)
+    expect(store.getTemplateItemTasks('p1').map((t) => t.task)).toEqual(['Akkus laden'])
+
+    store.applyChange({
+      seq: 6,
+      table: 'template_item_tasks',
+      id: 'task1',
+      deleted: true,
+      row: null,
+    })
+    expect(store.getTemplateItemTasks('p1')).toEqual([])
+  })
+
+  it("drops a position's tasks when the position is deleted", () => {
+    const store = useMasterStore()
+    seedTask(store)
+    store.applyChange({ seq: 6, table: 'template_items', id: 'p1', deleted: true, row: null })
+    // ON DELETE CASCADE removes them server-side; mirror it so the M8 count
+    // chip cannot survive its own row between two pulls.
+    expect(store.getTemplateItemTasks('p1')).toEqual([])
+  })
 })

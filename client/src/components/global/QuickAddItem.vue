@@ -14,6 +14,12 @@
  * The form stays open after adding, because rows are entered in runs, and
  * it closes only when asked to: ✕, Escape, or the FAB again.
  *
+ * M8 reuses this component verbatim (§3.25 consistency directive,
+ * owner 2026-08-08): `confirmLabel` names the scope on the commit button
+ * ("Zur Gruppe hinzufügen") and `excludeItemIds` keeps positions the
+ * template already carries out of the suggestions — a duplicate is
+ * reported by the caller, not offered again here.
+ *
  * **Deliberately no collapse-on-blur**, which FR-25.13a's wording allows
  * for an empty form. Collapsing removes a block from the flow *above* the
  * list, so the rows move between the pointer going down and coming up and
@@ -29,10 +35,17 @@ import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import type { MasterItem } from '@/types/domain'
 
-defineProps<{
-  tripId: string
-  isActive: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    /** M4's FR-9.1 hint: an add on an active trip flags the item Missing. */
+    isActive?: boolean
+    /** Scope-labelled commit text (FR-25.13 in M8); icon-only when absent. */
+    confirmLabel?: string
+    /** Master items to keep out of the suggestions (already present). */
+    excludeItemIds?: string[]
+  }>(),
+  { isActive: false, confirmLabel: undefined, excludeItemIds: () => [] },
+)
 
 const emit = defineEmits<{
   add: [
@@ -54,7 +67,11 @@ const inputRef = ref<InstanceType<typeof IonInput> | null>(null)
 
 const suggestions = computed(() => {
   if (!query.value || query.value.length < 2) return []
-  return masterStore.searchItems(query.value).slice(0, 5)
+  const excluded = new Set(props.excludeItemIds)
+  return masterStore
+    .searchItems(query.value)
+    .filter((i) => !excluded.has(i.id))
+    .slice(0, 5)
 })
 
 async function focusInput() {
@@ -147,10 +164,11 @@ function onKeydown(event: KeyboardEvent) {
           size="small"
           data-testid="quick-add-confirm"
           :disabled="!query.trim()"
-          :aria-label="t('common.add')"
+          :aria-label="confirmLabel ?? t('common.add')"
           @click="submitFreeText"
         >
-          <IonIcon slot="icon-only" :icon="checkmarkOutline" />
+          <template v-if="confirmLabel">{{ confirmLabel }}</template>
+          <IonIcon v-else slot="icon-only" :icon="checkmarkOutline" />
         </IonButton>
         <button class="close-btn" :aria-label="t('common.close')" @click="close">
           <IonIcon :icon="closeCircleOutline" />

@@ -33,7 +33,8 @@ import { computed, inject, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { loadTokens } from '@/auth/tokens'
-import { t, type MessageKey } from '@/i18n'
+import { t } from '@/i18n'
+import { attributeLabel } from '@/lib/attributeLabels'
 import { resolveDependencies } from '@/domain/dependencies'
 import { durationDays, generateTripItems } from '@/domain/instantiate'
 import { suggestQuantities, type QuantitySuggestion } from '@/domain/suggestions'
@@ -305,30 +306,6 @@ function acceptSuggestion(index: number) {
 
 function travelerName(index: number | null): string | null {
   return index === null ? null : travelers.value[index]?.name || `Traveler ${index + 1}`
-}
-
-/**
- * The catalogue key for each attribute value M3 offers (FR-2.1a). One
- * flat table because the values are unique across the three groups, and
- * an unknown one — a series default written by an older version — falls
- * back to itself rather than to a blank.
- */
-const ATTRIBUTE_KEYS = {
-  summer: 'season.summer',
-  winter: 'season.winter',
-  transitional: 'season.transitional',
-  car: 'transport.car',
-  bike: 'transport.bike',
-  plane: 'transport.plane',
-  train: 'transport.train',
-  hotel: 'accommodation.hotel',
-  holiday_flat: 'accommodation.holiday_flat',
-  camping: 'accommodation.camping',
-} as const satisfies Record<string, MessageKey>
-
-function attributeLabel(value: string): string {
-  const key: MessageKey | undefined = (ATTRIBUTE_KEYS as Record<string, MessageKey>)[value]
-  return key ? t(key) : value
 }
 
 /**
