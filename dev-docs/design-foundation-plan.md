@@ -1,6 +1,6 @@
 # The design foundation — what to build before the next screen rebuild
 
-**Status:** agreed with the owner 2026-08-14. PRs 1–3 are merged or ready; the plan's five steps became six when PR 3 split (see there). 
+**Status:** complete, 2026-08-15. The plan's five steps became six when PR 3 split (see there); all six are merged. What follows the foundation is the screen-rebuild half of CLAUDE.md "Not built yet" item 3. 
 **Sequencing:** this comes **before** the remaining screen rebuilds in CLAUDE.md
 "Not built yet" item 3 (M7/M8, M9/M10, M11, M12, M14).
 
@@ -371,6 +371,36 @@ assertion never races the animation. No `waitForTimeout`, ever. Add the case to
 already taken** — two duplicate ids were found in two review passes on #80.
 
 ## PR 5 — Visual baselines and a dev gallery
+
+**Status: done** — ADR-013, E2E-VIS-01…05. **The design foundation is complete.**
+
+**The plan contained a contradiction, and resolving it is the main decision
+here.** It asked for a dev-only gallery *and* for baselines covering it. A
+route behind `import.meta.env.DEV` does not exist in the bundle the visual
+project drives, so the two halves could not both be true. Resolved by
+splitting the jobs rather than the difference: the baselines cover the real
+screens, and the gallery is a human tool with no baselines. Shipping a
+developer surface into every self-hosted instance so it could be
+screenshotted was the alternative, and it costs more than it buys. ADR-013
+records it.
+
+**Determinism had to come first, and it was not free.** Ionic paints avatar
+colours from a hash of a `crypto.randomUUID()` seed, so every run painted
+them differently and every baseline would have failed on its second
+execution. The ids are stubbed in the spec — the whole app made
+deterministic, rather than the avatars masked, which would have blinded the
+baselines to the one component the colour step was about.
+
+**The clock is deliberately not frozen, and that is a finding.** Freezing it
+looks obviously right — a pinned instant means a rendered year cannot drift
+— but with it the pack never reaches the store: the checkbox flips and the
+header count, which reads the store, does not move. The obvious suspect is
+ruled out (`HLCGenerator.next()` handles equal timestamps correctly), so the
+real cause is elsewhere in the write path and **was not traced**: no
+baseline renders a date, so the freeze bought nothing and cost the one state
+that exercises FR-25.2. Recorded rather than solved, with the ruled-out
+suspect named so the next person does not start there.
+
 
 "Looks right" is untestable today: no `toHaveScreenshot` anywhere, no baselines.
 Naive baselines would be flaky — `client/playwright.config.ts:44-46` runs chromium

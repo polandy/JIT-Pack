@@ -1698,3 +1698,82 @@ from the checkbox in `--ct-text`. It is on every row tap in the app already
 competing wash because a still is exactly what it is not. Whether Material
 ripples belong in this app at all is a separate decision about every tap
 target, not something to settle inside the pack-out.
+
+### 2026-08-15 — Visual baselines, and the end of the design foundation (ADR-013)
+
+Fifth and last step. "Looks right" was untestable: no `toHaveScreenshot`
+anywhere, which is why each of the four token PRs before this shipped a
+hand-built screenshot artifact — the only way to show what had changed. From
+here a diff does that, and the artifact is for explaining rather than for
+detecting.
+
+**The decision is where the images are rendered, and it is ADR-013.** The
+maintainer's NixOS host cannot launch Playwright's downloaded browsers at
+all, so local runs happen in the pinned container; if CI rendered on the
+runner instead, accepting an intended change would mean pushing, letting CI
+fail, and committing images the maintainer never saw. So both sides run the
+same digest-pinned image, which also makes the renderer a hash-verified
+dependency like every other (invariant 8). The costs are real and named
+there: a second browser mechanism in CI, image bumps that rewrite every
+baseline, and PNGs that git keeps forever.
+
+**The plan contained a contradiction.** It asked for a dev-only gallery *and*
+for baselines covering it — but a route behind `import.meta.env.DEV` is not
+in the bundle the visual project drives. Split the jobs rather than the
+difference: baselines cover the real screens, the gallery is a human tool
+with none. Verified rather than assumed — `grep` over `dist/` after a
+production build finds no gallery chunk.
+
+**Determinism was the actual work.** Two sources of randomness would have
+made every baseline fail on its second run:
+
+*Avatar colours.* `UserAvatar` hashes its seed into a palette colour, and the
+seed is a traveler id — `crypto.randomUUID()`. Stubbed in the spec so the
+whole app is deterministic, rather than masking the avatars, which would have
+blinded the baselines to the one component the colour step was about.
+
+*And the clock, which turned out to be the opposite of what it looked like.*
+Freezing `Date.now()` so a rendered year cannot drift is the obvious
+companion — and with it the packed row never leaves the list. Probing said
+why the row stayed but not why the write did: the checkbox flips and the
+header count, which reads the store, does not move, so the mutation never
+lands. **The obvious suspect is ruled out** — `HLCGenerator.next()` handles
+equal timestamps correctly (`if (now <= lastMillis) counter++`) — so it is
+something else in the write path. Not traced: no baseline renders a date, so
+the freeze bought nothing. Written down with the ruled-out suspect named,
+because the next person to reach for `setFixedTime` will otherwise spend the
+same hour.
+
+That last one is worth keeping as a shape of its own, distinct from the
+false-green family: **I wrote the HLC explanation into a comment as fact
+before checking it, and it was wrong.** Reading the generator took two
+minutes and cost nothing; shipping the sentence would have cost the next
+person an afternoon chasing a mechanism that does not exist.
+
+**Two smaller things the first runs found.** A global `testIgnore` for
+`visual.spec.ts` also hid the file from the visual projects, which then
+reported "No tests found" — an error rather than a pass, which is the only
+reason it was caught immediately. And `reducedMotion` does not type-check as
+a project-level `use` option in this Playwright version; it belongs in the
+spec, where `pack-out.spec.ts` already had it.
+
+**One thing caught before CI rather than by it.** The visual job first called
+`make visual`, and a GitHub runner has neither `golangci-lint` nor `mise` —
+so `make` fails there on its parse-time toolchain guard, before any recipe
+runs, over a tool the baselines never touch. The invocation moved into
+`scripts/visual.sh`, which `make visual` and the workflow both call: the same
+two-callers shape as `scripts/coverage-gate.sh`, and the thing that must not
+drift is the invocation rather than a digest copied into two files.
+
+**And one gap the review found in the pin itself.** Dependabot's docker
+ecosystem reads Dockerfiles and compose files, not shell scripts — so the
+digest in `scripts/visual.sh` is the one pin in the repository it will never
+update. Invariant 8 previously claimed, without qualification, that
+Dependabot keeps the digests fresh; it now names the exception, because a
+blanket claim with a silent hole is worse than a narrower true one. The
+manual bump is also the behaviour ADR-013 wants: a new image rewrites every
+baseline, and that should be a decision rather than a Tuesday.
+
+The `client/e2e/README.md` recipe was stale too — it named the v1.61.1 image
+while `@playwright/test` is 1.62.1, which fails at browser launch with
+exactly the error the surrounding paragraph warns about.
