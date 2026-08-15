@@ -63,13 +63,26 @@ of through the app would have made the case green without a path a user can
 walk; the resolution arithmetic behind those two lines is covered where it
 lives, in `client/src/domain/__tests__/templates.spec.ts`. One M7 case stays
 unimplemented because the surface does not exist: **E2E-M7-05** (Import from
-the FAB menu; import is a header icon). E2E-M7-04 is covered twice on
-purpose: once through `contextmenu` (the desktop path and the cheap seam),
-and once through the real 500 ms hold driven by an installed `page.clock` —
-because only the hold path exercises the guard that keeps the release from
-also opening the row, and the first version of that guard was in fact wrong
-(a stale one-shot flag that ate the next legitimate tap; the hold case
-caught it).
+the FAB menu; import is a header icon).
+
+**How E2E-M7-04 is split, and why.** The e2e case drives the menu through
+`contextmenu` — the same handler the touch hold fires into — and asserts the
+guard both ways: a row click is inert while the menu lives (the sheet staying
+up is the positive signal), and the next tap after dismiss opens the row.
+The 500 ms themselves are unit-tested in
+`client/src/composables/__tests__/useLongPress.spec.ts` with fake timers,
+**not** e2e-tested: a real-time hold is a forbidden timing dependency, and
+`page.clock` turned out unable to drive Ionic's overlay presentation
+deterministically on a warm app (the sheet nondeterministically failed to
+attach under the faked clock — observed on chromium repeat runs and, wedged
+differently, on webkit, where an infinite spinner animation also defeats any
+`getAnimations()`-based settle). What this leaves untested is the one-line
+wiring from the row's `pointerdown` to the composable — accepted and stated
+here rather than covered by a wait-and-hope. The guard's first version was
+in fact wrong (a stale one-shot swallow-next-click flag that ate the next
+legitimate tap because the hold's release click usually lands on the
+overlay, not the row); the red case that caught it is the dismissed-then-tap
+assertion that survives in the contextmenu case.
 
 **The visual unit is the only one that asserts appearance, and it is not
 part of `npm run test:e2e`.** It runs under `make visual` and in its own CI

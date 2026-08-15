@@ -1860,17 +1860,31 @@ mock never showed that cost. The owner picked A2 (long-press) and B2
 
 **The implementation found a real bug the variant did not have to face.** The
 first guard against "the hold's release also opens the row" was a one-shot
-swallow-next-click flag. The hold e2e case — driven by an installed
-`page.clock`, never a real 500 ms wait — went red on its *last* assertion:
-after cancelling the menu, a legitimate tap no longer opened the row. Cause:
-the release click usually never reaches the row at all (down on the row, up
-on the presented overlay — the click fires on their common ancestor), so the
-flag went stale and ate the next genuine tap. The fix is a different shape,
-not a patched flag: **row taps are inert while the menu lives** — a state
-with a beginning (the hold fires, set before the overlay attaches) and an end
-(dismiss), which is also what made the race deterministically testable at
-all. Both new rules were mutation-checked red: guard removed, name-guard
-removed.
+swallow-next-click flag. A hold-driven e2e case went red on its *last*
+assertion: after cancelling the menu, a legitimate tap no longer opened the
+row. Cause: the release click usually never reaches the row at all (down on
+the row, up on the presented overlay — the click fires on their common
+ancestor), so the flag went stale and ate the next genuine tap. The fix is a
+different shape, not a patched flag: **row taps are inert while the menu
+lives** — a state with a beginning (the hold fires, set before the overlay
+attaches) and an end (dismiss), which is what made the race deterministically
+testable at all. Both new rules were mutation-checked red: guard removed,
+name-guard removed.
+
+**That hold e2e case then had to go, and where it went matters.** Driving the
+500 ms with `page.clock` worked on a freshly loaded page and failed
+nondeterministically on a warm app — under the faked clock, Ionic's action
+sheet sometimes never attaches (chromium, one repeat in three), and on webkit
+any `getAnimations()`-based settle hangs on an unrelated *infinite* spinner
+animation. Under CI's full-suite load, `page.goBack()` across the root→tabs
+outlet boundary additionally wedges the outlet — the pre-existing Ionic
+transition defect from the navigation work, in a new costume; the suite now
+leaves M8 the way a user does, through the ADR-011 header chevron. The 500 ms
+moved to where they are deterministic: `useLongPress`, a pure composable
+unit-tested with fake timers (arm, fire once, release disarms, slop disarms,
+jitter survives), while the e2e case proves the guard through `contextmenu` —
+the same handler the hold fires into. The one-line `pointerdown` wiring is
+the accepted, *stated* gap; the ledger names it.
 
 Two Ionic locator lessons re-paid, one of them for the second time:
 `toBeDisabled()` does not see an `ion-button`'s disabled state (it lives as

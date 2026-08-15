@@ -52,6 +52,7 @@ import type { Template, TemplateKind } from '@/types/domain'
 import SearchRow from '@/components/global/SearchRow.vue'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
+import { useLongPress } from '@/composables/useLongPress'
 import { t } from '@/i18n'
 
 const store = useMasterStore()
@@ -155,12 +156,11 @@ function commitCreate() {
 // Export lives behind a press-and-hold (owner decision 2026-08-15, variant
 // pass; the spec's E2E-M7-04 shape): the row keeps only what identifies it,
 // and the menu has room for the rename/delete the M8 rebuild will add.
-// `contextmenu` covers desktop and is also the seam the e2e case drives.
+// The 500 ms live in useLongPress, unit-tested with fake timers;
+// `contextmenu` covers desktop and is the seam the e2e case drives.
 
-const LONG_PRESS_MS = 500
-const LONG_PRESS_SLOP_PX = 8
-let pressTimer: ReturnType<typeof setTimeout> | null = null
-let pressOrigin: { x: number; y: number } | null = null
+const hold = useLongPress<Template>(openRowMenu)
+
 /**
  * Row taps are ignored while the menu lives. Set synchronously when the
  * hold fires — *before* the overlay attaches — and cleared on dismiss, so
@@ -172,33 +172,13 @@ let pressOrigin: { x: number; y: number } | null = null
  */
 let rowMenuActive = false
 
-function armLongPress(tpl: Template, ev: PointerEvent) {
-  cancelLongPress()
-  pressOrigin = { x: ev.clientX, y: ev.clientY }
-  pressTimer = setTimeout(() => openRowMenu(tpl), LONG_PRESS_MS)
-}
-
-/** Scrolling is not holding: a finger that travels is moving the list. */
-function trackLongPress(ev: PointerEvent) {
-  if (!pressOrigin) return
-  if (Math.hypot(ev.clientX - pressOrigin.x, ev.clientY - pressOrigin.y) > LONG_PRESS_SLOP_PX) {
-    cancelLongPress()
-  }
-}
-
-function cancelLongPress() {
-  if (pressTimer !== null) clearTimeout(pressTimer)
-  pressTimer = null
-  pressOrigin = null
-}
-
 function openTemplate(tpl: Template) {
   if (rowMenuActive) return
   router.push(`/templates/${tpl.id}`)
 }
 
 async function openRowMenu(tpl: Template) {
-  cancelLongPress()
+  hold.cancel()
   rowMenuActive = true
   try {
     const sheet = await actionSheetController.create({
@@ -306,10 +286,10 @@ async function handleRefresh(event: CustomEvent) {
               :data-testid="`m7-row-${row.template.id}`"
               @click="openTemplate(row.template)"
               @contextmenu.prevent="openRowMenu(row.template)"
-              @pointerdown="(e: PointerEvent) => armLongPress(row.template, e)"
-              @pointermove="trackLongPress"
-              @pointerup="cancelLongPress"
-              @pointercancel="cancelLongPress"
+              @pointerdown="(e: PointerEvent) => hold.down(row.template, e.clientX, e.clientY)"
+              @pointermove="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
+              @pointerup="hold.cancel()"
+              @pointercancel="hold.cancel()"
             >
               <IonLabel>
                 <h2>{{ row.template.name }}</h2>

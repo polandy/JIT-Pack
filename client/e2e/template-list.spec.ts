@@ -6,7 +6,11 @@ import type { Page } from '@playwright/test'
  *
  * Covers E2E-M7-07 (segmentation, sections, chip, resolved count), E2E-M7-08
  * (the FAB's scope chooser with the name field in the same sheet) and
- * E2E-M7-04 (the long-press/right-click row menu carrying export). The include-dependent half
+ * E2E-M7-04 (the row menu carrying export, driven through `contextmenu` —
+ * the same handler the touch hold fires into; the 500 ms themselves are
+ * unit-tested in useLongPress, because neither a real-time hold nor
+ * page.clock is deterministic here — the faked clock keeps Ionic's overlay
+ * from attaching, nondeterministically, on a warm app). The include-dependent half
  * of M7-07 — the "N Gruppen ·" prefix and the "enthält: …" line — needs a
  * template that includes a group, which only the M8 rebuild can create; the
  * resolution arithmetic behind it is covered in `domain/__tests__/templates`.
@@ -37,6 +41,18 @@ async function createTemplate(page: Page, kind: 'template' | 'group', name: stri
   await expect(visible(page).getByTestId('m8-scope')).toBeVisible()
 }
 
+/**
+ * Leave M8 for the list the way a user does — the ADR-011 header chevron,
+ * which navigates to meta.parent. Not page.goBack(): history-back across the
+ * root→tabs outlet boundary trips the known pre-existing Ionic transition
+ * defect (see navigation.spec.ts), which on WebKit under full-suite load
+ * leaves the outlet wedged over the page and every later tap times out.
+ */
+async function backToList(page: Page) {
+  await page.getByTestId('header-back').click()
+  await expect(visible(page).getByTestId('m7-fab')).toBeVisible()
+}
+
 test.describe('M7 template list — scopes (FR-27.6)', () => {
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
@@ -50,7 +66,7 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     // The editor states the scope it was created as — not the default.
     await expect(visible(page).getByTestId('m8-scope')).toHaveText('Group')
 
-    await page.goBack()
+    await backToList(page)
     await createTemplate(page, 'template', 'Fotoreise')
     await expect(visible(page).getByTestId('m8-scope')).toHaveText('Vacation template')
   })
@@ -59,9 +75,9 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     page,
   }) => {
     await createTemplate(page, 'group', 'Makro')
-    await page.goBack()
+    await backToList(page)
     await createTemplate(page, 'template', 'Fotoreise')
-    await page.goBack()
+    await backToList(page)
 
     const list = visible(page)
     await expect(list.getByTestId('m7-section-template')).toBeVisible()
@@ -78,9 +94,9 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     page,
   }) => {
     await createTemplate(page, 'group', 'Makro')
-    await page.goBack()
+    await backToList(page)
     await createTemplate(page, 'template', 'Fotoreise')
-    await page.goBack()
+    await backToList(page)
 
     const list = visible(page)
     await expect(list.locator('ion-item', { hasText: 'Makro' }).locator('.scope-chip')).toHaveText(
@@ -95,9 +111,9 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     page,
   }) => {
     await createTemplate(page, 'group', 'Makro')
-    await page.goBack()
+    await backToList(page)
     await createTemplate(page, 'template', 'Fotoreise')
-    await page.goBack()
+    await backToList(page)
 
     const list = visible(page)
     await list.getByTestId('m7-scope-group').click()
@@ -143,7 +159,7 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     page,
   }) => {
     await createTemplate(page, 'group', 'Makro')
-    await page.goBack()
+    await backToList(page)
 
     const row = visible(page).locator('ion-item', { hasText: 'Makro' })
     await expect(row).toBeVisible()
@@ -159,50 +175,25 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     await expect(sheet).toBeVisible()
     await expect(sheet.getByRole('button', { name: 'Export template' })).toBeVisible()
 
+    // While the menu lives, a row click must be inert. dispatchEvent, not
+    // click(): the overlay intercepts real pointers, and the guard exists
+    // precisely for the click that reaches the row anyway — a touch hold's
+    // own release racing the overlay attach. The sheet staying up is the
+    // positive signal that the click changed nothing.
+    await row.dispatchEvent('click')
+    await expect(sheet).toBeVisible()
+    await expect(visible(page).getByTestId('m7-scope-segment')).toBeVisible()
+
     const downloadPromise = page.waitForEvent('download')
     await sheet.getByRole('button', { name: 'Export template' }).click()
     const download = await downloadPromise
     expect(download.suggestedFilename()).toBe('Makro.yaml')
 
-    // Opening the menu must not also open the row (the suppressed click).
-    await expect(visible(page).getByTestId('m7-scope-segment')).toBeVisible()
-  })
-
-  test('E2E-M7-04: a touch hold opens the menu and swallows the release click', async ({
-    page,
-  }) => {
-    // The contextmenu case above never emits a click, so it cannot exercise
-    // the release-click guard — only the real hold path does. The 500 ms are
-    // driven by an installed clock (the deterministic seam), never waited out.
-    await createTemplate(page, 'group', 'Makro')
-    await page.goto('/tabs/templates')
-
-    const row = visible(page).locator('ion-item', { hasText: 'Makro' })
-    await expect(row).toBeVisible()
-    const box = (await row.boundingBox())!
-
-    await page.clock.install()
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
-    await page.mouse.down()
-    await page.clock.fastForward(600)
-    await expect(page.locator('ion-action-sheet')).toBeVisible()
-    await page.mouse.up()
-
-    // While the menu lives, a row click must be inert. dispatchEvent, not
-    // click(): the overlay intercepts real pointers, and the guard exists
-    // precisely for the click that reaches the row anyway — the hold's own
-    // release racing the overlay attach. The sheet staying up is the
-    // positive signal that the click changed nothing.
-    await row.dispatchEvent('click')
-    await expect(page.locator('ion-action-sheet')).toBeVisible()
-    await expect(visible(page).getByTestId('m7-scope-segment')).toBeVisible()
-
     // Dismissed, the guard lifts with it: the next plain tap opens the row.
-    // First caught red by exactly this assertion, against a one-shot
-    // swallow-next-click flag that went stale when the release click never
-    // arrived — the guard is a state with an end, not a counter.
-    await page.locator('ion-action-sheet').getByRole('button', { name: 'Cancel' }).click()
-    await expect(page.locator('ion-action-sheet')).toBeHidden()
+    // First caught red against a one-shot swallow-next-click flag that went
+    // stale when the release click never arrived — the guard is a state
+    // with an end, not a counter.
+    await expect(sheet).toBeHidden()
     await row.click()
     await expect(visible(page).getByTestId('m8-scope')).toBeVisible()
   })
