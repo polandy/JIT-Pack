@@ -47,7 +47,8 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Visual baselines | E2E-VIS-01 … E2E-VIS-05 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
-| M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (partial), E2E-M7-08 | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
+| M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (completed by the M8 unit), E2E-M7-08 | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
+| M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14 | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
 (create / import). The screen has neither as a button: create is the FAB and
@@ -55,13 +56,12 @@ import is the header icon, both already on screen. The case asserts what the
 empty state does say and that the segment is absent; the UI-Spec now records
 the missing CTAs as a decision rather than an omission.
 
-**Why E2E-M7-07 is partial.** The case also asks for the *"2 Gruppen · 16
-Artikel"* prefix and the *enthält: …* line, which need a Ferien-Vorlage that
-actually includes a group — and nothing in the app can create an include yet,
-that write arrives with the M8 rebuild. Seeding one through the store instead
-of through the app would have made the case green without a path a user can
-walk; the resolution arithmetic behind those two lines is covered where it
-lives, in `client/src/domain/__tests__/templates.spec.ts`. One M7 case stays
+**E2E-M7-07 is complete since the M8 unit.** Its include-dependent half — the
+*"N Gruppen ·"* prefix and the *enthält: …* line — needed a Ferien-Vorlage
+that actually includes a group, a write only the M8 rebuild could make; the
+M8-07 case now builds that composition through the app and asserts both lines
+on the M7 row. The resolution arithmetic stays covered where it lives, in
+`client/src/domain/__tests__/templates.spec.ts`. One M7 case stays
 unimplemented because the surface does not exist: **E2E-M7-05** (Import from
 the FAB menu; import is a header icon).
 
@@ -154,6 +154,17 @@ rather than on a duration.
 **Not yet covered:** everything else in spec §3 (global patterns G-1–G-12), §4 (M1–M21 beyond the above), §5 (cross-screen flows) and §6 (non-functional journeys). The `single` and `server` modes have no coverage at all — they need a real `jitpackd` harness and, for `server`, a mock IdP (spec §10 steps 3 and 5).
 
 This is a small fraction of the specified suite. Do not read a green `e2e` job as "the UI is verified".
+
+**What the M8 unit deliberately leaves open.** E2E-M8-09 (the "⟳ N Änderungen"
+chip on M2) and E2E-M8-11's propagation-log half assert the FR-27.4
+*applied-changes log*, which needs the planning-trip refresh — that is the
+§3.27 client package, not the editor. E2E-M8-05 covers the warning surface
+that exists today, in both directions (the Vorlage names the trip, and the
+group reaches it through the include), plus the absence case *before* the trip
+exists — a positive-signal pairing, not a lone not-there assertion. The sheet's
+FR-25.15 ●→✓ flip is unit-tested on `SaveIndicator` against a controlled
+state; e2e asserts presence and the settled tooltip — racing the transient
+● would be a forbidden timing dependency (M8-14 amendment 2026-08-15).
 
 ## Order of attack
 

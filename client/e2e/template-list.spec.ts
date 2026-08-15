@@ -38,7 +38,7 @@ async function createTemplate(page: Page, kind: 'template' | 'group', name: stri
 
   // Creating ends where editing continues — M8 on the new template.
   await expect(page.getByTestId('header-title')).toHaveText(name)
-  await expect(visible(page).getByTestId('m8-scope')).toBeVisible()
+  await expect(visible(page).getByTestId('m8-scope-switch')).toBeVisible()
 }
 
 /**
@@ -51,6 +51,11 @@ async function createTemplate(page: Page, kind: 'template' | 'group', name: stri
 async function backToList(page: Page) {
   await page.getByTestId('header-back').click()
   await expect(visible(page).getByTestId('m7-fab')).toBeVisible()
+  // Settled, not merely arriving: while the outgoing editor is still
+  // fading it counts as visible, and M8 now shares the `.section-head`
+  // grammar with M7 — a one-shot collection over the class would read
+  // both pages at once.
+  await expect(visible(page).getByTestId('m8-scope-switch')).toHaveCount(0)
 }
 
 test.describe('M7 template list — scopes (FR-27.6)', () => {
@@ -63,12 +68,21 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     page,
   }) => {
     await createTemplate(page, 'group', 'Makro')
-    // The editor states the scope it was created as — not the default.
-    await expect(visible(page).getByTestId('m8-scope')).toHaveText('Group')
+    // The editor opens in the scope it was created as — not the default —
+    // and shaped for it: a Gruppe has no groups section (FR-27.6).
+    await expect(visible(page).getByTestId('m8-scope-group')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await expect(visible(page).getByTestId('m8-groups-head')).toHaveCount(0)
 
     await backToList(page)
     await createTemplate(page, 'template', 'Fotoreise')
-    await expect(visible(page).getByTestId('m8-scope')).toHaveText('Vacation template')
+    await expect(visible(page).getByTestId('m8-scope-template')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await expect(visible(page).getByTestId('m8-groups-head')).toBeVisible()
   })
 
   test('E2E-M7-07: Alle renders both scopes as sections, vacation templates first', async ({
@@ -195,7 +209,7 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     // with an end, not a counter.
     await expect(sheet).toBeHidden()
     await row.click()
-    await expect(visible(page).getByTestId('m8-scope')).toBeVisible()
+    await expect(visible(page).getByTestId('m8-scope-switch')).toBeVisible()
   })
 
   test('E2E-M7-06 (partial): the empty state names both scopes and drops the segment', async ({

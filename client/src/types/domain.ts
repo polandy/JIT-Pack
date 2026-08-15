@@ -202,6 +202,17 @@ export interface TemplateInclude {
   included_template_id: string
 }
 
+/**
+ * FR-27.7: one free-text preparation task on a template position. At trip
+ * generation each task becomes an ordinary FR-7.3 prep todo on the generated
+ * trip item, so the "open prep blocks done" rule applies without a new flag.
+ */
+export interface TemplateItemTask {
+  id: string
+  template_item_id: string
+  task: string
+}
+
 // --- Trip series & destination profiles (FR-13.1/13.2) ---
 
 export interface TripSeries {

@@ -42,9 +42,10 @@ test.use({ reducedMotion: 'reduce' })
  * The cause was **not** traced, and the obvious suspect is already ruled
  * out: `HLCGenerator.next()` handles equal timestamps correctly
  * (`if (now <= lastMillis) counter++`), so it is something else in the
- * write path. None of these baselines renders a date, so the freeze bought
- * nothing and cost the one state that exercises FR-25.2 — it was dropped
- * rather than investigated. If a dated screen is added here later, pin the
+ * write path. None of these baselines renders a date — only the greeting
+ * reads the clock, and its hour is pinned in `freeze` below — so the full
+ * freeze bought nothing and cost the one state that exercises FR-25.2; it
+ * was dropped rather than investigated. If a dated screen is added here later, pin the
  * date on the *trip* rather than on the browser, and expect to find this
  * note first.
  */
@@ -57,6 +58,13 @@ async function freeze(page: Page) {
       return `00000000-0000-4000-8000-${hex}` as `${string}-${string}-${string}-${string}-${string}`
     }
     Object.defineProperty(crypto, 'randomUUID', { value: uuid, configurable: true })
+    // The dashboard greeting reads the wall clock's hour — the one
+    // time-of-day the suite renders. Found 2026-08-15, when a 19:49 UTC
+    // run met a baseline recorded in the morning: the job was green only
+    // inside the baseline's own time window. Pinning the *hour* keeps
+    // Date.now() untouched (freezing it breaks the Local Mode write path
+    // — see the header), so the seam is exactly as wide as the defect.
+    Date.prototype.getHours = () => 9
   })
 }
 

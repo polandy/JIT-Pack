@@ -8,7 +8,15 @@
  * row count, the M8 resolution footer and trip generation alike.
  */
 
-import type { Template, TemplateDedup, TemplateInclude, TemplateItem } from '@/types/domain'
+import type {
+  Template,
+  TemplateDedup,
+  TemplateInclude,
+  TemplateItem,
+  TemplateKind,
+  Trip,
+  TripItem,
+} from '@/types/domain'
 
 /** Everything resolution needs, as plain arrays — the store shapes them. */
 export interface CompositionInput {
@@ -117,4 +125,58 @@ export function resolveTemplate(templateId: string, input: CompositionInput): Re
   )
 
   return { positions, merges, includedTemplates }
+}
+
+/** Why a scope switch is refused (FR-27.6) — the editor turns it into words. */
+export type ScopeSwitchBlock = 'has-includes' | 'included-by'
+
+/**
+ * scopeSwitchBlock guards the M8 scope switch (FR-27.6). A Vorlage that still
+ * includes groups cannot become a Gruppe (a Gruppe holds only positions), and
+ * an included Gruppe cannot be promoted (it would vanish from its consumers).
+ * The two guards are directional on purpose: being included does not block
+ * demotion, and holding includes does not block promotion.
+ */
+export function scopeSwitchBlock(
+  target: TemplateKind,
+  includes: TemplateInclude[],
+  includedBy: Template[],
+): ScopeSwitchBlock | null {
+  if (target === 'group' && includes.length > 0) return 'has-includes'
+  if (target === 'template' && includedBy.length > 0) return 'included-by'
+  return null
+}
+
+/** What the blast-radius question needs — plain arrays, the stores shape them. */
+export interface BlastRadiusInput {
+  trips: Trip[]
+  /** Rows across all trips on this device; only provenance is read. */
+  items: Pick<TripItem, 'trip_id' | 'source_template_id'>[]
+  includes: TemplateInclude[]
+}
+
+/**
+ * planningTripsUsing answers FR-27.4's warning surface: which *planning* trips
+ * does an edit to this template reach? Active and archived trips are frozen
+ * and never in the radius. A trip counts when one of its rows carries the
+ * template as provenance, or carries a Vorlage that includes it — editing a
+ * group lands on trips generated from the composed Vorlage once the refresh
+ * re-resolves it. Computed over the trips synced to this device (the M12
+ * honesty rule), so it works identically in Local Mode.
+ */
+export function planningTripsUsing(templateId: string, input: BlastRadiusInput): Trip[] {
+  // The template itself, plus every Vorlage whose composition contains it.
+  const reachable = new Set([templateId])
+  for (const inc of input.includes) {
+    if (inc.included_template_id === templateId) reachable.add(inc.template_id)
+  }
+
+  const touched = new Set<string>()
+  for (const item of input.items) {
+    if (item.source_template_id && reachable.has(item.source_template_id)) {
+      touched.add(item.trip_id)
+    }
+  }
+
+  return input.trips.filter((t) => t.status === 'planning' && touched.has(t.id))
 }

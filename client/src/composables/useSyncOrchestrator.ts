@@ -215,6 +215,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       'templates',
       'template_items',
       'template_includes',
+      'template_item_tasks',
       'trip_series',
       'destination_profiles',
       'destination_checklist_items',
@@ -1435,6 +1436,60 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
+  /** deleteTemplate removes a template; the store mirrors the cascades. */
+  function deleteTemplate(templateId: string) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.deleteTemplate(templateId),
+      optimistic: { seq: 0, table: 'templates', id: templateId, deleted: true, row: null },
+    })
+  }
+
+  /** addTemplateInclude references a Gruppe from a Ferien-Vorlage (FR-27.1). */
+  function addTemplateInclude(templateId: string, includedTemplateId: string): string {
+    const { mutation, id } = mutations.addTemplateInclude(templateId, includedTemplateId)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: {
+        seq: 0,
+        table: 'template_includes',
+        id,
+        deleted: false,
+        row: mutation.fields as Record<string, unknown>,
+      },
+    })
+    return id
+  }
+
+  function removeTemplateInclude(includeId: string) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.removeTemplateInclude(includeId),
+      optimistic: { seq: 0, table: 'template_includes', id: includeId, deleted: true, row: null },
+    })
+  }
+
+  /** addTemplateItemTask attaches one FR-27.7 preparation task to a position. */
+  function addTemplateItemTask(templateItemId: string, task: string): string {
+    const { mutation, id } = mutations.addTemplateItemTask(templateItemId, task)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: {
+        seq: 0,
+        table: 'template_item_tasks',
+        id,
+        deleted: false,
+        row: mutation.fields as Record<string, unknown>,
+      },
+    })
+    return id
+  }
+
+  function deleteTemplateItemTask(taskId: string) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.deleteTemplateItemTask(taskId),
+      optimistic: { seq: 0, table: 'template_item_tasks', id: taskId, deleted: true, row: null },
+    })
+  }
+
   // --- Item dependency actions (Addendum 3.20, FR-20.1) ---
 
   function addItemDependency(
@@ -2043,6 +2098,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     itemImageUrl,
     createTemplate,
     updateTemplate,
+    deleteTemplate,
+    addTemplateInclude,
+    removeTemplateInclude,
+    addTemplateItemTask,
+    deleteTemplateItemTask,
     addTemplateItem,
     updateTemplateItem,
     deleteTemplateItem,

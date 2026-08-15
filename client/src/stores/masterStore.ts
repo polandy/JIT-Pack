@@ -15,6 +15,7 @@ import type {
   Template,
   TemplateInclude,
   TemplateItem,
+  TemplateItemTask,
   TemplateKind,
   TripSeries,
 } from '@/types/domain'
@@ -27,6 +28,7 @@ export const useMasterStore = defineStore('master', () => {
   const templates = ref<Map<string, Template>>(new Map())
   const templateItems = ref<Map<string, TemplateItem[]>>(new Map())
   const templateIncludes = ref<Map<string, TemplateInclude>>(new Map())
+  const templateItemTasks = ref<Map<string, TemplateItemTask>>(new Map())
   const series = ref<Map<string, TripSeries>>(new Map())
   const profiles = ref<Map<string, DestinationProfile>>(new Map())
   const checklistItems = ref<Map<string, DestinationChecklistItem>>(new Map())
@@ -73,6 +75,13 @@ export const useMasterStore = defineStore('master', () => {
       .filter((i) => i.included_template_id === templateId)
       .map((i) => templates.value.get(i.template_id))
       .filter((t): t is Template => t !== undefined)
+  }
+
+  /** The preparation tasks of one position (FR-27.7), in insertion order. */
+  function getTemplateItemTasks(templateItemId: string): TemplateItemTask[] {
+    return [...templateItemTasks.value.values()].filter(
+      (t) => t.template_item_id === templateItemId,
+    )
   }
 
   /**
@@ -193,8 +202,21 @@ export const useMasterStore = defineStore('master', () => {
       case 'template_items':
         if (change.deleted) {
           removeTemplateItem(change.id)
+          // ON DELETE CASCADE removes the tasks server-side; mirror it so a
+          // count chip cannot outlive its own position between two pulls.
+          for (const [id, task] of templateItemTasks.value) {
+            if (task.template_item_id === change.id) templateItemTasks.value.delete(id)
+          }
         } else if (row) {
           upsertTemplateItem(rowToTemplateItem(change.id, row))
+        }
+        break
+
+      case 'template_item_tasks':
+        if (change.deleted) {
+          templateItemTasks.value.delete(change.id)
+        } else if (row) {
+          templateItemTasks.value.set(change.id, rowToTask(change.id, row))
         }
         break
 
@@ -276,6 +298,7 @@ export const useMasterStore = defineStore('master', () => {
     includeList,
     getIncludes,
     getIncludedBy,
+    getTemplateItemTasks,
     resolve,
     seriesList,
     getSeries,
@@ -328,6 +351,14 @@ function rowToInclude(id: string, row: Record<string, unknown>): TemplateInclude
     id,
     template_id: row['template_id'] as string,
     included_template_id: row['included_template_id'] as string,
+  }
+}
+
+function rowToTask(id: string, row: Record<string, unknown>): TemplateItemTask {
+  return {
+    id,
+    template_item_id: row['template_item_id'] as string,
+    task: row['task'] as string,
   }
 }
 
