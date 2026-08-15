@@ -32,7 +32,6 @@ import {
   IonIcon,
   IonNote,
   IonSearchbar,
-  toastController,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -171,13 +170,13 @@ async function createItem() {
   })
   for (const tagId of draftTagIds.value) orchestrator.assignTag(id, tagId)
 
-  const toast = await toastController.create({
-    message: t('items.editor.created', { name }),
-    duration: 2000,
-    position: 'bottom',
-  })
-  await toast.present()
-
+  // No toast. The screen itself is the confirmation and a better one: the
+  // header becomes the item's name, the FR-25.15 indicator settles on ✓,
+  // and the form turns into the editor. A bottom toast here covered the
+  // tab bar outright (seen on rendered pixels at 390 px), and the M4
+  // positionAnchor cure does not apply — the anchor is M9's FAB, and this
+  // toast shows while the user is still on M10, where there is none.
+  //
   // replace, not push: "back" from the saved item belongs on the
   // inventory, not on a creation form for an item that now exists.
   await router.replace(`/items/${id}`)

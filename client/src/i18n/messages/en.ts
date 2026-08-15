@@ -199,7 +199,6 @@ export const en = {
   'items.editor.weight': 'Weight (g)',
   'items.editor.price': 'Price',
   'items.editor.create': 'Create item',
-  'items.editor.created': '“{name}” added to the inventory',
   'items.editor.notFound': 'Item not found',
 
   // M5 item detail.

@@ -199,7 +199,6 @@ export const de: Record<keyof typeof en, string> = {
   'items.editor.weight': 'Gewicht (g)',
   'items.editor.price': 'Preis',
   'items.editor.create': 'Artikel anlegen',
-  'items.editor.created': '„{name}“ im Inventar angelegt',
   'items.editor.notFound': 'Artikel nicht gefunden',
 
   // M5 Artikel-Detail.

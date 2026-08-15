@@ -200,7 +200,7 @@ function handleRefresh(event: CustomEvent) {
             <span class="group-count">{{ groupItems.length }}</span>
           </h2>
 
-          <IonList class="jp-card" lines="full">
+          <IonList class="jp-card group-card" lines="full">
             <IonItem
               v-for="item in groupItems"
               :key="item.id"
@@ -233,7 +233,7 @@ function handleRefresh(event: CustomEvent) {
         </section>
       </template>
 
-      <IonFab vertical="bottom" horizontal="end" slot="fixed">
+      <IonFab id="m9-fab-anchor" vertical="bottom" horizontal="end" slot="fixed">
         <IonFabButton :aria-label="t('items.new')" data-testid="m9-fab" @click="newItem">
           <IonIcon :icon="addOutline" />
         </IonFabButton>
@@ -277,11 +277,17 @@ function handleRefresh(event: CustomEvent) {
   margin: 0 0 18px;
 }
 
+.group-card {
+  /* Inset like M7's section card, so the radius reads as a card edge
+     instead of bleeding into the page (G-14). */
+  margin: 0 8px 8px;
+}
+
 .group-head {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin: 0 16px 6px;
+  margin: 0 20px 6px;
   color: var(--ion-color-medium);
 }
 
