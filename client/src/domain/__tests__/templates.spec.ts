@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { expandIncludes, resolveTemplate } from '../templates'
+import { resolveTemplate } from '../templates'
 import type { Template, TemplateInclude, TemplateItem } from '@/types/domain'
 
 function template(id: string, name: string, kind: Template['kind'] = 'template'): Template {
@@ -39,37 +39,6 @@ function position(
     ...extra,
   }
 }
-
-describe('expandIncludes (FR-27.1)', () => {
-  it('adds the included groups to the selection', () => {
-    const result = expandIncludes(
-      ['vacation'],
-      [include('vacation', 'macro'), include('vacation', 'wildlife')],
-    )
-    expect([...result]).toEqual(['vacation', 'macro', 'wildlife'])
-  })
-
-  it('ignores includes belonging to templates that were not selected', () => {
-    const result = expandIncludes(['vacation'], [include('other', 'macro')])
-    expect([...result]).toEqual(['vacation'])
-  })
-
-  it('stops after one level, because the hierarchy is two levels (FR-27.1)', () => {
-    // A group including a group cannot exist through the UI; if a stale row
-    // ever arrived, expansion must not follow it — that is what makes cycles
-    // structurally impossible rather than merely validated against.
-    const result = expandIncludes(
-      ['vacation'],
-      [include('vacation', 'macro'), include('macro', 'lenses')],
-    )
-    expect([...result]).toEqual(['vacation', 'macro'])
-  })
-
-  it('never yields the same template twice', () => {
-    const result = expandIncludes(['vacation', 'macro'], [include('vacation', 'macro')])
-    expect([...result]).toEqual(['vacation', 'macro'])
-  })
-})
 
 describe('resolveTemplate (FR-27.2)', () => {
   const macro = template('macro', 'Makro', 'group')
@@ -173,6 +142,20 @@ describe('resolveTemplate (FR-27.2)', () => {
       positions: [],
     })
     expect(resolution.includedTemplates.map((t) => t.name)).toEqual(['Wildlife', 'Makro'])
+  })
+
+  it('stops after one level, because the hierarchy is two levels (FR-27.1)', () => {
+    // A group including a group cannot exist through the UI; if a stale row
+    // ever arrived, expansion must not follow it — that is what makes cycles
+    // structurally impossible rather than merely validated against.
+    const lenses = template('lenses', 'Objektive', 'group')
+    const resolution = resolveTemplate('vacation', {
+      templates: [vacation, macro, lenses],
+      includes: [include('vacation', 'macro'), include('macro', 'lenses')],
+      positions: [position('p1', 'macro', 'ringlight'), position('p2', 'lenses', 'macro-lens')],
+    })
+    expect(resolution.includedTemplates.map((t) => t.name)).toEqual(['Makro'])
+    expect(resolution.positions.map((p) => p.item_id)).toEqual(['ringlight'])
   })
 
   it('drops an include pointing at a template that is not on this device', () => {

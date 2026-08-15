@@ -47,7 +47,13 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Visual baselines | E2E-VIS-01 … E2E-VIS-05 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
-| M7 template scopes | E2E-M7-06, E2E-M7-07 (partial), E2E-M7-08 | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
+| M7 template scopes | E2E-M7-06 (partial), E2E-M7-07 (partial), E2E-M7-08 | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
+
+**Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
+(create / import). The screen has neither as a button: create is the FAB and
+import is the header icon, both already on screen. The case asserts what the
+empty state does say and that the segment is absent; the UI-Spec now records
+the missing CTAs as a decision rather than an omission.
 
 **Why E2E-M7-07 is partial.** The case also asks for the *"2 Gruppen · 16
 Artikel"* prefix and the *enthält: …* line, which need a Ferien-Vorlage that

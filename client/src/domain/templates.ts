@@ -39,30 +39,15 @@ export interface Resolution {
 }
 
 /**
- * expandIncludes returns the selected templates plus the groups they include.
- *
- * Deliberately **one level** and not transitive: FR-27.1 fixes the hierarchy
- * at two levels, which is what makes include cycles structurally impossible.
- * Following a group's own includes here would quietly reintroduce the depth
- * the FR rejected — and with it the cycle it cannot have.
- */
-export function expandIncludes(
-  templateIds: readonly string[],
-  includes: readonly TemplateInclude[],
-): Set<string> {
-  const selected = new Set(templateIds)
-  const expanded = new Set(selected)
-  for (const inc of includes) {
-    if (selected.has(inc.template_id)) expanded.add(inc.included_template_id)
-  }
-  return expanded
-}
-
-/**
  * resolveTemplate expands one template's includes and merges the positions by
  * master item. Trip-independent on purpose: conditions and per-person fan-out
  * need a trip, so they belong to generation (`instantiate.ts`) — this answers
  * "what does this composition amount to", which M7 and M8 ask without one.
+ *
+ * Expansion is deliberately **one level** and not transitive: FR-27.1 fixes
+ * the hierarchy at two levels, which is what makes include cycles structurally
+ * impossible. Following a group's own includes would quietly reintroduce the
+ * depth the FR rejected — and with it the cycle it cannot have.
  */
 export function resolveTemplate(templateId: string, input: CompositionInput): Resolution {
   const byId = new Map(input.templates.map((t) => [t.id, t]))

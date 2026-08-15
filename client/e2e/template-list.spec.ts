@@ -109,7 +109,7 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     await expect(list.locator('ion-item', { hasText: 'Makro' })).toHaveCount(0)
   })
 
-  test('E2E-M7-06: the empty state offers the two scopes rather than a bare "no templates"', async ({
+  test('E2E-M7-06 (partial): the empty state names both scopes and drops the segment', async ({
     page,
   }) => {
     const list = visible(page)
