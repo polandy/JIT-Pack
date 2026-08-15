@@ -5,8 +5,8 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { resolveTemplate } from '../templates'
-import type { Template, TemplateInclude, TemplateItem } from '@/types/domain'
+import { planningTripsUsing, resolveTemplate, scopeSwitchBlock } from '../templates'
+import type { Template, TemplateInclude, TemplateItem, Trip, TripItem } from '@/types/domain'
 
 function template(id: string, name: string, kind: Template['kind'] = 'template'): Template {
   return { id, owner_id: 'user-a', name, kind }
@@ -178,5 +178,98 @@ describe('resolveTemplate (FR-27.2)', () => {
     })
     expect(resolution.positions).toEqual([])
     expect(resolution.includedTemplates).toEqual([])
+  })
+})
+
+describe('scopeSwitchBlock (FR-27.6)', () => {
+  const vacation = template('vacation', 'Fotoreise')
+
+  it('blocks demoting a Vorlage that still includes groups', () => {
+    expect(scopeSwitchBlock('group', [include('vacation', 'macro')], [])).toBe('has-includes')
+  })
+
+  it('blocks promoting a Gruppe that is included somewhere', () => {
+    expect(scopeSwitchBlock('template', [], [vacation])).toBe('included-by')
+  })
+
+  it('allows the switch when nothing constrains it', () => {
+    expect(scopeSwitchBlock('group', [], [])).toBeNull()
+    expect(scopeSwitchBlock('template', [], [])).toBeNull()
+  })
+
+  it('does not block demotion for being included — a group stays includable', () => {
+    // The two guards are directional: consumers block *promotion* only,
+    // includes block *demotion* only (FR-27.6).
+    expect(scopeSwitchBlock('group', [], [vacation])).toBeNull()
+  })
+})
+
+describe('planningTripsUsing (FR-27.4 blast radius)', () => {
+  function trip(id: string, name: string, status: Trip['status']): Trip {
+    return {
+      id,
+      name,
+      status,
+      year: 2026,
+      start_date: null,
+      end_date: null,
+      duration_days: null,
+      series_id: null,
+      series_name: null,
+      attributes: null,
+      imported: false,
+    }
+  }
+
+  function sourced(tripId: string, sourceTemplateId: string | null): Pick<
+    TripItem,
+    'trip_id' | 'source_template_id'
+  > {
+    return { trip_id: tripId, source_template_id: sourceTemplateId }
+  }
+
+  it('names only planning trips generated from the template', () => {
+    const planning = trip('t1', 'Samedan', 'planning')
+    const active = trip('t2', 'Davos', 'active')
+    const archived = trip('t3', 'Wien', 'archived')
+    const result = planningTripsUsing('vacation', {
+      trips: [planning, active, archived],
+      items: [sourced('t1', 'vacation'), sourced('t2', 'vacation'), sourced('t3', 'vacation')],
+      includes: [],
+    })
+    // Active and archived trips are frozen (FR-27.4) — never in the radius.
+    expect(result.map((t) => t.name)).toEqual(['Samedan'])
+  })
+
+  it('reaches a group through the Vorlage that includes it', () => {
+    // The trip's rows carry the Vorlage as provenance; editing the group
+    // still lands on that trip when the refresh re-resolves the composition.
+    const planning = trip('t1', 'Samedan', 'planning')
+    const result = planningTripsUsing('macro', {
+      trips: [planning],
+      items: [sourced('t1', 'vacation')],
+      includes: [include('vacation', 'macro')],
+    })
+    expect(result.map((t) => t.name)).toEqual(['Samedan'])
+  })
+
+  it('ignores ad-hoc rows and unrelated templates', () => {
+    const planning = trip('t1', 'Samedan', 'planning')
+    const result = planningTripsUsing('macro', {
+      trips: [planning],
+      items: [sourced('t1', null), sourced('t1', 'vacation')],
+      includes: [],
+    })
+    expect(result).toEqual([])
+  })
+
+  it('lists each trip once even when several rows point at the template', () => {
+    const planning = trip('t1', 'Samedan', 'planning')
+    const result = planningTripsUsing('vacation', {
+      trips: [planning],
+      items: [sourced('t1', 'vacation'), sourced('t1', 'vacation')],
+      includes: [],
+    })
+    expect(result).toHaveLength(1)
   })
 })
