@@ -15,8 +15,13 @@ type Document struct {
 	Kind          string `yaml:"kind"`
 	SchemaVersion int    `yaml:"schema_version"`
 	Name          string `yaml:"name"`
-	StartDate     string `yaml:"start_date,omitempty"`
-	EndDate       string `yaml:"end_date,omitempty"`
+	// Scope is the template's own scope (FR-27.1: "group" or "template"),
+	// distinct from Kind, which says whether the document is a template or a
+	// trip. Omitted on trips and on files written before scopes existed —
+	// those read back as "template", the same default migration 016 applies.
+	Scope     string `yaml:"scope,omitempty"`
+	StartDate string `yaml:"start_date,omitempty"`
+	EndDate   string `yaml:"end_date,omitempty"`
 	// FR-2.1b: the one required temporal fact. Absent in files written
 	// before it existed, where the end date carries the same information.
 	Year       int         `yaml:"year,omitempty"`
@@ -87,6 +92,16 @@ func validateDoc(doc Document) error {
 	}
 	if doc.Name == "" {
 		return errors.New("missing required field: name")
+	}
+	// A scope on a trip document, or an unknown one, is a file this build
+	// cannot honour — rejecting beats importing a group as a Ferien-Vorlage.
+	if doc.Scope != "" {
+		if doc.Kind != "template" {
+			return fmt.Errorf("scope %q is only valid on a template document", doc.Scope)
+		}
+		if doc.Scope != "group" && doc.Scope != "template" {
+			return fmt.Errorf("unknown scope: %q (expected group or template)", doc.Scope)
+		}
 	}
 	return nil
 }
