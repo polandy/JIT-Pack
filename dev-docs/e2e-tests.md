@@ -44,8 +44,25 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
+| Visual baselines | E2E-VIS-01 … E2E-VIS-05 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
+
+**The visual unit is the only one that asserts appearance, and it is not
+part of `npm run test:e2e`.** It runs under `make visual` and in its own CI
+job, inside the digest-pinned Playwright image both sides use (ADR-013);
+outside that image the images mean nothing. What it does *not* cover: the
+dev gallery, which is `import.meta.env.DEV`-only and therefore absent from
+the bundle these baselines drive, so component states are guarded by nobody.
+That is a deliberate trade — the alternative was shipping a developer
+surface into every self-hosted instance to make it screenshottable.
+
+Two things had to be made deterministic before any of it was worth having,
+and both are recorded at the top of the spec: ids are stubbed (Ionic paints
+avatar colours from a hash of a `crypto.randomUUID()` seed, so every run
+would otherwise differ), and the clock is **not** frozen — freezing it stops
+a pack from reaching the store, which no baseline needed and one state could
+not survive.
 
 **What the surfaces unit does *not* prove, and the one thing only it
 could.** It proves a card is painted a different plane than its page and

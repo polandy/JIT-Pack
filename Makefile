@@ -3,7 +3,7 @@
 # green pipeline. When you change a job in ci.yml, change its target here.
 .PHONY: ci build vet fmt fmt-check test cover tidy-check go-lint \
         client client-deps client-lint client-tokens client-build client-test client-fmt \
-        e2e docker-build all
+        e2e visual visual-update docker-build all
 
 ## --- toolchain -------------------------------------------------------------
 # `mise.toml` is the one place the toolchain is pinned. But CLAUDE.md points
@@ -122,6 +122,23 @@ client-test: $(CLIENT_DEPS)
 
 client-fmt: $(CLIENT_DEPS)
 	cd client && $(RUN) npx prettier --check --experimental-cli src/
+
+## --- visual baselines (ADR-013) -------------------------------------------
+# The invocation lives in scripts/visual.sh, which CI calls directly: a
+# GitHub runner has no golangci-lint and no mise, so `make` there fails on
+# the parse-time toolchain guard above before any recipe runs — on a tool
+# the baselines do not use. Same two-callers reasoning as
+# scripts/coverage-gate.sh.
+#
+# Excluded from `make ci` and from `npm run test:e2e`: a baseline check
+# belongs to the review loop, not to every test run.
+visual: client-build
+	scripts/visual.sh
+
+# Rewrites every baseline. The resulting image diff is the review — an
+# intended visual change should be visible in the PR that causes it.
+visual-update: client-build
+	scripts/visual.sh --update-snapshots
 
 ## --- e2e job --------------------------------------------------------------
 # Needs the Playwright browsers (`npx playwright install chromium webkit`) and

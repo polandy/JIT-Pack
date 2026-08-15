@@ -44,7 +44,7 @@ doesn't exist":
 ```bash
 docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp -e CI=1 \
   -v "$PWD":/w -w /w/client --network host \
-  mcr.microsoft.com/playwright:v1.61.1-noble npx playwright test
+  mcr.microsoft.com/playwright:v1.62.1-noble npx playwright test
 ```
 
 `--user`/`HOME` are not optional: without them the run leaves
@@ -53,9 +53,13 @@ worktree. `--network host` lets the container reach the `vite preview`
 server the config starts.
 
 Providing browsers from nixpkgs (`playwright-driver.browsers`) does
-_not_ currently work: Playwright 1.61 launches `chrome-headless-shell`,
+_not_ currently work: Playwright launches `chrome-headless-shell`,
 which that derivation does not ship, so every test fails at browser
 launch. Use the container.
+
+For the **visual baselines** the image is pinned by digest instead, in
+`scripts/visual.sh` — see ADR-013. Local and CI must render in the same
+userland there, which a tag cannot guarantee.
 
 ## Layout
 

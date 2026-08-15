@@ -175,6 +175,21 @@ export const routes: RouteRecordRaw[] = [
   },
 ]
 
+/*
+ * Development only (ADR-013): the component gallery, following the same
+ * `import.meta.env.DEV` shape as src/dev/sampleTrip.ts. `import.meta.env.DEV`
+ * is a compile-time constant, so both the route and the chunk behind it are
+ * gone from a production bundle — nobody running an instance can reach it.
+ */
+if (import.meta.env.DEV) {
+  routes.push({
+    path: '/dev/gallery',
+    meta: { parent: '/tabs/settings', title: 'Gallery' },
+    name: 'dev-gallery',
+    component: () => import('@/dev/GalleryPage.vue'),
+  })
+}
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
