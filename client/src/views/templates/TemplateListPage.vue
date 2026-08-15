@@ -30,7 +30,8 @@ import {
   IonSegment,
   IonSegmentButton,
   IonButton,
-  alertController,
+  IonInput,
+  actionSheetController,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -41,7 +42,7 @@ import {
   downloadOutline,
   listOutline,
 } from 'ionicons/icons'
-import { computed, inject, ref } from 'vue'
+import { computed, inject, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { serializeTemplate } from '@/domain/portable'
 import { safeFilename, saveText } from '@/lib/download'
@@ -116,24 +117,108 @@ const sections = computed(() =>
 )
 
 // --- Creating (FR-27.6): the scope is chosen, never derived ---------------
+//
+// One sheet, one commit (owner decision 2026-08-15, variant pass): picking a
+// scope reveals the name field in the same sheet instead of handing off to a
+// system dialog — the explanation of what a Gruppe *is* stays on screen while
+// you name one, and no row exists until the name does. The prototype's
+// create-then-rename flow was rejected for exactly that second point: with
+// real persistence it writes a "Neue Gruppe" row the moment you tap.
 
 const kindChooserOpen = ref(false)
+const pendingKind = ref<TemplateKind | null>(null)
+const pendingName = ref('')
+const nameInput = ref<InstanceType<typeof IonInput> | null>(null)
 
-async function createWithKind(kind: TemplateKind) {
+function chooseKind(kind: TemplateKind) {
+  pendingKind.value = kind
+  // The field is v-if-gated on the pick, so it exists only after this tick.
+  nextTick(() => nameInput.value?.$el.setFocus())
+}
+
+function resetChooser() {
   kindChooserOpen.value = false
-  const alert = await alertController.create({
-    header: kind === 'group' ? t('templates.newGroup') : t('templates.newTemplate'),
-    inputs: [{ name: 'name', type: 'text', placeholder: t('templates.namePlaceholder') }],
-    buttons: [
-      { text: t('common.cancel'), role: 'cancel' },
-      { text: t('templates.create'), role: 'confirm' },
-    ],
-  })
-  await alert.present()
-  const { data, role } = await alert.onDidDismiss()
-  const name = (data?.values?.name ?? '').trim()
-  if (role !== 'confirm' || !name) return
+  pendingKind.value = null
+  pendingName.value = ''
+}
+
+function commitCreate() {
+  const kind = pendingKind.value
+  const name = pendingName.value.trim()
+  if (!kind || !name) return
+  resetChooser()
   router.push(`/templates/${orchestrator.createTemplate(name, kind)}`)
+}
+
+// --- Row actions (FR-18.2): long-press / right-click menu ------------------
+//
+// Export lives behind a press-and-hold (owner decision 2026-08-15, variant
+// pass; the spec's E2E-M7-04 shape): the row keeps only what identifies it,
+// and the menu has room for the rename/delete the M8 rebuild will add.
+// `contextmenu` covers desktop and is also the seam the e2e case drives.
+
+const LONG_PRESS_MS = 500
+const LONG_PRESS_SLOP_PX = 8
+let pressTimer: ReturnType<typeof setTimeout> | null = null
+let pressOrigin: { x: number; y: number } | null = null
+/**
+ * Row taps are ignored while the menu lives. Set synchronously when the
+ * hold fires — *before* the overlay attaches — and cleared on dismiss, so
+ * the release-click of the hold cannot slip through in the attach window.
+ * A state with a beginning and an end, rather than a "swallow the next
+ * click" flag: the release usually produces no row click at all (up lands
+ * on the overlay), and a one-shot flag would go stale and eat the next
+ * legitimate tap instead.
+ */
+let rowMenuActive = false
+
+function armLongPress(tpl: Template, ev: PointerEvent) {
+  cancelLongPress()
+  pressOrigin = { x: ev.clientX, y: ev.clientY }
+  pressTimer = setTimeout(() => openRowMenu(tpl), LONG_PRESS_MS)
+}
+
+/** Scrolling is not holding: a finger that travels is moving the list. */
+function trackLongPress(ev: PointerEvent) {
+  if (!pressOrigin) return
+  if (Math.hypot(ev.clientX - pressOrigin.x, ev.clientY - pressOrigin.y) > LONG_PRESS_SLOP_PX) {
+    cancelLongPress()
+  }
+}
+
+function cancelLongPress() {
+  if (pressTimer !== null) clearTimeout(pressTimer)
+  pressTimer = null
+  pressOrigin = null
+}
+
+function openTemplate(tpl: Template) {
+  if (rowMenuActive) return
+  router.push(`/templates/${tpl.id}`)
+}
+
+async function openRowMenu(tpl: Template) {
+  cancelLongPress()
+  rowMenuActive = true
+  try {
+    const sheet = await actionSheetController.create({
+      header: tpl.name,
+      buttons: [
+        {
+          text: t('templates.export'),
+          icon: downloadOutline,
+          handler: () => exportTemplate(tpl),
+        },
+        { text: t('common.cancel'), role: 'cancel' },
+      ],
+    })
+    await sheet.present()
+    await sheet.onDidDismiss()
+  } finally {
+    // finally, not after the awaits: a failed present() must not leave the
+    // list permanently tap-dead.
+    rowMenuActive = false
+  }
 }
 
 /** FR-18.2: client-side export — works identically in Local Mode. */
@@ -219,7 +304,12 @@ async function handleRefresh(event: CustomEvent) {
               button
               :detail="false"
               :data-testid="`m7-row-${row.template.id}`"
-              :router-link="`/templates/${row.template.id}`"
+              @click="openTemplate(row.template)"
+              @contextmenu.prevent="openRowMenu(row.template)"
+              @pointerdown="(e: PointerEvent) => armLongPress(row.template, e)"
+              @pointermove="trackLongPress"
+              @pointerup="cancelLongPress"
+              @pointercancel="cancelLongPress"
             >
               <IonLabel>
                 <h2>{{ row.template.name }}</h2>
@@ -240,16 +330,6 @@ async function handleRefresh(event: CustomEvent) {
               <span v-if="row.template.kind === 'group'" slot="end" class="scope-chip">
                 {{ t('templates.groupChip') }}
               </span>
-              <!-- FR-18.2: portable YAML export, generated client-side -->
-              <IonButton
-                slot="end"
-                fill="clear"
-                color="medium"
-                :aria-label="t('templates.export')"
-                @click.stop.prevent="exportTemplate(row.template)"
-              >
-                <IonIcon slot="icon-only" :icon="downloadOutline" />
-              </IonButton>
               <IonIcon slot="end" :icon="chevronForwardOutline" class="row-chevron" />
             </IonItem>
           </IonList>
@@ -273,7 +353,7 @@ async function handleRefresh(event: CustomEvent) {
         :is-open="kindChooserOpen"
         class="sheet-modal"
         data-testid="m7-kind-chooser"
-        @did-dismiss="kindChooserOpen = false"
+        @did-dismiss="resetChooser"
       >
         <!-- A plain box, not an IonContent: inside an auto-height modal
              IonContent has no intrinsic height to give, so the sheet sized
@@ -287,8 +367,9 @@ async function handleRefresh(event: CustomEvent) {
 
           <button
             class="kind-card jp-card"
+            :class="{ picked: pendingKind === 'template' }"
             data-testid="m7-kind-template"
-            @click="createWithKind('template')"
+            @click="chooseKind('template')"
           >
             <IonIcon :icon="briefcaseOutline" class="kind-icon" />
             <span class="kind-name">{{ t('templates.sectionTemplate') }}</span>
@@ -297,13 +378,36 @@ async function handleRefresh(event: CustomEvent) {
 
           <button
             class="kind-card jp-card"
+            :class="{ picked: pendingKind === 'group' }"
             data-testid="m7-kind-group"
-            @click="createWithKind('group')"
+            @click="chooseKind('group')"
           >
             <IonIcon :icon="cubeOutline" class="kind-icon" />
             <span class="kind-name">{{ t('templates.sectionGroup') }}</span>
             <span class="kind-hint">{{ t('templates.groupHint') }}</span>
           </button>
+
+          <!-- The name appears once a scope is picked — same surface, one
+               commit, and nothing is written until it happens. -->
+          <div v-if="pendingKind" class="name-row">
+            <IonInput
+              ref="nameInput"
+              :value="pendingName"
+              :placeholder="t('templates.namePlaceholder')"
+              class="name-field"
+              data-testid="m7-name-field"
+              :aria-label="t('templates.namePlaceholder')"
+              @ionInput="(e: CustomEvent) => (pendingName = e.detail.value ?? '')"
+              @keyup.enter="commitCreate"
+            />
+            <IonButton
+              :disabled="!pendingName.trim()"
+              data-testid="m7-create-commit"
+              @click="commitCreate"
+            >
+              {{ t('templates.create') }}
+            </IonButton>
+          </div>
         </div>
       </IonModal>
     </IonContent>
@@ -439,6 +543,32 @@ ion-segment {
   align-self: center;
   font-size: var(--jp-icon-lg);
   color: var(--jp-brand);
+}
+
+.kind-card.picked {
+  outline: 2px solid var(--jp-action);
+}
+
+/* The pick has to survive the eye moving down to the field: the outline
+   alone read as "too quiet" in the variant render, so the icon answers in
+   the action colour too. */
+.kind-card.picked .kind-icon {
+  color: var(--jp-action);
+}
+
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.name-field {
+  flex: 1;
+  --background: var(--ct-surface0);
+  --padding-start: 12px;
+  --padding-end: 12px;
+  border-radius: var(--jp-r-sm);
 }
 
 .kind-name {

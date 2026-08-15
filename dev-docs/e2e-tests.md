@@ -47,7 +47,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Visual baselines | E2E-VIS-01 … E2E-VIS-05 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
-| M7 template scopes | E2E-M7-06 (partial), E2E-M7-07 (partial), E2E-M7-08 | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
+| M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (partial), E2E-M7-08 | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
 (create / import). The screen has neither as a button: create is the FAB and
@@ -61,10 +61,15 @@ actually includes a group — and nothing in the app can create an include yet,
 that write arrives with the M8 rebuild. Seeding one through the store instead
 of through the app would have made the case green without a path a user can
 walk; the resolution arithmetic behind those two lines is covered where it
-lives, in `client/src/domain/__tests__/templates.spec.ts`. Two further M7
-cases stay unimplemented because the surface does not exist: **E2E-M7-04**
-(long-press → Export; export is an inline row button today) and
-**E2E-M7-05** (Import from the FAB menu; import is a header icon).
+lives, in `client/src/domain/__tests__/templates.spec.ts`. One M7 case stays
+unimplemented because the surface does not exist: **E2E-M7-05** (Import from
+the FAB menu; import is a header icon). E2E-M7-04 is covered twice on
+purpose: once through `contextmenu` (the desktop path and the cheap seam),
+and once through the real 500 ms hold driven by an installed `page.clock` —
+because only the hold path exercises the guard that keeps the release from
+also opening the row, and the first version of that guard was in fact wrong
+(a stale one-shot flag that ate the next legitimate tap; the hold case
+caught it).
 
 **The visual unit is the only one that asserts appearance, and it is not
 part of `npm run test:e2e`.** It runs under `make visual` and in its own CI

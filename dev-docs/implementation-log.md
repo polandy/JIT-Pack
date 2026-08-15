@@ -1844,3 +1844,36 @@ merge report ahead of its groups' — so that case was written before the
 mutation was reverted. That is the pattern this project has now paid for six
 times: the assertion that was never watched failing is the assertion that is
 not there.
+
+### 2026-08-15 — M7's two open decisions, settled by rendered variants
+
+The PR-88 review left two questions that were the owner's to answer: what the
+row carries, and how creating works. Rather than argue them in prose, both
+were built as working variants on a scratch branch and rendered — three row
+shapes (inline button / long-press menu / swipe), three create flows (system
+dialog / name-in-sheet / create-then-rename). Two of the six died on sight in
+the render: **swipe's option panel breaks out of the card** and paints over
+the row below, and **create-then-rename writes an unnamed row the moment you
+tap** — the prototype does it, but the prototype has no persistence, so its
+mock never showed that cost. The owner picked A2 (long-press) and B2
+(name-in-sheet).
+
+**The implementation found a real bug the variant did not have to face.** The
+first guard against "the hold's release also opens the row" was a one-shot
+swallow-next-click flag. The hold e2e case — driven by an installed
+`page.clock`, never a real 500 ms wait — went red on its *last* assertion:
+after cancelling the menu, a legitimate tap no longer opened the row. Cause:
+the release click usually never reaches the row at all (down on the row, up
+on the presented overlay — the click fires on their common ancestor), so the
+flag went stale and ate the next genuine tap. The fix is a different shape,
+not a patched flag: **row taps are inert while the menu lives** — a state
+with a beginning (the hold fires, set before the overlay attaches) and an end
+(dismiss), which is also what made the race deterministically testable at
+all. Both new rules were mutation-checked red: guard removed, name-guard
+removed.
+
+Two Ionic locator lessons re-paid, one of them for the second time:
+`toBeDisabled()` does not see an `ion-button`'s disabled state (it lives as
+`aria-disabled` on the custom element — the same family as the false-green
+`toBeEnabled()` this project already recorded), and a `getByRole('button')`
+inside an `ion-item button` matches the row itself.

@@ -112,8 +112,6 @@ export const de: Record<keyof typeof en, string> = {
   'templates.noMatch': 'Keine Vorlage gefunden',
   'templates.new': 'Neu anlegen',
   'templates.newQuestion': 'Was soll es werden?',
-  'templates.newTemplate': 'Neue Ferien-Vorlage',
-  'templates.newGroup': 'Neue Gruppe',
   'templates.templateHint':
     'Startpunkt für eine Reise — bindet Gruppen ein und kann eigene Positionen haben.',
   'templates.groupHint':

@@ -245,7 +245,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M7-05** `all` (FR-18.4): FAB "+" menu → Import from file → M18.
 * **E2E-M7-06** `all` (G-7): empty state CTA (create / import).
 * **E2E-M7-07** `all` (FR-27.1/27.2/27.6): scope segmentation — *Alle* renders Ferien-Vorlagen and Gruppen as two sections (vacation templates first), the *Gruppen*/*Ferien-Vorlagen* tabs filter to one scope, group rows carry the *Gruppe* chip; a composed template's row shows its group count, its **resolved** item count (not 0 for a template with no own positions), and an "enthält: …" line naming the included groups.
-* **E2E-M7-08** `all` (FR-27.6): FAB opens the two-option scope chooser (Ferien-Vorlage / Gruppe with one-line explanations); each choice creates a template of that scope and opens the matching M8 editor shape.
+* **E2E-M7-08** `all` (FR-27.6): FAB opens the two-option scope chooser (Ferien-Vorlage / Gruppe with one-line explanations); picking a scope marks the card and reveals the name field **in the same sheet**, the commit stays disabled until a name exists (no unnamed row is ever written — dismissing the half-finished sheet leaves the list untouched), and Enter/Anlegen creates the template of that scope and opens the matching M8 editor shape.
 
 ### M8 — Template Editor
 * **E2E-M8-01** `all` (FR-1.8/G-6): the position sheet's quantity is a numeric stepper (– n +), 0 allowed ("bewusst nicht dabei", FR-5.5); no formula input exists (FR-1.3/1.5 retired 2026-08-08).

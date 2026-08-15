@@ -114,8 +114,6 @@ export const en = {
   'templates.noMatch': 'No template found',
   'templates.new': 'Create new',
   'templates.newQuestion': 'What should it be?',
-  'templates.newTemplate': 'New vacation template',
-  'templates.newGroup': 'New group',
   'templates.templateHint':
     'The starting point for a trip — includes groups and can carry positions of its own.',
   'templates.groupHint':
