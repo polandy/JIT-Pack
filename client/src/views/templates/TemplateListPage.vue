@@ -253,6 +253,8 @@ async function deleteTemplate(tpl: Template) {
       message: t('templates.includedBlocked', { name: consumers[0]!.name }),
       duration: 3000,
       position: 'bottom',
+      // Above the FAB rather than behind the tab bar — the M4 anchor pattern.
+      positionAnchor: 'm7-fab-anchor',
     })
     await toast.present()
     return
@@ -386,7 +388,7 @@ async function handleRefresh(event: CustomEvent) {
         </template>
       </template>
 
-      <IonFab vertical="bottom" horizontal="end" slot="fixed">
+      <IonFab id="m7-fab-anchor" vertical="bottom" horizontal="end" slot="fixed">
         <IonFabButton
           :aria-label="t('templates.new')"
           data-testid="m7-fab"

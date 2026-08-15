@@ -64,7 +64,13 @@ function itemName(itemId: string): string {
 setHeaderTitle(() => template.value?.name ?? t('templates.notFound'))
 
 async function toast(message: string) {
-  const el = await toastController.create({ message, duration: 3000, position: 'bottom' })
+  const el = await toastController.create({
+    message,
+    duration: 3000,
+    position: 'bottom',
+    // Above the FAB rather than behind the tab bar — the M4 anchor pattern.
+    positionAnchor: 'm8-fab-anchor',
+  })
   await el.present()
 }
 
@@ -447,7 +453,7 @@ const mergeLines = computed(() =>
           </p>
         </div>
 
-        <IonFab vertical="bottom" horizontal="end" slot="fixed">
+        <IonFab id="m8-fab-anchor" vertical="bottom" horizontal="end" slot="fixed">
           <IonFabButton
             :aria-label="t('templates.addPosition')"
             data-testid="m8-fab"
