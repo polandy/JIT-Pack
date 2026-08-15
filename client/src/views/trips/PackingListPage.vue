@@ -600,6 +600,17 @@ let packToast: HTMLIonToastElement | null = null
  */
 const packAnnouncements = ref(0)
 
+/**
+ * False once the screen is gone. `toastController.create` is awaited, and
+ * tapping back inside that window would otherwise present the snackbar over
+ * whatever screen came next — with an undo for a trip the user has left.
+ *
+ * Guarded rather than covered by a case: the window is a single await, and
+ * widening it enough to hit reliably would mean putting a delay into
+ * production code to make a test possible, which is the wrong way round.
+ */
+let live = true
+
 async function announcePacked(name: string) {
   // Cleared *before* dismissing, not after. The dismiss handler below
   // disarms the undo, and an outgoing toast resolves its dismissal after
@@ -620,6 +631,10 @@ async function announcePacked(name: string) {
     cssClass: 'pack-toast',
     buttons: [{ text: t('packing.undo'), handler: () => packUndo.undo() }],
   })
+  if (!live) {
+    void toast.dismiss()
+    return
+  }
   packToast = toast
   packAnnouncements.value += 1
   // The undo outlives the snackbar only by its dismiss animation; disarming
@@ -634,6 +649,7 @@ async function announcePacked(name: string) {
 }
 
 onUnmounted(() => {
+  live = false
   packUndo.clear()
   void packToast?.dismiss()
 })

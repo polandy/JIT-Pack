@@ -489,6 +489,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    */
   function restorePack(tripId: string, itemId: string, packedCount: number, state: string) {
     const current = tripStore.getItems(tripId).find((row) => row.id === itemId)
+    // Gone between the pack and the undo — deleted here or on another
+    // device. Doing nothing is the correct outcome rather than a swallowed
+    // one: re-upserting would resurrect a row somebody removed on purpose.
     if (!current) return
     const mut = mutations.packItem(itemId, packedCount, state)
     enqueueAndDrain('trip', tripId, {
