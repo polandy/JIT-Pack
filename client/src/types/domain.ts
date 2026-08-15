@@ -160,16 +160,34 @@ export interface ItemTodo {
 
 // --- Master data ---
 
-export interface Category {
+/**
+ * FR-24.1: a label an item can carry. Tags serve as categories *and* as
+ * free-form labels — there is no separate taxonomy and no tag-management
+ * screen; typing an unmatched name in M10 creates one (ADR-014).
+ */
+export interface Tag {
   id: string
   name: string
   sort_order: number
 }
 
+/**
+ * FR-24.1: one item↔tag assignment. Its own row rather than a set on the
+ * item, so two people tagging the same item offline both keep their edit
+ * (NFR-4.2a merges per row, see ADR-014).
+ */
+export interface ItemTag {
+  id: string
+  item_id: string
+  tag_id: string
+  /** 0 = the item's *primary* tag, the single key M9 groups by (FR-24.2). */
+  position: number
+}
+
 export interface MasterItem {
   id: string
   name: string
-  category_id: string | null
+  /** Denormalised for display only — the trip row's grouping snapshot. */
   category_name?: string
   weight_grams: number | null
   value_cents: number | null

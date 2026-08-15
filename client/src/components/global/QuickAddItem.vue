@@ -98,17 +98,15 @@ async function toggle() {
 defineExpose({ open })
 
 function selectSuggestion(item: MasterItem) {
-  const catMap = new Map<string, string>()
-  for (const cat of masterStore.categoryList) {
-    catMap.set(cat.id, cat.name)
-  }
-
   emit('add', {
     name: item.name,
     sourceItemId: item.id,
     weightGrams: item.weight_grams,
     valueCents: item.value_cents,
-    categoryName: item.category_id ? (catMap.get(item.category_id) ?? null) : null,
+    // The generated row carries one grouping key, which since FR-24.1 is
+    // the master item's *primary* tag (FR-24.2) — the trip side keeps a
+    // single snapshot, it does not gain the whole set.
+    categoryName: masterStore.getPrimaryTag(item.id)?.name ?? null,
   })
   query.value = ''
   // Stays open, like a free-text add: picking a suggestion is the same

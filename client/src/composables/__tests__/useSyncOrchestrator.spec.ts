@@ -197,7 +197,7 @@ describe('useSyncOrchestrator', () => {
     mockPull([
       {
         seq: 1,
-        table: 'categories',
+        table: 'tags',
         id: 'c1',
         deleted: false,
         row: { name: 'Clothes', sort_order: 0 },
@@ -214,7 +214,7 @@ describe('useSyncOrchestrator', () => {
     await orch.drainMaster()
 
     const masterStore = useMasterStore()
-    expect(masterStore.categoryList).toHaveLength(1)
+    expect(masterStore.tagList).toHaveLength(1)
     expect(masterStore.getItem('i1')?.name).toBe('Shirt')
   })
 

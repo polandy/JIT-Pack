@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
+import { UNTAGGED_KEY } from '@/domain/tags'
 import { useMasterStore } from '../masterStore'
 
 describe('masterStore', () => {
@@ -11,29 +12,29 @@ describe('masterStore', () => {
     const store = useMasterStore()
     expect(store.itemList).toEqual([])
     expect(store.templateList).toEqual([])
-    expect(store.categoryList).toEqual([])
+    expect(store.tagList).toEqual([])
   })
 
-  it('applies category changes', () => {
+  it('applies tag changes', () => {
     const store = useMasterStore()
     store.applyChange({
       seq: 1,
-      table: 'categories',
+      table: 'tags',
       id: 'c1',
       deleted: false,
       row: { name: 'Clothes', sort_order: 1 },
     })
     store.applyChange({
       seq: 2,
-      table: 'categories',
+      table: 'tags',
       id: 'c2',
       deleted: false,
       row: { name: 'Tech', sort_order: 0 },
     })
 
-    expect(store.categoryList).toHaveLength(2)
-    expect(store.categoryList[0]!.name).toBe('Tech')
-    expect(store.categoryList[1]!.name).toBe('Clothes')
+    expect(store.tagList).toHaveLength(2)
+    expect(store.tagList[0]!.name).toBe('Tech')
+    expect(store.tagList[1]!.name).toBe('Clothes')
   })
 
   it('applies item changes', () => {
@@ -150,42 +151,91 @@ describe('masterStore', () => {
     expect(tis[0]!.assignment).toBe('trip_global')
   })
 
-  it('groups items by category', () => {
+  it('files each item under its primary tag, once (FR-24.2)', () => {
     const store = useMasterStore()
     store.applyChanges([
       {
         seq: 1,
-        table: 'categories',
+        table: 'tags',
         id: 'c1',
         deleted: false,
         row: { name: 'Clothes', sort_order: 0 },
       },
       {
         seq: 2,
-        table: 'items',
-        id: 'i1',
+        table: 'tags',
+        id: 'c2',
         deleted: false,
-        row: { name: 'Shirt', category_id: 'c1' },
+        row: { name: 'Summer', sort_order: 1 },
+      },
+      { seq: 3, table: 'items', id: 'i1', deleted: false, row: { name: 'Shirt' } },
+      { seq: 4, table: 'items', id: 'i2', deleted: false, row: { name: 'Pants' } },
+      { seq: 5, table: 'items', id: 'i3', deleted: false, row: { name: 'Charger' } },
+      {
+        seq: 6,
+        table: 'item_tags',
+        id: 'a1',
+        deleted: false,
+        row: { item_id: 'i1', tag_id: 'c1', position: 0 },
+      },
+      // Shirt is Clothes *and* Summer — it must still appear once.
+      {
+        seq: 7,
+        table: 'item_tags',
+        id: 'a2',
+        deleted: false,
+        row: { item_id: 'i1', tag_id: 'c2', position: 1 },
       },
       {
-        seq: 3,
-        table: 'items',
-        id: 'i2',
+        seq: 8,
+        table: 'item_tags',
+        id: 'a3',
         deleted: false,
-        row: { name: 'Pants', category_id: 'c1' },
-      },
-      {
-        seq: 4,
-        table: 'items',
-        id: 'i3',
-        deleted: false,
-        row: { name: 'Charger' },
+        row: { item_id: 'i2', tag_id: 'c1', position: 0 },
       },
     ])
 
-    const groups = store.itemsByCategory()
+    const groups = store.itemsByPrimaryTag()
     expect(groups.get('Clothes')).toHaveLength(2)
-    expect(groups.get('Uncategorized')).toHaveLength(1)
+    expect(groups.get('Summer')).toBeUndefined()
+    expect(groups.get(UNTAGGED_KEY)).toHaveLength(1)
+  })
+
+  it('drops an item’s assignments when the item is deleted', () => {
+    const store = useMasterStore()
+    store.applyChanges([
+      { seq: 1, table: 'tags', id: 'c1', deleted: false, row: { name: 'Tech', sort_order: 0 } },
+      { seq: 2, table: 'items', id: 'i1', deleted: false, row: { name: 'Cable' } },
+      {
+        seq: 3,
+        table: 'item_tags',
+        id: 'a1',
+        deleted: false,
+        row: { item_id: 'i1', tag_id: 'c1', position: 0 },
+      },
+      { seq: 4, table: 'items', id: 'i1', deleted: true, row: null },
+    ])
+
+    expect(store.itemTagList).toHaveLength(0)
+  })
+
+  it('drops assignments to a deleted tag, whatever order the tombstones arrive in', () => {
+    const store = useMasterStore()
+    store.applyChanges([
+      { seq: 1, table: 'tags', id: 'c1', deleted: false, row: { name: 'Tech', sort_order: 0 } },
+      { seq: 2, table: 'items', id: 'i1', deleted: false, row: { name: 'Cable' } },
+      {
+        seq: 3,
+        table: 'item_tags',
+        id: 'a1',
+        deleted: false,
+        row: { item_id: 'i1', tag_id: 'c1', position: 0 },
+      },
+      { seq: 4, table: 'tags', id: 'c1', deleted: true, row: null },
+    ])
+
+    expect(store.itemTagList).toHaveLength(0)
+    expect(store.getItemTags('i1')).toEqual([])
   })
 
   it('searches items by name', () => {

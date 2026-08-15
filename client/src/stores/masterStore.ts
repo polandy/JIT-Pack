@@ -1,5 +1,5 @@
 /**
- * Master store — reactive state for categories, items, and templates.
+ * Master store — reactive state for tags, items, and templates.
  *
  * Populated from pull responses on the master partition.
  */
@@ -7,11 +7,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type {
-  Category,
   DestinationChecklistItem,
   DestinationProfile,
   ItemDependency,
+  ItemTag,
   MasterItem,
+  Tag,
   Template,
   TemplateInclude,
   TemplateItem,
@@ -21,9 +22,11 @@ import type {
 } from '@/types/domain'
 import type { PullChange } from '@/api/types'
 import { resolveTemplate, type Resolution } from '@/domain/templates'
+import { groupByPrimaryTag, primaryTagOf, tagsOfItem } from '@/domain/tags'
 
 export const useMasterStore = defineStore('master', () => {
-  const categories = ref<Map<string, Category>>(new Map())
+  const tags = ref<Map<string, Tag>>(new Map())
+  const itemTags = ref<Map<string, ItemTag>>(new Map())
   const items = ref<Map<string, MasterItem>>(new Map())
   const templates = ref<Map<string, Template>>(new Map())
   const templateItems = ref<Map<string, TemplateItem[]>>(new Map())
@@ -36,9 +39,11 @@ export const useMasterStore = defineStore('master', () => {
 
   // --- Getters ---
 
-  const categoryList = computed(() =>
-    [...categories.value.values()].sort((a, b) => a.sort_order - b.sort_order),
+  const tagList = computed(() =>
+    [...tags.value.values()].sort((a, b) => a.sort_order - b.sort_order),
   )
+
+  const itemTagList = computed(() => [...itemTags.value.values()])
 
   const itemList = computed(() => [...items.value.values()])
 
@@ -126,23 +131,19 @@ export const useMasterStore = defineStore('master', () => {
     return dependencyList.value.filter((d) => d.depends_on_item_id === itemId)
   }
 
-  /** Items grouped by category name, sorted by category sort_order. */
-  function itemsByCategory(): Map<string, MasterItem[]> {
-    const catMap = new Map<string, string>() // catId -> catName
-    for (const cat of categories.value.values()) {
-      catMap.set(cat.id, cat.name)
-    }
+  /** Items grouped by primary-tag name for the M9 list (FR-24.2). */
+  function itemsByPrimaryTag(): Map<string, MasterItem[]> {
+    return groupByPrimaryTag(itemList.value, itemTagList.value, tagList.value)
+  }
 
-    const groups = new Map<string, MasterItem[]>()
-    for (const item of items.value.values()) {
-      const catName = item.category_id
-        ? (catMap.get(item.category_id) ?? 'Uncategorized')
-        : 'Uncategorized'
-      const group = groups.get(catName) ?? []
-      group.push({ ...item, category_name: catName })
-      groups.set(catName, group)
-    }
-    return groups
+  /** This item's tags, primary first (FR-24.1). */
+  function getItemTags(itemId: string): Tag[] {
+    return tagsOfItem(itemId, itemTagList.value, tagList.value)
+  }
+
+  /** The single tag M9 files this item under, if it carries one. */
+  function getPrimaryTag(itemId: string): Tag | undefined {
+    return primaryTagOf(itemId, itemTagList.value, tagList.value)
   }
 
   /** Search items by name substring (case-insensitive). */
@@ -158,17 +159,34 @@ export const useMasterStore = defineStore('master', () => {
     const row = change.row as Record<string, unknown> | null
 
     switch (change.table) {
-      case 'categories':
+      case 'tags':
         if (change.deleted) {
-          categories.value.delete(change.id)
+          tags.value.delete(change.id)
+          // The server cascades the assignments and sends their tombstones,
+          // but a pull can deliver them in either order — dropping them here
+          // keeps the list from grouping under a heading already gone.
+          for (const [id, a] of itemTags.value) {
+            if (a.tag_id === change.id) itemTags.value.delete(id)
+          }
         } else if (row) {
-          categories.value.set(change.id, rowToCategory(change.id, row))
+          tags.value.set(change.id, rowToTag(change.id, row))
+        }
+        break
+
+      case 'item_tags':
+        if (change.deleted) {
+          itemTags.value.delete(change.id)
+        } else if (row) {
+          itemTags.value.set(change.id, rowToItemTag(change.id, row))
         }
         break
 
       case 'items':
         if (change.deleted) {
           items.value.delete(change.id)
+          for (const [id, a] of itemTags.value) {
+            if (a.item_id === change.id) itemTags.value.delete(id)
+          }
         } else if (row) {
           items.value.set(change.id, rowToItem(change.id, row))
         }
@@ -284,10 +302,12 @@ export const useMasterStore = defineStore('master', () => {
   }
 
   return {
-    categories,
+    tags,
+    itemTags,
     items,
     templates,
-    categoryList,
+    tagList,
+    itemTagList,
     itemList,
     templateList,
     getItem,
@@ -307,7 +327,9 @@ export const useMasterStore = defineStore('master', () => {
     dependencyList,
     getItemDependencies,
     getCompanionDependencies,
-    itemsByCategory,
+    itemsByPrimaryTag,
+    getItemTags,
+    getPrimaryTag,
     searchItems,
     applyChange,
     applyChanges,
@@ -316,7 +338,7 @@ export const useMasterStore = defineStore('master', () => {
 
 // --- Row converters ---
 
-function rowToCategory(id: string, row: Record<string, unknown>): Category {
+function rowToTag(id: string, row: Record<string, unknown>): Tag {
   return {
     id,
     name: row['name'] as string,
@@ -324,11 +346,19 @@ function rowToCategory(id: string, row: Record<string, unknown>): Category {
   }
 }
 
+function rowToItemTag(id: string, row: Record<string, unknown>): ItemTag {
+  return {
+    id,
+    item_id: row['item_id'] as string,
+    tag_id: row['tag_id'] as string,
+    position: (row['position'] as number) ?? 0,
+  }
+}
+
 function rowToItem(id: string, row: Record<string, unknown>): MasterItem {
   return {
     id,
     name: row['name'] as string,
-    category_id: (row['category_id'] as string) ?? null,
     weight_grams: (row['weight_grams'] as number) ?? null,
     value_cents: (row['value_cents'] as number) ?? null,
     image_hash: (row['image_hash'] as string) ?? null,
