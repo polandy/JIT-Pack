@@ -94,6 +94,34 @@ export const de: Record<keyof typeof en, string> = {
   // Die Lupe in der App-Bar, pro Screen (G-12, FR-25.11k).
   'trips.searchPlaceholder': 'Reisen durchsuchen…',
   'templates.searchPlaceholder': 'Vorlagen durchsuchen…',
+
+  // M7 Vorlagen-Liste — die zwei Scopes aus §3.27 (FR-27.6).
+  'templates.title': 'Vorlagen',
+  'templates.sectionTemplates': 'Ferien-Vorlagen',
+  'templates.scopeTemplatesShort': 'Ferien',
+  'templates.sectionGroups': 'Gruppen',
+  'templates.sectionTemplate': 'Ferien-Vorlage',
+  'templates.sectionGroup': 'Gruppe',
+  'templates.groupChip': 'Gruppe',
+  'templates.itemCount': '{n} Artikel | {n} Artikel',
+  'templates.groupCount': '{n} Gruppe | {n} Gruppen',
+  'templates.contains': 'enthält:',
+  'templates.empty': 'Noch keine Vorlagen',
+  'templates.emptyHint':
+    'Fang mit einer Gruppe an — einem wiederverwendbaren Baustein — oder mit einer Ferien-Vorlage, die Gruppen einbindet.',
+  'templates.noMatch': 'Keine Vorlage gefunden',
+  'templates.new': 'Neu anlegen',
+  'templates.newQuestion': 'Was soll es werden?',
+  'templates.newTemplate': 'Neue Ferien-Vorlage',
+  'templates.newGroup': 'Neue Gruppe',
+  'templates.templateHint':
+    'Startpunkt für eine Reise — bindet Gruppen ein und kann eigene Positionen haben.',
+  'templates.groupHint':
+    'Wiederverwendbarer Baustein aus Artikeln (z. B. „Makro Fotografie“) — wird in Ferien-Vorlagen eingebunden.',
+  'templates.namePlaceholder': 'Name',
+  'templates.create': 'Anlegen',
+  'templates.export': 'Vorlage exportieren',
+  'templates.import': 'Vorlage aus Datei importieren',
   'items.searchPlaceholder': 'Sachen durchsuchen…',
 
   // M5 Artikel-Detail.
