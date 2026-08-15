@@ -168,7 +168,12 @@ function handleRefresh(event: CustomEvent) {
         <IonSegmentButton value="all">
           <IonLabel>{{ t('items.tagFilterAll') }}</IonLabel>
         </IonSegmentButton>
-        <IonSegmentButton v-for="tag in store.tagList" :key="tag.id" :value="tag.id">
+        <IonSegmentButton
+          v-for="tag in store.tagList"
+          :key="tag.id"
+          :value="tag.id"
+          :data-testid="`m9-tag-chip-${tag.name}`"
+        >
           <IonLabel>{{ tag.name }}</IonLabel>
         </IonSegmentButton>
       </IonSegment>
@@ -190,7 +195,7 @@ function handleRefresh(event: CustomEvent) {
 
       <template v-else>
         <section v-for="[key, groupItems] in groups" :key="key" class="tag-group">
-          <h2 class="group-head jp-eyebrow">
+          <h2 class="group-head jp-eyebrow" data-testid="m9-group-head">
             {{ groupLabel(key) }}
             <span class="group-count">{{ groupItems.length }}</span>
           </h2>

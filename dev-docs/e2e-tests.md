@@ -186,3 +186,47 @@ Following spec §10, adjusted for what is now built:
 - **Seed through the app, not around it** (spec §2.4). Use `createTripViaWizard` and friends. A fast-path that writes rows directly is allowed only for `server`-mode preconditions that are not themselves under test.
 - **No sleeps, ever.** Playwright's `expect` retries on its own; assert the outcome, never wait a fixed time for it. If a case can only pass by waiting and hoping, the fault is in the production code — give it a deterministic seam. This is the same rule the Go suite follows and it is not negotiable in either.
 - **Tags:** `@smoke`, `@local`, `@single`, `@server`, plus `@mNN` per screen. Run a slice with `npm run test:e2e -- --grep @local`.
+
+## M9/M10 — inventory and item editor (`e2e/inventory.spec.ts`, 2026-08-16)
+
+Eight cases, Local Mode, landing with the §3.24 tag rebuild. What they cover
+is deliberately what a unit test cannot: the *painted* result of the two
+grouping rules, and the shape of the creation form.
+
+| Case | Spec id | What it pins |
+|---|---|---|
+| an item on two tags renders once, under its primary tag | E2E-M9-01 | FR-24.2's whole guarantee. A naive "file under every tag" passes every unit test of the store and fails this. |
+| the tag axis filters on any tag, not only the primary one | E2E-M9-06 | The axis filters *wider* than the list groups — the two rules differ only in what is rendered. |
+| the list is lean until the properties sheet says otherwise | E2E-M9-05 | FR-24.4 end to end: the weight exists on the item, is absent from the row, and appears after the toggle. Asserted on the row, not on `localStorage`. |
+| creating hides the sections an item cannot have yet | E2E-M10-07 | FR-24.5 "absent, not emptied", plus the "Mehr ▾" fold. |
+| a missing name is answered with a hint, not a dead button | E2E-M10-07 | The button stays live and says why — the failure mode a disabled control hides. |
+| a duplicate name is reported before it reaches the push | E2E-M10-10 | The consequence of `UNIQUE(name)` (ADR-014) reaching the user as a sentence rather than a failed sync. |
+| an unmatched tag name is created and assigned in one step | E2E-M10-08 | Filter-or-create, including the *second* item finding the tag instead of duplicating it. |
+| unassigning a tag refiles the item | E2E-M10-08 | The store's cascade mirroring, seen from the list. |
+
+**Not covered here, on purpose:** the device-local *reload* half of FR-24.4
+is unit-tested in `composables/__tests__/inventoryProperties.spec.ts`, where
+the storage seam actually is — an e2e reload assertion would test the browser
+more than the preference. The ordering arithmetic behind the grouping lives
+in `domain/__tests__/tags.spec.ts`, mutation-proven: filing an item under
+every tag instead of its primary one drops two of those cases.
+
+**Four traps this suite paid for, all in one sitting.**
+
+1. The first run was green-looking nonsense: `npm run build` ran from the
+   wrong directory, failed silently, and Playwright drove the *previous*
+   bundle. Missing testids read exactly like broken selectors. Rebuild from
+   `client/`, and check the build actually said so.
+2. The ledger's own "`data-testid` only" rule earned its keep — the first
+   draft asserted on `.group-head` and on a chip's visible text, which would
+   have broken on any restyle and on the German catalogue respectively.
+3. **A rendered assertion must not encode a styling decision.** Group
+   headings wear `.jp-eyebrow`, which uppercases in CSS, so `allInnerTexts()`
+   returns "KLEIDUNG". The helper lower-cases: the casing is the type role's
+   business, the word is the test's.
+4. **Scope every locator to the painted page, including the FAB.** An
+   unscoped `getByTestId('m9-fab')` resolves the *outgoing* page's button
+   during a transition, and a button that is still animating never becomes
+   stable — which surfaces as a 30 s click timeout, not as a wrong-element
+   error. The `visible()` helper exists for exactly this and has to be used
+   everywhere, not only where an assertion looked ambiguous.
