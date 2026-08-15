@@ -141,7 +141,7 @@ setHeaderTitle(() => `Members · ${tripStore.getTrip(props.tripId)?.name ?? ''}`
 
 .hint {
   display: block;
-  font-size: 0.8rem;
+  font-size: var(--jp-text-sm);
   margin: 8px 16px;
 }
 
@@ -154,7 +154,7 @@ setHeaderTitle(() => `Members · ${tripStore.getTrip(props.tripId)?.name ?? ''}`
 }
 
 .empty-icon {
-  font-size: 64px;
+  font-size: var(--jp-icon-2xl);
   margin-bottom: 16px;
 }
 </style>

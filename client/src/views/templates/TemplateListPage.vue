@@ -172,12 +172,12 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 .empty-icon {
-  font-size: 64px;
+  font-size: var(--jp-icon-2xl);
   margin-bottom: 16px;
 }
 
 .empty-hint {
-  font-size: 0.85rem;
+  font-size: var(--jp-text-sm);
   margin-top: 8px;
 }
 </style>

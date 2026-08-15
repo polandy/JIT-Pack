@@ -113,7 +113,7 @@ setHeaderTitle(() => series.value?.name ?? 'Series')
   <IonPage>
     <IonContent class="ion-padding">
       <template v-if="series">
-        <h2 class="section-title">Series</h2>
+        <h2 class="section-title jp-eyebrow">Series</h2>
         <IonList>
           <IonItem>
             <IonInput
@@ -166,7 +166,7 @@ setHeaderTitle(() => series.value?.name ?? 'Series')
         </IonList>
         <IonNote>Defaults prefill the wizard for new trips in this series.</IonNote>
 
-        <h2 class="section-title">Destination notes</h2>
+        <h2 class="section-title jp-eyebrow">Destination notes</h2>
         <IonList>
           <IonItem>
             <IonTextarea
@@ -178,7 +178,7 @@ setHeaderTitle(() => series.value?.name ?? 'Series')
           </IonItem>
         </IonList>
 
-        <h2 class="section-title">Destination checklist</h2>
+        <h2 class="section-title jp-eyebrow">Destination checklist</h2>
         <IonList v-if="checklist.length > 0">
           <IonItem v-for="entry in checklist" :key="entry.id">
             <IonLabel>
@@ -228,7 +228,7 @@ setHeaderTitle(() => series.value?.name ?? 'Series')
           </IonButton>
         </div>
 
-        <h2 class="section-title">Trips in this series</h2>
+        <h2 class="section-title jp-eyebrow">Trips in this series</h2>
         <IonList v-if="seriesTrips.length > 0">
           <IonItem
             v-for="trip in seriesTrips"
@@ -309,8 +309,6 @@ setHeaderTitle(() => series.value?.name ?? 'Series')
 
 <style scoped>
 .section-title {
-  font-size: 1rem;
-  font-weight: 600;
   margin: 20px 0 8px;
 }
 

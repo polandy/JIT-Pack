@@ -139,7 +139,7 @@ setHeaderTitle(() => `Analytics · ${trip.value?.name ?? ''}`)
 
       <!-- Series trends (FR-14.3) -->
       <template v-if="trend.length > 0">
-        <h2 class="section-title">Series weight over the years</h2>
+        <h2 class="section-title jp-eyebrow">Series weight over the years</h2>
         <div class="trend">
           <div v-for="point in trend" :key="point.tripId" class="trend-row">
             <span class="trend-year">{{ yearOf(point.startDate) }}</span>
@@ -157,13 +157,13 @@ setHeaderTitle(() => `Analytics · ${trip.value?.name ?? ''}`)
       <template v-if="mostMissing.length > 0 || mostUnused.length > 0">
         <div class="flag-columns">
           <div v-if="mostMissing.length > 0">
-            <h2 class="section-title">Most often missing</h2>
+            <h2 class="section-title jp-eyebrow">Most often missing</h2>
             <p v-for="f in mostMissing" :key="f.name" class="flag-row">
               {{ f.name }} <span class="flag-count">×{{ f.count }}</span>
             </p>
           </div>
           <div v-if="mostUnused.length > 0">
-            <h2 class="section-title">Consistently unused</h2>
+            <h2 class="section-title jp-eyebrow">Consistently unused</h2>
             <p v-for="f in mostUnused" :key="f.name" class="flag-row">
               {{ f.name }} <span class="flag-count">×{{ f.count }}</span>
             </p>
@@ -195,11 +195,11 @@ setHeaderTitle(() => `Analytics · ${trip.value?.name ?? ''}`)
 .slice-foot {
   display: flex;
   justify-content: space-between;
-  font-size: 0.85rem;
+  font-size: var(--jp-text-sm);
 }
 
 .slice-label {
-  font-weight: 600;
+  font-weight: var(--jp-weight-semibold);
 }
 
 .slice-weight,
@@ -232,8 +232,6 @@ setHeaderTitle(() => `Analytics · ${trip.value?.name ?? ''}`)
 }
 
 .section-title {
-  font-size: 1rem;
-  font-weight: 600;
   margin: 24px 0 8px;
 }
 
@@ -243,7 +241,7 @@ setHeaderTitle(() => `Analytics · ${trip.value?.name ?? ''}`)
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
-  font-size: 0.85rem;
+  font-size: var(--jp-text-sm);
 }
 
 .trend-year {
@@ -263,7 +261,7 @@ setHeaderTitle(() => `Analytics · ${trip.value?.name ?? ''}`)
 
 .flag-row {
   margin: 2px 0;
-  font-size: 0.9rem;
+  font-size: var(--jp-text-base);
 }
 
 .flag-count {

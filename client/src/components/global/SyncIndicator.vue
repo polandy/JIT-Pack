@@ -88,7 +88,7 @@ const icon = computed(() => icons[props.state])
 }
 
 ion-badge {
-  font-size: 10px;
+  font-size: var(--jp-text-3xs);
   padding: 2px 5px;
 }
 </style>

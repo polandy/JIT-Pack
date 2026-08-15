@@ -229,13 +229,13 @@ const emit = defineEmits<{
 
 .head h2 {
   margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: var(--jp-text-lg);
+  font-weight: var(--jp-weight-bold);
 }
 
 .count {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: var(--jp-text-xs);
   color: var(--ct-subtext0);
 }
 
@@ -244,8 +244,8 @@ const emit = defineEmits<{
   background: none;
   border: none;
   color: var(--ct-blue);
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: var(--jp-text-sm);
+  font-weight: var(--jp-weight-semibold);
   cursor: pointer;
 }
 
@@ -263,7 +263,7 @@ const emit = defineEmits<{
 }
 
 .x ion-icon {
-  font-size: 18px;
+  font-size: var(--jp-icon-sm);
 }
 
 .sec {
@@ -276,22 +276,22 @@ const emit = defineEmits<{
   align-items: center;
   gap: 8px;
   margin: 0 0 10px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-size: var(--jp-text-2xs);
+  font-weight: var(--jp-weight-semibold);
+  letter-spacing: var(--jp-tracking-label);
   text-transform: uppercase;
   color: var(--ct-subtext0);
 }
 
 .sl ion-icon {
-  font-size: 15px;
+  font-size: var(--jp-icon-sm);
 }
 
 .all,
 .clear {
   margin-left: auto;
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: var(--jp-text-xs);
+  font-weight: var(--jp-weight-medium);
   letter-spacing: 0;
   text-transform: none;
 }
@@ -323,13 +323,13 @@ const emit = defineEmits<{
   border-radius: var(--jp-r-md);
   background: var(--ct-surface0);
   color: var(--ct-subtext1);
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: var(--jp-text-2xs);
+  font-weight: var(--jp-weight-semibold);
   cursor: pointer;
 }
 
 .seg ion-icon {
-  font-size: 17px;
+  font-size: var(--jp-icon-sm);
 }
 
 .seg.on {
@@ -353,13 +353,13 @@ const emit = defineEmits<{
   border-radius: var(--jp-r-pill);
   background: var(--ct-surface0);
   color: var(--ct-subtext1);
-  font-size: 0.82rem;
+  font-size: var(--jp-text-sm);
   cursor: pointer;
 }
 
 .chip .n {
   color: var(--ct-overlay0);
-  font-size: 0.72rem;
+  font-size: var(--jp-text-2xs);
 }
 
 .chip.on {
@@ -383,11 +383,11 @@ const emit = defineEmits<{
 
 .switch b {
   display: block;
-  font-size: 0.85rem;
+  font-size: var(--jp-text-sm);
 }
 
 .switch span {
-  font-size: 0.75rem;
+  font-size: var(--jp-text-xs);
   color: var(--ct-subtext0);
 }
 </style>

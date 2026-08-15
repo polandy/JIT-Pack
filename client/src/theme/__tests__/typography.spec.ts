@@ -100,3 +100,51 @@ describe('the views do not decide type for themselves (G-13)', () => {
     }
   })
 })
+
+describe('the scale carries the views now (FR-21.5)', () => {
+  const vueFiles = globSync('src/**/*.vue', { cwd: process.cwd() })
+
+  it('gives icons their own table, because a glyph box is not a text size', () => {
+    // `font-size` on an `ion-icon` sizes the glyph, not type. Sharing the
+    // text scale would have made a 64px empty-state illustration read as a
+    // heading, and any later change to body copy would silently resize
+    // every icon with it.
+    const steps = css.match(/^\s*--jp-icon-[a-z0-9]+:/gm) ?? []
+    expect(steps).toHaveLength(6)
+    expect(css).toMatch(/--jp-icon-2xl:\s*64px/)
+  })
+
+  it('grew the step the views actually needed rather than rounding them up', () => {
+    // Seven sites (two badges, an avatar's initials and its tick, two
+    // counts and a prep marker) sat below 11px with nowhere to go. A size the table does not have is a signal
+    // about the table — that is the whole reason a scale is reviewed.
+    expect(css).toMatch(/--jp-text-3xs:\s*10px/)
+  })
+
+  it('names the section label once, where eleven screens had written it out', () => {
+    // Nine carried it as a 16px semibold line, two as the uppercase label
+    // the prototype actually specifies. The role now owns face, size,
+    // weight, tracking, case and colour, so a `.section-title` rule may
+    // carry nothing but its own spacing.
+    expect(css).toMatch(/\.jp-eyebrow\s*\{[^}]*text-transform:\s*uppercase/)
+
+    for (const file of vueFiles) {
+      const rule = /\.section-title\s*\{([^}]*)\}/.exec(readFileSync(file, 'utf8'))?.[1]
+      if (!rule) continue
+      const props = [...rule.matchAll(/^\s*([a-z-]+):/gm)].map((m) => m[1])
+      expect(props, `${file} restates the eyebrow role instead of applying it`).toEqual(['margin'])
+    }
+  })
+
+  it('applies the role wherever it claims the class', () => {
+    // The pairing is what rots: a tenth section title added later would
+    // get the local class for its margin and quietly render as body copy,
+    // which no token assertion notices.
+    for (const file of vueFiles) {
+      const source = readFileSync(file, 'utf8')
+      for (const m of source.matchAll(/class="([^"]*\bsection-title\b[^"]*)"/g)) {
+        expect(m[1], `${file} uses .section-title without the role`).toContain('jp-eyebrow')
+      }
+    }
+  })
+})

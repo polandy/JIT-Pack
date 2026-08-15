@@ -1095,7 +1095,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 .progress {
   flex: 1;
   min-width: 0;
-  font-size: 0.95rem;
+  font-size: var(--jp-text-md);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1103,7 +1103,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 
 .muted {
   color: var(--ct-subtext0);
-  font-size: 0.85rem;
+  font-size: var(--jp-text-sm);
 }
 
 .prep {
@@ -1120,7 +1120,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
   position: absolute;
   top: 2px;
   right: 0;
-  font-size: 0.6rem;
+  font-size: var(--jp-text-3xs);
   padding: 2px 4px;
 }
 
@@ -1128,7 +1128,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
   position: absolute;
   top: 2px;
   right: 0;
-  font-size: 0.6rem;
+  font-size: var(--jp-text-3xs);
   padding: 2px 4px;
 }
 
@@ -1150,13 +1150,13 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
   border-radius: var(--jp-r-pill);
   background: none;
   color: var(--ct-text);
-  font-size: 0.78rem;
+  font-size: var(--jp-text-xs);
   cursor: pointer;
 }
 
 .chip b {
   color: var(--ct-subtext0);
-  font-weight: 600;
+  font-weight: var(--jp-weight-semibold);
 }
 
 .chip .x {
@@ -1167,13 +1167,13 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
   background: none;
   border: none;
   color: var(--ct-blue);
-  font-size: 0.78rem;
+  font-size: var(--jp-text-xs);
   cursor: pointer;
 }
 
 .grouped-by {
   color: var(--ct-subtext0);
-  font-size: 0.78rem;
+  font-size: var(--jp-text-xs);
 }
 
 /* --- Groups and rows -------------------------------------------------- */
@@ -1189,9 +1189,9 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
   /* A group heading outranks the rows under it. It used to be 0.82rem
      uppercase micro-type — smaller than the item names it was heading,
      which inverts the hierarchy it exists to state. */
-  font-size: 1.02rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: var(--jp-text-lg);
+  font-weight: var(--jp-weight-bold);
+  letter-spacing: var(--jp-tracking-display);
   cursor: pointer;
 }
 
@@ -1202,8 +1202,8 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 
 .group-count {
   color: var(--ct-subtext0);
-  font-size: 0.8rem;
-  font-weight: 500;
+  font-size: var(--jp-text-sm);
+  font-weight: var(--jp-weight-medium);
 }
 
 /* Each group is its own block, so the seam between two categories is a
@@ -1245,16 +1245,16 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 
 .mode-icon {
   color: var(--ct-peach);
-  font-size: 1.05rem;
+  font-size: var(--jp-icon-sm);
 }
 
 .late-icon {
   color: var(--ct-yellow);
-  font-size: 1.05rem;
+  font-size: var(--jp-icon-sm);
 }
 
 .lock {
-  font-size: 22px;
+  font-size: var(--jp-icon-md);
   color: var(--ct-blue);
   padding: 8px;
 }
@@ -1268,11 +1268,11 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 }
 
 .stamp {
-  font-size: 0.75rem;
+  font-size: var(--jp-text-xs);
 }
 
 .prep {
-  font-size: 0.65rem;
+  font-size: var(--jp-text-3xs);
   vertical-align: middle;
   margin-left: 6px;
 }
@@ -1292,8 +1292,8 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
      per-person item names itself once inside it, and the traveler rows
      under that are plain. Two of them at the same size read as two
      groups rather than as a group and its contents. */
-  font-size: 0.88rem;
-  font-weight: 600;
+  font-size: var(--jp-text-base);
+  font-weight: var(--jp-weight-semibold);
   color: var(--ct-subtext1);
 }
 
@@ -1303,8 +1303,8 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 
 .cluster-count {
   color: var(--ct-subtext0);
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: var(--jp-text-xs);
+  font-weight: var(--jp-weight-medium);
 }
 
 .child-row {
@@ -1321,7 +1321,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
   border-radius: var(--jp-r-md);
   background: none;
   color: var(--ct-subtext0);
-  font-size: 0.85rem;
+  font-size: var(--jp-text-sm);
   cursor: pointer;
 }
 
@@ -1339,7 +1339,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 
 .closing-card h2 {
   margin: 0 0 10px;
-  font-size: 1rem;
+  font-size: var(--jp-text-lg);
 }
 
 .empty {
@@ -1357,7 +1357,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 }
 
 .empty-icon {
-  font-size: 56px;
+  font-size: var(--jp-icon-2xl);
   margin-bottom: 8px;
 }
 
@@ -1375,13 +1375,13 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
   background: none;
   border: none;
   color: var(--ct-yellow);
-  font-size: 0.9rem;
+  font-size: var(--jp-text-base);
   cursor: pointer;
 }
 
 .prep-item {
   padding: 8px 14px 2px;
-  font-size: 0.8rem;
+  font-size: var(--jp-text-sm);
   color: var(--ct-subtext0);
 }
 </style>

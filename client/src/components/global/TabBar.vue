@@ -65,7 +65,7 @@ const fullScreen = computed(
   padding: 8px 4px;
   text-decoration: none;
   color: var(--ct-subtext0);
-  font-size: 11px;
+  font-size: var(--jp-text-2xs);
 }
 
 /* Identity, not action (G-11): the anchor you are on is the one place
@@ -75,11 +75,11 @@ const fullScreen = computed(
 }
 
 .tab ion-icon {
-  font-size: 22px;
+  font-size: var(--jp-icon-md);
 }
 
 .tab ion-label {
-  font-size: 11px;
+  font-size: var(--jp-text-2xs);
 }
 
 /* G-9: above the breakpoint the rail carries these instead. */

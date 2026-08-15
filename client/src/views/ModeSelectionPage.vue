@@ -131,7 +131,7 @@ ion-card-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 1.1rem;
+  font-size: var(--jp-text-lg);
 }
 
 ion-card-content p {

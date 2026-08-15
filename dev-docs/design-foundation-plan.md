@@ -255,6 +255,41 @@ invent their magic numbers again.
 
 ## PR 3b — The type-scale migration
 
+**Status: done** — FR-21.5 extended, the G-13 amendment, and the gate's fourth rule.
+
+**Two things the plan did not foresee, both found by doing the migration.**
+
+The icon sites needed a *table*, not a carve-out. The plan said the gate would
+exempt icon sizing by rule; that was the wrong shape. `font-size` on an
+`ion-icon` is a glyph box, and the honest fix is a second scale
+(`--jp-icon-xs … 2xl`, six steps, each with an occupant among the 40 sites) —
+which needs no exemption at all and stops any later change to body copy from
+resizing every icon in the app.
+
+And the section label turned out to be an **unnamed role**, not 11 stray
+sizes. Nine screens had written it as a 16px semibold sentence and two as the
+small uppercase label the prototype actually specifies: the same element,
+two answers, neither written down. Migrating the nine onto a token would have
+put a 16px step into the table that the design does not use. `.jp-eyebrow`
+names it once — face, size, weight, tracking, case *and* colour, because a
+label that is not recessive stops being a label and nine call sites is nine
+chances to forget. **This is the one visible change in an otherwise mechanical
+pass**, which is why it shipped with before/after screenshots.
+
+The scale also grew one step: seven sites sat below 11px with nowhere to go, so
+`--jp-text-3xs` was added rather than the sites rounded up out of their
+layouts. A size the table does not have is a signal about the table — which is
+what `typography.css` said it would be when the scale shipped ahead of its
+callers.
+
+**Carve-outs, all by rule.** `letter-spacing: 0` is a reset: it declines a
+decision rather than making one, and a token for "none of the above" would
+claim otherwise. SVG text needed no rule at all in the end — inside a
+`viewBox` a font-size is in *user units*, so M2's ring label moved to an SVG
+attribute beside the other geometry (`cx`, `r`) and left CSS entirely.
+
+---
+
 The other half of PR 3, split off for the reason above. `typography.css`
 shipped `--jp-text-*` ahead of its callers on purpose; this is where they
 move onto it.

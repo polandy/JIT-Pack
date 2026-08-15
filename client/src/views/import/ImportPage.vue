@@ -165,7 +165,7 @@ setHeaderTitle(() => `Import · step ${step.value}/4`)
     <IonContent class="ion-padding">
       <!-- Step 1: file -->
       <section v-if="step === 1">
-        <h2 class="section-title">Spreadsheet (CSV)</h2>
+        <h2 class="section-title jp-eyebrow">Spreadsheet (CSV)</h2>
         <p class="hint">
           Rows are items (with category grouping rows), columns are trips with quantities. XLSX?
           Export it as CSV first.
@@ -185,7 +185,7 @@ setHeaderTitle(() => `Import · step ${step.value}/4`)
 
       <!-- Step 2: mapping -->
       <section v-if="step === 2">
-        <h2 class="section-title">Trips to import</h2>
+        <h2 class="section-title jp-eyebrow">Trips to import</h2>
         <IonList>
           <IonItem v-for="trip in trips" :key="trip.column">
             <IonCheckbox
@@ -222,7 +222,7 @@ setHeaderTitle(() => `Import · step ${step.value}/4`)
           >Each included trip needs a name and a year (e.g. 2024) or date.</IonNote
         >
 
-        <h2 class="section-title">Item column</h2>
+        <h2 class="section-title jp-eyebrow">Item column</h2>
         <IonSegment
           :value="String(itemColumn)"
           @ionChange="(e: CustomEvent) => (itemColumn = Number(e.detail.value))"
@@ -232,7 +232,7 @@ setHeaderTitle(() => `Import · step ${step.value}/4`)
           </IonSegmentButton>
         </IonSegment>
 
-        <h2 class="section-title">Category rows</h2>
+        <h2 class="section-title jp-eyebrow">Category rows</h2>
         <IonList class="category-list">
           <IonItem v-for="row in namedRows" :key="row.idx">
             <IonCheckbox
@@ -254,7 +254,7 @@ setHeaderTitle(() => `Import · step ${step.value}/4`)
 
       <!-- Step 3: dedup (FR-16.3) -->
       <section v-if="step === 3">
-        <h2 class="section-title">Possible duplicates</h2>
+        <h2 class="section-title jp-eyebrow">Possible duplicates</h2>
         <p class="hint">These imported names look like items you already have.</p>
         <IonList>
           <IonItem v-for="match in duplicates" :key="match.imported">
@@ -282,7 +282,7 @@ setHeaderTitle(() => `Import · step ${step.value}/4`)
 
       <!-- Step 4: confirm -->
       <section v-if="step === 4">
-        <h2 class="section-title">Summary</h2>
+        <h2 class="section-title jp-eyebrow">Summary</h2>
         <IonList>
           <IonItem lines="none">
             <IonLabel>
@@ -313,14 +313,12 @@ setHeaderTitle(() => `Import · step ${step.value}/4`)
 
 <style scoped>
 .section-title {
-  font-size: 1rem;
-  font-weight: 600;
   margin: 16px 0 8px;
 }
 
 .hint {
   color: var(--ion-color-medium);
-  font-size: 0.9rem;
+  font-size: var(--jp-text-base);
 }
 
 .paste-area {
@@ -340,7 +338,7 @@ setHeaderTitle(() => `Import · step ${step.value}/4`)
 }
 
 .category-label {
-  font-weight: 600;
+  font-weight: var(--jp-weight-semibold);
 }
 
 .merge-segment {
