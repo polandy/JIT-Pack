@@ -76,7 +76,7 @@ function conditionActive(key: string, value: string): boolean {
 function toggleCondition(key: string, value: string) {
   const pos = position.value
   if (!pos) return
-  const conditions: Record<string, unknown> = { ...(pos.conditions ?? {}) }
+  const conditions: Record<string, unknown> = { ...pos.conditions }
   if (conditions[key] === value) delete conditions[key]
   else conditions[key] = value
   update({ conditions: Object.keys(conditions).length ? JSON.stringify(conditions) : null })

@@ -1891,3 +1891,58 @@ Two Ionic locator lessons re-paid, one of them for the second time:
 `aria-disabled` on the custom element — the same family as the false-green
 `toBeEnabled()` this project already recorded), and a `getByRole('button')`
 inside an `ion-item button` matches the row itself.
+
+## 2026-08-15 — M8 rebuilt: the scope-shaped editor (§3.27, FR-27.2/27.4/27.6/27.7)
+
+The second screen rebuild, straight after M7 (#88), same worktree pattern.
+What landed, in the order it was built:
+
+**The plumbing first** — the client could read §3.27's schema but not write
+half of it. `template_includes` gains its two mutations and orchestrator
+wrappers (the M7 read side landed without them, deliberately);
+`template_item_tasks` gains everything — the type, master-table pull routing,
+store state with the position-delete cascade mirrored, both mutations. Two
+pure guards joined `domain/templates.ts`: `scopeSwitchBlock` (FR-27.6, both
+directions, deliberately directional) and `planningTripsUsing` (FR-27.4's
+warning surface: planning trips whose rows carry the template — or a Vorlage
+that includes it — as provenance). A Local Mode round trip proves the whole
+path touches no network. All four mutation checks ran red first: swapped
+guard directions, dropped planning filter, dropped include reachability,
+dropped task cascade.
+
+**The screen** — scope segment with guarded switch (refusals are anchored
+toasts naming the reason or the consumer; "Eingebunden in: …" stays visible
+on an included group), the Gruppen section with the picker (groups only,
+already-included hidden, "Neue Gruppe anlegen…" as an inline field — the M7
+B2 lesson applied, no `prompt()`, no row before a name), the FR-27.2
+resolution footer naming every merge with its contributors, the FR-27.4
+blast-radius note, name-sorted position rows with deviation chips or
+"Standard", and the FR-25.13 quick-add **reused, not copied**: QuickAddItem
+lost its unused `tripId`, gained `confirmLabel` (the scope-labelled commit)
+and `excludeItemIds` (a position the template carries is not suggested
+again). The position sheet is a new `PositionSheet.vue` in the as-built M5
+grammar: glance chips, Menge with a plain stepper (0 = "bewusst nicht dabei",
+FR-5.5), the FR-27.7 task list with the blocking rule stated inline, and
+assignment/procurement/dedup/conditions/Später-Packer behind "Details ▾".
+The M3 attribute catalogue moved to `lib/attributeLabels.ts` so the FR-15.2
+condition chips and the wizard's fold summary read one vocabulary. M7's
+long-press menu gained the rename and delete it had reserved space for —
+delete guarded like promotion: an included group names its consumer instead
+of cascading out of every Vorlage that builds on it.
+
+**Corrections against the spec, recorded as UI-Spec/UI-Test-Spec amendments:**
+no per-sheet auto-save indicator (the as-built M5 ships none; G-5 commits +
+G-2 in-flight reporting already state the fact), no swipe-to-delete and no
+reorder (no order column; the M7 render killed swipe-in-card), and the blast
+note deliberately also fires on a group reached through an including Vorlage.
+
+**Render pass:** built bundle, Local Mode, eight framed states (group editor,
+sheet collapsed/expanded, picker, composed Vorlage with merge line, inline
+group creation, guard toast, blast note both ways). One real defect caught on
+pixels, not in review: bottom toasts slid in behind the tab bar and cut the
+guard message in half — fixed with the M4 `positionAnchor` pattern on both
+M7 and M8. Mid-run the owner set a new standing rule: **Playwright runs on
+CI, not on this host** — the render pass was finished with one minimal
+re-shoot (three frames) and everything since, including the new
+`template-editor.spec.ts` (13 cases across three describes, closing
+E2E-M7-07's include half on the way), is verified by the CI e2e job only.
