@@ -10,7 +10,7 @@ Read this file fully before touching code. It is the orientation document: what 
 - Build: `go build ./...` (binary: `go build -o jitpackd ./cmd/jitpackd`)
 - Test: `go test ./... -race` — fast, no docker or network; store/api tests run against real in-memory SQLite
 - **Verify before finishing any change: `make ci`** — it mirrors the CI jobs 1:1 (gofmt, build, vet, race tests, coverage gates, golangci-lint, client lint/build/vitest), so green here predicts a green pipeline
-- Slow jobs, excluded from `make ci` on purpose: `make e2e` (needs Playwright browsers + a built bundle) and `make docker-build` (needs a docker daemon). `make all` runs everything.
+- Slow jobs, excluded from `make ci` on purpose: `make e2e` (needs Playwright browsers + a built bundle), `make visual` (baselines; `make visual-update` rewrites them — ADR-013) and `make docker-build` (needs a docker daemon). `make all` runs everything.
 - Coverage gates live once, in `scripts/coverage-gate.sh`, shared by `make cover` and the CI `go` job: **≥75 % overall, ≥90 % `internal/sync`**
 - Client only: `cd client && npm run dev` (Vite dev server), `npx vitest run`, `npm run build` (type-check + build)
 
@@ -81,9 +81,11 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
      7 `letter-spacing` sites across 31 screens are on the scale, icons have their own
      `--jp-icon-*` table, and the gate covers type. **The FR-25.2 pack-out is done too** — the
      row washes green, collapses and fades, with one undo snackbar and a `prefers-reduced-motion`
-     path. Remaining: visual baselines plus a dev gallery (owes ADR-013). Each acts
-     on every screen at once, which is why they come first: after six more rebuilds the same
-     gap would have been built six more times.
+     path. **Visual baselines are done too** (ADR-013): a `visual` Playwright project run by
+     `make visual` and its own CI job, both inside the digest-pinned Playwright image, plus a
+     dev-only component gallery at `/dev/gallery`. **The design foundation is complete.**
+     Each of its steps acted on every screen at once, which is why they came first: after six
+     more rebuilds the same gap would have been built six more times.
    * **The rebuilds themselves**, localized with `t()` from the first line. **M4 and M5 are
      done** (2026-08-14, PR #73): M4's header line, G-12 app-bar cluster, facet sheet that
      applies as you tap, clusters, folding, both reveal bars, the FR-25.17 stamp and the FAB
@@ -166,7 +168,7 @@ Test-first: every behaviour starts as a failing test that reads as its specifica
 - Don't duplicate the schema into docs, and don't duplicate an ADR's rationale into a code comment — a `// see ADR-00N` pointer is enough.
 - Don't judge a UI change from the stylesheet. Render it, look at it, and let the maintainer eyeball it before the Playwright case is finalized.
 - The `autoformat` CI job pushes `style:` commits back onto your branch. Pull before you push, or run `make fmt` yourself and keep it out of the way.
-- **CI/CD layout** (`.github/`): `ci.yml` (go, go-lint, client, e2e, autoformat, docker-build, dependabot-merge), `docker.yml` (ghcr.io on `v*` tags), `release.yml` (release-please). Dependabot merging is gated by the `dependabot-merge` job, which `needs` every check job. **`main` is protected** (configured 2026-08-08, now that the repo is public — the historical note that protection was blocked applied to the free-plan private repo). Required checks: `go`, `go-lint`, `client`, `docker-build`. Force-pushes and deletion are off, linear history is required (squash-merge produces it), admins are **not** exempt. Deliberately not set: `e2e` is not required, because it `needs: [client]` and a skipped required check blocks a PR with a less useful message than the client failure itself — `dependabot-merge` already waits for it. Review approvals are not required either: with a single maintainer that would block every merge and break Dependabot auto-merge. If a required check ever wedges, lift protection with `gh api -X DELETE repos/polandy/JIT-Pack/branches/main/protection`, merge, then re-apply.
+- **CI/CD layout** (`.github/`): `ci.yml` (go, go-lint, client, visual, e2e, autoformat, docker-build, dependabot-merge), `docker.yml` (ghcr.io on `v*` tags), `release.yml` (release-please). Dependabot merging is gated by the `dependabot-merge` job, which `needs` every check job. **`main` is protected** (configured 2026-08-08, now that the repo is public — the historical note that protection was blocked applied to the free-plan private repo). Required checks: `go`, `go-lint`, `client`, `docker-build`. Force-pushes and deletion are off, linear history is required (squash-merge produces it), admins are **not** exempt. Deliberately not set: `e2e` is not required, because it `needs: [client]` and a skipped required check blocks a PR with a less useful message than the client failure itself — `dependabot-merge` already waits for it. Review approvals are not required either: with a single maintainer that would block every merge and break Dependabot auto-merge. If a required check ever wedges, lift protection with `gh api -X DELETE repos/polandy/JIT-Pack/branches/main/protection`, merge, then re-apply.
 
 ## Deviations
 

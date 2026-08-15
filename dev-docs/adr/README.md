@@ -17,6 +17,8 @@ One file per decision, named `ADR-00N_Short_Title.md`, numbered in the order the
 | [009](ADR-009_Three_Run_Modes.md) | Three run modes from one artifact | Accepted |
 | [010](ADR-010_CSV_Only_Import.md) | Spreadsheet import accepts CSV only, not XLSX | Accepted |
 | [011](ADR-011_One_Header_Bar.md) | One header bar whose left slot switches, rather than a global bar plus per-screen headers | Accepted |
+| [012](ADR-012_One_Router_Outlet.md) | One router outlet, rather than Ionic's nested `IonTabs` outlet | Accepted |
+| [013](ADR-013_Visual_Baselines.md) | Visual baselines render in a digest-pinned container, not on the CI runner | Accepted |
 
 **Outbound Content Fetching** — `Vision_NorthStar` names this as the gate that must exist before any Plan-phase feature makes the server fetch external content. It had informally reserved number 007, which Session Brokering has since taken; it gets the next free number when it is written.
 

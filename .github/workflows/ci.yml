@@ -63,6 +63,42 @@ jobs:
       - run: npm run build # runs type-check and the production build
       - run: npx vitest run
 
+  # Visual baselines (ADR-013). Runs the tests *inside* the digest-pinned
+  # Playwright image rather than on the runner, which is the whole point:
+  # the maintainer regenerates baselines locally in the same image, so the
+  # two render in the same userland and a diff means a design change rather
+  # than a font-hinting difference. That is also why this job looks unlike
+  # the `e2e` job above — the inconsistency is deliberate and ADR-013 owns it.
+  #
+  # Not a required check, for the same reason `e2e` is not: it needs the
+  # client build, and a skipped required check blocks a PR with a less
+  # useful message than the build failure itself.
+  visual:
+    needs: [client]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+        working-directory: client
+      - run: npm run build # the visual project drives the built bundle
+        working-directory: client
+      # The image is pinned by digest in the Makefile, so this cannot drift
+      # from what `make visual` runs locally.
+      - run: make visual
+      # The actual-vs-expected images, so a red run can be judged without
+      # reproducing it.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: visual-diff
+          path: client/test-results/
+          retention-days: 7
+
   # Headless-browser E2E (dev-docs/UI_Test_Spec_v1.0.md). Drives the built
   # client (vite preview) in Chromium + WebKit. Gated after `client` so
   # it only runs on a green build; the backend-backed modes (single/
@@ -151,7 +187,7 @@ jobs:
   # the merge wait for green by construction. Major updates stay open
   # for manual review.
   dependabot-merge:
-    needs: [go, go-lint, client, e2e, docker-build]
+    needs: [go, go-lint, client, visual, e2e, docker-build]
     if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
