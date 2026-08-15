@@ -120,7 +120,7 @@ function onMinusUp() {
   background: none;
   cursor: pointer;
   color: var(--ion-text-color);
-  font-size: 16px;
+  font-size: var(--jp-icon-sm);
 }
 
 .stepper-btn:disabled {
@@ -135,12 +135,12 @@ function onMinusUp() {
 .stepper-count {
   min-width: 36px;
   text-align: center;
-  font-size: 0.85rem;
+  font-size: var(--jp-text-sm);
 }
 
 .stepper-count.complete {
   color: var(--ion-color-success);
-  font-weight: 600;
+  font-weight: var(--jp-weight-semibold);
 }
 
 .stepper-count.partial {

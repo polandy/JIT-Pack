@@ -170,12 +170,12 @@ setHeaderTitle(() => `Review · ${trip.value?.name ?? ''}`)
 }
 
 .card-icon {
-  font-size: 28px;
+  font-size: var(--jp-icon-lg);
   color: var(--ion-color-primary);
 }
 
 .card-text {
-  font-size: 1.05rem;
+  font-size: var(--jp-text-lg);
   margin: 8px 0 4px;
 }
 
@@ -192,7 +192,7 @@ setHeaderTitle(() => `Review · ${trip.value?.name ?? ''}`)
 }
 
 .done-icon {
-  font-size: 48px;
+  font-size: var(--jp-icon-xl);
 }
 
 .done-button {

@@ -53,7 +53,7 @@ const route = useRoute()
   padding: 12px 8px;
   text-decoration: none;
   color: var(--ion-color-medium);
-  font-size: 11px;
+  font-size: var(--jp-text-2xs);
   border-radius: var(--jp-r-sm);
   margin: 2px 8px;
   transition:
@@ -72,11 +72,11 @@ const route = useRoute()
 }
 
 .nav-rail-item ion-icon {
-  font-size: 24px;
+  font-size: var(--jp-icon-md);
 }
 
 .nav-rail-item ion-label {
-  font-size: 11px;
+  font-size: var(--jp-text-2xs);
 }
 
 @media (min-width: 900px) {

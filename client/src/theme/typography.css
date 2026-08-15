@@ -84,17 +84,32 @@
 
   /* UI scale. Unlike a role class, a scale is a table whose intermediate
      steps mean nothing on their own, so it ships whole rather than one
-     step at a time — and today it ships ahead of its callers: the 185
-     hand-written type declarations across the views move onto it in the
-     surfaces step of design-foundation-plan.md, together with the lint
-     gate that makes a bare px outside this file an error. Deliberate, not
-     a leftover. */
+     step at a time.
+
+     `3xs` was added when the views moved onto the scale: four sites
+     (a sync badge, an avatar tick, two micro-counts) sat below 11px and
+     had nowhere to go. That is the scale doing its job — a size the table
+     does not have is a signal about the table, which is why the step was
+     added rather than the sites rounded up out of their layouts. */
   --jp-text-lg: 17px;
   --jp-text-md: 15px;
   --jp-text-base: 14px;
   --jp-text-sm: 13px;
   --jp-text-xs: 12px;
   --jp-text-2xs: 11px;
+  --jp-text-3xs: 10px;
+
+  /* Icon scale — a separate table, because `font-size` on an `ion-icon`
+     is a *glyph box* and not a text size. Sharing the type scale would
+     have meant a 64px empty-state illustration reading as a heading, and
+     any later change to body copy silently resizing the icons with it.
+     Six steps, each with an occupant among the 40 icon sites. */
+  --jp-icon-xs: 14px; /* a caret inside a row                     */
+  --jp-icon-sm: 17px; /* an icon set beside a line of text        */
+  --jp-icon-md: 22px; /* an icon that is its own tap target       */
+  --jp-icon-lg: 28px; /* a feature mark in a card                 */
+  --jp-icon-xl: 40px; /* a summary or placeholder mark            */
+  --jp-icon-2xl: 64px; /* an empty-state illustration             */
 
   --jp-weight-regular: 400;
   --jp-weight-medium: 500;
@@ -105,6 +120,12 @@
   --jp-leading-tight: 1.2;
   --jp-leading-body: 1.45;
   --jp-tracking-display: -0.01em;
+  /* Tighter than display tracking, for a wordmark or a set of initials
+     where the glyphs are meant to read as one shape. */
+  --jp-tracking-tight: -0.02em;
+  /* Uppercase needs opening up or it sets as a block (prototype runs
+     .05–.14em across its label variants; one value here, not seven). */
+  --jp-tracking-label: 0.08em;
 
   /* Ionic derives every component's type from this one variable. */
   --ion-font-family: var(--jp-font-ui);
@@ -122,10 +143,9 @@ body {
 /* --- Role classes ---------------------------------------------------- */
 
 /*
- * Three sized roles, which is what the app uses today. G-13's fifth role
- * — the headline figure — has no screen yet, so it has no class yet: one
- * kept here in advance would be a token nobody can check against a
- * rendered pixel.
+ * The sized roles the app actually uses. G-13's headline figure still has
+ * no screen, so it still has no class: one kept here in advance would be a
+ * token nobody can check against a rendered pixel.
  */
 .jp-page-title {
   font-family: var(--jp-font-display);
@@ -149,6 +169,33 @@ body {
   font-size: var(--jp-text-display-sm);
   letter-spacing: var(--jp-tracking-display);
   line-height: var(--jp-leading-tight);
+}
+
+/*
+ * The label above a block — nine screens had written this out by hand as
+ * `.section-title`, character for character, differing only in margin.
+ * Nine copies of a declaration is a role that has not been named yet.
+ *
+ * It is not the 16px semibold line those copies were, though: the concept
+ * prototype answers this role definitively and answers it differently —
+ * small uppercase in the UI face, opened up, recessive (`.section-h`, and
+ * the `.cap`/`.lbl`/`label` variants beside it, all within 10.5–12px and
+ * .05–.14em). Migrating the nine onto a 16px token would have written a
+ * size into the table that the design does not use, so the role is defined
+ * as the prototype has it. That makes this the one visible change in an
+ * otherwise mechanical pass, which is why it ships with screenshots.
+ *
+ * The colour is part of the role rather than left to the nine call sites:
+ * a label that is not recessive stops being a label, and nine chances to
+ * remember that is nine chances to forget.
+ */
+.jp-eyebrow {
+  font-family: var(--jp-font-ui);
+  font-size: var(--jp-text-xs);
+  font-weight: var(--jp-weight-semibold);
+  letter-spacing: var(--jp-tracking-label);
+  text-transform: uppercase;
+  color: var(--ct-subtext0);
 }
 
 /*

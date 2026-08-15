@@ -412,7 +412,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
     <IonContent class="ion-padding">
       <!-- Step 1: metadata -->
       <section v-if="step === 1" data-testid="wizard-step-1">
-        <h2 class="section-title">{{ t('wizard.sectionTrip') }}</h2>
+        <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionTrip') }}</h2>
         <IonList>
           <IonItem>
             <IonInput
@@ -505,7 +505,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
               />
             </IonItem>
           </IonList>
-          <h2 class="section-title">{{ t('wizard.sectionAttributes') }}</h2>
+          <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionAttributes') }}</h2>
           <IonList>
             <IonItem>
               <IonSelect
@@ -566,7 +566,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
       <!-- Step 2: travelers -->
       <section v-if="step === 2" data-testid="wizard-step-2">
-        <h2 class="section-title">Travelers</h2>
+        <h2 class="section-title jp-eyebrow">Travelers</h2>
         <IonList v-if="travelers.length > 0">
           <IonItem v-for="(traveler, index) in travelers" :key="index">
             <IonIcon slot="start" :icon="personOutline" />
@@ -601,7 +601,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
         <!-- Sharing & roles (FR-4.5/4.7) — OIDC sessions only (G-8) -->
         <template v-if="collaborative">
-          <h2 class="section-title">Share with</h2>
+          <h2 class="section-title jp-eyebrow">Share with</h2>
           <IonList v-if="shares.length > 0">
             <IonItem v-for="(share, index) in shares" :key="share.userId">
               <IonLabel>{{ shareName(share.userId) }}</IonLabel>
@@ -650,7 +650,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
       <!-- Step 3: templates + preview -->
       <section v-if="step === 3" data-testid="wizard-step-3">
-        <h2 class="section-title">Templates</h2>
+        <h2 class="section-title jp-eyebrow">Templates</h2>
         <IonList v-if="masterStore.templateList.length > 0">
           <IonItem v-for="template in masterStore.templateList" :key="template.id">
             <IonCheckbox
@@ -694,7 +694,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
       <!-- Step 4: quantity review -->
       <section v-if="step === 4" data-testid="wizard-step-4">
-        <h2 class="section-title">Review quantities</h2>
+        <h2 class="section-title jp-eyebrow">Review quantities</h2>
         <IonList v-if="generation.items.length > 0">
           <IonItem v-for="(item, index) in generation.items" :key="index">
             <IonLabel>
@@ -733,7 +733,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
         <template
           v-if="companionResolution.required.length > 0 || companionResolution.deduped.length > 0"
         >
-          <h2 class="section-title">Companion items</h2>
+          <h2 class="section-title jp-eyebrow">Companion items</h2>
           <IonList v-if="companionResolution.required.length > 0">
             <IonItem v-for="c in companionResolution.required" :key="c.item_id">
               <IonLabel>
@@ -750,7 +750,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
         <!-- FR-20.4: suggested companions, one tap each -->
         <template v-if="companionResolution.suggested.length > 0">
-          <h2 class="section-title">Suggested companions</h2>
+          <h2 class="section-title jp-eyebrow">Suggested companions</h2>
           <IonList>
             <IonItem v-for="s in companionResolution.suggested" :key="s.item_id">
               <IonCheckbox
@@ -769,7 +769,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
         <!-- FR-13.3: destination checklist offer from the series profile -->
         <template v-if="offeredChecklist.length > 0">
-          <h2 class="section-title">Destination checklist</h2>
+          <h2 class="section-title jp-eyebrow">Destination checklist</h2>
           <IonItem lines="none">
             <IonCheckbox
               slot="start"
@@ -819,15 +819,15 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
   border: none;
   border-top: 1px solid var(--ct-surface0);
   color: var(--ct-subtext1);
-  font-size: 0.92rem;
-  font-weight: 600;
+  font-size: var(--jp-text-md);
+  font-weight: var(--jp-weight-semibold);
   text-align: start;
   cursor: pointer;
 }
 
 .more-row .caret {
   color: var(--ct-overlay0);
-  font-size: 14px;
+  font-size: var(--jp-icon-xs);
   transition: transform 0.18s ease;
 }
 
@@ -846,26 +846,24 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: end;
-  font-weight: 500;
-  font-size: 0.8rem;
+  font-weight: var(--jp-weight-medium);
+  font-size: var(--jp-text-sm);
   color: var(--ct-subtext0);
 }
 
 .section-title {
-  font-size: 1rem;
-  font-weight: 600;
   margin: 16px 0 8px;
 }
 
 .empty-hint {
   color: var(--ion-color-medium);
-  font-size: 0.9rem;
+  font-size: var(--jp-text-base);
   margin: 8px 0 16px;
 }
 
 .share-note {
   display: block;
-  font-size: 0.8rem;
+  font-size: var(--jp-text-sm);
   margin: 8px 0 16px;
 }
 
@@ -875,18 +873,18 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
 .preview-block {
   margin-top: 8px;
-  font-size: 0.9rem;
+  font-size: var(--jp-text-base);
 }
 
 .preview-block h3,
 .preview-block summary {
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: var(--jp-text-base);
+  font-weight: var(--jp-weight-semibold);
 }
 
 .dedup-note {
   display: block;
-  font-size: 0.8rem;
+  font-size: var(--jp-text-sm);
   margin: 4px 0;
 }
 
@@ -907,7 +905,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
   border-radius: var(--jp-r-md);
   background: transparent;
   color: var(--ion-color-primary);
-  font-size: 0.75rem;
+  font-size: var(--jp-text-xs);
   cursor: pointer;
 }
 

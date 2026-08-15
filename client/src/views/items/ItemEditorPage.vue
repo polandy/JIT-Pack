@@ -215,7 +215,7 @@ setHeaderTitle(() => item.value?.name ?? 'Item')
         </IonList>
 
         <!-- Reference photo (FR-22.1/22.5) -->
-        <h2 class="section-title">Photo</h2>
+        <h2 class="section-title jp-eyebrow">Photo</h2>
         <p class="section-hint">
           An optional reference photo, shared with everyone who sees this item. Resized
           automatically before upload.
@@ -253,7 +253,7 @@ setHeaderTitle(() => item.value?.name ?? 'Item')
         </div>
 
         <!-- Depends on / Companions (FR-20.1/20.4) -->
-        <h2 class="section-title">Depends on</h2>
+        <h2 class="section-title jp-eyebrow">Depends on</h2>
         <p class="section-hint">
           Only packed when its main item is on the trip — required joins automatically, suggested
           asks first.
@@ -316,7 +316,7 @@ setHeaderTitle(() => item.value?.name ?? 'Item')
         </div>
 
         <template v-if="companions.length > 0">
-          <h2 class="section-title">Companions</h2>
+          <h2 class="section-title jp-eyebrow">Companions</h2>
           <p class="section-hint">These items depend on {{ item.name }}:</p>
           <IonList>
             <IonItem v-for="dep in companions" :key="dep.id" lines="none">
@@ -339,15 +339,11 @@ setHeaderTitle(() => item.value?.name ?? 'Item')
 }
 
 .section-title {
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--ion-color-medium);
   margin: 24px 0 4px;
 }
 
 .section-hint {
-  font-size: 0.8rem;
+  font-size: var(--jp-text-sm);
   color: var(--ion-color-medium);
   margin: 0 0 8px;
 }
@@ -356,7 +352,7 @@ setHeaderTitle(() => item.value?.name ?? 'Item')
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.8rem;
+  font-size: var(--jp-text-sm);
   margin: 8px 0;
 }
 
@@ -381,7 +377,7 @@ setHeaderTitle(() => item.value?.name ?? 'Item')
   align-items: center;
   justify-content: center;
   color: var(--ion-color-medium);
-  font-size: 2rem;
+  font-size: var(--jp-icon-xl);
 }
 
 .photo-actions {

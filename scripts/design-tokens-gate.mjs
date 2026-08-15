@@ -57,6 +57,24 @@ const RULES = [
     allow: (line) => /box-shadow:\s*(?:none|var\(|0 0 0 [\d.]+px\b)/.test(line),
     why: 'elevation belongs to src/theme/surfaces.css — use --jp-shadow, --jp-shadow-sheet or --jp-shadow-panel',
   },
+  {
+    id: 'raw-type',
+    match: /(?:^|[;{\s])(?:font-size|font-weight|font-family|letter-spacing):\s*(?!var\()[^;]*\S/,
+    // Two carve-outs, both by rule:
+    //
+    // `letter-spacing: 0` and `normal` are *resets* — a rule undoing a
+    // tracking it inherited. There is no token for "none of the above"
+    // and inventing one would say a design decision was made where one
+    // was declined.
+    //
+    // SVG text is not covered here at all, and cannot be: inside a
+    // viewBox its font-size is in user units, a proportion of the drawing
+    // rather than a size on screen. Those live as an SVG attribute in the
+    // template, beside the other geometry, which keeps them out of CSS
+    // and so out of this rule's way.
+    allow: (line) => /(?:letter-spacing|font-[a-z]+):\s*(?:var\(|normal\b|0\s*;)/.test(line),
+    why: 'type belongs to src/theme/typography.css — use --jp-text-*, --jp-icon-*, --jp-weight-*, --jp-tracking-* or a .jp-* role class',
+  },
 ]
 
 /**
@@ -112,4 +130,4 @@ if (findings.length > 0) {
   process.exit(1)
 }
 
-console.log('design-tokens-gate: ok — colour, radius and elevation all come from the token tables')
+console.log('design-tokens-gate: ok — colour, type, radius and elevation all come from the token tables')

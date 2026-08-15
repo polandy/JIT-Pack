@@ -338,7 +338,12 @@ async function handleRefresh(event: CustomEvent) {
                       :stroke-dasharray="`${progressPercent(trip)} 100`"
                       stroke-linecap="round"
                     />
-                    <text x="18" y="20.5" class="ring-text">{{ progressPercent(trip) }}%</text>
+                    <!-- font-size is an SVG attribute, not CSS: inside viewBox="0 0 36 36"
+                       it is 9 *user units*, a proportion of the ring, and a px token
+                       from the type scale would be meaningless here. -->
+                    <text x="18" y="20.5" font-size="9" class="ring-text">
+                      {{ progressPercent(trip) }}%
+                    </text>
                   </svg>
                 </div>
                 <IonLabel>
@@ -429,7 +434,7 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 .empty-icon {
-  font-size: 64px;
+  font-size: var(--jp-icon-2xl);
   margin-bottom: 16px;
 }
 
@@ -461,7 +466,7 @@ async function handleRefresh(event: CustomEvent) {
 .series-header {
   --background: transparent;
   --padding-start: 4px;
-  font-weight: 600;
+  font-weight: var(--jp-weight-semibold);
 }
 
 /* Progress ring */
@@ -486,7 +491,6 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 .ring-text {
-  font-size: 9px;
   text-anchor: middle;
   fill: var(--ion-text-color);
   transform: rotate(90deg);

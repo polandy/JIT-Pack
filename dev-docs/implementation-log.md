@@ -1562,3 +1562,59 @@ this is the honest answer rather than a workaround.
 Worth keeping beside the false-green rule: **a plausible symmetry is a
 claim, and a claim about pixels is checked by reading pixels.** "Latte casts
 softer" was written from the alpha, which is the input, not the result.
+
+### 2026-08-15 — The type migration: 170 declarations onto the scale (FR-21.5, G-13)
+
+The other half of the split PR 3. The typography step shipped `--jp-text-*`
+ahead of its callers on purpose; this is where the 123 `font-size`, 40
+`font-weight` and 7 `letter-spacing` sites across 31 screens moved onto it,
+and where the gate grew its fourth rule.
+
+**Most of it was mechanical. Three things were not, and none was visible
+before doing the work.**
+
+*Icons needed a table, not an exemption.* The plan had said the gate would
+carve out icon sizing "by rule rather than by allowlist". That was the wrong
+shape: `font-size` on an `ion-icon` is a **glyph box**, not a text size, and
+an exemption would have left 40 sites unowned. A second scale
+(`--jp-icon-xs … 2xl`, six steps, each with a real occupant) needs no
+exemption at all, and it stops the thing an exemption would have permitted —
+a later adjustment to body copy silently resizing every icon in the app.
+
+*The section label was an unnamed role, not eleven stray sizes.* Nine screens
+carried it as a 16px semibold sentence; two carried it as the small uppercase
+label the concept prototype actually specifies. Same element, two answers,
+neither of them written down anywhere. Migrating the nine onto a token would
+have put a 16px step into the table that the design does not use — the token
+table would have been recording a mistake rather than a decision. `.jp-eyebrow`
+names it once, and owns colour as well as type: a label that is not recessive
+stops being a label, and leaving that to nine call sites is nine chances to
+forget. **This is the one visible change in an otherwise mechanical pass**, so
+it shipped with before/after screenshots rather than as a footnote.
+
+*The scale grew where the app pushed on it.* Four sites — a sync badge, an
+avatar tick, two micro-counts — sat below 11px with nowhere to go, so
+`--jp-text-3xs` was added rather than the sites rounded up out of their
+layouts. That is the mechanism `typography.css` predicted when the scale
+shipped ahead of its callers: a size the table does not have is a signal about
+the table.
+
+**Two carve-outs, both by rule.** `letter-spacing: 0` is a reset — it declines
+a decision rather than making one, and a token for "none of the above" would
+claim otherwise. SVG text needed no gate rule in the end: inside a `viewBox` a
+font-size is in **user units**, a proportion of the drawing, so M2's ring label
+moved to an SVG attribute beside `cx` and `r` and left CSS entirely. A px token
+there would have rendered at 10/36 of the ring's width.
+
+**Every new guard was proved red against its own defect** before being kept —
+a seventh icon step, the missing `3xs`, a screen restating the eyebrow, a
+screen claiming the class without the role, and both e2e cases (the eyebrow
+reduced back to a sentence, and an icon sized from the text scale). That
+check is now routine here rather than a reaction to the four false greens in
+the surfaces step.
+
+**One process note, paid for.** `git checkout <file>` was used to undo a test
+probe in a file that also held uncommitted migration work, and took the
+migration with it. The probe pattern used everywhere else in these PRs — copy
+to `/tmp`, restore from there — does not have that failure mode. The gate
+caught the loss immediately, which is the argument for having it.

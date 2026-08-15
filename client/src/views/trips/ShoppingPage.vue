@@ -146,7 +146,7 @@ setHeaderTitle(() => `Shopping · ${trip.value?.name ?? ''}`)
 }
 
 .empty-icon {
-  font-size: 64px;
+  font-size: var(--jp-icon-2xl);
   margin-bottom: 16px;
 }
 </style>

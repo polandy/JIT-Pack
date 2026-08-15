@@ -223,18 +223,18 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 .empty-icon {
-  font-size: 64px;
+  font-size: var(--jp-icon-2xl);
   margin-bottom: 16px;
 }
 
 .trip-dates {
-  font-size: 0.85rem;
+  font-size: var(--jp-text-sm);
   color: var(--ion-color-medium);
   margin: 4px 0 0;
 }
 
 .item-summary {
-  font-size: 0.9rem;
+  font-size: var(--jp-text-base);
   color: var(--ion-color-medium);
   margin-bottom: 8px;
 }
@@ -244,13 +244,13 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 .qty-badge {
-  font-size: 0.8rem;
+  font-size: var(--jp-text-sm);
   color: var(--ion-color-medium);
   margin-left: 8px;
 }
 
 .more-items {
-  font-size: 0.85rem;
+  font-size: var(--jp-text-sm);
   color: var(--ion-color-primary);
   padding-left: 40px;
   margin-top: 4px;
@@ -266,14 +266,14 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 .prep-item-name {
-  font-weight: 600;
-  font-size: 0.9rem;
+  font-weight: var(--jp-weight-semibold);
+  font-size: var(--jp-text-base);
   margin: 0 0 4px;
 }
 
 .prep-trip-label {
-  font-weight: 400;
-  font-size: 0.8rem;
+  font-weight: var(--jp-weight-regular);
+  font-size: var(--jp-text-sm);
   color: var(--ion-color-medium);
   margin-left: 8px;
 }
