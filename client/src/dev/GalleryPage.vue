@@ -33,8 +33,8 @@ const packed = ref(2)
     <IonContent class="gallery ion-padding">
       <h1 class="jp-page-title">Gallery</h1>
       <p class="intro">
-        Development only — this route is absent from a production build. States that need a
-        trip live on the real screens; what is here is everything that does not.
+        Development only — this route is absent from a production build. States that need a trip
+        live on the real screens; what is here is everything that does not.
       </p>
 
       <h2 class="section-title jp-eyebrow">Type roles</h2>
