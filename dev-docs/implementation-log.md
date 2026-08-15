@@ -1951,3 +1951,17 @@ CI, not on this host** — the render pass was finished with one minimal
 re-shoot (three frames) and everything since, including the new
 `template-editor.spec.ts` (13 cases across three describes, closing
 E2E-M7-07's include half on the way), is verified by the CI e2e job only.
+
+**Two determinism defects the first CI round surfaced**, both instances of
+known patterns. (1) E2E-M7-07 collects the `.section-head` sequence with a
+one-shot `allInnerTexts()`, and the M8 rebuild gave the editor the same
+class — during the back transition the outgoing editor still counts as a
+visible page, so the collection read both screens at once. The e2e helpers
+now treat "back on M7" as *settled* (the editor's scope switch gone from
+the visible page), not merely *arrived* — the same one-visible-page lesson
+the M7 round taught, applied to a locator that spans pages. (2) The visual
+dashboard baseline encodes "Good morning", so the `visual` job was green
+only inside the baseline's own time-of-day window — #87 and #88 passed it
+by scheduling luck. The `freeze()` stub now pins `Date.prototype.getHours`
+beside the existing `randomUUID` stub; `Date.now()` stays untouched (the
+#87 finding: freezing it silently breaks the Local Mode write path).
