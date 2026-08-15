@@ -2,7 +2,7 @@
 # Each target maps 1:1 to a CI job or step, so a green `make ci` predicts a
 # green pipeline. When you change a job in ci.yml, change its target here.
 .PHONY: ci build vet fmt fmt-check test cover tidy-check go-lint \
-        client client-deps client-lint client-build client-test client-fmt \
+        client client-deps client-lint client-tokens client-build client-test client-fmt \
         e2e docker-build all
 
 ## --- toolchain -------------------------------------------------------------
@@ -90,7 +90,7 @@ tidy-check:
 ## --- client job -----------------------------------------------------------
 # CI lints without --fix; the package scripts fix in place. Check, don't fix,
 # so the local run fails on the same things CI does.
-client: client-lint client-build client-test
+client: client-lint client-tokens client-build client-test
 
 # `npm ci` is CI's first client step. Locally it only needs to rerun when the
 # lockfile moved, so hang it off the stamp npm itself writes — otherwise every
@@ -107,6 +107,12 @@ client-deps: $(CLIENT_DEPS)
 client-lint: $(CLIENT_DEPS)
 	cd client && $(RUN) npx oxlint .
 	cd client && $(RUN) npx eslint .
+
+# Invariant 9b: the three token tables own colour, type and shape; a view
+# that decides one for itself is an error. Node built-ins only, so unlike
+# every other client target it needs no install.
+client-tokens:
+	$(RUN) node scripts/design-tokens-gate.mjs
 
 client-build: $(CLIENT_DEPS)
 	cd client && $(RUN) npm run build

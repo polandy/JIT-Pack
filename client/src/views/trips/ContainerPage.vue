@@ -260,7 +260,7 @@ setHeaderTitle(() => `Luggage · ${trip.value?.name ?? ''}`)
 
 .container-card {
   border: 1px solid var(--ion-color-light-shade);
-  border-radius: 8px;
+  border-radius: var(--jp-r-sm);
   padding: 12px;
   margin-bottom: 12px;
 }
@@ -285,7 +285,7 @@ setHeaderTitle(() => `Luggage · ${trip.value?.name ?? ''}`)
 
 .weight-bar {
   height: 8px;
-  border-radius: 4px;
+  border-radius: var(--jp-r-pill);
   background: var(--ion-color-light);
   overflow: hidden;
   margin: 6px 0;
@@ -293,7 +293,7 @@ setHeaderTitle(() => `Luggage · ${trip.value?.name ?? ''}`)
 
 .weight-fill {
   height: 100%;
-  border-radius: 4px;
+  border-radius: var(--jp-r-pill);
   transition: width 0.2s ease;
 }
 

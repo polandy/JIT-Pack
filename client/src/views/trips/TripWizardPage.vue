@@ -904,7 +904,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
   margin-top: 4px;
   padding: 2px 8px;
   border: 1px solid var(--ion-color-primary);
-  border-radius: 12px;
+  border-radius: var(--jp-r-md);
   background: transparent;
   color: var(--ion-color-primary);
   font-size: 0.75rem;

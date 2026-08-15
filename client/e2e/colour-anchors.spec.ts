@@ -159,7 +159,9 @@ test('G-11: the brand and its rgb twin resolve to one colour, in both flavours @
   for (const theme of ['mocha', 'latte'] as const) {
     await seedMode({ mode: 'local', theme })
     await page.goto('/')
-    await expect(page.locator('html')).toHaveClass(theme === 'latte' ? /jitpack-latte/ : /^(?!.*jitpack-latte).*$/)
+    await expect(page.locator('html')).toHaveClass(
+      theme === 'latte' ? /jitpack-latte/ : /^(?!.*jitpack-latte).*$/,
+    )
 
     const [brand, twin] = await Promise.all([
       toBytes(page, await roleToken(page, '--jp-brand')),

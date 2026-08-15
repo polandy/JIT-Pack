@@ -370,7 +370,7 @@ setHeaderTitle(() => item.value?.name ?? 'Item')
 .photo-placeholder {
   width: 96px;
   height: 96px;
-  border-radius: 12px;
+  border-radius: var(--jp-r-md);
   flex: none;
   object-fit: cover;
   background: var(--ion-color-light);
@@ -390,7 +390,7 @@ setHeaderTitle(() => item.value?.name ?? 'Item')
 
 .main-picker {
   border: 1px solid var(--ion-color-primary);
-  border-radius: 8px;
+  border-radius: var(--jp-r-sm);
   padding: 8px;
   margin-top: 8px;
 }

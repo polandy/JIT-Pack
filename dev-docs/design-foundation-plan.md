@@ -1,6 +1,6 @@
 # The design foundation — what to build before the next screen rebuild
 
-**Status:** agreed with the owner 2026-08-14, not started.
+**Status:** agreed with the owner 2026-08-14. PRs 1–3 are merged or ready; the plan's five steps became six when PR 3 split (see there). 
 **Sequencing:** this comes **before** the remaining screen rebuilds in CLAUDE.md
 "Not built yet" item 3 (M7/M8, M9/M10, M11, M12, M14).
 
@@ -150,6 +150,75 @@ Amend G-11 in the UI-Spec to name the three roles.
 
 ## PR 3 — Surfaces and token table 9b
 
+**Status: done** — FR-21.8, G-14, invariant 9b.
+
+**Split while implementing, and the split is the main correction to this
+plan.** PR 3 as written bundled four migrations that each rewrite how every
+screen looks: the card planes, the radius scale, the elevation tokens, *and*
+the 123 raw `font-size` sites the typography step deliberately shipped its
+scale ahead of. One PR containing all four cannot be eyeballed — a
+regression in any one of them is indistinguishable from an intended change
+in the other three, and the eyeball pass is the one gate a token PR cannot
+be judged without. So this PR shipped **shape**: planes, radius, elevation,
+`.jp-card`, and a gate covering colour, radius and elevation. **The type
+migration is PR 3b**, still ahead of the screen rebuilds, and it extends the
+same gate to the type properties. `typography.css` promised that migration
+in a comment; the promise is kept, one step later.
+
+**The spacing scale in the list below was dropped, deliberately.** With the
+gate scoped to colour, radius and elevation, a `--jp-space-*` table would
+have had no consumers and no gate — a token nobody can check against a
+rendered pixel, which is exactly the thing PR 1 removed a class for. The 227
+padding/margin/gap sites are also not one decision: unlike a radius, which
+is a property of *what kind of thing* an element is, spacing is a property
+of a particular layout. It comes back if and when a rhythm is actually
+shared.
+
+**Two things found while implementing.**
+
+The five-step radius scale is smaller than the nine values it replaced
+because three of them collapsed rather than snapped. Every stray 2/4/7 px
+was **half the height of the bar or handle it rounded** — they were all
+saying "fully round", so they became one `--jp-r-pill` rather than a
+fourth small step. `50%` stayed raw: a circle is a shape, not a size, and
+the gate allows it by rule.
+
+The gate itself had the defect it exists to prevent, and found it by being
+run: from the wrong working directory it globbed **zero files and reported
+"ok"**. A gate that scans nothing must never pass, so an empty sweep now
+exits non-zero. The same shape as the false-green tests below.
+
+**Two more defects, both found by rendering the Latte edge the owner asked
+about.** Routing `--ion-item-background` through the card plane also
+repainted every `ion-list`, because Ionic reads the same variable for the
+list itself — so a list laid a card-coloured slab a few pixels wider than
+the cards on it and each card's shadow fell onto its own container. The
+tell was that the pixels under a card edge measured *lighter* than the
+page, which is the one thing a shadow cannot be. `ion-list:has(.jp-card)`
+states the actual condition and, not incidentally, outranks Ionic's own
+`.list-md`, which a bare element selector does not.
+
+And the numbers then contradicted what this plan and the specs had claimed.
+Latte was described as casting "far softer" than Mocha. Measured off the
+rendered pixels, Latte darkens the page by **49/765** and Mocha by
+**10/765** — five times as hard at a third of the alpha. The cause is
+structural: crust sits seven units below mantle, so a shadow cast in crust
+on a mantle page cannot darken by more than seven units however hard it is
+thrown. **The dark flavour lifts by the plane step and the light one by the
+shadow**, each using what its ground supports. Raising Mocha's alpha buys
+nothing; the palette has no colour below crust to cast in, and inventing
+one would be a second palette.
+
+**The Latte shadow case was false-green on the first write.** It asserted
+the shadow ink is darker than the card — which Latte's *crust* satisfies
+(676 against the card's 725) — so substituting Mocha's ink in passed a test
+written to catch exactly that substitution. What a shadow actually has to
+be is darker than every **surface** in the flavour. Third occurrence of the
+one shape: a test that asserts a rule is *stated* is not a test that it
+*holds*.
+
+---
+
 `catppuccin.css` carries colour and nothing else — a grep for `--space`,
 `--radius`, `--gap`, `--font`, `--shadow` across `client/src` returns **zero
 hits**, while the client holds 185 hand-written typographic declarations and
@@ -183,6 +252,26 @@ same shape as `scripts/coverage-gate.sh` — rejecting raw hex/`rgb()` and bare
 `px` in `client/src` outside the token files, with a narrow allowlist. Wire it
 into `make ci` and the client CI job. Without the gate the next six screens
 invent their magic numbers again.
+
+## PR 3b — The type-scale migration
+
+The other half of PR 3, split off for the reason above. `typography.css`
+shipped `--jp-text-*` ahead of its callers on purpose; this is where they
+move onto it.
+
+**123 `font-size` declarations across the views, in 36 distinct values** —
+and they are not all type. Eight are `64px` on an `ion-icon`, where
+`font-size` is a *glyph dimension* rather than a text size; the migration
+has to tell those apart, which is why it is judgment per site rather than a
+sweep. 40 `font-weight` and 7 `letter-spacing` sites come with them.
+
+Then extend `scripts/design-tokens-gate.mjs` with a fourth rule covering
+`font-size`/`font-weight`/`letter-spacing` outside the token tables, with
+icon sizing carved out by rule rather than by allowlist — the same standard
+the `50%` and ring carve-outs meet.
+
+**Done when** no view names a size the scale does not have, and the gate
+would fail if one did.
 
 ## PR 4 — Pack-out choreography and undo
 

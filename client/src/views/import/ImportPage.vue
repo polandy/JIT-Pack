@@ -326,7 +326,7 @@ setHeaderTitle(() => `Import · step ${step.value}/4`)
 .paste-area {
   margin: 12px 0;
   border: 1px solid var(--ion-color-light-shade);
-  border-radius: 8px;
+  border-radius: var(--jp-r-sm);
   padding: 4px 8px;
 }
 
