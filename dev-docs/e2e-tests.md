@@ -230,3 +230,13 @@ every tag instead of its primary one drops two of those cases.
    stable — which surfaces as a 30 s click timeout, not as a wrong-element
    error. The `visible()` helper exists for exactly this and has to be used
    everywhere, not only where an assertion looked ambiguous.
+5. **A settle wait belongs in a helper, not inline.** Committing the
+   creation form does a `router.replace`, and going back immediately
+   overlaps two outlet transitions — after which `ion-router-outlet`
+   intercepts pointer events and the *next* tap never lands, 30 s later,
+   with nothing resembling a navigation error. One case created its item
+   inline and so missed the wait the shared helper already had; the two
+   cases were byte-for-byte identical in navigation and differed only in
+   that. It is now `commitNewItem()`, used by both, so the omission cannot
+   recur silently. That comparison is also what found it: E2E-M10-03 passes
+   the identical sequence, which ruled the navigation itself out.
