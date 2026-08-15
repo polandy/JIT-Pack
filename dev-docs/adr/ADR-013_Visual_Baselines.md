@@ -91,6 +91,7 @@ Visual baselines run **Chromium only, inside the `mcr.microsoft.com/playwright` 
 **Negative / accepted costs**
 
 - **A second browser mechanism in CI.** `e2e` on the runner, `visual` in the container. `ci.yml` carries a comment saying why; without it this reads as an inconsistency somebody forgot to clean up.
+- **This digest is not Dependabot's.** Its docker ecosystem reads Dockerfiles and compose files, not shell scripts, so `scripts/visual.sh` is bumped by hand — the one pin in the repository that is. That cuts both ways and is worth stating rather than glossing: the image can fall behind silently, and equally, a bump cannot arrive unannounced on a Tuesday and rewrite every baseline. Invariant 8 in `CLAUDE.md` names the exception so the general claim there stays true.
 - **Digest bumps rewrite every baseline.** The diff will be large and genuinely unreviewable image-by-image; the honest review is "the digest changed, the images changed, spot-check a few".
 - **PNGs in the repository.** They grow the clone, and they grow it permanently — git keeps every version. This is the cost that would eventually force a revisit.
 - **WebKit is not covered visually.** It stays covered behaviourally by the `e2e` job. A WebKit-only rendering bug will not be caught by a baseline.

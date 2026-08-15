@@ -1764,3 +1764,16 @@ runs, over a tool the baselines never touch. The invocation moved into
 `scripts/visual.sh`, which `make visual` and the workflow both call: the same
 two-callers shape as `scripts/coverage-gate.sh`, and the thing that must not
 drift is the invocation rather than a digest copied into two files.
+
+**And one gap the review found in the pin itself.** Dependabot's docker
+ecosystem reads Dockerfiles and compose files, not shell scripts — so the
+digest in `scripts/visual.sh` is the one pin in the repository it will never
+update. Invariant 8 previously claimed, without qualification, that
+Dependabot keeps the digests fresh; it now names the exception, because a
+blanket claim with a silent hole is worse than a narrower true one. The
+manual bump is also the behaviour ADR-013 wants: a new image rewrites every
+baseline, and that should be a decision rather than a Tuesday.
+
+The `client/e2e/README.md` recipe was stale too — it named the v1.61.1 image
+while `@playwright/test` is 1.62.1, which fails at browser launch with
+exactly the error the surrounding paragraph warns about.
