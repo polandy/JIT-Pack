@@ -7,7 +7,7 @@
 
 import type { Mutation, MutationOp } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
-import type { ItemMode } from '@/types/domain'
+import type { ItemMode, TemplateKind } from '@/types/domain'
 
 export function useMutations(hlc: HLCGenerator) {
   function make(
@@ -532,11 +532,16 @@ export function useMutations(hlc: HLCGenerator) {
 
   // --- Template mutations ---
 
-  function createTemplate(name: string, ownerId: string): { mutation: Mutation; id: string } {
+  function createTemplate(
+    name: string,
+    ownerId: string,
+    kind: TemplateKind = 'template',
+  ): { mutation: Mutation; id: string } {
     const id = crypto.randomUUID()
     const mutation = make('insert', 'templates', id, {
       owner_id: ownerId,
       name,
+      kind,
     })
     return { mutation, id }
   }
