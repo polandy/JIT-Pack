@@ -17,7 +17,7 @@
 
 ### Option A — Chromium only, inside the digest-pinned Playwright container, locally and in CI *(recommended, accepted)*
 
-A separate Playwright project (`visual`) excluded from the default run, executed by `make visual` and by a CI job that runs the tests **inside `mcr.microsoft.com/playwright` pinned by digest**. The same image renders the baselines on the maintainer's machine and checks them in CI, so the two agree byte for byte. WebKit is excluded: a second engine doubles the baselines and the review burden while guarding the same CSS.
+A separate Playwright project (`visual`) excluded from the default run, executed by `scripts/visual.sh` — which `make visual` and the CI job both call — running the tests **inside `mcr.microsoft.com/playwright` pinned by digest**. The script rather than the Makefile because a GitHub runner has neither `golangci-lint` nor `mise`, so `make` fails there on its parse-time toolchain guard before any recipe runs, over a tool the baselines do not use. The same image renders the baselines on the maintainer's machine and checks them in CI, so the two agree byte for byte. WebKit is excluded: a second engine doubles the baselines and the review burden while guarding the same CSS.
 
 **Pros**
 

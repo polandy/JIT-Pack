@@ -124,29 +124,21 @@ client-fmt: $(CLIENT_DEPS)
 	cd client && $(RUN) npx prettier --check --experimental-cli src/
 
 ## --- visual baselines (ADR-013) -------------------------------------------
-# Chromium only, inside the Playwright image pinned by digest (invariant 8),
-# so the maintainer's machine and CI render in the same userland. Excluded
-# from `make ci` and from `npm run test:e2e`: a baseline check belongs to the
-# review loop, not to every test run.
+# The invocation lives in scripts/visual.sh, which CI calls directly: a
+# GitHub runner has no golangci-lint and no mise, so `make` there fails on
+# the parse-time toolchain guard above before any recipe runs — on a tool
+# the baselines do not use. Same two-callers reasoning as
+# scripts/coverage-gate.sh.
 #
-# The tag beside the digest is the readable half and must match the
-# @playwright/test version in client/package-lock.json — a mismatch fails at
-# browser launch with "Executable doesn't exist".
-PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e # v1.62.1-noble
-
-# --user/HOME are not optional: without them the run leaves root-owned files
-# in the worktree that `git worktree remove` then cannot delete.
-VISUAL_RUN = docker run --rm --user $$(id -u):$$(id -g) -e HOME=/tmp -e CI=1 \
-	--network host -v "$$PWD:/w" -w /w/client $(PLAYWRIGHT_IMAGE) \
-	npx playwright test --project=visual-mobile --project=visual-desktop
-
+# Excluded from `make ci` and from `npm run test:e2e`: a baseline check
+# belongs to the review loop, not to every test run.
 visual: client-build
-	$(VISUAL_RUN)
+	scripts/visual.sh
 
 # Rewrites every baseline. The resulting image diff is the review — an
 # intended visual change should be visible in the PR that causes it.
 visual-update: client-build
-	$(VISUAL_RUN) --update-snapshots
+	scripts/visual.sh --update-snapshots
 
 ## --- e2e job --------------------------------------------------------------
 # Needs the Playwright browsers (`npx playwright install chromium webkit`) and

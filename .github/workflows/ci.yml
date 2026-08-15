@@ -87,9 +87,10 @@ jobs:
         working-directory: client
       - run: npm run build # the visual project drives the built bundle
         working-directory: client
-      # The image is pinned by digest in the Makefile, so this cannot drift
-      # from what `make visual` runs locally.
-      - run: make visual
+      # The same script `make visual` runs, called directly: `make` itself
+      # would fail here on its parse-time toolchain guard, which wants
+      # golangci-lint — a tool the baselines do not use.
+      - run: scripts/visual.sh
       # The actual-vs-expected images, so a red run can be judged without
       # reproducing it.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

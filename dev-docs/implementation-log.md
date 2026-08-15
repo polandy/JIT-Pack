@@ -1756,3 +1756,11 @@ reported "No tests found" — an error rather than a pass, which is the only
 reason it was caught immediately. And `reducedMotion` does not type-check as
 a project-level `use` option in this Playwright version; it belongs in the
 spec, where `pack-out.spec.ts` already had it.
+
+**One thing caught before CI rather than by it.** The visual job first called
+`make visual`, and a GitHub runner has neither `golangci-lint` nor `mise` —
+so `make` fails there on its parse-time toolchain guard, before any recipe
+runs, over a tool the baselines never touch. The invocation moved into
+`scripts/visual.sh`, which `make visual` and the workflow both call: the same
+two-callers shape as `scripts/coverage-gate.sh`, and the thing that must not
+drift is the invocation rather than a digest copied into two files.
