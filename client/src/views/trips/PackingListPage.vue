@@ -42,6 +42,7 @@ import {
   IonFab,
   IonFabButton,
   IonModal,
+  toastController,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -82,6 +83,7 @@ import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { usePackingFilter } from '@/composables/usePackingFilter'
+import { usePackUndo, type PackUndoRecord } from '@/composables/usePackUndo'
 import { buildPackingView, FACET_KEYS, NO_VALUE, type PackingRow } from '@/domain/packingView'
 import { relativeStamp } from '@/domain/stamp'
 import { currentLocale, t } from '@/i18n'
@@ -532,15 +534,121 @@ function onDecrement(item: TripItem) {
 }
 
 function onComplete(item: TripItem) {
-  orchestrator.packComplete(props.tripId, item)
+  const name = item.name
+  packUndo.packWithUndo(item, () => orchestrator.packComplete(props.tripId, item))
+  void announcePacked(name)
 }
 
 function onZero(item: TripItem) {
   orchestrator.packZero(props.tripId, item)
 }
 
+/* --- FR-25.2: the pack registers, and it can be taken back ------------ */
+
+/**
+ * The duration lives in CSS only. The hook below waits on `transitionend`
+ * rather than on a number, so there is nothing here to keep in step — an
+ * earlier version declared the 300 ms twice on the theory that both sides
+ * needed it, and the second copy was never read.
+ */
+
+/** Honoured for the row collapse as well as the flash — checked live, since
+ *  the setting can change while the screen is open. */
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+
+/**
+ * Collapse a leaving row to zero height.
+ *
+ * `height: auto` does not animate, so the height is measured and pinned
+ * before being driven to 0 — the one thing CSS alone cannot express here.
+ * With reduced motion the hook finishes immediately, which removes the row
+ * on the next frame exactly as it did before this feature.
+ */
+function onRowLeave(el: Element, done: () => void) {
+  const node = el as HTMLElement
+  if (reducedMotion.matches) {
+    done()
+    return
+  }
+  node.style.height = `${node.offsetHeight}px`
+  // Read back, or the browser coalesces both writes and nothing transitions.
+  void node.offsetHeight
+  node.style.height = '0'
+  node.addEventListener('transitionend', done, { once: true })
+}
+
+const packUndo = usePackUndo((record: PackUndoRecord) => {
+  orchestrator.restorePack(props.tripId, record.itemId, record.packedCount, record.state)
+})
+
+/** The snackbar currently on screen, so a second pack replaces it. */
+let packToast: HTMLIonToastElement | null = null
+
+/**
+ * How many packs have been announced on this screen. Rendered onto the
+ * content element as `data-pack-announcements`.
+ *
+ * It exists because one of FR-25.2's rules is an *absence*: un-packing a
+ * revealed row must not announce anything. Checking for "no toast" straight
+ * after the tap proves nothing — the toast is created asynchronously, so the
+ * assertion simply arrives first and passes on a page that was about to show
+ * one. It did exactly that, on the build with the guard removed.
+ *
+ * A counter that only ever goes up turns the absence into a comparison
+ * against a number, which is the same reasoning that gave the G-2 indicator
+ * its in-flight signal.
+ */
+const packAnnouncements = ref(0)
+
+async function announcePacked(name: string) {
+  // Cleared *before* dismissing, not after. The dismiss handler below
+  // disarms the undo, and an outgoing toast resolves its dismissal after
+  // the incoming one has already armed a new record — so with the order
+  // reversed, packing two rows in a row left the second with no undo at
+  // all. Nulling first makes the outgoing handler's identity check fail,
+  // which is exactly what it is for.
+  const outgoing = packToast
+  packToast = null
+  void outgoing?.dismiss()
+
+  const toast = await toastController.create({
+    message: t('packing.packedToast', { name }),
+    duration: 3000,
+    position: 'bottom',
+    // Above the FAB rather than behind it — see the anchor's own note.
+    positionAnchor: 'm4-fab-anchor',
+    cssClass: 'pack-toast',
+    buttons: [{ text: t('packing.undo'), handler: () => packUndo.undo() }],
+  })
+  packToast = toast
+  packAnnouncements.value += 1
+  // The undo outlives the snackbar only by its dismiss animation; disarming
+  // on dismiss is what keeps a stale record from being applied later.
+  void toast.onDidDismiss().then(() => {
+    if (packToast === toast) {
+      packToast = null
+      packUndo.clear()
+    }
+  })
+  await toast.present()
+}
+
+onUnmounted(() => {
+  packUndo.clear()
+  void packToast?.dismiss()
+})
+
 function onToggle(item: TripItem) {
-  orchestrator.packToggle(props.tripId, item)
+  // Only a pack is announced. The same control un-packs a revealed done row
+  // (FR-25.2), and offering to undo *that* would be a snackbar for an action
+  // whose result is already visible.
+  if (item.packed_count >= item.quantity) {
+    orchestrator.packToggle(props.tripId, item)
+    return
+  }
+  const name = item.name
+  packUndo.packWithUndo(item, () => orchestrator.packToggle(props.tripId, item))
+  void announcePacked(name)
 }
 
 function togglePrepTodo(todo: ItemTodo) {
@@ -589,7 +697,12 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 
 <template>
   <IonPage>
-    <IonContent class="pack-content" :scroll-events="true" @ion-scroll="onScroll">
+    <IonContent
+      class="pack-content"
+      :data-pack-announcements="packAnnouncements"
+      :scroll-events="true"
+      @ion-scroll="onScroll"
+    >
       <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
         <IonRefresherContent />
       </IonRefresher>
@@ -712,7 +825,19 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
             </span>
           </button>
 
-          <div v-if="!group.collapsed" class="group-card jp-card">
+          <!-- FR-25.2: a packed row leaves rather than vanishes. TransitionGroup
+               keeps the node until its leave finishes, so nothing here has to
+               hold a "still animating" set in the view model — the DOM does it.
+               `tag="div"` because the card needs a block child; `:css="false"`
+               is deliberately *not* used, the height is driven from a hook and
+               the fade from CSS. -->
+          <TransitionGroup
+            v-if="!group.collapsed"
+            name="pack-out"
+            tag="div"
+            class="group-card jp-card"
+            @leave="onRowLeave"
+          >
             <template
               v-for="entry in group.entries"
               :key="entry.kind === 'item' ? entry.item.id : entry.key"
@@ -883,7 +1008,7 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
                 </IonItemOptions>
               </IonItemSliding>
             </template>
-          </div>
+          </TransitionGroup>
         </template>
       </IonList>
 
@@ -971,7 +1096,10 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
       <!-- FR-25.13a: the ＋ opens *and focuses* the quick-add. Expanding it
            without focus costs a second tap on the only path that has to be
            one-handed. -->
-      <IonFab slot="fixed" vertical="bottom" horizontal="end">
+      <!-- The id is the snackbar's anchor: FR-25.2's undo is the one control
+           the FAB must never sit on top of (the same rule as FR-25.11h, one
+           layer up). -->
+      <IonFab id="m4-fab-anchor" slot="fixed" vertical="bottom" horizontal="end">
         <IonFabButton data-testid="m4-fab" :aria-label="t('common.add')" @click="openQuickAdd">
           <IonIcon :icon="addOutline" />
         </IonFabButton>
@@ -1022,6 +1150,28 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
     </IonContent>
   </IonPage>
 </template>
+
+<style>
+/*
+ * FR-25.2's snackbar. Unscoped on purpose: Ionic renders overlays in the app
+ * root, so a scoped rule never reaches them — which is why the toast first
+ * shipped in Ionic's stock palette with an undo nobody could read.
+ *
+ * The shape follows the concept prototype's `.snack`: a raised surface with
+ * a rim, and the action in the brand colour, because undo is the only thing
+ * on it worth tapping.
+ */
+.pack-toast {
+  --background: var(--ct-surface1);
+  --color: var(--ct-text);
+  --border-color: var(--ct-surface2);
+  --border-width: 1px;
+  --border-style: solid;
+  --border-radius: var(--jp-r-md);
+  --box-shadow: var(--jp-shadow);
+  --button-color: var(--jp-brand);
+}
+</style>
 
 <style scoped>
 /* M5 as a sheet (phone) or a panel (desktop, G-9). The panel is fixed to
@@ -1309,6 +1459,72 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 
 .child-row {
   --padding-start: 8px;
+}
+
+/* --- FR-25.2: the pack-out ------------------------------------------- */
+
+/*
+ * A packed row leaves in three beats: the done colour washes over it, it
+ * collapses to nothing, and it fades. Before this it was simply gone on the
+ * next tick — which reads as a glitch rather than as progress, and gives a
+ * mistap no evidence it ever happened.
+ *
+ * The height is driven from `onRowLeave` because `height: auto` does not
+ * animate; everything else is here. `overflow: hidden` is what makes the
+ * collapse look like a collapse rather than a clip.
+ */
+.pack-out-leave-active {
+  transition:
+    height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.3s ease,
+    background-color 0.3s ease;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/*
+ * The green is the done role, not a colour picked for the animation — the
+ * same one the checkbox turns (G-11).
+ *
+ * On the *item*, not on the slider around it. Washing both put the tint
+ * over two different grounds — the card behind the empty stretch of row,
+ * and the item's own surface behind the label — so the row came out in two
+ * shades split down the middle. Measuring said so before looking did: one
+ * side was the tint over `--ct-base`, the other the same tint over
+ * `--ct-surface0`.
+ */
+.pack-out-leave-from {
+  background: color-mix(in srgb, var(--jp-done) 22%, transparent);
+}
+
+.pack-out-leave-to {
+  opacity: 0;
+}
+
+/*
+ * Rows below a leaving one slide up instead of jumping. Without this the
+ * collapse animates and the list underneath still snaps, which looks worse
+ * than no animation at all.
+ */
+.pack-out-move {
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/*
+ * FR-25.2's feedback is the *fact* of the pack, not the motion. With motion
+ * reduced the row still leaves and the snackbar still offers the undo; only
+ * the travel is dropped. `onRowLeave` matches this by finishing immediately,
+ * so the two cannot disagree.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .pack-out-leave-active,
+  .pack-out-move {
+    transition: none;
+  }
+
+  .pack-out-leave-from {
+    background: none;
+  }
 }
 
 /* --- Bars, cards and sections ----------------------------------------- */

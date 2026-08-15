@@ -477,6 +477,32 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
+  /**
+   * Put a row back the way FR-25.2's undo found it.
+   *
+   * Takes the id rather than the row, and re-reads the current one: by the
+   * time undo fires, the row on screen is the *packed* one, and building an
+   * optimistic patch from the caller's stale snapshot would also revert
+   * anything that landed in between — a packer avatar, a sync from another
+   * device. Only `packed_count` and `state` are restored, which is exactly
+   * what the pack changed.
+   */
+  function restorePack(tripId: string, itemId: string, packedCount: number, state: string) {
+    const current = tripStore.getItems(tripId).find((row) => row.id === itemId)
+    if (!current) return
+    const mut = mutations.packItem(itemId, packedCount, state)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0,
+        table: 'trip_items',
+        id: itemId,
+        deleted: false,
+        row: { ...itemRow(current), ...mut.fields },
+      },
+    })
+  }
+
   function packToggle(tripId: string, item: TripItem) {
     const mut = mutations.togglePacked(item.id, item.packed_count)
     enqueueAndDrain('trip', tripId, {
@@ -1985,6 +2011,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     packComplete,
     packZero,
     packToggle,
+    restorePack,
     skipItem,
     unskipItem,
     setMode,

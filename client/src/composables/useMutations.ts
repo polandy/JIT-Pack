@@ -645,6 +645,10 @@ export function useMutations(hlc: HLCGenerator) {
   return {
     // Trip items
     startPackingNow,
+    // The primitive the four pack helpers are built on. Exported because
+    // FR-25.2's undo restores an arbitrary count and state, which none of
+    // the helpers can express — they each encode one transition.
+    packItem,
     incrementPacked,
     decrementPacked,
     completePacked,
