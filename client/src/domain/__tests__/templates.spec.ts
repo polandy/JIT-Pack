@@ -221,10 +221,10 @@ describe('planningTripsUsing (FR-27.4 blast radius)', () => {
     }
   }
 
-  function sourced(tripId: string, sourceTemplateId: string | null): Pick<
-    TripItem,
-    'trip_id' | 'source_template_id'
-  > {
+  function sourced(
+    tripId: string,
+    sourceTemplateId: string | null,
+  ): Pick<TripItem, 'trip_id' | 'source_template_id'> {
     return { trip_id: tripId, source_template_id: sourceTemplateId }
   }
 

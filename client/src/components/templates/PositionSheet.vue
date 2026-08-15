@@ -26,12 +26,7 @@ import { computed, inject, ref } from 'vue'
 
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { t } from '@/i18n'
-import {
-  ACCOMMODATIONS,
-  SEASONS,
-  TRANSPORT_MODES,
-  attributeLabel,
-} from '@/lib/attributeLabels'
+import { ACCOMMODATIONS, SEASONS, TRANSPORT_MODES, attributeLabel } from '@/lib/attributeLabels'
 import { useMasterStore } from '@/stores/masterStore'
 import type { ItemMode, TemplateAssignment, TemplateDedup } from '@/types/domain'
 

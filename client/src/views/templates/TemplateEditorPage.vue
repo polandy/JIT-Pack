@@ -259,7 +259,9 @@ const mergeLines = computed(() =>
             class="name-field"
             data-testid="m8-name"
             :aria-label="t('templates.namePlaceholder')"
-            @ionBlur="(e: CustomEvent) => commitName((e.target as HTMLIonInputElement).value as string)"
+            @ionBlur="
+              (e: CustomEvent) => commitName((e.target as HTMLIonInputElement).value as string)
+            "
             @keyup.enter="(e: KeyboardEvent) => (e.target as HTMLElement).blur()"
           />
 

@@ -130,7 +130,8 @@ export const de: Record<keyof typeof en, string> = {
   'templates.includedIn': 'Eingebunden in: {names}',
   'templates.blastRadius':
     '⟳ Änderungen hier wirken sofort auf {n} geplante Reise ({names}) — laufende & vergangene bleiben eingefroren. | ⟳ Änderungen hier wirken sofort auf {n} geplante Reisen ({names}) — laufende & vergangene bleiben eingefroren.',
-  'templates.demoteBlocked': 'Erst die eingebundenen Gruppen entfernen — eine Gruppe enthält nur Positionen.',
+  'templates.demoteBlocked':
+    'Erst die eingebundenen Gruppen entfernen — eine Gruppe enthält nur Positionen.',
   'templates.ownPositions': 'Eigene Positionen',
   'templates.positions': 'Positionen',
   'templates.noGroups': 'Noch keine Gruppen eingebunden.',
