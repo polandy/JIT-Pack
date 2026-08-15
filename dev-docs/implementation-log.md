@@ -1687,3 +1687,14 @@ a positive signal that is guaranteed to arrive later than the thing it denies.**
 recorded here so it is not removed as cruft: `data-pack-announcements` on M4's
 content element. It makes an otherwise untestable rule testable, which is the
 trade CLAUDE.md endorses rather than a workaround for a lazy test.
+
+**One thing looked like a defect and is not, recorded so it is not "fixed"
+later.** In a frozen frame the leaving row reads two-tone: a pale block over
+the left third, green over the rest. Dumping every painted background inside
+the row named it — `div.ripple-effect`, Ionic's Material tap ripple, expanding
+from the checkbox in `--ct-text`. It is on every row tap in the app already
+(opening the sheet, un-packing) and predates this change; it lives for about
+200 ms and is gone before the collapse finishes. Stills make it look like a
+competing wash because a still is exactly what it is not. Whether Material
+ripples belong in this app at all is a separate decision about every tap
+target, not something to settle inside the pack-out.
