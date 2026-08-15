@@ -38,7 +38,7 @@ function tripItem(over: Partial<TripItem> = {}): TripItem {
 }
 
 function template(id: string, over: Partial<Template> = {}): Template {
-  return { id, owner_id: 'me', name: `Template ${id}`, ...over }
+  return { id, owner_id: 'me', name: `Template ${id}`, kind: 'template', ...over }
 }
 
 function templateItem(over: Partial<TemplateItem> = {}): TemplateItem {

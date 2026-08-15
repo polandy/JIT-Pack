@@ -1777,3 +1777,117 @@ baseline, and that should be a decision rather than a Tuesday.
 The `client/e2e/README.md` recipe was stale too — it named the v1.61.1 image
 while `@playwright/test` is 1.62.1, which fails at browser launch with
 exactly the error the surrounding paragraph warns about.
+
+### 2026-08-15 — M7 gets its two scopes (§3.27, FR-27.1/27.6)
+
+The first of the screen rebuilds the design foundation was built for. M7 was
+a flat list of names with an item count; §3.27 gave templates a **scope** two
+migrations ago and nothing in the client had ever read it. Now the list is
+scope-shaped: *Alle · Ferien · Gruppen*, with *Alle* rendering the two scopes
+as sections — vacation templates first, because they are what a trip starts
+from and groups are the building blocks — group rows carrying their chip, and
+the FAB asking which scope to create instead of assuming one.
+
+**The scope is declared, never derived.** That is FR-27.1's rule and it is
+the reason the FAB opens a chooser rather than creating a template and
+letting usage decide: a freshly created group that nothing includes yet would
+be unclassifiable, and "it has no includes, so it must be a group" would
+misfile every empty Ferien-Vorlage. The chooser is two cards with one line
+each, because *Gruppe* alone does not say what a group is for.
+
+**One resolution, three callers.** `client/src/domain/templates.ts` expands a
+template's includes and merges the result by master item under the existing
+FR-2.3a rule. It is deliberately **not** a new algorithm — FR-27.2 says as
+much — and deliberately not a second one either: the M7 row count reads the
+same resolution the M8 footer and trip generation will, so the count on the
+row and the count in the trip cannot drift apart. Expansion stops after one
+level on purpose. FR-27.1 fixes the hierarchy at two levels, and *that* is
+what makes include cycles structurally impossible; following a group's own
+includes would quietly hand the cycle back and leave the validator that no
+longer exists to catch it. A mutation test guards exactly this: making the
+expansion transitive turns the case red.
+
+**What the row now counts.** A composed Ferien-Vorlage with no positions of
+its own used to read "0 Artikel", which described the row rather than the
+trip it would produce. It now counts the resolved set. The include-dependent
+half of that display — the "2 Gruppen ·" prefix and the *enthält: …* line —
+is built and unit-tested but not yet reachable, because nothing in the app
+can write an include until the M8 rebuild. The e2e ledger says so rather than
+letting a partial case read as a full one.
+
+**A hole this PR would otherwise have opened.** Adding scopes without
+touching the portable format would have made an exported Gruppe import back
+as a Ferien-Vorlage — the same name, the wrong thing. The YAML now carries a
+`scope` field beside `kind`, which are two different questions: `kind` says
+whether the document is a template or a trip, `scope` says which of the two
+template scopes it is. Both parsers reject an unknown scope rather than
+defaulting it, and a scope on a *trip* document is an error rather than an
+ignored field. Files written before scopes existed carry none and read back
+as `template` — the same default migration 016 applies to pre-scope rows.
+
+**Two things only the rendered screen said.** The segment's middle tab was
+specced as "Ferien-Vorlagen" and truncates to an ellipsis at 390 px, which
+names a scope worse than one word does; it now carries the short form and the
+section head below spells it out. And the create sheet used an `IonContent`
+inside an auto-height modal, which has no intrinsic height to give — the
+sheet sized itself to nothing and swallowed every tap meant for its cards.
+The e2e run found that one before the screenshot did, with "ion-modal
+intercepts pointer events"; a plain box fixed it.
+
+**On the tests.** Every case here was checked against a build with the rule
+removed: transitive expansion, a `sum` default instead of `max`, groups
+rendered before vacation templates, a create path that ignores the chosen
+scope, a template row read without its kind, includes left behind by a
+deleted template. Five of the six turned a case red on the first try. The
+sixth did not — nothing asserted that a Vorlage's *own* position leads the
+merge report ahead of its groups' — so that case was written before the
+mutation was reverted. That is the pattern this project has now paid for six
+times: the assertion that was never watched failing is the assertion that is
+not there.
+
+### 2026-08-15 — M7's two open decisions, settled by rendered variants
+
+The PR-88 review left two questions that were the owner's to answer: what the
+row carries, and how creating works. Rather than argue them in prose, both
+were built as working variants on a scratch branch and rendered — three row
+shapes (inline button / long-press menu / swipe), three create flows (system
+dialog / name-in-sheet / create-then-rename). Two of the six died on sight in
+the render: **swipe's option panel breaks out of the card** and paints over
+the row below, and **create-then-rename writes an unnamed row the moment you
+tap** — the prototype does it, but the prototype has no persistence, so its
+mock never showed that cost. The owner picked A2 (long-press) and B2
+(name-in-sheet).
+
+**The implementation found a real bug the variant did not have to face.** The
+first guard against "the hold's release also opens the row" was a one-shot
+swallow-next-click flag. A hold-driven e2e case went red on its *last*
+assertion: after cancelling the menu, a legitimate tap no longer opened the
+row. Cause: the release click usually never reaches the row at all (down on
+the row, up on the presented overlay — the click fires on their common
+ancestor), so the flag went stale and ate the next genuine tap. The fix is a
+different shape, not a patched flag: **row taps are inert while the menu
+lives** — a state with a beginning (the hold fires, set before the overlay
+attaches) and an end (dismiss), which is what made the race deterministically
+testable at all. Both new rules were mutation-checked red: guard removed,
+name-guard removed.
+
+**That hold e2e case then had to go, and where it went matters.** Driving the
+500 ms with `page.clock` worked on a freshly loaded page and failed
+nondeterministically on a warm app — under the faked clock, Ionic's action
+sheet sometimes never attaches (chromium, one repeat in three), and on webkit
+any `getAnimations()`-based settle hangs on an unrelated *infinite* spinner
+animation. Under CI's full-suite load, `page.goBack()` across the root→tabs
+outlet boundary additionally wedges the outlet — the pre-existing Ionic
+transition defect from the navigation work, in a new costume; the suite now
+leaves M8 the way a user does, through the ADR-011 header chevron. The 500 ms
+moved to where they are deterministic: `useLongPress`, a pure composable
+unit-tested with fake timers (arm, fire once, release disarms, slop disarms,
+jitter survives), while the e2e case proves the guard through `contextmenu` —
+the same handler the hold fires into. The one-line `pointerdown` wiring is
+the accepted, *stated* gap; the ledger names it.
+
+Two Ionic locator lessons re-paid, one of them for the second time:
+`toBeDisabled()` does not see an `ion-button`'s disabled state (it lives as
+`aria-disabled` on the custom element — the same family as the false-green
+`toBeEnabled()` this project already recorded), and a `getByRole('button')`
+inside an `ion-item button` matches the row itself.

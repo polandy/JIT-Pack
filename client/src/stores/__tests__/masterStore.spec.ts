@@ -293,4 +293,89 @@ describe('masterStore', () => {
     })
     expect(store.dependencyList[0]).toMatchObject({ mode: 'required', quantity: null })
   })
+
+  // --- Template composition (§3.27, FR-27.1/27.6) ---
+
+  function seedComposition(store: ReturnType<typeof useMasterStore>): void {
+    store.applyChanges([
+      {
+        seq: 1,
+        table: 'templates',
+        id: 'vac',
+        deleted: false,
+        row: { owner_id: 'u', name: 'Fotoreise', kind: 'template' },
+      },
+      {
+        seq: 2,
+        table: 'templates',
+        id: 'grp',
+        deleted: false,
+        row: { owner_id: 'u', name: 'Makro', kind: 'group' },
+      },
+      {
+        seq: 3,
+        table: 'template_includes',
+        id: 'inc1',
+        deleted: false,
+        row: { template_id: 'vac', included_template_id: 'grp' },
+      },
+      {
+        seq: 4,
+        table: 'template_items',
+        id: 'p1',
+        deleted: false,
+        row: {
+          template_id: 'grp',
+          item_id: 'ringlight',
+          quantity: 1,
+          assignment: 'trip_global',
+          dedup: 'max',
+          default_mode: 'pack',
+          late_packer: 0,
+          conditions: null,
+        },
+      },
+    ])
+  }
+
+  it('reads a template row without kind as a Ferien-Vorlage (migration 016 default)', () => {
+    const store = useMasterStore()
+    store.applyChange({
+      seq: 1,
+      table: 'templates',
+      id: 'old',
+      deleted: false,
+      row: { owner_id: 'u', name: 'Sommer' },
+    })
+    expect(store.getTemplate('old')?.kind).toBe('template')
+  })
+
+  it('applies and removes template_includes rows', () => {
+    const store = useMasterStore()
+    seedComposition(store)
+    expect(store.getIncludes('vac')).toHaveLength(1)
+    expect(store.getIncludedBy('grp').map((t) => t.name)).toEqual(['Fotoreise'])
+
+    store.applyChange({ seq: 5, table: 'template_includes', id: 'inc1', deleted: true, row: null })
+    expect(store.getIncludes('vac')).toEqual([])
+    expect(store.getIncludedBy('grp')).toEqual([])
+  })
+
+  it('resolves a Vorlage through its includes, so the row count is the trip count (FR-27.2)', () => {
+    const store = useMasterStore()
+    seedComposition(store)
+    // The Vorlage carries no position of its own — the count still has to be 1.
+    expect(store.resolve('vac').positions.map((p) => p.item_id)).toEqual(['ringlight'])
+    expect(store.resolve('vac').includedTemplates.map((t) => t.name)).toEqual(['Makro'])
+  })
+
+  it('drops the include rows on both sides when a template is deleted', () => {
+    const store = useMasterStore()
+    seedComposition(store)
+    store.applyChange({ seq: 5, table: 'templates', id: 'grp', deleted: true, row: null })
+    // Server-side ON DELETE CASCADE has removed the row; a resolution taken
+    // before the next pull must not name a template that is already gone.
+    expect(store.getIncludes('vac')).toEqual([])
+    expect(store.resolve('vac').includedTemplates).toEqual([])
+  })
 })
