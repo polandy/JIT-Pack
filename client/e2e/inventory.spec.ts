@@ -35,13 +35,19 @@ async function createItem(
   for (const tag of tags) {
     const search = visible(page).getByTestId('m10-tag-search').locator('input')
     await search.fill(tag)
-    // Filter-or-create: an existing tag is offered, a new name is created.
+
+    // Filter-or-create: an existing tag is offered, an unmatched name is
+    // created. Which of the two is on screen has to be *settled* before we
+    // branch — a one-shot isVisible() runs before Vue has re-rendered the
+    // chips and then picks the wrong arm, which surfaces 30 s later as a
+    // missing chip rather than as a race.
     const offer = visible(page).getByTestId(`m10-tag-offer-${tag}`)
-    if (await offer.isVisible().catch(() => false)) {
-      await offer.click()
-    } else {
-      await visible(page).getByTestId('m10-tag-create').click()
-    }
+    const create = visible(page).getByTestId('m10-tag-create')
+    await expect(offer.or(create).first()).toBeVisible()
+
+    if ((await offer.count()) > 0) await offer.click()
+    else await create.click()
+
     await expect(visible(page).getByTestId(`m10-tag-assigned-${tag}`)).toBeVisible()
   }
 

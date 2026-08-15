@@ -84,10 +84,17 @@ setHeaderActions(() => {
  */
 const filtered = computed<MasterItem[]>(() => {
   const term = search.value.trim().toLowerCase()
+  // The matching items are collected once from the assignment list; asking
+  // each item for its tags would scan that list per row (NFR-4.3).
+  const onTag =
+    tagFilter.value === null
+      ? null
+      : new Set(
+          store.itemTagList.filter((a) => a.tag_id === tagFilter.value).map((a) => a.item_id),
+        )
   return store.itemList.filter((item) => {
     if (term && !item.name.toLowerCase().includes(term)) return false
-    if (tagFilter.value === null) return true
-    return store.getItemTags(item.id).some((tag) => tag.id === tagFilter.value)
+    return onTag === null || onTag.has(item.id)
   })
 })
 

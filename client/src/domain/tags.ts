@@ -56,14 +56,23 @@ export function groupByPrimaryTag(
   tags: Tag[],
 ): Map<string, MasterItem[]> {
   const byId = new Map(tags.map((t) => [t.id, t]))
-  const primaryByItem = new Map<string, Tag | undefined>()
-  for (const item of items) {
-    primaryByItem.set(item.id, primaryTagOf(item.id, assignments, tags))
+
+  // Indexed in one pass over the assignments rather than by asking each item
+  // for its tags: the readable per-item helpers each scan the whole
+  // assignment list, which turns the grouping into items x assignments — and
+  // this runs on every keystroke in the M9 search (NFR-4.3).
+  // Ties on position keep the earlier row, matching tagsOfItem's stable sort.
+  const primaryAssignment = new Map<string, ItemTag>()
+  for (const a of assignments) {
+    if (!byId.has(a.tag_id)) continue // its tag is gone; not a heading
+    const current = primaryAssignment.get(a.item_id)
+    if (!current || a.position < current.position) primaryAssignment.set(a.item_id, a)
   }
 
   const buckets = new Map<string, MasterItem[]>()
   for (const item of items) {
-    const key = primaryByItem.get(item.id)?.name ?? UNTAGGED_KEY
+    const primary = primaryAssignment.get(item.id)
+    const key = (primary && byId.get(primary.tag_id)?.name) ?? UNTAGGED_KEY
     const bucket = buckets.get(key) ?? []
     bucket.push(item)
     buckets.set(key, bucket)
