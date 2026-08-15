@@ -108,7 +108,7 @@ setHeaderTitle(() => template.value?.name ?? 'Template')
 
       <template v-else>
         <!-- Template items list -->
-        <h2 class="section-title">Items ({{ templateItems.length }})</h2>
+        <h2 class="section-title jp-eyebrow">Items ({{ templateItems.length }})</h2>
 
         <IonList v-if="templateItems.length > 0">
           <IonItemSliding v-for="ti in templateItems" :key="ti.id">
@@ -215,10 +215,6 @@ setHeaderTitle(() => template.value?.name ?? 'Template')
 
 <style scoped>
 .section-title {
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--ion-color-medium);
   margin: 16px 0 8px;
 }
 
@@ -237,7 +233,7 @@ setHeaderTitle(() => template.value?.name ?? 'Template')
 }
 
 .ti-label {
-  font-size: 0.75rem;
+  font-size: var(--jp-text-xs);
   color: var(--ion-color-medium);
 }
 
@@ -245,7 +241,7 @@ setHeaderTitle(() => template.value?.name ?? 'Template')
   max-width: 60px;
   --padding-start: 4px;
   --padding-end: 4px;
-  font-size: 0.9rem;
+  font-size: var(--jp-text-base);
 }
 
 .add-section {

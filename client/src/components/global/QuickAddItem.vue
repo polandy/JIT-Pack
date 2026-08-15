@@ -203,7 +203,7 @@ function onKeydown(event: KeyboardEvent) {
   border-radius: var(--jp-r-sm);
   cursor: pointer;
   color: var(--ct-subtext0);
-  font-size: 0.95rem;
+  font-size: var(--jp-text-md);
 }
 
 .quick-add-trigger:active {
@@ -234,7 +234,7 @@ function onKeydown(event: KeyboardEvent) {
   border: none;
   cursor: pointer;
   color: var(--ct-subtext0);
-  font-size: 20px;
+  font-size: var(--jp-icon-md);
   padding: 4px;
 }
 
@@ -244,13 +244,13 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 .add-hint {
-  font-size: 0.75rem;
+  font-size: var(--jp-text-xs);
   color: var(--ct-yellow);
   margin: 4px 8px 0;
 }
 
 .no-match {
-  font-size: 0.8rem;
+  font-size: var(--jp-text-sm);
   color: var(--ct-subtext0);
   margin: 8px 8px 0;
 }

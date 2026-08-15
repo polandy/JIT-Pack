@@ -225,7 +225,7 @@ setHeaderTitle(() => `Luggage · ${trip.value?.name ?? ''}`)
       </div>
 
       <!-- Unassigned bucket (FR-10.2) -->
-      <h2 class="section-title">Unassigned items ({{ unassigned.length }})</h2>
+      <h2 class="section-title jp-eyebrow">Unassigned items ({{ unassigned.length }})</h2>
       <IonList v-if="unassigned.length > 0">
         <IonItem v-for="item in unassigned" :key="item.id">
           <IonLabel>
@@ -272,14 +272,14 @@ setHeaderTitle(() => `Luggage · ${trip.value?.name ?? ''}`)
 }
 
 .container-name {
-  font-weight: 600;
+  font-weight: var(--jp-weight-semibold);
 }
 
 .weight-line {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.9rem;
+  font-size: var(--jp-text-base);
   color: var(--ion-color-medium);
 }
 
@@ -311,7 +311,7 @@ setHeaderTitle(() => `Luggage · ${trip.value?.name ?? ''}`)
 
 .imbalance {
   height: 22px;
-  font-size: 0.7rem;
+  font-size: var(--jp-text-2xs);
 }
 
 .container-fields {
@@ -326,13 +326,11 @@ setHeaderTitle(() => `Luggage · ${trip.value?.name ?? ''}`)
 }
 
 .section-title {
-  font-size: 1rem;
-  font-weight: 600;
   margin: 24px 0 8px;
 }
 
 .empty-hint {
   color: var(--ion-color-medium);
-  font-size: 0.9rem;
+  font-size: var(--jp-text-base);
 }
 </style>

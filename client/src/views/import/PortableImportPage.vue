@@ -82,7 +82,7 @@ function commit() {
     <IonContent class="ion-padding">
       <!-- File picker / paste -->
       <template v-if="!doc">
-        <h2 class="section-title">Portable YAML file</h2>
+        <h2 class="section-title jp-eyebrow">Portable YAML file</h2>
         <p class="hint">A template or trip exported from any JIT-Pack instance (FR-18.1).</p>
         <input type="file" accept=".yaml,.yml,text/yaml" @change="onFile" />
         <IonTextarea
@@ -166,14 +166,12 @@ function commit() {
 
 <style scoped>
 .section-title {
-  font-size: 1rem;
-  font-weight: 600;
   margin: 16px 0 8px;
 }
 
 .hint {
   color: var(--ion-color-medium);
-  font-size: 0.9rem;
+  font-size: var(--jp-text-base);
 }
 
 .paste-area {
@@ -191,13 +189,13 @@ function commit() {
 }
 
 .summary-icon {
-  font-size: 36px;
+  font-size: var(--jp-icon-xl);
   color: var(--ion-color-primary);
 }
 
 .summary-name {
-  font-size: 1.2rem;
-  font-weight: 700;
+  font-size: var(--jp-text-lg);
+  font-weight: var(--jp-weight-bold);
   margin: 0;
 }
 

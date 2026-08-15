@@ -82,9 +82,9 @@ const color = computed(() => {
   flex: none;
   border-radius: 50%;
   color: var(--ct-on-accent);
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: var(--jp-text-3xs);
+  font-weight: var(--jp-weight-bold);
+  letter-spacing: var(--jp-tracking-tight);
 }
 
 /* The ring is what carries the meaning, so it sits outside the circle
@@ -109,7 +109,7 @@ const color = computed(() => {
   border-radius: 50%;
   background: var(--ct-green);
   color: var(--ct-on-accent);
-  font-size: 0.5rem;
+  font-size: var(--jp-text-3xs);
   line-height: 1;
 }
 </style>

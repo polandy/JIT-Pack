@@ -132,7 +132,7 @@ function goBack() {
   position: absolute;
   top: 2px;
   right: 0;
-  font-size: 0.6rem;
+  font-size: var(--jp-text-3xs);
   padding: 2px 4px;
 }
 
@@ -147,9 +147,9 @@ function goBack() {
    surrounding ion-title rule (G-13) sets display type for page titles. */
 .logo-wordmark {
   font-family: var(--jp-font-ui);
-  font-weight: 700;
-  font-size: 1.1rem;
-  letter-spacing: -0.02em;
+  font-weight: var(--jp-weight-bold);
+  font-size: var(--jp-text-lg);
+  letter-spacing: var(--jp-tracking-tight);
   display: none;
 }
 

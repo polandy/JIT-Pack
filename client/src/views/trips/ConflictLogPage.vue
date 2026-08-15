@@ -93,7 +93,7 @@ function formatTime(iso: string): string {
 }
 
 .winning {
-  font-weight: 600;
+  font-weight: var(--jp-weight-semibold);
 }
 
 .empty-state {
@@ -105,7 +105,7 @@ function formatTime(iso: string): string {
 }
 
 .empty-icon {
-  font-size: 64px;
+  font-size: var(--jp-icon-2xl);
   margin-bottom: 16px;
 }
 </style>

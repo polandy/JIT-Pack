@@ -53,7 +53,7 @@ onMounted(() => input.value?.focus())
   border-radius: var(--jp-r-sm);
   padding: 8px 10px;
   color: var(--ct-text);
-  font-size: 0.95rem;
+  font-size: var(--jp-text-md);
 }
 
 .search-row button {

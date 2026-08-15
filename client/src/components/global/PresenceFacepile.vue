@@ -66,8 +66,8 @@ function initials(userId: string): string {
   border-radius: 50%;
   background: var(--ion-color-medium);
   color: var(--ion-color-medium-contrast);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: var(--jp-text-2xs);
+  font-weight: var(--jp-weight-semibold);
   border: 2px solid var(--ion-background-color);
   margin-left: -6px;
 }
@@ -83,7 +83,7 @@ function initials(userId: string): string {
 
 .group-sync {
   height: 24px;
-  font-size: 0.7rem;
+  font-size: var(--jp-text-2xs);
   margin-left: 8px;
 }
 </style>

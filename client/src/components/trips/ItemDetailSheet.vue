@@ -546,7 +546,7 @@ const packedStamp = computed(() => {
 
 .context {
   margin: 3px 0 0;
-  font-size: 0.78rem;
+  font-size: var(--jp-text-xs);
   color: var(--ct-subtext0);
 }
 
@@ -577,8 +577,8 @@ const packedStamp = computed(() => {
   margin-left: auto;
   padding: 5px 10px;
   border-radius: var(--jp-r-pill);
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: var(--jp-text-2xs);
+  font-weight: var(--jp-weight-bold);
   background: color-mix(in srgb, var(--ct-green) 16%, transparent);
   color: var(--ct-green);
 }
@@ -611,7 +611,7 @@ const packedStamp = computed(() => {
   border-radius: var(--jp-r-pill);
   background: var(--ct-surface0);
   color: var(--ct-subtext1);
-  font-size: 0.78rem;
+  font-size: var(--jp-text-xs);
 }
 
 .chip .key {
@@ -638,9 +638,9 @@ const packedStamp = computed(() => {
   align-items: center;
   gap: 8px;
   margin: 0 0 8px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-size: var(--jp-text-2xs);
+  font-weight: var(--jp-weight-semibold);
+  letter-spacing: var(--jp-tracking-label);
   text-transform: uppercase;
   color: var(--ct-subtext0);
 }
@@ -677,13 +677,13 @@ const packedStamp = computed(() => {
 
 .note .meta {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: var(--jp-text-2xs);
   color: var(--ct-overlay0);
 }
 
 .note .text {
   margin: 2px 0 0;
-  font-size: 0.88rem;
+  font-size: var(--jp-text-base);
 }
 
 .note.flash {
@@ -725,15 +725,15 @@ const packedStamp = computed(() => {
   border: none;
   border-top: 1px solid var(--ct-surface0);
   color: var(--ct-subtext1);
-  font-size: 0.92rem;
-  font-weight: 600;
+  font-size: var(--jp-text-md);
+  font-weight: var(--jp-weight-semibold);
   text-align: start;
   cursor: pointer;
 }
 
 .details .caret {
   color: var(--ct-overlay0);
-  font-size: 14px;
+  font-size: var(--jp-icon-xs);
   transition: transform 0.18s ease;
 }
 
@@ -748,8 +748,8 @@ const packedStamp = computed(() => {
 .details-hint {
   flex: 1;
   text-align: end;
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: var(--jp-text-xs);
+  font-weight: var(--jp-weight-medium);
   color: var(--ct-overlay0);
   overflow: hidden;
   text-overflow: ellipsis;

@@ -154,7 +154,7 @@ setHeaderTitle(() => t('clone.title', { name: source.value?.name ?? '' }))
           </IonItem>
         </IonList>
 
-        <h2 class="section-title">{{ t('clone.carryOver') }}</h2>
+        <h2 class="section-title jp-eyebrow">{{ t('clone.carryOver') }}</h2>
         <IonList>
           <IonItem>
             <IonToggle
@@ -195,8 +195,6 @@ setHeaderTitle(() => t('clone.title', { name: source.value?.name ?? '' }))
 
 <style scoped>
 .section-title {
-  font-size: 1rem;
-  font-weight: 600;
   margin: 20px 0 8px;
 }
 

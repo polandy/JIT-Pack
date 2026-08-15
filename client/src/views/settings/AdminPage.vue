@@ -170,7 +170,7 @@ function provisioned(user: AdminUserRow): string {
 
 .self-marker {
   color: var(--ion-color-medium);
-  font-weight: normal;
+  font-weight: var(--jp-weight-regular);
 }
 
 .deactivated {
