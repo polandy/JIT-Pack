@@ -254,7 +254,7 @@ setHeaderTitle(() => template.value?.name ?? 'Template')
 
 .item-picker {
   border: 1px solid var(--ion-color-primary);
-  border-radius: 8px;
+  border-radius: var(--jp-r-sm);
   padding: 8px;
 }
 

@@ -50,7 +50,7 @@ onMounted(() => input.value?.focus())
   min-width: 0;
   background: var(--ct-surface0);
   border: none;
-  border-radius: 10px;
+  border-radius: var(--jp-r-sm);
   padding: 8px 10px;
   color: var(--ct-text);
   font-size: 0.95rem;

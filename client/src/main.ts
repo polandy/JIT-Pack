@@ -21,9 +21,12 @@ import '@ionic/vue/css/display.css'
  * mode and independent of the OS preference — deliberately replaces
  * Ionic's prefers-color-scheme palette (FR-21.1). */
 import './theme/catppuccin.css'
-/* The other half of the token table (G-13): the two self-hosted faces,
- * the type scale, and the display-type roles. */
+/* The second table (G-13): the two self-hosted faces, the type scale, and
+ * the display-type roles. */
 import './theme/typography.css'
+/* The third (G-14): radius, elevation and the card they add up to. Loads
+ * after the palette because its shadows are cast in the flavour's ink. */
+import './theme/surfaces.css'
 import { initTheme } from './theme/theme'
 
 /* Language (NFR-4.12): English default, German fully supported. Resolved

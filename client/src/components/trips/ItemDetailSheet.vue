@@ -531,7 +531,7 @@ const packedStamp = computed(() => {
 
 .thumb {
   flex: none;
-  border-radius: 10px;
+  border-radius: var(--jp-r-sm);
   overflow: hidden;
 }
 
@@ -569,14 +569,14 @@ const packedStamp = computed(() => {
   align-items: center;
   gap: 12px;
   padding: 12px;
-  border-radius: 14px;
+  border-radius: var(--jp-r);
   background: var(--ct-surface0);
 }
 
 .state {
   margin-left: auto;
   padding: 5px 10px;
-  border-radius: 999px;
+  border-radius: var(--jp-r-pill);
   font-size: 0.72rem;
   font-weight: 700;
   background: color-mix(in srgb, var(--ct-green) 16%, transparent);
@@ -608,7 +608,7 @@ const packedStamp = computed(() => {
   gap: 6px;
   padding: 6px 10px;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--jp-r-pill);
   background: var(--ct-surface0);
   color: var(--ct-subtext1);
   font-size: 0.78rem;
@@ -711,7 +711,7 @@ const packedStamp = computed(() => {
   --background: var(--ct-surface0);
   --padding-start: 12px;
   --padding-end: 12px;
-  border-radius: 12px;
+  border-radius: var(--jp-r-md);
 }
 
 /* --- details --- */

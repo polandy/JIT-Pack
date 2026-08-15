@@ -200,7 +200,7 @@ function onKeydown(event: KeyboardEvent) {
   padding: 12px 16px;
   background: var(--ct-surface0);
   border: 1px dashed var(--ct-surface2);
-  border-radius: 10px;
+  border-radius: var(--jp-r-sm);
   cursor: pointer;
   color: var(--ct-subtext0);
   font-size: 0.95rem;
@@ -213,7 +213,7 @@ function onKeydown(event: KeyboardEvent) {
 .quick-add-form {
   background: var(--ct-surface0);
   border: 1px solid var(--ct-blue);
-  border-radius: 10px;
+  border-radius: var(--jp-r-sm);
   padding: 8px;
 }
 

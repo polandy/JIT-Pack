@@ -44,7 +44,7 @@ onUnmounted(release)
 
 <style scoped>
 .item-thumbnail {
-  border-radius: 8px;
+  border-radius: var(--jp-r-sm);
   object-fit: cover;
   flex: none;
   background: var(--ion-color-light);

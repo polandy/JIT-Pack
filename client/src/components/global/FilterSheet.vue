@@ -193,9 +193,9 @@ const emit = defineEmits<{
    behind it — at --ct-base it read as part of the same page. */
 .sheet-modal {
   --height: 86%;
-  --border-radius: 22px 22px 0 0;
+  --border-radius: var(--jp-r-lg) var(--jp-r-lg) 0 0;
   --background: var(--ct-mantle);
-  --box-shadow: 0 -16px 40px rgba(0, 0, 0, 0.62);
+  --box-shadow: var(--jp-shadow-sheet);
   --backdrop-opacity: 0.62;
   align-items: flex-end;
 }
@@ -210,7 +210,7 @@ const emit = defineEmits<{
 .grab {
   width: 38px;
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--jp-r-pill);
   background: var(--ct-surface2);
   margin: 10px auto 2px;
 }
@@ -320,7 +320,7 @@ const emit = defineEmits<{
   gap: 4px;
   padding: 9px 4px;
   border: 1px solid transparent;
-  border-radius: 12px;
+  border-radius: var(--jp-r-md);
   background: var(--ct-surface0);
   color: var(--ct-subtext1);
   font-size: 0.72rem;
@@ -350,7 +350,7 @@ const emit = defineEmits<{
   gap: 6px;
   padding: 7px 11px;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--jp-r-pill);
   background: var(--ct-surface0);
   color: var(--ct-subtext1);
   font-size: 0.82rem;
