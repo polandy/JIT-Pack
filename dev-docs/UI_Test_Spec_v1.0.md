@@ -164,6 +164,15 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M3-15** `all` (FR-2.1b): a trip can be created with no dates at all — the year is preselected, so a name is the whole gate.
 * **E2E-M3-16** `all` (FR-2.1c): step 1's optional fields are folded behind *Mehr Optionen ▾*, and the fold states what is set behind it.
 
+### Plain-HTTP instances (NFR-4.2a) — `e2e/insecure-context.spec.ts`
+
+* **E2E-NFR-SEC-01** `local` (NFR-4.2a): with `crypto.randomUUID` removed before boot — the state a self-hosted instance served over plain HTTP is actually in — the id source still works, and the case asserts its own premise so it cannot pass vacuously.
+* **E2E-NFR-SEC-02** `local` (FR-24.5): a new inventory item is created and appears in M9.
+* **E2E-NFR-SEC-03** `local` (FR-2.1b): a trip is created through M3 — landing on M4 proves the whole cascade (trip, travelers, items) got ids, not only the first insert.
+* **E2E-NFR-SEC-04** `local` (FR-27.1): a group is created in M7 and takes a position in M8.
+
+*Why these are their own unit:* the suite serves from `localhost`, which **is** a secure context, so no ordinary case can reach the broken state — the defect was invisible to a green suite on principle rather than by accident.
+
 ### M4 — Packing List (core)
 * **E2E-M4-01** `all` (FR-8.1/7.3): the single header line shows packed/total, weight and the open-prep count (the latter only when todos exist), and stays **unfiltered** while a filter or search narrows the list below it. Analytics is reached from the 📊 icon on the trip line, not from the header (the KPI-tile entry is gone, G-12).
 * **E2E-M4-29** `all` (trip screen, decided 2026-08-08): tapping a trip in M2 or M1 lands **directly** in M4 — asserts no intermediate hub screen and no phase tab bar anywhere in the app. On an **archived** trip M4 leads with the closing card offering *Vorlage aus dieser Reise* (M21) and the M14 suggestions; on an active trip that card is absent.
@@ -538,6 +547,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-25.13b | E2E | M6-19 (autocomplete adopts the category; manual fallback) |
 | FR-27.1 | E2E+UNIT | M8-07 (two-level include rules), M7-07, M21-03; `domain/templates.ts` (one-level expansion, dedup by master item), `internal/portable` + `domain/portable.ts` (the `scope` field round-trips, an unknown scope is rejected, a scope on a trip document is an error) |
 | FR-27.2 | E2E+UNIT | M3-11, M8-08; instantiate.ts (include expansion + named merge) |
+| NFR-4.2a (id minting) | E2E+UNIT | E2E-NFR-SEC-01…04; `lib/__tests__/ids.spec.ts` (v4 shape, insecure-context fallback, version/variant bits, no-randomness refusal, and the guard that `crypto.randomUUID` is called in one file only) |
 | FR-27.12 | E2E+UNIT | M3-17 (row summary + peek sheet); `domain/templates.ts` (`resolvedLines` ordering/dropping, `previewLines` truncation), `GroupPeekSheet.spec.ts` (resolved list, read-only, empty state) |
 | FR-27.3 | E2E | M3-12 |
 | FR-27.4 | E2E+UNIT | M8-05 (warning wording), M8-09 (chip only on planning trips), M21-03, FLOW-09; `domain/templates.ts` (`planningTripsUsing`: planning-only, include reachability, ad-hoc rows ignored) |
