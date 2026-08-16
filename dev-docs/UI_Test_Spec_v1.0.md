@@ -159,6 +159,9 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M3-11** `all` (FR-27.1/27.2/27.6): step 3 — the list separates *Ferien-Vorlagen* from *Zusätzliche Gruppen* (sections in "Alle", plus one tab per scope); a composed template's row lists its groups ("enthält: …"); selecting it plus a group that overlaps it resolves for real: the footer count matches the deduped set and the merge is **named** with both source groups ("Kamera nur 1× — in Makro & Wildlife").
 * **E2E-M3-12** `all` (FR-27.3): step 3 — single master items joined via the inventory search: an item **not** in the resolved set raises the footer count by one; an item already in it is reported "bereits enthalten, nicht doppelt" and leaves the count unchanged; added items appear as removable chips.
 * **E2E-M3-13** `all` (FR-27.7): step-3 footer reports the preparation tasks the selection carries ("📋 N Vorbereitungs-Aufgaben übernommen"); after creation each task exists as an FR-7.3 todo on its generated item, and that item stays un-done in M4 until the todo is resolved (blocking itself is covered by the M4 prep cases).
+* **E2E-M3-14** `all` (FR-2.5a): step 2 opens with the household's default travellers from M17, editable there like any other traveller.
+* **E2E-M3-15** `all` (FR-2.1b): a trip can be created with no dates at all — the year is preselected, so a name is the whole gate.
+* **E2E-M3-16** `all` (FR-2.1c): step 1's optional fields are folded behind *Mehr Optionen ▾*, and the fold states what is set behind it.
 
 ### M4 — Packing List (core)
 * **E2E-M4-01** `all` (FR-8.1/7.3): the single header line shows packed/total, weight and the open-prep count (the latter only when todos exist), and stays **unfiltered** while a filter or search narrows the list below it. Analytics is reached from the 📊 icon on the trip line, not from the header (the KPI-tile entry is gone, G-12).
