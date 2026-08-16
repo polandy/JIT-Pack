@@ -2111,3 +2111,31 @@ plain pops untouched, the chevron's replace not intercepted); e2e-covered by
 E2E-M5-13, red-proved against the unguarded build. Known accepted gap:
 a back during the sheet's enter animation still races Ionic's transition
 queue — documented in the concept doc, unreachable by an intentional back.
+
+## M11 joins the visual baselines, and the image gets a platform (2026-08-16)
+
+Owner decision on the question PR #91 left open: M11 is the first screen
+outside M4 to get baselines. Two shots (E2E-VIS-06/07), because the screen
+renders three things no existing baseline does — a load bar whose fill
+carries an FR-10.3 grade colour, the paired/imbalance line, and the card
+list — plus the M5 sheet grammar applied to a container, whose load line and
+pairing chips exist on no other surface. The load is real rather than
+staged: a master item with a weight, quick-added through its suggestion, so
+the bar grades something.
+
+**The finding is next to the images, not in them.** Generating them off the
+runner surfaced that ADR-013's digest pin was half a pin. A digest fixes
+*what is in* the image; on an Apple-Silicon machine docker resolves that
+same digest to its arm64 variant, so a baseline recorded on a development
+machine would be judged in CI against a rendering it never saw. The image
+now carries `--platform linux/amd64`, which is a no-op on the amd64 runner
+and emulation everywhere else. Proof rather than argument: with the platform
+named, all 16 pre-existing baselines reproduced byte-identically on the Mac
+(`git status` showed only the four new PNGs), and only then were the M11
+images kept.
+
+Two Docker Desktop leftovers cost the detour and are worth naming for the
+next machine: a `credsStore: desktop` in `~/.docker/config.json` pointing at
+an uninstalled helper, which fails every pull with a credentials error, and
+a stale `vite preview` from a deleted worktree squatting on port 4173, which
+Playwright's `reuseExistingServer` could not reuse because it answered 404.
