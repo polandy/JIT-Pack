@@ -2290,3 +2290,80 @@ plan still owes is in CLAUDE.md's "Not built yet": the §3.27 client package
 (instantiate expansion, FR-27.4 refresh, M21), the i18n remainder, the
 Playwright backlog — and M14, like M12, is unverifiable end-to-end until
 something user-facing moves a trip to *active*.
+
+## §3.27 generation: composed templates actually reach the packing list (2026-08-16, PR pending)
+
+The first half of "Not built yet" item 2. Everything M7 and M8 could build
+since 2026-08-15 was inert at the one moment that matters: `instantiate.ts`
+filtered template positions by the templates it was *handed*, so a trip
+generated from a Ferien-Vorlage carried only that Vorlage's own positions and
+silently dropped every group attached to it. The machinery existed on both
+ends — `template_includes` in migration 016, `resolveTemplate` for M7's row
+count and M8's footer — with nothing joining them.
+
+Four things, in the order they were built:
+
+1. **Include expansion at generation (FR-27.2).** `GenerationInput` now takes
+   the template *catalogue* plus the picked ids, rather than a pre-filtered
+   list: the caller cannot know a Vorlage's composition, so generation
+   resolves it. Expansion is one level, matching `resolveTemplate` and the
+   two-level hierarchy FR-27.1 fixed — following an included group's own
+   includes would quietly reintroduce the depth that FR rejected, and with it
+   the cycle it cannot have. Rows keep the **contributing group** as
+   `source_template_id`, which is what FR-27.5 and FR-27.11 read back a year
+   later, and `MergedOverlap` carries its contributing templates so the merge
+   can be named instead of counted. A template both picked directly and
+   reached through an include contributes once — without that guard a `sum`
+   position merges with itself and doubles.
+2. **Task materialisation (FR-27.7).** Generated rows carry the preparation
+   tasks of the position(s) that produced them, and `createTripFromWizard`
+   writes each as an ordinary FR-7.3 todo. No new flag: an open prep todo
+   already blocks "done", so M4, M5 and M1 pick it up unchanged. A merged item
+   keeps the **union** of its contributors' tasks (dropping the second group's
+   task would lose exactly the knowledge the feature is for) with identical
+   text collapsed to one todo, and each todo is enqueued behind the
+   `trip_items` row it references — the comments row carries that id as a
+   foreign key. The `'current-user'` actor placeholder became a named constant
+   with the invariant-3 reasoning on it; it had been a literal in three files.
+3. **M3 step 3, scope-shaped (FR-27.6).** Two sections mirroring M7. Every row
+   counts what picking it *resolves* to rather than its own positions — a
+   Vorlage frequently owns none and is nothing but its groups — and a group a
+   picked Vorlage already brings says so on the row instead of letting a second
+   tap look like it added something (the FR-25.13 duplicate-report rule). The
+   footer names each merge with its groups and states the inherited task count.
+   The merge sentence is **M8's, reused**: same fact about the same
+   composition, and two wordings would have drifted apart. The section is
+   t()-localized; the rest of the wizard stays with the i18n backlog item.
+4. **An e2e unit that immediately paid for itself** (`e2e/trip-composition.spec.ts`,
+   E2E-M3-11/13, composition built through M7/M8 per spec §2.4). It reported
+   the same merge as „in Wildlife & Makro" on WebKit and „in Makro & Wildlife"
+   on Chromium, from identical data.
+
+That last one was **not a flake, and a retry would have buried it.**
+`template_includes` has no sort column, so the rows arrive in whatever order
+the sync or IndexedDB produced — and both `resolveTemplate` and generation read
+that order straight through. It decides which group is a merged item's *first
+contributor*, hence whose attributes and `source_template_id` the generated row
+carries: two devices could have disagreed about where a packed item came from.
+`includedTemplatesOf` now derives the order (group name, include id as
+tie-break) for both callers, and the superseded case asserting "the order they
+were included" was rewritten rather than adjusted — that order does not exist
+in the data. **Standing lesson, one more time in a different costume: the
+rendered run is the only place some defects exist.** The component tests were
+green, the domain suite was green, and both would have stayed green forever.
+
+Two smaller repairs rode along. The M7/M8 seeding helpers moved into
+`e2e/fixtures.ts` rather than being copied a third time (`visiblePage` is still
+duplicated in four other specs — a separate cleanup). And the traceability had
+grown a collision: the test spec used E2E-M3-11/12/13 for the §3.27 cases while
+three unrelated step-1 cases had taken the same ids in code. The code's three
+are renumbered E2E-M3-14/15/16, and the spec now carries entries for them,
+which it never had.
+
+What item 2 still owes: the FR-27.4 planning-trip refresh diff (with its M2
+applied-changes chip, which also unblocks E2E-M8-09/M8-11's log half and
+M14-04's), the M21 screen (FR-27.5), portable YAML for includes and tasks
+(FR-18.2), FR-27.3's single-item add in step 3, and FR-27.10's whole-group add
+to a running trip — that last one owes task materialisation on its rows too,
+which this PR deliberately did not build into `addCompanionItems`: a companion
+comes from a dependency, not from a template position, so it has no tasks.
