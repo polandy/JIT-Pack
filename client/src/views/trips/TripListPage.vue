@@ -6,6 +6,7 @@
  * per-trip progress ring, FAB for new trip, pull-to-refresh.
  */
 import {
+  toastController,
   IonPage,
   IonContent,
   IonSegment,
@@ -78,9 +79,46 @@ function matchesFilter(trip: Trip): boolean {
  */
 const isDev = import.meta.env.DEV
 
-async function addSampleTrip() {
-  const { seedSampleTrip } = await import('@/dev/sampleTrip')
-  router.push(`/trips/${seedSampleTrip(orchestrator)}`)
+/**
+ * Seeds the whole world, not only the trip: a fresh install has no inventory
+ * and no templates, so every §3.27 surface opens empty and testing one starts
+ * with twenty minutes of typing.
+ *
+ * It reports both outcomes. An async handler that only navigates on success is
+ * indistinguishable from a dead button when anything throws — a stale module
+ * graph after a dev-server restart is enough — and the owner spent a session
+ * on exactly that (2026-08-16): "vielleicht hab ich nicht gemerkt dass es nicht
+ * funktionierte weil es kein feedback gab".
+ */
+async function addSampleData() {
+  // The guard is what removes the seed from a production bundle, not the
+  // `v-if` on the button: `import.meta.env.DEV` is a compile-time constant, so
+  // this block and the chunk behind it are pruned — while a dynamic import in
+  // a live code path is emitted whether or not anything can reach it. The
+  // gallery route has had this shape all along (router/index.ts); the seed
+  // claimed it and did not have it, and shipped three chunks to every instance.
+  if (!import.meta.env.DEV) return
+  try {
+    const { seedSampleData } = await import('@/dev/sampleData')
+    const outcome = await seedSampleData(orchestrator)
+    await report(outcome.summary)
+    router.push(`/trips/${outcome.tripId}`)
+  } catch (error) {
+    // Dev-only surface, so the message is the developer's — untranslated and
+    // as specific as the failure was.
+    console.error('sample data seeding failed', error)
+    await report(`Beispieldaten fehlgeschlagen: ${(error as Error).message}`, 8000)
+  }
+}
+
+async function report(message: string, duration = 4000) {
+  const toast = await toastController.create({
+    message,
+    duration,
+    position: 'bottom',
+    positionAnchor: 'm2-fab-anchor',
+  })
+  await toast.present()
 }
 
 const {
@@ -287,15 +325,15 @@ async function handleRefresh(event: CustomEvent) {
         <p v-if="filter === 'active'">No active trips</p>
         <p v-else-if="filter === 'planned'">No planned trips</p>
         <p v-else>No archived trips</p>
-        <!-- Dev only, and gone from any build — see addSampleTrip. -->
+        <!-- Dev only, and gone from any build — see addSampleData. -->
         <IonButton
           v-if="isDev"
           size="small"
           fill="outline"
           data-testid="dev-sample-trip"
-          @click="addSampleTrip"
+          @click="addSampleData"
         >
-          Beispielreise anlegen (Dev)
+          Beispieldaten anlegen (Dev)
         </IonButton>
       </div>
 
@@ -403,7 +441,7 @@ async function handleRefresh(event: CustomEvent) {
       </IonList>
 
       <!-- FAB: New Trip -->
-      <IonFab vertical="bottom" horizontal="end" slot="fixed" class="mobile-fab">
+      <IonFab id="m2-fab-anchor" vertical="bottom" horizontal="end" slot="fixed" class="mobile-fab">
         <IonFabButton data-testid="trips-new" aria-label="New trip" router-link="/trips/new">
           <IonIcon :icon="addOutline" />
         </IonFabButton>

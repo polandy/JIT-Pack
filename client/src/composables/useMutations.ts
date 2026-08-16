@@ -5,6 +5,7 @@
  * All writes go through these helpers → SyncOutbox → server (P-2, G-5).
  */
 
+import { newId } from '@/lib/ids'
 import type { Mutation, MutationOp } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
 import type { ItemMode, TemplateKind } from '@/types/domain'
@@ -26,7 +27,7 @@ export function useMutations(hlc: HLCGenerator) {
     fields?: Record<string, unknown>,
   ): Mutation {
     return {
-      mutation_id: crypto.randomUUID(),
+      mutation_id: newId(),
       op,
       table,
       id,
@@ -131,7 +132,7 @@ export function useMutations(hlc: HLCGenerator) {
       mode?: ItemMode
     } = {},
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'trip_items', id, {
       trip_id: tripId,
       name,
@@ -157,7 +158,7 @@ export function useMutations(hlc: HLCGenerator) {
     name: string,
     linkedUserId: string | null = null,
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'travelers', id, {
       trip_id: tripId,
       name,
@@ -185,7 +186,7 @@ export function useMutations(hlc: HLCGenerator) {
     },
     assignedTravelerId: string | null,
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'trip_items', id, {
       trip_id: tripId,
       name: item.name,
@@ -223,7 +224,7 @@ export function useMutations(hlc: HLCGenerator) {
     assignedTravelerId: string | null,
     containerId: string | null,
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'trip_items', id, {
       trip_id: tripId,
       name: item.name,
@@ -261,7 +262,7 @@ export function useMutations(hlc: HLCGenerator) {
     assignedTravelerId: string | null,
     containerId: string | null,
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const packed = Math.min(item.packedCount, item.quantity)
     const state =
       item.quantity === 0
@@ -297,7 +298,7 @@ export function useMutations(hlc: HLCGenerator) {
     authorId: string,
     body: string,
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'comments', id, {
       trip_id: tripId,
       trip_item_id: tripItemId,
@@ -328,7 +329,7 @@ export function useMutations(hlc: HLCGenerator) {
     name: string,
     opts: { carrierTravelerId?: string | null; maxWeightGrams?: number | null } = {},
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'containers', id, {
       trip_id: tripId,
       name,
@@ -356,7 +357,7 @@ export function useMutations(hlc: HLCGenerator) {
     authorId: string,
     body: string,
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'comments', id, {
       trip_id: tripId,
       trip_item_id: tripItemId,
@@ -385,7 +386,7 @@ export function useMutations(hlc: HLCGenerator) {
     endDate: string | null,
     opts: { seriesId?: string | null; attributes?: Record<string, unknown> | null } = {},
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'trips', id, {
       name,
       // FR-2.1b: the year is the required fact; both dates may be absent.
@@ -418,7 +419,7 @@ export function useMutations(hlc: HLCGenerator) {
     endDate: string,
     seriesId: string | null,
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'trips', id, {
       name,
       start_date: null,
@@ -440,7 +441,7 @@ export function useMutations(hlc: HLCGenerator) {
       quantity: number
     },
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'trip_items', id, {
       trip_id: tripId,
       name: item.name,
@@ -464,7 +465,7 @@ export function useMutations(hlc: HLCGenerator) {
     name: string,
     defaultAttributes: Record<string, unknown> | null = null,
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     // owner_id is stamped server-side on push (FR-13.1 ownership).
     const mutation = make('insert', 'trip_series', id, {
       owner_id: '',
@@ -479,7 +480,7 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function createDestinationProfile(seriesId: string): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'destination_profiles', id, {
       series_id: seriesId,
       notes: null,
@@ -496,7 +497,7 @@ export function useMutations(hlc: HLCGenerator) {
     label: string,
     mode: ItemMode,
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'destination_checklist_items', id, {
       profile_id: profileId,
       label,
@@ -522,7 +523,7 @@ export function useMutations(hlc: HLCGenerator) {
       valueCents?: number | null
     } = {},
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'items', id, {
       name,
       weight_grams: opts.weightGrams ?? null,
@@ -546,7 +547,7 @@ export function useMutations(hlc: HLCGenerator) {
     ownerId: string,
     kind: TemplateKind = 'template',
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'templates', id, {
       owner_id: ownerId,
       name,
@@ -575,7 +576,7 @@ export function useMutations(hlc: HLCGenerator) {
       conditions?: Record<string, unknown> | null
     } = {},
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'template_items', id, {
       template_id: templateId,
       item_id: itemId,
@@ -602,7 +603,7 @@ export function useMutations(hlc: HLCGenerator) {
     templateId: string,
     includedTemplateId: string,
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'template_includes', id, {
       template_id: templateId,
       included_template_id: includedTemplateId,
@@ -619,7 +620,7 @@ export function useMutations(hlc: HLCGenerator) {
     templateItemId: string,
     task: string,
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'template_item_tasks', id, {
       template_item_id: templateItemId,
       task,
@@ -638,7 +639,7 @@ export function useMutations(hlc: HLCGenerator) {
     dependsOnItemId: string,
     opts: { mode?: 'required' | 'suggested'; quantity?: number | null } = {},
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'item_dependencies', id, {
       item_id: itemId,
       depends_on_item_id: dependsOnItemId,
@@ -663,7 +664,7 @@ export function useMutations(hlc: HLCGenerator) {
     userId: string,
     role: 'admin' | 'editor' = 'editor',
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     // 'owner' is never client-assignable — the server creates the
     // creator's owner row itself (FR-4.5).
     const mutation = make('insert', 'trip_members', id, {
@@ -685,7 +686,7 @@ export function useMutations(hlc: HLCGenerator) {
   // --- Tag mutations (FR-24.1) ---
 
   function createTag(name: string, sortOrder: number = 0): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'tags', id, { name, sort_order: sortOrder })
     return { mutation, id }
   }
@@ -700,7 +701,7 @@ export function useMutations(hlc: HLCGenerator) {
     tagId: string,
     position: number,
   ): { mutation: Mutation; id: string } {
-    const id = crypto.randomUUID()
+    const id = newId()
     const mutation = make('insert', 'item_tags', id, {
       item_id: itemId,
       tag_id: tagId,

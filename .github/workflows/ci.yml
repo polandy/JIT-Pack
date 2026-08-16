@@ -61,6 +61,10 @@ jobs:
       # token tables, never from a view. Node built-ins only.
       - run: node ../scripts/design-tokens-gate.mjs
       - run: npm run build # runs type-check and the production build
+      # The dev seed, the M14 fixture and the gallery must be *absent* from the
+      # bundle, not merely hidden in it — a `v-if` leaves the code behind the
+      # trigger. Reads what the build above emitted, so it runs after it.
+      - run: node ../scripts/dev-code-gate.mjs
       - run: npx vitest run
 
   # Visual baselines (ADR-013). Runs the tests *inside* the digest-pinned

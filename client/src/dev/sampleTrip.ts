@@ -11,8 +11,10 @@ import {
  * **Not Demo Mode.** That was removed in Addendum v2.10 and is not coming
  * back: it was a *product* surface — a mode a user entered, with its own
  * reset banner and explanation. This is a dev affordance behind
- * `import.meta.env.DEV`, so the module and its trigger drop out of a
- * production build entirely; nobody running an instance can reach it.
+ * `import.meta.env.DEV` **at the import** — the guard that actually prunes it,
+ * as opposed to the `v-if` on the button, which for weeks hid the trigger
+ * while Rollup kept emitting this module for every instance to download
+ * (found 2026-08-16). `scripts/dev-code-gate.mjs` holds it now.
  *
  * It lands through **the M18 portable-import path** (FR-18.4) rather than
  * a creation path of its own. A second way of building a trip is a second
