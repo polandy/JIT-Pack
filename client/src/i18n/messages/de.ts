@@ -39,13 +39,16 @@ export const de: Record<keyof typeof en, string> = {
     'Der Server ist nicht erreichbar. Deine Änderungen bleiben auf diesem Gerät und gehen raus, sobald er wieder da ist.',
   'sync.detail.explain.local':
     'Local Mode: Es gibt keinen Server. Alles, was du erfasst, bleibt in diesem Browser auf diesem Gerät.',
-  'sync.detail.pending': '{n} Änderung wartet auf den Versand | {n} Änderungen warten auf den Versand',
+  'sync.detail.pending':
+    '{n} Änderung wartet auf den Versand | {n} Änderungen warten auf den Versand',
   'sync.detail.conflicts': 'Konfliktprotokoll öffnen',
-  'sync.detail.conflictsHint': 'Das Konfliktprotokoll gehört zu einer Reise — öffne eine, um es zu sehen.',
+  'sync.detail.conflictsHint':
+    'Das Konfliktprotokoll gehört zu einer Reise — öffne eine, um es zu sehen.',
   'sync.detail.storage': 'Speicher auf diesem Gerät',
   'sync.detail.storageUsage': '{used} MB von {quota} MB belegt',
   'sync.detail.storageUnknown': 'Dieser Browser meldet nicht, wie viel Platz er belegt.',
-  'sync.detail.persistent': 'Als dauerhaft markiert — der Browser löscht die Daten nicht von selbst.',
+  'sync.detail.persistent':
+    'Als dauerhaft markiert — der Browser löscht die Daten nicht von selbst.',
   'sync.detail.eviction':
     'Nicht als dauerhaft markiert: Der Browser darf diese Daten löschen, wenn der Platz knapp wird.',
   'sync.detail.backup': 'Sicherung',

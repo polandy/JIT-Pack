@@ -63,7 +63,9 @@ describe('buildBackup (NFR-4.11)', () => {
   it('carries every trip and every template in one readable file', () => {
     const file = buildBackup(
       source({
-        templates: [{ template: template('t1', 'Sommerferien'), items: [templateItem('p1', 't1', 'i1')] }],
+        templates: [
+          { template: template('t1', 'Sommerferien'), items: [templateItem('p1', 't1', 'i1')] },
+        ],
         trips: [
           {
             trip: trip('r1', 'Samedan 2026'),
