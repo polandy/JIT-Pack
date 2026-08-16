@@ -36,7 +36,7 @@ import { loadTokens } from '@/auth/tokens'
 import { t } from '@/i18n'
 import { attributeLabel } from '@/lib/attributeLabels'
 import { resolveDependencies } from '@/domain/dependencies'
-import { durationDays, generateTripItems } from '@/domain/instantiate'
+import { durationDays, generateTripItems, type MergedOverlap } from '@/domain/instantiate'
 import { suggestQuantities, type QuantitySuggestion } from '@/domain/suggestions'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -179,6 +179,61 @@ function toggleTemplate(id: string, checked: boolean) {
   if (checked) next.add(id)
   else next.delete(id)
   selectedTemplateIds.value = next
+}
+
+// FR-27.6: the two scopes are separate sections here, mirroring M7 — a
+// Ferien-Vorlage is what a trip starts from, groups are what you add to it.
+const vacationTemplates = computed(() =>
+  masterStore.templateList.filter((tpl) => tpl.kind === 'template'),
+)
+const groupTemplates = computed(() =>
+  masterStore.templateList.filter((tpl) => tpl.kind === 'group'),
+)
+
+/**
+ * What picking this row would actually add: the resolved composition, not
+ * the template's own positions (FR-27.2). A Ferien-Vorlage frequently owns
+ * none at all and is nothing but its groups.
+ */
+function resolvedCount(templateId: string): number {
+  return masterStore.resolve(templateId).positions.length
+}
+
+/**
+ * The Vorlagen that already bring a group along. Picking it again changes
+ * nothing — the dedup swallows it — so the row says so rather than letting
+ * the user believe they added something (the FR-25.13 duplicate-report rule).
+ */
+const bringingVorlagen = computed(() => {
+  const byGroup = new Map<string, string[]>()
+  for (const id of selectedTemplateIds.value) {
+    const picked = masterStore.getTemplate(id)
+    if (!picked || picked.kind !== 'template') continue
+    for (const inc of masterStore.getIncludes(id)) {
+      const names = byGroup.get(inc.included_template_id) ?? []
+      names.push(picked.name)
+      byGroup.set(inc.included_template_id, names)
+    }
+  }
+  return byGroup
+})
+
+/** FR-27.7: how many preparation todos the generated trip will start with. */
+const taskCount = computed(() =>
+  generation.value.items.reduce((sum, item) => sum + item.tasks.length, 0),
+)
+
+/**
+ * FR-27.2: a merge is reported by name — "Kamera nur 1× — in Makro & Wildlife".
+ * The same two sentences the M8 resolution footer uses: it is the same fact
+ * about the same composition, and two wordings would eventually disagree.
+ */
+function mergeLine(merge: MergedOverlap): string {
+  return t(merge.strategy === 'sum' ? 'templates.mergeSum' : 'templates.mergeMax', {
+    name: merge.item_name,
+    n: merge.quantity,
+    groups: merge.sources.map((s) => s.name).join(' & '),
+  })
 }
 
 const generation = computed(() => {
@@ -638,43 +693,89 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
       <!-- Step 3: templates + preview -->
       <section v-if="step === 3" data-testid="wizard-step-3">
-        <h2 class="section-title jp-eyebrow">Templates</h2>
-        <IonList v-if="masterStore.templateList.length > 0">
-          <IonItem v-for="template in masterStore.templateList" :key="template.id">
-            <IonCheckbox
-              slot="start"
-              :checked="selectedTemplateIds.has(template.id)"
-              @ionChange="(e: CustomEvent) => toggleTemplate(template.id, e.detail.checked)"
-            />
-            <IonLabel>
-              <h3>{{ template.name }}</h3>
-              <p>{{ masterStore.getTemplateItems(template.id).length }} items</p>
-            </IonLabel>
-          </IonItem>
-        </IonList>
-        <div v-else class="empty-hint">No templates yet — you can still create an empty trip.</div>
+        <!-- FR-27.6: Ferien-Vorlagen first — they are what a trip starts from -->
+        <template v-if="vacationTemplates.length > 0">
+          <h2 class="section-title jp-eyebrow">{{ t('templates.sectionTemplates') }}</h2>
+          <IonList data-testid="wizard-section-templates">
+            <IonItem v-for="tpl in vacationTemplates" :key="tpl.id">
+              <IonCheckbox
+                slot="start"
+                :data-testid="`wizard-pick-${tpl.id}`"
+                :checked="selectedTemplateIds.has(tpl.id)"
+                @ionChange="(e: CustomEvent) => toggleTemplate(tpl.id, e.detail.checked)"
+              />
+              <IonLabel>
+                <h3>{{ tpl.name }}</h3>
+                <p :data-testid="`wizard-count-${tpl.id}`">
+                  {{ t('templates.itemCount', { n: resolvedCount(tpl.id) }) }}
+                </p>
+              </IonLabel>
+            </IonItem>
+          </IonList>
+        </template>
+
+        <template v-if="groupTemplates.length > 0">
+          <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionGroups') }}</h2>
+          <IonList data-testid="wizard-section-groups">
+            <IonItem v-for="grp in groupTemplates" :key="grp.id">
+              <IonCheckbox
+                slot="start"
+                :data-testid="`wizard-pick-${grp.id}`"
+                :checked="selectedTemplateIds.has(grp.id)"
+                @ionChange="(e: CustomEvent) => toggleTemplate(grp.id, e.detail.checked)"
+              />
+              <IonLabel>
+                <h3>{{ grp.name }}</h3>
+                <p :data-testid="`wizard-count-${grp.id}`">
+                  {{ t('templates.itemCount', { n: resolvedCount(grp.id) }) }}
+                </p>
+                <!-- Already on the list through a picked Vorlage — say so -->
+                <p v-if="bringingVorlagen.has(grp.id)" :data-testid="`wizard-included-${grp.id}`">
+                  {{
+                    t('wizard.alreadyIncluded', {
+                      names: bringingVorlagen.get(grp.id)!.join(' & '),
+                    })
+                  }}
+                </p>
+              </IonLabel>
+            </IonItem>
+          </IonList>
+        </template>
+
+        <div v-if="masterStore.templateList.length === 0" class="empty-hint">
+          {{ t('wizard.templatesEmpty') }}
+        </div>
 
         <div class="preview-footer">
-          <IonChip color="primary" outline>{{ generation.items.length }} items</IonChip>
+          <IonChip color="primary" outline data-testid="wizard-item-count">
+            {{ t('templates.itemCount', { n: generation.items.length }) }}
+          </IonChip>
           <!-- FR-20.2: required companions pulled in by dependencies -->
           <IonChip v-if="companionResolution.required.length > 0" color="secondary" outline>
-            + {{ companionResolution.required.length }} companion item{{
-              companionResolution.required.length === 1 ? '' : 's'
+            {{
+              t('wizard.companions', {
+                n: companionResolution.required.length,
+                names: companionResolution.required.map((c) => c.name).join(', '),
+              })
             }}
-            ({{ companionResolution.required.map((c) => c.name).join(', ') }})
           </IonChip>
-          <div v-if="generation.merged.length > 0" class="preview-block">
-            <h3>Merged overlaps</h3>
-            <p v-for="(m, i) in generation.merged" :key="i">
-              {{ m.item_name }}: {{ m.quantities.join(' / ') }} → {{ m.quantity }} ({{
-                m.strategy
-              }})
-            </p>
+          <!-- FR-27.7: the preparation todos the trip inherits from its positions -->
+          <IonChip v-if="taskCount > 0" outline data-testid="wizard-task-count">
+            📋 {{ t('wizard.taskCount', { n: taskCount }) }}
+          </IonChip>
+          <!-- FR-27.2: a merge names its groups — the point of composing -->
+          <div
+            v-if="generation.merged.length > 0"
+            class="preview-block"
+            data-testid="wizard-merges"
+          >
+            <h3>{{ t('wizard.mergesTitle') }}</h3>
+            <p v-for="(m, i) in generation.merged" :key="i">{{ mergeLine(m) }}</p>
           </div>
           <details v-if="generation.excluded.length > 0" class="preview-block">
-            <summary>{{ generation.excluded.length }} excluded by conditions</summary>
+            <summary>{{ t('wizard.excludedSummary', { n: generation.excluded.length }) }}</summary>
             <p v-for="(ex, i) in generation.excluded" :key="i">
-              {{ ex.item_name }} — skipped: {{ ex.reason }}
+              {{ t('wizard.excludedLine', { item: ex.item_name, reason: ex.reason }) }}
             </p>
           </details>
         </div>

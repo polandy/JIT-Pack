@@ -381,6 +381,17 @@ export const de: Record<keyof typeof en, string> = {
   'review.snackNever': 'Wird für diesen Artikel und diese Gruppe nicht mehr vorgeschlagen',
   'review.nothingToast': 'Nichts zu prüfen — keine Merkmale gesetzt.',
 
+  // M3 Schritt 3 — Vorlagen-Komposition (§3.27, FR-27.2/27.6/27.7).
+  'wizard.sectionGroups': 'Zusätzliche Gruppen',
+  'wizard.templatesEmpty': 'Noch keine Vorlagen — die Reise kann auch leer starten.',
+  'wizard.alreadyIncluded': 'bereits über „{names}“ enthalten',
+  'wizard.companions': '+ {n} Begleitartikel ({names}) | + {n} Begleitartikel ({names})',
+  'wizard.taskCount':
+    '{n} Vorbereitungs-Aufgabe übernommen | {n} Vorbereitungs-Aufgaben übernommen',
+  'wizard.mergesTitle': 'Nur einmal dabei',
+  'wizard.excludedSummary': '{n} durch Bedingungen ausgeschlossen',
+  'wizard.excludedLine': '{item} — übersprungen: {reason}',
+
   'settings.language': 'Sprache',
   'settings.languageHint': 'Nur auf diesem Gerät.',
   'settings.languageEnglish': 'Englisch',
