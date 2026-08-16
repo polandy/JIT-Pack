@@ -24,7 +24,7 @@ import {
   IonSelectOption,
   toastController,
 } from '@ionic/vue'
-import { checkmarkCircleOutline, closeOutline } from 'ionicons/icons'
+import { checkmarkCircleOutline, chevronForwardOutline, closeOutline } from 'ionicons/icons'
 import { computed, inject, ref, watchEffect } from 'vue'
 
 import { t } from '@/i18n'
@@ -35,6 +35,8 @@ import {
   type ReviewProposal,
 } from '@/domain/review'
 import { planningTripsUsing } from '@/domain/templates'
+import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
+import SheetModal from '@/components/global/SheetModal.vue'
 import { dismissProposal, isDismissed } from '@/local/reviewDismissals'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -44,7 +46,16 @@ import { setHeaderTitle } from '@/composables/useHeaderTitle'
 const props = defineProps<{ tripId: string }>()
 
 const store = useTripStore()
+
+/** FR-27.12: which target group the peek sheet is showing, if any. */
+const peekTemplateId = ref<string | null>(null)
+
 const master = useMasterStore()
+
+/** The target's name, for the peek trigger's label (FR-27.12). */
+function groupName(templateId: string): string {
+  return master.getTemplate(templateId)?.name ?? ''
+}
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
 const trip = computed(() => store.getTrip(props.tripId))
@@ -220,6 +231,18 @@ setHeaderTitle(() => `${t('review.title')} · ${trip.value?.name ?? ''}`)
                 {{ g.name }}
               </IonSelectOption>
             </IonSelect>
+            <!-- FR-27.12: what is already in the group I am about to write to?
+                 No summary line here — the row carries the blast radius and the
+                 proposal itself, and a fourth line would bury both. -->
+            <button
+              v-if="row.target"
+              class="peek"
+              :aria-label="t('templates.peekOpen', { name: groupName(row.target) })"
+              :data-testid="`m14-peek-${row.p.itemName}`"
+              @click="peekTemplateId = row.target"
+            >
+              <IonIcon :icon="chevronForwardOutline" />
+            </button>
           </label>
 
           <p v-if="blastText(row)" class="blast" data-testid="m14-blast">{{ blastText(row) }}</p>
@@ -258,11 +281,32 @@ setHeaderTitle(() => `${t('review.title')} · ${trip.value?.name ?? ''}`)
           {{ t('review.appliedSummary', { n: appliedCount }) }}
         </p>
       </template>
+      <!-- FR-27.12: look into the group before writing a proposal into it -->
+      <SheetModal :is-open="peekTemplateId !== null" @dismiss="peekTemplateId = null">
+        <GroupPeekSheet
+          v-if="peekTemplateId"
+          :template-id="peekTemplateId"
+          @close="peekTemplateId = null"
+        />
+      </SheetModal>
     </IonContent>
   </IonPage>
 </template>
 
 <style scoped>
+.peek {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ct-overlay0);
+  font-size: var(--jp-icon-sm);
+  cursor: pointer;
+}
+
 .intro {
   margin: 4px 2px 14px;
   font-size: var(--jp-text-sm);

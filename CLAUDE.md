@@ -135,7 +135,14 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    teleported app-bar actions, and a Local Mode write nobody awaited (FR-19.2).
    `dev-docs/e2e-tests.md` is the ledger of what is actually covered — a green `e2e` job is
    not the same as a verified UI.
-7. **FR-5.5's „bewusst nicht einpacken" has no control** (owner-flagged 2026-08-16) — the
+7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group used to
+   announce a count and never its contents, so M3, M8 and M14 asked the user to accept a
+   name. The row now names its first two items with a count for the rest, and a chevron
+   opens a read-only peek sheet with the *resolved* list. Decided on a rendered variant
+   round (`dev-docs/UI_Concept_GroupPeek_variants.html`); the unfolding row lost because it
+   solves M3 only. M8's picker chips still offer names alone — deliberate, revisit trigger
+   in FR-27.12.
+8. **FR-5.5's „bewusst nicht einpacken" has no control** (owner-flagged 2026-08-16) — the
    *state* is built and rendered: `state = 'skipped'` counts as done (`domain/packingView.ts`),
    M4 badges such a row „Deliberately skipped", FR-25.2 hides it with the packed ones, and
    `skipItem`/`unskipItem` exist in `useMutations`/`useSyncOrchestrator` **including the FR-20.2

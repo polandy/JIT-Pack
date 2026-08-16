@@ -5,8 +5,21 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { planningTripsUsing, resolveTemplate, scopeSwitchBlock } from '../templates'
-import type { Template, TemplateInclude, TemplateItem, Trip, TripItem } from '@/types/domain'
+import {
+  planningTripsUsing,
+  previewLines,
+  resolvedLines,
+  resolveTemplate,
+  scopeSwitchBlock,
+} from '../templates'
+import type {
+  MasterItem,
+  Template,
+  TemplateInclude,
+  TemplateItem,
+  Trip,
+  TripItem,
+} from '@/types/domain'
 
 function template(id: string, name: string, kind: Template['kind'] = 'template'): Template {
   return { id, owner_id: 'user-a', name, kind }
@@ -278,5 +291,65 @@ describe('planningTripsUsing (FR-27.4 blast radius)', () => {
       includes: [],
     })
     expect(result).toHaveLength(1)
+  })
+})
+
+/**
+ * FR-27.12: looking inside a group. Both the peek sheet and the row's own
+ * summary read the same resolved lines, so the two can never disagree about
+ * what a group contains.
+ */
+describe('resolvedLines / previewLines (FR-27.12)', () => {
+  const macro = template('macro', 'Makro', 'group')
+  const items: MasterItem[] = [
+    { id: 'cam', name: 'Kamera', weight_grams: 600, value_cents: null },
+    { id: 'ring', name: 'Ringlicht', weight_grams: 200, value_cents: null },
+    { id: 'lens', name: 'Makro-Objektiv', weight_grams: 300, value_cents: null },
+  ]
+
+  function resolutionOf() {
+    return resolveTemplate('macro', {
+      templates: [macro],
+      includes: [],
+      positions: [
+        position('p1', 'macro', 'ring'),
+        position('p2', 'macro', 'cam', { quantity: 2 }),
+        position('p3', 'macro', 'lens'),
+      ],
+    })
+  }
+
+  it('names each resolved position with its quantity, ordered by name', () => {
+    // Position order follows the sync; a list a human reads gets its own order,
+    // the same reasoning as includedTemplatesOf.
+    expect(resolvedLines(resolutionOf(), items)).toEqual([
+      { name: 'Kamera', quantity: 2 },
+      { name: 'Makro-Objektiv', quantity: 1 },
+      { name: 'Ringlicht', quantity: 1 },
+    ])
+  })
+
+  it('drops a position whose master item has not synced to this device', () => {
+    const lines = resolvedLines(resolutionOf(), [items[0]!])
+    expect(lines).toEqual([{ name: 'Kamera', quantity: 2 }])
+  })
+
+  it('previews the first names and counts the rest (FR-27.12 row summary)', () => {
+    expect(previewLines(resolvedLines(resolutionOf(), items), 2)).toEqual({
+      names: ['Kamera', 'Makro-Objektiv'],
+      rest: 1,
+    })
+  })
+
+  it('reports no rest when everything fits', () => {
+    expect(previewLines(resolvedLines(resolutionOf(), items), 5)).toEqual({
+      names: ['Kamera', 'Makro-Objektiv', 'Ringlicht'],
+      rest: 0,
+    })
+  })
+
+  it('an empty group previews as nothing at all, not as an empty sentence', () => {
+    const empty = resolveTemplate('macro', { templates: [macro], includes: [], positions: [] })
+    expect(previewLines(resolvedLines(empty, items), 3)).toEqual({ names: [], rest: 0 })
   })
 })

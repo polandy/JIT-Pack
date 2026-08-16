@@ -2367,3 +2367,48 @@ M14-04's), the M21 screen (FR-27.5), portable YAML for includes and tasks
 to a running trip — that last one owes task materialisation on its rows too,
 which this PR deliberately did not build into `addCompanionItems`: a companion
 comes from a dependency, not from a template position, so it has no tasks.
+
+## FR-27.12: a group stops being a name with a number (2026-08-16, PR pending)
+
+Owner question after the §3.27 generation PR: „die Gruppe, bspw. Makro
+Fotografie, sollte man anschauen können. haben wir das spezifiziert?" — no, and
+the gap was wider than one screen. A group announced *how many* items it held
+and never *which*, in all three places it is offered: M3 step 3, M8's Gruppen
+section and M14's target picker. The only answer was the M8 editor, which from
+the wizard costs the draft and from M14 the review pass.
+
+**Decided on rendered variants, not on argument**
+(`dev-docs/UI_Concept_GroupPeek_variants.html`, generated from the prototype's
+own stylesheet so the forms could not be judged on differing paint): a peek
+sheet (A), an unfolding row (B), and a row that names its first items with no
+interaction at all (C). The owner chose **A and C together**, which is what
+shipped.
+
+What decided it against B — the nicest of the three on M3 — was that the same
+question is asked on three surfaces with three shapes: M8's picker is a chip
+row and M14's target a select, and neither has a row to unfold. One form that
+answers everywhere beat the best form for one screen.
+
+Three things worth keeping:
+
+1. **The sheet is a look, not an editor**, and a test pins that its only button
+   closes it. Editing a group has one home (M8); a second editing surface is a
+   second place for the same rule to drift.
+2. **The list is the resolved one**, so a Ferien-Vorlage peeks through its
+   composition and a shared camera appears once — and it is ordered by item
+   name, for exactly the reason `includedTemplatesOf` is ordered: positions
+   arrive in sync order, and a list somebody scans for „ist das Stativ dabei?"
+   must not answer differently on two devices.
+3. **Two names per row, not three** — decided on pixels: at 390 px three German
+   item names wrap, turning a scannable row into a four-line block. The count
+   („+2") is the honest half of a summary that cannot answer the precise
+   question.
+
+`SheetModal` collects the bottom-sheet chrome that four screens each carried a
+copy of; the peek would have been the fifth. The four are untouched — moving
+them is mechanical and belongs in its own change.
+
+E2E-M3-11 needed tightening in the same PR: it checked scope separation with a
+substring, and a Vorlage's row now legitimately contains „Makro-Objektiv". An
+assertion that passed for the wrong reason failed the moment the screen said
+more than it used to.
