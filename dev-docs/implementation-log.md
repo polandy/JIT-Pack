@@ -2546,16 +2546,21 @@ null variant. Two things only the render could settle:
 1. **The icon library is the option that fits our own rules and it still lost.**
    Monochrome strokes in a role colour satisfy G-11/G-13/G-14 without an
    exception, and at 34 px sunscreen, bottle and water bottle are the same
-   picture. Its substitute rate was also the **higher** of the two — 6 of 15
-   against emoji's 4 — because libraries carry travel gear and not household
-   detail. The argument favoured it; the pixels did not.
+   picture. Its substitute rate was also the **higher** of the two — 7 of 15
+   against emoji's 6 — because libraries carry travel gear and not household
+   detail. That margin is one row and proves nothing by itself; the
+   distinguishability does. The argument favoured it; the pixels did not.
 2. **The null variant is worse than nothing.** A coloured initial repeats, in a
    circle, the name standing next to it. That is what made "no mark" an
    acceptable and *normal* row state in FR-28.1 rather than a gap to fill.
 
-The list was seeded with four things nothing fits (*Trekkingstöcke*,
-*Fleecepullover*, *Zwischenringe*, *Wasserflasche* — Unicode has no water
-bottle) on purpose: a symbol system is decided in its tail, not in its head.
+The list was seeded on purpose with a row nothing fits (*Trekkingstöcke*) and
+several near-misses (*Fleecepullover*, *Schlafsack*, *Wasserflasche* — Unicode
+has no water bottle): a symbol system is decided in its tail, not in its head.
+
+Counting those beat a claim I had already written down: the first draft of this
+entry said 4 substitutes against 6. Counting the rendered data said **6 against
+7**, which keeps the conclusion and removes the margin it looked like it had.
 
 **The suggestion is cheap and was built to prove it.** The variant page carries
 a working picker: one keyword index (de + en), scored against the item name.

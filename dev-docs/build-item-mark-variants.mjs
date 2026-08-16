@@ -253,10 +253,10 @@ function listFor(kind){
 const VARIANTS = [
   { key:'A', title:'Emoji als Marke',
     why:'Ein Unicode-Codepoint pro Artikel, farbig und figürlich. Die Zeile ist auf einen Blick sortierbar: Kleidung ist bunt-textil, Technik ist grau-eckig, Camping ist grün. Für den langen Schwanz („Zwischenringe“) gibt es nichts — dann bleibt die Marke leer statt falsch.',
-    cost:'Kosten: die Farben kommen nicht aus eurer Tabelle. Vier Marken sind Ersatz (🧶 für Fleece, 🔌 für Kabel, 🔦 für Stirnlampe, 🧃 für Wasserflasche) — Emoji hat keine Wasserflasche. Das 🧶 hätte der Picker unten übrigens gar nicht vorgeschlagen; es ist von Hand gewählt.' },
+    cost:'Kosten: die Farben kommen nicht aus eurer Tabelle. Und der Schwanz kostet auch hier: sechs der fünfzehn Marken sind Ersatz (🧶 Fleece, 🔌 Kabel, 🔦 Stirnlampe, 🛌 Schlafsack, 🔥 Gaskocher, 🧃 Wasserflasche — Emoji hat keine Wasserflasche), eine Zeile bleibt ganz leer. Das 🧶 hätte der Picker unten übrigens gar nicht vorgeschlagen; es ist von Hand gewählt.' },
   { key:'B', title:'Icon-Bibliothek',
     why:'Monochrome Strichicons in der Rollenfarbe. Fügt sich lückenlos in Invariante 9 ein, skaliert scharf, wiegt fast nichts. Die Liste bleibt ruhig — sie sieht aus wie der Rest der App.',
-    cost:'Kosten: ruhig heißt hier gleichförmig. Sechs von fünfzehn Zeilen tragen ein Ersatz-Symbol, und auf 34 px sehen Flasche, Sonnencreme und Wasserflasche identisch aus. Als Scan-Hilfe trägt das kaum. Fairness-Hinweis: die Striche sind in der Strichstärke von Phosphor/Tabler nachgezeichnet, nicht aus der Bibliothek importiert — die Gleichförmigkeit ist die Aussage, nicht meine Zeichenhand.' },
+    cost:'Kosten: ruhig heißt hier gleichförmig. Sieben von fünfzehn Zeilen tragen ein Ersatz-Symbol — eine mehr als bei Emoji —, und auf 34 px sehen Flasche, Sonnencreme und Wasserflasche identisch aus. Als Scan-Hilfe trägt das kaum. Fairness-Hinweis: die Striche sind in der Strichstärke von Phosphor/Tabler nachgezeichnet, nicht aus der Bibliothek importiert — die Gleichförmigkeit ist die Aussage, nicht meine Zeichenhand.' },
   { key:'C', title:'Foto zuerst, Emoji dahinter',
     why:'Was ein Foto hat, zeigt das Foto — das ist die Identität, die FR-22.1 meint. Der Rest fällt auf das Emoji zurück. Realistisch sind drei von fünfzehn Zeilen fotografiert, so ist es hier gerendert.',
     cost:'Kosten: zwei Bildsprachen in einer Spalte. Das Foto zieht das Auge und gewinnt jeden Scan — die drei fotografierten Zeilen wirken wichtiger als die zwölf anderen, ohne es zu sein.' },
