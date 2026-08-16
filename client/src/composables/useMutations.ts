@@ -679,7 +679,6 @@ export function useMutations(hlc: HLCGenerator) {
     return { mutation, id }
   }
 
-
   /**
    * Assign a tag to an item at `position` — 0 makes it the item's primary
    * tag (FR-24.2). One row per assignment so two people tagging the same
@@ -702,7 +701,6 @@ export function useMutations(hlc: HLCGenerator) {
   function unassignTag(assignmentId: string): Mutation {
     return make('delete', 'item_tags', assignmentId)
   }
-
 
   return {
     // Trip items
