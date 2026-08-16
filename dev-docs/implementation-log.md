@@ -2043,3 +2043,44 @@ the master item's category, which was worth checking rather than assuming.
 Still open from §3.24: **FR-24.3 lifecycle-aware deletion stays parked** —
 a rule about history rather than classification, and nothing in the tag
 model depends on it.
+
+## M11 — containers rebuilt on the concept round (FR-10.1–10.3, 2026-08-16)
+
+The fourth screen rebuild, and the first time M11 was rendered at all — the
+concept round of 2026-08-08 had rejected the prototype's screen (a flat form
+per card, one assign button per container per row) without anything being
+built in its place. What runs now: a card per container (name, carrier,
+weight bar with the FR-10.3 grades, imbalance line), the M5-grammar
+`ContainerSheet` for editing, FR-24.5 placeholder-name creation from the
+FAB, and an unassigned bucket of plain rows whose tap opens the same sheet
+surface as a container *picker* with each option's current load.
+
+**The defect worth the rebuild: pairing was one-sided.** The old screen
+wrote `paired_container_id` only on the tapped container, so the partner
+rendered an imbalance against a container that did not consider itself
+paired — exactly the half-set state the UI-Spec warns about. The write set
+now comes from the pure domain (`pairWrites`/`unpairWrites`/
+`releasePartnersOnDelete` in `client/src/domain/containers.ts`): both sides
+at once, exclusive (a re-pair releases the old partner first, releases
+ordered before sets so a freed partner can never overwrite the new pair),
+idempotent, and self-repairing on a legacy one-sided row. `deleteContainer`
+releases the surviving partner alongside its existing item unassignment.
+
+**Found on the pixels, not in the stylesheet:** the sheet's carrier section
+rendered as a bare heading on a trip without travelers — now absent, not
+emptied (the FR-24.5 stance). Rendered against the seeded :3000 instance
+through a Vite proxy inside the pinned Playwright container.
+
+**The e2e unit paid for two lessons** (ledger has the detail): Playwright
+CSS pierces shadow DOM, so "no button grid" is asserted as zero `ion-select`
+per row rather than zero `button`; and a tap during an overlay's dismiss
+animation is swallowed by the backdrop, so `closeSheet()` waits for
+`ion-modal.show-modal` to be gone. The symmetric-pairing case was
+mutation-proved by reverting `pairContainer` to the one-sided write.
+
+Beside the rebuild, `formatWeight` — five identical copies across five
+files — moved to `client/src/lib/format.ts`, and the M9/M10 unit's missing
+row in the ledger's status table was repaired.
+
+No ADR: every tradeoff here was decided in the 2026-08-08 concept round;
+this entry records execution, not decision.

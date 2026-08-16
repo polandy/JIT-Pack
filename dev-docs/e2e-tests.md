@@ -49,6 +49,8 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
 | M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (completed by the M8 unit), E2E-M7-08 | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
 | M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14 | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
+| M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-02, E2E-M9-03, E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
+| M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
 (create / import). The screen has neither as a button: create is the FAB and
@@ -254,3 +256,31 @@ every tag instead of its primary one drops two of those cases.
    that. It is now `commitNewItem()`, used by both, so the omission cannot
    recur silently. That comparison is also what found it: E2E-M10-03 passes
    the identical sequence, which ruled the navigation itself out.
+
+## M11 — containers (`e2e/containers.spec.ts`, 2026-08-16)
+
+Four cases, Local Mode, landing with the M11 rebuild. The pairing *write
+semantics* (both sides at once, exclusive, released on delete) are unit
+territory — `src/domain/__tests__/containers.spec.ts` — so the e2e cases
+assert only what the user can see of them: the pair set in one sheet and
+read back as selected in the *other* container's sheet, and cleared on both.
+That cross-sheet read is mutation-proved — reverting `pairContainer` to the
+pre-rebuild one-sided write fails E2E-M11-05.
+
+What the unit cost to learn:
+
+1. **Playwright CSS pierces shadow DOM.** The "no button grid" assertion of
+   E2E-M11-06 counted `button` inside the unassigned rows and found one —
+   `ion-item`'s own tap surface is a native button *in its shadow root*. The
+   rejected design was one `ion-select` per row, so that is what the
+   assertion counts.
+2. **An overlay's dismissal is part of the interaction.** A tap that arrives
+   while the previous sheet is still animating out lands on the backdrop and
+   is swallowed. `closeSheet()` therefore waits for `ion-modal.show-modal`
+   to be gone, not merely for the sheet's content to detach — the same
+   settled-not-arrived rule the M7 unit paid for, one layer down.
+3. **Real weights come through the app's own paths** (spec §2.4): the master
+   item is created in M10's minimal form with a weight, and the trip row
+   inherits it by picking the quick-add *suggestion* — which got its
+   `data-testid` with this unit; free-text quick-add creates weightless
+   items and would have made the FR-10.3 grades untestable.

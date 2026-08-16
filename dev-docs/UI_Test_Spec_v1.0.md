@@ -285,12 +285,12 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M10-06** `all` (FR-27.9): "Kommentare aus Reisen" aggregates the comments written on this item's packing rows across trips — each entry carries author, source trip, and timestamp, newest first; comments from different trips appear together; an item without comments renders no section at all; entries are read-only (the editable thread stays on the trip item, FR-7.1).
 
 ### M11 — Container Management
-* **E2E-M11-01** `all` (FR-10.1): create/edit/delete containers with name, carrier, max weight.
-* **E2E-M11-05** `all` (FR-10.1/25.15/24.5): the ＋ FAB creates a container and opens its sheet; name and weight limit save on change with no Save button. Pairing is set **on both sides at once** and released on both when cleared or when one side is deleted.
-* **E2E-M11-06** `all` (FR-10.2/25.5): the unassigned bucket renders **one row per item** (asserts no per-container button grid); tapping a row opens the container picker with each container's current load, and choosing one assigns the item. Deleting a container **unassigns** its items — they must still be on the packing list afterwards.
-* **E2E-M11-02** `all` (FR-10.3): weight bar goes amber at ≥90%, red beyond max.
-* **E2E-M11-03** `all` (FR-10.2): unassigned bucket; assign items into/between containers; deleting a container unassigns its items first.
-* **E2E-M11-04** `all` (FR-10.3): pairing control shows a live imbalance indicator against the threshold.
+* **E2E-M11-01** `all` (FR-10.1) — **implemented across M11-05/06** (`e2e/containers.spec.ts`): create/edit/delete containers with name, carrier, max weight.
+* **E2E-M11-05** `all` (FR-10.1/25.15/24.5) — **implemented** (`e2e/containers.spec.ts`, mutation-proved: a one-sided pair write fails it): the ＋ FAB creates a container and opens its sheet; name and weight limit save on change with no Save button. Pairing is set **on both sides at once** and released on both when cleared or when one side is deleted.
+* **E2E-M11-06** `all` (FR-10.2/25.5) — **implemented** (`e2e/containers.spec.ts`; the no-grid assertion counts `ion-select`, not `button` — Playwright CSS pierces shadow DOM, where ion-item's own tap surface is a native button): the unassigned bucket renders **one row per item** (asserts no per-container button grid); tapping a row opens the container picker with each container's current load, and choosing one assigns the item. Deleting a container **unassigns** its items — they must still be on the packing list afterwards.
+* **E2E-M11-02** `all` (FR-10.3) — **implemented** (`e2e/containers.spec.ts`; the weight arrives through the app's own paths, M10 minimal form → quick-add suggestion): weight bar goes amber at ≥90%, red beyond max.
+* **E2E-M11-03** `all` (FR-10.2) — **folded into M11-06**: unassigned bucket; assign items into/between containers; deleting a container unassigns its items first.
+* **E2E-M11-04** `all` (FR-10.3) — **implemented** (`e2e/containers.spec.ts`, asserted on both cards of the pair): pairing control shows a live imbalance indicator against the threshold.
 
 ### M12 — Analytics
 * **E2E-M12-01** `all` (FR-8.1/8.2): dimension switcher Person/Category/Container; stacked packed-vs-planned weight bars + value totals.
@@ -435,8 +435,8 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-8.2 | E2E+UNIT | M12-01/04, **M12-06** (the grouping handoff, which is the part that is built); analytics.ts |
 | FR-9.1 | E2E | M5-03, M4-04, FLOW-04 |
 | FR-9.2 | E2E+UNIT | M14-01/02/03/04; review.ts |
-| FR-10.1 | E2E | M11-01 |
-| FR-10.2 | E2E | M11-03, M5-02 |
+| FR-10.1 | E2E | M11-01 (via M11-05/06) |
+| FR-10.2 | E2E | M11-06 (03 folded in), M5-02 |
 | FR-10.3 | E2E+UNIT | M11-02/04; containers.ts |
 | FR-10.4 | UNIT | analytics.ts (container weight); surfaced M12-01 |
 | FR-11.1–11.3 | — | removed (Repack feature dropped, Addendum §3.11) |
@@ -497,7 +497,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-23.6 | SERVER | deactivation side-effects (push purge, notif suppress) — Go test; access-revocation asserted M20-02 |
 | FR-24.1 | E2E | M10-08 (filter-or-create tag capture); grouping/filtering M9-01/24.2 |
 | FR-24.4 | E2E | M9-01 (lean default), M9-05 (property sheet, device-local) |
-| FR-24.5 | E2E | M10-07 (minimal creation, sections absent) |
+| FR-24.5 | E2E | M10-07 (minimal creation, sections absent), M11-05 (placeholder-name container) |
 | FR-25.1 | E2E+UNIT | M4-12/13/14; packingView.ts (clustering, flat fallback, full-set decision) |
 | FR-25.2 | E2E+UNIT | M4-14; packingView.ts (isDone, hidden counts, full-set headers) |
 | FR-25.4 | E2E+UNIT | mode glyph rules M4-15/16; packingView.ts — the pill strip itself is superseded by FR-25.11 |
@@ -520,7 +520,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-25.19 | E2E | M4-30 (responsibility vs. record, single right-edge avatar, record not editable) |
 | FR-25.20 | E2E | M4-31 (others' rows hidden by default, reveal bar names count + people, header unfiltered) |
 | FR-25.14 | E2E | M5-06 (read-only aggregate, per-traveler controls) |
-| FR-25.15 | E2E | M5-07 (auto-save indicator, distinct from G-2) |
+| FR-25.15 | E2E | M5-07 (auto-save indicator, distinct from G-2), M11-05 |
 | FR-25.13b | E2E | M6-19 (autocomplete adopts the category; manual fallback) |
 | FR-27.1 | E2E+UNIT | M8-07 (two-level include rules), M7-07, M21-03; `domain/templates.ts` (one-level expansion, dedup by master item), `internal/portable` + `domain/portable.ts` (the `scope` field round-trips, an unknown scope is rejected, a scope on a trip document is an error) |
 | FR-27.2 | E2E+UNIT | M3-11, M8-08; instantiate.ts (include expansion + named merge) |
