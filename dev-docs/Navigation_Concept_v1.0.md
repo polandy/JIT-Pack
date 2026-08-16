@@ -108,7 +108,7 @@ A trip is **not** a tab. It is opened from the Trip List (M2) and becomes the hu
 | **M5** Item Detail | `/trips/:id/items/:itemId` | assignment, flags, comments, prep todos |
 | **M6** Shopping | `/trips/:id/shopping` | buy-before / buy-local lists |
 | **M11** Containers | `/trips/:id/containers` | weights, pairing, assignment |
-| **M12** Analytics | `/trips/:id/analytics` | weight/value per dimension, series trend |
+| **M12** Analytics | `/trips/:id/analytics` | weight per dimension + trip totals, series trend |
 | **M14** Review | `/trips/:id/review` | post-trip proposals for the template |
 | Clone | `/trips/:id/clone` | trip as a starting point (FR-12) |
 | Members | `/trips/:id/members` | roles Owner/Admin/Editor (FR-4.5) |

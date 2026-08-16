@@ -346,6 +346,20 @@ export const en = {
   'container.assignNone': 'Create a container first, then assign items to it.',
   'container.notFound': 'This container does not exist.',
 
+  // M12 — Analytics (FR-8.2/14.3).
+  'analytics.hint': 'Weight: packed / planned · tap a bar for the filtered packing list',
+  'analytics.empty': 'No weighted items yet — nothing to chart.',
+  'analytics.unweighted':
+    '＋ {n} item without a weight — honestly left out | ＋ {n} items without a weight — honestly left out',
+  'analytics.kpiWeight': 'Weight packed / planned',
+  'analytics.kpiValue': 'Total value',
+  'analytics.trendTitle': 'Series {name} · trend',
+  'analytics.trendCaption': 'Packed weight per year (kg)',
+  'analytics.flaggedTitle': 'Frequently flagged · across the series',
+  'analytics.flagUnused': '{n}× unused',
+  'analytics.flagMissing': '{n}× missing',
+  'analytics.historyNote': 'Based on the archived trips synced to this device.',
+
   'settings.language': 'Language',
   'settings.languageHint': 'This device only.',
   'settings.languageEnglish': 'English',

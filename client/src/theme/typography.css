@@ -143,9 +143,9 @@ body {
 /* --- Role classes ---------------------------------------------------- */
 
 /*
- * The sized roles the app actually uses. G-13's headline figure still has
- * no screen, so it still has no class: one kept here in advance would be a
- * token nobody can check against a rendered pixel.
+ * The sized roles the app actually uses. G-13's headline figure got its
+ * class with the M12 rebuild — the first screen to render one — per the
+ * rule that a role class is written when a rendered pixel can check it.
  */
 .jp-page-title {
   font-family: var(--jp-font-display);
@@ -161,6 +161,20 @@ body {
   font-size: var(--jp-text-display-lg);
   letter-spacing: var(--jp-tracking-display);
   line-height: var(--jp-leading-display);
+}
+
+/*
+ * G-13's headline figure: a KPI number set in the display face (M12's
+ * totals, M1's stats when it is rebuilt). Tabular numerals because a
+ * figure that changes in place must not reflow its card.
+ */
+.jp-figure {
+  font-family: var(--jp-font-display);
+  font-weight: var(--jp-weight-semibold);
+  font-size: var(--jp-text-display-lg);
+  letter-spacing: var(--jp-tracking-display);
+  line-height: var(--jp-leading-display);
+  font-variant-numeric: tabular-nums;
 }
 
 .jp-sheet-title {

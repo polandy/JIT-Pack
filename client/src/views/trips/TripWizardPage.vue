@@ -463,6 +463,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
                 :label="t('wizard.series')"
                 interface="popover"
                 :value="seriesChoice"
+                data-testid="wizard-series"
                 @ionChange="(e: CustomEvent) => pickSeries(e.detail.value)"
               >
                 <IonSelectOption value="">{{ t('wizard.seriesNone') }}</IonSelectOption>
@@ -478,6 +479,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
                 label-placement="stacked"
                 :placeholder="t('wizard.seriesNamePlaceholder')"
                 :value="newSeriesName"
+                data-testid="wizard-series-name"
                 @ionInput="(e: CustomEvent) => (newSeriesName = e.detail.value ?? '')"
               />
             </IonItem>

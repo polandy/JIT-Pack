@@ -27,7 +27,7 @@
 import { ref, watch, type Ref } from 'vue'
 
 import { noFacets } from '@/domain/packingView'
-import type { Facets, GroupBy } from '@/types/domain'
+import type { FacetKey, Facets, GroupBy } from '@/types/domain'
 
 const FILTER_PREFIX = 'jitpack.m4filter.'
 const GROUP_PREFIX = 'jitpack.m4group.'
@@ -67,6 +67,7 @@ function isGroupBy(value: string | null): value is GroupBy {
  * session, replaced whenever M4 mounts again.
  */
 const mountedGroupBy = new Map<string, Ref<GroupBy>>()
+const mountedFacets = new Map<string, Ref<Facets>>()
 
 /**
  * Sets the grouping M4 shows, for a screen that is about to send the
@@ -81,6 +82,32 @@ export function setStoredGroupBy(tripId: string, groupBy: GroupBy): void {
   writeStored(globalThis.localStorage as Storage | undefined, GROUP_PREFIX + tripId, groupBy)
   const mounted = mountedGroupBy.get(tripId)
   if (mounted) mounted.value = groupBy
+}
+
+/**
+ * Makes one facet value the whole filter, for M12's slice tap (FR-25.11):
+ * the reader tapped *one* number, so every other facet is cleared rather
+ * than intersected into a list that shows less than the bar promised. The
+ * reveal switches are untouched — the tap narrows, it does not un-reveal.
+ * Same write discipline as setStoredGroupBy: storage synchronously, and
+ * the live ref of an M4 that is still mounted (ADR-012).
+ */
+export function setStoredFacet(tripId: string, key: FacetKey, value: string): void {
+  const session = globalThis.sessionStorage as Storage | undefined
+  const filterKey = FILTER_PREFIX + tripId
+  let stored: StoredFilter = {}
+  const raw = readStored(session, filterKey)
+  if (raw) {
+    try {
+      stored = JSON.parse(raw) as StoredFilter
+    } catch {
+      // Corrupt entry: the facet below rebuilds it from scratch.
+    }
+  }
+  const facets: Facets = { ...noFacets(), [key]: [value] }
+  writeStored(session, filterKey, JSON.stringify({ ...stored, facets } satisfies StoredFilter))
+  const mounted = mountedFacets.get(tripId)
+  if (mounted) mounted.value = facets
 }
 
 export function usePackingFilter(tripId: string) {
@@ -114,6 +141,7 @@ export function usePackingFilter(tripId: string) {
   const storedGroup = readStored(local, groupKey)
   if (isGroupBy(storedGroup)) groupBy.value = storedGroup
   mountedGroupBy.set(tripId, groupBy)
+  mountedFacets.set(tripId, facets)
 
   // One watcher over the whole filter: with a save call per mutation site,
   // the site added next is the one that forgets.

@@ -60,6 +60,11 @@ export interface TripSeed {
   startDate?: string
   /** Traveler names; each is added as an Adult (FR-2.5). */
   travelers?: string[]
+  /**
+   * Series name (FR-13.1). First use creates the series via "New
+   * series…"; later seeds with the same name pick the existing one.
+   */
+  series?: string
 }
 
 /**
@@ -73,15 +78,31 @@ export async function createTripViaWizard(page: Page, trip: TripSeed): Promise<s
   await page.goto('/trips/new')
 
   await page.getByTestId('wizard-name').locator('input').fill(trip.name)
-  // FR-2.1c: the dates live behind the "More options" row, so a seed that
-  // wants them has to open it — a seed that does not never sees it.
-  if (trip.startDate || trip.endDate) {
+  // FR-2.1c: the dates and the series live behind the "More options" row,
+  // so a seed that wants them has to open it — one that does not never
+  // sees it.
+  if (trip.startDate || trip.endDate || trip.series) {
     await page.getByTestId('wizard-more').click()
     if (trip.startDate) {
       await page.getByTestId('wizard-start-date').locator('input').fill(trip.startDate)
     }
     if (trip.endDate) {
       await page.getByTestId('wizard-end-date').locator('input').fill(trip.endDate)
+    }
+    if (trip.series) {
+      await page.getByTestId('wizard-series').click()
+      const popover = page.locator('ion-popover ion-select-popover')
+      await expect(popover).toBeVisible()
+      // Prefer the existing series of that name; fall back to creating it.
+      const existing = popover.locator('ion-item', { hasText: trip.series })
+      if (await existing.count()) {
+        await existing.click()
+      } else {
+        await popover.locator('ion-item', { hasText: 'New series' }).click()
+        await expect(page.locator('ion-popover')).toHaveCount(0)
+        await page.getByTestId('wizard-series-name').locator('input').fill(trip.series)
+      }
+      await expect(page.locator('ion-popover')).toHaveCount(0)
     }
   }
   await page.getByTestId('wizard-next').click()

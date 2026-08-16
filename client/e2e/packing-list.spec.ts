@@ -326,14 +326,26 @@ test.describe('M4 packing list @local @m4', () => {
   // screens, and it broke silently when M4's rebuild moved the grouping to
   // `usePackingFilter` while M12 went on writing the trip store's copy. No
   // unit could see it — each side was correct about its own state — so the
-  // case has to cross the screen boundary. It is the *grouping* half only;
-  // E2E-M12-04's per-slice facet is unbuilt (CLAUDE.md item 3, "M12 slice
-  // filtering") and this case must not be read as covering it.
+  // case has to cross the screen boundary. The *facet* half of the tap is
+  // E2E-M12-04 (analytics.spec.ts); this case pins the grouping that comes
+  // along, which is what outlives the chip once the reader clears it.
   test('E2E-M12-06: a slice tapped in analytics is the grouping M4 comes back with', async ({
     page,
   }) => {
+    // A weighted master item, because only weighted rows draw a bar.
+    await page.goto('/tabs/items')
+    await page.getByTestId('m9-fab').click()
+    await page.getByTestId('m10-name').locator('input').fill('Zelt')
+    await page.getByTestId('m10-more').click()
+    await page.getByTestId('m10-weight').locator('input').fill('1000')
+    await page.getByTestId('m10-create').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Zelt')
+
     await createTripViaWizard(page, TRIP)
-    await quickAdd(page, ['Zelt'])
+    await page.getByTestId('m4-fab').click()
+    await page.getByTestId('quick-add-input').locator('input').fill('Zel')
+    await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Zelt' }).click()
+    await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
     await expect(page.getByTestId('m4-filter-bar')).toContainText(/Category/i)
 
     await page.getByTestId('m4-nav-analytics').click()
@@ -342,6 +354,9 @@ test.describe('M4 packing list @local @m4', () => {
     await page.getByTestId('analytics-dim-person').click()
     await page.getByTestId('analytics-slice-none').click()
 
+    // The tap set the facet (M12-04's half); clearing it reveals the
+    // grouping that must still be in force on the mounted M4 (ADR-012).
+    await page.getByTestId('m4-chip-reset').click()
     await expect(page.getByTestId('m4-filter-bar')).toContainText(/Person/i)
   })
 
