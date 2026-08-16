@@ -143,7 +143,7 @@ test.describe('M11 containers @local @m11', () => {
     // Quick-add via the suggestion, so the row carries the master weight.
     await page.getByTestId('m4-fab').click()
     await page.getByTestId('quick-add-input').locator('input').fill('Zel')
-    await page.locator('.suggestions ion-item', { hasText: 'Zelt' }).click()
+    await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Zelt' }).click()
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
 
     await openLuggage(page)
@@ -183,7 +183,7 @@ test.describe('M11 containers @local @m11', () => {
     await createTripViaWizard(page, TRIP)
     await page.getByTestId('m4-fab').click()
     await page.getByTestId('quick-add-input').locator('input').fill('Zel')
-    await page.locator('.suggestions ion-item', { hasText: 'Zelt' }).click()
+    await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Zelt' }).click()
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
 
     await openLuggage(page)
