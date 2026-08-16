@@ -2134,6 +2134,23 @@ named, all 16 pre-existing baselines reproduced byte-identically on the Mac
 (`git status` showed only the four new PNGs), and only then were the M11
 images kept.
 
+**The platform pin was only half of "generatable off the runner."** Naming it
+made the *images* comparable; the run still could not start. `make visual`
+mounts the worktree, which hands the container the host's `node_modules`, and
+rolldown ships a native binary — so vite's preview server died at "Cannot find
+module … linux-x64" before a single pixel was rendered. That the baselines
+above exist at all is because they were produced in a copy whose dependencies
+were installed *inside* the image. `scripts/visual.sh` now does that itself
+when the host is not Linux: the container mounts its own tree out of the
+user's cache directory and fills it with `npm ci`, which costs ~9 s over
+virtiofs — cheap enough that a staleness check would cost more than redoing
+it. The first attempt put that tree under `client/`, and `make ci` rejected it
+within a minute: a second `node_modules` inside the project is walked by
+everything that walks the project, and eslint followed it in. Ignoring it in
+one tool would have moved the problem to the next one. CI is untouched, because there the host *is* Linux and the
+mount is already right. Proven by running `make visual` unmodified on the Mac:
+20/20, the M11 images included.
+
 Two Docker Desktop leftovers cost the detour and are worth naming for the
 next machine: a `credsStore: desktop` in `~/.docker/config.json` pointing at
 an uninstalled helper, which fails every pull with a credentials error, and
