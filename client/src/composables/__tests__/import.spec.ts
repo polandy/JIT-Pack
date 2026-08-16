@@ -79,14 +79,16 @@ describe('commitImport (FR-16.2)', () => {
     const result = orch.commitImport(plan)
 
     // Master data: one new category, two new items, merge reused.
-    const kleidung = master.categoryList.find((c) => c.name === 'Kleidung')
+    const kleidung = master.tagList.find((c) => c.name === 'Kleidung')
     expect(kleidung).toBeDefined()
     expect(master.itemList.map((i) => i.name).sort()).toEqual([
       'Regenschutz Rucksack',
       'Socken',
       'Unterhosen',
     ])
-    expect(master.itemList.find((i) => i.name === 'Socken')?.category_id).toBe(kleidung!.id)
+    // The spreadsheet's category column becomes the item's primary tag.
+    const socken = master.itemList.find((i) => i.name === 'Socken')!
+    expect(master.getPrimaryTag(socken.id)?.id).toBe(kleidung!.id)
 
     // Trips: archived, imported, original quantities as packed.
     expect(result.tripIds).toHaveLength(2)
@@ -117,7 +119,7 @@ describe('commitImport (FR-16.2)', () => {
     const master = useMasterStore()
     master.applyChange({
       seq: 0,
-      table: 'categories',
+      table: 'tags',
       id: 'cat-1',
       deleted: false,
       row: { name: 'Kleidung', sort_order: 0 },
@@ -125,7 +127,8 @@ describe('commitImport (FR-16.2)', () => {
 
     orch.commitImport({ ...plan, trips: [] })
 
-    expect(master.categoryList.filter((c) => c.name === 'Kleidung')).toHaveLength(1)
-    expect(master.itemList.find((i) => i.name === 'Socken')?.category_id).toBe('cat-1')
+    expect(master.tagList.filter((c) => c.name === 'Kleidung')).toHaveLength(1)
+    const socken2 = master.itemList.find((i) => i.name === 'Socken')!
+    expect(master.getPrimaryTag(socken2.id)?.id).toBe('cat-1')
   })
 })

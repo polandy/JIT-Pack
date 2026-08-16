@@ -264,16 +264,18 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M8-09** `all` (FR-27.4): a template used by a *planning* trip shows the blast-radius note naming that trip; adding/removing a position then puts the "⟳ N Änderungen aus Gruppen übernommen" chip **only** on that planning trip's M2 row (never on active/archived rows); expanding the chip lists each change with its source group.
 
 ### M9 — Item Inventory
-* **E2E-M9-01** `all` (FR-1.1/24.4): searchable, tag-grouped list, **lean by default** — per row only primary-tag avatar + name (no tag chips, no weight/price); row thumbnail when a photo exists.
-* **E2E-M9-02** `all` (FR-1.1): FAB → name prompt → creates item → opens M10.
+* **E2E-M9-01** `all` (FR-1.1/24.2/24.4) — **implemented** (`e2e/inventory.spec.ts`): searchable, tag-grouped list, **lean by default** — per row only primary-tag avatar + name (no tag chips, no weight/price); row thumbnail when a photo exists. The case an item on *two* tags is the point: it renders **once**, under its primary tag, and its second tag is not a heading.
+* **E2E-M9-02** `all` (FR-1.1/24.5): FAB → M10 in **creation mode**. Superseded the name prompt on 2026-08-16: a prompt cannot carry tags or a weight, so creation is the minimal form (see E2E-M10-07).
 * **E2E-M9-03** `all` (FR-16.3): multi-select merge of duplicates.
 * **E2E-M9-04** `all` (G-7/NFR-4.7): empty state → import entry (M15).
-* **E2E-M9-05** `all` (FR-24.4): the eye icon opens the "Angezeigte Eigenschaften" sheet; enabling Gewicht/Preis/Tags adds exactly those to the rows, the icon shows a count badge while anything is enabled, and the preference survives a reload **on this device only** (device-local, never synced).
+* **E2E-M9-06** `all` (FR-24.2) — **implemented**: the tag chip axis filters on **any** of an item's tags while the grouping stays on the primary one — filtering by *Sommer* surfaces the swimsuit filed under *Kleidung*. Asserted on rendered rows, since the two rules differ only in what is painted.
+* **E2E-M9-05** `all` (FR-24.4) — **implemented** (partially: the reload half is unit-tested in `inventoryProperties.spec.ts`, since a device-local reload assertion belongs where the storage seam is): the eye icon opens the "Angezeigte Eigenschaften" sheet; enabling Gewicht/Preis/Tags adds exactly those to the rows, the icon shows a count badge while anything is enabled, and the preference survives a reload **on this device only** (device-local, never synced).
 
 ### M10 — Item Editor
 * **E2E-M10-01** `all` (FR-1.1): name, tags (inline-create), weight, price — no unit control (FR-1.8 retired).
-* **E2E-M10-08** `all` (FR-24.1): the tag input is a search field — typing filters the chips (assigned tags stay pinned), tapping a match assigns it; an unmatched name shows the "＋ „X“ neu anlegen" chip, and ＋/Enter creates and assigns the tag in one step, clearing the field for the next.
-* **E2E-M10-07** `all` (FR-24.5): creating an item shows the minimal form (name focused, tags, "Mehr — Gewicht & Preis ▾"; no Enthalten-in/Kommentare/Löschen sections); committing without a name is caught with a hint; after "Artikel anlegen" the full editor appears.
+* **E2E-M10-08** `all` (FR-24.1) — **implemented** (`e2e/inventory.spec.ts`): the tag input is a search field — typing filters the chips (assigned tags stay pinned), tapping a match assigns it; an unmatched name shows the "＋ „X“ neu anlegen" chip, and ＋/Enter creates and assigns the tag in one step, clearing the field for the next.
+* **E2E-M10-10** `all` (FR-24.1/16.3) — **implemented**: since the item's name became its identity (`UNIQUE (name)`, ADR-014), creating a second item with an existing name is **reported in the form** — not left to the sync push to reject.
+* **E2E-M10-07** `all` (FR-24.5) — **implemented** (`e2e/inventory.spec.ts`): creating an item shows the minimal form (name focused, tags, "Mehr — Gewicht & Preis ▾"; no Enthalten-in/Kommentare/Löschen sections); committing without a name is caught with a hint; after "Artikel anlegen" the full editor appears.
 * **E2E-M10-02** `all` (FR-2.4): usage footer ("Used in N templates, M archived trips"); delete blocked while referenced by templates.
 * **E2E-M10-09** `all` (FR-20.1/20.4): M10 lists the item's dependencies with a *nötig/empfohlen* toggle per row, and — read-only — the items that depend on it; the reverse list offers no editing, since the relation is owned by the item that needs the companion.
 * **E2E-M4-32** `all` (FR-20.4/20.2): quick-adding an item pulls its **required** companions onto the trip and reports it, while *suggested* ones are not added unasked; skipping the item co-skips those companions into the skipped section with the reason naming the parent.

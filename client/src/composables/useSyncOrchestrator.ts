@@ -210,7 +210,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       'trip_members',
     ])
     const masterTables = new Set([
-      'categories',
+      'tags',
+      'item_tags',
       'items',
       'templates',
       'template_items',
@@ -977,35 +978,55 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * mutation replay is idempotent — there is no server-side transaction
    * across a push batch.
    */
+  /**
+   * Record one item↔tag assignment on the import path, which enqueues
+   * directly rather than through enqueueAndDrain: an import lands many
+   * mutations and drains once at the end.
+   */
+  function assignTagLocally(itemId: string, tagId: string, position: number): void {
+    const { mutation, id } = mutations.assignTag(itemId, tagId, position)
+    onPullChanges([
+      {
+        seq: 0,
+        table: 'item_tags',
+        id,
+        deleted: false,
+        row: mutation.fields as Record<string, unknown>,
+      },
+    ])
+    if (!local) outbox.enqueue('master', null, mutation)
+  }
+
   function commitImport(plan: ImportPlan): { tripIds: string[] } {
-    // Categories: reuse by (case-insensitive) name, create the rest.
-    const categoryIDs = new Map<string, string>()
-    for (const cat of masterStore.categoryList) {
-      categoryIDs.set(cat.name.toLowerCase(), cat.id)
+    // The spreadsheet's category column becomes a tag (FR-24.1): reuse by
+    // (case-insensitive) name, create the rest.
+    const tagIDs = new Map<string, string>()
+    for (const tag of masterStore.tagList) {
+      tagIDs.set(tag.name.toLowerCase(), tag.id)
     }
     for (const name of plan.newCategories) {
-      if (categoryIDs.has(name.toLowerCase())) continue
-      const { mutation, id } = mutations.createCategory(name)
+      if (tagIDs.has(name.toLowerCase())) continue
+      const { mutation, id } = mutations.createTag(name)
       onPullChanges([
         {
           seq: 0,
-          table: 'categories',
+          table: 'tags',
           id,
           deleted: false,
           row: mutation.fields as Record<string, unknown>,
         },
       ])
       if (!local) outbox.enqueue('master', null, mutation)
-      categoryIDs.set(name.toLowerCase(), id)
+      tagIDs.set(name.toLowerCase(), id)
     }
 
     const itemIDs: (string | null)[] = plan.items.map((item) => {
       if (item.existingItemId) return item.existingItemId
-      const { mutation, id } = mutations.createMasterItem(item.name, {
-        categoryId: item.categoryName
-          ? (categoryIDs.get(item.categoryName.toLowerCase()) ?? null)
-          : null,
-      })
+      const { mutation, id } = mutations.createMasterItem(item.name)
+      // The imported category becomes the item's primary tag (FR-24.2), so
+      // the inventory files it exactly where the spreadsheet said it goes.
+      const tagID = item.categoryName ? tagIDs.get(item.categoryName.toLowerCase()) : undefined
+      if (tagID) assignTagLocally(id, tagID, 0)
       onPullChanges([
         {
           seq: 0,
@@ -1261,6 +1282,46 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   }
 
   // --- Master data actions (M7–M10; master partition) ---
+
+  /** Create a tag by typing its name (FR-24.1) — there is no tag admin. */
+  function createTag(name: string): string {
+    const { mutation, id } = mutations.createTag(name, masterStore.tagList.length)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: {
+        seq: 0,
+        table: 'tags',
+        id,
+        deleted: false,
+        row: mutation.fields as Record<string, unknown>,
+      },
+    })
+    return id
+  }
+
+  /** Assign a tag to an item; appended last unless it is the first (FR-24.2). */
+  function assignTag(itemId: string, tagId: string): string {
+    const position = masterStore.getItemTags(itemId).length
+    const { mutation, id } = mutations.assignTag(itemId, tagId, position)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: {
+        seq: 0,
+        table: 'item_tags',
+        id,
+        deleted: false,
+        row: mutation.fields as Record<string, unknown>,
+      },
+    })
+    return id
+  }
+
+  function unassignTag(assignmentId: string): void {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.unassignTag(assignmentId),
+      optimistic: { seq: 0, table: 'item_tags', id: assignmentId, deleted: true, row: null },
+    })
+  }
 
   function createMasterItem(
     name: string,
@@ -2091,6 +2152,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     // Master data
     createMasterItem,
+    createTag,
+    assignTag,
+    unassignTag,
     updateMasterItem,
     deleteMasterItem,
     setItemImage,
@@ -2227,7 +2291,6 @@ async function hashBlob(blob: Blob): Promise<string> {
 function masterItemRow(item: MasterItem): Record<string, unknown> {
   return {
     name: item.name,
-    category_id: item.category_id,
     weight_grams: item.weight_grams,
     value_cents: item.value_cents,
   }

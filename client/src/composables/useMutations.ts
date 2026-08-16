@@ -507,7 +507,6 @@ export function useMutations(hlc: HLCGenerator) {
   function createMasterItem(
     name: string,
     opts: {
-      categoryId?: string | null
       weightGrams?: number | null
       valueCents?: number | null
     } = {},
@@ -515,7 +514,6 @@ export function useMutations(hlc: HLCGenerator) {
     const id = crypto.randomUUID()
     const mutation = make('insert', 'items', id, {
       name,
-      category_id: opts.categoryId ?? null,
       weight_grams: opts.weightGrams ?? null,
       value_cents: opts.valueCents ?? null,
     })
@@ -673,12 +671,35 @@ export function useMutations(hlc: HLCGenerator) {
     return make('delete', 'trip_members', memberId)
   }
 
-  // --- Category mutations ---
+  // --- Tag mutations (FR-24.1) ---
 
-  function createCategory(name: string, sortOrder: number = 0): { mutation: Mutation; id: string } {
+  function createTag(name: string, sortOrder: number = 0): { mutation: Mutation; id: string } {
     const id = crypto.randomUUID()
-    const mutation = make('insert', 'categories', id, { name, sort_order: sortOrder })
+    const mutation = make('insert', 'tags', id, { name, sort_order: sortOrder })
     return { mutation, id }
+  }
+
+  /**
+   * Assign a tag to an item at `position` — 0 makes it the item's primary
+   * tag (FR-24.2). One row per assignment so two people tagging the same
+   * item offline both keep their edit (ADR-014).
+   */
+  function assignTag(
+    itemId: string,
+    tagId: string,
+    position: number,
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const mutation = make('insert', 'item_tags', id, {
+      item_id: itemId,
+      tag_id: tagId,
+      position,
+    })
+    return { mutation, id }
+  }
+
+  function unassignTag(assignmentId: string): Mutation {
+    return make('delete', 'item_tags', assignmentId)
   }
 
   return {
@@ -753,6 +774,8 @@ export function useMutations(hlc: HLCGenerator) {
     setTripMemberRole,
     removeTripMember,
     // Categories
-    createCategory,
+    createTag,
+    assignTag,
+    unassignTag,
   }
 }
