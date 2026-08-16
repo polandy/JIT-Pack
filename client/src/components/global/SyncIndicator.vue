@@ -58,6 +58,17 @@ const icon = computed(() => icons[props.state])
   color: var(--ion-color-medium);
 }
 
+/*
+ * Without this the icon inherits the button's text size and renders at ~13 px
+ * beside 25 px neighbours — at which point the Local Mode phone outline has no
+ * discernible features left and reads as a missing-glyph box. Reported as
+ * "sieht kaputt aus" (owner, 2026-08-16), and it was: an icon size that never
+ * came from the table invariant 9 points at.
+ */
+.sync-indicator ion-icon {
+  font-size: var(--jp-icon-md);
+}
+
 .sync-indicator.synced {
   color: var(--ion-color-success);
 }

@@ -13,6 +13,15 @@ Read this file fully before touching code. It is the orientation document: what 
 - Slow jobs, excluded from `make ci` on purpose: `make e2e` (needs Playwright browsers + a built bundle), `make visual` (baselines; `make visual-update` rewrites them — ADR-013) and `make docker-build` (needs a docker daemon). `make all` runs everything.
 - Coverage gates live once, in `scripts/coverage-gate.sh`, shared by `make cover` and the CI `go` job: **≥75 % overall, ≥90 % `internal/sync`**
 - Client only: `cd client && npm run dev` (Vite dev server), `npx vitest run`, `npm run build` (type-check + build)
+- **Test data**: the dev build's M2 empty state carries *„Beispieldaten anlegen (Dev)"* — it seeds the
+  **master partition first** (`client/src/dev/sampleMaster.ts`: tagged inventory, three groups, a
+  composed Ferien-Vorlage with an FR-27.7 task) and then the sample trip (`sampleTrip.ts`). Standing
+  rule (owner, 2026-08-16): **new master-data features extend that seed**, so a fresh device can
+  exercise them without twenty minutes of typing. It is dev-only and writes through the orchestrator's own
+  actions — **not Demo Mode**, which stays removed (Addendum v2.10). The guard that removes it
+  from a production build is `import.meta.env.DEV` **around the dynamic import**, never a `v-if`
+  on the trigger: that hides the button and ships the code. `scripts/dev-code-gate.mjs` (in
+  `make client` and the CI client job) fails the build if a dev module reaches `dist`.
 
 ## Where things live
 
@@ -142,7 +151,23 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    round (`dev-docs/UI_Concept_GroupPeek_variants.html`); the unfolding row lost because it
    solves M3 only. M8's picker chips still offer names alone — deliberate, revisit trigger
    in FR-27.12.
-8. **FR-5.5's „bewusst nicht einpacken" has no control** (owner-flagged 2026-08-16) — the
+8. **FR-27.13 — the M8 group picker cannot be searched** (owner-flagged 2026-08-16, specified,
+   not built). The picker is a chip row: fine at three groups, a wall at twenty, and the only
+   way to find „die Gruppe mit dem Stativ" is to read all of them. **The concept is written
+   in FR-27.13** and decided — field above six groups, never auto-focused, searching group
+   names *and* their resolved item names with the match reason shown, results as rows carrying
+   the FR-27.12 summary, an already-included match saying so rather than vanishing, no match
+   offering creation with the typed name. This is FR-27.12's picker revisit trigger firing;
+   build it against that text rather than re-deciding it.
+9. **FR-27.14 — a Vorlage cannot show its resulting items** (owner-flagged 2026-08-16,
+   specified with a rendered mockup, not built). M8's footer states a count and stops; from the
+   editor there is no way to see what a trip would actually get. **Concept decided in FR-27.14**
+   and mocked in `dev-docs/UI_Concept_ResolvedList_variants.html` — **variant A, chosen by the owner
+   2026-08-16**, so build it against that text rather than re-opening the round: the footer opens the existing
+   FR-27.12 peek sheet on the Vorlage itself, flat and alphabetical with provenance under each
+   name, marked for merges, per-person and conditions. Cheap to build — the sheet already
+   resolves a Vorlage; what it needs is the entry point and the three marks.
+10. **FR-5.5's „bewusst nicht einpacken" has no control** (owner-flagged 2026-08-16) — the
    *state* is built and rendered: `state = 'skipped'` counts as done (`domain/packingView.ts`),
    M4 badges such a row „Deliberately skipped", FR-25.2 hides it with the packed ones, and
    `skipItem`/`unskipItem` exist in `useMutations`/`useSyncOrchestrator` **including the FR-20.2
