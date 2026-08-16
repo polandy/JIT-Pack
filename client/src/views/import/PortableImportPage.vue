@@ -25,7 +25,12 @@ import { documentTextOutline, warningOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { matchPortableItems, parsePortable, type ParseResult } from '@/domain/portable'
+import {
+  matchPortableItems,
+  parsePortable,
+  parsePortableAll,
+  type ParseResult,
+} from '@/domain/portable'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
@@ -36,6 +41,15 @@ const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrato
 const rawText = ref('')
 const parsed = ref<ParseResult | null>(null)
 
+/**
+ * A backup file (NFR-4.11) holds many documents where an exported template or
+ * trip holds one. It gets a list rather than the merge preview: a restore is
+ * "put my device back", not fifty per-item decisions, and the per-document
+ * matching that commitPortableRestore does is the same default the preview
+ * offers for a single file.
+ */
+const restore = ref<ParseResult[] | null>(null)
+
 async function onFile(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
@@ -44,6 +58,12 @@ async function onFile(event: Event) {
 }
 
 function preview() {
+  const documents = parsePortableAll(rawText.value)
+  if (documents.length > 1) {
+    restore.value = documents
+    parsed.value = null
+    return
+  }
   parsed.value = parsePortable(rawText.value)
   const choices = new Map<string, boolean>()
   for (const match of matches.value) {
@@ -64,6 +84,16 @@ function setMerge(name: string, merge: boolean) {
   mergeChoices.value = next
 }
 
+/** Restore every readable document of a backup file, then show the trips. */
+function commitRestore() {
+  const documents = restore.value ?? []
+  orchestrator.commitPortableRestore(documents.flatMap((r) => (r.doc ? [r.doc] : [])))
+  restore.value = null
+  router.replace('/trips')
+}
+
+const restorable = computed(() => (restore.value ?? []).filter((r) => r.doc !== null).length)
+
 function commit() {
   if (!doc.value) return
   const decisions = new Map<string, string>()
@@ -81,7 +111,7 @@ function commit() {
   <IonPage>
     <IonContent class="ion-padding">
       <!-- File picker / paste -->
-      <template v-if="!doc">
+      <template v-if="!doc && !restore">
         <h2 class="section-title jp-eyebrow">Portable YAML file</h2>
         <p class="hint">A template or trip exported from any JIT-Pack instance (FR-18.1).</p>
         <input type="file" accept=".yaml,.yml,text/yaml" @change="onFile" />
@@ -105,8 +135,41 @@ function commit() {
         </IonButton>
       </template>
 
+      <!-- Backup restore (NFR-4.11): a file of many documents -->
+      <template v-else-if="restore">
+        <h2 class="section-title jp-eyebrow" data-testid="portable-restore">Backup</h2>
+        <p class="hint">
+          {{ restore.length }} document{{ restore.length === 1 ? '' : 's' }} in this file. Importing
+          adds them to what is already on this device; items that already exist are matched by name.
+        </p>
+        <IonList>
+          <IonItem v-for="(entry, index) in restore" :key="index">
+            <IonLabel>
+              <h3>{{ entry.doc?.name ?? 'Unreadable document' }}</h3>
+              <p v-if="entry.doc">
+                {{ entry.doc.kind === 'template' ? 'Template' : 'Trip' }} ·
+                {{ entry.doc.items.length }} item{{ entry.doc.items.length === 1 ? '' : 's' }}
+              </p>
+              <p v-else>{{ entry.error }}</p>
+            </IonLabel>
+            <IonChip v-if="!entry.doc" slot="end" color="danger" outline>skipped</IonChip>
+          </IonItem>
+        </IonList>
+        <div class="actions">
+          <IonButton fill="outline" @click="restore = null">Cancel</IonButton>
+          <IonButton
+            color="primary"
+            data-testid="portable-restore-commit"
+            :disabled="restorable === 0"
+            @click="commitRestore"
+          >
+            Import all
+          </IonButton>
+        </div>
+      </template>
+
       <!-- Preview (single screen, no wizard) -->
-      <template v-else>
+      <template v-else-if="doc">
         <div class="summary">
           <IonIcon :icon="documentTextOutline" class="summary-icon" />
           <div>
