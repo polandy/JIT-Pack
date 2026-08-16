@@ -148,7 +148,15 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    round (`dev-docs/UI_Concept_GroupPeek_variants.html`); the unfolding row lost because it
    solves M3 only. M8's picker chips still offer names alone — deliberate, revisit trigger
    in FR-27.12.
-8. **FR-5.5's „bewusst nicht einpacken" has no control** (owner-flagged 2026-08-16) — the
+8. **FR-27.13 — the M8 group picker cannot be searched** (owner-flagged 2026-08-16, specified,
+   not built). The picker is a chip row: fine at three groups, a wall at twenty, and the only
+   way to find „die Gruppe mit dem Stativ" is to read all of them. **The concept is written
+   in FR-27.13** and decided — field above six groups, never auto-focused, searching group
+   names *and* their resolved item names with the match reason shown, results as rows carrying
+   the FR-27.12 summary, an already-included match saying so rather than vanishing, no match
+   offering creation with the typed name. This is FR-27.12's picker revisit trigger firing;
+   build it against that text rather than re-deciding it.
+9. **FR-5.5's „bewusst nicht einpacken" has no control** (owner-flagged 2026-08-16) — the
    *state* is built and rendered: `state = 'skipped'` counts as done (`domain/packingView.ts`),
    M4 badges such a row „Deliberately skipped", FR-25.2 hides it with the packed ones, and
    `skipItem`/`unskipItem` exist in `useMutations`/`useSyncOrchestrator` **including the FR-20.2
