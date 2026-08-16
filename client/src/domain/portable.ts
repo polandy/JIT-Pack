@@ -9,7 +9,7 @@
  * dependency — zero added footprint).
  */
 
-import { parse, stringify } from 'yaml'
+import { parse, parseAllDocuments, stringify } from 'yaml'
 
 import { findDuplicates } from './spreadsheet'
 import type {
@@ -93,6 +93,36 @@ export interface ParseResult {
   newerSchema: boolean
 }
 
+/**
+ * The separator between two documents in one portable file.
+ *
+ * A backup (NFR-4.11) is every trip and every template of this device, and
+ * that is more than one document. Multi-document YAML is the format's own
+ * answer to it, so a backup file stays readable by anything that reads YAML
+ * — and, more importantly, by our own importer: a backup nobody can restore
+ * is not a backup.
+ */
+const DOCUMENT_SEPARATOR = '---'
+
+/** joinDocuments writes serialized documents as one multi-document YAML file. */
+export function joinDocuments(documents: string[]): string {
+  if (documents.length === 0) return ''
+  return documents.map((doc) => doc.trimEnd()).join(`\n${DOCUMENT_SEPARATOR}\n`) + '\n'
+}
+
+/**
+ * parsePortableAll reads a file that may hold one document or many, in order.
+ *
+ * Each document is validated on its own: one unreadable entry is reported in
+ * its place and the intact ones around it stay importable, because a restore
+ * that gives up on the first bad document loses everything behind it.
+ */
+export function parsePortableAll(text: string): ParseResult[] {
+  return parseAllDocuments(text)
+    .filter((document) => document.contents !== null)
+    .map((document) => fromRaw(document.toJS() as unknown))
+}
+
 export function parsePortable(text: string): ParseResult {
   let raw: unknown
   try {
@@ -100,6 +130,11 @@ export function parsePortable(text: string): ParseResult {
   } catch (e) {
     return { doc: null, error: `not valid YAML: ${(e as Error).message}`, newerSchema: false }
   }
+  return fromRaw(raw)
+}
+
+/** Validates one already-parsed document — the shared half of both parsers. */
+function fromRaw(raw: unknown): ParseResult {
   if (typeof raw !== 'object' || raw === null) {
     return { doc: null, error: 'not a portable document', newerSchema: false }
   }

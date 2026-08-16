@@ -6,8 +6,10 @@
 import { describe, it, expect } from 'vitest'
 
 import {
+  joinDocuments,
   matchPortableItems,
   parsePortable,
+  parsePortableAll,
   serializeTemplate,
   serializeTrip,
 } from '@/domain/portable'
@@ -312,5 +314,40 @@ describe('matchPortableItems (FR-18.4 / FR-16.3)', () => {
     expect(matchPortableItems(doc, existing)).toEqual([
       { name: 'Zelt', state: 'new', existingId: null, existingName: null },
     ])
+  })
+})
+
+describe('backup documents (NFR-4.11 one-tap backup)', () => {
+  it('joins several documents into one file the parser reads back in order', () => {
+    const file = joinDocuments([templateYAML, tripYAML])
+
+    const results = parsePortableAll(file)
+    expect(results.map((r) => r.doc?.kind)).toEqual(['template', 'trip'])
+    expect(results.map((r) => r.doc?.name)).toEqual(['Base Travel', 'Engadin 2026'])
+    expect(results.every((r) => r.error === null)).toBe(true)
+  })
+
+  it('reads a single-document file too — a backup and an exported trip are one shape', () => {
+    const results = parsePortableAll(tripYAML)
+
+    expect(results).toHaveLength(1)
+    expect(results[0]!.doc?.name).toBe('Engadin 2026')
+  })
+
+  it('reports the broken document without discarding the intact ones', () => {
+    const broken = 'kind: nonsense\nname: Kaputt\n'
+
+    const results = parsePortableAll(joinDocuments([templateYAML, broken, tripYAML]))
+
+    expect(results).toHaveLength(3)
+    expect(results[0]!.doc?.name).toBe('Base Travel')
+    expect(results[1]!.doc).toBeNull()
+    expect(results[1]!.error).toMatch(/unknown kind/)
+    expect(results[2]!.doc?.name).toBe('Engadin 2026')
+  })
+
+  it('has no documents for an empty backup rather than one broken document', () => {
+    expect(parsePortableAll(joinDocuments([]))).toEqual([])
+    expect(parsePortableAll('   \n')).toEqual([])
   })
 })
