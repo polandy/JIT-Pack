@@ -340,6 +340,20 @@ export const de: Record<keyof typeof en, string> = {
   'container.assignNone': 'Zuerst ein Gepäckstück anlegen, dann Positionen zuordnen.',
   'container.notFound': 'Dieses Gepäckstück gibt es nicht.',
 
+  // M12 — Auswertung (FR-8.2/14.3).
+  'analytics.hint': 'Gewicht: gepackt / geplant · Balken antippen → gefilterte Packliste',
+  'analytics.empty': 'Noch nichts mit Gewicht — nichts auszuwerten.',
+  'analytics.unweighted':
+    '＋ {n} Artikel ohne Gewichtsangabe (ehrlich nicht mitgerechnet) | ＋ {n} Artikel ohne Gewichtsangabe (ehrlich nicht mitgerechnet)',
+  'analytics.kpiWeight': 'Gewicht gepackt / geplant',
+  'analytics.kpiValue': 'Warenwert gesamt',
+  'analytics.trendTitle': 'Serie {name} · Trend',
+  'analytics.trendCaption': 'Packgewicht pro Jahr (kg)',
+  'analytics.flaggedTitle': 'Häufig markiert · über die Serie',
+  'analytics.flagUnused': '{n}× ungenutzt',
+  'analytics.flagMissing': '{n}× gefehlt',
+  'analytics.historyNote': 'Basiert auf den archivierten Reisen, die auf diesem Gerät liegen.',
+
   'settings.language': 'Sprache',
   'settings.languageHint': 'Nur auf diesem Gerät.',
   'settings.languageEnglish': 'Englisch',

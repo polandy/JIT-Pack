@@ -9,7 +9,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 
-import { setStoredGroupBy, usePackingFilter } from '../usePackingFilter'
+import { setStoredFacet, setStoredGroupBy, usePackingFilter } from '../usePackingFilter'
 
 beforeEach(() => {
   sessionStorage.clear()
@@ -180,5 +180,57 @@ describe('setStoredGroupBy (FR-25.18)', () => {
     setStoredGroupBy('trip-1', 'person')
 
     expect(other.groupBy.value).toBe('category')
+  })
+})
+
+/**
+ * FR-25.11/8.2 — M12's slice tap, the *filter* half: the tapped bar
+ * becomes the one facet in force, so the number the reader tapped is the
+ * list they land on. Same ADR-012 shape as setStoredGroupBy: M4 is still
+ * mounted on the way back, so the live ref must move with the storage.
+ */
+describe('setStoredFacet (FR-25.11)', () => {
+  it('is the only facet the next mount reads — the tapped slice, nothing stale beside it', async () => {
+    const before = usePackingFilter('trip-1')
+    before.toggleValue('category', 'Kleidung')
+    await settle()
+
+    setStoredFacet('trip-1', 'person', 'trav-1')
+
+    const next = usePackingFilter('trip-1')
+    expect(next.facets.value.person).toEqual(['trav-1'])
+    expect(next.facets.value.category).toEqual([])
+  })
+
+  it('addresses the absence bucket with the empty string, like the facet sheet does', () => {
+    setStoredFacet('trip-1', 'person', '')
+
+    expect(usePackingFilter('trip-1').facets.value.person).toEqual([''])
+  })
+
+  it('moves an M4 that is already mounted, not just the next one', () => {
+    const mounted = usePackingFilter('trip-1')
+
+    setStoredFacet('trip-1', 'container', 'c1')
+
+    expect(mounted.facets.value.container).toEqual(['c1'])
+  })
+
+  it('keeps the reveal switches — the tap narrows the list, it does not un-reveal anything', async () => {
+    const before = usePackingFilter('trip-1')
+    before.showDone.value = true
+    await settle()
+
+    setStoredFacet('trip-1', 'person', 'trav-1')
+
+    expect(usePackingFilter('trip-1').showDone.value).toBe(true)
+  })
+
+  it('scopes to the trip, like every other part of the view state', () => {
+    const other = usePackingFilter('trip-2')
+
+    setStoredFacet('trip-1', 'person', 'trav-1')
+
+    expect(other.facets.value.person).toEqual([])
   })
 })

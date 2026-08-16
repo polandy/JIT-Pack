@@ -2194,3 +2194,40 @@ read the spec's case text against the test body sentence by sentence, read it
 against the *screen* too, cover the global patterns rather than only the
 screen, and mutation-prove the case that owns the PR's headline defect —
 rebuilding between the two runs.
+
+## M12 — analytics rebuilt on the concept round (FR-8.1/8.2/14.3, 2026-08-16)
+
+The last dimension of the 2026-08-08 concept round to reach code. What the
+round found, and what the rebuild does about it:
+
+1. **The slice tap now filters, not just groups.** `analyzeTrip` keys every
+   slice by exactly what M4's facets filter on — traveler id,
+   `category_name`, container id, `''` for the absence bucket — so the tap
+   is `setStoredFacet` (new, beside `setStoredGroupBy` in
+   `usePackingFilter`, same ADR-012 shape: storage synchronously **and**
+   the still-mounted M4's live ref) plus the grouping, and the reader lands
+   on the number they tapped. Other facets are cleared deliberately: one
+   number was tapped, so one facet is in force.
+2. **The `undefined` bucket cannot recur, by construction.** The
+   prototype's per-person entries carried no top-level traveler/quantity
+   and needed a shares expansion; the client's data model already is the
+   expansion — one row per traveler instance, each with its own quantity
+   and packed count. The unit test pins the shape anyway
+   (`analytics.spec.ts`: one contribution per traveler by Person, one
+   summed bucket by category, equal totals).
+3. **Unweighted rows leave the bars entirely** (a zero-width bar reads as
+   "weighs nothing") and are counted beside the chart; their value still
+   counts. Trend is **packed** weight per year — an archived trip's plan
+   is an intention, the packed count is the record — and the flagged list
+   is series-scoped, both matching the prototype.
+4. **G-13's headline figure got its class** (`.jp-figure`, display face on
+   the two KPI boxes) — written now because M12 is its first rendered
+   user, per the rule that a role class waits for a pixel to check it.
+
+Sequencing note: E2E-M12-03's positive half (trend columns on screen) is
+blocked on a product gap found while writing the case — nothing user-facing
+can move a trip to *active*, so nothing can archive one; the ledger records
+it and the North-Star phase owns the transition. i18n rode along: M12 is
+t()-localized in both catalogues, including the analytics keys added here.
+
+Remaining rebuild after this: M14.
