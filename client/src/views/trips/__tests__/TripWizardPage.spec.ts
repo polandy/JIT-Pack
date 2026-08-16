@@ -222,9 +222,10 @@ describe('M3 step 3 — template composition (§3.27)', () => {
 
     const wrapper = await mountAtStepThree()
 
-    // Ordered by name, not by position order, and truncated with a count.
+    // Ordered by name, not by position order, and truncated with a count at
+    // PREVIEW_ROW_NAMES — two, because three wrap onto a second line at 390 px.
     expect(wrapper.get('[data-testid="wizard-preview-g1"]').text()).toBe(
-      'Kamera · Makro-Objektiv · Ringlicht +1',
+      'Kamera · Makro-Objektiv +2',
     )
   })
 

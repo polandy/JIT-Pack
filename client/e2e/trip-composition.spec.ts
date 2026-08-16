@@ -114,13 +114,14 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     await seedComposition(page)
     await wizardToStepThree(page, 'Fototour 2026')
 
-    // FR-27.6: two sections, each holding only its own scope.
+    // FR-27.6: two sections, each holding only its own scope. Asserted on the
+    // row titles, not on the section text: since FR-27.12 a Vorlage's row also
+    // *names its items*, so "Makro-Objektiv" legitimately appears under
+    // Ferien-Vorlagen and a substring check would read that as a stray group.
     const vorlagen = visible(page).getByTestId('wizard-section-templates')
     const gruppen = visible(page).getByTestId('wizard-section-groups')
-    await expect(vorlagen).toContainText('Fototage')
-    await expect(vorlagen).not.toContainText('Makro')
-    await expect(gruppen).toContainText('Makro')
-    await expect(gruppen).toContainText('Wildlife')
+    await expect(vorlagen.locator('ion-item h3')).toHaveText(['Fototage'])
+    await expect(gruppen.locator('ion-item h3')).toHaveText(['Makro', 'Wildlife'])
 
     // FR-27.2: the Vorlage owns no positions of its own — its count is what
     // the composition resolves to. Before include expansion this read "0".
@@ -137,6 +138,32 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     // Both groups are already on board — the rows say so rather than letting
     // a second tap look like it added something.
     await expect(gruppen).toContainText('already included via “Fototage”')
+  })
+
+  test('E2E-M3-17: a group row says what is in it, and the chevron shows the rest', async ({
+    page,
+  }) => {
+    await seedComposition(page)
+    await wizardToStepThree(page, 'Fototour 2026')
+
+    const gruppen = visible(page).getByTestId('wizard-section-groups')
+    // C: the row answers the easy case without a tap — ordered by item name.
+    await expect(gruppen).toContainText('Kamera · Makro-Objektiv')
+
+    // A: the chevron opens the read-only sheet on the resolved content. The
+    // testid carries the template's uuid, so the row is found by its name.
+    await gruppen.locator('ion-item').filter({ hasText: 'Makro' }).first().locator('button').click()
+    const sheet = page.getByTestId('group-peek-sheet')
+    await expect(sheet.getByTestId('group-peek-name')).toHaveText('Makro')
+    await expect(sheet.getByTestId('group-peek-line')).toHaveCount(2)
+
+    // A look, not an editor: close is the only thing it offers.
+    await expect(sheet.locator('button')).toHaveCount(1)
+    await sheet.getByTestId('group-peek-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    // The draft survived — which is the whole point of not leaving for M8.
+    await expect(visible(page).getByTestId('wizard-step-3')).toBeVisible()
   })
 
   test('E2E-M3-13: a position task is previewed and lands as a prep todo on the generated row', async ({

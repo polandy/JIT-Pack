@@ -230,6 +230,16 @@ export function resolvedLines(resolution: Resolution, items: MasterItem[]): Reso
     .sort((a, b) => a.name.localeCompare(b.name))
 }
 
+/**
+ * How many names a row shows before it counts the rest.
+ *
+ * Two, not three: at 390 px three German item names wrap onto a second line,
+ * which turns a scannable row into a four-line block — and the third name buys
+ * little, since the row is the *hint* and the sheet is the answer. Rendered
+ * both ways before choosing.
+ */
+export const PREVIEW_ROW_NAMES = 2
+
 /** What a row can say about a group without being opened (FR-27.12). */
 export interface LinePreview {
   names: string[]

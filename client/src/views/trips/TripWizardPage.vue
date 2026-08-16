@@ -36,7 +36,12 @@ import { loadTokens } from '@/auth/tokens'
 import { t } from '@/i18n'
 import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
-import { previewLines, resolvedLines, type LinePreview } from '@/domain/templates'
+import {
+  PREVIEW_ROW_NAMES,
+  previewLines,
+  resolvedLines,
+  type LinePreview,
+} from '@/domain/templates'
 import { attributeLabel } from '@/lib/attributeLabels'
 import { resolveDependencies } from '@/domain/dependencies'
 import { durationDays, generateTripItems, type MergedOverlap } from '@/domain/instantiate'
@@ -204,16 +209,13 @@ interface ScopeRow {
   preview: LinePreview
 }
 
-/** How many names fit on a row before it stops being scannable. */
-const PREVIEW_NAMES = 3
-
 function scopeRows(kind: TemplateKind): ScopeRow[] {
   return masterStore.templateList
     .filter((tpl) => tpl.kind === kind)
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((tpl) => {
       const lines = resolvedLines(masterStore.resolve(tpl.id), masterStore.itemList)
-      return { template: tpl, count: lines.length, preview: previewLines(lines, PREVIEW_NAMES) }
+      return { template: tpl, count: lines.length, preview: previewLines(lines, PREVIEW_ROW_NAMES) }
     })
 }
 

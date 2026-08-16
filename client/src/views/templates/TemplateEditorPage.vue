@@ -34,6 +34,7 @@ import SheetModal from '@/components/global/SheetModal.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import {
+  PREVIEW_ROW_NAMES,
   planningTripsUsing,
   previewLines,
   resolvedLines,
@@ -137,13 +138,10 @@ const blastNote = computed(() =>
 /** FR-27.12: which included group the peek sheet is showing, if any. */
 const peekTemplateId = ref<string | null>(null)
 
-/** How many names fit on a row before it stops being scannable. */
-const PREVIEW_NAMES = 3
-
 /** The first few items of an included group, so the row says what it brought. */
 function groupPreview(templateId: string): string {
   const lines = resolvedLines(masterStore.resolve(templateId), masterStore.itemList)
-  const preview = previewLines(lines, PREVIEW_NAMES)
+  const preview = previewLines(lines, PREVIEW_ROW_NAMES)
   const names = preview.names.join(' · ')
   return preview.rest > 0 ? `${names} ${t('templates.previewMore', { n: preview.rest })}` : names
 }
