@@ -51,7 +51,7 @@ import {
   INVENTORY_PROPERTIES,
   type InventoryProperty,
 } from '@/composables/useInventoryProperties'
-import { groupByPrimaryTag, UNTAGGED_KEY } from '@/domain/tags'
+import { UNTAGGED_KEY } from '@/domain/tags'
 import { t } from '@/i18n'
 import type { MasterItem } from '@/types/domain'
 
@@ -96,7 +96,7 @@ const filtered = computed<MasterItem[]>(() => {
   })
 })
 
-const groups = computed(() => groupByPrimaryTag(filtered.value, store.itemTagList, store.tagList))
+const groups = computed(() => store.itemsByPrimaryTag(filtered.value))
 
 const isEmpty = computed(() => store.itemList.length === 0)
 const noResults = computed(() => !isEmpty.value && filtered.value.length === 0)

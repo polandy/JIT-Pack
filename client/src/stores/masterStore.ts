@@ -131,9 +131,14 @@ export const useMasterStore = defineStore('master', () => {
     return dependencyList.value.filter((d) => d.depends_on_item_id === itemId)
   }
 
-  /** Items grouped by primary-tag name for the M9 list (FR-24.2). */
-  function itemsByPrimaryTag(): Map<string, MasterItem[]> {
-    return groupByPrimaryTag(itemList.value, itemTagList.value, tagList.value)
+  /**
+   * Items grouped by primary-tag name for the M9 list (FR-24.2), defaulting
+   * to the whole inventory. M9 passes its filtered subset, so the grouping
+   * rule and the store wiring stay in one place rather than each screen
+   * assembling the three arguments itself.
+   */
+  function itemsByPrimaryTag(items: MasterItem[] = itemList.value): Map<string, MasterItem[]> {
+    return groupByPrimaryTag(items, itemTagList.value, tagList.value)
   }
 
   /** This item's tags, primary first (FR-24.1). */

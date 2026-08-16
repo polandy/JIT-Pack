@@ -679,13 +679,6 @@ export function useMutations(hlc: HLCGenerator) {
     return { mutation, id }
   }
 
-  function renameTag(tagId: string, name: string): Mutation {
-    return make('upsert', 'tags', tagId, { name })
-  }
-
-  function deleteTag(tagId: string): Mutation {
-    return make('delete', 'tags', tagId)
-  }
 
   /**
    * Assign a tag to an item at `position` — 0 makes it the item's primary
@@ -710,10 +703,6 @@ export function useMutations(hlc: HLCGenerator) {
     return make('delete', 'item_tags', assignmentId)
   }
 
-  /** Move an assignment within the item's order; position 0 is primary. */
-  function moveTag(assignmentId: string, position: number): Mutation {
-    return make('upsert', 'item_tags', assignmentId, { position })
-  }
 
   return {
     // Trip items
@@ -788,10 +777,7 @@ export function useMutations(hlc: HLCGenerator) {
     removeTripMember,
     // Categories
     createTag,
-    renameTag,
-    deleteTag,
     assignTag,
     unassignTag,
-    moveTag,
   }
 }
