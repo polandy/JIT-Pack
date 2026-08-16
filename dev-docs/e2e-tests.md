@@ -406,3 +406,25 @@ injecting rows (spec §2.4), which is why the M7/M8 helpers moved into
    were included" was rewritten: that order does not exist in the data.
    *A rendered run found it; neither the component tests nor the previously
    green domain suite could have.*
+
+## FR-27.12 — looking inside a group (2026-08-16)
+
+Rides in the M3 composition unit as **E2E-M3-17** rather than as a unit of its
+own: the peek is one behaviour offered on three screens, and the wizard is the
+screen where its absence hurt most (leaving for M8 costs the draft).
+
+The case asserts both halves — the row's summary and the sheet's resolved list
+— plus the two things that make it a *look*: the sheet's only button closes it,
+and step 3 is still standing behind it afterwards. The sheet's own semantics
+(resolved through a Vorlage's composition, empty state, read-only) are pinned
+in `src/components/templates/__tests__/GroupPeekSheet.spec.ts`, the way M11's
+container sheet is — a sheet is testable directly, and driving it through a
+page's modal would test Ionic rather than the sheet.
+
+**One existing assertion had to be tightened, not adjusted.** E2E-M3-11 checked
+scope separation with `not.toContainText('Makro')` on the Ferien-Vorlagen
+section. Since a Vorlage's row now *names its items*, "Makro-Objektiv" appears
+there legitimately, and the substring check would have read that as a stray
+group row. It now asserts the row titles. The lesson is the recurring one: an
+assertion that happens to pass for the wrong reason fails the moment the screen
+says more than it used to.

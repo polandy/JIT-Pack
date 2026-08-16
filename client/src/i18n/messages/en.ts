@@ -397,6 +397,12 @@ export const en = {
   'wizard.excludedSummary': '{n} excluded by conditions',
   'wizard.excludedLine': '{item} — skipped: {reason}',
 
+  // FR-27.12 — looking inside a group.
+  'templates.peekOpen': 'Show what is in “{name}”',
+  'templates.peekSubtitle':
+    '{n} item · as it would reach the packing list | {n} items · as they would reach the packing list',
+  'templates.previewMore': '+{n}',
+
   'settings.language': 'Language',
   'settings.languageHint': 'This device only.',
   'settings.languageEnglish': 'English',
