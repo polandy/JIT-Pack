@@ -32,6 +32,7 @@ export const en = {
   'sync.syncing': 'Syncing…',
   'sync.offline': 'Offline',
   'sync.local': 'On this device',
+  'sync.offlineQueued': 'Offline ({n} queued)',
 
   // G-2 detail sheet (FR-19.6): what the glyph's state means, and what to do about it.
   'sync.detail.explain.synced': 'Every change made on this device has reached the server.',

@@ -7,6 +7,8 @@
 
 import { ref, computed, type Ref, type ComputedRef } from 'vue'
 
+import { t } from '@/i18n'
+
 export type SyncState = 'synced' | 'syncing' | 'offline' | 'local'
 
 export interface SyncStatus {
@@ -49,13 +51,15 @@ export function useSyncStatus(): SyncStatus {
   const label = computed(() => {
     switch (state.value) {
       case 'synced':
-        return 'Synced'
+        return t('sync.synced')
       case 'syncing':
-        return 'Syncing...'
+        return t('sync.syncing')
       case 'local':
-        return 'Local'
+        return t('sync.local')
       case 'offline':
-        return pendingCount.value > 0 ? `Offline (${pendingCount.value} queued)` : 'Offline'
+        return pendingCount.value > 0
+          ? t('sync.offlineQueued', { n: pendingCount.value })
+          : t('sync.offline')
     }
   })
 

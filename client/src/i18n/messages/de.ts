@@ -31,6 +31,7 @@ export const de: Record<keyof typeof en, string> = {
   'sync.syncing': 'Synchronisiert…',
   'sync.offline': 'Offline',
   'sync.local': 'Auf diesem Gerät',
+  'sync.offlineQueued': 'Offline ({n} in der Warteschlange)',
 
   'sync.detail.explain.synced': 'Alle Änderungen von diesem Gerät sind beim Server angekommen.',
   'sync.detail.explain.syncing': 'Eine Änderung ist unterwegs zum Server und noch nicht bestätigt.',
