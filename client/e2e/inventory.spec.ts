@@ -20,6 +20,31 @@ function visible(page: Page) {
   return page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
 }
 
+/**
+ * Fill an Ionic input whose *bound state* the test then depends on.
+ *
+ * `fill()` sets the inner `<input>` and dispatches a single DOM `input`
+ * event, which the Ionic component has to re-emit as `ionInput` for Vue to
+ * see it. On WebKit that one event is sometimes lost, and the field then
+ * shows the text while the bound ref stays empty — which on the tag search
+ * means neither a match chip nor a create chip is rendered, since both are
+ * derived from the query. It surfaces 30 s later as "element not found",
+ * with a screen that looks perfectly filled in.
+ *
+ * Waiting for Ionic's own `hydrated` class was not enough (one run in
+ * fourteen still lost it), so this types instead: real key events give the
+ * component one `input` per character, and losing all of them is not a race
+ * that exists. The cost is a few milliseconds per character.
+ */
+async function fillIonic(field: ReturnType<typeof visible>, value: string) {
+  await expect(field).toHaveClass(/hydrated/)
+  const input = field.locator('input')
+  await input.click()
+  await input.fill('')
+  await input.pressSequentially(value)
+  await expect(input).toHaveValue(value)
+}
+
 /** Create through the app's own path: FAB → minimal form → commit. */
 async function createItem(
   page: Page,
@@ -30,11 +55,10 @@ async function createItem(
   await visible(page).getByTestId('m9-fab').click()
   await expect(visible(page).getByTestId('m10-new-hint')).toBeVisible()
 
-  await visible(page).getByTestId('m10-name').locator('input').fill(name)
+  await fillIonic(visible(page).getByTestId('m10-name'), name)
 
   for (const tag of tags) {
-    const search = visible(page).getByTestId('m10-tag-search').locator('input')
-    await search.fill(tag)
+    await fillIonic(visible(page).getByTestId('m10-tag-search'), tag)
 
     // Filter-or-create: an existing tag is offered, an unmatched name is
     // created. Which of the two is on screen has to be *settled* before we
@@ -53,7 +77,7 @@ async function createItem(
 
   if (extra?.weight) {
     await visible(page).getByTestId('m10-more').click()
-    await visible(page).getByTestId('m10-weight').locator('input').fill(extra.weight)
+    await fillIonic(visible(page).getByTestId('m10-weight'), extra.weight)
   }
 
   await commitNewItem(page, name)
@@ -198,7 +222,7 @@ test.describe('M10 item editor — minimal creation (FR-24.5)', () => {
     await backToInventory(page)
 
     await visible(page).getByTestId('m9-fab').click()
-    await visible(page).getByTestId('m10-name').locator('input').fill('Sackmesser')
+    await fillIonic(visible(page).getByTestId('m10-name'), 'Sackmesser')
     await visible(page).getByTestId('m10-create').click()
 
     // FR-24.1 dropped the category from the item's UNIQUE, so the name is
@@ -211,10 +235,9 @@ test.describe('M10 item editor — minimal creation (FR-24.5)', () => {
     page,
   }) => {
     await visible(page).getByTestId('m9-fab').click()
-    await visible(page).getByTestId('m10-name').locator('input').fill('Zelt')
+    await fillIonic(visible(page).getByTestId('m10-name'), 'Zelt')
 
-    const search = visible(page).getByTestId('m10-tag-search').locator('input')
-    await search.fill('Camping')
+    await fillIonic(visible(page).getByTestId('m10-tag-search'), 'Camping')
     // Nothing matches, so the offer is to create it.
     await expect(visible(page).getByTestId('m10-tag-create')).toBeVisible()
     await visible(page).getByTestId('m10-tag-create').click()
@@ -229,8 +252,8 @@ test.describe('M10 item editor — minimal creation (FR-24.5)', () => {
     await commitNewItem(page, 'Zelt')
     await backToInventory(page)
     await visible(page).getByTestId('m9-fab').click()
-    await visible(page).getByTestId('m10-name').locator('input').fill('Schlafsack')
-    await visible(page).getByTestId('m10-tag-search').locator('input').fill('Camping')
+    await fillIonic(visible(page).getByTestId('m10-name'), 'Schlafsack')
+    await fillIonic(visible(page).getByTestId('m10-tag-search'), 'Camping')
     await expect(visible(page).getByTestId('m10-tag-offer-Camping')).toBeVisible()
     await expect(visible(page).getByTestId('m10-tag-create')).toHaveCount(0)
   })

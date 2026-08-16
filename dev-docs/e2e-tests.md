@@ -230,7 +230,21 @@ every tag instead of its primary one drops two of those cases.
    stable — which surfaces as a 30 s click timeout, not as a wrong-element
    error. The `visible()` helper exists for exactly this and has to be used
    everywhere, not only where an assertion looked ambiguous.
-5. **A settle wait belongs in a helper, not inline.** Committing the
+5. **`fill()` on an Ionic input can lose its event, and the damage shows up
+   nowhere near the cause.** `fill()` dispatches a single DOM `input` event
+   that the component must re-emit as `ionInput` for Vue to see. On WebKit
+   that one event is occasionally lost: the field shows the text while the
+   bound ref stays empty. On M10's tag search that means *neither* a match
+   chip nor a create chip renders — both are derived from the query — and it
+   surfaces 30 s later as "element not found", on a screen that looks
+   correctly filled in. Waiting for Ionic's own `hydrated` class was not
+   enough: it still failed once in fourteen runs. The helper now types with
+   `pressSequentially`, which gives the component one event per character;
+   losing all of them is not a race that exists. 14 consecutive clean runs
+   across both engines, past the run at which the hydration-only version
+   broke. The lesson generalises: **when a test depends on an Ionic input's
+   *bound state* rather than its displayed value, type it.**
+6. **A settle wait belongs in a helper, not inline.** Committing the
    creation form does a `router.replace`, and going back immediately
    overlaps two outlet transitions — after which `ion-router-outlet`
    intercepts pointer events and the *next* tap never lands, 30 s later,
