@@ -159,6 +159,10 @@ test.describe('M5 item detail @local @m5', () => {
     await page.getByTestId('quick-add-confirm').click()
     await page.getByTestId('m4-row-Wanderstöcke').getByRole('heading').click()
     await expect(page.getByTestId('m5-sheet')).toBeVisible()
+    // Present before they are measured, so a missing control fails as a
+    // missing control rather than as a null dereference inside the page.
+    await expect(page.getByTestId('m5-sheet').getByTestId('save-indicator')).toBeVisible()
+    await expect(page.getByTestId('m5-close')).toBeVisible()
 
     // Both boxes are read in *one* frame, inside the page. Two separate
     // `boundingBox()` calls land in different frames of the sheet's enter
