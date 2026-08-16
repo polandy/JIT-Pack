@@ -100,15 +100,22 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
      container sheet with symmetric pairing, FR-24.5 placeholder-name create via the FAB,
      the load-aware assign picker). **M12 is done too** (2026-08-16: slices keyed by M4's
      facet values so a tapped bar becomes the FR-25.11 facet via `setStoredFacet`, honest
-     unweighted count, packed-weight series trend, the first `.jp-figure` KPI surface).
-     Remaining: M14 (group-aware list) — **not eyeballed**, only the prototype. A product
-     gap found by the M12 e2e unit: nothing user-facing moves a trip to *active*, so
-     nothing can archive one — the North-Star phase owns that transition (e2e ledger).
+     unweighted count, packed-weight series trend, the first `.jp-figure` KPI surface)
+     **and M14 closes the list** (2026-08-16: the FR-27.11 group-aware proposal list —
+     groups-only retarget picker, pair-scoped dismissal, per-row FR-27.4 blast radius,
+     marked applied/skipped rows; list semantics pinned in a component test because the
+     positive e2e cases are blocked, see below). **The screen rebuilds are complete**,
+     though M14 has **not been eyeballed with real proposals** — reaching one needs the
+     same product gap closed that the M12 e2e unit found: nothing user-facing moves a
+     trip to *active*, so nothing can archive one or set an FR-9.1 flag — the North-Star
+     phase owns that transition (e2e ledger). The eyeball path is the dev gallery's
+     M14 fixture button (`src/dev/reviewFixture.ts`), which seeds in-memory rows and
+     opens the real route.
      Known cost carried over from the M5 rebuild: M4 loses its scroll position
      when a detail opens (ADR-012's overlay amendment).
 4. **i18n migration** — the hard-coded English strings across the screens M4 did not touch;
    the module and both catalogues exist and M4 + the quick-add + the filter sheet + M7/M8
-   + M12 are done.
+   + M12 + M14 are done.
 5. ~~**Two migrations owed by concept decisions**~~ — **done** (migrations 018/019): `travelers.profile`
    is dropped and `trip_items.packed_by_user_id` carries the packing record, with `packer_user_id`
    left as the assignment. The M4/M5 *presentation* of that split (two rings, „gepackt von … ·

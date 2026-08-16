@@ -308,12 +308,18 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 Feature removed from the product (PRD Addendum §3.11); its E2E cases are retired.
 
 ### M14 — Post-Trip Review Assistant
-* **E2E-M14-01** `all` (FR-9.1/9.2): archiving a flagged trip auto-launches the card stack; a proposal reads correctly (e.g. "Unused on N trips → set qty 0").
-* **E2E-M14-04** `all` (FR-27.11): every proposal names a **group** as its target and the picker offers groups only — never a Ferien-Vorlage. An *unused* proposal defaults to the group the row came from; a *missing* ad-hoc row defaults to the trip's dominant group. Applying writes to that group and produces an FR-27.4 applied-change entry on each planning trip using it.
+
+*(Reconciled 2026-08-16 with the FR-27.11 concept round: the assistant is a **list** whose
+proposals target **groups**. The card-stack and template-target wording of the earlier
+cases is superseded; the duplicate id the section carried is resolved by renaming the
+no-flags case to E2E-M14-06.)*
+
+* **E2E-M14-01** `all` (FR-9.1/9.2): archiving a flagged trip auto-launches the assistant; a proposal reads correctly (kind chip *ungenutzt*/*fehlte*, the item name, the why line — "auf {n} Reisen nicht gebraucht" when the series history says so).
+* **E2E-M14-02** `all` (FR-9.2/1.6): Apply writes directly to the row's target **group** — shared instance-wide per the FR-1.6 MVP simplification; no fork prompt exists. An *unused* apply zeroes the position, a *missing* apply adds one (creating the master item first for an ad-hoc name).
+* **E2E-M14-03** `all` (FR-9.2): "Never ask again" scopes to the item–**group** pair (the same item still surfaces for another group).
+* **E2E-M14-04** `all` (FR-27.11): every proposal names a **group** as its target and the picker offers groups only — never a Ferien-Vorlage; an *unused* row's picker offers only groups that actually carry the item, since zeroing a position that does not exist would apply as nothing. An *unused* proposal defaults to the group the row came from; a *missing* ad-hoc row defaults to the trip's dominant group. Applying writes to that group; the row states the FR-27.4 blast radius ("Wirkt auf N geplante Reisen …") when planning trips use the target. *(The FR-27.4 applied-change entry on each planning trip belongs to the §3.27 refresh package — same note as E2E-M8-09.)*
 * **E2E-M14-05** `all` (FR-27.11): the assistant renders as a **list with an open count**, not a card stack; applied and skipped rows remain visible and marked rather than disappearing, and "nie mehr fragen" removes the row for that item–group pair only.
-* **E2E-M14-02** `all` (FR-9.2/1.6): Apply writes directly to the source template — shared instance-wide per the FR-1.6 MVP simplification; no fork prompt exists.
-* **E2E-M14-03** `all` (FR-9.2): "Never ask again" scopes to the item–template pair (same item still surfaces for another template).
-* **E2E-M14-04** `all` (FR-9.2): no flags → "nothing to review" toast; re-openable from the archived trip; applied cards don't reappear (resumability).
+* **E2E-M14-06** `all` (FR-9.2): no flags → archiving skips the assistant with a "nothing to review" toast; opened directly, the screen shows the honest empty state; applied rows don't reappear on a later visit (resumability).
 
 ### M15 — Import Wizard
 * **E2E-M15-01** `all` (FR-16.1): upload/paste CSV → grid preview; mark item column, category rows, per-trip include/name/date/series.
@@ -371,7 +377,7 @@ These are full end-to-end journeys spanning several screens — the highest-valu
 * **E2E-FLOW-01 Happy-path packing** `server`: Alice M1 → M4 → swipe *Packing Now* → check → Bob's device reflects it in real time (locks, actor attribution, presence). (FR-5.x, 4.4, G-3, G-10)
 * **E2E-FLOW-02 Delegation** `server`: M4 → M5 → set packer (Bob) → Bob receives push/in-app notification → taps → deep-links into M4/M5. (FR-4.3, 6.2, 6.3, G-4)
 * **E2E-FLOW-03 Purchase transition** `single`: M6 Before-departure → check item → appears in M4 as PACK/Open. (FR-3.3)
-* **E2E-FLOW-04 Feedback loop** `single`: M4 flag *Missing* → archive → M14 proposes template addition → apply → next M3 run includes the item. (FR-9.1, 9.2, 2.2)
+* **E2E-FLOW-04 Feedback loop** `single`: M4 flag *Missing* → archive → M14 proposes adding it to a group (FR-27.11) → apply → next M3 run of a template including that group carries the item. (FR-9.1, 9.2, 2.2)
 * **E2E-FLOW-05 Migration** `single`: M15 import → M2 shows archived series trips → M3 step 4 surfaces historical suggestions immediately. (FR-16.x, 14.2)
 * **E2E-FLOW-06 Offline round-trip** `single`: go offline → make edits (G-5 optimistic) → glyph shows queued → go online → silent sync, edits persist. (NFR-4.1, 4.2, G-2, G-5)
 * **E2E-FLOW-07 Local→Server migration** `local`→`server`: export portable YAML in Local Mode → import into a Server instance via M18 → data present. (FR-19.5, 18.x)
@@ -438,7 +444,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-8.1 | E2E | M4-01, M12-01 |
 | FR-8.2 | E2E+UNIT | M12-01/02/04/05, M12-06 (grouping handoff); analytics.ts |
 | FR-9.1 | E2E | M5-03, M4-04, FLOW-04 |
-| FR-9.2 | E2E+UNIT | M14-01/02/03/04; review.ts |
+| FR-9.2 | E2E+UNIT | M14-01/02/03/06; review.ts, ReviewPage.spec.ts |
 | FR-10.1 | E2E | M11-01 (via M11-05/06) |
 | FR-10.2 | E2E | M11-06 (03 folded in), M5-02 |
 | FR-10.3 | E2E+UNIT | M11-02/04; containers.ts |
@@ -536,7 +542,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-27.8 | E2E | M10-05 (named back-references, tap-through); counts stay M10-02 |
 | FR-27.9 | E2E | M10-06 (cross-trip comment aggregation with author/trip/timestamp) |
 | FR-27.10 | E2E | M4-26 (group add: dedup, provenance, tasks, no Missing flag), M4-27 (fully-present group, planning-trip propagation) |
-| FR-27.11 | E2E | M14-04 (group targets, blast radius, applied-change log), M14-05 (list not card stack, marked rows, per-pair dismissal) |
+| FR-27.11 | E2E+UNIT | M14-04 (group targets, blast radius), M14-05 (list not card stack, marked rows, per-pair dismissal); review.ts, ReviewPage.spec.ts — the applied-change log is owed with the §3.27 refresh package |
 | FR-25.7 | E2E | M8-12 (one-tap add, "Standard" row, Mehr-Optionen disclosure) |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |

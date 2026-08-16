@@ -2231,3 +2231,62 @@ it and the North-Star phase owns the transition. i18n rode along: M12 is
 t()-localized in both catalogues, including the analytics keys added here.
 
 Remaining rebuild after this: M14.
+
+## M14 — review assistant rebuilt on the concept round (FR-9.2/27.11, 2026-08-16)
+
+The last screen rebuild. The 2026-08-08 concept round changed both halves
+of the old M14 (2026-07 card stack writing to "the dominant template"), and
+the rebuild follows the prototype:
+
+1. **A list, not a card stack.** Every proposal at once under an
+   "Offen · N" head; applied and skipped rows stay in place, dimmed and
+   chip-marked, and an "Übernommen · N" footer counts what was written —
+   the same honesty stance FR-25.11a takes on the packing list. The row
+   state lives in a merge of live proposals and session decisions
+   (`watchEffect`), so a proposal applied elsewhere disappears while a row
+   decided here survives its own recompute.
+2. **Proposals target groups** (`domain/review.ts` rewritten): *ungenutzt*
+   defaults to the group the row's provenance names, *fehlte* to the group
+   that contributed most of the trip; a row whose provenance is a
+   Ferien-Vorlage's own position yields nothing — that structure feedback
+   is M21's job (FR-27.5). The per-row picker offers groups only, and for
+   an *unused* row only groups that carry the item (`retargetGroups`) —
+   zeroing a position that does not exist would apply as a silent no-op;
+   recorded in the UI-Spec as a decision. Apply takes the picker's group,
+   not the default (`applyReviewProposal(proposal, groupId)`), and the
+   FR-27.4 blast radius is stated per row from `planningTripsUsing` on
+   the *selected* group, live.
+3. **"Nie mehr fragen" is pair-scoped** — `dismissalKey(itemRef, groupId)`
+   against the row's current target; the same item still surfaces for a
+   different group. Archiving a flag-less trip now skips the assistant
+   with the specified toast instead of presenting an empty screen (M4's
+   `onArchive`).
+4. **Coverage splits three ways, honestly.** Domain arithmetic in
+   `domain/__tests__/review.spec.ts` (21 cases); the list semantics in a
+   *component* test (`views/trips/__tests__/ReviewPage.spec.ts`, first of
+   its kind for a page) because every positive e2e case needs an FR-9.1
+   flag and the only flag writer gates on an *active* trip — the same
+   planning→active product gap the M12 unit recorded; the e2e unit
+   (`e2e/review.spec.ts`) pins the reachable surface (framed empty state,
+   G-9 back) and the ledger names the owed cases for when the transition
+   ships. The FR-27.4 applied-change log entry stays with the §3.27
+   refresh package, same as M8's E2E-M8-09 note.
+
+The test-spec M14 section was reconciled in the same PR (it still described
+the card stack, targeted templates, and carried a duplicate case id — the
+no-flags case is E2E-M14-06 now). i18n rode along: M14 is t()-localized in
+both catalogues.
+
+Because no app path can produce a populated M14 at all (not even in dev —
+the sample trip's rows carry no provenance and FR-27.10's group add is part
+of the unbuilt §3.27 package), the dev gallery grew a fixture button
+(`src/dev/reviewFixture.ts`): it seeds in-memory rows covering both proposal
+kinds, the retarget picker and the blast radius, then opens the *real*
+route. State only — a reload clears it — and DEV-only like the gallery
+itself, so it is absent from the production bundle.
+
+With this, every screen rebuild from the 2026-08-14 plan is code. What the
+plan still owes is in CLAUDE.md's "Not built yet": the §3.27 client package
+(instantiate expansion, FR-27.4 refresh, M21), the i18n remainder, the
+Playwright backlog — and M14, like M12, is unverifiable end-to-end until
+something user-facing moves a trip to *active*.
