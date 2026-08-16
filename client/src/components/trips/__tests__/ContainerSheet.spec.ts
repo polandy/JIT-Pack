@@ -154,6 +154,15 @@ describe('ContainerSheet', () => {
     expect(orchestratorFake.updateContainer).toHaveBeenCalledTimes(1)
   })
 
+  it('omits the carrier section when the trip has no travelers (absent, not emptied)', () => {
+    const store = useTripStore()
+    seed(store, 'containers', container('left'))
+
+    const wrapper = mountSheet('left')
+
+    expect(wrapper.text()).not.toContain('Carried by')
+  })
+
   it('renders the not-found state for a deleted container', () => {
     const wrapper = mountSheet('gone')
 

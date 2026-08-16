@@ -145,7 +145,8 @@ function onDelete() {
       />
     </section>
 
-    <section class="sec">
+    <!-- Absent, not emptied, when the trip has no travelers (the FR-24.5 stance). -->
+    <section v-if="travelers.length" class="sec">
       <h2 class="sl">{{ t('container.carrier') }}</h2>
       <div class="chips">
         <button
