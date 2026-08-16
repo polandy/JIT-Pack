@@ -9,6 +9,7 @@
  */
 
 import type {
+  MasterItem,
   Template,
   TemplateDedup,
   TemplateInclude,
@@ -202,4 +203,48 @@ export function planningTripsUsing(templateId: string, input: BlastRadiusInput):
   }
 
   return input.trips.filter((t) => t.status === 'planning' && touched.has(t.id))
+}
+
+/** One line of a group's content, as a reader sees it (FR-27.12). */
+export interface ResolvedLine {
+  name: string
+  quantity: number
+}
+
+/**
+ * resolvedLines turns a resolution into the list a human reads: master-item
+ * names with their resolved quantities, **ordered by name**.
+ *
+ * The order is derived rather than inherited for the same reason
+ * includedTemplatesOf derives its own: the positions arrive in whatever order
+ * the sync produced, and a list somebody scans for "ist das Stativ dabei?"
+ * must not answer differently on two devices. A position whose master item has
+ * not synced yet is dropped — an unnamed line answers nothing.
+ */
+export function resolvedLines(resolution: Resolution, items: MasterItem[]): ResolvedLine[] {
+  const byId = new Map(items.map((i) => [i.id, i]))
+  return resolution.positions
+    .map((p) => ({ item: byId.get(p.item_id), quantity: p.quantity }))
+    .filter((e): e is { item: MasterItem; quantity: number } => e.item !== undefined)
+    .map((e) => ({ name: e.item.name, quantity: e.quantity }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/** What a row can say about a group without being opened (FR-27.12). */
+export interface LinePreview {
+  names: string[]
+  /** How many lines the row could not show — 0 when everything fits. */
+  rest: number
+}
+
+/**
+ * previewLines cuts the list down to what fits on a row. The remainder is a
+ * count rather than an ellipsis: "+2" at least says how much is hidden, which
+ * is the honest half of a summary that cannot answer the precise question.
+ */
+export function previewLines(lines: ResolvedLine[], max: number): LinePreview {
+  return {
+    names: lines.slice(0, max).map((l) => l.name),
+    rest: Math.max(0, lines.length - max),
+  }
 }
