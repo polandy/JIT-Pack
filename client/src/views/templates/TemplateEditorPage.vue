@@ -24,14 +24,21 @@ import {
   IonModal,
   toastController,
 } from '@ionic/vue'
-import { addOutline, closeOutline, cubeOutline } from 'ionicons/icons'
+import { addOutline, chevronForwardOutline, closeOutline, cubeOutline } from 'ionicons/icons'
 import { computed, inject, nextTick, ref } from 'vue'
 
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import PositionSheet from '@/components/templates/PositionSheet.vue'
+import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
+import SheetModal from '@/components/global/SheetModal.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
-import { planningTripsUsing, scopeSwitchBlock } from '@/domain/templates'
+import {
+  planningTripsUsing,
+  previewLines,
+  resolvedLines,
+  scopeSwitchBlock,
+} from '@/domain/templates'
 import { t } from '@/i18n'
 import { attributeLabel } from '@/lib/attributeLabels'
 import { useMasterStore } from '@/stores/masterStore'
@@ -126,6 +133,20 @@ const blastNote = computed(() =>
 )
 
 // --- Gruppen section (Ferien-Vorlage only, FR-27.1) -------------------------
+
+/** FR-27.12: which included group the peek sheet is showing, if any. */
+const peekTemplateId = ref<string | null>(null)
+
+/** How many names fit on a row before it stops being scannable. */
+const PREVIEW_NAMES = 3
+
+/** The first few items of an included group, so the row says what it brought. */
+function groupPreview(templateId: string): string {
+  const lines = resolvedLines(masterStore.resolve(templateId), masterStore.itemList)
+  const preview = previewLines(lines, PREVIEW_NAMES)
+  const names = preview.names.join(' · ')
+  return preview.rest > 0 ? `${names} ${t('templates.previewMore', { n: preview.rest })}` : names
+}
 
 const pickerOpen = ref(false)
 const newGroupOpen = ref(false)
@@ -311,7 +332,24 @@ const mergeLines = computed(() =>
               <IonLabel>
                 <h2>{{ groupName(inc.included_template_id) }}</h2>
                 <p>{{ t('templates.itemCount', { n: groupCount(inc.included_template_id) }) }}</p>
+                <!-- FR-27.12: the row says what it brought into this Vorlage -->
+                <p
+                  v-if="groupPreview(inc.included_template_id)"
+                  class="preview"
+                  :data-testid="`m8-group-preview-${inc.included_template_id}`"
+                >
+                  {{ groupPreview(inc.included_template_id) }}
+                </p>
               </IonLabel>
+              <button
+                slot="end"
+                class="peek"
+                :aria-label="t('templates.peekOpen', { name: groupName(inc.included_template_id) })"
+                :data-testid="`m8-group-peek-${inc.included_template_id}`"
+                @click="peekTemplateId = inc.included_template_id"
+              >
+                <IonIcon :icon="chevronForwardOutline" />
+              </button>
               <button
                 slot="end"
                 class="rm"
@@ -481,6 +519,15 @@ const mergeLines = computed(() =>
             />
           </div>
         </IonModal>
+
+        <!-- FR-27.12: look into an included group without leaving the editor -->
+        <SheetModal :is-open="peekTemplateId !== null" @dismiss="peekTemplateId = null">
+          <GroupPeekSheet
+            v-if="peekTemplateId"
+            :template-id="peekTemplateId"
+            @close="peekTemplateId = null"
+          />
+        </SheetModal>
       </template>
     </IonContent>
   </IonPage>
@@ -735,6 +782,23 @@ const mergeLines = computed(() =>
   justify-content: center;
   padding: 24px;
   color: var(--ct-subtext0);
+}
+
+.preview {
+  color: var(--ct-overlay0);
+}
+
+.peek {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ct-overlay0);
+  font-size: var(--jp-icon-sm);
+  cursor: pointer;
 }
 
 /* --- the position sheet, in the app's sheet grammar --- */

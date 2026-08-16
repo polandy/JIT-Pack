@@ -34,6 +34,9 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { loadTokens } from '@/auth/tokens'
 import { t } from '@/i18n'
+import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
+import SheetModal from '@/components/global/SheetModal.vue'
+import { previewLines, resolvedLines, type LinePreview } from '@/domain/templates'
 import { attributeLabel } from '@/lib/attributeLabels'
 import { resolveDependencies } from '@/domain/dependencies'
 import { durationDays, generateTripItems, type MergedOverlap } from '@/domain/instantiate'
@@ -197,13 +200,29 @@ function toggleTemplate(id: string, checked: boolean) {
 interface ScopeRow {
   template: Template
   count: number
+  /** FR-27.12: the first few names, so the row answers the easy case itself. */
+  preview: LinePreview
 }
+
+/** How many names fit on a row before it stops being scannable. */
+const PREVIEW_NAMES = 3
 
 function scopeRows(kind: TemplateKind): ScopeRow[] {
   return masterStore.templateList
     .filter((tpl) => tpl.kind === kind)
     .sort((a, b) => a.name.localeCompare(b.name))
-    .map((tpl) => ({ template: tpl, count: masterStore.resolve(tpl.id).positions.length }))
+    .map((tpl) => {
+      const lines = resolvedLines(masterStore.resolve(tpl.id), masterStore.itemList)
+      return { template: tpl, count: lines.length, preview: previewLines(lines, PREVIEW_NAMES) }
+    })
+}
+
+/** FR-27.12: which group the peek sheet is showing, if any. */
+const peekTemplateId = ref<string | null>(null)
+
+function previewText(preview: LinePreview): string {
+  const names = preview.names.join(' · ')
+  return preview.rest > 0 ? `${names} ${t('templates.previewMore', { n: preview.rest })}` : names
 }
 
 const vacationTemplates = computed(() => scopeRows('template'))
@@ -719,7 +738,24 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
                 <p :data-testid="`wizard-count-${row.template.id}`">
                   {{ t('templates.itemCount', { n: row.count }) }}
                 </p>
+                <!-- FR-27.12: the row answers "was ist da drin?" for the easy case -->
+                <p
+                  v-if="row.preview.names.length"
+                  class="preview"
+                  :data-testid="`wizard-preview-${row.template.id}`"
+                >
+                  {{ previewText(row.preview) }}
+                </p>
               </IonLabel>
+              <button
+                slot="end"
+                class="peek"
+                :data-testid="`wizard-peek-${row.template.id}`"
+                :aria-label="t('templates.peekOpen', { name: row.template.name })"
+                @click="peekTemplateId = row.template.id"
+              >
+                <IonIcon :icon="chevronForwardOutline" />
+              </button>
             </IonItem>
           </IonList>
         </template>
@@ -739,6 +775,13 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
                 <p :data-testid="`wizard-count-${row.template.id}`">
                   {{ t('templates.itemCount', { n: row.count }) }}
                 </p>
+                <p
+                  v-if="row.preview.names.length"
+                  class="preview"
+                  :data-testid="`wizard-preview-${row.template.id}`"
+                >
+                  {{ previewText(row.preview) }}
+                </p>
                 <!-- Already on the list through a picked Vorlage — say so -->
                 <p
                   v-if="bringingVorlagen.has(row.template.id)"
@@ -751,6 +794,15 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
                   }}
                 </p>
               </IonLabel>
+              <button
+                slot="end"
+                class="peek"
+                :data-testid="`wizard-peek-${row.template.id}`"
+                :aria-label="t('templates.peekOpen', { name: row.template.name })"
+                @click="peekTemplateId = row.template.id"
+              >
+                <IonIcon :icon="chevronForwardOutline" />
+              </button>
             </IonItem>
           </IonList>
         </template>
@@ -904,11 +956,36 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
           Create trip
         </IonButton>
       </div>
+      <!-- FR-27.12: look inside a group without losing the draft -->
+      <SheetModal :is-open="peekTemplateId !== null" @dismiss="peekTemplateId = null">
+        <GroupPeekSheet
+          v-if="peekTemplateId"
+          :template-id="peekTemplateId"
+          @close="peekTemplateId = null"
+        />
+      </SheetModal>
     </IonContent>
   </IonPage>
 </template>
 
 <style scoped>
+.preview {
+  color: var(--ct-overlay0);
+}
+
+.peek {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ct-overlay0);
+  font-size: var(--jp-icon-sm);
+  cursor: pointer;
+}
+
 /* FR-2.1c: one row standing in for every optional field. */
 .more-row {
   display: flex;

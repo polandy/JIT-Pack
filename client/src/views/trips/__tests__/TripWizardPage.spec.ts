@@ -212,6 +212,47 @@ describe('M3 step 3 — template composition (§3.27)', () => {
     expect(wrapper.get('[data-testid="wizard-included-g2"]').text()).toContain('Sommerferien')
   })
 
+  it('names the first items on the row itself, and counts the rest (FR-27.12 · C)', async () => {
+    seedComposition()
+    // A fourth item pushes the group past what a row can show.
+    item('ring', 'Ringlicht')
+    item('zwi', 'Zwischenringe')
+    position('p5', 'g1', 'ring')
+    position('p6', 'g1', 'zwi')
+
+    const wrapper = await mountAtStepThree()
+
+    // Ordered by name, not by position order, and truncated with a count.
+    expect(wrapper.get('[data-testid="wizard-preview-g1"]').text()).toBe(
+      'Kamera · Makro-Objektiv · Ringlicht +1',
+    )
+  })
+
+  it('says nothing about contents for a group that has none', async () => {
+    template('g9', 'Leer', 'group')
+
+    const wrapper = await mountAtStepThree()
+
+    // The row is rendered — only the summary is absent, because "" is worse
+    // than nothing.
+    expect(wrapper.get('[data-testid="wizard-count-g9"]').text()).toContain('0')
+    expect(wrapper.find('[data-testid="wizard-preview-g9"]').exists()).toBe(false)
+  })
+
+  it('offers the peek on every row of both scopes (FR-27.12 · A)', async () => {
+    seedComposition()
+
+    const wrapper = await mountAtStepThree()
+
+    // The sheet's own contents are pinned in GroupPeekSheet.spec.ts — what the
+    // wizard owes is a way in, on a Vorlage and on a group alike.
+    expect(wrapper.get('[data-testid="wizard-peek-v1"]').attributes('aria-label')).toContain(
+      'Sommerferien',
+    )
+    expect(wrapper.find('[data-testid="wizard-peek-g1"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="wizard-peek-g2"]').exists()).toBe(true)
+  })
+
   it('leaves the group rows unmarked while no Vorlage is picked', async () => {
     seedComposition()
 

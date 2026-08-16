@@ -392,6 +392,12 @@ export const de: Record<keyof typeof en, string> = {
   'wizard.excludedSummary': '{n} durch Bedingungen ausgeschlossen',
   'wizard.excludedLine': '{item} — übersprungen: {reason}',
 
+  // FR-27.12 — in eine Gruppe hineinschauen.
+  'templates.peekOpen': 'Zeigen, was in „{name}“ ist',
+  'templates.peekSubtitle':
+    '{n} Artikel · so, wie er auf die Packliste käme | {n} Artikel · so, wie sie auf die Packliste kämen',
+  'templates.previewMore': '+{n}',
+
   'settings.language': 'Sprache',
   'settings.languageHint': 'Nur auf diesem Gerät.',
   'settings.languageEnglish': 'Englisch',
