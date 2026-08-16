@@ -181,6 +181,8 @@ async function saveBackup() {
   saveText(yaml, filename)
   markExported(now)
   lastExport.value = now
+  // The sheet's clock advances with the write it is describing.
+  detailNow.value = now
   const toast = await toastController.create({
     message: t('sync.detail.backupSaved', { file: filename }),
     duration: 4000,

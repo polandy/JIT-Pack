@@ -240,6 +240,51 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.getByTestId('wizard-more-summary')).toContainText('2026-09-20')
   })
 
+  // E2E-G2-01 (G-2/FR-19.6): the glyph used to be a symbol with nothing
+  // behind it — tapping it navigated to a trip's conflict log when a trip
+  // happened to be open, and did nothing at all anywhere else. Here there is
+  // no trip, which is exactly where it used to be silent.
+  test('E2E-G2-01: the sync glyph explains its state on any screen', async ({ page }) => {
+    await page.setViewportSize(DESKTOP)
+    await page.goto('/tabs/trips')
+
+    await page.getByTestId('sync-indicator').click()
+
+    const sheet = page.getByTestId('sync-detail-sheet')
+    await expect(sheet).toBeVisible()
+    await expect(sheet.getByTestId('sync-detail-title')).toHaveText('On this device')
+    await expect(sheet.getByTestId('sync-detail-explain')).toContainText('no server')
+    // Local Mode has one writer, so the conflict log must not be offered.
+    await expect(sheet.getByTestId('sync-detail-conflicts')).toHaveCount(0)
+    // NFR-4.11: the storage section is the point of the Local Mode detail.
+    await expect(sheet.getByTestId('sync-detail-storage')).toBeVisible()
+
+    await sheet.getByTestId('sync-detail-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+  })
+
+  // E2E-G2-02 (FR-19.6/NFR-4.11): the one-tap backup. In Local Mode this
+  // file is the only copy of everything, so the assertion is the download
+  // itself plus the sheet then saying a backup exists.
+  test('E2E-G2-02: the storage detail backs the device up in one tap', async ({ page }) => {
+    await page.setViewportSize(DESKTOP)
+    await createTripViaWizard(page, TRIP)
+    // The write has to have landed before it can be in a backup (FR-19.2).
+    await expect(page.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'local')
+
+    await page.getByTestId('sync-indicator').click()
+    const sheet = page.getByTestId('sync-detail-sheet')
+    await expect(sheet.getByTestId('sync-detail-backup-age')).toHaveText('Never backed up')
+
+    const download = page.waitForEvent('download')
+    await sheet.getByTestId('sync-detail-backup').click()
+    expect((await download).suggestedFilename()).toMatch(/^jitpack-backup-\d{4}-\d{2}-\d{2}\.yaml$/)
+
+    // The stamp is what the FR-19.6 reminder reads later, so it is part of
+    // the behaviour rather than an implementation detail.
+    await expect(sheet.getByTestId('sync-detail-backup-age')).toHaveText('Last backup today')
+  })
+
   // E2E-G8-02: the dev sample-trip seed is a development affordance, not
   // Demo Mode returning. This suite runs the production build, where it
   // must not exist at all.
