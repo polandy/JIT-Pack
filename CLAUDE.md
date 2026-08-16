@@ -135,6 +135,18 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    teleported app-bar actions, and a Local Mode write nobody awaited (FR-19.2).
    `dev-docs/e2e-tests.md` is the ledger of what is actually covered — a green `e2e` job is
    not the same as a verified UI.
+7. **FR-5.5's „bewusst nicht einpacken" has no control** (owner-flagged 2026-08-16) — the
+   *state* is built and rendered: `state = 'skipped'` counts as done (`domain/packingView.ts`),
+   M4 badges such a row „Deliberately skipped", FR-25.2 hides it with the packed ones, and
+   `skipItem`/`unskipItem` exist in `useMutations`/`useSyncOrchestrator` **including the FR-20.2
+   co-skip cascade**. What is missing is the way to *say it*: **no view calls either mutation**,
+   so today a user cannot mark an item deliberately not packed — only pack it or leave it open,
+   which is exactly the "deliberately left behind vs. forgot" distinction FR-5.5 exists to keep.
+   The addendum already carries the requirement (FR-5.5) and the standing design note that the
+   action "must be discoverable" in M4, but the M4/M5 rebuild shipped without it. **Mock and
+   specify it before building** (owner, 2026-08-16): where the affordance lives (row gesture,
+   M5 sheet, both — the M4 rebuild dropped swipe deliberately, see the M7 A2/B2 round), how
+   quantity 0 relates to it, how un-skipping reads, and what the co-skip cascade tells the user.
 
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,
