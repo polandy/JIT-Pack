@@ -25,6 +25,9 @@ import {
  */
 
 test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)', () => {
+  // Same budget note as the composition describe below.
+  test.slow()
+
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
     await page.goto('/tabs/templates')
@@ -267,6 +270,13 @@ test.describe('M8 position sheet — the M5 pattern (FR-25.7, FR-27.7)', () => {
 })
 
 test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27.4)', () => {
+  // Every case here builds two groups, their positions and a Vorlage through
+  // M7/M8, because spec §2.4 forbids injecting them. That is the most UI work
+  // of any unit in the suite and it sits near WebKit's 30 s default; the M3
+  // composition unit hit the same wall on 2026-08-16, and the failures land at
+  // whatever step the clock runs out on — which reads as four unrelated bugs.
+  test.slow()
+
   test.beforeEach(async ({ seedMode, page }) => {
     await seedMode({ mode: 'local' })
     await page.goto('/tabs/templates')
@@ -295,6 +305,48 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
     await expect(merge).toHaveCount(1)
     await expect(merge).toContainText('Kamera only 1×')
     await expect(merge).toContainText('Makro & Wildlife')
+  })
+
+  test('E2E-M8-16: the footer opens the list of what the Vorlage resolves to', async ({ page }) => {
+    await createTemplate(page, 'group', 'Makro')
+    await addPosition(page, 'Kamera')
+    await addPosition(page, 'Ringlicht')
+    await backToList(page)
+    await createTemplate(page, 'group', 'Wildlife')
+    await addPosition(page, 'Kamera')
+    await backToList(page)
+
+    await createTemplate(page, 'template', 'Fototage')
+    await includeGroup(page, 'Makro')
+    await includeGroup(page, 'Wildlife')
+    await addPosition(page, 'Reiseapotheke')
+
+    // FR-27.14: the count is the door. Before this it was the whole answer.
+    const footer = visible(page).getByTestId('m8-resolution')
+    await expect(footer).toContainText('3 items resolved')
+    await footer.click()
+
+    const sheet = page.getByTestId('group-peek-sheet')
+    await expect(sheet.getByTestId('group-peek-name')).toHaveText('Fototage')
+    await expect(sheet.getByTestId('group-peek-item')).toHaveText([
+      'Kamera',
+      'Reiseapotheke',
+      'Ringlicht',
+    ])
+
+    // The shared camera is marked as merged and names both groups; the own
+    // position says so rather than repeating the Vorlage's name.
+    const camera = sheet.getByTestId('group-peek-line').filter({ hasText: 'Kamera' })
+    await expect(camera).toContainText('Makro & Wildlife')
+    await expect(
+      sheet.getByTestId('group-peek-line').filter({ hasText: 'Reiseapotheke' }),
+    ).toContainText('own position')
+
+    // A look, not an editor — and the editor is still behind it.
+    await expect(sheet.locator('button')).toHaveCount(1)
+    await sheet.getByTestId('group-peek-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await expect(visible(page).getByTestId('m8-resolution')).toBeVisible()
   })
 
   test('E2E-M8-05: a template used by a planning trip shows the blast-radius note', async ({

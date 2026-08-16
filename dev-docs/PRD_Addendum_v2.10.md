@@ -340,7 +340,7 @@ The driving scenario, from the owner: reusable **groups** like *Makro Fotografie
 
   *Considered and rejected:* a separate full-screen group picker (M7 in a modal) — it answers search well and costs the editor's context, which is exactly the detour FR-27.12 was built to remove; and filtering the chips in place without switching to rows — cheap, but it keeps the picker unable to say *why* something matched.
 
-* **FR-27.14 (Seeing a Vorlage's Resulting Items — new 2026-08-16, owner request; specified, not built):** M8's resolution footer states „9 Artikel · 2 Gruppen + 3 eigene Positionen“ and stops. The number answers *how many* and never *what*: whether the tripod is in, whether the shared camera really arrives once, whether the rain jacket falls per person. From the editor of a Ferien-Vorlage there is no way to see what a trip generated from it would actually get — the very thing the Vorlage exists to produce.
+* **FR-27.14 (Seeing a Vorlage's Resulting Items — new 2026-08-16, owner request; built 2026-08-17):** M8's resolution footer states „9 Artikel · 2 Gruppen + 3 eigene Positionen“ and stops. The number answers *how many* and never *what*: whether the tripod is in, whether the shared camera really arrives once, whether the rain jacket falls per person. From the editor of a Ferien-Vorlage there is no way to see what a trip generated from it would actually get — the very thing the Vorlage exists to produce.
 
   **The concept, decided on rendered variants** (`dev-docs/UI_Concept_ResolvedList_variants.html`) — **variant A, chosen by the owner 2026-08-16**; B (grouped by source) and C (footer expanding in place) are out, with their costs recorded below:
 

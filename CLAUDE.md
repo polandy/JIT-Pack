@@ -159,14 +159,11 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    the FR-27.12 summary, an already-included match saying so rather than vanishing, no match
    offering creation with the typed name. This is FR-27.12's picker revisit trigger firing;
    build it against that text rather than re-deciding it.
-9. **FR-27.14 — a Vorlage cannot show its resulting items** (owner-flagged 2026-08-16,
-   specified with a rendered mockup, not built). M8's footer states a count and stops; from the
-   editor there is no way to see what a trip would actually get. **Concept decided in FR-27.14**
-   and mocked in `dev-docs/UI_Concept_ResolvedList_variants.html` — **variant A, chosen by the owner
-   2026-08-16**, so build it against that text rather than re-opening the round: the footer opens the existing
-   FR-27.12 peek sheet on the Vorlage itself, flat and alphabetical with provenance under each
-   name, marked for merges, per-person and conditions. Cheap to build — the sheet already
-   resolves a Vorlage; what it needs is the entry point and the three marks.
+9. ~~**FR-27.14 — a Vorlage cannot show its resulting items**~~ — **done** (2026-08-17):
+   M8's resolution footer is the door — *„Alle N Artikel ansehen"* opens the FR-27.12 peek sheet
+   on the Vorlage itself, flat and alphabetical, each line naming its source and marked where a
+   count would mislead (merge, per person, procurement, condition). Variant A of the rendered
+   round; the sheet already resolved a Vorlage, so what this added was the entry and the marks.
 10. **FR-5.5's „bewusst nicht einpacken" has no control** (owner-flagged 2026-08-16) — the
    *state* is built and rendered: `state = 'skipped'` counts as done (`domain/packingView.ts`),
    M4 badges such a row „Deliberately skipped", FR-25.2 hides it with the packed ones, and

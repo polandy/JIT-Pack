@@ -322,7 +322,9 @@ describe('resolvedLines / previewLines (FR-27.12)', () => {
   it('names each resolved position with its quantity, ordered by name', () => {
     // Position order follows the sync; a list a human reads gets its own order,
     // the same reasoning as includedTemplatesOf.
-    expect(resolvedLines(resolutionOf(), items)).toEqual([
+    // toMatchObject, not toEqual: FR-27.14 added marks to the line, and this
+    // case is about the order and the amounts.
+    expect(resolvedLines(resolutionOf(), items)).toMatchObject([
       { name: 'Kamera', quantity: 2 },
       { name: 'Makro-Objektiv', quantity: 1 },
       { name: 'Ringlicht', quantity: 1 },
@@ -331,7 +333,8 @@ describe('resolvedLines / previewLines (FR-27.12)', () => {
 
   it('drops a position whose master item has not synced to this device', () => {
     const lines = resolvedLines(resolutionOf(), [items[0]!])
-    expect(lines).toEqual([{ name: 'Kamera', quantity: 2 }])
+    expect(lines).toMatchObject([{ name: 'Kamera', quantity: 2 }])
+    expect(lines).toHaveLength(1)
   })
 
   it('previews the first names and counts the rest (FR-27.12 row summary)', () => {
@@ -351,5 +354,80 @@ describe('resolvedLines / previewLines (FR-27.12)', () => {
   it('an empty group previews as nothing at all, not as an empty sentence', () => {
     const empty = resolveTemplate('macro', { templates: [macro], includes: [], positions: [] })
     expect(previewLines(resolvedLines(empty, items), 3)).toEqual({ names: [], rest: 0 })
+  })
+})
+
+/**
+ * FR-27.14: what a Ferien-Vorlage would actually produce. The list carries
+ * three things a bare count cannot say — where a line came from, that a merge
+ * collapsed it, and where the quantity is not the whole story (per person, or
+ * conditional on the trip).
+ */
+describe('resolvedLines carries provenance and marks (FR-27.14)', () => {
+  const macro = template('macro', 'Makro', 'group')
+  const wildlife = template('wildlife', 'Wildlife', 'group')
+  const vacation = template('vacation', 'Fotoreise')
+  const items: MasterItem[] = [
+    { id: 'cam', name: 'Kamera', weight_grams: 600, value_cents: null },
+    { id: 'tele', name: 'Teleobjektiv', weight_grams: 900, value_cents: null },
+    { id: 'jacket', name: 'Regenjacke', weight_grams: 300, value_cents: null },
+    { id: 'cream', name: 'Sonnencreme', weight_grams: 100, value_cents: null },
+  ]
+
+  function composed() {
+    return resolveTemplate('vacation', {
+      templates: [vacation, macro, wildlife],
+      includes: [include('vacation', 'macro'), include('vacation', 'wildlife')],
+      positions: [
+        position('p1', 'macro', 'cam'),
+        position('p2', 'wildlife', 'cam'),
+        position('p3', 'wildlife', 'tele'),
+        position('p4', 'vacation', 'jacket', { assignment: 'per_person' }),
+        position('p5', 'vacation', 'cream', { default_mode: 'buy_before' }),
+      ],
+    })
+  }
+
+  const lineFor = (name: string) => resolvedLines(composed(), items).find((l) => l.name === name)!
+
+  it('names every template that contributed a line', () => {
+    expect(lineFor('Kamera').sources).toEqual(['Makro', 'Wildlife'])
+    expect(lineFor('Teleobjektiv').sources).toEqual(['Wildlife'])
+  })
+
+  it('names the Vorlage itself for its own positions', () => {
+    // The view decides how to word it; the domain says which template it was,
+    // so "eigene Position" stays a wording rather than a hidden rule.
+    expect(lineFor('Regenjacke').sources).toEqual(['Fotoreise'])
+  })
+
+  it('marks a line more than one template contributed', () => {
+    expect(lineFor('Kamera').merged).toBe(true)
+    expect(lineFor('Teleobjektiv').merged).toBe(false)
+  })
+
+  it('marks a per-person position instead of inventing a traveler count', () => {
+    // The traveler count belongs to the trip (FR-25.8); a template that
+    // printed "3×" would be guessing.
+    expect(lineFor('Regenjacke').perPerson).toBe(true)
+    expect(lineFor('Regenjacke').quantity).toBe(1)
+    expect(lineFor('Kamera').perPerson).toBe(false)
+  })
+
+  it('carries the procurement mode, which the trip has not decided yet', () => {
+    expect(lineFor('Sonnencreme').mode).toBe('buy_before')
+    expect(lineFor('Kamera').mode).toBe('pack')
+  })
+
+  it('carries the conditions a line depends on (FR-15.2)', () => {
+    const resolution = resolveTemplate('macro', {
+      templates: [macro],
+      includes: [],
+      positions: [position('p1', 'macro', 'cam', { conditions: { season: ['winter'] } })],
+    })
+
+    // Nothing is excluded at template level — the trip decides — so the line
+    // must state the condition rather than quietly appearing or vanishing.
+    expect(resolvedLines(resolution, items)[0]!.conditions).toEqual({ season: ['winter'] })
   })
 })

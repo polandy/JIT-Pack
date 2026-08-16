@@ -2525,3 +2525,41 @@ Two things that gate taught while being written, both kept in its comments:
    gone; the button's `v-if` branch still leaves its label in the page chunk as
    dead string. That is an inert branch of a few bytes, not a reachable
    surface, and the comments say so rather than rounding up to "entirely".
+
+## FR-27.14: the footer stops being the whole answer (2026-08-17)
+
+M8 said „6 Artikel · 2 Gruppen + 1 eigene Position" and left it there. The
+number answers *how many* and never *what*, so from the editor of a Ferien-
+Vorlage — the thing whose entire purpose is to produce a packing list — there
+was no way to see what a trip would get. Owner asked for it with a mockup, then
+picked variant A from the rendered round.
+
+**What it cost to build was small, and deliberately so:** the FR-27.12 peek
+sheet already resolves a Vorlage through its composition, so this added an entry
+point and the information a bare list was missing. The footer became a button;
+`resolvedLines` grew from `{name, quantity}` to carry what a count cannot say.
+
+Three marks, each defending a specific lie a number would tell:
+
+* **nur 1×** — the line exists once because a merge collapsed it, not because
+  one template asked once (FR-27.2).
+* **pro Person** — a per-person position fans out at generation over travelers
+  the *trip* knows about; a template printing „3×" would be guessing (FR-25.8).
+* **the procurement mode and mit Bedingung** — at template level nothing is
+  excluded yet, so a conditional row must say so rather than appearing as a
+  promise the trip may break (FR-15.2).
+
+**One rule came out of a failing test rather than the plan.** Provenance was
+going to be shown on every line; peeking a *group* then reads „aus Makro
+Fotografie" on every row of Makro Fotografie. The rule is narrower: a template
+that includes nothing has only one possible source, so the sheet stays quiet —
+provenance is information only once a composition can differ. The same sheet
+now serves both cases without a flag.
+
+Two smaller things: the item name got its own element, because the tests were
+otherwise asserting against concatenated strings where marks and source run
+together (`Kamera once onlyfrom Makro…`) — a test reaching for the nearest
+readable thing again, and the fix is an anchor rather than a cleverer regex.
+And both M8 describes now declare `test.slow()`: the fifth composition-building
+case pushed WebKit past the 30 s budget and four cases failed, three of them
+untouched — the M3 unit's lesson, arriving a second time in the same week.
