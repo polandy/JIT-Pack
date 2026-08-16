@@ -91,6 +91,13 @@ const isDev = import.meta.env.DEV
  * funktionierte weil es kein feedback gab".
  */
 async function addSampleData() {
+  // The guard is what removes the seed from a production bundle, not the
+  // `v-if` on the button: `import.meta.env.DEV` is a compile-time constant, so
+  // this block and the chunk behind it are pruned — while a dynamic import in
+  // a live code path is emitted whether or not anything can reach it. The
+  // gallery route has had this shape all along (router/index.ts); the seed
+  // claimed it and did not have it, and shipped three chunks to every instance.
+  if (!import.meta.env.DEV) return
   try {
     const { seedSampleData } = await import('@/dev/sampleData')
     const outcome = await seedSampleData(orchestrator)

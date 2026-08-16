@@ -17,8 +17,11 @@ Read this file fully before touching code. It is the orientation document: what 
   **master partition first** (`client/src/dev/sampleMaster.ts`: tagged inventory, three groups, a
   composed Ferien-Vorlage with an FR-27.7 task) and then the sample trip (`sampleTrip.ts`). Standing
   rule (owner, 2026-08-16): **new master-data features extend that seed**, so a fresh device can
-  exercise them without twenty minutes of typing. It is dev-only (`import.meta.env.DEV`) and writes
-  through the orchestrator's own actions — **not Demo Mode**, which stays removed (Addendum v2.10).
+  exercise them without twenty minutes of typing. It is dev-only and writes through the orchestrator's own
+  actions — **not Demo Mode**, which stays removed (Addendum v2.10). The guard that removes it
+  from a production build is `import.meta.env.DEV` **around the dynamic import**, never a `v-if`
+  on the trigger: that hides the button and ships the code. `scripts/dev-code-gate.mjs` (in
+  `make client` and the CI client job) fails the build if a dev module reaches `dist`.
 
 ## Where things live
 

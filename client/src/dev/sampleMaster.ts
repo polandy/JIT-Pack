@@ -5,8 +5,10 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
  * a composed Ferien-Vorlage. Development only, beside `sampleTrip.ts`.
  *
  * **Not Demo Mode**, for the same reason stated there: this lives behind
- * `import.meta.env.DEV`, so the module and its trigger drop out of a
- * production build and nobody running an instance can reach it. Demo Mode was
+ * `import.meta.env.DEV` **at the import**, not only on the button, so the
+ * module is pruned from a production build entirely — `scripts/dev-code-gate.mjs`
+ * holds that. What remains there is the trigger's inert render branch, a few
+ * bytes of dead string; nobody running an instance can reach any of it. Demo Mode was
  * a product surface and stays removed (Addendum v2.10).
  *
  * Why it exists: a fresh install has *no* inventory and *no* templates, so

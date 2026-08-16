@@ -90,7 +90,7 @@ tidy-check:
 ## --- client job -----------------------------------------------------------
 # CI lints without --fix; the package scripts fix in place. Check, don't fix,
 # so the local run fails on the same things CI does.
-client: client-lint client-tokens client-build client-test
+client: client-lint client-tokens client-build client-devcode client-test
 
 # `npm ci` is CI's first client step. Locally it only needs to rerun when the
 # lockfile moved, so hang it off the stamp npm itself writes — otherwise every
@@ -116,6 +116,10 @@ client-tokens:
 
 client-build: $(CLIENT_DEPS)
 	cd client && $(RUN) npm run build
+
+# After client-build: it reads what the build actually emitted.
+client-devcode:
+	$(RUN) node scripts/dev-code-gate.mjs
 
 client-test: $(CLIENT_DEPS)
 	cd client && $(RUN) npx vitest run

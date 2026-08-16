@@ -2492,3 +2492,36 @@ Ridealong from the same session: the Local Mode sync indicator set no icon size
 and inherited 13 px beside its 25 px neighbours, where a phone outline reads as
 a missing-glyph box („links vom Zahnrad siehts kaputt aus"). It is on
 `--jp-icon-md` now, which is where invariant 9 says icon sizes come from.
+
+## The dev-only surfaces were not dev-only (2026-08-16)
+
+Found reviewing PR #98, by checking a claim instead of reading it. `sampleTrip.ts`
+said — and `sampleMaster.ts` copied, and the addendum and CLAUDE.md repeated —
+that the seed "drops out of a production build entirely". It did not. Three
+chunks (`sampleData`, `sampleMaster`, `sampleTrip`) sat in `client/dist/assets`
+of every release, and the same was true of the M14 fixture.
+
+The mistake is worth naming precisely, because it looks correct: the guard was
+`v-if="isDev"` **on the button**, while the `import('@/dev/sampleTrip')` inside
+the handler stayed a live code path. A `v-if` hides a surface; only a
+compile-time-false branch *around the import* removes the code, which is the
+shape `router/index.ts` has always used for the gallery route. Moving the guard
+to `if (!import.meta.env.DEV) return` prunes all three.
+
+**Nobody could reach it, which is exactly why nobody noticed.** A hidden
+surface and an absent one are indistinguishable from the outside; only the
+bundle can tell them apart. So the fix ships with `scripts/dev-code-gate.mjs`
+(`make client`, CI client job): it fails the build when a dev chunk name or a
+piece of seed *data* appears in `dist`.
+
+Two things that gate taught while being written, both kept in its comments:
+
+1. **The first fingerprint was wrong in an instructive way.** „Makro Fotografie"
+   looked like seed data and is also example copy in the i18n catalogue — a
+   guard that fires on shipping product text is worse than no guard. The marks
+   are now strings only the seeds contain („Fotoreise (Beispiel)", „Kartusche
+   prüfen"), and the gate was proved by planting one in a built chunk.
+2. **The claim is now stated as narrowly as it is true.** The *modules* are
+   gone; the button's `v-if` branch still leaves its label in the page chunk as
+   dead string. That is an inert branch of a few bytes, not a reachable
+   surface, and the comments say so rather than rounding up to "entirely".
