@@ -9,7 +9,14 @@
  * sync outbox, Local Mode persists them directly.
  */
 
-import type { ItemMode, MasterItem, Template, TemplateDedup, TemplateItem } from '@/types/domain'
+import type {
+  ItemMode,
+  MasterItem,
+  Template,
+  TemplateDedup,
+  TemplateInclude,
+  TemplateItem,
+} from '@/types/domain'
 
 export interface GenerationTraveler {
   name: string
@@ -22,7 +29,16 @@ export interface GenerationTrip {
 }
 
 export interface GenerationInput {
+  /**
+   * Every template on the device, not only the picked ones — includes are
+   * resolved against this catalogue (FR-27.1), so a group reaches the trip
+   * without the caller having to know the composition up front.
+   */
   templates: Template[]
+  /** What the user picked: Ferien-Vorlagen and/or standalone Gruppen (FR-27.3). */
+  selectedTemplateIds: string[]
+  /** The (Vorlage, Gruppe) pairs of the master partition. */
+  includes: TemplateInclude[]
   templateItems: TemplateItem[]
   masterItems: MasterItem[]
   trip: GenerationTrip
@@ -54,6 +70,12 @@ export interface MergedOverlap {
   strategy: TemplateDedup
   quantities: number[]
   quantity: number
+  /**
+   * FR-27.2: the merge is the user-visible point of composition, so the
+   * contributing templates are named ("Kamera nur 1× — in Makro & Wildlife")
+   * rather than counted. In resolution order: the Vorlage before its Gruppen.
+   */
+  sources: Template[]
 }
 
 export interface GenerationResult {
@@ -71,37 +93,49 @@ export function durationDays(startDate: string | null, endDate: string | null): 
 }
 
 export function generateTripItems(input: GenerationInput): GenerationResult {
-  const selected = new Set(input.templates.map((t) => t.id))
+  const sources = resolveSources(input)
   const itemsByID = new Map(input.masterItems.map((i) => [i.id, i]))
 
   const excluded: ExcludedItem[] = []
   const byKey = new Map<
     string,
-    { item: GeneratedItem; dedups: TemplateDedup[]; quantities: number[] }
+    {
+      item: GeneratedItem
+      dedups: TemplateDedup[]
+      quantities: number[]
+      sources: Template[]
+    }
   >()
 
-  for (const ti of input.templateItems) {
-    if (!selected.has(ti.template_id)) continue
-    const master = itemsByID.get(ti.item_id)
-    if (!master) continue
+  // Source-ordered rather than position-ordered: the first contributor carries
+  // the non-quantity attributes and heads the merge report, and FR-27.2 wants
+  // that to be the Vorlage before its Gruppen — never whatever the sync pulled
+  // first. Same ordering rule as resolveTemplate (templates.ts).
+  for (const source of sources) {
+    for (const ti of input.templateItems) {
+      if (ti.template_id !== source.id) continue
+      const master = itemsByID.get(ti.item_id)
+      if (!master) continue
 
-    const failure = conditionFailure(ti.conditions, input.trip.attributes)
-    if (failure !== null) {
-      excluded.push({ item_name: master.name, template_id: ti.template_id, reason: failure })
-      continue
-    }
+      const failure = conditionFailure(ti.conditions, input.trip.attributes)
+      if (failure !== null) {
+        excluded.push({ item_name: master.name, template_id: ti.template_id, reason: failure })
+        continue
+      }
 
-    const quantity = computeQuantity(ti)
-    const targets: (number | null)[] =
-      ti.assignment === 'per_person' ? input.trip.travelers.map((_, idx) => idx) : [null]
+      const quantity = computeQuantity(ti)
+      const targets: (number | null)[] =
+        ti.assignment === 'per_person' ? input.trip.travelers.map((_, idx) => idx) : [null]
 
-    for (const travelerIndex of targets) {
-      const key = `${ti.item_id}|${travelerIndex ?? 'global'}`
-      const existing = byKey.get(key)
-      if (existing) {
-        existing.dedups.push(ti.dedup)
-        existing.quantities.push(quantity)
-      } else {
+      for (const travelerIndex of targets) {
+        const key = `${ti.item_id}|${travelerIndex ?? 'global'}`
+        const existing = byKey.get(key)
+        if (existing) {
+          existing.dedups.push(ti.dedup)
+          existing.quantities.push(quantity)
+          existing.sources.push(source)
+          continue
+        }
         byKey.set(key, {
           item: {
             source_item_id: ti.item_id,
@@ -117,6 +151,7 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
           },
           dedups: [ti.dedup],
           quantities: [quantity],
+          sources: [source],
         })
       }
     }
@@ -137,6 +172,7 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
         item_name: entry.item.name,
         traveler_index: entry.item.traveler_index,
         strategy,
+        sources: entry.sources,
         quantities: entry.quantities,
         quantity: entry.item.quantity,
       })
@@ -144,6 +180,47 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
     items.push(entry.item)
   }
   return { items, excluded, merged }
+}
+
+/**
+ * resolveSources turns the picked template ids into the ordered list of
+ * templates that actually contribute positions: each pick, followed by the
+ * Gruppen it includes (FR-27.1/27.2). Order matters twice over — the first
+ * contributor of an item supplies its non-quantity attributes, and FR-27.2's
+ * merge report reads Vorlage-before-Gruppen.
+ *
+ * Expansion is **one level**, matching resolveTemplate (templates.ts): FR-27.1
+ * fixes the hierarchy at two levels, which is what makes include cycles
+ * structurally impossible. Following an included group's own includes would
+ * quietly reintroduce the depth the FR rejected, and with it the cycle it
+ * cannot have. A template picked directly *and* reached through an include
+ * contributes once — the dedup below would merge it with itself otherwise,
+ * turning a `sum` position into double the amount.
+ */
+function resolveSources(input: GenerationInput): Template[] {
+  const catalogue = new Map(input.templates.map((t) => [t.id, t]))
+  const sources: Template[] = []
+  const seen = new Set<string>()
+
+  const add = (template: Template | undefined) => {
+    if (!template || seen.has(template.id)) return
+    seen.add(template.id)
+    sources.push(template)
+  }
+
+  for (const id of input.selectedTemplateIds) {
+    const picked = catalogue.get(id)
+    if (!picked) continue
+    add(picked)
+    for (const inc of input.includes) {
+      if (inc.template_id !== picked.id) continue
+      // A group that has not synced to this device yet is skipped rather than
+      // failing the whole generation — the rest of the list is still correct.
+      add(catalogue.get(inc.included_template_id))
+    }
+  }
+
+  return sources
 }
 
 /**

@@ -182,9 +182,14 @@ function toggleTemplate(id: string, checked: boolean) {
 }
 
 const generation = computed(() => {
-  const templates = masterStore.templateList.filter((t) => selectedTemplateIds.value.has(t.id))
+  // The whole catalogue, not the picked slice: a picked Ferien-Vorlage pulls in
+  // the positions of the Gruppen it includes (FR-27.2), which the wizard does
+  // not know about until generation resolves the composition.
+  const templates = masterStore.templateList
   return generateTripItems({
     templates,
+    selectedTemplateIds: [...selectedTemplateIds.value],
+    includes: masterStore.includeList,
     templateItems: templates.flatMap((t) => masterStore.getTemplateItems(t.id)),
     masterItems: masterStore.itemList,
     trip: {

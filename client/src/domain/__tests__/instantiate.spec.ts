@@ -6,10 +6,22 @@
 import { describe, expect, it } from 'vitest'
 
 import { generateTripItems, type GenerationInput } from '../instantiate'
-import type { MasterItem, Template, TemplateItem } from '@/types/domain'
+import type { MasterItem, Template, TemplateInclude, TemplateItem } from '@/types/domain'
 
 function template(id: string, name: string): Template {
   return { id, owner_id: 'user-a', name, kind: 'template' }
+}
+
+function group(id: string, name: string): Template {
+  return { id, owner_id: 'user-a', name, kind: 'group' }
+}
+
+function include(templateId: string, includedTemplateId: string): TemplateInclude {
+  return {
+    id: `inc-${templateId}-${includedTemplateId}`,
+    template_id: templateId,
+    included_template_id: includedTemplateId,
+  }
 }
 
 function masterItem(id: string, name: string, extra: Partial<MasterItem> = {}): MasterItem {
@@ -44,9 +56,12 @@ function templateItem(
 
 const twoAdults = [{ name: 'Andy' }, { name: 'Sarah' }]
 
+/** Selecting everything passed is the common case; a test that cares overrides it. */
 function input(overrides: Partial<GenerationInput>): GenerationInput {
   return {
     templates: [],
+    selectedTemplateIds: (overrides.templates ?? []).map((t) => t.id),
+    includes: [],
     templateItems: [],
     masterItems: [],
     trip: { duration_days: 10, attributes: null, travelers: twoAdults },
@@ -232,5 +247,131 @@ describe('generateTripItems', () => {
     // Quantity 0 → generated as skipped item.
     expect(res.items).toHaveLength(1)
     expect(res.items[0]!.quantity).toBe(0)
+  })
+})
+
+/**
+ * §3.27: a Ferien-Vorlage is composed of Gruppen, so generation has to resolve
+ * the composition before it merges. Without this the M8 editor happily attaches
+ * groups that never reach a packing list.
+ */
+describe('generateTripItems with composed templates (§3.27)', () => {
+  it('generates the positions of an included group (FR-27.2)', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien'), group('g1', 'Makro Fotografie')],
+        selectedTemplateIds: ['t1'],
+        includes: [include('t1', 'g1')],
+        masterItems: [masterItem('i1', 'Kamera'), masterItem('i2', 'Makro-Objektiv')],
+        templateItems: [templateItem('ti1', 't1', 'i1'), templateItem('ti2', 'g1', 'i2')],
+      }),
+    )
+
+    expect(res.items.map((i) => i.name)).toEqual(['Kamera', 'Makro-Objektiv'])
+  })
+
+  it('a row generated from a group carries the group as provenance, not the Vorlage (FR-27.5/FR-27.11)', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien'), group('g1', 'Makro Fotografie')],
+        selectedTemplateIds: ['t1'],
+        includes: [include('t1', 'g1')],
+        masterItems: [masterItem('i2', 'Makro-Objektiv')],
+        templateItems: [templateItem('ti2', 'g1', 'i2')],
+      }),
+    )
+
+    expect(res.items[0]).toMatchObject({ name: 'Makro-Objektiv', source_template_id: 'g1' })
+  })
+
+  it('merges an item shared by two included groups once and names both (FR-27.2)', () => {
+    const res = generateTripItems(
+      input({
+        templates: [
+          template('t1', 'Ferien'),
+          group('g1', 'Makro Fotografie'),
+          group('g2', 'Wildlife Fotografie'),
+        ],
+        selectedTemplateIds: ['t1'],
+        includes: [include('t1', 'g1'), include('t1', 'g2')],
+        masterItems: [masterItem('i1', 'Kamera')],
+        templateItems: [
+          templateItem('ti1', 'g1', 'i1', { quantity: 1 }),
+          templateItem('ti2', 'g2', 'i1', { quantity: 1 }),
+        ],
+      }),
+    )
+
+    expect(res.items).toHaveLength(1)
+    expect(res.merged).toHaveLength(1)
+    expect(res.merged[0]!.sources.map((t) => t.name)).toEqual([
+      'Makro Fotografie',
+      'Wildlife Fotografie',
+    ])
+  })
+
+  it('expands includes one level only — a group inside a group is not followed (FR-27.1)', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien'), group('g1', 'Foto'), group('g2', 'Stativ')],
+        selectedTemplateIds: ['t1'],
+        includes: [include('t1', 'g1'), include('g1', 'g2')],
+        masterItems: [masterItem('i1', 'Kamera'), masterItem('i2', 'Stativ')],
+        templateItems: [templateItem('ti1', 'g1', 'i1'), templateItem('ti2', 'g2', 'i2')],
+      }),
+    )
+
+    expect(res.items.map((i) => i.name)).toEqual(['Kamera'])
+  })
+
+  it('a group both selected directly and included contributes once, not twice (FR-27.3)', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien'), group('g1', 'Makro Fotografie')],
+        selectedTemplateIds: ['t1', 'g1'],
+        includes: [include('t1', 'g1')],
+        masterItems: [masterItem('i1', 'Kamera')],
+        templateItems: [templateItem('ti1', 'g1', 'i1', { quantity: 1, dedup: 'sum' })],
+      }),
+    )
+
+    expect(res.items).toHaveLength(1)
+    // Not a merge: one contribution, so `sum` has nothing to add to itself.
+    expect(res.items[0]!.quantity).toBe(1)
+    expect(res.merged).toHaveLength(0)
+  })
+
+  it('skips an include whose group has not synced to this device', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien')],
+        selectedTemplateIds: ['t1'],
+        includes: [include('t1', 'g-unknown')],
+        masterItems: [masterItem('i1', 'Kamera')],
+        templateItems: [templateItem('ti1', 't1', 'i1')],
+      }),
+    )
+
+    expect(res.items.map((i) => i.name)).toEqual(['Kamera'])
+  })
+
+  it('conditions and per-person fan-out apply to group positions too (FR-15.2/FR-1.4)', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien'), group('g1', 'Winter')],
+        selectedTemplateIds: ['t1'],
+        includes: [include('t1', 'g1')],
+        masterItems: [masterItem('i1', 'Handschuhe'), masterItem('i2', 'Sonnenhut')],
+        templateItems: [
+          templateItem('ti1', 'g1', 'i1', { assignment: 'per_person' }),
+          templateItem('ti2', 'g1', 'i2', { conditions: { season: ['summer'] } }),
+        ],
+        trip: { duration_days: 5, attributes: { season: 'winter' }, travelers: twoAdults },
+      }),
+    )
+
+    expect(res.items.map((i) => i.traveler_index)).toEqual([0, 1])
+    expect(res.excluded).toHaveLength(1)
+    expect(res.excluded[0]).toMatchObject({ item_name: 'Sonnenhut', template_id: 'g1' })
   })
 })
