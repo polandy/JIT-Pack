@@ -64,8 +64,9 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | ID | Pattern | Mode | What it proves |
 |---|---|---|---|
 | E2E-G1-01 | G-1 Navigation | all | Four bottom tabs (Dashboard/Trips/Templates/Items) route correctly; Settings reachable via avatar/gear. In `single`/`local` the top-right control is the plain **gear**, not an avatar. |
-| E2E-G2-01 | G-2 Sync indicator | single/server | Glyph reflects synced → syncing (queued count) → offline as network toggles; tapping inside a trip opens the conflict log. |
-| E2E-G2-02 | G-2 Local glyph | local | Distinct **device** glyph; tap opens storage & backup detail (not a conflict log). |
+| E2E-G2-01 | G-2 Sync indicator | single/server | Glyph reflects synced → syncing (queued count) → offline as network toggles; tapping opens the detail, which states the queue and — inside a trip — leads to the conflict log. Outside a trip it says where the log lives instead of offering a dead button. |
+| E2E-G2-02 | G-2 Local glyph | local | Distinct **device** glyph; tap opens the storage & backup detail (not a conflict log): the sheet titles the state, explains that no server is involved, shows the NFR-4.11 storage section, and offers **no** conflict-log entry. Asserted on a screen with no trip open — where the glyph used to do nothing at all. |
+| E2E-G2-03 | G-2 One-tap backup | local | The detail's **Back up now** downloads `jitpack-backup-YYYY-MM-DD.yaml` holding every trip and template, and the sheet's backup line goes from *Never backed up* to *Last backup today* — the stamp the FR-19.6 reminder reads later. |
 | E2E-G3-01 | G-3 Presence lock | server | Alice triggers *Packing Now*; on Bob's client the row shows "In progress by Alice", avatar + chip, and is non-interactive. |
 | E2E-G3-02 | G-3 Lock staleness | server | A lock older than 15 min (clock-advanced) is no longer treated as locking on the other client. |
 | E2E-G4-01 | G-4 Deep link | server | Opening a delegation notification lands on `trip/{id}/item/{id}`, scrolls to, flashes the item once, and expands its comments (also asserts the `?comment=` mention highlight). |
