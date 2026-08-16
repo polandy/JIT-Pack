@@ -1,5 +1,5 @@
 /**
- * Master store — reactive state for categories, items, and templates.
+ * Master store — reactive state for tags, items, and templates.
  *
  * Populated from pull responses on the master partition.
  */
@@ -7,22 +7,31 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type {
-  Category,
   DestinationChecklistItem,
   DestinationProfile,
   ItemDependency,
+  ItemTag,
   MasterItem,
+  Tag,
   Template,
+  TemplateInclude,
   TemplateItem,
+  TemplateItemTask,
+  TemplateKind,
   TripSeries,
 } from '@/types/domain'
 import type { PullChange } from '@/api/types'
+import { resolveTemplate, type Resolution } from '@/domain/templates'
+import { groupByPrimaryTag, primaryTagOf, tagsOfItem } from '@/domain/tags'
 
 export const useMasterStore = defineStore('master', () => {
-  const categories = ref<Map<string, Category>>(new Map())
+  const tags = ref<Map<string, Tag>>(new Map())
+  const itemTags = ref<Map<string, ItemTag>>(new Map())
   const items = ref<Map<string, MasterItem>>(new Map())
   const templates = ref<Map<string, Template>>(new Map())
   const templateItems = ref<Map<string, TemplateItem[]>>(new Map())
+  const templateIncludes = ref<Map<string, TemplateInclude>>(new Map())
+  const templateItemTasks = ref<Map<string, TemplateItemTask>>(new Map())
   const series = ref<Map<string, TripSeries>>(new Map())
   const profiles = ref<Map<string, DestinationProfile>>(new Map())
   const checklistItems = ref<Map<string, DestinationChecklistItem>>(new Map())
@@ -30,9 +39,11 @@ export const useMasterStore = defineStore('master', () => {
 
   // --- Getters ---
 
-  const categoryList = computed(() =>
-    [...categories.value.values()].sort((a, b) => a.sort_order - b.sort_order),
+  const tagList = computed(() =>
+    [...tags.value.values()].sort((a, b) => a.sort_order - b.sort_order),
   )
+
+  const itemTagList = computed(() => [...itemTags.value.values()])
 
   const itemList = computed(() => [...items.value.values()])
 
@@ -52,6 +63,43 @@ export const useMasterStore = defineStore('master', () => {
 
   function templateItemCount(templateId: string): number {
     return getTemplateItems(templateId).length
+  }
+
+  // --- Template composition (§3.27, FR-27.1) ---
+
+  const includeList = computed(() => [...templateIncludes.value.values()])
+
+  /** The groups this Ferien-Vorlage includes. */
+  function getIncludes(templateId: string): TemplateInclude[] {
+    return includeList.value.filter((i) => i.template_id === templateId)
+  }
+
+  /** The Ferien-Vorlagen that include this group — FR-27.6's "Eingebunden in: …". */
+  function getIncludedBy(templateId: string): Template[] {
+    return includeList.value
+      .filter((i) => i.included_template_id === templateId)
+      .map((i) => templates.value.get(i.template_id))
+      .filter((t): t is Template => t !== undefined)
+  }
+
+  /** The preparation tasks of one position (FR-27.7), in insertion order. */
+  function getTemplateItemTasks(templateItemId: string): TemplateItemTask[] {
+    return [...templateItemTasks.value.values()].filter(
+      (t) => t.template_item_id === templateItemId,
+    )
+  }
+
+  /**
+   * What this template amounts to after include expansion and dedup (FR-27.2)
+   * — the M7 row count and the M8 resolution footer read the same resolution,
+   * so the two can never disagree about what a trip would get.
+   */
+  function resolve(templateId: string): Resolution {
+    return resolveTemplate(templateId, {
+      templates: templateList.value,
+      includes: includeList.value,
+      positions: [...templateItems.value.values()].flat(),
+    })
   }
 
   const seriesList = computed(() => [...series.value.values()])
@@ -83,23 +131,24 @@ export const useMasterStore = defineStore('master', () => {
     return dependencyList.value.filter((d) => d.depends_on_item_id === itemId)
   }
 
-  /** Items grouped by category name, sorted by category sort_order. */
-  function itemsByCategory(): Map<string, MasterItem[]> {
-    const catMap = new Map<string, string>() // catId -> catName
-    for (const cat of categories.value.values()) {
-      catMap.set(cat.id, cat.name)
-    }
+  /**
+   * Items grouped by primary-tag name for the M9 list (FR-24.2), defaulting
+   * to the whole inventory. M9 passes its filtered subset, so the grouping
+   * rule and the store wiring stay in one place rather than each screen
+   * assembling the three arguments itself.
+   */
+  function itemsByPrimaryTag(items: MasterItem[] = itemList.value): Map<string, MasterItem[]> {
+    return groupByPrimaryTag(items, itemTagList.value, tagList.value)
+  }
 
-    const groups = new Map<string, MasterItem[]>()
-    for (const item of items.value.values()) {
-      const catName = item.category_id
-        ? (catMap.get(item.category_id) ?? 'Uncategorized')
-        : 'Uncategorized'
-      const group = groups.get(catName) ?? []
-      group.push({ ...item, category_name: catName })
-      groups.set(catName, group)
-    }
-    return groups
+  /** This item's tags, primary first (FR-24.1). */
+  function getItemTags(itemId: string): Tag[] {
+    return tagsOfItem(itemId, itemTagList.value, tagList.value)
+  }
+
+  /** The single tag M9 files this item under, if it carries one. */
+  function getPrimaryTag(itemId: string): Tag | undefined {
+    return primaryTagOf(itemId, itemTagList.value, tagList.value)
   }
 
   /** Search items by name substring (case-insensitive). */
@@ -115,17 +164,34 @@ export const useMasterStore = defineStore('master', () => {
     const row = change.row as Record<string, unknown> | null
 
     switch (change.table) {
-      case 'categories':
+      case 'tags':
         if (change.deleted) {
-          categories.value.delete(change.id)
+          tags.value.delete(change.id)
+          // The server cascades the assignments and sends their tombstones,
+          // but a pull can deliver them in either order — dropping them here
+          // keeps the list from grouping under a heading already gone.
+          for (const [id, a] of itemTags.value) {
+            if (a.tag_id === change.id) itemTags.value.delete(id)
+          }
         } else if (row) {
-          categories.value.set(change.id, rowToCategory(change.id, row))
+          tags.value.set(change.id, rowToTag(change.id, row))
+        }
+        break
+
+      case 'item_tags':
+        if (change.deleted) {
+          itemTags.value.delete(change.id)
+        } else if (row) {
+          itemTags.value.set(change.id, rowToItemTag(change.id, row))
         }
         break
 
       case 'items':
         if (change.deleted) {
           items.value.delete(change.id)
+          for (const [id, a] of itemTags.value) {
+            if (a.item_id === change.id) itemTags.value.delete(id)
+          }
         } else if (row) {
           items.value.set(change.id, rowToItem(change.id, row))
         }
@@ -135,16 +201,45 @@ export const useMasterStore = defineStore('master', () => {
         if (change.deleted) {
           templates.value.delete(change.id)
           templateItems.value.delete(change.id)
+          // ON DELETE CASCADE removes the include rows server-side; mirror it
+          // here so a resolution taken before the next pull cannot name a
+          // template that is already gone.
+          for (const [id, inc] of templateIncludes.value) {
+            if (inc.template_id === change.id || inc.included_template_id === change.id) {
+              templateIncludes.value.delete(id)
+            }
+          }
         } else if (row) {
           templates.value.set(change.id, rowToTemplate(change.id, row))
+        }
+        break
+
+      case 'template_includes':
+        if (change.deleted) {
+          templateIncludes.value.delete(change.id)
+        } else if (row) {
+          templateIncludes.value.set(change.id, rowToInclude(change.id, row))
         }
         break
 
       case 'template_items':
         if (change.deleted) {
           removeTemplateItem(change.id)
+          // ON DELETE CASCADE removes the tasks server-side; mirror it so a
+          // count chip cannot outlive its own position between two pulls.
+          for (const [id, task] of templateItemTasks.value) {
+            if (task.template_item_id === change.id) templateItemTasks.value.delete(id)
+          }
         } else if (row) {
           upsertTemplateItem(rowToTemplateItem(change.id, row))
+        }
+        break
+
+      case 'template_item_tasks':
+        if (change.deleted) {
+          templateItemTasks.value.delete(change.id)
+        } else if (row) {
+          templateItemTasks.value.set(change.id, rowToTask(change.id, row))
         }
         break
 
@@ -212,16 +307,24 @@ export const useMasterStore = defineStore('master', () => {
   }
 
   return {
-    categories,
+    tags,
+    itemTags,
     items,
     templates,
-    categoryList,
+    tagList,
+    itemTagList,
     itemList,
     templateList,
     getItem,
     getTemplate,
     getTemplateItems,
     templateItemCount,
+    templateIncludes,
+    includeList,
+    getIncludes,
+    getIncludedBy,
+    getTemplateItemTasks,
+    resolve,
     seriesList,
     getSeries,
     getDestinationProfile,
@@ -229,7 +332,9 @@ export const useMasterStore = defineStore('master', () => {
     dependencyList,
     getItemDependencies,
     getCompanionDependencies,
-    itemsByCategory,
+    itemsByPrimaryTag,
+    getItemTags,
+    getPrimaryTag,
     searchItems,
     applyChange,
     applyChanges,
@@ -238,7 +343,7 @@ export const useMasterStore = defineStore('master', () => {
 
 // --- Row converters ---
 
-function rowToCategory(id: string, row: Record<string, unknown>): Category {
+function rowToTag(id: string, row: Record<string, unknown>): Tag {
   return {
     id,
     name: row['name'] as string,
@@ -246,11 +351,19 @@ function rowToCategory(id: string, row: Record<string, unknown>): Category {
   }
 }
 
+function rowToItemTag(id: string, row: Record<string, unknown>): ItemTag {
+  return {
+    id,
+    item_id: row['item_id'] as string,
+    tag_id: row['tag_id'] as string,
+    position: (row['position'] as number) ?? 0,
+  }
+}
+
 function rowToItem(id: string, row: Record<string, unknown>): MasterItem {
   return {
     id,
     name: row['name'] as string,
-    category_id: (row['category_id'] as string) ?? null,
     weight_grams: (row['weight_grams'] as number) ?? null,
     value_cents: (row['value_cents'] as number) ?? null,
     image_hash: (row['image_hash'] as string) ?? null,
@@ -262,6 +375,25 @@ function rowToTemplate(id: string, row: Record<string, unknown>): Template {
     id,
     owner_id: row['owner_id'] as string,
     name: row['name'] as string,
+    // Migration 016 defaults pre-scope rows to 'template', which is what they
+    // were used as; a row from an older client is read the same way.
+    kind: (row['kind'] as TemplateKind) ?? 'template',
+  }
+}
+
+function rowToInclude(id: string, row: Record<string, unknown>): TemplateInclude {
+  return {
+    id,
+    template_id: row['template_id'] as string,
+    included_template_id: row['included_template_id'] as string,
+  }
+}
+
+function rowToTask(id: string, row: Record<string, unknown>): TemplateItemTask {
+  return {
+    id,
+    template_item_id: row['template_item_id'] as string,
+    task: row['task'] as string,
   }
 }
 

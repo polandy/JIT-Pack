@@ -5,7 +5,7 @@
  */
 import 'fake-indexeddb/auto'
 import { IDBFactory } from 'fake-indexeddb'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 import { IndexedDBPersistence } from '../persistence'
 import type { PullChange } from '@/api/types'
@@ -84,5 +84,79 @@ describe('IndexedDBPersistence', () => {
   it('returns null for an unknown image', async () => {
     const p = new IndexedDBPersistence()
     expect(await p.getImage('nope')).toBeNull()
+  })
+})
+
+/**
+ * FR-19.2 — a save the caller can wait for.
+ *
+ * The regression: `save()` was fire-and-forget, so a row added and
+ * followed straight away by a reload was written into a transaction the
+ * navigation cancelled. The row was gone and the app had already shown
+ * it as stored, which reads as data loss rather than as a race.
+ */
+describe('durability (FR-19.2)', () => {
+  it('whenSettled resolves only after the write is readable again', async () => {
+    const store = new IndexedDBPersistence()
+
+    store.save([{ seq: 0, table: 'trip_items', id: 'i1', deleted: false, row: { name: 'Zelt' } }])
+    await store.whenSettled()
+
+    const rows = await store.load()
+    expect(rows.map((r) => r.id)).toEqual(['i1'])
+  })
+
+  it('serialises overlapping saves, so the last write of a key wins', async () => {
+    const store = new IndexedDBPersistence()
+
+    store.save([{ seq: 0, table: 'trip_items', id: 'i1', deleted: false, row: { name: 'first' } }])
+    store.save([{ seq: 0, table: 'trip_items', id: 'i1', deleted: false, row: { name: 'second' } }])
+    await store.whenSettled()
+
+    const rows = await store.load()
+    expect(rows[0]?.row).toEqual({ name: 'second' })
+  })
+
+  /**
+   * The serialisation above is what makes these two necessary: the chain
+   * that orders the writes must not become the thing that stops them. A
+   * quota error or a transaction the browser aborts is a normal event on
+   * a device, and FR-19.2 promises durability for every applied change,
+   * not for every change up to the first failure.
+   *
+   * `write` is stubbed rather than provoked through IndexedDB because the
+   * rule under test is the chaining, not the storage engine — and a real
+   * quota exhaustion is exactly the kind of "probably holds" setup the
+   * testing rules forbid.
+   */
+  interface WriteSeam {
+    write(changes: PullChange[]): Promise<void>
+  }
+
+  it('keeps writing after a failed write — one rejection may not silence the session (FR-19.2)', async () => {
+    const store = new IndexedDBPersistence()
+    vi.spyOn(store as unknown as WriteSeam, 'write').mockRejectedValueOnce(
+      new Error('QuotaExceededError'),
+    )
+
+    await expect(store.save([change('items', 'i1', { name: 'lost' })])).rejects.toThrow(
+      'QuotaExceededError',
+    )
+    await store.save([change('items', 'i2', { name: 'kept' })])
+
+    expect((await store.load()).map((r) => r.id)).toEqual(['i2'])
+  })
+
+  it('settles again after a failed write, so the G-2 glyph can leave the syncing state', async () => {
+    const store = new IndexedDBPersistence()
+    vi.spyOn(store as unknown as WriteSeam, 'write').mockRejectedValueOnce(
+      new Error('QuotaExceededError'),
+    )
+
+    await expect(store.save([change('items', 'i1', { name: 'lost' })])).rejects.toThrow(
+      'QuotaExceededError',
+    )
+
+    await expect(store.whenSettled()).resolves.toBeUndefined()
   })
 })

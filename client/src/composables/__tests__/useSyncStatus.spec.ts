@@ -51,3 +51,53 @@ describe('useSyncStatus', () => {
     expect(status.state.value).toBe('synced')
   })
 })
+
+/**
+ * FR-19.2 — the glyph may not promise durability before the write lands.
+ * Local Mode used to report "on this device" from the tap onwards, so a
+ * reload inside that window came back without the row while the app had
+ * already said it was safe.
+ */
+describe('Local Mode writes (FR-19.2)', () => {
+  it('reports syncing while a local write is open, not "local"', () => {
+    const status = useSyncStatus()
+    status.setLocal()
+    expect(status.state.value).toBe('local')
+
+    status.setSyncing()
+
+    expect(status.state.value).toBe('syncing')
+  })
+
+  it('returns to "local" once the write has landed', () => {
+    const status = useSyncStatus()
+    status.setLocal()
+    status.setSyncing()
+
+    status.setLocal()
+
+    expect(status.state.value).toBe('local')
+  })
+
+  it('a failed local write shows offline rather than a false all-clear', () => {
+    const status = useSyncStatus()
+    status.setLocal()
+    status.setSyncing()
+
+    status.setOffline()
+
+    expect(status.state.value).toBe('offline')
+  })
+
+  it('clears that offline state once a later write lands', () => {
+    const status = useSyncStatus()
+    status.setLocal()
+    status.setSyncing()
+    status.setOffline()
+
+    status.setSyncing()
+    status.setLocal()
+
+    expect(status.state.value).toBe('local')
+  })
+})

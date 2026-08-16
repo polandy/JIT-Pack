@@ -82,11 +82,12 @@ function commit() {
     <IonContent class="ion-padding">
       <!-- File picker / paste -->
       <template v-if="!doc">
-        <h2 class="section-title">Portable YAML file</h2>
+        <h2 class="section-title jp-eyebrow">Portable YAML file</h2>
         <p class="hint">A template or trip exported from any JIT-Pack instance (FR-18.1).</p>
         <input type="file" accept=".yaml,.yml,text/yaml" @change="onFile" />
         <IonTextarea
           class="paste-area"
+          data-testid="portable-paste"
           placeholder="…or paste YAML here"
           :value="rawText"
           :rows="8"
@@ -94,7 +95,12 @@ function commit() {
         />
         <!-- Malformed files are rejected here, before any preview -->
         <IonNote v-if="parsed?.error" color="danger">{{ parsed.error }}</IonNote>
-        <IonButton expand="block" :disabled="rawText.trim() === ''" @click="preview">
+        <IonButton
+          expand="block"
+          data-testid="portable-preview"
+          :disabled="rawText.trim() === ''"
+          @click="preview"
+        >
           Preview
         </IonButton>
       </template>
@@ -149,7 +155,7 @@ function commit() {
 
         <div class="actions">
           <IonButton fill="outline" @click="parsed = null">Cancel</IonButton>
-          <IonButton color="primary" @click="commit">
+          <IonButton color="primary" data-testid="portable-commit" @click="commit">
             Import {{ doc.kind === 'template' ? 'template' : 'trip' }}
           </IonButton>
         </div>
@@ -160,20 +166,18 @@ function commit() {
 
 <style scoped>
 .section-title {
-  font-size: 1rem;
-  font-weight: 600;
   margin: 16px 0 8px;
 }
 
 .hint {
   color: var(--ion-color-medium);
-  font-size: 0.9rem;
+  font-size: var(--jp-text-base);
 }
 
 .paste-area {
   margin: 12px 0;
-  border: 1px solid var(--ion-color-light-shade, #d7d8da);
-  border-radius: 8px;
+  border: 1px solid var(--ion-color-light-shade);
+  border-radius: var(--jp-r-sm);
   padding: 4px 8px;
 }
 
@@ -185,13 +189,13 @@ function commit() {
 }
 
 .summary-icon {
-  font-size: 36px;
+  font-size: var(--jp-icon-xl);
   color: var(--ion-color-primary);
 }
 
 .summary-name {
-  font-size: 1.2rem;
-  font-weight: 700;
+  font-size: var(--jp-text-lg);
+  font-weight: var(--jp-weight-bold);
   margin: 0;
 }
 

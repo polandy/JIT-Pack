@@ -146,7 +146,7 @@ func TestApplyMasterMutation_DeleteReferencedSeriesRejected(t *testing.T) {
 	s := openTestStore(t)
 	seedSeries(t, s)
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trips", "trip-ser", "sr-1",
-		map[string]any{"name": "Engadin", "end_date": "2026-08-01", "series_id": "ser-1"},
+		map[string]any{"name": "Engadin", "year": 2026, "end_date": "2026-08-01", "series_id": "ser-1"},
 		"0000000002000-0000-aaaaaaaa"))
 
 	res := applyMaster(t, s, testUser, masterMut(sync.OpDelete, "trip_series", "ser-1", "sr-2", nil,
@@ -233,7 +233,7 @@ func TestPullMaster_DeletedSeriesNotLeakedMidWindow(t *testing.T) {
 	// seq 1: the series; seq 2: a pagination filler; seq 3: the delete.
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trip_series", "ser-win", "sw-1",
 		map[string]any{"name": "Fenster"}, "0000000008000-0000-aaaaaaaa"))
-	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "categories", "cat-win", "sw-2",
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "tags", "cat-win", "sw-2",
 		map[string]any{"name": "Filler"}, "0000000008001-0000-aaaaaaaa"))
 	applyMaster(t, s, testUser, masterMut(sync.OpDelete, "trip_series", "ser-win", "sw-3", nil,
 		"0000000008002-0000-aaaaaaaa"))

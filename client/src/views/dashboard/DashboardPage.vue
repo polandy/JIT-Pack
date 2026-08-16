@@ -21,7 +21,7 @@ import {
   IonRefresher,
   IonRefresherContent,
 } from '@ionic/vue'
-import { airplaneOutline, addOutline, buildOutline } from 'ionicons/icons'
+import { trainOutline, addOutline, buildOutline } from 'ionicons/icons'
 import { computed, inject } from 'vue'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip, ItemTodo } from '@/types/domain'
@@ -106,12 +106,14 @@ async function handleRefresh(event: CustomEvent) {
         <IonRefresherContent />
       </IonRefresher>
 
-      <h1 class="dashboard-greeting" data-testid="dashboard-greeting">{{ greeting }}</h1>
+      <h1 class="dashboard-greeting jp-hero-title" data-testid="dashboard-greeting">
+        {{ greeting }}
+      </h1>
       <p class="dashboard-subtitle">Your packing tasks</p>
 
       <!-- Empty state (G-7) -->
       <div v-if="isEmpty" class="empty-state" data-testid="dashboard-empty">
-        <IonIcon :icon="airplaneOutline" class="empty-icon" />
+        <IonIcon :icon="trainOutline" class="empty-icon" />
         <p>No active trips</p>
         <IonButton router-link="/trips/new" expand="block" data-testid="dashboard-plan-trip">
           <IonIcon slot="start" :icon="addOutline" />
@@ -202,8 +204,6 @@ async function handleRefresh(event: CustomEvent) {
 
 <style scoped>
 .dashboard-greeting {
-  font-size: 1.8rem;
-  font-weight: 700;
   margin: 16px 0 4px;
 }
 
@@ -223,18 +223,18 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 .empty-icon {
-  font-size: 64px;
+  font-size: var(--jp-icon-2xl);
   margin-bottom: 16px;
 }
 
 .trip-dates {
-  font-size: 0.85rem;
+  font-size: var(--jp-text-sm);
   color: var(--ion-color-medium);
   margin: 4px 0 0;
 }
 
 .item-summary {
-  font-size: 0.9rem;
+  font-size: var(--jp-text-base);
   color: var(--ion-color-medium);
   margin-bottom: 8px;
 }
@@ -244,20 +244,21 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 .qty-badge {
-  font-size: 0.8rem;
+  font-size: var(--jp-text-sm);
   color: var(--ion-color-medium);
   margin-left: 8px;
 }
 
 .more-items {
-  font-size: 0.85rem;
+  font-size: var(--jp-text-sm);
   color: var(--ion-color-primary);
   padding-left: 40px;
   margin-top: 4px;
 }
 
+/* Preparation is a brand affordance in the concept, not a caution. */
 .prep-card {
-  border-left: 3px solid var(--ion-color-warning);
+  border-left: 3px solid var(--jp-brand);
 }
 
 .prep-group {
@@ -265,14 +266,14 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 .prep-item-name {
-  font-weight: 600;
-  font-size: 0.9rem;
+  font-weight: var(--jp-weight-semibold);
+  font-size: var(--jp-text-base);
   margin: 0 0 4px;
 }
 
 .prep-trip-label {
-  font-weight: 400;
-  font-size: 0.8rem;
+  font-weight: var(--jp-weight-regular);
+  font-size: var(--jp-text-sm);
   color: var(--ion-color-medium);
   margin-left: 8px;
 }

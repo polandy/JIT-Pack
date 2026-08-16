@@ -35,10 +35,14 @@ export function useSyncStatus(): SyncStatus {
   const isLocal = ref(false)
   const pendingCount = ref(0)
 
+  // Order matters, and 'syncing' deliberately outranks 'local': Local
+  // Mode still writes, and while a write is open the honest answer is
+  // "not on the device yet". The glyph used to say "Local" from the tap
+  // onwards, which is a promise made before it was kept.
   const state = computed<SyncState>(() => {
-    if (isLocal.value) return 'local'
     if (connectionState.value === 'offline') return 'offline'
     if (isSyncing.value) return 'syncing'
+    if (isLocal.value) return 'local'
     return 'synced'
   })
 
@@ -71,6 +75,12 @@ export function useSyncStatus(): SyncStatus {
 
   function setLocal() {
     isLocal.value = true
+    isSyncing.value = false
+    // Local Mode has no connection to lose: 'offline' here only ever
+    // means a write did not land, and a write that *does* land is the
+    // evidence that the condition cleared. Leaving it set would strand
+    // the glyph on "offline" for the rest of the session.
+    connectionState.value = 'connected'
   }
 
   function setPendingCount(n: number) {

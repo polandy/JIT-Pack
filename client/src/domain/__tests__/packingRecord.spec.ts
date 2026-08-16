@@ -29,6 +29,7 @@ const sourceItem: TripItem = {
   assigned_traveler_id: null,
   packer_user_id: 'user-sia',
   packed_by_user_id: 'user-andy',
+  packed_at: '2026-08-01T10:00:00Z',
   container_id: null,
   packing_now_by: null,
   packing_now_at: null,
@@ -41,6 +42,7 @@ const sourceTrip: Trip = {
   id: 'trip-old',
   series_id: null,
   name: 'Samedan 2025',
+  year: 2025,
   start_date: '2025-09-01',
   end_date: '2025-09-21',
   duration_days: 21,
@@ -78,6 +80,9 @@ describe('planClone and the packing record (FR-25.19)', () => {
     expect(plan.items).toHaveLength(1)
     expect(plan.items[0]!.state).toBe('open')
     expect(Object.keys(plan.items[0]!)).not.toContain('packed_by_user_id')
+    // The record's time travels with it (FR-25.17) — a clone that kept it
+    // would date an unpacked row to last summer.
+    expect(Object.keys(plan.items[0]!)).not.toContain('packed_at')
   })
 
   it('still carries the assignment, which is a deliberate choice', () => {

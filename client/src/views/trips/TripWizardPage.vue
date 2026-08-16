@@ -28,11 +28,13 @@ import {
   IonNote,
   IonChip,
 } from '@ionic/vue'
-import { addOutline, closeOutline, personOutline } from 'ionicons/icons'
+import { addOutline, chevronForwardOutline, closeOutline, personOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { loadTokens } from '@/auth/tokens'
+import { t } from '@/i18n'
+import { attributeLabel } from '@/lib/attributeLabels'
 import { resolveDependencies } from '@/domain/dependencies'
 import { durationDays, generateTripItems } from '@/domain/instantiate'
 import { suggestQuantities, type QuantitySuggestion } from '@/domain/suggestions'
@@ -40,6 +42,8 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { tripOrderKey } from '@/domain/trips'
+import { defaultTravelers } from '@/composables/useDefaultTravelers'
 
 const route = useRoute()
 const router = useRouter()
@@ -51,6 +55,25 @@ const step = ref(1)
 
 // --- Step 1: metadata (FR-2.1/2.1a/15.1) ---
 const name = ref('')
+/**
+ * FR-2.1b: the year is the only temporal fact a trip needs, and it starts
+ * on the current one — the overwhelmingly common case is a trip this year
+ * or the next, and a preselected value means the required field is
+ * already satisfied when the screen opens.
+ */
+const YEAR_SPAN = 6
+const thisYear = new Date().getFullYear()
+const yearChoices = Array.from({ length: YEAR_SPAN }, (_, i) => thisYear - 1 + i)
+const year = ref(thisYear)
+
+/**
+ * FR-2.1c: step 1 shows the two fields it requires and folds the rest
+ * away — the FR-25.7/FR-24.5 idiom applied to trip creation. A trip is
+ * created far more often than it is configured, and seven fields at once
+ * make the common case look like the rare one.
+ */
+const moreOpen = ref(false)
+
 const startDate = ref('')
 const endDate = ref('')
 const season = ref('')
@@ -97,7 +120,9 @@ const attributes = computed<Record<string, unknown> | null>(() => {
 })
 
 // --- Step 2: travelers (FR-2.5) ---
-const travelers = ref<{ name: string }[]>([])
+// FR-2.5a: the household's default travellers are the starting point of
+// every trip; step 2 adds, renames and removes them exactly as before.
+const travelers = ref<{ name: string }[]>(defaultTravelers().names.value.map((name) => ({ name })))
 
 function addTraveler() {
   travelers.value = [...travelers.value, { name: '' }]
@@ -250,7 +275,8 @@ const suggestions = computed(() => {
     .filter((t) => t.series_id === seriesId)
     .map((t) => ({
       id: t.id,
-      endDate: t.end_date,
+      orderKey: tripOrderKey(t),
+      year: t.year,
       durationDays: durationDays(t.start_date, t.end_date) ?? target,
       items: tripStore
         .getItems(t.id)
@@ -282,12 +308,36 @@ function travelerName(index: number | null): string | null {
   return index === null ? null : travelers.value[index]?.name || `Traveler ${index + 1}`
 }
 
+/**
+ * What is set behind the fold, on the fold itself. An option nobody can
+ * see is one nobody remembers setting — the same reason FR-25.11a keeps
+ * the filter's chips on screen.
+ */
+const optionalSummary = computed(() => {
+  const parts: string[] = []
+  if (startDate.value && endDate.value) parts.push(`${startDate.value} – ${endDate.value}`)
+  else if (startDate.value || endDate.value) parts.push(startDate.value || endDate.value)
+  const series = masterStore.seriesList.find((s) => s.id === seriesChoice.value)
+  if (series) parts.push(series.name)
+  else if (seriesChoice.value === 'new' && newSeriesName.value.trim()) {
+    parts.push(newSeriesName.value.trim())
+  }
+  // Through the catalogue, not raw: the summary is the only place these
+  // values are read outside their own select, and "holiday_flat" is not
+  // a word in either language.
+  for (const attribute of [season.value, transportMode.value, accommodation.value]) {
+    if (attribute) parts.push(attributeLabel(attribute))
+  }
+  return parts.join(' · ')
+})
+
 // --- Navigation ---
 const stepValid = computed(() => {
   if (step.value === 1) {
+    // No date gate any more (FR-2.1b): the year is preselected, so the
+    // only thing that can be missing here is a name.
     return (
       name.value.trim() !== '' &&
-      endDate.value !== '' &&
       (seriesChoice.value !== 'new' || newSeriesName.value.trim() !== '')
     )
   }
@@ -314,8 +364,9 @@ function createTrip() {
   ]
   const tripId = orchestrator.createTripFromWizard({
     name: name.value.trim(),
+    year: year.value,
     startDate: startDate.value || null,
-    endDate: endDate.value,
+    endDate: endDate.value || null,
     attributes: attributes.value,
     travelers: travelers.value.map((t) => ({ name: t.name.trim() })),
     items,
@@ -338,123 +389,163 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
     <IonContent class="ion-padding">
       <!-- Step 1: metadata -->
       <section v-if="step === 1" data-testid="wizard-step-1">
-        <h2 class="section-title">Trip</h2>
+        <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionTrip') }}</h2>
         <IonList>
           <IonItem>
             <IonInput
               data-testid="wizard-name"
-              label="Name"
+              :label="t('wizard.name')"
               label-placement="stacked"
-              placeholder="e.g. Engadin 2026"
+              :placeholder="t('wizard.namePlaceholder')"
               :value="name"
               @ionInput="(e: CustomEvent) => (name = e.detail.value ?? '')"
             />
           </IonItem>
           <IonItem>
-            <IonInput
-              data-testid="wizard-start-date"
-              label="Start date (optional)"
-              label-placement="stacked"
-              type="date"
-              :value="startDate"
-              @ionInput="(e: CustomEvent) => (startDate = e.detail.value ?? '')"
-            />
-          </IonItem>
-          <IonItem>
-            <IonInput
-              data-testid="wizard-end-date"
-              label="End date"
-              label-placement="stacked"
-              type="date"
-              :value="endDate"
-              @ionInput="(e: CustomEvent) => (endDate = e.detail.value ?? '')"
-            />
-          </IonItem>
-          <IonItem v-if="duration !== null" lines="none">
-            <IonNote>Duration: {{ duration }} days</IonNote>
-          </IonItem>
-          <IonItem>
             <IonSelect
-              label="Series"
-              interface="popover"
-              :value="seriesChoice"
-              @ionChange="(e: CustomEvent) => pickSeries(e.detail.value)"
-            >
-              <IonSelectOption value="">No series</IonSelectOption>
-              <IonSelectOption v-for="s in masterStore.seriesList" :key="s.id" :value="s.id">
-                {{ s.name }}
-              </IonSelectOption>
-              <IonSelectOption value="new">New series…</IonSelectOption>
-            </IonSelect>
-          </IonItem>
-          <IonItem v-if="seriesChoice === 'new'">
-            <IonInput
-              label="Series name"
+              data-testid="wizard-year"
+              :label="t('wizard.year')"
               label-placement="stacked"
-              placeholder="e.g. Samedan Summer"
-              :value="newSeriesName"
-              @ionInput="(e: CustomEvent) => (newSeriesName = e.detail.value ?? '')"
-            />
+              interface="popover"
+              :value="year"
+              @ionChange="(e: CustomEvent) => (year = Number(e.detail.value))"
+            >
+              <IonSelectOption v-for="option in yearChoices" :key="option" :value="option">
+                {{ option }}
+              </IonSelectOption>
+            </IonSelect>
           </IonItem>
         </IonList>
 
-        <h2 class="section-title">Attributes</h2>
-        <IonList>
-          <IonItem>
-            <IonSelect
-              label="Season"
-              interface="popover"
-              :value="season"
-              @ionChange="(e: CustomEvent) => (season = e.detail.value)"
-            >
-              <IonSelectOption value="">—</IonSelectOption>
-              <IonSelectOption value="summer">Summer</IonSelectOption>
-              <IonSelectOption value="winter">Winter</IonSelectOption>
-              <IonSelectOption value="transitional">Transitional</IonSelectOption>
-            </IonSelect>
-          </IonItem>
-          <IonItem>
-            <IonSelect
-              label="Transport"
-              interface="popover"
-              :value="transportMode"
-              @ionChange="(e: CustomEvent) => (transportMode = e.detail.value)"
-            >
-              <IonSelectOption value="">—</IonSelectOption>
-              <IonSelectOption value="car">Car</IonSelectOption>
-              <IonSelectOption value="bike">Bike</IonSelectOption>
-              <IonSelectOption value="plane">Plane</IonSelectOption>
-              <IonSelectOption value="train">Train</IonSelectOption>
-            </IonSelect>
-          </IonItem>
-          <IonItem>
-            <IonSelect
-              label="Accommodation"
-              interface="popover"
-              :value="accommodation"
-              @ionChange="(e: CustomEvent) => (accommodation = e.detail.value)"
-            >
-              <IonSelectOption value="">—</IonSelectOption>
-              <IonSelectOption value="hotel">Hotel</IonSelectOption>
-              <IonSelectOption value="holiday_flat">Holiday flat</IonSelectOption>
-              <IonSelectOption value="camping">Camping</IonSelectOption>
-            </IonSelect>
-          </IonItem>
-          <IonItem>
-            <IonInput
-              label="Tags"
-              label-placement="stacked"
-              placeholder="bike, lake (comma-separated)"
-              :value="tagsInput"
-              @ionInput="(e: CustomEvent) => (tagsInput = e.detail.value ?? '')"
-            />
-          </IonItem>
-        </IonList>
+        <!-- FR-2.1c: everything optional behind one row, which states what
+             is set behind it — a folded option nobody can see is one
+             nobody remembers setting. -->
+        <button
+          class="more-row"
+          :class="{ open: moreOpen }"
+          data-testid="wizard-more"
+          @click="moreOpen = !moreOpen"
+        >
+          <IonIcon :icon="chevronForwardOutline" class="caret" />
+          <span class="more-label">{{ t('wizard.moreOptions') }}</span>
+          <span class="more-summary" data-testid="wizard-more-summary">
+            {{ optionalSummary || t('wizard.moreSummaryEmpty') }}
+          </span>
+        </button>
+
+        <template v-if="moreOpen">
+          <IonList>
+            <IonItem>
+              <IonInput
+                data-testid="wizard-start-date"
+                :label="t('wizard.startDate')"
+                label-placement="stacked"
+                type="date"
+                :value="startDate"
+                @ionInput="(e: CustomEvent) => (startDate = e.detail.value ?? '')"
+              />
+            </IonItem>
+            <IonItem>
+              <IonInput
+                data-testid="wizard-end-date"
+                :label="t('wizard.endDate')"
+                label-placement="stacked"
+                type="date"
+                :value="endDate"
+                @ionInput="(e: CustomEvent) => (endDate = e.detail.value ?? '')"
+              />
+            </IonItem>
+            <IonItem v-if="duration !== null" lines="none">
+              <IonNote>{{ t('wizard.duration', { n: duration }) }}</IonNote>
+            </IonItem>
+            <IonItem>
+              <IonSelect
+                :label="t('wizard.series')"
+                interface="popover"
+                :value="seriesChoice"
+                data-testid="wizard-series"
+                @ionChange="(e: CustomEvent) => pickSeries(e.detail.value)"
+              >
+                <IonSelectOption value="">{{ t('wizard.seriesNone') }}</IonSelectOption>
+                <IonSelectOption v-for="s in masterStore.seriesList" :key="s.id" :value="s.id">
+                  {{ s.name }}
+                </IonSelectOption>
+                <IonSelectOption value="new">{{ t('wizard.seriesNew') }}</IonSelectOption>
+              </IonSelect>
+            </IonItem>
+            <IonItem v-if="seriesChoice === 'new'">
+              <IonInput
+                :label="t('wizard.seriesName')"
+                label-placement="stacked"
+                :placeholder="t('wizard.seriesNamePlaceholder')"
+                :value="newSeriesName"
+                data-testid="wizard-series-name"
+                @ionInput="(e: CustomEvent) => (newSeriesName = e.detail.value ?? '')"
+              />
+            </IonItem>
+          </IonList>
+          <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionAttributes') }}</h2>
+          <IonList>
+            <IonItem>
+              <IonSelect
+                :label="t('wizard.season')"
+                interface="popover"
+                :value="season"
+                @ionChange="(e: CustomEvent) => (season = e.detail.value)"
+              >
+                <IonSelectOption value="">{{ t('wizard.unset') }}</IonSelectOption>
+                <IonSelectOption value="summer">{{ t('season.summer') }}</IonSelectOption>
+                <IonSelectOption value="winter">{{ t('season.winter') }}</IonSelectOption>
+                <IonSelectOption value="transitional">{{
+                  t('season.transitional')
+                }}</IonSelectOption>
+              </IonSelect>
+            </IonItem>
+            <IonItem>
+              <IonSelect
+                :label="t('wizard.transport')"
+                interface="popover"
+                :value="transportMode"
+                @ionChange="(e: CustomEvent) => (transportMode = e.detail.value)"
+              >
+                <IonSelectOption value="">{{ t('wizard.unset') }}</IonSelectOption>
+                <IonSelectOption value="car">{{ t('transport.car') }}</IonSelectOption>
+                <IonSelectOption value="bike">{{ t('transport.bike') }}</IonSelectOption>
+                <IonSelectOption value="plane">{{ t('transport.plane') }}</IonSelectOption>
+                <IonSelectOption value="train">{{ t('transport.train') }}</IonSelectOption>
+              </IonSelect>
+            </IonItem>
+            <IonItem>
+              <IonSelect
+                :label="t('wizard.accommodation')"
+                interface="popover"
+                :value="accommodation"
+                @ionChange="(e: CustomEvent) => (accommodation = e.detail.value)"
+              >
+                <IonSelectOption value="">{{ t('wizard.unset') }}</IonSelectOption>
+                <IonSelectOption value="hotel">{{ t('accommodation.hotel') }}</IonSelectOption>
+                <IonSelectOption value="holiday_flat">{{
+                  t('accommodation.holiday_flat')
+                }}</IonSelectOption>
+                <IonSelectOption value="camping">{{ t('accommodation.camping') }}</IonSelectOption>
+              </IonSelect>
+            </IonItem>
+            <IonItem>
+              <IonInput
+                :label="t('wizard.tags')"
+                label-placement="stacked"
+                :placeholder="t('wizard.tagsPlaceholder')"
+                :value="tagsInput"
+                @ionInput="(e: CustomEvent) => (tagsInput = e.detail.value ?? '')"
+              />
+            </IonItem>
+          </IonList>
+        </template>
       </section>
 
       <!-- Step 2: travelers -->
       <section v-if="step === 2" data-testid="wizard-step-2">
-        <h2 class="section-title">Travelers</h2>
+        <h2 class="section-title jp-eyebrow">Travelers</h2>
         <IonList v-if="travelers.length > 0">
           <IonItem v-for="(traveler, index) in travelers" :key="index">
             <IonIcon slot="start" :icon="personOutline" />
@@ -468,6 +559,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
               slot="end"
               fill="clear"
               color="medium"
+              data-testid="wizard-traveler-remove"
               aria-label="Remove traveler"
               @click="removeTraveler(index)"
             >
@@ -488,7 +580,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
         <!-- Sharing & roles (FR-4.5/4.7) — OIDC sessions only (G-8) -->
         <template v-if="collaborative">
-          <h2 class="section-title">Share with</h2>
+          <h2 class="section-title jp-eyebrow">Share with</h2>
           <IonList v-if="shares.length > 0">
             <IonItem v-for="(share, index) in shares" :key="share.userId">
               <IonLabel>{{ shareName(share.userId) }}</IonLabel>
@@ -537,7 +629,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
       <!-- Step 3: templates + preview -->
       <section v-if="step === 3" data-testid="wizard-step-3">
-        <h2 class="section-title">Templates</h2>
+        <h2 class="section-title jp-eyebrow">Templates</h2>
         <IonList v-if="masterStore.templateList.length > 0">
           <IonItem v-for="template in masterStore.templateList" :key="template.id">
             <IonCheckbox
@@ -581,7 +673,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
       <!-- Step 4: quantity review -->
       <section v-if="step === 4" data-testid="wizard-step-4">
-        <h2 class="section-title">Review quantities</h2>
+        <h2 class="section-title jp-eyebrow">Review quantities</h2>
         <IonList v-if="generation.items.length > 0">
           <IonItem v-for="(item, index) in generation.items" :key="index">
             <IonLabel>
@@ -620,7 +712,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
         <template
           v-if="companionResolution.required.length > 0 || companionResolution.deduped.length > 0"
         >
-          <h2 class="section-title">Companion items</h2>
+          <h2 class="section-title jp-eyebrow">Companion items</h2>
           <IonList v-if="companionResolution.required.length > 0">
             <IonItem v-for="c in companionResolution.required" :key="c.item_id">
               <IonLabel>
@@ -637,7 +729,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
         <!-- FR-20.4: suggested companions, one tap each -->
         <template v-if="companionResolution.suggested.length > 0">
-          <h2 class="section-title">Suggested companions</h2>
+          <h2 class="section-title jp-eyebrow">Suggested companions</h2>
           <IonList>
             <IonItem v-for="s in companionResolution.suggested" :key="s.item_id">
               <IonCheckbox
@@ -656,7 +748,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
         <!-- FR-13.3: destination checklist offer from the series profile -->
         <template v-if="offeredChecklist.length > 0">
-          <h2 class="section-title">Destination checklist</h2>
+          <h2 class="section-title jp-eyebrow">Destination checklist</h2>
           <IonItem lines="none">
             <IonCheckbox
               slot="start"
@@ -694,21 +786,63 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 </template>
 
 <style scoped>
+/* FR-2.1c: one row standing in for every optional field. */
+.more-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 14px 4px;
+  margin-top: 4px;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--ct-surface0);
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-md);
+  font-weight: var(--jp-weight-semibold);
+  text-align: start;
+  cursor: pointer;
+}
+
+.more-row .caret {
+  color: var(--ct-overlay0);
+  font-size: var(--jp-icon-xs);
+  transition: transform 0.18s ease;
+}
+
+.more-row.open .caret {
+  transform: rotate(90deg);
+}
+
+.more-label {
+  flex: none;
+}
+
+.more-summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: end;
+  font-weight: var(--jp-weight-medium);
+  font-size: var(--jp-text-sm);
+  color: var(--ct-subtext0);
+}
+
 .section-title {
-  font-size: 1rem;
-  font-weight: 600;
   margin: 16px 0 8px;
 }
 
 .empty-hint {
   color: var(--ion-color-medium);
-  font-size: 0.9rem;
+  font-size: var(--jp-text-base);
   margin: 8px 0 16px;
 }
 
 .share-note {
   display: block;
-  font-size: 0.8rem;
+  font-size: var(--jp-text-sm);
   margin: 8px 0 16px;
 }
 
@@ -718,18 +852,18 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
 .preview-block {
   margin-top: 8px;
-  font-size: 0.9rem;
+  font-size: var(--jp-text-base);
 }
 
 .preview-block h3,
 .preview-block summary {
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: var(--jp-text-base);
+  font-weight: var(--jp-weight-semibold);
 }
 
 .dedup-note {
   display: block;
-  font-size: 0.8rem;
+  font-size: var(--jp-text-sm);
   margin: 4px 0;
 }
 
@@ -747,10 +881,10 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
   margin-top: 4px;
   padding: 2px 8px;
   border: 1px solid var(--ion-color-primary);
-  border-radius: 12px;
+  border-radius: var(--jp-r-md);
   background: transparent;
   color: var(--ion-color-primary);
-  font-size: 0.75rem;
+  font-size: var(--jp-text-xs);
   cursor: pointer;
 }
 

@@ -111,3 +111,54 @@ func TestPush_ClientCannotForgePackingRecord_Invariant3(t *testing.T) {
 		t.Errorf("record = %q, want %q — the client's claim was trusted", got.String, userA)
 	}
 }
+
+// FR-25.17 through the real push path: the *when* has to reach SQLite as
+// the client's own instant where it sent one — packing happens offline
+// and the envelope can land days later — and has to be cleared as a
+// genuine NULL with the state it described.
+func TestPush_PackedAt_KeepsTheTapTimeAndClearsWithTheState_FR25_17(t *testing.T) {
+	srv, st := newTestServerWithStore(t)
+	const tapped = "2026-08-01T10:00:00Z"
+
+	packedAt := func(t *testing.T) sql.NullString {
+		t.Helper()
+		var v sql.NullString
+		if err := st.DB().QueryRow(
+			`SELECT packed_at FROM trip_items WHERE id = 'item-when'`).Scan(&v); err != nil {
+			t.Fatalf("read packed_at: %v", err)
+		}
+		return v
+	}
+	push := func(t *testing.T, mutID, op string, fields map[string]any, hlc string) {
+		t.Helper()
+		body := map[string]any{"mutations": []any{
+			mutation("item-when", mutID, op, fields, hlc),
+		}}
+		resp, raw := doJSON(t, http.MethodPost, pushURL(srv), token(t, userA, testSecret), body)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("push %s status = %d, body %s", mutID, resp.StatusCode, raw)
+		}
+	}
+
+	push(t, "m1", "insert", map[string]any{
+		"trip_id":   trip,
+		"name":      "Schlafsack",
+		"quantity":  1,
+		"state":     "packed",
+		"packed_at": tapped,
+	}, "0000000001000-0000-aaaaaaaa")
+
+	if got := packedAt(t); got.String != tapped {
+		t.Errorf("packed_at = %q, want the client's tap time %q — a device that "+
+			"packed offline would otherwise be dated to when it synced", got.String, tapped)
+	}
+
+	push(t, "m2", "upsert", map[string]any{
+		"state":        "open",
+		"packed_count": 0,
+	}, "0000000002000-0000-aaaaaaaa")
+
+	if got := packedAt(t); got.Valid {
+		t.Errorf("packing time outlived the packed state: %q", got.String)
+	}
+}

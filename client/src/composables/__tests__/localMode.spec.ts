@@ -79,6 +79,7 @@ describe('Local Mode', () => {
 
     orch.createTripFromWizard({
       name: 'Engadin',
+      year: 2026,
       startDate: null,
       endDate: '2026-08-10',
       attributes: null,
@@ -111,5 +112,32 @@ describe('Local Mode', () => {
 
     expect(orch.syncStatus.state.value).toBe('local')
     expect(orch.syncStatus.label.value).toBe('Local')
+  })
+
+  it('composition edits (include + task) reach the store and IndexedDB (FR-27.1/27.7)', async () => {
+    const persistence = new IndexedDBPersistence()
+    const orch = newLocalOrch(persistence)
+    const master = useMasterStore()
+
+    const vacId = orch.createTemplate('Fotoreise', 'template')
+    const grpId = orch.createTemplate('Makro', 'group')
+    orch.addTemplateInclude(vacId, grpId)
+    const itemId = orch.createMasterItem('Kamera')
+    const positionId = orch.addTemplateItem(grpId, itemId, { assignment: 'trip_global' })
+    const taskId = orch.addTemplateItemTask(positionId, 'Akkus laden')
+
+    expect(master.getIncludes(vacId).map((i) => i.included_template_id)).toEqual([grpId])
+    expect(master.resolve(vacId).positions.map((p) => p.item_id)).toEqual([itemId])
+    expect(master.getTemplateItemTasks(positionId).map((t) => t.task)).toEqual(['Akkus laden'])
+
+    await vi.waitFor(async () => {
+      const rows = await persistence.load()
+      expect(rows.some((r) => r.table === 'template_includes')).toBe(true)
+      expect(rows.some((r) => r.table === 'template_item_tasks')).toBe(true)
+    })
+
+    orch.deleteTemplateItemTask(taskId)
+    expect(master.getTemplateItemTasks(positionId)).toEqual([])
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })

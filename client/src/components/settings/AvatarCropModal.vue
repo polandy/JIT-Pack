@@ -204,8 +204,8 @@ function cancel() {
   position: relative;
   overflow: hidden;
   touch-action: none;
-  background: var(--ion-color-step-100, #1e1e1e);
-  border-radius: 8px;
+  background: var(--ion-color-step-100);
+  border-radius: var(--jp-r-sm);
   cursor: grab;
 }
 
@@ -224,7 +224,7 @@ function cancel() {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 0 0 9999px var(--jp-scrim);
   pointer-events: none;
 }
 

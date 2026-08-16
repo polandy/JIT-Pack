@@ -1,0 +1,234 @@
+/*
+ * Typography (Addendum 3.21, UI-Spec G-13).
+ *
+ * The counterpart to catppuccin.css: that file owns colour and nothing
+ * else, this one owns the two faces, the type scale, and the handful of
+ * role classes that put the display face where the concept prototype
+ * puts it. Everything a component needs is a token or a role class —
+ * there is no second place where a family or a display size is decided.
+ *
+ * The faces are the prototype's (dev-docs/UI_Concept_Prototype.html):
+ * Fraunces for titles and figures, Hanken Grotesk for everything else.
+ * The prototype loads them from Google; the app **self-hosts** them,
+ * because NFR-4.3 rules out a third-party request on every boot and a
+ * self-hosted instance may have no internet at all. Local Mode is the
+ * sharp end of that: it must render correctly with the network gone.
+ *
+ * Subsets are latin + latin-ext only — latin-ext is not optional, the
+ * German catalogue needs it. Both files are the variable font, so one
+ * request per subset covers every weight in the range below.
+ */
+
+/* --- Fraunces (display), variable wght 400..600, opsz 9..144 --------- */
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('../assets/fonts/fraunces-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('../assets/fonts/fraunces-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+/* --- Hanken Grotesk (UI), variable wght 400..700 --------------------- */
+@font-face {
+  font-family: 'Hanken Grotesk';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('../assets/fonts/hanken-grotesk-latin.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Hanken Grotesk';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('../assets/fonts/hanken-grotesk-latin-ext.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+:root {
+  /* The two faces. Each fallback is chosen so a swap-in changes weight
+     and width as little as possible, not just "a serif"/"a sans". */
+  --jp-font-ui:
+    'Hanken Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --jp-font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+
+  /* Display scale — the prototype's five title sizes, no more. Raw px
+     lives here and only here; components reference the token. */
+  --jp-text-display-xl: 34px; /* page title      (prototype .caption h1) */
+  --jp-text-display-lg: 28px; /* greeting, KPI   (.greet h2 / .stat .n)  */
+  --jp-text-display-md: 26px; /* trip hero       (.hero h2)              */
+  --jp-text-display-sm: 24px; /* sheet title     (.ihead .iname)         */
+  --jp-text-display-xs: 18.5px; /* app-bar title (.appbar .title)        */
+
+  /* UI scale. Unlike a role class, a scale is a table whose intermediate
+     steps mean nothing on their own, so it ships whole rather than one
+     step at a time.
+
+     `3xs` was added when the views moved onto the scale: seven sites
+     (two badges, an avatar's initials and its tick, two counts and a
+     prep marker) sat below 11px and had nowhere to go. That is the scale doing its job — a size the table
+     does not have is a signal about the table, which is why the step was
+     added rather than the sites rounded up out of their layouts. */
+  --jp-text-lg: 17px;
+  --jp-text-md: 15px;
+  --jp-text-base: 14px;
+  --jp-text-sm: 13px;
+  --jp-text-xs: 12px;
+  --jp-text-2xs: 11px;
+  --jp-text-3xs: 10px;
+
+  /* Icon scale — a separate table, because `font-size` on an `ion-icon`
+     is a *glyph box* and not a text size. Sharing the type scale would
+     have meant a 64px empty-state illustration reading as a heading, and
+     any later change to body copy silently resizing the icons with it.
+     Six steps, each with an occupant among the 40 icon sites. */
+  --jp-icon-xs: 14px; /* a caret inside a row                     */
+  --jp-icon-sm: 17px; /* an icon set beside a line of text        */
+  --jp-icon-md: 22px; /* an icon that is its own tap target       */
+  --jp-icon-lg: 28px; /* a feature mark in a card                 */
+  --jp-icon-xl: 40px; /* a summary or placeholder mark            */
+  --jp-icon-2xl: 64px; /* an empty-state illustration             */
+
+  --jp-weight-regular: 400;
+  --jp-weight-medium: 500;
+  --jp-weight-semibold: 600;
+  --jp-weight-bold: 700;
+
+  --jp-leading-display: 1.05;
+  --jp-leading-tight: 1.2;
+  --jp-leading-body: 1.45;
+  --jp-tracking-display: -0.01em;
+  /* Tighter than display tracking, for a wordmark or a set of initials
+     where the glyphs are meant to read as one shape. */
+  --jp-tracking-tight: -0.02em;
+  /* Uppercase needs opening up or it sets as a block (prototype runs
+     .05–.14em across its label variants; one value here, not seven). */
+  --jp-tracking-label: 0.08em;
+
+  /* Ionic derives every component's type from this one variable. */
+  --ion-font-family: var(--jp-font-ui);
+}
+
+body {
+  font-family: var(--jp-font-ui);
+  line-height: var(--jp-leading-body);
+  /* Fraunces carries an optical-size axis; letting the browser drive it
+     is the whole reason for shipping the variable file rather than three
+     static weights. */
+  font-optical-sizing: auto;
+}
+
+/* --- Role classes ---------------------------------------------------- */
+
+/*
+ * The sized roles the app actually uses. G-13's headline figure got its
+ * class with the M12 rebuild — the first screen to render one — per the
+ * rule that a role class is written when a rendered pixel can check it.
+ */
+.jp-page-title {
+  font-family: var(--jp-font-display);
+  font-weight: var(--jp-weight-semibold);
+  font-size: var(--jp-text-display-xl);
+  letter-spacing: var(--jp-tracking-display);
+  line-height: var(--jp-leading-display);
+}
+
+.jp-hero-title {
+  font-family: var(--jp-font-display);
+  font-weight: var(--jp-weight-semibold);
+  font-size: var(--jp-text-display-lg);
+  letter-spacing: var(--jp-tracking-display);
+  line-height: var(--jp-leading-display);
+}
+
+/*
+ * G-13's headline figure: a KPI number set in the display face (M12's
+ * totals, M1's stats when it is rebuilt). Tabular numerals because a
+ * figure that changes in place must not reflow its card.
+ */
+.jp-figure {
+  font-family: var(--jp-font-display);
+  font-weight: var(--jp-weight-semibold);
+  font-size: var(--jp-text-display-lg);
+  letter-spacing: var(--jp-tracking-display);
+  line-height: var(--jp-leading-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.jp-sheet-title {
+  font-family: var(--jp-font-display);
+  font-weight: var(--jp-weight-semibold);
+  font-size: var(--jp-text-display-sm);
+  letter-spacing: var(--jp-tracking-display);
+  line-height: var(--jp-leading-tight);
+}
+
+/*
+ * The label above a block — nine screens had written this out by hand as
+ * `.section-title`, character for character, differing only in margin.
+ * Nine copies of a declaration is a role that has not been named yet.
+ *
+ * It is not the 16px semibold line those copies were, though: the concept
+ * prototype answers this role definitively and answers it differently —
+ * small uppercase in the UI face, opened up, recessive (`.section-h`, and
+ * the `.cap`/`.lbl`/`label` variants beside it, all within 10.5–12px and
+ * .05–.14em). Migrating the nine onto a 16px token would have written a
+ * size into the table that the design does not use, so the role is defined
+ * as the prototype has it. That makes this the one visible change in an
+ * otherwise mechanical pass, which is why it ships with screenshots.
+ *
+ * The colour is part of the role rather than left to the nine call sites:
+ * a label that is not recessive stops being a label, and nine chances to
+ * remember that is nine chances to forget.
+ */
+.jp-eyebrow {
+  font-family: var(--jp-font-ui);
+  font-size: var(--jp-text-xs);
+  font-weight: var(--jp-weight-semibold);
+  letter-spacing: var(--jp-tracking-label);
+  text-transform: uppercase;
+  color: var(--ct-subtext0);
+}
+
+/*
+ * Figures that change in place — counters, quantities, weights. Without
+ * this the M4 header line reflows on every pack because the digits are
+ * proportionally spaced.
+ */
+.jp-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * G-9: there is exactly one header bar, and its title is display type in
+ * the prototype. A global element rule rather than a class, so a modal
+ * toolbar that grows a title later is not a second decision.
+ */
+ion-title {
+  font-family: var(--jp-font-display);
+  font-weight: var(--jp-weight-semibold);
+  font-size: var(--jp-text-display-xs);
+  letter-spacing: var(--jp-tracking-display);
+}

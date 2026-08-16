@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"time"
 
 	"jitpack/internal/portable"
 )
@@ -123,14 +125,33 @@ func (s *Store) ImportTemplate(ctx context.Context, ownerID string, doc portable
 	return templateID, nil
 }
 
+// yearOf picks the trip's year (FR-2.1b) from the first source that knows
+// it: the document's own field, then the year inside either date, then the
+// current one. A file written before FR-2.1b has no year field but always
+// an end date, so the middle case is what carries old exports across.
+func yearOf(stated int, dates ...string) int {
+	if stated >= 1900 && stated <= 2200 {
+		return stated
+	}
+	for _, d := range dates {
+		if len(d) >= 4 {
+			if y, err := strconv.Atoi(d[:4]); err == nil && y >= 1900 && y <= 2200 {
+				return y
+			}
+		}
+	}
+	return time.Now().Year()
+}
+
 // ExportTrip builds a portable Document from a stored trip (FR-18.3).
 // If includeProgress is true, packed_count is included; otherwise it is omitted.
 func (s *Store) ExportTrip(ctx context.Context, tripID string, includeProgress bool) (portable.Document, error) {
-	var name, endDate string
-	var startDate sql.NullString
+	var name string
+	var year int
+	var startDate, endDate sql.NullString
 	err := s.db.QueryRowContext(ctx,
-		`SELECT name, start_date, end_date FROM trips WHERE id = ?`, tripID).
-		Scan(&name, &startDate, &endDate)
+		`SELECT name, year, start_date, end_date FROM trips WHERE id = ?`, tripID).
+		Scan(&name, &year, &startDate, &endDate)
 	if err != nil {
 		return portable.Document{}, fmt.Errorf("trip %s: %w", tripID, err)
 	}
@@ -155,7 +176,8 @@ func (s *Store) ExportTrip(ctx context.Context, tripID string, includeProgress b
 		SchemaVersion: 1,
 		Name:          name,
 		StartDate:     startDate.String,
-		EndDate:       endDate,
+		EndDate:       endDate.String,
+		Year:          year,
 		Travelers:     travelers,
 		Containers:    containers,
 		Items:         items,
@@ -265,14 +287,22 @@ func (s *Store) ImportTrip(ctx context.Context, ownerID string, doc portable.Doc
 	defer tx.Rollback()
 
 	tripID := randomID()
-	var startDateArg any
+	var startDateArg, endDateArg any
 	if doc.StartDate != "" {
 		startDateArg = doc.StartDate
 	}
+	if doc.EndDate != "" {
+		endDateArg = doc.EndDate
+	}
+	// FR-2.1b: the year is the one required temporal fact. A document
+	// carrying dates states it implicitly, one written by an older app
+	// always has an end date, and a file with neither falls back to the
+	// year of the import — the honest answer when nothing else is known.
+	year := yearOf(doc.Year, doc.EndDate, doc.StartDate)
 	if _, err := tx.ExecContext(ctx, `
-		INSERT INTO trips (id, name, start_date, end_date, status)
-		VALUES (?, ?, ?, ?, 'planning')`,
-		tripID, doc.Name, startDateArg, doc.EndDate); err != nil {
+		INSERT INTO trips (id, name, year, start_date, end_date, status)
+		VALUES (?, ?, ?, ?, ?, 'planning')`,
+		tripID, doc.Name, year, startDateArg, endDateArg); err != nil {
 		return "", fmt.Errorf("insert trip: %w", err)
 	}
 

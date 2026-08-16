@@ -1,83 +1,140 @@
 <script setup lang="ts">
 /**
- * M9 — Item Inventory
+ * M9 — Item Inventory (§3.24, FR-24.2/24.4)
  *
- * Central item database. Searchable, category-grouped list.
- * Per row: name (lean by default).
- * FAB for new item.
+ * The master item database, and deliberately a **lookup surface rather
+ * than a spreadsheet**: every row is the primary-tag avatar and the name,
+ * nothing else. The earlier layout put all tags, the weight and the price
+ * on every row and read as overload (owner, 2026-08-08).
+ *
+ * What the list shows beyond the name is a *device-local* preference
+ * behind the eye icon (FR-24.4) — the weight-focused packer and the
+ * price-focused shopper get the same mechanism instead of one compromise.
+ *
+ * Grouping is by **primary tag** (FR-24.2), so an item on three axes still
+ * occupies one row; the chip axis filters by *any* of an item's tags, which
+ * is the reach the single category could not give.
  */
 import {
   IonPage,
   IonContent,
-  IonSearchbar,
   IonList,
-  IonItemGroup,
-  IonItemDivider,
   IonItem,
   IonLabel,
   IonIcon,
   IonFab,
   IonFabButton,
+  IonModal,
   IonRefresher,
   IonRefresherContent,
+  IonSegment,
+  IonSegmentButton,
+  IonToggle,
   IonButton,
-  alertController,
 } from '@ionic/vue'
-import { addOutline, cloudUploadOutline, cubeOutline } from 'ionicons/icons'
-import { ref, computed, inject } from 'vue'
+import {
+  addOutline,
+  chevronForwardOutline,
+  cloudUploadOutline,
+  cubeOutline,
+  eyeOutline,
+} from 'ionicons/icons'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMasterStore } from '@/stores/masterStore'
 import ItemThumbnail from '@/components/items/ItemThumbnail.vue'
-import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import SearchRow from '@/components/global/SearchRow.vue'
+import { useContextSearch } from '@/composables/useContextSearch'
+import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
+import {
+  inventoryProperties,
+  INVENTORY_PROPERTIES,
+  type InventoryProperty,
+} from '@/composables/useInventoryProperties'
+import { UNTAGGED_KEY } from '@/domain/tags'
+import { formatWeight } from '@/lib/format'
+import { t } from '@/i18n'
+import type { MasterItem } from '@/types/domain'
 
 const store = useMasterStore()
-const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 const router = useRouter()
-const searchQuery = ref('')
+const { term: search, isOpen: searchOpen, toggle: toggleSearch, action } = useContextSearch()
 
-/** New master item (FR-1.1): prompt for a name, create it, open M10 so
- * the user can fill in category, weight, photo, etc. */
-async function newItem() {
-  const alert = await alertController.create({
-    header: 'New item',
-    inputs: [{ name: 'name', type: 'text', placeholder: 'Item name' }],
-    buttons: [
-      { text: 'Cancel', role: 'cancel' },
-      { text: 'Create', role: 'confirm' },
-    ],
-  })
-  await alert.present()
-  const { data, role } = await alert.onDidDismiss()
-  const name = (data?.values?.name ?? '').trim()
-  if (role !== 'confirm' || !name) return
-  const id = orchestrator.createMasterItem(name)
-  router.push(`/items/${id}`)
-}
+const props = inventoryProperties()
+const propsOpen = ref(false)
 
-const filteredItems = computed(() => store.searchItems(searchQuery.value))
+/** `null` = the "Alle" chip: no tag filter. */
+const tagFilter = ref<string | null>(null)
 
-const groupedItems = computed(() => {
-  if (searchQuery.value) {
-    // Flat list when searching
-    return new Map([['Search results', filteredItems.value]])
+setHeaderActions(() => {
+  const eye: HeaderAction = {
+    id: 'm9-properties',
+    icon: eyeOutline,
+    label: t('items.properties'),
+    active: props.shownCount.value > 0,
+    badge: props.shownCount.value,
+    onClick: () => (propsOpen.value = true),
   }
-  return store.itemsByCategory()
+  return [eye, action()]
 })
 
+/**
+ * An item matches a tag filter when the tag is anywhere in its set — not
+ * only when it is primary (FR-24.2). Filtering by *Sommer* has to surface
+ * the swimsuit that is filed under *Kleidung*.
+ */
+const filtered = computed<MasterItem[]>(() => {
+  const term = search.value.trim().toLowerCase()
+  // The matching items are collected once from the assignment list; asking
+  // each item for its tags would scan that list per row (NFR-4.3).
+  const onTag =
+    tagFilter.value === null
+      ? null
+      : new Set(store.itemTagList.filter((a) => a.tag_id === tagFilter.value).map((a) => a.item_id))
+  return store.itemList.filter((item) => {
+    if (term && !item.name.toLowerCase().includes(term)) return false
+    return onTag === null || onTag.has(item.id)
+  })
+})
+
+const groups = computed(() => store.itemsByPrimaryTag(filtered.value))
+
 const isEmpty = computed(() => store.itemList.length === 0)
-const noResults = computed(() => searchQuery.value && filteredItems.value.length === 0)
+const noResults = computed(() => !isEmpty.value && filtered.value.length === 0)
 
-function formatWeight(grams: number): string {
-  return grams >= 1000 ? `${(grams / 1000).toFixed(1)} kg` : `${grams} g`
+/** The heading a group renders — the untagged bucket is not a tag name. */
+function groupLabel(key: string): string {
+  return key === UNTAGGED_KEY ? t('items.untagged') : key
 }
 
-function onSearch(event: CustomEvent) {
-  searchQuery.value = event.detail.value ?? ''
+/** The avatar glyph: the primary tag's initial, or a neutral one. */
+function avatarGlyph(key: string): string {
+  return key === UNTAGGED_KEY ? '·' : [...key][0]!.toUpperCase()
 }
 
-async function handleRefresh(event: CustomEvent) {
-  const refresher = event.target as HTMLIonRefresherElement
-  refresher.complete()
+function extrasFor(item: MasterItem): string[] {
+  const extras: string[] = []
+  if (props.isShown('weight') && item.weight_grams !== null) {
+    extras.push(formatWeight(item.weight_grams))
+  }
+  if (props.isShown('price') && item.value_cents !== null) {
+    extras.push((item.value_cents / 100).toFixed(2))
+  }
+  return extras
+}
+
+function propertyLabel(key: InventoryProperty): string {
+  return t(`items.property.${key}`)
+}
+
+function newItem() {
+  // FR-24.5: creation is the editor in its minimal mode, not a prompt —
+  // a name typed into an alert cannot carry tags or a weight.
+  router.push('/items/new')
+}
+
+function handleRefresh(event: CustomEvent) {
+  ;(event.target as HTMLIonRefresherElement).complete()
 }
 </script>
 
@@ -88,69 +145,201 @@ async function handleRefresh(event: CustomEvent) {
         <IonRefresherContent />
       </IonRefresher>
 
+      <SearchRow
+        v-if="searchOpen || search"
+        v-model="search"
+        testid="items-search-input"
+        :placeholder="t('items.searchPlaceholder')"
+        @close="toggleSearch"
+      />
+
       <div class="ion-padding">
-        <h1 class="page-title">Items</h1>
-        <IonSearchbar
-          :value="searchQuery"
-          placeholder="Search items..."
-          @ionInput="onSearch"
-          :debounce="200"
-        />
+        <h1 class="page-title jp-page-title">{{ t('items.title') }}</h1>
       </div>
 
-      <!-- Empty state (G-7) — M15 entry per UI spec -->
-      <div v-if="isEmpty" class="empty-state">
+      <!-- Tag axis (FR-24.2) — an item surfaces under every tag it carries. -->
+      <IonSegment
+        v-if="store.tagList.length > 0 && !isEmpty"
+        :value="tagFilter ?? 'all'"
+        scrollable
+        data-testid="m9-tag-axis"
+        @ionChange="
+          (e: CustomEvent) => (tagFilter = e.detail.value === 'all' ? null : e.detail.value)
+        "
+      >
+        <IonSegmentButton value="all">
+          <IonLabel>{{ t('items.tagFilterAll') }}</IonLabel>
+        </IonSegmentButton>
+        <IonSegmentButton
+          v-for="tag in store.tagList"
+          :key="tag.id"
+          :value="tag.id"
+          :data-testid="`m9-tag-chip-${tag.name}`"
+        >
+          <IonLabel>{{ tag.name }}</IonLabel>
+        </IonSegmentButton>
+      </IonSegment>
+
+      <!-- G-7 empty state — M15 is the way in from here. -->
+      <div v-if="isEmpty" class="empty-state" data-testid="m9-empty">
         <IonIcon :icon="cubeOutline" class="empty-icon" />
-        <p>No items in your inventory</p>
-        <p class="empty-hint">Add items to build your packing templates</p>
+        <p>{{ t('items.empty') }}</p>
+        <p class="empty-hint">{{ t('items.emptyHint') }}</p>
         <IonButton fill="outline" size="small" router-link="/import">
           <IonIcon slot="start" :icon="cloudUploadOutline" />
-          Import spreadsheet
+          {{ t('items.importSpreadsheet') }}
         </IonButton>
       </div>
 
-      <!-- No search results -->
-      <div v-else-if="noResults" class="empty-state">
-        <p>No items matching "{{ searchQuery }}"</p>
+      <div v-else-if="noResults" class="empty-state" data-testid="m9-no-match">
+        <p>{{ t('items.noMatch') }}</p>
       </div>
 
-      <!-- Category-grouped item list -->
-      <IonList v-else>
-        <IonItemGroup v-for="[category, items] in groupedItems" :key="category">
-          <IonItemDivider sticky>
-            <IonLabel>{{ category }}</IonLabel>
-            <span slot="end" class="group-count">{{ items.length }}</span>
-          </IonItemDivider>
+      <template v-else>
+        <section v-for="[key, groupItems] in groups" :key="key" class="tag-group">
+          <h2 class="group-head jp-eyebrow" data-testid="m9-group-head">
+            {{ groupLabel(key) }}
+            <span class="group-count">{{ groupItems.length }}</span>
+          </h2>
 
-          <IonItem v-for="item in items" :key="item.id" button :router-link="`/items/${item.id}`">
-            <ItemThumbnail v-if="item.image_hash" slot="start" :item="item" :size="40" />
-            <IonLabel>
-              <h2>{{ item.name }}</h2>
-              <p>
-                <span v-if="item.weight_grams">{{ formatWeight(item.weight_grams) }}</span>
-                <span v-if="item.weight_grams && item.value_cents"> · </span>
-                <span v-if="item.value_cents">{{ (item.value_cents / 100).toFixed(2) }}</span>
-              </p>
-            </IonLabel>
-          </IonItem>
-        </IonItemGroup>
-      </IonList>
+          <IonList class="jp-card group-card" lines="full">
+            <IonItem
+              v-for="item in groupItems"
+              :key="item.id"
+              button
+              :detail="false"
+              :router-link="`/items/${item.id}`"
+              data-testid="m9-row"
+            >
+              <ItemThumbnail v-if="item.image_hash" slot="start" :item="item" :size="34" />
+              <div v-else slot="start" class="tag-avatar" aria-hidden="true">
+                {{ avatarGlyph(key) }}
+              </div>
 
-      <!-- FAB: New item -->
-      <IonFab vertical="bottom" horizontal="end" slot="fixed">
-        <IonFabButton aria-label="New item" @click="newItem">
+              <IonLabel>
+                <h2>{{ item.name }}</h2>
+                <!-- FR-24.4: only when the device asked for them. -->
+                <div v-if="props.isShown('tags')" class="row-tags">
+                  <span v-for="tag in store.getItemTags(item.id)" :key="tag.id" class="row-tag">
+                    {{ tag.name }}
+                  </span>
+                </div>
+              </IonLabel>
+
+              <div v-if="extrasFor(item).length > 0" slot="end" class="row-extras">
+                <span v-for="extra in extrasFor(item)" :key="extra">{{ extra }}</span>
+              </div>
+              <IonIcon slot="end" :icon="chevronForwardOutline" class="row-chevron" />
+            </IonItem>
+          </IonList>
+        </section>
+      </template>
+
+      <IonFab id="m9-fab-anchor" vertical="bottom" horizontal="end" slot="fixed">
+        <IonFabButton :aria-label="t('items.new')" data-testid="m9-fab" @click="newItem">
           <IonIcon :icon="addOutline" />
         </IonFabButton>
       </IonFab>
+
+      <!-- FR-24.4 "Angezeigte Eigenschaften" — device-local, no save button. -->
+      <IonModal
+        :is-open="propsOpen"
+        :initial-breakpoint="0.5"
+        :breakpoints="[0, 0.5]"
+        data-testid="m9-properties-sheet"
+        @didDismiss="propsOpen = false"
+      >
+        <div class="sheet-body ion-padding">
+          <h2 class="jp-sheet-title">{{ t('items.properties') }}</h2>
+          <p class="sheet-hint">{{ t('items.propertiesHint') }}</p>
+
+          <IonList>
+            <IonItem v-for="key in INVENTORY_PROPERTIES" :key="key" lines="full">
+              <IonLabel>{{ propertyLabel(key) }}</IonLabel>
+              <IonToggle
+                slot="end"
+                :checked="props.isShown(key)"
+                :data-testid="`m9-property-${key}`"
+                @ionChange="props.toggle(key)"
+              />
+            </IonItem>
+          </IonList>
+        </div>
+      </IonModal>
     </IonContent>
   </IonPage>
 </template>
 
 <style scoped>
 .page-title {
-  font-size: 1.8rem;
-  font-weight: 700;
   margin: 16px 0 8px;
+}
+
+.tag-group {
+  margin: 0 0 18px;
+}
+
+.group-card {
+  /* Inset like M7's section card, so the radius reads as a card edge
+     instead of bleeding into the page (G-14). */
+  margin: 0 8px 8px;
+}
+
+.group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 20px 6px;
+  color: var(--ion-color-medium);
+}
+
+.group-count {
+  color: var(--ion-color-medium);
+}
+
+/* The primary tag's initial. A glyph box, not body copy — sized from the
+   icon scale for the same reason ion-icon is (invariant 9). */
+.tag-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--jp-r-md);
+  background: var(--jp-surface-sunken);
+  color: var(--ion-color-medium);
+  font-size: var(--jp-icon-sm);
+  margin-inline-end: 12px;
+}
+
+.row-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.row-tag {
+  padding: 2px 7px;
+  border-radius: var(--jp-r-pill);
+  background: var(--jp-surface-sunken);
+  color: var(--ion-color-medium);
+  font-size: var(--jp-text-xs);
+}
+
+.row-extras {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  color: var(--ion-color-medium);
+  font-size: var(--jp-text-sm);
+  white-space: nowrap;
+}
+
+.row-chevron {
+  color: var(--ion-color-medium);
+  font-size: var(--jp-icon-sm);
+  margin-inline-start: 6px;
 }
 
 .empty-state {
@@ -163,17 +352,18 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 .empty-icon {
-  font-size: 64px;
+  font-size: var(--jp-icon-2xl);
   margin-bottom: 16px;
 }
 
 .empty-hint {
-  font-size: 0.85rem;
+  font-size: var(--jp-text-sm);
   margin-top: 8px;
 }
 
-.group-count {
-  font-size: 0.8rem;
+.sheet-hint {
   color: var(--ion-color-medium);
+  font-size: var(--jp-text-sm);
+  margin: 0 0 12px;
 }
 </style>

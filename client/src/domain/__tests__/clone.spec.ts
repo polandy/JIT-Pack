@@ -14,6 +14,7 @@ function trip(over: Partial<Trip> = {}): Trip {
     id: 'src',
     name: 'Engadin 2025',
     status: 'archived',
+    year: 2026,
     start_date: '2025-08-01',
     end_date: '2025-08-07',
     duration_days: 7,
@@ -43,6 +44,7 @@ function tripItem(over: Partial<TripItem> = {}): TripItem {
     assigned_traveler_id: null,
     packer_user_id: null,
     packed_by_user_id: null,
+    packed_at: null,
     container_id: null,
     packing_now_by: null,
     packing_now_at: null,
@@ -173,7 +175,6 @@ describe('planClone — quantities carry over (FR-12.2, formulas retired 2026-08
   const masterItem: MasterItem = {
     id: 'item1',
     name: 'Socken',
-    category_id: null,
     weight_grams: null,
     value_cents: null,
   }

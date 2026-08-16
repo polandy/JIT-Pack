@@ -7,7 +7,7 @@
 
 import type { Mutation, MutationOp } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
-import type { ItemMode } from '@/types/domain'
+import type { ItemMode, TemplateKind } from '@/types/domain'
 
 export function useMutations(hlc: HLCGenerator) {
   function make(
@@ -35,6 +35,10 @@ export function useMutations(hlc: HLCGenerator) {
       state,
       packing_now_by: null,
       packing_now_at: null,
+      // FR-25.17: the moment of the tap, not of the push. Packing happens
+      // offline and the envelope can land days later; the server keeps
+      // this value when it parses and stamps its own clock otherwise.
+      packed_at: state === 'packed' ? new Date().toISOString() : null,
     })
   }
 
@@ -365,13 +369,16 @@ export function useMutations(hlc: HLCGenerator) {
 
   function createTrip(
     name: string,
+    year: number,
     startDate: string | null,
-    endDate: string,
+    endDate: string | null,
     opts: { seriesId?: string | null; attributes?: Record<string, unknown> | null } = {},
   ): { mutation: Mutation; id: string } {
     const id = crypto.randomUUID()
     const mutation = make('insert', 'trips', id, {
       name,
+      // FR-2.1b: the year is the required fact; both dates may be absent.
+      year,
       start_date: startDate,
       end_date: endDate,
       status: 'planning',
@@ -500,7 +507,6 @@ export function useMutations(hlc: HLCGenerator) {
   function createMasterItem(
     name: string,
     opts: {
-      categoryId?: string | null
       weightGrams?: number | null
       valueCents?: number | null
     } = {},
@@ -508,7 +514,6 @@ export function useMutations(hlc: HLCGenerator) {
     const id = crypto.randomUUID()
     const mutation = make('insert', 'items', id, {
       name,
-      category_id: opts.categoryId ?? null,
       weight_grams: opts.weightGrams ?? null,
       value_cents: opts.valueCents ?? null,
     })
@@ -525,11 +530,16 @@ export function useMutations(hlc: HLCGenerator) {
 
   // --- Template mutations ---
 
-  function createTemplate(name: string, ownerId: string): { mutation: Mutation; id: string } {
+  function createTemplate(
+    name: string,
+    ownerId: string,
+    kind: TemplateKind = 'template',
+  ): { mutation: Mutation; id: string } {
     const id = crypto.randomUUID()
     const mutation = make('insert', 'templates', id, {
       owner_id: ownerId,
       name,
+      kind,
     })
     return { mutation, id }
   }
@@ -574,6 +584,40 @@ export function useMutations(hlc: HLCGenerator) {
 
   function deleteTemplateItem(templateItemId: string): Mutation {
     return make('delete', 'template_items', templateItemId)
+  }
+
+  /** addTemplateInclude references a Gruppe from a Ferien-Vorlage (FR-27.1). */
+  function addTemplateInclude(
+    templateId: string,
+    includedTemplateId: string,
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const mutation = make('insert', 'template_includes', id, {
+      template_id: templateId,
+      included_template_id: includedTemplateId,
+    })
+    return { mutation, id }
+  }
+
+  function removeTemplateInclude(includeId: string): Mutation {
+    return make('delete', 'template_includes', includeId)
+  }
+
+  /** addTemplateItemTask attaches one FR-27.7 preparation task to a position. */
+  function addTemplateItemTask(
+    templateItemId: string,
+    task: string,
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const mutation = make('insert', 'template_item_tasks', id, {
+      template_item_id: templateItemId,
+      task,
+    })
+    return { mutation, id }
+  }
+
+  function deleteTemplateItemTask(taskId: string): Mutation {
+    return make('delete', 'template_item_tasks', taskId)
   }
 
   // --- Item dependency mutations (Addendum 3.20, master partition) ---
@@ -627,17 +671,44 @@ export function useMutations(hlc: HLCGenerator) {
     return make('delete', 'trip_members', memberId)
   }
 
-  // --- Category mutations ---
+  // --- Tag mutations (FR-24.1) ---
 
-  function createCategory(name: string, sortOrder: number = 0): { mutation: Mutation; id: string } {
+  function createTag(name: string, sortOrder: number = 0): { mutation: Mutation; id: string } {
     const id = crypto.randomUUID()
-    const mutation = make('insert', 'categories', id, { name, sort_order: sortOrder })
+    const mutation = make('insert', 'tags', id, { name, sort_order: sortOrder })
     return { mutation, id }
+  }
+
+  /**
+   * Assign a tag to an item at `position` — 0 makes it the item's primary
+   * tag (FR-24.2). One row per assignment so two people tagging the same
+   * item offline both keep their edit (ADR-014).
+   */
+  function assignTag(
+    itemId: string,
+    tagId: string,
+    position: number,
+  ): { mutation: Mutation; id: string } {
+    const id = crypto.randomUUID()
+    const mutation = make('insert', 'item_tags', id, {
+      item_id: itemId,
+      tag_id: tagId,
+      position,
+    })
+    return { mutation, id }
+  }
+
+  function unassignTag(assignmentId: string): Mutation {
+    return make('delete', 'item_tags', assignmentId)
   }
 
   return {
     // Trip items
     startPackingNow,
+    // The primitive the four pack helpers are built on. Exported because
+    // FR-25.2's undo restores an arbitrary count and state, which none of
+    // the helpers can express — they each encode one transition.
+    packItem,
     incrementPacked,
     decrementPacked,
     completePacked,
@@ -687,6 +758,10 @@ export function useMutations(hlc: HLCGenerator) {
     // Templates
     createTemplate,
     updateTemplate,
+    addTemplateInclude,
+    removeTemplateInclude,
+    addTemplateItemTask,
+    deleteTemplateItemTask,
     deleteTemplate,
     addTemplateItem,
     updateTemplateItem,
@@ -699,6 +774,8 @@ export function useMutations(hlc: HLCGenerator) {
     setTripMemberRole,
     removeTripMember,
     // Categories
-    createCategory,
+    createTag,
+    assignTag,
+    unassignTag,
   }
 }

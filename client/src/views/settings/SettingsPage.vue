@@ -34,7 +34,14 @@ import {
   IonToggle,
   alertController,
 } from '@ionic/vue'
-import { downloadOutline, personCircleOutline, warningOutline } from 'ionicons/icons'
+import {
+  addOutline,
+  closeOutline,
+  downloadOutline,
+  personCircleOutline,
+  personOutline,
+  warningOutline,
+} from 'ionicons/icons'
 import { computed, inject, onMounted, ref } from 'vue'
 import {
   EXPORT_REMINDER_DAYS,
@@ -55,6 +62,7 @@ import { currentTheme, setTheme } from '@/theme/theme'
 import { type Locale, currentLocale, setLocale, t } from '@/i18n'
 import AvatarCropModal from '@/components/settings/AvatarCropModal.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { defaultTravelers } from '@/composables/useDefaultTravelers'
 
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 const tripStore = useTripStore()
@@ -81,6 +89,20 @@ onMounted(async () => {
 })
 
 // --- Appearance (FR-21.3, device-local) ---
+
+/**
+ * FR-2.5a: the people a new trip starts with. Device-local like the
+ * theme beside it, and a starting point rather than a rule — M3 edits
+ * them freely.
+ */
+const travelers = defaultTravelers()
+const travelerNames = travelers.names
+const newTraveler = ref('')
+
+function addTraveler() {
+  travelers.add(newTraveler.value)
+  newTraveler.value = ''
+}
 
 const lightTheme = ref(currentTheme() === 'latte')
 
@@ -247,7 +269,7 @@ async function exportTripCSV() {
   <IonPage>
     <IonContent class="ion-padding">
       <!-- Profile (FR-17.13) -->
-      <h2 class="section-title">Profile</h2>
+      <h2 class="section-title jp-eyebrow">Profile</h2>
       <template v-if="mode === 'local'">
         <IonNote>Local Mode has no account — everything stays on this device.</IonNote>
       </template>
@@ -301,7 +323,7 @@ async function exportTripCSV() {
       <IonNote v-else>Profile unavailable — server not reachable.</IonNote>
 
       <!-- Appearance (FR-21.3) — every mode, this device only -->
-      <h2 class="section-title">Appearance</h2>
+      <h2 class="section-title jp-eyebrow">Appearance</h2>
       <IonList>
         <IonItem>
           <IonLabel>
@@ -333,9 +355,48 @@ async function exportTripCSV() {
         </IonItem>
       </IonList>
 
+      <!-- Default travelers (FR-2.5a) — every mode, this device only -->
+      <h2 class="section-title jp-eyebrow">{{ t('settings.defaultTravelers') }}</h2>
+      <p class="section-hint">{{ t('settings.defaultTravelersHint') }}</p>
+      <IonList>
+        <IonItem v-for="(traveler, index) in travelerNames" :key="`${traveler}-${index}`">
+          <IonIcon slot="start" :icon="personOutline" />
+          <IonLabel>{{ traveler }}</IonLabel>
+          <IonButton
+            slot="end"
+            fill="clear"
+            size="small"
+            :data-testid="`default-traveler-remove-${traveler}`"
+            :aria-label="t('common.remove')"
+            @click="travelers.remove(index)"
+          >
+            <IonIcon slot="icon-only" :icon="closeOutline" />
+          </IonButton>
+        </IonItem>
+        <IonItem>
+          <IonInput
+            data-testid="default-traveler-input"
+            :label="t('settings.addTraveler')"
+            label-placement="stacked"
+            :value="newTraveler"
+            @ionInput="(e: CustomEvent) => (newTraveler = e.detail.value ?? '')"
+            @keydown.enter="addTraveler"
+          />
+          <IonButton
+            slot="end"
+            size="small"
+            data-testid="default-traveler-add"
+            :disabled="newTraveler.trim() === ''"
+            @click="addTraveler"
+          >
+            <IonIcon slot="icon-only" :icon="addOutline" />
+          </IonButton>
+        </IonItem>
+      </IonList>
+
       <!-- Notifications (FR-6.2 / NFR-4.6) — multi-user only (G-8) -->
       <template v-if="collaborative">
-        <h2 class="section-title">Notifications</h2>
+        <h2 class="section-title jp-eyebrow">Notifications</h2>
         <IonList v-if="prefs">
           <IonItem v-for="p in prefLabels" :key="p.kind">
             <IonLabel>
@@ -373,7 +434,7 @@ async function exportTripCSV() {
       </template>
 
       <!-- Data (NFR-4.5) -->
-      <h2 class="section-title">Data</h2>
+      <h2 class="section-title jp-eyebrow">Data</h2>
       <template v-if="mode === 'local'">
         <div v-if="exportReminder.due" class="export-reminder">
           <IonIcon :icon="warningOutline" />
@@ -465,7 +526,7 @@ async function exportTripCSV() {
       <!-- Administration entry (Addendum 3.23, FR-23.2): instance
            admins with an OIDC session only — same gating as M20. -->
       <template v-if="collaborative && me?.is_instance_admin">
-        <h2 class="section-title">Administration</h2>
+        <h2 class="section-title jp-eyebrow">Administration</h2>
         <IonList>
           <IonItem button lines="none" @click="$router.push('/admin')">
             <IonLabel>
@@ -477,14 +538,14 @@ async function exportTripCSV() {
       </template>
 
       <!-- Conflict log pointer (G-2) -->
-      <h2 class="section-title">Conflict log</h2>
+      <h2 class="section-title jp-eyebrow">Conflict log</h2>
       <IonNote>
         Automatic merge resolutions are logged per trip — open a trip and tap the sync indicator in
         the header to review them.
       </IonNote>
 
       <!-- App info -->
-      <h2 class="section-title">About</h2>
+      <h2 class="section-title jp-eyebrow">About</h2>
       <IonList>
         <IonItem lines="none">
           <IonLabel>
@@ -502,8 +563,6 @@ async function exportTripCSV() {
 
 <style scoped>
 .section-title {
-  font-size: 1rem;
-  font-weight: 600;
   margin: 20px 0 8px;
 }
 
@@ -513,15 +572,15 @@ async function exportTripCSV() {
   gap: 8px;
   padding: 10px 12px;
   margin-bottom: 8px;
-  border-radius: 8px;
+  border-radius: var(--jp-r-sm);
   background: var(--ion-color-warning-tint);
   color: var(--ion-color-warning-contrast);
-  font-size: 0.85rem;
+  font-size: var(--jp-text-sm);
 }
 
 .export-reminder ion-icon {
   flex: none;
-  font-size: 1.2rem;
+  font-size: var(--jp-icon-sm);
 }
 
 .avatar-row {
@@ -539,13 +598,13 @@ async function exportTripCSV() {
 }
 
 .avatar-placeholder {
-  font-size: 64px;
+  font-size: var(--jp-icon-2xl);
   color: var(--ion-color-medium);
 }
 
 .avatar-upload {
   color: var(--ion-color-primary);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: var(--jp-text-base);
 }
 </style>

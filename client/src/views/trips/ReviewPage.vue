@@ -1,29 +1,40 @@
 <script setup lang="ts">
 /**
- * M14 — Post-Trip Review Assistant (FR-9.2).
+ * M14 — Post-Trip Review Assistant (FR-9.2, group-aware per FR-27.11).
  *
- * Card stack over the proposals derived from the trip's FR-9.1 flags.
- * Apply writes straight to the source template as an ordinary master
- * mutation — templates are shared instance-wide (FR-1.6 MVP), so there is
- * no fork step. Proposals are recomputed from current state, so the assistant is
- * naturally resumable — applied cards simply stop appearing.
+ * A list, not a card stack: the harvest of a trip is a handful of
+ * one-line judgements, and a stack shows one at a time while hiding how
+ * much is left — the same dishonesty FR-25.11a forbids on the packing
+ * list. Every row names its target *group* in a picker that offers
+ * groups only, applied and skipped rows stay in place, marked, and a
+ * footer counts what was written.
+ *
+ * Apply writes straight to the target group as an ordinary master
+ * mutation — groups are shared instance-wide (FR-1.6 MVP), so there is
+ * no fork step. Proposals are recomputed from current state, so the
+ * assistant is naturally resumable — an applied row simply stops
+ * appearing on the next visit.
  */
 import {
   IonPage,
   IonContent,
   IonButton,
-  IonCard,
-  IonCardContent,
   IonIcon,
-  IonList,
-  IonItem,
-  IonLabel,
-  IonNote,
+  IonSelect,
+  IonSelectOption,
+  toastController,
 } from '@ionic/vue'
-import { checkmarkCircleOutline, sparklesOutline } from 'ionicons/icons'
-import { computed, inject, ref } from 'vue'
+import { checkmarkCircleOutline, closeOutline } from 'ionicons/icons'
+import { computed, inject, ref, watchEffect } from 'vue'
 
-import { buildReviewProposals, type ReviewProposal } from '@/domain/review'
+import { t } from '@/i18n'
+import {
+  buildReviewProposals,
+  dismissalKey,
+  retargetGroups,
+  type ReviewProposal,
+} from '@/domain/review'
+import { planningTripsUsing } from '@/domain/templates'
 import { dismissProposal, isDismissed } from '@/local/reviewDismissals'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -38,12 +49,6 @@ const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrato
 
 const trip = computed(() => store.getTrip(props.tripId))
 
-/** Session-only skips ("ask me next time"). */
-const skipped = ref<Set<string>>(new Set())
-/** Bumped after "Never ask again" so proposals recompute. */
-const dismissedVersion = ref(0)
-const applied = ref<string[]>([])
-
 /**
  * Flag occurrences across the archived trips of the series synced to
  * this device (same honesty caveat as M12), including this trip.
@@ -53,12 +58,12 @@ function historyCount(itemName: string, flag: 'unused' | 'missing'): number {
   if (!seriesId) return 1
   const name = itemName.toLowerCase()
   const hits = store.tripList.filter(
-    (t) =>
-      t.id !== props.tripId &&
-      t.series_id === seriesId &&
-      t.status === 'archived' &&
+    (other) =>
+      other.id !== props.tripId &&
+      other.series_id === seriesId &&
+      other.status === 'archived' &&
       store
-        .getItems(t.id)
+        .getItems(other.id)
         .some(
           (i) =>
             i.name.toLowerCase() === name && (flag === 'unused' ? i.flag_unused : i.flag_missing),
@@ -67,135 +72,317 @@ function historyCount(itemName: string, flag: 'unused' | 'missing'): number {
   return 1 + hits
 }
 
-const proposals = computed(() => {
+/**
+ * One rendered row. Decided rows are kept verbatim rather than being
+ * recomputed away (FR-27.11: applied and skipped stay visible, marked),
+ * so the pass can be reviewed before leaving.
+ */
+interface Row {
+  p: ReviewProposal
+  /** The picker's current target — starts on the FR-27.11 default. */
+  target: string
+  state: 'applied' | 'skipped' | null
+}
+
+/** Row identity across recomputes — the flag, not the (movable) target. */
+const rowKey = (p: ReviewProposal) => `${p.kind}:${p.itemRef}`
+
+const rows = ref<Row[]>([])
+/** "Never ask again" removals this session, so a recompute cannot revive
+ * a row whose dismissal was stored under a retargeted pair. */
+const removed = ref<Set<string>>(new Set())
+/** Bumped after "Never ask again" so proposals recompute. */
+const dismissedVersion = ref(0)
+
+watchEffect(() => {
   void dismissedVersion.value
-  return buildReviewProposals({
+  const live = buildReviewProposals({
     items: store.getItems(props.tripId),
     templates: master.templateList,
     templateItems: (id) => master.getTemplateItems(id),
     masterItems: master.itemList,
     isDismissed,
     flaggedTripCount: historyCount,
-  }).filter((p) => !skipped.value.has(p.key))
+  })
+  const liveKeys = new Set(live.map(rowKey))
+  // Decided rows stay in place; an undecided row whose proposal vanished
+  // (applied on another device, flag cleared) leaves with it.
+  const kept = rows.value.filter((r) => r.state !== null || liveKeys.has(rowKey(r.p)))
+  const known = new Set(kept.map((r) => rowKey(r.p)))
+  rows.value = [
+    ...kept,
+    ...live
+      .filter((p) => !known.has(rowKey(p)) && !removed.value.has(rowKey(p)))
+      .map((p) => ({ p, target: p.groupId, state: null })),
+  ]
 })
 
-const current = computed<ReviewProposal | null>(() => proposals.value[0] ?? null)
+const openCount = computed(() => rows.value.filter((r) => r.state === null).length)
+const appliedCount = computed(() => rows.value.filter((r) => r.state === 'applied').length)
 
-function cardText(p: ReviewProposal): string {
-  const flagged =
-    p.flagCount > 1
-      ? `was flagged ${p.kind === 'reduce_quantity' ? 'Unused' : 'Missing'} on ${p.flagCount} trips`
-      : `was flagged ${p.kind === 'reduce_quantity' ? 'Unused' : 'Missing'}`
-  return p.kind === 'reduce_quantity'
-    ? `'${p.itemName}' ${flagged} — set its quantity to 0 in template '${p.templateName}'?`
-    : `'${p.itemName}' ${flagged} — permanently add it to template '${p.templateName}'?`
+function whyText(p: ReviewProposal): string {
+  return p.kind === 'unused'
+    ? t('review.whyUnused', { n: p.flagCount })
+    : t('review.whyMissing', { n: p.flagCount })
 }
 
-function apply(p: ReviewProposal) {
-  orchestrator.applyReviewProposal(p)
-  const action =
-    p.kind === 'reduce_quantity'
-      ? `Set '${p.itemName}' to 0 in '${p.templateName}'`
-      : `Added '${p.itemName}' to '${p.templateName}'`
-  applied.value = [...applied.value, action]
+/** FR-27.11: the picker offers groups only; unused rows can move only
+ * between groups that actually carry the item. */
+function pickerGroups(row: Row) {
+  return retargetGroups(row.p, master.templateList, (id) => master.getTemplateItems(id))
 }
 
-function skip(p: ReviewProposal) {
-  skipped.value = new Set([...skipped.value, p.key])
+/** FR-27.4 blast radius of the row's *selected* group, live. */
+function blastText(row: Row): string | null {
+  const reached = planningTripsUsing(row.target, {
+    trips: store.tripList,
+    items: store.tripList.flatMap((other) => store.getItems(other.id)),
+    includes: master.includeList,
+  })
+  if (reached.length === 0) return null
+  const group = master.templateList.find((g) => g.id === row.target)
+  return t('review.blast', { n: reached.length, group: group?.name ?? '' })
 }
 
-function neverAskAgain(p: ReviewProposal) {
-  dismissProposal(p.key)
+async function toast(message: string) {
+  const el = await toastController.create({ message, duration: 3000, position: 'bottom' })
+  await el.present()
+}
+
+function apply(row: Row) {
+  orchestrator.applyReviewProposal(row.p, row.target)
+  row.state = 'applied'
+  const group = master.templateList.find((g) => g.id === row.target)?.name ?? ''
+  void toast(
+    row.p.kind === 'unused'
+      ? t('review.snackUnused', { item: row.p.itemName, group })
+      : t('review.snackMissing', { item: row.p.itemName, group }),
+  )
+}
+
+function skip(row: Row) {
+  row.state = 'skipped'
+}
+
+function neverAskAgain(row: Row) {
+  dismissProposal(dismissalKey(row.p.itemRef, row.target))
+  removed.value = new Set([...removed.value, rowKey(row.p)])
+  rows.value = rows.value.filter((r) => r !== row)
   dismissedVersion.value++
+  void toast(t('review.snackNever'))
 }
 
 // ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() => `Review · ${trip.value?.name ?? ''}`)
+setHeaderTitle(() => `${t('review.title')} · ${trip.value?.name ?? ''}`)
 </script>
 
 <template>
   <IonPage>
     <IonContent class="ion-padding">
-      <!-- Proposal card stack -->
-      <template v-if="current">
-        <IonNote
-          >{{ proposals.length }} proposal{{ proposals.length === 1 ? '' : 's' }} to review</IonNote
+      <p class="intro">{{ t('review.intro') }}</p>
+
+      <h2 class="section-title jp-eyebrow" data-testid="m14-open-count">
+        {{ t('review.open', { n: openCount }) }}
+      </h2>
+
+      <template v-if="rows.length > 0">
+        <article
+          v-for="row in rows"
+          :key="rowKey(row.p)"
+          class="jp-card row"
+          :class="{ decided: row.state !== null }"
+          data-testid="m14-row"
         >
-        <IonCard class="proposal-card">
-          <IonCardContent>
-            <IonIcon :icon="sparklesOutline" class="card-icon" />
-            <p class="card-text">{{ cardText(current) }}</p>
-            <div class="card-actions">
-              <IonButton expand="block" @click="apply(current)">Apply</IonButton>
-              <IonButton expand="block" fill="outline" @click="skip(current)">Skip</IonButton>
-              <IonButton expand="block" fill="clear" color="medium" @click="neverAskAgain(current)">
-                Never ask again
-              </IonButton>
+          <div class="head">
+            <span class="chip kind" :class="row.p.kind">
+              {{ row.p.kind === 'unused' ? t('review.kindUnused') : t('review.kindMissing') }}
+            </span>
+            <div class="grow">
+              <div class="name">{{ row.p.itemName }}</div>
+              <div class="why">{{ whyText(row.p) }}</div>
             </div>
-          </IonCardContent>
-        </IonCard>
+            <span v-if="row.state" class="chip state" :class="row.state" data-testid="m14-state">
+              {{ row.state === 'applied' ? t('review.stateApplied') : t('review.stateSkipped') }}
+            </span>
+          </div>
+
+          <label class="target">
+            <span>{{
+              row.p.kind === 'unused' ? t('review.targetFrom') : t('review.targetTo')
+            }}</span>
+            <IonSelect
+              v-model="row.target"
+              interface="popover"
+              :disabled="row.state !== null"
+              data-testid="m14-target"
+            >
+              <IonSelectOption v-for="g in pickerGroups(row)" :key="g.id" :value="g.id">
+                {{ g.name }}
+              </IonSelectOption>
+            </IonSelect>
+          </label>
+
+          <p v-if="blastText(row)" class="blast" data-testid="m14-blast">{{ blastText(row) }}</p>
+
+          <div v-if="row.state === null" class="actions">
+            <IonButton size="small" data-testid="m14-apply" @click="apply(row)">
+              {{ t('review.apply') }}
+            </IonButton>
+            <IonButton size="small" fill="outline" data-testid="m14-skip" @click="skip(row)">
+              {{ t('review.skip') }}
+            </IonButton>
+            <IonButton
+              size="small"
+              fill="clear"
+              color="medium"
+              class="never"
+              data-testid="m14-never"
+              :aria-label="t('review.never')"
+              :title="t('review.never')"
+              @click="neverAskAgain(row)"
+            >
+              <IonIcon slot="icon-only" :icon="closeOutline" />
+            </IonButton>
+          </div>
+        </article>
       </template>
 
-      <!-- Done: summary of applied changes, or nothing-to-review state -->
-      <template v-else>
-        <div class="done">
-          <IonIcon :icon="checkmarkCircleOutline" color="success" class="done-icon" />
-          <h2 v-if="applied.length > 0">Templates updated</h2>
-          <h2 v-else>Nothing to review</h2>
-          <p v-if="applied.length === 0">
-            No flags on this trip — your templates are already in shape.
-          </p>
-        </div>
-        <IonList v-if="applied.length > 0">
-          <IonItem v-for="(entry, i) in applied" :key="i" lines="inset">
-            <IonLabel>{{ entry }}</IonLabel>
-          </IonItem>
-        </IonList>
-        <IonButton
-          expand="block"
-          class="done-button"
-          :router-link="`/trips/${tripId}`"
-          router-direction="back"
-        >
-          Done
-        </IonButton>
+      <div v-else class="empty" data-testid="m14-empty">
+        <IonIcon :icon="checkmarkCircleOutline" class="empty-icon" />
+        <p>{{ t('review.empty') }}</p>
+      </div>
+
+      <template v-if="appliedCount > 0">
+        <h2 class="section-title jp-eyebrow">{{ t('review.appliedHead', { n: appliedCount }) }}</h2>
+        <p class="jp-card summary" data-testid="m14-summary">
+          {{ t('review.appliedSummary', { n: appliedCount }) }}
+        </p>
       </template>
     </IonContent>
   </IonPage>
 </template>
 
 <style scoped>
-.proposal-card {
-  margin-top: 12px;
+.intro {
+  margin: 4px 2px 14px;
+  font-size: var(--jp-text-sm);
+  color: var(--ct-subtext0);
 }
 
-.card-icon {
-  font-size: 28px;
-  color: var(--ion-color-primary);
+.section-title {
+  margin: 14px 2px 8px;
 }
 
-.card-text {
-  font-size: 1.05rem;
-  margin: 8px 0 4px;
+.row {
+  padding: 12px 14px;
+  margin-bottom: 10px;
 }
 
-.card-actions {
-  margin-top: 16px;
+.row.decided {
+  opacity: 0.55;
+}
+
+.head {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 10px;
 }
 
-.done {
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-size: var(--jp-text-md);
+  font-weight: var(--jp-weight-semibold);
+  color: var(--ct-text);
+}
+
+.why {
+  font-size: var(--jp-text-sm);
+  color: var(--ct-subtext0);
+}
+
+.chip {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--jp-r-pill);
+  background: var(--ct-surface0);
+  font-size: var(--jp-text-xs);
+  color: var(--ct-subtext1);
+}
+
+.chip.unused {
+  border-color: color-mix(in srgb, var(--ct-mauve) 50%, transparent);
+  color: var(--ct-mauve);
+}
+
+/* Caution, not error: the item was forgotten, nothing is broken (G-11). */
+.chip.missing {
+  border-color: color-mix(in srgb, var(--ct-yellow) 50%, transparent);
+  color: var(--ct-yellow);
+}
+
+.chip.applied {
+  border-color: color-mix(in srgb, var(--jp-done) 50%, transparent);
+  color: var(--jp-done);
+}
+
+.target {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: var(--jp-text-sm);
+  color: var(--ct-subtext0);
+}
+
+.target > span {
+  white-space: nowrap;
+}
+
+.target ion-select {
+  min-height: 0;
+  --padding-top: 2px;
+  --padding-bottom: 2px;
+}
+
+.blast {
+  margin: 6px 0 0;
+  font-size: var(--jp-text-xs);
+  color: var(--ct-subtext0);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.actions ion-button:first-child {
+  flex: 1;
+}
+
+.actions ion-button:nth-child(2) {
+  flex: 1;
+}
+
+.empty {
   text-align: center;
   margin-top: 32px;
+  color: var(--ct-subtext0);
 }
 
-.done-icon {
-  font-size: 48px;
+.empty-icon {
+  font-size: var(--jp-icon-xl);
+  color: var(--jp-done);
 }
 
-.done-button {
-  margin-top: 24px;
+.summary {
+  padding: 10px 14px;
+  font-size: var(--jp-text-sm);
+  color: var(--ct-subtext0);
 }
 </style>

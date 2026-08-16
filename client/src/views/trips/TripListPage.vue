@@ -27,7 +27,7 @@ import {
 } from '@ionic/vue'
 import {
   addOutline,
-  airplaneOutline,
+  trainOutline,
   albumsOutline,
   archiveOutline,
   cloudUploadOutline,
@@ -46,6 +46,11 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import SearchRow from '@/components/global/SearchRow.vue'
+import { tripOrderKey } from '@/domain/trips'
+import { t } from '@/i18n'
+import { useContextSearch } from '@/composables/useContextSearch'
+import { setHeaderActions } from '@/composables/useHeaderActions'
 
 const store = useTripStore()
 const masterStore = useMasterStore()
@@ -66,7 +71,43 @@ function matchesFilter(trip: Trip): boolean {
   }
 }
 
-const filteredTrips = computed(() => store.tripList.filter(matchesFilter))
+/**
+ * Dev only (see src/dev/sampleTrip.ts): `import.meta.env.DEV` is false in
+ * every build, so both the button and the module behind it are gone from
+ * a production bundle. This is not Demo Mode returning.
+ */
+const isDev = import.meta.env.DEV
+
+async function addSampleTrip() {
+  const { seedSampleTrip } = await import('@/dev/sampleTrip')
+  router.push(`/trips/${seedSampleTrip(orchestrator)}`)
+}
+
+const {
+  term: search,
+  isOpen: searchOpen,
+  toggle: toggleSearch,
+  action,
+  matches,
+} = useContextSearch()
+setHeaderActions(() => [action()])
+
+/** The temporal line under a trip's name, whatever it actually knows. */
+function tripWhen(trip: Trip): string {
+  if (trip.start_date && trip.end_date) return `${trip.start_date} – ${trip.end_date}`
+  if (trip.end_date) return t('trip.until', { date: trip.end_date })
+  if (trip.start_date) return t('trip.from', { date: trip.start_date })
+  return String(trip.year)
+}
+
+const filteredTrips = computed(() =>
+  store.tripList
+    .filter((trip) => matchesFilter(trip) && matches(trip.name))
+    // Newest first (Addendum, M2 default ordering). The key survives a
+    // trip that has only its year (FR-2.1b), which a raw date compare did
+    // not — it put such a trip wherever the sort happened to leave it.
+    .sort((a, b) => tripOrderKey(b).localeCompare(tripOrderKey(a))),
+)
 const isEmpty = computed(() => filteredTrips.value.length === 0)
 
 /**
@@ -99,9 +140,11 @@ function progressPercent(trip: Trip): number {
 
 function progressColor(trip: Trip): string {
   const pct = progressPercent(trip)
-  if (pct >= 100) return 'var(--ion-color-success)'
-  if (pct >= 50) return 'var(--ion-color-primary)'
-  return 'var(--ion-color-warning)'
+  // Headway only ever runs the done ramp (G-11). It used to end at
+  // peach below half, which now reads as the brand shouting at you for
+  // not having packed yet.
+  if (pct >= 100) return 'var(--jp-done)'
+  return 'var(--jp-done-far)'
 }
 
 function itemSummary(trip: Trip): string {
@@ -192,9 +235,17 @@ async function handleRefresh(event: CustomEvent) {
         <IonRefresherContent />
       </IonRefresher>
 
+      <SearchRow
+        v-if="searchOpen || search"
+        v-model="search"
+        testid="trips-search-input"
+        :placeholder="t('trips.searchPlaceholder')"
+        @close="toggleSearch"
+      />
+
       <div class="ion-padding">
         <div class="title-row">
-          <h1 class="page-title">Trips</h1>
+          <h1 class="page-title jp-page-title">Trips</h1>
           <div>
             <!-- M18: portable trip import (FR-18.4) -->
             <IonButton
@@ -218,13 +269,13 @@ async function handleRefresh(event: CustomEvent) {
         </div>
 
         <IonSegment :value="filter" @ionChange="onFilterChange">
-          <IonSegmentButton value="active">
+          <IonSegmentButton value="active" data-testid="trips-filter-active">
             <IonLabel>Active</IonLabel>
           </IonSegmentButton>
-          <IonSegmentButton value="planned">
+          <IonSegmentButton value="planned" data-testid="trips-filter-planned">
             <IonLabel>Planned</IonLabel>
           </IonSegmentButton>
-          <IonSegmentButton value="archived">
+          <IonSegmentButton value="archived" data-testid="trips-filter-archived">
             <IonLabel>Archived</IonLabel>
           </IonSegmentButton>
         </IonSegment>
@@ -232,14 +283,24 @@ async function handleRefresh(event: CustomEvent) {
 
       <!-- Empty state (G-7) -->
       <div v-if="isEmpty" class="empty-state">
-        <IonIcon :icon="airplaneOutline" class="empty-icon" />
+        <IonIcon :icon="trainOutline" class="empty-icon" />
         <p v-if="filter === 'active'">No active trips</p>
         <p v-else-if="filter === 'planned'">No planned trips</p>
         <p v-else>No archived trips</p>
+        <!-- Dev only, and gone from any build — see addSampleTrip. -->
+        <IonButton
+          v-if="isDev"
+          size="small"
+          fill="outline"
+          data-testid="dev-sample-trip"
+          @click="addSampleTrip"
+        >
+          Beispielreise anlegen (Dev)
+        </IonButton>
       </div>
 
       <!-- Trip list, grouped by series (FR-13.1) -->
-      <IonList v-else>
+      <IonList v-else class="trip-list">
         <template v-for="group in groupedTrips" :key="group.seriesId ?? 'none'">
           <!-- Series header → M16 -->
           <IonItem
@@ -255,84 +316,89 @@ async function handleRefresh(event: CustomEvent) {
               <p>{{ group.trips.length }} trip{{ group.trips.length === 1 ? '' : 's' }}</p>
             </IonLabel>
           </IonItem>
-          <IonItemSliding v-for="trip in group.trips" :key="trip.id">
-            <IonItem
-              button
-              :router-link="`/trips/${trip.id}`"
-              :class="{ archived: trip.status === 'archived' }"
-            >
-              <div slot="start" class="progress-ring">
-                <svg viewBox="0 0 36 36" class="ring-svg">
-                  <circle class="ring-bg" cx="18" cy="18" r="15.5" fill="none" stroke-width="3" />
-                  <circle
-                    class="ring-fg"
-                    cx="18"
-                    cy="18"
-                    r="15.5"
-                    fill="none"
-                    stroke-width="3"
-                    :stroke="progressColor(trip)"
-                    :stroke-dasharray="`${progressPercent(trip)} 100`"
-                    stroke-linecap="round"
-                  />
-                  <text x="18" y="20.5" class="ring-text">{{ progressPercent(trip) }}%</text>
-                </svg>
-              </div>
-              <IonLabel>
-                <h2>{{ trip.name }}</h2>
-                <p>
-                  <template v-if="trip.start_date">
-                    {{ trip.start_date }} &ndash; {{ trip.end_date }}
-                  </template>
-                  <template v-else>until {{ trip.end_date }}</template>
-                </p>
-                <p>{{ itemSummary(trip) }}</p>
-              </IonLabel>
-            </IonItem>
+          <div class="jp-card trip-card">
+            <IonItemSliding v-for="trip in group.trips" :key="trip.id">
+              <IonItem
+                button
+                :data-testid="`trip-row-${trip.name}`"
+                :router-link="`/trips/${trip.id}`"
+                :class="{ archived: trip.status === 'archived' }"
+              >
+                <div slot="start" class="progress-ring">
+                  <svg viewBox="0 0 36 36" class="ring-svg">
+                    <circle class="ring-bg" cx="18" cy="18" r="15.5" fill="none" stroke-width="3" />
+                    <circle
+                      class="ring-fg"
+                      cx="18"
+                      cy="18"
+                      r="15.5"
+                      fill="none"
+                      stroke-width="3"
+                      :stroke="progressColor(trip)"
+                      :stroke-dasharray="`${progressPercent(trip)} 100`"
+                      stroke-linecap="round"
+                    />
+                    <!-- font-size is an SVG attribute, not CSS: inside viewBox="0 0 36 36"
+                       it is 9 *user units*, a proportion of the ring, and a px token
+                       from the type scale would be meaningless here. -->
+                    <text x="18" y="20.5" font-size="9" class="ring-text">
+                      {{ progressPercent(trip) }}%
+                    </text>
+                  </svg>
+                </div>
+                <IonLabel>
+                  <h2>{{ trip.name }}</h2>
+                  <!-- FR-2.1b: a trip may have both dates, one, or neither.
+                     With neither, its year is what it is called by. -->
+                  <p data-testid="trip-when">{{ tripWhen(trip) }}</p>
+                  <p>{{ itemSummary(trip) }}</p>
+                </IonLabel>
+              </IonItem>
 
-            <IonItemOptions side="end">
-              <!-- FR-18.3: portable YAML export with progress choice -->
-              <IonItemOption color="tertiary" aria-label="Export trip" @click="exportTrip(trip)">
-                <IonIcon slot="icon-only" :icon="downloadOutline" />
-              </IonItemOption>
-              <!-- FR-4.5: member management (Share) -->
-              <IonItemOption
-                v-if="collaborative"
-                color="secondary"
-                aria-label="Share"
-                @click="$router.push(`/trips/${trip.id}/members`)"
-              >
-                <IonIcon slot="icon-only" :icon="peopleOutline" />
-              </IonItemOption>
-              <!-- FR-12.1: clone from archive -->
-              <IonItemOption
-                v-if="trip.status === 'archived'"
-                color="primary"
-                aria-label="Clone trip"
-                @click="$router.push(`/trips/${trip.id}/clone`)"
-              >
-                <IonIcon slot="icon-only" :icon="copyOutline" />
-              </IonItemOption>
-              <!-- Archive → M14 review (FR-9.2) -->
-              <IonItemOption
-                v-else-if="trip.status === 'active'"
-                color="medium"
-                aria-label="Archive trip"
-                @click="archiveTrip(trip.id)"
-              >
-                <IonIcon slot="icon-only" :icon="archiveOutline" />
-              </IonItemOption>
-              <!-- Delete (destructive, Owner-only FR-4.5) -->
-              <IonItemOption
-                v-if="canDelete(trip)"
-                color="danger"
-                aria-label="Delete trip"
-                @click="deleteTrip(trip)"
-              >
-                <IonIcon slot="icon-only" :icon="trashOutline" />
-              </IonItemOption>
-            </IonItemOptions>
-          </IonItemSliding>
+              <IonItemOptions side="end">
+                <!-- FR-18.3: portable YAML export with progress choice -->
+                <IonItemOption color="tertiary" aria-label="Export trip" @click="exportTrip(trip)">
+                  <IonIcon slot="icon-only" :icon="downloadOutline" />
+                </IonItemOption>
+                <!-- FR-4.5: member management (Share) -->
+                <IonItemOption
+                  v-if="collaborative"
+                  color="secondary"
+                  aria-label="Share"
+                  @click="$router.push(`/trips/${trip.id}/members`)"
+                >
+                  <IonIcon slot="icon-only" :icon="peopleOutline" />
+                </IonItemOption>
+                <!-- FR-12.1: clone from archive -->
+                <IonItemOption
+                  v-if="trip.status === 'archived'"
+                  color="primary"
+                  aria-label="Clone trip"
+                  @click="$router.push(`/trips/${trip.id}/clone`)"
+                >
+                  <IonIcon slot="icon-only" :icon="copyOutline" />
+                </IonItemOption>
+                <!-- Archive → M14 review (FR-9.2) -->
+                <IonItemOption
+                  v-else-if="trip.status === 'active'"
+                  color="medium"
+                  aria-label="Archive trip"
+                  @click="archiveTrip(trip.id)"
+                >
+                  <IonIcon slot="icon-only" :icon="archiveOutline" />
+                </IonItemOption>
+                <!-- Delete (destructive, Owner-only FR-4.5) -->
+                <IonItemOption
+                  v-if="canDelete(trip)"
+                  color="danger"
+                  aria-label="Delete trip"
+                  @click="deleteTrip(trip)"
+                >
+                  <IonIcon slot="icon-only" :icon="trashOutline" />
+                </IonItemOption>
+              </IonItemOptions>
+            </IonItemSliding>
+          </div>
         </template>
       </IonList>
 
@@ -348,8 +414,6 @@ async function handleRefresh(event: CustomEvent) {
 
 <style scoped>
 .page-title {
-  font-size: 1.8rem;
-  font-weight: 700;
   margin: 16px 0 16px;
 }
 
@@ -370,7 +434,7 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 .empty-icon {
-  font-size: 64px;
+  font-size: var(--jp-icon-2xl);
   margin-bottom: 16px;
 }
 
@@ -378,9 +442,31 @@ async function handleRefresh(event: CustomEvent) {
   opacity: 0.6;
 }
 
+/* The list is scaffolding now, not a surface: each series is its own card
+   on the page plane (G-14), so the list itself must not paint one. */
+.trip-list {
+  background: transparent;
+  padding: 0 8px;
+}
+
+.trip-card {
+  margin-bottom: 12px;
+}
+
+/* Rows inside a card still need a seam between them: the card gives the
+   group an edge, not its entries. The last one's line is the card's own
+   bottom edge, so Ionic's is removed — `ion-list` does this itself for a
+   direct child, which a row inside a card is not. */
+.trip-card ion-item-sliding:last-child ion-item {
+  --inner-border-width: 0;
+}
+
+/* A series label belongs *above* its card, the way the concept prototype
+   sets it — a header row inside the card would read as the first trip. */
 .series-header {
-  --background: var(--ion-color-light, #f4f5f8);
-  font-weight: 600;
+  --background: transparent;
+  --padding-start: 4px;
+  font-weight: var(--jp-weight-semibold);
 }
 
 /* Progress ring */
@@ -405,7 +491,6 @@ async function handleRefresh(event: CustomEvent) {
 }
 
 .ring-text {
-  font-size: 9px;
   text-anchor: middle;
   fill: var(--ion-text-color);
   transform: rotate(90deg);

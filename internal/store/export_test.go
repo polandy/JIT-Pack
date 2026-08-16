@@ -14,9 +14,12 @@ func TestExportTemplate(t *testing.T) {
 	// Seed a user, items, template, and template_items.
 	for _, q := range []string{
 		`INSERT INTO users (id, oidc_subject, display_name) VALUES ('u1', 'auth|u1', 'Alice')`,
-		`INSERT INTO categories (id, name) VALUES ('cat1', 'Toiletries')`,
-		`INSERT INTO items (id, name, category_id) VALUES ('i1', 'Toothbrush', 'cat1')`,
-		`INSERT INTO items (id, name, category_id) VALUES ('i2', 'Sunscreen', 'cat1')`,
+		`INSERT INTO tags (id, name) VALUES ('cat1', 'Toiletries')`,
+		`INSERT INTO items (id, name) VALUES ('i1', 'Toothbrush')`,
+		`INSERT INTO items (id, name) VALUES ('i2', 'Sunscreen')`,
+		// The tag is the item's primary one (FR-24.2) — position 0.
+		`INSERT INTO item_tags (id, item_id, tag_id, position) VALUES ('it1', 'i1', 'cat1', 0)`,
+		`INSERT INTO item_tags (id, item_id, tag_id, position) VALUES ('it2', 'i2', 'cat1', 0)`,
 		`INSERT INTO templates (id, owner_id, name) VALUES ('t1', 'u1', 'Base Travel')`,
 		`INSERT INTO template_items (id, template_id, item_id, quantity, assignment, conditions)
 		 VALUES ('ti1', 't1', 'i1', 1, 'per_person', NULL)`,
@@ -129,7 +132,7 @@ func TestExportTrip(t *testing.T) {
 
 	for _, q := range []string{
 		`INSERT INTO users (id, oidc_subject, display_name) VALUES ('u1', 'auth|u1', 'Alice')`,
-		`INSERT INTO trips (id, name, start_date, end_date) VALUES ('trip1', 'Summer 2026', '2026-07-01', '2026-07-10')`,
+		`INSERT INTO trips (id, name, year, start_date, end_date) VALUES ('trip1', 'Summer 2026', 2026, '2026-07-01', '2026-07-10')`,
 		`INSERT INTO trip_members (trip_id, user_id, role) VALUES ('trip1', 'u1', 'owner')`,
 		`INSERT INTO travelers (id, trip_id, name) VALUES ('trav1', 'trip1', 'Andy')`,
 		`INSERT INTO travelers (id, trip_id, name) VALUES ('trav2', 'trip1', 'Lisa')`,

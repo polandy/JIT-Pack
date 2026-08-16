@@ -9,14 +9,13 @@ import { generateTripItems, type GenerationInput } from '../instantiate'
 import type { MasterItem, Template, TemplateItem } from '@/types/domain'
 
 function template(id: string, name: string): Template {
-  return { id, owner_id: 'user-a', name }
+  return { id, owner_id: 'user-a', name, kind: 'template' }
 }
 
 function masterItem(id: string, name: string, extra: Partial<MasterItem> = {}): MasterItem {
   return {
     id,
     name,
-    category_id: null,
     weight_grams: 100,
     value_cents: null,
     ...extra,

@@ -18,6 +18,12 @@ import { defineConfig, devices } from '@playwright/test'
  * backend-free smoke path (M19 + Local Mode M1).
  */
 
+/**
+ * The width the concept prototype is drawn at, and the one every design
+ * decision in it was made against. Baselines guard it first (ADR-013).
+ */
+const MOBILE_VIEWPORT = { width: 390, height: 844 }
+
 const PORT = Number(process.env.E2E_PORT ?? 4173)
 const BASE_URL = `http://localhost:${PORT}`
 
@@ -41,9 +47,62 @@ export default defineConfig({
   },
 
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    /*
+     * The behaviour projects ignore the baselines explicitly. Per project,
+     * not globally: a global `testIgnore` also hides the file from the
+     * visual projects below, which then find nothing to run — and report
+     * that as an error rather than as a pass, which is how this was caught.
+     */
+    {
+      name: 'chromium',
+      testIgnore: '**/visual.spec.ts',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'webkit',
+      testIgnore: '**/visual.spec.ts',
+      use: { ...devices['Desktop Safari'] },
+    },
+    /*
+     * Visual baselines (ADR-013). Excluded from the default run — invoked
+     * by `make visual`, which supplies `--project=visual-*` — because a
+     * baseline check belongs to the maintainer's review loop, not to
+     * every `npm run test:e2e`.
+     *
+     * Chromium only, and inside the digest-pinned Playwright image on
+     * both sides, so local and CI render in the same userland. The
+     * reasoning, and the costs, are in ADR-013.
+     *
+     * The spec itself declares `reducedMotion` — see the note there for
+     * why that is load-bearing rather than tidy.
+     */
+    {
+      name: 'visual-mobile',
+      testMatch: '**/visual.spec.ts',
+      use: { ...devices['Desktop Chrome'], viewport: MOBILE_VIEWPORT },
+    },
+    {
+      name: 'visual-desktop',
+      testMatch: '**/visual.spec.ts',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 900 } },
+    },
   ],
+
+  /*
+   * Baselines are pixel data, so the tolerances are the whole contract.
+   * `maxDiffPixelRatio` rather than `threshold` alone: a handful of
+   * antialiased edge pixels is not a design change, and a suite that
+   * calls it one gets ignored within a week (ADR-013, driver 1).
+   */
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.002,
+      animations: 'disabled',
+      // Ionic's tap ripple and the pack-out are both mid-flight artefacts
+      // that would make every run differ from every other.
+      caret: 'hide',
+    },
+  },
 
   // Build once, then serve the static bundle. `vite preview` needs a
   // prior `npm run build`; CI builds the client in an earlier step.

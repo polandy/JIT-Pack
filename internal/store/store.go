@@ -41,8 +41,9 @@ var syncableColumns = map[string]map[string]bool{
 		"outbound_packed",
 		// Listed so the server's own stamp can be persisted through the
 		// push path; stampActor discards any client-sent value first
-		// (FR-25.19, invariant 3).
-		"packed_by_user_id",
+		// (FR-25.19, invariant 3). packed_at is the same record's time
+		// (FR-25.17) and goes through the same gate.
+		"packed_by_user_id", "packed_at",
 	),
 	// profile is gone with FR-25.9 (migration 018) — a client still
 	// sending it is rejected rather than silently ignored.
@@ -57,11 +58,21 @@ var syncableColumns = map[string]map[string]bool{
 		"trip_id", "trip_item_id", "author_id", "body",
 		"is_task", "task_state",
 	),
-	"categories": toSet(
+	// Renamed from `categories` by migration 022 (ADR-014): an item carries
+	// a set of these, not one of them.
+	"tags": toSet(
 		"name", "sort_order",
 	),
+	// One assignment per row so each merges on its own (NFR-4.2a); a JSON
+	// set on the item would be a single field and lose one of two
+	// concurrent edits. position 0 is the primary tag (FR-24.2).
+	"item_tags": toSet(
+		"item_id", "tag_id", "position",
+	),
+	// category_id is gone with FR-24.1 (migration 022) — a client still
+	// sending it is rejected rather than silently ignored.
 	"items": toSet(
-		"name", "category_id", "weight_grams", "value_cents",
+		"name", "weight_grams", "value_cents",
 		"created_by",
 		"image_hash",
 	),
@@ -83,7 +94,7 @@ var syncableColumns = map[string]map[string]bool{
 		"template_item_id", "task",
 	),
 	"trips": toSet(
-		"series_id", "name", "start_date", "end_date", "status",
+		"series_id", "name", "year", "start_date", "end_date", "status",
 		"attributes", "imported", "created_by",
 	),
 	"trip_series": toSet(
@@ -108,7 +119,7 @@ var syncableColumns = map[string]map[string]bool{
 // the wrong change feed.
 var (
 	tripPartitionTables   = toSet("trip_items", "travelers", "containers", "comments")
-	masterPartitionTables = toSet("categories", "items", "templates", "template_items",
+	masterPartitionTables = toSet("tags", "item_tags", "items", "templates", "template_items",
 		"template_includes", "template_item_tasks", "trips",
 		"trip_series", "destination_profiles", "destination_checklist_items", "trip_members",
 		"item_dependencies")

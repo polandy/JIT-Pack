@@ -34,10 +34,7 @@ test('M19: the server URL is pre-filled with the page origin @smoke @m19', async
 
 // E2E-G7-01 / M1 (Local): a seeded Local Mode boots straight into the
 // Dashboard, whose empty state offers the single "Plan a trip" CTA.
-test('M1: local mode boots into an empty dashboard @smoke @local', async ({
-  page,
-  seedMode,
-}) => {
+test('M1: local mode boots into an empty dashboard @smoke @local', async ({ page, seedMode }) => {
   await seedMode({ mode: 'local' })
   await page.goto('/')
 

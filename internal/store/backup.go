@@ -27,10 +27,13 @@ func (s *Store) ExportFull(ctx context.Context, userID string) (FullExport, erro
 		query string
 		args  []any
 	}{
-		{"categories", `SELECT * FROM categories`, nil},
+		{"tags", `SELECT * FROM tags`, nil},
 		{"items", `SELECT * FROM items`, nil},
+		// The assignments travel with both — an item exported without them
+		// would restore untagged and vanish from every M9 grouping.
+		{"item_tags", `SELECT * FROM item_tags`, nil},
 		// Templates are instance-wide master data (FR-1.6 MVP), so they
-		// export unfiltered like categories and items.
+		// export unfiltered like tags and items.
 		{"templates", `SELECT * FROM templates`, nil},
 		{"template_items", `SELECT * FROM template_items`, nil},
 		{"template_includes", `SELECT * FROM template_includes`, nil},

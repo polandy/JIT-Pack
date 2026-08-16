@@ -27,7 +27,7 @@ func newSingleUserTestServer(t *testing.T) (*httptest.Server, string) {
 		t.Fatalf("EnsureLocalSingleUser: %v", err)
 	}
 	if _, err := st.DB().Exec(
-		`INSERT INTO trips (id, name, start_date, end_date) VALUES ('trip-samedan', 'Samedan 2026', '2026-07-10', '2026-07-20')`,
+		`INSERT INTO trips (id, name, year, start_date, end_date) VALUES ('trip-samedan', 'Samedan 2026', 2026, '2026-07-10', '2026-07-20')`,
 	); err != nil {
 		t.Fatalf("seed trip: %v", err)
 	}

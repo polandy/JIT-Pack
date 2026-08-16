@@ -59,7 +59,7 @@ func TestOpen_ReopenFileDatabase(t *testing.T) {
 
 func TestApplyMasterMutation_InsertWritesMasterChangeLog(t *testing.T) {
 	s := openTestStore(t)
-	mustExec(t, s, `INSERT INTO categories (id, name) VALUES ('cat-1', 'Kleidung')`)
+	mustExec(t, s, `INSERT INTO tags (id, name) VALUES ('cat-1', 'Kleidung')`)
 	mustExec(t, s, `INSERT INTO items (id, name) VALUES ('item-m1', 'Socken')`)
 	mustExec(t, s, `INSERT INTO templates (id, owner_id, name) VALUES ('tpl-seed', ?, 'Seed')`, testUser)
 
@@ -69,8 +69,8 @@ func TestApplyMasterMutation_InsertWritesMasterChangeLog(t *testing.T) {
 		verify func(t *testing.T)
 	}{
 		{
-			name: "categories",
-			m: masterMut(sync.OpInsert, "categories", "cat-2", "mm-cat",
+			name: "tags",
+			m: masterMut(sync.OpInsert, "tags", "cat-2", "mm-cat",
 				map[string]any{"name": "Technik", "sort_order": 2}, "0000000001000-0000-aaaaaaaa"),
 		},
 		{
@@ -113,7 +113,7 @@ func TestApplyMasterMutation_InsertWritesMasterChangeLog(t *testing.T) {
 		{
 			name: "trips forces created_by and owner membership",
 			m: masterMut(sync.OpInsert, "trips", "trip-new", "mm-trip",
-				map[string]any{"name": "Engadin", "end_date": "2026-08-01", "status": "planning"}, "0000000001004-0000-aaaaaaaa"),
+				map[string]any{"name": "Engadin", "year": 2026, "end_date": "2026-08-01", "status": "planning"}, "0000000001004-0000-aaaaaaaa"),
 			verify: func(t *testing.T) {
 				var createdBy string
 				if err := s.db.QueryRow(`SELECT created_by FROM trips WHERE id = 'trip-new'`).Scan(&createdBy); err != nil {
@@ -229,7 +229,7 @@ func TestApplyMasterMutation_TripAuthorization(t *testing.T) {
 	s := openTestStore(t)
 	seedUserB(t, s)
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trips", "trip-auth", "ta-1",
-		map[string]any{"name": "Engadin", "end_date": "2026-08-01"}, "0000000001000-0000-aaaaaaaa"))
+		map[string]any{"name": "Engadin", "year": 2026, "end_date": "2026-08-01"}, "0000000001000-0000-aaaaaaaa"))
 
 	// Non-member update → rejected
 	res := applyMaster(t, s, testUserB, masterMut(sync.OpUpsert, "trips", "trip-auth", "ta-2",
@@ -428,12 +428,12 @@ func TestPullMaster_VisibilityPerUser(t *testing.T) {
 	s := openTestStore(t)
 	seedUserB(t, s)
 	hlc := "0000000001000-0000-aaaaaaaa"
-	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "categories", "cat-v", "pv-1",
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "tags", "cat-v", "pv-1",
 		map[string]any{"name": "Kleidung"}, hlc))
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "templates", "tpl-andy", "pv-2",
 		map[string]any{"name": "Andys Basis"}, hlc))
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "trips", "trip-v", "pv-4",
-		map[string]any{"name": "Nur Andy", "end_date": "2026-08-01"}, hlc))
+		map[string]any{"name": "Nur Andy", "year": 2026, "end_date": "2026-08-01"}, hlc))
 
 	pull := func(userID string) map[string]bool {
 		t.Helper()
@@ -452,7 +452,7 @@ func TestPullMaster_VisibilityPerUser(t *testing.T) {
 	// membership-gated (FR-4.5) — that is the visibility line that remains.
 	gotB := pull(testUserB)
 	for id, want := range map[string]bool{
-		"categories/cat-v":   true,
+		"tags/cat-v":         true,
 		"templates/tpl-andy": true,
 		"trips/trip-v":       false,
 	} {
@@ -462,7 +462,7 @@ func TestPullMaster_VisibilityPerUser(t *testing.T) {
 	}
 
 	gotA := pull(testUser)
-	for _, id := range []string{"categories/cat-v", "templates/tpl-andy", "trips/trip-v"} {
+	for _, id := range []string{"tags/cat-v", "templates/tpl-andy", "trips/trip-v"} {
 		if !gotA[id] {
 			t.Errorf("owner must see %s", id)
 		}
@@ -476,7 +476,7 @@ func TestPullMaster_ExcludesTripPartition(t *testing.T) {
 		map[string]any{"trip_id": testTrip, "name": "Socken"}, "0000000001000-0000-aaaaaaaa")); err != nil {
 		t.Fatal(err)
 	}
-	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "categories", "cat-x", "px-2",
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "tags", "cat-x", "px-2",
 		map[string]any{"name": "Technik"}, "0000000001001-0000-aaaaaaaa"))
 
 	master, err := s.PullMaster(ctx, testUser, 0, 100)
@@ -494,7 +494,7 @@ func TestPullMaster_ExcludesTripPartition(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, c := range trip.Changes {
-		if c.Table == "categories" {
+		if c.Table == "tags" {
 			t.Error("trip pull leaked master partition change")
 		}
 	}
@@ -569,7 +569,7 @@ func TestApplyMasterMutation_IncludeEnforcesTwoLevelRule(t *testing.T) {
 func TestPullMaster_PaginationSignalsHasMore(t *testing.T) {
 	s := openTestStore(t)
 	for i := range 3 {
-		applyMaster(t, s, testUser, masterMut(sync.OpInsert, "categories", fmt.Sprintf("cat-p%d", i),
+		applyMaster(t, s, testUser, masterMut(sync.OpInsert, "tags", fmt.Sprintf("cat-p%d", i),
 			fmt.Sprintf("mm-page-%d", i), map[string]any{"name": fmt.Sprintf("Kat %d", i)},
 			fmt.Sprintf("000000000500%d-0000-aaaaaaaa", i)))
 	}

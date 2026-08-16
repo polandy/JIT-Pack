@@ -6,8 +6,13 @@ export interface Trip {
   id: string
   name: string
   status: TripStatus
+  /**
+   * The one required temporal fact (FR-2.1b). A trip is planned long
+   * before its dates exist, and demanding a date meant inventing one.
+   */
+  year: number
   start_date: string | null
-  end_date: string
+  end_date: string | null
   duration_days: number | null
   series_id: string | null
   series_name: string | null
@@ -54,6 +59,12 @@ export interface TripItem {
   packer_user_id: string | null
   /** Record of who actually packed it; server-stamped, never picked (FR-25.19). */
   packed_by_user_id: string | null
+  /**
+   * When it was packed (FR-25.17). Null on rows packed before migration
+   * 020 — the stamp then names the packer without a time rather than
+   * inventing one.
+   */
+  packed_at: string | null
   container_id: string | null
   packing_now_by: string | null
   packing_now_at: string | null
@@ -63,6 +74,17 @@ export interface TripItem {
 }
 
 export type GroupBy = 'category' | 'container' | 'person' | 'status'
+
+/** The axes M4's filter panel offers, in panel order (FR-25.11b). */
+export type FacetKey = 'person' | 'category' | 'mode' | 'container' | 'flag'
+
+/**
+ * The selected values per facet (FR-25.11c). An empty array means *no
+ * restriction on that axis*, never "show nothing". Values are strings
+ * throughout so the whole filter survives a round trip through session
+ * storage (FR-25.18).
+ */
+export type Facets = Record<FacetKey, string[]>
 
 /** Computed stats for a trip's packing list. */
 export interface TripKPIs {
@@ -138,16 +160,34 @@ export interface ItemTodo {
 
 // --- Master data ---
 
-export interface Category {
+/**
+ * FR-24.1: a label an item can carry. Tags serve as categories *and* as
+ * free-form labels — there is no separate taxonomy and no tag-management
+ * screen; typing an unmatched name in M10 creates one (ADR-014).
+ */
+export interface Tag {
   id: string
   name: string
   sort_order: number
 }
 
+/**
+ * FR-24.1: one item↔tag assignment. Its own row rather than a set on the
+ * item, so two people tagging the same item offline both keep their edit
+ * (NFR-4.2a merges per row, see ADR-014).
+ */
+export interface ItemTag {
+  id: string
+  item_id: string
+  tag_id: string
+  /** 0 = the item's *primary* tag, the single key M9 groups by (FR-24.2). */
+  position: number
+}
+
 export interface MasterItem {
   id: string
   name: string
-  category_id: string | null
+  /** Denormalised for display only — the trip row's grouping snapshot. */
   category_name?: string
   weight_grams: number | null
   value_cents: number | null
@@ -156,12 +196,39 @@ export interface MasterItem {
   image_hash?: string | null
 }
 
+/**
+ * FR-27.1/27.6: a template's scope, declared at creation and never derived
+ * from usage — a freshly created group nothing includes yet would otherwise
+ * be unclassifiable. `group` carries positions only and is includable;
+ * `template` is a Ferien-Vorlage, the thing a trip starts from.
+ */
+export type TemplateKind = 'group' | 'template'
+
 export interface Template {
   id: string
   /** FR-1.6 MVP: creator metadata only — every account may edit every
    * template, the same governance master items have (FR-22.6). */
   owner_id: string
   name: string
+  kind: TemplateKind
+}
+
+/** FR-27.1: one (Ferien-Vorlage, Gruppe) pair — groups are referenced, never copied. */
+export interface TemplateInclude {
+  id: string
+  template_id: string
+  included_template_id: string
+}
+
+/**
+ * FR-27.7: one free-text preparation task on a template position. At trip
+ * generation each task becomes an ordinary FR-7.3 prep todo on the generated
+ * trip item, so the "open prep blocks done" rule applies without a new flag.
+ */
+export interface TemplateItemTask {
+  id: string
+  template_item_id: string
+  task: string
 }
 
 // --- Trip series & destination profiles (FR-13.1/13.2) ---

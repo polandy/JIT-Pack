@@ -17,6 +17,7 @@ import type {
   MasterItem,
   Template,
   TemplateItem,
+  TemplateKind,
   Traveler,
   Trip,
   TripItem,
@@ -65,6 +66,19 @@ export interface PortableDocument {
   kind: 'template' | 'trip'
   schema_version: number
   name: string
+  /**
+   * FR-27.1: the template's own scope, distinct from `kind`, which says
+   * whether the document is a template or a trip. Absent on trips and on
+   * files written before scopes existed — those read back as `'template'`,
+   * the same default migration 016 applies.
+   */
+  scope?: TemplateKind
+  /**
+   * FR-2.1b: the trip's year. Absent in files written before it existed,
+   * where the (then required) end date carries the same information —
+   * `portableYear` resolves both cases.
+   */
+  year: number | null
   start_date: string | null
   end_date: string | null
   travelers: PortableTraveler[]
@@ -109,13 +123,21 @@ export function parsePortable(text: string): ParseResult {
     items.push(item)
   }
 
+  const rawScope = obj['scope']
+  if (rawScope !== undefined && rawScope !== 'group' && rawScope !== 'template') {
+    return { doc: null, error: `unknown scope ${JSON.stringify(rawScope)}`, newerSchema: false }
+  }
+  const scope: TemplateKind = rawScope === 'group' ? 'group' : 'template'
+
   const schemaVersion = typeof obj['schema_version'] === 'number' ? obj['schema_version'] : 1
   return {
     doc: {
       kind,
       schema_version: schemaVersion,
       name,
+      ...(kind === 'template' ? { scope } : {}),
       start_date: str(obj['start_date']),
+      year: num(obj['year']),
       end_date: str(obj['end_date']),
       travelers: toTravelers(obj['travelers']),
       containers: toContainers(obj['containers']),
@@ -185,6 +207,7 @@ export function serializeTemplate(
     kind: 'template',
     schema_version: PORTABLE_SCHEMA_VERSION,
     name: template.name,
+    scope: template.kind,
     items,
   })
 }
@@ -231,8 +254,11 @@ export function serializeTrip(args: {
     kind: 'trip',
     schema_version: PORTABLE_SCHEMA_VERSION,
     name: args.trip.name,
+    // FR-2.1b: the year always travels, the dates only when they exist —
+    // an exported file must not invent a date the trip never had.
+    year: args.trip.year,
     ...(args.trip.start_date ? { start_date: args.trip.start_date } : {}),
-    end_date: args.trip.end_date,
+    ...(args.trip.end_date ? { end_date: args.trip.end_date } : {}),
     ...(travelers.length > 0 ? { travelers } : {}),
     ...(containers.length > 0 ? { containers } : {}),
     items,
@@ -243,6 +269,12 @@ export function serializeTrip(args: {
 
 function str(v: unknown): string | null {
   return typeof v === 'string' && v !== '' ? v : null
+}
+
+/** A plausible year, or null — a garbage value must not become one. */
+function num(v: unknown): number | null {
+  const parsed = typeof v === 'number' ? v : Number(v)
+  return Number.isInteger(parsed) && parsed >= 1900 && parsed <= 2200 ? parsed : null
 }
 
 function toItem(entry: unknown): PortableItem | null {
@@ -299,4 +331,21 @@ function toContainers(v: unknown): PortableContainer[] {
     })
   }
   return out
+}
+
+/**
+ * The year to give an imported trip (FR-2.1b): the document's own field,
+ * else the year inside either date, else the year of the import — the
+ * honest answer when the file states nothing at all.
+ */
+export function portableYear(
+  doc: Pick<PortableDocument, 'year' | 'end_date' | 'start_date'>,
+): number {
+  const stated = doc.year ?? undefined
+  if (stated && stated >= 1900 && stated <= 2200) return stated
+  for (const date of [doc.end_date, doc.start_date]) {
+    const parsed = date ? Number(date.slice(0, 4)) : NaN
+    if (parsed >= 1900 && parsed <= 2200) return parsed
+  }
+  return new Date().getFullYear()
 }

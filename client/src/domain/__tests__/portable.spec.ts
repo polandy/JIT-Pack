@@ -25,7 +25,6 @@ function masterItem(id: string, name: string): MasterItem {
   return {
     id,
     name,
-    category_id: null,
     weight_grams: null,
     value_cents: null,
   }
@@ -129,11 +128,37 @@ describe('parsePortable (FR-18.5)', () => {
 })
 
 describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () => {
+  it('round-trips a group as a group (FR-27.1) — an import must not promote it', () => {
+    const group: Template = {
+      id: 'grp',
+      owner_id: 'me',
+      name: 'Makro',
+      kind: 'group',
+    }
+    const yaml = serializeTemplate(group, [], () => undefined)
+    expect(yaml).toContain('scope: group')
+    expect(parsePortable(yaml).doc?.scope).toBe('group')
+  })
+
+  it('reads a template file written before scopes existed as a Ferien-Vorlage', () => {
+    const { doc } = parsePortable('kind: template\nschema_version: 1\nname: Sommer\nitems: []\n')
+    expect(doc?.scope).toBe('template')
+  })
+
+  it('rejects an unknown scope rather than defaulting it', () => {
+    const { doc, error } = parsePortable(
+      'kind: template\nschema_version: 1\nname: Sommer\nscope: folder\nitems: []\n',
+    )
+    expect(doc).toBeNull()
+    expect(error).toContain('unknown scope')
+  })
+
   it('round-trips a template with formulas, conditions, and flags', () => {
     const template: Template = {
       id: 'tpl1',
       owner_id: 'me',
       name: 'Base Travel',
+      kind: 'template',
     }
     const items: TemplateItem[] = [
       {
@@ -189,6 +214,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
       id: 't1',
       name: 'Engadin 2026',
       status: 'active',
+      year: 2026,
       start_date: '2026-08-01',
       end_date: '2026-08-10',
       duration_days: 10,
@@ -226,6 +252,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
         assigned_traveler_id: 'tr1',
         packer_user_id: null,
         packed_by_user_id: null,
+        packed_at: null,
         container_id: 'c1',
         packing_now_by: null,
         packing_now_at: null,
@@ -241,6 +268,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
     expect(withProgress).toMatchObject({
       kind: 'trip',
       name: 'Engadin 2026',
+      year: 2026,
       start_date: '2026-08-01',
       end_date: '2026-08-10',
     })

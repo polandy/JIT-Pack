@@ -23,8 +23,15 @@ import type { PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import { dependentsOf, resolveDependencies } from '@/domain/dependencies'
 import { planClone, type CloneOptions } from '@/domain/clone'
+import {
+  pairWrites,
+  releasePartnersOnDelete,
+  unpairWrites,
+  type PairingWrite,
+} from '@/domain/containers'
 import { optimizeItemImage } from '@/lib/imageResize'
 import type { ImportPlan } from '@/domain/spreadsheet'
+import { portableYear } from '@/domain/portable'
 import type { PortableDocument, PortableItem } from '@/domain/portable'
 import type { NotificationPrefs, ServerNotification } from '@/notifications/format'
 import type { PushServerAPI } from '@/notifications/push'
@@ -41,6 +48,7 @@ import type {
   ItemTodo,
   MasterItem,
   Template,
+  TemplateKind,
   TemplateItem,
   Trip,
   TripItem,
@@ -70,8 +78,10 @@ export interface ConflictEntry {
 /** Everything the M3 wizard collected before "Create trip". */
 export interface TripWizardDraft {
   name: string
+  /** FR-2.1b: required, and the only temporal fact that is. */
+  year: number
   startDate: string | null
-  endDate: string
+  endDate: string | null
   attributes: Record<string, unknown> | null
   travelers: { name: string; linkedUserId?: string | null }[]
   /** Generated rows — template items, or companions without a template (FR-20.2). */
@@ -89,8 +99,10 @@ export interface TripWizardDraft {
 /** cloneTrip input (FR-12.2): fresh name/dates plus the carry-over options. */
 export interface CloneDraft {
   name: string
+  /** FR-2.1b: required on a clone too — a copy is a trip of its own year. */
+  year: number
   startDate: string | null
-  endDate: string
+  endDate: string | null
   options: CloneOptions
 }
 
@@ -183,6 +195,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     onEvent: onWSEvent,
   })
 
+  /** Whether another save has been queued behind the one just finished. */
+  let localWrites = 0
+  function localWritesPending(): boolean {
+    return localWrites > 0
+  }
+
   // --- Pull change routing ---
 
   function onPullChanges(changes: PullChange[]) {
@@ -198,10 +216,13 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       'trip_members',
     ])
     const masterTables = new Set([
-      'categories',
+      'tags',
+      'item_tags',
       'items',
       'templates',
       'template_items',
+      'template_includes',
+      'template_item_tasks',
       'trip_series',
       'destination_profiles',
       'destination_checklist_items',
@@ -224,7 +245,21 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     // FR-19.2: in Local Mode every applied change is durable — this is
     // the single funnel all mutations and startup loads pass through.
-    if (local) local.save(changes).catch(() => {})
+    // The indicator follows the write rather than the tap, so "on this
+    // device" means the row is *on* the device: a fire-and-forget save
+    // told the user it was safe while the transaction was still open,
+    // and a reload in that window lost the row.
+    if (local && changes.length > 0) {
+      localWrites += 1
+      syncStatus.setSyncing()
+      local
+        .save(changes)
+        .finally(() => (localWrites -= 1))
+        .then(() => {
+          if (!localWritesPending()) syncStatus.setLocal()
+        })
+        .catch(() => syncStatus.setOffline())
+    }
   }
 
   // --- WebSocket event handling ---
@@ -448,6 +483,35 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         id: item.id,
         deleted: false,
         row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  /**
+   * Put a row back the way FR-25.2's undo found it.
+   *
+   * Takes the id rather than the row, and re-reads the current one: by the
+   * time undo fires, the row on screen is the *packed* one, and building an
+   * optimistic patch from the caller's stale snapshot would also revert
+   * anything that landed in between — a packer avatar, a sync from another
+   * device. Only `packed_count` and `state` are restored, which is exactly
+   * what the pack changed.
+   */
+  function restorePack(tripId: string, itemId: string, packedCount: number, state: string) {
+    const current = tripStore.getItems(tripId).find((row) => row.id === itemId)
+    // Gone between the pack and the undo — deleted here or on another
+    // device. Doing nothing is the correct outcome rather than a swallowed
+    // one: re-upserting would resurrect a row somebody removed on purpose.
+    if (!current) return
+    const mut = mutations.packItem(itemId, packedCount, state)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0,
+        table: 'trip_items',
+        id: itemId,
+        deleted: false,
+        row: { ...itemRow(current), ...mut.fields },
       },
     })
   }
@@ -686,6 +750,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     const { mutation: tripMut, id: tripId } = mutations.createTrip(
       draft.name,
+      draft.year,
       draft.startDate,
       draft.endDate,
       { attributes: draft.attributes, seriesId },
@@ -803,6 +868,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     const { mutation: tripMut, id: tripId } = mutations.createTrip(
       draft.name,
+      draft.year,
       draft.startDate,
       draft.endDate,
       { seriesId: source.series_id, attributes: source.attributes },
@@ -918,35 +984,55 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * mutation replay is idempotent — there is no server-side transaction
    * across a push batch.
    */
+  /**
+   * Record one item↔tag assignment on the import path, which enqueues
+   * directly rather than through enqueueAndDrain: an import lands many
+   * mutations and drains once at the end.
+   */
+  function assignTagLocally(itemId: string, tagId: string, position: number): void {
+    const { mutation, id } = mutations.assignTag(itemId, tagId, position)
+    onPullChanges([
+      {
+        seq: 0,
+        table: 'item_tags',
+        id,
+        deleted: false,
+        row: mutation.fields as Record<string, unknown>,
+      },
+    ])
+    if (!local) outbox.enqueue('master', null, mutation)
+  }
+
   function commitImport(plan: ImportPlan): { tripIds: string[] } {
-    // Categories: reuse by (case-insensitive) name, create the rest.
-    const categoryIDs = new Map<string, string>()
-    for (const cat of masterStore.categoryList) {
-      categoryIDs.set(cat.name.toLowerCase(), cat.id)
+    // The spreadsheet's category column becomes a tag (FR-24.1): reuse by
+    // (case-insensitive) name, create the rest.
+    const tagIDs = new Map<string, string>()
+    for (const tag of masterStore.tagList) {
+      tagIDs.set(tag.name.toLowerCase(), tag.id)
     }
     for (const name of plan.newCategories) {
-      if (categoryIDs.has(name.toLowerCase())) continue
-      const { mutation, id } = mutations.createCategory(name)
+      if (tagIDs.has(name.toLowerCase())) continue
+      const { mutation, id } = mutations.createTag(name)
       onPullChanges([
         {
           seq: 0,
-          table: 'categories',
+          table: 'tags',
           id,
           deleted: false,
           row: mutation.fields as Record<string, unknown>,
         },
       ])
       if (!local) outbox.enqueue('master', null, mutation)
-      categoryIDs.set(name.toLowerCase(), id)
+      tagIDs.set(name.toLowerCase(), id)
     }
 
     const itemIDs: (string | null)[] = plan.items.map((item) => {
       if (item.existingItemId) return item.existingItemId
-      const { mutation, id } = mutations.createMasterItem(item.name, {
-        categoryId: item.categoryName
-          ? (categoryIDs.get(item.categoryName.toLowerCase()) ?? null)
-          : null,
-      })
+      const { mutation, id } = mutations.createMasterItem(item.name)
+      // The imported category becomes the item's primary tag (FR-24.2), so
+      // the inventory files it exactly where the spreadsheet said it goes.
+      const tagID = item.categoryName ? tagIDs.get(item.categoryName.toLowerCase()) : undefined
+      if (tagID) assignTagLocally(id, tagID, 0)
       onPullChanges([
         {
           seq: 0,
@@ -1063,7 +1149,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       // UNIQUE(owner_id, name): dodge collisions with a visible suffix.
       const taken = new Set(masterStore.templateList.map((t) => t.name))
       const name = taken.has(doc.name) ? `${doc.name} (import)` : doc.name
-      const { mutation, id: templateId } = mutations.createTemplate(name, '')
+      // FR-27.1: a group must import back as a group, not silently promote.
+      const { mutation, id: templateId } = mutations.createTemplate(
+        name,
+        '',
+        doc.scope ?? 'template',
+      )
       onPullChanges([
         {
           seq: 0,
@@ -1105,11 +1196,14 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     }
 
     // Trip import — planning status (FR-18.4), fresh trip partition.
-    const endDate = doc.end_date ?? new Date().toISOString().slice(0, 10)
+    // FR-2.1b: neither date has to be there any more, so an absent one
+    // stays absent rather than being invented as today's date; the year
+    // is what the document must yield, from its own field or its dates.
     const { mutation: tripMut, id: tripId } = mutations.createTrip(
       doc.name,
+      portableYear(doc),
       doc.start_date,
-      endDate,
+      doc.end_date,
     )
     onPullChanges([
       {
@@ -1117,7 +1211,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         table: 'trips',
         id: tripId,
         deleted: false,
-        row: { ...tripMut.fields, duration_days: durationDays(doc.start_date, endDate) },
+        row: { ...tripMut.fields, duration_days: durationDays(doc.start_date, doc.end_date) },
       },
     ])
     if (!local) outbox.enqueue('master', null, tripMut)
@@ -1194,6 +1288,46 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   }
 
   // --- Master data actions (M7–M10; master partition) ---
+
+  /** Create a tag by typing its name (FR-24.1) — there is no tag admin. */
+  function createTag(name: string): string {
+    const { mutation, id } = mutations.createTag(name, masterStore.tagList.length)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: {
+        seq: 0,
+        table: 'tags',
+        id,
+        deleted: false,
+        row: mutation.fields as Record<string, unknown>,
+      },
+    })
+    return id
+  }
+
+  /** Assign a tag to an item; appended last unless it is the first (FR-24.2). */
+  function assignTag(itemId: string, tagId: string): string {
+    const position = masterStore.getItemTags(itemId).length
+    const { mutation, id } = mutations.assignTag(itemId, tagId, position)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: {
+        seq: 0,
+        table: 'item_tags',
+        id,
+        deleted: false,
+        row: mutation.fields as Record<string, unknown>,
+      },
+    })
+    return id
+  }
+
+  function unassignTag(assignmentId: string): void {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.unassignTag(assignmentId),
+      optimistic: { seq: 0, table: 'item_tags', id: assignmentId, deleted: true, row: null },
+    })
+  }
 
   function createMasterItem(
     name: string,
@@ -1298,9 +1432,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   /** createTemplate makes a new template. Templates are shared
    * instance-wide (FR-1.6 MVP), so owner_id is creator metadata only; it is
    * stamped server-side on push and the optimistic row leaves it empty.
-   * Returns the new id so the caller can open M8. */
-  function createTemplate(name: string): string {
-    const { mutation, id } = mutations.createTemplate(name, '')
+   * Returns the new id so the caller can open M8.
+   *
+   * The scope is chosen at creation and never derived from usage (FR-27.1):
+   * a group nothing includes yet would otherwise be unclassifiable. */
+  function createTemplate(name: string, kind: TemplateKind = 'template'): string {
+    const { mutation, id } = mutations.createTemplate(name, '', kind)
     enqueueAndDrain('master', null, {
       mutation,
       optimistic: {
@@ -1363,6 +1500,60 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     enqueueAndDrain('master', null, {
       mutation: mutations.deleteTemplateItem(templateItemId),
       optimistic: { seq: 0, table: 'template_items', id: templateItemId, deleted: true, row: null },
+    })
+  }
+
+  /** deleteTemplate removes a template; the store mirrors the cascades. */
+  function deleteTemplate(templateId: string) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.deleteTemplate(templateId),
+      optimistic: { seq: 0, table: 'templates', id: templateId, deleted: true, row: null },
+    })
+  }
+
+  /** addTemplateInclude references a Gruppe from a Ferien-Vorlage (FR-27.1). */
+  function addTemplateInclude(templateId: string, includedTemplateId: string): string {
+    const { mutation, id } = mutations.addTemplateInclude(templateId, includedTemplateId)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: {
+        seq: 0,
+        table: 'template_includes',
+        id,
+        deleted: false,
+        row: mutation.fields as Record<string, unknown>,
+      },
+    })
+    return id
+  }
+
+  function removeTemplateInclude(includeId: string) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.removeTemplateInclude(includeId),
+      optimistic: { seq: 0, table: 'template_includes', id: includeId, deleted: true, row: null },
+    })
+  }
+
+  /** addTemplateItemTask attaches one FR-27.7 preparation task to a position. */
+  function addTemplateItemTask(templateItemId: string, task: string): string {
+    const { mutation, id } = mutations.addTemplateItemTask(templateItemId, task)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: {
+        seq: 0,
+        table: 'template_item_tasks',
+        id,
+        deleted: false,
+        row: mutation.fields as Record<string, unknown>,
+      },
+    })
+    return id
+  }
+
+  function deleteTemplateItemTask(taskId: string) {
+    enqueueAndDrain('master', null, {
+      mutation: mutations.deleteTemplateItemTask(taskId),
+      optimistic: { seq: 0, table: 'template_item_tasks', id: taskId, deleted: true, row: null },
     })
   }
 
@@ -1748,6 +1939,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   // --- Post-trip review (FR-9.2, M14) ---
 
+  /**
+   * activateTrip moves a planning trip into packing. The wizard only ever
+   * creates planning trips, so without this a trip could reach *active*
+   * nowhere in the app — the state that decides FR-9.1's Missing flagging
+   * and M4's archive action.
+   */
+  function activateTrip(tripId: string) {
+    setTripStatus(tripId, 'active')
+  }
+
   /** archiveTrip completes the trip; archiving is the M14 review trigger. */
   function archiveTrip(tripId: string) {
     setTripStatus(tripId, 'archived')
@@ -1764,25 +1965,26 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   }
 
   /**
-   * applyReviewProposal writes one review card back to master data
-   * (FR-9.2). Templates are shared instance-wide (FR-1.6 MVP), so the
-   * change lands on the source template itself — there is no fork step.
-   * Returns the id of the template that received the change.
+   * applyReviewProposal writes one review row back to master data
+   * (FR-9.2). The target is a *group* (FR-27.11) — the row's picker may
+   * have moved it off the proposal's default, so the group id is passed
+   * explicitly. Groups are shared instance-wide (FR-1.6 MVP), so the
+   * change lands in place — there is no fork step. Returns the id of
+   * the group that received the change.
    */
-  function applyReviewProposal(proposal: ReviewProposal): string {
-    const templateId = proposal.templateId
-    if (proposal.kind === 'reduce_quantity') {
-      // Look the row up by item, not by proposal.templateItemId: the
-      // proposal may predate an edit that replaced the row.
+  function applyReviewProposal(proposal: ReviewProposal, groupId: string): string {
+    if (proposal.kind === 'unused') {
+      // Look the position up by item at apply time: the proposal may
+      // predate an edit that replaced the row.
       const target = masterStore
-        .getTemplateItems(templateId)
+        .getTemplateItems(groupId)
         .find((ti) => ti.item_id === proposal.itemId)
       if (target) updateTemplateItem(target, { quantity: 0 })
-      return templateId
+      return groupId
     }
     const itemId = proposal.itemId ?? createMasterItem(proposal.itemName)
-    addTemplateItem(templateId, itemId)
-    return templateId
+    addTemplateItem(groupId, itemId)
+    return groupId
   }
 
   // --- Container actions (FR-10.1, M11) ---
@@ -1819,13 +2021,61 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
+  /** pairingMuts turns domain-computed paired_container_id writes into queue entries. */
+  function pairingMuts(
+    containers: Container[],
+    writes: PairingWrite[],
+  ): Parameters<typeof enqueueAndDrain>[2][] {
+    const muts: Parameters<typeof enqueueAndDrain>[2][] = []
+    for (const write of writes) {
+      const current = containers.find((c) => c.id === write.containerId)
+      if (!current) continue
+      muts.push({
+        mutation: mutations.updateContainer(write.containerId, {
+          paired_container_id: write.paired_container_id,
+        }),
+        optimistic: {
+          seq: 0,
+          table: 'containers',
+          id: write.containerId,
+          deleted: false,
+          row: { ...containerRow(current), paired_container_id: write.paired_container_id },
+        },
+      })
+    }
+    return muts
+  }
+
+  /** applyPairingWrites persists a domain-computed set of paired_container_id writes. */
+  function applyPairingWrites(tripId: string, writes: PairingWrite[]) {
+    const muts = pairingMuts(tripStore.getContainers(tripId), writes)
+    if (muts.length > 0) enqueueAndDrain('trip', tripId, ...muts)
+  }
+
+  /**
+   * pairContainer pairs two containers exclusively, writing both sides at
+   * once and releasing any previous partner of either (FR-10.3, M11).
+   */
+  function pairContainer(tripId: string, aId: string, bId: string) {
+    applyPairingWrites(tripId, pairWrites(tripStore.getContainers(tripId), aId, bId))
+  }
+
+  /** unpairContainer clears both sides of the container's pair (FR-10.3, M11). */
+  function unpairContainer(tripId: string, containerId: string) {
+    applyPairingWrites(tripId, unpairWrites(tripStore.getContainers(tripId), containerId))
+  }
+
   /**
    * deleteContainer unassigns the container's items first —
    * trip_items.container_id is a plain FK, a dangling reference would
-   * reject the delete server-side.
+   * reject the delete server-side. A surviving pair partner is released
+   * with it (FR-10.3): deleting one side frees the other.
    */
   function deleteContainer(tripId: string, containerId: string) {
-    const muts: Parameters<typeof enqueueAndDrain>[2][] = []
+    const containers = tripStore.getContainers(tripId)
+    // One enqueueAndDrain for release + unassign + delete, so the batch
+    // stays atomic in the queue.
+    const muts = pairingMuts(containers, releasePartnersOnDelete(containers, containerId))
     for (const item of tripStore.getItems(tripId)) {
       if (item.container_id !== containerId) continue
       const mut = mutations.assignContainer(item.id, null)
@@ -1945,6 +2195,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     packComplete,
     packZero,
     packToggle,
+    restorePack,
     skipItem,
     unskipItem,
     setMode,
@@ -1956,6 +2207,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     // Master data
     createMasterItem,
+    createTag,
+    assignTag,
+    unassignTag,
     updateMasterItem,
     deleteMasterItem,
     setItemImage,
@@ -1963,6 +2217,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     itemImageUrl,
     createTemplate,
     updateTemplate,
+    deleteTemplate,
+    addTemplateInclude,
+    removeTemplateInclude,
+    addTemplateItemTask,
+    deleteTemplateItemTask,
     addTemplateItem,
     updateTemplateItem,
     deleteTemplateItem,
@@ -1983,6 +2242,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // Containers (FR-10.1, M11)
     addContainer,
     updateContainer,
+    pairContainer,
+    unpairContainer,
     deleteContainer,
 
     // Trip membership (FR-4.5/4.7)
@@ -2021,6 +2282,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     pushApi,
 
     // Post-trip review (FR-9.2, M14)
+    activateTrip,
     archiveTrip,
     deleteTrip,
     applyReviewProposal,
@@ -2086,7 +2348,6 @@ async function hashBlob(blob: Blob): Promise<string> {
 function masterItemRow(item: MasterItem): Record<string, unknown> {
   return {
     name: item.name,
-    category_id: item.category_id,
     weight_grams: item.weight_grams,
     value_cents: item.value_cents,
   }
@@ -2096,6 +2357,7 @@ function templateRow(template: Template): Record<string, unknown> {
   return {
     owner_id: template.owner_id,
     name: template.name,
+    kind: template.kind,
   }
 }
 

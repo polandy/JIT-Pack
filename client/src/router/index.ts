@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router'
+
+import { installOverlayBackGuard } from './overlayBackGuard'
 import type { RouteRecordRaw } from 'vue-router'
-import TabsLayout from '@/views/TabsLayout.vue'
 
 /**
  * Route table. Every non-root route carries `meta.parent` — the
@@ -15,41 +16,42 @@ export const routes: RouteRecordRaw[] = [
     path: '/',
     redirect: '/tabs/dashboard',
   },
+  // Flat, deliberately: every route lives in the one router outlet in
+  // App.vue. The four anchors used to be children of an `IonTabs`
+  // layout, which brought a *second* outlet with it — and crossing
+  // between the two left the outgoing page on screen while the URL
+  // changed underneath it (ADR-012). The `/tabs/` prefix stays so no
+  // bookmark, link or test id has to move; it names the group, not a
+  // layout.
   {
     path: '/tabs/',
-    component: TabsLayout,
-    children: [
-      {
-        path: '',
-        redirect: '/tabs/dashboard',
-      },
-      {
-        path: 'dashboard',
-        name: 'dashboard',
-        component: () => import('@/views/dashboard/DashboardPage.vue'),
-      },
-      {
-        path: 'trips',
-        name: 'trips',
-        component: () => import('@/views/trips/TripListPage.vue'),
-      },
-      {
-        path: 'templates',
-        name: 'templates',
-        component: () => import('@/views/templates/TemplateListPage.vue'),
-      },
-      {
-        path: 'items',
-        name: 'items',
-        component: () => import('@/views/items/ItemInventoryPage.vue'),
-      },
-      {
-        path: 'settings',
-        name: 'settings',
-        meta: { parent: '/tabs/dashboard', title: 'Settings' },
-        component: () => import('@/views/settings/SettingsPage.vue'),
-      },
-    ],
+    redirect: '/tabs/dashboard',
+  },
+  {
+    path: '/tabs/dashboard',
+    name: 'dashboard',
+    component: () => import('@/views/dashboard/DashboardPage.vue'),
+  },
+  {
+    path: '/tabs/trips',
+    name: 'trips',
+    component: () => import('@/views/trips/TripListPage.vue'),
+  },
+  {
+    path: '/tabs/templates',
+    name: 'templates',
+    component: () => import('@/views/templates/TemplateListPage.vue'),
+  },
+  {
+    path: '/tabs/items',
+    name: 'items',
+    component: () => import('@/views/items/ItemInventoryPage.vue'),
+  },
+  {
+    path: '/tabs/settings',
+    name: 'settings',
+    meta: { parent: '/tabs/dashboard', title: 'Settings' },
+    component: () => import('@/views/settings/SettingsPage.vue'),
   },
   {
     path: '/login',
@@ -68,9 +70,20 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/trips/TripWizardPage.vue'),
   },
   {
+    // The packing list, and — through the alias — the item sheet over it
+    // (UI-Spec M5). One route *record* on purpose: a second record would
+    // mount a second copy of the list behind the sheet, because Ionic
+    // keeps a page per matched record. With an alias only the params
+    // change, so the list stays the one the user was already looking at.
     path: '/trips/:tripId',
-    meta: { parent: '/tabs/trips' },
-    name: 'trip-packing',
+    alias: '/trips/:tripId/items/:itemId',
+    meta: {
+      parent: '/tabs/trips',
+      // With the sheet open, back closes it rather than leaving the trip.
+      overlayParam: 'itemId',
+      overlayParent: '/trips/:tripId',
+    },
+    name: 'trip-detail',
     component: () => import('@/views/trips/PackingListPage.vue'),
     props: true,
   },
@@ -149,18 +162,20 @@ export const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
-    path: '/trips/:tripId/items/:itemId',
-    meta: { parent: '/trips/:tripId' },
-    name: 'item-detail',
-    component: () => import('@/views/trips/ItemDetailPage.vue'),
-    props: true,
-  },
-  {
     path: '/templates/:templateId',
     meta: { parent: '/tabs/templates', title: 'Template' },
     name: 'template-editor',
     component: () => import('@/views/templates/TemplateEditorPage.vue'),
     props: true,
+  },
+  {
+    // FR-24.5: creation is the editor in its minimal mode, so it is a route
+    // rather than a prompt — and it must precede /items/:itemId, or "new"
+    // would be read as an item id.
+    path: '/items/new',
+    meta: { parent: '/tabs/items', title: 'New item' },
+    name: 'item-create',
+    component: () => import('@/views/items/ItemEditorPage.vue'),
   },
   {
     path: '/items/:itemId',
@@ -171,9 +186,27 @@ export const routes: RouteRecordRaw[] = [
   },
 ]
 
+/*
+ * Development only (ADR-013): the component gallery, following the same
+ * `import.meta.env.DEV` shape as src/dev/sampleTrip.ts. `import.meta.env.DEV`
+ * is a compile-time constant, so both the route and the chunk behind it are
+ * gone from a production bundle — nobody running an instance can reach it.
+ */
+if (import.meta.env.DEV) {
+  routes.push({
+    path: '/dev/gallery',
+    meta: { parent: '/tabs/settings', title: 'Gallery' },
+    name: 'dev-gallery',
+    component: () => import('@/dev/GalleryPage.vue'),
+  })
+}
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 })
+
+// Browser-back with an overlay open closes the overlay, like the chevron.
+installOverlayBackGuard(router)
 
 export default router

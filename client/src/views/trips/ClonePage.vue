@@ -12,6 +12,8 @@ import {
   IonList,
   IonItem,
   IonInput,
+  IonSelect,
+  IonSelectOption,
   IonToggle,
   IonNote,
 } from '@ionic/vue'
@@ -24,6 +26,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { t } from '@/i18n'
 
 const props = defineProps<{ tripId: string }>()
 
@@ -35,6 +38,12 @@ const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrato
 const source = computed(() => store.getTrip(props.tripId))
 
 const name = ref('')
+// FR-2.1b: a clone is a trip of its own year, and the year is the only
+// temporal fact it needs. Defaults to this one, like M3.
+const thisYear = new Date().getFullYear()
+const yearChoices = Array.from({ length: 6 }, (_, i) => thisYear - 1 + i)
+const year = ref(thisYear)
+
 const startDate = ref('')
 const endDate = ref('')
 const travelerAssignments = ref(true)
@@ -66,20 +75,35 @@ const preview = computed(() => {
   )
 })
 
-const valid = computed(() => name.value.trim() !== '' && endDate.value !== '')
+/** What the clone will contain, counted before it is made (FR-13.2). */
+const previewSummary = computed(() => {
+  const plan = preview.value
+  if (!plan) return ''
+  const parts = [
+    t('clone.previewItems', { n: plan.items.length }),
+    t('clone.previewTravelers', { n: plan.travelers.length }),
+  ]
+  if (plan.containers.length > 0) {
+    parts.push(t('clone.previewContainers', { n: plan.containers.length }))
+  }
+  return `${parts.join(', ')}.`
+})
+
+const valid = computed(() => name.value.trim() !== '')
 
 function clone() {
   const tripId = orchestrator.cloneTrip(props.tripId, {
     name: name.value.trim(),
+    year: year.value,
     startDate: startDate.value || null,
-    endDate: endDate.value,
+    endDate: endDate.value || null,
     options: options.value,
   })
   if (tripId) router.replace(`/trips/${tripId}`)
 }
 
 // ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() => `Clone · ${source.value?.name ?? ''}`)
+setHeaderTitle(() => t('clone.title', { name: source.value?.name ?? '' }))
 </script>
 
 <template>
@@ -89,7 +113,7 @@ setHeaderTitle(() => `Clone · ${source.value?.name ?? ''}`)
         <IonList>
           <IonItem>
             <IonInput
-              label="Name"
+              :label="t('wizard.name')"
               label-placement="stacked"
               :placeholder="source.name"
               :value="name"
@@ -97,8 +121,22 @@ setHeaderTitle(() => `Clone · ${source.value?.name ?? ''}`)
             />
           </IonItem>
           <IonItem>
+            <IonSelect
+              data-testid="clone-year"
+              :label="t('wizard.year')"
+              label-placement="stacked"
+              interface="popover"
+              :value="year"
+              @ionChange="(e: CustomEvent) => (year = Number(e.detail.value))"
+            >
+              <IonSelectOption v-for="option in yearChoices" :key="option" :value="option">
+                {{ option }}
+              </IonSelectOption>
+            </IonSelect>
+          </IonItem>
+          <IonItem>
             <IonInput
-              label="Start date (optional)"
+              :label="t('wizard.startDate')"
               label-placement="stacked"
               type="date"
               :value="startDate"
@@ -107,7 +145,7 @@ setHeaderTitle(() => `Clone · ${source.value?.name ?? ''}`)
           </IonItem>
           <IonItem>
             <IonInput
-              label="End date"
+              :label="t('wizard.endDate')"
               label-placement="stacked"
               type="date"
               :value="endDate"
@@ -116,14 +154,14 @@ setHeaderTitle(() => `Clone · ${source.value?.name ?? ''}`)
           </IonItem>
         </IonList>
 
-        <h2 class="section-title">Carry over</h2>
+        <h2 class="section-title jp-eyebrow">{{ t('clone.carryOver') }}</h2>
         <IonList>
           <IonItem>
             <IonToggle
               :checked="travelerAssignments"
               @ionChange="(e: CustomEvent) => (travelerAssignments = e.detail.checked)"
             >
-              Participant assignments
+              {{ t('clone.travelerAssignments') }}
             </IonToggle>
           </IonItem>
           <IonItem>
@@ -131,7 +169,7 @@ setHeaderTitle(() => `Clone · ${source.value?.name ?? ''}`)
               :checked="packerDelegations"
               @ionChange="(e: CustomEvent) => (packerDelegations = e.detail.checked)"
             >
-              Packer delegations
+              {{ t('clone.packerDelegations') }}
             </IonToggle>
           </IonItem>
           <IonItem>
@@ -139,31 +177,24 @@ setHeaderTitle(() => `Clone · ${source.value?.name ?? ''}`)
               :checked="containerAssignments"
               @ionChange="(e: CustomEvent) => (containerAssignments = e.detail.checked)"
             >
-              Container assignments
+              {{ t('clone.containerAssignments') }}
             </IonToggle>
           </IonItem>
         </IonList>
 
-        <IonNote v-if="preview">
-          {{ preview.items.length }} items, {{ preview.travelers.length }} travelers<template
-            v-if="preview.containers.length > 0"
-            >, {{ preview.containers.length }} containers</template
-          >.
-        </IonNote>
+        <IonNote v-if="preview">{{ previewSummary }}</IonNote>
 
         <IonButton expand="block" class="confirm" :disabled="!valid" @click="clone">
-          Create clone
+          {{ t('clone.create') }}
         </IonButton>
       </template>
-      <IonNote v-else>Trip not found on this device.</IonNote>
+      <IonNote v-else>{{ t('clone.notFound') }}</IonNote>
     </IonContent>
   </IonPage>
 </template>
 
 <style scoped>
 .section-title {
-  font-size: 1rem;
-  font-weight: 600;
   margin: 20px 0 8px;
 }
 

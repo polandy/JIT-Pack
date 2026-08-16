@@ -62,7 +62,7 @@ function onMinusUp() {
 
 <template>
   <!-- qty=1: checkbox -->
-  <div v-if="isCheckbox" class="stepper-checkbox" @click="emit('toggle')">
+  <div v-if="isCheckbox" class="stepper-checkbox" data-testid="row-check" @click="emit('toggle')">
     <IonCheckbox :checked="isComplete" :indeterminate="false" />
   </div>
 
@@ -74,11 +74,12 @@ function onMinusUp() {
       @pointerdown="onMinusDown"
       @pointerup="onMinusUp"
       @pointerleave="onMinusUp"
+      data-testid="row-minus"
       aria-label="Decrease packed count"
     >
       <IonIcon :icon="removeOutline" />
     </button>
-    <span class="stepper-count" :class="{ complete: isComplete, partial: isPartial }">
+    <span class="stepper-count jp-num" :class="{ complete: isComplete, partial: isPartial }">
       {{ packed }}/{{ quantity }}
     </span>
     <button
@@ -87,6 +88,7 @@ function onMinusUp() {
       @pointerdown="onPlusDown"
       @pointerup="onPlusUp"
       @pointerleave="onPlusUp"
+      data-testid="row-plus"
       aria-label="Increase packed count"
     >
       <IonIcon :icon="addOutline" />
@@ -118,7 +120,7 @@ function onMinusUp() {
   background: none;
   cursor: pointer;
   color: var(--ion-text-color);
-  font-size: 16px;
+  font-size: var(--jp-icon-sm);
 }
 
 .stepper-btn:disabled {
@@ -133,13 +135,12 @@ function onMinusUp() {
 .stepper-count {
   min-width: 36px;
   text-align: center;
-  font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
+  font-size: var(--jp-text-sm);
 }
 
 .stepper-count.complete {
   color: var(--ion-color-success);
-  font-weight: 600;
+  font-weight: var(--jp-weight-semibold);
 }
 
 .stepper-count.partial {

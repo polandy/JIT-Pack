@@ -17,6 +17,20 @@ The config's `webServer` runs `vite preview`, so a build must exist
 (`npm run build`). CI builds the client in an earlier step and caches the
 Playwright browser binaries by package version.
 
+### The full suite runs on CI, not on the maintainer's machine
+
+Owner, 2026-08-15. Chromium _and_ WebKit over the whole suite is several
+minutes of full CPU on a machine somebody is also using, and CI runs it on
+every push anyway, so a local run is duplicated work that only delays the
+answer. Push, then read `gh pr checks <PR>`.
+
+What stays local, because it is seconds and the feedback loop is the point:
+rendering a handful of screenshots for the eyeball pass, and running the
+_one_ spec file while proving a new guard red-then-green.
+
+Note the `e2e` job is deliberately **not** a required check on `main` (see
+CLAUDE.md), so read its result rather than assuming it gates the merge.
+
 ### Running locally on NixOS
 
 Playwright's downloaded browsers are generic-linux, dynamically-linked
@@ -30,7 +44,7 @@ doesn't exist":
 ```bash
 docker run --rm --user $(id -u):$(id -g) -e HOME=/tmp -e CI=1 \
   -v "$PWD":/w -w /w/client --network host \
-  mcr.microsoft.com/playwright:v1.61.1-noble npx playwright test
+  mcr.microsoft.com/playwright:v1.62.1-noble npx playwright test
 ```
 
 `--user`/`HOME` are not optional: without them the run leaves
@@ -39,9 +53,13 @@ worktree. `--network host` lets the container reach the `vite preview`
 server the config starts.
 
 Providing browsers from nixpkgs (`playwright-driver.browsers`) does
-*not* currently work: Playwright 1.61 launches `chrome-headless-shell`,
+_not_ currently work: Playwright launches `chrome-headless-shell`,
 which that derivation does not ship, so every test fails at browser
 launch. Use the container.
+
+For the **visual baselines** the image is pinned by digest instead, in
+`scripts/visual.sh` — see ADR-013. Local and CI must render in the same
+userland there, which a tag cannot guarantee.
 
 ## Layout
 

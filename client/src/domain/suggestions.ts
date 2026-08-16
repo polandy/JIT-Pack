@@ -10,8 +10,14 @@
 
 export interface HistoryTrip {
   id: string
-  /** ISO end date — used to order trips and label the history hint. */
-  endDate: string
+  /**
+   * Sortable chronological key (`tripOrderKey`) — orders the history.
+   * Since FR-2.1b a trip need not have a date, so this is derived rather
+   * than being the end date it used to be.
+   */
+  orderKey: string
+  /** The trip's year, which labels the hint ("2025: 6"). */
+  year: number
   /** Trip length in days, at least 1. */
   durationDays: number
   items: { sourceItemId: string; quantity: number }[]
@@ -36,7 +42,7 @@ export function suggestQuantities(
   targetDurationDays: number,
 ): Map<string, QuantitySuggestion> {
   const recent = [...seriesTrips]
-    .sort((a, b) => b.endDate.localeCompare(a.endDate))
+    .sort((a, b) => b.orderKey.localeCompare(a.orderKey))
     .slice(0, HISTORY_TRIPS)
 
   const target = Math.max(1, targetDurationDays)
@@ -45,7 +51,7 @@ export function suggestQuantities(
   // Walk oldest-first so the history hint reads chronologically.
   for (const trip of [...recent].reverse()) {
     const days = Math.max(1, trip.durationDays)
-    const year = trip.endDate.slice(0, 4)
+    const year = String(trip.year)
     for (const { sourceItemId, quantity } of trip.items) {
       if (quantity <= 0) continue
       const entries = perItem.get(sourceItemId) ?? []

@@ -118,7 +118,7 @@ func TestMasterPush_TripInsertGrantsTripAccess(t *testing.T) {
 	srv := newTestServer(t)
 	body := map[string]any{"mutations": []any{
 		masterMutation("trips", "trip-client", "mt-1", "insert",
-			map[string]any{"name": "Client-Trip", "end_date": "2026-09-01", "status": "planning"},
+			map[string]any{"name": "Client-Trip", "year": 2026, "end_date": "2026-09-01", "status": "planning"},
 			"0000000001000-0000-aaaaaaaa"),
 	}}
 	resp, raw := doJSON(t, http.MethodPost, srv.URL+"/api/v1/sync/master", token(t, userA, testSecret), body)
@@ -146,7 +146,7 @@ func TestWS_MasterChangedNotifiesSameUserOnly(t *testing.T) {
 	wsB := wsConnectAuth(t, srv, userB)
 
 	body := map[string]any{"mutations": []any{
-		masterMutation("categories", "cat-ws", "mw-1", "insert",
+		masterMutation("tags", "cat-ws", "mw-1", "insert",
 			map[string]any{"name": "Technik"}, "0000000001000-0000-aaaaaaaa"),
 	}}
 	resp, raw := doJSON(t, http.MethodPost, srv.url+"/api/v1/sync/master",

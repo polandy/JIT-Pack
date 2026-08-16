@@ -25,6 +25,26 @@ interface StoredRow {
 export class IndexedDBPersistence {
   private db: Promise<IDBDatabase> | null = null
 
+  /**
+   * Writes run one after another, and `settled` is the tail of that
+   * chain. FR-19.2 calls every applied change durable, but the caller
+   * cannot await a fire-and-forget save: a row added and followed
+   * immediately by a reload was written into a transaction the
+   * navigation cancelled, and came back gone. Chaining also removes the
+   * interleaving two overlapping saves of the same key would allow.
+   */
+  private settled: Promise<void> = Promise.resolve()
+
+  /**
+   * Resolves once every save issued so far has finished. It reports that
+   * the queue has drained, not that every write succeeded — a failed
+   * write is reported to its own caller (see `save`), and never here,
+   * because G-2 must be able to leave the syncing state either way.
+   */
+  whenSettled(): Promise<void> {
+    return this.settled
+  }
+
   private open(): Promise<IDBDatabase> {
     this.db ??= new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, DB_VERSION)
@@ -39,9 +59,24 @@ export class IndexedDBPersistence {
     return this.db
   }
 
-  /** save applies changes: upserts rows, tombstones delete them. */
-  async save(changes: PullChange[]): Promise<void> {
-    if (changes.length === 0) return
+  /**
+   * save applies changes: upserts rows, tombstones delete them.
+   *
+   * The stored tail is deliberately the *caught* promise. Chaining onto
+   * a rejected one skips its callback, so a single failed write — a
+   * quota error, a transaction the browser aborted — would mean every
+   * later save silently never ran: permanent data loss in the one mode
+   * that has nowhere else to keep the data. The caller still learns
+   * about its own failure through the returned promise.
+   */
+  save(changes: PullChange[]): Promise<void> {
+    if (changes.length === 0) return this.settled
+    const written = this.settled.then(() => this.write(changes))
+    this.settled = written.catch(() => {})
+    return written
+  }
+
+  private async write(changes: PullChange[]): Promise<void> {
     const db = await this.open()
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE, 'readwrite')

@@ -197,7 +197,7 @@ describe('useSyncOrchestrator', () => {
     mockPull([
       {
         seq: 1,
-        table: 'categories',
+        table: 'tags',
         id: 'c1',
         deleted: false,
         row: { name: 'Clothes', sort_order: 0 },
@@ -214,8 +214,35 @@ describe('useSyncOrchestrator', () => {
     await orch.drainMaster()
 
     const masterStore = useMasterStore()
-    expect(masterStore.categoryList).toHaveLength(1)
+    expect(masterStore.tagList).toHaveLength(1)
     expect(masterStore.getItem('i1')?.name).toBe('Shirt')
+  })
+
+  // FR-24.2: the primary tag is the one at position 0, so assigning three
+  // tags in a row has to produce 0, 1, 2 — not three zeroes. It reads as
+  // correct either way in a list (a stable sort keeps insertion order), which
+  // is exactly why it needs asserting on the stored positions.
+  it('assigns each tag the next position, so the primary one is decided data', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const masterStore = useMasterStore()
+
+    const itemId = orch.createMasterItem('Badehose')
+    const kleidung = orch.createTag('Kleidung')
+    const sommer = orch.createTag('Sommer')
+    const strand = orch.createTag('Strand')
+
+    orch.assignTag(itemId, kleidung)
+    orch.assignTag(itemId, sommer)
+    orch.assignTag(itemId, strand)
+
+    const positions = masterStore.itemTagList
+      .filter((a) => a.item_id === itemId)
+      .map((a) => a.position)
+      .sort((a, b) => a - b)
+    expect(positions).toEqual([0, 1, 2])
+
+    // ...and the item therefore reads as filed under the first one.
+    expect(masterStore.getPrimaryTag(itemId)?.name).toBe('Kleidung')
   })
 
   it('sets offline on network failure', async () => {
@@ -239,5 +266,105 @@ describe('useSyncOrchestrator', () => {
 
     // Pending count is set (may be 0 if drain already completed, but totalPending was called)
     expect(orch.outbox.totalPending()).toBeGreaterThanOrEqual(0)
+  })
+
+  describe('container pairing (FR-10.3, M11)', () => {
+    function seedContainers(orch: ReturnType<typeof useSyncOrchestrator>, names: string[]) {
+      const ids: string[] = []
+      for (const name of names) {
+        mockPush()
+        mockPull()
+        ids.push(orch.addContainer('t1', name, {}))
+      }
+      return ids
+    }
+
+    it('pairContainer sets both sides at once', () => {
+      const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+      const tripStore = useTripStore()
+      const [a, b] = seedContainers(orch, ['Left', 'Right'])
+
+      mockPush()
+      mockPull()
+      orch.pairContainer('t1', a!, b!)
+
+      const byId = new Map(tripStore.getContainers('t1').map((c) => [c.id, c]))
+      expect(byId.get(a!)!.paired_container_id).toBe(b)
+      expect(byId.get(b!)!.paired_container_id).toBe(a)
+    })
+
+    it('pairContainer releases the previous partner when one side re-pairs', () => {
+      const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+      const tripStore = useTripStore()
+      const [a, b, c] = seedContainers(orch, ['Left', 'Right', 'Roof Box'])
+
+      mockPush()
+      mockPull()
+      orch.pairContainer('t1', a!, b!)
+      mockPush()
+      mockPull()
+      orch.pairContainer('t1', a!, c!)
+
+      const byId = new Map(tripStore.getContainers('t1').map((x) => [x.id, x]))
+      expect(byId.get(a!)!.paired_container_id).toBe(c)
+      expect(byId.get(c!)!.paired_container_id).toBe(a)
+      expect(byId.get(b!)!.paired_container_id).toBeNull()
+    })
+
+    it('unpairContainer clears both sides', () => {
+      const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+      const tripStore = useTripStore()
+      const [a, b] = seedContainers(orch, ['Left', 'Right'])
+
+      mockPush()
+      mockPull()
+      orch.pairContainer('t1', a!, b!)
+      mockPush()
+      mockPull()
+      orch.unpairContainer('t1', b!)
+
+      for (const container of tripStore.getContainers('t1')) {
+        expect(container.paired_container_id).toBeNull()
+      }
+    })
+
+    it('deleteContainer releases the surviving partner', () => {
+      const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+      const tripStore = useTripStore()
+      const [a, b] = seedContainers(orch, ['Left', 'Right'])
+
+      mockPush()
+      mockPull()
+      orch.pairContainer('t1', a!, b!)
+      mockPush()
+      mockPull()
+      orch.deleteContainer('t1', a!)
+
+      const survivors = tripStore.getContainers('t1')
+      expect(survivors.map((x) => x.id)).toEqual([b])
+      expect(survivors[0]!.paired_container_id).toBeNull()
+    })
+
+    it('deleteContainer unassigns the container’s items instead of removing them', () => {
+      const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+      const tripStore = useTripStore()
+      const [a] = seedContainers(orch, ['Duffel'])
+
+      mockPush()
+      mockPull()
+      orch.quickAddItem('t1', 'Towel', {}, false)
+      const item = tripStore.getItems('t1')[0]!
+      mockPush()
+      mockPull()
+      orch.assignContainer('t1', item, a!)
+
+      mockPush()
+      mockPull()
+      orch.deleteContainer('t1', a!)
+
+      const after = tripStore.getItems('t1')
+      expect(after).toHaveLength(1)
+      expect(after[0]!.container_id).toBeNull()
+    })
   })
 })

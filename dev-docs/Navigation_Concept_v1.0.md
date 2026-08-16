@@ -108,7 +108,7 @@ A trip is **not** a tab. It is opened from the Trip List (M2) and becomes the hu
 | **M5** Item Detail | `/trips/:id/items/:itemId` | assignment, flags, comments, prep todos |
 | **M6** Shopping | `/trips/:id/shopping` | buy-before / buy-local lists |
 | **M11** Containers | `/trips/:id/containers` | weights, pairing, assignment |
-| **M12** Analytics | `/trips/:id/analytics` | weight/value per dimension, series trend |
+| **M12** Analytics | `/trips/:id/analytics` | weight per dimension + trip totals, series trend |
 | **M14** Review | `/trips/:id/review` | post-trip proposals for the template |
 | Clone | `/trips/:id/clone` | trip as a starting point (FR-12) |
 | Members | `/trips/:id/members` | roles Owner/Admin/Editor (FR-4.5) |
@@ -244,6 +244,7 @@ Part I fixed the skeleton. This part fleshes out each structural point in full, 
 1. **Wizard/flow completion.** M3 (`/trips/new`) is `push`ed, so after creating a trip the browser back returns *into the finished wizard* — wrong. **Rule:** completing a create/import flow (M3, M15, M18, Clone) must `router.replace` to the result (the new trip/M4), not `push`. Back then skips the consumed wizard.
 2. **Cold-start deep link.** A notification opened from a killed app lands on M5 with a one-entry history — "back" has nowhere sane to go. **Rule (revised by ADR-011):** the logo is no longer on screen here, so it cannot be the escape. The declared parent is: `‹ back` routes to the parent trip (M4) even when history is empty, and from there to M2. The contract below is what guarantees it.
 3. **Modal-ish sub-screens** (Conflict log, presence sheet). **Rule:** these `push` and rely on back to dismiss; they must never be a dead end — each has a visible close/back to its origin trip.
+4. **Browser back with a route-driven overlay open** (found by the owner 2026-08-16, fixed the same day). M5's sheet *replaces* the trip's history entry (deliberately — a push measurably mounts a twin packing list behind the sheet), so a history pop skipped M4 and landed on the trip list, two screens back. **Rule:** a pop leaving a route whose `meta.overlayParam` is set closes the overlay instead — the same meaning the chevron already gives it. Mechanically (`router/overlayBackGuard.ts`): the pop is allowed to *complete* and the overlay parent is then pushed. Not intercepted in `beforeEach`, because Ionic reads the pending pop direction when a navigation confirms, and an aborted pop leaves that info stale to poison the corrective navigation — the wrong screen renders under the right URL. Letting both confirm keeps Ionic coherent and rebuilds the natural list → trip chain, so the *next* back lands on the list. Known, accepted gap: a back arriving **during** the sheet's enter animation still races Ionic's transition queue (E2E-M5-13 waits for the presentation to settle for exactly this reason); a human back needs a visible sheet first, so the window is not reachable by intent.
 
 **The back-target contract (binding since ADR-011).** With the logo gone from drill-downs, `‹ back` is *the* way out, so every non-root route must know where "out" is. Each route declares its parent; the header derives the back target from it rather than from history alone, which is what makes a cold-start deep link survivable.
 

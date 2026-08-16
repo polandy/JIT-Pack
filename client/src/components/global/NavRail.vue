@@ -4,34 +4,25 @@
  * Replaces the bottom tab bar with a persistent left-side rail.
  */
 import { IonIcon, IonLabel } from '@ionic/vue'
-import { homeOutline, airplaneOutline, listOutline, cubeOutline } from 'ionicons/icons'
 import { useRoute } from 'vue-router'
 
+import { NAV_ANCHORS, isAnchorActive } from '@/router/anchors'
+
 const route = useRoute()
-
-const tabs = [
-  { name: 'Dashboard', icon: homeOutline, href: '/tabs/dashboard', match: 'dashboard' },
-  { name: 'Trips', icon: airplaneOutline, href: '/tabs/trips', match: 'trips' },
-  { name: 'Templates', icon: listOutline, href: '/tabs/templates', match: 'templates' },
-  { name: 'Items', icon: cubeOutline, href: '/tabs/items', match: 'items' },
-] as const
-
-function isActive(match: string): boolean {
-  return route.path.includes(`/tabs/${match}`)
-}
 </script>
 
 <template>
   <nav class="nav-rail">
     <router-link
-      v-for="tab in tabs"
-      :key="tab.match"
-      :to="tab.href"
+      v-for="anchor in NAV_ANCHORS"
+      :key="anchor.match"
+      :to="anchor.href"
       class="nav-rail-item"
-      :class="{ active: isActive(tab.match) }"
+      :class="{ active: isAnchorActive(route.path, anchor.match) }"
+      :data-testid="`rail-${anchor.match}`"
     >
-      <IonIcon :icon="tab.icon" />
-      <IonLabel>{{ tab.name }}</IonLabel>
+      <IonIcon :icon="anchor.icon" />
+      <IonLabel>{{ anchor.name }}</IonLabel>
     </router-link>
   </nav>
 </template>
@@ -49,8 +40,8 @@ function isActive(match: string): boolean {
   flex-direction: column;
   width: 80px;
   min-height: 100%;
-  background: var(--ion-background-color, #fff);
-  border-right: 1px solid var(--ion-border-color, #e0e0e0);
+  background: var(--ion-background-color);
+  border-right: 1px solid var(--ion-border-color);
   padding-top: 12px;
 }
 
@@ -62,8 +53,8 @@ function isActive(match: string): boolean {
   padding: 12px 8px;
   text-decoration: none;
   color: var(--ion-color-medium);
-  font-size: 11px;
-  border-radius: 8px;
+  font-size: var(--jp-text-2xs);
+  border-radius: var(--jp-r-sm);
   margin: 2px 8px;
   transition:
     background 0.15s,
@@ -74,17 +65,18 @@ function isActive(match: string): boolean {
   background: var(--ion-color-light);
 }
 
+/* The desktop half of the same rule as TabBar (G-11). */
 .nav-rail-item.active {
-  color: var(--ion-color-primary);
-  background: var(--ion-color-primary-tint, rgba(var(--ion-color-primary-rgb), 0.1));
+  color: var(--jp-brand);
+  background: color-mix(in srgb, var(--jp-brand) 12%, transparent);
 }
 
 .nav-rail-item ion-icon {
-  font-size: 24px;
+  font-size: var(--jp-icon-md);
 }
 
 .nav-rail-item ion-label {
-  font-size: 11px;
+  font-size: var(--jp-text-2xs);
 }
 
 @media (min-width: 900px) {

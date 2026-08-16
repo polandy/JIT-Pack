@@ -9,6 +9,7 @@ function makeTrip(overrides: Partial<Trip> = {}): Trip {
     id: 't1',
     name: 'Beach Trip',
     status: 'active',
+    year: 2026,
     start_date: '2026-07-10',
     end_date: '2026-07-15',
     duration_days: 6,
@@ -72,6 +73,7 @@ describe('tripStore', () => {
       row: {
         name: 'Ski Trip',
         status: 'planning',
+        year: 2026,
         start_date: '2027-01-10',
         end_date: '2027-01-15',
         duration_days: 6,
@@ -238,105 +240,6 @@ describe('tripStore', () => {
     expect(k.packedWeight).toBe(700) // 100*1 + 200*3
     expect(k.totalValue).toBe(4000) // 500*2 + 1000*3
     expect(k.packedValue).toBe(3500) // 500*1 + 1000*3
-  })
-
-  it('groups items by category', () => {
-    const store = useTripStore()
-    store.applyChanges([
-      {
-        seq: 1,
-        table: 'trip_items',
-        id: 'i1',
-        deleted: false,
-        row: {
-          trip_id: 't1',
-          name: 'A',
-          category_name: 'Clothes',
-          quantity: 1,
-          packed_count: 0,
-          state: 'open',
-          mode: 'pack',
-          updated_hlc: 'h1',
-        },
-      },
-      {
-        seq: 2,
-        table: 'trip_items',
-        id: 'i2',
-        deleted: false,
-        row: {
-          trip_id: 't1',
-          name: 'B',
-          category_name: 'Clothes',
-          quantity: 1,
-          packed_count: 0,
-          state: 'open',
-          mode: 'pack',
-          updated_hlc: 'h2',
-        },
-      },
-      {
-        seq: 3,
-        table: 'trip_items',
-        id: 'i3',
-        deleted: false,
-        row: {
-          trip_id: 't1',
-          name: 'C',
-          category_name: 'Tech',
-          quantity: 1,
-          packed_count: 0,
-          state: 'open',
-          mode: 'pack',
-          updated_hlc: 'h3',
-        },
-      },
-    ])
-
-    const groups = store.groupedItems('t1')
-    expect(groups.get('Clothes')).toHaveLength(2)
-    expect(groups.get('Tech')).toHaveLength(1)
-  })
-
-  it('groups items by status', () => {
-    const store = useTripStore()
-    store.setGroupBy('t1', 'status')
-    store.applyChanges([
-      {
-        seq: 1,
-        table: 'trip_items',
-        id: 'i1',
-        deleted: false,
-        row: {
-          trip_id: 't1',
-          name: 'A',
-          quantity: 1,
-          packed_count: 0,
-          state: 'open',
-          mode: 'pack',
-          updated_hlc: 'h1',
-        },
-      },
-      {
-        seq: 2,
-        table: 'trip_items',
-        id: 'i2',
-        deleted: false,
-        row: {
-          trip_id: 't1',
-          name: 'B',
-          quantity: 1,
-          packed_count: 1,
-          state: 'packed',
-          mode: 'pack',
-          updated_hlc: 'h2',
-        },
-      },
-    ])
-
-    const groups = store.groupedItems('t1')
-    expect(groups.get('open')).toHaveLength(1)
-    expect(groups.get('packed')).toHaveLength(1)
   })
 
   it('handles travelers', () => {
