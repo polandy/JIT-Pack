@@ -46,7 +46,7 @@ body{padding:0;margin:0;display:block;height:auto}
 
 /* The whole 15-row list must be visible at once: the coverage gaps sit in the
    last section, and a comparison you have to scroll is not a comparison. */
-#grid .phone{height:1090px}
+#grid .phone{height:1240px}
 .phone{width:100%;max-width:390px;height:720px;border:1px solid var(--s0);border-radius:22px;overflow:hidden;
   background:var(--mantle);box-shadow:var(--shadow);position:relative;display:flex;flex-direction:column}
 .phone .bar{padding:11px 14px;border-bottom:1px solid var(--s0);background:var(--crust);
