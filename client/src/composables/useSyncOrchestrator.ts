@@ -23,6 +23,12 @@ import type { PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import { dependentsOf, resolveDependencies } from '@/domain/dependencies'
 import { planClone, type CloneOptions } from '@/domain/clone'
+import {
+  pairWrites,
+  releasePartnersOnDelete,
+  unpairWrites,
+  type PairingWrite,
+} from '@/domain/containers'
 import { optimizeItemImage } from '@/lib/imageResize'
 import type { ImportPlan } from '@/domain/spreadsheet'
 import { portableYear } from '@/domain/portable'
@@ -2014,13 +2020,67 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
+  /** applyPairingWrites persists a domain-computed set of paired_container_id writes. */
+  function applyPairingWrites(tripId: string, writes: PairingWrite[]) {
+    const containers = tripStore.getContainers(tripId)
+    const muts: Parameters<typeof enqueueAndDrain>[2][] = []
+    for (const write of writes) {
+      const current = containers.find((c) => c.id === write.containerId)
+      if (!current) continue
+      muts.push({
+        mutation: mutations.updateContainer(write.containerId, {
+          paired_container_id: write.paired_container_id,
+        }),
+        optimistic: {
+          seq: 0,
+          table: 'containers',
+          id: write.containerId,
+          deleted: false,
+          row: { ...containerRow(current), paired_container_id: write.paired_container_id },
+        },
+      })
+    }
+    if (muts.length > 0) enqueueAndDrain('trip', tripId, ...muts)
+  }
+
+  /**
+   * pairContainer pairs two containers exclusively, writing both sides at
+   * once and releasing any previous partner of either (FR-10.3, M11).
+   */
+  function pairContainer(tripId: string, aId: string, bId: string) {
+    applyPairingWrites(tripId, pairWrites(tripStore.getContainers(tripId), aId, bId))
+  }
+
+  /** unpairContainer clears both sides of the container's pair (FR-10.3, M11). */
+  function unpairContainer(tripId: string, containerId: string) {
+    applyPairingWrites(tripId, unpairWrites(tripStore.getContainers(tripId), containerId))
+  }
+
   /**
    * deleteContainer unassigns the container's items first —
    * trip_items.container_id is a plain FK, a dangling reference would
-   * reject the delete server-side.
+   * reject the delete server-side. A surviving pair partner is released
+   * with it (FR-10.3): deleting one side frees the other.
    */
   function deleteContainer(tripId: string, containerId: string) {
+    const containers = tripStore.getContainers(tripId)
     const muts: Parameters<typeof enqueueAndDrain>[2][] = []
+    for (const write of releasePartnersOnDelete(containers, containerId)) {
+      const current = containers.find((c) => c.id === write.containerId)
+      if (!current) continue
+      muts.push({
+        mutation: mutations.updateContainer(write.containerId, {
+          paired_container_id: write.paired_container_id,
+        }),
+        optimistic: {
+          seq: 0,
+          table: 'containers',
+          id: write.containerId,
+          deleted: false,
+          row: { ...containerRow(current), paired_container_id: write.paired_container_id },
+        },
+      })
+    }
     for (const item of tripStore.getItems(tripId)) {
       if (item.container_id !== containerId) continue
       const mut = mutations.assignContainer(item.id, null)
@@ -2187,6 +2247,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // Containers (FR-10.1, M11)
     addContainer,
     updateContainer,
+    pairContainer,
+    unpairContainer,
     deleteContainer,
 
     // Trip membership (FR-4.5/4.7)

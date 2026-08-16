@@ -5,7 +5,7 @@
  * planning, before anything is packed.
  */
 
-import type { TripItem } from '@/types/domain'
+import type { Container, TripItem } from '@/types/domain'
 
 /** containerWeight sums the planned weight assigned to one container. */
 export function containerWeight(items: TripItem[], containerId: string): number {
@@ -34,6 +34,70 @@ export function imbalancePercent(weightA: number, weightB: number): number {
   const heavier = Math.max(weightA, weightB)
   if (heavier === 0) return 0
   return Math.round((Math.abs(weightA - weightB) / heavier) * 100)
+}
+
+/** One paired_container_id write the caller must persist. */
+export interface PairingWrite {
+  containerId: string
+  paired_container_id: string | null
+}
+
+/**
+ * pairWrites makes a↔b the only pair either side is in: both pointers are
+ * set and any previous partner of either side is released. Pairing is
+ * exclusive and symmetric by construction (M11) — a half-set pair would
+ * render an imbalance against a container that does not consider itself
+ * paired. Already-correct pointers are skipped, so the call is idempotent
+ * and also repairs a legacy one-sided pair.
+ */
+export function pairWrites(containers: Container[], aId: string, bId: string): PairingWrite[] {
+  if (aId === bId) return []
+  const writes: PairingWrite[] = []
+  const byId = new Map(containers.map((c) => [c.id, c]))
+  for (const [ownId, partnerId] of [
+    [aId, bId],
+    [bId, aId],
+  ] as const) {
+    const previous = byId.get(ownId)?.paired_container_id
+    if (previous && previous !== partnerId && byId.get(previous)?.paired_container_id === ownId) {
+      writes.push({ containerId: previous, paired_container_id: null })
+    }
+    if (previous !== partnerId) {
+      writes.push({ containerId: ownId, paired_container_id: partnerId })
+    }
+  }
+  // Releases first: a freed partner must never overwrite the new pair.
+  return writes.sort((a, b) =>
+    a.paired_container_id === null === (b.paired_container_id === null)
+      ? 0
+      : a.paired_container_id === null
+        ? -1
+        : 1,
+  )
+}
+
+/**
+ * unpairWrites clears the container's own pointer and every pointer at it —
+ * clearing one side always releases the other (M11), and a dangling inbound
+ * pointer from a legacy one-sided write is swept with it.
+ */
+export function unpairWrites(containers: Container[], id: string): PairingWrite[] {
+  const writes: PairingWrite[] = []
+  const own = containers.find((c) => c.id === id)
+  if (own?.paired_container_id) {
+    writes.push({ containerId: id, paired_container_id: null })
+  }
+  for (const c of containers) {
+    if (c.id !== id && c.paired_container_id === id) {
+      writes.push({ containerId: c.id, paired_container_id: null })
+    }
+  }
+  return writes
+}
+
+/** releasePartnersOnDelete frees every surviving container paired with the deleted one. */
+export function releasePartnersOnDelete(containers: Container[], id: string): PairingWrite[] {
+  return unpairWrites(containers, id).filter((w) => w.containerId !== id)
 }
 
 /** imbalanceThreshold reads the per-trip override, defaulting to 15 % (FR-10.3). */
