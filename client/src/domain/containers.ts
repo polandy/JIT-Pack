@@ -67,12 +67,8 @@ export function pairWrites(containers: Container[], aId: string, bId: string): P
     }
   }
   // Releases first: a freed partner must never overwrite the new pair.
-  return writes.sort((a, b) =>
-    a.paired_container_id === null === (b.paired_container_id === null)
-      ? 0
-      : a.paired_container_id === null
-        ? -1
-        : 1,
+  return writes.sort(
+    (a, b) => Number(a.paired_container_id !== null) - Number(b.paired_container_id !== null),
   )
 }
 
