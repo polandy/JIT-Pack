@@ -51,6 +51,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14 | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
 | M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-02, E2E-M9-03, E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
+| M12 analytics | E2E-M12-01, E2E-M12-02, E2E-M12-03 (absence half only, see below), E2E-M12-04, E2E-M12-05 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
 (create / import). The screen has neither as a button: create is the FAB and
@@ -316,3 +317,34 @@ case 4). Two things the case had to get right:
    because a human back needs a visible sheet first. The wait is on
    observables (the modal's `show-modal` class and running animations
    excluding spinners), not a duration.
+
+## M12 — analytics (`e2e/analytics.spec.ts`, 2026-08-16)
+
+Landed with the M12 rebuild. What the unit had to get right:
+
+1. **The facet handoff is asserted by what disappears.** E2E-M12-04's chip
+   assertion alone would pass with a chip that filters nothing; the case
+   also asserts that a row outside the tapped slice is gone from M4, which
+   is the regression the 2026-08-08 concept round found (grouping set, list
+   unfiltered, the tapped number nowhere on screen).
+2. **E2E-M12-03 covers only the absence half — the positive half is
+   blocked, and the block is a product gap, not a test gap.** The trend
+   needs an archived trip in the trip's series, and no UI path can produce
+   one: the wizard creates *planning* trips, and both archive affordances
+   (M2's swipe action, M4's app-bar entry) are gated on *active* — a status
+   only `activateTrip` assigns, which nothing user-facing calls (the parked
+   North-Star Plan/During phases own that transition). Until that lands,
+   `seriesWeightTrend`/`seriesTopFlagged` are unit-owned and the e2e case
+   asserts the section is *absent, not empty* without history. When an
+   activate path ships, the positive M12-03 case is owed alongside it.
+3. **Weighted rows come through the app's own paths** (spec §2.4), reusing
+   the M11 unit's route: master item with weight in M10's minimal form,
+   quick-add via the *suggestion*. Traveler assignment goes through M5's
+   popover select — the app's one way of making a row somebody's — driven
+   by clicking the option inside `ion-select-popover`, since the select
+   itself swallows synthetic `ionChange` events.
+4. **The wizard grew a series seed** (`fixtures.ts`): `TripSeed.series`
+   drives the "New series…" popover path (testids `wizard-series`,
+   `wizard-series-name` added for it) and reuses an existing series of the
+   same name on later seeds — needed by E2E-M12-03 and by every future
+   series-scoped case (M16).

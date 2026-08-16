@@ -98,13 +98,17 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
      (2026-08-16: the tag rebuild, ADR-014 — lean inventory on the primary-tag grouping,
      FR-24.5 minimal creation) and **M11 with them** (2026-08-16: card list, the M5-pattern
      container sheet with symmetric pairing, FR-24.5 placeholder-name create via the FAB,
-     the load-aware assign picker). Remaining, in order: M12 (slice filtering, per-person
-     shares), M14 (group-aware list) — **neither has been eyeballed**, only the prototype.
+     the load-aware assign picker). **M12 is done too** (2026-08-16: slices keyed by M4's
+     facet values so a tapped bar becomes the FR-25.11 facet via `setStoredFacet`, honest
+     unweighted count, packed-weight series trend, the first `.jp-figure` KPI surface).
+     Remaining: M14 (group-aware list) — **not eyeballed**, only the prototype. A product
+     gap found by the M12 e2e unit: nothing user-facing moves a trip to *active*, so
+     nothing can archive one — the North-Star phase owns that transition (e2e ledger).
      Known cost carried over from the M5 rebuild: M4 loses its scroll position
      when a detail opens (ADR-012's overlay amendment).
 4. **i18n migration** — the hard-coded English strings across the screens M4 did not touch;
    the module and both catalogues exist and M4 + the quick-add + the filter sheet + M7/M8
-   are done.
+   + M12 are done.
 5. ~~**Two migrations owed by concept decisions**~~ — **done** (migrations 018/019): `travelers.profile`
    is dropped and `trip_items.packed_by_user_id` carries the packing record, with `packer_user_id`
    left as the assignment. The M4/M5 *presentation* of that split (two rings, „gepackt von … ·

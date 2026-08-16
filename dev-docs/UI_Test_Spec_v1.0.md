@@ -297,12 +297,12 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M11-04** `all` (FR-10.3) — **implemented** (`e2e/containers.spec.ts`, asserted on both cards of the pair; mutation-proved: emptying the delete path's release writes fails it): pairing control shows a live imbalance indicator against the threshold, and **deleting one side releases the other** — the survivor stops reporting an imbalance instead of weighing itself against a container that no longer exists. The skew is what makes that assertable, which is why the rule is asserted here rather than beside the pairing case.
 
 ### M12 — Analytics
-* **E2E-M12-01** `all` (FR-8.1/8.2): dimension switcher Person/Category/Container; stacked packed-vs-planned weight bars + value totals.
-* **E2E-M12-04** `all` (FR-8.2/25.11): tapping a bar lands on M4 **filtered** to that value — asserts the facet is set, the removable chip is visible, and the grouping matches the dimension. Regression guard: setting only the grouping (the pre-2026-08-08 behaviour) must fail this case.
-* **E2E-M12-05** `all` (FR-8.2/25.1): with a per-person item on the trip, the Person view shows **one contribution per traveler** and no `undefined` bucket; the Category view sums the same item's shares into a single bucket, so the totals match across dimensions.
-* **E2E-M12-02** `all` (FR-8.2): items without weight aggregate as "unweighted (n)".
-* **E2E-M12-03** `all` (FR-14.3): series trend section (weight over years, top Missing/Unused) shown when the trip has a series.
-* **E2E-M12-06** `all` (FR-8.2/25.18): tapping a slice sets the grouping M4 comes back with — the *grouping half* of E2E-M12-04, which is what is built. Crosses the screen boundary on purpose: M12 and M4 each held their own grouping state and each was self-consistent, so no unit could see that the handoff between them had stopped working. ADR-012 leaves one router outlet, so M4 is **not** remounted on the way back and a value written only to storage would not be read until the next cold start.
+* **E2E-M12-01** `all` (FR-8.1/8.2) — **implemented** (`e2e/analytics.spec.ts`): dimension switcher Person/Kategorie/Gepäck; packed-in-planned weight bars with the trip's weight KPI beside them, driven by a real master-item weight (M10 → quick-add suggestion).
+* **E2E-M12-04** `all` (FR-8.2/25.11) — **implemented**: tapping a bar lands on M4 **filtered** to that value — asserts the facet is set (a row outside the slice is gone), the removable chip names the value, and clearing the chip reveals the grouping that came along. Regression guard: setting only the grouping (the pre-2026-08-08 behaviour) fails every assertion but the last.
+* **E2E-M12-05** `all` (FR-8.2/25.1) — **implemented**: with rows assigned per traveler, the Person view shows **one contribution per traveler** plus the *Shared* bucket and no `undefined` bucket; the Category view sums the same rows into a single bucket, so the totals match across dimensions. (The multi-row per-person cluster shape is unit-owned in `analytics.spec.ts`, same rule.)
+* **E2E-M12-02** `all` (FR-8.2) — **implemented**: an item without weight is counted beside the chart ("＋ n …"), never drawn as a zero-width bar; with no weighted rows the bar card states its empty state.
+* **E2E-M12-03** `all` (FR-14.3) — **implemented for its reachable half**: with a series but no archived history, the trend section is absent rather than empty. The positive half (trend columns, flagged list) needs an archived series trip, and **no UI path can archive one today**: the wizard creates *planning* trips and both archive affordances (M2 swipe, M4 app-bar) are gated on *active*, a status only the parked North-Star phase assigns. The trend/flagged math is unit-owned meanwhile (`seriesWeightTrend`/`seriesTopFlagged`); the gap is recorded in `dev-docs/e2e-tests.md` and this sentence is its revisit trigger.
+* **E2E-M12-06** `all` (FR-8.2/25.18) — **implemented** (`e2e/packing-list.spec.ts`): tapping a slice sets the grouping M4 comes back with, asserted after clearing the facet chip the same tap set. Crosses the screen boundary on purpose: M12 and M4 each held their own grouping state and each was self-consistent, so no unit could see that the handoff between them had stopped working. ADR-012 leaves one router outlet, so M4 is **not** remounted on the way back and a value written only to storage would not be read until the next cold start.
 
 ### M13 — Repack Mode — **REMOVED (2026-07-17)**
 Feature removed from the product (PRD Addendum §3.11); its E2E cases are retired.
@@ -436,7 +436,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-7.2 | E2E | M5-05, M4-09 |
 | FR-7.3 | E2E | M1-02, M4-08, M5-06 |
 | FR-8.1 | E2E | M4-01, M12-01 |
-| FR-8.2 | E2E+UNIT | M12-01/04, **M12-06** (the grouping handoff, which is the part that is built); analytics.ts |
+| FR-8.2 | E2E+UNIT | M12-01/02/04/05, M12-06 (grouping handoff); analytics.ts |
 | FR-9.1 | E2E | M5-03, M4-04, FLOW-04 |
 | FR-9.2 | E2E+UNIT | M14-01/02/03/04; review.ts |
 | FR-10.1 | E2E | M11-01 (via M11-05/06) |
@@ -451,7 +451,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-13.3 | E2E | M3-09, M16-02, M6-01 |
 | FR-14.1 | E2E | M3-08, M5-04 |
 | FR-14.2 | E2E+UNIT | M3-08; suggestions.ts |
-| FR-14.3 | E2E+UNIT | M12-03; analytics.ts |
+| FR-14.3 | E2E+UNIT | M12-03 (absence half; positive half blocked on an archive path, see M12-03); analytics.ts |
 | FR-15.1 | E2E | M3-01, M16-01 |
 | FR-15.2 | E2E+UNIT | M3-06, M8-03; instantiate.ts |
 | FR-15.3 | DOC/N-A | void — retired with FR-1.3/1.5 (2026-08-08) |
