@@ -78,8 +78,17 @@ function matchesFilter(trip: Trip): boolean {
  */
 const isDev = import.meta.env.DEV
 
-async function addSampleTrip() {
-  const { seedSampleTrip } = await import('@/dev/sampleTrip')
+/**
+ * Seeds the whole world, not only the trip: a fresh install has no inventory
+ * and no templates, so every §3.27 surface opens empty and testing one starts
+ * with twenty minutes of typing.
+ */
+async function addSampleData() {
+  const [{ seedSampleMaster }, { seedSampleTrip }] = await Promise.all([
+    import('@/dev/sampleMaster'),
+    import('@/dev/sampleTrip'),
+  ])
+  seedSampleMaster(orchestrator)
   router.push(`/trips/${seedSampleTrip(orchestrator)}`)
 }
 
@@ -287,15 +296,15 @@ async function handleRefresh(event: CustomEvent) {
         <p v-if="filter === 'active'">No active trips</p>
         <p v-else-if="filter === 'planned'">No planned trips</p>
         <p v-else>No archived trips</p>
-        <!-- Dev only, and gone from any build — see addSampleTrip. -->
+        <!-- Dev only, and gone from any build — see addSampleData. -->
         <IonButton
           v-if="isDev"
           size="small"
           fill="outline"
           data-testid="dev-sample-trip"
-          @click="addSampleTrip"
+          @click="addSampleData"
         >
-          Beispielreise anlegen (Dev)
+          Beispieldaten anlegen (Dev)
         </IonButton>
       </div>
 

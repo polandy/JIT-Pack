@@ -13,6 +13,12 @@ Read this file fully before touching code. It is the orientation document: what 
 - Slow jobs, excluded from `make ci` on purpose: `make e2e` (needs Playwright browsers + a built bundle), `make visual` (baselines; `make visual-update` rewrites them — ADR-013) and `make docker-build` (needs a docker daemon). `make all` runs everything.
 - Coverage gates live once, in `scripts/coverage-gate.sh`, shared by `make cover` and the CI `go` job: **≥75 % overall, ≥90 % `internal/sync`**
 - Client only: `cd client && npm run dev` (Vite dev server), `npx vitest run`, `npm run build` (type-check + build)
+- **Test data**: the dev build's M2 empty state carries *„Beispieldaten anlegen (Dev)"* — it seeds the
+  **master partition first** (`client/src/dev/sampleMaster.ts`: tagged inventory, three groups, a
+  composed Ferien-Vorlage with an FR-27.7 task) and then the sample trip (`sampleTrip.ts`). Standing
+  rule (owner, 2026-08-16): **new master-data features extend that seed**, so a fresh device can
+  exercise them without twenty minutes of typing. It is dev-only (`import.meta.env.DEV`) and writes
+  through the orchestrator's own actions — **not Demo Mode**, which stays removed (Addendum v2.10).
 
 ## Where things live
 

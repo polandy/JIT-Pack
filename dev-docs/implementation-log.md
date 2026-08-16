@@ -2412,3 +2412,43 @@ E2E-M3-11 needed tightening in the same PR: it checked scope separation with a
 substring, and a Vorlage's row now legitimately contains „Makro-Objektiv". An
 assertion that passed for the wrong reason failed the moment the screen said
 more than it used to.
+
+## The dev seed grows a master partition (2026-08-16)
+
+Owner, wanting to test the freshly merged §3.27 work: „kannst du zu Testzwecken
+Items und Gruppen zum initialen Datenstand hinzufügen. Das soll auch künftig so
+sein als Standard."
+
+`sampleTrip.ts` seeded a trip and nothing else, which was enough while the trip
+screens were the ones being built. Since §3.27 it is not: a trip carries its own
+rows and teaches the master partition nothing, so M7, M8, M3 step 3 and the
+FR-27.12 peek all opened empty on a fresh device and testing any of them started
+with twenty minutes of typing.
+
+`sampleMaster.ts` fills that gap and the M2 dev button now seeds both — master
+first, then the trip. **Standing rule from here on: a new master-data feature
+extends this seed.** That is the "als Standard" half of the request, and it is
+recorded in CLAUDE.md where a dev looks rather than only here.
+
+Same two constraints as the trip seed, for the same reasons. It is **dev-only**
+behind `import.meta.env.DEV`, so module and trigger drop out of a production
+build — this is not Demo Mode returning; that was a *product* surface and stays
+removed (Addendum v2.10). And it writes through the **orchestrator's own
+actions**, so every row it creates is one a user could have created, rather than
+inventing a second seeding path that would be the one nobody notices breaking.
+
+The data is picked for what is otherwise tedious to reach rather than for
+volume: two groups **sharing the camera**, so the FR-27.2 merge has something to
+name in both M3's footer and M8's resolution footer; a Vorlage with **own
+positions beside its two groups**, so the resolved count differs from either
+half; an FR-27.7 task on a shared position, so a generated trip starts with a
+real prep todo; and a third group left **deliberately unincluded**, so M8's
+picker and M3's *Zusätzliche Gruppen* both have an offer. Six tests pin those
+properties — not the contents — because a seed that quietly stops producing a
+resolvable composition wastes the session that discovers it.
+
+**Still open, deliberately:** the sample *trip* is still built through the M18
+portable-import path, so its rows carry no `source_template_id`. Generating it
+from the seeded Vorlage instead would give it provenance and finally make M14
+reachable with real proposals — but it changes what the trip seed is, so it is a
+decision rather than a side effect of this change.
