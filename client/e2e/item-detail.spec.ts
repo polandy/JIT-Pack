@@ -142,4 +142,39 @@ test.describe('M5 item detail @local @m5', () => {
     await expect(page).toHaveURL(new RegExp(`${path}$`))
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
   })
+
+  // E2E-M5-14 (G-14/FR-21.8): the header's two round controls are a pair,
+  // so they share a diameter and a centre line. Owner-flagged on a rendered
+  // phone (2026-08-16): the ✓ was 26 px against the ✕'s 34 px and both were
+  // hung from the same top edge, which put their centres 4 px apart and made
+  // the header read as crooked. Geometry rather than a stylesheet claim,
+  // because only the rendered box shows the offset (invariant 9b's point).
+  test('E2E-M5-14: the save indicator and the ✕ share a size and a centre line', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await createTripViaWizard(page, TRIP)
+    await page.getByTestId('m4-fab').click()
+    await page.getByTestId('quick-add-input').locator('input').fill('Wanderstöcke')
+    await page.getByTestId('quick-add-confirm').click()
+    await page.getByTestId('m4-row-Wanderstöcke').getByRole('heading').click()
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+
+    // Both boxes are read in *one* frame, inside the page. Two separate
+    // `boundingBox()` calls land in different frames of the sheet's enter
+    // animation and report a 5 px offset on an aligned header — a false red
+    // this case produced before it was written this way. Under one shared
+    // transform the difference between the two is exact whenever it is read.
+    const [save, close] = await page.getByTestId('m5-sheet').evaluate((sheet) => {
+      const box = (sel: string) => {
+        const r = sheet.querySelector(sel)!.getBoundingClientRect()
+        return { width: r.width, height: r.height, centerY: r.y + r.height / 2 }
+      }
+      return [box('[data-testid="save-indicator"]'), box('[data-testid="m5-close"]')]
+    })
+
+    expect(save.height).toBeCloseTo(close.height, 1)
+    expect(save.width).toBeCloseTo(close.width, 1)
+    expect(save.centerY).toBeCloseTo(close.centerY, 1)
+  })
 })

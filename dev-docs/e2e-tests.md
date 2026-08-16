@@ -40,7 +40,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M1-05 | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 | Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
-| M5 item detail | E2E-M5-09 … E2E-M5-13 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
+| M5 item detail | E2E-M5-09 … E2E-M5-14 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
@@ -428,3 +428,20 @@ there legitimately, and the substring check would have read that as a stray
 group row. It now asserts the row titles. The lesson is the recurring one: an
 assertion that happens to pass for the wrong reason fails the moment the screen
 says more than it used to.
+
+## E2E-M5-14 — the sheet header's two round controls (2026-08-16)
+
+Owner-flagged from a rendered phone: the FR-25.15 save indicator was 26 px
+next to the ✕'s 34 px, both hung from the same top edge, so their centres sat
+4 px apart. Two things this case had to get right:
+
+1. **It measures geometry, not CSS.** The gap is invisible in a stylesheet —
+   both circles are correct in isolation — and obvious once rendered, which
+   is the same lesson G-14 was written for. The assertion reads the two
+   boxes' sizes and centre lines.
+2. **Both boxes are read in one frame.** Two separate `boundingBox()` calls
+   land in different frames of the sheet's enter animation and reported a
+   5 px difference on an *aligned* header — a false red the first draft
+   produced under parallel load. One in-page `evaluate` returns both rects
+   from the same frame, so the shared transform cancels out and the
+   comparison is exact whenever it runs. Red-proved against the 26 px build.
