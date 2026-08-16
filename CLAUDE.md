@@ -159,7 +159,8 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
 9. **FR-27.14 — a Vorlage cannot show its resulting items** (owner-flagged 2026-08-16,
    specified with a rendered mockup, not built). M8's footer states a count and stops; from the
    editor there is no way to see what a trip would actually get. **Concept decided in FR-27.14**
-   and mocked in `dev-docs/UI_Concept_ResolvedList_variants.html`: the footer opens the existing
+   and mocked in `dev-docs/UI_Concept_ResolvedList_variants.html` — **variant A, chosen by the owner
+   2026-08-16**, so build it against that text rather than re-opening the round: the footer opens the existing
    FR-27.12 peek sheet on the Vorlage itself, flat and alphabetical with provenance under each
    name, marked for merges, per-person and conditions. Cheap to build — the sheet already
    resolves a Vorlage; what it needs is the entry point and the three marks.

@@ -342,7 +342,7 @@ The driving scenario, from the owner: reusable **groups** like *Makro Fotografie
 
 * **FR-27.14 (Seeing a Vorlage's Resulting Items — new 2026-08-16, owner request; specified, not built):** M8's resolution footer states „9 Artikel · 2 Gruppen + 3 eigene Positionen“ and stops. The number answers *how many* and never *what*: whether the tripod is in, whether the shared camera really arrives once, whether the rain jacket falls per person. From the editor of a Ferien-Vorlage there is no way to see what a trip generated from it would actually get — the very thing the Vorlage exists to produce.
 
-  **The concept, decided on rendered variants** (`dev-docs/UI_Concept_ResolvedList_variants.html`):
+  **The concept, decided on rendered variants** (`dev-docs/UI_Concept_ResolvedList_variants.html`) — **variant A, chosen by the owner 2026-08-16**; B (grouped by source) and C (footer expanding in place) are out, with their costs recorded below:
 
   * **The footer becomes the entry** — the line that states the count gets a *„Alle N Artikel ansehen ›“* affordance and opens the **existing FR-27.12 peek sheet on the Vorlage itself**. No new surface: the sheet already resolves a Vorlage through its composition, and this is the same question asked from one screen further in.
   * **Flat and alphabetical, the way the packing list will read**, with the **provenance under each name** („aus Makro Fotografie“, „aus Makro Fotografie & Wildlife Fotografie“, „aus eigener Position“). *Considered and rejected:* grouping by source, which answers „woher stammt das“ but never „was kriege ich“ — a shared item can only sit under one of its groups, and the list then reads like nothing the user will ever see again.
