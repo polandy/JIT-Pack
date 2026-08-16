@@ -1,90 +1,112 @@
 /**
- * M14 Post-Trip Review Assistant — proposal generation (FR-9.2).
+ * M14 Post-Trip Review Assistant — proposal generation (FR-9.2,
+ * group-aware per FR-27.11).
  *
  * Pure, no I/O. Proposals are derived from the *current* state of trip
- * flags (FR-9.1) and templates, so applying one makes it disappear on
- * the next computation — that is the whole resumability story (UI-Spec
- * M14 "resumable if interrupted"), no session state to persist.
+ * flags (FR-9.1) and groups, so applying one makes it disappear on the
+ * next computation — that is the whole resumability story (UI-Spec M14
+ * "resumable if interrupted"), no session state to persist.
  *
- * Runs client-side like trip generation (Addendum 3.19):
- * write-backs are ordinary master-partition mutations, so Local Mode
- * gets the assistant for free.
+ * FR-27.11 (concept round 2026-08-08): every proposal targets a
+ * **Gruppe**, never the composed Ferien-Vorlage — the group is where the
+ * knowledge belongs, because writing „Reiseadapter aufnehmen" into the
+ * vacation template would teach exactly one trip shape and leave every
+ * other trip using the same group none the wiser (the FR-27.5 stance).
+ * A row whose provenance is a Vorlage's *own* position therefore yields
+ * no proposal: that structure feedback is M21's job.
+ *
+ * Runs client-side like trip generation (Addendum 3.19): write-backs are
+ * ordinary master-partition mutations, so Local Mode gets the assistant
+ * for free.
  */
 
 import type { MasterItem, Template, TemplateItem, TripItem } from '@/types/domain'
 
-export type ReviewProposalKind = 'reduce_quantity' | 'add_item'
+export type ReviewProposalKind = 'unused' | 'missing'
 
 export interface ReviewProposal {
   /**
-   * Dismissal scope for "Never ask again": the specific item–template
-   * pair (UI-Spec M14 decision), not the item globally.
+   * Stable item reference for dismissal keys: the master item id, or
+   * `name:<lowercased>` for an ad-hoc row that has none.
    */
-  key: string
+  itemRef: string
   kind: ReviewProposalKind
   itemName: string
   /** Master item id; null for an ad-hoc item — apply must create it first. */
   itemId: string | null
-  templateId: string
-  templateName: string
-  /** The template_items row to zero; only set for reduce_quantity. */
-  templateItemId: string | null
+  /**
+   * FR-27.11 default target: for `unused` the group the row came from,
+   * for `missing` the group that contributed most of the trip. The row's
+   * picker may retarget within retargetGroups().
+   */
+  groupId: string
+  groupName: string
   /** Trips (including this one) on which the item carried the flag. */
   flagCount: number
 }
 
+/**
+ * "Never ask again" scope: the specific item–group pair (UI-Spec M14
+ * decision), not the item globally — the same item can still surface a
+ * proposal for a different group.
+ */
+export function dismissalKey(itemRef: string, groupId: string): string {
+  return `${itemRef}::${groupId}`
+}
+
 export interface ReviewArgs {
   items: TripItem[]
+  /** All templates; only `kind === 'group'` rows can become targets. */
   templates: Template[]
   templateItems: (templateId: string) => TemplateItem[]
   masterItems: MasterItem[]
-  /** "Never ask again" filter, keyed by ReviewProposal.key. */
+  /** "Never ask again" filter, keyed by dismissalKey(). */
   isDismissed?: (key: string) => boolean
   /** Historical flag occurrences across archived series trips (M12-style). */
-  flaggedTripCount?: (itemName: string, flag: 'unused' | 'missing') => number
+  flaggedTripCount?: (itemName: string, flag: ReviewProposalKind) => number
 }
 
 export function buildReviewProposals(args: ReviewArgs): ReviewProposal[] {
   const dismissed = args.isDismissed ?? (() => false)
-  const templatesByID = new Map(args.templates.map((t) => [t.id, t]))
+  const groupsByID = new Map(
+    args.templates.filter((t) => t.kind === 'group').map((t) => [t.id, t]),
+  )
   const proposals: ReviewProposal[] = []
 
-  const push = (p: Omit<ReviewProposal, 'key' | 'flagCount'>, flag: 'unused' | 'missing') => {
+  const push = (p: Omit<ReviewProposal, 'itemRef' | 'flagCount'>) => {
     const itemRef = p.itemId ?? `name:${p.itemName.toLowerCase()}`
-    const key = `${itemRef}::${p.templateId}`
-    if (dismissed(key) || proposals.some((existing) => existing.key === key)) return
+    const key = dismissalKey(itemRef, p.groupId)
+    if (dismissed(key)) return
+    if (proposals.some((x) => dismissalKey(x.itemRef, x.groupId) === key)) return
     proposals.push({
       ...p,
-      key,
-      flagCount: Math.max(1, args.flaggedTripCount?.(p.itemName, flag) ?? 1),
+      itemRef,
+      flagCount: Math.max(1, args.flaggedTripCount?.(p.itemName, p.kind) ?? 1),
     })
   }
 
-  // Unused → set quantity to 0 in the template the item came from.
+  // Unused → zero the position in the group the row came from.
   for (const item of args.items) {
     if (!item.flag_unused || !item.source_template_id) continue
-    if (!templatesByID.has(item.source_template_id)) continue
-    const templateItem = args
-      .templateItems(item.source_template_id)
+    const group = groupsByID.get(item.source_template_id)
+    if (!group) continue
+    const position = args
+      .templateItems(group.id)
       .find((ti) => ti.item_id === item.source_item_id)
-    if (!templateItem || templateItem.quantity === 0) continue
-    push(
-      {
-        kind: 'reduce_quantity',
-        itemName: item.name,
-        itemId: item.source_item_id,
-        templateId: item.source_template_id,
-        templateName: templatesByID.get(item.source_template_id)!.name,
-        templateItemId: templateItem.id,
-      },
-      'unused',
-    )
+    if (!position || position.quantity === 0) continue
+    push({
+      kind: 'unused',
+      itemName: item.name,
+      itemId: item.source_item_id,
+      groupId: group.id,
+      groupName: group.name,
+    })
   }
 
-  // Missing → add to the trip's dominant template (the one that
-  // contributed the most items — there is no better signal for where
-  // a spontaneously added item belongs).
-  const dominant = dominantTemplate(args.items, templatesByID)
+  // Missing → an ad-hoc row with no provenance; default to the group that
+  // contributed most of the trip, which is what the user thinks of as
+  // "the list" (FR-27.11).
+  const dominant = dominantGroup(args.items, groupsByID)
   if (dominant) {
     const containedItemIDs = new Set(args.templateItems(dominant.id).map((ti) => ti.item_id))
     for (const item of args.items) {
@@ -94,30 +116,43 @@ export function buildReviewProposals(args: ReviewArgs): ReviewProposal[] {
         args.masterItems.find((m) => m.name.toLowerCase() === item.name.toLowerCase())?.id ??
         null
       if (itemId && containedItemIDs.has(itemId)) continue
-      push(
-        {
-          kind: 'add_item',
-          itemName: item.name,
-          itemId,
-          templateId: dominant.id,
-          templateName: dominant.name,
-          templateItemId: null,
-        },
-        'missing',
-      )
+      push({
+        kind: 'missing',
+        itemName: item.name,
+        itemId,
+        groupId: dominant.id,
+        groupName: dominant.name,
+      })
     }
   }
 
   return proposals
 }
 
-function dominantTemplate(
+/**
+ * retargetGroups answers what the row's picker may offer (FR-27.11:
+ * groups only, never a Ferien-Vorlage). A `missing` proposal can land in
+ * any group; an `unused` proposal can only move between groups that
+ * actually carry the item — zeroing a position that does not exist
+ * would apply silently as nothing.
+ */
+export function retargetGroups(
+  proposal: ReviewProposal,
+  templates: Template[],
+  templateItems: (templateId: string) => TemplateItem[],
+): Template[] {
+  const groups = templates.filter((t) => t.kind === 'group')
+  if (proposal.kind === 'missing') return groups
+  return groups.filter((g) => templateItems(g.id).some((ti) => ti.item_id === proposal.itemId))
+}
+
+function dominantGroup(
   items: TripItem[],
-  templatesByID: Map<string, Template>,
+  groupsByID: Map<string, Template>,
 ): Template | null {
   const counts = new Map<string, number>()
   for (const item of items) {
-    if (item.source_template_id && templatesByID.has(item.source_template_id)) {
+    if (item.source_template_id && groupsByID.has(item.source_template_id)) {
       counts.set(item.source_template_id, (counts.get(item.source_template_id) ?? 0) + 1)
     }
   }
@@ -125,7 +160,7 @@ function dominantTemplate(
   let bestCount = 0
   for (const [id, count] of counts) {
     if (count > bestCount) {
-      best = templatesByID.get(id)!
+      best = groupsByID.get(id)!
       bestCount = count
     }
   }

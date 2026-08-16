@@ -692,9 +692,26 @@ function onQuickAdd(item: {
   )
 }
 
-/** Archiving completes the trip and opens the M14 review (FR-9.2). */
-function onArchive() {
+/**
+ * Archiving completes the trip and opens the M14 review (FR-9.2).
+ * With no FR-9.1 flags there is nothing to judge, so the assistant is
+ * skipped with a toast instead of an empty screen (UI-Spec M14 states);
+ * the archived M4 leads with the closing card either way.
+ */
+async function onArchive() {
   orchestrator.archiveTrip(props.tripId)
+  const flagged = store
+    .getItems(props.tripId)
+    .some((item) => item.flag_unused || item.flag_missing)
+  if (!flagged) {
+    const toast = await toastController.create({
+      message: t('review.nothingToast'),
+      duration: 3000,
+      position: 'bottom',
+    })
+    await toast.present()
+    return
+  }
   router.push(`/trips/${props.tripId}/review`)
 }
 

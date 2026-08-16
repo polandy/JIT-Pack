@@ -52,6 +52,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-02, E2E-M9-03, E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
 | M12 analytics | E2E-M12-01, E2E-M12-02, E2E-M12-03 (absence half only, see below), E2E-M12-04, E2E-M12-05 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
+| M14 review | E2E-M14-06 (empty-state half only, see below) + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
 (create / import). The screen has neither as a button: create is the FAB and
@@ -348,3 +349,30 @@ Landed with the M12 rebuild. What the unit had to get right:
    `wizard-series-name` added for it) and reuses an existing series of the
    same name on later seeds — needed by E2E-M12-03 and by every future
    series-scoped case (M16).
+
+## M14 — review assistant (`e2e/review.spec.ts`, 2026-08-16)
+
+Landed with the M14 rebuild (FR-27.11: a list targeting groups). Two cases,
+Local Mode — deliberately few, and the honesty about why matters more than
+the count:
+
+1. **Every positive M14 case is blocked by the same product gap as
+   E2E-M12-03's history half.** A proposal needs an FR-9.1 flag; the only
+   flag writer the UI has is the quick-add's auto-*Missing*, which stamps
+   only on an *active* trip — and nothing user-facing moves a trip from
+   planning to active. So E2E-M14-01 (auto-launch on archive),
+   -02 (apply writes to the group), -04 (targets, blast radius) and
+   -05 (marked rows) cannot be built through the app today (spec §2.4
+   forbids injecting the rows). When a planning→active path ships, those
+   cases are owed alongside it, exactly like the positive M12-03.
+2. **The list semantics are pinned in a component test instead** —
+   `src/views/trips/__tests__/ReviewPage.spec.ts`: one row per proposal
+   with the open count, the groups-only picker (and the unused-row
+   restriction to groups that carry the item), apply/skip marking rows in
+   place, pair-scoped "never ask again", the FR-27.4 blast-radius line,
+   and the empty state. The proposal arithmetic itself is domain-owned
+   (`domain/__tests__/review.spec.ts`).
+3. What the e2e unit *does* pin: the screen renders as a list with an
+   open count even when that count is 0 (the empty state is framed, not
+   blank), and `‹ back` renders the packing list again (G-9) — asserted
+   on the visible page, not the URL.
