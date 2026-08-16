@@ -32,7 +32,7 @@ replace the file and update its own revision note.
 - [`Sync_API_Spec_v1.3.md`](Sync_API_Spec_v1.3.md) — the wire protocol: pull/push
   envelopes, HLC format, the merge algorithm, WebSocket events, RPC endpoints.
 - [`UI_Spec_v1.10.md`](UI_Spec_v1.10.md) — screens M1–M21 and the global patterns
-  G-1–G-12.
+  G-1–G-15.
 - [`Navigation_Concept_v1.0.md`](Navigation_Concept_v1.0.md) — how the screens hang
   together.
 - [`UI_Test_Spec_v1.0.md`](UI_Test_Spec_v1.0.md) — the Playwright scope: per-screen

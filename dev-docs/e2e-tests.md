@@ -156,7 +156,7 @@ adding a row cancelled the transaction. Both are fixed and both are
 covered by **E2E-M4-32**, which waits on the sync indicator settling
 rather than on a duration.
 
-**Not yet covered:** everything else in spec §3 (global patterns G-1–G-12), §4 (M1–M21 beyond the above), §5 (cross-screen flows) and §6 (non-functional journeys). The `single` and `server` modes have no coverage at all — they need a real `jitpackd` harness and, for `server`, a mock IdP (spec §10 steps 3 and 5).
+**Not yet covered:** everything else in spec §3 (global patterns G-1–G-15), §4 (M1–M21 beyond the above), §5 (cross-screen flows) and §6 (non-functional journeys). The `single` and `server` modes have no coverage at all — they need a real `jitpackd` harness and, for `server`, a mock IdP (spec §10 steps 3 and 5).
 
 This is a small fraction of the specified suite. Do not read a green `e2e` job as "the UI is verified".
 
