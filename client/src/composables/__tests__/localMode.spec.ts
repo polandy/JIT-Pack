@@ -96,15 +96,26 @@ describe('Local Mode', () => {
           mode: 'pack',
           late_packer: false,
           traveler_index: 0,
+          // FR-27.7 in Local Mode (invariant 5): the todo is generated on the
+          // device, so it has to persist without a server having seen it.
+          tasks: ['Waschen nicht vergessen'],
         },
       ],
     })
 
     await vi.waitFor(async () => {
       const tables = (await persistence.load()).map((r) => r.table).sort()
-      expect(tables).toEqual(['travelers', 'trip_items', 'trips'])
+      expect(tables).toEqual(['comments', 'travelers', 'trip_items', 'trips'])
     })
     expect(fetchMock).not.toHaveBeenCalled()
+
+    const tripId = useTripStore().tripList[0]!.id
+    const item = useTripStore().getItems(tripId)[0]!
+    expect(
+      useTripStore()
+        .getItemTodos(tripId, item.id)
+        .map((t) => t.body),
+    ).toEqual(['Waschen nicht vergessen'])
   })
 
   it('reports the G-2 local state (FR-19.6)', () => {

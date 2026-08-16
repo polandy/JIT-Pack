@@ -195,10 +195,10 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.getByTestId('m4-progress')).toContainText('0/1')
   })
 
-  // E2E-M3-11 (FR-2.1b): a trip needs only its year. The wizard's step 1
+  // E2E-M3-15 (FR-2.1b): a trip needs only its year. The wizard's step 1
   // must let you through with a name alone — the year is preselected —
   // and the trip then reads by its year where a date would have stood.
-  test('E2E-M3-11: a trip can be created with no dates at all', async ({ page }) => {
+  test('E2E-M3-15: a trip can be created with no dates at all', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
     await page.goto('/trips/new')
 
@@ -221,9 +221,9 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(row.getByTestId('trip-when')).toHaveText(String(new Date().getFullYear()))
   })
 
-  // E2E-M3-12 (FR-2.1c): step 1 shows what it requires and folds the rest
+  // E2E-M3-16 (FR-2.1c): step 1 shows what it requires and folds the rest
   // away, but never hides *state*: a set value appears on the folded row.
-  test('E2E-M3-12: the optional trip fields are folded, and say so when set', async ({ page }) => {
+  test('E2E-M3-16: the optional trip fields are folded, and say so when set', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
     await page.goto('/trips/new')
 

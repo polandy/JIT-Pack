@@ -1,5 +1,11 @@
 import { test, expect } from './fixtures'
-import type { Page } from '@playwright/test'
+import {
+  addPosition,
+  backToTemplateList as backToList,
+  createTemplate,
+  includeGroup,
+  visiblePage as visible,
+} from './fixtures'
 
 /**
  * M8 — Template Editor, scope-shaped (§3.27, FR-27.6/27.7).
@@ -17,53 +23,6 @@ import type { Page } from '@playwright/test'
  * Local Mode throughout: every rule here is client-side (invariant 4), and the
  * run mode without a server is the one where a missing client rule shows up.
  */
-
-/** The page that is actually painted — a route change alone proves nothing. */
-function visible(page: Page) {
-  return page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
-}
-
-/** Create through the app's own path (spec §2.4): M7 FAB → scope → name. */
-async function createTemplate(page: Page, kind: 'template' | 'group', name: string) {
-  await page.getByTestId('m7-fab').click()
-  await expect(page.getByTestId('m7-kind-chooser')).toBeVisible()
-  await page.getByTestId(`m7-kind-${kind}`).click()
-  const field = page.getByTestId('m7-name-field')
-  await expect(field).toBeVisible()
-  await field.locator('input').fill(name)
-  await page.getByTestId('m7-create-commit').click()
-  await expect(page.getByTestId('header-title')).toHaveText(name)
-  await expect(visible(page).getByTestId('m8-scope-switch')).toBeVisible()
-}
-
-/**
- * Leave M8 via the ADR-011 header chevron, never page.goBack() — history-back
- * across the root→tabs outlet boundary trips the known Ionic transition defect
- * (see navigation.spec.ts) and wedges WebKit under suite load.
- */
-async function backToList(page: Page) {
-  await page.getByTestId('header-back').click()
-  await expect(visible(page).getByTestId('m7-fab')).toBeVisible()
-  // Settled, not merely arriving: while the outgoing editor is still
-  // fading it counts as visible, and M8 now shares the `.section-head`
-  // grammar with M7 — a one-shot collection over the class would read
-  // both pages at once.
-  await expect(visible(page).getByTestId('m8-scope-switch')).toHaveCount(0)
-}
-
-/** FR-25.13: type into the open quick-add and commit with Enter. */
-async function addPosition(page: Page, name: string) {
-  const input = visible(page).getByTestId('quick-add-input')
-  if (!(await input.isVisible().catch(() => false))) {
-    await visible(page).getByTestId('m8-fab').click()
-  }
-  await input.locator('input').fill(name)
-  await input.locator('input').press('Enter')
-  // The new row is the settled signal — the add is a Local Mode write.
-  await expect(
-    visible(page).locator('ion-item h2').filter({ hasText: name }).first(),
-  ).toBeVisible()
-}
 
 test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)', () => {
   test.beforeEach(async ({ seedMode, page }) => {
@@ -205,9 +164,7 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await backToList(page)
     await visible(page).getByTestId('m7-scope-all').click()
     await visible(page).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
-    await visible(page)
-      .locator('[data-testid^="m8-group-remove-"]')
-      .click()
+    await visible(page).locator('[data-testid^="m8-group-remove-"]').click()
     await visible(page).getByTestId('m8-scope-group').click()
     await expect(visible(page).getByTestId('m8-scope-group')).toHaveAttribute(
       'aria-pressed',
@@ -315,9 +272,7 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
     await page.goto('/tabs/templates')
   })
 
-  test('E2E-M8-08: the footer names every merge with its contributing groups', async ({
-    page,
-  }) => {
+  test('E2E-M8-08: the footer names every merge with its contributing groups', async ({ page }) => {
     await createTemplate(page, 'group', 'Makro')
     await addPosition(page, 'Kamera')
     await addPosition(page, 'Ringlicht')
@@ -328,18 +283,8 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
     await backToList(page)
 
     await createTemplate(page, 'template', 'Fototage')
-    await visible(page).getByTestId('m8-include-open').click()
-    await visible(page)
-      .getByTestId('m8-group-picker')
-      .locator('.pick')
-      .filter({ hasText: 'Makro' })
-      .click()
-    await visible(page).getByTestId('m8-include-open').click()
-    await visible(page)
-      .getByTestId('m8-group-picker')
-      .locator('.pick')
-      .filter({ hasText: 'Wildlife' })
-      .click()
+    await includeGroup(page, 'Makro')
+    await includeGroup(page, 'Wildlife')
     await addPosition(page, 'Reiseapotheke')
 
     const footer = visible(page).getByTestId('m8-resolution')
@@ -359,14 +304,9 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
     await addPosition(page, 'Kamera')
     await backToList(page)
     await createTemplate(page, 'template', 'Fototage')
-    await visible(page).getByTestId('m8-include-open').click()
-    await visible(page)
-      .getByTestId('m8-group-picker')
-      .locator('.pick')
-      .filter({ hasText: 'Makro' })
-      .click()
-    // An own position, because trip generation does not expand includes yet
-    // (§3.27 client package): the trip's provenance rows come from here.
+    await includeGroup(page, 'Makro')
+    // An own position beside the group: the blast radius has to be found
+    // through both provenance paths, the Vorlage's own rows and the group's.
     await addPosition(page, 'Reiseapotheke')
     await backToList(page)
 

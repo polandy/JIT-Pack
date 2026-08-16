@@ -9,6 +9,15 @@ import type { Mutation, MutationOp } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
 import type { ItemMode, TemplateKind } from '@/types/domain'
 
+/**
+ * What the client writes into an actor column it is not allowed to decide.
+ * The server stamps those columns itself — `comments.author_id` and
+ * `packing_now_by` among them (`stampActor`, invariant 3) — so the placeholder
+ * never reaches a foreign key in Server or Single-User Mode; in Local Mode
+ * there is exactly one author and no directory to name.
+ */
+export const CLIENT_ACTOR_PLACEHOLDER = 'current-user'
+
 export function useMutations(hlc: HLCGenerator) {
   function make(
     op: MutationOp,
@@ -49,7 +58,7 @@ export function useMutations(hlc: HLCGenerator) {
   function startPackingNow(itemId: string): Mutation {
     return make('upsert', 'trip_items', itemId, {
       state: 'packing_now',
-      packing_now_by: 'current-user',
+      packing_now_by: CLIENT_ACTOR_PLACEHOLDER,
       packing_now_at: new Date().toISOString(),
     })
   }
@@ -279,6 +288,8 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   // --- Preparation todo mutations (FR-7.3) ---
+  //
+  // See CLIENT_ACTOR_PLACEHOLDER for what callers pass as the author.
 
   function addTodo(
     tripId: string,

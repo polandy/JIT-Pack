@@ -67,6 +67,7 @@ function generated(overrides: Partial<GeneratedItem> = {}): GeneratedItem {
     mode: 'pack',
     late_packer: false,
     traveler_index: null,
+    tasks: [],
     ...overrides,
   }
 }
@@ -205,6 +206,86 @@ describe('createTripFromWizard', () => {
     expect(battery?.source_template_id).toBeNull()
     expect(battery?.quantity).toBe(2)
     await vi.waitFor(() => expect(fetchMock.mock.calls.length).toBe(4))
+  })
+
+  it('materialises FR-27.7 template tasks as open prep todos on the generated row', async () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const tripStore = useTripStore()
+    mockPush()
+    mockPull()
+    mockPush()
+    mockPull()
+
+    const tripId = orch.createTripFromWizard({
+      name: 'Fototour',
+      year: 2026,
+      startDate: null,
+      endDate: null,
+      attributes: null,
+      travelers: [],
+      items: [
+        generated({ source_item_id: 'charger', name: 'Ladegerät', tasks: ['Akkus laden'] }),
+        generated({ source_item_id: 'tent', name: 'Zelt' }),
+      ],
+    })
+
+    const charger = tripStore.getItems(tripId).find((i) => i.name === 'Ladegerät')!
+    const tent = tripStore.getItems(tripId).find((i) => i.name === 'Zelt')!
+    const todos = tripStore.getTodos(tripId)
+
+    expect(todos).toHaveLength(1)
+    expect(todos[0]).toMatchObject({
+      trip_item_id: charger.id,
+      body: 'Akkus laden',
+      task_state: 'open',
+    })
+    // The row without tasks stays clean — a todo on it would block it from
+    // ever counting as done (FR-7.3).
+    expect(tripStore.getItemTodos(tripId, tent.id)).toHaveLength(0)
+
+    await vi.waitFor(() => expect(fetchMock.mock.calls.length).toBe(4))
+  })
+
+  it('pushes a prep todo after the row it hangs off (FK ordering)', async () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const tripStore = useTripStore()
+    mockPush()
+    mockPull()
+    mockPush()
+    mockPull()
+
+    const tripId = orch.createTripFromWizard({
+      name: 'Fototour',
+      year: 2026,
+      startDate: null,
+      endDate: null,
+      attributes: null,
+      travelers: [],
+      items: [generated({ source_item_id: 'charger', name: 'Ladegerät', tasks: ['Akkus laden'] })],
+    })
+    await vi.waitFor(() => expect(fetchMock.mock.calls.length).toBe(4))
+
+    const charger = tripStore.getItems(tripId).find((i) => i.name === 'Ladegerät')!
+    const tripPush = fetchMock.mock.calls.find((c) =>
+      String(c[0]).includes(`/sync/trips/${tripId}`),
+    )
+    const mutations = JSON.parse(String(tripPush![1].body)).mutations as {
+      table: string
+      id: string
+      fields?: Record<string, unknown>
+    }[]
+
+    const rowIndex = mutations.findIndex((m) => m.table === 'trip_items' && m.id === charger.id)
+    const todoIndex = mutations.findIndex((m) => m.table === 'comments')
+    expect(rowIndex).toBeGreaterThanOrEqual(0)
+    // The comments row carries trip_item_id as a foreign key: pushed first, the
+    // server rejects it.
+    expect(todoIndex).toBeGreaterThan(rowIndex)
+    expect(mutations[todoIndex]!.fields).toMatchObject({
+      trip_item_id: charger.id,
+      is_task: 1,
+      task_state: 'open',
+    })
   })
 
   it('computes no duration without a start date (FR-2.1a)', () => {

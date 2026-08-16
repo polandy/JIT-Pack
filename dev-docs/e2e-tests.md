@@ -38,8 +38,8 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 |---|---|---|---|
 | Harness smoke | E2E-M19-01 (partial), E2E-M19-04, E2E-G7-01 | `local` | [`smoke.spec.ts`](../client/e2e/smoke.spec.ts) |
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
-| M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-13 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M1-05 | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
-| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-M3-11, E2E-M3-12, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
+| M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M1-05 | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
+| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-13 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
@@ -52,6 +52,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-02, E2E-M9-03, E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
 | M12 analytics | E2E-M12-01, E2E-M12-02, E2E-M12-03 (absence half only, see below), E2E-M12-04, E2E-M12-05 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
+| M3 composed templates | E2E-M3-11, E2E-M3-13 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | M14 review | E2E-M14-06 (empty-state half only, see below) + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
@@ -376,3 +377,32 @@ the count:
    open count even when that count is 0 (the empty state is framed, not
    blank), and `‹ back` renders the packing list again (G-9) — asserted
    on the visible page, not the URL.
+
+## M3 — composed templates (`e2e/trip-composition.spec.ts`, 2026-08-16)
+
+Landed with the §3.27 generation package. Two cases, Local Mode — the mode
+without a server is where a missing client-side rule shows, and include
+expansion, the merge report and task materialisation are all client-side
+(invariant 4). Both build their composition through M7/M8 rather than
+injecting rows (spec §2.4), which is why the M7/M8 helpers moved into
+`fixtures.ts` instead of being copied a third time.
+
+1. **E2E-M3-11** — the two scopes as separate sections, a Vorlage counted by
+   what it *resolves* to (3, where its own positions are 0), the deduped
+   footer count, and the merge named with both groups. **E2E-M3-13** — the
+   preview's task count, and the task arriving on the generated row as an
+   FR-7.3 todo that M4 counts in its header and lists in the prep section.
+2. **The unit immediately found a real defect, and it was WebKit-only by
+   accident rather than by browser.** The merge read „in Wildlife & Makro"
+   there and „in Makro & Wildlife" on Chromium, from identical data:
+   `template_includes` carries no sort order, so the rows arrive in whatever
+   order storage produced. That order is not cosmetic — it decides a merged
+   item's *first contributor*, and therefore which group's attributes and
+   `source_template_id` the generated row carries, which is exactly what
+   FR-27.5 and FR-27.11 read back a year later. Fixed in the domain
+   (`includedTemplatesOf`, ordering by group name with the include id as
+   tie-break) and pinned by unit cases that feed the include rows in both
+   orders. The superseded `templates.spec.ts` case asserting "the order they
+   were included" was rewritten: that order does not exist in the data.
+   *A rendered run found it; neither the component tests nor the previously
+   green domain suite could have.*

@@ -82,11 +82,12 @@ export const useMasterStore = defineStore('master', () => {
       .filter((t): t is Template => t !== undefined)
   }
 
+  /** Every preparation task on the device (FR-27.7) — generation resolves by position. */
+  const templateItemTaskList = computed(() => [...templateItemTasks.value.values()])
+
   /** The preparation tasks of one position (FR-27.7), in insertion order. */
   function getTemplateItemTasks(templateItemId: string): TemplateItemTask[] {
-    return [...templateItemTasks.value.values()].filter(
-      (t) => t.template_item_id === templateItemId,
-    )
+    return templateItemTaskList.value.filter((t) => t.template_item_id === templateItemId)
   }
 
   /**
@@ -323,6 +324,7 @@ export const useMasterStore = defineStore('master', () => {
     includeList,
     getIncludes,
     getIncludedBy,
+    templateItemTaskList,
     getTemplateItemTasks,
     resolve,
     seriesList,

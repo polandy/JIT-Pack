@@ -387,6 +387,16 @@ export const en = {
   'review.snackNever': 'Won’t be suggested again for this item and group',
   'review.nothingToast': 'Nothing to review — no flags were set.',
 
+  // M3 step 3 — template composition (§3.27, FR-27.2/27.6/27.7).
+  'wizard.sectionGroups': 'Additional groups',
+  'wizard.templatesEmpty': 'No templates yet — you can still create an empty trip.',
+  'wizard.alreadyIncluded': 'already included via “{names}”',
+  'wizard.companions': '+ {n} companion item ({names}) | + {n} companion items ({names})',
+  'wizard.taskCount': '{n} preparation task carried over | {n} preparation tasks carried over',
+  'wizard.mergesTitle': 'Carried once',
+  'wizard.excludedSummary': '{n} excluded by conditions',
+  'wizard.excludedLine': '{item} — skipped: {reason}',
+
   'settings.language': 'Language',
   'settings.languageHint': 'This device only.',
   'settings.languageEnglish': 'English',
