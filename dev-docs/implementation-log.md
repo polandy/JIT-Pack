@@ -2084,3 +2084,30 @@ row in the ledger's status table was repaired.
 
 No ADR: every tradeoff here was decided in the 2026-08-08 concept round;
 this entry records execution, not decision.
+
+## Browser back with the M5 sheet open (Navigation Concept §7 case 4, 2026-08-16)
+
+Found by the owner on the first eyeball after M11: back on an open item
+detail landed on the trip list, skipping the packing list. Root cause: the
+sheet *replaces* the trip's history entry (deliberate — a push measurably
+mounts a twin packing list, re-verified during this fix), so the entry under
+the overlay does not exist and a history pop goes two screens back. The
+chevron was already overlay-aware (`backTarget`); the browser's button was
+not.
+
+The fix (`client/src/router/overlayBackGuard.ts`) treats a pop leaving a
+route with an active `meta.overlayParam` as "close the overlay": the pop
+completes, then the overlay parent is pushed. Two rejected mechanics, both
+paid for in the attempt: a `beforeEach` redirect renders the wrong screen
+under the right URL, because Ionic latches the pending pop direction when a
+navigation *confirms* and an aborted pop leaves it stale for the corrective
+navigation to consume; and intercepting `popstate` before the router means
+forging vue-router's position state. Letting both navigations confirm keeps
+Ionic coherent, costs one brief visible bounce through the trip list, and
+rebuilds the natural list → trip chain so the next back lands right.
+
+Unit-specified against a memory-history router (pop closes, chain restored,
+plain pops untouched, the chevron's replace not intercepted); e2e-covered by
+E2E-M5-13, red-proved against the unguarded build. Known accepted gap:
+a back during the sheet's enter animation still races Ionic's transition
+queue — documented in the concept doc, unreachable by an intentional back.
