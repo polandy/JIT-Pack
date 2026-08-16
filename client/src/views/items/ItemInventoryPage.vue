@@ -89,18 +89,14 @@ const filtered = computed<MasterItem[]>(() => {
   const onTag =
     tagFilter.value === null
       ? null
-      : new Set(
-          store.itemTagList.filter((a) => a.tag_id === tagFilter.value).map((a) => a.item_id),
-        )
+      : new Set(store.itemTagList.filter((a) => a.tag_id === tagFilter.value).map((a) => a.item_id))
   return store.itemList.filter((item) => {
     if (term && !item.name.toLowerCase().includes(term)) return false
     return onTag === null || onTag.has(item.id)
   })
 })
 
-const groups = computed(() =>
-  groupByPrimaryTag(filtered.value, store.itemTagList, store.tagList),
-)
+const groups = computed(() => groupByPrimaryTag(filtered.value, store.itemTagList, store.tagList))
 
 const isEmpty = computed(() => store.itemList.length === 0)
 const noResults = computed(() => !isEmpty.value && filtered.value.length === 0)
@@ -170,7 +166,9 @@ function handleRefresh(event: CustomEvent) {
         :value="tagFilter ?? 'all'"
         scrollable
         data-testid="m9-tag-axis"
-        @ionChange="(e: CustomEvent) => (tagFilter = e.detail.value === 'all' ? null : e.detail.value)"
+        @ionChange="
+          (e: CustomEvent) => (tagFilter = e.detail.value === 'all' ? null : e.detail.value)
+        "
       >
         <IonSegmentButton value="all">
           <IonLabel>{{ t('items.tagFilterAll') }}</IonLabel>

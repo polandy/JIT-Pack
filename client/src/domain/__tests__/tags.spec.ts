@@ -23,10 +23,7 @@ function assign(item_id: string, tag_id: string, position: number): ItemTag {
 
 describe('tagsOfItem (FR-24.1)', () => {
   it('returns the item’s tags ordered by position, primary first', () => {
-    const assignments = [
-      assign('i-badehose', 't-sommer', 1),
-      assign('i-badehose', 't-kleidung', 0),
-    ]
+    const assignments = [assign('i-badehose', 't-sommer', 1), assign('i-badehose', 't-kleidung', 0)]
 
     expect(tagsOfItem('i-badehose', assignments, tags).map((t) => t.name)).toEqual([
       'Kleidung',
@@ -68,7 +65,11 @@ describe('primaryTagOf (FR-24.2)', () => {
 })
 
 describe('groupByPrimaryTag (FR-24.2)', () => {
-  const items = [item('i-shirt', 'Icebreaker'), item('i-kabel', 'Kabel'), item('i-lose', 'Sackmesser')]
+  const items = [
+    item('i-shirt', 'Icebreaker'),
+    item('i-kabel', 'Kabel'),
+    item('i-lose', 'Sackmesser'),
+  ]
   const assignments = [
     // Icebreaker is Kleidung *and* Sommer — it must appear once, under Kleidung.
     assign('i-shirt', 't-kleidung', 0),
@@ -109,9 +110,10 @@ describe('groupByPrimaryTag (FR-24.2)', () => {
     const many = [item('i-b', 'Zelt'), item('i-a', 'Anorak')]
     const a = [assign('i-b', 't-kleidung', 0), assign('i-a', 't-kleidung', 0)]
 
-    expect(groupByPrimaryTag(many, a, tags).get('Kleidung')?.map((i) => i.name)).toEqual([
-      'Anorak',
-      'Zelt',
-    ])
+    expect(
+      groupByPrimaryTag(many, a, tags)
+        .get('Kleidung')
+        ?.map((i) => i.name),
+    ).toEqual(['Anorak', 'Zelt'])
   })
 })

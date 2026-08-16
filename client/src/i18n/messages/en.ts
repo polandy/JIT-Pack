@@ -180,7 +180,8 @@ export const en = {
   'items.importSpreadsheet': 'Import spreadsheet',
   'items.untagged': 'Untagged',
   'items.properties': 'Shown properties',
-  'items.propertiesHint': 'What the inventory list shows besides the name — applies to this device.',
+  'items.propertiesHint':
+    'What the inventory list shows besides the name — applies to this device.',
   'items.property.tags': 'Tags',
   'items.property.weight': 'Weight',
   'items.property.price': 'Price',

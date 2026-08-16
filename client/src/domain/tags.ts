@@ -37,11 +37,7 @@ export function tagsOfItem(itemId: string, assignments: ItemTag[], tags: Tag[]):
 }
 
 /** The item's primary tag (FR-24.2), or undefined when it carries none. */
-export function primaryTagOf(
-  itemId: string,
-  assignments: ItemTag[],
-  tags: Tag[],
-): Tag | undefined {
+export function primaryTagOf(itemId: string, assignments: ItemTag[], tags: Tag[]): Tag | undefined {
   return tagsOfItem(itemId, assignments, tags)[0]
 }
 

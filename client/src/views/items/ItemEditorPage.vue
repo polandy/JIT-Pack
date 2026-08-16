@@ -82,7 +82,9 @@ onMounted(async () => {
   if (!isCreating.value) return
   await nextTick()
   // The name is the only required field, so it takes the caret.
-  const native = await (nameInput.value?.$el as HTMLIonInputElement | undefined)?.getInputElement?.()
+  const native = await (
+    nameInput.value?.$el as HTMLIonInputElement | undefined
+  )?.getInputElement?.()
   native?.focus()
 })
 
@@ -337,12 +339,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
               @ionInput="(e: CustomEvent) => (draftName = (e.detail.value as string) ?? '')"
               @keyup.enter="createItem"
             />
-            <IonInput
-              v-else
-              :value="item!.name"
-              data-testid="m10-name"
-              @ionBlur="onNameChange"
-            />
+            <IonInput v-else :value="item!.name" data-testid="m10-name" @ionBlur="onNameChange" />
           </IonItem>
         </IonList>
 
