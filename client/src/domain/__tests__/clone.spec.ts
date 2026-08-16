@@ -175,7 +175,6 @@ describe('planClone — quantities carry over (FR-12.2, formulas retired 2026-08
   const masterItem: MasterItem = {
     id: 'item1',
     name: 'Socken',
-    category_id: null,
     weight_grams: null,
     value_cents: null,
   }

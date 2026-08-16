@@ -146,7 +146,7 @@ func TestWS_MasterChangedNotifiesSameUserOnly(t *testing.T) {
 	wsB := wsConnectAuth(t, srv, userB)
 
 	body := map[string]any{"mutations": []any{
-		masterMutation("categories", "cat-ws", "mw-1", "insert",
+		masterMutation("tags", "cat-ws", "mw-1", "insert",
 			map[string]any{"name": "Technik"}, "0000000001000-0000-aaaaaaaa"),
 	}}
 	resp, raw := doJSON(t, http.MethodPost, srv.url+"/api/v1/sync/master",

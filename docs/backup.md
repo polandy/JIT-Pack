@@ -7,7 +7,7 @@ in `JITPACK_DB_PATH` (default `jitpack.db`; the reference Docker setup uses
 `/data/jitpack.db` on a mounted volume). There is no second data directory, no object
 store, and no separate media folder.
 
-That file holds your trips, items, categories, templates, travelers, containers,
+That file holds your trips, items, tags, templates, travelers, containers,
 comments, the sync change log, notifications, Web Push subscriptions, accounts, and
 active sessions. It also holds every **image as a BLOB** — user avatars in the `users`
 table and item reference photos in `item_images` — which is a deliberate decision
@@ -120,8 +120,9 @@ The response is served as an attachment named `jitpack-export.json`, shaped like
   "version": 1,
   "exported_at": "2026-08-09T07:41:02Z",
   "data": {
-    "categories": [ … ],
+    "tags": [ … ],
     "items": [ … ],
+    "item_tags": [ … ],
     "templates": [ … ],
     "trips": [ … ],
     "trip_items": [ … ],
@@ -131,7 +132,8 @@ The response is served as an attachment named `jitpack-export.json`, shaped like
 ```
 
 It is **filtered to the requesting user's visibility**, mirroring the rules the sync feed
-uses: instance-wide master data (categories, items, templates and their parts) in full,
+uses: instance-wide master data (tags, items and their tag assignments, templates and
+their parts) in full,
 and trip-scoped rows only for trips you are a member of, series only for those you own.
 An admin's export is therefore not an instance-wide dump either — it is that admin's view.
 

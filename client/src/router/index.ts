@@ -167,6 +167,15 @@ export const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    // FR-24.5: creation is the editor in its minimal mode, so it is a route
+    // rather than a prompt — and it must precede /items/:itemId, or "new"
+    // would be read as an item id.
+    path: '/items/new',
+    meta: { parent: '/tabs/items', title: 'New item' },
+    name: 'item-create',
+    component: () => import('@/views/items/ItemEditorPage.vue'),
+  },
+  {
     path: '/items/:itemId',
     meta: { parent: '/tabs/items', title: 'Item' },
     name: 'item-editor',

@@ -114,7 +114,8 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    `dev-docs/e2e-tests.md` is the ledger of what is actually covered — a green `e2e` job is
    not the same as a verified UI.
 
-**Parked, specified, do not start:** §3.24 item tags & lifecycle delete, §3.26 calendar feed,
+**Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
+unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,
 the North-Star Plan/During phases, FR-27.8's per-trip usage history, and FR-1.6's publish/fork
 ownership model (each carries a revisit trigger in its stub).
 
@@ -122,7 +123,7 @@ ownership model (each carries a revisit trigger in its stub).
 
 - `cmd/jitpackd` — wiring only: env-parsed `Config`, picks `api.New` (+ `EnableOIDC` after discovery) / `api.NewSingleUser`, graceful shutdown. No logic.
 - `internal/sync` — HLC generator + field-level merge algorithm (NFR-4.2a). Pure, zero I/O, zero internal imports.
-- `internal/store` — the only package that imports `database/sql`. SQLite repositories, change-log/conflict-log, the two sync partitions (`master.go` for categories/items/templates/trips/series/members, the trip partition for trip_items/travelers/containers/comments), migrations via `PRAGMA user_version`.
+- `internal/store` — the only package that imports `database/sql`. SQLite repositories, change-log/conflict-log, the two sync partitions (`master.go` for tags/items/templates/trips/series/members, the trip partition for trip_items/travelers/containers/comments), migrations via `PRAGMA user_version`.
 - `internal/api` — HTTP handlers, WebSocket hub (`hub.go`/`ws.go`), first-party session auth + OIDC login broker (ADR-007), notifications, Web Push, admin surface, export/import.
 - `internal/portable` — YAML wire types for portable template/trip export/import. Pure marshal/unmarshal.
 - `client/src/domain` — the pure client-side rules: quantity formulas, template instantiation, dependencies, containers, analytics, review, clone, spreadsheet import, members. No I/O, exhaustively unit-tested. **This is where the Go layout's planned `internal/domain` actually ended up** — deliberately, see invariant 4.

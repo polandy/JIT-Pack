@@ -16,7 +16,6 @@ function masterItem(id: string, name: string, extra: Partial<MasterItem> = {}): 
   return {
     id,
     name,
-    category_id: null,
     weight_grams: 100,
     value_cents: null,
     ...extra,

@@ -1,6 +1,6 @@
 // Package store — master.go implements the master-partition side of the
 // sync protocol (Sync-API Spec §4/§5, P-3): per-user pull visibility and
-// ownership-enforcing push for categories, items, templates,
+// ownership-enforcing push for tags, items, templates,
 // template_items, and trips metadata.
 package store
 
@@ -134,7 +134,10 @@ func finalize(ctx context.Context, tx *sql.Tx, res MutationResult) error {
 // server-owned columns on insert. current is the existing row, if any.
 func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mutation, current map[string]any, exists bool) (bool, error) {
 	switch m.Table {
-	case "categories":
+	case "tags", "item_tags":
+		// Shared master data like the items they classify (FR-24.1): any
+		// authenticated user creates a tag by typing it in M10, and there
+		// is no separate tag-management screen to gate.
 		return true, nil
 
 	case "items":
@@ -385,8 +388,21 @@ func cascadeChildren(ctx context.Context, tx *sql.Tx, m sync.Mutation, deleted, 
 		return collect("template_item_tasks",
 			`SELECT id FROM template_item_tasks WHERE template_item_id = ?`)
 	case "items":
-		return collect("item_dependencies",
+		assignments, err := collect("item_tags", `SELECT id FROM item_tags WHERE item_id = ?`)
+		if err != nil {
+			return nil, err
+		}
+		deps, err := collect("item_dependencies",
 			`SELECT id FROM item_dependencies WHERE item_id = ?1 OR depends_on_item_id = ?1`)
+		if err != nil {
+			return nil, err
+		}
+		return append(assignments, deps...), nil
+	case "tags":
+		// A deleted tag unassigns itself everywhere (FR-24.1). Without the
+		// tombstones a client keeps grouping items under a heading the
+		// server no longer has.
+		return collect("item_tags", `SELECT id FROM item_tags WHERE tag_id = ?`)
 	case "trip_series":
 		items, err := collect("destination_checklist_items",
 			`SELECT ci.id FROM destination_checklist_items ci
@@ -443,7 +459,7 @@ func memberTrip(current map[string]any, m sync.Mutation) (string, bool) {
 }
 
 // PullMaster returns master-partition changes after the cursor, filtered
-// to what userID may see (spec §4): categories, items and templates are
+// to what userID may see (spec §4): tags, items and templates are
 // instance-wide (FR-1.6 MVP), trips require membership, series follow
 // ownership. Tombstones are always delivered — they carry only the entity
 // id.
@@ -505,7 +521,7 @@ func (s *Store) HeadSeqMaster(ctx context.Context) (int64, error) {
 
 func (s *Store) masterVisible(ctx context.Context, userID, table, id string) (bool, error) {
 	switch table {
-	case "categories", "items", "item_dependencies":
+	case "tags", "item_tags", "items", "item_dependencies":
 		return true, nil
 
 	case "templates", "template_items", "template_includes", "template_item_tasks":

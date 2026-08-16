@@ -1965,3 +1965,81 @@ only inside the baseline's own time-of-day window — #87 and #88 passed it
 by scheduling luck. The `freeze()` stub now pins `Date.prototype.getHours`
 beside the existing `randomUUID` stub; `Date.now()` stays untouched (the
 #87 finding: freezing it silently breaks the Local Mode write path).
+
+## M9/M10 — the inventory on a tag set (§3.24, 2026-08-16)
+
+Third and fourth screen rebuilds, and the first one that needed schema. The
+owner unparked §3.24's tag half on 2026-08-16 ("wir machen es mit tags")
+and explicitly allowed a destructive migration ("wir muessen nicht wirklich
+migrieren wir alles loeschen und neu aufbauen koennen") — which was then not
+needed: migration 022 preserves everything.
+
+**What the decision actually cost is in ADR-014**, and it is one line of
+schema: `items.UNIQUE(name, category_id)` becomes `UNIQUE(name)`. With no
+category on the item there is no second column to be unique against, so
+"Adapter" can no longer exist once under Technik and once under Velo. The
+model's answer is one Adapter with two tags — the point of the feature — but
+it is a capability removed, and the migration therefore *renames* colliding
+rows rather than dropping them: archived trips reach their master items
+through `trip_items.source_item_id`, and deleting one to satisfy a
+constraint would cut a trip loose from its own history. Two passes, because
+two rows with no category could collide before 022 (SQLite treats NULLs as
+distinct in a UNIQUE) and the category-name suffix would not separate them.
+
+**The scoping decision that kept this small:** `trip_items.category_name`
+did not move. It was always a denormalised snapshot of *one* grouping key
+taken at generation time, and one grouping key is still what a trip row
+needs — from here it is the primary tag. Renaming it would have rippled
+through M4, M12, analytics, export and the spreadsheet import for no
+behaviour change at all. Measured before deciding: 221 client references to
+"category" across 45 files, of which the master side was seven.
+
+**A defect found while wiring, not by a test that existed:** `cascadeChildren`
+in `master.go` announces FK cascades to clients as tombstones, and knew
+neither end of `item_tags`. Deleting an item or a tag would have left every
+device holding an assignment the server had cascaded away — for a tag that
+means the inventory keeps grouping items under a heading that no longer
+exists. Both ends now covered, and the two tests fall against the unfixed
+build.
+
+**Two false-green tests, one of them mine and one of them the suite's.**
+
+1. `TestPush_ItemTag_RejectsUnknownColumn` asserted "some error". Whitelisting
+   a bogus column made the push fail anyway — in the SQL layer, with
+   "no such column" — so the test stayed green while the guarantee it names
+   (the whitelist gate in front of SQL) was gone. It now asserts
+   `errors.Is(err, ErrUnknownColumn)` and falls under exactly that mutation.
+   Same fix applied to the `category_id` rejection test. This is the fifth
+   consecutive PR to pay for asserting against the nearest readable thing.
+2. **The desktop visual baselines under-detect by ~3.5×.** `maxDiffPixelRatio:
+   0.002` scales with viewport *area*: 658 px of tolerance at 390×844, but
+   2304 px at 1280×900. M9's rebuild changed three lines of empty-state copy
+   and added an app-bar icon; the mobile baseline failed at 4075 differing
+   pixels and **the desktop one passed**. Worse, `--update-snapshots` only
+   rewrites baselines whose comparison failed, so the desktop PNG kept
+   depicting the *old* screen — text and all — and would have gone on
+   tolerating drift from an already-wrong picture. It was force-regenerated
+   by deleting it. The threshold itself is ADR-013's tuning and deliberately
+   left alone here; the finding is recorded for the owner to decide, since
+   moving to an absolute `maxDiffPixels` would give both viewports the same
+   sensitivity at the cost of re-tuning against antialiasing noise.
+
+**Shape of the two screens.** M9 is lean by default and the chip axis
+filters wider than the list groups — an item matches a chip when the tag is
+anywhere in its set, while the grouping stays on the primary tag, so
+filtering by *Sommer* surfaces the swimsuit filed under *Kleidung*. The
+FR-24.4 property preference reuses the `HeaderAction` badge the M4 filter
+introduced. M10's tag control keeps assigned tags pinned above the matches,
+because a filter that can hide what the item already carries is a filter
+that loses edits. Its creation mode reports a duplicate name itself rather
+than letting the push reject it — a consequence of `UNIQUE(name)` that the
+user should meet as a sentence, not as a failed sync.
+
+**Local Mode needed nothing:** its persistence is table-agnostic
+(`table/id → row`), so `item_tags` rides the existing path. `internal/portable`
+needed nothing either — its `Item.Category` is the trip row's snapshot, not
+the master item's category, which was worth checking rather than assuming.
+
+Still open from §3.24: **FR-24.3 lifecycle-aware deletion stays parked** —
+a rule about history rather than classification, and nothing in the tag
+model depends on it.

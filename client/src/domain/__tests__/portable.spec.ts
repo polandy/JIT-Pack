@@ -25,7 +25,6 @@ function masterItem(id: string, name: string): MasterItem {
   return {
     id,
     name,
-    category_id: null,
     weight_grams: null,
     value_cents: null,
   }
