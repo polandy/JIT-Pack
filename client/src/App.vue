@@ -141,10 +141,15 @@ const tripId = computed(() => {
 async function onSyncTap() {
   // Read the facts when the sheet opens, not on a timer: they change rarely
   // and a stale storage figure is worse than a fresh one nobody looked at.
+  //
+  // Before it opens, not after: an auto-height sheet is measured once at
+  // presentation, so a storage section that arrived a tick later grew the
+  // content past the box Ionic had already sized — the last line rendered
+  // under the tab bar. Found on a rendered pixel, invisible in the markup.
   detailNow.value = Date.now()
   lastExport.value = lastExportAt()
-  syncDetailOpen.value = true
   storage.value = mode.value === 'local' ? await readStorageStatus() : null
+  syncDetailOpen.value = true
 }
 
 function openConflicts() {
