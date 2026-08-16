@@ -13,9 +13,17 @@
  * Run after `npm run build`; wired into `make client` and the CI client job.
  */
 import { readdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 
-const ASSETS = 'client/dist/assets'
+/*
+ * `make client` runs this from the repository root and the CI client job runs
+ * it from `client/`. The sibling design-tokens-gate settles that with exactly
+ * this line, so this one does too rather than inventing a second convention —
+ * and the first version of this gate, which assumed the root, passed locally
+ * and failed on CI within the minute.
+ */
+const clientDir = resolve(process.cwd().endsWith('client') ? '.' : 'client')
+const ASSETS = join(clientDir, 'dist', 'assets')
 
 /** Module basenames that must not appear as a chunk, and the marker inside one. */
 const DEV_ONLY = ['sampleData', 'sampleMaster', 'sampleTrip', 'reviewFixture', 'GalleryPage']
@@ -56,4 +64,4 @@ if (chunks.length || inlined.length) {
   process.exit(1)
 }
 
-console.log(`dev-code-gate: ok — no dev-only module in ${ASSETS} (${files.length} files checked)`)
+console.log(`dev-code-gate: ok — no dev-only module in dist/assets (${files.length} files checked)`)
