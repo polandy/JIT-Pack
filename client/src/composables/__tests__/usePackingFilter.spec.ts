@@ -233,4 +233,14 @@ describe('setStoredFacet (FR-25.11)', () => {
 
     expect(other.facets.value.person).toEqual([])
   })
+
+  it('rebuilds a corrupt stored entry rather than refusing the tap', () => {
+    sessionStorage.setItem('jitpack.m4filter.trip-1', '{not json')
+
+    setStoredFacet('trip-1', 'category', 'Kleidung')
+
+    const next = usePackingFilter('trip-1')
+    expect(next.facets.value.category).toEqual(['Kleidung'])
+    expect(next.showDone.value).toBe(false)
+  })
 })
