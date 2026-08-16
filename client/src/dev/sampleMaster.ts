@@ -37,6 +37,8 @@ type Orchestrator = ReturnType<typeof useSyncOrchestrator>
 export interface SampleMaster {
   vacationTemplateId: string
   groupIds: string[]
+  /** What the caller reports back to whoever pressed the button. */
+  itemCount: number
 }
 
 interface ItemSeed {
@@ -170,5 +172,5 @@ export function seedSampleMaster(orchestrator: Orchestrator): SampleMaster {
   }
   addPositions(orchestrator, vacationTemplateId, itemIds, VACATION.positions)
 
-  return { vacationTemplateId, groupIds: [...groupIds.values()] }
+  return { vacationTemplateId, groupIds: [...groupIds.values()], itemCount: itemIds.size }
 }

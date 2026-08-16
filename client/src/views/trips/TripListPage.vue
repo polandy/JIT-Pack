@@ -6,6 +6,7 @@
  * per-trip progress ring, FAB for new trip, pull-to-refresh.
  */
 import {
+  toastController,
   IonPage,
   IonContent,
   IonSegment,
@@ -82,14 +83,35 @@ const isDev = import.meta.env.DEV
  * Seeds the whole world, not only the trip: a fresh install has no inventory
  * and no templates, so every §3.27 surface opens empty and testing one starts
  * with twenty minutes of typing.
+ *
+ * It reports both outcomes. An async handler that only navigates on success is
+ * indistinguishable from a dead button when anything throws — a stale module
+ * graph after a dev-server restart is enough — and the owner spent a session
+ * on exactly that (2026-08-16): "vielleicht hab ich nicht gemerkt dass es nicht
+ * funktionierte weil es kein feedback gab".
  */
 async function addSampleData() {
-  const [{ seedSampleMaster }, { seedSampleTrip }] = await Promise.all([
-    import('@/dev/sampleMaster'),
-    import('@/dev/sampleTrip'),
-  ])
-  seedSampleMaster(orchestrator)
-  router.push(`/trips/${seedSampleTrip(orchestrator)}`)
+  try {
+    const { seedSampleData } = await import('@/dev/sampleData')
+    const outcome = await seedSampleData(orchestrator)
+    await report(outcome.summary)
+    router.push(`/trips/${outcome.tripId}`)
+  } catch (error) {
+    // Dev-only surface, so the message is the developer's — untranslated and
+    // as specific as the failure was.
+    console.error('sample data seeding failed', error)
+    await report(`Beispieldaten fehlgeschlagen: ${(error as Error).message}`, 8000)
+  }
+}
+
+async function report(message: string, duration = 4000) {
+  const toast = await toastController.create({
+    message,
+    duration,
+    position: 'bottom',
+    positionAnchor: 'm2-fab-anchor',
+  })
+  await toast.present()
 }
 
 const {
@@ -412,7 +434,7 @@ async function handleRefresh(event: CustomEvent) {
       </IonList>
 
       <!-- FAB: New Trip -->
-      <IonFab vertical="bottom" horizontal="end" slot="fixed" class="mobile-fab">
+      <IonFab id="m2-fab-anchor" vertical="bottom" horizontal="end" slot="fixed" class="mobile-fab">
         <IonFabButton data-testid="trips-new" aria-label="New trip" router-link="/trips/new">
           <IonIcon :icon="addOutline" />
         </IonFabButton>

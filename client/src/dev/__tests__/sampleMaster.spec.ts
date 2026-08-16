@@ -94,3 +94,36 @@ describe('seedSampleMaster (dev)', () => {
     }
   })
 })
+
+/**
+ * The seed's *report*. A button that seeds and says nothing is
+ * indistinguishable from a dead one when anything throws, which cost the owner
+ * a session on 2026-08-16 — so the summary is produced here, once, and a
+ * failure travels as a rejection rather than as silence.
+ */
+describe('seedSampleData (dev)', () => {
+  it('summarises what it created, so the caller can report it', async () => {
+    const { seedSampleData } = await import('../sampleData')
+    const orchestrator = useSyncOrchestrator({
+      baseUrl: '',
+      getToken: () => null,
+      local: new IndexedDBPersistence(),
+    })
+
+    const outcome = await seedSampleData(orchestrator)
+
+    expect(outcome.tripId).toBeTruthy()
+    expect(outcome.summary).toBe('Beispieldaten: 15 Artikel, 3 Gruppen, 1 Vorlage, 1 Reise')
+  })
+
+  it('rejects rather than resolving quietly when a seed step fails', async () => {
+    const { seedSampleData } = await import('../sampleData')
+    const broken = {
+      createTag: () => {
+        throw new Error('boom')
+      },
+    } as unknown as Parameters<typeof seedSampleData>[0]
+
+    await expect(seedSampleData(broken)).rejects.toThrow('boom')
+  })
+})
