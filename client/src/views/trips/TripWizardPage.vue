@@ -40,6 +40,7 @@ import { durationDays, generateTripItems, type MergedOverlap } from '@/domain/in
 import { suggestQuantities, type QuantitySuggestion } from '@/domain/suggestions'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
+import type { Template, TemplateKind } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { tripOrderKey } from '@/domain/trips'
@@ -181,23 +182,32 @@ function toggleTemplate(id: string, checked: boolean) {
   selectedTemplateIds.value = next
 }
 
-// FR-27.6: the two scopes are separate sections here, mirroring M7 — a
-// Ferien-Vorlage is what a trip starts from, groups are what you add to it.
-const vacationTemplates = computed(() =>
-  masterStore.templateList.filter((tpl) => tpl.kind === 'template'),
-)
-const groupTemplates = computed(() =>
-  masterStore.templateList.filter((tpl) => tpl.kind === 'group'),
-)
-
 /**
- * What picking this row would actually add: the resolved composition, not
- * the template's own positions (FR-27.2). A Ferien-Vorlage frequently owns
- * none at all and is nothing but its groups.
+ * FR-27.6: the two scopes are separate sections here, mirroring M7 — a
+ * Ferien-Vorlage is what a trip starts from, groups are what you add to it.
+ *
+ * Rows are built in a computed and sorted **by name**, as M7 does: the store's
+ * list follows Map insertion, which follows whatever order the sync or
+ * IndexedDB produced, so an unsorted section reads differently on two devices.
+ * Each row's count is what picking it would actually add — the resolved
+ * composition, not the template's own positions (FR-27.2), which for a
+ * Ferien-Vorlage are frequently none. Resolving here rather than in the
+ * template keeps a checkbox tap from re-resolving every row.
  */
-function resolvedCount(templateId: string): number {
-  return masterStore.resolve(templateId).positions.length
+interface ScopeRow {
+  template: Template
+  count: number
 }
+
+function scopeRows(kind: TemplateKind): ScopeRow[] {
+  return masterStore.templateList
+    .filter((tpl) => tpl.kind === kind)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((tpl) => ({ template: tpl, count: masterStore.resolve(tpl.id).positions.length }))
+}
+
+const vacationTemplates = computed(() => scopeRows('template'))
+const groupTemplates = computed(() => scopeRows('group'))
 
 /**
  * The Vorlagen that already bring a group along. Picking it again changes
@@ -697,17 +707,17 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
         <template v-if="vacationTemplates.length > 0">
           <h2 class="section-title jp-eyebrow">{{ t('templates.sectionTemplates') }}</h2>
           <IonList data-testid="wizard-section-templates">
-            <IonItem v-for="tpl in vacationTemplates" :key="tpl.id">
+            <IonItem v-for="row in vacationTemplates" :key="row.template.id">
               <IonCheckbox
                 slot="start"
-                :data-testid="`wizard-pick-${tpl.id}`"
-                :checked="selectedTemplateIds.has(tpl.id)"
-                @ionChange="(e: CustomEvent) => toggleTemplate(tpl.id, e.detail.checked)"
+                :data-testid="`wizard-pick-${row.template.id}`"
+                :checked="selectedTemplateIds.has(row.template.id)"
+                @ionChange="(e: CustomEvent) => toggleTemplate(row.template.id, e.detail.checked)"
               />
               <IonLabel>
-                <h3>{{ tpl.name }}</h3>
-                <p :data-testid="`wizard-count-${tpl.id}`">
-                  {{ t('templates.itemCount', { n: resolvedCount(tpl.id) }) }}
+                <h3>{{ row.template.name }}</h3>
+                <p :data-testid="`wizard-count-${row.template.id}`">
+                  {{ t('templates.itemCount', { n: row.count }) }}
                 </p>
               </IonLabel>
             </IonItem>
@@ -717,23 +727,26 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
         <template v-if="groupTemplates.length > 0">
           <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionGroups') }}</h2>
           <IonList data-testid="wizard-section-groups">
-            <IonItem v-for="grp in groupTemplates" :key="grp.id">
+            <IonItem v-for="row in groupTemplates" :key="row.template.id">
               <IonCheckbox
                 slot="start"
-                :data-testid="`wizard-pick-${grp.id}`"
-                :checked="selectedTemplateIds.has(grp.id)"
-                @ionChange="(e: CustomEvent) => toggleTemplate(grp.id, e.detail.checked)"
+                :data-testid="`wizard-pick-${row.template.id}`"
+                :checked="selectedTemplateIds.has(row.template.id)"
+                @ionChange="(e: CustomEvent) => toggleTemplate(row.template.id, e.detail.checked)"
               />
               <IonLabel>
-                <h3>{{ grp.name }}</h3>
-                <p :data-testid="`wizard-count-${grp.id}`">
-                  {{ t('templates.itemCount', { n: resolvedCount(grp.id) }) }}
+                <h3>{{ row.template.name }}</h3>
+                <p :data-testid="`wizard-count-${row.template.id}`">
+                  {{ t('templates.itemCount', { n: row.count }) }}
                 </p>
                 <!-- Already on the list through a picked Vorlage — say so -->
-                <p v-if="bringingVorlagen.has(grp.id)" :data-testid="`wizard-included-${grp.id}`">
+                <p
+                  v-if="bringingVorlagen.has(row.template.id)"
+                  :data-testid="`wizard-included-${row.template.id}`"
+                >
                   {{
                     t('wizard.alreadyIncluded', {
-                      names: bringingVorlagen.get(grp.id)!.join(' & '),
+                      names: bringingVorlagen.get(row.template.id)!.join(' & '),
                     })
                   }}
                 </p>

@@ -69,6 +69,7 @@ export interface GeneratedItem {
 }
 
 export interface ExcludedItem {
+  item_id: string
   item_name: string
   template_id: string
   reason: string
@@ -135,7 +136,12 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
 
       const failure = conditionFailure(ti.conditions, input.trip.attributes)
       if (failure !== null) {
-        excluded.push({ item_name: master.name, template_id: ti.template_id, reason: failure })
+        excluded.push({
+          item_id: ti.item_id,
+          item_name: master.name,
+          template_id: ti.template_id,
+          reason: failure,
+        })
         continue
       }
 
@@ -205,9 +211,20 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
         quantity: entry.item.quantity,
       })
     }
+    // FR-5.5 decides this *after* the merge, not per contribution: a position
+    // asking for 0 is "considered and left behind", but another group may have
+    // lifted the same item above 0, in which case the preparation does apply.
+    // A todo on a skipped row would count as open preparation on a row FR-25.2
+    // hides — work nobody can reach and nobody will do.
+    if (entry.item.quantity === 0) entry.item.tasks = []
     items.push(entry.item)
   }
-  return { items, excluded, merged }
+
+  // An item another contributor placed is on the list, so reporting it as
+  // excluded states something false about it. §3.27 makes this the normal case
+  // rather than the exotic one: sharing an item across groups is the point.
+  const placed = new Set(items.map((i) => i.source_item_id))
+  return { items, excluded: excluded.filter((e) => !placed.has(e.item_id)), merged }
 }
 
 /**

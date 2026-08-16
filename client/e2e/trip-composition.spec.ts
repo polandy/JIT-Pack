@@ -22,6 +22,20 @@ import type { Page } from '@playwright/test'
  * strictest check that nothing here quietly needs a round trip.
  */
 
+/** One group under one Vorlage — the least composition a case can need. */
+async function seedOneGroup(page: Page) {
+  await page.goto('/tabs/templates')
+
+  await createTemplate(page, 'group', 'Makro')
+  await addPosition(page, 'Kamera')
+  await addPosition(page, 'Makro-Objektiv')
+  await backToList(page)
+
+  await createTemplate(page, 'template', 'Fototage')
+  await includeGroup(page, 'Makro')
+  await backToList(page)
+}
+
 /** The owner's scenario: two photo groups sharing a camera, under one Vorlage. */
 async function seedComposition(page: Page) {
   await page.goto('/tabs/templates')
@@ -60,10 +74,21 @@ async function addTaskToPosition(page: Page, group: string, item: string, task: 
   await page.getByTestId('m8-position-close').click()
 }
 
-/** Walk M3 to step 3 with a name and nothing else — the FR-2.1b minimum. */
+/**
+ * Walk M3 to step 3 with a name and nothing else — the FR-2.1b minimum.
+ *
+ * The wait between filling and clicking is load-bearing, not decoration:
+ * `fill()` resolves once the input holds the text, while step 1's gate opens
+ * only after Vue has handled `ionInput`. Clicking straight after the fill is a
+ * race that loses under parallel load — Playwright finds the ion-button
+ * "visible, enabled and stable", clicks the disabled control inside it, and
+ * then waits out the full timeout. The gate's own aria state is the signal
+ * that the model caught up (the same seam E2E-M3-01 uses).
+ */
 async function wizardToStepThree(page: Page, name: string) {
   await page.goto('/trips/new')
   await page.getByTestId('wizard-name').locator('input').fill(name)
+  await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
   await page.getByTestId('wizard-next').click()
   await expect(page.getByTestId('wizard-step-2')).toBeVisible()
   await page.getByTestId('wizard-next').click()
@@ -71,6 +96,14 @@ async function wizardToStepThree(page: Page, name: string) {
 }
 
 test.describe('M3 step 3 — composed templates (§3.27)', () => {
+  // Spec §2.4 forbids injecting preconditions, so each case builds a template,
+  // its groups and their positions by driving M7/M8 — far more UI work than a
+  // unit that only reads a screen. On WebKit that lands near the 30 s default,
+  // and crossing it under parallel load produced failures at whatever step the
+  // clock happened to run out on. Declaring the budget is the honest fix; the
+  // alternative is a suite that fails by arithmetic rather than by defect.
+  test.slow()
+
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
   })
@@ -109,7 +142,7 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
   test('E2E-M3-13: a position task is previewed and lands as a prep todo on the generated row', async ({
     page,
   }) => {
-    await seedComposition(page)
+    await seedOneGroup(page)
     await addTaskToPosition(page, 'Makro', 'Kamera', 'Akkus laden')
     await wizardToStepThree(page, 'Fototour 2026')
 
@@ -136,8 +169,8 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     await expect(prep).toContainText('Kamera')
     await expect(prep).toContainText('Akkus laden')
 
-    // Only the position that carries the task gets one — the other two rows
-    // of the composition stay clean.
+    // Only the position that carries the task gets one — the other row of the
+    // composition stays clean.
     await expect(prep.locator('ion-item')).toHaveCount(1)
   })
 })

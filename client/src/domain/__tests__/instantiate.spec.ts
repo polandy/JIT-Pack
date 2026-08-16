@@ -517,3 +517,88 @@ describe('generateTripItems orders includes deterministically', () => {
     expect(generateTripItems(composed('ba')).items[0]!.source_template_id).toBe('g1')
   })
 })
+
+/**
+ * Two ways the composition made an existing report dishonest. Both surface in
+ * M3's preview and on the generated trip, and both come from the same cause:
+ * §3.27 makes one master item routinely reachable through several positions.
+ */
+describe('generateTripItems keeps its reports honest across contributors', () => {
+  it('a consciously skipped row carries no preparation task (FR-5.5/FR-27.7)', () => {
+    const res = generateTripItems(
+      input({
+        templates: [group('g1', 'Foto')],
+        masterItems: [masterItem('i1', 'Drohne')],
+        templateItems: [templateItem('p1', 'g1', 'i1', { quantity: 0 })],
+        templateItemTasks: [task('tk1', 'p1', 'Akkus laden')],
+      }),
+    )
+
+    // Quantity 0 is "considered and left behind". A todo on it would count as
+    // open preparation on a row FR-25.2 hides — an open task nobody can reach.
+    expect(res.items[0]!.quantity).toBe(0)
+    expect(res.items[0]!.tasks).toEqual([])
+  })
+
+  it('keeps the task when another contributor lifts the quantity above 0', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien'), group('g1', 'Foto'), group('g2', 'Wildlife')],
+        selectedTemplateIds: ['t1'],
+        includes: [include('t1', 'g1'), include('t1', 'g2')],
+        masterItems: [masterItem('i1', 'Kamera')],
+        templateItems: [
+          templateItem('p1', 'g1', 'i1', { quantity: 0 }),
+          templateItem('p2', 'g2', 'i1', { quantity: 1 }),
+        ],
+        templateItemTasks: [task('tk1', 'p1', 'Akkus laden')],
+      }),
+    )
+
+    // The row is coming after all, so the preparation applies — which is why
+    // the decision belongs after the merge, not to a single contribution.
+    expect(res.items[0]!.quantity).toBe(1)
+    expect(res.items[0]!.tasks).toEqual(['Akkus laden'])
+  })
+
+  it('does not report an item as excluded when another group put it on the list', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien'), group('g1', 'Sommer'), group('g2', 'Immer dabei')],
+        selectedTemplateIds: ['t1'],
+        includes: [include('t1', 'g1'), include('t1', 'g2')],
+        masterItems: [masterItem('i1', 'Sonnenhut')],
+        templateItems: [
+          templateItem('p1', 'g1', 'i1', { conditions: { season: ['summer'] } }),
+          templateItem('p2', 'g2', 'i1'),
+        ],
+        trip: { duration_days: 5, attributes: { season: 'winter' }, travelers: twoAdults },
+      }),
+    )
+
+    expect(res.items.map((i) => i.name)).toEqual(['Sonnenhut'])
+    // „Sonnenhut — übersprungen: season ≠ summer" beside a Sonnenhut on the
+    // list is a false statement about the same item.
+    expect(res.excluded).toEqual([])
+  })
+
+  it('still reports an item no contributor could place', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien'), group('g1', 'Sommer'), group('g2', 'Strand')],
+        selectedTemplateIds: ['t1'],
+        includes: [include('t1', 'g1'), include('t1', 'g2')],
+        masterItems: [masterItem('i1', 'Sonnenhut')],
+        templateItems: [
+          templateItem('p1', 'g1', 'i1', { conditions: { season: ['summer'] } }),
+          templateItem('p2', 'g2', 'i1', { conditions: { season: ['summer'] } }),
+        ],
+        trip: { duration_days: 5, attributes: { season: 'winter' }, travelers: twoAdults },
+      }),
+    )
+
+    expect(res.items).toEqual([])
+    expect(res.excluded).toHaveLength(2)
+    expect(res.excluded[0]!.reason).toContain('season')
+  })
+})

@@ -137,6 +137,22 @@ describe('M3 step 3 — template composition (§3.27)', () => {
     expect(gruppen.text()).not.toContain('Sommerferien')
   })
 
+  it('orders each section by name, not by the order rows arrived in', async () => {
+    // Seeded deliberately out of alphabetical order: templateList follows Map
+    // insertion, which follows the sync/IndexedDB order and differs per device.
+    template('g9', 'Wildlife Fotografie', 'group')
+    template('g1', 'Ausrüstung', 'group')
+    template('g5', 'Makro Fotografie', 'group')
+
+    const wrapper = await mountAtStepThree()
+
+    const names = wrapper
+      .get('[data-testid="wizard-section-groups"]')
+      .findAll('ion-item h3')
+      .map((n) => n.text())
+    expect(names).toEqual(['Ausrüstung', 'Makro Fotografie', 'Wildlife Fotografie'])
+  })
+
   it('counts a Vorlage by what it resolves to, not by its own positions (FR-27.2)', async () => {
     seedComposition()
 
