@@ -15,7 +15,15 @@
  * assistant is naturally resumable — an applied row simply stops
  * appearing on the next visit.
  */
-import { IonPage, IonContent, IonButton, IonIcon, IonSelect, IonSelectOption, toastController } from '@ionic/vue'
+import {
+  IonPage,
+  IonContent,
+  IonButton,
+  IonIcon,
+  IonSelect,
+  IonSelectOption,
+  toastController,
+} from '@ionic/vue'
 import { checkmarkCircleOutline, closeOutline } from 'ionicons/icons'
 import { computed, inject, ref, watchEffect } from 'vue'
 
@@ -199,7 +207,9 @@ setHeaderTitle(() => `${t('review.title')} · ${trip.value?.name ?? ''}`)
           </div>
 
           <label class="target">
-            <span>{{ row.p.kind === 'unused' ? t('review.targetFrom') : t('review.targetTo') }}</span>
+            <span>{{
+              row.p.kind === 'unused' ? t('review.targetFrom') : t('review.targetTo')
+            }}</span>
             <IonSelect
               v-model="row.target"
               interface="popover"

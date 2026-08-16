@@ -68,9 +68,7 @@ export interface ReviewArgs {
 
 export function buildReviewProposals(args: ReviewArgs): ReviewProposal[] {
   const dismissed = args.isDismissed ?? (() => false)
-  const groupsByID = new Map(
-    args.templates.filter((t) => t.kind === 'group').map((t) => [t.id, t]),
-  )
+  const groupsByID = new Map(args.templates.filter((t) => t.kind === 'group').map((t) => [t.id, t]))
   const proposals: ReviewProposal[] = []
 
   const push = (p: Omit<ReviewProposal, 'itemRef' | 'flagCount'>) => {
@@ -90,9 +88,7 @@ export function buildReviewProposals(args: ReviewArgs): ReviewProposal[] {
     if (!item.flag_unused || !item.source_template_id) continue
     const group = groupsByID.get(item.source_template_id)
     if (!group) continue
-    const position = args
-      .templateItems(group.id)
-      .find((ti) => ti.item_id === item.source_item_id)
+    const position = args.templateItems(group.id).find((ti) => ti.item_id === item.source_item_id)
     if (!position || position.quantity === 0) continue
     push({
       kind: 'unused',
@@ -146,10 +142,7 @@ export function retargetGroups(
   return groups.filter((g) => templateItems(g.id).some((ti) => ti.item_id === proposal.itemId))
 }
 
-function dominantGroup(
-  items: TripItem[],
-  groupsByID: Map<string, Template>,
-): Template | null {
+function dominantGroup(items: TripItem[], groupsByID: Map<string, Template>): Template | null {
   const counts = new Map<string, number>()
   for (const item of items) {
     if (item.source_template_id && groupsByID.has(item.source_template_id)) {

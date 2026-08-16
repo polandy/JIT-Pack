@@ -700,9 +700,7 @@ function onQuickAdd(item: {
  */
 async function onArchive() {
   orchestrator.archiveTrip(props.tripId)
-  const flagged = store
-    .getItems(props.tripId)
-    .some((item) => item.flag_unused || item.flag_missing)
+  const flagged = store.getItems(props.tripId).some((item) => item.flag_unused || item.flag_missing)
   if (!flagged) {
     const toast = await toastController.create({
       message: t('review.nothingToast'),

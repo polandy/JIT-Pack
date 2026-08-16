@@ -165,7 +165,12 @@ describe('applyReviewProposal (FR-27.11: the target is a group)', () => {
     seedGroup(master)
 
     orch.applyReviewProposal(
-      proposal({ kind: 'missing', itemRef: 'name:moskitonetz', itemId: null, itemName: 'Moskitonetz' }),
+      proposal({
+        kind: 'missing',
+        itemRef: 'name:moskitonetz',
+        itemId: null,
+        itemName: 'Moskitonetz',
+      }),
       'g1',
     )
 
@@ -189,7 +194,12 @@ describe('applyReviewProposal (FR-27.11: the target is a group)', () => {
     })
 
     orch.applyReviewProposal(
-      proposal({ kind: 'missing', itemRef: 'name:moskitonetz', itemId: null, itemName: 'Moskitonetz' }),
+      proposal({
+        kind: 'missing',
+        itemRef: 'name:moskitonetz',
+        itemId: null,
+        itemName: 'Moskitonetz',
+      }),
       'g2',
     )
 

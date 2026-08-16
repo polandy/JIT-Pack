@@ -361,10 +361,8 @@ export const de: Record<keyof typeof en, string> = {
   'review.open': 'Offen · {n}',
   'review.kindUnused': 'ungenutzt',
   'review.kindMissing': 'fehlte',
-  'review.whyUnused':
-    'auf dieser Reise nicht gebraucht | auf {n} Reisen nicht gebraucht',
-  'review.whyMissing':
-    'unterwegs nachgekauft — fehlte auf der Liste | fehlte auf {n} Reisen',
+  'review.whyUnused': 'auf dieser Reise nicht gebraucht | auf {n} Reisen nicht gebraucht',
+  'review.whyMissing': 'unterwegs nachgekauft — fehlte auf der Liste | fehlte auf {n} Reisen',
   'review.targetFrom': 'Aus Gruppe',
   'review.targetTo': 'In Gruppe',
   'review.blast':
