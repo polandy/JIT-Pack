@@ -40,7 +40,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-13 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M1-05 | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 | Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-M3-11, E2E-M3-12, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
-| M5 item detail | E2E-M5-09 … E2E-M5-12 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
+| M5 item detail | E2E-M5-09 … E2E-M5-13 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
@@ -254,3 +254,20 @@ every tag instead of its primary one drops two of those cases.
    that. It is now `commitNewItem()`, used by both, so the omission cannot
    recur silently. That comparison is also what found it: E2E-M10-03 passes
    the identical sequence, which ruled the navigation itself out.
+
+## E2E-M5-13 — browser back with the sheet open (2026-08-16)
+
+Joined the M5 unit with the `overlayBackGuard` fix (Navigation Concept §7
+case 4). Two things the case had to get right:
+
+1. **The history must be built in-SPA.** A `page.goto` per step creates a
+   *document* per step, and back across documents reboots the app instead of
+   reaching the router — the unfixed build then "fails" for a reason the fix
+   cannot address. The case walks list → trip → sheet through the UI, which
+   is also exactly the owner's repro.
+2. **Back must wait for the sheet's presentation to settle.** A pop during
+   the enter animation races Ionic's transition queue and loses regardless
+   of the guard — a real, documented gap (see the concept doc), accepted
+   because a human back needs a visible sheet first. The wait is on
+   observables (the modal's `show-modal` class and running animations
+   excluding spinners), not a duration.

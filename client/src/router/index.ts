@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router'
+
+import { installOverlayBackGuard } from './overlayBackGuard'
 import type { RouteRecordRaw } from 'vue-router'
 
 /**
@@ -203,5 +205,8 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 })
+
+// Browser-back with an overlay open closes the overlay, like the chevron.
+installOverlayBackGuard(router)
 
 export default router

@@ -105,4 +105,41 @@ test.describe('M5 item detail @local @m5', () => {
     await expect(page.getByTestId('m5-modal')).toHaveCount(0)
     await expect(page.getByTestId('m4-header')).toBeVisible()
   })
+
+  // E2E-M5-13 (ADR-011 §overlay): the *browser's* back with the sheet open
+  // closes the sheet — like the chevron — instead of popping through the
+  // replace-based history straight past M4 to the trip list. Found by the
+  // owner clicking back on an item detail (2026-08-16).
+  test('E2E-M5-13: browser back with the sheet open closes it, not the trip', async ({ page }) => {
+    await page.setViewportSize({ width: 400, height: 880 })
+    const path = await createTripViaWizard(page, TRIP)
+
+    // The owner's history, built in-SPA — a `page.goto` here would start
+    // a second document, and back across documents reboots the app
+    // instead of reaching the router: list → trip → sheet.
+    await page.getByTestId('header-back').click()
+    await page.getByTestId('trips-filter-planned').click()
+    await page.getByTestId(`trip-row-${TRIP.name}`).click()
+    await page.getByTestId('m4-fab').click()
+    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
+    await page.getByTestId('quick-add-confirm').click()
+    await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+    // Settled, not arrived: back during the sheet's enter animation would
+    // race Ionic's transition queue (the M7 lesson, one layer down).
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(1)
+    await page.waitForFunction(() =>
+      document
+        .getAnimations()
+        .every((a) => a.playState !== 'running' || a.effect?.target?.closest?.('ion-spinner')),
+    )
+
+    await page.goBack()
+
+    // The sheet is gone, and the *packing list* is what remains — a bug
+    // here lands on /tabs/trips, two screens back.
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+    await expect(page).toHaveURL(new RegExp(`${path}$`))
+    await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
+  })
 })
