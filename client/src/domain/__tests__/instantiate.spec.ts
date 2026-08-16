@@ -482,3 +482,38 @@ describe('generateTripItems carries preparation tasks (FR-27.7)', () => {
     expect(res.items[0]!.tasks).toEqual(['Akkus laden'])
   })
 })
+
+/**
+ * `template_includes` has no sort order and the rows arrive in whatever order
+ * storage hands back, which is not the same on two devices. The order decides
+ * the first contributor of a merged item — its attributes and its provenance —
+ * so it has to be derived, not inherited.
+ */
+describe('generateTripItems orders includes deterministically', () => {
+  function composed(includeOrder: 'ab' | 'ba') {
+    const incA = include('t1', 'g1')
+    const incB = include('t1', 'g2')
+    return input({
+      templates: [template('t1', 'Ferien'), group('g1', 'Makro'), group('g2', 'Wildlife')],
+      selectedTemplateIds: ['t1'],
+      includes: includeOrder === 'ab' ? [incA, incB] : [incB, incA],
+      masterItems: [masterItem('i1', 'Kamera')],
+      templateItems: [templateItem('ti1', 'g1', 'i1'), templateItem('ti2', 'g2', 'i1')],
+    })
+  }
+
+  it('names the merge sources by group name, whatever order the rows arrived in', () => {
+    const forwards = generateTripItems(composed('ab'))
+    const backwards = generateTripItems(composed('ba'))
+
+    const names = (res: ReturnType<typeof generateTripItems>) =>
+      res.merged[0]!.sources.map((s) => s.name)
+    expect(names(forwards)).toEqual(['Makro', 'Wildlife'])
+    expect(names(backwards)).toEqual(['Makro', 'Wildlife'])
+  })
+
+  it('keeps the provenance of a merged row stable across that order', () => {
+    expect(generateTripItems(composed('ab')).items[0]!.source_template_id).toBe('g1')
+    expect(generateTripItems(composed('ba')).items[0]!.source_template_id).toBe('g1')
+  })
+})

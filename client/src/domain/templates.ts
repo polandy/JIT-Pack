@@ -57,17 +57,40 @@ export interface Resolution {
  * impossible. Following a group's own includes would quietly reintroduce the
  * depth the FR rejected — and with it the cycle it cannot have.
  */
+/**
+ * includedTemplatesOf lists the Gruppen a template includes, in an order that
+ * is the same on every device.
+ *
+ * `template_includes` carries no sort order, and the rows arrive in whatever
+ * order the sync pulled or IndexedDB handed back — which is not the same twice.
+ * That order is *not* cosmetic: it decides which group is a merged item's first
+ * contributor, and therefore which group's attributes and provenance the
+ * generated row carries (FR-27.5/27.11 read that provenance back a year later).
+ * Sorting by name makes it stable and gives the FR-27.2 merge report the order
+ * a reader expects; the id breaks ties so two groups of one name still order
+ * deterministically. Found by an e2e run that reported „in Wildlife & Makro" on
+ * WebKit and „in Makro & Wildlife" on Chromium, from identical data.
+ */
+export function includedTemplatesOf(
+  templateId: string,
+  templates: Template[],
+  includes: TemplateInclude[],
+): Template[] {
+  const byId = new Map(templates.map((t) => [t.id, t]))
+  return includes
+    .filter((inc) => inc.template_id === templateId)
+    .map((inc) => ({ inc, group: byId.get(inc.included_template_id) }))
+    .filter((e): e is { inc: TemplateInclude; group: Template } => e.group !== undefined)
+    .sort((a, b) => a.group.name.localeCompare(b.group.name) || a.inc.id.localeCompare(b.inc.id))
+    .map((e) => e.group)
+}
+
 export function resolveTemplate(templateId: string, input: CompositionInput): Resolution {
   const byId = new Map(input.templates.map((t) => [t.id, t]))
   const root = byId.get(templateId)
   if (!root) return { positions: [], merges: [], includedTemplates: [] }
 
-  const includedTemplates: Template[] = []
-  for (const inc of input.includes) {
-    if (inc.template_id !== templateId) continue
-    const group = byId.get(inc.included_template_id)
-    if (group) includedTemplates.push(group)
-  }
+  const includedTemplates = includedTemplatesOf(templateId, input.templates, input.includes)
 
   // The root first, so its own positions win the "first contributor" slot and
   // the merge report reads Vorlage-before-Gruppen.

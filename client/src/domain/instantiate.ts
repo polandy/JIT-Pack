@@ -9,6 +9,7 @@
  * sync outbox, Local Mode persists them directly.
  */
 
+import { includedTemplatesOf } from './templates'
 import type {
   ItemMode,
   MasterItem,
@@ -239,11 +240,12 @@ function resolveSources(input: GenerationInput): Template[] {
     const picked = catalogue.get(id)
     if (!picked) continue
     add(picked)
-    for (const inc of input.includes) {
-      if (inc.template_id !== picked.id) continue
-      // A group that has not synced to this device yet is skipped rather than
-      // failing the whole generation — the rest of the list is still correct.
-      add(catalogue.get(inc.included_template_id))
+    // Same ordering rule as the M7/M8 resolution, and for the same reason:
+    // the include rows arrive in storage order, which decides provenance.
+    // A group that has not synced to this device yet is dropped by the
+    // helper rather than failing the whole generation.
+    for (const group of includedTemplatesOf(picked.id, input.templates, input.includes)) {
+      add(group)
     }
   }
 
