@@ -32,6 +32,7 @@ import {
   imbalanceThreshold,
   unassignedItems,
 } from '@/domain/containers'
+import { formatWeight } from '@/lib/format'
 import { useTripStore } from '@/stores/tripStore'
 import type { Container } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -84,10 +85,6 @@ function pairOptions(container: Container): Container[] {
 
 function carrierName(travelerId: string | null): string | null {
   return travelers.value.find((t) => t.id === travelerId)?.name ?? null
-}
-
-function formatWeight(grams: number): string {
-  return grams >= 1000 ? `${(grams / 1000).toFixed(1)} kg` : `${grams} g`
 }
 
 function onRename(container: Container, name: string) {
