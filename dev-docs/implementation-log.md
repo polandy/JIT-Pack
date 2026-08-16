@@ -597,6 +597,7 @@ Verified by building the site strict from a fresh venv off the hashed set.
 Also checked and fine as-is: the only npm packages with install scripts are
 the two `fsevents` copies (macOS watcher, optional), which npm blocks by
 default — no allowlist needed until something else appears.
+
 ## M19: the server URL arrives pre-filled (FR-19.1)
 
 Found while deploying the compose stack for manual testing: the first-launch
@@ -623,6 +624,7 @@ the vitest cases fail with `http://localhost:8080`, and the e2e case
 the natural `toBeEnabled()` assertion on the Connect `ion-button` is false-green
 (the custom element is never "disabled" in the DOM sense), so the case asserts
 the input's value and reaches through to the inner `button`.
+
 ## Migrations 018/019: the two schema debts the concept left open (FR-25.9, FR-25.19)
 
 Item 5 of "Not built yet", cleared 2026-08-11 on owner instruction. Both
@@ -2412,6 +2414,119 @@ E2E-M3-11 needed tightening in the same PR: it checked scope separation with a
 substring, and a Vorlage's row now legitimately contains „Makro-Objektiv". An
 assertion that passed for the wrong reason failed the moment the screen said
 more than it used to.
+
+## The dev seed grows a master partition (2026-08-16)
+
+Owner, wanting to test the freshly merged §3.27 work: „kannst du zu Testzwecken
+Items und Gruppen zum initialen Datenstand hinzufügen. Das soll auch künftig so
+sein als Standard."
+
+`sampleTrip.ts` seeded a trip and nothing else, which was enough while the trip
+screens were the ones being built. Since §3.27 it is not: a trip carries its own
+rows and teaches the master partition nothing, so M7, M8, M3 step 3 and the
+FR-27.12 peek all opened empty on a fresh device and testing any of them started
+with twenty minutes of typing.
+
+`sampleMaster.ts` fills that gap and the M2 dev button now seeds both — master
+first, then the trip. **Standing rule from here on: a new master-data feature
+extends this seed.** That is the "als Standard" half of the request, and it is
+recorded in CLAUDE.md where a dev looks rather than only here.
+
+Same two constraints as the trip seed, for the same reasons. It is **dev-only**
+behind `import.meta.env.DEV`, so module and trigger drop out of a production
+build — this is not Demo Mode returning; that was a *product* surface and stays
+removed (Addendum v2.10). And it writes through the **orchestrator's own
+actions**, so every row it creates is one a user could have created, rather than
+inventing a second seeding path that would be the one nobody notices breaking.
+
+The data is picked for what is otherwise tedious to reach rather than for
+volume: two groups **sharing the camera**, so the FR-27.2 merge has something to
+name in both M3's footer and M8's resolution footer; a Vorlage with **own
+positions beside its two groups**, so the resolved count differs from either
+half; an FR-27.7 task on a shared position, so a generated trip starts with a
+real prep todo; and a third group left **deliberately unincluded**, so M8's
+picker and M3's *Zusätzliche Gruppen* both have an offer. Six tests pin those
+properties — not the contents — because a seed that quietly stops producing a
+resolvable composition wastes the session that discovers it.
+
+**Still open, deliberately:** the sample *trip* is still built through the M18
+portable-import path, so its rows carry no `source_template_id`. Generating it
+from the seeded Vorlage instead would give it provenance and finally make M14
+reachable with real proposals — but it changes what the trip seed is, so it is a
+decision rather than a side effect of this change.
+
+## Plain HTTP could not write at all (2026-08-16)
+
+Found by the owner testing the fresh §3.27 work from an iPad on
+`http://192.168.1.35:3000`: the dev seed button did nothing, then „New item
+anlegen geht nicht". The cause was one line, and it was everywhere —
+`crypto.randomUUID()` is defined **only in a secure context**, and all 24 id
+sites in `useMutations.ts` called it directly. On a self-hosted instance served
+over plain HTTP on a LAN — a first-class deployment for this product — creating
+an item, a trip, a tag or a template threw and the screen did nothing.
+
+`lib/ids.ts` is now the single id source: `randomUUID` where the platform has
+it, otherwise the same RFC 4122 v4 built from `crypto.getRandomValues`, which
+carries no secure-context restriction. It **refuses** rather than falling back
+to `Math.random` if neither exists: these ids are primary keys other devices
+merge against (NFR-4.2a), and a collision there is silent data loss where a
+thrown error is at least visible.
+
+Three things this cost, worth keeping:
+
+1. **The suite was green in the one environment where the bug cannot exist.**
+   Playwright serves from `localhost`, which is a secure context. No amount of
+   coverage in that shape would ever have found it. `e2e/insecure-context.spec.ts`
+   removes `randomUUID` before boot and drives the four real creation paths;
+   E2E-NFR-SEC-01 asserts the premise so the unit cannot silently stop testing
+   anything. Red-proved by reverting the fix and rebuilding.
+2. **A missing signal cost more than the bug.** The dev seed button was an async
+   handler that only navigated on success, so a throw was indistinguishable
+   from a dead control — the owner reasonably suspected the button, twice. Once
+   it reported the failure, the message named the cause in one line. The
+   handler now reports both outcomes, and the seeding moved to
+   `dev/sampleData.ts` so the outcome has one shape and one place to fail.
+3. **A guard, not a memory.** A unit test rejects `crypto.randomUUID` anywhere
+   in `client/src` outside `lib/ids.ts` — the same idea as the no-raw-colour
+   rule, because the next call would be invisible on localhost again.
+
+Ridealong from the same session: the Local Mode sync indicator set no icon size
+and inherited 13 px beside its 25 px neighbours, where a phone outline reads as
+a missing-glyph box („links vom Zahnrad siehts kaputt aus"). It is on
+`--jp-icon-md` now, which is where invariant 9 says icon sizes come from.
+
+## The dev-only surfaces were not dev-only (2026-08-16)
+
+Found reviewing PR #98, by checking a claim instead of reading it. `sampleTrip.ts`
+said — and `sampleMaster.ts` copied, and the addendum and CLAUDE.md repeated —
+that the seed "drops out of a production build entirely". It did not. Three
+chunks (`sampleData`, `sampleMaster`, `sampleTrip`) sat in `client/dist/assets`
+of every release, and the same was true of the M14 fixture.
+
+The mistake is worth naming precisely, because it looks correct: the guard was
+`v-if="isDev"` **on the button**, while the `import('@/dev/sampleTrip')` inside
+the handler stayed a live code path. A `v-if` hides a surface; only a
+compile-time-false branch *around the import* removes the code, which is the
+shape `router/index.ts` has always used for the gallery route. Moving the guard
+to `if (!import.meta.env.DEV) return` prunes all three.
+
+**Nobody could reach it, which is exactly why nobody noticed.** A hidden
+surface and an absent one are indistinguishable from the outside; only the
+bundle can tell them apart. So the fix ships with `scripts/dev-code-gate.mjs`
+(`make client`, CI client job): it fails the build when a dev chunk name or a
+piece of seed *data* appears in `dist`.
+
+Two things that gate taught while being written, both kept in its comments:
+
+1. **The first fingerprint was wrong in an instructive way.** „Makro Fotografie"
+   looked like seed data and is also example copy in the i18n catalogue — a
+   guard that fires on shipping product text is worse than no guard. The marks
+   are now strings only the seeds contain („Fotoreise (Beispiel)", „Kartusche
+   prüfen"), and the gate was proved by planting one in a built chunk.
+2. **The claim is now stated as narrowly as it is true.** The *modules* are
+   gone; the button's `v-if` branch still leaves its label in the page chunk as
+   dead string. That is an inert branch of a few bytes, not a reachable
+   surface, and the comments say so rather than rounding up to "entirely".
 
 ## The sheet header's two round controls (2026-08-16, FR-25.15 / G-14)
 

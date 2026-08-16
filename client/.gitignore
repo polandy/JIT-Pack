@@ -43,3 +43,10 @@ __screenshots__/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Throwaway render/repro scripts. Every screenshot round writes one, one of
+# them (.shot-m8b.mjs) reached main in #89 and sat there unnoticed for weeks —
+# it is scratch, and scratch that survives review is scratch that ships.
+.shot-*.mjs
+.repro-*.mjs
+.measure*.mjs
