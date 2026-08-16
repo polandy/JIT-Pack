@@ -18,14 +18,24 @@
  * trade; the short version is that this page makes *human* review cheap
  * while the baselines make *regression detection* automatic.
  */
-import { IonPage, IonContent, IonItem, IonLabel, IonList } from '@ionic/vue'
+import { IonPage, IonContent, IonButton, IonItem, IonLabel, IonList } from '@ionic/vue'
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
+import { seedReviewFixture } from '@/dev/reviewFixture'
 
 /** Stepper state, so the control can be exercised rather than only seen. */
 const packed = ref(2)
+
+const router = useRouter()
+
+/** M14 is unreachable populated (see reviewFixture.ts) — seed and go. */
+function openReviewFixture() {
+  const tripId = seedReviewFixture()
+  router.push(`/trips/${tripId}/review`)
+}
 </script>
 
 <template>
@@ -61,6 +71,18 @@ const packed = ref(2)
         <UserAvatar name="Andy" seed="c" variant="assignee" />
         <UserAvatar name="Mia" seed="d" variant="packer" />
         <UserAvatar name="Andy" seed="e" :size="40" />
+      </div>
+
+      <h2 class="section-title jp-eyebrow">M14 review (fixture)</h2>
+      <div class="jp-card demo">
+        <p>
+          The one screen whose populated state no app path can reach yet — a proposal needs an
+          FR-9.1 flag, and the flag writers are blocked behind the planning→active gap. Seeds
+          in-memory rows (a reload clears them) and opens the real route.
+        </p>
+        <IonButton size="small" data-testid="gallery-m14" @click="openReviewFixture">
+          Open populated review
+        </IonButton>
       </div>
 
       <h2 class="section-title jp-eyebrow">Quantity stepper</h2>

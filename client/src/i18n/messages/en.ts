@@ -360,6 +360,33 @@ export const en = {
   'analytics.flagMissing': '{n}× missing',
   'analytics.historyNote': 'Based on the archived trips synced to this device.',
 
+  // M14 — review assistant (FR-9.2, group-aware per FR-27.11).
+  'review.title': 'Review',
+  'review.intro':
+    'What this trip taught your groups. Changes go into the group the item came from — not into the vacation template, or only this one trip would learn.',
+  'review.open': 'Open · {n}',
+  'review.kindUnused': 'unused',
+  'review.kindMissing': 'missing',
+  'review.whyUnused': 'not needed on this trip | not needed on {n} trips',
+  'review.whyMissing': 'bought on the road — was not on the list | missing on {n} trips',
+  'review.targetFrom': 'From group',
+  'review.targetTo': 'Into group',
+  'review.blast':
+    'Affects {n} planned trip that includes “{group}”. | Affects {n} planned trips that include “{group}”.',
+  'review.apply': 'Apply',
+  'review.skip': 'Skip',
+  'review.never': 'Never ask again',
+  'review.stateApplied': 'applied ✓',
+  'review.stateSkipped': 'skipped',
+  'review.appliedHead': 'Applied · {n}',
+  'review.appliedSummary':
+    '{n} change written to the groups. Planned trips pick it up immediately. | {n} changes written to the groups. Planned trips pick them up immediately.',
+  'review.empty': 'Nothing to review — no flags were set.',
+  'review.snackUnused': 'Set “{item}” to 0 in group “{group}”',
+  'review.snackMissing': 'Added “{item}” to group “{group}”',
+  'review.snackNever': 'Won’t be suggested again for this item and group',
+  'review.nothingToast': 'Nothing to review — no flags were set.',
+
   'settings.language': 'Language',
   'settings.languageHint': 'This device only.',
   'settings.languageEnglish': 'English',

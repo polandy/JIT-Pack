@@ -354,6 +354,33 @@ export const de: Record<keyof typeof en, string> = {
   'analytics.flagMissing': '{n}× gefehlt',
   'analytics.historyNote': 'Basiert auf den archivierten Reisen, die auf diesem Gerät liegen.',
 
+  // M14 — Rückblick (FR-9.2, gruppen-orientiert per FR-27.11).
+  'review.title': 'Rückblick',
+  'review.intro':
+    'Was diese Reise über deine Gruppen gelernt hat. Änderungen gehen in die Gruppe, aus der der Artikel stammt — nicht in die Ferien-Vorlage, sonst lernt nur diese eine Reise dazu.',
+  'review.open': 'Offen · {n}',
+  'review.kindUnused': 'ungenutzt',
+  'review.kindMissing': 'fehlte',
+  'review.whyUnused': 'auf dieser Reise nicht gebraucht | auf {n} Reisen nicht gebraucht',
+  'review.whyMissing': 'unterwegs nachgekauft — fehlte auf der Liste | fehlte auf {n} Reisen',
+  'review.targetFrom': 'Aus Gruppe',
+  'review.targetTo': 'In Gruppe',
+  'review.blast':
+    'Wirkt auf {n} geplante Reise, die „{group}“ einbindet. | Wirkt auf {n} geplante Reisen, die „{group}“ einbinden.',
+  'review.apply': 'Übernehmen',
+  'review.skip': 'Überspringen',
+  'review.never': 'Nie mehr fragen',
+  'review.stateApplied': 'übernommen ✓',
+  'review.stateSkipped': 'übersprungen',
+  'review.appliedHead': 'Übernommen · {n}',
+  'review.appliedSummary':
+    '{n} Änderung in die Gruppen geschrieben. Geplante Reisen übernehmen sie sofort. | {n} Änderungen in die Gruppen geschrieben. Geplante Reisen übernehmen sie sofort.',
+  'review.empty': 'Nichts zu prüfen — keine Merkmale gesetzt.',
+  'review.snackUnused': 'Menge von „{item}“ in Gruppe „{group}“ auf 0 gesetzt',
+  'review.snackMissing': '„{item}“ in Gruppe „{group}“ aufgenommen',
+  'review.snackNever': 'Wird für diesen Artikel und diese Gruppe nicht mehr vorgeschlagen',
+  'review.nothingToast': 'Nichts zu prüfen — keine Merkmale gesetzt.',
+
   'settings.language': 'Sprache',
   'settings.languageHint': 'Nur auf diesem Gerät.',
   'settings.languageEnglish': 'Englisch',

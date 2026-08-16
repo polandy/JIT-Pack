@@ -1965,25 +1965,26 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   }
 
   /**
-   * applyReviewProposal writes one review card back to master data
-   * (FR-9.2). Templates are shared instance-wide (FR-1.6 MVP), so the
-   * change lands on the source template itself — there is no fork step.
-   * Returns the id of the template that received the change.
+   * applyReviewProposal writes one review row back to master data
+   * (FR-9.2). The target is a *group* (FR-27.11) — the row's picker may
+   * have moved it off the proposal's default, so the group id is passed
+   * explicitly. Groups are shared instance-wide (FR-1.6 MVP), so the
+   * change lands in place — there is no fork step. Returns the id of
+   * the group that received the change.
    */
-  function applyReviewProposal(proposal: ReviewProposal): string {
-    const templateId = proposal.templateId
-    if (proposal.kind === 'reduce_quantity') {
-      // Look the row up by item, not by proposal.templateItemId: the
-      // proposal may predate an edit that replaced the row.
+  function applyReviewProposal(proposal: ReviewProposal, groupId: string): string {
+    if (proposal.kind === 'unused') {
+      // Look the position up by item at apply time: the proposal may
+      // predate an edit that replaced the row.
       const target = masterStore
-        .getTemplateItems(templateId)
+        .getTemplateItems(groupId)
         .find((ti) => ti.item_id === proposal.itemId)
       if (target) updateTemplateItem(target, { quantity: 0 })
-      return templateId
+      return groupId
     }
     const itemId = proposal.itemId ?? createMasterItem(proposal.itemName)
-    addTemplateItem(templateId, itemId)
-    return templateId
+    addTemplateItem(groupId, itemId)
+    return groupId
   }
 
   // --- Container actions (FR-10.1, M11) ---
