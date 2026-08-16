@@ -6,7 +6,13 @@
 import { describe, expect, it } from 'vitest'
 
 import { generateTripItems, type GenerationInput } from '../instantiate'
-import type { MasterItem, Template, TemplateInclude, TemplateItem } from '@/types/domain'
+import type {
+  MasterItem,
+  Template,
+  TemplateInclude,
+  TemplateItem,
+  TemplateItemTask,
+} from '@/types/domain'
 
 function template(id: string, name: string): Template {
   return { id, owner_id: 'user-a', name, kind: 'template' }
@@ -54,6 +60,10 @@ function templateItem(
   }
 }
 
+function task(id: string, templateItemId: string, text: string): TemplateItemTask {
+  return { id, template_item_id: templateItemId, task: text }
+}
+
 const twoAdults = [{ name: 'Andy' }, { name: 'Sarah' }]
 
 /** Selecting everything passed is the common case; a test that cares overrides it. */
@@ -62,6 +72,7 @@ function input(overrides: Partial<GenerationInput>): GenerationInput {
     templates: [],
     selectedTemplateIds: (overrides.templates ?? []).map((t) => t.id),
     includes: [],
+    templateItemTasks: [],
     templateItems: [],
     masterItems: [],
     trip: { duration_days: 10, attributes: null, travelers: twoAdults },
@@ -373,5 +384,101 @@ describe('generateTripItems with composed templates (§3.27)', () => {
     expect(res.items.map((i) => i.traveler_index)).toEqual([0, 1])
     expect(res.excluded).toHaveLength(1)
     expect(res.excluded[0]).toMatchObject({ item_name: 'Sonnenhut', template_id: 'g1' })
+  })
+})
+
+/**
+ * FR-27.7: a template position can carry preparation tasks, and generation
+ * hands each one to the trip item as an ordinary FR-7.3 todo. No new flag is
+ * involved — the open todo is what keeps the row from counting as done.
+ */
+describe('generateTripItems carries preparation tasks (FR-27.7)', () => {
+  it('carries a position task onto the generated item', () => {
+    const res = generateTripItems(
+      input({
+        templates: [group('g1', 'Foto')],
+        masterItems: [masterItem('i1', 'Ladegerät für Kamera')],
+        templateItems: [templateItem('ti1', 'g1', 'i1')],
+        templateItemTasks: [task('tk1', 'ti1', 'Akkus laden')],
+      }),
+    )
+
+    expect(res.items[0]!.tasks).toEqual(['Akkus laden'])
+  })
+
+  it('gives every traveler row of a per-person position its own task (FR-1.4)', () => {
+    const res = generateTripItems(
+      input({
+        templates: [group('g1', 'Reise')],
+        masterItems: [masterItem('i1', 'Pass')],
+        templateItems: [templateItem('ti1', 'g1', 'i1', { assignment: 'per_person' })],
+        templateItemTasks: [task('tk1', 'ti1', 'Gültigkeit prüfen')],
+      }),
+    )
+
+    expect(res.items).toHaveLength(2)
+    expect(res.items.map((i) => i.tasks)).toEqual([['Gültigkeit prüfen'], ['Gültigkeit prüfen']])
+  })
+
+  it('an item without tasks carries an empty list, never undefined', () => {
+    const res = generateTripItems(
+      input({
+        templates: [group('g1', 'Foto')],
+        masterItems: [masterItem('i1', 'Kamera')],
+        templateItems: [templateItem('ti1', 'g1', 'i1')],
+        templateItemTasks: [task('tk1', 'ti-other', 'Akkus laden')],
+      }),
+    )
+
+    expect(res.items[0]!.tasks).toEqual([])
+  })
+
+  it('a position excluded by its conditions contributes no task (FR-15.2)', () => {
+    const res = generateTripItems(
+      input({
+        templates: [group('g1', 'Winter')],
+        masterItems: [masterItem('i1', 'Schneeketten')],
+        templateItems: [templateItem('ti1', 'g1', 'i1', { conditions: { season: ['winter'] } })],
+        templateItemTasks: [task('tk1', 'ti1', 'Montage üben')],
+        trip: { duration_days: 5, attributes: { season: 'summer' }, travelers: twoAdults },
+      }),
+    )
+
+    expect(res.items).toHaveLength(0)
+    expect(res.excluded).toHaveLength(1)
+  })
+
+  it('a merged item unions the tasks of every contributor, first contributor first', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien'), group('g1', 'Makro'), group('g2', 'Wildlife')],
+        selectedTemplateIds: ['t1'],
+        includes: [include('t1', 'g1'), include('t1', 'g2')],
+        masterItems: [masterItem('i1', 'Kamera')],
+        templateItems: [templateItem('ti1', 'g1', 'i1'), templateItem('ti2', 'g2', 'i1')],
+        templateItemTasks: [
+          task('tk1', 'ti1', 'Akkus laden'),
+          task('tk2', 'ti2', 'Sensor reinigen'),
+        ],
+      }),
+    )
+
+    expect(res.items).toHaveLength(1)
+    expect(res.items[0]!.tasks).toEqual(['Akkus laden', 'Sensor reinigen'])
+  })
+
+  it('the same task text from two groups becomes one todo, not two', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Ferien'), group('g1', 'Makro'), group('g2', 'Wildlife')],
+        selectedTemplateIds: ['t1'],
+        includes: [include('t1', 'g1'), include('t1', 'g2')],
+        masterItems: [masterItem('i1', 'Kamera')],
+        templateItems: [templateItem('ti1', 'g1', 'i1'), templateItem('ti2', 'g2', 'i1')],
+        templateItemTasks: [task('tk1', 'ti1', 'Akkus laden'), task('tk2', 'ti2', 'Akkus laden')],
+      }),
+    )
+
+    expect(res.items[0]!.tasks).toEqual(['Akkus laden'])
   })
 })

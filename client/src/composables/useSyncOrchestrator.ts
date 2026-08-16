@@ -15,7 +15,7 @@ import { APIClient, type TokenProvider } from '@/api/client'
 import { HLCGenerator } from '@/sync/hlc'
 import { SyncOutbox } from './useSyncOutbox'
 import { useWebSocket } from './useWebSocket'
-import { useMutations } from './useMutations'
+import { CLIENT_ACTOR_PLACEHOLDER, useMutations } from './useMutations'
 import { useSyncStatus } from './useSyncStatus'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
@@ -814,6 +814,30 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         },
       ])
       if (!local) outbox.enqueue('trip', tripId, mutation)
+
+      // FR-27.7: a position's preparation tasks become ordinary FR-7.3 todos
+      // on the row they were generated for — no new flag, so "an item with an
+      // open prep todo is not done" applies without a second mechanism.
+      // Enqueued inside this loop so each todo follows the trip_items row it
+      // references; pushed ahead of it, the server rejects the foreign key.
+      for (const taskBody of item.tasks) {
+        const { mutation: todoMut, id: todoId } = mutations.addTodo(
+          tripId,
+          id,
+          CLIENT_ACTOR_PLACEHOLDER,
+          taskBody,
+        )
+        onPullChanges([
+          {
+            seq: 0,
+            table: 'comments',
+            id: todoId,
+            deleted: false,
+            row: todoMut.fields as Record<string, unknown>,
+          },
+        ])
+        if (!local) outbox.enqueue('trip', tripId, todoMut)
+      }
     }
 
     for (const chk of draft.checklistItems ?? []) {

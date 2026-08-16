@@ -190,6 +190,7 @@ const generation = computed(() => {
     templates,
     selectedTemplateIds: [...selectedTemplateIds.value],
     includes: masterStore.includeList,
+    templateItemTasks: masterStore.templateItemTaskList,
     templateItems: templates.flatMap((t) => masterStore.getTemplateItems(t.id)),
     masterItems: masterStore.itemList,
     trip: {
@@ -238,6 +239,9 @@ function companionRows() {
       mode: 'pack' as const,
       late_packer: false,
       traveler_index: null,
+      // A companion comes from a dependency, not from a template position, so
+      // there is no FR-27.7 task to carry (FR-20.2).
+      tasks: [] as string[],
     }
   }
   return [

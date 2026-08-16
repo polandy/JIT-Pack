@@ -16,6 +16,7 @@ import type {
   TemplateDedup,
   TemplateInclude,
   TemplateItem,
+  TemplateItemTask,
 } from '@/types/domain'
 
 export interface GenerationTraveler {
@@ -39,6 +40,8 @@ export interface GenerationInput {
   selectedTemplateIds: string[]
   /** The (Vorlage, Gruppe) pairs of the master partition. */
   includes: TemplateInclude[]
+  /** FR-27.7: the preparation tasks hanging off template positions. */
+  templateItemTasks: TemplateItemTask[]
   templateItems: TemplateItem[]
   masterItems: MasterItem[]
   trip: GenerationTrip
@@ -56,6 +59,12 @@ export interface GeneratedItem {
   mode: ItemMode
   late_packer: boolean
   traveler_index: number | null
+  /**
+   * FR-27.7: the preparation tasks of the contributing position(s), which the
+   * caller writes as ordinary FR-7.3 todos on the created row. Empty rather
+   * than absent, so a caller never has to distinguish "none" from "unknown".
+   */
+  tasks: string[]
 }
 
 export interface ExcludedItem {
@@ -95,6 +104,12 @@ export function durationDays(startDate: string | null, endDate: string | null): 
 export function generateTripItems(input: GenerationInput): GenerationResult {
   const sources = resolveSources(input)
   const itemsByID = new Map(input.masterItems.map((i) => [i.id, i]))
+  const tasksByPosition = new Map<string, string[]>()
+  for (const t of input.templateItemTasks) {
+    const list = tasksByPosition.get(t.template_item_id)
+    if (list) list.push(t.task)
+    else tasksByPosition.set(t.template_item_id, [t.task])
+  }
 
   const excluded: ExcludedItem[] = []
   const byKey = new Map<
@@ -124,6 +139,7 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
       }
 
       const quantity = computeQuantity(ti)
+      const tasks = tasksByPosition.get(ti.id) ?? []
       const targets: (number | null)[] =
         ti.assignment === 'per_person' ? input.trip.travelers.map((_, idx) => idx) : [null]
 
@@ -134,6 +150,13 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
           existing.dedups.push(ti.dedup)
           existing.quantities.push(quantity)
           existing.sources.push(source)
+          // A merge keeps the union of the preparation tasks: dropping the
+          // second group's task would lose exactly the knowledge FR-27.7 is
+          // for. Identical text is one todo, not two — the same task learned
+          // by two groups is still one thing to do.
+          for (const t of tasks) {
+            if (!existing.item.tasks.includes(t)) existing.item.tasks.push(t)
+          }
           continue
         }
         byKey.set(key, {
@@ -148,6 +171,10 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
             mode: ti.default_mode,
             late_packer: ti.late_packer,
             traveler_index: travelerIndex,
+            // A fresh array per traveler row: the fan-out below would
+            // otherwise have every row share one list and one merge would
+            // append a task to all of them.
+            tasks: [...tasks],
           },
           dedups: [ti.dedup],
           quantities: [quantity],
