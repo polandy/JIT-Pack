@@ -29,7 +29,7 @@ export function installOverlayBackGuard(router: Router): void {
   // later in the navigation's microtask chain, so the flag is always set
   // by the time it is read.
   router.options.history.listen((_to, _from, info) => {
-    poppedBack = info.type === 'pop' && info.direction !== 'forward'
+    poppedBack = info.type === 'pop' && info.direction === 'back'
   })
 
   router.afterEach((to, from, failure) => {
