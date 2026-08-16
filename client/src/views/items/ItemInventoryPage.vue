@@ -52,6 +52,7 @@ import {
   type InventoryProperty,
 } from '@/composables/useInventoryProperties'
 import { UNTAGGED_KEY } from '@/domain/tags'
+import { formatWeight } from '@/lib/format'
 import { t } from '@/i18n'
 import type { MasterItem } from '@/types/domain'
 
@@ -120,10 +121,6 @@ function extrasFor(item: MasterItem): string[] {
     extras.push((item.value_cents / 100).toFixed(2))
   }
   return extras
-}
-
-function formatWeight(grams: number): string {
-  return grams >= 1000 ? `${(grams / 1000).toFixed(1)} kg` : `${grams} g`
 }
 
 function propertyLabel(key: InventoryProperty): string {

@@ -2044,6 +2044,47 @@ Still open from §3.24: **FR-24.3 lifecycle-aware deletion stays parked** —
 a rule about history rather than classification, and nothing in the tag
 model depends on it.
 
+## M11 — containers rebuilt on the concept round (FR-10.1–10.3, 2026-08-16)
+
+The fourth screen rebuild, and the first time M11 was rendered at all — the
+concept round of 2026-08-08 had rejected the prototype's screen (a flat form
+per card, one assign button per container per row) without anything being
+built in its place. What runs now: a card per container (name, carrier,
+weight bar with the FR-10.3 grades, imbalance line), the M5-grammar
+`ContainerSheet` for editing, FR-24.5 placeholder-name creation from the
+FAB, and an unassigned bucket of plain rows whose tap opens the same sheet
+surface as a container *picker* with each option's current load.
+
+**The defect worth the rebuild: pairing was one-sided.** The old screen
+wrote `paired_container_id` only on the tapped container, so the partner
+rendered an imbalance against a container that did not consider itself
+paired — exactly the half-set state the UI-Spec warns about. The write set
+now comes from the pure domain (`pairWrites`/`unpairWrites`/
+`releasePartnersOnDelete` in `client/src/domain/containers.ts`): both sides
+at once, exclusive (a re-pair releases the old partner first, releases
+ordered before sets so a freed partner can never overwrite the new pair),
+idempotent, and self-repairing on a legacy one-sided row. `deleteContainer`
+releases the surviving partner alongside its existing item unassignment.
+
+**Found on the pixels, not in the stylesheet:** the sheet's carrier section
+rendered as a bare heading on a trip without travelers — now absent, not
+emptied (the FR-24.5 stance). Rendered against the seeded :3000 instance
+through a Vite proxy inside the pinned Playwright container.
+
+**The e2e unit paid for two lessons** (ledger has the detail): Playwright
+CSS pierces shadow DOM, so "no button grid" is asserted as zero `ion-select`
+per row rather than zero `button`; and a tap during an overlay's dismiss
+animation is swallowed by the backdrop, so `closeSheet()` waits for
+`ion-modal.show-modal` to be gone. The symmetric-pairing case was
+mutation-proved by reverting `pairContainer` to the one-sided write.
+
+Beside the rebuild, `formatWeight` — five identical copies across five
+files — moved to `client/src/lib/format.ts`, and the M9/M10 unit's missing
+row in the ledger's status table was repaired.
+
+No ADR: every tradeoff here was decided in the 2026-08-08 concept round;
+this entry records execution, not decision.
+
 ## Browser back with the M5 sheet open (Navigation Concept §7 case 4, 2026-08-16)
 
 Found by the owner on the first eyeball after M11: back on an open item
@@ -2070,3 +2111,86 @@ plain pops untouched, the chevron's replace not intercepted); e2e-covered by
 E2E-M5-13, red-proved against the unguarded build. Known accepted gap:
 a back during the sheet's enter animation still races Ionic's transition
 queue — documented in the concept doc, unreachable by an intentional back.
+
+## M11 joins the visual baselines, and the image gets a platform (2026-08-16)
+
+Owner decision on the question PR #91 left open: M11 is the first screen
+outside M4 to get baselines. Two shots (E2E-VIS-06/07), because the screen
+renders three things no existing baseline does — a load bar whose fill
+carries an FR-10.3 grade colour, the paired/imbalance line, and the card
+list — plus the M5 sheet grammar applied to a container, whose load line and
+pairing chips exist on no other surface. The load is real rather than
+staged: a master item with a weight, quick-added through its suggestion, so
+the bar grades something.
+
+**The finding is next to the images, not in them.** Generating them off the
+runner surfaced that ADR-013's digest pin was half a pin. A digest fixes
+*what is in* the image; on an Apple-Silicon machine docker resolves that
+same digest to its arm64 variant, so a baseline recorded on a development
+machine would be judged in CI against a rendering it never saw. The image
+now carries `--platform linux/amd64`, which is a no-op on the amd64 runner
+and emulation everywhere else. Proof rather than argument: with the platform
+named, all 16 pre-existing baselines reproduced byte-identically on the Mac
+(`git status` showed only the four new PNGs), and only then were the M11
+images kept.
+
+**The platform pin was only half of "generatable off the runner."** Naming it
+made the *images* comparable; the run still could not start. `make visual`
+mounts the worktree, which hands the container the host's `node_modules`, and
+rolldown ships a native binary — so vite's preview server died at "Cannot find
+module … linux-x64" before a single pixel was rendered. That the baselines
+above exist at all is because they were produced in a copy whose dependencies
+were installed *inside* the image. `scripts/visual.sh` now does that itself
+when the host is not Linux: the container mounts its own tree out of the
+user's cache directory and fills it with `npm ci`, which costs ~9 s over
+virtiofs — cheap enough that a staleness check would cost more than redoing
+it. The first attempt put that tree under `client/`, and `make ci` rejected it
+within a minute: a second `node_modules` inside the project is walked by
+everything that walks the project, and eslint followed it in. Ignoring it in
+one tool would have moved the problem to the next one. CI is untouched, because there the host *is* Linux and the
+mount is already right. Proven by running `make visual` unmodified on the Mac:
+20/20, the M11 images included.
+
+Two Docker Desktop leftovers cost the detour and are worth naming for the
+next machine: a `credsStore: desktop` in `~/.docker/config.json` pointing at
+an uninstalled helper, which fails every pull with a credentials error, and
+a stale `vite preview` from a deleted worktree squatting on port 4173, which
+Playwright's `reuseExistingServer` could not reuse because it answered 404.
+
+## What "covered by e2e" was not covering (2026-08-16)
+
+Asked after the M11 eyeball whether the screen was fully covered, and the
+honest answer was no — in a way worth recording, because none of the three
+gaps was a missing test id. All six M11 ids were implemented and green.
+
+1. **A spec sentence is a list of promises.** E2E-M11-05's text said pairing
+   is released "when cleared **or when one side is deleted**". Only the first
+   half was asserted; the second lived as a domain unit
+   (`releasePartnersOnDelete`) and was marked implemented anyway. It now sits
+   in E2E-M11-04, because that is the only place it is *visible*: with two
+   empty containers a released and an un-released survivor render identically,
+   so an assertion there would have passed whatever the code did. Under a
+   skew, a survivor still pointing at a deleted partner goes on reporting
+   100 % imbalance — that is the observable, and it is mutation-proved.
+2. **A spec sentence can also over-claim the implementation.** E2E-M11-03
+   promised assigning items "into/between containers". The screen has no
+   between: an assigned item leaves the bucket and the cards do not list their
+   contents. Re-assignment lives in M5's container control. The spec sentence
+   was the defect, not a missing test.
+3. **Getting to the screen was nobody's case.** The M11 unit reaches M11 in
+   its own `beforeEach`-style helper, which is not the same as covering the
+   navigation — the working agreement puts that in `global-nav.spec.ts` after
+   four defects that both green screen suites missed. E2E-G9-11 now owns the
+   luggage button and the way back.
+
+**The mutation proof itself nearly lied.** The first attempt edited the
+orchestrator, re-ran the case, and watched it stay green — which reads as "the
+assertion is weak" and is in fact "Playwright serves `dist/`, and nobody
+rebuilt". Test-side edits need no rebuild; production-side edits always do.
+With the rebuild the case is red without the release and green with it.
+
+All three gaps are now checks in `.claude/skills/pr-review/SKILL.md` §5:
+read the spec's case text against the test body sentence by sentence, read it
+against the *screen* too, cover the global patterns rather than only the
+screen, and mutation-prove the case that owns the PR's headline defect —
+rebuilding between the two runs.

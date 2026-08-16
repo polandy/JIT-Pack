@@ -158,6 +158,91 @@ test('visual: M4 filter sheet @local @visual', async ({ page, seedMode }) => {
   await expect(page).toHaveScreenshot('m4-filter-sheet.png')
 })
 
+/**
+ * Ionic inputs hydrate late; filling before that goes nowhere. Same helper
+ * the M11 behaviour unit carries — kept local rather than shared, because a
+ * baseline file that imports from a behaviour spec couples two suites that
+ * are run by different commands.
+ */
+async function fillIonic(field: ReturnType<Page['locator']>, value: string) {
+  await expect(field).toHaveClass(/hydrated/)
+  const input = field.locator('input')
+  await input.click()
+  await input.fill('')
+  await input.pressSequentially(value)
+  await expect(input).toHaveValue(value)
+}
+
+/** Close the M11 sheet and wait for the overlay to be *gone*, not merely detached. */
+async function closeSheet(page: Page) {
+  await page.getByTestId('m11-sheet-close').click()
+  await expect(page.getByTestId('m11-sheet')).toHaveCount(0)
+  await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+}
+
+/**
+ * One M11 state that carries everything the screen decides visually: a card
+ * with a graded weight bar (amber at 91 % — an FR-10.3 role colour), a pair
+ * with its imbalance line, a carrier avatar, and the unassigned bucket below.
+ * The weight is real and arrives through the app's own paths, because a bar
+ * with no load grades nothing.
+ */
+async function containers(page: Page) {
+  await page.goto('/tabs/items')
+  await shown(page).getByTestId('m9-fab').click()
+  await expect(shown(page).getByTestId('m10-new-hint')).toBeVisible()
+  await fillIonic(shown(page).getByTestId('m10-name'), 'Zelt')
+  await shown(page).getByTestId('m10-more').click()
+  await fillIonic(shown(page).getByTestId('m10-weight'), '5000')
+  await shown(page).getByTestId('m10-create').click()
+  await expect(page.getByTestId('header-title')).toHaveText('Zelt')
+
+  await createTripViaWizard(page, { name: 'Samedan 2026', travelers: ['Andy', 'Mia'] })
+
+  await page.getByTestId('m4-fab').click()
+  await page.getByTestId('quick-add-input').locator('input').fill('Zel')
+  await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Zelt' }).click()
+  await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
+  await page.getByTestId('quick-add-input').locator('input').fill('Schlafsack')
+  await page.getByTestId('quick-add-confirm').click()
+  await expect(page.getByTestId('m4-row-Schlafsack')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('quick-add-input')).toBeHidden()
+
+  await shown(page).getByTestId('m4-nav-luggage').click()
+  await expect(shown(page).getByTestId('m11-fab')).toBeVisible()
+  await expect(shown(page).getByTestId('m4-nav-luggage')).toHaveCount(0)
+
+  for (const [name, limit] of [
+    ['Links', '5.5'],
+    ['Rechts', '9'],
+  ] as const) {
+    await shown(page).getByTestId('m11-fab').click()
+    await expect(page.getByTestId('m11-sheet')).toBeVisible()
+    await fillIonic(page.getByTestId('m11-name-input'), name)
+    await page.getByTestId('m11-name-input').locator('input').press('Enter')
+    await expect(page.getByTestId('m11-sheet-name')).toHaveText(name)
+    await fillIonic(page.getByTestId('m11-max-input'), limit)
+    // The commit seam is blur (G-5).
+    await page.getByTestId('m11-max-input').locator('input').press('Tab')
+    if (name === 'Links') {
+      await page.getByTestId('m11-sheet').getByRole('button', { name: 'Andy', exact: true }).click()
+    } else {
+      await page.getByTestId('m11-sheet').getByRole('button', { name: 'Links', exact: true }).click()
+    }
+    await closeSheet(page)
+  }
+
+  // 5 kg of 5.5 kg is 91 % — amber — and against an empty partner it is
+  // also the imbalance the pair reports.
+  await shown(page).getByTestId('m11-unassigned-row').filter({ hasText: 'Zelt' }).click()
+  await expect(page.getByTestId('m11-picker')).toBeVisible()
+  await page.getByTestId('m11-picker-option').filter({ hasText: 'Links' }).click()
+  await expect(page.getByTestId('m11-picker')).toHaveCount(0)
+  await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+  await settled(page)
+}
+
 // E2E-VIS-05: the same list in Latte. One flavour spot-check rather than a
 // second copy of every state: the flavour is decided in one token block, so
 // one screen that uses brand, done, both planes and the elevation ink is
@@ -169,4 +254,32 @@ test('visual: M4 in Latte @local @visual', async ({ page, seedMode }) => {
   await packingList(page, ['Zelt', 'Schlafsack', 'Stirnlampe'])
   await expect(page.locator('html')).toHaveClass(/jitpack-latte/)
   await expect(page).toHaveScreenshot('m4-list-latte.png')
+})
+
+// E2E-VIS-06: M11, the first screen outside M4 to get a baseline. It earns
+// one because it renders three things no other baseline does — a load bar
+// whose fill carries an FR-10.3 grade colour, the paired/imbalance line, and
+// the card list itself — and because the rebuild that introduced them was
+// judged on exactly those pixels.
+test('visual: M11 container list @local @visual', async ({ page, seedMode }) => {
+  await freeze(page)
+  await seedMode({ mode: 'local' })
+  await containers(page)
+  await expect(page).toHaveScreenshot('m11-list.png')
+})
+
+// E2E-VIS-07: the container sheet. The M4 filter sheet already baselines the
+// *plane*, so this is not a second copy of it: the sheet is the M5 grammar
+// applied to a container, and the load line and pairing chips inside it exist
+// on no other surface.
+test('visual: M11 container sheet @local @visual', async ({ page, seedMode }) => {
+  await freeze(page)
+  await seedMode({ mode: 'local' })
+  await containers(page)
+
+  await shown(page).getByTestId('m11-container-card').filter({ hasText: 'Links' }).click()
+  await expect(page.getByTestId('m11-sheet')).toBeVisible()
+  await expect(page.getByTestId('m11-sheet-load')).toBeVisible()
+  await settled(page)
+  await expect(page).toHaveScreenshot('m11-sheet.png')
 })

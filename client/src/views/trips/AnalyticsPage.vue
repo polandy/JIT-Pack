@@ -19,6 +19,7 @@ import {
   topFlagged,
   type AnalyticsDimension,
 } from '@/domain/analytics'
+import { formatWeight } from '@/lib/format'
 import { useTripStore } from '@/stores/tripStore'
 import type { GroupBy } from '@/types/domain'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
@@ -60,10 +61,6 @@ function openSlice() {
   // active dimension (per-slice deep filters are not built yet).
   setStoredGroupBy(props.tripId, dimension.value as GroupBy)
   router.push(`/trips/${props.tripId}`)
-}
-
-function formatWeight(grams: number): string {
-  return grams >= 1000 ? `${(grams / 1000).toFixed(1)} kg` : `${grams} g`
 }
 
 function formatValue(cents: number): string {
