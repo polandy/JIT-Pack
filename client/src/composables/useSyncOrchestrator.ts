@@ -2020,9 +2020,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
-  /** applyPairingWrites persists a domain-computed set of paired_container_id writes. */
-  function applyPairingWrites(tripId: string, writes: PairingWrite[]) {
-    const containers = tripStore.getContainers(tripId)
+  /** pairingMuts turns domain-computed paired_container_id writes into queue entries. */
+  function pairingMuts(
+    containers: Container[],
+    writes: PairingWrite[],
+  ): Parameters<typeof enqueueAndDrain>[2][] {
     const muts: Parameters<typeof enqueueAndDrain>[2][] = []
     for (const write of writes) {
       const current = containers.find((c) => c.id === write.containerId)
@@ -2040,6 +2042,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         },
       })
     }
+    return muts
+  }
+
+  /** applyPairingWrites persists a domain-computed set of paired_container_id writes. */
+  function applyPairingWrites(tripId: string, writes: PairingWrite[]) {
+    const muts = pairingMuts(tripStore.getContainers(tripId), writes)
     if (muts.length > 0) enqueueAndDrain('trip', tripId, ...muts)
   }
 
@@ -2064,23 +2072,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    */
   function deleteContainer(tripId: string, containerId: string) {
     const containers = tripStore.getContainers(tripId)
-    const muts: Parameters<typeof enqueueAndDrain>[2][] = []
-    for (const write of releasePartnersOnDelete(containers, containerId)) {
-      const current = containers.find((c) => c.id === write.containerId)
-      if (!current) continue
-      muts.push({
-        mutation: mutations.updateContainer(write.containerId, {
-          paired_container_id: write.paired_container_id,
-        }),
-        optimistic: {
-          seq: 0,
-          table: 'containers',
-          id: write.containerId,
-          deleted: false,
-          row: { ...containerRow(current), paired_container_id: write.paired_container_id },
-        },
-      })
-    }
+    // One enqueueAndDrain for release + unassign + delete, so the batch
+    // stays atomic in the queue.
+    const muts = pairingMuts(containers, releasePartnersOnDelete(containers, containerId))
     for (const item of tripStore.getItems(tripId)) {
       if (item.container_id !== containerId) continue
       const mut = mutations.assignContainer(item.id, null)
