@@ -2156,3 +2156,41 @@ next machine: a `credsStore: desktop` in `~/.docker/config.json` pointing at
 an uninstalled helper, which fails every pull with a credentials error, and
 a stale `vite preview` from a deleted worktree squatting on port 4173, which
 Playwright's `reuseExistingServer` could not reuse because it answered 404.
+
+## What "covered by e2e" was not covering (2026-08-16)
+
+Asked after the M11 eyeball whether the screen was fully covered, and the
+honest answer was no — in a way worth recording, because none of the three
+gaps was a missing test id. All six M11 ids were implemented and green.
+
+1. **A spec sentence is a list of promises.** E2E-M11-05's text said pairing
+   is released "when cleared **or when one side is deleted**". Only the first
+   half was asserted; the second lived as a domain unit
+   (`releasePartnersOnDelete`) and was marked implemented anyway. It now sits
+   in E2E-M11-04, because that is the only place it is *visible*: with two
+   empty containers a released and an un-released survivor render identically,
+   so an assertion there would have passed whatever the code did. Under a
+   skew, a survivor still pointing at a deleted partner goes on reporting
+   100 % imbalance — that is the observable, and it is mutation-proved.
+2. **A spec sentence can also over-claim the implementation.** E2E-M11-03
+   promised assigning items "into/between containers". The screen has no
+   between: an assigned item leaves the bucket and the cards do not list their
+   contents. Re-assignment lives in M5's container control. The spec sentence
+   was the defect, not a missing test.
+3. **Getting to the screen was nobody's case.** The M11 unit reaches M11 in
+   its own `beforeEach`-style helper, which is not the same as covering the
+   navigation — the working agreement puts that in `global-nav.spec.ts` after
+   four defects that both green screen suites missed. E2E-G9-11 now owns the
+   luggage button and the way back.
+
+**The mutation proof itself nearly lied.** The first attempt edited the
+orchestrator, re-ran the case, and watched it stay green — which reads as "the
+assertion is weak" and is in fact "Playwright serves `dist/`, and nobody
+rebuilt". Test-side edits need no rebuild; production-side edits always do.
+With the rebuild the case is red without the release and green with it.
+
+All three gaps are now checks in `.claude/skills/pr-review/SKILL.md` §5:
+read the spec's case text against the test body sentence by sentence, read it
+against the *screen* too, cover the global patterns rather than only the
+screen, and mutation-prove the case that owns the PR's headline defect —
+rebuilding between the two runs.

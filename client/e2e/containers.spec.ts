@@ -203,6 +203,20 @@ test.describe('M11 containers @local @m11', () => {
 
     await expect(card(page, 'Links').getByTestId('m11-imbalance')).toContainText('100 %')
     await expect(card(page, 'Rechts').getByTestId('m11-imbalance')).toContainText('100 %')
+
+    // Deleting one side releases the other. This is the *visible* half of
+    // `releasePartnersOnDelete`, and the state above is what makes it
+    // assertable at all: a survivor left pointing at a deleted partner
+    // still weighs itself against nothing and would go on reporting this
+    // 100 %. An empty pair could not tell the two apart.
+    await openCard(page, 'Rechts')
+    await page.getByTestId('m11-delete').click()
+    await page.getByRole('button', { name: 'Delete', exact: true }).click()
+    await expect(page.getByTestId('m11-sheet')).toHaveCount(0)
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    await expect(card(page, 'Links')).toBeVisible()
+    await expect(card(page, 'Links').getByTestId('m11-imbalance')).toHaveCount(0)
   })
 
   // E2E-M11-06/03 (FR-10.2, FR-25.5): one plain row per unassigned item —
