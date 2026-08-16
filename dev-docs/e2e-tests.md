@@ -429,6 +429,30 @@ group row. It now asserts the row titles. The lesson is the recurring one: an
 assertion that happens to pass for the wrong reason fails the moment the screen
 says more than it used to.
 
+## Plain-HTTP instances (`e2e/insecure-context.spec.ts`, 2026-08-16)
+
+The owner opened the app from an iPad on `http://192.168.1.35:3000` and could
+not create anything: **`crypto.randomUUID is not a function`**. That function
+exists only in a *secure context*, and every id the client mints came from it —
+so on a self-hosted plain-HTTP instance, which is a first-class deployment for
+this product, item creation, trip creation, tags and templates were all dead.
+
+**The suite could never have caught it, and that is the interesting part.**
+Playwright serves from `localhost`, which *is* a secure context. Every case in
+the suite ran in the one environment where the bug does not exist. Four cases
+now remove `randomUUID` before the app boots — the LAN situation, reproduced
+deterministically — and E2E-NFR-SEC-01 asserts that premise, so the unit cannot
+quietly go back to testing nothing if a browser ever changes.
+
+Red-proved by reverting `newId()` to `crypto.randomUUID()` and rebuilding:
+SEC-02/03/04 fail, SEC-01 (the premise) still passes, which is exactly the
+signature a real reproduction should have.
+
+Two lessons, both paid for here: **the toast came first.** The button had no
+feedback, so the failure looked like a dead control for two sessions; the
+moment it reported, the message named the cause in one line. And **the run mode
+that matters is the one the owner uses** — localhost is not it.
+
 ## G-2 — the sync detail (2026-08-17)
 
 **E2E-G2-02** and **E2E-G2-03** are live, in `global-nav.spec.ts` because G-2 is a
