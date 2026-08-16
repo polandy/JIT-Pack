@@ -112,6 +112,29 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.getByTestId('m4-filter')).toHaveCount(0)
   })
 
+  // E2E-G9-11 (G-12, ADR-011): M11 is reached from the packing list's
+  // app-bar cluster and left by back. The M11 unit exercises the screen;
+  // this owns getting *to* and *from* it — the class of defect the working
+  // agreement added this file for, after four navigation bugs that both
+  // green screen suites had missed.
+  test('E2E-G9-11: the luggage button reaches the containers and back returns', async ({ page }) => {
+    await page.setViewportSize(DESKTOP)
+    await createTripViaWizard(page, TRIP)
+
+    await onVisibleScreen(page, 'm4-nav-luggage').click()
+    await expect(onVisibleScreen(page, 'm11-fab')).toBeVisible()
+    // The bar belongs to the screen now shown, not the one that left (G-12).
+    await expect(page.getByTestId('m4-search')).toHaveCount(0)
+    await expect(page.getByTestId('m4-filter')).toHaveCount(0)
+
+    await page.getByTestId('header-back').click()
+    await expect(onVisibleScreen(page, 'm4-fab')).toBeVisible()
+    // …and coming back restores it, rather than leaving a bar with nothing
+    // behind it.
+    await expect(page.getByTestId('m4-nav-luggage')).toBeVisible()
+    await expect(page.getByTestId('m11-fab')).toHaveCount(0)
+  })
+
   // E2E-G12-01 (G-12, FR-25.11k): the magnifier searches the screen the
   // user is on. It used to keep filtering the one they had left.
   test('E2E-G12-01: the magnifier searches the current screen', async ({ page }) => {

@@ -86,6 +86,7 @@ import { usePackingFilter } from '@/composables/usePackingFilter'
 import { usePackUndo, type PackUndoRecord } from '@/composables/usePackUndo'
 import { buildPackingView, FACET_KEYS, NO_VALUE, type PackingRow } from '@/domain/packingView'
 import { relativeStamp } from '@/domain/stamp'
+import { formatWeight } from '@/lib/format'
 import { currentLocale, t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
 import type { FacetKey, GroupBy, ItemTodo, TripItem, TripParticipant } from '@/types/domain'
@@ -235,10 +236,6 @@ const shoppingCount = computed(() => {
   const lists = store.getShoppingItems(props.tripId)
   return lists.buyBefore.length + lists.buyLocal.length
 })
-
-function formatWeight(grams: number): string {
-  return grams >= 1000 ? `${(grams / 1000).toFixed(1)} kg` : `${grams} g`
-}
 
 /**
  * The header line yields to the list on the way down and comes back on any

@@ -99,6 +99,8 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-VIS-03 | Visual M4 done-hidden and done-revealed | all | The two states FR-25.2 creates. The snackbar is dismissed before the shot rather than waited out — a baseline that sometimes contains a toast fails at random. |
 | E2E-VIS-04 | Visual M4 filter sheet | all | A layer over the list, which is where the G-14 plane and elevation rules are most visible. |
 | E2E-VIS-05 | Visual M4 in Latte | all | One flavour spot-check rather than a second copy of every state: the flavour is decided in one token block, and one screen using brand, done, both planes and the elevation ink is enough to notice it moving. Doubling the set would double what an image-digest bump rewrites, for coverage of the same block. |
+| E2E-VIS-06 | Visual M11 container list | all | The first baseline outside M4, added on the owner's decision of 2026-08-16 when M11 was eyeballed. It earns its place on three things no other baseline renders: a load bar whose fill carries an FR-10.3 grade colour, the paired/imbalance line, and the card list itself. The load is real — a master item with a weight, quick-added through its suggestion — because a bar with nothing in it grades nothing. |
+| E2E-VIS-07 | Visual M11 container sheet | all | Not a second copy of E2E-VIS-04's plane: this is the M5 sheet grammar applied to a container, and the load line and pairing chips inside it exist on no other surface. |
 | E2E-M4-33 | M4 A pack registers, and can be taken back | all | Packing a row hides it *and* raises the snackbar; its undo returns the row to the open list, not merely to the revealed one. Run with `reducedMotion: 'reduce'` so the assertion is the outcome rather than the length of a transition — the production code takes its own no-motion path there, so nothing is being bypassed. |
 | E2E-M4-34 | M4 One undo, not a stack | all | Two packs in a row leave exactly one snackbar, naming the second; its undo restores that row and leaves the first packed. Caught a real defect on first run: the outgoing snackbar's dismiss handler disarmed the *incoming* pack's undo. |
 | E2E-M4-35 | M4 Un-packing announces nothing | all | Un-checking a revealed done row raises no snackbar — its result is already visible, and offering to undo it would be offering to undo an undo. Asserted against a **counter of announcements** rendered by the page, not against "no toast on screen": the snackbar is created asynchronously, so a bare absence check arrives first and passes on a page that was about to show one. It did exactly that until the counter replaced it. |
@@ -109,6 +111,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G14-03 | G-14 A card bounds the group, not its entries | all | Three trips in one M2 card: the first two draw a seam, the last does not (its seam *is* the card's bottom edge). Measured off the rendered `border-bottom-width` inside `ion-item`'s shadow root — the first version read `--inner-border-width` on the host and **passed against `lines="none"`**, the exact defect it was written for, because Ionic drives the line from an attribute selector and the custom property is simply unset on a row nobody styled. |
 | E2E-G13-01 | G-13 Type reaches the screen | all | The UI face carries an Ionic control (through `--ion-font-family`, not merely inherited from `body`) and the display face carries the page title, **and both faces report `loaded`** — a missing asset leaves the computed style intact and silently paints the fallback. |
 | E2E-G13-02 | G-13 Fonts are self-hosted | all | No request to any font CDN during a boot, and every `.woff2` the page did fetch came from the page's own origin (Addendum FR-21.6). The regression it guards is the prototype's Google Fonts link finding its way into the app, which would break Local Mode on a device with no network. |
+| E2E-G9-11 | G-9/G-12 Reaching M11 and coming back | all | The luggage button in M4's app-bar cluster renders the container screen, M4's own actions do not survive the move, and back restores both the packing list and its cluster. The M11 unit exercises the screen; getting *to* and *from* it is a global pattern and lives here — the rule the working agreement added after four navigation defects that both green screen suites had missed. |
 | E2E-G12-01 | G-12 Actions in the app bar | all | On a detail screen (M4, M6) the app bar carries that screen's icon cluster; navigating away clears it, so the previous screen's search never filters the next one. *(Corrected 2026-08-13: the original clause also demanded the settings gear be hidden on a detail screen. ADR-011 decided the opposite and gave its reason — the sync glyph and settings are the only route to the conflict log from inside a trip — so the gear stays.)* |
 | E2E-G12-07 | G-12 Two clusters, no overflow | all | M4's app-bar cluster is search + filter; Shopping (with open-item count), Luggage and Analytics sit on the trip title line. **No ⋯ exists** — all three destinations are reachable in one tap, which is what §3.25's discoverability directive asked for. M6's app-bar cluster is search + filter. |
 | E2E-G12-06 | G-12 Icon-only is still nameable | all | Every unlabelled navigation icon exposes its name via `title`, and a long-press shows it as a bubble on touch. A plain tap **navigates** and shows no bubble — learning a glyph must never cost an extra tap. |
@@ -286,12 +289,12 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M10-06** `all` (FR-27.9): "Kommentare aus Reisen" aggregates the comments written on this item's packing rows across trips — each entry carries author, source trip, and timestamp, newest first; comments from different trips appear together; an item without comments renders no section at all; entries are read-only (the editable thread stays on the trip item, FR-7.1).
 
 ### M11 — Container Management
-* **E2E-M11-01** `all` (FR-10.1): create/edit/delete containers with name, carrier, max weight.
-* **E2E-M11-05** `all` (FR-10.1/25.15/24.5): the ＋ FAB creates a container and opens its sheet; name and weight limit save on change with no Save button. Pairing is set **on both sides at once** and released on both when cleared or when one side is deleted.
-* **E2E-M11-06** `all` (FR-10.2/25.5): the unassigned bucket renders **one row per item** (asserts no per-container button grid); tapping a row opens the container picker with each container's current load, and choosing one assigns the item. Deleting a container **unassigns** its items — they must still be on the packing list afterwards.
-* **E2E-M11-02** `all` (FR-10.3): weight bar goes amber at ≥90%, red beyond max.
-* **E2E-M11-03** `all` (FR-10.2): unassigned bucket; assign items into/between containers; deleting a container unassigns its items first.
-* **E2E-M11-04** `all` (FR-10.3): pairing control shows a live imbalance indicator against the threshold.
+* **E2E-M11-01** `all` (FR-10.1) — **implemented across M11-05/06** (`e2e/containers.spec.ts`): create/edit/delete containers with name, carrier, max weight.
+* **E2E-M11-05** `all` (FR-10.1/25.15/24.5) — **implemented** (`e2e/containers.spec.ts`, mutation-proved: a one-sided pair write fails it): the ＋ FAB creates a container and opens its sheet; name and weight limit save on change with no Save button. Pairing is set **on both sides at once** and released on both when cleared. (The *deletion* half of that rule is asserted by E2E-M11-04, where it is visible; this case's containers are empty, and an empty pair renders identically whether or not the survivor was released.)
+* **E2E-M11-06** `all` (FR-10.2/25.5) — **implemented** (`e2e/containers.spec.ts`; the no-grid assertion counts `ion-select`, not `button` — Playwright CSS pierces shadow DOM, where ion-item's own tap surface is a native button): the unassigned bucket renders **one row per item** (asserts no per-container button grid); tapping a row opens the container picker with each container's current load, and choosing one assigns the item. Deleting a container **unassigns** its items — they must still be on the packing list afterwards.
+* **E2E-M11-02** `all` (FR-10.3) — **implemented** (`e2e/containers.spec.ts`; the weight arrives through the app's own paths, M10 minimal form → quick-add suggestion): weight bar goes amber at ≥90%, red beyond max.
+* **E2E-M11-03** `all` (FR-10.2) — **folded into M11-06, and narrowed to what the screen does**: unassigned bucket; assign an item **into** a container; deleting a container unassigns its items first. Moving an item *between* containers is deliberately not an M11 gesture — an assigned item leaves the bucket and the cards do not list their contents, so the screen offers no path to it. Re-assignment lives in M5's container control (`m5-container`), and belongs to that screen's cases.
+* **E2E-M11-04** `all` (FR-10.3) — **implemented** (`e2e/containers.spec.ts`, asserted on both cards of the pair; mutation-proved: emptying the delete path's release writes fails it): pairing control shows a live imbalance indicator against the threshold, and **deleting one side releases the other** — the survivor stops reporting an imbalance instead of weighing itself against a container that no longer exists. The skew is what makes that assertable, which is why the rule is asserted here rather than beside the pairing case.
 
 ### M12 — Analytics
 * **E2E-M12-01** `all` (FR-8.1/8.2): dimension switcher Person/Category/Container; stacked packed-vs-planned weight bars + value totals.
@@ -436,8 +439,8 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-8.2 | E2E+UNIT | M12-01/04, **M12-06** (the grouping handoff, which is the part that is built); analytics.ts |
 | FR-9.1 | E2E | M5-03, M4-04, FLOW-04 |
 | FR-9.2 | E2E+UNIT | M14-01/02/03/04; review.ts |
-| FR-10.1 | E2E | M11-01 |
-| FR-10.2 | E2E | M11-03, M5-02 |
+| FR-10.1 | E2E | M11-01 (via M11-05/06) |
+| FR-10.2 | E2E | M11-06 (03 folded in), M5-02 |
 | FR-10.3 | E2E+UNIT | M11-02/04; containers.ts |
 | FR-10.4 | UNIT | analytics.ts (container weight); surfaced M12-01 |
 | FR-11.1–11.3 | — | removed (Repack feature dropped, Addendum §3.11) |
@@ -498,7 +501,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-23.6 | SERVER | deactivation side-effects (push purge, notif suppress) — Go test; access-revocation asserted M20-02 |
 | FR-24.1 | E2E | M10-08 (filter-or-create tag capture); grouping/filtering M9-01/24.2 |
 | FR-24.4 | E2E | M9-01 (lean default), M9-05 (property sheet, device-local) |
-| FR-24.5 | E2E | M10-07 (minimal creation, sections absent) |
+| FR-24.5 | E2E | M10-07 (minimal creation, sections absent), M11-05 (placeholder-name container) |
 | FR-25.1 | E2E+UNIT | M4-12/13/14; packingView.ts (clustering, flat fallback, full-set decision) |
 | FR-25.2 | E2E+UNIT | M4-14; packingView.ts (isDone, hidden counts, full-set headers) |
 | FR-25.4 | E2E+UNIT | mode glyph rules M4-15/16; packingView.ts — the pill strip itself is superseded by FR-25.11 |
@@ -521,7 +524,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-25.19 | E2E | M4-30 (responsibility vs. record, single right-edge avatar, record not editable) |
 | FR-25.20 | E2E | M4-31 (others' rows hidden by default, reveal bar names count + people, header unfiltered) |
 | FR-25.14 | E2E | M5-06 (read-only aggregate, per-traveler controls) |
-| FR-25.15 | E2E | M5-07 (auto-save indicator, distinct from G-2) |
+| FR-25.15 | E2E | M5-07 (auto-save indicator, distinct from G-2), M11-05 |
 | FR-25.13b | E2E | M6-19 (autocomplete adopts the category; manual fallback) |
 | FR-27.1 | E2E+UNIT | M8-07 (two-level include rules), M7-07, M21-03; `domain/templates.ts` (one-level expansion, dedup by master item), `internal/portable` + `domain/portable.ts` (the `scope` field round-trips, an unknown scope is rejected, a scope on a trip document is an error) |
 | FR-27.2 | E2E+UNIT | M3-11, M8-08; instantiate.ts (include expansion + named merge) |

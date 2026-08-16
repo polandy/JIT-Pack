@@ -39,16 +39,18 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Harness smoke | E2E-M19-01 (partial), E2E-M19-04, E2E-G7-01 | `local` | [`smoke.spec.ts`](../client/e2e/smoke.spec.ts) |
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-13 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M1-05 | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
-| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-M3-11, E2E-M3-12, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
+| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-M3-11, E2E-M3-12, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-13 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
-| Visual baselines | E2E-VIS-01 … E2E-VIS-05 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
+| Visual baselines | E2E-VIS-01 … E2E-VIS-07 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
 | M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (completed by the M8 unit), E2E-M7-08 | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
 | M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14 | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
+| M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-02, E2E-M9-03, E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
+| M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
 (create / import). The screen has neither as a button: create is the FAB and
@@ -254,6 +256,49 @@ every tag instead of its primary one drops two of those cases.
    that. It is now `commitNewItem()`, used by both, so the omission cannot
    recur silently. That comparison is also what found it: E2E-M10-03 passes
    the identical sequence, which ruled the navigation itself out.
+
+## M11 — containers (`e2e/containers.spec.ts`, 2026-08-16)
+
+Four cases, Local Mode, landing with the M11 rebuild. The pairing *write
+semantics* (both sides at once, exclusive, released on delete) are unit
+territory — `src/domain/__tests__/containers.spec.ts` — so the e2e cases
+assert only what the user can see of them: the pair set in one sheet and
+read back as selected in the *other* container's sheet, and cleared on both.
+That cross-sheet read is mutation-proved — reverting `pairContainer` to the
+pre-rebuild one-sided write fails E2E-M11-05.
+
+What the unit cost to learn:
+
+1. **Playwright CSS pierces shadow DOM.** The "no button grid" assertion of
+   E2E-M11-06 counted `button` inside the unassigned rows and found one —
+   `ion-item`'s own tap surface is a native button *in its shadow root*. The
+   rejected design was one `ion-select` per row, so that is what the
+   assertion counts.
+2. **An overlay's dismissal is part of the interaction.** A tap that arrives
+   while the previous sheet is still animating out lands on the backdrop and
+   is swallowed. `closeSheet()` therefore waits for `ion-modal.show-modal`
+   to be gone, not merely for the sheet's content to detach — the same
+   settled-not-arrived rule the M7 unit paid for, one layer down.
+3. **A spec sentence is a list of promises, and each one needs its own
+   assertion.** The unit landed marking E2E-M11-05 implemented while its text
+   promised the pairing is released "when cleared **or when one side is
+   deleted**" — only the first half was asserted. The second was moved to
+   E2E-M11-04, because that is where it is *visible*: with both containers
+   empty a released and an un-released survivor render identically, so the
+   assertion would have passed either way. Found by reading the spec text
+   against the test body, which `/pr-review` now requires.
+4. **Playwright drives `dist/`, so a mutation proof needs a rebuild.** The
+   first attempt at proving the delete-release assertion edited the
+   orchestrator and re-ran the case, which stayed green — not because the
+   assertion was weak but because `npm run preview` was still serving the
+   previous bundle. Test-side edits need no rebuild; production-side edits
+   always do, and forgetting it turns every mutation proof into a
+   rubber stamp.
+5. **Real weights come through the app's own paths** (spec §2.4): the master
+   item is created in M10's minimal form with a weight, and the trip row
+   inherits it by picking the quick-add *suggestion* — which got its
+   `data-testid` with this unit; free-text quick-add creates weightless
+   items and would have made the FR-10.3 grades untestable.
 
 ## E2E-M5-13 — browser back with the sheet open (2026-08-16)
 

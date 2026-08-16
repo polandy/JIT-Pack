@@ -52,6 +52,7 @@ import UserAvatar from '@/components/global/UserAvatar.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
 import { relativeStamp } from '@/domain/stamp'
+import { formatWeight } from '@/lib/format'
 import { currentLocale, t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -230,10 +231,6 @@ function modeIcon(mode: ItemMode): string {
   if (mode === 'buy_before') return cartOutline
   if (mode === 'buy_local') return locationOutline
   return bagHandleOutline
-}
-
-function formatWeight(grams: number): string {
-  return grams >= 1000 ? `${(grams / 1000).toFixed(1)} kg` : `${grams} g`
 }
 
 /** "Kleidung · 300 g" — what the row is, in one quiet line. */

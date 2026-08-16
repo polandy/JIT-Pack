@@ -181,6 +181,7 @@ function onKeydown(event: KeyboardEvent) {
           :key="item.id"
           button
           lines="inset"
+          data-testid="quick-add-suggestion"
           @click="selectSuggestion(item)"
         >
           <IonLabel>

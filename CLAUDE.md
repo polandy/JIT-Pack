@@ -94,10 +94,13 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
      **M7 is done too** (2026-08-15, PR #88: scopes, long-press menu, name-in-sheet create)
      and **M8 with it** (2026-08-15: the scope-shaped editor — groups picker with inline
      creation, resolution footer, guarded switch, blast-radius note, quick-add verbatim,
-     M5-pattern position sheet with the FR-27.7 task list). Remaining, in order: M9/M10
-     (lean inventory, minimal creation), M11 (container sheet, picker), M12 (slice
-     filtering, per-person shares), M14 (group-aware list) — **none of those has been
-     eyeballed**, only the prototype. Known cost carried over from the M5 rebuild: M4 loses its scroll position
+     M5-pattern position sheet with the FR-27.7 task list). **M9/M10 are done too**
+     (2026-08-16: the tag rebuild, ADR-014 — lean inventory on the primary-tag grouping,
+     FR-24.5 minimal creation) and **M11 with them** (2026-08-16: card list, the M5-pattern
+     container sheet with symmetric pairing, FR-24.5 placeholder-name create via the FAB,
+     the load-aware assign picker). Remaining, in order: M12 (slice filtering, per-person
+     shares), M14 (group-aware list) — **neither has been eyeballed**, only the prototype.
+     Known cost carried over from the M5 rebuild: M4 loses its scroll position
      when a detail opens (ADR-012's overlay amendment).
 4. **i18n migration** — the hard-coded English strings across the screens M4 did not touch;
    the module and both catalogues exist and M4 + the quick-add + the filter sheet + M7/M8

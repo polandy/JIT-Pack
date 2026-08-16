@@ -10,9 +10,12 @@ import {
   containerWeight,
   imbalancePercent,
   imbalanceThreshold,
+  pairWrites,
+  releasePartnersOnDelete,
   unassignedItems,
+  unpairWrites,
 } from '../containers'
-import type { TripItem } from '@/types/domain'
+import type { Container, TripItem } from '@/types/domain'
 
 function item(overrides: Partial<TripItem>): TripItem {
   return {
@@ -84,6 +87,106 @@ describe('budgetLevel (FR-10.3)', () => {
     [500, null, 'ok'], // no budget, no warning
   ])('%d g of %s g max → %s', (weight, max, want) => {
     expect(budgetLevel(weight, max)).toBe(want)
+  })
+})
+
+function container(id: string, paired: string | null = null): Container {
+  return {
+    id,
+    trip_id: 't1',
+    name: id,
+    carrier_traveler_id: null,
+    max_weight_grams: null,
+    paired_container_id: paired,
+  }
+}
+
+describe('pairWrites — pairing is exclusive and set on both sides at once (FR-10.3, M11)', () => {
+  it('writes both sides of a fresh pair', () => {
+    const cs = [container('a'), container('b')]
+
+    expect(pairWrites(cs, 'a', 'b')).toEqual([
+      { containerId: 'a', paired_container_id: 'b' },
+      { containerId: 'b', paired_container_id: 'a' },
+    ])
+  })
+
+  it('releases the old partner when one side re-pairs', () => {
+    // a↔c exists; pairing a with b must free c, or c renders an
+    // imbalance against a container that no longer considers itself paired.
+    const cs = [container('a', 'c'), container('b'), container('c', 'a')]
+
+    expect(pairWrites(cs, 'a', 'b')).toEqual([
+      { containerId: 'c', paired_container_id: null },
+      { containerId: 'a', paired_container_id: 'b' },
+      { containerId: 'b', paired_container_id: 'a' },
+    ])
+  })
+
+  it('releases both old partners when both sides were paired elsewhere', () => {
+    const cs = [container('a', 'c'), container('b', 'd'), container('c', 'a'), container('d', 'b')]
+
+    expect(pairWrites(cs, 'a', 'b')).toEqual([
+      { containerId: 'c', paired_container_id: null },
+      { containerId: 'd', paired_container_id: null },
+      { containerId: 'a', paired_container_id: 'b' },
+      { containerId: 'b', paired_container_id: 'a' },
+    ])
+  })
+
+  it('refuses to pair a container with itself', () => {
+    expect(pairWrites([container('a')], 'a', 'a')).toEqual([])
+  })
+
+  it('is idempotent on an existing pair', () => {
+    const cs = [container('a', 'b'), container('b', 'a')]
+
+    expect(pairWrites(cs, 'a', 'b')).toEqual([])
+  })
+
+  it('repairs a half-set pair instead of treating it as done', () => {
+    // a→b but b→null (legacy one-sided write): the missing side is written.
+    const cs = [container('a', 'b'), container('b')]
+
+    expect(pairWrites(cs, 'a', 'b')).toEqual([{ containerId: 'b', paired_container_id: 'a' }])
+  })
+})
+
+describe('unpairWrites — clearing one side releases the other (FR-10.3, M11)', () => {
+  it('clears both sides of an intact pair', () => {
+    const cs = [container('a', 'b'), container('b', 'a')]
+
+    expect(unpairWrites(cs, 'a')).toEqual([
+      { containerId: 'a', paired_container_id: null },
+      { containerId: 'b', paired_container_id: null },
+    ])
+  })
+
+  it('does nothing on an unpaired container', () => {
+    expect(unpairWrites([container('a')], 'a')).toEqual([])
+  })
+
+  it('clears a dangling inbound pointer even when the container itself is clean', () => {
+    // b→a is a half-set leftover; unpairing a must sweep it too.
+    const cs = [container('a'), container('b', 'a')]
+
+    expect(unpairWrites(cs, 'a')).toEqual([{ containerId: 'b', paired_container_id: null }])
+  })
+})
+
+describe('releasePartnersOnDelete (FR-10.3, M11)', () => {
+  it('frees every surviving container that pointed at the deleted one', () => {
+    const cs = [container('a', 'b'), container('b', 'a'), container('c')]
+
+    expect(releasePartnersOnDelete(cs, 'a')).toEqual([
+      { containerId: 'b', paired_container_id: null },
+    ])
+  })
+
+  it('never writes the deleted container itself', () => {
+    const cs = [container('a', 'b'), container('b', 'a')]
+
+    expect(releasePartnersOnDelete(cs, 'a').map((w) => w.containerId)).not.toContain('a')
   })
 })
 
