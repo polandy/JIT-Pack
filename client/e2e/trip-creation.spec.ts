@@ -68,7 +68,7 @@ test('M3: step 1 gates Next on the name, and derives the duration @local @m3', a
   await expect(page.getByTestId('wizard-step-2')).toBeVisible()
 })
 
-// E2E-M3-13 (FR-2.5a): the household's default travellers are configured
+// E2E-M3-14 (FR-2.5a): the household's default travellers are configured
 // once in M17 and are already in the wizard afterwards — as a starting
 // point, so removing one there is still a normal edit.
 test('M3: the wizard starts with the configured default travellers @local @m3 @m17', async ({

@@ -135,13 +135,20 @@ describe('resolveTemplate (FR-27.2)', () => {
     expect(resolution.includedTemplates).toEqual([])
   })
 
-  it('lists the included groups in the order they were included', () => {
+  /*
+   * This case used to expect "the order they were included" — an order the
+   * data does not carry: `template_includes` has no sort column, so the rows
+   * arrive in whatever order the sync or IndexedDB produced. An e2e run made
+   * that concrete, reporting the same merge as „in Wildlife & Makro" on WebKit
+   * and „in Makro & Wildlife" on Chromium.
+   */
+  it('lists the included groups by name, so two devices agree', () => {
     const resolution = resolveTemplate('vacation', {
       templates: [vacation, macro, wildlife],
       includes: [include('vacation', 'wildlife'), include('vacation', 'macro')],
       positions: [],
     })
-    expect(resolution.includedTemplates.map((t) => t.name)).toEqual(['Wildlife', 'Makro'])
+    expect(resolution.includedTemplates.map((t) => t.name)).toEqual(['Makro', 'Wildlife'])
   })
 
   it('stops after one level, because the hierarchy is two levels (FR-27.1)', () => {

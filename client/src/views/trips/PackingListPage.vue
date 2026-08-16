@@ -1102,8 +1102,8 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 
       <!-- Preparation (FR-7.3): the open todos of the whole trip, resolvable
            without opening each item. -->
-      <div v-if="openPrepItems.length > 0" class="prep-section">
-        <button class="prep-header" @click="showPrep = !showPrep">
+      <div v-if="openPrepItems.length > 0" class="prep-section" data-testid="m4-prep-section">
+        <button class="prep-header" data-testid="m4-prep-toggle" @click="showPrep = !showPrep">
           <IonIcon :icon="buildOutline" />
           <span
             >{{ t('packing.prepSection') }} ·

@@ -49,6 +49,7 @@ import ItemThumbnail from '@/components/items/ItemThumbnail.vue'
 import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
+import { CLIENT_ACTOR_PLACEHOLDER } from '@/composables/useMutations'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
 import { relativeStamp } from '@/domain/stamp'
@@ -113,7 +114,7 @@ const newTodoText = ref('')
 function addTodo() {
   const body = newTodoText.value.trim()
   if (!body) return
-  orchestrator.addPrepTodo(props.tripId, props.itemId, 'current-user', body)
+  orchestrator.addPrepTodo(props.tripId, props.itemId, CLIENT_ACTOR_PLACEHOLDER, body)
   newTodoText.value = ''
 }
 
@@ -153,7 +154,7 @@ watch(
 function addComment() {
   const body = newCommentText.value.trim()
   if (!body) return
-  orchestrator.addComment(props.tripId, props.itemId, 'current-user', body)
+  orchestrator.addComment(props.tripId, props.itemId, CLIENT_ACTOR_PLACEHOLDER, body)
   newCommentText.value = ''
 }
 

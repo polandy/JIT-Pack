@@ -64,9 +64,16 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    invariant 8 (#58), and the two migrations in item 5 (#60). The toolchain item beside it is
    done too — `mise.toml` is the single pinning mechanism and `make ci` runs from a plain
    shell. History in the implementation log.
-2. **§3.27 client package** — `instantiate.ts` include expansion + FR-27.7 task materialisation,
-   the FR-27.4 planning-trip refresh diff, the M21 screen, portable YAML for includes and tasks.
-   Schema and sync wiring are done (migration 016).
+2. **§3.27 client package** — **generation is done** (2026-08-16): `instantiate.ts` expands a
+   Vorlage's includes one level and names each merge with its contributing groups (FR-27.2),
+   FR-27.7 tasks materialise as ordinary FR-7.3 todos on the generated rows, and M3 step 3 is
+   scope-shaped (FR-27.6) with an e2e unit behind it. Include order is **derived, not inherited**
+   from storage (`includedTemplatesOf`) — it decides a merged row's provenance, and the rows
+   arrive unordered. Still owed: the **FR-27.4 planning-trip refresh diff** with its M2
+   applied-changes chip (which also unblocks the log halves of E2E-M8-09/M8-11 and M14-04), the
+   **M21 screen** (FR-27.5), **portable YAML** for includes and tasks, **FR-27.3**'s single-item
+   add in step 3, and **FR-27.10**'s whole-group add to a running trip. Schema and sync wiring
+   were already done (migration 016).
 3. **The design foundation, then the remaining screen rebuilds** — in that order, decided by
    the owner 2026-08-14 after M4 and M5 were compared with the prototype. The plan is
    `dev-docs/design-foundation-plan.md`; read it before starting either half.
@@ -115,7 +122,8 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
      when a detail opens (ADR-012's overlay amendment).
 4. **i18n migration** — the hard-coded English strings across the screens M4 did not touch;
    the module and both catalogues exist and M4 + the quick-add + the filter sheet + M7/M8
-   + M12 + M14 are done.
+   + M12 + M14 + M3's step 3 are done (M3's other three steps are not — a section is a
+   coherent unit to localize, a half-translated one is not).
 5. ~~**Two migrations owed by concept decisions**~~ — **done** (migrations 018/019): `travelers.profile`
    is dropped and `trip_items.packed_by_user_id` carries the packing record, with `packer_user_id`
    left as the assignment. The M4/M5 *presentation* of that split (two rings, „gepackt von … ·
@@ -127,6 +135,18 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    teleported app-bar actions, and a Local Mode write nobody awaited (FR-19.2).
    `dev-docs/e2e-tests.md` is the ledger of what is actually covered — a green `e2e` job is
    not the same as a verified UI.
+7. **FR-5.5's „bewusst nicht einpacken" has no control** (owner-flagged 2026-08-16) — the
+   *state* is built and rendered: `state = 'skipped'` counts as done (`domain/packingView.ts`),
+   M4 badges such a row „Deliberately skipped", FR-25.2 hides it with the packed ones, and
+   `skipItem`/`unskipItem` exist in `useMutations`/`useSyncOrchestrator` **including the FR-20.2
+   co-skip cascade**. What is missing is the way to *say it*: **no view calls either mutation**,
+   so today a user cannot mark an item deliberately not packed — only pack it or leave it open,
+   which is exactly the "deliberately left behind vs. forgot" distinction FR-5.5 exists to keep.
+   The addendum already carries the requirement (FR-5.5) and the standing design note that the
+   action "must be discoverable" in M4, but the M4/M5 rebuild shipped without it. **Mock and
+   specify it before building** (owner, 2026-08-16): where the affordance lives (row gesture,
+   M5 sheet, both — the M4 rebuild dropped swipe deliberately, see the M7 A2/B2 round), how
+   quantity 0 relates to it, how un-skipping reads, and what the co-skip cascade tells the user.
 
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,

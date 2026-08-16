@@ -1,5 +1,9 @@
 import { test, expect } from './fixtures'
-import type { Page } from '@playwright/test'
+import {
+  backToTemplateList as backToList,
+  createTemplate,
+  visiblePage as visible,
+} from './fixtures'
 
 /**
  * M7 — Template List, scope-shaped (§3.27, FR-27.6).
@@ -18,45 +22,6 @@ import type { Page } from '@playwright/test'
  * Local Mode throughout: M7 is backend-free, and the run mode that has no
  * server is the one where a missing client-side rule shows up.
  */
-
-/** The page that is actually painted — a route change alone proves nothing. */
-function visible(page: Page) {
-  return page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)')
-}
-
-/** Create through the app's own path (spec §2.4): FAB → scope → name, one sheet. */
-async function createTemplate(page: Page, kind: 'template' | 'group', name: string) {
-  await page.getByTestId('m7-fab').click()
-  await expect(page.getByTestId('m7-kind-chooser')).toBeVisible()
-  await page.getByTestId(`m7-kind-${kind}`).click()
-
-  // FR-27.6 one-surface flow: the name field joins the sheet on the pick.
-  const field = page.getByTestId('m7-name-field')
-  await expect(field).toBeVisible()
-  await field.locator('input').fill(name)
-  await page.getByTestId('m7-create-commit').click()
-
-  // Creating ends where editing continues — M8 on the new template.
-  await expect(page.getByTestId('header-title')).toHaveText(name)
-  await expect(visible(page).getByTestId('m8-scope-switch')).toBeVisible()
-}
-
-/**
- * Leave M8 for the list the way a user does — the ADR-011 header chevron,
- * which navigates to meta.parent. Not page.goBack(): history-back across the
- * root→tabs outlet boundary trips the known pre-existing Ionic transition
- * defect (see navigation.spec.ts), which on WebKit under full-suite load
- * leaves the outlet wedged over the page and every later tap times out.
- */
-async function backToList(page: Page) {
-  await page.getByTestId('header-back').click()
-  await expect(visible(page).getByTestId('m7-fab')).toBeVisible()
-  // Settled, not merely arriving: while the outgoing editor is still
-  // fading it counts as visible, and M8 now shares the `.section-head`
-  // grammar with M7 — a one-shot collection over the class would read
-  // both pages at once.
-  await expect(visible(page).getByTestId('m8-scope-switch')).toHaveCount(0)
-}
 
 test.describe('M7 template list — scopes (FR-27.6)', () => {
   test.beforeEach(async ({ seedMode, page }) => {
