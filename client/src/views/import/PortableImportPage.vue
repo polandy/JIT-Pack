@@ -29,6 +29,7 @@ import {
   matchPortableItems,
   parsePortable,
   parsePortableAll,
+  PORTABLE_FILE_ACCEPT,
   type ParseResult,
 } from '@/domain/portable'
 import { useMasterStore } from '@/stores/masterStore'
@@ -114,17 +115,7 @@ function commit() {
       <template v-if="!doc && !restore">
         <h2 class="section-title jp-eyebrow">Portable YAML file</h2>
         <p class="hint">A template or trip exported from any JIT-Pack instance (FR-18.1).</p>
-        <!--
-          Deliberately wide: a backup saved on iOS comes back through the Files
-          picker typed as plain text or not typed at all, and a narrow filter
-          greys out the one file this screen exists to read. `text/yaml` stays
-          for files written before the type moved to RFC 9512's registered one.
-        -->
-        <input
-          type="file"
-          accept=".yaml,.yml,.txt,application/yaml,text/yaml,text/plain"
-          @change="onFile"
-        />
+        <input type="file" :accept="PORTABLE_FILE_ACCEPT" @change="onFile" />
         <IonTextarea
           class="paste-area"
           data-testid="portable-paste"

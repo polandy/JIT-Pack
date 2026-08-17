@@ -7,6 +7,8 @@ import { describe, it, expect } from 'vitest'
 
 import {
   joinDocuments,
+  PORTABLE_FILE_ACCEPT,
+  PORTABLE_MEDIA_TYPE,
   matchPortableItems,
   parsePortable,
   parsePortableAll,
@@ -349,5 +351,25 @@ describe('backup documents (NFR-4.11 one-tap backup)', () => {
   it('has no documents for an empty backup rather than one broken document', () => {
     expect(parsePortableAll(joinDocuments([]))).toEqual([])
     expect(parsePortableAll('   \n')).toEqual([])
+  })
+})
+
+describe('the portable file contract (FR-18.4, NFR-4.11)', () => {
+  it('writes the registered YAML media type, not the historical one', () => {
+    // RFC 9512 registered application/yaml in 2024; text/yaml predates it and
+    // is what a file written by an older build carries.
+    expect(PORTABLE_MEDIA_TYPE).toBe('application/yaml')
+  })
+
+  it('offers back the type it writes — the picker cannot drift from the saver', () => {
+    expect(PORTABLE_FILE_ACCEPT.split(',')).toContain(PORTABLE_MEDIA_TYPE)
+  })
+
+  it('also offers what a phone hands a YAML file back as', () => {
+    // A backup saved on iOS returns through the Files picker typed as plain
+    // text or not typed at all; a filter that only knows YAML greys it out,
+    // which makes the one file the screen exists to read unselectable.
+    const accepted = PORTABLE_FILE_ACCEPT.split(',')
+    expect(accepted).toEqual(expect.arrayContaining(['.yaml', '.yml', 'text/plain', 'text/yaml']))
   })
 })

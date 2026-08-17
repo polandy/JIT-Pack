@@ -26,6 +26,31 @@ import type {
 /** The schema this app writes and fully understands (FR-18.5). */
 export const PORTABLE_SCHEMA_VERSION = 1
 
+/**
+ * The media type a portable document is written with — YAML's registered one
+ * (RFC 9512), not the historical `text/yaml`.
+ */
+export const PORTABLE_MEDIA_TYPE = 'application/yaml'
+
+/**
+ * What the import picker offers the user.
+ *
+ * Deliberately wider than what we write, and it has to be: a backup saved on
+ * a phone comes back through the file manager typed as plain text or not typed
+ * at all, and a filter narrower than that greys out the very file the screen
+ * exists to read. It contains `PORTABLE_MEDIA_TYPE` by construction — the
+ * writer and the picker drifting apart is the failure this constant prevents.
+ */
+export const PORTABLE_FILE_ACCEPT = [
+  '.yaml',
+  '.yml',
+  '.txt',
+  PORTABLE_MEDIA_TYPE,
+  // Files written before the type moved to its registered one.
+  'text/yaml',
+  'text/plain',
+].join(',')
+
 export interface PortableTraveler {
   name: string
 }
