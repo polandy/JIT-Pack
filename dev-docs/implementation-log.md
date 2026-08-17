@@ -2619,3 +2619,38 @@ The production behaviour stands; the thirteen call sites went through one
 guarded `openQuickAdd()` in `fixtures.ts`, which taps the ＋ only when the
 composer is closed — the guard `addPosition` has had since the M8 rebuild,
 now shared instead of copied.
+
+## FR-2.6 variant A: the review step reviews (2026-08-17)
+
+Owner picked A from the rendered round: the decisions live on the row.
+
+Step 4 changed exactly one thing before this — the amount. Everything else
+waited until the trip existed, so the wizard's last step asked for approval of
+a list it would not let you correct.
+
+**What A means concretely, and where its edges are:**
+
+* **✕ drops a row as FR-5.5 *skipped*, never as a deletion.** The row stays,
+  struck through and reversible, and reaches the trip with quantity 0 — which
+  `addGeneratedTripItem` already turns into `skipped`. Deleting instead would
+  make this one gesture behave differently here than everywhere else in the
+  product, and would leave the next trip nothing to learn from.
+* **The marks are labels, not controls.** *pro Person* and the procurement mode
+  explain what the row already is. Turning them into editors would put a second
+  procurement-and-assignment surface beside M5, which is the thing FR-2.6
+  argues against in the first place.
+* **The create button counts what is actually coming.** A number that still
+  includes the row you just dropped is worse than no number.
+* **The mockup's add line is not built here.** Adding single items to a trip
+  being created is FR-27.3's, and it owns that in step 3; a second path in
+  step 4 would leave two mechanisms for one act.
+
+Reusing `quantityOverrides` made the whole thing small: dropping is an override
+of 0, restoring is deleting the override, and *dropped* is derived rather than
+stored — so the state that decides the row's fate is the one already travelling
+to `createTripFromWizard`, with nothing to keep in sync.
+
+Two of my own test assumptions were wrong rather than the code, both worth the
+minute they cost: with no travelers a per-person position fans out over nobody
+and produces **no row at all** (the walk now adds one), and the expected item
+count was guessed instead of derived from the list under test.

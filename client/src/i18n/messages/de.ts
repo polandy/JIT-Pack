@@ -382,6 +382,11 @@ export const de: Record<keyof typeof en, string> = {
   'review.nothingToast': 'Nichts zu prüfen — keine Merkmale gesetzt.',
 
   // M3 Schritt 3 — Vorlagen-Komposition (§3.27, FR-27.2/27.6/27.7).
+  'wizard.perPerson': 'pro Person',
+  'wizard.dropped': 'weggelassen',
+  'wizard.dropRow': '„{name}“ auf dieser Reise weglassen',
+  'wizard.restoreRow': '„{name}“ zurückholen',
+  'wizard.createTrip': 'Reise anlegen · {n} Artikel | Reise anlegen · {n} Artikel',
   'wizard.sectionGroups': 'Zusätzliche Gruppen',
   'wizard.templatesEmpty': 'Noch keine Vorlagen — die Reise kann auch leer starten.',
   'wizard.alreadyIncluded': 'bereits über „{names}“ enthalten',

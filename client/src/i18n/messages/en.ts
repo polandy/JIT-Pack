@@ -388,6 +388,11 @@ export const en = {
   'review.nothingToast': 'Nothing to review — no flags were set.',
 
   // M3 step 3 — template composition (§3.27, FR-27.2/27.6/27.7).
+  'wizard.perPerson': 'per person',
+  'wizard.dropped': 'left out',
+  'wizard.dropRow': 'Leave “{name}” out of this trip',
+  'wizard.restoreRow': 'Bring “{name}” back',
+  'wizard.createTrip': 'Create trip · {n} item | Create trip · {n} items',
   'wizard.sectionGroups': 'Additional groups',
   'wizard.templatesEmpty': 'No templates yet — you can still create an empty trip.',
   'wizard.alreadyIncluded': 'already included via “{names}”',
