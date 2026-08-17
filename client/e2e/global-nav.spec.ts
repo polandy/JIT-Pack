@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises'
+
 import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
 import type { Page } from '@playwright/test'
 
@@ -250,6 +252,9 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await page.setViewportSize(DESKTOP)
     await page.goto('/tabs/trips')
 
+    // The distinct device glyph is half of what G-2 promises in this mode —
+    // the detail is what the other half is *behind*.
+    await expect(page.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'local')
     await page.getByTestId('sync-indicator').click()
 
     const sheet = page.getByTestId('sync-detail-sheet')
@@ -278,9 +283,18 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     const sheet = page.getByTestId('sync-detail-sheet')
     await expect(sheet.getByTestId('sync-detail-backup-age')).toHaveText('Never backed up')
 
-    const download = page.waitForEvent('download')
+    const downloadPromise = page.waitForEvent('download')
     await sheet.getByTestId('sync-detail-backup').click()
-    expect((await download).suggestedFilename()).toMatch(/^jitpack-backup-\d{4}-\d{2}-\d{2}\.yaml$/)
+    const download = await downloadPromise
+    expect(download.suggestedFilename()).toMatch(/^jitpack-backup-\d{4}-\d{2}-\d{2}\.yaml$/)
+
+    // Read the file, not just its name: "holds every trip and template" is the
+    // promise, and a correctly named empty file would keep every other
+    // assertion here green while losing the user's data.
+    const path = await download.path()
+    const backup = await readFile(path, 'utf8')
+    expect(backup).toContain('kind: trip')
+    expect(backup).toContain(TRIP.name)
 
     // The stamp is what the FR-19.6 reminder reads later, so it is part of
     // the behaviour rather than an implementation detail.
