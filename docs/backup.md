@@ -17,6 +17,37 @@ never produce a snapshot with a row pointing at a picture that was not captured.
 **Back up that file and you have backed up the instance.** Nothing else on the host is
 state; the binary and the environment variables are your configuration.
 
+## Local Mode: there is no file on a host
+
+Local Mode keeps everything in the **browser's own storage** on one device — there is no
+`jitpack.db` to copy and no server to ask. Nothing on the host is state, so the whole of
+this page except this section is about the server modes.
+
+Back it up from inside the app:
+
+1. Tap the **status glyph** in the top bar — in Local Mode it is a phone icon.
+2. The sheet reports how much space the data uses and whether the browser has marked it
+   **persistent**. If it has not, the browser is allowed to delete the data when space
+   runs short, and that warning is the reason this backup matters.
+3. Tap **Back up now**. You get one YAML file — `jitpack-backup-YYYY-MM-DD.yaml` —
+   containing every trip and every template on the device, packing progress included.
+
+Restore it through the **document icon** on the Trips screen (portable import): pick the
+backup file, and the app lists the documents it holds and imports them together. Items are
+matched to what already exists **by name**, so restoring onto a device that still has data
+merges rather than duplicates.
+
+The same file is how you move to a server instance: point the app at the server, then
+import the backup there through the same screen. Note that the server's own
+`/api/v1/*/import` endpoints (below) take **one** document per request — a whole-device
+backup goes in through the app, not through `curl`.
+
+!!! warning "The device is the only copy"
+    Nothing syncs anywhere in Local Mode. A cleared browser profile, a reset device or a
+    browser evicting the storage takes the data with it, and the last backup is what is
+    left. The sheet always states how old the last one is, and Settings shows a reminder
+    once it is more than 30 days old.
+
 ## WAL mode: back up all three files, or use a proper snapshot
 
 The schema enables write-ahead logging (`PRAGMA journal_mode = WAL`), and that setting is

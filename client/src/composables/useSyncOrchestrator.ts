@@ -31,7 +31,7 @@ import {
 } from '@/domain/containers'
 import { optimizeItemImage } from '@/lib/imageResize'
 import type { ImportPlan } from '@/domain/spreadsheet'
-import { portableYear } from '@/domain/portable'
+import { matchPortableItems, portableYear } from '@/domain/portable'
 import type { PortableDocument, PortableItem } from '@/domain/portable'
 import type { NotificationPrefs, ServerNotification } from '@/notifications/format'
 import type { PushServerAPI } from '@/notifications/push'
@@ -1311,6 +1311,31 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return { kind: 'trip', id: tripId }
   }
 
+  /**
+   * Restore a whole backup file (NFR-4.11): every document, in order.
+   *
+   * Matching happens **per document, as it is imported**, not once for the
+   * file: a backup names the same master item in a template and in every trip
+   * that uses it, so matching up front against the inventory as it was before
+   * the restore would create one copy per mention. A document that carries no
+   * name is skipped rather than aborting the restore — the rest of the file is
+   * still the user's data.
+   */
+  function commitPortableRestore(
+    docs: PortableDocument[],
+  ): { kind: 'template' | 'trip'; id: string }[] {
+    const imported: { kind: 'template' | 'trip'; id: string }[] = []
+    for (const doc of docs) {
+      if (doc.name.trim() === '') continue
+      const decisions = new Map<string, string>()
+      for (const match of matchPortableItems(doc, masterStore.itemList)) {
+        if (match.existingId) decisions.set(match.name, match.existingId)
+      }
+      imported.push(commitPortableImport(doc, decisions))
+    }
+    return imported
+  }
+
   // --- Master data actions (M7–M10; master partition) ---
 
   /** Create a tag by typing its name (FR-24.1) — there is no tag admin. */
@@ -2214,6 +2239,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     cloneTrip,
     commitImport,
     commitPortableImport,
+    commitPortableRestore,
     packIncrement,
     packDecrement,
     packComplete,

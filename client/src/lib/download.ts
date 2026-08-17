@@ -1,5 +1,7 @@
 /** Browser file-save helpers for exports (M17 data section, FR-18.2/18.3). */
 
+import { PORTABLE_MEDIA_TYPE } from '@/domain/portable'
+
 export function saveBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -9,7 +11,11 @@ export function saveBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url)
 }
 
-export function saveText(text: string, filename: string, mime = 'text/yaml'): void {
+/**
+ * Save text as a file. Defaults to the portable document's media type, which
+ * is what decides whether a mobile file picker offers the file back for import.
+ */
+export function saveText(text: string, filename: string, mime = PORTABLE_MEDIA_TYPE): void {
   saveBlob(new Blob([text], { type: mime }), filename)
 }
 

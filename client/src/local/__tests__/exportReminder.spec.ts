@@ -30,4 +30,15 @@ describe('reminderState', () => {
     expect(reminderState(now - 8 * DAY, now, 7).due).toBe(true)
     expect(reminderState(now - 6 * DAY, now, 7).due).toBe(false)
   })
+
+  it('reads a stamp from the future as today, never as negative days', () => {
+    // The G-2 detail captures `now` when it opens and stamps the backup when
+    // the user taps — the stamp is then the later of the two.
+    const now = 1_760_000_000_000
+    expect(reminderState(now + 5_000, now)).toEqual({
+      due: false,
+      lastAt: now + 5_000,
+      daysSince: 0,
+    })
+  })
 })

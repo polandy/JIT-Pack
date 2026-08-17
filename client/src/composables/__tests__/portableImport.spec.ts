@@ -10,7 +10,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { parsePortable } from '@/domain/portable'
+import { joinDocuments, parsePortable, parsePortableAll } from '@/domain/portable'
 
 let fetchMock: ReturnType<typeof vi.fn>
 
@@ -162,5 +162,65 @@ items:
     })
     expect(item.assigned_traveler_id).toBe(travelers[0]!.id)
     expect(item.container_id).toBe(containers[0]!.id)
+  })
+})
+
+describe('commitPortableRestore — a whole backup file (NFR-4.11)', () => {
+  const backup = joinDocuments([
+    `kind: template
+schema_version: 1
+name: Sommerferien
+items:
+  - name: Kamera
+    quantity: 1
+    assignment: trip_global
+`,
+    `kind: trip
+schema_version: 1
+name: Samedan 2026
+year: 2026
+items:
+  - name: Kamera
+    quantity: 1
+    mode: pack
+    packed_count: 1
+`,
+  ])
+
+  it('restores every document of the file', () => {
+    const orch = newOrch()
+    const master = useMasterStore()
+    const trips = useTripStore()
+
+    const results = orch.commitPortableRestore(parsePortableAll(backup).map((r) => r.doc!))
+
+    expect(results).toHaveLength(2)
+    expect(master.templateList.map((t) => t.name)).toEqual(['Sommerferien'])
+    expect(trips.tripList.map((t) => t.name)).toEqual(['Samedan 2026'])
+  })
+
+  it('matches a later document against the items an earlier one created', () => {
+    const orch = newOrch()
+    const master = useMasterStore()
+
+    orch.commitPortableRestore(parsePortableAll(backup).map((r) => r.doc!))
+
+    // Both documents name the same camera. Re-matching between documents is
+    // the whole point: matching once, up front, would create it twice and
+    // turn a restore into a duplicate inventory.
+    expect(master.itemList.filter((i) => i.name === 'Kamera')).toHaveLength(1)
+  })
+
+  it('carries on when one document is unusable', () => {
+    const orch = newOrch()
+    const trips = useTripStore()
+
+    const results = orch.commitPortableRestore([
+      ...parsePortableAll(backup).map((r) => r.doc!),
+      { ...parsePortableAll(backup)[1]!.doc!, name: '' },
+    ])
+
+    expect(results).toHaveLength(2)
+    expect(trips.tripList).toHaveLength(1)
   })
 })

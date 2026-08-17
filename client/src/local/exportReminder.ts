@@ -48,6 +48,9 @@ export function reminderState(
   thresholdDays: number = EXPORT_REMINDER_DAYS,
 ): ReminderState {
   if (lastAt === null) return { due: true, lastAt: null, daysSince: null }
-  const daysSince = Math.floor((now - lastAt) / 86_400_000)
+  // Never negative: a stamp can sit microseconds ahead of the `now` a screen
+  // captured when it opened, and a backup that just happened must not read as
+  // "-1 days ago". The same clamp covers a device whose clock moved back.
+  const daysSince = Math.max(0, Math.floor((now - lastAt) / 86_400_000))
   return { due: daysSince >= thresholdDays, lastAt, daysSince }
 }

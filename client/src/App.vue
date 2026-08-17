@@ -24,7 +24,16 @@ import {
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { serverBaseUrl } from '@/config'
 import { IndexedDBPersistence } from '@/local/persistence'
-import { provide, onMounted, onUnmounted, ref } from 'vue'
+import SheetModal from '@/components/global/SheetModal.vue'
+import SyncDetailSheet from '@/components/global/SyncDetailSheet.vue'
+import { backupFilename, buildBackup } from '@/local/backup'
+import { lastExportAt, markExported } from '@/local/exportReminder'
+import { readStorageStatus, type StorageStatus } from '@/local/storageStatus'
+import { saveText } from '@/lib/download'
+import { t } from '@/i18n'
+import { useMasterStore } from '@/stores/masterStore'
+import { useTripStore } from '@/stores/tripStore'
+import { provide, computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const MODE_KEY = 'jitpack_mode'
@@ -112,15 +121,79 @@ function onAuthExpired() {
   router.replace('/login')
 }
 
-// G-2: tapping the sync indicator inside a trip opens its conflict log.
+// G-2: tapping the sync indicator opens the detail behind it (FR-19.6).
+// It used to navigate straight to a trip's conflict log and do nothing at
+// all anywhere else, which left the glyph unexplained on every other screen
+// and Local Mode without the storage detail NFR-4.11 requires.
 const route = useRoute()
 const router = useRouter()
 
-function onSyncTap() {
-  const tripId = route.params['tripId']
-  if (typeof tripId === 'string' && tripId) {
-    router.push(`/trips/${tripId}/conflicts`)
-  }
+const syncDetailOpen = ref(false)
+const storage = ref<StorageStatus | null>(null)
+const lastExport = ref<number | null>(null)
+const detailNow = ref(0)
+
+const tripId = computed(() => {
+  const id = route.params['tripId']
+  return typeof id === 'string' && id ? id : null
+})
+
+async function onSyncTap() {
+  // Read the facts when the sheet opens, not on a timer: they change rarely
+  // and a stale storage figure is worse than a fresh one nobody looked at.
+  //
+  // Before it opens, not after: an auto-height sheet is measured once at
+  // presentation, so a storage section that arrived a tick later grew the
+  // content past the box Ionic had already sized — the last line rendered
+  // under the tab bar. Found on a rendered pixel, invisible in the markup.
+  detailNow.value = Date.now()
+  lastExport.value = lastExportAt()
+  storage.value = mode.value === 'local' ? await readStorageStatus() : null
+  syncDetailOpen.value = true
+}
+
+function openConflicts() {
+  const id = tripId.value
+  syncDetailOpen.value = false
+  if (id) router.push(`/trips/${id}/conflicts`)
+}
+
+const masterStore = useMasterStore()
+const tripStore = useTripStore()
+
+/** Whether a backup would contain anything (NFR-4.11). */
+const hasBackupContent = computed(
+  () => masterStore.templateList.length > 0 || tripStore.tripList.length > 0,
+)
+
+/** FR-19.6's one-tap backup: the whole device as one portable file. */
+async function saveBackup() {
+  const now = Date.now()
+  const yaml = buildBackup({
+    templates: masterStore.templateList.map((template) => ({
+      template,
+      items: masterStore.getTemplateItems(template.id),
+    })),
+    trips: tripStore.tripList.map((trip) => ({
+      trip,
+      items: tripStore.getItems(trip.id),
+      travelers: tripStore.getTravelers(trip.id),
+      containers: tripStore.getContainers(trip.id),
+    })),
+    masterItem: (id) => masterStore.getItem(id),
+  })
+  const filename = backupFilename(now)
+  saveText(yaml, filename)
+  markExported(now)
+  lastExport.value = now
+  // The sheet's clock advances with the write it is describing.
+  detailNow.value = now
+  const toast = await toastController.create({
+    message: t('sync.detail.backupSaved', { file: filename }),
+    duration: 4000,
+    position: 'top',
+  })
+  await toast.present()
 }
 </script>
 
@@ -143,6 +216,23 @@ function onSyncTap() {
         </main>
       </div>
       <TabBar />
+
+      <!-- G-2 detail (FR-19.6): what the glyph means, and what to do about it. -->
+      <SheetModal :is-open="syncDetailOpen" @dismiss="syncDetailOpen = false">
+        <SyncDetailSheet
+          :state="syncStatus.state.value"
+          :pending-count="syncStatus.pendingCount.value"
+          :mode="mode"
+          :can-open-conflicts="mode === 'server' && tripId !== null"
+          :storage="storage"
+          :last-export-at="lastExport"
+          :has-backup-content="hasBackupContent"
+          :now="detailNow"
+          @close="syncDetailOpen = false"
+          @conflicts="openConflicts"
+          @backup="saveBackup"
+        />
+      </SheetModal>
     </template>
   </IonApp>
 </template>

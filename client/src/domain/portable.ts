@@ -9,7 +9,7 @@
  * dependency — zero added footprint).
  */
 
-import { parse, stringify } from 'yaml'
+import { parse, parseAllDocuments, stringify } from 'yaml'
 
 import { findDuplicates } from './spreadsheet'
 import type {
@@ -25,6 +25,31 @@ import type {
 
 /** The schema this app writes and fully understands (FR-18.5). */
 export const PORTABLE_SCHEMA_VERSION = 1
+
+/**
+ * The media type a portable document is written with — YAML's registered one
+ * (RFC 9512), not the historical `text/yaml`.
+ */
+export const PORTABLE_MEDIA_TYPE = 'application/yaml'
+
+/**
+ * What the import picker offers the user.
+ *
+ * Deliberately wider than what we write, and it has to be: a backup saved on
+ * a phone comes back through the file manager typed as plain text or not typed
+ * at all, and a filter narrower than that greys out the very file the screen
+ * exists to read. It contains `PORTABLE_MEDIA_TYPE` by construction — the
+ * writer and the picker drifting apart is the failure this constant prevents.
+ */
+export const PORTABLE_FILE_ACCEPT = [
+  '.yaml',
+  '.yml',
+  '.txt',
+  PORTABLE_MEDIA_TYPE,
+  // Files written before the type moved to its registered one.
+  'text/yaml',
+  'text/plain',
+].join(',')
 
 export interface PortableTraveler {
   name: string
@@ -93,6 +118,36 @@ export interface ParseResult {
   newerSchema: boolean
 }
 
+/**
+ * The separator between two documents in one portable file.
+ *
+ * A backup (NFR-4.11) is every trip and every template of this device, and
+ * that is more than one document. Multi-document YAML is the format's own
+ * answer to it, so a backup file stays readable by anything that reads YAML
+ * — and, more importantly, by our own importer: a backup nobody can restore
+ * is not a backup.
+ */
+const DOCUMENT_SEPARATOR = '---'
+
+/** joinDocuments writes serialized documents as one multi-document YAML file. */
+export function joinDocuments(documents: string[]): string {
+  if (documents.length === 0) return ''
+  return documents.map((doc) => doc.trimEnd()).join(`\n${DOCUMENT_SEPARATOR}\n`) + '\n'
+}
+
+/**
+ * parsePortableAll reads a file that may hold one document or many, in order.
+ *
+ * Each document is validated on its own: one unreadable entry is reported in
+ * its place and the intact ones around it stay importable, because a restore
+ * that gives up on the first bad document loses everything behind it.
+ */
+export function parsePortableAll(text: string): ParseResult[] {
+  return parseAllDocuments(text)
+    .filter((document) => document.contents !== null)
+    .map((document) => fromRaw(document.toJS() as unknown))
+}
+
 export function parsePortable(text: string): ParseResult {
   let raw: unknown
   try {
@@ -100,6 +155,11 @@ export function parsePortable(text: string): ParseResult {
   } catch (e) {
     return { doc: null, error: `not valid YAML: ${(e as Error).message}`, newerSchema: false }
   }
+  return fromRaw(raw)
+}
+
+/** Validates one already-parsed document — the shared half of both parsers. */
+function fromRaw(raw: unknown): ParseResult {
   if (typeof raw !== 'object' || raw === null) {
     return { doc: null, error: 'not a portable document', newerSchema: false }
   }

@@ -1,0 +1,176 @@
+/**
+ * G-2 / FR-19.6 — the sync detail behind the status glyph.
+ *
+ * The glyph is one symbol standing for four different situations, and until
+ * now tapping it did nothing outside a trip. What the sheet must get right is
+ * therefore *which* story it tells: the network states explain the queue and
+ * lead to the conflict log, Local Mode explains that there is no server and
+ * leads to a backup — conflicts cannot occur there, so offering the log would
+ * be a lie about how the mode works.
+ */
+import { describe, it, expect } from 'vitest'
+import { mount } from '@vue/test-utils'
+
+import SyncDetailSheet from '../SyncDetailSheet.vue'
+import type { StorageStatus } from '@/local/storageStatus'
+
+const DAY = 86_400_000
+const NOW = 1_760_000_000_000
+
+function storage(over: Partial<StorageStatus> = {}): StorageStatus {
+  return {
+    available: true,
+    usedBytes: 12 * 1024 * 1024,
+    quotaBytes: 980 * 1024 * 1024,
+    persistent: true,
+    ...over,
+  }
+}
+
+function mountSheet(props: Partial<InstanceType<typeof SyncDetailSheet>['$props']> = {}) {
+  return mount(SyncDetailSheet, {
+    props: {
+      state: 'synced',
+      pendingCount: 0,
+      mode: 'server',
+      canOpenConflicts: false,
+      storage: null,
+      lastExportAt: null,
+      hasBackupContent: false,
+      now: NOW,
+      ...props,
+    },
+  })
+}
+
+const text = (wrapper: ReturnType<typeof mountSheet>, testid: string) =>
+  wrapper.get(`[data-testid="${testid}"]`).text()
+
+const has = (wrapper: ReturnType<typeof mountSheet>, testid: string) =>
+  wrapper.find(`[data-testid="${testid}"]`).exists()
+
+describe('SyncDetailSheet — network states (G-2)', () => {
+  it('names the state and explains what it means for the user', () => {
+    const wrapper = mountSheet({ state: 'synced' })
+
+    expect(text(wrapper, 'sync-detail-title')).toBe('Synced')
+    expect(text(wrapper, 'sync-detail-explain')).toContain('reached the server')
+  })
+
+  it('counts the queued changes while offline — the queue is the whole worry', () => {
+    const wrapper = mountSheet({ state: 'offline', pendingCount: 3 })
+
+    expect(text(wrapper, 'sync-detail-pending')).toBe('3 changes waiting to be sent')
+  })
+
+  it('says nothing about a queue when there is none', () => {
+    expect(has(mountSheet({ state: 'synced', pendingCount: 0 }), 'sync-detail-pending')).toBe(false)
+  })
+
+  it('offers the conflict log inside a trip (NFR-4.2a)', async () => {
+    const wrapper = mountSheet({ state: 'synced', canOpenConflicts: true })
+
+    await wrapper.get('[data-testid="sync-detail-conflicts"]').trigger('click')
+
+    expect(wrapper.emitted('conflicts')).toHaveLength(1)
+  })
+
+  it('explains where the conflict log lives instead of offering a dead button', () => {
+    const wrapper = mountSheet({ state: 'synced', canOpenConflicts: false })
+
+    expect(has(wrapper, 'sync-detail-conflicts')).toBe(false)
+    expect(text(wrapper, 'sync-detail-conflicts-hint')).toContain('trip')
+  })
+
+  it('shows no storage section in Server Mode — the server holds the copy', () => {
+    expect(has(mountSheet({ storage: storage() }), 'sync-detail-storage')).toBe(false)
+  })
+})
+
+describe('SyncDetailSheet — Local Mode (FR-19.6, NFR-4.11)', () => {
+  const local = { state: 'local' as const, mode: 'local' as const }
+
+  it('explains that no server is involved', () => {
+    const wrapper = mountSheet({ ...local, storage: storage() })
+
+    expect(text(wrapper, 'sync-detail-title')).toBe('On this device')
+    expect(text(wrapper, 'sync-detail-explain')).toContain('no server')
+  })
+
+  it('never offers the conflict log — one writer cannot conflict', () => {
+    const wrapper = mountSheet({ ...local, canOpenConflicts: true, storage: storage() })
+
+    expect(has(wrapper, 'sync-detail-conflicts')).toBe(false)
+    expect(has(wrapper, 'sync-detail-conflicts-hint')).toBe(false)
+  })
+
+  it('reports how much of the device quota the data uses', () => {
+    const wrapper = mountSheet({ ...local, storage: storage() })
+
+    expect(text(wrapper, 'sync-detail-storage-usage')).toBe('12.0 MB of 980.0 MB used')
+  })
+
+  it('warns while the browser may evict the only copy (NFR-4.11)', () => {
+    const wrapper = mountSheet({ ...local, storage: storage({ persistent: false }) })
+
+    expect(text(wrapper, 'sync-detail-eviction')).toContain('may clear')
+  })
+
+  it('stays quiet once the browser promised to keep it', () => {
+    const wrapper = mountSheet({ ...local, storage: storage({ persistent: true }) })
+
+    expect(has(wrapper, 'sync-detail-eviction')).toBe(false)
+    expect(text(wrapper, 'sync-detail-persistent')).toContain('not clear it')
+  })
+
+  it('admits an unreported quota instead of showing zeroes', () => {
+    const wrapper = mountSheet({ ...local, storage: storage({ available: false }) })
+
+    expect(has(wrapper, 'sync-detail-storage-usage')).toBe(false)
+    expect(has(wrapper, 'sync-detail-eviction')).toBe(false)
+    expect(text(wrapper, 'sync-detail-storage-unknown')).toContain('does not report')
+  })
+
+  it('says a backup never happened rather than leaving the line empty', () => {
+    const wrapper = mountSheet({ ...local, storage: storage(), lastExportAt: null })
+
+    expect(text(wrapper, 'sync-detail-backup-age')).toBe('Never backed up')
+  })
+
+  it('ages the last backup against the injected clock, not the wall clock', () => {
+    const wrapper = mountSheet({ ...local, storage: storage(), lastExportAt: NOW - 34 * DAY })
+
+    expect(text(wrapper, 'sync-detail-backup-age')).toBe('Last backup 34 days ago')
+  })
+
+  it('reads a backup from today as today', () => {
+    const wrapper = mountSheet({ ...local, storage: storage(), lastExportAt: NOW - 60_000 })
+
+    expect(text(wrapper, 'sync-detail-backup-age')).toBe('Last backup today')
+  })
+
+  it('offers the one-tap backup (NFR-4.11)', async () => {
+    const wrapper = mountSheet({ ...local, storage: storage(), hasBackupContent: true })
+
+    await wrapper.get('[data-testid="sync-detail-backup"]').trigger('click')
+
+    expect(wrapper.emitted('backup')).toHaveLength(1)
+  })
+
+  it('does not offer to back up an empty device', () => {
+    const wrapper = mountSheet({ ...local, storage: storage(), hasBackupContent: false })
+
+    expect(has(wrapper, 'sync-detail-backup')).toBe(false)
+    expect(text(wrapper, 'sync-detail-backup-empty')).toContain('Nothing to back up')
+  })
+})
+
+describe('SyncDetailSheet — chrome', () => {
+  it('closes on the close button', async () => {
+    const wrapper = mountSheet()
+
+    await wrapper.get('[data-testid="sync-detail-close"]').trigger('click')
+
+    expect(wrapper.emitted('close')).toHaveLength(1)
+  })
+})
