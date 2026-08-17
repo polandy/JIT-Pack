@@ -87,11 +87,15 @@ test.describe('Local Mode backup and restore @local @m18', () => {
 
     await restored.getByTestId('portable-restore-commit').click()
 
-    // An imported trip is *planning* (FR-18.4), so it lands on M2's Planned
-    // segment rather than the Active one the list opens on. Worth noting where
-    // the case does it: a restore currently ends on a screen that says "No
-    // active trips" — flagged for the owner in the log, not redesigned here.
-    await visible(restored).getByTestId('trips-filter-planned').click()
+    // The restore lands on the segment its own result is on. Every imported
+    // trip is *planning* (FR-18.4) and M2 opens on Active, so before the fix a
+    // successful restore ended on the words "No active trips" — asserted here
+    // without tapping the segment, which is the whole difference.
+    // Ionic marks the chosen segment with a class; its `aria-selected` sits in
+    // the shadow root and reads empty from here.
+    await expect(visible(restored).getByTestId('trips-filter-planned')).toHaveClass(
+      /segment-button-checked/,
+    )
 
     // Both partitions came back, and the trip kept what it knew. The row, not
     // its name as text: the pasted YAML is still in the textarea behind an
@@ -160,7 +164,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
 
     await page.getByTestId('portable-restore-commit').click()
 
-    await visible(page).getByTestId('trips-filter-planned').click()
+    // No segment tap here either — the restore arrives where its trips are.
     await expect(visible(page).getByTestId('trip-row-Samedan 2026')).toBeVisible()
     await page.getByTestId('rail-templates').click()
     await expect(visible(page).getByRole('heading', { name: 'Makro' })).toBeVisible()

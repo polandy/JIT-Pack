@@ -38,9 +38,9 @@ matched to what already exists **by name**, so restoring onto a device that stil
 merges rather than duplicates. A document the file no longer holds intact is listed as
 *skipped* with the reason, and the rest still import.
 
-Restored trips arrive in **planning** status, so look for them under the Trips screen's
-**Planned** tab — the list opens on *Active*, which is empty on a device you have just
-restored onto.
+Restored trips arrive in **planning** status, and the app takes you straight to the Trips
+screen's **Planned** tab when the restore finishes — that is where they are. The *Active*
+tab, which the list normally opens on, stays empty until you start a trip.
 
 The same file is how you move to a server instance: point the app at the server, then
 import the backup there through the same screen. Note that the server's own

@@ -32,6 +32,7 @@ import {
   PORTABLE_FILE_ACCEPT,
   type ParseResult,
 } from '@/domain/portable'
+import { TRIP_FILTER_QUERY } from '@/views/trips/tripFilter'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
@@ -93,12 +94,16 @@ function setMerge(name: string, merge: boolean) {
  * on the import form with the file still pasted in it — the restore had
  * happened and said nothing. Found by E2E-M18-05, which was the first thing
  * ever to walk this path.
+ *
+ * And on the *planned* segment: every imported trip is `planning` (FR-18.4),
+ * while M2 opens on Active — so a restore that worked ended on the words "No
+ * active trips", which reads as a restore that did not.
  */
 function commitRestore() {
   const documents = restore.value ?? []
   orchestrator.commitPortableRestore(documents.flatMap((r) => (r.doc ? [r.doc] : [])))
   restore.value = null
-  router.replace('/tabs/trips')
+  router.replace({ path: '/tabs/trips', query: { [TRIP_FILTER_QUERY]: 'planned' } })
 }
 
 const restorable = computed(() => (restore.value ?? []).filter((r) => r.doc !== null).length)

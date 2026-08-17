@@ -2872,3 +2872,29 @@ read half are two behaviours (and for the only copy of a user's data, the read
 half is the more important one); one rule written into N templates needs N cases;
 and a shared test helper that tolerates both states is never the assertion.
 `CLAUDE.md` now also says a missing verdict comment is itself a blocker.
+
+### The restore landing (owner call, 2026-08-17)
+
+The audit above left one thing as a question rather than deciding it: a restore
+landed on M2, which opens on *Active*, while every imported trip is `planning`
+(FR-18.4) — so a restore that had just written the user's whole device back
+ended on the words "No active trips". Owner's answer: land on **Planned**.
+
+Built as a route query rather than a flag on the page: `client/src/views/trips/
+tripFilter.ts` names the three segments once and parses a query value, M2 honours
+it through a `watch` and M18 sets it. Three details are deliberate.
+
+* **A watch, not a read at setup.** Ionic keeps M2 mounted, so a restore arriving
+  while the page is already alive would otherwise land on whatever segment was
+  last tapped.
+* **An unknown or absent value changes nothing.** `parseTripFilter` returns null
+  rather than defaulting to `active`, because a default would silently reset the
+  user's own choice every time the list is re-entered without a query.
+* **`planned` is the segment, `planning` the DB status.** The two are one keystroke
+  apart and a unit case pins that they are not interchangeable — the query is a
+  UI vocabulary, not a status column leaking into the URL.
+
+Red-proved by dropping the query from the replace: **both** M18 cases fall, and
+E2E-M18-06 falls on the honest symptom — the restored trip is not on screen at
+all. That is the case doing what the audit was about: asserting the outcome the
+user sees rather than the mechanism.
