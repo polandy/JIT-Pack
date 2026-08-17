@@ -31,6 +31,36 @@ export const de: Record<keyof typeof en, string> = {
   'sync.syncing': 'Synchronisiert…',
   'sync.offline': 'Offline',
   'sync.local': 'Auf diesem Gerät',
+  'sync.offlineQueued': 'Offline ({n} in der Warteschlange)',
+
+  'sync.detail.explain.synced': 'Alle Änderungen von diesem Gerät sind beim Server angekommen.',
+  'sync.detail.explain.syncing': 'Eine Änderung ist unterwegs zum Server und noch nicht bestätigt.',
+  'sync.detail.explain.offline':
+    'Der Server ist nicht erreichbar. Deine Änderungen bleiben auf diesem Gerät und gehen raus, sobald er wieder da ist.',
+  'sync.detail.explain.local':
+    'Local Mode: Es gibt keinen Server. Alles, was du erfasst, bleibt in diesem Browser auf diesem Gerät.',
+  'sync.detail.pending':
+    '{n} Änderung wartet auf den Versand | {n} Änderungen warten auf den Versand',
+  'sync.detail.conflicts': 'Konfliktprotokoll öffnen',
+  'sync.detail.conflictsHint':
+    'Das Konfliktprotokoll gehört zu einer Reise — öffne eine, um es zu sehen.',
+  'sync.detail.storage': 'Speicher auf diesem Gerät',
+  'sync.detail.storageUsage': '{used} MB von {quota} MB belegt',
+  'sync.detail.storageUnknown': 'Dieser Browser meldet nicht, wie viel Platz er belegt.',
+  'sync.detail.persistent':
+    'Als dauerhaft markiert — der Browser löscht die Daten nicht von selbst.',
+  'sync.detail.eviction':
+    'Nicht als dauerhaft markiert: Der Browser darf diese Daten löschen, wenn der Platz knapp wird.',
+  'sync.detail.backup': 'Sicherung',
+  'sync.detail.backupNever': 'Noch nie gesichert',
+  'sync.detail.backupToday': 'Zuletzt gesichert: heute',
+  'sync.detail.backupAge': 'Zuletzt gesichert: vor {n} Tag | Zuletzt gesichert: vor {n} Tagen',
+  'sync.detail.backupNow': 'Jetzt sichern',
+  'sync.detail.backupEmpty':
+    'Noch nichts zu sichern — keine Reisen und keine Vorlagen auf diesem Gerät.',
+  'sync.detail.backupHint':
+    'Eine YAML-Datei mit allen Reisen und Vorlagen. Zurückspielen geht über den Import.',
+  'sync.detail.backupSaved': 'Sicherung gespeichert: {file}',
 
   'trip.daysUntil': 'noch {n} Tage',
   'trip.departsToday': 'Heute geht es los',

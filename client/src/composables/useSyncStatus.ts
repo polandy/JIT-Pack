@@ -7,7 +7,29 @@
 
 import { ref, computed, type Ref, type ComputedRef } from 'vue'
 
+import { t, type MessageKey } from '@/i18n'
+
 export type SyncState = 'synced' | 'syncing' | 'offline' | 'local'
+
+/**
+ * The short label each state carries — the app-bar tooltip and the title of
+ * the G-2 detail sheet. One table, because a glyph and its title disagreeing
+ * about what the app is doing is the failure this pattern exists to prevent.
+ */
+export const SYNC_LABEL_KEYS: Record<SyncState, MessageKey> = {
+  synced: 'sync.synced',
+  syncing: 'sync.syncing',
+  offline: 'sync.offline',
+  local: 'sync.local',
+}
+
+/** The sentence the detail sheet explains each state with (G-2, FR-19.6). */
+export const SYNC_EXPLAIN_KEYS: Record<SyncState, MessageKey> = {
+  synced: 'sync.detail.explain.synced',
+  syncing: 'sync.detail.explain.syncing',
+  offline: 'sync.detail.explain.offline',
+  local: 'sync.detail.explain.local',
+}
 
 export interface SyncStatus {
   /** Current connection/sync state. */
@@ -48,14 +70,14 @@ export function useSyncStatus(): SyncStatus {
 
   const label = computed(() => {
     switch (state.value) {
-      case 'synced':
-        return 'Synced'
-      case 'syncing':
-        return 'Syncing...'
-      case 'local':
-        return 'Local'
+      // Offline is the one state whose label says more than its name: the
+      // queue length is the thing the user is actually worried about.
       case 'offline':
-        return pendingCount.value > 0 ? `Offline (${pendingCount.value} queued)` : 'Offline'
+        return pendingCount.value > 0
+          ? t('sync.offlineQueued', { n: pendingCount.value })
+          : t(SYNC_LABEL_KEYS.offline)
+      default:
+        return t(SYNC_LABEL_KEYS[state.value])
     }
   })
 

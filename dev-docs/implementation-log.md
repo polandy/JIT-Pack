@@ -2704,3 +2704,57 @@ implementing PR does once, deliberately.
 **No ADR here.** The tradeoff is real and an ADR is owed — but `adr/README.md`
 is explicit that one without code is a plan, so it ships with the build, using
 this round as its evidence.
+
+## G-2's detail, and the Local Mode backup behind it (2026-08-17, FR-19.6/NFR-4.11)
+
+Owner question, from the running instance: *„was bedeutet das Icon zwischen Lupe
+und Zahnrad?"* — the phone glyph. That the question had to be asked is the
+defect: G-2 has specified a detail behind the glyph since UI-Spec v1.0, and the
+app had none. `onSyncTap` pushed `/trips/:id/conflicts` when a trip route
+happened to be open and returned silently everywhere else, which is most of the
+app and all of Local Mode.
+
+**The sheet splits by run mode, not by glyph state.** Server Mode explains the
+connection, counts the queue and leads to the conflict log; Local Mode explains
+that no server exists, reports storage against quota with the NFR-4.11 eviction
+warning, and offers the backup. Local Mode never offers the conflict log — one
+writer produces none, and an entry that describes a mode you are not in is
+worse than no entry. The split is on `mode` rather than on `state` because an
+in-flight Local Mode write reports as *syncing* (FR-19.2) and must still get
+the storage story.
+
+**The one-tap export had to become a whole-device backup.** M17 already exported
+one trip or one template at a time; NFR-4.11 calls the export *the* backup, and
+a backup that asks the user to remember each trip and template one by one is not
+one anybody performs. So the file is every trip and every template as one
+multi-document YAML — which immediately owed the other half: **our own importer
+could not read it back**. A backup nobody can restore is not a backup, so M18
+grew a restore branch (list the documents, import them together) and
+`commitPortableRestore` matches **per document as it goes**, never once up
+front: a backup names the same master item in a template and in every trip that
+uses it, and matching against the pre-restore inventory would have created one
+copy per mention. The test that pins that is the one that would otherwise have
+shipped a duplicate inventory on every restore.
+
+**Two defects only the rendered pixel showed, both in the same sheet.**
+
+1. *The last line sat under the tab bar.* An auto-height Ionic sheet is measured
+   once at presentation, and the storage section arrived a tick later because
+   `navigator.storage.estimate()` is async. The fix is ordering — read the facts,
+   then open — not padding. Found by screenshotting; invisible in the markup and
+   invisible to the component test, which has no modal.
+2. *„Last backup -1 days ago."* The sheet captures `now` when it opens, the
+   stamp is written when the user taps, so the stamp is the later of the two and
+   `Math.floor` of a small negative is −1. `reminderState` clamps at zero now,
+   which also covers a device whose clock moved back. **The e2e case caught this,
+   not the component test** — the component test injects both clocks and would
+   have had to be written by someone already suspecting the bug.
+
+A third one worth recording as method: the first screenshots looked like the tab
+bar was painting over the sheet. It was not — the shot was taken mid-animation,
+40 px of translate from what a user sees. The screenshot driver now waits for the
+modal wrapper's bottom to reach the viewport bottom. A rendered check is only
+evidence once the render has settled.
+
+Localization came along for the ride: the glyph's tooltip was four English
+literals beside four catalogue keys nobody used.

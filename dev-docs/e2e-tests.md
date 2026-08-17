@@ -484,3 +484,18 @@ next to the ✕'s 34 px, both hung from the same top edge, so their centres sat
    produced under parallel load. One in-page `evaluate` returns both rects
    from the same frame, so the shared transform cancels out and the
    comparison is exact whenever it runs. Red-proved against the 26 px build.
+
+## G-2 — the sync detail (2026-08-17)
+
+**E2E-G2-02** and **E2E-G2-03** are live, in `global-nav.spec.ts` because G-2 is a
+global pattern and the bug it guards was "the glyph does nothing on the screens
+that are not a trip" — a per-screen suite is exactly what could not see it.
+G2-02 opens the detail from the trip list (no trip open, the silent case) and
+asserts the Local Mode half including the *absence* of the conflict-log entry;
+G2-03 drives the one-tap backup and asserts the download plus the backup line
+moving from *Never backed up* to *Last backup today*.
+
+**E2E-G2-01 stays unbuilt**: the queue and the conflict log need a server, and
+the backend-backed projects do not exist yet. The Server Mode half of the sheet
+is covered by the component test only, which is stated here rather than left to
+look like coverage.

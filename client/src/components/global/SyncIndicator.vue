@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import { IonIcon, IonBadge } from '@ionic/vue'
-import {
-  cloudDoneOutline,
-  syncOutline,
-  cloudOfflineOutline,
-  phonePortraitOutline,
-} from 'ionicons/icons'
 import { computed } from 'vue'
+
+import { SYNC_GLYPHS } from './syncGlyphs'
 import type { SyncState } from '@/composables/useSyncStatus'
 
 const props = defineProps<{
@@ -19,15 +15,7 @@ const emit = defineEmits<{
   tap: []
 }>()
 
-const icons: Record<SyncState, string> = {
-  synced: cloudDoneOutline,
-  syncing: syncOutline,
-  offline: cloudOfflineOutline,
-  // FR-19.6: everything lives on this device, no server involved.
-  local: phonePortraitOutline,
-}
-
-const icon = computed(() => icons[props.state])
+const icon = computed(() => SYNC_GLYPHS[props.state])
 </script>
 
 <template>
