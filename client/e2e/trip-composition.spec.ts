@@ -166,6 +166,52 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     await expect(visible(page).getByTestId('wizard-step-3')).toBeVisible()
   })
 
+  test('E2E-M3-18: a row dropped in the review lands as skipped, not missing (FR-2.6/5.5)', async ({
+    page,
+  }) => {
+    await seedComposition(page)
+    await wizardToStepThree(page, 'Fototour 2026')
+    await visible(page)
+      .getByTestId('wizard-section-templates')
+      .locator('ion-checkbox')
+      .first()
+      .click()
+    await page.getByTestId('wizard-next').click()
+    await expect(page.getByTestId('wizard-step-4')).toBeVisible()
+
+    const before = await visible(page).getByTestId('wizard-review-row').count()
+    const camera = visible(page)
+      .getByTestId('wizard-review-row')
+      .filter({ hasText: 'Kamera' })
+      .first()
+    await camera.getByTestId('wizard-review-drop').click()
+
+    // Still on the review — the decision is visible rather than a row quietly
+    // gone — and the count stops including what is no longer coming.
+    await expect(visible(page).getByTestId('wizard-review-row')).toHaveCount(before)
+    const dropped = await page.getByTestId('wizard-create').textContent()
+
+    // Reversible, and *asserted* by taking it back rather than by the presence
+    // of a button: a restore that did nothing would pass that.
+    await camera.getByTestId('wizard-review-restore').click()
+    await expect(camera.getByTestId('wizard-review-drop')).toBeVisible()
+    await expect(page.getByTestId('wizard-create')).not.toHaveText(dropped ?? '')
+
+    // Drop it again — this is the state the trip is created from.
+    await camera.getByTestId('wizard-review-drop').click()
+    await expect(page.getByTestId('wizard-create')).toHaveText(dropped ?? '')
+
+    await page.getByTestId('wizard-create').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Fototour 2026')
+
+    // On the trip it is *skipped*, not absent: FR-25.2 hides it with the done
+    // rows, and revealing them shows it. A deleted row would teach the next
+    // trip nothing (FR-5.5).
+    await expect(visible(page).getByText('Kamera')).toHaveCount(0)
+    await visible(page).getByTestId('m4-done-bar').click()
+    await expect(visible(page).getByText('Kamera').first()).toBeVisible()
+  })
+
   test('E2E-M3-13: a position task is previewed and lands as a prep todo on the generated row', async ({
     page,
   }) => {

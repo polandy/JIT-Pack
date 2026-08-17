@@ -122,6 +122,127 @@ beforeEach(() => {
   localStorage.clear()
 })
 
+/**
+ * Pick a template on step 3, then walk to step 4 where its rows are reviewed.
+ * A traveler is added on the way: without one, a per-person position fans out
+ * over nobody and produces no row at all.
+ */
+async function mountAtStepFour(templateId = 'v1') {
+  const wrapper = mount(TripWizardPage, {
+    global: { provide: { orchestrator: orchestratorFake } },
+  })
+  await wrapper.get('[data-testid="wizard-name"]').trigger('ionInput', {
+    detail: { value: 'Fototour' },
+  })
+  await wrapper.get('[data-testid="wizard-next"]').trigger('click')
+  await wrapper.get('[data-testid="wizard-add-traveler"]').trigger('click')
+  const travelerFields = wrapper.findAll('[data-testid="wizard-traveler-name"]')
+  await travelerFields[travelerFields.length - 1]!.trigger('ionInput', {
+    detail: { value: 'Andy' },
+  })
+  await wrapper.get('[data-testid="wizard-next"]').trigger('click')
+  expect(wrapper.find('[data-testid="wizard-step-3"]').exists()).toBe(true)
+  await pick(wrapper, templateId)
+  await wrapper.get('[data-testid="wizard-next"]').trigger('click')
+  expect(wrapper.find('[data-testid="wizard-step-4"]').exists()).toBe(true)
+  return wrapper
+}
+
+/**
+ * FR-2.6 variant A: the review step reviews. Until now it changed exactly one
+ * thing — the amount — and every other decision waited until the trip existed.
+ */
+describe('M3 step 4 — deciding before the trip exists (FR-2.6)', () => {
+  function seedForReview() {
+    seedComposition()
+    // A per-person row and a buy-before row, so the marks have something to
+    // explain; both come from the Vorlage itself.
+    useMasterStore().applyChange({
+      seq: 0,
+      table: 'template_items',
+      id: 'p-jacket',
+      deleted: false,
+      row: {
+        template_id: 'v1',
+        item_id: 'jacket',
+        quantity: 1,
+        assignment: 'per_person',
+        dedup: 'max',
+        default_mode: 'pack',
+        late_packer: 0,
+      },
+    })
+    useMasterStore().applyChange({
+      seq: 0,
+      table: 'template_items',
+      id: 'p-cream',
+      deleted: false,
+      row: {
+        template_id: 'v1',
+        item_id: 'cream',
+        quantity: 1,
+        assignment: 'trip_global',
+        dedup: 'max',
+        default_mode: 'buy_before',
+        late_packer: 0,
+      },
+    })
+    item('jacket', 'Regenjacke')
+    item('cream', 'Sonnencreme')
+  }
+
+  const rowFor = (wrapper: Awaited<ReturnType<typeof mountAtStepFour>>, name: string) =>
+    wrapper.findAll('[data-testid="wizard-review-row"]').find((n) => n.text().includes(name))!
+
+  it('drops a row as consciously skipped, not as a missing row (FR-5.5)', async () => {
+    seedForReview()
+    const wrapper = await mountAtStepFour()
+
+    await rowFor(wrapper, 'Kamera').get('[data-testid="wizard-review-drop"]').trigger('click')
+
+    // Still on screen, struck through, and its amount is zero — which is what
+    // makes the created row `skipped` rather than absent.
+    const row = rowFor(wrapper, 'Kamera')
+    expect(row.classes()).toContain('dropped')
+    expect(row.get('[data-testid="wizard-review-qty"]').text()).toBe('0')
+  })
+
+  it('takes the drop back', async () => {
+    seedForReview()
+    const wrapper = await mountAtStepFour()
+
+    const drop = rowFor(wrapper, 'Kamera').get('[data-testid="wizard-review-drop"]')
+    await drop.trigger('click')
+    await rowFor(wrapper, 'Kamera').get('[data-testid="wizard-review-restore"]').trigger('click')
+
+    expect(rowFor(wrapper, 'Kamera').classes()).not.toContain('dropped')
+    expect(rowFor(wrapper, 'Kamera').get('[data-testid="wizard-review-qty"]').text()).toBe('1')
+  })
+
+  it('counts what is actually coming on the create button', async () => {
+    seedForReview()
+    const wrapper = await mountAtStepFour()
+
+    const count = (text: string) => Number(text.match(/\d+/)![0])
+    const before = count(wrapper.get('[data-testid="wizard-create"]').text())
+    await rowFor(wrapper, 'Kamera').get('[data-testid="wizard-review-drop"]').trigger('click')
+
+    // A number that ignores the row you just dropped is worse than no number.
+    expect(count(wrapper.get('[data-testid="wizard-create"]').text())).toBe(before - 1)
+  })
+
+  it('marks what the row already is, without offering to change it', async () => {
+    seedForReview()
+    const wrapper = await mountAtStepFour()
+
+    expect(rowFor(wrapper, 'Regenjacke').text()).toMatch(/pro Person|per person/i)
+    expect(rowFor(wrapper, 'Sonnencreme').text()).toMatch(/buy before|kaufen/i)
+
+    // Labels, not controls: procurement and assignment have one editor, M5.
+    expect(rowFor(wrapper, 'Sonnencreme').findAll('button').length).toBe(1)
+  })
+})
+
 describe('M3 step 3 — template composition (§3.27)', () => {
   it('splits the two scopes into their own sections (FR-27.6)', async () => {
     seedComposition()

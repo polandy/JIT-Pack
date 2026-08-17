@@ -28,7 +28,13 @@ import {
   IonNote,
   IonChip,
 } from '@ionic/vue'
-import { addOutline, chevronForwardOutline, closeOutline, personOutline } from 'ionicons/icons'
+import {
+  addOutline,
+  chevronForwardOutline,
+  closeOutline,
+  personOutline,
+  refreshOutline,
+} from 'ionicons/icons'
 import { computed, inject, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -351,6 +357,32 @@ const offeredChecklist = computed(() => {
 function reviewQuantity(index: number): number {
   return quantityOverrides.value[index] ?? generation.value.items[index]!.quantity
 }
+
+/**
+ * FR-2.6: dropping a row is FR-5.5 *„bewusst weggelassen"*, not deletion — the
+ * row stays, struck through and reversible, and reaches the trip with quantity
+ * 0, which `addGeneratedTripItem` turns into `skipped`. Deleting it instead
+ * would leave the next trip nothing to learn from, and would mean this one act
+ * behaved differently here than everywhere else in the product.
+ */
+function dropRow(index: number) {
+  quantityOverrides.value = { ...quantityOverrides.value, [index]: 0 }
+}
+
+function restoreRow(index: number) {
+  const { [index]: _dropped, ...rest } = quantityOverrides.value
+  quantityOverrides.value = rest
+}
+
+function isDropped(index: number): boolean {
+  return reviewQuantity(index) === 0
+}
+
+/** What is actually coming — a count that ignored a dropped row would lie. */
+const comingCount = computed(
+  () =>
+    generation.value.items.filter((_, index) => !isDropped(index)).length + companionRows().length,
+)
 
 function overrideQuantity(index: number, value: string) {
   const qty = Number(value)
@@ -852,9 +884,27 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
       <section v-if="step === 4" data-testid="wizard-step-4">
         <h2 class="section-title jp-eyebrow">Review quantities</h2>
         <IonList v-if="generation.items.length > 0">
-          <IonItem v-for="(item, index) in generation.items" :key="index">
+          <IonItem
+            v-for="(item, index) in generation.items"
+            :key="index"
+            class="review-row"
+            :class="{ dropped: isDropped(index) }"
+            data-testid="wizard-review-row"
+          >
             <IonLabel>
-              <h3>{{ item.name }}</h3>
+              <h3>
+                {{ item.name }}
+                <!-- FR-2.6: marks explain what the row already is. Labels, not
+                     controls — procurement and assignment have one editor (M5),
+                     and a second one here is what this FR argues against. -->
+                <span v-if="item.traveler_index !== null" class="mark">
+                  {{ t('wizard.perPerson') }}
+                </span>
+                <span v-if="item.mode !== 'pack'" class="mark">
+                  {{ item.mode === 'buy_before' ? t('mode.buyBefore') : t('mode.buyLocal') }}
+                </span>
+                <span v-if="isDropped(index)" class="mark">{{ t('wizard.dropped') }}</span>
+              </h3>
               <p>
                 <template v-if="travelerName(item.traveler_index)"
                   >{{ travelerName(item.traveler_index) }} ·
@@ -872,7 +922,11 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
                 {{ suggestionFor(index)!.suggested }}
               </button>
             </IonLabel>
+            <span slot="end" class="qty-value jp-num" data-testid="wizard-review-qty">
+              {{ reviewQuantity(index) }}
+            </span>
             <IonInput
+              v-if="!isDropped(index)"
               slot="end"
               class="qty-input"
               type="number"
@@ -881,6 +935,26 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
               aria-label="Quantity"
               @ionInput="(e: CustomEvent) => overrideQuantity(index, e.detail.value ?? '')"
             />
+            <button
+              v-if="!isDropped(index)"
+              slot="end"
+              class="row-action"
+              :aria-label="t('wizard.dropRow', { name: item.name })"
+              data-testid="wizard-review-drop"
+              @click="dropRow(index)"
+            >
+              <IonIcon :icon="closeOutline" />
+            </button>
+            <button
+              v-else
+              slot="end"
+              class="row-action"
+              :aria-label="t('wizard.restoreRow', { name: item.name })"
+              data-testid="wizard-review-restore"
+              @click="restoreRow(index)"
+            >
+              <IonIcon :icon="refreshOutline" />
+            </button>
           </IonItem>
         </IonList>
         <div v-else class="empty-hint">No items generated — the trip starts empty.</div>
@@ -955,7 +1029,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
           color="primary"
           @click="createTrip"
         >
-          Create trip
+          {{ t('wizard.createTrip', { n: comingCount }) }}
         </IonButton>
       </div>
       <!-- FR-27.12: look inside a group without losing the draft -->
@@ -971,6 +1045,45 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 </template>
 
 <style scoped>
+.review-row.dropped h3,
+.review-row.dropped p {
+  text-decoration: line-through;
+  color: var(--ct-overlay0);
+}
+
+.mark {
+  display: inline-block;
+  margin-inline-start: 6px;
+  padding: 1px 7px;
+  border: 1px solid var(--ct-surface1);
+  border-radius: var(--jp-r-pill);
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-2xs);
+  vertical-align: 1px;
+}
+
+.qty-value {
+  display: none;
+}
+
+.review-row.dropped .qty-value {
+  display: inline;
+  color: var(--ct-overlay0);
+}
+
+.row-action {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ct-overlay0);
+  font-size: var(--jp-icon-sm);
+  cursor: pointer;
+}
+
 .preview {
   color: var(--ct-overlay0);
 }

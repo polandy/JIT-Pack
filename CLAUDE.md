@@ -165,12 +165,13 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    count would mislead (merge, per person, procurement, condition). Variant A of the rendered
    round; the sheet already resolved a Vorlage, so what this added was the entry and the marks.
 10. **FR-2.6 — M3’s review step only reviews the amount** (owner-flagged 2026-08-17, specified
-   with a rendered mockup, **variant undecided**). Step 4 cannot drop a row, switch to buying,
+   with a rendered mockup, **variant A, chosen 2026-08-17**). Step 4 cannot drop a row, switch to buying,
    change who it is for, or add what is missing — all of it waits for the trip to exist. Three
    forms are rendered in `dev-docs/UI_Concept_ReviewStep_variants.html` and weighed in FR-2.6,
    including the option of building no editor at all. Two decisions already hold: dropping a row
-   means FR-5.5 *skipped* rather than deletion, and nothing may become wizard-only. **Pick a
-   variant before building.**
+   means FR-5.5 *skipped* rather than deletion, and nothing may become wizard-only. **A is built** (2026-08-17): the row carries the amount and a ✕ that drops the
+   row as FR-5.5 *skipped*, with the marks that explain it. The mockup’s add line stays
+   with FR-27.3, which owns adding single items.
 11. **FR-5.5's „bewusst nicht einpacken" has no control** (owner-flagged 2026-08-16) — the
    *state* is built and rendered: `state = 'skipped'` counts as done (`domain/packingView.ts`),
    M4 badges such a row „Deliberately skipped", FR-25.2 hides it with the packed ones, and
