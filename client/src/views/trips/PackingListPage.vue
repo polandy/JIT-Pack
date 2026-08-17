@@ -165,6 +165,9 @@ const showPrep = ref(false)
 const filterOpen = ref(false)
 const quickAdd = ref<InstanceType<typeof QuickAddItem> | null>(null)
 
+/** Whether the composer is open — the ＋ has nothing to add while it is. */
+const quickAddExpanded = computed(() => quickAdd.value?.expanded ?? false)
+
 function openQuickAdd() {
   void quickAdd.value?.open()
 }
@@ -1128,7 +1131,12 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
            the FAB must never sit on top of (the same rule as FR-25.11h, one
            layer up). -->
       <IonFab id="m4-fab-anchor" slot="fixed" vertical="bottom" horizontal="end">
-        <IonFabButton data-testid="m4-fab" :aria-label="t('common.add')" @click="openQuickAdd">
+        <IonFabButton
+          v-if="!quickAddExpanded"
+          data-testid="m4-fab"
+          :aria-label="t('common.add')"
+          @click="openQuickAdd"
+        >
           <IonIcon :icon="addOutline" />
         </IonFabButton>
       </IonFab>

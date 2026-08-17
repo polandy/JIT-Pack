@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+import { test, expect, openQuickAdd } from './fixtures'
 import { visiblePage as visible } from './fixtures'
 import type { Page } from '@playwright/test'
 
@@ -80,7 +80,7 @@ test.describe('a plain-HTTP instance can still write (NFR-4.2a)', () => {
 
     const input = visible(page).getByTestId('quick-add-input')
     if (!(await input.isVisible().catch(() => false))) {
-      await visible(page).getByTestId('m8-fab').click()
+      await openQuickAdd(page, 'm8-fab')
     }
     await input.locator('input').fill('Kamera')
     await input.locator('input').press('Enter')

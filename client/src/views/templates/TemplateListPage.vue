@@ -52,6 +52,7 @@ import { serializeTemplate } from '@/domain/portable'
 import { safeFilename, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { scopeForNewTemplate } from '@/domain/templates'
 import type { Template, TemplateKind } from '@/types/domain'
 import SearchRow from '@/components/global/SearchRow.vue'
 import { useContextSearch } from '@/composables/useContextSearch'
@@ -135,6 +136,24 @@ const pendingKind = ref<TemplateKind | null>(null)
 const pendingName = ref('')
 const nameInput = ref<InstanceType<typeof IonInput> | null>(null)
 
+/**
+ * FR-27.6 (amended 2026-08-17): the ＋ follows the scope segment. On a
+ * single-scope tab the chooser had one possible answer, so it is skipped and
+ * the sheet opens on the name — the only thing still missing. On *Alle* the
+ * question is real and stays.
+ */
+/**
+ * Which scope the current tab already answers, if any — held for the sheet's
+ * lifetime so the cards stay gone while it is open, and cleared with it.
+ */
+const scopeImplied = ref<TemplateKind | null>(null)
+
+function startCreate() {
+  scopeImplied.value = scopeForNewTemplate(tab.value)
+  kindChooserOpen.value = true
+  if (scopeImplied.value) chooseKind(scopeImplied.value)
+}
+
 function chooseKind(kind: TemplateKind) {
   pendingKind.value = kind
   // The field is v-if-gated on the pick, so it exists only after this tick.
@@ -143,6 +162,7 @@ function chooseKind(kind: TemplateKind) {
 
 function resetChooser() {
   kindChooserOpen.value = false
+  scopeImplied.value = null
   pendingKind.value = null
   pendingName.value = ''
 }
@@ -389,11 +409,7 @@ async function handleRefresh(event: CustomEvent) {
       </template>
 
       <IonFab id="m7-fab-anchor" vertical="bottom" horizontal="end" slot="fixed">
-        <IonFabButton
-          :aria-label="t('templates.new')"
-          data-testid="m7-fab"
-          @click="kindChooserOpen = true"
-        >
+        <IonFabButton :aria-label="t('templates.new')" data-testid="m7-fab" @click="startCreate">
           <IonIcon :icon="addOutline" />
         </IonFabButton>
       </IonFab>
@@ -413,11 +429,18 @@ async function handleRefresh(event: CustomEvent) {
         <div class="sheet">
           <div class="grab" />
           <header class="head">
-            <h2>{{ t('templates.new') }}</h2>
-            <p class="head-hint">{{ t('templates.newQuestion') }}</p>
+            <h2>
+              {{
+                scopeImplied
+                  ? t(`templates.section${scopeImplied === 'group' ? 'Group' : 'Template'}`)
+                  : t('templates.new')
+              }}
+            </h2>
+            <p v-if="!scopeImplied" class="head-hint">{{ t('templates.newQuestion') }}</p>
           </header>
 
           <button
+            v-if="!scopeImplied"
             class="kind-card jp-card"
             :class="{ picked: pendingKind === 'template' }"
             data-testid="m7-kind-template"
@@ -429,6 +452,7 @@ async function handleRefresh(event: CustomEvent) {
           </button>
 
           <button
+            v-if="!scopeImplied"
             class="kind-card jp-card"
             :class="{ picked: pendingKind === 'group' }"
             data-testid="m7-kind-group"

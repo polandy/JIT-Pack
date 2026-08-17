@@ -1,4 +1,4 @@
-import { test, expect, createTripViaWizard } from './fixtures'
+import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
 import type { Page } from '@playwright/test'
 
 /**
@@ -117,7 +117,9 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   // this owns getting *to* and *from* it — the class of defect the working
   // agreement added this file for, after four navigation bugs that both
   // green screen suites had missed.
-  test('E2E-G9-11: the luggage button reaches the containers and back returns', async ({ page }) => {
+  test('E2E-G9-11: the luggage button reaches the containers and back returns', async ({
+    page,
+  }) => {
     await page.setViewportSize(DESKTOP)
     await createTripViaWizard(page, TRIP)
 
@@ -180,7 +182,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
   }) => {
     await page.setViewportSize(DESKTOP)
     const path = await createTripViaWizard(page, TRIP)
-    await page.getByTestId('m4-fab').click()
+    await openQuickAdd(page)
     await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
     await page.getByTestId('quick-add-confirm').click()
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()

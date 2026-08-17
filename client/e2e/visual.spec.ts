@@ -1,4 +1,4 @@
-import { test, expect, createTripViaWizard } from './fixtures'
+import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
 import type { Page } from '@playwright/test'
 
 /**
@@ -79,7 +79,7 @@ async function settled(page: Page) {
 async function packingList(page: Page, names: string[]) {
   await createTripViaWizard(page, { name: 'Samedan 2026', travelers: ['Andy', 'Mia'] })
   for (const name of names) {
-    await page.getByTestId('m4-fab').click()
+    await openQuickAdd(page)
     await page.getByTestId('quick-add-input').locator('input').fill(name)
     await page.getByTestId('quick-add-confirm').click()
     await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
@@ -199,7 +199,7 @@ async function containers(page: Page) {
 
   await createTripViaWizard(page, { name: 'Samedan 2026', travelers: ['Andy', 'Mia'] })
 
-  await page.getByTestId('m4-fab').click()
+  await openQuickAdd(page)
   await page.getByTestId('quick-add-input').locator('input').fill('Zel')
   await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Zelt' }).click()
   await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
@@ -228,7 +228,10 @@ async function containers(page: Page) {
     if (name === 'Links') {
       await page.getByTestId('m11-sheet').getByRole('button', { name: 'Andy', exact: true }).click()
     } else {
-      await page.getByTestId('m11-sheet').getByRole('button', { name: 'Links', exact: true }).click()
+      await page
+        .getByTestId('m11-sheet')
+        .getByRole('button', { name: 'Links', exact: true })
+        .click()
     }
     await closeSheet(page)
   }

@@ -134,6 +134,36 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     await expect(visible(page).getByTestId('m7-empty')).toBeVisible()
   })
 
+  test('E2E-M7-09: the ＋ follows the scope segment (FR-27.6)', async ({ page }) => {
+    // The scope segment only exists once something is in the list, so the case
+    // starts by creating through the *unchanged* path — which is also the Alle
+    // behaviour this change deliberately keeps.
+    await createTemplate(page, 'group', 'Makro')
+    await backToList(page)
+
+    // Now on Gruppen the scope has one possible answer, so the chooser is
+    // skipped and the sheet opens on the only thing still missing.
+    await visible(page).getByTestId('m7-scope-group').click()
+    await page.getByTestId('m7-fab').click()
+    await expect(page.getByTestId('m7-name-field')).toBeVisible()
+    await expect(page.getByTestId('m7-kind-template')).toHaveCount(0)
+
+    await page.getByTestId('m7-name-field').locator('input').fill('Wildlife')
+    await page.getByTestId('m7-create-commit').click()
+
+    // A Gruppe, and the editor proves it: a Gruppe has no Gruppen section.
+    await expect(page.getByTestId('header-title')).toHaveText('Wildlife')
+    await expect(visible(page).getByTestId('m8-include-open')).toHaveCount(0)
+
+    await backToList(page)
+
+    // On Alle both scopes are plausible, so the question is real and stays.
+    await visible(page).getByTestId('m7-scope-all').click()
+    await page.getByTestId('m7-fab').click()
+    await expect(page.getByTestId('m7-kind-template')).toBeVisible()
+    await expect(page.getByTestId('m7-kind-group')).toBeVisible()
+  })
+
   test('E2E-M7-04: the row menu carries export, and opening it does not navigate', async ({
     page,
   }) => {
