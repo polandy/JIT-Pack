@@ -290,6 +290,7 @@ async function handleRefresh(event: CustomEvent) {
               fill="clear"
               size="small"
               aria-label="Import trip from file"
+              data-testid="m2-portable-import"
               router-link="/portable-import"
             >
               <IonIcon slot="icon-only" :icon="documentTextOutline" />

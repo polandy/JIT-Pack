@@ -85,12 +85,20 @@ function setMerge(name: string, merge: boolean) {
   mergeChoices.value = next
 }
 
-/** Restore every readable document of a backup file, then show the trips. */
+/**
+ * Restore every readable document of a backup file, then show the trips.
+ *
+ * `/tabs/trips`, not `/trips`: the latter is not a route (only `/trips/new`
+ * and `/trips/:tripId` are), so the replace matched nothing and left the user
+ * on the import form with the file still pasted in it — the restore had
+ * happened and said nothing. Found by E2E-M18-05, which was the first thing
+ * ever to walk this path.
+ */
 function commitRestore() {
   const documents = restore.value ?? []
   orchestrator.commitPortableRestore(documents.flatMap((r) => (r.doc ? [r.doc] : [])))
   restore.value = null
-  router.replace('/trips')
+  router.replace('/tabs/trips')
 }
 
 const restorable = computed(() => (restore.value ?? []).filter((r) => r.doc !== null).length)
@@ -144,7 +152,7 @@ function commit() {
           adds them to what is already on this device; items that already exist are matched by name.
         </p>
         <IonList>
-          <IonItem v-for="(entry, index) in restore" :key="index">
+          <IonItem v-for="(entry, index) in restore" :key="index" data-testid="portable-restore-row">
             <IonLabel>
               <h3>{{ entry.doc?.name ?? 'Unreadable document' }}</h3>
               <p v-if="entry.doc">
