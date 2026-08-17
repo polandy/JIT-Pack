@@ -37,11 +37,14 @@ const title = computed(() => (saving.value ? t('item.saving') : t('item.saved'))
 .dot {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  /* Same diameter as the ✕ it stands beside — see surfaces.css. */
+  width: var(--jp-control-round);
+  height: var(--jp-control-round);
   flex: none;
   border-radius: 50%;
-  font-size: var(--jp-text-sm);
+  /* One step up now the circle is: at 13px the glyph read lighter than the
+     ✕ icon beside it, which is a size the icon table sets, not this scale. */
+  font-size: var(--jp-text-md);
 }
 
 .saved {
