@@ -1,7 +1,7 @@
 # UI / End-to-End Test Specification — „JIT-Pack" (v1.0)
 
 **Document Status:** Proposed for Review
-**Basis:** UI_Spec_v1.10 (screens M1–M21, patterns G-1–G-12) + PRD_Base + PRD_Addendum_v2.10 (FR/NFR catalogue).
+**Basis:** UI_Spec_v1.10 (screens M1–M21, patterns G-1–G-15) + PRD_Base + PRD_Addendum_v2.10 (FR/NFR catalogue).
 **Purpose:** Define *what* the automated headless-browser test suite must cover so that every requirement with a UI surface is exercised through the real, built client. This document is the specification; implementation (Playwright config, fixtures, the tests themselves) follows and is tracked separately.
 
 > This file is authoritative for E2E scope. When a requirement changes, its row in the traceability matrix (§7) must change with it — same discipline as UI_Spec and Sync_API_Spec.
@@ -57,7 +57,7 @@ Client only, served by `vite preview`. IndexedDB is the store; enqueue/drain/Web
 
 ---
 
-## 3. Global Pattern Test Cases (G-1 – G-13)
+## 3. Global Pattern Test Cases (G-1 – G-15)
 
 Global patterns are asserted once as dedicated cases and then relied upon (not re-asserted) inside screen cases.
 
@@ -118,6 +118,8 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G12-03 | G-12 Actions survive the collapsing header | all | Scrolling M4 down collapses its sub-header, and search and filter **remain tappable** in the app bar throughout. This is the reason the cluster lives there rather than on the status line. |
 | E2E-G12-04 | G-12 One header line | all | M4's own header renders a single line (name, progress, presence); the search field and the filter chip row appear below it **only** when respectively opened and active, and neither is present in the default state. |
 | E2E-G12-05 | G-12 Literal icons | all | Shopping uses a cart glyph and Luggage a suitcase — distinct from each other and from the Inventory cube. Guards the regression where one generic glyph stood for several destinations, which defeats dropping the labels. |
+| E2E-G15-01 | G-15 The mark's slot and ladder | all | One item with a photo, one with only a mark, one with neither, in the same list: M9 renders photo · mark · **tag initial**, M4 renders photo · mark · **empty slot**, and the three names stay left-aligned in both — the slot holds its width when it is empty (FR-28.4). |
+| E2E-G15-02 | G-15 The mark is presentational | all | A marked row's accessible name is the **item name alone** — the mark carries `aria-hidden` and contributes no text (FR-28.5). Asserted through the accessibility tree, not the DOM, since the failure mode is a screen reader announcing "backpack shorts trousers". |
 
 ---
 
@@ -233,6 +235,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M5-10** `all` (FR-20.1/20.4): Companions hint with one-tap Add (chains required companions).
 * **E2E-M5-11** `server` (G-3): item locked by the other user → read-only with lock banner.
 * **E2E-M5-12** `all` (FR-22.1): the source master item's photo renders when present.
+* **E2E-M5-15** `all` (FR-28.4): the sheet's identity slot shows the photo when there is one, the mark when there is not, and nothing when there is neither — the same slot, three states, asserted on one trip carrying one item of each kind. The mark is **not editable here** (no picker in the sheet): it belongs to the master item, and M10 owns it (FR-28.7).
 
 ### M6 — Shopping Views
 * **E2E-M6-01** `all` (FR-3.2): two tabs (Before departure / At destination), rows grouped by category; destination tab shows destination-checklist entries separated.
@@ -283,12 +286,14 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M8-16** `all` (FR-27.14): M8's resolution footer opens the peek sheet on the Vorlage itself; the list is the resolved set, flat and alphabetical; a merged row names both contributing groups and an own position reads as one; the sheet offers no control that writes, and the editor is still behind it afterwards. *The marks themselves — merge, per person, procurement, condition — are asserted in `GroupPeekSheet.spec.ts` rather than here:* reaching a per-person and a conditional position through M8's position sheet doubles this case's UI work, and this unit already sits at WebKit's test budget (see the ledger). The rendering is covered; only the driving surface differs.
 * **E2E-M8-15** `all` (FR-27.13, *owed — not built*): the group picker's search — the field appears only above six groups; typing an item name finds the group that carries it and the row states the reason („über Kamera"); results render as rows with the FR-27.12 summary; a matching **already-included** group reports that instead of being absent; no match offers *„Neue Gruppe anlegen…"* prefilled with the typed text.
 * **E2E-M8-17** `all` (FR-25.13a): the ＋ is present, hides while the quick-add composer is open, and returns when it closes; the fab *container* remains throughout, because the screen anchors its toasts to it.
+* **E2E-M8-18** `all` (FR-28.8): a group's own mark is set from the same picker beside its name and then renders wherever that group is offered — the M7 row, M3 step 3, M8's *Gruppen* section and the FR-27.12 peek sheet header. One assertion per surface, because the field exists precisely so those four stop being hardcoded.
 * **E2E-M8-08** `all` (FR-27.2): resolution footer shows the resolved item count over groups + own positions and **names** every dedup with its contributing groups ("Kamera nur 1× — in Makro & Wildlife").
 * **E2E-M8-09** `all` (FR-27.4): a template used by a *planning* trip shows the blast-radius note naming that trip; adding/removing a position then puts the "⟳ N Änderungen aus Gruppen übernommen" chip **only** on that planning trip's M2 row (never on active/archived rows); expanding the chip lists each change with its source group.
 
 ### M9 — Item Inventory
 * **E2E-M9-01** `all` (FR-1.1/24.2/24.4) — **implemented** (`e2e/inventory.spec.ts`): searchable, tag-grouped list, **lean by default** — per row only primary-tag avatar + name (no tag chips, no weight/price); row thumbnail when a photo exists. The case an item on *two* tags is the point: it renders **once**, under its primary tag, and its second tag is not a heading.
 * **E2E-M9-02** `all` (FR-1.1/24.5): FAB → M10 in **creation mode**. Superseded the name prompt on 2026-08-16: a prompt cannot carry tags or a weight, so creation is the minimal form (see E2E-M10-07).
+* **E2E-M9-07** `all` (FR-28.1/28.4/28.7): a mark set in M10 appears on the inventory row **and** on the packing rows of a trip generated from that item, without either row storing it (FR-28.7 — asserted by changing the mark once and observing both surfaces); an ad-hoc quick-add row shows the empty slot. Covers the ladder's inventory rung: an item with a photo keeps showing the photo.
 * **E2E-M9-03** `all` (FR-16.3): multi-select merge of duplicates.
 * **E2E-M9-04** `all` (G-7/NFR-4.7): empty state → import entry (M15).
 * **E2E-M9-06** `all` (FR-24.2) — **implemented**: the tag chip axis filters on **any** of an item's tags while the grouping stays on the primary one — filtering by *Sommer* surfaces the swimsuit filed under *Kleidung*. Asserted on rendered rows, since the two rules differ only in what is painted.
@@ -299,6 +304,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M10-08** `all` (FR-24.1) — **implemented** (`e2e/inventory.spec.ts`): the tag input is a search field — typing filters the chips (assigned tags stay pinned), tapping a match assigns it; an unmatched name shows the "＋ „X“ neu anlegen" chip, and ＋/Enter creates and assigns the tag in one step, clearing the field for the next.
 * **E2E-M10-10** `all` (FR-24.1/16.3) — **implemented**: since the item's name became its identity (`UNIQUE (name)`, ADR-014), creating a second item with an existing name is **reported in the form** — not left to the sync push to reject.
 * **E2E-M10-07** `all` (FR-24.5) — **implemented** (`e2e/inventory.spec.ts`): creating an item shows the minimal form (name focused, tags, "Mehr — Gewicht & Preis ▾"; no Enthalten-in/Kommentare/Löschen sections); committing without a name is caught with a hint; after "Artikel anlegen" the full editor appears.
+* **E2E-M10-11** `all` (FR-28.2/28.3) — the picker and its three cases, which is the whole point of building it: typing **„Zahnbürste“** puts 🪥 first in the suggestion band and one tap sets it; **„Stirnlampe“** suggests 🔦 and the item is saved **unmarked** unless the offer is tapped (asserted positively — the stored value stays null, so the case cannot pass by the picker simply being slow); **„Zwischenringe“** renders the named empty result and **no** suggestion chips. Then: the search field finds by keyword and not by name (typing „regen“ surfaces 🧥 and ☂️), a facet narrows the grid, and **„Marke entfernen“** clears a set mark back to the empty slot.
 * **E2E-M10-02** `all` (FR-2.4): usage footer ("Used in N templates, M archived trips"); delete blocked while referenced by templates.
 * **E2E-M10-09** `all` (FR-20.1/20.4): M10 lists the item's dependencies with a *nötig/empfohlen* toggle per row, and — read-only — the items that depend on it; the reverse list offers no editing, since the relation is owned by the item that needs the companion.
 * **E2E-M4-32** `all` (FR-20.4/20.2): quick-adding an item pulls its **required** companions onto the trip and reports it, while *suggested* ones are not added unasked; skipping the item co-skips those companions into the skipped section with the reason naming the parent.
@@ -566,6 +572,17 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-27.10 | E2E | M4-26 (group add: dedup, provenance, tasks, no Missing flag), M4-27 (fully-present group, planning-trip propagation) |
 | FR-27.11 | E2E+UNIT | M14-04 (group targets, blast radius), M14-05 (list not card stack, marked rows, per-pair dismissal); review.ts, ReviewPage.spec.ts — the applied-change log is owed with the §3.27 refresh package |
 | FR-25.7 | E2E | M8-12 (one-tap add, "Standard" row, Mehr-Optionen disclosure) |
+| FR-28.1 | E2E | M9-07 (mark set, mark absent — absence is a normal row, not an empty state) |
+| FR-28.2 | E2E | M10-11 (keyword search, facets, explicit removal) |
+| FR-28.3 | E2E+UNIT | M10-11 (hit / skewed hit / empty, offer never auto-applied); `domain/itemMarks.ts` — compound splitting **only** against the index vocabulary, scoring order, and the empty result as a returned state rather than an exception |
+| FR-28.4 | E2E | G15-01 (both ladders, slot width), M9-07, M5-15 |
+| FR-28.5 | E2E+UNIT | G15-02 (accessible name excludes the mark); a unit assertion that no view outside the mark component renders an `icon` value, mirroring the FR-21.7 hex-in-`client/src` test that keeps colours in one table |
+| FR-28.6 | UNIT | the subset's `unicode-range` covers exactly the curated index and nothing else — a mark that would render as tofu is a build failure, not a support ticket; weight recorded against NFR-4.3 in the implementing PR |
+| FR-28.7 | E2E | M9-07 (one edit, both surfaces), M4 ad-hoc row shows the empty slot |
+| FR-28.8 | E2E | M8-18 (template mark on all four offering surfaces) |
+| FR-28.9 | SERVER+UNIT | Go: the length cap rejects an over-long value and the column round-trips through pull/push like any other master field; merge is ordinary LWW (no special case) |
+| FR-28.10 | UNIT | `internal/portable` round-trip with and without `icon`; an export from before the field imports unmarked (FR-18.4 tolerance) |
+| FR-28.11 | E2E | M10-11 runs in `local` — the picker, the search and the suggestion work with no server present |
 | NFR-4.1 | E2E | NFR-01, FLOW-06 |
 | NFR-4.2 | E2E | FLOW-06 (silent background sync) |
 | NFR-4.2a | E2E+UNIT | FLOW-08, NFR-04; sync merge tests |

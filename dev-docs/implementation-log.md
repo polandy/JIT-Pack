@@ -2651,3 +2651,56 @@ a 329 000 px frame, under ADR-013's `maxDiffPixelRatio`. A tolerance that
 absorbs an intended change also absorbs an unintended one — which is why the
 geometry has its own assertion rather than relying on the screenshots.
 
+## §3.28: the packing row gets a mark, decided on pixels (2026-08-17, spec only)
+
+Owner question: a pack item can carry a photo — would emojis, or an icon from a
+library, not make more sense? With three conditions attached: recognisable per
+icon, searchable the way WhatsApp is, and ideally *suggested*.
+
+The answer is not either/or, and saying so was the first useful move: the photo
+(§3.22) answers **which** jacket, and it exists on a handful of rows because
+nobody photographs forty items. What a forty-row list lacks is a **mark** — the
+always-affordable symbol that says *what kind of thing this is* before the name
+is read. So the photo stays and the mark is added beside it, with a ladder
+deciding which is shown (FR-28.4).
+
+**Decided by rendering, not by arguing.** Four marks, one fifteen-row list, one
+frame: emoji, an icon library, photo-first, and a coloured initial as the honest
+null variant. Two things only the render could settle:
+
+1. **The icon library is the option that fits our own rules and it still lost.**
+   Monochrome strokes in a role colour satisfy G-11/G-13/G-14 without an
+   exception, and at 34 px sunscreen, bottle and water bottle are the same
+   picture. Its substitute rate was also the **higher** of the two — 7 of 15
+   against emoji's 6 — because libraries carry travel gear and not household
+   detail. That margin is one row and proves nothing by itself; the
+   distinguishability does. The argument favoured it; the pixels did not.
+2. **The null variant is worse than nothing.** A coloured initial repeats, in a
+   circle, the name standing next to it. That is what made "no mark" an
+   acceptable and *normal* row state in FR-28.1 rather than a gap to fill.
+
+The list was seeded on purpose with a row nothing fits (*Trekkingstöcke*) and
+several near-misses (*Fleecepullover*, *Schlafsack*, *Wasserflasche* — Unicode
+has no water bottle): a symbol system is decided in its tail, not in its head.
+
+Counting those beat a claim I had already written down: the first draft of this
+entry said 4 substitutes against 6. Counting the rendered data said **6 against
+7**, which keeps the conclusion and removes the margin it looked like it had.
+
+**The suggestion is cheap and was built to prove it.** The variant page carries
+a working picker: one keyword index (de + en), scored against the item name.
+`Tarnzelt → ⛺`, `Kaffeekanne → ☕`, `Wasserflasche → 🧴🥤💧`. One correction came
+out of running it: German compounds need splitting, but a suffix may only become
+a token when the index already knows it — the first version happily tokenised
+„Zahnbürste" into *ürste*, and the suggestion line read like noise. That rule is
+in FR-28.3 and is a test name, not a comment.
+
+Two costs are accepted in writing rather than discovered later: the mark is the
+one surface whose colours do not come from the token table (G-15 confines it to
+content — never a button, a status or a progress), and a self-hosted subsetted
+emoji face rewrites every visual baseline when it lands (ADR-013), which the
+implementing PR does once, deliberately.
+
+**No ADR here.** The tradeoff is real and an ADR is owed — but `adr/README.md`
+is explicit that one without code is a plan, so it ships with the build, using
+this round as its evidence.
