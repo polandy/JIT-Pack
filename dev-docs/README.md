@@ -58,6 +58,11 @@ generated — edit the builder, not the HTML:
 
 - [`UI_Concept_GroupPeek_variants.html`](UI_Concept_GroupPeek_variants.html) — looking
   inside a group before taking it (FR-27.12); `node dev-docs/build-group-peek-variants.mjs`.
+- [`UI_Concept_ResolvedList_variants.html`](UI_Concept_ResolvedList_variants.html) — showing
+  a Vorlage its resulting items (FR-27.14); `node dev-docs/build-resolved-list-variants.mjs`.
+- [`UI_Concept_ReviewStep_variants.html`](UI_Concept_ReviewStep_variants.html) — how much
+  editing M3's review step should carry (FR-2.6, **variant not yet chosen**);
+  `node dev-docs/build-review-step-variants.mjs`.
 - [`UI_Concept_ItemMark_variants.html`](UI_Concept_ItemMark_variants.html) — what stands
   left of the item name (§3.28, G-15): emoji vs. icon library vs. photo-first vs. a bare
   initial, plus a working picker with keyword search and name-derived suggestions;

@@ -235,7 +235,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M5-10** `all` (FR-20.1/20.4): Companions hint with one-tap Add (chains required companions).
 * **E2E-M5-11** `server` (G-3): item locked by the other user → read-only with lock banner.
 * **E2E-M5-12** `all` (FR-22.1): the source master item's photo renders when present.
-* **E2E-M5-14** `all` (FR-28.4): the sheet's identity slot shows the photo when there is one, the mark when there is not, and nothing when there is neither — the same slot, three states, asserted on one trip carrying one item of each kind. The mark is **not editable here** (no picker in the sheet): it belongs to the master item, and M10 owns it (FR-28.7).
+* **E2E-M5-15** `all` (FR-28.4): the sheet's identity slot shows the photo when there is one, the mark when there is not, and nothing when there is neither — the same slot, three states, asserted on one trip carrying one item of each kind. The mark is **not editable here** (no picker in the sheet): it belongs to the master item, and M10 owns it (FR-28.7).
 
 ### M6 — Shopping Views
 * **E2E-M6-01** `all` (FR-3.2): two tabs (Before departure / At destination), rows grouped by category; destination tab shows destination-checklist entries separated.
@@ -575,7 +575,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-28.1 | E2E | M9-07 (mark set, mark absent — absence is a normal row, not an empty state) |
 | FR-28.2 | E2E | M10-11 (keyword search, facets, explicit removal) |
 | FR-28.3 | E2E+UNIT | M10-11 (hit / skewed hit / empty, offer never auto-applied); `domain/itemMarks.ts` — compound splitting **only** against the index vocabulary, scoring order, and the empty result as a returned state rather than an exception |
-| FR-28.4 | E2E | G15-01 (both ladders, slot width), M9-07, M5-14 |
+| FR-28.4 | E2E | G15-01 (both ladders, slot width), M9-07, M5-15 |
 | FR-28.5 | E2E+UNIT | G15-02 (accessible name excludes the mark); a unit assertion that no view outside the mark component renders an `icon` value, mirroring the FR-21.7 hex-in-`client/src` test that keeps colours in one table |
 | FR-28.6 | UNIT | the subset's `unicode-range` covers exactly the curated index and nothing else — a mark that would render as tofu is a build failure, not a support ticket; weight recorded against NFR-4.3 in the implementing PR |
 | FR-28.7 | E2E | M9-07 (one edit, both surfaces), M4 ad-hoc row shows the empty slot |
