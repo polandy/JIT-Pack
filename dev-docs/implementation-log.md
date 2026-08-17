@@ -2845,3 +2845,30 @@ plus E2E-M3-18), #102's other halves (E2E-M8-16, E2E-M7-09,
 measures the rendered pair; the token it introduced cannot regress without
 somebody re-typing a raw px). #101's Server Mode half of the sheet stays
 component-test-only, as its own ledger entry already states.
+
+### The review step that let both gaps through, and what changed in it
+
+Worth recording beside the gaps themselves, because the fix is process rather
+than code. `/pr-review` **ran** on #101 and #102 and marked client coverage ✅
+on both. Reading the two verdicts back:
+
+* #101's own summary says *"M18 now reads such a file"* — and no section of
+  that review mentions `PortableImportPage.vue`, which the same diff changed.
+* #102's verdict is entirely about FR-27.14. The diff also amended FR-25.13a
+  across two screens; that half appears nowhere in the review.
+* #103 got no `/pr-review` at all.
+
+Both reviews checked the feature named in the **title**. A PR routinely carries
+two, and the second one is the one that ships untested — which is exactly what
+happened twice in one day. Being more careful is not a fix for that; a step that
+cannot be answered from the tests that exist is.
+
+So the skill gained **§4.0**: before any other coverage check, build a table with
+one row per changed production file naming the test that drives *that file's
+changed lines*, and **post the table in the verdict** rather than a claim that it
+was built. A row that cannot be filled is a finding regardless of the title.
+Three rules came out of the same two misses and sit with it: a write half and a
+read half are two behaviours (and for the only copy of a user's data, the read
+half is the more important one); one rule written into N templates needs N cases;
+and a shared test helper that tolerates both states is never the assertion.
+`CLAUDE.md` now also says a missing verdict comment is itself a blocker.
