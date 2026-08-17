@@ -125,6 +125,27 @@ test('M4: a skipped row offers to be packed after all @local @m4', async ({ page
   await expect(page.getByTestId('m4-row-Zelt')).not.toContainText(/deliberately skipped/i)
 })
 
+// E2E-M4-41 (FR-5.5, UI-Spec M4): the row keeps its tap. The hold and the
+// tap live on the same element, and M7 paid for this once already — the
+// release of a hold usually lands on the overlay rather than the row, so a
+// "swallow the next click" flag goes stale and eats a later, legitimate tap.
+test('M4: the row menu neither opens the sheet nor eats the next tap @local @m4', async ({
+  page,
+  seedMode,
+}) => {
+  await seedMode({ mode: 'local' })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await tripWithRows(page, ['Zelt'])
+
+  await openRowMenu(page, 'Zelt')
+  // Holding must not also open the detail — one gesture, one outcome.
+  await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+  await chooseInRowMenu(page, /cancel/i)
+
+  await page.getByTestId('m4-row-Zelt').click()
+  await expect(page.getByTestId('m5-sheet')).toBeVisible()
+})
+
 /** Create a master item through M9/M10's own path. */
 async function createMasterItem(page: Page, name: string) {
   await page.goto('/tabs/items')

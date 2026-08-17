@@ -85,6 +85,23 @@ describe('seedSampleMaster (dev)', () => {
     expect(master.templateItemTaskList.map((t) => t.task)).toContain('Akkus laden')
   })
 
+  it('wires two required companions, so the FR-20.2 cascade is reachable on a fresh device', () => {
+    // The seed exists so a feature can be exercised without twenty minutes
+    // of typing; the co-skip cascade needs a dependency, and building one by
+    // hand is three screens away.
+    const { master } = seed()
+
+    const named = master.dependencyList.map((dep) => ({
+      item: master.getItem(dep.item_id)?.name,
+      dependsOn: master.getItem(dep.depends_on_item_id)?.name,
+      mode: dep.mode,
+    }))
+    expect(named).toEqual([
+      { item: 'Ersatzakkus', dependsOn: 'Kamera', mode: 'required' },
+      { item: 'Ringlicht', dependsOn: 'Makro-Objektiv', mode: 'required' },
+    ])
+  })
+
   it('tags every inventory item, so M9 groups them', () => {
     const { master } = seed()
 
