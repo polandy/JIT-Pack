@@ -453,6 +453,21 @@ feedback, so the failure looked like a dead control for two sessions; the
 moment it reported, the message named the cause in one line. And **the run mode
 that matters is the one the owner uses** — localhost is not it.
 
+## FR-27.14 — a Vorlage's resulting items (2026-08-17)
+
+**E2E-M8-16** joins the M8 unit rather than starting one: the footer that opens
+the list is part of that editor, and the sheet behind it is FR-27.12's, already
+covered as a component. The case asserts the three things the number could not
+say — the items themselves, where each came from, and the marks — plus the two
+that make it a look: one button, and the editor still standing behind it.
+
+**Both M8 describes had to declare `test.slow()`.** Adding a fifth
+composition-building case pushed WebKit past the 30 s default and *four* cases
+failed, three of them untouched by the change — the same arithmetic the M3
+composition unit hit on 2026-08-16, and the same misleading signature: failures
+land wherever the clock runs out, so one slow addition reads as several
+unrelated bugs. Two consecutive 20/20 runs after declaring the budget.
+
 ## E2E-M5-14 — the sheet header's two round controls (2026-08-16)
 
 Owner-flagged from a rendered phone: the FR-25.15 save indicator was 26 px

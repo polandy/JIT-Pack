@@ -1,4 +1,4 @@
-import { test, expect, createTripViaWizard } from './fixtures'
+import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
 
 /**
  * M5 — item detail (UI-Test-Spec §4), rebuilt 2026-08-14 as a sheet over
@@ -22,7 +22,7 @@ test.describe('M5 item detail @local @m5', () => {
   }) => {
     await page.setViewportSize({ width: 400, height: 880 })
     const path = await createTripViaWizard(page, TRIP)
-    await page.getByTestId('m4-fab').click()
+    await openQuickAdd(page)
     await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
     await page.getByTestId('quick-add-confirm').click()
 
@@ -43,7 +43,7 @@ test.describe('M5 item detail @local @m5', () => {
   test('E2E-M5-10: a deep link opens the detail with the list behind it', async ({ page }) => {
     await page.setViewportSize({ width: 400, height: 880 })
     const path = await createTripViaWizard(page, TRIP)
-    await page.getByTestId('m4-fab').click()
+    await openQuickAdd(page)
     await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
     await page.getByTestId('quick-add-confirm').click()
     await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
@@ -70,7 +70,7 @@ test.describe('M5 item detail @local @m5', () => {
   }) => {
     await page.setViewportSize({ width: 400, height: 880 })
     await createTripViaWizard(page, TRIP)
-    await page.getByTestId('m4-fab').click()
+    await openQuickAdd(page)
     await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
     await page.getByTestId('quick-add-confirm').click()
     await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
@@ -96,7 +96,7 @@ test.describe('M5 item detail @local @m5', () => {
   test('E2E-M5-12: on a desktop width the detail is a side panel', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await createTripViaWizard(page, TRIP)
-    await page.getByTestId('m4-fab').click()
+    await openQuickAdd(page)
     await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
     await page.getByTestId('quick-add-confirm').click()
     await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
@@ -120,7 +120,7 @@ test.describe('M5 item detail @local @m5', () => {
     await page.getByTestId('header-back').click()
     await page.getByTestId('trips-filter-planned').click()
     await page.getByTestId(`trip-row-${TRIP.name}`).click()
-    await page.getByTestId('m4-fab').click()
+    await openQuickAdd(page)
     await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
     await page.getByTestId('quick-add-confirm').click()
     await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
@@ -154,7 +154,7 @@ test.describe('M5 item detail @local @m5', () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await createTripViaWizard(page, TRIP)
-    await page.getByTestId('m4-fab').click()
+    await openQuickAdd(page)
     await page.getByTestId('quick-add-input').locator('input').fill('Wanderstöcke')
     await page.getByTestId('quick-add-confirm').click()
     await page.getByTestId('m4-row-Wanderstöcke').getByRole('heading').click()

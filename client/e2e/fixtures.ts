@@ -170,12 +170,26 @@ export async function backToTemplateList(page: Page) {
   await expect(visiblePage(page).getByTestId('m8-scope-switch')).toHaveCount(0)
 }
 
+/**
+ * Open the quick-add composer — clicking the ＋ only when it is closed.
+ *
+ * Since 2026-08-17 the ＋ hides while the composer is open (FR-25.13a): it
+ * would open what is already open. The composer also *stays* open after an add
+ * (FR-25.13), so a loop that adds three items must not tap the ＋ three times —
+ * it would wait forever on the second. Tests that add in a loop go through
+ * here; the guard is the same one `addPosition` has always had.
+ */
+export async function openQuickAdd(page: Page, fab: 'm4-fab' | 'm8-fab' = 'm4-fab') {
+  const input = visiblePage(page).getByTestId('quick-add-input')
+  if (await input.isVisible().catch(() => false)) return
+  await visiblePage(page).getByTestId(fab).click()
+  await expect(input).toBeVisible()
+}
+
 /** FR-25.13: type into M8's quick-add and commit with Enter. */
 export async function addPosition(page: Page, name: string) {
+  await openQuickAdd(page, 'm8-fab')
   const input = visiblePage(page).getByTestId('quick-add-input')
-  if (!(await input.isVisible().catch(() => false))) {
-    await visiblePage(page).getByTestId('m8-fab').click()
-  }
   await input.locator('input').fill(name)
   await input.locator('input').press('Enter')
   // The new row is the settled signal — the add is a Local Mode write.
