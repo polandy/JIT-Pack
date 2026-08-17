@@ -71,6 +71,36 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(input).toHaveValue('')
   })
 
+  // E2E-M4-36 (FR-25.13a, amended 2026-08-17): the ＋ steps aside while the
+  // composer is open. M8 has the same rule and its own case (E2E-M8-17), and
+  // both are needed: the behaviour is written in each screen's own template
+  // (`v-if="!quickAddExpanded"`), so one screen keeping it says nothing about
+  // the other. The shared `openQuickAdd` helper deliberately *tolerates* both
+  // states — it would pass either way, which is why it is not the assertion.
+  test('E2E-M4-36: the ＋ steps aside while the quick-add is open', async ({ page }) => {
+    await createTripViaWizard(page, TRIP)
+
+    await expect(page.getByTestId('m4-fab')).toBeVisible()
+    await openQuickAdd(page)
+
+    await expect(page.getByTestId('m4-fab')).toHaveCount(0)
+    // The anchor survives the button: M4 positions its FR-25.2 undo snackbar
+    // against the fab *container*, so hiding the whole IonFab would drop the
+    // snackbar behind the tab bar — the M7/M8 defect of 2026-08-15.
+    await expect(page.locator('#m4-fab-anchor')).toHaveCount(1)
+
+    // Adding does not bring it back — the composer stays open (FR-25.13), so
+    // the ＋ still has nothing to do.
+    await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
+    await page.getByTestId('quick-add-confirm').click()
+    await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
+    await expect(page.getByTestId('m4-fab')).toHaveCount(0)
+
+    // And it returns when the composer closes.
+    await page.getByTestId('quick-add-close').click()
+    await expect(page.getByTestId('m4-fab')).toBeVisible()
+  })
+
   // E2E-G6-02 (G-6, UI-Spec M4 "tap row → M5"): the row's control counts
   // and only the row's body opens the sheet. Reported as "wenn ich bei
   // Taschentücher auf das + klicke, kommt item not found": Ionic wraps a

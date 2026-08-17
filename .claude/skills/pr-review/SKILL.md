@@ -53,6 +53,25 @@ Every requirement or behaviour change is reflected in its spec **in the same PR*
 
 Test-first is non-negotiable: every new behaviour has a driving test, every bug fix has a test that fails without the fix.
 
+### 4.0 The review scope is the diff, not the PR description — build the table first
+
+Before any other coverage check, run `gh pr diff <PR> --name-only` and build a table with **one row per changed file** under `client/src/**`, `internal/**` and `cmd/**`, naming the test that drives *that file's changed lines* — test file plus case name. A row you cannot fill is a finding, whatever the PR title is about.
+
+**This table is a required part of the §8 verdict.** Not a claim that it was done — the table itself, posted. It is cheap, and it is the only step here that cannot be satisfied by narrative.
+
+It exists because both reviews it was written after failed the same way (2026-08-17, PRs #101 and #102):
+
+- #101's verdict summary says "M18 now reads such a file" and marks client coverage ✅ — while `PortableImportPage.vue`, changed in that same diff, appears in no section of the review. The restore branch shipped with nothing driving it.
+- #102's verdict is entirely about FR-27.14. The same diff also amended FR-25.13a across two screens; that half is not mentioned anywhere, and the untested screen stayed untested.
+
+Both reviewed the feature named in the title. A PR routinely carries two, and the second one is the one that ships without tests.
+
+Three rules follow from the same two misses:
+
+- **A write half and a read half are two behaviours.** Export/import, backup/restore, generate/render, encode/decode: each side needs its own driving case. "We write it and a domain unit parses it" is not coverage of the screen a user reads it back through — and for anything that is the only copy of the user's data, the read half is the more important of the two.
+- **One rule written into N templates needs N cases.** If the same behaviour is expressed separately per screen (a `v-if` in each view rather than one shared component), one screen keeping it says nothing about the others. Check every site the diff touched.
+- **A shared test helper is never the assertion.** A helper that tolerates both states — `if (await x.isVisible()) return` — has to tolerate them, and would stay green against the behaviour's removal. If the only thing "covering" a behaviour is a helper's tolerance, it is untested.
+
 - **Naming as specification** — `TestMerge_PackedBeatsPackingNow_RegardlessOfHLC`, not `TestMerge2`. Table-driven with named `t.Run` subtests for domain logic; FR/NFR id in the test body or name where one applies.
 - **Real in-memory SQLite** for store/api tests, never DB mocks. Hand-written fakes behind small interfaces; no mocking frameworks.
 - **Failure paths**, not just the happy path, wherever the code enforces a correctness or authorization rule.
@@ -92,9 +111,10 @@ If the PR touches `client/src`:
 End with a concise report:
 
 1. **Summary** — what the PR does, one paragraph.
-2. **Findings** — per section above: ✅ ok / ⚠️ issue (with file:line) / 🔧 fixed by me (with commit).
-3. **Blockers** — anything that must change before merge and that you could not fix yourself (missing manual UI check, design questions).
-4. **Merge readiness** — ready / not ready. Do **not** merge; the maintainer merges via squash with a crafted Conventional Commit on their own command.
+2. **The §4.0 table** — every changed production file against the test that drives its changed lines. Posted as a table, not summarised; an unfilled row is a finding and belongs in the findings below too.
+3. **Findings** — per section above: ✅ ok / ⚠️ issue (with file:line) / 🔧 fixed by me (with commit).
+4. **Blockers** — anything that must change before merge and that you could not fix yourself (missing manual UI check, design questions).
+5. **Merge readiness** — ready / not ready. Do **not** merge; the maintainer merges via squash with a crafted Conventional Commit on their own command.
 
 ## 9. Post the verdict as a PR comment
 
