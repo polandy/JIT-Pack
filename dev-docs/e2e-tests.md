@@ -39,20 +39,21 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Harness smoke | E2E-M19-01 (partial), E2E-M19-04, E2E-G7-01 | `local` | [`smoke.spec.ts`](../client/e2e/smoke.spec.ts) |
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M1-05 | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
-| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
+| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
-| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
+| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
 | Visual baselines | E2E-VIS-01 … E2E-VIS-07 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
-| M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (completed by the M8 unit), E2E-M7-08 | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
-| M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14 | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
+| M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (completed by the M8 unit), E2E-M7-08, E2E-M7-09 | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
+| M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-16, E2E-M8-17 | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
 | M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-02, E2E-M9-03, E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
 | M12 analytics | E2E-M12-01, E2E-M12-02, E2E-M12-03 (absence half only, see below), E2E-M12-04, E2E-M12-05 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
-| M3 composed templates | E2E-M3-11, E2E-M3-13 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
+| M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
+| M18 backup & restore | E2E-M18-05, E2E-M18-06 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-06 (empty-state half only, see below) + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
@@ -499,3 +500,41 @@ moving from *Never backed up* to *Last backup today*.
 the backend-backed projects do not exist yet. The Server Mode half of the sheet
 is covered by the component test only, which is stated here rather than left to
 look like coverage.
+
+## M18 — the restore half of the backup (2026-08-17)
+
+Written as a coverage audit of the day's merged PRs, not as a feature. #101
+shipped the backup with unit cases for `commitPortableRestore` and an e2e for
+the *download*; the restore branch of M18 — the screen a user actually restores
+through — had nothing driving it. In Local Mode the file is the only copy, so a
+backup that cannot be read back is not a backup, which put this above the other
+gaps the audit found.
+
+**E2E-M18-05** takes a real backup through the G-2 detail and restores it in a
+**second browser context** — a device that has never seen the data. That is the
+load-bearing part of the design: restoring onto the device that wrote the file
+would pass against an importer that does nothing, because every assertion would
+already be satisfied by what is on screen. The file has to hold *two* documents
+to reach the restore branch at all (a single document is the ordinary merge
+preview), so the case builds a group and a trip through the app's own paths.
+
+**It found a real defect on its first run.** `commitRestore` replaced to
+`/trips`, which is not a route — only `/trips/new` and `/trips/:tripId` are — so
+the restore happened and the user was left on the import form with the file
+still pasted into it. Nothing said anything had been imported. Fixed to
+`/tabs/trips` in the same PR.
+
+Two traps paid for while writing it, both worth repeating:
+
+1. **A bare text match read the textarea.** `getByText('Samedan 2026')` was
+   green *because* the pasted YAML was still on screen — the exact failure the
+   redirect defect caused. Asserting on `trip-row-<name>` is what made the case
+   able to see it. A test that reads the input it just filled proves nothing.
+2. **A restored trip is *planning*.** M2 opens on *Active*, so the case selects
+   the Planned segment. Noted rather than designed around: a restore currently
+   ends on a screen that says "No active trips", which is an owner call.
+
+**E2E-M18-06** is the failure path ADR-015 promises — one damaged document is
+reported in its place, marked *skipped*, and the intact ones still import.
+Red-proved by making `preview()` filter unreadable documents out: the count
+assertion falls to 2.

@@ -2793,3 +2793,108 @@ Two of my own test assumptions were wrong rather than the code, both worth the
 minute they cost: with no travelers a per-person position fans out over nobody
 and produces **no row at all** (the walk now adds one), and the expected item
 count was guessed instead of derived from the list under test.
+
+## Coverage audit of 2026-08-17's merged PRs — the two gaps it found
+
+Not a feature. The day's four merged PRs (#99 sheet-header pair, #101 G-2
+detail + backup, #102 FR-27.14 peek entry + the scope-following ＋, #103 FR-2.6
+review step) were re-read against what actually drives them, unit and e2e. Two
+had a hole, and both holes were of the same kind: the *reading* half of a
+behaviour whose *writing* half was covered.
+
+**#101 — the backup could be written and never read.** `commitPortableRestore`
+had unit cases and E2E-G2-03 asserted the download, but nothing walked M18's
+restore branch, which is the screen a user restores through. In Local Mode the
+file is the only copy there is, so this was the gap worth closing first.
+`e2e/backup-restore.spec.ts` now takes a real backup through the G-2 detail and
+restores it into a second browser context — a device that has never seen the
+data, because restoring onto the device that wrote the file would pass against
+an importer that does nothing at all.
+
+It found a defect on its first run: `commitRestore` replaced to `/trips`, which
+is **not a route** (only `/trips/new` and `/trips/:tripId` are). The restore
+happened, the router matched nothing, and the user was left looking at the
+import form with the file still pasted into it — no trips, no message, no sign
+anything had been imported. Fixed to `/tabs/trips`. The first draft of the case
+did not see it either: `getByText('Samedan 2026')` was green *because* the
+pasted YAML was on screen, so the assertion moved onto `trip-row-<name>`. A
+test that reads back the input it just filled proves nothing.
+
+A second observation from that run is left as an owner question rather than
+designed around: a restored trip is *planning*, M2 opens on *Active*, so a
+restore currently ends on a screen that says "No active trips". The case selects
+the Planned segment and says why.
+
+**#102 — the ＋ steps aside on M8, and nobody asked M4.** FR-25.13a's amendment
+landed in both screens' templates and got one case (E2E-M8-17). The shared
+`openQuickAdd` fixture tolerates the button being there or not — it has to, it
+is a helper — so it would have stayed green either way. E2E-M4-36 asserts M4's
+half, including that `#m4-fab-anchor` survives (the FR-25.2 snackbar hangs off
+it) and that adding does not bring the button back, since the composer stays
+open.
+
+Both new cases were red-proved against a mutated build — the `v-if` removed,
+and `preview()` filtering unreadable documents out — and both pass on Chromium
+and WebKit. Two `data-testid`s were added to production markup for them
+(`portable-restore-row`, `m2-portable-import`), which is the testability-by-
+design principle #93 wrote down: an assertion should name the thing it means.
+
+**Judged covered, no work owed:** #103 (unit cases for drop/restore/count/marks
+plus E2E-M3-18), #102's other halves (E2E-M8-16, E2E-M7-09,
+`GroupPeekSheet.spec.ts`, the `templates.ts` domain cases) and #99 (E2E-M5-14
+measures the rendered pair; the token it introduced cannot regress without
+somebody re-typing a raw px). #101's Server Mode half of the sheet stays
+component-test-only, as its own ledger entry already states.
+
+### The review step that let both gaps through, and what changed in it
+
+Worth recording beside the gaps themselves, because the fix is process rather
+than code. `/pr-review` **ran** on #101 and #102 and marked client coverage ✅
+on both. Reading the two verdicts back:
+
+* #101's own summary says *"M18 now reads such a file"* — and no section of
+  that review mentions `PortableImportPage.vue`, which the same diff changed.
+* #102's verdict is entirely about FR-27.14. The diff also amended FR-25.13a
+  across two screens; that half appears nowhere in the review.
+* #103 got no `/pr-review` at all.
+
+Both reviews checked the feature named in the **title**. A PR routinely carries
+two, and the second one is the one that ships untested — which is exactly what
+happened twice in one day. Being more careful is not a fix for that; a step that
+cannot be answered from the tests that exist is.
+
+So the skill gained **§4.0**: before any other coverage check, build a table with
+one row per changed production file naming the test that drives *that file's
+changed lines*, and **post the table in the verdict** rather than a claim that it
+was built. A row that cannot be filled is a finding regardless of the title.
+Three rules came out of the same two misses and sit with it: a write half and a
+read half are two behaviours (and for the only copy of a user's data, the read
+half is the more important one); one rule written into N templates needs N cases;
+and a shared test helper that tolerates both states is never the assertion.
+`CLAUDE.md` now also says a missing verdict comment is itself a blocker.
+
+### The restore landing (owner call, 2026-08-17)
+
+The audit above left one thing as a question rather than deciding it: a restore
+landed on M2, which opens on *Active*, while every imported trip is `planning`
+(FR-18.4) — so a restore that had just written the user's whole device back
+ended on the words "No active trips". Owner's answer: land on **Planned**.
+
+Built as a route query rather than a flag on the page: `client/src/views/trips/
+tripFilter.ts` names the three segments once and parses a query value, M2 honours
+it through a `watch` and M18 sets it. Three details are deliberate.
+
+* **A watch, not a read at setup.** Ionic keeps M2 mounted, so a restore arriving
+  while the page is already alive would otherwise land on whatever segment was
+  last tapped.
+* **An unknown or absent value changes nothing.** `parseTripFilter` returns null
+  rather than defaulting to `active`, because a default would silently reset the
+  user's own choice every time the list is re-entered without a query.
+* **`planned` is the segment, `planning` the DB status.** The two are one keystroke
+  apart and a unit case pins that they are not interchangeable — the query is a
+  UI vocabulary, not a status column leaking into the URL.
+
+Red-proved by dropping the query from the replace: **both** M18 cases fall, and
+E2E-M18-06 falls on the honest symptom — the restored trip is not on screen at
+all. That is the case doing what the audit was about: asserting the outcome the
+user sees rather than the mechanism.

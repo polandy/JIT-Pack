@@ -38,11 +38,12 @@ import {
   peopleOutline,
   trashOutline,
 } from 'ionicons/icons'
-import { ref, computed, inject, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, inject, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { loadTokens } from '@/auth/tokens'
 import { serializeTrip } from '@/domain/portable'
 import { safeFilename, saveText } from '@/lib/download'
+import { parseTripFilter, TRIP_FILTER_QUERY, type TripFilter } from './tripFilter'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip } from '@/types/domain'
@@ -56,10 +57,27 @@ import { setHeaderActions } from '@/composables/useHeaderActions'
 const store = useTripStore()
 const masterStore = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const route = useRoute()
 
 // Map DB 'planning' to display filter 'planned' for UI clarity
-type FilterStatus = 'active' | 'planned' | 'archived'
+type FilterStatus = TripFilter
 const filter = ref<FilterStatus>('active')
+
+/**
+ * Another screen may name the segment this list should open on (`?status=`).
+ * A watch rather than a read at setup: Ionic keeps this page mounted, so a
+ * restore arriving while it is already alive would otherwise land on whatever
+ * segment was last tapped. An absent or unknown value changes nothing — it
+ * must never quietly reset a choice the user made.
+ */
+watch(
+  () => route.query[TRIP_FILTER_QUERY],
+  (value) => {
+    const asked = parseTripFilter(value)
+    if (asked) filter.value = asked
+  },
+  { immediate: true },
+)
 
 function matchesFilter(trip: Trip): boolean {
   switch (filter.value) {
@@ -290,6 +308,7 @@ async function handleRefresh(event: CustomEvent) {
               fill="clear"
               size="small"
               aria-label="Import trip from file"
+              data-testid="m2-portable-import"
               router-link="/portable-import"
             >
               <IonIcon slot="icon-only" :icon="documentTextOutline" />
