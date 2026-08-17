@@ -83,6 +83,7 @@ The Local Mode backup is a single multi-document YAML file, `jitpack-backup-<dat
 
 **Neutral**
 - The server keeps its single-document contract, so nothing about cross-instance sharing of one template changes (FR-18.1).
+- The file is written as `application/yaml` (RFC 9512) with a `.yaml` extension, and M18's picker also accepts the plain-text types a mobile file manager hands a YAML file back as — what decides the media type here is whether the round trip works on the device, not correctness in the abstract.
 
 ## Revisit Trigger
 
