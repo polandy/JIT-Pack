@@ -428,6 +428,12 @@ export const en = {
   'templates.peekSubtitle':
     '{n} item · as it would reach the packing list | {n} items · as they would reach the packing list',
   'templates.previewMore': '+{n}',
+  'templates.resolvedOpen': 'See all {n} items ›',
+  'templates.peekFrom': 'from {names}',
+  'templates.peekOwnPosition': 'own position',
+  'templates.peekMerged': 'once only',
+  'templates.peekPerPerson': 'per person',
+  'templates.peekConditional': 'conditional',
 
   'settings.language': 'Language',
   'settings.languageHint': 'This device only.',

@@ -1,4 +1,4 @@
-import { test, expect, createTripViaWizard } from './fixtures'
+import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
 import type { Page } from '@playwright/test'
 
 /**
@@ -20,7 +20,7 @@ const TRIP = { name: 'Samedan Sommer', endDate: '2026-12-31', travelers: ['Andy'
 
 /** Adds rows through the quick-add, which is the only add path M4 has. */
 async function quickAdd(page: Page, names: string[]) {
-  await page.getByTestId('m4-fab').click()
+  await openQuickAdd(page)
   for (const name of names) {
     await page.getByTestId('quick-add-input').locator('input').fill(name)
     await page.getByTestId('quick-add-confirm').click()
@@ -60,7 +60,7 @@ test.describe('M4 packing list @local @m4', () => {
   }) => {
     await createTripViaWizard(page, TRIP)
 
-    await page.getByTestId('m4-fab').click()
+    await openQuickAdd(page)
     const input = page.getByTestId('quick-add-input').locator('input')
     await input.fill('Zelt')
     await page.getByTestId('quick-add-confirm').click()
@@ -342,7 +342,7 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('header-title')).toHaveText('Zelt')
 
     await createTripViaWizard(page, TRIP)
-    await page.getByTestId('m4-fab').click()
+    await openQuickAdd(page)
     await page.getByTestId('quick-add-input').locator('input').fill('Zel')
     await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Zelt' }).click()
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()

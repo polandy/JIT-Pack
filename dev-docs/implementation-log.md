@@ -2526,6 +2526,100 @@ Two things that gate taught while being written, both kept in its comments:
    dead string. That is an inert branch of a few bytes, not a reachable
    surface, and the comments say so rather than rounding up to "entirely".
 
+## FR-27.14: the footer stops being the whole answer (2026-08-17)
+
+M8 said „6 Artikel · 2 Gruppen + 1 eigene Position" and left it there. The
+number answers *how many* and never *what*, so from the editor of a Ferien-
+Vorlage — the thing whose entire purpose is to produce a packing list — there
+was no way to see what a trip would get. Owner asked for it with a mockup, then
+picked variant A from the rendered round.
+
+**What it cost to build was small, and deliberately so:** the FR-27.12 peek
+sheet already resolves a Vorlage through its composition, so this added an entry
+point and the information a bare list was missing. The footer became a button;
+`resolvedLines` grew from `{name, quantity}` to carry what a count cannot say.
+
+Three marks, each defending a specific lie a number would tell:
+
+* **nur 1×** — the line exists once because a merge collapsed it, not because
+  one template asked once (FR-27.2).
+* **pro Person** — a per-person position fans out at generation over travelers
+  the *trip* knows about; a template printing „3×" would be guessing (FR-25.8).
+* **the procurement mode and mit Bedingung** — at template level nothing is
+  excluded yet, so a conditional row must say so rather than appearing as a
+  promise the trip may break (FR-15.2).
+
+**One rule came out of a failing test rather than the plan.** Provenance was
+going to be shown on every line; peeking a *group* then reads „aus Makro
+Fotografie" on every row of Makro Fotografie. The rule is narrower: a template
+that includes nothing has only one possible source, so the sheet stays quiet —
+provenance is information only once a composition can differ. The same sheet
+now serves both cases without a flag.
+
+Two smaller things: the item name got its own element, because the tests were
+otherwise asserting against concatenated strings where marks and source run
+together (`Kamera once onlyfrom Makro…`) — a test reaching for the nearest
+readable thing again, and the fix is an anchor rather than a cleverer regex.
+And both M8 describes now declare `test.slow()`: the fifth composition-building
+case pushed WebKit past the 30 s budget and four cases failed, three of them
+untouched — the M3 unit's lesson, arriving a second time in the same week.
+
+## The ＋ answers where it is (2026-08-17)
+
+Owner, testing: the ＋ should appear only where something can be added, and on
+M7 it should follow the context — standing on *Gruppen*, it should create a
+group rather than ask.
+
+**M7's chooser now asks only where the question is real.** The scope segment
+already states what you are looking at, so a single-scope tab answers it and
+the sheet opens on the name, titled with the scope it is about to create. Only
+*Alle* still asks. The rule lives in `domain/templates.ts` as
+`scopeForNewTemplate`, returning **null for "ask" rather than a default**: the
+two kinds are not interchangeable (FR-27.1), and a wrong guess is not
+recoverable once something includes the group.
+
+That placement was not the first attempt. The rule started as a component test
+against M7's modal, which is teleported and therefore invisible to the mount —
+the failing test was the signal that the decision did not belong in the view.
+Moved into the domain it is five lines and two cases; the flow itself is
+covered where it belongs, in e2e.
+
+**The ＋ steps aside while the quick-add is open** (M4 and M8). It would open
+what is already open, and the composer wants the room.
+
+**One regression nearly shipped inside that fix.** Hiding the whole `IonFab`
+also removes `#m4-fab-anchor` / `#m8-fab-anchor` — the elements both screens
+position their toasts against — which would have dropped every toast behind the
+tab bar, the exact defect fixed on 2026-08-15. The guard sits on the *button*
+instead, and E2E-M8-17 asserts the container survives, so the next person to
+tidy this cannot quietly reintroduce it.
+
+**The durable fix is one level further, and is not made here** (raised by the
+session working on #101, 2026-08-17): the anchor is *infrastructure that
+happens to live inside the FAB*. As its own always-present element it could not
+be removed by a change to the button at all, and the coupling that produced
+this near-miss would be gone rather than guarded. Worth doing when a third
+screen needs an anchored toast; for one guarded pair it is more machinery than
+the problem.
+
+Not found, and worth recording because it was the owner's example: the item
+editor (M10) has **no** FAB at 390 px or at 1024 px, and none of the six FABs
+in the client sits on a screen without an add action. The misfire was the
+composer case above.
+
+**The hiding broke a real flow, and CI caught what the hand check could not.**
+Eight visual baselines and part of the e2e suite failed on the first run: the
+specs add several items in a loop and tap the ＋ each time, but the composer
+*stays open* after an add (FR-25.13) — so the second iteration waited forever
+for a button that had just, correctly, disappeared. Adding three things in a
+row is not a test artefact; it is the flow. My manual check added one item and
+was blind to it by construction.
+
+The production behaviour stands; the thirteen call sites went through one
+guarded `openQuickAdd()` in `fixtures.ts`, which taps the ＋ only when the
+composer is closed — the guard `addPosition` has had since the M8 rebuild,
+now shared instead of copied.
+
 ## G-2's detail, and the Local Mode backup behind it (2026-08-17, FR-19.6/NFR-4.11)
 
 Owner question, from the running instance: *„was bedeutet das Icon zwischen Lupe

@@ -1,4 +1,4 @@
-import { test, expect, createTripViaWizard } from './fixtures'
+import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
 import type { Locator, Page } from '@playwright/test'
 
 /**
@@ -47,7 +47,7 @@ function toBytes(page: Page, value: string): Promise<number[]> {
  */
 async function cardWithOneRow(page: Page, trip: string) {
   await createTripViaWizard(page, { name: trip, travelers: ['Andy'] })
-  await page.getByTestId('m4-fab').click()
+  await openQuickAdd(page)
   await page.getByTestId('quick-add-input').locator('input').fill('Zelt')
   await page.getByTestId('quick-add-confirm').click()
   await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()

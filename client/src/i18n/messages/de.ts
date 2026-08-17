@@ -427,6 +427,12 @@ export const de: Record<keyof typeof en, string> = {
   'templates.peekSubtitle':
     '{n} Artikel · so, wie er auf die Packliste käme | {n} Artikel · so, wie sie auf die Packliste kämen',
   'templates.previewMore': '+{n}',
+  'templates.resolvedOpen': 'Alle {n} Artikel ansehen ›',
+  'templates.peekFrom': 'aus {names}',
+  'templates.peekOwnPosition': 'eigene Position',
+  'templates.peekMerged': 'nur 1×',
+  'templates.peekPerPerson': 'pro Person',
+  'templates.peekConditional': 'mit Bedingung',
 
   'settings.language': 'Sprache',
   'settings.languageHint': 'Nur auf diesem Gerät.',
