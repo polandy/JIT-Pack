@@ -2606,3 +2606,16 @@ Not found, and worth recording because it was the owner's example: the item
 editor (M10) has **no** FAB at 390 px or at 1024 px, and none of the six FABs
 in the client sits on a screen without an add action. The misfire was the
 composer case above.
+
+**The hiding broke a real flow, and CI caught what the hand check could not.**
+Eight visual baselines and part of the e2e suite failed on the first run: the
+specs add several items in a loop and tap the ＋ each time, but the composer
+*stays open* after an add (FR-25.13) — so the second iteration waited forever
+for a button that had just, correctly, disappeared. Adding three things in a
+row is not a test artefact; it is the flow. My manual check added one item and
+was blind to it by construction.
+
+The production behaviour stands; the thirteen call sites went through one
+guarded `openQuickAdd()` in `fixtures.ts`, which taps the ＋ only when the
+composer is closed — the guard `addPosition` has had since the M8 rebuild,
+now shared instead of copied.

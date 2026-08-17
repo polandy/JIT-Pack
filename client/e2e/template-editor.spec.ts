@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+import { test, expect, openQuickAdd } from './fixtures'
 import {
   addPosition,
   backToTemplateList as backToList,
@@ -43,7 +43,7 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await expect(visible(page).getByTestId('m8-positions-head')).toContainText('Positions')
 
     // FR-25.13a: the FAB expands *and focuses* the quick-add.
-    await visible(page).getByTestId('m8-fab').click()
+    await openQuickAdd(page, 'm8-fab')
     const input = visible(page).getByTestId('quick-add-input').locator('input')
     await expect(input).toBeFocused()
 
@@ -68,7 +68,7 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await createTemplate(page, 'group', 'Makro')
 
     await expect(visible(page).getByTestId('m8-fab')).toBeVisible()
-    await visible(page).getByTestId('m8-fab').click()
+    await openQuickAdd(page, 'm8-fab')
     await expect(visible(page).getByTestId('quick-add-input')).toBeVisible()
 
     // Nothing left for it to do, and the composer needs the room.

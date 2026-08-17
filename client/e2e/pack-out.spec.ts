@@ -1,4 +1,4 @@
-import { test, expect, createTripViaWizard } from './fixtures'
+import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
 import type { Page } from '@playwright/test'
 
 /**
@@ -24,7 +24,7 @@ const shown = (page: Page) => page.locator('ion-router-outlet > .ion-page:not(.i
 async function tripWithRows(page: Page, names: string[]) {
   await createTripViaWizard(page, { name: 'Packprobe', travelers: ['Andy'] })
   for (const name of names) {
-    await page.getByTestId('m4-fab').click()
+    await openQuickAdd(page)
     await page.getByTestId('quick-add-input').locator('input').fill(name)
     await page.getByTestId('quick-add-confirm').click()
     await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
