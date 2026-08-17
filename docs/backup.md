@@ -35,7 +35,12 @@ Back it up from inside the app:
 Restore it through the **document icon** on the Trips screen (portable import): pick the
 backup file, and the app lists the documents it holds and imports them together. Items are
 matched to what already exists **by name**, so restoring onto a device that still has data
-merges rather than duplicates.
+merges rather than duplicates. A document the file no longer holds intact is listed as
+*skipped* with the reason, and the rest still import.
+
+Restored trips arrive in **planning** status, so look for them under the Trips screen's
+**Planned** tab — the list opens on *Active*, which is empty on a device you have just
+restored onto.
 
 The same file is how you move to a server instance: point the app at the server, then
 import the backup there through the same screen. Note that the server's own
