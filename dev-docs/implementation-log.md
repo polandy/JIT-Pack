@@ -597,6 +597,7 @@ Verified by building the site strict from a fresh venv off the hashed set.
 Also checked and fine as-is: the only npm packages with install scripts are
 the two `fsevents` copies (macOS watcher, optional), which npm blocks by
 default — no allowlist needed until something else appears.
+
 ## M19: the server URL arrives pre-filled (FR-19.1)
 
 Found while deploying the compose stack for manual testing: the first-launch
@@ -623,6 +624,7 @@ the vitest cases fail with `http://localhost:8080`, and the e2e case
 the natural `toBeEnabled()` assertion on the Connect `ion-button` is false-green
 (the custom element is never "disabled" in the DOM sense), so the case asserts
 the input's value and reaches through to the inner `button`.
+
 ## Migrations 018/019: the two schema debts the concept left open (FR-25.9, FR-25.19)
 
 Item 5 of "Not built yet", cleared 2026-08-11 on owner instruction. Both
@@ -2619,3 +2621,33 @@ The production behaviour stands; the thirteen call sites went through one
 guarded `openQuickAdd()` in `fixtures.ts`, which taps the ＋ only when the
 composer is closed — the guard `addPosition` has had since the M8 rebuild,
 now shared instead of copied.
+
+## The sheet header's two round controls (2026-08-16, FR-25.15 / G-14)
+
+Owner-flagged from a rendered phone: on M5's item detail the green save ✓ sat
+visibly higher than the ✕ beside it. Measured rather than guessed — 26 px
+against 34 px, both hung from the header's `flex-start` edge, which puts the
+smaller circle's centre 4 px above the larger one's. Nothing in either
+stylesheet is wrong on its own; the pair is.
+
+The fix names the diameter once, `--jp-control-round` in `surfaces.css`, and
+the indicator and all three sheet ✕ buttons (M5, M8's position sheet, M11's
+container sheet) resolve through it. A control's size is a shape decision, so
+it belongs in the shape table with the radii — restating it per sheet is how
+the two got to disagree in the first place. The glyph moved one step up the
+type scale with the circle: at 13 px inside a 34 px disc it read lighter than
+the ✕, which takes its size from the icon table rather than the text scale.
+
+E2E-M5-14 pins it, and cost one lesson worth writing down: the first draft
+called `boundingBox()` twice and failed **on the fixed build** under parallel
+load, reporting a 5 px difference between two boxes that are aligned — the two
+calls land in different frames of the sheet's enter animation. Reading both
+rects inside one `evaluate` makes the shared transform cancel out, so the
+comparison is exact regardless of when it runs. Settling the animation first
+would have been the weaker fix: it waits and hopes, this one cannot be wrong.
+
+The visual baselines did not move: the M11 sheet's changed disc is ~380 px of
+a 329 000 px frame, under ADR-013's `maxDiffPixelRatio`. A tolerance that
+absorbs an intended change also absorbs an unintended one — which is why the
+geometry has its own assertion rather than relying on the screenshots.
+
