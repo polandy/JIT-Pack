@@ -19,22 +19,14 @@
  * of a moment its test can state exactly.
  */
 import { IonIcon } from '@ionic/vue'
-import {
-  cloudDoneOutline,
-  cloudOfflineOutline,
-  closeOutline,
-  downloadOutline,
-  listOutline,
-  phonePortraitOutline,
-  syncOutline,
-  warningOutline,
-} from 'ionicons/icons'
+import { closeOutline, downloadOutline, listOutline, warningOutline } from 'ionicons/icons'
 import { computed } from 'vue'
 
-import { formatNumber, t, type MessageKey } from '@/i18n'
+import { SYNC_GLYPHS } from './syncGlyphs'
+import { formatNumber, t } from '@/i18n'
 import { reminderState } from '@/local/exportReminder'
 import { evictionRisk, type StorageStatus } from '@/local/storageStatus'
-import type { SyncState } from '@/composables/useSyncStatus'
+import { SYNC_EXPLAIN_KEYS, SYNC_LABEL_KEYS, type SyncState } from '@/composables/useSyncStatus'
 
 const props = defineProps<{
   /** The glyph's current state — the sheet titles and explains this one. */
@@ -57,17 +49,10 @@ const props = defineProps<{
 
 const emit = defineEmits<{ close: []; conflicts: []; backup: [] }>()
 
-const GLYPHS: Record<SyncState, string> = {
-  synced: cloudDoneOutline,
-  syncing: syncOutline,
-  offline: cloudOfflineOutline,
-  local: phonePortraitOutline,
-}
-
 const isLocal = computed(() => props.mode === 'local')
 
-const title = computed(() => t(`sync.${props.state}` as MessageKey))
-const explanation = computed(() => t(`sync.detail.explain.${props.state}` as MessageKey))
+const title = computed(() => t(SYNC_LABEL_KEYS[props.state]))
+const explanation = computed(() => t(SYNC_EXPLAIN_KEYS[props.state]))
 
 /** The queue is only a story while something is in it. */
 const showPending = computed(() => !isLocal.value && props.pendingCount > 0)
@@ -90,7 +75,7 @@ const backupAge = computed(() => {
 <template>
   <section class="sheet-body" data-testid="sync-detail-sheet">
     <header class="head">
-      <span class="glyph" :class="state"><IonIcon :icon="GLYPHS[state]" /></span>
+      <span class="glyph" :class="state"><IonIcon :icon="SYNC_GLYPHS[state]" /></span>
       <div class="titles">
         <h1 class="jp-sheet-title" data-testid="sync-detail-title">{{ title }}</h1>
         <p class="explain" data-testid="sync-detail-explain">{{ explanation }}</p>
