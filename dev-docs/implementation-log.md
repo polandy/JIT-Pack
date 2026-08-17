@@ -2594,6 +2594,14 @@ tab bar, the exact defect fixed on 2026-08-15. The guard sits on the *button*
 instead, and E2E-M8-17 asserts the container survives, so the next person to
 tidy this cannot quietly reintroduce it.
 
+**The durable fix is one level further, and is not made here** (raised by the
+session working on #101, 2026-08-17): the anchor is *infrastructure that
+happens to live inside the FAB*. As its own always-present element it could not
+be removed by a change to the button at all, and the coupling that produced
+this near-miss would be gone rather than guarded. Worth doing when a third
+screen needs an anchored toast; for one guarded pair it is more machinery than
+the problem.
+
 Not found, and worth recording because it was the owner's example: the item
 editor (M10) has **no** FAB at 390 px or at 1024 px, and none of the six FABs
 in the client sits on a screen without an add action. The misfire was the
