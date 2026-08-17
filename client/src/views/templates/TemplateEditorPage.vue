@@ -202,6 +202,9 @@ async function commitNewGroup() {
 
 const quickAdd = ref<InstanceType<typeof QuickAddItem> | null>(null)
 
+/** Whether the composer is open — the ＋ has nothing to add while it is. */
+const quickAddExpanded = computed(() => quickAdd.value?.expanded ?? false)
+
 function openQuickAdd() {
   void quickAdd.value?.open()
 }
@@ -474,10 +477,14 @@ const mergeLines = computed(() =>
 
         <!-- FR-27.2: the footer names every merge — the merge is the
              user-visible point of the whole feature. -->
-        <div
+        <!-- FR-27.14: the line that states the count is the way into the list.
+             It is a button because it acts, and because the count alone has
+             answered "how many" and never "what" since the footer existed. -->
+        <button
           v-if="!isGroup && includes.length"
           class="resolution jp-card"
           data-testid="m8-resolution"
+          @click="peekTemplateId = props.templateId"
         >
           <p class="res-big">
             {{ t('templates.resolvedCount', { n: resolution.positions.length }) }}
@@ -489,10 +496,17 @@ const mergeLines = computed(() =>
           <p v-for="line in mergeLines" :key="line" class="res-merge" data-testid="m8-merge-line">
             {{ line }}
           </p>
-        </div>
+          <p class="res-open" data-testid="m8-resolution-open">
+            {{ t('templates.resolvedOpen', { n: resolution.positions.length }) }}
+          </p>
+        </button>
 
+        <!-- FR-25.13a, amended 2026-08-17: the ＋ opens the quick-add, so it
+             hides while the quick-add is open — there is nothing left for it to
+             do, and the composer needs the space more than the button does. -->
         <IonFab id="m8-fab-anchor" vertical="bottom" horizontal="end" slot="fixed">
           <IonFabButton
+            v-if="!quickAddExpanded"
             :aria-label="t('templates.addPosition')"
             data-testid="m8-fab"
             @click="openQuickAdd"
@@ -753,6 +767,12 @@ const mergeLines = computed(() =>
 
 /* --- resolution footer --- */
 .resolution {
+  display: block;
+  width: 100%;
+  text-align: start;
+  border: none;
+  font: inherit;
+  cursor: pointer;
   margin: 8px 8px 96px;
   padding: 14px 16px;
 }
@@ -797,6 +817,11 @@ const mergeLines = computed(() =>
   color: var(--ct-overlay0);
   font-size: var(--jp-icon-sm);
   cursor: pointer;
+}
+
+.res-open {
+  margin: 8px 0 0;
+  color: var(--jp-action);
 }
 
 /* --- the position sheet, in the app's sheet grammar --- */

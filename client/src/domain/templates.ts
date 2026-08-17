@@ -9,6 +9,7 @@
  */
 
 import type {
+  ItemMode,
   MasterItem,
   Template,
   TemplateDedup,
@@ -205,10 +206,28 @@ export function planningTripsUsing(templateId: string, input: BlastRadiusInput):
   return input.trips.filter((t) => t.status === 'planning' && touched.has(t.id))
 }
 
-/** One line of a group's content, as a reader sees it (FR-27.12). */
+/**
+ * One line of a template's content, as a reader sees it (FR-27.12/27.14).
+ *
+ * Beyond the name and the amount it carries what a count cannot say: which
+ * templates contributed it, whether a merge collapsed it, and the two places
+ * where the quantity is not the whole story — a per-person position, whose
+ * real number belongs to the trip (FR-25.8), and a position the trip may yet
+ * exclude or buy rather than pack (FR-15.2). The view decides the wording; the
+ * domain decides what is true.
+ */
 export interface ResolvedLine {
   name: string
   quantity: number
+  /** Contributing template names, in resolution order — the Vorlage first. */
+  sources: string[]
+  /** More than one template asked for this item (FR-27.2). */
+  merged: boolean
+  /** One row per traveler at generation, so the amount here is per head. */
+  perPerson: boolean
+  mode: ItemMode
+  /** Null unless the position only applies to some trips (FR-15.2). */
+  conditions: Record<string, unknown> | null
 }
 
 /**
@@ -224,9 +243,17 @@ export interface ResolvedLine {
 export function resolvedLines(resolution: Resolution, items: MasterItem[]): ResolvedLine[] {
   const byId = new Map(items.map((i) => [i.id, i]))
   return resolution.positions
-    .map((p) => ({ item: byId.get(p.item_id), quantity: p.quantity }))
-    .filter((e): e is { item: MasterItem; quantity: number } => e.item !== undefined)
-    .map((e) => ({ name: e.item.name, quantity: e.quantity }))
+    .map((p) => ({ item: byId.get(p.item_id), resolved: p }))
+    .filter((e): e is { item: MasterItem; resolved: ResolvedPosition } => e.item !== undefined)
+    .map(({ item, resolved }) => ({
+      name: item.name,
+      quantity: resolved.quantity,
+      sources: resolved.sources.map((t) => t.name),
+      merged: resolved.sources.length > 1,
+      perPerson: resolved.position.assignment === 'per_person',
+      mode: resolved.position.default_mode,
+      conditions: resolved.position.conditions,
+    }))
     .sort((a, b) => a.name.localeCompare(b.name))
 }
 
@@ -257,4 +284,21 @@ export function previewLines(lines: ResolvedLine[], max: number): LinePreview {
     names: lines.slice(0, max).map((l) => l.name),
     rest: Math.max(0, lines.length - max),
   }
+}
+
+/** What M7's scope segment is showing: one scope, or both. */
+export type ScopeTab = TemplateKind | 'all'
+
+/**
+ * scopeForNewTemplate answers what the M7 ＋ should create, or `null` when the
+ * question is still open (FR-27.6, amended 2026-08-17).
+ *
+ * Standing on a single-scope tab, the chooser had one possible answer, and a
+ * question with one answer is a tap that carries no information. `null` rather
+ * than a default because the two scopes are not interchangeable (FR-27.1):
+ * guessing would create the wrong kind silently, and a Gruppe promoted later
+ * is blocked the moment something includes it.
+ */
+export function scopeForNewTemplate(tab: ScopeTab): TemplateKind | null {
+  return tab === 'all' ? null : tab
 }

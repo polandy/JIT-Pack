@@ -1,4 +1,4 @@
-import { test, expect, createTripViaWizard } from './fixtures'
+import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
 import type { Page } from '@playwright/test'
 
 /**
@@ -41,7 +41,7 @@ async function createMasterItem(page: Page, name: string, weightGrams: number) {
 
 /** Quick-add via the suggestion, so the row carries the master weight. */
 async function quickAddFromMaster(page: Page, name: string) {
-  await page.getByTestId('m4-fab').click()
+  await openQuickAdd(page)
   await page.getByTestId('quick-add-input').locator('input').fill(name.slice(0, 4))
   await page.getByTestId('quick-add-suggestion').filter({ hasText: name }).click()
   await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
@@ -51,7 +51,7 @@ async function quickAddFromMaster(page: Page, name: string) {
 
 /** Quick-add verbatim — no master item, so the row has no weight. */
 async function quickAddVerbatim(page: Page, name: string) {
-  await page.getByTestId('m4-fab').click()
+  await openQuickAdd(page)
   await page.getByTestId('quick-add-input').locator('input').fill(name)
   await page.getByTestId('quick-add-confirm').click()
   await expect(page.getByTestId(`m4-row-${name}`)).toBeVisible()
@@ -106,9 +106,7 @@ test.describe('M12 analytics @local @m12', () => {
     await expect(slice).toBeVisible()
     await expect(slice).toContainText('5.0 kg')
 
-    await expect(visible(page).getByTestId('analytics-kpi-weight')).toContainText(
-      '5.0 kg / 5.0 kg',
-    )
+    await expect(visible(page).getByTestId('analytics-kpi-weight')).toContainText('5.0 kg / 5.0 kg')
 
     // The switcher reaches every dimension (FR-8.2).
     await visible(page).getByTestId('analytics-dim-container').click()
