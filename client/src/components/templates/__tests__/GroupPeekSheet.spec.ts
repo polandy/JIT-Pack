@@ -204,6 +204,51 @@ describe('GroupPeekSheet on a Vorlage (FR-27.14)', () => {
     expect(lineFor(mountFor('v1'), 'Regenjacke').text()).toMatch(/pro Person|per person/i)
   })
 
+  it('marks what the trip has not decided yet — procurement and conditions', () => {
+    template('g9', 'Sommer', 'group')
+    item('cream', 'Sonnencreme')
+    item('chains', 'Schneeketten')
+    useMasterStore().applyChange({
+      seq: 0,
+      table: 'template_items',
+      id: 'p9',
+      deleted: false,
+      row: {
+        template_id: 'g9',
+        item_id: 'cream',
+        quantity: 1,
+        assignment: 'trip_global',
+        dedup: 'max',
+        default_mode: 'buy_before',
+        late_packer: 0,
+      },
+    })
+    useMasterStore().applyChange({
+      seq: 0,
+      table: 'template_items',
+      id: 'p10',
+      deleted: false,
+      row: {
+        template_id: 'g9',
+        item_id: 'chains',
+        quantity: 1,
+        assignment: 'trip_global',
+        dedup: 'max',
+        default_mode: 'pack',
+        late_packer: 0,
+        conditions: JSON.stringify({ season: ['winter'] }),
+      },
+    })
+
+    const wrapper = mountFor('g9')
+
+    // Both are promises the *trip* still has to keep: at template level nothing
+    // is bought and nothing is excluded, so the line has to say so rather than
+    // read as a plain item that will simply be packed.
+    expect(lineFor(wrapper, 'Sonnencreme').text()).toMatch(/buy before|kaufen/i)
+    expect(lineFor(wrapper, 'Schneeketten').text()).toMatch(/conditional|Bedingung/i)
+  })
+
   it('says nothing about provenance when peeking a group itself', () => {
     seedMarks()
 
