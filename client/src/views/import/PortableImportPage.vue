@@ -152,7 +152,11 @@ function commit() {
           adds them to what is already on this device; items that already exist are matched by name.
         </p>
         <IonList>
-          <IonItem v-for="(entry, index) in restore" :key="index" data-testid="portable-restore-row">
+          <IonItem
+            v-for="(entry, index) in restore"
+            :key="index"
+            data-testid="portable-restore-row"
+          >
             <IonLabel>
               <h3>{{ entry.doc?.name ?? 'Unreadable document' }}</h3>
               <p v-if="entry.doc">
