@@ -13,7 +13,7 @@ describe('useSyncStatus', () => {
     const status = useSyncStatus()
     status.setSyncing()
     expect(status.state.value).toBe('syncing')
-    expect(status.label.value).toBe('Syncing...')
+    expect(status.label.value).toBe('Syncing…')
   })
 
   it('transitions to synced after syncing', () => {

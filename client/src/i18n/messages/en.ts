@@ -32,6 +32,32 @@ export const en = {
   'sync.syncing': 'Syncing…',
   'sync.offline': 'Offline',
   'sync.local': 'On this device',
+  'sync.offlineQueued': 'Offline ({n} queued)',
+
+  // G-2 detail sheet (FR-19.6): what the glyph's state means, and what to do about it.
+  'sync.detail.explain.synced': 'Every change made on this device has reached the server.',
+  'sync.detail.explain.syncing': 'A change is on its way to the server and is not confirmed yet.',
+  'sync.detail.explain.offline':
+    'The server cannot be reached. Your changes are kept on this device and sent as soon as it is back.',
+  'sync.detail.explain.local':
+    'Local Mode: there is no server. Everything you enter stays in this browser, on this device.',
+  'sync.detail.pending': '{n} change waiting to be sent | {n} changes waiting to be sent',
+  'sync.detail.conflicts': 'Open conflict log',
+  'sync.detail.conflictsHint': 'The conflict log belongs to a trip — open one to see it.',
+  'sync.detail.storage': 'On-device storage',
+  'sync.detail.storageUsage': '{used} MB of {quota} MB used',
+  'sync.detail.storageUnknown': 'This browser does not report how much space it uses.',
+  'sync.detail.persistent': 'Marked as persistent — the browser will not clear it on its own.',
+  'sync.detail.eviction':
+    'Not marked as persistent: the browser may clear this data when space runs short.',
+  'sync.detail.backup': 'Backup',
+  'sync.detail.backupNever': 'Never backed up',
+  'sync.detail.backupToday': 'Last backup today',
+  'sync.detail.backupAge': 'Last backup {n} day ago | Last backup {n} days ago',
+  'sync.detail.backupNow': 'Back up now',
+  'sync.detail.backupEmpty': 'Nothing to back up yet — no trips and no templates on this device.',
+  'sync.detail.backupHint': 'One YAML file with every trip and template. Restore it under Import.',
+  'sync.detail.backupSaved': 'Backup saved: {file}',
 
   // Trips.
   'trip.daysUntil': '{n} days to go',

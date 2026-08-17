@@ -6,6 +6,7 @@
  */
 import 'fake-indexeddb/auto'
 import { IDBFactory } from 'fake-indexeddb'
+import { t } from '@/i18n'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
@@ -122,7 +123,8 @@ describe('Local Mode', () => {
     const orch = newLocalOrch()
 
     expect(orch.syncStatus.state.value).toBe('local')
-    expect(orch.syncStatus.label.value).toBe('Local')
+    // The tooltip is the catalogue's string now (NFR-4.12), not a literal.
+    expect(orch.syncStatus.label.value).toBe(t('sync.local'))
   })
 
   it('composition edits (include + task) reach the store and IndexedDB (FR-27.1/27.7)', async () => {
