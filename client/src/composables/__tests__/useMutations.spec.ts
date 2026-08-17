@@ -64,6 +64,14 @@ describe('useMutations', () => {
     expect(mut.fields).toEqual({ quantity: 0, packed_count: 0, state: 'skipped' })
   })
 
+  it('restoreSkipped writes back the three fields a skip changed, and records no packing (FR-5.5)', () => {
+    // An undo of "do not pack this" must not leave a packing record
+    // behind — which is what going through packItem would have done.
+    const m = useMutations(mockHLC())
+    const mut = m.restoreSkipped('i1', 3, 2, 'partial')
+    expect(mut.fields).toEqual({ quantity: 3, packed_count: 2, state: 'partial' })
+  })
+
   it('unskipItem restores to qty 1 open', () => {
     const m = useMutations(mockHLC())
     const mut = m.unskipItem('i1')

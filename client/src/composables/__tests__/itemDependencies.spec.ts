@@ -88,6 +88,58 @@ describe('co-skip cascade (FR-20.2)', () => {
     expect(states.get('ti-other')).toBe('open')
   })
 
+  it('reports every row it skipped, main first, so the snackbar can name them (FR-5.5)', () => {
+    seedMaster()
+    seedTripItem('ti-camera', 'camera')
+    seedTripItem('ti-battery', 'battery')
+    seedTripItem('ti-other', null)
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const tripStore = useTripStore()
+
+    const cameraItem = tripStore.getItems('t1').find((i) => i.id === 'ti-camera')!
+    const affected = orch.skipItem('t1', cameraItem)
+
+    expect(affected.map((row) => row.id)).toEqual(['ti-camera', 'ti-battery'])
+    // Snapshotted before the write: an undo built from post-skip rows would
+    // restore quantity 0 and call it a restoration.
+    expect(affected.every((row) => row.state === 'open')).toBe(true)
+  })
+
+  it('restoreSkip puts the whole cascade back where it was (FR-5.5 undo)', () => {
+    seedMaster()
+    seedTripItem('ti-camera', 'camera')
+    seedTripItem('ti-battery', 'battery')
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const tripStore = useTripStore()
+
+    const cameraItem = tripStore.getItems('t1').find((i) => i.id === 'ti-camera')!
+    const affected = orch.skipItem('t1', cameraItem)
+    orch.restoreSkip(
+      't1',
+      affected.map((row) => ({
+        itemId: row.id,
+        quantity: row.quantity,
+        packedCount: row.packed_count,
+        state: row.state,
+      })),
+    )
+
+    for (const row of tripStore.getItems('t1')) {
+      expect(row.state).toBe('open')
+      expect(row.quantity).toBe(1)
+    }
+  })
+
+  it('restoreSkip leaves a row that has since been deleted deleted', () => {
+    seedMaster()
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const tripStore = useTripStore()
+
+    orch.restoreSkip('t1', [{ itemId: 'gone', quantity: 1, packedCount: 0, state: 'open' }])
+
+    expect(tripStore.getItems('t1')).toEqual([])
+  })
+
   it('skipping the dependent leaves the main item alone', () => {
     seedMaster()
     seedTripItem('ti-camera', 'camera')

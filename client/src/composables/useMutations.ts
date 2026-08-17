@@ -96,6 +96,27 @@ export function useMutations(hlc: HLCGenerator) {
     })
   }
 
+  /**
+   * restoreSkipped puts a row back the way a skip found it (FR-5.5's undo).
+   *
+   * Deliberately not `packItem`: that one stamps `packed_at` and clears the
+   * packing-now claim, and an undo of "do not pack this" must record no
+   * packing at all. It writes exactly the three fields {@link skipItem}
+   * changed, and nothing else.
+   */
+  function restoreSkipped(
+    itemId: string,
+    quantity: number,
+    packedCount: number,
+    state: string,
+  ): Mutation {
+    return make('upsert', 'trip_items', itemId, {
+      quantity,
+      packed_count: packedCount,
+      state,
+    })
+  }
+
   function unskipItem(itemId: string): Mutation {
     return make('upsert', 'trip_items', itemId, {
       quantity: 1,
@@ -727,6 +748,7 @@ export function useMutations(hlc: HLCGenerator) {
     zeroPacked,
     togglePacked,
     skipItem,
+    restoreSkipped,
     unskipItem,
     setItemMode,
     assignTraveler,

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   resolveDependencies,
   dependentsOf,
+  coSkipTargets,
   dependencyCycleError,
   type DependencyResolutionInput,
 } from '../dependencies'
@@ -170,6 +171,36 @@ describe('dependentsOf', () => {
   it('terminates on cyclic data', () => {
     const deps = [dep('d1', 'battery', 'camera'), dep('d2', 'camera', 'battery')]
     expect(dependentsOf('camera', deps)).toEqual(new Set(['battery', 'camera']))
+  })
+})
+
+describe('coSkipTargets (FR-20.2)', () => {
+  const deps = [dep('d1', 'battery', 'camera'), dep('d2', 'charger', 'battery')]
+  const row = (id: string, sourceItemId: string | null, state = 'open') => ({
+    id,
+    source_item_id: sourceItemId,
+    state,
+  })
+
+  it('names the companions that follow the main item out of the list', () => {
+    // The names matter, not just the effect: the snackbar reports them and
+    // the undo puts back exactly these rows.
+    const main = row('r1', 'camera')
+    const rows = [main, row('r2', 'battery'), row('r3', 'charger'), row('r4', 'socks')]
+
+    expect(coSkipTargets(main, rows, deps).map((r) => r.id)).toEqual(['r2', 'r3'])
+  })
+
+  it('leaves an already-skipped companion alone, so undo cannot un-skip it', () => {
+    const main = row('r1', 'camera')
+    const rows = [main, row('r2', 'battery', 'skipped'), row('r3', 'charger')]
+
+    expect(coSkipTargets(main, rows, deps).map((r) => r.id)).toEqual(['r3'])
+  })
+
+  it('takes nothing along for a quick-added row, which has no master item', () => {
+    const main = row('r1', null)
+    expect(coSkipTargets(main, [main, row('r2', 'battery')], deps)).toEqual([])
   })
 })
 
