@@ -36,6 +36,16 @@
   --jp-r-lg: 26px; /* sheet tops and heroes   (prototype --r-lg)       */
   --jp-r-pill: 999px; /* anything whose radius is half its own height     */
 
+  /* --- Round controls -------------------------------------------------
+   * The diameter of a round control in a sheet header. One value because
+   * the header holds a *pair* of them — the save indicator beside the ✕ —
+   * and two sizes with a shared top edge put their centres on different
+   * lines: measured 26 px against 34 px, the circles sat 4 px apart and
+   * the header read as crooked. A shared diameter is what makes them a
+   * cluster rather than two unrelated dots.
+   */
+  --jp-control-round: 34px;
+
   /* --- Elevation ----------------------------------------------------
    * Three casts, because the app raises surfaces in three directions and
    * each needs its shadow thrown the other way: a card lifts off the

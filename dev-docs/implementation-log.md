@@ -597,6 +597,7 @@ Verified by building the site strict from a fresh venv off the hashed set.
 Also checked and fine as-is: the only npm packages with install scripts are
 the two `fsevents` copies (macOS watcher, optional), which npm blocks by
 default — no allowlist needed until something else appears.
+
 ## M19: the server URL arrives pre-filled (FR-19.1)
 
 Found while deploying the compose stack for manual testing: the first-launch
@@ -623,6 +624,7 @@ the vitest cases fail with `http://localhost:8080`, and the e2e case
 the natural `toBeEnabled()` assertion on the Connect `ion-button` is false-green
 (the custom element is never "disabled" in the DOM sense), so the case asserts
 the input's value and reaches through to the inner `button`.
+
 ## Migrations 018/019: the two schema debts the concept left open (FR-25.9, FR-25.19)
 
 Item 5 of "Not built yet", cleared 2026-08-11 on owner instruction. Both
@@ -2619,6 +2621,89 @@ The production behaviour stands; the thirteen call sites went through one
 guarded `openQuickAdd()` in `fixtures.ts`, which taps the ＋ only when the
 composer is closed — the guard `addPosition` has had since the M8 rebuild,
 now shared instead of copied.
+
+## The sheet header's two round controls (2026-08-16, FR-25.15 / G-14)
+
+Owner-flagged from a rendered phone: on M5's item detail the green save ✓ sat
+visibly higher than the ✕ beside it. Measured rather than guessed — 26 px
+against 34 px, both hung from the header's `flex-start` edge, which puts the
+smaller circle's centre 4 px above the larger one's. Nothing in either
+stylesheet is wrong on its own; the pair is.
+
+The fix names the diameter once, `--jp-control-round` in `surfaces.css`, and
+the indicator and all three sheet ✕ buttons (M5, M8's position sheet, M11's
+container sheet) resolve through it. A control's size is a shape decision, so
+it belongs in the shape table with the radii — restating it per sheet is how
+the two got to disagree in the first place. The glyph moved one step up the
+type scale with the circle: at 13 px inside a 34 px disc it read lighter than
+the ✕, which takes its size from the icon table rather than the text scale.
+
+E2E-M5-14 pins it, and cost one lesson worth writing down: the first draft
+called `boundingBox()` twice and failed **on the fixed build** under parallel
+load, reporting a 5 px difference between two boxes that are aligned — the two
+calls land in different frames of the sheet's enter animation. Reading both
+rects inside one `evaluate` makes the shared transform cancel out, so the
+comparison is exact regardless of when it runs. Settling the animation first
+would have been the weaker fix: it waits and hopes, this one cannot be wrong.
+
+The visual baselines did not move: the M11 sheet's changed disc is ~380 px of
+a 329 000 px frame, under ADR-013's `maxDiffPixelRatio`. A tolerance that
+absorbs an intended change also absorbs an unintended one — which is why the
+geometry has its own assertion rather than relying on the screenshots.
+
+## §3.28: the packing row gets a mark, decided on pixels (2026-08-17, spec only)
+
+Owner question: a pack item can carry a photo — would emojis, or an icon from a
+library, not make more sense? With three conditions attached: recognisable per
+icon, searchable the way WhatsApp is, and ideally *suggested*.
+
+The answer is not either/or, and saying so was the first useful move: the photo
+(§3.22) answers **which** jacket, and it exists on a handful of rows because
+nobody photographs forty items. What a forty-row list lacks is a **mark** — the
+always-affordable symbol that says *what kind of thing this is* before the name
+is read. So the photo stays and the mark is added beside it, with a ladder
+deciding which is shown (FR-28.4).
+
+**Decided by rendering, not by arguing.** Four marks, one fifteen-row list, one
+frame: emoji, an icon library, photo-first, and a coloured initial as the honest
+null variant. Two things only the render could settle:
+
+1. **The icon library is the option that fits our own rules and it still lost.**
+   Monochrome strokes in a role colour satisfy G-11/G-13/G-14 without an
+   exception, and at 34 px sunscreen, bottle and water bottle are the same
+   picture. Its substitute rate was also the **higher** of the two — 7 of 15
+   against emoji's 6 — because libraries carry travel gear and not household
+   detail. That margin is one row and proves nothing by itself; the
+   distinguishability does. The argument favoured it; the pixels did not.
+2. **The null variant is worse than nothing.** A coloured initial repeats, in a
+   circle, the name standing next to it. That is what made "no mark" an
+   acceptable and *normal* row state in FR-28.1 rather than a gap to fill.
+
+The list was seeded on purpose with a row nothing fits (*Trekkingstöcke*) and
+several near-misses (*Fleecepullover*, *Schlafsack*, *Wasserflasche* — Unicode
+has no water bottle): a symbol system is decided in its tail, not in its head.
+
+Counting those beat a claim I had already written down: the first draft of this
+entry said 4 substitutes against 6. Counting the rendered data said **6 against
+7**, which keeps the conclusion and removes the margin it looked like it had.
+
+**The suggestion is cheap and was built to prove it.** The variant page carries
+a working picker: one keyword index (de + en), scored against the item name.
+`Tarnzelt → ⛺`, `Kaffeekanne → ☕`, `Wasserflasche → 🧴🥤💧`. One correction came
+out of running it: German compounds need splitting, but a suffix may only become
+a token when the index already knows it — the first version happily tokenised
+„Zahnbürste" into *ürste*, and the suggestion line read like noise. That rule is
+in FR-28.3 and is a test name, not a comment.
+
+Two costs are accepted in writing rather than discovered later: the mark is the
+one surface whose colours do not come from the token table (G-15 confines it to
+content — never a button, a status or a progress), and a self-hosted subsetted
+emoji face rewrites every visual baseline when it lands (ADR-013), which the
+implementing PR does once, deliberately.
+
+**No ADR here.** The tradeoff is real and an ADR is owed — but `adr/README.md`
+is explicit that one without code is a plan, so it ships with the build, using
+this round as its evidence.
 
 ## G-2's detail, and the Local Mode backup behind it (2026-08-17, FR-19.6/NFR-4.11)
 

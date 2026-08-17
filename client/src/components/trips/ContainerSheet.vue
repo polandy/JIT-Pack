@@ -264,8 +264,8 @@ function onDelete() {
 .x {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: var(--jp-control-round);
+  height: var(--jp-control-round);
   flex: none;
   border: none;
   border-radius: 50%;
