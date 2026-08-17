@@ -62,6 +62,29 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await expect(input).toBeVisible()
   })
 
+  test('E2E-M8-17: the ＋ steps aside while the quick-add is open (FR-25.13a)', async ({
+    page,
+  }) => {
+    await createTemplate(page, 'group', 'Makro')
+
+    await expect(visible(page).getByTestId('m8-fab')).toBeVisible()
+    await visible(page).getByTestId('m8-fab').click()
+    await expect(visible(page).getByTestId('quick-add-input')).toBeVisible()
+
+    // Nothing left for it to do, and the composer needs the room.
+    await expect(visible(page).getByTestId('m8-fab')).toHaveCount(0)
+
+    // The anchor survives, and that is the point: toasts on this screen are
+    // positioned against the fab *container*. Hiding the whole IonFab would
+    // have dropped the anchor and let toasts fall behind the tab bar — the
+    // M7/M8 defect from 2026-08-15, nearly rebuilt while fixing this one.
+    await expect(visible(page).locator('#m8-fab-anchor')).toHaveCount(1)
+
+    // And it comes back once the composer closes.
+    await visible(page).getByTestId('quick-add-close').click()
+    await expect(visible(page).getByTestId('m8-fab')).toBeVisible()
+  })
+
   test('E2E-M8-13/04: a duplicate is reported and not added twice; free text created the master item', async ({
     page,
   }) => {

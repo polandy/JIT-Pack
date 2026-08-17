@@ -2563,3 +2563,38 @@ readable thing again, and the fix is an anchor rather than a cleverer regex.
 And both M8 describes now declare `test.slow()`: the fifth composition-building
 case pushed WebKit past the 30 s budget and four cases failed, three of them
 untouched — the M3 unit's lesson, arriving a second time in the same week.
+
+## The ＋ answers where it is (2026-08-17)
+
+Owner, testing: the ＋ should appear only where something can be added, and on
+M7 it should follow the context — standing on *Gruppen*, it should create a
+group rather than ask.
+
+**M7's chooser now asks only where the question is real.** The scope segment
+already states what you are looking at, so a single-scope tab answers it and
+the sheet opens on the name, titled with the scope it is about to create. Only
+*Alle* still asks. The rule lives in `domain/templates.ts` as
+`scopeForNewTemplate`, returning **null for "ask" rather than a default**: the
+two kinds are not interchangeable (FR-27.1), and a wrong guess is not
+recoverable once something includes the group.
+
+That placement was not the first attempt. The rule started as a component test
+against M7's modal, which is teleported and therefore invisible to the mount —
+the failing test was the signal that the decision did not belong in the view.
+Moved into the domain it is five lines and two cases; the flow itself is
+covered where it belongs, in e2e.
+
+**The ＋ steps aside while the quick-add is open** (M4 and M8). It would open
+what is already open, and the composer wants the room.
+
+**One regression nearly shipped inside that fix.** Hiding the whole `IonFab`
+also removes `#m4-fab-anchor` / `#m8-fab-anchor` — the elements both screens
+position their toasts against — which would have dropped every toast behind the
+tab bar, the exact defect fixed on 2026-08-15. The guard sits on the *button*
+instead, and E2E-M8-17 asserts the container survives, so the next person to
+tidy this cannot quietly reintroduce it.
+
+Not found, and worth recording because it was the owner's example: the item
+editor (M10) has **no** FAB at 390 px or at 1024 px, and none of the six FABs
+in the client sits on a screen without an add action. The misfire was the
+composer case above.

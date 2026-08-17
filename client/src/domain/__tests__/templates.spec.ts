@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   planningTripsUsing,
+  scopeForNewTemplate,
   previewLines,
   resolvedLines,
   resolveTemplate,
@@ -429,5 +430,26 @@ describe('resolvedLines carries provenance and marks (FR-27.14)', () => {
     // Nothing is excluded at template level — the trip decides — so the line
     // must state the condition rather than quietly appearing or vanishing.
     expect(resolvedLines(resolution, items)[0]!.conditions).toEqual({ season: ['winter'] })
+  })
+})
+
+/**
+ * FR-27.6, amended 2026-08-17: what the M7 ＋ should create.
+ *
+ * The chooser used to ask on every tap, including while standing on the
+ * *Gruppen* tab — where the question has exactly one possible answer. The
+ * segment already states the scope, so the ＋ follows it and only *Alle* has
+ * something left to ask.
+ */
+describe('scopeForNewTemplate (FR-27.6)', () => {
+  it('takes the scope from a single-scope tab', () => {
+    expect(scopeForNewTemplate('group')).toBe('group')
+    expect(scopeForNewTemplate('template')).toBe('template')
+  })
+
+  it('asks when the view shows both scopes', () => {
+    // Null is "ask", not a default: guessing here would create the wrong kind
+    // silently, and the kinds are not interchangeable (FR-27.1).
+    expect(scopeForNewTemplate('all')).toBeNull()
   })
 })

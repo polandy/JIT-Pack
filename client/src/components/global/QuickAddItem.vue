@@ -95,7 +95,13 @@ async function toggle() {
   else await open()
 }
 
-defineExpose({ open })
+/**
+ * `expanded` is exposed, not only `open()`: the ＋ that opens this composer has
+ * nothing left to do while it is open, and a control that does nothing is
+ * worse than no control (owner, 2026-08-17). The parent owns the FAB, so it
+ * needs to see the state rather than guess it from its own bookkeeping.
+ */
+defineExpose({ open, expanded })
 
 function selectSuggestion(item: MasterItem) {
   emit('add', {
@@ -168,7 +174,12 @@ function onKeydown(event: KeyboardEvent) {
           <template v-if="confirmLabel">{{ confirmLabel }}</template>
           <IonIcon v-else slot="icon-only" :icon="checkmarkOutline" />
         </IonButton>
-        <button class="close-btn" :aria-label="t('common.close')" @click="close">
+        <button
+          class="close-btn"
+          data-testid="quick-add-close"
+          :aria-label="t('common.close')"
+          @click="close"
+        >
           <IonIcon :icon="closeCircleOutline" />
         </button>
       </div>

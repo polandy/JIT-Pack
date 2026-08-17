@@ -202,6 +202,9 @@ async function commitNewGroup() {
 
 const quickAdd = ref<InstanceType<typeof QuickAddItem> | null>(null)
 
+/** Whether the composer is open — the ＋ has nothing to add while it is. */
+const quickAddExpanded = computed(() => quickAdd.value?.expanded ?? false)
+
 function openQuickAdd() {
   void quickAdd.value?.open()
 }
@@ -498,8 +501,12 @@ const mergeLines = computed(() =>
           </p>
         </button>
 
+        <!-- FR-25.13a, amended 2026-08-17: the ＋ opens the quick-add, so it
+             hides while the quick-add is open — there is nothing left for it to
+             do, and the composer needs the space more than the button does. -->
         <IonFab id="m8-fab-anchor" vertical="bottom" horizontal="end" slot="fixed">
           <IonFabButton
+            v-if="!quickAddExpanded"
             :aria-label="t('templates.addPosition')"
             data-testid="m8-fab"
             @click="openQuickAdd"

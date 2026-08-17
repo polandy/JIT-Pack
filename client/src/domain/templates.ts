@@ -285,3 +285,20 @@ export function previewLines(lines: ResolvedLine[], max: number): LinePreview {
     rest: Math.max(0, lines.length - max),
   }
 }
+
+/** What M7's scope segment is showing: one scope, or both. */
+export type ScopeTab = TemplateKind | 'all'
+
+/**
+ * scopeForNewTemplate answers what the M7 ＋ should create, or `null` when the
+ * question is still open (FR-27.6, amended 2026-08-17).
+ *
+ * Standing on a single-scope tab, the chooser had one possible answer, and a
+ * question with one answer is a tap that carries no information. `null` rather
+ * than a default because the two scopes are not interchangeable (FR-27.1):
+ * guessing would create the wrong kind silently, and a Gruppe promoted later
+ * is blocked the moment something includes it.
+ */
+export function scopeForNewTemplate(tab: ScopeTab): TemplateKind | null {
+  return tab === 'all' ? null : tab
+}
