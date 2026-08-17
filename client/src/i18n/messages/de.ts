@@ -78,6 +78,7 @@ export const de: Record<keyof typeof en, string> = {
   'packing.allDoneHint': 'Nichts mehr offen für diese Reise.',
   'packing.skipped': 'Bewusst weggelassen',
   'packing.undo': 'Rückgängig',
+  'packing.skippedVia': 'weggelassen: „{name}“ ist nicht dabei',
   'packing.skipAction': 'Nicht einpacken',
   'packing.unskipAction': 'Doch einpacken',
   'packing.skippedToast': '„{name}“ bleibt zu Hause',

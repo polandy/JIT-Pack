@@ -77,6 +77,7 @@ export const en = {
   'packing.allDoneHint': 'Nothing left for this trip.',
   'packing.skipped': 'Deliberately skipped',
   'packing.undo': 'Undo',
+  'packing.skippedVia': 'skipped: “{name}” is not on this trip',
   'packing.skipAction': 'Do not pack this',
   'packing.unskipAction': 'Pack it after all',
   'packing.skippedToast': '“{name}” stays at home',

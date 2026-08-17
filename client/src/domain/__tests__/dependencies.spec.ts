@@ -3,6 +3,7 @@ import {
   resolveDependencies,
   dependentsOf,
   coSkipTargets,
+  skippedVia,
   dependencyCycleError,
   type DependencyResolutionInput,
 } from '../dependencies'
@@ -201,6 +202,36 @@ describe('coSkipTargets (FR-20.2)', () => {
   it('takes nothing along for a quick-added row, which has no master item', () => {
     const main = row('r1', null)
     expect(coSkipTargets(main, [main, row('r2', 'battery')], deps)).toEqual([])
+  })
+})
+
+describe('skippedVia (FR-20.2)', () => {
+  const deps = [dep('d1', 'battery', 'camera'), dep('d2', 'charger', 'battery')]
+  const row = (id: string, sourceItemId: string | null, state = 'skipped') => ({
+    id,
+    source_item_id: sourceItemId,
+    state,
+  })
+
+  it('names the skipped row a co-skipped one came along with', () => {
+    const rows = [row('r1', 'camera'), row('r2', 'battery'), row('r3', 'charger')]
+    expect(skippedVia(rows[1]!, rows, deps)?.id).toBe('r1')
+    // Transitive: the charger hangs off the battery, which hangs off the camera.
+    expect(skippedVia(rows[2]!, rows, deps)).not.toBeNull()
+  })
+
+  it('says nothing for a row skipped on its own account', () => {
+    const rows = [row('r1', 'camera'), row('r2', 'battery', 'open')]
+    expect(skippedVia(rows[0]!, rows, deps)).toBeNull()
+    // Not skipped at all: no mark to explain.
+    expect(skippedVia(rows[1]!, rows, deps)).toBeNull()
+  })
+
+  it('says nothing while the main item is still coming', () => {
+    // The user skipped the battery alone. Reporting "because of the camera"
+    // would invent a cascade that never ran.
+    const rows = [row('r1', 'camera', 'open'), row('r2', 'battery')]
+    expect(skippedVia(rows[1]!, rows, deps)).toBeNull()
   })
 })
 

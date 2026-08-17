@@ -549,6 +549,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
             v-if="!showMainPicker"
             expand="block"
             fill="outline"
+            data-testid="m10-add-dependency"
             @click="showMainPicker = true"
           >
             <IonIcon slot="start" :icon="addOutline" />
@@ -567,6 +568,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
                 v-for="main in pickableMains"
                 :key="main.id"
                 button
+                :data-testid="`m10-dependency-main-${main.name}`"
                 @click="onAddDependency(main.id)"
               >
                 <IonLabel>{{ main.name }}</IonLabel>

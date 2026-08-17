@@ -192,6 +192,34 @@ export function coSkipTargets<T extends CoSkippable>(
 }
 
 /**
+ * skippedVia names the skipped row a skipped row came along with (FR-20.2),
+ * or null when it was skipped on its own account.
+ *
+ * Derived rather than stored: FR-20.2 asks a co-skipped row to say *why*
+ * ("skipped: drone not on this trip"), and the dependency graph plus the
+ * current states already answer that. A column would have to be kept
+ * truthful through un-skips on either side, and would still be wrong after
+ * the dependency itself is edited.
+ */
+export function skippedVia<T extends CoSkippable>(
+  row: T,
+  rows: readonly T[],
+  dependencies: ItemDependency[],
+): T | null {
+  if (row.state !== 'skipped' || !row.source_item_id) return null
+  const source = row.source_item_id
+  return (
+    rows.find(
+      (candidate) =>
+        candidate.id !== row.id &&
+        candidate.state === 'skipped' &&
+        candidate.source_item_id !== null &&
+        dependentsOf(candidate.source_item_id, dependencies).has(source),
+    ) ?? null
+  )
+}
+
+/**
  * dependencyCycleError validates a new dependency edge at save time
  * (a save-time validator): a cycle cannot be
  * persisted. Returns a human-readable error, or null when acyclic.

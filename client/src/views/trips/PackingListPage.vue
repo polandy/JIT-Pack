@@ -85,16 +85,19 @@ import { useContextSearch } from '@/composables/useContextSearch'
 import { useLongPress } from '@/composables/useLongPress'
 import { usePackingFilter } from '@/composables/usePackingFilter'
 import { useRowUndo, type RowUndoRecord } from '@/composables/useRowUndo'
+import { skippedVia } from '@/domain/dependencies'
 import { buildPackingView, FACET_KEYS, NO_VALUE, type PackingRow } from '@/domain/packingView'
 import { relativeStamp } from '@/domain/stamp'
 import { formatWeight } from '@/lib/format'
 import { currentLocale, t } from '@/i18n'
+import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { FacetKey, GroupBy, ItemTodo, TripItem, TripParticipant } from '@/types/domain'
 
 const props = defineProps<{ tripId: string; itemId?: string }>()
 
 const store = useTripStore()
+const masterStore = useMasterStore()
 const router = useRouter()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
@@ -411,6 +414,21 @@ function packedStamp(item: TripItem): string | null {
   const who = nameOf(item.packed_by_user_id)
   if (!who) return when ? t('packing.packedByUnknown', { when }) : null
   return t('packing.packedBy', { who, when })
+}
+
+/**
+ * What a revealed *skipped* row says of itself (FR-5.5) — and, where the
+ * FR-20.2 cascade put it there, which decision took it along.
+ *
+ * A row that is done because it was left behind used to be revealed with
+ * nothing at all where a packed row carries its FR-25.17 stamp, which is
+ * exactly the "forgot it" / "decided against it" confusion FR-5.5 exists
+ * to remove.
+ */
+function skippedNote(item: TripItem): string | null {
+  if (item.state !== 'skipped') return null
+  const via = skippedVia(item, allItems.value, masterStore.dependencyList)
+  return via ? t('packing.skippedVia', { name: via.name }) : t('packing.skipped')
 }
 
 /** Named only where it differs from the packer — otherwise it is noise. */
@@ -1026,7 +1044,10 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
                   </div>
                   <IonLabel>
                     <h3>{{ child.traveler?.name ?? child.label }}</h3>
-                    <p v-if="child.done && packedStamp(child.item)" class="stamp">
+                    <p v-if="skippedNote(child.item)" class="stamp">
+                      {{ skippedNote(child.item) }}
+                    </p>
+                    <p v-else-if="child.done && packedStamp(child.item)" class="stamp">
                       {{ packedStamp(child.item) }}
                       <span v-if="responsibleNote(child.item)" class="muted">
                         · {{ responsibleNote(child.item) }}
@@ -1084,7 +1105,8 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
                       <IonIcon :icon="buildOutline" /> {{ openTodoCount(entry.item.id) }}
                     </IonBadge>
                   </h3>
-                  <p v-if="entry.done && packedStamp(entry.item)" class="stamp">
+                  <p v-if="skippedNote(entry.item)" class="stamp">{{ skippedNote(entry.item) }}</p>
+                  <p v-else-if="entry.done && packedStamp(entry.item)" class="stamp">
                     {{ packedStamp(entry.item) }}
                     <span v-if="responsibleNote(entry.item)" class="muted">
                       · {{ responsibleNote(entry.item) }}

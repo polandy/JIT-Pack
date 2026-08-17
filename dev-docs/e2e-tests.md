@@ -46,6 +46,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
 | Visual baselines | E2E-VIS-01 … E2E-VIS-07 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
+| Deliberately not packed | E2E-M4-37, E2E-M4-38, E2E-M4-39, E2E-M4-40, E2E-M5-16 | `local` | [`skip-item.spec.ts`](../client/e2e/skip-item.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
 | M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (completed by the M8 unit), E2E-M7-08, E2E-M7-09 | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
 | M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-16, E2E-M8-17 | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
@@ -538,3 +539,35 @@ Two traps paid for while writing it, both worth repeating:
 reported in its place, marked *skipped*, and the intact ones still import.
 Red-proved by making `preview()` filter unreadable documents out: the count
 assertion falls to 2.
+
+## FR-5.5 — deliberately not packed (`e2e/skip-item.spec.ts`, 2026-08-18)
+
+Five cases, and the reason there are five rather than two is that the
+feature is two paths and one cascade, and each of them can break without
+the others noticing.
+
+* **The gesture is driven through `contextmenu`, not a held pointer.** Both
+  reach the same handler; the 500 ms themselves are unit-tested with fake
+  timers in `useLongPress`, and a suite that waited out a real hold would
+  be depending on a duration.
+* **The mark is asserted, not the disappearance.** A skipped row leaving the
+  list proves only FR-25.2, which was already true of a packed one. What
+  E2E-M4-37 is actually for is the revealed row *saying* it was left behind
+  on purpose — the distinction the requirement exists to keep. This was a
+  real gap when the work started: M4 rendered nothing there, though the
+  backlog note claimed it badged the row.
+* **The undo is checked against the reveal bar's absence**, which is a
+  positive signal: the bar exists only while something is done, so its
+  absence proves the row came back *open* rather than into the done section.
+* **The cascade case builds its dependency through M10** (§2.4) and picks the
+  quick-add *suggestion* rather than typing free text — a row with no master
+  item behind it has no dependencies at all, and the case would have passed
+  by proving nothing. That mis-step is why the helper carries a comment.
+* **Two testids were added to M10 for it** (`m10-add-dependency`,
+  `m10-dependency-main-<name>`); the dependency editor had none.
+
+**Mutation-proved, both halves, rebuilding between runs** (Playwright drives
+the built bundle, so a source-only edit proves nothing): removing the menu's
+*Nicht einpacken* entry reddens all four M4 cases and leaves E2E-M5-16
+green; removing the M5 control reddens E2E-M5-16 alone. That split is the
+point — two paths that can fail independently, and did not share a test.
