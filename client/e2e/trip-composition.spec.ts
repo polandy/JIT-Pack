@@ -186,10 +186,20 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
       .first()
     await camera.getByTestId('wizard-review-drop').click()
 
-    // Still on the review, struck through and reversible — the decision is
-    // visible rather than a row quietly gone.
+    // Still on the review — the decision is visible rather than a row quietly
+    // gone — and the count stops including what is no longer coming.
     await expect(visible(page).getByTestId('wizard-review-row')).toHaveCount(before)
-    await expect(camera.getByTestId('wizard-review-restore')).toBeVisible()
+    const dropped = await page.getByTestId('wizard-create').textContent()
+
+    // Reversible, and *asserted* by taking it back rather than by the presence
+    // of a button: a restore that did nothing would pass that.
+    await camera.getByTestId('wizard-review-restore').click()
+    await expect(camera.getByTestId('wizard-review-drop')).toBeVisible()
+    await expect(page.getByTestId('wizard-create')).not.toHaveText(dropped ?? '')
+
+    // Drop it again — this is the state the trip is created from.
+    await camera.getByTestId('wizard-review-drop').click()
+    await expect(page.getByTestId('wizard-create')).toHaveText(dropped ?? '')
 
     await page.getByTestId('wizard-create').click()
     await expect(page.getByTestId('header-title')).toHaveText('Fototour 2026')
