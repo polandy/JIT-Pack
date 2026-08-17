@@ -9,7 +9,13 @@ export function saveBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url)
 }
 
-export function saveText(text: string, filename: string, mime = 'text/yaml'): void {
+/**
+ * Save text as a file. Defaults to YAML's registered media type (RFC 9512,
+ * 2024) rather than the historical `text/yaml`, so a saved backup carries a
+ * type the receiving system recognises — which is what decides whether a
+ * mobile file picker offers it back for import.
+ */
+export function saveText(text: string, filename: string, mime = 'application/yaml'): void {
   saveBlob(new Blob([text], { type: mime }), filename)
 }
 
