@@ -104,6 +104,25 @@ export const useMasterStore = defineStore('master', () => {
     })
   }
 
+  /**
+   * What a portable file needs of this device beyond one template's own
+   * positions: the groups it composes (FR-27.1) and every position's
+   * preparation tasks (FR-27.7).
+   *
+   * Assembled here for the same reason `resolve` is: M7's row export, the
+   * settings export and the NFR-4.11 backup all feed it to `compositionFrom`,
+   * and a source built separately at each site would let the three files
+   * disagree about what a composition is.
+   */
+  function compositionSource() {
+    return {
+      includes: includeList.value,
+      templates: templateList.value,
+      itemsOf: (id: string) => getTemplateItems(id),
+      tasksOf: (id: string) => getTemplateItemTasks(id).map((t) => t.task),
+    }
+  }
+
   const seriesList = computed(() => [...series.value.values()])
 
   function getSeries(id: string): TripSeries | undefined {
@@ -327,6 +346,7 @@ export const useMasterStore = defineStore('master', () => {
     getIncludedBy,
     templateItemTaskList,
     getTemplateItemTasks,
+    compositionSource,
     resolve,
     seriesList,
     getSeries,

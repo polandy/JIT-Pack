@@ -299,12 +299,7 @@ function exportTemplate(tpl: Template) {
     tpl,
     store.getTemplateItems(tpl.id),
     (id) => store.getItem(id),
-    compositionFrom(tpl, {
-      includes: store.includeList,
-      templates: store.templateList,
-      itemsOf: (id) => store.getTemplateItems(id),
-      tasksOf: (id) => store.getTemplateItemTasks(id).map((t) => t.task),
-    }),
+    compositionFrom(tpl, store.compositionSource()),
   )
   saveText(yaml, `${safeFilename(tpl.name)}.yaml`)
 }

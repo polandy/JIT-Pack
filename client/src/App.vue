@@ -188,12 +188,7 @@ async function saveBackup() {
       containers: tripStore.getContainers(trip.id),
     })),
     masterItem: (id) => masterStore.getItem(id),
-    composition: {
-      includes: masterStore.includeList,
-      templates: masterStore.templateList,
-      itemsOf: (id) => masterStore.getTemplateItems(id),
-      tasksOf: (id) => masterStore.getTemplateItemTasks(id).map((t) => t.task),
-    },
+    composition: masterStore.compositionSource(),
   })
   const filename = backupFilename(now)
   saveText(yaml, filename)

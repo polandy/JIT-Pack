@@ -226,12 +226,7 @@ function exportTemplateYAML() {
     template,
     masterStore.getTemplateItems(template.id),
     (id) => masterStore.getItem(id),
-    compositionFrom(template, {
-      includes: masterStore.includeList,
-      templates: masterStore.templateList,
-      itemsOf: (id) => masterStore.getTemplateItems(id),
-      tasksOf: (id) => masterStore.getTemplateItemTasks(id).map((t) => t.task),
-    }),
+    compositionFrom(template, masterStore.compositionSource()),
   )
   saveText(yaml, `${safeFilename(template.name)}.yaml`)
   recordBackup()
