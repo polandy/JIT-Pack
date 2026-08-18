@@ -1,7 +1,7 @@
-# ADR-016: The Planning Refresh Keeps a Ledger, and Derives the Ids of What It Writes
+# ADR-016: The Group Refresh Keeps a Ledger — for What It Wrote, and for What Was Refused
 
 **Status:** Accepted
-**Related:** FR-27.4 (planning trips follow their groups), FR-27.2 (composition and merges), FR-27.7 (preparation tasks), FR-27.10 (adding a group to a running trip), FR-5.5 (deliberately not packing something), NFR-4.2a (field-level LWW merge), ADR-008 (generation runs client-side), invariant 2 (migrations are never edited), invariant 4 (Local Mode keeps every generation feature)
+**Related:** FR-27.4 (trips are offered their groups' changes), FR-27.2 (composition and merges), FR-27.7 (preparation tasks), FR-27.10 (adding a group to a running trip), FR-5.5 (deliberately not packing something), NFR-4.2a (field-level LWW merge), ADR-008 (generation runs client-side), invariant 2 (migrations are never edited), invariant 4 (Local Mode keeps every generation feature)
 
 **Decision Drivers (in priority order):**
 1. **"Manual edits on the trip always win" has to be decidable.** FR-27.4 states it as absolute. A rule the code cannot evaluate is not a rule — it is a hope.
@@ -77,12 +77,58 @@ Let the duplicate happen, notice it afterwards, delete one.
 
 ---
 
+## Problem 3 — Recording a refusal (added 2026-08-18, with the model revision)
+
+The day FR-27.4 landed, the owner changed its shape: a group change is no longer applied silently to planning trips, it is **offered** to every trip that is not past, and the trip's owner answers. Deriving the proposal cost nothing — `planRefresh` was already a pure diff with the writes kept separate, so a proposal is a diff nobody applied yet. Saying **no**, however, has to be *remembered*: the refresh re-derives on every trip open and after every master pull, so an unrecorded refusal is re-asked within seconds.
+
+### Considered Options
+
+#### Option A — Advance the ledger snapshot, leave the trip alone *(accepted)*
+
+Write the refused version into `trip_generated_positions` and touch nothing on the trip.
+
+**Pros**
+- **No new state whatsoever** — no table, no column, no flag, nothing extra on the wire, and nothing for two devices to disagree about. The refusal rides the same rows the acceptance would have.
+- It reuses a rule that already exists: `isProtected` reads a row differing from its snapshot as the user's own. After a refusal the row differs, so it is the user's — the same status a hand edit confers, reached the same way.
+- All three kinds of refusal fall out of one mechanism: a refused *addition* leaves an entry whose row does not exist (already the "deleted by hand" case, Problem 1), a refused *removal* drops the entry so the group stops speaking for the row, a refused *change* leaves the gap described above.
+- Nothing to expire, and nothing to clean up.
+
+**Cons**
+- **A refused position stops following the group in that trip** — the user cannot say "not this change, but keep listening". This is a real cost, not a technicality, and it is why the M4 card states it under the buttons rather than in a tooltip.
+- The mechanism is indirect: the refusal is legible only to someone who knows what the ledger means. Hence this section.
+
+#### Option B — A dismissal table (`trip_refused_changes`)
+
+Record each refused change and filter it out of later proposals.
+
+**Pros**
+- Keeps the position following the group — a later, different change is still offered.
+
+**Cons**
+- A fourth table, synced, with an identity problem nobody wants to own: *which* change was refused? Keyed by field and value it re-asks the moment the group moves back and forth; keyed by position it is Option A with extra steps and a second source of truth for the same fact.
+- Rows that must be garbage-collected, or grow forever.
+- Two devices can refuse and accept the same change concurrently, and now the ledger and the dismissal table can disagree.
+
+#### Option C — Keep the proposal pending until answered
+
+Store the plan itself and re-show it.
+
+**Cons**
+- A plan is a diff between rows that are already synced; storing it duplicates derivable state and goes stale the moment the group changes again.
+- It makes an unanswered question a *thing that syncs*, so a second device shows a question the first already answered — the failure mode the whole feature exists to avoid.
+
+---
+
 ## Consequences
 
 * Three tables arrive with migration 023, and the partitioning splits by *who reads them*: the ledger travels the trip partition beside the rows it describes; the registry (`trip_template_sources`) and the log (`trip_applied_changes`) travel the master partition, because M2 renders its chip and M8 its blast-radius note with no trip partition loaded.
 * **Existing trips do not move.** They have no registered sources, and deriving sources from `trip_items.source_template_id` was rejected for the same reason as Option B above: it would re-add what the user deleted.
 * The refresh runs on trip open and after a master pull. Both are cheap because the empty plan is the normal case — `isEmptyPlan` is checked before any write is queued.
 * A trip's *travelers* are part of what it follows: per-person positions fan out over the current roster, so adding a person to a planning trip gives them their share, and removing one takes their untouched rows along.
+* **A refusal is per position, not per group.** Everything the plan did not touch keeps following, so the next group edit still reaches the trip — only the refused positions have gone quiet.
+* **Bookkeeping is not a proposal.** Adopting a hand-added row into the ledger, or dropping an entry whose row and position are both long gone, changes nothing a user could answer; both are applied on sight and excluded from the count (`proposedChangeCount`). Counting them would put a number on M2's chip that no screen can explain.
 * `trip_applied_changes` stores **structured** detail (`{"field":"quantity","from":2,"to":3}`), never a sentence: the row syncs, and a sentence would freeze one language into the database. The view words it.
+
+**Revisit trigger (Problem 3):** a user asking to decline *this* change while keeping the position under the group's control — that is the cost Option A pays, and the moment it is felt, Option B's identity problem has to be solved rather than avoided.
 
 **Revisit trigger:** the first feature that wants an unguessable trip-item id, or a second writer of `trip_generated_positions` other than the refresh itself — the snapshot's "one field, one writer" assumption (the JSON `tasks` column) holds only while that stays true.

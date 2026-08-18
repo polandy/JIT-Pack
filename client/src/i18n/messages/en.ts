@@ -162,7 +162,7 @@ export const en = {
   'templates.scopeLabel': 'Scope',
   'templates.includedIn': 'Included in: {names}',
   'templates.blastRadius':
-    '⟳ Changes here apply immediately to {n} planned trip ({names}) — running and past trips stay frozen. | ⟳ Changes here apply immediately to {n} planned trips ({names}) — running and past trips stay frozen.',
+    '⟳ Changes here are proposed to {n} trip ({names}), which decides on its next open — past trips are never changed. | ⟳ Changes here are proposed to {n} trips ({names}), which decide on their next open — past trips are never changed.',
   'templates.demoteBlocked': 'Remove the included groups first — a group holds only positions.',
   'templates.ownPositions': 'Own positions',
   'templates.positions': 'Positions',
@@ -403,7 +403,7 @@ export const en = {
   'review.targetFrom': 'From group',
   'review.targetTo': 'Into group',
   'review.blast':
-    'Affects {n} planned trip that includes “{group}”. | Affects {n} planned trips that include “{group}”.',
+    'Will be proposed to {n} trip that includes “{group}”. | Will be proposed to {n} trips that include “{group}”.',
   'review.apply': 'Apply',
   'review.skip': 'Skip',
   'review.never': 'Never ask again',
@@ -449,9 +449,27 @@ export const en = {
   'templates.peekPerPerson': 'per person',
   'templates.peekConditional': 'conditional',
 
-  // FR-27.4 — what a planned trip took over from its groups.
+  // FR-27.4 — what a trip is being offered by its groups.
+  'trips.proposedChip': '⟳ {n} change proposed | ⟳ {n} changes proposed',
+  'trips.proposedTitle': 'From the groups',
+  'trips.proposedLead':
+    'A group this trip follows has changed. | The groups this trip follows have changed.',
+  'trips.proposedApply': 'Apply',
+  'trips.proposedDecline': 'Don’t apply',
+  'trips.proposedDeclineNote':
+    'If you decline, these positions stop following the group in this trip.',
+  'trips.proposedMore': 'See all {n} changes',
+  'trips.proposedApplied': '{n} change applied | {n} changes applied',
+  'trips.proposedDeclined': 'Nothing applied.',
+  'trips.proposedAdded': '“{group}”: {item} is added',
+  'trips.proposedRemoved': '“{group}”: {item} goes away',
+  'trips.proposedQuantity': '“{group}”: {item} — amount {from} → {to}',
+  'trips.proposedTasks': '“{group}”: {item} — preparation changes',
+  'trips.proposedChanged': '“{group}”: {item} changes',
+
+  // FR-27.4 — and what it took over.
   'trips.appliedChip': '⟳ {n} change taken from groups | ⟳ {n} changes taken from groups',
-  'trips.appliedFrozen': 'Running and past trips stay untouched.',
+  'trips.appliedFrozen': 'Past trips are never changed.',
   'trips.appliedAdded': '“{group}”: {item} added',
   'trips.appliedRemoved': '“{group}”: {item} removed',
   'trips.appliedQuantity': '“{group}”: {item} — amount {from} → {to}',

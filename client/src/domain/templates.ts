@@ -19,6 +19,7 @@ import type {
   Trip,
   TripItem,
 } from '@/types/domain'
+import { followsGroups } from './trips'
 
 /** Everything resolution needs, as plain arrays — the store shapes them. */
 export interface CompositionInput {
@@ -181,15 +182,22 @@ export interface BlastRadiusInput {
 }
 
 /**
- * planningTripsUsing answers FR-27.4's warning surface: which *planning* trips
- * does an edit to this template reach? Active and archived trips are frozen
- * and never in the radius. A trip counts when one of its rows carries the
- * template as provenance, or carries a Vorlage that includes it — editing a
- * group lands on trips generated from the composed Vorlage once the refresh
- * re-resolves it. Computed over the trips synced to this device (the M12
- * honesty rule), so it works identically in Local Mode.
+ * tripsReachedBy answers FR-27.4's warning surface: which trips does an edit
+ * to this template reach? Since the 2026-08-18 revision that is every trip
+ * that still **follows** its groups (`followsGroups`) — a running one
+ * included — and never a past one. It is a *reach*, not an application: each
+ * of those trips will be asked on its next open.
+ *
+ * A trip counts when one of its rows carries the template as provenance, or
+ * carries a Vorlage that includes it — editing a group lands on trips
+ * generated from the composed Vorlage once the refresh re-resolves it.
+ * Computed over the trips synced to this device (the M12 honesty rule), so it
+ * works identically in Local Mode.
+ *
+ * `today` is passed in for the same reason `followsGroups` takes it: the
+ * boundary must be a value a test can stand on either side of.
  */
-export function planningTripsUsing(templateId: string, input: BlastRadiusInput): Trip[] {
+export function tripsReachedBy(templateId: string, input: BlastRadiusInput, today: string): Trip[] {
   // The template itself, plus every Vorlage whose composition contains it.
   const reachable = new Set([templateId])
   for (const inc of input.includes) {
@@ -203,7 +211,7 @@ export function planningTripsUsing(templateId: string, input: BlastRadiusInput):
     }
   }
 
-  return input.trips.filter((t) => t.status === 'planning' && touched.has(t.id))
+  return input.trips.filter((t) => followsGroups(t, today) && touched.has(t.id))
 }
 
 /**
