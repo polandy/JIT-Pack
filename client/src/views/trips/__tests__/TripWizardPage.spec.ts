@@ -505,3 +505,25 @@ describe('M3 step 3 — single items (FR-27.3)', () => {
     expect(draft.sourceTemplateIds).toEqual([])
   })
 })
+
+describe('M3 step 3 — the picker does not outlive the inventory (FR-27.3)', () => {
+  it('drops the chip for an item the inventory no longer has', async () => {
+    seedComposition()
+    item('drone', 'Drohne')
+    const wrapper = await mountAtStepThree()
+    await wrapper
+      .get('[data-testid="wizard-item-search"]')
+      .trigger('ionInput', { detail: { value: 'Droh' } })
+    await wrapper.get('[data-testid="wizard-item-suggestion-drone"]').trigger('click')
+    expect(wrapper.get('[data-testid="wizard-item-chips"]').text()).toContain('Drohne')
+
+    // Deleted on another device, mid-draft. Generation already ignores the
+    // id; rendering it as a raw uuid would make the chip and the count
+    // disagree about what the trip is going to contain.
+    useMasterStore().applyChange({ seq: 0, table: 'items', id: 'drone', deleted: true, row: null })
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-testid="wizard-item-chips"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="wizard-item-count"]').text()).toContain('0')
+  })
+})

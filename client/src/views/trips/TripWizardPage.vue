@@ -53,7 +53,7 @@ import { attributeLabel } from '@/lib/attributeLabels'
 import { resolveDependencies } from '@/domain/dependencies'
 import { durationDays, generateTripItems, type MergedOverlap } from '@/domain/instantiate'
 import { suggestQuantities, type QuantitySuggestion } from '@/domain/suggestions'
-import { useMasterStore } from '@/stores/masterStore'
+import { MIN_SEARCH_LENGTH, useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { Template, TemplateKind } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -217,7 +217,7 @@ const itemQuery = ref('')
 
 const itemSuggestions = computed(() => {
   const query = itemQuery.value.trim()
-  if (query.length < 2) return []
+  if (query.length < MIN_SEARCH_LENGTH) return []
   const picked = new Set(singleItemIds.value)
   return masterStore
     .searchItems(query)
@@ -225,11 +225,13 @@ const itemSuggestions = computed(() => {
     .slice(0, SUGGESTION_LIMIT)
 })
 
-/** The picks as chips, in the order they were made — the user's own order. */
+/**
+ * The picks as chips, in the order they were made — the user's own order. An
+ * id the inventory no longer answers to is dropped rather than rendered as a
+ * raw uuid: generation ignores it too, so the chip and the count agree.
+ */
 const pickedItems = computed(() =>
-  singleItemIds.value.map(
-    (id) => masterStore.itemList.find((i) => i.id === id) ?? { id, name: id },
-  ),
+  singleItemIds.value.flatMap((id) => masterStore.itemList.filter((i) => i.id === id)),
 )
 
 function addSingleItem(id: string) {
@@ -922,7 +924,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
           <!-- Two words rather than silence: an empty result on a stocked
                inventory and an empty inventory are different problems. -->
           <p
-            v-else-if="itemQuery.trim().length >= 2"
+            v-else-if="itemQuery.trim().length >= MIN_SEARCH_LENGTH"
             class="empty-hint"
             data-testid="wizard-item-nomatch"
           >
