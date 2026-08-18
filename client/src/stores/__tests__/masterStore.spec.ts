@@ -2,11 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { UNTAGGED_KEY } from '@/domain/tags'
 import { useMasterStore } from '../masterStore'
-import {
-  compositionFrom,
-  parsePortable,
-  serializeTemplate,
-} from '@/domain/portable'
+import { compositionFrom, parsePortable, serializeTemplate } from '@/domain/portable'
 
 describe('masterStore', () => {
   beforeEach(() => {
@@ -480,7 +476,13 @@ describe('masterStore', () => {
     const store = useMasterStore()
     store.applyChanges([
       { seq: 1, table: 'items', id: 'i-cam', deleted: false, row: { name: 'Kamera' } },
-      { seq: 2, table: 'templates', id: 'g1', deleted: false, row: { name: 'Makro', kind: 'group' } },
+      {
+        seq: 2,
+        table: 'templates',
+        id: 'g1',
+        deleted: false,
+        row: { name: 'Makro', kind: 'group' },
+      },
       {
         seq: 3,
         table: 'templates',
@@ -533,7 +535,13 @@ describe('masterStore', () => {
     // names g1 as the includer, so an empty result can only come from the
     // scope rule and not from there being nothing to find.
     store.applyChanges([
-      { seq: 1, table: 'templates', id: 'g1', deleted: false, row: { name: 'Makro', kind: 'group' } },
+      {
+        seq: 1,
+        table: 'templates',
+        id: 'g1',
+        deleted: false,
+        row: { name: 'Makro', kind: 'group' },
+      },
       {
         seq: 2,
         table: 'templates',
@@ -551,9 +559,13 @@ describe('masterStore', () => {
     ])
 
     const group = store.getTemplate('g1')!
-    const yaml = serializeTemplate(group, [], () => undefined, compositionFrom(group, store.compositionSource()))
+    const yaml = serializeTemplate(
+      group,
+      [],
+      () => undefined,
+      compositionFrom(group, store.compositionSource()),
+    )
 
     expect(parsePortable(yaml).doc!.includes).toEqual([])
   })
-
 })
