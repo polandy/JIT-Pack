@@ -9,6 +9,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { proposedChangeCount } from '@/domain/refresh'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import { TABLE } from '@/types/tables'
@@ -176,6 +177,54 @@ describe('proposeTripRefresh — the question (FR-27.4)', () => {
     orch.proposeRefreshForLoadedTrips()
 
     expect(Object.keys(orch.refreshProposals.value).sort()).toEqual([TRIP_ID, 'trip-2'])
+  })
+})
+
+describe('a freshly generated trip has nothing to be asked about (FR-27.4)', () => {
+  it('adopts the rows M3 wrote instead of proposing or logging them', async () => {
+    // The realistic path: the wizard generates the rows *and* registers the
+    // sources, so the first refresh finds the position already on the trip
+    // and only records it in the ledger. Anything else would open every new
+    // trip with a question about its own contents, and fill M2's log with a
+    // line per row before the user has done anything at all.
+    const orch = await localOrchestrator()
+    const tripStore = useTripStore()
+    seedWorld()
+
+    const tripId = orch.createTripFromWizard({
+      name: 'Engadin',
+      year: 2026,
+      startDate: null,
+      endDate: null,
+      attributes: null,
+      travelers: [],
+      items: [
+        {
+          source_item_id: ITEM_ID,
+          source_template_id: GROUP_ID,
+          name: 'Kamera',
+          category_name: null,
+          weight_grams: 780,
+          value_cents: null,
+          quantity: 1,
+          mode: 'pack',
+          late_packer: false,
+          traveler_index: null,
+          tasks: [],
+        },
+      ],
+      sourceTemplateIds: [GROUP_ID],
+    })
+
+    const plan = orch.proposeTripRefresh(tripId)
+
+    expect(proposedChangeCount(plan!)).toBe(0)
+    expect(orch.refreshProposals.value[tripId]).toBeUndefined()
+    expect(tripStore.getAppliedChanges(tripId)).toEqual([])
+    // Adopted, not ignored: the ledger now knows the row, which is what lets
+    // the *next* group edit tell a hand edit from its own previous work.
+    expect(tripStore.getGeneratedPositions(tripId)).toHaveLength(1)
+    expect(tripStore.getItems(tripId)).toHaveLength(1)
   })
 })
 
