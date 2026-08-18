@@ -32,7 +32,7 @@ import { addCircleOutline, checkmarkOutline, closeCircleOutline } from 'ionicons
 import { ref, computed, nextTick } from 'vue'
 
 import { t } from '@/i18n'
-import { useMasterStore } from '@/stores/masterStore'
+import { MIN_SEARCH_LENGTH, useMasterStore } from '@/stores/masterStore'
 import type { MasterItem } from '@/types/domain'
 
 const props = withDefaults(
@@ -66,7 +66,7 @@ const query = ref('')
 const inputRef = ref<InstanceType<typeof IonInput> | null>(null)
 
 const suggestions = computed(() => {
-  if (!query.value || query.value.length < 2) return []
+  if (query.value.length < MIN_SEARCH_LENGTH) return []
   const excluded = new Set(props.excludeItemIds)
   return masterStore
     .searchItems(query.value)

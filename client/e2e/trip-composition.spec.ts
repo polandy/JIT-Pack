@@ -212,6 +212,52 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     await expect(visible(page).getByText('Kamera').first()).toBeVisible()
   })
 
+  test('E2E-M3-12: a single item joins the trip, and one already there is only reported', async ({
+    page,
+  }) => {
+    await seedComposition(page)
+    // An inventory item no picked template carries. It enters the inventory
+    // through a group (§2.4: the app's own paths only) that stays unpicked.
+    await page.goto('/tabs/templates')
+    await createTemplate(page, 'group', 'Sonstiges')
+    await addPosition(page, 'Drohne')
+    await backToList(page)
+
+    await wizardToStepThree(page, 'Fototour 2026')
+    await visible(page)
+      .getByTestId('wizard-section-templates')
+      .locator('ion-checkbox')
+      .first()
+      .click()
+    await expect(visible(page).getByTestId('wizard-item-count')).toContainText('3 items')
+
+    // A single item the composition does not carry raises the count.
+    await visible(page).getByTestId('wizard-item-search').locator('input').fill('Droh')
+    await visible(page).getByTestId('wizard-item-suggestions').getByText('Drohne').click()
+    await expect(visible(page).getByTestId('wizard-item-chips')).toContainText('Drohne')
+    await expect(visible(page).getByTestId('wizard-item-count')).toContainText('4 items')
+
+    // One the picked Vorlage already brings is reported, and changes nothing.
+    await visible(page).getByTestId('wizard-item-search').locator('input').fill('Kam')
+    await visible(page).getByTestId('wizard-item-suggestions').getByText('Kamera').click()
+    await expect(visible(page).getByTestId('wizard-item-duplicates')).toContainText('Kamera')
+    await expect(visible(page).getByTestId('wizard-item-count')).toContainText('4 items')
+
+    // The chip is the state, and it is removable.
+    await visible(page).getByTestId('wizard-item-chips').getByText('Drohne').click()
+    await expect(visible(page).getByTestId('wizard-item-count')).toContainText('3 items')
+
+    // Add it back and finish: the row has to reach the trip, which is the
+    // half a count on a preview cannot prove.
+    await visible(page).getByTestId('wizard-item-search').locator('input').fill('Droh')
+    await visible(page).getByTestId('wizard-item-suggestions').getByText('Drohne').click()
+    await page.getByTestId('wizard-next').click()
+    await expect(page.getByTestId('wizard-step-4')).toBeVisible()
+    await page.getByTestId('wizard-create').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Fototour 2026')
+    await expect(visible(page).getByRole('heading', { name: 'Drohne', exact: true })).toBeVisible()
+  })
+
   test('E2E-M3-13: a position task is previewed and lands as a prep todo on the generated row', async ({
     page,
   }) => {

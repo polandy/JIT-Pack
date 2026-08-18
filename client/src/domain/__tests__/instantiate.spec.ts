@@ -602,3 +602,99 @@ describe('generateTripItems keeps its reports honest across contributors', () =>
     expect(res.excluded[0]!.reason).toContain('season')
   })
 })
+
+describe('generateTripItems takes single items too (FR-27.3)', () => {
+  it('places a picked master item as an ordinary trip-global row', () => {
+    // A trip is not always a template: "diesmal noch die Drohne mit" is one
+    // item, and building a group for it would be filing, not packing.
+    const res = generateTripItems(
+      input({
+        masterItems: [masterItem('i-drohne', 'Drohne', { weight_grams: 900 })],
+        singleItemIds: ['i-drohne'],
+      }),
+    )
+
+    expect(res.items).toHaveLength(1)
+    expect(res.items[0]).toMatchObject({
+      source_item_id: 'i-drohne',
+      // No template said this, so nothing may claim it did — the provenance
+      // is what FR-27.4 and FR-27.5 read later.
+      source_template_id: null,
+      name: 'Drohne',
+      weight_grams: 900,
+      quantity: 1,
+      mode: 'pack',
+      traveler_index: null,
+      tasks: [],
+    })
+  })
+
+  it('reports an item a template already brought instead of adding it twice', () => {
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Basis')],
+        masterItems: [masterItem('i1', 'Sonnencreme')],
+        templateItems: [templateItem('ti1', 't1', 'i1')],
+        singleItemIds: ['i1'],
+      }),
+    )
+
+    expect(res.items).toHaveLength(1)
+    expect(res.alreadyIncluded).toEqual([{ item_id: 'i1', item_name: 'Sonnencreme' }])
+  })
+
+  it('counts a per-person row as present — one is enough to make it a duplicate', () => {
+    // The item is on the trip twice already, once per traveler. Adding a
+    // trip-global third row would read as a third sunscreen.
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Basis')],
+        masterItems: [masterItem('i1', 'Sonnencreme')],
+        templateItems: [templateItem('ti1', 't1', 'i1', { assignment: 'per_person' })],
+        singleItemIds: ['i1'],
+      }),
+    )
+
+    expect(res.items).toHaveLength(2)
+    expect(res.alreadyIncluded.map((d) => d.item_name)).toEqual(['Sonnencreme'])
+  })
+
+  it('places an item a condition kept out — the user asked for it by name', () => {
+    // FR-15.2 excluded it because the trip is not cold; picking it by hand
+    // afterwards is an explicit override, not a mistake to be corrected.
+    const res = generateTripItems(
+      input({
+        templates: [template('t1', 'Basis')],
+        masterItems: [masterItem('i1', 'Handschuhe')],
+        templateItems: [templateItem('ti1', 't1', 'i1', { conditions: { season: 'winter' } })],
+        trip: { duration_days: 5, attributes: { season: 'summer' }, travelers: twoAdults },
+        singleItemIds: ['i1'],
+      }),
+    )
+
+    expect(res.items.map((i) => i.name)).toEqual(['Handschuhe'])
+    expect(res.alreadyIncluded).toEqual([])
+    // …and the exclusion report no longer claims it is off the list.
+    expect(res.excluded).toEqual([])
+  })
+
+  it('adds the same item once however often it was picked', () => {
+    const res = generateTripItems(
+      input({
+        masterItems: [masterItem('i1', 'Drohne')],
+        singleItemIds: ['i1', 'i1'],
+      }),
+    )
+
+    expect(res.items).toHaveLength(1)
+    // Picking the same thing twice is not "already included" — it is one pick.
+    expect(res.alreadyIncluded).toEqual([])
+  })
+
+  it('ignores an id no master item answers to', () => {
+    const res = generateTripItems(input({ masterItems: [], singleItemIds: ['ghost'] }))
+
+    expect(res.items).toEqual([])
+    expect(res.alreadyIncluded).toEqual([])
+  })
+})
