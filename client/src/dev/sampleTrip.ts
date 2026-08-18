@@ -118,9 +118,11 @@ export function seedPlannedTrip(orchestrator: Orchestrator, vacationTemplateId: 
     endDate: null,
     attributes: { season: 'summer' },
     travelers: [{ name: 'Andy' }, { name: 'Sia' }],
-    // Deliberately no generated rows: the refresh fills the trip on first
-    // open, which is the same path a group edit takes later — one mechanism
-    // to look at rather than two.
+    // Deliberately no generated rows, unlike the real M3 path: the refresh
+    // fills the trip instead, so the seed demonstrates M2's log as well. The
+    // cost is that the log opens with a line per row, which a wizard-created
+    // trip never has — there the rows are already on the trip and the first
+    // refresh silently adopts them (groupRefresh.spec.ts pins that).
     items: [],
     sourceTemplateIds: [vacationTemplateId],
   })
