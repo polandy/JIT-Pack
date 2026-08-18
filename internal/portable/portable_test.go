@@ -221,3 +221,83 @@ func TestUnmarshal_ScopeOnTripRejected(t *testing.T) {
 		t.Error("expected error for scope on a trip document")
 	}
 }
+
+// A Ferien-Vorlage is nothing without its groups (FR-27.1), so the file
+// carries them whole rather than by name: FR-18.2 promises a file that can be
+// posted in a forum and imported into a different instance, and a reference
+// to a group that instance has never heard of imports as an empty shell.
+func TestMarshalUnmarshal_CarriesIncludedGroupsWithTheirItems(t *testing.T) {
+	doc := portable.Document{
+		Kind:          portable.KindTemplate,
+		SchemaVersion: 1,
+		Name:          "Fototage",
+		Scope:         portable.ScopeTemplate,
+		Includes: []portable.Group{{
+			Name: "Makro Fotografie",
+			Items: []portable.Item{{
+				Name:     "Kamera",
+				Quantity: 1,
+				Tasks:    []string{"Akkus laden"},
+			}},
+		}},
+		Items: []portable.Item{{Name: "Reiseapotheke", Quantity: 1}},
+	}
+
+	data, err := portable.Marshal(doc)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	back, err := portable.Unmarshal(data)
+	if err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	if len(back.Includes) != 1 {
+		t.Fatalf("includes: got %d, want 1", len(back.Includes))
+	}
+	group := back.Includes[0]
+	if group.Name != "Makro Fotografie" {
+		t.Errorf("group name: got %q", group.Name)
+	}
+	if len(group.Items) != 1 || group.Items[0].Name != "Kamera" {
+		t.Fatalf("group items: got %+v", group.Items)
+	}
+	// FR-27.7: a position's preparation tasks are part of the shape, or the
+	// knowledge the group exists to carry stays on the device that wrote it.
+	if got := group.Items[0].Tasks; len(got) != 1 || got[0] != "Akkus laden" {
+		t.Errorf("tasks: got %+v", got)
+	}
+	if len(back.Items) != 1 || back.Items[0].Name != "Reiseapotheke" {
+		t.Errorf("own items: got %+v", back.Items)
+	}
+}
+
+func TestUnmarshal_RejectsIncludesOnATrip(t *testing.T) {
+	// A trip has no composition — it is the *result* of one. A file claiming
+	// otherwise was written by something this build does not understand.
+	data := []byte("kind: trip\nname: Engadin\nyear: 2026\nincludes:\n  - name: Makro\n")
+
+	if _, err := portable.Unmarshal(data); err == nil {
+		t.Fatal("expected an error for includes on a trip document")
+	}
+}
+
+func TestUnmarshal_RejectsIncludesOnAGroup(t *testing.T) {
+	// Two levels, structurally (FR-27.1): a group holds positions, never
+	// other groups. Accepting this would import a cycle the schema forbids.
+	data := []byte("kind: template\nscope: group\nname: Makro\nincludes:\n  - name: Wildlife\n")
+
+	if _, err := portable.Unmarshal(data); err == nil {
+		t.Fatal("expected an error for includes on a group document")
+	}
+}
+
+func TestUnmarshal_RejectsAnUnnamedIncludedGroup(t *testing.T) {
+	// The name is the group's whole identity across instances (see ADR-017);
+	// without one there is nothing to link to and nothing to create.
+	data := []byte("kind: template\nname: Fototage\nincludes:\n  - items: []\n")
+
+	if _, err := portable.Unmarshal(data); err == nil {
+		t.Fatal("expected an error for an included group with no name")
+	}
+}

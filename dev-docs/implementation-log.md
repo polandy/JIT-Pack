@@ -3148,3 +3148,78 @@ the preview, not that the row arrived.
 
 No seed change was owed: `Wandersocken` is in the sample inventory and in no
 group, so a fresh device can exercise the picker as it stands.
+
+## Portable YAML learns the composition (2026-08-18, ADR-017)
+
+The format could describe a template's positions and nothing about what a
+Ferien-Vorlage is *made of*. Two consequences, one of them quiet and bad: a
+shared file imported a Vorlage that resolved to nothing, and the NFR-4.11
+backup — the only copy a Local Mode device has — restored the same emptiness.
+The failure surfaces at the next trip generation, on a device that no longer
+has the file.
+
+**The decision was between self-contained and referential**, and it is written
+up in ADR-017 with the matrix. The groups travel whole. What made it clear-cut
+was driver 2 rather than the sharing story: a backup that restores a name is
+not a backup.
+
+**The identity rule is the half worth remembering.** The name is a group's
+identity across instances — nothing else survives the trip — so an import
+*links* a group of that name and never rewrites it. That rule is not politeness:
+since FR-27.4 a group edit reaches every trip that follows it, so an importer
+that "helpfully" merged the file's positions into an existing group would change
+other people's packing lists from a file they never opened. The cost, stated in
+the ADR, is that an import can give you less than the file described.
+
+**Found while building:** the Go exporter never wrote `scope` at all, so a group
+exported through the server came back a Ferien-Vorlage — the exact defect
+FR-27.1's spec text warns about, three lines above a client parser that rejects
+an unknown scope. It had no test because nothing asserted the exported
+*document*, only its items.
+
+**Where it is enforced:** both parsers reject includes on a trip, includes on a
+group (FR-27.1 is two levels, which is what makes cycles impossible) and an
+unnamed group — at the file boundary, before anything reaches a store. And all
+four client write paths go through one `compositionFrom`, so M7's export, the
+settings export and the backup cannot disagree about what a file contains.
+
+## The identity rule was half a rule (2026-08-18, ADR-017)
+
+Found reviewing the branch that introduced it, before it merged. ADR-017's
+link-or-create rule lived only in the `includes` loop, so it decided what
+happened to a group *nested in a Vorlage* and said nothing about the group's
+own document. A backup carries the same group both ways — the ADR calls that
+redundancy deliberate — so the result depended on which document the file
+listed first:
+
+```
+group-first    -> 1 group :  Makro Fotografie
+vorlage-first  -> 2 groups:  Makro Fotografie | Makro Fotografie (import)
+```
+
+**That order is not stable, which is what made it a defect rather than a
+curiosity.** The file is written in `templateList` order; in Local Mode the
+store is hydrated from IndexedDB with `getAll()` over keys of the form
+`templates/<random hex>`, so the order is arbitrary relative to creation and
+re-rolled on every reload. Roughly half of all restores would have produced a
+duplicate group, included by nothing, carrying a copy of the positions.
+
+E2E-M18-07 passed throughout: it creates the group first in a warm store, which
+is exactly the order that works. The unit cases now run **both** orders through
+`commitPortableRestore`, and the e2e additionally asserts one group in the
+restored list.
+
+**The Go importer had the same hole with a different symptom** — a repeated
+group document hit `UNIQUE(owner_id, name)` and failed the import outright. It
+already had an `ensureGroup` helper doing link-or-create for nested groups; the
+document path now goes through it too.
+
+**What the rule is, stated properly:** it belongs to the *group*, not to where
+in a file the group appears. Ferien-Vorlagen deliberately keep the `(import)`
+suffix instead — two of one name are two different plans, and linking them
+would lose one.
+
+Method note: the two mutation proofs of this fix were nearly worthless. The
+first pass mutated an **uncommitted** implementation and then reverted it with
+`git checkout`, so the second "proof" ran against code that had never had the
+fix at all — a red test proving nothing. Commit first, then mutate.

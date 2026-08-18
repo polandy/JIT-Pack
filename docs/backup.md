@@ -243,7 +243,44 @@ curl -sOJ https://jitpack.example.com/api/v1/templates/$TEMPLATE_ID/export \
 ```
 
 The document is `kind: template`, with instance-specific identifiers stripped — items are
-carried by name, so a template moves cleanly between instances.
+carried by name, so a template moves cleanly between instances. A `scope:` line says which
+kind of template it is: a `group` (a reusable set of items) or a `template` (a holiday
+template composed of groups).
+
+A holiday template carries the groups it is made of **whole**, under `includes:`, together
+with each position's preparation tasks — so the file still means something on an instance
+that has never seen those groups:
+
+```yaml
+kind: template
+scope: template
+name: Fototage
+includes:
+  - name: Makro Fotografie
+    items:
+      - name: Kamera
+        quantity: 1
+        tasks: ["Charge the batteries"]
+items:
+  - name: First-aid kit
+    quantity: 1
+```
+
+**On import, a group of the same name is linked, never overwritten.** The name is how a
+group is recognised across instances. If your instance already has a group called
+*Makro Fotografie*, the imported template is attached to **yours** and the file's version of
+that group is discarded — the file may be older than your group, and a group is shared by
+every template that includes it and every trip that follows it. The consequence worth
+knowing: an import can give you less than the file described. Rename your own group first if
+you want the file's version alongside it.
+
+The same linking applies when you import a **group document** on its own: if a group of that
+name is already here, the import lands on it and changes nothing, rather than leaving a
+second copy behind. Importing a *holiday template* whose name is taken does create a second
+one, suffixed `(import)` — two templates of one name are two different plans.
+
+A group document (`scope: group`) carries no `includes:` — a group is never composed of
+other groups.
 
 Import posts the YAML document as the request body:
 

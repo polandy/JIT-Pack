@@ -89,11 +89,17 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    done too** (2026-08-18): M3 step 3 picks single inventory items beside the templates —
    they resolve *after* the composition, which is what makes „bereits enthalten"
    decidable, and a single item carries no `source_template_id`, because FR-27.4 and
-   FR-27.5 both read that provenance. Still owed: the **M21 screen** (FR-27.5),
-   **portable YAML** for includes and tasks — which is also why the Local Mode backup
-   does not carry the FR-27.4 tables — and **FR-27.10**'s whole-group add to a running
-   trip (its plumbing exists: `sourceTemplateIds` on the wizard draft and
-   `registerTripSource`). Schema and sync wiring were already done (migration 016).
+   FR-27.5 both read that provenance.
+   **Portable YAML carries the composition too** (2026-08-18, ADR-017): a Ferien-Vorlage's
+   groups travel whole under `includes:` with their FR-27.7 tasks, and an import links a
+   group of the same name rather than rewriting it — a group's own document included, so
+   the result does not depend on which document a file lists first. Still owed: the
+   **M21 screen** (FR-27.5) and **FR-27.10**'s whole-group add to a running trip (its
+   plumbing exists: `sourceTemplateIds` on the wizard draft and `registerTripSource`).
+   The Local Mode backup still does not carry the three FR-27.4 tables
+   (`trip_template_sources`, `trip_generated_positions`, `trip_applied_changes`):
+   a restored device keeps its Vorlagen and trips, and starts following them afresh.
+   Schema and sync wiring were already done (migration 016).
 3. **The design foundation, then the remaining screen rebuilds** — in that order, decided by
    the owner 2026-08-14 after M4 and M5 were compared with the prototype. The plan is
    `dev-docs/design-foundation-plan.md`; read it before starting either half.
