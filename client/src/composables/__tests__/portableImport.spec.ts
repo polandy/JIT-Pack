@@ -224,3 +224,68 @@ items:
     expect(trips.tripList).toHaveLength(1)
   })
 })
+
+describe('commitPortableImport — the composition comes back (FR-27.1/27.7, ADR-017)', () => {
+  const file = `kind: template
+schema_version: 1
+name: Fototage
+scope: template
+includes:
+  - name: Makro Fotografie
+    items:
+      - name: Kamera
+        quantity: 1
+        assignment: trip_global
+        tasks: ["Akkus laden"]
+items:
+  - name: Reiseapotheke
+    quantity: 1
+    assignment: trip_global
+`
+
+  it('creates the group the file brought and includes it, with its tasks', () => {
+    // In Local Mode this *is* the restore path: a Vorlage that came back
+    // without its groups would generate an empty trip, and nothing would say
+    // so until the next trip was generated.
+    const orch = newOrch()
+    const master = useMasterStore()
+
+    const result = orch.commitPortableImport(parsePortable(file).doc!, new Map())
+
+    const group = master.templateList.find((t) => t.name === 'Makro Fotografie')
+    expect(group?.kind).toBe('group')
+    expect(master.includeList.map((i) => [i.template_id, i.included_template_id])).toEqual([
+      [result.id, group!.id],
+    ])
+
+    const position = master.getTemplateItems(group!.id)[0]!
+    expect(master.getItem(position.item_id)?.name).toBe('Kamera')
+    expect(master.getTemplateItemTasks(position.id).map((t) => t.task)).toEqual(['Akkus laden'])
+  })
+
+  it('links a group that already exists instead of duplicating or rewriting it', () => {
+    // The file may be older than the group, and since FR-27.4 a group edit
+    // reaches every trip that follows it — an import must not be an editor.
+    const orch = newOrch()
+    const master = useMasterStore()
+    const existingId = orch.createTemplate('Makro Fotografie', 'group')
+    const itemId = orch.createMasterItem('Stativ', {})
+    orch.addTemplateItem(existingId, itemId, {
+      quantity: 1,
+      assignment: 'trip_global',
+      defaultMode: 'pack',
+    })
+
+    const result = orch.commitPortableImport(parsePortable(file).doc!, new Map())
+
+    expect(master.templateList.filter((t) => t.name === 'Makro Fotografie')).toHaveLength(1)
+    expect(master.includeList.map((i) => i.included_template_id)).toEqual([existingId])
+    // Untouched: the file's Kamera did not join the existing group.
+    const names = master
+      .getTemplateItems(existingId)
+      .map((p) => master.getItem(p.item_id)?.name)
+      .sort()
+    expect(names).toEqual(['Stativ'])
+    expect(result.kind).toBe('template')
+  })
+})

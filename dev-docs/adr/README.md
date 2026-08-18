@@ -22,6 +22,7 @@ One file per decision, named `ADR-00N_Short_Title.md`, numbered in the order the
 | [014](ADR-014_Item_Tags.md) | An item carries a set of tags in a join table; the category is renamed away, not kept beside it | Accepted |
 | [015](ADR-015_Local_Backup_File_Shape.md) | The Local Mode backup is one multi-document YAML file, not one file per trip | Accepted |
 | [016](ADR-016_Planning_Refresh_Ledger.md) | The planning refresh keeps a ledger, and derives the ids of what it writes | Accepted |
+| [017](ADR-017_Portable_Composition.md) | A portable Ferien-Vorlage carries its groups whole | Accepted |
 
 **Outbound Content Fetching** — `Vision_NorthStar` names this as the gate that must exist before any Plan-phase feature makes the server fetch external content. It had informally reserved number 007, which Session Brokering has since taken; it gets the next free number when it is written.
 

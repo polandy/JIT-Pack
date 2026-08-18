@@ -54,7 +54,7 @@ import { loadTokens } from '@/auth/tokens'
 import { serverBaseUrl } from '@/config'
 import type { NotificationPrefs } from '@/notifications/format'
 import { pushRegistered, pushSupported, registerPush, unregisterPush } from '@/notifications/push'
-import { serializeTemplate, serializeTrip } from '@/domain/portable'
+import { compositionFrom, serializeTemplate, serializeTrip } from '@/domain/portable'
 import { safeFilename, saveBlob, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -222,8 +222,16 @@ function exportTripYAML() {
 function exportTemplateYAML() {
   const template = masterStore.getTemplate(yamlTemplateId.value)
   if (!template) return
-  const yaml = serializeTemplate(template, masterStore.getTemplateItems(template.id), (id) =>
-    masterStore.getItem(id),
+  const yaml = serializeTemplate(
+    template,
+    masterStore.getTemplateItems(template.id),
+    (id) => masterStore.getItem(id),
+    compositionFrom(template, {
+      includes: masterStore.includeList,
+      templates: masterStore.templateList,
+      itemsOf: (id) => masterStore.getTemplateItems(id),
+      tasksOf: (id) => masterStore.getTemplateItemTasks(id).map((t) => t.task),
+    }),
   )
   saveText(yaml, `${safeFilename(template.name)}.yaml`)
   recordBackup()

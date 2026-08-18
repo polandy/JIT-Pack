@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"jitpack/internal/portable"
+	"jitpack/internal/store"
 )
 
 func TestExportTemplate(t *testing.T) {
@@ -68,6 +69,15 @@ func TestExportTemplate_NotFound(t *testing.T) {
 	_, err := st.ExportTemplate(context.Background(), "nonexistent")
 	if err == nil {
 		t.Error("expected error for nonexistent template")
+	}
+}
+
+// seedOwner inserts the account every import needs as its owner.
+func seedOwner(t *testing.T, st *store.Store) {
+	t.Helper()
+	if _, err := st.DB().Exec(
+		`INSERT INTO users (id, oidc_subject, display_name) VALUES ('u1', 'auth|u1', 'Alice')`); err != nil {
+		t.Fatalf("seed user: %v", err)
 	}
 }
 
@@ -287,5 +297,121 @@ func TestImportTrip(t *testing.T) {
 	}
 	if got.Items[1].Container != "Backpack" {
 		t.Errorf("items[1].container = %q", got.Items[1].Container)
+	}
+}
+
+// TestExportImportTemplate_CarriesCompositionAndTasks is the §3.27 round trip
+// (FR-27.1/27.7, ADR-017): a Ferien-Vorlage exported and imported again is
+// still composed, and its positions still carry their preparation tasks.
+func TestExportImportTemplate_CarriesCompositionAndTasks(t *testing.T) {
+	st := openTestStore(t)
+	ctx := context.Background()
+	seedOwner(t, st)
+
+	source := portable.Document{
+		Kind:          portable.KindTemplate,
+		SchemaVersion: 1,
+		Name:          "Fototage",
+		Scope:         portable.ScopeTemplate,
+		Includes: []portable.Group{{
+			Name: "Makro Fotografie",
+			Items: []portable.Item{
+				{Name: "Kamera", Quantity: 1, Tasks: []string{"Akkus laden"}},
+				{Name: "Ringlicht", Quantity: 1},
+			},
+		}},
+		Items: []portable.Item{{Name: "Reiseapotheke", Quantity: 1}},
+	}
+
+	templateID, err := st.ImportTemplate(ctx, "u1", source)
+	if err != nil {
+		t.Fatalf("ImportTemplate: %v", err)
+	}
+
+	got, err := st.ExportTemplate(ctx, templateID)
+	if err != nil {
+		t.Fatalf("ExportTemplate: %v", err)
+	}
+	if got.Scope != portable.ScopeTemplate {
+		t.Errorf("scope = %q, want template", got.Scope)
+	}
+	if len(got.Includes) != 1 {
+		t.Fatalf("includes = %d, want 1", len(got.Includes))
+	}
+	group := got.Includes[0]
+	if group.Name != "Makro Fotografie" {
+		t.Errorf("group name = %q", group.Name)
+	}
+	if len(group.Items) != 2 {
+		t.Fatalf("group items = %d, want 2", len(group.Items))
+	}
+	if got := group.Items[0].Tasks; len(got) != 1 || got[0] != "Akkus laden" {
+		t.Errorf("tasks = %+v, want [Akkus laden]", got)
+	}
+	if len(got.Items) != 1 || got.Items[0].Name != "Reiseapotheke" {
+		t.Errorf("own items = %+v", got.Items)
+	}
+}
+
+// TestImportTemplate_LinksAnExistingGroupWithoutRewritingIt is the rule that
+// keeps an import from reaching other people's trips: a group of the same name
+// is *linked*, and its contents are left exactly as they are. Overwriting it
+// would edit every Ferien-Vorlage that includes it and, through FR-27.4, every
+// trip that follows one.
+func TestImportTemplate_LinksAnExistingGroupWithoutRewritingIt(t *testing.T) {
+	st := openTestStore(t)
+	ctx := context.Background()
+	seedOwner(t, st)
+
+	existingID, err := st.ImportTemplate(ctx, "u1", portable.Document{
+		Kind:  portable.KindTemplate,
+		Name:  "Makro Fotografie",
+		Scope: portable.ScopeGroup,
+		Items: []portable.Item{{Name: "Kamera", Quantity: 1}},
+	})
+	if err != nil {
+		t.Fatalf("seed group: %v", err)
+	}
+
+	vorlageID, err := st.ImportTemplate(ctx, "u1", portable.Document{
+		Kind:  portable.KindTemplate,
+		Name:  "Fototage",
+		Scope: portable.ScopeTemplate,
+		Includes: []portable.Group{{
+			Name:  "Makro Fotografie",
+			Items: []portable.Item{{Name: "Stativ", Quantity: 1}},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("import vorlage: %v", err)
+	}
+
+	// Linked, not duplicated: one group of that name exists.
+	var groups int
+	if err := st.DB().QueryRow(
+		`SELECT COUNT(*) FROM templates WHERE name = 'Makro Fotografie'`).Scan(&groups); err != nil {
+		t.Fatalf("count groups: %v", err)
+	}
+	if groups != 1 {
+		t.Errorf("groups named Makro Fotografie = %d, want 1", groups)
+	}
+
+	var includes int
+	if err := st.DB().QueryRow(
+		`SELECT COUNT(*) FROM template_includes WHERE template_id = ? AND included_template_id = ?`,
+		vorlageID, existingID).Scan(&includes); err != nil {
+		t.Fatalf("count includes: %v", err)
+	}
+	if includes != 1 {
+		t.Errorf("include rows = %d, want 1", includes)
+	}
+
+	// And untouched: the file's "Stativ" did not join the existing group.
+	existing, err := st.ExportTemplate(ctx, existingID)
+	if err != nil {
+		t.Fatalf("export existing: %v", err)
+	}
+	if len(existing.Items) != 1 || existing.Items[0].Name != "Kamera" {
+		t.Errorf("existing group was rewritten: %+v", existing.Items)
 	}
 }

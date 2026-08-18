@@ -82,12 +82,19 @@ Single-User Mode is a declarative flag that changes *authentication* for a genui
 
 * **FR-18.1 (Human-Readable Format):** Templates (FR-1.2) and individual trip packing lists can be exported to, and imported from, a single **YAML** file — deliberately distinct from the full-instance JSON backup (NFR-4.5), which is optimized for disaster recovery, not for a person to open and read. A portable export is meant to be opened in a plain text editor, understood at a glance, and hand-edited if desired.
 * **FR-18.2 (Template Export):** Any template can be exported (every account sees every template — FR-1.6 MVP) as one YAML file capturing its items, quantities, assignment types (FR-1.4), conditions (FR-15.2), and per-item defaults. The file is environment-agnostic — no user IDs, no owner, no instance-specific identifiers — so it can be shared (e.g., posted in a forum, emailed to a friend) and imported into a completely different JIT-Pack instance. Example shape:
+  The document also carries the template's **composition** (FR-27.1) and its positions' **preparation tasks** (FR-27.7), built 2026-08-18. A Ferien-Vorlage's groups travel **whole** under `includes:` — name plus their own positions — rather than as bare references, because a reference means nothing on the instance the file lands on, and because the NFR-4.11 backup is the only copy of a Local Mode device (ADR-017). Import **links** a group of the same name and **never rewrites** it: the file may be older than the group, and since FR-27.4 a group edit reaches every trip that follows it. Structural rules are enforced at the file boundary on both parsers — includes only on a Ferien-Vorlage (never on a trip, never on a group: FR-27.1 is two levels), and every included group must be named.
   The document carries the template's **scope** (FR-27.1) beside its kind — `kind` says whether the file is a template or a trip, `scope` says whether that template is a Gruppe or a Ferien-Vorlage. Without it a group would import back as a Ferien-Vorlage: the same name, the wrong thing. It is **omitted on trips**, and a file written before scopes existed carries none and reads back as `template` — the same default migration 016 applies to pre-scope rows. An unknown scope is rejected rather than defaulted, on both the Go and the client parser. Example shape (quantities are plain integers and units are gone — FR-1.3/1.5 and units were retired 2026-08-08):
   ```yaml
   kind: template
   schema_version: 1
   name: Base Travel
   scope: template
+  includes:
+    - name: Makro Fotografie
+      items:
+        - name: Kamera
+          quantity: 1
+          tasks: ["Akkus laden"]
   items:
     - name: Toothbrush
       quantity: 1

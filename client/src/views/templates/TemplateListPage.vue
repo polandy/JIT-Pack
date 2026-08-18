@@ -48,7 +48,7 @@ import {
 } from 'ionicons/icons'
 import { computed, inject, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { serializeTemplate } from '@/domain/portable'
+import { compositionFrom, serializeTemplate } from '@/domain/portable'
 import { safeFilename, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -295,7 +295,17 @@ async function deleteTemplate(tpl: Template) {
 
 /** FR-18.2: client-side export — works identically in Local Mode. */
 function exportTemplate(tpl: Template) {
-  const yaml = serializeTemplate(tpl, store.getTemplateItems(tpl.id), (id) => store.getItem(id))
+  const yaml = serializeTemplate(
+    tpl,
+    store.getTemplateItems(tpl.id),
+    (id) => store.getItem(id),
+    compositionFrom(tpl, {
+      includes: store.includeList,
+      templates: store.templateList,
+      itemsOf: (id) => store.getTemplateItems(id),
+      tasksOf: (id) => store.getTemplateItemTasks(id).map((t) => t.task),
+    }),
+  )
   saveText(yaml, `${safeFilename(tpl.name)}.yaml`)
 }
 

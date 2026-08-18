@@ -82,9 +82,10 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    ADR-016): a planning trip follows its registered sources on every open and after every master
    pull, manual edits always win — decided against a ledger of what generation last produced, which
    is also what keeps a hand-deleted row deleted — and M2 carries the applied-changes chip. That
-   unblocked E2E-M8-09 and the log halves of M8-11 and M14-04. Still owed: the **M21 screen**
-   (FR-27.5), **portable YAML** for includes and tasks — which is also why the Local Mode backup
-   does not carry the FR-27.4 tables — **FR-27.3**'s single-item add in step 3, and **FR-27.10**'s
+   unblocked E2E-M8-09 and the log halves of M8-11 and M14-04. **Portable YAML carries the composition too** (2026-08-18, ADR-017): a Ferien-Vorlage's
+   groups travel whole under `includes:` with their FR-27.7 tasks, and an import links a group of
+   the same name rather than rewriting it. Still owed: the **M21 screen**
+   (FR-27.5), **FR-27.3**'s single-item add in step 3, and **FR-27.10**'s
    whole-group add to a running trip (its plumbing exists: `sourceTemplateIds` on the wizard draft
    and `registerTripSource`). Schema and sync wiring were already done (migration 016).
 3. **The design foundation, then the remaining screen rebuilds** — in that order, decided by

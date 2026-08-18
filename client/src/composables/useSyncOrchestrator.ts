@@ -1376,6 +1376,54 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * existing item id) or created; a trip becomes a *planning* trip with
    * travelers/containers remapped by name and pack progress preserved.
    */
+  /**
+   * importPositions writes one template's positions and their FR-27.7 tasks
+   * from a portable document. Shared by the document's own template and by
+   * the groups it brought (ADR-017), so the two cannot drift apart.
+   */
+  function importPositions(
+    templateId: string,
+    items: PortableItem[],
+    resolveItem: (item: PortableItem) => string | null,
+  ): void {
+    for (const item of items) {
+      const itemId = resolveItem(item)
+      if (!itemId) continue
+      const ti = mutations.addTemplateItem(templateId, itemId, {
+        quantity: item.quantity,
+        assignment: item.assignment ?? 'per_person',
+        dedup: item.dedup ?? 'max',
+        defaultMode: item.default_mode ?? 'pack',
+        latePacker: item.late_packer,
+        conditions: item.conditions,
+      })
+      onPullChanges([
+        {
+          seq: 0,
+          table: TABLE.templateItems,
+          id: ti.id,
+          deleted: false,
+          row: ti.mutation.fields as Record<string, unknown>,
+        },
+      ])
+      if (!local) outbox.enqueue('master', null, ti.mutation)
+
+      for (const task of item.tasks) {
+        const t = mutations.addTemplateItemTask(ti.id, task)
+        onPullChanges([
+          {
+            seq: 0,
+            table: TABLE.templateItemTasks,
+            id: t.id,
+            deleted: false,
+            row: t.mutation.fields as Record<string, unknown>,
+          },
+        ])
+        if (!local) outbox.enqueue('master', null, t.mutation)
+      }
+    }
+  }
+
   function commitPortableImport(
     doc: PortableDocument,
     mergeDecisions: Map<string, string>,
@@ -1419,26 +1467,46 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       ])
       if (!local) outbox.enqueue('master', null, mutation)
 
-      for (const item of doc.items) {
-        const itemId = resolveItem(item)!
-        const ti = mutations.addTemplateItem(templateId, itemId, {
-          quantity: item.quantity,
-          assignment: item.assignment ?? 'per_person',
-          dedup: item.dedup ?? 'max',
-          defaultMode: item.default_mode ?? 'pack',
-          latePacker: item.late_packer,
-          conditions: item.conditions,
-        })
+      importPositions(templateId, doc.items, resolveItem)
+
+      // FR-27.1/ADR-017: the file brought its groups whole. A group of the
+      // same name is *linked* and left exactly as it is — the file may be
+      // older than the group, and since FR-27.4 a group edit reaches every
+      // trip that follows it. An import is not an editor.
+      for (const group of doc.includes) {
+        const existing = masterStore.templateList.find(
+          (t) => t.kind === 'group' && t.name === group.name,
+        )
+        let groupId: string
+        if (existing) {
+          groupId = existing.id
+        } else {
+          const created = mutations.createTemplate(group.name, '', 'group')
+          groupId = created.id
+          onPullChanges([
+            {
+              seq: 0,
+              table: TABLE.templates,
+              id: groupId,
+              deleted: false,
+              row: created.mutation.fields as Record<string, unknown>,
+            },
+          ])
+          if (!local) outbox.enqueue('master', null, created.mutation)
+          importPositions(groupId, group.items, resolveItem)
+        }
+
+        const inc = mutations.addTemplateInclude(templateId, groupId)
         onPullChanges([
           {
             seq: 0,
-            table: TABLE.templateItems,
-            id: ti.id,
+            table: TABLE.templateIncludes,
+            id: inc.id,
             deleted: false,
-            row: ti.mutation.fields as Record<string, unknown>,
+            row: inc.mutation.fields as Record<string, unknown>,
           },
         ])
-        if (!local) outbox.enqueue('master', null, ti.mutation)
+        if (!local) outbox.enqueue('master', null, inc.mutation)
       }
 
       if (!local) {
