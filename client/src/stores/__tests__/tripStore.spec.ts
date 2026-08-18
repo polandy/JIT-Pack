@@ -617,3 +617,54 @@ describe('the FR-27.4 ledger snapshot', () => {
     expect(ledger(store, 'led-2')?.tasks).toEqual([])
   })
 })
+
+describe('the FR-27.4 applied-changes log has a total order', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  function logged(store: ReturnType<typeof useTripStore>, id: string, createdAt: string) {
+    store.applyChange({
+      seq: 0,
+      table: 'trip_applied_changes',
+      id,
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        source_template_id: 'g1',
+        source_template_name: 'Makro',
+        kind: 'added',
+        item_name: id,
+        detail: null,
+        created_at: createdAt,
+      },
+    })
+  }
+
+  it('breaks a same-instant tie deterministically instead of by arrival order', () => {
+    // Two changes from one refresh land in the same millisecond, which is the
+    // normal case — the whole plan is applied in one pass. Ordering them by
+    // timestamp alone leaves the tie to insertion order, so the same log reads
+    // differently on two devices, and an index-based assertion is a coin flip.
+    const a = useTripStore()
+    logged(a, 'aaa', '2026-08-18T10:00:00.000Z')
+    logged(a, 'bbb', '2026-08-18T10:00:00.000Z')
+
+    setActivePinia(createPinia())
+    const b = useTripStore()
+    logged(b, 'bbb', '2026-08-18T10:00:00.000Z')
+    logged(b, 'aaa', '2026-08-18T10:00:00.000Z')
+
+    expect(a.getAppliedChanges('t1').map((c) => c.id)).toEqual(
+      b.getAppliedChanges('t1').map((c) => c.id),
+    )
+  })
+
+  it('still puts the newest change first', () => {
+    const store = useTripStore()
+    logged(store, 'older', '2026-08-18T10:00:00.000Z')
+    logged(store, 'newer', '2026-08-18T10:00:01.000Z')
+
+    expect(store.getAppliedChanges('t1').map((c) => c.id)).toEqual(['newer', 'older'])
+  })
+})

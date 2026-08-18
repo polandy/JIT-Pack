@@ -10,7 +10,7 @@
  */
 
 import { TABLE } from '@/types/tables'
-import { ref } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
 
 import { APIClient, type TokenProvider } from '@/api/client'
 import { HLCGenerator } from '@/sync/hlc'
@@ -24,7 +24,14 @@ import type { PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
 import { planClone, type CloneOptions } from '@/domain/clone'
-import { isEmptyPlan, planRefresh, type RefreshPlan } from '@/domain/refresh'
+import {
+  declinePlan,
+  isEmptyPlan,
+  planRefresh,
+  proposedChangeCount,
+  type RefreshPlan,
+} from '@/domain/refresh'
+import { followsGroups } from '@/domain/trips'
 import {
   pairWrites,
   releasePartnersOnDelete,
@@ -115,6 +122,18 @@ export interface CloneDraft {
   options: CloneOptions
 }
 
+/**
+ * localIsoDate is `YYYY-MM-DD` in the device's own timezone.
+ * `toISOString()` would answer in UTC, which puts a trip a day out for
+ * anyone far enough east or west of it on the evening it ends.
+ */
+function localIsoDate(): string {
+  const d = new Date()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${month}-${day}`
+}
+
 export interface SyncOrchestratorConfig {
   baseUrl: string
   getToken: TokenProvider
@@ -129,6 +148,13 @@ export interface SyncOrchestratorConfig {
    * is ever touched. The optimistic rows are authoritative.
    */
   local?: IndexedDBPersistence
+  /**
+   * The clock behind FR-27.4's "is this trip past?" question. Injected so a
+   * test can stand on either side of a trip's end date without moving the
+   * machine's clock; defaults to the local date, not UTC, because the day a
+   * trip ends is the day the traveller is living in.
+   */
+  today?: () => string
   /**
    * FR-6.2 in-app channel: invoked for each incoming notification —
    * live ones (notification.created) and unread ones found on connect.
@@ -177,6 +203,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const masterStore = useMasterStore()
   const syncStatus = useSyncStatus()
   const local = config.local ?? null
+  const today = config.today ?? localIsoDate
   if (local) syncStatus.setLocal()
 
   // G-10: per-trip presence, fed by the WS presence event.
@@ -417,6 +444,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       await outbox.drain('master', null)
       syncStatus.setPendingCount(outbox.totalPending())
       syncStatus.setSynced()
+      // FR-27.4: a group edited on another device arrives with this pull, and
+      // the trips that follow it work out what it would mean for them here —
+      // the device does not have to be on any particular screen. Local Mode
+      // returns above, and App.vue sweeps once after its hydration instead.
+      proposeRefreshForLoadedTrips()
     } catch {
       syncStatus.setOffline()
     }
@@ -786,7 +818,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     }
   }
 
-  // --- The planning-trip refresh (FR-27.4) ---
+  // --- The group refresh (FR-27.4) ---
 
   /** The optimistic PullChange for a write — applied before the push lands. */
   function change(
@@ -802,21 +834,90 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   }
 
   /**
-   * refreshPlanningTrip re-resolves one trip against the templates it
-   * follows and applies what moved. A no-op unless the trip is in
-   * *planning* status and something actually changed — it runs on every
-   * trip open and after every master pull, so the empty plan is the
-   * normal case and must cost nothing.
-   *
-   * Returns the plan it applied, so a caller (and a test) can assert what
-   * happened rather than infer it from the resulting rows.
+   * The open questions, by trip id (FR-27.4). Derived state, deliberately
+   * not synced: a proposal is a diff between rows that are already synced,
+   * so every device computes the same one and none of them has to agree
+   * with the others about a pending decision.
    */
-  function refreshPlanningTrip(tripId: string): RefreshPlan | null {
+  // shallowRef, not ref: a plan is replaced wholesale and never edited in
+  // place, and deep reactivity over a diff of every changed row would be paid
+  // for on every trip open.
+  const proposals = shallowRef<Record<string, RefreshPlan>>({})
+  const refreshProposals = computed(() => proposals.value)
+
+  /**
+   * proposeTripRefresh re-resolves one trip against the groups it follows
+   * and *offers* what moved (FR-27.4). It runs on every trip open and after
+   * every master pull, so the empty plan is the normal case and must cost
+   * nothing.
+   *
+   * Nothing on the trip is written here — that is the whole point of the
+   * split: the owner's rule (2026-08-18) is that a group change reaches a
+   * trip by being asked about, and the question is asked at the trip. What
+   * this *does* write, immediately and silently, is the bookkeeping half of
+   * a plan that proposes nothing: adopting a hand-added row into the ledger
+   * changes nothing the user could answer a question about, and leaving it
+   * unwritten would re-derive it on every open forever.
+   *
+   * Returns the plan, so a caller (and a test) can read what is on offer
+   * rather than infer it from the resulting rows.
+   */
+  function proposeTripRefresh(tripId: string): RefreshPlan | null {
+    const plan = deriveTripRefresh(tripId)
+    if (!plan) return null
+    if (proposedChangeCount(plan) === 0) {
+      applyRefreshPlan(tripId, plan)
+      clearProposal(tripId)
+      return plan
+    }
+    proposals.value = { ...proposals.value, [tripId]: plan }
+    return plan
+  }
+
+  /**
+   * acceptTripRefresh is the answer "yes": the trip takes the changes over
+   * and M2's log records them.
+   *
+   * It re-derives rather than applying the plan it was shown. The group may
+   * have moved again between the question and the answer — on this device or
+   * another one — and applying the fresher diff is both simpler to reason
+   * about than reconciling two plans and closer to what the user meant.
+   */
+  function acceptTripRefresh(tripId: string): RefreshPlan | null {
+    const plan = deriveTripRefresh(tripId)
+    if (!plan) return null
+    applyRefreshPlan(tripId, plan)
+    clearProposal(tripId)
+    return plan
+  }
+
+  /**
+   * declineTripRefresh is the answer "no": the trip keeps what it has and
+   * the refused positions stop following the group (see declinePlan).
+   */
+  function declineTripRefresh(tripId: string): RefreshPlan | null {
+    const plan = deriveTripRefresh(tripId)
+    if (!plan) return null
+    const declined = declinePlan(plan)
+    applyRefreshPlan(tripId, declined)
+    clearProposal(tripId)
+    return declined
+  }
+
+  function clearProposal(tripId: string): void {
+    if (!(tripId in proposals.value)) return
+    const next = { ...proposals.value }
+    delete next[tripId]
+    proposals.value = next
+  }
+
+  /** The diff, derived and never applied. Null when the trip cannot be seen. */
+  function deriveTripRefresh(tripId: string): RefreshPlan | null {
     const trip = tripStore.getTrip(tripId)
     if (!trip) return null
     if (!tripDataLoaded(tripId)) return null
 
-    const plan = planRefresh({
+    return planRefresh({
       trip,
       sources: tripStore.getTemplateSources(tripId),
       templates: masterStore.templateList,
@@ -830,8 +931,13 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       items: tripStore.getItems(tripId),
       todos: tripStore.getTodos(tripId),
       ledger: tripStore.getGeneratedPositions(tripId),
+      today: today(),
     })
-    if (isEmptyPlan(plan)) return plan
+  }
+
+  /** Writes a plan out — every half of it, in dependency order. */
+  function applyRefreshPlan(tripId: string, plan: RefreshPlan): void {
+    if (isEmptyPlan(plan)) return
 
     for (const add of plan.add) {
       const travelerId = add.traveler_id
@@ -906,8 +1012,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         optimistic: change(TABLE.tripAppliedChanges, id, mutation.fields),
       })
     }
-
-    return plan
   }
 
   /**
@@ -921,15 +1025,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   }
 
   /**
-   * refreshLoadedPlanningTrips runs the refresh for every trip this device
-   * actually holds. Called after a master pull: a group edited on another
-   * device arrives there, and the trips that follow it must move before
-   * the user reads a list that is quietly out of date.
+   * proposeRefreshForLoadedTrips derives a proposal for every trip this
+   * device actually holds. Called after a master pull: a group edited on
+   * another device arrives there, and M2 must be able to say which trips it
+   * concerns before any of them is opened.
    */
-  function refreshLoadedPlanningTrips(): void {
+  function proposeRefreshForLoadedTrips(): void {
+    const now = today()
     for (const trip of tripStore.tripList) {
-      if (trip.status !== 'planning') continue
-      refreshPlanningTrip(trip.id)
+      if (!followsGroups(trip, now)) continue
+      proposeTripRefresh(trip.id)
     }
   }
 
@@ -2546,8 +2651,15 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     // Actions
     createTripFromWizard,
-    refreshPlanningTrip,
-    refreshLoadedPlanningTrips,
+    // The FR-27.4 clock, exposed so a view asking "which trips does this
+    // reach?" answers with the same date the refresh itself uses — two
+    // clocks would let the warning and the behaviour disagree by a day.
+    today,
+    proposeTripRefresh,
+    acceptTripRefresh,
+    declineTripRefresh,
+    proposeRefreshForLoadedTrips,
+    refreshProposals,
     cloneTrip,
     commitImport,
     commitPortableImport,

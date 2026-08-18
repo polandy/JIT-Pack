@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  planningTripsUsing,
+  tripsReachedBy,
   scopeForNewTemplate,
   previewLines,
   resolvedLines,
@@ -225,7 +225,9 @@ describe('scopeSwitchBlock (FR-27.6)', () => {
   })
 })
 
-describe('planningTripsUsing (FR-27.4 blast radius)', () => {
+const TODAY = '2026-01-15'
+
+describe('tripsReachedBy (FR-27.4 blast radius)', () => {
   function trip(id: string, name: string, status: Trip['status']): Trip {
     return {
       id,
@@ -249,48 +251,76 @@ describe('planningTripsUsing (FR-27.4 blast radius)', () => {
     return { trip_id: tripId, source_template_id: sourceTemplateId }
   }
 
-  it('names only planning trips generated from the template', () => {
+  it('names every trip that still follows the template, running ones included', () => {
+    // Owner rule 2026-08-18: only the past is out of reach. A running trip is
+    // asked like any other, so a warning that left it out would understate
+    // what the edit touches.
     const planning = trip('t1', 'Samedan', 'planning')
     const active = trip('t2', 'Davos', 'active')
     const archived = trip('t3', 'Wien', 'archived')
-    const result = planningTripsUsing('vacation', {
-      trips: [planning, active, archived],
-      items: [sourced('t1', 'vacation'), sourced('t2', 'vacation'), sourced('t3', 'vacation')],
-      includes: [],
-    })
-    // Active and archived trips are frozen (FR-27.4) — never in the radius.
-    expect(result.map((t) => t.name)).toEqual(['Samedan'])
+    const result = tripsReachedBy(
+      'vacation',
+      {
+        trips: [planning, active, archived],
+        items: [sourced('t1', 'vacation'), sourced('t2', 'vacation'), sourced('t3', 'vacation')],
+        includes: [],
+      },
+      TODAY,
+    )
+    expect(result.map((t) => t.name)).toEqual(['Samedan', 'Davos'])
+  })
+
+  it('drops a trip whose end date has passed, whatever its status says', () => {
+    const over = { ...trip('t1', 'Samedan', 'planning'), end_date: '2026-01-14' }
+    const result = tripsReachedBy(
+      'vacation',
+      { trips: [over], items: [sourced('t1', 'vacation')], includes: [] },
+      TODAY,
+    )
+    expect(result).toEqual([])
   })
 
   it('reaches a group through the Vorlage that includes it', () => {
     // The trip's rows carry the Vorlage as provenance; editing the group
     // still lands on that trip when the refresh re-resolves the composition.
     const planning = trip('t1', 'Samedan', 'planning')
-    const result = planningTripsUsing('macro', {
-      trips: [planning],
-      items: [sourced('t1', 'vacation')],
-      includes: [include('vacation', 'macro')],
-    })
+    const result = tripsReachedBy(
+      'macro',
+      {
+        trips: [planning],
+        items: [sourced('t1', 'vacation')],
+        includes: [include('vacation', 'macro')],
+      },
+      TODAY,
+    )
     expect(result.map((t) => t.name)).toEqual(['Samedan'])
   })
 
   it('ignores ad-hoc rows and unrelated templates', () => {
     const planning = trip('t1', 'Samedan', 'planning')
-    const result = planningTripsUsing('macro', {
-      trips: [planning],
-      items: [sourced('t1', null), sourced('t1', 'vacation')],
-      includes: [],
-    })
+    const result = tripsReachedBy(
+      'macro',
+      {
+        trips: [planning],
+        items: [sourced('t1', null), sourced('t1', 'vacation')],
+        includes: [],
+      },
+      TODAY,
+    )
     expect(result).toEqual([])
   })
 
   it('lists each trip once even when several rows point at the template', () => {
     const planning = trip('t1', 'Samedan', 'planning')
-    const result = planningTripsUsing('vacation', {
-      trips: [planning],
-      items: [sourced('t1', 'vacation'), sourced('t1', 'vacation')],
-      includes: [],
-    })
+    const result = tripsReachedBy(
+      'vacation',
+      {
+        trips: [planning],
+        items: [sourced('t1', 'vacation'), sourced('t1', 'vacation')],
+        includes: [],
+      },
+      TODAY,
+    )
     expect(result).toHaveLength(1)
   })
 })

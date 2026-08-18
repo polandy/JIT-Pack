@@ -1,7 +1,8 @@
 /**
- * M2's applied-changes chip (FR-27.4): a *planned* trip that took changes
- * over from its groups says so on its row, expandably, and a running or
- * past trip never does — they are frozen, so a chip there would be a lie.
+ * M2's two FR-27.4 chips: what a trip *took over* from its groups (past
+ * tense, expandable) and what is still *waiting* on it (a pointer, since the
+ * decision belongs at the trip). Since the owner's rule change of 2026-08-18
+ * a running trip carries both — only a past trip is frozen.
  *
  * A component test rather than e2e for the chip's *rules*: which trips may
  * carry it, whether its log is written out or folded away (owner, 2026-08-18:
@@ -40,6 +41,7 @@ vi.mock('vue-router', () => ({
 const orchestratorFake = {
   fetchMe: vi.fn(() => Promise.resolve(null)),
   drainAll: vi.fn(() => Promise.resolve()),
+  refreshProposals: { value: {} as Record<string, unknown> },
 }
 
 function seedTrip(status: string) {
@@ -88,6 +90,7 @@ function mountPage() {
 
 beforeEach(() => {
   segment = 'planned'
+  orchestratorFake.refreshProposals.value = {}
   setActivePinia(createPinia())
   vi.clearAllMocks()
   localStorage.clear()
@@ -105,18 +108,16 @@ describe('TripListPage — the FR-27.4 applied-changes chip', () => {
     expect(chip.text()).toContain('2')
   })
 
-  it('never appears on a running trip — an active trip is frozen', async () => {
+  it('appears on a running trip too — departure no longer freezes it', async () => {
+    // The rule this replaces was "active means frozen" (owner, 2026-08-18).
     segment = 'active'
     const trips = seedTrip('active')
-    // Log rows exist for this trip: the only thing keeping the chip away is
-    // the status rule, which is what this asserts.
     trips.applyChanges([logEntry()])
 
     const wrapper = mountPage()
 
-    // The row *is* on screen — otherwise this would assert the filter.
     expect(wrapper.find('[data-testid="trip-row-Samedan"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="m2-applied-chip-Samedan"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="m2-applied-chip-Samedan"]').exists()).toBe(true)
   })
 
   it('writes a short log out where it happened, with no control to press', async () => {
@@ -179,5 +180,50 @@ describe('TripListPage — the FR-27.4 applied-changes chip', () => {
     const text = wrapper.find('[data-testid="m2-applied-log-Samedan"]').text()
     expect(text).toContain('2')
     expect(text).toContain('4')
+  })
+})
+
+describe('TripListPage — the FR-27.4 proposal chip', () => {
+  it('says how many changes are waiting, and offers nothing to press', async () => {
+    seedTrip('planning')
+    orchestratorFake.refreshProposals.value = {
+      t1: { add: [{}, {}], update: [{}], remove: [], ledgerUpsert: [], ledgerDelete: [], log: [] },
+    }
+
+    const wrapper = mountPage()
+
+    const chip = wrapper.find('[data-testid="m2-proposed-chip-Samedan"]')
+    expect(chip.exists()).toBe(true)
+    expect(chip.text()).toContain('3')
+    // The decision is at the trip (owner, 2026-08-18): a second place to
+    // answer from would be a second place to get the answer wrong.
+    expect(chip.element.tagName).not.toBe('BUTTON')
+  })
+
+  it('stays away when the plan only moves the ledger — that is nothing to answer', async () => {
+    seedTrip('planning')
+    orchestratorFake.refreshProposals.value = {
+      t1: {
+        add: [],
+        update: [],
+        remove: [],
+        ledgerUpsert: [{ id: 'l1' }],
+        ledgerDelete: [],
+        log: [],
+      },
+    }
+
+    const wrapper = mountPage()
+
+    expect(wrapper.find('[data-testid="trip-row-Samedan"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="m2-proposed-chip-Samedan"]').exists()).toBe(false)
+  })
+
+  it('says nothing about a trip this device holds no proposal for', async () => {
+    seedTrip('planning')
+
+    const wrapper = mountPage()
+
+    expect(wrapper.find('[data-testid="m2-proposed-chip-Samedan"]').exists()).toBe(false)
   })
 })

@@ -78,16 +78,23 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    FR-27.7 tasks materialise as ordinary FR-7.3 todos on the generated rows, and M3 step 3 is
    scope-shaped (FR-27.6) with an e2e unit behind it. Include order is **derived, not inherited**
    from storage (`includedTemplatesOf`) — it decides a merged row's provenance, and the rows
-   arrive unordered. **The FR-27.4 planning-trip refresh is done too** (2026-08-18, migration 023,
-   ADR-016): a planning trip follows its registered sources on every open and after every master
-   pull, manual edits always win — decided against a ledger of what generation last produced, which
-   is also what keeps a hand-deleted row deleted — and M2 carries the applied-changes chip. That
-   unblocked E2E-M8-09 and the log halves of M8-11 and M14-04. **Portable YAML carries the composition too** (2026-08-18, ADR-017): a Ferien-Vorlage's
-   groups travel whole under `includes:` with their FR-27.7 tasks, and an import links a group of
-   the same name rather than rewriting it. Still owed: the **M21 screen**
-   (FR-27.5), **FR-27.3**'s single-item add in step 3, and **FR-27.10**'s
-   whole-group add to a running trip (its plumbing exists: `sourceTemplateIds` on the wizard draft
-   and `registerTripSource`). Schema and sync wiring were already done (migration 016).
+   arrive unordered. **The FR-27.4 group refresh is done too** (2026-08-18, migration 023,
+   ADR-016), and its model was **revised the same day** on owner request: a group
+   change is now *offered* to every trip that is not **past** (archived, or end date
+   gone by) — a running trip included — and answered **at the trip** (M4's card names
+   every change; M2 carries a pointer chip beside the applied-changes log). Declining
+   advances the ledger snapshot and touches nothing, which detaches exactly the refused
+   positions — no pending state, nothing extra to sync. Manual edits still always win.
+   That unblocked E2E-M8-09/M8-19 and the log halves of M8-11 and M14-04.
+   **Portable YAML carries the composition too** (2026-08-18, ADR-017): a Ferien-Vorlage's
+   groups travel whole under `includes:` with their FR-27.7 tasks, and an import links a
+   group of the same name rather than rewriting it. Still owed: the **M21 screen**
+   (FR-27.5), **FR-27.3**'s single-item add in step 3, and **FR-27.10**'s whole-group add
+   to a running trip (its plumbing exists: `sourceTemplateIds` on the wizard draft and
+   `registerTripSource`). The Local Mode backup still does not carry the three FR-27.4
+   tables (`trip_template_sources`, `trip_generated_positions`, `trip_applied_changes`):
+   a restored device keeps its Vorlagen and trips, and starts following them afresh.
+   Schema and sync wiring were already done (migration 016).
 3. **The design foundation, then the remaining screen rebuilds** — in that order, decided by
    the owner 2026-08-14 after M4 and M5 were compared with the prototype. The plan is
    `dev-docs/design-foundation-plan.md`; read it before starting either half.

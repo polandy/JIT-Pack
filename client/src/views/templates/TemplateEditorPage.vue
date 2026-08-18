@@ -35,7 +35,7 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import {
   PREVIEW_ROW_NAMES,
-  planningTripsUsing,
+  tripsReachedBy,
   previewLines,
   resolvedLines,
   scopeSwitchBlock,
@@ -116,19 +116,23 @@ const includedInLine = computed(() =>
 
 // --- FR-27.4 blast radius ---------------------------------------------------
 
-const plannedTrips = computed(() =>
-  planningTripsUsing(props.templateId, {
-    trips: tripStore.tripList,
-    items: tripStore.tripList.flatMap((trip) => tripStore.getItems(trip.id)),
-    includes: masterStore.includeList,
-  }),
+const reachedTrips = computed(() =>
+  tripsReachedBy(
+    props.templateId,
+    {
+      trips: tripStore.tripList,
+      items: tripStore.tripList.flatMap((trip) => tripStore.getItems(trip.id)),
+      includes: masterStore.includeList,
+    },
+    orchestrator.today(),
+  ),
 )
 
 const blastNote = computed(() =>
-  plannedTrips.value.length
+  reachedTrips.value.length
     ? t('templates.blastRadius', {
-        n: plannedTrips.value.length,
-        names: plannedTrips.value.map((trip) => trip.name).join(', '),
+        n: reachedTrips.value.length,
+        names: reachedTrips.value.map((trip) => trip.name).join(', '),
       })
     : null,
 )

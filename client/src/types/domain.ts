@@ -2,6 +2,15 @@
 
 export type TripStatus = 'planning' | 'active' | 'archived'
 
+/**
+ * The trip statuses as values (§4a). `archived` in particular is switched on
+ * across analytics, the review assistant and the FR-27.4 refresh, and a typo
+ * in one of those compiles cleanly while silently never matching.
+ */
+export const TRIP_STATUS_PLANNING = 'planning' satisfies TripStatus
+export const TRIP_STATUS_ACTIVE = 'active' satisfies TripStatus
+export const TRIP_STATUS_ARCHIVED = 'archived' satisfies TripStatus
+
 export interface Trip {
   id: string
   name: string
