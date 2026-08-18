@@ -36,7 +36,9 @@ import {
   bagHandleOutline,
   cartOutline,
   chevronForwardOutline,
+  closeCircleOutline,
   closeOutline,
+  refreshOutline,
   linkOutline,
   locationOutline,
   removeCircleOutline,
@@ -217,6 +219,22 @@ function onToggle() {
   if (item.value) orchestrator.packToggle(props.tripId, item.value)
 }
 
+/**
+ * FR-5.5, the discoverable half: the stepper can say *how many*, and only
+ * this says *none, on purpose*. It sits beside the stepper because that is
+ * where the row's outcome is decided, and it is spelled out rather than
+ * hidden behind a gesture — M4's press-and-hold is the fast path, this one
+ * is the one you can find without knowing it exists.
+ */
+const isSkipped = computed(() => item.value?.state === 'skipped')
+
+function onSkipToggle() {
+  const row = item.value
+  if (!row) return
+  if (row.state === 'skipped') orchestrator.unskipItem(props.tripId, row)
+  else orchestrator.skipItem(props.tripId, row)
+}
+
 // --- Presentation helpers ---
 const MODE_LABEL: Record<ItemMode, string> = {
   pack: 'mode.pack',
@@ -310,6 +328,18 @@ const packedStamp = computed(() => {
         {{ stateLabel }}
       </span>
     </div>
+
+    <!-- FR-5.5: "considered and left behind" is a decision, and the only
+         one the stepper above cannot express. -->
+    <button
+      class="skip-toggle"
+      :class="{ on: isSkipped }"
+      data-testid="m5-skip"
+      @click="onSkipToggle"
+    >
+      <IonIcon :icon="isSkipped ? refreshOutline : closeCircleOutline" />
+      {{ isSkipped ? t('packing.unskipAction') : t('packing.skipAction') }}
+    </button>
 
     <!-- Read-only summary of everything Details can change (FR-25.14). -->
     <div class="glance">
@@ -596,6 +626,33 @@ const packedStamp = computed(() => {
 .state.amber {
   background: color-mix(in srgb, var(--ct-peach) 18%, transparent);
   color: var(--ct-peach);
+}
+
+/* FR-5.5: a full-width control rather than a chip — it is a decision about
+   the row, not a property of it, and it has to be found without a hint. */
+.skip-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 11px;
+  border: 1px solid var(--ct-surface1);
+  border-radius: var(--jp-r);
+  background: none;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+  cursor: pointer;
+}
+
+.skip-toggle ion-icon {
+  font-size: var(--jp-icon-sm);
+}
+
+.skip-toggle.on {
+  border-color: var(--ct-green);
+  color: var(--ct-green);
 }
 
 /* --- glance --- */

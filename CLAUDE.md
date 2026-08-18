@@ -172,18 +172,18 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    means FR-5.5 *skipped* rather than deletion, and nothing may become wizard-only. **A is built** (2026-08-17): the row carries the amount and a ✕ that drops the
    row as FR-5.5 *skipped*, with the marks that explain it. The mockup’s add line stays
    with FR-27.3, which owns adding single items.
-11. **FR-5.5's „bewusst nicht einpacken" has no control** (owner-flagged 2026-08-16) — the
-   *state* is built and rendered: `state = 'skipped'` counts as done (`domain/packingView.ts`),
-   M4 badges such a row „Deliberately skipped", FR-25.2 hides it with the packed ones, and
-   `skipItem`/`unskipItem` exist in `useMutations`/`useSyncOrchestrator` **including the FR-20.2
-   co-skip cascade**. What is missing is the way to *say it*: **no view calls either mutation**,
-   so today a user cannot mark an item deliberately not packed — only pack it or leave it open,
-   which is exactly the "deliberately left behind vs. forgot" distinction FR-5.5 exists to keep.
-   The addendum already carries the requirement (FR-5.5) and the standing design note that the
-   action "must be discoverable" in M4, but the M4/M5 rebuild shipped without it. **Mock and
-   specify it before building** (owner, 2026-08-16): where the affordance lives (row gesture,
-   M5 sheet, both — the M4 rebuild dropped swipe deliberately, see the M7 A2/B2 round), how
-   quantity 0 relates to it, how un-skipping reads, and what the co-skip cascade tells the user.
+11. ~~**FR-5.5's „bewusst nicht einpacken" has no control**~~ — **done** (2026-08-18). Two of the
+   three premises in the old note were wrong, and finding that out changed the work: a view *did*
+   call `skipItem` (a bare Ionic swipe), and M4 did **not** badge a skipped row. What the swipe
+   lacked was any announcement, and its option panel broke out of the row's `.jp-card` — the same
+   failure that lost the swipe the M7 A2/B2 round, visible only in a render. Decided on a rendered
+   four-way round (`dev-docs/UI_Concept_SkipControl_variants.html`, **A + C**): the row's
+   press-and-hold menu is the fast path, the M5 sheet's spelled-out control is the findable one,
+   and the swipe is gone rather than repaired. Quantity 0 stays a counter reading rather than a
+   decision (variant D rejected), un-skipping reads as *Doch einpacken*, and the FR-20.2 cascade
+   now names the companions it took along with one undo for all of them — a revealed co-skipped
+   row states its reason, **derived** from the graph (`skippedVia`) rather than stored. Five e2e
+   cases in `client/e2e/skip-item.spec.ts`, mutation-proved.
 11. **§3.28 — the item mark** (owner-flagged 2026-08-17, **specified and decided, not built**). A
    packing row carries nothing left of the name: the §3.22 photo answers *which* jacket and exists
    on a handful of rows, so a forty-row list has no scan aid at all. Decided on a rendered four-way

@@ -2898,3 +2898,57 @@ Red-proved by dropping the query from the replace: **both** M18 cases fall, and
 E2E-M18-06 falls on the honest symptom — the restored trip is not on screen at
 all. That is the case doing what the audit was about: asserting the outcome the
 user sees rather than the mechanism.
+
+## FR-5.5 — "bewusst nicht einpacken" gets a control (2026-08-18)
+
+The backlog said the state existed and no view could reach it. Two of its three
+premises turned out to be wrong, and checking them is what shaped the work:
+
+* **A view did call `skipItem`.** M4 carried an `IonItemSliding` with *skip* and
+  *unskip* options — kept through the §3.25 rebuild rather than dropped, as the
+  note assumed.
+* **M4 did not badge a skipped row.** Nothing was rendered where a packed row
+  carries its FR-25.17 stamp, so a revealed skipped row was indistinguishable
+  from a packed one — the confusion FR-5.5 exists to remove, reintroduced one
+  screen later.
+* **The swipe was broken in a way only a render shows.** Opened, its option panel
+  left the row's `.jp-card`: square block to the screen edge, the row losing its
+  stepper, and the label a *state name* ("Bewusst weggelassen") rather than an
+  action. That is the same failure the swipe lost the M7 A2/B2 round on, and it
+  had been sitting in M4 since the rebuild because nothing swiped it.
+
+So the question was not "which control do we add" but "which one replaces it".
+Four variants were rendered (`dev-docs/build-skip-control-variants.mjs` →
+`UI_Concept_SkipControl_variants.html`, with the defect screenshot beside them);
+the owner chose **A + C**, the split M7/M8 already use:
+
+* **A — press and hold a row** → the action sheet: *Jetzt packen* · *Nicht
+  einpacken*, and on a skipped row *Doch einpacken* and nothing else. Reuses
+  `useLongPress` and M7's `rowMenuActive` guard verbatim, including the reason it
+  is a state with an end rather than a swallow-next-click flag.
+* **C — a spelled-out control in the M5 sheet**, beside the stepper. The stepper
+  says *how many*; only this says *none, on purpose*.
+
+**D was rejected on the meaning, not the mechanics**: long-pressing "−" already
+zeroes a row, and letting that zero *be* the decision would put words in the
+user's mouth. Quantity 0 stays a counter reading; skipping writes both.
+
+Three things moved into the domain rather than staying inline, because the view
+needed the *list* and not just the effect:
+
+* `coSkipTargets` — which rows the FR-20.2 cascade takes along. `skipItem` now
+  returns them, snapshotted before the write, which is what lets the snackbar
+  name them and the undo restore exactly those.
+* `skippedVia` — why a co-skipped row is skipped, **derived** from the dependency
+  graph and the current states. A stored reason would have to survive un-skips on
+  either side and edits to the dependency itself; this cannot go stale.
+* `usePackUndo` became `useRowUndo`: it holds *rows*, plural, and takes its
+  restore per action — a pack changes `packed_count` and `state`, a skip changes
+  `quantity` too, and one shared restore would write back a field its action never
+  touched, reverting whatever a sync had put there.
+
+Rendered and eyeballed before the case was finalised: the menu, the snackbar
+("„Sonnencreme" stays at home · UNDO") and both states of the M5 control.
+Five e2e cases in `client/e2e/skip-item.spec.ts`, mutation-proved in both
+directions with a rebuild between runs — removing the menu entry reddens the four
+M4 cases and leaves M5 green, removing the M5 control reddens M5 alone.
