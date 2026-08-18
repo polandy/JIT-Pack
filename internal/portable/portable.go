@@ -27,7 +27,20 @@ type Document struct {
 	Year       int         `yaml:"year,omitempty"`
 	Travelers  []Traveler  `yaml:"travelers,omitempty"`
 	Containers []Container `yaml:"containers,omitempty"`
-	Items      []Item      `yaml:"items"`
+	// Includes carries a Ferien-Vorlage's groups *whole* rather than by
+	// reference (FR-27.1, ADR-017): FR-18.2 promises a file that survives the
+	// trip to a different instance, and a bare name means nothing there.
+	// Template documents of scope "template" only.
+	Includes []Group `yaml:"includes,omitempty"`
+	Items    []Item  `yaml:"items"`
+}
+
+// Group is one included group inside a Ferien-Vorlage document (FR-27.1).
+// It is deliberately not a Document: a group carries positions and never
+// further groups, and the two-level rule is what makes cycles impossible.
+type Group struct {
+	Name  string `yaml:"name"`
+	Items []Item `yaml:"items,omitempty"`
 }
 
 // Item represents one entry in the portable format — shared between
@@ -49,6 +62,10 @@ type Item struct {
 	DefaultMode string `yaml:"default_mode,omitempty"` // template only
 	LatePacker  bool   `yaml:"late_packer,omitempty"`
 	Dedup       string `yaml:"dedup,omitempty"` // template only
+
+	// Tasks are the position's FR-27.7 preparation tasks. Template only:
+	// on a trip the same knowledge is an ordinary FR-7.3 todo.
+	Tasks []string `yaml:"tasks,omitempty"`
 }
 
 // Traveler is a named person in a trip export. The Adult/Child type was
@@ -116,6 +133,30 @@ func validateDoc(doc Document) error {
 		}
 		if doc.Scope != ScopeGroup && doc.Scope != ScopeTemplate {
 			return fmt.Errorf("unknown scope: %q (expected group or template)", doc.Scope)
+		}
+	}
+	if err := validateIncludes(doc); err != nil {
+		return err
+	}
+	return nil
+}
+
+// validateIncludes enforces the two structural rules of FR-27.1 at the file
+// boundary: only a Ferien-Vorlage composes, and every included group has a
+// name — the name being its whole identity across instances (ADR-017).
+func validateIncludes(doc Document) error {
+	if len(doc.Includes) == 0 {
+		return nil
+	}
+	if doc.Kind != KindTemplate {
+		return errors.New("includes are only valid on a template document")
+	}
+	if doc.Scope == ScopeGroup {
+		return errors.New("a group cannot include other groups (FR-27.1 is two levels)")
+	}
+	for _, g := range doc.Includes {
+		if g.Name == "" {
+			return errors.New("included group is missing its name")
 		}
 	}
 	return nil

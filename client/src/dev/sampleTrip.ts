@@ -35,6 +35,7 @@ function row(name: string, category: string, over: Partial<PortableItem> = {}): 
   return {
     name,
     quantity: 1,
+    tasks: [],
     assignment: null,
     dedup: null,
     conditions: null,
@@ -60,6 +61,8 @@ function sampleDocument(): PortableDocument {
   return {
     kind: 'trip',
     schema_version: PORTABLE_SCHEMA_VERSION,
+    // A trip is the result of a composition, never one (FR-27.1).
+    includes: [],
     name: 'Samedan Sommer (Beispiel)',
     year: new Date().getFullYear(),
     start_date: isoDay(-2),

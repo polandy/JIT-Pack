@@ -55,6 +55,7 @@ function source(over: Partial<BackupSource> = {}): BackupSource {
     templates: [],
     trips: [],
     masterItem: () => undefined,
+    composition: { includes: [], templates: [], itemsOf: () => [], tasksOf: () => [] },
     ...over,
   }
 }
@@ -107,5 +108,56 @@ describe('buildBackup (NFR-4.11)', () => {
 describe('backupFilename', () => {
   it('dates the file from the injected clock, so two backups never collide silently', () => {
     expect(backupFilename(Date.UTC(2026, 7, 16, 12))).toBe('jitpack-backup-2026-08-16.yaml')
+  })
+})
+
+describe('a backup carries the composition, not a shell (FR-27.1/27.7)', () => {
+  const macro: Template = { id: 'g1', owner_id: 'me', name: 'Makro Fotografie', kind: 'group' }
+  const vorlage: Template = { id: 'v1', owner_id: 'me', name: 'Fototage', kind: 'template' }
+  const camera: TemplateItem = {
+    id: 'p-cam',
+    template_id: 'g1',
+    item_id: 'i-cam',
+    quantity: 1,
+    assignment: 'trip_global',
+    dedup: 'max',
+    conditions: null,
+    default_mode: 'pack',
+    late_packer: false,
+  }
+
+  it('restores a Ferien-Vorlage with its groups and their preparation tasks', () => {
+    // In Local Mode this file is the only copy. A Vorlage whose groups did
+    // not travel would come back as a name with nothing in it — the failure
+    // is invisible until the next trip is generated from it.
+    const file = buildBackup(
+      source({
+        templates: [
+          { template: macro, items: [camera] },
+          { template: vorlage, items: [] },
+        ],
+        masterItem: (id) =>
+          id === 'i-cam'
+            ? { id: 'i-cam', name: 'Kamera', weight_grams: null, value_cents: null }
+            : undefined,
+        composition: {
+          includes: [{ id: 'inc1', template_id: 'v1', included_template_id: 'g1' }],
+          templates: [macro, vorlage],
+          itemsOf: (id) => (id === 'g1' ? [camera] : []),
+          tasksOf: (id) => (id === 'p-cam' ? ['Akkus laden'] : []),
+        },
+      }),
+    )
+
+    const docs = parsePortableAll(file)
+    const composed = docs.find((d) => d.doc?.name === 'Fototage')?.doc
+    expect(composed?.includes.map((g) => g.name)).toEqual(['Makro Fotografie'])
+    expect(composed?.includes[0]!.items[0]!.tasks).toEqual(['Akkus laden'])
+
+    // The group keeps its own document too: it is a template in its own right
+    // and other Vorlagen may include it.
+    const group = docs.find((d) => d.doc?.name === 'Makro Fotografie')?.doc
+    expect(group?.scope).toBe('group')
+    expect(group?.items[0]!.tasks).toEqual(['Akkus laden'])
   })
 })

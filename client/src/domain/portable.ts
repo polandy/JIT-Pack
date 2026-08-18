@@ -12,10 +12,12 @@
 import { parse, parseAllDocuments, stringify } from 'yaml'
 
 import { findDuplicates } from './spreadsheet'
+import { includedTemplatesOf } from './templates'
 import type {
   Container,
   MasterItem,
   Template,
+  TemplateInclude,
   TemplateItem,
   TemplateKind,
   Traveler,
@@ -73,6 +75,8 @@ function coerceQuantity(raw: unknown): number {
 export interface PortableItem {
   name: string
   quantity: number
+  /** FR-27.7 preparation tasks of a template position. Empty on trip items. */
+  tasks: string[]
   // Template fields
   assignment: 'per_person' | 'trip_global' | null
   dedup: 'max' | 'sum' | null
@@ -85,6 +89,16 @@ export interface PortableItem {
   traveler: string | null
   container: string | null
   packed_count: number | null
+}
+
+/**
+ * One included group inside a Ferien-Vorlage document (FR-27.1, ADR-017).
+ * Carried whole rather than by name: FR-18.2 promises a file that survives
+ * the trip to another instance, where a bare reference means nothing.
+ */
+export interface PortableGroup {
+  name: string
+  items: PortableItem[]
 }
 
 export interface PortableDocument {
@@ -108,6 +122,8 @@ export interface PortableDocument {
   end_date: string | null
   travelers: PortableTraveler[]
   containers: PortableContainer[]
+  /** FR-27.1: the groups a Ferien-Vorlage composes. Empty on everything else. */
+  includes: PortableGroup[]
   items: PortableItem[]
 }
 
@@ -183,11 +199,47 @@ function fromRaw(raw: unknown): ParseResult {
     items.push(item)
   }
 
+  const includes: PortableGroup[] = []
+  const rawIncludes = Array.isArray(obj['includes']) ? obj['includes'] : []
+  for (const entry of rawIncludes) {
+    if (typeof entry !== 'object' || entry === null) {
+      return { doc: null, error: 'an included group is not a group', newerSchema: false }
+    }
+    const g = entry as Record<string, unknown>
+    const groupName = typeof g['name'] === 'string' ? g['name'].trim() : ''
+    if (groupName === '') {
+      // The name is a group's whole identity across instances (ADR-017):
+      // without one there is nothing to link to and nothing to create.
+      return { doc: null, error: 'an included group has no name', newerSchema: false }
+    }
+    const groupItems: PortableItem[] = []
+    for (const raw of Array.isArray(g['items']) ? g['items'] : []) {
+      const item = toItem(raw)
+      if (!item) {
+        return { doc: null, error: 'an item entry has no name', newerSchema: false }
+      }
+      groupItems.push(item)
+    }
+    includes.push({ name: groupName, items: groupItems })
+  }
+
   const rawScope = obj['scope']
   if (rawScope !== undefined && rawScope !== 'group' && rawScope !== 'template') {
     return { doc: null, error: `unknown scope ${JSON.stringify(rawScope)}`, newerSchema: false }
   }
   const scope: TemplateKind = rawScope === 'group' ? 'group' : 'template'
+
+  if (includes.length > 0) {
+    // Two structural rules of FR-27.1, enforced at the file boundary: only a
+    // Ferien-Vorlage composes, and a trip is the *result* of a composition
+    // rather than one.
+    if (kind !== 'template') {
+      return { doc: null, error: 'includes are only valid on a template', newerSchema: false }
+    }
+    if (scope === 'group') {
+      return { doc: null, error: 'a group cannot have includes', newerSchema: false }
+    }
+  }
 
   const schemaVersion = typeof obj['schema_version'] === 'number' ? obj['schema_version'] : 1
   return {
@@ -201,6 +253,7 @@ function fromRaw(raw: unknown): ParseResult {
       end_date: str(obj['end_date']),
       travelers: toTravelers(obj['travelers']),
       containers: toContainers(obj['containers']),
+      includes,
       items,
     },
     error: null,
@@ -243,32 +296,99 @@ export function matchPortableItems(doc: PortableDocument, existing: MasterItem[]
 // a file exported here imports there and vice versa. In Local Mode this
 // serializer *is* the backup path (NFR-4.11): there is no server to ask.
 
-/** serializeTemplate writes an owned template as environment-agnostic YAML (FR-18.2). */
+/** One group a Ferien-Vorlage includes, with everything the file needs of it. */
+export interface TemplateComposition {
+  /** FR-27.7: the tasks of a position, by position id. Defaults to none. */
+  tasks?: (templateItemId: string) => string[]
+  /** FR-27.1: the included groups, each with its own positions and tasks. */
+  includes?: {
+    template: Template
+    items: TemplateItem[]
+    tasks?: (templateItemId: string) => string[]
+  }[]
+}
+
+/**
+ * compositionFrom assembles what a template's file needs beyond its own
+ * positions: its groups (FR-27.1) and every position's preparation tasks
+ * (FR-27.7).
+ *
+ * It exists so the three places that export a template — M7's row action,
+ * the settings export and the NFR-4.11 backup — cannot disagree about what
+ * a file contains. A group passes no includes and gets none.
+ */
+export function compositionFrom(
+  template: Template,
+  source: {
+    includes: TemplateInclude[]
+    templates: Template[]
+    itemsOf: (templateId: string) => TemplateItem[]
+    tasksOf: (templateItemId: string) => string[]
+  },
+): TemplateComposition {
+  const groups =
+    template.kind === 'group'
+      ? []
+      : includedTemplatesOf(template.id, source.templates, source.includes)
+  return {
+    tasks: source.tasksOf,
+    includes: groups.map((group) => ({
+      template: group,
+      items: source.itemsOf(group.id),
+      tasks: source.tasksOf,
+    })),
+  }
+}
+
+/**
+ * serializeTemplate writes an owned template as environment-agnostic YAML
+ * (FR-18.2), including its composition (FR-27.1) and preparation tasks
+ * (FR-27.7).
+ *
+ * The groups travel *whole* rather than by name — see ADR-017. Name-ordered
+ * throughout, so exporting the same template twice yields the same file and a
+ * diff between two exports is a diff of the content.
+ */
 export function serializeTemplate(
   template: Template,
   templateItems: TemplateItem[],
   masterItem: (id: string) => MasterItem | undefined,
+  composition: TemplateComposition = {},
 ): string {
-  const items = templateItems
-    .map((ti) => {
-      const master = masterItem(ti.item_id)
-      return {
-        name: master?.name ?? 'Unknown item',
-        quantity: ti.quantity,
-        assignment: ti.assignment,
-        ...(ti.conditions ? { conditions: ti.conditions } : {}),
-        default_mode: ti.default_mode,
-        ...(ti.late_packer ? { late_packer: true } : {}),
-        dedup: ti.dedup,
-      }
-    })
+  const positions = (items: TemplateItem[], tasksOf?: (id: string) => string[]) =>
+    items
+      .map((ti) => {
+        const master = masterItem(ti.item_id)
+        const tasks = tasksOf?.(ti.id) ?? []
+        return {
+          name: master?.name ?? 'Unknown item',
+          quantity: ti.quantity,
+          assignment: ti.assignment,
+          ...(ti.conditions ? { conditions: ti.conditions } : {}),
+          default_mode: ti.default_mode,
+          ...(ti.late_packer ? { late_packer: true } : {}),
+          dedup: ti.dedup,
+          ...(tasks.length > 0 ? { tasks } : {}),
+        }
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
+
+  const includes = (composition.includes ?? [])
+    .map((group) => ({
+      name: group.template.name,
+      items: positions(group.items, group.tasks),
+    }))
     .sort((a, b) => a.name.localeCompare(b.name))
+
   return stringify({
     kind: 'template',
     schema_version: PORTABLE_SCHEMA_VERSION,
     name: template.name,
     scope: template.kind,
-    items,
+    // Omitted rather than empty: a group has no composition, and an empty key
+    // in every group's file would invite the reader to wonder what it means.
+    ...(includes.length > 0 ? { includes } : {}),
+    items: positions(templateItems, composition.tasks),
   })
 }
 
@@ -345,6 +465,11 @@ function toItem(entry: unknown): PortableItem | null {
   return {
     name,
     quantity: coerceQuantity(o['quantity']),
+    // Strings only: a task list that quietly swallowed a number would read
+    // back as "1" and claim the user wrote it.
+    tasks: Array.isArray(o['tasks'])
+      ? o['tasks'].filter((t): t is string => typeof t === 'string')
+      : [],
     assignment:
       o['assignment'] === 'per_person' || o['assignment'] === 'trip_global'
         ? o['assignment']

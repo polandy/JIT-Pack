@@ -12,11 +12,12 @@
  * decides only what the file contains.
  */
 
-import { joinDocuments, serializeTemplate, serializeTrip } from '@/domain/portable'
+import { compositionFrom, joinDocuments, serializeTemplate, serializeTrip } from '@/domain/portable'
 import type {
   Container,
   MasterItem,
   Template,
+  TemplateInclude,
   TemplateItem,
   Traveler,
   Trip,
@@ -42,6 +43,17 @@ export interface BackupSource {
   trips: BackupTrip[]
   /** Resolves a template position's master item — its name is what travels. */
   masterItem: (id: string) => MasterItem | undefined
+  /**
+   * FR-27.1/27.7: what a Ferien-Vorlage is composed of, and the tasks its
+   * positions carry. A backup that dropped the composition would restore
+   * every Vorlage as an empty shell.
+   */
+  composition: {
+    includes: TemplateInclude[]
+    templates: Template[]
+    itemsOf: (templateId: string) => TemplateItem[]
+    tasksOf: (templateItemId: string) => string[]
+  }
 }
 
 /**
@@ -54,7 +66,12 @@ export interface BackupSource {
 export function buildBackup(source: BackupSource): string {
   const documents = [
     ...source.templates.map((entry) =>
-      serializeTemplate(entry.template, entry.items, source.masterItem),
+      serializeTemplate(
+        entry.template,
+        entry.items,
+        source.masterItem,
+        compositionFrom(entry.template, source.composition),
+      ),
     ),
     ...source.trips.map((entry) =>
       serializeTrip({

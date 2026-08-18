@@ -5,6 +5,7 @@ import (
 	crand "crypto/rand"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -15,33 +16,65 @@ import (
 // ExportTemplate builds a portable Document from a stored template,
 // stripping all instance-specific identifiers (FR-18.2).
 func (s *Store) ExportTemplate(ctx context.Context, templateID string) (portable.Document, error) {
-	var name string
+	var name, kind string
 	err := s.db.QueryRowContext(ctx,
-		`SELECT name FROM templates WHERE id = ?`, templateID).Scan(&name)
+		`SELECT name, kind FROM templates WHERE id = ?`, templateID).Scan(&name, &kind)
 	if err != nil {
 		return portable.Document{}, fmt.Errorf("template %s: %w", templateID, err)
 	}
 
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT i.name, ti.quantity, ti.assignment,
+	items, err := templatePositions(ctx, s.db, templateID)
+	if err != nil {
+		return portable.Document{}, err
+	}
+
+	// FR-27.1: a Ferien-Vorlage travels with its groups (ADR-017). A group
+	// document carries none by definition, and asking anyway would return an
+	// empty list — the query is skipped so the file shape says which it is.
+	var includes []portable.Group
+	if kind == portable.ScopeTemplate {
+		includes, err = includedGroups(ctx, s.db, templateID)
+		if err != nil {
+			return portable.Document{}, err
+		}
+	}
+
+	return portable.Document{
+		Kind:          portable.KindTemplate,
+		SchemaVersion: 1,
+		Name:          name,
+		Scope:         kind,
+		Includes:      includes,
+		Items:         items,
+	}, nil
+}
+
+// templatePositions reads one template's own positions with their FR-27.7
+// preparation tasks, name-ordered so two exports of the same template are the
+// same file.
+func templatePositions(ctx context.Context, db *sql.DB, templateID string) ([]portable.Item, error) {
+	rows, err := db.QueryContext(ctx, `
+		SELECT ti.id, i.name, ti.quantity, ti.assignment,
 		       ti.conditions, ti.default_mode, ti.late_packer, ti.dedup
 		FROM template_items ti
 		JOIN items i ON i.id = ti.item_id
 		WHERE ti.template_id = ?
 		ORDER BY i.name`, templateID)
 	if err != nil {
-		return portable.Document{}, fmt.Errorf("template items: %w", err)
+		return nil, fmt.Errorf("template items: %w", err)
 	}
 	defer rows.Close()
 
 	var items []portable.Item
+	positionIDs := make([]string, 0)
 	for rows.Next() {
 		var it portable.Item
+		var positionID string
 		var conditions sql.NullString
 		var latePacker, quantity int
-		if err := rows.Scan(&it.Name, &quantity, &it.Assignment,
+		if err := rows.Scan(&positionID, &it.Name, &quantity, &it.Assignment,
 			&conditions, &it.DefaultMode, &latePacker, &it.Dedup); err != nil {
-			return portable.Document{}, fmt.Errorf("scan template item: %w", err)
+			return nil, fmt.Errorf("scan template item: %w", err)
 		}
 		it.Quantity = portable.Quantity(quantity)
 		it.LatePacker = latePacker == 1
@@ -52,17 +85,78 @@ func (s *Store) ExportTemplate(ctx context.Context, templateID string) (portable
 			}
 		}
 		items = append(items, it)
+		positionIDs = append(positionIDs, positionID)
 	}
 	if err := rows.Err(); err != nil {
-		return portable.Document{}, fmt.Errorf("iterate template items: %w", err)
+		return nil, fmt.Errorf("iterate template items: %w", err)
 	}
 
-	return portable.Document{
-		Kind:          "template",
-		SchemaVersion: 1,
-		Name:          name,
-		Items:         items,
-	}, nil
+	for i, positionID := range positionIDs {
+		tasks, err := positionTasks(ctx, db, positionID)
+		if err != nil {
+			return nil, err
+		}
+		items[i].Tasks = tasks
+	}
+	return items, nil
+}
+
+// positionTasks reads the FR-27.7 tasks of one position, in insertion order —
+// a task list is a checklist, and reordering it changes what it says.
+func positionTasks(ctx context.Context, db *sql.DB, positionID string) ([]string, error) {
+	rows, err := db.QueryContext(ctx,
+		`SELECT task FROM template_item_tasks WHERE template_item_id = ? ORDER BY rowid`, positionID)
+	if err != nil {
+		return nil, fmt.Errorf("position tasks: %w", err)
+	}
+	defer rows.Close()
+
+	var tasks []string
+	for rows.Next() {
+		var task string
+		if err := rows.Scan(&task); err != nil {
+			return nil, fmt.Errorf("scan task: %w", err)
+		}
+		tasks = append(tasks, task)
+	}
+	return tasks, rows.Err()
+}
+
+// includedGroups reads a Ferien-Vorlage's groups whole (FR-27.1/ADR-017).
+func includedGroups(ctx context.Context, db *sql.DB, templateID string) ([]portable.Group, error) {
+	rows, err := db.QueryContext(ctx, `
+		SELECT g.id, g.name
+		FROM template_includes inc
+		JOIN templates g ON g.id = inc.included_template_id
+		WHERE inc.template_id = ?
+		ORDER BY g.name`, templateID)
+	if err != nil {
+		return nil, fmt.Errorf("template includes: %w", err)
+	}
+	defer rows.Close()
+
+	type ref struct{ id, name string }
+	var refs []ref
+	for rows.Next() {
+		var r ref
+		if err := rows.Scan(&r.id, &r.name); err != nil {
+			return nil, fmt.Errorf("scan include: %w", err)
+		}
+		refs = append(refs, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate includes: %w", err)
+	}
+
+	groups := make([]portable.Group, 0, len(refs))
+	for _, r := range refs {
+		items, err := templatePositions(ctx, db, r.id)
+		if err != nil {
+			return nil, err
+		}
+		groups = append(groups, portable.Group{Name: r.name, Items: items})
+	}
+	return groups, nil
 }
 
 // ImportTemplate creates a new template from a portable Document (FR-18.4).
@@ -74,17 +168,97 @@ func (s *Store) ImportTemplate(ctx context.Context, ownerID string, doc portable
 	}
 	defer tx.Rollback()
 
+	scope := doc.Scope
+	if scope == "" {
+		// A file written before scopes existed reads back as a Ferien-Vorlage,
+		// the same default migration 016 applied to pre-scope rows.
+		scope = portable.ScopeTemplate
+	}
+
+	// FR-27.1/ADR-017: a group's own document obeys the same identity rule as
+	// the groups a Ferien-Vorlage carries nested — the rule belongs to the
+	// group, not to where in a file it appears. A backup names the same group
+	// both ways, so the standalone document must land on the group already
+	// here rather than beside it.
+	if scope == portable.ScopeGroup {
+		groupID, err := ensureGroup(ctx, tx, ownerID, portable.Group{Name: doc.Name, Items: doc.Items})
+		if err != nil {
+			return "", err
+		}
+		if err := tx.Commit(); err != nil {
+			return "", fmt.Errorf("commit: %w", err)
+		}
+		return groupID, nil
+	}
+
 	templateID := randomID()
 	if _, err := tx.ExecContext(ctx,
-		`INSERT INTO templates (id, owner_id, name) VALUES (?, ?, ?)`,
-		templateID, ownerID, doc.Name); err != nil {
+		`INSERT INTO templates (id, owner_id, name, kind) VALUES (?, ?, ?, ?)`,
+		templateID, ownerID, doc.Name, scope); err != nil {
 		return "", fmt.Errorf("insert template: %w", err)
 	}
 
-	for _, item := range doc.Items {
-		itemID, err := ensureItem(ctx, tx, item.Name)
+	if err := insertPositions(ctx, tx, templateID, doc.Items); err != nil {
+		return "", err
+	}
+
+	// FR-27.1/ADR-017: a group named in the file is *linked* when one of that
+	// name already exists and created otherwise. It is never rewritten — the
+	// file may be older than the group, and overwriting would reach every
+	// Ferien-Vorlage that includes it and, through FR-27.4, every trip that
+	// follows one.
+	for _, group := range doc.Includes {
+		groupID, err := ensureGroup(ctx, tx, ownerID, group)
 		if err != nil {
 			return "", err
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO template_includes (id, template_id, included_template_id)
+			VALUES (?, ?, ?)`, randomID(), templateID, groupID); err != nil {
+			return "", fmt.Errorf("include group %q: %w", group.Name, err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return "", fmt.Errorf("commit: %w", err)
+	}
+	return templateID, nil
+}
+
+// ensureGroup returns the id of the group of that name, creating it with the
+// file's positions when the instance has never heard of it (ADR-017: the name
+// is a group's whole identity across instances).
+func ensureGroup(ctx context.Context, tx *sql.Tx, ownerID string, group portable.Group) (string, error) {
+	var existing string
+	err := tx.QueryRowContext(ctx,
+		`SELECT id FROM templates WHERE name = ? AND kind = ? LIMIT 1`,
+		group.Name, portable.ScopeGroup).Scan(&existing)
+	if err == nil {
+		return existing, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return "", fmt.Errorf("lookup group %q: %w", group.Name, err)
+	}
+
+	groupID := randomID()
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO templates (id, owner_id, name, kind) VALUES (?, ?, ?, ?)`,
+		groupID, ownerID, group.Name, portable.ScopeGroup); err != nil {
+		return "", fmt.Errorf("insert group %q: %w", group.Name, err)
+	}
+	if err := insertPositions(ctx, tx, groupID, group.Items); err != nil {
+		return "", err
+	}
+	return groupID, nil
+}
+
+// insertPositions writes one template's positions and their FR-27.7 tasks,
+// applying the format's defaults for anything the file left out.
+func insertPositions(ctx context.Context, tx *sql.Tx, templateID string, items []portable.Item) error {
+	for _, item := range items {
+		itemID, err := ensureItem(ctx, tx, item.Name)
+		if err != nil {
+			return err
 		}
 
 		var condJSON sql.NullString
@@ -110,19 +284,24 @@ func (s *Store) ImportTemplate(ctx context.Context, ownerID string, doc portable
 			latePacker = 1
 		}
 
+		positionID := randomID()
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO template_items (id, template_id, item_id, quantity, assignment, conditions, default_mode, late_packer, dedup)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			randomID(), templateID, itemID, max(int(item.Quantity), 1),
+			positionID, templateID, itemID, max(int(item.Quantity), 1),
 			assignment, condJSON, defaultMode, latePacker, dedup); err != nil {
-			return "", fmt.Errorf("insert template item %q: %w", item.Name, err)
+			return fmt.Errorf("insert template item %q: %w", item.Name, err)
+		}
+
+		for _, task := range item.Tasks {
+			if _, err := tx.ExecContext(ctx, `
+				INSERT INTO template_item_tasks (id, template_item_id, task)
+				VALUES (?, ?, ?)`, randomID(), positionID, task); err != nil {
+				return fmt.Errorf("insert task for %q: %w", item.Name, err)
+			}
 		}
 	}
-
-	if err := tx.Commit(); err != nil {
-		return "", fmt.Errorf("commit: %w", err)
-	}
-	return templateID, nil
+	return nil
 }
 
 // yearOf picks the trip's year (FR-2.1b) from the first source that knows

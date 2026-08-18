@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { UNTAGGED_KEY } from '@/domain/tags'
 import { useMasterStore } from '../masterStore'
+import { compositionFrom, parsePortable, serializeTemplate } from '@/domain/portable'
 
 describe('masterStore', () => {
   beforeEach(() => {
@@ -464,5 +465,107 @@ describe('masterStore', () => {
     // ON DELETE CASCADE removes them server-side; mirror it so the M8 count
     // chip cannot survive its own row between two pulls.
     expect(store.getTemplateItemTasks('p1')).toEqual([])
+  })
+
+  // FR-27.1/27.7, ADR-017: the one place the three export paths — M7's row
+  // action, the settings export and the NFR-4.11 backup — get their source
+  // from. Asserted through `serializeTemplate`, because what the file says is
+  // the whole point of the getter; a source that dropped the groups or the
+  // tasks would serialize a Vorlage as a bare name.
+  it('compositionSource feeds a Vorlage its groups and its tasks (FR-27.1/27.7)', () => {
+    const store = useMasterStore()
+    store.applyChanges([
+      { seq: 1, table: 'items', id: 'i-cam', deleted: false, row: { name: 'Kamera' } },
+      {
+        seq: 2,
+        table: 'templates',
+        id: 'g1',
+        deleted: false,
+        row: { name: 'Makro', kind: 'group' },
+      },
+      {
+        seq: 3,
+        table: 'templates',
+        id: 't1',
+        deleted: false,
+        row: { name: 'Fototage', kind: 'template' },
+      },
+      {
+        seq: 4,
+        table: 'template_items',
+        id: 'p1',
+        deleted: false,
+        row: { template_id: 'g1', item_id: 'i-cam', quantity: 1 },
+      },
+      {
+        seq: 5,
+        table: 'template_includes',
+        id: 'inc1',
+        deleted: false,
+        row: { template_id: 't1', included_template_id: 'g1' },
+      },
+      {
+        seq: 6,
+        table: 'template_item_tasks',
+        id: 'task1',
+        deleted: false,
+        row: { template_item_id: 'p1', task: 'Akkus laden' },
+      },
+    ])
+
+    const vorlage = store.getTemplate('t1')!
+    const yaml = serializeTemplate(
+      vorlage,
+      store.getTemplateItems(vorlage.id),
+      (id) => store.getItem(id),
+      compositionFrom(vorlage, store.compositionSource()),
+    )
+
+    const doc = parsePortable(yaml).doc!
+    expect(doc.includes.map((g) => g.name)).toEqual(['Makro'])
+    expect(doc.includes[0]!.items.map((i) => i.name)).toEqual(['Kamera'])
+    expect(doc.includes[0]!.items[0]!.tasks).toEqual(['Akkus laden'])
+  })
+
+  // A group is not composed of anything — the same getter must not hand it
+  // includes, or a group's file would claim a composition it cannot have.
+  it('compositionSource gives a group no includes (FR-27.1)', () => {
+    const store = useMasterStore()
+    // A row that *would* resolve is what makes this a test: the include below
+    // names g1 as the includer, so an empty result can only come from the
+    // scope rule and not from there being nothing to find.
+    store.applyChanges([
+      {
+        seq: 1,
+        table: 'templates',
+        id: 'g1',
+        deleted: false,
+        row: { name: 'Makro', kind: 'group' },
+      },
+      {
+        seq: 2,
+        table: 'templates',
+        id: 'g2',
+        deleted: false,
+        row: { name: 'Stative', kind: 'group' },
+      },
+      {
+        seq: 3,
+        table: 'template_includes',
+        id: 'inc1',
+        deleted: false,
+        row: { template_id: 'g1', included_template_id: 'g2' },
+      },
+    ])
+
+    const group = store.getTemplate('g1')!
+    const yaml = serializeTemplate(
+      group,
+      [],
+      () => undefined,
+      compositionFrom(group, store.compositionSource()),
+    )
+
+    expect(parsePortable(yaml).doc!.includes).toEqual([])
   })
 })

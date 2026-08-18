@@ -188,6 +188,7 @@ async function saveBackup() {
       containers: tripStore.getContainers(trip.id),
     })),
     masterItem: (id) => masterStore.getItem(id),
+    composition: masterStore.compositionSource(),
   })
   const filename = backupFilename(now)
   saveText(yaml, filename)

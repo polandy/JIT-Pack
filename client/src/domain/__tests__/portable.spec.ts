@@ -373,3 +373,75 @@ describe('the portable file contract (FR-18.4, NFR-4.11)', () => {
     expect(accepted).toEqual(expect.arrayContaining(['.yaml', '.yml', 'text/plain', 'text/yaml']))
   })
 })
+
+describe('the composition travels with the file (FR-27.1/27.7, ADR-017)', () => {
+  const vorlage: Template = { id: 'v1', owner_id: 'me', name: 'Fototage', kind: 'template' }
+  const macro: Template = { id: 'g1', owner_id: 'me', name: 'Makro Fotografie', kind: 'group' }
+
+  function position(id: string, templateId: string, itemId: string): TemplateItem {
+    return {
+      id,
+      template_id: templateId,
+      item_id: itemId,
+      quantity: 1,
+      assignment: 'trip_global',
+      dedup: 'max',
+      conditions: null,
+      default_mode: 'pack',
+      late_packer: false,
+    }
+  }
+
+  const items: MasterItem[] = [
+    { id: 'i-cam', name: 'Kamera', weight_grams: null, value_cents: null },
+    { id: 'i-med', name: 'Reiseapotheke', weight_grams: null, value_cents: null },
+  ]
+  const byId = (id: string) => items.find((i) => i.id === id)
+
+  it('writes a Ferien-Vorlage with its groups whole, not by reference', () => {
+    // A bare name means nothing on the instance the file lands on, and
+    // FR-18.2's promise is that it lands anywhere.
+    const yaml = serializeTemplate(vorlage, [position('p-med', 'v1', 'i-med')], byId, {
+      includes: [{ template: macro, items: [position('p-cam', 'g1', 'i-cam')], tasks: () => [] }],
+    })
+
+    const doc = parsePortable(yaml).doc
+    expect(doc?.includes.map((g) => g.name)).toEqual(['Makro Fotografie'])
+    expect(doc?.includes[0]!.items.map((i) => i.name)).toEqual(['Kamera'])
+    // The Vorlage's own positions stay its own — the two lists are not merged.
+    expect(doc?.items.map((i) => i.name)).toEqual(['Reiseapotheke'])
+  })
+
+  it('carries a position’s preparation tasks (FR-27.7)', () => {
+    const yaml = serializeTemplate(macro, [position('p-cam', 'g1', 'i-cam')], byId, {
+      tasks: (positionId) => (positionId === 'p-cam' ? ['Akkus laden'] : []),
+    })
+
+    expect(parsePortable(yaml).doc?.items[0]!.tasks).toEqual(['Akkus laden'])
+  })
+
+  it('reads a file that predates the composition as a template with no groups', () => {
+    const { doc } = parsePortable('kind: template\nschema_version: 1\nname: Sommer\nitems: []\n')
+
+    // Empty rather than absent, so no caller has to tell "none" from "unknown".
+    expect(doc?.includes).toEqual([])
+  })
+
+  it('rejects a group that includes groups — FR-27.1 is two levels', () => {
+    const { doc, error } = parsePortable(
+      'kind: template\nscope: group\nname: Makro\nincludes:\n  - name: Wildlife\nitems: []\n',
+    )
+
+    expect(doc).toBeNull()
+    expect(error).toContain('includes')
+  })
+
+  it('rejects an included group with no name — the name is its whole identity', () => {
+    const { doc, error } = parsePortable(
+      'kind: template\nname: Fototage\nincludes:\n  - items: []\nitems: []\n',
+    )
+
+    expect(doc).toBeNull()
+    expect(error).toContain('name')
+  })
+})

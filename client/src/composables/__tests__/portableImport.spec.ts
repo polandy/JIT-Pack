@@ -224,3 +224,146 @@ items:
     expect(trips.tripList).toHaveLength(1)
   })
 })
+
+describe('commitPortableImport — the composition comes back (FR-27.1/27.7, ADR-017)', () => {
+  const file = `kind: template
+schema_version: 1
+name: Fototage
+scope: template
+includes:
+  - name: Makro Fotografie
+    items:
+      - name: Kamera
+        quantity: 1
+        assignment: trip_global
+        tasks: ["Akkus laden"]
+items:
+  - name: Reiseapotheke
+    quantity: 1
+    assignment: trip_global
+`
+
+  it('creates the group the file brought and includes it, with its tasks', () => {
+    // In Local Mode this *is* the restore path: a Vorlage that came back
+    // without its groups would generate an empty trip, and nothing would say
+    // so until the next trip was generated.
+    const orch = newOrch()
+    const master = useMasterStore()
+
+    const result = orch.commitPortableImport(parsePortable(file).doc!, new Map())
+
+    const group = master.templateList.find((t) => t.name === 'Makro Fotografie')
+    expect(group?.kind).toBe('group')
+    expect(master.includeList.map((i) => [i.template_id, i.included_template_id])).toEqual([
+      [result.id, group!.id],
+    ])
+
+    const position = master.getTemplateItems(group!.id)[0]!
+    expect(master.getItem(position.item_id)?.name).toBe('Kamera')
+    expect(master.getTemplateItemTasks(position.id).map((t) => t.task)).toEqual(['Akkus laden'])
+  })
+
+  it('links a group that already exists instead of duplicating or rewriting it', () => {
+    // The file may be older than the group, and since FR-27.4 a group edit
+    // reaches every trip that follows it — an import must not be an editor.
+    const orch = newOrch()
+    const master = useMasterStore()
+    const existingId = orch.createTemplate('Makro Fotografie', 'group')
+    const itemId = orch.createMasterItem('Stativ', {})
+    orch.addTemplateItem(existingId, itemId, {
+      quantity: 1,
+      assignment: 'trip_global',
+      defaultMode: 'pack',
+    })
+
+    const result = orch.commitPortableImport(parsePortable(file).doc!, new Map())
+
+    expect(master.templateList.filter((t) => t.name === 'Makro Fotografie')).toHaveLength(1)
+    expect(master.includeList.map((i) => i.included_template_id)).toEqual([existingId])
+    // Untouched: the file's Kamera did not join the existing group.
+    const names = master
+      .getTemplateItems(existingId)
+      .map((p) => master.getItem(p.item_id)?.name)
+      .sort()
+    expect(names).toEqual(['Stativ'])
+    expect(result.kind).toBe('template')
+  })
+
+  const groupDoc = `kind: template
+schema_version: 1
+name: Makro Fotografie
+scope: group
+items:
+  - name: Kamera
+    quantity: 1
+    assignment: trip_global
+    tasks: ["Akkus laden"]
+`
+
+  // The group arrives twice in a backup — nested in the Vorlage and as its
+  // own document (ADR-017 calls that redundancy deliberate). Which of the two
+  // lands first is not stable: the file is written in `templateList` order,
+  // which in Local Mode comes from IndexedDB keyed by a random id and is
+  // re-rolled on every reload. Both orders must end at one group.
+  it.each([
+    ['the group document first', () => [groupDoc, file]],
+    ['the Vorlage document first', () => [file, groupDoc]],
+  ])('restores one group, not two, with %s (FR-27.1, ADR-017)', (_label, order) => {
+    const orch = newOrch()
+    const master = useMasterStore()
+
+    orch.commitPortableRestore(order().map((text) => parsePortable(text).doc!))
+
+    const groups = master.templateList.filter((t) => t.kind === 'group')
+    expect(groups.map((g) => g.name)).toEqual(['Makro Fotografie'])
+    // The one group is the one the Vorlage points at — a second copy would
+    // leave the Vorlage composed of an orphan.
+    const vorlage = master.templateList.find((t) => t.kind === 'template')!
+    expect(master.includeList.map((i) => [i.template_id, i.included_template_id])).toEqual([
+      [vorlage.id, groups[0]!.id],
+    ])
+  })
+
+  it('links a group document to the group of that name instead of copying it', () => {
+    // ADR-017's identity rule is about the group, not about where in the file
+    // it appears: importing a group that already exists must not leave a
+    // second one behind, and must not rewrite the positions of the first.
+    const orch = newOrch()
+    const master = useMasterStore()
+    const existingId = orch.createTemplate('Makro Fotografie', 'group')
+    const itemId = orch.createMasterItem('Stativ', {})
+    orch.addTemplateItem(existingId, itemId, {
+      quantity: 1,
+      assignment: 'trip_global',
+      defaultMode: 'pack',
+    })
+
+    const result = orch.commitPortableImport(parsePortable(groupDoc).doc!, new Map())
+
+    expect(result.id).toBe(existingId)
+    expect(master.templateList.filter((t) => t.kind === 'group')).toHaveLength(1)
+    const names = master
+      .getTemplateItems(existingId)
+      .map((p) => master.getItem(p.item_id)?.name)
+      .sort()
+    expect(names).toEqual(['Stativ'])
+  })
+
+  it('still suffixes a Ferien-Vorlage whose name is taken — only groups link', () => {
+    // The identity rule is a group rule (ADR-017): two Ferien-Vorlagen of the
+    // same name are two different plans, and silently merging them would lose
+    // one of them.
+    const orch = newOrch()
+    const master = useMasterStore()
+    orch.createTemplate('Fototage', 'template')
+
+    orch.commitPortableImport(parsePortable(file).doc!, new Map())
+
+    expect(
+      master.templateList
+        .filter((t) => t.kind === 'template')
+        .map((t) => t.name)
+        .sort(),
+    ).toEqual(['Fototage', 'Fototage (import)'])
+  })
+})
