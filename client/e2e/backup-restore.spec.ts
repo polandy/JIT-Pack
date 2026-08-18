@@ -163,9 +163,10 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     // Exactly one Makro: the backup carries the group twice — nested in the
     // Vorlage and as its own document — and a restore that took both at face
     // value would leave a second one here, suffixed and included by nothing.
-    await expect(
-      visible(restored).locator('ion-item').filter({ hasText: 'Makro' }),
-    ).toHaveCount(1)
+    // Counted on the row *title*, the same locator the absence check above
+    // used: a bare row match also catches the Vorlage's "enthält: Makro"
+    // line, which is the composition working rather than a duplicate.
+    await expect(visible(restored).getByRole('heading', { name: 'Makro' })).toHaveCount(1)
     await visible(restored).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
     await expect(restored.getByTestId('header-title')).toHaveText('Fototage')
 
