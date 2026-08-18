@@ -1,5 +1,5 @@
 import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
 /**
  * "Deliberately not packed" (UI-Test-Spec §3, M4/M5; Addendum FR-5.5, FR-20.2).
@@ -228,4 +228,65 @@ test('M5: the sheet says a thing is not coming, and takes it back @local @m5', a
   await control.click()
   await expect(control).toContainText(/do not pack this/i)
   await expect(page.getByTestId('m5-sheet')).not.toContainText(/skipped/i)
+})
+
+/**
+ * Assign a row to a traveler through M5's popover select — the app's one way
+ * of making a row somebody's (FR-25.1), and the only way to reach the
+ * per-person child rows below.
+ */
+async function assignTraveler(page: Page, row: Locator, travelerName: string) {
+  await row.click()
+  await expect(page.getByTestId('m5-sheet')).toBeVisible()
+  await page.getByTestId('m5-details').click()
+  await page.getByTestId('m5-traveler').click()
+  const popover = page.locator('ion-popover ion-select-popover')
+  await popover.locator('ion-item', { hasText: travelerName }).click()
+  await expect(page.locator('ion-popover')).toHaveCount(0)
+  await page.getByTestId('m5-close').click()
+  await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+}
+
+// E2E-M4-42 (FR-5.5, FR-25.1): the menu is written into *two* templates —
+// the ordinary row and the per-person child row inside a cluster. One
+// keeping the gesture says nothing about the other, and the child row is
+// the one a family trip is mostly made of.
+test('M4: a per-person child row can be left behind too @local @m4', async ({ page, seedMode }) => {
+  test.slow()
+  await seedMode({ mode: 'local' })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await createTripViaWizard(page, { name: 'Cluster', travelers: ['Andy', 'Sia'] })
+
+  // Two rows of the same name, one per traveler, is what makes a cluster.
+  for (const name of ['Zelt', 'Zelt']) {
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-input').locator('input').fill(name)
+    await page.getByTestId('quick-add-confirm').click()
+  }
+  await page.keyboard.press('Escape')
+  // Both rows carry the same testid, and after the first assignment they are
+  // told apart by what they render: an assigned row names its traveler. A
+  // `.first()` twice would have assigned the same row twice — it did, and the
+  // cluster never formed.
+  const unassignedZelt = () =>
+    page
+      .getByTestId('m4-row-Zelt')
+      .filter({ has: page.getByRole('heading', { name: 'Zelt', exact: true }) })
+      .first()
+  await assignTraveler(page, unassignedZelt(), 'Andy')
+  await assignTraveler(page, unassignedZelt(), 'Sia')
+
+  const andy = page.getByTestId('m4-child-Zelt-Andy')
+  await expect(andy).toBeVisible()
+
+  await andy.dispatchEvent('contextmenu')
+  await expect(page.locator('ion-action-sheet')).toBeVisible()
+  await chooseInRowMenu(page, /do not pack this/i)
+
+  // Only that person's row leaves; the other traveler still needs one.
+  await expect(page.getByTestId('m4-child-Zelt-Andy')).toHaveCount(0)
+  await expect(page.getByTestId('m4-child-Zelt-Sia')).toBeVisible()
+
+  await page.getByTestId('m4-done-bar').click()
+  await expect(page.getByTestId('m4-child-Zelt-Andy')).toContainText(/deliberately skipped/i)
 })

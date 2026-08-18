@@ -46,7 +46,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
 | Visual baselines | E2E-VIS-01 … E2E-VIS-07 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
-| Deliberately not packed | E2E-M4-37 … E2E-M4-41, E2E-M5-16 | `local` | [`skip-item.spec.ts`](../client/e2e/skip-item.spec.ts) |
+| Deliberately not packed | E2E-M4-37 … E2E-M4-42, E2E-M5-16 | `local` | [`skip-item.spec.ts`](../client/e2e/skip-item.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
 | M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (completed by the M8 unit), E2E-M7-08, E2E-M7-09 | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
 | M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-16, E2E-M8-17 | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
@@ -563,11 +563,16 @@ the others noticing.
   quick-add *suggestion* rather than typing free text — a row with no master
   item behind it has no dependencies at all, and the case would have passed
   by proving nothing. That mis-step is why the helper carries a comment.
+* **The gesture lives in two templates**, the ordinary row and the per-person
+  child row, so it has two cases (E2E-M4-37 and E2E-M4-42). The second was
+  missing on the first pass and the review's own file-by-file table is what
+  found it — the child-row half would have shipped untested.
 * **Two testids were added to M10 for it** (`m10-add-dependency`,
   `m10-dependency-main-<name>`); the dependency editor had none.
 
 **Mutation-proved, both halves, rebuilding between runs** (Playwright drives
 the built bundle, so a source-only edit proves nothing): removing the menu's
 *Nicht einpacken* entry reddens all four M4 cases and leaves E2E-M5-16
-green; removing the M5 control reddens E2E-M5-16 alone. That split is the
+green; removing the M5 control reddens E2E-M5-16 alone; removing the child
+row's handler reddens E2E-M4-42 alone. That split is the
 point — two paths that can fail independently, and did not share a test.
