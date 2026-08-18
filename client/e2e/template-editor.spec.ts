@@ -385,7 +385,7 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
     await addPosition(page, 'Reiseapotheke')
     await backToList(page)
 
-    // No planning trip yet — no note. The positive counterpart follows.
+    // No trip yet — no note. The positive counterpart follows.
     await visible(page).getByTestId('m7-scope-all').click()
     await visible(page).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
     await expect(visible(page).getByTestId('m8-blast-note')).toHaveCount(0)
@@ -406,7 +406,12 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
     // The Vorlage names the trip it reaches (FR-27.4)…
     await page.goto('/tabs/templates')
     await visible(page).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
-    await expect(visible(page).getByTestId('m8-blast-note')).toContainText('Engadin 2027')
+    const note = visible(page).getByTestId('m8-blast-note')
+    await expect(note).toContainText('Engadin 2027')
+    // …and says what will actually happen there. The note used to promise an
+    // immediate change and a freeze on departure; both were retired
+    // 2026-08-18, and a warning that outlives its rule is worse than none.
+    await expect(note).toContainText('proposed')
 
     // …and so does the group, reached through the include.
     await backToList(page)
