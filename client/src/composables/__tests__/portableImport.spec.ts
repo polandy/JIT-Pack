@@ -360,8 +360,10 @@ items:
     orch.commitPortableImport(parsePortable(file).doc!, new Map())
 
     expect(
-      master.templateList.filter((t) => t.kind === 'template').map((t) => t.name).sort(),
+      master.templateList
+        .filter((t) => t.kind === 'template')
+        .map((t) => t.name)
+        .sort(),
     ).toEqual(['Fototage', 'Fototage (import)'])
   })
-
 })
