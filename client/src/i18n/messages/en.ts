@@ -445,10 +445,8 @@ export const en = {
   'templates.peekPerPerson': 'per person',
   'templates.peekConditional': 'conditional',
 
-
   // FR-27.4 — what a planned trip took over from its groups.
-  'trips.appliedChip':
-    '⟳ {n} change taken from groups | ⟳ {n} changes taken from groups',
+  'trips.appliedChip': '⟳ {n} change taken from groups | ⟳ {n} changes taken from groups',
   'trips.appliedFrozen': 'Running and past trips stay untouched.',
   'trips.appliedAdded': '“{group}”: {item} added',
   'trips.appliedRemoved': '“{group}”: {item} removed',

@@ -54,7 +54,13 @@ export interface PlannedUpdate {
   fields: Partial<
     Pick<
       TripItem,
-      'name' | 'quantity' | 'mode' | 'late_packer' | 'weight_grams' | 'value_cents' | 'category_name'
+      | 'name'
+      | 'quantity'
+      | 'mode'
+      | 'late_packer'
+      | 'weight_grams'
+      | 'value_cents'
+      | 'category_name'
     >
   >
   /** FR-27.7 tasks the group gained, to be written as FR-7.3 todos. */

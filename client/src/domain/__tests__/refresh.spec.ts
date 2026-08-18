@@ -6,13 +6,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import {
-  isEmptyPlan,
-  ledgerId,
-  planRefresh,
-  propagatedItemId,
-  type RefreshInput,
-} from '../refresh'
+import { isEmptyPlan, ledgerId, planRefresh, propagatedItemId, type RefreshInput } from '../refresh'
 import type {
   GeneratedPosition,
   ItemTodo,
@@ -108,7 +102,12 @@ function traveler(id: string, name: string): Traveler {
   return { id, trip_id: TRIP_ID, name, linked_user_id: null }
 }
 
-function todo(id: string, tripItemId: string, body: string, extra: Partial<ItemTodo> = {}): ItemTodo {
+function todo(
+  id: string,
+  tripItemId: string,
+  body: string,
+  extra: Partial<ItemTodo> = {},
+): ItemTodo {
   return {
     id,
     trip_id: TRIP_ID,
@@ -125,10 +124,7 @@ function source(templateId: string): TripTemplateSource {
 }
 
 /** A ledger entry that matches what generation would produce for `itemId`. */
-function ledgerEntry(
-  itemId: string,
-  extra: Partial<GeneratedPosition> = {},
-): GeneratedPosition {
+function ledgerEntry(itemId: string, extra: Partial<GeneratedPosition> = {}): GeneratedPosition {
   const travelerId = extra.traveler_id ?? ''
   return {
     id: ledgerId(TRIP_ID, itemId, travelerId),
@@ -442,7 +438,11 @@ describe('planRefresh — manual edits always win (FR-27.4)', () => {
 })
 
 describe('planRefresh — preparation tasks (FR-27.7 through FR-27.4)', () => {
-  function withTask(tasks: TemplateItemTask[], ledger: GeneratedPosition[], todos: ItemTodo[] = []) {
+  function withTask(
+    tasks: TemplateItemTask[],
+    ledger: GeneratedPosition[],
+    todos: ItemTodo[] = [],
+  ) {
     const entry = ledger[0]!
     return input({
       templateItemTasks: tasks,
@@ -492,8 +492,11 @@ describe('planRefresh — composition (FR-27.2)', () => {
         sources: [source('tpl-ferien')],
         templates: [vorlage, template(GROUP_ID, 'Makro Fotografie')],
         includes: [
-          { id: 'inc-1', template_id: 'tpl-ferien', included_template_id: GROUP_ID } as
-            TemplateInclude,
+          {
+            id: 'inc-1',
+            template_id: 'tpl-ferien',
+            included_template_id: GROUP_ID,
+          } as TemplateInclude,
         ],
       }),
     )
