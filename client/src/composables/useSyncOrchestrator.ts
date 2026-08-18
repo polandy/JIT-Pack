@@ -26,12 +26,12 @@ import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
 import { planClone, type CloneOptions } from '@/domain/clone'
 import {
   declinePlan,
-  followsGroups,
   isEmptyPlan,
   planRefresh,
   proposedChangeCount,
   type RefreshPlan,
 } from '@/domain/refresh'
+import { followsGroups } from '@/domain/trips'
 import {
   pairWrites,
   releasePartnersOnDelete,

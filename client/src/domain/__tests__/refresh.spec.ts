@@ -8,7 +8,6 @@ import { describe, expect, it } from 'vitest'
 
 import {
   declinePlan,
-  followsGroups,
   isEmptyPlan,
   ledgerId,
   planRefresh,
@@ -16,6 +15,7 @@ import {
   proposedChangeCount,
   type RefreshInput,
 } from '../refresh'
+import { followsGroups } from '../trips'
 import type {
   GeneratedPosition,
   ItemTodo,

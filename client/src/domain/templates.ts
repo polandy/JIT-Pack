@@ -19,7 +19,7 @@ import type {
   Trip,
   TripItem,
 } from '@/types/domain'
-import { followsGroups } from './refresh'
+import { followsGroups } from './trips'
 
 /** Everything resolution needs, as plain arrays — the store shapes them. */
 export interface CompositionInput {

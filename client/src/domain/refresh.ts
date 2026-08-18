@@ -35,7 +35,7 @@ import type {
   TripItem,
   TripTemplateSource,
 } from '@/types/domain'
-import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
+import { followsGroups } from './trips'
 
 /** A row the refresh will create, with the traveler it belongs to resolved. */
 export interface PlannedAdd {
@@ -163,26 +163,6 @@ export function declinePlan(plan: RefreshPlan): RefreshPlan {
 
 function emptyPlan(): RefreshPlan {
   return { add: [], update: [], remove: [], ledgerUpsert: [], ledgerDelete: [], log: [] }
-}
-
-/**
- * followsGroups answers the one question FR-27.4 turns on: does this trip
- * still listen to the groups it was generated from?
- *
- * A trip stops listening when it is **past** — archived, or its end date
- * gone by. Everything else listens, a running trip included: the owner's
- * rule (2026-08-18) is that departure does not freeze a trip, it only
- * decides that the change is *asked about* rather than taken silently.
- *
- * `today` is passed in rather than read from the clock, so the boundary is
- * a value a test can stand on either side of.
- */
-export function followsGroups(trip: Trip, today: string): boolean {
-  if (trip.status === TRIP_STATUS_ARCHIVED) return false
-  // An absent end date decides nothing — a trip without one is open-ended,
-  // not over. Both sides are ISO `YYYY-MM-DD`, where string order is date
-  // order; the last day still counts, the trip is over when the day is.
-  return trip.end_date === null || trip.end_date >= today
 }
 
 /** The ledger's identity, shared by the diff and the id derivation. */
