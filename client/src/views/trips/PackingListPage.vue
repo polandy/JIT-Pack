@@ -92,6 +92,7 @@ import { formatWeight } from '@/lib/format'
 import { currentLocale, t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
+import GroupChangesProposal from '@/components/trips/GroupChangesProposal.vue'
 import type { FacetKey, GroupBy, ItemTodo, TripItem, TripParticipant } from '@/types/domain'
 
 const props = defineProps<{ tripId: string; itemId?: string }>()
@@ -179,6 +180,34 @@ const quickAddExpanded = computed(() => quickAdd.value?.expanded ?? false)
 
 function openQuickAdd() {
   void quickAdd.value?.open()
+}
+
+/**
+ * FR-27.4: what the groups this trip follows would change. Derived on open
+ * and after every master pull; nothing is written until one of the two
+ * buttons is pressed.
+ */
+const groupProposal = computed(() => orchestrator.refreshProposals.value[props.tripId] ?? null)
+
+async function applyGroupChanges() {
+  const applied = orchestrator.acceptTripRefresh(props.tripId)
+  await reportGroupAnswer(t('trips.proposedApplied', { n: applied?.log.length ?? 0 }))
+}
+
+async function declineGroupChanges() {
+  orchestrator.declineTripRefresh(props.tripId)
+  await reportGroupAnswer(t('trips.proposedDeclined'))
+}
+
+/** A plain toast: both answers are final, and neither has an undo to offer. */
+async function reportGroupAnswer(message: string) {
+  const toast = await toastController.create({
+    message,
+    duration: 3000,
+    position: 'bottom',
+    positionAnchor: 'm4-fab-anchor',
+  })
+  await toast.present()
 }
 
 const trip = computed(() => store.getTrip(props.tripId))
@@ -944,6 +973,16 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
           {{ t('filter.groupedBy', { axis: t(`group.${groupBy}` as const) }) }}
         </span>
       </div>
+
+      <!-- FR-27.4: the groups changed, and the trip is asked before it moves.
+           Above the list because it is about the list, and answered here
+           because the trip is where the consequence lands. -->
+      <GroupChangesProposal
+        v-if="groupProposal"
+        :plan="groupProposal"
+        @apply="applyGroupChanges"
+        @decline="declineGroupChanges"
+      />
 
       <!-- The one real remnant of the dropped "Danach" phase: an archived
            trip leads with what to do next with it. -->

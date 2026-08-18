@@ -444,6 +444,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       await outbox.drain('master', null)
       syncStatus.setPendingCount(outbox.totalPending())
       syncStatus.setSynced()
+      // FR-27.4: a group edited on another device arrives with this pull, and
+      // the trips that follow it work out what it would mean for them here —
+      // the device does not have to be on any particular screen. Local Mode
+      // returns above, and App.vue sweeps once after its hydration instead.
+      proposeRefreshForLoadedTrips()
     } catch {
       syncStatus.setOffline()
     }

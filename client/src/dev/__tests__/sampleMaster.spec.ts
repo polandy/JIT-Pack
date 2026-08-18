@@ -135,7 +135,7 @@ describe('seedSampleData (dev)', () => {
     // flags) and therefore frozen, so a *planned* one is what makes the
     // planning refresh visible at all.
     expect(outcome.summary).toBe(
-      'Beispieldaten: 15 Artikel, 3 Gruppen, 1 Vorlage, 2 Reisen (1 geplant)',
+      'Beispieldaten: 15 Artikel, 3 Gruppen, 1 Vorlage, 2 Reisen (1 geplant, mit offener Gruppenfrage)',
     )
   })
 
@@ -164,6 +164,14 @@ describe('seedSampleData (dev)', () => {
     expect(trips.getTemplateSources(planned[0]!.id)).toHaveLength(1)
     // And it actually filled itself on the first refresh.
     expect(trips.getItems(planned[0]!.id).length).toBeGreaterThan(0)
+
+    // It also arrives with an *open* question on it: a group gained a position
+    // after the trip took its content over, so M4's proposal card is reachable
+    // from a fresh install without editing a group by hand first.
+    const proposal = orchestrator.refreshProposals.value[planned[0]!.id]
+    expect(proposal?.add.map((a) => a.generated.name)).toEqual(['Stirnlampe'])
+    // Offered, not applied — otherwise the seed would demonstrate the old model.
+    expect(trips.getItems(planned[0]!.id).some((i) => i.name === 'Stirnlampe')).toBe(false)
   })
 
   it('rejects rather than resolving quietly when a seed step fails', async () => {

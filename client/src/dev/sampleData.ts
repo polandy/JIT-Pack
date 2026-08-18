@@ -28,10 +28,28 @@ export async function seedSampleData(orchestrator: Orchestrator): Promise<SeedOu
   // active on purpose (FR-9.1 flags) and therefore frozen.
   const plannedTripId = seedPlannedTrip(orchestrator, master.vacationTemplateId)
   // Accepted outright: the seed exists to hand a fresh device a trip that
-  // already has its groups' items, not a device with a question on it.
+  // already has its groups' items.
   orchestrator.acceptTripRefresh(plannedTripId)
+
+  // …and then one group gains a position, so the device also arrives with an
+  // *open* FR-27.4 question on that trip. Without it the proposal card is
+  // unreachable from a fresh install without first editing a group by hand,
+  // which is exactly what the seed exists to spare (standing rule, 2026-08-16).
+  // A headlamp for night macro — and, more to the point, an item the trip
+  // does not already carry: the tripod would have been silent, because
+  // Wildlife already put it there and the position is keyed on the item.
+  const macro = master.groups['Makro Fotografie']
+  const headlamp = master.items['Stirnlampe']
+  if (macro && headlamp) {
+    orchestrator.addTemplateItem(macro, headlamp, {
+      quantity: 1,
+      assignment: 'trip_global',
+      defaultMode: 'pack',
+    })
+    orchestrator.proposeTripRefresh(plannedTripId)
+  }
   return {
     tripId,
-    summary: `Beispieldaten: ${master.itemCount} Artikel, ${master.groupIds.length} Gruppen, 1 Vorlage, 2 Reisen (1 geplant)`,
+    summary: `Beispieldaten: ${master.itemCount} Artikel, ${Object.keys(master.groups).length} Gruppen, 1 Vorlage, 2 Reisen (1 geplant, mit offener Gruppenfrage)`,
   }
 }

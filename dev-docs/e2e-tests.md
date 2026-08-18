@@ -49,10 +49,11 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Deliberately not packed | E2E-M4-37 … E2E-M4-42, E2E-M5-16 | `local` | [`skip-item.spec.ts`](../client/e2e/skip-item.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
 | M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (completed by the M8 unit), E2E-M7-08, E2E-M7-09 | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
-| M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-09, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-16, E2E-M8-17 | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
+| M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-16, E2E-M8-17 | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
 | M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-02, E2E-M9-03, E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
 | M12 analytics | E2E-M12-01, E2E-M12-02, E2E-M12-03 (absence half only, see below), E2E-M12-04, E2E-M12-05 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
+| FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | M18 backup & restore | E2E-M18-05, E2E-M18-06 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-06 (empty-state half only, see below) + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
@@ -162,18 +163,26 @@ rather than on a duration.
 
 This is a small fraction of the specified suite. Do not read a green `e2e` job as "the UI is verified".
 
-**What the M8 unit covers since 2026-08-18.** E2E-M8-09 runs: a group edited
-after the trip was generated reaches that trip on its next open, and M2 carries
-the "⟳ N Änderungen" chip naming the group and the item. It was mutation-proved
-in both directions — with the trip-open refresh removed the propagated row never
-appears, and before the chip existed the log assertion failed — and repeated
-three times on both browsers to rule out a timing dependency. One thing it does
-*not* prove: the frozen case. That an active trip never carries the chip is a
-component test (`views/trips/__tests__/TripListPage.spec.ts`), because reaching
-an active trip in the browser still needs the planning→active transition no UI
-ships (same gap the M12 and M14 entries name). E2E-M8-11's propagation-log half
-is covered generically by M8-09; the task-specific line lives in the
-`planningRefresh` unit. E2E-M8-05 covers the warning surface
+**What the FR-27.4 unit covers since 2026-08-18.** E2E-M8-09 runs the whole
+question: a group edited after the trip was generated is *offered* on the
+trip's next open — the card names the change while the list has not moved —
+accepting puts the row on the list, and M2 then carries the "⟳ N Änderungen"
+chip naming the group and the item. E2E-M8-19 runs the refusal, and its real
+assertion is the return trip: the trip re-derives on every open, so a refusal
+held only in memory would ask again the moment you come back. Both were
+mutation-proved — restoring the old apply-on-open behaviour turns M8-09 red at
+the "offered, not applied" assertion, and a decline that applies the plan
+instead of its ledger half turns M8-19 red. The unit moved out of
+`template-editor.spec.ts` with the model change: the surface under test is M4
+and M2, not the editor.
+
+One thing it does *not* prove: that a **past** trip is never asked. Reaching
+one in the browser needs either the planning→active transition no UI ships or
+a trip whose end date has gone by, and the wizard's dates are the user's, not
+the clock's — so the boundary lives where it can be stood on from both sides,
+in the `followsGroups` unit with an injected `today`. E2E-M8-11's
+propagation-log half is covered generically by M8-09; the task-specific line
+lives in the `planningRefresh` unit. E2E-M8-05 covers the warning surface
 that exists today, in both directions (the Vorlage names the trip, and the
 group reaches it through the include), plus the absence case *before* the trip
 exists — a positive-signal pairing, not a lone not-there assertion. The sheet's

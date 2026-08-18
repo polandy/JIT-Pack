@@ -345,3 +345,68 @@ describe('createTripFromWizard registers what the trip follows (FR-27.4)', () =>
     expect(tripStore.getTemplateSources(tripId).map((s) => s.template_id)).toEqual([GROUP_ID])
   })
 })
+
+describe('a master pull asks the trips it just changed something for (FR-27.4)', () => {
+  /**
+   * Server Mode: one pull per drain. No push is mocked — the outbox skips it
+   * with an empty queue, and mocking one would consume the pull's response.
+   */
+  function mockDrain(changes: PullChange[]) {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ changes, next_cursor: 1, has_more: false }), { status: 200 }),
+    )
+  }
+
+  let fetchMock: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+  })
+
+  it('proposes without being asked when a group edit arrives over sync', async () => {
+    // The device is *not* on the screen that would ask: M2 shows trips from
+    // the master partition, and the edit was made on somebody else's phone.
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      today: () => TODAY,
+    })
+    const tripStore = useTripStore()
+
+    // The trip's own partition arrives first — that is what makes it *loaded*,
+    // and an unloaded partition is deliberately never guessed at.
+    mockDrain([
+      change(TABLE.trips, TRIP_ID, {
+        name: 'Samedan',
+        year: 2026,
+        status: 'planning',
+        end_date: '2026-02-08',
+      }),
+      change(TABLE.tripTemplateSources, 'src-1', { trip_id: TRIP_ID, template_id: GROUP_ID }),
+    ])
+    await orch.drainTrip(TRIP_ID)
+
+    // Then the master pull brings the group and its position.
+    mockDrain([
+      change(TABLE.templates, GROUP_ID, { name: 'Makro Fotografie', kind: 'group', owner_id: 'u1' }),
+      change(TABLE.items, ITEM_ID, { name: 'Kamera', weight_grams: 780, value_cents: null }),
+      change(TABLE.templateItems, 'pos-1', {
+        template_id: GROUP_ID,
+        item_id: ITEM_ID,
+        quantity: 1,
+        assignment: 'trip_global',
+        dedup: 'max',
+        default_mode: 'pack',
+        late_packer: 0,
+      }),
+    ])
+    await orch.drainMaster()
+
+    expect(orch.refreshProposals.value[TRIP_ID]?.add.map((a) => a.generated.name)).toEqual([
+      'Kamera',
+    ])
+    // Still only offered — arriving over the wire is not an answer either.
+    expect(tripStore.getItems(TRIP_ID)).toEqual([])
+  })
+})

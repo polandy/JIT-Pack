@@ -444,10 +444,28 @@ export const de: Record<keyof typeof en, string> = {
   'templates.peekPerPerson': 'pro Person',
   'templates.peekConditional': 'mit Bedingung',
 
-  // FR-27.4 — was eine geplante Reise aus ihren Gruppen übernommen hat.
+  // FR-27.4 — was eine Reise aus ihren Gruppen vorgeschlagen bekommt.
+  'trips.proposedChip': '⟳ {n} Änderung vorgeschlagen | ⟳ {n} Änderungen vorgeschlagen',
+  'trips.proposedTitle': 'Aus den Gruppen',
+  'trips.proposedLead':
+    'Eine Gruppe dieser Reise hat sich geändert. | Die Gruppen dieser Reise haben sich geändert.',
+  'trips.proposedApply': 'Übernehmen',
+  'trips.proposedDecline': 'Nicht übernehmen',
+  'trips.proposedDeclineNote':
+    'Lehnst du ab, folgen diese Positionen der Gruppe in dieser Reise nicht mehr.',
+  'trips.proposedMore': 'Alle {n} Änderungen ansehen',
+  'trips.proposedApplied': '{n} Änderung übernommen | {n} Änderungen übernommen',
+  'trips.proposedDeclined': 'Nichts übernommen.',
+  'trips.proposedAdded': '„{group}“: {item} kommt dazu',
+  'trips.proposedRemoved': '„{group}“: {item} fällt weg',
+  'trips.proposedQuantity': '„{group}“: {item} — Menge {from} → {to}',
+  'trips.proposedTasks': '„{group}“: {item} — Vorbereitung ändert sich',
+  'trips.proposedChanged': '„{group}“: {item} ändert sich',
+
+  // FR-27.4 — und was sie übernommen hat.
   'trips.appliedChip':
     '⟳ {n} Änderung aus Gruppen übernommen | ⟳ {n} Änderungen aus Gruppen übernommen',
-  'trips.appliedFrozen': 'Laufende & vergangene Reisen bleiben unverändert.',
+  'trips.appliedFrozen': 'Vergangene Reisen werden nie geändert.',
   'trips.appliedAdded': '„{group}“: {item} dazugekommen',
   'trips.appliedRemoved': '„{group}“: {item} entfernt',
   'trips.appliedQuantity': '„{group}“: {item} — Menge {from} → {to}',

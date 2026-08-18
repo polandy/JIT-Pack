@@ -16,9 +16,9 @@ import {
  * master-item creation, Standard defaults), E2E-M8-01/02/03/14 (the M5-pattern
  * position sheet: stepper with 0, assignment, dedup, condition chips behind
  * "Details ▾"), E2E-M8-11's editor half (task list with the blocking rule),
- * E2E-M8-09 (a group edit reaches the planning trip and only that one, with
- * the M2 applied-changes chip naming it) and E2E-M8-05/08 (blast-radius note,
- * resolution footer with named merges).
+ * E2E-M8-05/08 (blast-radius note, resolution footer with named merges). What
+ * a group edit then *does* to a trip moved to `group-refresh.spec.ts` when it
+ * became a question the trip is asked rather than a write (FR-27.4).
  *
  * Local Mode throughout: every rule here is client-side (invariant 4), and the
  * run mode without a server is the one where a missing client rule shows up.
@@ -413,73 +413,5 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
     await visible(page).getByTestId('m7-scope-group').click()
     await visible(page).locator('ion-item').filter({ hasText: 'Makro' }).first().click()
     await expect(visible(page).getByTestId('m8-blast-note')).toContainText('Engadin 2027')
-  })
-})
-
-/**
- * FR-27.4 — the planning-trip refresh, end to end: a group edited after the
- * trip was generated reaches that trip on its next open, says so on M2, and
- * leaves a running trip alone.
- */
-test.describe('M8 → M2: a planned trip follows its groups (FR-27.4)', () => {
-  // Builds its world through M7/M8/M3 per §2.4 — near the 30 s budget on WebKit.
-  test.slow()
-
-  test.beforeEach(async ({ seedMode, page }) => {
-    await seedMode({ mode: 'local' })
-    await page.goto('/tabs/templates')
-  })
-
-  test('E2E-M8-09: a position added to a group lands on the planned trip, with the M2 chip', async ({
-    page,
-  }) => {
-    await createTemplate(page, 'group', 'Makro')
-    await addPosition(page, 'Kamera')
-    await backToList(page)
-
-    // Generate a trip from the group itself (FR-27.3) — the shortest world
-    // that still has real provenance.
-    await page.goto('/trips/new')
-    await page.getByTestId('wizard-name').locator('input').fill('Engadin 2027')
-    await page.getByTestId('wizard-next').click()
-    await expect(page.getByTestId('wizard-step-2')).toBeVisible()
-    await page.getByTestId('wizard-next').click()
-    await expect(page.getByTestId('wizard-step-3')).toBeVisible()
-    await page.locator('ion-item').filter({ hasText: 'Makro' }).locator('ion-checkbox').click()
-    await page.getByTestId('wizard-next').click()
-    await expect(page.getByTestId('wizard-step-4')).toBeVisible()
-    await page.getByTestId('wizard-create').click()
-    await expect(page.getByTestId('header-title')).toHaveText('Engadin 2027')
-    await expect(visible(page).getByText('Kamera')).toBeVisible()
-
-    // The group gains a position *after* the trip exists.
-    await page.goto('/tabs/templates')
-    await visible(page).getByTestId('m7-scope-group').click()
-    await visible(page).locator('ion-item').filter({ hasText: 'Makro' }).first().click()
-    await addPosition(page, 'Stativ')
-    await backToList(page)
-
-    // Opening the trip is when it catches up — the row is simply there.
-    await page.goto('/tabs/trips')
-    await visible(page).getByTestId('trips-filter-planned').click()
-    await visible(page).getByTestId('trip-row-Engadin 2027').click()
-    // The row's *heading*, not any text on screen: since the M2 log renders
-    // inline it also contains the word, and both pages are briefly visible
-    // during the transition — a bare text match resolves to two elements.
-    await expect(visible(page).getByRole('heading', { name: 'Stativ', exact: true })).toBeVisible()
-
-    // …and M2 says so rather than letting the list change silently. Back
-    // in-SPA rather than through a reload: `goto` boots a new document, and
-    // the assertion would then race the Local Mode hydration instead of the
-    // behaviour under test.
-    await page.getByTestId('header-back').click()
-    await expect(visible(page).getByTestId('trip-row-Engadin 2027')).toBeVisible()
-    await expect(visible(page).getByTestId('m2-applied-chip-Engadin 2027')).toBeVisible()
-    // One change, so the log is simply written out — the fold only applies
-    // above ten (owner, 2026-08-18), and its two branches are pinned in the
-    // TripListPage component test.
-    const log = visible(page).getByTestId('m2-applied-log-Engadin 2027')
-    await expect(log).toContainText('Makro')
-    await expect(log).toContainText('Stativ')
   })
 })

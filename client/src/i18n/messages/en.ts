@@ -445,9 +445,27 @@ export const en = {
   'templates.peekPerPerson': 'per person',
   'templates.peekConditional': 'conditional',
 
-  // FR-27.4 — what a planned trip took over from its groups.
+  // FR-27.4 — what a trip is being offered by its groups.
+  'trips.proposedChip': '⟳ {n} change proposed | ⟳ {n} changes proposed',
+  'trips.proposedTitle': 'From the groups',
+  'trips.proposedLead':
+    'A group this trip follows has changed. | The groups this trip follows have changed.',
+  'trips.proposedApply': 'Apply',
+  'trips.proposedDecline': 'Don’t apply',
+  'trips.proposedDeclineNote':
+    'If you decline, these positions stop following the group in this trip.',
+  'trips.proposedMore': 'See all {n} changes',
+  'trips.proposedApplied': '{n} change applied | {n} changes applied',
+  'trips.proposedDeclined': 'Nothing applied.',
+  'trips.proposedAdded': '“{group}”: {item} is added',
+  'trips.proposedRemoved': '“{group}”: {item} goes away',
+  'trips.proposedQuantity': '“{group}”: {item} — amount {from} → {to}',
+  'trips.proposedTasks': '“{group}”: {item} — preparation changes',
+  'trips.proposedChanged': '“{group}”: {item} changes',
+
+  // FR-27.4 — and what it took over.
   'trips.appliedChip': '⟳ {n} change taken from groups | ⟳ {n} changes taken from groups',
-  'trips.appliedFrozen': 'Running and past trips stay untouched.',
+  'trips.appliedFrozen': 'Past trips are never changed.',
   'trips.appliedAdded': '“{group}”: {item} added',
   'trips.appliedRemoved': '“{group}”: {item} removed',
   'trips.appliedQuantity': '“{group}”: {item} — amount {from} → {to}',
