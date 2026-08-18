@@ -3108,6 +3108,47 @@ snapshot itself, and fall when it is wrong. Both e2e cases were mutation-proved
 the same way: restoring apply-on-open turns E2E-M8-09 red at "offered, not
 applied", and a decline that applies the plan turns E2E-M8-19 red.
 
+## FR-27.3 — single items in M3 (2026-08-18)
+
+Trip creation could combine Ferien-Vorlagen and Gruppen and nothing else, so
+"diesmal noch die Drohne mit" meant building a group for one item — filing
+rather than packing.
+
+**Where the rule went.** `generateTripItems` takes `singleItemIds` and resolves
+them **after** the templates, which is the whole design: "already there" is only
+decidable once the composition is resolved. Three consequences fell out of that
+ordering rather than being decided separately — an item a template already
+brought is *reported* (`alreadyIncluded`) instead of duplicated; a **per-person
+fan-out counts as present**, because the item is on the trip twice already and a
+trip-global third row reads as a third one; and a position a **condition kept
+out** (FR-15.2) is *overridden* by the hand-pick, with the exclusion report no
+longer claiming the item is off the list.
+
+**One type change with teeth.** `GeneratedItem.source_template_id` widened to
+`string | null` — a single item has no template and nothing may claim it does,
+because FR-27.4 and FR-27.5 both read that provenance. The refresh now skips
+template-less rows explicitly: it never produces one, and one could not follow
+anything anyway. Making that a stated fact rather than a coincidence of the
+caller is the point.
+
+**The picker is deliberately not the quick-add.** §3.25's consistency directive
+points at `QuickAddItem`, and M8 reused it verbatim for exactly that reason. It
+is the wrong component here: it exists to *write a row*, free text included, and
+to stay open through a run of rows. Step 3 picks something that already exists —
+a name nobody owns has no weight, no tag and nothing for FR-27.5 to recognise a
+year later. What the two share is `searchItems`, which is the part that must not
+diverge; the twenty lines of field-and-chips are not.
+
+**Two things found while building.** `v-model` on an `ion-input` binds through a
+custom element that nothing outside a real browser drives, so the component test
+saw an empty query however it typed — the field uses `:value` + `@ionInput`, the
+same seam the name field above it already used. And the e2e case (E2E-M3-12,
+specified long before) had to end **on the created trip**: a footer count proves
+the preview, not that the row arrived.
+
+No seed change was owed: `Wandersocken` is in the sample inventory and in no
+group, so a fresh device can exercise the picker as it stands.
+
 ## Portable YAML learns the composition (2026-08-18, ADR-017)
 
 The format could describe a template's positions and nothing about what a

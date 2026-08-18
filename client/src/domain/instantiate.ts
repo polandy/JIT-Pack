@@ -46,12 +46,21 @@ export interface GenerationInput {
   templateItems: TemplateItem[]
   masterItems: MasterItem[]
   trip: GenerationTrip
+  /**
+   * FR-27.3: master items the user picked one by one, beside the templates.
+   * Not every trip is a template — "diesmal noch die Drohne mit" is a single
+   * item, and demanding a group for it would be filing rather than packing.
+   * They resolve *after* the templates, so an item a template already brought
+   * is reported rather than added twice.
+   */
+  singleItemIds?: string[]
 }
 
 /** One generated trip item; traveler_index refers into trip.travelers. */
 export interface GeneratedItem {
   source_item_id: string
-  source_template_id: string
+  /** Null for an FR-27.3 single item: no template said it, so none may claim it. */
+  source_template_id: string | null
   name: string
   category_name: string | null
   weight_grams: number | null
@@ -89,10 +98,18 @@ export interface MergedOverlap {
   sources: Template[]
 }
 
+/** FR-27.3: a single item the resolution already carried, named not counted. */
+export interface AlreadyIncludedItem {
+  item_id: string
+  item_name: string
+}
+
 export interface GenerationResult {
   items: GeneratedItem[]
   excluded: ExcludedItem[]
   merged: MergedOverlap[]
+  /** Picked single items that were already on the list — "nicht doppelt". */
+  alreadyIncluded: AlreadyIncludedItem[]
 }
 
 /** Inclusive day count matching the trips.duration_days DB definition (FR-2.1a: null without start date). */
@@ -220,11 +237,47 @@ export function generateTripItems(input: GenerationInput): GenerationResult {
     items.push(entry.item)
   }
 
+  // FR-27.3: the picked singles, after the templates so "already there" is
+  // decidable. A per-person fan-out counts as present too — the item is on the
+  // trip twice already, and a trip-global third row reads as a third one.
+  const placed = new Set(items.map((i) => i.source_item_id))
+  const alreadyIncluded: AlreadyIncludedItem[] = []
+  for (const itemId of new Set(input.singleItemIds ?? [])) {
+    const master = itemsByID.get(itemId)
+    // An id with no master item behind it is stale rather than an error: the
+    // item was deleted between the pick and the resolution.
+    if (!master) continue
+    if (placed.has(itemId)) {
+      alreadyIncluded.push({ item_id: itemId, item_name: master.name })
+      continue
+    }
+    placed.add(itemId)
+    items.push({
+      source_item_id: itemId,
+      source_template_id: null,
+      name: master.name,
+      category_name: master.category_name ?? null,
+      weight_grams: master.weight_grams,
+      value_cents: master.value_cents,
+      quantity: 1,
+      mode: 'pack',
+      late_packer: false,
+      traveler_index: null,
+      tasks: [],
+    })
+  }
+
   // An item another contributor placed is on the list, so reporting it as
   // excluded states something false about it. §3.27 makes this the normal case
-  // rather than the exotic one: sharing an item across groups is the point.
-  const placed = new Set(items.map((i) => i.source_item_id))
-  return { items, excluded: excluded.filter((e) => !placed.has(e.item_id)), merged }
+  // rather than the exotic one: sharing an item across groups is the point —
+  // and since FR-27.3 a hand-picked single is such a contributor, which is
+  // also the override for a condition that kept the item out (FR-15.2).
+  return {
+    items,
+    excluded: excluded.filter((e) => !placed.has(e.item_id)),
+    merged,
+    alreadyIncluded,
+  }
 }
 
 /**

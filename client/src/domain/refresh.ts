@@ -268,12 +268,18 @@ export function planRefresh(input: RefreshInput): RefreshPlan {
     // A per-person row whose traveler vanished mid-resolution is not a row we
     // can place; skipping beats writing one with no owner.
     if (generated.traveler_index !== null && !traveler) continue
+    // A generated row with no template is an FR-27.3 single item. The refresh
+    // resolves *sources* and so never produces one — but it could not follow
+    // anything either: with no template behind it, nothing would ever change
+    // it. Skipping keeps that a fact rather than a coincidence of the caller.
+    const sourceTemplateId = generated.source_template_id
+    if (sourceTemplateId === null) continue
     const travelerId = traveler?.id ?? ''
     const key = positionKey(generated.source_item_id, travelerId)
     seen.add(key)
 
     const entry = ledgerByKey.get(key)
-    const groupName = templateNames.get(generated.source_template_id) ?? ''
+    const groupName = templateNames.get(sourceTemplateId) ?? ''
 
     if (!entry) {
       const existing = rowsByKey.get(key)
@@ -287,6 +293,7 @@ export function planRefresh(input: RefreshInput): RefreshPlan {
             input.trip.id,
             existing.id,
             generated,
+            sourceTemplateId,
             travelerId,
             ledgerId(input.trip.id, generated.source_item_id, travelerId),
           ),
@@ -298,6 +305,7 @@ export function planRefresh(input: RefreshInput): RefreshPlan {
         input.trip.id,
         tripItemId,
         generated,
+        sourceTemplateId,
         travelerId,
         ledgerId(input.trip.id, generated.source_item_id, travelerId),
       )
@@ -310,7 +318,7 @@ export function planRefresh(input: RefreshInput): RefreshPlan {
       plan.ledgerUpsert.push(ledgerEntry)
       plan.log.push({
         trip_id: input.trip.id,
-        source_template_id: generated.source_template_id,
+        source_template_id: sourceTemplateId,
         source_template_name: groupName,
         kind: 'added',
         item_name: generated.name,
@@ -326,7 +334,14 @@ export function planRefresh(input: RefreshInput): RefreshPlan {
     if (!row) continue
     if (isProtected(row, entry)) continue
 
-    const next = snapshotOf(input.trip.id, row.id, generated, travelerId, entry.id)
+    const next = snapshotOf(
+      input.trip.id,
+      row.id,
+      generated,
+      sourceTemplateId,
+      travelerId,
+      entry.id,
+    )
     const fields = changedFields(entry, next)
     const addTasks = next.tasks.filter((t) => !entry.tasks.includes(t))
     const lostTasks = entry.tasks.filter((t) => !next.tasks.includes(t))
@@ -344,7 +359,7 @@ export function planRefresh(input: RefreshInput): RefreshPlan {
     for (const detail of describeFieldChanges(entry, next)) {
       plan.log.push({
         trip_id: input.trip.id,
-        source_template_id: generated.source_template_id,
+        source_template_id: sourceTemplateId,
         source_template_name: groupName,
         kind: 'changed',
         item_name: next.name,
@@ -354,7 +369,7 @@ export function planRefresh(input: RefreshInput): RefreshPlan {
     if (addTasks.length > 0 || removeTodos.length > 0) {
       plan.log.push({
         trip_id: input.trip.id,
-        source_template_id: generated.source_template_id,
+        source_template_id: sourceTemplateId,
         source_template_name: groupName,
         kind: 'changed',
         item_name: next.name,
@@ -418,10 +433,16 @@ function isProtected(row: TripItem, entry: GeneratedPosition): boolean {
   )
 }
 
+/**
+ * The template is passed rather than read off `generated`: a generated row may
+ * have none since FR-27.3, planRefresh skips exactly those, and the ledger's
+ * identity depends on the id being there.
+ */
 function snapshotOf(
   tripId: string,
   tripItemId: string,
   generated: GeneratedItem,
+  sourceTemplateId: string,
   travelerId: string,
   id: string,
 ): GeneratedPosition {
@@ -429,7 +450,7 @@ function snapshotOf(
     id,
     trip_id: tripId,
     trip_item_id: tripItemId,
-    source_template_id: generated.source_template_id,
+    source_template_id: sourceTemplateId,
     source_item_id: generated.source_item_id,
     traveler_id: travelerId,
     name: generated.name,

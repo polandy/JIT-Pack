@@ -25,6 +25,13 @@ import type { PullChange } from '@/api/types'
 import { resolveTemplate, type Resolution } from '@/domain/templates'
 import { groupByPrimaryTag, primaryTagOf, tagsOfItem } from '@/domain/tags'
 
+/**
+ * How much a user has to type before an inventory search offers anything
+ * (§4a). Two surfaces ask it — M4/M8's quick-add and M3's FR-27.3 picker —
+ * and a single letter over a full inventory is a list, not an answer.
+ */
+export const MIN_SEARCH_LENGTH = 2
+
 export const useMasterStore = defineStore('master', () => {
   const tags = ref<Map<string, Tag>>(new Map())
   const itemTags = ref<Map<string, ItemTag>>(new Map())
@@ -172,7 +179,7 @@ export const useMasterStore = defineStore('master', () => {
     return primaryTagOf(itemId, itemTagList.value, tagList.value)
   }
 
-  /** Search items by name substring (case-insensitive). */
+  /** Search items by name substring (case-insensitive). See MIN_SEARCH_LENGTH. */
   function searchItems(query: string): MasterItem[] {
     if (!query) return itemList.value
     const q = query.toLowerCase()

@@ -85,14 +85,19 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    every change; M2 carries a pointer chip beside the applied-changes log). Declining
    advances the ledger snapshot and touches nothing, which detaches exactly the refused
    positions — no pending state, nothing extra to sync. Manual edits still always win.
-   That unblocked E2E-M8-09/M8-19 and the log halves of M8-11 and M14-04.
+   That unblocked E2E-M8-09/M8-19 and the log halves of M8-11 and M14-04. **FR-27.3 is
+   done too** (2026-08-18): M3 step 3 picks single inventory items beside the templates —
+   they resolve *after* the composition, which is what makes „bereits enthalten"
+   decidable, and a single item carries no `source_template_id`, because FR-27.4 and
+   FR-27.5 both read that provenance.
    **Portable YAML carries the composition too** (2026-08-18, ADR-017): a Ferien-Vorlage's
    groups travel whole under `includes:` with their FR-27.7 tasks, and an import links a
-   group of the same name rather than rewriting it. Still owed: the **M21 screen**
-   (FR-27.5), **FR-27.3**'s single-item add in step 3, and **FR-27.10**'s whole-group add
-   to a running trip (its plumbing exists: `sourceTemplateIds` on the wizard draft and
-   `registerTripSource`). The Local Mode backup still does not carry the three FR-27.4
-   tables (`trip_template_sources`, `trip_generated_positions`, `trip_applied_changes`):
+   group of the same name rather than rewriting it — a group's own document included, so
+   the result does not depend on which document a file lists first. Still owed: the
+   **M21 screen** (FR-27.5) and **FR-27.10**'s whole-group add to a running trip (its
+   plumbing exists: `sourceTemplateIds` on the wizard draft and `registerTripSource`).
+   The Local Mode backup still does not carry the three FR-27.4 tables
+   (`trip_template_sources`, `trip_generated_positions`, `trip_applied_changes`):
    a restored device keeps its Vorlagen and trips, and starts following them afresh.
    Schema and sync wiring were already done (migration 016).
 3. **The design foundation, then the remaining screen rebuilds** — in that order, decided by
