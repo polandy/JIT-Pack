@@ -389,7 +389,11 @@ describe('a master pull asks the trips it just changed something for (FR-27.4)',
 
     // Then the master pull brings the group and its position.
     mockDrain([
-      change(TABLE.templates, GROUP_ID, { name: 'Makro Fotografie', kind: 'group', owner_id: 'u1' }),
+      change(TABLE.templates, GROUP_ID, {
+        name: 'Makro Fotografie',
+        kind: 'group',
+        owner_id: 'u1',
+      }),
       change(TABLE.items, ITEM_ID, { name: 'Kamera', weight_grams: 780, value_cents: null }),
       change(TABLE.templateItems, 'pos-1', {
         template_id: GROUP_ID,
