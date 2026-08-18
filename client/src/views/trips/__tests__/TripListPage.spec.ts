@@ -4,8 +4,10 @@
  * past trip never does — they are frozen, so a chip there would be a lie.
  *
  * A component test rather than e2e for the chip's *rules*: which trips may
- * carry it, and that the log words each entry from its structured detail.
- * The reachable flow — edit a group, see the chip appear — is E2E-M8-09.
+ * carry it, whether its log is written out or folded away (owner, 2026-08-18:
+ * inline up to ten changes, foldable above), and that each entry is worded
+ * from its structured detail. The reachable flow — edit a group, see the chip
+ * appear — is E2E-M8-09.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
@@ -71,6 +73,13 @@ function logEntry(extra: Partial<AppliedChange> = {}) {
   }
 }
 
+/** n distinct log rows, so the fold threshold can be approached from both sides. */
+function manyEntries(n: number) {
+  return Array.from({ length: n }, (_, i) =>
+    logEntry({ id: `log-${i}`, item_name: `Artikel ${i}` } as never),
+  )
+}
+
 function mountPage() {
   return mount(TripListPage, {
     global: { provide: { orchestrator: orchestratorFake } },
@@ -110,18 +119,51 @@ describe('TripListPage — the FR-27.4 applied-changes chip', () => {
     expect(wrapper.find('[data-testid="m2-applied-chip-Samedan"]').exists()).toBe(false)
   })
 
-  it('stays collapsed until asked, then names each change with its source group', async () => {
+  it('writes a short log out where it happened, with no control to press', async () => {
     const trips = seedTrip('planning')
     trips.applyChanges([logEntry()])
+
     const wrapper = mountPage()
 
-    expect(wrapper.find('[data-testid="m2-applied-log-Samedan"]').exists()).toBe(false)
-
-    await wrapper.find('[data-testid="m2-applied-chip-Samedan"]').trigger('click')
-
     const log = wrapper.find('[data-testid="m2-applied-log-Samedan"]')
+    expect(log.exists()).toBe(true)
     expect(log.text()).toContain('Makro Fotografie')
     expect(log.text()).toContain('Stativ')
+    // The chip is the heading of what is already on screen, not a button
+    // that reveals it: a control that toggles nothing is a lie about state.
+    expect(wrapper.find('button[data-testid="m2-applied-chip-Samedan"]').exists()).toBe(false)
+  })
+
+  it('still writes it out at exactly ten changes — the limit is inclusive', async () => {
+    const trips = seedTrip('planning')
+    trips.applyChanges(manyEntries(10))
+
+    const wrapper = mountPage()
+
+    expect(wrapper.find('[data-testid="m2-applied-log-Samedan"]').exists()).toBe(true)
+    expect(wrapper.find('button[data-testid="m2-applied-chip-Samedan"]').exists()).toBe(false)
+  })
+
+  it('folds an eleventh change away, so one busy trip cannot bury the list', async () => {
+    const trips = seedTrip('planning')
+    trips.applyChanges(manyEntries(11))
+
+    const wrapper = mountPage()
+
+    // Folded: the chip is a real button and the log is not on screen yet.
+    const chip = wrapper.find('button[data-testid="m2-applied-chip-Samedan"]')
+    expect(chip.exists()).toBe(true)
+    expect(chip.attributes('aria-expanded')).toBe('false')
+    expect(wrapper.find('[data-testid="m2-applied-log-Samedan"]').exists()).toBe(false)
+
+    await chip.trigger('click')
+
+    const log = wrapper.find('[data-testid="m2-applied-log-Samedan"]')
+    expect(log.exists()).toBe(true)
+    expect(log.findAll('p')).toHaveLength(12) // eleven changes plus the frozen note
+    expect(
+      wrapper.find('button[data-testid="m2-applied-chip-Samedan"]').attributes('aria-expanded'),
+    ).toBe('true')
   })
 
   it('words a quantity change from its structured detail, not from a stored sentence', async () => {
@@ -133,8 +175,6 @@ describe('TripListPage — the FR-27.4 applied-changes chip', () => {
       } as never),
     ])
     const wrapper = mountPage()
-
-    await wrapper.find('[data-testid="m2-applied-chip-Samedan"]').trigger('click')
 
     const text = wrapper.find('[data-testid="m2-applied-log-Samedan"]').text()
     expect(text).toContain('2')

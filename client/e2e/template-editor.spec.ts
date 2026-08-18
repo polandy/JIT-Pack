@@ -463,7 +463,10 @@ test.describe('M8 → M2: a planned trip follows its groups (FR-27.4)', () => {
     await page.goto('/tabs/trips')
     await visible(page).getByTestId('trips-filter-planned').click()
     await visible(page).getByTestId('trip-row-Engadin 2027').click()
-    await expect(visible(page).getByText('Stativ')).toBeVisible()
+    // The row's *heading*, not any text on screen: since the M2 log renders
+    // inline it also contains the word, and both pages are briefly visible
+    // during the transition — a bare text match resolves to two elements.
+    await expect(visible(page).getByRole('heading', { name: 'Stativ', exact: true })).toBeVisible()
 
     // …and M2 says so rather than letting the list change silently. Back
     // in-SPA rather than through a reload: `goto` boots a new document, and
@@ -471,9 +474,10 @@ test.describe('M8 → M2: a planned trip follows its groups (FR-27.4)', () => {
     // behaviour under test.
     await page.getByTestId('header-back').click()
     await expect(visible(page).getByTestId('trip-row-Engadin 2027')).toBeVisible()
-    const chip = visible(page).getByTestId('m2-applied-chip-Engadin 2027')
-    await expect(chip).toBeVisible()
-    await chip.click()
+    await expect(visible(page).getByTestId('m2-applied-chip-Engadin 2027')).toBeVisible()
+    // One change, so the log is simply written out — the fold only applies
+    // above ten (owner, 2026-08-18), and its two branches are pinned in the
+    // TripListPage component test.
     const log = visible(page).getByTestId('m2-applied-log-Engadin 2027')
     await expect(log).toContainText('Makro')
     await expect(log).toContainText('Stativ')

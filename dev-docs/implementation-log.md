@@ -3022,6 +3022,20 @@ ships. The dev seed grew a second, *planned* trip for the same reason — the
 existing sample trip is active on purpose and therefore frozen, so without it
 the feature cannot be looked at.
 
+**Owner-Eyeball, 2026-08-18:** Chip angenommen. Eine Änderung daraus — der Log
+steht **bis zehn Einträgen direkt unter der Zeile**, darüber klappt er hinter den
+Chip. Die Schwelle statt „immer geklappt": ein paar Zeilen sind es wert, dort
+gelesen zu werden, wo sie passiert sind, aber M2 ist der Haupteinstieg und es gibt
+bewusst kein *gesehen* — ein unbegrenzter Log schöbe jede andere Reise nach unten,
+bis die betriebsame abreist. Der Chip ist in der Inline-Fassung ein Label ohne
+Interaktion; ein Bedienelement, das nichts umschaltet, lügt über Zustand.
+
+Die Umstellung deckte einen echten Testfehler auf: seit der Log inline steht,
+enthält M2 das Wort „Stativ" ebenfalls, und während des Ionic-Übergangs sind beide
+Seiten kurz sichtbar — `getByText('Stativ')` löste auf zwei Elemente auf. Der Fall
+prüft jetzt die *Überschrift* der Zeile. Merke: eine Textsuche auf der „sichtbaren
+Seite" ist nur eindeutig, solange kein zweiter Screen dasselbe Wort trägt.
+
 ### The §4a pass that came with it
 
 The owner stopped the PR twice on the same thing: `case "trip_template_sources":`

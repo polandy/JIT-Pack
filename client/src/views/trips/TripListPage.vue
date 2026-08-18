@@ -28,6 +28,8 @@ import {
 } from '@ionic/vue'
 import {
   addOutline,
+  chevronDown,
+  chevronUp,
   trainOutline,
   albumsOutline,
   archiveOutline,
@@ -222,11 +224,29 @@ const collaborative = localStorage.getItem('jitpack_mode') === 'server' && !!loa
 // there is a single account that owns everything, so it's always allowed;
 // in collaborative mode we check the roster against our own id.
 const myUserId = ref<string | null>(null)
-/** FR-27.4: the trip whose applied-changes log is open, if any. */
+/**
+ * FR-27.4: above this many changes the log folds away behind the chip.
+ * Owner decision 2026-08-18 — a handful of lines is worth reading where it
+ * happened, but M2 is the app's main entry and there is deliberately no
+ * "seen" state, so an unbounded log would push every other trip down the
+ * list until the busy one departs.
+ */
+const INLINE_LOG_LIMIT = 10
+
+/** FR-27.4: the trip whose *foldable* applied-changes log is open, if any. */
 const expandedApplied = ref<string | null>(null)
 
 function toggleApplied(tripId: string) {
   expandedApplied.value = expandedApplied.value === tripId ? null : tripId
+}
+
+/** Whether this trip's log is long enough to hide behind the chip. */
+function appliedFolds(trip: Trip): boolean {
+  return appliedChanges(trip).length > INLINE_LOG_LIMIT
+}
+
+function appliedOpen(trip: Trip): boolean {
+  return !appliedFolds(trip) || expandedApplied.value === trip.id
 }
 
 /**
@@ -448,20 +468,37 @@ async function handleRefresh(event: CustomEvent) {
                   <p data-testid="trip-when">{{ tripWhen(trip) }}</p>
                   <p>{{ itemSummary(trip) }}</p>
                   <!-- FR-27.4: a *planned* trip follows its source groups.
-                     The row says so when that happened — quietly, and
-                     expandable — because a list that changed under you with
-                     no trace reads as data loss. Active and archived rows
-                     never carry it: they are frozen. -->
+                     The row says so when that happened, because a list that
+                     changed under you with no trace reads as data loss.
+                     A short log is simply written out; a long one folds away,
+                     so one busy trip cannot push the rest of the list off the
+                     screen (owner, 2026-08-18). Active and archived rows never
+                     carry any of it: they are frozen. -->
                   <div v-if="appliedChanges(trip).length" class="applied">
                     <button
+                      v-if="appliedFolds(trip)"
                       class="chip applied-chip"
                       :data-testid="`m2-applied-chip-${trip.name}`"
+                      :aria-expanded="expandedApplied === trip.id"
+                      :aria-controls="`m2-applied-log-${trip.id}`"
                       @click.stop.prevent="toggleApplied(trip.id)"
                     >
                       {{ t('trips.appliedChip', { n: appliedChanges(trip).length }) }}
+                      <IonIcon :icon="expandedApplied === trip.id ? chevronUp : chevronDown" />
                     </button>
+                    <!-- A short log needs no control: the chip is then the
+                       heading of what is already on screen, not a button that
+                       reveals it. -->
+                    <span
+                      v-else
+                      class="chip applied-chip static"
+                      :data-testid="`m2-applied-chip-${trip.name}`"
+                    >
+                      {{ t('trips.appliedChip', { n: appliedChanges(trip).length }) }}
+                    </span>
                     <div
-                      v-if="expandedApplied === trip.id"
+                      v-if="appliedOpen(trip)"
+                      :id="`m2-applied-log-${trip.id}`"
                       class="applied-log"
                       :data-testid="`m2-applied-log-${trip.name}`"
                     >
@@ -616,19 +653,32 @@ async function handleRefresh(event: CustomEvent) {
   transform-origin: 18px 18px;
 }
 
-/* FR-27.4: the applied-changes chip and its log. An action inside a row
-   that is itself a link, so it stops the tap — expanding the log must not
-   also open the trip. */
+/* FR-27.4: the applied-changes chip and its log. When it folds, it is an
+   action inside a row that is itself a link, so it stops the tap — expanding
+   the log must not also open the trip. When it does not fold, it is a label
+   for the lines already below it and takes no interaction at all. */
 .applied {
   margin-top: 6px;
 }
 
 .applied-chip {
+  align-items: center;
   background: var(--jp-surface-sunken);
   color: var(--jp-action);
   border: none;
   border-radius: var(--jp-r2);
+  display: inline-flex;
+  gap: 4px;
   padding: 2px 8px;
+}
+
+.applied-chip ion-icon {
+  font-size: var(--jp-icon-xs);
+}
+
+/* Nothing to press, so nothing that looks pressable. */
+.applied-chip.static {
+  cursor: default;
 }
 
 .applied-log {
