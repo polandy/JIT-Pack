@@ -107,7 +107,10 @@ onMounted(async () => {
   }
   // Session ended for real (IdP rejected the refresh token) → log in again.
   window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired)
-  orchestrator?.connect()
+  // Awaited: in Local Mode this *is* the hydration from IndexedDB, and the
+  // FR-27.4 sweep below must not run against a device whose rows have not
+  // arrived yet.
+  await orchestrator?.connect()
   // Initial pull of master data (no-op in Local Mode)
   await orchestrator?.drainMaster()
   // FR-27.4: a group edited on another device arrives with that pull, and

@@ -39,13 +39,19 @@ function change(table: string, id: string, row: Record<string, unknown>): PullCh
  * A Local Mode orchestrator: no network, no outbox, and every write lands
  * in the stores synchronously — which is what makes the assertions below
  * about *rows* rather than about queued envelopes.
+ *
+ * `connect()` is awaited by every caller, because it is what marks the
+ * device hydrated: the refresh refuses to run before that, and rightly so.
  */
-function localOrchestrator() {
-  return useSyncOrchestrator({
+async function localOrchestrator() {
+  const orch = useSyncOrchestrator({
     baseUrl: 'http://localhost',
     getToken: () => null,
-    local: { save: () => Promise.resolve() } as never,
+    local: { save: () => Promise.resolve(), load: () => Promise.resolve([]),
+      requestDurability: () => Promise.resolve(true) } as never,
   })
+  await orch.connect()
+  return orch
 }
 
 /** One planning trip that follows one group carrying one position. */
@@ -70,8 +76,8 @@ function seedWorld(status = 'planning') {
 }
 
 describe('refreshPlanningTrip (FR-27.4)', () => {
-  it('adds the group’s position to the trip and logs it with the group name', () => {
-    const orch = localOrchestrator()
+  it('adds the group’s position to the trip and logs it with the group name', async () => {
+    const orch = await localOrchestrator()
     const tripStore = useTripStore()
     seedWorld()
 
@@ -90,8 +96,8 @@ describe('refreshPlanningTrip (FR-27.4)', () => {
     })
   })
 
-  it('records what it produced, so a second run adds nothing', () => {
-    const orch = localOrchestrator()
+  it('records what it produced, so a second run adds nothing', async () => {
+    const orch = await localOrchestrator()
     const tripStore = useTripStore()
     seedWorld()
 
@@ -104,8 +110,8 @@ describe('refreshPlanningTrip (FR-27.4)', () => {
     expect(tripStore.getGeneratedPositions(TRIP_ID)).toHaveLength(1)
   })
 
-  it('carries a later quantity change onto the untouched row and logs from → to', () => {
-    const orch = localOrchestrator()
+  it('carries a later quantity change onto the untouched row and logs from → to', async () => {
+    const orch = await localOrchestrator()
     const tripStore = useTripStore()
     seedWorld()
     orch.refreshPlanningTrip(TRIP_ID)
@@ -132,8 +138,8 @@ describe('refreshPlanningTrip (FR-27.4)', () => {
     })
   })
 
-  it('leaves an active trip alone — the freeze is absolute', () => {
-    const orch = localOrchestrator()
+  it('leaves an active trip alone — the freeze is absolute', async () => {
+    const orch = await localOrchestrator()
     const tripStore = useTripStore()
     seedWorld('active')
 
@@ -143,8 +149,8 @@ describe('refreshPlanningTrip (FR-27.4)', () => {
     expect(tripStore.getAppliedChanges(TRIP_ID)).toEqual([])
   })
 
-  it('materialises an FR-27.7 task as a preparation todo on the row it generated', () => {
-    const orch = localOrchestrator()
+  it('materialises an FR-27.7 task as a preparation todo on the row it generated', async () => {
+    const orch = await localOrchestrator()
     const tripStore = useTripStore()
     seedWorld()
     useMasterStore().applyChanges([
@@ -160,8 +166,8 @@ describe('refreshPlanningTrip (FR-27.4)', () => {
     expect(tripStore.getItemTodos(TRIP_ID, item.id).map((t) => t.body)).toEqual(['Akkus laden'])
   })
 
-  it('refreshes every loaded planning trip, and only those', () => {
-    const orch = localOrchestrator()
+  it('refreshes every loaded planning trip, and only those', async () => {
+    const orch = await localOrchestrator()
     const tripStore = useTripStore()
     seedWorld()
     useTripStore().applyChanges([
@@ -176,9 +182,42 @@ describe('refreshPlanningTrip (FR-27.4)', () => {
   })
 })
 
+describe('the refresh refuses to run on rows it cannot see (FR-27.4)', () => {
+  it('does nothing before the device has hydrated — "not loaded" is not "empty"', async () => {
+    // The world is registered and the group carries a position, but this
+    // orchestrator never connected, so its rows have not arrived. Reading
+    // that as an empty trip would re-add every position the trip already
+    // has — duplicating the list the feature exists to keep right.
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      local: { save: () => Promise.resolve(), load: () => Promise.resolve([]) } as never,
+    })
+    const tripStore = useTripStore()
+    seedWorld()
+
+    expect(orch.refreshPlanningTrip(TRIP_ID)).toBeNull()
+    expect(tripStore.getItems(TRIP_ID)).toEqual([])
+  })
+
+  it('skips a Server Mode trip whose partition was never pulled', async () => {
+    // No `local`, and no drainTrip has succeeded for this trip: in Server
+    // Mode a trip's rows arrive only when it is opened, and M2 shows trips
+    // from the *master* partition long before that.
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const tripStore = useTripStore()
+    seedWorld()
+
+    orch.refreshLoadedPlanningTrips()
+
+    expect(tripStore.getItems(TRIP_ID)).toEqual([])
+    expect(tripStore.getAppliedChanges(TRIP_ID)).toEqual([])
+  })
+})
+
 describe('createTripFromWizard registers what the trip follows (FR-27.4)', () => {
-  it('writes one trip_template_sources row per picked template', () => {
-    const orch = localOrchestrator()
+  it('writes one trip_template_sources row per picked template', async () => {
+    const orch = await localOrchestrator()
     const tripStore = useTripStore()
     const masterStore = useMasterStore()
     masterStore.applyChange(

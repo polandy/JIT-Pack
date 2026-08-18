@@ -238,6 +238,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     onEvent: onWSEvent,
   })
 
+  /**
+   * Which trips' rows are actually on this device (FR-27.4). Server Mode
+   * pulls a trip's partition only when the trip is opened, and Local Mode
+   * hydrates from IndexedDB asynchronously — refreshing a trip before its
+   * rows are here would read an empty trip and re-add every position it
+   * already has. The refresh needs a *settled* signal, not a hopeful one.
+   */
+  const loadedTripPartitions = new Set<string>()
+  let localHydrated = false
+
   /** Whether another save has been queued behind the one just finished. */
   let localWrites = 0
   function localWritesPending(): boolean {
@@ -390,6 +400,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     syncStatus.setSyncing()
     try {
       await outbox.drain('trip', tripId)
+      loadedTripPartitions.add(tripId)
       syncStatus.setPendingCount(outbox.totalPending())
       syncStatus.setSynced()
       // Report the new cursor so the server recomputes in_sync (§7).
@@ -803,6 +814,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function refreshPlanningTrip(tripId: string): RefreshPlan | null {
     const trip = tripStore.getTrip(tripId)
     if (!trip) return null
+    if (!tripDataLoaded(tripId)) return null
 
     const plan = planRefresh({
       trip,
@@ -896,6 +908,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     }
 
     return plan
+  }
+
+  /**
+   * tripDataLoaded answers whether this trip's rows are on the device. It is
+   * the guard that keeps the refresh from mistaking "not pulled yet" for
+   * "empty trip" — the one way this feature could duplicate the whole list
+   * it exists to keep right.
+   */
+  function tripDataLoaded(tripId: string): boolean {
+    return local ? localHydrated : loadedTripPartitions.has(tripId)
   }
 
   /**
@@ -2423,6 +2445,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       // FR-19.2: startup load goes through the same applyChanges path
       // as a server pull; NFR-4.11: ask for storage durability.
       onPullChanges(await local.load())
+      localHydrated = true
       void local.requestDurability()
       return
     }

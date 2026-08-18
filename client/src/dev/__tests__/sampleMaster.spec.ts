@@ -15,6 +15,7 @@ import { seedSampleMaster } from '../sampleMaster'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
+import { useTripStore } from '@/stores/tripStore'
 
 beforeEach(() => {
   setActivePinia(createPinia())
@@ -136,6 +137,33 @@ describe('seedSampleData (dev)', () => {
     expect(outcome.summary).toBe(
       'Beispieldaten: 15 Artikel, 3 Gruppen, 1 Vorlage, 2 Reisen (1 geplant)',
     )
+  })
+
+  it('seeds a *planned* trip that follows the sample Vorlage (FR-27.4)', async () => {
+    const { seedSampleData } = await import('../sampleData')
+    const orchestrator = useSyncOrchestrator({
+      baseUrl: '',
+      getToken: () => null,
+      local: new IndexedDBPersistence(),
+    })
+
+    // Connected first, because the FR-27.4 refresh refuses to run before the
+    // device has hydrated — in the app the seed button is pressed long after
+    // startup, and here that has to be stated rather than assumed.
+    await orchestrator.connect()
+    await seedSampleData(orchestrator)
+
+    // The sample trip is activated on purpose (FR-9.1 flags) and is therefore
+    // frozen; without a second, planned one the refresh cannot be looked at
+    // at all — which is what the standing seed rule is for.
+    const trips = useTripStore()
+    const planned = trips.tripList.filter((t) => t.status === 'planning')
+    expect(planned).toHaveLength(1)
+    // Registered, not just created: a planned trip that follows nothing never
+    // moves, and the seed would demonstrate an empty mechanism.
+    expect(trips.getTemplateSources(planned[0]!.id)).toHaveLength(1)
+    // And it actually filled itself on the first refresh.
+    expect(trips.getItems(planned[0]!.id).length).toBeGreaterThan(0)
   })
 
   it('rejects rather than resolving quietly when a seed step fails', async () => {
