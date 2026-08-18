@@ -31,6 +31,7 @@ import {
 import {
   addOutline,
   chevronForwardOutline,
+  closeCircleOutline,
   closeOutline,
   personOutline,
   refreshOutline,
@@ -187,6 +188,10 @@ function shareName(userId: string): string {
 }
 
 // --- Step 3: template selection + live preview (FR-2.2/2.3a/15.2) ---
+
+/** How many inventory matches the FR-27.3 picker offers at once (as M4's). */
+const SUGGESTION_LIMIT = 5
+
 const selectedTemplateIds = ref<Set<string>>(new Set())
 
 function toggleTemplate(id: string, checked: boolean) {
@@ -194,6 +199,46 @@ function toggleTemplate(id: string, checked: boolean) {
   if (checked) next.add(id)
   else next.delete(id)
   selectedTemplateIds.value = next
+}
+
+/**
+ * FR-27.3: single master items, picked beside the templates.
+ *
+ * Deliberately *not* the M4/M8 quick-add (`QuickAddItem`), which the §3.25
+ * consistency directive would otherwise suggest: that composer exists to
+ * write a row, free text included, and to stay open while a run of rows is
+ * entered. This is a picker — inventory only, because a name nobody owns has
+ * no weight, no tag and nothing for FR-27.5 to recognise a year later. What
+ * the two share is the *rule*, `masterStore.searchItems`, which is the part
+ * that must never diverge.
+ */
+const singleItemIds = ref<string[]>([])
+const itemQuery = ref('')
+
+const itemSuggestions = computed(() => {
+  const query = itemQuery.value.trim()
+  if (query.length < 2) return []
+  const picked = new Set(singleItemIds.value)
+  return masterStore
+    .searchItems(query)
+    .filter((i) => !picked.has(i.id))
+    .slice(0, SUGGESTION_LIMIT)
+})
+
+/** The picks as chips, in the order they were made — the user's own order. */
+const pickedItems = computed(() =>
+  singleItemIds.value.map(
+    (id) => masterStore.itemList.find((i) => i.id === id) ?? { id, name: id },
+  ),
+)
+
+function addSingleItem(id: string) {
+  if (!singleItemIds.value.includes(id)) singleItemIds.value = [...singleItemIds.value, id]
+  itemQuery.value = ''
+}
+
+function removeSingleItem(id: string) {
+  singleItemIds.value = singleItemIds.value.filter((other) => other !== id)
 }
 
 /**
@@ -281,6 +326,7 @@ const generation = computed(() => {
   return generateTripItems({
     templates,
     selectedTemplateIds: [...selectedTemplateIds.value],
+    singleItemIds: singleItemIds.value,
     includes: masterStore.includeList,
     templateItemTasks: masterStore.templateItemTaskList,
     templateItems: templates.flatMap((t) => masterStore.getTemplateItems(t.id)),
@@ -846,6 +892,56 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
           </IonList>
         </template>
 
+        <!-- FR-27.3: single items beside the templates. A trip is not always
+             a template — "diesmal noch die Drohne mit" is one item, and
+             building a group for it would be filing rather than packing. -->
+        <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionSingleItems') }}</h2>
+        <div class="single-items">
+          <!-- `:value` + `@ionInput`, like the name field above: v-model on an
+               ion-input binds through a custom element, which nothing outside a
+               real browser drives. -->
+          <IonInput
+            data-testid="wizard-item-search"
+            :placeholder="t('wizard.singleItemsSearch')"
+            :value="itemQuery"
+            :clear-input="true"
+            @ionInput="(e: CustomEvent) => (itemQuery = e.detail.value ?? '')"
+          />
+          <IonList v-if="itemSuggestions.length > 0" data-testid="wizard-item-suggestions">
+            <IonItem
+              v-for="item in itemSuggestions"
+              :key="item.id"
+              button
+              :data-testid="`wizard-item-suggestion-${item.id}`"
+              @click="addSingleItem(item.id)"
+            >
+              <IonIcon slot="start" :icon="addOutline" />
+              <IonLabel>{{ item.name }}</IonLabel>
+            </IonItem>
+          </IonList>
+          <!-- Two words rather than silence: an empty result on a stocked
+               inventory and an empty inventory are different problems. -->
+          <p
+            v-else-if="itemQuery.trim().length >= 2"
+            class="empty-hint"
+            data-testid="wizard-item-nomatch"
+          >
+            {{ t('wizard.singleItemsNoMatch', { query: itemQuery.trim() }) }}
+          </p>
+
+          <div v-if="pickedItems.length > 0" class="picked-chips" data-testid="wizard-item-chips">
+            <IonChip
+              v-for="item in pickedItems"
+              :key="item.id"
+              :data-testid="`wizard-item-chip-${item.id}`"
+              @click="removeSingleItem(item.id)"
+            >
+              {{ item.name }}
+              <IonIcon :icon="closeCircleOutline" />
+            </IonChip>
+          </div>
+        </div>
+
         <div v-if="masterStore.templateList.length === 0" class="empty-hint">
           {{ t('wizard.templatesEmpty') }}
         </div>
@@ -866,6 +962,20 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
           <!-- FR-27.7: the preparation todos the trip inherits from its positions -->
           <IonChip v-if="taskCount > 0" outline data-testid="wizard-task-count">
             📋 {{ t('wizard.taskCount', { n: taskCount }) }}
+          </IonChip>
+          <!-- FR-27.3: a picked item a template already brought is *reported*
+               rather than added twice — silence here would read as a lost tap. -->
+          <IonChip
+            v-if="generation.alreadyIncluded.length > 0"
+            outline
+            color="warning"
+            data-testid="wizard-item-duplicates"
+          >
+            {{
+              t('wizard.singleItemsAlready', {
+                names: generation.alreadyIncluded.map((d) => d.item_name).join(', '),
+              })
+            }}
           </IonChip>
           <!-- FR-27.2: a merge names its groups — the point of composing -->
           <div
@@ -1050,6 +1160,19 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 </template>
 
 <style scoped>
+/* FR-27.3: the picker and its chip list. The chips are the state — what is
+   picked has to be visible without scrolling back into the search results. */
+.single-items {
+  margin-bottom: 16px;
+}
+
+.picked-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
 .review-row.dropped h3,
 .review-row.dropped p {
   text-decoration: line-through;

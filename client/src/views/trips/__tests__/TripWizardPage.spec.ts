@@ -404,3 +404,104 @@ describe('what the trip follows (FR-27.4)', () => {
     expect(draft?.sourceTemplateIds).toEqual(['v1'])
   })
 })
+
+describe('M3 step 3 — single items (FR-27.3)', () => {
+  /**
+   * Type into the picker. `ionInput` rather than setValue: `v-model` on an
+   * ion-input listens for that event, and setValue does not reach a custom
+   * element's value binding — the same seam the wizard's name field uses.
+   */
+  async function search(wrapper: Awaited<ReturnType<typeof mountAtStepThree>>, query: string) {
+    await wrapper
+      .get('[data-testid="wizard-item-search"]')
+      .trigger('ionInput', { detail: { value: query } })
+  }
+
+  it('offers inventory matches and adds the picked one as a chip', async () => {
+    seedComposition()
+    item('drone', 'Drohne')
+    const wrapper = await mountAtStepThree()
+
+    await search(wrapper, 'Droh')
+    const suggestion = wrapper.get('[data-testid="wizard-item-suggestion-drone"]')
+    expect(suggestion.text()).toContain('Drohne')
+
+    await suggestion.trigger('click')
+
+    expect(wrapper.get('[data-testid="wizard-item-chips"]').text()).toContain('Drohne')
+    // The count is the point: the trip now carries one more row than the
+    // templates produced, without any template having said so.
+    expect(wrapper.get('[data-testid="wizard-item-count"]').text()).toContain('1')
+  })
+
+  it('takes the chip back out again', async () => {
+    seedComposition()
+    item('drone', 'Drohne')
+    const wrapper = await mountAtStepThree()
+    await search(wrapper, 'Droh')
+    await wrapper.get('[data-testid="wizard-item-suggestion-drone"]').trigger('click')
+
+    await wrapper.get('[data-testid="wizard-item-chip-drone"]').trigger('click')
+
+    expect(wrapper.find('[data-testid="wizard-item-chips"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="wizard-item-count"]').text()).toContain('0')
+  })
+
+  it('reports an item a picked template already brought, and adds nothing', async () => {
+    seedComposition()
+    const wrapper = await mountAtStepThree()
+    await pick(wrapper, 'v1')
+    const before = wrapper.get('[data-testid="wizard-item-count"]').text()
+
+    await search(wrapper, 'Kam')
+    await wrapper.get('[data-testid="wizard-item-suggestion-cam"]').trigger('click')
+
+    const report = wrapper.get('[data-testid="wizard-item-duplicates"]')
+    expect(report.text()).toContain('Kamera')
+    // Reported *and* not counted: a silent no-op reads as a lost tap, and a
+    // silent duplicate reads as two cameras.
+    expect(wrapper.get('[data-testid="wizard-item-count"]').text()).toBe(before)
+  })
+
+  it('says so when nothing in the inventory matches', async () => {
+    seedComposition()
+    const wrapper = await mountAtStepThree()
+
+    await search(wrapper, 'Schneeschuh')
+
+    expect(wrapper.get('[data-testid="wizard-item-nomatch"]').text()).toContain('Schneeschuh')
+    expect(wrapper.find('[data-testid="wizard-item-suggestions"]').exists()).toBe(false)
+  })
+
+  it('keeps a picked item out of the suggestions rather than offering it twice', async () => {
+    seedComposition()
+    item('drone', 'Drohne')
+    const wrapper = await mountAtStepThree()
+    await search(wrapper, 'Droh')
+    await wrapper.get('[data-testid="wizard-item-suggestion-drone"]').trigger('click')
+
+    await search(wrapper, 'Droh')
+
+    expect(wrapper.find('[data-testid="wizard-item-suggestion-drone"]').exists()).toBe(false)
+  })
+
+  it('carries the picked item into the created trip, with no template claiming it', async () => {
+    seedComposition()
+    item('drone', 'Drohne')
+    const wrapper = await mountAtStepThree()
+    await search(wrapper, 'Droh')
+    await wrapper.get('[data-testid="wizard-item-suggestion-drone"]').trigger('click')
+    await wrapper.get('[data-testid="wizard-next"]').trigger('click')
+    await wrapper.get('[data-testid="wizard-create"]').trigger('click')
+
+    const draft = orchestratorFake.createTripFromWizard.mock.calls[0]![0] as {
+      items: { name: string; source_template_id: string | null }[]
+      sourceTemplateIds?: string[]
+    }
+    expect(draft.items.map((i) => i.name)).toEqual(['Drohne'])
+    // FR-27.4 reads this provenance: a single item follows nothing, so
+    // claiming a template for it would make the trip follow a lie.
+    expect(draft.items[0]!.source_template_id).toBeNull()
+    expect(draft.sourceTemplateIds).toEqual([])
+  })
+})
