@@ -1,7 +1,25 @@
 version: "2"
 
 linters:
+  enable:
+    # §4a: a string literal repeated across the package is a contract with no
+    # compiler behind it. The floor, not the rule — goconst counts
+    # repetitions and cannot see a single-occurrence switch.
+    - goconst
   settings:
+    goconst:
+      # Tests state their expectations literally on purpose (§4a).
+      ignore-tests: true
+      # Serialization keys are the wire contract itself, not a comparison
+      # against one (§4a): a JSON field name in a payload literal or an OIDC
+      # claim lookup is defined by Sync_API_Spec / the OIDC spec and verified
+      # against that document, and a Go constant between the two would hide
+      # the shape the code is implementing.
+      ignore-string-values:
+        - '^trip_id$'
+        - '^item_id$'
+        - '^users$'
+        - '^name$'
     errcheck:
       exclude-functions:
         # Idiomatic sites where the error is meaningless or surfaces

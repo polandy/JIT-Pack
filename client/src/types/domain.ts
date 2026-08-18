@@ -284,3 +284,71 @@ export interface TemplateItem {
   default_mode: ItemMode
   late_packer: boolean
 }
+
+// --- The planning-trip refresh (FR-27.4, migration 023) ---
+
+/** FR-27.4/27.10: one template a trip follows. Master partition. */
+export interface TripTemplateSource {
+  id: string
+  trip_id: string
+  template_id: string
+}
+
+/**
+ * One ledger row: what generation last produced for a position. Its
+ * identity is (trip, master item, traveler) — the same key
+ * `generateTripItems` dedups on, so an item two groups both carry
+ * (FR-27.2) is one entry rather than two competing ones.
+ */
+export interface GeneratedPosition {
+  id: string
+  trip_id: string
+  /** The row it materialised as. Its *absence* means the user deleted it. */
+  trip_item_id: string
+  /** The first contributing template — what the log names, not part of the key. */
+  source_template_id: string
+  source_item_id: string
+  /** '' for a trip-global position (FR-25.8 fan-out uses the traveler's id). */
+  traveler_id: string
+  name: string
+  quantity: number
+  mode: ItemMode
+  late_packer: boolean
+  weight_grams: number | null
+  value_cents: number | null
+  category_name: string | null
+  /** FR-27.7 preparation tasks, as generation produced them. */
+  tasks: string[]
+}
+
+export type AppliedChangeKind = 'added' | 'removed' | 'changed'
+
+/** Which field a `changed` entry is about — the view words it (i18n). */
+export type ChangedField =
+  | 'quantity'
+  | 'mode'
+  | 'name'
+  | 'late_packer'
+  | 'weight_grams'
+  | 'value_cents'
+  | 'category_name'
+  | 'tasks'
+
+export interface ChangeDetail {
+  field: ChangedField
+  from: string | number | boolean | null
+  to: string | number | boolean | null
+}
+
+/** One line of M2's applied-changes log (FR-27.4). Master partition. */
+export interface AppliedChange {
+  id: string
+  trip_id: string
+  source_template_id: string
+  /** Denormalised: deleting the group must not rewrite the record of what it did. */
+  source_template_name: string
+  kind: AppliedChangeKind
+  item_name: string
+  detail: ChangeDetail | null
+  created_at: string
+}

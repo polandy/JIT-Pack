@@ -4,6 +4,7 @@
  * Populated from pull responses on the master partition.
  */
 
+import { TABLE } from '@/types/tables'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type {
@@ -165,7 +166,7 @@ export const useMasterStore = defineStore('master', () => {
     const row = change.row as Record<string, unknown> | null
 
     switch (change.table) {
-      case 'tags':
+      case TABLE.tags:
         if (change.deleted) {
           tags.value.delete(change.id)
           // The server cascades the assignments and sends their tombstones,
@@ -179,7 +180,7 @@ export const useMasterStore = defineStore('master', () => {
         }
         break
 
-      case 'item_tags':
+      case TABLE.itemTags:
         if (change.deleted) {
           itemTags.value.delete(change.id)
         } else if (row) {
@@ -187,7 +188,7 @@ export const useMasterStore = defineStore('master', () => {
         }
         break
 
-      case 'items':
+      case TABLE.items:
         if (change.deleted) {
           items.value.delete(change.id)
           for (const [id, a] of itemTags.value) {
@@ -198,7 +199,7 @@ export const useMasterStore = defineStore('master', () => {
         }
         break
 
-      case 'templates':
+      case TABLE.templates:
         if (change.deleted) {
           templates.value.delete(change.id)
           templateItems.value.delete(change.id)
@@ -215,7 +216,7 @@ export const useMasterStore = defineStore('master', () => {
         }
         break
 
-      case 'template_includes':
+      case TABLE.templateIncludes:
         if (change.deleted) {
           templateIncludes.value.delete(change.id)
         } else if (row) {
@@ -223,7 +224,7 @@ export const useMasterStore = defineStore('master', () => {
         }
         break
 
-      case 'template_items':
+      case TABLE.templateItems:
         if (change.deleted) {
           removeTemplateItem(change.id)
           // ON DELETE CASCADE removes the tasks server-side; mirror it so a
@@ -236,7 +237,7 @@ export const useMasterStore = defineStore('master', () => {
         }
         break
 
-      case 'template_item_tasks':
+      case TABLE.templateItemTasks:
         if (change.deleted) {
           templateItemTasks.value.delete(change.id)
         } else if (row) {
@@ -244,7 +245,7 @@ export const useMasterStore = defineStore('master', () => {
         }
         break
 
-      case 'trip_series':
+      case TABLE.tripSeries:
         if (change.deleted) {
           series.value.delete(change.id)
         } else if (row) {
@@ -252,7 +253,7 @@ export const useMasterStore = defineStore('master', () => {
         }
         break
 
-      case 'destination_profiles':
+      case TABLE.destinationProfiles:
         if (change.deleted) {
           profiles.value.delete(change.id)
         } else if (row) {
@@ -260,7 +261,7 @@ export const useMasterStore = defineStore('master', () => {
         }
         break
 
-      case 'destination_checklist_items':
+      case TABLE.destinationChecklistItems:
         if (change.deleted) {
           checklistItems.value.delete(change.id)
         } else if (row) {
@@ -268,7 +269,7 @@ export const useMasterStore = defineStore('master', () => {
         }
         break
 
-      case 'item_dependencies':
+      case TABLE.itemDependencies:
         if (change.deleted) {
           dependencies.value.delete(change.id)
         } else if (row) {

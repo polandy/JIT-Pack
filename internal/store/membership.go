@@ -61,7 +61,7 @@ func (s *Store) CanManageTravelers(ctx context.Context, tripID, userID string) (
 	if err != nil || !isMember {
 		return false, err
 	}
-	return role == "owner" || role == "admin", nil
+	return role == RoleOwner || role == RoleAdmin, nil
 }
 
 // ListUsers returns every active account on the instance with its

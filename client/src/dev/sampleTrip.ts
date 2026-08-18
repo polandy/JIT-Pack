@@ -101,3 +101,27 @@ export function seedSampleTrip(orchestrator: Orchestrator): string {
   orchestrator.activateTrip(id)
   return id
 }
+
+/**
+ * A second, *planned* trip, generated from the sample Ferien-Vorlage and
+ * registered against it (FR-27.4). The active trip above cannot show the
+ * planning refresh at all — it is frozen by definition — so without this one
+ * a dev cannot see a group edit reach a trip, which is the whole feature:
+ * edit a position in M8, return to M2, and the row carries the
+ * "Änderungen aus Gruppen übernommen" chip.
+ */
+export function seedPlannedTrip(orchestrator: Orchestrator, vacationTemplateId: string): string {
+  return orchestrator.createTripFromWizard({
+    name: 'Sommerferien 2027',
+    year: 2027,
+    startDate: null,
+    endDate: null,
+    attributes: { season: 'summer' },
+    travelers: [{ name: 'Andy' }, { name: 'Sia' }],
+    // Deliberately no generated rows: the refresh fills the trip on first
+    // open, which is the same path a group edit takes later — one mechanism
+    // to look at rather than two.
+    items: [],
+    sourceTemplateIds: [vacationTemplateId],
+  })
+}

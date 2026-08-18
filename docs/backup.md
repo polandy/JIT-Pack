@@ -162,10 +162,19 @@ The response is served as an attachment named `jitpack-export.json`, shaped like
     "templates": [ … ],
     "trips": [ … ],
     "trip_items": [ … ],
-    "comments": [ … ]
+    "comments": [ … ],
+    "trip_template_sources": [ … ],
+    "trip_generated_positions": [ … ],
+    "trip_applied_changes": [ … ]
   }
 }
 ```
+
+The last three describe how a trip that is still being planned follows the
+templates it was created from: which templates it follows, what the app last
+generated for each position, and the changes it has taken over since. They
+travel with the trip so that a restored planning trip keeps following its
+templates instead of treating every existing row as hand-made.
 
 It is **filtered to the requesting user's visibility**, mirroring the rules the sync feed
 uses: instance-wide master data (tags, items and their tag assignments, templates and

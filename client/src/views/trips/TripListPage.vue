@@ -28,6 +28,8 @@ import {
 } from '@ionic/vue'
 import {
   addOutline,
+  chevronDown,
+  chevronUp,
   trainOutline,
   albumsOutline,
   archiveOutline,
@@ -46,7 +48,7 @@ import { safeFilename, saveText } from '@/lib/download'
 import { parseTripFilter, TRIP_FILTER_QUERY, type TripFilter } from './tripFilter'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { Trip } from '@/types/domain'
+import type { AppliedChange, Trip } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import SearchRow from '@/components/global/SearchRow.vue'
 import { tripOrderKey } from '@/domain/trips'
@@ -222,6 +224,62 @@ const collaborative = localStorage.getItem('jitpack_mode') === 'server' && !!loa
 // there is a single account that owns everything, so it's always allowed;
 // in collaborative mode we check the roster against our own id.
 const myUserId = ref<string | null>(null)
+/**
+ * FR-27.4: above this many changes the log folds away behind the chip.
+ * Owner decision 2026-08-18 — a handful of lines is worth reading where it
+ * happened, but M2 is the app's main entry and there is deliberately no
+ * "seen" state, so an unbounded log would push every other trip down the
+ * list until the busy one departs.
+ */
+const INLINE_LOG_LIMIT = 10
+
+/** FR-27.4: the trip whose *foldable* applied-changes log is open, if any. */
+const expandedApplied = ref<string | null>(null)
+
+function toggleApplied(tripId: string) {
+  expandedApplied.value = expandedApplied.value === tripId ? null : tripId
+}
+
+/** Whether this trip's log is long enough to hide behind the chip. */
+function appliedFolds(trip: Trip): boolean {
+  return appliedChanges(trip).length > INLINE_LOG_LIMIT
+}
+
+function appliedOpen(trip: Trip): boolean {
+  return !appliedFolds(trip) || expandedApplied.value === trip.id
+}
+
+/**
+ * What the refresh took over on this trip. Only *planning* trips can have
+ * moved (FR-27.4), and asking the store rather than filtering on status
+ * alone keeps the chip honest if a trip is activated while the list is open.
+ */
+function appliedChanges(trip: Trip): AppliedChange[] {
+  if (trip.status !== 'planning') return []
+  return store.getAppliedChanges(trip.id)
+}
+
+/**
+ * The log stores *what* changed, never a sentence — the row is synced and a
+ * sentence would freeze one language into the database. The wording happens
+ * here, and an unrecognised field falls back to the plain "changed" line
+ * rather than rendering a raw column name at the user.
+ */
+function describeApplied(entry: AppliedChange): string {
+  const params = { group: entry.source_template_name, item: entry.item_name }
+  if (entry.kind === 'added') return t('trips.appliedAdded', params)
+  if (entry.kind === 'removed') return t('trips.appliedRemoved', params)
+  if (entry.detail?.field === 'quantity') {
+    return t('trips.appliedQuantity', {
+      ...params,
+      from: String(entry.detail.from),
+      to: String(entry.detail.to),
+    })
+  }
+  if (entry.detail?.field === 'tasks') return t('trips.appliedTasks', params)
+  return t('trips.appliedChanged', params)
+}
+
 onMounted(async () => {
   if (collaborative) myUserId.value = (await orchestrator.fetchMe())?.user_id ?? null
 })
@@ -409,6 +467,47 @@ async function handleRefresh(event: CustomEvent) {
                      With neither, its year is what it is called by. -->
                   <p data-testid="trip-when">{{ tripWhen(trip) }}</p>
                   <p>{{ itemSummary(trip) }}</p>
+                  <!-- FR-27.4: a *planned* trip follows its source groups.
+                     The row says so when that happened, because a list that
+                     changed under you with no trace reads as data loss.
+                     A short log is simply written out; a long one folds away,
+                     so one busy trip cannot push the rest of the list off the
+                     screen (owner, 2026-08-18). Active and archived rows never
+                     carry any of it: they are frozen. -->
+                  <div v-if="appliedChanges(trip).length" class="applied">
+                    <button
+                      v-if="appliedFolds(trip)"
+                      class="chip applied-chip"
+                      :data-testid="`m2-applied-chip-${trip.name}`"
+                      :aria-expanded="expandedApplied === trip.id"
+                      :aria-controls="`m2-applied-log-${trip.id}`"
+                      @click.stop.prevent="toggleApplied(trip.id)"
+                    >
+                      {{ t('trips.appliedChip', { n: appliedChanges(trip).length }) }}
+                      <IonIcon :icon="expandedApplied === trip.id ? chevronUp : chevronDown" />
+                    </button>
+                    <!-- A short log needs no control: the chip is then the
+                       heading of what is already on screen, not a button that
+                       reveals it. -->
+                    <span
+                      v-else
+                      class="chip applied-chip static"
+                      :data-testid="`m2-applied-chip-${trip.name}`"
+                    >
+                      {{ t('trips.appliedChip', { n: appliedChanges(trip).length }) }}
+                    </span>
+                    <div
+                      v-if="appliedOpen(trip)"
+                      :id="`m2-applied-log-${trip.id}`"
+                      class="applied-log"
+                      :data-testid="`m2-applied-log-${trip.name}`"
+                    >
+                      <p v-for="entry in appliedChanges(trip)" :key="entry.id">
+                        {{ describeApplied(entry) }}
+                      </p>
+                      <p class="frozen-note">{{ t('trips.appliedFrozen') }}</p>
+                    </div>
+                  </div>
                 </IonLabel>
               </IonItem>
 
@@ -552,6 +651,43 @@ async function handleRefresh(event: CustomEvent) {
   fill: var(--ion-text-color);
   transform: rotate(90deg);
   transform-origin: 18px 18px;
+}
+
+/* FR-27.4: the applied-changes chip and its log. When it folds, it is an
+   action inside a row that is itself a link, so it stops the tap — expanding
+   the log must not also open the trip. When it does not fold, it is a label
+   for the lines already below it and takes no interaction at all. */
+.applied {
+  margin-top: 6px;
+}
+
+.applied-chip {
+  align-items: center;
+  background: var(--jp-surface-sunken);
+  color: var(--jp-action);
+  border: none;
+  border-radius: var(--jp-r2);
+  display: inline-flex;
+  gap: 4px;
+  padding: 2px 8px;
+}
+
+.applied-chip ion-icon {
+  font-size: var(--jp-icon-xs);
+}
+
+/* Nothing to press, so nothing that looks pressable. */
+.applied-chip.static {
+  cursor: default;
+}
+
+.applied-log {
+  margin-top: 6px;
+  color: var(--ct-subtext0);
+}
+
+.applied-log .frozen-note {
+  color: var(--ct-overlay1);
 }
 
 /* G-9: on desktop the FAB could be inline in header */

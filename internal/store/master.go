@@ -87,7 +87,7 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 				return MutationResult{}, err
 			}
 		}
-		if m.Table == "trips" && !exists && !merged.Deleted {
+		if m.Table == TableTrips && !exists && !merged.Deleted {
 			// The creator becomes the trip's Owner (FR-4.5); the membership
 			// row syncs like any other so every device learns the roster.
 			memberID := randomID()
@@ -96,17 +96,17 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 				memberID, m.ID, userID, string(m.HLC)); err != nil {
 				return MutationResult{}, fmt.Errorf("creator membership: %w", err)
 			}
-			member := sync.Mutation{Table: "trip_members", ID: memberID, HLC: m.HLC}
+			member := sync.Mutation{Table: TableTripMembers, ID: memberID, HLC: m.HLC}
 			if _, err := appendChangeLog(ctx, tx, nil, member, false); err != nil {
 				return MutationResult{}, err
 			}
 		}
-		if m.Table == "trip_members" && !merged.Deleted {
+		if m.Table == TableTripMembers && !merged.Deleted {
 			// A grant must resurface the trips row: the new member's pull
 			// cursor is already past the trip's original change_log entry,
 			// so without a fresh one they would never see the trip.
 			if tripID, ok := memberTrip(current, m); ok {
-				touch := sync.Mutation{Table: "trips", ID: tripID, HLC: m.HLC}
+				touch := sync.Mutation{Table: TableTrips, ID: tripID, HLC: m.HLC}
 				if _, err := appendChangeLog(ctx, tx, nil, touch, false); err != nil {
 					return MutationResult{}, err
 				}
@@ -134,24 +134,24 @@ func finalize(ctx context.Context, tx *sql.Tx, res MutationResult) error {
 // server-owned columns on insert. current is the existing row, if any.
 func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mutation, current map[string]any, exists bool) (bool, error) {
 	switch m.Table {
-	case "tags", "item_tags":
+	case TableTags, TableItemTags:
 		// Shared master data like the items they classify (FR-24.1): any
 		// authenticated user creates a tag by typing it in M10, and there
 		// is no separate tag-management screen to gate.
 		return true, nil
 
-	case "items":
+	case TableItems:
 		if !exists && m.Op != sync.OpDelete {
 			setField(m, "created_by", userID)
 		}
 		return true, nil
 
-	case "item_dependencies":
+	case TableItemDependencies:
 		// Shared like the items they connect (FR-20.1): anyone may relate
 		// two master items; invalid endpoints fail the FK and reject.
 		return true, nil
 
-	case "templates":
+	case TableTemplates:
 		// Shared instance-wide like master items (FR-1.6 MVP simplification,
 		// 2026-08-08): everyone edits every template. owner_id is stamped
 		// once as creator metadata and never rewritten afterwards — an
@@ -162,13 +162,13 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 		}
 		return true, nil
 
-	case "template_items", "template_item_tasks":
+	case TableTemplateItems, TableTemplateItemTasks:
 		// Positions and their preparation tasks (FR-27.7) follow their
 		// template's governance (FR-1.6 MVP): shared. An invalid parent id
 		// fails the FK and rejects.
 		return true, nil
 
-	case "template_includes":
+	case TableTemplateIncludes:
 		// Shared like everything else, but structurally constrained: the
 		// two-level rule (FR-27.1) is what makes include cycles impossible,
 		// so a shape that would break it is refused here rather than
@@ -178,7 +178,7 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 		}
 		return validInclude(ctx, tx, current, m)
 
-	case "trip_series":
+	case TableTripSeries:
 		if !exists {
 			if m.Op != sync.OpDelete {
 				setField(m, "owner_id", userID)
@@ -187,20 +187,20 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 		}
 		return current["owner_id"] == userID, nil
 
-	case "destination_profiles":
+	case TableDestinationProfiles:
 		// Ownership follows the series chain (FR-13.2) — current and
 		// target series alike, so profiles can't move to foreign series.
 		return ownsAll(ctx, tx, userID,
 			`SELECT owner_id FROM trip_series WHERE id = ?`,
 			parentIDs(current, m, "series_id"))
 
-	case "destination_checklist_items":
+	case TableDestinationChecklistItems:
 		return ownsAll(ctx, tx, userID,
 			`SELECT s.owner_id FROM destination_profiles p
 			 JOIN trip_series s ON s.id = p.series_id WHERE p.id = ?`,
 			parentIDs(current, m, "profile_id"))
 
-	case "trips":
+	case TableTrips:
 		if !exists {
 			if m.Op != sync.OpDelete {
 				setField(m, "created_by", userID)
@@ -215,20 +215,41 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 			return false, nil
 		}
 		if m.Op == sync.OpDelete {
-			return role == "owner" || role == "admin", nil
+			return role == RoleOwner || role == RoleAdmin, nil
 		}
 		return true, nil
 
-	case "trip_members":
+	case TableTripTemplateSources, TableTripAppliedChanges:
+		// FR-27.4 bookkeeping about a trip: writable by anyone who may edit
+		// the trip itself. No role split — registering a source and logging
+		// an applied change are consequences of ordinary editing, not
+		// administration, and the refresh runs on whichever device has the
+		// trip open.
+		trips := parentIDs(current, m, "trip_id")
+		if len(trips) == 0 {
+			return false, nil
+		}
+		for tripID := range trips {
+			role, err := memberRole(ctx, tx, tripID, userID)
+			if err != nil {
+				return false, err
+			}
+			if role == "" {
+				return false, nil
+			}
+		}
+		return true, nil
+
+	case TableTripMembers:
 		// Clients can never grant 'owner' — the creator's server-created
 		// row is the trip's only Owner (FR-4.5).
-		if role, ok := m.Fields["role"].(string); ok && role == "owner" {
+		if role, ok := m.Fields["role"].(string); ok && role == RoleOwner {
 			return false, nil
 		}
 		// The creator's row is the only one with role 'owner' and is
 		// immutable — no demotion, no removal, not even by an Admin
 		// (FR-4.7).
-		if exists && current["role"] == "owner" {
+		if exists && current["role"] == RoleOwner {
 			return false, nil
 		}
 		trips := parentIDs(current, m, "trip_id")
@@ -240,7 +261,7 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 			if err != nil {
 				return false, err
 			}
-			if role != "owner" && role != "admin" {
+			if role != RoleOwner && role != RoleAdmin {
 				return false, nil // FR-4.7: only Owner/Admin manage members
 			}
 		}
@@ -346,81 +367,76 @@ func setField(m *sync.Mutation, field, value string) {
 // cascadeRow identifies one child row an FK cascade will delete.
 type cascadeRow struct{ table, id string }
 
+// childQuery names one child table and the query that finds its rows for a
+// parent id. `?1` may repeat — an include hangs off both of its endpoints.
+type childQuery struct{ table, query string }
+
 // cascadeChildren returns the child rows a delete will cascade to, in
 // leaf-first order so clients can apply the tombstones verbatim.
 func cascadeChildren(ctx context.Context, tx *sql.Tx, m sync.Mutation, deleted, exists bool) ([]cascadeRow, error) {
 	if !deleted || !exists {
 		return nil, nil
 	}
-	collect := func(table, query string) ([]cascadeRow, error) {
-		ids, err := childIDs(ctx, tx, query, m.ID)
-		if err != nil {
-			return nil, err
-		}
-		rows := make([]cascadeRow, 0, len(ids))
-		for _, id := range ids {
-			rows = append(rows, cascadeRow{table, id})
-		}
-		return rows, nil
-	}
+	// The queries per parent table, in the order their tombstones must be
+	// emitted: a child before the parent it hangs off, always.
+	var children []childQuery
 	switch m.Table {
-	case "templates":
-		// Leaf-first: the position tasks (FR-27.7) hang off the positions,
-		// which hang off the template, and the group includes (FR-27.1)
-		// vanish from both sides of the relation.
-		tasks, err := collect("template_item_tasks",
-			`SELECT t.id FROM template_item_tasks t
-			 JOIN template_items ti ON ti.id = t.template_item_id WHERE ti.template_id = ?`)
-		if err != nil {
-			return nil, err
+	case TableTemplates:
+		children = []childQuery{
+			// Leaf-first: the position tasks (FR-27.7) hang off the
+			// positions, which hang off the template, and the group
+			// includes (FR-27.1) vanish from both sides of the relation.
+			{TableTemplateItemTasks, `SELECT t.id FROM template_item_tasks t
+			 JOIN template_items ti ON ti.id = t.template_item_id WHERE ti.template_id = ?`},
+			{TableTemplateItems, `SELECT id FROM template_items WHERE template_id = ?`},
+			{TableTemplateIncludes,
+				`SELECT id FROM template_includes WHERE template_id = ?1 OR included_template_id = ?1`},
+			// FR-27.4: a deleted template stops being a trip's source.
+			// Without the tombstone a client keeps re-resolving a group the
+			// server no longer has and reports its positions as removed on
+			// every open.
+			{TableTripTemplateSources, `SELECT id FROM trip_template_sources WHERE template_id = ?`},
 		}
-		positions, err := collect("template_items", `SELECT id FROM template_items WHERE template_id = ?`)
-		if err != nil {
-			return nil, err
+	case TableTemplateItems:
+		children = []childQuery{
+			{TableTemplateItemTasks, `SELECT id FROM template_item_tasks WHERE template_item_id = ?`},
 		}
-		includes, err := collect("template_includes",
-			`SELECT id FROM template_includes WHERE template_id = ?1 OR included_template_id = ?1`)
-		if err != nil {
-			return nil, err
+	case TableItems:
+		children = []childQuery{
+			{TableItemTags, `SELECT id FROM item_tags WHERE item_id = ?`},
+			{TableItemDependencies,
+				`SELECT id FROM item_dependencies WHERE item_id = ?1 OR depends_on_item_id = ?1`},
 		}
-		return append(append(tasks, positions...), includes...), nil
-	case "template_items":
-		return collect("template_item_tasks",
-			`SELECT id FROM template_item_tasks WHERE template_item_id = ?`)
-	case "items":
-		assignments, err := collect("item_tags", `SELECT id FROM item_tags WHERE item_id = ?`)
-		if err != nil {
-			return nil, err
-		}
-		deps, err := collect("item_dependencies",
-			`SELECT id FROM item_dependencies WHERE item_id = ?1 OR depends_on_item_id = ?1`)
-		if err != nil {
-			return nil, err
-		}
-		return append(assignments, deps...), nil
-	case "tags":
+	case TableTags:
 		// A deleted tag unassigns itself everywhere (FR-24.1). Without the
 		// tombstones a client keeps grouping items under a heading the
 		// server no longer has.
-		return collect("item_tags", `SELECT id FROM item_tags WHERE tag_id = ?`)
-	case "trip_series":
-		items, err := collect("destination_checklist_items",
-			`SELECT ci.id FROM destination_checklist_items ci
-			 JOIN destination_profiles p ON p.id = ci.profile_id WHERE p.series_id = ?`)
-		if err != nil {
-			return nil, err
+		children = []childQuery{
+			{TableItemTags, `SELECT id FROM item_tags WHERE tag_id = ?`},
 		}
-		profiles, err := collect("destination_profiles",
-			`SELECT id FROM destination_profiles WHERE series_id = ?`)
-		if err != nil {
-			return nil, err
+	case TableTripSeries:
+		children = []childQuery{
+			{TableDestinationChecklistItems, `SELECT ci.id FROM destination_checklist_items ci
+			 JOIN destination_profiles p ON p.id = ci.profile_id WHERE p.series_id = ?`},
+			{TableDestinationProfiles, `SELECT id FROM destination_profiles WHERE series_id = ?`},
 		}
-		return append(items, profiles...), nil
-	case "destination_profiles":
-		return collect("destination_checklist_items",
-			`SELECT id FROM destination_checklist_items WHERE profile_id = ?`)
+	case TableDestinationProfiles:
+		children = []childQuery{
+			{TableDestinationChecklistItems, `SELECT id FROM destination_checklist_items WHERE profile_id = ?`},
+		}
 	}
-	return nil, nil
+
+	var rows []cascadeRow
+	for _, child := range children {
+		ids, err := childIDs(ctx, tx, child.query, m.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, id := range ids {
+			rows = append(rows, cascadeRow{child.table, id})
+		}
+	}
+	return rows, nil
 }
 
 func childIDs(ctx context.Context, tx *sql.Tx, query string, args ...any) ([]string, error) {
@@ -521,18 +537,18 @@ func (s *Store) HeadSeqMaster(ctx context.Context) (int64, error) {
 
 func (s *Store) masterVisible(ctx context.Context, userID, table, id string) (bool, error) {
 	switch table {
-	case "tags", "item_tags", "items", "item_dependencies":
+	case TableTags, TableItemTags, TableItems, TableItemDependencies:
 		return true, nil
 
-	case "templates", "template_items", "template_includes", "template_item_tasks":
+	case TableTemplates, TableTemplateItems, TableTemplateIncludes, TableTemplateItemTasks:
 		// Instance-wide, like the master items they are built from (FR-1.6
 		// MVP simplification, 2026-08-08 — "Jeder sieht einfach alles").
 		return true, nil
 
-	case "trips":
+	case TableTrips:
 		return s.IsTripMember(ctx, id, userID)
 
-	case "trip_members":
+	case TableTripMembers:
 		// The roster is visible to every member of its trip — including
 		// the row's subject, who becomes a member through this very row.
 		var tripID string
@@ -546,22 +562,45 @@ func (s *Store) masterVisible(ctx context.Context, userID, table, id string) (bo
 		}
 		return s.IsTripMember(ctx, tripID, userID)
 
-	case "trip_series":
+	case TableTripTemplateSources:
+		return s.tripScopedVisible(ctx, userID,
+			`SELECT trip_id FROM trip_template_sources WHERE id = ?`, id)
+
+	case TableTripAppliedChanges:
+		return s.tripScopedVisible(ctx, userID,
+			`SELECT trip_id FROM trip_applied_changes WHERE id = ?`, id)
+
+	case TableTripSeries:
 		return s.ownedBy(ctx, userID,
 			`SELECT owner_id FROM trip_series WHERE id = ?`, id)
 
-	case "destination_profiles":
+	case TableDestinationProfiles:
 		return s.ownedBy(ctx, userID,
 			`SELECT s.owner_id FROM destination_profiles p
 			 JOIN trip_series s ON s.id = p.series_id WHERE p.id = ?`, id)
 
-	case "destination_checklist_items":
+	case TableDestinationChecklistItems:
 		return s.ownedBy(ctx, userID,
 			`SELECT s.owner_id FROM destination_checklist_items ci
 			 JOIN destination_profiles p ON p.id = ci.profile_id
 			 JOIN trip_series s ON s.id = p.series_id WHERE ci.id = ?`, id)
 	}
 	return false, nil
+}
+
+// tripScopedVisible resolves query's single trip_id column for id and lets
+// every member of that trip see the row (FR-27.4). A missing row denies —
+// its tombstone follows in the feed, exactly as for trip_members.
+func (s *Store) tripScopedVisible(ctx context.Context, userID, query, id string) (bool, error) {
+	var tripID string
+	err := s.db.QueryRowContext(ctx, query, id).Scan(&tripID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("trip-scoped visibility: %w", err)
+	}
+	return s.IsTripMember(ctx, tripID, userID)
 }
 
 // ownedBy resolves query's single owner column for id and compares it to

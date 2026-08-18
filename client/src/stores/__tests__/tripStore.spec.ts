@@ -561,3 +561,59 @@ describe('tripStore', () => {
     expect(k.resolvedTodos).toBe(1)
   })
 })
+
+describe('the FR-27.4 ledger snapshot', () => {
+  function ledger(store: ReturnType<typeof useTripStore>, id: string) {
+    return store.getGeneratedPositions('t1').find((entry) => entry.id === id)
+  }
+
+  it('reads its tasks back as a list', () => {
+    const store = useTripStore()
+    store.applyChange({
+      seq: 0,
+      table: 'trip_generated_positions',
+      id: 'led-1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        trip_item_id: 'ti-1',
+        source_template_id: 'g1',
+        source_item_id: 'i1',
+        traveler_id: '',
+        name: 'Kamera',
+        quantity: 1,
+        mode: 'pack',
+        late_packer: 0,
+        tasks: '["Akkus laden","Karte formatieren"]',
+      },
+    })
+
+    expect(ledger(store, 'led-1')?.tasks).toEqual(['Akkus laden', 'Karte formatieren'])
+  })
+
+  it('survives a malformed snapshot rather than taking the trip list down', () => {
+    const store = useTripStore()
+    store.applyChange({
+      seq: 0,
+      table: 'trip_generated_positions',
+      id: 'led-2',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        trip_item_id: 'ti-1',
+        source_template_id: 'g1',
+        source_item_id: 'i1',
+        traveler_id: '',
+        name: 'Kamera',
+        quantity: 1,
+        mode: 'pack',
+        late_packer: 0,
+        tasks: '{not json',
+      },
+    })
+
+    // Empty reads as "the refresh will re-add them", which is recoverable;
+    // a thrown parse error inside the store is not.
+    expect(ledger(store, 'led-2')?.tasks).toEqual([])
+  })
+})

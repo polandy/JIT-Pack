@@ -76,7 +76,12 @@ cover:
 # The version is pinned in mise.toml and must match the golangci-lint-action
 # `version:` in .github/workflows/ci.yml — a local lint running a different
 # major version is worse than no local lint.
+# `config verify` first, because the action runs it and `run` does not: an
+# option of the wrong *shape* (a string where the schema wants a list) is
+# tolerated by `run` and fails the CI job — which is exactly the kind of
+# drift this target exists to catch before the push (2026-08-18).
 go-lint:
+	$(RUN) golangci-lint config verify
 	$(RUN) golangci-lint run $(GO_PKGS)
 
 # Unlike the targets above, `go mod tidy` takes no package list, so it also

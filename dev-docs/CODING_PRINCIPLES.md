@@ -12,6 +12,7 @@
 3. **English everywhere:** Identifiers, tests, commit messages, docs.
 4. **Comments only when necessary:** A comment justifies *why*, never *what*. Godoc comments on exported symbols are the exception and are mandatory (Go convention). No commented-out code.
 5. **Clear responsibilities:** Every package has one reason to exist and one reason to change. Dependencies point inward (see §3); no package reaches "sideways" into a sibling's internals.
+6. **No magic strings or numbers.** A literal that is *compared against*, *switched on*, or repeated across files is named once as a constant and referenced everywhere after — in Go and in TypeScript alike. The full rule and what counts as an exception is §4a.
 
 ## 2. Tests
 
@@ -48,7 +49,7 @@ client/src/domain/           entities, state machine, generation/analytics — p
 ## 4. Go Conventions (standard, enforced by tooling)
 
 * `gofmt`/`goimports` mandatory; CI fails on diff.
-* `golangci-lint` with: `govet`, `errcheck`, `staticcheck`, `revive`, `gocyclo` (limit 15), `ineffassign`, `misspell`.
+* `golangci-lint` with: `govet`, `errcheck`, `staticcheck`, `ineffassign`, `unused`, and `goconst` (§4a).
 * Naming: MixedCaps, no underscores; no stuttering (`sync.Merge`, not `sync.SyncMerge`); short receiver names; package names short, lowercase, singular, never `util`/`common`/`helpers`.
 * `context.Context` is the first parameter of anything that does I/O or can block; contexts are never stored in structs.
 * Errors: wrap with `fmt.Errorf("…: %w", err)`; sentinel errors as `var ErrTripNotFound = errors.New(…)` in the owning package; check with `errors.Is/As`. **No panics** outside `main` startup; no `_ =` swallowing except where the linter-annotated reason is stated.
@@ -56,6 +57,62 @@ client/src/domain/           entities, state machine, generation/analytics — p
 * `defer` for all cleanup, immediately after acquisition.
 * Concurrency: share memory by communicating; every goroutine has a defined owner and shutdown path (context cancellation); no naked `go func()` in handlers.
 * Logging: `log/slog`, structured key-value, levels `debug/info/warn/error`; never log secrets or JWTs; request-scoped logger with trip/user IDs via middleware.
+
+## 4a. Named Constants — no magic strings or numbers
+
+The point is not tidiness. A literal that several places must agree on is a
+contract with no compiler behind it: mistype `"trip_intems"` in one of five
+switches and nothing fails to build — the case is simply never taken, and the
+symptom surfaces far away as a row that quietly never syncs.
+
+**A literal must be named when it is:**
+
+* **compared against or switched on** — table names, statuses, modes, kinds,
+  event types, storage keys, route names, CSS class names read back in a test;
+* **repeated across files**, even twice;
+* **a threshold or limit with a reason** — `150 * 1024` is a magic number,
+  `MaxItemImageBytes` carries the reason (FR-22, invariant 6) and the ADR
+  pointer with it;
+* **an index or offset with meaning** — `position == 0` is the *primary* tag
+  (FR-24.2), so it is `PrimaryTagPosition`.
+
+**A literal may stay a literal when it is:**
+
+* used exactly once, at the only place that can care — a struct-tag name, a
+  SQL fragment inside the one query that owns it;
+* self-evident arithmetic identity (`0`, `1`, `-1` as counters or steps),
+  where naming it would say less than the expression already does;
+* a test's expected value: a test states its expectation *literally* on
+  purpose, so that a wrong constant in production code is visible as a
+  mismatch rather than hidden behind the same symbol on both sides;
+* a **serialization key** — a JSON or YAML field name in a payload literal, a
+  struct tag, or a claim lookup. It *is* the wire contract rather than a
+  comparison against one: it is fixed by `Sync_API_Spec_v1.3.md` (or by the
+  OIDC spec) and verified against that document, and a Go constant sitting
+  between the code and the shape it implements hides the very thing a reader
+  came to check. A key that is *read back out* of a decoded map to branch on
+  is a comparison again, and is named.
+
+**Where the constant lives:** with the concept it names, in the package that
+owns it, exported only if another package legitimately compares against it —
+`store.TableTripItems` is exported because `internal/api` switches on the same
+names. Never a `constants.go` grab-bag: that is a package with no reason to
+exist (§1.5).
+
+**Enforcement:** `goconst` in `golangci-lint` fails a Go string literal
+repeated three times or more, with the serialization-key carve-out configured
+explicitly in `.golangci.yml`. That is a floor, not the rule — it counts
+repetitions and cannot see the single-occurrence `switch` the rule above
+still names. On the client there is no equivalent worth enabling
+(`no-magic-numbers` fires on one-off view geometry far more often than on a
+threshold that carries a reason), so TypeScript is held to §4a by review —
+except for the one class that *is* gated: colours, type and shape, which
+`scripts/design-tokens-gate.mjs` rejects as raw values (invariant 9/9b).
+
+*Paid for on 2026-08-18 (FR-27.4):* `internal/store` switched on bare table
+names in five places across two packages. Adding a table meant finding all
+five by grep, and the sixth place that should have had a case simply did not.
+Naming them turned "did I catch every switch?" into a compile-time question.
 
 ## 5. Dependencies (footprint-guarded)
 
