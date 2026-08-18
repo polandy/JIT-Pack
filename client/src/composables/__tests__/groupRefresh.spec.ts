@@ -229,10 +229,14 @@ describe('acceptTripRefresh — the answer yes (FR-27.4)', () => {
     orch.acceptTripRefresh(TRIP_ID)
 
     expect(tripStore.getItems(TRIP_ID)[0]?.quantity).toBe(3)
-    expect(tripStore.getAppliedChanges(TRIP_ID)[0]).toMatchObject({
-      kind: 'changed',
-      detail: { field: 'quantity', from: 1, to: 3 },
-    })
+    // Found by kind, not by index: the log holds the earlier 'added' entry
+    // too, and both may carry the same timestamp. CI caught the index version
+    // as a flake — the store now orders totally (tripStore.spec.ts), and an
+    // assertion that leans on that order to identify a row still says less
+    // than one that names what it is looking for.
+    const changed = tripStore.getAppliedChanges(TRIP_ID).filter((c) => c.kind === 'changed')
+    expect(changed).toHaveLength(1)
+    expect(changed[0]).toMatchObject({ detail: { field: 'quantity', from: 1, to: 3 } })
   })
 
   it('materialises an FR-27.7 task as a preparation todo on the row it generated', async () => {
