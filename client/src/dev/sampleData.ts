@@ -24,8 +24,8 @@ export async function seedSampleData(orchestrator: Orchestrator): Promise<SeedOu
   ])
   const master = seedSampleMaster(orchestrator)
   const tripId = seedSampleTrip(orchestrator)
-  // FR-27.4 needs a trip that is still being planned; the one above is
-  // active on purpose (FR-9.1 flags) and therefore frozen.
+  // FR-27.4 needs a trip that follows something; the one above is imported
+  // (and active on purpose, for the FR-9.1 flags), so it follows nothing.
   const plannedTripId = seedPlannedTrip(orchestrator, master.vacationTemplateId)
   // Accepted outright: the seed exists to hand a fresh device a trip that
   // already has its groups' items.

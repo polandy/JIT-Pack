@@ -104,11 +104,11 @@ export function seedSampleTrip(orchestrator: Orchestrator): string {
 
 /**
  * A second, *planned* trip, generated from the sample Ferien-Vorlage and
- * registered against it (FR-27.4). The active trip above cannot show the
- * planning refresh at all — it is frozen by definition — so without this one
- * a dev cannot see a group edit reach a trip, which is the whole feature:
- * edit a position in M8, return to M2, and the row carries the
- * "Änderungen aus Gruppen übernommen" chip.
+ * registered against it (FR-27.4). The active trip above is imported rather
+ * than generated, so it follows nothing and can never show the refresh —
+ * since 2026-08-18 that is the reason, not its status. Without this one a dev
+ * cannot see a group edit reach a trip, which is the whole feature: edit a
+ * position in M8, open the trip, and answer the card it carries.
  */
 export function seedPlannedTrip(orchestrator: Orchestrator, vacationTemplateId: string): string {
   return orchestrator.createTripFromWizard({
