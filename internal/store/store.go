@@ -29,10 +29,48 @@ var (
 	ErrUnknownColumn = errors.New("column not syncable")
 )
 
+// The syncable tables, named once. Every partition set, authorization
+// switch, visibility rule, cascade and export list below compares against
+// these rather than against a literal — a table name is switched on in five
+// places across two packages, and a typo in any one of them fails as a
+// silently missing case rather than as a compile error.
+const (
+	TableTags                      = "tags"
+	TableItemTags                  = "item_tags"
+	TableItems                     = "items"
+	TableItemDependencies          = "item_dependencies"
+	TableTemplates                 = "templates"
+	TableTemplateItems             = "template_items"
+	TableTemplateIncludes          = "template_includes"
+	TableTemplateItemTasks         = "template_item_tasks"
+	TableTrips                     = "trips"
+	TableTripMembers               = "trip_members"
+	TableTripSeries                = "trip_series"
+	TableDestinationProfiles       = "destination_profiles"
+	TableDestinationChecklistItems = "destination_checklist_items"
+	TableTripItems                 = "trip_items"
+	TableTravelers                 = "travelers"
+	TableContainers                = "containers"
+	TableComments                  = "comments"
+	// FR-27.4, the planning-trip refresh (migration 023).
+	TableTripTemplateSources    = "trip_template_sources"
+	TableTripGeneratedPositions = "trip_generated_positions"
+	TableTripAppliedChanges     = "trip_applied_changes"
+)
+
+// The trip roles (FR-4.5/4.7), named once: they are compared against in
+// every authorization decision, and a mistyped literal reads as "not that
+// role" rather than as a build failure.
+const (
+	RoleOwner  = "owner"
+	RoleAdmin  = "admin"
+	RoleEditor = "editor"
+)
+
 // syncableColumns whitelists the tables and columns the push endpoints may
 // touch; everything else is rejected before any SQL is built.
 var syncableColumns = map[string]map[string]bool{
-	"trip_items": toSet(
+	TableTripItems: toSet(
 		"trip_id", "source_item_id", "source_template_id", "name",
 		"weight_grams", "value_cents", "category_name", "quantity",
 		"packed_count", "state", "mode", "late_packer",
@@ -47,31 +85,31 @@ var syncableColumns = map[string]map[string]bool{
 	),
 	// profile is gone with FR-25.9 (migration 018) — a client still
 	// sending it is rejected rather than silently ignored.
-	"travelers": toSet(
+	TableTravelers: toSet(
 		"trip_id", "name", "linked_user_id",
 	),
-	"containers": toSet(
+	TableContainers: toSet(
 		"trip_id", "name", "carrier_traveler_id", "max_weight_grams",
 		"paired_container_id",
 	),
-	"comments": toSet(
+	TableComments: toSet(
 		"trip_id", "trip_item_id", "author_id", "body",
 		"is_task", "task_state",
 	),
 	// Renamed from `categories` by migration 022 (ADR-014): an item carries
 	// a set of these, not one of them.
-	"tags": toSet(
+	TableTags: toSet(
 		"name", "sort_order",
 	),
 	// One assignment per row so each merges on its own (NFR-4.2a); a JSON
 	// set on the item would be a single field and lose one of two
 	// concurrent edits. position 0 is the primary tag (FR-24.2).
-	"item_tags": toSet(
+	TableItemTags: toSet(
 		"item_id", "tag_id", "position",
 	),
 	// category_id is gone with FR-24.1 (migration 022) — a client still
 	// sending it is rejected rather than silently ignored.
-	"items": toSet(
+	TableItems: toSet(
 		"name", "weight_grams", "value_cents",
 		"created_by",
 		"image_hash",
@@ -80,37 +118,56 @@ var syncableColumns = map[string]map[string]bool{
 	// is parked with the FR-1.6 MVP simplification (templates are shared
 	// instance-wide), and an unreadable column no client can set is the
 	// honest state until the stub's revisit trigger fires.
-	"templates": toSet(
+	TableTemplates: toSet(
 		"owner_id", "name", "kind",
 	),
-	"template_items": toSet(
+	TableTemplateItems: toSet(
 		"template_id", "item_id", "quantity", "assignment",
 		"dedup", "conditions", "default_mode", "late_packer",
 	),
-	"template_includes": toSet(
+	TableTemplateIncludes: toSet(
 		"template_id", "included_template_id",
 	),
-	"template_item_tasks": toSet(
+	TableTemplateItemTasks: toSet(
 		"template_item_id", "task",
 	),
-	"trips": toSet(
+	TableTrips: toSet(
 		"series_id", "name", "year", "start_date", "end_date", "status",
 		"attributes", "imported", "created_by",
 	),
-	"trip_series": toSet(
+	TableTripSeries: toSet(
 		"owner_id", "name", "default_attributes",
 	),
-	"destination_profiles": toSet(
+	TableDestinationProfiles: toSet(
 		"series_id", "notes",
 	),
-	"destination_checklist_items": toSet(
+	TableDestinationChecklistItems: toSet(
 		"profile_id", "label", "mode",
 	),
-	"trip_members": toSet(
+	TableTripMembers: toSet(
 		"trip_id", "user_id", "role",
 	),
-	"item_dependencies": toSet(
+	TableItemDependencies: toSet(
 		"item_id", "depends_on_item_id", "mode", "quantity",
+	),
+	// FR-27.4: which templates a planning trip follows. Registered by
+	// generation, read by the refresh diff and by M8's blast-radius note.
+	TableTripTemplateSources: toSet(
+		"trip_id", "template_id",
+	),
+	// FR-27.4: what generation last produced per position — the record that
+	// lets the refresh tell a manual edit from its own previous work.
+	TableTripGeneratedPositions: toSet(
+		"trip_id", "trip_item_id", "source_template_id", "source_item_id",
+		"traveler_id", "name", "quantity", "mode", "late_packer",
+		"weight_grams", "value_cents", "category_name", "tasks",
+	),
+	// FR-27.4: the log behind M2's applied-changes chip. created_at is
+	// client-set: the entry records when the *client* applied the change,
+	// which is the only device that knows — the server never runs the diff.
+	TableTripAppliedChanges: toSet(
+		"trip_id", "source_template_id", "source_template_name",
+		"kind", "item_name", "detail", "created_at",
 	),
 }
 
@@ -118,11 +175,18 @@ var syncableColumns = map[string]map[string]bool{
 // on the endpoint of its partition, otherwise changes would leak into
 // the wrong change feed.
 var (
-	tripPartitionTables   = toSet("trip_items", "travelers", "containers", "comments")
-	masterPartitionTables = toSet("tags", "item_tags", "items", "templates", "template_items",
-		"template_includes", "template_item_tasks", "trips",
-		"trip_series", "destination_profiles", "destination_checklist_items", "trip_members",
-		"item_dependencies")
+	// trip_generated_positions is trip-partition state: it is only ever read
+	// beside the rows it describes, and it should travel with them.
+	tripPartitionTables = toSet(TableTripItems, TableTravelers, TableContainers, TableComments,
+		TableTripGeneratedPositions)
+	// trip_template_sources and trip_applied_changes are trip-scoped but
+	// travel the *master* partition, like trip_members: M2 renders the
+	// FR-27.4 chip and M8 its blast-radius note without any trip partition
+	// being loaded.
+	masterPartitionTables = toSet(TableTags, TableItemTags, TableItems, TableTemplates, TableTemplateItems,
+		TableTemplateIncludes, TableTemplateItemTasks, TableTrips,
+		TableTripSeries, TableDestinationProfiles, TableDestinationChecklistItems, TableTripMembers,
+		TableItemDependencies, TableTripTemplateSources, TableTripAppliedChanges)
 )
 
 // Store owns the SQLite handle. SQLite has a single writer; capping the
