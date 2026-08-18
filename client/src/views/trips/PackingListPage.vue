@@ -111,11 +111,11 @@ const directory = ref<{ user_id: string; display_name: string }[]>([])
 onMounted(async () => {
   orchestrator.subscribeTrip(props.tripId)
   await orchestrator.drainTrip(props.tripId)
-  // FR-27.4: opening a planning trip is the moment it catches up with the
-  // groups it follows. After the drain, not before — the diff must see the
-  // rows the pull just brought, or it would re-add what another device
-  // already added.
-  orchestrator.refreshPlanningTrip(props.tripId)
+  // FR-27.4: opening the trip is the moment it works out what the groups it
+  // follows would change. After the drain, not before — the diff must see the
+  // rows the pull just brought, or it would offer what another device already
+  // applied.
+  orchestrator.proposeTripRefresh(props.tripId)
   const [users, me] = await Promise.all([orchestrator.fetchUsers(), orchestrator.fetchMe()])
   directory.value = users
   myUserId.value = me?.user_id ?? null
