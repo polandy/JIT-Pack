@@ -3050,3 +3050,37 @@ document kinds; the client gets the same table list as `TABLE`, and the
 orchestrator's two routing sets are hoisted out of `onPullChanges` rather than
 rebuilt on every pull. The failure this prevents is specific: a table missing
 from both routing sets is dropped in silence.
+
+## Portable YAML learns the composition (2026-08-18, ADR-017)
+
+The format could describe a template's positions and nothing about what a
+Ferien-Vorlage is *made of*. Two consequences, one of them quiet and bad: a
+shared file imported a Vorlage that resolved to nothing, and the NFR-4.11
+backup — the only copy a Local Mode device has — restored the same emptiness.
+The failure surfaces at the next trip generation, on a device that no longer
+has the file.
+
+**The decision was between self-contained and referential**, and it is written
+up in ADR-017 with the matrix. The groups travel whole. What made it clear-cut
+was driver 2 rather than the sharing story: a backup that restores a name is
+not a backup.
+
+**The identity rule is the half worth remembering.** The name is a group's
+identity across instances — nothing else survives the trip — so an import
+*links* a group of that name and never rewrites it. That rule is not politeness:
+since FR-27.4 a group edit reaches every trip that follows it, so an importer
+that "helpfully" merged the file's positions into an existing group would change
+other people's packing lists from a file they never opened. The cost, stated in
+the ADR, is that an import can give you less than the file described.
+
+**Found while building:** the Go exporter never wrote `scope` at all, so a group
+exported through the server came back a Ferien-Vorlage — the exact defect
+FR-27.1's spec text warns about, three lines above a client parser that rejects
+an unknown scope. It had no test because nothing asserted the exported
+*document*, only its items.
+
+**Where it is enforced:** both parsers reject includes on a trip, includes on a
+group (FR-27.1 is two levels, which is what makes cycles impossible) and an
+unnamed group — at the file boundary, before anything reaches a store. And all
+four client write paths go through one `compositionFrom`, so M7's export, the
+settings export and the backup cannot disagree about what a file contains.

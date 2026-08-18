@@ -1,5 +1,10 @@
 import { test, expect, seed, createTemplate, addPosition, createTripViaWizard } from './fixtures'
-import { backToTemplateList as backToList, openQuickAdd, visiblePage as visible } from './fixtures'
+import {
+  backToTemplateList as backToList,
+  includeGroup,
+  openQuickAdd,
+  visiblePage as visible,
+} from './fixtures'
 import { readFile } from 'node:fs/promises'
 
 /**
@@ -114,6 +119,56 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     // hides the bottom bar entirely.
     await restored.getByTestId('rail-templates').click()
     await expect(visible(restored).getByRole('heading', { name: 'Makro' })).toBeVisible()
+
+    await fresh.close()
+  })
+
+  // E2E-M18-07 (FR-27.1/27.7, ADR-017): the composition is part of the only
+  // copy. A Vorlage that came back as a bare name would look restored and
+  // generate an empty trip — the failure would surface a wizard run later, on
+  // a device that no longer has the file.
+  test('E2E-M18-07: a composed Vorlage restores with its group, not as a name', async ({
+    page,
+    browser,
+  }) => {
+    test.slow()
+
+    await page.goto('/tabs/templates')
+    await createTemplate(page, 'group', 'Makro')
+    await addPosition(page, 'Kamera')
+    await backToList(page)
+    await createTemplate(page, 'template', 'Fototage')
+    await includeGroup(page, 'Makro')
+    await backToList(page)
+
+    await page.getByTestId('sync-indicator').click()
+    const downloadPromise = page.waitForEvent('download')
+    await page.getByTestId('sync-detail-sheet').getByTestId('sync-detail-backup').click()
+    const backup = await readFile(await (await downloadPromise).path(), 'utf8')
+
+    // --- a second device, which has never seen the group ------------------
+    const fresh = await browser.newContext({ baseURL: new URL(page.url()).origin })
+    const restored = await fresh.newPage()
+    await seed(restored, { mode: 'local' })
+    await restored.goto('/tabs/templates')
+    await expect(visible(restored).getByRole('heading', { name: 'Makro' })).toHaveCount(0)
+
+    await restored.goto('/tabs/trips')
+    await restored.getByTestId('m2-portable-import').click()
+    await restored.getByTestId('portable-paste').locator('textarea').fill(backup)
+    await restored.getByTestId('portable-preview').click()
+    await restored.getByTestId('portable-restore-commit').click()
+
+    await restored.getByTestId('rail-templates').click()
+    await visible(restored).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
+    await expect(restored.getByTestId('header-title')).toHaveText('Fototage')
+
+    // The Vorlage is still composed: the group is under it, and the FR-27.2
+    // footer resolves through it rather than counting the Vorlage's own
+    // (nonexistent) positions.
+    await expect(visible(restored).getByTestId('m8-groups-head')).toBeVisible()
+    await expect(visible(restored).locator('ion-item').filter({ hasText: 'Makro' })).toHaveCount(1)
+    await expect(visible(restored).getByTestId('m8-resolution')).toContainText('1')
 
     await fresh.close()
   })
