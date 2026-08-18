@@ -90,10 +90,17 @@ export const useTripStore = defineStore(TABLE.trips, () => {
    * The applied-changes log behind M2's chip (FR-27.4), newest first — a
    * list of what changed under you reads backwards, like history.
    */
+  /**
+   * M2's FR-27.4 log, newest first — with the id as a tiebreak, because a
+   * whole plan is applied in one pass and its entries share a millisecond.
+   * Timestamp alone leaves those to arrival order, so the same log reads
+   * differently on two devices; the id is synced, so this order is the same
+   * everywhere.
+   */
   function getAppliedChanges(tripId: string): AppliedChange[] {
     return [...appliedChanges.value.values()]
       .filter((c) => c.trip_id === tripId)
-      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .sort((a, b) => b.created_at.localeCompare(a.created_at) || a.id.localeCompare(b.id))
   }
 
   function getTodos(tripId: string): ItemTodo[] {

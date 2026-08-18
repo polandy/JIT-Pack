@@ -38,7 +38,10 @@ type Orchestrator = ReturnType<typeof useSyncOrchestrator>
 /** What the seed produced, for a caller that wants to navigate to it. */
 export interface SampleMaster {
   vacationTemplateId: string
-  groupIds: string[]
+  /** Group name → id, by name so a caller can pick a *particular* group. */
+  groups: Record<string, string>
+  /** Master item name → id, same reason. */
+  items: Record<string, string>
   /** What the caller reports back to whoever pressed the button. */
   itemCount: number
 }
@@ -190,5 +193,10 @@ export function seedSampleMaster(orchestrator: Orchestrator): SampleMaster {
   }
   addPositions(orchestrator, vacationTemplateId, itemIds, VACATION.positions)
 
-  return { vacationTemplateId, groupIds: [...groupIds.values()], itemCount: itemIds.size }
+  return {
+    vacationTemplateId,
+    groups: Object.fromEntries(groupIds),
+    items: Object.fromEntries(itemIds),
+    itemCount: itemIds.size,
+  }
 }

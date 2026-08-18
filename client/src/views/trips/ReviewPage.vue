@@ -34,7 +34,7 @@ import {
   retargetGroups,
   type ReviewProposal,
 } from '@/domain/review'
-import { planningTripsUsing } from '@/domain/templates'
+import { tripsReachedBy } from '@/domain/templates'
 import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import { dismissProposal, isDismissed } from '@/local/reviewDismissals'
@@ -145,11 +145,15 @@ function pickerGroups(row: Row) {
 
 /** FR-27.4 blast radius of the row's *selected* group, live. */
 function blastText(row: Row): string | null {
-  const reached = planningTripsUsing(row.target, {
-    trips: store.tripList,
-    items: store.tripList.flatMap((other) => store.getItems(other.id)),
-    includes: master.includeList,
-  })
+  const reached = tripsReachedBy(
+    row.target,
+    {
+      trips: store.tripList,
+      items: store.tripList.flatMap((other) => store.getItems(other.id)),
+      includes: master.includeList,
+    },
+    orchestrator.today(),
+  )
   if (reached.length === 0) return null
   const group = master.templateList.find((g) => g.id === row.target)
   return t('review.blast', { n: reached.length, group: group?.name ?? '' })

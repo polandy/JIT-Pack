@@ -1,11 +1,10 @@
 /**
- * The planning-trip refresh (FR-27.4) — pure, no I/O.
+ * The group refresh (FR-27.4) — pure, no I/O.
  *
- * While a trip is in *planning* status it follows the templates it was
- * generated from: positions the group gained appear, positions it lost
- * disappear, quantity and attribute changes land. The transition
- * planning → active freezes the trip permanently; active and archived trips
- * never move.
+ * A trip follows the templates it was generated from until it is *past*
+ * (followsGroups): positions the group gained, positions it lost, quantity
+ * and attribute changes. None of it lands by itself — this module derives
+ * the diff, and the trip's owner answers it (planRefresh / declinePlan).
  *
  * The mechanism is a re-resolution diff rather than a push from the editing
  * screen: M8, M14 and M21 all write to a group, and a diff means one rule for
@@ -36,6 +35,7 @@ import type {
   TripItem,
   TripTemplateSource,
 } from '@/types/domain'
+import { followsGroups } from './trips'
 
 /** A row the refresh will create, with the traveler it belongs to resolved. */
 export interface PlannedAdd {
@@ -105,6 +105,8 @@ export interface RefreshInput {
   items: TripItem[]
   todos: ItemTodo[]
   ledger: GeneratedPosition[]
+  /** Today as ISO `YYYY-MM-DD` — see followsGroups; never read from the clock here. */
+  today: string
 }
 
 /** True when the plan would write nothing — the normal case on an open trip. */
@@ -116,6 +118,47 @@ export function isEmptyPlan(plan: RefreshPlan): boolean {
     plan.ledgerUpsert.length === 0 &&
     plan.ledgerDelete.length === 0
   )
+}
+
+/**
+ * proposedChangeCount is what the user is asked about (FR-27.4): the rows the
+ * refresh would add, change or drop.
+ *
+ * Deliberately not the ledger halves. Adopting a hand-added row into the
+ * ledger, or dropping an entry whose row and position are both long gone, is
+ * bookkeeping that changes nothing the user can see — counting it would put a
+ * number on M2's chip that no screen can explain.
+ */
+export function proposedChangeCount(plan: RefreshPlan): number {
+  return plan.add.length + plan.update.length + plan.remove.length
+}
+
+/**
+ * declinePlan is the answer "no" (FR-27.4): the trip keeps what it has, and
+ * the ledger advances anyway.
+ *
+ * Advancing the snapshot is the whole mechanism. The ledger is the record of
+ * what generation last produced, and `isProtected` reads a row that differs
+ * from it as the user's own — so writing the refused version into the ledger
+ * detaches exactly the positions that were refused, and leaves every other
+ * position in the group still following. There is no "declined" flag, no
+ * expiry and nothing to sync: the refusal is expressed in the same row the
+ * acceptance would have been.
+ *
+ * The consequence, stated plainly because the UI has to say it: a refused
+ * position stops following the group *in this trip*. A refused addition is
+ * not offered again, a refused removal stays, and a refused change keeps the
+ * value the trip already had.
+ */
+export function declinePlan(plan: RefreshPlan): RefreshPlan {
+  return {
+    add: [],
+    update: [],
+    remove: [],
+    ledgerUpsert: plan.ledgerUpsert,
+    ledgerDelete: plan.ledgerDelete,
+    log: [],
+  }
 }
 
 function emptyPlan(): RefreshPlan {
@@ -169,13 +212,16 @@ function fnv1a(input: string, seed: number): number {
  * what is on the trip, honouring the ledger's record of what generation
  * produced last time.
  *
- * Returns an empty plan — never a partial one — for anything that is not a
- * *planning* trip with registered sources: FR-27.4's freeze is absolute, and
- * a trip created before the registry existed has no sources and must not be
+ * Returns an empty plan — never a partial one — for a trip that no longer
+ * follows its groups or has no registered sources: the freeze on a past trip
+ * is absolute, and a trip created before the registry existed must not be
  * guessed at.
+ *
+ * The plan is an *offer*. Writing it is the caller's decision, and the two
+ * answers are "apply it" and declinePlan.
  */
 export function planRefresh(input: RefreshInput): RefreshPlan {
-  if (input.trip.status !== 'planning') return emptyPlan()
+  if (!followsGroups(input.trip, input.today)) return emptyPlan()
   const selectedTemplateIds = input.sources.map((s) => s.template_id)
   if (selectedTemplateIds.length === 0) return emptyPlan()
 
@@ -189,8 +235,8 @@ export function planRefresh(input: RefreshInput): RefreshPlan {
     trip: {
       duration_days: input.trip.duration_days,
       attributes: input.trip.attributes,
-      // The *current* travelers, deliberately: a person added to a planning
-      // trip gets the per-person positions (FR-25.8) rather than a list that
+      // The *current* travelers, deliberately: a person added to a trip
+      // gets the per-person positions (FR-25.8) rather than a list that
       // silently skips them, and one removed takes their untouched rows with
       // them. The trip follows its plan, and the roster is part of the plan.
       travelers: input.travelers.map((t) => ({ name: t.name })),

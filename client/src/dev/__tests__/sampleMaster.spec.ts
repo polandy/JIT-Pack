@@ -131,11 +131,10 @@ describe('seedSampleData (dev)', () => {
     const outcome = await seedSampleData(orchestrator)
 
     expect(outcome.tripId).toBeTruthy()
-    // Two trips since FR-27.4: the sample trip is active on purpose (FR-9.1
-    // flags) and therefore frozen, so a *planned* one is what makes the
-    // planning refresh visible at all.
+    // Two trips since FR-27.4: the sample trip is imported and therefore
+    // follows nothing, so a generated one is what makes the refresh visible.
     expect(outcome.summary).toBe(
-      'Beispieldaten: 15 Artikel, 3 Gruppen, 1 Vorlage, 2 Reisen (1 geplant)',
+      'Beispieldaten: 15 Artikel, 3 Gruppen, 1 Vorlage, 2 Reisen (1 geplant, mit offener Gruppenfrage)',
     )
   })
 
@@ -153,9 +152,9 @@ describe('seedSampleData (dev)', () => {
     await orchestrator.connect()
     await seedSampleData(orchestrator)
 
-    // The sample trip is activated on purpose (FR-9.1 flags) and is therefore
-    // frozen; without a second, planned one the refresh cannot be looked at
-    // at all — which is what the standing seed rule is for.
+    // The sample trip is imported, so it follows no group at all; without a
+    // second, generated one the refresh cannot be looked at — which is what
+    // the standing seed rule is for.
     const trips = useTripStore()
     const planned = trips.tripList.filter((t) => t.status === 'planning')
     expect(planned).toHaveLength(1)
@@ -164,6 +163,14 @@ describe('seedSampleData (dev)', () => {
     expect(trips.getTemplateSources(planned[0]!.id)).toHaveLength(1)
     // And it actually filled itself on the first refresh.
     expect(trips.getItems(planned[0]!.id).length).toBeGreaterThan(0)
+
+    // It also arrives with an *open* question on it: a group gained a position
+    // after the trip took its content over, so M4's proposal card is reachable
+    // from a fresh install without editing a group by hand first.
+    const proposal = orchestrator.refreshProposals.value[planned[0]!.id]
+    expect(proposal?.add.map((a) => a.generated.name)).toEqual(['Stirnlampe'])
+    // Offered, not applied — otherwise the seed would demonstrate the old model.
+    expect(trips.getItems(planned[0]!.id).some((i) => i.name === 'Stirnlampe')).toBe(false)
   })
 
   it('rejects rather than resolving quietly when a seed step fails', async () => {

@@ -113,10 +113,10 @@ onMounted(async () => {
   await orchestrator?.connect()
   // Initial pull of master data (no-op in Local Mode)
   await orchestrator?.drainMaster()
-  // FR-27.4: a group edited on another device arrives with that pull, and
-  // the planning trips that follow it move before the user reads a list
-  // that is quietly out of date.
-  orchestrator?.refreshLoadedPlanningTrips()
+  // FR-27.4: a group edited on another device arrives with that pull. The
+  // trips that follow it work out what it would mean for them here, so M2
+  // can say which ones have a question waiting — nothing is applied.
+  orchestrator?.proposeRefreshForLoadedTrips()
 })
 
 onUnmounted(() => {

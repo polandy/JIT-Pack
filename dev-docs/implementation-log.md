@@ -3050,3 +3050,60 @@ document kinds; the client gets the same table list as `TABLE`, and the
 orchestrator's two routing sets are hoisted out of `onPullChanges` rather than
 rebuilt on every pull. The failure this prevents is specific: a table missing
 from both routing sets is dropped in silence.
+
+## FR-27.4, revised the day after it landed: the group *asks* (2026-08-18)
+
+Owner, hours after the refresh merged: „wenn ich eine Gruppe ändere, die in einem
+aktiven Trip verwendet wird, so soll ich gefragt werden, ob es auf die angewendet
+werden soll. Auf vergangene Trips soll es keinen Impact haben." That inverts two
+of the three rules the merged model rested on — *planning* trips followed
+silently, everything else was frozen from departure onward.
+
+Three decisions settled it. **Past means archived or the end date gone by**, the
+broader of the two options offered (the recommendation had been archived-only).
+**The question is asked at the trip, and nowhere else** — not when the group is
+saved. Three holes in asking at save time, one of them already paid for in #106:
+in Server Mode the person editing the group is not the person travelling; the
+affected trips' partitions are not loaded on the editing device (*„nicht geladen
+≠ leer"*); and a modal on every group edit trains the user to dismiss it. And
+**#106 merges first**, the new model as a follow-up — the machinery it built is
+exactly what the new one needs.
+
+**The change turned out to be cheap, for a reason worth recording.** `planRefresh`
+was already a pure derivation with the writes kept separate, so a *proposal* is
+simply a diff nobody has applied yet: no table, no pending state, nothing to sync.
+The three surfaces split apart — `proposeTripRefresh` derives, `acceptTripRefresh`
+applies, `declineTripRefresh` applies `declinePlan`.
+
+**Declining needed no new state at all.** The ledger already records what
+generation last produced, and `isProtected` already reads a row that differs from
+it as the user's own — so writing the *refused* version into the ledger detaches
+exactly the refused positions and leaves the rest of the group still speaking for
+the trip. No flag, no expiry, nothing extra on the wire.
+
+That has a consequence the UI has to say out loud, and the note under the two
+buttons says it: **a refused position stops following the group in that trip.** A
+working note written before the code claimed the user would be re-asked on the
+group's *next* change; that is false against `isProtected`, which skips a
+protected row entirely. Per-position detachment is the coherent rule, and other
+positions keep following — so a later group edit still reaches the trip.
+
+**What the new rule cost, and what it saved.** It only distinguishes past from
+not-past, so the missing planning→active transition — the gap that left half the
+old model untestable in the browser — stops mattering here. What it did cost is
+one boundary that cannot be reached through the UI at all: a trip whose end date
+has gone by needs either a clock or a date the wizard will not produce. So the
+clock became a seam (`today` injected into the orchestrator, defaulting to the
+*local* calendar date — `toISOString()` answers in UTC and would put a trip a day
+out for anyone far enough east or west on the evening it ends), and the boundary
+is pinned in the unit with a value a test can stand on either side of.
+
+**Two findings from the work itself.** The sweep over loaded trips carried its
+own copy of the status rule (`status !== 'planning'`), which would have stayed
+behind silently after `planRefresh` was fixed — found by reading the function,
+not by a red test. And two of the decline tests were green against a *broken*
+`declinePlan`: they asserted a downstream effect (nothing proposed on the next
+run) that an empty ledger produces just as well. They now assert the declined
+snapshot itself, and fall when it is wrong. Both e2e cases were mutation-proved
+the same way: restoring apply-on-open turns E2E-M8-09 red at "offered, not
+applied", and a decline that applies the plan turns E2E-M8-19 red.
