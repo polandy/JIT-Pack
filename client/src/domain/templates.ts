@@ -197,11 +197,7 @@ export interface BlastRadiusInput {
  * `today` is passed in for the same reason `followsGroups` takes it: the
  * boundary must be a value a test can stand on either side of.
  */
-export function tripsReachedBy(
-  templateId: string,
-  input: BlastRadiusInput,
-  today: string,
-): Trip[] {
+export function tripsReachedBy(templateId: string, input: BlastRadiusInput, today: string): Trip[] {
   // The template itself, plus every Vorlage whose composition contains it.
   const reachable = new Set([templateId])
   for (const inc of input.includes) {
