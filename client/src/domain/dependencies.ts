@@ -157,6 +157,68 @@ export function dependentsOf(itemID: string, dependencies: ItemDependency[]): Se
   return out
 }
 
+/** The little a row has to say about itself to take part in a co-skip. */
+export interface CoSkippable {
+  id: string
+  source_item_id: string | null
+  state: string
+}
+
+/**
+ * coSkipTargets names the trip rows that follow a skipped item out of the
+ * list (FR-20.2) — the rows whose master item transitively depends on it,
+ * minus those already skipped.
+ *
+ * Pure and separate from the mutation that writes them because the caller
+ * needs the *list*, not only the effect: FR-5.5's snackbar tells the user
+ * which companions went along, and an undo has to put exactly those back.
+ * A row with no master item behind it (`source_item_id === null`) is a
+ * quick-add and can carry no dependency, so it never joins.
+ */
+export function coSkipTargets<T extends CoSkippable>(
+  main: T,
+  rows: readonly T[],
+  dependencies: ItemDependency[],
+): T[] {
+  if (!main.source_item_id) return []
+  const dependents = dependentsOf(main.source_item_id, dependencies)
+  return rows.filter(
+    (row) =>
+      row.id !== main.id &&
+      row.source_item_id !== null &&
+      dependents.has(row.source_item_id) &&
+      row.state !== 'skipped',
+  )
+}
+
+/**
+ * skippedVia names the skipped row a skipped row came along with (FR-20.2),
+ * or null when it was skipped on its own account.
+ *
+ * Derived rather than stored: FR-20.2 asks a co-skipped row to say *why*
+ * ("skipped: drone not on this trip"), and the dependency graph plus the
+ * current states already answer that. A column would have to be kept
+ * truthful through un-skips on either side, and would still be wrong after
+ * the dependency itself is edited.
+ */
+export function skippedVia<T extends CoSkippable>(
+  row: T,
+  rows: readonly T[],
+  dependencies: ItemDependency[],
+): T | null {
+  if (row.state !== 'skipped' || !row.source_item_id) return null
+  const source = row.source_item_id
+  return (
+    rows.find(
+      (candidate) =>
+        candidate.id !== row.id &&
+        candidate.state === 'skipped' &&
+        candidate.source_item_id !== null &&
+        dependentsOf(candidate.source_item_id, dependencies).has(source),
+    ) ?? null
+  )
+}
+
 /**
  * dependencyCycleError validates a new dependency edge at save time
  * (a save-time validator): a cycle cannot be

@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="de" data-theme="mocha"><head><meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bewusst nicht einpacken — Varianten</title>
+<style>
+:root{
+  /* Catppuccin Mocha — the app's real FR-21 token table */
+  --crust:#11111b; --mantle:#181825; --base:#1e1e2e;
+  --s0:#313244; --s1:#45475a; --s2:#585b70;
+  --o0:#6c7086; --o1:#7f849c; --o2:#9399b2;
+  --text:#cdd6f4; --sub1:#bac2de; --sub0:#a6adc8;
+  --blue:#89b4fa; --lav:#b4befe; --sapphire:#74c7ec; --sky:#89dceb;
+  --teal:#94e2d5; --green:#a6e3a1; --yellow:#f9e2af; --peach:#fab387;
+  --maroon:#eba0ac; --red:#f38ba8; --mauve:#cba6f7; --pink:#f5c2e7;
+  --flamingo:#f2cdcd; --rose:#f5e0dc;
+
+  --ui:'Hanken Grotesk',ui-sans-serif,system-ui,sans-serif;
+  --display:'Fraunces',Georgia,serif;
+  --r:18px; --r-lg:26px;
+  --shadow:0 1px 0 rgba(255,255,255,.02) inset, 0 12px 30px -12px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{
+  font-family:var(--ui); color:var(--text);
+  background:
+    radial-gradient(70% 55% at 18% 8%, rgba(203,166,247,.10), transparent 60%),
+    radial-gradient(60% 50% at 92% 96%, rgba(250,179,135,.09), transparent 62%),
+    var(--crust);
+  display:flex; align-items:center; justify-content:center;
+  min-height:100dvh; padding:24px; gap:34px; flex-wrap:wrap;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- caption beside the phone ---------- */
+.caption{max-width:270px; align-self:center}
+.caption .kicker{font:600 12px/1 var(--ui); letter-spacing:.18em; text-transform:uppercase; color:var(--peach)}
+.caption h1{font-family:var(--display); font-weight:600; font-size:34px; line-height:1.05; margin:.5em 0 .3em; letter-spacing:-.01em}
+.caption h1 em{font-style:italic; color:var(--rose)}
+.caption p{color:var(--sub0); font-size:14.5px; line-height:1.55; margin:.6em 0}
+.caption .legend{margin-top:20px; display:grid; gap:9px}
+.caption .legend div{display:flex; gap:10px; align-items:center; font-size:13px; color:var(--sub1)}
+.caption .dot{width:9px;height:9px;border-radius:3px;flex:none}
+.caption small{color:var(--o1); font-size:11.5px}
+@media (max-width:820px){ .caption{display:none} }
+/* On a real phone: drop the device frame, fill the screen (no double frame / status bar) */
+@media (max-width:560px){
+  body{padding:0;background:var(--mantle);align-items:stretch;gap:0}
+  .device{width:100%;height:100dvh;max-width:none;border-radius:0;padding:0;box-shadow:none;background:var(--mantle)}
+  .screen{border-radius:0}
+  .statusbar{display:none}
+}
+
+/* ---------- phone frame ---------- */
+.device{
+  width:392px; height:min(852px, 94dvh);
+  background:linear-gradient(160deg,#26263a,#15151f);
+  border-radius:52px; padding:11px;
+  box-shadow:0 0 0 2px #0c0c14, 0 40px 80px -30px rgba(0,0,0,.85), 0 0 0 8px rgba(255,255,255,.015);
+  flex:none;
+}
+.screen{
+  position:relative; height:100%; width:100%;
+  background:var(--mantle); border-radius:42px; overflow:hidden;
+  display:flex; flex-direction:column;
+}
+
+/* status bar */
+.statusbar{height:34px;flex:none;display:flex;align-items:center;justify-content:space-between;
+  padding:0 26px 0 30px;font-size:14px;font-weight:600;color:var(--text);position:relative;z-index:5}
+.statusbar .icons{display:flex;gap:6px;align-items:center}
+.statusbar svg{width:17px;height:17px}
+
+/* app bar */
+.appbar{flex:none;display:flex;align-items:center;gap:10px;padding:6px 16px;position:relative;z-index:4}
+.bar-facepile{display:flex;align-items:center;gap:5px;animation:rise .3s both}
+.bar-facepile .stack .avatar{width:24px;height:24px}
+.bar-facepile .gs{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.appbar .title{font-family:var(--display);font-weight:600;font-size:18.5px;letter-spacing:-.01em;flex:1;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appbar .sub{font-family:var(--ui);font-weight:500;font-size:12px;color:var(--sub0);display:block;letter-spacing:0}
+.iconbtn{width:33px;height:33px;border-radius:11px;display:grid;place-items:center;flex:none;
+  background:transparent;border:0;color:var(--sub1);cursor:pointer;transition:.15s}
+.iconbtn:hover{background:var(--base);color:var(--text)}
+.iconbtn svg{width:21px;height:21px}
+.logo{width:30px;height:30px;border:0;border-radius:9px;flex:none;display:grid;place-items:center;
+  background:none;color:var(--peach);cursor:pointer;box-shadow:none}
+.logo:hover{background:var(--base)}
+.logo svg{width:23px;height:23px}
+
+/* scroll body */
+.body{flex:1;overflow-y:auto;overflow-x:hidden;padding:2px 18px 108px;scrollbar-width:none}
+.body::-webkit-scrollbar{display:none}
+
+/* ---------- generic bits ---------- */
+.card{background:var(--base);border:1px solid var(--s0);border-radius:var(--r);box-shadow:var(--shadow)}
+.section-h{font:600 12px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--o1);
+  margin:22px 4px 11px}
+.muted{color:var(--sub0)} .tiny{font-size:12px}
+.avatar{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;
+  color:var(--crust);flex:none;border:2px solid var(--mantle)}
+.stack{display:flex} .stack .avatar+.avatar{margin-left:-9px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:9px;
+  background:var(--s0);color:var(--sub1)}
+.chip.warm{background:rgba(250,179,135,.15);color:var(--peach)}
+.chip.blue{background:rgba(137,180,250,.15);color:var(--blue)}
+.chip.green{background:rgba(166,227,161,.15);color:var(--green)}
+.chip.mauve{background:rgba(203,166,247,.16);color:var(--mauve)}
+.pressable{cursor:pointer;transition:transform .12s ease, background .15s}
+.pressable:active{transform:scale(.985)}
+/* §3.27: applied-group-changes notice on a planned trip row (FR-27.4) */
+.m2upd{margin-top:6px}
+.m2upd button.chip{border:0;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600}
+.m2updlist{margin-top:6px;padding:8px 10px;border-left:2px solid rgba(137,180,250,.4);display:flex;flex-direction:column;gap:3px}
+
+/* ring */
+.ring{--p:0;--c:var(--teal);width:44px;height:44px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:conic-gradient(var(--c) calc(var(--p)*1%), var(--s0) 0);position:relative}
+.ring::before{content:"";position:absolute;inset:4px;border-radius:50%;background:var(--base)}
+.ring span{position:relative;font-size:11px;font-weight:700}
+
+/* bottom nav */
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:84px;padding:8px 14px 26px;
+  display:flex;justify-content:space-around;align-items:flex-start;z-index:6;
+  background:linear-gradient(to top,var(--mantle) 62%,rgba(24,24,37,0));backdrop-filter:blur(6px)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10.5px;font-weight:600;
+  color:var(--o0);background:none;border:0;cursor:pointer;flex:1;transition:.15s;padding-top:4px}
+.tab svg{width:24px;height:24px}
+.tab.on{color:var(--peach)}
+.fab{position:absolute;right:20px;bottom:104px;width:56px;height:56px;border-radius:19px;z-index:7;border:0;cursor:pointer;
+  background:linear-gradient(150deg,var(--peach),var(--maroon));color:var(--crust);display:grid;place-items:center;
+  box-shadow:0 14px 30px -8px rgba(250,179,135,.55)}
+.fab svg{width:26px;height:26px}
+.fab:active{transform:scale(.94)}
+
+/* ---------- screens ---------- */
+.view{display:none;flex-direction:column;flex:1;min-height:0}
+.view.active{display:flex}
+.body>*{animation:rise .45s cubic-bezier(.2,.7,.2,1) both}
+.body>*:nth-child(2){animation-delay:.04s}
+.body>*:nth-child(3){animation-delay:.08s}
+.body>*:nth-child(4){animation-delay:.12s}
+.body>*:nth-child(5){animation-delay:.16s}
+.body>*:nth-child(6){animation-delay:.2s}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* dashboard hero trip card */
+.hero{position:relative;overflow:hidden;border-radius:var(--r-lg);padding:18px 18px 16px;margin-top:6px;
+  background:
+    radial-gradient(120% 100% at 100% 0,rgba(250,179,135,.22),transparent 55%),
+    radial-gradient(120% 120% at 0 100%,rgba(203,166,247,.18),transparent 55%),
+    var(--base);
+  border:1px solid var(--s0)}
+.hero .eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--peach)}
+.hero h2{font-family:var(--display);font-weight:600;font-size:26px;margin:5px 0 2px;letter-spacing:-.01em;line-height:1.05}
+.hero .meta{color:var(--sub0);font-size:13px}
+.hero .row{display:flex;align-items:center;gap:12px;margin-top:15px}
+.progress{flex:1;height:8px;border-radius:6px;background:var(--s0);overflow:hidden}
+.progress i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--teal),var(--green))}
+
+/* phase rail */
+.phases{display:flex;gap:7px;margin:4px 0 2px;padding:5px;background:var(--mantle);border:1px solid var(--s0);
+  border-radius:16px;position:sticky;top:0;z-index:3}
+.phase{flex:1;border:0;cursor:pointer;background:none;color:var(--sub0);border-radius:12px;padding:9px 4px 8px;
+  display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;font-weight:600;transition:.18s}
+.phase svg{width:20px;height:20px}
+.phase small{font-size:9.5px;color:var(--o0);font-weight:600}
+.phase.on{color:var(--crust);background:linear-gradient(150deg,var(--peach),var(--rose));box-shadow:0 8px 18px -8px rgba(250,179,135,.6)}
+.phase.on small{color:rgba(17,17,27,.65)}
+.phase.done{color:var(--green)}
+
+.panel{display:none;animation:rise .4s both}
+.panel.active{display:block}
+
+/* list item */
+.li{display:flex;align-items:center;gap:12px;padding:13px 14px}
+.li+.li{border-top:1px solid var(--s0)}
+.li .grow{flex:1;min-width:0}
+.li .name{font-size:14.5px;font-weight:600}
+.li .desc{font-size:12px;color:var(--sub0);margin-top:2px}
+.check{width:24px;height:24px;border-radius:8px;border:2px solid var(--s2);flex:none;display:grid;place-items:center;cursor:pointer}
+.check.on{background:var(--green);border-color:var(--green);color:var(--crust)}
+.check svg{width:15px;height:15px;opacity:0;transition:.12s}
+.check.on svg{opacity:1}
+.stepper{display:flex;align-items:center;gap:9px;background:var(--mantle);border:1px solid var(--s0);border-radius:11px;padding:3px}
+.stepper button{width:26px;height:26px;border-radius:8px;border:0;background:var(--s0);color:var(--text);font-size:16px;cursor:pointer}
+.stepper b{font-size:12.5px;min-width:30px;text-align:center;font-variant-numeric:tabular-nums}
+
+/* idea card */
+.idea{padding:0;overflow:hidden;margin-bottom:12px}
+.idea .thumb{height:96px;background-size:cover;background-position:center;position:relative}
+.idea .thumb .src{position:absolute;left:10px;bottom:8px;font-size:10.5px;font-weight:600;color:#fff;
+  background:rgba(17,17,27,.6);padding:3px 8px;border-radius:7px;backdrop-filter:blur(4px)}
+.idea .b{padding:12px 14px 13px}
+.idea .b h3{font-size:15px;margin:0 0 3px;font-weight:600}
+.idea .foot{display:flex;align-items:center;gap:8px;margin-top:11px}
+.votes{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--green)}
+.addbar{display:flex;align-items:center;gap:10px;padding:13px 15px;color:var(--sub0);font-size:14px;margin-bottom:4px}
+.addbar svg{width:19px;height:19px;color:var(--blue)}
+
+/* timeline */
+.tl{position:relative;padding-left:20px;margin-top:6px}
+.tl::before{content:"";position:absolute;left:5px;top:8px;bottom:14px;width:2px;background:var(--s0)}
+.tevent{position:relative;padding:0 0 18px 8px}
+.tevent::before{content:"";position:absolute;left:-19px;top:5px;width:11px;height:11px;border-radius:50%;
+  background:var(--base);border:2px solid var(--peach)}
+.tevent .t{font-size:11.5px;font-weight:700;color:var(--peach);letter-spacing:.03em}
+.tevent .a{font-size:14.5px;font-weight:600;margin:2px 0 3px}
+.banner{border-radius:14px;padding:13px 14px;display:flex;gap:12px;align-items:center;
+  background:rgba(249,226,175,.12);border:1px solid rgba(249,226,175,.28)}
+.banner svg{width:22px;height:22px;color:var(--yellow);flex:none}
+.banner .grow{flex:1}
+.banner button{border:0;background:var(--yellow);color:var(--crust);font-weight:700;font-size:12px;
+  padding:7px 12px;border-radius:9px;cursor:pointer;flex:none}
+
+/* stat */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.stat{padding:14px}
+.stat .n{font-family:var(--display);font-weight:600;font-size:28px;line-height:1}
+.stat .l{font-size:11.5px;color:var(--sub0);margin-top:5px}
+
+/* KPI strip */
+.kpis{display:flex;gap:9px;margin:6px 0 2px}
+.kpi{flex:1;padding:11px 8px;text-align:center;border-radius:14px;background:var(--base);border:1px solid var(--s0)}
+.kpi .n{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:10px;color:var(--o1);margin-top:2px;font-weight:600;letter-spacing:.03em}
+
+.groupbar{display:flex;gap:7px;overflow-x:auto;padding:2px 0 4px;margin-top:4px;scrollbar-width:none}
+.groupbar::-webkit-scrollbar{display:none}
+.gb{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;white-space:nowrap;
+  font-size:11.5px;font-weight:600;padding:9px 4px;border-radius:12px;border:1px solid transparent;
+  background:var(--s0);color:var(--sub1);cursor:pointer}
+.gb svg{width:17px;height:17px}
+.gb.on{background:var(--blue);border-color:var(--blue);color:var(--crust)}
+/* per-person: "who" pill on a flat per-person row (grouped by person, or a lone instance) */
+.whochip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--sub1);
+  background:var(--mantle);border:1px solid var(--s0);border-radius:20px;padding:2px 9px 2px 3px}
+/* per-person cluster (variant B) */
+.ppcluster{border-left:2px solid var(--mauve);margin:2px 0 2px 2px}
+.pphead{display:flex;align-items:center;gap:8px;padding:9px 12px 5px 12px;font-weight:700;font-size:14.5px}
+.pphead .ppname{color:var(--text)}
+.pphead .ppcount{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--o0)}
+.ppkids .li.ppkid{padding-left:14px}
+.ppkids .li.ppkid .name{font-weight:600;font-size:14px}
+.ppkids .swipe+.swipe .swipe-inner{border-top:1px solid var(--s0)}
+
+.collapsed{display:flex;align-items:center;gap:10px;padding:12px 14px;color:var(--sub0);font-size:13px;cursor:pointer}
+.collapsed svg{width:17px;height:17px}
+
+.notif{display:flex;gap:11px;align-items:center;padding:13px 14px}
+.notif .grow{flex:1}
+.unread{width:8px;height:8px;border-radius:50%;background:var(--blue);flex:none}
+
+/* ---------- M4 packing list (deepened) ---------- */
+.packhead{position:sticky;top:0;z-index:4;background:var(--mantle);padding-top:4px;margin:0 -18px;padding-left:18px;padding-right:18px}
+.presence{display:flex;align-items:center;gap:8px;margin:2px 0 8px}
+.presence .stack .avatar{width:22px;height:22px}
+.presence .gs{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(166,227,161,.18)}
+.presence small{color:var(--sub0);font-size:11.5px}
+.toolbar{display:flex;gap:7px;margin:2px 0 4px}
+.tbtn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:600;
+  padding:9px 6px;border-radius:12px;border:1px solid var(--s0);background:var(--base);color:var(--sub1);cursor:pointer;position:relative}
+.tbtn svg{width:16px;height:16px}
+.tbtn .badge{position:absolute;top:-5px;right:-4px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;
+  background:var(--peach);color:var(--crust);font-size:10px;font-weight:800;display:grid;place-items:center}
+/* V1 one line */
+.pv1-line{display:flex;align-items:center;gap:9px;padding:8px 0 6px}
+.pv1-line .stack .avatar{width:20px;height:20px}
+.pv1-status{flex:1;min-width:0;font-size:14.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv1-status .muted{font-weight:500;font-size:13px}
+.pv1-more{width:32px;height:32px;border-radius:10px;border:1px solid var(--s0);background:var(--base);color:var(--sub1);font-size:17px;cursor:pointer;flex:none;line-height:1}
+/* V1 hide-on-scroll-down / show-on-scroll-up */
+#packheadWrap{transition:transform .28s cubic-bezier(.2,.7,.2,1)}
+#packheadWrap.packhead-hidden{transform:translateY(-108%)}
+/* full-screen packing (Vollbild): the bottom tab bar slides away on M4 */
+.tabbar{transition:transform .32s cubic-bezier(.2,.7,.2,1)}
+.tabbar.tabbar-hidden{transform:translateY(130%)}
+.fab{transition:bottom .32s cubic-bezier(.2,.7,.2,1),transform .18s ease}
+.fab.fab-low{bottom:26px}
+/* FAB spans 104–160px above the viewport foot; the default 108px of list
+   padding leaves ~52px of the last row under it. Clear the whole footprint. */
+.body.pad-fab{padding-bottom:176px}
+/* Full-screen M4: the tab bar is gone, but the low FAB still occupies 26–82px,
+   so 40px of padding left the last row (and its packer avatar) underneath it. */
+.body.tabs-gone{padding-bottom:98px}
+
+.grouphead{display:flex;align-items:center;gap:8px;font:600 12px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--o1);margin:20px 4px 10px}
+.grouphead .n{margin-left:auto;color:var(--o0);letter-spacing:0;font-size:11.5px}
+
+/* swipe rows */
+.swipe{position:relative;overflow:hidden}
+.swipe+.swipe{border-top:1px solid var(--s0)}
+.swipe-bg{position:absolute;inset:0;display:flex;align-items:center;font-weight:700;font-size:13px;color:var(--crust)}
+.swipe-bg.left{background:linear-gradient(90deg,var(--green),var(--teal));justify-content:flex-start;padding-left:20px}
+.swipe-bg.right{background:linear-gradient(90deg,var(--maroon),var(--peach));justify-content:flex-end;padding-right:20px}
+.swipe-inner{position:relative;background:var(--base);touch-action:pan-y;transition:transform .18s cubic-bezier(.2,.7,.2,1)}
+.swipe.dragging .swipe-inner{transition:none}
+
+.prepbadge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--peach);
+  background:rgba(250,179,135,.14);padding:2px 6px;border-radius:7px;margin-left:6px}
+.check.amber{border-color:var(--peach);background:var(--peach)}
+.li .name.row{display:flex;align-items:center;flex-wrap:wrap;gap:2px}
+.li.skipped .name{text-decoration:line-through;color:var(--o0)}
+.li.done{background:var(--base)}
+.li.done>*{opacity:.45}
+/* pack-out: brief green flash, then collapse away */
+/* content fades + slides first, revealing the green "Packen ✓" bar, THEN the row eases closed */
+.swipe.packing-out{overflow:hidden;transition:height .5s cubic-bezier(.25,.8,.3,1) .2s}
+.swipe.packing-out .swipe-bg.right{opacity:0}   /* hide the peach "Überspringen" — wrong signal */
+.swipe.packing-out .swipe-inner{opacity:0;transform:translateX(28px);transition:opacity .28s ease,transform .28s ease}
+.swipe.packing-out .check,.swipe.packing-out .stepper b{animation:packpop .4s ease}
+@keyframes packpop{0%{transform:scale(1)}45%{transform:scale(1.25)}100%{transform:scale(1)}}
+.donebar{display:flex;align-items:center;gap:8px;justify-content:center;margin:10px 0 2px;padding:8px 12px;border:1px dashed var(--s2);border-radius:12px;color:var(--o1);font-size:13px;cursor:pointer;background:transparent}
+.donebar.on{color:var(--text);border-style:solid}
+.donebar svg{width:16px;height:16px;fill:currentColor}
+.mini-av{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;color:var(--crust);flex:none}
+/* FR-25.3: who packed it — a packer circle on the right edge, green ring + check badge to
+   set it apart from the plain traveler mini-av ("for whom", left). */
+.packerav{position:relative;display:inline-flex;flex:none}
+.packerav .mini-av{box-shadow:0 0 0 1.6px var(--green)}
+.respav{position:relative;display:inline-flex;flex:none}
+.respav .mini-av{box-shadow:0 0 0 1.6px var(--blue);opacity:.9}
+.packerav::after{content:'✓';position:absolute;right:-3px;bottom:-3px;width:11px;height:11px;border-radius:50%;
+  background:var(--green);color:var(--crust);font-size:8px;font-weight:800;line-height:1;display:grid;place-items:center;box-shadow:0 0 0 1.4px var(--base)}
+
+/* FR-25.4: procurement mode as a distinct glyph on every row — 🧳 packen · 🛒 vorher kaufen ·
+   📍 vor Ort kaufen. Pack (the default, dominant case) is deliberately low-emphasis so the two
+   shopping modes stand out as the exceptions worth noticing. Orthogonal to the ⏰ late-packer flag. */
+.modeicon{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:7px;font-size:12px;line-height:1}
+.modeicon.m-buy{background:rgba(250,179,135,.18)}
+.modeicon.m-loc{background:rgba(137,180,250,.18)}
+.lateflag{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:7px;font-size:12px;line-height:1;background:rgba(249,226,175,.16)}
+/* mode filter strip (sits under the group bar; scrolls horizontally, hides with the header) */
+.modebar{display:flex;gap:6px;overflow-x:auto;padding:2px 0 2px;margin-top:6px;scrollbar-width:none}
+.modebar::-webkit-scrollbar{display:none}
+.mf{flex:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer;
+  font-size:12px;font-weight:600;padding:5px 11px;border-radius:20px;border:1px solid var(--s0);background:var(--mantle);color:var(--sub0)}
+.mf .g{font-size:13px;line-height:1}
+.mf i{font-style:normal;font-size:11px;font-weight:700;color:var(--o1)}
+.mf.on{background:var(--s1);color:var(--text);border-color:var(--s2)}
+.mf.on i{color:var(--sub1)}
+
+/* ---------- filter bar + filter sheet (galaxus-style facets) ----------
+   One collapsed row replaces the old group bar + mode strip: a Filter button
+   carrying the active count, then a chip per active facet so a filtered list
+   can never look like a complete one — the risk that matters on a packing
+   list, where a hidden row reads as "nothing left to do". */
+.filterbar{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:2px 0;margin-top:6px;scrollbar-width:none}
+.filterbar::-webkit-scrollbar{display:none}
+.fbtn{flex:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;
+  font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px;border:1px solid var(--s1);background:var(--mantle);color:var(--text)}
+.fbtn.active{border-color:var(--blue);color:var(--blue)}
+.fbtn .cnt{font-size:11px;font-weight:700;background:var(--blue);color:var(--crust);border-radius:9px;padding:0 6px;line-height:16px}
+.fchip{flex:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;cursor:pointer;
+  font-size:11.5px;font-weight:600;padding:5px 9px;border-radius:20px;background:var(--s1);color:var(--text);border:1px solid var(--s2)}
+.fchip b{font-weight:600;color:var(--sub1);font-size:10.5px}
+.fchip .x{color:var(--o1);font-weight:700}
+.freset{flex:none;cursor:pointer;font-size:11.5px;font-weight:600;color:var(--o1);background:none;border:none;padding:5px 4px;white-space:nowrap}
+
+/* FR-25.11b (rev. 2026-08-14): facets are open chip rows, not accordions.
+   The panel used to hide every value behind a caret, which is what made it
+   read as cluttered — a filter you have to unfold twice to read. */
+.fsec{border-top:1px solid var(--s0);padding:13px 0}
+.fsec:first-child{border-top:none}
+.fsl{display:flex;align-items:center;gap:8px;font-size:11.5px;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--sub0);margin-bottom:10px}
+.fsl svg{width:15px;height:15px;color:currentColor;flex:none}
+.fsl .n{margin-left:auto;text-transform:none;letter-spacing:0;font-size:12px;color:var(--o0)}
+.fsl .fres{margin-left:auto;text-transform:none;letter-spacing:0;font-size:12px;color:var(--blue);
+  background:none;border:none;cursor:pointer;padding:0}
+.fchips{display:flex;flex-wrap:wrap;gap:7px}
+/* FR-2.1c: the one row that stands for every optional field. */
+.morerow{display:flex;align-items:center;gap:9px;width:100%;padding:12px 2px;margin-top:2px;
+  background:none;border:none;border-top:1px solid var(--s0);color:var(--sub1);
+  font-size:14px;font-weight:600;cursor:pointer;text-align:left}
+.morerow .car{color:var(--o1);font-size:11px;transition:transform .18s}
+.morerow.open .car{transform:rotate(90deg)}
+.morerow .grow{flex:1}
+.morebody{padding-top:4px}
+.fchip{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:999px;cursor:pointer;
+  background:var(--s0);border:1px solid transparent;color:var(--sub1);font-size:13px}
+.fchip .n{color:var(--o0);font-size:11.5px}
+.fchip.on{background:rgba(137,180,250,.16);border-color:var(--blue);color:var(--text)}
+.fchip.on .n{color:var(--blue)}
+.fempty{color:var(--o0);font-size:12.5px}
+.fopt{display:flex;align-items:center;gap:11px;padding:9px 2px;cursor:pointer}
+.fopt .lbl b{display:block;font-size:13.5px}
+.fbox{width:19px;height:19px;flex:none;border-radius:6px;border:1.8px solid var(--s2);display:grid;place-items:center;background:var(--mantle)}
+.fbox svg{width:13px;height:13px;color:var(--crust);opacity:0}
+.fopt.on .fbox{background:var(--blue);border-color:var(--blue)}
+.fopt.on .fbox svg{opacity:1}
+.fhead{display:flex;align-items:center;gap:10px;padding:4px 18px 12px;flex:none}
+.fhead .grow{flex:1;min-width:0}
+.fhead b{font-size:16.5px}
+.fcount{font-size:12.5px;color:var(--sub0)}
+.fcount em{font-style:normal;color:var(--blue);font-weight:700}
+.fclear{cursor:pointer;font-size:12.5px;font-weight:600;padding:8px 12px;border-radius:999px;
+  border:1px solid var(--s1);background:var(--mantle);color:var(--sub0)}
+.fx{width:34px;height:34px;flex:none;border-radius:50%;border:none;cursor:pointer;
+  background:var(--s0);color:var(--sub1);display:grid;place-items:center}
+.fx svg{width:16px;height:16px}
+.emptyfilter{text-align:center;padding:26px 18px;color:var(--o1)}
+.emptyfilter b{display:block;color:var(--text);font-size:15px;margin-bottom:4px}
+.emptyfilter button{margin-top:12px;cursor:pointer;font-size:13px;font-weight:600;padding:9px 16px;
+  border-radius:14px;border:1px solid var(--s1);background:var(--mantle);color:var(--text)}
+
+/* M6 shopping row: derived recipients + per-item procurement note (FR-25.6) */
+.shwho{display:flex;gap:-4px;flex:none;margin-right:2px}
+.shwho .mini-av{margin-left:-5px;border:1.5px solid var(--base)}
+.shnote{font-size:12px;color:var(--peach);margin-top:3px;line-height:1.35}
+/* revealed bought rows — de-emphasised but still interactive, so a mistap is undoable */
+.li.shdone{opacity:.45}
+.li.shdone .name{text-decoration:line-through}
+.shstamp{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--o1);margin-top:3px}
+.shstamp .mini-av{width:15px;height:15px;font-size:8px}
+.shbuyer{position:relative;flex:none;cursor:pointer;display:grid;place-items:center;margin-left:6px}
+.shbuyer .mini-av{box-shadow:0 0 0 2px var(--blue)}
+.shbuyer i{position:absolute;right:-4px;bottom:-4px;font-style:normal;font-size:9px;line-height:1;
+  background:var(--base);border-radius:50%;padding:1px}
+.shbuyer.empty{width:26px;height:26px;border-radius:50%;border:1.5px dashed var(--s2);color:var(--o0);font-size:13px;font-weight:700}
+.assign .cap{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--o0);margin-bottom:7px}
+/* per-person total: a read-only progress chip, deliberately not a stepper */
+.ppsum{flex:none;font-size:14px;font-weight:700;color:var(--sub1);background:var(--mantle);
+  border:1px solid var(--s1);border-radius:12px;padding:7px 12px;margin-top:2px}
+.pprow{display:flex;align-items:center;gap:9px;padding:6px 0}
+.pprow .nm{flex:1;font-size:14px;font-weight:600}
+/* auto-save confirmation (distinct from G-2's sync glyph) — icon-only:
+   the labelled chip wrapped next to long item names in the sheet header
+   (owner 2026-08-08); the meaning rides on the title tooltip (G-12-06). */
+.savechip{display:grid;place-items:center;width:22px;height:22px;flex:none;font-size:12px;font-weight:700;
+  border-radius:50%;margin:2px 0 6px;transition:color .2s,background .2s;cursor:default}
+.savechip.saved{color:var(--green);background:color-mix(in srgb,var(--green) 14%,transparent)}
+.savechip.dirty{color:var(--yellow);background:color-mix(in srgb,var(--yellow) 16%,transparent)}
+@keyframes savepulse{50%{opacity:.35}}
+.savechip.dirty{animation:savepulse .8s ease-in-out infinite}
+.chiprow{display:flex;flex-wrap:wrap;gap:7px}
+.pchip{cursor:pointer;font-size:13px;font-weight:600;padding:6px 12px;border-radius:16px;
+  border:1px solid var(--s1);background:var(--mantle);color:var(--sub0)}
+.pchip.on{background:var(--blue);border-color:var(--blue);color:var(--crust)}
+#shDesc{width:100%;background:var(--mantle);border:1px solid var(--s1);border-radius:11px;color:var(--text);
+  padding:10px 12px;font:inherit;font-size:14px;resize:vertical}
+#shDesc:focus{border-color:var(--blue);outline:none}
+/* secondary field in the quick-add: present but visibly optional */
+.qa-open input.sub{margin-top:6px;font-size:13px;color:var(--sub0)}
+.qa-assign{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:9px}
+.qa-assign .cap{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--o0);margin-right:2px}
+.pchip.sm{font-size:12px;padding:4px 10px}
+.qa-assign select{background:var(--mantle);border:1px solid var(--s1);border-radius:14px;color:var(--text);
+  padding:5px 10px;font:inherit;font-size:12px;font-weight:600}
+.qa-assign select:focus{border-color:var(--blue);outline:none}
+
+/* quick add */
+.qa{display:flex;align-items:center;gap:10px;padding:13px 15px;color:var(--sub0);font-size:14px;cursor:text}
+.qa svg{width:18px;height:18px;color:var(--blue)}
+.qa-open{padding:12px 14px}
+.qa-open input{width:100%;background:var(--mantle);border:1px solid var(--s1);border-radius:11px;color:var(--text);
+  font:500 14px var(--ui);padding:10px 12px;outline:none}
+.qa-open input:focus{border-color:var(--blue)}
+.qa-sugg{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.qa-sugg button{font-size:12px;font-weight:600;padding:6px 11px;border-radius:9px;border:1px solid var(--s0);
+  background:var(--mantle);color:var(--sub1);cursor:pointer}
+.qa-sugg button b{color:var(--blue);font-weight:700}
+.qa-sugg button.grp{border-color:var(--mauve);color:var(--text)}
+.qa-sugg button.grp b{color:var(--mauve)}
+.qa-sugg-h{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--o0);margin-top:11px}
+.qa-hint{font-size:11px;color:var(--o0);margin-top:8px}
+.qa-modes{display:flex;gap:6px;margin-top:10px}
+.qa-modes button{flex:1;border:1px solid var(--s0);background:var(--mantle);color:var(--sub0);font-size:12.5px;font-weight:600;padding:7px;border-radius:9px;cursor:pointer}
+.qa-modes button.on{background:var(--blue);color:var(--crust);border-color:var(--blue)}
+.qa-persons{margin-top:11px;display:grid;gap:9px}
+.qa-prow{display:flex;align-items:center;gap:10px}
+.qa-prow .nm{flex:1;font-size:14px;font-weight:600}
+.qa-add-btn{width:100%;margin-top:11px;border:0;border-radius:11px;padding:11px;font-weight:700;font-size:14px;background:var(--peach);color:var(--crust);cursor:pointer}
+
+.subsec{margin-top:14px;overflow:hidden}
+.subsec>.collapsed{user-select:none}
+.subsec .inner{display:none}
+.subsec.open .inner{display:block}
+.subsec .chev{transition:transform .2s}
+.subsec.open .chev{transform:rotate(90deg)}
+.tasktog{width:22px;height:22px;border-radius:7px;border:2px solid var(--s2);flex:none;cursor:pointer;display:grid;place-items:center}
+.tasktog svg{width:13px;height:13px;opacity:0}
+.tasktog.on{background:var(--green);border-color:var(--green);color:var(--crust)}
+.tasktog.on svg{opacity:1}
+
+/* ---------- M5 item detail sheet ---------- */
+.scrim{position:absolute;inset:0;background:rgba(17,17,27,.55);opacity:0;pointer-events:none;transition:.25s;z-index:20}
+.scrim.open{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:21;background:var(--mantle);border-radius:22px 22px 0 0;
+  border-top:1px solid var(--s1);box-shadow:0 -16px 40px rgba(0,0,0,.62);max-height:90%;display:flex;flex-direction:column;
+  transform:translateY(101%);transition:transform .32s cubic-bezier(.2,.85,.25,1)}
+.sheet.open{transform:none}
+.sheet .handle{width:42px;height:5px;border-radius:3px;background:var(--s2);margin:10px auto 2px;flex:none;cursor:grab}
+.sheet-body{overflow-y:auto;padding:8px 18px 30px;scrollbar-width:none}
+.sheet-body::-webkit-scrollbar{display:none}
+.ihead{display:flex;align-items:flex-start;gap:12px;margin:6px 0 4px}
+.ihead .iname{font-family:var(--display);font-weight:600;font-size:24px;letter-spacing:-.01em;line-height:1.1}
+.ihead .stepper{margin-top:2px}
+.assign{border-radius:14px;padding:12px 13px;margin-top:8px;background:var(--mantle);border:1px solid var(--s0);border-left:3px solid var(--teal)}
+.assign.packer{border-left-color:var(--blue)}
+.assign .lbl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--o1);margin-bottom:9px}
+.pickrow{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.opt{cursor:pointer;font-size:12.5px;font-weight:600;padding:6px 11px;border-radius:10px;border:1px solid var(--s0);
+  background:var(--base);color:var(--sub1);transition:.12s}
+.opt.sel{background:var(--text);color:var(--crust);border-color:var(--text)}
+.pk{cursor:pointer;border:2px solid transparent;transition:.12s}
+.pk.sel{outline:2.5px solid var(--peach);outline-offset:2px}
+.seg{display:flex;gap:6px;background:var(--mantle);border:1px solid var(--s0);border-radius:13px;padding:5px}
+.seg button{flex:1;border:0;background:none;color:var(--sub0);font-size:12.5px;font-weight:600;padding:8px 4px;border-radius:9px;cursor:pointer}
+.seg button.sel{background:var(--blue);color:var(--crust)}
+.toggle{display:flex;align-items:center;gap:12px;padding:12px 0}
+.toggle .grow{flex:1}
+.sw{width:44px;height:26px;border-radius:14px;background:var(--s1);position:relative;cursor:pointer;transition:.18s;flex:none}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--text);transition:.18s}
+.sw.on{background:var(--green)} .sw.on::after{left:21px;background:var(--crust)}
+.flagchip{cursor:pointer;font-size:12px;font-weight:600;padding:6px 12px;border-radius:10px;border:1px solid var(--s0);background:var(--base);color:var(--sub0)}
+.flagchip.on{background:rgba(243,139,168,.16);border-color:var(--red);color:var(--red)}
+.spark{display:flex;align-items:flex-end;gap:10px;height:56px;padding:6px 2px 0}
+.spark .bar{width:26px;border-radius:6px 6px 3px 3px;background:linear-gradient(var(--sapphire),var(--blue));position:relative}
+.spark .bar b{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--o1);font-weight:600;white-space:nowrap}
+.spark .bar span{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:10.5px;color:var(--sub1);font-weight:700}
+.comment{display:flex;gap:9px;padding:10px 0}
+.comment .bub{background:var(--mantle);border:1px solid var(--s0);border-radius:12px;padding:9px 11px;flex:1}
+.comment .who{font-size:12px;font-weight:700;margin-bottom:2px}
+.comment .txt{font-size:13.5px;line-height:1.4}
+.comment .tflag{font-size:11px;font-weight:600;color:var(--o1);margin-top:7px;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.comment .tflag.on{color:var(--peach)}
+.buynow{width:100%;border:0;border-radius:12px;padding:12px;font-weight:700;font-size:13.5px;cursor:pointer;margin-top:10px;
+  background:linear-gradient(150deg,var(--green),var(--teal));color:var(--crust)}
+.snack{position:absolute;left:16px;right:16px;bottom:100px;z-index:30;background:var(--s1);border:1px solid var(--s2);
+  border-radius:13px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);
+  transform:translateY(140%);opacity:0;pointer-events:none;transition:.28s cubic-bezier(.2,.8,.2,1)}
+.snack.show{transform:none;opacity:1;pointer-events:auto}
+.snack .grow{flex:1;font-size:13px}
+.snack button{border:0;background:none;color:var(--peach);font-weight:700;font-size:13px;cursor:pointer}
+.addprep{display:flex;gap:8px;margin-top:8px}
+.addprep input{flex:1;background:var(--mantle);border:1px solid var(--s1);border-radius:11px;color:var(--text);font:500 13.5px var(--ui);padding:9px 11px;outline:none}
+.addprep input:focus{border-color:var(--blue)}
+/* progressive disclosure (M5): compact glance chips + a Details toggle over the advanced blocks */
+.metarow{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:12px 0 4px}
+.mchip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:5px 10px;border-radius:9px;background:var(--mantle);border:1px solid var(--s0);color:var(--sub1)}
+.mchip .mini-av{width:18px;height:18px;font-size:9px}
+.mchip.buy{background:rgba(250,179,135,.15);color:var(--peach);border-color:transparent}
+.mchip.loc{background:rgba(137,180,250,.15);color:var(--blue);border-color:transparent}
+.mchip.late{background:rgba(249,226,175,.16);color:var(--yellow);border-color:transparent}
+.detbtn{margin-left:auto;display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--sub0);background:none;border:1px solid var(--s0);border-radius:20px;padding:5px 12px}
+.detbtn .car{transition:transform .2s;font-size:10px}
+.detbtn.on .car{transform:rotate(180deg)}
+.detwrap{border-top:1px solid var(--s0);margin-top:10px;padding-top:2px;animation:rise .2s ease}
+
+/* ---------- M3 creation wizard ---------- */
+.wiz-steps{display:flex;gap:6px;padding:4px 2px 12px}
+.wiz-steps .st{flex:1;display:flex;flex-direction:column;gap:6px}
+.wiz-steps .bar{height:4px;border-radius:3px;background:var(--s0);transition:.25s}
+.wiz-steps .st.done .bar{background:var(--teal)} .wiz-steps .st.cur .bar{background:var(--peach)}
+.wiz-steps .lbl{font-size:10px;font-weight:600;color:var(--o0);text-align:center}
+.wiz-steps .st.cur .lbl{color:var(--peach)} .wiz-steps .st.done .lbl{color:var(--sub1)}
+.field{margin-bottom:16px}
+.field>label{display:block;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--o1);margin-bottom:8px}
+.field input.txt,.field input.dt{width:100%;background:var(--base);border:1px solid var(--s1);border-radius:12px;color:var(--text);
+  font:500 15px var(--ui);padding:12px 13px;outline:none}
+.field input:focus{border-color:var(--blue)}
+.field .datewrap{display:flex;gap:10px;align-items:center}
+.field .datewrap input{flex:1}
+.dur{font-size:13px;font-weight:700;color:var(--peach);white-space:nowrap}
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chips .opt.warm.sel{background:var(--peach);border-color:var(--peach);color:var(--crust)}
+.chips .opt.mauve.sel{background:var(--mauve);border-color:var(--mauve);color:var(--crust)}
+.trow{display:flex;align-items:center;gap:11px;padding:11px 0}
+.trow+.trow{border-top:1px solid var(--s0)}
+.trow .grow{flex:1}
+.miniseg{display:flex;background:var(--mantle);border:1px solid var(--s0);border-radius:9px;padding:3px}
+.miniseg button{border:0;background:none;color:var(--sub0);font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:7px;cursor:pointer}
+.miniseg button.sel{background:var(--blue);color:var(--crust)}
+.tplrow{display:flex;align-items:center;gap:12px;padding:13px 14px;cursor:pointer}
+.tplrow+.tplrow{border-top:1px solid var(--s0)}
+.tplrow .grow{flex:1}
+.footer-note{position:sticky;bottom:0;background:linear-gradient(var(--mantle),var(--mantle));border-radius:14px;
+  border:1px solid var(--s0);padding:12px 14px;margin-top:14px}
+.footer-note .big{font-family:var(--display);font-weight:600;font-size:19px}
+.footer-note .ln{font-size:12px;margin-top:4px;display:flex;align-items:center;gap:6px}
+.qrow{display:flex;align-items:center;gap:12px;padding:13px 14px}
+.qrow+.qrow{border-top:1px solid var(--s0)}
+.qrow .grow{flex:1;min-width:0}
+.qrow .formula{font-size:11.5px;color:var(--o1);font-family:ui-monospace,monospace;margin-top:2px}
+.qrow .sugg{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--sapphire);
+  background:rgba(116,199,236,.14);padding:3px 8px;border-radius:8px;margin-top:6px;cursor:pointer}
+.wiz-foot{position:absolute;left:0;right:0;bottom:0;height:82px;z-index:8;padding:12px 18px 26px;display:flex;gap:12px;
+  background:linear-gradient(to top,var(--mantle) 68%,rgba(24,24,37,0));display:none}
+.wiz-foot.show{display:flex}
+.wiz-foot button{flex:1;border:0;border-radius:14px;font-weight:700;font-size:15px;cursor:pointer;font-family:var(--ui)}
+.wiz-foot .back{flex:0 0 46px;background:var(--base);border:1px solid var(--s1);color:var(--sub1);display:grid;place-items:center}
+.wiz-foot .back svg{width:22px;height:22px}
+.wiz-foot .next{background:linear-gradient(150deg,var(--peach),var(--maroon));color:var(--crust)}
+.search{display:flex;align-items:center;gap:10px;background:var(--base);border:1px solid var(--s1);border-radius:13px;
+  padding:0 12px;margin-bottom:10px;transition:border-color .15s,box-shadow .15s}
+.search:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(137,180,250,.14)}
+.search>svg{width:18px;height:18px;color:var(--o1);flex:none}
+.search input{flex:1;min-width:0;background:none;border:0;outline:none;color:var(--text);font:500 15px var(--ui);padding:12px 0}
+.search input::placeholder{color:var(--o0)}
+.search .clr{width:24px;height:24px;border-radius:50%;border:0;background:var(--s1);color:var(--sub1);cursor:pointer;
+  display:none;place-items:center;flex:none;font-size:12px;line-height:1}
+.search .clr.show{display:grid}
+.search .clr:hover{background:var(--s2);color:var(--text)}
+
+/* ---------- M11 containers ---------- */
+.cwrap{padding:14px;margin-bottom:12px}
+.cwrap .top{display:flex;align-items:center;gap:11px}
+.cwrap .top .em{font-size:22px;flex:none}
+.cwrap .top .grow{flex:1;min-width:0}
+.cwrap .kg{font-weight:700;font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cwrap .kg .mx{color:var(--o1);font-weight:600}
+.wbar{height:9px;border-radius:5px;background:var(--s0);overflow:hidden;margin-top:10px}
+.wbar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--teal),var(--green));transition:width .3s}
+.wbar.amber i{background:linear-gradient(90deg,var(--yellow),var(--peach))}
+.wbar.red i{background:linear-gradient(90deg,var(--maroon),var(--red))}
+.pair{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;margin-top:9px}
+.pair.ok{color:var(--green)} .pair.warn{color:var(--peach)}
+.assignrow{display:flex;align-items:center;gap:10px;padding:12px 14px}
+.assignrow+.assignrow{border-top:1px solid var(--s0)}
+.assignrow .grow{flex:1;min-width:0}
+.assignrow .picks{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.assignrow .picks .opt{padding:5px 9px;font-size:11.5px}
+
+/* ---------- M6 shopping ---------- */
+.shtabs{display:flex;gap:7px;background:var(--mantle);border:1px solid var(--s0);border-radius:14px;padding:5px;margin:6px 0 4px}
+.shtabs button{flex:1;border:0;background:none;color:var(--sub0);font-size:13px;font-weight:600;padding:10px 4px;border-radius:10px;cursor:pointer;position:relative}
+.shtabs button.on{background:var(--blue);color:var(--crust)}
+.shtabs .b{display:inline-block;min-width:18px;margin-left:5px;font-size:11px;background:rgba(0,0,0,.18);border-radius:9px;padding:0 5px}
+.shtabs button.on .b{background:rgba(17,17,27,.22)}
+/* Search and filter sit as icons in the tab row: a permanent search field cost
+   a whole row of a list that has to be readable at arm's length in a shop. */
+.shtabs .ico{flex:0 0 auto;width:36px;padding:0;color:var(--sub0);display:grid;place-items:center}
+.shtabs .ico svg{width:19px;height:19px}
+.shtabs .ico.on{background:var(--s1);color:var(--text)}
+.shtabs .ico .cnt{position:absolute;top:2px;right:1px;font-size:9px;font-weight:700;line-height:13px;
+  min-width:13px;background:var(--blue);color:var(--crust);border-radius:7px;padding:0 3px}
+.shtabs .sep{flex:0 0 1px;align-self:stretch;background:var(--s0);margin:4px 3px}
+
+/* G-12 toolbar icon cluster — the same shape wherever a list carries actions:
+   search collapses behind a magnifier, filter carries its count as a badge,
+   the rest goes behind ⋯. Keeps a working screen to one header line. */
+.hicons{display:flex;align-items:center;gap:2px;flex:none;margin-left:auto}
+.appbar .hicons{margin-left:0}
+.appbar .hicons button{width:32px;height:32px}
+.hicons button{position:relative;width:34px;height:34px;border:0;border-radius:11px;background:none;
+  color:var(--sub0);display:grid;place-items:center;cursor:pointer}
+.hicons button svg{width:19px;height:19px}
+.hicons button.on{background:var(--s1);color:var(--text)}
+.hicons .cnt{position:absolute;top:1px;right:0;font-size:9px;font-weight:700;line-height:13px;min-width:13px;
+  background:var(--blue);color:var(--crust);border-radius:7px;padding:0 3px}
+.hicons .cnt.warm{background:var(--peach)}
+.hicons .dots{font-size:17px;font-weight:700;line-height:1}
+/* group folding */
+.gh-toggle{cursor:pointer;user-select:none}
+.gh-toggle .car{display:inline-block;font-size:11px;color:var(--o1);margin-right:6px;transition:transform .18s}
+.gh-toggle.shut .car{transform:rotate(-90deg)}
+.gh-toggle.shut{margin-bottom:2px}
+.tripnav{margin-left:6px}
+.tripnav button{width:32px;height:32px}
+.tipbubble{position:absolute;top:calc(100% + 6px);right:0;z-index:30;white-space:nowrap;
+  font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:9px;
+  background:var(--s2);color:var(--text);box-shadow:0 6px 18px -8px rgba(0,0,0,.8);animation:rise .16s both}
+.destsep{display:flex;align-items:center;gap:9px;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--mauve);margin:18px 4px 9px}
+.destsep::after{content:"";flex:1;height:1px;background:var(--s0)}
+
+/* ---------- M1 dashboard ---------- */
+.greet{margin:10px 2px 2px}
+.greet h2{font-family:var(--display);font-weight:600;font-size:28px;letter-spacing:-.01em;margin:0;line-height:1.05}
+.greet .sub{color:var(--sub0);font-size:13.5px;margin-top:4px}
+.card.hl{border-color:rgba(137,180,250,.5);background:radial-gradient(120% 130% at 0 0,rgba(137,180,250,.12),transparent 60%),var(--base)}
+.deleg-badge{font-size:10.5px;font-weight:700;color:var(--blue);background:rgba(137,180,250,.16);padding:3px 8px;border-radius:8px}
+.dash-more{display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;color:var(--blue);font-size:13px;font-weight:600;cursor:pointer;border-top:1px solid var(--s0)}
+
+/* ---------- M12 analytics ---------- */
+.abar-row{display:flex;align-items:center;gap:10px;padding:9px 0;cursor:pointer}
+.abar-row+.abar-row{border-top:1px solid var(--s0)}
+.abar-row .lbl{width:88px;flex:none;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.abar-wrap{flex:1;min-width:0}
+.abar{height:20px;border-radius:6px;background:var(--s1);overflow:hidden;min-width:6px}
+.abar i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--green));border-radius:6px;transition:width .3s}
+.abar-row .akg{width:82px;flex:none;text-align:right;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--sub1)}
+.abar-row .akg small{color:var(--o1);font-weight:600}
+.atot{display:flex;gap:10px;margin-top:12px}
+.atot .box{flex:1;padding:13px;text-align:center}
+.atot .box .n{font-family:var(--display);font-weight:600;font-size:22px}
+.atot .box .l{font-size:11px;color:var(--o1);margin-top:3px}
+.trend{display:flex;align-items:flex-end;gap:14px;height:80px;padding:14px 6px 0}
+.trend .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
+.trend .bar{width:100%;max-width:40px;border-radius:7px 7px 3px 3px;background:linear-gradient(var(--mauve),var(--lav))}
+.trend .col b{font-size:11px;color:var(--sub1);font-weight:700}
+.trend .col span{font-size:10.5px;color:var(--o1)}
+.flagrow{display:flex;align-items:center;gap:10px;padding:11px 14px}
+.flagrow+.flagrow{border-top:1px solid var(--s0)}
+
+/* ---------- M8 template editor ---------- */
+.t8row{padding:12px 14px}
+.t8row+.t8row{border-top:1px solid var(--s0)}
+.t8head{display:flex;align-items:center;gap:10px;cursor:pointer}
+.t8head .grow{flex:1;min-width:0}
+.t8head .qtychip{font-size:12px;font-weight:700;color:var(--sapphire);background:rgba(116,199,236,.13);padding:3px 9px;border-radius:8px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.t8head .qtychip.err{color:var(--red);background:rgba(243,139,168,.14)}
+.t8head .rm{width:28px;height:28px;border-radius:9px;border:0;background:none;color:var(--o0);cursor:pointer;flex:none;font-size:14px}
+.t8head .rm:hover{color:var(--red);background:var(--mantle)}
+.t8body{margin-top:13px;display:grid;gap:13px;padding-bottom:2px}
+.finput{width:100%;background:var(--mantle);border:1px solid var(--s1);border-radius:11px;color:var(--text);
+  font:500 13.5px ui-monospace,SFMono-Regular,monospace;padding:10px 12px;outline:none}
+.finput:focus{border-color:var(--blue)}
+.finput.bad{border-color:var(--red)}
+.fex{font-size:11.5px;color:var(--sapphire);margin-top:6px}
+.ferr{font-size:11.5px;color:var(--red);margin-top:6px}
+.publish-note{border-radius:12px;padding:10px 13px;font-size:12px;background:rgba(249,226,175,.1);border:1px solid rgba(249,226,175,.25);color:var(--sub1)}
+
+body{padding:0;margin:0}
+.vwrap{max-width:1400px;margin:0 auto;padding:28px 20px 60px}
+.vhead{max-width:76ch;margin-bottom:26px}
+.vhead h1{font:600 27px/1.15 var(--display);margin:0 0 10px}
+.vhead p{margin:0 0 8px;color:var(--sub0);font-size:14.5px;line-height:1.6}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:26px;align-items:start}
+.vcol{display:flex;flex-direction:column;gap:12px}
+.vcap .k{font:600 11.5px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;color:var(--peach)}
+.vcap h2{font:600 18px/1.2 var(--display);margin:6px 0 6px}
+.vcap p{margin:0 0 6px;color:var(--sub0);font-size:13px;line-height:1.55}
+.vcap .cost{color:var(--peach);font-size:12.5px}
+.phone{width:360px;height:560px;border:1px solid var(--s0);border-radius:22px;overflow:hidden;
+  background:var(--mantle);box-shadow:var(--shadow);position:relative;display:flex;flex-direction:column}
+.phone .bar{padding:11px 14px;border-bottom:1px solid var(--s0);background:var(--crust);
+  font:600 13px/1 var(--ui);color:var(--sub0)}
+.phone .body{flex:1;overflow:hidden;padding:12px;position:relative}
+.mcard{background:var(--base);border:1px solid var(--s0);border-radius:16px;overflow:hidden}
+.rw{display:flex;gap:9px;align-items:center;padding:10px 12px;border-top:1px solid var(--s0);position:relative}
+.rw:first-child{border-top:0}
+.rw .grow{flex:1}
+.rw .nm{font-size:14.5px;font-weight:600}
+.rw .sub{font-size:12px;color:var(--o0);margin-top:2px}
+.rw.gone .nm{opacity:.5;text-decoration:line-through}
+.rw.gone .sub{opacity:.6}
+.rw.held{background:var(--s0)}
+.rw.sliding{padding-right:0;overflow:hidden}
+.slide-panel{align-self:stretch;display:flex;align-items:center;padding:0 14px;margin-left:8px;
+  background:var(--s1);color:var(--text);font:600 12.5px/1 var(--ui);white-space:nowrap}
+.step{display:flex;align-items:center;gap:6px;flex:none}
+.step b{min-width:30px;text-align:center;font:600 13.5px/1 var(--ui);color:var(--sub0)}
+.sbtn{width:26px;height:26px;border-radius:9px;border:1px solid var(--s1);display:grid;place-items:center;
+  color:var(--sub0);font-size:14px;background:var(--base)}
+.sbtn.hot{border-color:var(--peach);color:var(--peach)}
+.chipx{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--s1);color:var(--o0)}
+.sheetup{position:absolute;left:12px;right:12px;bottom:12px;background:var(--base);
+  border:1px solid var(--s0);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}
+.shead{padding:12px 16px;font:600 13px/1 var(--ui);color:var(--o0);border-bottom:1px solid var(--s0)}
+.srow{padding:13px 16px;font-size:14.5px;border-top:1px solid var(--s0);display:flex;gap:11px;align-items:center}
+.srow:first-of-type{border-top:0}
+.srow .ic{width:18px;text-align:center;color:var(--o1)}
+.srow.warn{color:var(--peach)}
+.srow.mut{color:var(--o0)}
+.note{margin:12px 2px 0;font-size:12.5px;color:var(--o0);line-height:1.5}
+.note2{margin:12px 0 0;font-size:12.5px;color:var(--o0);line-height:1.5}
+.hintbar{margin:10px 0 0;padding:9px 12px;border-radius:12px;border:1px dashed var(--s1);
+  color:var(--sapphire);font-size:12.5px;display:flex;align-items:center}
+.hintbar .x{margin-left:auto;color:var(--o0)}
+.sheet2{background:var(--base);border:1px solid var(--s0);border-radius:18px;padding:16px}
+.sheet2 h3{font:600 19px/1.2 var(--display);margin:0}
+.sub2{color:var(--o0);font-size:12.5px;margin:2px 0 14px}
+.statebar{display:flex;gap:6px;background:var(--crust);padding:4px;border-radius:12px}
+.seg{flex:1;text-align:center;padding:8px 6px;border-radius:9px;font:600 12.5px/1 var(--ui);color:var(--o1)}
+.seg.on{background:var(--s1);color:var(--text)}
+.frow{display:flex;align-items:center;gap:10px;padding:11px 2px;border-top:1px solid var(--s0)}
+.frow .lbl{font-size:13.5px}
+.frow .val{margin-left:auto;color:var(--sub0);font-size:13px}
+.shared{margin-top:34px;max-width:76ch}
+.shared h2{font:600 21px/1.2 var(--display);margin:0 0 10px}
+.shared p{color:var(--sub0);font-size:14px;line-height:1.6;margin:0 0 10px}
+.shared li{color:var(--sub0);font-size:14px;line-height:1.6;margin-bottom:7px}
+.toastwrap{margin:14px 0 0;max-width:420px}
+.toast{background:var(--s0);border:1px solid var(--s1);border-radius:14px;padding:12px 14px;
+  font-size:13.5px;line-height:1.45;position:relative}
+.tsub{color:var(--o0);font-size:12px}
+.tundo{display:block;margin-top:8px;color:var(--sapphire);font:600 12.5px/1 var(--ui)}
+table.cmp{border-collapse:collapse;margin:14px 0 0;font-size:13.5px;width:100%;max-width:820px}
+table.cmp th,table.cmp td{border-top:1px solid var(--s0);padding:9px 10px;text-align:left;color:var(--sub0);vertical-align:top}
+table.cmp th{color:var(--text);font:600 12px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase}
+</style></head>
+<body>
+<div class="vwrap">
+  <div class="vhead">
+    <h1>„Bewusst nicht einpacken“ — es gibt den Zustand, nur keinen Weg dorthin</h1>
+    <p>FR-5.5 trennt <em>vergessen</em> von <em>entschieden</em>. Der Zustand ist gebaut: eine
+      übersprungene Zeile zählt als erledigt, wird durchgestrichen gezeigt und von FR-25.2
+      mit den gepackten versteckt; <code>skipItem</code>/<code>unskipItem</code> existieren
+      samt FR-20.2-Kaskade.</p>
+    <p><strong>Der Befund beim Nachsehen ist nicht „es fehlt“, sondern „es ist unsichtbar und
+      kaputt“:</strong> die Aktion hängt an einem blossen Ionic-Wisch, den nichts ankündigt — und
+      wenn er aufgeht, bricht er aus dem M4-Kärtchen aus: eckiges Panel bis an den Bildschirmrand,
+      die Zeile verliert ihren Stepper. Genau der Fehler, an dem der Wisch schon in der
+      M7-Runde gescheitert ist. Die Frage ist also nicht nur <em>ob</em> ein Bedienweg dazukommt,
+      sondern <em>welcher an seine Stelle tritt</em>.</p>
+  </div>
+
+  <div class="vgrid">
+    <div class="vcol">
+      <div class="vcap"><span class="k">Variante A</span>
+        <h2>Langdruck-Menü auf der Zeile</h2>
+        <p>Halten öffnet dasselbe Aktionsblatt, das M7 seit der A2-Runde benutzt: packen,
+          zuweisen, <em>nicht einpacken</em>. Auf einer weggelassenen Zeile heisst der
+          Eintrag „Doch einpacken“.</p>
+        <p class="cost">Kosten: eine Geste, die man kennen muss — aber eine, die es hier
+          schon gibt und die nichts kaputt macht.</p>
+      </div>
+<div class="phone">
+  <div class="bar">M4 · Kleidung</div>
+  <div class="body">
+    <div class="mcard">
+  <div class="rw ">
+    <div class="step"><span class="sbtn">−</span><b>4/6</b><span class="sbtn">+</span></div>
+    <div class="grow"><div class="nm">Wandersocken</div></div>
+    
+  </div>
+  <div class="rw held">
+    <div class="step"><span class="sbtn">−</span><b>0/3</b><span class="sbtn">+</span></div>
+    <div class="grow"><div class="nm">Regenjacke</div></div>
+    
+  </div>
+  <div class="rw ">
+    <div class="step"><span class="sbtn">−</span><b>0/2</b><span class="sbtn">+</span></div>
+    <div class="grow"><div class="nm">Sonnenhut</div></div>
+    
+  </div></div>
+    <div class="sheetup">
+      <div class="shead">Regenjacke</div>
+      <div class="srow"><span class="ic">◐</span>Jetzt packen</div>
+      <div class="srow"><span class="ic">👤</span>Mir zuweisen</div>
+      <div class="srow warn"><span class="ic">⊘</span>Nicht einpacken</div>
+      <div class="srow mut"><span class="ic">✕</span>Abbrechen</div>
+    </div>
+  </div>
+</div>
+    </div>
+
+    <div class="vcol">
+      <div class="vcap"><span class="k">Variante B</span>
+        <h2>Der Wisch, repariert und benannt</h2>
+        <p>Bleibt beim Bestehenden, behebt aber beide Mängel: das Panel wird ins Kärtchen
+          gezwungen, und die Beschriftung wird zur <em>Handlung</em> („Nicht einpacken“ statt
+          des Zustandsnamens „Bewusst weggelassen“). Dazu ein einmaliger Hinweisstreifen.</p>
+        <p class="cost">Kosten: eine erklärungsbedürftige Geste bleibt erklärungsbedürftig —
+          der Streifen ist das Eingeständnis.</p>
+      </div>
+<div class="phone">
+  <div class="bar">M4 · Kleidung</div>
+  <div class="body">
+    <div class="mcard">
+  <div class="rw ">
+    <div class="step"><span class="sbtn">−</span><b>4/6</b><span class="sbtn">+</span></div>
+    <div class="grow"><div class="nm">Wandersocken</div></div>
+    
+  </div><div class="rw sliding">
+           <div class="step"><span class="sbtn">−</span><b>0/3</b><span class="sbtn">+</span></div>
+           <div class="grow"><div class="nm">Regenjacke</div></div>
+           <div class="slide-panel">Nicht einpacken</div>
+         </div>
+  <div class="rw ">
+    <div class="step"><span class="sbtn">−</span><b>0/2</b><span class="sbtn">+</span></div>
+    <div class="grow"><div class="nm">Sonnenhut</div></div>
+    
+  </div></div>
+    <div class="note">Der Wisch bleibt <em>im</em> Kärtchen: gleiche Rundung, gleicher
+      Einzug. Heute reisst er aus — das ist der Befund oben.</div>
+    <div class="hintbar">Tipp: nach links wischen lässt eine Sache bewusst weg. <span class="x">✕</span></div>
+  </div>
+</div>
+    </div>
+
+    <div class="vcol">
+      <div class="vcap"><span class="k">Variante C</span>
+        <h2>Im M5-Sheet, als dritter Zustand</h2>
+        <p>Das Detail-Sheet zeigt den Zustand ohnehin als Chip. Hier wird er bedienbar:
+          offen · gepackt · weggelassen, ein Zug. Nichts versteckt, alles benannt.</p>
+        <p class="cost">Kosten: zwei Taps und ein Screenwechsel für etwas, das beim
+          Durchgehen der Liste passiert.</p>
+      </div>
+<div class="phone">
+  <div class="bar">M5 · Regenjacke</div>
+  <div class="body">
+    <div class="sheet2">
+      <h3>Regenjacke</h3>
+      <div class="sub2">Kleidung</div>
+      <div class="statebar">
+        <div class="seg">offen</div>
+        <div class="seg">gepackt</div>
+        <div class="seg on">weggelassen</div>
+      </div>
+      <div class="frow"><span class="lbl">Menge</span><span class="val">0 von 3</span></div>
+      <div class="frow"><span class="lbl">Weil</span><span class="val">bewusst entschieden</span></div>
+      <div class="note2">Ausgegraut in der Liste, zählt als erledigt (FR-25.2),
+        jederzeit wieder auf <em>offen</em>.</div>
+    </div>
+  </div>
+</div>
+    </div>
+
+    <div class="vcol">
+      <div class="vcap"><span class="k">Variante D</span>
+        <h2>Die Null im Stepper</h2>
+        <p>Gar keine neue Bedienung: langes Drücken auf „−“ setzt die Menge schon heute auf
+          0. Menge 0 <em>wird</em> künftig „bewusst weggelassen“ — so, wie FR-5.5 es
+          wörtlich definiert.</p>
+        <p class="cost">Kosten: eine Null kann auch „ich weiss noch nicht“ heissen; die
+          Bedeutung wird der Nutzerin untergeschoben statt von ihr gewählt.</p>
+      </div>
+<div class="phone">
+  <div class="bar">M4 · Kleidung</div>
+  <div class="body">
+    <div class="mcard">
+  <div class="rw ">
+    <div class="step"><span class="sbtn">−</span><b>4/6</b><span class="sbtn">+</span></div>
+    <div class="grow"><div class="nm">Wandersocken</div></div>
+    
+  </div><div class="rw">
+           <div class="step"><span class="sbtn hot">−</span><b>0/3</b><span class="sbtn">+</span></div>
+           <div class="grow"><div class="nm">Regenjacke</div>
+             <div class="sub">gedrückt halten → Menge 0</div></div>
+         </div>
+  <div class="rw gone">
+    <div class="step"><span class="sbtn">−</span><b>0/0</b><span class="sbtn">+</span></div>
+    <div class="grow"><div class="nm">Sonnenhut</div><div class="sub">bewusst weggelassen</div></div>
+    <span class="chipx skip">weggelassen</span>
+  </div></div>
+    <div class="note">Keine neue Geste: die Null <em>ist</em> die Entscheidung.
+      FR-5.5 definiert übersprungen genau so — „Menge 0“.</div>
+  </div>
+</div>
+    </div>
+  </div>
+
+  <div class="shared">
+    <h2>Was in jeder Variante gleich bleibt</h2>
+    <p>Vier Fragen, die die Hintergrund-Notiz stellt, und die unabhängig von der gewählten
+      Geste beantwortet werden müssen:</p>
+    <ul>
+      <li><strong>Menge 0 ist nicht dasselbe wie weggelassen.</strong> Die Null ist ein
+        Zählerstand, „weggelassen“ eine Entscheidung. Wer skippt, bekommt beides
+        (<code>state='skipped'</code> und Menge 0, wie <code>skipItem</code> es heute schreibt);
+        wer nur zählt, bekommt nur die Null.</li>
+      <li><strong>Zurücknehmen liest sich als Gegenteil,</strong> nicht als „Rückgängig“:
+        „Doch einpacken“ stellt die Zeile auf offen mit Menge 1 (FR-5.5).</li>
+      <li><strong>Die FR-20.2-Kaskade sagt, was sie mitgenommen hat.</strong> Heute schweigt
+        sie: wer die Drohne weglässt, verliert Akku und Ladegerät stumm. Sie gehört in
+        denselben Snackbar-Mechanismus, den FR-25.2 fürs Packen gebaut hat — eine Meldung,
+        ein Rückgängig, das die ganze Kaskade zurücknimmt.</li>
+      <li><strong>Weggelassen bleibt sichtbar erklärbar:</strong> die Zeile taucht über den
+        <em>Erledigte</em>-Schalter wieder auf, durchgestrichen und mit ihrem Grund
+        („bewusst weggelassen“ bzw. „weggelassen: Drohne nicht dabei“).</li>
+    </ul>
+    
+<div class="toastwrap">
+  <div class="toast">„Drohne“ weggelassen — auch Akku und Ladegerät<br />
+    <span class="tsub">gehören zur Drohne (FR-20.2)</span>
+    <span class="tundo">Rückgängig</span>
+  </div>
+</div>
+
+    <h2 style="margin-top:30px">Gegenüberstellung</h2>
+    <table class="cmp">
+      <tr><th></th><th>auffindbar</th><th>schnell in Folge</th><th>Bruch am Kärtchen</th><th>neu zu bauen</th></tr>
+      <tr><td>A Langdruck</td><td>mittel — Geste, aber hausüblich</td><td>ja</td><td>nein</td><td>Menü an M4</td></tr>
+      <tr><td>B Wisch</td><td>gering</td><td>ja</td><td>ja, muss behoben werden</td><td>Layoutfix + Hinweis</td></tr>
+      <tr><td>C M5-Sheet</td><td>hoch</td><td>nein</td><td>nein</td><td>Zustandsleiste</td></tr>
+      <tr><td>D Stepper-Null</td><td>gering</td><td>ja</td><td>nein</td><td>Bedeutung der Null</td></tr>
+    </table>
+    <p style="margin-top:14px"><strong>Empfehlung: A und C zusammen</strong> — dieselbe
+      Arbeitsteilung, die M7/M8 schon tragen. Das Langdruck-Menü ist der schnelle Weg beim
+      Durchgehen der Liste, das Sheet der auffindbare, der sich selbst erklärt; beide rufen
+      dieselbe Mutation. Der kaputte Wisch fällt dabei weg, statt repariert zu werden — die
+      M4-Zeile behält damit genau eine Geste weniger, und die verbleibende ist die, die im
+      Produkt schon woanders gilt. D bleibt draussen, weil eine Null keine Entscheidung ist.</p>
+  </div>
+</div>
+</body></html>

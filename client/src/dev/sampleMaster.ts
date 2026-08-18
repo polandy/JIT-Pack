@@ -68,6 +68,16 @@ const INVENTORY: ItemSeed[] = [
   { name: 'Sonnencreme', tag: 'Bad', weightGrams: 150 },
 ]
 
+/**
+ * FR-20.1 companions, so a fresh device can exercise the FR-20.2 co-skip
+ * cascade (and FR-5.5's snackbar naming it) without building a dependency
+ * by hand first.
+ */
+const DEPENDENCIES: { item: string; dependsOn: string }[] = [
+  { item: 'Ersatzakkus', dependsOn: 'Kamera' },
+  { item: 'Ringlicht', dependsOn: 'Makro-Objektiv' },
+]
+
 interface PositionSeed {
   item: string
   quantity?: number
@@ -158,6 +168,12 @@ export function seedSampleMaster(orchestrator: Orchestrator): SampleMaster {
     itemIds.set(item.name, id)
     const tagId = tagIds.get(item.tag)
     if (tagId) orchestrator.assignTag(id, tagId)
+  }
+
+  for (const dep of DEPENDENCIES) {
+    const itemId = itemIds.get(dep.item)
+    const mainId = itemIds.get(dep.dependsOn)
+    if (itemId && mainId) orchestrator.addItemDependency(itemId, mainId, { mode: 'required' })
   }
 
   const groupIds = new Map<string, string>()

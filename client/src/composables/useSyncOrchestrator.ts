@@ -21,7 +21,7 @@ import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type { PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
-import { dependentsOf, resolveDependencies } from '@/domain/dependencies'
+import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
 import { planClone, type CloneOptions } from '@/domain/clone'
 import {
   pairWrites,
@@ -530,7 +530,15 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
-  function skipItem(tripId: string, item: TripItem) {
+  /**
+   * Mark a row deliberately not packed (FR-5.5), taking its companions with
+   * it (FR-20.2).
+   *
+   * Returns every row it skipped, main first, snapshotted *before* the
+   * write: FR-5.5's snackbar names the companions that went along, and its
+   * undo has to put back exactly those rows and no others.
+   */
+  function skipItem(tripId: string, item: TripItem): TripItem[] {
     const skipOne = (target: TripItem) => {
       const mut = mutations.skipItem(target.id)
       return {
@@ -544,23 +552,51 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         } satisfies PullChange,
       }
     }
-    const muts = [skipOne(item)]
     // FR-20.2: skipping a main item co-skips its (transitive) companions —
-    // they stay in the FR-5.5 skipped section instead of vanishing.
-    if (item.source_item_id) {
-      const dependents = dependentsOf(item.source_item_id, masterStore.dependencyList)
-      for (const other of tripStore.getItems(tripId)) {
-        if (
-          other.id !== item.id &&
-          other.source_item_id !== null &&
-          dependents.has(other.source_item_id) &&
-          other.state !== 'skipped'
-        ) {
-          muts.push(skipOne(other))
-        }
-      }
+    // they stay skipped alongside it instead of vanishing.
+    const affected = [
+      item,
+      ...coSkipTargets(item, tripStore.getItems(tripId), masterStore.dependencyList),
+    ]
+    enqueueAndDrain('trip', tripId, ...affected.map(skipOne))
+    return affected
+  }
+
+  /**
+   * Undo a skip: put each row back where {@link skipItem} found it.
+   *
+   * Re-read against the current row for the same reason {@link restorePack}
+   * is — by the time the undo fires, a sync or another device may have
+   * touched the row, and only the three fields the skip wrote may be
+   * reverted. A row that has since been deleted is left deleted.
+   */
+  function restoreSkip(
+    tripId: string,
+    records: { itemId: string; quantity: number; packedCount: number; state: string }[],
+  ) {
+    const current = tripStore.getItems(tripId)
+    const muts = []
+    for (const record of records) {
+      const row = current.find((candidate) => candidate.id === record.itemId)
+      if (!row) continue
+      const mut = mutations.restoreSkipped(
+        record.itemId,
+        record.quantity,
+        record.packedCount,
+        record.state,
+      )
+      muts.push({
+        mutation: mut,
+        optimistic: {
+          seq: 0,
+          table: 'trip_items',
+          id: record.itemId,
+          deleted: false,
+          row: { ...itemRow(row), ...mut.fields },
+        } satisfies PullChange,
+      })
     }
-    enqueueAndDrain('trip', tripId, ...muts)
+    if (muts.length > 0) enqueueAndDrain('trip', tripId, ...muts)
   }
 
   function unskipItem(tripId: string, item: TripItem) {
@@ -2246,6 +2282,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     packZero,
     packToggle,
     restorePack,
+    restoreSkip,
     skipItem,
     unskipItem,
     setMode,

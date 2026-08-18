@@ -29,9 +29,6 @@ import {
   IonContent,
   IonList,
   IonItem,
-  IonItemSliding,
-  IonItemOptions,
-  IonItemOption,
   IonIcon,
   IonLabel,
   IonBadge,
@@ -42,6 +39,7 @@ import {
   IonFab,
   IonFabButton,
   IonModal,
+  actionSheetController,
   toastController,
 } from '@ionic/vue'
 import {
@@ -49,7 +47,9 @@ import {
   archiveOutline,
   bagHandleOutline,
   contrastOutline,
+  closeCircleOutline,
   flagOutline,
+  refreshOutline,
   personOutline,
   pricetagOutline,
   buildOutline,
@@ -82,18 +82,22 @@ import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActi
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useContextSearch } from '@/composables/useContextSearch'
+import { useLongPress } from '@/composables/useLongPress'
 import { usePackingFilter } from '@/composables/usePackingFilter'
-import { usePackUndo, type PackUndoRecord } from '@/composables/usePackUndo'
+import { useRowUndo, type RowUndoRecord } from '@/composables/useRowUndo'
+import { skippedVia } from '@/domain/dependencies'
 import { buildPackingView, FACET_KEYS, NO_VALUE, type PackingRow } from '@/domain/packingView'
 import { relativeStamp } from '@/domain/stamp'
 import { formatWeight } from '@/lib/format'
 import { currentLocale, t } from '@/i18n'
+import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { FacetKey, GroupBy, ItemTodo, TripItem, TripParticipant } from '@/types/domain'
 
 const props = defineProps<{ tripId: string; itemId?: string }>()
 
 const store = useTripStore()
+const masterStore = useMasterStore()
 const router = useRouter()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
@@ -209,7 +213,67 @@ const openItemId = computed(() => props.itemId ?? null)
  * twin. Replacing keeps exactly one.
  */
 function openItem(itemId: string) {
+  if (rowMenuActive) return
   router.replace(`/trips/${props.tripId}/items/${itemId}`)
+}
+
+// --- Row menu: press and hold (FR-5.5, FR-5.2) --------------------------
+//
+// The same gesture M7 uses, chosen over the swipe it replaces: the swipe
+// was announced by nothing and its option panel broke out of the row's
+// card, which is where it also lost the M7 round. The 500 ms live in
+// useLongPress, unit-tested with fake timers; `contextmenu` covers desktop
+// and is the seam the e2e case drives.
+const hold = useLongPress<TripItem>(openRowMenu)
+
+/**
+ * Row taps are ignored while the menu lives — same reasoning as M7's: the
+ * release of a hold usually lands on the overlay rather than the row, so a
+ * "swallow the next click" flag would go stale and eat a later tap.
+ */
+let rowMenuActive = false
+
+async function openRowMenu(item: TripItem) {
+  hold.cancel()
+  // A locked row is somebody else's (G-3); its menu would offer actions
+  // that the row itself already refuses.
+  if (locked(item)) return
+  rowMenuActive = true
+  try {
+    const skipped = item.state === 'skipped'
+    const sheet = await actionSheetController.create({
+      header: item.name,
+      buttons: [
+        ...(skipped
+          ? [
+              {
+                text: t('packing.unskipAction'),
+                icon: refreshOutline,
+                handler: () => onUnskipItem(item),
+              },
+            ]
+          : [
+              {
+                text: t('mode.pack'),
+                icon: contrastOutline,
+                handler: () => onPackingNow(item),
+              },
+              {
+                text: t('packing.skipAction'),
+                icon: closeCircleOutline,
+                handler: () => onSkipItem(item),
+              },
+            ]),
+        { text: t('common.cancel'), role: 'cancel' },
+      ],
+    })
+    await sheet.present()
+    await sheet.onDidDismiss()
+  } finally {
+    // finally, not after the awaits: a failed present() must not leave the
+    // list permanently tap-dead.
+    rowMenuActive = false
+  }
 }
 
 function closeItem() {
@@ -350,6 +414,21 @@ function packedStamp(item: TripItem): string | null {
   const who = nameOf(item.packed_by_user_id)
   if (!who) return when ? t('packing.packedByUnknown', { when }) : null
   return t('packing.packedBy', { who, when })
+}
+
+/**
+ * What a revealed *skipped* row says of itself (FR-5.5) — and, where the
+ * FR-20.2 cascade put it there, which decision took it along.
+ *
+ * A row that is done because it was left behind used to be revealed with
+ * nothing at all where a packed row carries its FR-25.17 stamp, which is
+ * exactly the "forgot it" / "decided against it" confusion FR-5.5 exists
+ * to remove.
+ */
+function skippedNote(item: TripItem): string | null {
+  if (item.state !== 'skipped') return null
+  const via = skippedVia(item, allItems.value, masterStore.dependencyList)
+  return via ? t('packing.skippedVia', { name: via.name }) : t('packing.skipped')
 }
 
 /** Named only where it differs from the packer — otherwise it is noise. */
@@ -517,8 +596,25 @@ function onPackingNow(item: TripItem) {
   orchestrator.packingNow(props.tripId, item)
 }
 
+/**
+ * FR-5.5: say that a thing is deliberately not coming, rather than leaving
+ * it open and indistinguishable from forgotten.
+ *
+ * The snackbar is not decoration here: FR-20.2 may take companions along,
+ * and a cascade the user never sees is a list that changed behind their
+ * back. It names them and offers the one undo that puts the whole cascade
+ * back.
+ */
 function onSkipItem(item: TripItem) {
-  orchestrator.skipItem(props.tripId, item)
+  // Armed from what the skip reports rather than from the row in hand: the
+  // companions are only known once the cascade has run, and `skipItem`
+  // returns them as they were *before* it wrote (pinned by its own test).
+  const affected = orchestrator.skipItem(props.tripId, item)
+  rowUndo.armUndo(affected, (records) => orchestrator.restoreSkip(props.tripId, records))
+  void announceSkipped(
+    item.name,
+    affected.slice(1).map((row) => row.name),
+  )
 }
 
 function onUnskipItem(item: TripItem) {
@@ -535,7 +631,7 @@ function onDecrement(item: TripItem) {
 
 function onComplete(item: TripItem) {
   const name = item.name
-  packUndo.packWithUndo(item, () => orchestrator.packComplete(props.tripId, item))
+  rowUndo.actWithUndo([item], () => orchestrator.packComplete(props.tripId, item), restorePacked)
   void announcePacked(name)
 }
 
@@ -577,11 +673,16 @@ function onRowLeave(el: Element, done: () => void) {
   node.addEventListener('transitionend', done, { once: true })
 }
 
-const packUndo = usePackUndo((record: PackUndoRecord) => {
-  orchestrator.restorePack(props.tripId, record.itemId, record.packedCount, record.state)
-})
+const rowUndo = useRowUndo()
 
-/** The snackbar currently on screen, so a second pack replaces it. */
+/** Put back what a pack changed, and only that (FR-25.2). */
+function restorePacked(records: RowUndoRecord[]) {
+  for (const record of records) {
+    orchestrator.restorePack(props.tripId, record.itemId, record.packedCount, record.state)
+  }
+}
+
+/** The snackbar currently on screen, so a second action replaces it. */
 let packToast: HTMLIonToastElement | null = null
 
 /**
@@ -612,6 +713,22 @@ const packAnnouncements = ref(0)
 let live = true
 
 async function announcePacked(name: string) {
+  await announce(t('packing.packedToast', { name }))
+}
+
+/**
+ * FR-5.5 with FR-20.2: the companions that went along are named, because a
+ * list that shortened itself by three rows on one tap owes an explanation.
+ */
+async function announceSkipped(name: string, companions: string[]) {
+  await announce(
+    companions.length > 0
+      ? t('packing.skippedToastWith', { name, companions: companions.join(', ') })
+      : t('packing.skippedToast', { name }),
+  )
+}
+
+async function announce(message: string) {
   // Cleared *before* dismissing, not after. The dismiss handler below
   // disarms the undo, and an outgoing toast resolves its dismissal after
   // the incoming one has already armed a new record — so with the order
@@ -623,13 +740,13 @@ async function announcePacked(name: string) {
   void outgoing?.dismiss()
 
   const toast = await toastController.create({
-    message: t('packing.packedToast', { name }),
+    message,
     duration: 3000,
     position: 'bottom',
     // Above the FAB rather than behind it — see the anchor's own note.
     positionAnchor: 'm4-fab-anchor',
     cssClass: 'pack-toast',
-    buttons: [{ text: t('packing.undo'), handler: () => packUndo.undo() }],
+    buttons: [{ text: t('packing.undo'), handler: () => rowUndo.undo() }],
   })
   if (!live) {
     void toast.dismiss()
@@ -642,7 +759,7 @@ async function announcePacked(name: string) {
   void toast.onDidDismiss().then(() => {
     if (packToast === toast) {
       packToast = null
-      packUndo.clear()
+      rowUndo.clear()
     }
   })
   await toast.present()
@@ -650,7 +767,7 @@ async function announcePacked(name: string) {
 
 onUnmounted(() => {
   live = false
-  packUndo.clear()
+  rowUndo.clear()
   void packToast?.dismiss()
 })
 
@@ -663,7 +780,7 @@ function onToggle(item: TripItem) {
     return
   }
   const name = item.name
-  packUndo.packWithUndo(item, () => orchestrator.packToggle(props.tripId, item))
+  rowUndo.actWithUndo([item], () => orchestrator.packToggle(props.tripId, item), restorePacked)
   void announcePacked(name)
 }
 
@@ -893,151 +1010,130 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
                   <span class="cluster-count">{{ entry.doneCount }}/{{ entry.totalCount }}</span>
                 </div>
 
-                <IonItemSliding v-for="child in entry.children" :key="child.item.id">
-                  <IonItem
-                    button
-                    class="child-row"
-                    :data-testid="`m4-child-${entry.name}-${child.traveler?.name ?? ''}`"
-                    :class="{ done: child.done, locked: locked(child.item) }"
-                    @click="openItem(child.item.id)"
-                  >
-                    <!-- `.prevent` as well as `.stop`: Ionic wraps a router-link item in
-                         an anchor, and an anchor's jump is a *default action* — stopping
-                         propagation never cancelled it, so every tap on the stepper opened
-                         the sheet instead of counting. -->
-                    <div slot="start" class="row-start" @click.stop.prevent>
-                      <IonIcon v-if="locked(child.item)" :icon="lockClosedOutline" class="lock" />
-                      <QuantityStepper
-                        v-else
-                        :quantity="child.item.quantity"
-                        :packed="child.item.packed_count"
-                        @increment="onIncrement(child.item)"
-                        @decrement="onDecrement(child.item)"
-                        @complete="onComplete(child.item)"
-                        @zero="onZero(child.item)"
-                        @toggle="onToggle(child.item)"
-                      />
-                      <UserAvatar :name="child.traveler?.name" :seed="child.traveler?.id" />
-                    </div>
-                    <IonLabel>
-                      <h3>{{ child.traveler?.name ?? child.label }}</h3>
-                      <p v-if="child.done && packedStamp(child.item)" class="stamp">
-                        {{ packedStamp(child.item) }}
-                        <span v-if="responsibleNote(child.item)" class="muted">
-                          · {{ responsibleNote(child.item) }}
-                        </span>
-                      </p>
-                    </IonLabel>
-                    <UserAvatar
-                      v-if="edgeAvatar(child.item)"
-                      slot="end"
-                      :variant="edgeAvatar(child.item)!.variant"
-                      :name="nameOf(edgeAvatar(child.item)!.id)"
-                      :seed="edgeAvatar(child.item)!.id"
-                    />
-                  </IonItem>
-                  <IonItemOptions v-if="!locked(child.item)" side="start">
-                    <IonItemOption color="primary" @click="onPackingNow(child.item)">
-                      {{ t('mode.pack') }}
-                    </IonItemOption>
-                  </IonItemOptions>
-                  <IonItemOptions v-if="!locked(child.item)" side="end">
-                    <IonItemOption
-                      v-if="child.item.state === 'skipped'"
-                      color="success"
-                      @click="onUnskipItem(child.item)"
-                    >
-                      {{ t('packing.undo') }}
-                    </IonItemOption>
-                    <IonItemOption v-else color="medium" @click="onSkipItem(child.item)">
-                      {{ t('packing.skipped') }}
-                    </IonItemOption>
-                  </IonItemOptions>
-                </IonItemSliding>
-              </div>
-
-              <IonItemSliding v-else>
                 <IonItem
+                  v-for="child in entry.children"
+                  :key="child.item.id"
                   button
-                  :class="{ done: entry.done, locked: locked(entry.item) }"
-                  :data-testid="`m4-row-${entry.item.name}`"
-                  @click="openItem(entry.item.id)"
+                  class="child-row"
+                  :data-testid="`m4-child-${entry.name}-${child.traveler?.name ?? ''}`"
+                  :class="{ done: child.done, locked: locked(child.item) }"
+                  @click="openItem(child.item.id)"
+                  @contextmenu.prevent="openRowMenu(child.item)"
+                  @pointerdown="(e: PointerEvent) => hold.down(child.item, e.clientX, e.clientY)"
+                  @pointermove="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
+                  @pointerup="hold.cancel()"
+                  @pointercancel="hold.cancel()"
                 >
                   <!-- `.prevent` as well as `.stop`: Ionic wraps a router-link item in
                          an anchor, and an anchor's jump is a *default action* — stopping
                          propagation never cancelled it, so every tap on the stepper opened
                          the sheet instead of counting. -->
                   <div slot="start" class="row-start" @click.stop.prevent>
-                    <IonIcon v-if="locked(entry.item)" :icon="lockClosedOutline" class="lock" />
+                    <IonIcon v-if="locked(child.item)" :icon="lockClosedOutline" class="lock" />
                     <QuantityStepper
                       v-else
-                      :quantity="entry.item.quantity"
-                      :packed="entry.item.packed_count"
-                      @increment="onIncrement(entry.item)"
-                      @decrement="onDecrement(entry.item)"
-                      @complete="onComplete(entry.item)"
-                      @zero="onZero(entry.item)"
-                      @toggle="onToggle(entry.item)"
+                      :quantity="child.item.quantity"
+                      :packed="child.item.packed_count"
+                      @increment="onIncrement(child.item)"
+                      @decrement="onDecrement(child.item)"
+                      @complete="onComplete(child.item)"
+                      @zero="onZero(child.item)"
+                      @toggle="onToggle(child.item)"
                     />
-                    <UserAvatar
-                      v-if="entry.traveler"
-                      :name="entry.traveler.name"
-                      :seed="entry.traveler.id"
-                    />
+                    <UserAvatar :name="child.traveler?.name" :seed="child.traveler?.id" />
                   </div>
                   <IonLabel>
-                    <h3>
-                      {{ entry.label }}
-                      <IonBadge v-if="openTodoCount(entry.item.id) > 0" color="brand" class="prep">
-                        <IonIcon :icon="buildOutline" /> {{ openTodoCount(entry.item.id) }}
-                      </IonBadge>
-                    </h3>
-                    <p v-if="entry.done && packedStamp(entry.item)" class="stamp">
-                      {{ packedStamp(entry.item) }}
-                      <span v-if="responsibleNote(entry.item)" class="muted">
-                        · {{ responsibleNote(entry.item) }}
+                    <h3>{{ child.traveler?.name ?? child.label }}</h3>
+                    <p v-if="skippedNote(child.item)" class="stamp">
+                      {{ skippedNote(child.item) }}
+                    </p>
+                    <p v-else-if="child.done && packedStamp(child.item)" class="stamp">
+                      {{ packedStamp(child.item) }}
+                      <span v-if="responsibleNote(child.item)" class="muted">
+                        · {{ responsibleNote(child.item) }}
                       </span>
                     </p>
                   </IonLabel>
-                  <div slot="end" class="row-end">
-                    <IonIcon
-                      v-if="modeIcon(entry.item.mode)"
-                      :icon="modeIcon(entry.item.mode)!"
-                      class="mode-icon"
-                      :title="modeLabel(entry.item.mode)"
-                    />
-                    <IonIcon
-                      v-if="entry.item.late_packer"
-                      :icon="timeOutline"
-                      class="late-icon"
-                      :title="t('mode.latePacker')"
-                    />
-                    <UserAvatar
-                      v-if="edgeAvatar(entry.item)"
-                      :variant="edgeAvatar(entry.item)!.variant"
-                      :name="nameOf(edgeAvatar(entry.item)!.id)"
-                      :seed="edgeAvatar(entry.item)!.id"
-                    />
-                  </div>
+                  <UserAvatar
+                    v-if="edgeAvatar(child.item)"
+                    slot="end"
+                    :variant="edgeAvatar(child.item)!.variant"
+                    :name="nameOf(edgeAvatar(child.item)!.id)"
+                    :seed="edgeAvatar(child.item)!.id"
+                  />
                 </IonItem>
-                <IonItemOptions v-if="!locked(entry.item)" side="start">
-                  <IonItemOption color="primary" @click="onPackingNow(entry.item)">
-                    {{ t('mode.pack') }}
-                  </IonItemOption>
-                </IonItemOptions>
-                <IonItemOptions v-if="!locked(entry.item)" side="end">
-                  <IonItemOption
-                    v-if="entry.item.state === 'skipped'"
-                    color="success"
-                    @click="onUnskipItem(entry.item)"
-                  >
-                    {{ t('packing.undo') }}
-                  </IonItemOption>
-                  <IonItemOption v-else color="medium" @click="onSkipItem(entry.item)">
-                    {{ t('packing.skipped') }}
-                  </IonItemOption>
-                </IonItemOptions>
-              </IonItemSliding>
+              </div>
+
+              <IonItem
+                v-else
+                button
+                :class="{ done: entry.done, locked: locked(entry.item) }"
+                :data-testid="`m4-row-${entry.item.name}`"
+                @click="openItem(entry.item.id)"
+                @contextmenu.prevent="openRowMenu(entry.item)"
+                @pointerdown="(e: PointerEvent) => hold.down(entry.item, e.clientX, e.clientY)"
+                @pointermove="(e: PointerEvent) => hold.move(e.clientX, e.clientY)"
+                @pointerup="hold.cancel()"
+                @pointercancel="hold.cancel()"
+              >
+                <!-- `.prevent` as well as `.stop`: Ionic wraps a router-link item in
+                         an anchor, and an anchor's jump is a *default action* — stopping
+                         propagation never cancelled it, so every tap on the stepper opened
+                         the sheet instead of counting. -->
+                <div slot="start" class="row-start" @click.stop.prevent>
+                  <IonIcon v-if="locked(entry.item)" :icon="lockClosedOutline" class="lock" />
+                  <QuantityStepper
+                    v-else
+                    :quantity="entry.item.quantity"
+                    :packed="entry.item.packed_count"
+                    @increment="onIncrement(entry.item)"
+                    @decrement="onDecrement(entry.item)"
+                    @complete="onComplete(entry.item)"
+                    @zero="onZero(entry.item)"
+                    @toggle="onToggle(entry.item)"
+                  />
+                  <UserAvatar
+                    v-if="entry.traveler"
+                    :name="entry.traveler.name"
+                    :seed="entry.traveler.id"
+                  />
+                </div>
+                <IonLabel>
+                  <h3>
+                    {{ entry.label }}
+                    <IonBadge v-if="openTodoCount(entry.item.id) > 0" color="brand" class="prep">
+                      <IonIcon :icon="buildOutline" /> {{ openTodoCount(entry.item.id) }}
+                    </IonBadge>
+                  </h3>
+                  <p v-if="skippedNote(entry.item)" class="stamp">{{ skippedNote(entry.item) }}</p>
+                  <p v-else-if="entry.done && packedStamp(entry.item)" class="stamp">
+                    {{ packedStamp(entry.item) }}
+                    <span v-if="responsibleNote(entry.item)" class="muted">
+                      · {{ responsibleNote(entry.item) }}
+                    </span>
+                  </p>
+                </IonLabel>
+                <div slot="end" class="row-end">
+                  <IonIcon
+                    v-if="modeIcon(entry.item.mode)"
+                    :icon="modeIcon(entry.item.mode)!"
+                    class="mode-icon"
+                    :title="modeLabel(entry.item.mode)"
+                  />
+                  <IonIcon
+                    v-if="entry.item.late_packer"
+                    :icon="timeOutline"
+                    class="late-icon"
+                    :title="t('mode.latePacker')"
+                  />
+                  <UserAvatar
+                    v-if="edgeAvatar(entry.item)"
+                    :variant="edgeAvatar(entry.item)!.variant"
+                    :name="nameOf(edgeAvatar(entry.item)!.id)"
+                    :seed="edgeAvatar(entry.item)!.id"
+                  />
+                </div>
+              </IonItem>
             </template>
           </TransitionGroup>
         </template>
