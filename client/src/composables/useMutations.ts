@@ -719,9 +719,10 @@ export function useMutations(hlc: HLCGenerator) {
    * created_at is the client's: the refresh runs on the device, and only it
    * knows when the change actually landed on this trip.
    */
-  function logAppliedChange(
-    change: Omit<AppliedChange, 'id' | 'created_at'>,
-  ): { mutation: Mutation; id: string } {
+  function logAppliedChange(change: Omit<AppliedChange, 'id' | 'created_at'>): {
+    mutation: Mutation
+    id: string
+  } {
     const id = newId()
     const mutation = make('insert', TABLE.tripAppliedChanges, id, {
       trip_id: change.trip_id,
