@@ -51,6 +51,18 @@ describe('GroupChangesProposal (FR-27.4)', () => {
     expect(changes).toContain('3')
   })
 
+  it('falls back to a plain line for a field it has no words for', () => {
+    // A new propagated field must never leak its column name at the user —
+    // `late_packer` is a real ChangedField with no sentence of its own.
+    const wrapper = mountCard([
+      { ...logLine('Kamera', 'changed'), detail: { field: 'late_packer', from: false, to: true } },
+    ])
+
+    const changes = wrapper.find('[data-testid="m4-group-proposal-changes"]').text()
+    expect(changes).toContain('Kamera')
+    expect(changes).not.toContain('late_packer')
+  })
+
   it('states what declining costs, where declining is pressed', () => {
     const wrapper = mountCard([logLine('Stativ')])
 

@@ -164,8 +164,8 @@ rather than on a duration.
 This is a small fraction of the specified suite. Do not read a green `e2e` job as "the UI is verified".
 
 **What the FR-27.4 unit covers since 2026-08-18.** E2E-M8-09 runs the whole
-question: a group edited after the trip was generated is *offered* on the
-trip's next open — the card names the change while the list has not moved —
+question: a group edited after the trip was generated shows up as M2's proposal chip on
+a freshly booted app and is *offered* on the trip's next open — the card names the change while the list has not moved —
 accepting puts the row on the list, and M2 then carries the "⟳ N Änderungen"
 chip naming the group and the item. E2E-M8-19 runs the refusal, and its real
 assertion is the return trip: the trip re-derives on every open, so a refusal

@@ -79,6 +79,13 @@ test.describe('FR-27.4 — the group asks before it changes a trip', () => {
     await tripFollowingGroup(page, 'Fototour 2026', 'Makro')
     await addToGroup(page, 'Makro', 'Stativ')
 
+    // M2 first, and deliberately: the list is reached as a fresh document, so
+    // the chip there proves the *app's own* startup sweep found the change —
+    // not M4's on-open derivation. It is also the positive half of M8-19's
+    // "no chip after a refusal", which alone would pass against no chip ever.
+    await page.goto('/tabs/trips?status=planned')
+    await expect(visible(page).getByTestId('m2-proposed-chip-Fototour 2026')).toContainText('1')
+
     await openTripFromList(page, 'Fototour 2026')
 
     // Offered, not applied: the card names the change and the list has not
