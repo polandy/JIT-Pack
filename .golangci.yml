@@ -15,7 +15,11 @@ linters:
       # claim lookup is defined by Sync_API_Spec / the OIDC spec and verified
       # against that document, and a Go constant between the two would hide
       # the shape the code is implementing.
-      ignore-string-values: '^(trip_id|item_id|users|name)$'
+      ignore-string-values:
+        - '^trip_id$'
+        - '^item_id$'
+        - '^users$'
+        - '^name$'
     errcheck:
       exclude-functions:
         # Idiomatic sites where the error is meaningless or surfaces
