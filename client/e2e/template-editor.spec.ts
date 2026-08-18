@@ -372,7 +372,7 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
     await expect(visible(page).getByTestId('m8-resolution')).toBeVisible()
   })
 
-  test('E2E-M8-05: a template used by a planning trip shows the blast-radius note', async ({
+  test('E2E-M8-05: a template a trip still follows shows the blast-radius note', async ({
     page,
   }) => {
     await createTemplate(page, 'group', 'Makro')

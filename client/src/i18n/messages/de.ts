@@ -164,7 +164,7 @@ export const de: Record<keyof typeof en, string> = {
   'templates.scopeLabel': 'Art',
   'templates.includedIn': 'Eingebunden in: {names}',
   'templates.blastRadius':
-    '⟳ Änderungen hier wirken sofort auf {n} geplante Reise ({names}) — laufende & vergangene bleiben eingefroren. | ⟳ Änderungen hier wirken sofort auf {n} geplante Reisen ({names}) — laufende & vergangene bleiben eingefroren.',
+    '⟳ Änderungen hier werden {n} Reise ({names}) vorgeschlagen, die beim nächsten Öffnen entscheidet — vergangene Reisen werden nie geändert. | ⟳ Änderungen hier werden {n} Reisen ({names}) vorgeschlagen, die beim nächsten Öffnen entscheiden — vergangene Reisen werden nie geändert.',
   'templates.demoteBlocked':
     'Erst die eingebundenen Gruppen entfernen — eine Gruppe enthält nur Positionen.',
   'templates.ownPositions': 'Eigene Positionen',
@@ -401,7 +401,7 @@ export const de: Record<keyof typeof en, string> = {
   'review.targetFrom': 'Aus Gruppe',
   'review.targetTo': 'In Gruppe',
   'review.blast':
-    'Wirkt auf {n} geplante Reise, die „{group}“ einbindet. | Wirkt auf {n} geplante Reisen, die „{group}“ einbinden.',
+    'Wird {n} Reise vorgeschlagen, die „{group}“ einbindet. | Wird {n} Reisen vorgeschlagen, die „{group}“ einbinden.',
   'review.apply': 'Übernehmen',
   'review.skip': 'Überspringen',
   'review.never': 'Nie mehr fragen',

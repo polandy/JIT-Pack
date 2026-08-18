@@ -162,7 +162,7 @@ export const en = {
   'templates.scopeLabel': 'Scope',
   'templates.includedIn': 'Included in: {names}',
   'templates.blastRadius':
-    '⟳ Changes here apply immediately to {n} planned trip ({names}) — running and past trips stay frozen. | ⟳ Changes here apply immediately to {n} planned trips ({names}) — running and past trips stay frozen.',
+    '⟳ Changes here are proposed to {n} trip ({names}), which decides on its next open — past trips are never changed. | ⟳ Changes here are proposed to {n} trips ({names}), which decide on their next open — past trips are never changed.',
   'templates.demoteBlocked': 'Remove the included groups first — a group holds only positions.',
   'templates.ownPositions': 'Own positions',
   'templates.positions': 'Positions',
@@ -403,7 +403,7 @@ export const en = {
   'review.targetFrom': 'From group',
   'review.targetTo': 'Into group',
   'review.blast':
-    'Affects {n} planned trip that includes “{group}”. | Affects {n} planned trips that include “{group}”.',
+    'Will be proposed to {n} trip that includes “{group}”. | Will be proposed to {n} trips that include “{group}”.',
   'review.apply': 'Apply',
   'review.skip': 'Skip',
   'review.never': 'Never ask again',

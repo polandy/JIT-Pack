@@ -2583,6 +2583,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     // Actions
     createTripFromWizard,
+    // The FR-27.4 clock, exposed so a view asking "which trips does this
+    // reach?" answers with the same date the refresh itself uses — two
+    // clocks would let the warning and the behaviour disagree by a day.
+    today,
     proposeTripRefresh,
     acceptTripRefresh,
     declineTripRefresh,
