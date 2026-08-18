@@ -20,8 +20,11 @@ import { isDismissed } from '@/local/reviewDismissals'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 
+const TODAY = '2026-01-15'
+
 const orchestratorFake = {
   applyReviewProposal: vi.fn(() => 'g1'),
+  today: () => TODAY,
 }
 
 function seedMaster() {
@@ -205,7 +208,7 @@ describe('ReviewPage (M14, FR-27.11)', () => {
     expect(isDismissed('item1::g2')).toBe(false)
   })
 
-  it('states the FR-27.4 blast radius when the target group reaches planning trips', () => {
+  it('states the FR-27.4 blast radius when the target group reaches a trip that still follows it', () => {
     seedMaster()
     const trips = seedTrip()
     trips.applyChange({

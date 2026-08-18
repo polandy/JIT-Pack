@@ -6,7 +6,16 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { isEmptyPlan, ledgerId, planRefresh, propagatedItemId, type RefreshInput } from '../refresh'
+import {
+  declinePlan,
+  isEmptyPlan,
+  ledgerId,
+  planRefresh,
+  propagatedItemId,
+  proposedChangeCount,
+  type RefreshInput,
+} from '../refresh'
+import { followsGroups } from '../trips'
 import type {
   GeneratedPosition,
   ItemTodo,
@@ -22,6 +31,7 @@ import type {
 } from '@/types/domain'
 
 const TRIP_ID = 'trip-1'
+const TODAY = '2026-01-15'
 const GROUP_ID = 'grp-makro'
 
 function trip(extra: Partial<Trip> = {}): Trip {
@@ -162,19 +172,53 @@ function input(extra: Partial<RefreshInput> = {}): RefreshInput {
     items: [],
     todos: [],
     ledger: [],
+    today: TODAY,
     ...extra,
   }
 }
 
+describe('followsGroups — which trips still listen (FR-27.4)', () => {
+  it('follows a trip that has not departed', () => {
+    expect(followsGroups(trip({ status: 'planning' }), TODAY)).toBe(true)
+  })
+
+  it('follows a running trip — the freeze is the past, not the departure', () => {
+    // The owner's rule (2026-08-18) replaced the planning/active split: a
+    // running trip still hears about a group edit, it just gets asked first.
+    expect(followsGroups(trip({ status: 'active' }), TODAY)).toBe(true)
+  })
+
+  it('stops at an archived trip, however far the group has drifted', () => {
+    expect(followsGroups(trip({ status: 'archived' }), TODAY)).toBe(false)
+  })
+
+  it('stops once the end date has passed, even while the trip is still open', () => {
+    // The forgotten trip nobody closed. Its packing list is a record now.
+    expect(followsGroups(trip({ status: 'active', end_date: '2026-02-08' }), '2026-02-09')).toBe(
+      false,
+    )
+  })
+
+  it('still follows on the last day — the trip is over when the day is', () => {
+    expect(followsGroups(trip({ status: 'active', end_date: '2026-02-08' }), '2026-02-08')).toBe(
+      true,
+    )
+  })
+
+  it('follows a trip with no end date at all — an absent date decides nothing', () => {
+    expect(followsGroups(trip({ status: 'planning', end_date: null }), '2099-01-01')).toBe(true)
+  })
+})
+
 describe('planRefresh — the freeze (FR-27.4)', () => {
-  it('moves nothing on an active trip, however far the group has drifted', () => {
-    const plan = planRefresh(input({ trip: trip({ status: 'active' }) }))
+  it('moves nothing on an archived trip, however far the group has drifted', () => {
+    const plan = planRefresh(input({ trip: trip({ status: 'archived' }) }))
     expect(isEmptyPlan(plan)).toBe(true)
     expect(plan.log).toEqual([])
   })
 
-  it('moves nothing on an archived trip', () => {
-    const plan = planRefresh(input({ trip: trip({ status: 'archived' }) }))
+  it('moves nothing on a trip whose end date has passed', () => {
+    const plan = planRefresh(input({ trip: trip({ status: 'active' }), today: '2026-02-09' }))
     expect(isEmptyPlan(plan)).toBe(true)
   })
 
@@ -539,5 +583,124 @@ describe('derived ids (ADR-016)', () => {
 
   it('has the shape of the ids the schema generates — 32 lowercase hex characters', () => {
     expect(propagatedItemId('trip-1', 'item-a', '')).toMatch(/^[0-9a-f]{32}$/)
+  })
+})
+
+describe('the proposal and its refusal (FR-27.4)', () => {
+  it('counts only what the user is asked about, not the ledger bookkeeping', () => {
+    // A row the user added by hand that generation also produces: the ledger
+    // adopts it, silently and on purpose. Nothing about the trip changes, so
+    // there is nothing to ask — and a chip reading "1 vorgeschlagen" here
+    // would be asking about a row that is already right.
+    const plan = planRefresh(
+      input({
+        items: [tripItem('by-hand', { source_item_id: 'item-kamera', name: 'Kamera' })],
+      }),
+    )
+
+    expect(plan.ledgerUpsert).toHaveLength(1)
+    expect(proposedChangeCount(plan)).toBe(0)
+  })
+
+  it('counts every add, change and removal it would make', () => {
+    const gone = ledgerEntry('item-stativ', { name: 'Stativ' })
+    const plan = planRefresh(
+      input({
+        ledger: [gone],
+        items: [tripItem(gone.trip_item_id, { source_item_id: 'item-stativ', name: 'Stativ' })],
+      }),
+    )
+
+    expect(plan.add).toHaveLength(1)
+    expect(plan.remove).toHaveLength(1)
+    expect(proposedChangeCount(plan)).toBe(2)
+  })
+
+  it('declining keeps every ledger move and drops every write to the trip', () => {
+    const plan = planRefresh(input())
+    const declined = declinePlan(plan)
+
+    expect(declined.add).toEqual([])
+    expect(declined.update).toEqual([])
+    expect(declined.remove).toEqual([])
+    expect(declined.ledgerUpsert).toEqual(plan.ledgerUpsert)
+    expect(declined.ledgerDelete).toEqual(plan.ledgerDelete)
+    // The log is M2's record of what the trip *took over* — a refusal took
+    // nothing over, and logging it would make the chip count the opposite
+    // of what it says.
+    expect(declined.log).toEqual([])
+  })
+
+  it('a declined addition stays away — the position is not proposed again', () => {
+    const first = planRefresh(input())
+    const afterRefusal = planRefresh(input({ ledger: declinePlan(first).ledgerUpsert }))
+
+    expect(afterRefusal.add).toEqual([])
+    expect(proposedChangeCount(afterRefusal)).toBe(0)
+  })
+
+  it('a declined change leaves the row alone and stops asking about it', () => {
+    // The group went to 3, the trip keeps its 1. Advancing the snapshot is
+    // what makes the row the user's from here on: it no longer matches what
+    // generation produced, which is the same test a hand edit fails.
+    const entry = ledgerEntry('item-kamera')
+    const row = tripItem(entry.trip_item_id, { source_item_id: 'item-kamera', name: 'Kamera' })
+    const world = input({
+      templateItems: [position('pos-1', GROUP_ID, 'item-kamera', { quantity: 3 })],
+      ledger: [entry],
+      items: [row],
+    })
+
+    const proposed = planRefresh(world)
+    expect(proposed.update).toHaveLength(1)
+
+    const declined = declinePlan(proposed)
+    // The snapshot carries the group's 3 while the row keeps its 1 — the
+    // gap between them is what protects the row from here on.
+    expect(declined.ledgerUpsert.map((e) => e.quantity)).toEqual([3])
+    const afterRefusal = planRefresh({ ...world, ledger: declined.ledgerUpsert })
+    expect(afterRefusal.update).toEqual([])
+    expect(proposedChangeCount(afterRefusal)).toBe(0)
+  })
+
+  it('a declined removal leaves the row on the trip and never asks twice', () => {
+    // An emptied group: the one position it used to carry is the only thing
+    // in play, so the count below is about the removal and nothing else.
+    const entry = ledgerEntry('item-stativ', { name: 'Stativ' })
+    const row = tripItem(entry.trip_item_id, { source_item_id: 'item-stativ', name: 'Stativ' })
+    const world = input({ templateItems: [], masterItems: [], ledger: [entry], items: [row] })
+
+    const proposed = planRefresh(world)
+    expect(proposed.remove.map((r) => r.item.id)).toEqual([row.id])
+
+    // The refusal drops the ledger entry, so the row is simply the user's:
+    // the group no longer carries the position and no longer speaks for it.
+    const declined = declinePlan(proposed)
+    expect(declined.ledgerDelete).toEqual([entry.id])
+    const afterRefusal = planRefresh({ ...world, ledger: declined.ledgerUpsert })
+    expect(afterRefusal.remove).toEqual([])
+    expect(proposedChangeCount(afterRefusal)).toBe(0)
+  })
+
+  it('keeps the group speaking for everything that was not refused', () => {
+    // The refusal detaches the positions it was about, not the group. What
+    // the group does *next* still reaches the trip.
+    const entry = ledgerEntry('item-kamera')
+    const world = input({
+      templateItems: [position('pos-1', GROUP_ID, 'item-kamera', { quantity: 3 })],
+      ledger: [entry],
+      items: [tripItem(entry.trip_item_id, { source_item_id: 'item-kamera', name: 'Kamera' })],
+    })
+    const refusedLedger = declinePlan(planRefresh(world)).ledgerUpsert
+
+    const later = planRefresh({
+      ...world,
+      templateItems: [...world.templateItems, position('pos-2', GROUP_ID, 'item-stativ')],
+      masterItems: [...world.masterItems, masterItem('item-stativ', 'Stativ')],
+      ledger: refusedLedger,
+    })
+
+    expect(later.add.map((a) => a.generated.name)).toEqual(['Stativ'])
+    expect(later.update).toEqual([])
   })
 })

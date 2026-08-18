@@ -46,6 +46,8 @@ import { loadTokens } from '@/auth/tokens'
 import { serializeTrip } from '@/domain/portable'
 import { safeFilename, saveText } from '@/lib/download'
 import { parseTripFilter, TRIP_FILTER_QUERY, type TripFilter } from './tripFilter'
+import { describeAppliedChange } from '@/lib/refreshWording'
+import { proposedChangeCount } from '@/domain/refresh'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { AppliedChange, Trip } from '@/types/domain'
@@ -250,34 +252,29 @@ function appliedOpen(trip: Trip): boolean {
 }
 
 /**
- * What the refresh took over on this trip. Only *planning* trips can have
- * moved (FR-27.4), and asking the store rather than filtering on status
- * alone keeps the chip honest if a trip is activated while the list is open.
+ * What the refresh took over on this trip. No status rule any more: since the
+ * owner's 2026-08-18 change a running trip takes changes over too, and only a
+ * *past* one is frozen — which cannot produce entries in the first place, so
+ * the record is simply whatever the log holds.
  */
 function appliedChanges(trip: Trip): AppliedChange[] {
-  if (trip.status !== 'planning') return []
   return store.getAppliedChanges(trip.id)
 }
 
 /**
- * The log stores *what* changed, never a sentence — the row is synced and a
- * sentence would freeze one language into the database. The wording happens
- * here, and an unrecognised field falls back to the plain "changed" line
- * rather than rendering a raw column name at the user.
+ * FR-27.4: how many changes are *waiting* on this trip. The chip is a
+ * pointer, not a control — the decision belongs at the trip (owner,
+ * 2026-08-18), and tapping the row is already the way there.
+ *
+ * It can only speak for a trip whose partition this device holds: a proposal
+ * is a diff against the trip's rows, and in Server Mode those arrive when the
+ * trip is opened. An absent chip therefore means "nothing to say from here",
+ * never "nothing to decide" — which is why M4 asks again on open rather than
+ * trusting this list.
  */
-function describeApplied(entry: AppliedChange): string {
-  const params = { group: entry.source_template_name, item: entry.item_name }
-  if (entry.kind === 'added') return t('trips.appliedAdded', params)
-  if (entry.kind === 'removed') return t('trips.appliedRemoved', params)
-  if (entry.detail?.field === 'quantity') {
-    return t('trips.appliedQuantity', {
-      ...params,
-      from: String(entry.detail.from),
-      to: String(entry.detail.to),
-    })
-  }
-  if (entry.detail?.field === 'tasks') return t('trips.appliedTasks', params)
-  return t('trips.appliedChanged', params)
+function proposedCount(trip: Trip): number {
+  const plan = orchestrator.refreshProposals.value[trip.id]
+  return plan ? proposedChangeCount(plan) : 0
 }
 
 onMounted(async () => {
@@ -467,13 +464,22 @@ async function handleRefresh(event: CustomEvent) {
                      With neither, its year is what it is called by. -->
                   <p data-testid="trip-when">{{ tripWhen(trip) }}</p>
                   <p>{{ itemSummary(trip) }}</p>
-                  <!-- FR-27.4: a *planned* trip follows its source groups.
-                     The row says so when that happened, because a list that
+                  <!-- FR-27.4: a trip follows its source groups until it is
+                     past. The row says what it took over, because a list that
                      changed under you with no trace reads as data loss.
                      A short log is simply written out; a long one folds away,
                      so one busy trip cannot push the rest of the list off the
-                     screen (owner, 2026-08-18). Active and archived rows never
-                     carry any of it: they are frozen. -->
+                     screen (owner, 2026-08-18). -->
+                  <!-- FR-27.4: a group changed and this trip has not answered
+                       yet. It says so and stops there — the two answers are
+                       at the trip, where the list they change is. -->
+                  <span
+                    v-if="proposedCount(trip)"
+                    class="chip proposed-chip"
+                    :data-testid="`m2-proposed-chip-${trip.name}`"
+                  >
+                    {{ t('trips.proposedChip', { n: proposedCount(trip) }) }}
+                  </span>
                   <div v-if="appliedChanges(trip).length" class="applied">
                     <button
                       v-if="appliedFolds(trip)"
@@ -503,7 +509,7 @@ async function handleRefresh(event: CustomEvent) {
                       :data-testid="`m2-applied-log-${trip.name}`"
                     >
                       <p v-for="entry in appliedChanges(trip)" :key="entry.id">
-                        {{ describeApplied(entry) }}
+                        {{ describeAppliedChange(entry) }}
                       </p>
                       <p class="frozen-note">{{ t('trips.appliedFrozen') }}</p>
                     </div>
@@ -659,6 +665,15 @@ async function handleRefresh(event: CustomEvent) {
    for the lines already below it and takes no interaction at all. */
 .applied {
   margin-top: 6px;
+}
+
+.proposed-chip {
+  background: color-mix(in srgb, var(--jp-brand) 18%, transparent);
+  border-radius: var(--jp-r2);
+  color: var(--jp-brand);
+  display: inline-flex;
+  margin-top: 6px;
+  padding: 2px 8px;
 }
 
 .applied-chip {
