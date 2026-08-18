@@ -9,7 +9,7 @@ import { TABLE } from '@/types/tables'
 import { newId } from '@/lib/ids'
 import type { Mutation, MutationOp } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
-import type { ItemMode, TemplateKind } from '@/types/domain'
+import type { AppliedChange, GeneratedPosition, ItemMode, TemplateKind } from '@/types/domain'
 
 /**
  * What the client writes into an actor column it is not allowed to decide.
@@ -207,8 +207,12 @@ export function useMutations(hlc: HLCGenerator) {
       late_packer: boolean
     },
     assignedTravelerId: string | null,
+    // The FR-27.4 refresh supplies a *derived* id so two devices applying
+    // the same group change converge on one row (ADR-016); generation
+    // itself draws a fresh one.
+    rowId: string = newId(),
   ): { mutation: Mutation; id: string } {
-    const id = newId()
+    const id = rowId
     const mutation = make('insert', TABLE.tripItems, id, {
       trip_id: tripId,
       name: item.name,
@@ -654,6 +658,83 @@ export function useMutations(hlc: HLCGenerator) {
     return make('delete', TABLE.templateItemTasks, taskId)
   }
 
+  // --- The planning-trip refresh (FR-27.4) ---
+
+  /**
+   * updateGeneratedTripItem writes the fields the FR-27.4 refresh may
+   * overwrite. A field map rather than one setter per field: the diff
+   * decides which of them moved, and the caller has no business restating
+   * that list. `late_packer` is normalised here because the wire carries
+   * 0/1 where the domain carries a boolean.
+   */
+  function updateGeneratedTripItem(itemId: string, fields: Record<string, unknown>): Mutation {
+    const wire = { ...fields }
+    if ('late_packer' in wire) wire['late_packer'] = wire['late_packer'] ? 1 : 0
+    return make('upsert', TABLE.tripItems, itemId, wire)
+  }
+
+  /** registerTripSource records that a trip follows this template (FR-27.4/27.10). */
+  function registerTripSource(
+    tripId: string,
+    templateId: string,
+  ): { mutation: Mutation; id: string } {
+    const id = newId()
+    const mutation = make('insert', TABLE.tripTemplateSources, id, {
+      trip_id: tripId,
+      template_id: templateId,
+    })
+    return { mutation, id }
+  }
+
+  /**
+   * writeGeneratedPosition records what generation produced for one position.
+   * An upsert with the entry's derived id: the refresh re-states the whole
+   * snapshot each time rather than patching fields, because the snapshot is
+   * only meaningful as a set — a half-updated one would read as a manual edit.
+   */
+  function writeGeneratedPosition(entry: GeneratedPosition): Mutation {
+    return make('upsert', TABLE.tripGeneratedPositions, entry.id, {
+      trip_id: entry.trip_id,
+      trip_item_id: entry.trip_item_id,
+      source_template_id: entry.source_template_id,
+      source_item_id: entry.source_item_id,
+      traveler_id: entry.traveler_id,
+      name: entry.name,
+      quantity: entry.quantity,
+      mode: entry.mode,
+      late_packer: entry.late_packer ? 1 : 0,
+      weight_grams: entry.weight_grams,
+      value_cents: entry.value_cents,
+      category_name: entry.category_name,
+      tasks: JSON.stringify(entry.tasks),
+    })
+  }
+
+  function deleteGeneratedPosition(entryId: string): Mutation {
+    return make('delete', TABLE.tripGeneratedPositions, entryId)
+  }
+
+  /**
+   * logAppliedChange writes one line of M2's applied-changes log (FR-27.4).
+   * created_at is the client's: the refresh runs on the device, and only it
+   * knows when the change actually landed on this trip.
+   */
+  function logAppliedChange(
+    change: Omit<AppliedChange, 'id' | 'created_at'>,
+  ): { mutation: Mutation; id: string } {
+    const id = newId()
+    const mutation = make('insert', TABLE.tripAppliedChanges, id, {
+      trip_id: change.trip_id,
+      source_template_id: change.source_template_id,
+      source_template_name: change.source_template_name,
+      kind: change.kind,
+      item_name: change.item_name,
+      detail: change.detail === null ? null : JSON.stringify(change.detail),
+      created_at: new Date().toISOString(),
+    })
+    return { mutation, id }
+  }
+
   // --- Item dependency mutations (Addendum 3.20, master partition) ---
 
   function addItemDependency(
@@ -737,6 +818,11 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   return {
+    updateGeneratedTripItem,
+    registerTripSource,
+    writeGeneratedPosition,
+    deleteGeneratedPosition,
+    logAppliedChange,
     // Trip items
     startPackingNow,
     // The primitive the four pack helpers are built on. Exported because

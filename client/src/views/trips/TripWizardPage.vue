@@ -497,6 +497,11 @@ function createTrip() {
     attributes: attributes.value,
     travelers: travelers.value.map((t) => ({ name: t.name.trim() })),
     items,
+    // FR-27.4: what the trip follows from here on. The picks, not the
+    // resolved composition — a group reached through a Vorlage is followed
+    // *because* the Vorlage includes it, and re-resolving that link each
+    // time is what lets a group added to the Vorlage later reach the trip.
+    sourceTemplateIds: [...selectedTemplateIds.value],
     seriesId: seriesChoice.value && seriesChoice.value !== 'new' ? seriesChoice.value : null,
     newSeriesName: seriesChoice.value === 'new' ? newSeriesName.value.trim() : null,
     checklistItems: includeChecklist.value

@@ -78,11 +78,15 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    FR-27.7 tasks materialise as ordinary FR-7.3 todos on the generated rows, and M3 step 3 is
    scope-shaped (FR-27.6) with an e2e unit behind it. Include order is **derived, not inherited**
    from storage (`includedTemplatesOf`) — it decides a merged row's provenance, and the rows
-   arrive unordered. Still owed: the **FR-27.4 planning-trip refresh diff** with its M2
-   applied-changes chip (which also unblocks the log halves of E2E-M8-09/M8-11 and M14-04), the
-   **M21 screen** (FR-27.5), **portable YAML** for includes and tasks, **FR-27.3**'s single-item
-   add in step 3, and **FR-27.10**'s whole-group add to a running trip. Schema and sync wiring
-   were already done (migration 016).
+   arrive unordered. **The FR-27.4 planning-trip refresh is done too** (2026-08-18, migration 023,
+   ADR-016): a planning trip follows its registered sources on every open and after every master
+   pull, manual edits always win — decided against a ledger of what generation last produced, which
+   is also what keeps a hand-deleted row deleted — and M2 carries the applied-changes chip. That
+   unblocked E2E-M8-09 and the log halves of M8-11 and M14-04. Still owed: the **M21 screen**
+   (FR-27.5), **portable YAML** for includes and tasks — which is also why the Local Mode backup
+   does not carry the FR-27.4 tables — **FR-27.3**'s single-item add in step 3, and **FR-27.10**'s
+   whole-group add to a running trip (its plumbing exists: `sourceTemplateIds` on the wizard draft
+   and `registerTripSource`). Schema and sync wiring were already done (migration 016).
 3. **The design foundation, then the remaining screen rebuilds** — in that order, decided by
    the owner 2026-08-14 after M4 and M5 were compared with the prototype. The plan is
    `dev-docs/design-foundation-plan.md`; read it before starting either half.
@@ -248,6 +252,7 @@ Test-first: every behaviour starts as a failing test that reads as its specifica
 - **An ADR is owed only for a real tradeoff** — options weighed, one chosen at a cost. Not for additive config fields or mechanical refactors.
 - Run `/pr-review` on your own PR before asking for the go-ahead — **every PR, and its verdict comment is the evidence it happened**. A missing verdict is itself a blocker, not a formality skipped: of the four PRs merged on 2026-08-17, #103 got no review at all and two of the reviewed ones marked coverage ✅ for a feature the diff only half contained (see the skill's §4.0).
 - English throughout. Comments justify *why*, never *what*; godoc on exported symbols is mandatory.
+- **No magic strings or numbers** (CODING_PRINCIPLES §4a): a literal that is compared against, switched on, or repeated across files is named once — `store.Table*`/`RoleOwner` in Go, `TABLE` in `client/src/types/tables.ts`. `goconst` is the Go floor; serialization keys are the documented carve-out.
 - Standard library first — a new dependency needs a one-line justification; footprint is a first-class concern (NFR-4.3).
 - Conventional Commits, allowed types `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci` (`build:` only where Dependabot generates it). Reference spec ids (`FR-5.4`, `NFR-4.2a`) when implementing them.
 

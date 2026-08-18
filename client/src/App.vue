@@ -109,7 +109,11 @@ onMounted(async () => {
   window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired)
   orchestrator?.connect()
   // Initial pull of master data (no-op in Local Mode)
-  orchestrator?.drainMaster()
+  await orchestrator?.drainMaster()
+  // FR-27.4: a group edited on another device arrives with that pull, and
+  // the planning trips that follow it move before the user reads a list
+  // that is quietly out of date.
+  orchestrator?.refreshLoadedPlanningTrips()
 })
 
 onUnmounted(() => {

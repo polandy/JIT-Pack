@@ -46,7 +46,7 @@ import { safeFilename, saveText } from '@/lib/download'
 import { parseTripFilter, TRIP_FILTER_QUERY, type TripFilter } from './tripFilter'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { Trip } from '@/types/domain'
+import type { AppliedChange, Trip } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import SearchRow from '@/components/global/SearchRow.vue'
 import { tripOrderKey } from '@/domain/trips'
@@ -222,6 +222,44 @@ const collaborative = localStorage.getItem('jitpack_mode') === 'server' && !!loa
 // there is a single account that owns everything, so it's always allowed;
 // in collaborative mode we check the roster against our own id.
 const myUserId = ref<string | null>(null)
+/** FR-27.4: the trip whose applied-changes log is open, if any. */
+const expandedApplied = ref<string | null>(null)
+
+function toggleApplied(tripId: string) {
+  expandedApplied.value = expandedApplied.value === tripId ? null : tripId
+}
+
+/**
+ * What the refresh took over on this trip. Only *planning* trips can have
+ * moved (FR-27.4), and asking the store rather than filtering on status
+ * alone keeps the chip honest if a trip is activated while the list is open.
+ */
+function appliedChanges(trip: Trip): AppliedChange[] {
+  if (trip.status !== 'planning') return []
+  return store.getAppliedChanges(trip.id)
+}
+
+/**
+ * The log stores *what* changed, never a sentence — the row is synced and a
+ * sentence would freeze one language into the database. The wording happens
+ * here, and an unrecognised field falls back to the plain "changed" line
+ * rather than rendering a raw column name at the user.
+ */
+function describeApplied(entry: AppliedChange): string {
+  const params = { group: entry.source_template_name, item: entry.item_name }
+  if (entry.kind === 'added') return t('trips.appliedAdded', params)
+  if (entry.kind === 'removed') return t('trips.appliedRemoved', params)
+  if (entry.detail?.field === 'quantity') {
+    return t('trips.appliedQuantity', {
+      ...params,
+      from: String(entry.detail.from),
+      to: String(entry.detail.to),
+    })
+  }
+  if (entry.detail?.field === 'tasks') return t('trips.appliedTasks', params)
+  return t('trips.appliedChanged', params)
+}
+
 onMounted(async () => {
   if (collaborative) myUserId.value = (await orchestrator.fetchMe())?.user_id ?? null
 })
@@ -409,6 +447,30 @@ async function handleRefresh(event: CustomEvent) {
                      With neither, its year is what it is called by. -->
                   <p data-testid="trip-when">{{ tripWhen(trip) }}</p>
                   <p>{{ itemSummary(trip) }}</p>
+                  <!-- FR-27.4: a *planned* trip follows its source groups.
+                     The row says so when that happened — quietly, and
+                     expandable — because a list that changed under you with
+                     no trace reads as data loss. Active and archived rows
+                     never carry it: they are frozen. -->
+                  <div v-if="appliedChanges(trip).length" class="applied">
+                    <button
+                      class="chip applied-chip"
+                      :data-testid="`m2-applied-chip-${trip.name}`"
+                      @click.stop.prevent="toggleApplied(trip.id)"
+                    >
+                      {{ t('trips.appliedChip', { n: appliedChanges(trip).length }) }}
+                    </button>
+                    <div
+                      v-if="expandedApplied === trip.id"
+                      class="applied-log"
+                      :data-testid="`m2-applied-log-${trip.name}`"
+                    >
+                      <p v-for="entry in appliedChanges(trip)" :key="entry.id">
+                        {{ describeApplied(entry) }}
+                      </p>
+                      <p class="frozen-note">{{ t('trips.appliedFrozen') }}</p>
+                    </div>
+                  </div>
                 </IonLabel>
               </IonItem>
 
@@ -552,6 +614,30 @@ async function handleRefresh(event: CustomEvent) {
   fill: var(--ion-text-color);
   transform: rotate(90deg);
   transform-origin: 18px 18px;
+}
+
+/* FR-27.4: the applied-changes chip and its log. An action inside a row
+   that is itself a link, so it stops the tap — expanding the log must not
+   also open the trip. */
+.applied {
+  margin-top: 6px;
+}
+
+.applied-chip {
+  background: var(--jp-surface-sunken);
+  color: var(--jp-action);
+  border: none;
+  border-radius: var(--jp-r2);
+  padding: 2px 8px;
+}
+
+.applied-log {
+  margin-top: 6px;
+  color: var(--ct-subtext0);
+}
+
+.applied-log .frozen-note {
+  color: var(--ct-overlay1);
 }
 
 /* G-9: on desktop the FAB could be inline in header */

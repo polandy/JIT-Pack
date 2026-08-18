@@ -18,14 +18,18 @@ export interface SeedOutcome {
 }
 
 export async function seedSampleData(orchestrator: Orchestrator): Promise<SeedOutcome> {
-  const [{ seedSampleMaster }, { seedSampleTrip }] = await Promise.all([
+  const [{ seedSampleMaster }, { seedSampleTrip, seedPlannedTrip }] = await Promise.all([
     import('./sampleMaster'),
     import('./sampleTrip'),
   ])
   const master = seedSampleMaster(orchestrator)
   const tripId = seedSampleTrip(orchestrator)
+  // FR-27.4 needs a trip that is still being planned; the one above is
+  // active on purpose (FR-9.1 flags) and therefore frozen.
+  const plannedTripId = seedPlannedTrip(orchestrator, master.vacationTemplateId)
+  orchestrator.refreshPlanningTrip(plannedTripId)
   return {
     tripId,
-    summary: `Beispieldaten: ${master.itemCount} Artikel, ${master.groupIds.length} Gruppen, 1 Vorlage, 1 Reise`,
+    summary: `Beispieldaten: ${master.itemCount} Artikel, ${master.groupIds.length} Gruppen, 1 Vorlage, 2 Reisen (1 geplant)`,
   }
 }

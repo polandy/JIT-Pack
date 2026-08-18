@@ -54,6 +54,16 @@ func (s *Store) ExportFull(ctx context.Context, userID string) (FullExport, erro
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, one},
 		{TableComments, `SELECT x.* FROM comments x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, one},
+		// FR-27.4: a restore without these would leave a planning trip
+		// following nothing, or — worse — following its groups with no record
+		// of what it already produced, which reads every existing row as a
+		// manual edit and every position as new.
+		{TableTripTemplateSources, `SELECT x.* FROM trip_template_sources x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, one},
+		{TableTripGeneratedPositions, `SELECT x.* FROM trip_generated_positions x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, one},
+		{TableTripAppliedChanges, `SELECT x.* FROM trip_applied_changes x
+			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, one},
 	}
 
 	export := FullExport{

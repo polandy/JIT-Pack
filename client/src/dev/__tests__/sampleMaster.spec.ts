@@ -130,7 +130,12 @@ describe('seedSampleData (dev)', () => {
     const outcome = await seedSampleData(orchestrator)
 
     expect(outcome.tripId).toBeTruthy()
-    expect(outcome.summary).toBe('Beispieldaten: 15 Artikel, 3 Gruppen, 1 Vorlage, 1 Reise')
+    // Two trips since FR-27.4: the sample trip is active on purpose (FR-9.1
+    // flags) and therefore frozen, so a *planned* one is what makes the
+    // planning refresh visible at all.
+    expect(outcome.summary).toBe(
+      'Beispieldaten: 15 Artikel, 3 Gruppen, 1 Vorlage, 2 Reisen (1 geplant)',
+    )
   })
 
   it('rejects rather than resolving quietly when a seed step fails', async () => {

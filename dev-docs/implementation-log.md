@@ -2952,3 +2952,87 @@ Rendered and eyeballed before the case was finalised: the menu, the snackbar
 Five e2e cases in `client/e2e/skip-item.spec.ts`, mutation-proved in both
 directions with a rebuild between runs — removing the menu entry reddens the four
 M4 cases and leaves M5 green, removing the M5 control reddens M5 alone.
+
+## 2026-08-18 — FR-27.4: a planned trip follows the groups it was made from
+
+The last mechanical piece of the §3.27 client package. A group edited after a
+trip was generated used to reach nothing: the M8 blast-radius note *warned*
+about a propagation that did not exist. It exists now — migration 023, ADR-016
+— and the shape of it was decided by one question the schema could not answer.
+
+**"Manual edits always win" is not a rule until something can evaluate it.**
+The trip row says 5, the group says 3. Did the user set 5, or did the group say
+5 last week? Comparing the row against the *current* template cannot tell, so
+the refresh keeps a ledger of what generation last produced per position
+(`trip_generated_positions`). Row equals the snapshot → untouched, an update may
+land. Row differs → theirs, leave it. **Ledger entry with no row at all → they
+deleted it, and it never comes back** — which is the case a snapshot column on
+`trip_items` cannot express, because it dies with the row it describes, and the
+reason that option lost. The full weighing is ADR-016.
+
+Three things settled while building, each of which changes behaviour:
+
+* **Protection is broader than the snapshot.** A row is also the user's once
+  packing has begun on it or it was skipped (FR-5.5) — a template edit must not
+  rewrite a count somebody physically verified, nor quietly undo a decision.
+* **A protected row's snapshot is deliberately not refreshed.** Nudging it
+  forward would hand the row back to the template the moment the user reverted
+  their own edit, which is the opposite of what FR-27.4 promises.
+* **Travelers are part of what a trip follows.** The diff re-resolves against
+  the *current* roster, so a person added to a planning trip gets the per-person
+  positions (FR-25.8) and one removed takes their untouched rows along. That
+  falls out of re-resolution rather than being built, but it is a decision, so
+  it is written down and tested.
+
+**Two devices, one trip.** Both pull the same group edit, both run the refresh,
+and with random ids both insert their own row — a duplicate produced by the
+feature whose job is to keep the list right. The ids of propagated rows and
+ledger entries are therefore *derived* from (trip, item, traveler), so the two
+inserts are one row that the NFR-4.2a merge resolves. The cost is that trip-item
+ids stop being opaque; nothing depends on that today, and ADR-016 carries the
+revisit trigger.
+
+**Why a diff and not a push from M8.** M8, M14 and M21 all write to a group, and
+a group edit can equally arrive over sync from another device, which no screen
+here could have pushed. One re-resolution on trip open and after a master pull
+covers all four; the alternative was four call sites that must each remember.
+It also means **M14 owes nothing extra**: applying a proposal writes to the
+group, and the trips following it log it on their next open.
+
+**Nothing lands silently.** `trip_applied_changes` is the log behind M2's chip,
+and it stores *structured* detail (`{"field":"quantity","from":2,"to":3}`) rather
+than a sentence — the row syncs, and a sentence would freeze one language into
+the database. The view words it.
+
+Partitioning split by **who reads a table, not what it is about**: the ledger
+travels the trip partition beside the rows it describes, while the registry and
+the log travel the master partition like `trip_members`, because M2 renders its
+chip and M8 its note with no trip partition loaded.
+
+Existing trips deliberately do not move: they have no registered sources, and
+deriving sources from `trip_items.source_template_id` was rejected for the same
+reason as the snapshot column — it guesses at rows the user may have removed on
+purpose.
+
+E2E-M8-09 runs the whole circle (edit the group → open the trip → the row is
+there → M2 names it), mutation-proved in both directions and repeated three
+times on both browsers. The frozen case stayed a component test: reaching an
+*active* trip in the browser still needs the planning→active transition no UI
+ships. The dev seed grew a second, *planned* trip for the same reason — the
+existing sample trip is active on purpose and therefore frozen, so without it
+the feature cannot be looked at.
+
+### The §4a pass that came with it
+
+The owner stopped the PR twice on the same thing: `case "trip_template_sources":`
+and a triple-nested `append`. The rule existed in one line of a personal
+CLAUDE.md and nowhere binding, so it became CODING_PRINCIPLES §4a — what must be
+named, what may stay a literal, where the constant lives — with `goconst` as the
+Go floor. The carve-out is written down rather than silently configured: a JSON
+field name in a payload literal is the wire contract itself, fixed by the
+Sync-API spec, and a constant between the code and the shape it implements hides
+what a reader came to check. Go now names its tables, trip roles and portable
+document kinds; the client gets the same table list as `TABLE`, and the
+orchestrator's two routing sets are hoisted out of `onPullChanges` rather than
+rebuilt on every pull. The failure this prevents is specific: a table missing
+from both routing sets is dropped in silence.

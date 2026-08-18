@@ -24,6 +24,7 @@ import type { PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
 import { planClone, type CloneOptions } from '@/domain/clone'
+import { isEmptyPlan, planRefresh, type RefreshPlan } from '@/domain/refresh'
 import {
   pairWrites,
   releasePartnersOnDelete,
@@ -95,6 +96,13 @@ export interface TripWizardDraft {
   checklistItems?: { label: string; mode: ItemMode }[]
   /** Share with user accounts (FR-4.5) — the creator's Owner row is server-made. */
   members?: { userId: string; role: 'admin' | 'editor' }[]
+  /**
+   * FR-27.4: the templates the user picked, registered as the trip's
+   * sources so it keeps following them while it is being planned. Empty
+   * for a trip generated from nothing — it then never moves, which is
+   * correct rather than a gap.
+   */
+  sourceTemplateIds?: string[]
 }
 
 /** cloneTrip input (FR-12.2): fresh name/dates plus the carry-over options. */
@@ -767,6 +775,142 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     }
   }
 
+  // --- The planning-trip refresh (FR-27.4) ---
+
+  /** The optimistic PullChange for a write — applied before the push lands. */
+  function change(
+    table: string,
+    id: string,
+    fields: Record<string, unknown> | undefined,
+  ): PullChange {
+    return { seq: 0, table, id, deleted: false, row: (fields ?? {}) as Record<string, unknown> }
+  }
+
+  function tombstone(table: string, id: string): PullChange {
+    return { seq: 0, table, id, deleted: true, row: null }
+  }
+
+  /**
+   * refreshPlanningTrip re-resolves one trip against the templates it
+   * follows and applies what moved. A no-op unless the trip is in
+   * *planning* status and something actually changed — it runs on every
+   * trip open and after every master pull, so the empty plan is the
+   * normal case and must cost nothing.
+   *
+   * Returns the plan it applied, so a caller (and a test) can assert what
+   * happened rather than infer it from the resulting rows.
+   */
+  function refreshPlanningTrip(tripId: string): RefreshPlan | null {
+    const trip = tripStore.getTrip(tripId)
+    if (!trip) return null
+
+    const plan = planRefresh({
+      trip,
+      sources: tripStore.getTemplateSources(tripId),
+      templates: masterStore.templateList,
+      includes: masterStore.includeList,
+      templateItems: [...masterStore.templateList].flatMap((t) =>
+        masterStore.getTemplateItems(t.id),
+      ),
+      templateItemTasks: masterStore.templateItemTaskList,
+      masterItems: masterStore.itemList,
+      travelers: tripStore.getTravelers(tripId),
+      items: tripStore.getItems(tripId),
+      todos: tripStore.getTodos(tripId),
+      ledger: tripStore.getGeneratedPositions(tripId),
+    })
+    if (isEmptyPlan(plan)) return plan
+
+    for (const add of plan.add) {
+      const travelerId = add.traveler_id
+      const { mutation, id } = mutations.addGeneratedTripItem(
+        tripId,
+        add.generated,
+        travelerId,
+        add.trip_item_id,
+      )
+      enqueueAndDrain('trip', tripId, {
+        mutation,
+        optimistic: change(TABLE.tripItems, id, mutation.fields),
+      })
+      // FR-27.7: the position's tasks arrive as ordinary prep todos, the
+      // same shape generation writes — enqueued after the row they hang
+      // off, or the server rejects the foreign key.
+      for (const body of add.generated.tasks) {
+        addPrepTodo(tripId, id, CLIENT_ACTOR_PLACEHOLDER, body)
+      }
+    }
+
+    for (const update of plan.update) {
+      if (Object.keys(update.fields).length > 0) {
+        const mutation = mutations.updateGeneratedTripItem(update.item.id, update.fields)
+        enqueueAndDrain('trip', tripId, {
+          mutation,
+          optimistic: change(TABLE.tripItems, update.item.id, {
+            ...itemRow(update.item),
+            ...mutation.fields,
+          }),
+        })
+      }
+      for (const body of update.addTasks) {
+        addPrepTodo(tripId, update.item.id, CLIENT_ACTOR_PLACEHOLDER, body)
+      }
+      for (const todo of update.removeTodos) {
+        enqueueAndDrain('trip', tripId, {
+          mutation: mutations.deleteTodo(todo.id),
+          optimistic: tombstone(TABLE.comments, todo.id),
+        })
+      }
+    }
+
+    for (const removal of plan.remove) {
+      enqueueAndDrain('trip', tripId, {
+        mutation: mutations.deleteTripItem(removal.item.id),
+        optimistic: tombstone(TABLE.tripItems, removal.item.id),
+      })
+    }
+
+    for (const entry of plan.ledgerUpsert) {
+      const mutation = mutations.writeGeneratedPosition(entry)
+      enqueueAndDrain('trip', tripId, {
+        mutation,
+        optimistic: change(TABLE.tripGeneratedPositions, entry.id, mutation.fields),
+      })
+    }
+
+    for (const entryId of plan.ledgerDelete) {
+      enqueueAndDrain('trip', tripId, {
+        mutation: mutations.deleteGeneratedPosition(entryId),
+        optimistic: tombstone(TABLE.tripGeneratedPositions, entryId),
+      })
+    }
+
+    // The log travels the master partition so M2 can render the chip
+    // without this trip's partition being loaded (P-3, migration 023).
+    for (const entry of plan.log) {
+      const { mutation, id } = mutations.logAppliedChange(entry)
+      enqueueAndDrain('master', null, {
+        mutation,
+        optimistic: change(TABLE.tripAppliedChanges, id, mutation.fields),
+      })
+    }
+
+    return plan
+  }
+
+  /**
+   * refreshLoadedPlanningTrips runs the refresh for every trip this device
+   * actually holds. Called after a master pull: a group edited on another
+   * device arrives there, and the trips that follow it must move before
+   * the user reads a list that is quietly out of date.
+   */
+  function refreshLoadedPlanningTrips(): void {
+    for (const trip of tripStore.tripList) {
+      if (trip.status !== 'planning') continue
+      refreshPlanningTrip(trip.id)
+    }
+  }
+
   /**
    * createTripFromWizard commits an M3 draft: the trips row goes to the
    * master partition, travelers and generated items to the new trip's
@@ -884,6 +1028,23 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         ])
         if (!local) outbox.enqueue('trip', tripId, todoMut)
       }
+    }
+
+    // FR-27.4: what the trip follows from here on. Registered after the
+    // trips row and in the same master queue — the server resolves the FK
+    // against a trip it has already created.
+    for (const templateId of draft.sourceTemplateIds ?? []) {
+      const { mutation, id } = mutations.registerTripSource(tripId, templateId)
+      onPullChanges([
+        {
+          seq: 0,
+          table: TABLE.tripTemplateSources,
+          id,
+          deleted: false,
+          row: mutation.fields as Record<string, unknown>,
+        },
+      ])
+      if (!local) outbox.enqueue('master', null, mutation)
     }
 
     for (const chk of draft.checklistItems ?? []) {
@@ -2294,6 +2455,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     // Actions
     createTripFromWizard,
+    refreshPlanningTrip,
+    refreshLoadedPlanningTrips,
     cloneTrip,
     commitImport,
     commitPortableImport,

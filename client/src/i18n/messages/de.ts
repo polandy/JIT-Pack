@@ -444,6 +444,17 @@ export const de: Record<keyof typeof en, string> = {
   'templates.peekPerPerson': 'pro Person',
   'templates.peekConditional': 'mit Bedingung',
 
+
+  // FR-27.4 — was eine geplante Reise aus ihren Gruppen übernommen hat.
+  'trips.appliedChip':
+    '⟳ {n} Änderung aus Gruppen übernommen | ⟳ {n} Änderungen aus Gruppen übernommen',
+  'trips.appliedFrozen': 'Laufende & vergangene Reisen bleiben unverändert.',
+  'trips.appliedAdded': '„{group}“: {item} dazugekommen',
+  'trips.appliedRemoved': '„{group}“: {item} entfernt',
+  'trips.appliedQuantity': '„{group}“: {item} — Menge {from} → {to}',
+  'trips.appliedTasks': '„{group}“: {item} — Vorbereitung geändert',
+  'trips.appliedChanged': '„{group}“: {item} geändert',
+
   'settings.language': 'Sprache',
   'settings.languageHint': 'Nur auf diesem Gerät.',
   'settings.languageEnglish': 'Englisch',
