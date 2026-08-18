@@ -43,10 +43,13 @@ function change(table: string, id: string, row: Record<string, unknown>): PullCh
  * `connect()` is awaited by every caller, because it is what marks the
  * device hydrated: the refresh refuses to run before that, and rightly so.
  */
-async function localOrchestrator() {
+const TODAY = '2026-01-15'
+
+async function localOrchestrator(today = TODAY) {
   const orch = useSyncOrchestrator({
     baseUrl: 'http://localhost',
     getToken: () => null,
+    today: () => today,
     local: {
       save: () => Promise.resolve(),
       load: () => Promise.resolve([]),
@@ -58,9 +61,9 @@ async function localOrchestrator() {
 }
 
 /** One planning trip that follows one group carrying one position. */
-function seedWorld(status = 'planning') {
+function seedWorld(status = 'planning', endDate: string | null = '2026-02-08') {
   useTripStore().applyChanges([
-    change(TABLE.trips, TRIP_ID, { name: 'Samedan', year: 2026, status }),
+    change(TABLE.trips, TRIP_ID, { name: 'Samedan', year: 2026, status, end_date: endDate }),
     change(TABLE.tripTemplateSources, 'src-1', { trip_id: TRIP_ID, template_id: GROUP_ID }),
   ])
   useMasterStore().applyChanges([
@@ -141,8 +144,31 @@ describe('refreshPlanningTrip (FR-27.4)', () => {
     })
   })
 
-  it('leaves an active trip alone — the freeze is absolute', async () => {
+  it('still follows a running trip — departure does not freeze it', async () => {
+    // Owner rule 2026-08-18: only the past is frozen. A running trip hears
+    // about the group edit; asking before applying is the next step.
     const orch = await localOrchestrator()
+    const tripStore = useTripStore()
+    seedWorld('active')
+
+    orch.refreshPlanningTrip(TRIP_ID)
+
+    expect(tripStore.getItems(TRIP_ID)).toHaveLength(1)
+  })
+
+  it('leaves an archived trip alone — the freeze is the past', async () => {
+    const orch = await localOrchestrator()
+    const tripStore = useTripStore()
+    seedWorld('archived')
+
+    orch.refreshPlanningTrip(TRIP_ID)
+
+    expect(tripStore.getItems(TRIP_ID)).toEqual([])
+    expect(tripStore.getAppliedChanges(TRIP_ID)).toEqual([])
+  })
+
+  it('leaves a trip whose end date has passed alone, open or not', async () => {
+    const orch = await localOrchestrator('2026-02-09')
     const tripStore = useTripStore()
     seedWorld('active')
 
@@ -169,19 +195,32 @@ describe('refreshPlanningTrip (FR-27.4)', () => {
     expect(tripStore.getItemTodos(TRIP_ID, item.id).map((t) => t.body)).toEqual(['Akkus laden'])
   })
 
-  it('refreshes every loaded planning trip, and only those', async () => {
+  it('sweeps every trip that still follows its groups, and skips the past ones', async () => {
     const orch = await localOrchestrator()
     const tripStore = useTripStore()
     seedWorld()
     useTripStore().applyChanges([
-      change(TABLE.trips, 'trip-2', { name: 'Läuft schon', year: 2026, status: 'active' }),
+      change(TABLE.trips, 'trip-2', {
+        name: 'Läuft schon',
+        year: 2026,
+        status: 'active',
+        end_date: '2026-03-01',
+      }),
       change(TABLE.tripTemplateSources, 'src-2', { trip_id: 'trip-2', template_id: GROUP_ID }),
+      change(TABLE.trips, 'trip-3', {
+        name: 'Letztes Jahr',
+        year: 2025,
+        status: 'archived',
+        end_date: '2025-08-01',
+      }),
+      change(TABLE.tripTemplateSources, 'src-3', { trip_id: 'trip-3', template_id: GROUP_ID }),
     ])
 
     orch.refreshLoadedPlanningTrips()
 
     expect(tripStore.getItems(TRIP_ID)).toHaveLength(1)
-    expect(tripStore.getItems('trip-2')).toEqual([])
+    expect(tripStore.getItems('trip-2')).toHaveLength(1)
+    expect(tripStore.getItems('trip-3')).toEqual([])
   })
 })
 

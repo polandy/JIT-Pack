@@ -24,7 +24,7 @@ import type { PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
 import { planClone, type CloneOptions } from '@/domain/clone'
-import { isEmptyPlan, planRefresh, type RefreshPlan } from '@/domain/refresh'
+import { followsGroups, isEmptyPlan, planRefresh, type RefreshPlan } from '@/domain/refresh'
 import {
   pairWrites,
   releasePartnersOnDelete,
@@ -115,6 +115,18 @@ export interface CloneDraft {
   options: CloneOptions
 }
 
+/**
+ * localIsoDate is `YYYY-MM-DD` in the device's own timezone.
+ * `toISOString()` would answer in UTC, which puts a trip a day out for
+ * anyone far enough east or west of it on the evening it ends.
+ */
+function localIsoDate(): string {
+  const d = new Date()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${month}-${day}`
+}
+
 export interface SyncOrchestratorConfig {
   baseUrl: string
   getToken: TokenProvider
@@ -129,6 +141,13 @@ export interface SyncOrchestratorConfig {
    * is ever touched. The optimistic rows are authoritative.
    */
   local?: IndexedDBPersistence
+  /**
+   * The clock behind FR-27.4's "is this trip past?" question. Injected so a
+   * test can stand on either side of a trip's end date without moving the
+   * machine's clock; defaults to the local date, not UTC, because the day a
+   * trip ends is the day the traveller is living in.
+   */
+  today?: () => string
   /**
    * FR-6.2 in-app channel: invoked for each incoming notification —
    * live ones (notification.created) and unread ones found on connect.
@@ -177,6 +196,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const masterStore = useMasterStore()
   const syncStatus = useSyncStatus()
   const local = config.local ?? null
+  const today = config.today ?? localIsoDate
   if (local) syncStatus.setLocal()
 
   // G-10: per-trip presence, fed by the WS presence event.
@@ -803,10 +823,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   /**
    * refreshPlanningTrip re-resolves one trip against the templates it
-   * follows and applies what moved. A no-op unless the trip is in
-   * *planning* status and something actually changed — it runs on every
-   * trip open and after every master pull, so the empty plan is the
-   * normal case and must cost nothing.
+   * follows and applies what moved. A no-op unless the trip still follows
+   * its groups (followsGroups: not archived, not past its end date) and
+   * something actually changed — it runs on every trip open and after every
+   * master pull, so the empty plan is the normal case and must cost nothing.
    *
    * Returns the plan it applied, so a caller (and a test) can assert what
    * happened rather than infer it from the resulting rows.
@@ -830,6 +850,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       items: tripStore.getItems(tripId),
       todos: tripStore.getTodos(tripId),
       ledger: tripStore.getGeneratedPositions(tripId),
+      today: today(),
     })
     if (isEmptyPlan(plan)) return plan
 
@@ -927,8 +948,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * the user reads a list that is quietly out of date.
    */
   function refreshLoadedPlanningTrips(): void {
+    const now = today()
     for (const trip of tripStore.tripList) {
-      if (trip.status !== 'planning') continue
+      if (!followsGroups(trip, now)) continue
       refreshPlanningTrip(trip.id)
     }
   }

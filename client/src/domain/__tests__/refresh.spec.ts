@@ -6,7 +6,14 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { isEmptyPlan, ledgerId, planRefresh, propagatedItemId, type RefreshInput } from '../refresh'
+import {
+  followsGroups,
+  isEmptyPlan,
+  ledgerId,
+  planRefresh,
+  propagatedItemId,
+  type RefreshInput,
+} from '../refresh'
 import type {
   GeneratedPosition,
   ItemTodo,
@@ -22,6 +29,7 @@ import type {
 } from '@/types/domain'
 
 const TRIP_ID = 'trip-1'
+const TODAY = '2026-01-15'
 const GROUP_ID = 'grp-makro'
 
 function trip(extra: Partial<Trip> = {}): Trip {
@@ -162,19 +170,53 @@ function input(extra: Partial<RefreshInput> = {}): RefreshInput {
     items: [],
     todos: [],
     ledger: [],
+    today: TODAY,
     ...extra,
   }
 }
 
+describe('followsGroups — which trips still listen (FR-27.4)', () => {
+  it('follows a trip that has not departed', () => {
+    expect(followsGroups(trip({ status: 'planning' }), TODAY)).toBe(true)
+  })
+
+  it('follows a running trip — the freeze is the past, not the departure', () => {
+    // The owner's rule (2026-08-18) replaced the planning/active split: a
+    // running trip still hears about a group edit, it just gets asked first.
+    expect(followsGroups(trip({ status: 'active' }), TODAY)).toBe(true)
+  })
+
+  it('stops at an archived trip, however far the group has drifted', () => {
+    expect(followsGroups(trip({ status: 'archived' }), TODAY)).toBe(false)
+  })
+
+  it('stops once the end date has passed, even while the trip is still open', () => {
+    // The forgotten trip nobody closed. Its packing list is a record now.
+    expect(followsGroups(trip({ status: 'active', end_date: '2026-02-08' }), '2026-02-09')).toBe(
+      false,
+    )
+  })
+
+  it('still follows on the last day — the trip is over when the day is', () => {
+    expect(followsGroups(trip({ status: 'active', end_date: '2026-02-08' }), '2026-02-08')).toBe(
+      true,
+    )
+  })
+
+  it('follows a trip with no end date at all — an absent date decides nothing', () => {
+    expect(followsGroups(trip({ status: 'planning', end_date: null }), '2099-01-01')).toBe(true)
+  })
+})
+
 describe('planRefresh — the freeze (FR-27.4)', () => {
-  it('moves nothing on an active trip, however far the group has drifted', () => {
-    const plan = planRefresh(input({ trip: trip({ status: 'active' }) }))
+  it('moves nothing on an archived trip, however far the group has drifted', () => {
+    const plan = planRefresh(input({ trip: trip({ status: 'archived' }) }))
     expect(isEmptyPlan(plan)).toBe(true)
     expect(plan.log).toEqual([])
   })
 
-  it('moves nothing on an archived trip', () => {
-    const plan = planRefresh(input({ trip: trip({ status: 'archived' }) }))
+  it('moves nothing on a trip whose end date has passed', () => {
+    const plan = planRefresh(input({ trip: trip({ status: 'active' }), today: '2026-02-09' }))
     expect(isEmptyPlan(plan)).toBe(true)
   })
 
