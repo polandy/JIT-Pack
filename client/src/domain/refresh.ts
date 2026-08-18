@@ -1,5 +1,5 @@
 /**
- * The planning-trip refresh (FR-27.4) — pure, no I/O.
+ * The group refresh (FR-27.4) — pure, no I/O.
  *
  * A trip follows the templates it was generated from until it is *past*
  * (followsGroups): positions the group gained, positions it lost, quantity
@@ -255,8 +255,8 @@ export function planRefresh(input: RefreshInput): RefreshPlan {
     trip: {
       duration_days: input.trip.duration_days,
       attributes: input.trip.attributes,
-      // The *current* travelers, deliberately: a person added to a planning
-      // trip gets the per-person positions (FR-25.8) rather than a list that
+      // The *current* travelers, deliberately: a person added to a trip
+      // gets the per-person positions (FR-25.8) rather than a list that
       // silently skips them, and one removed takes their untouched rows with
       // them. The trip follows its plan, and the roster is part of the plan.
       travelers: input.travelers.map((t) => ({ name: t.name })),

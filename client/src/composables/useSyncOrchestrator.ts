@@ -818,7 +818,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     }
   }
 
-  // --- The planning-trip refresh (FR-27.4) ---
+  // --- The group refresh (FR-27.4) ---
 
   /** The optimistic PullChange for a write — applied before the push lands. */
   function change(

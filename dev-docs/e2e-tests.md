@@ -182,7 +182,7 @@ a trip whose end date has gone by, and the wizard's dates are the user's, not
 the clock's — so the boundary lives where it can be stood on from both sides,
 in the `followsGroups` unit with an injected `today`. E2E-M8-11's
 propagation-log half is covered generically by M8-09; the task-specific line
-lives in the `planningRefresh` unit. E2E-M8-05 covers the warning surface
+lives in the `groupRefresh` unit. E2E-M8-05 covers the warning surface
 that exists today, in both directions (the Vorlage names the trip, and the
 group reaches it through the include), plus the absence case *before* the trip
 exists — a positive-signal pairing, not a lone not-there assertion. The sheet's
