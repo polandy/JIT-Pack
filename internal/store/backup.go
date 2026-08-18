@@ -27,32 +27,32 @@ func (s *Store) ExportFull(ctx context.Context, userID string) (FullExport, erro
 		query string
 		args  []any
 	}{
-		{"tags", `SELECT * FROM tags`, nil},
-		{"items", `SELECT * FROM items`, nil},
+		{TableTags, `SELECT * FROM tags`, nil},
+		{TableItems, `SELECT * FROM items`, nil},
 		// The assignments travel with both — an item exported without them
 		// would restore untagged and vanish from every M9 grouping.
-		{"item_tags", `SELECT * FROM item_tags`, nil},
+		{TableItemTags, `SELECT * FROM item_tags`, nil},
 		// Templates are instance-wide master data (FR-1.6 MVP), so they
 		// export unfiltered like tags and items.
-		{"templates", `SELECT * FROM templates`, nil},
-		{"template_items", `SELECT * FROM template_items`, nil},
-		{"template_includes", `SELECT * FROM template_includes`, nil},
-		{"template_item_tasks", `SELECT * FROM template_item_tasks`, nil},
-		{"trip_series", `SELECT * FROM trip_series WHERE owner_id = ?`, one},
-		{"destination_profiles", `SELECT p.* FROM destination_profiles p
+		{TableTemplates, `SELECT * FROM templates`, nil},
+		{TableTemplateItems, `SELECT * FROM template_items`, nil},
+		{TableTemplateIncludes, `SELECT * FROM template_includes`, nil},
+		{TableTemplateItemTasks, `SELECT * FROM template_item_tasks`, nil},
+		{TableTripSeries, `SELECT * FROM trip_series WHERE owner_id = ?`, one},
+		{TableDestinationProfiles, `SELECT p.* FROM destination_profiles p
 			JOIN trip_series s ON s.id = p.series_id WHERE s.owner_id = ?`, one},
-		{"destination_checklist_items", `SELECT ci.* FROM destination_checklist_items ci
+		{TableDestinationChecklistItems, `SELECT ci.* FROM destination_checklist_items ci
 			JOIN destination_profiles p ON p.id = ci.profile_id
 			JOIN trip_series s ON s.id = p.series_id WHERE s.owner_id = ?`, one},
-		{"trips", `SELECT t.* FROM trips t
+		{TableTrips, `SELECT t.* FROM trips t
 			JOIN trip_members m ON m.trip_id = t.id WHERE m.user_id = ?`, one},
-		{"travelers", `SELECT x.* FROM travelers x
+		{TableTravelers, `SELECT x.* FROM travelers x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, one},
-		{"containers", `SELECT x.* FROM containers x
+		{TableContainers, `SELECT x.* FROM containers x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, one},
-		{"trip_items", `SELECT x.* FROM trip_items x
+		{TableTripItems, `SELECT x.* FROM trip_items x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, one},
-		{"comments", `SELECT x.* FROM comments x
+		{TableComments, `SELECT x.* FROM comments x
 			JOIN trip_members m ON m.trip_id = x.trip_id WHERE m.user_id = ?`, one},
 	}
 

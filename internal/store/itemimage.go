@@ -100,7 +100,7 @@ func (s *Store) withImageTx(ctx context.Context, itemID, hash string, blobOp fun
 	}
 
 	if _, err := appendChangeLog(ctx, tx, nil,
-		sync.Mutation{Table: "items", ID: itemID, HLC: hlc}, false); err != nil {
+		sync.Mutation{Table: TableItems, ID: itemID, HLC: hlc}, false); err != nil {
 		return fmt.Errorf("log image_hash change: %w", err)
 	}
 	if err := tx.Commit(); err != nil {

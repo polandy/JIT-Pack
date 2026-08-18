@@ -5,6 +5,7 @@
  * The store itself is a plain data cache; sync orchestration lives elsewhere.
  */
 
+import { TABLE } from '@/types/tables'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type {
@@ -19,7 +20,7 @@ import type {
 } from '@/types/domain'
 import type { PullChange } from '@/api/types'
 
-export const useTripStore = defineStore('trips', () => {
+export const useTripStore = defineStore(TABLE.trips, () => {
   const trips = ref<Map<string, Trip>>(new Map())
   const tripItems = ref<Map<string, TripItem[]>>(new Map())
   const travelers = ref<Map<string, Traveler[]>>(new Map())
@@ -162,7 +163,7 @@ export const useTripStore = defineStore('trips', () => {
     const row = change.row as Record<string, unknown> | null
 
     switch (change.table) {
-      case 'trips':
+      case TABLE.trips:
         if (change.deleted) {
           removeTrip(change.id)
         } else if (row) {
@@ -170,7 +171,7 @@ export const useTripStore = defineStore('trips', () => {
         }
         break
 
-      case 'trip_items':
+      case TABLE.tripItems:
         if (change.deleted) {
           removeTripItem(change.id)
         } else if (row) {
@@ -178,7 +179,7 @@ export const useTripStore = defineStore('trips', () => {
         }
         break
 
-      case 'travelers':
+      case TABLE.travelers:
         if (change.deleted) {
           removeTraveler(change.id)
         } else if (row) {
@@ -186,7 +187,7 @@ export const useTripStore = defineStore('trips', () => {
         }
         break
 
-      case 'containers':
+      case TABLE.containers:
         if (change.deleted) {
           removeContainer(change.id)
         } else if (row) {
@@ -194,7 +195,7 @@ export const useTripStore = defineStore('trips', () => {
         }
         break
 
-      case 'trip_members':
+      case TABLE.tripMembers:
         if (change.deleted) {
           removeMember(change.id)
         } else if (row) {
@@ -202,7 +203,7 @@ export const useTripStore = defineStore('trips', () => {
         }
         break
 
-      case 'comments':
+      case TABLE.comments:
         // One table, two layers: is_task rows are todos/tickets
         // (FR-7.2/7.3), the rest plain comments (FR-7.1). Flagging
         // moves a row between the two, so always clear the other side.

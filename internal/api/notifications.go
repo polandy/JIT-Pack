@@ -127,9 +127,9 @@ func (s *Server) emitNotifications(ctx context.Context, tripID, actor string, mu
 			continue
 		}
 		switch m.Table {
-		case "trip_items":
+		case store.TableTripItems:
 			s.notifyDelegation(ctx, tripID, actor, actorName, m)
-		case "comments":
+		case store.TableComments:
 			if m.Op == syncpkg.OpInsert {
 				s.notifyComment(ctx, tripID, actor, actorName, m, members)
 			}
