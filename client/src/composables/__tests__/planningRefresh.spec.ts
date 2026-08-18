@@ -47,8 +47,11 @@ async function localOrchestrator() {
   const orch = useSyncOrchestrator({
     baseUrl: 'http://localhost',
     getToken: () => null,
-    local: { save: () => Promise.resolve(), load: () => Promise.resolve([]),
-      requestDurability: () => Promise.resolve(true) } as never,
+    local: {
+      save: () => Promise.resolve(),
+      load: () => Promise.resolve([]),
+      requestDurability: () => Promise.resolve(true),
+    } as never,
   })
   await orch.connect()
   return orch
