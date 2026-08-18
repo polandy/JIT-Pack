@@ -274,6 +274,11 @@ every template that includes it and every trip that follows it. The consequence 
 knowing: an import can give you less than the file described. Rename your own group first if
 you want the file's version alongside it.
 
+The same linking applies when you import a **group document** on its own: if a group of that
+name is already here, the import lands on it and changes nothing, rather than leaving a
+second copy behind. Importing a *holiday template* whose name is taken does create a second
+one, suffixed `(import)` — two templates of one name are two different plans.
+
 A group document (`scope: group`) carries no `includes:` — a group is never composed of
 other groups.
 

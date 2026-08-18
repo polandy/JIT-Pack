@@ -160,6 +160,12 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await restored.getByTestId('portable-restore-commit').click()
 
     await restored.getByTestId('rail-templates').click()
+    // Exactly one Makro: the backup carries the group twice — nested in the
+    // Vorlage and as its own document — and a restore that took both at face
+    // value would leave a second one here, suffixed and included by nothing.
+    await expect(
+      visible(restored).locator('ion-item').filter({ hasText: 'Makro' }),
+    ).toHaveCount(1)
     await visible(restored).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
     await expect(restored.getByTestId('header-title')).toHaveText('Fototage')
 

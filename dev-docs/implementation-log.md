@@ -3141,3 +3141,44 @@ group (FR-27.1 is two levels, which is what makes cycles impossible) and an
 unnamed group — at the file boundary, before anything reaches a store. And all
 four client write paths go through one `compositionFrom`, so M7's export, the
 settings export and the backup cannot disagree about what a file contains.
+
+## The identity rule was half a rule (2026-08-18, ADR-017)
+
+Found reviewing the branch that introduced it, before it merged. ADR-017's
+link-or-create rule lived only in the `includes` loop, so it decided what
+happened to a group *nested in a Vorlage* and said nothing about the group's
+own document. A backup carries the same group both ways — the ADR calls that
+redundancy deliberate — so the result depended on which document the file
+listed first:
+
+```
+group-first    -> 1 group :  Makro Fotografie
+vorlage-first  -> 2 groups:  Makro Fotografie | Makro Fotografie (import)
+```
+
+**That order is not stable, which is what made it a defect rather than a
+curiosity.** The file is written in `templateList` order; in Local Mode the
+store is hydrated from IndexedDB with `getAll()` over keys of the form
+`templates/<random hex>`, so the order is arbitrary relative to creation and
+re-rolled on every reload. Roughly half of all restores would have produced a
+duplicate group, included by nothing, carrying a copy of the positions.
+
+E2E-M18-07 passed throughout: it creates the group first in a warm store, which
+is exactly the order that works. The unit cases now run **both** orders through
+`commitPortableRestore`, and the e2e additionally asserts one group in the
+restored list.
+
+**The Go importer had the same hole with a different symptom** — a repeated
+group document hit `UNIQUE(owner_id, name)` and failed the import outright. It
+already had an `ensureGroup` helper doing link-or-create for nested groups; the
+document path now goes through it too.
+
+**What the rule is, stated properly:** it belongs to the *group*, not to where
+in a file the group appears. Ferien-Vorlagen deliberately keep the `(import)`
+suffix instead — two of one name are two different plans, and linking them
+would lose one.
+
+Method note: the two mutation proofs of this fix were nearly worthless. The
+first pass mutated an **uncommitted** implementation and then reverted it with
+`git checkout`, so the second "proof" ran against code that had never had the
+fix at all — a red test proving nothing. Commit first, then mutate.

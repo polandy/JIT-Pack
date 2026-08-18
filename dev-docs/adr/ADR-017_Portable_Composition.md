@@ -82,6 +82,8 @@ With Option A the same group can arrive twice — from its own document and from
 * **links** to an existing group of that name rather than creating a second one, and
 * **never rewrites** its positions from the file.
 
+**The rule belongs to the group, not to where in a file it appears.** A group's own document and a Vorlage's `includes:` entry are the same group, so both go through the same link-or-create step. Applying it to the nested case alone made the result depend on document order — a backup is written in `templateList` order, which in Local Mode comes from IndexedDB keyed by a random id and is re-rolled on every reload, so a Vorlage listed before its group restored *two* groups, the second one included by nothing. The rule is deliberately **not** extended to Ferien-Vorlagen: two of one name are two different plans, and merging them would lose one, so that path keeps its `(import)` suffix.
+
 The second half is the one that matters. The file may be older than the group, may come from a stranger, and the group may be included by other Vorlagen and followed by other people's trips (FR-27.4). Import is not the place to edit shared data. The cost is that an import can silently give you *less* than the file described — a Vorlage linked to your "Makro Fotografie", not the author's — which is the right failure: your data wins over a file you just opened.
 
 ## Consequences
