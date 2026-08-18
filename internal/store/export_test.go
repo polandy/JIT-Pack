@@ -415,3 +415,58 @@ func TestImportTemplate_LinksAnExistingGroupWithoutRewritingIt(t *testing.T) {
 		t.Errorf("existing group was rewritten: %+v", existing.Items)
 	}
 }
+
+// TestImportTemplate_LinksAGroupDocumentToTheExistingGroup pins ADR-017's
+// identity rule on a group's *own* document, not only on the groups a
+// Ferien-Vorlage carries nested: a backup names the same group both ways, so
+// importing the standalone document must land on the group already here
+// rather than on a second copy of it.
+func TestImportTemplate_LinksAGroupDocumentToTheExistingGroup(t *testing.T) {
+	st := openTestStore(t)
+	ctx := context.Background()
+	seedOwner(t, st)
+
+	first, err := st.ImportTemplate(ctx, "u1", portable.Document{
+		Kind:  portable.KindTemplate,
+		Scope: portable.ScopeGroup,
+		Name:  "Makro Fotografie",
+		Items: []portable.Item{{Name: "Stativ", Quantity: 1}},
+	})
+	if err != nil {
+		t.Fatalf("seed group: %v", err)
+	}
+
+	second, err := st.ImportTemplate(ctx, "u1", portable.Document{
+		Kind:  portable.KindTemplate,
+		Scope: portable.ScopeGroup,
+		Name:  "Makro Fotografie",
+		Items: []portable.Item{{Name: "Kamera", Quantity: 1}},
+	})
+	if err != nil {
+		t.Fatalf("import group document again: %v", err)
+	}
+	if second != first {
+		t.Fatalf("group document created a second group: %q then %q", first, second)
+	}
+
+	var groups int
+	if err := st.DB().QueryRow(
+		`SELECT count(*) FROM templates WHERE kind = ?`, portable.ScopeGroup).Scan(&groups); err != nil {
+		t.Fatalf("count groups: %v", err)
+	}
+	if groups != 1 {
+		t.Fatalf("groups = %d, want 1", groups)
+	}
+
+	// Linked, not rewritten: the second file's Kamera did not join the group.
+	var names string
+	if err := st.DB().QueryRow(`
+		SELECT group_concat(i.name)
+		FROM template_items ti JOIN items i ON i.id = ti.item_id
+		WHERE ti.template_id = ?`, first).Scan(&names); err != nil {
+		t.Fatalf("read positions: %v", err)
+	}
+	if names != "Stativ" {
+		t.Fatalf("positions = %q, want %q", names, "Stativ")
+	}
+}

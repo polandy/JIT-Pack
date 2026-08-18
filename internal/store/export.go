@@ -175,6 +175,22 @@ func (s *Store) ImportTemplate(ctx context.Context, ownerID string, doc portable
 		scope = portable.ScopeTemplate
 	}
 
+	// FR-27.1/ADR-017: a group's own document obeys the same identity rule as
+	// the groups a Ferien-Vorlage carries nested — the rule belongs to the
+	// group, not to where in a file it appears. A backup names the same group
+	// both ways, so the standalone document must land on the group already
+	// here rather than beside it.
+	if scope == portable.ScopeGroup {
+		groupID, err := ensureGroup(ctx, tx, ownerID, portable.Group{Name: doc.Name, Items: doc.Items})
+		if err != nil {
+			return "", err
+		}
+		if err := tx.Commit(); err != nil {
+			return "", fmt.Errorf("commit: %w", err)
+		}
+		return groupID, nil
+	}
+
 	templateID := randomID()
 	if _, err := tx.ExecContext(ctx,
 		`INSERT INTO templates (id, owner_id, name, kind) VALUES (?, ?, ?, ?)`,

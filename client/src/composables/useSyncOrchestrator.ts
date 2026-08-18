@@ -1529,6 +1529,41 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     }
   }
 
+  /**
+   * ensureGroup returns the id of the group of that name, creating it with
+   * the file's positions only when this device has never heard of it.
+   *
+   * ADR-017: the name is a group's identity across instances, so an import
+   * links and never rewrites — the file may be older than the group, and
+   * since FR-27.4 a group edit reaches every trip that follows it. The rule
+   * belongs to the *group*, not to where in the file it appears, which is why
+   * a group's own document and a Vorlage's `includes:` both come through
+   * here: a backup carries the same group both ways, and whichever document
+   * the file happens to list first must not leave a second copy behind.
+   */
+  function ensureGroup(
+    name: string,
+    items: PortableItem[],
+    resolveItem: (item: PortableItem) => string | null,
+  ): string {
+    const existing = masterStore.templateList.find((t) => t.kind === 'group' && t.name === name)
+    if (existing) return existing.id
+
+    const created = mutations.createTemplate(name, '', 'group')
+    onPullChanges([
+      {
+        seq: 0,
+        table: TABLE.templates,
+        id: created.id,
+        deleted: false,
+        row: created.mutation.fields as Record<string, unknown>,
+      },
+    ])
+    if (!local) outbox.enqueue('master', null, created.mutation)
+    importPositions(created.id, items, resolveItem)
+    return created.id
+  }
+
   function commitPortableImport(
     doc: PortableDocument,
     mergeDecisions: Map<string, string>,
@@ -1551,16 +1586,24 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       return id
     }
 
+    if (doc.kind === 'template' && doc.scope === 'group') {
+      // A group document is the same group the Vorlagen carry nested, so it
+      // obeys the same identity rule rather than arriving as a copy.
+      const groupId = ensureGroup(doc.name, doc.items, resolveItem)
+      if (!local) {
+        syncStatus.setPendingCount(outbox.totalPending())
+        drainMaster().catch(() => {})
+      }
+      return { kind: 'template', id: groupId }
+    }
+
     if (doc.kind === 'template') {
-      // UNIQUE(owner_id, name): dodge collisions with a visible suffix.
+      // UNIQUE(owner_id, name): dodge collisions with a visible suffix. Two
+      // Ferien-Vorlagen of one name are two different plans — unlike groups,
+      // merging them would lose one, so only groups link (ADR-017).
       const taken = new Set(masterStore.templateList.map((t) => t.name))
       const name = taken.has(doc.name) ? `${doc.name} (import)` : doc.name
-      // FR-27.1: a group must import back as a group, not silently promote.
-      const { mutation, id: templateId } = mutations.createTemplate(
-        name,
-        '',
-        doc.scope ?? 'template',
-      )
+      const { mutation, id: templateId } = mutations.createTemplate(name, '', 'template')
       onPullChanges([
         {
           seq: 0,
@@ -1574,32 +1617,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
       importPositions(templateId, doc.items, resolveItem)
 
-      // FR-27.1/ADR-017: the file brought its groups whole. A group of the
-      // same name is *linked* and left exactly as it is — the file may be
-      // older than the group, and since FR-27.4 a group edit reaches every
-      // trip that follows it. An import is not an editor.
+      // FR-27.1/ADR-017: the file brought its groups whole, and each is
+      // linked or created by name — never rewritten.
       for (const group of doc.includes) {
-        const existing = masterStore.templateList.find(
-          (t) => t.kind === 'group' && t.name === group.name,
-        )
-        let groupId: string
-        if (existing) {
-          groupId = existing.id
-        } else {
-          const created = mutations.createTemplate(group.name, '', 'group')
-          groupId = created.id
-          onPullChanges([
-            {
-              seq: 0,
-              table: TABLE.templates,
-              id: groupId,
-              deleted: false,
-              row: created.mutation.fields as Record<string, unknown>,
-            },
-          ])
-          if (!local) outbox.enqueue('master', null, created.mutation)
-          importPositions(groupId, group.items, resolveItem)
-        }
+        const groupId = ensureGroup(group.name, group.items, resolveItem)
 
         const inc = mutations.addTemplateInclude(templateId, groupId)
         onPullChanges([
