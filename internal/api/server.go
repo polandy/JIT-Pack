@@ -367,11 +367,11 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 // its user id) and are never trusted.
 func stampActor(m *syncpkg.Mutation, userID string) {
 	switch m.Table {
-	case "comments":
+	case store.TableComments:
 		if m.Op == syncpkg.OpInsert {
 			setMutationField(m, "author_id", userID)
 		}
-	case "trip_items":
+	case store.TableTripItems:
 		// FR-25.19: packer_user_id is the *assignment* and belongs to the
 		// client, so it is left untouched here. The record of who packed
 		// the row is server-owned — a record you can pick is not a record
@@ -432,7 +432,7 @@ func setMutationField(m *syncpkg.Mutation, field string, value any) {
 // events are ephemeral hints, clients converge via pull (§7).
 func (s *Server) notifyLockEvents(tripID, userID string, muts []syncpkg.Mutation, results []pushResult) {
 	for i, m := range muts {
-		if i >= len(results) || m.Table != "trip_items" {
+		if i >= len(results) || m.Table != store.TableTripItems {
 			continue
 		}
 		if results[i].Outcome != "applied" && results[i].Outcome != "merged" {

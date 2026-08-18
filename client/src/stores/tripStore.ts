@@ -5,9 +5,12 @@
  * The store itself is a plain data cache; sync orchestration lives elsewhere.
  */
 
+import { TABLE } from '@/types/tables'
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type {
+  AppliedChange,
+  GeneratedPosition,
   Trip,
   TripItem,
   TripKPIs,
@@ -16,10 +19,11 @@ import type {
   ItemComment,
   ItemTodo,
   TripMember,
+  TripTemplateSource,
 } from '@/types/domain'
 import type { PullChange } from '@/api/types'
 
-export const useTripStore = defineStore('trips', () => {
+export const useTripStore = defineStore(TABLE.trips, () => {
   const trips = ref<Map<string, Trip>>(new Map())
   const tripItems = ref<Map<string, TripItem[]>>(new Map())
   const travelers = ref<Map<string, Traveler[]>>(new Map())
@@ -27,6 +31,12 @@ export const useTripStore = defineStore('trips', () => {
   const todos = ref<Map<string, ItemTodo[]>>(new Map())
   const comments = ref<Map<string, ItemComment[]>>(new Map())
   const members = ref<Map<string, TripMember[]>>(new Map())
+  // FR-27.4. Flat maps keyed by row id rather than per trip: all three are
+  // read for one trip at a time, and a per-trip bucket would have to be
+  // rebuilt on every tombstone.
+  const templateSources = ref<Map<string, TripTemplateSource>>(new Map())
+  const generatedPositions = ref<Map<string, GeneratedPosition>>(new Map())
+  const appliedChanges = ref<Map<string, AppliedChange>>(new Map())
 
   // --- Getters ---
 
@@ -64,6 +74,26 @@ export const useTripStore = defineStore('trips', () => {
   /** The trip's synced roster (FR-4.5). */
   function getMembers(tripId: string): TripMember[] {
     return members.value.get(tripId) ?? []
+  }
+
+  /** The templates this trip follows (FR-27.4) — empty for a trip created before the registry. */
+  function getTemplateSources(tripId: string): TripTemplateSource[] {
+    return [...templateSources.value.values()].filter((s) => s.trip_id === tripId)
+  }
+
+  /** What generation last produced for this trip, per position (FR-27.4). */
+  function getGeneratedPositions(tripId: string): GeneratedPosition[] {
+    return [...generatedPositions.value.values()].filter((g) => g.trip_id === tripId)
+  }
+
+  /**
+   * The applied-changes log behind M2's chip (FR-27.4), newest first — a
+   * list of what changed under you reads backwards, like history.
+   */
+  function getAppliedChanges(tripId: string): AppliedChange[] {
+    return [...appliedChanges.value.values()]
+      .filter((c) => c.trip_id === tripId)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
   }
 
   function getTodos(tripId: string): ItemTodo[] {
@@ -162,7 +192,7 @@ export const useTripStore = defineStore('trips', () => {
     const row = change.row as Record<string, unknown> | null
 
     switch (change.table) {
-      case 'trips':
+      case TABLE.trips:
         if (change.deleted) {
           removeTrip(change.id)
         } else if (row) {
@@ -170,7 +200,7 @@ export const useTripStore = defineStore('trips', () => {
         }
         break
 
-      case 'trip_items':
+      case TABLE.tripItems:
         if (change.deleted) {
           removeTripItem(change.id)
         } else if (row) {
@@ -178,7 +208,7 @@ export const useTripStore = defineStore('trips', () => {
         }
         break
 
-      case 'travelers':
+      case TABLE.travelers:
         if (change.deleted) {
           removeTraveler(change.id)
         } else if (row) {
@@ -186,7 +216,7 @@ export const useTripStore = defineStore('trips', () => {
         }
         break
 
-      case 'containers':
+      case TABLE.containers:
         if (change.deleted) {
           removeContainer(change.id)
         } else if (row) {
@@ -194,7 +224,7 @@ export const useTripStore = defineStore('trips', () => {
         }
         break
 
-      case 'trip_members':
+      case TABLE.tripMembers:
         if (change.deleted) {
           removeMember(change.id)
         } else if (row) {
@@ -202,7 +232,31 @@ export const useTripStore = defineStore('trips', () => {
         }
         break
 
-      case 'comments':
+      case TABLE.tripTemplateSources:
+        if (change.deleted) {
+          templateSources.value.delete(change.id)
+        } else if (row) {
+          templateSources.value.set(change.id, rowToTemplateSource(change.id, row))
+        }
+        break
+
+      case TABLE.tripGeneratedPositions:
+        if (change.deleted) {
+          generatedPositions.value.delete(change.id)
+        } else if (row) {
+          generatedPositions.value.set(change.id, rowToGeneratedPosition(change.id, row))
+        }
+        break
+
+      case TABLE.tripAppliedChanges:
+        if (change.deleted) {
+          appliedChanges.value.delete(change.id)
+        } else if (row) {
+          appliedChanges.value.set(change.id, rowToAppliedChange(change.id, row))
+        }
+        break
+
+      case TABLE.comments:
         // One table, two layers: is_task rows are todos/tickets
         // (FR-7.2/7.3), the rest plain comments (FR-7.1). Flagging
         // moves a row between the two, so always clear the other side.
@@ -362,6 +416,9 @@ export const useTripStore = defineStore('trips', () => {
     getTravelers,
     getContainers,
     getMembers,
+    getTemplateSources,
+    getGeneratedPositions,
+    getAppliedChanges,
     getTodos,
     getItemTodos,
     getOpenTodos,
@@ -377,6 +434,62 @@ export const useTripStore = defineStore('trips', () => {
 })
 
 // --- Row converters ---
+
+function rowToTemplateSource(id: string, row: Record<string, unknown>): TripTemplateSource {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    template_id: row['template_id'] as string,
+  }
+}
+
+function rowToGeneratedPosition(id: string, row: Record<string, unknown>): GeneratedPosition {
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    trip_item_id: row['trip_item_id'] as string,
+    source_template_id: row['source_template_id'] as string,
+    source_item_id: row['source_item_id'] as string,
+    traveler_id: (row['traveler_id'] as string) ?? '',
+    name: row['name'] as string,
+    quantity: Number(row['quantity'] ?? 0),
+    mode: row['mode'] as GeneratedPosition['mode'],
+    late_packer: Boolean(row['late_packer']),
+    weight_grams: (row['weight_grams'] as number) ?? null,
+    value_cents: (row['value_cents'] as number) ?? null,
+    category_name: (row['category_name'] as string) ?? null,
+    // Stored as a JSON array (migration 023): one field, written only by the
+    // refresh, so there is no concurrent edit for a per-row table to protect.
+    tasks: parseTasks(row['tasks']),
+  }
+}
+
+function parseTasks(raw: unknown): string[] {
+  if (typeof raw !== 'string' || raw === '') return []
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.map(String) : []
+  } catch {
+    // A malformed snapshot must not take the trip list down with it: an
+    // empty task list reads as "the refresh will re-add them", which is
+    // recoverable, where a thrown parse error is not.
+    return []
+  }
+}
+
+function rowToAppliedChange(id: string, row: Record<string, unknown>): AppliedChange {
+  const detail = row['detail']
+  return {
+    id,
+    trip_id: row['trip_id'] as string,
+    source_template_id: row['source_template_id'] as string,
+    source_template_name: row['source_template_name'] as string,
+    kind: row['kind'] as AppliedChange['kind'],
+    item_name: row['item_name'] as string,
+    detail: typeof detail === 'string' && detail !== '' ? JSON.parse(detail) : null,
+    created_at: (row['created_at'] as string) ?? '',
+  }
+}
 
 function rowToTrip(id: string, row: Record<string, unknown>): Trip {
   return {

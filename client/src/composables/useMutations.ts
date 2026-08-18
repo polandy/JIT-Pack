@@ -5,10 +5,11 @@
  * All writes go through these helpers → SyncOutbox → server (P-2, G-5).
  */
 
+import { TABLE } from '@/types/tables'
 import { newId } from '@/lib/ids'
 import type { Mutation, MutationOp } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
-import type { ItemMode, TemplateKind } from '@/types/domain'
+import type { AppliedChange, GeneratedPosition, ItemMode, TemplateKind } from '@/types/domain'
 
 /**
  * What the client writes into an actor column it is not allowed to decide.
@@ -40,7 +41,7 @@ export function useMutations(hlc: HLCGenerator) {
 
   function packItem(itemId: string, packedCount: number, state: string): Mutation {
     // Any pack-state transition releases a packing-now claim (FR-5.3).
-    return make('upsert', 'trip_items', itemId, {
+    return make('upsert', TABLE.tripItems, itemId, {
       packed_count: packedCount,
       state,
       packing_now_by: null,
@@ -57,7 +58,7 @@ export function useMutations(hlc: HLCGenerator) {
    * real locker (FR-4.2); the timestamp feeds the §7 staleness rule.
    */
   function startPackingNow(itemId: string): Mutation {
-    return make('upsert', 'trip_items', itemId, {
+    return make('upsert', TABLE.tripItems, itemId, {
       state: 'packing_now',
       packing_now_by: CLIENT_ACTOR_PLACEHOLDER,
       packing_now_at: new Date().toISOString(),
@@ -89,7 +90,7 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function skipItem(itemId: string): Mutation {
-    return make('upsert', 'trip_items', itemId, {
+    return make('upsert', TABLE.tripItems, itemId, {
       quantity: 0,
       packed_count: 0,
       state: 'skipped',
@@ -110,7 +111,7 @@ export function useMutations(hlc: HLCGenerator) {
     packedCount: number,
     state: string,
   ): Mutation {
-    return make('upsert', 'trip_items', itemId, {
+    return make('upsert', TABLE.tripItems, itemId, {
       quantity,
       packed_count: packedCount,
       state,
@@ -118,7 +119,7 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function unskipItem(itemId: string): Mutation {
-    return make('upsert', 'trip_items', itemId, {
+    return make('upsert', TABLE.tripItems, itemId, {
       quantity: 1,
       packed_count: 0,
       state: 'open',
@@ -126,19 +127,19 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function setItemMode(itemId: string, mode: ItemMode): Mutation {
-    return make('upsert', 'trip_items', itemId, { mode })
+    return make('upsert', TABLE.tripItems, itemId, { mode })
   }
 
   function assignTraveler(itemId: string, travelerId: string | null): Mutation {
-    return make('upsert', 'trip_items', itemId, { assigned_traveler_id: travelerId })
+    return make('upsert', TABLE.tripItems, itemId, { assigned_traveler_id: travelerId })
   }
 
   function assignContainer(itemId: string, containerId: string | null): Mutation {
-    return make('upsert', 'trip_items', itemId, { container_id: containerId })
+    return make('upsert', TABLE.tripItems, itemId, { container_id: containerId })
   }
 
   function setLatePacker(itemId: string, latePacker: boolean): Mutation {
-    return make('upsert', 'trip_items', itemId, { late_packer: latePacker ? 1 : 0 })
+    return make('upsert', TABLE.tripItems, itemId, { late_packer: latePacker ? 1 : 0 })
   }
 
   function addTripItem(
@@ -154,7 +155,7 @@ export function useMutations(hlc: HLCGenerator) {
     } = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'trip_items', id, {
+    const mutation = make('insert', TABLE.tripItems, id, {
       trip_id: tripId,
       name,
       source_item_id: opts.sourceItemId ?? null,
@@ -171,7 +172,7 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function deleteTripItem(itemId: string): Mutation {
-    return make('delete', 'trip_items', itemId)
+    return make('delete', TABLE.tripItems, itemId)
   }
 
   function addTraveler(
@@ -180,7 +181,7 @@ export function useMutations(hlc: HLCGenerator) {
     linkedUserId: string | null = null,
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'travelers', id, {
+    const mutation = make('insert', TABLE.travelers, id, {
       trip_id: tripId,
       name,
       linked_user_id: linkedUserId,
@@ -206,9 +207,13 @@ export function useMutations(hlc: HLCGenerator) {
       late_packer: boolean
     },
     assignedTravelerId: string | null,
+    // The FR-27.4 refresh supplies a *derived* id so two devices applying
+    // the same group change converge on one row (ADR-016); generation
+    // itself draws a fresh one.
+    rowId: string = newId(),
   ): { mutation: Mutation; id: string } {
-    const id = newId()
-    const mutation = make('insert', 'trip_items', id, {
+    const id = rowId
+    const mutation = make('insert', TABLE.tripItems, id, {
       trip_id: tripId,
       name: item.name,
       source_item_id: item.source_item_id,
@@ -246,7 +251,7 @@ export function useMutations(hlc: HLCGenerator) {
     containerId: string | null,
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'trip_items', id, {
+    const mutation = make('insert', TABLE.tripItems, id, {
       trip_id: tripId,
       name: item.name,
       source_item_id: item.source_item_id,
@@ -293,7 +298,7 @@ export function useMutations(hlc: HLCGenerator) {
           : packed >= item.quantity
             ? 'packed'
             : 'partial'
-    const mutation = make('insert', 'trip_items', id, {
+    const mutation = make('insert', TABLE.tripItems, id, {
       trip_id: tripId,
       name: item.name,
       source_item_id: item.sourceItemId,
@@ -320,7 +325,7 @@ export function useMutations(hlc: HLCGenerator) {
     body: string,
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'comments', id, {
+    const mutation = make('insert', TABLE.comments, id, {
       trip_id: tripId,
       trip_item_id: tripItemId,
       author_id: authorId,
@@ -332,15 +337,15 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function resolveTodo(todoId: string): Mutation {
-    return make('upsert', 'comments', todoId, { task_state: 'resolved' })
+    return make('upsert', TABLE.comments, todoId, { task_state: 'resolved' })
   }
 
   function reopenTodo(todoId: string): Mutation {
-    return make('upsert', 'comments', todoId, { task_state: 'open' })
+    return make('upsert', TABLE.comments, todoId, { task_state: 'open' })
   }
 
   function deleteTodo(todoId: string): Mutation {
-    return make('delete', 'comments', todoId)
+    return make('delete', TABLE.comments, todoId)
   }
 
   // --- Container mutations (FR-10.1) ---
@@ -351,7 +356,7 @@ export function useMutations(hlc: HLCGenerator) {
     opts: { carrierTravelerId?: string | null; maxWeightGrams?: number | null } = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'containers', id, {
+    const mutation = make('insert', TABLE.containers, id, {
       trip_id: tripId,
       name,
       carrier_traveler_id: opts.carrierTravelerId ?? null,
@@ -362,11 +367,11 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function updateContainer(containerId: string, fields: Record<string, unknown>): Mutation {
-    return make('upsert', 'containers', containerId, fields)
+    return make('upsert', TABLE.containers, containerId, fields)
   }
 
   function deleteContainer(containerId: string): Mutation {
-    return make('delete', 'containers', containerId)
+    return make('delete', TABLE.containers, containerId)
   }
 
   // --- Comment mutations (FR-7.1/7.2) ---
@@ -379,7 +384,7 @@ export function useMutations(hlc: HLCGenerator) {
     body: string,
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'comments', id, {
+    const mutation = make('insert', TABLE.comments, id, {
       trip_id: tripId,
       trip_item_id: tripItemId,
       author_id: authorId,
@@ -391,11 +396,11 @@ export function useMutations(hlc: HLCGenerator) {
 
   /** flagCommentAsTask promotes a comment into an open ticket (FR-7.2). */
   function flagCommentAsTask(commentId: string): Mutation {
-    return make('upsert', 'comments', commentId, { is_task: 1, task_state: 'open' })
+    return make('upsert', TABLE.comments, commentId, { is_task: 1, task_state: 'open' })
   }
 
   function deleteComment(commentId: string): Mutation {
-    return make('delete', 'comments', commentId)
+    return make('delete', TABLE.comments, commentId)
   }
 
   // --- Trip mutations ---
@@ -408,7 +413,7 @@ export function useMutations(hlc: HLCGenerator) {
     opts: { seriesId?: string | null; attributes?: Record<string, unknown> | null } = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'trips', id, {
+    const mutation = make('insert', TABLE.trips, id, {
       name,
       // FR-2.1b: the year is the required fact; both dates may be absent.
       year,
@@ -422,14 +427,14 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function updateTripStatus(tripId: string, status: string): Mutation {
-    return make('upsert', 'trips', tripId, { status })
+    return make('upsert', TABLE.trips, tripId, { status })
   }
 
   /** deleteTrip tombstones the trip on the master partition. The server
    * authorizes this for Owner/Admin only (FR-4.5) and cascades the trip's
    * items, travelers, containers and members. */
   function deleteTrip(tripId: string): Mutation {
-    return make('delete', 'trips', tripId)
+    return make('delete', TABLE.trips, tripId)
   }
 
   // --- Import mutations (FR-16.2, M15) ---
@@ -441,7 +446,7 @@ export function useMutations(hlc: HLCGenerator) {
     seriesId: string | null,
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'trips', id, {
+    const mutation = make('insert', TABLE.trips, id, {
       name,
       start_date: null,
       end_date: endDate,
@@ -463,7 +468,7 @@ export function useMutations(hlc: HLCGenerator) {
     },
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'trip_items', id, {
+    const mutation = make('insert', TABLE.tripItems, id, {
       trip_id: tripId,
       name: item.name,
       source_item_id: item.sourceItemId,
@@ -479,7 +484,7 @@ export function useMutations(hlc: HLCGenerator) {
   // --- Series & destination mutations (FR-13.1/13.2) ---
 
   function setTripSeries(tripId: string, seriesId: string | null): Mutation {
-    return make('upsert', 'trips', tripId, { series_id: seriesId })
+    return make('upsert', TABLE.trips, tripId, { series_id: seriesId })
   }
 
   function createSeries(
@@ -488,7 +493,7 @@ export function useMutations(hlc: HLCGenerator) {
   ): { mutation: Mutation; id: string } {
     const id = newId()
     // owner_id is stamped server-side on push (FR-13.1 ownership).
-    const mutation = make('insert', 'trip_series', id, {
+    const mutation = make('insert', TABLE.tripSeries, id, {
       owner_id: '',
       name,
       default_attributes: defaultAttributes ? JSON.stringify(defaultAttributes) : null,
@@ -497,12 +502,12 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function updateSeries(seriesId: string, fields: Record<string, unknown>): Mutation {
-    return make('upsert', 'trip_series', seriesId, fields)
+    return make('upsert', TABLE.tripSeries, seriesId, fields)
   }
 
   function createDestinationProfile(seriesId: string): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'destination_profiles', id, {
+    const mutation = make('insert', TABLE.destinationProfiles, id, {
       series_id: seriesId,
       notes: null,
     })
@@ -510,7 +515,7 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function updateDestinationProfile(profileId: string, fields: Record<string, unknown>): Mutation {
-    return make('upsert', 'destination_profiles', profileId, fields)
+    return make('upsert', TABLE.destinationProfiles, profileId, fields)
   }
 
   function addChecklistItem(
@@ -519,7 +524,7 @@ export function useMutations(hlc: HLCGenerator) {
     mode: ItemMode,
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'destination_checklist_items', id, {
+    const mutation = make('insert', TABLE.destinationChecklistItems, id, {
       profile_id: profileId,
       label,
       mode,
@@ -528,11 +533,11 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function updateChecklistItem(itemId: string, fields: Record<string, unknown>): Mutation {
-    return make('upsert', 'destination_checklist_items', itemId, fields)
+    return make('upsert', TABLE.destinationChecklistItems, itemId, fields)
   }
 
   function deleteChecklistItem(itemId: string): Mutation {
-    return make('delete', 'destination_checklist_items', itemId)
+    return make('delete', TABLE.destinationChecklistItems, itemId)
   }
 
   // --- Master data mutations ---
@@ -545,7 +550,7 @@ export function useMutations(hlc: HLCGenerator) {
     } = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'items', id, {
+    const mutation = make('insert', TABLE.items, id, {
       name,
       weight_grams: opts.weightGrams ?? null,
       value_cents: opts.valueCents ?? null,
@@ -554,11 +559,11 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function updateMasterItem(itemId: string, fields: Record<string, unknown>): Mutation {
-    return make('upsert', 'items', itemId, fields)
+    return make('upsert', TABLE.items, itemId, fields)
   }
 
   function deleteMasterItem(itemId: string): Mutation {
-    return make('delete', 'items', itemId)
+    return make('delete', TABLE.items, itemId)
   }
 
   // --- Template mutations ---
@@ -569,7 +574,7 @@ export function useMutations(hlc: HLCGenerator) {
     kind: TemplateKind = 'template',
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'templates', id, {
+    const mutation = make('insert', TABLE.templates, id, {
       owner_id: ownerId,
       name,
       kind,
@@ -578,11 +583,11 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function updateTemplate(templateId: string, fields: Record<string, unknown>): Mutation {
-    return make('upsert', 'templates', templateId, fields)
+    return make('upsert', TABLE.templates, templateId, fields)
   }
 
   function deleteTemplate(templateId: string): Mutation {
-    return make('delete', 'templates', templateId)
+    return make('delete', TABLE.templates, templateId)
   }
 
   function addTemplateItem(
@@ -598,7 +603,7 @@ export function useMutations(hlc: HLCGenerator) {
     } = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'template_items', id, {
+    const mutation = make('insert', TABLE.templateItems, id, {
       template_id: templateId,
       item_id: itemId,
       quantity: opts.quantity ?? 1,
@@ -612,11 +617,11 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function updateTemplateItem(templateItemId: string, fields: Record<string, unknown>): Mutation {
-    return make('upsert', 'template_items', templateItemId, fields)
+    return make('upsert', TABLE.templateItems, templateItemId, fields)
   }
 
   function deleteTemplateItem(templateItemId: string): Mutation {
-    return make('delete', 'template_items', templateItemId)
+    return make('delete', TABLE.templateItems, templateItemId)
   }
 
   /** addTemplateInclude references a Gruppe from a Ferien-Vorlage (FR-27.1). */
@@ -625,7 +630,7 @@ export function useMutations(hlc: HLCGenerator) {
     includedTemplateId: string,
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'template_includes', id, {
+    const mutation = make('insert', TABLE.templateIncludes, id, {
       template_id: templateId,
       included_template_id: includedTemplateId,
     })
@@ -633,7 +638,7 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function removeTemplateInclude(includeId: string): Mutation {
-    return make('delete', 'template_includes', includeId)
+    return make('delete', TABLE.templateIncludes, includeId)
   }
 
   /** addTemplateItemTask attaches one FR-27.7 preparation task to a position. */
@@ -642,7 +647,7 @@ export function useMutations(hlc: HLCGenerator) {
     task: string,
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'template_item_tasks', id, {
+    const mutation = make('insert', TABLE.templateItemTasks, id, {
       template_item_id: templateItemId,
       task,
     })
@@ -650,7 +655,85 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function deleteTemplateItemTask(taskId: string): Mutation {
-    return make('delete', 'template_item_tasks', taskId)
+    return make('delete', TABLE.templateItemTasks, taskId)
+  }
+
+  // --- The planning-trip refresh (FR-27.4) ---
+
+  /**
+   * updateGeneratedTripItem writes the fields the FR-27.4 refresh may
+   * overwrite. A field map rather than one setter per field: the diff
+   * decides which of them moved, and the caller has no business restating
+   * that list. `late_packer` is normalised here because the wire carries
+   * 0/1 where the domain carries a boolean.
+   */
+  function updateGeneratedTripItem(itemId: string, fields: Record<string, unknown>): Mutation {
+    const wire = { ...fields }
+    if ('late_packer' in wire) wire['late_packer'] = wire['late_packer'] ? 1 : 0
+    return make('upsert', TABLE.tripItems, itemId, wire)
+  }
+
+  /** registerTripSource records that a trip follows this template (FR-27.4/27.10). */
+  function registerTripSource(
+    tripId: string,
+    templateId: string,
+  ): { mutation: Mutation; id: string } {
+    const id = newId()
+    const mutation = make('insert', TABLE.tripTemplateSources, id, {
+      trip_id: tripId,
+      template_id: templateId,
+    })
+    return { mutation, id }
+  }
+
+  /**
+   * writeGeneratedPosition records what generation produced for one position.
+   * An upsert with the entry's derived id: the refresh re-states the whole
+   * snapshot each time rather than patching fields, because the snapshot is
+   * only meaningful as a set — a half-updated one would read as a manual edit.
+   */
+  function writeGeneratedPosition(entry: GeneratedPosition): Mutation {
+    return make('upsert', TABLE.tripGeneratedPositions, entry.id, {
+      trip_id: entry.trip_id,
+      trip_item_id: entry.trip_item_id,
+      source_template_id: entry.source_template_id,
+      source_item_id: entry.source_item_id,
+      traveler_id: entry.traveler_id,
+      name: entry.name,
+      quantity: entry.quantity,
+      mode: entry.mode,
+      late_packer: entry.late_packer ? 1 : 0,
+      weight_grams: entry.weight_grams,
+      value_cents: entry.value_cents,
+      category_name: entry.category_name,
+      tasks: JSON.stringify(entry.tasks),
+    })
+  }
+
+  function deleteGeneratedPosition(entryId: string): Mutation {
+    return make('delete', TABLE.tripGeneratedPositions, entryId)
+  }
+
+  /**
+   * logAppliedChange writes one line of M2's applied-changes log (FR-27.4).
+   * created_at is the client's: the refresh runs on the device, and only it
+   * knows when the change actually landed on this trip.
+   */
+  function logAppliedChange(change: Omit<AppliedChange, 'id' | 'created_at'>): {
+    mutation: Mutation
+    id: string
+  } {
+    const id = newId()
+    const mutation = make('insert', TABLE.tripAppliedChanges, id, {
+      trip_id: change.trip_id,
+      source_template_id: change.source_template_id,
+      source_template_name: change.source_template_name,
+      kind: change.kind,
+      item_name: change.item_name,
+      detail: change.detail === null ? null : JSON.stringify(change.detail),
+      created_at: new Date().toISOString(),
+    })
+    return { mutation, id }
   }
 
   // --- Item dependency mutations (Addendum 3.20, master partition) ---
@@ -661,7 +744,7 @@ export function useMutations(hlc: HLCGenerator) {
     opts: { mode?: 'required' | 'suggested'; quantity?: number | null } = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'item_dependencies', id, {
+    const mutation = make('insert', TABLE.itemDependencies, id, {
       item_id: itemId,
       depends_on_item_id: dependsOnItemId,
       mode: opts.mode ?? 'required',
@@ -671,11 +754,11 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function updateItemDependency(dependencyId: string, fields: Record<string, unknown>): Mutation {
-    return make('upsert', 'item_dependencies', dependencyId, fields)
+    return make('upsert', TABLE.itemDependencies, dependencyId, fields)
   }
 
   function deleteItemDependency(dependencyId: string): Mutation {
-    return make('delete', 'item_dependencies', dependencyId)
+    return make('delete', TABLE.itemDependencies, dependencyId)
   }
 
   // --- Trip membership mutations (FR-4.5/4.7, master partition) ---
@@ -688,7 +771,7 @@ export function useMutations(hlc: HLCGenerator) {
     const id = newId()
     // 'owner' is never client-assignable — the server creates the
     // creator's owner row itself (FR-4.5).
-    const mutation = make('insert', 'trip_members', id, {
+    const mutation = make('insert', TABLE.tripMembers, id, {
       trip_id: tripId,
       user_id: userId,
       role,
@@ -697,18 +780,18 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function setTripMemberRole(memberId: string, role: 'admin' | 'editor'): Mutation {
-    return make('upsert', 'trip_members', memberId, { role })
+    return make('upsert', TABLE.tripMembers, memberId, { role })
   }
 
   function removeTripMember(memberId: string): Mutation {
-    return make('delete', 'trip_members', memberId)
+    return make('delete', TABLE.tripMembers, memberId)
   }
 
   // --- Tag mutations (FR-24.1) ---
 
   function createTag(name: string, sortOrder: number = 0): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'tags', id, { name, sort_order: sortOrder })
+    const mutation = make('insert', TABLE.tags, id, { name, sort_order: sortOrder })
     return { mutation, id }
   }
 
@@ -723,7 +806,7 @@ export function useMutations(hlc: HLCGenerator) {
     position: number,
   ): { mutation: Mutation; id: string } {
     const id = newId()
-    const mutation = make('insert', 'item_tags', id, {
+    const mutation = make('insert', TABLE.itemTags, id, {
       item_id: itemId,
       tag_id: tagId,
       position,
@@ -732,10 +815,15 @@ export function useMutations(hlc: HLCGenerator) {
   }
 
   function unassignTag(assignmentId: string): Mutation {
-    return make('delete', 'item_tags', assignmentId)
+    return make('delete', TABLE.itemTags, assignmentId)
   }
 
   return {
+    updateGeneratedTripItem,
+    registerTripSource,
+    writeGeneratedPosition,
+    deleteGeneratedPosition,
+    logAppliedChange,
     // Trip items
     startPackingNow,
     // The primitive the four pack helpers are built on. Exported because

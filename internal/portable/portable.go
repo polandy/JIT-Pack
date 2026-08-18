@@ -83,11 +83,26 @@ func Unmarshal(data []byte) (Document, error) {
 	return doc, nil
 }
 
+// The two document kinds a portable file may declare (FR-18.2), named
+// because both the validator and the reader switch on them.
+const (
+	KindTemplate = "template"
+	KindTrip     = "trip"
+)
+
+// The template scopes a portable file may declare (FR-27.1/27.6). Same two
+// values `templates.kind` carries in the schema, restated here because
+// `portable` imports nothing internal (invariant 1).
+const (
+	ScopeGroup    = "group"
+	ScopeTemplate = "template"
+)
+
 func validateDoc(doc Document) error {
 	if doc.Kind == "" {
 		return errors.New("missing required field: kind")
 	}
-	if doc.Kind != "template" && doc.Kind != "trip" {
+	if doc.Kind != KindTemplate && doc.Kind != KindTrip {
 		return fmt.Errorf("unknown kind: %q (expected template or trip)", doc.Kind)
 	}
 	if doc.Name == "" {
@@ -96,10 +111,10 @@ func validateDoc(doc Document) error {
 	// A scope on a trip document, or an unknown one, is a file this build
 	// cannot honour — rejecting beats importing a group as a Ferien-Vorlage.
 	if doc.Scope != "" {
-		if doc.Kind != "template" {
+		if doc.Kind != KindTemplate {
 			return fmt.Errorf("scope %q is only valid on a template document", doc.Scope)
 		}
-		if doc.Scope != "group" && doc.Scope != "template" {
+		if doc.Scope != ScopeGroup && doc.Scope != ScopeTemplate {
 			return fmt.Errorf("unknown scope: %q (expected group or template)", doc.Scope)
 		}
 	}

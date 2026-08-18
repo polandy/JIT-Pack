@@ -22,7 +22,11 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
 }))
 
-const orchestratorFake = { createTripFromWizard: vi.fn(() => 'trip-1') }
+const orchestratorFake = {
+  // Typed on its parameter so a test can read the draft back: an untyped
+  // vi.fn() records a zero-length argument tuple.
+  createTripFromWizard: vi.fn((_draft: { sourceTemplateIds?: string[] }) => 'trip-1'),
+}
 
 function template(id: string, name: string, kind: 'template' | 'group') {
   useMasterStore().applyChange({
@@ -383,5 +387,20 @@ describe('M3 step 3 — template composition (§3.27)', () => {
     // The row itself is on screen — the marker, and only the marker, is absent.
     expect(wrapper.get('[data-testid="wizard-count-g1"]').text()).toContain('2')
     expect(wrapper.find('[data-testid="wizard-included-g1"]').exists()).toBe(false)
+  })
+})
+
+describe('what the trip follows (FR-27.4)', () => {
+  it('registers the picked templates as the trip’s sources, not the resolved composition', async () => {
+    seedComposition()
+    const wrapper = await mountAtStepFour('v1')
+
+    await wrapper.get('[data-testid="wizard-create"]').trigger('click')
+
+    const draft = orchestratorFake.createTripFromWizard.mock.calls[0]?.[0]
+    // The pick, not the groups it expands to: the trip follows the Vorlage,
+    // and a group added to that Vorlage later has to reach the trip through
+    // it — which only works if the link is re-resolved rather than frozen.
+    expect(draft?.sourceTemplateIds).toEqual(['v1'])
   })
 })

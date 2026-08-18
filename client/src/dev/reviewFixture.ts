@@ -10,6 +10,7 @@
  * Local persistence, so a reload clears it — and the gallery links to
  * the *real* route so the eyeball sees the true screen.
  */
+import { TABLE } from '@/types/tables'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 
@@ -26,12 +27,16 @@ export function seedReviewFixture(): string {
     row: Record<string, unknown>,
   ) => store.applyChange({ seq: 0, table, id, deleted: false, row } as never)
 
-  seed(master, 'templates', 'dev-g1', { owner_id: 'dev', name: 'Fotografie', kind: 'group' })
-  seed(master, 'templates', 'dev-g2', { owner_id: 'dev', name: 'Wandern', kind: 'group' })
-  seed(master, 'templates', 'dev-v1', { owner_id: 'dev', name: 'Sommerferien', kind: 'template' })
-  seed(master, 'items', 'dev-item-stativ', { name: 'Stativ' })
-  seed(master, 'items', 'dev-item-filter', { name: 'ND-Filter' })
-  seed(master, 'template_items', 'dev-g1-stativ', {
+  seed(master, TABLE.templates, 'dev-g1', { owner_id: 'dev', name: 'Fotografie', kind: 'group' })
+  seed(master, TABLE.templates, 'dev-g2', { owner_id: 'dev', name: 'Wandern', kind: 'group' })
+  seed(master, TABLE.templates, 'dev-v1', {
+    owner_id: 'dev',
+    name: 'Sommerferien',
+    kind: 'template',
+  })
+  seed(master, TABLE.items, 'dev-item-stativ', { name: 'Stativ' })
+  seed(master, TABLE.items, 'dev-item-filter', { name: 'ND-Filter' })
+  seed(master, TABLE.templateItems, 'dev-g1-stativ', {
     template_id: 'dev-g1',
     item_id: 'dev-item-stativ',
     quantity: 1,
@@ -40,7 +45,7 @@ export function seedReviewFixture(): string {
     default_mode: 'pack',
     late_packer: 0,
   })
-  seed(master, 'template_items', 'dev-g2-stativ', {
+  seed(master, TABLE.templateItems, 'dev-g2-stativ', {
     template_id: 'dev-g2',
     item_id: 'dev-item-stativ',
     quantity: 1,
@@ -50,14 +55,14 @@ export function seedReviewFixture(): string {
     late_packer: 0,
   })
 
-  seed(trips, 'trips', REVIEW_FIXTURE_TRIP_ID, {
+  seed(trips, TABLE.trips, REVIEW_FIXTURE_TRIP_ID, {
     name: 'Samedan (Review-Fixture)',
     status: 'archived',
     end_date: '2026-08-10',
   })
   // Unused, from group dev-g1 → an "ungenutzt" proposal with a
   // two-group retarget picker (both groups carry the Stativ).
-  seed(trips, 'trip_items', 'dev-ti-stativ', {
+  seed(trips, TABLE.tripItems, 'dev-ti-stativ', {
     trip_id: REVIEW_FIXTURE_TRIP_ID,
     name: 'Stativ',
     quantity: 1,
@@ -66,19 +71,19 @@ export function seedReviewFixture(): string {
     flag_unused: 1,
   })
   // Ad-hoc missing → a "fehlte" proposal defaulting to the dominant group.
-  seed(trips, 'trip_items', 'dev-ti-adapter', {
+  seed(trips, TABLE.tripItems, 'dev-ti-adapter', {
     trip_id: REVIEW_FIXTURE_TRIP_ID,
     name: 'Reiseadapter',
     quantity: 1,
     flag_missing: 1,
   })
   // A planning trip using dev-g1, so the FR-27.4 blast-radius line renders.
-  seed(trips, 'trips', 'dev-planning', {
+  seed(trips, TABLE.trips, 'dev-planning', {
     name: 'Engadin 2027',
     status: 'planning',
     end_date: '2027-08-10',
   })
-  seed(trips, 'trip_items', 'dev-ti-planning', {
+  seed(trips, TABLE.tripItems, 'dev-ti-planning', {
     trip_id: 'dev-planning',
     name: 'Stativ',
     quantity: 1,
