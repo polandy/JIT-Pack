@@ -12,7 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"sort"
 	"strings"
 	"time"
@@ -213,13 +213,18 @@ func (wallClock) NowMillis() int64 { return time.Now().UnixMilli() }
 // upgrade path — the error names the file and how to start over.
 var ErrSchemaStale = errors.New("store: database schema is stale")
 
+// maxUserVersion is the largest value PRAGMA user_version holds: SQLite
+// defines it as a signed 32-bit integer.
+const maxUserVersion = 0x7fffffff
+
 // schemaFingerprint identifies the version of schema.sql a database was
-// built from. It is stored in PRAGMA user_version, which SQLite defines as a
-// signed 32-bit integer, so the digest is truncated to 31 bits; 0 is skipped
-// because that is what an unstamped database already reads as.
+// built from. It is stored in PRAGMA user_version, so the digest is truncated
+// to fit; 0 is skipped because that is what an unstamped database already
+// reads as, and a fingerprint landing there would make a stale database look
+// fresh.
 func schemaFingerprint() int64 {
 	sum := sha256.Sum256([]byte(schemaSQL))
-	fp := int64(binary.BigEndian.Uint32(sum[:4]) & 0x7fffffff)
+	fp := int64(binary.BigEndian.Uint32(sum[:4]) & maxUserVersion)
 	if fp == 0 {
 		return 1
 	}
@@ -291,7 +296,7 @@ func ensureSchema(db *sql.DB, dsn string) error {
 	// database is worth nothing or an operator whose database is worth
 	// everything — and the error cannot tell which.
 	return fmt.Errorf("%w: %s was built from a different schema\n"+
-		"\tJIT-Pack is pre-1.0 and ships no schema upgrade path (ADR-018)\n"+
+		"\tJIT-Pack is pre-1.0 and ships no schema upgrade path\n"+
 		"\tto discard it:   rm %s   and restart\n"+
 		"\tto keep it:      run the JIT-Pack version that wrote it, export under Settings -> Data, then upgrade and import",
 		ErrSchemaStale, dsn, dsn)
@@ -311,7 +316,7 @@ func applySchema(db *sql.DB, ddl string, fingerprint int64) error {
 	defer func() {
 		// Rolling back a committed transaction is the no-op sql.ErrTxDone.
 		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
-			log.Printf("store: rolling back schema install: %v", err)
+			slog.Error("rolling back schema install", "error", err)
 		}
 	}()
 	if _, err := tx.Exec(ddl); err != nil {

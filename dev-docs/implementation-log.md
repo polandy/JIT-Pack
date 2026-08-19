@@ -3311,11 +3311,12 @@ draft of migration 005 was modelled on 004, silently dropped `trips.updated_hlc`
 and broke every master pull of a trip. With one schema file, retiring a column
 is deleting a line.
 
-The DDL the chain actually produced is the other half of the argument. Nine
-tables carried `, updated_hlc TEXT NOT NULL DEFAULT '');` glued onto their
-closing line, `users` had three columns appended after `created_at` and one
-`CHECK` stranded mid-list, and six table names were quoted because a rebuild had
-requoted them. None of that is wrong; all of it is unreadable.
+The DDL the chain actually produced is the other half of the argument. Five
+tables closed with `, updated_hlc TEXT NOT NULL DEFAULT '');` sharing a line
+with the closing paren and four more carried the same column appended mid-list,
+`users` had three columns and a stranded `CHECK` after `created_at`, and eight
+table names were quoted because a rebuild had requoted them. None of that is
+wrong; all of it is unreadable.
 
 **What the mechanism is now.** `Open` reads `PRAGMA user_version`. If it equals
 a fingerprint of `schema.sql` (SHA-256 truncated to 31 bits, because SQLite's
@@ -3360,9 +3361,11 @@ embedded schema, so "a statement that does not apply leaves nothing behind, and
 above all no stamped fingerprint" is drivable directly instead of only through a
 deliberately broken build.
 
-A side effect of dropping the replay: `go test -race` over the whole module went
-from 29.5 s to 20.6 s locally, on top of the 4m19s → 29.5 s the test template
-had already bought.
+Two side effects. `go test -race` over the whole module went from 29.5 s to
+20.6 s locally, on top of the 4m19s → 29.5 s the test template had already
+bought. And `:memory:` disappeared from the suite entirely — the two files that
+opened one did so to replay migrations into it, so every store and api test now
+runs against a real file, which is what production uses.
 
 **This reverts at 1.0.** `schema.sql` becomes `migrations/001_schema.sql`,
 numbering resumes at `002`, and invariant 2 returns to its previous text. The

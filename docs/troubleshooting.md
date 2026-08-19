@@ -16,7 +16,7 @@ half-working instance. Check the very first lines of the log.
 
 ```
 store: database schema is stale: /data/jitpack.db was built from a different schema
-	JIT-Pack is pre-1.0 and ships no schema upgrade path (ADR-018)
+	JIT-Pack is pre-1.0 and ships no schema upgrade path
 	to discard it:   rm /data/jitpack.db   and restart
 	to keep it:      run the JIT-Pack version that wrote it, export under Settings -> Data, then upgrade and import
 ```

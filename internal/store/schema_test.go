@@ -79,8 +79,8 @@ func TestSchemaFingerprint_FitsSQLitesUserVersionAndIsNeverFresh(t *testing.T) {
 	// database that has never been stamped already carries — a fingerprint
 	// landing on either would make a stale database read as fresh.
 	fp := schemaFingerprint()
-	if fp <= 0 || fp > 0x7fffffff {
-		t.Fatalf("fingerprint %d is not a positive 31-bit value", fp)
+	if fp <= 0 || fp > maxUserVersion {
+		t.Fatalf("fingerprint %d does not fit PRAGMA user_version as a non-zero value", fp)
 	}
 }
 

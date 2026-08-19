@@ -20,7 +20,7 @@
 **Pros**
 - A schema change is an edit, not a new file. Dropping a column is deleting a line rather than SQLite's twelve-step table rebuild.
 - The schema reads as one document, in a chosen order, with its comments where the columns are.
-- The `ALTER TABLE` scar tissue disappears: before this change the live DDL carried `, updated_hlc TEXT NOT NULL DEFAULT '');` glued onto the closing line of nine tables, and `users` had three columns appended after `created_at`.
+- The `ALTER TABLE` scar tissue disappears: before this change five tables closed with `, updated_hlc TEXT NOT NULL DEFAULT '');` sharing a line with the closing paren, four more carried the same column appended mid-list, eight table names were quoted because a rebuild had requoted them, and `users` had three columns and a stranded `CHECK` appended after `created_at`.
 - Four of the twenty-three migrations (013, 014, 015, 018) existed **only** because an earlier file could not be edited. They retired features and left the schema no better than a one-line edit would have.
 - The debt invariant 2 previously blessed — dead schema kept because it cannot be removed — becomes a choice rather than a rule. (This PR still keeps `outbound_packed` and the `repack` status; removing them changes the sync contract and is a separate change, now unblocked.)
 
@@ -68,7 +68,7 @@ Scores 1–5, higher is better.
 | Nothing destroyed silently | 5 | **5** — refuses, names the file | **5** — upgrades in place | **5** |
 | Cheap to reverse | 3 | 4 — `schema.sql` becomes `001_`, resume at `002` | 5 — nothing to reverse | 4 |
 | Upgradability of existing databases | 2 | 1 — none, by design | **5** | 2 |
-| **Total** | | **82** | 59 | 66 |
+| **Total** | | **84** | 64 | 67 |
 
 Upgradability carries weight 2 deliberately: the only tagged release is v0.1.0 (2026-07-10, eleven migrations behind), and the only known deployment is the maintainer's own test instance, whose data is reproducible from the dev seed in one tap. That weight is exactly what the revisit trigger changes.
 
