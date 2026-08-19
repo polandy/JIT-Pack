@@ -134,6 +134,33 @@ describe('addGroupToTrip (FR-27.10)', () => {
     })
   })
 
+  it('pulls the required companions of what it placed (FR-20.4)', async () => {
+    // The same rule the single-item quick-add applies: an item added to a trip
+    // brings its required companions. Adding twelve of them at once must not
+    // be the one path that skips it.
+    const orch = await localOrchestrator()
+    const tripStore = useTripStore()
+    seedWorld()
+    useMasterStore().applyChanges([
+      change(TABLE.items, 'item-akku', { name: 'Ersatzakku', weight_grams: 60 }),
+      change(TABLE.itemDependencies, 'dep-1', {
+        item_id: 'item-akku',
+        depends_on_item_id: ITEM_ID,
+        mode: 'required',
+        quantity: 1,
+      }),
+    ])
+
+    orch.addGroupToTrip(TRIP_ID, GROUP_ID)
+
+    expect(
+      tripStore
+        .getItems(TRIP_ID)
+        .map((r) => r.name)
+        .sort(),
+    ).toEqual(['Ersatzakku', 'Kamera'])
+  })
+
   it('registers the group as a source, so later edits are offered (FR-27.4)', async () => {
     const orch = await localOrchestrator()
     const tripStore = useTripStore()

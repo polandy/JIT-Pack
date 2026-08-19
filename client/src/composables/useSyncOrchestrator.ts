@@ -1084,6 +1084,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       }
     }
 
+    // FR-20.4, the same rule the single-item quick-add applies: what the group
+    // placed brings its required companions. Adding twelve positions at once
+    // must not be the one path that skips it. Once for the whole group rather
+    // than per row — the resolution reads the settled list either way.
+    if (plan.add.length > 0) addRequiredCompanions(tripId)
+
     // Registered even when the group placed nothing: following it is about
     // what it does from here on, not about what it happened to contribute.
     const registered = tripStore
