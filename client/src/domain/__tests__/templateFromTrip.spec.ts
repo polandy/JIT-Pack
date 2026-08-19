@@ -328,6 +328,22 @@ describe('planTemplateFromTrip (FR-27.5)', () => {
     expect(writes.newMasterItems).toEqual([])
   })
 
+  it('NearMissName_CreatesItsOwnMasterItem_RatherThanBindingToTheWrongOne', () => {
+    // FR-16.3's fuzzy matcher exists for the *import* screen, where a human
+    // confirms every non-exact match. M21 confirms nothing, and German is
+    // full of four-letter neighbours: Zelt/Welt, Hose/Dose, Buch/Bach. A
+    // duplicate master item is visible and mergeable; a silently wrong link
+    // hands the row somebody else's weight, tags and photo.
+    const writes = plan({
+      composition: compose({ tripItems: [row('r1', 'Stativa', null)] }),
+      checkedLooseIds: ['r1'],
+      masterItems: [master('itm-1', 'Stativ')],
+    })
+
+    expect(writes.newMasterItems).toEqual(['Stativa'])
+    expect(writes.template.positions).toEqual([{ name: 'Stativa', itemId: null }])
+  })
+
   it('UnknownAdHocName_CreatesTheMasterItemFirst', () => {
     const writes = plan({
       composition: compose({ tripItems: [row('r1', 'Gimbal', null)] }),

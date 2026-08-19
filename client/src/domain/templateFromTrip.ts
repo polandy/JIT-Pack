@@ -10,7 +10,6 @@
  */
 
 import type { MasterItem, Template, TemplateItem, TripItem } from '@/types/domain'
-import { findDuplicates } from './spreadsheet'
 
 /** Everything recognition reads — plain arrays, the stores shape them. */
 export interface RecognitionInput {
@@ -267,11 +266,18 @@ export function planTemplateFromTrip(input: WritePlanInput): TemplateFromTripWri
  * at, remembering the names it had to invent.
  *
  * Three sources, in falling order of certainty: the row's own
- * `source_item_id` (a generated row already knows its master item), an
- * FR-16.3-tolerant name match against the inventory, and finally a new master
- * item — the FR-9.2 mechanics. The invented names are deduped by the same
- * tolerant rule, so two rows spelled "Gimbal" and "gimbal" do not leave two
- * master items behind, which is the mess FR-16.3 exists to prevent.
+ * `source_item_id` (a generated row already knows its master item), an exact
+ * name match against the inventory, and finally a new master item — the
+ * FR-9.2 mechanics, and the same fold M14 performs.
+ *
+ * **Exact, not FR-16.3-fuzzy, and that is a deliberate departure from the
+ * FR-27.5 wording.** The Levenshtein matcher exists for the import screen,
+ * where a human confirms every non-exact match before it is written. Nothing
+ * confirms here, and German is full of four-letter neighbours within two
+ * edits — Zelt/Welt, Hose/Dose, Buch/Bach. The two failure modes are not
+ * symmetric: a duplicate master item is visible in M9 and can be merged,
+ * while a wrong link silently hands the position somebody else's weight,
+ * tags and photo, and FR-27.4 then propagates it.
  */
 function masterFold(masterItems: MasterItem[]): ((row: TripItem) => PositionDraft) & {
   created: string[]
@@ -279,17 +285,13 @@ function masterFold(masterItems: MasterItem[]): ((row: TripItem) => PositionDraf
   const created: string[] = []
   const fold = (row: TripItem): PositionDraft => {
     if (row.source_item_id) return { name: row.name, itemId: row.source_item_id }
-    const [match] = findDuplicates([row.name], masterItems)
-    if (match) return { name: match.existingName, itemId: match.existingId }
-    const invented = created.find((n) => findDuplicates([row.name], [placeholder(n)]).length > 0)
+    const existing = masterItems.find((item) => namesMatch(item.name, row.name))
+    if (existing) return { name: existing.name, itemId: existing.id }
+    // Deduped by the same rule, so "Gimbal" and "gimbal " leave one item.
+    const invented = created.find((name) => namesMatch(name, row.name))
     if (invented) return { name: invented, itemId: null }
     created.push(row.name)
     return { name: row.name, itemId: null }
   }
   return Object.assign(fold, { created })
-}
-
-/** A name-only stand-in, so an invented name reuses the FR-16.3 matcher. */
-function placeholder(name: string): MasterItem {
-  return { id: '', name, weight_grams: null, value_cents: null }
 }

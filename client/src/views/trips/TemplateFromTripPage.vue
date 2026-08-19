@@ -37,6 +37,7 @@ import {
   recogniseTripComposition,
   suggestTemplateName,
   type DeviationChoice,
+  type LooseReason,
 } from '@/domain/templateFromTrip'
 import { tripsReachedBy } from '@/domain/templates'
 import { useMasterStore } from '@/stores/masterStore'
@@ -125,7 +126,7 @@ function blastText(groupId: string): string | null {
 }
 
 /** The loose row's own explanation — a planned row says so (FR-27.1). */
-function looseReason(reason: string, templateName: string | undefined): string {
+function looseReason(reason: LooseReason, templateName: string | undefined): string {
   return reason === 'from-template'
     ? t('templateFromTrip.looseFromTemplate', { template: templateName ?? '' })
     : t('templateFromTrip.looseAdHoc')
@@ -145,6 +146,10 @@ async function toast(message: string) {
  */
 async function create() {
   if (!canCreate.value) return
+  // Held until the navigation, not just across the write: the write itself is
+  // synchronous, so releasing it before the toast and the route change leaves
+  // the button live on a screen that is still on top — and a second thumb tap
+  // there writes a second Vorlage. Released again only where the screen stays.
   creating.value = true
   const templateId = orchestrator.createTemplateFromTrip(props.tripId, {
     templateName: templateName.value.trim(),
@@ -152,8 +157,8 @@ async function create() {
     checkedLooseIds: [...checked.value],
     bundleName: bundleOn.value ? bundleName.value.trim() || null : null,
   })
-  creating.value = false
   if (!templateId) {
+    creating.value = false
     await toast(t('templateFromTrip.notLoaded'))
     return
   }
