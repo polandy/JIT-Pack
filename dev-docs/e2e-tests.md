@@ -100,8 +100,8 @@ joined it on 2026-08-19, so the image is no longer what distinguishes the
 two; the project selection is. For the baselines the image is load-bearing,
 because outside it the images mean nothing; for the behaviour suite it is
 only how the browsers get there. The behaviour suite is additionally split
-across two CI legs by Playwright's own sharding, so it reports as
-`e2e (1)` and `e2e (2)`; the browser is in the test name, not the job
+across four CI legs by Playwright's own sharding, so it reports as
+`e2e (1)` through `e2e (4)`; the browser is in the test name, not the job
 name. What it does *not* cover: the
 dev gallery, which is `import.meta.env.DEV`-only and therefore absent from
 the bundle these baselines drive, so component states are guarded by nobody.

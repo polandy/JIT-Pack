@@ -17,7 +17,7 @@
 # behaviour tests assert behaviour, so forcing emulation there would only make
 # an Apple-Silicon run slow enough to start tripping test budgets.
 #
-# Arguments are passed to `playwright test`. CI passes `--shard=N/2`, one per
+# Arguments are passed to `playwright test`. CI passes `--shard=N/4`, one per
 # matrix leg; `make e2e` passes nothing and runs the whole suite.
 set -euo pipefail
 

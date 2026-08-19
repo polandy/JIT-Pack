@@ -3434,3 +3434,35 @@ neither cause nor fix. Both scripts therefore compare the pinned version
 against the lockfile before starting the container and fail with the two lines
 that fix it. Both branches of that check — mismatch, and an unreadable
 lockfile, which must warn rather than block — were proved by mutating a copy.
+
+### The e2e job loses its gate and gains two shards (2026-08-19)
+
+The 2026-08-19 pipeline after the container move measured ~7 min wall clock,
+and all of it was one path: `client` (69 s) → `e2e (2)` (5:41). Every other
+job finishes under 90 s. Two changes, both to the critical path and neither
+to what is tested:
+
+**The `needs: [client]` gate is gone from `e2e`.** The job installs and
+builds on its own runner regardless — with a warm npm cache that is ~20 s,
+against the ~75 s of `client` the gate serialized in front of the slowest
+job in the pipeline. The gate reused nothing; it only made e2e start late.
+What the trade costs is runner minutes, not signal: on a commit where
+`client` fails lint but builds, the e2e legs now run to completion instead
+of being skipped. `visual` keeps its gate — it is off the critical path
+either way. One knock-on: the "e2e is not a required check because it needs
+client" rationale in CLAUDE.md was rewritten; the check stays non-required
+because it is a shard matrix and `dependabot-merge` already waits for it.
+
+**Two shards became four, sized from the run's own reports.** The two
+uploaded HTML reports carry every test's duration: ~1020 test-seconds total,
+WebKit ~630 s behind Chromium's ~350 s in the test list. With `fullyParallel`
+Playwright splits that list into contiguous count-equal chunks, so duration
+balance is luck: 2 shards landed 464/557 s, and simulating 4 shards on the
+same durations lands 150/315/251/305 s — the worst leg drops from ~4.7 min
+of test time to ~2.6, against ~1 min of fixed cost per leg (image pull 36 s,
+warm npm ci + build ~25 s). More shards pay that fixed cost again for less
+than a minute back. Same tests, same 2 workers per runner, same 60 s budget,
+same retry policy — the partitioning moved, nothing else.
+
+Expected wall clock: the pipeline becomes bounded by the heaviest e2e leg
+starting at t≈0, roughly 4 min. Measured on this PR's own run — see the PR.
