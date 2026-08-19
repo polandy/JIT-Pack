@@ -99,8 +99,19 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    hand-typed row is recognised, provenance stamped, FR-27.7 tasks materialised, the
    group registered as a source unless the trip is past, and the result always
    reported (added / already there / nothing this trip's conditions let through).
-   No FR-9.1 *Missing* flag: the plan grew, nothing was forgotten. Still owed: the
-   **M21 screen** (FR-27.5).
+   No FR-9.1 *Missing* flag: the plan grew, nothing was forgotten. **M21 closes §3.27**
+   (2026-08-19, FR-27.5): an archived trip's rows fold back into the groups they came
+   from, recognised groups are **referenced rather than copied**, and a group's on-trip
+   deviations default to flowing back into it with the FR-27.4 blast radius named. Three
+   findings came with it. It needed a **lifecycle step that did not exist** — nothing
+   user-facing moved a trip to *active*, so nothing could archive one; M4's app bar and
+   M2's swipe now offer *start*, which also unblocks the positive M12 and M14 e2e cases
+   that hung on the same gap. Only a **Gruppe** can be recognised (a row from the old
+   Vorlage's own positions is loose — FR-27.1 forbids the reference). And the spec's
+   *„Auf der Reise ergänzt"* names a cause the app cannot produce: a quick-add row carries
+   no provenance, so a real deviation comes from the **group** changing after generation —
+   the computation stands, the sentence has a revisit trigger in FR-27.5.
+   **§3.27 owes nothing more.**
    The Local Mode backup still does not carry the three FR-27.4 tables
    (`trip_template_sources`, `trip_generated_positions`, `trip_applied_changes`):
    a restored device keeps its Vorlagen and trips, and starts following them afresh.
@@ -143,12 +154,12 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
      groups-only retarget picker, pair-scoped dismissal, per-row FR-27.4 blast radius,
      marked applied/skipped rows; list semantics pinned in a component test because the
      positive e2e cases are blocked, see below). **The screen rebuilds are complete**,
-     though M14 has **not been eyeballed with real proposals** — reaching one needs the
-     same product gap closed that the M12 e2e unit found: nothing user-facing moves a
-     trip to *active*, so nothing can archive one or set an FR-9.1 flag — the North-Star
-     phase owns that transition (e2e ledger). The eyeball path is the dev gallery's
-     M14 fixture button (`src/dev/reviewFixture.ts`), which seeds in-memory rows and
-     opens the real route.
+     though M14 has **not been eyeballed with real proposals**. The product gap that
+     blocked it is **closed since 2026-08-19** — M21 needed the same *start* transition,
+     so an archived trip and an FR-9.1 flag are now reachable through the app — which
+     turns M12's and M14's positive e2e cases from impossible into **owed but unwritten**
+     (e2e ledger). The dev gallery's M14 fixture button (`src/dev/reviewFixture.ts`)
+     remains the fastest eyeball path.
      Known cost carried over from the M5 rebuild: M4 loses its scroll position
      when a detail opens (ADR-012's overlay amendment).
 4. **i18n migration** — the hard-coded English strings across the screens M4 did not touch;

@@ -47,6 +47,8 @@ import type { NotificationPrefs, ServerNotification } from '@/notifications/form
 import type { PushServerAPI } from '@/notifications/push'
 import type { AdminUserRow } from '@/domain/admin'
 import type { ReviewProposal } from '@/domain/review'
+import { planTemplateFromTrip, recogniseTripComposition } from '@/domain/templateFromTrip'
+import type { DeviationChoice, PositionDraft } from '@/domain/templateFromTrip'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import type {
   Container,
@@ -2557,6 +2559,85 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return groupId
   }
 
+  /**
+   * createTemplateFromTrip folds a finished trip back into templates (M21,
+   * FR-27.5) and returns the id of the composed Ferien-Vorlage it created.
+   *
+   * The writes run in the order FR-27.5 spells out — master items first, then
+   * the group updates the user let through, then the optional bundle group,
+   * then the Vorlage that **references** the recognised groups. Referencing
+   * rather than copying is the whole point of the screen: a flat copy forks
+   * every group the trip came from, and next year two divergent camera lists
+   * exist.
+   *
+   * A deviation written into a group reaches every trip that still follows it
+   * — the FR-27.4 question does the rest on the next open, which is why
+   * nothing is recorded against those trips here.
+   *
+   * Returns null when the trip's own rows are not on this device: "not pulled
+   * yet" must never be read as "a trip of nothing", which would silently
+   * produce an empty template (the same guard addGroupToTrip carries).
+   */
+  function createTemplateFromTrip(
+    tripId: string,
+    answers: {
+      templateName: string
+      choices: Record<string, DeviationChoice>
+      checkedLooseIds: string[]
+      bundleName: string | null
+    },
+  ): string | null {
+    if (!tripDataLoaded(tripId)) return null
+
+    const composition = recogniseTripComposition({
+      tripItems: tripStore.getItems(tripId),
+      templates: masterStore.templateList,
+      positions: masterStore.templateList.flatMap((t) => masterStore.getTemplateItems(t.id)),
+      masterItems: masterStore.itemList,
+    })
+    const writes = planTemplateFromTrip({
+      composition,
+      templateName: answers.templateName,
+      choices: answers.choices,
+      checkedLooseIds: answers.checkedLooseIds,
+      bundleName: answers.bundleName,
+      masterItems: masterStore.itemList,
+    })
+
+    // 1. The master items the ad-hoc names had no counterpart for (FR-9.2).
+    const invented = new Map<string, string>()
+    for (const name of writes.newMasterItems) invented.set(name, createMasterItem(name))
+    const itemIdOf = (p: PositionDraft) => p.itemId ?? invented.get(p.name)
+
+    // A trip row is one thing somebody packed, not a per-head rule — the
+    // per-person default belongs to positions written in M8, where the
+    // question was actually asked.
+    const write = (templateId: string, positions: PositionDraft[]) => {
+      for (const p of positions) {
+        const itemId = itemIdOf(p)
+        if (itemId) addTemplateItem(templateId, itemId, { assignment: 'trip_global' })
+      }
+    }
+
+    // 2. Deviations flowing back into their group.
+    for (const update of writes.groupUpdates) write(update.groupId, update.positions)
+
+    // 3. The optional bundle group, included like any other.
+    const includeIds = [...writes.template.includeGroupIds]
+    if (writes.newGroup) {
+      const groupId = createTemplate(writes.newGroup.name, 'group')
+      write(groupId, writes.newGroup.positions)
+      includeIds.push(groupId)
+    }
+
+    // 4. The composed Ferien-Vorlage itself.
+    const templateId = createTemplate(writes.template.name, 'template')
+    write(templateId, writes.template.positions)
+    for (const groupId of includeIds) addTemplateInclude(templateId, groupId)
+
+    return templateId
+  }
+
   // --- Container actions (FR-10.1, M11) ---
 
   function addContainer(
@@ -2869,6 +2950,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     archiveTrip,
     deleteTrip,
     applyReviewProposal,
+    createTemplateFromTrip,
 
     // Lifecycle
     connect,

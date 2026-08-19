@@ -123,8 +123,14 @@ export const de: Record<keyof typeof en, string> = {
   'packing.resetAll': 'Suche und Filter zurücksetzen',
 
   // FR-27.5 — die Abschlusskarte auf einer archivierten Reise.
-  'packing.tripFinished': '🧩 Reise abgeschlossen',
+  'packing.start': 'Reise starten',
+  'packing.startedToast':
+    'Reise läuft — Artikel, die jetzt dazukommen, gelten als vorher vergessen (FR-9.1).',
+  'packing.tripFinished': 'Reise abgeschlossen',
   'packing.reviewSuggestions': 'Vorschläge ansehen →',
+  'packing.tripFinishedHint':
+    'Das Gelernte dieser Reise gehört in die Vorlagen — nicht ins Archiv.',
+  'packing.templateFromTrip': 'Vorlage aus dieser Reise erstellen →',
 
   // Die Lupe in der App-Bar, pro Screen (G-12, FR-25.11k).
   'trips.searchPlaceholder': 'Reisen durchsuchen…',
@@ -484,6 +490,37 @@ export const de: Record<keyof typeof en, string> = {
   'trips.appliedQuantity': '„{group}“: {item} — Menge {from} → {to}',
   'trips.appliedTasks': '„{group}“: {item} — Vorbereitung geändert',
   'trips.appliedChanged': '„{group}“: {item} geändert',
+
+  // M21 — Vorlage aus Reise (FR-27.5). Der Vertrag steht in der ersten Zeile:
+  // erkannte Gruppen werden referenziert, nicht kopiert.
+  'templateFromTrip.title': 'Vorlage aus Reise',
+  'templateFromTrip.intro':
+    'Aus „{trip}“ wird eine wiederverwendbare Vorlage. Erkannte Gruppen werden referenziert, nicht kopiert — sie bleiben eigenständig pflegbar.',
+  'templateFromTrip.name': 'Name der Vorlage',
+  'templateFromTrip.groups': 'Erkannte Gruppen · {n}',
+  'templateFromTrip.fromGroup':
+    '{n} Artikel dieser Reise stammt daraus | {n} Artikel dieser Reise stammen daraus',
+  'templateFromTrip.reused': 'wird wiederverwendet ✓',
+  'templateFromTrip.added': 'Während der Reise ergänzt:',
+  'templateFromTrip.choiceUpdate': 'Gruppe aktualisieren',
+  'templateFromTrip.choiceOwn': 'Nur in diese Vorlage',
+  'templateFromTrip.blast':
+    'Wirkt überall, wo die Gruppe eingebunden ist — {n} Reise wird gefragt. | Wirkt überall, wo die Gruppe eingebunden ist — {n} Reisen werden gefragt.',
+  'templateFromTrip.blastNone':
+    'Wirkt überall, wo die Gruppe eingebunden ist — zurzeit folgt ihr keine Reise.',
+  'templateFromTrip.absent':
+    '{items} war auf dieser Reise nicht dabei — die Gruppe bleibt unverändert. | {items} waren auf dieser Reise nicht dabei — die Gruppe bleibt unverändert.',
+  'templateFromTrip.loose': 'Eigene Artikel · {n} von {total}',
+  'templateFromTrip.looseAdHoc': 'ohne Gruppe hinzugefügt',
+  'templateFromTrip.looseFromTemplate': 'aus „{template}“ — als eigene Position übernommen',
+  'templateFromTrip.looseEmpty': 'Keine losen Artikel.',
+  'templateFromTrip.bundle': 'Als neue Gruppe speichern',
+  'templateFromTrip.bundleHint': 'statt als lose Positionen der Vorlage',
+  'templateFromTrip.bundleName': 'Name der neuen Gruppe',
+  'templateFromTrip.bundleDefault': '{trip} Extras',
+  'templateFromTrip.create': 'Vorlage erstellen ✓',
+  'templateFromTrip.created': 'Vorlage „{name}“ erstellt — Gruppen wiederverwendet ✓',
+  'templateFromTrip.notLoaded': 'Die Artikel dieser Reise sind noch nicht geladen.',
 
   'settings.language': 'Sprache',
   'settings.languageHint': 'Nur auf diesem Gerät.',

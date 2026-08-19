@@ -3552,3 +3552,94 @@ resolved item names is FR-27.13's decided concept for the M8 picker, and half of
 it here would have been a second, quieter rule for the same question. And the
 sample seed needed no extension for once: it already carries a group that is
 deliberately included nowhere, which is exactly the group this feature is for.
+
+## M21 — Vorlage aus Reise (FR-27.5), 2026-08-19
+
+The closing half of the FR-27.1 round-trip, and the last thing §3.27 owed. M3
+instantiates a composed Vorlage into a trip; M21 recognises what the finished
+trip was made of and writes it back. The screen exists because the naive "save
+as template" copies the trip flat and forks every group it came from — next
+year two divergent camera lists.
+
+**The screen was unreachable, and finding that out changed the plan.** Every
+M21 entry sits on an *archived* trip. Both archive affordances are gated on
+*active*, `activateTrip` existed in the orchestrator with a doc-comment
+describing exactly this hole, and **no view called it**. So the first thing the
+PR shipped was not M21 at all: one action on M4's app bar and one M2 swipe
+option. The owner approved it as a deliberate scope call rather than a quiet
+widening — the alternative was M21 landing with three blocked e2e cases, the
+same caveat M14 already carries. It also retroactively unblocks the positive
+M12-03 and M14-01/-02/-04/-05 cases, which hung on the identical gap; they are
+now **owed rather than impossible**, and the e2e ledger says so in those words.
+The cost is visible in the pixels: a fifth app-bar icon squeezes M4's title
+from "Sameda…" to "S…".
+
+**Recognition is a fact, not a question.** A trip row carries
+`source_template_id`; grouping by it produces the recognised groups, and
+membership therefore has no per-group opt-out. Two cases the concept never
+spelled out came up immediately and are covered by name in
+`domain/templateFromTrip.ts`:
+
+- A row generated from the old **Ferien-Vorlage's own** positions carries that
+  Vorlage as provenance. FR-27.1 fixes the hierarchy at two levels, so there is
+  nothing to reference — the row is *loose*, and says so differently from an
+  ad-hoc one ("aus „X“ — als eigene Position übernommen"). It was planned, just
+  not by a reusable building block.
+- A provenance id this device cannot resolve is loose too. An unresolvable id
+  is not a group, and inventing a reference is worse than admitting ignorance
+  (the M12 honesty rule).
+
+**„Auf der Reise ergänzt" describes a path the app cannot walk.** The spec —
+and the prototype's mock — picture a row added *under a group* while packing.
+A quick-add writes `source_template_id = null`, so that row is loose by
+construction, and there is no surface anywhere that attaches a trip row to a
+group. What actually produces a row whose group no longer contains it is the
+**group** changing after generation: a position removed in M8, or an FR-27.4
+removal the trip declined. From the group's side the two read identically and
+deserve the same offer, so the computation is right; only the sentence blames
+the wrong end. Left as-is with a revisit trigger in FR-27.5 rather than
+reworded unilaterally — the alternative wording ("Auf dieser Reise dabei, in
+der Gruppe nicht") is a product voice decision. The e2e case produces the
+deviation the real way: archive first, *then* remove the position, because a
+past trip is never asked to follow along.
+
+**No group change history table.** FR-27.5 asks for each fold-back to be
+"recorded in the group's change history with its origin". No such table exists,
+and FR-27.4 already carries the consequence — the edit is offered to every trip
+that still follows the group and lands in *that trip's* applied-changes log. A
+per-group ledger for one writer was not invented.
+
+**What the render caught that the stylesheet could not.** Three defects, all
+found by looking at the pixels: Ionic truncated both segment labels at 390 px
+("UPDATE THE GR…" / "ONLY IN THIS TE…"), so the screen's one real choice could
+not be read; the absent line had no plural rule ("Blitz **were** not on this
+trip"); and it butted against the blast note, reading as a continuation of the
+statement it contradicts.
+
+**And one finding about the visual gate itself.** The ten M4 baselines were
+regenerated deliberately (ADR-013) because the new app-bar action changes every
+planning-trip shot — but the *old* baselines still **passed** against the new
+render. An added 24 px icon plus the title truncation lands under
+`maxDiffPixelRatio: 0.002` (658 px of 329 160). The gate is looser than it
+reads; whether to tighten it is a decision with a flake cost, so it is recorded
+here rather than changed in passing.
+
+**Testing.** 25 domain tests over recognition and the write plan, six e2e cases
+(`client/e2e/template-from-trip.spec.ts`) including E2E-M4-43 on the lifecycle
+step. Mutation-proved throughout: dropping the `addTemplateInclude` loop,
+flipping `DEFAULT_DEVIATION_CHOICE`, ungating the archive action, removing the
+`source_item_id` shortcut and relaxing the kind check each felled exactly the
+cases that claim them. Two false-green locators found on the way — Ionic marks
+the chosen segment button with a *class* rather than `aria-checked`, and
+`ion-toggle` **is** the switch rather than containing one.
+
+**No ADR.** FR-27.5 had already weighed the tradeoff and chosen; the
+implementation weighed nothing new.
+
+**Wording follow-up (2026-08-19, owner).** The deviation line reads *„Während
+der Reise ergänzt"* rather than *„Auf der Reise ergänzt"*. Chosen after the
+note above was raised: it reads better, and the observation it answers — that
+the app cannot actually produce a row added under a group while packing — is
+unchanged. The neutral alternative („Auf dieser Reise dabei, in der Gruppe
+nicht") was offered and declined, so FR-27.5's revisit trigger is now the
+missing surface rather than the sentence.

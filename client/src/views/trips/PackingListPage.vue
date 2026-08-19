@@ -44,6 +44,7 @@ import {
 } from '@ionic/vue'
 import {
   addOutline,
+  albumsOutline,
   archiveOutline,
   bagHandleOutline,
   contrastOutline,
@@ -61,6 +62,7 @@ import {
   briefcaseOutline,
   lockClosedOutline,
   locationOutline,
+  playOutline,
   sparklesOutline,
   statsChartOutline,
   timeOutline,
@@ -394,6 +396,18 @@ setHeaderActions(() => {
       onClick: toggleFoldAll,
     },
   ]
+  // The two lifecycle steps, each offered only where it is the next one.
+  // Without the first, *active* was unreachable in the whole app — and with
+  // it the archive action below, FR-9.1's Missing flagging and everything
+  // downstream of an archived trip (M14, M21).
+  if (trip.value?.status === 'planning') {
+    items.push({
+      id: 'm4-start',
+      icon: playOutline,
+      label: t('packing.start'),
+      onClick: onStart,
+    })
+  }
   if (isActive.value) {
     items.push({
       id: 'm4-archive',
@@ -859,6 +873,23 @@ async function onQuickAddGroup(templateId: string) {
 }
 
 /**
+ * Starting moves a planning trip into packing (`active`). The wizard only
+ * ever creates planning trips, so this is the transition that makes FR-9.1's
+ * Missing flagging and the archive action reachable at all — deliberately a
+ * plain status change here, not the richer departure ritual the North-Star
+ * Plan/During phases own.
+ */
+async function onStart() {
+  orchestrator.activateTrip(props.tripId)
+  const toast = await toastController.create({
+    message: t('packing.startedToast'),
+    duration: 3000,
+    position: 'bottom',
+  })
+  await toast.present()
+}
+
+/**
  * Archiving completes the trip and opens the M14 review (FR-9.2).
  * With no FR-9.1 flags there is nothing to judge, so the assistant is
  * skipped with a toast instead of an empty screen (UI-Spec M14 states);
@@ -999,11 +1030,27 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
       <!-- The one real remnant of the dropped "Danach" phase: an archived
            trip leads with what to do next with it. -->
       <div v-if="trip?.status === 'archived'" class="closing-card">
+        <!-- No pictorial mark. The puzzle emoji came from the prototype,
+             where §3.27 was about composition; it said nothing about a
+             finished trip. Nothing replaced it: every other heading in the
+             app is plain text, the card already carries two button icons,
+             and a third glyph decorated rather than told. -->
         <h2>{{ t('packing.tripFinished') }}</h2>
-        <IonButton size="small" fill="outline" :router-link="`/trips/${tripId}/review`">
-          <IonIcon slot="start" :icon="sparklesOutline" />
-          {{ t('packing.reviewSuggestions') }}
-        </IonButton>
+        <p class="closing-hint">{{ t('packing.tripFinishedHint') }}</p>
+        <div class="closing-actions">
+          <IonButton
+            size="small"
+            data-testid="m4-template-from-trip"
+            :router-link="`/trips/${tripId}/template`"
+          >
+            <IonIcon slot="start" :icon="albumsOutline" />
+            {{ t('packing.templateFromTrip') }}
+          </IonButton>
+          <IonButton size="small" fill="outline" :router-link="`/trips/${tripId}/review`">
+            <IonIcon slot="start" :icon="sparklesOutline" />
+            {{ t('packing.reviewSuggestions') }}
+          </IonButton>
+        </div>
       </div>
 
       <QuickAddItem
@@ -1748,8 +1795,18 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 }
 
 .closing-card h2 {
-  margin: 0 0 10px;
+  margin: 0 0 4px;
   font-size: var(--jp-text-lg);
+}
+.closing-hint {
+  margin: 0 0 10px;
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-sm);
+}
+.closing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .empty {
