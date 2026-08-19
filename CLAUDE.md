@@ -93,9 +93,14 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    **Portable YAML carries the composition too** (2026-08-18, ADR-017): a Ferien-Vorlage's
    groups travel whole under `includes:` with their FR-27.7 tasks, and an import links a
    group of the same name rather than rewriting it — a group's own document included, so
-   the result does not depend on which document a file lists first. Still owed: the
-   **M21 screen** (FR-27.5) and **FR-27.10**'s whole-group add to a running trip (its
-   plumbing exists: `sourceTemplateIds` on the wizard draft and `registerTripSource`).
+   the result does not depend on which document a file lists first. **FR-27.10 is done too** (2026-08-19): the M4 quick-add
+   filters groups beside the items and one tap expands a whole group onto the trip —
+   the same resolution M3 performs, deduped by master item *and* by name so a
+   hand-typed row is recognised, provenance stamped, FR-27.7 tasks materialised, the
+   group registered as a source unless the trip is past, and the result always
+   reported (added / already there / nothing this trip's conditions let through).
+   No FR-9.1 *Missing* flag: the plan grew, nothing was forgotten. Still owed: the
+   **M21 screen** (FR-27.5).
    The Local Mode backup still does not carry the three FR-27.4 tables
    (`trip_template_sources`, `trip_generated_positions`, `trip_applied_changes`):
    a restored device keeps its Vorlagen and trips, and starts following them afresh.
