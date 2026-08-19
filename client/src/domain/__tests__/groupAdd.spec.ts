@@ -178,7 +178,7 @@ describe('planGroupAddition (FR-27.10)', () => {
     ]
     const plan = planGroupAddition(input({ templateItemTasks: tasks }))
 
-    expect(plan.add[0].generated.tasks).toEqual(['Akkus laden'])
+    expect(plan.add[0]?.generated.tasks).toEqual(['Akkus laden'])
   })
 
   it('resolves an included group one level down, like generation does (FR-27.1)', () => {

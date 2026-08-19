@@ -83,8 +83,8 @@ describe('addGroupToTrip (FR-27.10)', () => {
 
     const rows = tripStore.getItems(TRIP_ID)
     expect(rows.map((r) => r.name)).toEqual(['Kamera'])
-    expect(rows[0].source_template_id).toBe(GROUP_ID)
-    expect(rows[0].source_item_id).toBe(ITEM_ID)
+    expect(rows[0]?.source_template_id).toBe(GROUP_ID)
+    expect(rows[0]?.source_item_id).toBe(ITEM_ID)
     expect(report).toEqual({ groupName: 'Makro Fotografie', added: 1, alreadyPresent: [] })
   })
 
@@ -114,7 +114,7 @@ describe('addGroupToTrip (FR-27.10)', () => {
     orch.addGroupToTrip(TRIP_ID, GROUP_ID)
 
     const row = tripStore.getItems(TRIP_ID)[0]
-    const todos = tripStore.getTodos(TRIP_ID).filter((t) => t.trip_item_id === row.id)
+    const todos = tripStore.getTodos(TRIP_ID).filter((t) => t.trip_item_id === row?.id)
     expect(todos.map((t) => t.body)).toEqual(['Akkus laden'])
   })
 
