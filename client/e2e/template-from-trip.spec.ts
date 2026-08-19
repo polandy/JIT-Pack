@@ -149,6 +149,13 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     await expect(visible(page).getByTestId('m21-name').locator('input')).toHaveValue(
       'Samedan Sommer 2027',
     )
+
+    // Leaving is a behaviour too (working agreement, after four navigation
+    // defects both screen suites missed). Asserted on the rendered page, not
+    // the URL: the ADR-011 chevron goes to meta.parent, which is M4.
+    await page.getByTestId('header-back').click()
+    await expect(visible(page).getByTestId('m4-template-from-trip')).toBeVisible()
+    await expect(visible(page).getByTestId('m21-intro')).toHaveCount(0)
   })
 
   test('E2E-M21-02: a deviation names itself and defaults to updating the group', async ({

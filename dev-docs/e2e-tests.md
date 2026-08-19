@@ -190,7 +190,14 @@ carrying forward:
    attribute passes against nothing. And `ion-toggle` **is** the switch:
    `getByTestId(...).getByRole('switch')` looks for a descendant and finds
    none.
-4. **Mutation-proved**, as the standing rule requires: dropping the
+4. **Getting there and leaving are both asserted**, inside this unit rather
+   than in `global-nav.spec.ts`: reaching M21 needs an archived trip, which
+   costs a group, a wizard run and two lifecycle taps to build, and the
+   global unit would have to carry all of it for one chevron. The rule the
+   working agreement is protecting — that leaving a screen is a behaviour,
+   asserted on the rendered page and never on the URL — is kept; only the
+   file differs, and this note is why.
+5. **Mutation-proved**, as the standing rule requires: dropping the
    `addTemplateInclude` loop, flipping `DEFAULT_DEVIATION_CHOICE` and
    ungating the archive action each felled exactly the cases that claim
    them.
