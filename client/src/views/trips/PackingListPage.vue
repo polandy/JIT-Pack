@@ -1030,6 +1030,11 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
       <!-- The one real remnant of the dropped "Danach" phase: an archived
            trip leads with what to do next with it. -->
       <div v-if="trip?.status === 'archived'" class="closing-card">
+        <!-- No pictorial mark. The puzzle emoji came from the prototype,
+             where §3.27 was about composition; it said nothing about a
+             finished trip. Nothing replaced it: every other heading in the
+             app is plain text, the card already carries two button icons,
+             and a third glyph decorated rather than told. -->
         <h2>{{ t('packing.tripFinished') }}</h2>
         <p class="closing-hint">{{ t('packing.tripFinishedHint') }}</p>
         <div class="closing-actions">

@@ -124,7 +124,7 @@ export const en = {
   'packing.start': 'Start trip',
   'packing.startedToast':
     'Trip is under way — anything added now counts as missed on the plan (FR-9.1).',
-  'packing.tripFinished': '🧩 Trip finished',
+  'packing.tripFinished': 'Trip finished',
   'packing.reviewSuggestions': 'Review suggestions →',
   'packing.tripFinishedHint': "This trip's learning belongs in your templates, not in the archive.",
   'packing.templateFromTrip': 'Create a template from this trip →',

@@ -126,7 +126,7 @@ export const de: Record<keyof typeof en, string> = {
   'packing.start': 'Reise starten',
   'packing.startedToast':
     'Reise läuft — Artikel, die jetzt dazukommen, gelten als vorher vergessen (FR-9.1).',
-  'packing.tripFinished': '🧩 Reise abgeschlossen',
+  'packing.tripFinished': 'Reise abgeschlossen',
   'packing.reviewSuggestions': 'Vorschläge ansehen →',
   'packing.tripFinishedHint':
     'Das Gelernte dieser Reise gehört in die Vorlagen — nicht ins Archiv.',
