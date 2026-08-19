@@ -261,6 +261,15 @@ export const en = {
   'quickAdd.placeholder': 'Item name…',
   'quickAdd.missingHint': 'New items are flagged as missing',
   'quickAdd.newItem': 'Add “{name}” as a new item',
+  // FR-27.10: whole groups in the same composer.
+  'quickAdd.groupsHeading': 'Add a whole group',
+  'quickAdd.groupCount': '{n} position | {n} positions',
+  'quickAdd.groupAdded':
+    'Group “{name}” added — {n} position | Group “{name}” added — {n} positions',
+  'quickAdd.groupAlreadyPart': ', {n} already there',
+  'quickAdd.groupAllPresent': 'Group “{name}” is already fully on the list',
+  'quickAdd.groupEmpty': 'Group “{name}” contributes nothing to this trip',
+  'quickAdd.groupNotReady': 'Trip data is still loading — please try again in a moment',
 
   // Faceted filter panel (FR-25.11), shared by M4 and M6.
   'filter.title': 'Filter',

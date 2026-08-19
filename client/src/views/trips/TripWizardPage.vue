@@ -49,6 +49,7 @@ import {
   resolvedLines,
   type LinePreview,
 } from '@/domain/templates'
+import { previewText } from '@/lib/groupPreview'
 import { attributeLabel } from '@/lib/attributeLabels'
 import { resolveDependencies } from '@/domain/dependencies'
 import { durationDays, generateTripItems, type MergedOverlap } from '@/domain/instantiate'
@@ -274,11 +275,6 @@ function scopeRows(kind: TemplateKind): ScopeRow[] {
 
 /** FR-27.12: which group the peek sheet is showing, if any. */
 const peekTemplateId = ref<string | null>(null)
-
-function previewText(preview: LinePreview): string {
-  const names = preview.names.join(' · ')
-  return preview.rest > 0 ? `${names} ${t('templates.previewMore', { n: preview.rest })}` : names
-}
 
 const vacationTemplates = computed(() => scopeRows('template'))
 const groupTemplates = computed(() => scopeRows('group'))

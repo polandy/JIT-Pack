@@ -77,6 +77,7 @@ import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
+import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
@@ -847,6 +848,17 @@ function onQuickAdd(item: {
 }
 
 /**
+ * FR-27.10: one tap in the quick-add expands a whole group onto the trip.
+ *
+ * **The result is always reported** — which sentence, and why each outcome
+ * needs its own, is `groupAdditionMessage`.
+ */
+async function onQuickAddGroup(templateId: string) {
+  const report = orchestrator.addGroupToTrip(props.tripId, templateId)
+  await reportGroupAnswer(groupAdditionMessage(report))
+}
+
+/**
  * Archiving completes the trip and opens the M14 review (FR-9.2).
  * With no FR-9.1 flags there is nothing to judge, so the assistant is
  * skipped with a toast instead of an empty screen (UI-Spec M14 states);
@@ -994,7 +1006,13 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
         </IonButton>
       </div>
 
-      <QuickAddItem ref="quickAdd" :is-active="isActive" @add="onQuickAdd" />
+      <QuickAddItem
+        ref="quickAdd"
+        :is-active="isActive"
+        :offer-groups="true"
+        @add="onQuickAdd"
+        @add-group="onQuickAddGroup"
+      />
 
       <IonList v-if="view.groups.length > 0">
         <template v-for="group in view.groups" :key="group.key">

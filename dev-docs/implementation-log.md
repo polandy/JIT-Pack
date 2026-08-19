@@ -3466,3 +3466,89 @@ same retry policy — the partitioning moved, nothing else.
 
 Expected wall clock: the pipeline becomes bounded by the heaviest e2e leg
 starting at t≈0, roughly 4 min. Measured on this PR's own run — see the PR.
+
+## FR-27.10 — a whole group onto a trip that already exists (2026-08-19)
+
+The last open piece of §3.27 except M21. „Ich möchte auch in den Ferien eine
+Gruppe von Pack-Elementen hinzufügen können" — you decide on site that you will
+shoot macro this time, and until now the alternative was hand-copying a dozen
+positions or regenerating a trip that has already been packed against.
+
+**The surface is FR-25.13's composer verbatim**, which the FR insists on and
+which turned out to be the cheap half: `QuickAddItem` gained one opt-in prop
+and one emit. What is new visually is that a group is a **card** rather than a
+list row like the item suggestions, carrying the FR-27.12 summary and the
+resolved position count. That is not decoration — a tap that adds twelve rows
+and a tap that adds one item are the same gesture two pixels apart, and the
+summary is what lets somebody choose without opening anything.
+
+**The resolution is `generateTripItems`, unchanged.** `domain/groupAdd.ts` is
+thin on purpose: it feeds the group in as the single selected template with the
+trip's *current* travelers, and everything §3.27 already decided — one level of
+includes, the FR-2.3a merge, the per-person fan-out, FR-15.2 conditions,
+FR-27.7 tasks — follows without a second implementation. What the module owns
+is the one question generation never had to ask: **what is already there.**
+
+Four things settled while building, each visible in the code:
+
+* **Presence is master item first, name second, trip-global.** A generated row
+  carries its `source_item_id`; a row typed into the same composer five minutes
+  earlier carries none, and „Kamera" typed by hand is the thing the group is
+  about to bring. Trip-global rather than per traveler is FR-27.3's stance for
+  single items, and for its reason: a per-person fan-out means the item is on
+  the trip already, so one more row reads as one more thing to pack.
+* **A third outcome the FR did not name.** „Added N, M already there" and „already
+  fully on the list" are two; a group whose every position this trip's attributes
+  excluded (FR-15.2) is a third, and reporting „hinzugefügt — 0 Positionen" about
+  it would be false in both directions. It gets its own sentence.
+* **The registration is written even when nothing was placed.** Following a
+  group is about what it does *from here on*, not about what it happened to
+  contribute today — a group that is already fully present is exactly the one
+  whose next change the trip wants to hear about.
+* **No ledger rows.** `planRefresh` adopts a row it finds without a ledger
+  entry — the path a hand-added row takes — so the first refresh records these
+  with no extra mechanism, and writing them here would only be a second way to
+  say the same thing.
+
+**No FR-9.1 flag**, which is the one line of this feature that is a product
+decision rather than a mechanism: a single ad-hoc add on an active trip is
+flagged *Missing* because something was forgotten, and an added group is a plan
+that grew. Flagging it would feed M14 a lie and produce „nimm es in die Vorlage
+auf" proposals for rows that came *from* a template.
+
+**One gap the PR's own review found:** the group path skipped FR-20.4. A
+single quick-add pulls its required companions and M3's generation does too,
+so the same camera brought its spare battery when added alone and did not when
+it arrived inside „Makro Fotografie". Fixed with one call and a red-first test;
+the resolution runs once for the whole group, since it reads the settled list
+either way.
+
+**Where the tests had to move.** Two halves of the specified e2e cases — the
+absent *Missing* flag, and a past trip registering nothing — need a trip that is
+active or archived, and nothing user-facing moves a trip out of *planning* yet
+(the same gap the M12 and M14 units hit). Asserted in Playwright they would have
+passed on a planning trip whatever the production code did, so they are unit
+tests naming the reason, and the e2e ledger records the swap rather than hiding
+it. The name dedup **is** e2e-proved, mutation and all: dropping it doubles the
+row and reddens exactly the case written for it.
+
+**Three things the PR's second review pass changed**, beyond the FR-20.4 fix
+above. The M4 handler held a three-way branch inline in a view with no unit
+test — it is now `lib/groupAdditionMessage.ts`, a pure function with a case per
+outcome, which promptly added a fourth: the add refuses a trip whose rows are
+not on the device, M4 paints before its partition is pulled on a cold load, and
+that refusal used to be a silent no-op. A refusal nobody can see is worse than
+any of the outcomes the requirement worried about. Second, `previewText` had
+become a verbatim copy in two views (`lib/groupPreview.ts` now). Third, and the
+one worth remembering: reading the UI-Test-Spec's own sentences against the test
+bodies found **two false promises** — the case claimed to assert provenance,
+which is invisible on M4, and M4-27's text still said an *active* trip does not
+follow its groups, which FR-27.4's revision of 2026-08-18 had already replaced
+with *past*. The spec was describing the pre-revision model in a case nobody had
+run yet.
+
+Two smaller notes. The composer matches **group names only** — searching the
+resolved item names is FR-27.13's decided concept for the M8 picker, and half of
+it here would have been a second, quieter rule for the same question. And the
+sample seed needed no extension for once: it already carries a group that is
+deliberately included nowhere, which is exactly the group this feature is for.
