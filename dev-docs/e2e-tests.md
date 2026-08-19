@@ -93,9 +93,16 @@ overlay, not the row); the red case that caught it is the dismissed-then-tap
 assertion that survives in the contextmenu case.
 
 **The visual unit is the only one that asserts appearance, and it is not
-part of `npm run test:e2e`.** It runs under `make visual` and in its own CI
-job, inside the digest-pinned Playwright image both sides use (ADR-013);
-outside that image the images mean nothing. What it does *not* cover: the
+part of `npm run test:e2e`.** It is a separate Playwright project, run by
+`make visual` and by its own CI job. Both it and the behaviour suite execute
+inside the digest-pinned Playwright image (ADR-013) — the behaviour suite
+joined it on 2026-08-19, so the image is no longer what distinguishes the
+two; the project selection is. For the baselines the image is load-bearing,
+because outside it the images mean nothing; for the behaviour suite it is
+only how the browsers get there. The behaviour suite is additionally split
+across two CI legs by Playwright's own sharding, so it reports as
+`e2e (1)` and `e2e (2)`; the browser is in the test name, not the job
+name. What it does *not* cover: the
 dev gallery, which is `import.meta.env.DEV`-only and therefore absent from
 the bundle these baselines drive, so component states are guarded by nobody.
 That is a deliberate trade — the alternative was shipping a developer
@@ -162,6 +169,29 @@ rather than on a duration.
 **Not yet covered:** everything else in spec §3 (global patterns G-1–G-15), §4 (M1–M21 beyond the above), §5 (cross-screen flows) and §6 (non-functional journeys). The `single` and `server` modes have no coverage at all — they need a real `jitpackd` harness and, for `server`, a mock IdP (spec §10 steps 3 and 5).
 
 This is a small fraction of the specified suite. Do not read a green `e2e` job as "the UI is verified".
+
+## What the suite costs, measured
+
+Numbers from 2026-08-19, taken inside the pinned image on the maintainer's
+machine with 2 workers, because the sharding decision needed them:
+
+| | Chromium | WebKit |
+|---|---|---|
+| Tests | 123 | 123 |
+| Wall clock | 3.8 min | 10.6 min |
+
+WebKit is where the budget matters. **16 of its 123 tests take 20 s or more**,
+and the slowest passing one took 31.9 s — against Playwright's 30 s default,
+which the config had never overridden. That is the cost of §2.4: a unit that
+builds its world through M7 → M8 → M3 is worth far more than one that seeds
+storage directly, and on WebKit it costs real seconds. The budget is now set
+explicitly at 60 s in `playwright.config.ts` with that measurement written
+beside it.
+
+Two consequences worth keeping in mind when adding a unit: a new §2.4 unit is
+not free, and a WebKit failure reading *"Test timeout of 60000ms exceeded"* at
+a different line on each attempt is a unit that outgrew its budget, not a
+broken assertion.
 
 **What the FR-27.4 unit covers since 2026-08-18.** E2E-M8-09 runs the whole
 question: a group edited after the trip was generated shows up as M2's proposal chip on

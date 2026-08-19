@@ -255,7 +255,12 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     await expect(page.getByTestId('wizard-step-4')).toBeVisible()
     await page.getByTestId('wizard-create').click()
     await expect(page.getByTestId('header-title')).toHaveText('Fototour 2026')
-    await expect(visible(page).getByRole('heading', { name: 'Drohne', exact: true })).toBeVisible()
+    // By the row's test id, not by its heading text: during the wizard -> M4
+    // transition both pages are briefly un-hidden, so a heading named "Drohne"
+    // matches the step-4 preview *and* the packing row, and the assertion
+    // fails as a strict-mode violation depending on which frame it lands in.
+    // The row id is unique, and it is also the stronger claim.
+    await expect(visible(page).getByTestId('m4-row-Drohne')).toBeVisible()
   })
 
   test('E2E-M3-13: a position task is previewed and lands as a prep todo on the generated row', async ({
