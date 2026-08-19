@@ -39,6 +39,7 @@ vi.mock('vue-router', () => ({
 }))
 
 const orchestratorFake = {
+  activateTrip: vi.fn(),
   fetchMe: vi.fn(() => Promise.resolve(null)),
   drainAll: vi.fn(() => Promise.resolve()),
   refreshProposals: { value: {} as Record<string, unknown> },
@@ -225,5 +226,52 @@ describe('TripListPage — the FR-27.4 proposal chip', () => {
     const wrapper = mountPage()
 
     expect(wrapper.find('[data-testid="m2-proposed-chip-Samedan"]').exists()).toBe(false)
+  })
+})
+
+describe('TripListPage — the lifecycle swipe options', () => {
+  // The status a trip is in decides which single step it is offered. Worth a
+  // test of its own because *start* is the step that made archiving — and
+  // therefore M14 and M21 — reachable at all, and because the two options are
+  // written as separate `v-if`s that could both render or neither.
+  it('offers start on a planning trip, and not archive', async () => {
+    segment = 'planned'
+    seedTrip('planning')
+    const page = mountPage()
+    await page.vm.$nextTick()
+
+    expect(page.find('[aria-label="Start trip"]').exists()).toBe(true)
+    expect(page.find('[aria-label="Archive trip"]').exists()).toBe(false)
+  })
+
+  it('offers archive on a running trip, and not start', async () => {
+    segment = 'active'
+    seedTrip('active')
+    const page = mountPage()
+    await page.vm.$nextTick()
+
+    expect(page.find('[aria-label="Archive trip"]').exists()).toBe(true)
+    expect(page.find('[aria-label="Start trip"]').exists()).toBe(false)
+  })
+
+  it('offers neither on an archived trip — its lifecycle is over', async () => {
+    segment = 'archived'
+    seedTrip('archived')
+    const page = mountPage()
+    await page.vm.$nextTick()
+
+    expect(page.find('[aria-label="Start trip"]').exists()).toBe(false)
+    expect(page.find('[aria-label="Archive trip"]').exists()).toBe(false)
+  })
+
+  it('starting the trip asks the orchestrator to activate it', async () => {
+    segment = 'planned'
+    seedTrip('planning')
+    const page = mountPage()
+    await page.vm.$nextTick()
+
+    await page.find('[aria-label="Start trip"]').trigger('click')
+
+    expect(orchestratorFake.activateTrip).toHaveBeenCalledWith('t1')
   })
 })
