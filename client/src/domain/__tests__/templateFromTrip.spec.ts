@@ -4,7 +4,16 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { recogniseTripComposition, suggestTemplateName } from '../templateFromTrip'
+import {
+  planTemplateFromTrip,
+  recogniseTripComposition,
+  suggestTemplateName,
+} from '../templateFromTrip'
+import type {
+  RecognitionInput,
+  TemplateFromTripWrites,
+  WritePlanInput,
+} from '../templateFromTrip'
 import type { MasterItem, Template, TemplateItem, TripItem } from '@/types/domain'
 
 function template(id: string, name: string, kind: Template['kind'] = 'group'): Template {
@@ -204,5 +213,154 @@ describe('suggestTemplateName (FR-27.5)', () => {
 
   it('DoesNotTreatALongerNumberAsAYear', () => {
     expect(suggestTemplateName('Tour 12345')).toBe('Tour 12345')
+  })
+})
+
+describe('planTemplateFromTrip (FR-27.5)', () => {
+  const makro = template('grp-makro', 'Makro Fotografie')
+  const wildlife = template('grp-wild', 'Wildlife')
+  const items = [master('itm-1', 'Stativ'), master('itm-2', 'Ringlicht')]
+
+  function compose(over: Partial<RecognitionInput> = {}) {
+    return recogniseTripComposition({
+      tripItems: [],
+      templates: [makro, wildlife],
+      positions: [position('p1', 'grp-makro', 'itm-1')],
+      masterItems: items,
+      ...over,
+    })
+  }
+
+  function plan(over: Partial<WritePlanInput>): TemplateFromTripWrites {
+    return planTemplateFromTrip({
+      composition: compose(),
+      templateName: 'Samedan Sommer 2027',
+      choices: {},
+      checkedLooseIds: [],
+      bundleName: null,
+      masterItems: items,
+      ...over,
+    })
+  }
+
+  it('RecognisedGroupsAreReferencedNotCopied_EvenWithoutDeviations', () => {
+    const writes = plan({
+      composition: compose({ tripItems: [row('r1', 'Stativ', 'grp-makro')] }),
+    })
+
+    expect(writes.template.includeGroupIds).toEqual(['grp-makro'])
+    // The group's own position is not repeated as an own position.
+    expect(writes.template.positions).toEqual([])
+    expect(writes.groupUpdates).toEqual([])
+  })
+
+  it('DeviationDefaultsToFlowingBackIntoItsGroup_WithoutAnExplicitChoice', () => {
+    const writes = plan({
+      composition: compose({
+        tripItems: [row('r1', 'Stativ', 'grp-makro'), row('r2', 'Gimbal', 'grp-makro')],
+      }),
+    })
+
+    expect(writes.groupUpdates).toHaveLength(1)
+    expect(writes.groupUpdates[0]!.groupId).toBe('grp-makro')
+    expect(writes.groupUpdates[0]!.positions.map((p) => p.name)).toEqual(['Gimbal'])
+    expect(writes.template.positions).toEqual([])
+  })
+
+  it('DeviationMarkedOwn_StaysInTheNewVorlageAndLeavesTheGroupUntouched', () => {
+    const writes = plan({
+      composition: compose({
+        tripItems: [row('r1', 'Stativ', 'grp-makro'), row('r2', 'Gimbal', 'grp-makro')],
+      }),
+      choices: { 'grp-makro': 'own' },
+    })
+
+    expect(writes.groupUpdates).toEqual([])
+    expect(writes.template.positions.map((p) => p.name)).toEqual(['Gimbal'])
+  })
+
+  it('AbsentGroupPositionsChangeNothing_SoAnIncompleteTripCannotErodeTheGroup', () => {
+    const writes = plan({
+      composition: compose({
+        tripItems: [row('r1', 'Stativ', 'grp-makro')],
+        positions: [position('p1', 'grp-makro', 'itm-1'), position('p2', 'grp-makro', 'itm-2')],
+      }),
+    })
+
+    expect(writes.groupUpdates).toEqual([])
+    expect(writes.template.positions).toEqual([])
+  })
+
+  it('OnlyCheckedLooseRowsBecomeOwnPositions', () => {
+    const writes = plan({
+      composition: compose({ tripItems: [row('r1', 'Zelt', null), row('r2', 'Buch', null)] }),
+      checkedLooseIds: ['r1'],
+    })
+
+    expect(writes.template.positions.map((p) => p.name)).toEqual(['Zelt'])
+  })
+
+  it('BundleToggleSendsTheLooseRowsIntoAFreshGroupTheVorlageIncludes', () => {
+    const writes = plan({
+      composition: compose({ tripItems: [row('r1', 'Zelt', null)] }),
+      checkedLooseIds: ['r1'],
+      bundleName: 'Samedan Extras',
+    })
+
+    expect(writes.newGroup?.name).toBe('Samedan Extras')
+    expect(writes.newGroup?.positions.map((p) => p.name)).toEqual(['Zelt'])
+    expect(writes.template.positions).toEqual([])
+  })
+
+  it('BundleToggleIsInertWithoutCheckedRows_NoEmptyGroupIsCreated', () => {
+    const writes = plan({
+      composition: compose({ tripItems: [row('r1', 'Zelt', null)] }),
+      checkedLooseIds: [],
+      bundleName: 'Samedan Extras',
+    })
+
+    expect(writes.newGroup).toBeNull()
+  })
+
+  it('AdHocNameMatchingTheInventory_FoldsOntoTheExistingMasterItem', () => {
+    const writes = plan({
+      composition: compose({ tripItems: [row('r1', 'stativ', null)] }),
+      checkedLooseIds: ['r1'],
+    })
+
+    expect(writes.template.positions).toEqual([{ name: 'Stativ', itemId: 'itm-1' }])
+    expect(writes.newMasterItems).toEqual([])
+  })
+
+  it('UnknownAdHocName_CreatesTheMasterItemFirst', () => {
+    const writes = plan({
+      composition: compose({ tripItems: [row('r1', 'Gimbal', null)] }),
+      checkedLooseIds: ['r1'],
+    })
+
+    expect(writes.newMasterItems).toEqual(['Gimbal'])
+    expect(writes.template.positions).toEqual([{ name: 'Gimbal', itemId: null }])
+  })
+
+  it('TwoRowsOfOneName_LeaveOnlyOneNewMasterItemBehind', () => {
+    const writes = plan({
+      composition: compose({
+        tripItems: [row('r1', 'Gimbal', null), row('r2', 'gimbal ', null)],
+      }),
+      checkedLooseIds: ['r1', 'r2'],
+    })
+
+    expect(writes.newMasterItems).toEqual(['Gimbal'])
+    expect(writes.template.positions.map((p) => p.name)).toEqual(['Gimbal', 'Gimbal'])
+  })
+
+  it('GeneratedRowUsesItsOwnProvenance_RatherThanReMatchingItsNameByHand', () => {
+    const generated = { ...row('r1', 'Ringlicht', 'grp-makro'), source_item_id: 'itm-2' }
+    const writes = plan({
+      composition: compose({ tripItems: [generated] }),
+    })
+
+    expect(writes.groupUpdates[0]!.positions).toEqual([{ name: 'Ringlicht', itemId: 'itm-2' }])
+    expect(writes.newMasterItems).toEqual([])
   })
 })

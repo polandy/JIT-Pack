@@ -10,6 +10,7 @@
  */
 
 import type { MasterItem, Template, TemplateItem, TripItem } from '@/types/domain'
+import { findDuplicates } from './spreadsheet'
 
 /** Everything recognition reads — plain arrays, the stores shape them. */
 export interface RecognitionInput {
@@ -146,4 +147,149 @@ export function suggestTemplateName(tripName: string): string {
   if (!year) return name
   const bumped = String(Number(year[1]) + 1)
   return name.slice(0, year.index) + bumped + name.slice(year.index + year[1]!.length)
+}
+
+/** What happens to a group's on-trip deviations (FR-27.5). */
+export type DeviationChoice = 'update' | 'own'
+
+/**
+ * The default is *update* — deliberately, and it matches M14's stance: a
+ * change made while packing is treated as learned truth rather than as an
+ * accident. Naming it once keeps the screen and the plan from disagreeing.
+ */
+export const DEFAULT_DEVIATION_CHOICE: DeviationChoice = 'update'
+
+export interface WritePlanInput {
+  composition: TripComposition
+  /** The user's name for the new Ferien-Vorlage. */
+  templateName: string
+  /** Per group id; a group missing here takes DEFAULT_DEVIATION_CHOICE. */
+  choices: Record<string, DeviationChoice>
+  /** Trip-item ids of the loose rows still checked — pre-checked by default. */
+  checkedLooseIds: string[]
+  /** "Als neue Gruppe speichern": bundles the checked loose rows instead. */
+  bundleName: string | null
+  /** The inventory the ad-hoc names are folded onto (FR-16.3-style). */
+  masterItems: MasterItem[]
+}
+
+/**
+ * One position to write. `itemId` is null exactly when the master item has to
+ * be created first — the FR-9.2 mechanics M14 already uses, kept as a separate
+ * step so the caller writes items before the positions that reference them.
+ */
+export interface PositionDraft {
+  name: string
+  itemId: string | null
+}
+
+/** A recognised group gaining the deviations the user let flow back. */
+export interface GroupUpdate {
+  groupId: string
+  groupName: string
+  positions: PositionDraft[]
+}
+
+/**
+ * The whole write, ordered as FR-27.5 specifies: master items, then group
+ * updates, then the bundle group, then the composed Vorlage itself. Returned
+ * as data rather than executed so the rule is testable without a store, and
+ * so Local Mode runs the identical path (invariant 4).
+ */
+export interface TemplateFromTripWrites {
+  /** Names with no master item yet — created first, in this order. */
+  newMasterItems: string[]
+  groupUpdates: GroupUpdate[]
+  newGroup: { name: string; positions: PositionDraft[] } | null
+  template: {
+    name: string
+    /** Own positions: the local-only deviations, plus the loose rows unless bundled. */
+    positions: PositionDraft[]
+    /** Referenced, never copied — the point of the whole screen (FR-27.5). */
+    includeGroupIds: string[]
+  }
+}
+
+/**
+ * planTemplateFromTrip turns the recognised composition plus the user's
+ * answers into the exact set of writes M21 performs.
+ *
+ * The source trip appears nowhere in the result: M21 reads a trip and writes
+ * templates, and an archived trip is a record (FR-27.5). Every recognised
+ * group is referenced whether or not it deviated — membership is a fact of the
+ * data, so there is no per-group opt-out to honour here.
+ */
+export function planTemplateFromTrip(input: WritePlanInput): TemplateFromTripWrites {
+  const fold = masterFold(input.masterItems)
+
+  const groupUpdates: GroupUpdate[] = []
+  const ownPositions: PositionDraft[] = []
+  for (const group of input.composition.groups) {
+    if (group.added.length === 0) continue
+    const choice = input.choices[group.group.id] ?? DEFAULT_DEVIATION_CHOICE
+    const positions = group.added.map((row) => fold(row))
+    if (choice === 'update') {
+      groupUpdates.push({
+        groupId: group.group.id,
+        groupName: group.group.name,
+        positions,
+      })
+    } else {
+      ownPositions.push(...positions)
+    }
+  }
+
+  const checked = new Set(input.checkedLooseIds)
+  const loosePositions = input.composition.loose
+    .filter((l) => checked.has(l.tripItem.id))
+    .map((l) => fold(l.tripItem))
+
+  // The toggle is inert without rows to bundle: a group named after a trip
+  // that contributed nothing is clutter with a name, not a building block.
+  const bundling = input.bundleName !== null && loosePositions.length > 0
+  const newGroup = bundling ? { name: input.bundleName!, positions: loosePositions } : null
+  if (!bundling) ownPositions.push(...loosePositions)
+
+  return {
+    newMasterItems: fold.created,
+    groupUpdates,
+    newGroup,
+    template: {
+      name: input.templateName,
+      positions: ownPositions,
+      includeGroupIds: input.composition.groups.map((g) => g.group.id),
+    },
+  }
+}
+
+/**
+ * masterFold resolves a trip row to the master item the position will point
+ * at, remembering the names it had to invent.
+ *
+ * Three sources, in falling order of certainty: the row's own
+ * `source_item_id` (a generated row already knows its master item), an
+ * FR-16.3-tolerant name match against the inventory, and finally a new master
+ * item — the FR-9.2 mechanics. The invented names are deduped by the same
+ * tolerant rule, so two rows spelled "Gimbal" and "gimbal" do not leave two
+ * master items behind, which is the mess FR-16.3 exists to prevent.
+ */
+function masterFold(masterItems: MasterItem[]): ((row: TripItem) => PositionDraft) & {
+  created: string[]
+} {
+  const created: string[] = []
+  const fold = (row: TripItem): PositionDraft => {
+    if (row.source_item_id) return { name: row.name, itemId: row.source_item_id }
+    const [match] = findDuplicates([row.name], masterItems)
+    if (match) return { name: match.existingName, itemId: match.existingId }
+    const invented = created.find((n) => findDuplicates([row.name], [placeholder(n)]).length > 0)
+    if (invented) return { name: invented, itemId: null }
+    created.push(row.name)
+    return { name: row.name, itemId: null }
+  }
+  return Object.assign(fold, { created })
+}
+
+/** A name-only stand-in, so an invented name reuses the FR-16.3 matcher. */
+function placeholder(name: string): MasterItem {
+  return { id: '', name, weight_grams: null, value_cents: null }
 }
