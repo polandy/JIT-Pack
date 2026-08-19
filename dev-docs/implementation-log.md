@@ -3707,6 +3707,18 @@ title, but it reopens the 2026-08-07 G-12 decision; the reason recorded there
 („the sub-header collapses on scroll") does **not** apply to that row, which is
 worth knowing if the question returns.
 
+**The visual gate's tolerance was decided rather than left open** (owner,
+2026-08-19, on the flake question): `maxDiffPixelRatio` **stays at 0.002**. It
+is known to be loose — the whole added app-bar icon that started this entry
+passed against the old baselines at 658 px of 329 160 — and tightening it buys
+that one class of miss at the price of flake, which ADR-013's first driver
+already rejected: a gate that fails on antialiasing gets ignored within a week.
+What the decision leaves behind is a scope statement rather than a defect: **the
+gate catches layout changes, not small ones**, and the rendered eyeball the
+working agreement requires of every UI PR is what covers the rest. Written into
+`playwright.config.ts` beside the number and into ADR-013, so the next person
+to find the gate loose finds the reason with it.
+
 **Cost.** Eight M4 baselines regenerated deliberately (ADR-013), four of them
 twice, and twelve e2e assertions moved from `header-title` to a new `expectTripOpen` helper. Those
 had been using the app-bar title as the „M4 is open" signal; the helper scopes

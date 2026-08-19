@@ -105,4 +105,6 @@ Visual baselines run **Chromium only, inside the `mcr.microsoft.com/playwright` 
 
 **When the baseline images pass ~20 MB in the working tree, or a digest bump lands for the third time in a year.** The first says the repository is paying too much for the coverage; the second says the chore has become routine enough to deserve automation (a scheduled bump PR that regenerates and opens for review) or a different storage strategy (an artifact store rather than git).
 
+Not a trigger, and deliberately so: **the `maxDiffPixelRatio` of 0.002 stays** (owner, 2026-08-19). It is loose enough to have passed a whole added app-bar icon (658 px of 329 160), which was found when M21 landed. Tightening it trades that miss for flake, and a gate that fails on antialiasing gets ignored — driver 1 of this ADR. What follows is a scope statement rather than a defect: **this gate catches layout changes, not small ones**, and the rendered eyeball the working agreement requires of every UI PR is what covers the rest. Reopen only if a *layout* regression ever passes it.
+
 Sooner and independently: **if a WebKit-only rendering regression ever reaches the owner's eye**, the WebKit exclusion above is what let it through, and the cost of a second engine has to be re-weighed against having been wrong once.
