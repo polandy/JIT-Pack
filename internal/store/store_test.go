@@ -22,9 +22,9 @@ func adminRole(v bool) *bool { return &v }
 
 func openTestStore(t *testing.T) *Store {
 	t.Helper()
-	s, err := Open(":memory:")
+	s, err := OpenForTest(t.TempDir())
 	if err != nil {
-		t.Fatalf("Open: %v", err)
+		t.Fatalf("OpenForTest: %v", err)
 	}
 	t.Cleanup(func() { s.Close() })
 

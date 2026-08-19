@@ -29,9 +29,9 @@ func newTestServer(t *testing.T) *httptest.Server {
 
 func newTestServerWithStore(t *testing.T) (*httptest.Server, *store.Store) {
 	t.Helper()
-	st, err := store.Open(":memory:")
+	st, err := store.OpenForTest(t.TempDir())
 	if err != nil {
-		t.Fatalf("store.Open: %v", err)
+		t.Fatalf("store.OpenForTest: %v", err)
 	}
 	t.Cleanup(func() { st.Close() })
 

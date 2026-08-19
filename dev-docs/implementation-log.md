@@ -3223,3 +3223,69 @@ Method note: the two mutation proofs of this fix were nearly worthless. The
 first pass mutated an **uncommitted** implementation and then reverted it with
 `git checkout`, so the second "proof" ran against code that had never had the
 fix at all — a red test proving nothing. Commit first, then mutate.
+
+## The Go test suite spent 96 % of its time replaying migrations
+
+**Measured, not guessed.** The CI pipeline was taking 13–22 minutes wall clock,
+and the `go` job was its second-largest contributor at ~267 s, of which
+`go test -race` was 221 s: `internal/store` 180 s and `internal/api` 158 s,
+running in parallel.
+
+The distribution over the 128 store tests was suspiciously flat — about 1.75 s
+each regardless of what the test did. `TestDeleteItemImage_IdempotentWhenNoImage`
+asserts that deleting a non-existent image is a no-op and took 2.40 s. There are
+no sleeps in the suite and no password hashing anywhere in `internal`, so the
+cost had to be in the setup every test shares.
+
+It was `Open(":memory:")`, benchmarked both ways:
+
+```
+Open(":memory:")   without -race:     55 ms
+Open(":memory:")   with    -race:   1658 ms      <- 30x
+```
+
+`modernc.org/sqlite` is pure Go (D-001), which is normally invisible — but it
+means the race detector instruments the SQLite engine *itself*. Every test was
+driving 23 migrations and ~50 KB of DDL through that instrumentation. At
+1.66 s x 232 store+api tests, that single line was essentially the whole Go job.
+
+**The fix is to replay the migrations once per process instead of once per
+test.** `store.OpenForTest(dir)` builds a fully migrated, empty database the
+first time it is called, keeps the file's bytes, and thereafter copies them into
+the caller's directory and opens that — where `Open` finds `PRAGMA user_version`
+already current and applies nothing:
+
+```
+BenchmarkOpenFromTemplate -race:      2.9 ms     <- 570x
+```
+
+Result on this machine: `internal/store` 180 s -> 23.5 s, `internal/api`
+158 s -> 14.8 s, the whole `-race` suite under 30 s.
+
+**Why the helper is exported from `internal/store` rather than living in a
+`storetest` subpackage**, which is where it belongs on taste: seventeen of the
+store package's test files are `package store`, and Go forbids a test file of
+package P from importing a package that imports P. A subpackage would have been
+reachable from `internal/api` and *not* from the suite with the larger problem.
+The cost is one exported function compiled into `jitpackd` that nothing in
+production calls. It was judged too small a tradeoff for an ADR and is explained
+at the declaration instead.
+
+Three points of care that the change is only safe because of:
+
+- **The template must reach the same schema level as a full replay.** That is
+  asserted against `Open`'s own result rather than against a hard-coded 23, so
+  a new migration cannot quietly fall outside the template.
+- **The copy must be a copy.** A shared template handed to two stores would let
+  one test read another's rows; the guard was mutation-proved by pointing every
+  caller at one shared path and watching it go red.
+- **The template must stay empty.** Seeding it once would hand every test rows
+  it never inserted.
+
+`concept_migrations_test.go` and `tags_test.go` still open raw `:memory:`
+databases and replay migrations deliberately — that replay is their subject.
+
+The remaining CI time is in the `e2e` job, which is a separate change: half of
+its 10–20 minutes is `playwright install --with-deps` installing WebKit's ~200
+apt dependencies on every run, on a runner where the digest-pinned Playwright
+image (already used by the `visual` job, ADR-013) has them baked in.
