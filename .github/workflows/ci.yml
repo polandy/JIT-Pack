@@ -145,8 +145,8 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     strategy:
-      # Both shards report, so a failure in one is not hidden by the other
-      # being cancelled.
+      # Every shard reports, so a failure in one is not hidden by the
+      # others being cancelled.
       fail-fast: false
       matrix:
         shard: [1, 2, 3, 4]
