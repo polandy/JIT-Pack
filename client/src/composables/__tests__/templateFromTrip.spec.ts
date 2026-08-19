@@ -193,7 +193,9 @@ describe('createTemplateFromTrip (FR-27.5)', () => {
 
     const includes = master.getIncludes(templateId).map((i) => i.included_template_id)
     expect(includes).toHaveLength(2)
-    const bundle = includes.map((id) => master.getTemplate(id)).find((t) => t?.kind === 'group' && t.name === 'Samedan Extras')
+    const bundle = includes
+      .map((id) => master.getTemplate(id))
+      .find((t) => t?.kind === 'group' && t.name === 'Samedan Extras')
     expect(bundle).toBeDefined()
     expect(master.getTemplateItems(templateId)).toEqual([])
     expect(master.getTemplateItems(bundle!.id)).toHaveLength(1)
