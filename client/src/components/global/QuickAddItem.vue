@@ -44,20 +44,16 @@ import { ref, computed, nextTick } from 'vue'
 
 import { t } from '@/i18n'
 import { MIN_SEARCH_LENGTH, useMasterStore } from '@/stores/masterStore'
-import {
-  PREVIEW_ROW_NAMES,
-  previewLines,
-  resolvedLines,
-  type LinePreview,
-} from '@/domain/templates'
+import { PREVIEW_ROW_NAMES, previewLines, resolvedLines } from '@/domain/templates'
+import { previewText } from '@/lib/groupPreview'
 import type { MasterItem } from '@/types/domain'
 
 /**
- * How many groups the composer offers at once. The same five the item
- * suggestions use: the list sits under a soft keyboard, and a sixth row is
- * one nobody sees without scrolling the thing they are typing into away.
+ * How many matches the composer offers per kind. The list sits under a soft
+ * keyboard, and a sixth row is one nobody sees without scrolling away the
+ * thing they are typing into.
  */
-const MAX_GROUP_MATCHES = 5
+const MAX_MATCHES = 5
 
 const props = withDefaults(
   defineProps<{
@@ -99,7 +95,7 @@ const suggestions = computed(() => {
   return masterStore
     .searchItems(query.value)
     .filter((i) => !excluded.has(i.id))
-    .slice(0, 5)
+    .slice(0, MAX_MATCHES)
 })
 
 /**
@@ -120,13 +116,8 @@ const groupMatches = computed(() => {
       const lines = resolvedLines(masterStore.resolve(tpl.id), masterStore.itemList)
       return { template: tpl, count: lines.length, preview: previewLines(lines, PREVIEW_ROW_NAMES) }
     })
-    .slice(0, MAX_GROUP_MATCHES)
+    .slice(0, MAX_MATCHES)
 })
-
-function previewText(preview: LinePreview): string {
-  const names = preview.names.join(' · ')
-  return preview.rest > 0 ? `${names} ${t('templates.previewMore', { n: preview.rest })}` : names
-}
 
 function selectGroup(templateId: string) {
   emit('addGroup', templateId)
@@ -292,7 +283,9 @@ function onKeydown(event: KeyboardEvent) {
       </div>
 
       <p
-        v-if="query.length >= 2 && suggestions.length === 0 && groupMatches.length === 0"
+        v-if="
+          query.length >= MIN_SEARCH_LENGTH && suggestions.length === 0 && groupMatches.length === 0
+        "
         class="no-match"
       >
         {{ t('quickAdd.newItem', { name: query }) }}

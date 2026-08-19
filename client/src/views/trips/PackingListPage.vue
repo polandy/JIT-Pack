@@ -77,6 +77,7 @@ import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
+import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
@@ -849,29 +850,12 @@ function onQuickAdd(item: {
 /**
  * FR-27.10: one tap in the quick-add expands a whole group onto the trip.
  *
- * **The result is always reported**, which is the half of the feature the
- * spec is emphatic about: a group that is already fully present has to say
- * so rather than adding nothing silently, and a group every FR-15.2
- * condition kept out is a third outcome — not an error, and not "added".
+ * **The result is always reported** — which sentence, and why each outcome
+ * needs its own, is `groupAdditionMessage`.
  */
 async function onQuickAddGroup(templateId: string) {
   const report = orchestrator.addGroupToTrip(props.tripId, templateId)
-  if (!report) return
-  const { groupName, added, alreadyPresent } = report
-
-  if (added === 0) {
-    await reportGroupAnswer(
-      alreadyPresent.length > 0
-        ? t('quickAdd.groupAllPresent', { name: groupName })
-        : t('quickAdd.groupEmpty', { name: groupName }),
-    )
-    return
-  }
-
-  const base = t('quickAdd.groupAdded', { name: groupName, n: added })
-  const rest =
-    alreadyPresent.length > 0 ? t('quickAdd.groupAlreadyPart', { n: alreadyPresent.length }) : ''
-  await reportGroupAnswer(`${base}${rest}`)
+  await reportGroupAnswer(groupAdditionMessage(report))
 }
 
 /**

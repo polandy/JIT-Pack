@@ -272,6 +272,7 @@ export const de: Record<keyof typeof en, string> = {
   'quickAdd.groupAlreadyPart': ', {n} schon dabei',
   'quickAdd.groupAllPresent': 'Gruppe „{name}“ ist schon vollständig dabei',
   'quickAdd.groupEmpty': 'Gruppe „{name}“ steuert zu dieser Reise nichts bei',
+  'quickAdd.groupNotReady': 'Reisedaten werden noch geladen — bitte gleich noch einmal',
 
   // Facetten-Filter (FR-25.11), geteilt von M4 und M6.
   'filter.title': 'Filter',

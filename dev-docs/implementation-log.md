@@ -3532,6 +3532,21 @@ tests naming the reason, and the e2e ledger records the swap rather than hiding
 it. The name dedup **is** e2e-proved, mutation and all: dropping it doubles the
 row and reddens exactly the case written for it.
 
+**Three things the PR's second review pass changed**, beyond the FR-20.4 fix
+above. The M4 handler held a three-way branch inline in a view with no unit
+test — it is now `lib/groupAdditionMessage.ts`, a pure function with a case per
+outcome, which promptly added a fourth: the add refuses a trip whose rows are
+not on the device, M4 paints before its partition is pulled on a cold load, and
+that refusal used to be a silent no-op. A refusal nobody can see is worse than
+any of the outcomes the requirement worried about. Second, `previewText` had
+become a verbatim copy in two views (`lib/groupPreview.ts` now). Third, and the
+one worth remembering: reading the UI-Test-Spec's own sentences against the test
+bodies found **two false promises** — the case claimed to assert provenance,
+which is invisible on M4, and M4-27's text still said an *active* trip does not
+follow its groups, which FR-27.4's revision of 2026-08-18 had already replaced
+with *past*. The spec was describing the pre-revision model in a case nobody had
+run yet.
+
 Two smaller notes. The composer matches **group names only** — searching the
 resolved item names is FR-27.13's decided concept for the M8 picker, and half of
 it here would have been a second, quieter rule for the same question. And the

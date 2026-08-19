@@ -654,6 +654,11 @@ are reports rather than rows.
   absence is asserted beside a positive signal (the free-text hint, which M4
   hides when groups match), and mutation-proved by switching the prop on in
   M8: both browsers redden.
+* **A distractor group is part of the world.** „Typing filters them" cannot be
+  asserted with one group on the device: any query that offers it offers
+  everything there is, and „always offers the first group" would pass. The
+  second group is what makes the claim falsifiable, and both directions are
+  asserted.
 * **The FR-27.4 tail is deliberate.** The last case does not stop at „nothing
   was added": it edits the group afterwards and watches the change arrive at
   the trip as a proposal. The registration is invisible on the screen that

@@ -269,6 +269,7 @@ export const en = {
   'quickAdd.groupAlreadyPart': ', {n} already there',
   'quickAdd.groupAllPresent': 'Group “{name}” is already fully on the list',
   'quickAdd.groupEmpty': 'Group “{name}” contributes nothing to this trip',
+  'quickAdd.groupNotReady': 'Trip data is still loading — please try again in a moment',
 
   // Faceted filter panel (FR-25.11), shared by M4 and M6.
   'filter.title': 'Filter',

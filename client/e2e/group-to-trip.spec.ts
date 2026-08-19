@@ -49,6 +49,12 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
     await addPosition(page, 'Kamera')
     await addPosition(page, 'Stativ')
     await backToList(page)
+    // A second group, so "typing filters them" has something to filter *out*:
+    // with one group in the world, any query that offers it also offers all
+    // of them, and the claim would be untestable by construction.
+    await createTemplate(page, 'group', 'Wildlife')
+    await addPosition(page, 'Teleobjektiv')
+    await backToList(page)
   })
 
   test('E2E-M4-26: the composer offers the group, and one tap expands it', async ({ page }) => {
@@ -67,7 +73,15 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
     // A trip that picked nothing: the group is a decision taken on site.
     await createTripViaWizard(page, { name: 'Fototour 2026' })
 
-    await searchQuickAdd(page, 'Makro')
+    // Typing filters: the other group exists in this world, so offering one
+    // row is a choice rather than the only thing there is. Both directions,
+    // because "always offers the first group" would pass a single query. The
+    // heading is asserted with them — it is what says these are not items.
+    await searchQuickAdd(page, 'Wild')
+    await expect(visible(page).getByTestId('quick-add-groups')).toContainText('Add a whole group')
+    await expect(visible(page).getByTestId('quick-add-group')).toHaveText(/Wildlife/)
+
+    await visible(page).getByTestId('quick-add-input').locator('input').fill('Makro')
     const group = visible(page).getByTestId('quick-add-group')
     await expect(group).toHaveCount(1)
     // FR-27.12: the row answers what is inside without being opened, and
