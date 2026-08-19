@@ -7,9 +7,8 @@
  * which is what keeps the conflict log reachable from inside a trip.
  * The left slot switches: the logo on a tab root, `‹ back` plus the page
  * title everywhere else — and on a screen that registers no title, the
- * chevron alone. M4 is that screen deliberately (UI-Spec M4): its G-12
- * cluster left the bar 54 px and the trip name rendered as "S…", so the
- * name lives in M4's own header line and the bar stops pretending.
+ * chevron alone. M4 is that screen deliberately; the why is at its own
+ * `tripName` (UI-Spec M4).
  */
 import {
   IonHeader,
@@ -83,9 +82,8 @@ function goBack() {
         </IonButton>
       </IonButtons>
 
-      <!-- A screen with nothing to put here gets no element at all, not an
-           empty one: M4 gave its title up to the icon cluster (UI-Spec M4),
-           and an empty ion-title would still claim the slot's padding. -->
+      <!-- No element at all rather than an empty one: an empty ion-title
+           still claims the slot's padding. -->
       <IonTitle v-if="back && title" data-testid="header-title" class="page-title">
         {{ title }}
       </IonTitle>

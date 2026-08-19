@@ -3691,7 +3691,7 @@ title, but it reopens the 2026-08-07 G-12 decision; the reason recorded there
 („the sub-header collapses on scroll") does **not** apply to that row, which is
 worth knowing if the question returns.
 
-**Cost.** Ten M4 baselines regenerated deliberately (ADR-013) and eleven e2e
+**Cost.** Eight M4 baselines regenerated deliberately (ADR-013) and twelve e2e
 assertions moved from `header-title` to a new `expectTripOpen` helper. Those
 had been using the app-bar title as the „M4 is open" signal; the helper scopes
 to the *painted* page, because the name now lives inside the router outlet

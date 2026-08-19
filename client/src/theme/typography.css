@@ -178,13 +178,11 @@ body {
 }
 
 /*
- * A screen's own name, in the screen rather than in the app bar.
+ * A screen's own name, in the screen rather than in the app bar (M4).
  *
- * Same size as the header bar's title below, because it *is* that title:
- * M4's G-12 cluster left 54 px for the trip name and it rendered as "S…",
- * so the name moved to M4's header line (UI-Spec M4, 2026-08-19). A role
- * rather than a copy of the `ion-title` rule — the two are the same
- * decision seen from two places, and only one of them may own the size.
+ * Deliberately the same size as the header bar's title below, because it
+ * *is* that title — a role rather than a copy of the `ion-title` rule, so
+ * that only one place owns the size when the two move apart.
  */
 .jp-screen-title {
   font-family: var(--jp-font-display);

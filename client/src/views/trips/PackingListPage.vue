@@ -1511,7 +1511,6 @@ const tripName = computed(() => trip.value?.name ?? t('packing.title'))
   gap: 10px;
 }
 
-/* M4's title, where the app bar had 54 px for it (UI-Spec M4). */
 .trip-name {
   flex: 1;
   min-width: 0;
