@@ -30,7 +30,7 @@ function position(id: string, templateId: string, itemId: string): TemplateItem 
     template_id: templateId,
     item_id: itemId,
     quantity: 1,
-    assignment: 'shared',
+    assignment: 'trip_global',
     dedup: 'max',
     conditions: null,
     default_mode: 'pack',

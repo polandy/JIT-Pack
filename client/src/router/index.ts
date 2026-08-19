@@ -121,6 +121,13 @@ export const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    path: '/trips/:tripId/template',
+    meta: { parent: '/trips/:tripId', title: 'Template from trip' },
+    name: 'trip-template',
+    component: () => import('@/views/trips/TemplateFromTripPage.vue'),
+    props: true,
+  },
+  {
     path: '/trips/:tripId/analytics',
     meta: { parent: '/trips/:tripId' },
     name: 'trip-analytics',

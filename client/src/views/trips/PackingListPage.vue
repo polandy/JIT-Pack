@@ -44,6 +44,7 @@ import {
 } from '@ionic/vue'
 import {
   addOutline,
+  albumsOutline,
   archiveOutline,
   bagHandleOutline,
   contrastOutline,
@@ -1000,10 +1001,21 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
            trip leads with what to do next with it. -->
       <div v-if="trip?.status === 'archived'" class="closing-card">
         <h2>{{ t('packing.tripFinished') }}</h2>
-        <IonButton size="small" fill="outline" :router-link="`/trips/${tripId}/review`">
-          <IonIcon slot="start" :icon="sparklesOutline" />
-          {{ t('packing.reviewSuggestions') }}
-        </IonButton>
+        <p class="closing-hint">{{ t('packing.tripFinishedHint') }}</p>
+        <div class="closing-actions">
+          <IonButton
+            size="small"
+            data-testid="m4-template-from-trip"
+            :router-link="`/trips/${tripId}/template`"
+          >
+            <IonIcon slot="start" :icon="albumsOutline" />
+            {{ t('packing.templateFromTrip') }}
+          </IonButton>
+          <IonButton size="small" fill="outline" :router-link="`/trips/${tripId}/review`">
+            <IonIcon slot="start" :icon="sparklesOutline" />
+            {{ t('packing.reviewSuggestions') }}
+          </IonButton>
+        </div>
       </div>
 
       <QuickAddItem
@@ -1748,8 +1760,18 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 }
 
 .closing-card h2 {
-  margin: 0 0 10px;
+  margin: 0 0 4px;
   font-size: var(--jp-text-lg);
+}
+.closing-hint {
+  margin: 0 0 10px;
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-sm);
+}
+.closing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .empty {

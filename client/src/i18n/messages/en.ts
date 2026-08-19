@@ -123,6 +123,9 @@ export const en = {
   // FR-27.5 — the closing card on an archived trip.
   'packing.tripFinished': '🧩 Trip finished',
   'packing.reviewSuggestions': 'Review suggestions →',
+  'packing.tripFinishedHint':
+    "This trip's learning belongs in your templates, not in the archive.",
+  'packing.templateFromTrip': 'Create a template from this trip →',
 
   // The app bar's magnifier, per screen (G-12, FR-25.11k).
   'trips.searchPlaceholder': 'Search trips…',
@@ -484,6 +487,35 @@ export const en = {
   'trips.appliedQuantity': '“{group}”: {item} — amount {from} → {to}',
   'trips.appliedTasks': '“{group}”: {item} — preparation changed',
   'trips.appliedChanged': '“{group}”: {item} changed',
+
+  // M21 — template from trip (FR-27.5). The contract is the first line:
+  // recognised groups are referenced, never copied.
+  'templateFromTrip.title': 'Template from trip',
+  'templateFromTrip.intro':
+    '"{trip}" becomes a reusable template. Recognised groups are referenced, not copied — they stay independently maintainable.',
+  'templateFromTrip.name': 'Template name',
+  'templateFromTrip.groups': 'Recognised groups · {n}',
+  'templateFromTrip.fromGroup': '{n} item on this trip came from it | {n} items on this trip came from it',
+  'templateFromTrip.reused': 'reused ✓',
+  'templateFromTrip.added': 'Added on the trip:',
+  'templateFromTrip.choiceUpdate': 'Update the group',
+  'templateFromTrip.choiceOwn': 'Only in this template',
+  'templateFromTrip.blast':
+    'Reaches everything that includes the group — {n} trip will be asked. | Reaches everything that includes the group — {n} trips will be asked.',
+  'templateFromTrip.blastNone':
+    'Reaches everything that includes the group — no trip follows it right now.',
+  'templateFromTrip.absent': '{items} were not on this trip — the group stays unchanged.',
+  'templateFromTrip.loose': 'Own items · {n} of {total}',
+  'templateFromTrip.looseAdHoc': 'added without a group',
+  'templateFromTrip.looseFromTemplate': 'from "{template}" — carried over as an own position',
+  'templateFromTrip.looseEmpty': 'No loose items.',
+  'templateFromTrip.bundle': 'Save as a new group',
+  'templateFromTrip.bundleHint': 'instead of loose positions on the template',
+  'templateFromTrip.bundleName': 'Name of the new group',
+  'templateFromTrip.bundleDefault': '{trip} extras',
+  'templateFromTrip.create': 'Create template ✓',
+  'templateFromTrip.created': 'Template "{name}" created — groups reused ✓',
+  'templateFromTrip.notLoaded': "This trip's items have not loaded yet.",
 
   'settings.language': 'Language',
   'settings.languageHint': 'This device only.',
