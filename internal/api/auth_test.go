@@ -200,9 +200,9 @@ func newBrokerParts(t *testing.T, idp *fakeIDP) (*httptest.Server, *store.Store,
 	}
 	t.Cleanup(func() { jwks.Close() })
 
-	st, err := store.Open(":memory:")
+	st, err := store.OpenForTest(t.TempDir())
 	if err != nil {
-		t.Fatalf("store.Open: %v", err)
+		t.Fatalf("store.OpenForTest: %v", err)
 	}
 	t.Cleanup(func() { st.Close() })
 
