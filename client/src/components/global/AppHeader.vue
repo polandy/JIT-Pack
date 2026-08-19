@@ -89,7 +89,13 @@ function goBack() {
       <IonTitle v-if="back && title" data-testid="header-title" class="page-title">
         {{ title }}
       </IonTitle>
-      <IonTitle v-else-if="!back" slot="start" class="app-logo" data-testid="header-logo" @click="goHome">
+      <IonTitle
+        v-else-if="!back"
+        slot="start"
+        class="app-logo"
+        data-testid="header-logo"
+        @click="goHome"
+      >
         <span class="logo-row">
           <BrandMark :size="22" />
           <span class="logo-wordmark">JIT<i class="logo-dot">·</i>Pack</span>

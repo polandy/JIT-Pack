@@ -947,39 +947,39 @@ const tripName = computed(() => trip.value?.name ?? t('packing.title'))
         <div class="trip-id">
           <h1 class="trip-name jp-screen-title" data-testid="m4-trip-name">{{ tripName }}</h1>
           <div class="trip-nav">
-          <IonButton
-            fill="clear"
-            size="small"
-            :router-link="`/trips/${tripId}/shopping`"
-            data-testid="m4-nav-shopping"
-            :aria-label="t('packing.shopping')"
-            :title="t('packing.shopping')"
-          >
-            <IonIcon slot="icon-only" :icon="cartOutline" />
-            <IonBadge v-if="shoppingCount > 0" color="brand" class="nav-count">
-              {{ shoppingCount }}
-            </IonBadge>
-          </IonButton>
-          <IonButton
-            fill="clear"
-            size="small"
-            :router-link="`/trips/${tripId}/containers`"
-            data-testid="m4-nav-luggage"
-            :aria-label="t('packing.luggage')"
-            :title="t('packing.luggage')"
-          >
-            <IonIcon slot="icon-only" :icon="briefcaseOutline" />
-          </IonButton>
-          <IonButton
-            fill="clear"
-            size="small"
-            :router-link="`/trips/${tripId}/analytics`"
-            data-testid="m4-nav-analytics"
-            :aria-label="t('packing.analytics')"
-            :title="t('packing.analytics')"
-          >
-            <IonIcon slot="icon-only" :icon="statsChartOutline" />
-          </IonButton>
+            <IonButton
+              fill="clear"
+              size="small"
+              :router-link="`/trips/${tripId}/shopping`"
+              data-testid="m4-nav-shopping"
+              :aria-label="t('packing.shopping')"
+              :title="t('packing.shopping')"
+            >
+              <IonIcon slot="icon-only" :icon="cartOutline" />
+              <IonBadge v-if="shoppingCount > 0" color="brand" class="nav-count">
+                {{ shoppingCount }}
+              </IonBadge>
+            </IonButton>
+            <IonButton
+              fill="clear"
+              size="small"
+              :router-link="`/trips/${tripId}/containers`"
+              data-testid="m4-nav-luggage"
+              :aria-label="t('packing.luggage')"
+              :title="t('packing.luggage')"
+            >
+              <IonIcon slot="icon-only" :icon="briefcaseOutline" />
+            </IonButton>
+            <IonButton
+              fill="clear"
+              size="small"
+              :router-link="`/trips/${tripId}/analytics`"
+              data-testid="m4-nav-analytics"
+              :aria-label="t('packing.analytics')"
+              :title="t('packing.analytics')"
+            >
+              <IonIcon slot="icon-only" :icon="statsChartOutline" />
+            </IonButton>
           </div>
         </div>
 
