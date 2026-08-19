@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # The Playwright container image, named once for the two scripts that run it.
 #
 # Sourced by scripts/visual.sh and scripts/e2e.sh. It is a separate file rather
@@ -12,10 +13,12 @@
 # This is the one pin Dependabot does not maintain: its docker ecosystem reads
 # Dockerfiles, not shell scripts. Bumping it is deliberate — it rewrites every
 # visual baseline (ADR-013), so it belongs in its own PR.
+# shellcheck disable=SC2034  # read by the scripts that source this file
 PLAYWRIGHT_IMAGE="mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e" # v1.62.1-noble
 
 # The version the digest above resolves to, repeated as data so it can be
 # checked rather than trusted.
+# shellcheck disable=SC2034  # read by require_matching_playwright_version below
 PLAYWRIGHT_VERSION="1.62.1"
 
 # require_matching_playwright_version fails early, and by name, when the image
