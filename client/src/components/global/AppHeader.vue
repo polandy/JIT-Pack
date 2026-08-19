@@ -81,8 +81,13 @@ function goBack() {
         </IonButton>
       </IonButtons>
 
-      <IonTitle v-if="back" data-testid="header-title" class="page-title">{{ title }}</IonTitle>
-      <IonTitle v-else slot="start" class="app-logo" data-testid="header-logo" @click="goHome">
+      <!-- A screen with nothing to put here gets no element at all, not an
+           empty one: M4 gave its title up to the icon cluster (UI-Spec M4),
+           and an empty ion-title would still claim the slot's padding. -->
+      <IonTitle v-if="back && title" data-testid="header-title" class="page-title">
+        {{ title }}
+      </IonTitle>
+      <IonTitle v-else-if="!back" slot="start" class="app-logo" data-testid="header-logo" @click="goHome">
         <span class="logo-row">
           <BrandMark :size="22" />
           <span class="logo-wordmark">JIT<i class="logo-dot">·</i>Pack</span>
