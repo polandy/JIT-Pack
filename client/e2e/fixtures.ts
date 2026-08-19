@@ -125,17 +125,31 @@ export async function createTripViaWizard(page: Page, trip: TripSeed): Promise<s
   return new URL(page.url()).pathname
 }
 
+/** G-9's breakpoint: the width above which the desktop layout applies. */
+export const DESKTOP_BREAKPOINT = 900
+
 /**
  * M4 is open on the named trip.
  *
- * The trip name is M4's header line rather than the app bar's title since
- * 2026-08-19 (UI-Spec M4) — the G-12 cluster left the bar 54 px and the name
- * rendered as "S…". Scoped to the *painted* page on purpose: the name now
- * lives inside the router outlet, where Ionic keeps the outgoing page mounted
- * through the transition, so an unscoped match can read the page being left.
+ * Which element carries the name depends on the width (UI-Spec M4,
+ * 2026-08-19): below the breakpoint the app bar has no room for it — the
+ * G-12 cluster left 54 px and it rendered as "S…" — so M4 registers no title
+ * and its header line leads with the name; above it the bar takes the title
+ * back and the line drops the name rather than printing it twice. The helper
+ * asks the viewport rather than trying both, so a missing name fails instead
+ * of being satisfied by the other half.
+ *
+ * The header-line branch is scoped to the *painted* page: that name lives
+ * inside the router outlet, where Ionic keeps the outgoing page mounted
+ * through a transition, so an unscoped match can read the trip being left.
  */
 export async function expectTripOpen(page: Page, name: string) {
-  await expect(visiblePage(page).getByTestId('m4-trip-name')).toHaveText(name)
+  const width = page.viewportSize()?.width ?? DESKTOP_BREAKPOINT
+  if (width >= DESKTOP_BREAKPOINT) {
+    await expect(page.getByTestId('header-title')).toHaveText(name)
+  } else {
+    await expect(visiblePage(page).getByTestId('m4-trip-name')).toHaveText(name)
+  }
 }
 
 /**

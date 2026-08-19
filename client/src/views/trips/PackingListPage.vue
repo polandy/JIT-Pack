@@ -6,12 +6,13 @@
  * Rebuilt from the concept mock (UI-Spec M4, Addendum §3.25). What the
  * shape is answering, in one line each:
  *
- *  - **The header line** (trip line): the trip's name, its *other views* as
- *    labelled icons, then progress, weight, open prep and the presence
- *    facepile. It stays unfiltered whatever the list shows (G-12), so a
- *    short list is never mistaken for a finished trip. It hides on
- *    scroll-down and returns on any upward scroll, which is where the list
- *    height comes from — the name goes with it, deliberately.
+ *  - **The header line** (trip line): the trip's name where the app bar has
+ *    no room for it, its *other views* as labelled icons, then progress,
+ *    weight, open prep and the presence facepile. It stays unfiltered
+ *    whatever the list shows (G-12), so a short list is never mistaken for
+ *    a finished trip. It hides on scroll-down and returns on any upward
+ *    scroll, which is where the list height comes from — the name goes with
+ *    it, deliberately.
  *  - **Actions in the app bar** (G-12): search behind its icon (FR-25.11k)
  *    and fold-all (FR-25.16). No ⋯ overflow — three destinations behind an
  *    unlabelled glyph is exactly where concept testing kept failing.
@@ -81,6 +82,7 @@ import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
+import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { useLongPress } from '@/composables/useLongPress'
@@ -914,17 +916,21 @@ async function handleRefresh(event: CustomEvent) {
   refresher.complete()
 }
 
-/**
- * M4 registers **no** app-bar title, deliberately (UI-Spec M4, 2026-08-19).
- *
- * It is the one screen whose G-12 cluster fills the bar: with search, filter,
- * fold-all, the lifecycle step, the sync glyph and the settings gear beside
- * it, 54 px were left for the name and "Samedan 2026" rendered as "S…". A
- * title that survives as one letter names nothing, so the name went where
- * there is room for it — the header line below, which the UI-Spec always
- * described as carrying it. `‹ back` still leads out; see AppHeader.
- */
 const tripName = computed(() => trip.value?.name ?? t('packing.title'))
+
+/**
+ * Where the trip's name is written depends on the width, and it is written
+ * exactly once either way (UI-Spec M4, 2026-08-19).
+ *
+ * Below the G-9 breakpoint the app bar cannot hold it: with search, filter,
+ * fold-all, the lifecycle step, the sync glyph and the settings gear beside
+ * it, 54 px were left and "Samedan 2026" rendered as "S…". A title that
+ * survives as one letter names nothing, so M4 registers none there and the
+ * header line leads with the name instead. Above the breakpoint the bar has
+ * the room, so it takes the title back — and the header line drops the name
+ * rather than printing it twice, which returns that line to one row.
+ */
+setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
 </script>
 
 <template>
@@ -942,10 +948,16 @@ const tripName = computed(() => trip.value?.name ?? t('packing.title'))
       <!-- One header line (G-12): what the trip stands at, and where else to
            go within it. Deliberately unfiltered — see FR-25.20. -->
       <div class="trip-line" :class="{ collapsed: headCollapsed }" data-testid="m4-header">
-        <!-- Row one names the trip — this is where M4's title lives, the app
-             bar having no room for it — and offers the trip's other views. -->
+        <!-- Row one names the trip — where the app bar has no room for it —
+             and offers the trip's other views. -->
         <div class="trip-id">
-          <h1 class="trip-name jp-screen-title" data-testid="m4-trip-name">{{ tripName }}</h1>
+          <h1
+            v-if="!isDesktop"
+            class="trip-name jp-screen-title"
+            data-testid="m4-trip-name"
+          >
+            {{ tripName }}
+          </h1>
           <div class="trip-nav">
             <IonButton
               fill="clear"
@@ -1509,6 +1521,23 @@ const tripName = computed(() => trip.value?.name ?? t('packing.title'))
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+/* With the name gone to the app bar there is one row's worth of content
+   left, so the line goes back to being one row (G-9's breakpoint). */
+@media (min-width: 900px) {
+  .trip-line {
+    flex-direction: row;
+  }
+
+  .trip-id {
+    order: 2;
+  }
+
+  .trip-stats {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 .trip-name {

@@ -3675,6 +3675,22 @@ that *you generally know which packing list you are on*. That retires the
 Addendum's „identity collapses into the top app bar" directive rather than
 implementing it: nothing migrates up, because nothing needs to.
 
+**Then the desktop shot changed the rule by half.** With the title gone, a
+1280 px bar held a lone chevron over a wide empty space — the constraint that
+forced the decision does not exist up there. Owner's call on that render: keep
+the title above the breakpoint, **and drop the name from the header line there**
+rather than printing it twice, which also returns that line to a single row on
+desktop. So the rule is not "M4 has no title" but **the trip is named exactly
+once, and the width decides where**. The seam was already in the file —
+`isDesktop`, the ref M5 uses to be a sheet or a panel — so this cost a
+conditional registration and a media query.
+
+It also broke sixteen cases at once, which was the useful part: `expectTripOpen`
+asserted the header line, and the behaviour projects run at 1280. The helper now
+asks the viewport and picks the locator, deliberately rather than trying both —
+a helper that tolerates either half would go green against the name disappearing
+from both.
+
 **A screen may now have no app-bar title.** G-9 gained the case and the header
 renders **no element** rather than an empty one — an empty `ion-title` still
 claims the slot's padding, so „no title" and „a title that is blank" are
@@ -3691,8 +3707,8 @@ title, but it reopens the 2026-08-07 G-12 decision; the reason recorded there
 („the sub-header collapses on scroll") does **not** apply to that row, which is
 worth knowing if the question returns.
 
-**Cost.** Eight M4 baselines regenerated deliberately (ADR-013) and twelve e2e
-assertions moved from `header-title` to a new `expectTripOpen` helper. Those
+**Cost.** Eight M4 baselines regenerated deliberately (ADR-013), four of them
+twice, and twelve e2e assertions moved from `header-title` to a new `expectTripOpen` helper. Those
 had been using the app-bar title as the „M4 is open" signal; the helper scopes
 to the *painted* page, because the name now lives inside the router outlet
 where Ionic keeps the outgoing page mounted through a transition — unscoped, it

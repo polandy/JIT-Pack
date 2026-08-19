@@ -131,10 +131,10 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.getByTestId('m4-search')).toHaveCount(0)
     await expect(page.getByTestId('m4-filter')).toHaveCount(0)
 
-    // The title slot switches with the screen too (G-9, 2026-08-19): M4 is
-    // the one screen that registers none, M11 has one, and the registry is
-    // keyed per path — a stale entry would leave M11's title standing on M4.
-    await expect(page.getByTestId('header-title')).toContainText(TRIP.name)
+    // The title slot switches with the screen too (G-9, 2026-08-19): the
+    // registry is keyed per path, and a stale entry would leave M11's title
+    // standing on the packing list after back.
+    await expect(page.getByTestId('header-title')).toContainText('Luggage')
 
     await page.getByTestId('header-back').click()
     await expect(onVisibleScreen(page, 'm4-fab')).toBeVisible()
@@ -142,7 +142,9 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // behind it.
     await expect(page.getByTestId('m4-nav-luggage')).toBeVisible()
     await expect(page.getByTestId('m11-fab')).toHaveCount(0)
-    await expect(page.getByTestId('header-title')).toHaveCount(0)
+    // …the title with it. This runs at the desktop width, where M4 does have
+    // one; the *absence* below the breakpoint is E2E-M4-44's half.
+    await expect(page.getByTestId('header-title')).toHaveText(TRIP.name)
   })
 
   // E2E-G12-01 (G-12, FR-25.11k): the magnifier searches the screen the

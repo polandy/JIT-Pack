@@ -432,12 +432,15 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
   })
 
-  // E2E-M4-44 (UI-Spec M4, G-9): M4 names its trip in its own header line,
-  // and the one app bar carries no title there — with six icons beside it
-  // the name rendered as "S…", which names nothing.
-  test('E2E-M4-44: the trip name is in the header line and the app bar has none', async ({
+  // E2E-M4-44 (UI-Spec M4, G-9): the trip is named exactly once, and which
+  // of the two places writes it depends on the width. Below the breakpoint
+  // the app bar has no room — with six icons beside it the name rendered as
+  // "S…" — so it registers no title and the header line leads with the name.
+  // Above it the bar takes the title back and the line drops the name.
+  test('E2E-M4-44: the trip is named once, in the app bar or in the header line', async ({
     page,
   }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
     await createTripViaWizard(page, TRIP)
 
     await expect(visible(page).getByTestId('m4-trip-name')).toHaveText(TRIP.name)
@@ -449,5 +452,12 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('header-back')).toBeVisible()
     await page.getByTestId('m4-nav-shopping').click()
     await expect(page.getByTestId('header-title')).toContainText(TRIP.name)
+    await page.getByTestId('header-back').click()
+    await expect(visible(page).getByTestId('m4-trip-name')).toHaveText(TRIP.name)
+
+    // Widened, the two swap — and the name is still written exactly once.
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await expect(page.getByTestId('header-title')).toHaveText(TRIP.name)
+    await expect(visible(page).getByTestId('m4-trip-name')).toHaveCount(0)
   })
 })
