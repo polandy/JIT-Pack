@@ -117,10 +117,19 @@ option you wire up yourself; nothing is built in.
 ## Restoring
 
 Stop the server, put the backup file in place at `JITPACK_DB_PATH` (removing any leftover
-`-wal`/`-shm` sidecars alongside it), and start the server again. Migrations are applied
-on open and tracked in `PRAGMA user_version`, so restoring a database taken from an older
-version and starting a newer binary upgrades the schema on the way up. Going the other
-direction — an older binary on a newer database — is not supported.
+`-wal`/`-shm` sidecars alongside it), and start the server again.
+
+!!! warning "A file backup only restores into the version that wrote it"
+
+    JIT-Pack is pre-1.0 and ships no schema upgrade path. The schema is one
+    always-current definition, fingerprinted in `PRAGMA user_version`, and a binary whose
+    schema differs [refuses to start](troubleshooting.md#store-database-schema-is-stale)
+    rather than upgrading the file. So a `.db` backup restores into **the JIT-Pack version
+    it was taken from**, in either direction.
+
+    That is what the [API exports](#getting-data-out-over-the-api) below are for: portable
+    YAML and the JSON export survive a schema change, a copy of the file does not. Take one
+    before you upgrade the image. This changes at 1.0, when migrations return.
 
 There is no restore endpoint and no scheduled-backup feature; scheduling is your host's
 job (a cron job or systemd timer around one of the commands above).

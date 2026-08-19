@@ -5,14 +5,15 @@ package store
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
-	"embed"
+	_ "embed"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
+	"log"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -21,8 +22,8 @@ import (
 	_ "modernc.org/sqlite" // pure-Go driver per ADR-001; D-001 resolved
 )
 
-//go:embed migrations/*.sql
-var migrations embed.FS
+//go:embed schema.sql
+var schemaSQL string
 
 var (
 	ErrUnknownTable  = errors.New("table not syncable")
@@ -207,8 +208,27 @@ type wallClock struct{}
 
 func (wallClock) NowMillis() int64 { return time.Now().UnixMilli() }
 
-// Open connects, enforces foreign keys, and applies embedded migrations
-// in lexical order.
+// ErrSchemaStale reports a database built against a different version of
+// schema.sql. The development phase has no DDL migrations, so there is no
+// upgrade path — the error names the file and how to start over.
+var ErrSchemaStale = errors.New("store: database schema is stale")
+
+// schemaFingerprint identifies the version of schema.sql a database was
+// built from. It is stored in PRAGMA user_version, which SQLite defines as a
+// signed 32-bit integer, so the digest is truncated to 31 bits; 0 is skipped
+// because that is what an unstamped database already reads as.
+func schemaFingerprint() int64 {
+	sum := sha256.Sum256([]byte(schemaSQL))
+	fp := int64(binary.BigEndian.Uint32(sum[:4]) & 0x7fffffff)
+	if fp == 0 {
+		return 1
+	}
+	return fp
+}
+
+// Open connects, enforces foreign keys, and brings the database to the
+// current schema: an empty file gets schema.sql applied, an up-to-date one is
+// used as it is, and anything else is refused.
 func Open(dsn string) (*Store, error) {
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
@@ -218,7 +238,14 @@ func Open(dsn string) (*Store, error) {
 	if _, err := db.Exec(`PRAGMA foreign_keys = ON`); err != nil {
 		return nil, fmt.Errorf("enable foreign keys: %w", err)
 	}
-	if err := migrate(db); err != nil {
+	// WAL is a property of the file and persists, but it is set here on every
+	// open rather than in schema.sql: journal_mode cannot be changed inside a
+	// transaction, and applySchema runs in one. An in-memory database answers
+	// "memory" and is left alone.
+	if _, err := db.Exec(`PRAGMA journal_mode = WAL`); err != nil {
+		return nil, fmt.Errorf("enable WAL: %w", err)
+	}
+	if err := ensureSchema(db, dsn); err != nil {
 		return nil, err
 	}
 	gen, err := sync.NewGenerator(wallClock{}, randomID()[:8])
@@ -230,56 +257,73 @@ func Open(dsn string) (*Store, error) {
 
 func (s *Store) Close() error { return s.db.Close() }
 
-// allMigrations is the ceiling of migrateTo: apply everything embedded.
-const allMigrations = int64(math.MaxInt64)
-
-// migrate applies embedded migrations in lexical order, skipping those
-// already recorded in PRAGMA user_version so reopening a persistent
-// database is safe.
-func migrate(db *sql.DB) error {
-	return migrateTo(db, allMigrations)
-}
-
-// migrateTo applies embedded migrations up to and including target.
-// Production always passes allMigrations; the bound exists so a test can
-// stage a database at the schema level a migration is written against
-// and assert what that migration does to real rows.
-func migrateTo(db *sql.DB, target int64) error {
+// ensureSchema applies schema.sql to an empty database and otherwise checks
+// that the one it was handed came from the same schema.
+//
+// The development phase deliberately has no migrations (CLAUDE.md invariant
+// 2): a schema change edits schema.sql, and every existing database becomes
+// unreadable by design. Nothing is recreated silently — the owner chose an
+// error carrying the instruction, so a database that might still be wanted
+// survives a start-up that refuses it.
+func ensureSchema(db *sql.DB, dsn string) error {
 	var version int64
 	if err := db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
 		return fmt.Errorf("read user_version: %w", err)
 	}
+	want := schemaFingerprint()
+	if version == want {
+		return nil
+	}
+	// user_version 0 means "never stamped", which is only *fresh* when the
+	// file carries nothing yet — a populated database reading 0 comes from a
+	// build that stamped something else, and applying the schema on top of it
+	// would fail halfway through with "table already exists".
+	if version == 0 {
+		var tables int
+		if err := db.QueryRow(`SELECT count(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`).Scan(&tables); err != nil {
+			return fmt.Errorf("inspect database: %w", err)
+		}
+		if tables == 0 {
+			return applySchema(db, schemaSQL, want)
+		}
+	}
+	// Two paths, because the reader is either a developer whose scratch
+	// database is worth nothing or an operator whose database is worth
+	// everything — and the error cannot tell which.
+	return fmt.Errorf("%w: %s was built from a different schema\n"+
+		"\tJIT-Pack is pre-1.0 and ships no schema upgrade path (ADR-018)\n"+
+		"\tto discard it:   rm %s   and restart\n"+
+		"\tto keep it:      run the JIT-Pack version that wrote it, export under Settings -> Data, then upgrade and import",
+		ErrSchemaStale, dsn, dsn)
+}
 
-	entries, err := migrations.ReadDir("migrations")
+// applySchema installs ddl and stamps its fingerprint in the same
+// transaction, so a database can never be left carrying half of one.
+//
+// The DDL is a parameter rather than the package's embedded schema so the
+// failure path — a statement that does not apply — can be driven directly
+// instead of only through a deliberately broken build.
+func applySchema(db *sql.DB, ddl string, fingerprint int64) error {
+	tx, err := db.Begin()
 	if err != nil {
-		return fmt.Errorf("read migrations: %w", err)
+		return fmt.Errorf("begin schema: %w", err)
 	}
-	names := make([]string, 0, len(entries))
-	for _, e := range entries {
-		names = append(names, e.Name())
+	defer func() {
+		// Rolling back a committed transaction is the no-op sql.ErrTxDone.
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			log.Printf("store: rolling back schema install: %v", err)
+		}
+	}()
+	if _, err := tx.Exec(ddl); err != nil {
+		return fmt.Errorf("apply schema: %w", err)
 	}
-	sort.Strings(names)
-	for _, name := range names {
-		v, err := strconv.ParseInt(name[:strings.Index(name, "_")], 10, 64)
-		if err != nil {
-			return fmt.Errorf("migration %s has no numeric prefix: %w", name, err)
-		}
-		if v <= version {
-			continue
-		}
-		if v > target {
-			break
-		}
-		ddl, err := migrations.ReadFile("migrations/" + name)
-		if err != nil {
-			return fmt.Errorf("read migration %s: %w", name, err)
-		}
-		if _, err := db.Exec(string(ddl)); err != nil {
-			return fmt.Errorf("apply migration %s: %w", name, err)
-		}
-		if _, err := db.Exec(fmt.Sprintf(`PRAGMA user_version = %d`, v)); err != nil {
-			return fmt.Errorf("record user_version %d: %w", v, err)
-		}
+	// PRAGMA takes no bind parameters; the value is an int64 this package
+	// computed, never anything a caller supplied.
+	if _, err := tx.Exec(fmt.Sprintf(`PRAGMA user_version = %d`, fingerprint)); err != nil {
+		return fmt.Errorf("stamp user_version: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit schema: %w", err)
 	}
 	return nil
 }

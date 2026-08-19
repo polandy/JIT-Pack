@@ -23,6 +23,7 @@ One file per decision, named `ADR-00N_Short_Title.md`, numbered in the order the
 | [015](ADR-015_Local_Backup_File_Shape.md) | The Local Mode backup is one multi-document YAML file, not one file per trip | Accepted |
 | [016](ADR-016_Group_Refresh_Ledger.md) | The group refresh keeps a ledger — for what it wrote, and for what was refused | Accepted |
 | [017](ADR-017_Portable_Composition.md) | A portable Ferien-Vorlage carries its groups whole | Accepted |
+| [018](ADR-018_No_DDL_Migrations_In_Development.md) | No DDL migrations during the development phase — one always-current `schema.sql` | Accepted |
 
 **Outbound Content Fetching** — `Vision_NorthStar` names this as the gate that must exist before any Plan-phase feature makes the server fetch external content. It had informally reserved number 007, which Session Brokering has since taken; it gets the next free number when it is written.
 

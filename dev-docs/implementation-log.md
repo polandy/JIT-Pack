@@ -3289,3 +3289,82 @@ The remaining CI time is in the `e2e` job, which is a separate change: half of
 its 10–20 minutes is `playwright install --with-deps` installing WebKit's ~200
 apt dependencies on every run, on a runner where the digest-pinned Playwright
 image (already used by the `visual` job, ADR-013) has them baked in.
+
+### The development phase drops DDL migrations (2026-08-19, ADR-018)
+
+Owner decision, taken against the recommendation on the desk: while the schema
+is still moving, no migration chain — one always-current `internal/store/schema.sql`.
+The recommendation it overrode was about *speed* (squashing the chain buys ~1 s
+on top of the test template above, so it does not pay), and the question the
+owner actually asked was about *friction*. On that one the history argues for
+dropping:
+
+| | |
+|---|---|
+| Migrations since v0.1.0 (2026-07-10) | 11 in six weeks |
+| …in the final week alone | 6 (018–023) |
+| Migrations that exist **only** because an earlier file cannot be edited | 4 (013, 014, 015, 018) |
+
+Those four retired features. In SQLite that means the twelve-step table rebuild,
+and a rebuild must carry every column the table has grown since — the first
+draft of migration 005 was modelled on 004, silently dropped `trips.updated_hlc`,
+and broke every master pull of a trip. With one schema file, retiring a column
+is deleting a line.
+
+The DDL the chain actually produced is the other half of the argument. Nine
+tables carried `, updated_hlc TEXT NOT NULL DEFAULT '');` glued onto their
+closing line, `users` had three columns appended after `created_at` and one
+`CHECK` stranded mid-list, and six table names were quoted because a rebuild had
+requoted them. None of that is wrong; all of it is unreadable.
+
+**What the mechanism is now.** `Open` reads `PRAGMA user_version`. If it equals
+a fingerprint of `schema.sql` (SHA-256 truncated to 31 bits, because SQLite's
+user_version is a signed 32-bit integer), the database is used as it is. If the
+file is empty, the schema is applied and stamped in one transaction. Anything
+else — a migration-era level, or `0` on a file that already has tables — is
+refused with `ErrSchemaStale` and an error naming the path and two ways out.
+Nothing is recreated and nothing is deleted: the owner chose "error with
+instructions" over "recreate", so a database the code refuses is left exactly as
+it was.
+
+**Equivalence was proved before the chain was deleted, not asserted.** A
+temporary test built one database from the 23 migrations and another from
+`schema.sql`, then compared, per table: columns with type, nullability, default
+and primary-key position (`table_xinfo`, so the generated `duration_days` column
+is included), foreign keys with their delete actions, and index origin and
+uniqueness — plus the view. Identical. It was mutation-proved by adding one
+column to `schema.sql` and watching it fail, then removed together with the
+migrations it compared against.
+
+**What the change cost, stated rather than glossed.** Four tests staged a
+database one migration short of a change and asserted the *transformation*
+against real rows: 019's packing-record backfill, 021's year derivation from
+the end date, and 022's category-to-tag rename with its FR-16.3 collision
+handling. Their subject no longer exists. What was assertable as *schema* was
+kept and renamed — `concept_migrations_test.go` became `schema_shape_test.go`
+with six `TestSchema_*` cases, and `TestSchema_ItemNameIsUniqueOnItsOwn_FR16_3`
+preserves what 022's collision test was ultimately about. What was genuinely
+about a transformation was not replaced.
+
+**One regression the equivalence test could not see.** `PRAGMA journal_mode = WAL`
+was line 18 of migration 001, and a pragma leaves no trace in `sqlite_master` —
+so a comparison of schema objects passed while a fresh database came up in
+`delete` mode. Found by reading `docs/installation.md`, which claims WAL and its
+sidecars, and checking the claim. It now runs in `Open` beside `foreign_keys`
+rather than in `schema.sql`: `journal_mode` cannot be changed inside a
+transaction, and `applySchema` runs in one. `TestOpen_UsesWriteAheadLogging`
+holds it.
+
+`applySchema` takes its DDL as a parameter rather than reading the package's
+embedded schema, so "a statement that does not apply leaves nothing behind, and
+above all no stamped fingerprint" is drivable directly instead of only through a
+deliberately broken build.
+
+A side effect of dropping the replay: `go test -race` over the whole module went
+from 29.5 s to 20.6 s locally, on top of the 4m19s → 29.5 s the test template
+had already bought.
+
+**This reverts at 1.0.** `schema.sql` becomes `migrations/001_schema.sql`,
+numbering resumes at `002`, and invariant 2 returns to its previous text. The
+trigger is written out in ADR-018 rather than left to memory; the whole decision
+rests on the fact that reversing it is an hour's work.

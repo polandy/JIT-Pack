@@ -12,6 +12,33 @@ comes back in the same envelope, so the `code` is what you match on:
 The binary fails fast on a configuration or startup problem rather than serving a
 half-working instance. Check the very first lines of the log.
 
+### `store: database schema is stale`
+
+```
+store: database schema is stale: /data/jitpack.db was built from a different schema
+	JIT-Pack is pre-1.0 and ships no schema upgrade path (ADR-018)
+	to discard it:   rm /data/jitpack.db   and restart
+	to keep it:      run the JIT-Pack version that wrote it, export under Settings -> Data, then upgrade and import
+```
+
+**Cause:** the image you just started defines a different database schema than the one that
+wrote the file at `JITPACK_DB_PATH`. While JIT-Pack is pre-1.0 the schema is a single
+always-current definition with no migration chain behind it, so there is no path from the
+old file to the new schema.
+
+**The server changed nothing.** It refuses to start rather than touching a database it does
+not understand, so the file is exactly as it was and you can still go back.
+
+**To keep the data**, put the previous image back, start it, and export from
+**Settings → Data** (or with the API's export endpoints — see [Backup & Export](backup.md)).
+Then start the new image against an empty database and import the export. Portable YAML
+survives a schema change; a copy of the `.db` file does not.
+
+**To discard it**, stop the server, delete `jitpack.db` **and its `-wal` and `-shm`
+sidecars**, and start again. The server creates a fresh database on the next start.
+
+This goes away at 1.0, which is when the migration chain comes back.
+
 ### `config: JITPACK_SESSION_SECRET is required in multi-user mode`
 
 The secret that signs JIT-Pack's own session tokens is missing. It is required in

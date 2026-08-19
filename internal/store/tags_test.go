@@ -89,152 +89,16 @@ func TestMigrate_ItemTagsCascade_FR24_1(t *testing.T) {
 	}
 }
 
-// migrateWithSeed stages a database one migration short of 022, runs seed
-// against the old shape, then applies 022. It exists so the backfill is
-// asserted against real rows rather than against the DDL.
-func migrateWithSeed(t *testing.T, seed func(db *sql.DB)) *sql.DB {
-	t.Helper()
-	db, err := sql.Open("sqlite", ":memory:")
-	if err != nil {
-		t.Fatalf("open: %v", err)
-	}
-	t.Cleanup(func() {
-		if err := db.Close(); err != nil {
-			t.Errorf("close staged db: %v", err)
-		}
-	})
-	if err := migrateTo(db, 21); err != nil {
-		t.Fatalf("migrate to 021: %v", err)
-	}
-	seed(db)
-	if err := migrateTo(db, 22); err != nil {
-		t.Fatalf("migrate to 022: %v", err)
-	}
-	return db
-}
+// FR-16.3: with the category gone, the name alone identifies an item. The
+// constraint is what the retired UNIQUE(name, category_id) became, and it
+// is the reason importing two "Adapter" rows is a decision rather than a
+// silent merge.
+func TestSchema_ItemNameIsUniqueOnItsOwn_FR16_3(t *testing.T) {
+	s := openTestStore(t)
+	mustExec(t, s, `INSERT INTO items (id, name) VALUES ('item-a', 'Adapter')`)
 
-// The category an item already had is not thrown away — it becomes that
-// item's primary tag, so the inventory groups exactly as it did before.
-func TestMigrate022_OldCategoryBecomesThePrimaryTag_FR24_1(t *testing.T) {
-	db := migrateWithSeed(t, func(db *sql.DB) {
-		if _, err := db.Exec(`
-			INSERT INTO categories (id, name, sort_order) VALUES ('cat-kleidung', 'Kleidung', 3);
-			INSERT INTO items (id, name, category_id) VALUES ('item-shirt', 'Icebreaker', 'cat-kleidung');
-			INSERT INTO items (id, name) VALUES ('item-lose', 'Ohne Kategorie')`); err != nil {
-			t.Fatalf("seed pre-022 rows: %v", err)
-		}
-	})
-
-	var tagName string
-	var position int
-	if err := db.QueryRow(`
-		SELECT t.name, it.position FROM item_tags it
-		JOIN tags t ON t.id = it.tag_id
-		WHERE it.item_id = 'item-shirt'`).Scan(&tagName, &position); err != nil {
-		t.Fatalf("the item lost its category instead of gaining a tag: %v", err)
-	}
-	if tagName != "Kleidung" {
-		t.Errorf("primary tag = %q, want Kleidung", tagName)
-	}
-	if position != 0 {
-		t.Errorf("backfilled tag sits at position %d, want 0 — FR-24.2 reads position 0 as primary", position)
-	}
-
-	// The tag's own attributes ride along; the rename is not a rebuild.
-	var sortOrder int
-	if err := db.QueryRow(`SELECT sort_order FROM tags WHERE id = 'cat-kleidung'`).Scan(&sortOrder); err != nil {
-		t.Fatalf("read migrated tag: %v", err)
-	}
-	if sortOrder != 3 {
-		t.Errorf("sort_order = %d, want 3 — the rename must not reset the axis order", sortOrder)
-	}
-
-	// An item that had no category gains no tag: inventing one would
-	// file it under a heading nobody chose.
-	var n int
-	if err := db.QueryRow(`SELECT count(*) FROM item_tags WHERE item_id = 'item-lose'`).Scan(&n); err != nil {
-		t.Fatalf("count assignments: %v", err)
-	}
-	if n != 0 {
-		t.Errorf("uncategorised item was given %d fabricated tags", n)
-	}
-}
-
-// The old UNIQUE(name, category_id) allowed one name per category; with
-// the category gone the name alone identifies an item (FR-16.3). Rows
-// that collide are renamed, never dropped — trip history points at them
-// through trip_items.source_item_id.
-func TestMigrate022_RenamesCollidingItemsRatherThanLosingThem_FR16_3(t *testing.T) {
-	db := migrateWithSeed(t, func(db *sql.DB) {
-		if _, err := db.Exec(`
-			INSERT INTO categories (id, name) VALUES ('cat-tech', 'Technik'), ('cat-velo', 'Velo');
-			INSERT INTO items (id, name, category_id) VALUES
-				('item-a', 'Adapter', 'cat-tech'),
-				('item-b', 'Adapter', 'cat-velo');
-			INSERT INTO trips (id, name, year) VALUES ('trip-hist', 'Samedan 2025', 2025);
-			INSERT INTO trip_items (id, trip_id, name, source_item_id)
-				VALUES ('ti-1', 'trip-hist', 'Adapter', 'item-b');`); err != nil {
-			t.Fatalf("seed colliding rows: %v", err)
-		}
-	})
-
-	names := map[string]string{}
-	rows, err := db.Query(`SELECT id, name FROM items ORDER BY id`)
-	if err != nil {
-		t.Fatalf("read items: %v", err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var id, name string
-		if err := rows.Scan(&id, &name); err != nil {
-			t.Fatalf("scan item: %v", err)
-		}
-		names[id] = name
-	}
-	if err := rows.Err(); err != nil {
-		t.Fatalf("iterate items: %v", err)
-	}
-
-	if len(names) != 2 {
-		t.Fatalf("collision resolved by deletion: %d items left, want 2 — trip history references them", len(names))
-	}
-	if names["item-a"] == names["item-b"] {
-		t.Errorf("both items still named %q — UNIQUE(name) cannot hold", names["item-a"])
-	}
-	// The surviving names must still say what the item is.
-	for id, name := range names {
-		if len(name) < len("Adapter") || name[:len("Adapter")] != "Adapter" {
-			t.Errorf("item %s renamed to %q — the original name must survive as its prefix", id, name)
-		}
-	}
-
-	// The trip row still resolves to its master item.
-	var src sql.NullString
-	if err := db.QueryRow(`SELECT source_item_id FROM trip_items WHERE id = 'ti-1'`).Scan(&src); err != nil {
-		t.Fatalf("read trip item: %v", err)
-	}
-	if src.String != "item-b" {
-		t.Errorf("trip history detached from its item: source_item_id = %q", src.String)
-	}
-}
-
-// Two uncategorised rows with the same name were legal before 022 (SQLite
-// treats NULLs as distinct in a UNIQUE), so the suffix that separates them
-// cannot be the category name — there is none.
-func TestMigrate022_SeparatesCollidingItemsWithNoCategory_FR16_3(t *testing.T) {
-	db := migrateWithSeed(t, func(db *sql.DB) {
-		if _, err := db.Exec(`
-			INSERT INTO items (id, name) VALUES ('item-x', 'Sackmesser'), ('item-y', 'Sackmesser')`); err != nil {
-			t.Fatalf("seed uncategorised collision: %v", err)
-		}
-	})
-
-	var n int
-	if err := db.QueryRow(`SELECT count(DISTINCT name) FROM items`).Scan(&n); err != nil {
-		t.Fatalf("count names: %v", err)
-	}
-	if n != 2 {
-		t.Errorf("%d distinct names for 2 items — the rows were not separated", n)
+	if _, err := s.db.Exec(`INSERT INTO items (id, name) VALUES ('item-b', 'Adapter')`); err == nil {
+		t.Fatal("a second item with the same name was accepted")
 	}
 }
 

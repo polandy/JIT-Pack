@@ -25,7 +25,7 @@ Every requirement or behaviour change is reflected in its spec **in the same PR*
 - `dev-docs/UI_Spec_v1.10.md` — any new screen, global pattern (G-n) or changed screen behaviour.
 - `dev-docs/Sync_API_Spec_v1.3.md` — new endpoints, envelope fields, WebSocket frames, merge-rule changes.
 - `dev-docs/UI_Test_Spec_v1.0.md` — new UI behaviour adds its case + traceability-matrix row.
-- **Schema**: `internal/store/migrations/*.sql` is the single source of truth — flag any attempt to duplicate the schema into `docs/`.
+- **Schema**: `internal/store/schema.sql` is the single source of truth — flag any attempt to duplicate the schema into `docs/`.
 - Check the reverse too: no doc may still describe behaviour this PR removed or changed.
 - Doc comments on exported symbols must match actual behaviour; godoc on exported symbols is mandatory.
 
@@ -40,7 +40,7 @@ Every requirement or behaviour change is reflected in its spec **in the same PR*
 `CLAUDE.md` §Invariants and `dev-docs/CODING_PRINCIPLES.md` are the standard; apply them to the diff rather than re-deriving them. Flag freshly introduced violations:
 
 - **Package boundaries** (the invariant most worth checking every time): `api → domain/sync/store`, `store → domain`; `domain` and `sync` import nothing internal, ever. A single wrong import destroys the testability those two packages exist for.
-- **Migrations**: applied migrations are never edited — a change means a new numbered migration.
+- **Schema**: the development phase has no migrations (ADR-018). A schema change edits `internal/store/schema.sql`; a new `internal/store/migrations/` file is a finding. Check that the change is a deliberate one — every existing database is destroyed by it — and that anything it *would* have backfilled is covered by the dev seed instead.
 - **Server-stamped identity**: client-supplied user ids are never trusted; actor columns are stamped server-side.
 - **Mode invariance**: does the feature still behave correctly in Single-User Mode (no auth, no membership) and Local Mode (no server at all)? Server-only features must be hidden per G-8, and anything that could run client-side generally should, so Local Mode keeps it.
 - Errors wrapped with `%w`; sentinel errors checked via `errors.Is/As`, never string matching; no `_ =` swallowing without a stated reason; no panics outside `main`.
@@ -103,8 +103,8 @@ If the PR touches `client/src`:
 
 - `git fetch origin && git rev-list --count <head>..origin/<base>`.
 - If behind, **merge** the target branch in (`git merge origin/<base>`) and push. Always merge, never rebase: the PR is squash-merged anyway, so intermediate history doesn't matter, and merging avoids a force-push while keeping review comments anchored.
-- **After updating, re-run sections 1–6.** The merge may have pulled in doc moves, a new migration number, or a new ADR that the PR now conflicts with semantically even though git merged cleanly.
-- Two things collide specifically when two PRs land near each other and git won't flag either: a **duplicate migration number** (renumber yours to the next free one and check `PRAGMA user_version` ordering) and a **duplicate e2e case name**.
+- **After updating, re-run sections 1–6.** The merge may have pulled in doc moves, a schema change, or a new ADR that the PR now conflicts with semantically even though git merged cleanly.
+- Two things collide specifically when two PRs land near each other and git won't flag either: **two schema changes in `schema.sql`** (git merges the hunks cleanly; re-read the merged file as a whole, because the fingerprint changes and neither branch's tests saw the combination) and a **duplicate e2e case name**.
 
 ## 8. Verdict
 
