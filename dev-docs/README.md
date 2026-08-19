@@ -40,8 +40,11 @@ replace the file and update its own revision note.
 - [`e2e-tests.md`](e2e-tests.md) — which of those cases are actually implemented, and
   where. The spec says what *should* be covered; the ledger says what *is*.
 
-The database schema has no spec file on purpose: `internal/store/migrations/*.sql` is
-its single source of truth and is never duplicated into prose.
+The database schema has no spec file on purpose: `internal/store/schema.sql` is its
+single source of truth and is never duplicated into prose. While the project is pre-1.0
+it is one always-current file with no migration chain behind it — see
+[ADR-018](adr/ADR-018_No_DDL_Migrations_In_Development.md) for why, and for when
+migrations come back.
 
 ## Concept prototype
 
