@@ -16,9 +16,9 @@ import (
 
 func newSingleUserTestServer(t *testing.T) (*httptest.Server, string) {
 	t.Helper()
-	st, err := store.Open(":memory:")
+	st, err := store.OpenForTest(t.TempDir())
 	if err != nil {
-		t.Fatalf("store.Open: %v", err)
+		t.Fatalf("store.OpenForTest: %v", err)
 	}
 	t.Cleanup(func() { st.Close() })
 
