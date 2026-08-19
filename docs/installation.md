@@ -266,9 +266,11 @@ The first returns `200` with an empty body. The second returns JSON on a multi-u
 
 Everything JIT-Pack stores — trips, items, templates, users, the sync change log, avatars and item images — is in **one SQLite file** at `JITPACK_DB_PATH` (default `jitpack.db` in the working directory; `/data/jitpack.db` in the compose examples above). There is no external database, no cache and no separate uploads directory.
 
-The schema is created and migrated automatically at startup, tracked by SQLite's `user_version`, so reopening an existing file is always safe and upgrading the image needs no manual migration step.
+The schema is created automatically the first time the server sees an empty file, and reopening that file afterwards is safe.
 
-One caveat for backups: the database runs in **WAL mode** (set by the first migration and persisted in the file itself), so at runtime it is accompanied by `jitpack.db-wal` and `jitpack.db-shm` sidecars. Copying `jitpack.db` alone while the server is running can therefore miss the most recent writes. [Backup & Export](backup.md) covers how to take a consistent copy.
+**JIT-Pack is pre-1.0 and ships no schema upgrade path.** While the schema is still changing, an image that changed it will refuse a database written by an earlier one rather than upgrade it, and say so on the first lines of the log — see [the schema is stale](troubleshooting.md#store-database-schema-is-stale) for what to do. Export your data before you upgrade the image; [Backup & Export](backup.md) covers how.
+
+One caveat for backups: the database runs in **WAL mode**, so at runtime it is accompanied by `jitpack.db-wal` and `jitpack.db-shm` sidecars. Copying `jitpack.db` alone while the server is running can therefore miss the most recent writes. [Backup & Export](backup.md) covers how to take a consistent copy.
 
 ---
 

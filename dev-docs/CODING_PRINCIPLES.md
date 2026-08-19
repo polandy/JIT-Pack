@@ -34,7 +34,7 @@ cmd/jitpackd/                main: wiring only (flags/env, DI, serve) — no log
 internal/sync/               HLC, merge algorithm, change-log semantics — zero I/O deps
 internal/portable/           YAML wire types for export/import — zero I/O deps
 internal/store/              SQLite repositories; the only package importing database/sql
-internal/store/migrations/   embedded SQL migrations (//go:embed)
+internal/store/schema.sql    the whole schema, always current (//go:embed, ADR-018)
 internal/api/                HTTP handlers, WebSocket hub, auth middleware, push
 client/src/domain/           entities, state machine, generation/analytics — pure, no I/O
 ```

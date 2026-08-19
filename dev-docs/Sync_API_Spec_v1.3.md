@@ -4,6 +4,7 @@
 **Basis:** ADR-001 v2 (Go + embedded SQLite), Schema v0.3 (`change_log`, `updated_hlc`), NFR-4.1/4.2/4.2a, UI-Spec G-2/G-4/G-5/G-10.
 **Revision Note (v1.3):** Adds four RPC endpoints (§8) for the new portable YAML template/trip export-import (Addendum 3.18): `GET`/`POST` pairs for templates and trips, explicitly distinguished from the existing NFR-4.5 CSV/full-JSON export endpoints. Also corrects a stale "Schema v0.2" reference to v0.3. No other changes from v1.2.
 **Base URL:** `/api/v1` — JSON only, UTF-8. All timestamps ISO-8601 UTC.
+**Note on migration numbers:** this document dates several schema facts as "since migration NNN". Those numbers are **history, not files** — the migration chain was retired on 2026-08-19 (ADR-018) in favour of one always-current `internal/store/schema.sql`. The dates still say when a rule started applying; the numbers no longer point at anything to open.
 
 ---
 
