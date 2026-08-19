@@ -264,6 +264,15 @@ export const de: Record<keyof typeof en, string> = {
   'quickAdd.placeholder': 'Name der Sache…',
   'quickAdd.missingHint': 'Neue Sachen werden als „fehlt“ markiert',
   'quickAdd.newItem': '„{name}“ als neue Sache hinzufügen',
+  // FR-27.10: ganze Gruppen im selben Composer.
+  'quickAdd.groupsHeading': 'Ganze Gruppe hinzufügen',
+  'quickAdd.groupCount': '{n} Position | {n} Positionen',
+  'quickAdd.groupAdded':
+    'Gruppe „{name}“ hinzugefügt — {n} Position | Gruppe „{name}“ hinzugefügt — {n} Positionen',
+  'quickAdd.groupAlreadyPart': ', {n} schon dabei',
+  'quickAdd.groupAllPresent': 'Gruppe „{name}“ ist schon vollständig dabei',
+  'quickAdd.groupEmpty': 'Gruppe „{name}“ steuert zu dieser Reise nichts bei',
+  'quickAdd.groupNotReady': 'Reisedaten werden noch geladen — bitte gleich noch einmal',
 
   // Facetten-Filter (FR-25.11), geteilt von M4 und M6.
   'filter.title': 'Filter',

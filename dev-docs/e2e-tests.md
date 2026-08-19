@@ -55,6 +55,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M12 analytics | E2E-M12-01, E2E-M12-02, E2E-M12-03 (absence half only, see below), E2E-M12-04, E2E-M12-05 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
+| FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-06 (empty-state half only, see below) + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 
@@ -623,3 +624,43 @@ the built bundle, so a source-only edit proves nothing): removing the menu's
 green; removing the M5 control reddens E2E-M5-16 alone; removing the child
 row's handler reddens E2E-M4-42 alone. That split is the
 point — two paths that can fail independently, and did not share a test.
+
+## FR-27.10 — a whole group onto a running trip (`e2e/group-to-trip.spec.ts`, 2026-08-19)
+
+Three cases for one tap, because the tap has three outcomes and two of them
+are reports rather than rows.
+
+* **The dedup case types the row by hand** rather than picking the quick-add
+  suggestion, and that is the whole point of it: a picked suggestion carries
+  the master item's id, which the group would have matched on anyway. Only a
+  free-text row forces the name match — the rule that would silently double
+  „Kamera" if it broke. **Mutation-proved:** dropping the name half of the
+  presence test doubles the row and reddens exactly this case.
+* **The repeat-add case reloads between the two adds.** Two toasts live at
+  once otherwise, and `ion-toast` then resolves to two elements — a strict-mode
+  violation that is really a race against the first toast's three seconds. A
+  fresh document leaves no overlay behind, so the second assertion reads its
+  own report.
+* **Two halves are unit tests, on purpose.** The added rows carrying no FR-9.1
+  *Missing* flag, and a past trip registering no source, both need a trip that
+  is **active** or **archived** — and nothing user-facing moves a trip out of
+  *planning* yet. Asserted here they would pass on a planning trip whatever the
+  production code did, which is the definition of false green; they live in
+  `client/src/composables/__tests__/groupToTrip.spec.ts` and move back when the
+  North-Star phase supplies the transition.
+* **The fourth case guards the other screen.** `QuickAddItem` is one
+  component with a prop, and M8 reuses it — so M4 gaining groups could hand
+  them to the editor, where FR-27.1 forbids nesting a group at all. The
+  absence is asserted beside a positive signal (the free-text hint, which M4
+  hides when groups match), and mutation-proved by switching the prop on in
+  M8: both browsers redden.
+* **A distractor group is part of the world.** „Typing filters them" cannot be
+  asserted with one group on the device: any query that offers it offers
+  everything there is, and „always offers the first group" would pass. The
+  second group is what makes the claim falsifiable, and both directions are
+  asserted.
+* **The FR-27.4 tail is deliberate.** The last case does not stop at „nothing
+  was added": it edits the group afterwards and watches the change arrive at
+  the trip as a proposal. The registration is invisible on the screen that
+  writes it, so the only honest assertion of it is the effect it has later.
+
