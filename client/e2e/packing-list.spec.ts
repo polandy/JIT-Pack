@@ -1,4 +1,4 @@
-import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
+import { test, expect, createTripViaWizard, openQuickAdd, visiblePage as visible } from './fixtures'
 import type { Page } from '@playwright/test'
 
 /**
@@ -430,5 +430,24 @@ test.describe('M4 packing list @local @m4', () => {
 
     await page.getByTestId('header-back').click()
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
+  })
+
+  // E2E-M4-44 (UI-Spec M4, G-9): M4 names its trip in its own header line,
+  // and the one app bar carries no title there — with six icons beside it
+  // the name rendered as "S…", which names nothing.
+  test('E2E-M4-44: the trip name is in the header line and the app bar has none', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+
+    await expect(visible(page).getByTestId('m4-trip-name')).toHaveText(TRIP.name)
+    await expect(page.getByTestId('header-title')).toHaveCount(0)
+
+    // The positive half the absence needs: the bar *does* render titles, and
+    // the back chevron proves it rendered its left slot at all. Without this,
+    // a header that failed to mount would pass the assertion above.
+    await expect(page.getByTestId('header-back')).toBeVisible()
+    await page.getByTestId('m4-nav-shopping').click()
+    await expect(page.getByTestId('header-title')).toContainText(TRIP.name)
   })
 })

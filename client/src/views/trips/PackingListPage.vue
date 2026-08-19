@@ -6,13 +6,12 @@
  * Rebuilt from the concept mock (UI-Spec M4, Addendum §3.25). What the
  * shape is answering, in one line each:
  *
- *  - **One header line** (trip line): progress, weight, open prep, the
- *    presence facepile and the trip's *other views* as labelled icons.
- *    It stays unfiltered whatever the list shows (G-12), so a short list
- *    is never mistaken for a finished trip. It hides on scroll-down and
- *    returns on any upward scroll, which is where the list height comes
- *    from; the trip name lives in the one app bar permanently (ADR-011),
- *    so nothing has to migrate up there as it goes.
+ *  - **The header line** (trip line): the trip's name, its *other views* as
+ *    labelled icons, then progress, weight, open prep and the presence
+ *    facepile. It stays unfiltered whatever the list shows (G-12), so a
+ *    short list is never mistaken for a finished trip. It hides on
+ *    scroll-down and returns on any upward scroll, which is where the list
+ *    height comes from — the name goes with it, deliberately.
  *  - **Actions in the app bar** (G-12): search behind its icon (FR-25.11k)
  *    and fold-all (FR-25.16). No ⋯ overflow — three destinations behind an
  *    unlabelled glyph is exactly where concept testing kept failing.
@@ -82,7 +81,6 @@ import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
-import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { useLongPress } from '@/composables/useLongPress'
@@ -916,8 +914,17 @@ async function handleRefresh(event: CustomEvent) {
   refresher.complete()
 }
 
-// ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
+/**
+ * M4 registers **no** app-bar title, deliberately (UI-Spec M4, 2026-08-19).
+ *
+ * It is the one screen whose G-12 cluster fills the bar: with search, filter,
+ * fold-all, the lifecycle step, the sync glyph and the settings gear beside
+ * it, 54 px were left for the name and "Samedan 2026" rendered as "S…". A
+ * title that survives as one letter names nothing, so the name went where
+ * there is room for it — the header line below, which the UI-Spec always
+ * described as carrying it. `‹ back` still leads out; see AppHeader.
+ */
+const tripName = computed(() => trip.value?.name ?? t('packing.title'))
 </script>
 
 <template>
@@ -935,20 +942,11 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
       <!-- One header line (G-12): what the trip stands at, and where else to
            go within it. Deliberately unfiltered — see FR-25.20. -->
       <div class="trip-line" :class="{ collapsed: headCollapsed }" data-testid="m4-header">
-        <PresenceFacepile v-if="presenceUsers.length > 1" :users="presenceUsers" />
-        <!-- The whole line is tabular, not just the counter: the weight
-             beside it changes on the same tap and would shift the counter
-             sideways as it did. -->
-        <div class="progress jp-num" data-testid="m4-progress">
-          <strong>{{ kpis.packedItems }}/{{ kpis.totalItems }}</strong>
-          <span v-if="kpis.totalWeight > 0" class="muted">
-            · {{ formatWeight(kpis.totalWeight) }}
-          </span>
-          <span v-if="openPrepCount > 0" class="muted prep">
-            · {{ t('packing.openPrep', { n: openPrepCount }) }}
-          </span>
-        </div>
-        <div class="trip-nav">
+        <!-- Row one names the trip — this is where M4's title lives, the app
+             bar having no room for it — and offers the trip's other views. -->
+        <div class="trip-id">
+          <h1 class="trip-name jp-screen-title" data-testid="m4-trip-name">{{ tripName }}</h1>
+          <div class="trip-nav">
           <IonButton
             fill="clear"
             size="small"
@@ -982,6 +980,24 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
           >
             <IonIcon slot="icon-only" :icon="statsChartOutline" />
           </IonButton>
+          </div>
+        </div>
+
+        <!-- Row two: where the trip stands, and who else is here. The whole
+             line is tabular, not just the counter: the weight beside it
+             changes on the same tap and would shift the counter sideways as
+             it did. -->
+        <div class="trip-stats">
+          <div class="progress jp-num" data-testid="m4-progress">
+            <strong>{{ kpis.packedItems }}/{{ kpis.totalItems }}</strong>
+            <span v-if="kpis.totalWeight > 0" class="muted">
+              · {{ formatWeight(kpis.totalWeight) }}
+            </span>
+            <span v-if="openPrepCount > 0" class="muted prep">
+              · {{ t('packing.openPrep', { n: openPrepCount }) }}
+            </span>
+          </div>
+          <PresenceFacepile v-if="presenceUsers.length > 1" :users="presenceUsers" />
         </div>
       </div>
 
@@ -1455,8 +1471,8 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
 /* --- Header line ------------------------------------------------------ */
 .trip-line {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 2px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--ct-surface0);
   /* An explicit token, not --ion-background-color: inside ion-content that
@@ -1469,7 +1485,9 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
      so at z-index 2 the list painted straight over the trip's figures. */
   z-index: 10;
   overflow: hidden;
-  max-height: 52px;
+  /* Two rows since the trip name moved down here: the name with the trip's
+     other views, then the figures with the facepile. */
+  max-height: 84px;
   /* Clipped, never faded: a half-transparent sticky line reads as two
      lines printed on top of each other while the list slides past it. */
   transition:
@@ -1477,10 +1495,30 @@ setHeaderTitle(() => trip.value?.name ?? t('packing.title'))
     padding 0.18s ease;
 }
 
+/* Scrolling down still takes the whole line, name included (owner call,
+   2026-08-19): you know which packing list you are on, and the rows are
+   what the screen is for. Any upward scroll brings it back. */
 .trip-line.collapsed {
   max-height: 0;
   padding-block: 0;
   border-bottom-color: transparent;
+}
+
+.trip-id,
+.trip-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* M4's title, where the app bar had 54 px for it (UI-Spec M4). */
+.trip-name {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .progress {

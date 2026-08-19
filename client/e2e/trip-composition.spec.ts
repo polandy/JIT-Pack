@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+import { test, expect, expectTripOpen } from './fixtures'
 import {
   addPosition,
   backToTemplateList as backToList,
@@ -202,7 +202,7 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     await expect(page.getByTestId('wizard-create')).toHaveText(dropped ?? '')
 
     await page.getByTestId('wizard-create').click()
-    await expect(page.getByTestId('header-title')).toHaveText('Fototour 2026')
+    await expectTripOpen(page, 'Fototour 2026')
 
     // On the trip it is *skipped*, not absent: FR-25.2 hides it with the done
     // rows, and revealing them shows it. A deleted row would teach the next
@@ -254,7 +254,7 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     await page.getByTestId('wizard-next').click()
     await expect(page.getByTestId('wizard-step-4')).toBeVisible()
     await page.getByTestId('wizard-create').click()
-    await expect(page.getByTestId('header-title')).toHaveText('Fototour 2026')
+    await expectTripOpen(page, 'Fototour 2026')
     // By the row's test id, not by its heading text: during the wizard -> M4
     // transition both pages are briefly un-hidden, so a heading named "Drohne"
     // matches the step-4 preview *and* the packing row, and the assertion
@@ -283,7 +283,7 @@ test.describe('M3 step 3 — composed templates (§3.27)', () => {
     await page.getByTestId('wizard-next').click()
     await expect(page.getByTestId('wizard-step-4')).toBeVisible()
     await page.getByTestId('wizard-create').click()
-    await expect(page.getByTestId('header-title')).toHaveText('Fototour 2026')
+    await expectTripOpen(page, 'Fototour 2026')
 
     // FR-27.7 on the trip: an ordinary FR-7.3 todo, on the row it came from,
     // counted in the header and listed in the prep section.

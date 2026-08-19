@@ -6,8 +6,10 @@
  * — sync indicator (G-2) and settings/avatar (G-1) — is unconditional,
  * which is what keeps the conflict log reachable from inside a trip.
  * The left slot switches: the logo on a tab root, `‹ back` plus the page
- * title everywhere else. Pages needing their own actions teleport them
- * into `#header-actions`.
+ * title everywhere else — and on a screen that registers no title, the
+ * chevron alone. M4 is that screen deliberately (UI-Spec M4): its G-12
+ * cluster left the bar 54 px and the trip name rendered as "S…", so the
+ * name lives in M4's own header line and the bar stops pretending.
  */
 import {
   IonHeader,

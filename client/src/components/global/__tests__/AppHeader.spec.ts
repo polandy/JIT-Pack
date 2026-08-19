@@ -32,7 +32,7 @@ vi.mock('@ionic/vue', async () => {
 
 function mountHeader() {
   return mount(AppHeader, {
-    props: { syncState: 'idle' as const, syncPendingCount: 0, syncLabel: 'Synced' },
+    props: { syncState: 'synced' as const, syncPendingCount: 0, syncLabel: 'Synced' },
   })
 }
 

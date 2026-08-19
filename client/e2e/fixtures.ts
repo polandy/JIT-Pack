@@ -121,8 +121,21 @@ export async function createTripViaWizard(page: Page, trip: TripSeed): Promise<s
   await page.getByTestId('wizard-create').click()
 
   // M4 has opened on the new trip; its path is the handle later steps need.
-  await expect(page.getByTestId('header-title')).toHaveText(trip.name)
+  await expectTripOpen(page, trip.name)
   return new URL(page.url()).pathname
+}
+
+/**
+ * M4 is open on the named trip.
+ *
+ * The trip name is M4's header line rather than the app bar's title since
+ * 2026-08-19 (UI-Spec M4) — the G-12 cluster left the bar 54 px and the name
+ * rendered as "S…". Scoped to the *painted* page on purpose: the name now
+ * lives inside the router outlet, where Ionic keeps the outgoing page mounted
+ * through the transition, so an unscoped match can read the page being left.
+ */
+export async function expectTripOpen(page: Page, name: string) {
+  await expect(visiblePage(page).getByTestId('m4-trip-name')).toHaveText(name)
 }
 
 /**
