@@ -123,6 +123,24 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
     await expect(page.locator('ion-toast')).toContainText('1 position, 1 already there')
   })
 
+  test('E2E-M8-20: M8 reuses the same composer and offers no groups in it', async ({ page }) => {
+    // The composer is one component with a prop, so M4 gaining groups could
+    // hand them to M8 — where a group is not a position and FR-27.1 forbids
+    // nesting one anyway. The absence needs a positive signal beside it: the
+    // free-text hint proves the composer is open and searching, and it is the
+    // line M4 *hides* when groups match, so it falls if the prop leaks.
+    await page.goto('/tabs/templates')
+    await visible(page).getByTestId('m7-scope-group').click()
+    await visible(page).locator('ion-item').filter({ hasText: 'Makro' }).first().click()
+    await expect(page.getByTestId('header-title')).toHaveText('Makro')
+
+    await openQuickAdd(page, 'm8-fab')
+    await visible(page).getByTestId('quick-add-input').locator('input').fill('Mak')
+
+    await expect(visible(page).getByText('Add “Mak” as a new item')).toBeVisible()
+    await expect(visible(page).getByTestId('quick-add-groups')).toHaveCount(0)
+  })
+
   test('E2E-M4-27: a fully present group says so, and the trip follows it afterwards', async ({
     page,
   }) => {

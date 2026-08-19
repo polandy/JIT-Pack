@@ -55,7 +55,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M12 analytics | E2E-M12-01, E2E-M12-02, E2E-M12-03 (absence half only, see below), E2E-M12-04, E2E-M12-05 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
-| FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
+| FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-06 (empty-state half only, see below) + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 
@@ -648,6 +648,12 @@ are reports rather than rows.
   production code did, which is the definition of false green; they live in
   `client/src/composables/__tests__/groupToTrip.spec.ts` and move back when the
   North-Star phase supplies the transition.
+* **The fourth case guards the other screen.** `QuickAddItem` is one
+  component with a prop, and M8 reuses it — so M4 gaining groups could hand
+  them to the editor, where FR-27.1 forbids nesting a group at all. The
+  absence is asserted beside a positive signal (the free-text hint, which M4
+  hides when groups match), and mutation-proved by switching the prop on in
+  M8: both browsers redden.
 * **The FR-27.4 tail is deliberate.** The last case does not stop at „nothing
   was added": it edits the group afterwards and watches the change arrive at
   the trip as a proposal. The registration is invisible on the screen that
