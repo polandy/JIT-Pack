@@ -506,7 +506,8 @@ export const en = {
     'Reaches everything that includes the group — {n} trip will be asked. | Reaches everything that includes the group — {n} trips will be asked.',
   'templateFromTrip.blastNone':
     'Reaches everything that includes the group — no trip follows it right now.',
-  'templateFromTrip.absent': '{items} were not on this trip — the group stays unchanged.',
+  'templateFromTrip.absent':
+    '{items} was not on this trip — the group stays unchanged. | {items} were not on this trip — the group stays unchanged.',
   'templateFromTrip.loose': 'Own items · {n} of {total}',
   'templateFromTrip.looseAdHoc': 'added without a group',
   'templateFromTrip.looseFromTemplate': 'from "{template}" — carried over as an own position',

@@ -507,7 +507,7 @@ export const de: Record<keyof typeof en, string> = {
   'templateFromTrip.blastNone':
     'Wirkt überall, wo die Gruppe eingebunden ist — zurzeit folgt ihr keine Reise.',
   'templateFromTrip.absent':
-    '{items} waren auf dieser Reise nicht dabei — Gruppe bleibt unverändert.',
+    '{items} war auf dieser Reise nicht dabei — die Gruppe bleibt unverändert. | {items} waren auf dieser Reise nicht dabei — die Gruppe bleibt unverändert.',
   'templateFromTrip.loose': 'Eigene Artikel · {n} von {total}',
   'templateFromTrip.looseAdHoc': 'ohne Gruppe hinzugefügt',
   'templateFromTrip.looseFromTemplate': 'aus „{template}“ — als eigene Position übernommen',

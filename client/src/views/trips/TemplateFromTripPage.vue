@@ -234,7 +234,12 @@ setHeaderTitle(() => t('templateFromTrip.title'))
           </div>
 
           <p v-if="group.absent.length > 0" class="absent" data-testid="m21-absent">
-            {{ t('templateFromTrip.absent', { items: group.absent.join(', ') }) }}
+            {{
+              t('templateFromTrip.absent', {
+                n: group.absent.length,
+                items: group.absent.join(', '),
+              })
+            }}
           </p>
         </article>
       </template>
@@ -353,6 +358,24 @@ setHeaderTitle(() => t('templateFromTrip.title'))
   color: var(--jp-done);
 }
 
+.deviation ion-segment-button {
+  --padding-start: 4px;
+  --padding-end: 4px;
+  min-height: 44px;
+}
+
+/* Ionic truncates a segment label by default. Both labels here are whole
+   sentences of intent ("Gruppe aktualisieren" / "Nur in diese Vorlage"), and
+   a truncated one is not a choice the user can read. */
+.deviation ion-segment-button::part(native) {
+  white-space: normal;
+}
+
+.deviation ion-label {
+  white-space: normal;
+  line-height: 1.2;
+}
+
 .deviation {
   margin-top: 10px;
   padding-top: 10px;
@@ -370,8 +393,12 @@ setHeaderTitle(() => t('templateFromTrip.title'))
   margin: 8px 0 0;
 }
 
+/* Its own rule, not a continuation of the blast note above it: one says what
+   an accepted change would reach, the other says what will not be touched. */
 .absent {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--ct-surface0);
 }
 
 .create {
