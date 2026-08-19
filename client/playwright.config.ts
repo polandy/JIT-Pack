@@ -35,6 +35,20 @@ export default defineConfig({
   // Parallel by default; the backend-backed suites that need a shared
   // server will opt into serial execution per-project when they land.
   fullyParallel: true,
+  /*
+   * Chosen, not inherited. Until 2026-08-19 the suite ran on Playwright's
+   * 30 s default, which nobody had picked — and measurement showed the
+   * suite living against it: on WebKit with 2 workers, 16 of 123 tests take
+   * 20 s or more and the slowest passing one took 31.9 s. That is not a
+   * suite that is too slow, it is a budget set below the work: the §2.4
+   * units build their world through the UI (M7 -> M8 -> M3) because that is
+   * what makes them worth having, and on WebKit that costs real seconds.
+   *
+   * A budget exists to bound a hang, not to police legitimate work, so this
+   * is roughly 2x the measured worst case under load. The cost is stated
+   * rather than hidden: a genuinely hung test now takes a minute to say so.
+   */
+  timeout: 60_000,
   reporter: process.env.CI
     ? [['html', { open: 'never' }], ['github']]
     : [['html', { open: 'never' }], ['list']],

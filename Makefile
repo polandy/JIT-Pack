@@ -150,10 +150,15 @@ visual-update: client-build
 	scripts/visual.sh --update-snapshots
 
 ## --- e2e job --------------------------------------------------------------
-# Needs the Playwright browsers (`npx playwright install chromium webkit`) and
-# a built bundle — `npm run test:e2e` serves client/dist via vite preview.
+# Needs docker and a built bundle: scripts/e2e.sh runs the suite inside the
+# pinned Playwright image, so the browsers and their system libraries come
+# with the image rather than being installed. Vite preview serves client/dist
+# from inside the container (--network host).
+#
+# That also makes this target usable on a NixOS host, where a downloaded
+# Chromium does not run at all.
 e2e: client-build
-	cd client && $(RUN) npm run test:e2e
+	scripts/e2e.sh
 
 ## --- docker-build job -----------------------------------------------------
 # Left out of `ci` because it needs a running docker daemon.

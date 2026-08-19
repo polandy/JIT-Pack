@@ -15,12 +15,11 @@
 # Pass --update-snapshots to rewrite the baselines.
 set -euo pipefail
 
-# Pinned by digest (invariant 8). The tag beside it is the readable half and
-# must match the @playwright/test version in client/package-lock.json — a
-# mismatch fails at browser launch with "Executable doesn't exist".
-IMAGE="mcr.microsoft.com/playwright@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e" # v1.62.1-noble
-
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# The image is pinned once, in one file, for this script and scripts/e2e.sh.
+# shellcheck source=scripts/playwright-image.sh
+. "${repo_root}/scripts/playwright-image.sh"
+require_matching_playwright_version "${repo_root}"
 
 # Mounting the repository hands the container the *host's* `node_modules`,
 # and off the runner those are the wrong platform: rolldown and its siblings
@@ -62,6 +61,6 @@ exec docker run --rm \
   --network host \
   "${mounts[@]}" \
   -w /w/client \
-  "${IMAGE}" \
+  "${PLAYWRIGHT_IMAGE}" \
   sh -c "${install}"'exec npx playwright test --project=visual-mobile --project=visual-desktop "$@"' \
   sh "$@"

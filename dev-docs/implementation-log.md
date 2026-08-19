@@ -3371,3 +3371,66 @@ runs against a real file, which is what production uses.
 numbering resumes at `002`, and invariant 2 returns to its previous text. The
 trigger is written out in ADR-018 rather than left to memory; the whole decision
 rests on the fact that reversing it is an hour's work.
+
+### The e2e job moves into the pinned Playwright image and shards (2026-08-19)
+
+The second half of the CI investigation that produced the Go test template.
+Measured on the `e2e` job of PR #111, per step:
+
+| Step | Duration |
+|---|---|
+| `npx playwright install --with-deps chromium webkit` | **1124 s** |
+| `npm run test:e2e` | 615 s |
+| everything else (checkout, node, `npm ci`, build, upload) | 37 s |
+
+**63 % of the job was installing browsers**, and the cache was working: the
+binaries were cached, the ~200 apt packages WebKit links against are not
+cacheable and were reinstalled every run. The `visual` job has not paid that
+since ADR-013, because it runs inside `mcr.microsoft.com/playwright`, which has
+both baked in. `scripts/e2e.sh` does the same for the behaviour suite, and the
+digest moves to `scripts/playwright-image.sh` so the two scripts cannot drift
+apart on it. A side benefit: `make e2e` now works on the NixOS host, where a
+downloaded Chromium does not run at all.
+
+**The sharding decision was made twice, because the first answer was wrong.**
+One CI leg per browser is the obvious split and it is worse on both counts.
+Measured locally in the image with 2 workers: Chromium 3.8 min, WebKit
+10.6 min. A per-browser split is bounded by WebKit for its entire duration
+while the other runner idles for seven minutes — and it puts two WebKit
+contexts on a runner where roughly one ran before. That is not free, which the
+run proved: E2E-M12-05 failed, twice, at *different lines each time*, which is
+the signature of a unit exceeding its budget rather than a broken assertion.
+`--shard` instead: 133 tests each, 5.7 min and 10.0 min, both legs carrying
+both engines. Still uneven — Playwright shards by file and the heavy files
+cluster — but nothing idles.
+
+**What that failure actually exposed.** E2E-M12-05 takes 21.4 s uncontended.
+A full WebKit run says 16 of 123 tests take 20 s or more, and the slowest
+*passing* one took 31.9 s — against Playwright's 30 s default, which
+`playwright.config.ts` had never overridden. Nobody had chosen that number;
+the suite had simply been living under it, and the CI run before this one
+already carried one WebKit retry. The budget is now set explicitly at 60 s
+with the measurement written beside it. It is not a wait-and-hope: a budget
+bounds a hang, and this one was set below the work. The §2.4 units build their
+world through M7 → M8 → M3 rather than seeding storage, which is exactly what
+makes them worth having and exactly what costs the seconds.
+
+**And one genuine test defect, found by running it.** E2E-M3-12 asserted
+`visible(page).getByRole('heading', { name: 'Drohne' })` right after the
+wizard creates the trip. Both pages are briefly un-hidden during that
+transition, so the locator matches the step-4 preview heading *and* the M4 row
+heading, and the assertion fails as a strict-mode violation depending on which
+frame it lands in — the same shape as the settled-vs-arrived lesson from #89.
+It now asserts the row by test id, which is unique and is the stronger claim
+anyway. Verified with `--repeat-each=3` on WebKit. `backup-restore.spec.ts:232`
+has the same shape and is *not* currently ambiguous (the page being left holds
+no template headings); it is recorded here rather than changed on speculation.
+
+**One cost this moves onto us.** The browsers now come from a digest that
+Dependabot cannot see, while it does bump `@playwright/test` in the lockfile.
+That drift already broke `visual` silently; it would now break `e2e` too, and
+its only symptom is Playwright's own "Executable doesn't exist", which names
+neither cause nor fix. Both scripts therefore compare the pinned version
+against the lockfile before starting the container and fail with the two lines
+that fix it. Both branches of that check — mismatch, and an unreadable
+lockfile, which must warn rather than block — were proved by mutating a copy.

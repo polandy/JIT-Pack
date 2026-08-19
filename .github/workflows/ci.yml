@@ -105,16 +105,36 @@ jobs:
           retention-days: 7
 
   # Headless-browser E2E (dev-docs/UI_Test_Spec_v1.0.md). Drives the built
-  # client (vite preview) in Chromium + WebKit. Gated after `client` so
-  # it only runs on a green build; the backend-backed modes (single/
-  # server) and their jitpackd harness land in later milestones, so this
-  # currently exercises the backend-free smoke path only.
+  # client (vite preview) in Chromium + WebKit. Gated after `client` so it
+  # only runs on a green build; the backend-backed modes (single/server) and
+  # their jitpackd harness land in later milestones, so this currently
+  # exercises the backend-free smoke path only.
+  #
+  # Runs inside the digest-pinned Playwright image, like the `visual` job and
+  # for a blunter reason: `playwright install --with-deps` was 1124 s of a
+  # 1776 s job. The browser binaries cached fine; WebKit's ~200 apt libraries
+  # are not cacheable and were reinstalled on every run. The image has them.
+  #
+  # Split by Playwright's own sharding rather than one leg per browser, which
+  # was the first attempt and measurably worse. Measured locally inside the
+  # image, 2 workers: Chromium 3.8 min, WebKit 10.6 min. A per-browser split
+  # is therefore bounded by WebKit for its whole duration while the Chromium
+  # runner idles for seven minutes, and it puts two WebKit contexts on one
+  # runner where roughly one ran before — which is how a suite whose slowest
+  # passing WebKit unit already took 31.9 s starts failing. Mixed shards
+  # measured 5.7 and 10.0 min: still uneven, because Playwright shards by
+  # file and the heavy files cluster, but both legs carry both engines and
+  # neither idles. Not more workers per runner either: a runner has 4 vCPU
+  # and Playwright already takes 2.
   e2e:
     needs: [client]
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: client
+    strategy:
+      # Both shards report, so a failure in one is not hidden by the other
+      # being cancelled.
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
@@ -122,23 +142,21 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: client/package-lock.json
+      # Installed and built on the *runner*, not in the container: the image
+      # ships its own Node, and the bundle under test must be the one the
+      # `client` job's toolchain produces.
       - run: npm ci
-      # Cache the browser binaries; the key follows the lockfile, so a
-      # Dependabot @playwright/test bump invalidates it automatically.
-      - name: Cache Playwright browsers
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('client/package-lock.json') }}
-      # `install` skips already-cached browsers; --with-deps still ensures
-      # the apt system libraries each run (cheap, not cached).
-      - run: npx playwright install --with-deps chromium webkit
+        working-directory: client
       - run: npm run build # vite preview serves this bundle
-      - run: npm run test:e2e
+        working-directory: client
+      # job-total rather than a repeated literal: the shard count is the
+      # matrix length, and naming it twice is how the two drift apart.
+      - run: scripts/e2e.sh --shard=${{ matrix.shard }}/${{ strategy.job-total }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
-          name: playwright-report
+          # Unique per leg — a repeated artifact name is an upload error.
+          name: playwright-report-shard-${{ matrix.shard }}
           path: client/playwright-report/
           retention-days: 7
 
