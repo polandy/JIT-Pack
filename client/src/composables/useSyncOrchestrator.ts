@@ -32,6 +32,7 @@ import {
   type RefreshPlan,
 } from '@/domain/refresh'
 import { followsGroups } from '@/domain/trips'
+import { planGroupAddition, type GroupAdditionReport } from '@/domain/groupAdd'
 import {
   pairWrites,
   releasePartnersOnDelete,
@@ -1022,6 +1023,85 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    */
   function tripDataLoaded(tripId: string): boolean {
     return local ? localHydrated : loadedTripPartitions.has(tripId)
+  }
+
+  /**
+   * addGroupToTrip adds a whole group to a trip that already exists
+   * (FR-27.10) — the M4 quick-add's second half.
+   *
+   * Three decisions are visible in what it writes:
+   *
+   * - **No FR-9.1 *Missing* flag**, unlike a single ad-hoc add on an active
+   *   trip. The item was never missing from the plan; the plan grew. Flagging
+   *   it would feed the M14 review assistant a lie and produce "add it to the
+   *   template" proposals for items that came *from* a template.
+   * - **The rows carry the group's provenance**, which is what keeps the
+   *   round trip intact: FR-27.5 recognises them a year later instead of
+   *   reporting them as ad-hoc additions.
+   * - **The group is registered as one of the trip's sources** unless the trip
+   *   is already past, so later group edits are offered to it per FR-27.4.
+   *
+   * Returns the report the caller shows, or null when the trip's rows are not
+   * on the device: "not pulled yet" must never be read as "empty trip", which
+   * is the one way this could duplicate the list it just resolved against.
+   */
+  function addGroupToTrip(tripId: string, templateId: string): GroupAdditionReport | null {
+    const trip = tripStore.getTrip(tripId)
+    if (!trip) return null
+    if (!tripDataLoaded(tripId)) return null
+    const template = masterStore.getTemplate(templateId)
+    if (!template) return null
+
+    const plan = planGroupAddition({
+      templateId,
+      templates: masterStore.templateList,
+      includes: masterStore.includeList,
+      templateItems: [...masterStore.templateList].flatMap((t) =>
+        masterStore.getTemplateItems(t.id),
+      ),
+      templateItemTasks: masterStore.templateItemTaskList,
+      masterItems: masterStore.itemList,
+      attributes: trip.attributes,
+      duration_days: trip.duration_days,
+      travelers: tripStore.getTravelers(tripId),
+      items: tripStore.getItems(tripId),
+    })
+
+    for (const add of plan.add) {
+      const { mutation, id } = mutations.addGeneratedTripItem(
+        tripId,
+        add.generated,
+        add.traveler_id,
+      )
+      enqueueAndDrain('trip', tripId, {
+        mutation,
+        optimistic: change(TABLE.tripItems, id, mutation.fields),
+      })
+      // FR-27.7 tasks become ordinary FR-7.3 todos, enqueued after the row
+      // they hang off — pushed ahead of it, the server rejects the key.
+      for (const body of add.generated.tasks) {
+        addPrepTodo(tripId, id, CLIENT_ACTOR_PLACEHOLDER, body)
+      }
+    }
+
+    // Registered even when the group placed nothing: following it is about
+    // what it does from here on, not about what it happened to contribute.
+    const registered = tripStore
+      .getTemplateSources(tripId)
+      .some((s) => s.template_id === templateId)
+    if (!registered && followsGroups(trip, today())) {
+      const { mutation, id } = mutations.registerTripSource(tripId, templateId)
+      enqueueAndDrain('master', null, {
+        mutation,
+        optimistic: change(TABLE.tripTemplateSources, id, mutation.fields),
+      })
+    }
+
+    return {
+      groupName: template.name,
+      added: plan.add.length,
+      alreadyPresent: plan.alreadyPresent,
+    }
   }
 
   /**
@@ -2700,6 +2780,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     assignContainer,
     setLatePacker,
     quickAddItem,
+    addGroupToTrip,
 
     // Master data
     createMasterItem,

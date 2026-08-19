@@ -124,3 +124,15 @@ export function planGroupAddition(input: GroupAdditionInput): GroupAdditionPlan 
 function normalizeName(name: string): string {
   return name.trim().toLowerCase()
 }
+
+/**
+ * What the user is told afterwards (FR-27.10): "Gruppe ‚Makro Fotografie'
+ * hinzugefügt — 3 Positionen, 2 schon dabei". The result is always reported,
+ * and a group already fully present says so rather than adding nothing
+ * silently.
+ */
+export interface GroupAdditionReport {
+  groupName: string
+  added: number
+  alreadyPresent: string[]
+}
