@@ -131,12 +131,18 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.getByTestId('m4-search')).toHaveCount(0)
     await expect(page.getByTestId('m4-filter')).toHaveCount(0)
 
+    // The title slot switches with the screen too (G-9, 2026-08-19): M4 is
+    // the one screen that registers none, M11 has one, and the registry is
+    // keyed per path — a stale entry would leave M11's title standing on M4.
+    await expect(page.getByTestId('header-title')).toContainText(TRIP.name)
+
     await page.getByTestId('header-back').click()
     await expect(onVisibleScreen(page, 'm4-fab')).toBeVisible()
     // …and coming back restores it, rather than leaving a bar with nothing
     // behind it.
     await expect(page.getByTestId('m4-nav-luggage')).toBeVisible()
     await expect(page.getByTestId('m11-fab')).toHaveCount(0)
+    await expect(page.getByTestId('header-title')).toHaveCount(0)
   })
 
   // E2E-G12-01 (G-12, FR-25.11k): the magnifier searches the screen the
