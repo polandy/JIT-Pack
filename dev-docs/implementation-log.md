@@ -3516,6 +3516,13 @@ flagged *Missing* because something was forgotten, and an added group is a plan
 that grew. Flagging it would feed M14 a lie and produce „nimm es in die Vorlage
 auf" proposals for rows that came *from* a template.
 
+**One gap the PR's own review found:** the group path skipped FR-20.4. A
+single quick-add pulls its required companions and M3's generation does too,
+so the same camera brought its spare battery when added alone and did not when
+it arrived inside „Makro Fotografie". Fixed with one call and a red-first test;
+the resolution runs once for the whole group, since it reads the settled list
+either way.
+
 **Where the tests had to move.** Two halves of the specified e2e cases — the
 absent *Missing* flag, and a past trip registering nothing — need a trip that is
 active or archived, and nothing user-facing moves a trip out of *planning* yet
