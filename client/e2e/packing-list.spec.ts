@@ -446,6 +446,15 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(visible(page).getByTestId('m4-trip-name')).toHaveText(TRIP.name)
     await expect(page.getByTestId('header-title')).toHaveCount(0)
 
+    // It is the app bar's title moved down, so it has to *read* as one: the
+    // role class carries the display face (G-13). Asserted on the resolved
+    // family rather than on the class attribute, which would pass against a
+    // role that was never defined.
+    const family = await visible(page)
+      .getByTestId('m4-trip-name')
+      .evaluate((el) => getComputedStyle(el).fontFamily.toLowerCase())
+    expect(family).toContain('fraunces')
+
     // The positive half the absence needs: the bar *does* render titles, and
     // the back chevron proves it rendered its left slot at all. Without this,
     // a header that failed to mount would pass the assertion above.
