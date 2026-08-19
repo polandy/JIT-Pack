@@ -122,11 +122,11 @@ export const en = {
 
   // FR-27.5 — the closing card on an archived trip.
   'packing.start': 'Start trip',
-  'packing.startedToast': 'Trip is under way — anything added now counts as missed on the plan (FR-9.1).',
+  'packing.startedToast':
+    'Trip is under way — anything added now counts as missed on the plan (FR-9.1).',
   'packing.tripFinished': '🧩 Trip finished',
   'packing.reviewSuggestions': 'Review suggestions →',
-  'packing.tripFinishedHint':
-    "This trip's learning belongs in your templates, not in the archive.",
+  'packing.tripFinishedHint': "This trip's learning belongs in your templates, not in the archive.",
   'packing.templateFromTrip': 'Create a template from this trip →',
 
   // The app bar's magnifier, per screen (G-12, FR-25.11k).
@@ -497,7 +497,8 @@ export const en = {
     '"{trip}" becomes a reusable template. Recognised groups are referenced, not copied — they stay independently maintainable.',
   'templateFromTrip.name': 'Template name',
   'templateFromTrip.groups': 'Recognised groups · {n}',
-  'templateFromTrip.fromGroup': '{n} item on this trip came from it | {n} items on this trip came from it',
+  'templateFromTrip.fromGroup':
+    '{n} item on this trip came from it | {n} items on this trip came from it',
   'templateFromTrip.reused': 'reused ✓',
   'templateFromTrip.added': 'Added on the trip:',
   'templateFromTrip.choiceUpdate': 'Update the group',

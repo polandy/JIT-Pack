@@ -9,11 +9,7 @@ import {
   recogniseTripComposition,
   suggestTemplateName,
 } from '../templateFromTrip'
-import type {
-  RecognitionInput,
-  TemplateFromTripWrites,
-  WritePlanInput,
-} from '../templateFromTrip'
+import type { RecognitionInput, TemplateFromTripWrites, WritePlanInput } from '../templateFromTrip'
 import type { MasterItem, Template, TemplateItem, TripItem } from '@/types/domain'
 
 function template(id: string, name: string, kind: Template['kind'] = 'group'): Template {

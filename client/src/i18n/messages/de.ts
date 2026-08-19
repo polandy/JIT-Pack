@@ -124,7 +124,8 @@ export const de: Record<keyof typeof en, string> = {
 
   // FR-27.5 — die Abschlusskarte auf einer archivierten Reise.
   'packing.start': 'Reise starten',
-  'packing.startedToast': 'Reise läuft — Artikel, die jetzt dazukommen, gelten als vorher vergessen (FR-9.1).',
+  'packing.startedToast':
+    'Reise läuft — Artikel, die jetzt dazukommen, gelten als vorher vergessen (FR-9.1).',
   'packing.tripFinished': '🧩 Reise abgeschlossen',
   'packing.reviewSuggestions': 'Vorschläge ansehen →',
   'packing.tripFinishedHint':
@@ -497,7 +498,8 @@ export const de: Record<keyof typeof en, string> = {
     'Aus „{trip}“ wird eine wiederverwendbare Vorlage. Erkannte Gruppen werden referenziert, nicht kopiert — sie bleiben eigenständig pflegbar.',
   'templateFromTrip.name': 'Name der Vorlage',
   'templateFromTrip.groups': 'Erkannte Gruppen · {n}',
-  'templateFromTrip.fromGroup': '{n} Artikel dieser Reise stammt daraus | {n} Artikel dieser Reise stammen daraus',
+  'templateFromTrip.fromGroup':
+    '{n} Artikel dieser Reise stammt daraus | {n} Artikel dieser Reise stammen daraus',
   'templateFromTrip.reused': 'wird wiederverwendet ✓',
   'templateFromTrip.added': 'Auf der Reise ergänzt:',
   'templateFromTrip.choiceUpdate': 'Gruppe aktualisieren',
