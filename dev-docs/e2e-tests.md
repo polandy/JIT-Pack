@@ -58,6 +58,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-06 (empty-state half only, see below) + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
+| M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
 (create / import). The screen has neither as a button: create is the FAB and
@@ -166,6 +167,33 @@ the Local Mode write was fire-and-forget, so a reload immediately after
 adding a row cancelled the transaction. Both are fixed and both are
 covered by **E2E-M4-32**, which waits on the sync indicator settling
 rather than on a duration.
+
+## M21 — template from trip (`e2e/template-from-trip.spec.ts`, 2026-08-19)
+
+Six cases, Local Mode, landed with the M21 screen (FR-27.5). Notes worth
+carrying forward:
+
+1. **The unit had to build the lifecycle step it needed.** Every M21 case
+   starts from an *archived* trip, and no path in the app produced one —
+   the same gap recorded above under M12-03 and M14. E2E-M4-43 covers the
+   step itself: a planning trip offers *start* and not *archive*, an
+   active one the reverse.
+2. **The deviation is produced the way it actually happens.** The spec
+   pictures a row "added on the trip under a group", which the app cannot
+   write — a quick-add row carries no provenance. What produces a real
+   deviation is the *group* changing after generation, so E2E-M21-02
+   archives first and then removes the position, since a past trip is
+   never asked to follow along (FR-27.4).
+3. **Two false-green locators were found and are worth remembering.**
+   Ionic marks the chosen segment button with a *class*
+   (`segment-button-checked`), not with `aria-checked` — asserting the
+   attribute passes against nothing. And `ion-toggle` **is** the switch:
+   `getByTestId(...).getByRole('switch')` looks for a descendant and finds
+   none.
+4. **Mutation-proved**, as the standing rule requires: dropping the
+   `addTemplateInclude` loop, flipping `DEFAULT_DEVIATION_CHOICE` and
+   ungating the archive action each felled exactly the cases that claim
+   them.
 
 **Not yet covered:** everything else in spec §3 (global patterns G-1–G-15), §4 (M1–M21 beyond the above), §5 (cross-screen flows) and §6 (non-functional journeys). The `single` and `server` modes have no coverage at all — they need a real `jitpackd` harness and, for `server`, a mock IdP (spec §10 steps 3 and 5).
 
@@ -389,6 +417,12 @@ Landed with the M12 rebuild. What the unit had to get right:
    `seriesWeightTrend`/`seriesTopFlagged` are unit-owned and the e2e case
    asserts the section is *absent, not empty* without history. When an
    activate path ships, the positive M12-03 case is owed alongside it.
+   **That path shipped on 2026-08-19** with M21 (see below): M4's app bar
+   and M2's swipe both offer *start* on a planning trip. The positive
+   M12-03 half is therefore no longer blocked — it is simply **not written
+   yet**, and it is owed. The distinction matters: this file exists so a
+   gap is never mistaken for coverage, and "unblocked but unwritten" is a
+   different debt from "cannot be built".
 3. **Weighted rows come through the app's own paths** (spec §2.4), reusing
    the M11 unit's route: master item with weight in M10's minimal form,
    quick-add via the *suggestion*. Traveler assignment goes through M5's
@@ -416,6 +450,9 @@ the count:
    -05 (marked rows) cannot be built through the app today (spec §2.4
    forbids injecting the rows). When a planning→active path ships, those
    cases are owed alongside it, exactly like the positive M12-03.
+   **Unblocked 2026-08-19** by the lifecycle step M21 needed (E2E-M4-43):
+   an archived trip — and with it an FR-9.1 flag — is now reachable
+   through the app. M14-01/-02/-04/-05 are owed rather than impossible.
 2. **The list semantics are pinned in a component test instead** —
    `src/views/trips/__tests__/ReviewPage.spec.ts`: one row per proposal
    with the open count, the groups-only picker (and the unused-row
