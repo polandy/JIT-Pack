@@ -224,11 +224,7 @@ setHeaderTitle(() => t('templateFromTrip.title'))
                 <IonLabel>{{ t('templateFromTrip.choiceOwn') }}</IonLabel>
               </IonSegmentButton>
             </IonSegment>
-            <p
-              v-if="choiceOf(group.group.id) === 'update'"
-              class="blast"
-              data-testid="m21-blast"
-            >
+            <p v-if="choiceOf(group.group.id) === 'update'" class="blast" data-testid="m21-blast">
               {{ blastText(group.group.id) }}
             </p>
           </div>
@@ -245,9 +241,7 @@ setHeaderTitle(() => t('templateFromTrip.title'))
       </template>
 
       <h2 class="section-title jp-eyebrow" data-testid="m21-loose-head">
-        {{
-          t('templateFromTrip.loose', { n: checkedCount, total: composition.loose.length })
-        }}
+        {{ t('templateFromTrip.loose', { n: checkedCount, total: composition.loose.length }) }}
       </h2>
       <IonList v-if="composition.loose.length > 0">
         <IonItem v-for="row in composition.loose" :key="row.tripItem.id" data-testid="m21-loose">
