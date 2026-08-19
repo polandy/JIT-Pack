@@ -62,6 +62,7 @@ import {
   briefcaseOutline,
   lockClosedOutline,
   locationOutline,
+  playOutline,
   sparklesOutline,
   statsChartOutline,
   timeOutline,
@@ -395,6 +396,18 @@ setHeaderActions(() => {
       onClick: toggleFoldAll,
     },
   ]
+  // The two lifecycle steps, each offered only where it is the next one.
+  // Without the first, *active* was unreachable in the whole app — and with
+  // it the archive action below, FR-9.1's Missing flagging and everything
+  // downstream of an archived trip (M14, M21).
+  if (trip.value?.status === 'planning') {
+    items.push({
+      id: 'm4-start',
+      icon: playOutline,
+      label: t('packing.start'),
+      onClick: onStart,
+    })
+  }
   if (isActive.value) {
     items.push({
       id: 'm4-archive',
@@ -857,6 +870,23 @@ function onQuickAdd(item: {
 async function onQuickAddGroup(templateId: string) {
   const report = orchestrator.addGroupToTrip(props.tripId, templateId)
   await reportGroupAnswer(groupAdditionMessage(report))
+}
+
+/**
+ * Starting moves a planning trip into packing (`active`). The wizard only
+ * ever creates planning trips, so this is the transition that makes FR-9.1's
+ * Missing flagging and the archive action reachable at all — deliberately a
+ * plain status change here, not the richer departure ritual the North-Star
+ * Plan/During phases own.
+ */
+async function onStart() {
+  orchestrator.activateTrip(props.tripId)
+  const toast = await toastController.create({
+    message: t('packing.startedToast'),
+    duration: 3000,
+    position: 'bottom',
+  })
+  await toast.present()
 }
 
 /**

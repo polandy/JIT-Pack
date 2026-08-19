@@ -33,6 +33,7 @@ import {
   trainOutline,
   albumsOutline,
   archiveOutline,
+  playOutline,
   cloudUploadOutline,
   copyOutline,
   documentTextOutline,
@@ -302,6 +303,11 @@ async function deleteTrip(trip: Trip) {
   if (role === 'destructive') orchestrator.deleteTrip(trip.id)
 }
 
+/** Start moves a planning trip into packing — see M4's onStart. */
+function startTrip(tripId: string) {
+  orchestrator.activateTrip(tripId)
+}
+
 /** Archive completes the trip and launches the M14 review (FR-9.2). */
 function archiveTrip(tripId: string) {
   orchestrator.archiveTrip(tripId)
@@ -539,6 +545,16 @@ async function handleRefresh(event: CustomEvent) {
                   @click="$router.push(`/trips/${trip.id}/clone`)"
                 >
                   <IonIcon slot="icon-only" :icon="copyOutline" />
+                </IonItemOption>
+                <!-- Start: planning → active, the step that makes archiving
+                     (and with it M14/M21) reachable at all. -->
+                <IonItemOption
+                  v-if="trip.status === 'planning'"
+                  color="primary"
+                  aria-label="Start trip"
+                  @click="startTrip(trip.id)"
+                >
+                  <IonIcon slot="icon-only" :icon="playOutline" />
                 </IonItemOption>
                 <!-- Archive → M14 review (FR-9.2) -->
                 <IonItemOption

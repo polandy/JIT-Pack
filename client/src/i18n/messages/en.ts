@@ -121,6 +121,8 @@ export const en = {
   'packing.resetAll': 'Clear search and filter',
 
   // FR-27.5 — the closing card on an archived trip.
+  'packing.start': 'Start trip',
+  'packing.startedToast': 'Trip is under way — anything added now counts as missed on the plan (FR-9.1).',
   'packing.tripFinished': '🧩 Trip finished',
   'packing.reviewSuggestions': 'Review suggestions →',
   'packing.tripFinishedHint':
