@@ -951,11 +951,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
         <!-- Row one names the trip — where the app bar has no room for it —
              and offers the trip's other views. -->
         <div class="trip-id">
-          <h1
-            v-if="!isDesktop"
-            class="trip-name jp-screen-title"
-            data-testid="m4-trip-name"
-          >
+          <h1 v-if="!isDesktop" class="trip-name jp-screen-title" data-testid="m4-trip-name">
             {{ tripName }}
           </h1>
           <div class="trip-nav">
