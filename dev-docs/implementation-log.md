@@ -3643,3 +3643,57 @@ the app cannot actually produce a row added under a group while packing — is
 unchanged. The neutral alternative („Auf dieser Reise dabei, in der Gruppe
 nicht") was offered and declined, so FR-27.5's revisit trigger is now the
 missing surface rather than the sentence.
+
+## M4's trip name leaves the app bar (2026-08-19)
+
+The visible cost recorded at the end of the M21 entry above, paid off in its
+own PR as the owner asked. M4's app bar held the trip name beside six icons —
+search, filter, fold-all, the FR-27.5 lifecycle step, the sync glyph, the
+settings gear — and at 390 px the title box was **54 px**. „Samedan 2026"
+rendered as **„S…"**.
+
+**The measurement came before the mockups, and it changed what was drawn.**
+The icon centres were read off the visual baseline
+(`m4-list-visual-mobile-linux.png`: 28 · 129 · 181 · 227 · 275 · 319 · 360, a
+46 px pitch), and every phone in the variant round reproduces that geometry
+rather than a comfortable approximation. A round that flatters the bar cannot
+answer a question about how much room is left in it.
+
+**The round found a second thing, which is what actually decided it.** The
+UI-Spec has always described M4's header line as „trip name · packed/total ·
+weight · open-prep". The name was never in it — the rebuild left it to the app
+bar, which is the one place with no room. So the fix was not a truncation
+policy but putting the name where the spec had it all along:
+`dev-docs/UI_Concept_M4Title_variants.html` (generator beside it), four forms,
+owner chose **B without its condensation**.
+
+**What that means, in the owner's words:** the header line now takes two rows —
+the name with the trip's other views, then the figures with the facepile — and
+**still collapses entirely on scroll-down**, name included. The variant that
+kept a slim „Samedan 2026 · 12/38" strip standing was rejected on the grounds
+that *you generally know which packing list you are on*. That retires the
+Addendum's „identity collapses into the top app bar" directive rather than
+implementing it: nothing migrates up, because nothing needs to.
+
+**A screen may now have no app-bar title.** G-9 gained the case and the header
+renders **no element** rather than an empty one — an empty `ion-title` still
+claims the slot's padding, so „no title" and „a title that is blank" are
+different renders. M4 is the only screen that takes it. `AppHeader.spec.ts`
+pins all four states of the left slot, and the absence carries its positive
+half in E2E-M4-44: the same locator must still find M6's title one tap later,
+or a header that failed to mount would satisfy the assertion.
+
+**The rejected two are worth keeping.** Moving only the lifecycle icon down to
+🛒🧳📊 was rendered honestly and turns „S…" into „Samed…" — it relieves the bar
+without solving anything, and seeing that took a render. Moving search, filter
+and fold-all onto their own permanent tool row *does* solve it and keeps the
+title, but it reopens the 2026-08-07 G-12 decision; the reason recorded there
+(„the sub-header collapses on scroll") does **not** apply to that row, which is
+worth knowing if the question returns.
+
+**Cost.** Ten M4 baselines regenerated deliberately (ADR-013) and eleven e2e
+assertions moved from `header-title` to a new `expectTripOpen` helper. Those
+had been using the app-bar title as the „M4 is open" signal; the helper scopes
+to the *painted* page, because the name now lives inside the router outlet
+where Ionic keeps the outgoing page mounted through a transition — unscoped, it
+could read the trip being left.
