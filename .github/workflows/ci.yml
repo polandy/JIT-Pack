@@ -74,9 +74,11 @@ jobs:
   # than a font-hinting difference. That is also why this job looks unlike
   # the `e2e` job above — the inconsistency is deliberate and ADR-013 owns it.
   #
-  # Not a required check, for the same reason `e2e` is not: it needs the
-  # client build, and a skipped required check blocks a PR with a less
-  # useful message than the build failure itself.
+  # Not a required check: it `needs` the client build, and a skipped
+  # required check blocks a PR with a less useful message than the build
+  # failure itself. (The `needs` stays here, unlike on `e2e`, because this
+  # job is off the critical path either way — it finishes well inside the
+  # e2e window.)
   visual:
     needs: [client]
     runs-on: ubuntu-latest
@@ -105,10 +107,17 @@ jobs:
           retention-days: 7
 
   # Headless-browser E2E (dev-docs/UI_Test_Spec_v1.0.md). Drives the built
-  # client (vite preview) in Chromium + WebKit. Gated after `client` so it
-  # only runs on a green build; the backend-backed modes (single/server) and
-  # their jitpackd harness land in later milestones, so this currently
-  # exercises the backend-free smoke path only.
+  # client (vite preview) in Chromium + WebKit. The backend-backed modes
+  # (single/server) and their jitpackd harness land in later milestones, so
+  # this currently exercises the backend-free smoke path only.
+  #
+  # Deliberately *not* gated on `client` (it was, until 2026-08-19): the job
+  # installs and builds on its own runner anyway — with a warm npm cache that
+  # is ~20 s, and a broken build fails right there — so the gate reused
+  # nothing and only serialized ~75 s of `client` onto the front of the
+  # slowest job in the pipeline. The cost of the trade is runner minutes,
+  # not signal: on a commit where `client` fails lint but builds, the e2e
+  # legs now run to completion instead of being skipped.
   #
   # Runs inside the digest-pinned Playwright image, like the `visual` job and
   # for a blunter reason: `playwright install --with-deps` was 1124 s of a
@@ -121,20 +130,26 @@ jobs:
   # is therefore bounded by WebKit for its whole duration while the Chromium
   # runner idles for seven minutes, and it puts two WebKit contexts on one
   # runner where roughly one ran before — which is how a suite whose slowest
-  # passing WebKit unit already took 31.9 s starts failing. Mixed shards
-  # measured 5.7 and 10.0 min: still uneven, because Playwright shards by
-  # file and the heavy files cluster, but both legs carry both engines and
-  # neither idles. Not more workers per runner either: a runner has 4 vCPU
-  # and Playwright already takes 2.
+  # passing WebKit unit already took 31.9 s starts failing. Not more workers
+  # per runner either: a runner has 4 vCPU and Playwright already takes 2.
+  #
+  # Four shards, sized from the 2026-08-19 CI reports: the suite carries
+  # ~1020 test-seconds, and with `fullyParallel` Playwright splits the test
+  # list into contiguous count-equal chunks — WebKit (~630 s) sits behind
+  # Chromium (~350 s) in that list, so the split is uneven by duration.
+  # Simulated on the real durations: 2 shards land 464/557 s, 4 shards land
+  # 150/315/251/305 s. The worst leg drops from ~4.7 min of test time to
+  # ~2.6, against ~1 min of fixed cost per leg (image pull ~36 s, npm ci +
+  # build ~25 s warm). More shards pay that fixed cost again for less than
+  # a minute back.
   e2e:
-    needs: [client]
     runs-on: ubuntu-latest
     strategy:
-      # Both shards report, so a failure in one is not hidden by the other
-      # being cancelled.
+      # Every shard reports, so a failure in one is not hidden by the
+      # others being cancelled.
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6

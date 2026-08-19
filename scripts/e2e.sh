@@ -17,8 +17,8 @@
 # behaviour tests assert behaviour, so forcing emulation there would only make
 # an Apple-Silicon run slow enough to start tripping test budgets.
 #
-# Arguments are passed to `playwright test`. CI passes `--shard=N/2`, one per
-# matrix leg; `make e2e` passes nothing and runs the whole suite.
+# Arguments are passed to `playwright test`. CI passes `--shard=N/M` (M from
+# its matrix length), one per leg; `make e2e` passes nothing and runs the whole suite.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
