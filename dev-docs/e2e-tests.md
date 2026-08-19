@@ -58,7 +58,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-06 (empty-state half only, see below) + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
-| M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
+| M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
 (create / import). The screen has neither as a button: create is the FAB and
@@ -197,7 +197,13 @@ carrying forward:
    working agreement is protecting — that leaving a screen is a behaviour,
    asserted on the rendered page and never on the URL — is kept; only the
    file differs, and this note is why.
-5. **Mutation-proved**, as the standing rule requires: dropping the
+5. **One spec sentence was wrong and was corrected, not tested around.**
+   E2E-M21-03's text promised the fold-back "surfaces as an applied change
+   on planning trips using that group". Since the FR-27.4 revision of
+   2026-08-18 it does not: the edit is *offered* at each following trip and
+   becomes an applied change only on acceptance. The UI-Test-Spec sentence
+   now says that, and E2E-M21-03c asserts the proposal.
+6. **Mutation-proved**, as the standing rule requires: dropping the
    `addTemplateInclude` loop, flipping `DEFAULT_DEVIATION_CHOICE` and
    ungating the archive action each felled exactly the cases that claim
    them.

@@ -33,7 +33,7 @@ async function seedGroup(page: Page) {
 }
 
 /** M3 with the group picked in step 3 — the rows arrive with provenance. */
-async function tripFromGroup(page: Page, name: string): Promise<string> {
+async function tripFromGroup(page: Page, name: string, positions = 2): Promise<string> {
   await page.goto('/trips/new')
   await page.getByTestId('wizard-name').locator('input').fill(name)
   await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
@@ -43,7 +43,9 @@ async function tripFromGroup(page: Page, name: string): Promise<string> {
 
   await expect(page.getByTestId('wizard-step-3')).toBeVisible()
   await visible(page).getByTestId('wizard-section-groups').locator('ion-checkbox').first().click()
-  await expect(visible(page).getByTestId('wizard-item-count')).toContainText('2 items')
+  await expect(visible(page).getByTestId('wizard-item-count')).toContainText(
+    positions === 1 ? '1 item' : `${positions} items`,
+  )
   await page.getByTestId('wizard-next').click()
 
   await expect(page.getByTestId('wizard-step-4')).toBeVisible()
@@ -112,9 +114,13 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
 
     await page.getByTestId('m4-start').click()
 
-    // Active: archiving is offered, starting is not offered twice.
+    // Active: archiving is offered, starting is not offered twice — and the
+    // closing card still stays away. The card belongs to a *finished* trip,
+    // and a running one offering "make a template of this" would be an
+    // invitation to harvest a trip that has not happened yet.
     await expect(page.getByTestId('m4-archive')).toBeVisible()
     await expect(page.getByTestId('m4-start')).toHaveCount(0)
+    await expect(visible(page).getByTestId('m4-template-from-trip')).toHaveCount(0)
 
     await page.getByTestId('m4-archive').click()
     await expect(visible(page).getByTestId('m4-template-from-trip')).toBeVisible()
@@ -237,6 +243,34 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     await visible(page).locator('ion-item').filter({ hasText: 'Makro' }).first().click()
     await expect(page.getByTestId('header-title')).toHaveText('Makro')
     await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Stativ' })).toHaveCount(1)
+  })
+
+  test('E2E-M21-03c: a fold-back is offered to the trips that still follow the group', async ({
+    page,
+  }) => {
+    // The blast line promises the deviation reaches everything including the
+    // group. FR-27.4 (as revised 2026-08-18) delivers that as a *question* at
+    // each following trip, not as a silent write — so what a second, still
+    // planned trip must show afterwards is the proposal, not an applied
+    // change.
+    await seedGroup(page)
+    const harvested = await tripFromGroup(page, 'Samedan Sommer 2026')
+    await archiveTrip(page)
+
+    // The group drops the tripod, so the archived trip carries what the group
+    // no longer has — and the trip generated *after* that never had it. The
+    // order matters: generating both trips first would make the fold-back a
+    // net no-op, and the case would assert a proposal nobody owes.
+    await removeGroupPosition(page, 'Makro', 'Stativ')
+    const following = await tripFromGroup(page, 'Engadin 2027', 1)
+
+    await openM21(page, harvested)
+    await visible(page).getByTestId('m21-create').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Samedan Sommer 2027')
+
+    await page.goto(following)
+    const proposal = visible(page).getByTestId('m4-group-proposal')
+    await expect(proposal).toContainText('Stativ')
   })
 
   test('E2E-M21-03b: the bundle toggle collects the loose rows into a fresh group', async ({
