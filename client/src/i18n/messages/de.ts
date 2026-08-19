@@ -501,7 +501,7 @@ export const de: Record<keyof typeof en, string> = {
   'templateFromTrip.fromGroup':
     '{n} Artikel dieser Reise stammt daraus | {n} Artikel dieser Reise stammen daraus',
   'templateFromTrip.reused': 'wird wiederverwendet ✓',
-  'templateFromTrip.added': 'Auf der Reise ergänzt:',
+  'templateFromTrip.added': 'Während der Reise ergänzt:',
   'templateFromTrip.choiceUpdate': 'Gruppe aktualisieren',
   'templateFromTrip.choiceOwn': 'Nur in diese Vorlage',
   'templateFromTrip.blast':

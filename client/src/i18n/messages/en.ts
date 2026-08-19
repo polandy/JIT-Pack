@@ -500,7 +500,7 @@ export const en = {
   'templateFromTrip.fromGroup':
     '{n} item on this trip came from it | {n} items on this trip came from it',
   'templateFromTrip.reused': 'reused ✓',
-  'templateFromTrip.added': 'Added on the trip:',
+  'templateFromTrip.added': 'Added during the trip:',
   'templateFromTrip.choiceUpdate': 'Update the group',
   'templateFromTrip.choiceOwn': 'Only in this template',
   'templateFromTrip.blast':

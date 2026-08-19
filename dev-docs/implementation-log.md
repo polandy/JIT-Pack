@@ -3635,3 +3635,11 @@ the chosen segment button with a *class* rather than `aria-checked`, and
 
 **No ADR.** FR-27.5 had already weighed the tradeoff and chosen; the
 implementation weighed nothing new.
+
+**Wording follow-up (2026-08-19, owner).** The deviation line reads *„Während
+der Reise ergänzt"* rather than *„Auf der Reise ergänzt"*. Chosen after the
+note above was raised: it reads better, and the observation it answers — that
+the app cannot actually produce a row added under a group while packing — is
+unchanged. The neutral alternative („Auf dieser Reise dabei, in der Gruppe
+nicht") was offered and declined, so FR-27.5's revisit trigger is now the
+missing surface rather than the sentence.
