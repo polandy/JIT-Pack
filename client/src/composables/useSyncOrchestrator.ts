@@ -3069,11 +3069,20 @@ function dependencyRow(d: ItemDependency): Record<string, unknown> {
   }
 }
 
+/**
+ * The row an optimistic update carries, and it must be *complete*: both
+ * the store and IndexedDB put the whole row rather than patching it, so a
+ * column missing here is a column erased from the device — permanently in
+ * Local Mode, where no pull ever restores it. `source_template_id` was
+ * exactly that: one M5 edit detached a generated row from the group it
+ * came from, and FR-27.4, FR-27.5 and M14 all read that provenance.
+ */
 function itemRow(item: TripItem): Record<string, unknown> {
   return {
     trip_id: item.trip_id,
     name: item.name,
     source_item_id: item.source_item_id,
+    source_template_id: item.source_template_id,
     weight_grams: item.weight_grams,
     value_cents: item.value_cents,
     category_name: item.category_name,
@@ -3084,8 +3093,11 @@ function itemRow(item: TripItem): Record<string, unknown> {
     late_packer: item.late_packer ? 1 : 0,
     assigned_traveler_id: item.assigned_traveler_id,
     packer_user_id: item.packer_user_id,
+    packed_by_user_id: item.packed_by_user_id,
+    packed_at: item.packed_at,
     container_id: item.container_id,
     packing_now_by: item.packing_now_by,
+    packing_now_at: item.packing_now_at,
     flag_unused: item.flag_unused ? 1 : 0,
     flag_missing: item.flag_missing ? 1 : 0,
     updated_hlc: item.updated_hlc,

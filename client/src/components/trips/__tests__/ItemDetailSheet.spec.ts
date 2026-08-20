@@ -29,13 +29,15 @@ function seedTrip(status: TripStatus, flags: Partial<Pick<TripItem, 'flag_unused
   const trip: Omit<Trip, 'id'> = {
     name: 'Herbst Tessin',
     status,
+    year: 2026,
     start_date: null,
     end_date: null,
-    destination: null,
+    duration_days: null,
     series_id: null,
-    notes: null,
-    updated_hlc: '',
-  } as Omit<Trip, 'id'>
+    series_name: null,
+    attributes: null,
+    imported: false,
+  }
   store.applyChange({ seq: 0, table: 'trips', id: 't1', deleted: false, row: trip })
 
   const item: Omit<TripItem, 'id'> = {
