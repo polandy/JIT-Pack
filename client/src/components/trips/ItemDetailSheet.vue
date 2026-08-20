@@ -59,13 +59,7 @@ import { formatWeight } from '@/lib/format'
 import { currentLocale, t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type {
-  ItemComment,
-  ItemMode,
-  ItemTodo,
-  ReviewFlag,
-  TripParticipant,
-} from '@/types/domain'
+import type { ItemComment, ItemMode, ItemTodo, ReviewFlag, TripParticipant } from '@/types/domain'
 
 const props = defineProps<{
   tripId: string

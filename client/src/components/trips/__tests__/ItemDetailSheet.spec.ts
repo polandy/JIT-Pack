@@ -24,7 +24,10 @@ const orchestratorFake = {
   setLatePacker: vi.fn(),
 }
 
-function seedTrip(status: TripStatus, flags: Partial<Pick<TripItem, 'flag_unused' | 'flag_missing'>> = {}) {
+function seedTrip(
+  status: TripStatus,
+  flags: Partial<Pick<TripItem, 'flag_unused' | 'flag_missing'>> = {},
+) {
   const store = useTripStore()
   const trip: Omit<Trip, 'id'> = {
     name: 'Herbst Tessin',
