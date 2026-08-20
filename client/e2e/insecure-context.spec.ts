@@ -1,4 +1,4 @@
-import { test, expect, openQuickAdd } from './fixtures'
+import { test, expect, openQuickAdd, expectTripOpen } from './fixtures'
 import { visiblePage as visible } from './fixtures'
 import type { Page } from '@playwright/test'
 
@@ -66,7 +66,7 @@ test.describe('a plain-HTTP instance can still write (NFR-4.2a)', () => {
 
     // Landing on M4 means the trips row, its travelers and its items all got
     // ids — the whole cascade, not just the first insert.
-    await expect(page.getByTestId('header-title')).toHaveText('Ohne HTTPS')
+    await expectTripOpen(page, 'Ohne HTTPS')
   })
 
   test('E2E-NFR-SEC-04: a group and its position are created (FR-27.1)', async ({ page }) => {

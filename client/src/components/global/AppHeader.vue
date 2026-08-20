@@ -6,8 +6,9 @@
  * — sync indicator (G-2) and settings/avatar (G-1) — is unconditional,
  * which is what keeps the conflict log reachable from inside a trip.
  * The left slot switches: the logo on a tab root, `‹ back` plus the page
- * title everywhere else. Pages needing their own actions teleport them
- * into `#header-actions`.
+ * title everywhere else — and on a screen that registers no title, the
+ * chevron alone. M4 is that screen deliberately; the why is at its own
+ * `tripName` (UI-Spec M4).
  */
 import {
   IonHeader,
@@ -81,8 +82,18 @@ function goBack() {
         </IonButton>
       </IonButtons>
 
-      <IonTitle v-if="back" data-testid="header-title" class="page-title">{{ title }}</IonTitle>
-      <IonTitle v-else slot="start" class="app-logo" data-testid="header-logo" @click="goHome">
+      <!-- No element at all rather than an empty one: an empty ion-title
+           still claims the slot's padding. -->
+      <IonTitle v-if="back && title" data-testid="header-title" class="page-title">
+        {{ title }}
+      </IonTitle>
+      <IonTitle
+        v-else-if="!back"
+        slot="start"
+        class="app-logo"
+        data-testid="header-logo"
+        @click="goHome"
+      >
         <span class="logo-row">
           <BrandMark :size="22" />
           <span class="logo-wordmark">JIT<i class="logo-dot">·</i>Pack</span>

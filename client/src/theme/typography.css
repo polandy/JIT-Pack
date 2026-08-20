@@ -177,6 +177,21 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * A screen's own name, in the screen rather than in the app bar (M4).
+ *
+ * Deliberately the same size as the header bar's title below, because it
+ * *is* that title — a role rather than a copy of the `ion-title` rule, so
+ * that only one place owns the size when the two move apart.
+ */
+.jp-screen-title {
+  font-family: var(--jp-font-display);
+  font-weight: var(--jp-weight-semibold);
+  font-size: var(--jp-text-display-xs);
+  letter-spacing: var(--jp-tracking-display);
+  line-height: var(--jp-leading-tight);
+}
+
 .jp-sheet-title {
   font-family: var(--jp-font-display);
   font-weight: var(--jp-weight-semibold);

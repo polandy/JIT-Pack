@@ -1,4 +1,4 @@
-import { test, expect, seed, createTemplate, addPosition, createTripViaWizard } from './fixtures'
+import { test, expect, seed, createTemplate, addPosition, createTripViaWizard, expectTripOpen } from './fixtures'
 import {
   backToTemplateList as backToList,
   includeGroup,
@@ -109,7 +109,7 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     // `/tabs/trips` redirect stayed invisible.
     await expect(visible(restored).getByTestId(`trip-row-${TRIP.name}`)).toBeVisible()
     await visible(restored).getByTestId(`trip-row-${TRIP.name}`).click()
-    await expect(restored.getByTestId('header-title')).toHaveText(TRIP.name)
+    await expectTripOpen(restored, TRIP.name)
     await expect(visible(restored).getByTestId('m4-row-Zelt')).toHaveCount(0)
     await visible(restored).getByTestId('m4-done-bar').click()
     await expect(visible(restored).getByTestId('m4-row-Zelt')).toBeVisible()

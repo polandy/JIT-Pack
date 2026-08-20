@@ -66,6 +66,11 @@ generated — edit the builder, not the HTML:
 - [`UI_Concept_ReviewStep_variants.html`](UI_Concept_ReviewStep_variants.html) — how much
   editing M3's review step should carry (FR-2.6, **variant not yet chosen**);
   `node dev-docs/build-review-step-variants.mjs`.
+- [`UI_Concept_M4Title_variants.html`](UI_Concept_M4Title_variants.html) — where M4's trip
+  name lives once the G-12 cluster fills the app bar (UI-Spec M4, **B chosen without its
+  condensation**); each phone reproduces the visual baseline's own icon geometry rather than
+  a comfortable approximation, which is the point of the round;
+  `node dev-docs/build-m4-title-variants.mjs`.
 - [`UI_Concept_ItemMark_variants.html`](UI_Concept_ItemMark_variants.html) — what stands
   left of the item name (§3.28, G-15): emoji vs. icon library vs. photo-first vs. a bare
   initial, plus a working picker with keyword search and name-derived suggestions;

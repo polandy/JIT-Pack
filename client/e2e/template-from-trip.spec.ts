@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+import { test, expect, expectTripOpen } from './fixtures'
 import {
   addPosition,
   backToTemplateList as backToList,
@@ -50,7 +50,7 @@ async function tripFromGroup(page: Page, name: string, positions = 2): Promise<s
 
   await expect(page.getByTestId('wizard-step-4')).toBeVisible()
   await page.getByTestId('wizard-create').click()
-  await expect(page.getByTestId('header-title')).toHaveText(name)
+  await expectTripOpen(page, name)
   return new URL(page.url()).pathname
 }
 

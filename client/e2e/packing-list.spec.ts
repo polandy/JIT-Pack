@@ -1,4 +1,4 @@
-import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
+import { test, expect, createTripViaWizard, openQuickAdd, visiblePage as visible } from './fixtures'
 import type { Page } from '@playwright/test'
 
 /**
@@ -430,5 +430,43 @@ test.describe('M4 packing list @local @m4', () => {
 
     await page.getByTestId('header-back').click()
     await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
+  })
+
+  // E2E-M4-44 (UI-Spec M4, G-9): the trip is named exactly once, and which
+  // of the two places writes it depends on the width. Below the breakpoint
+  // the app bar has no room — with six icons beside it the name rendered as
+  // "S…" — so it registers no title and the header line leads with the name.
+  // Above it the bar takes the title back and the line drops the name.
+  test('E2E-M4-44: the trip is named once, in the app bar or in the header line', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await createTripViaWizard(page, TRIP)
+
+    await expect(visible(page).getByTestId('m4-trip-name')).toHaveText(TRIP.name)
+    await expect(page.getByTestId('header-title')).toHaveCount(0)
+
+    // It is the app bar's title moved down, so it has to *read* as one: the
+    // role class carries the display face (G-13). Asserted on the resolved
+    // family rather than on the class attribute, which would pass against a
+    // role that was never defined.
+    const family = await visible(page)
+      .getByTestId('m4-trip-name')
+      .evaluate((el) => getComputedStyle(el).fontFamily.toLowerCase())
+    expect(family).toContain('fraunces')
+
+    // The positive half the absence needs: the bar *does* render titles, and
+    // the back chevron proves it rendered its left slot at all. Without this,
+    // a header that failed to mount would pass the assertion above.
+    await expect(page.getByTestId('header-back')).toBeVisible()
+    await page.getByTestId('m4-nav-shopping').click()
+    await expect(page.getByTestId('header-title')).toContainText(TRIP.name)
+    await page.getByTestId('header-back').click()
+    await expect(visible(page).getByTestId('m4-trip-name')).toHaveText(TRIP.name)
+
+    // Widened, the two swap — and the name is still written exactly once.
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await expect(page.getByTestId('header-title')).toHaveText(TRIP.name)
+    await expect(visible(page).getByTestId('m4-trip-name')).toHaveCount(0)
   })
 })
