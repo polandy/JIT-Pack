@@ -334,6 +334,23 @@ describe('retargetGroups — what the per-row picker may offer (FR-27.11)', () =
     expect(retargetGroups(p!, groups, templateItems).map((g) => g.id)).toEqual(['g1', 'g2'])
   })
 
+  // The rows arrive in storage order, which is no order at all to a
+  // reader — the same lesson FR-27.2's include expansion learned.
+  it('offers the groups by name, not in the order storage returned them', () => {
+    const unsorted = [group('g3', { name: 'Zelten' }), group('g1', { name: 'Alpin' })]
+    const [p] = buildReviewProposals({
+      templates: unsorted,
+      templateItems: () => [],
+      masterItems: [],
+      items: [
+        tripItem({ id: 'a', source_template_id: 'g3', source_item_id: 'item2', name: 'Zelt' }),
+        tripItem({ id: 'd', flag_missing: true, name: 'Moskitonetz' }),
+      ],
+    })
+
+    expect(retargetGroups(p!, unsorted, () => []).map((g) => g.name)).toEqual(['Alpin', 'Zelten'])
+  })
+
   it('never offers a Ferien-Vorlage', () => {
     const all = [...groups, vacation('v1')]
     const [p] = buildReviewProposals({

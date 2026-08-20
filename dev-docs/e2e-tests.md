@@ -40,7 +40,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M1-05 | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 | Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
-| M5 item detail | E2E-M5-09 … E2E-M5-14 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
+| M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
@@ -57,7 +57,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
-| M14 review | E2E-M14-06 (empty-state half only, see below) + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
+| M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
@@ -477,6 +477,47 @@ the count:
    open count even when that count is 0 (the empty state is framed, not
    blank), and `‹ back` renders the packing list again (G-9) — asserted
    on the visible page, not the URL.
+
+## M14 — the positive half, and the two blocks that hid a defect (2026-08-20)
+
+The section above recorded M14's positive cases as *unblocked but unwritten*
+since M21 shipped the lifecycle step. Writing them found a **second** block
+nobody had recorded, and then a defect underneath it:
+
+1. **`unused` had no writer anywhere in the app.** *Missing* is stamped by the
+   quick-add on an active trip; *unused* was a read-only note in M5's Details
+   block. FR-9.2's assistant is written around overpacking, so its main input
+   was unreachable and M14 had only ever been exercised by the dev fixture. The
+   control is built in this PR (E2E-M5-17), which is what made every case here
+   possible. **The lesson generalises: "unblocked" was checked against one
+   half of the precondition.** M21 proved *archived* was reachable; nobody
+   asked whether the *flags* were.
+2. **An ordinary M5 edit erased the row's provenance.** The optimistic update
+   carries a whole row and both the store and IndexedDB *replace* rather than
+   patch, so the hand-maintained projection (`itemRow`) silently dropped
+   `source_template_id`, `packed_by_user_id`, `packed_at` and
+   `packing_now_at`. Flagging a generated row detached it from its group —
+   permanently in Local Mode — and the *unused* proposal it should have
+   produced never appeared. Found because the first run of E2E-M14-01 showed
+   one proposal instead of two. The guard is written against the whole
+   `TripItem` type rather than the four columns
+   (`composables/__tests__/masterActions.spec.ts`), so the next column added is
+   covered the day it is added. Mutation-proved: removing the one line turns
+   E2E-M14-01 and -02 red.
+3. **The retarget picker listed groups in storage order.** Chromium and the
+   second run disagreed, which is the same class of finding as FR-27.2's
+   include order: an order that comes from the storage layer is no order at
+   all. `retargetGroups` sorts by name now, with a domain case behind it —
+   the e2e assertion was the symptom, the domain rule is the fix.
+4. **The picker is dismissed by choosing the value it already has**, not by
+   Escape: dismissal is then Ionic's own path and the wait is on a state the
+   app reaches by itself. Escape left the popover up often enough to be seen
+   in a repeat run.
+5. **What is still not e2e-covered, deliberately:** E2E-M14-03's second clause
+   — the same item surfacing for *another* group — needs one item flagged
+   twice under two groups, which a single trip cannot produce. It stays
+   unit-owned, and the UI-Test-Spec sentence says so rather than claiming the
+   id is fully covered.
 
 ## M3 — composed templates (`e2e/trip-composition.spec.ts`, 2026-08-16)
 

@@ -3955,7 +3955,7 @@ function renderReview(){
     <div class="section-h">Offen · ${open.length}</div>
     ${props.length?props.map(row).join(''):'<div class="card"><div class="li"><div class="grow muted" style="text-align:center;padding:10px">Nichts zu prüfen — keine Merkmale gesetzt.</div></div></div>'}
     ${appliedN?`<div class="section-h">Übernommen · ${appliedN}</div>
-      <div class="card"><div class="li"><div class="grow tiny muted" style="padding:4px">${appliedN} Änderung${appliedN===1?'':'en'} in die Gruppen geschrieben. Geplante Reisen übernehmen sie sofort.</div></div></div>`:''}`;
+      <div class="card"><div class="li"><div class="grow tiny muted" style="padding:4px">${appliedN} Änderung${appliedN===1?'':'en'} in die Gruppen geschrieben. Reisen, die den Gruppen folgen, werden beim nächsten Öffnen gefragt.</div></div></div>`:''}`;
   el.querySelectorAll('[data-revtgt]').forEach(s=>s.onchange=()=>{ REVIEW.target[s.dataset.revtgt]=s.value; renderReview(); });
   el.querySelectorAll('[data-revapply]').forEach(b=>b.onclick=()=>{
     const p=props.find(x=>x.key===b.dataset.revapply); if(!p)return;

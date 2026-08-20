@@ -158,8 +158,12 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
      blocked it is **closed since 2026-08-19** — M21 needed the same *start* transition,
      so an archived trip and an FR-9.1 flag are now reachable through the app — which
      turns M12's and M14's positive e2e cases from impossible into **owed but unwritten**
-     (e2e ledger). The dev gallery's M14 fixture button (`src/dev/reviewFixture.ts`)
-     remains the fastest eyeball path.
+     (e2e ledger). **M14's are written since 2026-08-20** — and writing them found that
+     *unused*, the flag FR-9.2 is mostly about, had **no writer anywhere in the app**
+     (M5 printed the FR-9.1 pair as a note); the control is built, and underneath it sat
+     a defect where an ordinary M5 edit erased a row's `source_template_id`. M12-03's
+     positive half is still owed. The dev gallery's M14 fixture button
+     (`src/dev/reviewFixture.ts`) remains the fastest eyeball path.
      Known cost carried over from the M5 rebuild: M4 loses its scroll position
      when a detail opens (ADR-012's overlay amendment).
 4. **i18n migration** — the hard-coded English strings across the screens M4 did not touch;

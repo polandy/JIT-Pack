@@ -182,3 +182,99 @@ describe('M5 assignment actions on the trip partition', () => {
     expect(item.state).toBe('partial')
   })
 })
+
+describe('FR-9.1 review flags (M5 Details)', () => {
+  function seedRow() {
+    const trips = useTripStore()
+    trips.applyChange({
+      seq: 0,
+      table: 'trip_items',
+      id: 'ti1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Regenhose',
+        quantity: 1,
+        packed_count: 1,
+        state: 'packed',
+        mode: 'pack',
+      },
+    })
+    return trips
+  }
+
+  /**
+   * The optimistic row is a *replacement*, not a patch — both the store
+   * and IndexedDB put the whole row — so a projection that forgets a
+   * column erases it, permanently in Local Mode. This case is written
+   * against the whole type rather than one column: the next column added
+   * to TripItem is covered the day it is added.
+   */
+  it('an M5 edit preserves every other column of the row, provenance included', () => {
+    const orch = newOrch()
+    const trips = useTripStore()
+    trips.applyChange({
+      seq: 0,
+      table: 'trip_items',
+      id: 'ti1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        source_item_id: 'mi1',
+        source_template_id: 'grp1',
+        name: 'Stativ',
+        weight_grams: 1200,
+        value_cents: 9900,
+        category_name: 'Foto',
+        quantity: 2,
+        packed_count: 2,
+        state: 'packed',
+        mode: 'pack',
+        late_packer: 1,
+        assigned_traveler_id: 'trav-1',
+        packer_user_id: 'u-1',
+        packed_by_user_id: 'u-2',
+        packed_at: '2026-08-19T10:00:00Z',
+        container_id: 'cont-1',
+        packing_now_by: 'u-3',
+        packing_now_at: '2026-08-19T10:05:00Z',
+        flag_unused: 0,
+        flag_missing: 0,
+      },
+    })
+    const before = { ...trips.getItems('t1')[0]! }
+    mockDrain()
+
+    orch.setReviewFlag('t1', trips.getItems('t1')[0]!, 'unused', true)
+
+    const after = trips.getItems('t1')[0]!
+    expect(after).toEqual({ ...before, flag_unused: true, updated_hlc: after.updated_hlc })
+  })
+
+  it('setReviewFlag marks an item unused without disturbing its packing record', () => {
+    const orch = newOrch()
+    const trips = seedRow()
+    mockDrain()
+
+    orch.setReviewFlag('t1', trips.getItems('t1')[0]!, 'unused', true)
+
+    const item = trips.getItems('t1')[0]!
+    expect(item.flag_unused).toBe(true)
+    expect(item.flag_missing).toBe(false)
+    expect(item.state).toBe('packed')
+    expect(item.packed_count).toBe(1)
+  })
+
+  it('setReviewFlag clears a flag again — a wrong judgement is not permanent', () => {
+    const orch = newOrch()
+    const trips = seedRow()
+    mockDrain()
+    mockDrain()
+
+    orch.setReviewFlag('t1', trips.getItems('t1')[0]!, 'missing', true)
+    expect(trips.getItems('t1')[0]!.flag_missing).toBe(true)
+
+    orch.setReviewFlag('t1', trips.getItems('t1')[0]!, 'missing', false)
+    expect(trips.getItems('t1')[0]!.flag_missing).toBe(false)
+  })
+})
