@@ -30,6 +30,7 @@ import { backupFilename, buildBackup } from '@/local/backup'
 import { lastExportAt, markExported } from '@/local/exportReminder'
 import { readStorageStatus, type StorageStatus } from '@/local/storageStatus'
 import { saveText } from '@/lib/download'
+import { swUpdateReady } from '@/pwa/register'
 import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -215,6 +216,7 @@ async function saveBackup() {
         :sync-state="syncStatus.state.value"
         :sync-pending-count="syncStatus.pendingCount.value"
         :sync-label="syncStatus.label.value"
+        :sync-update-ready="swUpdateReady"
         @sync-tap="onSyncTap"
       />
       <div class="app-body">
@@ -235,6 +237,7 @@ async function saveBackup() {
           :storage="storage"
           :last-export-at="lastExport"
           :has-backup-content="hasBackupContent"
+          :update-ready="swUpdateReady"
           :now="detailNow"
           @close="syncDetailOpen = false"
           @conflicts="openConflicts"

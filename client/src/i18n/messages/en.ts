@@ -58,6 +58,8 @@ export const en = {
   'sync.detail.backupEmpty': 'Nothing to back up yet — no trips and no templates on this device.',
   'sync.detail.backupHint': 'One YAML file with every trip and template. Restore it under Import.',
   'sync.detail.backupSaved': 'Backup saved: {file}',
+  'sync.detail.updateReady':
+    'A new version of JIT-Pack is ready. It takes over the next time you open the app.',
 
   // Trips.
   'trip.daysUntil': '{n} days to go',

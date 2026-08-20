@@ -63,6 +63,48 @@ describe('initTheme', () => {
   })
 })
 
+describe('theme-color meta (NFR-4.13)', () => {
+  // The browser chrome around an installed PWA is painted from this meta,
+  // so it has to follow the flavour. The value is read from the computed
+  // --ct-base token — catppuccin.css stays the only place a colour lives.
+  beforeEach(() => {
+    document.querySelector('meta[name="theme-color"]')?.remove()
+    vi.stubGlobal('getComputedStyle', () => ({
+      getPropertyValue: (name: string) => {
+        if (name !== '--ct-base') return ''
+        return document.documentElement.classList.contains(LATTE_CLASS) ? '#eff1f5' : '#1e1e2e'
+      },
+    }))
+  })
+
+  it('retargets the meta to the flavour base on every apply', () => {
+    const meta = document.createElement('meta')
+    meta.setAttribute('name', 'theme-color')
+    meta.setAttribute('content', '#1e1e2e')
+    document.head.appendChild(meta)
+
+    setTheme('latte')
+    expect(meta.getAttribute('content')).toBe('#eff1f5')
+    setTheme('mocha')
+    expect(meta.getAttribute('content')).toBe('#1e1e2e')
+  })
+
+  it('survives a document without the meta tag', () => {
+    expect(() => setTheme('latte')).not.toThrow()
+  })
+
+  it('leaves the meta alone when the token does not resolve (test harness, detached doc)', () => {
+    vi.stubGlobal('getComputedStyle', () => ({ getPropertyValue: () => '' }))
+    const meta = document.createElement('meta')
+    meta.setAttribute('name', 'theme-color')
+    meta.setAttribute('content', '#1e1e2e')
+    document.head.appendChild(meta)
+
+    setTheme('latte')
+    expect(meta.getAttribute('content')).toBe('#1e1e2e')
+  })
+})
+
 describe('setTheme / currentTheme', () => {
   it('latte persists the choice and tags the root element', () => {
     setTheme('latte')

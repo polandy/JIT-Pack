@@ -30,11 +30,16 @@ import { actionsFor } from '@/composables/useHeaderActions'
 import { titleFor } from '@/composables/useHeaderTitle'
 import type { SyncState } from '@/composables/useSyncStatus'
 
-defineProps<{
-  syncState: SyncState
-  syncPendingCount: number
-  syncLabel: string
-}>()
+withDefaults(
+  defineProps<{
+    syncState: SyncState
+    syncPendingCount: number
+    syncLabel: string
+    /** NFR-4.13: a newer build waits — shown as a dot on the G-2 glyph. */
+    syncUpdateReady?: boolean
+  }>(),
+  { syncUpdateReady: false },
+)
 
 const emit = defineEmits<{
   syncTap: []
@@ -120,6 +125,7 @@ function goBack() {
           :state="syncState"
           :pending-count="syncPendingCount"
           :label="syncLabel"
+          :update-ready="syncUpdateReady"
           @tap="emit('syncTap')"
         />
         <IonButton router-link="/tabs/settings" aria-label="Settings">

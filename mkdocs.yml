@@ -46,6 +46,7 @@ nav:
       - Walkthrough: getting-started.md
       - Installation: installation.md
       - Configuration: configuration.md
+      - Install on Your Phone: install-app.md
   - Operating:
       - Authentication: authentication.md
       - Multi-user Setup: multi-user-setup.md

@@ -5,11 +5,16 @@ import { computed } from 'vue'
 import { SYNC_GLYPHS } from './syncGlyphs'
 import type { SyncState } from '@/composables/useSyncStatus'
 
-const props = defineProps<{
-  state: SyncState
-  pendingCount: number
-  label: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    state: SyncState
+    pendingCount: number
+    label: string
+    /** NFR-4.13: a newer build waits for the next launch — a quiet dot, no urgency. */
+    updateReady?: boolean
+  }>(),
+  { updateReady: false },
+)
 
 const emit = defineEmits<{
   tap: []
@@ -28,6 +33,7 @@ const icon = computed(() => SYNC_GLYPHS[props.state])
     @click="emit('tap')"
   >
     <IonIcon :icon="icon" :class="{ spinning: state === 'syncing' }" />
+    <span v-if="updateReady" class="update-dot" data-testid="sync-indicator-update" />
     <IonBadge v-if="state === 'offline' && pendingCount > 0" color="warning">
       {{ pendingCount }}
     </IonBadge>
@@ -36,6 +42,7 @@ const icon = computed(() => SYNC_GLYPHS[props.state])
 
 <style scoped>
 .sync-indicator {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -71,6 +78,18 @@ const icon = computed(() => SYNC_GLYPHS[props.state])
 
 .sync-indicator.local {
   color: var(--ion-color-medium);
+}
+
+/* The waiting-update mark (NFR-4.13): anchored to the glyph's corner so it
+   reads as an annotation of the status, not a fifth state. */
+.update-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--jp-action);
 }
 
 .spinning {
