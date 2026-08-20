@@ -3,7 +3,7 @@
 # green pipeline. When you change a job in ci.yml, change its target here.
 .PHONY: ci build vet fmt fmt-check test cover tidy-check go-lint \
         client client-deps client-lint client-tokens client-build client-test client-fmt \
-        e2e visual visual-update docker-build all
+        e2e e2e-single visual visual-update docker-build all
 
 ## --- toolchain -------------------------------------------------------------
 # `mise.toml` is the one place the toolchain is pinned. But CLAUDE.md points
@@ -159,6 +159,13 @@ visual-update: client-build
 # Chromium does not run at all.
 e2e: client-build
 	scripts/e2e.sh
+
+# The backend-backed cases (UI-Test-Spec §2.2, mode `single`): a real
+# Single-User jitpackd behind the preview proxy. The binary is built here on
+# the host — CGO-free, so the container runs it off the repo mount.
+e2e-single: client-build
+	$(RUN) go build -o jitpackd-e2e ./cmd/jitpackd
+	E2E_BACKEND=1 scripts/e2e.sh --project=single
 
 ## --- docker-build job -----------------------------------------------------
 # Left out of `ci` because it needs a running docker daemon.

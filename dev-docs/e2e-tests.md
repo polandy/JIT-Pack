@@ -59,6 +59,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
 (create / import). The screen has neither as a button: create is the FAB and
@@ -208,7 +209,7 @@ carrying forward:
    ungating the archive action each felled exactly the cases that claim
    them.
 
-**Not yet covered:** everything else in spec §3 (global patterns G-1–G-15), §4 (M1–M21 beyond the above), §5 (cross-screen flows) and §6 (non-functional journeys). The `single` and `server` modes have no coverage at all — they need a real `jitpackd` harness and, for `server`, a mock IdP (spec §10 steps 3 and 5).
+**Not yet covered:** everything else in spec §3 (global patterns G-1–G-15), §4 (M1–M21 beyond the above), §5 (cross-screen flows) and §6 (non-functional journeys). The `single` mode has its first unit since 2026-08-20 (the harness and its four cases, see below) — everything screen-shaped in `single` beyond it is still open. The `server` mode (mock IdP, multiple identities) has no coverage at all (spec §10 step 5).
 
 This is a small fraction of the specified suite. Do not read a green `e2e` job as "the UI is verified".
 
@@ -271,7 +272,9 @@ Following spec §10, adjusted for what is now built:
 3. ~~M4 packing list~~ — done for what M4 can produce on its own (see above); the `data-testid` pass on `PackingListPage.vue` landed with it. **Next: M5**, which both completes its own cases and unlocks the M4 facet cases parked above.
 4. Global patterns (§3) — they underpin every screen.
 5. Local Mode delta: persistence across reload, serverless export, M19 switching.
-6. `jitpackd` harness → Single-User cases (largest surface, simplest infra).
+6. ~~`jitpackd` harness~~ → Single-User cases (largest surface, simplest
+   infra). The harness is built (the `single` project, 2026-08-20 — see the
+   unit at the end of this file); the per-screen `single` cases remain.
 7. Mock IdP → Server/collaboration multi-client cases.
 8. Cross-screen flows + non-functional journeys.
 
@@ -636,10 +639,10 @@ asserts the Local Mode half including the *absence* of the conflict-log entry;
 G2-03 drives the one-tap backup and asserts the download plus the backup line
 moving from *Never backed up* to *Last backup today*.
 
-**E2E-G2-01 stays unbuilt**: the queue and the conflict log need a server, and
-the backend-backed projects do not exist yet. The Server Mode half of the sheet
-is covered by the component test only, which is stated here rather than left to
-look like coverage.
+**E2E-G2-01 is live since 2026-08-20** in the `single` unit (see below): the
+queue, its drain, the conflict log behind the sheet's button, and the
+outside-a-trip hint are all driven against a real `jitpackd`. What the
+component test alone used to carry is now also rendered coverage.
 
 ## M18 — the restore half of the backup (2026-08-17)
 
@@ -754,4 +757,61 @@ are reports rather than rows.
   was added": it edits the group afterwards and watches the change arrive at
   the trip as a proposal. The registration is invisible on the screen that
   writes it, so the only honest assertion of it is the effect it has later.
+
+## Single-User backend sync (`e2e/single/server-sync.spec.ts`, 2026-08-20)
+
+The first backend-backed unit: a real `jitpackd` in Single-User
+configuration (spec §2.2), the client in its `server` mode. Four cases —
+the two-context convergence smoke (E2E-FLOW-01, partial), the offline
+queue round-trip (E2E-FLOW-06 + E2E-G2-01's queue half), the losing-edit
+conflict (E2E-FLOW-08/E2E-NFR-04, partial, + E2E-G2-01's conflict-log
+half) and the G-2 sheet outside a trip.
+
+**The harness, for the units that will extend it** (Track C's durable
+outbox is the named next tenant):
+
+* The `single` Playwright project and a second `webServer` entry exist only
+  under `E2E_BACKEND=1` (`playwright.config.ts`) — they need the CGO-free
+  binary prebuilt at the repo root, a prerequisite the default run and the
+  four shard legs deliberately do not have. `make e2e-single` builds and
+  runs the whole thing; CI has its own `e2e-single` job in the same pinned
+  image.
+* **One jitpackd per run, not per worker — decided, not defaulted.** The
+  API is same-origin-only (no CORS, like every real deployment), so every
+  context reaches it through the `vite preview` proxy (`vite.config.ts`),
+  whose target port is fixed when the config loads; and the multi-context
+  cases need one shared server anyway. The database is a fresh temp file
+  per run, the project runs serially, and each test builds its world under
+  unique names — the master partition is shared state here, unlike in the
+  `local` units, and a repeated item name would trip ADR-014's
+  `UNIQUE(name)` on the second test.
+* Chromium only, deliberately: the surface under test is the sync wire, not
+  the engine; the screens keep their WebKit coverage in the `local` units.
+
+**Honest limits, named rather than implied:**
+
+* **Both contexts are the same Single-User identity.** Convergence over the
+  wire is proven; locks, attribution and membership (G-3, G-10, FLOW-01's
+  full text) wait for the mock-IdP `server` project.
+* **There is no reconnect drain, and the case says so.** The queue moves
+  only on the app's next own action — a mutation, a trip open, a WS ping —
+  so the offline case drives the user path (re-opening the trip) rather
+  than asserting an automatic drain that does not exist. The durable outbox
+  and the reconnect story are Track C's; when it lands, this case grows the
+  reload-survival half.
+* **The WS subscription is waited on, not hoped for.** The hub answers a
+  subscribe with a `presence` broadcast that reaches the subscriber itself,
+  so the smoke case waits for that frame before the other context packs —
+  without it, a pack racing the subscription would be a flake by design.
+* **The conflict is ordered by construction.** The offline context edits
+  the field *first* (strictly older HLC), the online one after — and the
+  server holding the winner is proven by a read-back from a third context
+  before the loser drains, because "A's push probably arrived" is exactly
+  the kind of hope this suite forbids. The merge's direction rules
+  (packed-beats, additive flags) stay covered where they live, in
+  `internal/sync`.
+* **`ConflictLogPage` got its testids with this unit** (`conflict-row`,
+  `conflict-field`, `conflict-losing`, `conflict-winning`,
+  `conflict-empty`) — it had none, and the ledger's own selector rule makes
+  adding them part of writing the case.
 

@@ -1,5 +1,6 @@
 # Binaries
 /jitpackd
+/jitpackd-e2e
 *.exe
 *.dll
 *.so

@@ -1,3 +1,6 @@
+import os from 'node:os'
+import path from 'node:path'
+
 import { defineConfig, devices } from '@playwright/test'
 
 /**
@@ -13,9 +16,16 @@ import { defineConfig, devices } from '@playwright/test'
  * Run modes (spec §2) are selected per-test via localStorage seeding
  * (see e2e/fixtures.ts), not via separate builds: the client is one
  * artifact whose behaviour is decided by `jitpack_mode` /
- * `jitpack_server_url`. Backend-backed modes (`single`, `server`) are
- * layered on in later milestones; this scaffold covers the
- * backend-free smoke path (M19 + Local Mode M1).
+ * `jitpack_server_url`.
+ *
+ * Backend-backed coverage (spec §2.2, mode `single`): the `single` project
+ * below boots a real `jitpackd` in Single-User configuration and drives the
+ * client in its `server` mode against it. It exists only when
+ * `E2E_BACKEND=1`, because it needs the Go binary prebuilt at the repo root
+ * (`go build -o jitpackd-e2e ./cmd/jitpackd`) — a prerequisite the default
+ * run and the four CI shard legs do not have. The mock-IdP `server` project
+ * (spec §2.3, multi-identity) is still future work and will extend this
+ * harness — Track C's durable-outbox e2e extends it too.
  */
 
 /**
@@ -26,6 +36,23 @@ const MOBILE_VIEWPORT = { width: 390, height: 844 }
 
 const PORT = Number(process.env.E2E_PORT ?? 4173)
 const BASE_URL = `http://localhost:${PORT}`
+
+/**
+ * The backend-backed project (`single`). Gated on E2E_BACKEND because both
+ * halves — the extra webServer entry and the project itself — need the
+ * prebuilt Go binary; without the gate every bare `playwright test` (the
+ * four CI shard legs included) would fail on a missing prerequisite instead
+ * of simply not running these tests.
+ */
+const BACKEND = !!process.env.E2E_BACKEND
+
+/**
+ * Where jitpackd listens. `vite.config.ts` reads the same variable for the
+ * preview proxy target — the client reaches the backend through the preview
+ * origin because the API is same-origin-only (no CORS headers, deliberately;
+ * see client/src/config.ts).
+ */
+const API_PORT = Number(process.env.E2E_API_PORT ?? 8799)
 
 export default defineConfig({
   testDir: './e2e',
@@ -69,14 +96,40 @@ export default defineConfig({
      */
     {
       name: 'chromium',
-      testIgnore: '**/visual.spec.ts',
+      testIgnore: ['**/visual.spec.ts', '**/single/**'],
       use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'webkit',
-      testIgnore: '**/visual.spec.ts',
+      testIgnore: ['**/visual.spec.ts', '**/single/**'],
       use: { ...devices['Desktop Safari'] },
     },
+    /*
+     * Backend-backed cases (UI-Test-Spec §2.2, mode `single`): a real
+     * jitpackd, the client in `server` mode. One backend **per run**, not
+     * per worker — decided, not defaulted: the same-origin requirement
+     * routes every context through the preview proxy, whose target port is
+     * fixed when this config loads, and the multi-context convergence cases
+     * need one shared server anyway. Isolation is therefore per-test data
+     * (unique trip names) on a database that is fresh per run, and the
+     * project runs its files serially (`fullyParallel: false`) so two tests
+     * never race the shared master partition.
+     *
+     * Chromium only, deliberately: the surface under test is the sync wire
+     * (queue, WebSocket, merge), not the rendering engine — the screens
+     * themselves keep their WebKit coverage in the `local` units. WebKit
+     * joins when this project grows real per-screen server cases.
+     */
+    ...(BACKEND
+      ? [
+          {
+            name: 'single',
+            testMatch: '**/single/**',
+            fullyParallel: false,
+            use: { ...devices['Desktop Chrome'] },
+          },
+        ]
+      : []),
     /*
      * Visual baselines (ADR-013). Excluded from the default run — invoked
      * by `make visual`, which supplies `--project=visual-*` — because a
@@ -130,10 +183,39 @@ export default defineConfig({
 
   // Build once, then serve the static bundle. `vite preview` needs a
   // prior `npm run build`; CI builds the client in an earlier step.
-  webServer: {
-    command: `npm run preview -- --port ${PORT} --strictPort`,
-    url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: `npm run preview -- --port ${PORT} --strictPort`,
+      url: BASE_URL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    /*
+     * The Single-User jitpackd behind the preview proxy (see the `single`
+     * project note above). The binary is CGO-free, so the one built on the
+     * runner works inside the Playwright container too (the repo mount puts
+     * it at ../jitpackd-e2e from here).
+     *
+     * The database is a temp file unique per run: `reuseExistingServer` is
+     * false on purpose, so a stale server from an earlier run is an explicit
+     * port error rather than a silent source of leftover state — the same
+     * reason CI never reuses the preview.
+     */
+    ...(BACKEND
+      ? [
+          {
+            command: '../jitpackd-e2e',
+            url: `http://localhost:${API_PORT}/health`,
+            reuseExistingServer: false,
+            timeout: 30_000,
+            env: {
+              JITPACK_LISTEN: `localhost:${API_PORT}`,
+              JITPACK_DB_PATH: path.join(os.tmpdir(), `jitpackd-e2e-${Date.now()}.db`),
+              JITPACK_SINGLE_USER: 'true',
+              JITPACK_LOCAL_USER_ID: 'e2e-local',
+            },
+          },
+        ]
+      : []),
+  ],
 })

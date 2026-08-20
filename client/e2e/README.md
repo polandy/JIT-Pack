@@ -79,9 +79,12 @@ Which spec cases are actually implemented is tracked in
 
 - **Selectors:** `data-testid` only (added to components as cases land) —
   never text or CSS-class selectors, so tests survive copy/refactor.
-- **Modes:** `local` needs no server; `single`/`server` (spec §2.2/§2.3)
-  start a real `jitpackd` — that harness (and the mock IdP for `server`
-  multi-client cases) is added in later milestones per spec §10.
+- **Modes:** `local` needs no server. `single` (spec §2.2) boots a real
+  Single-User `jitpackd` behind the preview proxy — the `single` project,
+  gated on `E2E_BACKEND=1` because it needs the prebuilt Go binary; run it
+  with `make e2e-single`, specs live under `e2e/single/`, and the harness
+  notes are in the config and `dev-docs/e2e-tests.md`. The mock IdP for
+  `server` multi-client cases (spec §2.3) is still future work.
 - **No sleeps:** use Playwright's clock/`expect` polling, never fixed
   waits (spec §2.4).
 - **Never assert `toBeEnabled()` on an `ion-button`.** Ionic buttons are
