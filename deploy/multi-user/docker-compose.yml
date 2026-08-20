@@ -1,0 +1,52 @@
+volumes:
+  data:
+
+networks:
+  proxy:
+    external: true
+  internal:
+
+services:
+  app:
+    image: ghcr.io/polandy/jit-pack:0.2.0
+    restart: unless-stopped
+    networks:
+      - internal
+    expose:
+      - "8080"
+    volumes:
+      - data:/data
+    environment:
+      JITPACK_LISTEN: ":8080"
+      JITPACK_DB_PATH: "/data/jitpack.db"
+      JITPACK_SESSION_SECRET: "${JITPACK_SESSION_SECRET:?set in .env}"
+      JITPACK_OIDC_ISSUER: "${JITPACK_OIDC_ISSUER:?set in .env}"
+      JITPACK_OIDC_CLIENT_ID: "${JITPACK_OIDC_CLIENT_ID:?set in .env}"
+      JITPACK_OIDC_CLIENT_SECRET: "${JITPACK_OIDC_CLIENT_SECRET:?set in .env}"
+      JITPACK_ADMIN_EMAILS: "${JITPACK_ADMIN_EMAILS:-}"
+      JITPACK_PUSH_CONTACT: "${JITPACK_PUSH_CONTACT:-}"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  web:
+    image: ghcr.io/polandy/jit-pack-client:0.2.0
+    restart: unless-stopped
+    networks:
+      - internal
+      - proxy
+    expose:
+      - "80"
+    depends_on:
+      app:
+        condition: service_healthy
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.jitpack.rule: "Host(`jitpack.example.com`)"
+      traefik.http.routers.jitpack.entrypoints: "websecure"
+      traefik.http.routers.jitpack.tls.certresolver: "letsencrypt"
+      traefik.http.services.jitpack.loadbalancer.server.port: "80"
+      traefik.docker.network: "proxy"

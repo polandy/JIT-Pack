@@ -9,10 +9,9 @@ store, and no separate media folder.
 
 That file holds your trips, items, tags, templates, travelers, containers,
 comments, the sync change log, notifications, Web Push subscriptions, accounts, and
-active sessions. It also holds every **image as a BLOB** — user avatars in the `users`
-table and item reference photos in `item_images` — which is a deliberate decision
-(see `dev-docs/adr/ADR-002_Avatar_Storage.md`) precisely so that backing up the file can
-never produce a snapshot with a row pointing at a picture that was not captured.
+active sessions. It also holds every **image** — user avatars and item reference
+photos — so backing up the file can never produce a snapshot with a row pointing at
+a picture that was not captured.
 
 **Back up that file and you have backed up the instance.** Nothing else on the host is
 state; the binary and the environment variables are your configuration.
@@ -107,6 +106,25 @@ docker compose start app
 If you copy without stopping the server, copy **all three** files (`.db`, `.db-wal`,
 `.db-shm`) together — and prefer one of the snapshot commands above, which does not
 depend on getting that right.
+
+### What a scheduled backup must get right
+
+There is no built-in scheduler; recurring backups are your host's job, with whatever
+mechanism you already use. Whatever runs it, the requirements are the ones this page
+has already laid out — stated once, tool-neutrally:
+
+- **Capture a consistent snapshot of the database**, which at runtime means the
+  `.db` file *plus* its `-wal`/`-shm` sidecars — or one of the snapshot methods
+  above, which fold the WAL in and produce a single self-contained file. That one
+  file is the entire instance: avatars and item images included, nothing else on
+  the host is state.
+- **Store it away from the original** — a backup on the same disk shares its fate.
+- **Remember the version it came from.** A file backup [restores only into the
+  JIT-Pack version that wrote it](#restoring), so a retention scheme that outlives
+  an upgrade needs the matching image version kept alongside, or a portable YAML
+  export taken at upgrade time.
+- **Test a restore once.** A backup that has never been restored is a hope, not a
+  backup.
 
 ### Continuous replication
 

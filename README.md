@@ -24,7 +24,7 @@ docker run -d --name jitpack -p 8080:8080 -v jitpack-data:/data \
   -e JITPACK_SINGLE_USER=true \
   -e JITPACK_LOCAL_USER_ID=me \
   -e JITPACK_DB_PATH=/data/jitpack.db \
-  ghcr.io/polandy/jit-pack:1.0.0
+  ghcr.io/polandy/jit-pack:0.2.0
 ```
 
 That is single-user mode: no authentication, every change attributed to one person. When you want accounts, hand it an OIDC provider and it brokers the login itself — see **[Authentication](https://polandy.github.io/JIT-Pack/authentication/)**.
@@ -79,7 +79,7 @@ go test -race ./cmd/... ./internal/...   # Go tests only; scoped because client/
 
 ## Releases
 
-Releases are automated with [release-please](https://github.com/googleapis/release-please) from the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) history. Merging the release PR creates the GitHub release, the `v*` tag, the CHANGELOG entry, and the container image on `ghcr.io`.
+Releases are automated with [release-please](https://github.com/googleapis/release-please) from the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) history. Merging the release PR creates the GitHub release, the `v*` tag, the CHANGELOG entry, and the two container images on `ghcr.io` (`jit-pack` for the backend, `jit-pack-client` for the SPA).
 
 ## License
 
