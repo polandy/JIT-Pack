@@ -1,4 +1,4 @@
-import { test, expect, openQuickAdd } from './fixtures'
+import { test, expect, openQuickAdd, expectTripOpen } from './fixtures'
 import {
   addPosition,
   backToTemplateList as backToList,
@@ -401,7 +401,7 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
     await page.getByTestId('wizard-next').click()
     await expect(page.getByTestId('wizard-step-4')).toBeVisible()
     await page.getByTestId('wizard-create').click()
-    await expect(page.getByTestId('header-title')).toHaveText('Engadin 2027')
+    await expectTripOpen(page, 'Engadin 2027')
 
     // The Vorlage names the trip it reaches (FR-27.4)…
     await page.goto('/tabs/templates')

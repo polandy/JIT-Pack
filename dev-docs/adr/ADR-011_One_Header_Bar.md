@@ -39,7 +39,7 @@ Note what this is *not*: adding `position: relative` alone would fix the escape 
 - One bar, 56 px, on every screen; the drill-downs gain a back affordance without losing anything on the right.
 - The conflict log stays reachable inside a trip, which is the only place it exists (driver 3).
 - Deletes seventeen duplicated header blocks; the back-target rule lives in one place instead of being restated per screen.
-- M4's collapsing header (§1.2 — trip name and presence migrate *into the top bar* on scroll) becomes unambiguous: there is only one bar to migrate into.
+- M4's collapsing header (§1.2 — trip name and presence migrate *into the top bar* on scroll) becomes unambiguous: there is only one bar to migrate into. **Overtaken 2026-08-19**, without touching this ADR's decision: the migration was never built, and M4's G-12 cluster left the bar 54 px for a title. M4 now names itself in its own header line and registers no app-bar title — the one bar stays one bar, and G-9 gained the case of a screen with no title in it.
 
 **Cons**
 

@@ -107,6 +107,16 @@ export default defineConfig({
    * `maxDiffPixelRatio` rather than `threshold` alone: a handful of
    * antialiased edge pixels is not a design change, and a suite that
    * calls it one gets ignored within a week (ADR-013, driver 1).
+   *
+   * **0.002 stays, decided 2026-08-19 (owner) rather than left open.** It
+   * is known to be loose: a whole 24 px app-bar icon plus a truncated title
+   * came to 658 px of 329 160 and passed against the old baselines (see the
+   * M21 entry in the implementation log). Tightening it would buy that one
+   * class of miss at the price of flake, and a gate that cries wolf is
+   * worth less than the miss it prevents. The consequence is stated rather
+   * than hidden: **this gate catches layout changes, not small ones** — a
+   * change of a few hundred pixels is caught by looking at the render,
+   * which is what the working agreement already requires of a UI PR.
    */
   expect: {
     toHaveScreenshot: {

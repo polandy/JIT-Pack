@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+import { test, expect, expectTripOpen } from './fixtures'
 import {
   addPosition,
   backToTemplateList as backToList,
@@ -170,7 +170,7 @@ test.describe('FR-27.10 — adding a whole group to a running trip', () => {
     // behind, so the next assertion reads *this* add's report instead of
     // racing the previous one's three seconds.
     await page.goto(tripPath)
-    await expect(page.getByTestId('header-title')).toHaveText('Fototour 2026')
+    await expectTripOpen(page, 'Fototour 2026')
     await expect(page.locator('ion-toast')).toHaveCount(0)
 
     // Adding it a second time adds nothing and says so, rather than being

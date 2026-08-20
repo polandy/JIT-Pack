@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+import { test, expect, expectTripOpen } from './fixtures'
 import {
   addPosition,
   backToTemplateList as backToList,
@@ -42,7 +42,7 @@ async function tripFollowingGroup(page: Page, name: string, group: string): Prom
 
   await expect(page.getByTestId('wizard-step-4')).toBeVisible()
   await page.getByTestId('wizard-create').click()
-  await expect(page.getByTestId('header-title')).toHaveText(name)
+  await expectTripOpen(page, name)
   return new URL(page.url()).pathname
 }
 
@@ -59,7 +59,7 @@ async function addToGroup(page: Page, group: string, item: string) {
 async function openTripFromList(page: Page, name: string) {
   await page.goto('/tabs/trips?status=planned')
   await visible(page).getByTestId(`trip-row-${name}`).click()
-  await expect(page.getByTestId('header-title')).toHaveText(name)
+  await expectTripOpen(page, name)
 }
 
 test.describe('FR-27.4 — the group asks before it changes a trip', () => {
@@ -124,7 +124,7 @@ test.describe('FR-27.4 — the group asks before it changes a trip', () => {
     await page.goto('/tabs/trips?status=planned')
     await expect(visible(page).getByTestId('m2-proposed-chip-Fototour 2026')).toHaveCount(0)
     await visible(page).getByTestId('trip-row-Fototour 2026').click()
-    await expect(page.getByTestId('header-title')).toHaveText('Fototour 2026')
+    await expectTripOpen(page, 'Fototour 2026')
     await expect(visible(page).getByTestId('m4-group-proposal')).toHaveCount(0)
     await expect(visible(page).locator('ion-item').filter({ hasText: 'Stativ' })).toHaveCount(0)
   })
