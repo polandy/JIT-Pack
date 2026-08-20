@@ -1,0 +1,11 @@
+# One site, one upstream. The client image's nginx does the path split
+# (/api/, /ws, /health → backend; everything else → the SPA with the
+# index.html fallback), so Caddy only terminates TLS and forwards.
+#
+# Caddy preserves the Host header and handles WebSocket upgrades by
+# default — both are load-bearing: the backend's same-origin WebSocket
+# check compares Origin against Host, and /ws needs the upgrade passed
+# through. Do not add a header_up Host override here.
+jitpack.example.com {
+	reverse_proxy web:80
+}

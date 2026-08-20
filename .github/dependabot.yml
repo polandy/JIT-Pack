@@ -16,6 +16,16 @@ updates:
     directory: /
     schedule:
       interval: weekly
+  - package-ecosystem: docker
+    # client/Dockerfile — the SPA/nginx image published beside the backend.
+    directory: /client
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    # The Caddy digest in the multi-user deployment example.
+    directory: /deploy/multi-user
+    schedule:
+      interval: weekly
   - package-ecosystem: pip
     # The docs toolchain (mkdocs-material + transitives, hash-pinned via
     # `uv pip compile --generate-hashes`, see docs/requirements.in).
