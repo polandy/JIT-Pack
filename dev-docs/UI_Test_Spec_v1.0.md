@@ -177,6 +177,14 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 
 *Why these are their own unit:* the suite serves from `localhost`, which **is** a secure context, so no ordinary case can reach the broken state — the defect was invisible to a green suite on principle rather than by accident.
 
+### App shell offline (NFR-4.13) — `e2e/pwa-offline.spec.ts`
+
+* **E2E-PWA-01** `local` (NFR-4.13): once the service worker controls the page, a reload with the network cut still paints the app — asserted on the rendered chrome (header logo, visible page), never the URL. Settling is the worker's own lifecycle (`ready`, `controllerchange`), no timeouts.
+* **E2E-PWA-02** `local` (NFR-4.13/NFR-4.2a): the shell cache holds the bundle (`/index.html` — the positive signal) and never `/health`, provoked by fetching it with the worker in control. Guards the never-cache rule for the class `/api`, `/ws`, `/health`.
+* **E2E-PWA-03** `local` (NFR-4.13): the install declaration is complete — the manifest link and apple-touch-icon are in the document head, the manifest names JIT-Pack with standalone display and a maskable icon, and every declared icon URL actually resolves. A typo'd path here ships silently, because nothing else in the app ever fetches these files.
+
+*Chromium only:* Playwright hosts service workers only there; the worker under test is engine-independent and identical in WebKit.
+
 ### M4 — Packing List (core)
 * **E2E-M4-01** `all` (FR-8.1/7.3): the single header line shows packed/total, weight and the open-prep count (the latter only when todos exist), and stays **unfiltered** while a filter or search narrows the list below it. Analytics is reached from the 📊 icon on the trip line, not from the header (the KPI-tile entry is gone, G-12).
 * **E2E-M4-29** `all` (trip screen, decided 2026-08-08): tapping a trip in M2 or M1 lands **directly** in M4 — asserts no intermediate hub screen and no phase tab bar anywhere in the app. On an **archived** trip M4 leads with the closing card offering *Vorlage aus dieser Reise* (M21) and the M14 suggestions; on an active trip that card is absent.

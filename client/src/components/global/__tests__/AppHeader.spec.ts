@@ -30,9 +30,9 @@ vi.mock('@ionic/vue', async () => {
   return { ...actual, useIonRouter: () => ({ navigate: vi.fn() }) }
 })
 
-function mountHeader() {
+function mountHeader(extra: { syncUpdateReady?: boolean } = {}) {
   return mount(AppHeader, {
-    props: { syncState: 'synced' as const, syncPendingCount: 0, syncLabel: 'Synced' },
+    props: { syncState: 'synced' as const, syncPendingCount: 0, syncLabel: 'Synced', ...extra },
   })
 }
 
@@ -76,5 +76,20 @@ describe('AppHeader — the left slot (G-9)', () => {
 
     expect(wrapper.find('[data-testid="header-logo"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="header-back"]').exists()).toBe(false)
+  })
+})
+
+describe('AppHeader — the G-2 waiting-update dot (NFR-4.13)', () => {
+  it('marks the sync glyph while a new version waits', () => {
+    const wrapper = mountHeader({ syncUpdateReady: true })
+
+    expect(wrapper.find('[data-testid="sync-indicator-update"]').exists()).toBe(true)
+  })
+
+  it('shows no mark while nothing waits — the glyph itself is the positive signal', () => {
+    const wrapper = mountHeader()
+
+    expect(wrapper.find('[data-testid="sync-indicator"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="sync-indicator-update"]').exists()).toBe(false)
   })
 })

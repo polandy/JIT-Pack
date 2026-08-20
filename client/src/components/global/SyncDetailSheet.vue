@@ -19,7 +19,13 @@
  * of a moment its test can state exactly.
  */
 import { IonIcon } from '@ionic/vue'
-import { closeOutline, downloadOutline, listOutline, warningOutline } from 'ionicons/icons'
+import {
+  closeOutline,
+  downloadOutline,
+  listOutline,
+  sparklesOutline,
+  warningOutline,
+} from 'ionicons/icons'
 import { computed } from 'vue'
 
 import { SYNC_GLYPHS } from './syncGlyphs'
@@ -43,6 +49,11 @@ const props = defineProps<{
   lastExportAt: number | null
   /** Whether anything exists that a backup could contain. */
   hasBackupContent: boolean
+  /**
+   * A newer build is installed and waiting (NFR-4.13). It takes over on the
+   * next launch — the sheet announces, it never reloads (ADR-019).
+   */
+  updateReady: boolean
   /** Injected clock — the backup age is read against this, never Date.now(). */
   now: number
 }>()
@@ -92,6 +103,12 @@ const backupAge = computed(() => {
 
     <p v-if="showPending" class="line" data-testid="sync-detail-pending">
       {{ t('sync.detail.pending', { n: pendingCount }) }}
+    </p>
+
+    <!-- NFR-4.13: a waiting update concerns every mode — the bundle, not the data. -->
+    <p v-if="updateReady" class="update" data-testid="sync-detail-update">
+      <IonIcon :icon="sparklesOutline" />
+      <span>{{ t('sync.detail.updateReady') }}</span>
     </p>
 
     <!-- Server Mode: the conflict log (NFR-4.2a) is trip-scoped. -->
@@ -232,6 +249,20 @@ const backupAge = computed(() => {
   margin: 6px 0 0;
   color: var(--ct-subtext0);
   font-size: var(--jp-text-sm);
+}
+
+.update {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 6px 0 0;
+  color: var(--jp-action);
+  font-size: var(--jp-text-sm);
+}
+
+.update ion-icon {
+  font-size: var(--jp-icon-sm);
+  flex: none;
 }
 
 .warn {

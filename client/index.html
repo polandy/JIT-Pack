@@ -5,6 +5,18 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>JIT-Pack</title>
+    <!-- Installable PWA (NFR-4.13): manifest + the Apple half, which reads
+         its own tags rather than the manifest. The icon is full-bleed — iOS
+         rounds it itself and paints transparency black. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="JIT-Pack" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- Mirrors --ct-base (Mocha, the dark default); theme.ts retargets it to
+         the flavour's own base after boot, reading the token rather than
+         repeating it (invariant 9). -->
+    <meta name="theme-color" content="#1e1e2e" />
     <script>
       // FR-21.4: apply the persisted theme before first paint — the
       // stylesheet defaults to dark (Mocha), so only Latte needs a tag.

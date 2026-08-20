@@ -27,6 +27,20 @@ export function resolveTheme(raw: string | null): Theme {
 /** Tags the root element for the given theme (display only, no persistence). */
 export function applyTheme(theme: Theme): void {
   document.documentElement.classList.toggle(LATTE_CLASS, theme === 'latte')
+  syncThemeColorMeta()
+}
+
+/**
+ * Repaints the `theme-color` meta from the flavour's own `--ct-base`
+ * (NFR-4.13): installed-PWA chrome follows the theme, and the value is read
+ * from the computed token so catppuccin.css stays the only colour source
+ * (invariant 9). index.html carries the static dark default for first paint.
+ */
+function syncThemeColorMeta(): void {
+  const meta = document.querySelector('meta[name="theme-color"]')
+  if (!meta) return
+  const base = getComputedStyle(document.documentElement).getPropertyValue('--ct-base').trim()
+  if (base) meta.setAttribute('content', base)
 }
 
 /** Reads the persisted choice and applies it; called before mount (FR-21.4). */

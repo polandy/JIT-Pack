@@ -34,8 +34,15 @@ import { initTheme } from './theme/theme'
  * already be in the user's language, not switch under them. */
 import { initLocale } from './i18n'
 
+/* App shell + push worker (NFR-4.13/NFR-4.6): registered unconditionally at
+ * start, not only when push is enabled. Production only — the dev server has
+ * no built bundle to precache, and a worker caching Vite's module graph turns
+ * every source edit into a stale-cache hunt. */
+import { registerAppServiceWorker } from './pwa/register'
+
 initTheme()
 initLocale()
+if (import.meta.env.PROD) registerAppServiceWorker()
 
 const app = createApp(App)
 

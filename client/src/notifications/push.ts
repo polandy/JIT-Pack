@@ -5,6 +5,8 @@
  * module owns only the browser dance and stays testable.
  */
 
+import { SW_URL } from '@/pwa/register'
+
 export interface PushServerAPI {
   getVapidKey(): Promise<string>
   registerSubscription(sub: unknown): Promise<void>
@@ -36,7 +38,10 @@ export async function registerPush(api: PushServerAPI): Promise<boolean> {
   if (!pushSupported()) return false
   if ((await Notification.requestPermission()) !== 'granted') return false
 
-  const reg = await navigator.serviceWorker.register('/sw.js')
+  // Normally a no-op re-registration: the boot path (main.ts) already
+  // registered the same script. Kept because push can be enabled in dev
+  // builds, where the boot path deliberately does not register.
+  const reg = await navigator.serviceWorker.register(SW_URL)
   const key = await api.getVapidKey()
   const sub =
     (await reg.pushManager.getSubscription()) ??
