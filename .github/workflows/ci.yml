@@ -196,8 +196,9 @@ jobs:
           cache: npm
           cache-dependency-path: client/package-lock.json
       # Built on the runner, run inside the container off the repo mount —
-      # possible because the binary is CGO-free (D-001).
-      - run: go build -o jitpackd-e2e ./cmd/jitpackd
+      # CGO_ENABLED=0 keeps it static (D-001), because a cgo build links the
+      # build host's dynamic loader, which the container may not have.
+      - run: CGO_ENABLED=0 go build -o jitpackd-e2e ./cmd/jitpackd
       - run: npm ci
         working-directory: client
       - run: npm run build # vite preview serves this bundle

@@ -163,8 +163,12 @@ e2e: client-build
 # The backend-backed cases (UI-Test-Spec §2.2, mode `single`): a real
 # Single-User jitpackd behind the preview proxy. The binary is built here on
 # the host — CGO-free, so the container runs it off the repo mount.
+# CGO_ENABLED=0 is load-bearing, not habit: a host-toolchain cgo build links
+# the host's dynamic loader path, which does not exist inside the container —
+# the failure is a misleading "../jitpackd-e2e: not found" (exit 127) from
+# the shell, on a file that is plainly there.
 e2e-single: client-build
-	$(RUN) go build -o jitpackd-e2e ./cmd/jitpackd
+	CGO_ENABLED=0 $(RUN) go build -o jitpackd-e2e ./cmd/jitpackd
 	E2E_BACKEND=1 scripts/e2e.sh --project=single
 
 ## --- docker-build job -----------------------------------------------------
