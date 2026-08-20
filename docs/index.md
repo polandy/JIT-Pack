@@ -20,7 +20,7 @@ docker run -d --name jitpack -p 8080:8080 -v jitpack-data:/data \
   -e JITPACK_SINGLE_USER=true \
   -e JITPACK_LOCAL_USER_ID=me \
   -e JITPACK_DB_PATH=/data/jitpack.db \
-  ghcr.io/polandy/jit-pack:1.0.0
+  ghcr.io/polandy/jit-pack:0.2.0
 ```
 
 That is [single-user mode](authentication.md): no authentication, every change attributed to one person. It is the fastest way to see the thing run, and a perfectly reasonable way to keep running it for one household.
@@ -47,8 +47,11 @@ Because the client owns its data, the interesting failure mode is uninteresting:
 | [Installation](installation.md) | Docker, building from source, serving the client, and the reverse proxy — including the `/ws` route that is easy to miss. |
 | [Configuration](configuration.md) | Every environment variable, which combinations are valid, and what fails fast at startup. |
 | [Authentication](authentication.md) | The three modes, the Authelia setup, and precisely what does and does not end a session. |
+| [Multi-user Setup](multi-user-setup.md) | From a running multi-user instance to a household actually using it. |
 | [User Management](user-management.md) | How accounts appear, who is an instance admin, and how to shut one off. |
-| [Backup & Export](backup.md) | What to back up, and how to get your data out. |
+| [Notifications & Push](notifications.md) | What triggers a notification, and getting Web Push onto every phone. |
+| [Backup & Export](backup.md) | Which files are the backup, what a scheduled one must get right, and how to get your data out. |
+| [Upgrades](upgrades.md) | Moving between pre-1.0 versions without losing your data. |
 | [Troubleshooting](troubleshooting.md) | Symptoms first, then causes. |
 
-Design records — PRDs, ADRs, specs — live in [`dev-docs/`](https://github.com/polandy/JIT-Pack/tree/main/dev-docs) in the repository. They are contributor material and are deliberately not part of this manual.
+Design records and specifications live in [`dev-docs/`](https://github.com/polandy/JIT-Pack/tree/main/dev-docs) in the repository. They are contributor material and are deliberately not part of this manual.
