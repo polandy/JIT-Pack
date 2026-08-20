@@ -104,7 +104,7 @@ Two things to know before using it:
 - **It expects the backend at `app:8080`.** The nginx upstream is hard-wired to the hostname `app`, so name the backend service `app` on the shared Docker network — or mount your own config over `/etc/nginx/conf.d/default.conf`.
 - **It listens on plain HTTP (port 80).** TLS termination stays with your reverse proxy, which only needs to forward everything for the hostname to this container, preserving `Host`.
 
-The repository ships a complete stack in [`deploy/multi-user/`](https://github.com/polandy/JIT-Pack/tree/main/deploy/multi-user) — backend, this client image, and Caddy for TLS, with the OIDC variables wired through. If you deploy with the client image, that example is the shortest path and you can skip hand-writing the routing rules below.
+The repository ships a complete stack in [`deploy/multi-user/`](https://github.com/polandy/JIT-Pack/tree/main/deploy/multi-user) — the backend and this client image, with the OIDC variables wired through and Traefik labels for the one route it needs. If you deploy with the client image, that example is the shortest path and you can skip hand-writing the routing rules below.
 
 ---
 

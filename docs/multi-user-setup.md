@@ -1,10 +1,10 @@
-# Family setup
+# Multi-user setup
 
 You have a multi-user instance running behind HTTPS ([Installation](installation.md)) with an OIDC provider wired up ([Authentication](authentication.md)). This page takes it the rest of the way: from "the server is up" to "everyone in the household has an account, one of you is the admin, and you are packing the same trip".
 
 ## 1. Create the people at the identity provider
 
-JIT-Pack has **no sign-up form and no user-creation endpoint** — identity belongs entirely to your OIDC provider. So the family roster is created there, not in JIT-Pack: one account per person, in Authelia's user file, Keycloak's realm, or wherever your IdP keeps its users.
+JIT-Pack has **no sign-up form and no user-creation endpoint** — identity belongs entirely to your OIDC provider. So the roster is created there, not in JIT-Pack: one account per person, in Authelia's user file, Keycloak's realm, or wherever your IdP keeps its users.
 
 Two claims matter beyond the credentials:
 
@@ -38,12 +38,12 @@ So the rollout is literally: everyone opens `https://jitpack.example.com` on the
 
 ## 4. Check the roster on the admin page
 
-As the admin, open **Settings → User administration** (the `/admin` page). It lists every provisioned account with its identity source and role — after step 3 it should show the whole family. This page is also where you later [deactivate an account](user-management.md#deactivate-and-reactivate) or [reset a display name or avatar](user-management.md#reset-a-display-name-or-an-avatar).
+As the admin, open **Settings → User administration** (the `/admin` page). It lists every provisioned account with its identity source and role — after step 3 it should show everyone. This page is also where you later [deactivate an account](user-management.md#deactivate-and-reactivate) or [reset a display name or avatar](user-management.md#reset-a-display-name-or-an-avatar).
 
 If your own row does not show the admin role, log out and back in (the stamp happens at login), then see [the troubleshooting entry](troubleshooting.md#an-admin-gets-403-forbidden-on-apiv1admin) for the remaining causes — the usual one is an e-mail the IdP has not marked verified.
 
 ## 5. Share a trip
 
-Master data — items, tags, templates — is **instance-wide**: everyone sees and extends the same inventory, so whoever curates the packing templates does it once for the whole family. Trips, by contrast, are **membership-scoped**: a trip is visible only to its members, and the creator adds the others on the trip's **Members** screen. Once everyone is a member, packing is live for all of them — a checkmark on one phone lands on the others as it happens.
+Master data — items, tags, templates — is **instance-wide**: everyone sees and extends the same inventory, so whoever curates the packing templates does it once for everyone. Trips, by contrast, are **membership-scoped**: a trip is visible only to its members, and the creator adds the others on the trip's **Members** screen. Once everyone is a member, packing is live for all of them — a checkmark on one phone lands on the others as it happens.
 
-From here it is normal operation: [Backup](backup.md) for keeping the database safe, [Upgrades](upgrades.md) for moving versions without losing the family's history.
+From here it is normal operation: [Backup](backup.md) for keeping the database safe, [Upgrades](upgrades.md) for moving versions without losing the history.

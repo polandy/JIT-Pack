@@ -1,21 +1,29 @@
-# Multi-user JIT-Pack behind Caddy — the reference production stack.
+# Multi-user JIT-Pack behind your own reverse proxy — the reference
+# production stack.
 #
-# Three containers, one origin:
+# Two containers, one origin:
 #
-#   caddy  — terminates TLS for https://jitpack.example.com and forwards
-#            everything to `web`, preserving the Host header. Caddy
-#            handles the WebSocket upgrade automatically.
 #   web    — the published client image: nginx serving the built SPA and
 #            splitting the API paths off to the backend. Its nginx config
 #            proxies /api/, /ws and /health to `app:8080` — the backend
 #            service MUST therefore be named `app`, or you mount your own
 #            nginx config over /etc/nginx/conf.d/default.conf.
 #   app    — jitpackd, the Go backend, with the SQLite database on a
-#            named volume.
+#            named volume. Not published: it is reached through `web`.
+#
+# TLS and the public hostname belong to your reverse proxy. Because the
+# client image already does the path split, the proxy needs exactly one
+# route: everything for the hostname goes to `web:80`. Two properties are
+# load-bearing whichever proxy you use — pass the WebSocket upgrade
+# through for /ws, and preserve the browser's Host header, because the
+# backend's same-origin check compares Origin against Host. Traefik does
+# both by default; the labels below are the whole configuration.
 #
 # Before starting:
-#   1. Replace jitpack.example.com in Caddyfile with your hostname
-#      (DNS must already point at this host for TLS issuance).
+#   1. Replace jitpack.example.com in the labels with your hostname, and
+#      `proxy` with the network your Traefik actually watches. Not on
+#      Traefik? Drop the labels and the proxy network, publish `web` on a
+#      host port instead, and point your proxy at it.
 #   2. Put real values in .env (see the environment block below):
 #      JITPACK_SESSION_SECRET, the three JITPACK_OIDC_* values, and
 #      JITPACK_ADMIN_EMAILS. Never commit them.
@@ -23,12 +31,18 @@
 #
 # Docs: https://polandy.github.io/JIT-Pack/installation/ (routing),
 #       https://polandy.github.io/JIT-Pack/authentication/ (the IdP side),
-#       https://polandy.github.io/JIT-Pack/family-setup/ (first accounts).
+#       https://polandy.github.io/JIT-Pack/multi-user-setup/ (first accounts).
 
 volumes:
   data:
-  caddy-data:
-  caddy-config:
+
+networks:
+  # The network your reverse proxy is already on. `docker network create
+  # proxy` if it does not exist yet; rename it here to match yours.
+  proxy:
+    external: true
+  # app <-> web only. Nothing outside the stack reaches the backend.
+  internal:
 
 services:
   app:
@@ -42,6 +56,8 @@ services:
     # a host reboot the IdP often comes up later than this container, and
     # the restart policy is what turns that race into a short retry loop.
     restart: unless-stopped
+    networks:
+      - internal
     expose:
       - "8080"
     volumes:
@@ -73,21 +89,25 @@ services:
   web:
     image: ghcr.io/polandy/jit-pack-client:0.2.0
     restart: unless-stopped
+    networks:
+      - internal
+      - proxy
     expose:
       - "80"
     depends_on:
       app:
         condition: service_healthy
-
-  caddy:
-    image: caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    depends_on:
-      - web
+    labels:
+      traefik.enable: "true"
+      # One router for the whole hostname: the client image's nginx
+      # already routes /api/, /ws and /health to the backend, so there is
+      # no second, higher-priority API router whose precedence you have to
+      # get right (that variant, for a hand-built static site, is in the
+      # installation manual).
+      traefik.http.routers.jitpack.rule: "Host(`jitpack.example.com`)"
+      traefik.http.routers.jitpack.entrypoints: "websecure"
+      traefik.http.routers.jitpack.tls.certresolver: "letsencrypt"
+      traefik.http.services.jitpack.loadbalancer.server.port: "80"
+      # Traefik watches every network a container is on; naming the one it
+      # should dial keeps it from picking `internal` and timing out.
+      traefik.docker.network: "proxy"

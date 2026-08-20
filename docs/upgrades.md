@@ -23,7 +23,7 @@ Whether a given release actually changed the schema is not something you can tel
    - If it starts, the schema did not change — you are done, and the exports cost you a minute.
    - If it refuses with the stale-schema error, move the old database file aside (keep it — it pairs with the old image), start the new version against an empty path, and **import** your YAML exports through the app or the [import endpoints](backup.md#template-export-and-import).
 
-On a multi-user instance, accounts need no export: they are provisioned from the identity provider, so everyone gets their account back by [logging in again](family-setup.md).
+On a multi-user instance, accounts need no export: they are provisioned from the identity provider, so everyone gets their account back by [logging in again](multi-user-setup.md).
 
 ## What the portable exports do not carry
 
@@ -45,4 +45,4 @@ Pin the version **and the digest** before a trip and leave it pinned until you a
 image: ghcr.io/polandy/jit-pack:0.2.0@sha256:…   # imagetools inspect prints the digest
 ```
 
-A tag alone can be rebuilt; the digest cannot change under you, so nothing — not a re-pulled tag, not a well-meaning auto-updater like Watchtower — can swap the server out while the family depends on it. Upgrade after the trip, when lost packing progress is a shrug instead of a problem. The same logic applies to any auto-update mechanism: exclude JIT-Pack from it entirely while pre-1.0, and upgrade deliberately with the routine above.
+A tag alone can be rebuilt; the digest cannot change under you, so nothing — not a re-pulled tag, not a well-meaning auto-updater like Watchtower — can swap the server out while everyone depends on it. Upgrade after the trip, when lost packing progress is a shrug instead of a problem. The same logic applies to any auto-update mechanism: exclude JIT-Pack from it entirely while pre-1.0, and upgrade deliberately with the routine above.
