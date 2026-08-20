@@ -59,7 +59,13 @@ import { formatWeight } from '@/lib/format'
 import { currentLocale, t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import type { ItemComment, ItemMode, ItemTodo, TripParticipant } from '@/types/domain'
+import type {
+  ItemComment,
+  ItemMode,
+  ItemTodo,
+  ReviewFlag,
+  TripParticipant,
+} from '@/types/domain'
 
 const props = defineProps<{
   tripId: string
@@ -200,6 +206,11 @@ function onTravelerChange(id: string | null) {
 function onContainerChange(id: string | null) {
   if (item.value) orchestrator.assignContainer(props.tripId, item.value, id)
 }
+/** FR-9.1: the judgement is revocable, so the toggle writes both ways. */
+function onReviewFlag(flag: ReviewFlag, value: boolean) {
+  if (item.value) orchestrator.setReviewFlag(props.tripId, item.value, flag, value)
+}
+
 function onLatePacker(value: boolean) {
   if (item.value) orchestrator.setLatePacker(props.tripId, item.value, value)
 }
@@ -342,7 +353,7 @@ const packedStamp = computed(() => {
     </button>
 
     <!-- Read-only summary of everything Details can change (FR-25.14). -->
-    <div class="glance">
+    <div class="glance" data-testid="m5-glance">
       <span class="chip">
         <UserAvatar
           v-if="travelerName"
@@ -363,6 +374,7 @@ const packedStamp = computed(() => {
         <IonIcon :icon="timeOutline" /> {{ t('mode.latePacker') }}
       </span>
       <span v-if="item.flag_missing" class="chip warn">{{ t('facet.flagMissing') }}</span>
+      <span v-if="item.flag_unused" class="chip warn">{{ t('facet.flagUnused') }}</span>
     </div>
 
     <!-- FR-7.3: the work attached to the thing, before the thing's fields. -->
@@ -531,14 +543,37 @@ const packedStamp = computed(() => {
           @ion-change="(e: CustomEvent) => onLatePacker(e.detail.checked)"
         />
       </IonItem>
-      <!-- FR-9.1: the two review flags only mean anything on a live trip. -->
-      <IonItem v-if="isActive">
-        <IonIcon slot="start" :icon="removeCircleOutline" />
-        <IonLabel>{{ t('item.flags') }}</IonLabel>
-        <IonNote slot="end">
-          {{ item.flag_missing ? t('facet.flagMissing') : t('item.noFlags') }}
-        </IonNote>
-      </IonItem>
+      <!-- FR-9.1: the two review flags only mean anything on a live trip,
+           and they are what M14 harvests afterwards — so they are controls
+           here, not a readout. -->
+      <template v-if="isActive">
+        <IonItem>
+          <IonIcon slot="start" :icon="removeCircleOutline" />
+          <IonLabel>
+            <h3>{{ t('facet.flagUnused') }}</h3>
+            <p>{{ t('item.flagUnusedHint') }}</p>
+          </IonLabel>
+          <IonToggle
+            slot="end"
+            :checked="item.flag_unused"
+            data-testid="m5-flag-unused"
+            @ion-change="(e: CustomEvent) => onReviewFlag('unused', e.detail.checked)"
+          />
+        </IonItem>
+        <IonItem>
+          <IonIcon slot="start" :icon="alertCircleOutline" />
+          <IonLabel>
+            <h3>{{ t('facet.flagMissing') }}</h3>
+            <p>{{ t('item.flagMissingHint') }}</p>
+          </IonLabel>
+          <IonToggle
+            slot="end"
+            :checked="item.flag_missing"
+            data-testid="m5-flag-missing"
+            @ion-change="(e: CustomEvent) => onReviewFlag('missing', e.detail.checked)"
+          />
+        </IonItem>
+      </template>
       <IonItem v-if="packedStamp" lines="none">
         <IonNote data-testid="m5-stamp">{{ packedStamp }}</IonNote>
       </IonItem>

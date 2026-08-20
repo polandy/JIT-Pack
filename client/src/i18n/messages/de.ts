@@ -254,7 +254,8 @@ export const de: Record<keyof typeof en, string> = {
   'item.luggageOptional': 'Gepäck · optional',
   'item.latePackerHint': 'Erst am Abreisetag packen',
   'item.flags': 'Markierungen',
-  'item.noFlags': 'keine',
+  'item.flagUnusedHint': 'Mitgenommen, nie gebraucht',
+  'item.flagMissingHint': 'Gebraucht und nicht dabei',
   'item.saving': 'Speichert…',
   'item.saved': 'Gespeichert',
   'item.notFound': 'Diese Sache ist nicht auf der Liste.',
@@ -303,6 +304,7 @@ export const de: Record<keyof typeof en, string> = {
   'facet.noLuggage': 'Ohne Gepäck',
   'facet.flagLate': '⏰ Spätpacker',
   'facet.flagMissing': 'fehlt',
+  'facet.flagUnused': 'ungenutzt',
   'facet.flagPrep': 'Hat Vorbereitung',
 
   'group.category': 'Kategorie',
