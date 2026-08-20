@@ -181,6 +181,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 
 * **E2E-PWA-01** `local` (NFR-4.13): once the service worker controls the page, a reload with the network cut still paints the app — asserted on the rendered chrome (header logo, visible page), never the URL. Settling is the worker's own lifecycle (`ready`, `controllerchange`), no timeouts.
 * **E2E-PWA-02** `local` (NFR-4.13/NFR-4.2a): the shell cache holds the bundle (`/index.html` — the positive signal) and never `/health`, provoked by fetching it with the worker in control. Guards the never-cache rule for the class `/api`, `/ws`, `/health`.
+* **E2E-PWA-03** `local` (NFR-4.13): the install declaration is complete — the manifest link and apple-touch-icon are in the document head, the manifest names JIT-Pack with standalone display and a maskable icon, and every declared icon URL actually resolves. A typo'd path here ships silently, because nothing else in the app ever fetches these files.
 
 *Chromium only:* Playwright hosts service workers only there; the worker under test is engine-independent and identical in WebKit.
 

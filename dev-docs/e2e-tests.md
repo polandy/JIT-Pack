@@ -59,7 +59,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
-| App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
+| App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
 (create / import). The screen has neither as a button: create is the FAB and
@@ -772,6 +772,10 @@ the worker is identical in every engine.
   no cache entry appears — beside the positive signal that the same cache,
   read the same way, does hold `/index.html`. Red-proved with a
   runtime-cache-everything mutation (bypass removed, `cache.put` on fetch).
+* **E2E-PWA-03** asserts the install declaration end to end: head tags,
+  manifest content (name, standalone, maskable purpose) and that every
+  declared icon URL resolves. Red-proved by pointing the manifest link at a
+  file that does not exist.
 
 One platform lesson recorded in `sw.js` itself: static servers answer assets
 with `Vary: Origin`, and Vite's `crossorigin` module scripts request them

@@ -72,4 +72,35 @@ test.describe('app shell offline (NFR-4.13)', () => {
     expect(cached.shell).toBe(true)
     expect(cached.health).toBe(false)
   })
+
+  test('E2E-PWA-03: the install declaration is complete and every icon resolves', async ({
+    page,
+  }) => {
+    await page.goto('/tabs/dashboard')
+
+    // The head tags a browser reads before offering installation. A typo'd
+    // path here ships silently — nothing else in the app ever fetches these.
+    const manifestHref = await page
+      .locator('link[rel="manifest"]')
+      .getAttribute('href', { timeout: 5000 })
+    expect(manifestHref).toBe('/manifest.webmanifest')
+    const appleIcon = await page.locator('link[rel="apple-touch-icon"]').getAttribute('href')
+    expect(appleIcon).toBeTruthy()
+
+    const manifest = await page.evaluate(async (href: string) => {
+      const resp = await fetch(href)
+      return resp.ok ? resp.json() : null
+    }, manifestHref!)
+    expect(manifest?.name).toBe('JIT-Pack')
+    expect(manifest?.display).toBe('standalone')
+    const purposes = manifest.icons.map((icon: { purpose: string }) => icon.purpose)
+    expect(purposes).toContain('maskable')
+
+    // Every declared icon must actually exist — the apple one included.
+    const urls = [...manifest.icons.map((icon: { src: string }) => icon.src), appleIcon!]
+    for (const url of urls) {
+      const ok = await page.evaluate(async (u: string) => (await fetch(u)).ok, url)
+      expect(ok, `icon ${url} must resolve`).toBe(true)
+    }
+  })
 })
