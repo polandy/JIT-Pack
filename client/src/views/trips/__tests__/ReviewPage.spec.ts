@@ -179,7 +179,13 @@ describe('ReviewPage (M14, FR-27.11)', () => {
     expect(rows).toHaveLength(2)
     expect(rows[0]!.get('[data-testid="m14-state"]').text()).toContain('applied')
     // The footer counts what was written; the open count drops.
-    expect(wrapper.get('[data-testid="m14-summary"]').text()).toContain('1')
+    const summary = wrapper.get('[data-testid="m14-summary"]').text()
+    expect(summary).toContain('1')
+    // FR-27.4 has been an *offer* since 2026-08-18: a trip following the
+    // group is asked on its next open and may decline. The footer said
+    // planning trips "pick it up immediately", which is the pre-revision
+    // model — a promise the app does not keep.
+    expect(summary).not.toMatch(/immediately|sofort/i)
     expect(wrapper.get('[data-testid="m14-open-count"]').text()).toContain('1')
   })
 

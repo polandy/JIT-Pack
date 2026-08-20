@@ -250,7 +250,8 @@ export const en = {
   'item.luggageOptional': 'Luggage · optional',
   'item.latePackerHint': 'Pack on departure day',
   'item.flags': 'Flags',
-  'item.noFlags': 'none set',
+  'item.flagUnusedHint': 'Taken along, never needed',
+  'item.flagMissingHint': 'Was needed and was not there',
   'item.saving': 'Saving…',
   'item.saved': 'Saved',
   'item.notFound': 'This item is not on the list.',
@@ -299,6 +300,7 @@ export const en = {
   'facet.noLuggage': 'No luggage',
   'facet.flagLate': '⏰ Late packer',
   'facet.flagMissing': 'Missing',
+  'facet.flagUnused': 'Unused',
   'facet.flagPrep': 'Has preparation',
 
   'group.category': 'Category',
@@ -425,7 +427,7 @@ export const en = {
   'review.stateSkipped': 'skipped',
   'review.appliedHead': 'Applied · {n}',
   'review.appliedSummary':
-    '{n} change written to the groups. Planned trips pick it up immediately. | {n} changes written to the groups. Planned trips pick them up immediately.',
+    '{n} change written to the groups. Trips that follow them are asked on their next open. | {n} changes written to the groups. Trips that follow them are asked on their next open.',
   'review.empty': 'Nothing to review — no flags were set.',
   'review.snackUnused': 'Set “{item}” to 0 in group “{group}”',
   'review.snackMissing': 'Added “{item}” to group “{group}”',

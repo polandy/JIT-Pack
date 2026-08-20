@@ -181,4 +181,35 @@ test.describe('M5 item detail @local @m5', () => {
     expect(save.width).toBeCloseTo(close.width, 1)
     expect(save.centerY).toBeCloseTo(close.centerY, 1)
   })
+  // E2E-M5-17 (FR-9.1): the two trip-feedback flags are controls behind
+  // *Details ▾*, and only while the trip runs. Until 2026-08-20 the sheet
+  // printed them as a note, which left *unused* — the flag M14's assistant
+  // is mostly about — unwritable anywhere in the app.
+  test('E2E-M5-17: an item can be marked unused, but only once the trip runs', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-input').locator('input').fill('Regenhose')
+    await page.getByTestId('quick-add-confirm').click()
+    await page.keyboard.press('Escape')
+    await page.getByTestId('m4-row-Regenhose').getByRole('heading').click()
+    await page.getByTestId('m5-details').click()
+
+    // A judgement about a trip that has not happened yet means nothing.
+    await expect(page.getByTestId('m5-flag-unused')).toHaveCount(0)
+
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+    await page.getByTestId('m4-start').click()
+    // The archive action appearing is the settled signal for the status write.
+    await expect(page.getByTestId('m4-archive')).toBeVisible()
+
+    await page.getByTestId('m4-row-Regenhose').getByRole('heading').click()
+    await page.getByTestId('m5-details').click()
+    await page.getByTestId('m5-flag-unused').click()
+
+    // The glance chip renders off the stored row, so it is the flag itself
+    // being read back and not the toggle's own state.
+    await expect(page.getByTestId('m5-glance')).toContainText('Unused')
+  })
 })

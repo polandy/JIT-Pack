@@ -131,13 +131,18 @@ export function buildReviewProposals(args: ReviewArgs): ReviewProposal[] {
  * any group; an `unused` proposal can only move between groups that
  * actually carry the item — zeroing a position that does not exist
  * would apply silently as nothing.
+ *
+ * Ordered by name, because the caller's list arrives in storage order and
+ * a picker is read by a human (the FR-27.2 lesson).
  */
 export function retargetGroups(
   proposal: ReviewProposal,
   templates: Template[],
   templateItems: (templateId: string) => TemplateItem[],
 ): Template[] {
-  const groups = templates.filter((t) => t.kind === 'group')
+  const groups = templates
+    .filter((t) => t.kind === 'group')
+    .sort((a, b) => a.name.localeCompare(b.name))
   if (proposal.kind === 'missing') return groups
   return groups.filter((g) => templateItems(g.id).some((ti) => ti.item_id === proposal.itemId))
 }

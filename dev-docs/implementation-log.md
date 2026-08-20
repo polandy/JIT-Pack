@@ -3725,3 +3725,60 @@ had been using the app-bar title as the „M4 is open" signal; the helper scopes
 to the *painted* page, because the name now lives inside the router outlet
 where Ionic keeps the outgoing page mounted through a transition — unscoped, it
 could read the trip being left.
+
+## M14's positive tests, and the flag nobody could set (2026-08-20)
+
+M14's positive e2e cases had been recorded as *owed but unwritten* since M21
+shipped the planning→active step. Writing them found that the recorded block
+was only half the story, and that a defect had been hiding behind it.
+
+**The flag the assistant is about had no writer.** FR-9.1 names two flags.
+*Missing* is stamped by M4's quick-add on an active trip; *unused* — the one
+FR-9.2's assistant is mostly written around, because the harvest of a trip is
+mostly „mitgenommen, nie gebraucht" — could not be set anywhere in the app.
+M5's Details block listed the pair the way the UI-Spec does, but as a
+**read-only note** among controls, so the screen looked complete and wrote
+nothing. Consequence: M14 had only ever been exercised by the dev fixture, and
+"unblocked" had been checked against `archived` alone. **The precondition was
+two things and only one of them was verified.** The control is two toggles now,
+active trips only, both revocable — the merge already allows that: setting a
+flag is additive (NFR-4.2a rule 1), clearing one is ordinary last-writer-wins.
+
+**Then the first run showed one proposal instead of two, and that was a real
+defect.** The client's optimistic update carries a *whole row*, and both the
+store and the Local Mode IndexedDB write **replace** rather than patch — so the
+hand-maintained projection behind it (`itemRow`) was a list of columns that had
+to mirror a growing type, and did not. It omitted `source_template_id`,
+`packed_by_user_id`, `packed_at` and `packing_now_at`. One M5 edit — a flag, a
+traveler, a container, the Late-Packer toggle — **detached a generated row from
+the group it came from**, permanently in Local Mode, where no pull ever
+restores it. FR-27.4's refresh, FR-27.5's recognition and FR-9.2's proposals
+all read that provenance; the assistant is simply where it surfaced first. The
+guard is written against the whole `TripItem` type rather than the four
+columns, so the next column added is covered the day it is added, and removing
+the one line turns E2E-M14-01 and -02 red.
+
+**Two smaller findings came with the cases.** The retarget picker listed its
+groups in storage order — the same class of finding as FR-27.2's include
+order, and fixed in the same place: `retargetGroups` sorts by name, with a
+domain case behind it rather than an e2e assertion pinning a symptom. And the
+picker is now closed by **choosing the value it already has** instead of
+Escape: dismissal is Ionic's own path then, so the wait is on a state the app
+reaches by itself — Escape left the popover up often enough to be seen in a
+repeat run.
+
+**What stays uncovered, and says so.** E2E-M14-03's second clause — the same
+item surfacing for another group — needs one item flagged twice under two
+groups, which one trip cannot produce. It stays unit-owned and the UI-Test-Spec
+sentence names the gap instead of marking the id done.
+
+**One more thing the render caught.** M14's applied-changes footer still said
+planning trips „übernehmen sie sofort" — the FR-27.4 model as it stood before
+the 2026-08-18 revision made a group change an *offer* answered at the trip.
+The per-row blast line on the same screen already said „wird N Reisen
+vorgeschlagen", so the screen carried both models at once and one of them was a
+promise the app does not keep. Corrected in both catalogues, and the component
+test asserts the *claim* (no „sofort"/„immediately") rather than the copy. It
+took **rendering the screen with real proposals** to see it: the sentence only
+appears once something has been applied, which is a state no test and no
+screenshot had ever reached.

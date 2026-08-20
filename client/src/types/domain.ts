@@ -82,6 +82,22 @@ export interface TripItem {
   updated_hlc: string
 }
 
+/**
+ * The two FR-9.1 trip-feedback flags. Named once because three layers
+ * speak the same vocabulary: M5's control writes them, M14's proposals
+ * are keyed by them, and M12 counts them.
+ */
+export type ReviewFlag = 'unused' | 'missing'
+
+/**
+ * The column each flag lives in — a serialization key, the documented
+ * §4a carve-out, kept beside the type so the pair cannot drift.
+ */
+export const REVIEW_FLAG_FIELD = {
+  unused: 'flag_unused',
+  missing: 'flag_missing',
+} as const satisfies Record<ReviewFlag, keyof Pick<TripItem, 'flag_unused' | 'flag_missing'>>
+
 export type GroupBy = 'category' | 'container' | 'person' | 'status'
 
 /** The axes M4's filter panel offers, in panel order (FR-25.11b). */
