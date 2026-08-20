@@ -16,7 +16,10 @@ function fakeRegistration(overrides: { waiting?: object | null } = {}) {
   const listeners = new Map<string, Listener[]>()
   return {
     waiting: overrides.waiting ?? null,
-    installing: null as { state: string; addEventListener: (t: string, l: Listener) => void } | null,
+    installing: null as {
+      state: string
+      addEventListener: (t: string, l: Listener) => void
+    } | null,
     addEventListener(type: string, listener: Listener) {
       listeners.set(type, [...(listeners.get(type) ?? []), listener])
     },
