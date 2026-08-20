@@ -37,6 +37,7 @@ function mountSheet(props: Partial<InstanceType<typeof SyncDetailSheet>['$props'
       storage: null,
       lastExportAt: null,
       hasBackupContent: false,
+      updateReady: false,
       now: NOW,
       ...props,
     },
@@ -162,6 +163,29 @@ describe('SyncDetailSheet — Local Mode (FR-19.6, NFR-4.11)', () => {
 
     expect(has(wrapper, 'sync-detail-backup')).toBe(false)
     expect(text(wrapper, 'sync-detail-backup-empty')).toContain('Nothing to back up')
+  })
+})
+
+describe('SyncDetailSheet — a new version waiting (NFR-4.13, ADR-019)', () => {
+  it('announces the waiting version and when it takes over — never a forced reload', () => {
+    const wrapper = mountSheet({ updateReady: true })
+
+    expect(text(wrapper, 'sync-detail-update')).toContain('new version')
+    expect(text(wrapper, 'sync-detail-update')).toContain('next time you open')
+  })
+
+  it('shows it in Local Mode too — the bundle updates in every mode', () => {
+    const wrapper = mountSheet({ mode: 'local', updateReady: true })
+
+    expect(has(wrapper, 'sync-detail-update')).toBe(true)
+  })
+
+  it('says nothing while no update is waiting', () => {
+    const wrapper = mountSheet({ updateReady: false })
+
+    // The positive signal the absence leans on: the same sheet rendered.
+    expect(text(wrapper, 'sync-detail-title')).toBe('Synced')
+    expect(has(wrapper, 'sync-detail-update')).toBe(false)
   })
 })
 
