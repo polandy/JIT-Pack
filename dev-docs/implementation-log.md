@@ -3771,3 +3771,14 @@ repeat run.
 item surfacing for another group — needs one item flagged twice under two
 groups, which one trip cannot produce. It stays unit-owned and the UI-Test-Spec
 sentence names the gap instead of marking the id done.
+
+**One more thing the render caught.** M14's applied-changes footer still said
+planning trips „übernehmen sie sofort" — the FR-27.4 model as it stood before
+the 2026-08-18 revision made a group change an *offer* answered at the trip.
+The per-row blast line on the same screen already said „wird N Reisen
+vorgeschlagen", so the screen carried both models at once and one of them was a
+promise the app does not keep. Corrected in both catalogues, and the component
+test asserts the *claim* (no „sofort"/„immediately") rather than the copy. It
+took **rendering the screen with real proposals** to see it: the sentence only
+appears once something has been applied, which is a state no test and no
+screenshot had ever reached.

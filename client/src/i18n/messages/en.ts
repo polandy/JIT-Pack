@@ -427,7 +427,7 @@ export const en = {
   'review.stateSkipped': 'skipped',
   'review.appliedHead': 'Applied · {n}',
   'review.appliedSummary':
-    '{n} change written to the groups. Planned trips pick it up immediately. | {n} changes written to the groups. Planned trips pick them up immediately.',
+    '{n} change written to the groups. Trips that follow them are asked on their next open. | {n} changes written to the groups. Trips that follow them are asked on their next open.',
   'review.empty': 'Nothing to review — no flags were set.',
   'review.snackUnused': 'Set “{item}” to 0 in group “{group}”',
   'review.snackMissing': 'Added “{item}” to group “{group}”',

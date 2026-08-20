@@ -426,7 +426,7 @@ export const de: Record<keyof typeof en, string> = {
   'review.stateSkipped': 'übersprungen',
   'review.appliedHead': 'Übernommen · {n}',
   'review.appliedSummary':
-    '{n} Änderung in die Gruppen geschrieben. Geplante Reisen übernehmen sie sofort. | {n} Änderungen in die Gruppen geschrieben. Geplante Reisen übernehmen sie sofort.',
+    '{n} Änderung in die Gruppen geschrieben. Reisen, die den Gruppen folgen, werden beim nächsten Öffnen gefragt. | {n} Änderungen in die Gruppen geschrieben. Reisen, die den Gruppen folgen, werden beim nächsten Öffnen gefragt.',
   'review.empty': 'Nichts zu prüfen — keine Merkmale gesetzt.',
   'review.snackUnused': 'Menge von „{item}“ in Gruppe „{group}“ auf 0 gesetzt',
   'review.snackMissing': '„{item}“ in Gruppe „{group}“ aufgenommen',
