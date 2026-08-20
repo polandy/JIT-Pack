@@ -59,6 +59,7 @@ import type {
   ItemMode,
   ItemTodo,
   MasterItem,
+  ReviewFlag,
   Template,
   TemplateKind,
   TemplateItem,
@@ -737,6 +738,25 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   function setLatePacker(tripId: string, item: TripItem, latePacker: boolean) {
     const mut = mutations.setLatePacker(item.id, latePacker)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0,
+        table: TABLE.tripItems,
+        id: item.id,
+        deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  /**
+   * FR-9.1: the M5 control's write. Same shape as setLatePacker — one
+   * field, the rest of the row preserved, so flagging never touches the
+   * packing record it is a judgement about.
+   */
+  function setReviewFlag(tripId: string, item: TripItem, flag: ReviewFlag, value: boolean) {
+    const mut = mutations.setReviewFlag(item.id, flag, value)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
       optimistic: {
@@ -2866,6 +2886,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     assignTraveler,
     assignContainer,
     setLatePacker,
+    setReviewFlag,
     quickAddItem,
     addGroupToTrip,
 

@@ -9,7 +9,14 @@ import { TABLE } from '@/types/tables'
 import { newId } from '@/lib/ids'
 import type { Mutation, MutationOp } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
-import type { AppliedChange, GeneratedPosition, ItemMode, TemplateKind } from '@/types/domain'
+import { REVIEW_FLAG_FIELD } from '@/types/domain'
+import type {
+  AppliedChange,
+  GeneratedPosition,
+  ItemMode,
+  ReviewFlag,
+  TemplateKind,
+} from '@/types/domain'
 
 /**
  * What the client writes into an actor column it is not allowed to decide.
@@ -140,6 +147,16 @@ export function useMutations(hlc: HLCGenerator) {
 
   function setLatePacker(itemId: string, latePacker: boolean): Mutation {
     return make('upsert', TABLE.tripItems, itemId, { late_packer: latePacker ? 1 : 0 })
+  }
+
+  /**
+   * FR-9.1 trip feedback. Setting a flag is *additive* in the merge
+   * (internal/sync/merge.go) so a concurrent edit can never lose it;
+   * clearing one is an ordinary last-writer-wins field, because a
+   * judgement made by mistake has to be revocable.
+   */
+  function setReviewFlag(itemId: string, flag: ReviewFlag, value: boolean): Mutation {
+    return make('upsert', TABLE.tripItems, itemId, { [REVIEW_FLAG_FIELD[flag]]: value ? 1 : 0 })
   }
 
   function addTripItem(
@@ -842,6 +859,7 @@ export function useMutations(hlc: HLCGenerator) {
     assignTraveler,
     assignContainer,
     setLatePacker,
+    setReviewFlag,
     addTripItem,
     deleteTripItem,
     addTraveler,

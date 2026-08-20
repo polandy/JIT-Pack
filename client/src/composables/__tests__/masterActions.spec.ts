@@ -182,3 +182,51 @@ describe('M5 assignment actions on the trip partition', () => {
     expect(item.state).toBe('partial')
   })
 })
+
+describe('FR-9.1 review flags (M5 Details)', () => {
+  function seedRow() {
+    const trips = useTripStore()
+    trips.applyChange({
+      seq: 0,
+      table: 'trip_items',
+      id: 'ti1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Regenhose',
+        quantity: 1,
+        packed_count: 1,
+        state: 'packed',
+        mode: 'pack',
+      },
+    })
+    return trips
+  }
+
+  it('setReviewFlag marks an item unused without disturbing its packing record', () => {
+    const orch = newOrch()
+    const trips = seedRow()
+    mockDrain()
+
+    orch.setReviewFlag('t1', trips.getItems('t1')[0]!, 'unused', true)
+
+    const item = trips.getItems('t1')[0]!
+    expect(item.flag_unused).toBe(true)
+    expect(item.flag_missing).toBe(false)
+    expect(item.state).toBe('packed')
+    expect(item.packed_count).toBe(1)
+  })
+
+  it('setReviewFlag clears a flag again — a wrong judgement is not permanent', () => {
+    const orch = newOrch()
+    const trips = seedRow()
+    mockDrain()
+    mockDrain()
+
+    orch.setReviewFlag('t1', trips.getItems('t1')[0]!, 'missing', true)
+    expect(trips.getItems('t1')[0]!.flag_missing).toBe(true)
+
+    orch.setReviewFlag('t1', trips.getItems('t1')[0]!, 'missing', false)
+    expect(trips.getItems('t1')[0]!.flag_missing).toBe(false)
+  })
+})
