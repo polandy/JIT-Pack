@@ -46,10 +46,14 @@ nav:
       - Walkthrough: getting-started.md
       - Installation: installation.md
       - Configuration: configuration.md
+      - Install on Your Phone: install-app.md
   - Operating:
       - Authentication: authentication.md
+      - Multi-user Setup: multi-user-setup.md
       - User Management: user-management.md
+      - Notifications & Push: notifications.md
       - Backup & Export: backup.md
+      - Upgrades: upgrades.md
       - Troubleshooting: troubleshooting.md
 
 markdown_extensions:

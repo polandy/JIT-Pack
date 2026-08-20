@@ -61,6 +61,8 @@ export const de: Record<keyof typeof en, string> = {
   'sync.detail.backupHint':
     'Eine YAML-Datei mit allen Reisen und Vorlagen. Zurückspielen geht über den Import.',
   'sync.detail.backupSaved': 'Sicherung gespeichert: {file}',
+  'sync.detail.updateReady':
+    'Eine neue Version von JIT-Pack ist bereit. Sie übernimmt beim nächsten Öffnen der App.',
 
   'trip.daysUntil': 'noch {n} Tage',
   'trip.departsToday': 'Heute geht es los',

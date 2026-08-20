@@ -247,13 +247,14 @@ jobs:
           git commit -am "style: apply automatic formatting"
           git push
 
-  # Verifies the image still builds on every change; docker.yml only
-  # builds and pushes on release tags.
+  # Verifies both images still build on every change; docker.yml only
+  # builds and pushes on release tags (backend + client, same matrix).
   docker-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - run: docker build .
+      - run: docker build client
 
   # Merges patch/minor Dependabot PRs once every check above is green.
   # Branch protection with required status checks is unavailable on a

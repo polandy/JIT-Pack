@@ -59,6 +59,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
+| App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
@@ -758,6 +759,35 @@ are reports rather than rows.
   the trip as a proposal. The registration is invisible on the screen that
   writes it, so the only honest assertion of it is the effect it has later.
 
+## App shell offline (`e2e/pwa-offline.spec.ts`, 2026-08-20)
+
+The NFR-4.13 shell cache, driven in Local Mode because that is the mode where
+"the data was offline-first but the app needed the network to boot" was an
+actual gap. **Chromium only**: Playwright hosts service workers only there;
+the worker is identical in every engine.
+
+* **E2E-PWA-01** waits on the worker's own lifecycle (`ready`, then
+  `controllerchange` if the page is not yet controlled — real events, no
+  timeouts), cuts the network, reloads, and asserts the *rendered* chrome.
+  Red-proved by unregistering the worker's fetch handler: the offline reload
+  paints nothing and the case fails.
+* **E2E-PWA-02** guards the never-cache rule (`/api`, `/ws`, `/health`) at its
+  observable edge: it fetches `/health` with the worker in control and asserts
+  no cache entry appears — beside the positive signal that the same cache,
+  read the same way, does hold `/index.html`. Red-proved with a
+  runtime-cache-everything mutation (bypass removed, `cache.put` on fetch).
+* **E2E-PWA-03** asserts the install declaration end to end: head tags,
+  manifest content (name, standalone, maskable purpose) and that every
+  declared icon URL resolves. Red-proved by pointing the manifest link at a
+  file that does not exist.
+
+One platform lesson recorded in `sw.js` itself: static servers answer assets
+with `Vary: Origin`, and Vite's `crossorigin` module scripts request them
+*with* an Origin header while install-time `addAll` fetched without one — so
+strict cache matching missed every asset and the offline reload painted a
+blank page. The worker matches with `ignoreVary: true`; correct here because
+every shell file is content-hashed and has exactly one representation.
+
 ## Single-User backend sync (`e2e/single/server-sync.spec.ts`, 2026-08-20)
 
 The first backend-backed unit: a real `jitpackd` in Single-User
@@ -814,4 +844,3 @@ outbox is the named next tenant):
   `conflict-field`, `conflict-losing`, `conflict-winning`,
   `conflict-empty`) — it had none, and the ledger's own selector rule makes
   adding them part of writing the case.
-
