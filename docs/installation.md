@@ -14,18 +14,19 @@ If you just want an instance running on your laptop to look at, follow the [Gett
 
 ## Docker
 
-The backend image is published on every `v*` tag:
+Two images are published on every `v*` tag:
 
 ```
-ghcr.io/polandy/jit-pack
+ghcr.io/polandy/jit-pack          # the backend, jitpackd
+ghcr.io/polandy/jit-pack-client   # the SPA + nginx, ready to sit in front of it
 ```
 
-It is built from the repository root `Dockerfile`: a `CGO_ENABLED=0` build of `./cmd/jitpackd` copied into Alpine, entrypoint `jitpackd`, `EXPOSE 8080`, with an empty `/data` directory prepared for the database. Only the backend is published — there is no image for the client.
+The backend image is built from the repository root `Dockerfile`: a `CGO_ENABLED=0` build of `./cmd/jitpackd` copied into Alpine, entrypoint `jitpackd`, `EXPOSE 8080`, with an empty `/data` directory prepared for the database. The client image is covered [below](#the-client-image).
 
 ```yaml
 services:
   jitpack:
-    image: ghcr.io/polandy/jit-pack:1.0.0
+    image: ghcr.io/polandy/jit-pack:0.2.0
     restart: unless-stopped
     volumes:
       - jitpack-data:/data
@@ -47,7 +48,7 @@ volumes:
 
 Notes on that file:
 
-- **Pin a version tag.** `latest` exists, but it moves with every release.
+- **Pin a version tag.** `latest` exists, but it moves with every release — check the [Releases page](https://github.com/polandy/JIT-Pack/releases) for the current version. To freeze the deployment completely, pin the digest as well (`docker buildx imagetools inspect ghcr.io/polandy/jit-pack:0.2.0` prints it; then `image: ghcr.io/polandy/jit-pack:0.2.0@sha256:…`). [Upgrades](upgrades.md) explains when that matters.
 - **`wget` is in the image** (the Dockerfile installs it alongside `ca-certificates`), which is what makes the healthcheck above work without adding anything.
 - **No published port.** Nothing outside needs to reach `8080` directly — the reverse proxy does, over the Docker network. Add `ports:` only if you are debugging.
 - **The volume must survive recreation.** `/data` holds the database; without the volume, every `docker compose up` starts an empty instance.
@@ -59,7 +60,7 @@ Notes on that file:
 
 ## Building from source
 
-You need **Go 1.25 or newer** (`go.mod` declares `go 1.25.0`; the release image builds on Go 1.26) and, for the client, **Node 24**.
+You need **Go 1.26 or newer** (`go.mod` declares `go 1.26.0`, which is also what the release image builds on) and, for the client, **Node 24**.
 
 ```bash
 git clone https://github.com/polandy/JIT-Pack.git
@@ -87,12 +88,37 @@ The SPA is a normal Vite build in `client/`:
 ```bash
 cd client
 npm ci
-VITE_API_URL=https://jitpack.example.com npm run build
+npm run build
 ```
 
 The result lands in `client/dist` — plain static files. Copy that directory to wherever your web server serves from, or bake it into an image (the repository's `client/Dockerfile` does exactly that with nginx).
 
-`VITE_API_URL` becomes the client's **default** backend base URL, used when the device has not been configured yet. The lookup order in `client/src/config.ts` is: the URL stored in `localStorage` under `jitpack_server_url` (what the first-launch screen writes when someone picks *Server* and types an address), then `VITE_API_URL`, then `http://localhost:8080`. The value is used as an absolute URL prefix — there is no "same-origin relative path" mode — so set it to the public origin of your deployment, and it will match the origin the browser is already on.
+You normally do **not** need to configure a backend URL into the build. The lookup order in `client/src/config.ts` is: the URL stored in `localStorage` under `jitpack_server_url` (what the first-launch screen writes when someone picks *Server* and types an address), then a build-time `VITE_API_URL` if one was set, then **the page's own origin**. Since the SPA and the API must share one origin anyway (next section), the default is right for every real deployment, and the first-launch screen comes pre-filled with it. Set `VITE_API_URL=https://…` at build time only if you have a reason to point fresh devices somewhere other than where the app is served from.
+
+### The client image
+
+`ghcr.io/polandy/jit-pack-client` is that build baked into nginx, with [a config](https://github.com/polandy/JIT-Pack/blob/main/client/nginx.conf) that already implements the whole routing table below: it serves the SPA with the `index.html` fallback and proxies `/api/`, `/ws` (upgrade headers included) and `/health` to the backend. It is built **without** `VITE_API_URL`, so the app talks to whatever origin serves it — which is exactly the same-origin shape the backend requires.
+
+Two things to know before using it:
+
+- **It expects the backend at `app:8080`.** The nginx upstream is hard-wired to the hostname `app`, so name the backend service `app` on the shared Docker network — or mount your own config over `/etc/nginx/conf.d/default.conf`.
+- **It listens on plain HTTP (port 80).** TLS termination stays with your reverse proxy, which only needs to forward everything for the hostname to this container, preserving `Host`.
+
+### The example stack
+
+The repository ships a complete stack in [`deploy/multi-user/`](https://github.com/polandy/JIT-Pack/tree/main/deploy/multi-user) — the backend and this client image, with the OIDC variables wired through and Traefik labels for the one route it needs. If you deploy with the client image, that example is the shortest path and you can skip hand-writing the routing rules below.
+
+It is two containers on two networks. `app` is `jitpackd` with the database on a named volume; it is on the `internal` network only, so nothing outside the stack reaches it. `web` is the client image, on `internal` and on your proxy network — it serves the SPA and forwards the API paths to `app`, which is why the backend service has to keep the name `app`.
+
+Three things to change before the first `docker compose up -d`:
+
+- **The hostname.** `jitpack.example.com` appears in the router rule; DNS for it must point at this host before your proxy can obtain a certificate.
+- **The proxy network.** The compose file expects an existing external network called `proxy` — the one your reverse proxy is already on. Rename it to match yours, or create it with `docker network create proxy`. The `traefik.docker.network` label names the network Traefik should dial; without it, a container on two networks can have the wrong address picked and every request times out.
+- **A `.env` beside the compose file**, holding `JITPACK_SESSION_SECRET` (generate once with `openssl rand -hex 32`), the three `JITPACK_OIDC_*` values from [Authentication](authentication.md) and `JITPACK_ADMIN_EMAILS` from [Multi-user Setup](multi-user-setup.md). The compose file refuses to start rather than defaulting them, and the file belongs in no repository.
+
+Not running Traefik? Delete the `labels` block and the `proxy` network, publish `web` on a host port instead, and point your proxy at that port — the routing requirements are identical either way, and they are the section below.
+
+One detail worth keeping if you write your own file: `restart: unless-stopped` on the backend does more than cover crashes. With OIDC configured, `jitpackd` exits at startup when it cannot reach the identity provider, and after a host reboot the identity provider often comes up later than JIT-Pack. The restart policy is what turns that race into a short retry loop instead of a dead service.
 
 ---
 
@@ -131,14 +157,25 @@ Two routers on the same hostname, distinguished by priority: the specific one cl
 ```yaml
 services:
   jitpack:
-    image: ghcr.io/polandy/jit-pack:1.0.0
+    image: ghcr.io/polandy/jit-pack:0.2.0
+    # unless-stopped also covers the IdP boot race: in the OIDC shape,
+    # jitpackd deliberately exits when the issuer is unreachable at
+    # startup, and after a host reboot the IdP often comes up later
+    # than this container. The restart policy turns that into a short
+    # retry loop instead of a dead service.
     restart: unless-stopped
     volumes:
       - jitpack-data:/data
     environment:
       JITPACK_DB_PATH: "/data/jitpack.db"
-      JITPACK_SINGLE_USER: "true"
-      JITPACK_LOCAL_USER_ID: "local"
+      # The production shape is multi-user with OIDC — see
+      # Configuration for what each value is and Authentication for
+      # the IdP side. Values from your secret store, not this file.
+      JITPACK_SESSION_SECRET: "…"
+      JITPACK_OIDC_ISSUER: "https://auth.example.com"
+      JITPACK_OIDC_CLIENT_ID: "jitpack"
+      JITPACK_OIDC_CLIENT_SECRET: "…"
+      JITPACK_ADMIN_EMAILS: "you@example.com"
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
       interval: 30s
