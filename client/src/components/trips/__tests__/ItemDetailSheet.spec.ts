@@ -93,6 +93,17 @@ describe('M5 FR-9.1 flags', () => {
     )
   })
 
+  // A view can name a key no catalogue defines; `t` then renders the key
+  // itself and the integrity test — which only compares the two catalogues
+  // to each other — stays green.
+  it('spells out what each flag means', async () => {
+    seedTrip('active')
+    const wrapper = await openDetails(mountSheet())
+
+    expect(wrapper.text()).toContain('Taken along, never needed')
+    expect(wrapper.text()).toContain('Was needed and was not there')
+  })
+
   it('takes a flag back again — the control is a judgement, not a stamp', async () => {
     seedTrip('active', { flag_missing: true })
     const wrapper = await openDetails(mountSheet())
