@@ -63,13 +63,17 @@ function formatTime(iso: string): string {
       </IonRefresher>
 
       <IonList v-if="conflicts.length > 0">
-        <IonItem v-for="c in conflicts" :key="c.id" lines="inset">
+        <IonItem v-for="c in conflicts" :key="c.id" lines="inset" data-testid="conflict-row">
           <IonLabel>
-            <h3>{{ c.entity_table }} · {{ c.field }}</h3>
+            <h3 data-testid="conflict-field">{{ c.entity_table }} · {{ c.field }}</h3>
             <p>
-              <span class="losing">{{ formatValue(c.losing_value) }}</span>
+              <span class="losing" data-testid="conflict-losing">{{
+                formatValue(c.losing_value)
+              }}</span>
               →
-              <span class="winning">{{ formatValue(c.winning_value) }}</span>
+              <span class="winning" data-testid="conflict-winning">{{
+                formatValue(c.winning_value)
+              }}</span>
             </p>
             <IonNote>{{ formatTime(c.resolved_at) }}</IonNote>
           </IonLabel>
@@ -77,7 +81,7 @@ function formatTime(iso: string): string {
       </IonList>
 
       <!-- Empty state (G-7) -->
-      <div v-else class="empty-state">
+      <div v-else class="empty-state" data-testid="conflict-empty">
         <IonIcon :icon="gitMergeOutline" class="empty-icon" />
         <p v-if="failed">Conflict log unavailable — offline?</p>
         <p v-else>No conflicts — every change merged cleanly</p>

@@ -39,12 +39,31 @@ if [ "$(uname -s)" != "Linux" ]; then
   install='npm ci --no-audit --no-fund >/dev/null && '
 fi
 
+# The backend-backed `single` project (playwright.config.ts) is switched on
+# by E2E_BACKEND and needs the CGO-free jitpackd prebuilt at the repo root —
+# built on the host, run inside the container off the repo mount, which is
+# exactly why the binary must be static. Failing here names the fix; failing
+# inside Playwright would name a dead webServer.
+env_flags=()
+if [ -n "${E2E_BACKEND:-}" ]; then
+  if [ ! -x "${repo_root}/jitpackd-e2e" ]; then
+    echo "error: E2E_BACKEND is set but ${repo_root}/jitpackd-e2e is missing." >&2
+    echo "       Build it first: go build -o jitpackd-e2e ./cmd/jitpackd" >&2
+    exit 1
+  fi
+  env_flags+=(-e E2E_BACKEND)
+fi
+if [ -n "${E2E_API_PORT:-}" ]; then
+  env_flags+=(-e E2E_API_PORT)
+fi
+
 # --user/HOME keep the report and any trace out of root ownership, which
 # `git worktree remove` would otherwise refuse to clean up.
 exec docker run --rm \
   --user "$(id -u):$(id -g)" \
   -e HOME=/tmp \
   -e CI=1 \
+  ${env_flags[@]+"${env_flags[@]}"} \
   --network host \
   "${mounts[@]}" \
   -w /w/client \
