@@ -4,11 +4,11 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
-/**
- * The backend the e2e `single` project boots (playwright.config.ts). One
- * name, read by both files, so the port cannot drift between them.
- */
-const E2E_API_TARGET = `http://localhost:${process.env.E2E_API_PORT ?? 8799}`
+import { E2E_API_PORT } from './e2e/backendPort'
+
+// The backend the e2e `single` project boots (playwright.config.ts). The
+// port is named once in e2e/backendPort.ts so the two files cannot drift.
+const E2E_API_TARGET = `http://localhost:${E2E_API_PORT}`
 
 // https://vite.dev/config/
 export default defineConfig({

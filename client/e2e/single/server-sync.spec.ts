@@ -153,9 +153,7 @@ test.describe('Single-User backend sync @single', () => {
    * queue and are announced; the queue drains on the app's next own action
    * once the network is back; the server converges.
    */
-  test('offline edits queue, announce themselves, and drain on reconnect', async ({
-    browser,
-  }) => {
+  test('offline edits queue, announce themselves, and drain on reconnect', async ({ browser }) => {
     const id = uniq()
     const trip = `Arosa ${id}`
     const item = `Lampe-${id}`
@@ -263,6 +261,11 @@ test.describe('Single-User backend sync @single', () => {
     await expect(visiblePage(pageB).getByTestId('conflict-field')).toHaveText(
       'trip_items · assigned_traveler_id',
     )
+    // The page's whole promise is "what lost, what won" — both values must
+    // render as something, not as blanks (the raw values are traveler ids,
+    // so *which* string is not this case's business).
+    await expect(visiblePage(pageB).getByTestId('conflict-losing')).not.toBeEmpty()
+    await expect(visiblePage(pageB).getByTestId('conflict-winning')).not.toBeEmpty()
 
     await ctxA.close()
     await ctxB.close()

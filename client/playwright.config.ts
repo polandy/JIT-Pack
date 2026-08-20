@@ -3,6 +3,8 @@ import path from 'node:path'
 
 import { defineConfig, devices } from '@playwright/test'
 
+import { E2E_API_PORT } from './e2e/backendPort'
+
 /**
  * Playwright E2E configuration for the JIT-Pack client.
  *
@@ -47,12 +49,15 @@ const BASE_URL = `http://localhost:${PORT}`
 const BACKEND = !!process.env.E2E_BACKEND
 
 /**
- * Where jitpackd listens. `vite.config.ts` reads the same variable for the
- * preview proxy target — the client reaches the backend through the preview
- * origin because the API is same-origin-only (no CORS headers, deliberately;
- * see client/src/config.ts).
+ * Where jitpackd listens — named once in e2e/backendPort.ts, shared with
+ * `vite.config.ts`'s preview proxy target: the client reaches the backend
+ * through the preview origin because the API is same-origin-only (no CORS
+ * headers, deliberately; see client/src/config.ts).
  */
-const API_PORT = Number(process.env.E2E_API_PORT ?? 8799)
+const API_PORT = E2E_API_PORT
+
+/** The backend-backed specs, in one place for the three projects that name them. */
+const BACKEND_SPECS = '**/single/**'
 
 export default defineConfig({
   testDir: './e2e',
@@ -96,12 +101,12 @@ export default defineConfig({
      */
     {
       name: 'chromium',
-      testIgnore: ['**/visual.spec.ts', '**/single/**'],
+      testIgnore: ['**/visual.spec.ts', BACKEND_SPECS],
       use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'webkit',
-      testIgnore: ['**/visual.spec.ts', '**/single/**'],
+      testIgnore: ['**/visual.spec.ts', BACKEND_SPECS],
       use: { ...devices['Desktop Safari'] },
     },
     /*
@@ -124,7 +129,7 @@ export default defineConfig({
       ? [
           {
             name: 'single',
-            testMatch: '**/single/**',
+            testMatch: BACKEND_SPECS,
             fullyParallel: false,
             use: { ...devices['Desktop Chrome'] },
           },
