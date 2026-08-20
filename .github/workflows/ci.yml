@@ -175,6 +175,42 @@ jobs:
           path: client/playwright-report/
           retention-days: 7
 
+  # Backend-backed e2e (UI-Test-Spec §2.2, mode `single`): a real jitpackd in
+  # Single-User configuration behind the preview proxy, the client in its
+  # `server` mode. Its own job rather than a fifth shard because the shard
+  # legs never see these tests: the `single` project only exists under
+  # E2E_BACKEND (playwright.config.ts), which needs the Go binary the shard
+  # legs deliberately do not build. Same pinned image, same drift check, via
+  # scripts/e2e.sh. Not a required check, for the same reasons `e2e` is not
+  # (see CLAUDE.md — branch protection stays untouched).
+  e2e-single:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      # Built on the runner, run inside the container off the repo mount —
+      # CGO_ENABLED=0 keeps it static (D-001), because a cgo build links the
+      # build host's dynamic loader, which the container may not have.
+      - run: CGO_ENABLED=0 go build -o jitpackd-e2e ./cmd/jitpackd
+      - run: npm ci
+        working-directory: client
+      - run: npm run build # vite preview serves this bundle
+        working-directory: client
+      - run: E2E_BACKEND=1 scripts/e2e.sh --project=single
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-single
+          path: client/playwright-report/
+          retention-days: 7
+
   # Formats Go (gofmt) and the client (prettier) and pushes the fixes back,
   # so formatting is never a red build — it just gets applied. Skipped for
   # fork PRs, where GITHUB_TOKEN cannot push to the head branch.
@@ -226,7 +262,7 @@ jobs:
   # the merge wait for green by construction. Major updates stay open
   # for manual review.
   dependabot-merge:
-    needs: [go, go-lint, client, visual, e2e, docker-build]
+    needs: [go, go-lint, client, visual, e2e, e2e-single, docker-build]
     if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
