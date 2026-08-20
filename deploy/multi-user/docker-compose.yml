@@ -1,60 +1,14 @@
-# Multi-user JIT-Pack behind your own reverse proxy — the reference
-# production stack.
-#
-# Two containers, one origin:
-#
-#   web    — the published client image: nginx serving the built SPA and
-#            splitting the API paths off to the backend. Its nginx config
-#            proxies /api/, /ws and /health to `app:8080` — the backend
-#            service MUST therefore be named `app`, or you mount your own
-#            nginx config over /etc/nginx/conf.d/default.conf.
-#   app    — jitpackd, the Go backend, with the SQLite database on a
-#            named volume. Not published: it is reached through `web`.
-#
-# TLS and the public hostname belong to your reverse proxy. Because the
-# client image already does the path split, the proxy needs exactly one
-# route: everything for the hostname goes to `web:80`. Two properties are
-# load-bearing whichever proxy you use — pass the WebSocket upgrade
-# through for /ws, and preserve the browser's Host header, because the
-# backend's same-origin check compares Origin against Host. Traefik does
-# both by default; the labels below are the whole configuration.
-#
-# Before starting:
-#   1. Replace jitpack.example.com in the labels with your hostname, and
-#      `proxy` with the network your Traefik actually watches. Not on
-#      Traefik? Drop the labels and the proxy network, publish `web` on a
-#      host port instead, and point your proxy at it.
-#   2. Put real values in .env (see the environment block below):
-#      JITPACK_SESSION_SECRET, the three JITPACK_OIDC_* values, and
-#      JITPACK_ADMIN_EMAILS. Never commit them.
-#   3. docker compose up -d
-#
-# Docs: https://polandy.github.io/JIT-Pack/installation/ (routing),
-#       https://polandy.github.io/JIT-Pack/authentication/ (the IdP side),
-#       https://polandy.github.io/JIT-Pack/multi-user-setup/ (first accounts).
-
 volumes:
   data:
 
 networks:
-  # The network your reverse proxy is already on. `docker network create
-  # proxy` if it does not exist yet; rename it here to match yours.
   proxy:
     external: true
-  # app <-> web only. Nothing outside the stack reaches the backend.
   internal:
 
 services:
   app:
-    # Pin a release version; for the strongest guarantee append the
-    # digest (ghcr.io/polandy/jit-pack:0.2.0@sha256:…) — see
-    # https://polandy.github.io/JIT-Pack/upgrades/ for why and when.
     image: ghcr.io/polandy/jit-pack:0.2.0
-    # unless-stopped matters beyond crashes: jitpackd deliberately exits
-    # at startup when the OIDC issuer is unreachable (a broker that could
-    # not verify its issuer would accept logins it cannot validate). After
-    # a host reboot the IdP often comes up later than this container, and
-    # the restart policy is what turns that race into a short retry loop.
     restart: unless-stopped
     networks:
       - internal
@@ -65,19 +19,11 @@ services:
     environment:
       JITPACK_LISTEN: ":8080"
       JITPACK_DB_PATH: "/data/jitpack.db"
-      # Multi-user mode: no JITPACK_SINGLE_USER here, and the session
-      # secret is required. Generate it once: openssl rand -hex 32
       JITPACK_SESSION_SECRET: "${JITPACK_SESSION_SECRET:?set in .env}"
-      # All three OIDC values or none (startup error otherwise). The
-      # issuer must byte-for-byte match what the IdP's discovery document
-      # advertises.
       JITPACK_OIDC_ISSUER: "${JITPACK_OIDC_ISSUER:?set in .env}"
       JITPACK_OIDC_CLIENT_ID: "${JITPACK_OIDC_CLIENT_ID:?set in .env}"
       JITPACK_OIDC_CLIENT_SECRET: "${JITPACK_OIDC_CLIENT_SECRET:?set in .env}"
-      # Comma-separated, matched against the verified email the IdP
-      # reports at login. Empty means: no instance admins.
       JITPACK_ADMIN_EMAILS: "${JITPACK_ADMIN_EMAILS:-}"
-      # Optional operator contact for Web Push (VAPID sub claim).
       JITPACK_PUSH_CONTACT: "${JITPACK_PUSH_CONTACT:-}"
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
@@ -99,15 +45,8 @@ services:
         condition: service_healthy
     labels:
       traefik.enable: "true"
-      # One router for the whole hostname: the client image's nginx
-      # already routes /api/, /ws and /health to the backend, so there is
-      # no second, higher-priority API router whose precedence you have to
-      # get right (that variant, for a hand-built static site, is in the
-      # installation manual).
       traefik.http.routers.jitpack.rule: "Host(`jitpack.example.com`)"
       traefik.http.routers.jitpack.entrypoints: "websecure"
       traefik.http.routers.jitpack.tls.certresolver: "letsencrypt"
       traefik.http.services.jitpack.loadbalancer.server.port: "80"
-      # Traefik watches every network a container is on; naming the one it
-      # should dial keeps it from picking `internal` and timing out.
       traefik.docker.network: "proxy"

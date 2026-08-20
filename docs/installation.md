@@ -104,7 +104,21 @@ Two things to know before using it:
 - **It expects the backend at `app:8080`.** The nginx upstream is hard-wired to the hostname `app`, so name the backend service `app` on the shared Docker network — or mount your own config over `/etc/nginx/conf.d/default.conf`.
 - **It listens on plain HTTP (port 80).** TLS termination stays with your reverse proxy, which only needs to forward everything for the hostname to this container, preserving `Host`.
 
+### The example stack
+
 The repository ships a complete stack in [`deploy/multi-user/`](https://github.com/polandy/JIT-Pack/tree/main/deploy/multi-user) — the backend and this client image, with the OIDC variables wired through and Traefik labels for the one route it needs. If you deploy with the client image, that example is the shortest path and you can skip hand-writing the routing rules below.
+
+It is two containers on two networks. `app` is `jitpackd` with the database on a named volume; it is on the `internal` network only, so nothing outside the stack reaches it. `web` is the client image, on `internal` and on your proxy network — it serves the SPA and forwards the API paths to `app`, which is why the backend service has to keep the name `app`.
+
+Three things to change before the first `docker compose up -d`:
+
+- **The hostname.** `jitpack.example.com` appears in the router rule; DNS for it must point at this host before your proxy can obtain a certificate.
+- **The proxy network.** The compose file expects an existing external network called `proxy` — the one your reverse proxy is already on. Rename it to match yours, or create it with `docker network create proxy`. The `traefik.docker.network` label names the network Traefik should dial; without it, a container on two networks can have the wrong address picked and every request times out.
+- **A `.env` beside the compose file**, holding `JITPACK_SESSION_SECRET` (generate once with `openssl rand -hex 32`), the three `JITPACK_OIDC_*` values from [Authentication](authentication.md) and `JITPACK_ADMIN_EMAILS` from [Multi-user Setup](multi-user-setup.md). The compose file refuses to start rather than defaulting them, and the file belongs in no repository.
+
+Not running Traefik? Delete the `labels` block and the `proxy` network, publish `web` on a host port instead, and point your proxy at that port — the routing requirements are identical either way, and they are the section below.
+
+One detail worth keeping if you write your own file: `restart: unless-stopped` on the backend does more than cover crashes. With OIDC configured, `jitpackd` exits at startup when it cannot reach the identity provider, and after a host reboot the identity provider often comes up later than JIT-Pack. The restart policy is what turns that race into a short retry loop instead of a dead service.
 
 ---
 
