@@ -181,11 +181,11 @@ test.describe('M5 item detail @local @m5', () => {
     expect(save.width).toBeCloseTo(close.width, 1)
     expect(save.centerY).toBeCloseTo(close.centerY, 1)
   })
-  // E2E-M5-15 (FR-9.1): the two trip-feedback flags are controls behind
+  // E2E-M5-17 (FR-9.1): the two trip-feedback flags are controls behind
   // *Details ▾*, and only while the trip runs. Until 2026-08-20 the sheet
   // printed them as a note, which left *unused* — the flag M14's assistant
   // is mostly about — unwritable anywhere in the app.
-  test('E2E-M5-15: an item can be marked unused, but only once the trip runs', async ({ page }) => {
+  test('E2E-M5-17: an item can be marked unused, but only once the trip runs', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await createTripViaWizard(page, TRIP)
     await openQuickAdd(page)
