@@ -522,6 +522,18 @@ function next() {
   if (step.value < 4) step.value++
 }
 
+/**
+ * G-16: Enter in a step's plain text field is the step's own navigation
+ * button — same handler, same validity gate, so the key can never do more
+ * than the click. Bound per field (opt-in), never as a page-wide capture:
+ * step 3's item search owns its Enter and must not have it stolen.
+ */
+function stepDefaultAction() {
+  if (!stepValid.value) return
+  if (step.value === 4) createTrip()
+  else next()
+}
+
 function back() {
   if (step.value > 1) step.value--
 }
@@ -576,6 +588,7 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
               label-placement="stacked"
               :placeholder="t('wizard.namePlaceholder')"
               :value="name"
+              @keydown.enter="stepDefaultAction"
               @ionInput="(e: CustomEvent) => (name = e.detail.value ?? '')"
             />
           </IonItem>
@@ -620,6 +633,7 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
                 label-placement="stacked"
                 type="date"
                 :value="startDate"
+                @keydown.enter="stepDefaultAction"
                 @ionInput="(e: CustomEvent) => (startDate = e.detail.value ?? '')"
               />
             </IonItem>
@@ -630,6 +644,7 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
                 label-placement="stacked"
                 type="date"
                 :value="endDate"
+                @keydown.enter="stepDefaultAction"
                 @ionInput="(e: CustomEvent) => (endDate = e.detail.value ?? '')"
               />
             </IonItem>
@@ -658,6 +673,7 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
                 :placeholder="t('wizard.seriesNamePlaceholder')"
                 :value="newSeriesName"
                 data-testid="wizard-series-name"
+                @keydown.enter="stepDefaultAction"
                 @ionInput="(e: CustomEvent) => (newSeriesName = e.detail.value ?? '')"
               />
             </IonItem>
@@ -714,6 +730,7 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
                 label-placement="stacked"
                 :placeholder="t('wizard.tagsPlaceholder')"
                 :value="tagsInput"
+                @keydown.enter="stepDefaultAction"
                 @ionInput="(e: CustomEvent) => (tagsInput = e.detail.value ?? '')"
               />
             </IonItem>
@@ -731,6 +748,7 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
               data-testid="wizard-traveler-name"
               :placeholder="t('wizard.travelerNamePlaceholder')"
               :value="traveler.name"
+              @keydown.enter="stepDefaultAction"
               @ionInput="(e: CustomEvent) => (traveler.name = e.detail.value ?? '')"
             />
             <IonButton
@@ -1049,6 +1067,7 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
               min="0"
               :value="reviewQuantity(index)"
               :aria-label="t('wizard.reviewQuantity')"
+              @keydown.enter="stepDefaultAction"
               @ionInput="(e: CustomEvent) => overrideQuantity(index, e.detail.value ?? '')"
             />
             <button
