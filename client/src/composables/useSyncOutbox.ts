@@ -231,11 +231,17 @@ export class SyncOutbox {
           this.parkAll(key, chunk, err.message)
           continue
         }
+        cursor = resp.pull_hint.next_cursor
+        // Park before forgetting, not after: the two are separate storage
+        // writes, and a device that died between them would have dropped a
+        // refused mutation without leaving the evidence behind.
+        const parked = this.parkRejected(key, chunk, resp)
         // Drop what was pushed by id rather than by count: the chunk and
         // the live queue can have drifted apart while the request was open.
-        this.forget(key, chunk)
-        cursor = resp.pull_hint.next_cursor
-        this.parkRejected(key, chunk, resp)
+        this.forget(
+          key,
+          chunk.filter((m) => !parked.has(m.mutation_id)),
+        )
       }
     }
 
@@ -271,33 +277,40 @@ export class SyncOutbox {
     this.persist(() => this.store?.remove([...pushed]))
   }
 
-  /** Parks every mutation the push response reports as rejected (§9). */
-  private parkRejected(key: string, chunk: Mutation[], resp: PushResponse): void {
+  /**
+   * Parks every mutation the push response reports as rejected (§9) and
+   * reports which ids those were, so the caller does not also delete them.
+   */
+  private parkRejected(key: string, chunk: Mutation[], resp: PushResponse): Set<string> {
     const rejected = new Map(
       resp.results.filter((r) => r.status === OUTCOME_REJECTED).map((r) => [r.mutation_id, r]),
     )
-    if (rejected.size === 0) return
+    const parked = new Set<string>()
+    if (rejected.size === 0) return parked
     for (const mutation of chunk) {
       const result = rejected.get(mutation.mutation_id)
-      if (result) this.park(key, mutation, result.error ?? UNSPECIFIED_REJECTION)
+      if (!result) continue
+      this.park(key, mutation, result.error ?? UNSPECIFIED_REJECTION)
+      parked.add(mutation.mutation_id)
     }
+    return parked
   }
 
   private parkAll(key: string, chunk: Mutation[], reason: string): void {
-    this.forgetFromQueueOnly(key, chunk)
     for (const mutation of chunk) this.park(key, mutation, reason)
   }
 
-  private forgetFromQueueOnly(key: string, chunk: Mutation[]): void {
-    const refused = new Set(chunk.map((m) => m.mutation_id))
+  /**
+   * Takes one mutation out of the queue for good. The storage write moves it
+   * from the pending store to the parked one in a single transaction, so it
+   * is never in both and never in neither.
+   */
+  private park(key: string, mutation: Mutation, reason: string): void {
     const live = this.queues.get(key) ?? []
     this.queues.set(
       key,
-      live.filter((m) => !refused.has(m.mutation_id)),
+      live.filter((m) => m.mutation_id !== mutation.mutation_id),
     )
-  }
-
-  private park(key: string, mutation: Mutation, reason: string): void {
     const entry: ParkedMutation = { partition: key, mutation, reason, at: this.now() }
     this.parked++
     this.persist(() => this.store?.park(key, mutation, reason, entry.at))

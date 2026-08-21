@@ -143,6 +143,8 @@ describe('SyncOutbox durability', () => {
     parked: ParkedMutation[] = []
     /** When set, the next append rejects with it (quota, aborted tx, …). */
     failAppendWith: Error | null = null
+    /** Every write in the order it ran — the positive signal for ordering. */
+    calls: string[] = []
 
     loadPending() {
       return Promise.resolve([...this.pending])
@@ -157,10 +159,12 @@ describe('SyncOutbox durability', () => {
       return Promise.resolve()
     }
     remove(ids: string[]) {
+      this.calls.push(`remove:${ids.join(',')}`)
       this.pending = this.pending.filter((p) => !ids.includes(p.mutation.mutation_id))
       return Promise.resolve()
     }
     park(partition: string, mutation: Mutation, reason: string, at: number) {
+      this.calls.push(`park:${mutation.mutation_id}`)
       this.pending = this.pending.filter((p) => p.mutation.mutation_id !== mutation.mutation_id)
       this.parked.push({ partition, mutation, reason, at })
       return Promise.resolve()
@@ -260,6 +264,27 @@ describe('SyncOutbox durability', () => {
     ])
     expect(parked).toHaveLength(1)
     expect(outbox.parkedCount()).toBe(1)
+  })
+
+  it('writes the park before the removal, so a crash between them loses nothing', async () => {
+    const store = new FakeStore()
+    const outbox = makeOutbox(store)
+    client.post.mockResolvedValueOnce({
+      results: [
+        { mutation_id: 'bad', status: 'rejected', error: 'unknown column' },
+        { mutation_id: 'good', status: 'applied' },
+      ],
+      pull_hint: { next_cursor: 1 },
+    } satisfies PushResponse)
+
+    outbox.enqueue('trip', 'trip-1', makeMutation({ mutation_id: 'bad' }))
+    outbox.enqueue('trip', 'trip-1', makeMutation({ mutation_id: 'good' }))
+    await outbox.drain('trip', 'trip-1')
+    await outbox.whenPersisted()
+
+    // The park moves the row between stores in one transaction, so the
+    // removal must neither precede it nor name the same id afterwards.
+    expect(store.calls).toEqual(['park:bad', 'remove:good'])
   })
 
   it('parks a batch the server permanently refuses instead of wedging the queue', async () => {
