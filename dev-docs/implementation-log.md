@@ -117,6 +117,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The sync outbox survives a reload (2026-08-21)](#the-sync-outbox-survives-a-reload-2026-08-21) — MVP Track C / blocker B2: the queue moved to IndexedDB and is replayed before the first pull. Replay safety is the server's `mutation_id` memo, not the merge algorithm; a permanently refused mutation is parked so it cannot wedge a partition.
 - [The device backup carries the FR-27.4 refresh state (2026-08-21)](#the-device-backup-carries-the-fr-274-refresh-state-2026-08-21-mvp-track-f) — a restored device kept everything visible and forgot every answer it had given its groups; the restore re-keys by identity, not by name, because a renamed row is exactly the row the user has made theirs.
 - [A trip stops being frozen (FR-2.7 / M22, 2026-08-21)](#a-trip-stops-being-frozen-fr-27--m22-2026-08-21) — the consequence rule already existed in FR-27.4 and refresh.ts, so the new module was deleted; two defects only a render could see; the sibling e2e was green for the wrong reason three times.
+- [The chevron learns where it came from (2026-08-21)](#the-chevron-learns-where-it-came-from-2026-08-21) — the gear inside a trip went back to the dashboard: a gap in ADR-011's route table, not a bug under it. §7 had promised the flows mechanism for months and nothing implemented it; the new e2e case was false-green because `toHaveURL` matched the *query's* tail.
 - [A refusing control is worse than an absent one (2026-08-21)](#a-refusing-control-is-worse-than-an-absent-one-2026-08-21) — M22's ✕ shipped present-but-disabled on a written-down argument; the owner overruled it in the hand. The e2e prefix locator also counted the explanation as a button.
 - [The i18n migration, closed except for M15 and M17 (2026-08-21)](#the-i18n-migration-closed-except-for-m15-and-m17-2026-08-21) — NFR-4.12: a nav anchor and a route title stored finished English text, so no language choice could reach the chrome; what is on the catalogue now and what is not.
 
@@ -4284,6 +4285,68 @@ No seed change: the sample data already carries a **planning** trip with two
 travellers and four per-person positions, which is exactly the state M22 has
 something to show in.
 
+## The chevron learns where it came from (2026-08-21)
+
+MVP Track I. The owner's report was one sentence: inside a trip, tap the gear,
+tap `‹`, and the app is on the dashboard.
+
+**The premise that was wrong.** ADR-011 made the back target *declared* rather
+than read from history, because a cold-start deep link has no history to read.
+One static `meta.parent` per route — and for a drill-down that is exactly right.
+The unexamined half is that it assumed every screen *has* one parent. The gear is
+offered on every screen by decision of that same ADR (it is what keeps the
+conflict log reachable inside a trip), so `/tabs/settings` had no true parent to
+declare, and the one it declared was a guess that happened to be right on one
+screen out of twenty.
+
+**Two things came out of the same hole, and both were older than the report.**
+
+Navigation_Concept §7's route table has a *flows* row promising "the origin the
+flow was entered from". There was no `from`, `origin` or `returnTo` anywhere in
+the router: the promise was four words in a table with no mechanism behind it,
+and it had read as implemented for as long as the table existed. Concretely,
+`/portable-import` is entered from M2, M7 and Settings while declaring
+`/tabs/settings`, so M18 opened from the trip list returned to Settings — the
+owner's defect with a different door, never reported because that path is used
+less.
+
+And `ROOT_PATHS` in `backTarget.spec.ts` listed `/tabs/settings` among the routes
+that "show the logo and therefore owe no parent", while the route table gave it
+one. Nothing objected, because the test only ever asserted that non-roots *have*
+a parent and never that roots lack one. An exemption list that is never checked
+is a claim, not a rule; the reverse assertion is now there and would have failed
+on the day the contradiction was introduced.
+
+**Why the router stamps the origin and the links do not.** The obvious shape is
+for whoever navigates to pass it — `router-link` with a query. It works, and it
+breaks the first time a link forgets: the gear alone is one call site rendered on
+every screen, and the two import flows already have five entry points between
+them. A guard makes the property structural. It also composes for free, because
+the origin is recorded verbatim: trip → gear → admin → `‹` → Settings → `‹` →
+trip unwinds hop by hop with no code that knows about chains.
+
+**The trap, with its price.** The first version of E2E-G9-12 passed against the
+*unfixed* build. `expect(page).toHaveURL(/\/tabs\/trips$/)` matches any URL
+ending in that text — and the fix's whole point is that the URL now ends in
+`?from=/tabs/trips`. The assertion was reading its own mechanism as the result.
+Its neighbour was no better: `onVisibleScreen(page, 'trips-new')` found the trip
+list because a page left mounted through Ionic's transition is briefly not
+`.ion-page-hidden` either. Both are now the pathname compared exactly, plus a
+negative signal specific to the wrong answer (the settings control absent from
+the document entirely). Found only by reverting the production branch, rebuilding
+and re-running — which is the step that keeps paying for itself.
+
+Encoding the origin came from the same measurement: the URL bar read
+`?from=/portable-import?from=/tabs/trips`, and an unencoded `?` or `&` inside a
+query value ends it. Nested origins are encoded now.
+
+**What was deliberately not done.** Variant B — Settings as an overlay — was
+weighed in the ADR amendment and rejected: it fixes Settings by construction and
+does nothing for M15/M18, which was half the defect, while M17's three
+sub-routes would all need re-homing. And `?from=` is attacker-controlled input on
+a link someone else wrote, so it is validated rather than trusted, and a route
+that does not declare the class ignores it entirely — no drill-down can be
+redirected by a crafted URL.
 ## A refusing control is worse than an absent one (2026-08-21)
 
 M22 shipped removal of a traveller gated on the trip not having started, and the

@@ -131,7 +131,11 @@ function goBack() {
           :update-ready="syncUpdateReady"
           @tap="emit('syncTap')"
         />
-        <IonButton router-link="/tabs/settings" :aria-label="t('settings.title')">
+        <IonButton
+          router-link="/tabs/settings"
+          data-testid="header-settings"
+          :aria-label="t('settings.title')"
+        >
           <IonIcon slot="icon-only" :icon="settingsOutline" />
         </IonButton>
       </IonButtons>
