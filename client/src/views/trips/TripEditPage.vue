@@ -87,6 +87,21 @@ function commitName(): void {
   orchestrator.updateTrip(props.tripId, { name: value })
 }
 
+/*
+ * A handler rather than two statements inline: Vue parses an inline handler as
+ * a single expression, and a two-line one compiles under vue-tsc and eslint
+ * alike while failing at runtime — found by rendering, not by a check.
+ */
+function onStartDate(value: string): void {
+  startDate.value = value
+  commitDates()
+}
+
+function onEndDate(value: string): void {
+  endDate.value = value
+  commitDates()
+}
+
 function commitDates(): void {
   const start = startDate.value || null
   const end = endDate.value || null
@@ -174,10 +189,7 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
               :value="startDate"
               :readonly="readOnly"
               data-testid="trip-edit-start"
-              @ionChange="
-                startDate = String($event.detail.value ?? '')
-                commitDates()
-              "
+              @ionChange="onStartDate(String($event.detail.value ?? ''))"
             />
           </IonItem>
           <IonItem>
@@ -188,10 +200,7 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
               :value="endDate"
               :readonly="readOnly"
               data-testid="trip-edit-end"
-              @ionChange="
-                endDate = String($event.detail.value ?? '')
-                commitDates()
-              "
+              @ionChange="onEndDate(String($event.detail.value ?? ''))"
             />
           </IonItem>
         </IonList>
@@ -233,16 +242,23 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
           {{ t('tripEdit.removeAfterStart') }}
         </p>
 
-        <div v-if="!readOnly" class="add-row">
+        <!--
+          The add field is an IonItem like the rows above it, not a bare input
+          in a flex row: without an item's own surface it rendered as a label
+          over nothing, with no visible box to type into. Found by rendering.
+        -->
+        <IonItem v-if="!readOnly" lines="none" class="add-row">
           <IonInput
-            :label="t('tripEdit.addTraveler')"
-            label-placement="stacked"
+            :aria-label="t('tripEdit.addTraveler')"
+            fill="outline"
             :value="newTraveler"
+            :placeholder="t('tripEdit.addTraveler')"
             data-testid="traveler-add-input"
             @ionInput="newTraveler = String($event.detail.value ?? '')"
             @keyup.enter="addTraveler"
           />
           <IonButton
+            slot="end"
             :disabled="newTraveler.trim().length === 0"
             data-testid="traveler-add"
             @click="addTraveler"
@@ -250,7 +266,7 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
             <IonIcon slot="start" :icon="addOutline" />
             {{ t('tripEdit.add') }}
           </IonButton>
-        </div>
+        </IonItem>
 
         <p class="note">{{ t('tripEdit.travelerNote') }}</p>
       </section>
@@ -265,9 +281,8 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
 }
 
 .add-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
+  --padding-start: 0;
+  margin-top: 8px;
 }
 
 .note {
