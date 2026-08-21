@@ -529,4 +529,68 @@ export const en = {
   'settings.languageHint': 'This device only.',
   'settings.languageEnglish': 'English',
   'settings.languageGerman': 'German',
+
+  // M2 trip list (FR-2.x, FR-13.1). The FR-27.4 chips and log are above.
+  'trips.title': 'Trips',
+  'trips.importPortable': 'Import trip from file',
+  'trips.filterActive': 'Active',
+  'trips.filterPlanned': 'Planned',
+  'trips.filterArchived': 'Archived',
+  'trips.emptyActive': 'No active trips',
+  'trips.emptyPlanned': 'No planned trips',
+  'trips.emptyArchived': 'No archived trips',
+  'trips.seriesFallback': 'Series',
+  'trips.seriesCount': '{n} trip | {n} trips',
+  'trips.itemSummary': '{packed}/{total} packed',
+  'trips.new': 'New trip',
+  'trips.actionExport': 'Export trip',
+  'trips.actionShare': 'Share',
+  'trips.actionClone': 'Clone trip',
+  'trips.actionStart': 'Start trip',
+  'trips.actionArchive': 'Archive trip',
+  'trips.actionDelete': 'Delete trip',
+  'trips.deleteTitle': 'Delete "{name}"?',
+  'trips.deleteMessage':
+    'This permanently removes the trip and its packing list, travelers and containers for everyone. This cannot be undone.',
+  'trips.exportHeader': 'Export "{name}"',
+  'trips.exportWithProgress': 'With pack progress',
+  'trips.exportClean': 'Clean list (unpacked)',
+
+  // Trip roles (FR-4.5/4.7), shared by M3 step 2 and M19.
+  'role.label': 'Role',
+  'role.owner': 'Owner',
+  'role.admin': 'Admin',
+  'role.editor': 'Editor',
+
+  // M3 step 2 â travelers, sharing and roles (FR-2.5, FR-4.5/4.7).
+  'wizard.headerTitle': 'New trip · step {n}/4',
+  'wizard.sectionTravelers': 'Travelers',
+  'wizard.travelerNamePlaceholder': 'Name',
+  'wizard.travelerRemove': 'Remove traveler',
+  'wizard.travelerFallback': 'Traveler {n}',
+  'wizard.travelersEmpty': 'No travelers yet — per-person items need at least one.',
+  'wizard.addTraveler': 'Add traveler',
+  'wizard.sectionShare': 'Share with',
+  'wizard.shareRemove': 'Remove share',
+  'wizard.shareAdd': 'Add user…',
+  'wizard.shareAddLabel': 'Add user',
+  'wizard.shareEmpty': 'No other accounts on this server yet.',
+  'wizard.shareNote':
+    "You stay the trip's Owner. Admins manage travelers and roles; Editors pack and comment.",
+
+  // M3 step 4 â quantity review, companions, destination checklist (FR-2.6, FR-20.2–20.4, FR-13.3).
+  'wizard.sectionReview': 'Review quantities',
+  'wizard.reviewEmpty': 'No items generated — the trip starts empty.',
+  'wizard.reviewQuantity': 'Quantity',
+  'wizard.reviewUseSuggestion': '{history} → use {n}',
+  'wizard.sectionCompanions': 'Companion items',
+  'wizard.companionWith': 'with {name}',
+  'wizard.companionDeduped': '{name}: already on the list, not duplicated',
+  'wizard.sectionSuggestedCompanions': 'Suggested companions',
+  'wizard.companionSuggestedWith': 'suggested with {name}',
+  'wizard.sectionChecklist': 'Destination checklist',
+  'wizard.checklistAdd':
+    'Add {n} item from the destination checklist | Add {n} items from the destination checklist',
+  'wizard.back': 'Back',
+  'wizard.next': 'Next',
 } as const

@@ -530,4 +530,69 @@ export const de: Record<keyof typeof en, string> = {
   'settings.languageHint': 'Nur auf diesem Gerät.',
   'settings.languageEnglish': 'Englisch',
   'settings.languageGerman': 'Deutsch',
+
+  // M2 Reiseliste (FR-2.x, FR-13.1).
+  'trips.title': 'Reisen',
+  'trips.importPortable': 'Reise aus Datei importieren',
+  'trips.filterActive': 'Aktiv',
+  'trips.filterPlanned': 'Geplant',
+  'trips.filterArchived': 'Archiviert',
+  'trips.emptyActive': 'Keine aktiven Reisen',
+  'trips.emptyPlanned': 'Keine geplanten Reisen',
+  'trips.emptyArchived': 'Keine archivierten Reisen',
+  'trips.seriesFallback': 'Serie',
+  'trips.seriesCount': '{n} Reise | {n} Reisen',
+  'trips.itemSummary': '{packed}/{total} gepackt',
+  'trips.new': 'Neue Reise',
+  'trips.actionExport': 'Reise exportieren',
+  'trips.actionShare': 'Teilen',
+  'trips.actionClone': 'Reise klonen',
+  'trips.actionStart': 'Reise starten',
+  'trips.actionArchive': 'Reise archivieren',
+  'trips.actionDelete': 'Reise löschen',
+  'trips.deleteTitle': '„{name}“ löschen?',
+  'trips.deleteMessage':
+    'Damit sind die Reise, ihre Packliste, ihre Reisenden und ihr Gepäck für alle weg — endgültig.',
+  'trips.exportHeader': '„{name}“ exportieren',
+  'trips.exportWithProgress': 'Mit Packfortschritt',
+  'trips.exportClean': 'Leere Liste (nichts gepackt)',
+
+  // Rollen auf einer Reise (FR-4.5/4.7), geteilt von M3 Schritt 2 und M19.
+  'role.label': 'Rolle',
+  'role.owner': 'Eigentümer:in',
+  'role.admin': 'Admin',
+  'role.editor': 'Bearbeiter:in',
+
+  // M3 Schritt 2 — Reisende, Teilen und Rollen (FR-2.5, FR-4.5/4.7).
+  'wizard.headerTitle': 'Neue Reise · Schritt {n}/4',
+  'wizard.sectionTravelers': 'Reisende',
+  'wizard.travelerNamePlaceholder': 'Name',
+  'wizard.travelerRemove': 'Reisende:n entfernen',
+  'wizard.travelerFallback': 'Person {n}',
+  'wizard.travelersEmpty':
+    'Noch niemand dabei — Artikel pro Person brauchen mindestens eine Person.',
+  'wizard.addTraveler': 'Reisende:n hinzufügen',
+  'wizard.sectionShare': 'Teilen mit',
+  'wizard.shareRemove': 'Freigabe entfernen',
+  'wizard.shareAdd': 'Konto hinzufügen…',
+  'wizard.shareAddLabel': 'Konto hinzufügen',
+  'wizard.shareEmpty': 'Auf diesem Server gibt es noch keine anderen Konten.',
+  'wizard.shareNote':
+    'Du bleibst Eigentümer:in der Reise. Admins verwalten Reisende und Rollen, Bearbeiter:innen packen und kommentieren.',
+
+  // M3 Schritt 4 — Mengen, Begleitartikel, Zielort-Checkliste (FR-2.6, FR-20.2–20.4, FR-13.3).
+  'wizard.sectionReview': 'Mengen prüfen',
+  'wizard.reviewEmpty': 'Nichts generiert — die Reise startet leer.',
+  'wizard.reviewQuantity': 'Menge',
+  'wizard.reviewUseSuggestion': '{history} → {n} nehmen',
+  'wizard.sectionCompanions': 'Begleitartikel',
+  'wizard.companionWith': 'zu {name}',
+  'wizard.companionDeduped': '{name}: schon auf der Liste, nicht doppelt',
+  'wizard.sectionSuggestedCompanions': 'Vorgeschlagene Begleitartikel',
+  'wizard.companionSuggestedWith': 'vorgeschlagen zu {name}',
+  'wizard.sectionChecklist': 'Zielort-Checkliste',
+  'wizard.checklistAdd':
+    '{n} Punkt der Zielort-Checkliste übernehmen | {n} Punkte der Zielort-Checkliste übernehmen',
+  'wizard.back': 'Zurück',
+  'wizard.next': 'Weiter',
 }
