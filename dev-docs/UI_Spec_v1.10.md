@@ -366,7 +366,11 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
   and no question was asked about it. The report names what stayed, so a row left behind is never a
   surprise found later.
 * **States:** **Removal is offered only while the trip has not started.** On an active or archived
-  trip the ✕ is present but disabled, with the reason on it — hidden, it would be hunted for. Adding
+  trip the ✕ is **not rendered at all**, and one sentence under the roster says why *(revised by the
+  owner 2026-08-21, in the hand: it first shipped present-but-disabled, on the reasoning that a
+  vanished control gets hunted for. A control that is visibly there and answers no tap reads as a
+  broken app instead — and the sentence under the list already answers the question the ✕ raises,
+  which is the whole reason the reason is stated once rather than per row)*. Adding
   and renaming stay available on an active trip; on an archived one the whole screen is read-only,
   consistent with FR-27.4's "past trips are never touched".
 * **Modes:** unchanged in all three. The screen edits trip-level records, not membership — sharing

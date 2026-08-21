@@ -206,7 +206,18 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     await expect(visible(page).getByTestId('m4-row-Regenhose')).toContainText('Xenia')
   })
 
-  test('E2E-M22-04: a started trip keeps the roster but refuses removal', async ({ page }) => {
+  /**
+   * The remove controls, and only those: `traveler-remove-note` shares the
+   * prefix, so a prefix locator alone counts the explanation as a button and
+   * never reaches zero.
+   */
+  function removeButtons(page: Page) {
+    return visible(page).locator('ion-button[data-testid^="traveler-remove-"]')
+  }
+
+  test('E2E-M22-04: a started trip keeps the roster and offers no removal at all', async ({
+    page,
+  }) => {
     await tripWithTwoTravellers(page, 'Kurztrip')
     await page.getByTestId('m4-start').click()
     // The archive action appearing is the settled signal that the status moved.
@@ -214,12 +225,24 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
 
     await openTripEdit(page)
 
-    // Present but refused, with the reason on the screen rather than hidden:
-    // a control that vanishes gets hunted for.
+    // Gone, not disabled (owner, 2026-08-21). The first version rendered a ✕
+    // that refused every tap, on the reasoning that a vanished control gets
+    // hunted for — but a control that is visibly there and does nothing is
+    // read as a broken app, and the sentence under the list already answers
+    // the question the ✕ would have raised.
     await expect(visible(page).getByTestId('traveler-remove-note')).toBeVisible()
-    const anyRemove = visible(page).locator('[data-testid^="traveler-remove-"]').first()
-    await expect(anyRemove).toHaveAttribute('aria-disabled', 'true')
+    await expect(removeButtons(page)).toHaveCount(0)
     // Adding still works on a started trip — only removal is gated.
     await expect(visible(page).getByTestId('traveler-add')).toBeVisible()
+  })
+
+  test('E2E-M22-07: a planning trip does offer the removal control', async ({ page }) => {
+    // The positive half of E2E-M22-04: without it, "no ✕ on a started trip"
+    // would also pass against a screen that never renders one at all.
+    await tripWithTwoTravellers(page, 'Vor dem Start')
+    await openTripEdit(page)
+
+    await expect(removeButtons(page)).toHaveCount(2)
+    await expect(visible(page).getByTestId('traveler-remove-note')).toHaveCount(0)
   })
 })
