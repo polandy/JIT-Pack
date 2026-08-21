@@ -22,7 +22,11 @@ replace the file and update its own revision note.
 - [`CODING_PRINCIPLES.md`](CODING_PRINCIPLES.md) — **binding**; read before writing
   code.
 - [`implementation-log.md`](implementation-log.md) — append-only history of what was
-  built and why it was built that way. Append; never restructure.
+  built and why it was built that way. Append; never restructure. It opens with an
+  **index** (one line per section) — scan that before reading any of it, and with
+  **„What earns an entry"**: if the diff and the commit message tell the same story,
+  no entry is owed. What belongs here is what the code cannot show — a rejected
+  option, a wrong premise, a cost accepted on purpose, a trap with a price.
 - [`design-foundation-plan.md`](design-foundation-plan.md) — the five token-level PRs
   that come **before** the remaining screen rebuilds, with the measured gap between
   the prototype and the client that motivates each. Delete it once they have landed.
