@@ -3817,3 +3817,58 @@ flowing automatically, which is what the pinning in invariant 8 is for.
 Worth recording because the bump was *correct in isolation*: a green pipeline
 said nothing about it, and the drift is only visible if you ask which artifact
 a version actually builds.
+## The device backup carries the FR-27.4 refresh state (2026-08-21, MVP Track F)
+
+The backup wrote every trip and every Vorlage and stopped there. What it left
+behind were the three tables that record *how* a trip follows its groups —
+`trip_template_sources`, `trip_generated_positions`, `trip_applied_changes` —
+so a restored device kept everything visible and silently forgot every answer
+the user had given. Proposals already refused came back as fresh offers, and a
+position deliberately deleted reappeared. A restore that looks complete and
+undoes a month of decisions is worse than one that visibly fails.
+
+**No new format, and that was the finding.** The ADR-015 revisit trigger names
+"a restore has to carry something the portable shape cannot express" as the
+moment a container format comes back on the table — and this was not it. All
+three tables reference a template, a master item and a traveler, and the
+portable shape already carries those **by name**. So the sections are three
+optional keys on a trip document (`follows:`, `generated:`, `applied_changes:`)
+and the ADR gained an amendment rather than a successor.
+
+**The restore re-keys rather than copies**, which is where the actual design
+sits. Every id is new after a restore, so a ledger entry rebuilds its own from
+(trip, master item, traveler) — the identity `planRefresh` already keys on — and
+finds its row by that same identity rather than by name. Matching by name was
+the first draft and it is wrong for the one case the ledger exists to serve: a
+row the user *renamed* is precisely a row that has become theirs. An entry
+whose row is not there keeps the id the row would have had, because "the entry
+outlives the row" **is** FR-27.4's record of a deleted position.
+
+**A reference that cannot be resolved is dropped, not half-restored.** A source
+pointing at no template proposes nothing forever; a ledger entry keyed on the
+wrong position detaches one nobody asked to detach. The applied-changes log is
+the deliberate exception — its group name is denormalised exactly so the record
+outlives the group — and it is replayed with its own timestamp, which needed
+`logAppliedChange` to take one: every other caller is making history, this one
+is repeating it, and stamping "now" would file a year-old change at the top of
+M2's list as today's news.
+
+**The old-file fallback is a test, not a comment.** A backup without the three
+sections restores as it always did; a malformed entry *inside* one of them is
+skipped rather than failing the document. That asymmetry against the items —
+where a nameless item aborts the document — is deliberate: the items are the
+user's data, these three are bookkeeping the refresh can re-derive.
+
+**M18 came with it**, since the restore branch is its screen: both import
+screens are localized (`import.portable.*`, `import.wizard.*`), and the restore
+list now says a trip *follows N groups* — the only place the new data is
+visible before anything is imported, and the rendered assertion E2E-M18-08
+leads with. The parser's own error strings stay English; they interpolate the
+YAML library's message and would need an error model rather than a catalogue
+key. Noted, not done.
+
+**E2E-M18-08 is built around the absence problem.** Everything the case proves
+is something that must *not* happen, so it ends by adding a new position to the
+group on the restored device: the proposal that appears names it and only it.
+Without the restored sources there would be no proposal at all; without the
+restored ledger the refused position would be standing next to it.

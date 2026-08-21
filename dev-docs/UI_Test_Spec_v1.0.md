@@ -396,6 +396,7 @@ no-flags case to E2E-M14-06.)*
 * **E2E-M18-05** `all` (NFR-4.11/FR-19.6/FR-18.4, ADR-015) — **implemented** (`e2e/backup-restore.spec.ts`): the round trip. A backup taken through the G-2 detail on a device carrying a group and a packed trip restores onto a **second browser context** — a device that has never seen the data, which is what stops the case passing against an importer that does nothing. The multi-document file lists its documents (template and trip named as such) rather than opening the merge preview; after *Import all* both partitions are present and the trip keeps its packing progress. The list is **already on the Planned segment**, asserted without tapping it — restored trips are *planning*, and landing on Active showed „No active trips“ after a restore that had worked. Asserted on `trip-row-<name>`, never on the trip's name as text: the pasted YAML is still in the textarea, so a bare text match reads the *input* — which is how the missing `/tabs/trips` redirect this case found had stayed invisible.
 * **E2E-M18-06** `all` (ADR-015) — **implemented**: a file whose middle document is unreadable lists all three, marks the damaged one *skipped* with its reason **in its place**, and still imports the intact ones. A document silently missing from a restore is data loss nobody is told about.
 * **E2E-M18-07** `local` (FR-27.1/27.7, ADR-017) — **implemented** (`e2e/backup-restore.spec.ts`): a backup taken with a composed Ferien-Vorlage restores onto a device that has never seen the group — M8 still shows the group under the Vorlage and the FR-27.2 footer resolves through it, and the template list holds **one** group of that name — the backup carries it both nested and as its own document, so a restore that took both at face value would leave a second, suffixed copy included by nothing. Asserted on the *second* device, and after a positive check that the group is absent there, so an importer that did nothing could not pass.
+* **E2E-M18-08** `local` (FR-27.4, NFR-4.11, ADR-015) — **implemented** (`e2e/backup-restore.spec.ts`): a trip that follows a group is answered twice — one change accepted, one refused — and then restored onto a second browser context. The restore list names the trip as *following 1 group*, M2's applied chip and log keep the accepted change with its original timestamp, the refused position is not on the list and is not offered again, and a **new** group position added on the restored device is proposed on its own. That last step is the positive signal the two absence assertions need: without the restored sources nothing would be proposed, without the restored ledger the refused position would be proposed beside it.
 * **E2E-M18-04** `all` (FR-18.5): a newer `schema_version` shows a warning but imports best-effort; a malformed file is rejected at the picker (never reaches this screen).
 
 ### M19 — First-Launch Mode Selection
@@ -526,7 +527,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-18.1 | UNIT | portable.ts wire types; surfaced via 18.2/18.4 |
 | FR-18.2 | E2E | M7-04, M2-07 |
 | FR-18.3 | E2E | M2-07 |
-| FR-18.4 | E2E | M18-01/02, M2-09, M7-05 |
+| FR-18.4 | E2E | M18-01/02, M2-09, M7-05, M18-08 (the FR-27.4 sections) |
 | FR-18.5 | E2E | M18-04 |
 | FR-18.6 | E2E | FLOW-07 (round-trip) |
 | FR-19.1 | E2E | M19-01/02/03 |
@@ -591,7 +592,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-27.14 | E2E+UNIT | M8-16 (footer opens the list, provenance, marks, read-only); `domain/__tests__/templates.spec.ts` (sources, merged, per-person, mode, conditions), `GroupPeekSheet.spec.ts` (provenance only where a composition can differ) |
 | FR-27.12 | E2E+UNIT | M3-17 (row summary + peek sheet); `domain/templates.ts` (`resolvedLines` ordering/dropping, `previewLines` truncation), `GroupPeekSheet.spec.ts` (resolved list, read-only, empty state) |
 | FR-27.3 | E2E+UNIT | M3-12 (offered, counted, reported, removable, and on the trip); `domain/instantiate.ts` (single items resolve *after* the templates: already-there is reported, a per-person fan-out counts as present, a condition-excluded item is overridden, a double pick is one pick, a stale id is ignored); `views/trips/TripWizardPage.spec.ts` (the picker's chips, the report, the draft's null provenance) |
-| FR-27.4 | E2E+UNIT | M8-05 (warning wording), M8-09 (offered → applied → M2 log), M8-19 (refused, and not asked again), M21-03, FLOW-09; `domain/trips.ts` (`followsGroups` past/not-past), `domain/refresh.ts` (`declinePlan` per position, `proposedChangeCount` excludes bookkeeping), `composables/groupRefresh` (propose writes nothing, accept, decline), `views/trips/TripListPage.spec.ts` (both chips), `components/trips/GroupChangesProposal.spec.ts` (names every change, fold, decline note) |
+| FR-27.4 | E2E+UNIT | M8-05 (warning wording), M8-09 (offered → applied → M2 log), M8-19 (refused, and not asked again), M18-08 (both answers survive a device restore), M21-03, FLOW-09; `domain/trips.ts` (`followsGroups` past/not-past), `domain/refresh.ts` (`declinePlan` per position, `proposedChangeCount` excludes bookkeeping), `composables/groupRefresh` (propose writes nothing, accept, decline), `views/trips/TripListPage.spec.ts` (both chips), `components/trips/GroupChangesProposal.spec.ts` (names every change, fold, decline note) |
 | FR-27.5 | E2E | M21-01/02/02b/03/03b/03c, M4-43, FLOW-09 |
 | FR-27.6 | E2E+UNIT | M7-07 (scope tabs/sections), M7-08 (create chooser), M8-07 (scope-shaped editor), M8-10 (guarded switch), M3-11 (wizard sections); `domain/templates.ts` (`scopeSwitchBlock`: both guards, both free directions) |
 | FR-27.7 | E2E | M8-11 (task list + count chip + propagation log), M3-13 (preview count, todo on the generated item); blocking = existing FR-7.3/25.2 M4 cases |
@@ -622,7 +623,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | NFR-4.8 | E2E | NFR-02 |
 | NFR-4.9 | DOC/N-A | operator documentation only |
 | NFR-4.10 | DOC/N-A | retired (demo rate-limit) |
-| NFR-4.11 | E2E | M17-07, NFR-03 |
+| NFR-4.11 | E2E | M17-07, NFR-03, M18-05/06/07/08 |
 
 **No requirement with a UI surface is left uncovered.** Rows tagged SERVER or DOC/N-A are intentionally outside the browser suite, with the reason stated.
 

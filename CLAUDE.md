@@ -112,10 +112,12 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
    no provenance, so a real deviation comes from the **group** changing after generation —
    the computation stands, the sentence has a revisit trigger in FR-27.5.
    **§3.27 owes nothing more.**
-   The Local Mode backup still does not carry the three FR-27.4 tables
+   The Local Mode backup **carries the three FR-27.4 tables since 2026-08-21**
    (`trip_template_sources`, `trip_generated_positions`, `trip_applied_changes`):
-   a restored device keeps its Vorlagen and trips, and starts following them afresh.
-   Schema and sync wiring were already done (migration 016).
+   a trip document names what it follows, its generation ledger and its
+   applied-changes log, all by name, and the restore re-keys them against the
+   ids it just created (ADR-015 amendment). A file written before that has none
+   of the sections and restores exactly as it did — the documented fallback.
 3. **The design foundation, then the remaining screen rebuilds** — in that order, decided by
    the owner 2026-08-14 after M4 and M5 were compared with the prototype. The plan is
    `dev-docs/design-foundation-plan.md`; read it before starting either half.
