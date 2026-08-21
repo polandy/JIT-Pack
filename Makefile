@@ -1,7 +1,7 @@
 # Local mirror of the CI pipeline (.github/workflows/ci.yml).
 # Each target maps 1:1 to a CI job or step, so a green `make ci` predicts a
 # green pipeline. When you change a job in ci.yml, change its target here.
-.PHONY: ci build vet fmt fmt-check test cover tidy-check go-lint \
+.PHONY: ci pins build vet fmt fmt-check test cover tidy-check go-lint \
         client client-deps client-lint client-tokens client-build client-test client-fmt \
         e2e e2e-single visual visual-update docker-build all
 
@@ -34,7 +34,12 @@ endif
 # Everything CI checks that runs fast and needs no browser or docker daemon.
 # `e2e` (Playwright browsers) and `docker-build` (needs dockerd) are separate
 # on purpose — run them explicitly when you touch the client UI or the image.
-ci: fmt-check test tidy-check go-lint client
+ci: pins fmt-check test tidy-check go-lint client
+
+# Cheap and first: the toolchain majors are named in three files each, and a
+# disagreement is invisible to every other check (see the script's header).
+pins:
+	@./scripts/toolchain-pins-gate.sh
 
 # The full set, including the two slow jobs.
 all: ci e2e docker-build
