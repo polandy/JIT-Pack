@@ -216,7 +216,11 @@ describe('removeTraveler (FR-2.7 + FR-27.4)', () => {
 
     // Gone, not merely unassigned: the user answered that the trousers come
     // back out of the bag.
-    expect(useTripStore().getItems(TRIP_ID).some((i) => i.id === zoes.id)).toBe(false)
+    expect(
+      useTripStore()
+        .getItems(TRIP_ID)
+        .some((i) => i.id === zoes.id),
+    ).toBe(false)
     // And still only theirs — the choice widens what leaves with the person,
     // never whose rows are considered.
     expect(pantsRows().map((r) => r.assigned_traveler_id)).toEqual(['trv-x'])
