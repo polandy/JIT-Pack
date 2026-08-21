@@ -32,7 +32,7 @@ Server-side: OIDC broker + first-party sessions (ADR-007), JIT user provisioning
 
 **Important (should land before the vacation):**
 
-- **S1 — i18n gaps.** Fully hard-coded English: M1 Dashboard, M6 Shopping, TripMembers, M15/M16/M18/M20, ConflictLog, Login, global chrome (TabBar/NavRail/avatars); M2 mostly hard-coded; M3 steps 1/2/4 hard-coded (step 3 is done). Rule: a section is a coherent unit to localize — finish whole screens.
+- **S1 — i18n gaps.** Fully hard-coded English: M1 Dashboard, M6 Shopping, TripMembers, M16/M20, ConflictLog, Login, global chrome (TabBar/NavRail/avatars); M2 mostly hard-coded; M3 steps 1/2/4 hard-coded (step 3 is done). **M15 and M18 came off this list with Track F** (`46c1690` localized both while it was in there anyway) — verified in the code, not assumed. Rule: a section is a coherent unit to localize — finish whole screens.
 - **S2 — Local Mode backup omits the three FR-27.4 tables** (`trip_template_sources`, `trip_generated_positions`, `trip_applied_changes` — confirmed absent from `client/src/local/backup.ts` and `domain/portable.ts`). A restored device re-asks answered proposals and resurrects deleted positions.
 - **S3 — M4 loses scroll position when a detail opens** (ADR-012 overlay amendment). Painful on a 40-row list on a phone.
 - **S4 — M14 has never been eyeballed with real proposals** (positive e2e written 2026-08-20; a rendered owner eyeball is still owed). E2E-M12-03's positive half is owed-but-unwritten.
@@ -94,7 +94,7 @@ Files: `.github/workflows/docker.yml`, `release.yml`, `client/Dockerfile`, `dock
 
 Files: the zero-`t()` views listed in §3 S1, `client/src/i18n/messages/{en,de}.ts`, catalogue-integrity test.
 
-Whole screens per PR (a half-translated section is worse than none): (1) M2 + M3 steps 1/2/4 — the family's entry path; (2) M1 + global chrome + Login + TripMembers + ConflictLog — the Server-Mode surfaces; (3) M6, M15/M16/M18/M20 — the long tail. The in-house module in `client/src/i18n/` is the mechanism (no `vue-i18n`, NFR-4.12). Low merge-conflict risk with other tracks: it touches views no other track edits (M4/M14 are already localized).
+Whole screens per PR (a half-translated section is worse than none): (1) M2 + M3 steps 1/2/4 — the family's entry path; (2) M1 + global chrome + Login + TripMembers + ConflictLog — the Server-Mode surfaces; (3) M6, M16/M20 — the long tail (M15/M18 are done, see §3 S1). The in-house module in `client/src/i18n/` is the mechanism (no `vue-i18n`, NFR-4.12). Low merge-conflict risk with other tracks: it touches views no other track edits (M4/M14 are already localized).
 
 ### Track F — Data-safety small fixes *(S2 · effort S–M · no dependencies)*
 
