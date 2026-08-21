@@ -171,6 +171,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M3-14** `all` (FR-2.5a): step 2 opens with the household's default travellers from M17, editable there like any other traveller.
 * **E2E-M3-15** `all` (FR-2.1b): a trip can be created with no dates at all — the year is preselected, so a name is the whole gate.
 * **E2E-M3-16** `all` (FR-2.1c): step 1's optional fields are folded behind *Mehr Optionen ▾*, and the fold states what is set behind it.
+* **E2E-M3-19** `all` (G-16): Enter in a step's plain field is the step's *Weiter* — nothing happens while the gate holds (empty name), the same keypress on the same field advances once it opens, and a step-2 traveller name fires the same way; step 3's single-item search is G-16-exempt, so Enter there does not advance — proven live by the button click that then does.
 
 ### Plain-HTTP instances (NFR-4.2a) — `e2e/insecure-context.spec.ts`
 
