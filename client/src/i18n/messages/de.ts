@@ -811,5 +811,4 @@ export const de: Record<keyof typeof en, string> = {
   'tripEdit.reportRemoved': '{n} Sache entfernt | {n} Sachen entfernt',
   'tripEdit.reportKept': '{n} Sache bleibt | {n} Sachen bleiben',
   'tripEdit.reportNothing': 'An der Liste ändert sich nichts.',
-
 }

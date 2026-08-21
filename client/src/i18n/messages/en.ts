@@ -804,5 +804,4 @@ export const en = {
   'tripEdit.reportRemoved': '{n} item removed | {n} items removed',
   'tripEdit.reportKept': '{n} item kept | {n} items kept',
   'tripEdit.reportNothing': 'The list is unchanged.',
-
 } as const
