@@ -390,6 +390,7 @@ no-flags case to E2E-M14-06.)*
 * **E2E-M17-07** `local` (NFR-4.11): stale-backup warning (never / >30 days, clock-controlled) + storage-details row; cleared after a YAML download.
 * **E2E-M17-08** `single/local` (FR-17.3): notification-prefs section hidden.
 * **E2E-M17-09** `server` (FR-23.1): Administration row visible only for an instance admin with an OIDC session.
+* **E2E-M17-10** `all` (NFR-4.12): the Language row switches the app to German and back — the chrome as well as the screen. Asserted on the four anchors in **both** presentations (tab bar and desktop rail — one list, two widths), the header bar's route title and M2's own segment labels, because those three used to be *stored English text* rather than catalogue keys: a nav anchor kept `name`, a route kept `meta.title`, and no language choice could reach either. It asserts the English words first, so „the German word is there“ cannot pass on a build that rendered neither, and re-asserts after a reload (device-local, FR-21.3's pattern).
 
 ### M18 — Portable Import Preview
 * **E2E-M18-01** `all` (FR-18.4/18.5): template YAML → summary header + per-item state (new/near-duplicate/matched); Import creates a new private owned template; a name collision appends " (import)".
@@ -627,6 +628,8 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | NFR-4.9 | DOC/N-A | operator documentation only |
 | NFR-4.10 | DOC/N-A | retired (demo rate-limit) |
 | NFR-4.11 | E2E | M17-07, NFR-03, M18-05/06/07/08 |
+| NFR-4.11 | E2E | M17-07, NFR-03 |
+| NFR-4.12 | E2E+UNIT | M17-10; `i18n/__tests__/i18n.spec.ts` (catalogue key, placeholder and plural-form parity), `lib/__tests__/roleLabels.spec.ts` |
 
 **No requirement with a UI surface is left uncovered.** Rows tagged SERVER or DOC/N-A are intentionally outside the browser suite, with the reason stated.
 

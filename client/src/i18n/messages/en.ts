@@ -593,4 +593,193 @@ export const en = {
   'import.wizard.summaryMerged': '{n} merged',
   'import.wizard.summaryCategories': '{n} category | {n} categories',
   'import.wizard.commit': 'Import',
+  // M2 trip list (FR-2.x, FR-13.1). The FR-27.4 chips and log are above.
+  'trips.title': 'Trips',
+  'trips.importPortable': 'Import trip from file',
+  'trips.filterActive': 'Active',
+  'trips.filterPlanned': 'Planned',
+  'trips.filterArchived': 'Archived',
+  'trips.emptyActive': 'No active trips',
+  'trips.emptyPlanned': 'No planned trips',
+  'trips.emptyArchived': 'No archived trips',
+  'trips.seriesFallback': 'Series',
+  'trips.seriesCount': '{n} trip | {n} trips',
+  'trips.itemSummary': '{packed}/{total} packed',
+  'trips.new': 'New trip',
+  'trips.actionExport': 'Export trip',
+  'trips.actionShare': 'Share',
+  'trips.actionClone': 'Clone trip',
+  'trips.actionStart': 'Start trip',
+  'trips.actionArchive': 'Archive trip',
+  'trips.actionDelete': 'Delete trip',
+  'trips.deleteTitle': 'Delete "{name}"?',
+  'trips.deleteMessage':
+    'This permanently removes the trip and its packing list, travelers and containers for everyone. This cannot be undone.',
+  'trips.exportHeader': 'Export "{name}"',
+  'trips.exportWithProgress': 'With pack progress',
+  'trips.exportClean': 'Clean list (unpacked)',
+
+  // Trip roles (FR-4.5/4.7), shared by M3 step 2 and M19.
+  'role.label': 'Role',
+  'role.owner': 'Owner',
+  'role.admin': 'Admin',
+  'role.editor': 'Editor',
+
+  // M3 step 2 â travelers, sharing and roles (FR-2.5, FR-4.5/4.7).
+  'wizard.headerTitle': 'New trip · step {n}/4',
+  'wizard.sectionTravelers': 'Travelers',
+  'wizard.travelerNamePlaceholder': 'Name',
+  'wizard.travelerRemove': 'Remove traveler',
+  'wizard.travelerFallback': 'Traveler {n}',
+  'wizard.travelersEmpty': 'No travelers yet — per-person items need at least one.',
+  'wizard.addTraveler': 'Add traveler',
+  'wizard.sectionShare': 'Share with',
+  'wizard.shareRemove': 'Remove share',
+  'wizard.shareAdd': 'Add user…',
+  'wizard.shareAddLabel': 'Add user',
+  'wizard.shareEmpty': 'No other accounts on this server yet.',
+  'wizard.shareNote':
+    "You stay the trip's Owner. Admins manage travelers and roles; Editors pack and comment.",
+
+  // M3 step 4 â quantity review, companions, destination checklist (FR-2.6, FR-20.2–20.4, FR-13.3).
+  'wizard.sectionReview': 'Review quantities',
+  'wizard.reviewEmpty': 'No items generated — the trip starts empty.',
+  'wizard.reviewQuantity': 'Quantity',
+  'wizard.reviewUseSuggestion': '{history} → use {n}',
+  'wizard.sectionCompanions': 'Companion items',
+  'wizard.companionWith': 'with {name}',
+  'wizard.companionDeduped': '{name}: already on the list, not duplicated',
+  'wizard.sectionSuggestedCompanions': 'Suggested companions',
+  'wizard.companionSuggestedWith': 'suggested with {name}',
+  'wizard.sectionChecklist': 'Destination checklist',
+  'wizard.checklistAdd':
+    'Add {n} item from the destination checklist | Add {n} items from the destination checklist',
+  'wizard.back': 'Back',
+  'wizard.next': 'Next',
+
+  // Global chrome: the four G-1/G-9 anchors and the static route titles the
+  // one header bar (ADR-011) renders. A route stores the *key*, not the text.
+  'nav.dashboard': 'Dashboard',
+  'nav.trips': 'Trips',
+  'nav.templates': 'Templates',
+  'nav.items': 'Items',
+  'nav.title.importFile': 'Import file',
+  'nav.title.series': 'Series',
+  'nav.title.template': 'Template',
+  'nav.title.newItem': 'New item',
+  'nav.title.item': 'Item',
+  'nav.title.gallery': 'Gallery',
+
+  // G-1 presence facepile and the shared quantity stepper.
+  'presence.activeMembers': 'Currently active members',
+  'presence.deviceCount': '({n} device) | ({n} devices)',
+  'presence.inSyncSuffix': ' · in sync',
+  'presence.allInSync': 'Everyone has the latest state',
+  'presence.inSync': 'In sync',
+  'packing.decrease': 'Decrease packed count',
+  'packing.increase': 'Increase packed count',
+
+  // M1 dashboard — "what do I have to do right now?".
+  'dashboard.greetingMorning': 'Good morning',
+  'dashboard.greetingAfternoon': 'Good afternoon',
+  'dashboard.greetingEvening': 'Good evening',
+  'dashboard.subtitle': 'Your packing tasks',
+  'dashboard.planTrip': 'Plan a trip',
+  'dashboard.prepTodo': 'Prep to do ({n})',
+  'dashboard.openCount': '{n} open',
+  'dashboard.moreItems': '+{n} more',
+
+  // M19 first-launch mode selection (FR-19.1).
+  'firstRun.welcome': 'Welcome to JIT-Pack',
+  'firstRun.intro': 'Where should your packing data live? This is a one-time choice per device.',
+  'firstRun.localTitle': 'Local — just this device',
+  'firstRun.localBody':
+    'Everything stays in this browser/app. No server, no account. Sharing and multi-device sync are unavailable; regular exports are your backup.',
+  'firstRun.localAction': 'Use Local Mode',
+  'firstRun.serverTitle': 'Server — sync & collaborate',
+  'firstRun.serverBody':
+    'Connect to a self-hosted JIT-Pack server for multi-device sync and shared trips.',
+  'firstRun.serverUrl': 'Server URL',
+  'firstRun.serverUrlInvalid': 'Enter a full http(s) URL.',
+  'firstRun.serverAction': 'Connect to server',
+
+  // OIDC login and its redirect target (Sync-API §2).
+  'login.title': 'Sign in',
+  'login.notRequired': 'This server does not require a login — you can head back to the app.',
+  'login.hint': 'Your identity provider handles the login; JIT-Pack never sees your password.',
+  'login.action': 'Sign in with SSO',
+  'login.serverUnreachable': 'Server unreachable',
+  'login.noOidc': 'This server does not offer OIDC login',
+  'login.startFailed': 'Could not start the login flow',
+  'login.completing': 'Completing sign-in…',
+  'login.interrupted': 'Login was interrupted — please try again.',
+  'login.rejected': 'The server rejected the login.',
+  'login.failed': 'Login failed — server unreachable.',
+  'login.backToLogin': 'Back to login',
+
+  // Trip members (FR-4.5/4.7).
+  'members.title': 'Members',
+  'members.headerTitle': 'Members · {trip}',
+  'members.self': ' (you)',
+  'members.remove': 'Remove member',
+  'members.empty': 'No roster synced for this trip yet.',
+  'members.addUser': 'Add user…',
+  'members.addUserLabel': 'Add user',
+  'members.allAdded': 'Everyone on this server is already a member.',
+  'members.roleNote':
+    'Admins manage travelers and roles; Editors pack and comment. The Owner cannot be changed.',
+  'members.readOnly': 'Only the Owner or an Admin can manage members.',
+
+  // G-2 conflict log (NFR-4.2a).
+  'conflicts.title': 'Conflict log',
+  'conflicts.unavailable': 'Conflict log unavailable — offline?',
+  'conflicts.empty': 'No conflicts — every change merged cleanly',
+  'conflicts.emptyValue': '—',
+
+  // M20 user administration (Addendum 3.23).
+  'admin.title': 'User administration',
+
+  // M6 shopping views (FR-3.2/3.3).
+  'shopping.headerTitle': 'Shopping · {trip}',
+  'shopping.beforeDeparture': 'Before departure ({n})',
+  'shopping.atDestination': 'At destination ({n})',
+  'shopping.uncategorized': 'Uncategorized',
+  'shopping.bought': 'Bought: {name}',
+  'shopping.emptyBefore': 'Nothing to buy before departure',
+  'shopping.emptyLocal': 'Nothing to buy at the destination',
+
+  // M16 series & destination profile (FR-13.1/13.2/13.3).
+  'series.section': 'Series',
+  'series.name': 'Name',
+  'series.defaultsNote': 'Defaults prefill the wizard for new trips in this series.',
+  'series.sectionNotes': 'Destination notes',
+  'series.notesPlaceholder': 'e.g. washing machine available',
+  'series.checklistRemove': 'Remove checklist item',
+  'series.checklistEmpty': 'Offered automatically when a new trip in this series is created.',
+  'series.checklistAdd': 'Add item…',
+  'series.checklistMode': 'Mode',
+  'series.sectionTrips': 'Trips in this series',
+  'series.detach': 'Detach from series',
+  'series.noTrips': 'No trips in this series yet.',
+  'series.attach': 'Attach existing trip',
+  'series.clone': 'Clone "{name}"',
+  'series.newTrip': 'New trip in series',
+  'series.trends': 'Series trends',
+  'series.notFound': 'Series not found on this device.',
+
+  // M20 user administration (Addendum 3.23, FR-23.2–23.5).
+  'admin.actionDeactivate': 'Deactivate',
+  'admin.actionReactivate': 'Reactivate',
+  'admin.actionResetAvatar': 'Remove avatar',
+  'admin.actionResetName': 'Reset display name',
+  'admin.deactivateTitle': 'Deactivate {name}?',
+  'admin.deactivateMessage':
+    'The account loses all access immediately. Trips, templates, and attributions stay untouched and remain visible to others. Logging in again does not restore access — only Reactivate does.',
+  'admin.unavailable':
+    'Overview unavailable — instance admins only, and a server connection is required.',
+  'admin.self': '(you)',
+  'admin.provisioned': 'Provisioned {date}',
+  'admin.tripCount': '{n} trip | {n} trips',
+  'admin.templateCount': '{n} template | {n} templates',
+  'admin.deactivated': 'Deactivated',
 } as const

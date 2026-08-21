@@ -50,7 +50,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/tabs/settings',
     name: 'settings',
-    meta: { parent: '/tabs/dashboard', title: 'Settings' },
+    meta: { parent: '/tabs/dashboard', titleKey: 'settings.title' },
     component: () => import('@/views/settings/SettingsPage.vue'),
   },
   {
@@ -65,7 +65,7 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     path: '/trips/new',
-    meta: { parent: '/tabs/trips', title: 'New trip' },
+    meta: { parent: '/tabs/trips', titleKey: 'trips.new' },
     name: 'trip-wizard',
     component: () => import('@/views/trips/TripWizardPage.vue'),
   },
@@ -89,40 +89,40 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     path: '/import',
-    meta: { parent: '/tabs/items', title: 'Import spreadsheet' },
+    meta: { parent: '/tabs/items', titleKey: 'items.importSpreadsheet' },
     name: 'import-wizard',
     component: () => import('@/views/import/ImportPage.vue'),
   },
   {
     path: '/portable-import',
-    meta: { parent: '/tabs/settings', title: 'Import file' },
+    meta: { parent: '/tabs/settings', titleKey: 'nav.title.importFile' },
     name: 'portable-import',
     component: () => import('@/views/import/PortableImportPage.vue'),
   },
   {
     path: '/series/:seriesId',
-    meta: { parent: '/tabs/trips', title: 'Series' },
+    meta: { parent: '/tabs/trips', titleKey: 'nav.title.series' },
     name: 'series-profile',
     component: () => import('@/views/series/SeriesPage.vue'),
     props: true,
   },
   {
     path: '/trips/:tripId/clone',
-    meta: { parent: '/trips/:tripId', title: 'Clone trip' },
+    meta: { parent: '/trips/:tripId', titleKey: 'trips.actionClone' },
     name: 'trip-clone',
     component: () => import('@/views/trips/ClonePage.vue'),
     props: true,
   },
   {
     path: '/trips/:tripId/review',
-    meta: { parent: '/trips/:tripId', title: 'Review' },
+    meta: { parent: '/trips/:tripId', titleKey: 'review.title' },
     name: 'trip-review',
     component: () => import('@/views/trips/ReviewPage.vue'),
     props: true,
   },
   {
     path: '/trips/:tripId/template',
-    meta: { parent: '/trips/:tripId', title: 'Template from trip' },
+    meta: { parent: '/trips/:tripId', titleKey: 'templateFromTrip.title' },
     name: 'trip-template',
     component: () => import('@/views/trips/TemplateFromTripPage.vue'),
     props: true,
@@ -136,28 +136,28 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     path: '/trips/:tripId/containers',
-    meta: { parent: '/trips/:tripId', title: 'Luggage' },
+    meta: { parent: '/trips/:tripId', titleKey: 'container.title' },
     name: 'trip-containers',
     component: () => import('@/views/trips/ContainerPage.vue'),
     props: true,
   },
   {
     path: '/trips/:tripId/conflicts',
-    meta: { parent: '/trips/:tripId', title: 'Conflict log' },
+    meta: { parent: '/trips/:tripId', titleKey: 'conflicts.title' },
     name: 'trip-conflicts',
     component: () => import('@/views/trips/ConflictLogPage.vue'),
     props: true,
   },
   {
     path: '/trips/:tripId/members',
-    meta: { parent: '/trips/:tripId', title: 'Members' },
+    meta: { parent: '/trips/:tripId', titleKey: 'members.title' },
     name: 'trip-members',
     component: () => import('@/views/trips/TripMembersPage.vue'),
     props: true,
   },
   {
     path: '/admin',
-    meta: { parent: '/tabs/settings', title: 'User administration' },
+    meta: { parent: '/tabs/settings', titleKey: 'admin.title' },
     name: 'admin',
     component: () => import('@/views/settings/AdminPage.vue'),
   },
@@ -170,7 +170,7 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     path: '/templates/:templateId',
-    meta: { parent: '/tabs/templates', title: 'Template' },
+    meta: { parent: '/tabs/templates', titleKey: 'nav.title.template' },
     name: 'template-editor',
     component: () => import('@/views/templates/TemplateEditorPage.vue'),
     props: true,
@@ -180,13 +180,13 @@ export const routes: RouteRecordRaw[] = [
     // rather than a prompt — and it must precede /items/:itemId, or "new"
     // would be read as an item id.
     path: '/items/new',
-    meta: { parent: '/tabs/items', title: 'New item' },
+    meta: { parent: '/tabs/items', titleKey: 'nav.title.newItem' },
     name: 'item-create',
     component: () => import('@/views/items/ItemEditorPage.vue'),
   },
   {
     path: '/items/:itemId',
-    meta: { parent: '/tabs/items', title: 'Item' },
+    meta: { parent: '/tabs/items', titleKey: 'nav.title.item' },
     name: 'item-editor',
     component: () => import('@/views/items/ItemEditorPage.vue'),
     props: true,
@@ -202,7 +202,7 @@ export const routes: RouteRecordRaw[] = [
 if (import.meta.env.DEV) {
   routes.push({
     path: '/dev/gallery',
-    meta: { parent: '/tabs/settings', title: 'Gallery' },
+    meta: { parent: '/tabs/settings', titleKey: 'nav.title.gallery' },
     name: 'dev-gallery',
     component: () => import('@/dev/GalleryPage.vue'),
   })

@@ -13,6 +13,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 import AppHeader from '../AppHeader.vue'
 import { setTitleFor, clearTitleFor } from '@/composables/useHeaderTitle'
+import { setLocale } from '@/i18n'
 
 const M4_PATH = '/trips/trip-1'
 const M6_PATH = '/trips/trip-1/shopping'
@@ -63,9 +64,24 @@ describe('AppHeader — the left slot (G-9)', () => {
   })
 
   it('falls back to the route table title', () => {
-    route.meta = { parent: '/tabs/trips', title: 'Luggage' }
+    route.meta = { parent: '/tabs/trips', titleKey: 'container.title' }
 
     expect(mountHeader().get('[data-testid="header-title"]').text()).toBe('Luggage')
+  })
+
+  /**
+   * NFR-4.12: the route table stores a catalogue key, so the one bar every
+   * screen shares speaks the chosen language. It used to store the English
+   * text, which no language switch could reach.
+   */
+  it('renders the route table title in the active locale', () => {
+    route.meta = { parent: '/tabs/trips', titleKey: 'container.title' }
+    setLocale('de')
+    try {
+      expect(mountHeader().get('[data-testid="header-title"]').text()).toBe('Gepäck')
+    } finally {
+      setLocale('en')
+    }
   })
 
   it('shows the logo instead of a title on a tab root', () => {

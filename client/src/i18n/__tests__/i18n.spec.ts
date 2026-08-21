@@ -200,4 +200,33 @@ describe('catalogue integrity', () => {
     const { de } = await import('../messages/de')
     expect(Object.keys(de).sort()).toEqual(Object.keys(en).sort())
   })
+
+  /**
+   * Key parity alone is not structural parity. A translation that drops a
+   * `{name}` slot silently loses the only variable part of the sentence, and
+   * one that drops the ' | ' plural split makes `t()` return the singular for
+   * every count — both render as plausible text, so neither shows up as a
+   * missing string. These two checks are what make the German half of a
+   * screen reviewable without reading it against the English one.
+   */
+  it('gives every message the same {placeholder} set in both catalogues', async () => {
+    const { en } = await import('../messages/en')
+    const { de } = await import('../messages/de')
+    const slots = (message: string) => [...message.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort()
+    const mismatched = Object.entries(en).filter(([key, english]) => {
+      const german = (de as Record<string, string>)[key] ?? ''
+      return String(slots(english)) !== String(slots(german))
+    })
+    expect(mismatched.map(([key]) => key)).toEqual([])
+  })
+
+  it('keeps the singular | plural split on both sides of a pluralized message', async () => {
+    const { en } = await import('../messages/en')
+    const { de } = await import('../messages/de')
+    const forms = (message: string) => message.split(' | ').length
+    const mismatched = Object.entries(en).filter(
+      ([key, english]) => forms(english) !== forms((de as Record<string, string>)[key] ?? ''),
+    )
+    expect(mismatched.map(([key]) => key)).toEqual([])
+  })
 })

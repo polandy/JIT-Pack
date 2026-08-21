@@ -24,6 +24,7 @@ import { phonePortraitOutline, serverOutline } from 'ionicons/icons'
 import { computed, ref } from 'vue'
 import BrandMark from '@/components/global/BrandMark.vue'
 import { defaultServerBaseUrl } from '@/config'
+import { t } from '@/i18n'
 
 const emit = defineEmits<{
   select: [mode: 'local' | 'server', serverUrl: string | null]
@@ -47,29 +48,24 @@ const serverUrlValid = computed(() => {
     <IonContent class="ion-padding">
       <div class="mode-selection" data-testid="mode-selection">
         <BrandMark :size="56" class="welcome-mark" />
-        <h1 class="jp-sheet-title">Welcome to JIT-Pack</h1>
-        <p class="intro">
-          Where should your packing data live? This is a one-time choice per device.
-        </p>
+        <h1 class="jp-sheet-title">{{ t('firstRun.welcome') }}</h1>
+        <p class="intro">{{ t('firstRun.intro') }}</p>
 
         <IonCard>
           <IonCardHeader>
             <IonCardTitle>
               <IonIcon :icon="phonePortraitOutline" />
-              Local — just this device
+              {{ t('firstRun.localTitle') }}
             </IonCardTitle>
           </IonCardHeader>
           <IonCardContent>
-            <p>
-              Everything stays in this browser/app. No server, no account. Sharing and multi-device
-              sync are unavailable; regular exports are your backup.
-            </p>
+            <p>{{ t('firstRun.localBody') }}</p>
             <IonButton
               expand="block"
               data-testid="mode-local"
               @click="emit('select', 'local', null)"
             >
-              Use Local Mode
+              {{ t('firstRun.localAction') }}
             </IonButton>
           </IonCardContent>
         </IonCard>
@@ -78,13 +74,13 @@ const serverUrlValid = computed(() => {
           <IonCardHeader>
             <IonCardTitle>
               <IonIcon :icon="serverOutline" />
-              Server — sync &amp; collaborate
+              {{ t('firstRun.serverTitle') }}
             </IonCardTitle>
           </IonCardHeader>
           <IonCardContent>
-            <p>Connect to a self-hosted JIT-Pack server for multi-device sync and shared trips.</p>
+            <p>{{ t('firstRun.serverBody') }}</p>
             <IonInput
-              label="Server URL"
+              :label="t('firstRun.serverUrl')"
               label-placement="stacked"
               placeholder="https://jitpack.example.com"
               type="url"
@@ -93,7 +89,7 @@ const serverUrlValid = computed(() => {
               @ionInput="(e: CustomEvent) => (serverUrl = e.detail.value ?? '')"
             />
             <IonNote v-if="serverUrl && !serverUrlValid" color="danger">
-              Enter a full http(s) URL.
+              {{ t('firstRun.serverUrlInvalid') }}
             </IonNote>
             <IonButton
               expand="block"
@@ -102,7 +98,7 @@ const serverUrlValid = computed(() => {
               :disabled="!serverUrlValid"
               @click="emit('select', 'server', serverUrl)"
             >
-              Connect to server
+              {{ t('firstRun.serverAction') }}
             </IonButton>
           </IonCardContent>
         </IonCard>
