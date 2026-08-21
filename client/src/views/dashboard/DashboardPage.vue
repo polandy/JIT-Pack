@@ -23,6 +23,7 @@ import {
 } from '@ionic/vue'
 import { trainOutline, addOutline, buildOutline } from 'ionicons/icons'
 import { computed, inject } from 'vue'
+import { t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip, ItemTodo } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -36,9 +37,9 @@ const isEmpty = computed(() => activeTrips.value.length === 0)
 
 const greeting = computed(() => {
   const hour = new Date().getHours()
-  if (hour < 12) return 'Good morning'
-  if (hour < 18) return 'Good afternoon'
-  return 'Good evening'
+  if (hour < 12) return t('dashboard.greetingMorning')
+  if (hour < 18) return t('dashboard.greetingAfternoon')
+  return t('dashboard.greetingEvening')
 })
 
 function tripKpis(trip: Trip) {
@@ -109,15 +110,15 @@ async function handleRefresh(event: CustomEvent) {
       <h1 class="dashboard-greeting jp-hero-title" data-testid="dashboard-greeting">
         {{ greeting }}
       </h1>
-      <p class="dashboard-subtitle">Your packing tasks</p>
+      <p class="dashboard-subtitle">{{ t('dashboard.subtitle') }}</p>
 
       <!-- Empty state (G-7) -->
       <div v-if="isEmpty" class="empty-state" data-testid="dashboard-empty">
         <IonIcon :icon="trainOutline" class="empty-icon" />
-        <p>No active trips</p>
+        <p>{{ t('trips.emptyActive') }}</p>
         <IonButton router-link="/trips/new" expand="block" data-testid="dashboard-plan-trip">
           <IonIcon slot="start" :icon="addOutline" />
-          Plan a trip
+          {{ t('dashboard.planTrip') }}
         </IonButton>
       </div>
 
@@ -126,7 +127,7 @@ async function handleRefresh(event: CustomEvent) {
         <IonCardHeader>
           <IonCardTitle>
             <IonIcon :icon="buildOutline" />
-            Prep to do ({{ totalOpenTodos }})
+            {{ t('dashboard.prepTodo', { n: totalOpenTodos }) }}
           </IonCardTitle>
         </IonCardHeader>
         <IonCardContent>
@@ -159,7 +160,7 @@ async function handleRefresh(event: CustomEvent) {
             <template v-if="trip.start_date">
               {{ trip.start_date }} &ndash; {{ trip.end_date }}
             </template>
-            <template v-else>until {{ trip.end_date }}</template>
+            <template v-else>{{ t('trip.until', { date: trip.end_date ?? '' }) }}</template>
           </p>
         </IonCardHeader>
 
@@ -167,9 +168,14 @@ async function handleRefresh(event: CustomEvent) {
 
         <IonCardContent>
           <p class="item-summary">
-            {{ tripKpis(trip).packedItems }}/{{ tripKpis(trip).totalItems }} packed
+            {{
+              t('trips.itemSummary', {
+                packed: tripKpis(trip).packedItems,
+                total: tripKpis(trip).totalItems,
+              })
+            }}
             <span v-if="openItemCount(trip.id) > 0">
-              &middot; {{ openItemCount(trip.id) }} open
+              &middot; {{ t('dashboard.openCount', { n: openItemCount(trip.id) }) }}
             </span>
           </p>
 
@@ -194,7 +200,7 @@ async function handleRefresh(event: CustomEvent) {
           </IonItem>
 
           <p v-if="openItemCount(trip.id) > 3" class="more-items">
-            +{{ openItemCount(trip.id) - 3 }} more
+            {{ t('dashboard.moreItems', { n: openItemCount(trip.id) - 3 }) }}
           </p>
         </IonCardContent>
       </IonCard>

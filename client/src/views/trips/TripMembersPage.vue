@@ -26,6 +26,8 @@ import { closeOutline, peopleOutline } from 'ionicons/icons'
 import { computed, inject, onMounted, ref } from 'vue'
 
 import { buildRosterView, type DirectoryUser } from '@/domain/members'
+import { t } from '@/i18n'
+import { roleLabel } from '@/lib/roleLabels'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
@@ -58,12 +60,10 @@ function changeRole(memberId: string, role: 'admin' | 'editor') {
   if (member) orchestrator.setTripMemberRole(member, role)
 }
 
-function roleLabel(role: string): string {
-  return role.charAt(0).toUpperCase() + role.slice(1)
-}
-
 // ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() => `Members · ${tripStore.getTrip(props.tripId)?.name ?? ''}`)
+setHeaderTitle(() =>
+  t('members.headerTitle', { trip: tripStore.getTrip(props.tripId)?.name ?? '' }),
+)
 </script>
 
 <template>
@@ -72,7 +72,8 @@ setHeaderTitle(() => `Members · ${tripStore.getTrip(props.tripId)?.name ?? ''}`
       <IonList v-if="view.rows.length > 0">
         <IonItem v-for="row in view.rows" :key="row.member.id" lines="inset">
           <IonLabel>
-            {{ row.displayName }}<span v-if="row.isSelf" class="self-marker"> (you)</span>
+            {{ row.displayName
+            }}<span v-if="row.isSelf" class="self-marker">{{ t('members.self') }}</span>
           </IonLabel>
 
           <!-- The creator's Owner row is immutable (FR-4.7) -->
@@ -80,12 +81,12 @@ setHeaderTitle(() => `Members · ${tripStore.getTrip(props.tripId)?.name ?? ''}`
           <IonSelect
             v-else
             interface="popover"
-            aria-label="Role"
+            :aria-label="t('role.label')"
             :value="row.member.role"
             @ionChange="(e: CustomEvent) => changeRole(row.member.id, e.detail.value)"
           >
-            <IonSelectOption value="editor">Editor</IonSelectOption>
-            <IonSelectOption value="admin">Admin</IonSelectOption>
+            <IonSelectOption value="editor">{{ t('role.editor') }}</IonSelectOption>
+            <IonSelectOption value="admin">{{ t('role.admin') }}</IonSelectOption>
           </IonSelect>
 
           <IonButton
@@ -93,7 +94,7 @@ setHeaderTitle(() => `Members · ${tripStore.getTrip(props.tripId)?.name ?? ''}`
             slot="end"
             fill="clear"
             color="medium"
-            aria-label="Remove member"
+            :aria-label="t('members.remove')"
             @click="orchestrator.removeTripMember(row.member.id)"
           >
             <IonIcon slot="icon-only" :icon="closeOutline" />
@@ -104,15 +105,15 @@ setHeaderTitle(() => `Members · ${tripStore.getTrip(props.tripId)?.name ?? ''}`
       <!-- Empty state (G-7): roster not synced yet, or a pre-sync trip -->
       <div v-else class="empty-state">
         <IonIcon :icon="peopleOutline" class="empty-icon" />
-        <p>No roster synced for this trip yet.</p>
+        <p>{{ t('members.empty') }}</p>
       </div>
 
       <template v-if="view.canManage">
         <IonItem v-if="view.candidates.length > 0" lines="none">
           <IonSelect
             interface="popover"
-            placeholder="Add user…"
-            aria-label="Add user"
+            :placeholder="t('members.addUser')"
+            :aria-label="t('members.addUserLabel')"
             :value="null"
             @ionChange="(e: CustomEvent) => addMember(e.detail.value)"
           >
@@ -121,14 +122,11 @@ setHeaderTitle(() => `Members · ${tripStore.getTrip(props.tripId)?.name ?? ''}`
             </IonSelectOption>
           </IonSelect>
         </IonItem>
-        <IonNote v-else class="hint">Everyone on this server is already a member.</IonNote>
-        <IonNote class="hint">
-          Admins manage travelers and roles; Editors pack and comment. The Owner cannot be changed
-          (FR-4.5).
-        </IonNote>
+        <IonNote v-else class="hint">{{ t('members.allAdded') }}</IonNote>
+        <IonNote class="hint">{{ t('members.roleNote') }}</IonNote>
       </template>
       <IonNote v-else-if="view.myRole === 'editor'" class="hint">
-        Only the Owner or an Admin can manage members.
+        {{ t('members.readOnly') }}
       </IonNote>
     </IonContent>
   </IonPage>

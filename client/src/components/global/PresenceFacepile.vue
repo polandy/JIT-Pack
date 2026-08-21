@@ -12,11 +12,23 @@ import { IonChip, IonIcon, IonLabel } from '@ionic/vue'
 import { checkmarkDoneOutline } from 'ionicons/icons'
 import { computed } from 'vue'
 
+import { t } from '@/i18n'
 import type { PresenceUser } from '@/composables/useSyncOrchestrator'
 
 const props = defineProps<{ users: PresenceUser[] }>()
 
 const allInSync = computed(() => props.users.length > 0 && props.users.every((u) => u.in_sync))
+
+/**
+ * The hover title of one face: who, on how many devices, and whether they
+ * have caught up. Assembled here rather than in the template because two of
+ * its three parts are conditional and one of them is pluralized.
+ */
+function faceTitle(user: PresenceUser): string {
+  const devices =
+    user.device_count > 1 ? ` ${t('presence.deviceCount', { n: user.device_count })}` : ''
+  return `${user.user_id}${devices}${user.in_sync ? t('presence.inSyncSuffix') : ''}`
+}
 
 function initials(userId: string): string {
   return (
@@ -29,24 +41,19 @@ function initials(userId: string): string {
 </script>
 
 <template>
-  <div class="facepile" aria-label="Currently active members">
+  <div class="facepile" :aria-label="t('presence.activeMembers')">
     <span
       v-for="user in users"
       :key="user.user_id"
       class="face"
       :class="{ 'in-sync': user.in_sync }"
-      :title="`${user.user_id}${user.device_count > 1 ? ` (${user.device_count} devices)` : ''}${user.in_sync ? ' · in sync' : ''}`"
+      :title="faceTitle(user)"
     >
       {{ initials(user.user_id) }}
     </span>
-    <IonChip
-      v-if="allInSync"
-      color="success"
-      class="group-sync"
-      title="Everyone has the latest state"
-    >
+    <IonChip v-if="allInSync" color="success" class="group-sync" :title="t('presence.allInSync')">
       <IonIcon :icon="checkmarkDoneOutline" />
-      <IonLabel>In sync</IonLabel>
+      <IonLabel>{{ t('presence.inSync') }}</IonLabel>
     </IonChip>
   </div>
 </template>

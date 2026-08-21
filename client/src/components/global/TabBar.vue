@@ -17,6 +17,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { NAV_ANCHORS, isAnchorActive } from '@/router/anchors'
+import { t } from '@/i18n'
 
 const route = useRoute()
 
@@ -42,7 +43,7 @@ const fullScreen = computed(
       :data-testid="`tab-${anchor.match}`"
     >
       <IonIcon :icon="anchor.icon" />
-      <IonLabel>{{ anchor.name }}</IonLabel>
+      <IonLabel>{{ t(anchor.nameKey) }}</IonLabel>
     </router-link>
   </nav>
 </template>
