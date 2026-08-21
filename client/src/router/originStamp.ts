@@ -78,10 +78,7 @@ export function installOriginStamp(router: Router): void {
 
   router.beforeEach(
     (to: RouteLocationNormalized, from: RouteLocationNormalized) =>
-      stampOrigin(
-        to as unknown as StampableRoute,
-        from as unknown as StampableRoute,
-        resolves,
-      ) ?? true,
+      stampOrigin(to as unknown as StampableRoute, from as unknown as StampableRoute, resolves) ??
+      true,
   )
 }
