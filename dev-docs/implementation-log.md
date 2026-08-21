@@ -116,6 +116,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Dependabot skips the Node majors that can never be taken (2026-08-21)](#dependabot-skips-the-node-majors-that-can-never-be-taken-2026-08-21) — odd Node majors never reach LTS; Dependabot only ever offers the newest, so from October 2026 it would chase 27 past the 26 that becomes LTS. Bundler syntax, because that is what the docker ecosystem parses.
 - [The sync outbox survives a reload (2026-08-21)](#the-sync-outbox-survives-a-reload-2026-08-21) — MVP Track C / blocker B2: the queue moved to IndexedDB and is replayed before the first pull. Replay safety is the server's `mutation_id` memo, not the merge algorithm; a permanently refused mutation is parked so it cannot wedge a partition.
 - [The device backup carries the FR-27.4 refresh state (2026-08-21)](#the-device-backup-carries-the-fr-274-refresh-state-2026-08-21-mvp-track-f) — a restored device kept everything visible and forgot every answer it had given its groups; the restore re-keys by identity, not by name, because a renamed row is exactly the row the user has made theirs.
+- [A trip stops being frozen (FR-2.7 / M22, 2026-08-21)](#a-trip-stops-being-frozen-fr-27--m22-2026-08-21) — the consequence rule already existed in FR-27.4 and refresh.ts, so the new module was deleted; two defects only a render could see; the sibling e2e was green for the wrong reason three times.
 - [The i18n migration, closed except for M15 and M17 (2026-08-21)](#the-i18n-migration-closed-except-for-m15-and-m17-2026-08-21) — NFR-4.12: a nav anchor and a route title stored finished English text, so no language choice could reach the chrome; what is on the catalogue now and what is not.
 
 ## Current state
@@ -4200,3 +4201,84 @@ backup track owns both files for this MVP push and localizes them itself. Their
 and it was already so before it: ten `t()` calls beside roughly fifteen
 literals, plus the avatar crop modal, which is untouched. It is a section, so
 it wants one commit of its own rather than a corner of this one.
+
+## A trip stops being frozen (FR-2.7 / M22, 2026-08-21)
+
+A trip's name, its dates and its travellers were decided in M3 and frozen when
+the wizard closed. Not by decision — the screen inventory M1–M21 simply has no
+editor, `addTraveler` is called only by the wizard, the clone and generation,
+and there was no `updateTrip` at all. The workaround, cloning (FR-12.1), loses
+the packing progress, which is what makes it not one.
+
+**The consequence rule already existed, and finding that changed the work.**
+The first implementation was a new pure module with its own rules for extending
+and withdrawing per-person rows. It was wrong twice over: FR-27.4 already
+specifies traveller changes (*"a person added receives the per-person positions
+… one removed takes their untouched rows along"*), and `domain/refresh.ts`
+already implements them, because the trip re-resolves against its *current*
+travellers. The module was deleted before it reached a PR. What was left is
+small: write the traveller mutation, then call `acceptTripRefresh` — the same
+path the "yes" on M4's card takes. A second expansion of per-person rows would
+have been a second set of rules to keep in step with the first.
+
+So the only thing the owner's decision actually changed is **when the user is
+asked**, and FR-27.4 gained an amendment rather than a competitor. The reason
+is the same one that put the question at the trip in the first place: a group
+change usually arrives from someone else, on a device that may not even hold
+the affected trips, so it must be a question. A traveller change is made by the
+traveller, in the trip's own editor, deliberately — asking them to confirm on
+the next open what they just did in front of the app is a dialogue with no
+second party in it.
+
+**Removal is offered only before departure** (owner), which is what keeps the
+rule from ever having to weigh a *departed* trip's packing record.
+
+It still has to answer for a packed row, though, and the first cut answered it
+alone: unpacked rows go, packed ones stay unassigned. The owner rejected that
+the same day, and was right — a packed row means somebody physically put the
+thing in the bag, and whether it should come back out is not a property of the
+data. On one trip the answer is *take it out*; on another it is *leave it
+visible so somebody remembers to*. So it is asked, at the confirmation, and
+**only when there is something to answer about**: with nothing packed the
+removal has one outcome, and a question with one answer teaches the user to
+dismiss questions. The question names the quantity for the same reason
+FR-27.4's card lists its changes instead of counting them.
+
+Underneath, *Gepackte behalten* is simply FR-27.4's ordinary protection, and
+*Alles entfernen* deletes those rows outright — that protection is exactly what
+the user overruled for this person. A skipped or hand-edited row follows the
+*behalten* branch either way: nobody was asked about it.
+
+**Two defects the type-checker could not see.** The date inputs used a
+two-statement inline handler; Vue parses an inline handler as a single
+expression, so `vue-tsc` and eslint were both green and the screen did not
+compile in the browser at all. And the add-a-traveller field was a bare input
+in a flex row — a label over nothing, with no box to type in. Both were found
+by rendering the screen, neither by a test that queried the DOM: the element
+was present, it simply had no surface.
+
+**The e2e case for the owner's actual requirement — remove Zoe, keep Xenia's
+trousers — was green for the wrong reason three times**, and the sequence is
+the reusable part. Asserting the count and the surviving name passes against an
+over-broad removal, because the refresh re-resolves afterwards and generates
+the sibling's row *again*: same name, same count, different row. Packing the
+sibling to prove identity fails differently — a packed row leaves the list
+through the FR-25.2 pack-out, so the seeded position now carries quantity 2 and
+a *part*-packed row keeps its place. And the first working version raced:
+`page.goto` outran the removal and the case failed against correct code. Only
+after all three does the mutation redden it.
+
+**The suite now runs on the device the family holds.** The container defaulted
+to en-US and UTC, so every rendered date was a US date and "today" was a UTC
+one — and the FR-27.4 boundary is a date comparison, so a run just after
+midnight in Zurich was reading yesterday. `de-CH` and `Europe/Zurich` now. The
+app *language* is deliberately not left to the device: `resolveLocale` falls
+back to `navigator.languages`, so a German device would flip the whole UI and
+every English assertion with it; the fixture pins `jitpack_locale` instead, and
+only when the key is absent — an unconditional write re-seeds after a reload
+and overwrites the choice E2E-M17-10 asserts survives. Measured rather than
+assumed: the 20 visual baselines are unchanged.
+
+No seed change: the sample data already carries a **planning** trip with two
+travellers and four per-person positions, which is exactly the state M22 has
+something to show in.

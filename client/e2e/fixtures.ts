@@ -34,6 +34,14 @@ export interface SeedOptions {
    * dark one and any case built on it would have been false-green.
    */
   theme?: Theme
+  /**
+   * App language (`jitpack_locale`). Defaults to English, and that default is
+   * load-bearing rather than incidental: the browser locale is `de-CH` so the
+   * suite runs on the device the family holds, and without this the app would
+   * follow `navigator.languages` into German and every English assertion in
+   * the suite would fail. A case that wants the German UI asks for it.
+   */
+  locale?: 'en' | 'de'
 }
 
 /** Seed the app's localStorage before it boots. Call before `page.goto`. */
@@ -44,6 +52,13 @@ export async function seed(page: Page, opts: SeedOptions): Promise<void> {
     // Literal, not the exported constant: addInitScript serialises this
     // function, so a closure variable would be undefined in the page.
     if (o.theme) localStorage.setItem('jitpack_theme', o.theme)
+    // Only when absent. addInitScript runs before *every* navigation, so an
+    // unconditional write would re-seed after a reload and overwrite a choice
+    // the user made in the app — which is what E2E-M17-10 asserts survives.
+    // This is the device's default language, not an override of the app's.
+    if (!localStorage.getItem('jitpack_locale')) {
+      localStorage.setItem('jitpack_locale', o.locale ?? 'en')
+    }
   }, opts)
 }
 
