@@ -165,8 +165,11 @@ function emptyPlan(): RefreshPlan {
   return { add: [], update: [], remove: [], ledgerUpsert: [], ledgerDelete: [], log: [] }
 }
 
-/** The ledger's identity, shared by the diff and the id derivation. */
-function positionKey(sourceItemId: string, travelerId: string): string {
+/**
+ * The ledger's identity, shared by the diff, the id derivation and the
+ * ADR-015 restore — which has to rebuild the same key from names.
+ */
+export function positionKey(sourceItemId: string, travelerId: string): string {
   return `${sourceItemId}|${travelerId}`
 }
 

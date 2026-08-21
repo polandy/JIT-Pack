@@ -367,3 +367,162 @@ items:
     ).toEqual(['Fototage', 'Fototage (import)'])
   })
 })
+
+describe('commitPortableRestore — the trip keeps following its groups (FR-27.4)', () => {
+  /**
+   * A device holding one group and one trip generated from it, where the user
+   * has already answered the group once: the camera's amount was refused (the
+   * ledger says 2, the row says 1) and the tripod was refused outright (a
+   * ledger entry with no row behind it).
+   *
+   * Both answers live *only* in these three sections. A restore that dropped
+   * them re-asks every one of them on the new device.
+   */
+  const backup = joinDocuments([
+    `kind: template
+schema_version: 1
+name: Makro
+scope: group
+items:
+  - name: Kamera
+    quantity: 2
+    assignment: trip_global
+  - name: Stativ
+    quantity: 1
+    assignment: trip_global
+`,
+    `kind: trip
+schema_version: 1
+name: Fototour 2026
+year: 2026
+travelers:
+  - name: Andy
+items:
+  - name: Kamera
+    quantity: 1
+    mode: pack
+follows:
+  - Makro
+generated:
+  - item: Kamera
+    source: Makro
+    name: Kamera
+    quantity: 2
+    mode: pack
+    category: Foto
+    tasks: ["Akkus laden"]
+  - item: Stativ
+    source: Makro
+    name: Stativ
+    quantity: 1
+    mode: pack
+applied_changes:
+  - source: Makro
+    kind: added
+    item: Kamera
+    at: "2026-08-19T10:00:00.000Z"
+`,
+  ])
+
+  function restore() {
+    const orch = newOrch()
+    const results = orch.commitPortableRestore(parsePortableAll(backup).map((r) => r.doc!))
+    return { orch, tripId: results[1]!.id, templateId: results[0]!.id }
+  }
+
+  it('registers the templates the trip follows, against the restored ids', () => {
+    const { tripId, templateId } = restore()
+    const trips = useTripStore()
+
+    expect(trips.getTemplateSources(tripId).map((s) => s.template_id)).toEqual([templateId])
+  })
+
+  it('restores the ledger snapshot and points it at the restored row', () => {
+    const { tripId, templateId } = restore()
+    const trips = useTripStore()
+    const master = useMasterStore()
+
+    const kameraRow = trips.getItems(tripId).find((i) => i.name === 'Kamera')!
+    const entry = trips.getGeneratedPositions(tripId).find((g) => g.name === 'Kamera')!
+
+    expect(entry).toMatchObject({
+      trip_item_id: kameraRow.id,
+      source_template_id: templateId,
+      source_item_id: master.itemList.find((i) => i.name === 'Kamera')!.id,
+      traveler_id: '',
+      // The snapshot, not the row: the row says 1 because the user refused
+      // the group's 2, and it is the difference between them that keeps the
+      // row the user's own.
+      quantity: 2,
+      mode: 'pack',
+      category_name: 'Foto',
+      tasks: ['Akkus laden'],
+    })
+  })
+
+  it('keeps a refused position detached — its entry survives, its row does not', () => {
+    const { tripId } = restore()
+    const trips = useTripStore()
+
+    const stativ = trips.getGeneratedPositions(tripId).find((g) => g.name === 'Stativ')!
+    expect(stativ).toBeDefined()
+    // The positive signal for "the row is gone": the trip's rows are listed
+    // and the entry points at none of them. That absence is FR-27.4's record
+    // of a deleted position, and restoring the entry without it would offer
+    // the tripod again on the new device.
+    expect(trips.getItems(tripId).map((i) => i.id)).not.toContain(stativ.trip_item_id)
+    expect(trips.getItems(tripId).map((i) => i.name)).toEqual(['Kamera'])
+  })
+
+  it('replays the applied-changes log with its own timestamp', () => {
+    const { tripId, templateId } = restore()
+    const trips = useTripStore()
+
+    expect(trips.getAppliedChanges(tripId)).toHaveLength(1)
+    expect(trips.getAppliedChanges(tripId)[0]).toMatchObject({
+      source_template_id: templateId,
+      source_template_name: 'Makro',
+      kind: 'added',
+      item_name: 'Kamera',
+      // The restore is not when this happened, and a log that said so would
+      // put a year-old change at the top of M2's list as today's news.
+      created_at: '2026-08-19T10:00:00.000Z',
+    })
+  })
+
+  it('skips a reference this device cannot resolve rather than pointing it nowhere', () => {
+    const orch = newOrch()
+    const trips = useTripStore()
+    const doc = parsePortableAll(backup)[1]!.doc!
+
+    // The trip alone, without the group document that defines "Makro".
+    const { id: tripId } = orch.commitPortableImport({ ...doc }, new Map())
+
+    expect(trips.getTemplateSources(tripId)).toEqual([])
+    expect(trips.getGeneratedPositions(tripId)).toEqual([])
+    // The log is the exception: its group name is denormalised precisely so
+    // the record outlives the group, so it comes back either way.
+    expect(trips.getAppliedChanges(tripId)).toHaveLength(1)
+  })
+
+  it('restores a file written before these sections existed (ADR-015 fallback)', () => {
+    const orch = newOrch()
+    const trips = useTripStore()
+    const old = `kind: trip
+schema_version: 1
+name: Samedan 2025
+year: 2025
+items:
+  - name: Zelt
+    quantity: 1
+    mode: pack
+`
+    const { id: tripId } = orch.commitPortableImport(parsePortable(old).doc!, new Map())
+
+    expect(trips.getTrip(tripId)?.name).toBe('Samedan 2025')
+    expect(trips.getItems(tripId).map((i) => i.name)).toEqual(['Zelt'])
+    expect(trips.getTemplateSources(tripId)).toEqual([])
+    expect(trips.getGeneratedPositions(tripId)).toEqual([])
+    expect(trips.getAppliedChanges(tripId)).toEqual([])
+  })
+})

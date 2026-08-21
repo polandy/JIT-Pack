@@ -127,7 +127,7 @@ export interface PortableGeneratedPosition {
   /** What generation produced, which may differ from the master item's name. */
   name: string
   quantity: number
-  mode: string
+  mode: ItemMode
   late_packer: boolean
   weight_grams: number | null
   value_cents: number | null
