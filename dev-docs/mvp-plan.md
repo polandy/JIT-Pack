@@ -1,6 +1,6 @@
 # MVP Plan — "the family packs a real vacation with it"
 
-Status: **approved by the owner 2026-08-20** (scope cut incl. deferring FR-27.13/§3.28; parallel open PRs allowed for this push, merges stay serialized with explicit go-ahead). **Wave 1 is merged** (2026-08-21): Track A `56f15a3`, Track B `2b89504`, Track D `980ba1b` — D's release cut itself is still owed, see §7. Wave 2 (C, E, F, G) runs in four parallel worktrees; §5 records where they touch. Written from a full-repo survey (client/UX gaps + server/deploy readiness). Any session picking up a track: read `CLAUDE.md` fully first, then this file, then only the files your track names.
+Status: **approved by the owner 2026-08-20** (scope cut incl. deferring FR-27.13/§3.28; parallel open PRs allowed for this push, merges stay serialized with explicit go-ahead). **Wave 1 is merged** (2026-08-21): Track A `56f15a3`, Track B `2b89504`, Track D `980ba1b` — D's release cut itself is still owed, see §7. **Wave 2 is merged too** (2026-08-21): Track C `61a790b`, Track F `46c1690`, Track G `2607317` (its steps 1 and 2 — the M14 eyeball on `:3000`, step 3, is still owed). **Track E (i18n) is the only track of the two waves still running.** §5 records where they touch. Written from a full-repo survey (client/UX gaps + server/deploy readiness). Any session picking up a track: read `CLAUDE.md` fully first, then this file, then only the files your track names.
 
 ## 1. Goal and definition of done
 
@@ -231,8 +231,8 @@ Six tracks can fan out immediately. Recommended first wave if agent count is lim
 
 ## 7. Open decisions for the owner
 
-1. **Sign-off on this cut** — in particular that FR-27.13 and §3.28 wait until after the vacation.
-2. **Multiple parallel open PRs** for the MVP push (relaxes the one-open-PR agreement per §4 note)?
+1. ~~**Sign-off on this cut**~~ — **decided 2026-08-20**: approved, FR-27.13 and §3.28 wait until after the vacation.
+2. ~~**Multiple parallel open PRs**~~ — **decided 2026-08-20**: allowed for this push; merges stay serialized and each still needs its own go-ahead.
 3. **IdP**: which OIDC provider fronts the family instance (the config assumes a confidential client; Authelia-class self-hosted works)? Needed before Track H, not before A–G.
 4. **Upgrade stance for the vacation**: pin one digest and freeze (recommended in Track D) vs. building image-export tooling now.
 5. Track A step 3: hand-rolled SW vs `vite-plugin-pwa` — the ADR will present it, but a prior leaning saves a round-trip.
