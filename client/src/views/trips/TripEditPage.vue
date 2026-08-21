@@ -251,13 +251,18 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
               :data-testid="`traveler-name-${traveler.id}`"
               @ionBlur="renameTraveler(traveler.id, String($event.target.value ?? ''))"
             />
+            <!--
+              Absent rather than disabled once the trip has started (owner,
+              2026-08-21). The first version rendered it refusing every tap, on
+              the reasoning that a vanished control gets hunted for; in the hand
+              it reads as a broken app instead, and the note under the list
+              already answers the question the ✕ would have raised.
+            -->
             <IonButton
-              v-if="!readOnly"
+              v-if="!readOnly && canRemove"
               slot="end"
               fill="clear"
-              :disabled="!canRemove"
               :aria-label="t('tripEdit.removeTraveler', { name: traveler.name })"
-              :title="canRemove ? undefined : t('tripEdit.removeAfterStart')"
               :data-testid="`traveler-remove-${traveler.id}`"
               @click="removeTraveler(traveler.id, traveler.name)"
             >
@@ -267,9 +272,9 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
         </IonList>
 
         <!--
-          The reason removal is gone is stated once, under the list, rather
-          than repeated on every disabled button: it is a fact about the trip,
-          not about a person.
+          The reason removal is gone is stated once, under the list: it is a
+          fact about the trip, not about a person — and with the ✕ absent it is
+          the only thing that answers "why can I not take her off".
         -->
         <p v-if="!canRemove && !readOnly" class="note" data-testid="traveler-remove-note">
           {{ t('tripEdit.removeAfterStart') }}

@@ -117,6 +117,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The sync outbox survives a reload (2026-08-21)](#the-sync-outbox-survives-a-reload-2026-08-21) — MVP Track C / blocker B2: the queue moved to IndexedDB and is replayed before the first pull. Replay safety is the server's `mutation_id` memo, not the merge algorithm; a permanently refused mutation is parked so it cannot wedge a partition.
 - [The device backup carries the FR-27.4 refresh state (2026-08-21)](#the-device-backup-carries-the-fr-274-refresh-state-2026-08-21-mvp-track-f) — a restored device kept everything visible and forgot every answer it had given its groups; the restore re-keys by identity, not by name, because a renamed row is exactly the row the user has made theirs.
 - [A trip stops being frozen (FR-2.7 / M22, 2026-08-21)](#a-trip-stops-being-frozen-fr-27--m22-2026-08-21) — the consequence rule already existed in FR-27.4 and refresh.ts, so the new module was deleted; two defects only a render could see; the sibling e2e was green for the wrong reason three times.
+- [A refusing control is worse than an absent one (2026-08-21)](#a-refusing-control-is-worse-than-an-absent-one-2026-08-21) — M22's ✕ shipped present-but-disabled on a written-down argument; the owner overruled it in the hand. The e2e prefix locator also counted the explanation as a button.
 - [The i18n migration, closed except for M15 and M17 (2026-08-21)](#the-i18n-migration-closed-except-for-m15-and-m17-2026-08-21) — NFR-4.12: a nav anchor and a route title stored finished English text, so no language choice could reach the chrome; what is on the catalogue now and what is not.
 
 ## Current state
@@ -4282,3 +4283,30 @@ assumed: the 20 visual baselines are unchanged.
 No seed change: the sample data already carries a **planning** trip with two
 travellers and four per-person positions, which is exactly the state M22 has
 something to show in.
+
+## A refusing control is worse than an absent one (2026-08-21)
+
+M22 shipped removal of a traveller gated on the trip not having started, and the
+✕ on an active trip was rendered **disabled** rather than omitted. The reasoning
+was written down at the time and reads well: a control that vanishes gets hunted
+for, so leave it visible and say why. The owner used the screen and reported the
+opposite — a ✕ that answers no tap is read as a broken app, and the sentence
+under the roster was already there to answer the question the ✕ raises.
+
+Worth recording because the argument was not wrong, it was **untested**: it was
+decided from the code and never from the screen. The project already has the rule
+for this ("don't judge a UI change from the stylesheet — render it, and let the
+maintainer eyeball it"), and this is the same failure one level up: an
+*interaction* affordance judged from the reasoning about it rather than from
+having it in the hand.
+
+**The test trap that came with the fix.** `E2E-M22-04` counts the remove controls
+and expects zero. `[data-testid^="traveler-remove-"]` also matches
+`traveler-remove-note` — the explanation under the list — so the count never
+reaches zero and the case failed against correct code. The old version escaped it
+by taking `.first()`, which happened to be a button because the buttons precede
+the note in the DOM. The locator is scoped to `ion-button` now. A prefix locator
+is a pattern, and a testid is not a namespace.
+
+`E2E-M22-07` was added at the same time as the positive half: "no ✕ on a started
+trip" passes just as well against a screen that renders none at all.
