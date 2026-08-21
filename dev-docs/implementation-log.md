@@ -3817,3 +3817,38 @@ flowing automatically, which is what the pinning in invariant 8 is for.
 Worth recording because the bump was *correct in isolation*: a green pipeline
 said nothing about it, and the drift is only visible if you ask which artifact
 a version actually builds.
+
+### Dependabot skips the Node majors that can never be taken (2026-08-21)
+
+The toolchain-pins gate landed the same day and immediately did its job: the
+next `node:26-alpine` bump arrived on its own and went red at
+`docker-build`, naming `mise.toml` as the file still to change. The mechanism
+is right, so this only trims what it has to say no to.
+
+Odd-numbered Node majors never become LTS — Current for six months, then end of
+life — so `.github/dependabot.yml` ignores the odd lines for `client/Dockerfile`.
+Even majors stay enabled, because they *do* reach LTS in the October after their
+release and the repo does want them, on its own schedule; the gate is what
+decides when. The near-term reason it is worth doing at all: Node 27 arrives in
+October 2026, and Dependabot only ever offers the newest — so from that month it
+would chase 27 and stop offering 26, which is the version becoming LTS in the
+same week.
+
+The requirements are written in Bundler syntax (`~> 25.0`), because that is what
+the docker ecosystem parses; `25.x` is npm/NuGet syntax and `Gem::Requirement`
+rejects it. This is the part that could not be verified from here: an ignore
+condition whose requirement fails to parse has been observed to abort the whole
+docker job for its directory (dependabot-core#13328), which for `/client` would
+also stop nginx digest updates. The check after merging is the run log under
+the repository's Dependabot update history — it names the ignore conditions it
+applied. A suffixed tag such as `26-alpine` may also be read as a prerelease,
+in which case a `~>` bound would not match it and the condition is merely
+inert rather than harmful.
+
+Deliberately not done two other ways. Ignoring `semver-major` outright throws
+away the good October bump with the bad April one and makes the LTS move
+something the maintainer has to remember. Pinning `node:lts-alpine@sha256:…`
+would follow LTS automatically and read well — but the tag names no major, so
+the gate would have nothing to compare, and the drift would go invisible in
+exactly the month the tag jumps 24 → 26 while `mise.toml` and `ci.yml` do not.
+That is the moment the gate exists for.
