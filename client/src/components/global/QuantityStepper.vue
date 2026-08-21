@@ -10,6 +10,8 @@ import { IonCheckbox, IonIcon } from '@ionic/vue'
 import { removeOutline, addOutline } from 'ionicons/icons'
 import { computed } from 'vue'
 
+import { t } from '@/i18n'
+
 const props = defineProps<{
   quantity: number
   packed: number
@@ -75,7 +77,7 @@ function onMinusUp() {
       @pointerup="onMinusUp"
       @pointerleave="onMinusUp"
       data-testid="row-minus"
-      aria-label="Decrease packed count"
+      :aria-label="t('packing.decrease')"
     >
       <IonIcon :icon="removeOutline" />
     </button>
@@ -89,7 +91,7 @@ function onMinusUp() {
       @pointerup="onPlusUp"
       @pointerleave="onPlusUp"
       data-testid="row-plus"
-      aria-label="Increase packed count"
+      :aria-label="t('packing.increase')"
     >
       <IonIcon :icon="addOutline" />
     </button>

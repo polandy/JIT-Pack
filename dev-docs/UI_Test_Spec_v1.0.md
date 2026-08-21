@@ -311,6 +311,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M8-08** `all` (FR-27.2): resolution footer shows the resolved item count over groups + own positions and **names** every dedup with its contributing groups ("Kamera nur 1× — in Makro & Wildlife").
 * **E2E-M8-09** `all` (FR-27.4, revised 2026-08-18) — **implemented** (`e2e/group-refresh.spec.ts`): a group gains a position after a trip was generated from it; M2 already carries the „⟳ N Änderungen vorgeschlagen“ chip on a freshly booted app (the startup sweep, and the positive half of M8-19's absence assertion); opening the trip shows the **proposal card** naming the change while the list has *not* moved (the row's absence at that point is what separates "asked" from "asked afterwards"), *Übernehmen* puts the row on the list and clears the card, and M2 then carries the „⟳ N Änderungen aus Gruppen übernommen“ chip with the source group and item in its log. Up to ten changes the log is written out under the row (the case asserts that state); above ten it folds behind the chip, which the TripListPage component test pins from both sides of the threshold. Moved out of `template-editor.spec.ts` with the model change — the surface under test is M4 and M2.
 * **E2E-M8-19** `all` (FR-27.4, new 2026-08-18) — **implemented** (`e2e/group-refresh.spec.ts`): *Nicht übernehmen* leaves the trip's list untouched and clears the card; leaving to M2 and coming back proves the refusal was **recorded** rather than held in memory — the trip re-derives on every open, so a refusal that wrote nothing would ask again right there — and M2 carries no proposal chip.
+* **E2E-M8-21** `all` (FR-27.15, *owed — not built*): group recognition in the Vorlage editor — own positions covering a group's complete resolved item set surface the suggestion row („N Positionen entsprechen …“) with the FR-27.12 peek chevron; *Zusammenfassen* replaces those positions with the include (resolution footer count unchanged — the proof nothing was gained or lost) and the snackbar's *Rückgängig* restores the positions, deviations included, and drops the include; *Ignorieren* removes the row and it stays away across a reload (device-local memory), yet returns after the group's item set changes; a one-item group and an already-included group never suggest; a deviated quantity is named on the row before the tap.
 
 ### M9 — Item Inventory
 * **E2E-M9-01** `all` (FR-1.1/24.2/24.4) — **implemented** (`e2e/inventory.spec.ts`): searchable, tag-grouped list, **lean by default** — per row only primary-tag avatar + name (no tag chips, no weight/price); row thumbnail when a photo exists. The case an item on *two* tags is the point: it renders **once**, under its primary tag, and its second tag is not a heading.
@@ -390,6 +391,7 @@ no-flags case to E2E-M14-06.)*
 * **E2E-M17-07** `local` (NFR-4.11): stale-backup warning (never / >30 days, clock-controlled) + storage-details row; cleared after a YAML download.
 * **E2E-M17-08** `single/local` (FR-17.3): notification-prefs section hidden.
 * **E2E-M17-09** `server` (FR-23.1): Administration row visible only for an instance admin with an OIDC session.
+* **E2E-M17-10** `all` (NFR-4.12): the Language row switches the app to German and back — the chrome as well as the screen. Asserted on the four anchors in **both** presentations (tab bar and desktop rail — one list, two widths), the header bar's route title and M2's own segment labels, because those three used to be *stored English text* rather than catalogue keys: a nav anchor kept `name`, a route kept `meta.title`, and no language choice could reach either. It asserts the English words first, so „the German word is there“ cannot pass on a build that rendered neither, and re-asserts after a reload (device-local, FR-21.3's pattern).
 
 ### M18 — Portable Import Preview
 * **E2E-M18-01** `all` (FR-18.4/18.5): template YAML → summary header + per-item state (new/near-duplicate/matched); Import creates a new private owned template; a name collision appends " (import)".
@@ -628,6 +630,8 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | NFR-4.9 | DOC/N-A | operator documentation only |
 | NFR-4.10 | DOC/N-A | retired (demo rate-limit) |
 | NFR-4.11 | E2E | M17-07, NFR-03, M18-05/06/07/08 |
+| NFR-4.11 | E2E | M17-07, NFR-03 |
+| NFR-4.12 | E2E+UNIT | M17-10; `i18n/__tests__/i18n.spec.ts` (catalogue key, placeholder and plural-form parity), `lib/__tests__/roleLabels.spec.ts` |
 
 **No requirement with a UI surface is left uncovered.** Rows tagged SERVER or DOC/N-A are intentionally outside the browser suite, with the reason stated.
 

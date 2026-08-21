@@ -598,4 +598,196 @@ export const de: Record<keyof typeof en, string> = {
   'import.wizard.summaryMerged': '{n} zusammengeführt',
   'import.wizard.summaryCategories': '{n} Kategorie | {n} Kategorien',
   'import.wizard.commit': 'Importieren',
+  // M2 Reiseliste (FR-2.x, FR-13.1).
+  'trips.title': 'Reisen',
+  'trips.importPortable': 'Reise aus Datei importieren',
+  'trips.filterActive': 'Aktiv',
+  'trips.filterPlanned': 'Geplant',
+  'trips.filterArchived': 'Archiviert',
+  'trips.emptyActive': 'Keine aktiven Reisen',
+  'trips.emptyPlanned': 'Keine geplanten Reisen',
+  'trips.emptyArchived': 'Keine archivierten Reisen',
+  'trips.seriesFallback': 'Serie',
+  'trips.seriesCount': '{n} Reise | {n} Reisen',
+  'trips.itemSummary': '{packed}/{total} gepackt',
+  'trips.new': 'Neue Reise',
+  'trips.actionExport': 'Reise exportieren',
+  'trips.actionShare': 'Teilen',
+  'trips.actionClone': 'Reise klonen',
+  'trips.actionStart': 'Reise starten',
+  'trips.actionArchive': 'Reise archivieren',
+  'trips.actionDelete': 'Reise löschen',
+  'trips.deleteTitle': '„{name}“ löschen?',
+  'trips.deleteMessage':
+    'Damit sind die Reise, ihre Packliste, ihre Reisenden und ihr Gepäck für alle weg — endgültig.',
+  'trips.exportHeader': '„{name}“ exportieren',
+  'trips.exportWithProgress': 'Mit Packfortschritt',
+  'trips.exportClean': 'Leere Liste (nichts gepackt)',
+
+  // Rollen auf einer Reise (FR-4.5/4.7), geteilt von M3 Schritt 2 und M19.
+  'role.label': 'Rolle',
+  'role.owner': 'Eigentümer:in',
+  'role.admin': 'Admin',
+  'role.editor': 'Bearbeiter:in',
+
+  // M3 Schritt 2 — Reisende, Teilen und Rollen (FR-2.5, FR-4.5/4.7).
+  'wizard.headerTitle': 'Neue Reise · Schritt {n}/4',
+  'wizard.sectionTravelers': 'Reisende',
+  'wizard.travelerNamePlaceholder': 'Name',
+  'wizard.travelerRemove': 'Reisende:n entfernen',
+  'wizard.travelerFallback': 'Person {n}',
+  'wizard.travelersEmpty':
+    'Noch niemand dabei — Artikel pro Person brauchen mindestens eine Person.',
+  'wizard.addTraveler': 'Reisende:n hinzufügen',
+  'wizard.sectionShare': 'Teilen mit',
+  'wizard.shareRemove': 'Freigabe entfernen',
+  'wizard.shareAdd': 'Konto hinzufügen…',
+  'wizard.shareAddLabel': 'Konto hinzufügen',
+  'wizard.shareEmpty': 'Auf diesem Server gibt es noch keine anderen Konten.',
+  'wizard.shareNote':
+    'Du bleibst Eigentümer:in der Reise. Admins verwalten Reisende und Rollen, Bearbeiter:innen packen und kommentieren.',
+
+  // M3 Schritt 4 — Mengen, Begleitartikel, Zielort-Checkliste (FR-2.6, FR-20.2–20.4, FR-13.3).
+  'wizard.sectionReview': 'Mengen prüfen',
+  'wizard.reviewEmpty': 'Nichts generiert — die Reise startet leer.',
+  'wizard.reviewQuantity': 'Menge',
+  'wizard.reviewUseSuggestion': '{history} → {n} nehmen',
+  'wizard.sectionCompanions': 'Begleitartikel',
+  'wizard.companionWith': 'zu {name}',
+  'wizard.companionDeduped': '{name}: schon auf der Liste, nicht doppelt',
+  'wizard.sectionSuggestedCompanions': 'Vorgeschlagene Begleitartikel',
+  'wizard.companionSuggestedWith': 'vorgeschlagen zu {name}',
+  'wizard.sectionChecklist': 'Zielort-Checkliste',
+  'wizard.checklistAdd':
+    '{n} Punkt der Zielort-Checkliste übernehmen | {n} Punkte der Zielort-Checkliste übernehmen',
+  'wizard.back': 'Zurück',
+  'wizard.next': 'Weiter',
+
+  // Globale Rahmenelemente: die vier Anker (G-1/G-9) und die festen
+  // Routentitel der einen Kopfzeile (ADR-011). Eine Route speichert den
+  // Schlüssel, nicht den Text.
+  'nav.dashboard': 'Übersicht',
+  'nav.trips': 'Reisen',
+  'nav.templates': 'Vorlagen',
+  'nav.items': 'Artikel',
+  'nav.title.importFile': 'Datei importieren',
+  'nav.title.series': 'Serie',
+  'nav.title.template': 'Vorlage',
+  'nav.title.newItem': 'Neuer Artikel',
+  'nav.title.item': 'Artikel',
+  'nav.title.gallery': 'Galerie',
+
+  // G-1 Anwesenheitsleiste und der gemeinsame Mengenschalter.
+  'presence.activeMembers': 'Gerade aktiv',
+  'presence.deviceCount': '({n} Gerät) | ({n} Geräte)',
+  'presence.inSyncSuffix': ' · synchron',
+  'presence.allInSync': 'Alle haben den aktuellen Stand',
+  'presence.inSync': 'Synchron',
+  'packing.decrease': 'Weniger gepackt',
+  'packing.increase': 'Mehr gepackt',
+
+  // M1 Übersicht — „was ist jetzt dran?“
+  'dashboard.greetingMorning': 'Guten Morgen',
+  'dashboard.greetingAfternoon': 'Guten Tag',
+  'dashboard.greetingEvening': 'Guten Abend',
+  'dashboard.subtitle': 'Was beim Packen ansteht',
+  'dashboard.planTrip': 'Reise planen',
+  'dashboard.prepTodo': 'Vorzubereiten ({n})',
+  'dashboard.openCount': '{n} offen',
+  'dashboard.moreItems': '+{n} weitere',
+
+  // M19 Moduswahl beim ersten Start (FR-19.1).
+  'firstRun.welcome': 'Willkommen bei JIT-Pack',
+  'firstRun.intro': 'Wo sollen deine Packdaten liegen? Diese Wahl triffst du pro Gerät einmal.',
+  'firstRun.localTitle': 'Lokal — nur dieses Gerät',
+  'firstRun.localBody':
+    'Alles bleibt in diesem Browser bzw. dieser App. Kein Server, kein Konto. Teilen und Sync über mehrere Geräte gibt es nicht; regelmässige Exporte sind deine Sicherung.',
+  'firstRun.localAction': 'Lokal arbeiten',
+  'firstRun.serverTitle': 'Server — synchron und gemeinsam',
+  'firstRun.serverBody':
+    'Verbinde dich mit einem selbst gehosteten JIT-Pack-Server: mehrere Geräte, gemeinsame Reisen.',
+  'firstRun.serverUrl': 'Server-URL',
+  'firstRun.serverUrlInvalid': 'Bitte eine vollständige http(s)-Adresse eingeben.',
+  'firstRun.serverAction': 'Mit Server verbinden',
+
+  // OIDC-Anmeldung und ihr Rücksprungziel (Sync-API §2).
+  'login.title': 'Anmelden',
+  'login.notRequired': 'Dieser Server verlangt keine Anmeldung — du kannst zurück in die App.',
+  'login.hint':
+    'Die Anmeldung läuft über deinen Identity Provider; JIT-Pack sieht dein Passwort nie.',
+  'login.action': 'Mit SSO anmelden',
+  'login.serverUnreachable': 'Server nicht erreichbar',
+  'login.noOidc': 'Dieser Server bietet keine OIDC-Anmeldung an',
+  'login.startFailed': 'Die Anmeldung liess sich nicht starten',
+  'login.completing': 'Anmeldung wird abgeschlossen…',
+  'login.interrupted': 'Die Anmeldung wurde unterbrochen — bitte noch einmal versuchen.',
+  'login.rejected': 'Der Server hat die Anmeldung abgelehnt.',
+  'login.failed': 'Anmeldung fehlgeschlagen — Server nicht erreichbar.',
+  'login.backToLogin': 'Zurück zur Anmeldung',
+
+  // Mitglieder einer Reise (FR-4.5/4.7).
+  'members.title': 'Mitglieder',
+  'members.headerTitle': 'Mitglieder · {trip}',
+  'members.self': ' (du)',
+  'members.remove': 'Mitglied entfernen',
+  'members.empty': 'Für diese Reise ist noch keine Mitgliederliste angekommen.',
+  'members.addUser': 'Konto hinzufügen…',
+  'members.addUserLabel': 'Konto hinzufügen',
+  'members.allAdded': 'Alle auf diesem Server sind schon dabei.',
+  'members.roleNote':
+    'Admins verwalten Reisende und Rollen, Bearbeiter:innen packen und kommentieren. Die Eigentümer:in lässt sich nicht ändern.',
+  'members.readOnly': 'Mitglieder verwalten können nur die Eigentümer:in und Admins.',
+
+  // G-2 Konfliktprotokoll (NFR-4.2a).
+  'conflicts.title': 'Konfliktprotokoll',
+  'conflicts.unavailable': 'Konfliktprotokoll nicht verfügbar — offline?',
+  'conflicts.empty': 'Keine Konflikte — alles sauber zusammengeführt',
+  'conflicts.emptyValue': '—',
+
+  // M20 Benutzerverwaltung (Addendum 3.23).
+  'admin.title': 'Benutzerverwaltung',
+
+  // M6 Einkaufslisten (FR-3.2/3.3).
+  'shopping.headerTitle': 'Einkaufen · {trip}',
+  'shopping.beforeDeparture': 'Vor der Abreise ({n})',
+  'shopping.atDestination': 'Vor Ort ({n})',
+  'shopping.uncategorized': 'Ohne Kategorie',
+  'shopping.bought': 'Gekauft: {name}',
+  'shopping.emptyBefore': 'Vor der Abreise ist nichts zu kaufen',
+  'shopping.emptyLocal': 'Vor Ort ist nichts zu kaufen',
+
+  // M16 Serie und Zielort-Profil (FR-13.1/13.2/13.3).
+  'series.section': 'Serie',
+  'series.name': 'Name',
+  'series.defaultsNote': 'Diese Vorgaben füllen den Assistenten für neue Reisen der Serie vor.',
+  'series.sectionNotes': 'Notizen zum Ziel',
+  'series.notesPlaceholder': 'z. B. Waschmaschine vorhanden',
+  'series.checklistRemove': 'Punkt entfernen',
+  'series.checklistEmpty': 'Wird angeboten, sobald eine neue Reise in dieser Serie entsteht.',
+  'series.checklistAdd': 'Punkt hinzufügen…',
+  'series.checklistMode': 'Art',
+  'series.sectionTrips': 'Reisen dieser Serie',
+  'series.detach': 'Aus der Serie lösen',
+  'series.noTrips': 'Noch keine Reisen in dieser Serie.',
+  'series.attach': 'Bestehende Reise zuordnen',
+  'series.clone': '„{name}“ klonen',
+  'series.newTrip': 'Neue Reise in dieser Serie',
+  'series.trends': 'Trends der Serie',
+  'series.notFound': 'Diese Serie gibt es auf diesem Gerät nicht.',
+
+  // M20 Benutzerverwaltung (Addendum 3.23, FR-23.2–23.5).
+  'admin.actionDeactivate': 'Deaktivieren',
+  'admin.actionReactivate': 'Wieder aktivieren',
+  'admin.actionResetAvatar': 'Bild entfernen',
+  'admin.actionResetName': 'Anzeigenamen zurücksetzen',
+  'admin.deactivateTitle': '{name} deaktivieren?',
+  'admin.deactivateMessage':
+    'Das Konto verliert sofort jeden Zugriff. Reisen, Vorlagen und Zuschreibungen bleiben unangetastet und für andere sichtbar. Ein erneutes Anmelden hilft nicht — nur „Wieder aktivieren“.',
+  'admin.unavailable':
+    'Übersicht nicht verfügbar — nur für Instanz-Admins, und der Server muss erreichbar sein.',
+  'admin.self': '(du)',
+  'admin.provisioned': 'Angelegt am {date}',
+  'admin.tripCount': '{n} Reise | {n} Reisen',
+  'admin.templateCount': '{n} Vorlage | {n} Vorlagen',
+  'admin.deactivated': 'Deaktiviert',
 }

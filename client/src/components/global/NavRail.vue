@@ -7,6 +7,7 @@ import { IonIcon, IonLabel } from '@ionic/vue'
 import { useRoute } from 'vue-router'
 
 import { NAV_ANCHORS, isAnchorActive } from '@/router/anchors'
+import { t } from '@/i18n'
 
 const route = useRoute()
 </script>
@@ -22,7 +23,7 @@ const route = useRoute()
       :data-testid="`rail-${anchor.match}`"
     >
       <IonIcon :icon="anchor.icon" />
-      <IonLabel>{{ anchor.name }}</IonLabel>
+      <IonLabel>{{ t(anchor.nameKey) }}</IonLabel>
     </router-link>
   </nav>
 </template>

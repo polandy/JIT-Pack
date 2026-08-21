@@ -98,10 +98,17 @@ it. Item numbers stay stable even as items close, because the log refers back to
    the M5 rebuild — losing its scroll position when a detail opened — is **paid** with it:
    `lib/scrollMemory.ts` holds the offset *and* the header-line state across the replace
    (E2E-M4-45, ADR-012's second amendment).
-4. **i18n migration** — the hard-coded English strings across the screens M4 did not touch;
-   the module and both catalogues exist and M4 + the quick-add + the filter sheet + M7/M8
-   + M12 + M14 + M3's step 3 are done (M3's other three steps are not — a section is a
-   coherent unit to localize, a half-translated one is not).
+4. **i18n migration** — **all but one screen are done** (2026-08-21). The rule is that a
+   **section is the unit**: a half-translated screen is worse than an untranslated one.
+   On the catalogue: M1–M4, M6, M7/M8, M9–M12, M14, M16, M19, M20, M21, the trip roster,
+   the conflict log, the OIDC login, and the global chrome — the four anchors and the
+   header bar's route titles now store a `MessageKey` rather than finished English text,
+   which is what had made them unreachable by a language switch. **One remains.**
+   **M15/M18** (`views/import/*`) were excluded from this pass by file because the MVP
+   backup track owned them — and localized there instead, so nothing is owed. **M17 Settings** is
+   half-translated and has been since before the migration — ten `t()` calls beside about
+   fifteen literals, plus `AvatarCropModal`. It is one section, so it wants one commit.
+   Detail in the implementation log.
 5. ~~**Two migrations owed by concept decisions**~~ — **done** (2026-08-11): `travelers.profile`
    dropped, `trip_items.packed_by_user_id` carries the packing record and `packer_user_id` the
    assignment (FR-25.9/25.19). Log: *„Migrations 018/019"*.
@@ -134,6 +141,14 @@ it. Item numbers stay stable even as items close, because the log refers back to
    a mark"*). **Three things the implementing PR owes beyond the code:** the **ADR** (the
    tradeoff is real), **one deliberate `make visual-update`** (a new face rewrites every
    baseline, ADR-013), and the sample-data seed per the standing rule above.
+
+13. **FR-27.15 — M8 does not notice when loose positions are a group** (owner idea 2026-08-21,
+   **specified, not built**). A Ferien-Vorlage typed position by position can duplicate an
+   existing Gruppe without provenance, so FR-27.4/27.5 never reach those rows. Decided:
+   propose-don't-act (a suggestion row with *Zusammenfassen*/*Ignorieren*), match = the group's
+   complete resolved item set by master-item id, M8 only. **The concept is written in
+   FR-27.15** — build against that text; auto-convert-with-undo was the original idea and is
+   rejected *in* the FR, so don't reopen it.
 
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,
