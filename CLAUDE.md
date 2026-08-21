@@ -98,17 +98,12 @@ it. Item numbers stay stable even as items close, because the log refers back to
    the M5 rebuild — losing its scroll position when a detail opened — is **paid** with it:
    `lib/scrollMemory.ts` holds the offset *and* the header-line state across the replace
    (E2E-M4-45, ADR-012's second amendment).
-4. **i18n migration** — **all but one screen are done** (2026-08-21). The rule is that a
-   **section is the unit**: a half-translated screen is worse than an untranslated one.
-   On the catalogue: M1–M4, M6, M7/M8, M9–M12, M14, M16, M19, M20, M21, the trip roster,
-   the conflict log, the OIDC login, and the global chrome — the four anchors and the
-   header bar's route titles now store a `MessageKey` rather than finished English text,
-   which is what had made them unreachable by a language switch. **One remains.**
-   **M15/M18** (`views/import/*`) were excluded from this pass by file because the MVP
-   backup track owned them — and localized there instead, so nothing is owed. **M17 Settings** is
-   half-translated and has been since before the migration — ten `t()` calls beside about
-   fifteen literals, plus `AvatarCropModal`. It is one section, so it wants one commit.
-   Detail in the implementation log.
+4. ~~**i18n migration**~~ — **done** (2026-08-22). Every screen is on the catalogue; the rule
+   it was run by is that a **section is the unit**, because a half-translated screen is worse
+   than an untranslated one. M17 Settings was the last, and the trap it closed is worth keeping:
+   **finished text in a module-level constant is unreachable by a language switch**, the same
+   shape that had stranded the nav anchors and the route titles. Log: *„The i18n migration…"*
+   and *„M17 was the last screen…"*.
 5. ~~**Two migrations owed by concept decisions**~~ — **done** (2026-08-11): `travelers.profile`
    dropped, `trip_items.packed_by_user_id` carries the packing record and `packer_user_id` the
    assignment (FR-25.9/25.19). Log: *„Migrations 018/019"*.

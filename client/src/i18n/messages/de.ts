@@ -19,6 +19,8 @@ export const de: Record<keyof typeof en, string> = {
   'common.close': 'Schliessen',
   'common.back': 'Zurück',
   'common.edit': 'Bearbeiten',
+  'common.ok': 'OK',
+  'common.download': 'Herunterladen',
   'common.remove': 'Entfernen',
   'common.confirm': 'Bestätigen',
   'common.search': 'Suchen',
@@ -380,6 +382,65 @@ export const de: Record<keyof typeof en, string> = {
   'settings.defaultTravelersHint':
     'Eine neue Reise startet mit diesen Personen. Nur auf diesem Gerät; pro Reise änderbar.',
   'settings.addTraveler': 'Reisende:n hinzufügen',
+  // M17's remaining sections (NFR-4.12, 2026-08-22) — see the English file.
+  'settings.profile': 'Profil',
+  'settings.profileLocalNote':
+    'Der lokale Modus kennt kein Konto — alles bleibt auf diesem Gerät.',
+  'settings.avatarAlt': 'Profilbild',
+  'settings.changePicture': 'Bild ändern',
+  'settings.displayName': 'Anzeigename',
+  'settings.saved': 'Gespeichert',
+  'settings.nameRule': '1–50 Zeichen, nur Buchstaben, Ziffern und ._-',
+  'settings.profileManaged': 'Das Profil verwaltet dein Identitätsanbieter.',
+  'settings.profileUnavailable': 'Profil nicht verfügbar — Server nicht erreichbar.',
+  'settings.lightThemeHint':
+    'Catppuccin Latte — dunkel (Mocha) ist die Voreinstellung. Nur auf diesem Gerät.',
+  'settings.notifications': 'Benachrichtigungen',
+  'settings.prefDelegation': 'Übergaben',
+  'settings.prefDelegationHint': 'Ein Packelement wurde dir zum Packen übergeben',
+  'settings.prefMention': 'Erwähnungen',
+  'settings.prefMentionHint': 'Jemand hat @dich in einem Kommentar erwähnt',
+  'settings.prefTask': 'Aufgaben',
+  'settings.prefTaskHint': 'Zu deinem Packelement wurde eine Aufgabe eröffnet',
+  'settings.push': 'Push auf diesem Gerät',
+  'settings.pushHint': 'Systemmeldungen, während die App geschlossen ist',
+  'settings.pushUnsupported': 'Von diesem Browser nicht unterstützt',
+  'settings.notificationsUnavailable':
+    'Benachrichtigungseinstellungen nicht verfügbar — Server nicht erreichbar.',
+  'settings.data': 'Daten',
+  'settings.backupNever':
+    'Du hast noch keine Sicherung gemacht — lade eine Kopie herunter, damit deine Daten diesen Browser überleben.',
+  'settings.backupStale':
+    'Letzte Sicherung vor {n} Tag. Lade eine frische Kopie herunter (alle {every} Tage ist eine gute Gewohnheit). | Letzte Sicherung vor {n} Tagen. Lade eine frische Kopie herunter (alle {every} Tage ist eine gute Gewohnheit).',
+  'settings.localBackupNote':
+    'Die Sicherung im lokalen Modus ist der portable YAML-Export — es gibt keine Serverkopie deiner Daten. Dateien kommen über den Reise-/Vorlagen-Import zurück.',
+  'settings.tripYaml': 'Reise (YAML)',
+  'settings.templateYaml': 'Vorlage (YAML)',
+  'settings.tripCsv': 'Packliste der Reise (CSV)',
+  'settings.fullExport': 'Vollständiger Export (JSON)',
+  'settings.fullExportHint': 'Alles, was du sehen kannst, als versionierte Sicherungsdatei',
+  'settings.storageDetails': 'Speicherdetails',
+  'settings.storageDetailsHint': 'Belegung auf dem Gerät',
+  'settings.storageTitle': 'Speicher auf diesem Gerät',
+  'settings.storageUnavailable': 'Speicherdetails sind in diesem Browser nicht verfügbar.',
+  'settings.storageUsed': '{used} MB von {quota} MB auf diesem Gerät belegt.',
+  'settings.storagePersistent':
+    'Der Speicher ist dauerhaft — der Browser räumt ihn nicht von selbst weg.',
+  'settings.storageNotPersistent':
+    'Der Speicher ist nicht als dauerhaft markiert, der Browser kann ihn bei Platzmangel verwerfen. Halte einen aktuellen Export bereit.',
+  'settings.administration': 'Verwaltung',
+  'settings.userAdmin': 'Benutzerverwaltung',
+  'settings.userAdminHint': 'Angelegte Konten, Deaktivierung, Profilmoderation',
+  'settings.conflictLog': 'Konfliktprotokoll',
+  'settings.conflictLogNote':
+    'Automatisch aufgelöste Zusammenführungen werden je Reise protokolliert — öffne eine Reise und tippe auf die Synchronisationsanzeige in der Kopfzeile.',
+  'settings.about': 'Über',
+  'settings.modeLocal': 'Modus: Lokal (nur dieses Gerät)',
+  'settings.modeServer': 'Modus: Server ({url})',
+  // Avatar crop (FR-17.13).
+  'avatarCrop.title': 'Foto ausrichten',
+  'avatarCrop.zoom': 'Zoom',
+  'avatarCrop.use': 'Foto verwenden',
   // M11 — Gepäckverwaltung (FR-10.1–10.3, FR-25.5).
   'container.title': 'Gepäck',
   'container.loadOf': '{weight} von {max}',

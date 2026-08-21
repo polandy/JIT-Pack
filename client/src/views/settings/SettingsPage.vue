@@ -59,7 +59,7 @@ import { safeFilename, saveBlob, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { currentTheme, setTheme } from '@/theme/theme'
-import { type Locale, currentLocale, setLocale, t } from '@/i18n'
+import { type Locale, type MessageKey, currentLocale, formatNumber, setLocale, t } from '@/i18n'
 import AvatarCropModal from '@/components/settings/AvatarCropModal.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
@@ -126,10 +126,16 @@ const prefs = ref<NotificationPrefs | null>(null)
 const pushOn = ref(false)
 const pushAvailable = pushSupported()
 
-const prefLabels: { kind: keyof NotificationPrefs; label: string; hint: string }[] = [
-  { kind: 'delegation', label: 'Delegations', hint: 'An item was handed to you to pack' },
-  { kind: 'mention', label: 'Mentions', hint: 'Someone wrote @you in a comment' },
-  { kind: 'task', label: 'Tasks', hint: 'A task was opened on your item' },
+/*
+ * Keys, not finished text: a module-level constant is evaluated once at import
+ * and a language switch can never reach it — the same trap the nav anchors and
+ * route titles were caught in during the i18n migration. `t()` runs during
+ * render here, so it tracks the locale.
+ */
+const prefRows: { kind: keyof NotificationPrefs; label: MessageKey; hint: MessageKey }[] = [
+  { kind: 'delegation', label: 'settings.prefDelegation', hint: 'settings.prefDelegationHint' },
+  { kind: 'mention', label: 'settings.prefMention', hint: 'settings.prefMentionHint' },
+  { kind: 'task', label: 'settings.prefTask', hint: 'settings.prefTaskHint' },
 ]
 
 async function togglePref(kind: keyof NotificationPrefs, enabled: boolean) {
@@ -194,6 +200,24 @@ const yamlTemplateId = ref('')
 // NFR-4.11 export reminder: recomputed on demand so it clears the moment
 // a Local Mode backup is downloaded.
 const exportReminder = ref(reminderState(lastExportAt(), Date.now()))
+
+/*
+ * Computed rather than written into the template: the sentence differs by
+ * whether a backup was ever made, and the stale form is a plural — both
+ * decisions belong to the catalogue, not to a ternary in the markup.
+ */
+const backupReminderText = computed(() => {
+  // Narrowed on daysSince rather than lastAt: they are null together, but only
+  // this one is the value being interpolated, and only this one narrows.
+  const days = exportReminder.value.daysSince
+  return days === null
+    ? t('settings.backupNever')
+    : t('settings.backupStale', { n: days, every: EXPORT_REMINDER_DAYS })
+})
+
+const modeText = computed(() =>
+  mode === 'local' ? t('settings.modeLocal') : t('settings.modeServer', { url: serverBaseUrl() }),
+)
 function refreshReminder() {
   exportReminder.value = reminderState(lastExportAt(), Date.now())
 }
@@ -236,21 +260,20 @@ function exportTemplateYAML() {
  * on-device data uses, and whether the browser has promised not to evict
  * it. Both come from the Storage API; absence is reported honestly. */
 async function showStorageDetails() {
-  let message = 'Storage details are unavailable in this browser.'
+  let message = t('settings.storageUnavailable')
   if (typeof navigator !== 'undefined' && navigator.storage?.estimate) {
     const { usage = 0, quota = 0 } = await navigator.storage.estimate()
     const persisted = (await navigator.storage.persisted?.()) ?? false
-    const mb = (n: number) => (n / (1024 * 1024)).toFixed(1)
+    const mb = (n: number) => formatNumber(n / (1024 * 1024), { maximumFractionDigits: 1 })
     message =
-      `Used ${mb(usage)} MB of ${mb(quota)} MB available on this device.\n\n` +
-      (persisted
-        ? 'Storage is persistent — the browser will not evict it automatically.'
-        : 'Storage is not marked persistent, so the browser may evict it under pressure. Keep a recent export.')
+      t('settings.storageUsed', { used: mb(usage), quota: mb(quota) }) +
+      '\n\n' +
+      t(persisted ? 'settings.storagePersistent' : 'settings.storageNotPersistent')
   }
   const alert = await alertController.create({
-    header: 'On-device storage',
+    header: t('settings.storageTitle'),
     message,
-    buttons: ['OK'],
+    buttons: [t('common.ok')],
   })
   await alert.present()
 }
@@ -272,9 +295,9 @@ async function exportTripCSV() {
   <IonPage>
     <IonContent class="ion-padding">
       <!-- Profile (FR-17.13) -->
-      <h2 class="section-title jp-eyebrow">Profile</h2>
+      <h2 class="section-title jp-eyebrow" data-testid="settings-section-profile">{{ t('settings.profile') }}</h2>
       <template v-if="mode === 'local'">
-        <IonNote>Local Mode has no account — everything stays on this device.</IonNote>
+        <IonNote>{{ t('settings.profileLocalNote') }}</IonNote>
       </template>
       <template v-else-if="me">
         <div class="avatar-row">
@@ -282,12 +305,12 @@ async function exportTripCSV() {
             v-if="avatarUrl"
             :src="avatarUrl"
             class="avatar"
-            alt="Avatar"
+            :alt="t('settings.avatarAlt')"
             @error="($event.target as HTMLImageElement).style.visibility = 'hidden'"
           />
           <IonIcon v-else :icon="personCircleOutline" class="avatar-placeholder" />
           <label v-if="editable" class="avatar-upload">
-            Change picture
+            {{ t('settings.changePicture') }}
             <input type="file" accept="image/*" hidden @change="onAvatarFile" />
           </label>
         </div>
@@ -300,7 +323,7 @@ async function exportTripCSV() {
         <IonList>
           <IonItem>
             <IonInput
-              label="Display name"
+              :label="t('settings.displayName')"
               label-placement="stacked"
               :value="nameDraft"
               :readonly="!editable"
@@ -314,29 +337,29 @@ async function exportTripCSV() {
               :disabled="!nameValid || nameDraft === me.display_name"
               @click="saveName"
             >
-              {{ nameSaved ? 'Saved' : 'Save' }}
+              {{ nameSaved ? t('settings.saved') : t('common.save') }}
             </IonButton>
           </IonItem>
         </IonList>
         <IonNote v-if="editable && !nameValid" color="danger">
-          1–50 characters, letters/digits/._- only.
+          {{ t('settings.nameRule') }}
         </IonNote>
-        <IonNote v-else-if="!editable">Profile is managed by your identity provider.</IonNote>
+        <IonNote v-else-if="!editable">{{ t('settings.profileManaged') }}</IonNote>
       </template>
-      <IonNote v-else>Profile unavailable — server not reachable.</IonNote>
+      <IonNote v-else>{{ t('settings.profileUnavailable') }}</IonNote>
 
       <!-- Appearance (FR-21.3) — every mode, this device only -->
-      <h2 class="section-title jp-eyebrow">Appearance</h2>
+      <h2 class="section-title jp-eyebrow" data-testid="settings-section-appearance">{{ t('settings.appearance') }}</h2>
       <IonList>
         <IonItem>
           <IonLabel>
-            <h3>Light theme</h3>
-            <p>Catppuccin Latte — dark (Mocha) is the default. This device only.</p>
+            <h3>{{ t('settings.lightTheme') }}</h3>
+            <p>{{ t('settings.lightThemeHint') }}</p>
           </IonLabel>
           <IonToggle
             slot="end"
             :checked="lightTheme"
-            aria-label="Light theme"
+            :aria-label="t('settings.lightTheme')"
             @ionChange="(e: CustomEvent) => toggleLightTheme(e.detail.checked)"
           />
         </IonItem>
@@ -400,64 +423,51 @@ async function exportTripCSV() {
 
       <!-- Notifications (FR-6.2 / NFR-4.6) — multi-user only (G-8) -->
       <template v-if="collaborative">
-        <h2 class="section-title jp-eyebrow">Notifications</h2>
+        <h2 class="section-title jp-eyebrow">{{ t('settings.notifications') }}</h2>
         <IonList v-if="prefs">
-          <IonItem v-for="p in prefLabels" :key="p.kind">
+          <IonItem v-for="p in prefRows" :key="p.kind">
             <IonLabel>
-              <h3>{{ p.label }}</h3>
-              <p>{{ p.hint }}</p>
+              <h3>{{ t(p.label) }}</h3>
+              <p>{{ t(p.hint) }}</p>
             </IonLabel>
             <IonToggle
               slot="end"
               :checked="prefs[p.kind]"
-              :aria-label="p.label"
+              :aria-label="t(p.label)"
               @ionChange="(e: CustomEvent) => togglePref(p.kind, e.detail.checked)"
             />
           </IonItem>
           <IonItem>
             <IonLabel>
-              <h3>Push on this device</h3>
+              <h3>{{ t('settings.push') }}</h3>
               <p>
-                {{
-                  pushAvailable
-                    ? 'OS notifications while the app is closed'
-                    : 'Not supported by this browser'
-                }}
+                {{ pushAvailable ? t('settings.pushHint') : t('settings.pushUnsupported') }}
               </p>
             </IonLabel>
             <IonToggle
               slot="end"
               :checked="pushOn"
               :disabled="!pushAvailable"
-              aria-label="Push on this device"
+              :aria-label="t('settings.push')"
               @ionChange="(e: CustomEvent) => togglePush(e.detail.checked)"
             />
           </IonItem>
         </IonList>
-        <IonNote v-else>Notification settings unavailable — server not reachable.</IonNote>
+        <IonNote v-else>{{ t('settings.notificationsUnavailable') }}</IonNote>
       </template>
 
       <!-- Data (NFR-4.5) -->
-      <h2 class="section-title jp-eyebrow">Data</h2>
+      <h2 class="section-title jp-eyebrow" data-testid="settings-section-data">{{ t('settings.data') }}</h2>
       <template v-if="mode === 'local'">
         <div v-if="exportReminder.due" class="export-reminder">
           <IonIcon :icon="warningOutline" />
-          <span>
-            {{
-              exportReminder.lastAt === null
-                ? "You haven't backed up yet — download a copy so your data survives this browser."
-                : `Last backup was ${exportReminder.daysSince} days ago. Download a fresh copy (every ${EXPORT_REMINDER_DAYS} days is a good habit).`
-            }}
-          </span>
+          <span>{{ backupReminderText }}</span>
         </div>
-        <IonNote>
-          Backup in Local Mode is the portable YAML export — there is no server copy of your data.
-          Files re-import via the trip/template import.
-        </IonNote>
+        <IonNote>{{ t('settings.localBackupNote') }}</IonNote>
         <IonList>
           <IonItem>
             <IonSelect
-              label="Trip (YAML)"
+              :label="t('settings.tripYaml')"
               interface="popover"
               :value="yamlTripId"
               @ionChange="(e: CustomEvent) => (yamlTripId = e.detail.value)"
@@ -467,12 +477,12 @@ async function exportTripCSV() {
               </IonSelectOption>
             </IonSelect>
             <IonButton slot="end" size="small" :disabled="!yamlTripId" @click="exportTripYAML">
-              Download
+              {{ t('common.download') }}
             </IonButton>
           </IonItem>
           <IonItem>
             <IonSelect
-              label="Template (YAML)"
+              :label="t('settings.templateYaml')"
               interface="popover"
               :value="yamlTemplateId"
               @ionChange="(e: CustomEvent) => (yamlTemplateId = e.detail.value)"
@@ -491,12 +501,12 @@ async function exportTripCSV() {
               :disabled="!yamlTemplateId"
               @click="exportTemplateYAML"
             >
-              Download
+              {{ t('common.download') }}
             </IonButton>
           </IonItem>
           <IonItem button :detail="false" @click="showStorageDetails">
-            <IonLabel>Storage details</IonLabel>
-            <IonNote slot="end">On-device usage</IonNote>
+            <IonLabel data-testid="settings-storage-details">{{ t('settings.storageDetails') }}</IonLabel>
+            <IonNote slot="end">{{ t('settings.storageDetailsHint') }}</IonNote>
           </IonItem>
         </IonList>
       </template>
@@ -505,13 +515,13 @@ async function exportTripCSV() {
           <IonItem button :detail="false" @click="exportFull">
             <IonIcon slot="start" :icon="downloadOutline" />
             <IonLabel>
-              <h3>Full export (JSON)</h3>
-              <p>Everything you can see, as a versioned backup file</p>
+              <h3>{{ t('settings.fullExport') }}</h3>
+              <p>{{ t('settings.fullExportHint') }}</p>
             </IonLabel>
           </IonItem>
           <IonItem>
             <IonSelect
-              label="Trip packing list (CSV)"
+              :label="t('settings.tripCsv')"
               interface="popover"
               :value="csvTripId"
               @ionChange="(e: CustomEvent) => (csvTripId = e.detail.value)"
@@ -521,7 +531,7 @@ async function exportTripCSV() {
               </IonSelectOption>
             </IonSelect>
             <IonButton slot="end" size="small" :disabled="!csvTripId" @click="exportTripCSV">
-              Download
+              {{ t('common.download') }}
             </IonButton>
           </IonItem>
         </IonList>
@@ -530,34 +540,28 @@ async function exportTripCSV() {
       <!-- Administration entry (Addendum 3.23, FR-23.2): instance
            admins with an OIDC session only — same gating as M20. -->
       <template v-if="collaborative && me?.is_instance_admin">
-        <h2 class="section-title jp-eyebrow">Administration</h2>
+        <h2 class="section-title jp-eyebrow">{{ t('settings.administration') }}</h2>
         <IonList>
           <IonItem button lines="none" @click="$router.push('/admin')">
             <IonLabel>
-              <h3>User administration</h3>
-              <p>Provisioned accounts, deactivation, profile moderation</p>
+              <h3>{{ t('settings.userAdmin') }}</h3>
+              <p>{{ t('settings.userAdminHint') }}</p>
             </IonLabel>
           </IonItem>
         </IonList>
       </template>
 
       <!-- Conflict log pointer (G-2) -->
-      <h2 class="section-title jp-eyebrow">Conflict log</h2>
-      <IonNote>
-        Automatic merge resolutions are logged per trip — open a trip and tap the sync indicator in
-        the header to review them.
-      </IonNote>
+      <h2 class="section-title jp-eyebrow" data-testid="settings-section-conflicts">{{ t('settings.conflictLog') }}</h2>
+      <IonNote>{{ t('settings.conflictLogNote') }}</IonNote>
 
       <!-- App info -->
-      <h2 class="section-title jp-eyebrow">About</h2>
+      <h2 class="section-title jp-eyebrow" data-testid="settings-section-about">{{ t('settings.about') }}</h2>
       <IonList>
         <IonItem lines="none">
           <IonLabel>
             <h3>JIT-Pack</h3>
-            <p>
-              Mode:
-              {{ mode === 'local' ? 'Local (this device only)' : `Server (${serverBaseUrl()})` }}
-            </p>
+            <p>{{ modeText }}</p>
           </IonLabel>
         </IonItem>
       </IonList>

@@ -17,6 +17,7 @@ import {
 import { removeOutline, addOutline } from 'ionicons/icons'
 import { ref, watch } from 'vue'
 import { coverScale, clampOffset, sourceRect } from '@/lib/avatarCrop'
+import { t } from '@/i18n'
 
 const props = defineProps<{ open: boolean; file: File | Blob | null }>()
 const emit = defineEmits<{ crop: [blob: Blob]; cancel: [] }>()
@@ -143,9 +144,9 @@ function cancel() {
 <template>
   <IonModal :is-open="open" @did-dismiss="cancel">
     <IonToolbar>
-      <IonTitle>Position photo</IonTitle>
+      <IonTitle>{{ t('avatarCrop.title') }}</IonTitle>
       <IonButtons slot="end">
-        <IonButton @click="cancel">Cancel</IonButton>
+        <IonButton @click="cancel">{{ t('common.cancel') }}</IonButton>
       </IonButtons>
     </IonToolbar>
 
@@ -180,13 +181,13 @@ function cancel() {
           :max="3"
           :step="0.01"
           :value="zoom"
-          aria-label="Zoom"
+          :aria-label="t('avatarCrop.zoom')"
           @ionInput="(e: CustomEvent) => onZoom(e.detail.value as number)"
         />
         <IonIcon :icon="addOutline" />
       </div>
 
-      <IonButton expand="block" @click="confirm">Use photo</IonButton>
+      <IonButton expand="block" @click="confirm">{{ t('avatarCrop.use') }}</IonButton>
     </div>
   </IonModal>
 </template>
