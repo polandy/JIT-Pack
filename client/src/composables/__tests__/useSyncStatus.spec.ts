@@ -101,3 +101,28 @@ describe('Local Mode writes (FR-19.2)', () => {
     expect(status.state.value).toBe('local')
   })
 })
+
+/**
+ * The durable outbox's two extra facts (B2, NFR-4.1): how many mutations the
+ * server refused for good, and whether the queue is being kept on the device
+ * at all. Both are G-2's business — the sheet must not promise durability the
+ * browser has withdrawn.
+ */
+describe('useSyncStatus — durable queue facts', () => {
+  it('starts out claiming a durable queue and nothing parked', () => {
+    const status = useSyncStatus()
+
+    expect(status.parkedCount.value).toBe(0)
+    expect(status.queueDurable.value).toBe(true)
+  })
+
+  it('carries the parked count and the withdrawn durability', () => {
+    const status = useSyncStatus()
+
+    status.setParkedCount(2)
+    status.setQueueDurable(false)
+
+    expect(status.parkedCount.value).toBe(2)
+    expect(status.queueDurable.value).toBe(false)
+  })
+})

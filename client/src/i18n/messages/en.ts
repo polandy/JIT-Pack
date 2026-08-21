@@ -60,6 +60,14 @@ export const en = {
   'sync.detail.backupSaved': 'Backup saved: {file}',
   'sync.detail.updateReady':
     'A new version of JIT-Pack is ready. It takes over the next time you open the app.',
+  // B2/NFR-4.1 — the durable outbox.
+  'sync.detail.pendingDurable':
+    'They are saved on this device and go out as soon as it is back online.',
+  'sync.detail.pendingFragile':
+    'This device could not save them — closing the app now would lose them.',
+  'sync.detail.parked': 'The server rejected {n} change | The server rejected {n} changes',
+  'sync.detail.parkedHint':
+    'They were taken out of the queue so the rest could be sent, and are kept on this device. They will not be tried again.',
 
   // Trips.
   'trip.daysUntil': '{n} days to go',

@@ -34,29 +34,42 @@ import { reminderState } from '@/local/exportReminder'
 import { evictionRisk, type StorageStatus } from '@/local/storageStatus'
 import { SYNC_EXPLAIN_KEYS, SYNC_LABEL_KEYS, type SyncState } from '@/composables/useSyncStatus'
 
-const props = defineProps<{
-  /** The glyph's current state — the sheet titles and explains this one. */
-  state: SyncState
-  /** Mutations queued but not pushed (Server Mode). */
-  pendingCount: number
-  /** Run mode: it, not the state, decides which half of the sheet applies. */
-  mode: 'local' | 'server'
-  /** Whether a trip is open, i.e. whether a conflict log can be reached. */
-  canOpenConflicts: boolean
-  /** On-device storage facts, or null while they are still being read. */
-  storage: StorageStatus | null
-  /** Epoch-ms of the last portable export, null when there was never one. */
-  lastExportAt: number | null
-  /** Whether anything exists that a backup could contain. */
-  hasBackupContent: boolean
-  /**
-   * A newer build is installed and waiting (NFR-4.13). It takes over on the
-   * next launch — the sheet announces, it never reloads (ADR-019).
-   */
-  updateReady: boolean
-  /** Injected clock — the backup age is read against this, never Date.now(). */
-  now: number
-}>()
+const props = withDefaults(
+  defineProps<{
+    /** The glyph's current state — the sheet titles and explains this one. */
+    state: SyncState
+    /** Mutations queued but not pushed (Server Mode). */
+    pendingCount: number
+    /**
+     * Whether that queue is being kept on the device (B2, NFR-4.1). False
+     * means the browser refused the write — the changes are still going out,
+     * but closing the app now would lose them, and only this sheet can say so.
+     */
+    queueDurable?: boolean
+    /** Mutations the server refused for good, parked out of the queue. */
+    parkedCount?: number
+    /** Run mode: it, not the state, decides which half of the sheet applies. */
+    mode: 'local' | 'server'
+    /** Whether a trip is open, i.e. whether a conflict log can be reached. */
+    canOpenConflicts: boolean
+    /** On-device storage facts, or null while they are still being read. */
+    storage: StorageStatus | null
+    /** Epoch-ms of the last portable export, null when there was never one. */
+    lastExportAt: number | null
+    /** Whether anything exists that a backup could contain. */
+    hasBackupContent: boolean
+    /**
+     * A newer build is installed and waiting (NFR-4.13). It takes over on the
+     * next launch — the sheet announces, it never reloads (ADR-019).
+     */
+    updateReady: boolean
+    /** Injected clock — the backup age is read against this, never Date.now(). */
+    now: number
+  }>(),
+  // Durability is assumed until the outbox reports it lost — a device that
+  // never had a queue to keep has not failed to keep one.
+  { queueDurable: true, parkedCount: 0 },
+)
 
 const emit = defineEmits<{ close: []; conflicts: []; backup: [] }>()
 
@@ -67,6 +80,12 @@ const explanation = computed(() => t(SYNC_EXPLAIN_KEYS[props.state]))
 
 /** The queue is only a story while something is in it. */
 const showPending = computed(() => !isLocal.value && props.pendingCount > 0)
+
+/**
+ * A refusal is Server Mode's story too: Local Mode has no server to refuse
+ * anything, so the line would describe a mode the user is not in.
+ */
+const showParked = computed(() => !isLocal.value && (props.parkedCount ?? 0) > 0)
 
 const megabytes = (bytes: number) =>
   formatNumber(bytes / (1024 * 1024), { minimumFractionDigits: 1, maximumFractionDigits: 1 })
@@ -101,9 +120,30 @@ const backupAge = computed(() => {
       </button>
     </header>
 
-    <p v-if="showPending" class="line" data-testid="sync-detail-pending">
-      {{ t('sync.detail.pending', { n: pendingCount }) }}
-    </p>
+    <template v-if="showPending">
+      <p class="line" data-testid="sync-detail-pending">
+        {{ t('sync.detail.pending', { n: pendingCount }) }}
+      </p>
+      <p v-if="queueDurable" class="note" data-testid="sync-detail-pending-durable">
+        {{ t('sync.detail.pendingDurable') }}
+      </p>
+      <p v-else class="warn" data-testid="sync-detail-pending-fragile">
+        <IonIcon :icon="warningOutline" />
+        <span>{{ t('sync.detail.pendingFragile') }}</span>
+      </p>
+    </template>
+
+    <!-- B2: a change the server refused is out of the queue on purpose —
+         keeping it would take everything behind it hostage. -->
+    <template v-if="showParked">
+      <p class="warn" data-testid="sync-detail-parked">
+        <IonIcon :icon="warningOutline" />
+        <span>{{ t('sync.detail.parked', { n: parkedCount ?? 0 }) }}</span>
+      </p>
+      <p class="note" data-testid="sync-detail-parked-hint">
+        {{ t('sync.detail.parkedHint') }}
+      </p>
+    </template>
 
     <!-- NFR-4.13: a waiting update concerns every mode — the bundle, not the data. -->
     <p v-if="updateReady" class="update" data-testid="sync-detail-update">
