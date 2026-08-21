@@ -89,6 +89,34 @@ Same envelope for the user's master partition. `change_log.trip_id` is NULL for 
 * **Response** per mutation: `applied` | `merged` (some fields lost per conflict rules, `conflicts[]` lists them) | `duplicate` (mutation_id seen before, recorded result returned) | `rejected` (validation/permission, with `error`).
 * After processing, the response includes `pull_hint: {next_cursor}` so the client immediately pulls its own (possibly merged) canonical state — closing the loop through the single read path (P-1).
 
+### 5.1 The client-side outbox is durable (B2, NFR-4.1)
+
+The queue of unpushed mutations lives in IndexedDB (`jitpack-outbox`, one
+record per mutation), not in the page. Three rules follow, and they are the
+client's half of this protocol rather than a server change — the envelope is
+untouched:
+
+* **A mutation is written before it is pushed and removed when it is
+  acknowledged.** Any per-mutation outcome counts as an acknowledgement,
+  `duplicate` included.
+* **A boot replays what is left, before the first pull.** Replaying is safe
+  because of the `mutation_id` memo in P-5 — the second push returns
+  `duplicate` and appends nothing to the change log — and because a mutation
+  carries absolute field values rather than deltas. The `mutation_id` is
+  minted once, at enqueue time, and stored with the mutation: a replay that
+  re-minted it would be a second write, not a retry. Replaying *before* the
+  pull is what keeps a local change that never left the device from being
+  silently overwritten by the server's older copy of the same row.
+* **A refusal is parked, never retried.** A mutation answered `rejected`, and
+  a whole batch refused with a 4xx that a retry cannot fix (anything but
+  401/408/425/429), is moved out of the queue and kept on the device with the
+  server's own reason. Keeping it queued would take every mutation behind it
+  hostage — the whole partition would stop syncing because of one bad row.
+  A network failure and a 5xx are *not* refusals: the batch stays queued.
+  G-2 states how many are parked; **no screen lists them individually yet**
+  — revisit when the first one is seen in the field, or when the trip-scoped
+  conflict log grows a device-scoped sibling.
+
 ## 6. Server-Side Merge Algorithm (NFR-4.2a)
 
 ```

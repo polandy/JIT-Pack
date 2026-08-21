@@ -25,10 +25,10 @@ import { test, expect, seed, createTripViaWizard, visiblePage } from '../fixture
  *    multi-context cases prove real-time convergence over the wire, not
  *    multi-identity semantics (locks, attribution) — those stay with the
  *    future mock-IdP `server` project.
- *  - There is no reconnect drain: the queue moves on the app's next own
- *    action (a mutation, a trip open, a WS ping). The offline case drives
- *    exactly that user path; the durable outbox and its reconnect story are
- *    Track C.
+ *  - There is still no reconnect drain: the queue moves on the app's next
+ *    own action (a mutation, a trip open, a WS ping) — or on the next app
+ *    start, which the durable outbox added (B2). Track C stopped there
+ *    deliberately; an `online`-event drain is not built.
  */
 
 /** Suffix that keeps one test's master data out of another's. */
@@ -103,6 +103,22 @@ async function wsSubscribed(page: Page, wsPromise: Promise<import('@playwright/t
   const ws = await wsPromise
   await ws.waitForEvent('framereceived', {
     predicate: (frame) => String(frame.payload).includes('"presence"'),
+  })
+}
+
+/**
+ * Settled means: the registration is active *and* this page is controlled —
+ * both real lifecycle signals, never a wait. Same shape as the E2E-PWA unit;
+ * it is repeated rather than shared because the two files have no common
+ * helper module and one import across projects would couple them.
+ */
+async function serviceWorkerControlsPage(page: Page) {
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready
+    if (navigator.serviceWorker.controller) return
+    await new Promise<void>((resolve) =>
+      navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), { once: true }),
+    )
   })
 }
 
@@ -294,5 +310,72 @@ test.describe('Single-User backend sync @single', () => {
     await expect(page.getByTestId('sync-detail-storage')).toHaveCount(0)
 
     await ctx.close()
+  })
+  /**
+   * E2E-G2-04 (B2, NFR-4.1): the queue is on the device, not in the tab.
+   *
+   * The scenario the MVP plan calls B2: a phone in a hotel with no wifi,
+   * packing, and the browser drops the tab. Before the durable outbox the
+   * reload lost every unsent mutation *silently* — the glyph came back
+   * clean. Here the reload happens while still offline (the app shell is
+   * the PWA's, E2E-PWA-01), the count survives it, and the change reaches
+   * the server once the app does something with a network again.
+   */
+  test('an offline change survives a reload and still reaches the server', async ({ browser }) => {
+    const id = uniq()
+    const trip = `Davos ${id}`
+    const item = `Ski-${id}`
+
+    const ctx = await browser.newContext()
+    const page = await bootPage(ctx)
+    const tripPath = await createTripViaWizard(page, { name: trip })
+    await quickAddItem(page, item)
+    // The reload below happens offline, so the shell has to come from the
+    // service worker — this is the point at which it provably can.
+    await serviceWorkerControlsPage(page)
+
+    const indicator = page.getByTestId('sync-indicator')
+    await ctx.setOffline(true)
+    await packItem(page, item)
+    await expect(indicator).toHaveAttribute('data-state', 'offline')
+    await expect(indicator.getByTestId('sync-queue-count')).toHaveText('1')
+
+    // The kill. Everything the old outbox held lived in this document.
+    await page.reload()
+
+    // The app painted from the shell cache — asserted on what is rendered,
+    // and inside a trip the app bar carries the back button rather than the
+    // logo (the logo assertion the E2E-PWA unit uses would be looking for a
+    // control this screen does not have).
+    await expect(visiblePage(page)).toBeVisible()
+    await expect(page.getByTestId('header-back')).toBeVisible()
+    await expect(indicator).toHaveAttribute('data-state', 'offline')
+    await expect(indicator.getByTestId('sync-queue-count')).toHaveText('1')
+
+    // G-2 says it in words too, and says where it is kept — the promise
+    // the durable outbox is allowed to make.
+    await indicator.click()
+    await expect(page.getByTestId('sync-detail-sheet')).toBeVisible()
+    await expect(page.getByTestId('sync-detail-pending')).toContainText('1')
+    await expect(page.getByTestId('sync-detail-pending-durable')).toBeVisible()
+    await page.getByTestId('sync-detail-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    // Network back; the trip open is the app's own action that drains.
+    await ctx.setOffline(false)
+    await page.goto(tripPath)
+    await expect(visiblePage(page).getByTestId('m4-fab')).toBeVisible()
+    await expect(indicator).toHaveAttribute('data-state', 'synced')
+    await expect(indicator.getByTestId('sync-queue-count')).toHaveCount(0)
+
+    // The positive signal that it was the *change* that survived and not
+    // merely a counter: a device that never saw the pack reads it back.
+    const ctxFresh = await browser.newContext()
+    const pageFresh = await bootPage(ctxFresh, tripPath)
+    await expect(visiblePage(pageFresh).getByTestId('m4-done-bar')).toBeVisible()
+    await expect(visiblePage(pageFresh).getByTestId(`m4-row-${item}`)).toBeHidden()
+
+    await ctx.close()
+    await ctxFresh.close()
   })
 })

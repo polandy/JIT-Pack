@@ -60,7 +60,29 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+
+**E2E-G2-04 — the durable outbox (B2, NFR-4.1), added 2026-08-21.** A new
+case in the `single` unit: pack a row offline, reload the page *while still
+offline*, and the queue is still there — count on the glyph, sentence in the
+G-2 sheet — then drains when the trip is opened with a network again, and a
+device that never saw the change reads it back. The app shell for that
+offline reload is the PWA's (E2E-PWA-01); the case asserts the back button
+rather than E2E-PWA-01's logo, because inside a trip the app bar carries no
+logo. **Proved red against the unfixed build**: with the outbox store
+unwired the count is simply absent after the reload.
+
+Two things this unit still does *not* cover, both by decision:
+
+- **No reconnect drain exists**, so none is tested. The queue moves on the
+  app's next own action — a mutation, a trip open, a WS ping — or on the next
+  app start, which is what the durable outbox added. An `online`-event drain
+  was deliberately left out of Track C.
+- **A parked mutation has no e2e.** Provoking one needs a push the server
+  refuses permanently, which the app has no way to produce through its own
+  UI (it only ever sends columns the server knows). The parking rules are
+  covered in `client/src/composables/__tests__/useSyncOutbox.spec.ts`
+  instead, and G-2's rendering of them in the SyncDetailSheet component test.
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
 (create / import). The screen has neither as a button: create is the FAB and

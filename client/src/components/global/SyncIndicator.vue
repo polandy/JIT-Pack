@@ -34,7 +34,13 @@ const icon = computed(() => SYNC_GLYPHS[props.state])
   >
     <IonIcon :icon="icon" :class="{ spinning: state === 'syncing' }" />
     <span v-if="updateReady" class="update-dot" data-testid="sync-indicator-update" />
-    <IonBadge v-if="state === 'offline' && pendingCount > 0" color="warning">
+    <!--
+      The queue, not the connection: since the outbox became durable (B2) a
+      queue outlives the offline state that made it — a reload, or a trip
+      partition still waiting for its trip to be opened. Gating this on
+      `offline` claimed everything was sent while it was not.
+    -->
+    <IonBadge v-if="pendingCount > 0" color="warning" data-testid="sync-queue-count">
       {{ pendingCount }}
     </IonBadge>
   </button>

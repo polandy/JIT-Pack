@@ -198,3 +198,53 @@ describe('SyncDetailSheet — chrome', () => {
     expect(wrapper.emitted('close')).toHaveLength(1)
   })
 })
+
+/**
+ * The durable queue (B2, NFR-4.1). Two facts the sheet is the only place for:
+ * whether closing the app would lose the queue, and what became of a change
+ * the server refused outright.
+ */
+describe('SyncDetailSheet — the durable queue', () => {
+  it('says the queue is kept on the device, so a reload is safe', () => {
+    const wrapper = mountSheet({ state: 'offline', pendingCount: 2, queueDurable: true })
+
+    expect(text(wrapper, 'sync-detail-pending')).toBe('2 changes waiting to be sent')
+    expect(text(wrapper, 'sync-detail-pending-durable')).toContain('saved on this device')
+    expect(has(wrapper, 'sync-detail-pending-fragile')).toBe(false)
+  })
+
+  it('warns instead when the browser refused to keep the queue', () => {
+    const wrapper = mountSheet({ state: 'offline', pendingCount: 2, queueDurable: false })
+
+    expect(text(wrapper, 'sync-detail-pending-fragile')).toContain('could not save')
+    expect(has(wrapper, 'sync-detail-pending-durable')).toBe(false)
+  })
+
+  it('makes no promise about a queue that does not exist', () => {
+    const wrapper = mountSheet({ state: 'synced', pendingCount: 0, queueDurable: true })
+
+    expect(has(wrapper, 'sync-detail-pending-durable')).toBe(false)
+    expect(has(wrapper, 'sync-detail-pending-fragile')).toBe(false)
+  })
+
+  it('names the changes the server refused, and says they left the queue', () => {
+    const wrapper = mountSheet({ state: 'synced', parkedCount: 1, canOpenConflicts: true })
+
+    expect(text(wrapper, 'sync-detail-parked')).toBe('The server rejected 1 change')
+    expect(text(wrapper, 'sync-detail-parked-hint')).toContain('will not be tried again')
+  })
+
+  it('stays quiet when the server has refused nothing', () => {
+    expect(has(mountSheet({ state: 'synced', parkedCount: 0 }), 'sync-detail-parked')).toBe(false)
+  })
+
+  it('never tells the Local Mode half about a queue it cannot have', () => {
+    const wrapper = mountSheet({ mode: 'local', state: 'local', pendingCount: 4, parkedCount: 2 })
+
+    expect(has(wrapper, 'sync-detail-pending')).toBe(false)
+    expect(has(wrapper, 'sync-detail-pending-durable')).toBe(false)
+    expect(has(wrapper, 'sync-detail-parked')).toBe(false)
+    // The positive companion: this really is the Local Mode half.
+    expect(has(wrapper, 'sync-detail-storage')).toBe(true)
+  })
+})

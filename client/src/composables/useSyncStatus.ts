@@ -36,6 +36,19 @@ export interface SyncStatus {
   state: ComputedRef<SyncState>
   /** Number of mutations queued but not yet pushed. */
   pendingCount: Ref<number>
+  /**
+   * Mutations the server permanently refused (B2). They are out of the
+   * queue — keeping them would wedge it — and kept on the device as
+   * evidence, which is a fact only G-2 has anywhere to say.
+   */
+  parkedCount: Ref<number>
+  /**
+   * Whether the queue is actually being kept on the device (NFR-4.1). It
+   * goes false when the browser refuses the write — out of space, or a
+   * transaction it aborted — and G-2 must then stop promising a reload is
+   * safe.
+   */
+  queueDurable: Ref<boolean>
   /** Human-readable label for the current state. */
   label: ComputedRef<string>
 
@@ -49,6 +62,10 @@ export interface SyncStatus {
   setLocal(): void
   /** Update the pending mutation count. */
   setPendingCount(n: number): void
+  /** Update how many mutations the server refused for good. */
+  setParkedCount(n: number): void
+  /** Report whether the queue is still being written to the device. */
+  setQueueDurable(durable: boolean): void
 }
 
 export function useSyncStatus(): SyncStatus {
@@ -56,6 +73,10 @@ export function useSyncStatus(): SyncStatus {
   const isSyncing = ref(false)
   const isLocal = ref(false)
   const pendingCount = ref(0)
+  const parkedCount = ref(0)
+  // Optimistic on purpose: the outbox announces the *loss* of durability,
+  // and a device that never had a queue to keep has lost nothing.
+  const queueDurable = ref(true)
 
   // Order matters, and 'syncing' deliberately outranks 'local': Local
   // Mode still writes, and while a write is open the honest answer is
@@ -109,14 +130,26 @@ export function useSyncStatus(): SyncStatus {
     pendingCount.value = n
   }
 
+  function setParkedCount(n: number) {
+    parkedCount.value = n
+  }
+
+  function setQueueDurable(durable: boolean) {
+    queueDurable.value = durable
+  }
+
   return {
     state,
     pendingCount,
+    parkedCount,
+    queueDurable,
     label,
     setSyncing,
     setSynced,
     setOffline,
     setLocal,
     setPendingCount,
+    setParkedCount,
+    setQueueDurable,
   }
 }

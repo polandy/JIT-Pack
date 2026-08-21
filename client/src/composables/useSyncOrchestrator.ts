@@ -50,6 +50,7 @@ import type { ReviewProposal } from '@/domain/review'
 import { planTemplateFromTrip, recogniseTripComposition } from '@/domain/templateFromTrip'
 import type { DeviationChoice, PositionDraft } from '@/domain/templateFromTrip'
 import type { IndexedDBPersistence } from '@/local/persistence'
+import { IndexedDBOutboxStore, type OutboxStore } from '@/sync/outboxStore'
 import type {
   Container,
   DestinationChecklistItem,
@@ -166,6 +167,12 @@ export interface SyncOrchestratorConfig {
    * markNotificationRead. No-op in Local Mode.
    */
   onNotification?: (n: ServerNotification) => void
+  /**
+   * Where the outbox keeps its queue between sessions (B2, NFR-4.1).
+   * Injected so a test can drive a store it can see; Server Mode defaults
+   * to IndexedDB, and Local Mode never builds one — it has no outbox.
+   */
+  outboxStore?: OutboxStore
 }
 
 /**
@@ -261,7 +268,15 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const hlc = new HLCGenerator(() => Date.now(), deviceId)
   const mutations = useMutations(hlc)
 
-  const outbox = new SyncOutbox(client, hlc, onPullChanges)
+  // Local Mode never pushes, so it never queues — building a store there
+  // would create a database that nothing ever writes to.
+  const outboxStore = local ? null : (config.outboxStore ?? new IndexedDBOutboxStore())
+
+  const outbox = new SyncOutbox(client, hlc, onPullChanges, {
+    store: outboxStore ?? undefined,
+    onParked: () => syncStatus.setParkedCount(outbox.parkedCount()),
+    onDurabilityChanged: (durable) => syncStatus.setQueueDurable(durable),
+  })
 
   const ws = useWebSocket({
     baseUrl: config.baseUrl,
@@ -2829,6 +2844,17 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       localHydrated = true
       void local.requestDurability()
       return
+    }
+    // B2: whatever an earlier session could not send is replayed *before*
+    // the first pull, so a server change never overwrites a local one that
+    // simply had not left the device yet. Awaited rather than fired off:
+    // App.vue's own drainMaster follows this call, and two overlapping
+    // drains of the same partition would push the same chunk twice.
+    const restored = await outbox.restore()
+    syncStatus.setPendingCount(outbox.totalPending())
+    syncStatus.setParkedCount(outbox.parkedCount())
+    for (const partition of restored) {
+      await (partition.type === 'master' ? drainMaster() : drainTrip(partition.id!))
     }
     ws.connect()
     // FR-6.2: notifications that arrived while this device was away.
