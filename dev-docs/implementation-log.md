@@ -3817,3 +3817,24 @@ flowing automatically, which is what the pinning in invariant 8 is for.
 Worth recording because the bump was *correct in isolation*: a green pipeline
 said nothing about it, and the drift is only visible if you ask which artifact
 a version actually builds.
+
+### Dependabot skips the Node majors that can never be taken (2026-08-21)
+
+The toolchain-pins gate landed the same day and immediately did its job: the
+next `node:26-alpine` bump arrived on its own and went red at
+`docker-build`, naming `mise.toml` as the file still to change. The mechanism
+is right, so this only trims what it has to say no to.
+
+Odd-numbered Node majors never become LTS — Current for six months, then end of
+life — so `.github/dependabot.yml` ignores `25.x` through `33.x` for
+`client/Dockerfile`. Even majors stay enabled, because they *do* reach LTS in
+the October after their release and the repo does want them, on its own
+schedule; the gate is what decides when.
+
+Deliberately not done two other ways. Ignoring `semver-major` outright throws
+away the good October bump with the bad April one and makes the LTS move
+something the maintainer has to remember. Pinning `node:lts-alpine@sha256:…`
+would follow LTS automatically and read well — but the tag names no major, so
+the gate would have nothing to compare, and the drift would go invisible in
+exactly the month the tag jumps 24 → 26 while `mise.toml` and `ci.yml` do not.
+That is the moment the gate exists for.
