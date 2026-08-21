@@ -13,11 +13,20 @@ function route(over: Partial<StampableRoute> = {}): StampableRoute {
   return {
     path: '/tabs/settings',
     fullPath: '/tabs/settings',
+    hash: '',
     query: {},
     meta: { acceptsFrom: true },
     matched: [{}],
     ...over,
   }
+}
+
+/** The app's own route table, as far as these cases need it. */
+const known = ['/trips/t1', '/tabs/items', '/tabs/settings', '/admin', '/portable-import']
+const resolves = (path: string) => known.some((p) => path.split('?')[0] === p)
+
+function stamp(to: StampableRoute, from: StampableRoute) {
+  return stampOrigin(to, from, resolves)
 }
 
 const trip = route({
@@ -28,8 +37,9 @@ const trip = route({
 
 describe('stampOrigin', () => {
   it('records where a global action was entered from', () => {
-    expect(stampOrigin(route(), trip)).toEqual({
+    expect(stamp(route(), trip)).toEqual({
       path: '/tabs/settings',
+      hash: '',
       query: { from: '%2Ftrips%2Ft1' },
       replace: true,
     })
@@ -41,8 +51,9 @@ describe('stampOrigin', () => {
 
     // The nested origin's own query survives because it is encoded — an
     // unencoded `?` would be read as the end of this one.
-    expect(stampOrigin(admin, settingsFromTrip)).toEqual({
+    expect(stamp(admin, settingsFromTrip)).toEqual({
       path: '/admin',
+      hash: '',
       query: { from: '%2Ftabs%2Fsettings%3Ffrom%3D%252Ftrips%252Ft1' },
       replace: true,
     })
@@ -50,26 +61,48 @@ describe('stampOrigin', () => {
 
   it('keeps the query the target already carried', () => {
     const withQuery = route({ query: { tab: 'push' } })
-    expect(stampOrigin(withQuery, trip)).toEqual({
+    expect(stamp(withQuery, trip)).toEqual({
       path: '/tabs/settings',
+      hash: '',
       query: { tab: 'push', from: '%2Ftrips%2Ft1' },
       replace: true,
     })
   })
 
   it('leaves a route that does not declare the class alone', () => {
-    expect(stampOrigin(route({ meta: {} }), trip)).toBeNull()
+    expect(stamp(route({ meta: {} }), trip)).toBeNull()
   })
 
   it('does not stamp twice, which is what stops the redirect looping', () => {
-    expect(stampOrigin(route({ query: { from: '%2Ftrips%2Ft1' } }), trip)).toBeNull()
+    expect(stamp(route({ query: { from: '%2Ftrips%2Ft1' } }), trip)).toBeNull()
   })
 
   it('re-stamps an origin that is not a safe internal path', () => {
     // A crafted link is not an origin, and leaving it in place would let
     // `‹ back` carry the user off the app.
-    expect(stampOrigin(route({ query: { from: 'https://evil.example' } }), trip)).toEqual({
+    expect(stamp(route({ query: { from: 'https://evil.example' } }), trip)).toEqual({
       path: '/tabs/settings',
+      hash: '',
+      query: { from: '%2Ftrips%2Ft1' },
+      replace: true,
+    })
+  })
+
+  it('re-stamps an origin that names no route of this app', () => {
+    // Internal-looking and still nowhere: `‹` would navigate to a path
+    // that renders nothing, and the value came in on someone else's link.
+    expect(stamp(route({ query: { from: '%2Fno%2Fsuch%2Fscreen' } }), trip)).toEqual({
+      path: '/tabs/settings',
+      hash: '',
+      query: { from: '%2Ftrips%2Ft1' },
+      replace: true,
+    })
+  })
+
+  it('keeps the hash the target was opened with', () => {
+    expect(stamp(route({ hash: '#push' }), trip)).toEqual({
+      path: '/tabs/settings',
+      hash: '#push',
       query: { from: '%2Ftrips%2Ft1' },
       replace: true,
     })
@@ -79,11 +112,11 @@ describe('stampOrigin', () => {
     // vue-router's START_LOCATION matches nothing: a deep link opened
     // from a notification has no origin, which is the case ADR-011 exists
     // for.
-    expect(stampOrigin(route(), route({ matched: [], path: '/', fullPath: '/' }))).toBeNull()
+    expect(stamp(route(), route({ matched: [], path: '/', fullPath: '/' }))).toBeNull()
   })
 
   it('does not stamp a navigation onto the same screen', () => {
-    expect(stampOrigin(route(), route())).toBeNull()
+    expect(stamp(route(), route())).toBeNull()
   })
 })
 

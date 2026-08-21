@@ -163,9 +163,11 @@ the two import flows, which is half the defect.
 
 **The cost, stated plainly.** `?from=` is now part of some URLs and reaches the
 app from outside, so it is validated rather than trusted: only a path inside this
-app is accepted (`//host` and a backslash both look internal and are not), and a
-route that does not declare `meta.acceptsFrom` ignores the parameter entirely, so
-no drill-down can be redirected by a crafted link. The origin is stored encoded
+app is accepted (`//host` and a backslash both look internal and are not), a path
+that matches no route is replaced rather than kept — `‹` would otherwise land on
+a screen that renders nothing — and a route that does not declare
+`meta.acceptsFrom` ignores the parameter entirely, so no drill-down can be
+redirected by a crafted link. The origin is stored encoded
 so a chain of origins unwinds hop by hop.
 
 **What did not change.** Back is still declared rather than derived from history.

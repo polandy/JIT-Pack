@@ -17,10 +17,14 @@ import type { RouteLocationNormalized, RouteLocationRaw, Router } from 'vue-rout
 export interface StampableRoute {
   path: string
   fullPath: string
+  hash: string
   query: Record<string, string | null | (string | null)[] | undefined>
   meta: { acceptsFrom?: boolean }
   matched: unknown[]
 }
+
+/** Whether a path matches a route in this app. */
+export type PathResolver = (path: string) => boolean
 
 /**
  * stampOrigin returns the location to redirect to so the target carries
@@ -36,22 +40,48 @@ export interface StampableRoute {
 export function stampOrigin(
   to: StampableRoute,
   from: StampableRoute,
+  resolves: PathResolver,
 ): RouteLocationRaw | null {
   if (!to.meta.acceptsFrom) return null
-  if (originFrom(to.query)) return null
   if (from.matched.length === 0) return null
   if (from.path === to.path) return null
 
+  // An origin that names no route of this app is not an origin: `‹` would
+  // navigate to a path that renders nothing, and the URL it came from was
+  // written by whoever sent the link. Replacing it is safer than keeping
+  // it and safer than dropping the parameter, which would strand the user
+  // on the declared parent when a real origin exists.
+  const carried = originFrom(to.query)
+  if (carried && resolves(carried)) return null
+
   return {
     path: to.path,
+    hash: to.hash,
     query: { ...to.query, ...enteredFrom(from.fullPath) },
     replace: true,
   }
 }
 
-/** installOriginStamp wires stampOrigin into a router as a global guard. */
+/**
+ * installOriginStamp wires stampOrigin into a router as a global guard,
+ * resolving a carried origin against that router's own route table.
+ */
 export function installOriginStamp(router: Router): void {
-  router.beforeEach((to: RouteLocationNormalized, from: RouteLocationNormalized) =>
-    stampOrigin(to as unknown as StampableRoute, from as unknown as StampableRoute) ?? true,
+  const resolves: PathResolver = (path) => {
+    try {
+      return router.resolve(path).matched.length > 0
+    } catch {
+      // resolve throws on a path it cannot parse at all.
+      return false
+    }
+  }
+
+  router.beforeEach(
+    (to: RouteLocationNormalized, from: RouteLocationNormalized) =>
+      stampOrigin(
+        to as unknown as StampableRoute,
+        from as unknown as StampableRoute,
+        resolves,
+      ) ?? true,
   )
 }
