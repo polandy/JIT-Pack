@@ -26,6 +26,9 @@ replace the file and update its own revision note.
 - [`design-foundation-plan.md`](design-foundation-plan.md) — the five token-level PRs
   that come **before** the remaining screen rebuilds, with the measured gap between
   the prototype and the client that motivates each. Delete it once they have landed.
+- [`mvp-plan.md`](mvp-plan.md) — the tracks that stand between today and the family
+  packing a real vacation with it, and which of them may run in parallel. Delete it
+  once the vacation has happened.
 
 ## Specifications
 
