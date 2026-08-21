@@ -278,19 +278,12 @@ export const de: Record<keyof typeof en, string> = {
   'item.statePackedOpenPrep': 'gepackt · Prep offen',
 
   // Schnell-Hinzufügen (FR-5.6, FR-25.13a).
-<<<<<<< HEAD
-  'quickAdd.trigger': 'Sache hinzufügen…',
-  'quickAdd.placeholder': 'Name der Sache…',
-  'quickAdd.missingHint': 'Neue Sachen werden als „fehlt“ markiert',
-  'quickAdd.newItem': '„{name}“ als neue Sache hinzufügen',
-  'quickAdd.relatedHeading': 'Passt zu {tags}',
-  'quickAdd.recentHeading': 'Zuletzt verwendet',
-=======
   'quickAdd.trigger': 'Packelement hinzufügen…',
   'quickAdd.placeholder': 'Name des Packelements…',
   'quickAdd.missingHint': 'Neue Packelemente werden als „fehlt“ markiert',
   'quickAdd.newItem': '„{name}“ als neues Packelement hinzufügen',
->>>>>>> origin/main
+  'quickAdd.relatedHeading': 'Passt zu {tags}',
+  'quickAdd.recentHeading': 'Zuletzt verwendet',
   // FR-27.10: ganze Gruppen im selben Composer.
   'quickAdd.groupsHeading': 'Ganze Gruppe hinzufügen',
   'quickAdd.groupCount': '{n} Position | {n} Positionen',
