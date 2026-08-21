@@ -57,6 +57,7 @@ import {
   cartOutline,
   chevronDownOutline,
   contractOutline,
+  createOutline,
   expandOutline,
   funnelOutline,
   briefcaseOutline,
@@ -499,6 +500,14 @@ setHeaderActions(() => {
       onClick: toggleFoldAll,
     },
   ]
+  // FR-2.7: the trip's own properties. Before the lifecycle steps, because
+  // it is the one action here that changes the trip rather than advancing it.
+  items.push({
+    id: 'm4-edit',
+    icon: createOutline,
+    label: t('tripEdit.title'),
+    onClick: () => router.push(`/trips/${props.tripId}/edit`),
+  })
   // The two lifecycle steps, each offered only where it is the next one.
   // Without the first, *active* was unreachable in the whole app — and with
   // it the archive action below, FR-9.1's Missing flagging and everything

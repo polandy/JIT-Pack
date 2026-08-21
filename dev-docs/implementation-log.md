@@ -116,6 +116,9 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Dependabot skips the Node majors that can never be taken (2026-08-21)](#dependabot-skips-the-node-majors-that-can-never-be-taken-2026-08-21) — odd Node majors never reach LTS; Dependabot only ever offers the newest, so from October 2026 it would chase 27 past the 26 that becomes LTS. Bundler syntax, because that is what the docker ecosystem parses.
 - [The sync outbox survives a reload (2026-08-21)](#the-sync-outbox-survives-a-reload-2026-08-21) — MVP Track C / blocker B2: the queue moved to IndexedDB and is replayed before the first pull. Replay safety is the server's `mutation_id` memo, not the merge algorithm; a permanently refused mutation is parked so it cannot wedge a partition.
 - [The device backup carries the FR-27.4 refresh state (2026-08-21)](#the-device-backup-carries-the-fr-274-refresh-state-2026-08-21-mvp-track-f) — a restored device kept everything visible and forgot every answer it had given its groups; the restore re-keys by identity, not by name, because a renamed row is exactly the row the user has made theirs.
+- [A trip stops being frozen (FR-2.7 / M22, 2026-08-21)](#a-trip-stops-being-frozen-fr-27--m22-2026-08-21) — the consequence rule already existed in FR-27.4 and refresh.ts, so the new module was deleted; two defects only a render could see; the sibling e2e was green for the wrong reason three times.
+- [The chevron learns where it came from (2026-08-21)](#the-chevron-learns-where-it-came-from-2026-08-21) — the gear inside a trip went back to the dashboard: a gap in ADR-011's route table, not a bug under it. §7 had promised the flows mechanism for months and nothing implemented it; the new e2e case was false-green because `toHaveURL` matched the *query's* tail.
+- [A refusing control is worse than an absent one (2026-08-21)](#a-refusing-control-is-worse-than-an-absent-one-2026-08-21) — M22's ✕ shipped present-but-disabled on a written-down argument; the owner overruled it in the hand. The e2e prefix locator also counted the explanation as a button.
 - [The i18n migration, closed except for M15 and M17 (2026-08-21)](#the-i18n-migration-closed-except-for-m15-and-m17-2026-08-21) — NFR-4.12: a nav anchor and a route title stored finished English text, so no language choice could reach the chrome; what is on the catalogue now and what is not.
 - [The composer offers chips before it asks for typing (2026-08-21)](#the-composer-offers-chips-before-it-asks-for-typing-2026-08-21) — FR-25.13c decided on a rendered three-way round (ADR-020): chips now, browse-sheet as FR-25.13d, tag tiles rejected; the autofocus removal is the accepted cost, and two e2e case numbers were already taken by specs not yet built.
 
@@ -4203,6 +4206,177 @@ backup track owns both files for this MVP push and localizes them itself. Their
 and it was already so before it: ten `t()` calls beside roughly fifteen
 literals, plus the avatar crop modal, which is untouched. It is a section, so
 it wants one commit of its own rather than a corner of this one.
+
+## A trip stops being frozen (FR-2.7 / M22, 2026-08-21)
+
+A trip's name, its dates and its travellers were decided in M3 and frozen when
+the wizard closed. Not by decision — the screen inventory M1–M21 simply has no
+editor, `addTraveler` is called only by the wizard, the clone and generation,
+and there was no `updateTrip` at all. The workaround, cloning (FR-12.1), loses
+the packing progress, which is what makes it not one.
+
+**The consequence rule already existed, and finding that changed the work.**
+The first implementation was a new pure module with its own rules for extending
+and withdrawing per-person rows. It was wrong twice over: FR-27.4 already
+specifies traveller changes (*"a person added receives the per-person positions
+… one removed takes their untouched rows along"*), and `domain/refresh.ts`
+already implements them, because the trip re-resolves against its *current*
+travellers. The module was deleted before it reached a PR. What was left is
+small: write the traveller mutation, then call `acceptTripRefresh` — the same
+path the "yes" on M4's card takes. A second expansion of per-person rows would
+have been a second set of rules to keep in step with the first.
+
+So the only thing the owner's decision actually changed is **when the user is
+asked**, and FR-27.4 gained an amendment rather than a competitor. The reason
+is the same one that put the question at the trip in the first place: a group
+change usually arrives from someone else, on a device that may not even hold
+the affected trips, so it must be a question. A traveller change is made by the
+traveller, in the trip's own editor, deliberately — asking them to confirm on
+the next open what they just did in front of the app is a dialogue with no
+second party in it.
+
+**Removal is offered only before departure** (owner), which is what keeps the
+rule from ever having to weigh a *departed* trip's packing record.
+
+It still has to answer for a packed row, though, and the first cut answered it
+alone: unpacked rows go, packed ones stay unassigned. The owner rejected that
+the same day, and was right — a packed row means somebody physically put the
+thing in the bag, and whether it should come back out is not a property of the
+data. On one trip the answer is *take it out*; on another it is *leave it
+visible so somebody remembers to*. So it is asked, at the confirmation, and
+**only when there is something to answer about**: with nothing packed the
+removal has one outcome, and a question with one answer teaches the user to
+dismiss questions. The question names the quantity for the same reason
+FR-27.4's card lists its changes instead of counting them.
+
+Underneath, *Gepackte behalten* is simply FR-27.4's ordinary protection, and
+*Alles entfernen* deletes those rows outright — that protection is exactly what
+the user overruled for this person. A skipped or hand-edited row follows the
+*behalten* branch either way: nobody was asked about it.
+
+**Two defects the type-checker could not see.** The date inputs used a
+two-statement inline handler; Vue parses an inline handler as a single
+expression, so `vue-tsc` and eslint were both green and the screen did not
+compile in the browser at all. And the add-a-traveller field was a bare input
+in a flex row — a label over nothing, with no box to type in. Both were found
+by rendering the screen, neither by a test that queried the DOM: the element
+was present, it simply had no surface.
+
+**The e2e case for the owner's actual requirement — remove Zoe, keep Xenia's
+trousers — was green for the wrong reason three times**, and the sequence is
+the reusable part. Asserting the count and the surviving name passes against an
+over-broad removal, because the refresh re-resolves afterwards and generates
+the sibling's row *again*: same name, same count, different row. Packing the
+sibling to prove identity fails differently — a packed row leaves the list
+through the FR-25.2 pack-out, so the seeded position now carries quantity 2 and
+a *part*-packed row keeps its place. And the first working version raced:
+`page.goto` outran the removal and the case failed against correct code. Only
+after all three does the mutation redden it.
+
+**The suite now runs on the device the family holds.** The container defaulted
+to en-US and UTC, so every rendered date was a US date and "today" was a UTC
+one — and the FR-27.4 boundary is a date comparison, so a run just after
+midnight in Zurich was reading yesterday. `de-CH` and `Europe/Zurich` now. The
+app *language* is deliberately not left to the device: `resolveLocale` falls
+back to `navigator.languages`, so a German device would flip the whole UI and
+every English assertion with it; the fixture pins `jitpack_locale` instead, and
+only when the key is absent — an unconditional write re-seeds after a reload
+and overwrites the choice E2E-M17-10 asserts survives. Measured rather than
+assumed: the 20 visual baselines are unchanged.
+
+No seed change: the sample data already carries a **planning** trip with two
+travellers and four per-person positions, which is exactly the state M22 has
+something to show in.
+
+## The chevron learns where it came from (2026-08-21)
+
+MVP Track I. The owner's report was one sentence: inside a trip, tap the gear,
+tap `‹`, and the app is on the dashboard.
+
+**The premise that was wrong.** ADR-011 made the back target *declared* rather
+than read from history, because a cold-start deep link has no history to read.
+One static `meta.parent` per route — and for a drill-down that is exactly right.
+The unexamined half is that it assumed every screen *has* one parent. The gear is
+offered on every screen by decision of that same ADR (it is what keeps the
+conflict log reachable inside a trip), so `/tabs/settings` had no true parent to
+declare, and the one it declared was a guess that happened to be right on one
+screen out of twenty.
+
+**Two things came out of the same hole, and both were older than the report.**
+
+Navigation_Concept §7's route table has a *flows* row promising "the origin the
+flow was entered from". There was no `from`, `origin` or `returnTo` anywhere in
+the router: the promise was four words in a table with no mechanism behind it,
+and it had read as implemented for as long as the table existed. Concretely,
+`/portable-import` is entered from M2, M7 and Settings while declaring
+`/tabs/settings`, so M18 opened from the trip list returned to Settings — the
+owner's defect with a different door, never reported because that path is used
+less.
+
+And `ROOT_PATHS` in `backTarget.spec.ts` listed `/tabs/settings` among the routes
+that "show the logo and therefore owe no parent", while the route table gave it
+one. Nothing objected, because the test only ever asserted that non-roots *have*
+a parent and never that roots lack one. An exemption list that is never checked
+is a claim, not a rule; the reverse assertion is now there and would have failed
+on the day the contradiction was introduced.
+
+**Why the router stamps the origin and the links do not.** The obvious shape is
+for whoever navigates to pass it — `router-link` with a query. It works, and it
+breaks the first time a link forgets: the gear alone is one call site rendered on
+every screen, and the two import flows already have five entry points between
+them. A guard makes the property structural. It also composes for free, because
+the origin is recorded verbatim: trip → gear → admin → `‹` → Settings → `‹` →
+trip unwinds hop by hop with no code that knows about chains.
+
+**The trap, with its price.** The first version of E2E-G9-12 passed against the
+*unfixed* build. `expect(page).toHaveURL(/\/tabs\/trips$/)` matches any URL
+ending in that text — and the fix's whole point is that the URL now ends in
+`?from=/tabs/trips`. The assertion was reading its own mechanism as the result.
+Its neighbour was no better: `onVisibleScreen(page, 'trips-new')` found the trip
+list because a page left mounted through Ionic's transition is briefly not
+`.ion-page-hidden` either. Both are now the pathname compared exactly, plus a
+negative signal specific to the wrong answer (the settings control absent from
+the document entirely). Found only by reverting the production branch, rebuilding
+and re-running — which is the step that keeps paying for itself.
+
+Encoding the origin came from the same measurement: the URL bar read
+`?from=/portable-import?from=/tabs/trips`, and an unencoded `?` or `&` inside a
+query value ends it. Nested origins are encoded now.
+
+**What was deliberately not done.** Variant B — Settings as an overlay — was
+weighed in the ADR amendment and rejected: it fixes Settings by construction and
+does nothing for M15/M18, which was half the defect, while M17's three
+sub-routes would all need re-homing. And `?from=` is attacker-controlled input on
+a link someone else wrote, so it is validated rather than trusted, and a route
+that does not declare the class ignores it entirely — no drill-down can be
+redirected by a crafted URL.
+
+## A refusing control is worse than an absent one (2026-08-21)
+
+M22 shipped removal of a traveller gated on the trip not having started, and the
+✕ on an active trip was rendered **disabled** rather than omitted. The reasoning
+was written down at the time and reads well: a control that vanishes gets hunted
+for, so leave it visible and say why. The owner used the screen and reported the
+opposite — a ✕ that answers no tap is read as a broken app, and the sentence
+under the roster was already there to answer the question the ✕ raises.
+
+Worth recording because the argument was not wrong, it was **untested**: it was
+decided from the code and never from the screen. The project already has the rule
+for this ("don't judge a UI change from the stylesheet — render it, and let the
+maintainer eyeball it"), and this is the same failure one level up: an
+*interaction* affordance judged from the reasoning about it rather than from
+having it in the hand.
+
+**The test trap that came with the fix.** `E2E-M22-04` counts the remove controls
+and expects zero. `[data-testid^="traveler-remove-"]` also matches
+`traveler-remove-note` — the explanation under the list — so the count never
+reaches zero and the case failed against correct code. The old version escaped it
+by taking `.first()`, which happened to be a button because the buttons precede
+the note in the DOM. The locator is scoped to `ion-button` now. A prefix locator
+is a pattern, and a testid is not a namespace.
+
+`E2E-M22-07` was added at the same time as the positive half: "no ✕ on a started
+trip" passes just as well against a screen that renders none at all.
 
 ## The composer offers chips before it asks for typing (2026-08-21)
 

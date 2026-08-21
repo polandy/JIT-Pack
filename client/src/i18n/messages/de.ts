@@ -82,7 +82,7 @@ export const de: Record<keyof typeof en, string> = {
   'trip.status.archived': 'Archiviert',
 
   'packing.title': 'Packliste',
-  'packing.itemsLeft': '{n} Sache offen | {n} Sachen offen',
+  'packing.itemsLeft': '{n} Packelement offen | {n} Packelemente offen',
   'packing.showPacked': '{n} gepackte anzeigen',
   'packing.hidePacked': '{n} gepackte ausblenden',
   'packing.allDone': 'Alles gepackt 🎉',
@@ -98,7 +98,7 @@ export const de: Record<keyof typeof en, string> = {
   'packing.openPrep': '{n} Vorbereitung offen | {n} Vorbereitungen offen',
   'packing.prepSection': 'Vorbereitung',
   'packing.empty': 'Noch nichts auf dieser Liste',
-  'packing.emptyHint': 'Mit ＋ die erste Sache hinzufügen.',
+  'packing.emptyHint': 'Mit ＋ das erste Packelement hinzufügen.',
 
   // M4-Kopfzeile und Icon-Cluster in der App-Bar (G-12).
   'packing.progress': '{packed}/{total}',
@@ -112,9 +112,9 @@ export const de: Record<keyof typeof en, string> = {
   'packing.analytics': 'Auswertung',
   'packing.archive': 'Reise abschliessen',
 
-  // FR-25.20 — Sachen, für die jemand anderes zuständig ist.
+  // FR-25.20 — Packelemente, für die jemand anderes zuständig ist.
   'packing.othersHidden':
-    '{n} Sache liegt bei {who} · anzeigen | {n} Sachen liegen bei {who} · anzeigen',
+    '{n} Packelement liegt bei {who} · anzeigen | {n} Packelemente liegen bei {who} · anzeigen',
   'packing.othersShown': '{n} von {who} ausblenden',
 
   // FR-25.17 — wer eine Zeile gepackt hat, und wann.
@@ -128,7 +128,7 @@ export const de: Record<keyof typeof en, string> = {
   'packing.noMatches': 'Keine Treffer',
   'packing.noMatchesSearch': 'Nichts passt zu „{term}“.',
   'packing.noMatchesFilter':
-    '{n} offene Sache liegt hinter dem Filter. | {n} offene Sachen liegen hinter dem Filter.',
+    '{n} offenes Packelement liegt hinter dem Filter. | {n} offene Packelemente liegen hinter dem Filter.',
   'packing.noMatchesBoth': 'Nichts passt zu „{term}“ und dem Filter.',
   'packing.resetSearch': 'Suche löschen',
   'packing.resetAll': 'Suche und Filter zurücksetzen',
@@ -269,7 +269,7 @@ export const de: Record<keyof typeof en, string> = {
   'item.flagMissingHint': 'Gebraucht und nicht dabei',
   'item.saving': 'Speichert…',
   'item.saved': 'Gespeichert',
-  'item.notFound': 'Diese Sache ist nicht auf der Liste.',
+  'item.notFound': 'Dieses Packelement ist nicht auf der Liste.',
   'item.stateOpen': 'offen',
   'item.statePartial': 'teilweise',
   'item.statePacked': 'gepackt',
@@ -278,12 +278,19 @@ export const de: Record<keyof typeof en, string> = {
   'item.statePackedOpenPrep': 'gepackt · Prep offen',
 
   // Schnell-Hinzufügen (FR-5.6, FR-25.13a).
+<<<<<<< HEAD
   'quickAdd.trigger': 'Sache hinzufügen…',
   'quickAdd.placeholder': 'Name der Sache…',
   'quickAdd.missingHint': 'Neue Sachen werden als „fehlt“ markiert',
   'quickAdd.newItem': '„{name}“ als neue Sache hinzufügen',
   'quickAdd.relatedHeading': 'Passt zu {tags}',
   'quickAdd.recentHeading': 'Zuletzt verwendet',
+=======
+  'quickAdd.trigger': 'Packelement hinzufügen…',
+  'quickAdd.placeholder': 'Name des Packelements…',
+  'quickAdd.missingHint': 'Neue Packelemente werden als „fehlt“ markiert',
+  'quickAdd.newItem': '„{name}“ als neues Packelement hinzufügen',
+>>>>>>> origin/main
   // FR-27.10: ganze Gruppen im selben Composer.
   'quickAdd.groupsHeading': 'Ganze Gruppe hinzufügen',
   'quickAdd.groupCount': '{n} Position | {n} Positionen',
@@ -299,13 +306,13 @@ export const de: Record<keyof typeof en, string> = {
   'filter.open': 'Filter',
   'filter.groupBy': 'Gruppieren nach',
   'filter.reset': 'Zurücksetzen',
-  'filter.showing': 'zeigt {n} Sache | zeigt {n} Sachen',
+  'filter.showing': 'zeigt {n} Packelement | zeigt {n} Packelemente',
   'filter.allValues': 'alle',
   'filter.groupedBy': 'Gruppiert nach {axis}',
   'filter.doneLabel': 'Erledigte',
   'filter.doneHint': 'Gepackte anzeigen',
   'filter.othersLabel': 'Anderen zugewiesen',
-  'filter.othersHint': 'Sachen anderer anzeigen',
+  'filter.othersHint': 'Packelemente anderer anzeigen',
 
   'facet.person': 'Person',
   'facet.category': 'Kategorie',
@@ -358,7 +365,7 @@ export const de: Record<keyof typeof en, string> = {
   'clone.travelerAssignments': 'Zuteilung an Reisende',
   'clone.packerDelegations': 'Packt-für-Zuweisungen',
   'clone.containerAssignments': 'Gepäck-Zuteilungen',
-  'clone.previewItems': '{n} Sache | {n} Sachen',
+  'clone.previewItems': '{n} Packelement | {n} Packelemente',
   'clone.previewTravelers': '{n} Reisende | {n} Reisende',
   'clone.previewContainers': '{n} Gepäckstück | {n} Gepäckstücke',
   'clone.create': 'Klon erstellen',
@@ -790,4 +797,32 @@ export const de: Record<keyof typeof en, string> = {
   'admin.tripCount': '{n} Reise | {n} Reisen',
   'admin.templateCount': '{n} Vorlage | {n} Vorlagen',
   'admin.deactivated': 'Deaktiviert',
+  // M22 — Reise-Eigenschaften (FR-2.7).
+  'tripEdit.title': 'Reise-Eigenschaften',
+  'tripEdit.sectionTrip': 'Reise',
+  'tripEdit.sectionTravelers': 'Reisende',
+  'tripEdit.name': 'Name',
+  'tripEdit.startDate': 'Beginn',
+  'tripEdit.endDate': 'Ende',
+  'tripEdit.travelerName': 'Name der reisenden Person',
+  'tripEdit.addTraveler': 'Reisende:n hinzufügen',
+  'tripEdit.add': 'Hinzufügen',
+  'tripEdit.removeTraveler': '{name} entfernen',
+  'tripEdit.removeAfterStart':
+    'Reisende lassen sich nur entfernen, solange die Reise nicht gestartet ist.',
+  'tripEdit.removeConfirmTitle': '{name} entfernen?',
+  'tripEdit.removeConfirmBody':
+    'Die Packelemente dieser Person verschwinden von der Liste. Gepackt ist noch keines davon.',
+  'tripEdit.removeConfirm': 'Entfernen',
+  'tripEdit.removeKeepPacked': 'Gepackte behalten',
+  'tripEdit.removeAll': 'Alles entfernen',
+  'tripEdit.removeConfirmPacked':
+    'Noch nicht gepackte Packelemente verschwinden. {n} Packelement ist bereits gepackt — soll es mit verschwinden oder ohne Zuordnung auf der Liste bleiben? | Noch nicht gepackte Packelemente verschwinden. {n} Packelemente sind bereits gepackt — sollen sie mit verschwinden oder ohne Zuordnung auf der Liste bleiben?',
+  'tripEdit.travelerNote':
+    'Wer dazukommt, bekommt die Pro-Person-Packelemente sofort. Wer geht, nimmt seine noch nicht gepackten mit.',
+  'tripEdit.reportAdded': '{n} Packelement ergänzt | {n} Packelemente ergänzt',
+  'tripEdit.reportRemoved': '{n} Packelement entfernt | {n} Packelemente entfernt',
+  'tripEdit.reportKept':
+    '{n} Packelement bleibt ohne Zuordnung | {n} Packelemente bleiben ohne Zuordnung',
+  'tripEdit.reportNothing': 'An der Liste ändert sich nichts.',
 }

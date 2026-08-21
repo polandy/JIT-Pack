@@ -38,8 +38,8 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 |---|---|---|---|
 | Harness smoke | E2E-M19-01 (partial), E2E-M19-04, E2E-G7-01 | `local` | [`smoke.spec.ts`](../client/e2e/smoke.spec.ts) |
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
-| M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M1-05 | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
-| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
+| M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05 | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
+| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
@@ -59,6 +59,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
+| M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
@@ -991,6 +992,61 @@ itself.
 
 Mutation-proved: with `nav.trips` set to `Trips` in the German catalogue the
 case fails on the rendered label, twice, including the retry.
+
+## M22 — a trip's properties and its travellers (`e2e/trip-properties.spec.ts`, 2026-08-21)
+
+Four cases, Local Mode, landed with the M22 screen (FR-2.7). The whole
+consequence rule runs client-side (invariant 4), so a broken rule shows up here
+rather than behind a round trip.
+
+**E2E-M22-03 is the case this file exists for, and it was green for the wrong
+reason three times.** Each version is worth knowing, because each mistake is
+available to the next screen that owns sibling rows:
+
+1. *Count plus surviving name.* An over-broad removal detaches every row of the
+   position, and the FR-27.4 refresh then re-resolves and **generates the
+   sibling's row again** — same name, same count, different row, and everything
+   done to it gone. The mutation (detach by position instead of by traveller)
+   left the case green.
+2. *Pack the sibling to prove identity.* A fully packed row leaves the list
+   through the FR-25.2 pack-out, so the signal walked off screen. The seeded
+   position now carries **quantity 2** and the row is packed **once**: a
+   part-packed row keeps its place, and its `1/2` is what has to survive.
+3. *Navigate straight after confirming.* `page.goto` outran the removal and the
+   case failed against correct code. It now waits on the roster losing the row
+   — rendered, settled state.
+
+Two smaller traps, both costing a run each. A template position is
+**trip-global by default**, so a per-person case has to set the assignment in
+M8 or it silently tests one unassigned row. And a traveller row is addressed by
+its **name** through a `data-testid`, because Ionic sets an input's value as a
+property rather than an attribute — `input[value="Zoe"]` never matches.
+
+E2E-M22-04 asserts an absence (removal is refused on a started trip), so it
+leans on the positive signals the screen renders anyway: the control is present
+and `aria-disabled`, and the reason is a visible note.
+
+## Known flaky: the losing-offline-edit case (`e2e/single/server-sync.spec.ts`, noted 2026-08-21)
+
+`a losing offline edit converges and lands in the conflict log` fails on its
+first attempt and passes on the retry — **measured on `main` as well as on the
+branch that reported it**, twice each, so it is the case rather than any change
+around it. CI has been green only because the retry saves it, and a run where
+both attempts fail is one unlucky pipeline away.
+
+The cause is in the case, not in the app. `pageB` boots straight at the trip's
+URL, so only the **trip** partition is loaded; `reopenTrip` then navigates
+through M2, whose list comes from the **master** partition. Whether that pull
+landed before the context went offline is luck, and there is deliberately no
+reconnect drain (Track C), so after reconnecting it may never arrive at all —
+the case then looks for the trip in an empty list and reports the absence as a
+sync failure.
+
+Not fixed here, deliberately: the obvious repairs each change what the case
+proves. Re-entering by `goto` restarts the app and demonstrates the durable
+outbox instead of the drain-on-trip-open the case is about, and re-entering by
+history skips M2 but broke the sibling case that shares the helper (tried, and
+reverted). It wants its own change, by whoever owns the server-mode suite.
 
 ## M8/M4 — the composer's chip rows (2026-08-21)
 

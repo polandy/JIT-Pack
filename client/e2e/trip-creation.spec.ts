@@ -200,3 +200,41 @@ test('M3: a trip created in local mode survives a reload @local @m3', async ({
   await page.goto(tripPath)
   await expectTripOpen(page, TRIP.name)
 })
+
+// E2E-M3-19 (G-16): Enter in a step's plain field is the step's default
+// action — same handler, same gate as the Weiter click. The invalid half
+// runs first on the same field with the same key, so the advance that
+// follows is the positive proof the keypress was delivered at all;
+// "did not advance" alone would be green on a dead handler too.
+test('M3: Enter in a plain field is the Weiter click, gated like it @local @m3 @g16', async ({
+  page,
+  seedMode,
+}) => {
+  await seedMode({ mode: 'local' })
+  await page.goto('/trips/new')
+  await expect(page.getByTestId('wizard-step-1')).toBeVisible()
+
+  // Empty name: the gate holds and Enter does nothing, silently.
+  const name = page.getByTestId('wizard-name').locator('input')
+  await name.press('Enter')
+  await expect(page.getByTestId('wizard-step-1')).toBeVisible()
+
+  // The same key on the same field advances once the gate opens.
+  await name.fill(TRIP.name)
+  await name.press('Enter')
+  await expect(page.getByTestId('wizard-step-2')).toBeVisible()
+
+  // Step 2: a traveller name fires the same way.
+  await page.getByTestId('wizard-add-traveler').click()
+  const traveler = page.getByTestId('wizard-traveler-name').locator('input')
+  await traveler.fill('Alex')
+  await traveler.press('Enter')
+  await expect(page.getByTestId('wizard-step-3')).toBeVisible()
+
+  // Step 3's single-item search owns its Enter (G-16 exemption), so the
+  // key must not advance — proven live by the click that then does.
+  await page.getByTestId('wizard-item-search').locator('input').press('Enter')
+  await expect(page.getByTestId('wizard-step-3')).toBeVisible()
+  await page.getByTestId('wizard-next').click()
+  await expect(page.getByTestId('wizard-step-4')).toBeVisible()
+})

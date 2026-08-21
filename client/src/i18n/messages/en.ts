@@ -784,4 +784,30 @@ export const en = {
   'admin.tripCount': '{n} trip | {n} trips',
   'admin.templateCount': '{n} template | {n} templates',
   'admin.deactivated': 'Deactivated',
+  // M22 — trip properties (FR-2.7).
+  'tripEdit.title': 'Trip properties',
+  'tripEdit.sectionTrip': 'Trip',
+  'tripEdit.sectionTravelers': 'Travellers',
+  'tripEdit.name': 'Name',
+  'tripEdit.startDate': 'Start',
+  'tripEdit.endDate': 'End',
+  'tripEdit.travelerName': 'Traveller name',
+  'tripEdit.addTraveler': 'Add a traveller',
+  'tripEdit.add': 'Add',
+  'tripEdit.removeTraveler': 'Remove {name}',
+  'tripEdit.removeAfterStart': 'Travellers can only be removed before the trip starts.',
+  'tripEdit.removeConfirmTitle': 'Remove {name}?',
+  'tripEdit.removeConfirmBody':
+    'This traveller’s items disappear from the list. None of them is packed yet.',
+  'tripEdit.removeConfirm': 'Remove',
+  'tripEdit.removeKeepPacked': 'Keep packed',
+  'tripEdit.removeAll': 'Remove everything',
+  'tripEdit.removeConfirmPacked':
+    'Items not packed yet disappear. {n} item is already packed — should it go too, or stay on the list without an assignment? | Items not packed yet disappear. {n} items are already packed — should they go too, or stay on the list without an assignment?',
+  'tripEdit.travelerNote':
+    'A traveller who joins gets the per-person items straight away. One who leaves takes their unpacked items along.',
+  'tripEdit.reportAdded': '{n} item added | {n} items added',
+  'tripEdit.reportRemoved': '{n} item removed | {n} items removed',
+  'tripEdit.reportKept': '{n} item kept, unassigned | {n} items kept, unassigned',
+  'tripEdit.reportNothing': 'The list is unchanged.',
 } as const
