@@ -90,6 +90,22 @@ export default defineConfig({
     trace: 'on-first-retry',
     video: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    /*
+     * The device the family actually holds (owner, 2026-08-21). The container
+     * defaults to en-US/UTC, which quietly made every date the suite rendered
+     * a US date and every "today" a UTC one — the FR-27.4 boundary is a *date*
+     * comparison, so a run just after midnight in Zurich was reading
+     * yesterday.
+     *
+     * The app *language* is deliberately not left to this: `resolveLocale`
+     * falls back to `navigator.languages`, so a German device would flip the
+     * whole UI and every English assertion with it. `seed()` pins
+     * `jitpack_locale` instead, which is also what a real user's choice does —
+     * the device's language and the app's are two separate facts, and the app
+     * owns the second one.
+     */
+    locale: 'de-CH',
+    timezoneId: 'Europe/Zurich',
   },
 
   projects: [

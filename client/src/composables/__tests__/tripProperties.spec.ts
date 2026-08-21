@@ -158,7 +158,7 @@ describe('removeTraveler (FR-2.7 + FR-27.4)', () => {
     // The positive signal: Xenia's rain trousers are still there, named. A
     // removal that matched the *position* instead of the traveller empties
     // the list and would pass a "Zoe's row is gone" assertion.
-    expect(left[0].assigned_traveler_id).toBe('trv-x')
+    expect(left[0]?.assigned_traveler_id).toBe('trv-x')
   })
 
   it('leaves a packed row of theirs standing and only drops the assignment', async () => {
