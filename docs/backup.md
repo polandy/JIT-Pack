@@ -41,6 +41,13 @@ Restored trips arrive in **planning** status, and the app takes you straight to 
 screen's **Planned** tab when the restore finishes — that is where they are. The *Active*
 tab, which the list normally opens on, stays empty until you start a trip.
 
+A trip that was built from groups keeps **following** them after a restore, and the
+restore list says so next to it. What you already told a group carries over too: a change
+you accepted stays in the trip's change log with the date it happened, and one you
+declined is not offered again. A trip restored from an older backup file — one taken
+before this existed — starts following its groups from scratch instead, so it may ask
+again about a change you have already answered.
+
 The same file is how you move to a server instance: point the app at the server, then
 import the backup there through the same screen. Note that the server's own
 `/api/v1/*/import` endpoints (below) take **one** document per request — a whole-device

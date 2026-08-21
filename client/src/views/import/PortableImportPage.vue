@@ -32,6 +32,7 @@ import {
   PORTABLE_FILE_ACCEPT,
   type ParseResult,
 } from '@/domain/portable'
+import { t } from '@/i18n'
 import { TRIP_FILTER_QUERY } from '@/views/trips/tripFilter'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -108,6 +109,20 @@ function commitRestore() {
 
 const restorable = computed(() => (restore.value ?? []).filter((r) => r.doc !== null).length)
 
+/** The one-line description of a document in the restore list. */
+function documentSummary(entry: ParseResult): string {
+  const parsed = entry.doc
+  if (!parsed) return ''
+  const kind = t(parsed.kind === 'template' ? 'import.portable.template' : 'import.portable.trip')
+  const parts = [kind, t('import.portable.items', { n: parsed.items.length })]
+  // FR-27.4: a restored trip keeps following its groups, and the list is the
+  // only place that says so before the trip is opened.
+  if (parsed.follows.length > 0) {
+    parts.push(t('import.portable.follows', { n: parsed.follows.length }))
+  }
+  return parts.join(' · ')
+}
+
 function commit() {
   if (!doc.value) return
   const decisions = new Map<string, string>()
@@ -126,13 +141,13 @@ function commit() {
     <IonContent class="ion-padding">
       <!-- File picker / paste -->
       <template v-if="!doc && !restore">
-        <h2 class="section-title jp-eyebrow">Portable YAML file</h2>
-        <p class="hint">A template or trip exported from any JIT-Pack instance (FR-18.1).</p>
+        <h2 class="section-title jp-eyebrow">{{ t('import.portable.fileTitle') }}</h2>
+        <p class="hint">{{ t('import.portable.fileHint') }}</p>
         <input type="file" :accept="PORTABLE_FILE_ACCEPT" @change="onFile" />
         <IonTextarea
           class="paste-area"
           data-testid="portable-paste"
-          placeholder="…or paste YAML here"
+          :placeholder="t('import.portable.paste')"
           :value="rawText"
           :rows="8"
           @ionInput="(e: CustomEvent) => (rawText = e.detail.value ?? '')"
@@ -145,17 +160,16 @@ function commit() {
           :disabled="rawText.trim() === ''"
           @click="preview"
         >
-          Preview
+          {{ t('import.portable.preview') }}
         </IonButton>
       </template>
 
       <!-- Backup restore (NFR-4.11): a file of many documents -->
       <template v-else-if="restore">
-        <h2 class="section-title jp-eyebrow" data-testid="portable-restore">Backup</h2>
-        <p class="hint">
-          {{ restore.length }} document{{ restore.length === 1 ? '' : 's' }} in this file. Importing
-          adds them to what is already on this device; items that already exist are matched by name.
-        </p>
+        <h2 class="section-title jp-eyebrow" data-testid="portable-restore">
+          {{ t('import.portable.backupTitle') }}
+        </h2>
+        <p class="hint">{{ t('import.portable.backupHint', { n: restore.length }) }}</p>
         <IonList>
           <IonItem
             v-for="(entry, index) in restore"
@@ -163,25 +177,26 @@ function commit() {
             data-testid="portable-restore-row"
           >
             <IonLabel>
-              <h3>{{ entry.doc?.name ?? 'Unreadable document' }}</h3>
-              <p v-if="entry.doc">
-                {{ entry.doc.kind === 'template' ? 'Template' : 'Trip' }} ·
-                {{ entry.doc.items.length }} item{{ entry.doc.items.length === 1 ? '' : 's' }}
+              <h3>{{ entry.doc?.name ?? t('import.portable.unreadable') }}</h3>
+              <p v-if="entry.doc" data-testid="portable-restore-summary">
+                {{ documentSummary(entry) }}
               </p>
               <p v-else>{{ entry.error }}</p>
             </IonLabel>
-            <IonChip v-if="!entry.doc" slot="end" color="danger" outline>skipped</IonChip>
+            <IonChip v-if="!entry.doc" slot="end" color="danger" outline>
+              {{ t('import.portable.skipped') }}
+            </IonChip>
           </IonItem>
         </IonList>
         <div class="actions">
-          <IonButton fill="outline" @click="restore = null">Cancel</IonButton>
+          <IonButton fill="outline" @click="restore = null">{{ t('common.cancel') }}</IonButton>
           <IonButton
             color="primary"
             data-testid="portable-restore-commit"
             :disabled="restorable === 0"
             @click="commitRestore"
           >
-            Import all
+            {{ t('import.portable.importAll') }}
           </IonButton>
         </div>
       </template>
@@ -193,23 +208,26 @@ function commit() {
           <div>
             <h2 class="summary-name">{{ doc.name }}</h2>
             <p class="summary-meta">
-              {{ doc.kind === 'template' ? 'Template' : 'Trip' }} · {{ doc.items.length }} item{{
-                doc.items.length === 1 ? '' : 's'
+              {{
+                doc.kind === 'template' ? t('import.portable.template') : t('import.portable.trip')
               }}
-              · schema v{{ doc.schema_version }}
+              · {{ t('import.portable.items', { n: doc.items.length }) }} ·
+              {{ t('import.portable.schema', { n: doc.schema_version }) }}
             </p>
           </div>
         </div>
         <IonNote v-if="parsed?.newerSchema" class="schema-warning">
           <IonIcon :icon="warningOutline" />
-          This file was written by a newer app version — unknown fields will be ignored (FR-18.5).
+          {{ t('import.portable.newerSchema') }}
         </IonNote>
 
         <IonList>
           <IonItem v-for="match in matches" :key="match.name">
             <IonLabel>
               <h3>{{ match.name }}</h3>
-              <p v-if="match.state === 'near'">similar to: {{ match.existingName }}</p>
+              <p v-if="match.state === 'near'">
+                {{ t('import.portable.similar', { name: match.existingName ?? '' }) }}
+              </p>
             </IonLabel>
             <IonChip
               v-if="match.state !== 'near'"
@@ -217,7 +235,11 @@ function commit() {
               :color="match.state === 'new' ? 'primary' : 'success'"
               outline
             >
-              {{ match.state === 'new' ? 'new' : 'matched' }}
+              {{
+                match.state === 'new'
+                  ? t('import.portable.stateNew')
+                  : t('import.portable.stateMatched')
+              }}
             </IonChip>
             <IonSegment
               v-else
@@ -226,18 +248,24 @@ function commit() {
               :value="mergeChoices.get(match.name) ? 'merge' : 'separate'"
               @ionChange="(e: CustomEvent) => setMerge(match.name, e.detail.value === 'merge')"
             >
-              <IonSegmentButton value="merge"><IonLabel>Merge</IonLabel></IonSegmentButton>
-              <IonSegmentButton value="separate"
-                ><IonLabel>Keep separate</IonLabel></IonSegmentButton
-              >
+              <IonSegmentButton value="merge">
+                <IonLabel>{{ t('import.portable.merge') }}</IonLabel>
+              </IonSegmentButton>
+              <IonSegmentButton value="separate">
+                <IonLabel>{{ t('import.portable.keepSeparate') }}</IonLabel>
+              </IonSegmentButton>
             </IonSegment>
           </IonItem>
         </IonList>
 
         <div class="actions">
-          <IonButton fill="outline" @click="parsed = null">Cancel</IonButton>
+          <IonButton fill="outline" @click="parsed = null">{{ t('common.cancel') }}</IonButton>
           <IonButton color="primary" data-testid="portable-commit" @click="commit">
-            Import {{ doc.kind === 'template' ? 'template' : 'trip' }}
+            {{
+              doc.kind === 'template'
+                ? t('import.portable.importTemplate')
+                : t('import.portable.importTrip')
+            }}
           </IonButton>
         </div>
       </template>
