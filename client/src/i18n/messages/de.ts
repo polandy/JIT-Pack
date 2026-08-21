@@ -595,4 +595,88 @@ export const de: Record<keyof typeof en, string> = {
     '{n} Punkt der Zielort-Checkliste übernehmen | {n} Punkte der Zielort-Checkliste übernehmen',
   'wizard.back': 'Zurück',
   'wizard.next': 'Weiter',
+
+  // Globale Rahmenelemente: die vier Anker (G-1/G-9) und die festen
+  // Routentitel der einen Kopfzeile (ADR-011). Eine Route speichert den
+  // Schlüssel, nicht den Text.
+  'nav.dashboard': 'Übersicht',
+  'nav.trips': 'Reisen',
+  'nav.templates': 'Vorlagen',
+  'nav.items': 'Artikel',
+  'nav.title.importFile': 'Datei importieren',
+  'nav.title.series': 'Serie',
+  'nav.title.template': 'Vorlage',
+  'nav.title.newItem': 'Neuer Artikel',
+  'nav.title.item': 'Artikel',
+  'nav.title.gallery': 'Galerie',
+
+  // G-1 Anwesenheitsleiste und der gemeinsame Mengenschalter.
+  'presence.activeMembers': 'Gerade aktiv',
+  'presence.deviceCount': '({n} Gerät) | ({n} Geräte)',
+  'presence.inSyncSuffix': ' · synchron',
+  'presence.allInSync': 'Alle haben den aktuellen Stand',
+  'presence.inSync': 'Synchron',
+  'packing.decrease': 'Weniger gepackt',
+  'packing.increase': 'Mehr gepackt',
+
+  // M1 Übersicht — „was ist jetzt dran?“
+  'dashboard.greetingMorning': 'Guten Morgen',
+  'dashboard.greetingAfternoon': 'Guten Tag',
+  'dashboard.greetingEvening': 'Guten Abend',
+  'dashboard.subtitle': 'Was beim Packen ansteht',
+  'dashboard.planTrip': 'Reise planen',
+  'dashboard.prepTodo': 'Vorzubereiten ({n})',
+  'dashboard.openCount': '{n} offen',
+  'dashboard.moreItems': '+{n} weitere',
+
+  // M19 Moduswahl beim ersten Start (FR-19.1).
+  'firstRun.welcome': 'Willkommen bei JIT-Pack',
+  'firstRun.intro': 'Wo sollen deine Packdaten liegen? Diese Wahl triffst du pro Gerät einmal.',
+  'firstRun.localTitle': 'Lokal — nur dieses Gerät',
+  'firstRun.localBody':
+    'Alles bleibt in diesem Browser bzw. dieser App. Kein Server, kein Konto. Teilen und Sync über mehrere Geräte gibt es nicht; regelmässige Exporte sind deine Sicherung.',
+  'firstRun.localAction': 'Lokal arbeiten',
+  'firstRun.serverTitle': 'Server — synchron und gemeinsam',
+  'firstRun.serverBody':
+    'Verbinde dich mit einem selbst gehosteten JIT-Pack-Server: mehrere Geräte, gemeinsame Reisen.',
+  'firstRun.serverUrl': 'Server-URL',
+  'firstRun.serverUrlInvalid': 'Bitte eine vollständige http(s)-Adresse eingeben.',
+  'firstRun.serverAction': 'Mit Server verbinden',
+
+  // OIDC-Anmeldung und ihr Rücksprungziel (Sync-API §2).
+  'login.title': 'Anmelden',
+  'login.notRequired': 'Dieser Server verlangt keine Anmeldung — du kannst zurück in die App.',
+  'login.hint':
+    'Die Anmeldung läuft über deinen Identity Provider; JIT-Pack sieht dein Passwort nie.',
+  'login.action': 'Mit SSO anmelden',
+  'login.serverUnreachable': 'Server nicht erreichbar',
+  'login.noOidc': 'Dieser Server bietet keine OIDC-Anmeldung an',
+  'login.startFailed': 'Die Anmeldung liess sich nicht starten',
+  'login.completing': 'Anmeldung wird abgeschlossen…',
+  'login.interrupted': 'Die Anmeldung wurde unterbrochen — bitte noch einmal versuchen.',
+  'login.rejected': 'Der Server hat die Anmeldung abgelehnt.',
+  'login.failed': 'Anmeldung fehlgeschlagen — Server nicht erreichbar.',
+  'login.backToLogin': 'Zurück zur Anmeldung',
+
+  // Mitglieder einer Reise (FR-4.5/4.7).
+  'members.title': 'Mitglieder',
+  'members.headerTitle': 'Mitglieder · {trip}',
+  'members.self': ' (du)',
+  'members.remove': 'Mitglied entfernen',
+  'members.empty': 'Für diese Reise ist noch keine Mitgliederliste angekommen.',
+  'members.addUser': 'Konto hinzufügen…',
+  'members.addUserLabel': 'Konto hinzufügen',
+  'members.allAdded': 'Alle auf diesem Server sind schon dabei.',
+  'members.roleNote':
+    'Admins verwalten Reisende und Rollen, Bearbeiter:innen packen und kommentieren. Die Eigentümer:in lässt sich nicht ändern.',
+  'members.readOnly': 'Mitglieder verwalten können nur die Eigentümer:in und Admins.',
+
+  // G-2 Konfliktprotokoll (NFR-4.2a).
+  'conflicts.title': 'Konfliktprotokoll',
+  'conflicts.unavailable': 'Konfliktprotokoll nicht verfügbar — offline?',
+  'conflicts.empty': 'Keine Konflikte — alles sauber zusammengeführt',
+  'conflicts.emptyValue': '—',
+
+  // M20 Benutzerverwaltung (Addendum 3.23).
+  'admin.title': 'Benutzerverwaltung',
 }

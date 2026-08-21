@@ -593,4 +593,86 @@ export const en = {
     'Add {n} item from the destination checklist | Add {n} items from the destination checklist',
   'wizard.back': 'Back',
   'wizard.next': 'Next',
+
+  // Global chrome: the four G-1/G-9 anchors and the static route titles the
+  // one header bar (ADR-011) renders. A route stores the *key*, not the text.
+  'nav.dashboard': 'Dashboard',
+  'nav.trips': 'Trips',
+  'nav.templates': 'Templates',
+  'nav.items': 'Items',
+  'nav.title.importFile': 'Import file',
+  'nav.title.series': 'Series',
+  'nav.title.template': 'Template',
+  'nav.title.newItem': 'New item',
+  'nav.title.item': 'Item',
+  'nav.title.gallery': 'Gallery',
+
+  // G-1 presence facepile and the shared quantity stepper.
+  'presence.activeMembers': 'Currently active members',
+  'presence.deviceCount': '({n} device) | ({n} devices)',
+  'presence.inSyncSuffix': ' · in sync',
+  'presence.allInSync': 'Everyone has the latest state',
+  'presence.inSync': 'In sync',
+  'packing.decrease': 'Decrease packed count',
+  'packing.increase': 'Increase packed count',
+
+  // M1 dashboard — "what do I have to do right now?".
+  'dashboard.greetingMorning': 'Good morning',
+  'dashboard.greetingAfternoon': 'Good afternoon',
+  'dashboard.greetingEvening': 'Good evening',
+  'dashboard.subtitle': 'Your packing tasks',
+  'dashboard.planTrip': 'Plan a trip',
+  'dashboard.prepTodo': 'Prep to do ({n})',
+  'dashboard.openCount': '{n} open',
+  'dashboard.moreItems': '+{n} more',
+
+  // M19 first-launch mode selection (FR-19.1).
+  'firstRun.welcome': 'Welcome to JIT-Pack',
+  'firstRun.intro': 'Where should your packing data live? This is a one-time choice per device.',
+  'firstRun.localTitle': 'Local — just this device',
+  'firstRun.localBody':
+    'Everything stays in this browser/app. No server, no account. Sharing and multi-device sync are unavailable; regular exports are your backup.',
+  'firstRun.localAction': 'Use Local Mode',
+  'firstRun.serverTitle': 'Server — sync & collaborate',
+  'firstRun.serverBody':
+    'Connect to a self-hosted JIT-Pack server for multi-device sync and shared trips.',
+  'firstRun.serverUrl': 'Server URL',
+  'firstRun.serverUrlInvalid': 'Enter a full http(s) URL.',
+  'firstRun.serverAction': 'Connect to server',
+
+  // OIDC login and its redirect target (Sync-API §2).
+  'login.title': 'Sign in',
+  'login.notRequired': 'This server does not require a login — you can head back to the app.',
+  'login.hint': 'Your identity provider handles the login; JIT-Pack never sees your password.',
+  'login.action': 'Sign in with SSO',
+  'login.serverUnreachable': 'Server unreachable',
+  'login.noOidc': 'This server does not offer OIDC login',
+  'login.startFailed': 'Could not start the login flow',
+  'login.completing': 'Completing sign-in…',
+  'login.interrupted': 'Login was interrupted — please try again.',
+  'login.rejected': 'The server rejected the login.',
+  'login.failed': 'Login failed — server unreachable.',
+  'login.backToLogin': 'Back to login',
+
+  // Trip members (FR-4.5/4.7).
+  'members.title': 'Members',
+  'members.headerTitle': 'Members · {trip}',
+  'members.self': ' (you)',
+  'members.remove': 'Remove member',
+  'members.empty': 'No roster synced for this trip yet.',
+  'members.addUser': 'Add user…',
+  'members.addUserLabel': 'Add user',
+  'members.allAdded': 'Everyone on this server is already a member.',
+  'members.roleNote':
+    'Admins manage travelers and roles; Editors pack and comment. The Owner cannot be changed.',
+  'members.readOnly': 'Only the Owner or an Admin can manage members.',
+
+  // G-2 conflict log (NFR-4.2a).
+  'conflicts.title': 'Conflict log',
+  'conflicts.unavailable': 'Conflict log unavailable — offline?',
+  'conflicts.empty': 'No conflicts — every change merged cleanly',
+  'conflicts.emptyValue': '—',
+
+  // M20 user administration (Addendum 3.23).
+  'admin.title': 'User administration',
 } as const

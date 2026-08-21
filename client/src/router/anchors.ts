@@ -1,5 +1,7 @@
 import { cubeOutline, homeOutline, listOutline, trainOutline } from 'ionicons/icons'
 
+import type { MessageKey } from '@/i18n'
+
 /**
  * The four navigation anchors (G-1/G-9), in one place.
  *
@@ -11,18 +13,23 @@ import { cubeOutline, homeOutline, listOutline, trainOutline } from 'ionicons/ic
 export interface NavAnchor {
   /** Route path segment under `/tabs/`, and the test-id suffix. */
   match: string
-  name: string
+  /**
+   * Catalogue key of the label, not the label: the rail and the bar render
+   * in the active locale, and a stored string would freeze whichever one
+   * happened to be active when this module was first evaluated.
+   */
+  nameKey: MessageKey
   href: string
   icon: string
 }
 
 export const NAV_ANCHORS: readonly NavAnchor[] = [
-  { match: 'dashboard', name: 'Dashboard', href: '/tabs/dashboard', icon: homeOutline },
+  { match: 'dashboard', nameKey: 'nav.dashboard', href: '/tabs/dashboard', icon: homeOutline },
   // A train, not a plane: this household's trips are ground travel, and
   // the icon is the first thing that says what the app is about.
-  { match: 'trips', name: 'Trips', href: '/tabs/trips', icon: trainOutline },
-  { match: 'templates', name: 'Templates', href: '/tabs/templates', icon: listOutline },
-  { match: 'items', name: 'Items', href: '/tabs/items', icon: cubeOutline },
+  { match: 'trips', nameKey: 'nav.trips', href: '/tabs/trips', icon: trainOutline },
+  { match: 'templates', nameKey: 'nav.templates', href: '/tabs/templates', icon: listOutline },
+  { match: 'items', nameKey: 'nav.items', href: '/tabs/items', icon: cubeOutline },
 ] as const
 
 /**

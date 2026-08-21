@@ -1,3 +1,5 @@
+import type { MessageKey } from '@/i18n'
+
 /**
  * The back-target contract (Navigation_Concept §7, ADR-011).
  *
@@ -26,8 +28,14 @@ declare module 'vue-router' {
     overlayParam?: string
     /** Where back leads while `overlayParam` is present. */
     overlayParent?: string
-    /** Static header title. Data-dependent titles use setHeaderTitle. */
-    title?: string
+    /**
+     * Catalogue key of a static header title. A key rather than the text:
+     * the header renders it through `t()`, so it follows the language
+     * choice, and a route table cannot smuggle an untranslated string
+     * into the one bar every screen shares. Data-dependent titles use
+     * setHeaderTitle.
+     */
+    titleKey?: MessageKey
   }
 }
 
