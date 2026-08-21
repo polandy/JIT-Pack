@@ -63,6 +63,15 @@ export const de: Record<keyof typeof en, string> = {
   'sync.detail.backupSaved': 'Sicherung gespeichert: {file}',
   'sync.detail.updateReady':
     'Eine neue Version von JIT-Pack ist bereit. Sie übernimmt beim nächsten Öffnen der App.',
+  // B2/NFR-4.1 — der dauerhafte Ausgangskorb.
+  'sync.detail.pendingDurable':
+    'Sie sind auf diesem Gerät gespeichert und gehen raus, sobald es wieder online ist.',
+  'sync.detail.pendingFragile':
+    'Dieses Gerät konnte sie nicht speichern — die App jetzt zu schließen würde sie verlieren.',
+  'sync.detail.parked':
+    'Der Server hat {n} Änderung abgelehnt | Der Server hat {n} Änderungen abgelehnt',
+  'sync.detail.parkedHint':
+    'Sie wurden aus der Warteschlange genommen, damit der Rest rausgeht, und bleiben auf diesem Gerät. Erneut versucht werden sie nicht.',
 
   'trip.daysUntil': 'noch {n} Tage',
   'trip.departsToday': 'Heute geht es los',
@@ -530,4 +539,61 @@ export const de: Record<keyof typeof en, string> = {
   'settings.languageHint': 'Nur auf diesem Gerät.',
   'settings.languageEnglish': 'Englisch',
   'settings.languageGerman': 'Deutsch',
+
+  // M18 — portabler Import und die Wiederherstellung nach ADR-015 (FR-18.4/18.5).
+  'import.portable.fileTitle': 'Portable YAML-Datei',
+  'import.portable.fileHint': 'Eine Vorlage oder Reise aus einer beliebigen JIT-Pack-Instanz.',
+  'import.portable.paste': '… oder YAML hier einfügen',
+  'import.portable.preview': 'Vorschau',
+  'import.portable.template': 'Vorlage',
+  'import.portable.trip': 'Reise',
+  'import.portable.items': '{n} Artikel | {n} Artikel',
+  'import.portable.schema': 'Schema v{n}',
+  'import.portable.newerSchema':
+    'Diese Datei stammt aus einer neueren App-Version — unbekannte Felder werden ignoriert.',
+  'import.portable.stateNew': 'neu',
+  'import.portable.stateMatched': 'zugeordnet',
+  'import.portable.similar': 'ähnlich wie: {name}',
+  'import.portable.merge': 'Zusammenführen',
+  'import.portable.keepSeparate': 'Getrennt lassen',
+  'import.portable.importTemplate': 'Vorlage importieren',
+  'import.portable.importTrip': 'Reise importieren',
+  'import.portable.backupTitle': 'Sicherung',
+  'import.portable.backupHint':
+    '{n} Dokument in dieser Datei. Der Import ergänzt, was schon auf diesem Gerät ist; vorhandene Artikel werden über den Namen zugeordnet. | {n} Dokumente in dieser Datei. Der Import ergänzt, was schon auf diesem Gerät ist; vorhandene Artikel werden über den Namen zugeordnet.',
+  'import.portable.unreadable': 'Unlesbares Dokument',
+  'import.portable.skipped': 'übersprungen',
+  'import.portable.importAll': 'Alle importieren',
+  // FR-27.4: Eine wiederhergestellte Reise folgt ihren Gruppen weiter.
+  'import.portable.follows': 'folgt {n} Gruppe | folgt {n} Gruppen',
+
+  // M15 — Import-Assistent für Tabellen (FR-16.1–16.3).
+  'import.wizard.title': 'Import · Schritt {step}/4',
+  'import.wizard.next': 'Weiter',
+  'import.wizard.csvTitle': 'Tabelle (CSV)',
+  'import.wizard.csvHint':
+    'Zeilen sind Artikel (mit Kategoriezeilen), Spalten sind Reisen mit Mengen. XLSX? Vorher als CSV exportieren.',
+  'import.wizard.paste': '… oder CSV hier einfügen',
+  'import.wizard.analyze': 'Analysieren',
+  'import.wizard.tripsTitle': 'Zu importierende Reisen',
+  'import.wizard.tripName': 'Reisename',
+  'import.wizard.tripDate': 'Jahr oder Datum',
+  'import.wizard.series': 'Serie',
+  'import.wizard.noSeries': 'Keine Serie',
+  'import.wizard.seriesLabel': 'Zielserie',
+  'import.wizard.mappingInvalid':
+    'Jede ausgewählte Reise braucht einen Namen und ein Jahr (z. B. 2024) oder Datum.',
+  'import.wizard.itemColumn': 'Artikelspalte',
+  'import.wizard.column': 'Sp. {n}',
+  'import.wizard.categoryRows': 'Kategoriezeilen',
+  'import.wizard.duplicates': 'Mögliche Dubletten',
+  'import.wizard.duplicatesHint': 'Diese importierten Namen ähneln Artikeln, die es schon gibt.',
+  'import.wizard.existing': 'vorhanden: {name}',
+  'import.wizard.existingExact': 'vorhanden: {name} (exakte Übereinstimmung)',
+  'import.wizard.summary': 'Zusammenfassung',
+  'import.wizard.summaryTrips': '{n} archivierte Reise | {n} archivierte Reisen',
+  'import.wizard.summaryItems': '{n} neuer Artikel | {n} neue Artikel',
+  'import.wizard.summaryMerged': '{n} zusammengeführt',
+  'import.wizard.summaryCategories': '{n} Kategorie | {n} Kategorien',
+  'import.wizard.commit': 'Importieren',
 }

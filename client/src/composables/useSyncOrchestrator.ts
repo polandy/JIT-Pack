@@ -27,7 +27,10 @@ import { planClone, type CloneOptions } from '@/domain/clone'
 import {
   declinePlan,
   isEmptyPlan,
+  ledgerId,
   planRefresh,
+  positionKey,
+  propagatedItemId,
   proposedChangeCount,
   type RefreshPlan,
 } from '@/domain/refresh'
@@ -50,10 +53,12 @@ import type { ReviewProposal } from '@/domain/review'
 import { planTemplateFromTrip, recogniseTripComposition } from '@/domain/templateFromTrip'
 import type { DeviationChoice, PositionDraft } from '@/domain/templateFromTrip'
 import type { IndexedDBPersistence } from '@/local/persistence'
+import { IndexedDBOutboxStore, type OutboxStore } from '@/sync/outboxStore'
 import type {
   Container,
   DestinationChecklistItem,
   DestinationProfile,
+  GeneratedPosition,
   ItemComment,
   ItemDependency,
   ItemMode,
@@ -166,6 +171,12 @@ export interface SyncOrchestratorConfig {
    * markNotificationRead. No-op in Local Mode.
    */
   onNotification?: (n: ServerNotification) => void
+  /**
+   * Where the outbox keeps its queue between sessions (B2, NFR-4.1).
+   * Injected so a test can drive a store it can see; Server Mode defaults
+   * to IndexedDB, and Local Mode never builds one — it has no outbox.
+   */
+  outboxStore?: OutboxStore
 }
 
 /**
@@ -261,7 +272,15 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const hlc = new HLCGenerator(() => Date.now(), deviceId)
   const mutations = useMutations(hlc)
 
-  const outbox = new SyncOutbox(client, hlc, onPullChanges)
+  // Local Mode never pushes, so it never queues — building a store there
+  // would create a database that nothing ever writes to.
+  const outboxStore = local ? null : (config.outboxStore ?? new IndexedDBOutboxStore())
+
+  const outbox = new SyncOutbox(client, hlc, onPullChanges, {
+    store: outboxStore ?? undefined,
+    onParked: () => syncStatus.setParkedCount(outbox.parkedCount()),
+    onDurabilityChanged: (durable) => syncStatus.setQueueDurable(durable),
+  })
 
   const ws = useWebSocket({
     baseUrl: config.baseUrl,
@@ -1672,9 +1691,124 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return created.id
   }
 
+  /**
+   * Restore the FR-27.4 refresh state of a trip that has just been imported
+   * (ADR-015): what it follows, what generation last produced for it, and the
+   * record of what it already took over.
+   *
+   * Every reference in the file is a name and every id here is new, so the
+   * three sections are re-keyed rather than copied. A reference this device
+   * cannot resolve is dropped — a source pointing at no template would never
+   * propose anything, and a ledger entry keyed on the wrong position detaches
+   * one nobody asked to detach. The log is the exception: its group name is
+   * denormalised for exactly this reason and survives without the group.
+   */
+  function restoreRefreshState(
+    tripId: string,
+    doc: PortableDocument,
+    templateIdByName: Map<string, string>,
+    travelerIDs: Map<string, string>,
+    rowIdByPosition: Map<string, string>,
+  ): void {
+    // Indexed once: a restored trip resolves a name per source, per ledger
+    // entry and per log line, and both lists are the whole device.
+    const templatesByName = new Map(masterStore.templateList.map((t) => [t.name, t.id]))
+    const itemsByName = new Map(masterStore.itemList.map((i) => [i.name, i.id]))
+    const templateId = (name: string): string | undefined =>
+      templateIdByName.get(name) ?? templatesByName.get(name)
+
+    for (const name of doc.follows) {
+      const followed = templateId(name)
+      if (!followed) continue
+      const { mutation, id } = mutations.registerTripSource(tripId, followed)
+      onPullChanges([
+        {
+          seq: 0,
+          table: TABLE.tripTemplateSources,
+          id,
+          deleted: false,
+          row: mutation.fields as Record<string, unknown>,
+        },
+      ])
+      if (!local) outbox.enqueue('master', null, mutation)
+    }
+
+    for (const entry of doc.generated) {
+      const sourceTemplateId = templateId(entry.source)
+      const sourceItemId = itemsByName.get(entry.item)
+      if (!sourceTemplateId || !sourceItemId) continue
+      const travelerId = entry.traveler === null ? '' : (travelerIDs.get(entry.traveler) ?? '')
+      // A per-person entry whose traveler is not on the restored trip has no
+      // position to be about (FR-25.8); '' would silently make it trip-global.
+      if (entry.traveler !== null && travelerId === '') continue
+      const position: GeneratedPosition = {
+        id: ledgerId(tripId, sourceItemId, travelerId),
+        trip_id: tripId,
+        // The restored row, or the id that row *would* have had. The entry
+        // outliving its row is FR-27.4's record of a deleted position, and
+        // restoring it as anything else offers the position again.
+        trip_item_id:
+          rowIdByPosition.get(positionKey(sourceItemId, travelerId)) ??
+          propagatedItemId(tripId, sourceItemId, travelerId),
+        source_template_id: sourceTemplateId,
+        source_item_id: sourceItemId,
+        traveler_id: travelerId,
+        name: entry.name,
+        quantity: entry.quantity,
+        mode: entry.mode,
+        late_packer: entry.late_packer,
+        weight_grams: entry.weight_grams,
+        value_cents: entry.value_cents,
+        category_name: entry.category,
+        tasks: entry.tasks,
+      }
+      const mutation = mutations.writeGeneratedPosition(position)
+      onPullChanges([
+        {
+          seq: 0,
+          table: TABLE.tripGeneratedPositions,
+          id: position.id,
+          deleted: false,
+          row: mutation.fields as Record<string, unknown>,
+        },
+      ])
+      if (!local) outbox.enqueue('trip', tripId, mutation)
+    }
+
+    for (const change of doc.applied_changes) {
+      const { mutation, id } = mutations.logAppliedChange(
+        {
+          trip_id: tripId,
+          source_template_id: templateId(change.source) ?? '',
+          source_template_name: change.source,
+          kind: change.kind,
+          item_name: change.item,
+          detail: change.detail,
+        },
+        change.at,
+      )
+      onPullChanges([
+        {
+          seq: 0,
+          table: TABLE.tripAppliedChanges,
+          id,
+          deleted: false,
+          row: mutation.fields as Record<string, unknown>,
+        },
+      ])
+      if (!local) outbox.enqueue('master', null, mutation)
+    }
+  }
+
   function commitPortableImport(
     doc: PortableDocument,
     mergeDecisions: Map<string, string>,
+    /**
+     * Templates this restore has already created, by the name their document
+     * carried. A Ferien-Vorlage may land under a suffixed name (see below),
+     * and a trip that follows it must still find it.
+     */
+    restoredTemplates?: Map<string, string>,
   ): { kind: 'template' | 'trip'; id: string } {
     const resolveItem = (item: PortableItem): string | null => {
       const merged = mergeDecisions.get(item.name)
@@ -1806,12 +1940,18 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       containerIDs.set(container.name, id)
     }
 
+    // The FR-27.4 ledger is keyed on (master item, traveler), so the rows are
+    // indexed on the way in rather than searched for by name afterwards: a
+    // manual rename is exactly the case the ledger has to survive.
+    const rowIdByPosition = new Map<string, string>()
+
     for (const item of doc.items) {
+      const sourceItemId = resolveItem(item)
       const { mutation, id } = mutations.addPortableTripItem(
         tripId,
         {
           name: item.name,
-          sourceItemId: resolveItem(item),
+          sourceItemId,
           categoryName: item.category,
           quantity: Math.max(0, Math.ceil(Number(item.quantity) || 0)),
           packedCount: item.packed_count ?? 0,
@@ -1831,7 +1971,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         },
       ])
       if (!local) outbox.enqueue('trip', tripId, mutation)
+      if (sourceItemId) {
+        const key = positionKey(
+          sourceItemId,
+          item.traveler ? (travelerIDs.get(item.traveler) ?? '') : '',
+        )
+        if (!rowIdByPosition.has(key)) rowIdByPosition.set(key, id)
+      }
     }
+
+    restoreRefreshState(tripId, doc, restoredTemplates ?? new Map(), travelerIDs, rowIdByPosition)
 
     if (!local) {
       syncStatus.setPendingCount(outbox.totalPending())
@@ -1856,13 +2005,19 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     docs: PortableDocument[],
   ): { kind: 'template' | 'trip'; id: string }[] {
     const imported: { kind: 'template' | 'trip'; id: string }[] = []
+    // A trip's FR-27.4 sections name the templates it follows, and a Vorlage
+    // may have landed under a suffixed name; `buildBackup` writes the
+    // templates first, so by the time a trip arrives this map has them.
+    const restoredTemplates = new Map<string, string>()
     for (const doc of docs) {
       if (doc.name.trim() === '') continue
       const decisions = new Map<string, string>()
       for (const match of matchPortableItems(doc, masterStore.itemList)) {
         if (match.existingId) decisions.set(match.name, match.existingId)
       }
-      imported.push(commitPortableImport(doc, decisions))
+      const result = commitPortableImport(doc, decisions, restoredTemplates)
+      if (result.kind === 'template') restoredTemplates.set(doc.name, result.id)
+      imported.push(result)
     }
     return imported
   }
@@ -2829,6 +2984,17 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       localHydrated = true
       void local.requestDurability()
       return
+    }
+    // B2: whatever an earlier session could not send is replayed *before*
+    // the first pull, so a server change never overwrites a local one that
+    // simply had not left the device yet. Awaited rather than fired off:
+    // App.vue's own drainMaster follows this call, and two overlapping
+    // drains of the same partition would push the same chunk twice.
+    const restored = await outbox.restore()
+    syncStatus.setPendingCount(outbox.totalPending())
+    syncStatus.setParkedCount(outbox.parkedCount())
+    for (const partition of restored) {
+      await (partition.type === 'master' ? drainMaster() : drainTrip(partition.id!))
     }
     ws.connect()
     // FR-6.2: notifications that arrived while this device was away.

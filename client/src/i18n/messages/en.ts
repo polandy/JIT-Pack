@@ -60,6 +60,14 @@ export const en = {
   'sync.detail.backupSaved': 'Backup saved: {file}',
   'sync.detail.updateReady':
     'A new version of JIT-Pack is ready. It takes over the next time you open the app.',
+  // B2/NFR-4.1 — the durable outbox.
+  'sync.detail.pendingDurable':
+    'They are saved on this device and go out as soon as it is back online.',
+  'sync.detail.pendingFragile':
+    'This device could not save them — closing the app now would lose them.',
+  'sync.detail.parked': 'The server rejected {n} change | The server rejected {n} changes',
+  'sync.detail.parkedHint':
+    'They were taken out of the queue so the rest could be sent, and are kept on this device. They will not be tried again.',
 
   // Trips.
   'trip.daysUntil': '{n} days to go',
@@ -529,4 +537,60 @@ export const en = {
   'settings.languageHint': 'This device only.',
   'settings.languageEnglish': 'English',
   'settings.languageGerman': 'German',
+
+  // M18 — portable import and the ADR-015 backup restore (FR-18.4/18.5).
+  'import.portable.fileTitle': 'Portable YAML file',
+  'import.portable.fileHint': 'A template or trip exported from any JIT-Pack instance.',
+  'import.portable.paste': '…or paste YAML here',
+  'import.portable.preview': 'Preview',
+  'import.portable.template': 'Template',
+  'import.portable.trip': 'Trip',
+  'import.portable.items': '{n} item | {n} items',
+  'import.portable.schema': 'schema v{n}',
+  'import.portable.newerSchema':
+    'This file was written by a newer app version — unknown fields will be ignored.',
+  'import.portable.stateNew': 'new',
+  'import.portable.stateMatched': 'matched',
+  'import.portable.similar': 'similar to: {name}',
+  'import.portable.merge': 'Merge',
+  'import.portable.keepSeparate': 'Keep separate',
+  'import.portable.importTemplate': 'Import template',
+  'import.portable.importTrip': 'Import trip',
+  'import.portable.backupTitle': 'Backup',
+  'import.portable.backupHint':
+    '{n} document in this file. Importing adds it to what is already on this device; items that already exist are matched by name. | {n} documents in this file. Importing adds them to what is already on this device; items that already exist are matched by name.',
+  'import.portable.unreadable': 'Unreadable document',
+  'import.portable.skipped': 'skipped',
+  'import.portable.importAll': 'Import all',
+  // FR-27.4: a restored trip keeps following its groups, so the list says so.
+  'import.portable.follows': 'follows {n} group | follows {n} groups',
+
+  // M15 — spreadsheet import wizard (FR-16.1–16.3).
+  'import.wizard.title': 'Import · step {step}/4',
+  'import.wizard.next': 'Next',
+  'import.wizard.csvTitle': 'Spreadsheet (CSV)',
+  'import.wizard.csvHint':
+    'Rows are items (with category grouping rows), columns are trips with quantities. XLSX? Export it as CSV first.',
+  'import.wizard.paste': '…or paste CSV here',
+  'import.wizard.analyze': 'Analyze',
+  'import.wizard.tripsTitle': 'Trips to import',
+  'import.wizard.tripName': 'Trip name',
+  'import.wizard.tripDate': 'Year or date',
+  'import.wizard.series': 'Series',
+  'import.wizard.noSeries': 'No series',
+  'import.wizard.seriesLabel': 'Target series',
+  'import.wizard.mappingInvalid': 'Each included trip needs a name and a year (e.g. 2024) or date.',
+  'import.wizard.itemColumn': 'Item column',
+  'import.wizard.column': 'Col {n}',
+  'import.wizard.categoryRows': 'Category rows',
+  'import.wizard.duplicates': 'Possible duplicates',
+  'import.wizard.duplicatesHint': 'These imported names look like items you already have.',
+  'import.wizard.existing': 'existing: {name}',
+  'import.wizard.existingExact': 'existing: {name} (exact match)',
+  'import.wizard.summary': 'Summary',
+  'import.wizard.summaryTrips': '{n} archived trip | {n} archived trips',
+  'import.wizard.summaryItems': '{n} new item | {n} new items',
+  'import.wizard.summaryMerged': '{n} merged',
+  'import.wizard.summaryCategories': '{n} category | {n} categories',
+  'import.wizard.commit': 'Import',
 } as const

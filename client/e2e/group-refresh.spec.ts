@@ -1,8 +1,10 @@
 import { test, expect, expectTripOpen } from './fixtures'
 import {
-  addPosition,
+  addToGroup,
   backToTemplateList as backToList,
   createTemplate,
+  createTripFollowingGroup as tripFollowingGroup,
+  addPosition,
   visiblePage as visible,
 } from './fixtures'
 import type { Page } from '@playwright/test'
@@ -20,40 +22,6 @@ import type { Page } from '@playwright/test'
  * client-side (invariant 4), so the mode without a server is where a missing
  * client rule shows up rather than hiding behind a round trip.
  */
-
-/** M3, picking one group as the trip's source. Returns the trip's path. */
-async function tripFollowingGroup(page: Page, name: string, group: string): Promise<string> {
-  await page.goto('/trips/new')
-  await page.getByTestId('wizard-name').locator('input').fill(name)
-  await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
-  await page.getByTestId('wizard-next').click()
-  await expect(page.getByTestId('wizard-step-2')).toBeVisible()
-  await page.getByTestId('wizard-next').click()
-
-  await expect(page.getByTestId('wizard-step-3')).toBeVisible()
-  const groups = visible(page).getByTestId('wizard-section-groups')
-  await groups
-    .locator('ion-item')
-    .filter({ hasText: group })
-    .first()
-    .locator('ion-checkbox')
-    .click()
-  await page.getByTestId('wizard-next').click()
-
-  await expect(page.getByTestId('wizard-step-4')).toBeVisible()
-  await page.getByTestId('wizard-create').click()
-  await expectTripOpen(page, name)
-  return new URL(page.url()).pathname
-}
-
-/** Add one position to an existing group, through M7 → M8. */
-async function addToGroup(page: Page, group: string, item: string) {
-  await page.goto('/tabs/templates')
-  await visible(page).getByTestId('m7-scope-group').click()
-  await visible(page).locator('ion-item').filter({ hasText: group }).first().click()
-  await expect(page.getByTestId('header-title')).toHaveText(group)
-  await addPosition(page, item)
-}
 
 /** Open the trip the way a user does — through M2, in-SPA. */
 async function openTripFromList(page: Page, name: string) {

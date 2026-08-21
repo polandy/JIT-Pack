@@ -56,11 +56,33 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
-| M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
+| M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+
+**E2E-G2-04 — the durable outbox (B2, NFR-4.1), added 2026-08-21.** A new
+case in the `single` unit: pack a row offline, reload the page *while still
+offline*, and the queue is still there — count on the glyph, sentence in the
+G-2 sheet — then drains when the trip is opened with a network again, and a
+device that never saw the change reads it back. The app shell for that
+offline reload is the PWA's (E2E-PWA-01); the case asserts the back button
+rather than E2E-PWA-01's logo, because inside a trip the app bar carries no
+logo. **Proved red against the unfixed build**: with the outbox store
+unwired the count is simply absent after the reload.
+
+Two things this unit still does *not* cover, both by decision:
+
+- **No reconnect drain exists**, so none is tested. The queue moves on the
+  app's next own action — a mutation, a trip open, a WS ping — or on the next
+  app start, which is what the durable outbox added. An `online`-event drain
+  was deliberately left out of Track C.
+- **A parked mutation has no e2e.** Provoking one needs a push the server
+  refuses permanently, which the app has no way to produce through its own
+  UI (it only ever sends columns the server knows). The parking rules are
+  covered in `client/src/composables/__tests__/useSyncOutbox.spec.ts`
+  instead, and G-2's rendering of them in the SyncDetailSheet component test.
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
 (create / import). The screen has neither as a button: create is the FAB and
@@ -681,6 +703,31 @@ Two traps paid for while writing it, both worth repeating:
 reported in its place, marked *skipped*, and the intact ones still import.
 Red-proved by making `preview()` filter unreadable documents out: the count
 assertion falls to 2.
+
+**E2E-M18-08** (2026-08-21, FR-27.4) is the second half of "a backup is
+complete": the file has to carry *how* a trip follows its groups, not only what
+is on it. The case answers the group twice on the first device — once *yes*
+(which writes the applied-changes log) and once *no* (which lives **only** in
+the ledger; a refused position leaves no row and no other record) — then
+restores onto a fresh context and asserts that both answers survived.
+
+The design problem here was that everything this case proves is an *absence*:
+no proposal, no refused row. Three positive signals carry it instead.
+
+1. The restore list itself says the trip *follows 1 group* — rendered proof
+   that the section reached the file, before anything is imported.
+2. M2's applied chip and log name the change that was accepted, with the
+   timestamp it originally had.
+3. The load-bearing one: after the restore, a **new** position is added to the
+   group on the restored device, and the proposal that appears names it and
+   only it. Without the restored sources nothing would be proposed at all;
+   without the restored ledger the refused position would be proposed beside
+   it. That single assertion is what makes the two "not offered" assertions
+   mean something.
+
+Red-proved against the unfixed build, where the trip restores with no
+`follows:` at all: the restore-list assertion falls first, and with it dropped,
+the refused position is offered again.
 
 ## FR-5.5 — deliberately not packed (`e2e/skip-item.spec.ts`, 2026-08-18)
 

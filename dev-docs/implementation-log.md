@@ -114,6 +114,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [M4 comes back where it was left, and the header line stops flipping (2026-08-21)](#m4-comes-back-where-it-was-left-and-the-header-line-stops-flipping-2026-08-21) — a `<script setup>` top-level binding is per *instance*; a scroll position on M4 is an offset *and* a header state; the collapsing line fed its own layout change back as a user scroll. Closes E2E-M12-03's positive half too.
 - [A build image's major is a toolchain version, and a gate says so (2026-08-21)](#a-build-images-major-is-a-toolchain-version-and-a-gate-says-so-2026-08-21) — a Node major merged green because no check builds anything with that image.
 - [Dependabot skips the Node majors that can never be taken (2026-08-21)](#dependabot-skips-the-node-majors-that-can-never-be-taken-2026-08-21) — odd Node majors never reach LTS; Dependabot only ever offers the newest, so from October 2026 it would chase 27 past the 26 that becomes LTS. Bundler syntax, because that is what the docker ecosystem parses.
+- [The sync outbox survives a reload (2026-08-21)](#the-sync-outbox-survives-a-reload-2026-08-21) — MVP Track C / blocker B2: the queue moved to IndexedDB and is replayed before the first pull. Replay safety is the server's `mutation_id` memo, not the merge algorithm; a permanently refused mutation is parked so it cannot wedge a partition.
+- [The device backup carries the FR-27.4 refresh state (2026-08-21)](#the-device-backup-carries-the-fr-274-refresh-state-2026-08-21-mvp-track-f) — a restored device kept everything visible and forgot every answer it had given its groups; the restore re-keys by identity, not by name, because a renamed row is exactly the row the user has made theirs.
 
 ## Current state
 
@@ -3923,6 +3925,62 @@ Worth recording because the bump was *correct in isolation*: a green pipeline
 said nothing about it, and the drift is only visible if you ask which artifact
 a version actually builds.
 
+## The device backup carries the FR-27.4 refresh state (2026-08-21, MVP Track F)
+
+The backup wrote every trip and every Vorlage and stopped there. What it left
+behind were the three tables that record *how* a trip follows its groups —
+`trip_template_sources`, `trip_generated_positions`, `trip_applied_changes` —
+so a restored device kept everything visible and silently forgot every answer
+the user had given. Proposals already refused came back as fresh offers, and a
+position deliberately deleted reappeared. A restore that looks complete and
+undoes a month of decisions is worse than one that visibly fails.
+
+**No new format, and that was the finding.** The ADR-015 revisit trigger names
+"a restore has to carry something the portable shape cannot express" as the
+moment a container format comes back on the table — and this was not it. All
+three tables reference a template, a master item and a traveler, and the
+portable shape already carries those **by name**. So the sections are three
+optional keys on a trip document (`follows:`, `generated:`, `applied_changes:`)
+and the ADR gained an amendment rather than a successor.
+
+**The restore re-keys rather than copies**, which is where the actual design
+sits. Every id is new after a restore, so a ledger entry rebuilds its own from
+(trip, master item, traveler) — the identity `planRefresh` already keys on — and
+finds its row by that same identity rather than by name. Matching by name was
+the first draft and it is wrong for the one case the ledger exists to serve: a
+row the user *renamed* is precisely a row that has become theirs. An entry
+whose row is not there keeps the id the row would have had, because "the entry
+outlives the row" **is** FR-27.4's record of a deleted position.
+
+**A reference that cannot be resolved is dropped, not half-restored.** A source
+pointing at no template proposes nothing forever; a ledger entry keyed on the
+wrong position detaches one nobody asked to detach. The applied-changes log is
+the deliberate exception — its group name is denormalised exactly so the record
+outlives the group — and it is replayed with its own timestamp, which needed
+`logAppliedChange` to take one: every other caller is making history, this one
+is repeating it, and stamping "now" would file a year-old change at the top of
+M2's list as today's news.
+
+**The old-file fallback is a test, not a comment.** A backup without the three
+sections restores as it always did; a malformed entry *inside* one of them is
+skipped rather than failing the document. That asymmetry against the items —
+where a nameless item aborts the document — is deliberate: the items are the
+user's data, these three are bookkeeping the refresh can re-derive.
+
+**M18 came with it**, since the restore branch is its screen: both import
+screens are localized (`import.portable.*`, `import.wizard.*`), and the restore
+list now says a trip *follows N groups* — the only place the new data is
+visible before anything is imported, and the rendered assertion E2E-M18-08
+leads with. The parser's own error strings stay English; they interpolate the
+YAML library's message and would need an error model rather than a catalogue
+key. Noted, not done.
+
+**E2E-M18-08 is built around the absence problem.** Everything the case proves
+is something that must *not* happen, so it ends by adding a new position to the
+group on the restored device: the proposal that appears names it and only it.
+Without the restored sources there would be no proposal at all; without the
+restored ledger the refused position would be standing next to it.
+
 ### Dependabot skips the Node majors that can never be taken (2026-08-21)
 
 The toolchain-pins gate landed the same day and immediately did its job: the
@@ -3957,6 +4015,70 @@ would follow LTS automatically and read well — but the tag names no major, so
 the gate would have nothing to compare, and the drift would go invisible in
 exactly the month the tag jumps 24 → 26 while `mise.toml` and `ci.yml` do not.
 That is the moment the gate exists for.
+## The sync outbox survives a reload (2026-08-21)
+
+The Server-Mode outbox was a JS array. Every mutation that had not reached the
+server lived in exactly one place — the open document — so a reload or an app
+kill while offline discarded it *silently*: the glyph came back clean and the
+change was gone. That is the ordinary case on a phone in a hotel, not an edge
+case, and it is the reason the MVP plan lists it as blocker B2.
+
+**What was built.** `client/src/sync/outboxStore.ts` is the seam: one
+IndexedDB database of its own (`jitpack-outbox`), a record per mutation, the
+same serialize-the-writes discipline as `local/persistence.ts` and for the
+same two reasons — a write issued and immediately followed by a navigation
+lands in a transaction the navigation cancels, and the stored tail must be the
+*caught* promise or one failure silently skips every write after it.
+`SyncOutbox` writes through it on enqueue, removes on acknowledgement, and
+`restore()` rebuilds the queue on boot. The orchestrator replays before the
+first pull, awaited rather than fired off: App.vue's own `drainMaster` follows
+`connect()`, and two overlapping drains of one partition would push the same
+chunk twice.
+
+**Replay idempotency was verified, not assumed.** The reference is not the
+merge algorithm: `internal/sync.Merge` is field-level LWW and would let a
+replay through unchanged (the mutations happen to carry absolute values, so it
+would be harmless — but that is a property of today's mutation set, not a
+guarantee). The guarantee is the **`mutations` memo table in
+`store.ApplyMutation`** and its master-partition twin, pinned by
+`TestApplyMutation_DuplicateMutationID_ReturnsRecordedResult`: a replayed
+`mutation_id` returns the recorded result and appends nothing to the change
+log. What the client owes that guarantee is that the id is minted once, at
+enqueue, and stored *with* the mutation — a replay that re-minted it would be
+a second write rather than a retry.
+
+**Parking, because a wedged queue is worse than a lost mutation.** A mutation
+answered `rejected`, or a whole batch refused with a 4xx a retry cannot fix
+(anything but 401/408/425/429), is moved out of the queue and kept on the
+device with the server's own reason. Keeping it would stop the entire
+partition from ever syncing again because of one bad row. A network failure
+and a 5xx are explicitly *not* refusals. Two consequences stated rather than
+hidden: G-2 counts the parked mutations but **no screen lists them** (revisit
+trigger in Sync-API §5.1 — the conflict log is trip-scoped and this list is
+device-scoped, so it is not simply a row in it), and the case has **no e2e**,
+because the app cannot produce a permanently-refused push through its own UI.
+
+**Three findings.**
+
+1. **The queue count was a property of the wrong thing.** The badge rendered
+   only while `state === 'offline'`. That was already a small lie before this
+   work — a master partition can drain to *synced* while a trip's queue waits
+   for its trip to be opened — and a durable queue makes it a large one, since
+   the queue now outlives the tab. The badge counts the queue.
+2. **Durability has to be able to say no.** An IndexedDB write can be refused
+   (quota, an aborted transaction). Losing the mutation there would be the
+   worse failure, so it stays queued and is still pushed; what is withdrawn is
+   the *promise*, and G-2 says so instead of claiming a reload is safe.
+3. **The e2e assertion for "the shell painted" is screen-dependent.**
+   E2E-PWA-01 waits for the header logo; inside a trip the app bar carries the
+   back button and no logo, so the same assertion looks for a control that
+   screen does not have. Cost half an hour and is written down in the ledger.
+
+**Deliberately not built: a reconnect drain.** Track B recorded that the queue
+moves only on the app's next own action. It now also moves on the next app
+start, which is what B2 asked for. An `online`-event drain is a separate
+behaviour with its own failure modes (a flapping connection re-pushing on
+every event) and was left out rather than smuggled in.
 ## M4 comes back where it was left, and the header line stops flipping (2026-08-21)
 
 ADR-012's overlay amendment recorded a cost and named its repair: the M5 sheet

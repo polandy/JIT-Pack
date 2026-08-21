@@ -735,8 +735,15 @@ export function useMutations(hlc: HLCGenerator) {
    * logAppliedChange writes one line of M2's applied-changes log (FR-27.4).
    * created_at is the client's: the refresh runs on the device, and only it
    * knows when the change actually landed on this trip.
+   *
+   * `createdAt` overrides it for the one caller that is not making history but
+   * replaying it — the ADR-015 restore, whose entries happened long before the
+   * restore did and must not sort to the top of M2's list as today's news.
    */
-  function logAppliedChange(change: Omit<AppliedChange, 'id' | 'created_at'>): {
+  function logAppliedChange(
+    change: Omit<AppliedChange, 'id' | 'created_at'>,
+    createdAt?: string,
+  ): {
     mutation: Mutation
     id: string
   } {
@@ -748,7 +755,7 @@ export function useMutations(hlc: HLCGenerator) {
       kind: change.kind,
       item_name: change.item_name,
       detail: change.detail === null ? null : JSON.stringify(change.detail),
-      created_at: new Date().toISOString(),
+      created_at: createdAt ?? new Date().toISOString(),
     })
     return { mutation, id }
   }

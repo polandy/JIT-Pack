@@ -187,8 +187,14 @@ async function saveBackup() {
       items: tripStore.getItems(trip.id),
       travelers: tripStore.getTravelers(trip.id),
       containers: tripStore.getContainers(trip.id),
+      // FR-27.4: how the trip follows its groups travels with it, or a
+      // restored device starts asking questions the user already answered.
+      sources: tripStore.getTemplateSources(trip.id),
+      generated: tripStore.getGeneratedPositions(trip.id),
+      appliedChanges: tripStore.getAppliedChanges(trip.id),
     })),
     masterItem: (id) => masterStore.getItem(id),
+    template: (id) => masterStore.getTemplate(id),
     composition: masterStore.compositionSource(),
   })
   const filename = backupFilename(now)
@@ -232,6 +238,8 @@ async function saveBackup() {
         <SyncDetailSheet
           :state="syncStatus.state.value"
           :pending-count="syncStatus.pendingCount.value"
+          :queue-durable="syncStatus.queueDurable.value"
+          :parked-count="syncStatus.parkedCount.value"
           :mode="mode"
           :can-open-conflicts="mode === 'server' && tripId !== null"
           :storage="storage"
