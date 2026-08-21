@@ -247,6 +247,23 @@ describe('M3 step 4 — deciding before the trip exists (FR-2.6)', () => {
   })
 })
 
+/**
+ * G-16 on the one step e2e cannot reach with a field: a fresh instance has
+ * no templates, so E2E-M3-19 ends on an empty step 4 with no quantity input.
+ * The seeded harness has rows, so the create half of the pattern is driven
+ * here instead.
+ */
+describe('M3 step 4 — the default action (G-16)', () => {
+  it('Enter in a quantity field creates the trip, exactly like the button', async () => {
+    seedComposition()
+    const wrapper = await mountAtStepFour()
+
+    await wrapper.get('.qty-input').trigger('keydown.enter')
+
+    expect(orchestratorFake.createTripFromWizard).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('M3 step 3 — template composition (§3.27)', () => {
   it('splits the two scopes into their own sections (FR-27.6)', async () => {
     seedComposition()
