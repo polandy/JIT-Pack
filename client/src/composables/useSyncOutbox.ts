@@ -178,7 +178,17 @@ export class SyncOutbox {
    */
   async restore(): Promise<PartitionRef[]> {
     if (!this.store) return []
-    const pending = await this.store.loadPending()
+    let pending
+    try {
+      pending = await this.store.loadPending()
+      this.parked = (await this.store.loadParked()).length
+    } catch {
+      // A browser with IndexedDB switched off fails here, on the boot path.
+      // Losing durability is a degradation; taking `connect()` down with it
+      // would be an outage in a mode that otherwise works perfectly.
+      this.setDurable(false)
+      return []
+    }
     const order: string[] = []
     for (const { partition, mutation } of pending) {
       const queue = this.queues.get(partition)
@@ -189,7 +199,6 @@ export class SyncOutbox {
         order.push(partition)
       }
     }
-    this.parked = (await this.store.loadParked()).length
     return order.map(partitionRef)
   }
 

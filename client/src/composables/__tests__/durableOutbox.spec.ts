@@ -17,9 +17,17 @@ beforeEach(() => {
   setActivePinia(createPinia())
   fetchMock = vi.fn()
   vi.stubGlobal('fetch', fetchMock)
+  // A class, not `vi.fn(() => ({…}))`: these cases actually run `connect()`,
+  // which does `new WebSocket(...)`, and an arrow function cannot be
+  // constructed — it surfaces as an unhandled TypeError rather than a
+  // failure, which is worse than a red test.
   vi.stubGlobal(
     'WebSocket',
-    vi.fn(() => ({ send: vi.fn(), close: vi.fn(), readyState: 1 })),
+    class {
+      readyState = 1
+      send() {}
+      close() {}
+    },
   )
   const storage = new Map<string, string>()
   vi.stubGlobal('localStorage', {

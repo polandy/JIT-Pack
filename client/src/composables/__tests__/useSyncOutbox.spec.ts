@@ -312,6 +312,25 @@ describe('SyncOutbox durability', () => {
     expect(store.parked).toEqual([])
   })
 
+  it('boots without a durable queue when the device has no usable storage', async () => {
+    const store = new FakeStore()
+    // A browser with IndexedDB switched off (some private-browsing modes)
+    // fails at the *read*, on the boot path — which must degrade to "no
+    // durability" rather than take `connect()`, and with it the app, down.
+    store.loadPending = () => Promise.reject(new Error('indexedDB is not defined'))
+    const durability: boolean[] = []
+    const outbox = makeOutbox(store, { onDurabilityChanged: (d) => durability.push(d) })
+
+    await expect(outbox.restore()).resolves.toEqual([])
+
+    expect(durability).toEqual([false])
+    expect(outbox.isDurable()).toBe(false)
+    // Still a working outbox: it queues and pushes as it always did.
+    outbox.enqueue('trip', 'trip-1', makeMutation({ mutation_id: 'u1' }))
+    await outbox.drain('trip', 'trip-1')
+    expect(client.post).toHaveBeenCalledTimes(1)
+  })
+
   it('still queues and pushes when the device has no room to store the mutation', async () => {
     const store = new FakeStore()
     const durability: boolean[] = []

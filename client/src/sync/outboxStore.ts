@@ -123,10 +123,19 @@ export class IndexedDBOutboxStore implements OutboxStore {
       }
       req.onsuccess = () => resolve(req.result)
       req.onerror = () => reject(req.error)
-    }).then(async (db) => {
-      this.seq = await highestSeq(db)
-      return db
     })
+      .then(async (db) => {
+        this.seq = await highestSeq(db)
+        return db
+      })
+      .catch((err) => {
+        // Do not cache the failure: a browser that refused the database once
+        // would otherwise keep refusing it for the rest of the session even
+        // if the cause was transient. The caller turns this into the G-2
+        // "not saved on this device" line either way.
+        this.db = null
+        throw err
+      })
     return this.db
   }
 
