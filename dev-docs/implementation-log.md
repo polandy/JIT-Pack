@@ -4017,6 +4017,7 @@ would follow LTS automatically and read well — but the tag names no major, so
 the gate would have nothing to compare, and the drift would go invisible in
 exactly the month the tag jumps 24 → 26 while `mise.toml` and `ci.yml` do not.
 That is the moment the gate exists for.
+
 ## The sync outbox survives a reload (2026-08-21)
 
 The Server-Mode outbox was a JS array. Every mutation that had not reached the
@@ -4081,6 +4082,7 @@ moves only on the app's next own action. It now also moves on the next app
 start, which is what B2 asked for. An `online`-event drain is a separate
 behaviour with its own failure modes (a flapping connection re-pushing on
 every event) and was left out rather than smuggled in.
+
 ## M4 comes back where it was left, and the header line stops flipping (2026-08-21)
 
 ADR-012's overlay amendment recorded a cost and named its repair: the M5 sheet
@@ -4201,6 +4203,7 @@ backup track owns both files for this MVP push and localizes them itself. Their
 and it was already so before it: ten `t()` calls beside roughly fifteen
 literals, plus the avatar crop modal, which is untouched. It is a section, so
 it wants one commit of its own rather than a corner of this one.
+
 ## The composer offers chips before it asks for typing (2026-08-21)
 
 FR-25.13c, decided and built the same day. What the diff cannot show:

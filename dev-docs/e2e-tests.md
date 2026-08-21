@@ -956,6 +956,7 @@ Three things worth carrying forward:
 
 Mutation-proved twice: pointing `seriesWeightTrend` at *active* trips, and
 dropping *missing* from `seriesTopFlagged`, each redden it.
+
 ## NFR-4.12 — the language actually changes the app (`e2e/i18n.spec.ts`, 2026-08-21)
 
 One case, and it exists because two of the strings the i18n migration had to
