@@ -113,6 +113,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [M14's positive tests, and the flag nobody could set (2026-08-20)](#m14s-positive-tests-and-the-flag-nobody-could-set-2026-08-20) — *unused* had no writer anywhere in the app, and an ordinary M5 edit erased `source_template_id`.
 - [A build image's major is a toolchain version, and a gate says so (2026-08-21)](#a-build-images-major-is-a-toolchain-version-and-a-gate-says-so-2026-08-21) — a Node major merged green because no check builds anything with that image.
 - [Dependabot skips the Node majors that can never be taken (2026-08-21)](#dependabot-skips-the-node-majors-that-can-never-be-taken-2026-08-21) — odd Node majors never reach LTS; Dependabot only ever offers the newest, so from October 2026 it would chase 27 past the 26 that becomes LTS. Bundler syntax, because that is what the docker ecosystem parses.
+- [The i18n migration, closed except for M15 and M17 (2026-08-21)](#the-i18n-migration-closed-except-for-m15-and-m17-2026-08-21) — NFR-4.12: a nav anchor and a route title stored finished English text, so no language choice could reach the chrome; what is on the catalogue now and what is not.
 
 ## Current state
 
@@ -3957,7 +3958,7 @@ the gate would have nothing to compare, and the drift would go invisible in
 exactly the month the tag jumps 24 → 26 while `mise.toml` and `ci.yml` do not.
 That is the moment the gate exists for.
 
-## 2026-08-21 — the i18n migration, closed except for M15 and M17 (NFR-4.12)
+## The i18n migration, closed except for M15 and M17 (2026-08-21)
 
 Track E of the MVP plan. The module and both catalogues have existed since
 2026-08-07; what was missing was the migration — nine screens plus the chrome
