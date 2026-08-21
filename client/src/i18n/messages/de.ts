@@ -788,4 +788,28 @@ export const de: Record<keyof typeof en, string> = {
   'admin.tripCount': '{n} Reise | {n} Reisen',
   'admin.templateCount': '{n} Vorlage | {n} Vorlagen',
   'admin.deactivated': 'Deaktiviert',
+  // M22 — Reise-Eigenschaften (FR-2.7).
+  'tripEdit.title': 'Reise-Eigenschaften',
+  'tripEdit.sectionTrip': 'Reise',
+  'tripEdit.sectionTravelers': 'Reisende',
+  'tripEdit.name': 'Name',
+  'tripEdit.startDate': 'Beginn',
+  'tripEdit.endDate': 'Ende',
+  'tripEdit.travelerName': 'Name der reisenden Person',
+  'tripEdit.addTraveler': 'Reisende:n hinzufügen',
+  'tripEdit.add': 'Hinzufügen',
+  'tripEdit.removeTraveler': '{name} entfernen',
+  'tripEdit.removeAfterStart':
+    'Reisende lassen sich nur entfernen, solange die Reise nicht gestartet ist.',
+  'tripEdit.removeConfirmTitle': '{name} entfernen?',
+  'tripEdit.removeConfirmBody':
+    'Die Sachen dieser Person gehen mit — ausser jemand hat eine Zeile schon gepackt oder geändert. Die bleibt ohne Zuordnung auf der Liste.',
+  'tripEdit.removeConfirm': 'Entfernen',
+  'tripEdit.travelerNote':
+    'Wer dazukommt, bekommt die Pro-Person-Sachen sofort; wer geht, nimmt seine unberührten Sachen mit.',
+  'tripEdit.reportAdded': '{n} Sache ergänzt | {n} Sachen ergänzt',
+  'tripEdit.reportRemoved': '{n} Sache entfernt | {n} Sachen entfernt',
+  'tripEdit.reportKept': '{n} Sache bleibt | {n} Sachen bleiben',
+  'tripEdit.reportNothing': 'An der Liste ändert sich nichts.',
+
 }

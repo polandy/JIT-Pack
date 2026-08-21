@@ -782,4 +782,27 @@ export const en = {
   'admin.tripCount': '{n} trip | {n} trips',
   'admin.templateCount': '{n} template | {n} templates',
   'admin.deactivated': 'Deactivated',
+  // M22 — trip properties (FR-2.7).
+  'tripEdit.title': 'Trip properties',
+  'tripEdit.sectionTrip': 'Trip',
+  'tripEdit.sectionTravelers': 'Travellers',
+  'tripEdit.name': 'Name',
+  'tripEdit.startDate': 'Start',
+  'tripEdit.endDate': 'End',
+  'tripEdit.travelerName': 'Traveller name',
+  'tripEdit.addTraveler': 'Add a traveller',
+  'tripEdit.add': 'Add',
+  'tripEdit.removeTraveler': 'Remove {name}',
+  'tripEdit.removeAfterStart': 'Travellers can only be removed before the trip starts.',
+  'tripEdit.removeConfirmTitle': 'Remove {name}?',
+  'tripEdit.removeConfirmBody':
+    'Their items go with them, unless somebody has already packed or changed one — those stay on the list without an assignment.',
+  'tripEdit.removeConfirm': 'Remove',
+  'tripEdit.travelerNote':
+    'Adding a traveller extends the per-person items straight away; removing one takes their untouched items along.',
+  'tripEdit.reportAdded': '{n} item added | {n} items added',
+  'tripEdit.reportRemoved': '{n} item removed | {n} items removed',
+  'tripEdit.reportKept': '{n} item kept | {n} items kept',
+  'tripEdit.reportNothing': 'The list is unchanged.',
+
 } as const

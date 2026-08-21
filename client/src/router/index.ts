@@ -107,6 +107,13 @@ export const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    path: '/trips/:tripId/edit',
+    meta: { parent: '/trips/:tripId', titleKey: 'tripEdit.title' },
+    name: 'trip-edit',
+    component: () => import('@/views/trips/TripEditPage.vue'),
+    props: true,
+  },
+  {
     path: '/trips/:tripId/clone',
     meta: { parent: '/trips/:tripId', titleKey: 'trips.actionClone' },
     name: 'trip-clone',

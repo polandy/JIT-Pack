@@ -351,8 +351,9 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
   its own add and remove affordances, and the M5 grammar would nest a list inside an overlay over a
   list. The other rebuilt editors that own a roster-like section — M8 with its groups — are screens
   for the same reason.
-* **Elements:** the trip **name** (commits on blur/Enter, the ADR-011 header mirrors it, the M8
-  pattern); **year and the two dates**, both optional per FR-2.1b with the year required; the
+* **Elements:** the trip **name** (commits on blur/Enter, the M8 pattern — the header keeps its own
+  static title here, unlike M8: this screen is *about* a trip rather than being one, and a bar
+  reading „Samedan 2026" would not say which screen it is); **year and the two dates**, both optional per FR-2.1b with the year required; the
   **series** it belongs to; and the **travellers** section — one row per person, rename in place,
   ＋ to add, ✕ to remove.
 * **What a traveller change does** is FR-27.4's amended rule, and the screen states it rather than
