@@ -319,4 +319,34 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.getByTestId('trips-new')).toBeVisible()
     await expect(page.getByTestId('dev-sample-trip')).toHaveCount(0)
   })
+
+  /*
+   * FR-2.7's screen is reached from M4's G-12 cluster, so getting there and
+   * back is a global-pattern behaviour rather than something the M22 unit can
+   * speak for. The rule exists because four navigation defects survived two
+   * green screen suites: a route that changes without repainting, and a back
+   * chevron that leaves the previous screen on the display.
+   */
+  test('E2E-M22-06: the trip editor is reached from M4 and gives the trip back', async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE)
+    const trip = await createTripViaWizard(page, TRIP)
+
+    await page.getByTestId('m4-edit').click()
+    // The painted screen, not the URL: a route change that does not repaint
+    // keeps every URL assertion green.
+    await expect(onVisibleScreen(page, 'trip-edit-name')).toBeVisible()
+    await expect(page.getByTestId('header-title')).toHaveText('Trip properties')
+
+    await page.getByTestId('header-back').click()
+    // Back leads to the trip it was opened from — the ADR-011 declared parent,
+    // not whatever the history happens to hold.
+    await expect(page).toHaveURL(new RegExp(`${trip}$`))
+    await expect(onVisibleScreen(page, 'm4-fab')).toBeVisible()
+    // And the app bar belongs to M4 again: below the breakpoint that screen
+    // registers no title, so its own actions are the positive signal.
+    await expect(page.getByTestId('m4-edit')).toBeVisible()
+    await expect(onVisibleScreen(page, 'trip-edit-name')).toHaveCount(0)
+  })
 })
