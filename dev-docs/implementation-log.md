@@ -113,6 +113,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [M14's positive tests, and the flag nobody could set (2026-08-20)](#m14s-positive-tests-and-the-flag-nobody-could-set-2026-08-20) — *unused* had no writer anywhere in the app, and an ordinary M5 edit erased `source_template_id`.
 - [A build image's major is a toolchain version, and a gate says so (2026-08-21)](#a-build-images-major-is-a-toolchain-version-and-a-gate-says-so-2026-08-21) — a Node major merged green because no check builds anything with that image.
 - [Dependabot skips the Node majors that can never be taken (2026-08-21)](#dependabot-skips-the-node-majors-that-can-never-be-taken-2026-08-21) — odd Node majors never reach LTS; Dependabot only ever offers the newest, so from October 2026 it would chase 27 past the 26 that becomes LTS. Bundler syntax, because that is what the docker ecosystem parses.
+- [The sync outbox survives a reload (2026-08-21)](#the-sync-outbox-survives-a-reload-2026-08-21) — MVP Track C / blocker B2: the queue moved to IndexedDB and is replayed before the first pull. Replay safety is the server's `mutation_id` memo, not the merge algorithm; a permanently refused mutation is parked so it cannot wedge a partition.
 
 ## Current state
 
@@ -3956,7 +3957,7 @@ would follow LTS automatically and read well — but the tag names no major, so
 the gate would have nothing to compare, and the drift would go invisible in
 exactly the month the tag jumps 24 → 26 while `mise.toml` and `ci.yml` do not.
 That is the moment the gate exists for.
-## 2026-08-21 — the sync outbox survives a reload (MVP Track C, blocker B2)
+## The sync outbox survives a reload (2026-08-21)
 
 The Server-Mode outbox was a JS array. Every mutation that had not reached the
 server lived in exactly one place — the open document — so a reload or an app
