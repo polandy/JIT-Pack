@@ -38,7 +38,7 @@ describe('IndexedDBOutboxStore', () => {
 
     expect(pending.map((p) => p.mutation.mutation_id)).toEqual(['m1', 'm2', 'm3'])
     expect(pending.map((p) => p.partition)).toEqual(['trip:t1', 'master', 'trip:t1'])
-    expect(pending[1].mutation.fields).toEqual({ name: 'Helm' })
+    expect(pending[1]!.mutation.fields).toEqual({ name: 'Helm' })
   })
 
   it('keeps append order across sessions rather than restarting the sequence', async () => {

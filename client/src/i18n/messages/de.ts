@@ -71,7 +71,7 @@ export const de: Record<keyof typeof en, string> = {
   'sync.detail.parked':
     'Der Server hat {n} Änderung abgelehnt | Der Server hat {n} Änderungen abgelehnt',
   'sync.detail.parkedHint':
-    'Sie wurde aus der Warteschlange genommen, damit der Rest rausgeht. Details stehen im Konfliktprotokoll.',
+    'Sie wurden aus der Warteschlange genommen, damit der Rest rausgeht, und bleiben auf diesem Gerät. Erneut versucht werden sie nicht.',
 
   'trip.daysUntil': 'noch {n} Tage',
   'trip.departsToday': 'Heute geht es los',

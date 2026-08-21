@@ -92,14 +92,14 @@ describe('durable outbox on boot', () => {
 
     await orch.connect()
 
-    const [pushUrl, pushInit] = fetchMock.mock.calls[0]
+    const [pushUrl, pushInit] = fetchMock.mock.calls[0]!
     expect(String(pushUrl)).toContain('/api/v1/sync/trips/trip-1')
     expect(pushInit.method).toBe('POST')
     expect(JSON.parse(pushInit.body).mutations[0].mutation_id).toBe('u1')
 
     // The pull that follows it carries the cursor the push handed back —
     // proof the replay ran first and the pull second.
-    expect(String(fetchMock.mock.calls[1][0])).toContain('cursor=4')
+    expect(String(fetchMock.mock.calls[1]![0])).toContain('cursor=4')
 
     expect(orch.syncStatus.pendingCount.value).toBe(0)
     expect(store.pending).toEqual([])

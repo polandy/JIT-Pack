@@ -67,7 +67,7 @@ export const en = {
     'This device could not save them — closing the app now would lose them.',
   'sync.detail.parked': 'The server rejected {n} change | The server rejected {n} changes',
   'sync.detail.parkedHint':
-    'It was taken out of the queue so the rest could be sent. The conflict log has the details.',
+    'They were taken out of the queue so the rest could be sent, and are kept on this device. They will not be tried again.',
 
   // Trips.
   'trip.daysUntil': '{n} days to go',

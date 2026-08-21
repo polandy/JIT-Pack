@@ -231,7 +231,7 @@ describe('SyncDetailSheet — the durable queue', () => {
     const wrapper = mountSheet({ state: 'synced', parkedCount: 1, canOpenConflicts: true })
 
     expect(text(wrapper, 'sync-detail-parked')).toBe('The server rejected 1 change')
-    expect(text(wrapper, 'sync-detail-parked-hint')).toContain('rest could be sent')
+    expect(text(wrapper, 'sync-detail-parked-hint')).toContain('will not be tried again')
   })
 
   it('stays quiet when the server has refused nothing', () => {
