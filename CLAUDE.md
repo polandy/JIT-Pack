@@ -37,7 +37,7 @@ Read this file fully before touching code. It is the orientation document: what 
 | How do I run and operate this? | `docs/` — the published user manual; `docs/index.md` is its landing page |
 | What must the UI test suite cover? | `dev-docs/UI_Test_Spec_v1.0.md` — Playwright scope: per-screen cases, cross-screen flows, FR/NFR traceability matrix |
 | How do I write code here? | `dev-docs/CODING_PRINCIPLES.md` — **binding**, read before writing anything |
-| What was already built, and why that way? | `dev-docs/implementation-log.md` — append-only history |
+| What was already built, and why that way? | `dev-docs/implementation-log.md` — append-only history. **It opens with an index**: one line per section, so scan that and open only what it names. |
 
 Only the current version of each document is kept. Never write a "v2" of a doc — replace the file and update its own revision note.
 
@@ -67,176 +67,71 @@ PRD §3.25/§3.27, UI-Spec and UI-Test-Spec — and open as implementation. Owne
 domain-free basics (login, users, code base) rather than with packing features. The reasoning
 for each item below is in `dev-docs/implementation-log.md`, section "Concept phase".
 
-1. ~~**The basics first**~~ — **done.** The audit-and-harden pass the owner chose on
-   2026-08-08 is closed on all four fields: the auth and authorization paths (ADR-007 stack,
-   PRs #54–#56), failure-path coverage (#57), supply-chain pinning against NFR-4.3 and
-   invariant 8 (#58), and the two migrations in item 5 (#60). The toolchain item beside it is
-   done too — `mise.toml` is the single pinning mechanism and `make ci` runs from a plain
-   shell. History in the implementation log.
-2. **§3.27 client package** — **generation is done** (2026-08-16): `instantiate.ts` expands a
-   Vorlage's includes one level and names each merge with its contributing groups (FR-27.2),
-   FR-27.7 tasks materialise as ordinary FR-7.3 todos on the generated rows, and M3 step 3 is
-   scope-shaped (FR-27.6) with an e2e unit behind it. Include order is **derived, not inherited**
-   from storage (`includedTemplatesOf`) — it decides a merged row's provenance, and the rows
-   arrive unordered. **The FR-27.4 group refresh is done too** (2026-08-18, migration 023,
-   ADR-016), and its model was **revised the same day** on owner request: a group
-   change is now *offered* to every trip that is not **past** (archived, or end date
-   gone by) — a running trip included — and answered **at the trip** (M4's card names
-   every change; M2 carries a pointer chip beside the applied-changes log). Declining
-   advances the ledger snapshot and touches nothing, which detaches exactly the refused
-   positions — no pending state, nothing extra to sync. Manual edits still always win.
-   That unblocked E2E-M8-09/M8-19 and the log halves of M8-11 and M14-04. **FR-27.3 is
-   done too** (2026-08-18): M3 step 3 picks single inventory items beside the templates —
-   they resolve *after* the composition, which is what makes „bereits enthalten"
-   decidable, and a single item carries no `source_template_id`, because FR-27.4 and
-   FR-27.5 both read that provenance.
-   **Portable YAML carries the composition too** (2026-08-18, ADR-017): a Ferien-Vorlage's
-   groups travel whole under `includes:` with their FR-27.7 tasks, and an import links a
-   group of the same name rather than rewriting it — a group's own document included, so
-   the result does not depend on which document a file lists first. **FR-27.10 is done too** (2026-08-19): the M4 quick-add
-   filters groups beside the items and one tap expands a whole group onto the trip —
-   the same resolution M3 performs, deduped by master item *and* by name so a
-   hand-typed row is recognised, provenance stamped, FR-27.7 tasks materialised, the
-   group registered as a source unless the trip is past, and the result always
-   reported (added / already there / nothing this trip's conditions let through).
-   No FR-9.1 *Missing* flag: the plan grew, nothing was forgotten. **M21 closes §3.27**
-   (2026-08-19, FR-27.5): an archived trip's rows fold back into the groups they came
-   from, recognised groups are **referenced rather than copied**, and a group's on-trip
-   deviations default to flowing back into it with the FR-27.4 blast radius named. Three
-   findings came with it. It needed a **lifecycle step that did not exist** — nothing
-   user-facing moved a trip to *active*, so nothing could archive one; M4's app bar and
-   M2's swipe now offer *start*, which also unblocks the positive M12 and M14 e2e cases
-   that hung on the same gap. Only a **Gruppe** can be recognised (a row from the old
-   Vorlage's own positions is loose — FR-27.1 forbids the reference). And the spec's
-   *„Auf der Reise ergänzt"* names a cause the app cannot produce: a quick-add row carries
-   no provenance, so a real deviation comes from the **group** changing after generation —
-   the computation stands, the sentence has a revisit trigger in FR-27.5.
-   **§3.27 owes nothing more.**
-   The Local Mode backup **carries the three FR-27.4 tables since 2026-08-21**
-   (`trip_template_sources`, `trip_generated_positions`, `trip_applied_changes`):
-   a trip document names what it follows, its generation ledger and its
-   applied-changes log, all by name, and the restore re-keys them against the
-   ids it just created (ADR-015 amendment). A file written before that has none
-   of the sections and restores exactly as it did — the documented fallback.
-3. **The design foundation, then the remaining screen rebuilds** — in that order, decided by
-   the owner 2026-08-14 after M4 and M5 were compared with the prototype. The plan is
-   `dev-docs/design-foundation-plan.md`; read it before starting either half.
-   * **The foundation, five small PRs. Typography is done** (FR-21.5/21.6, G-13:
-     Fraunces and Hanken Grotesk self-hosted, one scale, role classes in
-     `client/src/theme/typography.css` — see invariant 9). **Colour anchors are done too**
-     (FR-21.7, G-11: brand/action/done named once, `--ion-color-primary` deliberately still
-     blue, caution moved off peach onto yellow). **Surfaces are done too** (FR-21.8, G-14,
-     invariant 9b: three planes, a five-step radius scale, elevation as one geometry in the
-     flavour's ink, `.jp-card`, and `scripts/design-tokens-gate.mjs` wired into `make client`
-     and CI). **The type migration is done too** — all 123 `font-size`, 40 `font-weight` and
-     7 `letter-spacing` sites across 31 screens are on the scale, icons have their own
-     `--jp-icon-*` table, and the gate covers type. **The FR-25.2 pack-out is done too** — the
-     row washes green, collapses and fades, with one undo snackbar and a `prefers-reduced-motion`
-     path. **Visual baselines are done too** (ADR-013): a `visual` Playwright project run by
-     `make visual` and its own CI job, both inside the digest-pinned Playwright image, plus a
-     dev-only component gallery at `/dev/gallery`. **The design foundation is complete.**
-     Each of its steps acted on every screen at once, which is why they came first: after six
-     more rebuilds the same gap would have been built six more times.
-   * **The rebuilds themselves**, localized with `t()` from the first line. **M4 and M5 are
-     done** (2026-08-14, PR #73): M4's header line, G-12 app-bar cluster, facet sheet that
-     applies as you tap, clusters, folding, both reveal bars, the FR-25.17 stamp and the FAB
-     quick-add; M5 as a sheet over the list (side panel on desktop) whose first level is
-     packing, preparation and notes. Both were rendered and eyeballed by the owner.
-     **M7 is done too** (2026-08-15, PR #88: scopes, long-press menu, name-in-sheet create)
-     and **M8 with it** (2026-08-15: the scope-shaped editor — groups picker with inline
-     creation, resolution footer, guarded switch, blast-radius note, quick-add verbatim,
-     M5-pattern position sheet with the FR-27.7 task list). **M9/M10 are done too**
-     (2026-08-16: the tag rebuild, ADR-014 — lean inventory on the primary-tag grouping,
-     FR-24.5 minimal creation) and **M11 with them** (2026-08-16: card list, the M5-pattern
-     container sheet with symmetric pairing, FR-24.5 placeholder-name create via the FAB,
-     the load-aware assign picker). **M12 is done too** (2026-08-16: slices keyed by M4's
-     facet values so a tapped bar becomes the FR-25.11 facet via `setStoredFacet`, honest
-     unweighted count, packed-weight series trend, the first `.jp-figure` KPI surface)
-     **and M14 closes the list** (2026-08-16: the FR-27.11 group-aware proposal list —
-     groups-only retarget picker, pair-scoped dismissal, per-row FR-27.4 blast radius,
-     marked applied/skipped rows; list semantics pinned in a component test because the
-     positive e2e cases are blocked, see below). **The screen rebuilds are complete**,
-     though M14 has **not been eyeballed with real proposals**. The product gap that
-     blocked it is **closed since 2026-08-19** — M21 needed the same *start* transition,
-     so an archived trip and an FR-9.1 flag are now reachable through the app — which
-     turns M12's and M14's positive e2e cases from impossible into **owed but unwritten**
-     (e2e ledger). **M14's are written since 2026-08-20** — and writing them found that
-     *unused*, the flag FR-9.2 is mostly about, had **no writer anywhere in the app**
-     (M5 printed the FR-9.1 pair as a note); the control is built, and underneath it sat
-     a defect where an ordinary M5 edit erased a row's `source_template_id`. M12-03's
-     positive half is still owed. The dev gallery's M14 fixture button
-     (`src/dev/reviewFixture.ts`) remains the fastest eyeball path.
-     Known cost carried over from the M5 rebuild: M4 loses its scroll position
-     when a detail opens (ADR-012's overlay amendment).
+**How to read this list.** It is a backlog, not a history: **a closed item is one line and a
+pointer**, and only what is still open carries enough detail to act on. The reasoning behind
+any item — options rejected, premises that turned out wrong, costs accepted — is in
+`dev-docs/implementation-log.md`; its index names every section, so scan that before opening
+it. Item numbers stay stable even as items close, because the log refers back to them.
+
+1. ~~**The basics first**~~ — **done** (2026-08-09, PRs #54–#58, #60). Auth/authorization
+   (ADR-007), failure-path coverage, supply-chain pinning, the two migrations in item 5, and
+   `mise.toml` as the single toolchain pinning. Log: the five *„Basics audit"* sections.
+2. ~~**§3.27 client package**~~ — **done, §3.27 owes nothing more** (2026-08-16 … 08-19):
+   generation from composed Vorlagen, the FR-27.4 group refresh (ADR-016) and its
+   same-day revision to *asking* at the trip, FR-27.3 single items in M3, FR-27.10 whole
+   groups onto a running trip, portable YAML carrying the composition (ADR-017), and M21
+   folding a finished trip back into its groups (FR-27.5). Log: seven sections, from
+   *„§3.27 generation"* to *„M21 — Vorlage aus Reise"*.
+   The gap that stood open here is closed too (2026-08-21): the Local Mode backup carries
+   the three FR-27.4 tables, named in the trip document and re-keyed on restore against the
+   ids it just created (ADR-015 amendment). Log: *„The device backup carries the FR-27.4
+   refresh state"*.
+3. ~~**The design foundation, then the remaining screen rebuilds**~~ — **both complete**
+   (2026-08-14 … 08-16). The foundation is the three token tables plus the gate (invariants
+   9/9b), the FR-25.2 pack-out and the ADR-013 visual baselines; the rebuilds are M4, M5, M7,
+   M8, M9/M10, M11, M12 and M14, all localized with `t()`. Plan:
+   `dev-docs/design-foundation-plan.md`. Log: eleven sections, from *„The app gets its own two
+   faces"* to *„M14 — review assistant rebuilt"*.
+   **What is still owed from it:** M14 has never been **eyeballed with real proposals** (the
+   dev gallery's fixture button, `src/dev/reviewFixture.ts`, is the fastest path), and
+   E2E-M12-03's positive half is unwritten (`dev-docs/e2e-tests.md`). **Known accepted cost:**
+   M4 loses its scroll position when a detail opens (ADR-012's overlay amendment).
 4. **i18n migration** — the hard-coded English strings across the screens M4 did not touch;
    the module and both catalogues exist and M4 + the quick-add + the filter sheet + M7/M8
    + M12 + M14 + M3's step 3 are done (M3's other three steps are not — a section is a
    coherent unit to localize, a half-translated one is not).
-5. ~~**Two migrations owed by concept decisions**~~ — **done** (migrations 018/019): `travelers.profile`
-   is dropped and `trip_items.packed_by_user_id` carries the packing record, with `packer_user_id`
-   left as the assignment. The M4/M5 *presentation* of that split (two rings, „gepackt von … ·
-   zuständig war …“) is part of the screen rebuilds in item 3.
-6. **Playwright suite** — `dev-docs/UI_Test_Spec_v1.0.md` is written and four units have landed
-   (M3 trip creation, M4 packing list, M5 item detail, global navigation); the remaining
-   per-screen cases are deliberately sequenced after the rebuilds. The Local Mode reload
-   defect recorded here was **two** defects and both are fixed: a render crash from the
-   teleported app-bar actions, and a Local Mode write nobody awaited (FR-19.2).
-   `dev-docs/e2e-tests.md` is the ledger of what is actually covered — a green `e2e` job is
-   not the same as a verified UI.
-7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group used to
-   announce a count and never its contents, so M3, M8 and M14 asked the user to accept a
-   name. The row now names its first two items with a count for the rest, and a chevron
-   opens a read-only peek sheet with the *resolved* list. Decided on a rendered variant
-   round (`dev-docs/UI_Concept_GroupPeek_variants.html`); the unfolding row lost because it
-   solves M3 only. M8's picker chips still offer names alone — deliberate, revisit trigger
-   in FR-27.12.
+5. ~~**Two migrations owed by concept decisions**~~ — **done** (2026-08-11): `travelers.profile`
+   dropped, `trip_items.packed_by_user_id` carries the packing record and `packer_user_id` the
+   assignment (FR-25.9/25.19). Log: *„Migrations 018/019"*.
+6. **Playwright suite** — `dev-docs/UI_Test_Spec_v1.0.md` is written and the per-screen cases
+   are landing screen by screen. **`dev-docs/e2e-tests.md` is the ledger of what is actually
+   covered, and it is the file to read and update** — a green `e2e` job is not the same as a
+   verified UI (log: *„What ‚covered by e2e' was not covering"*).
+7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
+   items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
+   alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).
 8. **FR-27.13 — the M8 group picker cannot be searched** (owner-flagged 2026-08-16, specified,
-   not built). The picker is a chip row: fine at three groups, a wall at twenty, and the only
-   way to find „die Gruppe mit dem Stativ" is to read all of them. **The concept is written
-   in FR-27.13** and decided — field above six groups, never auto-focused, searching group
-   names *and* their resolved item names with the match reason shown, results as rows carrying
-   the FR-27.12 summary, an already-included match saying so rather than vanishing, no match
-   offering creation with the typed name. This is FR-27.12's picker revisit trigger firing;
-   build it against that text rather than re-deciding it.
-9. ~~**FR-27.14 — a Vorlage cannot show its resulting items**~~ — **done** (2026-08-17):
-   M8's resolution footer is the door — *„Alle N Artikel ansehen"* opens the FR-27.12 peek sheet
-   on the Vorlage itself, flat and alphabetical, each line naming its source and marked where a
-   count would mislead (merge, per person, procurement, condition). Variant A of the rendered
-   round; the sheet already resolved a Vorlage, so what this added was the entry and the marks.
-10. **FR-2.6 — M3’s review step only reviews the amount** (owner-flagged 2026-08-17, specified
-   with a rendered mockup, **variant A, chosen 2026-08-17**). Step 4 cannot drop a row, switch to buying,
-   change who it is for, or add what is missing — all of it waits for the trip to exist. Three
-   forms are rendered in `dev-docs/UI_Concept_ReviewStep_variants.html` and weighed in FR-2.6,
-   including the option of building no editor at all. Two decisions already hold: dropping a row
-   means FR-5.5 *skipped* rather than deletion, and nothing may become wizard-only. **A is built** (2026-08-17): the row carries the amount and a ✕ that drops the
-   row as FR-5.5 *skipped*, with the marks that explain it. The mockup’s add line stays
-   with FR-27.3, which owns adding single items.
-11. ~~**FR-5.5's „bewusst nicht einpacken" has no control**~~ — **done** (2026-08-18). Two of the
-   three premises in the old note were wrong, and finding that out changed the work: a view *did*
-   call `skipItem` (a bare Ionic swipe), and M4 did **not** badge a skipped row. What the swipe
-   lacked was any announcement, and its option panel broke out of the row's `.jp-card` — the same
-   failure that lost the swipe the M7 A2/B2 round, visible only in a render. Decided on a rendered
-   four-way round (`dev-docs/UI_Concept_SkipControl_variants.html`, **A + C**): the row's
-   press-and-hold menu is the fast path, the M5 sheet's spelled-out control is the findable one,
-   and the swipe is gone rather than repaired. Quantity 0 stays a counter reading rather than a
-   decision (variant D rejected), un-skipping reads as *Doch einpacken*, and the FR-20.2 cascade
-   now names the companions it took along with one undo for all of them — a revealed co-skipped
-   row states its reason, **derived** from the graph (`skippedVia`) rather than stored. Five e2e
-   cases in `client/e2e/skip-item.spec.ts`, mutation-proved.
-11. **§3.28 — the item mark** (owner-flagged 2026-08-17, **specified and decided, not built**). A
-   packing row carries nothing left of the name: the §3.22 photo answers *which* jacket and exists
-   on a handful of rows, so a forty-row list has no scan aid at all. Decided on a rendered four-way
-   round (`dev-docs/UI_Concept_ItemMark_variants.html`, generated by
-   `dev-docs/build-item-mark-variants.mjs`): **one optional emoji per item and per template**
-   (FR-28.1/28.8, G-15), a picker searching German *and* English keywords with a suggestion scored
-   from the item's own name (FR-28.2/28.3), a per-surface fallback ladder (FR-28.4) and a
-   self-hosted subsetted emoji face (FR-28.6). The icon-library option lost **on the pixels**, not
-   on the argument — it is the one that fits the token tables, and at 34 px its strokes stop being
-   distinguishable while its substitute rate was the higher of the two. Build it against §3.28
-   rather than re-opening the round. Three things the implementing PR owes beyond the code: the
-   **ADR** (owed with the code, per `adr/README.md` — the tradeoff is real), **one deliberate
-   `make visual-update`** (a new face rewrites every baseline, ADR-013), and the sample-data seed
-   per the standing rule above.
+   not built). A chip row is fine at three groups and a wall at twenty. **The concept is
+   decided and written in FR-27.13** — build it against that text rather than re-deciding it;
+   restating it here would only give it a second, drifting home.
+9. ~~**FR-27.14 — a Vorlage cannot show its resulting items**~~ — **done** (2026-08-17): M8's
+   resolution footer opens the FR-27.12 peek sheet on the Vorlage itself, each line naming its
+   source. Log: *„FR-27.14: the footer stops being the whole answer"*.
+10. ~~**FR-2.6 — M3's review step only reviews the amount**~~ — **done** (2026-08-17, variant A):
+   the row carries the amount and a ✕ that drops it as FR-5.5 *skipped* rather than deleting it.
+   Log: *„FR-2.6 variant A"*.
+11. ~~**FR-5.5's „bewusst nicht einpacken" has no control**~~ — **done** (2026-08-18): the row's
+   press-and-hold menu plus the spelled-out M5 control (variants A + C); the swipe was removed
+   rather than repaired. Five e2e cases in `client/e2e/skip-item.spec.ts`. Log: *„FR-5.5"*.
+12. **§3.28 — the item mark** (owner-flagged 2026-08-17, **specified and decided, not built**).
+   A forty-row packing list has no scan aid: the §3.22 photo exists on a handful of rows and
+   nothing sits left of the name. Decided on a rendered four-way round — **one optional emoji
+   per item and per template** (FR-28.1/28.8, G-15), with the picker, suggestion, fallback
+   ladder and self-hosted face specified in §3.28. Build it against that text; the icon-library
+   option lost **on the pixels**, so don't reopen the round (log: *„§3.28: the packing row gets
+   a mark"*). **Three things the implementing PR owes beyond the code:** the **ADR** (the
+   tradeoff is real), **one deliberate `make visual-update`** (a new face rewrites every
+   baseline, ADR-013), and the sample-data seed per the standing rule above.
 
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,
@@ -298,7 +193,8 @@ Test-first: every behaviour starts as a failing test that reads as its specifica
 ## Don'ts & pointers
 
 - Don't add a migration (invariant 2, ADR-018) — `.claude/settings.json` denies creating `internal/store/migrations/**` as a speed bump; a schema change edits `internal/store/schema.sql`.
-- Don't restructure `dev-docs/implementation-log.md`; append to it.
+- Don't restructure `dev-docs/implementation-log.md`; append to it — and **only when the work earns an entry**. Its own "What earns an entry" section is the rule: if the diff and the commit message tell the same story, write no entry; what belongs there is what the code cannot show (a rejected option, a wrong premise, a cost accepted on purpose, a trap with a price). An entry that lands also gets a line in the file's index — `scripts/log-index-gate.mjs` enforces that, so an unindexed section fails `make ci`.
+- Don't grow `CLAUDE.md` with history. It is loaded in full for every session, so a closed backlog item shrinks to one line and a pointer; the narrative belongs in the log.
 - Don't duplicate the schema into docs, and don't duplicate an ADR's rationale into a code comment — a `// see ADR-00N` pointer is enough.
 - Don't judge a UI change from the stylesheet. Render it, look at it, and let the maintainer eyeball it before the Playwright case is finalized.
 - The `autoformat` CI job pushes `style:` commits back onto your branch. Pull before you push, or run `make fmt` yourself and keep it out of the way.
