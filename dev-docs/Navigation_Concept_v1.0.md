@@ -254,8 +254,19 @@ Part I fixed the skeleton. This part fleshes out each structural point in full, 
 | Drill-downs (M4, M5, M8, M10, containers, analytics, …) | the declared parent, *not* whatever is on the history stack | a deep-linked child still goes to its parent trip |
 | Flows (M3, M15, M18, Clone) | the origin the flow was entered from | completing the flow `replace`s, so back never re-enters a consumed wizard |
 | Modal-ish (conflict log, presence) | the trip they were opened from | never a dead end |
+| **Global actions & multi-entry flows** (Settings, M15, M18, admin) | the path they were entered from, with the declared parent as the fallback | offered from every screen, so no single parent is true |
 
 The declaration lives with the route in `router/index.ts` (a `meta.parent`), so adding a screen without a back target is a visible omission rather than a silent one.
+
+**The fifth class, and why it was added** (owner-found 2026-08-21, ADR-011 amendment). Inside a trip, tapping the gear and then `‹` landed on the dashboard. The cause was a gap in the table above rather than a bug under it: the gear is offered on *every* screen (G-1, deliberately — it is what keeps the conflict log reachable from inside a trip), while `/tabs/settings` declared the single static parent `/tabs/dashboard`. From anywhere else, the chevron lied. The flows row had the same hole and was worse off: it *promised* "the origin the flow was entered from" and **nothing implemented it** — there was no `from`, `origin` or `returnTo` anywhere in the router, so M18 entered from the trip list returned to Settings.
+
+The mechanism (`router/originStamp.ts`): a route in this class carries `meta.acceptsFrom`, and the router stamps the path it was entered from into `?from=` on the way in — a redirect that replaces rather than appends. `backTarget()` prefers that origin and falls back to `meta.parent` when it is absent or does not validate as an internal path.
+
+Three properties worth naming, because each is load-bearing:
+
+- **The router stamps it, not the links.** The gear alone is one call site on every screen, and the two import flows are already entered from five places; a per-link origin works until the sixth link forgets.
+- **The origin is stored encoded**, so a chain unwinds hop by hop: trip → gear → admin → `‹` → Settings → `‹` → trip. Unencoded, the nested origin's own `?`/`&` would end the query value it lives in.
+- **A cold-start deep link is unchanged.** It carries no origin, so the declared parent answers — which is the whole reason ADR-011 decoupled back from history in the first place. The class *narrows* history-independence rather than reverting it, and only for routes that declare it: a drill-down ignores `?from=` entirely, so a crafted link cannot redirect one.
 
 ---
 

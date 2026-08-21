@@ -131,6 +131,52 @@ decision of this ADR is unchanged; only the mechanism behind "a small slot API"
 is. It settled a second defect on the way: actions belong to a path, so one
 screen's search icon can no longer linger in the bar of the next.
 
+## Amendment (2026-08-21): a screen reachable from anywhere carries its origin
+
+This ADR replaced the history stack with a **declared** back target, because a
+cold-start deep link has no history to read. The declaration is one static
+`meta.parent` per route, and for a drill-down that is exactly right: M5's parent
+is its trip whichever way the user arrived.
+
+It is wrong for a screen that can be entered from anywhere. The owner hit it in
+the obvious place: inside a trip, tap the gear, tap `‹`, land on the dashboard.
+The gear is unconditional on every screen — that is a decision of this ADR, and
+it is what keeps the conflict log reachable from inside a trip — so
+`/tabs/settings` has no one true parent to declare. Two neighbours had the same
+shape: `/portable-import` is entered from M2, M7 and Settings, `/import` from M2
+and M9. And Navigation_Concept §7's *flows* row promised "the origin the flow was
+entered from" while nothing in the router implemented it — the promise was four
+words in a table with no mechanism behind them.
+
+**What was weighed.**
+
+| | A — the route carries its origin | B — Settings becomes modal-ish |
+|---|---|---|
+| Back is correct from anywhere | yes, for every route that declares the class | yes, by construction — a sheet returns to what is under it |
+| Gives the flows row its missing mechanism | yes, the same one | no — M15/M18 are not sheets, so they stay broken |
+| Cold-start deep link | unchanged: no origin, so `meta.parent` answers | a sheet has nothing under it on a cold start |
+| Blast radius | one guard, one branch in `backTarget`, five route entries | M17's sub-routes (admin, file import, gallery) all declare `/tabs/settings` as parent and would need re-homing |
+| Cost | the origin is visible in the URL, and it is attacker-controlled input | a large screen inside a sheet on a phone |
+
+**A, accepted.** B is the cleaner story for Settings alone and does nothing for
+the two import flows, which is half the defect.
+
+**The cost, stated plainly.** `?from=` is now part of some URLs and reaches the
+app from outside, so it is validated rather than trusted: only a path inside this
+app is accepted (`//host` and a backslash both look internal and are not), and a
+route that does not declare `meta.acceptsFrom` ignores the parameter entirely, so
+no drill-down can be redirected by a crafted link. The origin is stored encoded
+so a chain of origins unwinds hop by hop.
+
+**What did not change.** Back is still declared rather than derived from history.
+An entry with no origin — a notification deep link, a pasted URL — falls back to
+`meta.parent` exactly as before, and E2E-G1-05 is the case that holds that half
+in place.
+
+Mechanism: `router/originStamp.ts` (the stamp, applied by the router rather than
+by each link, because the next link would forget) and `router/backTarget.ts`.
+Table: Navigation_Concept §7.
+
 ## Revisit Trigger
 
 A screen appears that genuinely cannot express its chrome through the slot API — concretely, one needing a second toolbar row that is not a filter/chip row, or a bar taller than 56 px. At that point the single-bar rule is costing more than the duplication it removed.
