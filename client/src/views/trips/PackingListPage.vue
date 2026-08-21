@@ -319,7 +319,12 @@ const scrollRestored = ref(false)
 async function restoreScroll() {
   const stillOpen = openItemId.value !== null
   const position = stillOpen ? peekScroll(props.tripId) : takeScroll(props.tripId)
-  if (!position) return
+  if (!position) {
+    // Nothing to put back, so nothing to be deaf for — a screen that stayed
+    // deaf would never collapse its header line again.
+    restorePending = false
+    return
+  }
   headCollapsed.value = position.headerCollapsed
   lastScrollTop = position.top
   currentScrollTop = position.top
