@@ -85,7 +85,9 @@ describe('chipSuggestions', () => {
   })
 
   it('caps each row at maxPerRow', () => {
-    const many = Array.from({ length: CHIP_ROW_MAX + 3 }, (_, n) => item(`extra-${n}`, `Extra ${n}`))
+    const many = Array.from({ length: CHIP_ROW_MAX + 3 }, (_, n) =>
+      item(`extra-${n}`, `Extra ${n}`),
+    )
     // A distinct untagged pool for the recent row, so the related-row dedup
     // (covered by its own case above) cannot eat into this one.
     const used = Array.from({ length: CHIP_ROW_MAX + 3 }, (_, n) => item(`used-${n}`, `Used ${n}`))

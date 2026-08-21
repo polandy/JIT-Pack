@@ -230,9 +230,7 @@ const allItems = computed(() => store.getItems(props.tripId))
  */
 const quickAddExcludeIds = computed(() => [
   ...new Set(
-    allItems.value
-      .map((item) => item.source_item_id)
-      .filter((id): id is string => id !== null),
+    allItems.value.map((item) => item.source_item_id).filter((id): id is string => id !== null),
   ),
 ])
 const openPrepItems = computed(() => store.itemsWithOpenPrep(props.tripId))

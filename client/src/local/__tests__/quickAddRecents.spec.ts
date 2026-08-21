@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { recentItemIds, recordRecentItem, RECENTS_MAX, RECENTS_STORAGE_KEY } from '../quickAddRecents'
+import {
+  recentItemIds,
+  recordRecentItem,
+  RECENTS_MAX,
+  RECENTS_STORAGE_KEY,
+} from '../quickAddRecents'
 
 // FR-25.13c: the "Zuletzt verwendet" chip row is fed by a device-local
 // trail — a convenience, not domain data, so localStorage is its home

@@ -123,7 +123,9 @@ const chips = computed(() => {
 
 /** Chips yield to the autocomplete as soon as typing starts. */
 const showChips = computed(
-  () => query.value.trim().length === 0 && (chips.value.related.length > 0 || chips.value.recent.length > 0),
+  () =>
+    query.value.trim().length === 0 &&
+    (chips.value.related.length > 0 || chips.value.recent.length > 0),
 )
 
 const relatedTagNames = computed(() => chips.value.relatedTags.map((tag) => tag.name).join(' · '))
