@@ -113,6 +113,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [M14's positive tests, and the flag nobody could set (2026-08-20)](#m14s-positive-tests-and-the-flag-nobody-could-set-2026-08-20) — *unused* had no writer anywhere in the app, and an ordinary M5 edit erased `source_template_id`.
 - [A build image's major is a toolchain version, and a gate says so (2026-08-21)](#a-build-images-major-is-a-toolchain-version-and-a-gate-says-so-2026-08-21) — a Node major merged green because no check builds anything with that image.
 - [Dependabot skips the Node majors that can never be taken (2026-08-21)](#dependabot-skips-the-node-majors-that-can-never-be-taken-2026-08-21) — odd Node majors never reach LTS; Dependabot only ever offers the newest, so from October 2026 it would chase 27 past the 26 that becomes LTS. Bundler syntax, because that is what the docker ecosystem parses.
+- [The sync outbox survives a reload (2026-08-21)](#the-sync-outbox-survives-a-reload-2026-08-21) — MVP Track C / blocker B2: the queue moved to IndexedDB and is replayed before the first pull. Replay safety is the server's `mutation_id` memo, not the merge algorithm; a permanently refused mutation is parked so it cannot wedge a partition.
 
 ## Current state
 
@@ -3956,3 +3957,67 @@ would follow LTS automatically and read well — but the tag names no major, so
 the gate would have nothing to compare, and the drift would go invisible in
 exactly the month the tag jumps 24 → 26 while `mise.toml` and `ci.yml` do not.
 That is the moment the gate exists for.
+## The sync outbox survives a reload (2026-08-21)
+
+The Server-Mode outbox was a JS array. Every mutation that had not reached the
+server lived in exactly one place — the open document — so a reload or an app
+kill while offline discarded it *silently*: the glyph came back clean and the
+change was gone. That is the ordinary case on a phone in a hotel, not an edge
+case, and it is the reason the MVP plan lists it as blocker B2.
+
+**What was built.** `client/src/sync/outboxStore.ts` is the seam: one
+IndexedDB database of its own (`jitpack-outbox`), a record per mutation, the
+same serialize-the-writes discipline as `local/persistence.ts` and for the
+same two reasons — a write issued and immediately followed by a navigation
+lands in a transaction the navigation cancels, and the stored tail must be the
+*caught* promise or one failure silently skips every write after it.
+`SyncOutbox` writes through it on enqueue, removes on acknowledgement, and
+`restore()` rebuilds the queue on boot. The orchestrator replays before the
+first pull, awaited rather than fired off: App.vue's own `drainMaster` follows
+`connect()`, and two overlapping drains of one partition would push the same
+chunk twice.
+
+**Replay idempotency was verified, not assumed.** The reference is not the
+merge algorithm: `internal/sync.Merge` is field-level LWW and would let a
+replay through unchanged (the mutations happen to carry absolute values, so it
+would be harmless — but that is a property of today's mutation set, not a
+guarantee). The guarantee is the **`mutations` memo table in
+`store.ApplyMutation`** and its master-partition twin, pinned by
+`TestApplyMutation_DuplicateMutationID_ReturnsRecordedResult`: a replayed
+`mutation_id` returns the recorded result and appends nothing to the change
+log. What the client owes that guarantee is that the id is minted once, at
+enqueue, and stored *with* the mutation — a replay that re-minted it would be
+a second write rather than a retry.
+
+**Parking, because a wedged queue is worse than a lost mutation.** A mutation
+answered `rejected`, or a whole batch refused with a 4xx a retry cannot fix
+(anything but 401/408/425/429), is moved out of the queue and kept on the
+device with the server's own reason. Keeping it would stop the entire
+partition from ever syncing again because of one bad row. A network failure
+and a 5xx are explicitly *not* refusals. Two consequences stated rather than
+hidden: G-2 counts the parked mutations but **no screen lists them** (revisit
+trigger in Sync-API §5.1 — the conflict log is trip-scoped and this list is
+device-scoped, so it is not simply a row in it), and the case has **no e2e**,
+because the app cannot produce a permanently-refused push through its own UI.
+
+**Three findings.**
+
+1. **The queue count was a property of the wrong thing.** The badge rendered
+   only while `state === 'offline'`. That was already a small lie before this
+   work — a master partition can drain to *synced* while a trip's queue waits
+   for its trip to be opened — and a durable queue makes it a large one, since
+   the queue now outlives the tab. The badge counts the queue.
+2. **Durability has to be able to say no.** An IndexedDB write can be refused
+   (quota, an aborted transaction). Losing the mutation there would be the
+   worse failure, so it stays queued and is still pushed; what is withdrawn is
+   the *promise*, and G-2 says so instead of claiming a reload is safe.
+3. **The e2e assertion for "the shell painted" is screen-dependent.**
+   E2E-PWA-01 waits for the header logo; inside a trip the app bar carries the
+   back button and no logo, so the same assertion looks for a control that
+   screen does not have. Cost half an hour and is written down in the ledger.
+
+**Deliberately not built: a reconnect drain.** Track B recorded that the queue
+moves only on the app's next own action. It now also moves on the next app
+start, which is what B2 asked for. An `online`-event drain is a separate
+behaviour with its own failure modes (a flapping connection re-pushing on
+every event) and was left out rather than smuggled in.
