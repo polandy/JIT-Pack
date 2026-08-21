@@ -123,8 +123,7 @@ describe('stampOrigin', () => {
 describe('the route table declares the class where the app needs it', () => {
   function metaOf(path: string) {
     return routes.find((r) => r.path === path)?.meta as
-      | { acceptsFrom?: boolean; parent?: string }
-      | undefined
+      { acceptsFrom?: boolean; parent?: string } | undefined
   }
 
   it.each([
