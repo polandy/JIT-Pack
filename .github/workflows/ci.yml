@@ -65,6 +65,10 @@ jobs:
       # bundle, not merely hidden in it — a `v-if` leaves the code behind the
       # trigger. Reads what the build above emitted, so it runs after it.
       - run: node ../scripts/dev-code-gate.mjs
+      # Not a client check, but this is the job that has node and no install
+      # step to pay for: the implementation log's index must name every
+      # section, because it is meant to be read instead of the log.
+      - run: node ../scripts/log-index-gate.mjs
       - run: npx vitest run
 
   # Visual baselines (ADR-013). Runs the tests *inside* the digest-pinned

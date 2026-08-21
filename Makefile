@@ -34,12 +34,18 @@ endif
 # Everything CI checks that runs fast and needs no browser or docker daemon.
 # `e2e` (Playwright browsers) and `docker-build` (needs dockerd) are separate
 # on purpose — run them explicitly when you touch the client UI or the image.
-ci: pins fmt-check test tidy-check go-lint client
+ci: pins log-index fmt-check test tidy-check go-lint client
 
 # Cheap and first: the toolchain majors are named in three files each, and a
 # disagreement is invisible to every other check (see the script's header).
 pins:
 	@./scripts/toolchain-pins-gate.sh
+
+# Beside it for the same reason: the implementation log's index is read
+# instead of the log, so a section missing from it is unreachable — and
+# nothing else can see that.
+log-index:
+	@$(RUN) node scripts/log-index-gate.mjs
 
 # The full set, including the two slow jobs.
 all: ci e2e docker-build
