@@ -210,7 +210,16 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
         <h2 class="jp-eyebrow">{{ t('tripEdit.sectionTravelers') }}</h2>
 
         <IonList lines="none">
-          <IonItem v-for="traveler in travelers" :key="traveler.id">
+          <!--
+            Keyed by name, like M4's per-person child rows: the id is a random
+            uuid, so a test can only address a person by the one thing the user
+            can see.
+          -->
+          <IonItem
+            v-for="traveler in travelers"
+            :key="traveler.id"
+            :data-testid="`traveler-row-${traveler.name}`"
+          >
             <IonInput
               :aria-label="t('tripEdit.travelerName')"
               :value="traveler.name"

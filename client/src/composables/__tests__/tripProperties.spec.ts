@@ -180,6 +180,22 @@ describe('removeTraveler (FR-2.7 + FR-27.4)', () => {
     expect(survivor?.assigned_traveler_id).toBeNull()
   })
 
+  it('removes them even when a *sibling* row is part-packed — the e2e shape', async () => {
+    const orch = await localOrchestrator()
+    seedTrip()
+    seedGeneratedRows(orch)
+
+    // Xenia's share is worked on; Zoe's is untouched. The protection belongs
+    // to the row, not to the position, so Zoe still leaves.
+    const xenias = pantsRows().find((r) => r.assigned_traveler_id === 'trv-x')!
+    orch.packIncrement(TRIP_ID, xenias)
+
+    orch.removeTraveler(TRIP_ID, 'trv-z')
+
+    expect(useTripStore().getTravelers(TRIP_ID).map((t) => t.id)).toEqual(['trv-x'])
+    expect(pantsRows().map((r) => r.assigned_traveler_id)).toEqual(['trv-x'])
+  })
+
   it('refuses on a trip that has started, because the control is disabled there', async () => {
     const orch = await localOrchestrator()
     seedTrip('active')
