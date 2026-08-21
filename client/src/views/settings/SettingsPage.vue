@@ -295,7 +295,9 @@ async function exportTripCSV() {
   <IonPage>
     <IonContent class="ion-padding">
       <!-- Profile (FR-17.13) -->
-      <h2 class="section-title jp-eyebrow" data-testid="settings-section-profile">{{ t('settings.profile') }}</h2>
+      <h2 class="section-title jp-eyebrow" data-testid="settings-section-profile">
+        {{ t('settings.profile') }}
+      </h2>
       <template v-if="mode === 'local'">
         <IonNote>{{ t('settings.profileLocalNote') }}</IonNote>
       </template>
@@ -349,7 +351,9 @@ async function exportTripCSV() {
       <IonNote v-else>{{ t('settings.profileUnavailable') }}</IonNote>
 
       <!-- Appearance (FR-21.3) — every mode, this device only -->
-      <h2 class="section-title jp-eyebrow" data-testid="settings-section-appearance">{{ t('settings.appearance') }}</h2>
+      <h2 class="section-title jp-eyebrow" data-testid="settings-section-appearance">
+        {{ t('settings.appearance') }}
+      </h2>
       <IonList>
         <IonItem>
           <IonLabel>
@@ -457,7 +461,9 @@ async function exportTripCSV() {
       </template>
 
       <!-- Data (NFR-4.5) -->
-      <h2 class="section-title jp-eyebrow" data-testid="settings-section-data">{{ t('settings.data') }}</h2>
+      <h2 class="section-title jp-eyebrow" data-testid="settings-section-data">
+        {{ t('settings.data') }}
+      </h2>
       <template v-if="mode === 'local'">
         <div v-if="exportReminder.due" class="export-reminder">
           <IonIcon :icon="warningOutline" />
@@ -505,7 +511,9 @@ async function exportTripCSV() {
             </IonButton>
           </IonItem>
           <IonItem button :detail="false" @click="showStorageDetails">
-            <IonLabel data-testid="settings-storage-details">{{ t('settings.storageDetails') }}</IonLabel>
+            <IonLabel data-testid="settings-storage-details">{{
+              t('settings.storageDetails')
+            }}</IonLabel>
             <IonNote slot="end">{{ t('settings.storageDetailsHint') }}</IonNote>
           </IonItem>
         </IonList>
@@ -552,11 +560,15 @@ async function exportTripCSV() {
       </template>
 
       <!-- Conflict log pointer (G-2) -->
-      <h2 class="section-title jp-eyebrow" data-testid="settings-section-conflicts">{{ t('settings.conflictLog') }}</h2>
+      <h2 class="section-title jp-eyebrow" data-testid="settings-section-conflicts">
+        {{ t('settings.conflictLog') }}
+      </h2>
       <IonNote>{{ t('settings.conflictLogNote') }}</IonNote>
 
       <!-- App info -->
-      <h2 class="section-title jp-eyebrow" data-testid="settings-section-about">{{ t('settings.about') }}</h2>
+      <h2 class="section-title jp-eyebrow" data-testid="settings-section-about">
+        {{ t('settings.about') }}
+      </h2>
       <IonList>
         <IonItem lines="none">
           <IonLabel>
