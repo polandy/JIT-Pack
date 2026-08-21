@@ -359,9 +359,12 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
 * **What a traveller change does** is FR-27.4's amended rule, and the screen states it rather than
   performing it silently: adding applies **immediately** and reports the FR-27.10 way — what was
   added, what that person already had, what this trip's conditions excluded. Removing takes their
-  **untouched** rows; a row that was packed, skipped or hand-edited stays on the list and loses only
-  the assignment, because it is evidence of work somebody did. The report names that too, so a row
-  left behind is never a surprise found later.
+  **unpacked** rows. What happens to a row that was already **packed** is asked at the confirmation
+  — *Alles entfernen* beside *Gepackte behalten* — and only when the traveller has one, with the
+  number stated in the question rather than left to be guessed. A row that was skipped or
+  hand-edited follows the *behalten* branch either way, because it is evidence of work somebody did
+  and no question was asked about it. The report names what stayed, so a row left behind is never a
+  surprise found later.
 * **States:** **Removal is offered only while the trip has not started.** On an active or archived
   trip the ✕ is present but disabled, with the reason on it — hidden, it would be hunted for. Adding
   and renaming stay available on an active trip; on an archived one the whole screen is read-only,

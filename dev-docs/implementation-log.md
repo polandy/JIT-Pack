@@ -4230,11 +4230,24 @@ traveller, in the trip's own editor, deliberately — asking them to confirm on
 the next open what they just did in front of the app is a dialogue with no
 second party in it.
 
-**Removal is offered only before departure** (owner). That is what keeps the
-rule from ever having to weigh a real packing record, and it is why taking a
-row without argument is defensible. FR-27.4's protection is untouched
-underneath it: a row that was packed, skipped or hand-edited stays and loses
-only its assignment.
+**Removal is offered only before departure** (owner), which is what keeps the
+rule from ever having to weigh a *departed* trip's packing record.
+
+It still has to answer for a packed row, though, and the first cut answered it
+alone: unpacked rows go, packed ones stay unassigned. The owner rejected that
+the same day, and was right — a packed row means somebody physically put the
+thing in the bag, and whether it should come back out is not a property of the
+data. On one trip the answer is *take it out*; on another it is *leave it
+visible so somebody remembers to*. So it is asked, at the confirmation, and
+**only when there is something to answer about**: with nothing packed the
+removal has one outcome, and a question with one answer teaches the user to
+dismiss questions. The question names the quantity for the same reason
+FR-27.4's card lists its changes instead of counting them.
+
+Underneath, *Gepackte behalten* is simply FR-27.4's ordinary protection, and
+*Alles entfernen* deletes those rows outright — that protection is exactly what
+the user overruled for this person. A skipped or hand-edited row follows the
+*behalten* branch either way: nobody was asked about it.
 
 **Two defects the type-checker could not see.** The date inputs used a
 two-statement inline handler; Vue parses an inline handler as a single
