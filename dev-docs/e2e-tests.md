@@ -857,8 +857,9 @@ test cannot see that: the defect lives in the wiring between the route table,
 the chrome and the catalogue, and each of the three was individually fine.
 
 The case switches M17's Language row to German and asserts, on the *visible*
-page, the anchor labels, the header bar's route title and M2's own segment
-words; then reloads and asserts the same, because the choice is device-local
+page, the anchor labels — **both presentations**, since the tab bar and the
+desktop rail read one list and only one of them exists at a given width — the
+header bar's route title and M2's own segment words; then reloads and asserts the same, because the choice is device-local
 (FR-21.3's pattern). It asserts the **English** words first — without that,
 "the German word is there" would pass on a build that had rendered neither.
 

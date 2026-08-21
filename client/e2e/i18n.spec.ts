@@ -24,6 +24,9 @@ import type { Page } from '@playwright/test'
  */
 const MOBILE = { width: 390, height: 844 }
 
+/** Above the breakpoint, where the rail is the anchors' other presentation. */
+const DESKTOP = { width: 1280, height: 900 }
+
 function onVisibleScreen(page: Page, testid: string) {
   return page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)').getByTestId(testid)
 }
@@ -73,6 +76,13 @@ test.describe('Language choice @local @nfr412', () => {
     // And a screen's own words, on the screen the user navigates to next.
     await page.getByTestId('tab-trips').click()
     await expect(onVisibleScreen(page, 'trips-filter-planned')).toHaveText('Geplant')
+
+    // The desktop half of the same anchor: the rail and the bar read one list,
+    // so the key has to reach both — and only one of them exists at a time.
+    await page.setViewportSize(DESKTOP)
+    await expect(page.getByTestId('rail-trips')).toBeVisible()
+    await expect(page.getByTestId('rail-trips')).toHaveText('Reisen')
+    await page.setViewportSize(MOBILE)
 
     // Device-local and persisted (FR-21.3's pattern), so a reload keeps it.
     await page.reload()
