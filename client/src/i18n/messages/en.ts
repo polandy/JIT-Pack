@@ -675,4 +675,48 @@ export const en = {
 
   // M20 user administration (Addendum 3.23).
   'admin.title': 'User administration',
+
+  // M6 shopping views (FR-3.2/3.3).
+  'shopping.headerTitle': 'Shopping · {trip}',
+  'shopping.beforeDeparture': 'Before departure ({n})',
+  'shopping.atDestination': 'At destination ({n})',
+  'shopping.uncategorized': 'Uncategorized',
+  'shopping.bought': 'Bought: {name}',
+  'shopping.emptyBefore': 'Nothing to buy before departure',
+  'shopping.emptyLocal': 'Nothing to buy at the destination',
+
+  // M16 series & destination profile (FR-13.1/13.2/13.3).
+  'series.section': 'Series',
+  'series.name': 'Name',
+  'series.defaultsNote': 'Defaults prefill the wizard for new trips in this series.',
+  'series.sectionNotes': 'Destination notes',
+  'series.notesPlaceholder': 'e.g. washing machine available',
+  'series.checklistRemove': 'Remove checklist item',
+  'series.checklistEmpty': 'Offered automatically when a new trip in this series is created.',
+  'series.checklistAdd': 'Add item…',
+  'series.checklistMode': 'Mode',
+  'series.sectionTrips': 'Trips in this series',
+  'series.detach': 'Detach from series',
+  'series.noTrips': 'No trips in this series yet.',
+  'series.attach': 'Attach existing trip',
+  'series.clone': 'Clone "{name}"',
+  'series.newTrip': 'New trip in series',
+  'series.trends': 'Series trends',
+  'series.notFound': 'Series not found on this device.',
+
+  // M20 user administration (Addendum 3.23, FR-23.2–23.5).
+  'admin.actionDeactivate': 'Deactivate',
+  'admin.actionReactivate': 'Reactivate',
+  'admin.actionResetAvatar': 'Remove avatar',
+  'admin.actionResetName': 'Reset display name',
+  'admin.deactivateTitle': 'Deactivate {name}?',
+  'admin.deactivateMessage':
+    'The account loses all access immediately. Trips, templates, and attributions stay untouched and remain visible to others. Logging in again does not restore access — only Reactivate does.',
+  'admin.unavailable':
+    'Overview unavailable — instance admins only, and a server connection is required.',
+  'admin.self': '(you)',
+  'admin.provisioned': 'Provisioned {date}',
+  'admin.tripCount': '{n} trip | {n} trips',
+  'admin.templateCount': '{n} template | {n} templates',
+  'admin.deactivated': 'Deactivated',
 } as const

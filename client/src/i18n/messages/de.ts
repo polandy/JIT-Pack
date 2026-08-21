@@ -679,4 +679,48 @@ export const de: Record<keyof typeof en, string> = {
 
   // M20 Benutzerverwaltung (Addendum 3.23).
   'admin.title': 'Benutzerverwaltung',
+
+  // M6 Einkaufslisten (FR-3.2/3.3).
+  'shopping.headerTitle': 'Einkaufen · {trip}',
+  'shopping.beforeDeparture': 'Vor der Abreise ({n})',
+  'shopping.atDestination': 'Vor Ort ({n})',
+  'shopping.uncategorized': 'Ohne Kategorie',
+  'shopping.bought': 'Gekauft: {name}',
+  'shopping.emptyBefore': 'Vor der Abreise ist nichts zu kaufen',
+  'shopping.emptyLocal': 'Vor Ort ist nichts zu kaufen',
+
+  // M16 Serie und Zielort-Profil (FR-13.1/13.2/13.3).
+  'series.section': 'Serie',
+  'series.name': 'Name',
+  'series.defaultsNote': 'Diese Vorgaben füllen den Assistenten für neue Reisen der Serie vor.',
+  'series.sectionNotes': 'Notizen zum Ziel',
+  'series.notesPlaceholder': 'z. B. Waschmaschine vorhanden',
+  'series.checklistRemove': 'Punkt entfernen',
+  'series.checklistEmpty': 'Wird angeboten, sobald eine neue Reise in dieser Serie entsteht.',
+  'series.checklistAdd': 'Punkt hinzufügen…',
+  'series.checklistMode': 'Art',
+  'series.sectionTrips': 'Reisen dieser Serie',
+  'series.detach': 'Aus der Serie lösen',
+  'series.noTrips': 'Noch keine Reisen in dieser Serie.',
+  'series.attach': 'Bestehende Reise zuordnen',
+  'series.clone': '„{name}“ klonen',
+  'series.newTrip': 'Neue Reise in dieser Serie',
+  'series.trends': 'Trends der Serie',
+  'series.notFound': 'Diese Serie gibt es auf diesem Gerät nicht.',
+
+  // M20 Benutzerverwaltung (Addendum 3.23, FR-23.2–23.5).
+  'admin.actionDeactivate': 'Deaktivieren',
+  'admin.actionReactivate': 'Wieder aktivieren',
+  'admin.actionResetAvatar': 'Bild entfernen',
+  'admin.actionResetName': 'Anzeigenamen zurücksetzen',
+  'admin.deactivateTitle': '{name} deaktivieren?',
+  'admin.deactivateMessage':
+    'Das Konto verliert sofort jeden Zugriff. Reisen, Vorlagen und Zuschreibungen bleiben unangetastet und für andere sichtbar. Ein erneutes Anmelden hilft nicht — nur „Wieder aktivieren“.',
+  'admin.unavailable':
+    'Übersicht nicht verfügbar — nur für Instanz-Admins, und der Server muss erreichbar sein.',
+  'admin.self': '(du)',
+  'admin.provisioned': 'Angelegt am {date}',
+  'admin.tripCount': '{n} Reise | {n} Reisen',
+  'admin.templateCount': '{n} Vorlage | {n} Vorlagen',
+  'admin.deactivated': 'Deaktiviert',
 }
