@@ -164,7 +164,9 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
 
     const confirm = page.locator('ion-alert')
     await expect(confirm).toBeVisible()
-    await confirm.getByRole('button', { name: /Remove/i }).click()
+    // The choice only appears because Xenia's row is packed — hers, not Zoe's,
+    // so this asks about nothing of Zoe's and the plain confirm shows.
+    await confirm.getByRole('button', { name: /^Remove$/i }).click()
 
     // Isolate the two halves: the roster losing Zoe proves the removal ran at
     // all, so a failure below is about the rows rather than about the click.
@@ -179,6 +181,29 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     await expect(pantsRowFor(page, 'Xenia')).toBeVisible()
     // The same row, not a fresh one that looks like it.
     await expect(pantsRowFor(page, 'Xenia')).toContainText('1/2')
+  })
+
+  test('E2E-M22-05: a packed row of theirs is the user’s choice, both ways', async ({ page }) => {
+    const trip = await tripWithTwoTravellers(page, 'Osterferien')
+
+    // Zoe's own share, part-packed: this is what the question is about.
+    await pantsRowFor(page, 'Zoe').getByTestId('row-plus').click()
+    await expect(pantsRowFor(page, 'Zoe')).toContainText('1/2')
+
+    await openTripEdit(page)
+    await visible(page).getByTestId('traveler-row-Zoe').getByRole('button').click()
+
+    const confirm = page.locator('ion-alert')
+    // Asked, and it says how much it is asking about — a choice offered over
+    // an unnamed quantity can only be answered by guessing.
+    await expect(confirm).toContainText('1 item is already packed')
+    await confirm.getByRole('button', { name: /Remove everything/i }).click()
+
+    await expect(visible(page).getByTestId('traveler-row-Zoe')).toHaveCount(0)
+    await page.goto(trip)
+    // Gone, not merely unassigned — and Xenia's untouched share is still hers.
+    await expect(pantsRowFor(page, 'Zoe')).toHaveCount(0)
+    await expect(visible(page).getByTestId('m4-row-Regenhose')).toContainText('Xenia')
   })
 
   test('E2E-M22-04: a started trip keeps the roster but refuses removal', async ({ page }) => {

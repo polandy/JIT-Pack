@@ -803,13 +803,17 @@ export const de: Record<keyof typeof en, string> = {
     'Reisende lassen sich nur entfernen, solange die Reise nicht gestartet ist.',
   'tripEdit.removeConfirmTitle': '{name} entfernen?',
   'tripEdit.removeConfirmBody':
-    'Die Sachen dieser Person gehen mit — ausser jemand hat eine Zeile schon gepackt oder geändert. Die bleibt ohne Zuordnung auf der Liste.',
+    'Die Packelemente dieser Person verschwinden von der Liste. Gepackt ist noch keines davon.',
   'tripEdit.removeConfirm': 'Entfernen',
+  'tripEdit.removeKeepPacked': 'Gepackte behalten',
+  'tripEdit.removeAll': 'Alles entfernen',
+  'tripEdit.removeConfirmPacked':
+    'Noch nicht gepackte Packelemente verschwinden. {n} Packelement ist bereits gepackt — soll es mit verschwinden oder ohne Zuordnung auf der Liste bleiben? | Noch nicht gepackte Packelemente verschwinden. {n} Packelemente sind bereits gepackt — sollen sie mit verschwinden oder ohne Zuordnung auf der Liste bleiben?',
   'tripEdit.travelerNote':
-    'Wer dazukommt, bekommt die Pro-Person-Sachen sofort; wer geht, nimmt seine unberührten Sachen mit.',
-  'tripEdit.reportAdded': '{n} Sache ergänzt | {n} Sachen ergänzt',
-  'tripEdit.reportRemoved': '{n} Sache entfernt | {n} Sachen entfernt',
-  'tripEdit.reportKept': '{n} Sache bleibt | {n} Sachen bleiben',
+    'Wer dazukommt, bekommt die Pro-Person-Packelemente sofort. Wer geht, nimmt seine noch nicht gepackten mit.',
+  'tripEdit.reportAdded': '{n} Packelement ergänzt | {n} Packelemente ergänzt',
+  'tripEdit.reportRemoved': '{n} Packelement entfernt | {n} Packelemente entfernt',
+  'tripEdit.reportKept':
+    '{n} Packelement bleibt ohne Zuordnung | {n} Packelemente bleiben ohne Zuordnung',
   'tripEdit.reportNothing': 'An der Liste ändert sich nichts.',
-
 }

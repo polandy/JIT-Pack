@@ -112,7 +112,12 @@ function commitDates(): void {
 /**
  * reportTravelerChange turns the FR-27.4 outcome into one sentence. Three
  * numbers, and each is said only when it is not zero: a report that always
- * reads "0 hinzugefügt, 0 entfernt" trains the user to stop reading it.
+ * reads "0 added, 0 removed" trains the user to stop reading it.
+ *
+ * `kept` deliberately says only *that* rows stayed, not why. FR-27.4 protects
+ * a row that was packed, skipped **or** hand-edited, and the confirmation the
+ * user just answered already explains the packed case; naming one of the three
+ * here would be wrong for the other two.
  */
 async function reportTravelerChange(
   report: TravelerChangeReport | null,
@@ -146,19 +151,38 @@ function renameTraveler(travelerId: string, value: string): void {
  * them is not visible from this screen — their untouched rows are on M4.
  */
 async function removeTraveler(travelerId: string, travelerName: string): Promise<void> {
+  const packed = orchestrator.packedRowsOf(props.tripId, travelerId)
+
+  /*
+   * The choice is offered only when there is something to choose about
+   * (FR-2.7). With nothing packed the removal has one outcome, and a question
+   * with one answer teaches the user to dismiss questions.
+   */
+  const buttons = packed
+    ? [
+        { text: t('common.cancel'), role: 'cancel' },
+        { text: t('tripEdit.removeKeepPacked'), role: 'keep' },
+        { text: t('tripEdit.removeAll'), role: 'destructive' },
+      ]
+    : [
+        { text: t('common.cancel'), role: 'cancel' },
+        { text: t('tripEdit.removeConfirm'), role: 'destructive' },
+      ]
+
   const alert = await alertController.create({
     header: t('tripEdit.removeConfirmTitle', { name: travelerName }),
-    message: t('tripEdit.removeConfirmBody'),
-    buttons: [
-      { text: t('common.cancel'), role: 'cancel' },
-      { text: t('tripEdit.removeConfirm'), role: 'destructive' },
-    ],
+    message: packed
+      ? t('tripEdit.removeConfirmPacked', { n: packed })
+      : t('tripEdit.removeConfirmBody'),
+    buttons,
   })
   await alert.present()
   const { role } = await alert.onDidDismiss()
-  if (role === 'cancel' || role === 'backdrop') return
+  if (role !== 'destructive' && role !== 'keep') return
 
-  const report = orchestrator.removeTraveler(props.tripId, travelerId)
+  const report = orchestrator.removeTraveler(props.tripId, travelerId, {
+    includePacked: role === 'destructive' && packed > 0,
+  })
   await reportTravelerChange(report, t('tripEdit.reportNothing'))
 }
 </script>

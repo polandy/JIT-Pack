@@ -196,6 +196,37 @@ describe('removeTraveler (FR-2.7 + FR-27.4)', () => {
     expect(pantsRows().map((r) => r.assigned_traveler_id)).toEqual(['trv-x'])
   })
 
+  it('takes the packed row too when the user asks for it (FR-2.7 choice)', async () => {
+    const orch = await localOrchestrator()
+    seedTrip()
+    seedGeneratedRows(orch)
+
+    const zoes = pantsRows().find((r) => r.assigned_traveler_id === 'trv-z')!
+    orch.packComplete(TRIP_ID, zoes)
+
+    orch.removeTraveler(TRIP_ID, 'trv-z', { includePacked: true })
+
+    // Gone, not merely unassigned: the user answered that the trousers come
+    // back out of the bag.
+    expect(useTripStore().getItems(TRIP_ID).some((i) => i.id === zoes.id)).toBe(false)
+    // And still only theirs — the choice widens what leaves with the person,
+    // never whose rows are considered.
+    expect(pantsRows().map((r) => r.assigned_traveler_id)).toEqual(['trv-x'])
+  })
+
+  it('reports how many packed rows the choice concerns, so it is not asked blind', async () => {
+    const orch = await localOrchestrator()
+    seedTrip()
+    seedGeneratedRows(orch)
+
+    const zoes = pantsRows().find((r) => r.assigned_traveler_id === 'trv-z')!
+    orch.packComplete(TRIP_ID, zoes)
+
+    // The screen asks only when there is something to answer about.
+    expect(orch.packedRowsOf(TRIP_ID, 'trv-z')).toBe(1)
+    expect(orch.packedRowsOf(TRIP_ID, 'trv-x')).toBe(0)
+  })
+
   it('refuses on a trip that has started, because the control is disabled there', async () => {
     const orch = await localOrchestrator()
     seedTrip('active')

@@ -1218,16 +1218,60 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * and a row that was packed, skipped or hand-edited stays on the list and
    * only loses the assignment.
    */
-  function removeTraveler(tripId: string, travelerId: string): TravelerChangeReport | null {
+  /**
+   * packedRowsOf counts what a traveller's removal would have to decide about:
+   * their rows that packing has begun on. The editor asks its FR-2.7 question
+   * only when this is non-zero — a choice offered over nothing is a dialogue
+   * the user learns to dismiss.
+   */
+  function packedRowsOf(tripId: string, travelerId: string): number {
+    return tripStore
+      .getItems(tripId)
+      .filter((i) => i.assigned_traveler_id === travelerId && i.packed_count > 0).length
+  }
+
+  /**
+   * removeTraveler takes a person off a trip that has **not started** — the
+   * owner's rule (FR-2.7). On a started trip it refuses and returns null;
+   * the control is disabled there, so this is the second line rather than
+   * the first, and it exists because a store is reachable from more than one
+   * screen.
+   *
+   * Their **unpacked** rows go with them through FR-27.4, whose protection is
+   * what keeps a packed one out of it. What happens to *those* is the user's
+   * call, taken at the confirmation (owner, 2026-08-21): `includePacked`
+   * deletes them outright — the person is not coming, so the thing comes back
+   * out of the bag — while the default leaves them on the list without an
+   * assignment, as the reminder that something in the bag now belongs to
+   * nobody. Neither is right in general, which is why it is asked.
+   */
+  function removeTraveler(
+    tripId: string,
+    travelerId: string,
+    opts: { includePacked?: boolean } = {},
+  ): TravelerChangeReport | null {
     const trip = tripStore.getTrip(tripId)
     if (!trip) return null
     if (!tripDataLoaded(tripId)) return null
     if (trip.status !== TRIP_STATUS_PLANNING) return null
 
-    // Detach first, then delete: a row still pointing at a traveler row that
-    // is gone is a dangling reference the refresh would have to guess about.
+    let takenPacked = 0
     for (const item of tripStore.getItems(tripId)) {
       if (item.assigned_traveler_id !== travelerId) continue
+      if (opts.includePacked && item.packed_count > 0) {
+        // Deleted here rather than left to the refresh: FR-27.4 protects a row
+        // packing has begun on, and that protection is exactly what the user
+        // just overruled for this person.
+        enqueueAndDrain('trip', tripId, {
+          mutation: mutations.deleteTripItem(item.id),
+          optimistic: tombstone(TABLE.tripItems, item.id),
+        })
+        takenPacked += 1
+        continue
+      }
+      // Detach first, then delete the traveler: a row still pointing at a
+      // traveler row that is gone is a dangling reference the refresh would
+      // have to guess about.
       assignTraveler(tripId, item, null)
     }
 
@@ -1237,7 +1281,13 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       optimistic: { seq: 0, table: TABLE.travelers, id: travelerId, deleted: true, row: {} },
     })
 
-    return { travelerId, ...applyTravelerConsequences(tripId, trip) }
+    const report = applyTravelerConsequences(tripId, trip)
+    return {
+      travelerId,
+      ...report,
+      removed: report.removed + takenPacked,
+      kept: Math.max(0, report.kept - takenPacked),
+    }
   }
 
   /**
@@ -3173,6 +3223,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     renameTraveler,
     addTravelerToTrip,
     removeTraveler,
+    packedRowsOf,
 
     // Master data
     createMasterItem,
