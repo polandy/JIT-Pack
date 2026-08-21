@@ -253,6 +253,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # Before building: a build-image major bumped on its own would pass both
+      # builds and ship a bundle no other job ever compiled (see the script).
+      - run: ./scripts/toolchain-pins-gate.sh
       - run: docker build .
       - run: docker build client
 
