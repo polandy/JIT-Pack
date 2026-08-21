@@ -110,6 +110,52 @@ Files: `client/src/views/trips/PackingListPage.vue` (+ router/overlay layer per 
 2. Write E2E-M12-03's positive half (unblocked since the lifecycle step exists).
 3. Stage real proposals on :3000 (`docker stop jitpack-web` frees the port) and get the owner's M14 eyeball — deliverable is a click-path note or artifact link, per the standing eyeball rule.
 
+### Track I — the back button's missing route class *(owner-found 2026-08-21 · effort S–M · next up)*
+
+Files: `client/src/router/backTarget.ts`, `router/index.ts`, `components/global/AppHeader.vue`,
+`router/__tests__/backTarget.spec.ts`, `client/e2e/global-nav.spec.ts`,
+`dev-docs/Navigation_Concept_v1.0.md` §7, `dev-docs/adr/ADR-011_*.md`.
+
+**The symptom the owner hit:** inside a trip, tap the gear, then `‹ back` — and the app lands on
+the dashboard instead of the trip.
+
+**The cause is a gap in the contract, not a bug in it.** ADR-011 decoupled back from history
+deliberately: `‹` is the only way out of a drill-down, and a cold-start deep link has a
+one-entry history, so every non-root route declares a static `meta.parent` and `backTarget()`
+fills in the *current* route's params. §7 classifies routes four ways — tab roots, drill-downs,
+flows, modal-ish. **Settings fits none of them.** It is a *global action*: `AppHeader.vue`
+offers the gear unconditionally on every screen (deliberately — it is what keeps the conflict
+log reachable from inside a trip), while `/tabs/settings` declares the single static parent
+`/tabs/dashboard`. From anywhere but the dashboard, the chevron lies.
+
+**Two findings came with it, same root:**
+
+1. **The "flows" class has no mechanism at all.** §7 promises flows return to *"the origin the
+   flow was entered from"*; there is no `from`, `origin` or `returnTo` anywhere in the router.
+   Flows carry static parents like everything else, so M15 entered from Settings returns to
+   the inventory. The concept documents a behaviour that was never built.
+2. **The test believes Settings is a root.** `ROOT_PATHS` in `backTarget.spec.ts` lists
+   `/tabs/settings` among the routes that "show the logo and therefore owe no parent" — while
+   the route table gives it one. Nothing catches the contradiction, because the test only
+   asserts that non-roots *have* a parent, never that roots lack one. The exemption list is a
+   fossil of the other intention.
+
+**The decision to take first** (both shapes keep ADR-011's cold-start guarantee):
+
+- **A — a global action carries its origin.** The gear pushes `/tabs/settings` with the current
+  path as `query.from`; `backTarget()` prefers a `from` that validates as an internal path and
+  falls back to the declared `meta.parent` when it is absent or unsafe. Small, and it gives the
+  flows row its missing mechanism at the same time. Adds a fifth route class to §7.
+- **B — Settings becomes modal-ish**, a sheet over the current screen the way M5 is. Back then
+  returns by construction, and it matches G-1's reading of settings as a tool rather than a
+  place. Larger: M17 has sub-routes (admin, file import, gallery) that all declare
+  `/tabs/settings` as their parent.
+
+Whichever is chosen: a case in `client/e2e/global-nav.spec.ts` (the working agreement makes the
+global patterns binding — they were made binding *by* four navigation defects found by hand),
+the §7 table updated, an ADR-011 amendment, and the `ROOT_PATHS` contradiction resolved rather
+than left standing.
+
 ### Track H — Dogfood deployment *(sequential, owner-driven, after A–D merge)*
 
 Not agent work alone: deploy the released images to the homelab behind HTTPS, create the family's IdP users, set `JITPACK_ADMIN_EMAILS`, install on every phone, seed the real inventory/templates (the M2 dev seed is dev-only — real data is typed or imported via M15/M18), run a weekend-trip pilot before the actual vacation. Every friction found here becomes an issue; expect Track B's specs to grow from it.
@@ -126,6 +172,7 @@ Not agent work alone: deploy the released images to the homelab behind HTTPS, cr
 | F — backup tables | — | — | now |
 | G — UX polish | — | — | now |
 | H — dogfood | A, B, C, D merged | — | after first release |
+| I — back-button class | — | none (router + global header) | **next up** |
 
 Six tracks can fan out immediately. Recommended first wave if agent count is limited: **A, B, D** (the three blockers with no dependencies), then C, with E/F/G filling in.
 
@@ -145,3 +192,4 @@ Six tracks can fan out immediately. Recommended first wave if agent count is lim
 3. **IdP**: which OIDC provider fronts the family instance (the config assumes a confidential client; Authelia-class self-hosted works)? Needed before Track H, not before A–G.
 4. **Upgrade stance for the vacation**: pin one digest and freeze (recommended in Track D) vs. building image-export tooling now.
 5. Track A step 3: hand-rolled SW vs `vite-plugin-pwa` — the ADR will present it, but a prior leaning saves a round-trip.
+6. **Track I shape**: does a global action carry its origin (A), or does Settings become an overlay (B)? Needed before the track starts.
