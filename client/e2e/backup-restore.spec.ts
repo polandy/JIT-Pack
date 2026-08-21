@@ -1,11 +1,22 @@
-import { test, expect, seed, createTemplate, addPosition, createTripViaWizard, expectTripOpen } from './fixtures'
 import {
+  test,
+  expect,
+  seed,
+  createTemplate,
+  addPosition,
+  createTripViaWizard,
+  expectTripOpen,
+} from './fixtures'
+import {
+  addToGroup,
   backToTemplateList as backToList,
+  createTripFollowingGroup,
   includeGroup,
   openQuickAdd,
   visiblePage as visible,
 } from './fixtures'
 import { readFile } from 'node:fs/promises'
+import type { Page } from '@playwright/test'
 
 /**
  * Backup and restore — the Local Mode round trip (NFR-4.11, FR-19.6, ADR-015).
@@ -24,6 +35,13 @@ import { readFile } from 'node:fs/promises'
  */
 
 const TRIP = { name: 'Samedan 2026', travelers: ['Andy', 'Mia'] }
+
+/** Open a trip the way a user does — through M2, in-SPA. */
+async function openTripFromList(page: Page, name: string) {
+  await page.goto('/tabs/trips?status=planned')
+  await visible(page).getByTestId(`trip-row-${name}`).click()
+  await expectTripOpen(page, name)
+}
 
 test.describe('Local Mode backup and restore @local @m18', () => {
   test.beforeEach(async ({ seedMode }) => {
@@ -230,5 +248,91 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await expect(visible(page).getByTestId('trip-row-Samedan 2026')).toBeVisible()
     await page.getByTestId('rail-templates').click()
     await expect(visible(page).getByRole('heading', { name: 'Makro' })).toBeVisible()
+  })
+
+  // E2E-M18-08 (FR-27.4, NFR-4.11, ADR-015): the backup carries *how* a trip
+  // follows its groups, not only what is on it. Before this, a restored device
+  // kept the trips and started following afresh — every proposal the user had
+  // already answered came back on the new device, and a position they had
+  // refused reappeared as a fresh offer.
+  test('E2E-M18-08: a restored trip keeps the answers it already gave its group', async ({
+    page,
+    browser,
+  }) => {
+    // M7/M8 twice, M3, M4 and a two-context restore: declared rather than raced.
+    test.slow()
+
+    await page.goto('/tabs/templates')
+    await createTemplate(page, 'group', 'Makro')
+    await addPosition(page, 'Kamera')
+    await backToList(page)
+    await createTripFollowingGroup(page, 'Fototour 2026', 'Makro')
+
+    // One answered "yes" — this becomes the FR-27.4 applied-changes log …
+    await addToGroup(page, 'Makro', 'Stativ')
+    await openTripFromList(page, 'Fototour 2026')
+    await expect(visible(page).getByTestId('m4-group-proposal')).toContainText('Stativ')
+    await visible(page).getByTestId('m4-group-proposal-apply').click()
+    await expect(visible(page).getByTestId('m4-row-Stativ')).toBeVisible()
+
+    // … and one answered "no", which lives only in the ledger: the row is not
+    // there and nothing else records that it was refused.
+    await addToGroup(page, 'Makro', 'Blitz')
+    await openTripFromList(page, 'Fototour 2026')
+    await expect(visible(page).getByTestId('m4-group-proposal')).toContainText('Blitz')
+    await visible(page).getByTestId('m4-group-proposal-decline').click()
+    await expect(visible(page).getByTestId('m4-group-proposal')).toHaveCount(0)
+
+    await page.getByTestId('sync-indicator').click()
+    const downloadPromise = page.waitForEvent('download')
+    await page.getByTestId('sync-detail-sheet').getByTestId('sync-detail-backup').click()
+    const backup = await readFile(await (await downloadPromise).path(), 'utf8')
+
+    // --- a second device, which has never seen any of this -----------------
+    const fresh = await browser.newContext({ baseURL: new URL(page.url()).origin })
+    const restored = await fresh.newPage()
+    await seed(restored, { mode: 'local' })
+    await restored.goto('/tabs/trips')
+    await expect(restored.getByTestId('trip-row-Fototour 2026')).toHaveCount(0)
+
+    await restored.getByTestId('m2-portable-import').click()
+    await restored.getByTestId('portable-paste').locator('textarea').fill(backup)
+    await restored.getByTestId('portable-preview').click()
+    // The restore list says the trip follows a group — the only place that is
+    // visible before the trip is opened, and the rendered proof that the
+    // section reached the file at all.
+    await expect(
+      restored.getByTestId('portable-restore-row').filter({ hasText: 'Fototour 2026' }),
+    ).toContainText('follows 1 group')
+    await restored.getByTestId('portable-restore-commit').click()
+
+    // M2 keeps the record of what the trip took over, with the date it
+    // happened rather than the date of the restore.
+    await expect(visible(restored).getByTestId('m2-applied-chip-Fototour 2026')).toContainText('1')
+    await expect(visible(restored).getByTestId('m2-applied-log-Fototour 2026')).toContainText(
+      'Stativ',
+    )
+    // Nothing is being proposed: the refused Blitz is not offered again.
+    await expect(visible(restored).getByTestId('m2-proposed-chip-Fototour 2026')).toHaveCount(0)
+
+    await visible(restored).getByTestId('trip-row-Fototour 2026').click()
+    await expectTripOpen(restored, 'Fototour 2026')
+    await expect(visible(restored).getByTestId('m4-group-proposal')).toHaveCount(0)
+    await expect(visible(restored).getByTestId('m4-row-Kamera')).toBeVisible()
+    await expect(visible(restored).getByTestId('m4-row-Stativ')).toBeVisible()
+    await expect(visible(restored).getByTestId('m4-row-Blitz')).toHaveCount(0)
+
+    // The positive signal behind all three "not offered" assertions: the
+    // machinery is alive on this device and does follow the restored group —
+    // a new position is proposed, and only the new one. Without the restored
+    // sources nothing would be proposed at all; without the restored ledger
+    // Blitz would be proposed alongside it.
+    await addToGroup(restored, 'Makro', 'Filter')
+    await openTripFromList(restored, 'Fototour 2026')
+    const proposal = visible(restored).getByTestId('m4-group-proposal')
+    await expect(proposal).toContainText('Filter')
+    await expect(proposal).not.toContainText('Blitz')
+
+    await fresh.close()
   })
 })

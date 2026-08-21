@@ -14,7 +14,9 @@
 
 import { compositionFrom, joinDocuments, serializeTemplate, serializeTrip } from '@/domain/portable'
 import type {
+  AppliedChange,
   Container,
+  GeneratedPosition,
   MasterItem,
   Template,
   TemplateInclude,
@@ -22,6 +24,7 @@ import type {
   Traveler,
   Trip,
   TripItem,
+  TripTemplateSource,
 } from '@/types/domain'
 
 /** One template with the positions that belong to it. */
@@ -36,6 +39,15 @@ export interface BackupTrip {
   items: TripItem[]
   travelers: Traveler[]
   containers: Container[]
+  /**
+   * FR-27.4: what the trip follows, what generation last produced for it, and
+   * the record of what it already took over. Without these a restored device
+   * re-asks proposals the user answered and resurrects positions they deleted
+   * — it keeps the trips and forgets how they follow their groups.
+   */
+  sources: TripTemplateSource[]
+  generated: GeneratedPosition[]
+  appliedChanges: AppliedChange[]
 }
 
 export interface BackupSource {
@@ -43,6 +55,8 @@ export interface BackupSource {
   trips: BackupTrip[]
   /** Resolves a template position's master item — its name is what travels. */
   masterItem: (id: string) => MasterItem | undefined
+  /** Resolves a template by id — the FR-27.4 sections reference groups by name. */
+  template: (id: string) => Template | undefined
   /**
    * FR-27.1/27.7: what a Ferien-Vorlage is composed of, and the tasks its
    * positions carry. A backup that dropped the composition would restore
@@ -80,6 +94,13 @@ export function buildBackup(source: BackupSource): string {
         travelers: entry.travelers,
         containers: entry.containers,
         includeProgress: true,
+        refresh: {
+          sources: entry.sources,
+          generated: entry.generated,
+          appliedChanges: entry.appliedChanges,
+          templateName: (id) => source.template(id)?.name,
+          masterItemName: (id) => source.masterItem(id)?.name,
+        },
       }),
     ),
   ]

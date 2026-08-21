@@ -82,10 +82,10 @@ it. Item numbers stay stable even as items close, because the log refers back to
    groups onto a running trip, portable YAML carrying the composition (ADR-017), and M21
    folding a finished trip back into its groups (FR-27.5). Log: seven sections, from
    *„§3.27 generation"* to *„M21 — Vorlage aus Reise"*.
-   **One gap stays open:** the Local Mode backup does not carry the three FR-27.4 tables
-   (`trip_template_sources`, `trip_generated_positions`, `trip_applied_changes`), so a
-   restored device keeps its Vorlagen and trips but starts following them afresh. Schema and
-   sync wiring exist; only the backup document is missing them.
+   The gap that stood open here is closed too (2026-08-21): the Local Mode backup carries
+   the three FR-27.4 tables, named in the trip document and re-keyed on restore against the
+   ids it just created (ADR-015 amendment). Log: *„The device backup carries the FR-27.4
+   refresh state"*.
 3. ~~**The design foundation, then the remaining screen rebuilds**~~ — **both complete**
    (2026-08-14 … 08-16). The foundation is the three token tables plus the gate (invariants
    9/9b), the FR-25.2 pack-out and the ADR-013 visual baselines; the rebuilds are M4, M5, M7,

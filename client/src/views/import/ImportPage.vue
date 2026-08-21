@@ -35,6 +35,7 @@ import {
   parseSpreadsheet,
   type GridAnalysis,
 } from '@/domain/spreadsheet'
+import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
@@ -151,13 +152,27 @@ const plan = computed(() => {
 
 const newItemCount = computed(() => plan.value.items.filter((i) => !i.existingItemId).length)
 
+/**
+ * The confirmation line, assembled from four separately pluralized counts:
+ * one message with four `{n}` slots cannot pluralize them independently, and
+ * the in-house module's rule is deliberately one/other (NFR-4.12).
+ */
+const summaryLine = computed(() =>
+  [
+    t('import.wizard.summaryTrips', { n: plan.value.trips.length }),
+    t('import.wizard.summaryItems', { n: newItemCount.value }),
+    t('import.wizard.summaryMerged', { n: plan.value.items.length - newItemCount.value }),
+    t('import.wizard.summaryCategories', { n: plan.value.newCategories.length }),
+  ].join(', '),
+)
+
 function commit() {
   orchestrator.commitImport(plan.value)
   router.replace('/tabs/trips')
 }
 
 // ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() => `Import · step ${step.value}/4`)
+setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
 </script>
 
 <template>
@@ -165,27 +180,24 @@ setHeaderTitle(() => `Import · step ${step.value}/4`)
     <IonContent class="ion-padding">
       <!-- Step 1: file -->
       <section v-if="step === 1">
-        <h2 class="section-title jp-eyebrow">Spreadsheet (CSV)</h2>
-        <p class="hint">
-          Rows are items (with category grouping rows), columns are trips with quantities. XLSX?
-          Export it as CSV first.
-        </p>
+        <h2 class="section-title jp-eyebrow">{{ t('import.wizard.csvTitle') }}</h2>
+        <p class="hint">{{ t('import.wizard.csvHint') }}</p>
         <input type="file" accept=".csv,text/csv" @change="onFile" />
         <IonTextarea
           class="paste-area"
-          placeholder="…or paste CSV here"
+          :placeholder="t('import.wizard.paste')"
           :value="rawText"
           :rows="8"
           @ionInput="(e: CustomEvent) => (rawText = e.detail.value ?? '')"
         />
         <IonButton expand="block" :disabled="rawText.trim() === ''" @click="analyze">
-          Analyze
+          {{ t('import.wizard.analyze') }}
         </IonButton>
       </section>
 
       <!-- Step 2: mapping -->
       <section v-if="step === 2">
-        <h2 class="section-title jp-eyebrow">Trips to import</h2>
+        <h2 class="section-title jp-eyebrow">{{ t('import.wizard.tripsTitle') }}</h2>
         <IonList>
           <IonItem v-for="trip in trips" :key="trip.column">
             <IonCheckbox
@@ -194,45 +206,43 @@ setHeaderTitle(() => `Import · step ${step.value}/4`)
               @ionChange="(e: CustomEvent) => (trip.include = e.detail.checked)"
             />
             <IonInput
-              placeholder="Trip name"
+              :placeholder="t('import.wizard.tripName')"
               :value="trip.name"
               @ionInput="(e: CustomEvent) => (trip.name = e.detail.value ?? '')"
             />
             <IonInput
               class="date-input"
-              placeholder="Year or date"
+              :placeholder="t('import.wizard.tripDate')"
               :value="trip.date"
               @ionInput="(e: CustomEvent) => (trip.date = e.detail.value ?? '')"
             />
             <IonSelect
               interface="popover"
-              placeholder="Series"
+              :placeholder="t('import.wizard.series')"
               :value="trip.seriesId"
-              aria-label="Target series"
+              :aria-label="t('import.wizard.seriesLabel')"
               @ionChange="(e: CustomEvent) => (trip.seriesId = e.detail.value)"
             >
-              <IonSelectOption value="">No series</IonSelectOption>
+              <IonSelectOption value="">{{ t('import.wizard.noSeries') }}</IonSelectOption>
               <IonSelectOption v-for="s in master.seriesList" :key="s.id" :value="s.id">
                 {{ s.name }}
               </IonSelectOption>
             </IonSelect>
           </IonItem>
         </IonList>
-        <IonNote v-if="!mappingValid"
-          >Each included trip needs a name and a year (e.g. 2024) or date.</IonNote
-        >
+        <IonNote v-if="!mappingValid">{{ t('import.wizard.mappingInvalid') }}</IonNote>
 
-        <h2 class="section-title jp-eyebrow">Item column</h2>
+        <h2 class="section-title jp-eyebrow">{{ t('import.wizard.itemColumn') }}</h2>
         <IonSegment
           :value="String(itemColumn)"
           @ionChange="(e: CustomEvent) => (itemColumn = Number(e.detail.value))"
         >
           <IonSegmentButton v-for="(header, idx) in grid[0]" :key="idx" :value="String(idx)">
-            <IonLabel>{{ header || `Col ${idx + 1}` }}</IonLabel>
+            <IonLabel>{{ header || t('import.wizard.column', { n: idx + 1 }) }}</IonLabel>
           </IonSegmentButton>
         </IonSegment>
 
-        <h2 class="section-title jp-eyebrow">Category rows</h2>
+        <h2 class="section-title jp-eyebrow">{{ t('import.wizard.categoryRows') }}</h2>
         <IonList class="category-list">
           <IonItem v-for="row in namedRows" :key="row.idx">
             <IonCheckbox
@@ -247,64 +257,68 @@ setHeaderTitle(() => `Import · step ${step.value}/4`)
         </IonList>
 
         <div class="wizard-nav">
-          <IonButton fill="outline" @click="step = 1">Back</IonButton>
-          <IonButton :disabled="!mappingValid" @click="enterDedup">Next</IonButton>
+          <IonButton fill="outline" @click="step = 1">{{ t('common.back') }}</IonButton>
+          <IonButton :disabled="!mappingValid" @click="enterDedup">
+            {{ t('import.wizard.next') }}
+          </IonButton>
         </div>
       </section>
 
       <!-- Step 3: dedup (FR-16.3) -->
       <section v-if="step === 3">
-        <h2 class="section-title jp-eyebrow">Possible duplicates</h2>
-        <p class="hint">These imported names look like items you already have.</p>
+        <h2 class="section-title jp-eyebrow">{{ t('import.wizard.duplicates') }}</h2>
+        <p class="hint">{{ t('import.wizard.duplicatesHint') }}</p>
         <IonList>
           <IonItem v-for="match in duplicates" :key="match.imported">
             <IonLabel>
               <h3>{{ match.imported }}</h3>
-              <p>existing: {{ match.existingName }}{{ match.exact ? ' (exact match)' : '' }}</p>
+              <p>
+                {{
+                  t(match.exact ? 'import.wizard.existingExact' : 'import.wizard.existing', {
+                    name: match.existingName,
+                  })
+                }}
+              </p>
             </IonLabel>
             <IonSegment
               class="merge-segment"
               :value="mergeChoices.get(match.imported) ? 'merge' : 'separate'"
               @ionChange="(e: CustomEvent) => setMerge(match.imported, e.detail.value === 'merge')"
             >
-              <IonSegmentButton value="merge"><IonLabel>Merge</IonLabel></IonSegmentButton>
-              <IonSegmentButton value="separate"
-                ><IonLabel>Keep separate</IonLabel></IonSegmentButton
-              >
+              <IonSegmentButton value="merge">
+                <IonLabel>{{ t('import.portable.merge') }}</IonLabel>
+              </IonSegmentButton>
+              <IonSegmentButton value="separate">
+                <IonLabel>{{ t('import.portable.keepSeparate') }}</IonLabel>
+              </IonSegmentButton>
             </IonSegment>
           </IonItem>
         </IonList>
         <div class="wizard-nav">
-          <IonButton fill="outline" @click="step = 2">Back</IonButton>
-          <IonButton @click="step = 4">Next</IonButton>
+          <IonButton fill="outline" @click="step = 2">{{ t('common.back') }}</IonButton>
+          <IonButton @click="step = 4">{{ t('import.wizard.next') }}</IonButton>
         </div>
       </section>
 
       <!-- Step 4: confirm -->
       <section v-if="step === 4">
-        <h2 class="section-title jp-eyebrow">Summary</h2>
+        <h2 class="section-title jp-eyebrow">{{ t('import.wizard.summary') }}</h2>
         <IonList>
           <IonItem lines="none">
-            <IonLabel>
-              {{ plan.trips.length }} archived trip{{ plan.trips.length === 1 ? '' : 's' }},
-              {{ newItemCount }} new item{{ newItemCount === 1 ? '' : 's' }} ({{
-                plan.items.length - newItemCount
-              }}
-              merged), {{ plan.newCategories.length }} categor{{
-                plan.newCategories.length === 1 ? 'y' : 'ies'
-              }}
-            </IonLabel>
+            <IonLabel>{{ summaryLine }}</IonLabel>
           </IonItem>
           <IonItem v-for="trip in plan.trips" :key="trip.name" lines="none">
             <IonLabel>
               <h3>{{ trip.name }}</h3>
-              <p>{{ trip.endDate }} · {{ trip.items.length }} items</p>
+              <p>{{ trip.endDate }} · {{ t('import.portable.items', { n: trip.items.length }) }}</p>
             </IonLabel>
           </IonItem>
         </IonList>
         <div class="wizard-nav">
-          <IonButton fill="outline" @click="step = duplicates.length > 0 ? 3 : 2">Back</IonButton>
-          <IonButton color="primary" @click="commit">Import</IonButton>
+          <IonButton fill="outline" @click="step = duplicates.length > 0 ? 3 : 2">
+            {{ t('common.back') }}
+          </IonButton>
+          <IonButton color="primary" @click="commit">{{ t('import.wizard.commit') }}</IonButton>
         </div>
       </section>
     </IonContent>

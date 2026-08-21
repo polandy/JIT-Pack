@@ -63,6 +63,11 @@ function sampleDocument(): PortableDocument {
     schema_version: PORTABLE_SCHEMA_VERSION,
     // A trip is the result of a composition, never one (FR-27.1).
     includes: [],
+    // The sample trip is typed, not generated: it follows no group, so it
+    // carries no FR-27.4 refresh state.
+    follows: [],
+    generated: [],
+    applied_changes: [],
     name: 'Samedan Sommer (Beispiel)',
     year: new Date().getFullYear(),
     start_date: isoDay(-2),

@@ -235,6 +235,51 @@ export async function includeGroup(page: Page, groupName: string) {
     .click()
 }
 
+/**
+ * M3, picking one group as the trip's only source (FR-27.4). Returns the
+ * trip's path.
+ *
+ * Shared rather than per-spec: "a trip that follows a group" is the premise of
+ * the refresh, of ADR-015's restore and of everything else built on FR-27.4,
+ * and three copies of the wizard walk would drift apart.
+ */
+export async function createTripFollowingGroup(
+  page: Page,
+  name: string,
+  group: string,
+): Promise<string> {
+  await page.goto('/trips/new')
+  await page.getByTestId('wizard-name').locator('input').fill(name)
+  await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
+  await page.getByTestId('wizard-next').click()
+  await expect(page.getByTestId('wizard-step-2')).toBeVisible()
+  await page.getByTestId('wizard-next').click()
+
+  await expect(page.getByTestId('wizard-step-3')).toBeVisible()
+  await visiblePage(page)
+    .getByTestId('wizard-section-groups')
+    .locator('ion-item')
+    .filter({ hasText: group })
+    .first()
+    .locator('ion-checkbox')
+    .click()
+  await page.getByTestId('wizard-next').click()
+
+  await expect(page.getByTestId('wizard-step-4')).toBeVisible()
+  await page.getByTestId('wizard-create').click()
+  await expectTripOpen(page, name)
+  return new URL(page.url()).pathname
+}
+
+/** Add one position to an existing group, through M7 → M8. */
+export async function addToGroup(page: Page, group: string, item: string) {
+  await page.goto('/tabs/templates')
+  await visiblePage(page).getByTestId('m7-scope-group').click()
+  await visiblePage(page).locator('ion-item').filter({ hasText: group }).first().click()
+  await expect(page.getByTestId('header-title')).toHaveText(group)
+  await addPosition(page, item)
+}
+
 export const test = base.extend<Fixtures>({
   seedMode: async ({ page }, use) => {
     await use((opts: SeedOptions) => seed(page, opts))
