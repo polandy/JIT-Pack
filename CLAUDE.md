@@ -93,9 +93,11 @@ it. Item numbers stay stable even as items close, because the log refers back to
    `dev-docs/design-foundation-plan.md`. Log: eleven sections, from *„The app gets its own two
    faces"* to *„M14 — review assistant rebuilt"*.
    **What is still owed from it:** M14 has never been **eyeballed with real proposals** (the
-   dev gallery's fixture button, `src/dev/reviewFixture.ts`, is the fastest path), and
-   E2E-M12-03's positive half is unwritten (`dev-docs/e2e-tests.md`). **Known accepted cost:**
-   M4 loses its scroll position when a detail opens (ADR-012's overlay amendment).
+   dev gallery's fixture button, `src/dev/reviewFixture.ts`, is the fastest path).
+   E2E-M12-03's positive half is **written since 2026-08-21**, and the cost M4 carried from
+   the M5 rebuild — losing its scroll position when a detail opened — is **paid** with it:
+   `lib/scrollMemory.ts` holds the offset *and* the header-line state across the replace
+   (E2E-M4-45, ADR-012's second amendment).
 4. **i18n migration** — the hard-coded English strings across the screens M4 did not touch;
    the module and both catalogues exist and M4 + the quick-add + the filter sheet + M7/M8
    + M12 + M14 + M3's step 3 are done (M3's other three steps are not — a section is a
