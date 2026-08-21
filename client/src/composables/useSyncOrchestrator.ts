@@ -54,6 +54,8 @@ import { planTemplateFromTrip, recogniseTripComposition } from '@/domain/templat
 import type { DeviationChoice, PositionDraft } from '@/domain/templateFromTrip'
 import type { IndexedDBPersistence } from '@/local/persistence'
 import { IndexedDBOutboxStore, type OutboxStore } from '@/sync/outboxStore'
+import { TRIP_STATUS_PLANNING } from '@/types/domain'
+import type { TripEdit } from './useMutations'
 import type {
   Container,
   DestinationChecklistItem,
@@ -73,6 +75,7 @@ import type {
   TripMember,
   TripSeries,
   TripStatus,
+  TravelerChangeReport,
 } from '@/types/domain'
 
 /** One entry of a trip's presence facepile (G-10, Sync-API §7). */
@@ -1148,6 +1151,117 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       groupName: template.name,
       added: plan.add.length,
       alreadyPresent: plan.alreadyPresent,
+    }
+  }
+
+  /**
+   * updateTrip writes an FR-2.7 edit of the trip's own fields. Master
+   * partition: `trips` lives there, beside the templates.
+   */
+  function updateTrip(tripId: string, fields: TripEdit): void {
+    const mutation = mutations.updateTrip(tripId, fields)
+    enqueueAndDrain('master', null, {
+      mutation,
+      optimistic: change(TABLE.trips, tripId, mutation.fields),
+    })
+  }
+
+  /**
+   * renameTraveler changes a traveler's name (FR-2.7). Deliberately *not* a
+   * removal plus an addition: every row assigned to them points at this row,
+   * and re-creating it would detach all of them at the moment the user meant
+   * the least by the change.
+   */
+  function renameTraveler(tripId: string, travelerId: string, name: string): void {
+    const mutation = mutations.renameTraveler(travelerId, name)
+    enqueueAndDrain('trip', tripId, {
+      mutation,
+      optimistic: change(TABLE.travelers, travelerId, { ...mutation.fields, trip_id: tripId }),
+    })
+  }
+
+  /**
+   * addTravelerToTrip adds a person to a trip that already exists (FR-2.7)
+   * and lets the trip's plan follow **immediately** — the FR-27.4 amendment
+   * of 2026-08-21. It performs no resolution of its own: the travelers were
+   * always part of what a trip follows, so the work is `acceptTripRefresh`,
+   * the same path the "yes" on M4's card takes. That is the whole point of
+   * routing it here rather than expanding per-person rows a second way.
+   *
+   * Returns what happened, so the screen can report it (FR-27.10's pattern)
+   * rather than leave the user guessing which rows appeared. Null when the
+   * trip cannot be seen or its data is not loaded.
+   */
+  function addTravelerToTrip(tripId: string, name: string): TravelerChangeReport | null {
+    const trip = tripStore.getTrip(tripId)
+    if (!trip) return null
+    if (!tripDataLoaded(tripId)) return null
+
+    const { mutation, id } = mutations.addTraveler(tripId, name)
+    enqueueAndDrain('trip', tripId, {
+      mutation,
+      optimistic: change(TABLE.travelers, id, mutation.fields),
+    })
+
+    return { travelerId: id, ...applyTravelerConsequences(tripId, trip) }
+  }
+
+  /**
+   * removeTraveler takes a person off a trip that has **not started** — the
+   * owner's rule (FR-2.7). On a started trip it refuses and returns null;
+   * the control is disabled there, so this is the second line rather than
+   * the first, and it exists because a store is reachable from more than one
+   * screen.
+   *
+   * The rows follow through FR-27.4 like the addition does, which is what
+   * keeps its protection intact: the person's *untouched* rows go with them,
+   * and a row that was packed, skipped or hand-edited stays on the list and
+   * only loses the assignment.
+   */
+  function removeTraveler(tripId: string, travelerId: string): TravelerChangeReport | null {
+    const trip = tripStore.getTrip(tripId)
+    if (!trip) return null
+    if (!tripDataLoaded(tripId)) return null
+    if (trip.status !== TRIP_STATUS_PLANNING) return null
+
+    // Detach first, then delete: a row still pointing at a traveler row that
+    // is gone is a dangling reference the refresh would have to guess about.
+    for (const item of tripStore.getItems(tripId)) {
+      if (item.assigned_traveler_id !== travelerId) continue
+      assignTraveler(tripId, item, null)
+    }
+
+    const mutation = mutations.removeTravelerRow(travelerId)
+    enqueueAndDrain('trip', tripId, {
+      mutation,
+      optimistic: { seq: 0, table: TABLE.travelers, id: travelerId, deleted: true, row: {} },
+    })
+
+    return { travelerId, ...applyTravelerConsequences(tripId, trip) }
+  }
+
+  /**
+   * applyTravelerConsequences runs FR-27.4 for a roster change the user just
+   * made, and reports what it did. A trip that no longer follows its groups
+   * (archived, or past) changes nothing but its roster — the same boundary
+   * every other refresh respects.
+   */
+  function applyTravelerConsequences(
+    tripId: string,
+    trip: Trip,
+  ): Omit<TravelerChangeReport, 'travelerId'> {
+    if (!followsGroups(trip, today())) return { added: 0, removed: 0, kept: 0 }
+    const before = tripStore.getItems(tripId).length
+    const plan = acceptTripRefresh(tripId)
+    if (!plan) return { added: 0, removed: 0, kept: 0 }
+    const after = tripStore.getItems(tripId).length
+    return {
+      added: plan.add.length,
+      removed: plan.remove.length,
+      // Rows the refresh deliberately left alone. Reported rather than
+      // inferred: a row that stays behind after its person left is exactly
+      // the thing a user finds later and does not understand.
+      kept: Math.max(0, before - after - plan.remove.length) + plan.update.length,
     }
   }
 
@@ -3055,6 +3169,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     setReviewFlag,
     quickAddItem,
     addGroupToTrip,
+    updateTrip,
+    renameTraveler,
+    addTravelerToTrip,
+    removeTraveler,
 
     // Master data
     createMasterItem,
