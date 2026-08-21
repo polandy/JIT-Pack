@@ -110,6 +110,49 @@ Files: `client/src/views/trips/PackingListPage.vue` (+ router/overlay layer per 
 2. Write E2E-M12-03's positive half (unblocked since the lifecycle step exists).
 3. Stage real proposals on :3000 (`docker stop jitpack-web` frees the port) and get the owner's M14 eyeball — deliverable is a click-path note or artifact link, per the standing eyeball rule.
 
+### Track J — a trip cannot be edited after it is created *(owner-found 2026-08-21 · effort M–L · decide before building)*
+
+Files (once the shape is decided): `client/src/composables/useMutations.ts`, a new trip-properties
+surface under `client/src/views/trips/`, `client/src/domain/` for the consequence rules,
+`router/index.ts`, `dev-docs/PRD_Addendum_v2.10.md` (a new FR), `dev-docs/UI_Spec_v1.10.md`
+(a new screen or an M4 amendment), `dev-docs/UI_Test_Spec_v1.0.md`, `client/e2e/`.
+
+**Not forgotten — never specified.** The screen inventory runs M1–M21 and none of them edits a
+trip. Metadata is entered in **M3 step 1**, travelers in **M3 step 2**, and after the wizard
+both are frozen.
+
+**What the code actually allows on an existing trip**, verified rather than assumed: `updateTripStatus`
+(the planning → active → archived lifecycle) and the series assignment. That is all. There is no
+`updateTrip`, no rename, no date change, no destination change. `addTraveler` exists but is called
+only from the wizard, the clone path and generation — **no surface in the app calls it on a trip
+that already exists**.
+
+One trap to name, because it looks like the missing feature: Settings offers *„Reisende:n
+hinzufügen"*. Those are the household's **default travelers** (`useDefaultTravelers`), which
+prefill M3. They change nothing about a trip that exists.
+
+**Why this outranks polish for the vacation.** A child does come along after all, a name is
+mistyped, the trip shifts by a week. Today the only answer is to create the trip again and rebuild
+the packing list — with forty rows and half the packing done, that is not an answer. Travelers are
+also load-bearing: `instantiate.ts` expands `per_person` positions over the traveler list
+(FR-25.1), and assignment points at them.
+
+**Two decisions before anyone builds:**
+
+1. **Where the surface lives.** A screen of its own reached from M4's app bar, or a sheet in the
+   M5 grammar — which is what M8 does for a template. The sheet keeps the trip on screen behind it;
+   a screen has room for travelers, dates and attributes without nesting.
+2. **What a late change does to what was generated.** Adding a traveler after generation is the
+   hard half: do the `per_person` positions extend to the new person, and does removing a traveler
+   take their rows with it? This is FR-27.4-shaped — a change with a blast radius, where manual
+   edits must still win — and §3.27's answer is instructive: *ask at the trip, name every
+   consequence, and make declining advance the ledger rather than leave pending state*. Renaming a
+   traveler is the easy case and should stay one; it must not be modelled as remove-plus-add, which
+   would detach their rows.
+
+Until it is built, the honest workaround is the clone path (FR-12.1) — and it loses the packing
+progress, which is exactly why this is a gap and not a preference.
+
 ### Track I — the back button's missing route class *(owner-found 2026-08-21 · effort S–M · next up)*
 
 Files: `client/src/router/backTarget.ts`, `router/index.ts`, `components/global/AppHeader.vue`,
@@ -173,6 +216,7 @@ Not agent work alone: deploy the released images to the homelab behind HTTPS, cr
 | G — UX polish | — | — | now |
 | H — dogfood | A, B, C, D merged | — | after first release |
 | I — back-button class | — | none (router + global header) | **next up** |
+| J — trip editing | — | none (new surface + mutations) | after its two decisions |
 
 Six tracks can fan out immediately. Recommended first wave if agent count is limited: **A, B, D** (the three blockers with no dependencies), then C, with E/F/G filling in.
 
@@ -193,3 +237,5 @@ Six tracks can fan out immediately. Recommended first wave if agent count is lim
 4. **Upgrade stance for the vacation**: pin one digest and freeze (recommended in Track D) vs. building image-export tooling now.
 5. Track A step 3: hand-rolled SW vs `vite-plugin-pwa` — the ADR will present it, but a prior leaning saves a round-trip.
 6. **Track I shape**: does a global action carry its origin (A), or does Settings become an overlay (B)? Needed before the track starts.
+7. **Track J shape**: own screen from M4's app bar, or an M5-grammar sheet?
+8. **Track J consequences**: does a traveler added after generation extend the `per_person` positions, and does removing one take their rows? (FR-27.4-shaped — ask at the trip, or leave it manual.)
