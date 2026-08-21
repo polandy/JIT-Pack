@@ -1961,13 +1961,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       }
     }
 
-    restoreRefreshState(
-      tripId,
-      doc,
-      restoredTemplates ?? new Map(),
-      travelerIDs,
-      rowIdByPosition,
-    )
+    restoreRefreshState(tripId, doc, restoredTemplates ?? new Map(), travelerIDs, rowIdByPosition)
 
     if (!local) {
       syncStatus.setPendingCount(outbox.totalPending())
