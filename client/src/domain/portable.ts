@@ -14,7 +14,13 @@ import { parse, parseAllDocuments, stringify } from 'yaml'
 import { findDuplicates } from './spreadsheet'
 import { includedTemplatesOf } from './templates'
 import type {
+  AppliedChange,
+  AppliedChangeKind,
+  ChangeDetail,
+  ChangedField,
   Container,
+  GeneratedPosition,
+  ItemMode,
   MasterItem,
   Template,
   TemplateInclude,
@@ -23,6 +29,7 @@ import type {
   Traveler,
   Trip,
   TripItem,
+  TripTemplateSource,
 } from '@/types/domain'
 
 /** The schema this app writes and fully understands (FR-18.5). */
@@ -101,6 +108,45 @@ export interface PortableGroup {
   items: PortableItem[]
 }
 
+/**
+ * One `trip_generated_positions` row (FR-27.4) in portable shape — the
+ * snapshot of what generation last produced for one position.
+ *
+ * Named throughout rather than keyed by id, like the rest of the format: the
+ * restore rebuilds every id, so what has to survive is the *identity* the
+ * ledger is keyed on — the master item and the traveler — and the values that
+ * decide whether a row is still the group's or has become the user's.
+ */
+export interface PortableGeneratedPosition {
+  /** The master item this position resolves to; its name is the identity. */
+  item: string
+  /** The traveler it belongs to; absent = trip-global (FR-25.8). */
+  traveler: string | null
+  /** The template that contributed it — what the FR-27.4 log names. */
+  source: string
+  /** What generation produced, which may differ from the master item's name. */
+  name: string
+  quantity: number
+  mode: string
+  late_packer: boolean
+  weight_grams: number | null
+  value_cents: number | null
+  category: string | null
+  /** FR-27.7 preparation tasks as generation produced them. */
+  tasks: string[]
+}
+
+/** One line of the FR-27.4 applied-changes log in portable shape. */
+export interface PortableAppliedChange {
+  /** The group's name — denormalised in the table too, for the same reason. */
+  source: string
+  kind: AppliedChangeKind
+  item: string
+  detail: ChangeDetail | null
+  /** When the change landed on this trip, ISO-8601. */
+  at: string
+}
+
 export interface PortableDocument {
   kind: 'template' | 'trip'
   schema_version: number
@@ -125,6 +171,16 @@ export interface PortableDocument {
   /** FR-27.1: the groups a Ferien-Vorlage composes. Empty on everything else. */
   includes: PortableGroup[]
   items: PortableItem[]
+  /**
+   * FR-27.4: the templates this trip follows (`trip_template_sources`).
+   * Empty on templates, and on every trip file written before this existed —
+   * which is the documented fallback rather than an error (see `fromRaw`).
+   */
+  follows: string[]
+  /** FR-27.4: the ledger (`trip_generated_positions`). Empty on templates. */
+  generated: PortableGeneratedPosition[]
+  /** FR-27.4: the applied-changes log (`trip_applied_changes`). */
+  applied_changes: PortableAppliedChange[]
 }
 
 export interface ParseResult {
@@ -255,6 +311,9 @@ function fromRaw(raw: unknown): ParseResult {
       containers: toContainers(obj['containers']),
       includes,
       items,
+      follows: toFollows(obj['follows']),
+      generated: toGeneratedPositions(obj['generated']),
+      applied_changes: toAppliedChanges(obj['applied_changes']),
     },
     error: null,
     newerSchema: schemaVersion > PORTABLE_SCHEMA_VERSION,
@@ -392,6 +451,25 @@ export function serializeTemplate(
   })
 }
 
+/**
+ * Everything a trip's file needs of the FR-27.4 refresh state, with the two
+ * resolvers that turn its ids into the names a portable file carries.
+ *
+ * Without these three sections a restored device re-asks proposals the user
+ * already answered and resurrects positions they deleted: the ledger is what
+ * tells "the group changed this" from "the user changed this", and it is
+ * keyed on ids that the restore rebuilds from scratch.
+ */
+export interface TripRefreshState {
+  sources: TripTemplateSource[]
+  generated: GeneratedPosition[]
+  appliedChanges: AppliedChange[]
+  /** Template name by id — a source that cannot be named cannot be restored. */
+  templateName: (id: string) => string | undefined
+  /** Master item name by id — the other half of a ledger entry's identity. */
+  masterItemName: (id: string) => string | undefined
+}
+
 /** serializeTrip writes a trip's packing list, clean or with progress (FR-18.3). */
 export function serializeTrip(args: {
   trip: Trip
@@ -399,6 +477,8 @@ export function serializeTrip(args: {
   travelers: Traveler[]
   containers: Container[]
   includeProgress: boolean
+  /** FR-27.4. Omitted by a plain single-trip export; the backup passes it. */
+  refresh?: TripRefreshState
 }): string {
   const travelerNames = new Map(args.travelers.map((t) => [t.id, t.name]))
   const containerNames = new Map(args.containers.map((c) => [c.id, c.name]))
@@ -430,6 +510,56 @@ export function serializeTrip(args: {
       ...(item.late_packer ? { late_packer: true } : {}),
     }))
 
+  const refresh = args.refresh
+  const follows = [
+    ...new Set(
+      (refresh?.sources ?? [])
+        .map((source) => refresh?.templateName(source.template_id))
+        .filter((name): name is string => name !== undefined && name !== ''),
+    ),
+  ].sort((a, b) => a.localeCompare(b))
+
+  // An entry whose master item, template or traveler no longer has a name is
+  // dropped rather than written half-resolved: restored against the wrong
+  // identity it would detach a position nobody asked to detach, which is the
+  // exact failure these sections exist to prevent.
+  const generated = (refresh?.generated ?? [])
+    .flatMap((entry) => {
+      const item = refresh?.masterItemName(entry.source_item_id)
+      const source = refresh?.templateName(entry.source_template_id)
+      const traveler = entry.traveler_id === '' ? null : travelerNames.get(entry.traveler_id)
+      if (!item || !source || traveler === undefined) return []
+      return [
+        {
+          item,
+          ...(traveler ? { traveler } : {}),
+          source,
+          name: entry.name,
+          quantity: entry.quantity,
+          mode: entry.mode,
+          ...(entry.late_packer ? { late_packer: true } : {}),
+          ...(entry.weight_grams !== null ? { weight_grams: entry.weight_grams } : {}),
+          ...(entry.value_cents !== null ? { value_cents: entry.value_cents } : {}),
+          ...(entry.category_name ? { category: entry.category_name } : {}),
+          ...(entry.tasks.length > 0 ? { tasks: entry.tasks } : {}),
+        },
+      ]
+    })
+    .sort((a, b) => a.item.localeCompare(b.item) || (a.name ?? '').localeCompare(b.name ?? ''))
+
+  // Oldest first, the order the log was written in — M2 reverses it for
+  // reading. The name travels denormalised exactly as it is stored: the
+  // record of what a group did must outlive the group.
+  const appliedChanges = [...(refresh?.appliedChanges ?? [])]
+    .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
+    .map((change) => ({
+      source: change.source_template_name,
+      kind: change.kind,
+      item: change.item_name,
+      ...(change.detail ? { detail: change.detail } : {}),
+      at: change.created_at,
+    }))
+
   return stringify({
     kind: 'trip',
     schema_version: PORTABLE_SCHEMA_VERSION,
@@ -442,6 +572,11 @@ export function serializeTrip(args: {
     ...(travelers.length > 0 ? { travelers } : {}),
     ...(containers.length > 0 ? { containers } : {}),
     items,
+    // FR-27.4, omitted rather than empty: a trip that follows nothing has no
+    // refresh state, and empty keys in every file invite the reader to wonder.
+    ...(follows.length > 0 ? { follows } : {}),
+    ...(generated.length > 0 ? { generated } : {}),
+    ...(appliedChanges.length > 0 ? { applied_changes: appliedChanges } : {}),
   })
 }
 
@@ -516,6 +651,107 @@ function toContainers(v: unknown): PortableContainer[] {
     })
   }
   return out
+}
+
+// --- FR-27.4 sections ---
+//
+// All three are *tolerant*: an absent section reads as empty and a malformed
+// entry is dropped, where a malformed item aborts the document. The asymmetry
+// is deliberate and is the documented fallback for a file written before these
+// sections existed (ADR-015): the items are the user's data, while these three
+// are bookkeeping about how the trip follows its groups. Losing a trip because
+// one ledger line is unreadable would trade the valuable half for the cheap
+// one — the refresh re-derives what it cannot read here.
+
+function toFollows(v: unknown): string[] {
+  if (!Array.isArray(v)) return []
+  const out: string[] = []
+  for (const entry of v) {
+    const name = typeof entry === 'string' ? entry.trim() : ''
+    if (name !== '' && !out.includes(name)) out.push(name)
+  }
+  return out
+}
+
+function toMode(v: unknown): ItemMode {
+  return v === 'buy_before' || v === 'buy_local' ? v : 'pack'
+}
+
+function toGeneratedPositions(v: unknown): PortableGeneratedPosition[] {
+  if (!Array.isArray(v)) return []
+  const out: PortableGeneratedPosition[] = []
+  for (const entry of v) {
+    if (typeof entry !== 'object' || entry === null) continue
+    const o = entry as Record<string, unknown>
+    const item = typeof o['item'] === 'string' ? o['item'].trim() : ''
+    const source = typeof o['source'] === 'string' ? o['source'].trim() : ''
+    // Both are references the restore has to resolve to an id. An entry
+    // missing either cannot be placed, and a placed-wrong ledger entry
+    // detaches a position nobody asked to detach.
+    if (item === '' || source === '') continue
+    const name = typeof o['name'] === 'string' && o['name'].trim() !== '' ? o['name'].trim() : item
+    out.push({
+      item,
+      traveler: str(o['traveler']),
+      source,
+      name,
+      quantity: coerceQuantity(o['quantity']),
+      mode: toMode(o['mode']),
+      late_packer: o['late_packer'] === true,
+      weight_grams: typeof o['weight_grams'] === 'number' ? o['weight_grams'] : null,
+      value_cents: typeof o['value_cents'] === 'number' ? o['value_cents'] : null,
+      category: str(o['category']),
+      tasks: Array.isArray(o['tasks'])
+        ? o['tasks'].filter((t): t is string => typeof t === 'string')
+        : [],
+    })
+  }
+  return out
+}
+
+const CHANGED_FIELDS: readonly ChangedField[] = [
+  'quantity',
+  'mode',
+  'name',
+  'late_packer',
+  'weight_grams',
+  'value_cents',
+  'category_name',
+  'tasks',
+]
+
+function toChangeDetail(v: unknown): ChangeDetail | null {
+  if (typeof v !== 'object' || v === null) return null
+  const o = v as Record<string, unknown>
+  const field = CHANGED_FIELDS.find((f) => f === o['field'])
+  if (!field) return null
+  const value = (raw: unknown): ChangeDetail['from'] =>
+    typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean' ? raw : null
+  return { field, from: value(o['from']), to: value(o['to']) }
+}
+
+function toAppliedChanges(v: unknown): PortableAppliedChange[] {
+  if (!Array.isArray(v)) return []
+  const out: PortableAppliedChange[] = []
+  for (const entry of v) {
+    if (typeof entry !== 'object' || entry === null) continue
+    const o = entry as Record<string, unknown>
+    const kind = o['kind']
+    if (kind !== 'added' && kind !== 'removed' && kind !== 'changed') continue
+    const source = typeof o['source'] === 'string' ? o['source'].trim() : ''
+    const item = typeof o['item'] === 'string' ? o['item'].trim() : ''
+    if (source === '' || item === '') continue
+    out.push({
+      source,
+      kind,
+      item,
+      detail: toChangeDetail(o['detail']),
+      // A log line with no timestamp would sort to the top of M2's list and
+      // claim to be the newest thing that happened.
+      at: str(o['at']) ?? '',
+    })
+  }
+  return out.filter((entry) => entry.at !== '')
 }
 
 /**
