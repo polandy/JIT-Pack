@@ -82,6 +82,24 @@ async function assignTraveler(page: Page, itemName: string, travelerName: string
   await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 }
 
+/**
+ * Drive the trip through its lifecycle to *archived* (E2E-M4-43's step).
+ * Each expectation is the settled signal that the status write landed — the
+ * pair of actions swaps, which a fixed wait could only probably catch.
+ */
+async function startTrip(page: Page) {
+  await page.getByTestId('m4-start').click()
+  await expect(page.getByTestId('m4-archive')).toBeVisible()
+}
+
+/** Pack a row, which is what a trend column actually counts. */
+async function packRow(page: Page, name: string) {
+  await page.getByTestId(`m4-row-${name}`).getByTestId('row-check').locator('ion-checkbox').click()
+  // The row leaves the open list once it is done (FR-25.2) — the rendered
+  // evidence that the pack was written rather than merely clicked.
+  await expect(page.getByTestId(`m4-row-${name}`)).toHaveCount(0)
+}
+
 test.describe('M12 analytics @local @m12', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
@@ -128,15 +146,9 @@ test.describe('M12 analytics @local @m12', () => {
     await expect(visible(page).getByTestId('analytics-empty')).toBeVisible()
   })
 
-  // E2E-M12-03 (FR-14.3), the reachable half: a series with no archived
+  // E2E-M12-03 (FR-14.3), the absence half: a series with no archived
   // history shows no trend section — an absent section, not an empty
-  // chart. The positive half (trend columns, flagged list) needs an
-  // archived series trip, and no UI path can archive one today: the
-  // wizard creates *planning* trips and both archive affordances (M2
-  // swipe, M4 app-bar) are gated on *active*, a status only the parked
-  // North-Star phase assigns. The math is unit-owned meanwhile
-  // (analytics.spec.ts: seriesWeightTrend/seriesTopFlagged); the gap is
-  // recorded in dev-docs/e2e-tests.md.
+  // chart. The positive half is the case below it.
   test('E2E-M12-03: without archived series history there is no trend section', async ({
     page,
   }) => {
@@ -149,6 +161,73 @@ test.describe('M12 analytics @local @m12', () => {
     await expect(visible(page).getByTestId('analytics-slice-none')).toBeVisible()
     await expect(visible(page).getByTestId('analytics-trend')).toHaveCount(0)
     await expect(visible(page).getByTestId('analytics-flagged')).toHaveCount(0)
+  })
+
+  // E2E-M12-03 (FR-14.3), the positive half — owed since 2026-08-19 and
+  // written 2026-08-21. It was never a test gap: the trend reads the
+  // *archived* trips of a series, and until M21 needed the same step nothing
+  // user-facing moved a trip out of *planning*, so the precondition could not
+  // be built through the app at all (spec §2.4 forbids injecting it). With
+  // M4's start action in place the whole history is now reachable: pack a
+  // weighted row, start the trip, type the thing that was missing, archive.
+  test('E2E-M12-03: an archived trip in the series draws the trend and its flags', async ({
+    page,
+  }) => {
+    // The world is two whole trips built through M3/M4/M5, which on WebKit
+    // lands near the budget.
+    test.slow()
+    await createMasterItem(page, 'Zelt', 5000)
+
+    // Last year's trip, taken all the way to archived.
+    await createTripViaWizard(page, {
+      name: 'Elba 2025',
+      series: 'Elba',
+      startDate: '2025-07-01',
+      travelers: ['Andy'],
+    })
+    await quickAddFromMaster(page, 'Zelt')
+    await startTrip(page)
+    await packRow(page, 'Zelt')
+    // On a running trip a typed row is what nobody had packed — the app
+    // stamps FR-9.1 *missing* on it, which is the only flag writer M4 has.
+    await quickAddVerbatim(page, 'Powerbank')
+    // Read the flag back off the stored row before archiving. The trend's
+    // flag list is the assertion this case is about, and it would report an
+    // empty list just as quietly if nothing had ever been flagged.
+    await page.getByTestId('m4-row-Powerbank').getByRole('heading').click()
+    await expect(page.getByTestId('m5-glance')).toContainText('Missing')
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+
+    await page.getByTestId('m4-archive').click()
+
+    // This year's trip, in the same series.
+    await createTripViaWizard(page, {
+      name: 'Elba 2026',
+      series: 'Elba',
+      startDate: '2026-07-01',
+      travelers: ['Andy'],
+    })
+
+    await openAnalytics(page)
+
+    // The trend counts the weight actually *carried*: one column, the year
+    // it was carried in, and the packed kilos rather than the planned ones.
+    const trend = visible(page).getByTestId('analytics-trend')
+    await expect(trend).toBeVisible()
+    await expect(trend.locator('.col')).toHaveCount(1)
+    await expect(trend).toContainText('2025')
+    await expect(trend).toContainText('5.0')
+
+    // And the series' flags are named with their count, not merely counted.
+    const flagged = visible(page).getByTestId('analytics-flagged')
+    await expect(flagged).toContainText('Powerbank')
+    await expect(flagged).toContainText('1× missing')
+
+    // The other half of the case still holds beside it: this trip's own
+    // slices are the trip's, not the series' — a trend that leaked into the
+    // bars would show last year's tent here.
+    await expect(visible(page).getByTestId('analytics-empty')).toBeVisible()
   })
 
   // E2E-M12-04 (FR-8.2/25.11): tapping a bar lands on M4 *filtered* to
