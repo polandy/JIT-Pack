@@ -10,6 +10,7 @@ import { newId } from '@/lib/ids'
 import type { Mutation, MutationOp } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
 import { REVIEW_FLAG_FIELD } from '@/types/domain'
+import type { Trip } from '@/types/domain'
 import type {
   AppliedChange,
   GeneratedPosition,
@@ -26,6 +27,12 @@ import type {
  * there is exactly one author and no directory to name.
  */
 export const CLIENT_ACTOR_PLACEHOLDER = 'current-user'
+
+/** The trip fields FR-2.7's editor may change. Status and the series have
+ * their own actions, and the rest of the row is not the user's to set. */
+export type TripEdit = Partial<
+  Pick<Trip, 'name' | 'year' | 'start_date' | 'end_date' | 'attributes'>
+>
 
 export function useMutations(hlc: HLCGenerator) {
   function make(
@@ -445,6 +452,32 @@ export function useMutations(hlc: HLCGenerator) {
 
   function updateTripStatus(tripId: string, status: string): Mutation {
     return make('upsert', TABLE.trips, tripId, { status })
+  }
+
+  /**
+   * updateTrip writes the fields an FR-2.7 edit changed and only those: an
+   * upsert of the whole row would hand back a value another device changed
+   * meanwhile, which the field-level merge (NFR-4.2a) exists to avoid.
+   */
+  function updateTrip(tripId: string, fields: TripEdit): Mutation {
+    const row: Record<string, unknown> = { ...fields }
+    if ('attributes' in fields) {
+      row.attributes = fields.attributes ? JSON.stringify(fields.attributes) : null
+    }
+    return make('upsert', TABLE.trips, tripId, row)
+  }
+
+  /** renameTraveler changes the name and nothing else — FR-2.7 forbids
+   * modelling a rename as a removal plus an addition, which would detach
+   * every row pointing at the traveler. */
+  function renameTraveler(travelerId: string, name: string): Mutation {
+    return make('upsert', TABLE.travelers, travelerId, { name })
+  }
+
+  /** removeTraveler tombstones the traveler row. What happens to the rows
+   * assigned to them is FR-27.4's rule, applied by the orchestrator. */
+  function removeTravelerRow(travelerId: string): Mutation {
+    return make('delete', TABLE.travelers, travelerId)
   }
 
   /** deleteTrip tombstones the trip on the master partition. The server
@@ -887,6 +920,9 @@ export function useMutations(hlc: HLCGenerator) {
     // Trips
     createTrip,
     updateTripStatus,
+    updateTrip,
+    renameTraveler,
+    removeTravelerRow,
     deleteTrip,
     createImportedTrip,
     addImportedTripItem,

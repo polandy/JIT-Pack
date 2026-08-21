@@ -109,8 +109,8 @@ describe('t', () => {
 
   it('pluralizes German independently of English', () => {
     setLocale('de')
-    expect(t('packing.itemsLeft', { n: 1 })).toBe('1 Sache offen')
-    expect(t('packing.itemsLeft', { n: 4 })).toBe('4 Sachen offen')
+    expect(t('packing.itemsLeft', { n: 1 })).toBe('1 Packelement offen')
+    expect(t('packing.itemsLeft', { n: 4 })).toBe('4 Packelemente offen')
   })
 
   it('returns the key itself for an unknown key, so the UI never renders blank', () => {

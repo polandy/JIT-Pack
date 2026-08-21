@@ -312,6 +312,18 @@ export interface TemplateItem {
 
 // --- The planning-trip refresh (FR-27.4, migration 023) ---
 
+/**
+ * FR-2.7: what a traveller change did to the trip's list, so the editor can
+ * say it rather than let the user discover it. `kept` is the rows FR-27.4's
+ * protection left standing — a row somebody had already packed or edited.
+ */
+export interface TravelerChangeReport {
+  travelerId: string
+  added: number
+  removed: number
+  kept: number
+}
+
 /** FR-27.4/27.10: one template a trip follows. Master partition. */
 export interface TripTemplateSource {
   id: string
