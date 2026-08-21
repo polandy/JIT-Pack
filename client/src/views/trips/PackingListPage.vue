@@ -221,6 +221,20 @@ const trip = computed(() => store.getTrip(props.tripId))
 const kpis = computed(() => store.kpis(props.tripId))
 const isActive = computed(() => trip.value?.status === 'active')
 const allItems = computed(() => store.getItems(props.tripId))
+
+/**
+ * FR-25.13c: what the trip already carries — skipped rows included — is
+ * not offered again by the quick-add, and it is the context the composer's
+ * chip rows relate to. Bringing a skipped item back is M4's reveal + undo
+ * path (FR-5.5), not a second add.
+ */
+const quickAddExcludeIds = computed(() => [
+  ...new Set(
+    allItems.value
+      .map((item) => item.source_item_id)
+      .filter((id): id is string => id !== null),
+  ),
+])
 const openPrepItems = computed(() => store.itemsWithOpenPrep(props.tripId))
 
 const view = computed(() =>
@@ -1174,6 +1188,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
         ref="quickAdd"
         :is-active="isActive"
         :offer-groups="true"
+        :exclude-item-ids="quickAddExcludeIds"
         @add="onQuickAdd"
         @add-group="onQuickAddGroup"
       />
