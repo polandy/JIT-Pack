@@ -139,7 +139,11 @@ describe('renameTraveler (FR-2.7)', () => {
     const before = pantsRows().map((r) => r.id)
     orch.renameTraveler(TRIP_ID, 'trv-z', 'Zoë')
 
-    expect(useTripStore().getTravelers(TRIP_ID).find((t) => t.id === 'trv-z')?.name).toBe('Zoë')
+    expect(
+      useTripStore()
+        .getTravelers(TRIP_ID)
+        .find((t) => t.id === 'trv-z')?.name,
+    ).toBe('Zoë')
     expect(pantsRows().map((r) => r.id)).toEqual(before)
   })
 })
@@ -192,7 +196,11 @@ describe('removeTraveler (FR-2.7 + FR-27.4)', () => {
 
     orch.removeTraveler(TRIP_ID, 'trv-z')
 
-    expect(useTripStore().getTravelers(TRIP_ID).map((t) => t.id)).toEqual(['trv-x'])
+    expect(
+      useTripStore()
+        .getTravelers(TRIP_ID)
+        .map((t) => t.id),
+    ).toEqual(['trv-x'])
     expect(pantsRows().map((r) => r.assigned_traveler_id)).toEqual(['trv-x'])
   })
 
