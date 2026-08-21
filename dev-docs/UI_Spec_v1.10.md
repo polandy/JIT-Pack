@@ -343,6 +343,32 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
 * **Visibility:** Rendered and routable only for instance admins with an OIDC session; hidden entirely in Single-User and Local Mode (FR-17.3/FR-19.3, G-8). Non-admin API access is rejected with 403 — the screen is access-controlled, not merely unlinked.
 * **Navigation:** Administration row in M17 (only visible under the same conditions).
 
+### M22 — Trip Properties (FR-2.7) — *specified 2026-08-21, not built*
+
+* **Route:** `/trips/:tripId/edit`, back-target `/trips/:tripId` (the ADR-011 contract). Reached from
+  **M4's G-12 cluster**, not from M2 — the trip you are editing is the one you are looking at.
+* **Why a screen and not a sheet** (owner decision 2026-08-21): the traveller roster is a list with
+  its own add and remove affordances, and the M5 grammar would nest a list inside an overlay over a
+  list. The other rebuilt editors that own a roster-like section — M8 with its groups — are screens
+  for the same reason.
+* **Elements:** the trip **name** (commits on blur/Enter, the ADR-011 header mirrors it, the M8
+  pattern); **year and the two dates**, both optional per FR-2.1b with the year required; the
+  **series** it belongs to; and the **travellers** section — one row per person, rename in place,
+  ＋ to add, ✕ to remove.
+* **What a traveller change does** is FR-27.4's amended rule, and the screen states it rather than
+  performing it silently: adding applies **immediately** and reports the FR-27.10 way — what was
+  added, what that person already had, what this trip's conditions excluded. Removing takes their
+  **untouched** rows; a row that was packed, skipped or hand-edited stays on the list and loses only
+  the assignment, because it is evidence of work somebody did. The report names that too, so a row
+  left behind is never a surprise found later.
+* **States:** **Removal is offered only while the trip has not started.** On an active or archived
+  trip the ✕ is present but disabled, with the reason on it — hidden, it would be hunted for. Adding
+  and renaming stay available on an active trip; on an archived one the whole screen is read-only,
+  consistent with FR-27.4's "past trips are never touched".
+* **Modes:** unchanged in all three. The screen edits trip-level records, not membership — sharing
+  and roles remain FR-4.5's roster (`/trips/:tripId/members`), which is hidden outside Server Mode
+  per G-8. Local Mode has the full screen: travellers are trip records, not accounts (FR-19.3).
+
 ### M21 — Vorlage aus Reise (Template from Trip)
 
 **Implemented 2026-08-19** (Addendum §3.27, FR-27.5) — the concept closed 2026-08-08 and was mocked in `UI_Concept_Prototype.html`. Three notes from building it: the entry needed a **lifecycle step that did not exist** (nothing user-facing moved a trip to *active*, so nothing could archive one — M4's app bar and M2's swipe now offer *Reise starten* on a planning trip); a row generated from the old **Ferien-Vorlage's own** positions is treated as loose rather than recognised, because FR-27.1 forbids a Vorlage including another one, and it says so differently from an ad-hoc row; and the *„Auf der Reise ergänzt"* wording describes a path the app cannot walk — see FR-27.5's build note.
