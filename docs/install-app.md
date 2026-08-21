@@ -32,6 +32,27 @@ On Android and desktop browsers, push works with or without installing.
 
 Notifications exist on multi-user instances. In Single-User and Local Mode there is nobody to notify, so the app hides the section entirely.
 
+## Packing without a connection
+
+Changes you make while the connection is gone are kept **on the phone**, not
+just in the open tab. The sync indicator in the app bar carries a number: how
+many changes are still waiting. Its detail view — tap the indicator — spells
+the same thing out and tells you they are saved on this device.
+
+That survives closing the app or reloading the page. When the app is next
+opened with a connection, the waiting changes are sent before anything is
+fetched, so your offline packing is never overwritten by an older copy from
+the server.
+
+Two things worth knowing:
+
+- The changes go out when the app **does something** with a network again:
+  when it starts, when you open the trip, or when you make the next change.
+  It does not send them the instant the wifi returns while the app sits idle.
+- Very rarely the browser refuses to store anything more (no space left). The
+  detail view then says so instead of promising your changes are safe — back
+  out of the packing screen and reconnect before you close the app.
+
 ## Updates
 
 The app updates itself: whenever it is opened with a connection, it fetches the current version in the background. A newly downloaded version does not interrupt you — the sync indicator in the app bar shows a small dot, and its detail view says a new version is ready. It takes over the next time you open the app.

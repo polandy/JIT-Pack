@@ -82,10 +82,10 @@ it. Item numbers stay stable even as items close, because the log refers back to
    groups onto a running trip, portable YAML carrying the composition (ADR-017), and M21
    folding a finished trip back into its groups (FR-27.5). Log: seven sections, from
    *„§3.27 generation"* to *„M21 — Vorlage aus Reise"*.
-   **One gap stays open:** the Local Mode backup does not carry the three FR-27.4 tables
-   (`trip_template_sources`, `trip_generated_positions`, `trip_applied_changes`), so a
-   restored device keeps its Vorlagen and trips but starts following them afresh. Schema and
-   sync wiring exist; only the backup document is missing them.
+   The gap that stood open here is closed too (2026-08-21): the Local Mode backup carries
+   the three FR-27.4 tables, named in the trip document and re-keyed on restore against the
+   ids it just created (ADR-015 amendment). Log: *„The device backup carries the FR-27.4
+   refresh state"*.
 3. ~~**The design foundation, then the remaining screen rebuilds**~~ — **both complete**
    (2026-08-14 … 08-16). The foundation is the three token tables plus the gate (invariants
    9/9b), the FR-25.2 pack-out and the ADR-013 visual baselines; the rebuilds are M4, M5, M7,
@@ -93,17 +93,19 @@ it. Item numbers stay stable even as items close, because the log refers back to
    `dev-docs/design-foundation-plan.md`. Log: eleven sections, from *„The app gets its own two
    faces"* to *„M14 — review assistant rebuilt"*.
    **What is still owed from it:** M14 has never been **eyeballed with real proposals** (the
-   dev gallery's fixture button, `src/dev/reviewFixture.ts`, is the fastest path), and
-   E2E-M12-03's positive half is unwritten (`dev-docs/e2e-tests.md`). **Known accepted cost:**
-   M4 loses its scroll position when a detail opens (ADR-012's overlay amendment).
-4. **i18n migration** — **all but two screens are done** (2026-08-21). The rule is that a
+   dev gallery's fixture button, `src/dev/reviewFixture.ts`, is the fastest path).
+   E2E-M12-03's positive half is **written since 2026-08-21**, and the cost M4 carried from
+   the M5 rebuild — losing its scroll position when a detail opened — is **paid** with it:
+   `lib/scrollMemory.ts` holds the offset *and* the header-line state across the replace
+   (E2E-M4-45, ADR-012's second amendment).
+4. **i18n migration** — **all but one screen are done** (2026-08-21). The rule is that a
    **section is the unit**: a half-translated screen is worse than an untranslated one.
    On the catalogue: M1–M4, M6, M7/M8, M9–M12, M14, M16, M19, M20, M21, the trip roster,
    the conflict log, the OIDC login, and the global chrome — the four anchors and the
    header bar's route titles now store a `MessageKey` rather than finished English text,
-   which is what had made them unreachable by a language switch. **Two remain.**
-   **M15/M18** (`views/import/*`) were excluded by file while the MVP backup track owned
-   them; their route titles are localized, their bodies are not. **M17 Settings** is
+   which is what had made them unreachable by a language switch. **One remains.**
+   **M15/M18** (`views/import/*`) were excluded from this pass by file because the MVP
+   backup track owned them — and localized there instead, so nothing is owed. **M17 Settings** is
    half-translated and has been since before the migration — ten `t()` calls beside about
    fifteen literals, plus `AvatarCropModal`. It is one section, so it wants one commit.
    Detail in the implementation log.
