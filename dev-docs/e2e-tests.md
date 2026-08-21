@@ -59,6 +59,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
+| M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04 | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
@@ -990,3 +991,36 @@ itself.
 
 Mutation-proved: with `nav.trips` set to `Trips` in the German catalogue the
 case fails on the rendered label, twice, including the retry.
+
+## M22 — a trip's properties and its travellers (`e2e/trip-properties.spec.ts`, 2026-08-21)
+
+Four cases, Local Mode, landed with the M22 screen (FR-2.7). The whole
+consequence rule runs client-side (invariant 4), so a broken rule shows up here
+rather than behind a round trip.
+
+**E2E-M22-03 is the case this file exists for, and it was green for the wrong
+reason three times.** Each version is worth knowing, because each mistake is
+available to the next screen that owns sibling rows:
+
+1. *Count plus surviving name.* An over-broad removal detaches every row of the
+   position, and the FR-27.4 refresh then re-resolves and **generates the
+   sibling's row again** — same name, same count, different row, and everything
+   done to it gone. The mutation (detach by position instead of by traveller)
+   left the case green.
+2. *Pack the sibling to prove identity.* A fully packed row leaves the list
+   through the FR-25.2 pack-out, so the signal walked off screen. The seeded
+   position now carries **quantity 2** and the row is packed **once**: a
+   part-packed row keeps its place, and its `1/2` is what has to survive.
+3. *Navigate straight after confirming.* `page.goto` outran the removal and the
+   case failed against correct code. It now waits on the roster losing the row
+   — rendered, settled state.
+
+Two smaller traps, both costing a run each. A template position is
+**trip-global by default**, so a per-person case has to set the assignment in
+M8 or it silently tests one unassigned row. And a traveller row is addressed by
+its **name** through a `data-testid`, because Ionic sets an input's value as a
+property rather than an attribute — `input[value="Zoe"]` never matches.
+
+E2E-M22-04 asserts an absence (removal is refused on a started trip), so it
+leans on the positive signals the screen renders anyway: the control is present
+and `aria-disabled`, and the reason is a visible note.
