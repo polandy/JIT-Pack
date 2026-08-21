@@ -3782,3 +3782,52 @@ test asserts the *claim* (no „sofort"/„immediately") rather than the copy. I
 took **rendering the screen with real proposals** to see it: the sentence only
 appears once something has been applied, which is a state no test and no
 screenshot had ever reached.
+
+## 2026-08-21 — M4 comes back where it was left (ADR-012's carried cost, MVP Track G S3)
+
+ADR-012's overlay amendment recorded a cost and named its repair: the M5 sheet
+is an *alias* of M4's route and opening it `replace`s, which re-renders the
+list from the top, "the cheaper repair is on the other side: remember M4's
+offset per trip". This is that repair, plus the four things it turned out to
+need — none of which the amendment could have known, and all of which are the
+reason it took a rendered measurement rather than a stylesheet reading.
+
+**The memory cannot live in the component, and nearly did.** The first version
+kept a `Map` at the top of `PackingListPage.vue`. In a `<script setup>` block a
+top-level binding is created per *instance*, and the instance is exactly what
+the replace tears down — so every read found an empty map. It lives in
+`client/src/lib/scrollMemory.ts` now, with its own unit tests, and the module's
+own doc comment names the trap.
+
+**A scroll position on this screen is two values.** M4's header line is sticky
+but in flow: it holds 84 px of the *scrolled* content, so putting the offset
+back under a re-opened line shows different rows than the ones the user was
+reading. The collapsed state therefore travels with the number, and is applied
+during setup — the first painted frame after the sheet is already correct, so
+there is no max-height transition to race.
+
+**The list's own re-render reports its way back from the top.** Those scroll
+events, read as the user's, both re-open the header line and overwrite the
+offset that is about to be re-applied. The screen now stops listening to itself
+between opening the sheet and finishing the restore, which is also what made
+the WebKit run stop remembering a zero.
+
+**And the header line was flipping open and shut, which nobody had seen.**
+Collapsing it removes its own height from the scrolled content; the browser
+answers that with a scroll adjustment; the screen reads the adjustment as an
+upward scroll and re-opens the line, which grows the content again. Under
+Playwright's load the loop ran for as long as the test watched. Two changes
+close it: `overflow-anchor: none` on the content's scroll part — this list has
+one thing above the rows and it is the element that moves — and the line now
+honours `prefers-reduced-motion` by not travelling at all, which it should have
+done anyway: it is the largest movement on the screen and it happens while the
+list is moving too.
+
+**The e2e case is E2E-M4-45**, in its own describe with motion reduced, and it
+waits on a signal the page raises (`data-scroll-restored`) rather than on a
+clock. It asserts the rendered scroll offset and the folded header, never the
+URL. Mutation-proved by dropping the `scrollToPoint` while keeping the signal:
+red on both engines. Writing it also cost one false-green that is worth keeping
+in mind — Playwright scrolls whatever it is told to click into view, so a row
+chosen for being "on the page" rather than "inside the content's box" quietly
+scrolled the list back to the top before the measurement.

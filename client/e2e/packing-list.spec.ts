@@ -18,6 +18,12 @@ import type { Page } from '@playwright/test'
 
 const TRIP = { name: 'Samedan Sommer', endDate: '2026-12-31', travelers: ['Andy', 'Sia'] }
 
+/**
+ * Enough rows that the list is taller than a phone screen — E2E-M4-45 needs
+ * a scroll position worth losing.
+ */
+const SCROLL_ROWS = Array.from({ length: 16 }, (_, i) => `Sache ${i + 1}`)
+
 /** Adds rows through the quick-add, which is the only add path M4 has. */
 async function quickAdd(page: Page, names: string[]) {
   await openQuickAdd(page)
@@ -468,5 +474,99 @@ test.describe('M4 packing list @local @m4', () => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await expect(page.getByTestId('header-title')).toHaveText(TRIP.name)
     await expect(visible(page).getByTestId('m4-trip-name')).toHaveCount(0)
+  })
+})
+
+/*
+ * E2E-M4-45 runs with motion reduced, and that is a choice rather than a
+ * convenience: the header line folds over a max-height transition that also
+ * changes the height of the scrolled content, so with it animating the
+ * screen spends a few hundred milliseconds in a layout nothing can measure.
+ * The case is about where the list comes back to, not about how the line
+ * travels, and the app honours the preference (see the reduced-motion block
+ * in PackingListPage) — so this is the app's own instant path, not a test
+ * that turns off the thing it should be watching.
+ */
+test.describe('M4 packing list — scroll memory @local @m4', () => {
+  test.use({ reducedMotion: 'reduce' })
+
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  // E2E-M4-45 (ADR-012's overlay amendment): the sheet's URL is an *alias*
+  // of the trip route and opening it `replace`s — which re-renders the list
+  // and returned it to the top. The ADR recorded that as a carried cost and
+  // named the repair ("remember M4's offset per trip"); this case is it.
+  // The assertion is on the rendered scroll position, never on the URL, and
+  // it waits on the page's own restoration signal rather than on a clock.
+  test('E2E-M4-45: closing the item sheet returns M4 to where it was scrolled', async ({
+    page,
+  }) => {
+    // Sixteen rows built through the quick-add (spec §2.4) is real work.
+    test.slow()
+    // A phone, and enough rows that the list is genuinely taller than it.
+    await page.setViewportSize({ width: 390, height: 640 })
+    await createTripViaWizard(page, TRIP)
+    await quickAdd(page, SCROLL_ROWS)
+
+    const content = visible(page).locator('ion-content.pack-content')
+    const offset = () =>
+      content.evaluate(async (el) => {
+        const ionContent = el as unknown as { getScrollElement(): Promise<HTMLElement> }
+        return (await ionContent.getScrollElement()).scrollTop
+      })
+
+    // One deliberate scroll to a mid-list offset, through ion-content's own
+    // API. Deliberately not the bottom: collapsing the header line shortens
+    // the scrolled content by its own height, so an offset at the very end
+    // is clamped back up again and the line re-opens — a wobble of the
+    // screen's own, and not what this case is about.
+    const SCROLLED_TO = 200
+    await content.evaluate(
+      (el, top) =>
+        (
+          el as unknown as { scrollToPoint(x: number, y: number, d: number): Promise<void> }
+        ).scrollToPoint(0, top, 0),
+      SCROLLED_TO,
+    )
+
+    // Settled, not merely started: the header line folds over a max-height
+    // transition, and an offset read while it is still travelling is not an
+    // offset the list can hold. The rendered end state is the seam — the
+    // wait is on what is painted, never on a clock.
+    const header = visible(page).getByTestId('m4-header')
+    await expect(header).toHaveClass(/collapsed/)
+    await expect(header).toHaveCSS('max-height', '0px')
+    expect(await offset()).toBe(SCROLLED_TO)
+
+    // A row wholly inside the *content's* box, so opening it moves nothing by
+    // itself: Playwright scrolls whatever it is told to click into view, and
+    // a row sitting under the app bar is on the page without being on screen
+    // — asking for that one scrolled the list back to the top on WebKit.
+    const rowId = await visible(page).evaluate((pageEl) => {
+      const box = pageEl.querySelector('ion-content.pack-content')!.getBoundingClientRect()
+      const row = [...pageEl.querySelectorAll('[data-testid^="m4-row-"]')].find((el) => {
+        const rect = el.getBoundingClientRect()
+        return rect.top >= box.top && rect.bottom <= box.bottom
+      })
+      return row?.getAttribute('data-testid') ?? ''
+    })
+    expect(rowId).not.toBe('')
+
+    await page.locator(`[data-testid="${rowId}"]`).getByRole('heading').click()
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+
+    // The signal the production code owes: it appears once an offset has
+    // actually been re-applied, so there is something to wait on.
+    await expect(content).toHaveAttribute('data-scroll-restored', 'true')
+    expect(await offset()).toBe(SCROLLED_TO)
+    // …and the header line came back folded with it, which is the other
+    // half of "where it was": it holds 84 px of the scrolled content, so a
+    // list restored under an open line shows different rows at the same
+    // number.
+    await expect(visible(page).getByTestId('m4-header')).toHaveClass(/collapsed/)
   })
 })

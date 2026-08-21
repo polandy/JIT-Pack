@@ -41,7 +41,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M1-05 | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 | Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
-| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
+| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
 | Visual baselines | E2E-VIS-01 … E2E-VIS-07 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
@@ -844,3 +844,39 @@ outbox is the named next tenant):
   `conflict-field`, `conflict-losing`, `conflict-winning`,
   `conflict-empty`) — it had none, and the ledger's own selector rule makes
   adding them part of writing the case.
+
+## M4 — the scroll position across the M5 overlay (2026-08-21)
+
+E2E-M4-45, in `packing-list.spec.ts` under its own describe. It pays off
+ADR-012's overlay amendment, which recorded losing M4's scroll position as a
+carried cost and named the repair without building it. Four things came out of
+writing it, and each one is a rule the next scroll-shaped case will need:
+
+1. **A `<script setup>` top-level binding is per *instance*, not per module.**
+   The first implementation kept the remembered offset in a `Map` declared at
+   the top of `PackingListPage.vue` — which the replace re-creates along with
+   everything else, so the memory was always empty by the time anything read
+   it. The map lives in `lib/scrollMemory.ts` now, with its own unit tests.
+2. **The position is an offset *and* a header state.** M4's header line holds
+   84 px of the scrolled content, so restoring the number under a re-opened
+   line lands on different rows. Both halves travel together, and the header
+   state is applied during setup so the first painted frame is already right.
+3. **The list's own re-render reports its way back from the top**, and those
+   scroll events read as the user's: they re-open the header and overwrite the
+   offset about to be re-applied. The screen stops listening to itself between
+   opening the sheet and finishing the restore.
+4. **Two engine-specific traps, both of which made the case measure nothing
+   while passing its earlier assertions.** Playwright scrolls whatever it is
+   told to click into view, so the row the case opens has to be *wholly inside
+   the content's box* — a row under the app bar is on the page without being
+   on screen, and asking for that one scrolled WebKit's list back to the top.
+   And the header's max-height transition changes the height of the scrolled
+   content, which the browser answers with a scroll adjustment that the screen
+   then reads as an upward scroll: the line flipped open and shut for as long
+   as anyone watched. `overflow-anchor: none` on the scroll part removes the
+   adjustment, and the case runs with motion reduced — the app's own instant
+   path, honoured now in `prefers-reduced-motion`, rather than a test that
+   switches off the thing it is watching.
+
+Mutation-proved: dropping the `scrollToPoint` while keeping the signal reddens
+it on both engines.

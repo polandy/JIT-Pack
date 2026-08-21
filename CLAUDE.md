@@ -164,8 +164,10 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
      a defect where an ordinary M5 edit erased a row's `source_template_id`. M12-03's
      positive half is still owed. The dev gallery's M14 fixture button
      (`src/dev/reviewFixture.ts`) remains the fastest eyeball path.
-     Known cost carried over from the M5 rebuild: M4 loses its scroll position
-     when a detail opens (ADR-012's overlay amendment).
+     The cost carried over from the M5 rebuild — M4 losing its scroll position
+     when a detail opened — is **paid since 2026-08-21**: `lib/scrollMemory.ts`
+     holds the offset *and* the header-line state across the replace
+     (E2E-M4-45, ADR-012's second amendment).
 4. **i18n migration** — the hard-coded English strings across the screens M4 did not touch;
    the module and both catalogues exist and M4 + the quick-add + the filter sheet + M7/M8
    + M12 + M14 + M3's step 3 are done (M3's other three steps are not — a section is a
