@@ -32,7 +32,10 @@ Write the entry when the work produced something the code cannot show:
 
 An ADR is the better home when the tradeoff is *load-bearing for future work*
 (`adr/README.md` decides); the log holds the narrative around it. New entries go
-at the bottom, and get a line in the index below.
+at the bottom, and **get a line in the index below** — `scripts/log-index-gate.mjs`
+(`make ci`, CI client job) fails the build for a section the index does not name,
+because the index is read *instead of* this file and an unlisted section is
+unreachable.
 
 ## Index
 
@@ -109,6 +112,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [M4's trip name leaves the app bar (2026-08-19)](#m4s-trip-name-leaves-the-app-bar-2026-08-19) — width decides where a title lives; the visual-gate tolerance stays 0.002 (owner call).
 - [M14's positive tests, and the flag nobody could set (2026-08-20)](#m14s-positive-tests-and-the-flag-nobody-could-set-2026-08-20) — *unused* had no writer anywhere in the app, and an ordinary M5 edit erased `source_template_id`.
 - [A build image's major is a toolchain version, and a gate says so (2026-08-21)](#a-build-images-major-is-a-toolchain-version-and-a-gate-says-so-2026-08-21) — a Node major merged green because no check builds anything with that image.
+- [Dependabot skips the Node majors that can never be taken (2026-08-21)](#dependabot-skips-the-node-majors-that-can-never-be-taken-2026-08-21) — odd Node majors never reach LTS; Dependabot only ever offers the newest, so from October 2026 it would chase 27 past the 26 that becomes LTS. Bundler syntax, because that is what the docker ecosystem parses.
 
 ## Current state
 
