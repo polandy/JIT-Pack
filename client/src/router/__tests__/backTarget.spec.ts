@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  ORIGIN_QUERY_PARAM,
-  backTarget,
-  enteredFrom,
-  originFrom,
-} from '@/router/backTarget'
+import { ORIGIN_QUERY_PARAM, backTarget, enteredFrom, originFrom } from '@/router/backTarget'
 import { routes } from '@/router'
 
 /**
@@ -160,7 +155,11 @@ describe('a route that carries its origin (ADR-011 amendment)', () => {
   it('ignores an origin on a route that does not declare the class', () => {
     // Otherwise any drill-down could be redirected by a crafted link.
     expect(
-      backTarget({ meta: { parent: '/tabs/trips' }, params: {}, query: enteredFrom('/tabs/items') }),
+      backTarget({
+        meta: { parent: '/tabs/trips' },
+        params: {},
+        query: enteredFrom('/tabs/items'),
+      }),
     ).toBe('/tabs/trips')
   })
 

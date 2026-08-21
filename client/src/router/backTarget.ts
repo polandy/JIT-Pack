@@ -51,9 +51,7 @@ declare module 'vue-router' {
 export const ORIGIN_QUERY_PARAM = 'from'
 
 /** The slice of a route's query this module reads. */
-type OriginQuery =
-  | Record<string, string | null | (string | null)[] | undefined>
-  | undefined
+type OriginQuery = Record<string, string | null | (string | null)[] | undefined> | undefined
 
 /** The slice of a resolved route this module needs. */
 export interface BackTargetRoute {

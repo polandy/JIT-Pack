@@ -33,10 +33,7 @@ export interface StampableRoute {
  * That last case is the deep link ADR-011 exists for, and it is exactly
  * when the declared `meta.parent` has to answer instead.
  */
-export function stampOrigin(
-  to: StampableRoute,
-  from: StampableRoute,
-): RouteLocationRaw | null {
+export function stampOrigin(to: StampableRoute, from: StampableRoute): RouteLocationRaw | null {
   if (!to.meta.acceptsFrom) return null
   if (originFrom(to.query)) return null
   if (from.matched.length === 0) return null
@@ -51,7 +48,8 @@ export function stampOrigin(
 
 /** installOriginStamp wires stampOrigin into a router as a global guard. */
 export function installOriginStamp(router: Router): void {
-  router.beforeEach((to: RouteLocationNormalized, from: RouteLocationNormalized) =>
-    stampOrigin(to as unknown as StampableRoute, from as unknown as StampableRoute) ?? true,
+  router.beforeEach(
+    (to: RouteLocationNormalized, from: RouteLocationNormalized) =>
+      stampOrigin(to as unknown as StampableRoute, from as unknown as StampableRoute) ?? true,
   )
 }
