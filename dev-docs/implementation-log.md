@@ -10,6 +10,111 @@ thing you read first. If something recorded here is still load-bearing for
 *future* work, it belongs in `CLAUDE.md`'s invariants or in an ADR as well —
 this log alone is not where a binding rule should live.
 
+## What earns an entry
+
+The log is now large enough that writing everything makes it unreadable, so an
+entry has to earn its place. **If the diff and the commit message tell the same
+story, don't write one** — the code is a better account of what was built than a
+paragraph restating it, and it cannot drift.
+
+Write the entry when the work produced something the code cannot show:
+
+- an **option that was weighed and rejected**, and what it cost to reject it —
+  otherwise the next person reopens a settled question;
+- a **premise that turned out to be wrong** — a diff shows the fix, never the
+  belief that made the bug possible;
+- a **cost knowingly accepted** — an unrecorded deliberate regression reads as a
+  defect and gets "fixed";
+- a **trap with a price attached** — the measurement, the framework behaviour, the
+  ordering that has to hold;
+- **who decided what, and on what evidence** — owner calls, rendered variant
+  rounds, measurements.
+
+An ADR is the better home when the tradeoff is *load-bearing for future work*
+(`adr/README.md` decides); the log holds the narrative around it. New entries go
+at the bottom, and **get a line in the index below** — `scripts/log-index-gate.mjs`
+(`make ci`, CI client job) fails the build for a section the index does not name,
+because the index is read *instead of* this file and an unlisted section is
+unreachable.
+
+## Index
+
+One line per section, so this file can be scanned before any of it is read.
+Newest at the bottom; the parenthesised note says what you would come looking for.
+
+- [Current state](#current-state) — **stale by design**: a July snapshot of what existed, kept as history. `CLAUDE.md` is the current orientation; do not trust this section's CI, migration or branch-protection claims.
+- [Deviations](#deviations) — D-001 (CGO SQLite) resolved; none open since.
+- [Concept phase, 2026-08-07/08 — the packing MVP](#concept-phase-2026-08-0708--the-packing-mvp) — the bounding of an open-ended concept phase, and the reasoning behind every "Not built yet" item.
+- [MVP scope (owner decision, 2026-08-07)](#mvp-scope-owner-decision-2026-08-07) — what was cut to make the MVP finite; why FR-1.3/1.5 formulas and FR-1.6 fork/publish went.
+- [Basics audit, 2026-08-08 — one toolchain](#basics-audit-2026-08-08--one-toolchain) — audit-and-harden rather than rework; why the toolchain had to be pinned before anything else.
+- [Basics audit, 2026-08-08 — FR-23.1 required an unverified claim](#basics-audit-2026-08-08--fr-231-required-an-unverified-claim) — a live privilege-escalation path: admin re-derived per request from a claim the client controlled.
+- [Basics audit, 2026-08-08 — first-party sessions (ADR-007)](#basics-audit-2026-08-08--first-party-sessions-adr-007) — Authelia is the reference IdP; why passing the IdP token set through was wrong at the root.
+- [Basics audit, 2026-08-09 — failure-path coverage](#basics-audit-2026-08-09--failure-path-coverage) — green gates hid uncovered *rejection* branches; coverage total ≠ coverage of the rules.
+- [Basics audit, 2026-08-09 — supply-chain pinning (NFR-4.3 / invariant 8)](#basics-audit-2026-08-09--supply-chain-pinning-nfr-43--invariant-8) — the docs restructure had opened an unpinned surface nobody was watching.
+- [M19: the server URL arrives pre-filled (FR-19.1)](#m19-the-server-url-arrives-pre-filled-fr-191) — found by deploying, not by reading: first launch demanded an address the app already knew.
+- [Migrations 018/019: the two schema debts the concept left open (FR-25.9, FR-25.19)](#migrations-018019-the-two-schema-debts-the-concept-left-open-fr-259-fr-2519) — why `packed_by` and `packer` are two columns; the owner's "pragmatic, still in development" steer.
+- [Brand mark: Check-Latch → Packed Backpack (2026-08-12)](#brand-mark-check-latch--packed-backpack-2026-08-12) — six directions rendered; why the first mark was rejected.
+- [Navigation: the back button that was built but unreachable (ADR-011)](#navigation-the-back-button-that-was-built-but-unreachable-adr-011) — seventeen headers, none of them the one on screen; measured rather than read off the stylesheet.
+- [One header bar, built (ADR-011)](#one-header-bar-built-adr-011) — the single `ion-header` in `App.vue` and what the per-screen headers cost.
+- [A pre-existing Ionic transition error, found by asserting for it](#a-pre-existing-ionic-transition-error-found-by-asserting-for-it) — a known, deliberately open Ionic `classList` throw on outlet-back; don't re-diagnose it.
+- [M4, built from the mock](#m4-built-from-the-mock) — the first screen rebuild and the shape the rest follow.
+- [What hand-testing M4 turned up — and why the suite had not](#what-hand-testing-m4-turned-up--and-why-the-suite-had-not) — four navigation defects two green suites missed; the origin of the "running Playwright case" rule.
+- [The filter panel, reworked from mockups](#the-filter-panel-reworked-from-mockups) — filters bite on tap, no apply button; why the sheet needed a plane of its own.
+- [The list's own hierarchy](#the-lists-own-hierarchy) — the parent category rendered smaller than its children; hierarchy is a type decision.
+- [A trip needs a year, not a date (FR-2.1b)](#a-trip-needs-a-year-not-a-date-fr-21b) — owner call: only the year is required, current year preselected.
+- [Trip creation, folded (FR-2.1c)](#trip-creation-folded-fr-21c) — optional parameters recede rather than disappear.
+- [Default travellers (FR-2.5a)](#default-travellers-fr-25a) — configurable, prefilled in the wizard, still editable there.
+- [M5, rebuilt as a sheet](#m5-rebuilt-as-a-sheet) — the concept was never the problem; the sheet over the list, and the scroll-position cost it carries (ADR-012).
+- [Post-#73 review remediation (2026-08-14)](#post-73-review-remediation-2026-08-14) — a single failed IndexedDB write silenced the session; two review claims that did not survive checking.
+- [The app gets its own two faces (FR-21.5/21.6, G-13)](#the-app-gets-its-own-two-faces-fr-215216-g-13) — the client declared **no** `font-family` at all; one file that touches every view.
+- [The three colour anchors (FR-21.7, G-11)](#the-three-colour-anchors-fr-217-g-11) — the palette was never the problem, the roles were; why `--ion-color-primary` stays blue.
+- [Surfaces: three planes, a radius scale, and a gate (FR-21.8, G-14, invariant 9b)](#2026-08-14--surfaces-three-planes-a-radius-scale-and-a-gate-fr-218-g-14-invariant-9b) — the card painted in the page's own colour: a valid token, a passing rule, and no card. Why the gate exists.
+- [The type migration: 170 declarations onto the scale (FR-21.5, G-13)](#2026-08-15--the-type-migration-170-declarations-onto-the-scale-fr-215-g-13) — why icons needed their own `--jp-icon-*` table rather than the text scale.
+- [The pack-out: a row that leaves, and one undo (FR-25.2)](#2026-08-15--the-pack-out-a-row-that-leaves-and-one-undo-fr-252) — the app's first motion of any kind; two defects the new cases caught.
+- [Visual baselines, and the end of the design foundation (ADR-013)](#2026-08-15--visual-baselines-and-the-end-of-the-design-foundation-adr-013) — "looks right" was untestable; the pinned image, and why a bump rewrites every baseline.
+- [M7 gets its two scopes (§3.27, FR-27.1/27.6)](#2026-08-15--m7-gets-its-two-scopes-327-fr-271276) — scope had been in the schema for two migrations and no client read it.
+- [M7's two open decisions, settled by rendered variants](#2026-08-15--m7s-two-open-decisions-settled-by-rendered-variants) — built as working variants instead of argued in prose; the swipe lost here first.
+- [M8 rebuilt: the scope-shaped editor (§3.27, FR-27.2/27.4/27.6/27.7)](#2026-08-15--m8-rebuilt-the-scope-shaped-editor-327-fr-272274276277) — the client could read §3.27's schema but not write it.
+- [M9/M10 — the inventory on a tag set (§3.24, 2026-08-16)](#m9m10--the-inventory-on-a-tag-set-324-2026-08-16) — the owner's "wir machen es mit tags", and an explicitly allowed destructive migration.
+- [M11 — containers rebuilt on the concept round (FR-10.1–10.3, 2026-08-16)](#m11--containers-rebuilt-on-the-concept-round-fr-101103-2026-08-16) — a screen rejected in concept without ever having been rendered.
+- [Browser back with the M5 sheet open (Navigation Concept §7 case 4, 2026-08-16)](#browser-back-with-the-m5-sheet-open-navigation-concept-7-case-4-2026-08-16) — the sheet *replaces* its history entry on purpose; `overlayBackGuard.ts` is the fix.
+- [M11 joins the visual baselines, and the image gets a platform (2026-08-16)](#m11-joins-the-visual-baselines-and-the-image-gets-a-platform-2026-08-16) — which screens earn a baseline, and on what argument.
+- [What "covered by e2e" was not covering (2026-08-16)](#what-covered-by-e2e-was-not-covering-2026-08-16) — all test ids present and green, three real gaps anyway; why `e2e-tests.md` is a ledger.
+- [M12 — analytics rebuilt on the concept round (FR-8.1/8.2/14.3, 2026-08-16)](#m12--analytics-rebuilt-on-the-concept-round-fr-8182143-2026-08-16) — the slice tap filters rather than groups; the honest unweighted bucket.
+- [M14 — review assistant rebuilt on the concept round (FR-9.2/27.11, 2026-08-16)](#m14--review-assistant-rebuilt-on-the-concept-round-fr-922711-2026-08-16) — "the dominant template" replaced by group-aware retargeting.
+- [§3.27 generation: composed templates actually reach the packing list (2026-08-16)](#327-generation-composed-templates-actually-reach-the-packing-list-2026-08-16-pr-pending) — include order is **derived, not inherited from storage**; the rows arrive unordered and provenance depends on it.
+- [FR-27.12: a group stops being a name with a number (2026-08-16)](#fr-2712-a-group-stops-being-a-name-with-a-number-2026-08-16-pr-pending) — the variant round the unfolding row lost, because it solves M3 only.
+- [The dev seed grows a master partition (2026-08-16)](#the-dev-seed-grows-a-master-partition-2026-08-16) — the standing rule that new master-data features extend the seed.
+- [Plain HTTP could not write at all (2026-08-16)](#plain-http-could-not-write-at-all-2026-08-16) — one line, everywhere: a browser API that silently needs a secure context. Found on an iPad, not in CI.
+- [The dev-only surfaces were not dev-only (2026-08-16)](#the-dev-only-surfaces-were-not-dev-only-2026-08-16) — the doc, the comment and CLAUDE.md all repeated a claim that was false; a `v-if` ships the code.
+- [FR-27.14: the footer stops being the whole answer (2026-08-17)](#fr-2714-the-footer-stops-being-the-whole-answer-2026-08-17) — a count answers *how many* and never *what*.
+- [The ＋ answers where it is (2026-08-17)](#the--answers-where-it-is-2026-08-17) — the FAB follows the scope instead of asking.
+- [The sheet header's two round controls (2026-08-16, FR-25.15 / G-14)](#the-sheet-headers-two-round-controls-2026-08-16-fr-2515--g-14) — 26 px against 34 px, measured from a render rather than guessed.
+- [§3.28: the packing row gets a mark, decided on pixels (2026-08-17, spec only)](#328-the-packing-row-gets-a-mark-decided-on-pixels-2026-08-17-spec-only) — the icon library lost **on the pixels**, not on the argument. Don't reopen the round.
+- [G-2's detail, and the Local Mode backup behind it (2026-08-17, FR-19.6/NFR-4.11)](#g-2s-detail-and-the-local-mode-backup-behind-it-2026-08-17-fr-196nfr-411) — that the glyph had to be asked about was the defect (ADR-015).
+- [FR-2.6 variant A: the review step reviews (2026-08-17)](#fr-26-variant-a-the-review-step-reviews-2026-08-17) — dropping a row is FR-5.5 *skipped*, never deletion; nothing may become wizard-only.
+- [Coverage audit of 2026-08-17's merged PRs — the two gaps it found](#coverage-audit-of-2026-08-17s-merged-prs--the-two-gaps-it-found) — `commitRestore` ran silently into nothing; a feature only half in the diff marked ✅.
+- [The review step that let both gaps through, and what changed in it](#the-review-step-that-let-both-gaps-through-and-what-changed-in-it) — process, not code: the origin of `/pr-review`'s §4.0 changed-file → driving-test table.
+- [The restore landing (owner call, 2026-08-17)](#the-restore-landing-owner-call-2026-08-17) — a restore landed on a tab that hid everything it had just written.
+- [FR-5.5 — "bewusst nicht einpacken" gets a control (2026-08-18)](#fr-55--bewusst-nicht-einpacken-gets-a-control-2026-08-18) — two of the backlog note's three premises were wrong; the swipe was removed rather than repaired.
+- [FR-27.4: a planned trip follows the groups it was made from](#2026-08-18--fr-274-a-planned-trip-follows-the-groups-it-was-made-from) — ADR-016: a ledger, not a snapshot column; "not loaded ≠ empty".
+- [The §4a pass that came with it](#the-4a-pass-that-came-with-it) — the owner stopped the PR twice on the same literal; how CODING_PRINCIPLES §4a came to exist.
+- [FR-27.4, revised the day after it landed: the group *asks*](#fr-274-revised-the-day-after-it-landed-the-group-asks-2026-08-18) — declining = advancing the snapshot, which is why there is no pending state to sync.
+- [FR-27.3 — single items in M3 (2026-08-18)](#fr-273--single-items-in-m3-2026-08-18) — they resolve *after* the composition; that ordering is what makes "already included" decidable.
+- [Portable YAML learns the composition (2026-08-18, ADR-017)](#portable-yaml-learns-the-composition-2026-08-18-adr-017) — a shared file used to import a Vorlage that resolved to nothing.
+- [The identity rule was half a rule (2026-08-18, ADR-017)](#the-identity-rule-was-half-a-rule-2026-08-18-adr-017) — identity belongs to the group, not to where a file happens to list it.
+- [The Go test suite spent 96 % of its time replaying migrations](#the-go-test-suite-spent-96--of-its-time-replaying-migrations) — measured per package, not guessed; the pre-migrated template.
+- [The development phase drops DDL migrations (2026-08-19, ADR-018)](#the-development-phase-drops-ddl-migrations-2026-08-19-adr-018) — owner decision *against* the recommendation on the desk, and what the recommendation was actually about.
+- [The e2e job moves into the pinned Playwright image and shards (2026-08-19)](#the-e2e-job-moves-into-the-pinned-playwright-image-and-shards-2026-08-19) — 1124 s of a 29-minute job was `playwright install --with-deps`.
+- [The e2e job loses its gate and gains two shards (2026-08-19)](#the-e2e-job-loses-its-gate-and-gains-two-shards-2026-08-19) — the whole pipeline was one path; every other job finished under 90 s.
+- [FR-27.10 — a whole group onto a trip that already exists (2026-08-19)](#fr-2710--a-whole-group-onto-a-trip-that-already-exists-2026-08-19) — dedup by master item *and* by name, so a hand-typed row is recognised. Six review findings.
+- [M21 — Vorlage aus Reise (FR-27.5), 2026-08-19](#m21--vorlage-aus-reise-fr-275-2026-08-19) — needed a lifecycle step nobody had built; only a *Gruppe* can be recognised; a fuzzy match without a confirmation step.
+- [M4's trip name leaves the app bar (2026-08-19)](#m4s-trip-name-leaves-the-app-bar-2026-08-19) — width decides where a title lives; the visual-gate tolerance stays 0.002 (owner call).
+- [M14's positive tests, and the flag nobody could set (2026-08-20)](#m14s-positive-tests-and-the-flag-nobody-could-set-2026-08-20) — *unused* had no writer anywhere in the app, and an ordinary M5 edit erased `source_template_id`.
+- [M4 comes back where it was left, and the header line stops flipping (2026-08-21)](#m4-comes-back-where-it-was-left-and-the-header-line-stops-flipping-2026-08-21) — a `<script setup>` top-level binding is per *instance*; a scroll position on M4 is an offset *and* a header state; the collapsing line fed its own layout change back as a user scroll. Closes E2E-M12-03's positive half too.
+- [A build image's major is a toolchain version, and a gate says so (2026-08-21)](#a-build-images-major-is-a-toolchain-version-and-a-gate-says-so-2026-08-21) — a Node major merged green because no check builds anything with that image.
+- [Dependabot skips the Node majors that can never be taken (2026-08-21)](#dependabot-skips-the-node-majors-that-can-never-be-taken-2026-08-21) — odd Node majors never reach LTS; Dependabot only ever offers the newest, so from October 2026 it would chase 27 past the 26 that becomes LTS. Bundler syntax, because that is what the docker ecosystem parses.
+
 ## Current state
 
 > **Repack (Return-Trip Mode) is REMOVED (owner decision, 2026-07-17).** Spec retired (PRD Addendum
@@ -3783,7 +3888,76 @@ took **rendering the screen with real proposals** to see it: the sentence only
 appears once something has been applied, which is a state no test and no
 screenshot had ever reached.
 
-## 2026-08-21 — M4 comes back where it was left (ADR-012's carried cost, MVP Track G S3)
+## A build image's major is a toolchain version, and a gate says so (2026-08-21)
+
+Dependabot bumped `client/Dockerfile` from `node:24-alpine` to `26-alpine` and
+every check went green — because no check builds anything with that image. CI
+compiles the client through `setup-node` at the version `ci.yml` names (24,
+matching `mise.toml`), and `docker-build` only proves the Dockerfile *builds*.
+The published client image would therefore have shipped a bundle compiled by a
+Node major nothing in the repo tests with, and Node 26 is `lts: false` — the
+Current line — until October 2026, while 24 is Active LTS.
+
+**The first fix was the wrong shape.** Ignoring `semver-major` in
+`.github/dependabot.yml` removes the bad PR and the good one with it: the next
+LTS would then have to be *remembered*, which is exactly the kind of promise a
+single maintainer does not keep. Owner, on reading it: „ich möchte das aber
+nicht manuell erinnern."
+
+So the majors stay in Dependabot's hands and `scripts/toolchain-pins-gate.sh`
+holds the three declarations of each together — node across `client/Dockerfile`,
+`mise.toml` and every `node-version:` in `ci.yml`; go across `Dockerfile`,
+`mise.toml` and `go.mod`. It runs in `make ci` and as the *first* step of the
+`docker-build` job, before either image builds. A major bump now arrives on its
+own, goes red, and the error names the files still to change. Mutation-proved
+three ways: image-only bump, one `node-version:` moved out of four, and the
+golang image against `go.mod`.
+
+The image itself goes back to `node:24-alpine` at its current digest until 26
+is LTS. That costs nothing measurable — the client image built from Node 24 and
+the one from Node 26 have the same final image id, precache prologue included,
+so the two toolchains produce the same bundle. Digests and patch/minor keep
+flowing automatically, which is what the pinning in invariant 8 is for.
+
+Worth recording because the bump was *correct in isolation*: a green pipeline
+said nothing about it, and the drift is only visible if you ask which artifact
+a version actually builds.
+
+### Dependabot skips the Node majors that can never be taken (2026-08-21)
+
+The toolchain-pins gate landed the same day and immediately did its job: the
+next `node:26-alpine` bump arrived on its own and went red at
+`docker-build`, naming `mise.toml` as the file still to change. The mechanism
+is right, so this only trims what it has to say no to.
+
+Odd-numbered Node majors never become LTS — Current for six months, then end of
+life — so `.github/dependabot.yml` ignores the odd lines for `client/Dockerfile`.
+Even majors stay enabled, because they *do* reach LTS in the October after their
+release and the repo does want them, on its own schedule; the gate is what
+decides when. The near-term reason it is worth doing at all: Node 27 arrives in
+October 2026, and Dependabot only ever offers the newest — so from that month it
+would chase 27 and stop offering 26, which is the version becoming LTS in the
+same week.
+
+The requirements are written in Bundler syntax (`~> 25.0`), because that is what
+the docker ecosystem parses; `25.x` is npm/NuGet syntax and `Gem::Requirement`
+rejects it. This is the part that could not be verified from here: an ignore
+condition whose requirement fails to parse has been observed to abort the whole
+docker job for its directory (dependabot-core#13328), which for `/client` would
+also stop nginx digest updates. The check after merging is the run log under
+the repository's Dependabot update history — it names the ignore conditions it
+applied. A suffixed tag such as `26-alpine` may also be read as a prerelease,
+in which case a `~>` bound would not match it and the condition is merely
+inert rather than harmful.
+
+Deliberately not done two other ways. Ignoring `semver-major` outright throws
+away the good October bump with the bad April one and makes the LTS move
+something the maintainer has to remember. Pinning `node:lts-alpine@sha256:…`
+would follow LTS automatically and read well — but the tag names no major, so
+the gate would have nothing to compare, and the drift would go invisible in
+exactly the month the tag jumps 24 → 26 while `mise.toml` and `ci.yml` do not.
+That is the moment the gate exists for.
+## M4 comes back where it was left, and the header line stops flipping (2026-08-21)
 
 ADR-012's overlay amendment recorded a cost and named its repair: the M5 sheet
 is an *alias* of M4's route and opening it `replace`s, which re-renders the
@@ -3831,3 +4005,14 @@ red on both engines. Writing it also cost one false-green that is worth keeping
 in mind — Playwright scrolls whatever it is told to click into view, so a row
 chosen for being "on the page" rather than "inside the content's box" quietly
 scrolled the list back to the top before the measurement.
+
+**The same PR closed E2E-M12-03's positive half**, owed since the lifecycle
+step landed, and it too found things the diff cannot show. The trend counts the
+weight actually *carried*, so the case has to pack the row — an unpacked one
+puts a 0 kg column on the chart that a "the section exists" assertion would have
+accepted. `seriesTopFlagged` reports an empty list for "nothing was flagged" and
+for "the flag was never written" alike, so the case reads the *Missing* chip
+back off the stored row in M5 before relying on the list. And M14's open count
+is not the signal it looks like: asserted after archiving it read `0`, because a
+*missing* proposal needs a group to target and that world has no templates at
+all — that coverage belongs to `review.spec.ts`, which builds them.

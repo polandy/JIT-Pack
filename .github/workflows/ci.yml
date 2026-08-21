@@ -65,6 +65,10 @@ jobs:
       # bundle, not merely hidden in it — a `v-if` leaves the code behind the
       # trigger. Reads what the build above emitted, so it runs after it.
       - run: node ../scripts/dev-code-gate.mjs
+      # Not a client check, but this is the job that has node and no install
+      # step to pay for: the implementation log's index must name every
+      # section, because it is meant to be read instead of the log.
+      - run: node ../scripts/log-index-gate.mjs
       - run: npx vitest run
 
   # Visual baselines (ADR-013). Runs the tests *inside* the digest-pinned
@@ -253,6 +257,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # Before building: a build-image major bumped on its own would pass both
+      # builds and ship a bundle no other job ever compiled (see the script).
+      - run: ./scripts/toolchain-pins-gate.sh
       - run: docker build .
       - run: docker build client
 
