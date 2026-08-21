@@ -21,7 +21,7 @@ async function fillIonic(field: ReturnType<typeof visible>, value: string) {
 }
 
 /**
- * A tagged master item through M10's own path (E2E-M8-19 needs primary
+ * A tagged master item through M10's own path (E2E-M8-21 needs primary
  * tags, which the plain name-only creation cannot give). Starts and ends
  * on the M9 list; the waits mirror inventory.spec.ts's createItem —
  * settled offer-or-create branch, painted editor, chevron back.
@@ -150,7 +150,7 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     ).toBeVisible()
   })
 
-  test('E2E-M8-19: the empty composer offers chips, never the already chosen, and a chip lands a row (FR-25.13c)', async ({
+  test('E2E-M8-21: the empty composer offers chips, never the already chosen, and a chip lands a row (FR-25.13c)', async ({
     page,
   }) => {
     // Tagged inventory through M10's own path: two Hygiene items, one Technik.
