@@ -1695,8 +1695,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     travelerIDs: Map<string, string>,
     rowIdByPosition: Map<string, string>,
   ): void {
+    // Indexed once: a restored trip resolves a name per source, per ledger
+    // entry and per log line, and both lists are the whole device.
+    const templatesByName = new Map(masterStore.templateList.map((t) => [t.name, t.id]))
+    const itemsByName = new Map(masterStore.itemList.map((i) => [i.name, i.id]))
     const templateId = (name: string): string | undefined =>
-      templateIdByName.get(name) ?? masterStore.templateList.find((t) => t.name === name)?.id
+      templateIdByName.get(name) ?? templatesByName.get(name)
 
     for (const name of doc.follows) {
       const followed = templateId(name)
@@ -1716,7 +1720,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     for (const entry of doc.generated) {
       const sourceTemplateId = templateId(entry.source)
-      const sourceItemId = masterStore.itemList.find((i) => i.name === entry.item)?.id
+      const sourceItemId = itemsByName.get(entry.item)
       if (!sourceTemplateId || !sourceItemId) continue
       const travelerId = entry.traveler === null ? '' : (travelerIDs.get(entry.traveler) ?? '')
       // A per-person entry whose traveler is not on the restored trip has no

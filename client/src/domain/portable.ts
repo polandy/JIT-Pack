@@ -545,7 +545,7 @@ export function serializeTrip(args: {
         },
       ]
     })
-    .sort((a, b) => a.item.localeCompare(b.item) || (a.name ?? '').localeCompare(b.name ?? ''))
+    .sort((a, b) => a.item.localeCompare(b.item) || a.name.localeCompare(b.name))
 
   // Oldest first, the order the log was written in — M2 reverses it for
   // reading. The name travels denormalised exactly as it is stored: the
