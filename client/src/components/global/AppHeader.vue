@@ -28,6 +28,7 @@ import SyncIndicator from './SyncIndicator.vue'
 import { backTarget } from '@/router/backTarget'
 import { actionsFor } from '@/composables/useHeaderActions'
 import { titleFor } from '@/composables/useHeaderTitle'
+import { t } from '@/i18n'
 import type { SyncState } from '@/composables/useSyncStatus'
 
 withDefaults(
@@ -49,7 +50,9 @@ const route = useRoute()
 const ionRouter = useIonRouter()
 
 const back = computed(() => backTarget(route))
-const title = computed(() => titleFor(route.path) ?? route.meta.title ?? '')
+const title = computed(
+  () => titleFor(route.path) ?? (route.meta.titleKey ? t(route.meta.titleKey) : ''),
+)
 
 // G-12: the current page's icon cluster, described by the page rather
 // than teleported into this toolbar — see useHeaderActions.
@@ -82,7 +85,7 @@ function goBack() {
   <IonHeader>
     <IonToolbar>
       <IonButtons v-if="back" slot="start">
-        <IonButton data-testid="header-back" aria-label="Back" @click="goBack">
+        <IonButton data-testid="header-back" :aria-label="t('common.back')" @click="goBack">
           <IonIcon slot="icon-only" :icon="chevronBackOutline" />
         </IonButton>
       </IonButtons>
@@ -128,7 +131,7 @@ function goBack() {
           :update-ready="syncUpdateReady"
           @tap="emit('syncTap')"
         />
-        <IonButton router-link="/tabs/settings" aria-label="Settings">
+        <IonButton router-link="/tabs/settings" :aria-label="t('settings.title')">
           <IonIcon slot="icon-only" :icon="settingsOutline" />
         </IonButton>
       </IonButtons>

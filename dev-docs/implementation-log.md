@@ -116,6 +116,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Dependabot skips the Node majors that can never be taken (2026-08-21)](#dependabot-skips-the-node-majors-that-can-never-be-taken-2026-08-21) — odd Node majors never reach LTS; Dependabot only ever offers the newest, so from October 2026 it would chase 27 past the 26 that becomes LTS. Bundler syntax, because that is what the docker ecosystem parses.
 - [The sync outbox survives a reload (2026-08-21)](#the-sync-outbox-survives-a-reload-2026-08-21) — MVP Track C / blocker B2: the queue moved to IndexedDB and is replayed before the first pull. Replay safety is the server's `mutation_id` memo, not the merge algorithm; a permanently refused mutation is parked so it cannot wedge a partition.
 - [The device backup carries the FR-27.4 refresh state (2026-08-21)](#the-device-backup-carries-the-fr-274-refresh-state-2026-08-21-mvp-track-f) — a restored device kept everything visible and forgot every answer it had given its groups; the restore re-keys by identity, not by name, because a renamed row is exactly the row the user has made theirs.
+- [The i18n migration, closed except for M15 and M17 (2026-08-21)](#the-i18n-migration-closed-except-for-m15-and-m17-2026-08-21) — NFR-4.12: a nav anchor and a route title stored finished English text, so no language choice could reach the chrome; what is on the catalogue now and what is not.
 
 ## Current state
 
@@ -4138,3 +4139,64 @@ back off the stored row in M5 before relying on the list. And M14's open count
 is not the signal it looks like: asserted after archiving it read `0`, because a
 *missing* proposal needs a group to target and that world has no templates at
 all — that coverage belongs to `review.spec.ts`, which builds them.
+
+## The i18n migration, closed except for M15 and M17 (2026-08-21)
+
+Track E of the MVP plan. The module and both catalogues have existed since
+2026-08-07; what was missing was the migration — nine screens plus the chrome
+still held their strings as literals. Done in three commits, one per coherent
+group, because the rule that governs this work is that **a section is the unit**:
+a half-translated screen is worse than an untranslated one, since the user
+cannot tell a missing translation from a deliberate anglicism.
+
+**What is on the catalogue now:** M2, M3 (all four steps), M1, M6, M16, M20,
+the trip roster, the conflict log, the OIDC login and its callback, the M19
+first-launch mode choice, and the global chrome — the four anchors, the one
+header bar's route titles, the presence facepile and the quantity stepper.
+
+**Three of these were not string swaps, and those are the part worth recording.**
+
+*A nav anchor and a route title used to store the finished English text.*
+`NAV_ANCHORS[].name` and `meta.title` were read straight into the template, so
+no language switch could ever reach the bar that sits above every screen or the
+labels at the foot of it. They store a `MessageKey` now (`nameKey`,
+`meta.titleKey`), and the two presentations render through `t()`. An AppHeader
+case mounts the same route in German, which is the only kind of test that would
+have caught the original shape.
+
+*The roster's role chip was `role.charAt(0).toUpperCase() + role.slice(1)`.*
+That is an English spelling rule wearing a label's clothes: it renders "Editor"
+in every language, and would render "Owner" as "Owner" forever. It moved to
+`lib/roleLabels.ts` beside `attributeLabels.ts`, same shape, same
+unknown-value-falls-back-to-itself rule, with its own test.
+
+*M16 kept a second copy of two vocabularies.* It spelled the season, transport
+and accommodation values in its own English words rather than through
+`attributeLabel`, and had its own three words for the procurement modes that a
+position calls `mode.*`. A checklist entry and a packing position mean the same
+thing by „vor Ort kaufen", and two wordings for one concept eventually
+disagree — this is the same class of finding as FR-27.2's include order.
+
+**The catalogue-integrity test grew two checks.** Key-set parity was all it
+proved, and key parity is not structural parity: a translation that drops a
+`{name}` slot loses the only variable part of its sentence, and one that drops
+the ` | ` plural split makes `t()` return the singular for every count. Both
+render as plausible German, so neither surfaces as a missing string — they
+surface as a sentence that is quietly wrong. Both checks were proved failing
+against injected breaks before being kept.
+
+**Two conventions fell out of the work.** A count that is grammatically plural
+gets a pluralized key, not an "(s)" — M20's *„Provisioned … · N trip(s) · N
+template(s)"* is three keys now, because German has no such spelling and
+because two counts cannot share one `n`. And a composed hover title (the
+presence facepile: who, on how many devices, whether in sync) is assembled in
+script, since a template expression cannot pluralize through the catalogue.
+
+**What is left, and why.** **M15** (`views/import/ImportPage.vue`) and **M18**
+(`PortableImportPage.vue`) were excluded by file, not by judgement: the parallel
+backup track owns both files for this MVP push and localizes them itself. Their
+*route titles* are on the catalogue here, because the route table is chrome.
+**M17 Settings** is the one screen this pass leaves genuinely half-translated,
+and it was already so before it: ten `t()` calls beside roughly fifteen
+literals, plus the avatar crop modal, which is untouched. It is a section, so
+it wants one commit of its own rather than a corner of this one.

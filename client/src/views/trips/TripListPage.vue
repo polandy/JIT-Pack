@@ -184,7 +184,7 @@ const groupedTrips = computed(() => {
       index.set(key, groups.length)
       groups.push({
         seriesId: key,
-        seriesName: key ? (masterStore.getSeries(key)?.name ?? 'Series') : null,
+        seriesName: key ? (masterStore.getSeries(key)?.name ?? t('trips.seriesFallback')) : null,
         trips: [],
       })
     }
@@ -210,7 +210,7 @@ function progressColor(trip: Trip): string {
 
 function itemSummary(trip: Trip): string {
   const k = store.kpis(trip.id)
-  return `${k.packedItems}/${k.totalItems} packed`
+  return t('trips.itemSummary', { packed: k.packedItems, total: k.totalItems })
 }
 
 function onFilterChange(event: CustomEvent) {
@@ -290,12 +290,11 @@ function canDelete(trip: Trip): boolean {
 /** Delete removes the trip entirely after an explicit confirm (M2). */
 async function deleteTrip(trip: Trip) {
   const alert = await alertController.create({
-    header: `Delete "${trip.name}"?`,
-    message:
-      'This permanently removes the trip and its packing list, travelers and containers for everyone. This cannot be undone.',
+    header: t('trips.deleteTitle', { name: trip.name }),
+    message: t('trips.deleteMessage'),
     buttons: [
-      { text: 'Cancel', role: 'cancel' },
-      { text: 'Delete', role: 'destructive' },
+      { text: t('common.cancel'), role: 'cancel' },
+      { text: t('common.delete'), role: 'destructive' },
     ],
   })
   await alert.present()
@@ -317,11 +316,11 @@ function archiveTrip(tripId: string) {
 /** FR-18.3: the user chooses progress vs clean; generated client-side. */
 async function exportTrip(trip: Trip) {
   const sheet = await actionSheetController.create({
-    header: `Export "${trip.name}"`,
+    header: t('trips.exportHeader', { name: trip.name }),
     buttons: [
-      { text: 'With pack progress', data: true },
-      { text: 'Clean list (unpacked)', data: false },
-      { text: 'Cancel', role: 'cancel' },
+      { text: t('trips.exportWithProgress'), data: true },
+      { text: t('trips.exportClean'), data: false },
+      { text: t('common.cancel'), role: 'cancel' },
     ],
   })
   await sheet.present()
@@ -362,13 +361,13 @@ async function handleRefresh(event: CustomEvent) {
 
       <div class="ion-padding">
         <div class="title-row">
-          <h1 class="page-title jp-page-title">Trips</h1>
+          <h1 class="page-title jp-page-title">{{ t('trips.title') }}</h1>
           <div>
             <!-- M18: portable trip import (FR-18.4) -->
             <IonButton
               fill="clear"
               size="small"
-              aria-label="Import trip from file"
+              :aria-label="t('trips.importPortable')"
               data-testid="m2-portable-import"
               router-link="/portable-import"
             >
@@ -378,7 +377,7 @@ async function handleRefresh(event: CustomEvent) {
             <IonButton
               fill="clear"
               size="small"
-              aria-label="Import spreadsheet"
+              :aria-label="t('items.importSpreadsheet')"
               router-link="/import"
             >
               <IonIcon slot="icon-only" :icon="cloudUploadOutline" />
@@ -388,13 +387,13 @@ async function handleRefresh(event: CustomEvent) {
 
         <IonSegment :value="filter" @ionChange="onFilterChange">
           <IonSegmentButton value="active" data-testid="trips-filter-active">
-            <IonLabel>Active</IonLabel>
+            <IonLabel>{{ t('trips.filterActive') }}</IonLabel>
           </IonSegmentButton>
           <IonSegmentButton value="planned" data-testid="trips-filter-planned">
-            <IonLabel>Planned</IonLabel>
+            <IonLabel>{{ t('trips.filterPlanned') }}</IonLabel>
           </IonSegmentButton>
           <IonSegmentButton value="archived" data-testid="trips-filter-archived">
-            <IonLabel>Archived</IonLabel>
+            <IonLabel>{{ t('trips.filterArchived') }}</IonLabel>
           </IonSegmentButton>
         </IonSegment>
       </div>
@@ -402,9 +401,9 @@ async function handleRefresh(event: CustomEvent) {
       <!-- Empty state (G-7) -->
       <div v-if="isEmpty" class="empty-state">
         <IonIcon :icon="trainOutline" class="empty-icon" />
-        <p v-if="filter === 'active'">No active trips</p>
-        <p v-else-if="filter === 'planned'">No planned trips</p>
-        <p v-else>No archived trips</p>
+        <p v-if="filter === 'active'">{{ t('trips.emptyActive') }}</p>
+        <p v-else-if="filter === 'planned'">{{ t('trips.emptyPlanned') }}</p>
+        <p v-else>{{ t('trips.emptyArchived') }}</p>
         <!-- Dev only, and gone from any build — see addSampleData. -->
         <IonButton
           v-if="isDev"
@@ -431,7 +430,7 @@ async function handleRefresh(event: CustomEvent) {
             <IonIcon slot="start" :icon="albumsOutline" />
             <IonLabel>
               <h2>{{ group.seriesName }}</h2>
-              <p>{{ group.trips.length }} trip{{ group.trips.length === 1 ? '' : 's' }}</p>
+              <p>{{ t('trips.seriesCount', { n: group.trips.length }) }}</p>
             </IonLabel>
           </IonItem>
           <div class="jp-card trip-card">
@@ -525,14 +524,18 @@ async function handleRefresh(event: CustomEvent) {
 
               <IonItemOptions side="end">
                 <!-- FR-18.3: portable YAML export with progress choice -->
-                <IonItemOption color="tertiary" aria-label="Export trip" @click="exportTrip(trip)">
+                <IonItemOption
+                  color="tertiary"
+                  :aria-label="t('trips.actionExport')"
+                  @click="exportTrip(trip)"
+                >
                   <IonIcon slot="icon-only" :icon="downloadOutline" />
                 </IonItemOption>
                 <!-- FR-4.5: member management (Share) -->
                 <IonItemOption
                   v-if="collaborative"
                   color="secondary"
-                  aria-label="Share"
+                  :aria-label="t('trips.actionShare')"
                   @click="$router.push(`/trips/${trip.id}/members`)"
                 >
                   <IonIcon slot="icon-only" :icon="peopleOutline" />
@@ -541,7 +544,7 @@ async function handleRefresh(event: CustomEvent) {
                 <IonItemOption
                   v-if="trip.status === 'archived'"
                   color="primary"
-                  aria-label="Clone trip"
+                  :aria-label="t('trips.actionClone')"
                   @click="$router.push(`/trips/${trip.id}/clone`)"
                 >
                   <IonIcon slot="icon-only" :icon="copyOutline" />
@@ -551,7 +554,7 @@ async function handleRefresh(event: CustomEvent) {
                 <IonItemOption
                   v-if="trip.status === 'planning'"
                   color="primary"
-                  aria-label="Start trip"
+                  :aria-label="t('trips.actionStart')"
                   @click="startTrip(trip.id)"
                 >
                   <IonIcon slot="icon-only" :icon="playOutline" />
@@ -560,7 +563,7 @@ async function handleRefresh(event: CustomEvent) {
                 <IonItemOption
                   v-else-if="trip.status === 'active'"
                   color="medium"
-                  aria-label="Archive trip"
+                  :aria-label="t('trips.actionArchive')"
                   @click="archiveTrip(trip.id)"
                 >
                   <IonIcon slot="icon-only" :icon="archiveOutline" />
@@ -569,7 +572,7 @@ async function handleRefresh(event: CustomEvent) {
                 <IonItemOption
                   v-if="canDelete(trip)"
                   color="danger"
-                  aria-label="Delete trip"
+                  :aria-label="t('trips.actionDelete')"
                   @click="deleteTrip(trip)"
                 >
                   <IonIcon slot="icon-only" :icon="trashOutline" />
@@ -582,7 +585,7 @@ async function handleRefresh(event: CustomEvent) {
 
       <!-- FAB: New Trip -->
       <IonFab id="m2-fab-anchor" vertical="bottom" horizontal="end" slot="fixed" class="mobile-fab">
-        <IonFabButton data-testid="trips-new" aria-label="New trip" router-link="/trips/new">
+        <IonFabButton data-testid="trips-new" :aria-label="t('trips.new')" router-link="/trips/new">
           <IonIcon :icon="addOutline" />
         </IonFabButton>
       </IonFab>

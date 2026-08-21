@@ -24,6 +24,7 @@ import {
 import { addOutline, closeOutline, copyOutline, trendingUpOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 
+import { t, type MessageKey } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { ItemMode, Trip } from '@/types/domain'
@@ -73,6 +74,17 @@ function saveNotes(notes: string) {
 
 // --- Destination checklist (FR-13.3) ---
 
+/**
+ * FR-13.3: a checklist entry carries the same three procurement modes a
+ * position does, so it reads them from the one `mode.*` vocabulary rather
+ * than spelling its own — two wordings for one concept eventually disagree.
+ */
+const CHECKLIST_MODE_KEYS = {
+  pack: 'mode.pack',
+  buy_before: 'mode.buyBefore',
+  buy_local: 'mode.buyLocal',
+} as const satisfies Record<ItemMode, MessageKey>
+
 const newLabel = ref('')
 const newMode = ref<ItemMode>('buy_local')
 
@@ -96,7 +108,18 @@ const attachableTrips = computed(() => tripStore.tripList.filter((t) => !t.serie
 
 function tripStats(trip: Trip): string {
   const k = tripStore.kpis(trip.id)
-  return `${k.packedItems}/${k.totalItems} packed`
+  return t('trips.itemSummary', { packed: k.packedItems, total: k.totalItems })
+}
+
+/**
+ * The temporal line of a history row. FR-2.1b again: a trip may know both
+ * dates or only its end, and "until 12.09." is a sentence in a way that a
+ * bare dash is not.
+ */
+function tripWhen(trip: Trip): string {
+  return trip.start_date
+    ? `${trip.start_date} – ${trip.end_date ?? ''}`
+    : t('trip.until', { date: trip.end_date ?? '' })
 }
 
 /** Trend shortcut (M12): analytics of the series' most recent trip. */
@@ -106,18 +129,18 @@ const trendTripId = computed(() => seriesTrips.value[0]?.id ?? null)
 const cloneSource = computed(() => seriesTrips.value.find((t) => t.status === 'archived') ?? null)
 
 // ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() => series.value?.name ?? 'Series')
+setHeaderTitle(() => series.value?.name ?? t('series.section'))
 </script>
 
 <template>
   <IonPage>
     <IonContent class="ion-padding">
       <template v-if="series">
-        <h2 class="section-title jp-eyebrow">Series</h2>
+        <h2 class="section-title jp-eyebrow">{{ t('series.section') }}</h2>
         <IonList>
           <IonItem>
             <IonInput
-              label="Name"
+              :label="t('series.name')"
               label-placement="stacked"
               :value="series.name"
               @ionChange="(e: CustomEvent) => saveName(e.detail.value ?? '')"
@@ -125,52 +148,56 @@ setHeaderTitle(() => series.value?.name ?? 'Series')
           </IonItem>
           <IonItem>
             <IonSelect
-              label="Season"
+              :label="t('wizard.season')"
               interface="popover"
               :value="attribute('season')"
               @ionChange="(e: CustomEvent) => saveAttribute('season', e.detail.value)"
             >
-              <IonSelectOption value="">—</IonSelectOption>
-              <IonSelectOption value="summer">Summer</IonSelectOption>
-              <IonSelectOption value="winter">Winter</IonSelectOption>
-              <IonSelectOption value="transitional">Transitional</IonSelectOption>
+              <IonSelectOption value="">{{ t('wizard.unset') }}</IonSelectOption>
+              <IonSelectOption value="summer">{{ t('season.summer') }}</IonSelectOption>
+              <IonSelectOption value="winter">{{ t('season.winter') }}</IonSelectOption>
+              <IonSelectOption value="transitional">
+                {{ t('season.transitional') }}
+              </IonSelectOption>
             </IonSelect>
           </IonItem>
           <IonItem>
             <IonSelect
-              label="Transport"
+              :label="t('wizard.transport')"
               interface="popover"
               :value="attribute('transport_mode')"
               @ionChange="(e: CustomEvent) => saveAttribute('transport_mode', e.detail.value)"
             >
-              <IonSelectOption value="">—</IonSelectOption>
-              <IonSelectOption value="car">Car</IonSelectOption>
-              <IonSelectOption value="bike">Bike</IonSelectOption>
-              <IonSelectOption value="plane">Plane</IonSelectOption>
-              <IonSelectOption value="train">Train</IonSelectOption>
+              <IonSelectOption value="">{{ t('wizard.unset') }}</IonSelectOption>
+              <IonSelectOption value="car">{{ t('transport.car') }}</IonSelectOption>
+              <IonSelectOption value="bike">{{ t('transport.bike') }}</IonSelectOption>
+              <IonSelectOption value="plane">{{ t('transport.plane') }}</IonSelectOption>
+              <IonSelectOption value="train">{{ t('transport.train') }}</IonSelectOption>
             </IonSelect>
           </IonItem>
           <IonItem>
             <IonSelect
-              label="Accommodation"
+              :label="t('wizard.accommodation')"
               interface="popover"
               :value="attribute('accommodation')"
               @ionChange="(e: CustomEvent) => saveAttribute('accommodation', e.detail.value)"
             >
-              <IonSelectOption value="">—</IonSelectOption>
-              <IonSelectOption value="hotel">Hotel</IonSelectOption>
-              <IonSelectOption value="holiday_flat">Holiday flat</IonSelectOption>
-              <IonSelectOption value="camping">Camping</IonSelectOption>
+              <IonSelectOption value="">{{ t('wizard.unset') }}</IonSelectOption>
+              <IonSelectOption value="hotel">{{ t('accommodation.hotel') }}</IonSelectOption>
+              <IonSelectOption value="holiday_flat">
+                {{ t('accommodation.holiday_flat') }}
+              </IonSelectOption>
+              <IonSelectOption value="camping">{{ t('accommodation.camping') }}</IonSelectOption>
             </IonSelect>
           </IonItem>
         </IonList>
-        <IonNote>Defaults prefill the wizard for new trips in this series.</IonNote>
+        <IonNote>{{ t('series.defaultsNote') }}</IonNote>
 
-        <h2 class="section-title jp-eyebrow">Destination notes</h2>
+        <h2 class="section-title jp-eyebrow">{{ t('series.sectionNotes') }}</h2>
         <IonList>
           <IonItem>
             <IonTextarea
-              placeholder="e.g. washing machine available"
+              :placeholder="t('series.notesPlaceholder')"
               :value="profile?.notes ?? ''"
               auto-grow
               @ionChange="(e: CustomEvent) => saveNotes(e.detail.value ?? '')"
@@ -178,37 +205,31 @@ setHeaderTitle(() => series.value?.name ?? 'Series')
           </IonItem>
         </IonList>
 
-        <h2 class="section-title jp-eyebrow">Destination checklist</h2>
+        <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionChecklist') }}</h2>
         <IonList v-if="checklist.length > 0">
           <IonItem v-for="entry in checklist" :key="entry.id">
             <IonLabel>
               <h3>{{ entry.label }}</h3>
               <p>
-                {{
-                  entry.mode === 'buy_local'
-                    ? 'Buy there'
-                    : entry.mode === 'buy_before'
-                      ? 'Buy before'
-                      : 'Pack'
-                }}
+                {{ t(CHECKLIST_MODE_KEYS[entry.mode]) }}
               </p>
             </IonLabel>
             <IonButton
               slot="end"
               fill="clear"
               color="medium"
-              aria-label="Remove checklist item"
+              :aria-label="t('series.checklistRemove')"
               @click="orchestrator.deleteChecklistItem(entry.id)"
             >
               <IonIcon slot="icon-only" :icon="closeOutline" />
             </IonButton>
           </IonItem>
         </IonList>
-        <IonNote v-else>Offered automatically when a new trip in this series is created.</IonNote>
+        <IonNote v-else>{{ t('series.checklistEmpty') }}</IonNote>
         <div class="add-row">
           <IonInput
             class="add-input"
-            placeholder="Add item…"
+            :placeholder="t('series.checklistAdd')"
             :value="newLabel"
             @ionInput="(e: CustomEvent) => (newLabel = e.detail.value ?? '')"
             @keyup.enter="addChecklistEntry"
@@ -216,19 +237,19 @@ setHeaderTitle(() => series.value?.name ?? 'Series')
           <IonSelect
             interface="popover"
             :value="newMode"
-            aria-label="Mode"
+            :aria-label="t('series.checklistMode')"
             @ionChange="(e: CustomEvent) => (newMode = e.detail.value)"
           >
-            <IonSelectOption value="buy_local">Buy there</IonSelectOption>
-            <IonSelectOption value="buy_before">Buy before</IonSelectOption>
-            <IonSelectOption value="pack">Pack</IonSelectOption>
+            <IonSelectOption value="buy_local">{{ t('mode.buyLocal') }}</IonSelectOption>
+            <IonSelectOption value="buy_before">{{ t('mode.buyBefore') }}</IonSelectOption>
+            <IonSelectOption value="pack">{{ t('mode.pack') }}</IonSelectOption>
           </IonSelect>
           <IonButton fill="outline" size="small" @click="addChecklistEntry">
             <IonIcon slot="icon-only" :icon="addOutline" />
           </IonButton>
         </div>
 
-        <h2 class="section-title jp-eyebrow">Trips in this series</h2>
+        <h2 class="section-title jp-eyebrow">{{ t('series.sectionTrips') }}</h2>
         <IonList v-if="seriesTrips.length > 0">
           <IonItem
             v-for="trip in seriesTrips"
@@ -238,28 +259,25 @@ setHeaderTitle(() => series.value?.name ?? 'Series')
           >
             <IonLabel>
               <h3>{{ trip.name }}</h3>
-              <p>
-                {{ trip.start_date ? `${trip.start_date} – ` : 'until ' }}{{ trip.end_date }} ·
-                {{ tripStats(trip) }}
-              </p>
+              <p>{{ tripWhen(trip) }} · {{ tripStats(trip) }}</p>
             </IonLabel>
             <IonButton
               slot="end"
               fill="clear"
               color="medium"
-              aria-label="Detach from series"
+              :aria-label="t('series.detach')"
               @click.stop.prevent="orchestrator.setTripSeries(trip.id, null)"
             >
               <IonIcon slot="icon-only" :icon="closeOutline" />
             </IonButton>
           </IonItem>
         </IonList>
-        <IonNote v-else>No trips in this series yet.</IonNote>
+        <IonNote v-else>{{ t('series.noTrips') }}</IonNote>
 
         <IonList v-if="attachableTrips.length > 0">
           <IonItem>
             <IonSelect
-              label="Attach existing trip"
+              :label="t('series.attach')"
               interface="popover"
               :value="''"
               @ionChange="
@@ -267,7 +285,7 @@ setHeaderTitle(() => series.value?.name ?? 'Series')
                   e.detail.value && orchestrator.setTripSeries(e.detail.value, seriesId)
               "
             >
-              <IonSelectOption value="">—</IonSelectOption>
+              <IonSelectOption value="">{{ t('wizard.unset') }}</IonSelectOption>
               <IonSelectOption v-for="trip in attachableTrips" :key="trip.id" :value="trip.id">
                 {{ trip.name }}
               </IonSelectOption>
@@ -282,14 +300,14 @@ setHeaderTitle(() => series.value?.name ?? 'Series')
             :router-link="`/trips/${cloneSource.id}/clone`"
           >
             <IonIcon slot="start" :icon="copyOutline" />
-            Clone "{{ cloneSource.name }}"
+            {{ t('series.clone', { name: cloneSource.name }) }}
           </IonButton>
           <IonButton
             expand="block"
             :fill="cloneSource ? 'outline' : 'solid'"
             :router-link="`/trips/new?series=${seriesId}`"
           >
-            New trip in series
+            {{ t('series.newTrip') }}
           </IonButton>
           <IonButton
             v-if="trendTripId"
@@ -298,11 +316,11 @@ setHeaderTitle(() => series.value?.name ?? 'Series')
             :router-link="`/trips/${trendTripId}/analytics`"
           >
             <IonIcon slot="start" :icon="trendingUpOutline" />
-            Series trends
+            {{ t('series.trends') }}
           </IonButton>
         </div>
       </template>
-      <IonNote v-else>Series not found on this device.</IonNote>
+      <IonNote v-else>{{ t('series.notFound') }}</IonNote>
     </IonContent>
   </IonPage>
 </template>

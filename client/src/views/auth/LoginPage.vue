@@ -11,6 +11,7 @@ import { onMounted, ref } from 'vue'
 
 import { buildAuthorizeURL, challengeS256, generateVerifier } from '@/auth/pkce'
 import { serverBaseUrl } from '@/config'
+import { t } from '@/i18n'
 
 const error = ref('')
 const loginRequired = ref<boolean | null>(null)
@@ -20,7 +21,7 @@ onMounted(async () => {
     const resp = await fetch(`${serverBaseUrl()}/api/v1/auth/config`)
     loginRequired.value = resp.ok
   } catch {
-    error.value = 'Server unreachable'
+    error.value = t('login.serverUnreachable')
     loginRequired.value = false
   }
 })
@@ -30,7 +31,7 @@ async function signIn() {
   try {
     const resp = await fetch(`${serverBaseUrl()}/api/v1/auth/config`)
     if (!resp.ok) {
-      error.value = 'This server does not offer OIDC login'
+      error.value = t('login.noOidc')
       return
     }
     const config = (await resp.json()) as { authorize_url: string; client_id: string }
@@ -48,7 +49,7 @@ async function signIn() {
       state,
     })
   } catch {
-    error.value = 'Could not start the login flow'
+    error.value = t('login.startFailed')
   }
 }
 </script>
@@ -57,17 +58,13 @@ async function signIn() {
   <IonPage>
     <IonContent class="ion-padding">
       <div class="login">
-        <h1 class="jp-sheet-title">Sign in</h1>
-        <p v-if="loginRequired === false" class="hint">
-          This server does not require a login — you can head back to the app.
-        </p>
+        <h1 class="jp-sheet-title">{{ t('login.title') }}</h1>
+        <p v-if="loginRequired === false" class="hint">{{ t('login.notRequired') }}</p>
         <template v-else>
-          <p class="hint">
-            Your identity provider handles the login; JIT-Pack never sees your password.
-          </p>
+          <p class="hint">{{ t('login.hint') }}</p>
           <IonButton expand="block" @click="signIn">
             <IonIcon slot="start" :icon="logInOutline" />
-            Sign in with SSO
+            {{ t('login.action') }}
           </IonButton>
         </template>
         <IonNote v-if="error" color="danger">{{ error }}</IonNote>

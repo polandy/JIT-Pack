@@ -28,6 +28,7 @@ import { bagHandleOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
+import { t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
 import type { TripItem } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -49,7 +50,7 @@ const activeList = computed(() =>
 const grouped = computed(() => {
   const groups = new Map<string, TripItem[]>()
   for (const item of activeList.value) {
-    const key = item.category_name ?? 'Uncategorized'
+    const key = item.category_name ?? t('shopping.uncategorized')
     groups.set(key, [...(groups.get(key) ?? []), item])
   }
   return [...groups.entries()]
@@ -89,7 +90,7 @@ function quickAdd(item: {
 }
 
 // ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() => `Shopping · ${trip.value?.name ?? ''}`)
+setHeaderTitle(() => t('shopping.headerTitle', { trip: trip.value?.name ?? '' }))
 </script>
 
 <template>
@@ -98,10 +99,10 @@ setHeaderTitle(() => `Shopping · ${trip.value?.name ?? ''}`)
       <!-- ADR-011: a view switcher is page content, not header chrome. -->
       <IonSegment :value="tab" @ionChange="(e: CustomEvent) => (tab = e.detail.value)">
         <IonSegmentButton value="buy_before">
-          <IonLabel>Before departure ({{ lists.buyBefore.length }})</IonLabel>
+          <IonLabel>{{ t('shopping.beforeDeparture', { n: lists.buyBefore.length }) }}</IonLabel>
         </IonSegmentButton>
         <IonSegmentButton value="buy_local">
-          <IonLabel>At destination ({{ lists.buyLocal.length }})</IonLabel>
+          <IonLabel>{{ t('shopping.atDestination', { n: lists.buyLocal.length }) }}</IonLabel>
         </IonSegmentButton>
       </IonSegment>
 
@@ -116,7 +117,7 @@ setHeaderTitle(() => `Shopping · ${trip.value?.name ?? ''}`)
             <IonCheckbox
               slot="start"
               :checked="false"
-              :aria-label="`Bought: ${item.name}`"
+              :aria-label="t('shopping.bought', { name: item.name })"
               @ionChange="checkOff(item)"
             />
             <IonLabel>
@@ -130,7 +131,7 @@ setHeaderTitle(() => `Shopping · ${trip.value?.name ?? ''}`)
       <!-- Empty state (G-7) -->
       <div v-else class="empty-state">
         <IonIcon :icon="bagHandleOutline" class="empty-icon" />
-        <p>Nothing to buy {{ tab === 'buy_before' ? 'before departure' : 'at the destination' }}</p>
+        <p>{{ t(tab === 'buy_before' ? 'shopping.emptyBefore' : 'shopping.emptyLocal') }}</p>
       </div>
     </IonContent>
   </IonPage>

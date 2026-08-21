@@ -476,7 +476,9 @@ function acceptSuggestion(index: number) {
 }
 
 function travelerName(index: number | null): string | null {
-  return index === null ? null : travelers.value[index]?.name || `Traveler ${index + 1}`
+  return index === null
+    ? null
+    : travelers.value[index]?.name || t('wizard.travelerFallback', { n: index + 1 })
 }
 
 /**
@@ -557,7 +559,7 @@ function createTrip() {
 }
 
 // ADR-011: the one header bar renders this page's title.
-setHeaderTitle(() => `New trip · step ${step.value}/4`)
+setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
 </script>
 
 <template>
@@ -721,13 +723,13 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
       <!-- Step 2: travelers -->
       <section v-if="step === 2" data-testid="wizard-step-2">
-        <h2 class="section-title jp-eyebrow">Travelers</h2>
+        <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionTravelers') }}</h2>
         <IonList v-if="travelers.length > 0">
           <IonItem v-for="(traveler, index) in travelers" :key="index">
             <IonIcon slot="start" :icon="personOutline" />
             <IonInput
               data-testid="wizard-traveler-name"
-              placeholder="Name"
+              :placeholder="t('wizard.travelerNamePlaceholder')"
               :value="traveler.name"
               @ionInput="(e: CustomEvent) => (traveler.name = e.detail.value ?? '')"
             />
@@ -736,14 +738,14 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
               fill="clear"
               color="medium"
               data-testid="wizard-traveler-remove"
-              aria-label="Remove traveler"
+              :aria-label="t('wizard.travelerRemove')"
               @click="removeTraveler(index)"
             >
               <IonIcon slot="icon-only" :icon="closeOutline" />
             </IonButton>
           </IonItem>
         </IonList>
-        <div v-else class="empty-hint">No travelers yet — per-person items need at least one.</div>
+        <div v-else class="empty-hint">{{ t('wizard.travelersEmpty') }}</div>
         <IonButton
           data-testid="wizard-add-traveler"
           fill="outline"
@@ -751,29 +753,29 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
           @click="addTraveler"
         >
           <IonIcon slot="start" :icon="addOutline" />
-          Add traveler
+          {{ t('wizard.addTraveler') }}
         </IonButton>
 
         <!-- Sharing & roles (FR-4.5/4.7) — OIDC sessions only (G-8) -->
         <template v-if="collaborative">
-          <h2 class="section-title jp-eyebrow">Share with</h2>
+          <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionShare') }}</h2>
           <IonList v-if="shares.length > 0">
             <IonItem v-for="(share, index) in shares" :key="share.userId">
               <IonLabel>{{ shareName(share.userId) }}</IonLabel>
               <IonSelect
                 interface="popover"
-                aria-label="Role"
+                :aria-label="t('role.label')"
                 :value="share.role"
                 @ionChange="(e: CustomEvent) => setShareRole(index, e.detail.value)"
               >
-                <IonSelectOption value="editor">Editor</IonSelectOption>
-                <IonSelectOption value="admin">Admin</IonSelectOption>
+                <IonSelectOption value="editor">{{ t('role.editor') }}</IonSelectOption>
+                <IonSelectOption value="admin">{{ t('role.admin') }}</IonSelectOption>
               </IonSelect>
               <IonButton
                 slot="end"
                 fill="clear"
                 color="medium"
-                aria-label="Remove share"
+                :aria-label="t('wizard.shareRemove')"
                 @click="removeShare(index)"
               >
                 <IonIcon slot="icon-only" :icon="closeOutline" />
@@ -783,8 +785,8 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
           <IonItem v-if="shareCandidates.length > 0" lines="none">
             <IonSelect
               interface="popover"
-              placeholder="Add user…"
-              aria-label="Add user"
+              :placeholder="t('wizard.shareAdd')"
+              :aria-label="t('wizard.shareAddLabel')"
               :value="null"
               @ionChange="(e: CustomEvent) => addShare(e.detail.value)"
             >
@@ -794,12 +796,9 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
             </IonSelect>
           </IonItem>
           <IonNote v-else-if="shares.length === 0" class="empty-hint">
-            No other accounts on this server yet.
+            {{ t('wizard.shareEmpty') }}
           </IonNote>
-          <IonNote class="share-note">
-            You stay the trip's Owner. Admins manage travelers and roles; Editors pack and comment
-            (FR-4.5).
-          </IonNote>
+          <IonNote class="share-note">{{ t('wizard.shareNote') }}</IonNote>
         </template>
       </section>
 
@@ -995,7 +994,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
       <!-- Step 4: quantity review -->
       <section v-if="step === 4" data-testid="wizard-step-4">
-        <h2 class="section-title jp-eyebrow">Review quantities</h2>
+        <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionReview') }}</h2>
         <IonList v-if="generation.items.length > 0">
           <IonItem
             v-for="(item, index) in generation.items"
@@ -1031,8 +1030,12 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
                 class="history-hint"
                 @click="acceptSuggestion(index)"
               >
-                {{ suggestionHint(suggestionFor(index)!) }} → use
-                {{ suggestionFor(index)!.suggested }}
+                {{
+                  t('wizard.reviewUseSuggestion', {
+                    history: suggestionHint(suggestionFor(index)!),
+                    n: suggestionFor(index)!.suggested,
+                  })
+                }}
               </button>
             </IonLabel>
             <span slot="end" class="qty-value jp-num" data-testid="wizard-review-qty">
@@ -1045,7 +1048,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
               type="number"
               min="0"
               :value="reviewQuantity(index)"
-              aria-label="Quantity"
+              :aria-label="t('wizard.reviewQuantity')"
               @ionInput="(e: CustomEvent) => overrideQuantity(index, e.detail.value ?? '')"
             />
             <button
@@ -1070,30 +1073,32 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
             </button>
           </IonItem>
         </IonList>
-        <div v-else class="empty-hint">No items generated — the trip starts empty.</div>
+        <div v-else class="empty-hint">{{ t('wizard.reviewEmpty') }}</div>
 
         <!-- FR-20.2/20.3: companions of on-list items join automatically -->
         <template
           v-if="companionResolution.required.length > 0 || companionResolution.deduped.length > 0"
         >
-          <h2 class="section-title jp-eyebrow">Companion items</h2>
+          <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionCompanions') }}</h2>
           <IonList v-if="companionResolution.required.length > 0">
             <IonItem v-for="c in companionResolution.required" :key="c.item_id">
               <IonLabel>
                 <h3>{{ c.name }}</h3>
-                <p>with {{ c.via_item_name }}</p>
+                <p>{{ t('wizard.companionWith', { name: c.via_item_name }) }}</p>
               </IonLabel>
               <IonNote slot="end">×{{ c.quantity }}</IonNote>
             </IonItem>
           </IonList>
           <IonNote v-for="d in companionResolution.deduped" :key="d.item_id" class="dedup-note">
-            {{ d.name }}: already on the list, not duplicated
+            {{ t('wizard.companionDeduped', { name: d.name }) }}
           </IonNote>
         </template>
 
         <!-- FR-20.4: suggested companions, one tap each -->
         <template v-if="companionResolution.suggested.length > 0">
-          <h2 class="section-title jp-eyebrow">Suggested companions</h2>
+          <h2 class="section-title jp-eyebrow">
+            {{ t('wizard.sectionSuggestedCompanions') }}
+          </h2>
           <IonList>
             <IonItem v-for="s in companionResolution.suggested" :key="s.item_id">
               <IonCheckbox
@@ -1103,7 +1108,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
               />
               <IonLabel>
                 <h3>{{ s.name }}</h3>
-                <p>suggested with {{ s.via_item_name }}</p>
+                <p>{{ t('wizard.companionSuggestedWith', { name: s.via_item_name }) }}</p>
               </IonLabel>
               <IonNote slot="end">×{{ s.quantity }}</IonNote>
             </IonItem>
@@ -1112,7 +1117,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
 
         <!-- FR-13.3: destination checklist offer from the series profile -->
         <template v-if="offeredChecklist.length > 0">
-          <h2 class="section-title jp-eyebrow">Destination checklist</h2>
+          <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionChecklist') }}</h2>
           <IonItem lines="none">
             <IonCheckbox
               slot="start"
@@ -1120,8 +1125,7 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
               @ionChange="(e: CustomEvent) => (includeChecklist = e.detail.checked)"
             />
             <IonLabel>
-              Add {{ offeredChecklist.length }} item{{ offeredChecklist.length === 1 ? '' : 's' }}
-              from the destination checklist
+              {{ t('wizard.checklistAdd', { n: offeredChecklist.length }) }}
             </IonLabel>
           </IonItem>
           <IonNote>{{ offeredChecklist.map((c) => c.label).join(', ') }}</IonNote>
@@ -1131,10 +1135,10 @@ setHeaderTitle(() => `New trip · step ${step.value}/4`)
       <!-- Wizard navigation -->
       <div class="wizard-nav">
         <IonButton v-if="step > 1" data-testid="wizard-back" fill="outline" @click="back">
-          Back
+          {{ t('wizard.back') }}
         </IonButton>
         <IonButton v-if="step < 4" data-testid="wizard-next" :disabled="!stepValid" @click="next">
-          Next
+          {{ t('wizard.next') }}
         </IonButton>
         <IonButton
           v-if="step === 4"

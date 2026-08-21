@@ -10,6 +10,7 @@ import { useRouter } from 'vue-router'
 
 import { saveTokens } from '@/auth/tokens'
 import { serverBaseUrl } from '@/config'
+import { t } from '@/i18n'
 
 const router = useRouter()
 const error = ref('')
@@ -24,7 +25,7 @@ onMounted(async () => {
   sessionStorage.removeItem('jitpack_pkce_verifier')
 
   if (!code || !verifier || !state || state !== expectedState) {
-    error.value = 'Login was interrupted — please try again.'
+    error.value = t('login.interrupted')
     return
   }
 
@@ -39,14 +40,14 @@ onMounted(async () => {
       }),
     })
     if (!resp.ok) {
-      error.value = 'The server rejected the login.'
+      error.value = t('login.rejected')
       return
     }
     saveTokens(await resp.json())
     // Full reload so the orchestrator starts with the token in place.
     window.location.replace('/tabs/dashboard')
   } catch {
-    error.value = 'Login failed — server unreachable.'
+    error.value = t('login.failed')
   }
 })
 </script>
@@ -57,11 +58,11 @@ onMounted(async () => {
       <div class="callback">
         <template v-if="!error">
           <IonSpinner />
-          <p>Completing sign-in…</p>
+          <p>{{ t('login.completing') }}</p>
         </template>
         <template v-else>
           <p>{{ error }}</p>
-          <IonButton @click="router.replace('/login')">Back to login</IonButton>
+          <IonButton @click="router.replace('/login')">{{ t('login.backToLogin') }}</IonButton>
         </template>
       </div>
     </IonContent>

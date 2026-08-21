@@ -25,6 +25,7 @@ import { inject, onMounted, ref } from 'vue'
 
 import { adminActionsFor, type AdminAction, type AdminUserRow } from '@/domain/admin'
 import { serverBaseUrl } from '@/config'
+import { t, type MessageKey } from '@/i18n'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
@@ -48,11 +49,12 @@ onMounted(async () => {
   await load()
 })
 
-const actionLabels: Record<AdminAction, string> = {
-  deactivate: 'Deactivate',
-  reactivate: 'Reactivate',
-  'reset-avatar': 'Remove avatar',
-  'reset-name': 'Reset display name',
+/** One catalogue key per action `adminActionsFor` can return (FR-23.3/23.4). */
+const ACTION_KEYS: Record<AdminAction, MessageKey> = {
+  deactivate: 'admin.actionDeactivate',
+  reactivate: 'admin.actionReactivate',
+  'reset-avatar': 'admin.actionResetAvatar',
+  'reset-name': 'admin.actionResetName',
 }
 
 async function openActions(user: AdminUserRow) {
@@ -61,11 +63,11 @@ async function openActions(user: AdminUserRow) {
     header: user.display_name || user.user_id,
     buttons: [
       ...actions.map((a) => ({
-        text: actionLabels[a],
+        text: t(ACTION_KEYS[a]),
         role: a === 'deactivate' ? 'destructive' : undefined,
         data: a,
       })),
-      { text: 'Cancel', role: 'cancel' },
+      { text: t('common.cancel'), role: 'cancel' },
     ],
   })
   await sheet.present()
@@ -100,14 +102,11 @@ async function runAction(action: AdminAction, user: AdminUserRow) {
 /** FR-23.3: the confirmation spells out exactly what happens. */
 async function confirmDeactivation(user: AdminUserRow): Promise<boolean> {
   const alert = await alertController.create({
-    header: `Deactivate ${user.display_name || user.user_id}?`,
-    message:
-      'The account loses all access immediately. Trips, templates, and ' +
-      'attributions stay untouched and remain visible to others. Logging ' +
-      'in again does not restore access — only Reactivate does.',
+    header: t('admin.deactivateTitle', { name: user.display_name || user.user_id }),
+    message: t('admin.deactivateMessage'),
     buttons: [
-      { text: 'Cancel', role: 'cancel' },
-      { text: 'Deactivate', role: 'destructive' },
+      { text: t('common.cancel'), role: 'cancel' },
+      { text: t('admin.actionDeactivate'), role: 'destructive' },
     ],
   })
   await alert.present()
@@ -127,9 +126,7 @@ function provisioned(user: AdminUserRow): string {
 <template>
   <IonPage>
     <IonContent>
-      <IonNote v-if="failed" class="hint">
-        Overview unavailable — instance admins only, and a server connection is required.
-      </IonNote>
+      <IonNote v-if="failed" class="hint">{{ t('admin.unavailable') }}</IonNote>
 
       <IonList v-else>
         <IonItem
@@ -143,16 +140,21 @@ function provisioned(user: AdminUserRow): string {
           <IonLabel>
             <h3>
               {{ user.display_name || user.user_id }}
-              <span v-if="user.user_id === myUserId" class="self-marker">(you)</span>
+              <span v-if="user.user_id === myUserId" class="self-marker">
+                {{ t('admin.self') }}
+              </span>
             </h3>
             <p v-if="user.email">{{ user.email }}</p>
             <p>
-              Provisioned {{ provisioned(user) }} · {{ user.trip_count }} trip(s) ·
-              {{ user.template_count }} template(s)
+              {{ t('admin.provisioned', { date: provisioned(user) }) }} ·
+              {{ t('admin.tripCount', { n: user.trip_count }) }} ·
+              {{ t('admin.templateCount', { n: user.template_count }) }}
             </p>
           </IonLabel>
-          <IonChip v-if="user.is_instance_admin" outline disabled>Admin</IonChip>
-          <IonChip v-if="user.deactivated_at" outline disabled color="danger">Deactivated</IonChip>
+          <IonChip v-if="user.is_instance_admin" outline disabled>{{ t('role.admin') }}</IonChip>
+          <IonChip v-if="user.deactivated_at" outline disabled color="danger">
+            {{ t('admin.deactivated') }}
+          </IonChip>
         </IonItem>
       </IonList>
     </IonContent>

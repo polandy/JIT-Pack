@@ -21,6 +21,7 @@ import {
 import { gitMergeOutline } from 'ionicons/icons'
 import { inject, onMounted, ref } from 'vue'
 
+import { t } from '@/i18n'
 import type { ConflictEntry, useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const props = defineProps<{ tripId: string }>()
@@ -47,7 +48,7 @@ async function onRefresh(event: CustomEvent) {
 }
 
 function formatValue(raw: string): string {
-  return raw === '' ? '—' : raw
+  return raw === '' ? t('conflicts.emptyValue') : raw
 }
 
 function formatTime(iso: string): string {
@@ -83,8 +84,8 @@ function formatTime(iso: string): string {
       <!-- Empty state (G-7) -->
       <div v-else class="empty-state" data-testid="conflict-empty">
         <IonIcon :icon="gitMergeOutline" class="empty-icon" />
-        <p v-if="failed">Conflict log unavailable — offline?</p>
-        <p v-else>No conflicts — every change merged cleanly</p>
+        <p v-if="failed">{{ t('conflicts.unavailable') }}</p>
+        <p v-else>{{ t('conflicts.empty') }}</p>
       </div>
     </IonContent>
   </IonPage>
