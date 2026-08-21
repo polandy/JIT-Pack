@@ -1,6 +1,6 @@
 # MVP Plan — "the family packs a real vacation with it"
 
-Status: **approved by the owner 2026-08-20** (scope cut incl. deferring FR-27.13/§3.28; parallel open PRs allowed for this push, merges stay serialized with explicit go-ahead). **Wave 1 is merged** (2026-08-21): Track A `56f15a3`, Track B `2b89504`, Track D `980ba1b` — D's release cut itself is still owed, see §7. **Wave 2 is merged too** (2026-08-21): Track C `61a790b`, Track F `46c1690`, Track G `2607317` (its steps 1 and 2 — the M14 eyeball on `:3000`, step 3, is still owed). **Track E (i18n) is the only track of the two waves still running.** §5 records where they touch. Written from a full-repo survey (client/UX gaps + server/deploy readiness). Any session picking up a track: read `CLAUDE.md` fully first, then this file, then only the files your track names.
+Status: **approved by the owner 2026-08-20** (scope cut incl. deferring FR-27.13/§3.28; parallel open PRs allowed for this push, merges stay serialized with explicit go-ahead). **Wave 1 is merged** (2026-08-21): Track A `56f15a3`, Track B `2b89504`, Track D `980ba1b` — D's release cut itself is still owed, see §7. **Wave 2 is merged too** (2026-08-21): Track C `61a790b`, Track F `46c1690`, Track G `2607317` (its steps 1 and 2 — the M14 eyeball on `:3000`, step 3, is still owed). **Track E (i18n) is the only track of the two waves still running.** **Track J is merged** (`443327d`, FR-2.7/M22) and **Track I is built** (variant A, the fifth route class). §5 records where they touch. Written from a full-repo survey (client/UX gaps + server/deploy readiness). Any session picking up a track: read `CLAUDE.md` fully first, then this file, then only the files your track names.
 
 ## 1. Goal and definition of done
 
@@ -110,7 +110,7 @@ Files: `client/src/views/trips/PackingListPage.vue` (+ router/overlay layer per 
 2. Write E2E-M12-03's positive half (unblocked since the lifecycle step exists).
 3. Stage real proposals on :3000 (`docker stop jitpack-web` frees the port) and get the owner's M14 eyeball — deliverable is a click-path note or artifact link, per the standing eyeball rule.
 
-### Track J — a trip cannot be edited after it is created *(owner-found 2026-08-21 · effort M–L · decide before building)*
+### Track J — a trip cannot be edited after it is created *(owner-found 2026-08-21 · **merged `443327d`**, FR-2.7 / M22)*
 
 Files (once the shape is decided): `client/src/composables/useMutations.ts`, a new trip-properties
 surface under `client/src/views/trips/`, `client/src/domain/` for the consequence rules,
@@ -153,7 +153,7 @@ also load-bearing: `instantiate.ts` expands `per_person` positions over the trav
 Until it is built, the honest workaround is the clone path (FR-12.1) — and it loses the packing
 progress, which is exactly why this is a gap and not a preference.
 
-### Track I — the back button's missing route class *(owner-found 2026-08-21 · effort S–M · next up)*
+### Track I — the back button's missing route class *(owner-found 2026-08-21 · effort S–M · **built 2026-08-21**, variant A)*
 
 Files: `client/src/router/backTarget.ts`, `router/index.ts`, `components/global/AppHeader.vue`,
 `router/__tests__/backTarget.spec.ts`, `client/e2e/global-nav.spec.ts`,
@@ -236,6 +236,6 @@ Six tracks can fan out immediately. Recommended first wave if agent count is lim
 3. **IdP**: which OIDC provider fronts the family instance (the config assumes a confidential client; Authelia-class self-hosted works)? Needed before Track H, not before A–G.
 4. **Upgrade stance for the vacation**: pin one digest and freeze (recommended in Track D) vs. building image-export tooling now.
 5. Track A step 3: hand-rolled SW vs `vite-plugin-pwa` — the ADR will present it, but a prior leaning saves a round-trip.
-6. **Track I shape**: does a global action carry its origin (A), or does Settings become an overlay (B)? Needed before the track starts.
-7. **Track J shape**: own screen from M4's app bar, or an M5-grammar sheet?
-8. **Track J consequences**: does a traveler added after generation extend the `per_person` positions, and does removing one take their rows? (FR-27.4-shaped — ask at the trip, or leave it manual.)
+6. ~~**Track I shape**~~ — **built as A** (2026-08-21): a global action carries its origin, stamped by the router rather than by each link. B (Settings as an overlay) was weighed and lost in the ADR-011 amendment: it fixes Settings and does nothing for the two import flows, which were half the defect. Say so if you want B instead — the branch is one guard and one branch in `backTarget`.
+7. ~~**Track J shape**~~ — **decided 2026-08-21**: own screen from M4's cluster (M22). Merged as `443327d`.
+8. ~~**Track J consequences**~~ — **decided 2026-08-21**: adding pulls the `per_person` positions immediately; removing takes the person's *untouched* rows and asks about the packed ones. FR-27.4 already specified it — the amendment there changed only the timing.

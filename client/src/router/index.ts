@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router'
 
 import { installOverlayBackGuard } from './overlayBackGuard'
+import { installOriginStamp } from './originStamp'
 import type { RouteRecordRaw } from 'vue-router'
 
 /**
@@ -10,6 +11,11 @@ import type { RouteRecordRaw } from 'vue-router'
  * the target comes from the route rather than from history, which a
  * cold-start deep link does not have. `backTarget.spec.ts` fails if a
  * route is added without one.
+ *
+ * A route that can be entered from anywhere — the settings gear, the
+ * import flows — additionally carries `meta.acceptsFrom`: it is stamped
+ * with its origin on the way in (originStamp.ts) and returns there,
+ * keeping `parent` as the fallback for the entry that has no origin.
  */
 export const routes: RouteRecordRaw[] = [
   {
@@ -50,7 +56,9 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/tabs/settings',
     name: 'settings',
-    meta: { parent: '/tabs/dashboard', titleKey: 'settings.title' },
+    // A global action: the gear is offered on every screen, so no one
+    // parent is true (ADR-011 amendment).
+    meta: { parent: '/tabs/dashboard', acceptsFrom: true, titleKey: 'settings.title' },
     component: () => import('@/views/settings/SettingsPage.vue'),
   },
   {
@@ -89,13 +97,15 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     path: '/import',
-    meta: { parent: '/tabs/items', titleKey: 'items.importSpreadsheet' },
+    // A flow: entered from M2 and from M9 (Navigation_Concept §7).
+    meta: { parent: '/tabs/items', acceptsFrom: true, titleKey: 'items.importSpreadsheet' },
     name: 'import-wizard',
     component: () => import('@/views/import/ImportPage.vue'),
   },
   {
     path: '/portable-import',
-    meta: { parent: '/tabs/settings', titleKey: 'nav.title.importFile' },
+    // A flow: entered from M2, M7 and Settings.
+    meta: { parent: '/tabs/settings', acceptsFrom: true, titleKey: 'nav.title.importFile' },
     name: 'portable-import',
     component: () => import('@/views/import/PortableImportPage.vue'),
   },
@@ -164,7 +174,7 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     path: '/admin',
-    meta: { parent: '/tabs/settings', titleKey: 'admin.title' },
+    meta: { parent: '/tabs/settings', acceptsFrom: true, titleKey: 'admin.title' },
     name: 'admin',
     component: () => import('@/views/settings/AdminPage.vue'),
   },
@@ -209,7 +219,7 @@ export const routes: RouteRecordRaw[] = [
 if (import.meta.env.DEV) {
   routes.push({
     path: '/dev/gallery',
-    meta: { parent: '/tabs/settings', titleKey: 'nav.title.gallery' },
+    meta: { parent: '/tabs/settings', acceptsFrom: true, titleKey: 'nav.title.gallery' },
     name: 'dev-gallery',
     component: () => import('@/dev/GalleryPage.vue'),
   })
@@ -219,6 +229,10 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 })
+
+// A route of the fifth class records where it was entered from, before
+// anything reads the back target off it (ADR-011 amendment).
+installOriginStamp(router)
 
 // Browser-back with an overlay open closes the overlay, like the chevron.
 installOverlayBackGuard(router)

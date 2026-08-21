@@ -34,6 +34,19 @@ function onVisibleScreen(page: Page, testid: string) {
   return page.locator('ion-router-outlet > .ion-page:not(.ion-page-hidden)').getByTestId(testid)
 }
 
+/**
+ * The *path* the app settled on, never the whole URL.
+ *
+ * `toHaveURL(/\/tabs\/trips$/)` also matches a URL whose **query** ends
+ * that way — which is exactly how the first version of E2E-G9-12 passed
+ * against the unfixed build, now that a route can carry `?from=/tabs/trips`.
+ * A predicate keeps Playwright's retry while comparing the one part that
+ * identifies the screen.
+ */
+function atPath(page: Page, path: string) {
+  return expect(page).toHaveURL((url) => url.pathname === path)
+}
+
 test.describe('Global navigation @local @g9 @g1 @g12', () => {
   test.beforeEach(async ({ seedMode }) => {
     await seedMode({ mode: 'local' })
@@ -348,5 +361,70 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // registers no title, so its own actions are the positive signal.
     await expect(page.getByTestId('m4-edit')).toBeVisible()
     await expect(onVisibleScreen(page, 'trip-edit-name')).toHaveCount(0)
+  })
+  /*
+   * E2E-G1-04 (G-1, ADR-011 amendment): the owner's symptom. The gear is
+   * offered on every screen, so /tabs/settings cannot name one parent that
+   * is true — it declared /tabs/dashboard, and the chevron carried the user
+   * out of their trip. The route now records where it was entered from.
+   */
+  test('E2E-G1-04: the gear opened inside a trip gives the trip back', async ({ page }) => {
+    await page.setViewportSize(MOBILE)
+    const trip = await createTripViaWizard(page, TRIP)
+
+    await page.getByTestId('header-settings').click()
+    await expect(onVisibleScreen(page, 'settings-language')).toBeVisible()
+
+    await page.getByTestId('header-back').click()
+
+    await atPath(page, trip)
+    // Rendered, not routed: M4's own FAB is the positive signal that the
+    // packing list is the screen on the display, and the settings control
+    // is the negative one — a screen that stayed would still show it.
+    await expect(onVisibleScreen(page, 'm4-fab')).toBeVisible()
+    await expect(page.getByTestId('settings-language')).toHaveCount(0)
+  })
+
+  /*
+   * E2E-G1-05: the other half, and the one that keeps the fix from being a
+   * blanket "back = history". A cold start straight into settings has no
+   * origin at all — the case ADR-011 decoupled back from history for — and
+   * the declared parent has to answer.
+   */
+  test('E2E-G1-05: settings opened cold falls back to its declared parent', async ({ page }) => {
+    await page.setViewportSize(MOBILE)
+    await page.goto('/tabs/settings')
+    await expect(onVisibleScreen(page, 'settings-language')).toBeVisible()
+
+    await page.getByTestId('header-back').click()
+
+    await atPath(page, '/tabs/dashboard')
+    await expect(onVisibleScreen(page, 'dashboard-greeting')).toBeVisible()
+  })
+
+  /*
+   * E2E-G9-12 (Navigation_Concept §7, the "flows" class): §7 promised a flow
+   * returns to the origin it was entered from and nothing implemented it.
+   * M18 is entered from M2, M7 and Settings while declaring /tabs/settings —
+   * so from the trip list the chevron used to land in Settings.
+   */
+  test('E2E-G9-12: the portable import entered from the trip list returns to it', async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE)
+    await page.goto('/tabs/trips')
+    await expect(onVisibleScreen(page, 'm2-portable-import')).toBeVisible()
+
+    await page.getByTestId('m2-portable-import').click()
+    await expect(onVisibleScreen(page, 'portable-paste')).toBeVisible()
+
+    await page.getByTestId('header-back').click()
+
+    await atPath(page, '/tabs/trips')
+    await expect(onVisibleScreen(page, 'trips-new')).toBeVisible()
+    // Not `onVisibleScreen`: the declared parent was Settings, and a page
+    // left mounted mid-transition is briefly not hidden either. The
+    // settings control existing anywhere at all is the discriminator.
+    await expect(page.getByTestId('settings-language')).toHaveCount(0)
   })
 })
