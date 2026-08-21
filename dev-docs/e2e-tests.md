@@ -1024,3 +1024,25 @@ property rather than an attribute — `input[value="Zoe"]` never matches.
 E2E-M22-04 asserts an absence (removal is refused on a started trip), so it
 leans on the positive signals the screen renders anyway: the control is present
 and `aria-disabled`, and the reason is a visible note.
+
+## Known flaky: the losing-offline-edit case (`e2e/single/server-sync.spec.ts`, noted 2026-08-21)
+
+`a losing offline edit converges and lands in the conflict log` fails on its
+first attempt and passes on the retry — **measured on `main` as well as on the
+branch that reported it**, twice each, so it is the case rather than any change
+around it. CI has been green only because the retry saves it, and a run where
+both attempts fail is one unlucky pipeline away.
+
+The cause is in the case, not in the app. `pageB` boots straight at the trip's
+URL, so only the **trip** partition is loaded; `reopenTrip` then navigates
+through M2, whose list comes from the **master** partition. Whether that pull
+landed before the context went offline is luck, and there is deliberately no
+reconnect drain (Track C), so after reconnecting it may never arrive at all —
+the case then looks for the trip in an empty list and reports the absence as a
+sync failure.
+
+Not fixed here, deliberately: the obvious repairs each change what the case
+proves. Re-entering by `goto` restarts the app and demonstrates the durable
+outbox instead of the drain-on-trip-open the case is about, and re-entering by
+history skips M2 but broke the sibling case that shares the helper (tried, and
+reverted). It wants its own change, by whoever owns the server-mode suite.
