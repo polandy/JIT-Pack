@@ -116,6 +116,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Dependabot skips the Node majors that can never be taken (2026-08-21)](#dependabot-skips-the-node-majors-that-can-never-be-taken-2026-08-21) — odd Node majors never reach LTS; Dependabot only ever offers the newest, so from October 2026 it would chase 27 past the 26 that becomes LTS. Bundler syntax, because that is what the docker ecosystem parses.
 - [The sync outbox survives a reload (2026-08-21)](#the-sync-outbox-survives-a-reload-2026-08-21) — MVP Track C / blocker B2: the queue moved to IndexedDB and is replayed before the first pull. Replay safety is the server's `mutation_id` memo, not the merge algorithm; a permanently refused mutation is parked so it cannot wedge a partition.
 - [The device backup carries the FR-27.4 refresh state (2026-08-21)](#the-device-backup-carries-the-fr-274-refresh-state-2026-08-21-mvp-track-f) — a restored device kept everything visible and forgot every answer it had given its groups; the restore re-keys by identity, not by name, because a renamed row is exactly the row the user has made theirs.
+- [The composer offers chips before it asks for typing (2026-08-21)](#the-composer-offers-chips-before-it-asks-for-typing-2026-08-21) — FR-25.13c decided on a rendered three-way round (ADR-020): chips now, browse-sheet as FR-25.13d, tag tiles rejected; the autofocus removal is the accepted cost, and two e2e case numbers were already taken by specs not yet built.
 
 ## Current state
 
@@ -4138,3 +4139,38 @@ back off the stored row in M5 before relying on the list. And M14's open count
 is not the signal it looks like: asserted after archiving it read `0`, because a
 *missing* proposal needs a group to target and that world has no templates at
 all — that coverage belongs to `review.spec.ts`, which builds them.
+
+## The composer offers chips before it asks for typing (2026-08-21)
+
+FR-25.13c, decided and built the same day. What the diff cannot show:
+
+- **The round was decided on rendered pixels, not on prose** — three variants
+  mocked in the app's own token system (chips in the composer · inventory
+  browse-sheet · two-step tag tiles) and judged as an artifact page, the G-14
+  lesson applied to a concept decision. The matrix and the loser live in
+  ADR-020; the short version is that the *smallest* variant won the first
+  build precisely because the composer is one shared component, so FR-25.13's
+  "one way to add, everywhere" survives without a rollout. The browse-sheet is
+  **decided, specified as FR-25.13d, and not started** — its door (the "Mehr
+  aus dem Inventar…" entry) was deliberately *not* shipped now, because a
+  control that leads nowhere is worse than none.
+- **The accepted cost is the autofocus.** FR-25.13a's "expands *and focuses*"
+  was load-bearing wording for a year of specs and one e2e assertion; it
+  turned around because the raised keyboard covers exactly the offer the
+  empty composer now leads with. Whoever wants to type pays one tap, on
+  desktop too.
+- **"Already chosen" became a rule instead of a report.** M8 excluded its
+  positions from the autocomplete since the beginning; M4 never passed its
+  contents at all, so the duplicate path survived there silently. The chips
+  forced the question and the answer is uniform: what a scope carries is
+  offered nowhere — and E2E-M4-46 exists *only* for M4's wiring, because no
+  shared-component test can see a dropped prop.
+- **Two case numbers were already taken by written-but-unbuilt specs.**
+  E2E-M8-18 belongs to FR-28.8 and E2E-M8-19 to a group-refresh case; the new
+  case is E2E-M8-21. The §3.28 memory predicted exactly this trap — reserving
+  numbers in specs ahead of implementation means the ledger, not the spec, is
+  where a free number is found.
+- **The recents trail is deliberately device-local and unsynced** (the
+  review-dismissals stance): recency of *this device's* adds is a typing
+  convenience, not domain data. Free-text adds record nothing — at the
+  composer's level they have no master item yet; the caller creates it later.
