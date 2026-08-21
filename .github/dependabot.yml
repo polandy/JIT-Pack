@@ -13,6 +13,11 @@ updates:
     schedule:
       interval: weekly
   - package-ecosystem: docker
+    # Majors included, deliberately: a build-image major is also a toolchain
+    # decision (golang here, node in /client), and letting Dependabot open the
+    # PR is what makes it arrive without anyone remembering. It cannot merge
+    # alone — scripts/toolchain-pins-gate.sh fails the docker-build job until
+    # mise.toml, ci.yml and go.mod agree with it.
     directory: /
     schedule:
       interval: weekly
