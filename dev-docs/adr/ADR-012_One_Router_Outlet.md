@@ -101,6 +101,25 @@ the screen. On a phone the sheet's backdrop covers the app bar, so ✕ or a swip
 is the way out and back never comes into it; the rule governs the desktop panel
 and the browser's own back button.
 
+## Amendment (2026-08-21): the carried cost is paid
+
+The repair the amendment above named — *"remember M4's offset per trip"* — is
+built: `client/src/lib/scrollMemory.ts` holds the position across the replace,
+M4 writes it on the way into the sheet and puts it back on the way out
+(E2E-M4-45). The decision itself is untouched; only its cost is settled.
+
+Two things the implementation found, both worth stating because neither is
+obvious from this document:
+
+- **The position is more than a number.** M4's header line occupies 84 px of
+  the *scrolled* content, so restoring the offset under a re-opened line shows
+  different rows. The collapsed state therefore travels with the offset, and
+  is applied during setup so the first frame after the sheet is already right.
+- **The list's own re-render reports its way back from the top.** Those scroll
+  events, read as the user's, both re-open the header and overwrite the offset
+  about to be re-applied — so the screen stops listening to itself between
+  opening the sheet and finishing the restore.
+
 ## Revisit trigger
 
 If a tab grows a drill-down deep enough that users expect it to remember its own position when they come back to that tab — a per-tab stack is what Ionic's `IonTabs` buys, and at that point the trade flips. Nothing in the current screen set is more than two levels deep.

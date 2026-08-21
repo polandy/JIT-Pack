@@ -41,7 +41,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M1-05 | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 | Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
-| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
+| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
 | Visual baselines | E2E-VIS-01 … E2E-VIS-07 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
@@ -52,7 +52,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-16, E2E-M8-17 | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
 | M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-02, E2E-M9-03, E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
-| M12 analytics | E2E-M12-01, E2E-M12-02, E2E-M12-03 (absence half only, see below), E2E-M12-04, E2E-M12-05 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
+| M12 analytics | E2E-M12-01, E2E-M12-02, E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
@@ -457,11 +457,10 @@ Landed with the M12 rebuild. What the unit had to get right:
    asserts the section is *absent, not empty* without history. When an
    activate path ships, the positive M12-03 case is owed alongside it.
    **That path shipped on 2026-08-19** with M21 (see below): M4's app bar
-   and M2's swipe both offer *start* on a planning trip. The positive
-   M12-03 half is therefore no longer blocked — it is simply **not written
-   yet**, and it is owed. The distinction matters: this file exists so a
-   gap is never mistaken for coverage, and "unblocked but unwritten" is a
-   different debt from "cannot be built".
+   and M2's swipe both offer *start* on a planning trip. The positive half
+   was written on **2026-08-21** and the debt is closed; what it needed
+   beyond the lifecycle step is recorded under "M12 — the positive trend
+   half" below.
 3. **Weighted rows come through the app's own paths** (spec §2.4), reusing
    the M11 unit's route: master item with weight in M10's minimal form,
    quick-add via the *suggestion*. Traveler assignment goes through M5's
@@ -891,3 +890,67 @@ outbox is the named next tenant):
   `conflict-field`, `conflict-losing`, `conflict-winning`,
   `conflict-empty`) — it had none, and the ledger's own selector rule makes
   adding them part of writing the case.
+
+## M4 — the scroll position across the M5 overlay (2026-08-21)
+
+E2E-M4-45, in `packing-list.spec.ts` under its own describe. It pays off
+ADR-012's overlay amendment, which recorded losing M4's scroll position as a
+carried cost and named the repair without building it. Four things came out of
+writing it, and each one is a rule the next scroll-shaped case will need:
+
+1. **A `<script setup>` top-level binding is per *instance*, not per module.**
+   The first implementation kept the remembered offset in a `Map` declared at
+   the top of `PackingListPage.vue` — which the replace re-creates along with
+   everything else, so the memory was always empty by the time anything read
+   it. The map lives in `lib/scrollMemory.ts` now, with its own unit tests.
+2. **The position is an offset *and* a header state.** M4's header line holds
+   84 px of the scrolled content, so restoring the number under a re-opened
+   line lands on different rows. Both halves travel together, and the header
+   state is applied during setup so the first painted frame is already right.
+3. **The list's own re-render reports its way back from the top**, and those
+   scroll events read as the user's: they re-open the header and overwrite the
+   offset about to be re-applied. The screen stops listening to itself between
+   opening the sheet and finishing the restore.
+4. **Two engine-specific traps, both of which made the case measure nothing
+   while passing its earlier assertions.** Playwright scrolls whatever it is
+   told to click into view, so the row the case opens has to be *wholly inside
+   the content's box* — a row under the app bar is on the page without being
+   on screen, and asking for that one scrolled WebKit's list back to the top.
+   And the header's max-height transition changes the height of the scrolled
+   content, which the browser answers with a scroll adjustment that the screen
+   then reads as an upward scroll: the line flipped open and shut for as long
+   as anyone watched. `overflow-anchor: none` on the scroll part removes the
+   adjustment, and the case runs with motion reduced — the app's own instant
+   path, honoured now in `prefers-reduced-motion`, rather than a test that
+   switches off the thing it is watching.
+
+Mutation-proved: dropping the `scrollToPoint` while keeping the signal reddens
+it on both engines.
+
+## M12 — the positive trend half (2026-08-21)
+
+E2E-M12-03's second case, owed since the lifecycle step landed on 2026-08-19
+and written now. It builds a whole past trip by hand — quick-add from a
+weighted master item, *Reise starten*, pack the row, type the thing that was
+missing, archive — and then a second trip in the same series, whose M12 draws
+one column for last year.
+
+Three things worth carrying forward:
+
+1. **The trend counts what was *carried*, so the row has to be packed.** A
+   generated row alone puts a 0 kg column on the chart, which would have passed
+   a "the section exists" assertion and asserted nothing. The case names the
+   kilos and the year.
+2. **The flag is read back before it is relied on.** `seriesTopFlagged` reports
+   an empty list for "nothing was flagged" and for "the flag was never
+   written" alike, so the case opens M5 on the ad-hoc row and asserts the
+   *Missing* chip first. Without that it would have been an absence dressed as
+   a positive.
+3. **M14 is not the signal it looks like.** The first version asserted the
+   assistant's open count after archiving, which read `0` — a *missing*
+   proposal needs a group to target and this world has no templates at all.
+   The review assistant's own coverage lives in `review.spec.ts`, which builds
+   those groups; M12's case has no business depending on them.
+
+Mutation-proved twice: pointing `seriesWeightTrend` at *active* trips, and
+dropping *missing* from `seriesTopFlagged`, each redden it.

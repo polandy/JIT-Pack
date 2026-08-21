@@ -67,7 +67,7 @@ import {
   statsChartOutline,
   timeOutline,
 } from 'ionicons/icons'
-import { computed, inject, onMounted, onUnmounted, ref } from 'vue'
+import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import FilterSheet, {
@@ -80,6 +80,7 @@ import SearchRow from '@/components/global/SearchRow.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
+import { peekScroll, rememberScroll, takeScroll } from '@/lib/scrollMemory'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
@@ -123,6 +124,9 @@ onMounted(async () => {
   const [users, me] = await Promise.all([orchestrator.fetchUsers(), orchestrator.fetchMe()])
   directory.value = users
   myUserId.value = me?.user_id ?? null
+  // After the drain, not before: restoring onto a list whose rows have not
+  // arrived yet would clamp the offset to a shorter page.
+  await restoreScroll()
 })
 
 /**
@@ -251,8 +255,90 @@ const openItemId = computed(() => props.itemId ?? null)
  */
 function openItem(itemId: string) {
   if (rowMenuActive) return
+  rememberScroll(props.tripId, { top: currentScrollTop, headerCollapsed: headCollapsed.value })
+  restorePending = true
   router.replace(`/trips/${props.tripId}/items/${itemId}`)
 }
+
+/**
+ * M4's scroll position across the M5 overlay — the repair ADR-012's overlay
+ * amendment named and left owed.
+ *
+ * Opening the sheet `replace`s the route, and a replace re-renders the list
+ * from the top; the amendment weighed that against pushing, which would have
+ * mounted a second live copy of the list behind the sheet, and kept the
+ * replace. The position therefore has to outlive this component — see
+ * lib/scrollMemory, which is a module rather than a binding here for exactly
+ * that reason.
+ */
+const remembered = peekScroll(props.tripId)
+
+/**
+ * Where the list stands. Seeded from the remembered position rather than
+ * from zero: an instance mounted with the sheet already over it never sees
+ * a scroll event of its own (see `restorePending`), so starting at zero
+ * would let it write a zero back over the offset it is holding.
+ */
+let currentScrollTop = remembered?.top ?? 0
+
+/**
+ * True from the moment the sheet is opened until the position has been put
+ * back. The list's own scroll events are noise in that window: the
+ * re-render reports its way back from the top, which would expand the
+ * header line again *and* overwrite the offset about to be re-applied.
+ */
+let restorePending = remembered !== undefined
+
+const content = ref<{
+  $el: HTMLElement & { scrollToPoint(x: number, y: number, d: number): Promise<void> }
+} | null>(null)
+
+/**
+ * Rendered evidence that a remembered position was actually put back.
+ *
+ * It exists for E2E-M4-45: without it the only way to know the restore had
+ * happened would be to wait and hope, and a test that can only pass by
+ * racing is the production code's fault (working agreement). Absent until a
+ * restore lands, so it is a positive signal rather than a default.
+ */
+const scrollRestored = ref(false)
+
+/**
+ * Put this trip's remembered position back.
+ *
+ * Runs on both ways back, because the replace produces a fresh mount but
+ * Vue may also reuse the instance when only the alias params changed. While
+ * the sheet is still open the position is re-applied but *kept*, so the list
+ * behind it stays where it was and the closing pass still has something to
+ * restore.
+ *
+ * The header state goes back first and without an animation — it holds 84 px
+ * of the scrolled content, so applying the offset while its max-height is
+ * still travelling lands on a different set of rows each time.
+ */
+async function restoreScroll() {
+  const stillOpen = openItemId.value !== null
+  const position = stillOpen ? peekScroll(props.tripId) : takeScroll(props.tripId)
+  if (!position) {
+    // Nothing to put back, so nothing to be deaf for — a screen that stayed
+    // deaf would never collapse its header line again.
+    restorePending = false
+    return
+  }
+  headCollapsed.value = position.headerCollapsed
+  lastScrollTop = position.top
+  currentScrollTop = position.top
+  await nextTick()
+  // Instantly, not animated: an animation is a race, and there is nothing to
+  // see anyway — this frame is the first the user gets after the sheet.
+  await content.value?.$el.scrollToPoint(0, position.top, 0)
+  restorePending = stillOpen
+  if (!stillOpen) scrollRestored.value = true
+}
+
+watch(openItemId, (open, wasOpen) => {
+  if (!open && wasOpen) void restoreScroll()
+})
 
 // --- Row menu: press and hold (FR-5.5, FR-5.2) --------------------------
 //
@@ -346,10 +432,15 @@ const shoppingCount = computed(() => {
  * upward scroll. A threshold keeps it from flickering on the rubber-band
  * overscroll at the top, where the direction flips every frame.
  */
-const headCollapsed = ref(false)
-let lastScrollTop = 0
+// Seeded from the remembered position rather than reset, and seeded *during
+// setup* so the very first frame after the sheet already has the header
+// folded — on a fresh mount there is then no max-height transition to race.
+const headCollapsed = ref(remembered?.headerCollapsed ?? false)
+let lastScrollTop = remembered?.top ?? 0
 function onScroll(event: CustomEvent<{ scrollTop: number }>) {
+  if (restorePending) return
   const top = event.detail.scrollTop
+  currentScrollTop = top
   if (Math.abs(top - lastScrollTop) < 8) return
   headCollapsed.value = top > lastScrollTop && top > 48
   lastScrollTop = top
@@ -936,8 +1027,10 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
 <template>
   <IonPage>
     <IonContent
+      ref="content"
       class="pack-content"
       :data-pack-announcements="packAnnouncements"
+      :data-scroll-restored="scrollRestored || null"
       :scroll-events="true"
       @ion-scroll="onScroll"
     >
@@ -1469,6 +1562,17 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
   z-index: 20;
 }
 
+/* The header line collapses by giving up its own 84 px of the scrolled
+   content, and the browser answers that with a scroll-anchoring adjustment
+   of the same size. Read back through @ion-scroll it is an upward scroll,
+   which re-opens the line, which grows the content again — the line then
+   flips open and shut for as long as anyone watches. Anchoring is off here
+   because this list has one thing above the rows and it is the element that
+   moves. */
+ion-content.pack-content::part(scroll) {
+  overflow-anchor: none;
+}
+
 /* FR-25.11h: nothing may sit permanently under the FAB. The list has to be
    able to scroll clear of its whole footprint, or the last row's right edge
    — where the packer avatar lives — is both unreadable and untappable. */
@@ -1820,6 +1924,13 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
  * so the two cannot disagree.
  */
 @media (prefers-reduced-motion: reduce) {
+  /* The header line yields and returns instantly. Its travel is the largest
+     movement on this screen and it happens while the list is moving too,
+     which is exactly the pairing the preference is asking us not to make. */
+  .trip-line {
+    transition: none;
+  }
+
   .pack-out-leave-active,
   .pack-out-move {
     transition: none;

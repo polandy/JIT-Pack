@@ -111,6 +111,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [M21 — Vorlage aus Reise (FR-27.5), 2026-08-19](#m21--vorlage-aus-reise-fr-275-2026-08-19) — needed a lifecycle step nobody had built; only a *Gruppe* can be recognised; a fuzzy match without a confirmation step.
 - [M4's trip name leaves the app bar (2026-08-19)](#m4s-trip-name-leaves-the-app-bar-2026-08-19) — width decides where a title lives; the visual-gate tolerance stays 0.002 (owner call).
 - [M14's positive tests, and the flag nobody could set (2026-08-20)](#m14s-positive-tests-and-the-flag-nobody-could-set-2026-08-20) — *unused* had no writer anywhere in the app, and an ordinary M5 edit erased `source_template_id`.
+- [M4 comes back where it was left, and the header line stops flipping (2026-08-21)](#m4-comes-back-where-it-was-left-and-the-header-line-stops-flipping-2026-08-21) — a `<script setup>` top-level binding is per *instance*; a scroll position on M4 is an offset *and* a header state; the collapsing line fed its own layout change back as a user scroll. Closes E2E-M12-03's positive half too.
 - [A build image's major is a toolchain version, and a gate says so (2026-08-21)](#a-build-images-major-is-a-toolchain-version-and-a-gate-says-so-2026-08-21) — a Node major merged green because no check builds anything with that image.
 - [Dependabot skips the Node majors that can never be taken (2026-08-21)](#dependabot-skips-the-node-majors-that-can-never-be-taken-2026-08-21) — odd Node majors never reach LTS; Dependabot only ever offers the newest, so from October 2026 it would chase 27 past the 26 that becomes LTS. Bundler syntax, because that is what the docker ecosystem parses.
 - [The sync outbox survives a reload (2026-08-21)](#the-sync-outbox-survives-a-reload-2026-08-21) — MVP Track C / blocker B2: the queue moved to IndexedDB and is replayed before the first pull. Replay safety is the server's `mutation_id` memo, not the merge algorithm; a permanently refused mutation is parked so it cannot wedge a partition.
@@ -4078,3 +4079,62 @@ moves only on the app's next own action. It now also moves on the next app
 start, which is what B2 asked for. An `online`-event drain is a separate
 behaviour with its own failure modes (a flapping connection re-pushing on
 every event) and was left out rather than smuggled in.
+## M4 comes back where it was left, and the header line stops flipping (2026-08-21)
+
+ADR-012's overlay amendment recorded a cost and named its repair: the M5 sheet
+is an *alias* of M4's route and opening it `replace`s, which re-renders the
+list from the top, "the cheaper repair is on the other side: remember M4's
+offset per trip". This is that repair, plus the four things it turned out to
+need — none of which the amendment could have known, and all of which are the
+reason it took a rendered measurement rather than a stylesheet reading.
+
+**The memory cannot live in the component, and nearly did.** The first version
+kept a `Map` at the top of `PackingListPage.vue`. In a `<script setup>` block a
+top-level binding is created per *instance*, and the instance is exactly what
+the replace tears down — so every read found an empty map. It lives in
+`client/src/lib/scrollMemory.ts` now, with its own unit tests, and the module's
+own doc comment names the trap.
+
+**A scroll position on this screen is two values.** M4's header line is sticky
+but in flow: it holds 84 px of the *scrolled* content, so putting the offset
+back under a re-opened line shows different rows than the ones the user was
+reading. The collapsed state therefore travels with the number, and is applied
+during setup — the first painted frame after the sheet is already correct, so
+there is no max-height transition to race.
+
+**The list's own re-render reports its way back from the top.** Those scroll
+events, read as the user's, both re-open the header line and overwrite the
+offset that is about to be re-applied. The screen now stops listening to itself
+between opening the sheet and finishing the restore, which is also what made
+the WebKit run stop remembering a zero.
+
+**And the header line was flipping open and shut, which nobody had seen.**
+Collapsing it removes its own height from the scrolled content; the browser
+answers that with a scroll adjustment; the screen reads the adjustment as an
+upward scroll and re-opens the line, which grows the content again. Under
+Playwright's load the loop ran for as long as the test watched. Two changes
+close it: `overflow-anchor: none` on the content's scroll part — this list has
+one thing above the rows and it is the element that moves — and the line now
+honours `prefers-reduced-motion` by not travelling at all, which it should have
+done anyway: it is the largest movement on the screen and it happens while the
+list is moving too.
+
+**The e2e case is E2E-M4-45**, in its own describe with motion reduced, and it
+waits on a signal the page raises (`data-scroll-restored`) rather than on a
+clock. It asserts the rendered scroll offset and the folded header, never the
+URL. Mutation-proved by dropping the `scrollToPoint` while keeping the signal:
+red on both engines. Writing it also cost one false-green that is worth keeping
+in mind — Playwright scrolls whatever it is told to click into view, so a row
+chosen for being "on the page" rather than "inside the content's box" quietly
+scrolled the list back to the top before the measurement.
+
+**The same PR closed E2E-M12-03's positive half**, owed since the lifecycle
+step landed, and it too found things the diff cannot show. The trend counts the
+weight actually *carried*, so the case has to pack the row — an unpacked one
+puts a 0 kg column on the chart that a "the section exists" assertion would have
+accepted. `seriesTopFlagged` reports an empty list for "nothing was flagged" and
+for "the flag was never written" alike, so the case reads the *Missing* chip
+back off the stored row in M5 before relying on the list. And M14's open count
+is not the signal it looks like: asserted after archiving it read `0`, because a
+*missing* proposal needs a group to target and that world has no templates at
+all — that coverage belongs to `review.spec.ts`, which builds them.
