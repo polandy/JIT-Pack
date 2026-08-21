@@ -61,6 +61,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Language choice (NFR-4.12) | E2E-M17-10 | `local` | [`i18n.spec.ts`](../client/e2e/i18n.spec.ts) |
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
 (create / import). The screen has neither as a button: create is the FAB and
@@ -844,3 +845,37 @@ outbox is the named next tenant):
   `conflict-field`, `conflict-losing`, `conflict-winning`,
   `conflict-empty`) — it had none, and the ledger's own selector rule makes
   adding them part of writing the case.
+
+## NFR-4.12 — the language actually changes the app (`e2e/i18n.spec.ts`, 2026-08-21)
+
+One case, and it exists because two of the strings the i18n migration had to
+move were **not on any screen**: a nav anchor stored its finished English label
+(`NAV_ANCHORS[].name`) and a route stored its finished English title
+(`meta.title`). Both fed the chrome — the four anchors and the one header bar —
+so no language choice could reach either, on any screen, in either mode. A unit
+test cannot see that: the defect lives in the wiring between the route table,
+the chrome and the catalogue, and each of the three was individually fine.
+
+The case switches M17's Language row to German and asserts, on the *visible*
+page, the anchor labels, the header bar's route title and M2's own segment
+words; then reloads and asserts the same, because the choice is device-local
+(FR-21.3's pattern). It asserts the **English** words first — without that,
+"the German word is there" would pass on a build that had rendered neither.
+
+**Two things the run taught, both already-known lessons paid for again.**
+
+*The viewport decides which presentation of the anchors exists.* The `chromium`
+project runs at desktop width, where G-9 hides the tab bar and the rail carries
+the anchors — and `toHaveText` does not require visibility, so the first two
+assertions passed against an element `display: none` while the click on the
+same element hung for the full 60 s budget. The case pins a mobile viewport and
+opens with `toBeVisible()`, so the thing asserted is the thing on screen.
+
+*Overlay dismissal is part of the interaction.* `ion-select-popover` goes hidden
+a frame before Ionic tears down the popover host and its backdrop, and until it
+does, nothing behind them is clickable. Waiting on the inner element was not
+enough; the wait is on the host's absence, which is a state the app reaches by
+itself.
+
+Mutation-proved: with `nav.trips` set to `Trips` in the German catalogue the
+case fails on the rendered label, twice, including the retry.

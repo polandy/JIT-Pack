@@ -347,6 +347,7 @@ async function exportTripCSV() {
           </IonLabel>
           <IonSelect
             slot="end"
+            data-testid="settings-language"
             :value="language"
             interface="popover"
             :aria-label="t('settings.language')"

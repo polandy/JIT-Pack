@@ -166,10 +166,17 @@ for each item below is in `dev-docs/implementation-log.md`, section "Concept pha
      (`src/dev/reviewFixture.ts`) remains the fastest eyeball path.
      Known cost carried over from the M5 rebuild: M4 loses its scroll position
      when a detail opens (ADR-012's overlay amendment).
-4. **i18n migration** — the hard-coded English strings across the screens M4 did not touch;
-   the module and both catalogues exist and M4 + the quick-add + the filter sheet + M7/M8
-   + M12 + M14 + M3's step 3 are done (M3's other three steps are not — a section is a
-   coherent unit to localize, a half-translated one is not).
+4. **i18n migration** — **all but two screens are done** (2026-08-21). The rule is that a
+   **section is the unit**: a half-translated screen is worse than an untranslated one.
+   On the catalogue: M1–M4, M6, M7/M8, M9–M12, M14, M16, M20, M21, the trip roster, the
+   conflict log, the OIDC login, M19's mode choice, and the global chrome — the four
+   anchors and the header bar's route titles now store a `MessageKey` rather than
+   finished English text, which is what made them unreachable by a language switch.
+   **Two remain.** **M15/M18** (`views/import/*`) were excluded by file while the MVP
+   backup track owned them; their route titles are localized, their bodies are not.
+   **M17 Settings** is half-translated and has been since before the migration — ten
+   `t()` calls beside about fifteen literals, plus `AvatarCropModal`. It is one
+   section, so it wants one commit. Detail in the implementation log.
 5. ~~**Two migrations owed by concept decisions**~~ — **done** (migrations 018/019): `travelers.profile`
    is dropped and `trip_items.packed_by_user_id` carries the packing record, with `packer_user_id`
    left as the assignment. The M4/M5 *presentation* of that split (two rings, „gepackt von … ·
