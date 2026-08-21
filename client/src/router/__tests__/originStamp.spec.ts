@@ -30,18 +30,20 @@ describe('stampOrigin', () => {
   it('records where a global action was entered from', () => {
     expect(stampOrigin(route(), trip)).toEqual({
       path: '/tabs/settings',
-      query: { from: '/trips/t1' },
+      query: { from: '%2Ftrips%2Ft1' },
       replace: true,
     })
   })
 
-  it('records the origin verbatim, so a chain of origins survives', () => {
+  it('records the origin whole, so a chain of origins survives', () => {
     const settingsFromTrip = route({ fullPath: '/tabs/settings?from=%2Ftrips%2Ft1' })
     const admin = route({ path: '/admin', fullPath: '/admin' })
 
+    // The nested origin's own query survives because it is encoded — an
+    // unencoded `?` would be read as the end of this one.
     expect(stampOrigin(admin, settingsFromTrip)).toEqual({
       path: '/admin',
-      query: { from: '/tabs/settings?from=%2Ftrips%2Ft1' },
+      query: { from: '%2Ftabs%2Fsettings%3Ffrom%3D%252Ftrips%252Ft1' },
       replace: true,
     })
   })
@@ -50,7 +52,7 @@ describe('stampOrigin', () => {
     const withQuery = route({ query: { tab: 'push' } })
     expect(stampOrigin(withQuery, trip)).toEqual({
       path: '/tabs/settings',
-      query: { tab: 'push', from: '/trips/t1' },
+      query: { tab: 'push', from: '%2Ftrips%2Ft1' },
       replace: true,
     })
   })
@@ -60,7 +62,7 @@ describe('stampOrigin', () => {
   })
 
   it('does not stamp twice, which is what stops the redirect looping', () => {
-    expect(stampOrigin(route({ query: { from: '/trips/t1' } }), trip)).toBeNull()
+    expect(stampOrigin(route({ query: { from: '%2Ftrips%2Ft1' } }), trip)).toBeNull()
   })
 
   it('re-stamps an origin that is not a safe internal path', () => {
@@ -68,7 +70,7 @@ describe('stampOrigin', () => {
     // `‹ back` carry the user off the app.
     expect(stampOrigin(route({ query: { from: 'https://evil.example' } }), trip)).toEqual({
       path: '/tabs/settings',
-      query: { from: '/trips/t1' },
+      query: { from: '%2Ftrips%2Ft1' },
       replace: true,
     })
   })

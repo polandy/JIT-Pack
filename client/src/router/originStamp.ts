@@ -17,7 +17,7 @@ import type { RouteLocationNormalized, RouteLocationRaw, Router } from 'vue-rout
 export interface StampableRoute {
   path: string
   fullPath: string
-  query: Record<string, string | string[] | null | undefined>
+  query: Record<string, string | null | (string | null)[] | undefined>
   meta: { acceptsFrom?: boolean }
   matched: unknown[]
 }

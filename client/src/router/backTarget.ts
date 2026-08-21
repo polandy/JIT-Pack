@@ -51,7 +51,9 @@ declare module 'vue-router' {
 export const ORIGIN_QUERY_PARAM = 'from'
 
 /** The slice of a route's query this module reads. */
-type OriginQuery = Record<string, string | string[] | null | undefined> | undefined
+type OriginQuery =
+  | Record<string, string | null | (string | null)[] | undefined>
+  | undefined
 
 /** The slice of a resolved route this module needs. */
 export interface BackTargetRoute {
@@ -75,8 +77,19 @@ export interface BackTargetRoute {
  * fold to `/` — would both leave the app while looking internal.
  */
 export function originFrom(query: OriginQuery): string | null {
-  const value = query?.[ORIGIN_QUERY_PARAM]
-  if (typeof value !== 'string') return null
+  const raw = query?.[ORIGIN_QUERY_PARAM]
+  if (typeof raw !== 'string') return null
+
+  // The origin is stored encoded, because it may carry a query of its own
+  // — that is how a chain of origins unwinds hop by hop — and an
+  // unencoded `?` or `&` inside a query value is read as the end of it.
+  let value: string
+  try {
+    value = decodeURIComponent(raw)
+  } catch {
+    return null
+  }
+
   if (!value.startsWith('/') || value.startsWith('//')) return null
   if (value.includes('\\')) return null
   return value
@@ -88,7 +101,7 @@ export function originFrom(query: OriginQuery): string | null {
  * carries one unwinds hop by hop rather than collapsing to the fallback.
  */
 export function enteredFrom(fullPath: string): Record<string, string> {
-  return { [ORIGIN_QUERY_PARAM]: fullPath }
+  return { [ORIGIN_QUERY_PARAM]: encodeURIComponent(fullPath) }
 }
 
 /**

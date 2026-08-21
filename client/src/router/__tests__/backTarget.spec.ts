@@ -144,23 +144,23 @@ describe('a route that carries its origin (ADR-011 amendment)', () => {
   const settings = { meta: { parent: '/tabs/dashboard', acceptsFrom: true }, params: {} }
 
   it('returns to the origin it was entered from rather than the declared parent', () => {
-    expect(backTarget({ ...settings, query: { from: '/trips/t1' } })).toBe('/trips/t1')
+    expect(backTarget({ ...settings, query: enteredFrom('/trips/t1') })).toBe('/trips/t1')
   })
 
   it('falls back to the declared parent on a cold-start deep link', () => {
     expect(backTarget({ ...settings, query: {} })).toBe('/tabs/dashboard')
   })
 
-  it('keeps the origin\'s own query, so a chain of origins unwinds hop by hop', () => {
-    expect(
-      backTarget({ ...settings, query: { from: '/tabs/settings?from=%2Ftrips%2Ft1' } }),
-    ).toBe('/tabs/settings?from=%2Ftrips%2Ft1')
+  it("keeps the origin's own query, so a chain of origins unwinds hop by hop", () => {
+    const nested = '/tabs/settings?from=%2Ftrips%2Ft1&tab=push'
+    // Unencoded, the `&` would end the value and the hop would be lost.
+    expect(backTarget({ ...settings, query: enteredFrom(nested) })).toBe(nested)
   })
 
   it('ignores an origin on a route that does not declare the class', () => {
     // Otherwise any drill-down could be redirected by a crafted link.
     expect(
-      backTarget({ meta: { parent: '/tabs/trips' }, params: {}, query: { from: '/tabs/items' } }),
+      backTarget({ meta: { parent: '/tabs/trips' }, params: {}, query: enteredFrom('/tabs/items') }),
     ).toBe('/tabs/trips')
   })
 
@@ -174,7 +174,7 @@ describe('a route that carries its origin (ADR-011 amendment)', () => {
           overlayParent: '/trips/:tripId',
         },
         params: { tripId: 't1', itemId: 'i9' },
-        query: { from: '/tabs/items' },
+        query: enteredFrom('/tabs/items'),
       }),
     ).toBe('/trips/t1')
   })
@@ -195,13 +195,17 @@ describe('originFrom rejects what is not an internal path', () => {
     expect(originFrom({ from: value } as Record<string, string>)).toBeNull()
   })
 
+  it('rejects a value that is not decodable at all', () => {
+    expect(originFrom({ from: '%E0%A4%A' })).toBeNull()
+  })
+
   it('accepts an ordinary internal path, so the rejections are not vacuous', () => {
-    expect(originFrom({ from: '/trips/t1?tab=open' })).toBe('/trips/t1?tab=open')
+    expect(originFrom(enteredFrom('/trips/t1?tab=open'))).toBe('/trips/t1?tab=open')
   })
 })
 
 describe('enteredFrom', () => {
   it('names the origin under the documented query key', () => {
-    expect(enteredFrom('/trips/t1')).toEqual({ [ORIGIN_QUERY_PARAM]: '/trips/t1' })
+    expect(enteredFrom('/trips/t1')).toEqual({ [ORIGIN_QUERY_PARAM]: '%2Ftrips%2Ft1' })
   })
 })
