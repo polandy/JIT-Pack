@@ -343,7 +343,7 @@ Screen removed together with the Repack feature (PRD Addendum §3.11, removed by
 * **Visibility:** Rendered and routable only for instance admins with an OIDC session; hidden entirely in Single-User and Local Mode (FR-17.3/FR-19.3, G-8). Non-admin API access is rejected with 403 — the screen is access-controlled, not merely unlinked.
 * **Navigation:** Administration row in M17 (only visible under the same conditions).
 
-### M22 — Trip Properties (FR-2.7) — *specified 2026-08-21, not built*
+### M22 — Trip Properties (FR-2.7) — *built 2026-08-21*
 
 * **Route:** `/trips/:tripId/edit`, back-target `/trips/:tripId` (the ADR-011 contract). Reached from
   **M4's G-12 cluster**, not from M2 — the trip you are editing is the one you are looking at.
