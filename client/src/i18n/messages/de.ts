@@ -63,6 +63,15 @@ export const de: Record<keyof typeof en, string> = {
   'sync.detail.backupSaved': 'Sicherung gespeichert: {file}',
   'sync.detail.updateReady':
     'Eine neue Version von JIT-Pack ist bereit. Sie übernimmt beim nächsten Öffnen der App.',
+  // B2/NFR-4.1 — der dauerhafte Ausgangskorb.
+  'sync.detail.pendingDurable':
+    'Sie sind auf diesem Gerät gespeichert und gehen raus, sobald es wieder online ist.',
+  'sync.detail.pendingFragile':
+    'Dieses Gerät konnte sie nicht speichern — die App jetzt zu schließen würde sie verlieren.',
+  'sync.detail.parked':
+    'Der Server hat {n} Änderung abgelehnt | Der Server hat {n} Änderungen abgelehnt',
+  'sync.detail.parkedHint':
+    'Sie wurde aus der Warteschlange genommen, damit der Rest rausgeht. Details stehen im Konfliktprotokoll.',
 
   'trip.daysUntil': 'noch {n} Tage',
   'trip.departsToday': 'Heute geht es los',
