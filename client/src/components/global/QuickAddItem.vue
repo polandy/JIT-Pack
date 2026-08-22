@@ -243,10 +243,24 @@ function onBrowseAdd(item: MasterItem) {
   emitMasterItem(item)
 }
 
-/** The footer line hands back to the composer's field — typing's one home. */
+/**
+ * The footer line hands back to the composer's field — typing's one home.
+ * The focus waits for the modal's own dismissed signal: focusing while the
+ * sheet is still tearing down loses to Ionic's focus restoration.
+ */
+const browseFreeTextPending = ref(false)
+
 function onBrowseFreeText() {
+  browseFreeTextPending.value = true
   browseOpen.value = false
-  void focusInput()
+}
+
+function onBrowseDismiss() {
+  browseOpen.value = false
+  if (browseFreeTextPending.value) {
+    browseFreeTextPending.value = false
+    void focusInput()
+  }
 }
 
 function submitFreeText() {
@@ -414,7 +428,7 @@ function onKeydown(event: KeyboardEvent) {
         {{ t('quickAdd.newItem', { name: query }) }}
       </p>
 
-      <SheetModal :is-open="browseOpen" @dismiss="browseOpen = false">
+      <SheetModal :is-open="browseOpen" @dismiss="onBrowseDismiss">
         <InventoryBrowseSheet
           :carried-item-ids="excludeItemIds"
           @add="onBrowseAdd"
