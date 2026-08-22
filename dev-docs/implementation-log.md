@@ -123,6 +123,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The i18n migration, closed except for M15 and M17 (2026-08-21)](#the-i18n-migration-closed-except-for-m15-and-m17-2026-08-21) — NFR-4.12: a nav anchor and a route title stored finished English text, so no language choice could reach the chrome; what is on the catalogue now and what is not.
 - [The composer offers chips before it asks for typing (2026-08-21)](#the-composer-offers-chips-before-it-asks-for-typing-2026-08-21) — FR-25.13c decided on a rendered three-way round (ADR-020): chips now, browse-sheet as FR-25.13d, tag tiles rejected; the autofocus removal is the accepted cost, and two e2e case numbers were already taken by specs not yet built.
 - [The composer's second posture: the browse-sheet (2026-08-22)](#the-composers-second-posture-the-browse-sheet-2026-08-22) — FR-25.13d: *Erfassen*/*Zusammenstellen* landed at zero rollout cost because the sheet lives inside the shared composer; „schon drin" is derived feedback, not bookkeeping; focusing after a modal loses to Ionic's teardown; M6 excludes the trip's whole contents; the E2E-M8-21 collision paid by renumbering FR-27.15's case to M8-23.
+- [FR-27.15: the editor learns to recognise its own duplicates (2026-08-22)](#fr-2715-the-editor-learns-to-recognise-its-own-duplicates-2026-08-22) — the FR’s stated sentence named the quantity, and following it literally would have let the fold turn a per-person position trip-global in silence; the dismissal is keyed to the item set because that is what makes „has it changed“ decidable without a schema; `ion-modal` never leaves the DOM, and an `Escape` assertion that passes before the sheet has presented leaves a live overlay eating the next tap.
 
 ## Current state
 
@@ -4485,3 +4486,57 @@ is there" passes just as well on a build that renders neither.
 spelling out. The storage dialog's megabyte figures now go through
 `formatNumber`, so the decimal separator follows the locale rather than staying
 English on a German screen.
+
+## FR-27.15: the editor learns to recognise its own duplicates (2026-08-22)
+
+M8 now notices when a Ferien-Vorlage's loose positions are, together, a Gruppe
+that already exists, and offers to fold them into an include. The concept was
+decided in the FR a day earlier and the build followed it; what is worth keeping
+is the three places where following it *literally* would have been wrong, and
+one trap that cost a red WebKit run.
+
+**The FR's own sentence was too narrow, and the FR says why.** Its example
+warning names the quantity — „Menge weicht bei 2 Positionen ab" — and the
+quantity genuinely is the common case. But the same paragraph states the rule
+the feature must never break: it may not change what a trip would generate
+without having said so. Assignment, procurement mode, Late Packer, dedup and
+conditions each decide that too, and after the fold the group governs all of
+them. A row announcing only the amount would let a per-person position turn
+trip-global in silence — the exact failure the FR forbids, arrived at by
+obeying its example. The comparison therefore covers six fields and the
+sentence counts positions rather than amounts. The widening is recorded in the
+FR itself, because the next reader would otherwise find the code contradicting
+the text.
+
+**The dismissal's key is the feature.** „Re-offer only when the group's
+resolved item set has changed" reads like a timestamp problem and is not one:
+there is no clock a device can trust for this, and Local Mode has no server to
+ask. Storing the *set's signature* makes the question decidable locally, in all
+three modes, with no schema — which is also why the store drops a malformed
+entry rather than keeping it. An unreadable signature matches nothing, so a
+kept one would suppress that suggestion permanently and invisibly.
+
+**Nothing recomputes after a fold, and nothing should.** The FR promises a
+subsumed candidate disappears rather than converting the same items twice; the
+detector runs over the live positions, so removing them *is* the recomputation.
+The same falls out for the two guards — the folded group becomes an include,
+and an include is already excluded. This is the one place where propose-only
+paid for itself in code rather than in principle: there is no applied state to
+keep consistent, because nothing was applied.
+
+**The trap, with its price.** The e2e case closed the FR-27.12 peek with
+`Escape` and then asserted `ion-modal.show-modal` was gone. It passed — *before
+the sheet had finished presenting* — and the still-live overlay then swallowed
+the next tap, which surfaced 292 retries later as an unrelated-looking timeout
+inside the shared `includeGroup` helper. The sheet's own close button plus the
+same assertion is deterministic. The obvious-looking alternative is wrong for a
+second reason worth writing down: `page.locator('ion-modal')` never reaches
+zero, because five of them sit in the DOM permanently — only `.show-modal`
+marks a presented one.
+
+**Two costs accepted.** The seed grew by one loose position (Blasenpflaster in
+the Fotoreise), so the FR-27.15 row appears on every freshly seeded device —
+deliberate, per the standing seed rule, and it is why the eyeball needed no
+typing. And the deviation warning carries its own tint rather than the bare
+`--ct-yellow` the blast-note uses: rendered on Latte, small yellow text on
+near-white is thin, which no stylesheet reading would have told us.
