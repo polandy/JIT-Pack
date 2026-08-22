@@ -212,6 +212,51 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     ).toBeVisible()
   })
 
+  test('E2E-M8-22: the browse-sheet assembles a group in a run, carried items turning into a state (FR-25.13d)', async ({
+    page,
+  }) => {
+    await page.goto('/tabs/items')
+    await createTaggedItem(page, 'Zahnbürste', 'Hygiene')
+    await createTaggedItem(page, 'Shampoo', 'Hygiene')
+    await createTaggedItem(page, 'Ladekabel', 'Technik')
+
+    await page.goto('/tabs/templates')
+    await createTemplate(page, 'group', 'Bad')
+    await openQuickAdd(page, 'm8-fab')
+
+    // The door sits in the empty composer, beside the chips' offers.
+    await visible(page).getByTestId('quick-add-browse-open').click()
+    const sheet = page.getByTestId('inventory-browse-sheet')
+    await expect(sheet).toBeVisible()
+
+    // The M9 tag axis narrows on any tag; the un-matching item is gone and
+    // the two Hygiene rows are the positive signal for that absence.
+    await sheet.getByTestId('browse-tag-Hygiene').click()
+    await expect(sheet.getByTestId('browse-row')).toHaveCount(2)
+    await expect(sheet.getByTestId('browse-row').filter({ hasText: 'Ladekabel' })).toHaveCount(0)
+
+    // A run: two taps, no keyboard, and each tapped row flips to the
+    // "already in" state right in place — the sheet never closes between.
+    await sheet.getByTestId('browse-row').filter({ hasText: 'Zahnbürste' }).click()
+    await expect(sheet.getByTestId('browse-row-carried').filter({ hasText: 'Zahnbürste' })).toContainText(
+      'already in',
+    )
+    await sheet.getByTestId('browse-row').filter({ hasText: 'Shampoo' }).click()
+    await expect(sheet.getByTestId('browse-row-carried')).toHaveCount(2)
+
+    // Free text is an explicit footer line that hands back to the
+    // composer's field — the sheet itself never raises a keyboard.
+    await expect(sheet.locator('input')).toHaveCount(0)
+    await sheet.getByTestId('browse-free-text').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await expect(visible(page).getByTestId('quick-add-input').locator('input')).toBeFocused()
+
+    // The run landed as positions with the FR-25.7 defaults.
+    const rows = visible(page).locator('ion-item')
+    await expect(rows.filter({ hasText: 'Zahnbürste' }).first()).toContainText('Standard')
+    await expect(rows.filter({ hasText: 'Shampoo' }).first()).toBeVisible()
+  })
+
   test('E2E-M8-07: the picker offers groups only, hides included ones, and creates one inline', async ({
     page,
   }) => {
