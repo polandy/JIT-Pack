@@ -242,7 +242,8 @@ export const de: Record<keyof typeof en, string> = {
   // requirements, not filler: an empty grid reads as a gap to be filled.
   'marks.title': 'Marke wählen',
   'marks.suggested': 'Vorschläge zu „{name}“',
-  'marks.noSuggestion': 'Zu diesem Namen fällt uns nichts ein — such eine Marke, oder lass sie weg.',
+  'marks.noSuggestion':
+    'Zu diesem Namen fällt uns nichts ein — such eine Marke, oder lass sie weg.',
   'marks.searchPlaceholder': 'Suchen — z. B. regen, zelt, pass',
   'marks.noResult': 'Nichts gefunden. Nicht jeder Artikel braucht eine Marke.',
   'marks.remove': 'Marke entfernen',
