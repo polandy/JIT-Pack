@@ -206,7 +206,6 @@ export class SyncOutbox {
   async drain(type: PartitionType, id: string | null): Promise<void> {
     const key = partitionKey(type, id)
     const queue = this.queues.get(key) ?? []
-    let cursor = this.cursors.get(key) ?? 0
 
     if (queue.length > 0) {
       const path = this.syncPath(type, id)
@@ -231,7 +230,12 @@ export class SyncOutbox {
           this.parkAll(key, chunk, err.message)
           continue
         }
-        cursor = resp.pull_hint.next_cursor
+        // `resp.pull_hint.next_cursor` is deliberately not adopted as the
+        // pull cursor: it is the seq *this push* just wrote, so starting
+        // there would skip everything another device wrote in between —
+        // permanently, the cursor being an exclusive lower bound (§4). It
+        // says a pull is worth making, which the drain does unconditionally.
+
         // Park before forgetting, not after: the two are separate storage
         // writes, and a device that died between them would have dropped a
         // refused mutation without leaving the evidence behind.
@@ -246,7 +250,7 @@ export class SyncOutbox {
     }
 
     const pullResp = await this.client.get<PullResponse>(this.syncPath(type, id), {
-      cursor: String(cursor),
+      cursor: String(this.cursors.get(key) ?? 0),
       limit: '500',
     })
 
@@ -340,11 +344,6 @@ export class SyncOutbox {
     if (this.durable === next) return
     this.durable = next
     this.onDurabilityChanged?.(next)
-  }
-
-  /** Update cursor from an external source (e.g., WebSocket trip.changed hint). */
-  setCursor(type: PartitionType, id: string | null, cursor: number): void {
-    this.cursors.set(partitionKey(type, id), cursor)
   }
 
   getCursor(type: PartitionType, id: string | null): number {

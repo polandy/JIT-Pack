@@ -105,9 +105,12 @@ describe('durable outbox on boot', () => {
     expect(pushInit.method).toBe('POST')
     expect(JSON.parse(pushInit.body).mutations[0].mutation_id).toBe('u1')
 
-    // The pull that follows it carries the cursor the push handed back —
-    // proof the replay ran first and the pull second.
-    expect(String(fetchMock.mock.calls[1]![0])).toContain('cursor=4')
+    // The pull follows it — call order is the proof — and carries the cursor
+    // this device has applied, which on a first boot is 0. It deliberately
+    // does *not* carry the push's `pull_hint`: that is the seq the push just
+    // wrote, and starting there would skip every earlier change this device
+    // has never seen.
+    expect(String(fetchMock.mock.calls[1]![0])).toContain('cursor=0')
 
     expect(orch.syncStatus.pendingCount.value).toBe(0)
     expect(store.pending).toEqual([])
