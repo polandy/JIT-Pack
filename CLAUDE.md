@@ -162,6 +162,19 @@ it. Item numbers stay stable even as items close, because the log refers back to
    **(e)** NFR-4.2a promises audit **and manual revert**; only the audit exists.
    Found 2026-08-22 while answering how concurrent packers are kept from overwriting each other.
 
+15. **FR-9.3/9.4 — the trip's feedback is expensive to give and impossible to correct**
+   (owner request 2026-08-22, **specified, not built**). *Missing* stamps itself as a
+   by-product of adding a row; *unused* costs three taps per row inside a fold called
+   *Details*, nothing ever asks for it, and FR-9.1's `active`-only gate shuts the window
+   before M14 shows what a flag was worth. Decided in FR-9.3: the judgement joins the row's
+   press-and-hold menu (FR-5.5's idiom), a **skippable closing pass at archive time** covers
+   the packed rows in one screen, and the flag stays correctable on the archived trip.
+   **One thing is deliberately left to a rendered pair** — whether that pass is its own screen
+   or a mode of M4. FR-9.4 carries what M14's first render with real proposals showed: the
+   unlabelled ✕ behind *„Nie mehr fragen"*, handled cards that never leave *Offen* (so the
+   heading reads „Offen · 0" above two of them), and the snackbar landing on the tab bar.
+   Build against those texts; the rejected options are written there.
+
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,
 the North-Star Plan/During phases, FR-27.8's per-trip usage history, and FR-1.6's publish/fork
