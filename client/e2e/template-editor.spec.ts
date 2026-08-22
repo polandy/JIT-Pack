@@ -571,3 +571,101 @@ test.describe('M8 composition — resolution footer and blast radius (FR-27.2/27
     await expect(visible(page).getByTestId('m8-blast-note')).toContainText('Engadin 2027')
   })
 })
+
+/**
+ * E2E-M8-15 — the group picker's search (FR-27.13).
+ *
+ * One walk, because the world it needs — seven groups and a Vorlage — is
+ * expensive to build through M7/M8 and every clause below shares it: the
+ * field's six-group gate, the item-name hit with its stated reason, the
+ * FR-27.12 summary on the result rows, the already-included report, and the
+ * no-match path ending in prefilled creation.
+ */
+test.describe('M8 group picker search (FR-27.13)', () => {
+  // The world is built through the UI (§2.4); on WebKit under suite load that
+  // sits near the budget — the account is on the composition describe above.
+  test.slow()
+
+  test('E2E-M8-15: search gate, item hits with reason, included report, no-match creation', async ({
+    seedMode,
+    page,
+  }) => {
+    await seedMode({ mode: 'local' })
+    await page.goto('/tabs/templates')
+
+    // Two groups with content, four empty ones — six searchable candidates.
+    await createTemplate(page, 'group', 'Makro')
+    await addPosition(page, 'Kamera')
+    await backToList(page)
+    await createTemplate(page, 'group', 'Wildlife')
+    await addPosition(page, 'Kamera')
+    await addPosition(page, 'Stativ')
+    await backToList(page)
+    for (const name of ['Strand', 'Camping', 'Erste Hilfe', 'Winter']) {
+      await createTemplate(page, 'group', name)
+      await backToList(page)
+    }
+
+    await createTemplate(page, 'template', 'Fototage')
+    await includeGroup(page, 'Makro')
+
+    // At six searchable groups the field stays away — scanning chips wins.
+    // Positive signal beside the absence: the chips are rendered.
+    await visible(page).getByTestId('m8-include-open').click()
+    const picker = visible(page).getByTestId('m8-group-picker')
+    await expect(picker.locator('.pick').filter({ hasText: 'Wildlife' })).toBeVisible()
+    await expect(picker.getByTestId('m8-picker-search')).toHaveCount(0)
+    await picker.locator('.picker-close').click()
+
+    // The seventh group is the mutation that makes the field appear.
+    await backToList(page)
+    await createTemplate(page, 'group', 'Sieben')
+    await backToList(page)
+    await visible(page).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
+    await expect(page.getByTestId('header-title')).toHaveText('Fototage')
+    await visible(page).getByTestId('m8-include-open').click()
+    const search = visible(page).getByTestId('m8-picker-search')
+    await expect(search).toBeVisible()
+    // Deliberately not auto-focused: this picker exists to be tapped.
+    await expect(search.locator('input')).not.toBeFocused()
+
+    // An item name finds the groups that carry it; each row states the
+    // reason ("via Kamera") and the FR-27.12 summary.
+    await fillIonic(search, 'Kamera')
+    const wildlifeHit = visible(page)
+      .locator('button.result')
+      .filter({ hasText: 'Wildlife' })
+    await expect(wildlifeHit).toBeVisible()
+    await expect(wildlifeHit).toContainText('via Kamera')
+    await expect(wildlifeHit.locator('.preview')).toContainText('Kamera · Stativ')
+
+    // The included Makro is reported, not silently absent.
+    const includedHit = visible(page).locator('.result.included').filter({ hasText: 'Makro' })
+    await expect(includedHit).toBeVisible()
+    await expect(includedHit).toContainText('Already included')
+    await expect(includedHit).toContainText('via Kamera')
+
+    // A result row includes like a chip does.
+    await wildlifeHit.click()
+    await expect(
+      visible(page)
+        .locator('ion-item')
+        .filter({ hasText: 'Wildlife' })
+        .filter({ hasText: 'Kamera · Stativ' }),
+    ).toBeVisible()
+
+    // No match ends in creation with the typed name (the M7 rule: no row
+    // without a name), prefilled from the query.
+    await visible(page).getByTestId('m8-include-open').click()
+    await fillIonic(visible(page).getByTestId('m8-picker-search'), 'Schnorchel')
+    await expect(visible(page).getByTestId('m8-search-empty')).toBeVisible()
+    await visible(page).getByTestId('m8-new-group').click()
+    await expect(visible(page).getByTestId('m8-new-group-name').locator('input')).toHaveValue(
+      'Schnorchel',
+    )
+    await visible(page).getByTestId('m8-new-group-commit').click()
+    await expect(
+      visible(page).locator('ion-item h2').filter({ hasText: 'Schnorchel' }),
+    ).toBeVisible()
+  })
+})
