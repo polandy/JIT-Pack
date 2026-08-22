@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"jitpack/internal/sync"
@@ -107,5 +108,49 @@ func TestApplyMutation_RowWithoutFieldClocks_FallsBackToRowHLC(t *testing.T) {
 	}
 	if res.Outcome != string(sync.OutcomeMerged) {
 		t.Errorf("outcome = %q, want merged", res.Outcome)
+	}
+}
+
+// Every table the push endpoints may write carries the per-field record;
+// a synced table without it would silently fall back to row-level LWW
+// for every one of its rows (ADR-022's revisit trigger, caught here first).
+func TestSchema_EverySyncableTableCarriesFieldClocks(t *testing.T) {
+	s := openTestStore(t)
+	for table := range syncableColumns {
+		t.Run(table, func(t *testing.T) {
+			rows, err := s.db.Query(fmt.Sprintf(`PRAGMA table_info(%s)`, table))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer rows.Close()
+			found := false
+			for rows.Next() {
+				var cid int
+				var name, typ string
+				var notnull, pk int
+				var dflt any
+				if err := rows.Scan(&cid, &name, &typ, &notnull, &dflt, &pk); err != nil {
+					t.Fatal(err)
+				}
+				if name == fieldClocksColumn {
+					found = true
+				}
+			}
+			if !found {
+				t.Errorf("%s has no %s column", table, fieldClocksColumn)
+			}
+		})
+	}
+}
+
+// A corrupt record is refused, never read as "no clocks": falling back
+// silently would turn one bad row into row-level LWW without a trace.
+func TestApplyMutation_CorruptFieldClocks_IsAnError(t *testing.T) {
+	s := openTestStore(t)
+	mustExec(t, s, `INSERT INTO trip_items (id, trip_id, name, quantity, updated_hlc, field_hlcs) VALUES ('item-bad', ?, 'Zelt', 1, ?, 'not json')`, testTrip, string(clockMid))
+
+	_, err := s.ApplyMutation(context.Background(), testTrip, testUser, upsert("item-bad", "cb-1", map[string]any{"name": "Iglu"}, clockLate))
+	if err == nil {
+		t.Fatal("expected an error for a corrupt field_hlcs record")
 	}
 }
