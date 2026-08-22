@@ -384,3 +384,116 @@ export function searchGroups(query: string, candidates: GroupSearchCandidate[]):
   }
   return [...nameHits, ...itemHits]
 }
+
+// --- FR-27.15: recognising a group in loose positions ------------------------
+
+/**
+ * A group of fewer than this many resolved positions never suggests itself: a
+ * one-item group would claim every list that happens to mention its item, and
+ * a hint that fires everywhere is read as noise rather than as a finding
+ * (FR-27.15).
+ */
+export const GROUP_MATCH_MIN_POSITIONS = 2
+
+/** One Gruppe the detector may recognise, resolution already done. */
+export interface GroupMatchCandidate {
+  id: string
+  name: string
+  /** The group's resolved positions (FR-27.2) — its complete definition. */
+  positions: ResolvedPosition[]
+  /**
+   * An already-included group is never offered: its items are covered by the
+   * include, and the loose duplicates are FR-27.2's dedup question rather
+   * than this one's.
+   */
+  included: boolean
+}
+
+/** One recognised group, as the M8 suggestion row renders it. */
+export interface GroupMatch {
+  templateId: string
+  name: string
+  /** The own positions the group covers, in the order they were handed in. */
+  positionIds: string[]
+  /**
+   * How many of those positions define something the group defines
+   * differently. Accepting the fold makes the group's definition apply, so
+   * the row states the count before the tap — the one thing this feature must
+   * never do is change what a trip would generate without having said so.
+   */
+  deviations: number
+}
+
+/**
+ * The fields that decide what a position generates. Comparing all of them
+ * rather than the quantity alone widens FR-27.15's stated sentence on purpose:
+ * a fold that silently turns a per-person row trip-global is exactly the
+ * unannounced change the FR forbids, and the quantity is only the most common
+ * way that happens.
+ */
+function generationSignature(pos: TemplateItem): string {
+  const conditions = Object.entries(pos.conditions ?? {})
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${key}=${JSON.stringify(value)}`)
+    .join(',')
+  return [
+    pos.quantity,
+    pos.assignment,
+    pos.dedup,
+    pos.default_mode,
+    pos.late_packer ? '1' : '0',
+    conditions,
+  ].join('|')
+}
+
+/**
+ * matchGroupsInPositions finds the Gruppen a Ferien-Vorlage has re-typed as
+ * own positions (FR-27.15).
+ *
+ * A group is recognised when its **complete** resolved item set is contained
+ * in the own positions, compared by master item id — every position references
+ * a master item (FR-1.1 creates one even from free text), so name fuzziness
+ * has no role here, unlike FR-27.5's after-the-fact match. Surplus loose
+ * positions stay loose; no threshold matching, because a half-hit needs its
+ * gaps explained and accepting the offer *writes* the composition.
+ *
+ * Ordering is derived, never incidental: the largest resolved set first,
+ * alphabetical within — the FR-27.2/27.12 rule, so two devices offer the same
+ * candidates in the same order. Accepting one shrinks the loose set, which
+ * makes a subsumed candidate fall out on the next evaluation rather than
+ * converting the same items twice.
+ */
+export function matchGroupsInPositions(
+  ownPositions: TemplateItem[],
+  candidates: GroupMatchCandidate[],
+): GroupMatch[] {
+  const byItem = new Map<string, TemplateItem>()
+  for (const pos of ownPositions) byItem.set(pos.item_id, pos)
+
+  const matches: GroupMatch[] = []
+  for (const group of candidates) {
+    if (group.included) continue
+    if (group.positions.length < GROUP_MATCH_MIN_POSITIONS) continue
+    if (!group.positions.every((gp) => byItem.has(gp.item_id))) continue
+
+    const covered = new Set(group.positions.map((gp) => gp.item_id))
+    const deviations = group.positions.filter((gp) => {
+      const own = byItem.get(gp.item_id)!
+      return (
+        own.quantity !== gp.quantity ||
+        generationSignature(own) !== generationSignature({ ...gp.position, quantity: own.quantity })
+      )
+    }).length
+
+    matches.push({
+      templateId: group.id,
+      name: group.name,
+      positionIds: ownPositions.filter((pos) => covered.has(pos.item_id)).map((pos) => pos.id),
+      deviations,
+    })
+  }
+
+  return matches.sort(
+    (a, b) => b.positionIds.length - a.positionIds.length || a.name.localeCompare(b.name),
+  )
+}
