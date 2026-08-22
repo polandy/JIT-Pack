@@ -110,6 +110,27 @@ the *trip* partition, and this rename is queued on the master one. The drain
 here is the app start the durable outbox gave it (B2) — a reload, not a
 navigation. Mutation-proved by pointing the query back at `trip_id`.
 
+**E2E-G2-07 — the loss can be taken back, added 2026-08-22.** NFR-4.2a
+promises audit *and* manual revert in one sentence; only the audit existed,
+so the page named a value it could do nothing about. The case is
+E2E-G2-06's scenario carried one step further: B loses the rename, reads it
+in the master log, taps *Revert*, and the name B wanted is what the trip is
+called again — read back **from M2**, not from the log page, because that
+is the half that proves the restore travelled. B's own copy was holding A's
+name a moment earlier and only the pull changed it.
+
+**What it costs nothing to wait for.** There is no timer and no drain to
+hope for: `revertConflict` drains the partition it wrote before it
+resolves, so the assertion lands on a repainted screen. **The negative half
+is a positive signal** — the button is asserted *gone* only beside an
+assertion that the *Reverted* note is there, because a row that failed to
+render at all would satisfy the absence on its own. The refusals the server
+distinguishes (`already_reverted`, `row_deleted`, `revert_refused`) stay
+where they can be stated exhaustively, in `store/conflict_revert_test.go`
+and `api/conflict_revert_test.go`: no screen can delete a row on a second
+device or pack an item mid-revert inside one case.
+
+
 **E2E-M22-08 — an edited trip is still on M2, added 2026-08-22.** The trip
 editor sends a partial upsert on purpose — an upsert of the whole row would
 hand back a value another device changed meanwhile, which the field-level
@@ -922,7 +943,8 @@ configuration (spec §2.2), the client in its `server` mode. Four cases —
 the two-context convergence smoke (E2E-FLOW-01, partial), the offline
 queue round-trip (E2E-FLOW-06 + E2E-G2-01's queue half), the losing-edit
 conflict (E2E-FLOW-08/E2E-NFR-04, partial, + E2E-G2-01's conflict-log
-half) and the G-2 sheet outside a trip.
+half), the G-2 sheet outside a trip, the master-partition log (E2E-G2-06)
+and its revert (E2E-G2-07).
 
 **The harness, for the units that will extend it** (Track C's durable
 outbox is the named next tenant):

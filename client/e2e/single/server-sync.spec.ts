@@ -404,6 +404,67 @@ test.describe('Single-User backend sync @single', () => {
     await ctxA.close()
     await ctxB.close()
   })
+
+  /**
+   * E2E-G2-07 (NFR-4.2a, ADR-022): the log's second promise — the loser
+   * can be put back. The audit half shipped without it, so the page named
+   * a value it could do nothing about.
+   *
+   * The same scenario as E2E-G2-06, carried one step further: B loses the
+   * rename, reads the loss from the master log, reverts it, and the name
+   * B wanted is what the trip is called again — on B's own screen, which
+   * only got it by pulling the revert the server wrote. Nothing here waits
+   * on a timer: the revert drains the master partition before it resolves,
+   * and the assertion is on the repainted header.
+   */
+  test('a loss recorded in the master log can be taken back', async ({ browser }) => {
+    const id = uniq()
+    const trip = `Engadin ${id}`
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA)
+    const tripPath = await createTripViaWizard(pageA, { name: trip, travelers: ['Andy'] })
+
+    const ctxB = await browser.newContext()
+    const pageB = await bootPage(ctxB, tripPath)
+    await expect(visiblePage(pageB).getByTestId('m4-fab')).toBeVisible()
+    await warmTripList(pageB, trip)
+
+    await ctxB.setOffline(true)
+    await renameTrip(pageB, `${trip} B`)
+    await expect(pageB.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'offline')
+
+    await renameTrip(pageA, `${trip} A`)
+
+    await ctxB.setOffline(false)
+    await pageB.reload()
+    await expect(pageB.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+    await expect(pageB.getByTestId('header-title')).toContainText(`${trip} A`)
+
+    await pageB.getByTestId('header-back').click()
+    await pageB.getByTestId('sync-indicator').click()
+    await expect(pageB.getByTestId('sync-detail-sheet')).toBeVisible()
+    await pageB.getByTestId('sync-detail-master-conflicts').click()
+
+    const row = visiblePage(pageB).getByTestId('conflict-row').filter({ hasText: 'trips · name' })
+    await expect(row).toHaveCount(1)
+    await row.getByTestId('conflict-revert').click()
+
+    // The entry is spent, and the page says so where the button was — a
+    // revert is a fact about the entry, not a repeatable command.
+    await expect(row.getByTestId('conflict-reverted')).toBeVisible()
+    await expect(row.getByTestId('conflict-revert')).toHaveCount(0)
+    // And the value is back where the user can see it. This is the half
+    // that proves the revert travelled: B's own copy of the trip was
+    // holding A's name a moment ago and only the pull changed it.
+    await visiblePage(pageB).getByTestId('header-back').click()
+    await visiblePage(pageB).getByTestId('trips-filter-planned').click()
+    await expect(visiblePage(pageB).getByTestId(`trip-row-${trip} B`)).toBeVisible()
+
+    await ctxA.close()
+    await ctxB.close()
+  })
+
   /**
    * E2E-G2-04 (B2, NFR-4.1): the queue is on the device, not in the tab.
    *
@@ -521,10 +582,7 @@ test.describe('Single-User backend sync @single', () => {
     // Mia leaves the trip on the other device. Her packed row goes with her.
     await pageB.getByTestId('m4-edit').click()
     await expect(visiblePage(pageB).getByTestId('trip-edit-name')).toBeVisible()
-    await visiblePage(pageB)
-      .locator('ion-button[data-testid^="traveler-remove-"]')
-      .nth(1)
-      .click()
+    await visiblePage(pageB).locator('ion-button[data-testid^="traveler-remove-"]').nth(1).click()
     // By role, not by label: the destructive choice is the one that takes
     // her packed rows with her, and the role survives both catalogues.
     await pageB.locator('ion-alert button.alert-button-role-destructive').click()
@@ -539,7 +597,8 @@ test.describe('Single-User backend sync @single', () => {
     await ctxA.setOffline(false)
     const areq: string[] = []
     pageA.on('request', (r) => {
-      if (r.url().includes('/api/v1/sync/')) areq.push(`${r.method()} ${r.url().split('/api/v1')[1]}`)
+      if (r.url().includes('/api/v1/sync/'))
+        areq.push(`${r.method()} ${r.url().split('/api/v1')[1]}`)
     })
     await reopenTrip(pageA, trip)
 

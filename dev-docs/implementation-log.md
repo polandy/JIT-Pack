@@ -131,6 +131,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The pull cursor came out of the push (2026-08-22)](#the-pull-cursor-came-out-of-the-push-2026-08-22) — the client took `pull_hint.next_cursor` as its pull cursor, stepping permanently over everything another device wrote while it was away; the e2e case that should have caught it was green against the defect, because three overlapping drains repair the skip by accident, so the assertion moved from the screen to the wire.
 - [An optimistic row is a whole row (2026-08-22)](#an-optimistic-row-is-a-whole-row-2026-08-22) — a partial upsert's fields were applied as the optimistic row, which a store applies by replacing what it holds: saving a trip's name dropped its `status` and took the trip off M2 for good in Local Mode; two of the three lost fields had tests that said otherwise, one of them green only because the seeded year was the current one.
 - [The conflict log had two partitions and one query (2026-08-22)](#the-conflict-log-had-two-partitions-and-one-query-2026-08-22) — NFR-4.2a's audit filtered on `trip_id`, so every master-partition loser was written and read by nothing; the case that makes it matter is `trips`, whose own fields merge there, and the sheet's helpful-sounding hint was what hid it.
+- [The revert was already half-built, in a column nobody used (2026-08-22)](#the-revert-was-already-half-built-in-a-column-nobody-used-2026-08-22) — NFR-4.2a's second verb, built as a new mutation rather than an undo (ADR-022); the schema change the work was budgeted for did not exist, and a single-connection pool turned an obvious visibility check into a deadlock against itself.
 - [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
 
 ## Current state
@@ -4985,3 +4986,52 @@ therefore a reload, not a navigation.
 Corrected on the way past: `ListConflicts`' doc comment claimed rows live
 "until the trip is archived". No compaction exists; they live as long as the
 trip's row does, by `ON DELETE CASCADE`.
+
+## The revert was already half-built, in a column nobody used (2026-08-22)
+
+NFR-4.2a names two verbs in one sentence — audit **and manually revert** —
+and the second had never been built. Backlog item 14(e). The work was
+planned as "store the losing value, then restore it"; the first half turned
+out to be done, and in a way worth recording.
+
+**The schema was already right, and one column of it was dead.**
+`conflict_log` has carried `losing_value` since the beginning, and it has
+also carried `reverted INTEGER NOT NULL DEFAULT 0` — written by nothing,
+read by nothing, present in `schema.sql` and in no Go file. So a change
+budgeted as "a schema change, therefore every development database is
+deleted" (invariant 2) cost no schema change at all. The lesson is small
+and repeatable: **before planning a column, grep for it** — dead schema from
+a design that ran ahead of its implementation is cheaper to find than to
+re-derive.
+
+**The decision the ADR exists for** is what a revert *means* when the only
+ordering in the system is an HLC. Writing the value back in place, keeping
+the row's old clock, is the intuitive answer and it silently does not work:
+every device that already pulled the winner holds it under a *newer* clock,
+so the next thing that touches the field re-establishes the winner and the
+user's repair evaporates minutes later with nothing to see. A revert is
+therefore an ordinary new mutation with a fresh server HLC — it wins by
+being newer, not by being special (ADR-022). The cost is accepted openly:
+it can be **refused**, which a real undo could not, and the UI needed four
+sentences instead of none.
+
+**The trap, and it cost the first implementation.** The store's pool is
+capped at one connection on purpose (SQLite has a single writer). The
+master-partition revert has to answer "may this user even see this entry?",
+and `masterVisible` is right there — so the first version called it inside
+the revert's transaction. It does its own `s.db.QueryRowContext`, which
+asks the pool for a connection the open transaction is holding. Not an
+error: the test run simply never finished. **Any helper that reads through
+`s.db` is unusable inside a `BeginTx` block here**, and the ones that take a
+`*sql.Tx` are the ones that can be composed. The visibility check moved
+above the transaction, where it belongs anyway — it is a read about the
+caller, not about the row being written.
+
+**Two things were deliberately not built.** There is no actor on a revert:
+`conflict_log` records no one for the losing write either, so a shared trip
+still cannot answer "who took this back" — that gap is named in the ADR as
+its own revisit trigger rather than papered over with the pusher's id.
+And the refusals are **four codes, not one 409**: already reverted, row
+deleted, merge rules outrank it, not yours to write. Each is a different
+sentence for the reader, and the page renders it on the row rather than as
+a snackbar — which on this app lands on the tab bar (FR-9.4).
