@@ -4658,6 +4658,19 @@ renders an `icon` value as text. That shape is borrowed from the FR-21.7
 hex-in-`client/src` rule for the same reason: no rendered test of one
 screen can see what the twenty beside it do.
 
+**The budgeted baseline cost did not arrive, and the reason is the whole
+argument for G-15.** §3.28 said in writing that a self-hosted emoji face
+rewrites every visual baseline, and CLAUDE.md carried that as one of three
+things the implementing PR owed. The deliberate `make visual-update` moved
+**four of twenty-two**, all M4 — and none of them for the face: the visual
+fixture's rows are ad-hoc, so no emoji is painted anywhere in the suite. What
+moved was the *held empty slot*, 32 px of column. A face confined to content
+is invisible to every screen that has no content of that kind, which is
+precisely the containment the invariant-9 exception was granted for. The
+prediction was pessimistic in the useful direction, and it is recorded because
+the next „this will rewrite everything" should be measured rather than
+believed.
+
 **Two things only the rendered pixels said, both after the code was green.**
 FR-28.8's fallback rule reads as one sentence — „no mark → no slot, never a
 letter" — and is two rules. In a *column* (M7's list, M3 step 3) dropping the

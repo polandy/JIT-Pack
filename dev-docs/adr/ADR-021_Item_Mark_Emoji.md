@@ -97,7 +97,7 @@ The length cap is the server's **only** validation. Unicode adds emoji every yea
 **Negative / accepted costs**
 - **A deliberate hole in invariant 9.** The mark's colours come from the font, not from `catppuccin.css`. Two things contain it: G-15 confines the mark to content, and a unit gate (`markRendering.spec.ts`) fails the build if any view outside the two mark components applies the mark face or renders an `icon` value — the same shape as the FR-21.7 hex-in-`client/src` rule that keeps colours in one table.
 - **80 KB of woff2**, and a third artifact to keep in step: the curated index, the subset and the CSS `unicode-range` are one decision in three files. `scripts/mark-font-gate.mjs` compares them and names both directions of the drift.
-- **Every visual baseline was rewritten** by the face landing (ADR-013). Done once, in the implementing PR, where the image diff *is* the review.
+- **The baseline cost was budgeted and did not arrive.** §3.28 and this ADR's first draft both said a self-hosted face rewrites *every* visual baseline (ADR-013). The deliberate `make visual-update` moved **four of twenty-two**, all M4 — and not because of the face at all: the fixture's rows are ad-hoc and carry no marks, so no emoji is painted anywhere in the suite. What moved was the **held empty slot**, which shifts the names 32 px right. The prediction was wrong for a reason worth keeping: a face confined to *content* (G-15) is invisible to every screen that has no content of that kind, which is exactly the containment the exception was granted for.
 - **The schema change destroys every development database**, including the maintainer's `:3000` instance (invariant 2 / ADR-018). Reseed with the M2 dev button.
 
 **Neutral**

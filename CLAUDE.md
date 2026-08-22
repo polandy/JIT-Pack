@@ -132,8 +132,9 @@ it. Item numbers stay stable even as items close, because the log refers back to
    and the name suggestion, a shared picker used by M10 and M8, and one `ItemMark` component
    owning the per-surface fallback ladder. The face is self-hosted and subsetted (80 KB, 103
    code points) and held to the index by `scripts/mark-font-gate.mjs`. The deliberate
-   `make visual-update` and the seed extension shipped with it. Log: *„§3.28: the mark gets
-   built"*.
+   `make visual-update` and the seed extension shipped with it — and the baseline cost the
+   spec predicted did **not** arrive: four of twenty-two moved, none of them for the face.
+   Log: *„§3.28: the mark gets built"*.
 
 13. ~~**FR-27.15 — M8 does not notice when loose positions are a group**~~ — **done**
    (2026-08-22): a non-blocking suggestion row per recognised group, *Zusammenfassen* on the
