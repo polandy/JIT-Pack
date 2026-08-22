@@ -1165,6 +1165,21 @@ source:
   in the production component (the slot sets both), which is the right
   place: a slot with no height was not holding anything.
 
+**E2E-M8-18 paid for itself twice.** M3 step 3 has *two* pickable columns —
+Ferien-Vorlagen and Gruppen — and the mark had been added to the first one
+only. Nothing in the diff says so, the screen renders correctly for a
+Vorlage, and the case is what named it. It also caught its own bad locator on
+the way: a Vorlage's M7 row lists the groups it contains in its own subtitle
+(FR-27.1), so `filter({ hasText: 'Camping Basis' })` matched the Vorlage
+rather than the group as soon as one existed. The row helper filters on the
+row's *heading*, and the walk asserts the M7 surface before creating the
+Vorlage that would shadow it.
+
+The case also carries a **reload** between the third and fourth surface. That
+was added while diagnosing the above — a mark is master data, and Local Mode
+rebuilds its whole store from IndexedDB on every navigation, so "it renders"
+and "it is still there" are two claims.
+
 And one that is about the feature rather than the harness:
 
 - **M4's composer has two paths and only one of them can inherit a mark.**

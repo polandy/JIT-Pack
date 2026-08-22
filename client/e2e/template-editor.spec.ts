@@ -817,6 +817,19 @@ test.describe('M8 group recognition (FR-27.15)', () => {
 })
 
 /**
+ * The row that *is* the named group, not a row that merely mentions it.
+ * A Vorlage's M7 row names its groups in its own subtitle (FR-27.1), and a
+ * `hasText` filter matches that too — which is how E2E-M8-18 first went red
+ * on a screen that was rendering correctly.
+ */
+function groupRow(page: Page, scope: ReturnType<typeof visible>, name: string) {
+  return scope
+    .locator('ion-item')
+    .filter({ has: page.getByRole('heading', { name, exact: true }) })
+    .first()
+}
+
+/**
  * FR-28.8 — a group's mark, on every surface that offers the group.
  *
  * The field exists precisely so those surfaces stop being hardcoded: the
@@ -847,21 +860,20 @@ test.describe('M8 group marks (FR-28.8)', () => {
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
     await expect(visible(page).getByTestId('m8-mark')).toContainText('⛺')
 
-    // Surface 1 — the M7 list row.
+    // Surface 1 — the M7 list row. Asserted on the unfiltered list, and
+    // before the Vorlage below exists: the scope segment changes what the
+    // FAB creates (FR-27.6), so switching it mid-walk breaks the shared
+    // createTemplate helper, and a Vorlage's row names its groups in its own
+    // subtitle, which a `hasText` filter would happily match instead.
     await backToList(page)
-    await visible(page).getByTestId('m7-scope-group').click()
-    const listRow = visible(page).locator('ion-item').filter({ hasText: 'Camping Basis' }).first()
-    await expect(listRow.getByTestId('item-mark')).toHaveText('⛺')
+    await expect(
+      groupRow(page, visible(page), 'Camping Basis').getByTestId('item-mark'),
+    ).toHaveText('⛺')
 
     // Surface 2 — M8's Gruppen section of a Vorlage that includes it.
-    await backToList(page)
-    await visible(page).getByTestId('m7-scope-template').click()
     await createTemplate(page, 'template', 'Sommer')
     await includeGroup(page, 'Camping Basis')
-    const includeRow = visible(page)
-      .locator('ion-item')
-      .filter({ hasText: 'Camping Basis' })
-      .first()
+    const includeRow = groupRow(page, visible(page), 'Camping Basis')
     await expect(includeRow.getByTestId('item-mark')).toHaveText('⛺')
 
     // Surface 3 — the FR-27.12 peek sheet's own header.
@@ -871,6 +883,14 @@ test.describe('M8 group marks (FR-28.8)', () => {
     await page.getByTestId('group-peek-close').click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
 
+    // The mark is master data, so it must survive a reload before surface 4
+    // can mean anything — M3 is reached through a fresh navigation, and in
+    // Local Mode a reload is a reload of the whole store (FR-19.2).
+    await page.goto('/tabs/templates')
+    await expect(
+      groupRow(page, visible(page), 'Camping Basis').getByTestId('item-mark'),
+    ).toHaveText('⛺')
+
     // Surface 4 — M3 step 3, where the group is picked into a trip.
     await page.goto('/trips/new')
     await page.getByTestId('wizard-name').locator('input').fill('Markenreise')
@@ -878,11 +898,7 @@ test.describe('M8 group marks (FR-28.8)', () => {
     await expect(page.getByTestId('wizard-step-2')).toBeVisible()
     await page.getByTestId('wizard-next').click()
     await expect(page.getByTestId('wizard-step-3')).toBeVisible()
-    const pick = visible(page)
-      .getByTestId('wizard-section-groups')
-      .locator('ion-item')
-      .filter({ hasText: 'Camping Basis' })
-      .first()
+    const pick = groupRow(page, visible(page).getByTestId('wizard-section-groups'), 'Camping Basis')
     await expect(pick.getByTestId('item-mark')).toHaveText('⛺')
   })
 })
