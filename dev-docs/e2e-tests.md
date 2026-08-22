@@ -63,7 +63,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-FLOW-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-G2-04 — the durable outbox (B2, NFR-4.1), added 2026-08-21.** A new
 case in the `single` unit: pack a row offline, reload the page *while still
@@ -94,6 +94,30 @@ detached, not deleted — which is the detail the first draft of this case got
 wrong and the run corrected. The destructive alert button is located by its
 Ionic role class rather than its label, so the case does not depend on which
 catalogue the alert renders in.
+
+**E2E-FLOW-10 — the pull cursor only comes from a pull, added 2026-08-22.**
+The push response's `pull_hint.next_cursor` names the seq *that push* wrote;
+the client was adopting it as its pull cursor, which — the cursor being an
+exclusive lower bound that only moves forward — stepped over everything
+another device had written while this one was offline, permanently and with
+no symptom.
+
+**This case asserts the request, not the screen, and that is the finding.**
+The first draft asserted the obvious thing: B's row must appear on A. It
+passed against the unfixed build. Logging A's traffic explained why — three
+drains overlap on a reconnect, and each reads the cursor when it *starts*, so
+one of them was still holding the pre-push value and pulled the gap by
+accident. The rows arrive; the bug is real; the screen cannot see it. The
+wire can: every `cursor` A sends must be one a pull returned, and a `5` after
+the server has only ever answered `3` is the whole defect in one number.
+Proved 3/3 red without the fix and 3/3 green with it.
+
+Two traps the harness itself carried. **A `page.route` observer has to be
+installed before the first request it judges**, or a cursor served earlier
+reads as invented — the first version failed on a perfectly legal `3`. And
+**`route.fetch()` runs outside the browser context, so it sails straight
+through `setOffline`**: the handler has to honour the flag itself, otherwise
+the device never goes offline and the case tests nothing.
 
 Two things this unit still does *not* cover, both by decision:
 

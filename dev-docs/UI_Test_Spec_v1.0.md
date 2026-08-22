@@ -465,6 +465,7 @@ These are full end-to-end journeys spanning several screens — the highest-valu
 * **E2E-FLOW-07 Local→Server migration** `local`→`server`: export portable YAML in Local Mode → import into a Server instance via M18 → data present. (FR-19.5, 18.x)
 * **E2E-FLOW-08 Concurrent-edit convergence** `server`: Alice and Bob edit the same trip offline simultaneously → both reconnect → field-level merge converges; a real conflict appears in the G-2 conflict log. (NFR-4.2a, G-2)
 * **E2E-FLOW-09 Template round-trip over a year** `single`: M3 creates a trip from a composed template + one extra overlapping group (camera deduped, named in the preview) → items added ad-hoc during the trip → archive → M21 creates next year's template: groups recognised & referenced, one deviation folded back into its group → the fold-back appears as an applied change on a *planning* trip using that group, while the archived source trip stays untouched → a new M3 run from the new template contains the full learned set. (FR-27.1–27.5, FR-2.3a)
+* **E2E-FLOW-10 The pull cursor only comes from a pull** `single`: A is caught up → A goes offline and edits → B writes a row A has never seen → A reconnects and drains. Every `cursor` A sends must be one a *pull* returned (0 until one has); the push's `pull_hint` is a signal, not a cursor. Asserted on the wire rather than on the screen: several drains overlap on a reconnect and one of them repairs the skip by accident, so a screen assertion is green against the defect. (NFR-4.1, NFR-4.2a, Sync-API §4/§5)
 
 ---
 
