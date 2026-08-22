@@ -35,6 +35,8 @@ func TestConflicts_MemberReadsLog(t *testing.T) {
 			Field        string `json:"field"`
 			LosingValue  string `json:"losing_value"`
 			WinningValue string `json:"winning_value"`
+			MutationID   string `json:"mutation_id"`
+			ActorUserID  string `json:"actor_user_id"`
 			ResolvedAt   string `json:"resolved_at"`
 		} `json:"conflicts"`
 	}
@@ -47,6 +49,11 @@ func TestConflicts_MemberReadsLog(t *testing.T) {
 	c := out.Conflicts[0]
 	if c.Field != "quantity" || c.LosingValue != "9" || c.WinningValue != "5" {
 		t.Errorf("unexpected conflict %+v", c)
+	}
+	// The actor is the authenticated pusher, stamped by the server — never
+	// anything the envelope could claim (invariant 3).
+	if c.MutationID != "cf-2" || c.ActorUserID != userA {
+		t.Errorf("conflict names (%q, %q), want (cf-2, %s)", c.MutationID, c.ActorUserID, userA)
 	}
 }
 

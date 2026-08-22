@@ -92,7 +92,7 @@ func TestApplyMutation_UpsertOfAnotherTripsRow_RejectedAndRowUntouched(t *testin
 				Fields: map[string]any{r.field: "GEKAPERT"},
 				HLC:    sync.HLC("0000000009000-0000-aaaaaaaa"),
 			}
-			res, err := s.ApplyMutation(context.Background(), testTrip, m)
+			res, err := s.ApplyMutation(context.Background(), testTrip, testUser, m)
 			if err != nil {
 				t.Fatalf("ApplyMutation: %v", err)
 			}
@@ -128,7 +128,7 @@ func TestApplyMutation_DeleteOfAnotherTripsRow_RejectedAndRowSurvives(t *testing
 				MutationID: "mut-1", Op: sync.OpDelete, Table: r.table, ID: id,
 				HLC: sync.HLC("0000000009000-0000-aaaaaaaa"),
 			}
-			res, err := s.ApplyMutation(context.Background(), testTrip, m)
+			res, err := s.ApplyMutation(context.Background(), testTrip, testUser, m)
 			if err != nil {
 				t.Fatalf("ApplyMutation: %v", err)
 			}
@@ -157,7 +157,7 @@ func TestApplyMutation_InsertNamingAnotherTrip_RejectedAndNothingSeeded(t *testi
 		Fields: map[string]any{"trip_id": otherTrip, "name": "Geschmuggelt"},
 		HLC:    sync.HLC("0000000009000-0000-aaaaaaaa"),
 	}
-	res, err := s.ApplyMutation(context.Background(), testTrip, m)
+	res, err := s.ApplyMutation(context.Background(), testTrip, testUser, m)
 	if err != nil {
 		t.Fatalf("ApplyMutation: %v", err)
 	}
@@ -179,12 +179,12 @@ func TestApplyMutation_UpsertMovingItsRowToAnotherTrip_Rejected(t *testing.T) {
 	ctx := context.Background()
 	mustExec(t, s, `INSERT INTO trips (id, name, year) VALUES (?, 'Fremde Reise', 2026)`, otherTrip)
 	seed := upsert("item-1", "mut-1", map[string]any{"trip_id": testTrip, "name": "Socken"}, "0000000001000-0000-aaaaaaaa")
-	if _, err := s.ApplyMutation(ctx, testTrip, seed); err != nil {
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, seed); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
 
 	move := upsert("item-1", "mut-2", map[string]any{"trip_id": otherTrip}, "0000000009000-0000-bbbbbbbb")
-	res, err := s.ApplyMutation(ctx, testTrip, move)
+	res, err := s.ApplyMutation(ctx, testTrip, testUser, move)
 	if err != nil {
 		t.Fatalf("ApplyMutation: %v", err)
 	}
@@ -209,7 +209,7 @@ func TestApplyMutation_UpsertOfUnknownRowWithoutTrip_RejectedNotErrored(t *testi
 	s := openTestStore(t)
 
 	m := upsert("never-seen", "mut-1", map[string]any{"name": "Waise"}, "0000000009000-0000-aaaaaaaa")
-	res, err := s.ApplyMutation(context.Background(), testTrip, m)
+	res, err := s.ApplyMutation(context.Background(), testTrip, testUser, m)
 
 	if err != nil {
 		t.Fatalf("ApplyMutation returned an error, want a rejected result: %v", err)
@@ -230,20 +230,20 @@ func TestApplyMutation_OwnTripTraffic_StillApplies(t *testing.T) {
 		Fields: map[string]any{"trip_id": testTrip, "name": "Socken"},
 		HLC:    sync.HLC("0000000001000-0000-aaaaaaaa"),
 	}
-	if res, err := s.ApplyMutation(ctx, testTrip, insert); err != nil || res.Outcome != "applied" {
+	if res, err := s.ApplyMutation(ctx, testTrip, testUser, insert); err != nil || res.Outcome != "applied" {
 		t.Fatalf("insert: outcome %q err %v, want applied", res.Outcome, err)
 	}
 
 	// A partial upsert carries no trip_id at all — the common shape, and it
 	// must stay applied because the existing row already names the trip.
 	partial := upsert("item-1", "mut-2", map[string]any{"quantity": 3}, "0000000002000-0000-bbbbbbbb")
-	if res, err := s.ApplyMutation(ctx, testTrip, partial); err != nil || res.Outcome != "applied" {
+	if res, err := s.ApplyMutation(ctx, testTrip, testUser, partial); err != nil || res.Outcome != "applied" {
 		t.Fatalf("partial upsert: outcome %q err %v, want applied", res.Outcome, err)
 	}
 
 	// Naming its own trip is fine as well.
 	explicit := upsert("item-1", "mut-3", map[string]any{"trip_id": testTrip, "quantity": 4}, "0000000003000-0000-cccccccc")
-	if res, err := s.ApplyMutation(ctx, testTrip, explicit); err != nil || res.Outcome != "applied" {
+	if res, err := s.ApplyMutation(ctx, testTrip, testUser, explicit); err != nil || res.Outcome != "applied" {
 		t.Fatalf("explicit upsert: outcome %q err %v, want applied", res.Outcome, err)
 	}
 
@@ -251,7 +251,7 @@ func TestApplyMutation_OwnTripTraffic_StillApplies(t *testing.T) {
 		MutationID: "mut-4", Op: sync.OpDelete, Table: TableTripItems, ID: "item-1",
 		HLC: sync.HLC("0000000004000-0000-dddddddd"),
 	}
-	if res, err := s.ApplyMutation(ctx, testTrip, del); err != nil || res.Outcome != "applied" {
+	if res, err := s.ApplyMutation(ctx, testTrip, testUser, del); err != nil || res.Outcome != "applied" {
 		t.Fatalf("delete: outcome %q err %v, want applied", res.Outcome, err)
 	}
 }
@@ -270,11 +270,11 @@ func TestApplyMutation_RejectedForeignMutation_IsNotAppliedOnReplay(t *testing.T
 		Fields: map[string]any{r.field: "GEKAPERT"},
 		HLC:    sync.HLC("0000000009000-0000-aaaaaaaa"),
 	}
-	if _, err := s.ApplyMutation(ctx, testTrip, m); err != nil {
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, m); err != nil {
 		t.Fatalf("first: %v", err)
 	}
 
-	res, err := s.ApplyMutation(ctx, testTrip, m)
+	res, err := s.ApplyMutation(ctx, testTrip, testUser, m)
 	if err != nil {
 		t.Fatalf("replay: %v", err)
 	}

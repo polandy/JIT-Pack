@@ -70,6 +70,7 @@ CREATE TABLE items (                            -- FR-1.1
     -- Unicode adds emoji every year and a "is this really an emoji" table
     -- silently rejects next year's valid input (FR-28.9).
     icon          TEXT CHECK (icon IS NULL OR length(icon) <= 32),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc   TEXT NOT NULL DEFAULT '',
     UNIQUE (name)                                 -- FR-16.3
 );
@@ -89,6 +90,7 @@ CREATE TABLE tags (
     id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     name        TEXT NOT NULL UNIQUE,
     sort_order  INTEGER NOT NULL DEFAULT 0,
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );
 
@@ -100,6 +102,7 @@ CREATE TABLE item_tags (
     -- flag: "which one is primary" and "in what order do the rest read"
     -- are the same question, and a flag answers only half of it.
     position    INTEGER NOT NULL DEFAULT 0,
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT '',
     UNIQUE (item_id, tag_id)
 );
@@ -111,6 +114,7 @@ CREATE TABLE item_dependencies (
     mode               TEXT NOT NULL DEFAULT 'required'
                        CHECK (mode IN ('required','suggested')),     -- FR-20.4
     quantity           INTEGER CHECK (quantity IS NULL OR quantity >= 0),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc        TEXT NOT NULL DEFAULT '',
     UNIQUE (item_id, depends_on_item_id),
     CHECK (item_id <> depends_on_item_id)
@@ -130,6 +134,7 @@ CREATE TABLE templates (
                  CHECK (kind IN ('group','template')),
     is_published INTEGER NOT NULL DEFAULT 0 CHECK (is_published IN (0,1)),
     icon         TEXT CHECK (icon IS NULL OR length(icon) <= 32),  -- FR-28.8
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc  TEXT NOT NULL DEFAULT '',
     UNIQUE (owner_id, name)
 );
@@ -146,6 +151,7 @@ CREATE TABLE template_items (
     default_mode     TEXT NOT NULL DEFAULT 'pack'
                      CHECK (default_mode IN ('pack','buy_before','buy_local')),
     late_packer      INTEGER NOT NULL DEFAULT 0 CHECK (late_packer IN (0,1)),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc      TEXT NOT NULL DEFAULT '',
     UNIQUE (template_id, item_id)
 );
@@ -156,6 +162,7 @@ CREATE TABLE template_item_tasks (
     id               TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     template_item_id TEXT NOT NULL REFERENCES template_items(id) ON DELETE CASCADE,
     task             TEXT NOT NULL,
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc      TEXT NOT NULL DEFAULT ''
 );
 
@@ -165,6 +172,7 @@ CREATE TABLE template_includes (
     id                   TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     template_id          TEXT NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
     included_template_id TEXT NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc          TEXT NOT NULL DEFAULT '',
     UNIQUE (template_id, included_template_id),
     CHECK (template_id <> included_template_id)
@@ -179,6 +187,7 @@ CREATE TABLE trip_series (
     owner_id           TEXT NOT NULL REFERENCES users(id),
     name               TEXT NOT NULL,
     default_attributes TEXT CHECK (default_attributes IS NULL OR json_valid(default_attributes)),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc        TEXT NOT NULL DEFAULT '',
     UNIQUE (owner_id, name)
 );
@@ -204,6 +213,7 @@ CREATE TABLE trips (
     attributes TEXT CHECK (attributes IS NULL OR json_valid(attributes)),
     imported   INTEGER NOT NULL DEFAULT 0 CHECK (imported IN (0,1)),
     created_by TEXT REFERENCES users(id),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT '',
     CHECK (start_date IS NULL OR end_date IS NULL OR end_date >= start_date)
 );
@@ -214,6 +224,7 @@ CREATE TABLE trip_members (
     user_id     TEXT NOT NULL REFERENCES users(id),
     role        TEXT NOT NULL DEFAULT 'editor'
                 CHECK (role IN ('owner','admin','editor')),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT '',
     UNIQUE (trip_id, user_id)
 );
@@ -227,6 +238,7 @@ CREATE TABLE travelers (                           -- FR-2.5
     trip_id        TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
     name           TEXT NOT NULL,
     linked_user_id TEXT REFERENCES users(id),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc    TEXT NOT NULL DEFAULT ''
 );
 
@@ -237,6 +249,7 @@ CREATE TABLE containers (                          -- FR-10.1
     carrier_traveler_id TEXT REFERENCES travelers(id),
     max_weight_grams    INTEGER CHECK (max_weight_grams > 0),
     paired_container_id TEXT REFERENCES containers(id),  -- FR-10.3
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc         TEXT NOT NULL DEFAULT ''
 );
 
@@ -274,6 +287,7 @@ CREATE TABLE trip_items (
     -- Inert, like trips.status 'repack': the outbound/return split was
     -- retired, and the column is kept so existing rows stay readable.
     outbound_packed      INTEGER CHECK (outbound_packed IN (0,1)),          -- FR-11.1
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc          TEXT NOT NULL DEFAULT ''         -- NFR-4.2a
 );
 
@@ -286,6 +300,7 @@ CREATE TABLE comments (
     is_task      INTEGER NOT NULL DEFAULT 0 CHECK (is_task IN (0,1)),       -- FR-7.2
     task_state   TEXT CHECK (task_state IN ('open','resolved')),
     created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc  TEXT NOT NULL DEFAULT '',
     CHECK (is_task = 0 OR task_state IS NOT NULL)
 );
@@ -300,6 +315,7 @@ CREATE TABLE trip_template_sources (
     id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     trip_id     TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
     template_id TEXT NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT '',
     UNIQUE (trip_id, template_id)
 );
@@ -327,6 +343,7 @@ CREATE TABLE trip_generated_positions (
     -- only the propagation writes it, and it is read as a whole.
     tasks              TEXT NOT NULL DEFAULT '[]'
                        CHECK (json_valid(tasks)),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc        TEXT NOT NULL DEFAULT '',
     UNIQUE (trip_id, source_item_id, traveler_id)
 );
@@ -343,6 +360,7 @@ CREATE TABLE trip_applied_changes (
     -- language into the database — the view words it (i18n).
     detail               TEXT CHECK (detail IS NULL OR json_valid(detail)),
     created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc          TEXT NOT NULL DEFAULT ''
 );
 
@@ -354,6 +372,7 @@ CREATE TABLE destination_profiles (               -- FR-13.2
     id          TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
     series_id   TEXT NOT NULL UNIQUE REFERENCES trip_series(id) ON DELETE CASCADE,
     notes       TEXT,
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );
 
@@ -363,6 +382,7 @@ CREATE TABLE destination_checklist_items (        -- FR-13.3
     label       TEXT NOT NULL,
     mode        TEXT NOT NULL DEFAULT 'buy_local'
                 CHECK (mode IN ('pack','buy_before','buy_local')),
+    field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc TEXT NOT NULL DEFAULT ''
 );
 
@@ -409,6 +429,11 @@ CREATE TABLE conflict_log (
     field         TEXT NOT NULL,
     losing_value  TEXT,
     winning_value TEXT,
+    -- The push that lost, and who pushed it: the mutation groups the
+    -- entries one revert restores together (state+packed_count), the
+    -- actor is the person to tell (NFR-4.2a audit and revert).
+    mutation_id   TEXT NOT NULL,
+    actor_user_id TEXT NOT NULL,
     resolved_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     reverted      INTEGER NOT NULL DEFAULT 0 CHECK (reverted IN (0,1))
 );

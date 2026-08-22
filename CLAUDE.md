@@ -147,10 +147,11 @@ it. Item numbers stay stable even as items close, because the log refers back to
    (NFR-4.2a: HLC + field-level LWW, additive fields, terminal precedence, the `conflict_log`,
    G-3's lock, presence, FR-25.19/25.20's assignment). Five places do not do what the spec says,
    each verified in the code, worst first:
-   **(a)** `groupDecision` (`internal/sync/merge.go`) lets *any* incoming `packed` win regardless
-   of HLC, where §6 says only that packed beats `packing_now` — so a stale offline pack overwrites
-   a later deliberate unpack or FR-5.5 skip, **and logs no conflict**, the group having applied.
-   Silent data loss, and **the one item here that needs an owner decision first: spec or code.**
+   **(a)** ~~`groupDecision` let *any* incoming `packed` win regardless of HLC~~ — **done**
+   (2026-08-22, ADR-022): the real fault under it was one `updated_hlc` per row where §6 says
+   per field-group; `field_hlcs` now carries a clock per field, rule 2 is the two pairs §6
+   names, and a conflict entry names the losing `mutation_id` and `actor_user_id`.
+   Log: *„Field-level LWW was row-level, and ‚packed always wins' was hiding it"*.
    **(b)** Master-partition conflicts are write-only: they are logged with `trip_id = NULL` and
    `ListConflicts` filters by `trip_id`. `trips` lives there, so a conflict on a trip's name or
    dates is recorded and unreachable. **(c)** The push response's `conflicts[]` is read by nothing
