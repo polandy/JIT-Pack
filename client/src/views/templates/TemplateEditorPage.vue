@@ -34,12 +34,15 @@ import SheetModal from '@/components/global/SheetModal.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import {
+  PICKER_SEARCH_MIN_GROUPS,
   PREVIEW_ROW_NAMES,
   tripsReachedBy,
   previewLines,
   resolvedLines,
   scopeSwitchBlock,
+  searchGroups,
 } from '@/domain/templates'
+import type { GroupSearchCandidate } from '@/domain/templates'
 import { t } from '@/i18n'
 import { attributeLabel } from '@/lib/attributeLabels'
 import { useMasterStore } from '@/stores/masterStore'
@@ -171,10 +174,51 @@ function groupCount(includedTemplateId: string): number {
   return masterStore.resolve(includedTemplateId).positions.length
 }
 
+// --- FR-27.13: searching the picker ----------------------------------------
+
+const pickerQuery = ref('')
+
+/**
+ * Every group the search can look at — the included ones too, flagged: they
+ * are hidden while browsing and shown while searching, because a search that
+ * silently drops them implies the group does not exist (FR-27.13).
+ */
+const searchCandidates = computed<GroupSearchCandidate[]>(() => {
+  const included = new Set(includes.value.map((inc) => inc.included_template_id))
+  return masterStore.templateList
+    .filter((tpl) => tpl.kind === 'group' && tpl.id !== props.templateId)
+    .map((tpl) => ({
+      id: tpl.id,
+      name: tpl.name,
+      itemNames: resolvedLines(masterStore.resolve(tpl.id), masterStore.itemList).map(
+        (line) => line.name,
+      ),
+      included: included.has(tpl.id),
+    }))
+})
+
+/** The field appears only above six groups — below, scanning the chips wins. */
+const pickerSearchable = computed(
+  () => searchCandidates.value.length > PICKER_SEARCH_MIN_GROUPS,
+)
+
+const pickerSearching = computed(() => pickerSearchable.value && pickerQuery.value.trim() !== '')
+
+/** Results as rows: the hit plus what the FR-27.12 summary line needs. */
+const pickerHits = computed(() =>
+  searchGroups(pickerQuery.value, searchCandidates.value).map((hit) => ({
+    ...hit,
+    name: groupName(hit.id),
+    count: groupCount(hit.id),
+    preview: groupPreview(hit.id),
+  })),
+)
+
 function closePicker() {
   pickerOpen.value = false
   newGroupOpen.value = false
   newGroupName.value = ''
+  pickerQuery.value = ''
 }
 
 function includeGroup(groupId: string) {
@@ -186,8 +230,14 @@ function removeInclude(includeId: string) {
   orchestrator.removeTemplateInclude(includeId)
 }
 
-/** "Neue Gruppe anlegen…" — inline, so a missing block never detours via M7. */
+/**
+ * "Neue Gruppe anlegen…" — inline, so a missing block never detours via M7.
+ * While searching, the field is prefilled with the query: a no-match search
+ * ends in creation with the typed name (FR-27.13, keeping the M7 rule that no
+ * row exists until a name does).
+ */
 function openNewGroup() {
+  newGroupName.value = pickerQuery.value.trim()
   newGroupOpen.value = true
   // The field is v-if-gated, so it exists only after this tick.
   void nextTick(() => newGroupInput.value?.$el.setFocus())
@@ -383,18 +433,77 @@ const mergeLines = computed(() =>
             </button>
 
             <div v-else class="picker jp-card" data-testid="m8-group-picker">
-              <p v-if="availableGroups.length === 0" class="picker-empty">
-                {{ t('templates.allGroupsIncluded') }}
-              </p>
-              <button
-                v-for="group in availableGroups"
-                :key="group.id"
-                class="pick"
-                :data-testid="`m8-pick-${group.id}`"
-                @click="includeGroup(group.id)"
-              >
-                ＋ {{ group.name }}
-              </button>
+              <!-- FR-27.13: the search — only above six groups, never focused. -->
+              <IonInput
+                v-if="pickerSearchable"
+                :value="pickerQuery"
+                class="picker-search"
+                type="search"
+                data-testid="m8-picker-search"
+                :placeholder="t('templates.pickerSearchPlaceholder')"
+                :aria-label="t('templates.pickerSearchPlaceholder')"
+                @ionInput="(e: CustomEvent) => (pickerQuery = e.detail.value ?? '')"
+              />
+
+              <template v-if="!pickerSearching">
+                <p v-if="availableGroups.length === 0" class="picker-empty">
+                  {{ t('templates.allGroupsIncluded') }}
+                </p>
+                <button
+                  v-for="group in availableGroups"
+                  :key="group.id"
+                  class="pick"
+                  :data-testid="`m8-pick-${group.id}`"
+                  @click="includeGroup(group.id)"
+                >
+                  ＋ {{ group.name }}
+                </button>
+              </template>
+
+              <!-- FR-27.13: while searching, offers become rows carrying the
+                   FR-27.12 summary — what you are about to include, visible
+                   before you include it. -->
+              <template v-else>
+                <p
+                  v-if="pickerHits.length === 0"
+                  class="picker-empty"
+                  data-testid="m8-search-empty"
+                >
+                  {{ t('templates.searchNoMatch', { query: pickerQuery.trim() }) }}
+                </p>
+                <template v-for="hit in pickerHits" :key="hit.id">
+                  <button
+                    v-if="!hit.included"
+                    class="result"
+                    :data-testid="`m8-pick-${hit.id}`"
+                    @click="includeGroup(hit.id)"
+                  >
+                    <span class="result-head">
+                      <span class="result-name">{{ hit.name }}</span>
+                      <span class="result-count">{{
+                        t('templates.itemCount', { n: hit.count })
+                      }}</span>
+                    </span>
+                    <span v-if="hit.preview" class="preview">{{ hit.preview }}</span>
+                    <span v-if="hit.via" class="result-via">{{
+                      t('templates.matchedVia', { name: hit.via })
+                    }}</span>
+                  </button>
+                  <div v-else class="result included" :data-testid="`m8-hit-included-${hit.id}`">
+                    <span class="result-head">
+                      <span class="result-name">{{ hit.name }}</span>
+                      <span class="result-count">{{
+                        t('templates.itemCount', { n: hit.count })
+                      }}</span>
+                    </span>
+                    <span v-if="hit.preview" class="preview">{{ hit.preview }}</span>
+                    <span v-if="hit.via" class="result-via">{{
+                      t('templates.matchedVia', { name: hit.via })
+                    }}</span>
+                    <span class="result-included-note">{{ t('templates.alreadyIncluded') }}</span>
+                  </div>
+                </template>
+              </template>
 
               <button
                 v-if="!newGroupOpen"
@@ -711,6 +820,64 @@ const mergeLines = computed(() =>
   align-self: center;
   color: var(--ct-subtext0);
   font-size: var(--jp-text-sm);
+}
+
+.picker-search {
+  width: 100%;
+  --background: var(--ct-surface0);
+  --padding-start: 12px;
+  --padding-end: 12px;
+  border-radius: var(--jp-r-sm);
+  margin-block-end: 4px;
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--ct-surface1);
+  border-radius: var(--jp-r-sm);
+  background: none;
+  color: var(--ct-text);
+  font-size: var(--jp-text-md);
+  text-align: start;
+  cursor: pointer;
+}
+
+.result .preview {
+  font-size: var(--jp-text-sm);
+}
+
+.result.included {
+  cursor: default;
+  border-style: dashed;
+}
+
+.result-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.result-count {
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+  white-space: nowrap;
+}
+
+.result-via {
+  color: var(--jp-action);
+  font-size: var(--jp-text-sm);
+}
+
+.result-included-note {
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+  font-style: italic;
 }
 
 .pick {
