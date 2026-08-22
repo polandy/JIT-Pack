@@ -293,6 +293,14 @@ export const en = {
   'quickAdd.groupEmpty': 'Group “{name}” contributes nothing to this trip',
   'quickAdd.groupNotReady': 'Trip data is still loading — please try again in a moment',
 
+  // Inventory browse-sheet (FR-25.13d), opened from the composer.
+  'quickAdd.browseEntry': 'More from the inventory…',
+  'quickAdd.browseTitle': 'Assemble from the inventory',
+  'quickAdd.browseSubtitle': 'One tap adds a position — the sheet stays open',
+  'quickAdd.browseAlreadyIn': 'already in',
+  'quickAdd.browseFreeText': 'Type a new name instead…',
+  'quickAdd.browseNoMatch': 'No items carry this tag yet',
+
   // Faceted filter panel (FR-25.11), shared by M4 and M6.
   'filter.title': 'Filter',
   'filter.open': 'Filter',
