@@ -63,7 +63,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-FLOW-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-G2-04 — the durable outbox (B2, NFR-4.1), added 2026-08-21.** A new
 case in the `single` unit: pack a row offline, reload the page *while still
@@ -74,6 +74,50 @@ offline reload is the PWA's (E2E-PWA-01); the case asserts the back button
 rather than E2E-PWA-01's logo, because inside a trip the app bar carries no
 logo. **Proved red against the unfixed build**: with the outbox store
 unwired the count is simply absent after the reload.
+
+**E2E-G2-05 — a refused mutation is parked, added 2026-08-22.** The first case
+that ever drove the parked surface against a real `jitpackd`. It could not
+have existed before: the client read the rejection under `status`, a key no
+server has ever sent, so `parkedCount` stayed 0 whatever the server answered
+— and both unit suites agreed with it, because their fakes answered `status`
+too. Proved by mutation: pointing the client back at `.status` makes
+`sync-detail-parked` not exist at all.
+
+Two honesty notes. **The refusal it drives is the trip-confinement one**
+(a partial upsert on a row deleted elsewhere names no trip), not a database
+constraint; the constraint refusals of the same code path are covered in Go
+(`store/trip_constraint_test.go`, `api/push_refusal_test.go`), because no
+screen can delete a container or cut a quantity below its packed count on a
+second device inside one case. **The removal has to pack the row first**: a
+traveller leaving takes only her *packed* rows with her — an untouched row is
+detached, not deleted — which is the detail the first draft of this case got
+wrong and the run corrected. The destructive alert button is located by its
+Ionic role class rather than its label, so the case does not depend on which
+catalogue the alert renders in.
+
+**E2E-FLOW-10 — the pull cursor only comes from a pull, added 2026-08-22.**
+The push response's `pull_hint.next_cursor` names the seq *that push* wrote;
+the client was adopting it as its pull cursor, which — the cursor being an
+exclusive lower bound that only moves forward — stepped over everything
+another device had written while this one was offline, permanently and with
+no symptom.
+
+**This case asserts the request, not the screen, and that is the finding.**
+The first draft asserted the obvious thing: B's row must appear on A. It
+passed against the unfixed build. Logging A's traffic explained why — three
+drains overlap on a reconnect, and each reads the cursor when it *starts*, so
+one of them was still holding the pre-push value and pulled the gap by
+accident. The rows arrive; the bug is real; the screen cannot see it. The
+wire can: every `cursor` A sends must be one a pull returned, and a `5` after
+the server has only ever answered `3` is the whole defect in one number.
+The screen is still asserted — B's row does arrive — as the positive signal that the pulls carried anything at all, so the cursor check is not passing over a dead connection. Proved 3/3 red without the fix and 3/3 green with it.
+
+Two traps the harness itself carried. **A `page.route` observer has to be
+installed before the first request it judges**, or a cursor served earlier
+reads as invented — the first version failed on a perfectly legal `3`. And
+**`route.fetch()` runs outside the browser context, so it sails straight
+through `setOffline`**: the handler has to honour the flag itself, otherwise
+the device never goes offline and the case tests nothing.
 
 Two things this unit still does *not* cover, both by decision:
 
@@ -1038,27 +1082,40 @@ E2E-M22-04 asserts an absence (removal is refused on a started trip), so it
 leans on the positive signals the screen renders anyway: the control is present
 and `aria-disabled`, and the reason is a visible note.
 
-## Known flaky: the losing-offline-edit case (`e2e/single/server-sync.spec.ts`, noted 2026-08-21)
+## Fixed: the losing-offline-edit case was never flaky (2026-08-22)
 
-`a losing offline edit converges and lands in the conflict log` fails on its
-first attempt and passes on the retry — **measured on `main` as well as on the
-branch that reported it**, twice each, so it is the case rather than any change
-around it. CI has been green only because the retry saves it, and a run where
-both attempts fail is one unlucky pipeline away.
+`a losing offline edit converges and lands in the conflict log` was recorded
+here on 2026-08-21 as flaky — failing its first attempt, passing on the retry,
+measured on `main` as well as on the branch that reported it. CI stayed green
+only because the retry saved it.
 
-The cause is in the case, not in the app. `pageB` boots straight at the trip's
-URL, so only the **trip** partition is loaded; `reopenTrip` then navigates
-through M2, whose list comes from the **master** partition. Whether that pull
-landed before the context went offline is luck, and there is deliberately no
-reconnect drain (Track C), so after reconnecting it may never arrive at all —
-the case then looks for the trip in an empty list and reports the absence as a
-sync failure.
+**It was not flaky; it was deterministic, and the retry hid that.** Run with
+`--retries=0` it fails on *every* attempt, three out of three. The retry
+passed because the first attempt had meanwhile warmed the master partition of
+the run's shared database — the second attempt was answering a question the
+first had already paid for.
 
-Not fixed here, deliberately: the obvious repairs each change what the case
-proves. Re-entering by `goto` restarts the app and demonstrates the durable
-outbox instead of the drain-on-trip-open the case is about, and re-entering by
-history skips M2 but broke the sibling case that shares the helper (tried, and
-reverted). It wants its own change, by whoever owns the server-mode suite.
+The cause was the one guessed here a day earlier, and the note stands: a page
+booted straight at a trip URL loads only the **trip** partition, while M2's
+list comes from the **master** one, and with no reconnect drain (Track C) a
+master pull that had not landed before the context went offline may never
+land at all. `reopenTrip` then searched an empty list and reported the
+absence as a sync failure.
+
+The repair is a precondition rather than a change to what the case proves:
+`warmTripList` walks the second page through M2 **while it is still online**
+and asserts the rendered trip row. The two repairs rejected a day earlier are
+still rejected — re-entering by `goto` would demonstrate the durable outbox
+instead of the drain-on-trip-open, and re-entering by history broke the
+sibling case that shares the helper. Proved both directions: 3/3 red without
+the call, 3/3 green with it, `--retries=0` throughout.
+
+**The lesson is about `retries: 1`, not about this case.** A retry cannot tell
+a racing test from a broken one, and against a suite whose database outlives
+the run it actively manufactures green: the retry is a *second* attempt
+against state the first attempt created. Any case that reads shared master
+state after going offline should establish it while online rather than trust
+the run's history.
 
 ## M8/M4 — the composer's chip rows (2026-08-21)
 

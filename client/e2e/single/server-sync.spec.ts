@@ -81,6 +81,26 @@ async function assignTraveler(page: Page, itemName: string, travelerName: string
   await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 }
 
+/**
+ * Prove this page's **master** partition holds the trip before the network
+ * is taken away.
+ *
+ * A page booted straight at a trip URL loads only the *trip* partition; M2's
+ * list comes from the master one, and whether that pull had landed was
+ * previously luck. With no reconnect drain (Track C) it may never land after
+ * going offline, and `reopenTrip` then searches an empty list and reports the
+ * absence as a sync failure — the documented flake that passed only on the
+ * retry. Asserting the rendered row makes the precondition a fact, and
+ * changes nothing about what the cases themselves prove.
+ */
+async function warmTripList(page: Page, tripName: string): Promise<void> {
+  await page.getByTestId('header-back').click()
+  await visiblePage(page).getByTestId('trips-filter-planned').click()
+  await expect(visiblePage(page).getByTestId(`trip-row-${tripName}`)).toBeVisible()
+  await visiblePage(page).getByTestId(`trip-row-${tripName}`).click()
+  await expect(visiblePage(page).getByTestId('m4-fab')).toBeVisible()
+}
+
 /** Leave M4 for the trip list and re-open the trip — M4's mount drains. */
 async function reopenTrip(page: Page, tripName: string) {
   await page.getByTestId('header-back').click()
@@ -238,6 +258,7 @@ test.describe('Single-User backend sync @single', () => {
     const ctxB = await browser.newContext()
     const pageB = await bootPage(ctxB, tripPath)
     await expect(visiblePage(pageB).getByTestId(`m4-row-${item}`)).toBeVisible()
+    await warmTripList(pageB, trip)
 
     // B edits first, offline — the strictly older HLC, so B is the side
     // that must lose. A's same-field edit happens visibly later.
@@ -377,5 +398,183 @@ test.describe('Single-User backend sync @single', () => {
 
     await ctx.close()
     await ctxFresh.close()
+  })
+  /**
+   * E2E-G2-05: a mutation the server refuses is *parked*, and G-2 says so.
+   *
+   * This is the one claim the unit tests could not make. The parked surface
+   * has existed since B2, but the client read the rejection under a key no
+   * server has ever sent, so it had never once fired against a real
+   * `jitpackd` — and both suites stayed green because the client's own fakes
+   * answered that same wrong key.
+   *
+   * The story is ordinary rather than adversarial: Mia leaves the trip while
+   * Andy is on a train. Andy's phone still holds her row and queues a pack
+   * for it; by the time the queue drains, the row is gone server-side. The
+   * push must answer that one mutation as a refusal — the whole batch used
+   * to fail with a 500, which the outbox retries forever — and the client
+   * must move it out of the queue and say so.
+   */
+  test('parks a refused mutation and reports it on G-2', async ({ browser }) => {
+    const trip = `Refusal ${uniq()}`
+    const item = `Regenjacke ${uniq()}`
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA)
+    const tripPath = await createTripViaWizard(pageA, {
+      name: trip,
+      travelers: ['Andy', 'Mia'],
+    })
+    await quickAddItem(pageA, item)
+    await assignTraveler(pageA, item, 'Mia')
+    // Packed while online, so both devices agree it is packed. Only a packed
+    // row is *deleted* when its traveller leaves — an untouched one is merely
+    // detached, which is why this case has to pack first.
+    await packItem(pageA, item)
+
+    const ctxB = await browser.newContext()
+    const pageB = await bootPage(ctxB, tripPath)
+    await visiblePage(pageB).getByTestId('m4-done-bar').click()
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${item}`)).toBeVisible()
+
+    // Andy loses the network and unpacks Mia's row — a perfectly ordinary
+    // action against the state his device holds.
+    await ctxA.setOffline(true)
+    await visiblePage(pageA).getByTestId('m4-done-bar').click()
+    await visiblePage(pageA).getByTestId(`m4-row-${item}`).getByTestId('row-check').click()
+    const indicatorA = pageA.getByTestId('sync-indicator')
+    await expect(indicatorA).toHaveAttribute('data-state', 'offline')
+    await expect(indicatorA.getByTestId('sync-queue-count')).toHaveText('1')
+
+    // Mia leaves the trip on the other device. Her packed row goes with her.
+    await pageB.getByTestId('m4-edit').click()
+    await expect(visiblePage(pageB).getByTestId('trip-edit-name')).toBeVisible()
+    await visiblePage(pageB)
+      .locator('ion-button[data-testid^="traveler-remove-"]')
+      .nth(1)
+      .click()
+    // By role, not by label: the destructive choice is the one that takes
+    // her packed rows with her, and the role survives both catalogues.
+    await pageB.locator('ion-alert button.alert-button-role-destructive').click()
+    await expect(visiblePage(pageB).getByTestId('traveler-row-Mia')).toHaveCount(0)
+
+    // The row really is gone for everyone — proven on the device that
+    // deleted it, so the refusal below cannot be blamed on a stale read.
+    await pageB.getByTestId('header-back').click()
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${item}`)).toHaveCount(0)
+
+    // Andy reconnects; the trip re-open is the app's own action that drains.
+    await ctxA.setOffline(false)
+    const areq: string[] = []
+    pageA.on('request', (r) => {
+      if (r.url().includes('/api/v1/sync/')) areq.push(`${r.method()} ${r.url().split('/api/v1')[1]}`)
+    })
+    await reopenTrip(pageA, trip)
+
+    // The queue is empty because the mutation was answered — not because it
+    // is still waiting, and not because it was silently dropped: G-2 names
+    // it as refused and kept.
+    await expect(indicatorA.getByTestId('sync-queue-count')).toHaveCount(0)
+    await indicatorA.click()
+    await expect(pageA.getByTestId('sync-detail-sheet')).toBeVisible()
+    await expect(pageA.getByTestId('sync-detail-parked')).toContainText('1')
+    await expect(pageA.getByTestId('sync-detail-parked-hint')).toBeVisible()
+
+    await ctxA.close()
+    await ctxB.close()
+  })
+  /**
+   * E2E-FLOW-10 (NFR-4.1/4.2a, P-1): the pull cursor only ever comes from a
+   * pull.
+   *
+   * The cursor is an exclusive lower bound (Sync-API §4), so whatever a
+   * device sets it to, it can never go back for. The push response carries a
+   * `pull_hint.next_cursor` naming the seq *that push* just wrote — later
+   * than anything written while this device was offline. Adopting it as the
+   * cursor steps over the other device's whole session without a symptom: no
+   * error, no badge, just rows that are on the server and never on screen.
+   *
+   * Asserted on the wire rather than on the screen, and deliberately: three
+   * drains overlap on a reconnect, and one of them — having read the cursor
+   * before the push moved it — pulls from the older value and repairs the
+   * skip by accident. The rows therefore arrive anyway most of the time, so
+   * a screen assertion here would be green against the defect. The request
+   * is the honest witness: every cursor this device sends must be one a pull
+   * has handed it, and `5` after a push that only ever received `3` is the
+   * whole bug in one line.
+   */
+  test('never pulls from a cursor the server handed it in a push', async ({ browser }) => {
+    const id = uniq()
+    const trip = `Flims ${id}`
+    const mine = `Stirnlampe-${id}`
+    const theirs = `Regenjacke-${id}`
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA)
+    // Every cursor A sends must be one a *pull* has handed it; 0 is its own
+    // starting point. Observing from the first request on, because a value
+    // served before the observer exists would read as invented.
+    const served = new Set([0])
+    const asked: number[] = []
+    // `route.fetch` runs outside the context, so it would sail straight
+    // through `setOffline`. The handler has to honour the flag itself.
+    let offline = false
+    await pageA.route('**/api/v1/sync/**', async (route) => {
+      if (offline) {
+        await route.abort('internetdisconnected')
+        return
+      }
+      const request = route.request()
+      const cursor = new URL(request.url()).searchParams.get('cursor')
+      const isPull = request.method() === 'GET' && cursor !== null
+      if (isPull) asked.push(Number(cursor))
+      const response = await route.fetch()
+      if (isPull) {
+        const body = await response.json().catch(() => null)
+        if (body && typeof body.next_cursor === 'number') served.add(body.next_cursor)
+      }
+      await route.fulfill({ response })
+    })
+
+    const tripPath = await createTripViaWizard(pageA, { name: trip })
+    await quickAddItem(pageA, mine)
+    const indicatorA = pageA.getByTestId('sync-indicator')
+    await expect(indicatorA).toHaveAttribute('data-state', 'synced')
+    await warmTripList(pageA, trip)
+
+    // B joins and is caught up before A leaves, so the only thing A can be
+    // missing at the end is what B writes during the gap.
+    const ctxB = await browser.newContext()
+    const pageB = await bootPage(ctxB, tripPath)
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${mine}`)).toBeVisible()
+
+    offline = true
+    await ctxA.setOffline(true)
+    await packItem(pageA, mine)
+    await expect(indicatorA).toHaveAttribute('data-state', 'offline')
+    await expect(indicatorA.locator('ion-badge')).toHaveText('1')
+
+    // The gap: B writes a row A has never seen and cannot be told about.
+    await quickAddItem(pageB, theirs)
+    await expect(pageB.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+
+    offline = false
+    await ctxA.setOffline(false)
+    await reopenTrip(pageA, trip)
+    await expect(indicatorA).toHaveAttribute('data-state', 'synced')
+    await expect(indicatorA.locator('ion-badge')).toHaveCount(0)
+
+    // A positive signal that the pulls above actually carried the gap, so
+    // the cursor assertion is not passing over a silent connection.
+    await expect(visiblePage(pageA).getByTestId(`m4-row-${theirs}`)).toBeVisible()
+    expect(asked.length).toBeGreaterThan(0)
+    expect(asked.filter((c) => !served.has(c))).toEqual([])
+
+    // And A's own offline pack reached the server — the fix must not have
+    // traded one direction for the other.
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${mine}`)).toBeHidden()
+
+    await ctxA.close()
+    await ctxB.close()
   })
 })

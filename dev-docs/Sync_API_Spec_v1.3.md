@@ -2,7 +2,7 @@
 
 **Document Status:** Proposed for Review
 **Basis:** ADR-001 v2 (Go + embedded SQLite), Schema v0.3 (`change_log`, `updated_hlc`), NFR-4.1/4.2/4.2a, UI-Spec G-2/G-4/G-5/G-10.
-**Revision Note (v1.3):** Adds four RPC endpoints (§8) for the new portable YAML template/trip export-import (Addendum 3.18): `GET`/`POST` pairs for templates and trips, explicitly distinguished from the existing NFR-4.5 CSV/full-JSON export endpoints. Also corrects a stale "Schema v0.2" reference to v0.3. No other changes from v1.2.
+**Revision Note (v1.3):** Adds four RPC endpoints (§8) for the new portable YAML template/trip export-import (Addendum 3.18): `GET`/`POST` pairs for templates and trips, explicitly distinguished from the existing NFR-4.5 CSV/full-JSON export endpoints. Also corrects a stale "Schema v0.2" reference to v0.3. No other changes from v1.2. **Amended 2026-08-22:** §5 and P-3 spell out that a trip mutation is confined to the trip its endpoint names. The rule was always the intent — it had never been written down, and the server did not enforce it. **Amended again the same day:** §5 now prints the push *response* envelope and names its `outcome` key, and states that a constraint violation is a `rejected` mutation rather than a 5xx. Both were rules the document implied and never spelled out, and both had drifted in the code — the client read a `status` key no server has ever sent, and the trip partition answered 500 where the master partition answered `rejected`. **Amended a third time the same day:** §5 states what `pull_hint` is *for* — a signal that a pull is worth making, never the cursor to make it from. The client had been taking it as the cursor, which stepped over everything another device wrote while it was offline.
 **Base URL:** `/api/v1` — JSON only, UTF-8. All timestamps ISO-8601 UTC.
 **Note on migration numbers:** this document dates several schema facts as "since migration NNN". Those numbers are **history, not files** — the migration chain was retired on 2026-08-19 (ADR-018) in favour of one always-current `internal/store/schema.sql`. The dates still say when a rule started applying; the numbers no longer point at anything to open.
 
@@ -12,7 +12,7 @@
 
 * **P-1 (One read path):** Clients receive data exclusively via the **pull endpoint**. WebSocket events are thin "something changed" pings that trigger a pull — never data carriers. One code path serves initial load, reconnect, offline catch-up, and realtime.
 * **P-2 (One write path):** Clients write exclusively via the **push endpoint** from a local outbox — also while online. "Online mode" is just "outbox drains fast" (UI-Spec G-5).
-* **P-3 (Partitioned sync):** Two partition types: one per **trip** (trip_items, travelers, containers, comments, conflict_log, trip_generated_positions) and one **master partition per user** (items, tags, item_tags, templates, template_items, template_includes, template_item_tasks, item_dependencies, trip_series, destination_*, trips metadata, trip_members, trip_template_sources, trip_applied_changes). Three of those are trip-scoped yet travel the master partition — trip_members, and since migration 023 the FR-27.4 registry and applied-changes log. **Partition membership follows who reads a table, not what it is about:** M2 renders its applied-changes chip and M8 its blast-radius note with no trip partition loaded, while the FR-27.4 ledger is only ever read beside the rows it describes and belongs with them. Visibility on the master-partition trip-scoped tables is trip membership (as for trip_members); writes are allowed to any member, since registering a source and logging an applied change are consequences of ordinary editing rather than administration.
+* **P-3 (Partitioned sync):** Two partition types: one per **trip** (trip_items, travelers, containers, comments, conflict_log, trip_generated_positions) and one **master partition per user** (items, tags, item_tags, templates, template_items, template_includes, template_item_tasks, item_dependencies, trip_series, destination_*, trips metadata, trip_members, trip_template_sources, trip_applied_changes). Three of those are trip-scoped yet travel the master partition — trip_members, and since migration 023 the FR-27.4 registry and applied-changes log. **Partition membership follows who reads a table, not what it is about:** M2 renders its applied-changes chip and M8 its blast-radius note with no trip partition loaded, while the FR-27.4 ledger is only ever read beside the rows it describes and belongs with them. Visibility on the master-partition trip-scoped tables is trip membership (as for trip_members); writes are allowed to any member, since registering a source and logging an applied change are consequences of ordinary editing rather than administration. **A partition is a boundary in both directions:** membership is checked for the trip an endpoint names, so a mutation that reaches past it is refused rather than applied — see §5.
 * **P-4 (Server is merge authority):** Conflict resolution per NFR-4.2a happens on the server during push. Clients never merge; they apply pulled state verbatim.
 * **P-5 (Idempotency everywhere):** Every mutation carries a client-generated `mutation_id` (UUID). Replays return the recorded result.
 
@@ -86,8 +86,24 @@ Same envelope for the user's master partition. `change_log.trip_id` is NULL for 
 
 * Mutations are applied **in order, atomically per mutation** (not per batch): a rejected mutation does not roll back earlier ones.
 * **Server-stamped fields.** Before merging, the server overwrites the actor columns from the authenticated pusher, so a client value is never trusted (`stampActor`): comment `author_id` on insert; `packing_now_by`/`packing_now_at` when the state becomes `packing_now`; and `trip_items.packed_by_user_id` — set when the state becomes `packed`, cleared on any other state, and **stripped from every `trip_items` mutation first**, so it cannot be forged on a push that touches no state (FR-25.19). `packer_user_id` is *not* stamped: since FR-25.19 it carries the assignment, which is the client's to choose. `trips.year` (migration 021) is `NOT NULL` — a `trips` insert without it is rejected rather than defaulted, because a trip with no year cannot be placed in time (FR-2.1b); `end_date` is nullable from the same migration. `trip_items.packed_at` (migration 020) is the same record's *when* (FR-25.17) and follows it exactly — written with the record, cleared with it, stripped from every mutation first — with one deliberate difference: a **client-supplied RFC 3339 value is kept**, because packing happens offline and the push can land days after the tap. A clock is not an identity claim, so invariant 3 does not reach it; an unparseable value is replaced by the server's own time rather than stored.
-* **Response** per mutation: `applied` | `merged` (some fields lost per conflict rules, `conflicts[]` lists them) | `duplicate` (mutation_id seen before, recorded result returned) | `rejected` (validation/permission, with `error`).
-* After processing, the response includes `pull_hint: {next_cursor}` so the client immediately pulls its own (possibly merged) canonical state — closing the loop through the single read path (P-1).
+* **Response** per mutation, under the key **`outcome`**: `applied` | `merged` (some fields lost per conflict rules, `conflicts[]` lists them) | `duplicate` (mutation_id seen before, recorded result returned) | `rejected` (validation/permission, with `error`). The envelope, written out because naming only the *values* was how the client came to read a key the server has never sent:
+
+```json
+{
+  "results": [
+    { "mutation_id": "uuid-1", "outcome": "applied" },
+    { "mutation_id": "uuid-2", "outcome": "merged",
+      "conflicts": [ { "field": "quantity", "losing_value": 9, "winning_value": 5 } ] },
+    { "mutation_id": "uuid-3", "outcome": "rejected",
+      "error": "column not syncable: trip_items.nope" }
+  ],
+  "pull_hint": { "next_cursor": 4712 }
+}
+```
+
+  `internal/api/testdata/push_response.json` holds exactly this document, and both sides are tested against that file rather than against their own idea of it (`TestPushResponse_MatchesTheSharedWireFixture` and `client/src/composables/__tests__/pushContract.spec.ts`).
+* **A constraint the database refuses is `rejected`, never a 5xx.** A foreign key whose target another device deleted, a quantity merged below what is already packed, a partial upsert whose row is gone: the statement fails, the transaction survives, and the mutation is answered as the refusal it is. Returning an error instead would make the whole batch a 500 — and per §5.1 a 5xx is the one answer the client keeps retrying, so the bad row would sit at the head of its queue and hold every mutation behind it for that partition indefinitely.
+* After processing, the response includes `pull_hint: {next_cursor}` so the client immediately pulls its own (possibly merged) canonical state — closing the loop through the single read path (P-1). **It is a signal that a pull is worth making, never the cursor to make it from.** Its value is the highest `seq` *this push* wrote, which is later than anything another device wrote while this one was away; since a pull cursor is an exclusive lower bound (§4) and only ever moves forward, adopting the hint steps over that whole session and never offers it again — silently, the client having no way to learn what it skipped. **The client pulls from the last `next_cursor` a *pull* returned**, and 0 until one has. `E2E-FLOW-10` asserts it on the wire.
 
 ### 5.1 The client-side outbox is durable (B2, NFR-4.1)
 
@@ -107,6 +123,18 @@ untouched:
   re-minted it would be a second write, not a retry. Replaying *before* the
   pull is what keeps a local change that never left the device from being
   silently overwritten by the server's older copy of the same row.
+* **A trip mutation is confined to the trip in its URL.** Authorization
+  checks membership for that trip and nothing else, while every statement
+  addresses its row by primary key — so the endpoint has to establish that
+  the row is the trip's own, or the partition reaches into every other trip.
+  A mutation is `rejected` when the row it names already belongs to another
+  trip, when its own fields name another trip (both an injected insert and a
+  row moved out of its trip), and when it would create a row without naming
+  any trip at all. A delete of a row that no longer exists stays accepted:
+  that is the ordinary idempotent retry, and it writes nothing. Without the
+  rule the damage is not only a write — the `change_log` entry lands under
+  the *pusher's* trip, so the next pull hands them the foreign row's whole
+  snapshot while the trip that owns it is never told anything changed.
 * **A refusal is parked, never retried.** A mutation answered `rejected`, and
   a whole batch refused with a 4xx that a retry cannot fix (anything but
   401/408/425/429), is moved out of the queue and kept on the device with the

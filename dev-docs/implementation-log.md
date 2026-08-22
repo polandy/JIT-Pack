@@ -126,8 +126,10 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [FR-27.15: the editor learns to recognise its own duplicates (2026-08-22)](#fr-2715-the-editor-learns-to-recognise-its-own-duplicates-2026-08-22) — the FR’s stated sentence named the quantity, and following it literally would have let the fold turn a per-person position trip-global in silence; the dismissal is keyed to the item set because that is what makes „has it changed“ decidable without a schema; `ion-modal` never leaves the DOM, and an `Escape` assertion that passes before the sheet has presented leaves a live overlay eating the next tap.
 - [The i18n gap that was a measurement error (2026-08-22)](#the-i18n-gap-that-was-a-measurement-error-2026-08-22) — `vue-tsc --noEmit` on a solution-style tsconfig checks nothing and exits 0, which is where the belief came from that a wrong `MessageKey` in a template ships silently; `strictTemplates` measured at 1104 errors; the real gap was the avatar crop modal, which no Playwright project can open.
 - [§3.28: the mark gets built (2026-08-22, FR-28.1–28.11, ADR-021)](#328-the-mark-gets-built-2026-08-22-fr-2812811-adr-021) — the self-hosted face is about *agreement* (🧥 is a trench coat here and a peacoat on both platforms), not availability; the substring rule was unproven until „Reise" turned up an ice cube; the seed may only speak the index's vocabulary; and a master-item edit had been silently dropping the reference photo in Local Mode.
+- [The trip partition was never confined to its trip (2026-08-22)](#the-trip-partition-was-never-confined-to-its-trip-2026-08-22) — membership was checked for the endpoint's trip while every statement addressed its row by primary key, so any member of any trip could read, rewrite, delete and seed every other trip's rows; the master partition had carried the equivalent check since its first day, which is why nothing looked missing.
+- [Two halves of one refusal path (2026-08-22)](#two-halves-of-one-refusal-path-2026-08-22) — the trip partition answered 500 where the master answered `rejected`, and a 5xx is the one status the outbox retries, so one bad row wedged a partition forever; the client meanwhile read a `status` key no server has ever sent, which made the whole parked surface dead code that its own fakes kept green.
+- [The pull cursor came out of the push (2026-08-22)](#the-pull-cursor-came-out-of-the-push-2026-08-22) — the client took `pull_hint.next_cursor` as its pull cursor, stepping permanently over everything another device wrote while it was away; the e2e case that should have caught it was green against the defect, because three overlapping drains repair the skip by accident, so the assertion moved from the screen to the wire.
 - [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
-
 
 ## Current state
 
@@ -4697,7 +4699,151 @@ inherit a mark.** The suggestion carries `source_item_id`, the free-text
 confirm creates an ad-hoc row by design (FR-28.7). The first draft of
 E2E-M9-07 added *Zelt* by free text and asserted its mark — a correct
 failure that named a real distinction, and both paths are now in the case.
+## The trip partition was never confined to its trip (2026-08-22)
 
+Found by a read-only bug sweep over the whole tree, not by a failure: the
+trip push endpoint authorised the trip in its URL and then applied the
+mutation by primary key alone. `ApplyMutation` took a `tripID` and used it
+only to stamp the `change_log` entry; `loadRow`, `updateRow` and the delete
+all ran `WHERE id = ?`. Any member of any trip could name a foreign row id
+and rewrite it, delete it, or insert a row carrying someone else's
+`trip_id` — across all five trip-partition tables.
+
+**The read half is the worse one, and it is the part that is easy to miss.**
+The write is loud; the leak is silent. Because the change_log entry is
+written under the *pusher's* trip, the pusher's very next pull returns
+`loadSnapshot` of the foreign row — the full current state of a trip they
+are not a member of — while the trip that owns the row gets no entry at all
+and therefore never learns anything happened. A stranger could read a
+foreign trip's rows one id at a time, and the owners' G-2 stayed green.
+
+**Why nothing looked missing.** The master partition has had the equivalent
+check since its first day: `authorizeMaster` resolves `parentIDs(current, m,
+"trip_id")` for every trip-scoped master table and checks both the row's
+current parent and the one the mutation proposes. The trip partition looked
+like it needed no such thing, because its endpoint *names* the trip — the
+authorization was there, it just never reached the row. The asymmetry is the
+whole bug: one partition proves the parent, the other assumed it.
+
+Three decisions worth keeping:
+
+- **A refusal, not an error.** The mutation is answered `rejected` rather
+  than failing the batch, so it lands on the client's park pile instead of
+  taking every mutation behind it hostage (§5). This matters more than it
+  looks: the trip partition currently turns *any* constraint violation into
+  a 500, and the outbox treats 5xx as "the server is failing" and retries
+  forever — so an errored mutation wedges the whole partition. Rejecting
+  through the same door the master partition already uses avoids adding one
+  more wedge. (The 500 path itself is still open — a separate fix.)
+- **Deletes of rows that no longer exist stay accepted.** They cannot be
+  attributed to a trip, because there is no row to read a `trip_id` from,
+  but refusing them would break the ordinary idempotent retry: a delete that
+  already succeeded is re-pushed after a lost response. It writes nothing,
+  so there is nothing to place in the wrong trip.
+- **An insert must name its trip.** Previously such a mutation reached the
+  `NOT NULL` constraint and failed the batch; it is now a plain rejection.
+  The client already sends `trip_id` on every trip-partition insert — checked
+  across all of `useMutations.ts`, including the upsert that
+  `trip_generated_positions` uses as a create — so no legitimate traffic
+  changes shape.
+
+The spec owed a sentence here too. P-3 described the partitions as a
+*routing* rule — which table travels which feed — and nowhere said that a
+partition is also a boundary a mutation may not reach across. The rule was
+always the intent; it had simply never been written down, which is part of
+why the code could omit it without looking wrong.
+
+## Two halves of one refusal path (2026-08-22)
+
+Two findings from the same sweep, fixed together because either one alone
+leaves the other's damage in place: the server could not say *rejected*
+where it mattered, and the client could not hear it.
+
+**The server half.** `ApplyMutation` returned a constraint violation as an
+error, which the handler answers as 500. The master partition had always
+translated one into `rejected` (`master.go`); the trip partition never did.
+That asymmetry alone would be cosmetic if a 500 were harmless — but §5.1
+makes a 5xx the one answer the outbox *keeps retrying*, on the reasonable
+theory that a failing server recovers. So the mutation stayed at the head of
+its queue and every later mutation for that trip stayed behind it. One row
+stopped a trip from syncing, permanently, with G-2 showing an offline count
+while the device was online.
+
+What makes it worth an entry is that **none of the three ways to reach it is
+a malformed client.** They are the ordinary consequences of two devices and
+one roster: a container deleted on device B while A was offline (foreign
+key), a quantity cut below what is already packed (the CHECK, reached
+through perfectly correct field-level LWW), and a partial upsert landing on
+a row that was deleted elsewhere (NOT NULL, because the merge treats a
+missing row as an insert). Each one is reproduced as its own case.
+
+**The client half.** `MutationResult.status` — a key no server has ever
+sent. The server writes `outcome`, and has since the endpoint existed. So
+`parkRejected` filtered on `undefined`, matched nothing, and `forget()` then
+deleted the rejected mutation along with the acknowledged ones. Every
+refusal was silently discarded, `parkedCount` stayed 0, and the entire B2
+parked surface built in #101 has never once run against a real response.
+
+**Why two test suites both missed it.** Each side tested against its own
+idea of the envelope: the client's fakes answered `status`, so the parking
+tests passed while the production path could not work. That is the failure
+mode a contract needs a *shared artefact* for, not more tests — so
+`internal/api/testdata/push_response.json` is now the one document, held on
+the Go side by marshalling the real response struct against it and on the
+client side by parsing it and driving a real `SyncOutbox` with it. Renaming
+a key on either side now fails on that side. Both directions were proved by
+mutation before the fix landed.
+
+**The spec was complicit, and that is the part worth remembering.** §5
+listed the *values* — `applied | merged | duplicate | rejected` — and never
+named the key they arrive under. A spec that describes a vocabulary without
+the envelope leaves each implementation to guess the envelope, and two of
+them guessed differently for months. §5 now prints the response document.
+
+## The pull cursor came out of the push (2026-08-22)
+
+`pull_hint.next_cursor` is the highest `change_log.seq` *that push* wrote.
+The client set its pull cursor from it. A pull cursor is an exclusive lower
+bound and only ever moves forward, so a device that had been offline came
+back, pushed, and then asked for `seq > its-own-newest-write` — stepping
+over every row another device had written in the meantime and never being
+offered them again. No error, no badge, no conflict: rows that exist on the
+server and never on that screen. The same line in reverse: a push whose
+mutations all replayed hints `0`, which rewound the cursor to the beginning
+and re-pulled the whole partition.
+
+**The e2e case that should have caught this was green against the defect,
+and finding out why took longer than the fix.** The obvious case — B writes
+a row while A is offline, A reconnects, the row must appear — passes on the
+broken build. Logging A's traffic explained it: a reconnect fires three
+drains almost simultaneously, each reads the cursor when it *starts*, and
+one of them is still holding the pre-push value and pulls the gap by
+accident. So the rows do arrive, most of the time, by a race. The damage is
+real and the screen cannot witness it.
+
+The assertion therefore moved from the screen to the wire: **every `cursor`
+the client sends must be one a *pull* returned**, 0 until one has. That is
+the rule itself rather than one of its symptoms, it is immune to the race,
+and a `5` after the server has only ever answered `3` is the whole defect in
+one number. 3/3 red without the fix, 3/3 green with it.
+
+Two traps in the harness are worth keeping, because both produced a
+confident wrong answer first. A `page.route` observer **has to be installed
+before the first request it judges** — the first version started watching
+after A was already caught up and flagged a perfectly legal cursor as
+invented. And `route.fetch()` **runs outside the browser context, so it
+sails straight through `setOffline`**: with the observer installed, the
+device never went offline and the case stopped testing anything. Neither
+failure looked like a harness bug from the failure message.
+
+Removed on the way past: `SyncOutbox.setCursor`, which had no caller and
+whose doc comment (*„from an external source, e.g. WebSocket trip.changed
+hint")* invited exactly the mistake that was just taken out of `drain`.
+
+**What the spec owed.** §5 said the hint exists "so the client immediately
+pulls its own canonical state" — true, and read as *pull from here*. It now
+says what it is: a signal that a pull is worth making, never the cursor to
+make it from.
 ## M10 was not done, and the test said it was (2026-08-22)
 
 Backlog item 4 had been closed the same day: *„Every screen is on the

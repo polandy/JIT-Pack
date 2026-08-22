@@ -58,7 +58,7 @@ describe('SyncOutbox', () => {
   })
 
   it('drains trip outbox: push then pull', async () => {
-    const result: MutationResult = { mutation_id: 'u1', status: 'applied' }
+    const result: MutationResult = { mutation_id: 'u1', outcome: 'applied' }
     client.post.mockResolvedValueOnce({
       results: [result],
       pull_hint: { next_cursor: 5 },
@@ -83,7 +83,7 @@ describe('SyncOutbox', () => {
 
   it('drains master outbox', async () => {
     client.post.mockResolvedValueOnce({
-      results: [{ mutation_id: 'u2', status: 'applied' }],
+      results: [{ mutation_id: 'u2', outcome: 'applied' }],
       pull_hint: { next_cursor: 10 },
     } satisfies PushResponse)
 
@@ -241,8 +241,8 @@ describe('SyncOutbox durability', () => {
     const outbox = makeOutbox(store, { onParked: (e) => parked.push(e), now: () => 1234 })
     client.post.mockResolvedValueOnce({
       results: [
-        { mutation_id: 'bad', status: 'rejected', error: 'unknown column: trip_items.nope' },
-        { mutation_id: 'good', status: 'applied' },
+        { mutation_id: 'bad', outcome: 'rejected', error: 'unknown column: trip_items.nope' },
+        { mutation_id: 'good', outcome: 'applied' },
       ],
       pull_hint: { next_cursor: 7 },
     } satisfies PushResponse)
@@ -271,8 +271,8 @@ describe('SyncOutbox durability', () => {
     const outbox = makeOutbox(store)
     client.post.mockResolvedValueOnce({
       results: [
-        { mutation_id: 'bad', status: 'rejected', error: 'unknown column' },
-        { mutation_id: 'good', status: 'applied' },
+        { mutation_id: 'bad', outcome: 'rejected', error: 'unknown column' },
+        { mutation_id: 'good', outcome: 'applied' },
       ],
       pull_hint: { next_cursor: 1 },
     } satisfies PushResponse)
@@ -379,5 +379,75 @@ describe('SyncOutbox durability', () => {
     await outbox.whenPersisted()
     expect(durability).toEqual([false, true])
     expect(outbox.isDurable()).toBe(true)
+  })
+  /**
+   * `pull_hint.next_cursor` is the highest `change_log.seq` *this push* just
+   * wrote (server.go: `if res.Seq > out.PullHint.NextCursor`). Taking it as
+   * the pull cursor asks the server for `seq > my-own-latest-write`, which
+   * silently skips every row between what this device had applied and what it
+   * just wrote — another device's whole session — and the cursor moves past
+   * them for good, so they are never offered again (Sync-API §4: the cursor
+   * is an exclusive lower bound). The hint says *a pull is worth making*, not
+   * *where to start*.
+   */
+  it('pulls from the cursor it has applied, not from the seq its own push landed at', async () => {
+    const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges)
+
+    // This device is caught up to seq 100.
+    client.get.mockResolvedValueOnce({
+      changes: [],
+      next_cursor: 100,
+      has_more: false,
+    } satisfies PullResponse)
+    await outbox.drain('trip', 'trip-1')
+
+    // Meanwhile another device wrote seq 101-110; this one now pushes, and
+    // its own row lands at 111.
+    client.post.mockResolvedValueOnce({
+      results: [{ mutation_id: 'u1', outcome: 'applied' }],
+      pull_hint: { next_cursor: 111 },
+    } satisfies PushResponse)
+    client.get.mockResolvedValueOnce({
+      changes: [{ seq: 105, table: 'trip_items', id: 'i9', deleted: false, row: { name: 'X' } }],
+      next_cursor: 111,
+      has_more: false,
+    } satisfies PullResponse)
+
+    outbox.enqueue('trip', 'trip-1', makeMutation({ mutation_id: 'u1' }))
+    await outbox.drain('trip', 'trip-1')
+
+    expect(client.get).toHaveBeenLastCalledWith('/api/v1/sync/trips/trip-1', {
+      cursor: '100',
+      limit: '500',
+    })
+  })
+
+  /**
+   * The same line the other way round: a push whose mutations all replayed
+   * changes nothing, so the server hints 0. Adopting that hint rewinds the
+   * cursor to the beginning and re-pulls the entire partition on every drain.
+   */
+  it('does not rewind its cursor when a push changed nothing', async () => {
+    const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges)
+
+    client.get.mockResolvedValueOnce({
+      changes: [],
+      next_cursor: 100,
+      has_more: false,
+    } satisfies PullResponse)
+    await outbox.drain('trip', 'trip-1')
+
+    client.post.mockResolvedValueOnce({
+      results: [{ mutation_id: 'u1', outcome: 'duplicate' }],
+      pull_hint: { next_cursor: 0 },
+    } satisfies PushResponse)
+
+    outbox.enqueue('trip', 'trip-1', makeMutation({ mutation_id: 'u1' }))
+    await outbox.drain('trip', 'trip-1')
+
+    expect(client.get).toHaveBeenLastCalledWith('/api/v1/sync/trips/trip-1', {
+      cursor: '100',
+      limit: '500',
+    })
   })
 })
