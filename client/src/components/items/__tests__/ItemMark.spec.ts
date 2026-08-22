@@ -67,11 +67,15 @@ describe('ItemMark', () => {
     expect(w.get('[data-testid="item-mark-initial"]').text()).toBe('K')
   })
 
-  it('never falls back to a letter while packing — an empty slot holds the width instead (FR-28.4)', () => {
-    const w = mount(ItemMark, { props: { mark: null, surface: 'packing' }, global })
+  it('never falls back to a letter while packing — an empty slot holds the box instead (FR-28.4)', () => {
+    const w = mount(ItemMark, { props: { mark: null, surface: 'packing', size: 22 }, global })
     expect(w.find('[data-testid="item-mark-initial"]').exists()).toBe(false)
-    expect(w.find('[data-testid="item-mark-slot"]').exists()).toBe(true)
-    expect(w.get('[data-testid="item-mark-slot"]').text()).toBe('')
+    const slot = w.get('[data-testid="item-mark-slot"]')
+    expect(slot.text()).toBe('')
+    // Width *and* height: a box with no height is not a held column, it is an
+    // invisible element — which is how the e2e case first failed.
+    expect(slot.attributes('style')).toContain('width: 22px')
+    expect(slot.attributes('style')).toContain('height: 22px')
   })
 
   it('renders nothing at all on a plain surface without a mark — no slot, never a letter (FR-28.8)', () => {

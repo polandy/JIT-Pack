@@ -105,6 +105,11 @@ function commitName(raw: string | null | undefined) {
   orchestrator.updateTemplate(tpl, { name })
 }
 
+/** FR-28.8: a group's own mark, for the rows that offer it. */
+function groupIcon(templateId: string): string | null {
+  return masterStore.getTemplate(templateId)?.icon ?? null
+}
+
 // --- The mark (FR-28.8) ----------------------------------------------------
 //
 // The same field items carry, on the same terms — and not scope creep: the
@@ -497,7 +502,18 @@ const mergeLines = computed(() =>
               :detail="false"
               :data-testid="`m8-group-${inc.included_template_id}`"
             >
-              <IonIcon :icon="cubeOutline" class="group-icon" slot="start" />
+              <!-- FR-28.8: the group's own mark where it has one; the generic
+                   cube stays the fallback, because a group without a mark is
+                   still a group and the column must not collapse. -->
+              <ItemMark
+                v-if="groupIcon(inc.included_template_id)"
+                slot="start"
+                :mark="groupIcon(inc.included_template_id)"
+                surface="plain"
+                :size="22"
+                class="group-icon"
+              />
+              <IonIcon v-else :icon="cubeOutline" class="group-icon" slot="start" />
               <IonLabel>
                 <h2>{{ groupName(inc.included_template_id) }}</h2>
                 <p>{{ t('templates.itemCount', { n: groupCount(inc.included_template_id) }) }}</p>

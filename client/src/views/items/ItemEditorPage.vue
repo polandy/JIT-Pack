@@ -39,6 +39,7 @@ import {
   checkmarkOutline,
   chevronDownOutline,
   closeOutline,
+  happyOutline,
   trashOutline,
   warningOutline,
 } from 'ionicons/icons'
@@ -355,6 +356,20 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 
         <IonList>
           <IonItem>
+            <!-- G-15/FR-28.1: the mark sits left of the name field, and never
+                 blocks — creating works with it untouched, which is what keeps
+                 absence a first-class state rather than a gap people fill
+                 with 📦. -->
+            <button
+              slot="start"
+              class="mark-button"
+              data-testid="m10-mark"
+              :aria-label="t('marks.choose')"
+              @click="pickerOpen = true"
+            >
+              <ItemMark v-if="mark" :mark="mark" surface="plain" :size="28" />
+              <IonIcon v-else :icon="happyOutline" aria-hidden="true" />
+            </button>
             <IonLabel position="stacked">{{ t('items.editor.name') }}</IonLabel>
             <IonInput
               v-if="isCreating"
@@ -366,18 +381,6 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
               @keyup.enter="createItem"
             />
             <IonInput v-else :value="item!.name" data-testid="m10-name" @ionBlur="onNameChange" />
-          </IonItem>
-
-          <!-- FR-28.1: never required, and never blocking — creation works
-               with the field untouched, which is what keeps absence a
-               first-class state rather than a gap people fill with 📦. -->
-          <IonItem button :detail="false" data-testid="m10-mark" @click="pickerOpen = true">
-            <IonLabel position="stacked">{{ t('marks.field') }}</IonLabel>
-            <div class="mark-row">
-              <ItemMark v-if="mark" :mark="mark" surface="plain" :size="28" />
-              <span v-else class="mark-empty">{{ t('marks.none') }}</span>
-              <span class="mark-action">{{ t('marks.choose') }}</span>
-            </div>
           </IonItem>
         </IonList>
 
@@ -754,20 +757,21 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
   margin-top: 8px;
 }
 
-.mark-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 0 2px;
-}
-
-.mark-empty {
-  color: var(--ct-subtext0);
-}
-
-.mark-action {
-  margin-inline-start: auto;
-  color: var(--jp-action);
-  font-size: var(--jp-text-sm);
+/* G-15: the same control M8 carries, so the two editors read alike. The
+   empty state is an outline icon rather than a pale emoji — chrome must not
+   borrow the mark's face (FR-28.5). */
+.mark-button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  margin-inline-end: 12px;
+  border: none;
+  border-radius: var(--jp-r-md);
+  background: var(--jp-surface-sunken);
+  color: var(--ct-overlay0);
+  font-size: var(--jp-icon-md);
+  cursor: pointer;
 }
 </style>

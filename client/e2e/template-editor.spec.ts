@@ -815,3 +815,74 @@ test.describe('M8 group recognition (FR-27.15)', () => {
     )
   })
 })
+
+/**
+ * FR-28.8 — a group's mark, on every surface that offers the group.
+ *
+ * The field exists precisely so those surfaces stop being hardcoded: the
+ * prototype has shown 📷 *Makro Fotografie* and ⛺ *Camping Basis* since
+ * §3.27, and every one of them was faked in the mock. One assertion per
+ * surface, because a screen keeping its rendering says nothing about the
+ * three beside it.
+ */
+test.describe('M8 group marks (FR-28.8)', () => {
+  test.slow()
+
+  test('E2E-M8-18: a group’s mark is set once and shows wherever the group is offered', async ({
+    seedMode,
+    page,
+  }) => {
+    await seedMode({ mode: 'local' })
+    await page.goto('/tabs/templates')
+
+    await createTemplate(page, 'group', 'Camping Basis')
+    await addPosition(page, 'Zelt')
+
+    // Set from the same picker M10 uses — one component, not two.
+    await visible(page).getByTestId('m8-mark').click()
+    await expect(page.getByTestId('mark-picker')).toBeVisible()
+    // A plain <input>, not an Ionic field.
+    await page.getByTestId('mark-search').fill('camping')
+    await page.getByTestId('mark-tile').filter({ hasText: '⛺' }).click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await expect(visible(page).getByTestId('m8-mark')).toContainText('⛺')
+
+    // Surface 1 — the M7 list row.
+    await backToList(page)
+    await visible(page).getByTestId('m7-scope-group').click()
+    const listRow = visible(page).locator('ion-item').filter({ hasText: 'Camping Basis' }).first()
+    await expect(listRow.getByTestId('item-mark')).toHaveText('⛺')
+
+    // Surface 2 — M8's Gruppen section of a Vorlage that includes it.
+    await backToList(page)
+    await visible(page).getByTestId('m7-scope-template').click()
+    await createTemplate(page, 'template', 'Sommer')
+    await includeGroup(page, 'Camping Basis')
+    const includeRow = visible(page)
+      .locator('ion-item')
+      .filter({ hasText: 'Camping Basis' })
+      .first()
+    await expect(includeRow.getByTestId('item-mark')).toHaveText('⛺')
+
+    // Surface 3 — the FR-27.12 peek sheet's own header.
+    await includeRow.locator('.peek').click()
+    await expect(page.getByTestId('group-peek-sheet')).toBeVisible()
+    await expect(page.getByTestId('group-peek-sheet').getByTestId('item-mark')).toHaveText('⛺')
+    await page.getByTestId('group-peek-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    // Surface 4 — M3 step 3, where the group is picked into a trip.
+    await page.goto('/trips/new')
+    await page.getByTestId('wizard-name').locator('input').fill('Markenreise')
+    await page.getByTestId('wizard-next').click()
+    await expect(page.getByTestId('wizard-step-2')).toBeVisible()
+    await page.getByTestId('wizard-next').click()
+    await expect(page.getByTestId('wizard-step-3')).toBeVisible()
+    const pick = visible(page)
+      .getByTestId('wizard-section-groups')
+      .locator('ion-item')
+      .filter({ hasText: 'Camping Basis' })
+      .first()
+    await expect(pick.getByTestId('item-mark')).toHaveText('⛺')
+  })
+})

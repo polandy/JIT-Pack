@@ -55,6 +55,7 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { scopeForNewTemplate } from '@/domain/templates'
 import type { Template, TemplateKind } from '@/types/domain'
 import SearchRow from '@/components/global/SearchRow.vue'
+import ItemMark from '@/components/items/ItemMark.vue'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
 import { useLongPress } from '@/composables/useLongPress'
@@ -388,6 +389,15 @@ async function handleRefresh(event: CustomEvent) {
               @pointerup="hold.cancel()"
               @pointercancel="hold.cancel()"
             >
+              <!-- FR-28.8: the prototype has drawn a mark here since §3.27;
+                   until now every one of them was hardcoded in the mock. -->
+              <ItemMark
+                slot="start"
+                :mark="row.template.icon ?? null"
+                surface="plain"
+                :size="22"
+                class="row-mark"
+              />
               <IonLabel>
                 <h2>{{ row.template.name }}</h2>
                 <p>
@@ -659,5 +669,11 @@ ion-segment {
 .kind-hint {
   color: var(--ct-subtext0);
   font-size: var(--jp-text-sm);
+}
+
+/* FR-28.8: `plain` renders nothing when there is no mark, so an unmarked
+   Vorlage keeps the row it always had rather than gaining a blank column. */
+.row-mark {
+  margin-inline-end: 10px;
 }
 </style>

@@ -72,7 +72,7 @@ const showSlot = computed(() => showMark.value || props.surface === 'packing')
     class="mark-slot"
     aria-hidden="true"
     data-testid="item-mark-slot"
-    :style="{ width: `${size}px`, '--jp-mark-size': `${size}px` }"
+    :style="{ width: `${size}px`, height: `${size}px`, '--jp-mark-size': `${size}px` }"
   >
     <span v-if="showMark" class="jp-mark" data-testid="item-mark">{{ mark }}</span>
   </span>

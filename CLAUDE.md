@@ -127,15 +127,13 @@ it. Item numbers stay stable even as items close, because the log refers back to
 11. ~~**FR-5.5's „bewusst nicht einpacken" has no control**~~ — **done** (2026-08-18): the row's
    press-and-hold menu plus the spelled-out M5 control (variants A + C); the swipe was removed
    rather than repaired. Five e2e cases in `client/e2e/skip-item.spec.ts`. Log: *„FR-5.5"*.
-12. **§3.28 — the item mark** (owner-flagged 2026-08-17, **specified and decided, not built**).
-   A forty-row packing list has no scan aid: the §3.22 photo exists on a handful of rows and
-   nothing sits left of the name. Decided on a rendered four-way round — **one optional emoji
-   per item and per template** (FR-28.1/28.8, G-15), with the picker, suggestion, fallback
-   ladder and self-hosted face specified in §3.28. Build it against that text; the icon-library
-   option lost **on the pixels**, so don't reopen the round (log: *„§3.28: the packing row gets
-   a mark"*). **Three things the implementing PR owes beyond the code:** the **ADR** (the
-   tradeoff is real), **one deliberate `make visual-update`** (a new face rewrites every
-   baseline, ADR-013), and the sample-data seed per the standing rule above.
+12. ~~**§3.28 — the item mark**~~ — **done** (2026-08-22, ADR-021): one optional emoji on
+   `items.icon` and `templates.icon`, a curated searchable index that answers both the search
+   and the name suggestion, a shared picker used by M10 and M8, and one `ItemMark` component
+   owning the per-surface fallback ladder. The face is self-hosted and subsetted (80 KB, 103
+   code points) and held to the index by `scripts/mark-font-gate.mjs`. The deliberate
+   `make visual-update` and the seed extension shipped with it. Log: *„§3.28: the mark gets
+   built"*.
 
 13. ~~**FR-27.15 — M8 does not notice when loose positions are a group**~~ — **done**
    (2026-08-22): a non-blocking suggestion row per recognised group, *Zusammenfassen* on the
