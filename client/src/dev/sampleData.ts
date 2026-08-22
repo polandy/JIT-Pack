@@ -23,7 +23,7 @@ export async function seedSampleData(orchestrator: Orchestrator): Promise<SeedOu
     import('./sampleTrip'),
   ])
   const master = seedSampleMaster(orchestrator)
-  const tripId = seedSampleTrip(orchestrator)
+  const tripId = seedSampleTrip(orchestrator, master.items)
   // FR-27.4 needs a trip that follows something; the one above is imported
   // (and active on purpose, for the FR-9.1 flags), so it follows nothing.
   const plannedTripId = seedPlannedTrip(orchestrator, master.vacationTemplateId)

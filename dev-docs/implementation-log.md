@@ -4658,6 +4658,25 @@ renders an `icon` value as text. That shape is borrowed from the FR-21.7
 hex-in-`client/src` rule for the same reason: no rendered test of one
 screen can see what the twenty beside it do.
 
+**Two things only the rendered pixels said, both after the code was green.**
+FR-28.8's fallback rule reads as one sentence — „no mark → no slot, never a
+letter" — and is two rules. In a *column* (M7's list, M3 step 3) dropping the
+slot pushed every marked group's name right of the unmarked ones standing
+beside it, which is exactly the misalignment FR-28.4's held slot exists to
+prevent one screen over. Beside a *single* name there is no column, so nothing
+is the right answer there. The letter is refused everywhere, and that is the
+half of the rule that was actually load-bearing.
+
+The second one nearly shipped invisible: **the seed's own trip could not show a
+mark at all.** `sampleTrip.ts` imported its rows with an empty merge map, so
+every one was ad-hoc — no `source_item_id`, hence no mark and, quietly since
+§3.22, no reference photo either. The seed button opens *that* trip, so a dev
+pressing it landed on the one screen the feature is for and saw nothing. It now
+links every row the inventory knows by name and leaves the rest ad-hoc on
+purpose, because the mixture is what the empty slot is for. Both findings cost
+one render each and neither is visible in a diff, which is the whole argument
+for the rule that a UI change is looked at rather than reasoned about.
+
 Three harness traps are in `dev-docs/e2e-tests.md` rather than here, but one
 belongs with the feature: **M4's composer has two add paths and only one can
 inherit a mark.** The suggestion carries `source_item_id`, the free-text

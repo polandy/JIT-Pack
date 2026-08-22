@@ -39,7 +39,7 @@ function seed() {
     getToken: () => null,
     local: new IndexedDBPersistence(),
   })
-  return { result: seedSampleMaster(orchestrator), master: useMasterStore() }
+  return { orchestrator, result: seedSampleMaster(orchestrator), master: useMasterStore() }
 }
 
 describe('seedSampleMaster (dev)', () => {
@@ -241,5 +241,26 @@ describe('sample master data, FR-28.1/28.8', () => {
       .filter((icon): icon is string => Boolean(icon))
 
     expect(seeded.filter((icon) => !known.has(icon))).toEqual([])
+  })
+})
+
+describe('sample trip, FR-28.7', () => {
+  it('links its rows to the inventory, so a seeded device can see a mark at all', async () => {
+    const { orchestrator, master } = seed()
+    const { seedSampleTrip } = await import('../sampleTrip')
+    const tripStore = useTripStore()
+
+    const tripId = seedSampleTrip(
+      orchestrator,
+      Object.fromEntries(master.itemList.map((i) => [i.name, i.id])),
+    )
+
+    const rows = tripStore.getItems(tripId)
+    const linked = rows.filter((row) => row.source_item_id !== null)
+    // Not "all of them": the sample trip carries rows the inventory has no
+    // item for (a kitchen crate's contents), and those stay ad-hoc on
+    // purpose — that mixture is what FR-28.7's empty slot is for.
+    expect(linked.length).toBeGreaterThan(0)
+    expect(linked.some((row) => master.getItem(row.source_item_id!)?.icon)).toBe(true)
   })
 })

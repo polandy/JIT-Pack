@@ -104,13 +104,26 @@ function sampleDocument(): PortableDocument {
 }
 
 /**
- * Creates the sample trip and returns its id. Set **active**, because the
+ * Creates the sample trip and returns its id, linking the rows the inventory
+ * already has (see below). Set **active**, because the
  * status is what decides whether new rows are flagged *Missing* (FR-9.1)
  * and whether M4 offers the archive action at all — a planning trip
  * exercises neither.
  */
-export function seedSampleTrip(orchestrator: Orchestrator): string {
-  const { id } = orchestrator.commitPortableImport(sampleDocument(), new Map())
+export function seedSampleTrip(
+  orchestrator: Orchestrator,
+  masterItems: Record<string, string>,
+): string {
+  // Link every row whose name the inventory already knows. Not cosmetic: a
+  // trip row resolves its photo and its FR-28.7 mark through
+  // `source_item_id`, so a seed that imported everything as ad-hoc handed a
+  // fresh device a packing list on which neither could ever appear.
+  const merges = new Map<string, string>()
+  for (const item of sampleDocument().items) {
+    const id = masterItems[item.name]
+    if (id) merges.set(item.name, id)
+  }
+  const { id } = orchestrator.commitPortableImport(sampleDocument(), merges)
   orchestrator.activateTrip(id)
   return id
 }

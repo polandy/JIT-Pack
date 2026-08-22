@@ -390,11 +390,14 @@ async function handleRefresh(event: CustomEvent) {
               @pointercancel="hold.cancel()"
             >
               <!-- FR-28.8: the prototype has drawn a mark here since §3.27;
-                   until now every one of them was hardcoded in the mock. -->
+                   until now every one of them was hardcoded in the mock. The
+                   `packing` ladder rather than `plain`: this is a column, and
+                   rendered with the slot dropped the marked groups pushed
+                   their names right of the unmarked ones. -->
               <ItemMark
                 slot="start"
                 :mark="row.template.icon ?? null"
-                surface="plain"
+                surface="packing"
                 :size="22"
                 class="row-mark"
               />

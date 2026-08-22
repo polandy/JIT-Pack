@@ -203,7 +203,7 @@ test.describe('§3.28 the item mark', () => {
     await createItem(page, 'Zelt', { mark: '⛺' })
     await backToInventory(page)
 
-    await createTripViaWizard(page, { name: 'Markenprobe', travelers: ['Andy'] })
+    const trip = await createTripViaWizard(page, { name: 'Markenprobe', travelers: ['Andy'] })
     await addFromInventory(page, 'Zelt')
     // An ad-hoc row has no master item, so it has no mark (FR-28.7) — and it
     // shows the empty slot rather than a placeholder.
@@ -226,8 +226,9 @@ test.describe('§3.28 the item mark', () => {
     await backToInventory(page)
     await expect(m9Row(page, 'Zelt').getByTestId('item-mark')).toHaveText('🎒')
 
-    await page.goto('/tabs/trips')
-    await visible(page).getByText('Markenprobe').first().click()
+    // Straight to the trip's own path: reopening it through M2 makes the
+    // case depend on the trip list's rendering, which is E2E-M2's subject.
+    await page.goto(trip)
     await expect(page.getByTestId('m4-row-Zelt').getByTestId('item-mark')).toHaveText('🎒')
   })
 
