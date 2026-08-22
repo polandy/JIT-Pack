@@ -156,10 +156,13 @@ it. Item numbers stay stable even as items close, because the log refers back to
    `ListConflicts` filters by `trip_id`. `trips` lives there, so a conflict on a trip's name or
    dates is recorded and unreachable. **(c)** The push response's `conflicts[]` is read by nothing
    — `merged` is treated exactly like `applied`, so a user is never told an edit lost; the log is
-   the only surface and only reachable while a trip is open. **(d)** G-3's lock ends at the row:
-   `ItemDetailSheet` has no lock awareness, so a locked item is fully editable one tap deeper; no
-   screen ever names who holds it; the 15-minute staleness is a client constant where §7 promises
-   an environment variable, and the server neither expires a lock nor refuses a push for one.
+   the only surface and only reachable while a trip is open. ~~**(d)** G-3's lock ends at the row~~ — **done**
+   (2026-08-22): the sheet goes read-only and names the holder, M4's row names them too, and the
+   staleness window is `JITPACK_LOCK_TIMEOUT` served by `GET /api/v1/config`. The fourth part of
+   that finding — the server neither expiring a lock nor refusing a push for one — **is not a
+   defect and was not built**: §7 makes the lock advisory on purpose, and refusal would wedge an
+   offline device's outbox. **Open as an owner decision** if collision *prevention* is wanted
+   instead of avoidance. Log: *„The lock stopped at the row"*.
    **(e)** NFR-4.2a promises audit **and manual revert**; only the audit exists.
    Found 2026-08-22 while answering how concurrent packers are kept from overwriting each other.
 
