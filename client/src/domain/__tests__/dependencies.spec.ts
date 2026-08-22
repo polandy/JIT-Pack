@@ -249,14 +249,16 @@ describe('dependencyCycleError', () => {
     ).toBeNull()
   })
 
-  it('rejects a direct cycle', () => {
+  // The fault is reported as a reason plus the names on the path, never as a
+  // finished sentence: this module is locale-free, and M10 is what speaks.
+  it('reports a direct cycle as its path, not as a message', () => {
     const existing = [dep('d1', 'battery', 'camera')]
     expect(
       dependencyCycleError(existing, { item_id: 'camera', depends_on_item_id: 'battery' }, nameOf),
-    ).toMatch(/Kamera.*Ersatzakku.*Kamera/)
+    ).toEqual({ reason: 'cycle', names: ['Kamera', 'Ersatzakku', 'Kamera'] })
   })
 
-  it('rejects a transitive cycle', () => {
+  it('reports a transitive cycle with every hop on the path', () => {
     const existing = [dep('d1', 'battery', 'camera'), dep('d2', 'charger', 'battery')]
     expect(
       dependencyCycleError(
@@ -264,12 +266,12 @@ describe('dependencyCycleError', () => {
         { item_id: 'camera', depends_on_item_id: 'charger' },
         nameOf,
       ),
-    ).toMatch(/cycle/i)
+    ).toEqual({ reason: 'cycle', names: ['Kamera', 'Ladegerät', 'Ersatzakku', 'Kamera'] })
   })
 
-  it('rejects a self dependency', () => {
+  it('reports a self dependency as its own reason, so the wording can differ', () => {
     expect(
       dependencyCycleError([], { item_id: 'camera', depends_on_item_id: 'camera' }, nameOf),
-    ).toMatch(/itself/)
+    ).toEqual({ reason: 'self', names: ['Kamera'] })
   })
 })

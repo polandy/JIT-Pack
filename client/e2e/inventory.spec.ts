@@ -197,8 +197,12 @@ test.describe('M10 item editor — minimal creation (FR-24.5)', () => {
 
     // Absent, not emptied: an item that does not exist cannot have a photo
     // or a companion, and weight/price are folded behind "Mehr".
-    await expect(form.getByText('Photo')).toHaveCount(0)
-    await expect(form.getByText('Depends on')).toHaveCount(0)
+    //
+    // Anchored on test ids rather than on the headings' words: this suite runs
+    // in German, so an assertion on English text goes green the moment the
+    // section is *translated* — which is exactly what it must not do.
+    await expect(form.getByTestId('m10-section-photo')).toHaveCount(0)
+    await expect(form.getByTestId('m10-section-depends')).toHaveCount(0)
     await expect(form.getByTestId('m10-weight')).toHaveCount(0)
 
     await form.getByTestId('m10-more').click()
@@ -267,5 +271,40 @@ test.describe('M10 item editor — minimal creation (FR-24.5)', () => {
 
     await backToInventory(page)
     expect(await groupHeadings(visible(page))).toEqual(['untagged'])
+  })
+})
+
+/*
+ * The half of M10 that only exists once the item does — and the half that had
+ * stayed English through the i18n migration (NFR-4.12).
+ *
+ * Seeded in German on purpose. The suite's app language is English by design
+ * (see `seed`), and against English an assertion cannot tell a catalogue
+ * lookup from the hard-coded word it replaced: both render "Photo". Only the
+ * *other* language separates them, which is why this is the one block that
+ * asks for it.
+ */
+test.describe('M10 item editor — the saved item speaks the catalogue (NFR-4.12)', () => {
+  test.beforeEach(async ({ seedMode, page }) => {
+    await seedMode({ mode: 'local', locale: 'de' })
+    await page.goto('/tabs/items')
+  })
+
+  test('E2E-M10-13: the sections an existing item owns follow the app language', async ({
+    page,
+  }) => {
+    await createItem(page, 'Fernglas')
+
+    // The positive counterpart to E2E-M10-01's absence assertions: present,
+    // and worded by the catalogue rather than by the template.
+    const form = visible(page)
+    await expect(form.getByTestId('m10-section-photo')).toHaveText('Foto')
+    await expect(form.getByTestId('m10-section-depends')).toHaveText('Hängt ab von')
+    await expect(form.getByTestId('m10-add-dependency')).toContainText('Abhängigkeit hinzufügen')
+
+    // The dependency picker is behind a tap, and carried three literals of
+    // its own — the search, the empty answer, and the way out.
+    await form.getByTestId('m10-add-dependency').click()
+    await expect(visible(page).getByPlaceholder('Artikel durchsuchen…')).toBeVisible()
   })
 })

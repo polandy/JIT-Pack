@@ -286,6 +286,27 @@ export const en = {
   'items.editor.price': 'Price',
   'items.editor.create': 'Create item',
   'items.editor.notFound': 'Item not found',
+  'items.editor.photo': 'Photo',
+  'items.editor.photoHint':
+    'An optional reference photo, shared with everyone who sees this item. Resized automatically before upload.',
+  'items.editor.photoAlt': 'Photo of {name}',
+  'items.editor.photoAdd': 'Add photo',
+  'items.editor.photoReplace': 'Replace photo',
+  'items.editor.photoRemove': 'Remove photo',
+  'items.editor.dependsOn': 'Depends on',
+  'items.editor.dependsOnHint':
+    'Only packed when its main item is on the trip — required joins automatically, suggested asks first.',
+  'items.editor.dependencyRequired': 'Required',
+  'items.editor.dependencySuggested': 'Suggested',
+  'items.editor.dependencyRemove': 'Remove dependency',
+  'items.editor.dependencyAdd': 'Add dependency',
+  'items.editor.dependencySearchPlaceholder': 'Search items…',
+  'items.editor.dependencyNoMatch': 'No matching items',
+  'items.editor.dependencySelf': '“{name}” cannot depend on itself.',
+  'items.editor.dependencyCycle': 'That would close a circle: {path}.',
+  'items.editor.companions': 'Companions',
+  'items.editor.companionsHint': 'These items depend on {name}:',
+  'items.editor.unknownItem': 'Unknown item',
 
   // M5 item detail.
   'item.details': 'Details',

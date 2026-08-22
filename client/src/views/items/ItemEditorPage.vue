@@ -45,7 +45,7 @@ import {
 } from 'ionicons/icons'
 import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { dependencyCycleError } from '@/domain/dependencies'
+import { dependencyCycleError, type DependencyCycleError } from '@/domain/dependencies'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
@@ -53,7 +53,7 @@ import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import MarkPicker from '@/components/items/MarkPicker.vue'
 import { t } from '@/i18n'
-import type { Tag } from '@/types/domain'
+import type { DependencyMode, Tag } from '@/types/domain'
 
 const props = defineProps<{ itemId?: string }>()
 
@@ -290,7 +290,19 @@ const companions = computed(() =>
 
 const showMainPicker = ref(false)
 const mainSearch = ref('')
-const dependencyError = ref('')
+const dependencyError = ref<DependencyCycleError | null>(null)
+
+/** Joins the hops of a rejected cycle for FR-20.1's error line. */
+const CYCLE_PATH_SEPARATOR = ' → '
+
+/** The domain reports the fault; this screen is what words it (NFR-4.12). */
+const dependencyErrorText = computed(() => {
+  const fault = dependencyError.value
+  if (!fault) return ''
+  return fault.reason === 'self'
+    ? t('items.editor.dependencySelf', { name: fault.names[0] ?? '' })
+    : t('items.editor.dependencyCycle', { path: fault.names.join(CYCLE_PATH_SEPARATOR) })
+})
 
 const pickableMains = computed(() => {
   const taken = new Set(dependsOn.value.map((d) => d.depends_on_item_id))
@@ -299,7 +311,14 @@ const pickableMains = computed(() => {
 })
 
 function itemName(id: string): string {
-  return masterStore.getItem(id)?.name ?? 'Unknown item'
+  return masterStore.getItem(id)?.name ?? t('items.editor.unknownItem')
+}
+
+/** The two dependency modes, worded by the catalogue rather than by their stored value. */
+function modeLabel(mode: DependencyMode): string {
+  return mode === 'required'
+    ? t('items.editor.dependencyRequired')
+    : t('items.editor.dependencySuggested')
 }
 
 function closeMainPicker() {
@@ -319,7 +338,7 @@ function onAddDependency(mainItemId: string) {
     dependencyError.value = error
     return
   }
-  dependencyError.value = ''
+  dependencyError.value = null
   closeMainPicker()
   orchestrator.addItemDependency(props.itemId, mainItemId)
 }
@@ -528,14 +547,18 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 
         <!-- Everything below exists only once the item does (FR-24.5). -->
         <template v-if="!isCreating && item">
-          <h2 class="section-title jp-eyebrow">Photo</h2>
-          <p class="section-hint">
-            An optional reference photo, shared with everyone who sees this item. Resized
-            automatically before upload.
-          </p>
+          <h2 class="section-title jp-eyebrow" data-testid="m10-section-photo">
+            {{ t('items.editor.photo') }}
+          </h2>
+          <p class="section-hint">{{ t('items.editor.photoHint') }}</p>
 
           <div class="photo-section">
-            <img v-if="photoUrl" :src="photoUrl" alt="Item photo" class="photo-preview" />
+            <img
+              v-if="photoUrl"
+              :src="photoUrl"
+              :alt="t('items.editor.photoAlt', { name: item.name })"
+              class="photo-preview"
+            />
             <div v-else class="photo-placeholder">
               <IonIcon :icon="cameraOutline" />
             </div>
@@ -549,7 +572,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
                 @click="photoInput?.click()"
               >
                 <IonIcon slot="start" :icon="cameraOutline" />
-                {{ item.image_hash ? 'Replace photo' : 'Add photo' }}
+                {{ item.image_hash ? t('items.editor.photoReplace') : t('items.editor.photoAdd') }}
               </IonButton>
               <IonButton
                 v-if="item.image_hash"
@@ -560,16 +583,15 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
                 @click="removePhoto"
               >
                 <IonIcon slot="start" :icon="trashOutline" />
-                Remove photo
+                {{ t('items.editor.photoRemove') }}
               </IonButton>
             </div>
           </div>
 
-          <h2 class="section-title jp-eyebrow">Depends on</h2>
-          <p class="section-hint">
-            Only packed when its main item is on the trip — required joins automatically, suggested
-            asks first.
-          </p>
+          <h2 class="section-title jp-eyebrow" data-testid="m10-section-depends">
+            {{ t('items.editor.dependsOn') }}
+          </h2>
+          <p class="section-hint">{{ t('items.editor.dependsOnHint') }}</p>
 
           <IonList v-if="dependsOn.length > 0">
             <IonItem v-for="dep in dependsOn" :key="dep.id">
@@ -580,10 +602,16 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
                 slot="end"
                 @ionChange="(e: CustomEvent) => onDependencyModeChange(dep.id, e.detail.value)"
               >
-                <IonSelectOption value="required">Required</IonSelectOption>
-                <IonSelectOption value="suggested">Suggested</IonSelectOption>
+                <IonSelectOption value="required">{{ modeLabel('required') }}</IonSelectOption>
+                <IonSelectOption value="suggested">{{ modeLabel('suggested') }}</IonSelectOption>
               </IonSelect>
-              <IonButton fill="clear" color="danger" slot="end" @click="onRemoveDependency(dep.id)">
+              <IonButton
+                fill="clear"
+                color="danger"
+                slot="end"
+                :aria-label="t('items.editor.dependencyRemove')"
+                @click="onRemoveDependency(dep.id)"
+              >
                 <IonIcon slot="icon-only" :icon="trashOutline" />
               </IonButton>
             </IonItem>
@@ -591,7 +619,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 
           <IonNote v-if="dependencyError" color="danger" class="field-error">
             <IonIcon :icon="warningOutline" />
-            {{ dependencyError }}
+            {{ dependencyErrorText }}
           </IonNote>
 
           <IonButton
@@ -602,13 +630,13 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
             @click="showMainPicker = true"
           >
             <IonIcon slot="start" :icon="addOutline" />
-            Add dependency
+            {{ t('items.editor.dependencyAdd') }}
           </IonButton>
 
           <div v-else class="main-picker">
             <IonSearchbar
               :value="mainSearch"
-              placeholder="Search items..."
+              :placeholder="t('items.editor.dependencySearchPlaceholder')"
               :debounce="200"
               @ionInput="(e: CustomEvent) => (mainSearch = e.detail.value ?? '')"
             />
@@ -623,19 +651,23 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
                 <IonLabel>{{ main.name }}</IonLabel>
               </IonItem>
               <IonItem v-if="pickableMains.length === 0" lines="none">
-                <IonLabel color="medium">No matching items</IonLabel>
+                <IonLabel color="medium">{{ t('items.editor.dependencyNoMatch') }}</IonLabel>
               </IonItem>
             </IonList>
-            <IonButton fill="clear" expand="block" @click="closeMainPicker()">Cancel</IonButton>
+            <IonButton fill="clear" expand="block" @click="closeMainPicker()">
+              {{ t('common.cancel') }}
+            </IonButton>
           </div>
 
           <template v-if="companions.length > 0">
-            <h2 class="section-title jp-eyebrow">Companions</h2>
-            <p class="section-hint">These items depend on {{ item.name }}:</p>
+            <h2 class="section-title jp-eyebrow">{{ t('items.editor.companions') }}</h2>
+            <p class="section-hint">
+              {{ t('items.editor.companionsHint', { name: item.name }) }}
+            </p>
             <IonList>
               <IonItem v-for="dep in companions" :key="dep.id" lines="none">
                 <IonLabel>{{ itemName(dep.item_id) }}</IonLabel>
-                <IonNote slot="end">{{ dep.mode }}</IonNote>
+                <IonNote slot="end">{{ modeLabel(dep.mode) }}</IonNote>
               </IonItem>
             </IonList>
           </template>
