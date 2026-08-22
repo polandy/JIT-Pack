@@ -65,6 +65,11 @@ CREATE TABLE items (                            -- FR-1.1
     value_cents   INTEGER CHECK (value_cents  >= 0),
     created_by    TEXT REFERENCES users(id),
     image_hash    TEXT,                           -- NULL = no photo (FR-22.1)
+    -- One optional emoji (FR-28.1). A length cap is the server's *only*
+    -- validation: it treats the value as opaque text like a name, because
+    -- Unicode adds emoji every year and a "is this really an emoji" table
+    -- silently rejects next year's valid input (FR-28.9).
+    icon          TEXT CHECK (icon IS NULL OR length(icon) <= 32),
     updated_hlc   TEXT NOT NULL DEFAULT '',
     UNIQUE (name)                                 -- FR-16.3
 );
@@ -124,6 +129,7 @@ CREATE TABLE templates (
     kind         TEXT NOT NULL DEFAULT 'template'
                  CHECK (kind IN ('group','template')),
     is_published INTEGER NOT NULL DEFAULT 0 CHECK (is_published IN (0,1)),
+    icon         TEXT CHECK (icon IS NULL OR length(icon) <= 32),  -- FR-28.8
     updated_hlc  TEXT NOT NULL DEFAULT '',
     UNIQUE (owner_id, name)
 );
