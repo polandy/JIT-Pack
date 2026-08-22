@@ -305,15 +305,18 @@ test.describe('§3.28 the item mark', () => {
     await expect(page.getByTestId('m5-sheet').getByTestId('m10-mark')).toHaveCount(0)
     await expect(page.getByTestId('mark-picker')).toHaveCount(0)
     await page.getByTestId('m5-close').click()
-    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
     // An ad-hoc row has no mark, and the sheet has no column to hold a slot
     // for: the title is the first thing on the line, not 44px of blank. The
     // rendered name is the positive signal the absent slot is asserted beside.
-    // Scoped to the painted page: closing the sheet is a route *replace*
-    // (ADR-012), and on WebKit the outgoing M4 page is still in the outlet
-    // for a frame — long enough for the row to resolve twice.
-    await visible(page).getByTestId('m4-row-Zwischenringe').click()
+    // Closing the sheet is a route *replace* (ADR-012), and on WebKit both
+    // M4 pages sit in the outlet for a moment, neither yet hidden — so the
+    // row is awaited to be unique before it is clicked (strict mode does not
+    // retry on its own).
+    const adHocRow = visible(page).getByTestId('m4-row-Zwischenringe')
+    await expect(adHocRow).toHaveCount(1)
+    await adHocRow.click()
     await expect(page.getByTestId('m5-sheet').getByTestId('m5-name')).toHaveText('Zwischenringe')
     await expect(page.getByTestId('m5-sheet').getByTestId('item-mark-slot')).toHaveCount(0)
   })
