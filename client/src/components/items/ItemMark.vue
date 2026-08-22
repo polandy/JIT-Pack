@@ -15,7 +15,8 @@
  *     noise on a row already carrying a checkbox, quantity, badges and
  *     avatars.
  *   - `plain`     — mark → nothing at all, not even a slot. Templates and
- *     groups (FR-28.8) have no photo and no initial to fall back to.
+ *     groups (FR-28.8) have no photo and no initial to fall back to, and the
+ *     M5 header has no column to keep aligned — a photo still wins there.
  *
  * A photo always wins where one exists (FR-22.1): it is the more specific
  * answer, and the item someone photographed is the item whose identity

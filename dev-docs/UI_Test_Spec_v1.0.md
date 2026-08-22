@@ -261,7 +261,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M5-10** `all` (FR-20.1/20.4): Companions hint with one-tap Add (chains required companions).
 * **E2E-M5-11** `server` (G-3): item locked by the other user → read-only with lock banner.
 * **E2E-M5-12** `all` (FR-22.1): the source master item's photo renders when present.
-* **E2E-M5-15** `all` (FR-28.4) — **implemented 2026-08-22** (`item-mark.spec.ts`): the sheet's identity slot shows the mark when there is no photo, and the mark is **not editable here** (no picker in the sheet) — it belongs to the master item, and M10 owns it (FR-28.7). *The photo rung of the same slot is asserted in the component unit rather than here: setting one through the UI needs a camera or a file upload, which is `item-detail.spec.ts`'s subject and not the mark's.*
+* **E2E-M5-15** `all` (FR-28.4) — **implemented 2026-08-22** (`item-mark.spec.ts`): the sheet's identity slot shows the mark when there is no photo, an ad-hoc row's sheet shows **no slot at all** (the header has no column to align, so the title is the first thing on the line), and the mark is **not editable here** (no picker in the sheet) — it belongs to the master item, and M10 owns it (FR-28.7). *The photo rung of the same slot is asserted in the component unit rather than here: setting one through the UI needs a camera or a file upload, which is `item-detail.spec.ts`'s subject and not the mark's.*
 
 ### M6 — Shopping Views
 * **E2E-M6-01** `all` (FR-3.2): two tabs (Before departure / At destination), rows grouped by category; destination tab shows destination-checklist entries separated.

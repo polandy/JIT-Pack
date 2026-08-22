@@ -302,10 +302,12 @@ const packedStamp = computed(() => {
       <!-- Small on purpose (FR-22.1): a photo helps recognise the thing,
            it is not what the screen is about — it used to take 200px of
            the first thing you see, on rows that mostly have none. The mark
-           is the same slot's second rung (FR-28.4). -->
+           is the same slot's second rung (FR-28.4). `plain`, not `packing`:
+           the sheet has no column to keep aligned, so an ad-hoc row shows
+           nothing rather than 44px of blank before its title. -->
       <ItemMark
         :mark="masterItem?.icon ?? null"
-        surface="packing"
+        surface="plain"
         :photo-item="masterItem"
         :size="44"
         class="thumb"

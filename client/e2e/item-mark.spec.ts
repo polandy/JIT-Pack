@@ -295,6 +295,7 @@ test.describe('§3.28 the item mark', () => {
 
     await createTripViaWizard(page, { name: 'Blattprobe', travelers: ['Andy'] })
     await addFromInventory(page, 'Zelt')
+    await addAdHoc(page, 'Zwischenringe')
     await page.keyboard.press('Escape')
 
     await page.getByTestId('m4-row-Zelt').click()
@@ -303,5 +304,14 @@ test.describe('§3.28 the item mark', () => {
     // M10 owns the mark (FR-28.7): the sheet has no picker.
     await expect(page.getByTestId('m5-sheet').getByTestId('m10-mark')).toHaveCount(0)
     await expect(page.getByTestId('mark-picker')).toHaveCount(0)
+    await page.getByTestId('m5-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    // An ad-hoc row has no mark, and the sheet has no column to hold a slot
+    // for: the title is the first thing on the line, not 44px of blank. The
+    // rendered name is the positive signal the absent slot is asserted beside.
+    await page.getByTestId('m4-row-Zwischenringe').click()
+    await expect(page.getByTestId('m5-sheet').getByTestId('m5-name')).toHaveText('Zwischenringe')
+    await expect(page.getByTestId('m5-sheet').getByTestId('item-mark-slot')).toHaveCount(0)
   })
 })

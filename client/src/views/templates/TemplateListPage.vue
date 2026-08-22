@@ -674,8 +674,9 @@ ion-segment {
   font-size: var(--jp-text-sm);
 }
 
-/* FR-28.8: `plain` renders nothing when there is no mark, so an unmarked
-   Vorlage keeps the row it always had rather than gaining a blank column. */
+/* FR-28.8: the `packing` ladder holds the slot on every row, so the marked
+   and the unmarked Vorlagen keep their names in one column (see the note in
+   the template). */
 .row-mark {
   margin-inline-end: 10px;
 }
