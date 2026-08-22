@@ -77,6 +77,48 @@ describe('master data actions', () => {
     expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/sync/master')
   })
 
+  // FR-28.1/28.8, and a photo bug found beside it: the optimistic row is
+  // rebuilt from the item, so any field the rebuild forgets is blanked until
+  // the next pull overwrites it. Editing a weight must not silently drop the
+  // mark or the reference photo.
+  it('updateMasterItem keeps the fields it is not changing — mark and photo included (FR-28.1)', async () => {
+    const orch = newOrch()
+    const master = useMasterStore()
+    master.applyChange({
+      seq: 0,
+      table: 'items',
+      id: 'i1',
+      deleted: false,
+      row: { name: 'Socken', weight_grams: 80, icon: '\u{1F9E6}', image_hash: 'sha-1' },
+    })
+    mockDrain()
+
+    orch.updateMasterItem(master.getItem('i1')!, { weight_grams: 500 })
+
+    const item = master.getItem('i1')!
+    expect(item.icon).toBe('\u{1F9E6}')
+    expect(item.image_hash).toBe('sha-1')
+  })
+
+  it('updateTemplate keeps the mark it is not changing (FR-28.8)', async () => {
+    const orch = newOrch()
+    const master = useMasterStore()
+    master.applyChange({
+      seq: 0,
+      table: 'templates',
+      id: 'tpl-1',
+      deleted: false,
+      row: { owner_id: 'me', name: 'Camping Basis', kind: 'group', icon: '\u{26FA}' },
+    })
+    mockDrain()
+
+    orch.updateTemplate(master.getTemplate('tpl-1')!, { name: 'Camping' })
+
+    const tpl = master.getTemplate('tpl-1')!
+    expect(tpl.name).toBe('Camping')
+    expect(tpl.icon).toBe('\u{26FA}')
+  })
+
   it('template item lifecycle: add, update preserving fields, delete', () => {
     const orch = newOrch()
     const master = useMasterStore()

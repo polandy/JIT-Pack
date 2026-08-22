@@ -397,6 +397,7 @@ function rowToItem(id: string, row: Record<string, unknown>): MasterItem {
     weight_grams: (row['weight_grams'] as number) ?? null,
     value_cents: (row['value_cents'] as number) ?? null,
     image_hash: (row['image_hash'] as string) ?? null,
+    icon: (row['icon'] as string) ?? null,
   }
 }
 
@@ -408,6 +409,7 @@ function rowToTemplate(id: string, row: Record<string, unknown>): Template {
     // Migration 016 defaults pre-scope rows to 'template', which is what they
     // were used as; a row from an older client is read the same way.
     kind: (row['kind'] as TemplateKind) ?? 'template',
+    icon: (row['icon'] as string) ?? null,
   }
 }
 

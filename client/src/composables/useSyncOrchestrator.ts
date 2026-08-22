@@ -3366,11 +3366,16 @@ async function hashBlob(blob: Blob): Promise<string> {
     .join('')
 }
 
+// The base an optimistic row is rebuilt on, so every column the store keeps
+// must appear here: a field left out is blanked until the next pull puts it
+// back. That is how editing a weight used to drop the reference photo.
 function masterItemRow(item: MasterItem): Record<string, unknown> {
   return {
     name: item.name,
     weight_grams: item.weight_grams,
     value_cents: item.value_cents,
+    image_hash: item.image_hash ?? null,
+    icon: item.icon ?? null,
   }
 }
 
@@ -3379,6 +3384,7 @@ function templateRow(template: Template): Record<string, unknown> {
     owner_id: template.owner_id,
     name: template.name,
     kind: template.kind,
+    icon: template.icon ?? null,
   }
 }
 
