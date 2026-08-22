@@ -423,6 +423,44 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('quick-add-suggestion')).toHaveCount(0)
   })
 
+  // E2E-M4-47 (FR-25.13d): the sheet's own rules are pinned on M8
+  // (E2E-M8-22) and in the component's unit tests; what only this case pins
+  // is M4's wiring — the trip's contents reaching the browse-sheet as the
+  // carried state, and a sheet tap landing as a trip row.
+  test('E2E-M4-47: the browse-sheet knows what the trip carries and adds the rest (FR-25.13d)', async ({
+    page,
+  }) => {
+    for (const name of ['Zelt', 'Lampe']) {
+      await page.goto('/tabs/items')
+      await page.getByTestId('m9-fab').click()
+      await page.getByTestId('m10-name').locator('input').fill(name)
+      await page.getByTestId('m10-create').click()
+      await expect(page.getByTestId('header-title')).toHaveText(name)
+    }
+
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    const input = page.getByTestId('quick-add-input').locator('input')
+    // Via the suggestion, so the row carries its master-item provenance —
+    // a free-text "Zelt" would be a different row with no source to match.
+    await input.fill('Zel')
+    await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Zelt' }).click()
+    await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
+
+    await visible(page).getByTestId('quick-add-browse-open').click()
+    const sheet = page.getByTestId('inventory-browse-sheet')
+    await expect(sheet.getByTestId('browse-row-carried').filter({ hasText: 'Zelt' })).toContainText(
+      'already in',
+    )
+
+    await sheet.getByTestId('browse-row').filter({ hasText: 'Lampe' }).click()
+    await expect(sheet.getByTestId('browse-row-carried').filter({ hasText: 'Lampe' })).toBeVisible()
+
+    await sheet.getByTestId('browse-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await expect(page.getByTestId('m4-row-Lampe')).toBeVisible()
+  })
+
   // E2E-M4-02 (FR-8.2/25.18): the grouping is durable per trip — it arranges
   // rows rather than hiding them, so nothing can be lost behind it.
   test('E2E-M4-02: the grouping choice survives a reload', async ({ page }) => {
