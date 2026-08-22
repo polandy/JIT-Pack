@@ -714,10 +714,15 @@ test.describe('M8 group recognition (FR-27.15)', () => {
     await seedWorld(page)
 
     // A deviating quantity does not block the match — it is stated (FR-27.15).
+    // The prep task rides along so the undo has an FR-27.7 child to lose.
     await visible(page).locator('ion-item').filter({ hasText: 'Reiseapotheke' }).first().click()
     await expect(page.getByTestId('m8-position-sheet')).toBeVisible()
     await page.getByTestId('m8-qty-inc').click()
     await expect(page.getByTestId('m8-qty')).toHaveText('2')
+    const task = page.getByTestId('m8-task-input').locator('input')
+    await task.fill('Ablaufdaten prüfen')
+    await task.press('Enter')
+    await expect(page.getByTestId('m8-task-row')).toContainText('Ablaufdaten prüfen')
     await page.keyboard.press('Escape')
     await expect(page.getByTestId('m8-position-sheet')).toHaveCount(0)
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
@@ -764,13 +769,18 @@ test.describe('M8 group recognition (FR-27.15)', () => {
       resolved,
     )
 
-    // Rückgängig restores exactly what went, deviated quantity included.
+    // Rückgängig restores exactly what went — both positions, the deviated
+    // quantity and the FR-27.7 task, and the include goes again.
     await page.locator('ion-toast').getByRole('button', { name: 'Undo' }).click()
     await expect(
       visible(page).locator('ion-item h2').filter({ hasText: 'Erste Hilfe' }),
     ).toHaveCount(0)
+    await expect(
+      visible(page).locator('ion-item h2').filter({ hasText: 'Blasenpflaster' }),
+    ).toBeVisible()
     await visible(page).locator('ion-item').filter({ hasText: 'Reiseapotheke' }).first().click()
     await expect(page.getByTestId('m8-qty')).toHaveText('2')
+    await expect(page.getByTestId('m8-task-row')).toContainText('Ablaufdaten prüfen')
   })
 
   test('E2E-M8-23: Ignorieren survives a reload and lapses when the group changes', async ({
