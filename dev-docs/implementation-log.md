@@ -119,6 +119,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A trip stops being frozen (FR-2.7 / M22, 2026-08-21)](#a-trip-stops-being-frozen-fr-27--m22-2026-08-21) — the consequence rule already existed in FR-27.4 and refresh.ts, so the new module was deleted; two defects only a render could see; the sibling e2e was green for the wrong reason three times.
 - [The chevron learns where it came from (2026-08-21)](#the-chevron-learns-where-it-came-from-2026-08-21) — the gear inside a trip went back to the dashboard: a gap in ADR-011's route table, not a bug under it. §7 had promised the flows mechanism for months and nothing implemented it; the new e2e case was false-green because `toHaveURL` matched the *query's* tail.
 - [A refusing control is worse than an absent one (2026-08-21)](#a-refusing-control-is-worse-than-an-absent-one-2026-08-21) — M22's ✕ shipped present-but-disabled on a written-down argument; the owner overruled it in the hand. The e2e prefix locator also counted the explanation as a button.
+- [M17 was the last screen, and the trap was a constant (2026-08-22)](#m17-was-the-last-screen-and-the-trap-was-a-constant-2026-08-22) — finished text in a module-level constant is evaluated once at import, so no language switch reaches it; the section it hid in is unreachable by either Playwright project, so it is covered by a component test or not at all.
 - [The i18n migration, closed except for M15 and M17 (2026-08-21)](#the-i18n-migration-closed-except-for-m15-and-m17-2026-08-21) — NFR-4.12: a nav anchor and a route title stored finished English text, so no language choice could reach the chrome; what is on the catalogue now and what is not.
 - [The composer offers chips before it asks for typing (2026-08-21)](#the-composer-offers-chips-before-it-asks-for-typing-2026-08-21) — FR-25.13c decided on a rendered three-way round (ADR-020): chips now, browse-sheet as FR-25.13d, tag tiles rejected; the autofocus removal is the accepted cost, and two e2e case numbers were already taken by specs not yet built.
 - [The composer's second posture: the browse-sheet (2026-08-22)](#the-composers-second-posture-the-browse-sheet-2026-08-22) — FR-25.13d: *Erfassen*/*Zusammenstellen* landed at zero rollout cost because the sheet lives inside the shared composer; „schon drin" is derived feedback, not bookkeeping; focusing after a modal loses to Ionic's teardown; M6 excludes the trip's whole contents; the E2E-M8-21 collision paid by renumbering FR-27.15's case to M8-23.
@@ -4450,3 +4451,37 @@ What the diff cannot show:
   further: not a reserved number honoured, but a duplicate created. The
   FR-27.15 case is renumbered to E2E-M8-23 (M8-22 is the sheet's); the
   renumber note stays in the test spec so the log's older references resolve.
+
+## M17 was the last screen, and the trap was a constant (2026-08-22)
+
+Backlog item 4 closes here. M17 had been half-translated since before the
+migration — about ten `t()` calls beside fifteen literals — and it is the worst
+screen to leave that way, because the language switch *lives on it*: the user
+changes the setting and watches half the page ignore them.
+
+**The part that was not mechanical.** The notification rows were a module-level
+constant holding finished English text:
+
+    const prefLabels = [{ kind: 'delegation', label: 'Delegations', hint: '…' }, …]
+
+That is evaluated once at import, so no language change can reach it — the exact
+shape that had stranded the nav anchors and the route titles in the migration
+proper, found a third time. The rows hold `MessageKey`s now and `t()` runs during
+render.
+
+**And that section is unreachable by the e2e suite**, which is why it earns an
+entry rather than a commit message. Notifications exist only on a multi-user
+instance (`server` mode *and* an OIDC session, FR-17.3/FR-19.3), and neither
+Playwright project can be one: `local` has no server, `single` has no tokens. So
+the one section carrying the actual defect is covered by a **component test**
+(`views/settings/__tests__/SettingsPage.spec.ts`, mounted with a fake session)
+or by nothing at all. Mutation-proved by pinning one label back to English.
+
+The visible sections are E2E-M17-11, asserted in English first — "the German word
+is there" passes just as well on a build that renders neither.
+
+**Two catalogue keys that had been missing all along** turned up on the way:
+`common.ok` and `common.download`, both of which several screens had been
+spelling out. The storage dialog's megabyte figures now go through
+`formatNumber`, so the decimal separator follows the locale rather than staying
+English on a German screen.

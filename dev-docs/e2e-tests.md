@@ -86,7 +86,7 @@ Two things this unit still does *not* cover, both by decision:
   covered in `client/src/composables/__tests__/useSyncOutbox.spec.ts`
   instead, and G-2's rendering of them in the SyncDetailSheet component test.
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
-| Language choice (NFR-4.12) | E2E-M17-10 | `local` | [`i18n.spec.ts`](../client/e2e/i18n.spec.ts) |
+| Language choice (NFR-4.12) | E2E-M17-10, E2E-M17-11 | `local` | [`i18n.spec.ts`](../client/e2e/i18n.spec.ts) |
 
 **Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
 (create / import). The screen has neither as a button: create is the FAB and
