@@ -1,3 +1,5 @@
+import type { Page } from '@playwright/test'
+
 import { test, expect, openQuickAdd, expectTripOpen } from './fixtures'
 import {
   addPosition,
@@ -6,6 +8,44 @@ import {
   includeGroup,
   visiblePage as visible,
 } from './fixtures'
+
+/** Types instead of fill(): WebKit loses fill()'s one input event on Ionic
+ * fields — the full account is on inventory.spec.ts's fillIonic. */
+async function fillIonic(field: ReturnType<typeof visible>, value: string) {
+  await expect(field).toHaveClass(/hydrated/)
+  const input = field.locator('input')
+  await input.click()
+  await input.fill('')
+  await input.pressSequentially(value)
+  await expect(input).toHaveValue(value)
+}
+
+/**
+ * A tagged master item through M10's own path (E2E-M8-21 needs primary
+ * tags, which the plain name-only creation cannot give). Starts and ends
+ * on the M9 list; the waits mirror inventory.spec.ts's createItem —
+ * settled offer-or-create branch, painted editor, chevron back.
+ */
+async function createTaggedItem(page: Page, name: string, tag: string) {
+  await visible(page).getByTestId('m9-fab').click()
+  await expect(visible(page).getByTestId('m10-new-hint')).toBeVisible()
+  await fillIonic(visible(page).getByTestId('m10-name'), name)
+
+  await fillIonic(visible(page).getByTestId('m10-tag-search'), tag)
+  const offer = visible(page).getByTestId(`m10-tag-offer-${tag}`)
+  const create = visible(page).getByTestId('m10-tag-create')
+  await expect(offer.or(create).first()).toBeVisible()
+  if ((await offer.count()) > 0) await offer.click()
+  else await create.click()
+  await expect(visible(page).getByTestId(`m10-tag-assigned-${tag}`)).toBeVisible()
+
+  await visible(page).getByTestId('m10-create').click()
+  await expect(page.getByTestId('header-title')).toHaveText(name)
+  await page.getByTestId('header-back').click()
+  await expect(visible(page).getByTestId('m9-fab')).toBeVisible()
+  // Settled, not merely arriving (the backToInventory account).
+  await expect(visible(page).getByTestId('m10-tag-search')).toHaveCount(0)
+}
 
 /**
  * M8 — Template Editor, scope-shaped (§3.27, FR-27.6/27.7).
@@ -42,13 +82,17 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await expect(visible(page).getByTestId('m8-groups-head')).toHaveCount(0)
     await expect(visible(page).getByTestId('m8-positions-head')).toContainText('Positions')
 
-    // FR-25.13a: the FAB expands *and focuses* the quick-add.
+    // FR-25.13c: the FAB expands the quick-add but no longer focuses it —
+    // the empty composer leads with chips, and an auto-raised keyboard
+    // would cover them. Asserted after the confirm has rendered, so the
+    // old open()'s awaited focus would have landed by now and the unfixed
+    // build fails here rather than racing past.
     await openQuickAdd(page, 'm8-fab')
     const input = visible(page).getByTestId('quick-add-input').locator('input')
-    await expect(input).toBeFocused()
 
     // The confirm is labelled for the scope (E2E-M8-13).
     await expect(visible(page).getByTestId('quick-add-confirm')).toContainText('Add to group')
+    await expect(input).not.toBeFocused()
 
     // FR-25.7: one commit lands a collapsed row with the defaults.
     await input.fill('Kamera')
@@ -104,6 +148,113 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await expect(
       visible(page).locator('ion-item').filter({ hasText: 'Kamera' }).first(),
     ).toBeVisible()
+  })
+
+  test('E2E-M8-21: the empty composer offers chips, never the already chosen, and a chip lands a row (FR-25.13c)', async ({
+    page,
+  }) => {
+    // Tagged inventory through M10's own path: two Hygiene items, one Technik.
+    await page.goto('/tabs/items')
+    await createTaggedItem(page, 'Zahnbürste', 'Hygiene')
+    await createTaggedItem(page, 'Shampoo', 'Hygiene')
+    await createTaggedItem(page, 'Ladekabel', 'Technik')
+
+    await page.goto('/tabs/templates')
+    await createTemplate(page, 'group', 'Bad')
+    await openQuickAdd(page, 'm8-fab')
+
+    // Nothing chosen, nothing used on this device yet: no chips to offer.
+    await expect(visible(page).getByTestId('quick-add-confirm')).toBeVisible()
+    await expect(visible(page).getByTestId('quick-add-chips')).toHaveCount(0)
+
+    // First position via the typed autocomplete — this also feeds the trail.
+    const input = visible(page).getByTestId('quick-add-input').locator('input')
+    await input.fill('Zahn')
+    await visible(page).getByTestId('quick-add-suggestion').filter({ hasText: 'Zahnbürste' }).click()
+    await expect(
+      visible(page).locator('ion-item').filter({ hasText: 'Zahnbürste' }).first(),
+    ).toBeVisible()
+
+    // The emptied composer now offers the related row: the other Hygiene
+    // item, headed by the tag — and the chosen Zahnbürste is not offered
+    // again in it (the positive signal for that absence is Shampoo,
+    // rendered in the very same row).
+    const chipArea = visible(page).getByTestId('quick-add-chips')
+    await expect(chipArea).toContainText('Goes with Hygiene')
+    const related = visible(page).getByTestId('quick-add-chip-related')
+    await expect(related.filter({ hasText: 'Shampoo' })).toBeVisible()
+    await expect(related.filter({ hasText: 'Zahnbürste' })).toHaveCount(0)
+    // Technik shares no tag with the group's contents.
+    await expect(related.filter({ hasText: 'Ladekabel' })).toHaveCount(0)
+
+    // One tap on the chip lands a Standard row (FR-25.7 defaults).
+    await related.filter({ hasText: 'Shampoo' }).click()
+    const row = visible(page).locator('ion-item').filter({ hasText: 'Shampoo' }).first()
+    await expect(row).toContainText('Standard')
+    // Both Hygiene items are chosen now, so the composer has nothing left
+    // to offer — the rows above are the positive signal.
+    await expect(visible(page).getByTestId('quick-add-chips')).toHaveCount(0)
+
+    // The trail crosses scopes: a fresh group offers the two items just
+    // used, recency first, under the recent heading.
+    await backToList(page)
+    await createTemplate(page, 'group', 'Kulturbeutel')
+    await openQuickAdd(page, 'm8-fab')
+    await expect(visible(page).getByTestId('quick-add-chips')).toContainText('Recently used')
+    const recent = visible(page).getByTestId('quick-add-chip-recent')
+    await expect(recent.first()).toHaveText('Shampoo')
+    await expect(recent.filter({ hasText: 'Zahnbürste' })).toBeVisible()
+
+    // And a recent chip adds just the same.
+    await recent.filter({ hasText: 'Zahnbürste' }).click()
+    await expect(
+      visible(page).locator('ion-item').filter({ hasText: 'Zahnbürste' }).first(),
+    ).toBeVisible()
+  })
+
+  test('E2E-M8-22: the browse-sheet assembles a group in a run, carried items turning into a state (FR-25.13d)', async ({
+    page,
+  }) => {
+    await page.goto('/tabs/items')
+    await createTaggedItem(page, 'Zahnbürste', 'Hygiene')
+    await createTaggedItem(page, 'Shampoo', 'Hygiene')
+    await createTaggedItem(page, 'Ladekabel', 'Technik')
+
+    await page.goto('/tabs/templates')
+    await createTemplate(page, 'group', 'Bad')
+    await openQuickAdd(page, 'm8-fab')
+
+    // The door sits in the empty composer, beside the chips' offers.
+    await visible(page).getByTestId('quick-add-browse-open').click()
+    const sheet = page.getByTestId('inventory-browse-sheet')
+    await expect(sheet).toBeVisible()
+
+    // The M9 tag axis narrows on any tag; the un-matching item is gone and
+    // the two Hygiene rows are the positive signal for that absence.
+    await sheet.getByTestId('browse-tag-Hygiene').click()
+    await expect(sheet.getByTestId('browse-row')).toHaveCount(2)
+    await expect(sheet.getByTestId('browse-row').filter({ hasText: 'Ladekabel' })).toHaveCount(0)
+
+    // A run: two taps, no keyboard, and each tapped row flips to the
+    // "already in" state right in place — the sheet never closes between.
+    await sheet.getByTestId('browse-row').filter({ hasText: 'Zahnbürste' }).click()
+    await expect(sheet.getByTestId('browse-row-carried').filter({ hasText: 'Zahnbürste' })).toContainText(
+      'already in',
+    )
+    await sheet.getByTestId('browse-row').filter({ hasText: 'Shampoo' }).click()
+    await expect(sheet.getByTestId('browse-row-carried')).toHaveCount(2)
+
+    // Free text is an explicit footer line that hands back to the
+    // composer's field — the sheet itself never raises a keyboard.
+    await expect(sheet.locator('input')).toHaveCount(0)
+    await sheet.getByTestId('browse-free-text').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await expect(visible(page).getByTestId('quick-add-input').locator('input')).toBeFocused()
+
+    // The run landed as positions with the FR-25.7 defaults.
+    const rows = visible(page).locator('ion-item')
+    await expect(rows.filter({ hasText: 'Zahnbürste' }).first()).toContainText('Standard')
+    await expect(rows.filter({ hasText: 'Shampoo' }).first()).toBeVisible()
   })
 
   test('E2E-M8-07: the picker offers groups only, hides included ones, and creates one inline', async ({

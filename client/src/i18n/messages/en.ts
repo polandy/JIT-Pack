@@ -279,6 +279,8 @@ export const en = {
   'quickAdd.placeholder': 'Item name…',
   'quickAdd.missingHint': 'New items are flagged as missing',
   'quickAdd.newItem': 'Add “{name}” as a new item',
+  'quickAdd.relatedHeading': 'Goes with {tags}',
+  'quickAdd.recentHeading': 'Recently used',
   // FR-27.10: whole groups in the same composer.
   'quickAdd.groupsHeading': 'Add a whole group',
   'quickAdd.groupCount': '{n} position | {n} positions',
@@ -288,6 +290,14 @@ export const en = {
   'quickAdd.groupAllPresent': 'Group “{name}” is already fully on the list',
   'quickAdd.groupEmpty': 'Group “{name}” contributes nothing to this trip',
   'quickAdd.groupNotReady': 'Trip data is still loading — please try again in a moment',
+
+  // Inventory browse-sheet (FR-25.13d), opened from the composer.
+  'quickAdd.browseEntry': 'More from the inventory…',
+  'quickAdd.browseTitle': 'Assemble from the inventory',
+  'quickAdd.browseSubtitle': 'One tap adds a position — the sheet stays open',
+  'quickAdd.browseAlreadyIn': 'already in',
+  'quickAdd.browseFreeText': 'Type a new name instead…',
+  'quickAdd.browseNoMatch': 'No items carry this tag yet',
 
   // Faceted filter panel (FR-25.11), shared by M4 and M6.
   'filter.title': 'Filter',
