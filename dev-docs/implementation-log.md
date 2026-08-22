@@ -125,6 +125,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The composer's second posture: the browse-sheet (2026-08-22)](#the-composers-second-posture-the-browse-sheet-2026-08-22) — FR-25.13d: *Erfassen*/*Zusammenstellen* landed at zero rollout cost because the sheet lives inside the shared composer; „schon drin" is derived feedback, not bookkeeping; focusing after a modal loses to Ionic's teardown; M6 excludes the trip's whole contents; the E2E-M8-21 collision paid by renumbering FR-27.15's case to M8-23.
 - [FR-27.15: the editor learns to recognise its own duplicates (2026-08-22)](#fr-2715-the-editor-learns-to-recognise-its-own-duplicates-2026-08-22) — the FR’s stated sentence named the quantity, and following it literally would have let the fold turn a per-person position trip-global in silence; the dismissal is keyed to the item set because that is what makes „has it changed“ decidable without a schema; `ion-modal` never leaves the DOM, and an `Escape` assertion that passes before the sheet has presented leaves a live overlay eating the next tap.
 
+- [The i18n gap that was a measurement error (2026-08-22)](#the-i18n-gap-that-was-a-measurement-error-2026-08-22) — `vue-tsc --noEmit` on a solution-style tsconfig checks nothing and exits 0, which is where the belief came from that a wrong `MessageKey` in a template ships silently; `strictTemplates` measured at 1104 errors; the real gap was the avatar crop modal, which no Playwright project can open.
+
 ## Current state
 
 > **Repack (Return-Trip Mode) is REMOVED (owner decision, 2026-07-17).** Spec retired (PRD Addendum
@@ -4540,3 +4542,62 @@ deliberate, per the standing seed rule, and it is why the eyeball needed no
 typing. And the deviation warning carries its own tint rather than the bare
 `--ct-yellow` the blast-note uses: rendered on Latte, small yellow text on
 near-white is thin, which no stylesheet reading would have told us.
+## The i18n gap that was a measurement error (2026-08-22)
+
+Written after a session set out to close what the M17 work had recorded as an
+open hole: *a wrong catalogue key in a **template** expression is not caught by
+the compiler, so it ships as a raw `avatarCrop.zoomXX` on the screen.* The
+finding had a measurement behind it — `vue-tsc --noEmit` had exited 0 with a
+deliberately broken key in place — and it was still wrong.
+
+**`vue-tsc --noEmit` checks nothing in this repository.** `client/tsconfig.json`
+is a solution-style file: `"files": []` plus three `references`. `--noEmit`
+overrides the build mode, so the compiler loads that config, finds no files in
+it, type-checks zero of them and exits 0 — the same exit code a clean run gives,
+for a run that never happened. The project's own `npm run type-check` is
+`vue-tsc --build`, which follows the references, and it **does** reject a wrong
+`MessageKey` — verified in both shapes a template offers, `{{ t('…') }}` and
+`:aria-label="t('…')"`. Argument types of a called function are checked in
+templates without `strictTemplates`; that flag governs component props and
+attributes, which is a different question than the one the note asked.
+
+The lesson is not about i18n. **A green exit code is only evidence when the
+command it came from was doing the work you think it was** — and a config that
+legitimately contains no files is the quietest way for that to stop being true.
+
+**`strictTemplates` was measured before it was proposed, and it loses on the
+number**: 1104 errors, almost none of them ours. Ionic's web-component typings
+reject `data-testid`, `slot`, `aria-label` and `onClick` across every view, so
+turning it on would mean either an allowlist per Ionic component or a wrapper
+layer. Recorded here so the next reader can skip the twenty minutes.
+
+**No gate was written.** A draft one existed — a Vitest spec scanning every
+`t('…')` literal in `client/src` against the catalogue — and it was deleted
+once the compiler turned out to already do it. A second mechanism that can only
+agree with the first is not redundancy, it is one more thing to keep true.
+
+**What was left standing was the real gap, and it is a reachability one.**
+`AvatarCropModal` (FR-17.13) had no test of any kind: the modal opens only
+behind a native file picker, so no Playwright project can reach it, and the
+crop math it delegates to (`lib/avatarCrop`) was the only tested half. Its
+shell — cover-scale placement, the canvas crop, and *releasing the object URL
+on both exits* — is now a component test. The two leak checks are the point:
+`createObjectURL` hands out a reference the browser holds until it is revoked,
+which is invisible on screen and shows up only as memory a long session never
+returns.
+
+Three things that cost time there, all jsdom-shaped:
+
+- **`IonModal` renders an empty element.** The web component never upgrades
+  under jsdom, so the slot content is simply absent — the container is stubbed
+  and everything asserted is the component's own markup inside it. The sibling
+  sheet tests do not hit this because their components are plain `<section>`
+  bodies whose modal chrome lives in the caller.
+- **`expand="block"` never reaches the DOM.** It is an Ionic *prop*, so an
+  attribute selector matches nothing; the confirm button is found by its label.
+- **A false-green the mutation run caught.** The language-switch assertion
+  originally rested on the zoom slider's `aria-label` — and *Zoom* is the same
+  word in both catalogues, so a hardcoded English string survives the switch
+  untouched. No rendered assertion can tell those apart; the check now rests on
+  the two labels that differ, and the zoom line is documented as guarding the
+  key rather than the language.
