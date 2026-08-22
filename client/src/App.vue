@@ -82,7 +82,9 @@ async function showConflictToast(report: ConflictReport) {
       {
         text: t('sync.conflictToastOpen'),
         handler: () => {
-          router.push(report.type === 'trip' ? `/trips/${report.id}/conflicts` : '/conflicts/master')
+          router.push(
+            report.type === 'trip' ? `/trips/${report.id}/conflicts` : '/conflicts/master',
+          )
         },
       },
     ],
