@@ -130,6 +130,11 @@ where they can be stated exhaustively, in `store/conflict_revert_test.go`
 and `api/conflict_revert_test.go`: no screen can delete a row on a second
 device or pack an item mid-revert inside one case.
 
+**Testids added with it**, per the ledger's own selector rule:
+`conflict-revert` (the control), `conflict-reverted` (the note that
+replaces it), `conflict-revert-error` (the per-row refusal sentence) and
+`conflict-revert-hint` (the line saying a revert is a new change).
+
 
 **E2E-M22-08 — an edited trip is still on M2, added 2026-08-22.** The trip
 editor sends a partial upsert on purpose — an upsert of the whole row would
