@@ -245,15 +245,20 @@ describe('sample master data, FR-28.1/28.8', () => {
 })
 
 describe('sample trip, FR-28.7', () => {
+  // Through `seedSampleData`, not `seedSampleTrip`: the wiring that hands the
+  // trip the inventory it may link against lives there, and that is the line
+  // the seed button actually runs.
   it('links its rows to the inventory, so a seeded device can see a mark at all', async () => {
-    const { orchestrator, master } = seed()
-    const { seedSampleTrip } = await import('../sampleTrip')
+    const { seedSampleData } = await import('../sampleData')
+    const orchestrator = useSyncOrchestrator({
+      baseUrl: '',
+      getToken: () => null,
+      local: new IndexedDBPersistence(),
+    })
+    const master = useMasterStore()
     const tripStore = useTripStore()
 
-    const tripId = seedSampleTrip(
-      orchestrator,
-      Object.fromEntries(master.itemList.map((i) => [i.name, i.id])),
-    )
+    const { tripId } = await seedSampleData(orchestrator)
 
     const rows = tripStore.getItems(tripId)
     const linked = rows.filter((row) => row.source_item_id !== null)

@@ -870,8 +870,17 @@ test.describe('M8 group marks (FR-28.8)', () => {
       groupRow(page, visible(page), 'Camping Basis').getByTestId('item-mark'),
     ).toHaveText('⛺')
 
-    // Surface 2 — M8's Gruppen section of a Vorlage that includes it.
+    // Surface 2 — M8's Gruppen section of a Vorlage that includes it. The
+    // Vorlage gets its own mark on the way past: M3 step 3 renders Vorlagen
+    // and Gruppen as two separate columns, and asserting one says nothing
+    // about the other — which is exactly how this case found the missing
+    // slot on its first run.
     await createTemplate(page, 'template', 'Sommer')
+    await visible(page).getByTestId('m8-mark').click()
+    await expect(page.getByTestId('mark-picker')).toBeVisible()
+    await page.getByTestId('mark-search').fill('sonne')
+    await page.getByTestId('mark-tile').filter({ hasText: '🧴' }).click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
     await includeGroup(page, 'Camping Basis')
     const includeRow = groupRow(page, visible(page), 'Camping Basis')
     await expect(includeRow.getByTestId('item-mark')).toHaveText('⛺')
@@ -900,5 +909,10 @@ test.describe('M8 group marks (FR-28.8)', () => {
     await expect(page.getByTestId('wizard-step-3')).toBeVisible()
     const pick = groupRow(page, visible(page).getByTestId('wizard-section-groups'), 'Camping Basis')
     await expect(pick.getByTestId('item-mark')).toHaveText('⛺')
+
+    // …and the Vorlagen column beside it, which is a second template in the
+    // same view and had to be wired separately.
+    const vorlage = groupRow(page, visible(page).getByTestId('wizard-section-templates'), 'Sommer')
+    await expect(vorlage.getByTestId('item-mark')).toHaveText('🧴')
   })
 })
