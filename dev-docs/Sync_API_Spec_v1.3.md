@@ -2,7 +2,7 @@
 
 **Document Status:** Proposed for Review
 **Basis:** ADR-001 v2 (Go + embedded SQLite), Schema v0.3 (`change_log`, `updated_hlc`), NFR-4.1/4.2/4.2a, UI-Spec G-2/G-4/G-5/G-10.
-**Revision Note (v1.3):** Adds four RPC endpoints (§8) for the new portable YAML template/trip export-import (Addendum 3.18): `GET`/`POST` pairs for templates and trips, explicitly distinguished from the existing NFR-4.5 CSV/full-JSON export endpoints. Also corrects a stale "Schema v0.2" reference to v0.3. No other changes from v1.2. **Amended 2026-08-22:** §5 and P-3 spell out that a trip mutation is confined to the trip its endpoint names. The rule was always the intent — it had never been written down, and the server did not enforce it.
+**Revision Note (v1.3):** Adds four RPC endpoints (§8) for the new portable YAML template/trip export-import (Addendum 3.18): `GET`/`POST` pairs for templates and trips, explicitly distinguished from the existing NFR-4.5 CSV/full-JSON export endpoints. Also corrects a stale "Schema v0.2" reference to v0.3. No other changes from v1.2. **Amended 2026-08-22:** §5 and P-3 spell out that a trip mutation is confined to the trip its endpoint names. The rule was always the intent — it had never been written down, and the server did not enforce it. **Amended again the same day:** §5 now prints the push *response* envelope and names its `outcome` key, and states that a constraint violation is a `rejected` mutation rather than a 5xx. Both were rules the document implied and never spelled out, and both had drifted in the code — the client read a `status` key no server has ever sent, and the trip partition answered 500 where the master partition answered `rejected`.
 **Base URL:** `/api/v1` — JSON only, UTF-8. All timestamps ISO-8601 UTC.
 **Note on migration numbers:** this document dates several schema facts as "since migration NNN". Those numbers are **history, not files** — the migration chain was retired on 2026-08-19 (ADR-018) in favour of one always-current `internal/store/schema.sql`. The dates still say when a rule started applying; the numbers no longer point at anything to open.
 
@@ -86,7 +86,23 @@ Same envelope for the user's master partition. `change_log.trip_id` is NULL for 
 
 * Mutations are applied **in order, atomically per mutation** (not per batch): a rejected mutation does not roll back earlier ones.
 * **Server-stamped fields.** Before merging, the server overwrites the actor columns from the authenticated pusher, so a client value is never trusted (`stampActor`): comment `author_id` on insert; `packing_now_by`/`packing_now_at` when the state becomes `packing_now`; and `trip_items.packed_by_user_id` — set when the state becomes `packed`, cleared on any other state, and **stripped from every `trip_items` mutation first**, so it cannot be forged on a push that touches no state (FR-25.19). `packer_user_id` is *not* stamped: since FR-25.19 it carries the assignment, which is the client's to choose. `trips.year` (migration 021) is `NOT NULL` — a `trips` insert without it is rejected rather than defaulted, because a trip with no year cannot be placed in time (FR-2.1b); `end_date` is nullable from the same migration. `trip_items.packed_at` (migration 020) is the same record's *when* (FR-25.17) and follows it exactly — written with the record, cleared with it, stripped from every mutation first — with one deliberate difference: a **client-supplied RFC 3339 value is kept**, because packing happens offline and the push can land days after the tap. A clock is not an identity claim, so invariant 3 does not reach it; an unparseable value is replaced by the server's own time rather than stored.
-* **Response** per mutation: `applied` | `merged` (some fields lost per conflict rules, `conflicts[]` lists them) | `duplicate` (mutation_id seen before, recorded result returned) | `rejected` (validation/permission, with `error`).
+* **Response** per mutation, under the key **`outcome`**: `applied` | `merged` (some fields lost per conflict rules, `conflicts[]` lists them) | `duplicate` (mutation_id seen before, recorded result returned) | `rejected` (validation/permission, with `error`). The envelope, written out because naming only the *values* was how the client came to read a key the server has never sent:
+
+```json
+{
+  "results": [
+    { "mutation_id": "uuid-1", "outcome": "applied" },
+    { "mutation_id": "uuid-2", "outcome": "merged",
+      "conflicts": [ { "field": "quantity", "losing_value": 9, "winning_value": 5 } ] },
+    { "mutation_id": "uuid-3", "outcome": "rejected",
+      "error": "column not syncable: trip_items.nope" }
+  ],
+  "pull_hint": { "next_cursor": 4712 }
+}
+```
+
+  `internal/api/testdata/push_response.json` holds exactly this document, and both sides are tested against that file rather than against their own idea of it (`TestPushResponse_MatchesTheSharedWireFixture` and `client/src/composables/__tests__/pushContract.spec.ts`).
+* **A constraint the database refuses is `rejected`, never a 5xx.** A foreign key whose target another device deleted, a quantity merged below what is already packed, a partial upsert whose row is gone: the statement fails, the transaction survives, and the mutation is answered as the refusal it is. Returning an error instead would make the whole batch a 500 — and per §5.1 a 5xx is the one answer the client keeps retrying, so the bad row would sit at the head of its queue and hold every mutation behind it for that partition indefinitely.
 * After processing, the response includes `pull_hint: {next_cursor}` so the client immediately pulls its own (possibly merged) canonical state — closing the loop through the single read path (P-1).
 
 ### 5.1 The client-side outbox is durable (B2, NFR-4.1)

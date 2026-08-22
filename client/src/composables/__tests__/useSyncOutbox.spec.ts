@@ -58,7 +58,7 @@ describe('SyncOutbox', () => {
   })
 
   it('drains trip outbox: push then pull', async () => {
-    const result: MutationResult = { mutation_id: 'u1', status: 'applied' }
+    const result: MutationResult = { mutation_id: 'u1', outcome: 'applied' }
     client.post.mockResolvedValueOnce({
       results: [result],
       pull_hint: { next_cursor: 5 },
@@ -83,7 +83,7 @@ describe('SyncOutbox', () => {
 
   it('drains master outbox', async () => {
     client.post.mockResolvedValueOnce({
-      results: [{ mutation_id: 'u2', status: 'applied' }],
+      results: [{ mutation_id: 'u2', outcome: 'applied' }],
       pull_hint: { next_cursor: 10 },
     } satisfies PushResponse)
 
@@ -241,8 +241,8 @@ describe('SyncOutbox durability', () => {
     const outbox = makeOutbox(store, { onParked: (e) => parked.push(e), now: () => 1234 })
     client.post.mockResolvedValueOnce({
       results: [
-        { mutation_id: 'bad', status: 'rejected', error: 'unknown column: trip_items.nope' },
-        { mutation_id: 'good', status: 'applied' },
+        { mutation_id: 'bad', outcome: 'rejected', error: 'unknown column: trip_items.nope' },
+        { mutation_id: 'good', outcome: 'applied' },
       ],
       pull_hint: { next_cursor: 7 },
     } satisfies PushResponse)
@@ -271,8 +271,8 @@ describe('SyncOutbox durability', () => {
     const outbox = makeOutbox(store)
     client.post.mockResolvedValueOnce({
       results: [
-        { mutation_id: 'bad', status: 'rejected', error: 'unknown column' },
-        { mutation_id: 'good', status: 'applied' },
+        { mutation_id: 'bad', outcome: 'rejected', error: 'unknown column' },
+        { mutation_id: 'good', outcome: 'applied' },
       ],
       pull_hint: { next_cursor: 1 },
     } satisfies PushResponse)
