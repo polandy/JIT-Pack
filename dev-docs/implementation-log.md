@@ -120,6 +120,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The chevron learns where it came from (2026-08-21)](#the-chevron-learns-where-it-came-from-2026-08-21) — the gear inside a trip went back to the dashboard: a gap in ADR-011's route table, not a bug under it. §7 had promised the flows mechanism for months and nothing implemented it; the new e2e case was false-green because `toHaveURL` matched the *query's* tail.
 - [A refusing control is worse than an absent one (2026-08-21)](#a-refusing-control-is-worse-than-an-absent-one-2026-08-21) — M22's ✕ shipped present-but-disabled on a written-down argument; the owner overruled it in the hand. The e2e prefix locator also counted the explanation as a button.
 - [The i18n migration, closed except for M15 and M17 (2026-08-21)](#the-i18n-migration-closed-except-for-m15-and-m17-2026-08-21) — NFR-4.12: a nav anchor and a route title stored finished English text, so no language choice could reach the chrome; what is on the catalogue now and what is not.
+- [The composer offers chips before it asks for typing (2026-08-21)](#the-composer-offers-chips-before-it-asks-for-typing-2026-08-21) — FR-25.13c decided on a rendered three-way round (ADR-020): chips now, browse-sheet as FR-25.13d, tag tiles rejected; the autofocus removal is the accepted cost, and two e2e case numbers were already taken by specs not yet built.
 
 ## Current state
 
@@ -4019,6 +4020,7 @@ would follow LTS automatically and read well — but the tag names no major, so
 the gate would have nothing to compare, and the drift would go invisible in
 exactly the month the tag jumps 24 → 26 while `mise.toml` and `ci.yml` do not.
 That is the moment the gate exists for.
+
 ## The sync outbox survives a reload (2026-08-21)
 
 The Server-Mode outbox was a JS array. Every mutation that had not reached the
@@ -4083,6 +4085,7 @@ moves only on the app's next own action. It now also moves on the next app
 start, which is what B2 asked for. An `online`-event drain is a separate
 behaviour with its own failure modes (a flapping connection re-pushing on
 every event) and was left out rather than smuggled in.
+
 ## M4 comes back where it was left, and the header line stops flipping (2026-08-21)
 
 ADR-012's overlay amendment recorded a cost and named its repair: the M5 sheet
@@ -4347,6 +4350,7 @@ sub-routes would all need re-homing. And `?from=` is attacker-controlled input o
 a link someone else wrote, so it is validated rather than trusted, and a route
 that does not declare the class ignores it entirely — no drill-down can be
 redirected by a crafted URL.
+
 ## A refusing control is worse than an absent one (2026-08-21)
 
 M22 shipped removal of a traveller gated on the trip not having started, and the
@@ -4373,3 +4377,38 @@ is a pattern, and a testid is not a namespace.
 
 `E2E-M22-07` was added at the same time as the positive half: "no ✕ on a started
 trip" passes just as well against a screen that renders none at all.
+
+## The composer offers chips before it asks for typing (2026-08-21)
+
+FR-25.13c, decided and built the same day. What the diff cannot show:
+
+- **The round was decided on rendered pixels, not on prose** — three variants
+  mocked in the app's own token system (chips in the composer · inventory
+  browse-sheet · two-step tag tiles) and judged as an artifact page, the G-14
+  lesson applied to a concept decision. The matrix and the loser live in
+  ADR-020; the short version is that the *smallest* variant won the first
+  build precisely because the composer is one shared component, so FR-25.13's
+  "one way to add, everywhere" survives without a rollout. The browse-sheet is
+  **decided, specified as FR-25.13d, and not started** — its door (the "Mehr
+  aus dem Inventar…" entry) was deliberately *not* shipped now, because a
+  control that leads nowhere is worse than none.
+- **The accepted cost is the autofocus.** FR-25.13a's "expands *and focuses*"
+  was load-bearing wording for a year of specs and one e2e assertion; it
+  turned around because the raised keyboard covers exactly the offer the
+  empty composer now leads with. Whoever wants to type pays one tap, on
+  desktop too.
+- **"Already chosen" became a rule instead of a report.** M8 excluded its
+  positions from the autocomplete since the beginning; M4 never passed its
+  contents at all, so the duplicate path survived there silently. The chips
+  forced the question and the answer is uniform: what a scope carries is
+  offered nowhere — and E2E-M4-46 exists *only* for M4's wiring, because no
+  shared-component test can see a dropped prop.
+- **Two case numbers were already taken by written-but-unbuilt specs.**
+  E2E-M8-18 belongs to FR-28.8 and E2E-M8-19 to a group-refresh case; the new
+  case is E2E-M8-21. The §3.28 memory predicted exactly this trap — reserving
+  numbers in specs ahead of implementation means the ledger, not the spec, is
+  where a free number is found.
+- **The recents trail is deliberately device-local and unsynced** (the
+  review-dismissals stance): recency of *this device's* adds is a typing
+  convenience, not domain data. Free-text adds record nothing — at the
+  composer's level they have no master item yet; the caller creates it later.

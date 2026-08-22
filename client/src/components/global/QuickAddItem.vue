@@ -1,10 +1,13 @@
 <script setup lang="ts">
 /**
- * Quick-add on the packing list (FR-5.6, FR-25.13/13a).
+ * Quick-add on the packing list (FR-5.6, FR-25.13/13a/13c).
  *
- * Collapsed by default and opened *and focused* by M4's ＋ FAB, so the
- * add path is one tap from anywhere in the list rather than a target to
- * scroll back to.
+ * Collapsed by default and opened by M4's ＋ FAB, so the add path is one
+ * tap from anywhere in the list rather than a target to scroll back to.
+ * Opening no longer focuses the input (FR-25.13c, owner 2026-08-21): the
+ * empty composer leads with tappable chips — related to what the scope
+ * already carries, and recently used — and an auto-raised soft keyboard
+ * would cover exactly those. Typing is one tap on the field away.
  *
  * **The visible confirm button is the primary commit.** A phone has no
  * Enter key in reach, and leaving the action to the soft keyboard's
@@ -44,7 +47,9 @@ import { ref, computed, nextTick } from 'vue'
 
 import { t } from '@/i18n'
 import { MIN_SEARCH_LENGTH, useMasterStore } from '@/stores/masterStore'
+import { chipSuggestions } from '@/domain/quickAddChips'
 import { PREVIEW_ROW_NAMES, previewLines, resolvedLines } from '@/domain/templates'
+import { recentItemIds, recordRecentItem } from '@/local/quickAddRecents'
 import { previewText } from '@/lib/groupPreview'
 import type { MasterItem } from '@/types/domain'
 
@@ -98,6 +103,33 @@ const suggestions = computed(() => {
     .slice(0, MAX_MATCHES)
 })
 
+/** Bumped after each record so the chip rows follow the trail (FR-25.13c). */
+const recentsVersion = ref(0)
+
+/**
+ * FR-25.13c: the empty composer's chip rows. `excludeItemIds` doubles as
+ * the scope's contents, so what is already chosen is both the *context*
+ * for the related row and hidden from every row.
+ */
+const chips = computed(() => {
+  void recentsVersion.value
+  return chipSuggestions({
+    items: masterStore.itemList,
+    chosenItemIds: props.excludeItemIds,
+    recentItemIds: recentItemIds(),
+    primaryTagOf: (itemId) => masterStore.getPrimaryTag(itemId),
+  })
+})
+
+/** Chips yield to the autocomplete as soon as typing starts. */
+const showChips = computed(
+  () =>
+    query.value.trim().length === 0 &&
+    (chips.value.related.length > 0 || chips.value.recent.length > 0),
+)
+
+const relatedTagNames = computed(() => chips.value.relatedTags.map((tag) => tag.name).join(' · '))
+
 /**
  * FR-27.10: the groups whose name the query matches, each with the FR-27.12
  * summary so the row answers "what is in there?" without being opened.
@@ -132,10 +164,13 @@ async function focusInput() {
   await inputRef.value?.$el?.setFocus()
 }
 
-/** Opened by the FAB (FR-25.13a): expanding without focus costs a second tap. */
-async function open() {
+/**
+ * Opened by the FAB. Deliberately *without* focus since FR-25.13c: the
+ * chips are the primary offer, and focusing would raise the soft keyboard
+ * over them. The accepted cost is one extra tap for whoever wants to type.
+ */
+function open() {
   expanded.value = true
-  await focusInput()
 }
 
 function close() {
@@ -143,9 +178,9 @@ function close() {
   query.value = ''
 }
 
-async function toggle() {
+function toggle() {
   if (expanded.value) close()
-  else await open()
+  else open()
 }
 
 /**
@@ -156,7 +191,7 @@ async function toggle() {
  */
 defineExpose({ open, expanded })
 
-function selectSuggestion(item: MasterItem) {
+function emitMasterItem(item: MasterItem) {
   emit('add', {
     name: item.name,
     sourceItemId: item.id,
@@ -167,10 +202,24 @@ function selectSuggestion(item: MasterItem) {
     // single snapshot, it does not gain the whole set.
     categoryName: masterStore.getPrimaryTag(item.id)?.name ?? null,
   })
+  recordRecentItem(item.id)
+  recentsVersion.value++
   query.value = ''
+}
+
+function selectSuggestion(item: MasterItem) {
+  emitMasterItem(item)
   // Stays open, like a free-text add: picking a suggestion is the same
   // act, and closing on one but not the other would be arbitrary.
   void focusInput()
+}
+
+/**
+ * FR-25.13c: a chip add stays in chip mode — no refocus, because the user
+ * is tapping through an offer, and raising the keyboard would end that.
+ */
+function selectChip(item: MasterItem) {
+  emitMasterItem(item)
 }
 
 function submitFreeText() {
@@ -238,6 +287,41 @@ function onKeydown(event: KeyboardEvent) {
       </div>
 
       <p v-if="isActive" class="add-hint">{{ t('quickAdd.missingHint') }}</p>
+
+      <!-- FR-25.13c: the empty composer offers chips before it asks for
+           typing — the reason open() no longer raises the keyboard. -->
+      <div v-if="showChips" class="chip-rows" data-testid="quick-add-chips">
+        <template v-if="chips.related.length > 0">
+          <p class="chip-heading jp-eyebrow">
+            {{ t('quickAdd.relatedHeading', { tags: relatedTagNames }) }}
+          </p>
+          <div class="chip-row">
+            <button
+              v-for="item in chips.related"
+              :key="item.id"
+              class="chip"
+              data-testid="quick-add-chip-related"
+              @click="selectChip(item)"
+            >
+              {{ item.name }}
+            </button>
+          </div>
+        </template>
+        <template v-if="chips.recent.length > 0">
+          <p class="chip-heading jp-eyebrow">{{ t('quickAdd.recentHeading') }}</p>
+          <div class="chip-row">
+            <button
+              v-for="item in chips.recent"
+              :key="item.id"
+              class="chip"
+              data-testid="quick-add-chip-recent"
+              @click="selectChip(item)"
+            >
+              {{ item.name }}
+            </button>
+          </div>
+        </template>
+      </div>
 
       <IonList v-if="suggestions.length > 0" class="suggestions">
         <IonItem
@@ -348,6 +432,37 @@ function onKeydown(event: KeyboardEvent) {
 .suggestions {
   margin-top: 4px;
   background: transparent;
+}
+
+.chip-rows {
+  margin-top: 4px;
+  padding: 0 8px 4px;
+}
+
+.chip-heading {
+  color: var(--ct-subtext0);
+  margin: 8px 0 4px;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  /* A step up from the composer's surface0, the group-row stance. */
+  background: var(--ct-surface1);
+  border: 1px solid var(--ct-surface2);
+  border-radius: var(--jp-r-pill);
+  padding: 6px 12px;
+  cursor: pointer;
+  color: var(--ct-text);
+  font-size: var(--jp-text-sm);
+}
+
+.chip:active {
+  background: var(--ct-surface2);
 }
 
 .add-hint {

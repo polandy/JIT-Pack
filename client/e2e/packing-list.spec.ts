@@ -396,6 +396,33 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('m4-filter-bar')).toContainText(/Person/i)
   })
 
+  // E2E-M4-46 (FR-25.13c): the chip/suggestion logic is shared and covered
+  // on M8 (E2E-M8-19); what only this case pins is M4's *wiring* — the trip
+  // passing its contents to the composer at all. Without it, a dropped prop
+  // keeps every shared-component test green.
+  test('E2E-M4-46: what the trip already carries is not suggested again (FR-25.13c)', async ({
+    page,
+  }) => {
+    await page.goto('/tabs/items')
+    await page.getByTestId('m9-fab').click()
+    await page.getByTestId('m10-name').locator('input').fill('Zelt')
+    await page.getByTestId('m10-create').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Zelt')
+
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    const input = page.getByTestId('quick-add-input').locator('input')
+    await input.fill('Zel')
+    await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Zelt' }).click()
+    await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
+
+    // Same query again: the positive signal for the absent suggestion is
+    // the free-text hint, which renders exactly when nothing is offered.
+    await input.fill('Zel')
+    await expect(visible(page).locator('.no-match')).toContainText('Add “Zel” as a new item')
+    await expect(page.getByTestId('quick-add-suggestion')).toHaveCount(0)
+  })
+
   // E2E-M4-02 (FR-8.2/25.18): the grouping is durable per trip — it arranges
   // rows rather than hiding them, so nothing can be lost behind it.
   test('E2E-M4-02: the grouping choice survives a reload', async ({ page }) => {
