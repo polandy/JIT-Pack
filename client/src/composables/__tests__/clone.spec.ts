@@ -132,6 +132,9 @@ describe('cloneTrip (FR-12)', () => {
       status: 'planning',
       series_id: 'ser-1',
       attributes: { season: 'summer' },
+      // Derived from the dates rather than carried on the row: `duration_days`
+      // is a generated column and no pull ever brings one.
+      duration_days: 10,
     })
 
     const travelers = store.getTravelers(tripId)

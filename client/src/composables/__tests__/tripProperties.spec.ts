@@ -21,6 +21,7 @@ const TEMPLATE_ID = 'tpl-1'
 const RAINPANTS = 'item-regenhose'
 const TENT = 'item-zelt'
 const TODAY = '2026-01-15'
+const TRIP_YEAR = 2031
 
 beforeEach(() => {
   setActivePinia(createPinia())
@@ -86,7 +87,10 @@ function seedTrip(status = 'planning') {
   useTripStore().applyChanges([
     change(TABLE.trips, TRIP_ID, {
       name: 'Samedan',
-      year: 2026,
+      // Deliberately not the current year: `rowToTrip` defaults a missing
+      // `year` to it, so a trip seeded with this year's number cannot tell a
+      // kept field from a dropped one.
+      year: TRIP_YEAR,
       status,
       end_date: '2026-02-08',
     }),
@@ -125,8 +129,42 @@ describe('updateTrip (FR-2.7)', () => {
     const trip = useTripStore().getTrip(TRIP_ID)
     expect(trip?.name).toBe('Samedan Sommer')
     expect(trip?.start_date).toBe('2026-02-14')
-    // Untouched fields stay: an editor saves a form, not a whole row.
-    expect(trip?.year).toBe(2026)
+  })
+
+  it('leaves the fields the editor never showed exactly as they were', async () => {
+    const orch = await localOrchestrator()
+    seedTrip('active')
+
+    orch.updateTrip(TRIP_ID, { name: 'Samedan Sommer' })
+
+    const trip = useTripStore().getTrip(TRIP_ID)
+    // An editor saves a form, not a whole row. Losing `status` in Local Mode
+    // drops the trip out of M2 for good — there is no server pull to put it
+    // back — and losing `year` is the same wound one field over.
+    expect(trip?.status).toBe('active')
+    expect(trip?.year).toBe(TRIP_YEAR)
+  })
+
+  it('re-derives the duration when the dates move', async () => {
+    const orch = await localOrchestrator()
+    seedTrip()
+
+    orch.updateTrip(TRIP_ID, { start_date: '2026-02-01', end_date: '2026-02-08' })
+
+    expect(useTripStore().getTrip(TRIP_ID)?.duration_days).toBe(8)
+  })
+})
+
+describe('activateTrip (FR-11.1)', () => {
+  it('moves the status and carries the rest of the trip across', async () => {
+    const orch = await localOrchestrator()
+    seedTrip()
+
+    orch.activateTrip(TRIP_ID)
+
+    const trip = useTripStore().getTrip(TRIP_ID)
+    expect(trip?.status).toBe('active')
+    expect(trip?.year).toBe(TRIP_YEAR)
   })
 })
 
@@ -145,6 +183,24 @@ describe('renameTraveler (FR-2.7)', () => {
         .find((t) => t.id === 'trv-z')?.name,
     ).toBe('Zoë')
     expect(pantsRows().map((r) => r.id)).toEqual(before)
+  })
+
+  it('keeps the account the traveller is linked to', async () => {
+    const orch = await localOrchestrator()
+    seedTrip()
+    useTripStore().applyChanges([
+      change(TABLE.travelers, 'trv-z', { trip_id: TRIP_ID, name: 'Zoe', linked_user_id: 'u-zoe' }),
+    ])
+
+    orch.renameTraveler(TRIP_ID, 'trv-z', 'Zoë')
+
+    // The link is what makes the roster row a person with an account
+    // (FR-2.5); a rename that drops it silently un-invites them.
+    expect(
+      useTripStore()
+        .getTravelers(TRIP_ID)
+        .find((t) => t.id === 'trv-z')?.linked_user_id,
+    ).toBe('u-zoe')
   })
 })
 

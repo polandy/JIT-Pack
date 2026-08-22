@@ -129,6 +129,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The trip partition was never confined to its trip (2026-08-22)](#the-trip-partition-was-never-confined-to-its-trip-2026-08-22) — membership was checked for the endpoint's trip while every statement addressed its row by primary key, so any member of any trip could read, rewrite, delete and seed every other trip's rows; the master partition had carried the equivalent check since its first day, which is why nothing looked missing.
 - [Two halves of one refusal path (2026-08-22)](#two-halves-of-one-refusal-path-2026-08-22) — the trip partition answered 500 where the master answered `rejected`, and a 5xx is the one status the outbox retries, so one bad row wedged a partition forever; the client meanwhile read a `status` key no server has ever sent, which made the whole parked surface dead code that its own fakes kept green.
 - [The pull cursor came out of the push (2026-08-22)](#the-pull-cursor-came-out-of-the-push-2026-08-22) — the client took `pull_hint.next_cursor` as its pull cursor, stepping permanently over everything another device wrote while it was away; the e2e case that should have caught it was green against the defect, because three overlapping drains repair the skip by accident, so the assertion moved from the screen to the wire.
+- [An optimistic row is a whole row (2026-08-22)](#an-optimistic-row-is-a-whole-row-2026-08-22) — a partial upsert's fields were applied as the optimistic row, which a store applies by replacing what it holds: saving a trip's name dropped its `status` and took the trip off M2 for good in Local Mode; two of the three lost fields had tests that said otherwise, one of them green only because the seeded year was the current one.
 - [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
 
 ## Current state
@@ -4844,6 +4845,49 @@ hint")* invited exactly the mistake that was just taken out of `drain`.
 pulls its own canonical state" — true, and read as *pull from here*. It now
 says what it is: a signal that a pull is worth making, never the cursor to
 make it from.
+
+
+## An optimistic row is a whole row (2026-08-22)
+
+A trip editor saves a form, not a row, so `updateTrip` sends a partial
+upsert — deliberately: an upsert of the whole row would hand back a value
+another device changed meanwhile, which is what the field-level merge exists
+to avoid. The *optimistic* row applied locally was built from the same
+fields. A store applies a change by replacing the row it holds, so saving a
+name dropped `status`, and M2 lists by status: the trip left every segment at
+once. In Server Mode the next pull repairs that within a second. In Local
+Mode there is no next pull, and the trip is gone.
+
+The rule was already written down — on `masterItemRow`, in a comment that
+says *"a field left out is blanked until the next pull puts it back. That is
+how editing a weight used to drop the reference photo."* Twelve call sites
+follow it (`{ ...itemRow(item), ...mut.fields }`); two did not. The rule now
+sits on `change()` itself, where the row is built, rather than on one of the
+helpers a correct call site happens to use.
+
+**Two of the three fields were being lost by tests that said they were
+not.** `tripProperties.spec.ts` asserted `year === 2026` under the comment
+*"untouched fields stay"* — and `rowToTrip` defaults a missing `year` to the
+current year, which in 2026 is 2026. The assertion held while the field was
+dropped, and would have started failing in January 2027 for a reason no one
+would have connected to this. It seeds 2031 now. `renameTraveler` dropped
+`linked_user_id`, silently un-inviting the account behind a roster row, and
+nothing looked at it at all.
+
+**`duration_days` was never a field to keep.** It is a generated column, so
+it is not in `syncableColumns` — no pull has ever carried one, and
+`rowToTrip` read it off the row and got `null` every time. Every trip that
+arrived over the wire had no duration; only the optimistic rows that
+computed one by hand looked right. It is derived from the dates in the store
+now, which is where a derived value belongs, and the three hand-computed
+copies in the orchestrator are gone with it.
+
+**Where the e2e case goes was the decision.** E2E-M22-01 already reopens M4
+after an edit and asserts the new name — and it is green against the defect,
+because M4 renders the trip perfectly. Only M2 can see the damage. The new
+case (E2E-M22-08) asserts the trip on M2's planned list, and is mutation-
+proved: red without the fix, green with it.
+
 ## M10 was not done, and the test said it was (2026-08-22)
 
 Backlog item 4 had been closed the same day: *„Every screen is on the

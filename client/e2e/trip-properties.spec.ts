@@ -13,7 +13,7 @@ import type { Page } from '@playwright/test'
  *
  * Covers E2E-M22-01 (the screen is reachable from M4 and edits the trip),
  * E2E-M22-02 (a traveller added extends the per-person positions immediately,
- * per FR-27.4's 2026-08-21 amendment) and E2E-M22-03 (a traveller removed
+ * per FR-27.4's 2026-08-21 amendment) and E2E-M22-08 (an edit keeps the fields it never showed), E2E-M22-03 (a traveller removed
  * takes their own row and **never a sibling's** — the owner's requirement, and
  * the failure that would quietly empty half a packing list).
  *
@@ -181,6 +181,25 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     await expect(pantsRowFor(page, 'Xenia')).toBeVisible()
     // The same row, not a fresh one that looks like it.
     await expect(pantsRowFor(page, 'Xenia')).toContainText('1/2')
+  })
+
+  test('E2E-M22-08: an edited trip is still on M2, because an edit is not the whole row', async ({
+    page,
+  }) => {
+    await tripWithTwoTravellers(page, 'Pfingsten')
+    await openTripEdit(page)
+
+    const nameField = visible(page).getByTestId('trip-edit-name').locator('input')
+    await nameField.fill('Pfingsten Tessin')
+    await nameField.blur()
+
+    // M2 lists by status, so a write that saved only the edited fields drops
+    // the trip off *every* segment — and in Local Mode nothing pulls it back.
+    // Asserted on the list rather than on the trip screen, which the defect
+    // leaves intact.
+    await page.goto('/tabs/trips')
+    await visible(page).getByTestId('trips-filter-planned').click()
+    await expect(visible(page).getByTestId('trip-row-Pfingsten Tessin')).toBeVisible()
   })
 
   test('E2E-M22-05: a packed row of theirs is the user’s choice, both ways', async ({ page }) => {
