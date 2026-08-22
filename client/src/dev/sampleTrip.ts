@@ -34,6 +34,9 @@ const TRAVELERS = ['Andy', 'Sia', 'Leonardo']
 function row(name: string, category: string, over: Partial<PortableItem> = {}): PortableItem {
   return {
     name,
+    // FR-28.7: a trip row inherits the master item's mark, so the document
+    // that seeds it carries none of its own.
+    icon: null,
     quantity: 1,
     tasks: [],
     assignment: null,
@@ -61,6 +64,8 @@ function sampleDocument(): PortableDocument {
   return {
     kind: 'trip',
     schema_version: PORTABLE_SCHEMA_VERSION,
+    // FR-28.8 is a template field; a trip has no mark of its own.
+    icon: null,
     // A trip is the result of a composition, never one (FR-27.1).
     includes: [],
     // The sample trip is typed, not generated: it follows no group, so it

@@ -47,7 +47,7 @@ import {
 import { computed, inject, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
-import ItemThumbnail from '@/components/items/ItemThumbnail.vue'
+import ItemMark from '@/components/items/ItemMark.vue'
 import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
@@ -88,11 +88,11 @@ const saveState = computed(() => orchestrator.syncStatus.state.value)
 const detailsOpen = ref(false)
 
 // The master item behind this trip row carries the reference photo
-// (FR-22.1) — ad-hoc rows without a source_item_id simply have none.
-const photoItem = computed(() => {
+// (FR-22.1) and the mark (FR-28.7) — a trip row inherits both and copies
+// neither, so ad-hoc rows without a source_item_id simply have none.
+const masterItem = computed(() => {
   const source = item.value?.source_item_id
-  const master = source ? masterStore.getItem(source) : undefined
-  return master?.image_hash ? master : undefined
+  return (source ? masterStore.getItem(source) : undefined) ?? null
 })
 
 const travelerName = computed(
@@ -301,8 +301,15 @@ const packedStamp = computed(() => {
     <header class="head">
       <!-- Small on purpose (FR-22.1): a photo helps recognise the thing,
            it is not what the screen is about — it used to take 200px of
-           the first thing you see, on rows that mostly have none. -->
-      <ItemThumbnail v-if="photoItem" :item="photoItem" :size="44" class="thumb" />
+           the first thing you see, on rows that mostly have none. The mark
+           is the same slot's second rung (FR-28.4). -->
+      <ItemMark
+        :mark="masterItem?.icon ?? null"
+        surface="packing"
+        :photo-item="masterItem"
+        :size="44"
+        class="thumb"
+      />
       <div class="titles">
         <h1 class="jp-sheet-title" data-testid="m5-name">{{ item.name }}</h1>
         <p v-if="contextLine" class="context">{{ contextLine }}</p>

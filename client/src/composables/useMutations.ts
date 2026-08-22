@@ -625,12 +625,15 @@ export function useMutations(hlc: HLCGenerator) {
     name: string,
     ownerId: string,
     kind: TemplateKind = 'template',
+    /** FR-28.8: the optional mark, carried in by a portable import. */
+    icon: string | null = null,
   ): { mutation: Mutation; id: string } {
     const id = newId()
     const mutation = make('insert', TABLE.templates, id, {
       owner_id: ownerId,
       name,
       kind,
+      icon,
     })
     return { mutation, id }
   }

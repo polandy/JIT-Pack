@@ -96,9 +96,17 @@ import { relativeStamp } from '@/domain/stamp'
 import { formatWeight } from '@/lib/format'
 import { currentLocale, t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
+import ItemMark from '@/components/items/ItemMark.vue'
 import { useTripStore } from '@/stores/tripStore'
 import GroupChangesProposal from '@/components/trips/GroupChangesProposal.vue'
-import type { FacetKey, GroupBy, ItemTodo, TripItem, TripParticipant } from '@/types/domain'
+import type {
+  FacetKey,
+  GroupBy,
+  ItemTodo,
+  MasterItem,
+  TripItem,
+  TripParticipant,
+} from '@/types/domain'
 
 const props = defineProps<{ tripId: string; itemId?: string }>()
 
@@ -235,6 +243,16 @@ const quickAddExcludeIds = computed(() => [
   ),
 ])
 const openPrepItems = computed(() => store.itemsWithOpenPrep(props.tripId))
+
+/**
+ * FR-28.7: the row inherits the master item's photo and mark, it never copies
+ * them — the mark is a property of the thing, not of one trip's plan. An
+ * ad-hoc row has no master item and therefore no mark, and shows an empty
+ * slot rather than a placeholder.
+ */
+function masterOf(item: TripItem): MasterItem | null {
+  return (item.source_item_id ? masterStore.getItem(item.source_item_id) : undefined) ?? null
+}
 
 const view = computed(() =>
   buildPackingView({
@@ -1346,6 +1364,13 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                     :seed="entry.traveler.id"
                   />
                 </div>
+                <ItemMark
+                  :mark="masterOf(entry.item)?.icon ?? null"
+                  surface="packing"
+                  :photo-item="masterOf(entry.item)"
+                  :size="22"
+                  class="row-mark"
+                />
                 <IonLabel>
                   <h3>
                     {{ entry.label }}
@@ -2045,5 +2070,11 @@ ion-content.pack-content::part(scroll) {
   padding: 8px 14px 2px;
   font-size: var(--jp-text-sm);
   color: var(--ct-subtext0);
+}
+
+/* FR-28.4: the slot holds its width even when empty, so the names stay in
+   one column on a list where most rows carry no mark. */
+.row-mark {
+  margin-inline-end: 10px;
 }
 </style>

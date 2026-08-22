@@ -50,30 +50,37 @@ interface ItemSeed {
   name: string
   tag: string
   weightGrams?: number
+  /**
+   * FR-28.1: the item mark. Given to roughly half the inventory on purpose —
+   * a seed where every row carries one hides exactly what the FR-28.4 ladder
+   * has to be looked at for: the mixed column, where a photo, a mark and
+   * nothing stand beside each other.
+   */
+  icon?: string
 }
 
 /** The inventory, with the tag that groups it in M9 (ADR-014 primary tag). */
 const INVENTORY: ItemSeed[] = [
-  { name: 'Kamera', tag: 'Technik', weightGrams: 780 },
+  { name: 'Kamera', tag: 'Technik', weightGrams: 780, icon: '📷' },
   { name: 'Makro-Objektiv', tag: 'Technik', weightGrams: 420 },
   { name: 'Teleobjektiv', tag: 'Technik', weightGrams: 1350 },
   { name: 'Ringlicht', tag: 'Technik', weightGrams: 190 },
   { name: 'Stativ', tag: 'Technik', weightGrams: 1600 },
   { name: 'Ersatzakkus', tag: 'Technik', weightGrams: 160 },
-  { name: 'Zelt', tag: 'Camping', weightGrams: 2400 },
-  { name: 'Schlafsack', tag: 'Camping', weightGrams: 900 },
+  { name: 'Zelt', tag: 'Camping', weightGrams: 2400, icon: '⛺' },
+  { name: 'Schlafsack', tag: 'Camping', weightGrams: 900, icon: '🛏️' },
   { name: 'Isomatte', tag: 'Camping', weightGrams: 480 },
-  { name: 'Stirnlampe', tag: 'Camping', weightGrams: 95 },
-  { name: 'Gaskocher', tag: 'Camping', weightGrams: 320 },
-  { name: 'Regenjacke', tag: 'Kleidung', weightGrams: 340 },
-  { name: 'Wandersocken', tag: 'Kleidung', weightGrams: 70 },
-  { name: 'Reiseapotheke', tag: 'Bad', weightGrams: 280 },
-  { name: 'Sonnencreme', tag: 'Bad', weightGrams: 150 },
+  { name: 'Stirnlampe', tag: 'Camping', weightGrams: 95, icon: '🔦' },
+  { name: 'Gaskocher', tag: 'Camping', weightGrams: 320, icon: '🔥' },
+  { name: 'Regenjacke', tag: 'Kleidung', weightGrams: 340, icon: '🧥' },
+  { name: 'Wandersocken', tag: 'Kleidung', weightGrams: 70, icon: '🧦' },
+  { name: 'Reiseapotheke', tag: 'Bad', weightGrams: 280, icon: '🩹' },
+  { name: 'Sonnencreme', tag: 'Bad', weightGrams: 150, icon: '🧴' },
   { name: 'Badetuch', tag: 'Bad', weightGrams: 400 },
-  { name: 'Badehose', tag: 'Kleidung', weightGrams: 120 },
+  { name: 'Badehose', tag: 'Kleidung', weightGrams: 120, icon: '🩳' },
   { name: 'Wanderstöcke', tag: 'Camping', weightGrams: 480 },
   { name: 'Blasenpflaster', tag: 'Bad', weightGrams: 20 },
-  { name: 'Powerbank', tag: 'Technik', weightGrams: 350 },
+  { name: 'Powerbank', tag: 'Technik', weightGrams: 350, icon: '🔋' },
   { name: 'Ladegerät', tag: 'Technik', weightGrams: 180 },
 ]
 
@@ -98,12 +105,15 @@ interface PositionSeed {
 
 interface GroupSeed {
   name: string
+  /** FR-28.8: the same field, on the group. Again not on all of them. */
+  icon?: string
   positions: PositionSeed[]
 }
 
 const GROUPS: GroupSeed[] = [
   {
     name: 'Makro Fotografie',
+    icon: '📷',
     positions: [
       { item: 'Kamera', task: 'Akkus laden' },
       { item: 'Makro-Objektiv' },
@@ -120,6 +130,7 @@ const GROUPS: GroupSeed[] = [
     // Deliberately not included anywhere: M8's picker and M3's *Zusätzliche
     // Gruppen* need a group that is still on offer.
     name: 'Camping Basis',
+    icon: '⛺',
     positions: [
       { item: 'Zelt' },
       { item: 'Schlafsack', perPerson: true },
@@ -134,6 +145,7 @@ const GROUPS: GroupSeed[] = [
   // purpose, so an item search returns more than one row.
   {
     name: 'Strand',
+    icon: '🏊',
     positions: [
       { item: 'Badetuch', perPerson: true },
       { item: 'Badehose', perPerson: true },
@@ -172,6 +184,7 @@ const GROUPS: GroupSeed[] = [
  */
 const VACATION = {
   name: 'Fotoreise (Beispiel)',
+  icon: '📷',
   includes: ['Makro Fotografie', 'Wildlife Fotografie'],
   positions: [
     { item: 'Reiseapotheke' },
@@ -213,7 +226,10 @@ export function seedSampleMaster(orchestrator: Orchestrator): SampleMaster {
 
   const itemIds = new Map<string, string>()
   for (const item of INVENTORY) {
-    const id = orchestrator.createMasterItem(item.name, { weightGrams: item.weightGrams ?? null })
+    const id = orchestrator.createMasterItem(item.name, {
+      weightGrams: item.weightGrams ?? null,
+      icon: item.icon ?? null,
+    })
     itemIds.set(item.name, id)
     const tagId = tagIds.get(item.tag)
     if (tagId) orchestrator.assignTag(id, tagId)
@@ -227,12 +243,12 @@ export function seedSampleMaster(orchestrator: Orchestrator): SampleMaster {
 
   const groupIds = new Map<string, string>()
   for (const group of GROUPS) {
-    const id = orchestrator.createTemplate(group.name, 'group')
+    const id = orchestrator.createTemplate(group.name, 'group', group.icon ?? null)
     groupIds.set(group.name, id)
     addPositions(orchestrator, id, itemIds, group.positions)
   }
 
-  const vacationTemplateId = orchestrator.createTemplate(VACATION.name, 'template')
+  const vacationTemplateId = orchestrator.createTemplate(VACATION.name, 'template', VACATION.icon)
   for (const name of VACATION.includes) {
     const groupId = groupIds.get(name)
     if (groupId) orchestrator.addTemplateInclude(vacationTemplateId, groupId)
