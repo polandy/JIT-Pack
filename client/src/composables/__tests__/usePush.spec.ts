@@ -21,7 +21,7 @@ function mockHLC(hlcValue = '0000000001000-0000-abcd1234'): HLCGenerator {
 describe('usePush', () => {
   it('pushes mutations to a trip', async () => {
     const resp: PushResponse = {
-      results: [{ mutation_id: 'uuid-1', status: 'applied' }],
+      results: [{ mutation_id: 'uuid-1', outcome: 'applied' }],
       pull_hint: { next_cursor: 5 },
     }
     const client = mockClient(resp)
@@ -49,7 +49,7 @@ describe('usePush', () => {
 
   it('pushes to master partition', async () => {
     const resp: PushResponse = {
-      results: [{ mutation_id: 'uuid-2', status: 'applied' }],
+      results: [{ mutation_id: 'uuid-2', outcome: 'applied' }],
       pull_hint: { next_cursor: 10 },
     }
     const client = mockClient(resp)
@@ -71,12 +71,12 @@ describe('usePush', () => {
     expect(result.pullHintCursor).toBe(10)
   })
 
-  it('returns merged status with conflicts', async () => {
+  it('returns the merged outcome with conflicts', async () => {
     const resp: PushResponse = {
       results: [
         {
           mutation_id: 'uuid-3',
-          status: 'merged',
+          outcome: 'merged',
           conflicts: [{ field: 'quantity', losing_value: 5, winning_value: 3 }],
         },
       ],
@@ -97,7 +97,7 @@ describe('usePush', () => {
       },
     ])
 
-    expect(result.results[0]!.status).toBe('merged')
+    expect(result.results[0]!.outcome).toBe('merged')
     expect(result.results[0]!.conflicts).toHaveLength(1)
   })
 })

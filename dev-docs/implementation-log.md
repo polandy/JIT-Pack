@@ -127,6 +127,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The i18n gap that was a measurement error (2026-08-22)](#the-i18n-gap-that-was-a-measurement-error-2026-08-22) — `vue-tsc --noEmit` on a solution-style tsconfig checks nothing and exits 0, which is where the belief came from that a wrong `MessageKey` in a template ships silently; `strictTemplates` measured at 1104 errors; the real gap was the avatar crop modal, which no Playwright project can open.
 - [§3.28: the mark gets built (2026-08-22, FR-28.1–28.11, ADR-021)](#328-the-mark-gets-built-2026-08-22-fr-2812811-adr-021) — the self-hosted face is about *agreement* (🧥 is a trench coat here and a peacoat on both platforms), not availability; the substring rule was unproven until „Reise" turned up an ice cube; the seed may only speak the index's vocabulary; and a master-item edit had been silently dropping the reference photo in Local Mode.
 - [The trip partition was never confined to its trip (2026-08-22)](#the-trip-partition-was-never-confined-to-its-trip-2026-08-22) — membership was checked for the endpoint's trip while every statement addressed its row by primary key, so any member of any trip could read, rewrite, delete and seed every other trip's rows; the master partition had carried the equivalent check since its first day, which is why nothing looked missing.
+- [Two halves of one refusal path (2026-08-22)](#two-halves-of-one-refusal-path-2026-08-22) — the trip partition answered 500 where the master answered `rejected`, and a 5xx is the one status the outbox retries, so one bad row wedged a partition forever; the client meanwhile read a `status` key no server has ever sent, which made the whole parked surface dead code that its own fakes kept green.
 
 ## Current state
 
@@ -4749,3 +4750,50 @@ The spec owed a sentence here too. P-3 described the partitions as a
 partition is also a boundary a mutation may not reach across. The rule was
 always the intent; it had simply never been written down, which is part of
 why the code could omit it without looking wrong.
+
+## Two halves of one refusal path (2026-08-22)
+
+Two findings from the same sweep, fixed together because either one alone
+leaves the other's damage in place: the server could not say *rejected*
+where it mattered, and the client could not hear it.
+
+**The server half.** `ApplyMutation` returned a constraint violation as an
+error, which the handler answers as 500. The master partition had always
+translated one into `rejected` (`master.go`); the trip partition never did.
+That asymmetry alone would be cosmetic if a 500 were harmless — but §5.1
+makes a 5xx the one answer the outbox *keeps retrying*, on the reasonable
+theory that a failing server recovers. So the mutation stayed at the head of
+its queue and every later mutation for that trip stayed behind it. One row
+stopped a trip from syncing, permanently, with G-2 showing an offline count
+while the device was online.
+
+What makes it worth an entry is that **none of the three ways to reach it is
+a malformed client.** They are the ordinary consequences of two devices and
+one roster: a container deleted on device B while A was offline (foreign
+key), a quantity cut below what is already packed (the CHECK, reached
+through perfectly correct field-level LWW), and a partial upsert landing on
+a row that was deleted elsewhere (NOT NULL, because the merge treats a
+missing row as an insert). Each one is reproduced as its own case.
+
+**The client half.** `MutationResult.status` — a key no server has ever
+sent. The server writes `outcome`, and has since the endpoint existed. So
+`parkRejected` filtered on `undefined`, matched nothing, and `forget()` then
+deleted the rejected mutation along with the acknowledged ones. Every
+refusal was silently discarded, `parkedCount` stayed 0, and the entire B2
+parked surface built in #101 has never once run against a real response.
+
+**Why two test suites both missed it.** Each side tested against its own
+idea of the envelope: the client's fakes answered `status`, so the parking
+tests passed while the production path could not work. That is the failure
+mode a contract needs a *shared artefact* for, not more tests — so
+`internal/api/testdata/push_response.json` is now the one document, held on
+the Go side by marshalling the real response struct against it and on the
+client side by parsing it and driving a real `SyncOutbox` with it. Renaming
+a key on either side now fails on that side. Both directions were proved by
+mutation before the fix landed.
+
+**The spec was complicit, and that is the part worth remembering.** §5
+listed the *values* — `applied | merged | duplicate | rejected` — and never
+named the key they arrive under. A spec that describes a vocabulary without
+the envelope leaves each implementation to guess the envelope, and two of
+them guessed differently for months. §5 now prints the response document.

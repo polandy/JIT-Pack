@@ -36,7 +36,14 @@ export interface PushRequest {
   mutations: Mutation[]
 }
 
-export type MutationStatus = 'applied' | 'merged' | 'duplicate' | 'rejected'
+/**
+ * The per-mutation answer of a push (Sync-API §5). The wire key is
+ * `outcome`, not `status`: this type once said `status`, which no server
+ * response has ever carried, so every rejection read as undefined and was
+ * dropped instead of parked. `internal/api/testdata/push_response.json` is
+ * the shared fixture both sides are held to.
+ */
+export type MutationOutcome = 'applied' | 'merged' | 'duplicate' | 'rejected'
 
 export interface MutationConflict {
   field: string
@@ -46,7 +53,7 @@ export interface MutationConflict {
 
 export interface MutationResult {
   mutation_id: string
-  status: MutationStatus
+  outcome: MutationOutcome
   conflicts?: MutationConflict[]
   error?: string
 }

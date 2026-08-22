@@ -1,0 +1,27 @@
+{
+  "results": [
+    {
+      "mutation_id": "uuid-applied",
+      "outcome": "applied"
+    },
+    {
+      "mutation_id": "uuid-merged",
+      "outcome": "merged",
+      "conflicts": [
+        {
+          "field": "quantity",
+          "losing_value": 9,
+          "winning_value": 5
+        }
+      ]
+    },
+    {
+      "mutation_id": "uuid-rejected",
+      "outcome": "rejected",
+      "error": "column not syncable: trip_items.nope"
+    }
+  ],
+  "pull_hint": {
+    "next_cursor": 4712
+  }
+}
