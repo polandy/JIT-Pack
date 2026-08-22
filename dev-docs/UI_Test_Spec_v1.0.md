@@ -594,6 +594,8 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-25.12 | E2E | M6-09 (buyer, kept distinct from recipients), M6-10 (description) |
 | FR-25.13 | E2E | M6-11; M4-04; M8-13 (same quick-add on all three screens); M8-14 (same edit sheet) |
 | FR-25.13a | E2E | M6-12 (all three at add time, no wipe on chip tap), M6-13 (assignee carries over), M6-16/M4-21 (visible confirm, no keyboard) |
+| FR-25.13c | E2E | M8-21 (chip rows, recents across scopes); M4-46 (M4 wiring) — row added 2026-08-22, owed since the cases landed |
+| FR-25.13d | E2E | M8-22 (browse-sheet: tag axis, run, free-text handover); M4-47/M6-21 (wiring); sheet rules also in `InventoryBrowseSheet.spec.ts` |
 | FR-25.11 | E2E | M4-15 (panel), M4-16 (OR/AND), M4-17 (counts), M4-18 (empty states), M4-19 (Gemeinsam) |
 | FR-25.11g | E2E | M6-14 (same panel, shop facets, independent state) |
 | FR-25.11h | E2E | M4-20, M6-15 (last row clears the FAB) |
