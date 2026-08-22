@@ -130,6 +130,24 @@ where they can be stated exhaustively, in `store/conflict_revert_test.go`
 and `api/conflict_revert_test.go`: no screen can delete a row on a second
 device or pack an item mid-revert inside one case.
 
+**The first run failed, and the reason is a rule for every later case
+here.** The row was located by `trips · name`, the way E2E-G2-06 does —
+and found two, then three. **The master partition is shared for the whole
+run** (one database, named in this unit's harness notes), so every case
+that loses a rename leaves a row that matches. E2E-G2-06 was passing only
+because it ran first; both cases now filter by the value *their own* trip
+lost, which the per-test `uniq()` suffix makes unique. A conflict-log
+assertion in this unit must never identify its row by table and field
+alone.
+
+**The second failure was the scoping rule read backwards.** Getting out of
+the log used `visiblePage(page).getByTestId('header-back')` — and the one
+header bar lives *outside* the router outlet (ADR-011), so the scoped
+locator waits forever on a control that is on screen. The rule is "assert
+what is rendered, scoped to the visible page"; the header is the standing
+exception, and every other case in this file already addresses it
+unscoped.
+
 **Testids added with it**, per the ledger's own selector rule:
 `conflict-revert` (the control), `conflict-reverted` (the note that
 replaces it), `conflict-revert-error` (the per-row refusal sentence) and

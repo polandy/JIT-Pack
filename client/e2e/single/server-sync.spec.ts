@@ -395,7 +395,13 @@ test.describe('Single-User backend sync @single', () => {
     await expect(pageB.getByTestId('sync-detail-sheet')).toBeVisible()
     await pageB.getByTestId('sync-detail-master-conflicts').click()
 
-    const row = visiblePage(pageB).getByTestId('conflict-row').filter({ hasText: 'trips · name' })
+    // Filtered by this test's own losing value, not by `trips · name`: the
+    // master partition is shared for the whole run (one database), so
+    // every case that loses a rename adds another row that would match.
+    // E2E-G2-07 is one, and it only passed here by running second.
+    const row = visiblePage(pageB)
+      .getByTestId('conflict-row')
+      .filter({ hasText: `${trip} B` })
     await expect(row).toHaveCount(1)
     // What lost and what won, both rendered — the page's whole promise.
     await expect(row.getByTestId('conflict-losing')).toContainText(`${trip} B`)
@@ -446,7 +452,11 @@ test.describe('Single-User backend sync @single', () => {
     await expect(pageB.getByTestId('sync-detail-sheet')).toBeVisible()
     await pageB.getByTestId('sync-detail-master-conflicts').click()
 
-    const row = visiblePage(pageB).getByTestId('conflict-row').filter({ hasText: 'trips · name' })
+    // This trip's own row, named by the value it lost — `trips · name`
+    // matches every other rename case in the shared master log.
+    const row = visiblePage(pageB)
+      .getByTestId('conflict-row')
+      .filter({ hasText: `${trip} B` })
     await expect(row).toHaveCount(1)
     await row.getByTestId('conflict-revert').click()
 
@@ -457,7 +467,10 @@ test.describe('Single-User backend sync @single', () => {
     // And the value is back where the user can see it. This is the half
     // that proves the revert travelled: B's own copy of the trip was
     // holding A's name a moment ago and only the pull changed it.
-    await visiblePage(pageB).getByTestId('header-back').click()
+    // The header bar is the app's single one and lives *outside* the
+    // router outlet (ADR-011), so it is the one control here that must not
+    // be scoped to the visible page.
+    await pageB.getByTestId('header-back').click()
     await visiblePage(pageB).getByTestId('trips-filter-planned').click()
     await expect(visiblePage(pageB).getByTestId(`trip-row-${trip} B`)).toBeVisible()
 
