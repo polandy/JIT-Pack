@@ -76,11 +76,30 @@ describe('SyncDetailSheet — network states (G-2)', () => {
     expect(wrapper.emitted('conflicts')).toHaveLength(1)
   })
 
-  it('explains where the conflict log lives instead of offering a dead button', () => {
+  it('offers the master log with no trip open, and only then hides the trip one', async () => {
     const wrapper = mountSheet({ state: 'synced', canOpenConflicts: false })
 
+    // The trip-scoped log genuinely has no subject here. The master
+    // partition's has one either way — inventory, groups and a trip's own
+    // fields merge there — and it used to be reachable through nothing.
     expect(has(wrapper, 'sync-detail-conflicts')).toBe(false)
-    expect(text(wrapper, 'sync-detail-conflicts-hint')).toContain('trip')
+    await wrapper.get('[data-testid="sync-detail-master-conflicts"]').trigger('click')
+
+    expect(wrapper.emitted('masterConflicts')).toHaveLength(1)
+  })
+
+  it('offers both logs while a trip is open, because they are two logs', () => {
+    const wrapper = mountSheet({ state: 'synced', canOpenConflicts: true })
+
+    expect(has(wrapper, 'sync-detail-conflicts')).toBe(true)
+    expect(has(wrapper, 'sync-detail-master-conflicts')).toBe(true)
+  })
+
+  it('offers neither in Local Mode, where one writer produces no conflicts', () => {
+    const wrapper = mountSheet({ state: 'local', mode: 'local', canOpenConflicts: false })
+
+    expect(has(wrapper, 'sync-detail-conflicts')).toBe(false)
+    expect(has(wrapper, 'sync-detail-master-conflicts')).toBe(false)
   })
 
   it('shows no storage section in Server Mode — the server holds the copy', () => {
@@ -98,11 +117,14 @@ describe('SyncDetailSheet — Local Mode (FR-19.6, NFR-4.11)', () => {
     expect(text(wrapper, 'sync-detail-explain')).toContain('no server')
   })
 
-  it('never offers the conflict log — one writer cannot conflict', () => {
+  it('never offers either conflict log — one writer cannot conflict', () => {
     const wrapper = mountSheet({ ...local, canOpenConflicts: true, storage: storage() })
 
     expect(has(wrapper, 'sync-detail-conflicts')).toBe(false)
-    expect(has(wrapper, 'sync-detail-conflicts-hint')).toBe(false)
+    expect(has(wrapper, 'sync-detail-master-conflicts')).toBe(false)
+    // The positive signal that the sheet rendered its Local Mode half at
+    // all, so the two absences above are a choice rather than a blank.
+    expect(has(wrapper, 'sync-detail-storage')).toBe(true)
   })
 
   it('reports how much of the device quota the data uses', () => {

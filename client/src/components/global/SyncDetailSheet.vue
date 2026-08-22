@@ -50,7 +50,7 @@ const props = withDefaults(
     parkedCount?: number
     /** Run mode: it, not the state, decides which half of the sheet applies. */
     mode: 'local' | 'server'
-    /** Whether a trip is open, i.e. whether a conflict log can be reached. */
+    /** Whether a trip is open, i.e. whether its own conflict log exists. */
     canOpenConflicts: boolean
     /** On-device storage facts, or null while they are still being read. */
     storage: StorageStatus | null
@@ -71,7 +71,7 @@ const props = withDefaults(
   { queueDurable: true, parkedCount: 0 },
 )
 
-const emit = defineEmits<{ close: []; conflicts: []; backup: [] }>()
+const emit = defineEmits<{ close: []; conflicts: []; masterConflicts: []; backup: [] }>()
 
 const isLocal = computed(() => props.mode === 'local')
 
@@ -151,7 +151,12 @@ const backupAge = computed(() => {
       <span>{{ t('sync.detail.updateReady') }}</span>
     </p>
 
-    <!-- Server Mode: the conflict log (NFR-4.2a) is trip-scoped. -->
+    <!--
+      Server Mode: one conflict log per sync partition (NFR-4.2a). The
+      trip's is offered only while one is open; the master partition's
+      always, because it belongs to no trip and was reachable through
+      nothing while the sheet only knew about the trip-scoped one.
+    -->
     <template v-if="!isLocal">
       <button
         v-if="canOpenConflicts"
@@ -162,9 +167,14 @@ const backupAge = computed(() => {
         <IonIcon :icon="listOutline" />
         <span>{{ t('sync.detail.conflicts') }}</span>
       </button>
-      <p v-else class="note" data-testid="sync-detail-conflicts-hint">
-        {{ t('sync.detail.conflictsHint') }}
-      </p>
+      <button
+        class="action"
+        data-testid="sync-detail-master-conflicts"
+        @click="emit('masterConflicts')"
+      >
+        <IonIcon :icon="listOutline" />
+        <span>{{ t('sync.detail.conflictsMaster') }}</span>
+      </button>
     </template>
 
     <!-- Local Mode: storage and backup are the whole safety story (NFR-4.11). -->

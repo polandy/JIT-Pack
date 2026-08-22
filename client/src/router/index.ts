@@ -159,6 +159,15 @@ export const routes: RouteRecordRaw[] = [
     props: true,
   },
   {
+    // The master partition's log belongs to no trip, so it is offered on
+    // every screen and returns to the one it was opened from (ADR-011
+    // amendment) — the same shape as the settings gear.
+    path: '/conflicts/master',
+    name: 'master-conflicts',
+    meta: { parent: '/tabs/dashboard', acceptsFrom: true, titleKey: 'conflicts.titleMaster' },
+    component: () => import('@/views/trips/ConflictLogPage.vue'),
+  },
+  {
     path: '/trips/:tripId/conflicts',
     meta: { parent: '/trips/:tripId', titleKey: 'conflicts.title' },
     name: 'trip-conflicts',

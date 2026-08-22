@@ -166,6 +166,11 @@ function openConflicts() {
   if (id) router.push(`/trips/${id}/conflicts`)
 }
 
+function openMasterConflicts() {
+  syncDetailOpen.value = false
+  router.push('/conflicts/master')
+}
+
 const masterStore = useMasterStore()
 const tripStore = useTripStore()
 
@@ -249,6 +254,7 @@ async function saveBackup() {
           :now="detailNow"
           @close="syncDetailOpen = false"
           @conflicts="openConflicts"
+          @master-conflicts="openMasterConflicts"
           @backup="saveBackup"
         />
       </SheetModal>
