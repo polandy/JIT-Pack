@@ -131,11 +131,19 @@ describe('SyncDetailSheet — Local Mode (FR-19.6, NFR-4.11)', () => {
     expect(text(wrapper, 'sync-detail-explain')).toContain('no server')
   })
 
-  it('never offers either conflict log — one writer cannot conflict', () => {
-    const wrapper = mountSheet({ ...local, canOpenConflicts: true, storage: storage() })
+  it('never offers either conflict log, nor counts merges — one writer cannot conflict', () => {
+    const wrapper = mountSheet({
+      ...local,
+      canOpenConflicts: true,
+      conflictCount: 4,
+      storage: storage(),
+    })
 
     expect(has(wrapper, 'sync-detail-conflicts')).toBe(false)
     expect(has(wrapper, 'sync-detail-master-conflicts')).toBe(false)
+    // A count passed in Local Mode is a caller's mistake, not a state to
+    // render: there is no server to have merged anything away.
+    expect(has(wrapper, 'sync-detail-conflicted')).toBe(false)
     // The positive signal that the sheet rendered its Local Mode half at
     // all, so the two absences above are a choice rather than a blank.
     expect(has(wrapper, 'sync-detail-storage')).toBe(true)
