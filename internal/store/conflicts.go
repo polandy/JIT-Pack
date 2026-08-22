@@ -3,7 +3,11 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"errors"
 	"fmt"
+
+	"jitpack/internal/sync"
 )
 
 // ConflictEntry is one audited LWW loser (NFR-4.2a). Values are the
@@ -16,6 +20,9 @@ type ConflictEntry struct {
 	LosingValue  string
 	WinningValue string
 	ResolvedAt   string
+	// Reverted reports that the losing value was already restored, so the
+	// UI offers the revert once rather than on every render.
+	Reverted bool
 }
 
 // The two partitions keep two logs in one table, told apart by trip_id
@@ -24,7 +31,7 @@ type ConflictEntry struct {
 // that mixed them would show a member of one trip the losers of another.
 const (
 	conflictColumns = `id, entity_table, entity_id, field,
-	        coalesce(losing_value, ''), coalesce(winning_value, ''), resolved_at`
+	        coalesce(losing_value, ''), coalesce(winning_value, ''), resolved_at, reverted`
 	conflictOrder = ` ORDER BY resolved_at DESC, id`
 )
 
@@ -77,10 +84,209 @@ func scanConflicts(rows *sql.Rows) ([]ConflictEntry, error) {
 	for rows.Next() {
 		var c ConflictEntry
 		if err := rows.Scan(&c.ID, &c.EntityTable, &c.EntityID, &c.Field,
-			&c.LosingValue, &c.WinningValue, &c.ResolvedAt); err != nil {
+			&c.LosingValue, &c.WinningValue, &c.ResolvedAt, &c.Reverted); err != nil {
 			return nil, fmt.Errorf("scan conflict: %w", err)
 		}
 		entries = append(entries, c)
 	}
 	return entries, rows.Err()
+}
+
+// The revert half of NFR-4.2a. Sentinel errors rather than one opaque
+// failure, because each maps to a different sentence the user has to be
+// shown: the log entry is stale, the row is gone, or the merge itself
+// outranks the revert.
+var (
+	// ErrConflictNotFound reports an unknown entry — or one that belongs
+	// to the other partition, which from a caller's side is the same
+	// thing: it is not in the log it asked.
+	ErrConflictNotFound = errors.New("store: conflict not found")
+	// ErrConflictAlreadyReverted reports a second revert of one entry.
+	// A revert is a fact about the entry, not a repeatable command.
+	ErrConflictAlreadyReverted = errors.New("store: conflict already reverted")
+	// ErrConflictRowGone reports that the entity the entry names has been
+	// deleted. One logged field cannot rebuild a row, so this refuses
+	// rather than resurrecting a partial one.
+	ErrConflictRowGone = errors.New("store: conflicted row no longer exists")
+	// ErrRevertRefused reports that the revert was itself resolved away —
+	// §6 rule 2 (packed outranks packing_now) or a database constraint.
+	// The merge rules apply to a revert exactly as to any other write.
+	ErrRevertRefused = errors.New("store: revert refused by the merge rules")
+	// ErrRevertForbidden reports that the caller may read the entry but
+	// not write the row it names (FR-4.5).
+	ErrRevertForbidden = errors.New("store: not allowed to write the conflicted row")
+)
+
+// revertEntry is the stored log row a revert acts on.
+type revertEntry struct {
+	tripID      sql.NullString
+	table       string
+	entityID    string
+	field       string
+	losingValue string
+}
+
+// RevertTripConflict restores the logged losing value of one trip-partition
+// conflict (NFR-4.2a). The restore is an ordinary upsert with a fresh
+// server HLC — see ADR-022: it wins by being newer, travels the change
+// feed like any other write, and stays beatable by a later edit. The
+// returned seq is the pull hint.
+//
+// Membership is the trip partition's only write gate and the caller's
+// `member` middleware has already applied it, so the only scope question
+// left here is whether the entry is this trip's at all (Sync-API P-3).
+func (s *Store) RevertTripConflict(ctx context.Context, tripID, conflictID string) (int64, error) {
+	e, err := s.loadConflictEntry(ctx, conflictID)
+	if err != nil {
+		return 0, err
+	}
+	if !e.tripID.Valid || e.tripID.String != tripID {
+		return 0, ErrConflictNotFound
+	}
+	return s.applyRevert(ctx, conflictID, e, tripPartitionTables, tripID, nil)
+}
+
+// RevertMasterConflict restores the logged losing value of one
+// master-partition conflict for userID (NFR-4.2a). Visibility is the rule
+// the master log is read by, and the write itself is authorized by
+// authorizeMaster — a user may see a conflict on a row they may not write.
+func (s *Store) RevertMasterConflict(ctx context.Context, userID, conflictID string) (int64, error) {
+	e, err := s.loadConflictEntry(ctx, conflictID)
+	if err != nil {
+		return 0, err
+	}
+	if e.tripID.Valid {
+		return 0, ErrConflictNotFound
+	}
+	// Before the transaction on purpose: the pool holds a single
+	// connection, so a read that opens its own would wait for a
+	// transaction that is waiting for it.
+	visible, err := s.masterVisible(ctx, userID, e.table, e.entityID)
+	if err != nil {
+		return 0, fmt.Errorf("revert visibility: %w", err)
+	}
+	if !visible {
+		// Not "forbidden": naming an entity the caller may not see is the
+		// leak ListMasterConflicts exists to avoid.
+		return 0, ErrConflictNotFound
+	}
+	authorize := func(tx *sql.Tx, m *sync.Mutation, current map[string]any) (bool, error) {
+		return authorizeMaster(ctx, tx, userID, m, current, true)
+	}
+	return s.applyRevert(ctx, conflictID, e, masterPartitionTables, nil, authorize)
+}
+
+func (s *Store) loadConflictEntry(ctx context.Context, conflictID string) (revertEntry, error) {
+	var e revertEntry
+	err := s.db.QueryRowContext(ctx,
+		`SELECT trip_id, entity_table, entity_id, field, coalesce(losing_value, 'null')
+		 FROM conflict_log WHERE id = ?`, conflictID).
+		Scan(&e.tripID, &e.table, &e.entityID, &e.field, &e.losingValue)
+	if errors.Is(err, sql.ErrNoRows) {
+		return revertEntry{}, ErrConflictNotFound
+	}
+	if err != nil {
+		return revertEntry{}, fmt.Errorf("load conflict %s: %w", conflictID, err)
+	}
+	return e, nil
+}
+
+// revertAuthorizer decides whether the caller may write the row a revert
+// names. The trip partition passes none — its middleware already checked
+// the only gate it has — while the master partition's row-level ownership
+// can be judged only once the row is loaded.
+type revertAuthorizer func(*sql.Tx, *sync.Mutation, map[string]any) (bool, error)
+
+// applyRevert writes the restore and the entry's reverted flag in one
+// transaction, so a refusal further down rolls the flag back with it and
+// the two can never disagree. changeTripID is the trip id for the trip
+// partition's change feed and nil for the master partition (§4).
+func (s *Store) applyRevert(
+	ctx context.Context,
+	conflictID string,
+	e revertEntry,
+	partition map[string]bool,
+	changeTripID any,
+	authorize revertAuthorizer,
+) (int64, error) {
+	var value any
+	if err := json.Unmarshal([]byte(e.losingValue), &value); err != nil {
+		return 0, fmt.Errorf("decode losing value of conflict %s: %w", conflictID, err)
+	}
+	m := sync.Mutation{
+		Op:     sync.OpUpsert,
+		Table:  e.table,
+		ID:     e.entityID,
+		Fields: map[string]any{e.field: value},
+	}
+	if err := validate(m, partition); err != nil {
+		return 0, err
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, fmt.Errorf("begin revert: %w", err)
+	}
+	defer tx.Rollback() //nolint:errcheck // no-op after a successful Commit
+
+	// The guard and the write are the same statement: two devices tapping
+	// the same entry cannot both restore it, and the loser is told so.
+	claimed, err := tx.ExecContext(ctx,
+		`UPDATE conflict_log SET reverted = 1 WHERE id = ? AND reverted = 0`, conflictID)
+	if err != nil {
+		return 0, fmt.Errorf("claim conflict %s: %w", conflictID, err)
+	}
+	if n, err := claimed.RowsAffected(); err != nil {
+		return 0, fmt.Errorf("claim conflict %s: %w", conflictID, err)
+	} else if n == 0 {
+		return 0, ErrConflictAlreadyReverted
+	}
+
+	current, currentHLC, exists, err := loadRow(ctx, tx, m.Table, m.ID)
+	if err != nil {
+		return 0, err
+	}
+	if !exists {
+		return 0, ErrConflictRowGone
+	}
+	if authorize != nil {
+		allowed, err := authorize(tx, &m, current)
+		if err != nil {
+			return 0, err
+		}
+		if !allowed {
+			return 0, ErrRevertForbidden
+		}
+	}
+
+	// Fold the row's own clock in before stamping. A device whose wall
+	// clock runs ahead leaves an HLC the server has never seen, and a
+	// revert that is not strictly newer would be dropped by its own merge.
+	// A row that never went through sync carries the schema default and
+	// has no clock to respect.
+	if currentHLC != "" {
+		if err := s.hlc.Observe(currentHLC); err != nil {
+			return 0, fmt.Errorf("observe %s %s clock: %w", m.Table, m.ID, err)
+		}
+	}
+	m.HLC = s.hlc.Next()
+
+	merged := sync.Merge(current, currentHLC, exists, m)
+	if len(merged.Applied) == 0 {
+		return 0, ErrRevertRefused
+	}
+	if err := updateRow(ctx, tx, m.Table, m.ID, merged); err != nil {
+		if isConstraintViolation(err) {
+			return 0, ErrRevertRefused
+		}
+		return 0, err
+	}
+	seq, err := appendChangeLog(ctx, tx, changeTripID, m, false)
+	if err != nil {
+		return 0, err
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("commit revert: %w", err)
+	}
+	return seq, nil
 }
