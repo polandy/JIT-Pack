@@ -1057,27 +1057,40 @@ E2E-M22-04 asserts an absence (removal is refused on a started trip), so it
 leans on the positive signals the screen renders anyway: the control is present
 and `aria-disabled`, and the reason is a visible note.
 
-## Known flaky: the losing-offline-edit case (`e2e/single/server-sync.spec.ts`, noted 2026-08-21)
+## Fixed: the losing-offline-edit case was never flaky (2026-08-22)
 
-`a losing offline edit converges and lands in the conflict log` fails on its
-first attempt and passes on the retry — **measured on `main` as well as on the
-branch that reported it**, twice each, so it is the case rather than any change
-around it. CI has been green only because the retry saves it, and a run where
-both attempts fail is one unlucky pipeline away.
+`a losing offline edit converges and lands in the conflict log` was recorded
+here on 2026-08-21 as flaky — failing its first attempt, passing on the retry,
+measured on `main` as well as on the branch that reported it. CI stayed green
+only because the retry saved it.
 
-The cause is in the case, not in the app. `pageB` boots straight at the trip's
-URL, so only the **trip** partition is loaded; `reopenTrip` then navigates
-through M2, whose list comes from the **master** partition. Whether that pull
-landed before the context went offline is luck, and there is deliberately no
-reconnect drain (Track C), so after reconnecting it may never arrive at all —
-the case then looks for the trip in an empty list and reports the absence as a
-sync failure.
+**It was not flaky; it was deterministic, and the retry hid that.** Run with
+`--retries=0` it fails on *every* attempt, three out of three. The retry
+passed because the first attempt had meanwhile warmed the master partition of
+the run's shared database — the second attempt was answering a question the
+first had already paid for.
 
-Not fixed here, deliberately: the obvious repairs each change what the case
-proves. Re-entering by `goto` restarts the app and demonstrates the durable
-outbox instead of the drain-on-trip-open the case is about, and re-entering by
-history skips M2 but broke the sibling case that shares the helper (tried, and
-reverted). It wants its own change, by whoever owns the server-mode suite.
+The cause was the one guessed here a day earlier, and the note stands: a page
+booted straight at a trip URL loads only the **trip** partition, while M2's
+list comes from the **master** one, and with no reconnect drain (Track C) a
+master pull that had not landed before the context went offline may never
+land at all. `reopenTrip` then searched an empty list and reported the
+absence as a sync failure.
+
+The repair is a precondition rather than a change to what the case proves:
+`warmTripList` walks the second page through M2 **while it is still online**
+and asserts the rendered trip row. The two repairs rejected a day earlier are
+still rejected — re-entering by `goto` would demonstrate the durable outbox
+instead of the drain-on-trip-open, and re-entering by history broke the
+sibling case that shares the helper. Proved both directions: 3/3 red without
+the call, 3/3 green with it, `--retries=0` throughout.
+
+**The lesson is about `retries: 1`, not about this case.** A retry cannot tell
+a racing test from a broken one, and against a suite whose database outlives
+the run it actively manufactures green: the retry is a *second* attempt
+against state the first attempt created. Any case that reads shared master
+state after going offline should establish it while online rather than trust
+the run's history.
 
 ## M8/M4 — the composer's chip rows (2026-08-21)
 

@@ -81,6 +81,26 @@ async function assignTraveler(page: Page, itemName: string, travelerName: string
   await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 }
 
+/**
+ * Prove this page's **master** partition holds the trip before the network
+ * is taken away.
+ *
+ * A page booted straight at a trip URL loads only the *trip* partition; M2's
+ * list comes from the master one, and whether that pull had landed was
+ * previously luck. With no reconnect drain (Track C) it may never land after
+ * going offline, and `reopenTrip` then searches an empty list and reports the
+ * absence as a sync failure — the documented flake that passed only on the
+ * retry. Asserting the rendered row makes the precondition a fact, and
+ * changes nothing about what the cases themselves prove.
+ */
+async function warmTripList(page: Page, tripName: string): Promise<void> {
+  await page.getByTestId('header-back').click()
+  await visiblePage(page).getByTestId('trips-filter-planned').click()
+  await expect(visiblePage(page).getByTestId(`trip-row-${tripName}`)).toBeVisible()
+  await visiblePage(page).getByTestId(`trip-row-${tripName}`).click()
+  await expect(visiblePage(page).getByTestId('m4-fab')).toBeVisible()
+}
+
 /** Leave M4 for the trip list and re-open the trip — M4's mount drains. */
 async function reopenTrip(page: Page, tripName: string) {
   await page.getByTestId('header-back').click()
@@ -238,6 +258,7 @@ test.describe('Single-User backend sync @single', () => {
     const ctxB = await browser.newContext()
     const pageB = await bootPage(ctxB, tripPath)
     await expect(visiblePage(pageB).getByTestId(`m4-row-${item}`)).toBeVisible()
+    await warmTripList(pageB, trip)
 
     // B edits first, offline — the strictly older HLC, so B is the side
     // that must lose. A's same-field edit happens visibly later.
