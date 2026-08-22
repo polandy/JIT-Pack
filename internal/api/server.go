@@ -38,6 +38,9 @@ type Server struct {
 	localUserID    string
 	hub            *Hub
 	oidc           *oidcBroker
+	// lockTimeout is the G-3 staleness window served to clients
+	// (Sync-API §7, JITPACK_LOCK_TIMEOUT); zero means the default.
+	lockTimeout time.Duration
 	// Web Push (NFR-4.6): VAPID keypair lazily loaded/generated via the
 	// store; contact is the RFC 8292 sub claim.
 	pushContact string
@@ -139,6 +142,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/auth/token", s.handleAuthToken)
 	mux.HandleFunc("POST /api/v1/auth/refresh", s.handleAuthRefresh)
 	mux.HandleFunc("GET /api/v1/auth/config", s.handleAuthConfig)
+	mux.HandleFunc("GET /api/v1/config", s.handleConfig)
 	mux.HandleFunc("GET /ws", s.wsAuth(s.handleWS))
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
