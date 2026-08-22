@@ -46,6 +46,8 @@ import {
 import { ref, computed, nextTick } from 'vue'
 
 import { t } from '@/i18n'
+import InventoryBrowseSheet from '@/components/global/InventoryBrowseSheet.vue'
+import SheetModal from '@/components/global/SheetModal.vue'
 import { MIN_SEARCH_LENGTH, useMasterStore } from '@/stores/masterStore'
 import { chipSuggestions } from '@/domain/quickAddChips'
 import { PREVIEW_ROW_NAMES, previewLines, resolvedLines } from '@/domain/templates'
@@ -176,6 +178,7 @@ function open() {
 function close() {
   expanded.value = false
   query.value = ''
+  browseOpen.value = false
 }
 
 function toggle() {
@@ -220,6 +223,30 @@ function selectSuggestion(item: MasterItem) {
  */
 function selectChip(item: MasterItem) {
   emitMasterItem(item)
+}
+
+// --- Inventory browse-sheet (FR-25.13d) -------------------------------------
+
+const browseOpen = ref(false)
+
+/**
+ * The sheet's door lives beside the chips, in the empty composer only:
+ * typing means the user is in the *Erfassen* posture, and an inventory
+ * with nothing in it has nothing to browse.
+ */
+const showBrowseEntry = computed(
+  () => query.value.trim().length === 0 && masterStore.itemList.length > 0,
+)
+
+/** A sheet add is a chip add: FR-25.7 defaults, no refocus, sheet stays open. */
+function onBrowseAdd(item: MasterItem) {
+  emitMasterItem(item)
+}
+
+/** The footer line hands back to the composer's field — typing's one home. */
+function onBrowseFreeText() {
+  browseOpen.value = false
+  void focusInput()
 }
 
 function submitFreeText() {
@@ -323,6 +350,18 @@ function onKeydown(event: KeyboardEvent) {
         </template>
       </div>
 
+      <!-- FR-25.13d: the door to the browse-sheet — the *Zusammenstellen*
+           posture, beside the chips' offers. -->
+      <button
+        v-if="showBrowseEntry"
+        class="browse-entry"
+        data-testid="quick-add-browse-open"
+        @click="browseOpen = true"
+      >
+        <IonIcon :icon="albumsOutline" />
+        <span>{{ t('quickAdd.browseEntry') }}</span>
+      </button>
+
       <IonList v-if="suggestions.length > 0" class="suggestions">
         <IonItem
           v-for="item in suggestions"
@@ -374,6 +413,15 @@ function onKeydown(event: KeyboardEvent) {
       >
         {{ t('quickAdd.newItem', { name: query }) }}
       </p>
+
+      <SheetModal :is-open="browseOpen" @dismiss="browseOpen = false">
+        <InventoryBrowseSheet
+          :carried-item-ids="excludeItemIds"
+          @add="onBrowseAdd"
+          @free-text="onBrowseFreeText"
+          @close="browseOpen = false"
+        />
+      </SheetModal>
     </div>
   </div>
 </template>
@@ -463,6 +511,26 @@ function onKeydown(event: KeyboardEvent) {
 
 .chip:active {
   background: var(--ct-surface2);
+}
+
+.browse-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 8px;
+  background: none;
+  border: none;
+  border-top: 1px dashed var(--ct-surface2);
+  cursor: pointer;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+  text-align: left;
+}
+
+.browse-entry ion-icon {
+  font-size: var(--jp-icon-sm);
 }
 
 .add-hint {
