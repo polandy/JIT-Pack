@@ -276,3 +276,32 @@ func errorCode(t *testing.T, raw []byte) string {
 	}
 	return out.Error.Code
 }
+
+// The store's own authorization, not the middleware's: a member may read
+// a conflict on the trip's immutable owner row (FR-4.7) and may not write
+// it. Seeded directly, because the push path refuses the write that would
+// otherwise produce the entry.
+func TestRevertMasterConflict_VisibleButUnwritableIsForbidden_NFR42a(t *testing.T) {
+	srv, st := newTestServerWithStore(t)
+	// The fixture's own owner row, which FR-4.7 makes immutable.
+	var memberID string
+	if err := st.DB().QueryRow(
+		`SELECT id FROM trip_members WHERE trip_id = ? AND role = 'owner'`, trip).Scan(&memberID); err != nil {
+		t.Fatalf("owner membership row: %v", err)
+	}
+	if _, err := st.DB().Exec(
+		`INSERT INTO conflict_log (id, trip_id, entity_table, entity_id, field, losing_value, winning_value)
+		 VALUES ('cf-owner', NULL, 'trip_members', ?, 'role', '"editor"', '"owner"')`, memberID); err != nil {
+		t.Fatalf("seed conflict: %v", err)
+	}
+
+	resp, raw := doJSON(t, http.MethodPost,
+		srv.URL+"/api/v1/conflicts/master/cf-owner/revert", token(t, userA, testSecret), nil)
+
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403, body %s", resp.StatusCode, raw)
+	}
+	if code := errorCode(t, raw); code != "forbidden" {
+		t.Errorf("error code = %q, want forbidden", code)
+	}
+}

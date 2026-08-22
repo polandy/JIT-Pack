@@ -276,3 +276,36 @@ func TestRevertMasterConflict_TripEntryIsNotInTheMasterLog_NFR42a(t *testing.T) 
 		t.Fatalf("err = %v, want ErrConflictNotFound", err)
 	}
 }
+
+// A member may *see* a conflict on the trip's owner membership row and
+// still not be allowed to write it: the creator's row is immutable
+// (FR-4.7). Visibility and write permission are two questions, and the
+// revert has to ask both. The entry is inserted directly because the push
+// path refuses the very write that would produce it.
+func TestRevertMasterConflict_VisibleButUnwritableRowIsForbidden_NFR42a(t *testing.T) {
+	s := openTestStore(t)
+	mustExec(t, s, `INSERT INTO trip_members (id, trip_id, user_id, role, updated_hlc)
+	                VALUES ('mem-own', ?, ?, 'owner', ?)`, testTrip, testUser, string(winningHLC))
+	mustExec(t, s, `INSERT INTO conflict_log (id, trip_id, entity_table, entity_id, field, losing_value, winning_value)
+	                VALUES ('cf-owner', NULL, 'trip_members', 'mem-own', 'role', '"editor"', '"owner"')`)
+
+	_, err := s.RevertMasterConflict(context.Background(), testUser, "cf-owner")
+
+	if !errors.Is(err, ErrRevertForbidden) {
+		t.Fatalf("err = %v, want ErrRevertForbidden", err)
+	}
+	var role string
+	if err := s.db.QueryRow(`SELECT role FROM trip_members WHERE id = 'mem-own'`).Scan(&role); err != nil {
+		t.Fatal(err)
+	}
+	if role != RoleOwner {
+		t.Errorf("role = %q, want owner — the creator's row is immutable", role)
+	}
+	var reverted int
+	if err := s.db.QueryRow(`SELECT reverted FROM conflict_log WHERE id = 'cf-owner'`).Scan(&reverted); err != nil {
+		t.Fatal(err)
+	}
+	if reverted != 0 {
+		t.Error("a forbidden revert must leave the entry open")
+	}
+}
