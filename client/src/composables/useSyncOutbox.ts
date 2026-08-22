@@ -206,7 +206,6 @@ export class SyncOutbox {
   async drain(type: PartitionType, id: string | null): Promise<void> {
     const key = partitionKey(type, id)
     const queue = this.queues.get(key) ?? []
-    let cursor = this.cursors.get(key) ?? 0
 
     if (queue.length > 0) {
       const path = this.syncPath(type, id)
@@ -231,7 +230,6 @@ export class SyncOutbox {
           this.parkAll(key, chunk, err.message)
           continue
         }
-        cursor = resp.pull_hint.next_cursor
         // Park before forgetting, not after: the two are separate storage
         // writes, and a device that died between them would have dropped a
         // refused mutation without leaving the evidence behind.
@@ -245,8 +243,14 @@ export class SyncOutbox {
       }
     }
 
+    // From the last cursor a *pull* returned — never from the push's
+    // `pull_hint`, which names the seq that push just wrote and would step
+    // over everything another device wrote in between. The cursor is an
+    // exclusive lower bound (Sync-API §4) and only moves forward, so what it
+    // steps over is never offered again. The hint says a pull is worth
+    // making, which the drain does unconditionally.
     const pullResp = await this.client.get<PullResponse>(this.syncPath(type, id), {
-      cursor: String(cursor),
+      cursor: String(this.getCursor(type, id)),
       limit: '500',
     })
 
@@ -342,11 +346,7 @@ export class SyncOutbox {
     this.onDurabilityChanged?.(next)
   }
 
-  /** Update cursor from an external source (e.g., WebSocket trip.changed hint). */
-  setCursor(type: PartitionType, id: string | null, cursor: number): void {
-    this.cursors.set(partitionKey(type, id), cursor)
-  }
-
+  /** The last `next_cursor` a pull of this partition returned; 0 until one has. */
   getCursor(type: PartitionType, id: string | null): number {
     return this.cursors.get(partitionKey(type, id)) ?? 0
   }

@@ -465,6 +465,10 @@ test.describe('Single-User backend sync @single', () => {
 
     // Andy reconnects; the trip re-open is the app's own action that drains.
     await ctxA.setOffline(false)
+    const areq: string[] = []
+    pageA.on('request', (r) => {
+      if (r.url().includes('/api/v1/sync/')) areq.push(`${r.method()} ${r.url().split('/api/v1')[1]}`)
+    })
     await reopenTrip(pageA, trip)
 
     // The queue is empty because the mutation was answered — not because it
@@ -475,6 +479,100 @@ test.describe('Single-User backend sync @single', () => {
     await expect(pageA.getByTestId('sync-detail-sheet')).toBeVisible()
     await expect(pageA.getByTestId('sync-detail-parked')).toContainText('1')
     await expect(pageA.getByTestId('sync-detail-parked-hint')).toBeVisible()
+
+    await ctxA.close()
+    await ctxB.close()
+  })
+  /**
+   * E2E-FLOW-10 (NFR-4.1/4.2a, P-1): the pull cursor only ever comes from a
+   * pull.
+   *
+   * The cursor is an exclusive lower bound (Sync-API §4), so whatever a
+   * device sets it to, it can never go back for. The push response carries a
+   * `pull_hint.next_cursor` naming the seq *that push* just wrote — later
+   * than anything written while this device was offline. Adopting it as the
+   * cursor steps over the other device's whole session without a symptom: no
+   * error, no badge, just rows that are on the server and never on screen.
+   *
+   * Asserted on the wire rather than on the screen, and deliberately: three
+   * drains overlap on a reconnect, and one of them — having read the cursor
+   * before the push moved it — pulls from the older value and repairs the
+   * skip by accident. The rows therefore arrive anyway most of the time, so
+   * a screen assertion here would be green against the defect. The request
+   * is the honest witness: every cursor this device sends must be one a pull
+   * has handed it, and `5` after a push that only ever received `3` is the
+   * whole bug in one line.
+   */
+  test('never pulls from a cursor the server handed it in a push', async ({ browser }) => {
+    const id = uniq()
+    const trip = `Flims ${id}`
+    const mine = `Stirnlampe-${id}`
+    const theirs = `Regenjacke-${id}`
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA)
+    // Every cursor A sends must be one a *pull* has handed it; 0 is its own
+    // starting point. Observing from the first request on, because a value
+    // served before the observer exists would read as invented.
+    const served = new Set([0])
+    const asked: number[] = []
+    // `route.fetch` runs outside the context, so it would sail straight
+    // through `setOffline`. The handler has to honour the flag itself.
+    let offline = false
+    await pageA.route('**/api/v1/sync/**', async (route) => {
+      if (offline) {
+        await route.abort('internetdisconnected')
+        return
+      }
+      const request = route.request()
+      const cursor = new URL(request.url()).searchParams.get('cursor')
+      const isPull = request.method() === 'GET' && cursor !== null
+      if (isPull) asked.push(Number(cursor))
+      const response = await route.fetch()
+      if (isPull) {
+        const body = await response.json().catch(() => null)
+        if (body && typeof body.next_cursor === 'number') served.add(body.next_cursor)
+      }
+      await route.fulfill({ response })
+    })
+
+    const tripPath = await createTripViaWizard(pageA, { name: trip })
+    await quickAddItem(pageA, mine)
+    const indicatorA = pageA.getByTestId('sync-indicator')
+    await expect(indicatorA).toHaveAttribute('data-state', 'synced')
+    await warmTripList(pageA, trip)
+
+    // B joins and is caught up before A leaves, so the only thing A can be
+    // missing at the end is what B writes during the gap.
+    const ctxB = await browser.newContext()
+    const pageB = await bootPage(ctxB, tripPath)
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${mine}`)).toBeVisible()
+
+    offline = true
+    await ctxA.setOffline(true)
+    await packItem(pageA, mine)
+    await expect(indicatorA).toHaveAttribute('data-state', 'offline')
+    await expect(indicatorA.locator('ion-badge')).toHaveText('1')
+
+    // The gap: B writes a row A has never seen and cannot be told about.
+    await quickAddItem(pageB, theirs)
+    await expect(pageB.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+
+    offline = false
+    await ctxA.setOffline(false)
+    await reopenTrip(pageA, trip)
+    await expect(indicatorA).toHaveAttribute('data-state', 'synced')
+    await expect(indicatorA.locator('ion-badge')).toHaveCount(0)
+
+    // A positive signal that the pulls above actually carried the gap, so
+    // the cursor assertion is not passing over a silent connection.
+    await expect(visiblePage(pageA).getByTestId(`m4-row-${theirs}`)).toBeVisible()
+    expect(asked.length).toBeGreaterThan(0)
+    expect(asked.filter((c) => !served.has(c))).toEqual([])
+
+    // And A's own offline pack reached the server — the fix must not have
+    // traded one direction for the other.
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${mine}`)).toBeHidden()
 
     await ctxA.close()
     await ctxB.close()
