@@ -285,3 +285,45 @@ func TestApplyMutation_RejectedForeignMutation_IsNotAppliedOnReplay(t *testing.T
 		t.Errorf("%s.%s = %q, want %q", r.table, r.field, got, r.before)
 	}
 }
+
+// belongsToTrip is a pure predicate, so the rule is stated once here
+// directly — including the shapes the SQLite path cannot produce: a
+// `trip_id` field that is not a string at all (JSON null, a number) must
+// never read as "names no other trip" for a row that has to name one.
+func TestBelongsToTrip(t *testing.T) {
+	const mine, theirs = "trip-mine", "trip-theirs"
+	ownRow := map[string]any{columnTripID: mine}
+	foreignRow := map[string]any{columnTripID: theirs}
+
+	cases := []struct {
+		name   string
+		op     sync.Op
+		fields map[string]any
+		row    map[string]any
+		exists bool
+		want   bool
+	}{
+		{"partial upsert on own row", sync.OpUpsert, map[string]any{"name": "x"}, ownRow, true, true},
+		{"upsert naming its own trip", sync.OpUpsert, map[string]any{columnTripID: mine}, ownRow, true, true},
+		{"insert naming its own trip", sync.OpInsert, map[string]any{columnTripID: mine}, nil, false, true},
+		{"delete of an own row", sync.OpDelete, nil, ownRow, true, true},
+		{"delete of a row already gone", sync.OpDelete, nil, nil, false, true},
+
+		{"upsert on a foreign row", sync.OpUpsert, map[string]any{"name": "x"}, foreignRow, true, false},
+		{"delete of a foreign row", sync.OpDelete, nil, foreignRow, true, false},
+		{"insert naming a foreign trip", sync.OpInsert, map[string]any{columnTripID: theirs}, nil, false, false},
+		{"upsert moving an own row away", sync.OpUpsert, map[string]any{columnTripID: theirs}, ownRow, true, false},
+		{"insert naming no trip", sync.OpInsert, map[string]any{"name": "x"}, nil, false, false},
+		{"insert whose trip_id is null", sync.OpInsert, map[string]any{columnTripID: nil}, nil, false, false},
+		{"insert whose trip_id is not a string", sync.OpInsert, map[string]any{columnTripID: 42}, nil, false, false},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			m := sync.Mutation{Op: c.op, Table: TableTripItems, ID: "row-1", Fields: c.fields}
+			if got := belongsToTrip(mine, m, c.row, c.exists); got != c.want {
+				t.Errorf("belongsToTrip = %v, want %v", got, c.want)
+			}
+		})
+	}
+}
