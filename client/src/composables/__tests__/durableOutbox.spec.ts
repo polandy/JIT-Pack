@@ -93,7 +93,7 @@ describe('durable outbox on boot', () => {
     // No notifications endpoint answer needed for the assertions below —
     // the push and the pull of the restored partition are what must happen.
     jsonOnce({
-      results: [{ mutation_id: 'u1', status: 'duplicate' }],
+      results: [{ mutation_id: 'u1', outcome: 'duplicate' }],
       pull_hint: { next_cursor: 4 },
     })
     jsonOnce({ changes: [], next_cursor: 4, has_more: false } satisfies PullResponse)

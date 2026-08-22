@@ -283,7 +283,7 @@ export class SyncOutbox {
    */
   private parkRejected(key: string, chunk: Mutation[], resp: PushResponse): Set<string> {
     const rejected = new Map(
-      resp.results.filter((r) => r.status === OUTCOME_REJECTED).map((r) => [r.mutation_id, r]),
+      resp.results.filter((r) => r.outcome === OUTCOME_REJECTED).map((r) => [r.mutation_id, r]),
     )
     const parked = new Set<string>()
     if (rejected.size === 0) return parked

@@ -402,6 +402,17 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID string, m sync.Mutatio
 	res := MutationResult{MutationID: m.MutationID, Outcome: string(merged.Outcome), Conflicts: merged.Conflicts}
 	changed, err := persist(ctx, tx, m.Table, m, merged, exists)
 	if err != nil {
+		if isConstraintViolation(err) {
+			// Ordinary offline traffic reaches this: a container deleted on
+			// another device, a quantity cut below what is already packed, a
+			// partial upsert whose row is gone. The statement failed and the
+			// transaction survives, so it is a refusal the client can park —
+			// where an error would become a 500, and a 5xx is the one answer
+			// the outbox keeps retrying, wedging the whole partition behind
+			// the bad row. Same treatment as the master partition.
+			res := MutationResult{MutationID: m.MutationID, Outcome: OutcomeRejected}
+			return res, finalize(ctx, tx, res)
+		}
 		return MutationResult{}, err
 	}
 	if changed {
