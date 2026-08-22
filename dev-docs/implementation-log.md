@@ -126,7 +126,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [FR-27.15: the editor learns to recognise its own duplicates (2026-08-22)](#fr-2715-the-editor-learns-to-recognise-its-own-duplicates-2026-08-22) — the FR’s stated sentence named the quantity, and following it literally would have let the fold turn a per-person position trip-global in silence; the dismissal is keyed to the item set because that is what makes „has it changed“ decidable without a schema; `ion-modal` never leaves the DOM, and an `Escape` assertion that passes before the sheet has presented leaves a live overlay eating the next tap.
 - [The i18n gap that was a measurement error (2026-08-22)](#the-i18n-gap-that-was-a-measurement-error-2026-08-22) — `vue-tsc --noEmit` on a solution-style tsconfig checks nothing and exits 0, which is where the belief came from that a wrong `MessageKey` in a template ships silently; `strictTemplates` measured at 1104 errors; the real gap was the avatar crop modal, which no Playwright project can open.
 - [§3.28: the mark gets built (2026-08-22, FR-28.1–28.11, ADR-021)](#328-the-mark-gets-built-2026-08-22-fr-2812811-adr-021) — the self-hosted face is about *agreement* (🧥 is a trench coat here and a peacoat on both platforms), not availability; the substring rule was unproven until „Reise" turned up an ice cube; the seed may only speak the index's vocabulary; and a master-item edit had been silently dropping the reference photo in Local Mode.
-
+- [The trip partition was never confined to its trip (2026-08-22)](#the-trip-partition-was-never-confined-to-its-trip-2026-08-22) — membership was checked for the endpoint's trip while every statement addressed its row by primary key, so any member of any trip could read, rewrite, delete and seed every other trip's rows; the master partition had carried the equivalent check since its first day, which is why nothing looked missing.
 
 ## Current state
 
@@ -4696,3 +4696,56 @@ inherit a mark.** The suggestion carries `source_item_id`, the free-text
 confirm creates an ad-hoc row by design (FR-28.7). The first draft of
 E2E-M9-07 added *Zelt* by free text and asserted its mark — a correct
 failure that named a real distinction, and both paths are now in the case.
+## The trip partition was never confined to its trip (2026-08-22)
+
+Found by a read-only bug sweep over the whole tree, not by a failure: the
+trip push endpoint authorised the trip in its URL and then applied the
+mutation by primary key alone. `ApplyMutation` took a `tripID` and used it
+only to stamp the `change_log` entry; `loadRow`, `updateRow` and the delete
+all ran `WHERE id = ?`. Any member of any trip could name a foreign row id
+and rewrite it, delete it, or insert a row carrying someone else's
+`trip_id` — across all five trip-partition tables.
+
+**The read half is the worse one, and it is the part that is easy to miss.**
+The write is loud; the leak is silent. Because the change_log entry is
+written under the *pusher's* trip, the pusher's very next pull returns
+`loadSnapshot` of the foreign row — the full current state of a trip they
+are not a member of — while the trip that owns the row gets no entry at all
+and therefore never learns anything happened. A stranger could read a
+foreign trip's rows one id at a time, and the owners' G-2 stayed green.
+
+**Why nothing looked missing.** The master partition has had the equivalent
+check since its first day: `authorizeMaster` resolves `parentIDs(current, m,
+"trip_id")` for every trip-scoped master table and checks both the row's
+current parent and the one the mutation proposes. The trip partition looked
+like it needed no such thing, because its endpoint *names* the trip — the
+authorization was there, it just never reached the row. The asymmetry is the
+whole bug: one partition proves the parent, the other assumed it.
+
+Three decisions worth keeping:
+
+- **A refusal, not an error.** The mutation is answered `rejected` rather
+  than failing the batch, so it lands on the client's park pile instead of
+  taking every mutation behind it hostage (§5). This matters more than it
+  looks: the trip partition currently turns *any* constraint violation into
+  a 500, and the outbox treats 5xx as "the server is failing" and retries
+  forever — so an errored mutation wedges the whole partition. Rejecting
+  through the same door the master partition already uses avoids adding one
+  more wedge. (The 500 path itself is still open — a separate fix.)
+- **Deletes of rows that no longer exist stay accepted.** They cannot be
+  attributed to a trip, because there is no row to read a `trip_id` from,
+  but refusing them would break the ordinary idempotent retry: a delete that
+  already succeeded is re-pushed after a lost response. It writes nothing,
+  so there is nothing to place in the wrong trip.
+- **An insert must name its trip.** Previously such a mutation reached the
+  `NOT NULL` constraint and failed the batch; it is now a plain rejection.
+  The client already sends `trip_id` on every trip-partition insert — checked
+  across all of `useMutations.ts`, including the upsert that
+  `trip_generated_positions` uses as a create — so no legitimate traffic
+  changes shape.
+
+The spec owed a sentence here too. P-3 described the partitions as a
+*routing* rule — which table travels which feed — and nowhere said that a
+partition is also a boundary a mutation may not reach across. The rule was
+always the intent; it had simply never been written down, which is part of
+why the code could omit it without looking wrong.

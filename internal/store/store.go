@@ -30,6 +30,19 @@ var (
 	ErrUnknownColumn = errors.New("column not syncable")
 )
 
+// The two outcomes the store reports beside sync.Merge's own applied and
+// merged (Sync-API §5): a refusal the client parks instead of retrying, and
+// the replay of a mutation_id already recorded.
+const (
+	OutcomeRejected  = "rejected"
+	OutcomeDuplicate = "duplicate"
+)
+
+// columnTripID is the column that ties a row to its trip. It is compared
+// against rather than merely written, in the trip partition's confinement
+// and in the master partition's parent checks, so it is named once.
+const columnTripID = "trip_id"
+
 // The syncable tables, named once. Every partition set, authorization
 // switch, visibility rule, cascade and export list below compares against
 // these rather than against a literal — a table name is switched on in five
@@ -378,6 +391,12 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID string, m sync.Mutatio
 	if err != nil {
 		return MutationResult{}, err
 	}
+
+	if !belongsToTrip(tripID, m, current, exists) {
+		res := MutationResult{MutationID: m.MutationID, Outcome: OutcomeRejected}
+		return res, finalize(ctx, tx, res)
+	}
+
 	merged := sync.Merge(current, currentHLC, exists, m)
 
 	res := MutationResult{MutationID: m.MutationID, Outcome: string(merged.Outcome), Conflicts: merged.Conflicts}
@@ -401,6 +420,38 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID string, m sync.Mutatio
 		return MutationResult{}, fmt.Errorf("commit: %w", err)
 	}
 	return res, nil
+}
+
+// belongsToTrip reports whether m may be applied on tripID's endpoint.
+// Membership is checked for the trip named in the URL and nothing else,
+// while every statement below addresses its row by primary key alone — so
+// without this the partition would reach into every other trip: a member of
+// one trip could read (the change_log entry lands under *their* trip, so
+// Pull hands them the foreign snapshot), rewrite, delete and seed rows
+// anywhere, and the trip that owns those rows would never be told.
+//
+// A row is in scope when the row that already exists names this trip, and
+// when the mutation itself names no other one (Sync-API P-3).
+func belongsToTrip(tripID string, m sync.Mutation, current map[string]any, exists bool) bool {
+	if exists {
+		if owner, _ := current[columnTripID].(string); owner != tripID {
+			return false
+		}
+	}
+	if named, ok := m.Fields[columnTripID].(string); ok && named != tripID {
+		return false
+	}
+	// A row nobody has seen yet has to name its trip, because there is no
+	// existing row to inherit it from — today such a mutation reaches the
+	// NOT NULL constraint and fails the whole push batch instead. Deletes
+	// are exempt: deleting what is already gone is the ordinary idempotent
+	// retry, and it writes nothing that could land in the wrong trip.
+	if !exists && m.Op != sync.OpDelete {
+		if _, ok := m.Fields[columnTripID].(string); !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func validate(m sync.Mutation, partition map[string]bool) error {
@@ -428,7 +479,7 @@ func recordedResult(ctx context.Context, tx *sql.Tx, mutationID string) (Mutatio
 	if err != nil {
 		return MutationResult{}, false, fmt.Errorf("idempotency lookup: %w", err)
 	}
-	res := MutationResult{MutationID: mutationID, Outcome: "duplicate", Seq: seq}
+	res := MutationResult{MutationID: mutationID, Outcome: OutcomeDuplicate, Seq: seq}
 	if err := json.Unmarshal([]byte(conflictsJSON), &res.Conflicts); err != nil {
 		return MutationResult{}, false, fmt.Errorf("decode recorded conflicts: %w", err)
 	}
