@@ -230,12 +230,6 @@ export class SyncOutbox {
           this.parkAll(key, chunk, err.message)
           continue
         }
-        // `resp.pull_hint.next_cursor` is deliberately not adopted as the
-        // pull cursor: it is the seq *this push* just wrote, so starting
-        // there would skip everything another device wrote in between —
-        // permanently, the cursor being an exclusive lower bound (§4). It
-        // says a pull is worth making, which the drain does unconditionally.
-
         // Park before forgetting, not after: the two are separate storage
         // writes, and a device that died between them would have dropped a
         // refused mutation without leaving the evidence behind.
@@ -249,8 +243,14 @@ export class SyncOutbox {
       }
     }
 
+    // From the last cursor a *pull* returned — never from the push's
+    // `pull_hint`, which names the seq that push just wrote and would step
+    // over everything another device wrote in between. The cursor is an
+    // exclusive lower bound (Sync-API §4) and only moves forward, so what it
+    // steps over is never offered again. The hint says a pull is worth
+    // making, which the drain does unconditionally.
     const pullResp = await this.client.get<PullResponse>(this.syncPath(type, id), {
-      cursor: String(this.cursors.get(key) ?? 0),
+      cursor: String(this.getCursor(type, id)),
       limit: '500',
     })
 
@@ -346,6 +346,7 @@ export class SyncOutbox {
     this.onDurabilityChanged?.(next)
   }
 
+  /** The last `next_cursor` a pull of this partition returned; 0 until one has. */
   getCursor(type: PartitionType, id: string | null): number {
     return this.cursors.get(partitionKey(type, id)) ?? 0
   }

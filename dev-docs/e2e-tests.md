@@ -110,7 +110,7 @@ one of them was still holding the pre-push value and pulled the gap by
 accident. The rows arrive; the bug is real; the screen cannot see it. The
 wire can: every `cursor` A sends must be one a pull returned, and a `5` after
 the server has only ever answered `3` is the whole defect in one number.
-Proved 3/3 red without the fix and 3/3 green with it.
+The screen is still asserted — B's row does arrive — as the positive signal that the pulls carried anything at all, so the cursor check is not passing over a dead connection. Proved 3/3 red without the fix and 3/3 green with it.
 
 Two traps the harness itself carried. **A `page.route` observer has to be
 installed before the first request it judges**, or a cursor served earlier
