@@ -63,7 +63,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-G2-04 — the durable outbox (B2, NFR-4.1), added 2026-08-21.** A new
 case in the `single` unit: pack a row offline, reload the page *while still
@@ -74,6 +74,26 @@ offline reload is the PWA's (E2E-PWA-01); the case asserts the back button
 rather than E2E-PWA-01's logo, because inside a trip the app bar carries no
 logo. **Proved red against the unfixed build**: with the outbox store
 unwired the count is simply absent after the reload.
+
+**E2E-G2-05 — a refused mutation is parked, added 2026-08-22.** The first case
+that ever drove the parked surface against a real `jitpackd`. It could not
+have existed before: the client read the rejection under `status`, a key no
+server has ever sent, so `parkedCount` stayed 0 whatever the server answered
+— and both unit suites agreed with it, because their fakes answered `status`
+too. Proved by mutation: pointing the client back at `.status` makes
+`sync-detail-parked` not exist at all.
+
+Two honesty notes. **The refusal it drives is the trip-confinement one**
+(a partial upsert on a row deleted elsewhere names no trip), not a database
+constraint; the constraint refusals of the same code path are covered in Go
+(`store/trip_constraint_test.go`, `api/push_refusal_test.go`), because no
+screen can delete a container or cut a quantity below its packed count on a
+second device inside one case. **The removal has to pack the row first**: a
+traveller leaving takes only her *packed* rows with her — an untouched row is
+detached, not deleted — which is the detail the first draft of this case got
+wrong and the run corrected. The destructive alert button is located by its
+Ionic role class rather than its label, so the case does not depend on which
+catalogue the alert renders in.
 
 Two things this unit still does *not* cover, both by decision:
 

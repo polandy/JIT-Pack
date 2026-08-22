@@ -378,4 +378,84 @@ test.describe('Single-User backend sync @single', () => {
     await ctx.close()
     await ctxFresh.close()
   })
+  /**
+   * E2E-G2-05: a mutation the server refuses is *parked*, and G-2 says so.
+   *
+   * This is the one claim the unit tests could not make. The parked surface
+   * has existed since B2, but the client read the rejection under a key no
+   * server has ever sent, so it had never once fired against a real
+   * `jitpackd` — and both suites stayed green because the client's own fakes
+   * answered that same wrong key.
+   *
+   * The story is ordinary rather than adversarial: Mia leaves the trip while
+   * Andy is on a train. Andy's phone still holds her row and queues a pack
+   * for it; by the time the queue drains, the row is gone server-side. The
+   * push must answer that one mutation as a refusal — the whole batch used
+   * to fail with a 500, which the outbox retries forever — and the client
+   * must move it out of the queue and say so.
+   */
+  test('parks a refused mutation and reports it on G-2', async ({ browser }) => {
+    const trip = `Refusal ${uniq()}`
+    const item = `Regenjacke ${uniq()}`
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA)
+    const tripPath = await createTripViaWizard(pageA, {
+      name: trip,
+      travelers: ['Andy', 'Mia'],
+    })
+    await quickAddItem(pageA, item)
+    await assignTraveler(pageA, item, 'Mia')
+    // Packed while online, so both devices agree it is packed. Only a packed
+    // row is *deleted* when its traveller leaves — an untouched one is merely
+    // detached, which is why this case has to pack first.
+    await packItem(pageA, item)
+
+    const ctxB = await browser.newContext()
+    const pageB = await bootPage(ctxB, tripPath)
+    await visiblePage(pageB).getByTestId('m4-done-bar').click()
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${item}`)).toBeVisible()
+
+    // Andy loses the network and unpacks Mia's row — a perfectly ordinary
+    // action against the state his device holds.
+    await ctxA.setOffline(true)
+    await visiblePage(pageA).getByTestId('m4-done-bar').click()
+    await visiblePage(pageA).getByTestId(`m4-row-${item}`).getByTestId('row-check').click()
+    const indicatorA = pageA.getByTestId('sync-indicator')
+    await expect(indicatorA).toHaveAttribute('data-state', 'offline')
+    await expect(indicatorA.getByTestId('sync-queue-count')).toHaveText('1')
+
+    // Mia leaves the trip on the other device. Her packed row goes with her.
+    await pageB.getByTestId('m4-edit').click()
+    await expect(visiblePage(pageB).getByTestId('trip-edit-name')).toBeVisible()
+    await visiblePage(pageB)
+      .locator('ion-button[data-testid^="traveler-remove-"]')
+      .nth(1)
+      .click()
+    // By role, not by label: the destructive choice is the one that takes
+    // her packed rows with her, and the role survives both catalogues.
+    await pageB.locator('ion-alert button.alert-button-role-destructive').click()
+    await expect(visiblePage(pageB).getByTestId('traveler-row-Mia')).toHaveCount(0)
+
+    // The row really is gone for everyone — proven on the device that
+    // deleted it, so the refusal below cannot be blamed on a stale read.
+    await pageB.getByTestId('header-back').click()
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${item}`)).toHaveCount(0)
+
+    // Andy reconnects; the trip re-open is the app's own action that drains.
+    await ctxA.setOffline(false)
+    await reopenTrip(pageA, trip)
+
+    // The queue is empty because the mutation was answered — not because it
+    // is still waiting, and not because it was silently dropped: G-2 names
+    // it as refused and kept.
+    await expect(indicatorA.getByTestId('sync-queue-count')).toHaveCount(0)
+    await indicatorA.click()
+    await expect(pageA.getByTestId('sync-detail-sheet')).toBeVisible()
+    await expect(pageA.getByTestId('sync-detail-parked')).toContainText('1')
+    await expect(pageA.getByTestId('sync-detail-parked-hint')).toBeVisible()
+
+    await ctxA.close()
+    await ctxB.close()
+  })
 })
