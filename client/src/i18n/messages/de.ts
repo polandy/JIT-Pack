@@ -866,7 +866,7 @@ export const de: Record<keyof typeof en, string> = {
 
   // G-2 Konfliktprotokoll (NFR-4.2a).
   'conflicts.title': 'Konfliktprotokoll',
-  'conflicts.titleMaster': 'Konfliktprotokoll — gemeinsame Daten',
+  'conflicts.titleMaster': 'Konflikte · Stammdaten',
   'conflicts.unavailable': 'Konfliktprotokoll nicht verfügbar — offline?',
   'conflicts.empty': 'Keine Konflikte — alles sauber zusammengeführt',
   'conflicts.emptyMaster':

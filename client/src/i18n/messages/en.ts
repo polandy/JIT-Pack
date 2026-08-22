@@ -860,7 +860,7 @@ export const en = {
 
   // G-2 conflict log (NFR-4.2a).
   'conflicts.title': 'Conflict log',
-  'conflicts.titleMaster': 'Conflict log — shared data',
+  'conflicts.titleMaster': 'Conflicts · shared data',
   'conflicts.unavailable': 'Conflict log unavailable — offline?',
   'conflicts.empty': 'No conflicts — every change merged cleanly',
   'conflicts.emptyMaster':
