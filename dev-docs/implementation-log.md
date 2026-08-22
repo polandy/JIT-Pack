@@ -126,6 +126,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [FR-27.15: the editor learns to recognise its own duplicates (2026-08-22)](#fr-2715-the-editor-learns-to-recognise-its-own-duplicates-2026-08-22) — the FR’s stated sentence named the quantity, and following it literally would have let the fold turn a per-person position trip-global in silence; the dismissal is keyed to the item set because that is what makes „has it changed“ decidable without a schema; `ion-modal` never leaves the DOM, and an `Escape` assertion that passes before the sheet has presented leaves a live overlay eating the next tap.
 - [The i18n gap that was a measurement error (2026-08-22)](#the-i18n-gap-that-was-a-measurement-error-2026-08-22) — `vue-tsc --noEmit` on a solution-style tsconfig checks nothing and exits 0, which is where the belief came from that a wrong `MessageKey` in a template ships silently; `strictTemplates` measured at 1104 errors; the real gap was the avatar crop modal, which no Playwright project can open.
 - [§3.28: the mark gets built (2026-08-22, FR-28.1–28.11, ADR-021)](#328-the-mark-gets-built-2026-08-22-fr-2812811-adr-021) — the self-hosted face is about *agreement* (🧥 is a trench coat here and a peacoat on both platforms), not availability; the substring rule was unproven until „Reise" turned up an ice cube; the seed may only speak the index's vocabulary; and a master-item edit had been silently dropping the reference photo in Local Mode.
+- [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
 
 
 ## Current state
@@ -4696,3 +4697,58 @@ inherit a mark.** The suggestion carries `source_item_id`, the free-text
 confirm creates an ad-hoc row by design (FR-28.7). The first draft of
 E2E-M9-07 added *Zelt* by free text and asserted its mark — a correct
 failure that named a real distinction, and both paths are now in the case.
+
+## M10 was not done, and the test said it was (2026-08-22)
+
+Backlog item 4 had been closed the same day: *„Every screen is on the
+catalogue."* M10 was on it — the creation form, every label, every error. What
+nobody had looked at is the half of the screen that **only exists once the item
+is saved**: the photo section, *Depends on*, the dependency picker, the
+companions list. Four headings, two hints, six controls, all in finished
+English, all rendered by a `v-if="!isCreating && item"` that the migration's
+pass over the file never entered.
+
+That is worth recording not because a screen was missed but because of **why it
+stayed missed for a whole migration**, and the answer is in the test suite.
+
+**The guard was aimed at the wrong thing.** E2E-M10-01 asserts that the
+creation form does *not* show those sections — FR-24.5's "absent, not emptied".
+It did that by their words:
+
+```ts
+await expect(form.getByText('Photo')).toHaveCount(0)
+await expect(form.getByText('Depends on')).toHaveCount(0)
+```
+
+Read it as a translator rather than as its author: the day someone renders that
+heading as *Foto*, the assertion still passes — and it passes **more** easily,
+because now nothing on the page could ever match. A negative assertion written
+against a literal does not survive the literal changing; it just stops being
+about anything. The case is on test ids now, and its positive half
+(E2E-M10-13) asserts the same two sections are *present* once the item exists,
+so an id that quietly stops rendering fails somewhere rather than satisfying
+the absence check for free.
+
+**English cannot test English.** The obvious positive case — assert the heading
+reads *Photo* — is worthless here, because that is exactly what the hard-coded
+literal produced. `t('items.editor.photo')` and the word `Photo` are the same
+pixels; only the *other* language separates them. The suite pins the app
+language to English on purpose (a German device would otherwise flip every
+assertion in the suite), so E2E-M10-13 is the one block that seeds `locale:
+'de'` — and that seed is the case, not a detail of it.
+
+**The pure domain owned a sentence.** `dependencyCycleError` lives in
+`client/src/domain`, which is pure, locale-free and exhaustively unit-tested —
+and it returned `` `dependency cycle: ${names.join(' → ')}` ``, a finished
+English sentence, straight onto M10's error line. There was no way to translate
+that screen without deciding where the words belong. They belong to the screen:
+the function now reports `{ reason: 'self' | 'cycle', names }` and M10 words it.
+The unit tests got shorter and stopped matching on prose.
+
+**A trap that cost two wrong measurements.** The e2e suite's web server is
+`npm run preview` — it serves the **built** bundle, not the sources. A mutation
+proof that edits a `.vue` file and re-runs the spec therefore tests the previous
+build and reports a cheerful pass. It did, twice, and the second time looked
+like a genuinely false-green test rather than a stale artifact. `npm run build`
+between mutation and run is not optional, and the same applies to any local
+e2e check made after touching client sources.
