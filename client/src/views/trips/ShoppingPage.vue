@@ -47,6 +47,22 @@ const activeList = computed(() =>
   tab.value === 'buy_before' ? lists.value.buyBefore : lists.value.buyLocal,
 )
 
+/**
+ * FR-25.13d closed the gap M4 closed with FR-25.13c: what the trip already
+ * carries — on either shopping tab, the packing list, or skipped — is not
+ * offered again by the composer or its browse-sheet. The rule is the trip's
+ * whole contents, not the open tab's: the item is on the trip either way,
+ * and a second row is what the duplicate report exists to prevent.
+ */
+const quickAddExcludeIds = computed(() => [
+  ...new Set(
+    store
+      .getItems(props.tripId)
+      .map((item) => item.source_item_id)
+      .filter((id): id is string => id !== null),
+  ),
+])
+
 const grouped = computed(() => {
   const groups = new Map<string, TripItem[]>()
   for (const item of activeList.value) {
@@ -106,7 +122,7 @@ setHeaderTitle(() => t('shopping.headerTitle', { trip: trip.value?.name ?? '' })
         </IonSegmentButton>
       </IonSegment>
 
-      <QuickAddItem :is-active="isActive" @add="quickAdd" />
+      <QuickAddItem :is-active="isActive" :exclude-item-ids="quickAddExcludeIds" @add="quickAdd" />
 
       <IonList v-if="grouped.length > 0">
         <IonItemGroup v-for="[category, items] in grouped" :key="category">
