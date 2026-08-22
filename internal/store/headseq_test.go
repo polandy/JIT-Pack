@@ -65,7 +65,7 @@ func seedTrip(t *testing.T, st *store.Store) {
 
 func pushItem(t *testing.T, st *store.Store, tripID, itemID, mutID string, fields map[string]any, hlc string) {
 	t.Helper()
-	_, err := st.ApplyMutation(context.Background(), tripID, sync.Mutation{
+	_, err := st.ApplyMutation(context.Background(), tripID, "user-a", sync.Mutation{
 		MutationID: mutID, Op: sync.OpInsert, Table: "trip_items",
 		ID: itemID, Fields: fields, HLC: sync.HLC(hlc),
 	})

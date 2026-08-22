@@ -132,6 +132,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [An optimistic row is a whole row (2026-08-22)](#an-optimistic-row-is-a-whole-row-2026-08-22) — a partial upsert's fields were applied as the optimistic row, which a store applies by replacing what it holds: saving a trip's name dropped its `status` and took the trip off M2 for good in Local Mode; two of the three lost fields had tests that said otherwise, one of them green only because the seeded year was the current one.
 - [The conflict log had two partitions and one query (2026-08-22)](#the-conflict-log-had-two-partitions-and-one-query-2026-08-22) — NFR-4.2a's audit filtered on `trip_id`, so every master-partition loser was written and read by nothing; the case that makes it matter is `trips`, whose own fields merge there, and the sheet's helpful-sounding hint was what hid it.
 - [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
+- [Field-level LWW was row-level, and "packed always wins" was hiding it (2026-08-22)](#field-level-lww-was-row-level-and-packed-always-wins-was-hiding-it-2026-08-22) — the store kept one `updated_hlc` per row where §6 says per field-group, so an offline pack lost to any unrelated later edit; the backlog's "packed beats everything" branch was the compensation for exactly one state, and narrowing it to the spec alone would have kept the fault and dropped the mask; ADR-022 ships a clock per field and the narrow rule together, and the conflict log now names the losing push and its actor.
 
 ## Current state
 
@@ -4985,3 +4986,48 @@ therefore a reload, not a navigation.
 Corrected on the way past: `ListConflicts`' doc comment claimed rows live
 "until the trip is archived". No compaction exists; they live as long as the
 trip's row does, by `ON DELETE CASCADE`.
+
+## Field-level LWW was row-level, and "packed always wins" was hiding it (2026-08-22)
+
+Backlog 14 (a) stood as *"`groupDecision` lets any incoming `packed` win regardless of HLC, and
+logs no conflict — needs an owner decision: spec or code."* Asked to investigate the whole
+multi-user half before choosing, the investigation changed the question.
+
+**The premise that was wrong.** NFR-4.2a and Sync-API §6 say *field-level* LWW — "apply f iff
+m.hlc > row.updated_hlc(**f-group**)". The store kept **one** `updated_hlc` per row and `Merge`
+compared every incoming field against it. The wire was already field-granular (`packItem` sends
+`state`/`packed_count`, `assignContainer` sends `container_id`); the granularity was dropped at the
+row. So an offline pack at 10:00 lost to a container assigned at 10:30 — and the reason nobody had
+seen that is the very branch the backlog item named: `packed` always winning was the compensation,
+for that one state. Every other field lost to unrelated later edits, was logged, and was told to no
+one.
+
+**Why this mattered for the decision.** "Code follows spec" — narrowing rule 2 to the pair §6
+names — would have *removed the compensation and kept the fault*: offline packing would have started
+losing to container assignments. "Spec follows code" would have kept silent reversal of deliberate
+unpacks and skips. Neither was the real decision; the real one is ADR-022, and both halves ship
+together: a clock per field (`field_hlcs` JSON column beside `updated_hlc`), and rule 2 exactly as
+narrow as written.
+
+**Two things settled while building, neither visible in the diff.**
+- **A default taken at insert time was written then.** The first store test was red for a reason
+  the sync tests could not show: the seed insert did not name `state`, so `state` had no clock and
+  fell back to the row clock — which an unrelated later edit had moved. `insertRow` stamps every
+  column of the table with the insert's clock; the fallback to the row clock is only for rows a
+  non-merging path wrote (`trip_members` owner row, the image endpoint, raw seeds), where it is the
+  only safe reading.
+- **The log names the push and the pusher now.** `conflict_log.mutation_id` groups the fields one
+  mutation lost (a revert restores `state` and `packed_count` together or not at all);
+  `actor_user_id` is who to tell. `ApplyMutation` therefore takes the acting user, which the master
+  partition's apply always had. Neither is read by the client yet — that is the next PR: the push
+  response's `conflicts[]`, which nothing reads, and *Wiederherstellen* on the conflict view.
+
+**A cost accepted.** Two devices that both set `packed` with different clocks log the older as a
+conflict whose losing and winning values are equal. Harmless in the audit; the client surface that
+follows must compare values before it says "your change lost", or it will say it to people who lost
+nothing.
+
+**Mutation proof.** `TestMerge_StalePacked_LosesToLaterStateDecision_AndIsLogged` and
+`TestMerge_UnrelatedNewerField_DoesNotDisplaceOlderPack` are each red against the previous
+`merge.go` for opposite reasons — the first because `packed` won, the second because the row clock
+did. `internal/sync` is at 100 %.

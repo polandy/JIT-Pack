@@ -371,7 +371,7 @@ type MutationResult struct {
 // ApplyMutation resolves one trip-partition mutation transactionally:
 // idempotency memo, merge per NFR-4.2a, persistence, conflict_log,
 // change_log.
-func (s *Store) ApplyMutation(ctx context.Context, tripID string, m sync.Mutation) (MutationResult, error) {
+func (s *Store) ApplyMutation(ctx context.Context, tripID, userID string, m sync.Mutation) (MutationResult, error) {
 	if err := validate(m, tripPartitionTables); err != nil {
 		return MutationResult{}, err
 	}
@@ -387,20 +387,20 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID string, m sync.Mutatio
 		return recorded, nil
 	}
 
-	current, currentHLC, exists, err := loadRow(ctx, tx, m.Table, m.ID)
+	row, err := loadRow(ctx, tx, m.Table, m.ID)
 	if err != nil {
 		return MutationResult{}, err
 	}
 
-	if !belongsToTrip(tripID, m, current, exists) {
+	if !belongsToTrip(tripID, m, row.Fields, row.Exists) {
 		res := MutationResult{MutationID: m.MutationID, Outcome: OutcomeRejected}
 		return res, finalize(ctx, tx, res)
 	}
 
-	merged := sync.Merge(current, currentHLC, exists, m)
+	merged := sync.Merge(row, m)
 
 	res := MutationResult{MutationID: m.MutationID, Outcome: string(merged.Outcome), Conflicts: merged.Conflicts}
-	changed, err := persist(ctx, tx, m.Table, m, merged, exists)
+	changed, err := persist(ctx, tx, m.Table, m, merged, row.Exists)
 	if err != nil {
 		if isConstraintViolation(err) {
 			// Ordinary offline traffic reaches this: a container deleted on
@@ -421,7 +421,7 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID string, m sync.Mutatio
 			return MutationResult{}, err
 		}
 	}
-	if err := logConflicts(ctx, tx, tripID, m, merged.Conflicts); err != nil {
+	if err := logConflicts(ctx, tx, tripID, userID, m, merged.Conflicts); err != nil {
 		return MutationResult{}, err
 	}
 	if err := recordResult(ctx, tx, res); err != nil {
@@ -511,28 +511,63 @@ func recordResult(ctx context.Context, tx *sql.Tx, res MutationResult) error {
 	return nil
 }
 
-func loadRow(ctx context.Context, tx *sql.Tx, table, id string) (fields map[string]any, hlc sync.HLC, exists bool, err error) {
+// fieldClocksColumn holds the row's per-field HLC record as a JSON object
+// (sync.FieldClocks). It is a merge input, never a synced column: clients
+// never merge (P-4), so it stays out of pull snapshots and push whitelists.
+const fieldClocksColumn = "field_hlcs"
+
+func loadRow(ctx context.Context, tx *sql.Tx, table, id string) (sync.Row, error) {
 	cols := columnList(table)
 	row := tx.QueryRowContext(ctx, fmt.Sprintf(
-		`SELECT %s, updated_hlc FROM %s WHERE id = ?`, strings.Join(cols, ", "), table), id)
+		`SELECT %s, updated_hlc, %s FROM %s WHERE id = ?`, strings.Join(cols, ", "), fieldClocksColumn, table), id)
 
-	values := make([]any, len(cols)+1)
+	values := make([]any, len(cols)+2)
 	ptrs := make([]any, len(values))
 	for i := range values {
 		ptrs[i] = &values[i]
 	}
 	if err := row.Scan(ptrs...); errors.Is(err, sql.ErrNoRows) {
-		return nil, "", false, nil
+		return sync.Row{}, nil
 	} else if err != nil {
-		return nil, "", false, fmt.Errorf("load %s %s: %w", table, id, err)
+		return sync.Row{}, fmt.Errorf("load %s %s: %w", table, id, err)
 	}
 
-	fields = make(map[string]any, len(cols))
+	fields := make(map[string]any, len(cols))
 	for i, c := range cols {
 		fields[c] = normalize(values[i])
 	}
 	hlcStr, _ := values[len(cols)].(string)
-	return fields, sync.HLC(hlcStr), true, nil
+	clocks, err := decodeClocks(values[len(cols)+1])
+	if err != nil {
+		return sync.Row{}, fmt.Errorf("load %s %s: %w", table, id, err)
+	}
+	return sync.Row{Exists: true, Fields: fields, HLC: sync.HLC(hlcStr), Clocks: clocks}, nil
+}
+
+// decodeClocks reads the field_hlcs column. An empty record is a row that
+// predates per-field clocks or was written by a non-merging path; Merge
+// treats its fields as exactly as old as the row.
+func decodeClocks(v any) (sync.FieldClocks, error) {
+	raw, _ := v.(string)
+	if b, ok := v.([]byte); ok {
+		raw = string(b)
+	}
+	clocks := sync.FieldClocks{}
+	if raw == "" {
+		return clocks, nil
+	}
+	if err := json.Unmarshal([]byte(raw), &clocks); err != nil {
+		return nil, fmt.Errorf("decode %s: %w", fieldClocksColumn, err)
+	}
+	return clocks, nil
+}
+
+func encodeClocks(clocks sync.FieldClocks) (string, error) {
+	b, err := json.Marshal(clocks)
+	if err != nil {
+		return "", fmt.Errorf("encode %s: %w", fieldClocksColumn, err)
+	}
+	return string(b), nil
 }
 
 func persist(ctx context.Context, tx *sql.Tx, table string, m sync.Mutation, merged sync.MergeResult, exists bool) (changed bool, err error) {
@@ -550,8 +585,26 @@ func persist(ctx context.Context, tx *sql.Tx, table string, m sync.Mutation, mer
 }
 
 func insertRow(ctx context.Context, tx *sql.Tx, table, id string, merged sync.MergeResult) error {
-	cols := []string{"id", "updated_hlc"}
-	args := []any{id, string(merged.RowHLC)}
+	// A column the insert did not name took its default *now*: it is as
+	// old as this write, not as old as whatever the row's HLC later
+	// becomes. Without the stamp, a pack on a row whose state was never
+	// written explicitly would fall back to the row clock and lose to an
+	// unrelated later edit — the very thing per-field clocks exist to stop.
+	stamped := make(sync.FieldClocks, len(merged.Clocks))
+	for f, c := range merged.Clocks {
+		stamped[f] = c
+	}
+	for _, c := range columnList(table) {
+		if _, ok := stamped[c]; !ok {
+			stamped[c] = merged.RowHLC
+		}
+	}
+	clocks, err := encodeClocks(stamped)
+	if err != nil {
+		return err
+	}
+	cols := []string{"id", "updated_hlc", fieldClocksColumn}
+	args := []any{id, string(merged.RowHLC), clocks}
 	for f, v := range merged.Applied {
 		cols = append(cols, f)
 		args = append(args, v)
@@ -565,8 +618,12 @@ func insertRow(ctx context.Context, tx *sql.Tx, table, id string, merged sync.Me
 }
 
 func updateRow(ctx context.Context, tx *sql.Tx, table, id string, merged sync.MergeResult) error {
-	assignments := []string{"updated_hlc = ?"}
-	args := []any{string(merged.RowHLC)}
+	clocks, err := encodeClocks(merged.Clocks)
+	if err != nil {
+		return err
+	}
+	assignments := []string{"updated_hlc = ?", fieldClocksColumn + " = ?"}
+	args := []any{string(merged.RowHLC), clocks}
 	for f, v := range merged.Applied {
 		assignments = append(assignments, f+" = ?")
 		args = append(args, v)
@@ -595,13 +652,15 @@ func appendChangeLog(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutatio
 	return seq, nil
 }
 
-func logConflicts(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutation, conflicts []sync.Conflict) error {
+// logConflicts records every field the merge dropped, naming the mutation
+// that lost them and the user who pushed it (NFR-4.2a).
+func logConflicts(ctx context.Context, tx *sql.Tx, tripID any, userID string, m sync.Mutation, conflicts []sync.Conflict) error {
 	for _, c := range conflicts {
 		losing, winning := jsonValue(c.LosingValue), jsonValue(c.WinningValue)
 		_, err := tx.ExecContext(ctx,
-			`INSERT INTO conflict_log (trip_id, entity_table, entity_id, field, losing_value, winning_value)
-			 VALUES (?, ?, ?, ?, ?, ?)`,
-			tripID, m.Table, m.ID, c.Field, losing, winning)
+			`INSERT INTO conflict_log (trip_id, entity_table, entity_id, field, losing_value, winning_value, mutation_id, actor_user_id)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			tripID, m.Table, m.ID, c.Field, losing, winning, m.MutationID, userID)
 		if err != nil {
 			return fmt.Errorf("log conflict on %s: %w", c.Field, err)
 		}
@@ -705,7 +764,11 @@ func (s *Store) loadSnapshot(ctx context.Context, table, id string) (map[string]
 		return nil, "", false, fmt.Errorf("begin snapshot read: %w", err)
 	}
 	defer tx.Rollback()
-	return loadRow(ctx, tx, table, id)
+	row, err := loadRow(ctx, tx, table, id)
+	if err != nil {
+		return nil, "", false, err
+	}
+	return row.Fields, row.HLC, row.Exists, nil
 }
 
 func columnList(table string) []string {
