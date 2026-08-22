@@ -198,9 +198,7 @@ const searchCandidates = computed<GroupSearchCandidate[]>(() => {
 })
 
 /** The field appears only above six groups — below, scanning the chips wins. */
-const pickerSearchable = computed(
-  () => searchCandidates.value.length > PICKER_SEARCH_MIN_GROUPS,
-)
+const pickerSearchable = computed(() => searchCandidates.value.length > PICKER_SEARCH_MIN_GROUPS)
 
 const pickerSearching = computed(() => pickerSearchable.value && pickerQuery.value.trim() !== '')
 
