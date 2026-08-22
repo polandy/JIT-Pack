@@ -130,6 +130,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Two halves of one refusal path (2026-08-22)](#two-halves-of-one-refusal-path-2026-08-22) — the trip partition answered 500 where the master answered `rejected`, and a 5xx is the one status the outbox retries, so one bad row wedged a partition forever; the client meanwhile read a `status` key no server has ever sent, which made the whole parked surface dead code that its own fakes kept green.
 - [The pull cursor came out of the push (2026-08-22)](#the-pull-cursor-came-out-of-the-push-2026-08-22) — the client took `pull_hint.next_cursor` as its pull cursor, stepping permanently over everything another device wrote while it was away; the e2e case that should have caught it was green against the defect, because three overlapping drains repair the skip by accident, so the assertion moved from the screen to the wire.
 - [An optimistic row is a whole row (2026-08-22)](#an-optimistic-row-is-a-whole-row-2026-08-22) — a partial upsert's fields were applied as the optimistic row, which a store applies by replacing what it holds: saving a trip's name dropped its `status` and took the trip off M2 for good in Local Mode; two of the three lost fields had tests that said otherwise, one of them green only because the seeded year was the current one.
+- [The conflict log had two partitions and one query (2026-08-22)](#the-conflict-log-had-two-partitions-and-one-query-2026-08-22) — NFR-4.2a's audit filtered on `trip_id`, so every master-partition loser was written and read by nothing; the case that makes it matter is `trips`, whose own fields merge there, and the sheet's helpful-sounding hint was what hid it.
 - [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
 
 ## Current state
@@ -4942,3 +4943,45 @@ build and reports a cheerful pass. It did, twice, and the second time looked
 like a genuinely false-green test rather than a stale artifact. `npm run build`
 between mutation and run is not optional, and the same applies to any local
 e2e check made after touching client sources.
+
+
+## The conflict log had two partitions and one query (2026-08-22)
+
+NFR-4.2a promises that every automatic resolution is auditable. The audit
+was built, and it covered one of the two sync partitions. `conflict_log`
+tells the partitions apart the way `change_log` does — a trip's rows carry
+its id, the master partition's carry NULL — and the only query filtered
+`WHERE trip_id = ?`. So every master-partition loser was written and read by
+nothing: a group renamed on two devices, an item's weight, a series.
+
+**The case that makes it matter is `trips`.** A trip's own fields — name,
+dates, year, status — are merged on the *master* partition, beside the
+templates, not in the trip's own. So the conflict a user is most likely to
+hit on a shared trip, and most likely to go looking for, was the one the
+trip's log structurally could not contain.
+
+Two things were decided rather than discovered. **The rows stay where they
+are**: routing a `trips` conflict into that trip's log would have placed one
+table's conflicts by their subject and every other table's by their
+partition, and `conflict_log.trip_id` would have stopped meaning what
+`change_log.trip_id` means. **The master log is filtered per user** through
+the same `masterVisible` the master pull uses — a conflict entry names an
+entity, and naming one the user cannot see leaks it. That is not a
+hypothetical: `trips` in the master partition is visible only to members.
+
+**The sheet's hint was the tell, and it read as helpful.** With no trip
+open, G-2's detail said *"The conflict log belongs to a trip — open one to
+see it."* Written when there was one log, it was a sentence that named a log
+the user could reach and silently denied the existence of one they could
+not. It is two buttons now.
+
+**What the e2e case had to learn.** The losing device cannot be navigated to
+by its own trip name — the name is exactly what it lost, so the helper
+searched for a row that no longer existed and the case timed out against
+correct code. And a trip open drains the *trip* partition; this rename sits
+in the master queue, which moves on the app's next start (B2). The drain is
+therefore a reload, not a navigation.
+
+Corrected on the way past: `ListConflicts`' doc comment claimed rows live
+"until the trip is archived". No compaction exists; they live as long as the
+trip's row does, by `ON DELETE CASCADE`.

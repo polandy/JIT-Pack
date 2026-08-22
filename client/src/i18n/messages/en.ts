@@ -44,8 +44,8 @@ export const en = {
   'sync.detail.explain.local':
     'Local Mode: there is no server. Everything you enter stays in this browser, on this device.',
   'sync.detail.pending': '{n} change waiting to be sent | {n} changes waiting to be sent',
-  'sync.detail.conflicts': 'Open conflict log',
-  'sync.detail.conflictsHint': 'The conflict log belongs to a trip — open one to see it.',
+  'sync.detail.conflicts': 'Conflicts in this trip',
+  'sync.detail.conflictsMaster': 'Conflicts in inventory, groups and trip data',
   'sync.detail.storage': 'On-device storage',
   'sync.detail.storageUsage': '{used} MB of {quota} MB used',
   'sync.detail.storageUnknown': 'This browser does not report how much space it uses.',
@@ -860,8 +860,11 @@ export const en = {
 
   // G-2 conflict log (NFR-4.2a).
   'conflicts.title': 'Conflict log',
+  'conflicts.titleMaster': 'Conflicts · shared data',
   'conflicts.unavailable': 'Conflict log unavailable — offline?',
   'conflicts.empty': 'No conflicts — every change merged cleanly',
+  'conflicts.emptyMaster':
+    'No conflicts in inventory, groups or trip data — every change merged cleanly',
   'conflicts.emptyValue': '—',
 
   // M20 user administration (Addendum 3.23).

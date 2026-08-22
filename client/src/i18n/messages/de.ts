@@ -43,9 +43,8 @@ export const de: Record<keyof typeof en, string> = {
     'Local Mode: Es gibt keinen Server. Alles, was du erfasst, bleibt in diesem Browser auf diesem Gerät.',
   'sync.detail.pending':
     '{n} Änderung wartet auf den Versand | {n} Änderungen warten auf den Versand',
-  'sync.detail.conflicts': 'Konfliktprotokoll öffnen',
-  'sync.detail.conflictsHint':
-    'Das Konfliktprotokoll gehört zu einer Reise — öffne eine, um es zu sehen.',
+  'sync.detail.conflicts': 'Konflikte in dieser Reise',
+  'sync.detail.conflictsMaster': 'Konflikte in Inventar, Gruppen und Reisedaten',
   'sync.detail.storage': 'Speicher auf diesem Gerät',
   'sync.detail.storageUsage': '{used} MB von {quota} MB belegt',
   'sync.detail.storageUnknown': 'Dieser Browser meldet nicht, wie viel Platz er belegt.',
@@ -867,8 +866,11 @@ export const de: Record<keyof typeof en, string> = {
 
   // G-2 Konfliktprotokoll (NFR-4.2a).
   'conflicts.title': 'Konfliktprotokoll',
+  'conflicts.titleMaster': 'Konflikte · Stammdaten',
   'conflicts.unavailable': 'Konfliktprotokoll nicht verfügbar — offline?',
   'conflicts.empty': 'Keine Konflikte — alles sauber zusammengeführt',
+  'conflicts.emptyMaster':
+    'Keine Konflikte in Inventar, Gruppen oder Reisedaten — alles sauber zusammengeführt',
   'conflicts.emptyValue': '—',
 
   // M20 Benutzerverwaltung (Addendum 3.23).

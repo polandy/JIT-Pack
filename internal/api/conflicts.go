@@ -1,9 +1,14 @@
-// Package api — conflicts.go exposes the per-trip conflict log for the
-// G-2 conflict view (NFR-4.2a: every LWW loser is auditable until the
-// trip is archived).
+// Package api — conflicts.go exposes the conflict log for the G-2
+// conflict view (NFR-4.2a: every LWW loser is auditable). There are two,
+// one per sync partition: a trip's, read by its members, and the master
+// partition's, read per user and filtered to what that user may see.
 package api
 
-import "net/http"
+import (
+	"net/http"
+
+	"jitpack/internal/store"
+)
 
 type wireConflictEntry struct {
 	ID           string `json:"id"`
@@ -21,6 +26,21 @@ func (s *Server) handleListConflicts(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "internal", "conflict log failed")
 		return
 	}
+	writeConflicts(w, entries)
+}
+
+func (s *Server) handleListMasterConflicts(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(userIDKey).(string)
+
+	entries, err := s.store.ListMasterConflicts(r.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "internal", "conflict log failed")
+		return
+	}
+	writeConflicts(w, entries)
+}
+
+func writeConflicts(w http.ResponseWriter, entries []store.ConflictEntry) {
 	out := struct {
 		Conflicts []wireConflictEntry `json:"conflicts"`
 	}{Conflicts: make([]wireConflictEntry, 0, len(entries))}
