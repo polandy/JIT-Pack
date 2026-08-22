@@ -163,12 +163,19 @@ const GROUPS: GroupSeed[] = [
   },
 ]
 
-/** The composed Vorlage: two groups plus one position of its own. */
+/**
+ * The composed Vorlage: two groups plus four positions of its own.
+ *
+ * Reiseapotheke and Blasenpflaster are loose here on purpose — together they
+ * are exactly the *Erste Hilfe* group, so a freshly seeded device meets the
+ * FR-27.15 suggestion row without anyone typing a Vorlage first.
+ */
 const VACATION = {
   name: 'Fotoreise (Beispiel)',
   includes: ['Makro Fotografie', 'Wildlife Fotografie'],
   positions: [
     { item: 'Reiseapotheke' },
+    { item: 'Blasenpflaster' },
     { item: 'Regenjacke', perPerson: true },
     { item: 'Sonnencreme', buyBefore: true },
   ] satisfies PositionSeed[],

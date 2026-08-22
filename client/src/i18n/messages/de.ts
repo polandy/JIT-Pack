@@ -196,14 +196,16 @@ export const de: Record<keyof typeof en, string> = {
   'templates.matchedVia': 'über {name}',
   'templates.alreadyIncluded': 'Bereits eingebunden',
   'templates.searchNoMatch': 'Keine Gruppe passt zu «{query}».',
-  'templates.foldSuggestion': '{n} Positionen entsprechen der Gruppe «{name}»',
+  'templates.foldSuggestion':
+    '{n} Position entspricht der Gruppe «{name}» | {n} Positionen entsprechen der Gruppe «{name}»',
   'templates.foldDeviation':
-    'Bei {n} Positionen weichen die Angaben ab — nach dem Zusammenfassen gilt die Gruppe.',
+    'Bei {n} Position weichen die Angaben ab — nach dem Zusammenfassen gilt die Gruppe. | Bei {n} Positionen weichen die Angaben ab — nach dem Zusammenfassen gilt die Gruppe.',
   'templates.foldAccept': 'Zusammenfassen',
   'templates.foldDismiss': 'Ignorieren',
-  'templates.foldDone': '«{name}» eingebunden, {n} Positionen ersetzt',
+  'templates.foldDone':
+    '«{name}» eingebunden, {n} Position ersetzt | «{name}» eingebunden, {n} Positionen ersetzt',
   'templates.foldUndo': 'Rückgängig',
-  'templates.foldUndone': '{n} Positionen wiederhergestellt',
+  'templates.foldUndone': '{n} Position wiederhergestellt | {n} Positionen wiederhergestellt',
   'templates.newGroupInline': 'Neue Gruppe anlegen…',
   'templates.groupCreated': '„{name}“ angelegt und eingebunden',
   'templates.removeGroup': 'Gruppe entfernen',

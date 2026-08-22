@@ -170,7 +170,10 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     // First position via the typed autocomplete — this also feeds the trail.
     const input = visible(page).getByTestId('quick-add-input').locator('input')
     await input.fill('Zahn')
-    await visible(page).getByTestId('quick-add-suggestion').filter({ hasText: 'Zahnbürste' }).click()
+    await visible(page)
+      .getByTestId('quick-add-suggestion')
+      .filter({ hasText: 'Zahnbürste' })
+      .click()
     await expect(
       visible(page).locator('ion-item').filter({ hasText: 'Zahnbürste' }).first(),
     ).toBeVisible()
@@ -238,9 +241,9 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     // A run: two taps, no keyboard, and each tapped row flips to the
     // "already in" state right in place — the sheet never closes between.
     await sheet.getByTestId('browse-row').filter({ hasText: 'Zahnbürste' }).click()
-    await expect(sheet.getByTestId('browse-row-carried').filter({ hasText: 'Zahnbürste' })).toContainText(
-      'already in',
-    )
+    await expect(
+      sheet.getByTestId('browse-row-carried').filter({ hasText: 'Zahnbürste' }),
+    ).toContainText('already in')
     await sheet.getByTestId('browse-row').filter({ hasText: 'Shampoo' }).click()
     await expect(sheet.getByTestId('browse-row-carried')).toHaveCount(2)
 
@@ -632,9 +635,7 @@ test.describe('M8 group picker search (FR-27.13)', () => {
     // An item name finds the groups that carry it; each row states the
     // reason ("via Kamera") and the FR-27.12 summary.
     await fillIonic(search, 'Kamera')
-    const wildlifeHit = visible(page)
-      .locator('button.result')
-      .filter({ hasText: 'Wildlife' })
+    const wildlifeHit = visible(page).locator('button.result').filter({ hasText: 'Wildlife' })
     await expect(wildlifeHit).toBeVisible()
     await expect(wildlifeHit).toContainText('via Kamera')
     await expect(wildlifeHit.locator('.preview')).toContainText('Kamera · Stativ')
@@ -667,5 +668,140 @@ test.describe('M8 group picker search (FR-27.13)', () => {
     await expect(
       visible(page).locator('ion-item h2').filter({ hasText: 'Schnorchel' }),
     ).toBeVisible()
+  })
+})
+
+/**
+ * E2E-M8-23 — recognising a Gruppe among the loose positions (FR-27.15).
+ *
+ * Two walks over the same shape. The first is the offer and the fold: what the
+ * row says before the tap, the two guards that keep it rare, the FR-27.12 peek,
+ * the swap and the undo. The second is the dismissal, which needs a reload and
+ * a changed group and would otherwise stretch the first past its budget.
+ */
+test.describe('M8 group recognition (FR-27.15)', () => {
+  // The world is built through the UI (§2.4) — the account is on E2E-M8-15.
+  test.slow()
+
+  /** Erste Hilfe (two items) + Solo (one), then a Vorlage carrying all three. */
+  async function seedWorld(page: Page) {
+    await page.goto('/tabs/templates')
+    await createTemplate(page, 'group', 'Erste Hilfe')
+    await addPosition(page, 'Reiseapotheke')
+    await addPosition(page, 'Blasenpflaster')
+    await backToList(page)
+    await createTemplate(page, 'group', 'Solo')
+    await addPosition(page, 'Zelt')
+    await backToList(page)
+
+    await createTemplate(page, 'template', 'Fototage')
+    await addPosition(page, 'Reiseapotheke')
+    await addPosition(page, 'Blasenpflaster')
+    await addPosition(page, 'Zelt')
+  }
+
+  /** Reopen the Vorlage from M7 — what a reload or a detour comes back to. */
+  async function reopenVorlage(page: Page) {
+    await visible(page).locator('ion-item').filter({ hasText: 'Fototage' }).first().click()
+    await expect(page.getByTestId('header-title')).toHaveText('Fototage')
+  }
+
+  test('E2E-M8-23: the offer states its cost, the guards hold, and the fold is undoable', async ({
+    seedMode,
+    page,
+  }) => {
+    await seedMode({ mode: 'local' })
+    await seedWorld(page)
+
+    // A deviating quantity does not block the match — it is stated (FR-27.15).
+    await visible(page).locator('ion-item').filter({ hasText: 'Reiseapotheke' }).first().click()
+    await expect(page.getByTestId('m8-position-sheet')).toBeVisible()
+    await page.getByTestId('m8-qty-inc').click()
+    await expect(page.getByTestId('m8-qty')).toHaveText('2')
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('m8-position-sheet')).toHaveCount(0)
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    const hint = visible(page).locator('.fold-hint')
+    await expect(hint).toContainText('2 positions match the group “Erste Hilfe”')
+    await expect(hint).toContainText('1 position defines something differently')
+    // The one-item group never claims the list that mentions its item — with
+    // the Erste Hilfe row beside it as the proof the detector ran at all.
+    await expect(visible(page).locator('.fold-hint').filter({ hasText: 'Solo' })).toHaveCount(0)
+
+    // FR-27.12: what the group would bring is one tap away, before the tap.
+    await hint.locator('.fold-peek').click()
+    await expect(page.getByTestId('group-peek-sheet')).toContainText('Reiseapotheke')
+    // Its own close, not Escape: the sheet's dismissal is part of the
+    // interaction, and WebKit leaves the overlay swallowing taps otherwise.
+    await page.getByTestId('group-peek-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    // An already-included group is never offered — its items are covered.
+    await includeGroup(page, 'Erste Hilfe')
+    await expect(visible(page).locator('.fold-hint')).toHaveCount(0)
+    const resolved = await visible(page)
+      .getByTestId('m8-resolution')
+      .locator('.res-big')
+      .innerText()
+    await visible(page)
+      .locator('ion-item')
+      .filter({ hasText: 'Erste Hilfe' })
+      .locator('.rm')
+      .click()
+    await expect(visible(page).locator('.fold-hint')).toHaveCount(1)
+
+    // Zusammenfassen: the positions become the include, and the resolution is
+    // the proof nothing was gained or lost.
+    await visible(page).locator('.fold-accept').click()
+    await expect(
+      visible(page).locator('ion-item h2').filter({ hasText: 'Reiseapotheke' }),
+    ).toHaveCount(0)
+    await expect(
+      visible(page).locator('ion-item h2').filter({ hasText: 'Erste Hilfe' }),
+    ).toBeVisible()
+    await expect(visible(page).getByTestId('m8-resolution').locator('.res-big')).toHaveText(
+      resolved,
+    )
+
+    // Rückgängig restores exactly what went, deviated quantity included.
+    await page.locator('ion-toast').getByRole('button', { name: 'Undo' }).click()
+    await expect(
+      visible(page).locator('ion-item h2').filter({ hasText: 'Erste Hilfe' }),
+    ).toHaveCount(0)
+    await visible(page).locator('ion-item').filter({ hasText: 'Reiseapotheke' }).first().click()
+    await expect(page.getByTestId('m8-qty')).toHaveText('2')
+  })
+
+  test('E2E-M8-23: Ignorieren survives a reload and lapses when the group changes', async ({
+    seedMode,
+    page,
+  }) => {
+    await seedMode({ mode: 'local' })
+    await seedWorld(page)
+
+    await expect(visible(page).locator('.fold-hint')).toHaveCount(1)
+    await visible(page).locator('.fold-dismiss').click()
+    // The positive signal beside the absence: the positions are untouched.
+    await expect(visible(page).locator('.fold-hint')).toHaveCount(0)
+    await expect(
+      visible(page).locator('ion-item h2').filter({ hasText: 'Reiseapotheke' }),
+    ).toBeVisible()
+
+    // Device-local memory: a reload does not re-ask.
+    await page.reload()
+    await expect(page.getByTestId('header-title')).toHaveText('Fototage')
+    await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Zelt' })).toBeVisible()
+    await expect(visible(page).locator('.fold-hint')).toHaveCount(0)
+
+    // A changed item set is a new question, so it is asked again.
+    await page.getByTestId('header-back').click()
+    await visible(page).locator('ion-item').filter({ hasText: 'Erste Hilfe' }).first().click()
+    await addPosition(page, 'Zelt')
+    await backToList(page)
+    await reopenVorlage(page)
+    await expect(visible(page).locator('.fold-hint')).toContainText(
+      '3 positions match the group “Erste Hilfe”',
+    )
   })
 })

@@ -11,7 +11,7 @@ import { IDBFactory } from 'fake-indexeddb'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
-import { PICKER_SEARCH_MIN_GROUPS } from '@/domain/templates'
+import { PICKER_SEARCH_MIN_GROUPS, matchGroupsInPositions } from '@/domain/templates'
 
 import { seedSampleMaster } from '../sampleMaster'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -87,9 +87,9 @@ describe('seedSampleMaster (dev)', () => {
 
     const resolution = master.resolve(result.vacationTemplateId)
     const own = master.getTemplateItems(result.vacationTemplateId).length
-    // 6 deduped from two groups (camera shared) + 3 of its own.
-    expect(own).toBe(3)
-    expect(resolution.positions).toHaveLength(9)
+    // 6 deduped from two groups (camera shared) + 4 of its own.
+    expect(own).toBe(4)
+    expect(resolution.positions).toHaveLength(10)
   })
 
   it('hangs an FR-27.7 preparation task off a position', () => {
@@ -194,5 +194,24 @@ describe('seedSampleData (dev)', () => {
     } as unknown as Parameters<typeof seedSampleData>[0]
 
     await expect(seedSampleData(broken)).rejects.toThrow('boom')
+  })
+})
+
+describe('sample master data, FR-27.15', () => {
+  it('leaves a whole group loose in the Vorlage, so the fold hint has something to find', () => {
+    const { result, master } = seed()
+
+    const own = master.getTemplateItems(result.vacationTemplateId)
+    const firstAid = master.templateList.find((tpl) => tpl.name === 'Erste Hilfe')!
+    const candidates = master.templateList
+      .filter((tpl) => tpl.kind === 'group')
+      .map((tpl) => ({
+        id: tpl.id,
+        name: tpl.name,
+        positions: master.resolve(tpl.id).positions,
+        included: false,
+      }))
+
+    expect(matchGroupsInPositions(own, candidates).map((m) => m.templateId)).toEqual([firstAid.id])
   })
 })
