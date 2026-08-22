@@ -580,8 +580,19 @@ A packing list is **scanned, not read**: forty rows, most of them known, the eye
   pass is **its own screen** (a new M-number, reached from the archive action and nowhere
   else) or **a mode of M4** (the list it already is, with the packed rows revealed and one
   toggle per row). The second reuses the whole rendering and the FR-25.11 facets; the first
-  cannot be walked into by accident. Decide it on a rendered pair, as §3.28 and FR-25.13c
-  were.
+  cannot be walked into by accident. **The pair is rendered**:
+  `UI_Concept_ClosingPass_variants.html` (built by `build-closing-pass-variants.mjs`, the
+  prototype's own stylesheet lifted verbatim so no difference between the two can come from
+  the CSS).
+
+  Two things the rendering settled that the argument had not. **B wins the question asked
+  first and A the question asked last:** at a hundred and twenty rows B is plainly better —
+  it brings the groups, the filter and the search — but B ends where it began, in the packing
+  list of a trip that no longer exists, while A has an exit and it leads to M14. And a **third
+  shape appeared on the page** that neither option had: *B with A's exit* — the mode of M4
+  whose *„Fertig"* archives and continues to M14 rather than merely switching the mode off.
+  That removes B's only structural loss and keeps its gain; what it does not remove is the
+  gesture collision, which is real, since press-and-hold on that row already carries FR-5.5.
 
   **Revisit trigger:** the pass is skipped every time. If it is, the pass asks the wrong
   question at the wrong moment, and the answer is not to make it harder to skip.
