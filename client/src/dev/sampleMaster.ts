@@ -69,6 +69,12 @@ const INVENTORY: ItemSeed[] = [
   { name: 'Wandersocken', tag: 'Kleidung', weightGrams: 70 },
   { name: 'Reiseapotheke', tag: 'Bad', weightGrams: 280 },
   { name: 'Sonnencreme', tag: 'Bad', weightGrams: 150 },
+  { name: 'Badetuch', tag: 'Bad', weightGrams: 400 },
+  { name: 'Badehose', tag: 'Kleidung', weightGrams: 120 },
+  { name: 'Wanderstöcke', tag: 'Camping', weightGrams: 480 },
+  { name: 'Blasenpflaster', tag: 'Bad', weightGrams: 20 },
+  { name: 'Powerbank', tag: 'Technik', weightGrams: 350 },
+  { name: 'Ladegerät', tag: 'Technik', weightGrams: 180 },
 ]
 
 /**
@@ -120,6 +126,39 @@ const GROUPS: GroupSeed[] = [
       { item: 'Isomatte', perPerson: true },
       { item: 'Stirnlampe', perPerson: true },
       { item: 'Gaskocher', task: 'Kartusche prüfen' },
+    ],
+  },
+  // The four below push the total past six, which is what makes the
+  // FR-27.13 picker search appear on a fresh device (its threshold is
+  // PICKER_SEARCH_MIN_GROUPS); they share items with the groups above on
+  // purpose, so an item search returns more than one row.
+  {
+    name: 'Strand',
+    positions: [
+      { item: 'Badetuch', perPerson: true },
+      { item: 'Badehose', perPerson: true },
+      { item: 'Sonnencreme' },
+    ],
+  },
+  {
+    name: 'Wandern',
+    positions: [
+      { item: 'Wandersocken', perPerson: true, quantity: 2 },
+      { item: 'Wanderstöcke' },
+      { item: 'Regenjacke', perPerson: true },
+      { item: 'Blasenpflaster' },
+    ],
+  },
+  {
+    name: 'Erste Hilfe',
+    positions: [{ item: 'Reiseapotheke' }, { item: 'Blasenpflaster' }],
+  },
+  {
+    name: 'Strom & Laden',
+    positions: [
+      { item: 'Powerbank', task: 'Powerbank laden' },
+      { item: 'Ladegerät' },
+      { item: 'Ersatzakkus', quantity: 2 },
     ],
   },
 ]

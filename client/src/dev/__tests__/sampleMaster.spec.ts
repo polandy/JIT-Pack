@@ -11,6 +11,8 @@ import { IDBFactory } from 'fake-indexeddb'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
+import { PICKER_SEARCH_MIN_GROUPS } from '@/domain/templates'
+
 import { seedSampleMaster } from '../sampleMaster'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { IndexedDBPersistence } from '@/local/persistence'
@@ -46,17 +48,27 @@ describe('seedSampleMaster (dev)', () => {
     const vacation = master.getTemplate(result.vacationTemplateId)
     expect(vacation?.kind).toBe('template')
     expect(master.getIncludes(result.vacationTemplateId)).toHaveLength(2)
-    expect(master.templateList.filter((t) => t.kind === 'group')).toHaveLength(3)
+    expect(master.templateList.filter((t) => t.kind === 'group')).toHaveLength(7)
   })
 
-  it('leaves one group unincluded, so M8s picker and M3s section have an offer', () => {
+  it('leaves groups unincluded, so M8s picker and M3s section have offers — enough of them that the FR-27.13 search appears', () => {
     const { result, master } = seed()
 
     const included = new Set(
       master.getIncludes(result.vacationTemplateId).map((i) => i.included_template_id),
     )
     const free = master.templateList.filter((t) => t.kind === 'group' && !included.has(t.id))
-    expect(free.map((t) => t.name)).toEqual(['Camping Basis'])
+    expect(free.map((t) => t.name)).toEqual([
+      'Camping Basis',
+      'Strand',
+      'Wandern',
+      'Erste Hilfe',
+      'Strom & Laden',
+    ])
+    // The picker's search field is gated on more than PICKER_SEARCH_MIN_GROUPS
+    // searchable groups; the seed must clear that bar on a fresh device.
+    const searchable = master.templateList.filter((t) => t.kind === 'group')
+    expect(searchable.length).toBeGreaterThan(PICKER_SEARCH_MIN_GROUPS)
   })
 
   it('gives the composition a real FR-27.2 merge to report', () => {
@@ -134,7 +146,7 @@ describe('seedSampleData (dev)', () => {
     // Two trips since FR-27.4: the sample trip is imported and therefore
     // follows nothing, so a generated one is what makes the refresh visible.
     expect(outcome.summary).toBe(
-      'Beispieldaten: 15 Artikel, 3 Gruppen, 1 Vorlage, 2 Reisen (1 geplant, mit offener Gruppenfrage)',
+      'Beispieldaten: 21 Artikel, 7 Gruppen, 1 Vorlage, 2 Reisen (1 geplant, mit offener Gruppenfrage)',
     )
   })
 
