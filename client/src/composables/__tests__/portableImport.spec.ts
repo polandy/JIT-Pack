@@ -142,7 +142,14 @@ items:
 
     expect(result.kind).toBe('trip')
     const trip = trips.getTrip(result.id)!
-    expect(trip).toMatchObject({ name: 'Engadin 2026', status: 'planning', end_date: '2026-08-10' })
+    expect(trip).toMatchObject({
+      name: 'Engadin 2026',
+      status: 'planning',
+      end_date: '2026-08-10',
+      // Derived from the dates rather than carried on the row: `duration_days`
+      // is a generated column and no pull ever brings one.
+      duration_days: 10,
+    })
 
     const travelers = trips.getTravelers(result.id)
     expect(travelers.map((t) => t.name)).toEqual(['Andy'])

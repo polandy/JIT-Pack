@@ -3,6 +3,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useTripStore } from '../tripStore'
 import type { PullChange } from '@/api/types'
 import type { Trip } from '@/types/domain'
+import { TABLE } from '@/types/tables'
 
 function makeTrip(overrides: Partial<Trip> = {}): Trip {
   return {
@@ -559,6 +560,50 @@ describe('tripStore', () => {
     const k = store.kpis('t1')
     expect(k.totalTodos).toBe(2)
     expect(k.resolvedTodos).toBe(1)
+  })
+})
+
+describe('a trip pulled from the wire', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('derives its duration from the dates, because the server never sends one', () => {
+    const store = useTripStore()
+
+    // `duration_days` is a generated column and deliberately not syncable
+    // (`syncableColumns` in internal/store/store.go), so every pull carries
+    // the dates and no duration. Reading it off the row leaves M4 and the
+    // analytics without one for every trip that arrived over the wire.
+    store.applyChange({
+      seq: 1,
+      table: TABLE.trips,
+      id: 't1',
+      deleted: false,
+      row: {
+        name: 'Samedan',
+        year: 2026,
+        status: 'planning',
+        start_date: '2026-02-01',
+        end_date: '2026-02-08',
+      },
+    })
+
+    expect(store.getTrip('t1')?.duration_days).toBe(8)
+  })
+
+  it('has no duration while one of the dates is open (FR-2.1a)', () => {
+    const store = useTripStore()
+
+    store.applyChange({
+      seq: 1,
+      table: TABLE.trips,
+      id: 't1',
+      deleted: false,
+      row: { name: 'Samedan', year: 2026, status: 'planning', end_date: '2026-02-08' },
+    })
+
+    expect(store.getTrip('t1')?.duration_days).toBeNull()
   })
 })
 
