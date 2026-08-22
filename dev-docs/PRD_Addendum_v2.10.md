@@ -523,6 +523,96 @@ A packing list is **scanned, not read**: forty rows, most of them known, the eye
 * **FR-7.3 (Preparation Todos):** Trip items can have preparation todos — small tasks that must be completed before the item is truly "ready to go" (e.g., "charge battery," "format SD card," "wash"). Todos are modeled as task-type comments (FR-7.2, `is_task = 1`) attached to a trip item. An item whose `packed_count` equals `quantity` but still has open todos is displayed as **packed with open prep** — visually distinct from fully complete — to prevent the false sense of "all done." Todos can be added and resolved directly from M5 (Item Detail) or from the Dashboard. Resolving the last open todo on a packed item transitions its visual state to fully complete. **Visibility:** All open preparation todos of a trip are visible to every trip member — not just the item's assignee — via a dedicated collapsible section in M4 and a KPI counter in the trip header. The M1 Dashboard (FR-6.1) aggregates open preparation todos across all active trips filtered to the current user's assigned items, answering "what do *I* need to prepare?" Resolution is restricted to the item's assignee or the trip owner.
   * **Open-prep is derived, never stored (clarified 2026-08-08 after a concept-testing defect).** "Has open preparation" must be computed from the todos themselves at read time. The prototype had kept a **count on the item** alongside the todos' own `done` flags, and the two drifted the moment a todo was resolved: the count stayed at 1, so a fully packed item with all its tasks finished never became done and never left the list — the FR-7.3 transition simply could not be reached. The same duplication failed in the opposite direction too: an item with a todo but no stored count showed no prep badge at all. Wherever doneness, the amber "packed with open prep" state, the badge, or the *Merkmale* facet ask about preparation, they must ask the todo list.
 
+### 3.9 Trip Feedback & Post-Trip Review
+
+* **FR-9.3 (Capturing Trip Feedback Without Visiting Every Row — new 2026-08-22, owner request):**
+  „somit sollte man eine aktive Reise editieren können, bspw. unterwegs gekauftes hinzufügen,
+  damit es auf der nächsten Reise/Template berücksichtigt wird oder Packelemente als ungenutzt
+  markieren." Both halves already work — and the asymmetry between them is the requirement.
+
+  ***Missing* costs nothing.** It is stamped by the act itself: anything typed into the M4
+  quick-add on an active trip is flagged (FR-5.6), so the user buys a travel adapter, adds it
+  to the list because they want it packed, and the feedback is a by-product of a thing they
+  wanted to do anyway. ***Unused* costs three taps per row and a decision to go looking**:
+  open the row's sheet, unfold *Details* — a block whose subtitle reads *„Wer · Beschaffung ·
+  Gepäck · Flags"* — and set a toggle. Nothing on the trip asks for it, nothing prompts, and
+  twenty overpacked things are sixty taps at the moment the user is coming home. **And the
+  window shuts before the consequence is visible**: FR-9.1 offers both flags only while the
+  trip is `active`, while FR-9.2's assistant runs on the *archived* trip. The first time
+  anyone sees what a flag was worth, it can no longer be given or taken back.
+
+  This matters more than a convenience: *unused* is the input FR-9.2 is built around
+  (overpacking), and FR-14.3's long-term trends read the same column. A flag nobody sets is
+  an assistant with nothing to assist and a trend line over an empty set.
+
+  **The decision, three parts:**
+
+  * **The judgement leaves the fold.** *ungenutzt* joins the row's **press-and-hold menu** in
+    M4, next to FR-5.5's *„Nicht einpacken"* — the idiom this app already uses for a one-word
+    judgement about a row, and one gesture from the list instead of three taps into a sheet.
+    The M5 *Details* toggles stay as the spelled-out home, exactly the menu-plus-control pair
+    FR-5.5 settled on (variants A + C there).
+  * **A closing pass at the moment of archiving.** *„Reise abschliessen"* does not archive
+    straight away: it opens **one screen listing the rows that were actually packed**, each
+    with a single *ungenutzt* toggle, and a way to finish without judging anything. This is
+    where „am Ende einmal durchgehen" lives, and it is the only point in the lifecycle where
+    the user is thinking about the whole trip at once. **Packed rows only, deliberately:** an
+    unpacked row is either FR-5.5-skipped — already a judgement, and the opposite one — or it
+    was forgotten, and neither is *unused*. The pass is skippable and produces no flags when
+    skipped; it must never become a gate in front of archiving.
+  * **The window stays open on the archived trip.** FR-9.1's `active`-only gate is dropped for
+    *unused*: the flag stays settable and revocable on an archived trip, because that is where
+    M14 shows what it did. *Missing* keeps its automatic stamp and needs no manual path
+    afterwards — a thing bought after the trip is not a thing that was missing on it. **This
+    amends FR-9.1's 2026-08-20 wording** („offered only while the trip is active"), whose
+    reason was that the flags „only mean anything on a live trip". That is true of *setting*
+    them in the moment and false of *correcting* them, and the correction is the half the
+    assistant makes visible.
+
+  *Considered and rejected:* **a multi-select mode on M4** — a second selection model on the
+  busiest screen of the app, carried year-round for a job done once per trip, and it would
+  still have to be discovered; **inferring *unused* from behaviour** (packed but never
+  touched) — the app cannot see use, and guessing here would feed FR-9.2 a fabricated opinion
+  that the user then has to argue with; **asking one row at a time in a card stack** — FR-27.11
+  rejected the stack for the same harvest, for the same reason: it hides how much is left.
+
+  **Open for the owner, and the only thing this FR leaves undecided:** whether the closing
+  pass is **its own screen** (a new M-number, reached from the archive action and nowhere
+  else) or **a mode of M4** (the list it already is, with the packed rows revealed and one
+  toggle per row). The second reuses the whole rendering and the FR-25.11 facets; the first
+  cannot be walked into by accident. Decide it on a rendered pair, as §3.28 and FR-25.13c
+  were.
+
+  **Revisit trigger:** the pass is skipped every time. If it is, the pass asks the wrong
+  question at the wrong moment, and the answer is not to make it harder to skip.
+
+* **FR-9.4 (What M14's First Pass With Real Proposals Showed — new 2026-08-22):** the review
+  assistant had never been seen with populated cards — its populated state is unreachable
+  through the app, so it was rendered from the dev fixture (`reviewFixture.ts`) for the first
+  time on 2026-08-22. Three things need deciding before FR-9.2 can be called finished, and
+  two are defects to fix with them.
+
+  * ***„Nie mehr fragen" is an unlabelled ✕.*** It carries `aria-label` and `title`, which on a
+    phone is no label at all, and it sits beside the spelled-out *„Überspringen"* while being
+    the one consequential action on the screen: device-local, permanent, **with no undo**.
+    FR-27.15 answers exactly this question for the same kind of dismissal — a worded
+    *„Ignorieren"* button, and *„Rückgängig"* on its sibling path. M14 follows that, rather
+    than inventing a second grammar for „ask me no more".
+  * **A handled card never leaves the *Offen* block.** The heading counts open proposals while
+    the cards stay where they were, so a finished pass reads *„Offen · 0"* above two cards —
+    and the block below counts one of them a second time as *„Übernommen · 1"*. FR-27.11 is
+    right that handled rows must stay visible rather than vanish; what it did not settle is
+    *where*. They move under the outcome block that already exists, and *Offen* holds only
+    what is open.
+  * **The empty state is reachable only through the ✕.** *„Nichts zu prüfen"* appears when the
+    list is empty, and applying or skipping never empties it — so the one way to see a finished
+    review is to dismiss both proposals permanently. Whatever the previous point decides,
+    it decides this one too.
+  * **Defect (open): the snackbar lands on the navigation bar.** Measured at 430×932: the toast
+    occupies 876–924, the tab bar 875–932. Every confirmation on this screen — applied,
+    skipped, never-ask — is written across the four tab labels and is cut off at the right.
+    Not M14's alone, but M14 is where every action produces one.
+
 ---
 
 ## Part C — Refined & New Non-Functional Requirements
