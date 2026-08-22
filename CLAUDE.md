@@ -119,10 +119,10 @@ it. Item numbers stay stable even as items close, because the log refers back to
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).
-8. **FR-27.13 — the M8 group picker cannot be searched** (owner-flagged 2026-08-16, specified,
-   not built). A chip row is fine at three groups and a wall at twenty. **The concept is
-   decided and written in FR-27.13** — build it against that text rather than re-deciding it;
-   restating it here would only give it a second, drifting home.
+8. ~~**FR-27.13 — the M8 group picker cannot be searched**~~ — **done** (2026-08-22): the
+   picker card carries a search above six groups, matching group and resolved item names;
+   results are FR-27.12 summary rows. Three points settled while building are recorded in
+   the FR itself, including that the promised diacritics folding existed nowhere else yet.
 9. ~~**FR-27.14 — a Vorlage cannot show its resulting items**~~ — **done** (2026-08-17): M8's
    resolution footer opens the FR-27.12 peek sheet on the Vorlage itself, each line naming its
    source. Log: *„FR-27.14: the footer stops being the whole answer"*.
