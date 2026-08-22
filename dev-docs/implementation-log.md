@@ -129,6 +129,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The trip partition was never confined to its trip (2026-08-22)](#the-trip-partition-was-never-confined-to-its-trip-2026-08-22) — membership was checked for the endpoint's trip while every statement addressed its row by primary key, so any member of any trip could read, rewrite, delete and seed every other trip's rows; the master partition had carried the equivalent check since its first day, which is why nothing looked missing.
 - [Two halves of one refusal path (2026-08-22)](#two-halves-of-one-refusal-path-2026-08-22) — the trip partition answered 500 where the master answered `rejected`, and a 5xx is the one status the outbox retries, so one bad row wedged a partition forever; the client meanwhile read a `status` key no server has ever sent, which made the whole parked surface dead code that its own fakes kept green.
 - [The pull cursor came out of the push (2026-08-22)](#the-pull-cursor-came-out-of-the-push-2026-08-22) — the client took `pull_hint.next_cursor` as its pull cursor, stepping permanently over everything another device wrote while it was away; the e2e case that should have caught it was green against the defect, because three overlapping drains repair the skip by accident, so the assertion moved from the screen to the wire.
+- [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
 
 ## Current state
 
@@ -4843,3 +4844,57 @@ hint")* invited exactly the mistake that was just taken out of `drain`.
 pulls its own canonical state" — true, and read as *pull from here*. It now
 says what it is: a signal that a pull is worth making, never the cursor to
 make it from.
+## M10 was not done, and the test said it was (2026-08-22)
+
+Backlog item 4 had been closed the same day: *„Every screen is on the
+catalogue."* M10 was on it — the creation form, every label, every error. What
+nobody had looked at is the half of the screen that **only exists once the item
+is saved**: the photo section, *Depends on*, the dependency picker, the
+companions list. Four headings, two hints, six controls, all in finished
+English, all rendered by a `v-if="!isCreating && item"` that the migration's
+pass over the file never entered.
+
+That is worth recording not because a screen was missed but because of **why it
+stayed missed for a whole migration**, and the answer is in the test suite.
+
+**The guard was aimed at the wrong thing.** E2E-M10-01 asserts that the
+creation form does *not* show those sections — FR-24.5's "absent, not emptied".
+It did that by their words:
+
+```ts
+await expect(form.getByText('Photo')).toHaveCount(0)
+await expect(form.getByText('Depends on')).toHaveCount(0)
+```
+
+Read it as a translator rather than as its author: the day someone renders that
+heading as *Foto*, the assertion still passes — and it passes **more** easily,
+because now nothing on the page could ever match. A negative assertion written
+against a literal does not survive the literal changing; it just stops being
+about anything. The case is on test ids now, and its positive half
+(E2E-M10-13) asserts the same two sections are *present* once the item exists,
+so an id that quietly stops rendering fails somewhere rather than satisfying
+the absence check for free.
+
+**English cannot test English.** The obvious positive case — assert the heading
+reads *Photo* — is worthless here, because that is exactly what the hard-coded
+literal produced. `t('items.editor.photo')` and the word `Photo` are the same
+pixels; only the *other* language separates them. The suite pins the app
+language to English on purpose (a German device would otherwise flip every
+assertion in the suite), so E2E-M10-13 is the one block that seeds `locale:
+'de'` — and that seed is the case, not a detail of it.
+
+**The pure domain owned a sentence.** `dependencyCycleError` lives in
+`client/src/domain`, which is pure, locale-free and exhaustively unit-tested —
+and it returned `` `dependency cycle: ${names.join(' → ')}` ``, a finished
+English sentence, straight onto M10's error line. There was no way to translate
+that screen without deciding where the words belong. They belong to the screen:
+the function now reports `{ reason: 'self' | 'cycle', names }` and M10 words it.
+The unit tests got shorter and stopped matching on prose.
+
+**A trap that cost two wrong measurements.** The e2e suite's web server is
+`npm run preview` — it serves the **built** bundle, not the sources. A mutation
+proof that edits a `.vue` file and re-runs the spec therefore tests the previous
+build and reports a cheerful pass. It did, twice, and the second time looked
+like a genuinely false-green test rather than a stale artifact. `npm run build`
+between mutation and run is not optional, and the same applies to any local
+e2e check made after touching client sources.
