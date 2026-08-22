@@ -487,7 +487,12 @@ describe('scopeForNewTemplate (FR-27.6)', () => {
 
 describe('searchGroups (FR-27.13)', () => {
   const candidates = [
-    { id: 'g-macro', name: 'Makro Fotografie', itemNames: ['Kamera', 'Ringlicht'], included: false },
+    {
+      id: 'g-macro',
+      name: 'Makro Fotografie',
+      itemNames: ['Kamera', 'Ringlicht'],
+      included: false,
+    },
     { id: 'g-wild', name: 'Wildlife Fotografie', itemNames: ['Kamera', 'Stativ'], included: true },
     { id: 'g-camp', name: 'Camping Basis', itemNames: ['Zelt', 'Schlafsack'], included: false },
     { id: 'g-foto', name: 'Fototasche', itemNames: ['Kamera'], included: false },
@@ -518,7 +523,11 @@ describe('searchGroups (FR-27.13)', () => {
   it('orders name matches before item matches, alphabetical within each', () => {
     // "foto" hits two names and, in Kamera-carrying groups, no item — while
     // "kamera" hits three groups through their items only.
-    expect(searchGroups('foto', candidates).map((h) => h.id)).toEqual(['g-foto', 'g-macro', 'g-wild'])
+    expect(searchGroups('foto', candidates).map((h) => h.id)).toEqual([
+      'g-foto',
+      'g-macro',
+      'g-wild',
+    ])
     expect(searchGroups('kamera', candidates).map((h) => h.id)).toEqual([
       'g-foto',
       'g-macro',
@@ -546,7 +555,7 @@ describe('searchGroups (FR-27.13)', () => {
     ])
   })
 
-  it('a blank or whitespace query returns nothing — browsing is the chips\' job', () => {
+  it("a blank or whitespace query returns nothing — browsing is the chips' job", () => {
     expect(searchGroups('', candidates)).toEqual([])
     expect(searchGroups('   ', candidates)).toEqual([])
   })

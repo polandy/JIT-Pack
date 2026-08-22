@@ -356,10 +356,7 @@ export interface GroupSearchHit {
  * writes a composition.
  */
 function foldForSearch(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase()
+  return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
 }
 
 /**
@@ -370,10 +367,7 @@ function foldForSearch(text: string): string {
  * name match. The `via` of an item match is the alphabetically first matching
  * item name, for the same determinism.
  */
-export function searchGroups(
-  query: string,
-  candidates: GroupSearchCandidate[],
-): GroupSearchHit[] {
+export function searchGroups(query: string, candidates: GroupSearchCandidate[]): GroupSearchHit[] {
   const needle = foldForSearch(query.trim())
   if (!needle) return []
   const nameHits: GroupSearchHit[] = []
