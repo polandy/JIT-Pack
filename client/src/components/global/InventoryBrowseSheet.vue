@@ -122,11 +122,7 @@ function groupLabel(key: string): string {
       <ul class="rows">
         <li v-for="item in groupItems" :key="item.id">
           <!-- A carried row is a state: same place, no control (FR-25.13d). -->
-          <div
-            v-if="carried.has(item.id)"
-            class="row is-carried"
-            data-testid="browse-row-carried"
-          >
+          <div v-if="carried.has(item.id)" class="row is-carried" data-testid="browse-row-carried">
             <span class="row-name">{{ item.name }}</span>
             <span class="carried-state" data-testid="browse-carried-state">
               {{ t('quickAdd.browseAlreadyIn') }}
