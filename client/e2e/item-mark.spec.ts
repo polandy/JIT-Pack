@@ -1,6 +1,13 @@
 import type { Page } from '@playwright/test'
 
-import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
+import {
+  test,
+  expect,
+  createTripViaWizard,
+  createTemplate,
+  addPosition,
+  openQuickAdd,
+} from './fixtures'
 
 /**
  * §3.28 — the item mark (FR-28.1–28.11, UI-Spec G-15).
@@ -230,6 +237,59 @@ test.describe('§3.28 the item mark', () => {
     // case depend on the trip list's rendering, which is E2E-M2's subject.
     await page.goto(trip)
     await expect(page.getByTestId('m4-row-Zelt').getByTestId('item-mark')).toHaveText('🎒')
+  })
+
+  // E2E-M4-48 (FR-28.4/25.1): a per-person item is named once, on the
+  // cluster head — so that is where its mark has to be. Without it, the one
+  // kind of row a family list is made of (jackets, socks, toothbrushes ×3)
+  // would lose its scan aid exactly when it is shared.
+  test('E2E-M4-48: a per-person cluster carries the mark on its head @local @m4', async ({
+    page,
+  }) => {
+    await createItem(page, 'Zelt', { mark: '⛺' })
+    await backToInventory(page)
+
+    // A group with Zelt as a per-person position (FR-25.1) …
+    await page.goto('/tabs/templates')
+    await createTemplate(page, 'group', 'Camping')
+    await addPosition(page, 'Zelt')
+    await visible(page).locator('ion-item h2').filter({ hasText: 'Zelt' }).first().click()
+    await expect(page.getByTestId('m8-position-sheet')).toBeVisible()
+    await page.getByTestId('m8-details').click()
+    await page.getByTestId('m8-assign-person').click()
+    await expect(page.getByTestId('m8-assign-person')).toHaveClass(/sel/)
+    await page.getByTestId('m8-position-close').click()
+    await expect(page.getByTestId('m8-position-sheet')).toHaveCount(0)
+
+    // … generated for two travelers is a cluster of two.
+    await page.goto('/trips/new')
+    await page.getByTestId('wizard-name').locator('input').fill('Clusterprobe')
+    await page.getByTestId('wizard-next').click()
+    await expect(page.getByTestId('wizard-step-2')).toBeVisible()
+    for (const name of ['Andy', 'Sia']) {
+      await page.getByTestId('wizard-add-traveler').click()
+      await page.getByTestId('wizard-traveler-name').last().locator('input').fill(name)
+    }
+    await page.getByTestId('wizard-next').click()
+    await expect(page.getByTestId('wizard-step-3')).toBeVisible()
+    await visible(page)
+      .getByTestId('wizard-section-groups')
+      .locator('ion-item')
+      .filter({ hasText: 'Camping' })
+      .first()
+      .locator('ion-checkbox')
+      .click()
+    await page.getByTestId('wizard-next').click()
+    await expect(page.getByTestId('wizard-step-4')).toBeVisible()
+    await page.getByTestId('wizard-create').click()
+
+    await expect(page.getByTestId('m4-child-Zelt-Andy')).toBeVisible()
+    await expect(page.getByTestId('m4-child-Zelt-Sia')).toBeVisible()
+    // The head names the item once and carries its mark; the children name
+    // the travelers and carry none (one tent, not three).
+    const head = page.getByTestId('m4-cluster-Zelt')
+    await expect(head.getByTestId('item-mark')).toHaveText('⛺')
+    await expect(page.getByTestId('m4-child-Zelt-Andy').getByTestId('item-mark')).toHaveCount(0)
   })
 
   // E2E-G15-01 (FR-28.4): the two ladders in one run, and the alignment the

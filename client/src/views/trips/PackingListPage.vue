@@ -91,7 +91,13 @@ import { useLongPress } from '@/composables/useLongPress'
 import { usePackingFilter } from '@/composables/usePackingFilter'
 import { useRowUndo, type RowUndoRecord } from '@/composables/useRowUndo'
 import { skippedVia } from '@/domain/dependencies'
-import { buildPackingView, FACET_KEYS, NO_VALUE, type PackingRow } from '@/domain/packingView'
+import {
+  buildPackingView,
+  FACET_KEYS,
+  NO_VALUE,
+  type PackingCluster,
+  type PackingRow,
+} from '@/domain/packingView'
 import { relativeStamp } from '@/domain/stamp'
 import { formatWeight } from '@/lib/format'
 import { currentLocale, t } from '@/i18n'
@@ -252,6 +258,14 @@ const openPrepItems = computed(() => store.itemsWithOpenPrep(props.tripId))
  */
 function masterOf(item: TripItem): MasterItem | null {
   return (item.source_item_id ? masterStore.getItem(item.source_item_id) : undefined) ?? null
+}
+
+/**
+ * The same resolution for a per-person cluster, which has no `TripItem` of
+ * its own — the head is the item, its children are the travelers.
+ */
+function clusterMaster(cluster: PackingCluster): MasterItem | null {
+  return (cluster.sourceItemId ? masterStore.getItem(cluster.sourceItemId) : undefined) ?? null
 }
 
 const view = computed(() =>
@@ -1259,7 +1273,18 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
               <!-- FR-25.1: a per-person item is named once, with one child
                    row per traveler under it. -->
               <div v-if="entry.kind === 'cluster'" class="cluster">
-                <div class="cluster-head">
+                <div class="cluster-head" :data-testid="`m4-cluster-${entry.name}`">
+                  <!-- FR-28.4/25.1: a per-person item is named once, here —
+                       so this is its row, and this is where its mark goes.
+                       The children name travelers, not things, and carry
+                       none: one tent, not three. -->
+                  <ItemMark
+                    :mark="clusterMaster(entry)?.icon ?? null"
+                    surface="packing"
+                    :photo-item="clusterMaster(entry)"
+                    :size="22"
+                    class="row-mark"
+                  />
                   <span class="cluster-name">{{ entry.name }}</span>
                   <IonIcon
                     v-if="modeIcon(entry.mode)"
