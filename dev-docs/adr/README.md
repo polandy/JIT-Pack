@@ -25,6 +25,7 @@ One file per decision, named `ADR-00N_Short_Title.md`, numbered in the order the
 | [017](ADR-017_Portable_Composition.md) | A portable Ferien-Vorlage carries its groups whole | Accepted |
 | [018](ADR-018_No_DDL_Migrations_In_Development.md) | No DDL migrations during the development phase — one always-current `schema.sql` | Accepted |
 | [019](ADR-019_App_Shell_Service_Worker.md) | App-shell caching is hand-rolled in the existing worker, not vite-plugin-pwa | Accepted |
+| [020](ADR-020_Touch_First_Adding.md) | Touch-first adding — chip rows now (FR-25.13c), inventory browse-sheet as the decided next stage (FR-25.13d) | Accepted |
 
 **Outbound Content Fetching** — `Vision_NorthStar` names this as the gate that must exist before any Plan-phase feature makes the server fetch external content. It had informally reserved number 007, which Session Brokering has since taken; it gets the next free number when it is written.
 

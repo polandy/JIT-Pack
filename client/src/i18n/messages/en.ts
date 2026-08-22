@@ -277,6 +277,8 @@ export const en = {
   'quickAdd.placeholder': 'Item name…',
   'quickAdd.missingHint': 'New items are flagged as missing',
   'quickAdd.newItem': 'Add “{name}” as a new item',
+  'quickAdd.relatedHeading': 'Goes with {tags}',
+  'quickAdd.recentHeading': 'Recently used',
   // FR-27.10: whole groups in the same composer.
   'quickAdd.groupsHeading': 'Add a whole group',
   'quickAdd.groupCount': '{n} position | {n} positions',

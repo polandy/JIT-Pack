@@ -282,6 +282,8 @@ export const de: Record<keyof typeof en, string> = {
   'quickAdd.placeholder': 'Name des Packelements…',
   'quickAdd.missingHint': 'Neue Packelemente werden als „fehlt“ markiert',
   'quickAdd.newItem': '„{name}“ als neues Packelement hinzufügen',
+  'quickAdd.relatedHeading': 'Passt zu {tags}',
+  'quickAdd.recentHeading': 'Zuletzt verwendet',
   // FR-27.10: ganze Gruppen im selben Composer.
   'quickAdd.groupsHeading': 'Ganze Gruppe hinzufügen',
   'quickAdd.groupCount': '{n} Position | {n} Positionen',
