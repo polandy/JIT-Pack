@@ -137,13 +137,12 @@ it. Item numbers stay stable even as items close, because the log refers back to
    tradeoff is real), **one deliberate `make visual-update`** (a new face rewrites every
    baseline, ADR-013), and the sample-data seed per the standing rule above.
 
-13. **FR-27.15 — M8 does not notice when loose positions are a group** (owner idea 2026-08-21,
-   **specified, not built**). A Ferien-Vorlage typed position by position can duplicate an
-   existing Gruppe without provenance, so FR-27.4/27.5 never reach those rows. Decided:
-   propose-don't-act (a suggestion row with *Zusammenfassen*/*Ignorieren*), match = the group's
-   complete resolved item set by master-item id, M8 only. **The concept is written in
-   FR-27.15** — build against that text; auto-convert-with-undo was the original idea and is
-   rejected *in* the FR, so don't reopen it.
+13. ~~**FR-27.15 — M8 does not notice when loose positions are a group**~~ — **done**
+   (2026-08-22): a non-blocking suggestion row per recognised group, *Zusammenfassen* on the
+   picker's write path with *Rückgängig*, *Ignorieren* device-local and keyed to the group's
+   item set. Three widenings settled while building are recorded in the FR itself — the most
+   consequential being that the stated deviation covers every generation-relevant field, not
+   only the quantity. Log: *„FR-27.15: the editor learns to recognise its own duplicates"*.
 
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,

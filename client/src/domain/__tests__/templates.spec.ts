@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  matchGroupsInPositions,
   searchGroups,
   tripsReachedBy,
   scopeForNewTemplate,
@@ -14,6 +15,7 @@ import {
   resolveTemplate,
   scopeSwitchBlock,
 } from '../templates'
+import type { GroupMatchCandidate } from '../templates'
 import type {
   MasterItem,
   Template,
@@ -562,5 +564,141 @@ describe('searchGroups (FR-27.13)', () => {
 
   it('no match returns an empty list, never a guess', () => {
     expect(searchGroups('schnorchel', candidates)).toEqual([])
+  })
+})
+
+describe('matchGroupsInPositions (FR-27.15)', () => {
+  /** A Gruppe as the editor hands it over: already resolved (FR-27.2). */
+  function candidate(
+    id: string,
+    name: string,
+    positions: TemplateItem[],
+    included = false,
+  ): GroupMatchCandidate {
+    const group = template(id, name, 'group')
+    return {
+      id,
+      name,
+      included,
+      positions: positions.map((pos) => ({
+        item_id: pos.item_id,
+        quantity: pos.quantity,
+        strategy: pos.dedup,
+        sources: [group],
+        position: pos,
+      })),
+    }
+  }
+
+  const makro = candidate('g-makro', 'Makro Fotografie', [
+    position('gm-1', 'g-makro', 'i-cam'),
+    position('gm-2', 'g-makro', 'i-lens'),
+    position('gm-3', 'g-makro', 'i-flash'),
+  ])
+
+  it('recognises a group whose complete item set sits in the own positions', () => {
+    const own = [
+      position('p-1', 'tpl', 'i-cam'),
+      position('p-2', 'tpl', 'i-lens'),
+      position('p-3', 'tpl', 'i-flash'),
+      position('p-4', 'tpl', 'i-socks'),
+    ]
+    expect(matchGroupsInPositions(own, [makro])).toEqual([
+      {
+        templateId: 'g-makro',
+        name: 'Makro Fotografie',
+        positionIds: ['p-1', 'p-2', 'p-3'],
+        deviations: 0,
+      },
+    ])
+  })
+
+  it('does not recognise a partial cover — no threshold matching (FR-27.15)', () => {
+    const own = [position('p-1', 'tpl', 'i-cam'), position('p-2', 'tpl', 'i-lens')]
+    expect(matchGroupsInPositions(own, [makro])).toEqual([])
+  })
+
+  it('never offers a group of fewer than two positions', () => {
+    const lonely = candidate('g-one', 'Nur Kamera', [position('go-1', 'g-one', 'i-cam')])
+    const own = [position('p-1', 'tpl', 'i-cam'), position('p-2', 'tpl', 'i-lens')]
+    expect(matchGroupsInPositions(own, [lonely])).toEqual([])
+  })
+
+  it('never offers a group that is already included', () => {
+    const included = candidate(
+      'g-makro',
+      'Makro Fotografie',
+      [position('gm-1', 'g-makro', 'i-cam'), position('gm-2', 'g-makro', 'i-lens')],
+      true,
+    )
+    const own = [position('p-1', 'tpl', 'i-cam'), position('p-2', 'tpl', 'i-lens')]
+    expect(matchGroupsInPositions(own, [included])).toEqual([])
+  })
+
+  it('matches by master item id, so a deviating quantity still matches and is counted', () => {
+    const group = candidate('g-a', 'Strand', [
+      position('ga-1', 'g-a', 'i-towel', { quantity: 1 }),
+      position('ga-2', 'g-a', 'i-trunks', { quantity: 1 }),
+    ])
+    const own = [
+      position('p-1', 'tpl', 'i-towel', { quantity: 3 }),
+      position('p-2', 'tpl', 'i-trunks', { quantity: 1 }),
+    ]
+    expect(matchGroupsInPositions(own, [group])[0]).toMatchObject({ deviations: 1 })
+  })
+
+  it('counts a deviating attribute too — the group governs every generated field', () => {
+    const group = candidate('g-a', 'Strand', [
+      position('ga-1', 'g-a', 'i-towel', { assignment: 'trip_global' }),
+      position('ga-2', 'g-a', 'i-trunks', { default_mode: 'pack' }),
+    ])
+    const own = [
+      position('p-1', 'tpl', 'i-towel', { assignment: 'per_person' }),
+      position('p-2', 'tpl', 'i-trunks', { default_mode: 'buy_local' }),
+    ]
+    expect(matchGroupsInPositions(own, [group])[0]).toMatchObject({ deviations: 2 })
+  })
+
+  it('orders several matches by largest set first, alphabetically within', () => {
+    const big = candidate('g-big', 'Zubehör', [
+      position('gb-1', 'g-big', 'i-cam'),
+      position('gb-2', 'g-big', 'i-lens'),
+      position('gb-3', 'g-big', 'i-flash'),
+    ])
+    const smallB = candidate('g-b', 'Beta', [
+      position('gs-1', 'g-b', 'i-cam'),
+      position('gs-2', 'g-b', 'i-lens'),
+    ])
+    const smallA = candidate('g-a', 'Alpha', [
+      position('gt-1', 'g-a', 'i-cam'),
+      position('gt-2', 'g-a', 'i-flash'),
+    ])
+    const own = [
+      position('p-1', 'tpl', 'i-cam'),
+      position('p-2', 'tpl', 'i-lens'),
+      position('p-3', 'tpl', 'i-flash'),
+    ]
+    expect(matchGroupsInPositions(own, [smallB, big, smallA]).map((m) => m.templateId)).toEqual([
+      'g-big',
+      'g-a',
+      'g-b',
+    ])
+  })
+
+  it('reports the covered position ids in the own list order, so the fold is reproducible', () => {
+    const group = candidate('g-a', 'Strand', [
+      position('ga-1', 'g-a', 'i-trunks'),
+      position('ga-2', 'g-a', 'i-towel'),
+    ])
+    const own = [
+      position('p-1', 'tpl', 'i-towel'),
+      position('p-2', 'tpl', 'i-socks'),
+      position('p-3', 'tpl', 'i-trunks'),
+    ]
+    expect(matchGroupsInPositions(own, [group])[0]!.positionIds).toEqual(['p-1', 'p-3'])
+  })
+
+  it('offers nothing when there are no own positions at all', () => {
+    expect(matchGroupsInPositions([], [makro])).toEqual([])
   })
 })

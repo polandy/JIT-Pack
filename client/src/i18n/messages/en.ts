@@ -191,6 +191,16 @@ export const en = {
   'templates.matchedVia': 'via {name}',
   'templates.alreadyIncluded': 'Already included',
   'templates.searchNoMatch': 'No group matches “{query}”.',
+  'templates.foldSuggestion':
+    '{n} position matches the group “{name}” | {n} positions match the group “{name}”',
+  'templates.foldDeviation':
+    '{n} position defines something differently — after folding, the group applies. | {n} positions define something differently — after folding, the group applies.',
+  'templates.foldAccept': 'Fold in',
+  'templates.foldDismiss': 'Ignore',
+  'templates.foldDone':
+    '“{name}” included, {n} position replaced | “{name}” included, {n} positions replaced',
+  'templates.foldUndo': 'Undo',
+  'templates.foldUndone': '{n} position restored | {n} positions restored',
   'templates.newGroupInline': 'Create new group…',
   'templates.groupCreated': '“{name}” created and included',
   'templates.removeGroup': 'Remove group',
