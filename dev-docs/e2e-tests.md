@@ -61,7 +61,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
-| M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
+| M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-FLOW-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
@@ -94,6 +94,22 @@ detached, not deleted — which is the detail the first draft of this case got
 wrong and the run corrected. The destructive alert button is located by its
 Ionic role class rather than its label, so the case does not depend on which
 catalogue the alert renders in.
+
+**E2E-M22-08 — an edited trip is still on M2, added 2026-08-22.** The trip
+editor sends a partial upsert on purpose — an upsert of the whole row would
+hand back a value another device changed meanwhile, which the field-level
+merge exists to avoid. The *optimistic* row applied locally was built from the
+same fields, and a store applies a change by replacing the row it has: saving
+a name therefore dropped `status`. M2 lists by status, so the trip left every
+segment at once, and Local Mode has no pull to bring it back.
+
+**Where the assertion goes is the whole case.** M4 still shows the trip, its
+name correctly changed, and E2E-M22-01 — which reopens exactly that screen —
+stays green against the defect. Only M2 can see it. The vitest sibling in
+`tripProperties.spec.ts` had the matching blind spot in a second way worth
+remembering: it asserted `year === 2026` under the comment *"untouched fields
+stay"*, and `rowToTrip` defaults a missing year to the current one, so the
+assertion held while the field was being dropped. It reads `2031` now.
 
 **E2E-FLOW-10 — the pull cursor only comes from a pull, added 2026-08-22.**
 The push response's `pull_hint.next_cursor` names the seq *that push* wrote;
