@@ -2,7 +2,7 @@
 
 **Document Status:** Proposed for Review
 **Basis:** ADR-001 v2 (Go + embedded SQLite), Schema v0.3 (`change_log`, `updated_hlc`), NFR-4.1/4.2/4.2a, UI-Spec G-2/G-4/G-5/G-10.
-**Revision Note (v1.3):** Adds four RPC endpoints (§8) for the new portable YAML template/trip export-import (Addendum 3.18): `GET`/`POST` pairs for templates and trips, explicitly distinguished from the existing NFR-4.5 CSV/full-JSON export endpoints. Also corrects a stale "Schema v0.2" reference to v0.3. No other changes from v1.2.
+**Revision Note (v1.3):** Adds four RPC endpoints (§8) for the new portable YAML template/trip export-import (Addendum 3.18): `GET`/`POST` pairs for templates and trips, explicitly distinguished from the existing NFR-4.5 CSV/full-JSON export endpoints. Also corrects a stale "Schema v0.2" reference to v0.3. No other changes from v1.2. **Amended 2026-08-22:** §5 and P-3 spell out that a trip mutation is confined to the trip its endpoint names. The rule was always the intent — it had never been written down, and the server did not enforce it.
 **Base URL:** `/api/v1` — JSON only, UTF-8. All timestamps ISO-8601 UTC.
 **Note on migration numbers:** this document dates several schema facts as "since migration NNN". Those numbers are **history, not files** — the migration chain was retired on 2026-08-19 (ADR-018) in favour of one always-current `internal/store/schema.sql`. The dates still say when a rule started applying; the numbers no longer point at anything to open.
 
@@ -12,7 +12,7 @@
 
 * **P-1 (One read path):** Clients receive data exclusively via the **pull endpoint**. WebSocket events are thin "something changed" pings that trigger a pull — never data carriers. One code path serves initial load, reconnect, offline catch-up, and realtime.
 * **P-2 (One write path):** Clients write exclusively via the **push endpoint** from a local outbox — also while online. "Online mode" is just "outbox drains fast" (UI-Spec G-5).
-* **P-3 (Partitioned sync):** Two partition types: one per **trip** (trip_items, travelers, containers, comments, conflict_log, trip_generated_positions) and one **master partition per user** (items, tags, item_tags, templates, template_items, template_includes, template_item_tasks, item_dependencies, trip_series, destination_*, trips metadata, trip_members, trip_template_sources, trip_applied_changes). Three of those are trip-scoped yet travel the master partition — trip_members, and since migration 023 the FR-27.4 registry and applied-changes log. **Partition membership follows who reads a table, not what it is about:** M2 renders its applied-changes chip and M8 its blast-radius note with no trip partition loaded, while the FR-27.4 ledger is only ever read beside the rows it describes and belongs with them. Visibility on the master-partition trip-scoped tables is trip membership (as for trip_members); writes are allowed to any member, since registering a source and logging an applied change are consequences of ordinary editing rather than administration.
+* **P-3 (Partitioned sync):** Two partition types: one per **trip** (trip_items, travelers, containers, comments, conflict_log, trip_generated_positions) and one **master partition per user** (items, tags, item_tags, templates, template_items, template_includes, template_item_tasks, item_dependencies, trip_series, destination_*, trips metadata, trip_members, trip_template_sources, trip_applied_changes). Three of those are trip-scoped yet travel the master partition — trip_members, and since migration 023 the FR-27.4 registry and applied-changes log. **Partition membership follows who reads a table, not what it is about:** M2 renders its applied-changes chip and M8 its blast-radius note with no trip partition loaded, while the FR-27.4 ledger is only ever read beside the rows it describes and belongs with them. Visibility on the master-partition trip-scoped tables is trip membership (as for trip_members); writes are allowed to any member, since registering a source and logging an applied change are consequences of ordinary editing rather than administration. **A partition is a boundary in both directions:** membership is checked for the trip an endpoint names, so a mutation that reaches past it is refused rather than applied — see §5.
 * **P-4 (Server is merge authority):** Conflict resolution per NFR-4.2a happens on the server during push. Clients never merge; they apply pulled state verbatim.
 * **P-5 (Idempotency everywhere):** Every mutation carries a client-generated `mutation_id` (UUID). Replays return the recorded result.
 
@@ -107,6 +107,18 @@ untouched:
   re-minted it would be a second write, not a retry. Replaying *before* the
   pull is what keeps a local change that never left the device from being
   silently overwritten by the server's older copy of the same row.
+* **A trip mutation is confined to the trip in its URL.** Authorization
+  checks membership for that trip and nothing else, while every statement
+  addresses its row by primary key — so the endpoint has to establish that
+  the row is the trip's own, or the partition reaches into every other trip.
+  A mutation is `rejected` when the row it names already belongs to another
+  trip, when its own fields name another trip (both an injected insert and a
+  row moved out of its trip), and when it would create a row without naming
+  any trip at all. A delete of a row that no longer exists stays accepted:
+  that is the ordinary idempotent retry, and it writes nothing. Without the
+  rule the damage is not only a write — the `change_log` entry lands under
+  the *pusher's* trip, so the next pull hands them the foreign row's whole
+  snapshot while the trip that owns it is never told anything changed.
 * **A refusal is parked, never retried.** A mutation answered `rejected`, and
   a whole batch refused with a 4xx that a retry cannot fix (anything but
   401/408/425/429), is moved out of the queue and kept on the device with the

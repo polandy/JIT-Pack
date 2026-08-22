@@ -489,7 +489,7 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpk
 		switch {
 		case errors.Is(err, store.ErrUnknownTable), errors.Is(err, store.ErrUnknownColumn):
 			out.Results = append(out.Results, pushResult{
-				MutationID: m.MutationID, Outcome: "rejected", Error: err.Error(),
+				MutationID: m.MutationID, Outcome: store.OutcomeRejected, Error: err.Error(),
 			})
 			continue
 		case err != nil:

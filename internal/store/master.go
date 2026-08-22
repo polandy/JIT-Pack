@@ -49,7 +49,7 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 		return MutationResult{}, err
 	}
 	if !allowed {
-		res.Outcome = "rejected"
+		res.Outcome = OutcomeRejected
 		return res, finalize(ctx, tx, res)
 	}
 
@@ -70,7 +70,7 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 			// e.g. deleting an item still referenced by a template, or two
 			// admins racing to add the same member (UNIQUE): the statement
 			// failed, the transaction survives — reject cleanly.
-			res.Outcome = "rejected"
+			res.Outcome = OutcomeRejected
 			res.Conflicts = nil
 			return res, finalize(ctx, tx, res)
 		}
@@ -225,7 +225,7 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 		// an applied change are consequences of ordinary editing, not
 		// administration, and the refresh runs on whichever device has the
 		// trip open.
-		trips := parentIDs(current, m, "trip_id")
+		trips := parentIDs(current, m, columnTripID)
 		if len(trips) == 0 {
 			return false, nil
 		}
@@ -252,7 +252,7 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 		if exists && current["role"] == RoleOwner {
 			return false, nil
 		}
-		trips := parentIDs(current, m, "trip_id")
+		trips := parentIDs(current, m, columnTripID)
 		if len(trips) == 0 {
 			return false, nil
 		}
@@ -465,10 +465,10 @@ func isConstraintViolation(err error) bool {
 // memberTrip resolves a trip_members mutation's trip id from the
 // existing row or the mutation fields.
 func memberTrip(current map[string]any, m sync.Mutation) (string, bool) {
-	if id, ok := m.Fields["trip_id"].(string); ok && id != "" {
+	if id, ok := m.Fields[columnTripID].(string); ok && id != "" {
 		return id, true
 	}
-	if id, ok := current["trip_id"].(string); ok && id != "" {
+	if id, ok := current[columnTripID].(string); ok && id != "" {
 		return id, true
 	}
 	return "", false
