@@ -310,3 +310,77 @@ export type ScopeTab = TemplateKind | 'all'
 export function scopeForNewTemplate(tab: ScopeTab): TemplateKind | null {
   return tab === 'all' ? null : tab
 }
+
+// --- FR-27.13: searching the group picker -----------------------------------
+
+/**
+ * The picker shows its search field only above this many searchable groups:
+ * below that, scanning the chips is faster than typing, and a field that is
+ * never useful is one more thing on screen (FR-27.13).
+ */
+export const PICKER_SEARCH_MIN_GROUPS = 6
+
+/** One group the picker search can look at, resolution already done. */
+export interface GroupSearchCandidate {
+  id: string
+  name: string
+  /**
+   * The group's resolved item names (FR-27.2), so an item reached through the
+   * composition matches — "Kamera" must find *Makro Fotografie*.
+   */
+  itemNames: string[]
+  /**
+   * Included groups are hidden while browsing and *shown* while searching: a
+   * search that silently drops them implies the group does not exist
+   * (FR-27.13, the FR-25.13 duplicate-report rule).
+   */
+  included: boolean
+}
+
+/** One search result, in the order the picker renders. */
+export interface GroupSearchHit {
+  id: string
+  /**
+   * The item name the match came from, `null` when the group's own name
+   * matched — a hit that matches nothing visible reads as a bug, so the row
+   * says "über Kamera".
+   */
+  via: string | null
+  included: boolean
+}
+
+/**
+ * The app's one matching rule (FR-27.13, same stance as the M4 quick-add and
+ * G-12): case- and diacritics-insensitive substring, no fuzzy matching — a
+ * wrong-but-confident hit costs more than a missed one when accepting it
+ * writes a composition.
+ */
+function foldForSearch(text: string): string {
+  return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+}
+
+/**
+ * searchGroups answers the picker's search (FR-27.13). Ordering is derived,
+ * never incidental: name matches first, item matches after, alphabetical by
+ * group name within each — two devices must not offer the same search two
+ * different orders. A group matching on both its name and an item counts as a
+ * name match. The `via` of an item match is the alphabetically first matching
+ * item name, for the same determinism.
+ */
+export function searchGroups(query: string, candidates: GroupSearchCandidate[]): GroupSearchHit[] {
+  const needle = foldForSearch(query.trim())
+  if (!needle) return []
+  const nameHits: GroupSearchHit[] = []
+  const itemHits: GroupSearchHit[] = []
+  for (const group of [...candidates].sort((a, b) => a.name.localeCompare(b.name))) {
+    if (foldForSearch(group.name).includes(needle)) {
+      nameHits.push({ id: group.id, via: null, included: group.included })
+      continue
+    }
+    const via = [...group.itemNames]
+      .sort((a, b) => a.localeCompare(b))
+      .find((name) => foldForSearch(name).includes(needle))
+    if (via !== undefined) itemHits.push({ id: group.id, via, included: group.included })
+  }
+  return [...nameHits, ...itemHits]
+}

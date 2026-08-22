@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  searchGroups,
   tripsReachedBy,
   scopeForNewTemplate,
   previewLines,
@@ -481,5 +482,85 @@ describe('scopeForNewTemplate (FR-27.6)', () => {
     // Null is "ask", not a default: guessing here would create the wrong kind
     // silently, and the kinds are not interchangeable (FR-27.1).
     expect(scopeForNewTemplate('all')).toBeNull()
+  })
+})
+
+describe('searchGroups (FR-27.13)', () => {
+  const candidates = [
+    {
+      id: 'g-macro',
+      name: 'Makro Fotografie',
+      itemNames: ['Kamera', 'Ringlicht'],
+      included: false,
+    },
+    { id: 'g-wild', name: 'Wildlife Fotografie', itemNames: ['Kamera', 'Stativ'], included: true },
+    { id: 'g-camp', name: 'Camping Basis', itemNames: ['Zelt', 'Schlafsack'], included: false },
+    { id: 'g-foto', name: 'Fototasche', itemNames: ['Kamera'], included: false },
+  ]
+
+  it('matches the group name case-insensitively', () => {
+    expect(searchGroups('camping', candidates)).toEqual([
+      { id: 'g-camp', via: null, included: false },
+    ])
+  })
+
+  it('matches diacritics-insensitively in both directions', () => {
+    const withUmlaut = [
+      { id: 'g-a', name: 'Ausrüstung', itemNames: [], included: false },
+      { id: 'g-b', name: 'Basis', itemNames: ['Föhn'], included: false },
+    ]
+    expect(searchGroups('ausru', withUmlaut)).toEqual([{ id: 'g-a', via: null, included: false }])
+    expect(searchGroups('föhn', withUmlaut)).toEqual([{ id: 'g-b', via: 'Föhn', included: false }])
+    expect(searchGroups('fohn', withUmlaut)).toEqual([{ id: 'g-b', via: 'Föhn', included: false }])
+  })
+
+  it('finds a group through its resolved items and names the item it came from', () => {
+    expect(searchGroups('stativ', candidates)).toEqual([
+      { id: 'g-wild', via: 'Stativ', included: true },
+    ])
+  })
+
+  it('orders name matches before item matches, alphabetical within each', () => {
+    // "foto" hits two names and, in Kamera-carrying groups, no item — while
+    // "kamera" hits three groups through their items only.
+    expect(searchGroups('foto', candidates).map((h) => h.id)).toEqual([
+      'g-foto',
+      'g-macro',
+      'g-wild',
+    ])
+    expect(searchGroups('kamera', candidates).map((h) => h.id)).toEqual([
+      'g-foto',
+      'g-macro',
+      'g-wild',
+    ])
+  })
+
+  it('a group matching on both name and item counts as a name match', () => {
+    const both = [{ id: 'g-k', name: 'Kamera Zubehör', itemNames: ['Kamera'], included: false }]
+    expect(searchGroups('kamera', both)).toEqual([{ id: 'g-k', via: null, included: false }])
+  })
+
+  it('the via of an item match is the alphabetically first matching item', () => {
+    const many = [
+      { id: 'g-x', name: 'Basis', itemNames: ['Kamera-Tasche', 'Kamera-Akku'], included: false },
+    ]
+    expect(searchGroups('kamera', many)).toEqual([
+      { id: 'g-x', via: 'Kamera-Akku', included: false },
+    ])
+  })
+
+  it('carries the included flag so the picker can say "bereits eingebunden"', () => {
+    expect(searchGroups('wildlife', candidates)).toEqual([
+      { id: 'g-wild', via: null, included: true },
+    ])
+  })
+
+  it("a blank or whitespace query returns nothing — browsing is the chips' job", () => {
+    expect(searchGroups('', candidates)).toEqual([])
+    expect(searchGroups('   ', candidates)).toEqual([])
+  })
+
+  it('no match returns an empty list, never a guess', () => {
+    expect(searchGroups('schnorchel', candidates)).toEqual([])
   })
 })
