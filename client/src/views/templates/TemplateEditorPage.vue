@@ -24,13 +24,21 @@ import {
   IonModal,
   toastController,
 } from '@ionic/vue'
-import { addOutline, chevronForwardOutline, closeOutline, cubeOutline } from 'ionicons/icons'
+import {
+  addOutline,
+  chevronForwardOutline,
+  closeOutline,
+  cubeOutline,
+  happyOutline,
+} from 'ionicons/icons'
 import { computed, inject, nextTick, ref } from 'vue'
 
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import PositionSheet from '@/components/templates/PositionSheet.vue'
 import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
+import ItemMark from '@/components/items/ItemMark.vue'
+import MarkPicker from '@/components/items/MarkPicker.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import {
@@ -95,6 +103,24 @@ function commitName(raw: string | null | undefined) {
   const tpl = template.value
   if (!tpl || !name || name === tpl.name) return
   orchestrator.updateTemplate(tpl, { name })
+}
+
+/** FR-28.8: a group's own mark, for the rows that offer it. */
+function groupIcon(templateId: string): string | null {
+  return masterStore.getTemplate(templateId)?.icon ?? null
+}
+
+// --- The mark (FR-28.8) ----------------------------------------------------
+//
+// The same field items carry, on the same terms — and not scope creep: the
+// concept prototype has shown 📷 Makro Fotografie and ⛺ Camping Basis since
+// §3.27, every one of them hardcoded in the mock.
+
+const markPickerOpen = ref(false)
+
+function setMark(next: string | null) {
+  const tpl = template.value
+  if (tpl) orchestrator.updateTemplate(tpl, { icon: next })
 }
 
 // --- Scope switch, guarded (FR-27.6) ---------------------------------------
@@ -404,15 +430,34 @@ const mergeLines = computed(() =>
 
       <template v-else>
         <div class="ion-padding head-block">
-          <IonInput
-            :value="template.name"
-            class="name-field"
-            data-testid="m8-name"
-            :aria-label="t('templates.namePlaceholder')"
-            @ionBlur="
-              (e: CustomEvent) => commitName((e.target as HTMLIonInputElement).value as string)
-            "
-            @keyup.enter="(e: KeyboardEvent) => (e.target as HTMLElement).blur()"
+          <div class="name-line">
+            <button
+              class="mark-button"
+              data-testid="m8-mark"
+              :aria-label="t('marks.choose')"
+              @click="markPickerOpen = true"
+            >
+              <ItemMark v-if="template.icon" :mark="template.icon" surface="plain" :size="28" />
+              <IonIcon v-else :icon="happyOutline" aria-hidden="true" />
+            </button>
+            <IonInput
+              :value="template.name"
+              class="name-field"
+              data-testid="m8-name"
+              :aria-label="t('templates.namePlaceholder')"
+              @ionBlur="
+                (e: CustomEvent) => commitName((e.target as HTMLIonInputElement).value as string)
+              "
+              @keyup.enter="(e: KeyboardEvent) => (e.target as HTMLElement).blur()"
+            />
+          </div>
+
+          <MarkPicker
+            :is-open="markPickerOpen"
+            :name="template.name"
+            :current="template.icon ?? null"
+            @pick="setMark"
+            @close="markPickerOpen = false"
           />
 
           <!-- FR-27.6: the scope decides the editor's shape, so it is stated
@@ -457,7 +502,18 @@ const mergeLines = computed(() =>
               :detail="false"
               :data-testid="`m8-group-${inc.included_template_id}`"
             >
-              <IonIcon :icon="cubeOutline" class="group-icon" slot="start" />
+              <!-- FR-28.8: the group's own mark where it has one; the generic
+                   cube stays the fallback, because a group without a mark is
+                   still a group and the column must not collapse. -->
+              <ItemMark
+                v-if="groupIcon(inc.included_template_id)"
+                slot="start"
+                :mark="groupIcon(inc.included_template_id)"
+                surface="plain"
+                :size="22"
+                class="group-icon"
+              />
+              <IonIcon v-else :icon="cubeOutline" class="group-icon" slot="start" />
               <IonLabel>
                 <h2>{{ groupName(inc.included_template_id) }}</h2>
                 <p>{{ t('templates.itemCount', { n: groupCount(inc.included_template_id) }) }}</p>
@@ -1205,5 +1261,33 @@ const mergeLines = computed(() =>
   margin: 10px auto 4px;
   border-radius: var(--jp-r-pill);
   background: var(--ct-surface1);
+}
+
+/* FR-28.8: the mark sits where the prototype always drew it — left of the
+   name, at the same optical weight. The empty state is an outline icon, not
+   a pale emoji: a mark is content, and chrome must not borrow its face. */
+.name-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.name-line .name-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.mark-button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border: none;
+  border-radius: var(--jp-r-md);
+  background: var(--jp-surface-sunken);
+  color: var(--ct-overlay0);
+  font-size: var(--jp-icon-md);
+  cursor: pointer;
 }
 </style>

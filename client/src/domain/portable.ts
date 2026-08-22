@@ -81,6 +81,8 @@ function coerceQuantity(raw: unknown): number {
 
 export interface PortableItem {
   name: string
+  /** FR-28.1/28.10: the master item's mark, absent as often as not. */
+  icon: string | null
   quantity: number
   /** FR-27.7 preparation tasks of a template position. Empty on trip items. */
   tasks: string[]
@@ -105,6 +107,8 @@ export interface PortableItem {
  */
 export interface PortableGroup {
   name: string
+  /** FR-28.8/28.10: carried whole with the group, like its positions. */
+  icon: string | null
   items: PortableItem[]
 }
 
@@ -158,6 +162,8 @@ export interface PortableDocument {
    * the same default migration 016 applies.
    */
   scope?: TemplateKind
+  /** FR-28.8/28.10: the template's own mark. Always null on a trip. */
+  icon: string | null
   /**
    * FR-2.1b: the trip's year. Absent in files written before it existed,
    * where the (then required) end date carries the same information —
@@ -276,7 +282,7 @@ function fromRaw(raw: unknown): ParseResult {
       }
       groupItems.push(item)
     }
-    includes.push({ name: groupName, items: groupItems })
+    includes.push({ name: groupName, icon: str(g['icon']), items: groupItems })
   }
 
   const rawScope = obj['scope']
@@ -304,6 +310,7 @@ function fromRaw(raw: unknown): ParseResult {
       schema_version: schemaVersion,
       name,
       ...(kind === 'template' ? { scope } : {}),
+      icon: str(obj['icon']),
       start_date: str(obj['start_date']),
       year: num(obj['year']),
       end_date: str(obj['end_date']),
@@ -421,6 +428,7 @@ export function serializeTemplate(
         const tasks = tasksOf?.(ti.id) ?? []
         return {
           name: master?.name ?? 'Unknown item',
+          ...(master?.icon ? { icon: master.icon } : {}),
           quantity: ti.quantity,
           assignment: ti.assignment,
           ...(ti.conditions ? { conditions: ti.conditions } : {}),
@@ -435,6 +443,7 @@ export function serializeTemplate(
   const includes = (composition.includes ?? [])
     .map((group) => ({
       name: group.template.name,
+      ...(group.template.icon ? { icon: group.template.icon } : {}),
       items: positions(group.items, group.tasks),
     }))
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -444,6 +453,7 @@ export function serializeTemplate(
     schema_version: PORTABLE_SCHEMA_VERSION,
     name: template.name,
     scope: template.kind,
+    ...(template.icon ? { icon: template.icon } : {}),
     // Omitted rather than empty: a group has no composition, and an empty key
     // in every group's file would invite the reader to wonder what it means.
     ...(includes.length > 0 ? { includes } : {}),
@@ -599,6 +609,7 @@ function toItem(entry: unknown): PortableItem | null {
   if (name === '') return null
   return {
     name,
+    icon: str(o['icon']),
     quantity: coerceQuantity(o['quantity']),
     // Strings only: a task list that quietly swallowed a number would read
     // back as "1" and claim the user wrote it.

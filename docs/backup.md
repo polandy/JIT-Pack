@@ -289,16 +289,23 @@ that has never seen those groups:
 kind: template
 scope: template
 name: Fototage
+icon: "📷"
 includes:
   - name: Makro Fotografie
+    icon: "📷"
     items:
       - name: Kamera
+        icon: "📷"
         quantity: 1
         tasks: ["Charge the batteries"]
 items:
   - name: First-aid kit
     quantity: 1
 ```
+
+`icon:` is the optional mark — one emoji, on the template, on each group and on each item.
+It is left out where there is none, and a file written before the field existed imports
+without one.
 
 **On import, a group of the same name is linked, never overwritten.** The name is how a
 group is recognised across instances. If your instance already has a group called

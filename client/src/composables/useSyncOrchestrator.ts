@@ -1836,11 +1836,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     name: string,
     items: PortableItem[],
     resolveItem: (item: PortableItem) => string | null,
+    icon: string | null = null,
   ): string {
     const existing = masterStore.templateList.find((t) => t.kind === 'group' && t.name === name)
     if (existing) return existing.id
 
-    const created = mutations.createTemplate(name, '', 'group')
+    const created = mutations.createTemplate(name, '', 'group', icon)
     onPullChanges([
       {
         seq: 0,
@@ -1978,7 +1979,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       const merged = mergeDecisions.get(item.name)
       if (merged) return merged
       if (doc.kind === 'trip') return null // unmatched trip rows stay ad-hoc
-      const { mutation, id } = mutations.createMasterItem(item.name)
+      const { mutation, id } = mutations.createMasterItem(item.name, { icon: item.icon })
       onPullChanges([
         {
           seq: 0,
@@ -1995,7 +1996,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     if (doc.kind === 'template' && doc.scope === 'group') {
       // A group document is the same group the Vorlagen carry nested, so it
       // obeys the same identity rule rather than arriving as a copy.
-      const groupId = ensureGroup(doc.name, doc.items, resolveItem)
+      const groupId = ensureGroup(doc.name, doc.items, resolveItem, doc.icon)
       if (!local) {
         syncStatus.setPendingCount(outbox.totalPending())
         drainMaster().catch(() => {})
@@ -2009,7 +2010,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       // merging them would lose one, so only groups link (ADR-017).
       const taken = new Set(masterStore.templateList.map((t) => t.name))
       const name = taken.has(doc.name) ? `${doc.name} (import)` : doc.name
-      const { mutation, id: templateId } = mutations.createTemplate(name, '', 'template')
+      const { mutation, id: templateId } = mutations.createTemplate(name, '', 'template', doc.icon)
       onPullChanges([
         {
           seq: 0,
@@ -2026,7 +2027,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       // FR-27.1/ADR-017: the file brought its groups whole, and each is
       // linked or created by name — never rewritten.
       for (const group of doc.includes) {
-        const groupId = ensureGroup(group.name, group.items, resolveItem)
+        const groupId = ensureGroup(group.name, group.items, resolveItem, group.icon)
 
         const inc = mutations.addTemplateInclude(templateId, groupId)
         onPullChanges([
@@ -2335,8 +2336,13 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    *
    * The scope is chosen at creation and never derived from usage (FR-27.1):
    * a group nothing includes yet would otherwise be unclassifiable. */
-  function createTemplate(name: string, kind: TemplateKind = 'template'): string {
-    const { mutation, id } = mutations.createTemplate(name, '', kind)
+  function createTemplate(
+    name: string,
+    kind: TemplateKind = 'template',
+    /** FR-28.8: the optional mark, set at creation by the seed and the import. */
+    icon: string | null = null,
+  ): string {
+    const { mutation, id } = mutations.createTemplate(name, '', kind, icon)
     enqueueAndDrain('master', null, {
       mutation,
       optimistic: {
@@ -3366,11 +3372,16 @@ async function hashBlob(blob: Blob): Promise<string> {
     .join('')
 }
 
+// The base an optimistic row is rebuilt on, so every column the store keeps
+// must appear here: a field left out is blanked until the next pull puts it
+// back. That is how editing a weight used to drop the reference photo.
 function masterItemRow(item: MasterItem): Record<string, unknown> {
   return {
     name: item.name,
     weight_grams: item.weight_grams,
     value_cents: item.value_cents,
+    image_hash: item.image_hash ?? null,
+    icon: item.icon ?? null,
   }
 }
 
@@ -3379,6 +3390,7 @@ function templateRow(template: Template): Record<string, unknown> {
     owner_id: template.owner_id,
     name: template.name,
     kind: template.kind,
+    icon: template.icon ?? null,
   }
 }
 

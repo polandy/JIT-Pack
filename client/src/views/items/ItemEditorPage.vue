@@ -39,6 +39,7 @@ import {
   checkmarkOutline,
   chevronDownOutline,
   closeOutline,
+  happyOutline,
   trashOutline,
   warningOutline,
 } from 'ionicons/icons'
@@ -49,6 +50,8 @@ import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import SaveIndicator from '@/components/global/SaveIndicator.vue'
+import ItemMark from '@/components/items/ItemMark.vue'
+import MarkPicker from '@/components/items/MarkPicker.vue'
 import { t } from '@/i18n'
 import type { Tag } from '@/types/domain'
 
@@ -72,6 +75,8 @@ const saveState = computed(() => orchestrator.syncStatus.state.value)
 
 const draftName = ref('')
 const draftTagIds = ref<string[]>([])
+// FR-28.1: staged while creating, live once saved — like the tags above it.
+const draftIcon = ref<string | null>(null)
 const draftWeight = ref('')
 const draftPrice = ref('')
 const showMore = ref(false)
@@ -169,6 +174,7 @@ async function createItem() {
   const id = orchestrator.createMasterItem(name, {
     weightGrams: isNaN(weight) ? null : weight,
     valueCents: isNaN(price) ? null : Math.round(price * 100),
+    icon: draftIcon.value,
   })
   for (const tagId of draftTagIds.value) orchestrator.assignTag(id, tagId)
 
@@ -189,6 +195,27 @@ async function createItem() {
 function updateField(field: string, value: unknown) {
   if (!item.value) return
   orchestrator.updateMasterItem(item.value, { [field]: value })
+}
+
+// --- The mark (FR-28.1/28.2) ---
+
+const pickerOpen = ref(false)
+
+/** What the editor shows and what the picker's removal offer keys off. */
+const mark = computed(() => (isCreating.value ? draftIcon.value : (item.value?.icon ?? null)))
+
+/**
+ * The name the suggestion reads. While creating that is the draft, so the
+ * offer follows the field as it is typed; afterwards it is the saved name.
+ */
+const markName = computed(() => (isCreating.value ? draftName.value : (item.value?.name ?? '')))
+
+function setMark(next: string | null) {
+  if (isCreating.value) {
+    draftIcon.value = next
+    return
+  }
+  updateField('icon', next)
 }
 
 function onNameChange(event: CustomEvent) {
@@ -329,6 +356,20 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 
         <IonList>
           <IonItem>
+            <!-- G-15/FR-28.1: the mark sits left of the name field, and never
+                 blocks — creating works with it untouched, which is what keeps
+                 absence a first-class state rather than a gap people fill
+                 with 📦. -->
+            <button
+              slot="start"
+              class="mark-button"
+              data-testid="m10-mark"
+              :aria-label="t('marks.choose')"
+              @click="pickerOpen = true"
+            >
+              <ItemMark v-if="mark" :mark="mark" surface="plain" :size="28" />
+              <IonIcon v-else :icon="happyOutline" aria-hidden="true" />
+            </button>
             <IonLabel position="stacked">{{ t('items.editor.name') }}</IonLabel>
             <IonInput
               v-if="isCreating"
@@ -342,6 +383,14 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
             <IonInput v-else :value="item!.name" data-testid="m10-name" @ionBlur="onNameChange" />
           </IonItem>
         </IonList>
+
+        <MarkPicker
+          :is-open="pickerOpen"
+          :name="markName"
+          :current="mark"
+          @pick="setMark"
+          @close="pickerOpen = false"
+        />
 
         <IonNote v-if="nameError" color="danger" class="field-error" data-testid="m10-name-error">
           <IonIcon :icon="warningOutline" />
@@ -706,5 +755,23 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
   border-radius: var(--jp-r-sm);
   padding: 8px;
   margin-top: 8px;
+}
+
+/* G-15: the same control M8 carries, so the two editors read alike. The
+   empty state is an outline icon rather than a pale emoji — chrome must not
+   borrow the mark's face (FR-28.5). */
+.mark-button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  margin-inline-end: 12px;
+  border: none;
+  border-radius: var(--jp-r-md);
+  background: var(--jp-surface-sunken);
+  color: var(--ct-overlay0);
+  font-size: var(--jp-icon-md);
+  cursor: pointer;
 }
 </style>

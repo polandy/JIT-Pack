@@ -219,6 +219,9 @@ export interface MasterItem {
   /** FR-22.1: hash of the item's reference photo, null when it has none.
    * The bytes are fetched lazily via GET /items/{id}/image (never synced). */
   image_hash?: string | null
+  /** FR-28.1: the optional item mark — one emoji, or absent, which is a
+   * first-class state and not a gap to be filled. */
+  icon?: string | null
 }
 
 /**
@@ -236,6 +239,8 @@ export interface Template {
   owner_id: string
   name: string
   kind: TemplateKind
+  /** FR-28.8: the same optional mark items carry, on the same terms. */
+  icon?: string | null
 }
 
 /** FR-27.1: one (Ferien-Vorlage, Gruppe) pair — groups are referenced, never copied. */

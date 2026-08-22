@@ -43,6 +43,7 @@ import { loadTokens } from '@/auth/tokens'
 import { t } from '@/i18n'
 import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
+import ItemMark from '@/components/items/ItemMark.vue'
 import {
   PREVIEW_ROW_NAMES,
   previewLines,
@@ -833,6 +834,15 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
                 :checked="selectedTemplateIds.has(row.template.id)"
                 @ionChange="(e: CustomEvent) => toggleTemplate(row.template.id, e.detail.checked)"
               />
+              <!-- FR-28.8: the same mark the group carries everywhere else,
+                   on the column-holding ladder for the same reason M7 uses
+                   it — see the note there. -->
+              <ItemMark
+                :mark="row.template.icon ?? null"
+                surface="packing"
+                :size="20"
+                class="pick-mark"
+              />
               <IonLabel>
                 <h3>{{ row.template.name }}</h3>
                 <p :data-testid="`wizard-count-${row.template.id}`">
@@ -869,6 +879,15 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
                 :data-testid="`wizard-pick-${row.template.id}`"
                 :checked="selectedTemplateIds.has(row.template.id)"
                 @ionChange="(e: CustomEvent) => toggleTemplate(row.template.id, e.detail.checked)"
+              />
+              <!-- FR-28.8: the same mark the group carries everywhere else,
+                   on the column-holding ladder for the same reason M7 uses
+                   it — see the note there. -->
+              <ItemMark
+                :mark="row.template.icon ?? null"
+                surface="packing"
+                :size="20"
+                class="pick-mark"
               />
               <IonLabel>
                 <h3>{{ row.template.name }}</h3>
@@ -1357,5 +1376,9 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
   justify-content: flex-end;
   gap: 8px;
   margin-top: 24px;
+}
+
+.pick-mark {
+  margin-inline-end: 8px;
 }
 </style>

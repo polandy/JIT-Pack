@@ -77,6 +77,13 @@ export interface PackingCluster {
   /** The mode glyph sits once on the cluster header, not on each child (FR-25.4a). */
   mode: ItemMode
   latePacker: boolean
+  /**
+   * The master item every instance came from, or null for an ad-hoc name.
+   * The head names the item once, so it is the head that renders the item's
+   * mark and photo (FR-28.4/28.7) — and a cluster whose visible children are
+   * all packed away still has to know whose mark it carries.
+   */
+  sourceItemId: string | null
 }
 
 export type PackingEntry = PackingRow | PackingCluster
@@ -390,6 +397,7 @@ export function buildPackingView(input: PackingViewInput): PackingView {
         children: [],
         mode: item.mode,
         latePacker: false,
+        sourceItemId: item.source_item_id ?? null,
       }
       clusters.set(scopedKey, cluster)
       group.entries.push(cluster)

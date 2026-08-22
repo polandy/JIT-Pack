@@ -59,6 +59,19 @@ const (
 	TableTripAppliedChanges     = "trip_applied_changes"
 )
 
+// The item mark (§3.28), named once because three layers compare against
+// it: the schema's CHECK, the handler's cap, and the sync whitelist.
+const (
+	// MarkColumn is the column carrying one optional emoji on items and
+	// templates alike (FR-28.1/28.8).
+	MarkColumn = "icon"
+	// MarkMaxBytes is the whole of the server's validation (FR-28.9). It
+	// holds any single emoji including a ZWJ sequence with modifiers; the
+	// curated index the client picks from lives client-side, because the
+	// mark is a display preference and not a security boundary.
+	MarkMaxBytes = 32
+)
+
 // The trip roles (FR-4.5/4.7), named once: they are compared against in
 // every authorization decision, and a mistyped literal reads as "not that
 // role" rather than as a build failure.
@@ -114,13 +127,14 @@ var syncableColumns = map[string]map[string]bool{
 		"name", "weight_grams", "value_cents",
 		"created_by",
 		"image_hash",
+		MarkColumn,
 	),
 	// is_published stays in the schema but off this list: the publish gate
 	// is parked with the FR-1.6 MVP simplification (templates are shared
 	// instance-wide), and an unreadable column no client can set is the
 	// honest state until the stub's revisit trigger fires.
 	TableTemplates: toSet(
-		"owner_id", "name", "kind",
+		"owner_id", "name", "kind", MarkColumn,
 	),
 	TableTemplateItems: toSet(
 		"template_id", "item_id", "quantity", "assignment",

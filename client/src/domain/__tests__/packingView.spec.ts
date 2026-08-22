@@ -219,6 +219,22 @@ describe('per-person clusters (FR-25.1)', () => {
     expect(entry.children.map((c) => c.traveler?.name)).toEqual(['Andy', 'Leo', 'Mia'])
   })
 
+  it('carries the master item the instances came from, so the head can render its mark (FR-28.4)', () => {
+    const result = view([shorts(andy), shorts(leo)])
+    const [entry] = result.groups[0]?.entries ?? []
+    if (entry?.kind !== 'cluster') throw new Error('expected a cluster')
+    expect(entry.sourceItemId).toBe('src-shorts')
+
+    // An ad-hoc name clusters by name and has no master item behind it.
+    const adHoc = view([
+      item({ name: 'Velohelm', source_item_id: null, assigned_traveler_id: andy.id }),
+      item({ name: 'Velohelm', source_item_id: null, assigned_traveler_id: leo.id }),
+    ])
+    const [bare] = adHoc.groups[0]?.entries ?? []
+    if (bare?.kind !== 'cluster') throw new Error('expected a cluster')
+    expect(bare.sourceItemId).toBeNull()
+  })
+
   it('names the item once and counts done/total over its instances', () => {
     const result = view(
       [shorts(andy), shorts(leo, { quantity: 2, packed_count: 2, state: 'packed' })],

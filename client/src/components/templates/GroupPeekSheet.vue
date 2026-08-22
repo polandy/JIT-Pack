@@ -19,6 +19,7 @@ import { computed } from 'vue'
 import { t } from '@/i18n'
 import { resolvedLines, type ResolvedLine } from '@/domain/templates'
 import { useMasterStore } from '@/stores/masterStore'
+import ItemMark from '@/components/items/ItemMark.vue'
 
 const props = defineProps<{ templateId: string }>()
 const emit = defineEmits<{ close: [] }>()
@@ -65,6 +66,8 @@ function marksOf(line: ResolvedLine): string[] {
 <template>
   <section class="sheet-body" data-testid="group-peek-sheet">
     <header class="head">
+      <!-- FR-28.8: the sheet names the group, so it carries its mark too. -->
+      <ItemMark :mark="template?.icon ?? null" surface="plain" :size="24" class="head-mark" />
       <div class="titles">
         <h1 class="jp-sheet-title" data-testid="group-peek-name">
           {{ template?.name ?? t('templates.notFound') }}
@@ -111,6 +114,10 @@ function marksOf(line: ResolvedLine): string[] {
   align-items: flex-start;
   gap: 10px;
   padding-bottom: 12px;
+}
+
+.head-mark {
+  padding-top: 2px;
 }
 
 .titles {

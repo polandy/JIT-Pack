@@ -476,6 +476,14 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpk
 		if prepare != nil {
 			prepare(&mut)
 		}
+		// FR-28.9: refused by length before the store sees it, so the client
+		// is told which field was wrong rather than meeting a CHECK.
+		if err := capMark(&mut); err != nil {
+			out.Results = append(out.Results, pushResult{
+				MutationID: m.MutationID, Outcome: "rejected", Error: err.Error(),
+			})
+			continue
+		}
 		muts = append(muts, mut)
 		res, err := apply(mut)
 		switch {

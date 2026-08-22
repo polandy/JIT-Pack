@@ -42,7 +42,7 @@ import {
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMasterStore } from '@/stores/masterStore'
-import ItemThumbnail from '@/components/items/ItemThumbnail.vue'
+import ItemMark from '@/components/items/ItemMark.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
@@ -211,10 +211,18 @@ function handleRefresh(event: CustomEvent) {
               :router-link="`/items/${item.id}`"
               data-testid="m9-row"
             >
-              <ItemThumbnail v-if="item.image_hash" slot="start" :item="item" :size="34" />
-              <div v-else slot="start" class="tag-avatar" aria-hidden="true">
-                {{ avatarGlyph(key) }}
-              </div>
+              <!-- FR-28.4: photo → mark → the tag initial. The inventory is
+                   where an item is identified, so this ladder never ends in
+                   nothing and the column stays aligned. -->
+              <ItemMark
+                slot="start"
+                :mark="item.icon ?? null"
+                surface="inventory"
+                :photo-item="item"
+                :initial="avatarGlyph(key)"
+                :size="34"
+                class="row-mark"
+              />
 
               <IonLabel>
                 <h2>{{ item.name }}</h2>
@@ -297,18 +305,9 @@ function handleRefresh(event: CustomEvent) {
   color: var(--ion-color-medium);
 }
 
-/* The primary tag's initial. A glyph box, not body copy — sized from the
-   icon scale for the same reason ion-icon is (invariant 9). */
-.tag-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--jp-r-md);
-  background: var(--jp-surface-sunken);
-  color: var(--ion-color-medium);
-  font-size: var(--jp-icon-sm);
+/* The tile itself now lives in ItemMark with the ladder that decides when
+   it shows (FR-28.4); only the row's own spacing stays here. */
+.row-mark {
   margin-inline-end: 12px;
 }
 

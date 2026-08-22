@@ -353,6 +353,52 @@ func TestExportImportTemplate_CarriesCompositionAndTasks(t *testing.T) {
 	}
 }
 
+// FR-28.10: the mark survives the round trip on all three levels. Without it
+// the fold-back §3.27 depends on would strip the marks off a whole Vorlage,
+// silently and irreversibly.
+func TestExportImportTemplate_CarriesTheMark_FR28_10(t *testing.T) {
+	st := openTestStore(t)
+	ctx := context.Background()
+	seedOwner(t, st)
+
+	source := portable.Document{
+		Kind:          portable.KindTemplate,
+		SchemaVersion: 1,
+		Name:          "Fototage",
+		Scope:         portable.ScopeTemplate,
+		Icon:          "\U0001F4F7",
+		Includes: []portable.Group{{
+			Name:  "Makro Fotografie",
+			Icon:  "\u26FA",
+			Items: []portable.Item{{Name: "Kamera", Icon: "\U0001F4F8", Quantity: 1}},
+		}},
+		Items: []portable.Item{{Name: "Reiseapotheke", Quantity: 1}},
+	}
+
+	templateID, err := st.ImportTemplate(ctx, "u1", source)
+	if err != nil {
+		t.Fatalf("ImportTemplate: %v", err)
+	}
+
+	got, err := st.ExportTemplate(ctx, templateID)
+	if err != nil {
+		t.Fatalf("ExportTemplate: %v", err)
+	}
+	if got.Icon != "\U0001F4F7" {
+		t.Errorf("template icon = %q, want the camera", got.Icon)
+	}
+	if got.Includes[0].Icon != "\u26FA" {
+		t.Errorf("group icon = %q, want the tent", got.Includes[0].Icon)
+	}
+	if got.Includes[0].Items[0].Icon != "\U0001F4F8" {
+		t.Errorf("item icon = %q, want the camera with flash", got.Includes[0].Items[0].Icon)
+	}
+	// An unmarked item stays unmarked rather than inheriting anything.
+	if got.Items[0].Icon != "" {
+		t.Errorf("own item came back marked %q", got.Items[0].Icon)
+	}
+}
+
 // TestImportTemplate_LinksAnExistingGroupWithoutRewritingIt is the rule that
 // keeps an import from reaching other people's trips: a group of the same name
 // is *linked*, and its contents are left exactly as they are. Overwriting it

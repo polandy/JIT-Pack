@@ -1,6 +1,7 @@
 package portable_test
 
 import (
+	"strings"
 	"testing"
 
 	"jitpack/internal/portable"
@@ -299,5 +300,59 @@ func TestUnmarshal_RejectsAnUnnamedIncludedGroup(t *testing.T) {
 
 	if _, err := portable.Unmarshal(data); err == nil {
 		t.Fatal("expected an error for an included group with no name")
+	}
+}
+
+// FR-28.10: a mark travels on all three levels — the Vorlage, its groups and
+// their items. Absence is the common case and stays absent rather than
+// becoming an empty key that invites the reader to wonder what it means.
+func TestMarshalUnmarshal_CarriesTheMark_FR28_10(t *testing.T) {
+	doc := portable.Document{
+		Kind:          "template",
+		SchemaVersion: 1,
+		Name:          "Fototage",
+		Scope:         "template",
+		Icon:          "📷",
+		Includes: []portable.Group{{
+			Name:  "Makro Fotografie",
+			Icon:  "⛺",
+			Items: []portable.Item{{Name: "Kamera", Icon: "📸", Quantity: portable.Quantity(1)}},
+		}},
+		Items: []portable.Item{{Name: "Reiseapotheke", Quantity: portable.Quantity(1)}},
+	}
+	data, err := portable.Marshal(doc)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	if strings.Contains(string(data), "icon: \"\"") {
+		t.Error("an absent mark was written as an empty key")
+	}
+
+	got, err := portable.Unmarshal(data)
+	if err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	if got.Icon != "📷" {
+		t.Errorf("document icon = %q, want 📷", got.Icon)
+	}
+	if got.Includes[0].Icon != "⛺" {
+		t.Errorf("group icon = %q, want ⛺", got.Includes[0].Icon)
+	}
+	if got.Includes[0].Items[0].Icon != "📸" {
+		t.Errorf("item icon = %q, want 📸", got.Includes[0].Items[0].Icon)
+	}
+	if got.Items[0].Icon != "" {
+		t.Errorf("an unmarked item came back marked %q", got.Items[0].Icon)
+	}
+}
+
+// FR-18.4 tolerance: a file written before the mark existed simply has none.
+func TestUnmarshal_NoMarkIsNotAnError_FR28_10(t *testing.T) {
+	got, err := portable.Unmarshal([]byte("kind: template\nschema_version: 1\nname: Sommer\nitems: []\n"))
+	if err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	if got.Icon != "" {
+		t.Errorf("icon = %q, want empty", got.Icon)
 	}
 }

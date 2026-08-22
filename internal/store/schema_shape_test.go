@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"testing"
 )
 
@@ -162,5 +163,42 @@ func TestSchema_TripNeedsOnlyItsYear_FR2_1b(t *testing.T) {
 		`INSERT INTO trips (id, name, year, start_date, end_date)
 		 VALUES ('t-backwards', 'Rückwärts', 2026, '2026-08-10', '2026-08-01')`); err == nil {
 		t.Error("end before start was accepted")
+	}
+}
+
+// FR-28.1/28.8/28.9: the mark is an ordinary nullable column on both tables
+// that carry one, capped in length and syncable like a name. The cap is the
+// *only* validation the server does — Unicode adds emoji every year, and a
+// table of "real" emoji would silently reject next year's valid input on a
+// field where a wrong value costs a wrong little picture.
+func TestSchema_ItemsAndTemplatesCarryAnOptionalMark_FR28_1(t *testing.T) {
+	s := openTestStore(t)
+
+	for _, table := range []string{"items", "templates"} {
+		if !columns(t, s.db, table)[MarkColumn] {
+			t.Fatalf("%s.%s missing — FR-28.1/28.8 give both tables the same field", table, MarkColumn)
+		}
+		if !syncableColumns[table][MarkColumn] {
+			t.Errorf("%s.%s is not on the sync whitelist — FR-28.9 makes it an ordinary column", table, MarkColumn)
+		}
+	}
+
+	// Absent is the default and a first-class state (FR-28.1).
+	if _, err := s.db.Exec(`INSERT INTO items (id, name) VALUES ('it-nomark', 'Zelt')`); err != nil {
+		t.Fatalf("an item must be savable without a mark: %v", err)
+	}
+
+	if _, err := s.db.Exec(
+		`INSERT INTO items (id, name, icon) VALUES ('it-mark', 'Zahnbürste', '🪥')`); err != nil {
+		t.Fatalf("an item must be savable with a mark: %v", err)
+	}
+
+	// The cap, and nothing else. 32 bytes holds any single emoji including a
+	// ZWJ sequence with modifiers; a paragraph is refused.
+	if _, err := s.db.Exec(
+		`INSERT INTO items (id, name, icon) VALUES ('it-long', 'Ballast', ?)`,
+		strings.Repeat("x", MarkMaxBytes+1)); err == nil {
+		t.Errorf("items.%s accepted more than %d bytes — the CHECK is the server's only validation",
+			MarkColumn, MarkMaxBytes)
 	}
 }

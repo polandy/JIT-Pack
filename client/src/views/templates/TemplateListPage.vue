@@ -55,6 +55,7 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { scopeForNewTemplate } from '@/domain/templates'
 import type { Template, TemplateKind } from '@/types/domain'
 import SearchRow from '@/components/global/SearchRow.vue'
+import ItemMark from '@/components/items/ItemMark.vue'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
 import { useLongPress } from '@/composables/useLongPress'
@@ -388,6 +389,18 @@ async function handleRefresh(event: CustomEvent) {
               @pointerup="hold.cancel()"
               @pointercancel="hold.cancel()"
             >
+              <!-- FR-28.8: the prototype has drawn a mark here since §3.27;
+                   until now every one of them was hardcoded in the mock. The
+                   `packing` ladder rather than `plain`: this is a column, and
+                   rendered with the slot dropped the marked groups pushed
+                   their names right of the unmarked ones. -->
+              <ItemMark
+                slot="start"
+                :mark="row.template.icon ?? null"
+                surface="packing"
+                :size="22"
+                class="row-mark"
+              />
               <IonLabel>
                 <h2>{{ row.template.name }}</h2>
                 <p>
@@ -659,5 +672,12 @@ ion-segment {
 .kind-hint {
   color: var(--ct-subtext0);
   font-size: var(--jp-text-sm);
+}
+
+/* FR-28.8: the `packing` ladder holds the slot on every row, so the marked
+   and the unmarked Vorlagen keep their names in one column (see the note in
+   the template). */
+.row-mark {
+  margin-inline-end: 10px;
 }
 </style>

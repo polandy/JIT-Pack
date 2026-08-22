@@ -34,6 +34,9 @@ const TRAVELERS = ['Andy', 'Sia', 'Leonardo']
 function row(name: string, category: string, over: Partial<PortableItem> = {}): PortableItem {
   return {
     name,
+    // FR-28.7: a trip row inherits the master item's mark, so the document
+    // that seeds it carries none of its own.
+    icon: null,
     quantity: 1,
     tasks: [],
     assignment: null,
@@ -61,6 +64,8 @@ function sampleDocument(): PortableDocument {
   return {
     kind: 'trip',
     schema_version: PORTABLE_SCHEMA_VERSION,
+    // FR-28.8 is a template field; a trip has no mark of its own.
+    icon: null,
     // A trip is the result of a composition, never one (FR-27.1).
     includes: [],
     // The sample trip is typed, not generated: it follows no group, so it
@@ -99,13 +104,26 @@ function sampleDocument(): PortableDocument {
 }
 
 /**
- * Creates the sample trip and returns its id. Set **active**, because the
+ * Creates the sample trip and returns its id, linking the rows the inventory
+ * already has (see below). Set **active**, because the
  * status is what decides whether new rows are flagged *Missing* (FR-9.1)
  * and whether M4 offers the archive action at all — a planning trip
  * exercises neither.
  */
-export function seedSampleTrip(orchestrator: Orchestrator): string {
-  const { id } = orchestrator.commitPortableImport(sampleDocument(), new Map())
+export function seedSampleTrip(
+  orchestrator: Orchestrator,
+  masterItems: Record<string, string>,
+): string {
+  // Link every row whose name the inventory already knows. Not cosmetic: a
+  // trip row resolves its photo and its FR-28.7 mark through
+  // `source_item_id`, so a seed that imported everything as ad-hoc handed a
+  // fresh device a packing list on which neither could ever appear.
+  const merges = new Map<string, string>()
+  for (const item of sampleDocument().items) {
+    const id = masterItems[item.name]
+    if (id) merges.set(item.name, id)
+  }
+  const { id } = orchestrator.commitPortableImport(sampleDocument(), merges)
   orchestrator.activateTrip(id)
   return id
 }

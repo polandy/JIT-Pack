@@ -2,7 +2,7 @@
 # Each target maps 1:1 to a CI job or step, so a green `make ci` predicts a
 # green pipeline. When you change a job in ci.yml, change its target here.
 .PHONY: ci pins build vet fmt fmt-check test cover tidy-check go-lint \
-        client client-deps client-lint client-tokens client-build client-test client-fmt \
+        client client-deps client-lint client-tokens client-marks client-build client-test client-fmt \
         e2e e2e-single visual visual-update docker-build all
 
 ## --- toolchain -------------------------------------------------------------
@@ -106,7 +106,7 @@ tidy-check:
 ## --- client job -----------------------------------------------------------
 # CI lints without --fix; the package scripts fix in place. Check, don't fix,
 # so the local run fails on the same things CI does.
-client: client-lint client-tokens client-build client-devcode client-test
+client: client-lint client-tokens client-marks client-build client-devcode client-test
 
 # `npm ci` is CI's first client step. Locally it only needs to rerun when the
 # lockfile moved, so hang it off the stamp npm itself writes — otherwise every
@@ -129,6 +129,12 @@ client-lint: $(CLIENT_DEPS)
 # every other client target it needs no install.
 client-tokens:
 	$(RUN) node scripts/design-tokens-gate.mjs
+
+# FR-28.6: the curated mark index, the font subset and the CSS unicode-range
+# are one decision expressed in three files. Node built-ins only, like the
+# gate above.
+client-marks:
+	$(RUN) node scripts/mark-font-gate.mjs
 
 client-build: $(CLIENT_DEPS)
 	cd client && $(RUN) npm run build

@@ -32,21 +32,32 @@ type Document struct {
 	// trip to a different instance, and a bare name means nothing there.
 	// Template documents of scope "template" only.
 	Includes []Group `yaml:"includes,omitempty"`
-	Items    []Item  `yaml:"items"`
+	// Icon is the document's own mark (FR-28.8/28.10) — a template's, since
+	// a trip has none. Omitted when absent, which is the common case and a
+	// first-class state rather than a gap.
+	Icon  string `yaml:"icon,omitempty"`
+	Items []Item `yaml:"items"`
 }
 
 // Group is one included group inside a Ferien-Vorlage document (FR-27.1).
 // It is deliberately not a Document: a group carries positions and never
 // further groups, and the two-level rule is what makes cycles impossible.
 type Group struct {
-	Name  string `yaml:"name"`
+	Name string `yaml:"name"`
+	// Icon is the group's mark (FR-28.8) — carried whole with the group, for
+	// the same reason its positions are.
+	Icon  string `yaml:"icon,omitempty"`
 	Items []Item `yaml:"items,omitempty"`
 }
 
 // Item represents one entry in the portable format — shared between
 // template items and trip items, with some fields only relevant to one kind.
 type Item struct {
-	Name       string         `yaml:"name"`
+	Name string `yaml:"name"`
+	// Icon is the master item's mark (FR-28.1/28.10). Without it the round
+	// trip §3.27's fold-back depends on would quietly strip the marks off a
+	// whole Vorlage.
+	Icon       string         `yaml:"icon,omitempty"`
 	Quantity   Quantity       `yaml:"quantity"`
 	Assignment string         `yaml:"assignment,omitempty"` // template only
 	Conditions map[string]any `yaml:"conditions,omitempty"` // template only
