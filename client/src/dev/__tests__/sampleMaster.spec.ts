@@ -12,6 +12,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
 import { PICKER_SEARCH_MIN_GROUPS, matchGroupsInPositions } from '@/domain/templates'
+import { MARK_INDEX } from '@/domain/itemMarks'
 
 import { seedSampleMaster } from '../sampleMaster'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -38,7 +39,7 @@ function seed() {
     getToken: () => null,
     local: new IndexedDBPersistence(),
   })
-  return { result: seedSampleMaster(orchestrator), master: useMasterStore() }
+  return { orchestrator, result: seedSampleMaster(orchestrator), master: useMasterStore() }
 }
 
 describe('seedSampleMaster (dev)', () => {
@@ -213,5 +214,58 @@ describe('sample master data, FR-27.15', () => {
       }))
 
     expect(matchGroupsInPositions(own, candidates).map((m) => m.templateId)).toEqual([firstAid.id])
+  })
+})
+
+describe('sample master data, FR-28.1/28.8', () => {
+  it('marks some rows and leaves others bare, so the FR-28.4 ladder has a mixed column', () => {
+    const { master } = seed()
+
+    const marked = master.itemList.filter((item) => item.icon)
+    expect(marked.length).toBeGreaterThan(0)
+    // The point of the seed is the *mixture*: a column where every row carries
+    // a mark hides the fallback the ladder exists for.
+    expect(marked.length).toBeLessThan(master.itemList.length)
+
+    const groups = master.templateList.filter((tpl) => tpl.kind === 'group')
+    expect(groups.some((tpl) => tpl.icon)).toBe(true)
+    expect(groups.some((tpl) => !tpl.icon)).toBe(true)
+  })
+
+  it('seeds only marks the curated index knows — the self-hosted face has no other glyphs (FR-28.6)', () => {
+    const { master } = seed()
+    const known = new Set(MARK_INDEX.map((entry) => entry.emoji))
+
+    const seeded = [...master.itemList, ...master.templateList]
+      .map((row) => row.icon)
+      .filter((icon): icon is string => Boolean(icon))
+
+    expect(seeded.filter((icon) => !known.has(icon))).toEqual([])
+  })
+})
+
+describe('sample trip, FR-28.7', () => {
+  // Through `seedSampleData`, not `seedSampleTrip`: the wiring that hands the
+  // trip the inventory it may link against lives there, and that is the line
+  // the seed button actually runs.
+  it('links its rows to the inventory, so a seeded device can see a mark at all', async () => {
+    const { seedSampleData } = await import('../sampleData')
+    const orchestrator = useSyncOrchestrator({
+      baseUrl: '',
+      getToken: () => null,
+      local: new IndexedDBPersistence(),
+    })
+    const master = useMasterStore()
+    const tripStore = useTripStore()
+
+    const { tripId } = await seedSampleData(orchestrator)
+
+    const rows = tripStore.getItems(tripId)
+    const linked = rows.filter((row) => row.source_item_id !== null)
+    // Not "all of them": the sample trip carries rows the inventory has no
+    // item for (a kitchen crate's contents), and those stay ad-hoc on
+    // purpose — that mixture is what FR-28.7's empty slot is for.
+    expect(linked.length).toBeGreaterThan(0)
+    expect(linked.some((row) => master.getItem(row.source_item_id!)?.icon)).toBe(true)
   })
 })

@@ -19,6 +19,42 @@
  * request per subset covers every weight in the range below.
  */
 
+/* --- Noto Emoji (the item mark), COLRv1, subset to the curated index ---
+   Served by the instance, not by the platform (FR-28.6). The reason is
+   agreement rather than availability: a packing list is shared, and on
+   platform emoji the same row shows a tan trench coat on one device and a
+   navy peacoat on another — sender and reader would be looking at different
+   lists. See ADR-021.
+
+   The `unicode-range` below is *generated* from client/src/domain/itemMarks.ts
+   and must stay in step with it: `scripts/mark-font-gate.mjs` fails the build
+   when the two disagree, because an index entry outside the subset renders as
+   tofu. Rebuild both with:
+       nix-shell -p "python3.withPackages(ps: [ps.fonttools ps.brotli])" \
+         --run scripts/build-mark-font.sh
+   The mark is the one surface whose colours do not come from catppuccin.css
+   (invariant 9); FR-28.5 confines it to content so that stays an exception
+   rather than a second palette. */
+@font-face {
+  font-family: 'JP Marks';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../assets/fonts/noto-emoji-marks.woff2') format('woff2');
+  unicode-range:
+    U+231A, U+2615, U+26BD, U+26FA, U+2708, U+270F, U+FE0F, U+1F302, U+1F321, U+1F34E, U+1F36A,
+    U+1F36B, U+1F373, U+1F37D, U+1F381, U+1F392, U+1F3A5, U+1F3A7, U+1F3AB, U+1F3BE, U+1F3BF,
+    U+1F3C0, U+1F3C2, U+1F3C4, U+1F3CA, U+1F3E8, U+1F453, U+1F454, U+1F455, U+1F456, U+1F457,
+    U+1F459, U+1F45C, U+1F45F, U+1F488, U+1F48A, U+1F4A1, U+1F4B3, U+1F4B6, U+1F4BB, U+1F4BC,
+    U+1F4C4, U+1F4CB, U+1F4D4, U+1F4E6, U+1F4F1, U+1F4F7, U+1F4FB, U+1F50B, U+1F50C, U+1F511,
+    U+1F512, U+1F525, U+1F526, U+1F528, U+1F52A, U+1F56F, U+1F576, U+1F579, U+1F5FA, U+1F637,
+    U+1F697, U+1F6B2, U+1F6B4, U+1F6BF, U+1F6C2, U+1F6CF, U+1F956, U+1F964, U+1F96B, U+1F97E,
+    U+1F9C2, U+1F9C3, U+1F9CA, U+1F9D7, U+1F9E2, U+1F9E3, U+1F9E4, U+1F9E5, U+1F9E6, U+1F9ED,
+    U+1F9EF, U+1F9F0, U+1F9F3, U+1F9F4, U+1F9F8, U+1F9F9, U+1F9FA, U+1F9FB, U+1F9FC, U+1F9FD,
+    U+1FA71, U+1FA73, U+1FA74, U+1FA79, U+1FA7A, U+1FA81, U+1FA92, U+1FA93, U+1FAA2, U+1FAA3,
+    U+1FAA5, U+1FAAA;
+}
+
 /* --- Fraunces (display), variable wght 400..600, opsz 9..144 --------- */
 @font-face {
   font-family: 'Fraunces';
@@ -104,6 +140,9 @@
      have meant a 64px empty-state illustration reading as a heading, and
      any later change to body copy silently resizing the icons with it.
      Six steps, each with an occupant among the 40 icon sites. */
+  /* G-15: the mark's face — subset to the curated index (FR-28.6). */
+  --jp-font-marks: 'JP Marks', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+
   --jp-icon-xs: 14px; /* a caret inside a row                     */
   --jp-icon-sm: 17px; /* an icon set beside a line of text        */
   --jp-icon-md: 22px; /* an icon that is its own tap target       */
@@ -234,6 +273,27 @@ body {
  */
 .jp-num {
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * G-15: the item mark's face, decided once here like every other family.
+ *
+ * The size is a **glyph box** and comes from the icon scale, never from the
+ * text scale — the same reason `--jp-icon-*` exists at all (G-13): tying a
+ * mark on a packing row to whatever body copy does next would resize it for
+ * a reason that has nothing to do with it. Surfaces set `--jp-mark-size`
+ * from that scale; the default is the row size, which is what most of them
+ * want.
+ *
+ * `font-variant-emoji: emoji` asks for the pictographic presentation even
+ * where the code point defaults to text (⌚ and ⛺ do), so a mark never
+ * renders as a black outline beside its coloured neighbours.
+ */
+.jp-mark {
+  font-family: var(--jp-font-marks);
+  font-size: var(--jp-mark-size, var(--jp-icon-md));
+  font-variant-emoji: emoji;
+  line-height: 1;
 }
 
 /*

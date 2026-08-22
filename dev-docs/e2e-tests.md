@@ -49,9 +49,10 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Deliberately not packed | E2E-M4-37 … E2E-M4-42, E2E-M5-16 | `local` | [`skip-item.spec.ts`](../client/e2e/skip-item.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
 | M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (completed by the M8 unit), E2E-M7-08, E2E-M7-09 | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
-| M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-15, E2E-M8-16, E2E-M8-17, E2E-M8-21, E2E-M8-22, E2E-M8-23 (two tests) | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
+| M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-15, E2E-M8-16, E2E-M8-17, E2E-M8-21, E2E-M8-22, E2E-M8-23 (two tests), E2E-M8-18 | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
 | M6 shopping (composer wiring) | E2E-M6-21 | `local` | [`shopping.spec.ts`](../client/e2e/shopping.spec.ts) |
 | M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-02, E2E-M9-03, E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
+| §3.28 the item mark | E2E-M10-11, E2E-M10-12, E2E-M9-07, E2E-M4-48, E2E-G15-01, E2E-G15-02, E2E-M5-15 | `local` | [`item-mark.spec.ts`](../client/e2e/item-mark.spec.ts) |
 | M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
 | M12 analytics | E2E-M12-01, E2E-M12-02, E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
@@ -1141,3 +1142,49 @@ finished presenting*, and the still-live overlay swallowed the next tap on
 WebKit. The sheet's own close button plus the same assertion is
 deterministic. `page.locator('ion-modal')` is not the fix — five of them
 sit in the DOM permanently; only `.show-modal` marks a presented one.
+
+## §3.28 — the item mark (`e2e/item-mark.spec.ts`, 2026-08-22)
+
+Six cases in one file, plus E2E-M8-18 in `template-editor.spec.ts` because
+the group's mark is set in M8 and the walk needs M8's world anyway.
+
+Three things the first red run taught, none of which is visible in the
+source:
+
+- **The picker's search is a plain `<input>`, not an Ionic field.** The
+  shared `fillIonic` helper waits for `hydrated`, which never arrives on
+  it, and the failure reads as a timeout on a control that is plainly on
+  screen. Anything not built out of `ion-input` gets `fill()` directly.
+- **`page.accessibility` is gone from the current Playwright API.** The
+  seam for "the mark is out of the accessibility tree" is
+  `locator.ariaSnapshot()`, and asserting on that is also more readable
+  than a JSON blob.
+- **An empty box with a width and no height is `hidden`.** E2E-G15-01's
+  promise is that the empty slot *holds the column*, and the slot only had
+  a width — so Playwright correctly refused to call it visible. The fix is
+  in the production component (the slot sets both), which is the right
+  place: a slot with no height was not holding anything.
+
+**E2E-M8-18 paid for itself twice.** M3 step 3 has *two* pickable columns —
+Ferien-Vorlagen and Gruppen — and the mark had been added to the first one
+only. Nothing in the diff says so, the screen renders correctly for a
+Vorlage, and the case is what named it. It also caught its own bad locator on
+the way: a Vorlage's M7 row lists the groups it contains in its own subtitle
+(FR-27.1), so `filter({ hasText: 'Camping Basis' })` matched the Vorlage
+rather than the group as soon as one existed. The row helper filters on the
+row's *heading*, and the walk asserts the M7 surface before creating the
+Vorlage that would shadow it.
+
+The case also carries a **reload** between the third and fourth surface. That
+was added while diagnosing the above — a mark is master data, and Local Mode
+rebuilds its whole store from IndexedDB on every navigation, so "it renders"
+and "it is still there" are two claims.
+
+And one that is about the feature rather than the harness:
+
+- **M4's composer has two paths and only one of them can inherit a mark.**
+  The suggestion carries `source_item_id`; the free-text confirm creates an
+  ad-hoc row by design (FR-28.7). The first draft added *Zelt* by free text
+  and asserted its mark — a correct failure. Both paths are now in the
+  case, because "this row shows no mark" only means something beside a row
+  that shows one.

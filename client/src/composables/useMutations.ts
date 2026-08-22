@@ -597,6 +597,8 @@ export function useMutations(hlc: HLCGenerator) {
     opts: {
       weightGrams?: number | null
       valueCents?: number | null
+      /** FR-28.1: the optional mark, absent as often as not. */
+      icon?: string | null
     } = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
@@ -604,6 +606,7 @@ export function useMutations(hlc: HLCGenerator) {
       name,
       weight_grams: opts.weightGrams ?? null,
       value_cents: opts.valueCents ?? null,
+      icon: opts.icon ?? null,
     })
     return { mutation, id }
   }
@@ -622,12 +625,15 @@ export function useMutations(hlc: HLCGenerator) {
     name: string,
     ownerId: string,
     kind: TemplateKind = 'template',
+    /** FR-28.8: the optional mark, carried in by a portable import. */
+    icon: string | null = null,
   ): { mutation: Mutation; id: string } {
     const id = newId()
     const mutation = make('insert', TABLE.templates, id, {
       owner_id: ownerId,
       name,
       kind,
+      icon,
     })
     return { mutation, id }
   }

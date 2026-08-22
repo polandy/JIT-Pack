@@ -17,8 +17,10 @@ import (
 // stripping all instance-specific identifiers (FR-18.2).
 func (s *Store) ExportTemplate(ctx context.Context, templateID string) (portable.Document, error) {
 	var name, kind string
+	var icon sql.NullString
 	err := s.db.QueryRowContext(ctx,
-		`SELECT name, kind FROM templates WHERE id = ?`, templateID).Scan(&name, &kind)
+		`SELECT name, kind, `+MarkColumn+` FROM templates WHERE id = ?`,
+		templateID).Scan(&name, &kind, &icon)
 	if err != nil {
 		return portable.Document{}, fmt.Errorf("template %s: %w", templateID, err)
 	}
@@ -44,6 +46,7 @@ func (s *Store) ExportTemplate(ctx context.Context, templateID string) (portable
 		SchemaVersion: 1,
 		Name:          name,
 		Scope:         kind,
+		Icon:          icon.String,
 		Includes:      includes,
 		Items:         items,
 	}, nil
@@ -54,7 +57,7 @@ func (s *Store) ExportTemplate(ctx context.Context, templateID string) (portable
 // same file.
 func templatePositions(ctx context.Context, db *sql.DB, templateID string) ([]portable.Item, error) {
 	rows, err := db.QueryContext(ctx, `
-		SELECT ti.id, i.name, ti.quantity, ti.assignment,
+		SELECT ti.id, i.name, i.`+MarkColumn+`, ti.quantity, ti.assignment,
 		       ti.conditions, ti.default_mode, ti.late_packer, ti.dedup
 		FROM template_items ti
 		JOIN items i ON i.id = ti.item_id
@@ -70,12 +73,13 @@ func templatePositions(ctx context.Context, db *sql.DB, templateID string) ([]po
 	for rows.Next() {
 		var it portable.Item
 		var positionID string
-		var conditions sql.NullString
+		var conditions, icon sql.NullString
 		var latePacker, quantity int
-		if err := rows.Scan(&positionID, &it.Name, &quantity, &it.Assignment,
+		if err := rows.Scan(&positionID, &it.Name, &icon, &quantity, &it.Assignment,
 			&conditions, &it.DefaultMode, &latePacker, &it.Dedup); err != nil {
 			return nil, fmt.Errorf("scan template item: %w", err)
 		}
+		it.Icon = icon.String
 		it.Quantity = portable.Quantity(quantity)
 		it.LatePacker = latePacker == 1
 		if conditions.Valid && conditions.String != "" {
@@ -125,7 +129,7 @@ func positionTasks(ctx context.Context, db *sql.DB, positionID string) ([]string
 // includedGroups reads a Ferien-Vorlage's groups whole (FR-27.1/ADR-017).
 func includedGroups(ctx context.Context, db *sql.DB, templateID string) ([]portable.Group, error) {
 	rows, err := db.QueryContext(ctx, `
-		SELECT g.id, g.name
+		SELECT g.id, g.name, g.`+MarkColumn+`
 		FROM template_includes inc
 		JOIN templates g ON g.id = inc.included_template_id
 		WHERE inc.template_id = ?
@@ -135,13 +139,15 @@ func includedGroups(ctx context.Context, db *sql.DB, templateID string) ([]porta
 	}
 	defer rows.Close()
 
-	type ref struct{ id, name string }
+	type ref struct{ id, name, icon string }
 	var refs []ref
 	for rows.Next() {
 		var r ref
-		if err := rows.Scan(&r.id, &r.name); err != nil {
+		var icon sql.NullString
+		if err := rows.Scan(&r.id, &r.name, &icon); err != nil {
 			return nil, fmt.Errorf("scan include: %w", err)
 		}
+		r.icon = icon.String
 		refs = append(refs, r)
 	}
 	if err := rows.Err(); err != nil {
@@ -154,7 +160,7 @@ func includedGroups(ctx context.Context, db *sql.DB, templateID string) ([]porta
 		if err != nil {
 			return nil, err
 		}
-		groups = append(groups, portable.Group{Name: r.name, Items: items})
+		groups = append(groups, portable.Group{Name: r.name, Icon: r.icon, Items: items})
 	}
 	return groups, nil
 }
@@ -181,7 +187,8 @@ func (s *Store) ImportTemplate(ctx context.Context, ownerID string, doc portable
 	// both ways, so the standalone document must land on the group already
 	// here rather than beside it.
 	if scope == portable.ScopeGroup {
-		groupID, err := ensureGroup(ctx, tx, ownerID, portable.Group{Name: doc.Name, Items: doc.Items})
+		groupID, err := ensureGroup(ctx, tx, ownerID,
+			portable.Group{Name: doc.Name, Icon: doc.Icon, Items: doc.Items})
 		if err != nil {
 			return "", err
 		}
@@ -193,8 +200,8 @@ func (s *Store) ImportTemplate(ctx context.Context, ownerID string, doc portable
 
 	templateID := randomID()
 	if _, err := tx.ExecContext(ctx,
-		`INSERT INTO templates (id, owner_id, name, kind) VALUES (?, ?, ?, ?)`,
-		templateID, ownerID, doc.Name, scope); err != nil {
+		`INSERT INTO templates (id, owner_id, name, kind, `+MarkColumn+`) VALUES (?, ?, ?, ?, ?)`,
+		templateID, ownerID, doc.Name, scope, nullIfEmpty(doc.Icon)); err != nil {
 		return "", fmt.Errorf("insert template: %w", err)
 	}
 
@@ -242,8 +249,8 @@ func ensureGroup(ctx context.Context, tx *sql.Tx, ownerID string, group portable
 
 	groupID := randomID()
 	if _, err := tx.ExecContext(ctx,
-		`INSERT INTO templates (id, owner_id, name, kind) VALUES (?, ?, ?, ?)`,
-		groupID, ownerID, group.Name, portable.ScopeGroup); err != nil {
+		`INSERT INTO templates (id, owner_id, name, kind, `+MarkColumn+`) VALUES (?, ?, ?, ?, ?)`,
+		groupID, ownerID, group.Name, portable.ScopeGroup, nullIfEmpty(group.Icon)); err != nil {
 		return "", fmt.Errorf("insert group %q: %w", group.Name, err)
 	}
 	if err := insertPositions(ctx, tx, groupID, group.Items); err != nil {
@@ -256,7 +263,7 @@ func ensureGroup(ctx context.Context, tx *sql.Tx, ownerID string, group portable
 // applying the format's defaults for anything the file left out.
 func insertPositions(ctx context.Context, tx *sql.Tx, templateID string, items []portable.Item) error {
 	for _, item := range items {
-		itemID, err := ensureItem(ctx, tx, item.Name)
+		itemID, err := ensureItem(ctx, tx, item.Name, item.Icon)
 		if err != nil {
 			return err
 		}
@@ -574,7 +581,7 @@ func (s *Store) ImportTrip(ctx context.Context, ownerID string, doc portable.Doc
 }
 
 // ensureItem finds or creates a master item by name.
-func ensureItem(ctx context.Context, tx *sql.Tx, name string) (string, error) {
+func ensureItem(ctx context.Context, tx *sql.Tx, name, icon string) (string, error) {
 	var id string
 	err := tx.QueryRowContext(ctx,
 		`SELECT id FROM items WHERE name = ? LIMIT 1`, name).Scan(&id)
@@ -583,11 +590,21 @@ func ensureItem(ctx context.Context, tx *sql.Tx, name string) (string, error) {
 	}
 	id = randomID()
 	if _, err := tx.ExecContext(ctx,
-		`INSERT INTO items (id, name) VALUES (?, ?)`,
-		id, name); err != nil {
+		`INSERT INTO items (id, name, `+MarkColumn+`) VALUES (?, ?, ?)`,
+		id, name, nullIfEmpty(icon)); err != nil {
 		return "", fmt.Errorf("insert item %q: %w", name, err)
 	}
 	return id, nil
+}
+
+// nullIfEmpty keeps an absent mark out of the column: absence is a
+// first-class state (FR-28.1), and an empty string is a value that says the
+// user chose one.
+func nullIfEmpty(s string) any {
+	if s == "" {
+		return nil
+	}
+	return s
 }
 
 // randomID generates a random hex ID matching the schema default.

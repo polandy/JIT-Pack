@@ -23,15 +23,28 @@ const css = readFileSync(resolve(process.cwd(), 'src/theme/typography.css'), 'ut
 const faceBlocks = css.match(/@font-face\s*\{[^}]*\}/g) ?? []
 
 describe('typography.css', () => {
-  it('declares both faces in both subsets (FR-21.6)', () => {
-    // latin-ext is not decoration: the German catalogue needs it.
-    expect(faceBlocks).toHaveLength(4)
+  it('declares both text faces in both subsets (FR-21.6)', () => {
+    // latin-ext is not decoration: the German catalogue needs it. The fifth
+    // block is the mark face (FR-28.6), self-hosted for the same reason and
+    // asserted on its own below.
+    expect(faceBlocks).toHaveLength(5)
     for (const family of ['Fraunces', 'Hanken Grotesk']) {
       for (const subset of ['latin', 'latin-ext']) {
         const slug = family.toLowerCase().replace(/ /g, '-')
         expect(css).toContain(`../assets/fonts/${slug}-${subset}.woff2`)
       }
     }
+  })
+
+  // FR-28.6: the emoji face is self-hosted for a reason the text faces do not
+  // have — a packing list is shared, and on platform emoji the sender and the
+  // reader would be looking at different pictures for the same row.
+  it('serves the mark face itself, subsetted to the curated index (FR-28.6)', () => {
+    const mark = faceBlocks.find((block) => block.includes("'JP Marks'"))
+    expect(mark).toBeDefined()
+    expect(mark).toContain('../assets/fonts/noto-emoji-marks.woff2')
+    // The range is what keeps the face from being fetched for ordinary text.
+    expect(mark).toMatch(/unicode-range:\s*U\+/)
   })
 
   it('loads every face from the bundle, never from a remote host (FR-21.6)', () => {

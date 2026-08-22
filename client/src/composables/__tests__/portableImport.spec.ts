@@ -263,6 +263,36 @@ items:
     expect(master.getTemplateItemTasks(position.id).map((t) => t.task)).toEqual(['Akkus laden'])
   })
 
+  // FR-28.10: the file carries a mark on all three levels, and an import that
+  // dropped them would strip a whole Vorlage on the way through.
+  it('keeps the marks the file carried, on the Vorlage, the group and the item (FR-28.10)', () => {
+    const orch = newOrch()
+    const master = useMasterStore()
+
+    const marked = `kind: template
+schema_version: 1
+name: Fototage
+scope: template
+icon: "\u{1F4F7}"
+includes:
+  - name: Makro Fotografie
+    icon: "\u{26FA}"
+    items:
+      - name: Kamera
+        icon: "\u{1F4F8}"
+        quantity: 1
+        assignment: trip_global
+items: []
+`
+
+    const result = orch.commitPortableImport(parsePortable(marked).doc!, new Map())
+
+    expect(master.getTemplate(result.id)?.icon).toBe('\u{1F4F7}')
+    const group = master.templateList.find((t) => t.name === 'Makro Fotografie')!
+    expect(group.icon).toBe('\u{26FA}')
+    expect(master.getItem(master.getTemplateItems(group.id)[0]!.item_id)?.icon).toBe('\u{1F4F8}')
+  })
+
   it('links a group that already exists instead of duplicating or rewriting it', () => {
     // The file may be older than the group, and since FR-27.4 a group edit
     // reaches every trip that follows it — an import must not be an editor.

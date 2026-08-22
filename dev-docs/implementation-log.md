@@ -124,8 +124,9 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The composer offers chips before it asks for typing (2026-08-21)](#the-composer-offers-chips-before-it-asks-for-typing-2026-08-21) — FR-25.13c decided on a rendered three-way round (ADR-020): chips now, browse-sheet as FR-25.13d, tag tiles rejected; the autofocus removal is the accepted cost, and two e2e case numbers were already taken by specs not yet built.
 - [The composer's second posture: the browse-sheet (2026-08-22)](#the-composers-second-posture-the-browse-sheet-2026-08-22) — FR-25.13d: *Erfassen*/*Zusammenstellen* landed at zero rollout cost because the sheet lives inside the shared composer; „schon drin" is derived feedback, not bookkeeping; focusing after a modal loses to Ionic's teardown; M6 excludes the trip's whole contents; the E2E-M8-21 collision paid by renumbering FR-27.15's case to M8-23.
 - [FR-27.15: the editor learns to recognise its own duplicates (2026-08-22)](#fr-2715-the-editor-learns-to-recognise-its-own-duplicates-2026-08-22) — the FR’s stated sentence named the quantity, and following it literally would have let the fold turn a per-person position trip-global in silence; the dismissal is keyed to the item set because that is what makes „has it changed“ decidable without a schema; `ion-modal` never leaves the DOM, and an `Escape` assertion that passes before the sheet has presented leaves a live overlay eating the next tap.
-
 - [The i18n gap that was a measurement error (2026-08-22)](#the-i18n-gap-that-was-a-measurement-error-2026-08-22) — `vue-tsc --noEmit` on a solution-style tsconfig checks nothing and exits 0, which is where the belief came from that a wrong `MessageKey` in a template ships silently; `strictTemplates` measured at 1104 errors; the real gap was the avatar crop modal, which no Playwright project can open.
+- [§3.28: the mark gets built (2026-08-22, FR-28.1–28.11, ADR-021)](#328-the-mark-gets-built-2026-08-22-fr-2812811-adr-021) — the self-hosted face is about *agreement* (🧥 is a trench coat here and a peacoat on both platforms), not availability; the substring rule was unproven until „Reise" turned up an ice cube; the seed may only speak the index's vocabulary; and a master-item edit had been silently dropping the reference photo in Local Mode.
+
 
 ## Current state
 
@@ -4601,3 +4602,97 @@ Three things that cost time there, all jsdom-shaped:
   untouched. No rendered assertion can tell those apart; the check now rests on
   the two labels that differ, and the zoom line is documented as guarding the
   key rather than the language.
+
+## §3.28: the mark gets built (2026-08-22, FR-28.1–28.11, ADR-021)
+
+The spec was decided on pixels in August and sat unbuilt for five days
+(*„§3.28: the packing row gets a mark"*). Building it produced five things
+the diff does not say.
+
+**The self-hosted face is about agreement, not availability.** FR-28.6's
+stated reason is Local Mode's missing network, which is true and secondary.
+The measured reason is that a packing list is *shared*: rendered in the
+pinned Playwright image, 🧥 is a **tan trench coat** in the subsetted Noto
+face and a **navy peacoat** on both platform faces. Two people looking at
+one list would be looking at two different jackets. The weight was measured
+before the file was committed rather than after — **80 KB for 103 code
+points**, against ~180 KB for the two text faces — because a footprint
+argued after the commit is a footprint accepted.
+
+**The index had to be proved against German, and the tests found two
+holes.** Four entries carried only the loanword (*Tennis*, *Radio*,
+*Basketball*, *Snowboard*), which reads as coverage and is not — a German
+inventory never reaches them. Worse, the substring rule was *unproven*: the
+minimum-length constant could be mutated from 4 to 1 without reddening
+anything, because the test that justified it had been written against a
+case I had already removed. The real case is not hypothetical — the letters
+*eis* sit inside **„Reise"**, so without the rule every travel item in the
+app would have been offered an ice cube.
+
+**The seed may only speak the index's vocabulary.** The dev seed reached
+first for a microscope, a telescope and a beach; none is in the curated
+index, so the subset has no glyph and the row renders tofu on a device with
+no platform emoji font. That is now a test (`sampleMaster.spec.ts`) rather
+than a habit — and it doubles as the honest exercise of the curation: if
+the seed cannot say what it wants with a hundred entries, neither can a
+user. The seed also marks only **about half** the inventory on purpose. A
+seed where every row carries a mark hides exactly what the FR-28.4 ladder
+exists to be looked at for.
+
+**A photo bug fell out of the mark's own shape.** The optimistic row for a
+master item was rebuilt from a helper that listed name, weight and price
+and nothing else, so `updateMasterItem(item, { weight_grams })` wrote a row
+with `image_hash: undefined` — and the item lost its reference photo until
+the next pull put it back. In Server Mode the pull hides it; **in Local Mode
+the optimistic row *is* the row**, so it was permanent. The mark would have
+had the identical shape, which is how it was found: writing the driving test
+for „editing a weight must not drop the mark" reddened on the photo too.
+The base now carries every column the store keeps.
+
+**The mark is a written hole in invariant 9, and the containment is a gate
+rather than a promise.** The mark's colours come from the font, not from
+`catppuccin.css`. G-15 says where a mark may appear; what enforces it is
+`markRendering.spec.ts`, which reads the `.vue` sources and fails if any
+view outside `ItemMark.vue`/`MarkPicker.vue` applies the mark face or
+renders an `icon` value as text. That shape is borrowed from the FR-21.7
+hex-in-`client/src` rule for the same reason: no rendered test of one
+screen can see what the twenty beside it do.
+
+**The budgeted baseline cost did not arrive, and the reason is the whole
+argument for G-15.** §3.28 said in writing that a self-hosted emoji face
+rewrites every visual baseline, and CLAUDE.md carried that as one of three
+things the implementing PR owed. The deliberate `make visual-update` moved
+**four of twenty-two**, all M4 — and none of them for the face: the visual
+fixture's rows are ad-hoc, so no emoji is painted anywhere in the suite. What
+moved was the *held empty slot*, 32 px of column. A face confined to content
+is invisible to every screen that has no content of that kind, which is
+precisely the containment the invariant-9 exception was granted for. The
+prediction was pessimistic in the useful direction, and it is recorded because
+the next „this will rewrite everything" should be measured rather than
+believed.
+
+**Two things only the rendered pixels said, both after the code was green.**
+FR-28.8's fallback rule reads as one sentence — „no mark → no slot, never a
+letter" — and is two rules. In a *column* (M7's list, M3 step 3) dropping the
+slot pushed every marked group's name right of the unmarked ones standing
+beside it, which is exactly the misalignment FR-28.4's held slot exists to
+prevent one screen over. Beside a *single* name there is no column, so nothing
+is the right answer there. The letter is refused everywhere, and that is the
+half of the rule that was actually load-bearing.
+
+The second one nearly shipped invisible: **the seed's own trip could not show a
+mark at all.** `sampleTrip.ts` imported its rows with an empty merge map, so
+every one was ad-hoc — no `source_item_id`, hence no mark and, quietly since
+§3.22, no reference photo either. The seed button opens *that* trip, so a dev
+pressing it landed on the one screen the feature is for and saw nothing. It now
+links every row the inventory knows by name and leaves the rest ad-hoc on
+purpose, because the mixture is what the empty slot is for. Both findings cost
+one render each and neither is visible in a diff, which is the whole argument
+for the rule that a UI change is looked at rather than reasoned about.
+
+Three harness traps are in `dev-docs/e2e-tests.md` rather than here, but one
+belongs with the feature: **M4's composer has two add paths and only one can
+inherit a mark.** The suggestion carries `source_item_id`, the free-text
+confirm creates an ad-hoc row by design (FR-28.7). The first draft of
+E2E-M9-07 added *Zelt* by free text and asserted its mark — a correct
+failure that named a real distinction, and both paths are now in the case.

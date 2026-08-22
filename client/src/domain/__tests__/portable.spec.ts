@@ -420,6 +420,36 @@ describe('the composition travels with the file (FR-27.1/27.7, ADR-017)', () => 
     expect(parsePortable(yaml).doc?.items[0]!.tasks).toEqual(['Akkus laden'])
   })
 
+  // FR-28.10: without this the round trip §3.27's fold-back depends on would
+  // quietly strip the marks off a whole Vorlage — on all three levels, since
+  // a Vorlage, its groups and their items each carry one.
+  it('carries the marks of the Vorlage, its groups and its items (FR-28.10)', () => {
+    const yaml = serializeTemplate(
+      { ...vorlage, icon: '\u{1F4F7}' },
+      [position('p-med', 'v1', 'i-med')],
+      (id) => (id === 'i-med' ? { ...items[1]!, icon: '\u{1FA79}' } : byId(id)),
+      {
+        includes: [
+          {
+            template: { ...macro, icon: '\u{26FA}' },
+            items: [position('p-cam', 'g1', 'i-cam')],
+            tasks: () => [],
+          },
+        ],
+      },
+    )
+
+    const doc = parsePortable(yaml).doc
+    expect(doc?.icon).toBe('\u{1F4F7}')
+    expect(doc?.includes[0]!.icon).toBe('\u{26FA}')
+    expect(doc?.items[0]!.icon).toBe('\u{1FA79}')
+  })
+
+  it('reads a file with no marks at all — absence is the common case (FR-28.10, FR-18.4)', () => {
+    const { doc } = parsePortable('kind: template\nschema_version: 1\nname: Sommer\nitems: []\n')
+    expect(doc?.icon).toBeNull()
+  })
+
   it('reads a file that predates the composition as a template with no groups', () => {
     const { doc } = parsePortable('kind: template\nschema_version: 1\nname: Sommer\nitems: []\n')
 
