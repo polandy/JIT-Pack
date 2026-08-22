@@ -2606,6 +2606,19 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return resp.conflicts
   }
 
+  /**
+   * fetchMasterConflicts loads the *master* partition's conflict log — the
+   * losers on inventory, groups, series and a trip's own fields, which are
+   * merged there rather than in the trip partition. It takes no trip id
+   * because it belongs to none, which is why it needs its own endpoint:
+   * the per-trip query filters on `trip_id` and these rows have none.
+   */
+  async function fetchMasterConflicts(): Promise<ConflictEntry[]> {
+    if (local) return []
+    const resp = await client.get<{ conflicts: ConflictEntry[] }>('/api/v1/conflicts/master', {})
+    return resp.conflicts
+  }
+
   // --- Profile & data (M17) ---
 
   /**
@@ -3200,6 +3213,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     outbox,
     getPresence,
     fetchConflicts,
+    fetchMasterConflicts,
     isLockedByOther,
 
     // Drain

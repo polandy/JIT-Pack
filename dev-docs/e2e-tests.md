@@ -63,7 +63,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-FLOW-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-FLOW-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-G2-04 — the durable outbox (B2, NFR-4.1), added 2026-08-21.** A new
 case in the `single` unit: pack a row offline, reload the page *while still
@@ -94,6 +94,21 @@ detached, not deleted — which is the detail the first draft of this case got
 wrong and the run corrected. The destructive alert button is located by its
 Ionic role class rather than its label, so the case does not depend on which
 catalogue the alert renders in.
+
+**E2E-G2-06 — the master partition's conflict log, added 2026-08-22.** The
+audit NFR-4.2a promises had one endpoint and two partitions: every
+master-partition loser — a group renamed twice, a trip's own dates — was
+written with `trip_id NULL` and read by a query that filters on `trip_id`.
+The case renames one trip on two devices and reads the loss from **outside**
+any trip, which is the part that could not work before.
+
+**Two things it had to learn.** The losing device cannot be navigated to by
+its own trip name — the name is exactly what it lost, so `reopenTrip` looked
+for a row that no longer existed and the case timed out against correct
+code. And the master queue does not move on a trip open: a trip open drains
+the *trip* partition, and this rename is queued on the master one. The drain
+here is the app start the durable outbox gave it (B2) — a reload, not a
+navigation. Mutation-proved by pointing the query back at `trip_id`.
 
 **E2E-M22-08 — an edited trip is still on M2, added 2026-08-22.** The trip
 editor sends a partial upsert on purpose — an upsert of the whole row would

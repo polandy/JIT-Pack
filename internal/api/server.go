@@ -133,6 +133,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/templates/{templateID}/export", s.authed(s.handleExportTemplate))
 	mux.HandleFunc("POST /api/v1/templates/import", s.authed(s.handleImportTemplate))
 	mux.HandleFunc("GET /api/v1/trips/{tripID}/conflicts", s.authed(s.member(s.handleListConflicts)))
+	mux.HandleFunc("GET /api/v1/conflicts/master", s.authed(s.handleListMasterConflicts))
 	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.yaml", s.authed(s.member(s.handleExportTrip)))
 	mux.HandleFunc("POST /api/v1/trips/import", s.authed(s.handleImportTrip))
 	mux.HandleFunc("POST /api/v1/auth/token", s.handleAuthToken)

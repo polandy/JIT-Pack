@@ -64,3 +64,46 @@ describe('fetchConflicts', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })
+
+describe('fetchMasterConflicts', () => {
+  it('fetches the master partition log, which belongs to no trip', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          conflicts: [
+            {
+              id: 'c2',
+              entity_table: 'templates',
+              entity_id: 'tpl-1',
+              field: 'name',
+              losing_value: '"Sommerferien"',
+              winning_value: '"Ferien"',
+              resolved_at: '2026-07-09T10:00:00Z',
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    )
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+
+    const conflicts = await orch.fetchMasterConflicts()
+
+    expect(conflicts).toHaveLength(1)
+    expect(conflicts[0]).toMatchObject({ entity_table: 'templates', field: 'name' })
+    // No trip in the path: this log exists whether or not one is open,
+    // which is the whole reason it needs its own endpoint.
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/conflicts/master')
+  })
+
+  it('resolves empty in Local Mode without a network call', async () => {
+    const orch = useSyncOrchestrator({
+      baseUrl: '',
+      getToken: () => null,
+      local: new IndexedDBPersistence(),
+    })
+
+    expect(await orch.fetchMasterConflicts()).toEqual([])
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})

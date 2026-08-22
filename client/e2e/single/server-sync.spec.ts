@@ -101,6 +101,17 @@ async function warmTripList(page: Page, tripName: string): Promise<void> {
   await expect(visiblePage(page).getByTestId('m4-fab')).toBeVisible()
 }
 
+/** Rename the trip through M22's editor (FR-2.7); commits on blur. */
+async function renameTrip(page: Page, name: string) {
+  await page.getByTestId('m4-edit').click()
+  const field = visiblePage(page).getByTestId('trip-edit-name').locator('input')
+  await expect(field).toBeVisible()
+  await field.fill(name)
+  await field.blur()
+  await page.getByTestId('header-back').click()
+  await expect(visiblePage(page).getByTestId('m4-fab')).toBeVisible()
+}
+
 /** Leave M4 for the trip list and re-open the trip — M4's mount drains. */
 async function reopenTrip(page: Page, tripName: string) {
   await page.getByTestId('header-back').click()
@@ -309,11 +320,12 @@ test.describe('Single-User backend sync @single', () => {
   })
 
   /**
-   * E2E-G2-01 (outside-a-trip clause): with no trip open the sheet says
-   * where the conflict log lives instead of offering a dead button — and it
-   * is the *server* half of the sheet, not Local Mode's storage story.
+   * E2E-G2-01 (outside-a-trip clause): with no trip open the trip-scoped
+   * log has no subject, so it is not offered — but the master partition's
+   * is, because it belongs to no trip. And it is the *server* half of the
+   * sheet, not Local Mode's storage story.
    */
-  test('the G-2 detail outside a trip points at the log instead of a dead button', async ({
+  test('the G-2 detail outside a trip offers the log that belongs to no trip', async ({
     browser,
   }) => {
     const ctx = await browser.newContext()
@@ -324,13 +336,73 @@ test.describe('Single-User backend sync @single', () => {
     await indicator.click()
 
     await expect(page.getByTestId('sync-detail-sheet')).toBeVisible()
-    await expect(page.getByTestId('sync-detail-conflicts-hint')).toBeVisible()
     await expect(page.getByTestId('sync-detail-conflicts')).toHaveCount(0)
+    await expect(page.getByTestId('sync-detail-master-conflicts')).toBeVisible()
     // The positive companion: this is the server half — Local Mode's
     // storage block, the other half's anchor, is absent.
     await expect(page.getByTestId('sync-detail-storage')).toHaveCount(0)
 
     await ctx.close()
+  })
+
+  /**
+   * E2E-G2-06 (NFR-4.2a): a conflict on a **trip's own field** is a master
+   * partition conflict — `trips` is merged there, not in the trip's own
+   * partition — and it has to be readable.
+   *
+   * Every ingredient of the trip-scoped case is unchanged; only the field
+   * moves. That is the point: the same loss, one partition over, used to be
+   * written to a log that was filtered by `trip_id` and so returned nothing
+   * for the rows that have none.
+   */
+  test('a conflict on the trip itself lands in the master log, which is reachable', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Wallis ${id}`
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA)
+    const tripPath = await createTripViaWizard(pageA, { name: trip, travelers: ['Andy'] })
+
+    const ctxB = await browser.newContext()
+    const pageB = await bootPage(ctxB, tripPath)
+    await expect(visiblePage(pageB).getByTestId('m4-fab')).toBeVisible()
+    await warmTripList(pageB, trip)
+
+    // B renames offline — the strictly older HLC, so B is the side that
+    // must lose. A's rename of the same field happens visibly later.
+    await ctxB.setOffline(true)
+    await renameTrip(pageB, `${trip} B`)
+    await expect(pageB.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'offline')
+
+    await renameTrip(pageA, `${trip} A`)
+
+    // A reload rather than a trip re-open: the queue moves on the app's next
+    // own action, and the trip partition's actions are not the master
+    // partition's — the rename is queued there. App start drains it (B2).
+    await ctxB.setOffline(false)
+    await pageB.reload()
+    await expect(pageB.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+    // Convergence first, so a failure below is about the log rather than
+    // about the merge: B's own screen now carries A's name.
+    await expect(pageB.getByTestId('header-title')).toContainText(`${trip} A`)
+
+    // Read the log from the trip list rather than from inside the trip:
+    // the master log must not need one open, which is the whole gap.
+    await pageB.getByTestId('header-back').click()
+    await pageB.getByTestId('sync-indicator').click()
+    await expect(pageB.getByTestId('sync-detail-sheet')).toBeVisible()
+    await pageB.getByTestId('sync-detail-master-conflicts').click()
+
+    const row = visiblePage(pageB).getByTestId('conflict-row').filter({ hasText: 'trips · name' })
+    await expect(row).toHaveCount(1)
+    // What lost and what won, both rendered — the page's whole promise.
+    await expect(row.getByTestId('conflict-losing')).toContainText(`${trip} B`)
+    await expect(row.getByTestId('conflict-winning')).toContainText(`${trip} A`)
+
+    await ctxA.close()
+    await ctxB.close()
   })
   /**
    * E2E-G2-04 (B2, NFR-4.1): the queue is on the device, not in the tab.
