@@ -294,6 +294,14 @@ export const de: Record<keyof typeof en, string> = {
   'quickAdd.groupEmpty': 'Gruppe „{name}“ steuert zu dieser Reise nichts bei',
   'quickAdd.groupNotReady': 'Reisedaten werden noch geladen — bitte gleich noch einmal',
 
+  // Inventar-Blätterer (FR-25.13d), aus dem Composer geöffnet.
+  'quickAdd.browseEntry': 'Mehr aus dem Inventar…',
+  'quickAdd.browseTitle': 'Aus dem Inventar zusammenstellen',
+  'quickAdd.browseSubtitle': 'Ein Tipp fügt eine Position hinzu — das Blatt bleibt offen',
+  'quickAdd.browseAlreadyIn': 'schon drin',
+  'quickAdd.browseFreeText': 'Stattdessen neuen Namen eintippen…',
+  'quickAdd.browseNoMatch': 'Noch keine Packelemente mit diesem Tag',
+
   // Facetten-Filter (FR-25.11), geteilt von M4 und M6.
   'filter.title': 'Filter',
   'filter.open': 'Filter',
