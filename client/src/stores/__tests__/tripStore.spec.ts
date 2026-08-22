@@ -580,7 +580,13 @@ describe('a trip pulled from the wire', () => {
       table: TABLE.trips,
       id: 't1',
       deleted: false,
-      row: { name: 'Samedan', year: 2026, status: 'planning', start_date: '2026-02-01', end_date: '2026-02-08' },
+      row: {
+        name: 'Samedan',
+        year: 2026,
+        status: 'planning',
+        start_date: '2026-02-01',
+        end_date: '2026-02-08',
+      },
     })
 
     expect(store.getTrip('t1')?.duration_days).toBe(8)
