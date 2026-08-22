@@ -310,7 +310,10 @@ test.describe('§3.28 the item mark', () => {
     // An ad-hoc row has no mark, and the sheet has no column to hold a slot
     // for: the title is the first thing on the line, not 44px of blank. The
     // rendered name is the positive signal the absent slot is asserted beside.
-    await page.getByTestId('m4-row-Zwischenringe').click()
+    // Scoped to the painted page: closing the sheet is a route *replace*
+    // (ADR-012), and on WebKit the outgoing M4 page is still in the outlet
+    // for a frame — long enough for the row to resolve twice.
+    await visible(page).getByTestId('m4-row-Zwischenringe').click()
     await expect(page.getByTestId('m5-sheet').getByTestId('m5-name')).toHaveText('Zwischenringe')
     await expect(page.getByTestId('m5-sheet').getByTestId('item-mark-slot')).toHaveCount(0)
   })
