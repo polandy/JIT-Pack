@@ -35,6 +35,7 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import {
   PICKER_SEARCH_MIN_GROUPS,
+  matchGroupsInPositions,
   PREVIEW_ROW_NAMES,
   tripsReachedBy,
   previewLines,
@@ -42,7 +43,8 @@ import {
   scopeSwitchBlock,
   searchGroups,
 } from '@/domain/templates'
-import type { GroupSearchCandidate } from '@/domain/templates'
+import type { GroupMatch, GroupSearchCandidate } from '@/domain/templates'
+import { foldDismissals } from '@/composables/useFoldDismissals'
 import { t } from '@/i18n'
 import { attributeLabel } from '@/lib/attributeLabels'
 import { useMasterStore } from '@/stores/masterStore'
@@ -74,13 +76,14 @@ function itemName(itemId: string): string {
 // ADR-011: the one header bar renders this page's title.
 setHeaderTitle(() => template.value?.name ?? t('templates.notFound'))
 
-async function toast(message: string) {
+async function toast(message: string, undo?: { text: string; handler: () => void }) {
   const el = await toastController.create({
     message,
     duration: 3000,
     position: 'bottom',
     // Above the FAB rather than behind the tab bar — the M4 anchor pattern.
     positionAnchor: 'm8-fab-anchor',
+    buttons: undo ? [{ text: undo.text, role: 'undo', handler: undo.handler }] : undefined,
   })
   await el.present()
 }
@@ -300,6 +303,79 @@ function positionChips(pos: TemplateItem): string[] {
     if (typeof value === 'string') chips.push(attributeLabel(value))
   }
   return chips
+}
+
+// --- FR-27.15: a group hiding in the loose positions -------------------------
+
+const dismissals = foldDismissals()
+
+/**
+ * The Gruppen this Vorlage has re-typed as own positions, minus the ones this
+ * device was told to stop offering. Recomputing off the live positions is what
+ * makes accepting one fold drop the candidates it subsumed — no bookkeeping.
+ */
+const groupMatches = computed<GroupMatch[]>(() => {
+  if (isGroup.value) return []
+  const included = new Set(includes.value.map((inc) => inc.included_template_id))
+  const candidates = masterStore.templateList
+    .filter((tpl) => tpl.kind === 'group' && tpl.id !== props.templateId)
+    .map((tpl) => ({
+      id: tpl.id,
+      name: tpl.name,
+      positions: masterStore.resolve(tpl.id).positions,
+      included: included.has(tpl.id),
+    }))
+  return matchGroupsInPositions(positions.value, candidates).filter(
+    (match) =>
+      !dismissals.isDismissed(props.templateId, match.templateId, groupItemIds(match.templateId)),
+  )
+})
+
+/** The group's resolved item set — what a dismissal is keyed to (FR-27.15). */
+function groupItemIds(groupId: string): string[] {
+  return masterStore.resolve(groupId).positions.map((pos) => pos.item_id)
+}
+
+/**
+ * Zusammenfassen: the matched own positions go, the include arrives — the same
+ * write path as picking the group in the picker, so the FR-27.4 blast-radius
+ * note and the resolution footer apply unchanged. The snackbar's Rückgängig
+ * restores exactly what was removed, deviations and FR-27.7 tasks included.
+ */
+async function foldGroup(match: GroupMatch) {
+  const removed = match.positionIds
+    .map((id) => positions.value.find((pos) => pos.id === id))
+    .filter((pos): pos is TemplateItem => pos !== undefined)
+    .map((pos) => ({
+      pos,
+      tasks: masterStore.getTemplateItemTasks(pos.id).map((task) => task.task),
+    }))
+  for (const entry of removed) orchestrator.deleteTemplateItem(entry.pos.id)
+  const includeId = orchestrator.addTemplateInclude(props.templateId, match.templateId)
+
+  await toast(t('templates.foldDone', { name: match.name, n: removed.length }), {
+    text: t('templates.foldUndo'),
+    handler: () => {
+      orchestrator.removeTemplateInclude(includeId)
+      for (const entry of removed) {
+        const id = orchestrator.addTemplateItem(props.templateId, entry.pos.item_id, {
+          quantity: entry.pos.quantity,
+          assignment: entry.pos.assignment,
+          dedup: entry.pos.dedup,
+          defaultMode: entry.pos.default_mode,
+          latePacker: entry.pos.late_packer,
+          conditions: entry.pos.conditions,
+        })
+        for (const task of entry.tasks) orchestrator.addTemplateItemTask(id, task)
+      }
+      void toast(t('templates.foldUndone', { n: removed.length }))
+    },
+  })
+}
+
+/** Ignorieren: device-local, and re-offered once the group's set changes. */
+function dismissMatch(match: GroupMatch) {
+  dismissals.dismiss(props.templateId, match.templateId, groupItemIds(match.templateId))
 }
 
 // --- Position sheet (M5 pattern) --------------------------------------------
@@ -538,6 +614,53 @@ const mergeLines = computed(() =>
             </div>
           </div>
         </template>
+
+        <!-- FR-27.15: the editor noticed a Gruppe among the loose positions.
+             Propose, never act — nothing changes until a tap, because a user
+             who typed the positions loose may have meant it. -->
+        <div
+          v-for="match in groupMatches"
+          :key="match.templateId"
+          class="fold-hint jp-card"
+          :data-testid="`m8-fold-${match.templateId}`"
+        >
+          <div class="fold-text">
+            <p class="fold-head">
+              {{ t('templates.foldSuggestion', { n: match.positionIds.length, name: match.name }) }}
+            </p>
+            <p
+              v-if="match.deviations"
+              class="fold-dev"
+              :data-testid="`m8-fold-deviation-${match.templateId}`"
+            >
+              {{ t('templates.foldDeviation', { n: match.deviations }) }}
+            </p>
+          </div>
+          <div class="fold-actions">
+            <button
+              class="fold-peek"
+              :aria-label="t('templates.peekOpen', { name: match.name })"
+              :data-testid="`m8-fold-peek-${match.templateId}`"
+              @click="peekTemplateId = match.templateId"
+            >
+              <IonIcon :icon="chevronForwardOutline" />
+            </button>
+            <button
+              class="fold-dismiss"
+              :data-testid="`m8-fold-dismiss-${match.templateId}`"
+              @click="dismissMatch(match)"
+            >
+              {{ t('templates.foldDismiss') }}
+            </button>
+            <button
+              class="fold-accept"
+              :data-testid="`m8-fold-accept-${match.templateId}`"
+              @click="foldGroup(match)"
+            >
+              {{ t('templates.foldAccept') }}
+            </button>
+          </div>
+        </div>
 
         <!-- Positions: a Gruppe's whole content, a Vorlage's own share. -->
         <h2 class="section-head" data-testid="m8-positions-head">
@@ -783,6 +906,74 @@ const mergeLines = computed(() =>
   color: var(--ct-subtext0);
   font-size: var(--jp-text-sm);
   text-align: center;
+}
+
+/* --- FR-27.15 fold suggestion ---
+   A card in the action role rather than the brand one: it is an offer to
+   change the composition, not a status the page is reporting. */
+.fold-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 8px 8px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--jp-action) 40%, transparent);
+}
+
+.fold-text {
+  flex: 1 1 12rem;
+}
+
+.fold-head {
+  margin: 0;
+  color: var(--ct-text);
+  font-size: var(--jp-text-sm);
+}
+
+.fold-dev {
+  /* The blast-note's treatment, and for its reason: the flavour's yellow is
+     legible on near-black and thin on near-white, so the warning carries its
+     own wash rather than relying on the hue alone. */
+  display: inline-block;
+  margin: 6px 0 0;
+  padding: 4px 8px;
+  border-radius: var(--jp-r-sm);
+  background: color-mix(in srgb, var(--ct-yellow) 16%, transparent);
+  color: var(--ct-yellow);
+  font-size: var(--jp-text-xs);
+}
+
+.fold-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fold-peek {
+  display: flex;
+  padding: 4px;
+  border: none;
+  background: none;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-icon-sm);
+  cursor: pointer;
+}
+
+.fold-dismiss,
+.fold-accept {
+  padding: 8px 12px;
+  border: 1px solid var(--ct-surface1);
+  border-radius: var(--jp-r-pill);
+  background: none;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+  cursor: pointer;
+}
+
+.fold-accept {
+  border-color: var(--jp-action);
+  color: var(--jp-action);
 }
 
 /* --- group picker --- */
