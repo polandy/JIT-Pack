@@ -220,17 +220,29 @@ export function skippedVia<T extends CoSkippable>(
 }
 
 /**
+ * A rejected dependency edge, as a reason and the item names involved —
+ * never as a finished sentence. This module is pure and locale-free (NFR-4.12),
+ * so the screen that shows the fault is the one that words it: `self` names the
+ * single item, `cycle` names every hop of the path, starting and ending on the
+ * same item.
+ */
+export interface DependencyCycleError {
+  reason: 'self' | 'cycle'
+  names: string[]
+}
+
+/**
  * dependencyCycleError validates a new dependency edge at save time
  * (a save-time validator): a cycle cannot be
- * persisted. Returns a human-readable error, or null when acyclic.
+ * persisted. Returns the fault, or null when acyclic.
  */
 export function dependencyCycleError(
   dependencies: ItemDependency[],
   candidate: { item_id: string; depends_on_item_id: string },
   itemName: (id: string) => string,
-): string | null {
+): DependencyCycleError | null {
   if (candidate.item_id === candidate.depends_on_item_id) {
-    return `${itemName(candidate.item_id)} cannot depend on itself`
+    return { reason: 'self', names: [itemName(candidate.item_id)] }
   }
   // Follow depends-on edges from the candidate's main item; reaching the
   // candidate's dependent closes a cycle.
@@ -243,7 +255,7 @@ export function dependencyCycleError(
   const path = findPath(candidate.depends_on_item_id, candidate.item_id, dependsOn, new Set())
   if (!path) return null
   const names = [candidate.item_id, candidate.depends_on_item_id, ...path.slice(1)].map(itemName)
-  return `dependency cycle: ${names.join(' → ')}`
+  return { reason: 'cycle', names }
 }
 
 function findPath(

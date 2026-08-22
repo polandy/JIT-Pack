@@ -292,6 +292,27 @@ export const de: Record<keyof typeof en, string> = {
   'items.editor.price': 'Preis',
   'items.editor.create': 'Artikel anlegen',
   'items.editor.notFound': 'Artikel nicht gefunden',
+  'items.editor.photo': 'Foto',
+  'items.editor.photoHint':
+    'Ein optionales Referenzfoto, sichtbar für alle, die diesen Artikel sehen. Wird vor dem Hochladen automatisch verkleinert.',
+  'items.editor.photoAlt': 'Foto von {name}',
+  'items.editor.photoAdd': 'Foto hinzufügen',
+  'items.editor.photoReplace': 'Foto ersetzen',
+  'items.editor.photoRemove': 'Foto entfernen',
+  'items.editor.dependsOn': 'Hängt ab von',
+  'items.editor.dependsOnHint':
+    'Wird nur eingepackt, wenn der Hauptartikel mitkommt — „Pflicht“ kommt automatisch mit, „Vorschlag“ fragt vorher.',
+  'items.editor.dependencyRequired': 'Pflicht',
+  'items.editor.dependencySuggested': 'Vorschlag',
+  'items.editor.dependencyRemove': 'Abhängigkeit entfernen',
+  'items.editor.dependencyAdd': 'Abhängigkeit hinzufügen',
+  'items.editor.dependencySearchPlaceholder': 'Artikel durchsuchen…',
+  'items.editor.dependencyNoMatch': 'Kein passender Artikel',
+  'items.editor.dependencySelf': '„{name}“ kann nicht von sich selbst abhängen.',
+  'items.editor.dependencyCycle': 'Das schlösse einen Kreis: {path}.',
+  'items.editor.companions': 'Begleitartikel',
+  'items.editor.companionsHint': 'Diese Artikel hängen von {name} ab:',
+  'items.editor.unknownItem': 'Unbekannter Artikel',
 
   // M5 Artikel-Detail.
   'item.details': 'Details',
