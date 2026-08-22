@@ -994,6 +994,15 @@ itself.
 Mutation-proved: with `nav.trips` set to `Trips` in the German catalogue the
 case fails on the rendered label, twice, including the retry.
 
+**One surface stays out of e2e reach, and is covered instead** (2026-08-22):
+the avatar crop modal (FR-17.13) opens only after the browser's own file
+picker, which Playwright cannot drive through the app. Its shell — placement,
+the canvas crop, the object-URL release on both exits, and its four catalogue
+labels — is pinned in
+[`src/components/settings/__tests__/AvatarCropModal.spec.ts`](../client/src/components/settings/__tests__/AvatarCropModal.spec.ts).
+Named here rather than left silent: the ledger's job is to say what *is not*
+covered by a run as much as what is.
+
 ## M22 — a trip's properties and its travellers (`e2e/trip-properties.spec.ts`, 2026-08-21)
 
 Four cases, Local Mode, landed with the M22 screen (FR-2.7). The whole
