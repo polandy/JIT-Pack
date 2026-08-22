@@ -143,6 +143,25 @@ it. Item numbers stay stable even as items close, because the log refers back to
    consequential being that the stated deviation covers every generation-relevant field, not
    only the quantity. Log: *„FR-27.15: the editor learns to recognise its own duplicates"*.
 
+14. **The multi-user concept's unfinished half** — the concept itself is built and holds
+   (NFR-4.2a: HLC + field-level LWW, additive fields, terminal precedence, the `conflict_log`,
+   G-3's lock, presence, FR-25.19/25.20's assignment). Five places do not do what the spec says,
+   each verified in the code, worst first:
+   **(a)** `groupDecision` (`internal/sync/merge.go`) lets *any* incoming `packed` win regardless
+   of HLC, where §6 says only that packed beats `packing_now` — so a stale offline pack overwrites
+   a later deliberate unpack or FR-5.5 skip, **and logs no conflict**, the group having applied.
+   Silent data loss, and **the one item here that needs an owner decision first: spec or code.**
+   **(b)** Master-partition conflicts are write-only: they are logged with `trip_id = NULL` and
+   `ListConflicts` filters by `trip_id`. `trips` lives there, so a conflict on a trip's name or
+   dates is recorded and unreachable. **(c)** The push response's `conflicts[]` is read by nothing
+   — `merged` is treated exactly like `applied`, so a user is never told an edit lost; the log is
+   the only surface and only reachable while a trip is open. **(d)** G-3's lock ends at the row:
+   `ItemDetailSheet` has no lock awareness, so a locked item is fully editable one tap deeper; no
+   screen ever names who holds it; the 15-minute staleness is a client constant where §7 promises
+   an environment variable, and the server neither expires a lock nor refuses a push for one.
+   **(e)** NFR-4.2a promises audit **and manual revert**; only the audit exists.
+   Found 2026-08-22 while answering how concurrent packers are kept from overwriting each other.
+
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,
 the North-Star Plan/During phases, FR-27.8's per-trip usage history, and FR-1.6's publish/fork
