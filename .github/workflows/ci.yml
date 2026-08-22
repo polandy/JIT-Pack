@@ -60,6 +60,10 @@ jobs:
       # Invariant 9b: colour, radius and elevation come from the three
       # token tables, never from a view. Node built-ins only.
       - run: node ../scripts/design-tokens-gate.mjs
+      # FR-28.6: the curated mark index, the emoji subset and the CSS
+      # unicode-range are one decision in three files; an index entry outside
+      # the subset renders as tofu on every device.
+      - run: node ../scripts/mark-font-gate.mjs
       - run: npm run build # runs type-check and the production build
       # The dev seed, the M14 fixture and the gallery must be *absent* from the
       # bundle, not merely hidden in it — a `v-if` leaves the code behind the
