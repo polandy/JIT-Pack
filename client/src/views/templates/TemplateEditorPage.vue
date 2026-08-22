@@ -932,7 +932,14 @@ const mergeLines = computed(() =>
 }
 
 .fold-dev {
-  margin: 4px 0 0;
+  /* The blast-note's treatment, and for its reason: the flavour's yellow is
+     legible on near-black and thin on near-white, so the warning carries its
+     own wash rather than relying on the hue alone. */
+  display: inline-block;
+  margin: 6px 0 0;
+  padding: 4px 8px;
+  border-radius: var(--jp-r-sm);
+  background: color-mix(in srgb, var(--ct-yellow) 16%, transparent);
   color: var(--ct-yellow);
   font-size: var(--jp-text-xs);
 }
