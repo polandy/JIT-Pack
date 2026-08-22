@@ -22,6 +22,7 @@ const orchestratorFake = {
   syncStatus: { state: { value: 'synced' } },
   setReviewFlag: vi.fn(),
   setLatePacker: vi.fn(),
+  lockHolder: vi.fn(() => null as string | null),
 }
 
 function seedTrip(
@@ -74,6 +75,7 @@ async function openDetails(wrapper: ReturnType<typeof mountSheet>) {
 beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
+  orchestratorFake.lockHolder.mockReturnValue(null)
 })
 
 describe('M5 FR-9.1 flags', () => {
@@ -132,5 +134,97 @@ describe('M5 FR-9.1 flags', () => {
     seedTrip('active', { flag_unused: true })
 
     expect(mountSheet().get('[data-testid="m5-glance"]').text()).toContain('Unused')
+  })
+})
+
+/**
+ * G-3: an item somebody else is packing is "non-interactive for others
+ * except viewing", and it renders "the locker's avatar and name". The
+ * padlock stopped at M4's row — one tap deeper the sheet handed the row
+ * over in full, which is the collision G-3 exists to prevent.
+ */
+describe('M5 respects the G-3 lock', () => {
+  function seedLocked(holder: string | null) {
+    const store = seedTrip('active')
+    store.applyChange({
+      seq: 1,
+      table: 'trip_items',
+      id: 'ti1',
+      deleted: false,
+      row: {
+        ...store.getItems('t1')[0]!,
+        state: 'packing_now',
+        packing_now_by: holder,
+        packing_now_at: new Date().toISOString(),
+      },
+    })
+    orchestratorFake.lockHolder.mockReturnValue(holder)
+    return store
+  }
+
+  it('names who is holding it', () => {
+    seedLocked('user-sarah')
+    const wrapper = mount(ItemDetailSheet, {
+      props: {
+        tripId: 't1',
+        itemId: 'ti1',
+        participants: [
+          { user_id: 'user-sarah', display_name: 'Sarah', avatar_url: null, role: 'editor' },
+        ],
+      },
+      global: { provide: { orchestrator: orchestratorFake } },
+    })
+
+    expect(wrapper.get('[data-testid="m5-lock"]').text()).toContain('Sarah')
+  })
+
+  it('says it is locked even when the holder cannot be named', () => {
+    seedLocked('')
+    const wrapper = mountSheet()
+
+    const banner = wrapper.get('[data-testid="m5-lock"]')
+    expect(banner.text().length).toBeGreaterThan(0)
+    expect(banner.text()).not.toContain('{who}')
+  })
+
+  it('takes the packing controls away rather than only dimming the row', () => {
+    seedLocked('user-sarah')
+    const wrapper = mountSheet()
+
+    expect(wrapper.find('[data-testid="m5-skip"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="m5-todo-add"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="m5-note-add"]').exists()).toBe(false)
+  })
+
+  it('leaves the details controls unwritable while the lock holds', async () => {
+    seedLocked('user-sarah')
+    const wrapper = await openDetails(mountSheet())
+
+    await wrapper.get('[data-testid="m5-late"]').trigger('ionChange', { detail: { checked: true } })
+
+    expect(orchestratorFake.setLatePacker).not.toHaveBeenCalled()
+    // Both halves matter: the handler refuses the write, and the control
+    // says so — a toggle that flips back on its own is worse than one
+    // that never moved.
+    expect(
+      (wrapper.get('[data-testid="m5-late"]').element as unknown as { disabled: boolean }).disabled,
+    ).toBe(true)
+  })
+
+  it('still shows what the row is — viewing is the half G-3 keeps', () => {
+    seedLocked('user-sarah')
+    const wrapper = mountSheet()
+
+    expect(wrapper.get('[data-testid="m5-name"]').text()).toBe('Regenhose')
+    expect(wrapper.find('[data-testid="m5-pack"]').exists()).toBe(true)
+  })
+
+  it('hands the sheet back in full once nobody holds it', () => {
+    seedTrip('active')
+    orchestratorFake.lockHolder.mockReturnValue(null)
+    const wrapper = mountSheet()
+
+    expect(wrapper.find('[data-testid="m5-lock"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="m5-skip"]').exists()).toBe(true)
   })
 })

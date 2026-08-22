@@ -127,6 +127,9 @@ export const de: Record<keyof typeof en, string> = {
   'packing.packedBy': 'gepackt von {who} · {when}',
   'packing.packedByUnknown': 'gepackt · {when}',
   'packing.responsibleWas': 'zuständig war {who}',
+  'packing.lockedBy': '{who} packt das gerade',
+  'packing.lockedByUnknown': 'Jemand packt das gerade',
+  'packing.lockedHint': 'Bis dahin nur zum Anschauen.',
   'stamp.today': 'heute',
   'stamp.yesterday': 'gestern',
 
