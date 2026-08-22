@@ -88,6 +88,20 @@ describe('SyncDetailSheet — network states (G-2)', () => {
     expect(wrapper.emitted('masterConflicts')).toHaveLength(1)
   })
 
+  it('states how many of this device’s fields the server merged away (NFR-4.2a)', () => {
+    const wrapper = mountSheet({ state: 'synced', conflictCount: 3 })
+
+    expect(text(wrapper, 'sync-detail-conflicted')).toContain('3')
+  })
+
+  it('says nothing about merges when nothing of this device’s was merged', () => {
+    const wrapper = mountSheet({ state: 'synced', conflictCount: 0 })
+
+    expect(has(wrapper, 'sync-detail-conflicted')).toBe(false)
+    // The positive signal that the server half rendered at all.
+    expect(has(wrapper, 'sync-detail-master-conflicts')).toBe(true)
+  })
+
   it('offers both logs while a trip is open, because they are two logs', () => {
     const wrapper = mountSheet({ state: 'synced', canOpenConflicts: true })
 
