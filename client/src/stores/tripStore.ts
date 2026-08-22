@@ -22,6 +22,7 @@ import type {
   TripTemplateSource,
 } from '@/types/domain'
 import type { PullChange } from '@/api/types'
+import { durationDays } from '@/domain/instantiate'
 
 export const useTripStore = defineStore(TABLE.trips, () => {
   const trips = ref<Map<string, Trip>>(new Map())
@@ -506,7 +507,12 @@ function rowToTrip(id: string, row: Record<string, unknown>): Trip {
     year: Number(row['year'] ?? new Date().getFullYear()),
     start_date: (row['start_date'] as string) ?? null,
     end_date: (row['end_date'] as string) ?? null,
-    duration_days: (row['duration_days'] as number) ?? null,
+    // Derived, never read off the row: `trips.duration_days` is a generated
+    // column and is not syncable, so no pull ever carries it.
+    duration_days: durationDays(
+      (row['start_date'] as string) ?? null,
+      (row['end_date'] as string) ?? null,
+    ),
     series_id: (row['series_id'] as string) ?? null,
     series_name: (row['series_name'] as string) ?? null,
     attributes: row['attributes'] ? JSON.parse(row['attributes'] as string) : null,

@@ -75,6 +75,7 @@ import type {
   TripMember,
   TripSeries,
   TripStatus,
+  Traveler,
   TravelerChangeReport,
 } from '@/types/domain'
 
@@ -865,7 +866,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   // --- The group refresh (FR-27.4) ---
 
-  /** The optimistic PullChange for a write — applied before the push lands. */
+  /**
+   * The optimistic PullChange for a write — applied before the push lands.
+   *
+   * `fields` must be the **whole** row, not the mutation's fields: a store
+   * applies a change by replacing the row it has, so a column left out here
+   * is blanked until a pull puts it back — and in Local Mode no pull ever
+   * comes. For an update of an existing row that means spreading the row
+   * helper first (`{ ...tripRow(trip), ...mutation.fields }`); only an insert
+   * may pass `mutation.fields` alone, because there the two are the same.
+   */
   function change(
     table: string,
     id: string,
@@ -1159,10 +1169,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * partition: `trips` lives there, beside the templates.
    */
   function updateTrip(tripId: string, fields: TripEdit): void {
+    const trip = tripStore.getTrip(tripId)
+    if (!trip) return
     const mutation = mutations.updateTrip(tripId, fields)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: change(TABLE.trips, tripId, mutation.fields),
+      optimistic: change(TABLE.trips, tripId, { ...tripRow(trip), ...mutation.fields }),
     })
   }
 
@@ -1173,10 +1185,15 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * the least by the change.
    */
   function renameTraveler(tripId: string, travelerId: string, name: string): void {
+    const traveler = tripStore.getTravelers(tripId).find((t) => t.id === travelerId)
+    if (!traveler) return
     const mutation = mutations.renameTraveler(travelerId, name)
     enqueueAndDrain('trip', tripId, {
       mutation,
-      optimistic: change(TABLE.travelers, travelerId, { ...mutation.fields, trip_id: tripId }),
+      optimistic: change(TABLE.travelers, travelerId, {
+        ...travelerRow(traveler),
+        ...mutation.fields,
+      }),
     })
   }
 
@@ -1369,10 +1386,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         table: TABLE.trips,
         id: tripId,
         deleted: false,
-        row: {
-          ...tripMut.fields,
-          duration_days: durationDays(draft.startDate, draft.endDate),
-        },
+        row: tripMut.fields ?? {},
       },
     ])
     if (!local) outbox.enqueue('master', null, tripMut)
@@ -1528,7 +1542,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         table: TABLE.trips,
         id: tripId,
         deleted: false,
-        row: { ...tripMut.fields, duration_days: durationDays(draft.startDate, draft.endDate) },
+        row: tripMut.fields ?? {},
       },
     ])
     if (!local) outbox.enqueue('master', null, tripMut)
@@ -2065,7 +2079,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         table: TABLE.trips,
         id: tripId,
         deleted: false,
-        row: { ...tripMut.fields, duration_days: durationDays(doc.start_date, doc.end_date) },
+        row: tripMut.fields ?? {},
       },
     ])
     if (!local) outbox.enqueue('master', null, tripMut)
@@ -3329,16 +3343,27 @@ function generateDeviceId(): string {
   return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
+// The base an optimistic row is rebuilt on — see `masterItemRow`. No
+// `duration_days`: the store derives it from the dates rather than keeping it.
 function tripRow(trip: Trip): Record<string, unknown> {
   return {
     name: trip.name,
+    year: trip.year,
     status: trip.status,
     start_date: trip.start_date,
     end_date: trip.end_date,
-    duration_days: trip.duration_days,
     series_id: trip.series_id,
     attributes: trip.attributes ? JSON.stringify(trip.attributes) : null,
     imported: trip.imported ? 1 : 0,
+  }
+}
+
+/** The base an optimistic row is rebuilt on — see `masterItemRow`. */
+function travelerRow(traveler: Traveler): Record<string, unknown> {
+  return {
+    trip_id: traveler.trip_id,
+    name: traveler.name,
+    linked_user_id: traveler.linked_user_id,
   }
 }
 
