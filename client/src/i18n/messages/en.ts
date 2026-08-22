@@ -866,6 +866,15 @@ export const en = {
   'conflicts.emptyMaster':
     'No conflicts in inventory, groups or trip data — every change merged cleanly',
   'conflicts.emptyValue': '—',
+  'conflicts.revert': 'Revert',
+  'conflicts.reverted': 'Reverted',
+  'conflicts.revertHint':
+    'Reverting writes the losing value again — as an ordinary change that reaches every device.',
+  'conflicts.revertFailed.alreadyReverted': 'This conflict has already been reverted.',
+  'conflicts.revertFailed.rowDeleted': 'That entry has since been deleted.',
+  'conflicts.revertFailed.refused': 'Cannot revert: the item has since been packed.',
+  'conflicts.revertFailed.forbidden': 'You may not change this entry.',
+  'conflicts.revertFailed.generic': 'Revert failed — offline?',
 
   // M20 user administration (Addendum 3.23).
   'admin.title': 'User administration',
