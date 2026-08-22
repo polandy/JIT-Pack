@@ -301,9 +301,9 @@ export const de: Record<keyof typeof en, string> = {
   'items.editor.photoRemove': 'Foto entfernen',
   'items.editor.dependsOn': 'Hängt ab von',
   'items.editor.dependsOnHint':
-    'Wird nur eingepackt, wenn der Hauptartikel mitkommt — „Pflicht“ kommt automatisch mit, „Vorschlag“ fragt vorher.',
-  'items.editor.dependencyRequired': 'Pflicht',
-  'items.editor.dependencySuggested': 'Vorschlag',
+    'Wird nur eingepackt, wenn der Hauptartikel mitkommt — „nötig“ kommt automatisch mit, „empfohlen“ fragt vorher.',
+  'items.editor.dependencyRequired': 'nötig',
+  'items.editor.dependencySuggested': 'empfohlen',
   'items.editor.dependencyRemove': 'Abhängigkeit entfernen',
   'items.editor.dependencyAdd': 'Abhängigkeit hinzufügen',
   'items.editor.dependencySearchPlaceholder': 'Artikel durchsuchen…',
