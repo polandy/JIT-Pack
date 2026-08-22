@@ -19,6 +19,8 @@ export const en = {
   'common.close': 'Close',
   'common.back': 'Back',
   'common.edit': 'Edit',
+  'common.ok': 'OK',
+  'common.download': 'Download',
   'common.remove': 'Remove',
   'common.confirm': 'Confirm',
   'common.search': 'Search',
@@ -394,6 +396,64 @@ export const en = {
   'settings.defaultTravelersHint':
     'A new trip starts with these people. This device only; you can change them per trip.',
   'settings.addTraveler': 'Add a traveller',
+  // M17's remaining sections (NFR-4.12, 2026-08-22): the screen was
+  // half-translated since before the migration, and a half-translated screen
+  // is worse than an untranslated one — a section is the unit.
+  'settings.profile': 'Profile',
+  'settings.profileLocalNote': 'Local Mode has no account — everything stays on this device.',
+  'settings.avatarAlt': 'Avatar',
+  'settings.changePicture': 'Change picture',
+  'settings.displayName': 'Display name',
+  'settings.saved': 'Saved',
+  'settings.nameRule': '1–50 characters, letters/digits/._- only.',
+  'settings.profileManaged': 'Profile is managed by your identity provider.',
+  'settings.profileUnavailable': 'Profile unavailable — server not reachable.',
+  'settings.lightThemeHint': 'Catppuccin Latte — dark (Mocha) is the default. This device only.',
+  'settings.notifications': 'Notifications',
+  'settings.prefDelegation': 'Delegations',
+  'settings.prefDelegationHint': 'An item was handed to you to pack',
+  'settings.prefMention': 'Mentions',
+  'settings.prefMentionHint': 'Someone wrote @you in a comment',
+  'settings.prefTask': 'Tasks',
+  'settings.prefTaskHint': 'A task was opened on your item',
+  'settings.push': 'Push on this device',
+  'settings.pushHint': 'OS notifications while the app is closed',
+  'settings.pushUnsupported': 'Not supported by this browser',
+  'settings.notificationsUnavailable': 'Notification settings unavailable — server not reachable.',
+  'settings.data': 'Data',
+  'settings.backupNever':
+    "You haven't backed up yet — download a copy so your data survives this browser.",
+  'settings.backupStale':
+    'Last backup was {n} day ago. Download a fresh copy (every {every} days is a good habit). | Last backup was {n} days ago. Download a fresh copy (every {every} days is a good habit).',
+  'settings.localBackupNote':
+    'Backup in Local Mode is the portable YAML export — there is no server copy of your data. Files re-import via the trip/template import.',
+  'settings.tripYaml': 'Trip (YAML)',
+  'settings.templateYaml': 'Template (YAML)',
+  'settings.tripCsv': 'Trip packing list (CSV)',
+  'settings.fullExport': 'Full export (JSON)',
+  'settings.fullExportHint': 'Everything you can see, as a versioned backup file',
+  'settings.storageDetails': 'Storage details',
+  'settings.storageDetailsHint': 'On-device usage',
+  'settings.storageTitle': 'On-device storage',
+  'settings.storageUnavailable': 'Storage details are unavailable in this browser.',
+  'settings.storageUsed': 'Used {used} MB of {quota} MB available on this device.',
+  'settings.storagePersistent':
+    'Storage is persistent — the browser will not evict it automatically.',
+  'settings.storageNotPersistent':
+    'Storage is not marked persistent, so the browser may evict it under pressure. Keep a recent export.',
+  'settings.administration': 'Administration',
+  'settings.userAdmin': 'User administration',
+  'settings.userAdminHint': 'Provisioned accounts, deactivation, profile moderation',
+  'settings.conflictLog': 'Conflict log',
+  'settings.conflictLogNote':
+    'Automatic merge resolutions are logged per trip — open a trip and tap the sync indicator in the header to review them.',
+  'settings.about': 'About',
+  'settings.modeLocal': 'Mode: Local (this device only)',
+  'settings.modeServer': 'Mode: Server ({url})',
+  // Avatar crop (FR-17.13).
+  'avatarCrop.title': 'Position photo',
+  'avatarCrop.zoom': 'Zoom',
+  'avatarCrop.use': 'Use photo',
   // M11 — container management (FR-10.1–10.3, FR-25.5).
   'container.title': 'Luggage',
   'container.loadOf': '{weight} of {max}',

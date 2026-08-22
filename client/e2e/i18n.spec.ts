@@ -89,4 +89,34 @@ test.describe('Language choice @local @nfr412', () => {
     await expect(onVisibleScreen(page, 'trips-filter-planned')).toHaveText('Geplant')
     await expect(page.getByTestId('tab-trips')).toHaveText('Reisen')
   })
+
+  /*
+   * E2E-M17-11 (NFR-4.12): M17 itself. It was the last half-translated screen
+   * — ten t() calls beside about fifteen literals — and the screen the
+   * language switch *lives on* is the one place where an untranslated section
+   * is most visible: the user changes the setting and half the page ignores
+   * them. Asserted per section rather than on one word, because a section is
+   * the unit of this migration.
+   */
+  test('E2E-M17-11: the settings screen follows its own language switch', async ({ page }) => {
+    await page.setViewportSize(MOBILE)
+    await page.goto('/tabs/settings')
+
+    // English first, so the German assertions below cannot pass vacuously.
+    await expect(onVisibleScreen(page, 'settings-section-profile')).toHaveText('Profile')
+    await expect(onVisibleScreen(page, 'settings-section-data')).toHaveText('Data')
+    await expect(onVisibleScreen(page, 'settings-section-about')).toHaveText('About')
+
+    await chooseLanguage(page, 'German')
+
+    await expect(onVisibleScreen(page, 'settings-section-profile')).toHaveText('Profil')
+    await expect(onVisibleScreen(page, 'settings-section-appearance')).toHaveText('Darstellung')
+    await expect(onVisibleScreen(page, 'settings-section-data')).toHaveText('Daten')
+    await expect(onVisibleScreen(page, 'settings-section-conflicts')).toHaveText('Konfliktprotokoll')
+    await expect(onVisibleScreen(page, 'settings-section-about')).toHaveText('Über')
+
+    // Not only the headings: the Local Mode note under Data is a sentence the
+    // screen renders inline, which is where the literals actually were.
+    await expect(onVisibleScreen(page, 'settings-storage-details')).toHaveText('Speicherdetails')
+  })
 })
