@@ -808,4 +808,60 @@ test.describe('Single-User backend sync @single', () => {
     await ctxA.close()
     await ctxB.close()
   })
+  /**
+   * E2E-M15-05 (FR-16.1/16.2, FR-2.1b): the legacy spreadsheet import
+   * reaches the server, not only the screen that started it.
+   *
+   * It is a backend case on purpose. `createImportedTrip` omitted `year`,
+   * which `trips` declares NOT NULL, so every imported trip was refused —
+   * and nothing on the importing device could tell: the optimistic row was
+   * already in its own store, so M2 showed the migration that had not
+   * happened. Only a device that never saw the optimistic write can say
+   * whether the wire carried it, which is what context B is here.
+   *
+   * The CSV is the layout the wizard was taught to read: the year above the
+   * trip's name (two header rows) and the category in its own column.
+   */
+  test('a spreadsheet import lands on the server, not only on the device', async ({ browser }) => {
+    const id = uniq()
+    const trip = `Laos ${id}`
+    const net = `Moskitonetz-${id}`
+    const boots = `Wanderschuhe-${id}`
+    const csv = [`,,2016`, `,,${trip}`, `Reise,${net},2`, `,${boots},1`].join('\n')
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA, '/import')
+
+    await visiblePage(pageA).getByTestId('import-paste').locator('textarea').fill(csv)
+    await visiblePage(pageA).getByTestId('import-analyze').click()
+
+    // The header block gave the column both halves of its identity: the
+    // name from the row that names it, the date from the row above.
+    const row = visiblePage(pageA).getByTestId('import-trip-2')
+    await expect(row.locator('ion-input').first().locator('input')).toHaveValue(trip)
+    await expect(row.locator('ion-input').nth(1).locator('input')).toHaveValue('2016')
+
+    await visiblePage(pageA).getByTestId('import-next').click()
+    await expect(visiblePage(pageA).getByTestId(`import-summary-${trip}`)).toBeVisible()
+    await visiblePage(pageA).getByTestId('import-commit').click()
+
+    // FR-16.2 imports history, so the wizard names the segment it lands on.
+    await expect(visiblePage(pageA).getByTestId(`trip-row-${trip}`)).toBeVisible()
+    await expect(pageA.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+
+    const ctxB = await browser.newContext()
+    const pageB = await bootPage(ctxB, '/tabs/trips')
+    await visiblePage(pageB).getByTestId('trips-filter-archived').click()
+    await expect(visiblePage(pageB).getByTestId(`trip-row-${trip}`)).toBeVisible()
+
+    // And the rows travelled with it — behind M4's done bar, because
+    // FR-16.2 imports them already packed.
+    await visiblePage(pageB).getByTestId(`trip-row-${trip}`).click()
+    await visiblePage(pageB).getByTestId('m4-done-bar').click()
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${net}`)).toBeVisible()
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${boots}`)).toBeVisible()
+
+    await ctxA.close()
+    await ctxB.close()
+  })
 })
