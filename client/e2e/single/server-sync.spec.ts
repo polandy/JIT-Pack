@@ -245,6 +245,11 @@ test.describe('Single-User backend sync @single', () => {
     // The controls are gone rather than dimmed — nothing to tap and lose.
     await expect(pageB.getByTestId('m5-skip')).toHaveCount(0)
     await expect(pageB.getByTestId('m5-note-add')).toHaveCount(0)
+    // The stepper is the exception, and deliberately so: it is where the
+    // count is read, so it stays on screen and stops writing instead.
+    await expect(
+      pageB.getByTestId('m5-sheet').getByTestId('row-check').locator('ion-checkbox'),
+    ).toBeDisabled()
     await pageB.getByTestId('m5-details').click()
     await expect(pageB.getByTestId('m5-late')).toBeDisabled()
 

@@ -22,6 +22,7 @@ const orchestratorFake = {
   syncStatus: { state: { value: 'synced' } },
   setReviewFlag: vi.fn(),
   setLatePacker: vi.fn(),
+  packToggle: vi.fn(),
   lockHolder: vi.fn(() => null as string | null),
 }
 
@@ -194,6 +195,32 @@ describe('M5 respects the G-3 lock', () => {
     expect(wrapper.find('[data-testid="m5-skip"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="m5-todo-add"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="m5-note-add"]').exists()).toBe(false)
+  })
+
+  /**
+   * The stepper is the write G-3 is actually about, and it is the one
+   * control the sheet keeps on screen — a locked row still has to show
+   * "3/5". Disabled, therefore, not removed: the count is the readable
+   * half G-3 preserves. Both directions are asserted, because "no call
+   * was made" proves nothing on its own.
+   */
+  it('freezes the packing control while leaving the count readable', async () => {
+    seedLocked('user-sarah')
+    const locked = mountSheet()
+
+    const check = locked.get('[data-testid="row-check"]')
+    expect(
+      (check.get('ion-checkbox').element as unknown as { disabled: boolean }).disabled,
+    ).toBe(true)
+    await check.trigger('click')
+    expect(orchestratorFake.packToggle).not.toHaveBeenCalled()
+
+    // The positive signal: the same tap on the same control writes as soon
+    // as nobody holds the row.
+    orchestratorFake.lockHolder.mockReturnValue(null)
+    const free = mountSheet()
+    await free.get('[data-testid="row-check"]').trigger('click')
+    expect(orchestratorFake.packToggle).toHaveBeenCalledTimes(1)
   })
 
   it('leaves the details controls unwritable while the lock holds', async () => {
