@@ -265,3 +265,37 @@ func TestExportTrip_NonMemberIsRefused(t *testing.T) {
 		t.Errorf("status = %d, want 200 for a member", member.StatusCode)
 	}
 }
+
+// FR-18.7: importing the same file twice is the ordinary case for a CLI
+// import, and `templates` is UNIQUE on (owner_id, name) — the second one has
+// to say so rather than answer an opaque 500.
+func TestImportTemplate_NameAlreadyTaken_IsRefusedWithItsOwnCode(t *testing.T) {
+	srv := newTestServer(t)
+	body := "kind: template\nname: Twice\nitems:\n  - name: Socken\n    quantity: 1\n"
+
+	post := func() (int, string) {
+		req, _ := http.NewRequest(http.MethodPost, srv.URL+"/api/v1/templates/import", strings.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+token(t, userA, testSecret))
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		raw, _ := io.ReadAll(resp.Body)
+		return resp.StatusCode, string(raw)
+	}
+
+	if status, body := post(); status != http.StatusOK {
+		t.Fatalf("first import: status = %d, body = %s", status, body)
+	}
+	status, answer := post()
+	if status != http.StatusConflict {
+		t.Errorf("second import: status = %d, want 409 — body: %s", status, answer)
+	}
+	if !strings.Contains(answer, "name_taken") {
+		t.Errorf("answer does not carry its own code: %s", answer)
+	}
+	if !strings.Contains(answer, "Twice") {
+		t.Errorf("answer does not name the template: %s", answer)
+	}
+}

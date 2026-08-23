@@ -357,8 +357,10 @@ you want the file's version alongside it.
 
 The same linking applies when you import a **group document** on its own: if a group of that
 name is already here, the import lands on it and changes nothing, rather than leaving a
-second copy behind. Importing a *holiday template* whose name is taken does create a second
-one, suffixed `(import)` — two templates of one name are two different plans.
+second copy behind. A *holiday template* is different: its name has to be free. Importing one
+whose name you already use is refused with `409` and the code `name_taken` — rename it in the
+file or rename yours in the app, then import again. (Restoring a backup **in the app** instead
+keeps both, adding the incoming one as *Name (import)*.)
 
 A group document (`scope: group`) carries no `includes:` — a group is never composed of
 other groups.
@@ -386,6 +388,56 @@ Both import endpoints:
   `validation` (`expected kind: trip` / `expected kind: template`),
 - reject malformed YAML with `422` and code `validation`,
 - ignore fields they do not recognise, so a document from a newer version still imports.
+
+## Importing YAML from the command line
+
+The `jitpackd` binary imports portable YAML itself, so a file and a browser do not have to be
+in the same place — useful for seeding a new instance, for restoring on a machine with no
+screen, or for replaying a file you edited by hand:
+
+```bash
+jitpackd import my-template.yaml
+jitpackd import --server https://jitpack.example.com --token "$TOKEN" backup.yaml
+```
+
+It talks to a **running** instance over the same API as everything else on this page; it does
+not open the database file, which the server has open at the same time.
+
+A file may hold one document or many. Each is sent on its own, in the order the file lists
+it, and each gets a line:
+
+```
+backup.yaml #1 template "Ferien": imported (7115efc9c24d97e8c2f96ed4e3e9c13d)
+backup.yaml #2 trip "Wiriehorn": imported (26a03a9d336fc34db352c28549bd6d49)
+backup.yaml #3: unreadable — unknown kind: "nonsense" (expected template or trip)
+3 documents: 2 imported, 1 unreadable
+```
+
+**One bad document never costs the ones behind it.** Whatever went wrong — a document that
+cannot be read, one the server refused, a file that is not there, a server that does not
+answer — is said on its own line and the rest of the file still goes in. The command exits
+with `1` if any document failed and `2` if the command line itself was wrong, so a script can
+tell "nothing landed" from "most of it did".
+
+Options:
+
+| Option | Meaning |
+|---|---|
+| `--server URL` | The instance to import into. Defaults to `$JITPACK_SERVER`, then `http://localhost:3000`. |
+| `--token TOKEN` | Bearer token, for an instance with accounts. Defaults to `$JITPACK_TOKEN`. A single-user instance needs none. |
+| `--dry-run` | Read the file and report what is in it without importing anything. |
+
+Use `--dry-run` before importing a file you wrote or edited yourself — it tells you how many
+documents the file really has and which of them the app can read, while nothing has changed
+yet.
+
+Two things to know before you use it for a whole device:
+
+- Local Mode has no server, so there is nothing to import into. Restore a Local Mode backup
+  in the app, on the device.
+- A trip imported this way arrives without its tag links; restoring the same file in the app
+  keeps them. Use the command for templates and single trips, and the app for a device
+  backup.
 
 If an export or import fails unexpectedly, [Troubleshooting](troubleshooting.md) lists the
 error codes.

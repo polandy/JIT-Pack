@@ -141,6 +141,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A year is a quantity, and that is why M15 could not find its header (2026-08-23)](#a-year-is-a-quantity-and-that-is-why-m15-could-not-find-its-header-2026-08-23) — the legacy spreadsheet importer wrote no `year`, so a NOT NULL column made the server refuse every trip it imported while the importing device rendered the migration anyway; underneath sat two layout assumptions a real family sheet broke, and the rule for finding the header block had to stop asking about quantities.
 - [The store that already agrees with you (2026-08-23)](#the-store-that-already-agrees-with-you-2026-08-23) — three defects in one import path, all of the same shape: the client applies its own write optimistically, the server refuses it, and no screen on the importing device can tell the difference. Found by importing into the real instance instead of a test double, which is a different act from running the suite.
 - [Every spec paid for a DOM, and one of them was green for the wrong reason (2026-08-23)](#every-spec-paid-for-a-dom-and-one-of-them-was-green-for-the-wrong-reason-2026-08-23) — the suite built a jsdom window for all 114 spec files when 32 use one, costing ~48 % of its wall-clock; the premise that started the work was itself wrong (a cold-cache run read 252 s where the warm figure is 88 s), and the interesting find is the failure mode of the fix: a missing `@vitest-environment jsdom` is *not* reliably a red test, because production code that reads a DOM global inside a `try` takes the `catch` instead and the spec passes while exercising the error path.
+- [The manual described a suffix only the client applies (2026-08-23)](#the-manual-described-a-suffix-only-the-client-applies-2026-08-23) — `jitpackd import` (FR-18.7). Two things the diff cannot say: forwarding a document means forwarding *its bytes*, because re-serializing it silently deletes every field this build does not model — the exact opposite of FR-18.5; and `docs/backup.md` promised the server's import endpoint would keep both templates under a `(import)` suffix, which is a client behaviour on the restore path and has never been that endpoint's.
 
 ## Current state
 
@@ -5526,3 +5527,62 @@ second answer to give (unlike FR-16.3's prompt against existing inventory, where
 "keep separate" is a real choice). And where two folded rows both carry an amount
 for the same trip, the **larger** wins rather than the sum: they describe one
 packing, and adding them invents luggage that was never in the car.
+
+## The manual described a suffix only the client applies (2026-08-23)
+
+`jitpackd import [--server URL] [--token TOKEN] [--dry-run] FILE...` (FR-18.7).
+The wish behind it: the YAML file and the browser are not always in the same
+place, and the only path was `curl` per document with the endpoint spelled by
+hand. It goes over HTTP rather than into the database file, because the running
+server holds the write lock and because an import that goes through the API
+obeys exactly the rules M18 obeys instead of a second implementation of them.
+
+**Forwarding a document means forwarding its bytes.** The first version parsed
+each document into `portable.Document` and re-serialized it for the request.
+That is wrong for a reason the round trip hides: FR-18.5 promises a field this
+build does not model is *carried*, and re-serializing keeps only what the Go
+type has — so a file from a newer version would arrive quietly stripped, and the
+receiving instance would have no way to know. The command now parses only far
+enough to read `kind`, which names the endpoint, and posts the file's own bytes.
+`portable.DocumentResult` gained `Raw` for it. The suspicion that sent me
+looking was wrong (I thought re-serialization was behind a `500` I was seeing);
+the finding under it was real anyway.
+
+**A YAML stream decoder cannot give you FR-18.4's recovery.** `yaml.Decoder`
+scans ahead, so a syntax error anywhere in a file surfaces on the *first*
+`Decode` and every intact document in front of it is lost with it — measured, not
+assumed. FR-18.4 says the opposite must happen ("a restore that gives up on the
+first bad document loses everything behind it"). So `portable.UnmarshalAll`
+splits the file on separator lines first and parses each document on its own.
+The cost accepted: splitting by line is not a YAML parser, and a bare `---` at
+column 0 inside a value would cut a document in half. It cannot occur in files
+this format writes — YAML indents block scalars — and where a hand-edited file
+did that, YAML itself would read it as a separator too.
+
+**The manual documented a behaviour of the wrong layer.** `docs/backup.md` said
+importing a holiday template whose name is taken "does create a second one,
+suffixed `(import)`". It does not: `templates` is UNIQUE on (owner_id, name) and
+the endpoint answered a bare `500 import failed`. The suffix is real, but it
+lives in `useSyncOrchestrator.ts` on the *app's* restore path — the page
+describing the server API had borrowed a client behaviour. Importing the same
+file twice is the ordinary CLI mistake, so the endpoint now answers `409`
+`name_taken` naming the template, and the page says what the endpoint does with
+the client's behaviour named as the client's. **Not built:** the suffix
+server-side. Two templates of one name are two different plans and merging them
+is a decision the CLI has no screen to ask on; **revisit trigger:** a restore of
+a whole device through the CLI, which would also need the tag gap below closed.
+
+**A gap found while verifying, deliberately not closed here.** The server's own
+export/import reads a position's `category` and not the ordered `tags` ADR-024
+added, so a trip imported through the CLI lands without its tag links while the
+in-app restore keeps them. The tags round trip lives in `client/src/domain/
+portable.ts`; the server endpoints predate it. Written into FR-18.7 with its
+revisit trigger rather than fixed alongside a CLI.
+
+**The trap that cost the most time was mine, and it is worth one line.**
+`jitpackd` falls back to `jitpack.db` in the working directory when
+`JITPACK_DB_PATH` is unset. I set `JITPACK_DB`, so six "fresh" test instances
+all shared one accumulating database in the worktree root, and a duplicate-name
+refusal read as a phantom defect in the file I was importing. A server that
+starts happily on the wrong database tells you nothing is wrong; the log line
+says "listening", not "on which file".

@@ -165,8 +165,16 @@ func includedGroups(ctx context.Context, db *sql.DB, templateID string) ([]porta
 	return groups, nil
 }
 
+// ErrNameTaken reports a template document whose name this owner already
+// uses. `templates` is UNIQUE on (owner_id, name), so the insert would fail
+// anyway; naming the case lets the caller say which document and why instead
+// of answering a bare constraint error.
+var ErrNameTaken = errors.New("a template of this name already exists")
+
 // ImportTemplate creates a new template from a portable Document (FR-18.4).
 // Items are matched by name; missing items are created in the master table.
+// A Ferien-Vorlage whose name is taken returns ErrNameTaken; a group lands on
+// the existing group of that name instead (FR-27.1/ADR-017).
 func (s *Store) ImportTemplate(ctx context.Context, ownerID string, doc portable.Document) (string, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -196,6 +204,16 @@ func (s *Store) ImportTemplate(ctx context.Context, ownerID string, doc portable
 			return "", fmt.Errorf("commit: %w", err)
 		}
 		return groupID, nil
+	}
+
+	var taken bool
+	if err := tx.QueryRowContext(ctx,
+		`SELECT EXISTS(SELECT 1 FROM templates WHERE owner_id = ? AND name = ?)`,
+		ownerID, doc.Name).Scan(&taken); err != nil {
+		return "", fmt.Errorf("check name: %w", err)
+	}
+	if taken {
+		return "", fmt.Errorf("%w: %q", ErrNameTaken, doc.Name)
 	}
 
 	templateID := randomID()

@@ -300,6 +300,16 @@ Input the server refused. The message names the limit:
 | `expected kind: trip` / `expected kind: template` | the imported YAML document's `kind` does not match the endpoint. See [Backup & Export](backup.md#template-export-and-import). |
 | `malformed push envelope` / `malformed request body` / `malformed prefs body` | the request body is not the JSON the endpoint expects. |
 
+## `409` with code `name_taken`
+
+A holiday template of that name is already here, and template names have to be unique per
+owner. Rename the template inside the YAML file, or rename the one you already have in the
+app, and import again. Groups behave differently on purpose: a group of a name that exists is
+*linked*, not duplicated — see [Backup & Export](backup.md#template-export-and-import).
+
+Importing the same file twice is the usual way to meet this, and `jitpackd import` reports it
+per document, so the rest of a multi-document file still goes in.
+
 ## `500` with code `internal`
 
 Something failed server-side — the message is deliberately generic on the wire

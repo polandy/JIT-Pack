@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -300,6 +301,61 @@ func TestRunImport_ServerUnreachable_IsReportedWithTheAddress(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), addr) {
 		t.Errorf("report does not name the server it could not reach:\n%s", out.String())
+	}
+}
+
+// FR-18.5: a field this build does not model is carried, not dropped. The
+// command must therefore forward the file's own bytes and never a
+// re-serialization of what it understood — which would keep only the fields
+// the Go type has.
+func TestRunImport_UnknownField_ReachesTheServerUntouched(t *testing.T) {
+	var bodies []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, _ := io.ReadAll(r.Body)
+		bodies = append(bodies, string(raw))
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	defer srv.Close()
+	doc := "kind: template\nname: Ferien\nfrom_a_newer_build: keep-me\nitems:\n  - name: Socken\n    quantity: 3\n"
+	path := writeFile(t, "one.yaml", doc)
+
+	var out strings.Builder
+	if _, err := cli.RunImport(context.Background(),
+		cli.ImportOptions{ServerURL: srv.URL}, []string{path}, &out); err != nil {
+		t.Fatalf("RunImport: %v", err)
+	}
+	if len(bodies) != 1 {
+		t.Fatalf("posted %d documents, want 1", len(bodies))
+	}
+	if !strings.Contains(bodies[0], "from_a_newer_build: keep-me") {
+		t.Errorf("the unknown field was dropped on the way:\n%s", bodies[0])
+	}
+}
+
+// Importing the same file twice is the ordinary CLI mistake; the report has
+// to carry the server's reason so the user can act on it.
+func TestRunImport_SameFileTwice_ReportsWhyTheSecondOneDidNotLand(t *testing.T) {
+	srv, st := newImportServer(t)
+	path := writeFile(t, "one.yaml", templateDoc)
+	opts := cli.ImportOptions{ServerURL: srv.URL}
+
+	var first strings.Builder
+	if failed, _ := cli.RunImport(context.Background(), opts, []string{path}, &first); failed != 0 {
+		t.Fatalf("first import failed:\n%s", first.String())
+	}
+	var second strings.Builder
+	failed, err := cli.RunImport(context.Background(), opts, []string{path}, &second)
+	if err != nil {
+		t.Fatalf("RunImport: %v", err)
+	}
+	if failed != 1 {
+		t.Errorf("failed = %d, want 1\n%s", failed, second.String())
+	}
+	if !strings.Contains(second.String(), "already exists") {
+		t.Errorf("report does not say why:\n%s", second.String())
+	}
+	if got := countRows(t, st, `SELECT COUNT(*) FROM templates`); got != 1 {
+		t.Errorf("templates = %d, want 1", got)
 	}
 }
 

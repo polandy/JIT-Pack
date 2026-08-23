@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"jitpack/internal/portable"
+	"jitpack/internal/store"
 )
 
 const maxImportBody = 1 << 20 // 1 MB
@@ -50,6 +51,11 @@ func (s *Server) handleImportTemplate(w http.ResponseWriter, r *http.Request) {
 
 	userID, _ := r.Context().Value(userIDKey).(string)
 	templateID, err := s.store.ImportTemplate(r.Context(), userID, doc)
+	if errors.Is(err, store.ErrNameTaken) {
+		writeError(w, http.StatusConflict, "name_taken",
+			"a template named "+doc.Name+" already exists — rename it in the file or in the app")
+		return
+	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "internal", "import failed")
 		return
