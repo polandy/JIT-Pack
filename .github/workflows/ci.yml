@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Lets a feature branch be checked on GitHub without opening a PR first, so
+  # the jobs that need docker and a browser (e2e, visual, docker-build) never
+  # have to run on a maintainer laptop. `make ci-remote` is the front door.
+  # Note this trigger is only honoured once it exists on the default branch.
+  workflow_dispatch:
 
 permissions:
   contents: read

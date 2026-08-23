@@ -1,7 +1,7 @@
 # Local mirror of the CI pipeline (.github/workflows/ci.yml).
 # Each target maps 1:1 to a CI job or step, so a green `make ci` predicts a
 # green pipeline. When you change a job in ci.yml, change its target here.
-.PHONY: ci pins build vet fmt fmt-check test cover tidy-check go-lint \
+.PHONY: ci ci-remote pins build vet fmt fmt-check test cover tidy-check go-lint \
         client client-deps client-lint client-tokens client-marks client-build client-test client-fmt \
         e2e e2e-single visual visual-update docker-build all
 
@@ -49,6 +49,13 @@ log-index:
 
 # The full set, including the two slow jobs.
 all: ci e2e docker-build
+
+# The same full set, but on GitHub's machines rather than this one. Pushes the
+# current branch, dispatches the CI workflow against it and waits for the
+# verdict -- no pull request needed. Prefer this over `make all` for the jobs
+# that want docker and a browser; see the script's header.
+ci-remote:
+	@./scripts/ci-remote.sh
 
 ## --- go job ---------------------------------------------------------------
 # NOT `./...`: client/node_modules ships Go source (the npm package `flatted`
