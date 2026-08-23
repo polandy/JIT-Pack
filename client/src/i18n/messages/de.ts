@@ -722,6 +722,10 @@ export const de: Record<keyof typeof en, string> = {
   'import.wizard.itemColumn': 'Artikelspalte',
   'import.wizard.column': 'Sp. {n}',
   'import.wizard.categoryRows': 'Kategoriezeilen',
+  'import.wizard.categoryColumn': 'Kategoriespalte',
+  'import.wizard.categoryColumnHint':
+    'Manche Tabellen führen die Kategorie in einer eigenen Spalte neben dem Artikel, fortgeschrieben bis sie wechselt.',
+  'import.wizard.noCategoryColumn': 'Keine',
   'import.wizard.duplicates': 'Mögliche Dubletten',
   'import.wizard.duplicatesHint': 'Diese importierten Namen ähneln Artikeln, die es schon gibt.',
   'import.wizard.existing': 'vorhanden: {name}',

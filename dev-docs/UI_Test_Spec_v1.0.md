@@ -125,6 +125,7 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 | E2E-G1-04 | G-1/ADR-011 A global action gives back what it was opened from | all | Inside a trip, the gear then `‹` renders the packing list again — not the dashboard, which is the static parent `/tabs/settings` declares and the symptom the owner reported (2026-08-21). Positive signal is M4's own FAB; the negative one is that the settings control is gone from the document entirely, because a screen left mounted mid-transition is briefly not hidden either. |
 | E2E-G1-05 | G-1/ADR-011 A cold start still falls back to the declared parent | all | Opening `/tabs/settings` directly — no origin, the notification-deep-link case ADR-011 exists for — and `‹` renders the dashboard. This is the control that keeps the fix from being "back = history": without it, E2E-G1-04 alone would pass against a build that simply popped the stack. |
 | E2E-G9-12 | G-9/§7 A flow returns to the origin it was entered from | all | M18 opened from M2 returns to the trip list, where the declared parent is `/tabs/settings` (M18 is entered from M2, M7 and Settings). §7's *flows* row promised this behaviour and nothing implemented it. Asserted on the **pathname**: the first version compared `toHaveURL(/\/tabs\/trips$/)` and was false-green against the unfixed build, because the URL now carries `?from=/tabs/trips` and the regex matched the query's tail. |
+| E2E-G9-13 | G-9/§7 The same contract for M15 | all | The spreadsheet import opened from M2 returns to the trip list, where its declared parent is `/tabs/items` (it is entered from M2 and from M9's empty state). Added 2026-08-23 with M15's first e2e coverage of any kind — until then nothing would have noticed the flow class regressing on this screen. |
 | E2E-G12-01 | G-12 Actions in the app bar | all | On a detail screen (M4, M6) the app bar carries that screen's icon cluster; navigating away clears it, so the previous screen's search never filters the next one. *(Corrected 2026-08-13: the original clause also demanded the settings gear be hidden on a detail screen. ADR-011 decided the opposite and gave its reason — the sync glyph and settings are the only route to the conflict log from inside a trip — so the gear stays.)* |
 | E2E-G12-07 | G-12 Two clusters, no overflow | all | M4's app-bar cluster is search + filter; Shopping (with open-item count), Luggage and Analytics sit on the trip title line. **No ⋯ exists** — all three destinations are reachable in one tap, which is what §3.25's discoverability directive asked for. M6's app-bar cluster is search + filter. |
 | E2E-G12-06 | G-12 Icon-only is still nameable | all | Every unlabelled navigation icon exposes its name via `title`, and a long-press shows it as a bubble on touch. A plain tap **navigates** and shows no bubble — learning a glyph must never cost an extra tap. |
@@ -391,6 +392,9 @@ no-flags case to E2E-M14-06.)*
 * **E2E-M15-02** `all` (NFR-4.7): noise handling shown inline ("'…?' → item + open task").
 * **E2E-M15-03** `all` (FR-16.3): dedup step offers merge/keep-separate against existing master data.
 * **E2E-M15-04** `all` (FR-16.2/NFR-4.7): confirm commits (n items, n archived trips, target series); pre-validation blocks a bad file before commit (transactionality approximation).
+* **E2E-M15-05** `single` (FR-16.1/16.2, FR-2.1b) — **implemented**: a CSV with a two-row header (year above name) and a category column imports through the wizard; the mapping step shows the name and the date it read from the two header rows, and both column pickers offer *candidates* rather than every column — a column holding quantities can be neither of the two they choose; after the commit the trip is on M2's Archived segment, and **a second browser context that never saw the optimistic write finds the trip and its packed rows** — the only assertion that can tell a wire that carried the import from a screen that only believed it. Cases 01–04 remain written and unimplemented.
+* **E2E-M15-06** `all` (FR-16.1) — **implemented**: a sheet whose category is a *column* has it detected, and the confirm step reports the categories it produced and no item turned into one.
+* **E2E-M15-07** `all` (FR-16.1) — **implemented**: setting the category-column picker back to *None* is honoured rather than re-detected, and the plan then carries no category at all. The override is the escape hatch for a column the detector reads wrong — a *Notes* column carrying text and no quantities looks exactly like a category to it.
 
 ### M16 — Series & Destination Profile
 * **E2E-M16-01** `all` (FR-13.1): series name + default attribute chips editable (the M3 prefill source).
@@ -554,8 +558,8 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-15.1 | E2E | M3-01, M16-01 |
 | FR-15.2 | E2E+UNIT | M3-06, M8-03; instantiate.ts |
 | FR-15.3 | DOC/N-A | void — retired with FR-1.3/1.5 (2026-08-08) |
-| FR-16.1 | E2E | M15-01 |
-| FR-16.2 | E2E | M2-08, M15-04 |
+| FR-16.1 | E2E | M15-01, M15-05, M15-06, M15-07 |
+| FR-16.2 | E2E | M2-08, M15-04, M15-05 |
 | FR-16.3 | E2E+UNIT | M15-03, M18-03, M9-03; spreadsheet.ts |
 | FR-17.1/17.2 | E2E | G1-01, G8-01 (Single-User surface) |
 | FR-17.3 | E2E | M2-06, M3-05, M5-08, M17-08 |

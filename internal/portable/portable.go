@@ -142,8 +142,8 @@ const (
 // here rather than imported, for the same reason the scopes above are:
 // `portable` imports nothing internal (invariant 1). The schema's CHECK also
 // admits the inert `repack`, which is deliberately not here — nothing writes
-// it, and a value this list does not name is refused rather than passed on to
-// become a constraint error on push.
+// it, and a value this list does not name is dropped by normalizeStatus rather
+// than passed on, where it would become a constraint error on push.
 const (
 	StatusPlanning = "planning"
 	StatusActive   = "active"
