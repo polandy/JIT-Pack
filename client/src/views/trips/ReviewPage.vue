@@ -15,14 +15,7 @@
  * assistant is naturally resumable — an applied row simply stops
  * appearing on the next visit.
  */
-import {
-  IonPage,
-  IonContent,
-  IonButton,
-  IonIcon,
-  IonSelect,
-  IonSelectOption,
-} from '@ionic/vue'
+import { IonPage, IonContent, IonButton, IonIcon, IonSelect, IonSelectOption } from '@ionic/vue'
 import { checkmarkCircleOutline, chevronForwardOutline, closeOutline } from 'ionicons/icons'
 import { computed, inject, ref, watchEffect } from 'vue'
 
