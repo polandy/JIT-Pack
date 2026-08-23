@@ -33,6 +33,7 @@ import { inject, onMounted, ref } from 'vue'
 import { t } from '@/i18n'
 import type { MessageKey } from '@/i18n'
 import { APIRequestError } from '@/api/client'
+import { ERROR_CODE, type ErrorCode } from '@/api/types'
 import type { ConflictEntry, useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const props = defineProps<{ tripId?: string }>()
@@ -64,11 +65,14 @@ const reverting = ref<string | null>(null)
  * Each refusal the server distinguishes gets its own sentence: which one
  * applies is the only thing the reader needs to decide what to do next.
  */
-const REVERT_ERROR_MESSAGES: Record<string, MessageKey> = {
-  already_reverted: 'conflicts.revertFailed.alreadyReverted',
-  row_deleted: 'conflicts.revertFailed.rowDeleted',
-  revert_refused: 'conflicts.revertFailed.refused',
-  forbidden: 'conflicts.revertFailed.forbidden',
+// Keyed by the generated vocabulary, not by re-typed literals: a code renamed
+// on the server fails to compile here instead of falling through to the
+// generic message (NFR-4.14).
+const REVERT_ERROR_MESSAGES: Partial<Record<ErrorCode, MessageKey>> = {
+  [ERROR_CODE.already_reverted]: 'conflicts.revertFailed.alreadyReverted',
+  [ERROR_CODE.row_deleted]: 'conflicts.revertFailed.rowDeleted',
+  [ERROR_CODE.revert_refused]: 'conflicts.revertFailed.refused',
+  [ERROR_CODE.forbidden]: 'conflicts.revertFailed.forbidden',
 }
 
 async function revert(entry: ConflictEntry) {
@@ -82,11 +86,12 @@ async function revert(entry: ConflictEntry) {
     // while this page was open.
     await load()
   } catch (err) {
-    const code = err instanceof APIRequestError ? (err.apiError?.code ?? '') : ''
-    revertErrors.value[entry.id] = REVERT_ERROR_MESSAGES[code] ?? 'conflicts.revertFailed.generic'
+    const code = err instanceof APIRequestError ? err.apiError?.code : undefined
+    revertErrors.value[entry.id] =
+      (code && REVERT_ERROR_MESSAGES[code]) || 'conflicts.revertFailed.generic'
     // An already-spent entry is stale on screen, not broken: re-reading
     // replaces the button with the reverted note it should have shown.
-    if (code === 'already_reverted') await load()
+    if (code === ERROR_CODE.already_reverted) await load()
   } finally {
     reverting.value = null
   }

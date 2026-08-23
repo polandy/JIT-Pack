@@ -11,6 +11,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 
 import ConflictLogPage from '../ConflictLogPage.vue'
 import { APIRequestError } from '@/api/client'
+import { ERROR_CODE, type ErrorCode } from '@/api/types'
 import type { ConflictEntry } from '@/composables/useSyncOrchestrator'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
@@ -84,11 +85,11 @@ describe('the revert control', () => {
 })
 
 describe('each refusal reaches the reader as its own sentence', () => {
-  const refusals = [
-    { code: 'already_reverted', says: 'This conflict has already been reverted.' },
-    { code: 'row_deleted', says: 'That entry has since been deleted.' },
-    { code: 'revert_refused', says: 'Cannot revert: the item has since been packed.' },
-    { code: 'forbidden', says: 'You may not change this entry.' },
+  const refusals: { code: ErrorCode | ''; says: string }[] = [
+    { code: ERROR_CODE.already_reverted, says: 'This conflict has already been reverted.' },
+    { code: ERROR_CODE.row_deleted, says: 'That entry has since been deleted.' },
+    { code: ERROR_CODE.revert_refused, says: 'Cannot revert: the item has since been packed.' },
+    { code: ERROR_CODE.forbidden, says: 'You may not change this entry.' },
     // A network failure is not an API refusal and must not borrow one of
     // their sentences — it says the one true thing instead.
     { code: '', says: 'Revert failed — offline?' },

@@ -12,23 +12,10 @@ import (
 	"jitpack/internal/store"
 )
 
-type wireConflictEntry struct {
-	ID           string `json:"id"`
-	EntityTable  string `json:"entity_table"`
-	EntityID     string `json:"entity_id"`
-	Field        string `json:"field"`
-	LosingValue  string `json:"losing_value"`
-	WinningValue string `json:"winning_value"`
-	MutationID   string `json:"mutation_id"`
-	ActorUserID  string `json:"actor_user_id"`
-	ResolvedAt   string `json:"resolved_at"`
-	Reverted     bool   `json:"reverted"`
-}
-
 func (s *Server) handleListConflicts(w http.ResponseWriter, r *http.Request) {
 	entries, err := s.store.ListConflicts(r.Context(), r.PathValue("tripID"))
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "conflict log failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "conflict log failed")
 		return
 	}
 	writeConflicts(w, entries)
@@ -39,18 +26,16 @@ func (s *Server) handleListMasterConflicts(w http.ResponseWriter, r *http.Reques
 
 	entries, err := s.store.ListMasterConflicts(r.Context(), userID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "conflict log failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "conflict log failed")
 		return
 	}
 	writeConflicts(w, entries)
 }
 
 func writeConflicts(w http.ResponseWriter, entries []store.ConflictEntry) {
-	out := struct {
-		Conflicts []wireConflictEntry `json:"conflicts"`
-	}{Conflicts: make([]wireConflictEntry, 0, len(entries))}
+	out := ConflictListResponse{Conflicts: make([]ConflictEntry, 0, len(entries))}
 	for _, c := range entries {
-		out.Conflicts = append(out.Conflicts, wireConflictEntry{
+		out.Conflicts = append(out.Conflicts, ConflictEntry{
 			ID: c.ID, EntityTable: c.EntityTable, EntityID: c.EntityID,
 			Field: c.Field, LosingValue: c.LosingValue, WinningValue: c.WinningValue,
 			MutationID: c.MutationID, ActorUserID: c.ActorUserID,
@@ -58,16 +43,6 @@ func writeConflicts(w http.ResponseWriter, entries []store.ConflictEntry) {
 		})
 	}
 	writeJSON(w, out)
-}
-
-// revertResponse is the §8 RPC envelope: the outcome materializes as an
-// ordinary change_log entry, so the caller learns the new value by pulling
-// from the hint rather than from this body (P-1).
-type revertResponse struct {
-	OK       bool `json:"ok"`
-	PullHint struct {
-		NextCursor int64 `json:"next_cursor"`
-	} `json:"pull_hint"`
 }
 
 func (s *Server) handleRevertConflict(w http.ResponseWriter, r *http.Request) {
@@ -97,7 +72,7 @@ func (s *Server) handleRevertMasterConflict(w http.ResponseWriter, r *http.Reque
 }
 
 func writeRevert(w http.ResponseWriter, seq int64) {
-	out := revertResponse{OK: true}
+	out := RevertResponse{OK: true}
 	out.PullHint.NextCursor = seq
 	writeJSON(w, out)
 }
@@ -108,16 +83,16 @@ func writeRevert(w http.ResponseWriter, seq int64) {
 func writeRevertError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, store.ErrConflictNotFound):
-		writeError(w, http.StatusNotFound, "conflict_not_found", "no such conflict entry")
+		writeError(w, http.StatusNotFound, ErrConflictNotFound, "no such conflict entry")
 	case errors.Is(err, store.ErrConflictAlreadyReverted):
-		writeError(w, http.StatusConflict, "already_reverted", "this conflict was already reverted")
+		writeError(w, http.StatusConflict, ErrAlreadyReverted, "this conflict was already reverted")
 	case errors.Is(err, store.ErrConflictRowGone):
-		writeError(w, http.StatusConflict, "row_deleted", "the row this conflict names has been deleted")
+		writeError(w, http.StatusConflict, ErrRowDeleted, "the row this conflict names has been deleted")
 	case errors.Is(err, store.ErrRevertRefused):
-		writeError(w, http.StatusConflict, "revert_refused", "the merge rules refuse this revert")
+		writeError(w, http.StatusConflict, ErrRevertRefused, "the merge rules refuse this revert")
 	case errors.Is(err, store.ErrRevertForbidden):
-		writeError(w, http.StatusForbidden, "forbidden", "not allowed to write this row")
+		writeError(w, http.StatusForbidden, ErrForbidden, "not allowed to write this row")
 	default:
-		writeError(w, http.StatusInternalServerError, "internal", "revert failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "revert failed")
 	}
 }

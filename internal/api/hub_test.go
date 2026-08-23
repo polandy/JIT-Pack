@@ -85,7 +85,7 @@ func wsSend(t *testing.T, ws *websocket.Conn, msg any) {
 	}
 }
 
-func wsRead(t *testing.T, ws *websocket.Conn) Event {
+func wsRead(t *testing.T, ws *websocket.Conn) WSEvent {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -93,22 +93,22 @@ func wsRead(t *testing.T, ws *websocket.Conn) Event {
 	if err != nil {
 		t.Fatalf("read: %v", err)
 	}
-	var evt Event
+	var evt WSEvent
 	if err := json.Unmarshal(data, &evt); err != nil {
 		t.Fatalf("unmarshal event: %v", err)
 	}
 	return evt
 }
 
-func wsReadTimeout(t *testing.T, ws *websocket.Conn, timeout time.Duration) (Event, bool) {
+func wsReadTimeout(t *testing.T, ws *websocket.Conn, timeout time.Duration) (WSEvent, bool) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	_, data, err := ws.Read(ctx)
 	if err != nil {
-		return Event{}, false
+		return WSEvent{}, false
 	}
-	var evt Event
+	var evt WSEvent
 	if err := json.Unmarshal(data, &evt); err != nil {
 		t.Fatalf("unmarshal event: %v", err)
 	}
@@ -125,7 +125,7 @@ func TestHub_Subscribe_ReceivesPresence(t *testing.T) {
 	if evt.Type != "presence" {
 		t.Fatalf("type = %q, want presence", evt.Type)
 	}
-	data := evt.Payload.(map[string]any)
+	data := evt.Payload
 	if data["trip_id"] != "trip-1" {
 		t.Errorf("trip_id = %v, want trip-1", data["trip_id"])
 	}
@@ -159,11 +159,11 @@ func TestHub_TripChanged_BroadcastToSubscribers(t *testing.T) {
 	evt1 := wsRead(t, ws1)
 	evt2 := wsRead(t, ws2)
 
-	for _, evt := range []Event{evt1, evt2} {
+	for _, evt := range []WSEvent{evt1, evt2} {
 		if evt.Type != "trip.changed" {
 			t.Errorf("type = %q, want trip.changed", evt.Type)
 		}
-		data := evt.Payload.(map[string]any)
+		data := evt.Payload
 		if data["head_seq"] != float64(42) {
 			t.Errorf("head_seq = %v, want 42", data["head_seq"])
 		}
@@ -210,7 +210,7 @@ func TestHub_InSync_Computation(t *testing.T) {
 	// Subscribe with no cursor (0) — head is 10, so not in sync.
 	wsSend(t, ws, map[string]string{"action": "subscribe", "trip_id": "trip-1"})
 	evt := wsRead(t, ws)
-	members := evt.Payload.(map[string]any)["users"].([]any)
+	members := evt.Payload["users"].([]any)
 	m := members[0].(map[string]any)
 	if m["in_sync"] != false {
 		t.Error("expected in_sync=false when cursor < head")
@@ -219,7 +219,7 @@ func TestHub_InSync_Computation(t *testing.T) {
 	// Update cursor to head — should now be in sync.
 	wsSend(t, ws, map[string]any{"action": "cursor", "trip_id": "trip-1", "cursor": 10})
 	evt = wsRead(t, ws)
-	members = evt.Payload.(map[string]any)["users"].([]any)
+	members = evt.Payload["users"].([]any)
 	m = members[0].(map[string]any)
 	if m["in_sync"] != true {
 		t.Error("expected in_sync=true when cursor >= head")

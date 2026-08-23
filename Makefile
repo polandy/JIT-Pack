@@ -1,7 +1,7 @@
 # Local mirror of the CI pipeline (.github/workflows/ci.yml).
 # Each target maps 1:1 to a CI job or step, so a green `make ci` predicts a
 # green pipeline. When you change a job in ci.yml, change its target here.
-.PHONY: ci ci-remote pins build vet fmt fmt-check test cover tidy-check go-lint \
+.PHONY: ci ci-remote pins log-index wire wire-check proxy-host build vet fmt fmt-check test cover tidy-check go-lint \
         client client-deps client-lint client-tokens client-marks client-build client-test client-fmt \
         e2e e2e-single visual visual-update docker-build all
 
@@ -34,7 +34,7 @@ endif
 # Everything CI checks that runs fast and needs no browser or docker daemon.
 # `e2e` (Playwright browsers) and `docker-build` (needs dockerd) are separate
 # on purpose — run them explicitly when you touch the client UI or the image.
-ci: pins log-index proxy-host fmt-check test tidy-check go-lint client
+ci: pins log-index wire-check proxy-host fmt-check test tidy-check go-lint client
 
 # Cheap and first: the toolchain majors are named in three files each, and a
 # disagreement is invisible to every other check (see the script's header).
@@ -47,7 +47,16 @@ pins:
 log-index:
 	@$(RUN) node scripts/log-index-gate.mjs
 
-# And beside those two: the browser's Host header must reach the backend
+# The client's wire types are generated, so a Go-side change that the client
+# has not followed is a red build rather than a hand-test later (ADR-026).
+wire-check:
+	@$(RUN) ./scripts/wire-contract-gate.sh
+
+# Regenerate them after changing internal/api/wire.go.
+wire:
+	@$(RUN) go run ./cmd/wiregen
+
+# And beside those: the browser's Host header must reach the backend
 # with its port, or the WebSocket handshake is refused while every REST
 # call stays green — a failure no other check can see (see the script).
 proxy-host:

@@ -11,7 +11,7 @@ import (
 func (s *Server) handleListUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := s.store.ListUsers(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "user listing failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "user listing failed")
 		return
 	}
 	type wireUser struct {

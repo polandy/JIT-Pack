@@ -14,6 +14,7 @@ Read this file fully before touching code. It is the orientation document: what 
 - **Run the slow jobs on GitHub, not on this machine** (owner, 2026-08-23): `make ci-remote` pushes the current branch, dispatches `ci.yml` against it and waits for the verdict — no pull request needed. `e2e`, `visual`, `docker-build` and the coverage profile all run there already, and on a two-core laptop they are the largest source of contention between concurrent sessions (measured: foreign load costs ~25 % of wall-clock, about what a hardware upgrade would buy). `make cover` in particular is fully redundant — the CI `go` job runs the same profile and the same `scripts/coverage-gate.sh`. **`make ci` stays local**: at ~80 s it is the fast gate, and GitHub's verdict takes minutes.
 - Coverage gates live once, in `scripts/coverage-gate.sh`, shared by `make cover` and the CI `go` job: **≥75 % overall, ≥90 % `internal/sync`**
 - Client only: `cd client && npm run dev` (Vite dev server), `npx vitest run`, `npm run build` (type-check + build)
+- **After changing `internal/api/wire.go`: `make wire`** — it regenerates `client/src/api/types.ts`, which is generated and must never be hand-edited (NFR-4.14, ADR-026). `make ci` runs the gate that catches the omission.
 - **Test data**: the dev build's M2 empty state carries *„Beispieldaten anlegen (Dev)"* — it seeds the
   **master partition first** (`client/src/dev/sampleMaster.ts`: tagged inventory, three groups, a
   composed Ferien-Vorlage with an FR-27.7 task) and then the sample trip (`sampleTrip.ts`). Standing
@@ -190,19 +191,18 @@ it. Item numbers stay stable even as items close, because the log refers back to
    which anchors above the bar. Build the rest against those texts; the rejected options are
    written there.
 
-16. **NFR-4.14 — the client/server contract is written twice and checked nowhere**
-   (owner request 2026-08-23, **specified, not built**). The error *envelope* is already
-   uniform (104 `writeError` calls across 40 routes, zero bare error statuses) — what is not a
-   contract is everything around it: `internal/api`'s structs and `client/src/api/types.ts`
-   describe the same wire independently, and the 16 error codes are string literals at both
-   ends. That shape produced three defects in one week, each invisible to both test suites
-   (the client read a `status` key no server sends; it took `pull_hint.next_cursor` as its
-   pull cursor; one partition answered `500` where the other answered `rejected`). Wanted: one
-   description both sides consume, client types **generated** from it, codes named once, route
-   shapes made predictable — and **a CI gate**, because a contract the build does not check is
-   a comment. **Scope boundary in the NFR: this is not about moving logic to the server**;
-   invariant 4 stands. How the description is expressed is a real tradeoff and is **owed an
-   ADR** rather than decided in the FR.
+16. ~~**NFR-4.14 — the client/server contract is written twice and checked nowhere**~~ —
+   **the mechanism is done** (2026-08-23, ADR-026): `internal/api/wire.go` is the one
+   declaration, `make wire` generates `client/src/api/types.ts` from it, and
+   `scripts/wire-contract-gate.sh` (in `make ci` and the CI `go` job) fails the build when they
+   differ. The 16 error codes are `ErrorCode` constants generated into a frozen `ERROR_CODE`
+   object. Log: *„The wire was described twice…"*.
+   **Still open, and it is the next task:** the third point of the NFR, the **route shapes**
+   (`export.csv`/`export.yaml` vs `/templates/{id}/export` vs `/export/full`;
+   `/trips/{id}/conflicts` vs `/conflicts/master`). Kept out on purpose — a rename touching
+   client, Vitest, e2e and `docs/` that fixes no known defect does not belong in the same PR as
+   the mechanism. The other half still owed is **coverage**: the gate protects what is in
+   `wire.go`, and the admin, notification, config and auth responses are not in it yet.
 
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,
@@ -213,13 +213,14 @@ ownership model (each carries a revisit trigger in its stub).
 
 - `cmd/jitpackd` — wiring only: env-parsed `Config`, picks `api.New` (+ `EnableOIDC` after discovery) / `api.NewSingleUser`, graceful shutdown. No logic.
 - `internal/sync` — HLC generator + field-level merge algorithm (NFR-4.2a). Pure, zero I/O, zero internal imports.
+- `internal/wiregen` — turns `internal/api/wire.go` into the client's TypeScript (ADR-026). A second pure leaf beside `sync`: `go/ast` in, a string out, zero I/O. `cmd/wiregen` is the thin main that reads and writes the two files.
 - `internal/store` — the only package that imports `database/sql`. SQLite repositories, change-log/conflict-log, the two sync partitions (`master.go` for tags/items/templates/trips/series/members, the trip partition for trip_items/travelers/containers/comments), the schema applied from `schema.sql` and fingerprinted in `PRAGMA user_version` (ADR-018).
-- `internal/api` — HTTP handlers, WebSocket hub (`hub.go`/`ws.go`), first-party session auth + OIDC login broker (ADR-007), notifications, Web Push, admin surface, export. **Export only** — importing is the client's (invariant 4, ADR-025).
+- `internal/api` — HTTP handlers, WebSocket hub (`hub.go`/`ws.go`), first-party session auth + OIDC login broker (ADR-007), notifications, Web Push, admin surface, export. **`wire.go` is the contract** — the one declaration of the envelopes, the frame, the conflict shapes and the error vocabulary, generated into the client (NFR-4.14, ADR-026). **Export only** — importing is the client's (invariant 4, ADR-025).
 - `client/src/domain` — the pure client-side rules: quantity formulas, template instantiation, dependencies, containers, analytics, review, clone, spreadsheet import, the portable format in both directions (`portable.ts` writes and reads, `portableImport.ts` turns a document into rows — shared by M18 and the FR-18.7 command), members. No I/O, exhaustively unit-tested. **This is where the Go layout's planned `internal/domain` actually ended up** — deliberately, see invariant 4.
 
 ## Invariants — do not break these
 
-1. **Dependency direction**, as it actually is today (verified with `go list -deps`): `api → store, sync`; `store → sync`; **`sync` imports nothing internal, ever**. That leaf is trivially unit-testable precisely because of that, and that is the point. (`internal/portable` was a second such leaf until 2026-08-23; it went with the server's half of the portable format — ADR-025.) The pure domain rules live in `client/src/domain` (invariant 4), not in a Go `internal/domain`.
+1. **Dependency direction**, as it actually is today (verified with `go list -deps`): `api → store, sync`; `store → sync`; **`sync` and `wiregen` import nothing internal, ever**. Both leaves are trivially unit-testable precisely because of that, and that is the point. (`internal/portable` was a second such leaf until 2026-08-23; it went with the server's half of the portable format — ADR-025.) The pure domain rules live in `client/src/domain` (invariant 4), not in a Go `internal/domain`.
 2. **The development phase has no DDL migrations** (ADR-018, decided 2026-08-19). `internal/store/schema.sql` is the whole schema, always current: a schema change **edits that file**, and there is no upgrade path. `Open` applies it to an empty database and stamps a fingerprint of the file into `PRAGMA user_version`; any other value — a migration-era level, or `0` on a file that already has tables — is refused with `ErrSchemaStale` and an instruction naming the database path. **Nothing is recreated or deleted on start-up**: a database the code refuses is left exactly as it was. Two consequences to plan for: every schema change means deleting every development database (the `:3000` instance included — reseed with the M2 dev button), and a *data transformation* has nowhere to live, so a schema change that would have needed a backfill is a reseed instead. Dead schema from a retired feature is now a choice rather than a rule; `outbound_packed` and the `repack` status value are still there because removing them changes the sync contract, not because they cannot be removed. **This reverts at the first release meant for anyone but the maintainer** — `schema.sql` becomes `migrations/001_schema.sql`, numbering resumes at `002`, and this invariant returns to "applied migrations are never edited". The trigger is written out in ADR-018.
 3. **The client's identity claims are never trusted.** The server stamps actor columns itself (`stampActor` in `internal/api/server.go`: comment `author_id`, `packing_now_by`/`packing_now_at`, and `packed_by_user_id` — which is also stripped from every incoming `trip_items` mutation so it cannot be forged. `packer_user_id` is deliberately *not* stamped: since FR-25.19 it is the assignment, which the client chooses). A client placeholder like `'current-user'` must never reach a foreign key. Likewise, clients can never grant the `owner` role, and the trip creator's membership row is immutable.
 4. **Generation runs client-side.** Template instantiation, dependency resolution, quantity suggestions, analytics, the review assistant, cloning and import all live in `client/src/domain`, not on the server — because **Local Mode has no server** and must keep every one of those features. Moving one of them server-side silently removes it from a supported mode. **And there is only one of each** (ADR-008 driver 2, enforced 2026-08-23 by ADR-025): the server had a second portable importer in `internal/store`, unreachable from any product surface, which had drifted from the client's and wrote rows without a change-log entry — so what it imported reached no device. It is deleted, and so is the matching *exporter*, which was behind in the same way — it wrote no status, no ordered tags, no marks, no `from_inventory`. With them went `internal/portable` and all four YAML endpoints; the Go side no longer knows the format exists. `GET /export/full` and `GET /trips/{id}/export.csv` stay, because neither has a client-side twin. Anything outside the browser that has to run these rules runs *this* code: the FR-18.7 import command is a Node program over `client/src/domain/portableImport.ts`, which takes its inventory view, its mutation factory and a write sink as parameters. **A rule of theirs must never be reachable only through a Vue composable** — that is what made the duplicate necessary in the first place.

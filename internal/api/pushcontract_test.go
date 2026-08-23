@@ -19,13 +19,13 @@ import (
 // pushContract.spec.ts feeds the very same file through the client. A key
 // renamed on either side now fails on that side.
 func TestPushResponse_MatchesTheSharedWireFixture(t *testing.T) {
-	var resp pushResponse
-	resp.Results = []pushResult{
+	var resp PushResponse
+	resp.Results = []MutationResult{
 		{MutationID: "uuid-applied", Outcome: "applied"},
 		{
 			MutationID: "uuid-merged",
 			Outcome:    "merged",
-			Conflicts:  []wireConflict{{Field: "quantity", LosingValue: 9, WinningValue: 5}},
+			Conflicts:  []MutationConflict{{Field: "quantity", LosingValue: 9, WinningValue: 5}},
 		},
 		{MutationID: "uuid-rejected", Outcome: "rejected", Error: "column not syncable: trip_items.nope"},
 	}

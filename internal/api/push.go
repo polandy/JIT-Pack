@@ -77,7 +77,7 @@ func (s *Server) vapidKeys(ctx context.Context) (pub, priv string, err error) {
 func (s *Server) handleGetVAPIDKey(w http.ResponseWriter, r *http.Request) {
 	pub, _, err := s.vapidKeys(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "vapid keys unavailable")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "vapid keys unavailable")
 		return
 	}
 	writeJSON(w, map[string]string{"key": pub})
@@ -98,14 +98,14 @@ func (s *Server) handleRegisterPushSubscription(w http.ResponseWriter, r *http.R
 	var body pushSubscriptionBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil ||
 		body.Endpoint == "" || body.Keys.P256dh == "" || body.Keys.Auth == "" {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "endpoint and keys required")
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "endpoint and keys required")
 		return
 	}
 	err := s.store.SavePushSubscription(r.Context(), store.PushSubscription{
 		UserID: userID, Endpoint: body.Endpoint, P256dh: body.Keys.P256dh, Auth: body.Keys.Auth,
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "save subscription failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "save subscription failed")
 		return
 	}
 	writeJSON(w, map[string]any{"ok": true})
@@ -119,11 +119,11 @@ func (s *Server) handleDeletePushSubscription(w http.ResponseWriter, r *http.Req
 		Endpoint string `json:"endpoint"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Endpoint == "" {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "endpoint required")
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "endpoint required")
 		return
 	}
 	if err := s.store.DeleteUserPushSubscription(r.Context(), userID, body.Endpoint); err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "delete subscription failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "delete subscription failed")
 		return
 	}
 	writeJSON(w, map[string]any{"ok": true})
