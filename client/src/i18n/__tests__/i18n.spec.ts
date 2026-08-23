@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * Internationalization (NFR-4.12): English is the primary/default locale,
  * German is fully supported. The choice is device-local (same localStorage

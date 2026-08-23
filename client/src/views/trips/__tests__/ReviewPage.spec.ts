@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * M14 review assistant — the list semantics FR-27.11 promises the user:
  * every proposal visible at once with an open count, a groups-only

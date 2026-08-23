@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * FR-25.15: the sheet's icon-only auto-save indicator — amber ● while a
  * write is in flight, green ✓ once it settled on this device, meaning on

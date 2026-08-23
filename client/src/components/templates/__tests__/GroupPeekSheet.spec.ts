@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * FR-27.12 — the peek sheet: what a group actually contains, read-only.
  *

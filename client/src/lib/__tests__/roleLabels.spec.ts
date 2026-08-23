@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * FR-4.5/4.7: the roster's role chip is a translated word, not a capitalised
  * wire value. The old rule (`charAt(0).toUpperCase()`) passed every English

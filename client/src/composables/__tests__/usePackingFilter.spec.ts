@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * FR-25.18 — what M4 remembers, for how long, and per what.
  *

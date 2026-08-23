@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * Theming (Addendum 3.21): dark default independent of OS preference
  * (FR-21.1), device-local persistence (FR-21.3), synchronous apply at

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 import { stampOrigin, type StampableRoute } from '@/router/originStamp'
 import { routes } from '@/router'

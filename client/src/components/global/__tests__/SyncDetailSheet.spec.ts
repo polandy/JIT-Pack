@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * G-2 / FR-19.6 — the sync detail behind the status glyph.
  *

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * G-9's left slot, and what happens when a screen has no title to put in it.
  *

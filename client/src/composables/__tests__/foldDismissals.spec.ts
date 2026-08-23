@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * FR-27.15: a dismissed fold suggestion stays dismissed on this device — and
  * comes back once the group it was about has changed.

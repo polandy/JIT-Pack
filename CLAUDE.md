@@ -227,6 +227,13 @@ Test-first: every behaviour starts as a failing test that reads as its specifica
 - **Real in-memory SQLite** (`:memory:`) for store and api tests — never a mocked database. Hand-written fakes behind small consumer-side interfaces; no mocking frameworks.
 - **Failure paths** are covered wherever code enforces a correctness or authorization rule, not just the happy path.
 - **No non-deterministic timing constraints** — in Go, Vitest and Playwright alike. A test must never depend on wall-clock timing that only *probably* holds: no sleeps, no fixed waits for async work, no polling for an effect that might not land. If a test can only pass by waiting-and-hoping, the fault is in the production code — give it a deterministic seam (injected clock, completion signal, settled state) so the test asserts the outcome directly instead of racing it.
+- **A Vitest spec declares its own environment.** The default is `node`; a spec that
+  needs a DOM carries a `// @vitest-environment jsdom` docblock. Add it whenever the
+  spec's *subject* touches `localStorage`, `document` or `window` — **even if the suite
+  is green without it**. A missing docblock is not reliably a red test: production code
+  that reads a DOM global inside a `try` takes the `catch` under `node`, and the spec
+  passes while asserting against the error path. Only a coverage diff between the two
+  environments catches that.
 - **Always `-race`.**
 
 ## Working agreement (see CODING_PRINCIPLES.md for the full detail)

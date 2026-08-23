@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * M11 container sheet (FR-10.1/10.3): the load header, the exclusive
  * pairing selector and the commit-on-the-spot edits (G-5). The write

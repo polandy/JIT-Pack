@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * FR-27.4's question, as M4 asks it: every change is named before either
  * answer is offered, the consequence of "no" is stated where "no" is pressed,

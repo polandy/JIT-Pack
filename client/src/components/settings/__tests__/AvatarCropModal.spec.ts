@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * FR-17.13 — the avatar crop modal.
  *

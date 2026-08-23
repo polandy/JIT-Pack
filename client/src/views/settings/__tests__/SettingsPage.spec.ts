@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * M17's notification section follows the language choice (NFR-4.12).
  *
