@@ -167,13 +167,24 @@ sentence for the reader.
 - NFR-4.2a's second promise exists, with no schema change and no new
   wire concept: the result travels the change feed every device already
   reads.
-- The merge algorithm gained no branch. `internal/sync` is untouched by
-  this change, which keeps its ≥90 % gate meaningful.
+- The merge algorithm gained no branch. `internal/sync` gained one
+  exported query — `GroupedWith`, which names the coupling the merge
+  already applies — and no decision, so its ≥90 % gate stays meaningful
+  (the package is at 100 %).
+- **The per-field clocks of ADR-022 made the revert more precise for
+  free.** The restore moves the clocks of the fields it restores and
+  leaves every other field's alone, so taking back a lost `state` no
+  longer makes an unrelated concurrent edit of the same row look older
+  than it is. Under the row-level clock this design would have been
+  correct and coarse.
 - Because the revert is a normal write, the WebSocket ping that follows it
   is the normal one (`trip.changed` / `master.changed`), and an offline
   device converges on its next pull with no special case.
+- The unit of a revert is the **field group**, not the log row: restoring
+  one field of a causally coupled pair would write half a fact (FR-5.4).
+  `sync.GroupedWith` names the coupling once, for the merge and the revert
+  alike.
 
-- The unit of a revert is the **field group**, not the log row: restoring one field of a causally coupled pair would write half a fact (FR-5.4). `sync.GroupedWith` names the coupling once, for the merge and the revert alike.
 **Negative / accepted costs**
 - **The button can fail, and the UI must say why.** Four sentences where a
   true undo would have needed none. The conflict log renders them on the
@@ -203,10 +214,16 @@ sentence for the reader.
 
 ## Revisit Trigger
 
-**A conflict entry gaining an actor** — the moment `conflict_log` records
-who pushed the losing write (or who reverted it), the client-side
-Option C becomes cheaper than it is now, because the attribution it gets
-for free stops being free on the server side. Secondarily: if reverting
-several fields of one row at once is ever asked for, the per-entry
-endpoint becomes N round-trips and a batch shape has to be weighed
-against the atomicity this design buys.
+**A conflict entry recording who *reverted* it.** The actor half arrived
+with ADR-022 — `conflict_log.actor_user_id` names whoever pushed the
+losing write — and that is not the name this design would need: a
+client-side revert (Option C) attributes the *restore* to the person
+making it, which the server-side write here does not record at all. The
+day the log has to say "Sia took this back", the balance between the two
+options is worth re-weighing, because the attribution Option C gets for
+free stops being free here.
+
+Secondarily: **reverting fields of one row that are not coupled, in one
+go**. The coupled group already travels as a unit; an entry-by-entry
+revert of, say, a name and a container is N round-trips, and a batch
+shape would have to be weighed against the atomicity this design buys.
