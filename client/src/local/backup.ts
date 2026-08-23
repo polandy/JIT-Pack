@@ -55,6 +55,12 @@ export interface BackupSource {
   trips: BackupTrip[]
   /** Resolves a template position's master item — its name is what travels. */
   masterItem: (id: string) => MasterItem | undefined
+  /**
+   * FR-24.1: a master item's tags in position order. Without them a restore
+   * gives the items back unfiled, and the primary tag the grouped inventory
+   * reads is exactly what is lost first (FR-24.2).
+   */
+  tagsOf: (itemId: string) => string[]
   /** Resolves a template by id — the FR-27.4 sections reference groups by name. */
   template: (id: string) => Template | undefined
   /**
@@ -85,6 +91,7 @@ export function buildBackup(source: BackupSource): string {
         entry.items,
         source.masterItem,
         compositionFrom(entry.template, source.composition),
+        source.tagsOf,
       ),
     ),
     ...source.trips.map((entry) =>
@@ -94,6 +101,10 @@ export function buildBackup(source: BackupSource): string {
         travelers: entry.travelers,
         containers: entry.containers,
         includeProgress: true,
+        // A trip row's mark and tags live on its master item, and a backup is
+        // the only copy — so the row has to carry enough to rebuild it.
+        masterItem: source.masterItem,
+        tagsOf: source.tagsOf,
         refresh: {
           sources: entry.sources,
           generated: entry.generated,

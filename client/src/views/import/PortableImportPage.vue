@@ -33,13 +33,15 @@ import {
   type ParseResult,
 } from '@/domain/portable'
 import { t } from '@/i18n'
-import { TRIP_FILTER_QUERY } from '@/views/trips/tripFilter'
+import { TRIP_FILTER_QUERY, filterForStatus } from '@/views/trips/tripFilter'
+import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const router = useRouter()
 const master = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const tripStore = useTripStore()
 
 const rawText = ref('')
 const parsed = ref<ParseResult | null>(null)
@@ -96,15 +98,27 @@ function setMerge(name: string, merge: boolean) {
  * happened and said nothing. Found by E2E-M18-05, which was the first thing
  * ever to walk this path.
  *
- * And on the *planned* segment: every imported trip is `planning` (FR-18.4),
- * while M2 opens on Active — so a restore that worked ended on the words "No
- * active trips", which reads as a restore that did not.
+ * And on the segment the restored trips are actually on, because M2 opens on
+ * Active and a restore that worked must not end on the words "No active
+ * trips". That segment used to be a constant — every imported trip was
+ * `planning` (FR-18.4) — and since ADR-024 a backup gives back the status it
+ * saved, so a device of archived history restored onto a hard-coded *planned*
+ * would land on an empty list and read as a restore that did nothing. It is
+ * derived from the first restored trip now; a file of templates only keeps the
+ * old default, having no trip to point at.
  */
 function commitRestore() {
   const documents = restore.value ?? []
-  orchestrator.commitPortableRestore(documents.flatMap((r) => (r.doc ? [r.doc] : [])))
+  const results = orchestrator.commitPortableRestore(
+    documents.flatMap((r) => (r.doc ? [r.doc] : [])),
+  )
   restore.value = null
-  router.replace({ path: '/tabs/trips', query: { [TRIP_FILTER_QUERY]: 'planned' } })
+  const firstTrip = results.find((r) => r.kind === 'trip')
+  const status = firstTrip ? tripStore.getTrip(firstTrip.id)?.status : undefined
+  router.replace({
+    path: '/tabs/trips',
+    query: { [TRIP_FILTER_QUERY]: filterForStatus(status) },
+  })
 }
 
 const restorable = computed(() => (restore.value ?? []).filter((r) => r.doc !== null).length)

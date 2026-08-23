@@ -37,9 +37,15 @@ matched to what already exists **by name**, so restoring onto a device that stil
 merges rather than duplicates. A document the file no longer holds intact is listed as
 *skipped* with the reason, and the rest still import.
 
-Restored trips arrive in **planning** status, and the app takes you straight to the Trips
-screen's **Planned** tab when the restore finishes — that is where they are. The *Active*
-tab, which the list normally opens on, stays empty until you start a trip.
+Restored trips come back **in the status they were saved in** — an archived trip is
+archived again, a running one is running — and the app takes you straight to the tab where
+they are, so a restore never finishes on an empty list. An item that a trip took from your
+inventory comes back as an inventory item, with its icon and the tags it was filed under; a
+tag the device already has is reused rather than duplicated. Something you typed straight
+onto a trip stays where it was, on the trip, and does not appear in your inventory.
+
+A backup taken with an older version of the app carries no status, and its trips arrive in
+**planning** as they always did.
 
 A trip that was built from groups keeps **following** them after a restore, and the
 restore list says so next to it. What you already told a group carries over too: a change
