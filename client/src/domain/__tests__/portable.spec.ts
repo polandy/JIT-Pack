@@ -70,6 +70,10 @@ items:
     packed_count: 1
 `
 
+/** Explicitly no marks and no tags, for the cases that assert other things. */
+const noTags = () => []
+const noResolvers = { masterItem: () => undefined, tagsOf: noTags }
+
 describe('parsePortable (FR-18.5)', () => {
   it('parses a template document', () => {
     const result = parsePortable(templateYAML)
@@ -139,7 +143,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
       name: 'Makro',
       kind: 'group',
     }
-    const yaml = serializeTemplate(group, [], () => undefined)
+    const yaml = serializeTemplate(group, [], () => undefined, {}, noTags)
     expect(yaml).toContain('scope: group')
     expect(parsePortable(yaml).doc?.scope).toBe('group')
   })
@@ -193,7 +197,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
       ['i2', masterItem('i2', 'Skibrille')],
     ])
 
-    const yaml = serializeTemplate(template, items, (id) => master.get(id))
+    const yaml = serializeTemplate(template, items, (id) => master.get(id), {}, noTags)
     const result = parsePortable(yaml)
 
     expect(result.error).toBeNull()
@@ -267,7 +271,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
     ]
 
     const withProgress = parsePortable(
-      serializeTrip({ trip, items, travelers, containers, includeProgress: true }),
+      serializeTrip({ trip, items, travelers, containers, includeProgress: true, ...noResolvers }),
     ).doc!
     expect(withProgress).toMatchObject({
       kind: 'trip',
@@ -292,7 +296,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
     })
 
     const clean = parsePortable(
-      serializeTrip({ trip, items, travelers, containers, includeProgress: false }),
+      serializeTrip({ trip, items, travelers, containers, includeProgress: false, ...noResolvers }),
     ).doc!
     expect(clean.items[0]!.packed_count).toBeNull()
   })
@@ -401,9 +405,15 @@ describe('the composition travels with the file (FR-27.1/27.7, ADR-017)', () => 
   it('writes a Ferien-Vorlage with its groups whole, not by reference', () => {
     // A bare name means nothing on the instance the file lands on, and
     // FR-18.2's promise is that it lands anywhere.
-    const yaml = serializeTemplate(vorlage, [position('p-med', 'v1', 'i-med')], byId, {
-      includes: [{ template: macro, items: [position('p-cam', 'g1', 'i-cam')], tasks: () => [] }],
-    })
+    const yaml = serializeTemplate(
+      vorlage,
+      [position('p-med', 'v1', 'i-med')],
+      byId,
+      {
+        includes: [{ template: macro, items: [position('p-cam', 'g1', 'i-cam')], tasks: () => [] }],
+      },
+      noTags,
+    )
 
     const doc = parsePortable(yaml).doc
     expect(doc?.includes.map((g) => g.name)).toEqual(['Makro Fotografie'])
@@ -413,9 +423,15 @@ describe('the composition travels with the file (FR-27.1/27.7, ADR-017)', () => 
   })
 
   it('carries a position’s preparation tasks (FR-27.7)', () => {
-    const yaml = serializeTemplate(macro, [position('p-cam', 'g1', 'i-cam')], byId, {
-      tasks: (positionId) => (positionId === 'p-cam' ? ['Akkus laden'] : []),
-    })
+    const yaml = serializeTemplate(
+      macro,
+      [position('p-cam', 'g1', 'i-cam')],
+      byId,
+      {
+        tasks: (positionId) => (positionId === 'p-cam' ? ['Akkus laden'] : []),
+      },
+      noTags,
+    )
 
     expect(parsePortable(yaml).doc?.items[0]!.tasks).toEqual(['Akkus laden'])
   })
@@ -437,6 +453,7 @@ describe('the composition travels with the file (FR-27.1/27.7, ADR-017)', () => 
           },
         ],
       },
+      noTags,
     )
 
     const doc = parsePortable(yaml).doc
@@ -473,5 +490,136 @@ describe('the composition travels with the file (FR-27.1/27.7, ADR-017)', () => 
 
     expect(doc).toBeNull()
     expect(error).toContain('name')
+  })
+})
+
+describe('serializeTrip — status, marks and tags (FR-18.4 amendment)', () => {
+  const trip: Trip = {
+    id: 't9',
+    name: 'Samedan 2025',
+    year: 2025,
+    start_date: null,
+    end_date: null,
+    status: 'archived',
+    series_id: null,
+    series_name: null,
+    attributes: null,
+    imported: false,
+    duration_days: null,
+  }
+  const travelers: Traveler[] = []
+  const containers: Container[] = []
+
+  /** A trip row backed by a master item, and one the user typed themselves. */
+  const items: TripItem[] = [
+    {
+      id: 'r1',
+      trip_id: 't9',
+      source_item_id: 'i1',
+      source_template_id: null,
+      name: 'Wanderschuhe',
+      weight_grams: null,
+      value_cents: null,
+      category_name: null,
+      quantity: 1,
+      packed_count: 0,
+      state: 'open',
+      mode: 'pack',
+      late_packer: false,
+      assigned_traveler_id: null,
+      packer_user_id: null,
+      packed_by_user_id: null,
+      packed_at: null,
+      container_id: null,
+      packing_now_by: null,
+      packing_now_at: null,
+      flag_unused: false,
+      flag_missing: false,
+      updated_hlc: '',
+    },
+    {
+      id: 'r2',
+      trip_id: 't9',
+      source_item_id: null,
+      source_template_id: null,
+      name: 'Zettel vom Kiosk',
+      weight_grams: null,
+      value_cents: null,
+      category_name: null,
+      quantity: 1,
+      packed_count: 0,
+      state: 'open',
+      mode: 'pack',
+      late_packer: false,
+      assigned_traveler_id: null,
+      packer_user_id: null,
+      packed_by_user_id: null,
+      packed_at: null,
+      container_id: null,
+      packing_now_by: null,
+      packing_now_at: null,
+      flag_unused: false,
+      flag_missing: false,
+      updated_hlc: '',
+    },
+  ]
+
+  const args = {
+    trip,
+    items,
+    travelers,
+    containers,
+    includeProgress: true,
+    masterItem: (id: string) =>
+      id === 'i1' ? { ...masterItem('i1', 'Wanderschuhe'), icon: '🥾' } : undefined,
+    tagsOf: (id: string) => (id === 'i1' ? ['Schuhe', 'Sommer'] : []),
+  }
+
+  it('carries the trip status, so a restore gives back what it saved', () => {
+    expect(parsePortable(serializeTrip(args)).doc!.status).toBe('archived')
+  })
+
+  it('carries the mark and the ordered tags of an inventory-backed row', () => {
+    const doc = parsePortable(serializeTrip(args)).doc!
+    const row = doc.items.find((i) => i.name === 'Wanderschuhe')!
+    expect(row.from_inventory).toBe(true)
+    expect(row.icon).toBe('🥾')
+    // Ordered, not a set: position 0 is the primary tag (FR-24.2).
+    expect(row.tags).toEqual(['Schuhe', 'Sommer'])
+  })
+
+  it('leaves an ad-hoc row ad-hoc, so a restore does not invent inventory', () => {
+    const doc = parsePortable(serializeTrip(args)).doc!
+    const row = doc.items.find((i) => i.name === 'Zettel vom Kiosk')!
+    expect(row.from_inventory).toBe(false)
+    expect(row.icon).toBeNull()
+    expect(row.tags).toEqual([])
+  })
+})
+
+describe('serializeTemplate — tags (FR-24.1/24.2)', () => {
+  it('carries a position’s tags in position order', () => {
+    const template: Template = { id: 'tp1', owner_id: 'u1', name: 'Ferien', kind: 'template' }
+    const items: TemplateItem[] = [
+      {
+        id: 'ti1',
+        template_id: 'tp1',
+        item_id: 'i1',
+        quantity: 1,
+        assignment: 'trip_global',
+        dedup: 'max',
+        default_mode: 'pack',
+        late_packer: false,
+        conditions: null,
+      },
+    ]
+    const yaml = serializeTemplate(
+      template,
+      items,
+      () => masterItem('i1', 'Wanderschuhe'),
+      {},
+      () => ['Schuhe', 'Sommer'],
+    )
+    expect(parsePortable(yaml).doc!.items[0]!.tags).toEqual(['Schuhe', 'Sommer'])
   })
 })
