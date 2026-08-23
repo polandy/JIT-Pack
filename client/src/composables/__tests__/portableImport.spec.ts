@@ -11,6 +11,7 @@ import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { joinDocuments, parsePortable, parsePortableAll } from '@/domain/portable'
+import { buildBackup } from '@/local/backup'
 
 let fetchMock: ReturnType<typeof vi.fn>
 
@@ -561,5 +562,172 @@ items:
     expect(trips.getTemplateSources(tripId)).toEqual([])
     expect(trips.getGeneratedPositions(tripId)).toEqual([])
     expect(trips.getAppliedChanges(tripId)).toEqual([])
+  })
+})
+
+describe('commitPortableImport — status, marks and tags (ADR-024)', () => {
+  const archived = (extra = '') =>
+    parsePortable(`kind: trip
+schema_version: 1
+name: Samedan 2025
+year: 2025
+status: archived
+items:
+  - name: Wanderschuhe
+    quantity: "1"
+    mode: pack
+    from_inventory: true
+    icon: "🥾"
+    tags: [Schuhe, Sommer]
+  - name: Zettel vom Kiosk
+    quantity: "1"
+    mode: pack
+${extra}`).doc!
+
+  it('restores an archived trip as archived, not as a plan', () => {
+    const orch = newOrch()
+    const trips = useTripStore()
+
+    const result = orch.commitPortableImport(archived(), new Map())
+
+    expect(trips.getTrip(result.id)!.status).toBe('archived')
+  })
+
+  it('still gives a file with no status a planning trip (FR-18.5)', () => {
+    const orch = newOrch()
+    const trips = useTripStore()
+
+    const doc = parsePortable('kind: trip\nname: Ohne Status\nyear: 2025\nitems: []\n').doc!
+    const result = orch.commitPortableImport(doc, new Map())
+
+    expect(trips.getTrip(result.id)!.status).toBe('planning')
+  })
+
+  it('gives back the inventory item a trip row came from, with its mark', () => {
+    const orch = newOrch()
+    const master = useMasterStore()
+    const trips = useTripStore()
+
+    const result = orch.commitPortableImport(archived(), new Map())
+
+    const item = master.itemList.find((i) => i.name === 'Wanderschuhe')
+    expect(item).toBeDefined()
+    expect(item!.icon).toBe('🥾')
+    // The row is linked to it, which is what makes it inventory rather than
+    // a name that happens to match.
+    const row = trips.getItems(result.id).find((r) => r.name === 'Wanderschuhe')!
+    expect(row.source_item_id).toBe(item!.id)
+  })
+
+  it('files that item under its tags, primary first (FR-24.2)', () => {
+    const orch = newOrch()
+    const master = useMasterStore()
+
+    orch.commitPortableImport(archived(), new Map())
+
+    const item = master.itemList.find((i) => i.name === 'Wanderschuhe')!
+    expect(master.getItemTags(item.id).map((t) => t.name)).toEqual(['Schuhe', 'Sommer'])
+  })
+
+  it('links a tag the device already has instead of creating a second one', () => {
+    const orch = newOrch()
+    const master = useMasterStore()
+
+    orch.createTag('Schuhe')
+    const before = master.tagList.length
+
+    orch.commitPortableImport(archived(), new Map())
+
+    // Two tags in the file, one of them already here: exactly one is new.
+    expect(master.tagList.length).toBe(before + 1)
+    expect(master.tagList.filter((t) => t.name === 'Schuhe')).toHaveLength(1)
+  })
+
+  it('leaves an ad-hoc row ad-hoc rather than inventing inventory', () => {
+    const orch = newOrch()
+    const master = useMasterStore()
+    const trips = useTripStore()
+
+    const result = orch.commitPortableImport(archived(), new Map())
+
+    // The positive signal: the inventory holds the one item that claimed to
+    // come from it, and nothing else. Asserting only "no Zettel" would pass
+    // against an importer that created nothing at all.
+    expect(master.itemList.map((i) => i.name)).toEqual(['Wanderschuhe'])
+    const row = trips.getItems(result.id).find((r) => r.name === 'Zettel vom Kiosk')!
+    expect(row.source_item_id).toBeNull()
+  })
+})
+
+/**
+ * The read half of ADR-024. `buildBackup` writing the fields and a domain unit
+ * parsing them says nothing about what a restore reconstructs, and for the one
+ * file that is the only copy of the device the read half is the more important
+ * of the two.
+ */
+describe('backup round trip — status, marks and tags survive (NFR-4.11, ADR-024)', () => {
+  it('gives back an archived trip, its inventory item, its mark and its tags', () => {
+    const writer = newOrch()
+    const writerMaster = useMasterStore()
+    const writerTrips = useTripStore()
+
+    // Build a device: a tagged, marked inventory item on an archived trip that
+    // no template mentions — the case that used to lose all three.
+    const shoes = writer.createMasterItem('Wanderschuhe', { icon: '🥾' })
+    // Position is derived from what the item already carries, so the order
+    // these two are added in *is* the order they come back in.
+    writer.assignTag(shoes, writer.createTag('Schuhe'))
+    writer.assignTag(shoes, writer.createTag('Sommer'))
+    const tripId = writer.createTripFromWizard({
+      name: 'Samedan 2025',
+      year: 2025,
+      startDate: null,
+      endDate: null,
+      attributes: null,
+      travelers: [],
+      items: [],
+    })
+    writer.quickAddItem(tripId, 'Wanderschuhe', { sourceItemId: shoes }, false)
+    writer.archiveTrip(tripId)
+
+    const yaml = buildBackup({
+      templates: [],
+      trips: [
+        {
+          trip: writerTrips.getTrip(tripId)!,
+          items: writerTrips.getItems(tripId),
+          travelers: writerTrips.getTravelers(tripId),
+          containers: writerTrips.getContainers(tripId),
+          sources: writerTrips.getTemplateSources(tripId),
+          generated: writerTrips.getGeneratedPositions(tripId),
+          appliedChanges: writerTrips.getAppliedChanges(tripId),
+        },
+      ],
+      masterItem: (id) => writerMaster.getItem(id),
+      tagsOf: (id) => writerMaster.getItemTags(id).map((t) => t.name),
+      template: (id) => writerMaster.getTemplate(id),
+      composition: writerMaster.compositionSource(),
+    })
+
+    // A fresh device reads it.
+    setActivePinia(createPinia())
+    const reader = newOrch()
+    const readerMaster = useMasterStore()
+    const readerTrips = useTripStore()
+
+    const restored = reader.commitPortableRestore(
+      parsePortableAll(yaml)
+        .map((r) => r.doc)
+        .filter((d) => d !== null),
+    )
+
+    const trip = readerTrips.getTrip(restored[0]!.id)!
+    expect(trip.status).toBe('archived')
+
+    const item = readerMaster.itemList.find((i) => i.name === 'Wanderschuhe')
+    expect(item, 'the inventory item no template mentioned').toBeDefined()
+    expect(item!.icon).toBe('🥾')
+    expect(readerMaster.getItemTags(item!.id).map((t) => t.name)).toEqual(['Schuhe', 'Sommer'])
+    expect(readerTrips.getItems(trip.id)[0]!.source_item_id).toBe(item!.id)
   })
 })

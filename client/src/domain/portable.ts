@@ -28,6 +28,7 @@ import type {
   TemplateKind,
   Traveler,
   Trip,
+  TripStatus,
   TripItem,
   TripTemplateSource,
 } from '@/types/domain'
@@ -86,6 +87,21 @@ export interface PortableItem {
   quantity: number
   /** FR-27.7 preparation tasks of a template position. Empty on trip items. */
   tasks: string[]
+  /**
+   * FR-24.1/24.2: the master item's tags, *ordered* — the order is
+   * `item_tags.position` and the first is the primary tag. Empty for a row
+   * that has no master item, and for every file written before this existed.
+   */
+  tags: string[]
+  /**
+   * Whether this trip row resolves to an inventory item (FR-1.1), which is
+   * what tells a restore to give the master item back rather than leave the
+   * row ad-hoc. Without it the two are indistinguishable — both are a name —
+   * and a restore either invents inventory the user never had or drops
+   * inventory they did. Always true on a template, where every position is a
+   * master item by definition.
+   */
+  from_inventory: boolean
   // Template fields
   assignment: 'per_person' | 'trip_global' | null
   dedup: 'max' | 'sum' | null
@@ -172,6 +188,12 @@ export interface PortableDocument {
   year: number | null
   start_date: string | null
   end_date: string | null
+  /**
+   * FR-2.2: the trip's lifecycle state. Null on templates and on every trip
+   * file written before this existed — the reader supplies `planning` there,
+   * which is what those files have always produced.
+   */
+  status: TripStatus | null
   travelers: PortableTraveler[]
   containers: PortableContainer[]
   /** FR-27.1: the groups a Ferien-Vorlage composes. Empty on everything else. */
@@ -318,6 +340,7 @@ function fromRaw(raw: unknown): ParseResult {
       containers: toContainers(obj['containers']),
       includes,
       items,
+      status: toTripStatus(obj['status']),
       follows: toFollows(obj['follows']),
       generated: toGeneratedPositions(obj['generated']),
       applied_changes: toAppliedChanges(obj['applied_changes']),
@@ -420,15 +443,19 @@ export function serializeTemplate(
   templateItems: TemplateItem[],
   masterItem: (id: string) => MasterItem | undefined,
   composition: TemplateComposition = {},
+  /** FR-24.1: the master item's tags in position order (required, see serializeTrip). */
+  tagsOf: (itemId: string) => string[],
 ): string {
   const positions = (items: TemplateItem[], tasksOf?: (id: string) => string[]) =>
     items
       .map((ti) => {
         const master = masterItem(ti.item_id)
         const tasks = tasksOf?.(ti.id) ?? []
+        const tags = tagsOf(ti.item_id)
         return {
           name: master?.name ?? 'Unknown item',
           ...(master?.icon ? { icon: master.icon } : {}),
+          ...(tags.length > 0 ? { tags } : {}),
           quantity: ti.quantity,
           assignment: ti.assignment,
           ...(ti.conditions ? { conditions: ti.conditions } : {}),
@@ -489,6 +516,19 @@ export function serializeTrip(args: {
   includeProgress: boolean
   /** FR-27.4. Omitted by a plain single-trip export; the backup passes it. */
   refresh?: TripRefreshState
+  /**
+   * The master item a row resolves to. Without it a row that came from the
+   * inventory is indistinguishable from one the user typed, and a restore
+   * cannot give either back correctly.
+   *
+   * Required rather than optional, and deliberately: an optional resolver is
+   * one a caller can forget, and a file written without it looks complete and
+   * restores incomplete — invisible until somebody needs the backup. The
+   * compiler is what catches that; no test can watch every future call site.
+   */
+  masterItem: (id: string) => MasterItem | undefined
+  /** FR-24.1: that master item's tags, in position order. */
+  tagsOf: (itemId: string) => string[]
 }): string {
   const travelerNames = new Map(args.travelers.map((t) => [t.id, t.name]))
   const containerNames = new Map(args.containers.map((c) => [c.id, c.name]))
@@ -507,18 +547,28 @@ export function serializeTrip(args: {
 
   const items = [...args.items]
     .sort((a, b) => a.name.localeCompare(b.name))
-    .map((item) => ({
-      name: item.name,
-      quantity: item.quantity,
-      mode: item.mode,
-      ...(item.category_name ? { category: item.category_name } : {}),
-      ...(item.assigned_traveler_id
-        ? { traveler: travelerNames.get(item.assigned_traveler_id) }
-        : {}),
-      ...(item.container_id ? { container: containerNames.get(item.container_id) } : {}),
-      ...(args.includeProgress ? { packed_count: item.packed_count } : {}),
-      ...(item.late_packer ? { late_packer: true } : {}),
-    }))
+    .map((item) => {
+      // A row's mark and tags belong to its master item, not to the row: the
+      // trip table holds neither, and the restore needs both to give the
+      // inventory entry back rather than leave an ad-hoc row behind.
+      const master = item.source_item_id ? args.masterItem(item.source_item_id) : undefined
+      const tags = item.source_item_id ? args.tagsOf(item.source_item_id) : []
+      return {
+        name: item.name,
+        quantity: item.quantity,
+        mode: item.mode,
+        ...(item.source_item_id ? { from_inventory: true } : {}),
+        ...(master?.icon ? { icon: master.icon } : {}),
+        ...(tags.length > 0 ? { tags } : {}),
+        ...(item.category_name ? { category: item.category_name } : {}),
+        ...(item.assigned_traveler_id
+          ? { traveler: travelerNames.get(item.assigned_traveler_id) }
+          : {}),
+        ...(item.container_id ? { container: containerNames.get(item.container_id) } : {}),
+        ...(args.includeProgress ? { packed_count: item.packed_count } : {}),
+        ...(item.late_packer ? { late_packer: true } : {}),
+      }
+    })
 
   const refresh = args.refresh
   const follows = [
@@ -579,6 +629,10 @@ export function serializeTrip(args: {
     year: args.trip.year,
     ...(args.trip.start_date ? { start_date: args.trip.start_date } : {}),
     ...(args.trip.end_date ? { end_date: args.trip.end_date } : {}),
+    // FR-2.2: written unconditionally, unlike the dates — a trip always has a
+    // status, and the file that omits it is the one written before this
+    // existed. See ADR-024 for what that costs a *shared* file.
+    status: args.trip.status,
     ...(travelers.length > 0 ? { travelers } : {}),
     ...(containers.length > 0 ? { containers } : {}),
     items,
@@ -600,6 +654,19 @@ function str(v: unknown): string | null {
 function num(v: unknown): number | null {
   const parsed = typeof v === 'number' ? v : Number(v)
   return Number.isInteger(parsed) && parsed >= 1900 && parsed <= 2200 ? parsed : null
+}
+
+/**
+ * The document's trip status, or null when it declares none.
+ *
+ * A value this build does not know is dropped rather than carried: the
+ * schema's CHECK would refuse it, and a push that fails a constraint parks the
+ * whole mutation and reports a database error where a file problem happened.
+ * Null then means the same as absent, and the importer supplies `planning` —
+ * which is what every file written before this field existed produces.
+ */
+function toTripStatus(v: unknown): TripStatus | null {
+  return v === 'planning' || v === 'active' || v === 'archived' ? v : null
 }
 
 function toItem(entry: unknown): PortableItem | null {
@@ -632,6 +699,12 @@ function toItem(entry: unknown): PortableItem | null {
     traveler: str(o['traveler']),
     container: str(o['container']),
     packed_count: typeof o['packed_count'] === 'number' ? o['packed_count'] : null,
+    // Strings only, for the reason the task list is: a number here would read
+    // back as a tag named "1" and claim the user filed it that way.
+    tags: Array.isArray(o['tags'])
+      ? o['tags'].filter((t): t is string => typeof t === 'string' && t.trim() !== '')
+      : [],
+    from_inventory: o['from_inventory'] === true,
   }
 }
 

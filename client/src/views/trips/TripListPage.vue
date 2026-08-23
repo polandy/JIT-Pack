@@ -332,6 +332,7 @@ async function exportTrip(trip: Trip) {
     travelers: store.getTravelers(trip.id),
     containers: store.getContainers(trip.id),
     includeProgress: data,
+    ...masterStore.portableResolvers(),
   })
   saveText(yaml, `${safeFilename(trip.name)}.yaml`)
 }

@@ -58,7 +58,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
-| M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
+| M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
@@ -108,6 +108,32 @@ a timer, so asserting it after the case's M5 steps would race that timer —
 the first draft did exactly that. Nothing after the dismissal depends on it;
 what the later steps assert is the sheet's standing line, which has no
 timer.
+
+**E2E-M18-09 — the status survives the round trip, added 2026-08-23.** The
+backup's read half gained the thing it had been quietly dropping: every
+restored trip was `planning` (FR-18.4), so a device of archived history came
+back as plans. The case takes a trip through the app's own lifecycle, backs it
+up, and restores it onto a second context — and asserts both halves, that it is
+on *Archived* **and** that it is not on *Planned*, because Planned is exactly
+where it used to be and an assertion that only checked Archived would have
+passed against a segment picked for it rather than derived from it.
+
+Two things it had to learn, both cheap and both invisible from the source:
+
+- **A single-document backup never reaches the restore branch.** A device with
+  one trip and no template produces one document, and M18 then shows the
+  per-item merge preview instead — `portable-restore-commit` never appears. The
+  case builds a template as well, which is what a real device has anyway.
+- **`segment-button-after-checked` contains the word "checked".** The regex
+  guards the full `segment-button-checked`, and a looser one would have matched
+  the *neighbour* of the selected segment.
+
+**What is deliberately not here:** the marks-and-tags half of ADR-024. It is
+unit-covered at the same boundary this case crosses — `buildBackup` into
+`commitPortableRestore` on a fresh store — and building a tagged, marked
+inventory item through M10 would double this case to assert what is already
+asserted. Recorded rather than assumed, so nobody reads the id list as a claim
+that the whole ADR is e2e-covered.
 
 **E2E-G2-08 and E2E-G2-09 — what the eyeball found, added 2026-08-23.** Both
 came out of rendering PR #160 rather than out of reading its diff, and both are

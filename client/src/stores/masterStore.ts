@@ -130,6 +130,26 @@ export const useMasterStore = defineStore('master', () => {
     }
   }
 
+  /**
+   * What a portable writer needs to describe a position's master item: the
+   * item itself, and its tags in position order (FR-24.1/24.2, ADR-024).
+   *
+   * Assembled here rather than at each caller because four screens write
+   * portable files — the device backup, both single exports and the template
+   * list — and the pair was written out at each. Nothing drove any copy: with
+   * all of them returning no tags, the whole unit suite and the whole M18 e2e
+   * unit stayed green while the backup silently lost every tag. One named
+   * source is one thing to get right, and `serializeTrip` takes it as a
+   * *required* argument so a caller cannot quietly omit it — which is how the
+   * fourth call site, exporting templates without tags, was found at all.
+   */
+  function portableResolvers() {
+    return {
+      masterItem: (id: string) => getItem(id),
+      tagsOf: (id: string) => getItemTags(id).map((t) => t.name),
+    }
+  }
+
   const seriesList = computed(() => [...series.value.values()])
 
   function getSeries(id: string): TripSeries | undefined {
@@ -354,6 +374,7 @@ export const useMasterStore = defineStore('master', () => {
     templateItemTaskList,
     getTemplateItemTasks,
     compositionSource,
+    portableResolvers,
     resolve,
     seriesList,
     getSeries,

@@ -517,8 +517,9 @@ describe('masterStore', () => {
     const yaml = serializeTemplate(
       vorlage,
       store.getTemplateItems(vorlage.id),
-      (id) => store.getItem(id),
+      store.portableResolvers().masterItem,
       compositionFrom(vorlage, store.compositionSource()),
+      store.portableResolvers().tagsOf,
     )
 
     const doc = parsePortable(yaml).doc!
@@ -564,8 +565,60 @@ describe('masterStore', () => {
       [],
       () => undefined,
       compositionFrom(group, store.compositionSource()),
+      () => [],
     )
 
     expect(parsePortable(yaml).doc!.includes).toEqual([])
+  })
+})
+
+/**
+ * The one place four screens get their portable resolvers from (ADR-024).
+ *
+ * It exists because the pair was written out at each call site and nothing
+ * drove any copy: with all of them returning no tags, the whole unit suite and
+ * the whole M18 e2e unit stayed green while the backup lost every tag. One
+ * source is one thing to get right — and this is the test that gets it right.
+ */
+describe('portableResolvers (FR-24.1/24.2, ADR-024)', () => {
+  it('resolves an item and its tags, primary first', () => {
+    const store = useMasterStore()
+    store.applyChanges([
+      {
+        seq: 1,
+        table: 'items',
+        id: 'i1',
+        deleted: false,
+        row: { name: 'Wanderschuhe', icon: '🥾' },
+      },
+      { seq: 2, table: 'tags', id: 'g1', deleted: false, row: { name: 'Schuhe', sort_order: 0 } },
+      { seq: 3, table: 'tags', id: 'g2', deleted: false, row: { name: 'Sommer', sort_order: 1 } },
+      // Written out of order on purpose: the *position* decides, not arrival.
+      {
+        seq: 4,
+        table: 'item_tags',
+        id: 'a2',
+        deleted: false,
+        row: { item_id: 'i1', tag_id: 'g2', position: 1 },
+      },
+      {
+        seq: 5,
+        table: 'item_tags',
+        id: 'a1',
+        deleted: false,
+        row: { item_id: 'i1', tag_id: 'g1', position: 0 },
+      },
+    ])
+
+    const { masterItem, tagsOf } = store.portableResolvers()
+    expect(masterItem('i1')).toMatchObject({ name: 'Wanderschuhe', icon: '🥾' })
+    expect(tagsOf('i1')).toEqual(['Schuhe', 'Sommer'])
+  })
+
+  it('answers for an item it does not know without throwing', () => {
+    const store = useMasterStore()
+    const { masterItem, tagsOf } = store.portableResolvers()
+    expect(masterItem('nope')).toBeUndefined()
+    expect(tagsOf('nope')).toEqual([])
   })
 })

@@ -137,6 +137,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Field-level LWW was row-level, and "packed always wins" was hiding it (2026-08-22)](#field-level-lww-was-row-level-and-packed-always-wins-was-hiding-it-2026-08-22) — the store kept one `updated_hlc` per row where §6 says per field-group, so an offline pack lost to any unrelated later edit; the backlog's "packed beats everything" branch was the compensation for exactly one state, and narrowing it to the spec alone would have kept the fault and dropped the mask; ADR-022 ships a clock per field and the narrow rule together, and the conflict log now names the losing push and its actor.
 - [The sheet's glyph rode half a line high (2026-08-23)](#the-sheets-glyph-rode-half-a-line-high-2026-08-23) — an eyeball of the merged conflict-log work found two rendering defects that every gate had passed: a state glyph aligned to a title *block* whose `h1` carried a 20 px margin nothing asked for, and an empty state that had copied the house pattern without its padding; the review corrected the entry's own first answer — a visual baseline would **not** have caught the offset either, at 591 px against a 0.002 gate, so what let both live is that nothing measured them.
 - [The lock stopped at the row (2026-08-22)](#the-lock-stopped-at-the-row-2026-08-22) — G-3's padlock was on M4's row and nowhere else, so the row you could not pack from the list was fully editable one tap deeper, and the sheet *accepted* the edit before the next merge threw it away; no screen named the holder; and §7's promised environment variable for the staleness window had never existed as anything but a client constant. What the backlog also asked for — server-side lock enforcement — is what §7 deliberately does not do, and it is left to the owner rather than built.
+- [A backup gave back plans instead of history (2026-08-23)](#a-backup-gave-back-plans-instead-of-history-2026-08-23) — the portable file carried neither a trip's status nor an item's tags, so a restore turned archived history into plans and dropped every master item no template also used; the field that made the fix possible is the one that says whether a trip row came from the inventory at all, and the change quietly falsified a *constant* two screens away.
 
 ## Current state
 
@@ -5260,3 +5261,87 @@ together — the coupling defined once, where the merge already defines it,
 rather than a second list in the store that could drift from the first.
 Independent fields stay independently revertable; the log lists them apart
 because they *are* apart.
+
+
+## A backup gave back plans instead of history (2026-08-23)
+
+The owner asked whether templates could be declared in a file and imported, and
+then whether trips and templates could live in **one** file as a backup. Both
+already existed — the portable YAML (FR-18.1–18.6) and `buildBackup` — so the
+work was not building them but finding what they did not carry. Three things,
+and the third is the one that made the other two possible.
+
+**Status.** Every imported trip was `planning`, and FR-18.4 said so on purpose:
+a file one person hands another should land in your planning list, not
+rearrange your trips. For the only copy of a device that is the wrong rule —
+thirty-one archived trips restore as thirty-one plans, and the FR-3.14
+historical quantities they exist for go with them. ADR-024 weighs the three
+ways out; the owner chose one format that always carries and always honours the
+status, over a backup-only document kind and over honouring it on the restore
+path alone. **The accepted cost is written down rather than smoothed over:** a
+trip somebody shares with you can now arrive archived. The rejected middle
+option is the interesting one — the same file behaving differently depending on
+which button opened it, with nothing on screen saying so, is the kind of rule
+nobody can predict and no bug report can describe.
+
+**Tags, ordered.** `item_tags.position` *is* the order, and position 0 is the
+primary tag the grouped inventory files an item under. So the list carries the
+primary tag without a second field to name it — and a set, which is what tags
+look like at first glance, would carry the same names and lose exactly that.
+
+**`from_inventory`, which is the load-bearing one.** A trip row that came from
+the inventory and a row the user typed on the trip are both, in the file, a
+name. The first idea was to create a master item for every trip row on restore;
+that is faithful for the first kind and wrong for the second — it fills the
+inventory with things somebody deliberately kept ad-hoc. Without a marker the
+importer has to pick one of two errors, and it had been picking the other one:
+a master item that only a trip referenced was dropped, taking its mark and its
+tags with it. One boolean is what lets a restore be faithful in both
+directions.
+
+**An unknown status is dropped, not refused — and that reversed a decision made
+an hour earlier.** The first implementation refused the document, by analogy
+with `scope`, which refuses an unknown value. Writing the second implementation
+made the analogy fail: a group imported as a Ferien-Vorlage is *structurally*
+wrong and corrupts the composition, while an unreadable status is one field
+with a correct fallback the reader already supplies. The closer precedent was
+`Quantity`, which folds a legacy formula string rather than failing the whole
+file. Losing a trip out of a restore to save its lifecycle state is the wrong
+trade, so both implementations now drop it. What neither may do is pass the
+value on: the schema's CHECK would refuse it, and a failed constraint parks the
+whole push and reports a database error where a file problem happened.
+
+**The change falsified a constant two screens away, and only reading the code
+found it.** M18 sent the user to M2's *planned* segment after a restore, and
+that literal was correct *because* every imported trip was planning — its own
+comment said so, and it existed to fix a restore that ended on the words "No
+active trips". A device of archived history would have landed on an empty
+Planned list: the identical failure the constant was introduced to prevent, one
+status over. It is derived from the first restored trip now, through a mapping
+that lives in the module both screens already share, because `planning` and
+*planned* are the one place the database word and the display word differ.
+
+**A cost of the shape, and the review found I had paid it badly.** Every writer
+has to pass the two resolvers. I wired the three I knew about — the device
+backup and both single exports — by hand-assembling the same two lines at each,
+and left the arguments optional. The review's own mutation is what exposed it:
+with all three returning no tags, **the whole unit suite (1237) and the whole
+M18 e2e unit stayed green** while the backup lost every tag. Three copies, no
+driver, and the exact shape §4.0 of the review skill was written after.
+
+The fix is not a fourth test. `masterStore.portableResolvers()` is one source
+with one driving case, and the serializers take the resolvers as **required**
+arguments — because a test can only watch the call sites that exist, while the
+compiler watches every future one. That distinction paid for itself
+immediately: making them required surfaced a **fourth** writer nobody had
+wired, the template list's own export, which would have shipped templates
+without tags.
+
+**And one mistake worth keeping — which I then repeated.** Mid-way through, a
+`git checkout --` meant to undo a deliberate mutation-proof wiped the
+orchestrator work along with it, because that work was not committed yet. The
+mutation proof is the right habit; doing it against uncommitted code is not.
+Commit the green step first, then mutate. Writing that down did not stop me
+doing it a second time an hour later, to `masterStore.ts`, in the middle of the
+review — which is the more useful half of the lesson: the rule has to be a
+habit at the keyboard, not a paragraph in a log.

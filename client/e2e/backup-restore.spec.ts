@@ -141,6 +141,76 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await fresh.close()
   })
 
+  /*
+   * E2E-M18-09 (ADR-024): a backup gives back the *status* it saved.
+   *
+   * Every imported trip used to be `planning` (FR-18.4), which is right for a
+   * file somebody shared and wrong for the only copy of a device: a restore
+   * turned a finished trip back into a plan, and with it the historical
+   * quantities FR-3.14 reads. Asserted through the segment the restore lands
+   * on as well as through the row, because the two used to be the same
+   * constant and are now derived — landing on an empty Planned list is the
+   * failure mode this replaces, one status over.
+   *
+   * The marks and tags half of ADR-024 is unit-covered end to end
+   * (`portableImport.spec.ts`, buildBackup → commitPortableRestore on a fresh
+   * store); this case buys the status, which is the half a user sees.
+   */
+  test('E2E-M18-09: an archived trip restores archived, not as a plan', async ({
+    page,
+    browser,
+  }) => {
+    test.slow()
+
+    // A template as well as the trip: a single-document file is the merge
+    // preview, not the restore branch, and a *device* backup always has both
+    // (the same reason E2E-M18-05 builds two partitions).
+    await page.goto('/tabs/templates')
+    await createTemplate(page, 'group', 'Makro')
+    await addPosition(page, 'Kamera')
+    await backToList(page)
+
+    await createTripViaWizard(page, TRIP)
+    // Planning → active → archived, the only path the app offers (E2E-M4-43).
+    await page.getByTestId('m4-start').click()
+    await expect(page.getByTestId('m4-archive')).toBeVisible()
+    await page.getByTestId('m4-archive').click()
+    await expect(visible(page).getByTestId('m4-template-from-trip')).toBeVisible()
+
+    await page.getByTestId('sync-indicator').click()
+    const sheet = page.getByTestId('sync-detail-sheet')
+    await expect(sheet).toBeVisible()
+    const downloadPromise = page.waitForEvent('download')
+    await sheet.getByTestId('sync-detail-backup').click()
+    const backup = await readFile(await (await downloadPromise).path(), 'utf8')
+
+    // --- a device that has never seen this trip -------------------------
+    const fresh = await browser.newContext({ baseURL: new URL(page.url()).origin })
+    const restored = await fresh.newPage()
+    await seed(restored, { mode: 'local' })
+    await restored.goto('/tabs/trips')
+    await expect(restored.getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(0)
+
+    await restored.getByTestId('m2-portable-import').click()
+    await restored.getByTestId('portable-paste').locator('textarea').fill(backup)
+    await restored.getByTestId('portable-preview').click()
+    await restored.getByTestId('portable-restore-commit').click()
+
+    // The restore put the user where its own result is, which for a device of
+    // finished trips is Archived and not the old constant.
+    await expect(visible(restored).getByTestId('trips-filter-archived')).toHaveClass(
+      /segment-button-checked/,
+    )
+    await expect(visible(restored).getByTestId(`trip-row-${TRIP.name}`)).toBeVisible()
+
+    // The positive companion: it is on Archived *because it is archived*, not
+    // because the segment was picked for it. Planned is where it used to land.
+    await visible(restored).getByTestId('trips-filter-planned').click()
+    await expect(visible(restored).getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(0)
+
+    await fresh.close()
+  })
+
   // E2E-M18-07 (FR-27.1/27.7, ADR-017): the composition is part of the only
   // copy. A Vorlage that came back as a bare name would look restored and
   // generate an empty trip — the failure would surface a wizard run later, on

@@ -39,6 +39,12 @@ function row(name: string, category: string, over: Partial<PortableItem> = {}): 
     icon: null,
     quantity: 1,
     tasks: [],
+    // The seed links its rows to the inventory through the merge decisions in
+    // `seedSampleTrip`, which resolve before this flag is consulted — so it
+    // stays neutral here rather than stating a second, weaker truth. Tags
+    // likewise belong to the master item `sampleMaster` already filed.
+    tags: [],
+    from_inventory: false,
     assignment: null,
     dedup: null,
     conditions: null,
@@ -66,6 +72,9 @@ function sampleDocument(): PortableDocument {
     schema_version: PORTABLE_SCHEMA_VERSION,
     // FR-28.8 is a template field; a trip has no mark of its own.
     icon: null,
+    // Null rather than a value: the seed's trip becomes active through
+    // `activateTrip` below, exactly as it did before the field existed.
+    status: null,
     // A trip is the result of a composition, never one (FR-27.1).
     includes: [],
     // The sample trip is typed, not generated: it follows no group, so it
