@@ -164,8 +164,11 @@ it. Item numbers stay stable even as items close, because the log refers back to
    staleness window is `JITPACK_LOCK_TIMEOUT` served by `GET /api/v1/config`. The fourth part of
    that finding — the server neither expiring a lock nor refusing a push for one — **is not a
    defect and was not built**: §7 makes the lock advisory on purpose, and refusal would wedge an
-   offline device's outbox. **Open as an owner decision** if collision *prevention* is wanted
-   instead of avoidance. Log: *„The lock stopped at the row"*.
+   offline device's outbox — reaffirmed by the owner 2026-08-23, the lock stays a client-side
+   courtesy. **Open as an owner decision** if collision *prevention* is wanted instead of
+   avoidance. What was still missing is that a claim could only *end* by packing the row or by
+   ageing out: it can be **released** now, and an aged claim says it aged instead of letting the
+   row go quiet. Log: *„The lock stopped at the row"*, *„A claim had no way out"*.
    ~~**(e)** NFR-4.2a promises audit **and manual revert**~~ — **done** (2026-08-22,
    ADR-023): a revert is an ordinary mutation with a fresh server HLC, not an undo, so
    the merge rules can refuse it and each refusal has its own sentence. No schema change
