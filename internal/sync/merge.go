@@ -163,7 +163,64 @@ func (r *MergeResult) apply(field string, value any, at HLC) {
 }
 
 func (r *MergeResult) drop(field string, losing, winning any) {
+	// A conflict is a record of a value that was overwritten. A field the
+	// losing push carried along unchanged overwrote nothing: it still does
+	// not win the write, but there is nothing to show and nothing to revert
+	// (NFR-4.2a). Logging it anyway fills the log with "2026 -> 2026" rows
+	// and turns an outcome of applied into merged, which the client
+	// announces to a user whose data was never touched.
+	if sameValue(losing, winning) {
+		return
+	}
 	r.Conflicts = append(r.Conflicts, Conflict{Field: field, LosingValue: losing, WinningValue: winning})
+}
+
+// sameValue reports whether two field values are the same value, across the
+// two type systems they reach Merge in: a mutation's fields are decoded from
+// JSON (every number a float64, booleans as bool), the row's are read from
+// SQLite (INTEGER as int64, booleans stored as 0/1). A pair that differs only
+// in how it was carried is not a difference.
+//
+// Anything neither numeric, textual nor null is reported as different, so an
+// unforeseen shape keeps the old behaviour of logging a conflict rather than
+// silently swallowing one.
+func sameValue(a, b any) bool {
+	if na, aNum := asNumber(a); aNum {
+		nb, bNum := asNumber(b)
+		return bNum && na == nb
+	}
+	switch va := a.(type) {
+	case string:
+		vb, ok := b.(string)
+		return ok && va == vb
+	case nil:
+		return b == nil
+	}
+	return false
+}
+
+// asNumber widens every numeric shape either side can arrive in to one type.
+// Booleans are numbers here because SQLite has no boolean: the column holds
+// 0 or 1, and the client sends true or false for the same field.
+func asNumber(v any) (float64, bool) {
+	switch n := v.(type) {
+	case float64:
+		return n, true
+	case float32:
+		return float64(n), true
+	case int:
+		return float64(n), true
+	case int32:
+		return float64(n), true
+	case int64:
+		return float64(n), true
+	case bool:
+		if n {
+			return 1, true
+		}
+		return 0, true
+	}
+	return 0, false
 }
 
 // clockOf is the HLC the field was last set at, falling back to the row's.

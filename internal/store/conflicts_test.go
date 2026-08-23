@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"jitpack/internal/sync"
@@ -180,5 +181,75 @@ func TestListMasterConflicts_HidesEntitiesTheUserCannotSee(t *testing.T) {
 	}
 	if len(theirs) != 0 {
 		t.Errorf("a non-member sees %+v, want nothing", theirs)
+	}
+}
+
+// The types the two sides arrive in only meet here: a mutation's fields are
+// decoded from the push envelope's JSON, the row's are read back from
+// SQLite. A quantity of 5 is a float64 on one side and an int64 on the
+// other, and comparing them as they come would call every carried-along
+// field a conflict (NFR-4.2a).
+func TestApplyMutation_UnchangedFieldsFromJSON_LogNoConflict(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+
+	fieldsFromWire := func(t *testing.T, raw string) map[string]any {
+		t.Helper()
+		var fields map[string]any
+		if err := json.Unmarshal([]byte(raw), &fields); err != nil {
+			t.Fatalf("decode wire fields: %v", err)
+		}
+		return fields
+	}
+
+	seed := upsert("item-1", "nc-1",
+		fieldsFromWire(t, `{"trip_id":"`+testTrip+`","name":"Socken","quantity":5}`),
+		"0000000002000-0000-bbbbbbbb")
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, seed); err != nil {
+		t.Fatal(err)
+	}
+
+	// An older push that really changes the quantity and carries the
+	// unchanged name along: one conflict, not two.
+	stale := upsert("item-1", "nc-2",
+		fieldsFromWire(t, `{"name":"Socken","quantity":9}`),
+		"0000000001000-0000-aaaaaaaa")
+	res, err := s.ApplyMutation(ctx, testTrip, testUser, stale)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Outcome != sync.OutcomeMerged {
+		t.Errorf("outcome = %q, want %q", res.Outcome, sync.OutcomeMerged)
+	}
+
+	conflicts, err := s.ListConflicts(ctx, testTrip)
+	if err != nil {
+		t.Fatalf("ListConflicts: %v", err)
+	}
+	if len(conflicts) != 1 {
+		t.Fatalf("conflicts = %+v, want only the quantity", conflicts)
+	}
+	if conflicts[0].Field != "quantity" {
+		t.Errorf("conflict field = %q, want quantity", conflicts[0].Field)
+	}
+
+	// An older push that changes nothing at all is applied, and the log
+	// stays as it was.
+	noop := upsert("item-1", "nc-3",
+		fieldsFromWire(t, `{"name":"Socken","quantity":5}`),
+		"0000000000500-0000-aaaaaaaa")
+	res, err = s.ApplyMutation(ctx, testTrip, testUser, noop)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Outcome != sync.OutcomeApplied {
+		t.Errorf("outcome = %q, want %q: nothing of it was overwritten", res.Outcome, sync.OutcomeApplied)
+	}
+	after, err := s.ListConflicts(ctx, testTrip)
+	if err != nil {
+		t.Fatalf("ListConflicts: %v", err)
+	}
+	if len(after) != 1 {
+		t.Errorf("conflicts = %+v, want the one from before", after)
 	}
 }
