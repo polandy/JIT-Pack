@@ -39,12 +39,12 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Harness smoke | E2E-M19-01 (partial), E2E-M19-04, E2E-G7-01 | `local` | [`smoke.spec.ts`](../client/e2e/smoke.spec.ts) |
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05 | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
-| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
+| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
-| Visual baselines | E2E-VIS-01 … E2E-VIS-07 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
+| Visual baselines | E2E-VIS-01 … E2E-VIS-08 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
 | Deliberately not packed | E2E-M4-37 … E2E-M4-42, E2E-M5-16 | `local` | [`skip-item.spec.ts`](../client/e2e/skip-item.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
@@ -108,6 +108,37 @@ a timer, so asserting it after the case's M5 steps would race that timer —
 the first draft did exactly that. Nothing after the dismissal depends on it;
 what the later steps assert is the sheet's standing line, which has no
 timer.
+
+**E2E-G2-08 and E2E-G2-09 — what the eyeball found, added 2026-08-23.** Both
+came out of rendering PR #160 rather than out of reading its diff, and both are
+the same shape: a rule that held everywhere it was written down, and a rendered
+result that was still wrong.
+
+The sheet's state glyph sat **14.5 px above its title**. `.head` aligned the
+38 px circle to the top of the *title block*, and the `h1` inside carried a
+20 px top margin nothing had asked for — `.jp-sheet-title` names a type role
+and no spacing at all, so those pixels were an inherited user-agent default the
+component never reset. Two fixes were built and measured against each other
+before either was chosen: resetting the margin alone lands at **+5.5 px**,
+because a 38 px circle and a 29 px line flush at the top cannot centre on each
+other and the residual moves again with the title's size; giving the glyph and
+the title their own centred row lands at **+0.9 px** and has nothing to re-tune.
+The second was chosen at a visible cost — the ✕ comes down onto the title's
+line, and the explanation, no longer squeezed beside it, wraps one word later.
+
+The master log's empty state **ran from edge to edge**, because the page had
+copied the house empty state without its `padding` and `text-align`. Nothing
+noticed while the only sentence it held fit one line: a shrink-to-fit flex item
+looks centred. The master log's names three things, wraps, and the wrapped
+paragraph then started at x=0 under a centred icon. The new string exposed a
+defect that had been there all along.
+
+**What actually let both live: the G-2 sheet was in no visual baseline.** It is
+the one surface reachable from every screen in every mode, and twenty-two
+baselines covered none of it. E2E-VIS-08 closes that, and it cost no existing
+baseline — nothing else moved. The geometry case beside it is not redundant
+with it: a baseline reports that a pixel moved, E2E-G2-08 reports which rule
+broke.
 
 **E2E-G2-06 — the master partition's conflict log, added 2026-08-22.** The
 audit NFR-4.2a promises had one endpoint and two partitions: every

@@ -133,6 +133,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The conflict log had two partitions and one query (2026-08-22)](#the-conflict-log-had-two-partitions-and-one-query-2026-08-22) — NFR-4.2a's audit filtered on `trip_id`, so every master-partition loser was written and read by nothing; the case that makes it matter is `trips`, whose own fields merge there, and the sheet's helpful-sounding hint was what hid it.
 - [`merged` was a quieter `applied` (2026-08-22)](#merged-was-a-quieter-applied-2026-08-22) — the push response's `conflicts[]` was read by no code path, so a mutation that lost a field left the queue exactly like one that applied; one toast per push (never per conflict) plus a standing line in the G-2 sheet, and the e2e assertion had to move because it was racing the toast's own dismissal timer.
 - [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
+- [The sheet's glyph rode half a line high (2026-08-23)](#the-sheets-glyph-rode-half-a-line-high-2026-08-23) — an eyeball of the merged conflict-log work found two rendering defects that every gate had passed: a state glyph aligned to a title *block* whose `h1` carried a 20 px margin nothing asked for, and an empty state that had copied the house pattern without its padding; what let both live is that the G-2 sheet was in no visual baseline at all.
 
 ## Current state
 
@@ -5018,3 +5019,56 @@ was racing the toast's own dismissal timer, which is exactly the kind of
 "passes on this machine" the timing rule exists to forbid. It is asserted
 immediately after the drain now and dismissed by hand, so nothing later
 depends on it still being there.
+
+
+## The sheet's glyph rode half a line high (2026-08-23)
+
+Neither of these was found by reading a diff. Both came out of rendering the
+merged conflict-log work at the width the design is drawn at, and both are the
+same shape: every written rule honoured, and the pixels still wrong.
+
+**The glyph.** The G-2 sheet's state circle sat 14.5 px above its title.
+`.head` was `align-items: flex-start`, which aligned the 38 px circle to the
+top of the *title block* — and the `h1` inside that block carried a 20 px top
+margin. Nothing had asked for it: `.jp-sheet-title` names a face, a weight, a
+size, a tracking and a leading, and no spacing whatsoever. The 20 px were an
+inherited user-agent default the component never reset, so the text began well
+below the box the circle was aligned to.
+
+**Two fixes, both built and measured, before either was chosen.** Resetting the
+margin is one CSS declaration and lands at **+5.5 px** — better in magnitude,
+and now wrong in the other direction, because a 38 px circle and a 29 px line
+flush at the top cannot centre on each other. It would also move again the next
+time anyone touches the title's size. Giving the glyph and the title their own
+row with `align-items: center` lands at **+0.9 px**, half a line's leading,
+below any threshold a font renders as a difference — and it has nothing to
+re-tune, because the centring is structural rather than numeric. That is the
+one that shipped, at a cost worth naming: the ✕ comes down onto the title's
+line instead of pinning to the top, and the explanation, no longer squeezed
+beside it, wraps one word later.
+
+**The empty state.** The master conflict log's empty state ran from x=0 to the
+right edge. The page had copied the house empty state — three screens write
+`padding: 48px 24px; text-align: center` — and dropped both declarations. That
+survived because the only sentence it ever held fit on one line, and a
+shrink-to-fit flex item under `align-items: center` looks centred whether or not
+it is. The master log's sentence names three things, wraps, and the second line
+made the omission visible. The new string did not cause the defect; it stopped
+hiding it.
+
+**What actually let both live, and the only durable fix here.** The G-2 detail
+sheet was covered by **no visual baseline**. It is the one surface reachable
+from every screen in every mode, and twenty-two baselines rendered none of it —
+so a 14.5 px offset on it was invisible to the whole pipeline. E2E-VIS-08
+closes that, and it cost nothing: no existing baseline moved.
+
+The geometry case beside it is not a second copy of the baseline. A baseline
+says a pixel moved; E2E-G2-08 says which rule broke, and it is the one that
+reads as the specification when it fails — `Expected: <= 2, Received: 14.5`.
+
+**The gates could not have caught either.** `design-tokens-gate.mjs` rejects a
+raw colour, a raw type declaration, a raw radius and a raw shadow. A stray
+user-agent margin is none of those, and neither is a missing padding. This is
+the same lesson invariant 9b already carries from the M4 group card that
+painted itself the exact colour of the page behind it: a rule can be satisfied
+completely and the result can still be wrong, and only a rendered pixel says so.
