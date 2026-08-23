@@ -9,6 +9,11 @@ import (
 // lists it: either the document or the reason it could not be read.
 type DocumentResult struct {
 	Doc Document
+	// Raw is the document exactly as the file spells it. FR-18.5 makes a
+	// field this build does not know a thing to carry, not a thing to drop,
+	// so anything forwarding a document sends these bytes rather than
+	// re-serializing Doc — which would keep only what the Go type models.
+	Raw []byte
 	Err error
 }
 
@@ -32,10 +37,10 @@ func UnmarshalAll(data []byte) []DocumentResult {
 	for _, chunk := range splitDocuments(data) {
 		doc, err := Unmarshal(chunk)
 		if err != nil {
-			results = append(results, DocumentResult{Err: err})
+			results = append(results, DocumentResult{Raw: chunk, Err: err})
 			continue
 		}
-		results = append(results, DocumentResult{Doc: doc})
+		results = append(results, DocumentResult{Doc: doc, Raw: chunk})
 	}
 	return results
 }
