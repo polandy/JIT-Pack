@@ -143,15 +143,15 @@ describe('commitImport (FR-16.2)', () => {
       .flatMap((b) => JSON.parse(b).mutations ?? [])
 
     const seenItems = new Set<string>()
+    const orphans: string[] = []
     for (const m of pushed) {
       if (m.table === 'items') seenItems.add(m.id)
-      if (m.table === 'item_tags') {
-        expect(
-          seenItems.has(m.fields.item_id),
-          `item_tags for ${m.fields.item_id} was pushed before the item itself`,
-        ).toBe(true)
+      else if (m.table === 'item_tags' && !seenItems.has(m.fields.item_id)) {
+        orphans.push(m.fields.item_id)
       }
     }
+
+    expect(orphans, 'item_tags pushed before the items they name').toEqual([])
     // A positive signal: the assertion above is vacuous if nothing was pushed.
     expect(pushed.filter((m) => m.table === 'item_tags').length).toBeGreaterThan(0)
   })
