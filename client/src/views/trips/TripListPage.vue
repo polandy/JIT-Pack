@@ -378,6 +378,7 @@ async function handleRefresh(event: CustomEvent) {
             <IonButton
               fill="clear"
               size="small"
+              data-testid="m2-spreadsheet-import"
               :aria-label="t('items.importSpreadsheet')"
               router-link="/import"
             >
