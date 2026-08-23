@@ -186,11 +186,12 @@ NFR-4.2a promises the log so users can audit **and manually revert**. A
 revert is **an ordinary upsert with a fresh server HLC, resolved by the
 algorithm above** — never a rewrite of the past (ADR-023). The server
 builds it from the log entry itself (`entity_table`, `entity_id`, `field`,
-`losing_value`), folds the row's current HLC into its own generator so a
+`losing_value`) **plus every field the same `mutation_id` lost that merges
+with it as one unit**, folds the row's current HLC into its own generator so a
 device with a fast clock cannot leave the revert stale, stamps
 `hlc.Next()`, and runs it through `Merge` -> persist -> `change_log`.
 
-Three consequences follow, and all three are deliberate:
+Four consequences follow, and all four are deliberate:
 
 * **It wins by being newer, not by being special.** Every device pulls it
   through the normal feed; an offline device that pushes afterwards
@@ -201,6 +202,17 @@ Three consequences follow, and all three are deliberate:
   exists to drop, and it is answered `409 revert_refused` rather than
   silently swallowed. A deleted row is `409 row_deleted` — one logged
   field cannot rebuild a row.
+* **A coupled field group is restored as a whole** (corrected 2026-08-23,
+  found in review). `state` and `packed_count` are one fact (§6, FR-5.4),
+  so restoring one without the other writes a row the state machine cannot
+  describe — `state = packed` beside `packed_count = 0` on a quantity of
+  five. The revert therefore carries the whole group: the tapped entry's
+  field plus the sibling entries of the *same push* whose fields merge with
+  it, all of them marked spent together. Independent fields stay
+  independently revertable, because they are independent decisions — the
+  log lists them apart for that reason. `sync.GroupedWith` is the one place
+  the coupling is defined, shared with the merge itself so the two cannot
+  drift.
 * **The entry is spent, not erased.** `conflict_log.reverted` is set in
   the same transaction as the write, by a single guarded statement
   (`... WHERE id = ? AND reverted = 0`), so two devices cannot both

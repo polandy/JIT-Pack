@@ -5178,3 +5178,16 @@ And the refusals are **four codes, not one 409**: already reverted, row
 deleted, merge rules outrank it, not yours to write. Each is a different
 sentence for the reader, and the page renders it on the row rather than as
 a snackbar — which on this app lands on the tab bar (FR-9.4).
+
+**Found in this PR's own review: the revert restored half a fact.** The log
+lists one row per lost *field*, and the first implementation restored exactly
+that field. For `state` and `packed_count` — coupled since FR-5.4, and merged
+as one unit by the very algorithm that wrote the entries — that produced
+`state = packed` beside `packed_count = 0` on a quantity of five: a row no
+screen has a rendering for and no state machine describes. The fix uses the
+column #164 had just added for it, `mutation_id`, to find the sibling entries
+of the same push, and `sync.GroupedWith` to decide which of them travel
+together — the coupling defined once, where the merge already defines it,
+rather than a second list in the store that could drift from the first.
+Independent fields stay independently revertable; the log lists them apart
+because they *are* apart.

@@ -173,6 +173,7 @@ sentence for the reader.
   is the normal one (`trip.changed` / `master.changed`), and an offline
   device converges on its next pull with no special case.
 
+- The unit of a revert is the **field group**, not the log row: restoring one field of a causally coupled pair would write half a fact (FR-5.4). `sync.GroupedWith` names the coupling once, for the merge and the revert alike.
 **Negative / accepted costs**
 - **The button can fail, and the UI must say why.** Four sentences where a
   true undo would have needed none. The conflict log renders them on the

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"jitpack/internal/sync"
 )
@@ -128,6 +129,7 @@ type revertEntry struct {
 	entityID    string
 	field       string
 	losingValue string
+	mutationID  string
 }
 
 // RevertTripConflict restores the logged losing value of one trip-partition
@@ -183,9 +185,9 @@ func (s *Store) RevertMasterConflict(ctx context.Context, userID, conflictID str
 func (s *Store) loadConflictEntry(ctx context.Context, conflictID string) (revertEntry, error) {
 	var e revertEntry
 	err := s.db.QueryRowContext(ctx,
-		`SELECT trip_id, entity_table, entity_id, field, coalesce(losing_value, 'null')
+		`SELECT trip_id, entity_table, entity_id, field, coalesce(losing_value, 'null'), mutation_id
 		 FROM conflict_log WHERE id = ?`, conflictID).
-		Scan(&e.tripID, &e.table, &e.entityID, &e.field, &e.losingValue)
+		Scan(&e.tripID, &e.table, &e.entityID, &e.field, &e.losingValue, &e.mutationID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return revertEntry{}, ErrConflictNotFound
 	}
@@ -193,6 +195,60 @@ func (s *Store) loadConflictEntry(ctx context.Context, conflictID string) (rever
 		return revertEntry{}, fmt.Errorf("load conflict %s: %w", conflictID, err)
 	}
 	return e, nil
+}
+
+// revertGroup is what one revert restores: the tapped field plus every
+// field the same push lost that merges with it as one unit (FR-5.4). A
+// state restored without the packed_count it was derived from is a row
+// the app has no state machine for, so the coupled pair moves together or
+// not at all. Independent fields stay independently revertable — the log
+// lists them separately because they are separate decisions.
+func (s *Store) revertGroup(ctx context.Context, e revertEntry) (map[string]any, []string, error) {
+	group := sync.GroupedWith(e.field)
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, field, coalesce(losing_value, 'null') FROM conflict_log
+		 WHERE mutation_id = ? AND entity_table = ? AND entity_id = ?
+		   AND field IN (`+placeholders(len(group))+`) AND reverted = 0`,
+		append([]any{e.mutationID, e.table, e.entityID}, anyArgs(group)...)...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("load conflict group of %s: %w", e.field, err)
+	}
+	defer rows.Close()
+
+	fields := map[string]any{}
+	ids := []string{}
+	for rows.Next() {
+		var id, field, losing string
+		if err := rows.Scan(&id, &field, &losing); err != nil {
+			return nil, nil, fmt.Errorf("scan conflict group: %w", err)
+		}
+		var value any
+		if err := json.Unmarshal([]byte(losing), &value); err != nil {
+			return nil, nil, fmt.Errorf("decode losing value of conflict %s: %w", id, err)
+		}
+		fields[field] = value
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, nil, fmt.Errorf("load conflict group of %s: %w", e.field, err)
+	}
+	if len(ids) == 0 {
+		// The tapped entry itself is spent; nothing is left to restore.
+		return nil, nil, ErrConflictAlreadyReverted
+	}
+	return fields, ids, nil
+}
+
+func placeholders(n int) string {
+	return strings.TrimSuffix(strings.Repeat("?, ", n), ", ")
+}
+
+func anyArgs(values []string) []any {
+	out := make([]any, len(values))
+	for i, v := range values {
+		out[i] = v
+	}
+	return out
 }
 
 // revertAuthorizer decides whether the caller may write the row a revert
@@ -213,15 +269,15 @@ func (s *Store) applyRevert(
 	changeTripID any,
 	authorize revertAuthorizer,
 ) (int64, error) {
-	var value any
-	if err := json.Unmarshal([]byte(e.losingValue), &value); err != nil {
-		return 0, fmt.Errorf("decode losing value of conflict %s: %w", conflictID, err)
+	fields, groupIDs, err := s.revertGroup(ctx, e)
+	if err != nil {
+		return 0, err
 	}
 	m := sync.Mutation{
 		Op:     sync.OpUpsert,
 		Table:  e.table,
 		ID:     e.entityID,
-		Fields: map[string]any{e.field: value},
+		Fields: fields,
 	}
 	if err := validate(m, partition); err != nil {
 		return 0, err
@@ -234,15 +290,17 @@ func (s *Store) applyRevert(
 	defer tx.Rollback() //nolint:errcheck // no-op after a successful Commit
 
 	// The guard and the write are the same statement: two devices tapping
-	// the same entry cannot both restore it, and the loser is told so.
+	// the same entry cannot both restore it, and the loser is told so. The
+	// whole group is claimed, because the whole group is restored.
 	claimed, err := tx.ExecContext(ctx,
-		`UPDATE conflict_log SET reverted = 1 WHERE id = ? AND reverted = 0`, conflictID)
+		`UPDATE conflict_log SET reverted = 1 WHERE id IN (`+placeholders(len(groupIDs))+`) AND reverted = 0`,
+		anyArgs(groupIDs)...)
 	if err != nil {
 		return 0, fmt.Errorf("claim conflict %s: %w", conflictID, err)
 	}
 	if n, err := claimed.RowsAffected(); err != nil {
 		return 0, fmt.Errorf("claim conflict %s: %w", conflictID, err)
-	} else if n == 0 {
+	} else if int(n) != len(groupIDs) {
 		return 0, ErrConflictAlreadyReverted
 	}
 

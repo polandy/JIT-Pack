@@ -309,3 +309,93 @@ func TestRevertMasterConflict_VisibleButUnwritableRowIsForbidden_NFR42a(t *testi
 		t.Error("a forbidden revert must leave the entry open")
 	}
 }
+
+// FR-5.4 + NFR-4.2a: state and packed_count are one fact, so a revert of
+// either restores both — a "packed" put back beside the packed_count that
+// stayed at zero is a row the state machine cannot describe.
+func TestRevertTripConflict_RestoresTheWholeCoupledGroup_FR54(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	seed := upsert("item-1", "grp-1", map[string]any{
+		"trip_id": testTrip, "name": "Socken", "quantity": 5, "packed_count": 0, "state": "open",
+	}, sync.HLC("0000000001000-0000-aaaaaaaa"))
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, seed); err != nil {
+		t.Fatal(err)
+	}
+	skip := upsert("item-1", "grp-2", map[string]any{"state": "skipped", "packed_count": 0}, sync.HLC("0000000009000-0000-dddddddd"))
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, skip); err != nil {
+		t.Fatal(err)
+	}
+	// The offline pack arrives late and loses both fields of the group.
+	stale := upsert("item-1", "grp-3", map[string]any{"state": "packed", "packed_count": 5}, sync.HLC("0000000005000-0000-cccccccc"))
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, stale); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := s.RevertTripConflict(ctx, testTrip, conflictIDForField(t, s, "state")); err != nil {
+		t.Fatalf("revert: %v", err)
+	}
+
+	var state string
+	var packed int
+	if err := s.db.QueryRow(`SELECT state, packed_count FROM trip_items WHERE id = 'item-1'`).Scan(&state, &packed); err != nil {
+		t.Fatal(err)
+	}
+	if state != "packed" || packed != 5 {
+		t.Errorf("row = (%q, %d), want (packed, 5) — the group must travel together", state, packed)
+	}
+	// Both log entries are spent: the sibling must not still offer a
+	// second revert of a value that is already back.
+	var open int
+	if err := s.db.QueryRow(`SELECT count(*) FROM conflict_log WHERE reverted = 0`).Scan(&open); err != nil {
+		t.Fatal(err)
+	}
+	if open != 0 {
+		t.Errorf("%d entries still open, want both marked reverted", open)
+	}
+}
+
+// The independent half of the same rule: a field nothing is coupled to is
+// restored alone, and its neighbours in the same push stay revertable.
+func TestRevertTripConflict_IndependentFieldRestoresAlone_NFR42a(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	seed := upsert("item-1", "ind-1", map[string]any{
+		"trip_id": testTrip, "name": "Socken", "quantity": 5, "category_name": "Kleidung",
+	}, sync.HLC("0000000002000-0000-bbbbbbbb"))
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, seed); err != nil {
+		t.Fatal(err)
+	}
+	stale := upsert("item-1", "ind-2", map[string]any{"name": "Wollsocken", "category_name": "Wäsche"}, sync.HLC("0000000001000-0000-aaaaaaaa"))
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, stale); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := s.RevertTripConflict(ctx, testTrip, conflictIDForField(t, s, "name")); err != nil {
+		t.Fatalf("revert: %v", err)
+	}
+
+	var name, category string
+	if err := s.db.QueryRow(`SELECT name, category_name FROM trip_items WHERE id = 'item-1'`).Scan(&name, &category); err != nil {
+		t.Fatal(err)
+	}
+	if name != "Wollsocken" || category != "Kleidung" {
+		t.Errorf("row = (%q, %q), want the name restored and the category untouched", name, category)
+	}
+	var open int
+	if err := s.db.QueryRow(`SELECT count(*) FROM conflict_log WHERE reverted = 0 AND field = 'category_name'`).Scan(&open); err != nil {
+		t.Fatal(err)
+	}
+	if open != 1 {
+		t.Error("the independent neighbour must stay revertable on its own")
+	}
+}
+
+func conflictIDForField(t *testing.T, s *Store, field string) string {
+	t.Helper()
+	var id string
+	if err := s.db.QueryRow(`SELECT id FROM conflict_log WHERE field = ? AND reverted = 0`, field).Scan(&id); err != nil {
+		t.Fatalf("conflict for %s: %v", field, err)
+	}
+	return id
+}
