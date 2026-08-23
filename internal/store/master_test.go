@@ -161,7 +161,7 @@ func TestApplyMutation_PartitionMismatchRejected(t *testing.T) {
 	ctx := context.Background()
 
 	// Master table via trip push
-	_, err := s.ApplyMutation(ctx, testTrip, masterMut(sync.OpInsert, "items", "x", "pm-1",
+	_, err := s.ApplyMutation(ctx, testTrip, testUser, masterMut(sync.OpInsert, "items", "x", "pm-1",
 		map[string]any{"name": "Leak"}, "0000000001000-0000-aaaaaaaa"))
 	if err == nil {
 		t.Error("items via trip partition: expected ErrUnknownTable, got nil")
@@ -472,7 +472,7 @@ func TestPullMaster_VisibilityPerUser(t *testing.T) {
 func TestPullMaster_ExcludesTripPartition(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()
-	if _, err := s.ApplyMutation(ctx, testTrip, upsert("item-t", "px-1",
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, upsert("item-t", "px-1",
 		map[string]any{"trip_id": testTrip, "name": "Socken"}, "0000000001000-0000-aaaaaaaa")); err != nil {
 		t.Fatal(err)
 	}

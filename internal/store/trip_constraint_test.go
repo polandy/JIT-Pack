@@ -32,7 +32,7 @@ func TestApplyMutation_ConstraintViolation_RejectedNotErrored(t *testing.T) {
 			name: "foreign key: the container was deleted elsewhere",
 			seed: func(t *testing.T, s *Store) {
 				m := upsert("item-1", "seed-1", map[string]any{"trip_id": testTrip, "name": "Socken"}, "0000000001000-0000-aaaaaaaa")
-				if _, err := s.ApplyMutation(ctx, testTrip, m); err != nil {
+				if _, err := s.ApplyMutation(ctx, testTrip, testUser, m); err != nil {
 					t.Fatalf("seed: %v", err)
 				}
 			},
@@ -47,7 +47,7 @@ func TestApplyMutation_ConstraintViolation_RejectedNotErrored(t *testing.T) {
 				m := upsert("item-1", "seed-1", map[string]any{
 					"trip_id": testTrip, "name": "Socken", "quantity": 3, "packed_count": 3,
 				}, "0000000001000-0000-aaaaaaaa")
-				if _, err := s.ApplyMutation(ctx, testTrip, m); err != nil {
+				if _, err := s.ApplyMutation(ctx, testTrip, testUser, m); err != nil {
 					t.Fatalf("seed: %v", err)
 				}
 			},
@@ -70,7 +70,7 @@ func TestApplyMutation_ConstraintViolation_RejectedNotErrored(t *testing.T) {
 			s := openTestStore(t)
 			c.seed(t, s)
 
-			res, err := s.ApplyMutation(ctx, testTrip, c.mut)
+			res, err := s.ApplyMutation(ctx, testTrip, testUser, c.mut)
 
 			if err != nil {
 				t.Fatalf("ApplyMutation returned an error, want a rejected result: %v", err)
@@ -81,7 +81,7 @@ func TestApplyMutation_ConstraintViolation_RejectedNotErrored(t *testing.T) {
 
 			// The refusal is recorded, so the retry the client will make
 			// answers from the memo instead of failing all over again.
-			replay, err := s.ApplyMutation(ctx, testTrip, c.mut)
+			replay, err := s.ApplyMutation(ctx, testTrip, testUser, c.mut)
 			if err != nil {
 				t.Fatalf("replay: %v", err)
 			}
@@ -98,17 +98,17 @@ func TestApplyMutation_AfterAConstraintRefusal_TheNextMutationStillApplies(t *te
 	s := openTestStore(t)
 	ctx := context.Background()
 	seed := upsert("item-1", "seed-1", map[string]any{"trip_id": testTrip, "name": "Socken"}, "0000000001000-0000-aaaaaaaa")
-	if _, err := s.ApplyMutation(ctx, testTrip, seed); err != nil {
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, seed); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
 
 	bad := upsert("item-1", "mut-1", map[string]any{"container_id": "gone-container"}, "0000000002000-0000-bbbbbbbb")
-	if res, err := s.ApplyMutation(ctx, testTrip, bad); err != nil || res.Outcome != OutcomeRejected {
+	if res, err := s.ApplyMutation(ctx, testTrip, testUser, bad); err != nil || res.Outcome != OutcomeRejected {
 		t.Fatalf("bad mutation: outcome %q err %v, want rejected", res.Outcome, err)
 	}
 
 	good := upsert("item-1", "mut-2", map[string]any{"quantity": 4}, "0000000003000-0000-cccccccc")
-	res, err := s.ApplyMutation(ctx, testTrip, good)
+	res, err := s.ApplyMutation(ctx, testTrip, testUser, good)
 	if err != nil {
 		t.Fatalf("good mutation: %v", err)
 	}

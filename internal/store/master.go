@@ -38,13 +38,13 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 		return recorded, nil
 	}
 
-	current, currentHLC, exists, err := loadRow(ctx, tx, m.Table, m.ID)
+	row, err := loadRow(ctx, tx, m.Table, m.ID)
 	if err != nil {
 		return MutationResult{}, err
 	}
 
 	res := MutationResult{MutationID: m.MutationID}
-	allowed, err := authorizeMaster(ctx, tx, userID, &m, current, exists)
+	allowed, err := authorizeMaster(ctx, tx, userID, &m, row.Fields, row.Exists)
 	if err != nil {
 		return MutationResult{}, err
 	}
@@ -53,18 +53,18 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 		return res, finalize(ctx, tx, res)
 	}
 
-	merged := sync.Merge(current, currentHLC, exists, m)
+	merged := sync.Merge(row, m)
 	res.Outcome = string(merged.Outcome)
 	res.Conflicts = merged.Conflicts
 
 	// FK cascades delete child rows silently; collect their ids up front
 	// so the whole cascade can be tombstoned for clients.
-	cascaded, err := cascadeChildren(ctx, tx, m, merged.Deleted, exists)
+	cascaded, err := cascadeChildren(ctx, tx, m, merged.Deleted, row.Exists)
 	if err != nil {
 		return MutationResult{}, err
 	}
 
-	changed, err := persist(ctx, tx, m.Table, m, merged, exists)
+	changed, err := persist(ctx, tx, m.Table, m, merged, row.Exists)
 	if err != nil {
 		if isConstraintViolation(err) {
 			// e.g. deleting an item still referenced by a template, or two
@@ -87,7 +87,7 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 				return MutationResult{}, err
 			}
 		}
-		if m.Table == TableTrips && !exists && !merged.Deleted {
+		if m.Table == TableTrips && !row.Exists && !merged.Deleted {
 			// The creator becomes the trip's Owner (FR-4.5); the membership
 			// row syncs like any other so every device learns the roster.
 			memberID := randomID()
@@ -105,7 +105,7 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 			// A grant must resurface the trips row: the new member's pull
 			// cursor is already past the trip's original change_log entry,
 			// so without a fresh one they would never see the trip.
-			if tripID, ok := memberTrip(current, m); ok {
+			if tripID, ok := memberTrip(row.Fields, m); ok {
 				touch := sync.Mutation{Table: TableTrips, ID: tripID, HLC: m.HLC}
 				if _, err := appendChangeLog(ctx, tx, nil, touch, false); err != nil {
 					return MutationResult{}, err
@@ -113,7 +113,7 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 			}
 		}
 	}
-	if err := logConflicts(ctx, tx, nil, m, merged.Conflicts); err != nil {
+	if err := logConflicts(ctx, tx, nil, userID, m, merged.Conflicts); err != nil {
 		return MutationResult{}, err
 	}
 	return res, finalize(ctx, tx, res)

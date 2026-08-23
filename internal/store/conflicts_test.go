@@ -14,11 +14,11 @@ func TestListConflicts_ReturnsLoggedConflicts(t *testing.T) {
 	ctx := context.Background()
 
 	seed := upsert("item-1", "lc-1", map[string]any{"trip_id": testTrip, "name": "Socken", "quantity": 5}, "0000000002000-0000-bbbbbbbb")
-	if _, err := s.ApplyMutation(ctx, testTrip, seed); err != nil {
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, seed); err != nil {
 		t.Fatal(err)
 	}
 	stale := upsert("item-1", "lc-2", map[string]any{"quantity": 9}, "0000000001000-0000-aaaaaaaa")
-	if _, err := s.ApplyMutation(ctx, testTrip, stale); err != nil {
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, stale); err != nil {
 		t.Fatal(err)
 	}
 
@@ -60,11 +60,11 @@ func TestListConflicts_ScopedToTrip(t *testing.T) {
 	mustExec(t, s, `INSERT INTO trips (id, name, year, start_date, end_date) VALUES ('trip-other', 'Other', 2026, '2026-07-01', '2026-07-05')`)
 
 	seed := upsert("item-1", "sc-1", map[string]any{"trip_id": testTrip, "name": "Socken", "quantity": 5}, "0000000002000-0000-bbbbbbbb")
-	if _, err := s.ApplyMutation(ctx, testTrip, seed); err != nil {
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, seed); err != nil {
 		t.Fatal(err)
 	}
 	stale := upsert("item-1", "sc-2", map[string]any{"quantity": 9}, "0000000001000-0000-aaaaaaaa")
-	if _, err := s.ApplyMutation(ctx, testTrip, stale); err != nil {
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, stale); err != nil {
 		t.Fatal(err)
 	}
 
@@ -121,12 +121,12 @@ func TestListMasterConflicts_DoesNotMixThePartitions(t *testing.T) {
 	applyMaster(t, s, testUser, masterMut(sync.OpUpsert, TableTemplates, "tpl-1", "mx-2",
 		map[string]any{"name": "Sommerferien"}, "0000000001000-0000-aaaaaaaa"))
 
-	if _, err := s.ApplyMutation(ctx, testTrip, upsert("item-1", "mx-3",
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, upsert("item-1", "mx-3",
 		map[string]any{"trip_id": testTrip, "name": "Socken", "quantity": 5},
 		"0000000002000-0000-bbbbbbbb")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.ApplyMutation(ctx, testTrip, upsert("item-1", "mx-4",
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, upsert("item-1", "mx-4",
 		map[string]any{"quantity": 9}, "0000000001000-0000-aaaaaaaa")); err != nil {
 		t.Fatal(err)
 	}

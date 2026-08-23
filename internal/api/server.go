@@ -342,7 +342,7 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 	out, muts, ok := applyPushBatch(w, r,
 		func(m *syncpkg.Mutation) { stampActor(m, userID) },
 		func(m syncpkg.Mutation) (store.MutationResult, error) {
-			return s.store.ApplyMutation(r.Context(), tripID, m)
+			return s.store.ApplyMutation(r.Context(), tripID, userID, m)
 		})
 	if !ok {
 		return

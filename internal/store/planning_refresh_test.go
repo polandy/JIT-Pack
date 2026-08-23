@@ -167,7 +167,7 @@ func TestApplyMutation_LedgerBelongsToTheTripPartition(t *testing.T) {
 		t.Fatal("ledger accepted on the master partition, want ErrUnknownTable")
 	}
 
-	res, err := s.ApplyMutation(context.Background(), "trip-part",
+	res, err := s.ApplyMutation(context.Background(), "trip-part", testUser,
 		sync.Mutation{
 			Op: sync.OpInsert, Table: TableTripGeneratedPositions, ID: "led-1", MutationID: "pp-2",
 			HLC: "0000000005000-0000-aaaaaaaa",
@@ -203,7 +203,7 @@ func TestExportFull_CarriesThePlanningRefreshTables(t *testing.T) {
 			"item_name":            "Stativ",
 			"created_at":           "2026-08-18T10:00:00Z",
 		}, "0000000005000-0000-aaaaaaaa"))
-	if _, err := s.ApplyMutation(context.Background(), "trip-exp", sync.Mutation{
+	if _, err := s.ApplyMutation(context.Background(), "trip-exp", testUser, sync.Mutation{
 		Op: sync.OpInsert, Table: TableTripGeneratedPositions, ID: "led-exp", MutationID: "pe-3",
 		HLC: "0000000006000-0000-aaaaaaaa",
 		Fields: map[string]any{

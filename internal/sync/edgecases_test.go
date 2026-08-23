@@ -95,7 +95,7 @@ func TestMerge_AdditiveFlagVariants_TruthyEncodings(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			m := Mutation{Op: OpUpsert, Fields: map[string]any{"flag_unused": tc.value}, HLC: olderHLC}
-			res := Merge(openItem(), rowHLC, true, m)
+			res := Merge(rowAt(openItem(), rowHLC), m)
 			_, applied := res.Applied["flag_unused"]
 			if applied != tc.wantApply {
 				t.Errorf("flag_unused=%v (%T): applied=%v, want %v", tc.value, tc.value, applied, tc.wantApply)

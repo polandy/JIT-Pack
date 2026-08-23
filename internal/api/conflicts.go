@@ -17,7 +17,10 @@ type wireConflictEntry struct {
 	Field        string `json:"field"`
 	LosingValue  string `json:"losing_value"`
 	WinningValue string `json:"winning_value"`
+	MutationID   string `json:"mutation_id"`
+	ActorUserID  string `json:"actor_user_id"`
 	ResolvedAt   string `json:"resolved_at"`
+	Reverted     bool   `json:"reverted"`
 }
 
 func (s *Server) handleListConflicts(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +51,8 @@ func writeConflicts(w http.ResponseWriter, entries []store.ConflictEntry) {
 		out.Conflicts = append(out.Conflicts, wireConflictEntry{
 			ID: c.ID, EntityTable: c.EntityTable, EntityID: c.EntityID,
 			Field: c.Field, LosingValue: c.LosingValue, WinningValue: c.WinningValue,
-			ResolvedAt: c.ResolvedAt,
+			MutationID: c.MutationID, ActorUserID: c.ActorUserID,
+			ResolvedAt: c.ResolvedAt, Reverted: c.Reverted,
 		})
 	}
 	writeJSON(w, out)
