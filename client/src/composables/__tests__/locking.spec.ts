@@ -152,3 +152,87 @@ describe('lock state (G-3)', () => {
     expect(orch.isLockedByOther('t1', item)).toBe(false)
   })
 })
+
+describe('who holds the lock (G-3)', () => {
+  it('names the holder from the synced packing_now_by', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = seedItem(store, {
+      state: 'packing_now',
+      packing_now_by: 'sarah',
+      packing_now_at: new Date().toISOString(),
+    })
+
+    expect(orch.lockHolder('t1', item)).toBe('sarah')
+  })
+
+  it('names the holder from the ephemeral event before the pull lands', async () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = seedItem(store)
+    await orch.connect()
+
+    wsInstances[0]!.onmessage!({
+      data: JSON.stringify({
+        type: 'item.locked',
+        payload: { trip_id: 't1', item_id: 'ti1', by_user: 'sarah', name: 'Zelt' },
+      }),
+    })
+
+    expect(orch.lockHolder('t1', item)).toBe('sarah')
+  })
+
+  it('names nobody for a row that is not locked for me', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = seedItem(store)
+
+    orch.packingNow('t1', item)
+
+    expect(orch.lockHolder('t1', store.getItems('t1')[0]!)).toBeNull()
+  })
+})
+
+describe('the staleness window comes from the server (Sync-API §7)', () => {
+  it('applies the instance window instead of the built-in 15 minutes', async () => {
+    fetchMock.mockImplementation((url: string) =>
+      Promise.resolve(
+        url.endsWith('/api/v1/config')
+          ? new Response(JSON.stringify({ lock_timeout_seconds: 60 }), { status: 200 })
+          : new Response(JSON.stringify({ results: [], pull_hint: { next_cursor: 1 } }), {
+              status: 200,
+            }),
+      ),
+    )
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = seedItem(store, {
+      state: 'packing_now',
+      packing_now_by: 'sarah',
+      // Five minutes old: stale under a 60-second window, fresh under
+      // the built-in default — so this can only pass if the server's
+      // value actually reached the rule.
+      packing_now_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+    })
+    expect(orch.isLockedByOther('t1', item)).toBe(true)
+
+    await orch.fetchLockTimeout()
+
+    expect(orch.isLockedByOther('t1', item)).toBe(false)
+  })
+
+  it('keeps the 15-minute default when the instance does not answer', async () => {
+    fetchMock.mockResolvedValue(new Response('nope', { status: 500 }))
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = seedItem(store, {
+      state: 'packing_now',
+      packing_now_by: 'sarah',
+      packing_now_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+    })
+
+    await orch.fetchLockTimeout()
+
+    expect(orch.isLockedByOther('t1', item)).toBe(true)
+  })
+})

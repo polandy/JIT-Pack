@@ -132,9 +132,11 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [An optimistic row is a whole row (2026-08-22)](#an-optimistic-row-is-a-whole-row-2026-08-22) — a partial upsert's fields were applied as the optimistic row, which a store applies by replacing what it holds: saving a trip's name dropped its `status` and took the trip off M2 for good in Local Mode; two of the three lost fields had tests that said otherwise, one of them green only because the seeded year was the current one.
 - [The conflict log had two partitions and one query (2026-08-22)](#the-conflict-log-had-two-partitions-and-one-query-2026-08-22) — NFR-4.2a's audit filtered on `trip_id`, so every master-partition loser was written and read by nothing; the case that makes it matter is `trips`, whose own fields merge there, and the sheet's helpful-sounding hint was what hid it.
 - [`merged` was a quieter `applied` (2026-08-22)](#merged-was-a-quieter-applied-2026-08-22) — the push response's `conflicts[]` was read by no code path, so a mutation that lost a field left the queue exactly like one that applied; one toast per push (never per conflict) plus a standing line in the G-2 sheet, and the e2e assertion had to move because it was racing the toast's own dismissal timer.
+- [The revert was already half-built, in a column nobody used (2026-08-22)](#the-revert-was-already-half-built-in-a-column-nobody-used-2026-08-22) — NFR-4.2a's second verb, built as a new mutation rather than an undo (ADR-022); the schema change the work was budgeted for did not exist, and a single-connection pool turned an obvious visibility check into a deadlock against itself.
 - [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
 - [Field-level LWW was row-level, and "packed always wins" was hiding it (2026-08-22)](#field-level-lww-was-row-level-and-packed-always-wins-was-hiding-it-2026-08-22) — the store kept one `updated_hlc` per row where §6 says per field-group, so an offline pack lost to any unrelated later edit; the backlog's "packed beats everything" branch was the compensation for exactly one state, and narrowing it to the spec alone would have kept the fault and dropped the mask; ADR-022 ships a clock per field and the narrow rule together, and the conflict log now names the losing push and its actor.
 - [The sheet's glyph rode half a line high (2026-08-23)](#the-sheets-glyph-rode-half-a-line-high-2026-08-23) — an eyeball of the merged conflict-log work found two rendering defects that every gate had passed: a state glyph aligned to a title *block* whose `h1` carried a 20 px margin nothing asked for, and an empty state that had copied the house pattern without its padding; the review corrected the entry's own first answer — a visual baseline would **not** have caught the offset either, at 591 px against a 0.002 gate, so what let both live is that nothing measured them.
+- [The lock stopped at the row (2026-08-22)](#the-lock-stopped-at-the-row-2026-08-22) — G-3's padlock was on M4's row and nowhere else, so the row you could not pack from the list was fully editable one tap deeper, and the sheet *accepted* the edit before the next merge threw it away; no screen named the holder; and §7's promised environment variable for the staleness window had never existed as anything but a client constant. What the backlog also asked for — server-side lock enforcement — is what §7 deliberately does not do, and it is left to the owner rather than built.
 - [A backup gave back plans instead of history (2026-08-23)](#a-backup-gave-back-plans-instead-of-history-2026-08-23) — the portable file carried neither a trip's status nor an item's tags, so a restore turned archived history into plans and dropped every master item no template also used; the field that made the fix possible is the one that says whether a trip row came from the inventory at all, and the change quietly falsified a *constant* two screens away.
 
 ## Current state
@@ -5129,6 +5131,136 @@ user-agent margin is none of those, and neither is a missing padding. This is
 the same lesson invariant 9b already carries from the M4 group card that
 painted itself the exact colour of the page behind it: a rule can be satisfied
 completely and the result can still be wrong, and only a rendered pixel says so.
+## The lock stopped at the row (2026-08-22)
+
+Backlog item 14(d). Three of its four parts were real and are fixed; the
+fourth was a premise worth checking before building against it.
+
+**The sheet was the dangerous half.** M4's row wore a padlock and refused
+its menu, so the collision G-3 exists to prevent looked handled. But the
+row still opened M5 — correctly, since G-3 keeps viewing — and M5 had no
+lock awareness at all. Every control there wrote. That is worse than an
+unlocked row, because the sheet *confirmed* the edit: the save indicator
+went green, the field showed the new value, and the loss happened later and
+elsewhere, at a merge nobody was watching. A defect that shows a success
+message is not found by using the app.
+
+**All-or-nothing, and the cost is named.** G-3's wording is "non-interactive
+for others except viewing", so the whole sheet goes read-only rather than
+the packing block alone — a mode where the quantity is frozen and the
+container is not is a third state with no model behind it. The accepted
+cost: you cannot leave a note on a row while somebody packs it. Each write
+path is guarded in the handler *as well as* disabled in the template. Both
+halves earn their keep: the guard is what a unit test can assert without
+depending on how Ionic renders a disabled web component, and the disabled
+control is what stops a toggle from flipping and springing back, which
+reads as a bug rather than as a rule.
+
+**Naming the holder needed the function that already existed to stop
+throwing the answer away.** `isLockedByOther` computed exactly who held a
+row and then returned a boolean. It is now `lockHolder`, returning the user
+id, with the boolean as its one-line caller — the view resolves the id to a
+name, because only it knows the trip's participants. Note the empty string
+is a *held* lock with an unnameable holder, distinct from `null`; a row that
+says "somebody is packing this" is right, and one that silently unlocks
+because a directory fetch failed is not.
+
+**§7's environment variable had never existed.** The spec decided in so many
+words that 15 minutes is "the shipped default, configurable via an
+environment variable"; the implementation was `const LOCK_TIMEOUT_MS = 15 *
+60 * 1000` in the orchestrator, and nothing else. `JITPACK_LOCK_TIMEOUT` and
+`GET /api/v1/config` close it. The endpoint is unauthenticated and
+mode-independent on purpose — it carries no per-user data and a Single-User
+client needs the window too. A client that cannot reach it keeps the
+default, because the window is advisory and a missing answer must leave
+neither every row locked forever nor none locked at all.
+
+The vitest case for it is written so it cannot pass by accident: the row
+under test is five minutes old, which is stale under the test's 60-second
+window and fresh under the built-in default, so a client that ignored the
+served value fails rather than agreeing with itself.
+
+**The part that was not a defect.** The item also read "the server neither
+expires a lock nor refuses a push for one". §7 promises neither. It makes
+the lock advisory: persisted as an ordinary `packing_now` mutation, merged
+like any other field, and applied by *clients* when they decide what to
+render. Building refusal would be a different concurrency model — and a
+costly one, because it puts a permanent 4xx in front of an offline device
+that packed a row somebody claimed after it went offline, which is exactly
+the outbox-wedge shape removed days earlier. G-3 is collision *avoidance*;
+the net under a real collision is the field-level merge and the conflict
+log, which exist. Left as an owner decision rather than built, and the spec
+now says so out loud instead of leaving the silence to be read as an
+oversight.
+
+**A mutation has to keep the build honest.** Proving the new e2e case can
+fail meant rebuilding `dist`, and the first attempt — `if (true) return
+null` at the top of `lockHolder` — never got that far: TypeScript treats the
+rest of the function as unreachable, drops its narrowing, and `vue-tsc`
+fails on code that was correct a moment earlier. A mutation that cannot
+compile proves nothing about a test.
+
+## The revert was already half-built, in a column nobody used (2026-08-22)
+
+NFR-4.2a names two verbs in one sentence — audit **and manually revert** —
+and the second had never been built. Backlog item 14(e). The work was
+planned as "store the losing value, then restore it"; the first half turned
+out to be done, and in a way worth recording.
+
+**The schema was already right, and one column of it was dead.**
+`conflict_log` has carried `losing_value` since the beginning, and it has
+also carried `reverted INTEGER NOT NULL DEFAULT 0` — written by nothing,
+read by nothing, present in `schema.sql` and in no Go file. So a change
+budgeted as "a schema change, therefore every development database is
+deleted" (invariant 2) cost no schema change at all. The lesson is small
+and repeatable: **before planning a column, grep for it** — dead schema from
+a design that ran ahead of its implementation is cheaper to find than to
+re-derive.
+
+**The decision the ADR exists for** is what a revert *means* when the only
+ordering in the system is an HLC. Writing the value back in place, keeping
+the row's old clock, is the intuitive answer and it silently does not work:
+every device that already pulled the winner holds it under a *newer* clock,
+so the next thing that touches the field re-establishes the winner and the
+user's repair evaporates minutes later with nothing to see. A revert is
+therefore an ordinary new mutation with a fresh server HLC — it wins by
+being newer, not by being special (ADR-022). The cost is accepted openly:
+it can be **refused**, which a real undo could not, and the UI needed four
+sentences instead of none.
+
+**The trap, and it cost the first implementation.** The store's pool is
+capped at one connection on purpose (SQLite has a single writer). The
+master-partition revert has to answer "may this user even see this entry?",
+and `masterVisible` is right there — so the first version called it inside
+the revert's transaction. It does its own `s.db.QueryRowContext`, which
+asks the pool for a connection the open transaction is holding. Not an
+error: the test run simply never finished. **Any helper that reads through
+`s.db` is unusable inside a `BeginTx` block here**, and the ones that take a
+`*sql.Tx` are the ones that can be composed. The visibility check moved
+above the transaction, where it belongs anyway — it is a read about the
+caller, not about the row being written.
+
+**Two things were deliberately not built.** There is no actor on a revert:
+`conflict_log` records no one for the losing write either, so a shared trip
+still cannot answer "who took this back" — that gap is named in the ADR as
+its own revisit trigger rather than papered over with the pusher's id.
+And the refusals are **four codes, not one 409**: already reverted, row
+deleted, merge rules outrank it, not yours to write. Each is a different
+sentence for the reader, and the page renders it on the row rather than as
+a snackbar — which on this app lands on the tab bar (FR-9.4).
+
+**Found in this PR's own review: the revert restored half a fact.** The log
+lists one row per lost *field*, and the first implementation restored exactly
+that field. For `state` and `packed_count` — coupled since FR-5.4, and merged
+as one unit by the very algorithm that wrote the entries — that produced
+`state = packed` beside `packed_count = 0` on a quantity of five: a row no
+screen has a rendering for and no state machine describes. The fix uses the
+column #164 had just added for it, `mutation_id`, to find the sibling entries
+of the same push, and `sync.GroupedWith` to decide which of them travel
+together — the coupling defined once, where the merge already defines it,
+rather than a second list in the store that could drift from the first.
+Independent fields stay independently revertable; the log lists them apart
+because they *are* apart.
 
 
 ## A backup gave back plans instead of history (2026-08-23)
