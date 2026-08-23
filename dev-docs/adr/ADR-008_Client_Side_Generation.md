@@ -1,6 +1,9 @@
 # ADR-008: Generation and Import Run on the Client, Not the Server
 
 **Status:** Accepted (recorded retroactively — the decision was taken during client implementation and had only been written down as prose in the implementation log)
+
+> **Enforced 2026-08-23 by ADR-025.** Driver 2 ("one implementation, not two") was true of everything on this list *except* portable import, where `internal/store` carried a second, silently divergent implementation. It had no caller until a CLI was built on it, at which point it turned out to write no change-log entry — so an import through it was invisible to every device. ADR-025 deletes it and gives the CLI these rules instead. Nothing in this ADR changes; it is the decision that was not being applied.
+
 **Related:** ADR-009 (three run modes), ADR-001 v2 (Go + embedded SQLite), FR-2.2/2.3a (template instantiation), FR-14.2 (history suggestions), FR-16.1–16.3 (spreadsheet import), FR-18.4/18.5 (portable import), FR-19.2 (Local Mode), NFR-4.11 (serverless backup/restore)
 
 **Decision Drivers (in priority order):**

@@ -50,11 +50,11 @@ func (s *Server) handleExportFull(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleExportTripCSV streams the flat per-trip packing-list dump
-// (NFR-4.5) — deliberately not round-trippable, unlike the portable
-// YAML export (FR-18.3).
+// (NFR-4.5) — deliberately not round-trippable; the form that reads back is
+// the portable YAML the app writes (FR-18.3, ADR-025).
 func (s *Server) handleExportTripCSV(w http.ResponseWriter, r *http.Request) {
 	tripID := r.PathValue("tripID")
-	doc, err := s.store.ExportTrip(r.Context(), tripID, true)
+	items, err := s.store.TripCSVRows(r.Context(), tripID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "trip_not_found", "trip not found")
 		return
@@ -64,13 +64,9 @@ func (s *Server) handleExportTripCSV(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", tripID+".csv"))
 	cw := csv.NewWriter(w)
 	cw.Write([]string{"item", "category", "quantity", "packed_count", "mode", "traveler", "container"})
-	for _, item := range doc.Items {
-		packed := ""
-		if item.PackedCount != nil {
-			packed = strconv.Itoa(*item.PackedCount)
-		}
+	for _, item := range items {
 		cw.Write([]string{
-			item.Name, item.Category, strconv.Itoa(int(item.Quantity)), packed,
+			item.Name, item.Category, strconv.Itoa(item.Quantity), strconv.Itoa(item.PackedCount),
 			item.Mode, item.Traveler, item.Container,
 		})
 	}

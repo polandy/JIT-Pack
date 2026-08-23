@@ -32,7 +32,7 @@ export interface PartitionRef {
 }
 
 /** Server-side push limit per batch (Sync-API §9). */
-const MAX_PUSH_BATCH = 200
+export const MAX_PUSH_BATCH = 200
 
 /** The partition key prefix a trip's queue carries in storage. */
 const TRIP_PREFIX = 'trip:'

@@ -297,7 +297,6 @@ Input the server refused. The message names the limit:
 | `limit must be 1..1000` | the sync pull page size. |
 | `limit must be 1..200` | the notifications page size. |
 | `cursor must be an integer` | a malformed sync cursor. |
-| `expected kind: trip` / `expected kind: template` | the imported YAML document's `kind` does not match the endpoint. See [Backup & Export](backup.md#template-export-and-import). |
 | `malformed push envelope` / `malformed request body` / `malformed prefs body` | the request body is not the JSON the endpoint expects. |
 
 ## `500` with code `internal`
