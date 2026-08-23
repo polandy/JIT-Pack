@@ -145,6 +145,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The importer nobody called, and the exporter behind it (2026-08-23)](#the-importer-nobody-called-and-the-exporter-behind-it-2026-08-23) — ADR-025. The server had its own reader *and* writer for the portable format, reachable from no product surface, and both had drifted: the import wrote no change-log entry, so a `curl` import existed in the database and on no screen. Found by rendering, not by testing. The fix was deletion, and the precondition for it was getting the rules out of a 3600-line composable — where ADR-008 had always said they were not.
 - [The manual said it, the shipped config did not (2026-08-23)](#the-manual-said-it-the-shipped-config-did-not-2026-08-23) — the sync WebSocket never connected on the `:3000` stack: nginx forwarded `Host $host`, which drops the port, and the handshake's same-origin check compares the browser's port-carrying `Origin` against it. The manual had already written the rule and then broke it in its own copy-paste block, and its verification `curl` sent no `Origin` at all — a check that could not fail. Nothing in Go or Playwright loads an nginx config, so the guard is a gate.
 - [The wire was described twice, and the second description was fiction (2026-08-23)](#the-wire-was-described-twice-and-the-second-description-was-fiction-2026-08-23) — NFR-4.14/ADR-026. The envelope was already uniform; what was not a contract was two independent descriptions of one wire, and the mechanism found two more drifted types on its first run. Three things the code cannot show: why both suites were blind (a fake agrees with its author), why the gate generates beside the tree rather than over it, and the trap that a generated file under `client/src` must be prettier-clean or `make fmt` fails the gate on a file nobody edited.
+- [A conflict is an overwrite, not a lost race (2026-08-23)](#a-conflict-is-an-overwrite-not-a-lost-race-2026-08-23) — the conflict log had been logging fields nobody overwrote, so it read `2026 → 2026` and offered a revert for it, and the outcome `merged` announced the loss to a user who had none. Two things the code cannot show: it was found by rendering a merged, reviewed feature that no one had looked at, and the fix's real difficulty is that the two values being compared arrive from different type systems — JSON on one side, SQLite on the other.
 - [A route names its scope first (2026-08-24)](#a-route-names-its-scope-first-2026-08-24) — NFR-4.14's third point/ADR-027. Four things the code cannot show: the backlog item's own complaint had gone stale (ADR-025 had already deleted two of the four shapes it named, so it was re-measured before it was acted on), why the sync endpoints were widened into a scope the owner's question did not name, the trap that a router's 404 and a handler's 404 are the same status — which made the first negative test green on the two revert routes for the wrong reason — and the latent defect that typed route builders exposed.
 
 ## Current state
@@ -5783,6 +5784,73 @@ notification, config and auth responses are still typed by hand on both sides,
 and growing the file is how they join.
 
 
+## A conflict is an overwrite, not a lost race (2026-08-23)
+
+Two merged PRs — #160, which made master-partition conflicts reachable, and
+#166, which added the manual revert — had never been looked at on a screen. The
+eyeball was the last debt from that pair, and the way to pay it was to produce
+real conflicts on the `:3000` instance: six pushes with hand-built HLCs, a
+second device losing a race the server actually judged. The first row the screen
+rendered was
+
+```
+trips · year        2026 → 2026        REVERT
+```
+
+**What the merge was comparing.** Rule 3 is last-write-wins by clock, and the
+implementation read that literally: every field of a losing push was dropped and
+every dropped field became a `conflict_log` row. But *losing the write* and
+*having a value overwritten* are different events, and only the second one has
+anything to audit or revert. A push that carried a field along unchanged left
+the row holding exactly what that push wanted.
+
+That is not a hypothetical shape. The client is careful and sends narrow
+mutations, but not single-field ones: `updateTrip` writes `start_date` and
+`end_date` together, so moving a departure date and losing the race logs a
+phantom conflict on the return date. The demo made it obvious because a
+hand-built push carries the whole row, but the client's own coupled pairs
+produce the same entry.
+
+**The half that reaches the user.** The outcome is derived from the conflict
+count, so a push that changed nothing came back `merged` instead of `applied` —
+and since PR #163 the client *announces* `merged` as a toast naming how many
+fields were overwritten. A correct, uncontested edit could therefore tell
+someone their work had been overwritten. The audit noise was the visible defect;
+this was the expensive one.
+
+**Where the difficulty actually was.** Not in deciding the rule — in comparing
+the two values at all. They arrive from different type systems and meet nowhere
+else: a mutation's fields are decoded from the push envelope's JSON, so every
+number is a `float64` and a boolean is a `bool`; the row's fields are scanned
+out of SQLite, where the same number is an `int64` and the same boolean is `0`
+or `1`. A `==` between them is false for every pair that is in fact equal, which
+would have left the defect in place while the tests read as if it were fixed.
+`sameValue` therefore widens both sides before comparing, and is conservative
+where it cannot: a value that is neither numeric, textual nor null is reported
+as *different*, so an unforeseen shape keeps logging a conflict rather than
+silently swallowing one.
+
+The unit table covers the type pairs, but the test that would have caught a
+wrong widening is the store one: it builds its mutation fields by decoding real
+JSON and pushes them through `ApplyMutation` against real SQLite, because that
+is the only place the two type systems meet. Written with Go literals on both
+sides, it would have passed against the unfixed code.
+
+**Two things worth keeping.** A feature can be built, reviewed, merged and
+covered by a green suite while its first screenful is nonsense — the defect was
+in `internal/sync`, the most heavily tested package in the repo, at ≥90 %
+coverage, and every one of those tests asserted on values that *did* differ.
+And the eyeball is not a formality at the end of a feature: this one was
+outstanding for a day, and it took about a minute to find something two review
+passes had not.
+
+**Left standing on purpose:** three smaller findings from the same render, all
+of them in `ConflictLogPage.vue` and none of them in this diff — the values are
+displayed with the JSON quotes still on them, the row names a table and a column
+(`trips · name`) rather than the trip, and the timestamp uses
+`toLocaleString()` with no locale, so it renders in American in a de-CH app
+(NFR-4.12). They are one UI change with its own spec and Playwright case, and
+folding them into a merge-algorithm fix would have made both harder to review.
 ## A route names its scope first (2026-08-24)
 
 NFR-4.14's third point, kept out of ADR-026 on purpose so a mechanical rename
