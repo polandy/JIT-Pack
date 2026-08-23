@@ -229,7 +229,10 @@ test.describe('Single-User backend sync @single', () => {
     // A claims the row (FR-5.2), through the row menu M4 offers.
     await visiblePage(pageA).getByTestId(`m4-row-${item}`).dispatchEvent('contextmenu')
     await expect(pageA.locator('ion-action-sheet')).toBeVisible()
-    await pageA.locator('ion-action-sheet').getByRole('button', { name: /^pack$/i }).click()
+    await pageA
+      .locator('ion-action-sheet')
+      .getByRole('button', { name: /^pack$/i })
+      .click()
     await expect(pageA.locator('ion-action-sheet')).toHaveCount(0)
 
     // G-3 on B: the row says who has it, not merely that it is unavailable.
@@ -847,8 +850,9 @@ test.describe('Single-User backend sync @single', () => {
     // all three before, and on a thirty-column sheet that is the whole defect.
     const columnPicker = visiblePage(pageA).getByTestId('category-column')
     await expect(columnPicker.locator('ion-segment-button')).toHaveCount(3)
-    await expect(visiblePage(pageA).getByTestId('item-column').locator('ion-segment-button'))
-      .toHaveCount(2)
+    await expect(
+      visiblePage(pageA).getByTestId('item-column').locator('ion-segment-button'),
+    ).toHaveCount(2)
     await expect(columnPicker.locator('ion-segment-button.segment-button-checked')).toHaveText(
       'Col 1',
     )
