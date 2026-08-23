@@ -195,8 +195,8 @@ const (
 	ErrAlreadyReverted      ErrorCode = "already_reverted"
 	ErrRevertRefused        ErrorCode = "revert_refused"
 	ErrRowDeleted           ErrorCode = "row_deleted"
-	ErrIdPError             ErrorCode = "idp_error"
-	ErrIdPUnreachable       ErrorCode = "idp_unreachable"
+	ErrIDPError             ErrorCode = "idp_error"
+	ErrIDPUnreachable       ErrorCode = "idp_unreachable"
 )
 
 // APIErrorBody is the inner object of an error response.

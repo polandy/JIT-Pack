@@ -108,7 +108,7 @@ func (s *Server) handleAuthToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if tokens.IDToken == "" {
-		writeError(w, http.StatusBadGateway, ErrIdPError, "IdP returned no id_token — is the openid scope configured for this client?")
+		writeError(w, http.StatusBadGateway, ErrIDPError, "IdP returned no id_token — is the openid scope configured for this client?")
 		return
 	}
 
@@ -203,7 +203,7 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 			return
 		case idpUnreachable:
 			// Offline is normal, not a logout: leave the chain intact.
-			writeError(w, http.StatusBadGateway, ErrIdPUnreachable, "IdP token endpoint unreachable")
+			writeError(w, http.StatusBadGateway, ErrIDPUnreachable, "IdP token endpoint unreachable")
 			return
 		}
 	}
@@ -347,7 +347,7 @@ func (s *Server) idpTokenRequest(w http.ResponseWriter, form url.Values) (idpTok
 		writeError(w, http.StatusUnauthorized, ErrUnauthorized, "IdP rejected the request")
 		return idpTokenSet{}, false
 	case idpUnreachable:
-		writeError(w, http.StatusBadGateway, ErrIdPUnreachable, "IdP token endpoint unreachable")
+		writeError(w, http.StatusBadGateway, ErrIDPUnreachable, "IdP token endpoint unreachable")
 		return idpTokenSet{}, false
 	}
 	return tokens, true
@@ -448,7 +448,7 @@ func classifyTokenResponse(statusCode int, body []byte) idpStatus {
 func (s *Server) fetchUserinfo(w http.ResponseWriter, accessToken string) (map[string]any, bool) {
 	info, err := s.userinfoRequest(accessToken)
 	if err != nil {
-		writeError(w, http.StatusBadGateway, ErrIdPUnreachable, "IdP UserInfo endpoint unreachable")
+		writeError(w, http.StatusBadGateway, ErrIDPUnreachable, "IdP UserInfo endpoint unreachable")
 		return nil, false
 	}
 	return info, true

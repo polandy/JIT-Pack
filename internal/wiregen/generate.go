@@ -23,6 +23,14 @@ import (
 // generator wraps at it so its output is already formatted.
 const printWidth = 100
 
+// The two languages spell this type the same way, which is why the literal
+// kept recurring. They are named separately because the call sites mean
+// different things: one reads a parsed Go type, the other writes TypeScript.
+const (
+	goString = "string"
+	tsString = "string"
+)
+
 const jsIdentChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$"
 
 // Generate reads the contract source and returns the TypeScript module for it.
@@ -120,7 +128,7 @@ func writeType(b *strings.Builder, ts *ast.TypeSpec, doc string, enums map[strin
 	case *ast.StructType:
 		return writeInterface(b, ts.Name.Name, doc, t)
 	case *ast.Ident:
-		if t.Name != "string" {
+		if t.Name != goString {
 			return nil // a named non-string type carries no wire vocabulary
 		}
 		writeEnum(b, ts.Name.Name, doc, enums[ts.Name.Name])
@@ -273,7 +281,7 @@ func typeScriptType(expr ast.Expr) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if key != "string" {
+		if key != tsString {
 			return "", fmt.Errorf("a map key must be a string on the wire, got %s", key)
 		}
 		value, err := typeScriptType(t.Value)
@@ -289,8 +297,8 @@ func typeScriptType(expr ast.Expr) (string, error) {
 
 func identType(name string) string {
 	switch name {
-	case "string":
-		return "string"
+	case goString:
+		return tsString
 	case "bool":
 		return "boolean"
 	case "int", "int8", "int16", "int32", "int64",
