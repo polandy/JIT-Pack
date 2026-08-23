@@ -144,6 +144,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Every spec paid for a DOM, and one of them was green for the wrong reason (2026-08-23)](#every-spec-paid-for-a-dom-and-one-of-them-was-green-for-the-wrong-reason-2026-08-23) — the suite built a jsdom window for all 114 spec files when 32 use one, costing ~48 % of its wall-clock; the premise that started the work was itself wrong (a cold-cache run read 252 s where the warm figure is 88 s), and the interesting find is the failure mode of the fix: a missing `@vitest-environment jsdom` is *not* reliably a red test, because production code that reads a DOM global inside a `try` takes the `catch` instead and the spec passes while exercising the error path.
 - [A hidden element is not a small element (2026-08-23)](#a-hidden-element-is-not-a-small-element-2026-08-23) — the toast-on-the-tab-bar fix was three lines; what it cost was two wrong measurements, both from a box of height zero: a `display: none` anchor makes Ionic subtract a whole viewport instead of clearing the bar, and the geometric test that should have caught the defect first failed against a hidden bar at the origin, where *every* overlap assertion resolves in both directions.
 - [The importer nobody called, and the exporter behind it (2026-08-23)](#the-importer-nobody-called-and-the-exporter-behind-it-2026-08-23) — ADR-025. The server had its own reader *and* writer for the portable format, reachable from no product surface, and both had drifted: the import wrote no change-log entry, so a `curl` import existed in the database and on no screen. Found by rendering, not by testing. The fix was deletion, and the precondition for it was getting the rules out of a 3600-line composable — where ADR-008 had always said they were not.
+- [The manual said it, the shipped config did not (2026-08-23)](#the-manual-said-it-the-shipped-config-did-not-2026-08-23) — the sync WebSocket never connected on the `:3000` stack: nginx forwarded `Host $host`, which drops the port, and the handshake's same-origin check compares the browser's port-carrying `Origin` against it. The manual had already written the rule and then broke it in its own copy-paste block, and its verification `curl` sent no `Origin` at all — a check that could not fail. Nothing in Go or Playwright loads an nginx config, so the guard is a gate.
 
 ## Current state
 
@@ -5695,3 +5696,59 @@ The variant question the mockup put to the owner — the holder's name in the
 row's sub-line versus an avatar in the stepper slot — was answered A, and
 was already built that way. What the mockup was actually worth was the two
 states nobody had asked about.
+## The manual said it, the shipped config did not (2026-08-23)
+
+Presence, the G-3 lock and every live update were absent on the `:3000`
+instance, and had been since it was first brought up. The whole app works
+without them, which is why it took this long: trips load, pushes apply, the G-2
+indicator goes green. Only the WebSocket was refused, and the refusal named its
+own cause the moment anybody asked for it:
+
+    request Origin "localhost:3000" is not authorized for Host "localhost"
+
+`websocket.Accept` runs with the library's default options, which authorize an
+`Origin` only when its host — **port included** — equals the request's `Host`.
+nginx forwarded `proxy_set_header Host $host`, and `$host` is the hostname
+*without* the port. The browser sends `localhost:3000`; the backend was told
+`localhost`; every dial was answered `403`.
+
+**The rule was already written down, and the same file broke it.**
+`docs/installation.md` has carried "Preserve the browser's `Host` header" as an
+explicit requirement of the `/ws` route for as long as the page has existed —
+and two screens further down, its copy-paste nginx block sets `Host $host`, as
+did the config baked into the published client image. So the documentation was
+not missing, incomplete or out of date. It was correct in prose and wrong in the
+two places an operator actually copies from, which is a shape worth naming: a
+requirement stated in one register and contradicted in another reads as
+consistent to everyone who only ever reads one of them.
+
+**The verification step could not fail.** The same page ends with a `curl` that
+proves the `/ws` route reaches the backend, and it sent no `Origin` header. The
+same-origin check is skipped entirely when the header is absent, so that command
+answered `101` against exactly the broken proxy it existed to detect. It now
+sends the header, and `docs/getting-started.md` gained the same check, because
+the four-step stack it describes *is* the stack this was found on.
+
+**Why the guard is a gate and not a test.** The defect lives in a config file:
+no Go test loads it, Playwright drives `npm run preview` rather than nginx, and
+the `docker-build` job builds the image without ever making a request through
+it. Two Go cases now pin the *server* contract — a port-carrying `Origin` is
+accepted when `Host` matches, and refused when a proxy strips the port — but
+they were green before this work and would have stayed green forever, because
+the server was never the thing that was wrong. `scripts/proxy-host-gate.mjs`
+holds every nginx sample in the repository, the manual's fenced blocks included,
+to `$http_host`; it is the fourth gate written for the same reason as the other
+three, which is a claim a document makes about itself that nothing checks.
+
+**One option was weighed and rejected**, because it is the first thing anybody
+reaches for when a handshake answers `403`: giving the server an allow-list —
+`websocket.AcceptOptions.OriginPatterns` behind a `JITPACK_ALLOWED_ORIGINS`
+variable. It was not taken. It would have made a correct check configurable in
+order to accommodate a proxy that was misconfigured by us, and it would have
+put the operator in charge of a security boundary to work around a one-word
+edit in our own file. If a deployment ever genuinely needs an origin that is
+not its own host, that is when the variable earns its place.
+
+Measured on the running stack rather than reasoned about: `403` with the message
+above before, `101 Switching Protocols` after reloading nginx with the fixed
+config, REST unaffected in both directions.
