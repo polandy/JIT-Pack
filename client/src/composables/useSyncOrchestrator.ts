@@ -291,6 +291,35 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return item.packing_now_by ?? ''
   }
 
+  /**
+   * holdsClaim answers whether *this device* is the one holding the row.
+   * `lockHolder` is deliberately blind to it — my own claim never locks
+   * the row for me — which leaves the one screen that could say "you are
+   * holding this against the others" unable to know it.
+   */
+  function holdsClaim(_tripId: string, item: TripItem): boolean {
+    return myLocks.has(item.id) && item.state === 'packing_now'
+  }
+
+  /**
+   * staleClaim answers who *had* claimed this row, once the §7 window has
+   * passed and the claim stopped counting. `lockHolder` deliberately says
+   * nothing then — the row is operable again — but a row that simply
+   * stops being locked explains nothing to whoever was waiting for it,
+   * and the claim itself does not go away: nothing clears `packing_now`
+   * except packing or a release, so the row would otherwise sit in a
+   * state it no longer honours, indefinitely and silently.
+   */
+  function staleClaim(tripId: string, item: TripItem): string | null {
+    if (myLocks.has(item.id)) return null
+    if (item.state !== 'packing_now') return null
+    if (!item.packing_now_at) return null
+    if (lockIsFresh(Date.parse(item.packing_now_at))) return null
+    const ephemeral = itemLocks.value.get(tripId)?.get(item.id)
+    if (ephemeral && lockIsFresh(ephemeral.at)) return null
+    return item.packing_now_by ?? ''
+  }
+
   function setItemLock(tripId: string, itemId: string, byUser: string) {
     const next = new Map(itemLocks.value)
     const tripLocks = new Map(next.get(tripId) ?? [])
@@ -765,6 +794,32 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function packingNow(tripId: string, item: TripItem) {
     const mut = mutations.startPackingNow(item.id)
     myLocks.add(item.id)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0,
+        table: TABLE.tripItems,
+        id: item.id,
+        deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  /**
+   * releaseClaim gives a row back without packing it (G-3). Until now a
+   * claim ended only by packing or by ageing out of the §7 window, so a
+   * tap made by mistake held the row against everyone else for a quarter
+   * of an hour with no way out.
+   *
+   * The state it returns to is derived rather than remembered: the claim
+   * overwrote whatever was there, and `packed_count` against `quantity`
+   * says the same thing the stepper says — a release that always wrote
+   * `open` would throw away work already in the bag.
+   */
+  function releaseClaim(tripId: string, item: TripItem) {
+    const mut = mutations.releasePackingNow(item.id, item.packed_count, item.quantity)
+    myLocks.delete(item.id)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
       optimistic: {
@@ -2926,6 +2981,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     fetchMasterConflicts,
     revertConflict,
     isLockedByOther,
+    holdsClaim,
+    staleClaim,
+    releaseClaim,
     lockHolder,
     fetchLockTimeout,
 

@@ -132,6 +132,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [An optimistic row is a whole row (2026-08-22)](#an-optimistic-row-is-a-whole-row-2026-08-22) — a partial upsert's fields were applied as the optimistic row, which a store applies by replacing what it holds: saving a trip's name dropped its `status` and took the trip off M2 for good in Local Mode; two of the three lost fields had tests that said otherwise, one of them green only because the seeded year was the current one.
 - [The conflict log had two partitions and one query (2026-08-22)](#the-conflict-log-had-two-partitions-and-one-query-2026-08-22) — NFR-4.2a's audit filtered on `trip_id`, so every master-partition loser was written and read by nothing; the case that makes it matter is `trips`, whose own fields merge there, and the sheet's helpful-sounding hint was what hid it.
 - [`merged` was a quieter `applied` (2026-08-22)](#merged-was-a-quieter-applied-2026-08-22) — the push response's `conflicts[]` was read by no code path, so a mutation that lost a field left the queue exactly like one that applied; one toast per push (never per conflict) plus a standing line in the G-2 sheet, and the e2e assertion had to move because it was racing the toast's own dismissal timer.
+- [A claim had no way out (2026-08-23)](#a-claim-had-no-way-out-2026-08-23) — a G-3 claim could only end by packing or by ageing out, and the device holding a row is the one device that sees no padlock; releasing derives the state from the packed count rather than remembering it, and an expired claim never leaves the data, so it had to start saying so.
 - [The revert was already half-built, in a column nobody used (2026-08-22)](#the-revert-was-already-half-built-in-a-column-nobody-used-2026-08-22) — NFR-4.2a's second verb, built as a new mutation rather than an undo (ADR-022); the schema change the work was budgeted for did not exist, and a single-connection pool turned an obvious visibility check into a deadlock against itself.
 - [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
 - [Field-level LWW was row-level, and "packed always wins" was hiding it (2026-08-22)](#field-level-lww-was-row-level-and-packed-always-wins-was-hiding-it-2026-08-22) — the store kept one `updated_hlc` per row where §6 says per field-group, so an offline pack lost to any unrelated later edit; the backlog's "packed beats everything" branch was the compensation for exactly one state, and narrowing it to the spec alone would have kept the fault and dropped the mask; ADR-022 ships a clock per field and the narrow rule together, and the conflict log now names the losing push and its actor.
@@ -5657,6 +5658,46 @@ line names the port, not the file. And `git add -A` in a worktree where a second
 agent was editing swept its in-progress work into an unrelated commit; staging
 explicit paths is not pedantry when anything else is writing.
 
+
+## A claim had no way out (2026-08-23)
+
+G-3's lock was built long ago and the two halves it was missing arrived
+this week from another session: the row names its holder, and the detail
+sheet — the open window beside the locked door — goes read-only. What was
+left is the part a mockup surfaced rather than a bug report: a claim could
+only *end* by packing the row or by ageing out of §7's window.
+
+**The device holding a row is the one device that sees no padlock.** My own
+claim never locks the row for me — that is what makes it usable — so the
+screen that most needs to say "you are holding this against everyone else"
+was the one screen structurally unable to know it. `lockHolder` answers
+"locked for me", and the answer for my own claim is null. It took a second
+question, `holdsClaim`, to make the row able to say the obvious thing.
+
+**Releasing derives the state rather than remembering it.** The claim
+overwrote whatever the row's state was, so there is nothing to restore. But
+`packed_count` against `quantity` says the same thing the stepper says, and
+that is the rule `incrementPacked` already uses — a release that always
+wrote `open` would have thrown away work already in the bag.
+
+**An expired claim does not leave the data.** The §7 window only decides
+whether a claim still *counts*; nothing clears `packing_now` but packing or
+a release. So a row abandoned mid-pack sits in a state nobody honours,
+indefinitely — and before this it did so in silence, becoming operable
+again for a reason whoever was waiting for it was never told.
+
+**What the owner decided, and what follows from it.** The lock stays a
+client-side courtesy: the server hands out the window over `GET /config`
+and enforces nothing. That is not a shortcut — Local Mode has no server at
+all, and a rule two of the three modes could keep would not be the same
+rule. It does mean the lock cannot stop a determined client, which is fine
+for what it is: it saves duplicate work, it does not protect data. The
+merge does that.
+
+The variant question the mockup put to the owner — the holder's name in the
+row's sub-line versus an avatar in the stepper slot — was answered A, and
+was already built that way. What the mockup was actually worth was the two
+states nobody had asked about.
 ## The manual said it, the shipped config did not (2026-08-23)
 
 Presence, the G-3 lock and every live update were absent on the `:3000`

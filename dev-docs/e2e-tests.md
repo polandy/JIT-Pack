@@ -42,6 +42,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
+| G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
 | Visual baselines | E2E-VIS-01 … E2E-VIS-08 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
@@ -112,6 +113,23 @@ detached, not deleted — which is the detail the first draft of this case got
 wrong and the run corrected. The destructive alert button is located by its
 Ionic role class rather than its label, so the case does not depend on which
 catalogue the alert renders in.
+
+**E2E-M4-49/50 — a claim can be given back, added 2026-08-23.** The G-3
+claim has worked for a long time; what it could not do was *end*. Nothing
+released it but packing the row or the §7 window passing, so a tap made by
+mistake held the row against everyone else for a quarter of an hour.
+
+**The note is asserted because my own claim locks nothing for me.** That is
+the whole asymmetry: the device holding the row is the one device that sees
+no padlock, so it is the one that has to be told in words. The release is
+then asserted twice over — the note gone *and* the row still present — since
+a note that disappeared together with its row would satisfy the first half
+on its own.
+
+The menu case counts its buttons rather than only naming one, so an option
+added later cannot slip in unnoticed; what it excludes is *skip*, which on a
+row you are mid-way through packing is not a thing anyone means. Both
+mutation-proved by making the menu blind to its own claim.
 
 **E2E-G2-07 — a merge announces itself, added 2026-08-22.** `merged` is an
 outcome the wire has always carried and the client read in no code path: a
