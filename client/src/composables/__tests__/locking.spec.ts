@@ -193,6 +193,138 @@ describe('who holds the lock (G-3)', () => {
   })
 })
 
+describe('a claim that expired (G-3)', () => {
+  it('names the abandoned claim, because the row going quiet explains nothing', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = seedItem(store, {
+      state: 'packing_now',
+      packing_now_by: 'sarah',
+      packing_now_at: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+    })
+
+    // The row is operable again — that half already worked. What did not
+    // is *saying so*: it simply stopped being locked, and whoever was
+    // waiting for it had no way to tell that from never having looked.
+    expect(orch.isLockedByOther('t1', item)).toBe(false)
+    expect(orch.staleClaim('t1', item)).toBe('sarah')
+  })
+
+  it('says nothing about a claim that is still inside the window', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = seedItem(store, {
+      state: 'packing_now',
+      packing_now_by: 'sarah',
+      packing_now_at: new Date().toISOString(),
+    })
+
+    // The positive signal that the claim is seen at all, so the null below
+    // is the window's doing rather than an unread row.
+    expect(orch.lockHolder('t1', item)).toBe('sarah')
+    expect(orch.staleClaim('t1', item)).toBeNull()
+  })
+
+  it('says nothing about a claim of my own, however old', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = seedItem(store)
+
+    orch.packingNow('t1', item)
+
+    expect(orch.staleClaim('t1', store.getItems('t1')[0]!)).toBeNull()
+  })
+
+  it('says nothing about a row nobody claimed', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+
+    expect(orch.staleClaim('t1', seedItem(store))).toBeNull()
+  })
+})
+
+describe('my own claim (G-3)', () => {
+  it('is reported to me, because nothing else on the row can be', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = seedItem(store)
+
+    orch.packingNow('t1', item)
+
+    const claimed = store.getItems('t1')[0]!
+    // Both halves: the row is not locked *for me* — that is what makes it
+    // usable — and it is nonetheless being held by me against the others.
+    expect(orch.lockHolder('t1', claimed)).toBeNull()
+    expect(orch.holdsClaim('t1', claimed)).toBe(true)
+  })
+
+  it('stops being reported once the row is released', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = seedItem(store)
+
+    orch.packingNow('t1', item)
+    orch.releaseClaim('t1', store.getItems('t1')[0]!)
+
+    expect(orch.holdsClaim('t1', store.getItems('t1')[0]!)).toBe(false)
+  })
+
+  it('is not claimed by a row somebody else holds', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = seedItem(store, {
+      state: 'packing_now',
+      packing_now_by: 'sarah',
+      packing_now_at: new Date().toISOString(),
+    })
+
+    expect(orch.holdsClaim('t1', item)).toBe(false)
+  })
+})
+
+describe('releasing a claim (G-3)', () => {
+  it('gives the row back without packing it, and to the state it came from', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = seedItem(store, { quantity: 3, packed_count: 1 })
+
+    orch.packingNow('t1', item)
+    orch.releaseClaim('t1', store.getItems('t1')[0]!)
+
+    const after = store.getItems('t1')[0]!
+    // Partial, not open: one of the three is already in the bag, and a
+    // release that forgot that would undo somebody's work.
+    expect(after.state).toBe('partial')
+    expect(after.packed_count).toBe(1)
+    expect(after.packing_now_by).toBeNull()
+    expect(after.packing_now_at).toBeNull()
+  })
+
+  it('returns an untouched row to open', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = seedItem(store, { quantity: 2, packed_count: 0 })
+
+    orch.packingNow('t1', item)
+    orch.releaseClaim('t1', store.getItems('t1')[0]!)
+
+    expect(store.getItems('t1')[0]!.state).toBe('open')
+  })
+
+  it('unlocks the row for the other devices, which is the point of it', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = seedItem(store)
+
+    orch.packingNow('t1', item)
+    orch.releaseClaim('t1', store.getItems('t1')[0]!)
+
+    // Asserted on the row the other devices would read, not on the local
+    // `myLocks` bookkeeping — that one never locked it for me anyway.
+    expect(store.getItems('t1')[0]!.state).not.toBe('packing_now')
+  })
+})
+
 describe('the staleness window comes from the server (Sync-API §7)', () => {
   it('applies the instance window instead of the built-in 15 minutes', async () => {
     fetchMock.mockImplementation((url: string) =>

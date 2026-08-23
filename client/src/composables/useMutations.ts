@@ -80,6 +80,20 @@ export function useMutations(hlc: HLCGenerator) {
     })
   }
 
+  /**
+   * releasePackingNow gives the claim back without packing anything
+   * (FR-5.3). The state is derived from the count for the same reason
+   * `incrementPacked` derives it: the claim overwrote whatever was there,
+   * and the count is what actually says how far the row got.
+   */
+  function releasePackingNow(itemId: string, packedCount: number, quantity: number): Mutation {
+    return make('upsert', TABLE.tripItems, itemId, {
+      state: packedCount >= quantity ? 'packed' : packedCount > 0 ? 'partial' : 'open',
+      packing_now_by: null,
+      packing_now_at: null,
+    })
+  }
+
   function incrementPacked(itemId: string, currentPacked: number, quantity: number): Mutation {
     const newPacked = Math.min(currentPacked + 1, quantity)
     const state = newPacked >= quantity ? 'packed' : newPacked > 0 ? 'partial' : 'open'
@@ -899,6 +913,7 @@ export function useMutations(hlc: HLCGenerator) {
     logAppliedChange,
     // Trip items
     startPackingNow,
+    releasePackingNow,
     // The primitive the four pack helpers are built on. Exported because
     // FR-25.2's undo restores an arbitrary count and state, which none of
     // the helpers can express — they each encode one transition.
