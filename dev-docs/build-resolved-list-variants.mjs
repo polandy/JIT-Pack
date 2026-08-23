@@ -61,12 +61,12 @@ body{padding:0;margin:0}
 <body>
 <div class="vwrap">
   <div class="vhead">
-    <h1>Was kommt am Ende dabei heraus?</h1>
-    <p>M8 sagt heute „<em>9 items resolved · 2 Gruppen + 3 eigene Positionen</em>“ — und lässt dich die
-      neun nicht sehen. Die Zahl beantwortet „wie viel“, nie „was“: ob das Stativ dabei ist, ob die
-      Kamera wirklich nur einmal kommt, ob die Regenjacke pro Person fällt.</p>
-    <p>Drei Formen, dieselbe Vorlage <em>Fotoreise (Beispiel)</em>: zwei Gruppen, die sich die Kamera
-      teilen, plus drei eigene Positionen. Die Kosten stehen unter der Variante.</p>
+    <h1>What comes out of it in the end?</h1>
+    <p>M8 says „<em>9 items resolved · 2 Gruppen + 3 eigene Positionen</em>“ today — and does not let you
+      see the nine. The number answers how many, never what: whether the tripod is in there, whether the
+      camera really arrives only once, whether the rain jacket falls per person.</p>
+    <p>Three forms, the same template <em>Fotoreise (Beispiel)</em>: two groups sharing the camera, plus
+      three own positions. The cost is written under the variant.</p>
   </div>
   <div class="vgrid" id="grid"></div>
 </div>
@@ -117,21 +117,21 @@ function grouped(){
 }
 
 const VARIANTS = [
-  { key:'A', title:'Footer öffnet die Liste', sheet:true, render:flat,
-    why:'Der Auflösungs-Footer — die Stelle, die heute die Zahl nennt — wird tippbar und öffnet das ' +
-        'bestehende Peek-Sheet (FR-27.12) auf die Vorlage selbst. Flach und alphabetisch, so wie die ' +
-        'Packliste später liest, mit der Herkunft unter jedem Namen.',
-    cost:'Kosten: eine Ebene. Man verlässt den Editor kurz — aber nur zum Lesen, nichts wird bearbeitet.' },
-  { key:'B', title:'Nach Herkunft gruppiert', sheet:true, render:grouped,
-    why:'Dasselbe Sheet, aber nach Quelle gegliedert: was kommt aus welcher Gruppe, was ist eigene ' +
-        'Position. Beantwortet „woher stammt das“ direkt und macht die Struktur der Vorlage sichtbar.',
-    cost:'Kosten: beantwortet nicht „was kriege ich“ ohne Kopfrechnen — geteilte Artikel stehen einmal, ' +
-         'aber unter einer der beiden Gruppen, und die Liste liest sich nie wie die spätere Packliste.' },
-  { key:'C', title:'Footer klappt auf', sheet:false, render:flat,
-    why:'Kein Overlay: der Footer selbst wächst und zeigt die Liste unter der Zahl. Der Editor bleibt ' +
-        'vollständig sichtbar, man kann Positionen ändern und das Ergebnis daneben lesen.',
-    cost:'Kosten: der Footer sitzt unten. Bei neun Artikeln schiebt er sich über den halben Editor, bei ' +
-         'dreissig scrollt man in einer Seite, die schon scrollt.' },
+  { key:'A', title:'The footer opens the list', sheet:true, render:flat,
+    why:'The resolution footer — the place that names the number today — becomes tappable and opens the ' +
+        'existing peek sheet (FR-27.12) on the template itself. Flat and alphabetical, the way the ' +
+        'packing list will read later, with the provenance under every name.',
+    cost:'Cost: one layer. You leave the editor briefly — but only to read; nothing is edited.' },
+  { key:'B', title:'Grouped by provenance', sheet:true, render:grouped,
+    why:'The same sheet, but organised by source: what comes from which group, what is an own ' +
+        'position. It answers where something came from directly and makes the structure visible.',
+    cost:'Cost: it does not answer what you get without doing arithmetic — a shared item appears once, ' +
+         'but under one of the two groups, and the list never reads like the later packing list.' },
+  { key:'C', title:'The footer unfolds', sheet:false, render:flat,
+    why:'No overlay: the footer itself grows and shows the list under the number. The editor stays ' +
+        'fully visible, so positions can be changed and the result read beside them.',
+    cost:'Cost: the footer sits at the bottom. At nine items it covers half the editor, and at thirty ' +
+         'you are scrolling inside a page that already scrolls.' },
 ]
 
 function phone(v){

@@ -745,11 +745,11 @@ body{padding:0;margin:0}
 <body>
 <div class="vwrap">
   <div class="vhead">
-    <h1>Eine Gruppe anschauen, bevor man sie nimmt</h1>
-    <p>M3 Schritt 3 zeigt heute „Makro Fotografie · 5 Artikel“ — <em>welche</em> fünf, sagt der Screen nicht.
-      Den Inhalt sieht man nur im M8-Editor, und der Weg dorthin kostet den Wizard-Entwurf.
-      Dieselbe Lücke hat der M8-Gruppen-Picker und der M14-Retarget-Picker.</p>
-    <p>Drei Formen, dieselben Daten. Jede ist anklickbar — die Kosten stehen unter der Variante.</p>
+    <h1>Looking inside a group before taking it</h1>
+    <p>M3 step 3 shows „Makro Fotografie · 5 Artikel“ today — <em>which</em> five, the screen does not say.
+      The content is visible only in the M8 editor, and getting there costs the wizard draft.
+      The M8 group picker and the M14 retarget picker have the same gap.</p>
+    <p>Three forms, the same data. Each one is clickable — the cost is written under the variant.</p>
   </div>
   <div class="vgrid" id="grid"></div>
 </div>
@@ -805,15 +805,15 @@ function variantC(g){
 }
 
 const VARIANTS = [
-  { key:'A', title:'Peek-Sheet', render:variantA,
-    why:'Der Chevron öffnet ein Sheet über der Liste — dieselbe Grammatik wie M5 und das M8-Positions-Sheet. Die Liste bleibt, wo sie war; das Sheet trägt beliebig viele Artikel und passt unverändert in den M8-Picker und M14.',
-    cost:'Kosten: eine Ebene mehr. Auf einer Auswahlliste tippt man mehrfach hinein und wieder heraus.' },
-  { key:'B', title:'Zeile aufklappen', render:variantB,
-    why:'Der Chevron faltet die Artikel unter der Zeile auf. Kein Overlay, kein Kontextwechsel, die Checkbox bleibt in Reichweite — man vergleicht zwei Gruppen, indem man beide offen lässt.',
-    cost:'Kosten: die Liste springt. Bei „Camping Basis“ mit 6 Artikeln schiebt eine offene Gruppe die nächste aus dem Bild.' },
-  { key:'C', title:'Zeile sagt es selbst', render:variantC,
-    why:'Keine Interaktion: die Zeile trägt die ersten drei Artikel als zweite Zeile. Null Taps, kein Zustand, nichts zu schließen — dieselbe Idee wie „enthält: …“ auf der Vorlagen-Zeile in M7.',
-    cost:'Kosten: es bleibt eine Andeutung. „+2“ beantwortet „ist das Stativ dabei?“ nicht.' },
+  { key:'A', title:'Peek sheet', render:variantA,
+    why:'The chevron opens a sheet over the list — the same grammar as M5 and the M8 position sheet. The list stays where it was; the sheet carries any number of items and fits the M8 picker and M14 unchanged.',
+    cost:'Cost: one more layer. On a selection list you tap in and out of it repeatedly.' },
+  { key:'B', title:'Unfold the row', render:variantB,
+    why:'The chevron unfolds the items under the row. No overlay, no context switch, the checkbox stays within reach — you compare two groups by leaving both open.',
+    cost:'Cost: the list jumps. With „Camping Basis“ at 6 items, one open group pushes the next one off screen.' },
+  { key:'C', title:'The row says it itself', render:variantC,
+    why:'No interaction: the row carries its first three items as a second line. Zero taps, no state, nothing to close — the same idea as „enthält: …“ on the template row in M7.',
+    cost:'Cost: it stays a hint. „+2“ does not answer whether the tripod is in there.' },
 ]
 
 const foldState = {}
