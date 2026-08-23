@@ -880,4 +880,51 @@ test.describe('Single-User backend sync @single', () => {
     await ctxA.close()
     await ctxB.close()
   })
+  /**
+   * E2E-M15-09 (FR-24.2/16.3): the imported category reaches the server as a
+   * tag *on the item*, and a repeated name arrives once.
+   *
+   * Both halves were refused at the wire and neither was visible on the
+   * importing device. The tag assignment names its item by foreign key and was
+   * enqueued before the item's own insert, so a whole inventory arrived with
+   * every tag created and nothing filed under one; and `items` is UNIQUE
+   * (name), so the sheet's second "Regenhosen" was dropped with its amounts.
+   * Context B is the only place either shows.
+   */
+  test('an imported item reaches the server filed under its category', async ({ browser }) => {
+    const id = uniq()
+    const tag = `Velo-${id}`
+    const item = `Regenhose-${id}`
+    const other = `Pumpe-${id}`
+    const csv = [
+      `,,2019`,
+      `,,Ausfahrt ${id}`,
+      `${tag},${item},1`,
+      `Werkzeug-${id},${other},1`,
+      // The same thing again, under the other category — one item, not two,
+      // and it keeps the category of its first appearance.
+      `,${item},2`,
+    ].join('\n')
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA, '/import')
+    await visiblePage(pageA).getByTestId('import-paste').locator('textarea').fill(csv)
+    await visiblePage(pageA).getByTestId('import-analyze').click()
+    await visiblePage(pageA).getByTestId('import-next').click()
+    // Two items out of three rows — the repeat folded before anything was sent.
+    await expect(visiblePage(pageA).getByTestId('import-summary-line')).toContainText('2 new items')
+    await visiblePage(pageA).getByTestId('import-commit').click()
+    await expect(pageA.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+
+    const ctxB = await browser.newContext()
+    const pageB = await bootPage(ctxB, '/tabs/items')
+    // The tag axis carries the imported category, and filtering to it leaves
+    // the item standing — which is the link, not merely the tag's existence.
+    await visiblePage(pageB).getByTestId(`m9-tag-chip-${tag}`).click()
+    await expect(visiblePage(pageB).getByText(item)).toBeVisible()
+    await expect(visiblePage(pageB).getByText(other)).toHaveCount(0)
+
+    await ctxA.close()
+    await ctxB.close()
+  })
 })

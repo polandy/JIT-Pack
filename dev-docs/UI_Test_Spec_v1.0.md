@@ -396,6 +396,7 @@ no-flags case to E2E-M14-06.)*
 * **E2E-M15-06** `all` (FR-16.1) — **implemented**: a sheet whose category is a *column* has it detected, and the confirm step reports the categories it produced and no item turned into one.
 * **E2E-M15-07** `all` (FR-16.1) — **implemented**: setting the category-column picker back to *None* is honoured rather than re-detected, and the plan then carries no category at all. The override is the escape hatch for a column the detector reads wrong — a *Notes* column carrying text and no quantities looks exactly like a category to it.
 * **E2E-M15-08** `all` (FR-16.1) — **implemented**: a sheet with no trip column at all passes the mapping step, reports *0 archived trips* with its items, and lands on the inventory rather than on the trip list. It used to be refused outright, and the bare list it imports would have arrived as categories and no items.
+* **E2E-M15-09** `single` (FR-24.2/16.3) — **implemented**: after an import, a **second browser context** filters M9's tag axis to the imported category and finds the item under it, and a name the sheet listed twice is there once. Both halves were refused at the wire and invisible on the importing device: the tag link was enqueued before its item, and `items` is UNIQUE (name).
 
 ### M16 — Series & Destination Profile
 * **E2E-M16-01** `all` (FR-13.1): series name + default attribute chips editable (the M3 prefill source).
@@ -561,7 +562,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-15.3 | DOC/N-A | void — retired with FR-1.3/1.5 (2026-08-08) |
 | FR-16.1 | E2E | M15-01, M15-05, M15-06, M15-07, M15-08 |
 | FR-16.2 | E2E | M2-08, M15-04, M15-05 |
-| FR-16.3 | E2E+UNIT | M15-03, M18-03, M9-03; spreadsheet.ts |
+| FR-16.3 | E2E+UNIT | M15-03, M15-09, M18-03, M9-03; spreadsheet.ts |
 | FR-17.1/17.2 | E2E | G1-01, G8-01 (Single-User surface) |
 | FR-17.3 | E2E | M2-06, M3-05, M5-08, M17-08 |
 | FR-17.4/17.5 | E2E | M17 profile (single-user bootstrap) |

@@ -1753,10 +1753,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const itemIDs: (string | null)[] = plan.items.map((item) => {
       if (item.existingItemId) return item.existingItemId
       const { mutation, id } = mutations.createMasterItem(item.name)
-      // The imported category becomes the item's primary tag (FR-24.2), so
-      // the inventory files it exactly where the spreadsheet said it goes.
-      const tagID = item.categoryName ? tagIDs.get(item.categoryName.toLowerCase()) : undefined
-      if (tagID) assignTagLocally(id, tagID, 0)
       onPullChanges([
         {
           seq: 0,
@@ -1767,6 +1763,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         },
       ])
       if (!local) outbox.enqueue('master', null, mutation)
+      // Only now: the imported category becomes the item's primary tag
+      // (FR-24.2), and a tag assignment names its item by foreign key. Sent
+      // first, every one of them is refused by a server that has not seen the
+      // item yet — invisibly, because this device already holds both.
+      const tagID = item.categoryName ? tagIDs.get(item.categoryName.toLowerCase()) : undefined
+      if (tagID) assignTagLocally(id, tagID, 0)
       return id
     })
 

@@ -139,6 +139,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The lock stopped at the row (2026-08-22)](#the-lock-stopped-at-the-row-2026-08-22) — G-3's padlock was on M4's row and nowhere else, so the row you could not pack from the list was fully editable one tap deeper, and the sheet *accepted* the edit before the next merge threw it away; no screen named the holder; and §7's promised environment variable for the staleness window had never existed as anything but a client constant. What the backlog also asked for — server-side lock enforcement — is what §7 deliberately does not do, and it is left to the owner rather than built.
 - [A backup gave back plans instead of history (2026-08-23)](#a-backup-gave-back-plans-instead-of-history-2026-08-23) — the portable file carried neither a trip's status nor an item's tags, so a restore turned archived history into plans and dropped every master item no template also used; the field that made the fix possible is the one that says whether a trip row came from the inventory at all, and the change quietly falsified a *constant* two screens away.
 - [A year is a quantity, and that is why M15 could not find its header (2026-08-23)](#a-year-is-a-quantity-and-that-is-why-m15-could-not-find-its-header-2026-08-23) — the legacy spreadsheet importer wrote no `year`, so a NOT NULL column made the server refuse every trip it imported while the importing device rendered the migration anyway; underneath sat two layout assumptions a real family sheet broke, and the rule for finding the header block had to stop asking about quantities.
+- [The store that already agrees with you (2026-08-23)](#the-store-that-already-agrees-with-you-2026-08-23) — three defects in one import path, all of the same shape: the client applies its own write optimistically, the server refuses it, and no screen on the importing device can tell the difference. Found by importing into the real instance instead of a test double, which is a different act from running the suite.
 - [Every spec paid for a DOM, and one of them was green for the wrong reason (2026-08-23)](#every-spec-paid-for-a-dom-and-one-of-them-was-green-for-the-wrong-reason-2026-08-23) — the suite built a jsdom window for all 114 spec files when 32 use one, costing ~48 % of its wall-clock; the premise that started the work was itself wrong (a cold-cache run read 252 s where the warm figure is 88 s), and the interesting find is the failure mode of the fix: a missing `@vitest-environment jsdom` is *not* reliably a red test, because production code that reads a DOM global inside a `try` takes the `catch` instead and the spec passes while exercising the error path.
 
 ## Current state
@@ -5477,3 +5478,51 @@ coverage diff named as the check that catches it.
 Left deliberately alone: the 32 jsdom files are not a target to shrink. Several
 of them could be rewritten to stub what they need, and the second and a half
 each is not worth the loss of a real DOM in a component test.
+
+## The store that already agrees with you (2026-08-23)
+
+The owner asked for the spreadsheet to be imported into the running instance on
+`:3000`. It went through: 29 archived trips, 193 items, 19 tags, the sync glyph
+green. Then reading the server's own database:
+
+```
+item_tags   0
+items       193      (the plan had 195)
+```
+
+**Every category link had been refused, and two items with it** — after two PRs
+that had already fixed two other defects in this same path. All three are the
+same shape, and it is worth naming because the shape is what generalises: the
+client applies its own mutation optimistically, the server refuses it, and
+**nothing on the importing device can tell the difference**. M2 shows the trips.
+M9 shows the items. The glyph says synced, truthfully — the outbox *is* empty,
+a refusal empties it too.
+
+- The **year**: `trips.year` is NOT NULL and the mutation omitted it.
+- The **tag links**: `item_tags.item_id` is a foreign key and the assignment was
+  enqueued *before* the item's own insert. `commitImport`'s doc comment claimed
+  "parents precede children in the queues"; it was describing an intention.
+- The **repeated names**: `items` is UNIQUE (name), and the dedup step compares
+  the file against the inventory but never against itself. The owner's sheet
+  lists "Regenhosen" and "Tele" under two categories each.
+
+Local Mode sees none of them — it skips the outbox, so there is no wire to
+refuse anything — and every unit test asserted the client store, which holds
+what the client wrote regardless of what the server did with it. That is why
+the driving test for the tag order is an assertion about the **push body**
+(`item_tags` may not precede its `items` row) rather than about the store, and
+why E2E-M15-09 reads the result from a **second browser context**.
+
+**The lesson is not "write more tests".** It is that a green suite and a green
+glyph are both compatible with a server that took none of it, and the only
+cheap instrument that is not, is a second reader. On this path there are now
+three of them: the push-body assertion, the second context, and — the one that
+actually found all three — running the thing against a real instance and then
+reading the database instead of the screen.
+
+**Two decisions inside the second fix.** A repeated name folds *without* asking:
+within one file it is a listing accident, not two things, and the user has no
+second answer to give (unlike FR-16.3's prompt against existing inventory, where
+"keep separate" is a real choice). And where two folded rows both carry an amount
+for the same trip, the **larger** wins rather than the sum: they describe one
+packing, and adding them invents luggage that was never in the car.

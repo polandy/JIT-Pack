@@ -374,6 +374,11 @@ export function buildImportPlan(
   const items: ImportPlanItem[] = []
   const rowToItemIndex = new Map<number, number>()
 
+  // FR-16.3: `items` is UNIQUE (name), so a name the sheet lists twice is one
+  // item — the dedup step catches it against the inventory but never against
+  // the file itself, and the second insert is refused at the wire.
+  const itemIndexByName = new Map<string, number>()
+
   let currentCategory: string | null = null
   for (let rowIdx = mapping.headerRows; rowIdx < grid.length; rowIdx++) {
     if (mapping.categoryColumn !== null) {
@@ -394,6 +399,17 @@ export function buildImportPlan(
     }
     const hasOpenTask = raw.endsWith('?')
     const name = hasOpenTask ? raw.replace(/\?+$/, '').trim() : raw
+
+    const seen = itemIndexByName.get(normalize(name))
+    if (seen !== undefined) {
+      // The first row keeps the spelling and the category; a question mark on
+      // either occurrence is a question about the thing, not about the row.
+      rowToItemIndex.set(rowIdx, seen)
+      if (hasOpenTask) items[seen]!.hasOpenTask = true
+      continue
+    }
+
+    itemIndexByName.set(normalize(name), items.length)
     rowToItemIndex.set(rowIdx, items.length)
     items.push({
       name,
@@ -404,11 +420,16 @@ export function buildImportPlan(
   }
 
   const trips: ImportPlanTrip[] = mapping.trips.map((trip) => {
-    const tripItems: { itemIndex: number; quantity: number }[] = []
+    // Keyed by item rather than by row, because two rows may now be one item.
+    // Where both carry an amount for the same trip they describe one packing,
+    // so the larger is the honest answer — adding them would invent luggage.
+    const byItem = new Map<number, number>()
     for (const [rowIdx, itemIndex] of rowToItemIndex) {
       const quantity = parseQuantity(grid[rowIdx]?.[trip.column] ?? '')
-      if (quantity !== null) tripItems.push({ itemIndex, quantity })
+      if (quantity === null) continue
+      byItem.set(itemIndex, Math.max(byItem.get(itemIndex) ?? 0, quantity))
     }
+    const tripItems = [...byItem].map(([itemIndex, quantity]) => ({ itemIndex, quantity }))
     return {
       name: trip.name,
       year: tripYear(trip.endDate),
