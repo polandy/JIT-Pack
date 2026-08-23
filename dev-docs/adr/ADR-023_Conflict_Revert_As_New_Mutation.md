@@ -1,4 +1,4 @@
-# ADR-022: A manual conflict revert is a new mutation, not an undo of the past
+# ADR-023: A manual conflict revert is a new mutation, not an undo of the past
 
 **Status:** Accepted (2026-08-22)
 **Related:** NFR-4.2a (PRD Addendum), ADR-003 (conflict resolution), Sync-API Spec §5.1/§6/§6.1/§8, CLAUDE.md invariants 2/4/5, `internal/store/conflicts.go`, `client/src/views/trips/ConflictLogPage.vue`

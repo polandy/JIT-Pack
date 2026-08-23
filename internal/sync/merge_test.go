@@ -34,7 +34,7 @@ func openItem() map[string]any {
 func TestMerge_NewerFieldWins_LWW(t *testing.T) {
 	m := Mutation{Op: OpUpsert, Fields: map[string]any{"quantity": 6}, HLC: newerHLC}
 
-	res := Merge(openItem(), rowHLC, true, m)
+	res := Merge(rowAt(openItem(), rowHLC), m)
 
 	if res.Outcome != OutcomeApplied {
 		t.Fatalf("outcome = %q, want %q (conflicts: %v)", res.Outcome, OutcomeApplied, res.Conflicts)
@@ -47,7 +47,7 @@ func TestMerge_NewerFieldWins_LWW(t *testing.T) {
 func TestMerge_OlderFieldDropped_WithConflictLogged(t *testing.T) {
 	m := Mutation{Op: OpUpsert, Fields: map[string]any{"quantity": 9}, HLC: olderHLC}
 
-	res := Merge(openItem(), rowHLC, true, m)
+	res := Merge(rowAt(openItem(), rowHLC), m)
 
 	if res.Outcome != OutcomeMerged {
 		t.Fatalf("outcome = %q, want %q", res.Outcome, OutcomeMerged)
@@ -66,7 +66,7 @@ func TestMerge_OlderFieldDropped_WithConflictLogged(t *testing.T) {
 func TestMerge_MissingFlagTrue_AppliedDespiteOlderHLC(t *testing.T) {
 	m := Mutation{Op: OpUpsert, Fields: map[string]any{"flag_missing": 1}, HLC: olderHLC}
 
-	res := Merge(openItem(), rowHLC, true, m)
+	res := Merge(rowAt(openItem(), rowHLC), m)
 
 	if got := res.Applied["flag_missing"]; got != 1 {
 		t.Errorf("applied flag_missing = %v, want 1", got)
@@ -85,7 +85,7 @@ func TestMerge_PackingNowOnPackedItem_DroppedRegardlessOfHLC(t *testing.T) {
 		HLC:    newerHLC,
 	}
 
-	res := Merge(packedItem(), rowHLC, true, m)
+	res := Merge(rowAt(packedItem(), rowHLC), m)
 
 	if res.Outcome != OutcomeMerged {
 		t.Fatalf("outcome = %q, want %q", res.Outcome, OutcomeMerged)
@@ -98,7 +98,7 @@ func TestMerge_PackingNowOnPackedItem_DroppedRegardlessOfHLC(t *testing.T) {
 	}
 }
 
-func TestMerge_PackedAppliesOverPackingNow_EvenWithOlderHLC(t *testing.T) {
+func TestMerge_PackedBeatsPackingNow_RegardlessOfHLC(t *testing.T) {
 	current := openItem()
 	current["state"] = "packing_now"
 	m := Mutation{
@@ -107,7 +107,7 @@ func TestMerge_PackedAppliesOverPackingNow_EvenWithOlderHLC(t *testing.T) {
 		HLC:    olderHLC,
 	}
 
-	res := Merge(current, rowHLC, true, m)
+	res := Merge(rowAt(current, rowHLC), m)
 
 	if got := res.Applied["state"]; got != "packed" {
 		t.Errorf("applied state = %v, want packed", got)
@@ -126,7 +126,7 @@ func TestMerge_PackedCountAndState_DropAsOneUnit(t *testing.T) {
 		HLC:    olderHLC,
 	}
 
-	res := Merge(openItem(), rowHLC, true, m)
+	res := Merge(rowAt(openItem(), rowHLC), m)
 
 	if _, ok := res.Applied["packed_count"]; ok {
 		t.Error("packed_count applied although its group was dropped")
@@ -154,7 +154,7 @@ func TestMerge_Delete_AppliedOnlyWithNewerHLC(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			res := Merge(openItem(), rowHLC, true, Mutation{Op: OpDelete, HLC: tc.hlc})
+			res := Merge(rowAt(openItem(), rowHLC), Mutation{Op: OpDelete, HLC: tc.hlc})
 			if res.Deleted != tc.wantDeleted || res.Outcome != tc.wantOutcome {
 				t.Errorf("got (deleted=%v, outcome=%q), want (%v, %q)",
 					res.Deleted, res.Outcome, tc.wantDeleted, tc.wantOutcome)
@@ -167,7 +167,7 @@ func TestMerge_InsertOnUnknownID_AppliesWholeRow(t *testing.T) {
 	fields := map[string]any{"name": "Ventil", "body": "prüfen", "is_task": 1, "task_state": "open"}
 	m := Mutation{Op: OpInsert, Fields: fields, HLC: olderHLC}
 
-	res := Merge(nil, "", false, m)
+	res := Merge(Row{}, m)
 
 	if res.Outcome != OutcomeApplied {
 		t.Fatalf("outcome = %q, want %q", res.Outcome, OutcomeApplied)
@@ -188,7 +188,7 @@ func TestMerge_RowHLCAdvancesToMaxObserved(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			res := Merge(openItem(), rowHLC, true, Mutation{Op: OpUpsert, Fields: map[string]any{"quantity": 7}, HLC: tc.hlc})
+			res := Merge(rowAt(openItem(), rowHLC), Mutation{Op: OpUpsert, Fields: map[string]any{"quantity": 7}, HLC: tc.hlc})
 			if res.RowHLC != tc.want {
 				t.Errorf("RowHLC = %q, want %q", res.RowHLC, tc.want)
 			}
@@ -206,3 +206,138 @@ func hasConflictFor(conflicts []Conflict, field string) bool {
 }
 
 func nOp() Op { return OpUpsert }
+
+// rowAt is a row whose fields carry no clocks of their own, so every
+// field is as old as the row — the shape of a row written before the
+// per-field record existed.
+func rowAt(fields map[string]any, hlc HLC) Row {
+	return Row{Exists: true, Fields: fields, HLC: hlc}
+}
+
+// rowWith is a row with an explicit per-field record; HLC is their maximum.
+func rowWith(fields map[string]any, clocks FieldClocks) Row {
+	var top HLC
+	for _, c := range clocks {
+		top = maxHLC(top, c)
+	}
+	return Row{Exists: true, Fields: fields, HLC: top, Clocks: clocks}
+}
+
+// NFR-4.2a is *field*-level LWW: two fields that never competed must not
+// decide each other. The row's own HLC is newer than the incoming pack only
+// because somebody assigned a container in between.
+func TestMerge_UnrelatedNewerField_DoesNotDisplaceOlderPack(t *testing.T) {
+	current := openItem()
+	current["container_id"] = "bag-1"
+	row := rowWith(current, FieldClocks{
+		"state": olderHLC, "packed_count": olderHLC, "container_id": newerHLC,
+	})
+	m := Mutation{Op: OpUpsert, Fields: map[string]any{"state": "packed", "packed_count": 5}, HLC: rowHLC}
+
+	res := Merge(row, m)
+
+	if res.Outcome != OutcomeApplied {
+		t.Fatalf("outcome = %q, want applied; conflicts = %v", res.Outcome, res.Conflicts)
+	}
+	if res.Applied["state"] != "packed" || res.Applied["packed_count"] != 5 {
+		t.Errorf("applied = %v, want the pack", res.Applied)
+	}
+	if res.Clocks["container_id"] != newerHLC {
+		t.Errorf("container clock = %q, must be untouched", res.Clocks["container_id"])
+	}
+}
+
+// Rule 2 is exactly as narrow as §6 writes it. A pack made offline and
+// pushed late does not undo a later deliberate unpack or skip: the later
+// human decision stands, and the pack is logged so its author can be told.
+func TestMerge_StalePacked_LosesToLaterStateDecision_AndIsLogged(t *testing.T) {
+	for _, later := range []string{"open", "partial", "skipped"} {
+		t.Run("later "+later, func(t *testing.T) {
+			current := openItem()
+			current["state"] = later
+			row := rowWith(current, FieldClocks{"state": newerHLC, "packed_count": newerHLC})
+			m := Mutation{Op: OpUpsert, Fields: map[string]any{"state": "packed", "packed_count": 5}, HLC: olderHLC}
+
+			res := Merge(row, m)
+
+			if res.Outcome != OutcomeMerged {
+				t.Fatalf("outcome = %q, want merged", res.Outcome)
+			}
+			if _, ok := res.Applied["state"]; ok {
+				t.Error("stale pack must not overwrite the later decision")
+			}
+			if !hasConflictFor(res.Conflicts, "state") || !hasConflictFor(res.Conflicts, "packed_count") {
+				t.Errorf("the dropped pack must be logged as a conflict, got %v", res.Conflicts)
+			}
+		})
+	}
+}
+
+// The state group has one clock — the newest of its two fields — because
+// a partial count and the state are one fact (FR-5.4).
+func TestMerge_StateGroupClock_IsNewestOfItsFields(t *testing.T) {
+	row := rowWith(openItem(), FieldClocks{"state": olderHLC, "packed_count": newerHLC})
+	m := Mutation{Op: OpUpsert, Fields: map[string]any{"state": "partial", "packed_count": 2}, HLC: rowHLC}
+
+	res := Merge(row, m)
+
+	if res.Outcome != OutcomeMerged {
+		t.Fatalf("outcome = %q, want merged: packed_count was written later than the mutation", res.Outcome)
+	}
+}
+
+// A field with no clock of its own is as old as the row — not older, not
+// newer. That is the only safe reading of a row written before per-field
+// clocks existed.
+func TestMerge_FieldWithoutClock_FallsBackToRowHLC(t *testing.T) {
+	row := Row{Exists: true, Fields: openItem(), HLC: rowHLC, Clocks: FieldClocks{"name": olderHLC}}
+	cases := []struct {
+		name string
+		hlc  HLC
+		want Outcome
+	}{
+		{"newer than the row applies", newerHLC, OutcomeApplied},
+		{"older than the row is dropped", olderHLC, OutcomeMerged},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			res := Merge(row, Mutation{Op: OpUpsert, Fields: map[string]any{"quantity": 7}, HLC: tc.hlc})
+			if res.Outcome != tc.want {
+				t.Errorf("outcome = %q, want %q", res.Outcome, tc.want)
+			}
+		})
+	}
+}
+
+// What the caller persists beside the row: applied fields take the
+// mutation's clock, dropped fields keep theirs, an insert stamps every field.
+func TestMerge_ResultClocks_StampAppliedFieldsOnly(t *testing.T) {
+	t.Run("upsert", func(t *testing.T) {
+		row := rowWith(openItem(), FieldClocks{"name": olderHLC, "quantity": newerHLC})
+		m := Mutation{Op: OpUpsert, Fields: map[string]any{"name": "Socken", "quantity": 9}, HLC: rowHLC}
+
+		res := Merge(row, m)
+
+		want := FieldClocks{"name": rowHLC, "quantity": newerHLC}
+		if !reflect.DeepEqual(res.Clocks, want) {
+			t.Errorf("clocks = %v, want %v", res.Clocks, want)
+		}
+	})
+	t.Run("insert", func(t *testing.T) {
+		m := Mutation{Op: OpInsert, Fields: map[string]any{"name": "Ventil", "quantity": 1}, HLC: olderHLC}
+
+		res := Merge(Row{}, m)
+
+		want := FieldClocks{"name": olderHLC, "quantity": olderHLC}
+		if !reflect.DeepEqual(res.Clocks, want) {
+			t.Errorf("clocks = %v, want %v", res.Clocks, want)
+		}
+	})
+	t.Run("input clocks are not mutated", func(t *testing.T) {
+		clocks := FieldClocks{"name": olderHLC}
+		Merge(rowWith(openItem(), clocks), Mutation{Op: OpUpsert, Fields: map[string]any{"name": "x"}, HLC: newerHLC})
+		if clocks["name"] != olderHLC {
+			t.Error("Merge wrote into the caller's clock map")
+		}
+	})
+}

@@ -293,6 +293,24 @@ test.describe('Single-User backend sync @single', () => {
     await ctxB.setOffline(false)
     await reopenTrip(pageB, trip)
     await expect(pageB.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+
+    /*
+     * E2E-G2-07 (NFR-4.2a): the loss is *announced*, not only recorded. A
+     * `merged` push used to be indistinguishable from an applied one, so
+     * the only way to learn an edit had been overwritten was to go looking
+     * for a log nothing gave you a reason to suspect. It lives inside this
+     * case rather than in its own because this is the one place in the
+     * suite where a real server merges a real edit away.
+     *
+     * Asserted **immediately** after the drain and then dismissed by hand:
+     * a toast auto-dismisses on a timer, so every later step would be
+     * racing it. Nothing below this point depends on it existing.
+     */
+    const toast = pageB.locator('ion-toast')
+    await expect(toast).toContainText('1')
+    await toast.evaluate((el: HTMLIonToastElement) => el.dismiss())
+    await expect(toast).toHaveCount(0)
+
     await visiblePage(pageB).getByTestId(`m4-row-${item}`).click()
     await expect(pageB.getByTestId('m5-sheet')).toBeVisible()
     await pageB.getByTestId('m5-details').click()
@@ -303,6 +321,7 @@ test.describe('Single-User backend sync @single', () => {
     // Inside a trip the G-2 detail leads to the conflict log (E2E-G2-01),
     // and the log names exactly the one field that lost.
     await pageB.getByTestId('sync-indicator').click()
+    await expect(pageB.getByTestId('sync-detail-conflicted')).toContainText('1')
     await expect(pageB.getByTestId('sync-detail-sheet')).toBeVisible()
     await pageB.getByTestId('sync-detail-conflicts').click()
     await expect(visiblePage(pageB).getByTestId('conflict-row')).toHaveCount(1)
@@ -412,7 +431,7 @@ test.describe('Single-User backend sync @single', () => {
   })
 
   /**
-   * E2E-G2-07 (NFR-4.2a, ADR-022): the log's second promise — the loser
+   * E2E-G2-07 (NFR-4.2a, ADR-023): the log's second promise — the loser
    * can be put back. The audit half shipped without it, so the page named
    * a value it could do nothing about.
    *

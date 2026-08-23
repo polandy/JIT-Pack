@@ -290,8 +290,8 @@ func TestRevertMasterConflict_VisibleButUnwritableIsForbidden_NFR42a(t *testing.
 		t.Fatalf("owner membership row: %v", err)
 	}
 	if _, err := st.DB().Exec(
-		`INSERT INTO conflict_log (id, trip_id, entity_table, entity_id, field, losing_value, winning_value)
-		 VALUES ('cf-owner', NULL, 'trip_members', ?, 'role', '"editor"', '"owner"')`, memberID); err != nil {
+		`INSERT INTO conflict_log (id, trip_id, entity_table, entity_id, field, losing_value, winning_value, mutation_id, actor_user_id)
+		 VALUES ('cf-owner', NULL, 'trip_members', ?, 'role', '"editor"', '"owner"', 'seed-mut', 'user-x')`, memberID); err != nil {
 		t.Fatalf("seed conflict: %v", err)
 	}
 

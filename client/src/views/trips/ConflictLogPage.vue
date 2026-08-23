@@ -10,7 +10,7 @@
  * reachable from every screen; the first only from inside its trip.
  *
  * A revert is not an undo of the past: the server rewrites the losing
- * value as an ordinary mutation with a fresh HLC (ADR-022), so it can be
+ * value as an ordinary mutation with a fresh HLC (ADR-023), so it can be
  * refused by the same merge rules as any other write. Every refusal is
  * rendered on the row it belongs to rather than as a snackbar — the row
  * is where the reader is looking, and it stays readable.

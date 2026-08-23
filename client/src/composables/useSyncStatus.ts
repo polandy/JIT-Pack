@@ -43,6 +43,12 @@ export interface SyncStatus {
    */
   parkedCount: Ref<number>
   /**
+   * Fields of this device's changes the server merged away, counted for
+   * this session. The durable record is the conflict log (NFR-4.2a); this
+   * is what lets G-2 say it happened at all.
+   */
+  conflictCount: Ref<number>
+  /**
    * Whether the queue is actually being kept on the device (NFR-4.1). It
    * goes false when the browser refuses the write — out of space, or a
    * transaction it aborted — and G-2 must then stop promising a reload is
@@ -64,6 +70,8 @@ export interface SyncStatus {
   setPendingCount(n: number): void
   /** Update how many mutations the server refused for good. */
   setParkedCount(n: number): void
+  /** Adds to this session's tally of merged-away fields (NFR-4.2a). */
+  addConflicts(n: number): void
   /** Report whether the queue is still being written to the device. */
   setQueueDurable(durable: boolean): void
 }
@@ -74,6 +82,7 @@ export function useSyncStatus(): SyncStatus {
   const isLocal = ref(false)
   const pendingCount = ref(0)
   const parkedCount = ref(0)
+  const conflictCount = ref(0)
   // Optimistic on purpose: the outbox announces the *loss* of durability,
   // and a device that never had a queue to keep has lost nothing.
   const queueDurable = ref(true)
@@ -134,6 +143,11 @@ export function useSyncStatus(): SyncStatus {
     parkedCount.value = n
   }
 
+  /** Adds to the session's tally; the log holds what was actually lost. */
+  function addConflicts(n: number) {
+    conflictCount.value += n
+  }
+
   function setQueueDurable(durable: boolean) {
     queueDurable.value = durable
   }
@@ -142,6 +156,7 @@ export function useSyncStatus(): SyncStatus {
     state,
     pendingCount,
     parkedCount,
+    conflictCount,
     queueDurable,
     label,
     setSyncing,
@@ -150,6 +165,7 @@ export function useSyncStatus(): SyncStatus {
     setLocal,
     setPendingCount,
     setParkedCount,
+    addConflicts,
     setQueueDurable,
   }
 }

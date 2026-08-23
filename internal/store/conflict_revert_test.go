@@ -23,11 +23,11 @@ func seedTripConflict(t *testing.T, s *Store) string {
 	t.Helper()
 	ctx := context.Background()
 	win := upsert("item-1", "mut-1", map[string]any{"trip_id": testTrip, "name": "Socken", "quantity": 5}, winningHLC)
-	if _, err := s.ApplyMutation(ctx, testTrip, win); err != nil {
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, win); err != nil {
 		t.Fatalf("seed winner: %v", err)
 	}
 	lose := upsert("item-1", "mut-2", map[string]any{"quantity": 9}, staleHLC)
-	if _, err := s.ApplyMutation(ctx, testTrip, lose); err != nil {
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, lose); err != nil {
 		t.Fatalf("seed loser: %v", err)
 	}
 	return onlyConflictID(t, s)
@@ -124,7 +124,7 @@ func TestRevertTripConflict_DeletedRowIsRefused_NFR42a(t *testing.T) {
 		MutationID: "mut-del", Op: sync.OpDelete, Table: TableTripItems, ID: "item-1",
 		HLC: sync.HLC("0000000003000-0000-cccccccc"),
 	}
-	if _, err := s.ApplyMutation(ctx, testTrip, del); err != nil {
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, del); err != nil {
 		t.Fatalf("delete: %v", err)
 	}
 
@@ -149,11 +149,11 @@ func TestRevertTripConflict_TerminalPrecedenceRefusesTheRevert_NFR42a(t *testing
 	s := openTestStore(t)
 	ctx := context.Background()
 	seed := upsert("item-1", "mut-1", map[string]any{"trip_id": testTrip, "name": "Helm", "state": "packed"}, winningHLC)
-	if _, err := s.ApplyMutation(ctx, testTrip, seed); err != nil {
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, seed); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
 	lock := upsert("item-1", "mut-2", map[string]any{"state": "packing_now"}, sync.HLC("0000000009000-0000-dddddddd"))
-	if _, err := s.ApplyMutation(ctx, testTrip, lock); err != nil {
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, lock); err != nil {
 		t.Fatalf("lock: %v", err)
 	}
 	id := onlyConflictID(t, s)
@@ -286,8 +286,8 @@ func TestRevertMasterConflict_VisibleButUnwritableRowIsForbidden_NFR42a(t *testi
 	s := openTestStore(t)
 	mustExec(t, s, `INSERT INTO trip_members (id, trip_id, user_id, role, updated_hlc)
 	                VALUES ('mem-own', ?, ?, 'owner', ?)`, testTrip, testUser, string(winningHLC))
-	mustExec(t, s, `INSERT INTO conflict_log (id, trip_id, entity_table, entity_id, field, losing_value, winning_value)
-	                VALUES ('cf-owner', NULL, 'trip_members', 'mem-own', 'role', '"editor"', '"owner"')`)
+	mustExec(t, s, `INSERT INTO conflict_log (id, trip_id, entity_table, entity_id, field, losing_value, winning_value, mutation_id, actor_user_id)
+	                VALUES ('cf-owner', NULL, 'trip_members', 'mem-own', 'role', '"editor"', '"owner"', 'seed-mut', 'user-x')`)
 
 	_, err := s.RevertMasterConflict(context.Background(), testUser, "cf-owner")
 

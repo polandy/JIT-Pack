@@ -82,3 +82,6 @@ generated — edit the builder, not the HTML:
   left of the item name (§3.28, G-15): emoji vs. icon library vs. photo-first vs. a bare
   initial, plus a working picker with keyword search and name-derived suggestions;
   `node dev-docs/build-item-mark-variants.mjs`.
+- [`UI_Concept_ClosingPass_variants.html`](UI_Concept_ClosingPass_variants.html) — where the
+  FR-9.3 closing pass lives: its own screen against a mode of M4, with the table of what each
+  answer costs; `node dev-docs/build-closing-pass-variants.mjs`.

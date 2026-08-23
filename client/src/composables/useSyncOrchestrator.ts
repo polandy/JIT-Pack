@@ -14,7 +14,7 @@ import { computed, ref, shallowRef } from 'vue'
 
 import { APIClient, type TokenProvider } from '@/api/client'
 import { HLCGenerator } from '@/sync/hlc'
-import { SyncOutbox } from './useSyncOutbox'
+import { SyncOutbox, type ConflictReport } from './useSyncOutbox'
 import { useWebSocket } from './useWebSocket'
 import { CLIENT_ACTOR_PLACEHOLDER, useMutations } from './useMutations'
 import { useSyncStatus } from './useSyncStatus'
@@ -178,6 +178,12 @@ export interface SyncOrchestratorConfig {
    */
   onNotification?: (n: ServerNotification) => void
   /**
+   * Called when a push comes back `merged`, i.e. the server dropped fields
+   * of this device's changes (NFR-4.2a). The callee surfaces it; the
+   * report names the partition, which is which conflict log to open.
+   */
+  onConflicts?: (report: ConflictReport) => void
+  /**
    * Where the outbox keeps its queue between sessions (B2, NFR-4.1).
    * Injected so a test can drive a store it can see; Server Mode defaults
    * to IndexedDB, and Local Mode never builds one — it has no outbox.
@@ -285,6 +291,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const outbox = new SyncOutbox(client, hlc, onPullChanges, {
     store: outboxStore ?? undefined,
     onParked: () => syncStatus.setParkedCount(outbox.parkedCount()),
+    onConflicts: (report) => {
+      syncStatus.addConflicts(report.count)
+      config.onConflicts?.(report)
+    },
     onDurabilityChanged: (durable) => syncStatus.setQueueDurable(durable),
   })
 
@@ -2625,7 +2635,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * revertConflict restores the losing value of one audited merge —
    * NFR-4.2a's second promise, beside the audit. The server writes it as
    * an ordinary mutation with a fresh HLC rather than rewriting the past
-   * (ADR-022), so the restored value arrives here the normal way: the
+   * (ADR-023), so the restored value arrives here the normal way: the
    * drain below pulls it, and every other device pulls it too.
    *
    * `tripId` picks the partition, exactly as the two fetchers do. Local

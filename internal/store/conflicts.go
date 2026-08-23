@@ -19,10 +19,12 @@ type ConflictEntry struct {
 	Field        string
 	LosingValue  string
 	WinningValue string
-	ResolvedAt   string
-	// Reverted reports that the losing value was already restored, so the
-	// UI offers the revert once rather than on every render.
-	Reverted bool
+	// MutationID groups the fields one push lost together; ActorUserID is
+	// who pushed it — the person a revert belongs to.
+	MutationID  string
+	ActorUserID string
+	ResolvedAt  string
+	Reverted    bool
 }
 
 // The two partitions keep two logs in one table, told apart by trip_id
@@ -31,7 +33,8 @@ type ConflictEntry struct {
 // that mixed them would show a member of one trip the losers of another.
 const (
 	conflictColumns = `id, entity_table, entity_id, field,
-	        coalesce(losing_value, ''), coalesce(winning_value, ''), resolved_at, reverted`
+	        coalesce(losing_value, ''), coalesce(winning_value, ''),
+	        mutation_id, actor_user_id, resolved_at, reverted`
 	conflictOrder = ` ORDER BY resolved_at DESC, id`
 )
 
@@ -84,7 +87,8 @@ func scanConflicts(rows *sql.Rows) ([]ConflictEntry, error) {
 	for rows.Next() {
 		var c ConflictEntry
 		if err := rows.Scan(&c.ID, &c.EntityTable, &c.EntityID, &c.Field,
-			&c.LosingValue, &c.WinningValue, &c.ResolvedAt, &c.Reverted); err != nil {
+			&c.LosingValue, &c.WinningValue, &c.MutationID, &c.ActorUserID,
+			&c.ResolvedAt, &c.Reverted); err != nil {
 			return nil, fmt.Errorf("scan conflict: %w", err)
 		}
 		entries = append(entries, c)
@@ -128,7 +132,7 @@ type revertEntry struct {
 
 // RevertTripConflict restores the logged losing value of one trip-partition
 // conflict (NFR-4.2a). The restore is an ordinary upsert with a fresh
-// server HLC — see ADR-022: it wins by being newer, travels the change
+// server HLC — see ADR-023: it wins by being newer, travels the change
 // feed like any other write, and stays beatable by a later edit. The
 // returned seq is the pull hint.
 //
@@ -242,15 +246,15 @@ func (s *Store) applyRevert(
 		return 0, ErrConflictAlreadyReverted
 	}
 
-	current, currentHLC, exists, err := loadRow(ctx, tx, m.Table, m.ID)
+	row, err := loadRow(ctx, tx, m.Table, m.ID)
 	if err != nil {
 		return 0, err
 	}
-	if !exists {
+	if !row.Exists {
 		return 0, ErrConflictRowGone
 	}
 	if authorize != nil {
-		allowed, err := authorize(tx, &m, current)
+		allowed, err := authorize(tx, &m, row.Fields)
 		if err != nil {
 			return 0, err
 		}
@@ -264,14 +268,14 @@ func (s *Store) applyRevert(
 	// revert that is not strictly newer would be dropped by its own merge.
 	// A row that never went through sync carries the schema default and
 	// has no clock to respect.
-	if currentHLC != "" {
-		if err := s.hlc.Observe(currentHLC); err != nil {
+	if row.HLC != "" {
+		if err := s.hlc.Observe(row.HLC); err != nil {
 			return 0, fmt.Errorf("observe %s %s clock: %w", m.Table, m.ID, err)
 		}
 	}
 	m.HLC = s.hlc.Next()
 
-	merged := sync.Merge(current, currentHLC, exists, m)
+	merged := sync.Merge(row, m)
 	if len(merged.Applied) == 0 {
 		return 0, ErrRevertRefused
 	}
