@@ -11,10 +11,13 @@
 # way to get them there was to open a pull request, so they got run locally
 # instead. This is the front door that makes the cheap option also the easy one.
 #
-# It waits for the run it started -- not merely the newest run -- by recording
-# the newest run id *before* dispatching and polling until a different one
-# appears for this branch. That is a loop on a condition rather than a fixed
-# wait, so it cannot report on somebody else's run or give up early.
+# Identifying the right run is the fiddly part. The push below triggers a
+# `pull_request` run of this same workflow whenever the branch already has a
+# PR open, so "watch the newest run on this branch" would usually watch *that*
+# one -- and it would look entirely correct while reporting on a different set
+# of commits than the dispatch. The listing is therefore filtered to
+# `workflow_dispatch` runs, and the newest one is recorded before dispatching
+# so the wait ends on a genuinely new id rather than a stale one.
 #
 # Exits non-zero when the run fails, so it composes in a shell chain.
 set -euo pipefail
@@ -36,17 +39,33 @@ fi
 echo "ci-remote: pushing $branch"
 git push --set-upstream origin "$branch"
 
+# Only dispatched runs: see the header -- the push above may have started a
+# `pull_request` run of the same workflow on the same branch.
 newest_run() {
-  gh run list --workflow "$WORKFLOW" --branch "$branch" --limit 1 \
-    --json databaseId --jq '.[0].databaseId // empty'
+  gh run list --workflow "$WORKFLOW" --branch "$branch" --event workflow_dispatch \
+    --limit 1 --json databaseId --jq '.[0].databaseId // empty'
 }
 
 before=$(newest_run)
 echo "ci-remote: dispatching $WORKFLOW on $branch"
-gh workflow run "$WORKFLOW" --ref "$branch"
+if ! gh workflow run "$WORKFLOW" --ref "$branch"; then
+  echo "ci-remote: dispatch failed. GitHub only honours a workflow_dispatch trigger" >&2
+  echo "           once it exists on the default branch -- if ci.yml gained it on a" >&2
+  echo "           branch that has not merged yet, that is the reason." >&2
+  exit 1
+fi
 
+# Bounded: a dispatch that produces no run at all must fail loudly rather than
+# spin. Two minutes is far beyond the queueing delay actually observed.
+deadline=$((SECONDS + 120))
 echo -n "ci-remote: waiting for the run to be created"
 until id=$(newest_run); [ -n "$id" ] && [ "$id" != "$before" ]; do
+  if [ "$SECONDS" -ge "$deadline" ]; then
+    echo
+    echo "ci-remote: dispatched, but no new run appeared within 120 s. Check" >&2
+    echo "           gh run list --workflow $WORKFLOW --branch $branch" >&2
+    exit 1
+  fi
   echo -n .
   sleep 2
 done
