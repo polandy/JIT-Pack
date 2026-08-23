@@ -12,14 +12,12 @@ import { EXIT, USAGE, parseImportArgs, runImport } from './importCommand'
 const DEVICE_ID_BYTES = 4
 
 async function main(): Promise<number> {
-  const argv = process.argv.slice(2)
-  if (argv.includes('--help') || argv.includes('-h')) {
-    console.log(USAGE)
-    return EXIT.ok
-  }
-
-  const parsed = parseImportArgs(argv, (name) => process.env[name])
+  const parsed = parseImportArgs(process.argv.slice(2), (name) => process.env[name])
   if (!parsed.ok) {
+    if ('help' in parsed) {
+      console.log(USAGE)
+      return EXIT.ok
+    }
     console.error(`jitpack-import: ${parsed.error}\n\n${USAGE}`)
     return EXIT.usage
   }

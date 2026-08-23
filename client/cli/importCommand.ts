@@ -45,7 +45,8 @@ export interface ImportOptions {
   files: string[]
 }
 
-export type ParsedArgs = ({ ok: true } & ImportOptions) | { ok: false; error: string }
+export type ParsedArgs =
+  ({ ok: true } & ImportOptions) | { ok: false; error: string } | { ok: false; help: true }
 
 export const USAGE = `Usage: jitpack-import [flags] FILE...
 
@@ -73,7 +74,8 @@ export function parseImportArgs(
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!
-    if (arg === '--dry-run') dryRun = true
+    if (arg === '--help' || arg === '-h') return { ok: false, help: true }
+    else if (arg === '--dry-run') dryRun = true
     else if (arg === '--server') serverUrl = argv[++i] ?? ''
     else if (arg === '--token') token = argv[++i] ?? ''
     else if (arg.startsWith('-')) return { ok: false, error: `unknown flag: ${arg}` }

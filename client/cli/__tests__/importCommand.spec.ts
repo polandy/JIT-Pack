@@ -127,7 +127,19 @@ describe('parseImportArgs', () => {
   })
 
   it('refuses a flag it does not know', () => {
-    expect(parseImportArgs(['--nope', 'a.yaml'], env({}))).toMatchObject({ ok: false })
+    const parsed = parseImportArgs(['--nope', 'a.yaml'], env({}))
+    expect(parsed).toMatchObject({ ok: false })
+    expect(parsed.ok === false && 'error' in parsed && parsed.error).toContain('--nope')
+  })
+
+  // Asking for help is not a usage error: the caller has to be able to tell
+  // them apart, because one belongs on stdout with exit 0 and the other on
+  // stderr with exit 2.
+  it('separates asking for help from getting it wrong', () => {
+    for (const flag of ['-h', '--help']) {
+      expect(parseImportArgs([flag], env({}))).toEqual({ ok: false, help: true })
+    }
+    expect(parseImportArgs([], env({}))).toMatchObject({ ok: false, error: expect.any(String) })
   })
 })
 
