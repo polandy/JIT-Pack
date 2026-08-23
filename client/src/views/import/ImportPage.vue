@@ -2,9 +2,9 @@
 /**
  * M15 — Import Wizard (FR-16.1–16.3, NFR-4.7).
  *
- * Four steps: file/paste → mapping (item column, category rows, trip
- * columns with include-toggle/name/date/series) → dedup against the
- * master inventory → confirm. Commit lands client-side through the
+ * Four steps: file/paste → mapping (item column, category column or
+ * category rows, trip columns with include-toggle/name/date/series) →
+ * dedup against the master inventory → confirm. Commit lands client-side through the
  * orchestrator (FR-19.4: Local Mode parity). CSV only — XLSX is
  * deferred; every spreadsheet tool exports CSV.
  */
@@ -44,6 +44,13 @@ const router = useRouter()
 const master = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
+/**
+ * The category-column picker's "none" choice. IonSegment values are strings
+ * and every other one is a column index, so the absence needs a name of its
+ * own rather than an empty string a stray column could also produce.
+ */
+const NO_CATEGORY_COLUMN = 'none'
+
 const step = ref(1)
 
 // --- Step 1: file / paste ---
@@ -63,13 +70,16 @@ function analyze() {
   const a = analyzeGrid(grid.value)
   analysis.value = a
   itemColumn.value = a.itemColumn
+  categoryColumn.value = a.categoryColumn
   categoryRows.value = new Set(a.categoryRows)
-  // FR-16.1: all trip columns preselected ("select all" default).
+  // FR-16.1: all trip columns preselected ("select all" default) — except
+  // one the header neither names nor dates, which cannot be validated and
+  // would hold the whole mapping hostage until it is found among thirty.
   trips.value = a.tripColumns.map((t) => ({
     column: t.index,
-    include: true,
-    name: t.header || `Trip ${t.index}`,
-    date: t.header,
+    include: t.name !== '' || t.date !== '',
+    name: t.name,
+    date: t.date,
     seriesId: '',
   }))
   step.value = 2
@@ -77,7 +87,28 @@ function analyze() {
 
 // --- Step 2: mapping (FR-16.1) ---
 const itemColumn = ref(0)
+const categoryColumn = ref<number | null>(null)
 const categoryRows = ref<Set<number>>(new Set())
+
+/** The header block's own rows, which describe columns rather than items. */
+const headerRows = computed(() => analysis.value?.headerRows ?? 1)
+
+/** Column choices for the item- and category-column pickers. */
+const columnChoices = computed(() =>
+  Array.from({ length: Math.max(0, ...grid.value.map((r) => r.length)) }, (_, idx) => ({
+    idx,
+    label: columnLabel(idx),
+  })),
+)
+
+/** A column's own label: its name in the header block, else its position. */
+function columnLabel(idx: number): string {
+  for (let rowIdx = 0; rowIdx < headerRows.value; rowIdx++) {
+    const value = (grid.value[rowIdx]?.[idx] ?? '').trim()
+    if (value !== '') return value
+  }
+  return t('import.wizard.column', { n: idx + 1 })
+}
 const trips = ref<
   { column: number; include: boolean; name: string; date: string; seriesId: string }[]
 >([])
@@ -98,7 +129,9 @@ const mappingValid = computed(
 )
 
 const mapping = computed(() => ({
+  headerRows: headerRows.value,
   itemColumn: itemColumn.value,
+  categoryColumn: categoryColumn.value,
   categoryRows: [...categoryRows.value],
   trips: trips.value
     .filter((t) => t.include)
@@ -114,7 +147,7 @@ const mapping = computed(() => ({
 const namedRows = computed(() =>
   grid.value
     .map((row, idx) => ({ idx, name: (row[itemColumn.value] ?? '').trim() }))
-    .filter((r) => r.idx > 0 && r.name !== ''),
+    .filter((r) => r.idx >= headerRows.value && r.name !== ''),
 )
 
 // --- Step 3: dedup (FR-16.3) ---
@@ -237,8 +270,35 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
           :value="String(itemColumn)"
           @ionChange="(e: CustomEvent) => (itemColumn = Number(e.detail.value))"
         >
-          <IonSegmentButton v-for="(header, idx) in grid[0]" :key="idx" :value="String(idx)">
-            <IonLabel>{{ header || t('import.wizard.column', { n: idx + 1 }) }}</IonLabel>
+          <IonSegmentButton
+            v-for="choice in columnChoices"
+            :key="choice.idx"
+            :value="String(choice.idx)"
+          >
+            <IonLabel>{{ choice.label }}</IonLabel>
+          </IonSegmentButton>
+        </IonSegment>
+
+        <h2 class="section-title jp-eyebrow">{{ t('import.wizard.categoryColumn') }}</h2>
+        <p class="hint">{{ t('import.wizard.categoryColumnHint') }}</p>
+        <IonSegment
+          data-testid="category-column"
+          :value="categoryColumn === null ? NO_CATEGORY_COLUMN : String(categoryColumn)"
+          @ionChange="
+            (e: CustomEvent) =>
+              (categoryColumn =
+                e.detail.value === NO_CATEGORY_COLUMN ? null : Number(e.detail.value))
+          "
+        >
+          <IonSegmentButton :value="NO_CATEGORY_COLUMN">
+            <IonLabel>{{ t('import.wizard.noCategoryColumn') }}</IonLabel>
+          </IonSegmentButton>
+          <IonSegmentButton
+            v-for="choice in columnChoices"
+            :key="choice.idx"
+            :value="String(choice.idx)"
+          >
+            <IonLabel>{{ choice.label }}</IonLabel>
           </IonSegmentButton>
         </IonSegment>
 

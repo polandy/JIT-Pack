@@ -47,6 +47,7 @@ const plan: ImportPlan = {
   trips: [
     {
       name: 'Engadin 2023',
+      year: 2023,
       endDate: '2023-12-31',
       seriesId: null,
       items: [
@@ -56,6 +57,7 @@ const plan: ImportPlan = {
     },
     {
       name: 'Engadin 2025',
+      year: 2025,
       endDate: '2025-12-31',
       seriesId: 'ser-1',
       items: [{ itemIndex: 1, quantity: 6 }],
@@ -93,7 +95,14 @@ describe('commitImport (FR-16.2)', () => {
     // Trips: archived, imported, original quantities as packed.
     expect(result.tripIds).toHaveLength(2)
     const t2023 = trips.getTrip(result.tripIds[0]!)!
-    expect(t2023).toMatchObject({ name: 'Engadin 2023', status: 'archived', imported: true })
+    // FR-2.1b: `trips.year` is NOT NULL, so an imported trip that omits it
+    // is refused by the server and the whole migration lands nowhere.
+    expect(t2023).toMatchObject({
+      name: 'Engadin 2023',
+      year: 2023,
+      status: 'archived',
+      imported: true,
+    })
     const items2023 = trips.getItems(t2023.id)
     const unterhosen = items2023.find((i) => i.name === 'Unterhosen')!
     expect(unterhosen).toMatchObject({
