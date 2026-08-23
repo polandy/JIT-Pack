@@ -660,6 +660,63 @@ A packing list is **scanned, not read**: forty rows, most of them known, the eye
 * **NFR-4.12 (Internationalization — accepted 2026-08-07; proposed 2026-07-17):** The UI is fully localizable; no user-facing string is hard-coded. The shipped locales are **English and German**, with **English as the primary/default** and **German fully supported** — both ship in the MVP, neither is a stub. *(Revised 2026-08-07: the original proposal made German primary and English the fallback. Reversed by owner decision — the implemented client is already written in English, so English-primary matches the code base and makes German an addition rather than a rewrite.)* Locale is user-selectable and persisted device-local (like the theme, FR-21), defaulting to the browser locale when that is German and to English otherwise. Scope note: this is UI-string localization plus locale-aware date/number formatting; it does **not** imply localizing user *content* (item names, template names, comments stay as the user typed them). Additional locales are additive later.
   * **Implementation decision (2026-08-07): no i18n dependency.** Localization is a small in-house module rather than `vue-i18n`. Justification per NFR-4.3 (footprint is first-class, standard library first): two locales need only key lookup, `{placeholder}` interpolation and a one/other plural rule, while locale-aware date/number formatting is `Intl`, built into every target browser — none of that warrants a dependency, and the same reasoning already rejected an XLSX parser (§3.16). The call shape is kept **`vue-i18n`-compatible** (`t('key', { n })`) so adopting the library later stays a swap of the module rather than a rewrite of every call site. **Revisit trigger:** a locale whose pluralization needs more than one/other forms, or a need for message-format features (gender, select, nested formats).
 * **NFR-4.1a (Durable Outbox — refines NFR-4.1, accepted 2026-08-21):** In Server Mode the queue of mutations that have not reached the server is kept **on the device** (IndexedDB), not in the open document: it is written per mutation, removed when the server acknowledges it, and replayed at the next app start **before the first pull**, so a change made offline is never overwritten by the server's older copy of the same row. Replay is safe by the Sync-API's `mutation_id` memo (P-5), which the client serves by minting the id once, at enqueue, and storing it with the mutation. Two consequences the user sees, both in G-2: the queued-changes count belongs to the *queue* and survives a reload, and a change the server **permanently refuses** is taken out of the queue and kept as evidence rather than retried forever — one bad row must not stop a whole partition from syncing. A network failure and a server error are not refusals. What this deliberately does **not** add is a reconnect drain: the queue moves on the app's next own action or its next start, not on the browser's `online` event. Local Mode is unaffected — it has no outbox.
+* **NFR-4.14 (One Checked Contract Between Client and Server — new 2026-08-23, owner request):**
+  „ich möchte saubere APIs im Backend, die vom Frontend genutzt werden." The backend's HTTP
+  surface is a **contract**, not a convention: it is described in one machine-readable place,
+  the client's types are **derived from that description rather than written a second time by
+  hand**, and its error vocabulary is a shared enumeration rather than a string literal at each
+  end.
+
+  **What is already good, measured rather than assumed** (2026-08-23, 40 routes): the error
+  *envelope* is uniform — `writeError(status, code, message)` produces
+  `{"error":{"code","message"}}` at **104 call sites, with zero handlers writing a bare error
+  status**, and `APIRequestError` on the client parses exactly that shape. Nothing here asks for
+  a rewrite; the envelope is the part that works.
+
+  **What is not a contract yet, and what it has cost:**
+
+  * **The types are written twice and checked nowhere.** `internal/api`'s Go structs and
+    `client/src/api/types.ts` describe the same wire independently, and nothing compares them.
+    In one week that produced three defects of the same shape — the client reading a `status`
+    key **no server has ever sent** (which made the whole parked-mutation surface dead code
+    whose own fakes kept it green), the client taking `pull_hint.next_cursor` as its pull
+    cursor, and the trip partition answering `500` where the master partition answered
+    `rejected`. Each was found by hand, late, and each was invisible to both sides' test
+    suites, because a fake that agrees with its author agrees with the wrong thing just as
+    happily.
+  * **The 16 error codes are literals at both ends.** `already_reverted` is spelled in
+    `conflicts.go`, again in `ConflictLogPage.vue`, and again in both test files. That screen
+    does it *correctly* — and by discipline, not by construction: nothing would fail if a code
+    were renamed on one side. Per CODING_PRINCIPLES §4a a value compared against belongs in one
+    named place; a wire code is exactly that, and the documented "serialization keys" carve-out
+    covers the *keys*, not a vocabulary the client branches on.
+  * **The route shapes disagree with each other.** `GET /trips/{id}/export.csv` and
+    `export.yaml` put the format in the path, `GET /templates/{id}/export` does not, and
+    `/export/full` is a third shape; conflicts are `/trips/{id}/conflicts` in one partition and
+    `/conflicts/master` in the other. Each is defensible alone; together they mean the surface
+    has to be read rather than predicted.
+
+  **The requirement, then:** one description of the surface that both sides consume, the client
+  types generated from it, the error codes named once and shared, and the route shapes made
+  predictable. **A contract that is not checked by the build is a comment**, so the acceptance
+  test is a CI gate, not a document: a wire change that the client has not followed fails the
+  pipeline rather than the next hand-test.
+
+  **Scope boundary, stated because the phrase invites the other reading (owner, 2026-08-23):**
+  this is about the *contract*, not about moving work to the server. Invariant 4 stands —
+  generation, dependency resolution, quantities, analytics, the review assistant, cloning and
+  import stay in `client/src/domain`, because **Local Mode has no server** and moving any of
+  them server-side silently removes a feature from a supported mode. Whether a particular rule
+  belongs on the server is a separate question, to be asked per rule with that price written
+  out, and this NFR does not open it.
+
+  **Deliberately left open for the implementing round:** whether the description is OpenAPI with
+  generated TypeScript, Go structs annotated and exported, or types generated from the Go source
+  — that is a real tradeoff (a generator and its build step against a hand-kept file that has
+  now drifted three times) and it is owed an **ADR** rather than a decision made in this
+  paragraph. Sync-API-Spec v1.3 stays the prose account of *why* the protocol behaves as it
+  does; what this NFR adds is the machine-checkable *shape* beside it.
+
 * **NFR-4.13 (Installable PWA & App Shell — accepted 2026-08-20):** The web client is installable to the home screen (manifest with the Packed Backpack icon set incl. a maskable variant, `display: standalone`, the Apple tag set, a `theme-color` that follows the FR-21 flavour) and, once opened online, **starts without a network**: a service worker — the same script that carries NFR-4.6's push handlers — precaches the built bundle and answers navigations with the cached shell when the network is gone. The shell cache carries the *bundle only*, never data: `/api`, `/ws` and `/health` are never answered or cached by the worker, because sync consistency belongs to NFR-4.2a and `/health` must always tell the truth about the server. Registration happens unconditionally at app start (not only when push is enabled); on an insecure origin there is no service worker and no install offer, and the app must run exactly as before — plain-HTTP LAN instances stay supported as ordinary websites. **Update policy:** a new version installs in the background and takes over on the next launch — never an unprompted reload; the running app announces it through the G-2 indicator (dot on the glyph, sentence in the detail sheet). Mechanism and tradeoff (hand-rolled worker vs. `vite-plugin-pwa`) are ADR-019. Applies to all three run modes; in Local Mode this closes the gap that the *data* was offline-first while the app itself still needed the network to boot.
 
 ---
