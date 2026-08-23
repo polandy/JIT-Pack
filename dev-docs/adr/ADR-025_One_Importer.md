@@ -36,6 +36,7 @@ Roughly 510 lines of Go implementing about half the rules, several of them contr
 - Literally one implementation of the rules, in the language Local Mode forces them into.
 - The four divergences above disappear by deletion rather than by porting: the CLI writes mutations, so its import is in the feed and on every device by construction.
 - ~510 lines of import and ~330 of export, plus their tests and the `internal/portable` package, are removed rather than doubled.
+- `gopkg.in/yaml.v3` leaves the Go dependency set with the package that used it — the only Go dependency this change touches, and one fewer to keep pinned (NFR-4.3).
 - The format ends up with one reader and one writer, so a file written by JIT-Pack is a file JIT-Pack reads back completely — which is the actual promise of FR-18.1, and the one the server's exporter was quietly breaking.
 - The extraction is what ADR-008 and CLAUDE.md's invariant 4 already claim is true; today the rules sit in a 3600-line composable, which is why nothing could reuse them.
 - The sink boundary is testable with a hand-written fake and no browser at all.
