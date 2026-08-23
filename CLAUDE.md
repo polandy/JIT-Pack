@@ -160,7 +160,10 @@ it. Item numbers stay stable even as items close, because the log refers back to
    `ItemDetailSheet` has no lock awareness, so a locked item is fully editable one tap deeper; no
    screen ever names who holds it; the 15-minute staleness is a client constant where §7 promises
    an environment variable, and the server neither expires a lock nor refuses a push for one.
-   **(e)** NFR-4.2a promises audit **and manual revert**; only the audit exists.
+   ~~**(e)** NFR-4.2a promises audit **and manual revert**~~ — **done** (2026-08-22,
+   ADR-023): a revert is an ordinary mutation with a fresh server HLC, not an undo, so
+   the merge rules can refuse it and each refusal has its own sentence. No schema change
+   was owed — `losing_value` and an unused `reverted` flag were already there.
    Found 2026-08-22 while answering how concurrent packers are kept from overwriting each other.
 
 15. **FR-9.3/9.4 — the trip's feedback is expensive to give and impossible to correct**

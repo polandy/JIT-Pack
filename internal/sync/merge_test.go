@@ -341,3 +341,24 @@ func TestMerge_ResultClocks_StampAppliedFieldsOnly(t *testing.T) {
 		}
 	})
 }
+
+// FR-5.4: state and packed_count are one fact, so anything re-issuing a
+// single logged field has to be told what travels with it.
+func TestGroupedWith_CoupledFieldsTravelTogether(t *testing.T) {
+	cases := []struct {
+		field string
+		want  []string
+	}{
+		{"state", []string{"packed_count", "state"}},
+		{"packed_count", []string{"packed_count", "state"}},
+		{"name", []string{"name"}},
+		{"container_id", []string{"container_id"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.field, func(t *testing.T) {
+			if got := GroupedWith(tc.field); !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("GroupedWith(%q) = %v, want %v", tc.field, got, tc.want)
+			}
+		})
+	}
+}

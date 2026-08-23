@@ -56,6 +56,13 @@ fi
 if [ -n "${E2E_API_PORT:-}" ]; then
   env_flags+=(-e E2E_API_PORT)
 fi
+# Both ports are host ports (--network host), so two worktrees running the
+# suite at once collide on them. Playwright's own message for that names
+# the port and not the cause ("make sure that nothing is running on the
+# port/url"), so the override has to reach the container to be usable.
+if [ -n "${E2E_PORT:-}" ]; then
+  env_flags+=(-e E2E_PORT)
+fi
 
 # --user/HOME keep the report and any trace out of root ownership, which
 # `git worktree remove` would otherwise refuse to clean up.
