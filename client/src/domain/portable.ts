@@ -443,8 +443,8 @@ export function serializeTemplate(
   templateItems: TemplateItem[],
   masterItem: (id: string) => MasterItem | undefined,
   composition: TemplateComposition = {},
-  /** FR-24.1: the master item's tags in position order. */
-  tagsOf: (itemId: string) => string[] = () => [],
+  /** FR-24.1: the master item's tags in position order (required, see serializeTrip). */
+  tagsOf: (itemId: string) => string[],
 ): string {
   const positions = (items: TemplateItem[], tasksOf?: (id: string) => string[]) =>
     items
@@ -520,10 +520,15 @@ export function serializeTrip(args: {
    * The master item a row resolves to. Without it a row that came from the
    * inventory is indistinguishable from one the user typed, and a restore
    * cannot give either back correctly.
+   *
+   * Required rather than optional, and deliberately: an optional resolver is
+   * one a caller can forget, and a file written without it looks complete and
+   * restores incomplete — invisible until somebody needs the backup. The
+   * compiler is what catches that; no test can watch every future call site.
    */
-  masterItem?: (id: string) => MasterItem | undefined
+  masterItem: (id: string) => MasterItem | undefined
   /** FR-24.1: that master item's tags, in position order. */
-  tagsOf?: (itemId: string) => string[]
+  tagsOf: (itemId: string) => string[]
 }): string {
   const travelerNames = new Map(args.travelers.map((t) => [t.id, t.name]))
   const containerNames = new Map(args.containers.map((c) => [c.id, c.name]))
@@ -546,8 +551,8 @@ export function serializeTrip(args: {
       // A row's mark and tags belong to its master item, not to the row: the
       // trip table holds neither, and the restore needs both to give the
       // inventory entry back rather than leave an ad-hoc row behind.
-      const master = item.source_item_id ? args.masterItem?.(item.source_item_id) : undefined
-      const tags = item.source_item_id ? (args.tagsOf?.(item.source_item_id) ?? []) : []
+      const master = item.source_item_id ? args.masterItem(item.source_item_id) : undefined
+      const tags = item.source_item_id ? args.tagsOf(item.source_item_id) : []
       return {
       name: item.name,
       quantity: item.quantity,

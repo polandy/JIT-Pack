@@ -70,6 +70,10 @@ items:
     packed_count: 1
 `
 
+/** Explicitly no marks and no tags, for the cases that assert other things. */
+const noTags = () => []
+const noResolvers = { masterItem: () => undefined, tagsOf: noTags }
+
 describe('parsePortable (FR-18.5)', () => {
   it('parses a template document', () => {
     const result = parsePortable(templateYAML)
@@ -139,7 +143,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
       name: 'Makro',
       kind: 'group',
     }
-    const yaml = serializeTemplate(group, [], () => undefined)
+    const yaml = serializeTemplate(group, [], () => undefined, {}, noTags)
     expect(yaml).toContain('scope: group')
     expect(parsePortable(yaml).doc?.scope).toBe('group')
   })
@@ -193,7 +197,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
       ['i2', masterItem('i2', 'Skibrille')],
     ])
 
-    const yaml = serializeTemplate(template, items, (id) => master.get(id))
+    const yaml = serializeTemplate(template, items, (id) => master.get(id), {}, noTags)
     const result = parsePortable(yaml)
 
     expect(result.error).toBeNull()
@@ -267,7 +271,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
     ]
 
     const withProgress = parsePortable(
-      serializeTrip({ trip, items, travelers, containers, includeProgress: true }),
+      serializeTrip({ trip, items, travelers, containers, includeProgress: true, ...noResolvers }),
     ).doc!
     expect(withProgress).toMatchObject({
       kind: 'trip',
@@ -292,7 +296,7 @@ describe('serialize → parse round-trip (FR-18.2/18.3, Local Mode backup)', () 
     })
 
     const clean = parsePortable(
-      serializeTrip({ trip, items, travelers, containers, includeProgress: false }),
+      serializeTrip({ trip, items, travelers, containers, includeProgress: false, ...noResolvers }),
     ).doc!
     expect(clean.items[0]!.packed_count).toBeNull()
   })
@@ -403,7 +407,7 @@ describe('the composition travels with the file (FR-27.1/27.7, ADR-017)', () => 
     // FR-18.2's promise is that it lands anywhere.
     const yaml = serializeTemplate(vorlage, [position('p-med', 'v1', 'i-med')], byId, {
       includes: [{ template: macro, items: [position('p-cam', 'g1', 'i-cam')], tasks: () => [] }],
-    })
+    }, noTags)
 
     const doc = parsePortable(yaml).doc
     expect(doc?.includes.map((g) => g.name)).toEqual(['Makro Fotografie'])
@@ -415,7 +419,7 @@ describe('the composition travels with the file (FR-27.1/27.7, ADR-017)', () => 
   it('carries a position’s preparation tasks (FR-27.7)', () => {
     const yaml = serializeTemplate(macro, [position('p-cam', 'g1', 'i-cam')], byId, {
       tasks: (positionId) => (positionId === 'p-cam' ? ['Akkus laden'] : []),
-    })
+    }, noTags)
 
     expect(parsePortable(yaml).doc?.items[0]!.tasks).toEqual(['Akkus laden'])
   })
@@ -437,6 +441,7 @@ describe('the composition travels with the file (FR-27.1/27.7, ADR-017)', () => 
           },
         ],
       },
+      noTags,
     )
 
     const doc = parsePortable(yaml).doc

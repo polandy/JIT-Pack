@@ -238,8 +238,7 @@ function exportTripYAML() {
     travelers: tripStore.getTravelers(trip.id),
     containers: tripStore.getContainers(trip.id),
     includeProgress: true,
-    masterItem: (id) => masterStore.getItem(id),
-    tagsOf: (id) => masterStore.getItemTags(id).map((t) => t.name),
+    ...masterStore.portableResolvers(),
   })
   saveText(yaml, `${safeFilename(trip.name)}.yaml`)
   recordBackup()
@@ -251,9 +250,9 @@ function exportTemplateYAML() {
   const yaml = serializeTemplate(
     template,
     masterStore.getTemplateItems(template.id),
-    (id) => masterStore.getItem(id),
+    masterStore.portableResolvers().masterItem,
     compositionFrom(template, masterStore.compositionSource()),
-    (id) => masterStore.getItemTags(id).map((t) => t.name),
+    masterStore.portableResolvers().tagsOf,
   )
   saveText(yaml, `${safeFilename(template.name)}.yaml`)
   recordBackup()

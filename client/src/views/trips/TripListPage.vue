@@ -332,8 +332,7 @@ async function exportTrip(trip: Trip) {
     travelers: store.getTravelers(trip.id),
     containers: store.getContainers(trip.id),
     includeProgress: data,
-    masterItem: (id) => masterStore.getItem(id),
-    tagsOf: (id) => masterStore.getItemTags(id).map((t) => t.name),
+    ...masterStore.portableResolvers(),
   })
   saveText(yaml, `${safeFilename(trip.name)}.yaml`)
 }
