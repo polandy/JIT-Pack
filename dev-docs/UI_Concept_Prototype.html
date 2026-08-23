@@ -763,7 +763,7 @@ body{
     <div><span class="dot" style="background:var(--green)"></span> Fortschritt & gepackt</div>
     <div><span class="dot" style="background:var(--mauve)"></span> Serie / Kontext</div>
   </div>
-  <p><small>Palette: Catppuccin Mocha (die echte App-Theme, FR-21). Skizze zum Feilen — noch nicht die gebaute App.</small></p>
+  <p><small>Palette: Catppuccin Mocha (the real app theme, FR-21). A sketch to refine — not the built app.</small></p>
 </div>
 
 <div class="device"><div class="screen">
@@ -1737,8 +1737,8 @@ function addPerPerson(){
   snack(`„${name}“ hinzugefügt — ${label}`);
 }
 /* ============ FR-27.10: add a whole group while the trip runs ============ */
-/* Owner request 2026-08-08 ("ich möchte auch in den Ferien eine Gruppe von
-   Pack-Elementen hinzufügen können, bspw. Makro Fotografie"). Not every scope
+/* Owner request 2026-08-08: to be able to add a group of packing elements
+   while already on the trip, macro photography for instance. Not every scope
    decision is made at trip creation — you decide on site that you will shoot
    macro this time. The same quick-add answers it (FR-25.13 pattern, verbatim):
    typing filters groups alongside items, one tap expands the whole group. */
@@ -2355,8 +2355,8 @@ function renderTplList(){
   const el=document.getElementById('tplList'); if(!el)return;
   if(!list.length){ el.innerHTML=`<div class="card"><div class="li"><div class="grow muted" style="text-align:center;padding:8px">Keine Vorlage gefunden.</div></div></div>`; }
   else if(W.tplTab==='all'||W.tplTab==='season'){
-    /* FR-27.6: the owner's flow is "eine Ferien-Vorlage wählen und zusätzliche
-       Gruppen" — so the two scopes are visibly separate sections here too. */
+    /* FR-27.6: the owner's flow is picking one vacation template plus additional
+       groups — so the two scopes are visibly separate sections here too. */
     const tpls=list.filter(t=>tplKind(t)==='template'), grps=list.filter(t=>tplKind(t)==='group');
     el.innerHTML=
       (tpls.length?`<div class="grouphead">Ferien-Vorlagen<span class="n">${tpls.length}</span></div><div class="card">${tpls.map(wTplRowHTML).join('')}</div>`:'')+

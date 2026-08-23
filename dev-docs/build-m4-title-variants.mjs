@@ -317,126 +317,127 @@ body{padding:0;margin:0;display:block;background:var(--crust);min-height:100dvh}
 <div class="pv-wrap">
 
   <div class="pv-head">
-    <div class="k">M4 · Variantenrunde</div>
-    <h1>Die Reise heißt „S…“</h1>
-    <p>Seit der Lebenszyklus-Schritt aus PR&nbsp;#115 (FR-27.5) in der App-Leiste sitzt, teilen sich
-      dort bei 390&nbsp;px ein Zurück-Chevron, der Reisename und <b>sechs Icons</b> eine Zeile. Aus
-      der Visual-Baseline <code>m4-list-visual-mobile</code> gemessen: die Icon-Mitten liegen bei
-      28 · 129 · 181 · 227 · 275 · 319 · 360, dem Titel bleiben <b>54&nbsp;px</b>. Er rendert als
-      <em>S…</em>. Die Leiste in jedem Mockup unten hat exakt diese Geometrie.</p>
-    <p>Der eigentliche Befund ist aber nicht die Kürzung. Die UI-Spec beschreibt für M4
-      <b>eine Kopfzeile — „Reisename · gepackt/gesamt · Gewicht · offene Prep“</b>. Beim Rebuild ist
-      der Name aus dieser Zeile gefallen und lebt seither ausschließlich in der App-Leiste — also an
-      dem einen Ort, der keinen Platz dafür hat. Die Frage ist deshalb nicht, wie man kürzt, sondern
-      <b>wo die Identität des Screens wohnt</b>.</p>
+    <div class="k">M4 · variant round</div>
+    <h1>The trip is called „S…“</h1>
+    <p>Ever since the lifecycle step from PR&nbsp;#115 (FR-27.5) moved into the app bar, a back
+      chevron, the trip name and <b>six icons</b> share one line at 390&nbsp;px. Measured from the
+      visual baseline <code>m4-list-visual-mobile</code>: the icon centres sit at
+      28 · 129 · 181 · 227 · 275 · 319 · 360, leaving the title <b>54&nbsp;px</b>. It renders as
+      <em>S…</em>. The bar in every mockup below has exactly that geometry.</p>
+    <p>The real finding is not the truncation, though. The UI spec describes <b>one header line</b>
+      for M4 — „Reisename · gepackt/gesamt · Gewicht · offene Prep“. During the rebuild the name
+      fell out of that line and has lived in the app bar alone ever since — the one place with no
+      room for it. So the question is not how to truncate, but <b>where the identity of the screen
+      lives</b>.</p>
   </div>
 
   <div class="pv-rules">
-    <h3>Was nicht zur Disposition steht</h3>
+    <h3>What is not up for discussion</h3>
     <ul>
-      <li><b>G-9:</b> genau <em>eine</em> Kopfleiste in der App; Sync-Glyphe und Einstellungen stehen
-        auf <em>jedem</em> Screen rechts — das hält das Konfliktprotokoll aus der Reise heraus erreichbar.</li>
-      <li><b>G-12 / FR-25.11k:</b> kein ⋯-Overflow. „Hinter drei Punkte“ ist genau die Stelle, an der
-        das Konzepttest-Publikum die Nebenansichten nie gefunden hat.</li>
-      <li><b>Die Reise-Zeile klappt beim Scrollen weg</b> — das war 2026-08-07 das Argument, die
-        Werkzeuge überhaupt in die App-Leiste zu heben.</li>
+      <li><b>G-9:</b> exactly <em>one</em> header bar in the app; the sync glyph and settings sit on
+        the right of <em>every</em> screen — that keeps the conflict log reachable from outside the
+        trip.</li>
+      <li><b>G-12 / FR-25.11k:</b> no ⋯ overflow. Behind three dots is exactly where the
+        concept-test audience never found the side views.</li>
+      <li><b>The trip line folds away on scroll</b> — that was the 2026-08-07 argument for lifting
+        the tools into the app bar in the first place.</li>
     </ul>
   </div>
 
   <div class="pv-sect">
-    <h2>Ist-Zustand</h2>
-    <p>Zum Vergleich, mit den gemessenen Abständen. Sechs Icons, ein Buchstabe.</p>
+    <h2>Current state</h2>
+    <p>For comparison, with the measured spacings. Six icons, one letter.</p>
     <div class="pv-grid">
       ${col(
-        'heute',
-        'Der Name verliert gegen den Cluster',
-        `<p>Der Reisename steht nur hier oben, und hier oben ist er zu Ende. Die Kopfzeile darunter
-          trägt Fortschritt, Gewicht, Prep und die drei Nebenansichten — <b>keinen Namen</b>.</p>`,
-        'Die Reise ist auf dem eigenen Screen nicht benannt.',
+        'today',
+        'The name loses against the cluster',
+        `<p>The trip name is only up here, and up here it runs out. The header line below carries
+          progress, weight, prep and the three side views — <b>no name</b>.</p>`,
+        'The trip is not named on its own screen.',
         IST,
       )}
     </div>
   </div>
 
   <div class="pv-sect">
-    <h2>Die vier Formen</h2>
-    <p>A und B holen den Namen in die Kopfzeile, wo die Spec ihn ohnehin hinschreibt. C entlastet nur
-      die Leiste. D dreht die Zuordnung um: der Titel bleibt oben, die Listenwerkzeuge ziehen nach unten.</p>
+    <h2>The four forms</h2>
+    <p>A and B pull the name into the header line, where the spec puts it anyway. C only relieves the
+      bar. D reverses the assignment: the title stays up top and the list tools move down.</p>
     <div class="pv-grid">
       ${col(
-        'Variante A',
-        'Der Name führt die Kopfzeile, die App-Leiste trägt keinen Titel',
-        `<p>Ein Titel, der auf einen Buchstaben schrumpft, ist keiner — also gibt die App-Leiste ihn
-          auf und behält den Zurück-Chevron. Der Name führt stattdessen die Zeile darunter, in der
-          Display-Schrift, in voller Länge. Alles bleibt einzeilig.</p>`,
-        'Die Prep-Zahl verliert ihren Platz, und beim Scrollen ist der Name weg.',
+        'Variant A',
+        'The name leads the header line, the app bar carries no title',
+        `<p>A title that shrinks to one letter is not a title — so the app bar gives it up and keeps
+          the back chevron. The name leads the line below instead, in the display face, at full
+          length. Everything stays on one line.</p>`,
+        'The prep number loses its place, and on scroll the name is gone.',
         A,
       )}
       ${col(
-        'Variante B',
-        'Wie A, aber die Zeile kondensiert statt zu verschwinden',
-        `<p>Zeile eins nennt Reise und Nebenansichten, Zeile zwei die Zahlen und die Facepile. Beim
-          Scrollen klappt nicht alles weg, sondern es bleibt eine schlanke Zeile stehen:
-          <b>Samedan 2026 · 12/38</b>. Der Name ist damit <em>immer</em> zu sehen — was heute selbst
-          im ungescrollten Zustand nicht stimmt.</p>`,
-        'Rund 34 px dauerhaft weniger Liste; zwei Zeilen statt der einen, die die Spec nennt.',
+        'Variant B',
+        'Like A, but the line condenses instead of disappearing',
+        `<p>Line one names the trip and the side views, line two the numbers and the facepile. On
+          scroll not everything folds away; a slim line stays behind:
+          <b>Samedan 2026 · 12/38</b>. The name is therefore <em>always</em> visible — which is not
+          even true today in the unscrolled state.</p>`,
+        'Roughly 34 px less list permanently; two lines instead of the one the spec names.',
         B,
       )}
       ${col(
-        'Variante C',
-        'Nur entlasten: ▷ zieht zu den Reise-Icons',
-        `<p>Der kleinste Eingriff. Start und Archivieren sind reisebezogen wie 🛒🧳📊 und gehören zu
-          denen; die App-Leiste behält die Listenwerkzeuge und den Titel. Ehrlich gerendert:
-          <b>ein Icon weniger macht aus „S…“ ein „Samed…“.</b></p>`,
-        'Löst die Kürzung nicht — sie wird nur eine Silbe länger.',
+        'Variant C',
+        'Relieve only: ▷ moves to the trip icons',
+        `<p>The smallest intervention. Start and archive are trip-scoped like 🛒🧳📊 and belong with
+          them; the app bar keeps the list tools and the title. Honestly rendered:
+          <b>one icon fewer turns „S…“ into „Samed…“.</b></p>`,
+        'Does not solve the truncation — it just gets one syllable longer.',
         C,
       )}
       ${col(
-        'Variante D',
-        'Der Titel bleibt oben, die Werkzeuge ziehen nach unten',
-        `<p>Umgekehrte Zuordnung: die App-Leiste trägt, wozu G-9 sie erklärt — Zurück, Titel, Sync,
-          Einstellungen — plus den einen Lebenszyklus-Schritt. Suche, Filter und Falten sitzen auf
-          einer eigenen Werkzeugzeile, die <em>nicht</em> mitklappt. Der Reisename steht vollständig
-          da, wo man ihn sucht.</p>`,
-        'Öffnet die G-12-Entscheidung vom 2026-08-07 neu — deren Begründung („die Unterzeile rutscht beim Scrollen weg“) trifft auf diese Zeile allerdings nicht zu.',
+        'Variant D',
+        'The title stays up top, the tools move down',
+        `<p>The reverse assignment: the app bar carries what G-9 declares it for — back, title, sync,
+          settings — plus the one lifecycle step. Search, filter and fold sit on a tool row of their
+          own that does <em>not</em> fold away with the rest. The trip name stands in full where
+          people look for it.</p>`,
+        'Reopens the G-12 decision of 2026-08-07 — whose reasoning (the sub-line slides away on scroll) does not apply to this row, however.',
         D,
       )}
     </div>
   </div>
 
   <div class="pv-sect">
-    <h2>Nebeneinander</h2>
+    <h2>Side by side</h2>
     <div class="pv-scroll">
       <table class="pv-table">
         <thead><tr>
-          <th>Variante</th><th>Name ungescrollt</th><th>Name gescrollt</th>
-          <th>Icons in der Leiste</th><th>Was es kostet</th>
+          <th>Variant</th><th>Name unscrolled</th><th>Name scrolled</th>
+          <th>Icons in the bar</th><th>What it costs</th>
         </tr></thead>
         <tbody>
-          <tr><td>Heute</td><td class="no">„S…“</td><td class="no">„S…“</td><td>6</td>
-            <td>Der Screen benennt seine Reise nicht.</td></tr>
-          <tr><td>A</td><td class="yes">vollständig</td><td class="no">weg</td><td>6</td>
-            <td>Prep-Zahl fällt aus der Zeile.</td></tr>
-          <tr><td>B</td><td class="yes">vollständig</td><td class="yes">vollständig</td><td>6</td>
-            <td>~34 px Liste, zweizeilige Kopfzeile.</td></tr>
+          <tr><td>Today</td><td class="no">„S…“</td><td class="no">„S…“</td><td>6</td>
+            <td>The screen does not name its trip.</td></tr>
+          <tr><td>A</td><td class="yes">full</td><td class="no">gone</td><td>6</td>
+            <td>The prep number falls out of the line.</td></tr>
+          <tr><td>B</td><td class="yes">full</td><td class="yes">full</td><td>6</td>
+            <td>~34 px of list, a two-line header.</td></tr>
           <tr><td>C</td><td class="no">„Samed…“</td><td class="no">„Samed…“</td><td>5</td>
-            <td>Nichts — löst aber auch nichts.</td></tr>
-          <tr><td>D</td><td class="yes">vollständig</td><td class="yes">vollständig</td><td>3</td>
-            <td>G-12 wird neu verhandelt.</td></tr>
+            <td>Nothing — but it solves nothing either.</td></tr>
+          <tr><td>D</td><td class="yes">full</td><td class="yes">full</td><td>3</td>
+            <td>G-12 is renegotiated.</td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
   <div class="pv-close">
-    <h2>Was zu entscheiden ist</h2>
-    <p><b>Eine Frage, nicht zwei:</b> gehört der Reisename in die App-Leiste (dann müssen dort Icons
-      weichen — D) oder in die Kopfzeile (dann darf die App-Leiste auf M4 titellos bleiben — A/B)?
-      C ist die Antwort „keins von beidem“ und ist mit aufgenommen, damit sie sichtbar
-      danebensteht statt unausgesprochen zu bleiben.</p>
-    <p>Alle vier sind ohne Backend, ohne Schema und ohne neue Abhängigkeit zu bauen. A und C sind je
-      ein halber Tag, B kommt die Scroll-Kondensation dazu, D zusätzlich die UI-Spec-Änderung an
-      G-12 samt Begründung — bei D ist die Spec-Arbeit der größere Teil.</p>
+    <h2>What has to be decided</h2>
+    <p><b>One question, not two:</b> does the trip name belong in the app bar (then icons have to
+      give way there — D) or in the header line (then the app bar may stay untitled on M4 — A/B)?
+      C is the answer "neither", and it is included so that it stands there visibly instead of
+      remaining unspoken.</p>
+    <p>All four are buildable with no backend, no schema and no new dependency. A and C are half a
+      day each, B adds the scroll condensation, and D additionally the UI-spec change to G-12 with
+      its reasoning — with D the spec work is the larger part.</p>
   </div>
 
 </div>

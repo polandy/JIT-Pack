@@ -785,28 +785,26 @@ table.cmp th{color:var(--text);font:600 12px/1 var(--ui);letter-spacing:.06em;te
 <body>
 <div class="vwrap">
   <div class="vhead">
-    <h1>„Bewusst nicht einpacken“ — es gibt den Zustand, nur keinen Weg dorthin</h1>
-    <p>FR-5.5 trennt <em>vergessen</em> von <em>entschieden</em>. Der Zustand ist gebaut: eine
-      übersprungene Zeile zählt als erledigt, wird durchgestrichen gezeigt und von FR-25.2
-      mit den gepackten versteckt; <code>skipItem</code>/<code>unskipItem</code> existieren
-      samt FR-20.2-Kaskade.</p>
-    <p><strong>Der Befund beim Nachsehen ist nicht „es fehlt“, sondern „es ist unsichtbar und
-      kaputt“:</strong> die Aktion hängt an einem blossen Ionic-Wisch, den nichts ankündigt — und
-      wenn er aufgeht, bricht er aus dem M4-Kärtchen aus: eckiges Panel bis an den Bildschirmrand,
-      die Zeile verliert ihren Stepper. Genau der Fehler, an dem der Wisch schon in der
-      M7-Runde gescheitert ist. Die Frage ist also nicht nur <em>ob</em> ein Bedienweg dazukommt,
-      sondern <em>welcher an seine Stelle tritt</em>.</p>
+    <h1>„Bewusst nicht einpacken“ — the state exists, the way to it does not</h1>
+    <p>FR-5.5 separates <em>forgotten</em> from <em>decided</em>. The state is built: a skipped row
+      counts as done, is shown struck through and is hidden with the packed ones by FR-25.2;
+      <code>skipItem</code>/<code>unskipItem</code> exist, cascade (FR-20.2) included.</p>
+    <p><strong>The finding on inspection is not "it is missing" but "it is invisible and
+      broken":</strong> the action hangs on a bare Ionic swipe that nothing announces — and when it
+      opens, it breaks out of the M4 card: a square panel running to the edge of the screen, and the
+      row loses its stepper. Exactly the fault the swipe already failed on in the M7 round. So the
+      question is not only <em>whether</em> a control is added, but <em>which one takes its
+      place</em>.</p>
   </div>
 
   <div class="vgrid">
     <div class="vcol">
-      <div class="vcap"><span class="k">Variante A</span>
-        <h2>Langdruck-Menü auf der Zeile</h2>
-        <p>Halten öffnet dasselbe Aktionsblatt, das M7 seit der A2-Runde benutzt: packen,
-          zuweisen, <em>nicht einpacken</em>. Auf einer weggelassenen Zeile heisst der
-          Eintrag „Doch einpacken“.</p>
-        <p class="cost">Kosten: eine Geste, die man kennen muss — aber eine, die es hier
-          schon gibt und die nichts kaputt macht.</p>
+      <div class="vcap"><span class="k">Variant A</span>
+        <h2>Press-and-hold menu on the row</h2>
+        <p>Holding opens the same action sheet M7 has used since the A2 round: pack, assign,
+          <em>do not pack</em>. On a skipped row the entry reads „Doch einpacken“.</p>
+        <p class="cost">Cost: a gesture you have to know — but one that already exists here and
+          breaks nothing.</p>
       </div>
 <div class="phone">
   <div class="bar">M4 · Kleidung</div>
@@ -839,13 +837,13 @@ table.cmp th{color:var(--text);font:600 12px/1 var(--ui);letter-spacing:.06em;te
     </div>
 
     <div class="vcol">
-      <div class="vcap"><span class="k">Variante B</span>
-        <h2>Der Wisch, repariert und benannt</h2>
-        <p>Bleibt beim Bestehenden, behebt aber beide Mängel: das Panel wird ins Kärtchen
-          gezwungen, und die Beschriftung wird zur <em>Handlung</em> („Nicht einpacken“ statt
-          des Zustandsnamens „Bewusst weggelassen“). Dazu ein einmaliger Hinweisstreifen.</p>
-        <p class="cost">Kosten: eine erklärungsbedürftige Geste bleibt erklärungsbedürftig —
-          der Streifen ist das Eingeständnis.</p>
+      <div class="vcap"><span class="k">Variant B</span>
+        <h2>The swipe, repaired and named</h2>
+        <p>Keeps what is there but fixes both defects: the panel is forced into the card, and the
+          label becomes an <em>action</em> („Nicht einpacken“ instead of the state name
+          „Bewusst weggelassen“). Plus a one-time hint strip.</p>
+        <p class="cost">Cost: a gesture that needs explaining still needs explaining — the strip is
+          the admission.</p>
       </div>
 <div class="phone">
   <div class="bar">M4 · Kleidung</div>
@@ -865,20 +863,20 @@ table.cmp th{color:var(--text);font:600 12px/1 var(--ui);letter-spacing:.06em;te
     <div class="grow"><div class="nm">Sonnenhut</div></div>
     
   </div></div>
-    <div class="note">Der Wisch bleibt <em>im</em> Kärtchen: gleiche Rundung, gleicher
-      Einzug. Heute reisst er aus — das ist der Befund oben.</div>
+    <div class="note">The swipe stays <em>inside</em> the card: same radius, same inset.
+      Today it breaks out — that is the finding above.</div>
     <div class="hintbar">Tipp: nach links wischen lässt eine Sache bewusst weg. <span class="x">✕</span></div>
   </div>
 </div>
     </div>
 
     <div class="vcol">
-      <div class="vcap"><span class="k">Variante C</span>
-        <h2>Im M5-Sheet, als dritter Zustand</h2>
-        <p>Das Detail-Sheet zeigt den Zustand ohnehin als Chip. Hier wird er bedienbar:
-          offen · gepackt · weggelassen, ein Zug. Nichts versteckt, alles benannt.</p>
-        <p class="cost">Kosten: zwei Taps und ein Screenwechsel für etwas, das beim
-          Durchgehen der Liste passiert.</p>
+      <div class="vcap"><span class="k">Variant C</span>
+        <h2>In the M5 sheet, as a third state</h2>
+        <p>The detail sheet shows the state as a chip anyway. Here it becomes operable:
+          offen · gepackt · weggelassen, one move. Nothing hidden, everything named.</p>
+        <p class="cost">Cost: two taps and a screen change for something that happens while going
+          down the list.</p>
       </div>
 <div class="phone">
   <div class="bar">M5 · Regenjacke</div>
@@ -893,21 +891,21 @@ table.cmp th{color:var(--text);font:600 12px/1 var(--ui);letter-spacing:.06em;te
       </div>
       <div class="frow"><span class="lbl">Menge</span><span class="val">0 von 3</span></div>
       <div class="frow"><span class="lbl">Weil</span><span class="val">bewusst entschieden</span></div>
-      <div class="note2">Ausgegraut in der Liste, zählt als erledigt (FR-25.2),
-        jederzeit wieder auf <em>offen</em>.</div>
+      <div class="note2">Greyed out in the list, counts as done (FR-25.2), and can go back to
+        <em>offen</em> at any time.</div>
     </div>
   </div>
 </div>
     </div>
 
     <div class="vcol">
-      <div class="vcap"><span class="k">Variante D</span>
-        <h2>Die Null im Stepper</h2>
-        <p>Gar keine neue Bedienung: langes Drücken auf „−“ setzt die Menge schon heute auf
-          0. Menge 0 <em>wird</em> künftig „bewusst weggelassen“ — so, wie FR-5.5 es
-          wörtlich definiert.</p>
-        <p class="cost">Kosten: eine Null kann auch „ich weiss noch nicht“ heissen; die
-          Bedeutung wird der Nutzerin untergeschoben statt von ihr gewählt.</p>
+      <div class="vcap"><span class="k">Variant D</span>
+        <h2>The zero in the stepper</h2>
+        <p>No new control at all: holding „−“ already sets the quantity to 0 today. Quantity 0
+          <em>becomes</em> „bewusst weggelassen“ in future — exactly as FR-5.5 defines it
+          literally.</p>
+        <p class="cost">Cost: a zero can also mean "I don't know yet"; the meaning is imposed on the
+          user rather than chosen by her.</p>
       </div>
 <div class="phone">
   <div class="bar">M4 · Kleidung</div>
@@ -927,31 +925,31 @@ table.cmp th{color:var(--text);font:600 12px/1 var(--ui);letter-spacing:.06em;te
     <div class="grow"><div class="nm">Sonnenhut</div><div class="sub">bewusst weggelassen</div></div>
     <span class="chipx skip">weggelassen</span>
   </div></div>
-    <div class="note">Keine neue Geste: die Null <em>ist</em> die Entscheidung.
-      FR-5.5 definiert übersprungen genau so — „Menge 0“.</div>
+    <div class="note">No new gesture: the zero <em>is</em> the decision. FR-5.5 defines skipped
+      exactly that way — „Menge 0“.</div>
   </div>
 </div>
     </div>
   </div>
 
   <div class="shared">
-    <h2>Was in jeder Variante gleich bleibt</h2>
-    <p>Vier Fragen, die die Hintergrund-Notiz stellt, und die unabhängig von der gewählten
-      Geste beantwortet werden müssen:</p>
+    <h2>What stays the same in every variant</h2>
+    <p>Four questions the background note raises, which have to be answered whichever gesture is
+      chosen:</p>
     <ul>
-      <li><strong>Menge 0 ist nicht dasselbe wie weggelassen.</strong> Die Null ist ein
-        Zählerstand, „weggelassen“ eine Entscheidung. Wer skippt, bekommt beides
-        (<code>state='skipped'</code> und Menge 0, wie <code>skipItem</code> es heute schreibt);
-        wer nur zählt, bekommt nur die Null.</li>
-      <li><strong>Zurücknehmen liest sich als Gegenteil,</strong> nicht als „Rückgängig“:
-        „Doch einpacken“ stellt die Zeile auf offen mit Menge 1 (FR-5.5).</li>
-      <li><strong>Die FR-20.2-Kaskade sagt, was sie mitgenommen hat.</strong> Heute schweigt
-        sie: wer die Drohne weglässt, verliert Akku und Ladegerät stumm. Sie gehört in
-        denselben Snackbar-Mechanismus, den FR-25.2 fürs Packen gebaut hat — eine Meldung,
-        ein Rückgängig, das die ganze Kaskade zurücknimmt.</li>
-      <li><strong>Weggelassen bleibt sichtbar erklärbar:</strong> die Zeile taucht über den
-        <em>Erledigte</em>-Schalter wieder auf, durchgestrichen und mit ihrem Grund
-        („bewusst weggelassen“ bzw. „weggelassen: Drohne nicht dabei“).</li>
+      <li><strong>Quantity 0 is not the same as skipped.</strong> The zero is a counter reading,
+        „weggelassen“ is a decision. Skipping produces both (<code>state='skipped'</code> and
+        quantity 0, as <code>skipItem</code> writes it today); counting down produces only the
+        zero.</li>
+      <li><strong>Undoing reads as the opposite,</strong> not as „Rückgängig“: „Doch einpacken“
+        puts the row back to open with quantity 1 (FR-5.5).</li>
+      <li><strong>The FR-20.2 cascade says what it took with it.</strong> Today it is silent:
+        skipping the drone loses the battery and the charger without a word. It belongs in the same
+        snackbar mechanism FR-25.2 built for packing — one message, one undo that takes the whole
+        cascade back.</li>
+      <li><strong>Skipped stays visibly explainable:</strong> the row reappears through the
+        <em>Erledigte</em> switch, struck through and carrying its reason („bewusst weggelassen“ or
+        „weggelassen: Drohne nicht dabei“).</li>
     </ul>
     
 <div class="toastwrap">
@@ -961,20 +959,20 @@ table.cmp th{color:var(--text);font:600 12px/1 var(--ui);letter-spacing:.06em;te
   </div>
 </div>
 
-    <h2 style="margin-top:30px">Gegenüberstellung</h2>
+    <h2 style="margin-top:30px">Side by side</h2>
     <table class="cmp">
-      <tr><th></th><th>auffindbar</th><th>schnell in Folge</th><th>Bruch am Kärtchen</th><th>neu zu bauen</th></tr>
-      <tr><td>A Langdruck</td><td>mittel — Geste, aber hausüblich</td><td>ja</td><td>nein</td><td>Menü an M4</td></tr>
-      <tr><td>B Wisch</td><td>gering</td><td>ja</td><td>ja, muss behoben werden</td><td>Layoutfix + Hinweis</td></tr>
-      <tr><td>C M5-Sheet</td><td>hoch</td><td>nein</td><td>nein</td><td>Zustandsleiste</td></tr>
-      <tr><td>D Stepper-Null</td><td>gering</td><td>ja</td><td>nein</td><td>Bedeutung der Null</td></tr>
+      <tr><th></th><th>discoverable</th><th>fast in a run</th><th>breaks the card</th><th>to build</th></tr>
+      <tr><td>A press-and-hold</td><td>medium — a gesture, but a house one</td><td>yes</td><td>no</td><td>menu on M4</td></tr>
+      <tr><td>B swipe</td><td>low</td><td>yes</td><td>yes, must be fixed</td><td>layout fix + hint</td></tr>
+      <tr><td>C M5 sheet</td><td>high</td><td>no</td><td>no</td><td>state bar</td></tr>
+      <tr><td>D stepper zero</td><td>low</td><td>yes</td><td>no</td><td>meaning of the zero</td></tr>
     </table>
-    <p style="margin-top:14px"><strong>Empfehlung: A und C zusammen</strong> — dieselbe
-      Arbeitsteilung, die M7/M8 schon tragen. Das Langdruck-Menü ist der schnelle Weg beim
-      Durchgehen der Liste, das Sheet der auffindbare, der sich selbst erklärt; beide rufen
-      dieselbe Mutation. Der kaputte Wisch fällt dabei weg, statt repariert zu werden — die
-      M4-Zeile behält damit genau eine Geste weniger, und die verbleibende ist die, die im
-      Produkt schon woanders gilt. D bleibt draussen, weil eine Null keine Entscheidung ist.</p>
+    <p style="margin-top:14px"><strong>Recommendation: A and C together</strong> — the same division
+      of labour M7/M8 already carry. The press-and-hold menu is the fast way while going down the
+      list, the sheet is the discoverable one that explains itself; both call the same mutation. The
+      broken swipe is dropped rather than repaired — the M4 row then carries exactly one gesture
+      fewer, and the remaining one is the gesture the product already uses elsewhere. D stays out,
+      because a zero is not a decision.</p>
   </div>
 </div>
 </body></html>

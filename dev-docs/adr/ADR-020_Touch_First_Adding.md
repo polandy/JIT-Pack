@@ -10,7 +10,7 @@
 4. Scaling to a grown inventory.
 
 The round was decided on rendered mockups in the app's own token system
-(artifact "Vorlage füllen ohne Tastatur", 2026-08-21), not on descriptions —
+(artifact "Filling a template without a keyboard", 2026-08-21), not on descriptions —
 the G-14 lesson applied to a concept decision.
 
 ---
