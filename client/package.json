@@ -15,7 +15,9 @@
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/"
+    "format": "prettier --write --experimental-cli src/",
+    "build:cli": "vite build --config vite.cli.config.ts",
+    "import": "node dist-cli/jitpack-import.mjs"
   },
   "dependencies": {
     "@ionic/vue": "^8.8.16",

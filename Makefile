@@ -113,7 +113,7 @@ tidy-check:
 ## --- client job -----------------------------------------------------------
 # CI lints without --fix; the package scripts fix in place. Check, don't fix,
 # so the local run fails on the same things CI does.
-client: client-lint client-tokens client-marks client-build client-devcode client-test
+client: client-lint client-tokens client-marks client-build client-cli client-devcode client-test
 
 # `npm ci` is CI's first client step. Locally it only needs to rerun when the
 # lockfile moved, so hang it off the stamp npm itself writes — otherwise every
@@ -145,6 +145,12 @@ client-marks:
 
 client-build: $(CLIENT_DEPS)
 	cd client && $(RUN) npm run build
+
+# The FR-18.7 import command is built from the same sources as the app and is
+# the only consumer of `client/src/domain/portableImport.ts` outside it — if it
+# stops building, the one-implementation rule (ADR-025) has quietly broken.
+client-cli: $(CLIENT_DEPS)
+	cd client && $(RUN) npm run build:cli
 
 # After client-build: it reads what the build actually emitted.
 client-devcode:
