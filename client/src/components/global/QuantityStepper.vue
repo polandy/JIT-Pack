@@ -15,6 +15,8 @@ import { t } from '@/i18n'
 const props = defineProps<{
   quantity: number
   packed: number
+  /** G-3: somebody else holds this row, so it reads but does not write. */
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -64,15 +66,20 @@ function onMinusUp() {
 
 <template>
   <!-- qty=1: checkbox -->
-  <div v-if="isCheckbox" class="stepper-checkbox" data-testid="row-check" @click="emit('toggle')">
-    <IonCheckbox :checked="isComplete" :indeterminate="false" />
+  <div
+    v-if="isCheckbox"
+    class="stepper-checkbox"
+    data-testid="row-check"
+    @click="disabled || emit('toggle')"
+  >
+    <IonCheckbox :checked="isComplete" :indeterminate="false" :disabled="disabled" />
   </div>
 
   <!-- qty>1: stepper -->
   <div v-else class="stepper">
     <button
       class="stepper-btn"
-      :disabled="packed <= 0"
+      :disabled="disabled || packed <= 0"
       @pointerdown="onMinusDown"
       @pointerup="onMinusUp"
       @pointerleave="onMinusUp"
@@ -86,7 +93,7 @@ function onMinusUp() {
     </span>
     <button
       class="stepper-btn"
-      :disabled="packed >= quantity"
+      :disabled="disabled || packed >= quantity"
       @pointerdown="onPlusDown"
       @pointerup="onPlusUp"
       @pointerleave="onPlusUp"

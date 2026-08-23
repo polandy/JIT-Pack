@@ -40,6 +40,7 @@ import {
   closeOutline,
   refreshOutline,
   linkOutline,
+  lockClosedOutline,
   locationOutline,
   removeCircleOutline,
   timeOutline,
@@ -80,6 +81,27 @@ const travelers = computed(() => tripStore.getTravelers(props.tripId))
 const containers = computed(() => tripStore.getContainers(props.tripId))
 const isActive = computed(() => trip.value?.status === 'active')
 
+/**
+ * G-3: while somebody else is packing this row, the sheet is a view of it
+ * and nothing more. The padlock used to stop at M4's row, so one tap
+ * deeper handed over every control — the exact collision G-3 exists to
+ * prevent, and the harder one to notice, because the sheet accepted the
+ * edit and the other device simply lost it at the next merge.
+ *
+ * The whole sheet goes read-only rather than the packing block alone:
+ * G-3 says "non-interactive for others except viewing", and a mode where
+ * the quantity is frozen but the container is not would be a third state
+ * nobody has a mental model for.
+ */
+const lockedByUserId = computed(() =>
+  item.value ? orchestrator.lockHolder(props.tripId, item.value) : null,
+)
+const isLocked = computed(() => lockedByUserId.value !== null)
+const lockNotice = computed(() => {
+  const who = nameOf(lockedByUserId.value || null)
+  return who ? t('packing.lockedBy', { who }) : t('packing.lockedByUnknown')
+})
+
 // FR-25.15: owed since the M5 rebuild — the sheet says its edits are
 // captured on this device, distinct from G-2's server story.
 const saveState = computed(() => orchestrator.syncStatus.state.value)
@@ -115,12 +137,13 @@ const newTodoText = ref('')
 
 function addTodo() {
   const body = newTodoText.value.trim()
-  if (!body) return
+  if (!body || isLocked.value) return
   orchestrator.addPrepTodo(props.tripId, props.itemId, CLIENT_ACTOR_PLACEHOLDER, body)
   newTodoText.value = ''
 }
 
 function toggleTodo(todo: ItemTodo) {
+  if (isLocked.value) return
   if (todo.task_state === 'open') orchestrator.resolvePrepTodo(props.tripId, todo)
   else orchestrator.reopenPrepTodo(props.tripId, todo)
 }
@@ -192,36 +215,37 @@ function addCompanion(companion: SuggestedCompanion) {
 
 // --- Edits (each commits on the spot, G-5) ---
 function onModeChange(mode: ItemMode) {
-  if (item.value) orchestrator.setMode(props.tripId, item.value, mode)
+  if (item.value && !isLocked.value) orchestrator.setMode(props.tripId, item.value, mode)
 }
 function onTravelerChange(id: string | null) {
-  if (item.value) orchestrator.assignTraveler(props.tripId, item.value, id)
+  if (item.value && !isLocked.value) orchestrator.assignTraveler(props.tripId, item.value, id)
 }
 function onContainerChange(id: string | null) {
-  if (item.value) orchestrator.assignContainer(props.tripId, item.value, id)
+  if (item.value && !isLocked.value) orchestrator.assignContainer(props.tripId, item.value, id)
 }
 /** FR-9.1: the judgement is revocable, so the toggle writes both ways. */
 function onReviewFlag(flag: ReviewFlag, value: boolean) {
-  if (item.value) orchestrator.setReviewFlag(props.tripId, item.value, flag, value)
+  if (item.value && !isLocked.value)
+    orchestrator.setReviewFlag(props.tripId, item.value, flag, value)
 }
 
 function onLatePacker(value: boolean) {
-  if (item.value) orchestrator.setLatePacker(props.tripId, item.value, value)
+  if (item.value && !isLocked.value) orchestrator.setLatePacker(props.tripId, item.value, value)
 }
 function onIncrement() {
-  if (item.value) orchestrator.packIncrement(props.tripId, item.value)
+  if (item.value && !isLocked.value) orchestrator.packIncrement(props.tripId, item.value)
 }
 function onDecrement() {
-  if (item.value) orchestrator.packDecrement(props.tripId, item.value)
+  if (item.value && !isLocked.value) orchestrator.packDecrement(props.tripId, item.value)
 }
 function onComplete() {
-  if (item.value) orchestrator.packComplete(props.tripId, item.value)
+  if (item.value && !isLocked.value) orchestrator.packComplete(props.tripId, item.value)
 }
 function onZero() {
-  if (item.value) orchestrator.packZero(props.tripId, item.value)
+  if (item.value && !isLocked.value) orchestrator.packZero(props.tripId, item.value)
 }
 function onToggle() {
-  if (item.value) orchestrator.packToggle(props.tripId, item.value)
+  if (item.value && !isLocked.value) orchestrator.packToggle(props.tripId, item.value)
 }
 
 /**
@@ -235,7 +259,7 @@ const isSkipped = computed(() => item.value?.state === 'skipped')
 
 function onSkipToggle() {
   const row = item.value
-  if (!row) return
+  if (!row || isLocked.value) return
   if (row.state === 'skipped') orchestrator.unskipItem(props.tripId, row)
   else orchestrator.skipItem(props.tripId, row)
 }
@@ -327,11 +351,21 @@ const packedStamp = computed(() => {
       </button>
     </header>
 
+    <!-- G-3: who has it, before anything the sheet can no longer do. -->
+    <p v-if="isLocked" class="lock-notice" data-testid="m5-lock" role="status">
+      <IonIcon :icon="lockClosedOutline" />
+      <span>
+        {{ lockNotice }}
+        <span class="lock-hint">{{ t('packing.lockedHint') }}</span>
+      </span>
+    </p>
+
     <!-- What the screen is opened for, and therefore the biggest control. -->
     <div class="pack" data-testid="m5-pack">
       <QuantityStepper
         :quantity="item.quantity"
         :packed="item.packed_count"
+        :disabled="isLocked"
         @increment="onIncrement"
         @decrement="onDecrement"
         @complete="onComplete"
@@ -346,6 +380,7 @@ const packedStamp = computed(() => {
     <!-- FR-5.5: "considered and left behind" is a decision, and the only
          one the stepper above cannot express. -->
     <button
+      v-if="!isLocked"
       class="skip-toggle"
       :class="{ on: isSkipped }"
       data-testid="m5-skip"
@@ -394,12 +429,13 @@ const packedStamp = computed(() => {
       >
         <IonCheckbox
           :checked="todo.task_state === 'resolved'"
+          :disabled="isLocked"
           :data-testid="`m5-todo-${todo.id}`"
           @ion-change="toggleTodo(todo)"
         />
         <span class="todo-body">{{ todo.body }}</span>
       </label>
-      <div class="composer">
+      <div v-if="!isLocked" class="composer">
         <IonInput
           v-model="newTodoText"
           data-testid="m5-todo-input"
@@ -436,6 +472,7 @@ const packedStamp = computed(() => {
           <p class="text">{{ comment.body }}</p>
         </div>
         <IonButton
+          v-if="!isLocked"
           fill="clear"
           size="small"
           :aria-label="t('item.flagAsTask')"
@@ -445,7 +482,7 @@ const packedStamp = computed(() => {
           <IonIcon slot="icon-only" :icon="alertCircleOutline" />
         </IonButton>
       </article>
-      <div class="composer">
+      <div v-if="!isLocked" class="composer">
         <IonInput
           v-model="newCommentText"
           data-testid="m5-note-input"
@@ -464,7 +501,7 @@ const packedStamp = computed(() => {
     </section>
 
     <!-- FR-20.4: companions of this item that are not on the list yet. -->
-    <section v-if="suggestedCompanions.length > 0" class="sec">
+    <section v-if="suggestedCompanions.length > 0 && !isLocked" class="sec">
       <h2 class="sl"><IonIcon :icon="linkOutline" /> {{ t('item.companions') }}</h2>
       <IonChip
         v-for="companion in suggestedCompanions"
@@ -494,6 +531,7 @@ const packedStamp = computed(() => {
         <IonSelect
           :value="item.assigned_traveler_id"
           interface="popover"
+          :disabled="isLocked"
           data-testid="m5-traveler"
           @ion-change="(e: CustomEvent) => onTravelerChange(e.detail.value)"
         >
@@ -508,6 +546,7 @@ const packedStamp = computed(() => {
         <IonSelect
           :value="item.mode"
           interface="popover"
+          :disabled="isLocked"
           data-testid="m5-mode"
           @ion-change="(e: CustomEvent) => onModeChange(e.detail.value)"
         >
@@ -521,6 +560,7 @@ const packedStamp = computed(() => {
         <IonSelect
           :value="item.container_id"
           interface="popover"
+          :disabled="isLocked"
           data-testid="m5-container"
           @ion-change="(e: CustomEvent) => onContainerChange(e.detail.value)"
         >
@@ -542,6 +582,7 @@ const packedStamp = computed(() => {
         <IonToggle
           slot="end"
           :checked="item.late_packer"
+          :disabled="isLocked"
           data-testid="m5-late"
           @ion-change="(e: CustomEvent) => onLatePacker(e.detail.checked)"
         />
@@ -559,6 +600,7 @@ const packedStamp = computed(() => {
           <IonToggle
             slot="end"
             :checked="item.flag_unused"
+            :disabled="isLocked"
             data-testid="m5-flag-unused"
             @ion-change="(e: CustomEvent) => onReviewFlag('unused', e.detail.checked)"
           />
@@ -572,6 +614,7 @@ const packedStamp = computed(() => {
           <IonToggle
             slot="end"
             :checked="item.flag_missing"
+            :disabled="isLocked"
             data-testid="m5-flag-missing"
             @ion-change="(e: CustomEvent) => onReviewFlag('missing', e.detail.checked)"
           />
@@ -633,6 +676,26 @@ const packedStamp = computed(() => {
   background: var(--ct-surface0);
   color: var(--ct-subtext1);
   cursor: pointer;
+}
+
+/* G-3: the lock is stated, not implied by dimmed controls — the sheet
+   still shows everything, so nothing else would say why it is quiet. */
+.lock-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: var(--jp-r-md);
+  background: var(--ct-surface0);
+  color: var(--ct-subtext1);
+  font-size: var(--jp-text-sm);
+}
+
+.lock-hint {
+  display: block;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-xs);
 }
 
 /* --- packing --- */

@@ -19,6 +19,7 @@ This page is the full reference. For how the modes below differ and how to wire 
 | `JITPACK_OIDC_CLIENT_ID` | with OIDC | — | The client id registered for JIT-Pack at the IdP. |
 | `JITPACK_OIDC_CLIENT_SECRET` | with OIDC | — | The client secret. JIT-Pack is a confidential client — the secret stays server-side and is never handed to the app. |
 | `JITPACK_ADMIN_EMAILS` | no | — | Comma-separated e-mail addresses that hold the instance-admin role, matched case-insensitively against the **verified** address the IdP reports. See [Instance admins](#instance-admins). |
+| `JITPACK_LOCK_TIMEOUT` | no | `15m` | How long one person's *packing now* claim keeps a row reserved for them on everyone else's device. A duration such as `15m`, `45m` or `90s`. See [How long a row stays reserved](#how-long-a-row-stays-reserved). |
 | `JITPACK_PUSH_CONTACT` | no | — | Operator contact for Web Push, used as the VAPID `sub` claim shown to push services, e.g. `mailto:ops@example.com`. The VAPID keypair itself is generated and persisted on first use — there is nothing else to configure. |
 
 Trailing slashes on `JITPACK_OIDC_ISSUER` are stripped before use, so `https://auth.example.com/` and `https://auth.example.com` are equivalent.
@@ -71,6 +72,7 @@ Leaving all three OIDC variables empty while setting `JITPACK_SESSION_SECRET` is
 |---|---|
 | Single-user mode without a local user id | `config: JITPACK_LOCAL_USER_ID is required in single-user mode` |
 | Multi-user mode without a session secret | `config: JITPACK_SESSION_SECRET is required in multi-user mode (it signs the sessions JIT-Pack issues, see ADR-007)` |
+| `JITPACK_LOCK_TIMEOUT` is not a duration, or is zero or negative | `config: JITPACK_LOCK_TIMEOUT must be a duration such as "15m": …` / `config: JITPACK_LOCK_TIMEOUT must be positive (it is the G-3 lock staleness window)` |
 | One or two of the three OIDC variables set | `config: JITPACK_OIDC_ISSUER, JITPACK_OIDC_CLIENT_ID, and JITPACK_OIDC_CLIENT_SECRET must be set together` |
 | The database file cannot be opened or migrated | `store: …` |
 | Discovery document unreachable, non-200, or unparseable | `oidc discovery: fetch OIDC discovery: …` |
@@ -138,6 +140,23 @@ Entries are split on commas, trimmed, and matched case-insensitively. The addres
 Because the match happens inside the OIDC login broker, this variable only does anything in the OIDC shape. In Single-User Mode the implicit user is the only user; in the externally-minted-token shape no address is ever reported, so no role is ever stamped.
 
 The exact timing, and the one case where the role is deliberately left untouched, are covered in [Authentication → Instance admins](authentication.md#instance-admins). What admins can actually do is in [User Management](user-management.md).
+
+---
+
+## How long a row stays reserved
+
+When somebody starts packing a row, everyone else's device shows it as theirs — with their name — and will not let it be changed, so two people cannot pack the same thing twice or overwrite each other's count.
+
+That reservation has to end by itself, because the phone that made it may go into a rucksack and never come back to the app. After `JITPACK_LOCK_TIMEOUT` (15 minutes by default) the other devices stop treating the claim as current and the row is available again.
+
+Raise it if your household packs slowly and rows keep coming free while somebody is still working on them. Lower it if a forgotten phone leaves rows blocked for longer than anyone wants to wait.
+
+Two things worth knowing before you change it:
+
+- **It is the devices that apply the window, not the server.** The value is served to each app when it starts, so a change takes effect the next time everybody opens JIT-Pack — not instantly.
+- **It never blocks anything.** A reservation keeps two people from working on the same row at the same time; it is not a guarantee. If two devices do change the same row — one of them offline, say — nothing is lost: both changes are merged field by field and the one that lost is recorded, which you can read in the app's sync detail.
+
+Setting it very low effectively turns the feature off, since every claim is treated as expired almost at once. Zero is refused at startup rather than doing that silently.
 
 ---
 

@@ -125,6 +125,9 @@ export const en = {
   'packing.packedBy': 'packed by {who} · {when}',
   'packing.packedByUnknown': 'packed · {when}',
   'packing.responsibleWas': 'assigned to {who}',
+  'packing.lockedBy': '{who} is packing this right now',
+  'packing.lockedByUnknown': 'Somebody is packing this right now',
+  'packing.lockedHint': 'View only until they are done.',
   'stamp.today': 'today',
   'stamp.yesterday': 'yesterday',
 
