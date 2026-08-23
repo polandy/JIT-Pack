@@ -85,7 +85,7 @@ type sessionTokens struct {
 
 func (s *Server) handleAuthToken(w http.ResponseWriter, r *http.Request) {
 	if s.oidc == nil {
-		writeError(w, http.StatusNotImplemented, "not_configured", "OIDC login is not configured")
+		writeError(w, http.StatusNotImplemented, ErrNotConfigured, "OIDC login is not configured")
 		return
 	}
 	var req struct {
@@ -94,7 +94,7 @@ func (s *Server) handleAuthToken(w http.ResponseWriter, r *http.Request) {
 		RedirectURI  string `json:"redirect_uri"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Code == "" {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "code, code_verifier, redirect_uri required")
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "code, code_verifier, redirect_uri required")
 		return
 	}
 
@@ -108,7 +108,7 @@ func (s *Server) handleAuthToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if tokens.IDToken == "" {
-		writeError(w, http.StatusBadGateway, "idp_error", "IdP returned no id_token — is the openid scope configured for this client?")
+		writeError(w, http.StatusBadGateway, ErrIdPError, "IdP returned no id_token — is the openid scope configured for this client?")
 		return
 	}
 
@@ -120,12 +120,12 @@ func (s *Server) handleAuthToken(w http.ResponseWriter, r *http.Request) {
 		jwt.WithValidMethods([]string{"RS256"}),
 		jwt.WithIssuer(s.oidc.issuer),
 		jwt.WithAudience(s.oidc.clientID)); err != nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "ID token failed verification")
+		writeError(w, http.StatusUnauthorized, ErrUnauthorized, "ID token failed verification")
 		return
 	}
 	sub, err := idClaims.GetSubject()
 	if err != nil || sub == "" {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "ID token has no subject")
+		writeError(w, http.StatusUnauthorized, ErrUnauthorized, "ID token has no subject")
 		return
 	}
 
@@ -136,7 +136,7 @@ func (s *Server) handleAuthToken(w http.ResponseWriter, r *http.Request) {
 	// OIDC Core §5.3.2: the UserInfo sub MUST match the ID token's —
 	// this is the defense against a swapped-in access token.
 	if infoSub, _ := info["sub"].(string); infoSub != sub {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "UserInfo subject does not match ID token")
+		writeError(w, http.StatusUnauthorized, ErrUnauthorized, "UserInfo subject does not match ID token")
 		return
 	}
 
@@ -149,14 +149,14 @@ func (s *Server) handleAuthToken(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 	if s.oidc == nil {
-		writeError(w, http.StatusNotImplemented, "not_configured", "OIDC login is not configured")
+		writeError(w, http.StatusNotImplemented, ErrNotConfigured, "OIDC login is not configured")
 		return
 	}
 	var req struct {
 		RefreshToken string `json:"refresh_token"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.RefreshToken == "" {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "refresh_token required")
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "refresh_token required")
 		return
 	}
 	now := time.Now().UTC()
@@ -166,11 +166,11 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 	// untouched, so nothing is rotated until the IdP has answered.
 	sess, err := s.store.GetSessionByHash(r.Context(), oldHash, now)
 	if errors.Is(err, store.ErrSessionNotFound) {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "unknown or expired session")
+		writeError(w, http.StatusUnauthorized, ErrUnauthorized, "unknown or expired session")
 		return
 	}
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "session lookup failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "session lookup failed")
 		return
 	}
 
@@ -199,21 +199,21 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 		case idpRejected:
 			// The IdP disowned the session — only this ends it (§2).
 			_ = s.store.DeleteSession(r.Context(), oldHash)
-			writeError(w, http.StatusUnauthorized, "unauthorized", "IdP rejected the session")
+			writeError(w, http.StatusUnauthorized, ErrUnauthorized, "IdP rejected the session")
 			return
 		case idpUnreachable:
 			// Offline is normal, not a logout: leave the chain intact.
-			writeError(w, http.StatusBadGateway, "idp_unreachable", "IdP token endpoint unreachable")
+			writeError(w, http.StatusBadGateway, ErrIdPUnreachable, "IdP token endpoint unreachable")
 			return
 		}
 	}
 
 	if deactivated, err := s.store.UserDeactivated(r.Context(), sess.UserID); err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "account lookup failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "account lookup failed")
 		return
 	} else if deactivated {
 		_ = s.store.DeleteSession(r.Context(), oldHash)
-		writeError(w, http.StatusForbidden, "account_deactivated", "account is deactivated")
+		writeError(w, http.StatusForbidden, ErrAccountDeactivated, "account is deactivated")
 		return
 	}
 
@@ -222,7 +222,7 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 		newIDPRefresh, now.Add(sessionRefreshTTL), now); err != nil {
 		// Consumed by a concurrent rotation between peek and here —
 		// indistinguishable from a replay, and answered the same way.
-		writeError(w, http.StatusUnauthorized, "unauthorized", "unknown or expired session")
+		writeError(w, http.StatusUnauthorized, ErrUnauthorized, "unknown or expired session")
 		return
 	}
 	s.writeSessionTokens(w, sess.UserID, newRefresh, now)
@@ -230,7 +230,7 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleAuthConfig(w http.ResponseWriter, _ *http.Request) {
 	if s.oidc == nil {
-		writeError(w, http.StatusNotImplemented, "not_configured", "OIDC login is not configured")
+		writeError(w, http.StatusNotImplemented, ErrNotConfigured, "OIDC login is not configured")
 		return
 	}
 	writeJSON(w, map[string]string{
@@ -262,7 +262,7 @@ func (s *Server) provisionFromUserinfo(w http.ResponseWriter, ctx context.Contex
 	}
 	userID, err := s.store.EnsureOIDCUser(ctx, sub, displayNameClaim(info), email, isAdmin)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "user provisioning failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "user provisioning failed")
 		return "", false
 	}
 	return userID, true
@@ -273,17 +273,17 @@ func (s *Server) provisionFromUserinfo(w http.ResponseWriter, ctx context.Contex
 // than issuing tokens that every endpoint would 403 anyway (FR-23.3).
 func (s *Server) issueSession(w http.ResponseWriter, ctx context.Context, userID, idpRefreshToken string) {
 	if deactivated, err := s.store.UserDeactivated(ctx, userID); err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "account lookup failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "account lookup failed")
 		return
 	} else if deactivated {
-		writeError(w, http.StatusForbidden, "account_deactivated", "account is deactivated")
+		writeError(w, http.StatusForbidden, ErrAccountDeactivated, "account is deactivated")
 		return
 	}
 	now := time.Now().UTC()
 	refresh := newRefreshToken()
 	if _, err := s.store.CreateSession(ctx, userID, hashRefreshToken(refresh),
 		idpRefreshToken, now.Add(sessionRefreshTTL), now); err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "session creation failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "session creation failed")
 		return
 	}
 	s.writeSessionTokens(w, userID, refresh, now)
@@ -297,7 +297,7 @@ func (s *Server) writeSessionTokens(w http.ResponseWriter, userID, refresh strin
 	})
 	signed, err := access.SignedString(s.sessionSecret)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "token signing failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "token signing failed")
 		return
 	}
 	writeJSON(w, sessionTokens{
@@ -344,10 +344,10 @@ func (s *Server) idpTokenRequest(w http.ResponseWriter, form url.Values) (idpTok
 	tokens, status := s.idpTokenPost(form)
 	switch status {
 	case idpRejected:
-		writeError(w, http.StatusUnauthorized, "unauthorized", "IdP rejected the request")
+		writeError(w, http.StatusUnauthorized, ErrUnauthorized, "IdP rejected the request")
 		return idpTokenSet{}, false
 	case idpUnreachable:
-		writeError(w, http.StatusBadGateway, "idp_unreachable", "IdP token endpoint unreachable")
+		writeError(w, http.StatusBadGateway, ErrIdPUnreachable, "IdP token endpoint unreachable")
 		return idpTokenSet{}, false
 	}
 	return tokens, true
@@ -448,7 +448,7 @@ func classifyTokenResponse(statusCode int, body []byte) idpStatus {
 func (s *Server) fetchUserinfo(w http.ResponseWriter, accessToken string) (map[string]any, bool) {
 	info, err := s.userinfoRequest(accessToken)
 	if err != nil {
-		writeError(w, http.StatusBadGateway, "idp_unreachable", "IdP UserInfo endpoint unreachable")
+		writeError(w, http.StatusBadGateway, ErrIdPUnreachable, "IdP UserInfo endpoint unreachable")
 		return nil, false
 	}
 	return info, true

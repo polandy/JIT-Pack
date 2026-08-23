@@ -407,7 +407,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function onWSEvent(event: WSEvent) {
     switch (event.type) {
       case 'trip.changed': {
-        const tripId = event.payload['trip_id'] as string | undefined
+        const tripId = event.payload?.['trip_id'] as string | undefined
         if (tripId) {
           drainTrip(tripId)
         }
@@ -417,9 +417,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         drainMaster()
         break
       case 'presence': {
-        const tripId = event.payload['trip_id'] as string | undefined
+        const tripId = event.payload?.['trip_id'] as string | undefined
         if (tripId) {
-          const users = (event.payload['users'] as PresenceUser[] | undefined) ?? []
+          const users = (event.payload?.['users'] as PresenceUser[] | undefined) ?? []
           const next = new Map(presence.value)
           next.set(tripId, users)
           presence.value = next
@@ -427,16 +427,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         break
       }
       case 'item.locked': {
-        const tripId = event.payload['trip_id'] as string | undefined
-        const itemId = event.payload['item_id'] as string | undefined
+        const tripId = event.payload?.['trip_id'] as string | undefined
+        const itemId = event.payload?.['item_id'] as string | undefined
         if (tripId && itemId && !myLocks.has(itemId)) {
-          setItemLock(tripId, itemId, (event.payload['by_user'] as string) ?? '')
+          setItemLock(tripId, itemId, (event.payload?.['by_user'] as string) ?? '')
         }
         break
       }
       case 'item.unlocked': {
-        const tripId = event.payload['trip_id'] as string | undefined
-        const itemId = event.payload['item_id'] as string | undefined
+        const tripId = event.payload?.['trip_id'] as string | undefined
+        const itemId = event.payload?.['item_id'] as string | undefined
         if (tripId && itemId) {
           clearItemLock(tripId, itemId)
         }
@@ -937,7 +937,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function change(
     table: string,
     id: string,
-    fields: Record<string, unknown> | undefined,
+    fields: Record<string, unknown> | null | undefined,
   ): PullChange {
     return { seq: 0, table, id, deleted: false, row: (fields ?? {}) as Record<string, unknown> }
   }

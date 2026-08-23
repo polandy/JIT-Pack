@@ -28,7 +28,7 @@ type wireConflictEntry struct {
 func (s *Server) handleListConflicts(w http.ResponseWriter, r *http.Request) {
 	entries, err := s.store.ListConflicts(r.Context(), r.PathValue("tripID"))
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "conflict log failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "conflict log failed")
 		return
 	}
 	writeConflicts(w, entries)
@@ -39,7 +39,7 @@ func (s *Server) handleListMasterConflicts(w http.ResponseWriter, r *http.Reques
 
 	entries, err := s.store.ListMasterConflicts(r.Context(), userID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "conflict log failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "conflict log failed")
 		return
 	}
 	writeConflicts(w, entries)
@@ -108,16 +108,16 @@ func writeRevert(w http.ResponseWriter, seq int64) {
 func writeRevertError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, store.ErrConflictNotFound):
-		writeError(w, http.StatusNotFound, "conflict_not_found", "no such conflict entry")
+		writeError(w, http.StatusNotFound, ErrConflictNotFound, "no such conflict entry")
 	case errors.Is(err, store.ErrConflictAlreadyReverted):
-		writeError(w, http.StatusConflict, "already_reverted", "this conflict was already reverted")
+		writeError(w, http.StatusConflict, ErrAlreadyReverted, "this conflict was already reverted")
 	case errors.Is(err, store.ErrConflictRowGone):
-		writeError(w, http.StatusConflict, "row_deleted", "the row this conflict names has been deleted")
+		writeError(w, http.StatusConflict, ErrRowDeleted, "the row this conflict names has been deleted")
 	case errors.Is(err, store.ErrRevertRefused):
-		writeError(w, http.StatusConflict, "revert_refused", "the merge rules refuse this revert")
+		writeError(w, http.StatusConflict, ErrRevertRefused, "the merge rules refuse this revert")
 	case errors.Is(err, store.ErrRevertForbidden):
-		writeError(w, http.StatusForbidden, "forbidden", "not allowed to write this row")
+		writeError(w, http.StatusForbidden, ErrForbidden, "not allowed to write this row")
 	default:
-		writeError(w, http.StatusInternalServerError, "internal", "revert failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "revert failed")
 	}
 }

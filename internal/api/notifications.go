@@ -40,14 +40,14 @@ func (s *Server) handleListNotifications(w http.ResponseWriter, r *http.Request)
 	userID, _ := r.Context().Value(userIDKey).(string)
 	limit, err := queryInt(r, "limit", defaultNotificationLimit)
 	if err != nil || limit < 1 || limit > maxNotificationLimit {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "limit must be 1..200")
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "limit must be 1..200")
 		return
 	}
 	unread := r.URL.Query().Get("unread") == "1"
 
 	list, err := s.store.ListNotifications(r.Context(), userID, unread, int(limit))
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "list failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "list failed")
 		return
 	}
 	out := make([]wireNotification, 0, len(list))
@@ -64,11 +64,11 @@ func (s *Server) handleMarkNotificationRead(w http.ResponseWriter, r *http.Reque
 	userID, _ := r.Context().Value(userIDKey).(string)
 	err := s.store.MarkNotificationRead(r.Context(), userID, r.PathValue("notificationID"))
 	if errors.Is(err, store.ErrNotificationNotFound) {
-		writeError(w, http.StatusNotFound, "notification_not_found", "no such notification")
+		writeError(w, http.StatusNotFound, ErrNotificationNotFound, "no such notification")
 		return
 	}
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "mark read failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "mark read failed")
 		return
 	}
 	writeJSON(w, map[string]any{"ok": true})
@@ -79,7 +79,7 @@ func (s *Server) handleGetNotificationPrefs(w http.ResponseWriter, r *http.Reque
 	userID, _ := r.Context().Value(userIDKey).(string)
 	prefs, err := s.store.NotificationPrefs(r.Context(), userID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "prefs failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "prefs failed")
 		return
 	}
 	writeJSON(w, prefs)
@@ -91,11 +91,11 @@ func (s *Server) handlePutNotificationPrefs(w http.ResponseWriter, r *http.Reque
 	userID, _ := r.Context().Value(userIDKey).(string)
 	var prefs map[string]bool
 	if err := json.NewDecoder(r.Body).Decode(&prefs); err != nil {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "malformed prefs body")
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "malformed prefs body")
 		return
 	}
 	if err := s.store.SetNotificationPrefs(r.Context(), userID, prefs); err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "save prefs failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "save prefs failed")
 		return
 	}
 	writeJSON(w, map[string]any{"ok": true})
@@ -106,7 +106,7 @@ func (s *Server) handlePutNotificationPrefs(w http.ResponseWriter, r *http.Reque
 // (FR-17.3: no second party); solo trips short-circuit for the same
 // reason. Failures are logged, never surfaced — notifications are a
 // side effect, the push already succeeded.
-func (s *Server) emitNotifications(ctx context.Context, tripID, actor string, muts []syncpkg.Mutation, results []pushResult) {
+func (s *Server) emitNotifications(ctx context.Context, tripID, actor string, muts []syncpkg.Mutation, results []MutationResult) {
 	members, err := s.store.TripMemberNames(ctx, tripID)
 	if err != nil {
 		slog.Error("notification member lookup", "trip", tripID, "error", err)

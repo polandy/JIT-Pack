@@ -1,9 +1,13 @@
 /** Thin HTTP client with auth header injection (Sync-API Spec §2). */
+import type { APIErrorBody } from './types'
 
 export class APIRequestError extends Error {
   constructor(
     public readonly status: number,
-    public readonly apiError: { code: string; message: string; field?: string } | null,
+    // The generated body, so a caller that branches on `code` is checked
+    // against the server's vocabulary rather than against a re-typed string
+    // (NFR-4.14).
+    public readonly apiError: APIErrorBody | null,
   ) {
     super(apiError?.message ?? `HTTP ${status}`)
     this.name = 'APIRequestError'

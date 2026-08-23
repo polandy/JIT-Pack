@@ -13,21 +13,6 @@ import (
 	"github.com/coder/websocket"
 )
 
-// Event is the server→client envelope sent over the WebSocket
-// (Sync-API Spec §7: {"type": ..., "payload": {...}}).
-type Event struct {
-	Type    string `json:"type"`
-	Payload any    `json:"payload"`
-}
-
-// PresenceMember is one entry in the presence facepile (spec §7:
-// users:[{user_id, device_count, in_sync}]).
-type PresenceMember struct {
-	UserID      string `json:"user_id"`
-	DeviceCount int    `json:"device_count"`
-	InSync      bool   `json:"in_sync"`
-}
-
 // conn is a tracked WebSocket connection.
 type conn struct {
 	ws     *websocket.Conn
@@ -114,8 +99,8 @@ func (h *Hub) UpdateCursor(c *conn, tripID string, cursor int64) {
 // NotifyTripChanged broadcasts a trip.changed event to all connections
 // subscribed to the given trip.
 func (h *Hub) NotifyTripChanged(tripID string, headSeq int64) {
-	evt := Event{
-		Type:    "trip.changed",
+	evt := WSEvent{
+		Type:    EventTripChanged,
 		Payload: map[string]any{"trip_id": tripID, "head_seq": headSeq},
 	}
 	h.broadcast(tripID, evt)
@@ -125,14 +110,14 @@ func (h *Hub) NotifyTripChanged(tripID string, headSeq int64) {
 // The lock is also persisted via the normal mutation; this only lowers
 // latency for connected clients.
 func (h *Hub) NotifyItemLocked(tripID, itemID, byUser, name string) {
-	h.broadcast(tripID, Event{Type: "item.locked", Payload: map[string]any{
+	h.broadcast(tripID, WSEvent{Type: EventItemLocked, Payload: map[string]any{
 		"trip_id": tripID, "item_id": itemID, "by_user": byUser, "name": name,
 	}})
 }
 
 // NotifyItemUnlocked broadcasts the ephemeral G-3 unlock event (spec §7).
 func (h *Hub) NotifyItemUnlocked(tripID, itemID, byUser, name string) {
-	h.broadcast(tripID, Event{Type: "item.unlocked", Payload: map[string]any{
+	h.broadcast(tripID, WSEvent{Type: EventItemUnlocked, Payload: map[string]any{
 		"trip_id": tripID, "item_id": itemID, "by_user": byUser, "name": name,
 	}})
 }
@@ -142,8 +127,8 @@ func (h *Hub) NotifyItemUnlocked(tripID, itemID, byUser, name string) {
 // subscriptions, and other users discover shared changes lazily on
 // their next pull (spec §8).
 func (h *Hub) NotifyMasterChanged(userID string, seq int64) {
-	h.send(h.connsOf(userID), Event{
-		Type:    "master.changed",
+	h.send(h.connsOf(userID), WSEvent{
+		Type:    EventMasterChanged,
 		Payload: map[string]any{"seq": seq},
 	})
 }
@@ -154,8 +139,8 @@ func (h *Hub) NotifyMasterChanged(userID string, seq int64) {
 // accepted but redundant, so a client can never miss (or steal) the
 // event by (mis)subscribing.
 func (h *Hub) NotifyNotificationCreated(userID, notificationID string) {
-	h.send(h.connsOf(userID), Event{
-		Type:    "notification.created",
+	h.send(h.connsOf(userID), WSEvent{
+		Type:    EventNotificationCreated,
 		Payload: map[string]any{"notification_id": notificationID},
 	})
 }
@@ -187,7 +172,7 @@ func (h *Hub) Subscribers(tripID string) int {
 }
 
 // broadcast sends an event to all connections subscribed to a trip.
-func (h *Hub) broadcast(tripID string, evt Event) {
+func (h *Hub) broadcast(tripID string, evt WSEvent) {
 	h.mu.Lock()
 	targets := make([]*conn, 0)
 	for c := range h.conns {
@@ -201,7 +186,7 @@ func (h *Hub) broadcast(tripID string, evt Event) {
 }
 
 // send writes an event to the given connections.
-func (h *Hub) send(targets []*conn, evt Event) {
+func (h *Hub) send(targets []*conn, evt WSEvent) {
 	data, err := json.Marshal(evt)
 	if err != nil {
 		slog.Error("marshal event", "error", err)
@@ -266,8 +251,8 @@ func (h *Hub) broadcastPresence(tripID string) {
 		})
 	}
 
-	evt := Event{
-		Type: "presence",
+	evt := WSEvent{
+		Type: EventPresence,
 		Payload: map[string]any{
 			"trip_id": tripID,
 			"users":   members,
