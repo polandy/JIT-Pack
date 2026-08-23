@@ -33,4 +33,48 @@ describe('API routes', () => {
     const built = Object.values(API).map((r) => (typeof r === 'function' ? r('x', 'y') : r))
     expect(new Set(built).size).toBe(built.length)
   })
+
+  /**
+   * Every entry, pinned. The four routes that are only reached from a view
+   * with no unit spec — `authConfig` from App.vue and LoginPage, `authToken`
+   * from CallbackPage, `userAvatar` from AdminPage — have their value asserted
+   * nowhere else, so a typo in this file would reach the running app with the
+   * whole suite green. That is the failure this file exists to prevent, and it
+   * would be silly to leave it open in the file itself.
+   */
+  it('pins every path it declares', () => {
+    expect(
+      Object.fromEntries(
+        Object.entries(API).map(([k, r]) => [k, typeof r === 'function' ? r('ID1', 'ID2') : r]),
+      ),
+    ).toEqual({
+      tripSync: '/api/v1/trips/ID1/sync',
+      tripConflicts: '/api/v1/trips/ID1/conflicts',
+      tripConflictRevert: '/api/v1/trips/ID1/conflicts/ID2/revert',
+      tripExportCsv: '/api/v1/trips/ID1/export.csv',
+      masterSync: '/api/v1/master/sync',
+      masterConflicts: '/api/v1/master/conflicts',
+      masterConflictRevert: '/api/v1/master/conflicts/ID1/revert',
+      me: '/api/v1/me',
+      meNotificationPrefs: '/api/v1/me/notification-prefs',
+      meExport: '/api/v1/me/export.json',
+      users: '/api/v1/users',
+      userAvatar: '/api/v1/users/ID1/avatar',
+      userDisplayName: '/api/v1/users/ID1/display-name',
+      itemImage: '/api/v1/items/ID1/image',
+      notifications: '/api/v1/notifications',
+      notificationRead: '/api/v1/notifications/ID1/read',
+      pushVapidKey: '/api/v1/push/vapid-key',
+      pushSubscriptions: '/api/v1/push/subscriptions',
+      adminUsers: '/api/v1/admin/users',
+      adminDeactivateUser: '/api/v1/admin/users/ID1/deactivate',
+      adminReactivateUser: '/api/v1/admin/users/ID1/reactivate',
+      adminResetAvatar: '/api/v1/admin/users/ID1/avatar',
+      adminResetDisplayName: '/api/v1/admin/users/ID1/display-name',
+      authToken: '/api/v1/auth/token',
+      authRefresh: '/api/v1/auth/refresh',
+      authConfig: '/api/v1/auth/config',
+      config: '/api/v1/config',
+    })
+  })
 })
