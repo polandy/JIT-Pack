@@ -290,6 +290,7 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
 
         <h2 class="section-title jp-eyebrow">{{ t('import.wizard.itemColumn') }}</h2>
         <IonSegment
+          data-testid="item-column"
           :value="String(itemColumn)"
           @ionChange="(e: CustomEvent) => (itemColumn = Number(e.detail.value))"
         >

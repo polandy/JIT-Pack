@@ -841,6 +841,18 @@ test.describe('Single-User backend sync @single', () => {
     await expect(row.locator('ion-input').first().locator('input')).toHaveValue(trip)
     await expect(row.locator('ion-input').nth(1).locator('input')).toHaveValue('2016')
 
+    // Both column pickers offer *candidates*, not every column: a column that
+    // holds quantities can be neither of the two they choose. With one trip
+    // column in this sheet, the category picker is "none" plus two — it listed
+    // all three before, and on a thirty-column sheet that is the whole defect.
+    const columnPicker = visiblePage(pageA).getByTestId('category-column')
+    await expect(columnPicker.locator('ion-segment-button')).toHaveCount(3)
+    await expect(visiblePage(pageA).getByTestId('item-column').locator('ion-segment-button'))
+      .toHaveCount(2)
+    await expect(columnPicker.locator('ion-segment-button.segment-button-checked')).toHaveText(
+      'Col 1',
+    )
+
     await visiblePage(pageA).getByTestId('import-next').click()
     await expect(visiblePage(pageA).getByTestId(`import-summary-${trip}`)).toBeVisible()
     await visiblePage(pageA).getByTestId('import-commit').click()
