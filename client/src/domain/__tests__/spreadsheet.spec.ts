@@ -116,6 +116,90 @@ describe('analyzeGrid — two-row header and category column (FR-16.1)', () => {
   })
 })
 
+/*
+ * An inventory with no history at all (FR-16.1, added 2026-08-23): the sheet
+ * is a list of things, not a matrix. Nothing distinguishes a category row from
+ * an item row without a quantity column to be empty in — so the wizard must
+ * claim neither, and the user ticks the categories.
+ */
+const inventoryOnlyCSV = [
+  'Kategorie,Artikel',
+  'Schuhe,Wanderschuhe',
+  ',Sandalen',
+  'Bad,Handtuch',
+].join('\n')
+
+/** The same thing without even a category column: a bare list of names. */
+const bareListCSV = ['Artikel', 'Wanderschuhe', 'Sandalen', 'Handtuch'].join('\n')
+
+describe('analyzeGrid — a bare list with nothing but names (FR-16.1)', () => {
+  const grid = parseSpreadsheet(bareListCSV)
+  const analysis = analyzeGrid(grid)
+
+  it('claims no category rows, because every row qualifies once there are none', () => {
+    // "A row with no quantity in any trip column" is vacuously true for every
+    // row when there is no trip column, so the whole list read as headings and
+    // the import produced categories and not one item.
+    expect(analysis.tripColumns).toEqual([])
+    expect(analysis.categoryRows).toEqual([])
+  })
+
+  it('imports every row as an item', () => {
+    const plan = buildImportPlan(
+      grid,
+      {
+        headerRows: analysis.headerRows,
+        itemColumn: analysis.itemColumn,
+        categoryColumn: analysis.categoryColumn,
+        categoryRows: analysis.categoryRows,
+        trips: [],
+      },
+      new Map(),
+    )
+    expect(plan.items.map((i) => i.name)).toEqual(['Wanderschuhe', 'Sandalen', 'Handtuch'])
+    expect(plan.newCategories).toEqual([])
+  })
+})
+
+describe('analyzeGrid — an inventory with no trip columns (FR-16.1)', () => {
+  const grid = parseSpreadsheet(inventoryOnlyCSV)
+  const analysis = analyzeGrid(grid)
+
+  it('finds no trip columns and claims no category rows', () => {
+    expect(analysis.tripColumns).toEqual([])
+    // Every row is "empty in all trip columns" when there are none, and the
+    // old rule therefore turned the whole inventory into category headings.
+    expect(analysis.categoryRows).toEqual([])
+  })
+
+  it('still finds the item column and its category column', () => {
+    expect(analysis.itemColumn).toBe(1)
+    expect(analysis.categoryColumn).toBe(0)
+  })
+})
+
+describe('buildImportPlan — an inventory with no trips (FR-16.1/16.2)', () => {
+  it('imports the items and creates no trip', () => {
+    const grid = parseSpreadsheet(inventoryOnlyCSV)
+    const a = analyzeGrid(grid)
+    const plan = buildImportPlan(
+      grid,
+      {
+        headerRows: a.headerRows,
+        itemColumn: a.itemColumn,
+        categoryColumn: a.categoryColumn,
+        categoryRows: a.categoryRows,
+        trips: [],
+      },
+      new Map(),
+    )
+
+    expect(plan.trips).toEqual([])
+    expect(plan.items.map((i) => i.name)).toEqual(['Wanderschuhe', 'Sandalen', 'Handtuch'])
+    expect(plan.items.map((i) => i.categoryName)).toEqual(['Schuhe', 'Schuhe', 'Bad'])
+  })
+})
+
 describe('findDuplicates (FR-16.3)', () => {
   const existing = [masterItem('i1', 'Unterhosen'), masterItem('i2', 'Regenjacke')]
 

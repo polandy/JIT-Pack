@@ -716,6 +716,7 @@ export const en = {
   'import.wizard.noSeries': 'No series',
   'import.wizard.seriesLabel': 'Target series',
   'import.wizard.mappingInvalid': 'Each included trip needs a name and a year (e.g. 2024) or date.',
+  'import.wizard.nothingToImport': 'No rows to import — pick the column that holds the item names.',
   'import.wizard.itemColumn': 'Item column',
   'import.wizard.column': 'Col {n}',
   'import.wizard.categoryRows': 'Category rows',

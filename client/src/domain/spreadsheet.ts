@@ -130,10 +130,15 @@ export function analyzeGrid(grid: string[][]): GridAnalysis {
 
   const categoryColumn = findCategoryColumn(grid, width, headerRows, itemColumn, quantityColumns)
 
-  // With a category column present, "a row with no quantities" no longer
-  // means a heading: it means an item nobody has ever packed.
+  /*
+   * "A row with no quantity in any trip column" only means a heading while
+   * there is a trip column for it to be empty in. With a category column it
+   * means an item nobody ever packed; with no trip column at all it is
+   * vacuously true of every row, and an inventory-only sheet would import as
+   * nothing but categories. In both cases the ticks are the user's to make.
+   */
   const categoryRows: number[] = []
-  if (categoryColumn === null) {
+  if (categoryColumn === null && tripColumns.length > 0) {
     for (let rowIdx = headerRows; rowIdx < grid.length; rowIdx++) {
       const name = grid[rowIdx]?.[itemColumn] ?? ''
       if (name === '') continue
