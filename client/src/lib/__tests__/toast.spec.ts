@@ -1,9 +1,14 @@
+// @vitest-environment jsdom
 /**
  * FR-9.4: a bottom toast must never be presented onto the tab bar.
  *
  * The rule is asserted on what reaches Ionic — the options object — rather
  * than on geometry, which belongs to E2E-M22-09. What a unit test can pin
  * here is the decision: which anchor is chosen, and when none is.
+ *
+ * The jsdom docblock above is load-bearing: the helper asks the document for
+ * the tab bar, and since the suite made a DOM opt-in a missing declaration is
+ * a `ReferenceError` here rather than a quietly green run.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
