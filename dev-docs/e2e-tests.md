@@ -133,12 +133,14 @@ looks centred. The master log's names three things, wraps, and the wrapped
 paragraph then started at x=0 under a centred icon. The new string exposed a
 defect that had been there all along.
 
-**What actually let both live: the G-2 sheet was in no visual baseline.** It is
-the one surface reachable from every screen in every mode, and twenty-two
-baselines covered none of it. E2E-VIS-08 closes that, and it cost no existing
-baseline — nothing else moved. The geometry case beside it is not redundant
-with it: a baseline reports that a pixel moved, E2E-G2-08 reports which rule
-broke.
+**The G-2 sheet was in no visual baseline either**, though it is the one
+surface reachable from every screen in every mode. E2E-VIS-08 closes that and
+cost no existing baseline. But it is **not** the guard for this defect, and the
+review had to correct a first draft that said it was: mutating the fix back
+leaves the new baseline **green** at 591 differing pixels, ratio 0.0018, under
+the 0.002 the gate allows. That tolerance is the owner's deliberate 2026-08-19
+setting — *"this gate catches layout changes, not small ones"* — so the offset
+is the geometry case's job and the baseline guards the sheet around it.
 
 **E2E-G2-06 — the master partition's conflict log, added 2026-08-22.** The
 audit NFR-4.2a promises had one endpoint and two partitions: every
