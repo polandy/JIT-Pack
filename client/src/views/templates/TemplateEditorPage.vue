@@ -22,7 +22,6 @@ import {
   IonFabButton,
   IonInput,
   IonModal,
-  toastController,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -54,6 +53,7 @@ import {
 import type { GroupMatch, GroupSearchCandidate } from '@/domain/templates'
 import { foldDismissals } from '@/composables/useFoldDismissals'
 import { t } from '@/i18n'
+import { presentToast } from '@/lib/toast'
 import { attributeLabel } from '@/lib/attributeLabels'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
@@ -85,15 +85,13 @@ function itemName(itemId: string): string {
 setHeaderTitle(() => template.value?.name ?? t('templates.notFound'))
 
 async function toast(message: string, undo?: { text: string; handler: () => void }) {
-  const el = await toastController.create({
+  await presentToast({
     message,
     duration: 3000,
-    position: 'bottom',
-    // Above the FAB rather than behind the tab bar — the M4 anchor pattern.
+    // Higher than the tab bar the helper would clear, so this screen keeps it.
     positionAnchor: 'm8-fab-anchor',
     buttons: undo ? [{ text: undo.text, role: 'undo', handler: undo.handler }] : undefined,
   })
-  await el.present()
 }
 
 // --- Name (auto-saves on commit, G-5) --------------------------------------

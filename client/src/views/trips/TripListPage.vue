@@ -6,7 +6,6 @@
  * per-trip progress ring, FAB for new trip, pull-to-refresh.
  */
 import {
-  toastController,
   IonPage,
   IonContent,
   IonSegment,
@@ -56,6 +55,7 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import SearchRow from '@/components/global/SearchRow.vue'
 import { tripOrderKey } from '@/domain/trips'
 import { t } from '@/i18n'
+import { presentToast } from '@/lib/toast'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
 
@@ -135,13 +135,7 @@ async function addSampleData() {
 }
 
 async function report(message: string, duration = 4000) {
-  const toast = await toastController.create({
-    message,
-    duration,
-    position: 'bottom',
-    positionAnchor: 'm2-fab-anchor',
-  })
-  await toast.present()
+  await presentToast({ message, duration, positionAnchor: 'm2-fab-anchor' })
 }
 
 const {

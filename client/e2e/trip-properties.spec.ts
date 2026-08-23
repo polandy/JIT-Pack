@@ -139,6 +139,51 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     await expect(pantsRowFor(page, 'Mia')).toBeVisible()
   })
 
+  /*
+   * FR-9.4's open defect, asserted where a bottom toast and the navigation bar
+   * are both on screen. Geometry rather than pixels: the toast is a live
+   * overlay, so „is it readable?" is exactly „do these two boxes overlap?" —
+   * and a screenshot could not tell a covered toast from a translucent one.
+   * Settled first (the toast animates in), then measured, so no clock is
+   * involved.
+   *
+   * The viewport is set explicitly, and the bar's height is asserted before
+   * the overlap is: above 900 px the tab bar is `display: none` (G-9 hands the
+   * job to the rail), and a hidden element measures as a zero-height box at
+   * the origin — against which *every* overlap assertion resolves, in both
+   * directions, while testing nothing. That is how this case first failed.
+   */
+  test('E2E-M22-09: the confirmation does not land on the navigation bar', async ({ page }) => {
+    await page.setViewportSize({ width: 430, height: 932 })
+    await tripWithTwoTravellers(page, 'Herbstferien')
+    await openTripEdit(page)
+    await visible(page).getByTestId('traveler-add-input').locator('input').fill('Mia')
+    await visible(page).getByTestId('traveler-add').click()
+
+    const toast = page.locator('ion-toast')
+    await expect(toast).toContainText('1')
+    await page.waitForFunction(() =>
+      document.getAnimations().every((a) => a.playState !== 'running'),
+    )
+
+    const boxes = await page.evaluate(() => {
+      const wrapper = document
+        .querySelector('ion-toast')
+        ?.shadowRoot?.querySelector('.toast-wrapper')
+      const nav = document.querySelector('nav.tab-bar')
+      if (!wrapper || !nav) return null
+      const t = wrapper.getBoundingClientRect()
+      const n = nav.getBoundingClientRect()
+      return { toastBottom: t.bottom, toastHeight: t.height, navTop: n.top, navHeight: n.height }
+    })
+
+    expect(boxes).not.toBeNull()
+    // Both boxes have to be real, or the comparison below means nothing.
+    expect(boxes!.navHeight).toBeGreaterThan(0)
+    expect(boxes!.toastHeight).toBeGreaterThan(0)
+    expect(boxes!.toastBottom).toBeLessThanOrEqual(boxes!.navTop)
+  })
+
   test('E2E-M22-03: a traveller removed takes their row and never a sibling’s', async ({
     page,
   }) => {

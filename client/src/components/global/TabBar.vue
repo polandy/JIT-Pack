@@ -18,6 +18,7 @@ import { useRoute } from 'vue-router'
 
 import { NAV_ANCHORS, isAnchorActive } from '@/router/anchors'
 import { t } from '@/i18n'
+import { TAB_BAR_ANCHOR_ID } from '@/lib/toast'
 
 const route = useRoute()
 
@@ -30,10 +31,12 @@ const route = useRoute()
 const fullScreen = computed(
   () => /^\/trips\/[^/]+$/.test(route.path) && route.path !== '/trips/new',
 )
+
+/* A bottom toast is positioned above this bar rather than onto it (FR-9.4). */
 </script>
 
 <template>
-  <nav v-if="!fullScreen" class="tab-bar">
+  <nav v-if="!fullScreen" :id="TAB_BAR_ANCHOR_ID" class="tab-bar">
     <router-link
       v-for="anchor in NAV_ANCHORS"
       :key="anchor.match"
