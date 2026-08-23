@@ -209,9 +209,9 @@ describe('M5 respects the G-3 lock', () => {
     const locked = mountSheet()
 
     const check = locked.get('[data-testid="row-check"]')
-    expect(
-      (check.get('ion-checkbox').element as unknown as { disabled: boolean }).disabled,
-    ).toBe(true)
+    expect((check.get('ion-checkbox').element as unknown as { disabled: boolean }).disabled).toBe(
+      true,
+    )
     await check.trigger('click')
     expect(orchestratorFake.packToggle).not.toHaveBeenCalled()
 
