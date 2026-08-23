@@ -21,7 +21,7 @@ Whether a given release actually changed the schema is not something you can tel
 2. **Export portable YAML** for every template and every trip you want to carry forward ([how](backup.md#getting-data-out-over-the-api)). Portable YAML is version-independent — it survives a schema change, the `.db` file does not.
 3. Now pull the new image and start it.
    - If it starts, the schema did not change — you are done, and the exports cost you a minute.
-   - If it refuses with the stale-schema error, move the old database file aside (keep it — it pairs with the old image), start the new version against an empty path, and **import** your YAML exports through the app or the [import endpoints](backup.md#template-export-and-import).
+   - If it refuses with the stale-schema error, move the old database file aside (keep it — it pairs with the old image), start the new version against an empty path, and **import** your YAML exports through the app or with the [import command](backup.md#importing-yaml-from-the-command-line).
 
 On a multi-user instance, accounts need no export: they are provisioned from the identity provider, so everyone gets their account back by [logging in again](multi-user-setup.md).
 

@@ -55,9 +55,8 @@ before this existed — starts following its groups from scratch instead, so it 
 again about a change you have already answered.
 
 The same file is how you move to a server instance: point the app at the server, then
-import the backup there through the same screen. Note that the server's own
-`/api/v1/*/import` endpoints (below) take **one** document per request — a whole-device
-backup goes in through the app, not through `curl`.
+import the backup there through the same screen. You can also feed it in from a shell with
+the [import command](#importing-yaml-from-the-command-line) below.
 
 !!! warning "The device is the only copy"
     Nothing syncs anywhere in Local Mode. A cleared browser profile, a reset device or a
@@ -213,8 +212,6 @@ All of them require a bearer token.
 | `GET` | `/api/v1/trips/{tripID}/export.yaml` | portable trip YAML, without packing progress |
 | `GET` | `/api/v1/trips/{tripID}/export.csv` | flat CSV of the packing list, with progress |
 | `GET` | `/api/v1/templates/{templateID}/export` | portable template YAML |
-| `POST` | `/api/v1/trips/import` | imports a trip YAML document |
-| `POST` | `/api/v1/templates/import` | imports a template YAML document |
 
 ### Full JSON export
 
@@ -309,7 +306,7 @@ Rain jacket,Clothing,1,1,carry,Alice,Big duffel
 Both trip exports require you to be a member of the trip; anyone else gets
 `403 forbidden`, `not a member of this trip`.
 
-### Template export and import
+### Template export
 
 ```bash
 curl -sOJ https://jitpack.example.com/api/v1/templates/$TEMPLATE_ID/export \
@@ -358,34 +355,58 @@ you want the file's version alongside it.
 The same linking applies when you import a **group document** on its own: if a group of that
 name is already here, the import lands on it and changes nothing, rather than leaving a
 second copy behind. Importing a *holiday template* whose name is taken does create a second
-one, suffixed `(import)` — two templates of one name are two different plans.
+one, suffixed *(import)* — two templates of one name are two different plans.
 
 A group document (`scope: group`) carries no `includes:` — a group is never composed of
 other groups.
 
-Import posts the YAML document as the request body:
+These rules are the same wherever a file goes in — the app's import screen and the
+[import command](#importing-yaml-from-the-command-line) run the same code. **There is no
+import endpoint**: importing is not something you do with `curl` against this instance.
+
+## Importing YAML from the command line
+
+Everything above gets data *out*. To put a portable YAML file back **in** from a shell —
+seeding a new instance, restoring on a machine with no screen, replaying a file you edited
+by hand — use the import command that ships with the repository:
 
 ```bash
-curl -s -X POST https://jitpack.example.com/api/v1/templates/import \
-  -H "Authorization: Bearer $TOKEN" \
-  --data-binary @my-template.yaml
+node tools/jitpack-import.mjs my-template.yaml
+node tools/jitpack-import.mjs --server https://jitpack.example.com --token "$TOKEN" backup.yaml
 ```
 
-```json
-{"ok": true, "template_id": "a41d…"}
+It needs Node, and it talks to a **running** instance over the same sync API the app uses;
+it does not open the database file, which the server has open at the same time. That is also
+why it gives you exactly what the app's import screen gives you — it runs the same code, so
+a trip keeps its tags, its marks, its status and its links to the groups it follows.
+
+A file may hold one document or many. Each is imported in the order the file lists it, and
+each gets a line:
+
+```
+backup.yaml #1 template "Ferien": imported
+backup.yaml #2 trip "Wiriehorn": imported
+backup.yaml #3: unreadable — unknown kind "nonsense"
+3 documents: 2 imported, 1 unreadable
 ```
 
-Trip import works identically at `/api/v1/trips/import` and returns `trip_id`. Items are
-matched to master items **by name**, and any name that does not exist yet is created. The
-importing user owns the result.
+**One bad document never costs the ones behind it.** Whatever went wrong is said on its own
+line and the rest of the file still goes in. The command exits with `1` if any document
+failed and `2` if the command line itself was wrong, so a script can tell "nothing landed"
+from "most of it did".
 
-Both import endpoints:
+| Option | Meaning |
+|---|---|
+| `--server URL` | The instance to import into. Defaults to `$JITPACK_SERVER`, then `http://localhost:3000`. |
+| `--token TOKEN` | Bearer token, for an instance with accounts. Defaults to `$JITPACK_TOKEN`. A single-user instance needs none. |
+| `--dry-run` | Read the file and report what is in it without importing anything. |
 
-- read at most **1 MB** of request body,
-- reject a document whose `kind` does not match the endpoint with `422` and code
-  `validation` (`expected kind: trip` / `expected kind: template`),
-- reject malformed YAML with `422` and code `validation`,
-- ignore fields they do not recognise, so a document from a newer version still imports.
+Use `--dry-run` before importing a file you wrote or edited yourself — it tells you how many
+documents the file really has and which of them the app can read, while nothing has changed
+yet.
+
+Local Mode has no server, so there is nothing to import into from a shell; restore a Local
+Mode backup in the app, on the device.
 
 If an export or import fails unexpectedly, [Troubleshooting](troubleshooting.md) lists the
 error codes.

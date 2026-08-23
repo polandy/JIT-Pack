@@ -30,6 +30,7 @@ One file per decision, named `ADR-00N_Short_Title.md`, numbered in the order the
 | [022](ADR-022_Per_Field_Clocks.md) | The merge compares each field against its own persisted clock (`field_hlcs` JSON column) — over a side table and over the row-level clock the code had — and rule 2 is the two state pairs §6 names (NFR-4.2a) | Accepted |
 | [023](ADR-023_Conflict_Revert_As_New_Mutation.md) | A manual conflict revert is an ordinary mutation with a fresh server HLC — over rewriting the row in place, a client-side re-issue, and leaving the log read-only (NFR-4.2a) | Accepted |
 | [024](ADR-024_Portable_Restores_What_It_Saved.md) | A portable file restores what it saved — trip status, item marks and ordered tags in one format — over a backup-only dialect and over honouring them on the restore path alone (FR-18.2–18.5, NFR-4.11) | Accepted |
+| [025](ADR-025_One_Importer.md) | One import implementation: the server's importer is deleted and the CLI runs the client's rules, over porting them to Go behind a shared conformance corpus (ADR-008, FR-18.7) | Accepted |
 
 **Outbound Content Fetching** — `Vision_NorthStar` names this as the gate that must exist before any Plan-phase feature makes the server fetch external content. It had informally reserved number 007, which Session Brokering has since taken; it gets the next free number when it is written.
 
