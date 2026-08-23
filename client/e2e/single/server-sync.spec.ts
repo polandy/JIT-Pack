@@ -2,6 +2,10 @@ import type { BrowserContext, Page } from '@playwright/test'
 
 import { test, expect, seed, createTripViaWizard, visiblePage } from '../fixtures'
 
+// Both sync endpoints, whichever partition: the path leads with its scope
+// (NFR-4.14, ADR-027), so no single prefix covers them any more.
+const SYNC_PATH = /\/api\/v1\/(?:trips\/[^/]+|master)\/sync/
+
 /**
  * Backend-backed sync (UI-Test-Spec §2.2, mode `single`) — the first unit
  * that runs against a real `jitpackd`.
@@ -714,11 +718,6 @@ test.describe('Single-User backend sync @single', () => {
 
     // Andy reconnects; the trip re-open is the app's own action that drains.
     await ctxA.setOffline(false)
-    const areq: string[] = []
-    pageA.on('request', (r) => {
-      if (r.url().includes('/api/v1/sync/'))
-        areq.push(`${r.method()} ${r.url().split('/api/v1')[1]}`)
-    })
     await reopenTrip(pageA, trip)
 
     // The queue is empty because the mutation was answered — not because it
@@ -769,7 +768,7 @@ test.describe('Single-User backend sync @single', () => {
     // `route.fetch` runs outside the context, so it would sail straight
     // through `setOffline`. The handler has to honour the flag itself.
     let offline = false
-    await pageA.route('**/api/v1/sync/**', async (route) => {
+    await pageA.route(SYNC_PATH, async (route) => {
       if (offline) {
         await route.abort('internetdisconnected')
         return

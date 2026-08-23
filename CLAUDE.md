@@ -165,8 +165,11 @@ it. Item numbers stay stable even as items close, because the log refers back to
    staleness window is `JITPACK_LOCK_TIMEOUT` served by `GET /api/v1/config`. The fourth part of
    that finding — the server neither expiring a lock nor refusing a push for one — **is not a
    defect and was not built**: §7 makes the lock advisory on purpose, and refusal would wedge an
-   offline device's outbox. **Open as an owner decision** if collision *prevention* is wanted
-   instead of avoidance. Log: *„The lock stopped at the row"*.
+   offline device's outbox — reaffirmed by the owner 2026-08-23, the lock stays a client-side
+   courtesy. **Open as an owner decision** if collision *prevention* is wanted instead of
+   avoidance. What was still missing is that a claim could only *end* by packing the row or by
+   ageing out: it can be **released** now, and an aged claim says it aged instead of letting the
+   row go quiet. Log: *„The lock stopped at the row"*, *„A claim had no way out"*.
    ~~**(e)** NFR-4.2a promises audit **and manual revert**~~ — **done** (2026-08-22,
    ADR-023): a revert is an ordinary mutation with a fresh server HLC, not an undo, so
    the merge rules can refuse it and each refusal has its own sentence. No schema change
@@ -192,17 +195,17 @@ it. Item numbers stay stable even as items close, because the log refers back to
    written there.
 
 16. ~~**NFR-4.14 — the client/server contract is written twice and checked nowhere**~~ —
-   **the mechanism is done** (2026-08-23, ADR-026): `internal/api/wire.go` is the one
+   **done** (2026-08-23/24). The mechanism is ADR-026: `internal/api/wire.go` is the one
    declaration, `make wire` generates `client/src/api/types.ts` from it, and
    `scripts/wire-contract-gate.sh` (in `make ci` and the CI `go` job) fails the build when they
-   differ. The 16 error codes are `ErrorCode` constants generated into a frozen `ERROR_CODE`
-   object. Log: *„The wire was described twice…"*.
-   **Still open, and it is the next task:** the third point of the NFR, the **route shapes**
-   (`export.csv`/`export.yaml` vs `/templates/{id}/export` vs `/export/full`;
-   `/trips/{id}/conflicts` vs `/conflicts/master`). Kept out on purpose — a rename touching
-   client, Vitest, e2e and `docs/` that fixes no known defect does not belong in the same PR as
-   the mechanism. The other half still owed is **coverage**: the gate protects what is in
-   `wire.go`, and the admin, notification, config and auth responses are not in it yet.
+   differ; the 16 error codes are `ErrorCode` constants generated into a frozen `ERROR_CODE`
+   object. The **route shapes** are ADR-027: **a path names its scope first, then the resource**,
+   the master partition's scope segment is the literal `master`, and an export names its format
+   (`/trips/{id}/sync`, `/master/sync`, `/master/conflicts`, `/me/export.json`). Log: *„The wire
+   was described twice…"* and *„A route names its scope first"*.
+   **Still owed, and it is the one open half:** the gate protects what is in `wire.go`, and the
+   admin, notification, config and auth responses are not in it yet — nor are the routes, which
+   are agreed by two test tables rather than generated (ADR-027's second revisit trigger).
 
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,
@@ -223,7 +226,7 @@ ownership model (each carries a revisit trigger in its stub).
 1. **Dependency direction**, as it actually is today (verified with `go list -deps`): `api → store, sync`; `store → sync`; **`sync` and `wiregen` import nothing internal, ever**. Both leaves are trivially unit-testable precisely because of that, and that is the point. (`internal/portable` was a second such leaf until 2026-08-23; it went with the server's half of the portable format — ADR-025.) The pure domain rules live in `client/src/domain` (invariant 4), not in a Go `internal/domain`.
 2. **The development phase has no DDL migrations** (ADR-018, decided 2026-08-19). `internal/store/schema.sql` is the whole schema, always current: a schema change **edits that file**, and there is no upgrade path. `Open` applies it to an empty database and stamps a fingerprint of the file into `PRAGMA user_version`; any other value — a migration-era level, or `0` on a file that already has tables — is refused with `ErrSchemaStale` and an instruction naming the database path. **Nothing is recreated or deleted on start-up**: a database the code refuses is left exactly as it was. Two consequences to plan for: every schema change means deleting every development database (the `:3000` instance included — reseed with the M2 dev button), and a *data transformation* has nowhere to live, so a schema change that would have needed a backfill is a reseed instead. Dead schema from a retired feature is now a choice rather than a rule; `outbound_packed` and the `repack` status value are still there because removing them changes the sync contract, not because they cannot be removed. **This reverts at the first release meant for anyone but the maintainer** — `schema.sql` becomes `migrations/001_schema.sql`, numbering resumes at `002`, and this invariant returns to "applied migrations are never edited". The trigger is written out in ADR-018.
 3. **The client's identity claims are never trusted.** The server stamps actor columns itself (`stampActor` in `internal/api/server.go`: comment `author_id`, `packing_now_by`/`packing_now_at`, and `packed_by_user_id` — which is also stripped from every incoming `trip_items` mutation so it cannot be forged. `packer_user_id` is deliberately *not* stamped: since FR-25.19 it is the assignment, which the client chooses). A client placeholder like `'current-user'` must never reach a foreign key. Likewise, clients can never grant the `owner` role, and the trip creator's membership row is immutable.
-4. **Generation runs client-side.** Template instantiation, dependency resolution, quantity suggestions, analytics, the review assistant, cloning and import all live in `client/src/domain`, not on the server — because **Local Mode has no server** and must keep every one of those features. Moving one of them server-side silently removes it from a supported mode. **And there is only one of each** (ADR-008 driver 2, enforced 2026-08-23 by ADR-025): the server had a second portable importer in `internal/store`, unreachable from any product surface, which had drifted from the client's and wrote rows without a change-log entry — so what it imported reached no device. It is deleted, and so is the matching *exporter*, which was behind in the same way — it wrote no status, no ordered tags, no marks, no `from_inventory`. With them went `internal/portable` and all four YAML endpoints; the Go side no longer knows the format exists. `GET /export/full` and `GET /trips/{id}/export.csv` stay, because neither has a client-side twin. Anything outside the browser that has to run these rules runs *this* code: the FR-18.7 import command is a Node program over `client/src/domain/portableImport.ts`, which takes its inventory view, its mutation factory and a write sink as parameters. **A rule of theirs must never be reachable only through a Vue composable** — that is what made the duplicate necessary in the first place.
+4. **Generation runs client-side.** Template instantiation, dependency resolution, quantity suggestions, analytics, the review assistant, cloning and import all live in `client/src/domain`, not on the server — because **Local Mode has no server** and must keep every one of those features. Moving one of them server-side silently removes it from a supported mode. **And there is only one of each** (ADR-008 driver 2, enforced 2026-08-23 by ADR-025): the server had a second portable importer in `internal/store`, unreachable from any product surface, which had drifted from the client's and wrote rows without a change-log entry — so what it imported reached no device. It is deleted, and so is the matching *exporter*, which was behind in the same way — it wrote no status, no ordered tags, no marks, no `from_inventory`. With them went `internal/portable` and all four YAML endpoints; the Go side no longer knows the format exists. `GET /me/export.json` and `GET /trips/{id}/export.csv` stay, because neither has a client-side twin. Anything outside the browser that has to run these rules runs *this* code: the FR-18.7 import command is a Node program over `client/src/domain/portableImport.ts`, which takes its inventory view, its mutation factory and a write sink as parameters. **A rule of theirs must never be reachable only through a Vue composable** — that is what made the duplicate necessary in the first place.
 5. **Three modes, one artifact.** Behaviour is selected at runtime, never by a separate build — but note where each switch lives: the client's `jitpack_mode` is only `local` or `server`; **Single-User is a server-side configuration** (`api.NewSingleUser`) that a `server`-mode client discovers by being offered no OIDC. There is no third client mode. Every feature must answer: what happens in Single-User Mode (auth and membership are bypassed — anything gated on `authed` is inert) and in Local Mode (no network)? Server-only surfaces are hidden per G-8, not left broken.
 6. **Item image BLOBs stay outside the sync envelope** (ADR-002). Only `items.image_hash` flows through the master feed; the bytes move over their own endpoints. The 150 KB / JPEG limit is enforced at handler, store and CHECK constraint — three layers on purpose.
 7. **Coverage gates are enforced, not aspirational**: ≥75 % overall, ≥90 % `internal/sync`. An uncovered branch in merge logic fails review regardless of the total.

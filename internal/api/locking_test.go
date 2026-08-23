@@ -15,7 +15,7 @@ import (
 func pushOne(t *testing.T, srv string, user string, mut map[string]any) {
 	t.Helper()
 	body := map[string]any{"mutations": []any{mut}}
-	resp, raw := doJSON(t, http.MethodPost, srv+"/api/v1/sync/trips/"+trip, token(t, user, testSecret), body)
+	resp, raw := doJSON(t, http.MethodPost, srv+"/api/v1/trips/"+trip+"/sync", token(t, user, testSecret), body)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("push status = %d, body %s", resp.StatusCode, raw)
 	}
@@ -114,7 +114,7 @@ func TestPush_PackingNow_StampsLockerAndEmitsLockEvents(t *testing.T) {
 	}
 
 	// Synced row carries the stamped actor columns.
-	resp, raw := doJSON(t, http.MethodGet, srv.url+"/api/v1/sync/trips/"+trip+"?cursor=0",
+	resp, raw := doJSON(t, http.MethodGet, srv.url+"/api/v1/trips/"+trip+"/sync?cursor=0",
 		token(t, userA, testSecret), nil)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("pull status = %d", resp.StatusCode)

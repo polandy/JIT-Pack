@@ -9,6 +9,7 @@
  * 5. Manages sync status for G-2 indicator
  */
 
+import { API } from '@/api/routes'
 import { TABLE } from '@/types/tables'
 import { computed, ref, shallowRef } from 'vue'
 
@@ -255,7 +256,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   async function fetchLockTimeout(): Promise<void> {
     if (local) return
     try {
-      const resp = await client.get<{ lock_timeout_seconds?: number }>('/api/v1/config')
+      const resp = await client.get<{ lock_timeout_seconds?: number }>(API.config)
       const seconds = resp.lock_timeout_seconds
       if (typeof seconds === 'number' && seconds > 0) lockTimeoutMs.value = seconds * 1000
     } catch {
@@ -288,6 +289,35 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // that waits rather than one that is overwritten.
     if (!item.packing_now_at) return item.packing_now_by ?? ''
     if (!lockIsFresh(Date.parse(item.packing_now_at))) return null
+    return item.packing_now_by ?? ''
+  }
+
+  /**
+   * holdsClaim answers whether *this device* is the one holding the row.
+   * `lockHolder` is deliberately blind to it — my own claim never locks
+   * the row for me — which leaves the one screen that could say "you are
+   * holding this against the others" unable to know it.
+   */
+  function holdsClaim(_tripId: string, item: TripItem): boolean {
+    return myLocks.has(item.id) && item.state === 'packing_now'
+  }
+
+  /**
+   * staleClaim answers who *had* claimed this row, once the §7 window has
+   * passed and the claim stopped counting. `lockHolder` deliberately says
+   * nothing then — the row is operable again — but a row that simply
+   * stops being locked explains nothing to whoever was waiting for it,
+   * and the claim itself does not go away: nothing clears `packing_now`
+   * except packing or a release, so the row would otherwise sit in a
+   * state it no longer honours, indefinitely and silently.
+   */
+  function staleClaim(tripId: string, item: TripItem): string | null {
+    if (myLocks.has(item.id)) return null
+    if (item.state !== 'packing_now') return null
+    if (!item.packing_now_at) return null
+    if (lockIsFresh(Date.parse(item.packing_now_at))) return null
+    const ephemeral = itemLocks.value.get(tripId)?.get(item.id)
+    if (ephemeral && lockIsFresh(ephemeral.at)) return null
     return item.packing_now_by ?? ''
   }
 
@@ -446,10 +476,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   async function surfaceUnreadNotifications(): Promise<void> {
     if (local || !config.onNotification) return
     try {
-      const resp = await client.get<{ notifications: ServerNotification[] }>(
-        '/api/v1/notifications',
-        { unread: '1' },
-      )
+      const resp = await client.get<{ notifications: ServerNotification[] }>(API.notifications, {
+        unread: '1',
+      })
       for (const n of resp.notifications ?? []) {
         if (surfacedNotifications.has(n.id)) continue
         surfacedNotifications.add(n.id)
@@ -462,7 +491,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   async function markNotificationRead(id: string): Promise<void> {
     try {
-      await client.post(`/api/v1/notifications/${id}/read`)
+      await client.post(API.notificationRead(id))
     } catch {
       // Offline: stays unread server-side and resurfaces at most once.
     }
@@ -470,26 +499,26 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   async function fetchNotificationPrefs(): Promise<NotificationPrefs | null> {
     try {
-      return await client.get<NotificationPrefs>('/api/v1/me/notification-prefs')
+      return await client.get<NotificationPrefs>(API.meNotificationPrefs)
     } catch {
       return null
     }
   }
 
   async function saveNotificationPrefs(prefs: NotificationPrefs): Promise<void> {
-    await client.put('/api/v1/me/notification-prefs', prefs)
+    await client.put(API.meNotificationPrefs, prefs)
   }
 
   /** Server half of the Web Push dance (NFR-4.6) for notifications/push.ts. */
   const pushApi: PushServerAPI = {
     async getVapidKey() {
-      return (await client.get<{ key: string }>('/api/v1/push/vapid-key')).key
+      return (await client.get<{ key: string }>(API.pushVapidKey)).key
     },
     async registerSubscription(sub) {
-      await client.post('/api/v1/push/subscriptions', sub)
+      await client.post(API.pushSubscriptions, sub)
     },
     async unregisterSubscription(endpoint) {
-      await client.delete('/api/v1/push/subscriptions', { endpoint })
+      await client.delete(API.pushSubscriptions, { endpoint })
     },
   }
 
@@ -765,6 +794,32 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function packingNow(tripId: string, item: TripItem) {
     const mut = mutations.startPackingNow(item.id)
     myLocks.add(item.id)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0,
+        table: TABLE.tripItems,
+        id: item.id,
+        deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  /**
+   * releaseClaim gives a row back without packing it (G-3). Until now a
+   * claim ended only by packing or by ageing out of the §7 window, so a
+   * tap made by mistake held the row against everyone else for a quarter
+   * of an hour with no way out.
+   *
+   * The state it returns to is derived rather than remembered: the claim
+   * overwrote whatever was there, and `packed_count` against `quantity`
+   * says the same thing the stepper says — a release that always wrote
+   * `open` would throw away work already in the bag.
+   */
+  function releaseClaim(tripId: string, item: TripItem) {
+    const mut = mutations.releasePackingNow(item.id, item.packed_count, item.quantity)
+    myLocks.delete(item.id)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
       optimistic: {
@@ -1993,7 +2048,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       ])
       return
     }
-    await client.putRaw(`/api/v1/items/${item.id}/image`, optimized, 'image/jpeg')
+    await client.putRaw(API.itemImage(item.id), optimized, 'image/jpeg')
     await drainMaster()
   }
 
@@ -2012,7 +2067,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       ])
       return
     }
-    await client.delete(`/api/v1/items/${item.id}/image`)
+    await client.delete(API.itemImage(item.id))
     await drainMaster()
   }
 
@@ -2029,7 +2084,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       const blob = await local.getImage(item.id)
       return blob ? URL.createObjectURL(blob) : null
     }
-    return `${config.baseUrl}/api/v1/items/${item.id}/image?v=${item.image_hash}`
+    return `${config.baseUrl}${API.itemImage(item.id)}?v=${item.image_hash}`
   }
 
   /** createTemplate makes a new template. Templates are shared
@@ -2288,10 +2343,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    */
   async function fetchConflicts(tripId: string): Promise<ConflictEntry[]> {
     if (local) return []
-    const resp = await client.get<{ conflicts: ConflictEntry[] }>(
-      `/api/v1/trips/${tripId}/conflicts`,
-      {},
-    )
+    const resp = await client.get<{ conflicts: ConflictEntry[] }>(API.tripConflicts(tripId), {})
     return resp.conflicts
   }
 
@@ -2304,7 +2356,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    */
   async function fetchMasterConflicts(): Promise<ConflictEntry[]> {
     if (local) return []
-    const resp = await client.get<{ conflicts: ConflictEntry[] }>('/api/v1/conflicts/master', {})
+    const resp = await client.get<{ conflicts: ConflictEntry[] }>(API.masterConflicts, {})
     return resp.conflicts
   }
 
@@ -2321,11 +2373,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   async function revertConflict(conflictId: string, tripId?: string): Promise<void> {
     if (local) return
     if (tripId !== undefined) {
-      await client.post(`/api/v1/trips/${tripId}/conflicts/${conflictId}/revert`)
+      await client.post(API.tripConflictRevert(tripId, conflictId))
       await drainTrip(tripId)
       return
     }
-    await client.post(`/api/v1/conflicts/master/${conflictId}/revert`)
+    await client.post(API.masterConflictRevert(conflictId))
     await drainMaster()
   }
 
@@ -2346,7 +2398,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         user_id: string
         display_name: string
         is_instance_admin?: boolean
-      }>('/api/v1/me', {})
+      }>(API.me, {})
     } catch {
       return null
     }
@@ -2357,34 +2409,34 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   // partitions (users is outside both).
 
   async function fetchAdminUsers(): Promise<AdminUserRow[]> {
-    const resp = await client.get<{ users: AdminUserRow[] }>('/api/v1/admin/users', {})
+    const resp = await client.get<{ users: AdminUserRow[] }>(API.adminUsers, {})
     return resp.users ?? []
   }
 
   async function deactivateUser(userID: string): Promise<void> {
-    await client.post(`/api/v1/admin/users/${userID}/deactivate`, {})
+    await client.post(API.adminDeactivateUser(userID), {})
   }
 
   async function reactivateUser(userID: string): Promise<void> {
-    await client.post(`/api/v1/admin/users/${userID}/reactivate`, {})
+    await client.post(API.adminReactivateUser(userID), {})
   }
 
   async function adminResetAvatar(userID: string): Promise<void> {
-    await client.delete(`/api/v1/admin/users/${userID}/avatar`)
+    await client.delete(API.adminResetAvatar(userID))
   }
 
   async function adminResetDisplayName(userID: string): Promise<void> {
-    await client.delete(`/api/v1/admin/users/${userID}/display-name`)
+    await client.delete(API.adminResetDisplayName(userID))
   }
 
   async function saveDisplayName(userId: string, name: string): Promise<void> {
     if (local) return
-    await client.put(`/api/v1/users/${userId}/display-name`, { display_name: name })
+    await client.put(API.userDisplayName(userId), { display_name: name })
   }
 
   async function uploadAvatar(userId: string, jpeg: Blob): Promise<void> {
     if (local) return
-    await client.putRaw(`/api/v1/users/${userId}/avatar`, jpeg, 'image/jpeg')
+    await client.putRaw(API.userAvatar(userId), jpeg, 'image/jpeg')
   }
 
   /** downloadExport fetches an NFR-4.5 export with the auth header. */
@@ -2458,7 +2510,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     if (local) return []
     try {
       const resp = await client.get<{ users: { user_id: string; display_name: string }[] }>(
-        '/api/v1/users',
+        API.users,
         {},
       )
       return resp.users ?? []
@@ -2926,6 +2978,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     fetchMasterConflicts,
     revertConflict,
     isLockedByOther,
+    holdsClaim,
+    staleClaim,
+    releaseClaim,
     lockHolder,
     fetchLockTimeout,
 

@@ -94,7 +94,7 @@ describe('fetchMasterConflicts', () => {
     expect(conflicts[0]).toMatchObject({ entity_table: 'templates', field: 'name' })
     // No trip in the path: this log exists whether or not one is open,
     // which is the whole reason it needs its own endpoint.
-    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/conflicts/master')
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/master/conflicts')
   })
 
   it('resolves empty in Local Mode without a network call', async () => {
@@ -136,7 +136,7 @@ describe('revertConflict', () => {
 
     await orch.revertConflict('c2')
 
-    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/conflicts/master/c2/revert')
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/master/conflicts/c2/revert')
   })
 
   it('surfaces the server refusal rather than swallowing it', async () => {

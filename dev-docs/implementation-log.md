@@ -132,6 +132,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [An optimistic row is a whole row (2026-08-22)](#an-optimistic-row-is-a-whole-row-2026-08-22) — a partial upsert's fields were applied as the optimistic row, which a store applies by replacing what it holds: saving a trip's name dropped its `status` and took the trip off M2 for good in Local Mode; two of the three lost fields had tests that said otherwise, one of them green only because the seeded year was the current one.
 - [The conflict log had two partitions and one query (2026-08-22)](#the-conflict-log-had-two-partitions-and-one-query-2026-08-22) — NFR-4.2a's audit filtered on `trip_id`, so every master-partition loser was written and read by nothing; the case that makes it matter is `trips`, whose own fields merge there, and the sheet's helpful-sounding hint was what hid it.
 - [`merged` was a quieter `applied` (2026-08-22)](#merged-was-a-quieter-applied-2026-08-22) — the push response's `conflicts[]` was read by no code path, so a mutation that lost a field left the queue exactly like one that applied; one toast per push (never per conflict) plus a standing line in the G-2 sheet, and the e2e assertion had to move because it was racing the toast's own dismissal timer.
+- [A claim had no way out (2026-08-23)](#a-claim-had-no-way-out-2026-08-23) — a G-3 claim could only end by packing or by ageing out, and the device holding a row is the one device that sees no padlock; releasing derives the state from the packed count rather than remembering it, and an expired claim never leaves the data, so it had to start saying so.
 - [The revert was already half-built, in a column nobody used (2026-08-22)](#the-revert-was-already-half-built-in-a-column-nobody-used-2026-08-22) — NFR-4.2a's second verb, built as a new mutation rather than an undo (ADR-022); the schema change the work was budgeted for did not exist, and a single-connection pool turned an obvious visibility check into a deadlock against itself.
 - [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
 - [Field-level LWW was row-level, and "packed always wins" was hiding it (2026-08-22)](#field-level-lww-was-row-level-and-packed-always-wins-was-hiding-it-2026-08-22) — the store kept one `updated_hlc` per row where §6 says per field-group, so an offline pack lost to any unrelated later edit; the backlog's "packed beats everything" branch was the compensation for exactly one state, and narrowing it to the spec alone would have kept the fault and dropped the mask; ADR-022 ships a clock per field and the narrow rule together, and the conflict log now names the losing push and its actor.
@@ -147,6 +148,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The wire was described twice, and the second description was fiction (2026-08-23)](#the-wire-was-described-twice-and-the-second-description-was-fiction-2026-08-23) — NFR-4.14/ADR-026. The envelope was already uniform; what was not a contract was two independent descriptions of one wire, and the mechanism found two more drifted types on its first run. Three things the code cannot show: why both suites were blind (a fake agrees with its author), why the gate generates beside the tree rather than over it, and the trap that a generated file under `client/src` must be prettier-clean or `make fmt` fails the gate on a file nobody edited.
 - [A conflict is an overwrite, not a lost race (2026-08-23)](#a-conflict-is-an-overwrite-not-a-lost-race-2026-08-23) — the conflict log had been logging fields nobody overwrote, so it read `2026 → 2026` and offered a revert for it, and the outcome `merged` announced the loss to a user who had none. Two things the code cannot show: it was found by rendering a merged, reviewed feature that no one had looked at, and the fix's real difficulty is that the two values being compared arrive from different type systems — JSON on one side, SQLite on the other.
 - [The conflict log was showing the wire (2026-08-24)](#the-conflict-log-was-showing-the-wire-2026-08-24) — the three findings the previous entry left standing, plus one only the render found: the log's values were two uuids either side of an arrow. Two things the code cannot show: which limits are deliberate (a name this device does not know, a column with no word for it) and why the e2e case that "covered" the row was green against every one of these.
+- [A route names its scope first (2026-08-24)](#a-route-names-its-scope-first-2026-08-24) — NFR-4.14's third point/ADR-027. Four things the code cannot show: the backlog item's own complaint had gone stale (ADR-025 had already deleted two of the four shapes it named, so it was re-measured before it was acted on), why the sync endpoints were widened into a scope the owner's question did not name, the trap that a router's 404 and a handler's 404 are the same status — which made the first negative test green on the two revert routes for the wrong reason — and the latent defect that typed route builders exposed.
 
 ## Current state
 
@@ -5658,6 +5660,46 @@ line names the port, not the file. And `git add -A` in a worktree where a second
 agent was editing swept its in-progress work into an unrelated commit; staging
 explicit paths is not pedantry when anything else is writing.
 
+
+## A claim had no way out (2026-08-23)
+
+G-3's lock was built long ago and the two halves it was missing arrived
+this week from another session: the row names its holder, and the detail
+sheet — the open window beside the locked door — goes read-only. What was
+left is the part a mockup surfaced rather than a bug report: a claim could
+only *end* by packing the row or by ageing out of §7's window.
+
+**The device holding a row is the one device that sees no padlock.** My own
+claim never locks the row for me — that is what makes it usable — so the
+screen that most needs to say "you are holding this against everyone else"
+was the one screen structurally unable to know it. `lockHolder` answers
+"locked for me", and the answer for my own claim is null. It took a second
+question, `holdsClaim`, to make the row able to say the obvious thing.
+
+**Releasing derives the state rather than remembering it.** The claim
+overwrote whatever the row's state was, so there is nothing to restore. But
+`packed_count` against `quantity` says the same thing the stepper says, and
+that is the rule `incrementPacked` already uses — a release that always
+wrote `open` would have thrown away work already in the bag.
+
+**An expired claim does not leave the data.** The §7 window only decides
+whether a claim still *counts*; nothing clears `packing_now` but packing or
+a release. So a row abandoned mid-pack sits in a state nobody honours,
+indefinitely — and before this it did so in silence, becoming operable
+again for a reason whoever was waiting for it was never told.
+
+**What the owner decided, and what follows from it.** The lock stays a
+client-side courtesy: the server hands out the window over `GET /config`
+and enforces nothing. That is not a shortcut — Local Mode has no server at
+all, and a rule two of the three modes could keep would not be the same
+rule. It does mean the lock cannot stop a determined client, which is fine
+for what it is: it saves duplicate work, it does not protect data. The
+merge does that.
+
+The variant question the mockup put to the owner — the holder's name in the
+row's sub-line versus an avatar in the stepper slot — was answered A, and
+was already built that way. What the mockup was actually worth was the two
+states nobody had asked about.
 ## The manual said it, the shipped config did not (2026-08-23)
 
 Presence, the G-3 lock and every live update were absent on the `:3000`
@@ -5887,3 +5929,66 @@ stores, which is the surface it actually serves.
 
 **No visual baseline moved**, because the conflict log is in none — the G-2
 *sheet* is (E2E-VIS-08), the log it leads to is not.
+## A route names its scope first (2026-08-24)
+
+NFR-4.14's third point, kept out of ADR-026 on purpose so a mechanical rename
+would not travel with the mechanism it would be confused for. ADR-027 has the
+options and the matrix; what follows is what the diff cannot say.
+
+**The complaint had gone stale, and acting on it as written would have been
+wrong.** Backlog item 16 named four disagreeing export shapes — `export.csv`,
+`export.yaml`, `/templates/{id}/export`, `/export/full`. Two of them had not
+existed since the day before: ADR-025 deleted the YAML endpoints along with the
+server's half of the portable format. A requirement written on Monday describes
+Monday's code, and this one was three weeks old at a week's velocity. Measuring
+the surface first turned a four-way disagreement into a two-way one and changed
+which rule was worth choosing.
+
+**The widening, and why it was asked rather than assumed.** The point named the
+conflict and export paths. It did not name `/sync/master` and
+`/sync/trips/{id}` — which lead with the channel where the rest of the surface
+leads with the scope. Leaving them would have made the rule *"scope first,
+except the sync channel"*, and an exception is the thing that has to be
+memorised, which is precisely what the requirement exists to remove. It is also
+the hottest path in the application and the largest single blast radius in the
+tree (64 references, 29 files), so it was put to the owner as a decision with
+its cost rather than folded in quietly. Answer: pull it along, one rule, no
+exception.
+
+**A router's 404 and a handler's 404 are the same status, and that made the
+first test green for the wrong reason.** The test that proves a rename is not an
+alias asserts the old paths are gone. Written against the status code, it passed
+immediately on `POST /conflicts/master/{id}/revert` — not because the route had
+been renamed, but because the conflict id in the fixture does not exist and the
+handler answers 404 too. The same confusion had the *positive* table calling a
+routed path unrouted. The discriminator is the body: `writeError` writes the
+`APIError` envelope, and `http.ServeMux` writes plain text. Worth remembering
+beyond this file — **any test that asserts "this endpoint is gone" by status
+alone is asserting nothing about routing** wherever the handler can answer the
+same code.
+
+**What typing forty string literals found.** The client's paths moved into
+`client/src/api/routes.ts` (§4a) — not required by the rename, but the rename is
+what proved the cost of their absence. `SyncOutbox.syncPath` takes an id that is
+nullable because the master partition has none; a *trip* partition without one
+had been interpolating as the literal string `null` and pushing to
+`/api/v1/sync/trips/null`, a path the server answers 404 and the outbox retries
+forever, naming nothing in either place. A template literal accepted it in
+silence for as long as the code has existed. A typed builder did not compile.
+The guard and its three cases were the only production behaviour change in a PR
+that is otherwise a rename.
+
+**Two smaller traps, both in the test tree.** The e2e interception
+`'**/api/v1/sync/**'` no longer matches anything now that the scope leads — a
+glob that matches nothing makes an interception test pass by intercepting
+nothing, so it became a regex naming both partitions. And beside it,
+`areq` — an array collecting every sync request the page made, asserted by no
+line in the file. It was deleted rather than updated: an observation nothing
+reads is not coverage, and rewriting it would have made it look like coverage.
+
+**A formatter has a scope, and mine was wider than the project's.** `npm run
+format` covers `client/src`. Running prettier over `client/e2e` as well
+reformatted three spec files this change has no business touching, and the
+churn was only visible because `git status` listed files no sweep had reported.
+Reverted. The lesson is cheap but recurring: **run the project's format command,
+not prettier with a path you chose.**

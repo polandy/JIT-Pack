@@ -74,7 +74,7 @@ describe('master data actions', () => {
     expect(item.weight_grams).toBe(500)
     expect(item.name).toBe('Socken')
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
-    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/sync/master')
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/master/sync')
   })
 
   // FR-28.1/28.8, and a photo bug found beside it: the optimistic row is
@@ -163,7 +163,7 @@ describe('master data actions', () => {
     // One shared list (FR-1.6 MVP) — there is no publish state to land under.
     expect(master.templateList.map((t) => t.id)).toContain(id)
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
-    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/sync/master')
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/master/sync')
   })
 })
 
@@ -191,7 +191,7 @@ describe('M5 assignment actions on the trip partition', () => {
 
     expect(trips.getItems('t1')[0]!.assigned_traveler_id).toBe('trav-9')
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
-    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/sync/trips/t1')
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/trips/t1/sync')
   })
 
   it('setLatePacker and assignContainer keep remaining fields intact', () => {

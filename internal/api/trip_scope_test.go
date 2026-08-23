@@ -37,7 +37,7 @@ func TestPush_StrangerTargetingAnotherTripsRow_RejectedAndRowUntouched(t *testin
 		_, err := st.DB().Exec(q)
 		return err
 	})
-	strangerPush := srv.URL + "/api/v1/sync/trips/" + strangerTrip
+	strangerPush := srv.URL + "/api/v1/trips/" + strangerTrip + "/sync"
 
 	body := map[string]any{"mutations": []any{
 		mutation("victim-item", "mut-1", "upsert",
@@ -98,7 +98,7 @@ func TestPush_StrangerDeletingAnotherTripsRow_RejectedAndRowSurvives(t *testing.
 		_, err := st.DB().Exec(q)
 		return err
 	})
-	strangerPush := srv.URL + "/api/v1/sync/trips/" + strangerTrip
+	strangerPush := srv.URL + "/api/v1/trips/" + strangerTrip + "/sync"
 
 	body := map[string]any{"mutations": []any{
 		mutation("victim-item", "mut-1", "delete", nil, "0000000009000-0000-ffffffff"),

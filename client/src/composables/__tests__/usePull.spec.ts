@@ -44,7 +44,7 @@ describe('usePull', () => {
 
     const result = await pull.pullTrip('trip-1', 0)
 
-    expect(client.get).toHaveBeenCalledWith('/api/v1/sync/trips/trip-1', {
+    expect(client.get).toHaveBeenCalledWith('/api/v1/trips/trip-1/sync', {
       cursor: '0',
       limit: '500',
     })
@@ -65,7 +65,7 @@ describe('usePull', () => {
 
     const result = await pull.pullMaster(0)
 
-    expect(client.get).toHaveBeenCalledWith('/api/v1/sync/master', {
+    expect(client.get).toHaveBeenCalledWith('/api/v1/master/sync', {
       cursor: '0',
       limit: '500',
     })

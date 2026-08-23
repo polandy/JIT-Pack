@@ -5,6 +5,8 @@
  * the server's api.NewSingleUser middleware injects the implicit local user.
  */
 
+import { API } from '@/api/routes'
+
 export type AuthConfig = { mode: 'single-user' } | { mode: 'oidc'; baseUrl: string }
 
 interface TokenSet {
@@ -41,7 +43,7 @@ export function useAuth(config: AuthConfig) {
     codeVerifier: string,
     redirectUri: string,
   ): Promise<void> {
-    const resp = await fetch(`${baseUrl}/api/v1/auth/token`, {
+    const resp = await fetch(`${baseUrl}${API.authToken}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, code_verifier: codeVerifier, redirect_uri: redirectUri }),
@@ -56,7 +58,7 @@ export function useAuth(config: AuthConfig) {
 
   async function refresh(): Promise<void> {
     if (!tokens) throw new Error('no tokens to refresh')
-    const resp = await fetch(`${baseUrl}/api/v1/auth/refresh`, {
+    const resp = await fetch(`${baseUrl}${API.authRefresh}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: tokens.refreshToken }),

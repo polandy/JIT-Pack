@@ -101,7 +101,7 @@ describe('durable outbox on boot', () => {
     await orch.connect()
 
     const [pushUrl, pushInit] = fetchMock.mock.calls[0]!
-    expect(String(pushUrl)).toContain('/api/v1/sync/trips/trip-1')
+    expect(String(pushUrl)).toContain('/api/v1/trips/trip-1/sync')
     expect(pushInit.method).toBe('POST')
     expect(JSON.parse(pushInit.body).mutations[0].mutation_id).toBe('u1')
 

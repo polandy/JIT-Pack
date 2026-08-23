@@ -60,7 +60,7 @@ func (c *client) edit(id, mutID, op string, fields map[string]any) {
 // drainOutbox pushes all queued mutations (Sync-API Spec P-2).
 func (c *client) drainOutbox() []pushResultWire {
 	c.t.Helper()
-	resp, raw := doJSON(c.t, http.MethodPost, c.baseURL+"/api/v1/sync/trips/"+trip, c.bearer,
+	resp, raw := doJSON(c.t, http.MethodPost, c.baseURL+"/api/v1/trips/"+trip+"/sync", c.bearer,
 		map[string]any{"mutations": c.outbox})
 	if resp.StatusCode != http.StatusOK {
 		c.t.Fatalf("push status = %d, body %s", resp.StatusCode, raw)
@@ -85,7 +85,7 @@ type pushResultWire struct {
 func (c *client) pull() {
 	c.t.Helper()
 	for {
-		url := c.baseURL + "/api/v1/sync/trips/" + trip + "?cursor=" + itoa(c.cursor)
+		url := c.baseURL + "/api/v1/trips/" + trip + "/sync?cursor=" + itoa(c.cursor)
 		resp, raw := doJSON(c.t, http.MethodGet, url, c.bearer, nil)
 		if resp.StatusCode != http.StatusOK {
 			c.t.Fatalf("pull status = %d, body %s", resp.StatusCode, raw)
