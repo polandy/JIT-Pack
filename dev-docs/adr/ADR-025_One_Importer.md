@@ -1,4 +1,4 @@
-# ADR-025: One Import Implementation — Delete the Server's, or Keep Two in Agreement
+# ADR-025: One Implementation of the Portable Format — Delete the Server's, or Keep Two in Agreement
 
 **Status:** Accepted (owner decision, 2026-08-23)
 **Related:** ADR-008 (generation and import run on the client — this ADR enforces its second driver), ADR-015 (local backup file shape), ADR-017 (portable composition), ADR-024 (portable restores what it saved), FR-18.1–18.7, FR-19.5, NFR-4.3 (footprint), NFR-4.11 (serverless backup)
@@ -22,24 +22,28 @@ The two implementations had already diverged, and nobody could see it because th
 
 Roughly 510 lines of Go implementing about half the rules, several of them contradicting written requirements.
 
+**The export half turned out to be the same story** (found while verifying the decision, 2026-08-23). The client serializes portable YAML itself everywhere it writes one — M17, M21 and the NFR-4.11 backup all call `client/src/domain/portable.ts`, and none of them call `GET /api/v1/trips/{id}/export.yaml`. So the server's exporter had no product caller either, and it had fallen behind the same way: it writes **none** of `status`, ordered `tags`, `icon` or `from_inventory`, and none of the FR-27.4 sections. That was invisible while the importer discarded those fields too. It stopped being invisible the moment the importer started honouring them: exporting a trip from the server and importing the file back silently dropped its lifecycle state, every tag and every mark — measured on the maintainer's own data, where a trip exported from `:3000` came back as `planning` with zero tag links, while a hand-written file carrying the same fields landed complete (mark on the item, `Wassersport` at position 0, `Neopren` at 1, trip `archived`, row linked to the inventory).
+
 ---
 
 ## Considered Options
 
-### Option A — Delete the server's importer; the CLI runs the client's *(recommended, accepted)*
+### Option A — Delete the server's implementation of the format; the CLI runs the client's *(recommended, accepted)*
 
-`Store.ImportTemplate`/`ImportTrip` and the two `POST /api/v1/*/import` endpoints are removed. The import rules are extracted out of the Vue composable into `client/src/domain/portableImport.ts`, where ADR-008 always said they lived, behind an injected environment (the inventory view, the mutation factory, and a sink for each write). The app supplies a sink that applies optimistically and enqueues into the outbox; the CLI supplies one that collects mutations and pushes them to `/api/v1/sync/master` and `/api/v1/sync/trips/{id}`. Both run the same module.
+`Store.ImportTemplate`/`ImportTrip`, `Store.ExportTemplate`/`ExportTrip`, the two `POST /api/v1/*/import` endpoints, the two YAML export endpoints and the whole `internal/portable` package are removed. The import rules are extracted out of the Vue composable into `client/src/domain/portableImport.ts`, where ADR-008 always said they lived, behind an injected environment (the inventory view, the mutation factory, and a sink for each write). The app supplies a sink that applies optimistically and enqueues into the outbox; the CLI supplies one that collects mutations and pushes them to `/api/v1/sync/master` and `/api/v1/sync/trips/{id}`. Both run the same module.
 
 **Pros**
 - Literally one implementation of the rules, in the language Local Mode forces them into.
 - The four divergences above disappear by deletion rather than by porting: the CLI writes mutations, so its import is in the feed and on every device by construction.
-- ~510 lines of Go and its tests are removed rather than doubled.
+- ~510 lines of import and ~330 of export, plus their tests and the `internal/portable` package, are removed rather than doubled.
+- The format ends up with one reader and one writer, so a file written by JIT-Pack is a file JIT-Pack reads back completely — which is the actual promise of FR-18.1, and the one the server's exporter was quietly breaking.
 - The extraction is what ADR-008 and CLAUDE.md's invariant 4 already claim is true; today the rules sit in a 3600-line composable, which is why nothing could reuse them.
 - The sink boundary is testable with a hand-written fake and no browser at all.
 
 **Cons**
 - **The CLI needs a Node runtime**, where a Go subcommand needed none. It is therefore not part of the server image and not available on a host that only runs the container.
-- **`POST /api/v1/templates/import` and `POST /api/v1/trips/import` are removed** — a breaking change to a documented HTTP surface. Anything scripting against them (the manual's own `curl` examples) stops working.
+- **Four documented endpoints are removed** — both imports and both YAML exports. A breaking change to a documented HTTP surface; the manual's own `curl` examples for them go with it. `GET /export/full` (JSON) and `GET /trips/{id}/export.csv` stay, since neither has a client-side equivalent.
+- **A portable file can no longer be fetched from the server at all.** Getting one out means the app — or, later, an `export` subcommand of the same CLI, which this ADR does not build.
 - The refactor touches ~450 lines of a composable that many screens depend on; behaviour preservation rests on the existing 733-line import spec.
 - The server can no longer be handed a file at all, so there is no path that works with nothing but `curl` and a shell.
 
@@ -86,7 +90,7 @@ The Go importer gains tags, status, `from_inventory`, the FR-27.4 sections, the 
 
 ## Decision
 
-The server has no importer. The import rules live once, in `client/src/domain/portableImport.ts`, behind an injected environment; the app and the CLI differ only in the sink they hand it, and both produce sync mutations. `POST /api/v1/templates/import` and `POST /api/v1/trips/import` are gone; export is unchanged and stays a server capability.
+The server does not know the portable format. Reading it lives once in `client/src/domain/portableImport.ts` (behind an injected environment — the app and the CLI differ only in the sink they hand it, and both produce sync mutations), writing it lives once in `client/src/domain/portable.ts`. The four YAML endpoints and `internal/portable` are gone. The two exports with no client-side equivalent — the full JSON dump and the per-trip CSV — stay server capabilities.
 
 ## Consequences
 
@@ -101,7 +105,8 @@ The server has no importer. The import rules live once, in `client/src/domain/po
 - A host that can only run the container cannot import a file without also having Node somewhere. Accepted: the app itself is the supported import path (ADR-015 already said restoring goes through the app), and the CLI is the convenience beside it.
 
 **Neutral**
-- `internal/portable` keeps both directions. `Unmarshal` no longer serves a handler but remains the reader the export tests parse their own output back with — "what we serve parses back" is a real assertion, not dead code.
+- `internal/portable` is deleted with the two halves it served. The Go side of the codebase no longer knows the portable format exists.
+- The CSV export (NFR-4.5) used the portable document as its data source and now has its own flat query, `Store.TripCSVRows`. That is the honest shape anyway: a spreadsheet dump and a round-trippable document are different artefacts and were only sharing a loader.
 
 ## Revisit Trigger
 

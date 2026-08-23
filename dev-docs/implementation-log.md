@@ -141,6 +141,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A year is a quantity, and that is why M15 could not find its header (2026-08-23)](#a-year-is-a-quantity-and-that-is-why-m15-could-not-find-its-header-2026-08-23) — the legacy spreadsheet importer wrote no `year`, so a NOT NULL column made the server refuse every trip it imported while the importing device rendered the migration anyway; underneath sat two layout assumptions a real family sheet broke, and the rule for finding the header block had to stop asking about quantities.
 - [The store that already agrees with you (2026-08-23)](#the-store-that-already-agrees-with-you-2026-08-23) — three defects in one import path, all of the same shape: the client applies its own write optimistically, the server refuses it, and no screen on the importing device can tell the difference. Found by importing into the real instance instead of a test double, which is a different act from running the suite.
 - [Every spec paid for a DOM, and one of them was green for the wrong reason (2026-08-23)](#every-spec-paid-for-a-dom-and-one-of-them-was-green-for-the-wrong-reason-2026-08-23) — the suite built a jsdom window for all 114 spec files when 32 use one, costing ~48 % of its wall-clock; the premise that started the work was itself wrong (a cold-cache run read 252 s where the warm figure is 88 s), and the interesting find is the failure mode of the fix: a missing `@vitest-environment jsdom` is *not* reliably a red test, because production code that reads a DOM global inside a `try` takes the `catch` instead and the spec passes while exercising the error path.
+- [The importer nobody called, and the exporter behind it (2026-08-23)](#the-importer-nobody-called-and-the-exporter-behind-it-2026-08-23) — ADR-025. The server had its own reader *and* writer for the portable format, reachable from no product surface, and both had drifted: the import wrote no change-log entry, so a `curl` import existed in the database and on no screen. Found by rendering, not by testing. The fix was deletion, and the precondition for it was getting the rules out of a 3600-line composable — where ADR-008 had always said they were not.
 
 ## Current state
 
@@ -5526,3 +5527,88 @@ second answer to give (unlike FR-16.3's prompt against existing inventory, where
 "keep separate" is a real choice). And where two folded rows both carry an amount
 for the same trip, the **larger** wins rather than the sum: they describe one
 packing, and adding them invents luggage that was never in the car.
+
+## The importer nobody called, and the exporter behind it (2026-08-23)
+
+Owner decision, taken on rendered evidence: **the portable format has one
+implementation, on the client, in both directions.** `internal/portable`,
+`Store.ImportTemplate`/`ImportTrip`, `Store.ExportTemplate`/`ExportTrip` and all
+four YAML endpoints are gone; the rules moved out of `useSyncOrchestrator.ts`
+into `client/src/domain/portableImport.ts`, and the FR-18.7 command is a Node
+program over that module. Weighed and rejected in ADR-025: porting the client's
+rules into Go behind a shared conformance corpus, and documenting the divergence
+as a limitation.
+
+**The premise that was wrong.** I set out to build a CLI on the server's import
+endpoints and reviewed the result as a normal PR. The review found two gaps and
+called them "inherited, not introduced". They were symptoms. The actual finding
+came from doing what the manual says a user does — import, then look — and the
+Templates screen said *"No templates yet"* over a database holding one
+Ferien-Vorlage, 18 groups and 182 positions. `appendChangeLog` is called zero
+times from `internal/store/export.go`, templates reach a client through no other
+route, and the master feed of the running instance held 459 entries with
+**zero** `templates` rows. A `curl` import had been writing to a database that
+nothing reads.
+
+**What made it invisible for so long.** The Go importer had no caller. Not one:
+the client serializes and parses portable YAML itself, so M17, M18, M21 and the
+NFR-4.11 backup never touch those endpoints. A second implementation with no
+users cannot drift *visibly* — it can only drift. By the time it was measured it
+had lost the trip status (FR-18.4/ADR-024 promise the file's), `packed_count`,
+tags, `from_inventory`, `trips.imported` and the whole FR-27.4 refresh state, and
+matched item names case-sensitively where the client folds case and accepts a
+Levenshtein-2 near match. ADR-008 had decided against exactly this in its second
+driver; the decision had simply never been applied to this one path.
+
+**The export half is the same shape, and it only became harmful now.** The
+server's exporter writes none of `status`, ordered `tags`, `icon` or
+`from_inventory`. While the importer discarded those fields too, a server-to-
+server round trip lost nothing you could notice. The moment the importer started
+honouring them, exporting a trip from the instance and importing the file back
+silently dropped its lifecycle state, its tags and its marks — measured: a trip
+exported from `:3000` came back `planning` with zero tag links, while a
+hand-written file carrying the same fields landed complete (mark on the item,
+`Wassersport` at position 0, `Neopren` at 1, trip `archived`, row linked to the
+inventory). **A partial second implementation is not a smaller risk than a full
+one; it is a lossier one that hides behind the first.**
+
+**Why the extraction was the precondition, not a tidy-up.** The rules were 450
+lines inside a 3600-line Vue composable, interleaved with the outbox, the
+optimistic apply and the drain. Nothing outside a browser could reach them,
+which is the whole reason a second implementation existed at all. They now take
+a `PortableImportEnv` — an inventory view, the mutation factory, and a sink for
+each write — and the app and the CLI differ only in the sink. The trap worth
+recording: the `master` view has to be **live, not a snapshot**, because the
+rules deliberately read their own output back (a group created for document *n*
+is found by document *n+1*; the FR-27.4 ledger indexes items the same import
+just created). A snapshot would have passed most tests and quietly duplicated
+master items across a backup restore.
+
+**One behaviour changed on purpose**, and no test asserted the old one:
+`applyTags` used to create a tag through the composable's `createTag`, which
+drains immediately, so a restore fired a push per invented tag. In the module it
+only emits, and the single end-of-import drain covers it. The import path now
+does what the comment beside `assignTagLocally` already claimed it did.
+
+**A detail the Go path never had to face.** Sync-API §9 caps a push at 200
+mutations. A real Vorlage is far past that — the maintainer's is 1 template, 18
+groups, 182 positions — so the command chunks, reusing the outbox's own
+`MAX_PUSH_BATCH`. The server importer never met this because it wrote rows
+directly; it is the price of going through the sync path, and it is the right
+price.
+
+**What the CSV export cost.** `GET /trips/{id}/export.csv` used the portable
+*document* as its data source, so deleting the exporter broke it. It now has its
+own flat query, `Store.TripCSVRows` — which is the honest shape: a spreadsheet
+dump and a round-trippable document are different artefacts that were sharing a
+loader.
+
+**Two traps of my own, both worth a line.** `jitpackd` falls back to
+`jitpack.db` in the working directory when `JITPACK_DB_PATH` is unset; I set
+`JITPACK_DB`, so six "fresh" test instances shared one accumulating database and
+a duplicate-name refusal read as a phantom defect in the file being imported. A
+server that starts happily on the wrong database tells you nothing — the log
+line names the port, not the file. And `git add -A` in a worktree where a second
+agent was editing swept its in-progress work into an unrelated commit; staging
+explicit paths is not pedantry when anything else is writing.
+
