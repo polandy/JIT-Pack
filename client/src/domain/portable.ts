@@ -554,19 +554,19 @@ export function serializeTrip(args: {
       const master = item.source_item_id ? args.masterItem(item.source_item_id) : undefined
       const tags = item.source_item_id ? args.tagsOf(item.source_item_id) : []
       return {
-      name: item.name,
-      quantity: item.quantity,
-      mode: item.mode,
-      ...(item.source_item_id ? { from_inventory: true } : {}),
-      ...(master?.icon ? { icon: master.icon } : {}),
-      ...(tags.length > 0 ? { tags } : {}),
-      ...(item.category_name ? { category: item.category_name } : {}),
-      ...(item.assigned_traveler_id
-        ? { traveler: travelerNames.get(item.assigned_traveler_id) }
-        : {}),
-      ...(item.container_id ? { container: containerNames.get(item.container_id) } : {}),
-      ...(args.includeProgress ? { packed_count: item.packed_count } : {}),
-      ...(item.late_packer ? { late_packer: true } : {}),
+        name: item.name,
+        quantity: item.quantity,
+        mode: item.mode,
+        ...(item.source_item_id ? { from_inventory: true } : {}),
+        ...(master?.icon ? { icon: master.icon } : {}),
+        ...(tags.length > 0 ? { tags } : {}),
+        ...(item.category_name ? { category: item.category_name } : {}),
+        ...(item.assigned_traveler_id
+          ? { traveler: travelerNames.get(item.assigned_traveler_id) }
+          : {}),
+        ...(item.container_id ? { container: containerNames.get(item.container_id) } : {}),
+        ...(args.includeProgress ? { packed_count: item.packed_count } : {}),
+        ...(item.late_packer ? { late_packer: true } : {}),
       }
     })
 
