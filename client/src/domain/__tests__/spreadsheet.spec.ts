@@ -1,8 +1,8 @@
 /**
  * M15 spreadsheet import (FR-16.1–16.3, NFR-4.7): CSV parsing with
  * delimiter detection, grid analysis (item column, trip columns,
- * category rows, '?' noise), near-duplicate matching, and the final
- * import plan.
+ * category rows and a category column, '?' noise), near-duplicate
+ * matching, and the final import plan.
  */
 import { describe, it, expect } from 'vitest'
 
@@ -60,11 +60,59 @@ describe('analyzeGrid (FR-16.1, NFR-4.7)', () => {
 
   it('finds the item-name column and the trip columns with headers', () => {
     expect(analysis.itemColumn).toBe(0)
-    expect(analysis.tripColumns.map((t) => t.header)).toEqual(['2023', '2024', '2025'])
+    expect(analysis.tripColumns.map((t) => t.name)).toEqual(['2023', '2024', '2025'])
   })
 
   it('suggests rows without any quantities as category rows', () => {
     expect(analysis.categoryRows).toEqual([1, 4])
+    expect(analysis.categoryColumn).toBeNull()
+  })
+
+  it('reads a lone year header as both the name and the date (FR-16.1)', () => {
+    expect(analysis.headerRows).toBe(1)
+    expect(analysis.tripColumns.map((t) => t.date)).toEqual(['2023', '2024', '2025'])
+  })
+})
+
+/*
+ * The layout a decade-old family spreadsheet actually has (FR-16.1, found
+ * 2026-08-23 on a real 34-column sheet): the column header is two rows —
+ * the year above the trip's name — and the category is its own column,
+ * forward-filled, rather than a grouping row.
+ */
+const twoRowHeaderCSV = [
+  ',,2016,2016,2017',
+  ',,Sjas,Laos,Moskau',
+  'Schuhe,Wanderschuhe,1,1,',
+  ',Sandalen,1,,2',
+  'Unterwäsche,Socken,9,9,9',
+].join('\n')
+
+describe('analyzeGrid — two-row header and category column (FR-16.1)', () => {
+  const grid = parseSpreadsheet(twoRowHeaderCSV)
+  const analysis = analyzeGrid(grid)
+
+  it('counts the leading rows that carry no quantity as the header block', () => {
+    expect(analysis.headerRows).toBe(2)
+  })
+
+  it('names each trip from the header row that names them, not from the year row', () => {
+    expect(analysis.tripColumns.map((t) => t.name)).toEqual(['Sjas', 'Laos', 'Moskau'])
+  })
+
+  it('takes the date from the header row that parses as one', () => {
+    expect(analysis.tripColumns.map((t) => t.date)).toEqual(['2016', '2016', '2017'])
+  })
+
+  it('finds the item column beside the category column, not the category column', () => {
+    expect(analysis.itemColumn).toBe(1)
+    expect(analysis.categoryColumn).toBe(0)
+  })
+
+  it('suggests no category rows once a category column carries them', () => {
+    // Without this, an item nobody ever packed reads as a category heading:
+    // the rule that finds category rows is "no quantity anywhere".
+    expect(analysis.categoryRows).toEqual([])
   })
 })
 
@@ -102,7 +150,9 @@ describe('normalizeTripDate', () => {
 describe('buildImportPlan (FR-16.2, NFR-4.7)', () => {
   const grid = parseSpreadsheet(legacyCSV)
   const mapping = {
+    headerRows: 1,
     itemColumn: 0,
+    categoryColumn: null,
     categoryRows: [1, 4],
     trips: [
       { column: 1, name: 'Engadin 2023', endDate: '2023-12-31', seriesId: 'ser-1' },
@@ -132,7 +182,14 @@ describe('buildImportPlan (FR-16.2, NFR-4.7)', () => {
 
     expect(plan.trips).toHaveLength(2)
     const t2023 = plan.trips[0]!
-    expect(t2023).toMatchObject({ name: 'Engadin 2023', endDate: '2023-12-31', seriesId: 'ser-1' })
+    expect(t2023).toMatchObject({
+      name: 'Engadin 2023',
+      // FR-2.1b: the one required temporal fact, and the column that the
+      // schema refuses a trip without.
+      year: 2023,
+      endDate: '2023-12-31',
+      seriesId: 'ser-1',
+    })
     const quantities = t2023.items.map((ti) => ({
       name: plan.items[ti.itemIndex]!.name,
       quantity: ti.quantity,
@@ -160,5 +217,42 @@ describe('buildImportPlan (FR-16.2, NFR-4.7)', () => {
     const socken = plan.items.findIndex((i) => i.name === 'Socken')
     const entry = plan.trips[0]!.items.find((ti) => ti.itemIndex === socken)
     expect(entry?.quantity).toBe(1)
+  })
+})
+
+describe('buildImportPlan — two-row header and category column (FR-16.1/16.2)', () => {
+  const grid = parseSpreadsheet(twoRowHeaderCSV)
+  const analysis = analyzeGrid(grid)
+  const mapping = {
+    headerRows: analysis.headerRows,
+    itemColumn: analysis.itemColumn,
+    categoryColumn: analysis.categoryColumn,
+    categoryRows: analysis.categoryRows,
+    trips: analysis.tripColumns.map((t) => ({
+      column: t.index,
+      name: t.name,
+      endDate: normalizeTripDate(t.date)!,
+      seriesId: null,
+    })),
+  }
+
+  it('does not turn a header row into an item', () => {
+    const plan = buildImportPlan(grid, mapping, new Map())
+    expect(plan.items.map((i) => i.name)).toEqual(['Wanderschuhe', 'Sandalen', 'Socken'])
+  })
+
+  it('forward-fills the category column down its rows', () => {
+    const plan = buildImportPlan(grid, mapping, new Map())
+    expect(plan.newCategories).toEqual(['Schuhe', 'Unterwäsche'])
+    expect(plan.items.map((i) => i.categoryName)).toEqual(['Schuhe', 'Schuhe', 'Unterwäsche'])
+  })
+
+  it('carries each trip year, which the schema requires (FR-2.1b)', () => {
+    const plan = buildImportPlan(grid, mapping, new Map())
+    expect(plan.trips.map((t) => [t.name, t.year, t.endDate])).toEqual([
+      ['Sjas', 2016, '2016-12-31'],
+      ['Laos', 2016, '2016-12-31'],
+      ['Moskau', 2017, '2017-12-31'],
+    ])
   })
 })

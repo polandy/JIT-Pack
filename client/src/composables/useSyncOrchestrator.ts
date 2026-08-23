@@ -1774,6 +1774,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     for (const trip of plan.trips) {
       const { mutation: tripMut, id: tripId } = mutations.createImportedTrip(
         trip.name,
+        trip.year,
         trip.endDate,
         trip.seriesId,
       )

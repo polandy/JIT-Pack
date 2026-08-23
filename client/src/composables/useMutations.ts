@@ -498,12 +498,16 @@ export function useMutations(hlc: HLCGenerator) {
   /** createImportedTrip inserts a historical trip: archived, marked imported. */
   function createImportedTrip(
     name: string,
+    year: number,
     endDate: string,
     seriesId: string | null,
   ): { mutation: Mutation; id: string } {
     const id = newId()
     const mutation = make('insert', TABLE.trips, id, {
       name,
+      // FR-2.1b: the one required temporal fact. Omitting it made every
+      // imported trip a NOT NULL violation the server refuses.
+      year,
       start_date: null,
       end_date: endDate,
       status: 'archived',
