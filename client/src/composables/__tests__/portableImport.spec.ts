@@ -674,8 +674,10 @@ describe('backup round trip — status, marks and tags survive (NFR-4.11, ADR-02
     // Build a device: a tagged, marked inventory item on an archived trip that
     // no template mentions — the case that used to lose all three.
     const shoes = writer.createMasterItem('Wanderschuhe', { icon: '🥾' })
-    writer.assignTag(shoes, writer.createTag('Schuhe'), 0)
-    writer.assignTag(shoes, writer.createTag('Sommer'), 1)
+    // Position is derived from what the item already carries, so the order
+    // these two are added in *is* the order they come back in.
+    writer.assignTag(shoes, writer.createTag('Schuhe'))
+    writer.assignTag(shoes, writer.createTag('Sommer'))
     const tripId = writer.createTripFromWizard({
       name: 'Samedan 2025',
       year: 2025,
