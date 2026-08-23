@@ -201,6 +201,8 @@ than left standing.
 
 ### Track H — Dogfood deployment *(sequential, owner-driven, after A–D merge)*
 
+**IdP settled 2026-08-22: Authelia** (§7.3). The OIDC half of this track is therefore a configuration exercise against a provider the manual is already written for, not an integration question.
+
 Not agent work alone: deploy the released images to the homelab behind HTTPS, create the family's IdP users, set `JITPACK_ADMIN_EMAILS`, install on every phone, seed the real inventory/templates (the M2 dev seed is dev-only — real data is typed or imported via M15/M18), run a weekend-trip pilot before the actual vacation. Every friction found here becomes an issue; expect Track B's specs to grow from it.
 
 ## 5. Parallelization map
@@ -233,7 +235,7 @@ Six tracks can fan out immediately. Recommended first wave if agent count is lim
 
 1. ~~**Sign-off on this cut**~~ — **decided 2026-08-20**: approved, FR-27.13 and §3.28 wait until after the vacation.
 2. ~~**Multiple parallel open PRs**~~ — **decided 2026-08-20**: allowed for this push; merges stay serialized and each still needs its own go-ahead.
-3. **IdP**: which OIDC provider fronts the family instance (the config assumes a confidential client; Authelia-class self-hosted works)? Needed before Track H, not before A–G.
+3. ~~**IdP**~~ — **decided 2026-08-22: Authelia**, the owner's own instance, over OIDC. It confirms the built assumption rather than changing it: `docs/authentication.md` already names Authelia the reference provider (*where Authelia prescribes something, JIT-Pack conforms to it*), carries the paste-ready confidential-client block, and its three session-ending cases are verified against 4.39.20. `deploy/multi-user/docker-compose.yml` takes the issuer from the environment, which is the shape an already-running Authelia needs. **Nothing is owed in code or docs for this decision.** The one thing to carry into Track H is Authelia's own asymmetry (ADR1): marking a user *disabled* there blocks new logins but keeps honouring refresh tokens already issued — shutting an account out means revoking its tokens at Authelia or deactivating it in JIT-Pack.
 4. **Upgrade stance for the vacation**: pin one digest and freeze (recommended in Track D) vs. building image-export tooling now.
 5. Track A step 3: hand-rolled SW vs `vite-plugin-pwa` — the ADR will present it, but a prior leaning saves a round-trip.
 6. ~~**Track I shape**~~ — **built as A** (2026-08-21): a global action carries its origin, stamped by the router rather than by each link. B (Settings as an overlay) was weighed and lost in the ADR-011 amendment: it fixes Settings and does nothing for the two import flows, which were half the defect. Say so if you want B instead — the branch is one guard and one branch in `backTarget`.
