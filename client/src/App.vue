@@ -22,6 +22,7 @@ import {
   type ServerNotification,
 } from '@/notifications/format'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import type { ConflictReport } from '@/composables/useSyncOutbox'
 import { serverBaseUrl } from '@/config'
 import { IndexedDBPersistence } from '@/local/persistence'
 import SheetModal from '@/components/global/SheetModal.vue'
@@ -62,8 +63,34 @@ const orchestrator = mode.value
       onUnauthorized: refresher ? () => refresher.refresh() : undefined,
       local: mode.value === 'local' ? new IndexedDBPersistence() : undefined,
       onNotification: showNotificationToast,
+      onConflicts: showConflictToast,
     })
   : null
+
+/**
+ * NFR-4.2a: a push that came back `merged` dropped fields of this device's
+ * changes. One toast per *push*, never per conflict — a reconnect drains a
+ * whole queue and would otherwise stack a wall of them — and it leads to
+ * the log for the partition it happened on, which is where the detail is.
+ */
+async function showConflictToast(report: ConflictReport) {
+  const toast = await toastController.create({
+    message: t('sync.conflictToast', { n: report.count }),
+    duration: 6000,
+    position: 'top',
+    buttons: [
+      {
+        text: t('sync.conflictToastOpen'),
+        handler: () => {
+          router.push(
+            report.type === 'trip' ? `/trips/${report.id}/conflicts` : '/conflicts/master',
+          )
+        },
+      },
+    ],
+  })
+  await toast.present()
+}
 
 // FR-6.2 in-app channel: each notification is a toast; tapping Open
 // deep-links into the item context (FR-6.3/G-4). Read is stamped on
@@ -245,6 +272,7 @@ async function saveBackup() {
           :pending-count="syncStatus.pendingCount.value"
           :queue-durable="syncStatus.queueDurable.value"
           :parked-count="syncStatus.parkedCount.value"
+          :conflict-count="syncStatus.conflictCount.value"
           :mode="mode"
           :can-open-conflicts="mode === 'server' && tripId !== null"
           :storage="storage"
