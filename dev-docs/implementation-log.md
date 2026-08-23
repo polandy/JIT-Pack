@@ -145,6 +145,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The importer nobody called, and the exporter behind it (2026-08-23)](#the-importer-nobody-called-and-the-exporter-behind-it-2026-08-23) — ADR-025. The server had its own reader *and* writer for the portable format, reachable from no product surface, and both had drifted: the import wrote no change-log entry, so a `curl` import existed in the database and on no screen. Found by rendering, not by testing. The fix was deletion, and the precondition for it was getting the rules out of a 3600-line composable — where ADR-008 had always said they were not.
 - [The manual said it, the shipped config did not (2026-08-23)](#the-manual-said-it-the-shipped-config-did-not-2026-08-23) — the sync WebSocket never connected on the `:3000` stack: nginx forwarded `Host $host`, which drops the port, and the handshake's same-origin check compares the browser's port-carrying `Origin` against it. The manual had already written the rule and then broke it in its own copy-paste block, and its verification `curl` sent no `Origin` at all — a check that could not fail. Nothing in Go or Playwright loads an nginx config, so the guard is a gate.
 - [The wire was described twice, and the second description was fiction (2026-08-23)](#the-wire-was-described-twice-and-the-second-description-was-fiction-2026-08-23) — NFR-4.14/ADR-026. The envelope was already uniform; what was not a contract was two independent descriptions of one wire, and the mechanism found two more drifted types on its first run. Three things the code cannot show: why both suites were blind (a fake agrees with its author), why the gate generates beside the tree rather than over it, and the trap that a generated file under `client/src` must be prettier-clean or `make fmt` fails the gate on a file nobody edited.
+- [A route names its scope first (2026-08-24)](#a-route-names-its-scope-first-2026-08-24) — NFR-4.14's third point/ADR-027. Four things the code cannot show: the backlog item's own complaint had gone stale (ADR-025 had already deleted two of the four shapes it named, so it was re-measured before it was acted on), why the sync endpoints were widened into a scope the owner's question did not name, the trap that a router's 404 and a handler's 404 are the same status — which made the first negative test green on the two revert routes for the wrong reason — and the latent defect that typed route builders exposed.
 
 ## Current state
 
@@ -5780,3 +5781,68 @@ a third form, and conflicts are `/trips/{id}/conflicts` in one partition and
 2026-08-23). The gate also covers only what `wire.go` declares — the admin,
 notification, config and auth responses are still typed by hand on both sides,
 and growing the file is how they join.
+
+
+## A route names its scope first (2026-08-24)
+
+NFR-4.14's third point, kept out of ADR-026 on purpose so a mechanical rename
+would not travel with the mechanism it would be confused for. ADR-027 has the
+options and the matrix; what follows is what the diff cannot say.
+
+**The complaint had gone stale, and acting on it as written would have been
+wrong.** Backlog item 16 named four disagreeing export shapes — `export.csv`,
+`export.yaml`, `/templates/{id}/export`, `/export/full`. Two of them had not
+existed since the day before: ADR-025 deleted the YAML endpoints along with the
+server's half of the portable format. A requirement written on Monday describes
+Monday's code, and this one was three weeks old at a week's velocity. Measuring
+the surface first turned a four-way disagreement into a two-way one and changed
+which rule was worth choosing.
+
+**The widening, and why it was asked rather than assumed.** The point named the
+conflict and export paths. It did not name `/sync/master` and
+`/sync/trips/{id}` — which lead with the channel where the rest of the surface
+leads with the scope. Leaving them would have made the rule *"scope first,
+except the sync channel"*, and an exception is the thing that has to be
+memorised, which is precisely what the requirement exists to remove. It is also
+the hottest path in the application and the largest single blast radius in the
+tree (64 references, 29 files), so it was put to the owner as a decision with
+its cost rather than folded in quietly. Answer: pull it along, one rule, no
+exception.
+
+**A router's 404 and a handler's 404 are the same status, and that made the
+first test green for the wrong reason.** The test that proves a rename is not an
+alias asserts the old paths are gone. Written against the status code, it passed
+immediately on `POST /conflicts/master/{id}/revert` — not because the route had
+been renamed, but because the conflict id in the fixture does not exist and the
+handler answers 404 too. The same confusion had the *positive* table calling a
+routed path unrouted. The discriminator is the body: `writeError` writes the
+`APIError` envelope, and `http.ServeMux` writes plain text. Worth remembering
+beyond this file — **any test that asserts "this endpoint is gone" by status
+alone is asserting nothing about routing** wherever the handler can answer the
+same code.
+
+**What typing forty string literals found.** The client's paths moved into
+`client/src/api/routes.ts` (§4a) — not required by the rename, but the rename is
+what proved the cost of their absence. `SyncOutbox.syncPath` takes an id that is
+nullable because the master partition has none; a *trip* partition without one
+had been interpolating as the literal string `null` and pushing to
+`/api/v1/sync/trips/null`, a path the server answers 404 and the outbox retries
+forever, naming nothing in either place. A template literal accepted it in
+silence for as long as the code has existed. A typed builder did not compile.
+The guard and its three cases were the only production behaviour change in a PR
+that is otherwise a rename.
+
+**Two smaller traps, both in the test tree.** The e2e interception
+`'**/api/v1/sync/**'` no longer matches anything now that the scope leads — a
+glob that matches nothing makes an interception test pass by intercepting
+nothing, so it became a regex naming both partitions. And beside it,
+`areq` — an array collecting every sync request the page made, asserted by no
+line in the file. It was deleted rather than updated: an observation nothing
+reads is not coverage, and rewriting it would have made it look like coverage.
+
+**A formatter has a scope, and mine was wider than the project's.** `npm run
+format` covers `client/src`. Running prettier over `client/e2e` as well
+reformatted three spec files this change has no business touching, and the
+churn was only visible because `git status` listed files no sweep had reported.
+Reverted. The lesson is cheap but recurring: **run the project's format command,
+not prettier with a path you chose.**
