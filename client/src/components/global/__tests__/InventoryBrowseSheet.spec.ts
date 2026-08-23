@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * FR-25.13d — the inventory browse-sheet: assembling a scope out of the
  * whole inventory, one tap per position.

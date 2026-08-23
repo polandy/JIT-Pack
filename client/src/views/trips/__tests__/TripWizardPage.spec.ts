@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * M3 step 3 — the composition half (§3.27): the two scopes are separate
  * sections (FR-27.6), the preview names every merge with the groups that

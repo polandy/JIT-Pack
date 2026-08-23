@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * M2's two FR-27.4 chips: what a trip *took over* from its groups (past
  * tense, expandable) and what is still *waiting* on it (a pointer, since the

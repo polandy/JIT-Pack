@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * G-10's hover title (FR-4.6, NFR-4.12).
  *

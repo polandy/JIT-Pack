@@ -6,7 +6,20 @@ export default mergeConfig(
   viteConfig,
   defineConfig({
     test: {
-      environment: 'jsdom',
+      // A DOM is the exception here, not the rule: most specs are pure logic,
+      // and building a jsdom window costs ~1.5 s per file whether or not the
+      // file uses it. A spec that needs one asks with a `@vitest-environment
+      // jsdom` docblock.
+      //
+      // Add the docblock whenever the spec's subject touches `localStorage`,
+      // `document` or `window` — **even if the suite passes without it**. A
+      // missing docblock is not reliably a red test: code that reads a DOM
+      // global inside a `try` takes the `catch` under `node` and the spec goes
+      // green against the wrong branch. The check that catches that is a
+      // coverage diff between the two environments; see the implementation log,
+      // "Every spec paid for a DOM, and one of them was green for the wrong
+      // reason".
+      environment: 'node',
       exclude: [...configDefaults.exclude, 'e2e/**'],
       root: fileURLToPath(new URL('./', import.meta.url)),
     },
