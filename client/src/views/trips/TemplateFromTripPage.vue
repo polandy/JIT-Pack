@@ -26,12 +26,12 @@ import {
   IonSegmentButton,
   IonLabel,
   IonToggle,
-  toastController,
 } from '@ionic/vue'
 import { computed, inject, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { t } from '@/i18n'
+import { presentToast } from '@/lib/toast'
 import {
   DEFAULT_DEVIATION_CHOICE,
   recogniseTripComposition,
@@ -135,8 +135,7 @@ function looseReason(reason: LooseReason, templateName: string | undefined): str
 const canCreate = computed(() => templateName.value.trim().length > 0 && !creating.value)
 
 async function toast(message: string) {
-  const el = await toastController.create({ message, duration: 3000, position: 'bottom' })
-  await el.present()
+  await presentToast({ message, duration: 3000 })
 }
 
 /**

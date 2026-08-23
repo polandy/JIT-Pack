@@ -25,12 +25,12 @@ import {
   IonItem,
   IonList,
   alertController,
-  toastController,
 } from '@ionic/vue'
 import { addOutline, closeOutline } from 'ionicons/icons'
 import { computed, inject, ref, watch } from 'vue'
 
 import { t } from '@/i18n'
+import { presentToast } from '@/lib/toast'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { TRIP_STATUS_ARCHIVED, TRIP_STATUS_PLANNING } from '@/types/domain'
@@ -76,8 +76,7 @@ watch(
 )
 
 async function say(message: string): Promise<void> {
-  const el = await toastController.create({ message, duration: 3000, position: 'bottom' })
-  await el.present()
+  await presentToast({ message, duration: 3000 })
 }
 
 /** Commits on blur/Enter, the M8 pattern — no save button to forget. */

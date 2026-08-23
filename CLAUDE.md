@@ -11,6 +11,7 @@ Read this file fully before touching code. It is the orientation document: what 
 - Test: `go test ./... -race` — fast, no docker or network; store/api tests run against real in-memory SQLite
 - **Verify before finishing any change: `make ci`** — it mirrors the CI jobs 1:1 (gofmt, build, vet, race tests, coverage gates, golangci-lint, client lint/build/vitest), so green here predicts a green pipeline
 - Slow jobs, excluded from `make ci` on purpose: `make e2e` and `make visual` (both need docker and a built bundle — they run inside the pinned Playwright image, `make visual-update` rewrites the baselines, ADR-013) and `make docker-build` (needs a docker daemon). `make all` runs everything.
+- **Run the slow jobs on GitHub, not on this machine** (owner, 2026-08-23): `make ci-remote` pushes the current branch, dispatches `ci.yml` against it and waits for the verdict — no pull request needed. `e2e`, `visual`, `docker-build` and the coverage profile all run there already, and on a two-core laptop they are the largest source of contention between concurrent sessions (measured: foreign load costs ~25 % of wall-clock, about what a hardware upgrade would buy). `make cover` in particular is fully redundant — the CI `go` job runs the same profile and the same `scripts/coverage-gate.sh`. **`make ci` stays local**: at ~80 s it is the fast gate, and GitHub's verdict takes minutes.
 - Coverage gates live once, in `scripts/coverage-gate.sh`, shared by `make cover` and the CI `go` job: **≥75 % overall, ≥90 % `internal/sync`**
 - Client only: `cd client && npm run dev` (Vite dev server), `npx vitest run`, `npm run build` (type-check + build)
 - **Test data**: the dev build's M2 empty state carries *„Beispieldaten anlegen (Dev)"* — it seeds the
@@ -184,8 +185,10 @@ it. Item numbers stay stable even as items close, because the log refers back to
    written there too — in that posture the row's press-and-hold goes inert, because one
    posture asks one question. FR-9.4 carries what M14's first render with real proposals showed: the
    unlabelled ✕ behind *„Nie mehr fragen"*, handled cards that never leave *Offen* (so the
-   heading reads „Offen · 0" above two of them), and the snackbar landing on the tab bar.
-   Build against those texts; the rejected options are written there.
+   heading reads „Offen · 0" above two of them). Its fourth point, the snackbar landing on the
+   tab bar, is **fixed** (2026-08-23): every bottom toast goes through `client/src/lib/toast.ts`,
+   which anchors above the bar. Build the rest against those texts; the rejected options are
+   written there.
 
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,

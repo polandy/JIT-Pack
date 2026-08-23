@@ -141,6 +141,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A year is a quantity, and that is why M15 could not find its header (2026-08-23)](#a-year-is-a-quantity-and-that-is-why-m15-could-not-find-its-header-2026-08-23) — the legacy spreadsheet importer wrote no `year`, so a NOT NULL column made the server refuse every trip it imported while the importing device rendered the migration anyway; underneath sat two layout assumptions a real family sheet broke, and the rule for finding the header block had to stop asking about quantities.
 - [The store that already agrees with you (2026-08-23)](#the-store-that-already-agrees-with-you-2026-08-23) — three defects in one import path, all of the same shape: the client applies its own write optimistically, the server refuses it, and no screen on the importing device can tell the difference. Found by importing into the real instance instead of a test double, which is a different act from running the suite.
 - [Every spec paid for a DOM, and one of them was green for the wrong reason (2026-08-23)](#every-spec-paid-for-a-dom-and-one-of-them-was-green-for-the-wrong-reason-2026-08-23) — the suite built a jsdom window for all 114 spec files when 32 use one, costing ~48 % of its wall-clock; the premise that started the work was itself wrong (a cold-cache run read 252 s where the warm figure is 88 s), and the interesting find is the failure mode of the fix: a missing `@vitest-environment jsdom` is *not* reliably a red test, because production code that reads a DOM global inside a `try` takes the `catch` instead and the spec passes while exercising the error path.
+- [A hidden element is not a small element (2026-08-23)](#a-hidden-element-is-not-a-small-element-2026-08-23) — the toast-on-the-tab-bar fix was three lines; what it cost was two wrong measurements, both from a box of height zero: a `display: none` anchor makes Ionic subtract a whole viewport instead of clearing the bar, and the geometric test that should have caught the defect first failed against a hidden bar at the origin, where *every* overlap assertion resolves in both directions.
 - [The importer nobody called, and the exporter behind it (2026-08-23)](#the-importer-nobody-called-and-the-exporter-behind-it-2026-08-23) — ADR-025. The server had its own reader *and* writer for the portable format, reachable from no product surface, and both had drifted: the import wrote no change-log entry, so a `curl` import existed in the database and on no screen. Found by rendering, not by testing. The fix was deletion, and the precondition for it was getting the rules out of a 3600-line composable — where ADR-008 had always said they were not.
 
 ## Current state
@@ -5528,6 +5529,48 @@ second answer to give (unlike FR-16.3's prompt against existing inventory, where
 for the same trip, the **larger** wins rather than the sum: they describe one
 packing, and adding them invents luggage that was never in the car.
 
+## A hidden element is not a small element (2026-08-23)
+
+FR-9.4's last point was a two-number defect: at 430×932 the toast occupied
+876–924 and the navigation bar 875–932, so every confirmation in the app was
+written across the four tab labels. Ionic has the answer built in —
+`positionAnchor` puts a `position: 'bottom'` toast *above* a named element —
+and **five of the nine call sites had already found it**, passing their own
+screen's FAB. Four had not. One of the five even carried the comment *„Above
+the FAB rather than behind the tab bar"*, which is the shape of a rule that
+lives in nine places: it was known, written down, and still missed four times.
+So the fix is not an anchor at four more call sites; it is `lib/toast.ts`,
+and the choice stops being per screen.
+
+What is worth recording is not that, though. It is that **the same
+zero-height box produced two wrong answers in one afternoon**, in opposite
+directions.
+
+**First, in the production code.** The obvious implementation is "anchor to
+the tab bar if it exists". It exists on every screen but M4 — above 900 px it
+is merely `display: none`, because G-9 hands the job to the rail. Ionic
+measures the anchor with `getBoundingClientRect()` and computes
+`offset -= innerHeight - box.top`; against a zeroed box that subtracts a whole
+viewport height and throws the toast off the screen. A hidden bar therefore
+has to read as *no bar*, not as a bar of height zero — the helper checks the
+measured height rather than the element's presence. Ionic warns about this
+(`warnIfAnchorIsHidden`), into a console nobody was reading.
+
+**Then, in the test.** E2E-M22-09 asserts the toast's bottom edge against the
+bar's top edge. It failed on the first run — and for the wrong reason: the
+Playwright project is Desktop Chrome at 1280 px, where that same
+`display: none` bar reports `top: 0`, so the assertion read
+`924 <= 0`. Red, convincingly, and about nothing. A hidden element does not
+merely measure small: it measures as a point at the origin, and **every**
+geometric assertion resolves against it, in whichever direction the operator
+happens to point. The case now sets a phone viewport and asserts both boxes
+have height *before* comparing them — the positive signal a negative
+assertion needs, applied to geometry rather than to a rendered control.
+
+The one call site left on `toastController` is M4's pack announcement, and
+deliberately: it creates, checks a liveness flag, arms its dismiss handler and
+only then presents. A helper that presents on creation would put the snackbar
+on screen before the check that decides it must not be.
 ## The importer nobody called, and the exporter behind it (2026-08-23)
 
 Owner decision, taken on rendered evidence: **the portable format has one
