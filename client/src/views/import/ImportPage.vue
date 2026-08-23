@@ -95,17 +95,26 @@ const categoryRows = ref<Set<number>>(new Set())
 /** The header block's own rows, which describe columns rather than items. */
 const headerRows = computed(() => analysis.value?.headerRows ?? 1)
 
-/** Column choices for the item- and category-column pickers. */
-const columnChoices = computed(() =>
-  Array.from({ length: Math.max(0, ...grid.value.map((r) => r.length)) }, (_, idx) => ({
-    idx,
-    label: columnLabel(idx),
-  })),
-)
+/**
+ * Candidates for the item- and category-column pickers: every column that is
+ * not a trip column. A sheet of thirty trips would otherwise offer thirty-four
+ * buttons labelled by their year — neither of these two columns can be one
+ * that holds quantities, so offering them is noise, not choice.
+ */
+const columnChoices = computed(() => {
+  const trips = new Set(analysis.value?.tripColumns.map((t) => t.index) ?? [])
+  return Array.from({ length: Math.max(0, ...grid.value.map((r) => r.length)) }, (_, idx) => idx)
+    .filter((idx) => !trips.has(idx))
+    .map((idx) => ({ idx, label: columnLabel(idx) }))
+})
 
-/** A column's own label: its name in the header block, else its position. */
+/**
+ * A column's own label. The *last* header cell that says anything, because
+ * where a header block has two rows the lower one names and the upper one
+ * dates — and a column called "2016" names nothing here.
+ */
 function columnLabel(idx: number): string {
-  for (let rowIdx = 0; rowIdx < headerRows.value; rowIdx++) {
+  for (let rowIdx = headerRows.value - 1; rowIdx >= 0; rowIdx--) {
     const value = (grid.value[rowIdx]?.[idx] ?? '').trim()
     if (value !== '') return value
   }
