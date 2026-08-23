@@ -95,6 +95,8 @@ export interface ConflictEntry {
   losing_value: string
   winning_value: string
   resolved_at: string
+  /** Whether the losing value has already been restored (NFR-4.2a). */
+  reverted: boolean
 }
 
 /** Everything the M3 wizard collected before "Create trip". */
@@ -2678,6 +2680,27 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return resp.conflicts
   }
 
+  /**
+   * revertConflict restores the losing value of one audited merge —
+   * NFR-4.2a's second promise, beside the audit. The server writes it as
+   * an ordinary mutation with a fresh HLC rather than rewriting the past
+   * (ADR-023), so the restored value arrives here the normal way: the
+   * drain below pulls it, and every other device pulls it too.
+   *
+   * `tripId` picks the partition, exactly as the two fetchers do. Local
+   * Mode has one writer, so it has no conflicts to revert (FR-19.6).
+   */
+  async function revertConflict(conflictId: string, tripId?: string): Promise<void> {
+    if (local) return
+    if (tripId !== undefined) {
+      await client.post(`/api/v1/trips/${tripId}/conflicts/${conflictId}/revert`)
+      await drainTrip(tripId)
+      return
+    }
+    await client.post(`/api/v1/conflicts/master/${conflictId}/revert`)
+    await drainMaster()
+  }
+
   // --- Profile & data (M17) ---
 
   /**
@@ -3273,6 +3296,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     getPresence,
     fetchConflicts,
     fetchMasterConflicts,
+    revertConflict,
     isLockedByOther,
     lockHolder,
     fetchLockTimeout,

@@ -63,7 +63,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-G2-04 — the durable outbox (B2, NFR-4.1), added 2026-08-21.** A new
 case in the `single` unit: pack a row offline, reload the page *while still
@@ -156,6 +156,50 @@ code. And the master queue does not move on a trip open: a trip open drains
 the *trip* partition, and this rename is queued on the master one. The drain
 here is the app start the durable outbox gave it (B2) — a reload, not a
 navigation. Mutation-proved by pointing the query back at `trip_id`.
+
+**E2E-G2-10 — the loss can be taken back, added 2026-08-22.** NFR-4.2a
+promises audit *and* manual revert in one sentence; only the audit existed,
+so the page named a value it could do nothing about. The case is
+E2E-G2-06's scenario carried one step further: B loses the rename, reads it
+in the master log, taps *Revert*, and the name B wanted is what the trip is
+called again — read back **from M2**, not from the log page, because that
+is the half that proves the restore travelled. B's own copy was holding A's
+name a moment earlier and only the pull changed it.
+
+**What it costs nothing to wait for.** There is no timer and no drain to
+hope for: `revertConflict` drains the partition it wrote before it
+resolves, so the assertion lands on a repainted screen. **The negative half
+is a positive signal** — the button is asserted *gone* only beside an
+assertion that the *Reverted* note is there, because a row that failed to
+render at all would satisfy the absence on its own. The refusals the server
+distinguishes (`already_reverted`, `row_deleted`, `revert_refused`) stay
+where they can be stated exhaustively, in `store/conflict_revert_test.go`
+and `api/conflict_revert_test.go`: no screen can delete a row on a second
+device or pack an item mid-revert inside one case.
+
+**The first run failed, and the reason is a rule for every later case
+here.** The row was located by `trips · name`, the way E2E-G2-06 does —
+and found two, then three. **The master partition is shared for the whole
+run** (one database, named in this unit's harness notes), so every case
+that loses a rename leaves a row that matches. E2E-G2-06 was passing only
+because it ran first; both cases now filter by the value *their own* trip
+lost, which the per-test `uniq()` suffix makes unique. A conflict-log
+assertion in this unit must never identify its row by table and field
+alone.
+
+**The second failure was the scoping rule read backwards.** Getting out of
+the log used `visiblePage(page).getByTestId('header-back')` — and the one
+header bar lives *outside* the router outlet (ADR-011), so the scoped
+locator waits forever on a control that is on screen. The rule is "assert
+what is rendered, scoped to the visible page"; the header is the standing
+exception, and every other case in this file already addresses it
+unscoped.
+
+**Testids added with it**, per the ledger's own selector rule:
+`conflict-revert` (the control), `conflict-reverted` (the note that
+replaces it), `conflict-revert-error` (the per-row refusal sentence) and
+`conflict-revert-hint` (the line saying a revert is a new change).
+
 
 **E2E-M22-08 — an edited trip is still on M2, added 2026-08-22.** The trip
 editor sends a partial upsert on purpose — an upsert of the whole row would
@@ -969,7 +1013,8 @@ configuration (spec §2.2), the client in its `server` mode. Four cases —
 the two-context convergence smoke (E2E-FLOW-01, partial), the offline
 queue round-trip (E2E-FLOW-06 + E2E-G2-01's queue half), the losing-edit
 conflict (E2E-FLOW-08/E2E-NFR-04, partial, + E2E-G2-01's conflict-log
-half) and the G-2 sheet outside a trip.
+half), the G-2 sheet outside a trip, the master-partition log (E2E-G2-06)
+and its revert (E2E-G2-10).
 
 **The harness, for the units that will extend it** (Track C's durable
 outbox is the named next tenant):

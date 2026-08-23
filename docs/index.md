@@ -37,7 +37,7 @@ JIT-Pack is two pieces and one file:
 - **The client** — a Vue single-page app, served by your reverse proxy or any static host, and installable on a phone. It holds its own copy of the data and syncs when it can.
 - **`jitpack.db`** — one SQLite file holding everything, images included. That file is your backup.
 
-Because the client owns its data, the interesting failure mode is uninteresting: losing the network stops the sync, not the app. Changes made offline merge back in field by field, and anything that lost a merge is kept in a conflict log rather than silently dropped.
+Because the client owns its data, the interesting failure mode is uninteresting: losing the network stops the sync, not the app. Changes made offline merge back in field by field, and anything that lost a merge is kept in a conflict log rather than silently dropped. The log is reachable from the sync glyph in the top bar — one for the open trip, one for everything shared across trips — and each entry there offers to put the losing value back. Reverting is an ordinary change, not a rewind: it reaches every device the usual way, and anyone who edits the same thing afterwards still wins.
 
 ## Where to go next
 

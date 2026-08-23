@@ -180,6 +180,50 @@ Field groups: `packed_count`+`state` merge as one unit (they are causally couple
 
 **What the conflict log names.** Each dropped field is one row: entity, field, losing and winning value, and — since 2026-08-22 — the `mutation_id` that lost it and the `actor_user_id` who pushed it, both server-stamped. The mutation id groups the fields one push lost so a revert restores `state` and `packed_count` together; the actor is the person that revert belongs to and the one to tell (NFR-4.2a: audit **and** manual revert; the revert and the telling are the client's half and follow).
 
+### 6.1 Manual revert (NFR-4.2a's second half) — implemented 2026-08-22
+
+NFR-4.2a promises the log so users can audit **and manually revert**. A
+revert is **an ordinary upsert with a fresh server HLC, resolved by the
+algorithm above** — never a rewrite of the past (ADR-023). The server
+builds it from the log entry itself (`entity_table`, `entity_id`, `field`,
+`losing_value`) **plus every field the same `mutation_id` lost that merges
+with it as one unit**, folds the row's current HLC into its own generator so a
+device with a fast clock cannot leave the revert stale, stamps
+`hlc.Next()`, and runs it through `Merge` -> persist -> `change_log`.
+
+Four consequences follow, and all four are deliberate:
+
+* **It wins by being newer, not by being special.** Every device pulls it
+  through the normal feed; an offline device that pushes afterwards
+  carries an older HLC and loses, as it should. A *later* edit by anyone
+  beats the revert, exactly as it beats any other write.
+* **The rules of §6 apply to it.** Rule 2 can refuse a revert: restoring
+  `packing_now` onto a row that is now `packed` is the write the merge
+  exists to drop, and it is answered `409 revert_refused` rather than
+  silently swallowed. A deleted row is `409 row_deleted` — one logged
+  field cannot rebuild a row.
+* **A coupled field group is restored as a whole** (corrected 2026-08-23,
+  found in review). `state` and `packed_count` are one fact (§6, FR-5.4),
+  so restoring one without the other writes a row the state machine cannot
+  describe — `state = packed` beside `packed_count = 0` on a quantity of
+  five. The revert therefore carries the whole group: the tapped entry's
+  field plus the sibling entries of the *same push* whose fields merge with
+  it, all of them marked spent together. Independent fields stay
+  independently revertable, because they are independent decisions — the
+  log lists them apart for that reason. `sync.GroupedWith` is the one place
+  the coupling is defined, shared with the merge itself so the two cannot
+  drift.
+* **The entry is spent, not erased.** `conflict_log.reverted` is set in
+  the same transaction as the write, by a single guarded statement
+  (`... WHERE id = ? AND reverted = 0`), so two devices cannot both
+  restore one entry and any refusal below rolls the flag back with it. The
+  loss itself stays in the log; a revert is a fact *about* the entry.
+
+The `losing_value`/`winning_value` columns are what makes this possible at
+all, and they were already there — as was the unused `reverted` flag. No
+schema change was owed.
+
+
 ## 7. WebSocket — `GET /ws` (Upgrade)
 
 * Auth via `?token=` query param (implemented) or first frame `{"auth": "<JWT>"}` (reserved, not implemented).
@@ -226,8 +270,10 @@ Server-side computations that must not run on clients. **Decided (Local Mode, Ad
 | `GET /me/notification-prefs` · `PUT /me/notification-prefs` | UI-Spec M17 — implemented: per-kind toggles `{"delegation":bool,"mention":bool,"task":bool}`; missing keys default to enabled, unknown keys are dropped. Checked at *creation* time, so a disabled kind produces neither push nor in-app notification |
 | `GET /push/vapid-key` · `POST /push/subscriptions` · `DELETE /push/subscriptions` | NFR-4.6 — implemented for Web Push: the server generates its VAPID keypair on first use and persists it next to the data (`server_keys`); `vapid-key` hands the public key to `pushManager.subscribe`, POST registers the browser's `{endpoint, keys:{p256dh, auth}}` (endpoint = identity, re-registering rebinds), DELETE (owner-scoped, `{endpoint}` body) is the M17 opt-out. Sends are RFC 8291 `aes128gcm`, detached from the request; a push service answering 404/410 drops the subscription. Message body: `{notification_id, kind, payload}` — same payload as `GET /notifications`. Operator contact via `JITPACK_PUSH_CONTACT` (VAPID `sub`). UnifiedPush/FCM/APNs remain unimplemented — there is no native mobile build yet; the WebSocket stays the universal in-app fallback |
 | ~~`GET /suggestions/trips/{id}`~~ | FR-14.2 quantity suggestions — **superseded**: computed client-side (`src/domain/suggestions.ts`, duration-normalized median of the series' last three trips) from already-synced series trips, like generation/analytics/review, so it works in Local Mode with no round-trip |
-| `GET /trips/{id}/conflicts` | Per-trip conflict log for the G-2 view (NFR-4.2a) — read-only: `{conflicts:[{id, entity_table, entity_id, field, losing_value, winning_value, resolved_at}]}`, newest first; conflict rows never flow through pull |
+| `GET /trips/{id}/conflicts` | Per-trip conflict log for the G-2 view (NFR-4.2a): `{conflicts:[{id, entity_table, entity_id, field, losing_value, winning_value, resolved_at, reverted}]}`, newest first; conflict rows never flow through pull. `reverted` says the losing value has already been restored, so the client offers the control once |
+| `POST /trips/{id}/conflicts/{conflictId}/revert` | NFR-4.2a's manual revert, trip partition — implemented: restores the entry's `losing_value` as an ordinary upsert with a fresh server HLC (§6.1, ADR-023) and marks the entry `reverted`. Membership only, like the list beside it. Answers `{ok, pull_hint:{next_cursor}}`; the restored value arrives through the normal pull (P-1), and `trip.changed` is broadcast. Refusals carry their own codes: `404 conflict_not_found` (unknown, or the other partition's), `409 already_reverted`, `409 row_deleted`, `409 revert_refused` (§6 rule 2 outranks it) |
 | `GET /conflicts/master` | The **master partition's** conflict log, same envelope. There is one log per partition because a conflict belongs to the partition its mutation was pushed to, and `conflict_log.trip_id` tells them apart exactly as `change_log.trip_id` does — NULL for the master partition. It therefore takes no trip id, and needs its own endpoint: the per-trip query filters on `trip_id` and these rows have none, so before this endpoint they were written and read by nothing. Authenticated but not membership-scoped; each row is filtered through the same `masterVisible` rule as a master pull, because a conflict entry names an entity and naming one the user may not see would leak it. **`trips` is the case that matters**: a trip's own fields (name, dates, year, status) merge on the master partition, so a conflict on them appears here rather than in that trip's log |
+| `POST /conflicts/master/{conflictId}/revert` | The same revert, master partition — implemented: authenticated but not membership-scoped, filtered through the same `masterVisible` rule the list is (an entry the caller may not see answers `404`, not `403`, so nothing is named), then authorized for the *write* by the same per-row ownership rules as a master push (`403 forbidden` where the caller may read the row but not write it). Broadcasts `master.changed` to the actor's own devices, like a master push |
 
 All RPC results materialize as ordinary `change_log` entries — clients see the outcome through the normal pull, never through the RPC response body (P-1). RPC responses return only `{ok, pull_hint}` plus operation-specific metadata (e.g., import summary). **Decided: template changes use lazy discovery** — there is no `template.changed` WebSocket event; a consumer of a shared template sees edits the next time it pulls its own master partition, keeping the event catalog (§7) minimal and the footprint goal (NFR-4.3) intact.
 

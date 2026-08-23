@@ -165,7 +165,10 @@ it. Item numbers stay stable even as items close, because the log refers back to
    defect and was not built**: §7 makes the lock advisory on purpose, and refusal would wedge an
    offline device's outbox. **Open as an owner decision** if collision *prevention* is wanted
    instead of avoidance. Log: *„The lock stopped at the row"*.
-   **(e)** NFR-4.2a promises audit **and manual revert**; only the audit exists.
+   ~~**(e)** NFR-4.2a promises audit **and manual revert**~~ — **done** (2026-08-22,
+   ADR-023): a revert is an ordinary mutation with a fresh server HLC, not an undo, so
+   the merge rules can refuse it and each refusal has its own sentence. No schema change
+   was owed — `losing_value` and an unused `reverted` flag were already there.
    Found 2026-08-22 while answering how concurrent packers are kept from overwriting each other.
 
 15. **FR-9.3/9.4 — the trip's feedback is expensive to give and impossible to correct**

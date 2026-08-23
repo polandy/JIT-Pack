@@ -132,6 +132,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [An optimistic row is a whole row (2026-08-22)](#an-optimistic-row-is-a-whole-row-2026-08-22) — a partial upsert's fields were applied as the optimistic row, which a store applies by replacing what it holds: saving a trip's name dropped its `status` and took the trip off M2 for good in Local Mode; two of the three lost fields had tests that said otherwise, one of them green only because the seeded year was the current one.
 - [The conflict log had two partitions and one query (2026-08-22)](#the-conflict-log-had-two-partitions-and-one-query-2026-08-22) — NFR-4.2a's audit filtered on `trip_id`, so every master-partition loser was written and read by nothing; the case that makes it matter is `trips`, whose own fields merge there, and the sheet's helpful-sounding hint was what hid it.
 - [`merged` was a quieter `applied` (2026-08-22)](#merged-was-a-quieter-applied-2026-08-22) — the push response's `conflicts[]` was read by no code path, so a mutation that lost a field left the queue exactly like one that applied; one toast per push (never per conflict) plus a standing line in the G-2 sheet, and the e2e assertion had to move because it was racing the toast's own dismissal timer.
+- [The revert was already half-built, in a column nobody used (2026-08-22)](#the-revert-was-already-half-built-in-a-column-nobody-used-2026-08-22) — NFR-4.2a's second verb, built as a new mutation rather than an undo (ADR-022); the schema change the work was budgeted for did not exist, and a single-connection pool turned an obvious visibility check into a deadlock against itself.
 - [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
 - [Field-level LWW was row-level, and "packed always wins" was hiding it (2026-08-22)](#field-level-lww-was-row-level-and-packed-always-wins-was-hiding-it-2026-08-22) — the store kept one `updated_hlc` per row where §6 says per field-group, so an offline pack lost to any unrelated later edit; the backlog's "packed beats everything" branch was the compensation for exactly one state, and narrowing it to the spec alone would have kept the fault and dropped the mask; ADR-022 ships a clock per field and the narrow rule together, and the conflict log now names the losing push and its actor.
 - [The sheet's glyph rode half a line high (2026-08-23)](#the-sheets-glyph-rode-half-a-line-high-2026-08-23) — an eyeball of the merged conflict-log work found two rendering defects that every gate had passed: a state glyph aligned to a title *block* whose `h1` carried a 20 px margin nothing asked for, and an empty state that had copied the house pattern without its padding; the review corrected the entry's own first answer — a visual baseline would **not** have caught the offset either, at 591 px against a 0.002 gate, so what let both live is that nothing measured them.
@@ -5197,3 +5198,65 @@ null` at the top of `lockHolder` — never got that far: TypeScript treats the
 rest of the function as unreachable, drops its narrowing, and `vue-tsc`
 fails on code that was correct a moment earlier. A mutation that cannot
 compile proves nothing about a test.
+
+## The revert was already half-built, in a column nobody used (2026-08-22)
+
+NFR-4.2a names two verbs in one sentence — audit **and manually revert** —
+and the second had never been built. Backlog item 14(e). The work was
+planned as "store the losing value, then restore it"; the first half turned
+out to be done, and in a way worth recording.
+
+**The schema was already right, and one column of it was dead.**
+`conflict_log` has carried `losing_value` since the beginning, and it has
+also carried `reverted INTEGER NOT NULL DEFAULT 0` — written by nothing,
+read by nothing, present in `schema.sql` and in no Go file. So a change
+budgeted as "a schema change, therefore every development database is
+deleted" (invariant 2) cost no schema change at all. The lesson is small
+and repeatable: **before planning a column, grep for it** — dead schema from
+a design that ran ahead of its implementation is cheaper to find than to
+re-derive.
+
+**The decision the ADR exists for** is what a revert *means* when the only
+ordering in the system is an HLC. Writing the value back in place, keeping
+the row's old clock, is the intuitive answer and it silently does not work:
+every device that already pulled the winner holds it under a *newer* clock,
+so the next thing that touches the field re-establishes the winner and the
+user's repair evaporates minutes later with nothing to see. A revert is
+therefore an ordinary new mutation with a fresh server HLC — it wins by
+being newer, not by being special (ADR-022). The cost is accepted openly:
+it can be **refused**, which a real undo could not, and the UI needed four
+sentences instead of none.
+
+**The trap, and it cost the first implementation.** The store's pool is
+capped at one connection on purpose (SQLite has a single writer). The
+master-partition revert has to answer "may this user even see this entry?",
+and `masterVisible` is right there — so the first version called it inside
+the revert's transaction. It does its own `s.db.QueryRowContext`, which
+asks the pool for a connection the open transaction is holding. Not an
+error: the test run simply never finished. **Any helper that reads through
+`s.db` is unusable inside a `BeginTx` block here**, and the ones that take a
+`*sql.Tx` are the ones that can be composed. The visibility check moved
+above the transaction, where it belongs anyway — it is a read about the
+caller, not about the row being written.
+
+**Two things were deliberately not built.** There is no actor on a revert:
+`conflict_log` records no one for the losing write either, so a shared trip
+still cannot answer "who took this back" — that gap is named in the ADR as
+its own revisit trigger rather than papered over with the pusher's id.
+And the refusals are **four codes, not one 409**: already reverted, row
+deleted, merge rules outrank it, not yours to write. Each is a different
+sentence for the reader, and the page renders it on the row rather than as
+a snackbar — which on this app lands on the tab bar (FR-9.4).
+
+**Found in this PR's own review: the revert restored half a fact.** The log
+lists one row per lost *field*, and the first implementation restored exactly
+that field. For `state` and `packed_count` — coupled since FR-5.4, and merged
+as one unit by the very algorithm that wrote the entries — that produced
+`state = packed` beside `packed_count = 0` on a quantity of five: a row no
+screen has a rendering for and no state machine describes. The fix uses the
+column #164 had just added for it, `mutation_id`, to find the sibling entries
+of the same push, and `sync.GroupedWith` to decide which of them travel
+together — the coupling defined once, where the merge already defines it,
+rather than a second list in the store that could drift from the first.
+Independent fields stay independently revertable; the log lists them apart
+because they *are* apart.
