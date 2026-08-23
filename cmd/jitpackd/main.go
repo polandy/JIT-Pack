@@ -5,9 +5,6 @@ package main
 
 import (
 	"context"
-	"errors"
-	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -24,39 +21,11 @@ import (
 // serves, which is what every existing deployment invokes.
 const importCommand = "import"
 
-// Exit codes the import command answers with: 1 when a document did not
-// land, 2 when the invocation itself was wrong.
-const (
-	exitDocumentFailed = 1
-	exitUsage          = 2
-)
-
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == importCommand {
-		runImport(os.Args[2:])
-		return
+		os.Exit(cli.ImportCommand(context.Background(), os.Args[2:], os.Getenv, os.Stdout, os.Stderr))
 	}
 	serve()
-}
-
-// runImport imports portable YAML files into a running instance (FR-18.7).
-func runImport(args []string) {
-	opts, files, err := cli.ParseImportArgs(args, os.Getenv)
-	if errors.Is(err, flag.ErrHelp) {
-		fmt.Println(cli.ImportUsage)
-		return
-	}
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "jitpackd import: %v\n\n%s\n", err, cli.ImportUsage)
-		os.Exit(exitUsage)
-	}
-	failed, err := cli.RunImport(context.Background(), opts, files, os.Stdout)
-	if err != nil {
-		log.Fatalf("import: %v", err)
-	}
-	if failed > 0 {
-		os.Exit(exitDocumentFailed)
-	}
 }
 
 func serve() {

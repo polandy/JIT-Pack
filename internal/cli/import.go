@@ -88,6 +88,42 @@ Flags:
   --token TOKEN  bearer token for a multi-user instance (default $` + EnvToken + `)
   --dry-run      read and report the documents without importing them`
 
+// Exit codes the import command answers with. They are part of its contract:
+// a script has to be able to tell "nothing landed" from "some of it did", and
+// both from "you invoked it wrong".
+const (
+	ExitOK             = 0
+	ExitDocumentFailed = 1
+	ExitUsage          = 2
+)
+
+// ImportCommand is the whole `jitpackd import` invocation: it reads the
+// arguments, runs the import, and answers the process's exit code. It lives
+// here rather than in main so the exit-code decision has somewhere to be
+// tested.
+func ImportCommand(ctx context.Context, args []string, getenv func(string) string, stdout, stderr io.Writer) int {
+	// These three are the last thing the process says; a failed write to the
+	// stream carrying the failure has nowhere left to be reported.
+	opts, files, err := ParseImportArgs(args, getenv)
+	if errors.Is(err, flag.ErrHelp) {
+		_, _ = fmt.Fprintln(stdout, ImportUsage)
+		return ExitOK
+	}
+	if err != nil {
+		_, _ = fmt.Fprintf(stderr, "jitpackd import: %v\n\n%s\n", err, ImportUsage)
+		return ExitUsage
+	}
+	failed, err := RunImport(ctx, opts, files, stdout)
+	if err != nil {
+		_, _ = fmt.Fprintf(stderr, "jitpackd import: %v\n", err)
+		return ExitDocumentFailed
+	}
+	if failed > 0 {
+		return ExitDocumentFailed
+	}
+	return ExitOK
+}
+
 // RunImport imports every document of every file and writes one report line
 // per document. It returns how many documents failed; a failure never stops
 // the files or documents behind it, because a restore that gives up on the

@@ -2,6 +2,8 @@ package store_test
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"testing"
 
 	"jitpack/internal/portable"
@@ -514,5 +516,63 @@ func TestImportTemplate_LinksAGroupDocumentToTheExistingGroup(t *testing.T) {
 	}
 	if names != "Stativ" {
 		t.Fatalf("positions = %q, want %q", names, "Stativ")
+	}
+}
+
+// A Ferien-Vorlage is UNIQUE on (owner_id, name). The two scopes answer a
+// taken name differently on purpose — a group is linked (FR-27.1/ADR-017),
+// a Vorlage is refused — and the caller needs to be able to tell which
+// happened without reading a driver's constraint message.
+func TestImportTemplate_TakenVorlageName_ReturnsErrNameTaken(t *testing.T) {
+	st := openTestStore(t)
+	ctx := context.Background()
+	seedOwner(t, st)
+
+	doc := portable.Document{
+		Kind:  portable.KindTemplate,
+		Scope: portable.ScopeTemplate,
+		Name:  "Ferien",
+		Items: []portable.Item{{Name: "Socken", Quantity: 1}},
+	}
+	if _, err := st.ImportTemplate(ctx, "u1", doc); err != nil {
+		t.Fatalf("first import: %v", err)
+	}
+
+	_, err := st.ImportTemplate(ctx, "u1", doc)
+	if !errors.Is(err, store.ErrNameTaken) {
+		t.Fatalf("second import: err = %v, want ErrNameTaken", err)
+	}
+	if !strings.Contains(err.Error(), "Ferien") {
+		t.Errorf("error does not name the template: %v", err)
+	}
+
+	var templates int
+	if err := st.DB().QueryRow(
+		`SELECT count(*) FROM templates WHERE kind = ?`, portable.ScopeTemplate).Scan(&templates); err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if templates != 1 {
+		t.Errorf("templates = %d, want 1 — the refused import left a row behind", templates)
+	}
+}
+
+// The same name under a different owner is a different template: the
+// constraint is per owner, and refusing across owners would make FR-1.6's
+// shared library unusable.
+func TestImportTemplate_SameNameDifferentOwner_IsAccepted(t *testing.T) {
+	st := openTestStore(t)
+	ctx := context.Background()
+	seedOwner(t, st)
+	if _, err := st.DB().Exec(
+		`INSERT INTO users (id, oidc_subject, display_name) VALUES ('u2', 'auth|u2', 'Sarah')`); err != nil {
+		t.Fatalf("seed second owner: %v", err)
+	}
+
+	doc := portable.Document{Kind: portable.KindTemplate, Scope: portable.ScopeTemplate, Name: "Ferien"}
+	if _, err := st.ImportTemplate(ctx, "u1", doc); err != nil {
+		t.Fatalf("first owner: %v", err)
+	}
+	if _, err := st.ImportTemplate(ctx, "u2", doc); err != nil {
+		t.Fatalf("second owner: %v", err)
 	}
 }

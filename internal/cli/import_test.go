@@ -435,3 +435,61 @@ func TestParseImportArgs(t *testing.T) {
 		}
 	})
 }
+
+// The exit code is the command's contract with a script: it has to separate
+// "you invoked it wrong" from "nothing landed" from "it worked".
+func TestImportCommand_ExitCodes(t *testing.T) {
+	srv, _ := newImportServer(t)
+	good := writeFile(t, "good.yaml", templateDoc)
+	broken := writeFile(t, "broken.yaml", "kind: nonsense\nname: Broken\n")
+	env := func(string) string { return "" }
+
+	for _, tc := range []struct {
+		name   string
+		args   []string
+		want   int
+		stdout string
+		stderr string
+	}{
+		{"a file that imports", []string{"--server", srv.URL, good}, cli.ExitOK, "imported", ""},
+		{"a document that does not", []string{"--server", srv.URL, broken}, cli.ExitDocumentFailed, "unreadable", ""},
+		{"no file at all", nil, cli.ExitUsage, "", "no file given"},
+		{"an unknown flag", []string{"--nope", good}, cli.ExitUsage, "", "Usage:"},
+		{"asking for help", []string{"-h"}, cli.ExitOK, "Usage:", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var stdout, stderr strings.Builder
+			got := cli.ImportCommand(context.Background(), tc.args, env, &stdout, &stderr)
+			if got != tc.want {
+				t.Errorf("exit code = %d, want %d\nstdout: %s\nstderr: %s", got, tc.want, stdout.String(), stderr.String())
+			}
+			if tc.stdout != "" && !strings.Contains(stdout.String(), tc.stdout) {
+				t.Errorf("stdout = %q, want it to contain %q", stdout.String(), tc.stdout)
+			}
+			if tc.stderr != "" && !strings.Contains(stderr.String(), tc.stderr) {
+				t.Errorf("stderr = %q, want it to contain %q", stderr.String(), tc.stderr)
+			}
+			// A usage error belongs on stderr and nowhere else, so a piped
+			// stdout carries only the report.
+			if tc.want == cli.ExitUsage && stdout.String() != "" {
+				t.Errorf("usage error reached stdout: %q", stdout.String())
+			}
+		})
+	}
+}
+
+// A report that cannot be written is not a successful run, whatever landed.
+func TestImportCommand_UnwritableReport_ExitsNonZero(t *testing.T) {
+	srv, _ := newImportServer(t)
+	path := writeFile(t, "one.yaml", templateDoc)
+	var stderr strings.Builder
+
+	got := cli.ImportCommand(context.Background(), []string{"--server", srv.URL, path},
+		func(string) string { return "" }, failingWriter{err: errors.New("broken pipe")}, &stderr)
+	if got != cli.ExitDocumentFailed {
+		t.Errorf("exit code = %d, want %d", got, cli.ExitDocumentFailed)
+	}
+	if !strings.Contains(stderr.String(), "broken pipe") {
+		t.Errorf("stderr does not say what went wrong: %q", stderr.String())
+	}
+}
