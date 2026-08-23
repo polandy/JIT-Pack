@@ -405,9 +405,15 @@ describe('the composition travels with the file (FR-27.1/27.7, ADR-017)', () => 
   it('writes a Ferien-Vorlage with its groups whole, not by reference', () => {
     // A bare name means nothing on the instance the file lands on, and
     // FR-18.2's promise is that it lands anywhere.
-    const yaml = serializeTemplate(vorlage, [position('p-med', 'v1', 'i-med')], byId, {
-      includes: [{ template: macro, items: [position('p-cam', 'g1', 'i-cam')], tasks: () => [] }],
-    }, noTags)
+    const yaml = serializeTemplate(
+      vorlage,
+      [position('p-med', 'v1', 'i-med')],
+      byId,
+      {
+        includes: [{ template: macro, items: [position('p-cam', 'g1', 'i-cam')], tasks: () => [] }],
+      },
+      noTags,
+    )
 
     const doc = parsePortable(yaml).doc
     expect(doc?.includes.map((g) => g.name)).toEqual(['Makro Fotografie'])
@@ -417,9 +423,15 @@ describe('the composition travels with the file (FR-27.1/27.7, ADR-017)', () => 
   })
 
   it('carries a position’s preparation tasks (FR-27.7)', () => {
-    const yaml = serializeTemplate(macro, [position('p-cam', 'g1', 'i-cam')], byId, {
-      tasks: (positionId) => (positionId === 'p-cam' ? ['Akkus laden'] : []),
-    }, noTags)
+    const yaml = serializeTemplate(
+      macro,
+      [position('p-cam', 'g1', 'i-cam')],
+      byId,
+      {
+        tasks: (positionId) => (positionId === 'p-cam' ? ['Akkus laden'] : []),
+      },
+      noTags,
+    )
 
     expect(parsePortable(yaml).doc?.items[0]!.tasks).toEqual(['Akkus laden'])
   })
