@@ -168,9 +168,12 @@ it. Item numbers stay stable even as items close, because the log refers back to
    *Details*, nothing ever asks for it, and FR-9.1's `active`-only gate shuts the window
    before M14 shows what a flag was worth. Decided in FR-9.3: the judgement joins the row's
    press-and-hold menu (FR-5.5's idiom), a **skippable closing pass at archive time** covers
-   the packed rows in one screen, and the flag stays correctable on the archived trip.
-   **One thing is deliberately left to a rendered pair** — whether that pass is its own screen
-   or a mode of M4. FR-9.4 carries what M14's first render with real proposals showed: the
+   the packed rows, and the flag stays correctable on the archived trip. Where the pass lives
+   was decided on the rendered pair (`UI_Concept_ClosingPass_variants.html`, 2026-08-23) and
+   is **neither of the two options**: it is a **mode of M4 whose *„Fertig"* archives and
+   opens M14**, which keeps M4's grouping and facets and still has an exit. Its price is
+   written there too — in that posture the row's press-and-hold goes inert, because one
+   posture asks one question. FR-9.4 carries what M14's first render with real proposals showed: the
    unlabelled ✕ behind *„Nie mehr fragen"*, handled cards that never leave *Offen* (so the
    heading reads „Offen · 0" above two of them), and the snackbar landing on the tab bar.
    Build against those texts; the rejected options are written there.
