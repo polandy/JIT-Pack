@@ -139,6 +139,10 @@ onMounted(async () => {
   // FR-27.4 sweep below must not run against a device whose rows have not
   // arrived yet.
   await orchestrator?.connect()
+  // Sync-API §7: the instance owns the G-3 lock window. Not awaited — a
+  // slow answer must not delay the first pull, and until it lands the
+  // shipped 15-minute default is the right answer anyway.
+  void orchestrator?.fetchLockTimeout()
   // Initial pull of master data (no-op in Local Mode)
   await orchestrator?.drainMaster()
   // FR-27.4: a group edited on another device arrives with that pull. The

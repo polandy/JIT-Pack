@@ -196,6 +196,74 @@ test.describe('Single-User backend sync @single', () => {
   })
 
   /**
+   * E2E-G3-01 (partial) + E2E-G3-03 (G-3): a row somebody else is packing
+   * names its holder, and is read-only one tap deeper.
+   *
+   * Both contexts are the same Single-User identity, so this does not
+   * prove *whose* name is rendered — it proves the mechanism: B never
+   * claimed the row, so B's client treats the claim as foreign, exactly
+   * as it would a second account's. What is asserted is the pair that was
+   * missing, the padlock's name and the sheet's refusal, not the identity
+   * semantics the future mock-IdP project owns.
+   */
+  test('a row another device is packing names its holder and refuses edits', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Sils ${id}`
+    const item = `Stirnlampe-${id}`
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA)
+    const tripPath = await createTripViaWizard(pageA, { name: trip })
+    await quickAddItem(pageA, item)
+
+    const ctxB = await browser.newContext()
+    const pageB = await ctxB.newPage()
+    await seed(pageB, { mode: 'server' })
+    const wsB = pageB.waitForEvent('websocket')
+    await pageB.goto(tripPath)
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${item}`)).toBeVisible()
+    await wsSubscribed(pageB, wsB)
+
+    // A claims the row (FR-5.2), through the row menu M4 offers.
+    await visiblePage(pageA).getByTestId(`m4-row-${item}`).dispatchEvent('contextmenu')
+    await expect(pageA.locator('ion-action-sheet')).toBeVisible()
+    await pageA.locator('ion-action-sheet').getByRole('button', { name: /^pack$/i }).click()
+    await expect(pageA.locator('ion-action-sheet')).toHaveCount(0)
+
+    // G-3 on B: the row says who has it, not merely that it is unavailable.
+    const rowB = visiblePage(pageB).getByTestId(`m4-row-${item}`)
+    await expect(rowB.getByTestId('m4-lock-note')).toBeVisible()
+    await expect(rowB.getByTestId('m4-lock-note')).toContainText(/packing this right now/i)
+
+    // One tap deeper the sheet used to hand the row over in full.
+    await rowB.click()
+    await expect(pageB.getByTestId('m5-sheet')).toBeVisible()
+    await expect(pageB.getByTestId('m5-lock')).toContainText(/packing this right now/i)
+    await expect(pageB.getByTestId('m5-name')).toHaveText(item)
+    // The controls are gone rather than dimmed — nothing to tap and lose.
+    await expect(pageB.getByTestId('m5-skip')).toHaveCount(0)
+    await expect(pageB.getByTestId('m5-note-add')).toHaveCount(0)
+    // The stepper is the exception, and deliberately so: it is where the
+    // count is read, so it stays on screen and stops writing instead.
+    await expect(
+      pageB.getByTestId('m5-sheet').getByTestId('row-check').locator('ion-checkbox'),
+    ).toBeDisabled()
+    await pageB.getByTestId('m5-details').click()
+    await expect(pageB.getByTestId('m5-late')).toBeDisabled()
+
+    // A, who holds it, keeps every control: the lock is for the others.
+    await visiblePage(pageA).getByTestId(`m4-row-${item}`).click()
+    await expect(pageA.getByTestId('m5-sheet')).toBeVisible()
+    await expect(pageA.getByTestId('m5-lock')).toHaveCount(0)
+    await expect(pageA.getByTestId('m5-skip')).toBeVisible()
+
+    await ctxA.close()
+    await ctxB.close()
+  })
+
+  /**
    * E2E-G2-01 (queue half) + E2E-FLOW-06 (NFR-4.1, G-2, G-5): offline edits
    * queue and are announced; the queue drains on the app's next own action
    * once the network is back; the server converges.

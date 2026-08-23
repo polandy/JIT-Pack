@@ -63,7 +63,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-FLOW-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-G2-04 — the durable outbox (B2, NFR-4.1), added 2026-08-21.** A new
 case in the `single` unit: pack a row offline, reload the page *while still
@@ -1369,3 +1369,62 @@ And one that is about the feature rather than the harness:
   and asserted its mark — a correct failure. Both paths are now in the
   case, because "this row shows no mark" only means something beside a row
   that shows one.
+
+## E2E-G3-01 (partial) + E2E-G3-03 — the lock goes one tap deeper (2026-08-22)
+
+Backlog item 14(d). G-3 promises two things a padlock on M4's row was not
+delivering: that a locked row **names its holder**, and that it is
+"non-interactive for others except viewing". `ItemDetailSheet` had no lock
+awareness at all, so the row that could not be packed from the list was
+fully editable from the sheet one tap below it — and that is the worse of
+the two, because the sheet *accepted* the edit and the other device simply
+lost it at the next merge. No screen ever named the holder either, which is
+the one question a padlock raises.
+
+**What the new case in `single/server-sync.spec.ts` actually proves.** Both
+contexts there are the same Single-User identity, so it does not prove
+*whose* name is rendered. It proves the mechanism, which is the half that
+was broken: device B never claimed the row, so B's client treats the claim
+as foreign exactly as it would a second account's — the row carries the
+holder line, the sheet carries the banner, its packing/skip/note/prep
+controls are absent and *Details* is disabled, while name, quantity and
+state stay readable. The holder's own sheet is asserted **untouched** in
+the same case, because "locked for everyone including me" is the obvious
+wrong fix and nothing else would catch it. The identity half stays with
+E2E-G3-01 on the mock-IdP `server` project that does not exist yet.
+
+**Proven able to fail.** The suite runs against `dist`, so a source-only
+mutation proves nothing (the M10 lesson). Making `lockHolder` return `null`
+unconditionally and rebuilding reddens the case at the row's holder line —
+8 passed, 1 failed — and restoring it turns it green again. One trap on the
+way: the first mutation was `if (true) return null`, which makes TypeScript
+treat the rest of the function as unreachable, drop its narrowing, and fail
+`vue-tsc` before a bundle is ever built. A mutation has to keep the build
+honest to be worth anything.
+
+**Why the whole sheet, not the packing block.** G-3's words are "except
+viewing", and a mode where the quantity is frozen but the container is not
+is a third state with no mental model behind it. The cost is real and
+accepted: a note cannot be left on a row while somebody packs it. Each
+write path is guarded in the handler *as well as* disabled in the template
+— a control that flips back on its own is worse than one that never moved,
+and the guard is what a vitest case can assert without depending on how
+Ionic renders a disabled toggle.
+
+**The 15 minutes stopped being a client constant.** Sync-API §7 had decided
+the staleness window is "configurable via an environment variable"; the only
+place it existed was `LOCK_TIMEOUT_MS` in the orchestrator.
+`JITPACK_LOCK_TIMEOUT` now names it and `GET /api/v1/config` serves it. The
+vitest case for it is written so it can only pass if the served value
+arrived: the row is five minutes old — stale under the test's 60-second
+window, fresh under the built-in default — so a client that ignored the
+answer would keep the row locked and fail.
+
+**What was checked and deliberately not built.** The backlog item also said
+"the server neither expires a lock nor refuses a push for one". §7 does not
+promise either: it makes locks advisory, persisted as ordinary
+`packing_now` mutations, ignored by *clients* past the window. Server-side
+refusal would be a different concurrency model, not a bug fix — it would put
+a permanent 4xx in front of an offline device that packed a row somebody
+claimed after it went offline, which is the outbox-wedge shape PR #156 had
+just removed. That is an owner decision, and it is left as one.

@@ -136,6 +136,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
 - [Field-level LWW was row-level, and "packed always wins" was hiding it (2026-08-22)](#field-level-lww-was-row-level-and-packed-always-wins-was-hiding-it-2026-08-22) — the store kept one `updated_hlc` per row where §6 says per field-group, so an offline pack lost to any unrelated later edit; the backlog's "packed beats everything" branch was the compensation for exactly one state, and narrowing it to the spec alone would have kept the fault and dropped the mask; ADR-022 ships a clock per field and the narrow rule together, and the conflict log now names the losing push and its actor.
 - [The sheet's glyph rode half a line high (2026-08-23)](#the-sheets-glyph-rode-half-a-line-high-2026-08-23) — an eyeball of the merged conflict-log work found two rendering defects that every gate had passed: a state glyph aligned to a title *block* whose `h1` carried a 20 px margin nothing asked for, and an empty state that had copied the house pattern without its padding; the review corrected the entry's own first answer — a visual baseline would **not** have caught the offset either, at 591 px against a 0.002 gate, so what let both live is that nothing measured them.
+- [The lock stopped at the row (2026-08-22)](#the-lock-stopped-at-the-row-2026-08-22) — G-3's padlock was on M4's row and nowhere else, so the row you could not pack from the list was fully editable one tap deeper, and the sheet *accepted* the edit before the next merge threw it away; no screen named the holder; and §7's promised environment variable for the staleness window had never existed as anything but a client constant. What the backlog also asked for — server-side lock enforcement — is what §7 deliberately does not do, and it is left to the owner rather than built.
 
 ## Current state
 
@@ -5129,6 +5130,74 @@ user-agent margin is none of those, and neither is a missing padding. This is
 the same lesson invariant 9b already carries from the M4 group card that
 painted itself the exact colour of the page behind it: a rule can be satisfied
 completely and the result can still be wrong, and only a rendered pixel says so.
+## The lock stopped at the row (2026-08-22)
+
+Backlog item 14(d). Three of its four parts were real and are fixed; the
+fourth was a premise worth checking before building against it.
+
+**The sheet was the dangerous half.** M4's row wore a padlock and refused
+its menu, so the collision G-3 exists to prevent looked handled. But the
+row still opened M5 — correctly, since G-3 keeps viewing — and M5 had no
+lock awareness at all. Every control there wrote. That is worse than an
+unlocked row, because the sheet *confirmed* the edit: the save indicator
+went green, the field showed the new value, and the loss happened later and
+elsewhere, at a merge nobody was watching. A defect that shows a success
+message is not found by using the app.
+
+**All-or-nothing, and the cost is named.** G-3's wording is "non-interactive
+for others except viewing", so the whole sheet goes read-only rather than
+the packing block alone — a mode where the quantity is frozen and the
+container is not is a third state with no model behind it. The accepted
+cost: you cannot leave a note on a row while somebody packs it. Each write
+path is guarded in the handler *as well as* disabled in the template. Both
+halves earn their keep: the guard is what a unit test can assert without
+depending on how Ionic renders a disabled web component, and the disabled
+control is what stops a toggle from flipping and springing back, which
+reads as a bug rather than as a rule.
+
+**Naming the holder needed the function that already existed to stop
+throwing the answer away.** `isLockedByOther` computed exactly who held a
+row and then returned a boolean. It is now `lockHolder`, returning the user
+id, with the boolean as its one-line caller — the view resolves the id to a
+name, because only it knows the trip's participants. Note the empty string
+is a *held* lock with an unnameable holder, distinct from `null`; a row that
+says "somebody is packing this" is right, and one that silently unlocks
+because a directory fetch failed is not.
+
+**§7's environment variable had never existed.** The spec decided in so many
+words that 15 minutes is "the shipped default, configurable via an
+environment variable"; the implementation was `const LOCK_TIMEOUT_MS = 15 *
+60 * 1000` in the orchestrator, and nothing else. `JITPACK_LOCK_TIMEOUT` and
+`GET /api/v1/config` close it. The endpoint is unauthenticated and
+mode-independent on purpose — it carries no per-user data and a Single-User
+client needs the window too. A client that cannot reach it keeps the
+default, because the window is advisory and a missing answer must leave
+neither every row locked forever nor none locked at all.
+
+The vitest case for it is written so it cannot pass by accident: the row
+under test is five minutes old, which is stale under the test's 60-second
+window and fresh under the built-in default, so a client that ignored the
+served value fails rather than agreeing with itself.
+
+**The part that was not a defect.** The item also read "the server neither
+expires a lock nor refuses a push for one". §7 promises neither. It makes
+the lock advisory: persisted as an ordinary `packing_now` mutation, merged
+like any other field, and applied by *clients* when they decide what to
+render. Building refusal would be a different concurrency model — and a
+costly one, because it puts a permanent 4xx in front of an offline device
+that packed a row somebody claimed after it went offline, which is exactly
+the outbox-wedge shape removed days earlier. G-3 is collision *avoidance*;
+the net under a real collision is the field-level merge and the conflict
+log, which exist. Left as an owner decision rather than built, and the spec
+now says so out loud instead of leaving the silence to be read as an
+oversight.
+
+**A mutation has to keep the build honest.** Proving the new e2e case can
+fail meant rebuilding `dist`, and the first attempt — `if (true) return
+null` at the top of `lockHolder` — never got that far: TypeScript treats the
+rest of the function as unreachable, drops its narrowing, and `vue-tsc`
+fails on code that was correct a moment earlier. A mutation that cannot
+compile proves nothing about a test.
 
 ## The revert was already half-built, in a column nobody used (2026-08-22)
 

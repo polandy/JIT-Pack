@@ -57,6 +57,9 @@ func main() {
 			log.Print("starting in multi-user mode (externally minted session tokens)")
 		}
 	}
+	// Sync-API §7: zero means unset, and the API layer's own default
+	// stands — SetLockTimeout ignores it.
+	srv.SetLockTimeout(cfg.LockTimeout)
 	if cfg.PushContact != "" {
 		srv.SetPushContact(cfg.PushContact)
 	}
