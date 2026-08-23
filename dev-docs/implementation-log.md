@@ -146,6 +146,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The manual said it, the shipped config did not (2026-08-23)](#the-manual-said-it-the-shipped-config-did-not-2026-08-23) — the sync WebSocket never connected on the `:3000` stack: nginx forwarded `Host $host`, which drops the port, and the handshake's same-origin check compares the browser's port-carrying `Origin` against it. The manual had already written the rule and then broke it in its own copy-paste block, and its verification `curl` sent no `Origin` at all — a check that could not fail. Nothing in Go or Playwright loads an nginx config, so the guard is a gate.
 - [The wire was described twice, and the second description was fiction (2026-08-23)](#the-wire-was-described-twice-and-the-second-description-was-fiction-2026-08-23) — NFR-4.14/ADR-026. The envelope was already uniform; what was not a contract was two independent descriptions of one wire, and the mechanism found two more drifted types on its first run. Three things the code cannot show: why both suites were blind (a fake agrees with its author), why the gate generates beside the tree rather than over it, and the trap that a generated file under `client/src` must be prettier-clean or `make fmt` fails the gate on a file nobody edited.
 - [A conflict is an overwrite, not a lost race (2026-08-23)](#a-conflict-is-an-overwrite-not-a-lost-race-2026-08-23) — the conflict log had been logging fields nobody overwrote, so it read `2026 → 2026` and offered a revert for it, and the outcome `merged` announced the loss to a user who had none. Two things the code cannot show: it was found by rendering a merged, reviewed feature that no one had looked at, and the fix's real difficulty is that the two values being compared arrive from different type systems — JSON on one side, SQLite on the other.
+- [The conflict log was showing the wire (2026-08-24)](#the-conflict-log-was-showing-the-wire-2026-08-24) — the three findings the previous entry left standing, plus one only the render found: the log's values were two uuids either side of an arrow. Two things the code cannot show: which limits are deliberate (a name this device does not know, a column with no word for it) and why the e2e case that "covered" the row was green against every one of these.
 
 ## Current state
 
@@ -5850,3 +5851,39 @@ displayed with the JSON quotes still on them, the row names a table and a column
 `toLocaleString()` with no locale, so it renders in American in a de-CH app
 (NFR-4.12). They are one UI change with its own spec and Playwright case, and
 folding them into a merge-algorithm fix would have made both harder to review.
+
+## The conflict log was showing the wire (2026-08-24)
+
+The three findings the previous entry parked, and a fourth that only the
+rendered trip log had. The log is the one screen whose entire job is to be
+read, and it was rendering storage: `trips · name` for the table and column,
+`"Sardinien"` with the JSON quotes the merge stored it in, `1` for a flag,
+`8/22/2026` for a timestamp in an app the user set to German — and, on the
+trip partition, `b34e91b… → b8439760…` where two travelers belong.
+
+**The e2e case for that last one was green, and it says why in its own
+comment.** It asserted the two values were `not.toBeEmpty()`, with a note that
+*which* string they were "is not this case's business". A pair of raw uuids
+satisfies that exactly. The other one used `toContainText` for a name, and
+`"Engadin 7 B"` contains `Engadin 7 B` — so the assertion was green against
+precisely the quoted form it looked like it was catching. Both are the same
+mistake: an assertion written to be robust against detail, on a screen where
+the detail *is* the behaviour.
+
+**What is deliberately not resolved**, because saying less beats saying
+something untrue: a row this device cannot name — deleted since, never pulled,
+or in a partition it has not loaded — falls back to the *kind* of thing
+(`Item`) or to the raw id, rather than to a guess; and a column with no word in
+the catalogue keeps its own name. `image_hash` reads worse than "Photo" and
+never reads wrong.
+
+**Where the naming lives, and why it is not in `client/src/domain`.** The value
+decoder is (`conflictValues.ts`) — it is a rule with edge cases, and it is
+unit-tested as one. The table→store lookup is not: it is one switch over the
+two stores the page already injects, and moving it behind an eight-method
+lookup interface would have produced a module whose only content is the
+indirection. It is driven by the component spec instead, against real Pinia
+stores, which is the surface it actually serves.
+
+**No visual baseline moved**, because the conflict log is in none — the G-2
+*sheet* is (E2E-VIS-08), the log it leads to is not.

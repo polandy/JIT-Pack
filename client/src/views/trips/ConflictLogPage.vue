@@ -30,8 +30,12 @@ import {
 import { gitMergeOutline, arrowUndoOutline } from 'ionicons/icons'
 import { inject, onMounted, ref } from 'vue'
 
-import { t } from '@/i18n'
+import { t, formatDate } from '@/i18n'
 import type { MessageKey } from '@/i18n'
+import { describeConflictValue } from '@/domain/conflictValues'
+import { TABLE } from '@/types/tables'
+import { useMasterStore } from '@/stores/masterStore'
+import { useTripStore } from '@/stores/tripStore'
 import { APIRequestError } from '@/api/client'
 import { ERROR_CODE, type ErrorCode } from '@/api/types'
 import type { ConflictEntry, useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -39,6 +43,8 @@ import type { ConflictEntry, useSyncOrchestrator } from '@/composables/useSyncOr
 const props = defineProps<{ tripId?: string }>()
 
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+const master = useMasterStore()
+const trips = useTripStore()
 
 const conflicts = ref<ConflictEntry[]>([])
 const failed = ref(false)
@@ -102,12 +108,142 @@ async function onRefresh(event: CustomEvent) {
   ;(event.target as HTMLIonRefresherElement).complete()
 }
 
-function formatValue(raw: string): string {
-  return raw === '' ? t('conflicts.emptyValue') : raw
+/**
+ * What kind of thing a row is about, for the case where this device does not
+ * know its name — a row deleted since, or one this device has never pulled.
+ * A conflict can be logged against any syncable table, so a table with no
+ * entry here falls back to its own name rather than to a wrong noun.
+ */
+const ENTITY_LABELS: Partial<Record<string, MessageKey>> = {
+  [TABLE.trips]: 'conflicts.entity.trips',
+  [TABLE.tripItems]: 'conflicts.entity.trip_items',
+  [TABLE.items]: 'conflicts.entity.items',
+  [TABLE.templates]: 'conflicts.entity.templates',
+  [TABLE.tags]: 'conflicts.entity.tags',
+  [TABLE.travelers]: 'conflicts.entity.travelers',
+  [TABLE.containers]: 'conflicts.entity.containers',
+  [TABLE.comments]: 'conflicts.entity.comments',
+  [TABLE.tripSeries]: 'conflicts.entity.trip_series',
+}
+
+/**
+ * The column names a reader would recognise. Keyed by field alone, not by
+ * table and field: a column of the same name means the same thing everywhere
+ * in the schema. An unlisted field keeps its own name — a raw `image_hash`
+ * says less than "Photo" but never says something untrue.
+ */
+const FIELD_LABELS: Partial<Record<string, MessageKey>> = {
+  name: 'conflicts.field.name',
+  year: 'conflicts.field.year',
+  start_date: 'conflicts.field.start_date',
+  end_date: 'conflicts.field.end_date',
+  status: 'conflicts.field.status',
+  state: 'conflicts.field.state',
+  mode: 'conflicts.field.mode',
+  quantity: 'conflicts.field.quantity',
+  packed_count: 'conflicts.field.packed_count',
+  category_name: 'conflicts.field.category_name',
+  weight_grams: 'conflicts.field.weight_grams',
+  value_cents: 'conflicts.field.value_cents',
+  icon: 'conflicts.field.icon',
+  sort_order: 'conflicts.field.sort_order',
+  late_packer: 'conflicts.field.late_packer',
+  flag_unused: 'conflicts.field.flag_unused',
+  flag_missing: 'conflicts.field.flag_missing',
+  body: 'conflicts.field.body',
+  is_task: 'conflicts.field.is_task',
+  task_state: 'conflicts.field.task_state',
+  assigned_traveler_id: 'conflicts.field.assigned_traveler_id',
+  carrier_traveler_id: 'conflicts.field.carrier_traveler_id',
+  container_id: 'conflicts.field.container_id',
+  paired_container_id: 'conflicts.field.paired_container_id',
+  source_template_id: 'conflicts.field.source_template_id',
+  series_id: 'conflicts.field.series_id',
+}
+
+/**
+ * The name of the row the conflict is about, read from the stores this device
+ * already holds — the trip partition's four tables only while a trip is open,
+ * which is the only context in which they are logged.
+ */
+function entityName(table: string, id: string): string | undefined {
+  switch (table) {
+    case TABLE.trips:
+      return trips.getTrip(id)?.name
+    case TABLE.items:
+      return master.getItem(id)?.name
+    case TABLE.templates:
+      return master.getTemplate(id)?.name
+    case TABLE.tags:
+      return master.tagList.find((tag) => tag.id === id)?.name
+    case TABLE.tripSeries:
+      return master.getSeries(id)?.name
+    case TABLE.tripItems:
+      return props.tripId ? trips.getItems(props.tripId).find((i) => i.id === id)?.name : undefined
+    case TABLE.travelers:
+      return props.tripId
+        ? trips.getTravelers(props.tripId).find((tr) => tr.id === id)?.name
+        : undefined
+    case TABLE.containers:
+      return props.tripId
+        ? trips.getContainers(props.tripId).find((c) => c.id === id)?.name
+        : undefined
+    default:
+      return undefined
+  }
+}
+
+/** The row's subject: what it is called, or failing that what kind of thing it is. */
+function subjectLabel(entry: ConflictEntry): string {
+  const named = entityName(entry.entity_table, entry.entity_id)
+  if (named) return named
+  const kind = ENTITY_LABELS[entry.entity_table]
+  return kind ? t(kind) : entry.entity_table
+}
+
+function fieldLabel(entry: ConflictEntry): string {
+  const key = FIELD_LABELS[entry.field]
+  return key ? t(key) : entry.field
+}
+
+/**
+ * Columns whose value is a foreign key, and the table it points into. Their
+ * stored value is a uuid, and a log row reading `b34e91b… → b8439760…` says
+ * nothing at all — the two names behind them are what the reader chose
+ * between. Resolved against the same stores as the row's own subject, so an
+ * id this device cannot name falls back to the id itself.
+ */
+const REFERENCE_FIELDS: Record<string, string> = {
+  assigned_traveler_id: TABLE.travelers,
+  carrier_traveler_id: TABLE.travelers,
+  container_id: TABLE.containers,
+  paired_container_id: TABLE.containers,
+  source_item_id: TABLE.items,
+  source_template_id: TABLE.templates,
+  series_id: TABLE.tripSeries,
+}
+
+/**
+ * The stored column is JSON (`describeConflictValue`); a boolean becomes the
+ * word for it, because `true` is a wire value and not an answer, and a
+ * foreign key becomes the name it points at.
+ */
+function formatValue(entry: ConflictEntry, raw: string): string {
+  const value = describeConflictValue(raw)
+  switch (value.kind) {
+    case 'empty':
+      return t('conflicts.emptyValue')
+    case 'boolean':
+      return t(value.value ? 'common.yes' : 'common.no')
+    default: {
+      const table = REFERENCE_FIELDS[entry.field]
+      return (table && entityName(table, value.text)) || value.text
+    }
+  }
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleString()
+  return formatDate(new Date(iso), { dateStyle: 'medium', timeStyle: 'short' })
 }
 </script>
 
@@ -124,17 +260,20 @@ function formatTime(iso: string): string {
         </IonItem>
         <IonItem v-for="c in conflicts" :key="c.id" lines="inset" data-testid="conflict-row">
           <IonLabel>
-            <h3 data-testid="conflict-field">{{ c.entity_table }} · {{ c.field }}</h3>
+            <h3 data-testid="conflict-field">
+              <span data-testid="conflict-subject">{{ subjectLabel(c) }}</span> ·
+              {{ fieldLabel(c) }}
+            </h3>
             <p>
               <span class="losing" data-testid="conflict-losing">{{
-                formatValue(c.losing_value)
+                formatValue(c, c.losing_value)
               }}</span>
               →
               <span class="winning" data-testid="conflict-winning">{{
-                formatValue(c.winning_value)
+                formatValue(c, c.winning_value)
               }}</span>
             </p>
-            <IonNote>{{ formatTime(c.resolved_at) }}</IonNote>
+            <IonNote data-testid="conflict-time">{{ formatTime(c.resolved_at) }}</IonNote>
             <p v-if="revertErrors[c.id]" class="revert-error" data-testid="conflict-revert-error">
               {{ t(revertErrors[c.id]!) }}
             </p>
