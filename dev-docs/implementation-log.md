@@ -135,6 +135,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The revert was already half-built, in a column nobody used (2026-08-22)](#the-revert-was-already-half-built-in-a-column-nobody-used-2026-08-22) — NFR-4.2a's second verb, built as a new mutation rather than an undo (ADR-022); the schema change the work was budgeted for did not exist, and a single-connection pool turned an obvious visibility check into a deadlock against itself.
 - [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
 - [Field-level LWW was row-level, and "packed always wins" was hiding it (2026-08-22)](#field-level-lww-was-row-level-and-packed-always-wins-was-hiding-it-2026-08-22) — the store kept one `updated_hlc` per row where §6 says per field-group, so an offline pack lost to any unrelated later edit; the backlog's "packed beats everything" branch was the compensation for exactly one state, and narrowing it to the spec alone would have kept the fault and dropped the mask; ADR-022 ships a clock per field and the narrow rule together, and the conflict log now names the losing push and its actor.
+- [The sheet's glyph rode half a line high (2026-08-23)](#the-sheets-glyph-rode-half-a-line-high-2026-08-23) — an eyeball of the merged conflict-log work found two rendering defects that every gate had passed: a state glyph aligned to a title *block* whose `h1` carried a 20 px margin nothing asked for, and an empty state that had copied the house pattern without its padding; the review corrected the entry's own first answer — a visual baseline would **not** have caught the offset either, at 591 px against a 0.002 gate, so what let both live is that nothing measured them.
 
 ## Current state
 
@@ -5064,6 +5065,70 @@ nothing.
 `TestMerge_UnrelatedNewerField_DoesNotDisplaceOlderPack` are each red against the previous
 `merge.go` for opposite reasons — the first because `packed` won, the second because the row clock
 did. `internal/sync` is at 100 %.
+
+## The sheet's glyph rode half a line high (2026-08-23)
+
+Neither of these was found by reading a diff. Both came out of rendering the
+merged conflict-log work at the width the design is drawn at, and both are the
+same shape: every written rule honoured, and the pixels still wrong.
+
+**The glyph.** The G-2 sheet's state circle sat 14.5 px above its title.
+`.head` was `align-items: flex-start`, which aligned the 38 px circle to the
+top of the *title block* — and the `h1` inside that block carried a 20 px top
+margin. Nothing had asked for it: `.jp-sheet-title` names a face, a weight, a
+size, a tracking and a leading, and no spacing whatsoever. The 20 px were an
+inherited user-agent default the component never reset, so the text began well
+below the box the circle was aligned to.
+
+**Two fixes, both built and measured, before either was chosen.** Resetting the
+margin is one CSS declaration and lands at **+5.5 px** — better in magnitude,
+and now wrong in the other direction, because a 38 px circle and a 29 px line
+flush at the top cannot centre on each other. It would also move again the next
+time anyone touches the title's size. Giving the glyph and the title their own
+row with `align-items: center` lands at **+0.9 px**, half a line's leading,
+below any threshold a font renders as a difference — and it has nothing to
+re-tune, because the centring is structural rather than numeric. That is the
+one that shipped, at a cost worth naming: the ✕ comes down onto the title's
+line instead of pinning to the top, and the explanation, no longer squeezed
+beside it, wraps one word later.
+
+**The empty state.** The master conflict log's empty state ran from x=0 to the
+right edge. The page had copied the house empty state — three screens write
+`padding: 48px 24px; text-align: center` — and dropped both declarations. That
+survived because the only sentence it ever held fit on one line, and a
+shrink-to-fit flex item under `align-items: center` looks centred whether or not
+it is. The master log's sentence names three things, wraps, and the second line
+made the omission visible. The new string did not cause the defect; it stopped
+hiding it.
+
+**What let both live — and the answer the review had to correct.** The first
+draft of this entry said the cause was that the G-2 sheet sat in **no visual
+baseline**: it is the one surface reachable from every screen in every mode,
+and twenty-two baselines rendered none of it. That is true, and it is not the
+explanation. Mutating the fix back and running the new baseline against it
+**stays green**: the shift is **591 pixels, ratio 0.0018**, and the gate allows
+0.002 — it slips under by 67 pixels. The baseline is worth having and is added
+here, but it would not have caught this, and a PR that claimed otherwise would
+have left the next reader trusting a guard that does not hold.
+
+`playwright.config.ts` already says so, in the owner's own words from
+2026-08-19: *"this gate catches layout changes, not small ones"*, with a worked
+example of a whole 24 px app-bar icon plus a truncated title passing at 658 px.
+The tolerance is loose on purpose, because a gate that cries wolf is worth less
+than the miss it prevents. This is a second worked example of the miss that
+decision accepted.
+
+So the real cause is simpler and less flattering: **nothing measured it.**
+E2E-G2-08 is the guard, and it is the one that reads as its own specification
+when it fails — `Expected: <= 2, Received: 14.5`. A baseline says a pixel moved,
+and only above a threshold this defect sits below.
+
+**The gates could not have caught either.** `design-tokens-gate.mjs` rejects a
+raw colour, a raw type declaration, a raw radius and a raw shadow. A stray
+user-agent margin is none of those, and neither is a missing padding. This is
+the same lesson invariant 9b already carries from the M4 group card that
+painted itself the exact colour of the page behind it: a rule can be satisfied
+completely and the result can still be wrong, and only a rendered pixel says so.
 
 ## The revert was already half-built, in a column nobody used (2026-08-22)
 
