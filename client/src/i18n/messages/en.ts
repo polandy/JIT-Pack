@@ -720,7 +720,8 @@ export const en = {
   'import.wizard.column': 'Col {n}',
   'import.wizard.categoryRows': 'Category rows',
   'import.wizard.categoryColumn': 'Category column',
-  'import.wizard.categoryColumnHint': 'Some sheets keep the category in its own column beside the item, carried down until it changes.',
+  'import.wizard.categoryColumnHint':
+    'Some sheets keep the category in its own column beside the item, carried down until it changes.',
   'import.wizard.noCategoryColumn': 'None',
   'import.wizard.duplicates': 'Possible duplicates',
   'import.wizard.duplicatesHint': 'These imported names look like items you already have.',
