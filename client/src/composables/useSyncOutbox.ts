@@ -41,6 +41,7 @@ const MASTER_KEY = 'master'
 
 /** The outcome the push endpoint reports for a mutation it will never apply. */
 const OUTCOME_REJECTED = 'rejected'
+const OUTCOME_MERGED = 'merged'
 
 /**
  * 4xx statuses a later attempt can still succeed on, so the batch behind
@@ -78,12 +79,27 @@ function isPermanentRefusal(err: unknown): err is APIRequestError {
   )
 }
 
+/** What one push lost, and where to go and look at it (NFR-4.2a). */
+export interface ConflictReport {
+  /** Fields the server dropped across every mutation of this push. */
+  count: number
+  type: PartitionType
+  id: string | null
+}
+
 /** Optional wiring: without a store the outbox behaves exactly as before. */
 export interface SyncOutboxOptions {
   /** Where the queue is kept across sessions. Omitted → memory only. */
   store?: OutboxStore
   /** Called when a mutation is taken out of the queue for good. */
   onParked?: (entry: ParkedMutation) => void
+  /**
+   * Called after a push whose answer says the server dropped fields of this
+   * device's changes (NFR-4.2a `merged`). The partition travels with the
+   * count because it decides which of the two conflict logs the user is
+   * being pointed at.
+   */
+  onConflicts?: (report: ConflictReport) => void
   /**
    * Called when the device starts or stops being able to keep the queue.
    * G-2 must not promise durability it does not have (NFR-4.11).
@@ -101,6 +117,7 @@ export class SyncOutbox {
   private readonly onChanges: (changes: PullChange[]) => void
   private readonly store: OutboxStore | null
   private readonly onParked?: (entry: ParkedMutation) => void
+  private readonly onConflicts?: (report: ConflictReport) => void
   private readonly onDurabilityChanged?: (durable: boolean) => void
   private readonly now: () => number
 
@@ -127,6 +144,7 @@ export class SyncOutbox {
     this.onChanges = onChanges
     this.store = options.store ?? null
     this.onParked = options.onParked
+    this.onConflicts = options.onConflicts
     this.onDurabilityChanged = options.onDurabilityChanged
     this.now = options.now ?? (() => Date.now())
   }
@@ -234,6 +252,7 @@ export class SyncOutbox {
         // writes, and a device that died between them would have dropped a
         // refused mutation without leaving the evidence behind.
         const parked = this.parkRejected(key, chunk, resp)
+        this.reportConflicts(type, id, resp)
         // Drop what was pushed by id rather than by count: the chunk and
         // the live queue can have drifted apart while the request was open.
         this.forget(
@@ -279,6 +298,21 @@ export class SyncOutbox {
       live.filter((m) => !pushed.has(m.mutation_id)),
     )
     this.persist(() => this.store?.remove([...pushed]))
+  }
+
+  /**
+   * Tells the caller how many fields this push lost. A `merged` mutation
+   * *did* apply — it is forgotten like any other, never parked — so without
+   * this the whole outcome was indistinguishable from `applied` and the
+   * user was never told an edit of theirs had been overwritten.
+   */
+  private reportConflicts(type: PartitionType, id: string | null, resp: PushResponse): void {
+    if (!this.onConflicts) return
+    let count = 0
+    for (const result of resp.results) {
+      if (result.outcome === OUTCOME_MERGED) count += result.conflicts?.length ?? 0
+    }
+    if (count > 0) this.onConflicts({ count, type, id })
   }
 
   /**

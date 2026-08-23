@@ -63,7 +63,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-FLOW-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-FLOW-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-G2-04 — the durable outbox (B2, NFR-4.1), added 2026-08-21.** A new
 case in the `single` unit: pack a row offline, reload the page *while still
@@ -94,6 +94,20 @@ detached, not deleted — which is the detail the first draft of this case got
 wrong and the run corrected. The destructive alert button is located by its
 Ionic role class rather than its label, so the case does not depend on which
 catalogue the alert renders in.
+
+**E2E-G2-07 — a merge announces itself, added 2026-08-22.** `merged` is an
+outcome the wire has always carried and the client read in no code path: a
+mutation that lost a field left the queue exactly like one that applied
+cleanly, so nothing ever told the user. The assertion lives inside the
+existing losing-edit case because that is the one place in the suite where a
+real server merges a real edit away — building a second world to produce one
+would buy nothing.
+
+**The toast is asserted first and dismissed by hand.** It auto-dismisses on
+a timer, so asserting it after the case's M5 steps would race that timer —
+the first draft did exactly that. Nothing after the dismissal depends on it;
+what the later steps assert is the sheet's standing line, which has no
+timer.
 
 **E2E-G2-06 — the master partition's conflict log, added 2026-08-22.** The
 audit NFR-4.2a promises had one endpoint and two partitions: every

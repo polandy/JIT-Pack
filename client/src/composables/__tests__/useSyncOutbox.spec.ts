@@ -29,6 +29,7 @@ describe('SyncOutbox', () => {
   let client: { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn> }
   let hlc: HLCGenerator
   let onChanges: (changes: PullChange[]) => void
+  let onConflicts: SyncOutboxOptions['onConflicts'] & ReturnType<typeof vi.fn>
 
   beforeEach(() => {
     client = {
@@ -44,6 +45,78 @@ describe('SyncOutbox', () => {
     }
     hlc = mockHLC()
     onChanges = vi.fn()
+    onConflicts = vi.fn() as typeof onConflicts
+  })
+
+  describe('a merged push (NFR-4.2a)', () => {
+    it('reports the fields the server merged away, with the partition they came from', async () => {
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        onConflicts,
+      })
+      const mutation = makeMutation()
+      outbox.enqueue('trip', 'trip-1', mutation)
+      client.post.mockResolvedValueOnce({
+        results: [
+          {
+            mutation_id: mutation.mutation_id,
+            outcome: 'merged',
+            conflicts: [
+              { field: 'quantity', losing_value: 9, winning_value: 3 },
+              { field: 'state', losing_value: 'open', winning_value: 'packed' },
+            ],
+          },
+        ],
+        pull_hint: { next_cursor: 7 },
+      } satisfies PushResponse)
+
+      await outbox.drain('trip', 'trip-1')
+
+      // The partition travels with the count because it decides which of
+      // the two conflict logs the user is being pointed at.
+      expect(onConflicts).toHaveBeenCalledWith({ count: 2, type: 'trip', id: 'trip-1' })
+    })
+
+    it('says nothing when the server merged nothing', async () => {
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        onConflicts,
+      })
+      const mutation = makeMutation()
+      outbox.enqueue('trip', 'trip-1', mutation)
+      client.post.mockResolvedValueOnce({
+        results: [{ mutation_id: mutation.mutation_id, outcome: 'applied' }],
+        pull_hint: { next_cursor: 7 },
+      } satisfies PushResponse)
+
+      await outbox.drain('trip', 'trip-1')
+
+      // The positive signal that the drain ran at all, so the silence
+      // above is a decision rather than a push that never happened.
+      expect(client.post).toHaveBeenCalledTimes(1)
+      expect(onConflicts).not.toHaveBeenCalled()
+    })
+
+    it('still forgets the mutation — a merge applied, it was not refused', async () => {
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {
+        onConflicts,
+      })
+      const mutation = makeMutation()
+      outbox.enqueue('trip', 'trip-1', mutation)
+      client.post.mockResolvedValueOnce({
+        results: [
+          {
+            mutation_id: mutation.mutation_id,
+            outcome: 'merged',
+            conflicts: [{ field: 'quantity', losing_value: 9, winning_value: 3 }],
+          },
+        ],
+        pull_hint: { next_cursor: 7 },
+      } satisfies PushResponse)
+
+      await outbox.drain('trip', 'trip-1')
+
+      expect(outbox.totalPending()).toBe(0)
+      expect(outbox.parkedCount()).toBe(0)
+    })
   })
 
   it('queues mutations and reports pending count', () => {

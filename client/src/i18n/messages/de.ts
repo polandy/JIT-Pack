@@ -69,6 +69,11 @@ export const de: Record<keyof typeof en, string> = {
     'Sie sind auf diesem Gerät gespeichert und gehen raus, sobald es wieder online ist.',
   'sync.detail.pendingFragile':
     'Dieses Gerät konnte sie nicht speichern — die App jetzt zu schließen würde sie verlieren.',
+  'sync.conflictToast':
+    'Ein anderes Gerät hat {n} Feld deiner Änderung überschrieben | Ein anderes Gerät hat {n} Felder deiner Änderungen überschrieben',
+  'sync.conflictToastOpen': 'Ansehen',
+  'sync.detail.conflicted':
+    '{n} Feld deiner Änderungen wurde von einem anderen Gerät überschrieben | {n} Felder deiner Änderungen wurden von einem anderen Gerät überschrieben',
   'sync.detail.parked':
     'Der Server hat {n} Änderung abgelehnt | Der Server hat {n} Änderungen abgelehnt',
   'sync.detail.parkedHint':

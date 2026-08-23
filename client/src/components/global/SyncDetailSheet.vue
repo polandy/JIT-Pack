@@ -22,6 +22,7 @@ import { IonIcon } from '@ionic/vue'
 import {
   closeOutline,
   downloadOutline,
+  gitMergeOutline,
   listOutline,
   sparklesOutline,
   warningOutline,
@@ -48,6 +49,12 @@ const props = withDefaults(
     queueDurable?: boolean
     /** Mutations the server refused for good, parked out of the queue. */
     parkedCount?: number
+    /**
+     * Fields of this device's changes the server merged away this session
+     * (NFR-4.2a). The durable record is the conflict log; this is the
+     * awareness, and without it a `merged` push was silent.
+     */
+    conflictCount?: number
     /** Run mode: it, not the state, decides which half of the sheet applies. */
     mode: 'local' | 'server'
     /** Whether a trip is open, i.e. whether its own conflict log exists. */
@@ -68,7 +75,7 @@ const props = withDefaults(
   }>(),
   // Durability is assumed until the outbox reports it lost — a device that
   // never had a queue to keep has not failed to keep one.
-  { queueDurable: true, parkedCount: 0 },
+  { queueDurable: true, parkedCount: 0, conflictCount: 0 },
 )
 
 const emit = defineEmits<{ close: []; conflicts: []; masterConflicts: []; backup: [] }>()
@@ -86,6 +93,7 @@ const showPending = computed(() => !isLocal.value && props.pendingCount > 0)
  * anything, so the line would describe a mode the user is not in.
  */
 const showParked = computed(() => !isLocal.value && (props.parkedCount ?? 0) > 0)
+const showConflicted = computed(() => !isLocal.value && (props.conflictCount ?? 0) > 0)
 
 const megabytes = (bytes: number) =>
   formatNumber(bytes / (1024 * 1024), { minimumFractionDigits: 1, maximumFractionDigits: 1 })
@@ -144,6 +152,14 @@ const backupAge = computed(() => {
         {{ t('sync.detail.parkedHint') }}
       </p>
     </template>
+
+    <!-- NFR-4.2a: a `merged` push applied, and quietly dropped fields on the
+         way. The log holds the detail; this is the only place that says it
+         happened at all to someone who was not looking when it did. -->
+    <p v-if="showConflicted" class="note" data-testid="sync-detail-conflicted">
+      <IonIcon :icon="gitMergeOutline" />
+      <span>{{ t('sync.detail.conflicted', { n: conflictCount ?? 0 }) }}</span>
+    </p>
 
     <!-- NFR-4.13: a waiting update concerns every mode — the bundle, not the data. -->
     <p v-if="updateReady" class="update" data-testid="sync-detail-update">

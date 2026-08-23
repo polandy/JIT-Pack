@@ -67,6 +67,11 @@ export const en = {
     'They are saved on this device and go out as soon as it is back online.',
   'sync.detail.pendingFragile':
     'This device could not save them — closing the app now would lose them.',
+  'sync.conflictToast':
+    'Another device overwrote {n} field of your change | Another device overwrote {n} fields of your changes',
+  'sync.conflictToastOpen': 'Show',
+  'sync.detail.conflicted':
+    '{n} field of your changes was overwritten by another device | {n} fields of your changes were overwritten by another device',
   'sync.detail.parked': 'The server rejected {n} change | The server rejected {n} changes',
   'sync.detail.parkedHint':
     'They were taken out of the queue so the rest could be sent, and are kept on this device. They will not be tried again.',
