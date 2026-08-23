@@ -119,6 +119,7 @@ func Unmarshal(data []byte) (Document, error) {
 	if err := validateDoc(doc); err != nil {
 		return Document{}, err
 	}
+	normalizeStatus(&doc)
 	return doc, nil
 }
 
@@ -178,22 +179,36 @@ func validateDoc(doc Document) error {
 	return nil
 }
 
-// validateStatus keeps a status this build cannot honour out of the importer.
-// The alternative — passing it on — reaches the schema's CHECK constraint as a
-// failed push, which parks the whole mutation and reports a database error
-// where a file problem is what happened.
+// validateStatus refuses a status on a document that has no lifecycle. That is
+// a structural confusion like `includes` on a trip, not a value to interpret.
+//
+// An unknown *value* is deliberately not an error — see normalizeStatus.
 func validateStatus(doc Document) error {
-	if doc.Status == "" {
-		return nil
-	}
-	if doc.Kind != KindTrip {
+	if doc.Status != "" && doc.Kind != KindTrip {
 		return fmt.Errorf("status %q is only valid on a trip document", doc.Status)
 	}
+	return nil
+}
+
+// normalizeStatus drops a status this build does not know, leaving it absent.
+//
+// Refusing the document instead would be the `scope` stance, and the analogy
+// does not hold: a group imported as a Ferien-Vorlage is structurally wrong
+// and corrupts the composition, while an unreadable status is one field with a
+// correct fallback the reader above supplies — `planning`, which is exactly
+// what every file written before this field existed already produces. The
+// closer precedent is Quantity, which folds a legacy formula string rather
+// than failing the whole file (FR-18.5). Losing a trip out of a restore to
+// save its lifecycle state is the wrong trade.
+//
+// What it must never do is pass the value on: the schema's CHECK would refuse
+// it, and a push that fails a constraint parks the whole mutation and reports
+// a database error where a file problem happened.
+func normalizeStatus(doc *Document) {
 	switch doc.Status {
-	case StatusPlanning, StatusActive, StatusArchived:
-		return nil
+	case "", StatusPlanning, StatusActive, StatusArchived:
 	default:
-		return fmt.Errorf("unknown status: %q (expected planning, active or archived)", doc.Status)
+		doc.Status = ""
 	}
 }
 

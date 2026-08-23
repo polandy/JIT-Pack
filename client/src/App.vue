@@ -226,6 +226,7 @@ async function saveBackup() {
       appliedChanges: tripStore.getAppliedChanges(trip.id),
     })),
     masterItem: (id) => masterStore.getItem(id),
+    tagsOf: (id) => masterStore.getItemTags(id).map((t) => t.name),
     template: (id) => masterStore.getTemplate(id),
     composition: masterStore.compositionSource(),
   })

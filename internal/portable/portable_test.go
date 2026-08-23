@@ -397,18 +397,24 @@ func TestUnmarshalTrip_AbsentStatusStaysEmpty(t *testing.T) {
 	}
 }
 
-// A value the schema's CHECK constraint would refuse must be caught here
-// instead: a push carrying it comes back a constraint error, which parks the
-// whole mutation. Same stance as `scope` — refusing one document beats
-// importing it as something it is not, and a multi-document file reports it
-// in place and imports the rest.
-func TestUnmarshalTrip_UnknownStatusIsRefused(t *testing.T) {
-	_, err := portable.Unmarshal([]byte("kind: trip\nname: Wallis\nstatus: repack\n"))
-	if err == nil {
-		t.Fatal("unknown status accepted, want refusal")
+// A value the schema's CHECK would refuse must never be passed on — a push
+// carrying it comes back a constraint error and parks the whole mutation. It
+// is dropped rather than made an error: the fallback is `planning`, which is
+// what every pre-status file already produces, and losing a whole trip out of
+// a restore to save its lifecycle state is the wrong trade (FR-18.5, the
+// Quantity precedent). `repack` is the real case — inert in the schema, named
+// by no live status.
+func TestUnmarshalTrip_UnknownStatusIsDroppedNotRefused(t *testing.T) {
+	got, err := portable.Unmarshal([]byte("kind: trip\nname: Wallis\nstatus: repack\n"))
+	if err != nil {
+		t.Fatalf("unmarshal: %v", err)
 	}
-	if !strings.Contains(err.Error(), "repack") {
-		t.Errorf("error = %v, want it to name the offending value", err)
+	if got.Status != "" {
+		t.Errorf("status = %q, want it dropped to empty", got.Status)
+	}
+	// The trip itself survives — that is the point of dropping over refusing.
+	if got.Name != "Wallis" {
+		t.Errorf("name = %q, want the document to have imported", got.Name)
 	}
 }
 

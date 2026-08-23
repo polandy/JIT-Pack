@@ -1989,6 +1989,26 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     }
   }
 
+  /**
+   * File a restored master item under the tags the document named, in order
+   * (FR-24.1/24.2) — the list's order *is* `item_tags.position`, so the first
+   * name becomes the primary tag.
+   *
+   * A tag is linked by name and only created when this device has never heard
+   * of it, the same identity rule groups follow (ADR-017): `tags.name` is
+   * UNIQUE, so a second copy is not merely untidy, it is impossible.
+   */
+  function applyTags(itemId: string, names: string[]): void {
+    if (names.length === 0) return
+    const byName = new Map(masterStore.tagList.map((t) => [t.name.toLowerCase(), t.id]))
+    names.forEach((name, position) => {
+      const existing = byName.get(name.toLowerCase())
+      const tagId = existing ?? createTag(name)
+      if (!existing) byName.set(name.toLowerCase(), tagId)
+      assignTagLocally(itemId, tagId, position)
+    })
+  }
+
   function commitPortableImport(
     doc: PortableDocument,
     mergeDecisions: Map<string, string>,
@@ -2002,7 +2022,14 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const resolveItem = (item: PortableItem): string | null => {
       const merged = mergeDecisions.get(item.name)
       if (merged) return merged
-      if (doc.kind === 'trip') return null // unmatched trip rows stay ad-hoc
+      /*
+       * A trip row is only inventory if it says so (ADR-024). Before the file
+       * carried that, every unmatched row stayed ad-hoc, which lost the master
+       * item of anything no template also used — and with it the mark and the
+       * tags. Creating one for *every* row would be the opposite error: a row
+       * the user typed once on a trip is not something they filed away.
+       */
+      if (doc.kind === 'trip' && !item.from_inventory) return null
       const { mutation, id } = mutations.createMasterItem(item.name, { icon: item.icon })
       onPullChanges([
         {
@@ -2014,6 +2041,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         },
       ])
       if (!local) outbox.enqueue('master', null, mutation)
+      applyTags(id, item.tags)
       return id
     }
 
@@ -2082,6 +2110,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       portableYear(doc),
       doc.start_date,
       doc.end_date,
+      // FR-2.2/ADR-024: the status the file carried, or planning when it
+      // carried none — which every file written before ADR-024 does, and
+      // which is exactly what those files have always produced.
+      { status: doc.status ?? undefined },
     )
     onPullChanges([
       {

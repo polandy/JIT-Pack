@@ -238,6 +238,8 @@ function exportTripYAML() {
     travelers: tripStore.getTravelers(trip.id),
     containers: tripStore.getContainers(trip.id),
     includeProgress: true,
+    masterItem: (id) => masterStore.getItem(id),
+    tagsOf: (id) => masterStore.getItemTags(id).map((t) => t.name),
   })
   saveText(yaml, `${safeFilename(trip.name)}.yaml`)
   recordBackup()
@@ -251,6 +253,7 @@ function exportTemplateYAML() {
     masterStore.getTemplateItems(template.id),
     (id) => masterStore.getItem(id),
     compositionFrom(template, masterStore.compositionSource()),
+    (id) => masterStore.getItemTags(id).map((t) => t.name),
   )
   saveText(yaml, `${safeFilename(template.name)}.yaml`)
   recordBackup()
