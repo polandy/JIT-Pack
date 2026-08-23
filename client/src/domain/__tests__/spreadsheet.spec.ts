@@ -200,6 +200,58 @@ describe('buildImportPlan — an inventory with no trips (FR-16.1/16.2)', () => 
   })
 })
 
+/*
+ * The same thing listed twice in one sheet (FR-16.3, found 2026-08-23 on the
+ * owner's file, where "Regenhosen" and "Tele" each appear under two
+ * categories). `items` is UNIQUE (name), so the second row was refused at the
+ * wire and its amounts were lost — silently, because the dedup step compares
+ * the file against the *inventory* and never against itself.
+ */
+const repeatedNameCSV = [
+  'Kategorie,Artikel,2024,2025',
+  'Hosen,Regenhosen,1,1',
+  'Velo,regenhosen ,,3',
+  ',Pumpe?,1,',
+  ',Pumpe,,2',
+].join('\n')
+
+describe('buildImportPlan — a name repeated inside one file (FR-16.3)', () => {
+  const grid = parseSpreadsheet(repeatedNameCSV)
+  const analysis = analyzeGrid(grid)
+  const mapping = {
+    headerRows: analysis.headerRows,
+    itemColumn: analysis.itemColumn,
+    categoryColumn: analysis.categoryColumn,
+    categoryRows: analysis.categoryRows,
+    trips: analysis.tripColumns.map((t) => ({
+      column: t.index,
+      name: t.name,
+      endDate: normalizeTripDate(t.date)!,
+      seriesId: null,
+    })),
+  }
+  const plan = buildImportPlan(grid, mapping, new Map())
+
+  it('folds the repeats into one item, keeping the first spelling and category', () => {
+    expect(plan.items.map((i) => i.name)).toEqual(['Regenhosen', 'Pumpe'])
+    expect(plan.items[0]!.categoryName).toBe('Hosen')
+  })
+
+  it('merges the amounts per trip, taking the larger of the two rows', () => {
+    const amounts = plan.trips.map((t) => [t.name, t.items.map((i) => i.quantity)])
+    // 2024: only the first row has Regenhosen (1) and only the '?' row has
+    // Pumpe (1). 2025: Regenhosen 1 vs 3 → 3, Pumpe 2.
+    expect(amounts).toEqual([
+      ['2024', [1, 1]],
+      ['2025', [3, 2]],
+    ])
+  })
+
+  it('keeps the open task when either row carried the question mark (NFR-4.7)', () => {
+    expect(plan.items.find((i) => i.name === 'Pumpe')!.hasOpenTask).toBe(true)
+  })
+})
+
 describe('findDuplicates (FR-16.3)', () => {
   const existing = [masterItem('i1', 'Unterhosen'), masterItem('i2', 'Regenjacke')]
 
