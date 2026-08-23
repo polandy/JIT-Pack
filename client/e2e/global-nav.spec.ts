@@ -501,4 +501,30 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // settings control existing anywhere at all is the discriminator.
     await expect(page.getByTestId('settings-language')).toHaveCount(0)
   })
+
+  /**
+   * E2E-G9-13 (Navigation_Concept §7): the same contract for the *other*
+   * import. M15 is entered from M2 and from M9's empty state and declares
+   * one parent like M18 does, so it is the same shape — and until this PR
+   * touched M15 it had no e2e case of any kind to notice with.
+   */
+  test('E2E-G9-13: the spreadsheet import entered from the trip list returns to it', async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE)
+    await page.goto('/tabs/trips')
+    await expect(onVisibleScreen(page, 'm2-spreadsheet-import')).toBeVisible()
+
+    await page.getByTestId('m2-spreadsheet-import').click()
+    await expect(onVisibleScreen(page, 'import-paste')).toBeVisible()
+
+    await page.getByTestId('header-back').click()
+
+    await atPath(page, '/tabs/trips')
+    await expect(onVisibleScreen(page, 'trips-new')).toBeVisible()
+    // The declared parent is the inventory, so that is where a chevron
+    // without the origin lands; its empty state existing anywhere at all is
+    // the discriminator, for the same mid-transition reason as G9-12.
+    await expect(page.getByTestId('m9-empty')).toHaveCount(0)
+  })
 })
