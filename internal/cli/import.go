@@ -95,7 +95,8 @@ Flags:
 //
 // The error return is for a fault that makes the whole run meaningless — not
 // for a document the server refused, which is reported and counted.
-func RunImport(ctx context.Context, opts ImportOptions, files []string, out io.Writer) (int, error) {
+func RunImport(ctx context.Context, opts ImportOptions, files []string, w io.Writer) (int, error) {
+	out := &report{w: w}
 	client := opts.HTTP
 	if client == nil {
 		client = &http.Client{Timeout: importTimeout}
@@ -104,14 +105,14 @@ func RunImport(ctx context.Context, opts ImportOptions, files []string, out io.W
 	for _, path := range files {
 		data, err := os.ReadFile(path)
 		if err != nil {
-			fmt.Fprintf(out, "%s: %v\n", path, err)
+			out.printf("%s: %v\n", path, err)
 			failed++
 			total++
 			continue
 		}
 		results := portable.UnmarshalAll(data)
 		if len(results) == 0 {
-			fmt.Fprintf(out, "%s: no document found\n", path)
+			out.printf("%s: no document found\n", path)
 			failed++
 			total++
 			continue
@@ -127,31 +128,48 @@ func RunImport(ctx context.Context, opts ImportOptions, files []string, out io.W
 	if opts.DryRun {
 		landed, lost = "readable", "unreadable"
 	}
-	fmt.Fprintf(out, "%s: %d %s, %d %s\n",
+	out.printf("%s: %d %s, %d %s\n",
 		plural(total, "document"), total-failed, landed, failed, lost)
-	return failed, nil
+	// A report nobody could write is a run with no result, whatever landed
+	// server-side — so it is the one thing this returns an error for.
+	return failed, out.err
+}
+
+// report is the run's output, remembering the first write failure instead of
+// discarding one per line.
+type report struct {
+	w   io.Writer
+	err error
+}
+
+// printf writes one report line, keeping the first failure instead of
+// returning an error at each of a dozen call sites.
+func (r *report) printf(format string, args ...any) {
+	if _, err := fmt.Fprintf(r.w, format, args...); err != nil && r.err == nil {
+		r.err = fmt.Errorf("write report: %w", err)
+	}
 }
 
 // importDocument reports one document and returns whether it landed.
 func importDocument(ctx context.Context, client *http.Client, opts ImportOptions,
-	out io.Writer, path string, number int, result portable.DocumentResult) bool {
+	out *report, path string, number int, result portable.DocumentResult) bool {
 	where := fmt.Sprintf("%s #%d", path, number)
 	if result.Err != nil {
-		fmt.Fprintf(out, "%s: unreadable — %s\n", where, oneLine(result.Err))
+		out.printf("%s: unreadable — %s\n", where, oneLine(result.Err))
 		return false
 	}
 	doc := result.Doc
 	what := fmt.Sprintf("%s %s %q", where, doc.Kind, doc.Name)
 	if opts.DryRun {
-		fmt.Fprintf(out, "%s: readable (dry run, not sent)\n", what)
+		out.printf("%s: readable (dry run, not sent)\n", what)
 		return true
 	}
 	id, err := postDocument(ctx, client, opts, doc.Kind, result.Raw)
 	if err != nil {
-		fmt.Fprintf(out, "%s: failed — %s\n", what, oneLine(err))
+		out.printf("%s: failed — %s\n", what, oneLine(err))
 		return false
 	}
-	fmt.Fprintf(out, "%s: imported (%s)\n", what, id)
+	out.printf("%s: imported (%s)\n", what, id)
 	return true
 }
 

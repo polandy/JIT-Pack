@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -356,6 +357,28 @@ func TestRunImport_SameFileTwice_ReportsWhyTheSecondOneDidNotLand(t *testing.T) 
 	}
 	if got := countRows(t, st, `SELECT COUNT(*) FROM templates`); got != 1 {
 		t.Errorf("templates = %d, want 1", got)
+	}
+}
+
+// failingWriter stands in for a closed pipe or a full disk.
+type failingWriter struct{ err error }
+
+func (f failingWriter) Write([]byte) (int, error) { return 0, f.err }
+
+// A run whose report could not be written has no result the caller can act
+// on, however many documents landed — so it is the one thing that is an
+// error rather than a counted failure.
+func TestRunImport_ReportCannotBeWritten_IsReturnedAsAnError(t *testing.T) {
+	srv, _ := newImportServer(t)
+	path := writeFile(t, "one.yaml", templateDoc)
+
+	_, err := cli.RunImport(context.Background(), cli.ImportOptions{ServerURL: srv.URL},
+		[]string{path}, failingWriter{err: errors.New("broken pipe")})
+	if err == nil {
+		t.Fatal("a failed report was swallowed")
+	}
+	if !strings.Contains(err.Error(), "broken pipe") {
+		t.Errorf("error does not carry the cause: %v", err)
 	}
 }
 
