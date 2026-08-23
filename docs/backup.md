@@ -185,6 +185,9 @@ than describe:
   the sheet, leave the picker on *None* and tick those rows under *Category rows*.
 - **A column the sheet never named is not imported unless you name it.** Every other column
   is preselected.
+- **A thing listed twice is imported once.** If the same name appears under two
+  categories, you get one item — filed under the first — and where both rows give an
+  amount for the same trip, the larger one is kept.
 - **A sheet with no trips in it at all is fine.** If your file is just a list of things —
   categories and item names, no amounts — import it as it is: you get the inventory and no
   trip, and the app takes you to the Items screen where the result is.
