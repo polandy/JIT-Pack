@@ -86,7 +86,7 @@ Two rules make the fields safe rather than merely present:
 **Negative / accepted costs**
 - **A shared trip file can change your trip's lifecycle.** Accepted by the owner on 2026-08-23 over the two-path alternatives, on the grounds that one predictable rule beats a mode nothing on screen explains.
 - `from_inventory` is a fourth thing a position says about itself, and a hand-written file that omits it gets ad-hoc rows.
-- Every writer must pass the two resolvers (`masterItem`, `tagsOf`). A caller that forgets writes a file that looks complete and restores incomplete — which is why all three writers are wired in this change and not "in a follow-up".
+- Every writer must pass the two resolvers (`masterItem`, `tagsOf`). They are **required arguments**, not optional ones, because a caller that forgets writes a file that looks complete and restores incomplete — invisible until somebody needs the backup. A test can only watch the call sites that exist; the compiler watches every future one. That was not theoretical: making them required immediately surfaced a **fourth** writer nobody had wired (the template list's export), and a mutation had already shown that three hand-assembled copies returning no tags left the entire unit suite and the entire M18 e2e unit green. They come from one source, `masterStore.portableResolvers()`, which has its own driving case.
 
 **Neutral**
 - No schema change; every column already existed.

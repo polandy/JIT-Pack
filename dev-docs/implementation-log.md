@@ -5189,14 +5189,27 @@ status over. It is derived from the first restored trip now, through a mapping
 that lives in the module both screens already share, because `planning` and
 *planned* are the one place the database word and the display word differ.
 
-**A cost of the shape, paid on purpose.** Every writer has to pass the two
-resolvers — the device backup and both single-export screens. A caller that
-forgets writes a file that looks complete and restores incomplete, which is
-invisible until somebody needs it. All three are wired in this change; "the
-screen in a follow-up" is exactly the half that ships untested.
+**A cost of the shape, and the review found I had paid it badly.** Every writer
+has to pass the two resolvers. I wired the three I knew about — the device
+backup and both single exports — by hand-assembling the same two lines at each,
+and left the arguments optional. The review's own mutation is what exposed it:
+with all three returning no tags, **the whole unit suite (1237) and the whole
+M18 e2e unit stayed green** while the backup lost every tag. Three copies, no
+driver, and the exact shape §4.0 of the review skill was written after.
 
-**And one mistake worth keeping.** Mid-way through, a `git checkout --` meant
-to undo a deliberate mutation-proof wiped the orchestrator work along with it,
-because that work was not committed yet. The mutation proof is the right habit;
-doing it against uncommitted code is not. Commit the green step first, then
-mutate.
+The fix is not a fourth test. `masterStore.portableResolvers()` is one source
+with one driving case, and the serializers take the resolvers as **required**
+arguments — because a test can only watch the call sites that exist, while the
+compiler watches every future one. That distinction paid for itself
+immediately: making them required surfaced a **fourth** writer nobody had
+wired, the template list's own export, which would have shipped templates
+without tags.
+
+**And one mistake worth keeping — which I then repeated.** Mid-way through, a
+`git checkout --` meant to undo a deliberate mutation-proof wiped the
+orchestrator work along with it, because that work was not committed yet. The
+mutation proof is the right habit; doing it against uncommitted code is not.
+Commit the green step first, then mutate. Writing that down did not stop me
+doing it a second time an hour later, to `masterStore.ts`, in the middle of the
+review — which is the more useful half of the lesson: the rule has to be a
+habit at the keyboard, not a paragraph in a log.
