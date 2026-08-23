@@ -22,6 +22,11 @@ type Document struct {
 	Scope     string `yaml:"scope,omitempty"`
 	StartDate string `yaml:"start_date,omitempty"`
 	EndDate   string `yaml:"end_date,omitempty"`
+	// Status is the trip's lifecycle state (FR-2.2), carried so a restore
+	// gives back what it saved. Absent in every file written before this
+	// existed and in a clean single-trip export, and the reader supplies
+	// "planning" for both — which is what those files have always done.
+	Status string `yaml:"status,omitempty"`
 	// FR-2.1b: the one required temporal fact. Absent in files written
 	// before it existed, where the end date carries the same information.
 	Year       int         `yaml:"year,omitempty"`
@@ -77,6 +82,12 @@ type Item struct {
 	// Tasks are the position's FR-27.7 preparation tasks. Template only:
 	// on a trip the same knowledge is an ordinary FR-7.3 todo.
 	Tasks []string `yaml:"tasks,omitempty"`
+
+	// Tags are the master item's tags (FR-24.1), *ordered*: the order is
+	// `item_tags.position`, and position 0 is the primary tag the grouped
+	// inventory files the item under (FR-24.2). A set would carry the same
+	// names and lose which one that is.
+	Tags []string `yaml:"tags,omitempty"`
 }
 
 // Traveler is a named person in a trip export. The Adult/Child type was
@@ -126,6 +137,18 @@ const (
 	ScopeTemplate = "template"
 )
 
+// The trip lifecycle states a portable file may declare (FR-2.2). Restated
+// here rather than imported, for the same reason the scopes above are:
+// `portable` imports nothing internal (invariant 1). The schema's CHECK also
+// admits the inert `repack`, which is deliberately not here — nothing writes
+// it, and a value this list does not name is refused rather than passed on to
+// become a constraint error on push.
+const (
+	StatusPlanning = "planning"
+	StatusActive   = "active"
+	StatusArchived = "archived"
+)
+
 func validateDoc(doc Document) error {
 	if doc.Kind == "" {
 		return errors.New("missing required field: kind")
@@ -146,10 +169,32 @@ func validateDoc(doc Document) error {
 			return fmt.Errorf("unknown scope: %q (expected group or template)", doc.Scope)
 		}
 	}
+	if err := validateStatus(doc); err != nil {
+		return err
+	}
 	if err := validateIncludes(doc); err != nil {
 		return err
 	}
 	return nil
+}
+
+// validateStatus keeps a status this build cannot honour out of the importer.
+// The alternative — passing it on — reaches the schema's CHECK constraint as a
+// failed push, which parks the whole mutation and reports a database error
+// where a file problem is what happened.
+func validateStatus(doc Document) error {
+	if doc.Status == "" {
+		return nil
+	}
+	if doc.Kind != KindTrip {
+		return fmt.Errorf("status %q is only valid on a trip document", doc.Status)
+	}
+	switch doc.Status {
+	case StatusPlanning, StatusActive, StatusArchived:
+		return nil
+	default:
+		return fmt.Errorf("unknown status: %q (expected planning, active or archived)", doc.Status)
+	}
 }
 
 // validateIncludes enforces the two structural rules of FR-27.1 at the file

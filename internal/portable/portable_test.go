@@ -356,3 +356,85 @@ func TestUnmarshal_NoMarkIsNotAnError_FR28_10(t *testing.T) {
 		t.Errorf("icon = %q, want empty", got.Icon)
 	}
 }
+
+// FR-18.4 amendment: a trip document carries its status, so a backup restores
+// an archived trip as archived. Before this the field did not exist and every
+// restored trip came back as `planning`, which quietly turned a decade of
+// history into a decade of plans.
+func TestUnmarshalTrip_StatusRoundTrips(t *testing.T) {
+	for _, status := range []string{
+		portable.StatusPlanning, portable.StatusActive, portable.StatusArchived,
+	} {
+		t.Run(status, func(t *testing.T) {
+			data, err := portable.Marshal(portable.Document{
+				Kind: portable.KindTrip, SchemaVersion: 1, Name: "Wallis", Year: 2026,
+				Status: status,
+			})
+			if err != nil {
+				t.Fatalf("marshal: %v", err)
+			}
+			got, err := portable.Unmarshal(data)
+			if err != nil {
+				t.Fatalf("unmarshal: %v", err)
+			}
+			if got.Status != status {
+				t.Errorf("status = %q, want %q", got.Status, status)
+			}
+		})
+	}
+}
+
+// FR-18.5: every file written before the field existed has no status, and it
+// must import exactly as it always did — absent stays absent, and the reader
+// above it supplies `planning`.
+func TestUnmarshalTrip_AbsentStatusStaysEmpty(t *testing.T) {
+	got, err := portable.Unmarshal([]byte("kind: trip\nname: Wallis\nyear: 2026\n"))
+	if err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if got.Status != "" {
+		t.Errorf("status = %q, want empty", got.Status)
+	}
+}
+
+// A value the schema's CHECK constraint would refuse must be caught here
+// instead: a push carrying it comes back a constraint error, which parks the
+// whole mutation. Same stance as `scope` — refusing one document beats
+// importing it as something it is not, and a multi-document file reports it
+// in place and imports the rest.
+func TestUnmarshalTrip_UnknownStatusIsRefused(t *testing.T) {
+	_, err := portable.Unmarshal([]byte("kind: trip\nname: Wallis\nstatus: repack\n"))
+	if err == nil {
+		t.Fatal("unknown status accepted, want refusal")
+	}
+	if !strings.Contains(err.Error(), "repack") {
+		t.Errorf("error = %v, want it to name the offending value", err)
+	}
+}
+
+// A template has no status, so carrying one is a file this build cannot
+// honour rather than a field to ignore.
+func TestUnmarshalTemplate_StatusIsRefused(t *testing.T) {
+	_, err := portable.Unmarshal([]byte("kind: template\nname: Ferien\nstatus: archived\n"))
+	if err == nil {
+		t.Fatal("status on a template accepted, want refusal")
+	}
+}
+
+// FR-24.1/24.2: an item's tags travel as an *ordered* list, because the order
+// is `item_tags.position` and position 0 is the primary tag — the one key the
+// grouped inventory files the item under. A set would lose which one that is.
+func TestUnmarshalItem_TagsKeepTheirOrder(t *testing.T) {
+	data := "kind: template\nname: Ferien\nitems:\n  - name: Wanderschuhe\n    quantity: 1\n    tags: [Schuhe, Sommer]\n"
+	got, err := portable.Unmarshal([]byte(data))
+	if err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(got.Items) != 1 {
+		t.Fatalf("items = %d, want 1", len(got.Items))
+	}
+	if want := []string{"Schuhe", "Sommer"}; len(got.Items[0].Tags) != 2 ||
+		got.Items[0].Tags[0] != want[0] || got.Items[0].Tags[1] != want[1] {
+		t.Errorf("tags = %v, want %v", got.Items[0].Tags, want)
+	}
+}
