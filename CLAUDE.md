@@ -152,11 +152,13 @@ it. Item numbers stay stable even as items close, because the log refers back to
    per field-group; `field_hlcs` now carries a clock per field, rule 2 is the two pairs §6
    names, and a conflict entry names the losing `mutation_id` and `actor_user_id`.
    Log: *„Field-level LWW was row-level, and ‚packed always wins' was hiding it"*.
-   **(b)** Master-partition conflicts are write-only: they are logged with `trip_id = NULL` and
-   `ListConflicts` filters by `trip_id`. `trips` lives there, so a conflict on a trip's name or
-   dates is recorded and unreachable. **(c)** The push response's `conflicts[]` is read by nothing
-   — `merged` is treated exactly like `applied`, so a user is never told an edit lost; the log is
-   the only surface and only reachable while a trip is open. ~~**(d)** G-3's lock ends at the row~~ — **done**
+   **(b)** ~~Master-partition conflicts were write-only~~ — **done** (2026-08-22): one query
+   serves both partitions, so a conflict on a trip's name or dates is reachable.
+   Log: *„The conflict log had two partitions and one query"*.
+   **(c)** ~~The push response's `conflicts[]` was read by nothing~~ — **done** (2026-08-22):
+   a `merged` push raises one toast per push naming how many fields were overwritten, and the
+   G-2 sheet carries the count as a standing line. Log: *„`merged` was a quieter `applied`"*.
+   ~~**(d)** G-3's lock ends at the row~~ — **done**
    (2026-08-22): the sheet goes read-only and names the holder, M4's row names them too, and the
    staleness window is `JITPACK_LOCK_TIMEOUT` served by `GET /api/v1/config`. The fourth part of
    that finding — the server neither expiring a lock nor refusing a push for one — **is not a
