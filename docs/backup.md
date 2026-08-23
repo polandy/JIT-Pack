@@ -165,6 +165,34 @@ Stop the server, put the backup file in place at `JITPACK_DB_PATH` (removing any
 There is no restore endpoint and no scheduled-backup feature; scheduling is your host's
 job (a cron job or systemd timer around one of the commands above).
 
+## Importing a spreadsheet you already keep
+
+Most people arrive with years of packing history in one spreadsheet: rows are items,
+columns are trips, cells are amounts. The **spreadsheet import** — the upload icon on the
+Trips screen, and the button on the Items screen while your inventory is still empty —
+reads exactly that shape. Export your sheet as
+**CSV** (comma, semicolon and tab all work) and paste it in or pick the file.
+
+The wizard reads the sheet's own layout and shows you what it found, so you correct rather
+than describe:
+
+- **Two header rows are fine.** A sheet that writes the year above the trip's name gives
+  each column both — the name it is called by and the date it is filed under. A single
+  header row of years still works; the trips are then named by their year.
+- **Categories may be a column or a row.** If the category sits in its own column beside
+  the item and is only written where it changes, say so with the *Category column* picker —
+  it is carried down until the next one. If instead the category is a heading row spanning
+  the sheet, leave the picker on *None* and tick those rows under *Category rows*.
+- **A column the sheet never named is not imported unless you name it.** Every other column
+  is preselected.
+
+Each imported column becomes an **archived** trip in the year its header gives, with the
+amounts recorded as packed, and the app lands you on the Archived tab where they are.
+Items are matched against your inventory by name, with a merge prompt for near-misses, and
+the category becomes the item's tag. An item name ending in `?` is imported without the
+question mark and gets an open task on that trip, which is how those sheets usually mark
+"check this before leaving".
+
 ## Getting data out over the API
 
 The export endpoints are a **convenience for moving data around**, not a substitute for

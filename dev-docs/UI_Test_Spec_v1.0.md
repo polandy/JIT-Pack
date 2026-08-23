@@ -391,6 +391,7 @@ no-flags case to E2E-M14-06.)*
 * **E2E-M15-02** `all` (NFR-4.7): noise handling shown inline ("'…?' → item + open task").
 * **E2E-M15-03** `all` (FR-16.3): dedup step offers merge/keep-separate against existing master data.
 * **E2E-M15-04** `all` (FR-16.2/NFR-4.7): confirm commits (n items, n archived trips, target series); pre-validation blocks a bad file before commit (transactionality approximation).
+* **E2E-M15-05** `single` (FR-16.1/16.2, FR-2.1b) — **implemented**: a CSV with a two-row header (year above name) and a category column imports through the wizard; the mapping step shows the name and the date it read from the two header rows; after the commit the trip is on M2's Archived segment, and **a second browser context that never saw the optimistic write finds the trip and its packed rows** — the only assertion that can tell a wire that carried the import from a screen that only believed it. Cases 01–04 remain written and unimplemented.
 
 ### M16 — Series & Destination Profile
 * **E2E-M16-01** `all` (FR-13.1): series name + default attribute chips editable (the M3 prefill source).
@@ -554,8 +555,8 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-15.1 | E2E | M3-01, M16-01 |
 | FR-15.2 | E2E+UNIT | M3-06, M8-03; instantiate.ts |
 | FR-15.3 | DOC/N-A | void — retired with FR-1.3/1.5 (2026-08-08) |
-| FR-16.1 | E2E | M15-01 |
-| FR-16.2 | E2E | M2-08, M15-04 |
+| FR-16.1 | E2E | M15-01, M15-05 |
+| FR-16.2 | E2E | M2-08, M15-04, M15-05 |
 | FR-16.3 | E2E+UNIT | M15-03, M18-03, M9-03; spreadsheet.ts |
 | FR-17.1/17.2 | E2E | G1-01, G8-01 (Single-User surface) |
 | FR-17.3 | E2E | M2-06, M3-05, M5-08, M17-08 |

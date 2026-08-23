@@ -138,6 +138,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The sheet's glyph rode half a line high (2026-08-23)](#the-sheets-glyph-rode-half-a-line-high-2026-08-23) — an eyeball of the merged conflict-log work found two rendering defects that every gate had passed: a state glyph aligned to a title *block* whose `h1` carried a 20 px margin nothing asked for, and an empty state that had copied the house pattern without its padding; the review corrected the entry's own first answer — a visual baseline would **not** have caught the offset either, at 591 px against a 0.002 gate, so what let both live is that nothing measured them.
 - [The lock stopped at the row (2026-08-22)](#the-lock-stopped-at-the-row-2026-08-22) — G-3's padlock was on M4's row and nowhere else, so the row you could not pack from the list was fully editable one tap deeper, and the sheet *accepted* the edit before the next merge threw it away; no screen named the holder; and §7's promised environment variable for the staleness window had never existed as anything but a client constant. What the backlog also asked for — server-side lock enforcement — is what §7 deliberately does not do, and it is left to the owner rather than built.
 - [A backup gave back plans instead of history (2026-08-23)](#a-backup-gave-back-plans-instead-of-history-2026-08-23) — the portable file carried neither a trip's status nor an item's tags, so a restore turned archived history into plans and dropped every master item no template also used; the field that made the fix possible is the one that says whether a trip row came from the inventory at all, and the change quietly falsified a *constant* two screens away.
+- [A year is a quantity, and that is why M15 could not find its header (2026-08-23)](#a-year-is-a-quantity-and-that-is-why-m15-could-not-find-its-header-2026-08-23) — the legacy spreadsheet importer wrote no `year`, so a NOT NULL column made the server refuse every trip it imported while the importing device rendered the migration anyway; underneath sat two layout assumptions a real family sheet broke, and the rule for finding the header block had to stop asking about quantities.
 
 ## Current state
 
@@ -5345,3 +5346,64 @@ Commit the green step first, then mutate. Writing that down did not stop me
 doing it a second time an hour later, to `masterStore.ts`, in the middle of the
 review — which is the more useful half of the lesson: the rule has to be a
 habit at the keyboard, not a paragraph in a log.
+
+## A year is a quantity, and that is why M15 could not find its header (2026-08-23)
+
+The owner asked to import a decade of trips out of the family spreadsheet.
+Three things stood between the file and the app; only the first is a bug in
+the ordinary sense, and it is the one that had been invisible longest.
+
+**`createImportedTrip` never wrote `year`.** `trips.year` is NOT NULL with a
+CHECK, so every trip M15 imported came back `rejected` — measured against the
+store's own SQLite with exactly the field set the client sends, then measured
+again with the year added, which applied. Local Mode has no such constraint
+and took the rows, filing a decade of history under the current year.
+
+What let it live for so long is worth more than the fix. M15 had **no e2e
+case at all** — four written in the UI-Test-Spec, none implemented — and its
+unit tests run against fakes with no schema, so nothing in the suite had ever
+seen this mutation meet a database. And the obvious e2e case would not have
+caught it either: the optimistic row is in the importing device's own store
+before the push, so M2 renders the migration whether or not the wire carried
+it. E2E-M15-05 asserts from a second browser context for that reason. The
+same shape appears again in the landing segment: the wizard sent the user to
+M2's default *Active* tab while FR-16.2 only ever produces archived trips, so
+a successful migration ended on the words "No active trips" — the identical
+miss ADR-024 had just fixed on the restore path, in a second screen nobody
+thought to look at.
+
+**The premise that had to go: a header row cannot be found by having no
+quantities in it, because a year parses as one.** The first implementation of
+the header block did exactly that and detected zero header rows on a sheet
+whose first row is `2016, 2016, 2017`. A row of years and a row of amounts are
+indistinguishable by their cells; what separates them is that a header row
+names no item. So the block is counted down the *item* column — which needs
+the item column, which needs the block. The circle is broken with a
+provisional guess under the old one-row assumption, and that is honest rather
+than clever: the provisional answer only has to be right about which column
+holds names, not about where the data starts.
+
+**Two rows of header, and a category column.** The real sheet writes the year
+above the trip's name, so the name and the date come from two different rows —
+each chosen over the whole block by counting hits across the trip columns,
+not per column, because a stray `0` sitting alone in a third header row would
+otherwise become one trip's name (it exists in that sheet, and it did). And
+the category is a *column* beside the item, written only where it changes:
+under the old rule, which reads a category as a row with no quantities, the
+sheet produced four categories, all of them items nobody had ever packed,
+while the nineteen real ones were never seen. A detected category column now
+suppresses the row suggestions, because with one present that rule stops
+meaning "heading" and starts meaning "never packed".
+
+**The cost taken knowingly:** the header block and its two chosen rows are
+inferred with no manual override. A misread leaves one stray row as an item,
+absorbable only by ticking it as a category row. The alternative — a
+"header rows: 1 / 2 / 3" control — is a fourth decision on a step that already
+asks for three, paid on every import to protect against a layout not yet seen.
+The revisit trigger is written into FR-16.1: the first sheet read wrong.
+
+Against the owner's actual file the wizard now proposes 29 named trips with
+their years, 195 items and the 19 real categories, with the two columns whose
+header says nothing left unticked — that last one a deliberate deviation from
+FR-16.1's select-all default, since a column that can never validate would
+otherwise hold the other thirty hostage.
