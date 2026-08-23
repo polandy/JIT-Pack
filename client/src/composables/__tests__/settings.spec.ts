@@ -71,7 +71,7 @@ describe('M17 profile & data actions', () => {
 
     expect(await orch.fetchMe()).toBeNull()
     await orch.saveDisplayName('u1', 'x')
-    expect(await orch.downloadExport('/api/v1/export/full')).toBeNull()
+    expect(await orch.downloadExport('/api/v1/me/export.json')).toBeNull()
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })

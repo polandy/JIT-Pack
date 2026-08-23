@@ -39,7 +39,7 @@ describe('usePush', () => {
       },
     ])
 
-    expect(client.post).toHaveBeenCalledWith('/api/v1/sync/trips/trip-1', {
+    expect(client.post).toHaveBeenCalledWith('/api/v1/trips/trip-1/sync', {
       client_hlc: '0000000001000-0000-abcd1234',
       mutations: [expect.objectContaining({ mutation_id: 'uuid-1' })],
     })
@@ -67,7 +67,7 @@ describe('usePush', () => {
       },
     ])
 
-    expect(client.post).toHaveBeenCalledWith('/api/v1/sync/master', expect.any(Object))
+    expect(client.post).toHaveBeenCalledWith('/api/v1/master/sync', expect.any(Object))
     expect(result.pullHintCursor).toBe(10)
   })
 

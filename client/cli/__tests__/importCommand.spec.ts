@@ -155,7 +155,14 @@ describe('runImport', () => {
     )
 
     expect(code).toBe(EXIT.ok)
-    expect(instance.pushed.every((p) => p.path.startsWith('/api/v1/sync/'))).toBe(true)
+    // An import writes master data, so every push goes to the master
+    // partition's endpoint — named exactly rather than by prefix, because
+    // the paths lead with their scope now (NFR-4.14, ADR-027) and a prefix
+    // that no longer distinguishes anything asserts nothing.
+    expect(instance.pushed.map((p) => p.path)).toEqual(
+      Array(instance.pushed.length).fill('/api/v1/master/sync'),
+    )
+    expect(instance.pushed.length).toBeGreaterThan(0)
     expect(instance.tables()).toEqual(
       expect.arrayContaining(['templates', 'items', 'template_items']),
     )

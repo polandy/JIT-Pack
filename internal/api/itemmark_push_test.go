@@ -21,7 +21,7 @@ import (
 // is actually guarding.
 func TestMasterPush_CapsTheMark_PerMutation_FR28_9(t *testing.T) {
 	srv := newTestServer(t)
-	url := srv.URL + "/api/v1/sync/master"
+	url := masterURL(srv)
 
 	body := map[string]any{"mutations": []any{
 		masterMutation("items", "item-long", "mm-long", "insert",

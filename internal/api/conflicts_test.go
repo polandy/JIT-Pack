@@ -78,7 +78,7 @@ func TestConflicts_MasterLogIsReadable(t *testing.T) {
 			mutation("tpl-mc", mutID, "upsert", fields, hlc),
 		}}
 		body["mutations"].([]any)[0].(map[string]any)["table"] = "templates"
-		resp, raw := doJSON(t, http.MethodPost, srv.URL+"/api/v1/sync/master", token(t, userA, testSecret), body)
+		resp, raw := doJSON(t, http.MethodPost, masterURL(srv), token(t, userA, testSecret), body)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("push status = %d, body %s", resp.StatusCode, raw)
 		}
@@ -86,7 +86,7 @@ func TestConflicts_MasterLogIsReadable(t *testing.T) {
 	push("mcf-1", "0000000002000-0000-bbbbbbbb", map[string]any{"owner_id": userA, "name": "Ferien"})
 	push("mcf-2", "0000000001000-0000-aaaaaaaa", map[string]any{"name": "Sommerferien"})
 
-	resp, raw := doJSON(t, http.MethodGet, srv.URL+"/api/v1/conflicts/master",
+	resp, raw := doJSON(t, http.MethodGet, srv.URL+"/api/v1/master/conflicts",
 		token(t, userA, testSecret), nil)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, body %s", resp.StatusCode, raw)
@@ -118,7 +118,7 @@ func TestConflicts_MasterLogIsReadable(t *testing.T) {
 func TestConflicts_MasterLogRequiresAuth(t *testing.T) {
 	srv := newTestServer(t)
 
-	resp, _ := doJSON(t, http.MethodGet, srv.URL+"/api/v1/conflicts/master", "", nil)
+	resp, _ := doJSON(t, http.MethodGet, srv.URL+"/api/v1/master/conflicts", "", nil)
 
 	if resp.StatusCode != http.StatusUnauthorized {
 		t.Errorf("status = %d, want 401", resp.StatusCode)

@@ -18,6 +18,7 @@
  * the memo is the guarantee the client relies on.
  */
 
+import { API } from '@/api/routes'
 import { APIRequestError, type APIClient } from '@/api/client'
 import type { Mutation, PullChange, PullResponse, PushResponse } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
@@ -285,8 +286,14 @@ export class SyncOutbox {
     this.cursors.set(key, pullResp.next_cursor)
   }
 
+  // The id is nullable because the master partition has none. A *trip*
+  // partition without one is a programming error, and it used to interpolate
+  // as the string "null" — a request the server answers 404 and the outbox
+  // retries forever, naming nothing. Typed route builders made it visible.
   private syncPath(type: PartitionType, id: string | null): string {
-    return type === 'master' ? '/api/v1/sync/master' : `/api/v1/sync/trips/${id}`
+    if (type === 'master') return API.masterSync
+    if (id === null) throw new Error('a trip partition needs a trip id')
+    return API.tripSync(id)
   }
 
   /** Removes pushed mutations from the live queue and from the device. */
