@@ -393,7 +393,7 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
         <h2 class="section-title jp-eyebrow">{{ t('import.wizard.summary') }}</h2>
         <IonList>
           <IonItem lines="none">
-            <IonLabel>{{ summaryLine }}</IonLabel>
+            <IonLabel data-testid="import-summary-line">{{ summaryLine }}</IonLabel>
           </IonItem>
           <IonItem
             v-for="trip in plan.trips"
