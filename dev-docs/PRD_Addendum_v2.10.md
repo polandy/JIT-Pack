@@ -702,7 +702,7 @@ A packing list is **scanned, not read**: forty rows, most of them known, the eye
     `export.yaml` put the format in the path, `GET /templates/{id}/export` does not, and
     `/export/full` is a third shape; conflicts are `/trips/{id}/conflicts` in one partition and
     `/conflicts/master` in the other. Each is defensible alone; together they mean the surface
-    has to be read rather than predicted.
+    has to be read rather than predicted. **Settled 2026-08-24 (ADR-027)**, see below.
 
   **The requirement, then:** one description of the surface that both sides consume, the client
   types generated from it, the error codes named once and shared, and the route shapes made
@@ -729,6 +729,25 @@ A packing list is **scanned, not read**: forty rows, most of them known, the eye
   hand-kept file that drifted three times, and adding a third artefact to keep in agreement is
   not an answer to it. Sync-API-Spec v1.3 stays the prose account of *why* the protocol behaves
   as it does; `wire.go` is the machine-checkable shape beside it.
+
+  **Built 2026-08-24 (ADR-027): the third point, the route shapes.** One rule, and it has no
+  exception: **the path names the scope first, then the resource**; the master partition
+  belongs to no trip, so its scope segment is the literal `master`; and **an export names its
+  format** as the path's extension. So `GET/POST /trips/{id}/sync` and `/master/sync`,
+  `GET /master/conflicts` beside `GET /trips/{id}/conflicts`, and `GET /me/export.json` beside
+  `GET /trips/{id}/export.csv` — the full export lives under `/me` because it is filtered to
+  what the caller may pull, which makes it the caller's export rather than the instance's. The
+  sync endpoints were pulled along although the point named only conflicts and exports: leaving
+  the busiest pair as the one exception would have kept the surface unpredictable in exactly the
+  place it is read most. The old paths **404 rather than alias** — with both serving, nothing
+  could tell whether the client had followed. Two of the shapes the point complains about had
+  already gone with ADR-025 (`export.yaml`, `/templates/{id}/export`).
+
+  **What this point does *not* buy, stated so it is not assumed:** the routes are still not in
+  the contract. `wire.go` declares the envelopes, so the paths are held by a Go test table and a
+  Vitest spec spelling the same strings — agreement by two tests rather than one declaration.
+  Moving them into `wire.go` and generating `client/src/api/routes.ts` is the answer if a rename
+  ever lands on one side only, and it is ADR-027's second revisit trigger.
 
   **Two findings the mechanism produced on its first run**, both of the same shape as the three
   above and both invisible until then: the client's `ConflictEntry` had never grown the

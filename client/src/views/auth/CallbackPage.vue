@@ -4,6 +4,7 @@
  * the code + PKCE verifier at the server broker, persists the token
  * set, and enters the app.
  */
+import { API } from '@/api/routes'
 import { IonPage, IonContent, IonSpinner, IonButton } from '@ionic/vue'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -30,7 +31,7 @@ onMounted(async () => {
   }
 
   try {
-    const resp = await fetch(`${serverBaseUrl()}/api/v1/auth/token`, {
+    const resp = await fetch(`${serverBaseUrl()}${API.authToken}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

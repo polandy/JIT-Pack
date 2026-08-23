@@ -31,7 +31,7 @@ describe('APIClient', () => {
     fetchSpy.mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
     const client = new APIClient('http://localhost:8080', () => 'jwt')
     const body = { mutations: [] }
-    await client.post('/api/v1/sync/trips/t1', body)
+    await client.post('/api/v1/trips/t1/sync', body)
     const call = fetchSpy.mock.calls[0]!
     expect(call[1].method).toBe('POST')
     expect(call[1].body).toBe(JSON.stringify(body))
@@ -74,9 +74,9 @@ describe('APIClient', () => {
   it('appends query params to GET', async () => {
     fetchSpy.mockResolvedValueOnce(new Response(JSON.stringify({}), { status: 200 }))
     const client = new APIClient('http://localhost:8080', () => 'jwt')
-    await client.get('/api/v1/sync/trips/t1', { cursor: '42', limit: '100' })
+    await client.get('/api/v1/trips/t1/sync', { cursor: '42', limit: '100' })
     expect(fetchSpy.mock.calls[0]![0]).toBe(
-      'http://localhost:8080/api/v1/sync/trips/t1?cursor=42&limit=100',
+      'http://localhost:8080/api/v1/trips/t1/sync?cursor=42&limit=100',
     )
   })
 
@@ -94,7 +94,7 @@ describe('APIClient', () => {
     const onUnauthorized = vi.fn().mockResolvedValue('fresh-jwt')
     const client = new APIClient('http://localhost:8080', () => 'stale-jwt', onUnauthorized)
 
-    const result = await client.get('/api/v1/sync/master')
+    const result = await client.get('/api/v1/master/sync')
 
     expect(result).toEqual({ ok: true })
     expect(onUnauthorized).toHaveBeenCalledOnce()
@@ -107,7 +107,7 @@ describe('APIClient', () => {
     const onUnauthorized = vi.fn().mockResolvedValue(null)
     const client = new APIClient('http://localhost:8080', () => 'stale-jwt', onUnauthorized)
 
-    await expect(client.get('/api/v1/sync/master')).rejects.toMatchObject({ status: 401 })
+    await expect(client.get('/api/v1/master/sync')).rejects.toMatchObject({ status: 401 })
     expect(fetchSpy).toHaveBeenCalledTimes(1)
   })
 
@@ -118,7 +118,7 @@ describe('APIClient', () => {
     const onUnauthorized = vi.fn().mockResolvedValue('still-rejected')
     const client = new APIClient('http://localhost:8080', () => 'stale-jwt', onUnauthorized)
 
-    await expect(client.get('/api/v1/sync/master')).rejects.toMatchObject({ status: 401 })
+    await expect(client.get('/api/v1/master/sync')).rejects.toMatchObject({ status: 401 })
     expect(onUnauthorized).toHaveBeenCalledOnce()
     expect(fetchSpy).toHaveBeenCalledTimes(2)
   })
@@ -137,7 +137,7 @@ describe('APIClient', () => {
     const onUnauthorized = vi.fn().mockResolvedValue('fresh-jwt')
     const client = new APIClient('http://localhost:8080', () => 'stale-jwt', onUnauthorized)
 
-    const blob = await client.getBlob('/api/v1/export/full')
+    const blob = await client.getBlob('/api/v1/me/export.json')
 
     expect(await blob.text()).toBe('data')
     expect(fetchSpy.mock.calls[1]![1].headers.Authorization).toBe('Bearer fresh-jwt')

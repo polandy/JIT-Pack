@@ -99,7 +99,7 @@ func TestWS_SubscribeAndReceiveTripChanged(t *testing.T) {
 			map[string]any{"trip_id": trip, "name": "WS-Test", "quantity": 1},
 			"0000000001000-0000-aaaaaaaa"),
 	}}
-	resp, raw := doJSON(t, http.MethodPost, srv.url+"/api/v1/sync/trips/"+trip,
+	resp, raw := doJSON(t, http.MethodPost, srv.url+"/api/v1/trips/"+trip+"/sync",
 		token(t, userA, testSecret), body)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("push status = %d, body %s", resp.StatusCode, raw)

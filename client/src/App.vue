@@ -9,6 +9,7 @@
  * the persisted mode decides whether the orchestrator runs against a
  * server or against IndexedDB (Local Mode, Addendum 3.19).
  */
+import { API } from '@/api/routes'
 import { IonApp, IonRouterOutlet, toastController } from '@ionic/vue'
 import AppHeader from '@/components/global/AppHeader.vue'
 import NavRail from '@/components/global/NavRail.vue'
@@ -83,7 +84,7 @@ async function showConflictToast(report: ConflictReport) {
         text: t('sync.conflictToastOpen'),
         handler: () => {
           router.push(
-            report.type === 'trip' ? `/trips/${report.id}/conflicts` : '/conflicts/master',
+            report.type === 'trip' ? `/trips/${report.id}/conflicts` : '/master/conflicts',
           )
         },
       },
@@ -125,7 +126,7 @@ onMounted(async () => {
   // first (Single-User/HS256 servers answer 501 → proceed without).
   if (mode.value === 'server' && !loadTokens() && !window.location.pathname.startsWith('/auth/')) {
     try {
-      const resp = await fetch(`${serverBaseUrl()}/api/v1/auth/config`)
+      const resp = await fetch(`${serverBaseUrl()}${API.authConfig}`)
       if (resp.ok) {
         router.replace('/login')
       }
@@ -199,7 +200,7 @@ function openConflicts() {
 
 function openMasterConflicts() {
   syncDetailOpen.value = false
-  router.push('/conflicts/master')
+  router.push('/master/conflicts')
 }
 
 const masterStore = useMasterStore()

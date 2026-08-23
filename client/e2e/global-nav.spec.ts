@@ -381,7 +381,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
    */
   test('E2E-G2-09: the empty master conflict log is inset from both edges', async ({ page }) => {
     await page.setViewportSize(MOBILE)
-    await page.goto('/conflicts/master')
+    await page.goto('/master/conflicts')
 
     const empty = page.getByTestId('conflict-empty')
     await expect(empty).toBeVisible()

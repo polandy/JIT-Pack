@@ -26,6 +26,32 @@ function makeMutation(overrides: Partial<Mutation> = {}): Mutation {
 }
 
 describe('SyncOutbox', () => {
+  // The paths carry the scope first (NFR-4.14, ADR-027), so a trip partition
+  // with no id can no longer interpolate as the literal "null" — a path the
+  // server answers 404 and the outbox would retry forever. The positive half
+  // is asserted beside it, or a builder returning nothing would pass too.
+  describe('the partition a push is addressed to', () => {
+    it('names the trip', async () => {
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      outbox.enqueue('trip', 'trip-1', makeMutation())
+      await outbox.drain('trip', 'trip-1')
+      expect(client.post).toHaveBeenCalledWith('/api/v1/trips/trip-1/sync', expect.anything())
+    })
+
+    it('names the master partition', async () => {
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      outbox.enqueue('master', null, makeMutation({ table: 'items' }))
+      await outbox.drain('master', null)
+      expect(client.post).toHaveBeenCalledWith('/api/v1/master/sync', expect.anything())
+    })
+
+    it('refuses a trip partition without a trip id instead of pushing to "null"', async () => {
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      outbox.enqueue('trip', null, makeMutation())
+      await expect(outbox.drain('trip', null)).rejects.toThrow(/trip id/)
+      expect(client.post).not.toHaveBeenCalled()
+    })
+  })
   let client: { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn> }
   let hlc: HLCGenerator
   let onChanges: (changes: PullChange[]) => void
@@ -171,7 +197,7 @@ describe('SyncOutbox', () => {
 
     await outbox.drain('master', null)
 
-    expect(client.post).toHaveBeenCalledWith('/api/v1/sync/master', expect.any(Object))
+    expect(client.post).toHaveBeenCalledWith('/api/v1/master/sync', expect.any(Object))
     expect(outbox.pendingCount('master', null)).toBe(0)
   })
 
@@ -489,7 +515,7 @@ describe('SyncOutbox durability', () => {
     outbox.enqueue('trip', 'trip-1', makeMutation({ mutation_id: 'u1' }))
     await outbox.drain('trip', 'trip-1')
 
-    expect(client.get).toHaveBeenLastCalledWith('/api/v1/sync/trips/trip-1', {
+    expect(client.get).toHaveBeenLastCalledWith('/api/v1/trips/trip-1/sync', {
       cursor: '100',
       limit: '500',
     })
@@ -518,7 +544,7 @@ describe('SyncOutbox durability', () => {
     outbox.enqueue('trip', 'trip-1', makeMutation({ mutation_id: 'u1' }))
     await outbox.drain('trip', 'trip-1')
 
-    expect(client.get).toHaveBeenLastCalledWith('/api/v1/sync/trips/trip-1', {
+    expect(client.get).toHaveBeenLastCalledWith('/api/v1/trips/trip-1/sync', {
       cursor: '100',
       limit: '500',
     })

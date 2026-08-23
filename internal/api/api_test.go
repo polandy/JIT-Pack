@@ -94,7 +94,13 @@ func doJSON(t *testing.T, method, url, bearer string, body any) (*http.Response,
 }
 
 func pushURL(srv *httptest.Server) string {
-	return srv.URL + "/api/v1/sync/trips/" + trip
+	return srv.URL + "/api/v1/trips/" + trip + "/sync"
+}
+
+// masterURL is the master partition's pull/push endpoint. It is a helper
+// rather than a literal per call site because a dozen tests name it.
+func masterURL(srv *httptest.Server) string {
+	return srv.URL + "/api/v1/master/sync"
 }
 
 func mutation(id, mutID, op string, fields map[string]any, hlc string) map[string]any {

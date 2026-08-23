@@ -10,6 +10,7 @@
  * Administration row; the server rejects non-admins with 403 — the
  * screen is access-controlled, not merely unlinked.
  */
+import { API } from '@/api/routes'
 import {
   IonPage,
   IonContent,
@@ -115,7 +116,7 @@ async function confirmDeactivation(user: AdminUserRow): Promise<boolean> {
 }
 
 function avatarUrl(user: AdminUserRow): string {
-  return `${serverBaseUrl()}/api/v1/users/${user.user_id}/avatar`
+  return `${serverBaseUrl()}${API.userAvatar(user.user_id)}`
 }
 
 function provisioned(user: AdminUserRow): string {

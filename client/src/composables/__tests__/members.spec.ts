@@ -82,7 +82,7 @@ describe('membership actions', () => {
     })
 
     await vi.waitFor(() => expect(fetchMock.mock.calls.length).toBe(2))
-    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/sync/master')
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/master/sync')
     const muts = pushedMutations(0)
     expect(muts).toHaveLength(1)
     expect(muts[0]).toMatchObject({

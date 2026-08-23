@@ -9,7 +9,7 @@ import (
 )
 
 // Master-partition endpoints (Sync-API Spec §4/§5): GET/POST
-// /api/v1/sync/master, per-user visibility, and the master.changed
+// /api/v1/master/sync, per-user visibility, and the master.changed
 // WebSocket event (§7) delivered to the pushing user's devices only
 // (lazy discovery for everyone else, §8).
 
@@ -22,7 +22,7 @@ func masterMutation(table, id, mutID, op string, fields map[string]any, hlc stri
 
 func TestMasterPushPull_RoundTrip(t *testing.T) {
 	srv := newTestServer(t)
-	url := srv.URL + "/api/v1/sync/master"
+	url := masterURL(srv)
 	body := map[string]any{"mutations": []any{
 		masterMutation("items", "item-m1", "mm-1", "insert",
 			map[string]any{"name": "Stirnlampe"},
@@ -78,7 +78,7 @@ func TestMasterPushPull_RoundTrip(t *testing.T) {
 // exactly as it already sees every master item.
 func TestMasterPull_TemplatesVisibleToEveryone(t *testing.T) {
 	srv := newTestServer(t)
-	url := srv.URL + "/api/v1/sync/master"
+	url := masterURL(srv)
 	body := map[string]any{"mutations": []any{
 		masterMutation("templates", "tpl-eins", "mv-1", "insert",
 			map[string]any{"name": "Basis"}, "0000000001000-0000-aaaaaaaa"),
@@ -121,7 +121,7 @@ func TestMasterPush_TripInsertGrantsTripAccess(t *testing.T) {
 			map[string]any{"name": "Client-Trip", "year": 2026, "end_date": "2026-09-01", "status": "planning"},
 			"0000000001000-0000-aaaaaaaa"),
 	}}
-	resp, raw := doJSON(t, http.MethodPost, srv.URL+"/api/v1/sync/master", token(t, userA, testSecret), body)
+	resp, raw := doJSON(t, http.MethodPost, masterURL(srv), token(t, userA, testSecret), body)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("master push status = %d, body %s", resp.StatusCode, raw)
 	}
@@ -131,7 +131,7 @@ func TestMasterPush_TripInsertGrantsTripAccess(t *testing.T) {
 			"id": "item-t1", "fields": map[string]any{"trip_id": "trip-client", "name": "Zelt"},
 			"hlc": "0000000001001-0000-aaaaaaaa"},
 	}}
-	resp, raw = doJSON(t, http.MethodPost, srv.URL+"/api/v1/sync/trips/trip-client",
+	resp, raw = doJSON(t, http.MethodPost, srv.URL+"/api/v1/trips/trip-client/sync",
 		token(t, userA, testSecret), tripBody)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("trip push after create status = %d, body %s — creator has no membership?", resp.StatusCode, raw)
@@ -149,7 +149,7 @@ func TestWS_MasterChangedNotifiesSameUserOnly(t *testing.T) {
 		masterMutation("tags", "cat-ws", "mw-1", "insert",
 			map[string]any{"name": "Technik"}, "0000000001000-0000-aaaaaaaa"),
 	}}
-	resp, raw := doJSON(t, http.MethodPost, srv.url+"/api/v1/sync/master",
+	resp, raw := doJSON(t, http.MethodPost, srv.url+"/api/v1/master/sync",
 		token(t, userA, testSecret), body)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("push status = %d, body %s", resp.StatusCode, raw)

@@ -110,7 +110,7 @@ describe('series actions (FR-13.1)', () => {
       default_attributes: { season: 'winter' },
     })
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
-    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/sync/master')
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/master/sync')
   })
 
   it('updateSeries patches fields and keeps the rest', () => {

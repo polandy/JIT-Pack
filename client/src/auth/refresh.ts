@@ -11,6 +11,7 @@
  * return to the login page.
  */
 
+import { API } from '@/api/routes'
 import { clearTokens, loadTokens, saveTokens } from './tokens'
 
 /** Refresh this long before expiry so in-flight requests don't race the deadline. */
@@ -50,7 +51,7 @@ export function createAuthRefresher(baseUrl: string): AuthRefresher {
 
     let resp: Response
     try {
-      resp = await fetch(`${base}/api/v1/auth/refresh`, {
+      resp = await fetch(`${base}${API.authRefresh}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: tokens.refresh_token }),

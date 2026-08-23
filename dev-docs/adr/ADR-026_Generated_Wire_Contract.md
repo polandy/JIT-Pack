@@ -93,7 +93,7 @@ A script parses the Go structs and the TypeScript interfaces and reports differe
 Two things this explicitly does **not** decide:
 
 - **It does not move logic to the server.** NFR-4.14 states the boundary and invariant 4 stands: generation, dependency resolution, quantities, analytics, the review assistant, cloning and import stay in `client/src/domain`, because Local Mode has no server. This ADR is about the shape of what crosses the wire, not about what runs on which side.
-- **It does not settle the route shapes.** `export.csv`/`export.yaml`/`/export`/`/export/full` and the two conflict paths stay as they are for now; that is the NFR's third point and a separate change, deliberately kept out so a mechanical rename does not travel with the mechanism (owner, 2026-08-23).
+- **It does not settle the route shapes.** `export.csv`/`export.yaml`/`/export`/`/export/full` and the two conflict paths stay as they are for now; that is the NFR's third point and a separate change, deliberately kept out so a mechanical rename does not travel with the mechanism (owner, 2026-08-23). **Settled the next day by ADR-027**, which chose scope-first for all three families; the two YAML endpoints named here had already gone with ADR-025.
 
 ## Consequences
 

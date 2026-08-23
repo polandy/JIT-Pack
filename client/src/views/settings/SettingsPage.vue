@@ -19,6 +19,7 @@
  * Appearance (FR-21.3): opt-in light theme (Catppuccin Latte), a
  * device-local display preference — shown in every mode, never synced.
  */
+import { API } from '@/api/routes'
 import {
   IonPage,
   IonContent,
@@ -166,7 +167,7 @@ async function saveName() {
 
 const avatarUrl = computed(() =>
   me.value
-    ? `${serverBaseUrl()}/api/v1/users/${me.value.user_id}/avatar?v=${avatarVersion.value}`
+    ? `${serverBaseUrl()}${API.userAvatar(me.value.user_id)}?v=${avatarVersion.value}`
     : null,
 )
 
@@ -281,13 +282,13 @@ async function showStorageDetails() {
 }
 
 async function exportFull() {
-  const blob = await orchestrator.downloadExport('/api/v1/export/full')
+  const blob = await orchestrator.downloadExport(API.meExport)
   if (blob) saveBlob(blob, 'jitpack-export.json')
 }
 
 async function exportTripCSV() {
   if (!csvTripId.value) return
-  const blob = await orchestrator.downloadExport(`/api/v1/trips/${csvTripId.value}/export.csv`)
+  const blob = await orchestrator.downloadExport(API.tripExportCsv(csvTripId.value))
   const trip = tripStore.getTrip(csvTripId.value)
   if (blob) saveBlob(blob, `${trip?.name ?? 'trip'}.csv`)
 }

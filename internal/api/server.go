@@ -105,42 +105,64 @@ func NewSingleUser(st *store.Store, localUserID string) *Server {
 // Handler returns the routed HTTP handler.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/sync/trips/{tripID}", s.authed(s.member(s.handlePull)))
-	mux.HandleFunc("POST /api/v1/sync/trips/{tripID}", s.authed(s.member(s.handlePush)))
-	mux.HandleFunc("GET /api/v1/sync/master", s.authed(s.handlePullMaster))
-	mux.HandleFunc("POST /api/v1/sync/master", s.authed(s.handlePushMaster))
+	// Grouped by scope, because the scope is what the path leads with
+	// (NFR-4.14, ADR-027): a route's group is the first segment after the
+	// version, so the rule is legible here rather than only in the spec.
+
+	// Trip scope.
+	mux.HandleFunc("GET /api/v1/trips/{tripID}/sync", s.authed(s.member(s.handlePull)))
+	mux.HandleFunc("POST /api/v1/trips/{tripID}/sync", s.authed(s.member(s.handlePush)))
+	mux.HandleFunc("GET /api/v1/trips/{tripID}/conflicts", s.authed(s.member(s.handleListConflicts)))
+	// The revert half of NFR-4.2a, one endpoint per partition beside its
+	// list — a conflict belongs to the partition it was pushed to.
+	mux.HandleFunc("POST /api/v1/trips/{tripID}/conflicts/{conflictID}/revert",
+		s.authed(s.member(s.handleRevertConflict)))
+	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.csv", s.authed(s.member(s.handleExportTripCSV)))
+
+	// Master scope — the partition that belongs to no trip, so its scope
+	// segment is a literal rather than an id.
+	mux.HandleFunc("GET /api/v1/master/sync", s.authed(s.handlePullMaster))
+	mux.HandleFunc("POST /api/v1/master/sync", s.authed(s.handlePushMaster))
+	mux.HandleFunc("GET /api/v1/master/conflicts", s.authed(s.handleListMasterConflicts))
+	mux.HandleFunc("POST /api/v1/master/conflicts/{conflictID}/revert",
+		s.authed(s.handleRevertMasterConflict))
+
+	// The caller's own scope. The full export lives here because it is
+	// filtered to what the caller may pull, and it names its format.
 	mux.HandleFunc("GET /api/v1/me", s.authed(s.handleMe))
+	mux.HandleFunc("GET /api/v1/me/notification-prefs", s.authed(s.handleGetNotificationPrefs))
+	mux.HandleFunc("PUT /api/v1/me/notification-prefs", s.authed(s.handlePutNotificationPrefs))
+	mux.HandleFunc("GET /api/v1/me/export.json", s.authed(s.handleExportFull))
+
+	// User scope.
 	mux.HandleFunc("GET /api/v1/users", s.authed(s.handleListUsers))
+	mux.HandleFunc("GET /api/v1/users/{userID}/avatar", s.handleGetAvatar)
+	mux.HandleFunc("PUT /api/v1/users/{userID}/avatar", s.authed(s.self(s.handlePutAvatar)))
+	mux.HandleFunc("PUT /api/v1/users/{userID}/display-name", s.authed(s.self(s.handlePutDisplayName)))
+
+	// Item scope. Item images (FR-22): GET public like avatars; PUT/DELETE
+	// need only authentication (FR-22.6) — items carry no trip role to check.
+	mux.HandleFunc("GET /api/v1/items/{itemID}/image", s.handleGetItemImage)
+	mux.HandleFunc("PUT /api/v1/items/{itemID}/image", s.authed(s.handlePutItemImage))
+	mux.HandleFunc("DELETE /api/v1/items/{itemID}/image", s.authed(s.handleDeleteItemImage))
+
+	// Notification scope.
+	mux.HandleFunc("GET /api/v1/notifications", s.authed(s.handleListNotifications))
+	mux.HandleFunc("POST /api/v1/notifications/{notificationID}/read", s.authed(s.handleMarkNotificationRead))
+
+	// Web Push scope.
+	mux.HandleFunc("GET /api/v1/push/vapid-key", s.authed(s.handleGetVAPIDKey))
+	mux.HandleFunc("POST /api/v1/push/subscriptions", s.authed(s.handleRegisterPushSubscription))
+	mux.HandleFunc("DELETE /api/v1/push/subscriptions", s.authed(s.handleDeletePushSubscription))
+
+	// Admin scope.
 	mux.HandleFunc("GET /api/v1/admin/users", s.authed(s.adminOnly(s.handleAdminUsers)))
 	mux.HandleFunc("POST /api/v1/admin/users/{userID}/deactivate", s.authed(s.adminOnly(s.handleDeactivateUser)))
 	mux.HandleFunc("POST /api/v1/admin/users/{userID}/reactivate", s.authed(s.adminOnly(s.handleReactivateUser)))
 	mux.HandleFunc("DELETE /api/v1/admin/users/{userID}/avatar", s.authed(s.adminOnly(s.handleAdminResetAvatar)))
 	mux.HandleFunc("DELETE /api/v1/admin/users/{userID}/display-name", s.authed(s.adminOnly(s.handleAdminResetDisplayName)))
-	mux.HandleFunc("GET /api/v1/notifications", s.authed(s.handleListNotifications))
-	mux.HandleFunc("POST /api/v1/notifications/{notificationID}/read", s.authed(s.handleMarkNotificationRead))
-	mux.HandleFunc("GET /api/v1/me/notification-prefs", s.authed(s.handleGetNotificationPrefs))
-	mux.HandleFunc("PUT /api/v1/me/notification-prefs", s.authed(s.handlePutNotificationPrefs))
-	mux.HandleFunc("GET /api/v1/push/vapid-key", s.authed(s.handleGetVAPIDKey))
-	mux.HandleFunc("POST /api/v1/push/subscriptions", s.authed(s.handleRegisterPushSubscription))
-	mux.HandleFunc("DELETE /api/v1/push/subscriptions", s.authed(s.handleDeletePushSubscription))
-	mux.HandleFunc("GET /api/v1/export/full", s.authed(s.handleExportFull))
-	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.csv", s.authed(s.member(s.handleExportTripCSV)))
-	mux.HandleFunc("GET /api/v1/users/{userID}/avatar", s.handleGetAvatar)
-	mux.HandleFunc("PUT /api/v1/users/{userID}/avatar", s.authed(s.self(s.handlePutAvatar)))
-	// Item images (FR-22): GET public like avatars; PUT/DELETE need only
-	// authentication (FR-22.6) — items carry no trip role to check.
-	mux.HandleFunc("GET /api/v1/items/{itemID}/image", s.handleGetItemImage)
-	mux.HandleFunc("PUT /api/v1/items/{itemID}/image", s.authed(s.handlePutItemImage))
-	mux.HandleFunc("DELETE /api/v1/items/{itemID}/image", s.authed(s.handleDeleteItemImage))
-	mux.HandleFunc("PUT /api/v1/users/{userID}/display-name", s.authed(s.self(s.handlePutDisplayName)))
-	mux.HandleFunc("GET /api/v1/trips/{tripID}/conflicts", s.authed(s.member(s.handleListConflicts)))
-	mux.HandleFunc("GET /api/v1/conflicts/master", s.authed(s.handleListMasterConflicts))
-	// The revert half of NFR-4.2a, one endpoint per partition beside its
-	// list — a conflict belongs to the partition it was pushed to.
-	mux.HandleFunc("POST /api/v1/trips/{tripID}/conflicts/{conflictID}/revert",
-		s.authed(s.member(s.handleRevertConflict)))
-	mux.HandleFunc("POST /api/v1/conflicts/master/{conflictID}/revert",
-		s.authed(s.handleRevertMasterConflict))
+
+	// Instance scope: no caller, no partition.
 	mux.HandleFunc("POST /api/v1/auth/token", s.handleAuthToken)
 	mux.HandleFunc("POST /api/v1/auth/refresh", s.handleAuthRefresh)
 	mux.HandleFunc("GET /api/v1/auth/config", s.handleAuthConfig)

@@ -1,5 +1,6 @@
 /** Pull composable — fetches changes via the single read path (P-1, Sync-API §4). */
 
+import { API } from '@/api/routes'
 import type { APIClient } from '@/api/client'
 import type { PullChange, PullResponse } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
@@ -20,7 +21,7 @@ function observeHLCs(hlc: HLCGenerator, changes: PullChange[]): void {
 
 export function usePull(client: APIClient, hlc: HLCGenerator) {
   async function pullTrip(tripId: string, cursor: number, limit = 500): Promise<PullResult> {
-    const resp = await client.get<PullResponse>(`/api/v1/sync/trips/${tripId}`, {
+    const resp = await client.get<PullResponse>(API.tripSync(tripId), {
       cursor: String(cursor),
       limit: String(limit),
     })
@@ -29,7 +30,7 @@ export function usePull(client: APIClient, hlc: HLCGenerator) {
   }
 
   async function pullMaster(cursor: number, limit = 500): Promise<PullResult> {
-    const resp = await client.get<PullResponse>('/api/v1/sync/master', {
+    const resp = await client.get<PullResponse>(API.masterSync, {
       cursor: String(cursor),
       limit: String(limit),
     })

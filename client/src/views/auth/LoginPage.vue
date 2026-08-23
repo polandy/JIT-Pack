@@ -5,6 +5,7 @@
  * redirects to the IdP. Servers without OIDC (Single-User, plain
  * HS256) answer 501 — no login is needed there.
  */
+import { API } from '@/api/routes'
 import { IonPage, IonContent, IonButton, IonIcon, IonNote } from '@ionic/vue'
 import { logInOutline } from 'ionicons/icons'
 import { onMounted, ref } from 'vue'
@@ -18,7 +19,7 @@ const loginRequired = ref<boolean | null>(null)
 
 onMounted(async () => {
   try {
-    const resp = await fetch(`${serverBaseUrl()}/api/v1/auth/config`)
+    const resp = await fetch(`${serverBaseUrl()}${API.authConfig}`)
     loginRequired.value = resp.ok
   } catch {
     error.value = t('login.serverUnreachable')
@@ -29,7 +30,7 @@ onMounted(async () => {
 async function signIn() {
   error.value = ''
   try {
-    const resp = await fetch(`${serverBaseUrl()}/api/v1/auth/config`)
+    const resp = await fetch(`${serverBaseUrl()}${API.authConfig}`)
     if (!resp.ok) {
       error.value = t('login.noOidc')
       return

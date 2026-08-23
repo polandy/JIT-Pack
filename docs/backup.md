@@ -208,13 +208,13 @@ All of them require a bearer token.
 
 | Method | Path | Produces |
 |---|---|---|
-| `GET` | `/api/v1/export/full` | versioned JSON dump of everything you can see |
+| `GET` | `/api/v1/me/export.json` | versioned JSON dump of everything you can see |
 | `GET` | `/api/v1/trips/{tripID}/export.csv` | flat CSV of the packing list, with progress |
 
 ### Full JSON export
 
 ```bash
-curl -sOJ https://jitpack.example.com/api/v1/export/full \
+curl -sOJ https://jitpack.example.com/api/v1/me/export.json \
   -H "Authorization: Bearer $TOKEN"
 ```
 

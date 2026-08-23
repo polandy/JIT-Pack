@@ -1,5 +1,5 @@
 // Package api — master.go exposes the master-partition sync endpoints
-// (Sync-API Spec §4/§5): GET/POST /api/v1/sync/master. There is no
+// (Sync-API Spec §4/§5): GET/POST /api/v1/master/sync. There is no
 // membership middleware here — visibility and ownership are enforced
 // per row by the store (own + published templates, member trips).
 package api

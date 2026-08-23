@@ -25,7 +25,7 @@ func TestPortableYAMLEndpoints_AreGone(t *testing.T) {
 		{"trip YAML export", http.MethodGet, "/api/v1/trips/" + trip + "/export.yaml", http.StatusNotFound},
 		// NFR-4.5 has no client-side twin and stays.
 		{"trip CSV export", http.MethodGet, "/api/v1/trips/" + trip + "/export.csv", http.StatusOK},
-		{"full JSON export", http.MethodGet, "/api/v1/export/full", http.StatusOK},
+		{"full JSON export", http.MethodGet, "/api/v1/me/export.json", http.StatusOK},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			req, _ := http.NewRequest(tc.method, srv.URL+tc.path, strings.NewReader(""))
