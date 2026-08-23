@@ -255,7 +255,11 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
       <section v-if="step === 2">
         <h2 class="section-title jp-eyebrow">{{ t('import.wizard.tripsTitle') }}</h2>
         <IonList>
-          <IonItem v-for="trip in trips" :key="trip.column" :data-testid="`import-trip-${trip.column}`">
+          <IonItem
+            v-for="trip in trips"
+            :key="trip.column"
+            :data-testid="`import-trip-${trip.column}`"
+          >
             <IonCheckbox
               slot="start"
               :checked="trip.include"
