@@ -146,7 +146,7 @@ So the proxy owns one hostname and splits it: API paths to `jitpackd`, everythin
 Two more requirements on the backend route:
 
 - **Pass the upgrade headers through** (`Upgrade` and `Connection`) and use HTTP/1.1 for `/ws`, or the handshake never completes.
-- **Preserve the browser's `Host` header.** The same-origin check compares the request's `Origin` against its `Host`; a proxy that rewrites `Host` to the backend's container name turns every WebSocket dial into a `403`.
+- **Preserve the browser's `Host` header, port included.** The same-origin check compares the request's `Origin` against its `Host`, and the browser's `Origin` carries the port. A proxy that rewrites `Host` to the backend's container name turns every WebSocket dial into a `403` — and so does one that merely drops the port: in nginx that is the difference between `$http_host` (correct) and `$host` (which strips it), and an instance published on, say, `:3000` is refused even though the hostname matched. The refusal is quiet in the worst way: the app loads, every REST call succeeds, and only live updates never arrive.
 
 And one on the static route: **fall back to `index.html`** for unknown paths. The client uses HTML5 history routing, so deep links like `/trips/abc123` or `/tabs/settings` must return the app rather than a 404 on a hard reload. This matters beyond bookmarks — the OIDC login flow returns the browser to `/auth/callback`, a client-side route that only exists inside the SPA. Without the fallback, multi-user login fails at the last step with a 404.
 
@@ -257,7 +257,7 @@ server {
 
     location /api/ {
         proxy_pass http://jitpack_backend;
-        proxy_set_header Host              $host;
+        proxy_set_header Host              $http_host;
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -269,7 +269,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade    $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_set_header Host       $host;
+        proxy_set_header Host       $http_host;
         proxy_read_timeout 3600s;
     }
 
@@ -292,10 +292,13 @@ curl -i https://jitpack.example.com/health
 curl -i https://jitpack.example.com/api/v1/auth/config
 curl -i -H "Connection: Upgrade" -H "Upgrade: websocket" \
      -H "Sec-WebSocket-Version: 13" -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
+     -H "Origin: https://jitpack.example.com" \
      https://jitpack.example.com/ws
 ```
 
-The first returns `200` with an empty body. The second returns JSON on a multi-user instance and `501 not_configured` on a single-user one — either way it proves the API route reaches `jitpackd`. The third must **not** return HTML: `101 Switching Protocols` means the route is correct, and a `400` or `403` from the Go server is still evidence the request arrived. An `index.html` body means `/ws` is being served by the static host and sync will silently never work.
+The first returns `200` with an empty body. The second returns JSON on a multi-user instance and `501 not_configured` on a single-user one — either way it proves the API route reaches `jitpackd`. The third must **not** return HTML: `101 Switching Protocols` means the route is correct. An `index.html` body means `/ws` is being served by the static host and sync will silently never work.
+
+Send the `Origin` header exactly as written, matching the address you are calling — port included, if you use one. Without it the same-origin check is skipped entirely and the command answers `101` on a proxy that every real browser is refused by. If it comes back `403 request Origin "…" is not authorized for Host "…"`, the two names in that message are the bug: the proxy handed `jitpackd` a `Host` the browser never addressed.
 
 ---
 
