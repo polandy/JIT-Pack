@@ -81,6 +81,7 @@ import SearchRow from '@/components/global/SearchRow.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
+import { presentToast } from '@/lib/toast'
 import { peekScroll, rememberScroll, takeScroll } from '@/lib/scrollMemory'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { setHeaderActions, type HeaderAction } from '@/composables/useHeaderActions'
@@ -223,13 +224,7 @@ async function declineGroupChanges() {
 
 /** A plain toast: both answers are final, and neither has an undo to offer. */
 async function reportGroupAnswer(message: string) {
-  const toast = await toastController.create({
-    message,
-    duration: 3000,
-    position: 'bottom',
-    positionAnchor: 'm4-fab-anchor',
-  })
-  await toast.present()
+  await presentToast({ message, duration: 3000, positionAnchor: 'm4-fab-anchor' })
 }
 
 const trip = computed(() => store.getTrip(props.tripId))
@@ -932,6 +927,10 @@ async function announce(message: string) {
   packToast = null
   void outgoing?.dismiss()
 
+  // The one place that does not go through `presentToast`: the order below is
+  // load-bearing — created, checked against `live`, armed with its dismiss
+  // handler, and only then presented. A helper that presents on creation would
+  // put the snackbar on screen before the check that decides it must not be.
   const toast = await toastController.create({
     message,
     duration: 3000,
@@ -1025,12 +1024,7 @@ async function onQuickAddGroup(templateId: string) {
  */
 async function onStart() {
   orchestrator.activateTrip(props.tripId)
-  const toast = await toastController.create({
-    message: t('packing.startedToast'),
-    duration: 3000,
-    position: 'bottom',
-  })
-  await toast.present()
+  await presentToast({ message: t('packing.startedToast'), duration: 3000 })
 }
 
 /**
@@ -1043,12 +1037,7 @@ async function onArchive() {
   orchestrator.archiveTrip(props.tripId)
   const flagged = store.getItems(props.tripId).some((item) => item.flag_unused || item.flag_missing)
   if (!flagged) {
-    const toast = await toastController.create({
-      message: t('review.nothingToast'),
-      duration: 3000,
-      position: 'bottom',
-    })
-    await toast.present()
+    await presentToast({ message: t('review.nothingToast'), duration: 3000 })
     return
   }
   router.push(`/trips/${props.tripId}/review`)

@@ -22,12 +22,12 @@ import {
   IonIcon,
   IonSelect,
   IonSelectOption,
-  toastController,
 } from '@ionic/vue'
 import { checkmarkCircleOutline, chevronForwardOutline, closeOutline } from 'ionicons/icons'
 import { computed, inject, ref, watchEffect } from 'vue'
 
 import { t } from '@/i18n'
+import { presentToast } from '@/lib/toast'
 import {
   buildReviewProposals,
   dismissalKey,
@@ -160,8 +160,7 @@ function blastText(row: Row): string | null {
 }
 
 async function toast(message: string) {
-  const el = await toastController.create({ message, duration: 3000, position: 'bottom' })
-  await el.present()
+  await presentToast({ message, duration: 3000 })
 }
 
 function apply(row: Row) {

@@ -33,7 +33,6 @@ import {
   IonInput,
   actionSheetController,
   alertController,
-  toastController,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -60,6 +59,7 @@ import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
 import { useLongPress } from '@/composables/useLongPress'
 import { t } from '@/i18n'
+import { presentToast } from '@/lib/toast'
 
 const store = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
@@ -270,14 +270,12 @@ async function renameTemplate(tpl: Template) {
 async function deleteTemplate(tpl: Template) {
   const consumers = store.getIncludedBy(tpl.id)
   if (consumers.length > 0) {
-    const toast = await toastController.create({
+    await presentToast({
       message: t('templates.includedBlocked', { name: consumers[0]!.name }),
       duration: 3000,
-      position: 'bottom',
-      // Above the FAB rather than behind the tab bar — the M4 anchor pattern.
+      // Higher than the tab bar the helper would clear, so this screen keeps it.
       positionAnchor: 'm7-fab-anchor',
     })
-    await toast.present()
     return
   }
   const alert = await alertController.create({
