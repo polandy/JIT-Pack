@@ -129,26 +129,27 @@ body{padding:0;margin:0;display:block;height:auto}
 <div class="vwrap">
 
   <div class="vhead">
-    <h1>Was steht links vom Artikelnamen?</h1>
-    <p>Heute steht dort nichts. Ein Foto kann man hochladen (FR-22.1), aber kaum jemand tut es für 40 Zeilen —
-      und ein Foto beantwortet „<em>welche</em> Jacke“, nicht „was ist das“ beim Überfliegen.
-      Die Frage dieser Runde ist die <em>Marke</em>: das kleine, immer vorhandene Ding links,
-      das eine 40-Zeilen-Liste scanbar macht.</p>
-    <p>Vier Formen, dieselbe Liste, dieselbe Reise. Der gelbe Punkt auf einer Marke heißt:
-      <em>dafür gab es nichts Passendes</em>, hier steht ein Ersatz. Genau dieser Punkt ist die
-      eigentliche Entscheidung — die Kosten stehen unter jeder Variante.</p>
+    <h1>What stands to the left of the item name?</h1>
+    <p>Nothing does today. A photo can be uploaded (FR-22.1), but almost nobody does it for 40 rows —
+      and a photo answers <em>which</em> jacket, not what the thing is when skimming.
+      The question of this round is the <em>mark</em>: the small, always-present thing on the left
+      that makes a 40-row list scannable.</p>
+    <p>Four forms, the same list, the same trip. The yellow dot on a mark means:
+      <em>there was nothing fitting for this</em>, what stands there is a substitute. That dot is
+      the actual decision — the cost is written under every variant.</p>
   </div>
 
   <div class="vgrid" id="grid"></div>
 
   <div class="secthead">
-    <h2>Und so würde man sie setzen</h2>
-    <p>Der Luxus aus der Frage: der Picker <em>schlägt vor</em>. Er tut das ohne Netz und ohne Modell —
-      derselbe Keyword-Index, der die Suche trägt, wird gegen die Tokens des Namens gescort.
-      Der Picker unten ist echt: Namen ändern, tippen, suchen.</p>
-    <p>Probier <strong>Zahnbürste</strong>, <strong>Kaffeekanne</strong>, <strong>Tarnzelt</strong> — Komposita werden
-      zerlegt, deshalb findet „Tarnzelt“ das Zelt. Und dann <strong>Zwischenringe</strong> oder
-      <strong>Trekkingstöcke</strong>, damit der Leerfall sichtbar wird.</p>
+    <h2>And this is how one would set them</h2>
+    <p>The luxury in the question: the picker <em>proposes</em>. It does so with no network and no
+      model — the same keyword index that carries the search is scored against the tokens of the
+      name. The picker below is real: change the name, type, search.</p>
+    <p>Try <strong>Zahnbürste</strong>, <strong>Kaffeekanne</strong>, <strong>Tarnzelt</strong> —
+      compounds are split, which is why „Tarnzelt“ finds the tent. Then try
+      <strong>Zwischenringe</strong> or <strong>Trekkingstöcke</strong>, so the empty case becomes
+      visible.</p>
   </div>
 
   <div class="vgrid" id="pickergrid"></div>
@@ -251,18 +252,18 @@ function listFor(kind){
 }
 
 const VARIANTS = [
-  { key:'A', title:'Emoji als Marke',
-    why:'Ein Unicode-Codepoint pro Artikel, farbig und figürlich. Die Zeile ist auf einen Blick sortierbar: Kleidung ist bunt-textil, Technik ist grau-eckig, Camping ist grün. Für den langen Schwanz („Trekkingstöcke“, unten) gibt es nichts — dann bleibt die Marke leer statt falsch.',
-    cost:'Kosten: die Farben kommen nicht aus eurer Tabelle. Und der Schwanz kostet auch hier: sechs der fünfzehn Marken sind Ersatz (🧶 Fleece, 🔌 Kabel, 🔦 Stirnlampe, 🛌 Schlafsack, 🔥 Gaskocher, 🧃 Wasserflasche — Emoji hat keine Wasserflasche), eine Zeile bleibt ganz leer. Das 🧶 hätte der Picker unten übrigens gar nicht vorgeschlagen; es ist von Hand gewählt.' },
-  { key:'B', title:'Icon-Bibliothek',
-    why:'Monochrome Strichicons in der Rollenfarbe. Fügt sich lückenlos in Invariante 9 ein, skaliert scharf, wiegt fast nichts. Die Liste bleibt ruhig — sie sieht aus wie der Rest der App.',
-    cost:'Kosten: ruhig heißt hier gleichförmig. Sieben von fünfzehn Zeilen tragen ein Ersatz-Symbol — eine mehr als bei Emoji —, und auf 34 px sehen Flasche, Sonnencreme und Wasserflasche identisch aus. Als Scan-Hilfe trägt das kaum. Fairness-Hinweis: die Striche sind in der Strichstärke von Phosphor/Tabler nachgezeichnet, nicht aus der Bibliothek importiert — die Gleichförmigkeit ist die Aussage, nicht meine Zeichenhand.' },
-  { key:'C', title:'Foto zuerst, Emoji dahinter',
-    why:'Was ein Foto hat, zeigt das Foto — das ist die Identität, die FR-22.1 meint. Der Rest fällt auf das Emoji zurück. Realistisch sind drei von fünfzehn Zeilen fotografiert, so ist es hier gerendert.',
-    cost:'Kosten: zwei Bildsprachen in einer Spalte. Das Foto zieht das Auge und gewinnt jeden Scan — die drei fotografierten Zeilen wirken wichtiger als die zwölf anderen, ohne es zu sein.' },
-  { key:'D', title:'Nur Initiale (Nullvariante)',
-    why:'Kein neues Feld, keine Datei, keine Migration: der erste Buchstabe auf einer aus dem Namen abgeleiteten Farbe. Ehrliche Vergleichsbasis — vielleicht reicht das ja, und alles andere ist Aufwand für Zierrat.',
-    cost:'Kosten: der Buchstabe wiederholt nur den Namen, der direkt daneben steht. Er trennt Zeilen, aber er sagt nichts. Farbe ohne Bedeutung ist Rauschen.' },
+  { key:'A', title:'Emoji as the mark',
+    why:'One Unicode codepoint per item, colourful and figurative. The row is sortable at a glance: clothing is colourful and textile, tech is grey and angular, camping is green. For the long tail („Trekkingstöcke“, below) there is nothing — and then the mark stays empty rather than wrong.',
+    cost:'Cost: the colours do not come out of our token table. And the tail costs here too: six of the fifteen marks are substitutes (🧶 fleece, 🔌 cable, 🔦 headlamp, 🛌 sleeping bag, 🔥 gas stove, 🧃 water bottle — emoji has no water bottle), and one row stays empty altogether. The 🧶, incidentally, is not something the picker below would have proposed; it was chosen by hand.' },
+  { key:'B', title:'Icon library',
+    why:'Monochrome line icons in the role colour. Fits invariant 9 seamlessly, scales sharply, weighs almost nothing. The list stays calm — it looks like the rest of the app.',
+    cost:'Cost: calm here means uniform. Seven of fifteen rows carry a substitute symbol — one more than with emoji — and at 34 px the bottle, the sunscreen and the water bottle look identical. As a scanning aid that barely carries. In fairness: the strokes are redrawn at the stroke weight of Phosphor/Tabler rather than imported from the library — the uniformity is the point, not my drawing hand.' },
+  { key:'C', title:'Photo first, emoji behind it',
+    why:'Whatever has a photo shows the photo — that is the identity FR-22.1 means. The rest falls back to the emoji. Realistically three of fifteen rows are photographed, and that is how it is rendered here.',
+    cost:'Cost: two visual languages in one column. The photo pulls the eye and wins every scan — the three photographed rows look more important than the other twelve without being so.' },
+  { key:'D', title:'Initial only (the null variant)',
+    why:'No new field, no file, no migration: the first letter on a colour derived from the name. An honest baseline — maybe that is enough, and everything else is effort spent on ornament.',
+    cost:'Cost: the letter only repeats the name standing right next to it. It separates rows, but it says nothing. Colour without meaning is noise.' },
 ]
 
 document.getElementById('grid').innerHTML = VARIANTS.map((v) =>
@@ -473,49 +474,49 @@ function bindPicker(){
 
 document.getElementById('pickergrid').innerHTML =
   '<div class="vcol"><div class="vcap"><span class="k">Picker</span>' +
-  '<h2>Suchen wie bei WhatsApp, vorschlagen wie ein Kollege</h2>' +
-  '<p>Die Suche läuft über Stichwörter, nicht über den Unicode-Namen: „regen“ findet 🧥 und ☂️, obwohl keines der beiden „Regen“ heißt. ' +
-  'Der Vorschlag oben ist derselbe Index, gegen die Tokens des Artikelnamens gescort — clientseitig, offline, testbar (Invariante 4).</p>' +
-  '<p class="cost">Kosten: der Index muss kuratiert werden. Die volle CLDR-Tabelle schlägt für „Bau“ ein 🏛️ vor; hier stehen 92 packrelevante Einträge.</p></div>' +
+  '<h2>Search like WhatsApp does, suggest like a colleague would</h2>' +
+  '<p>The search runs over keywords, not over the Unicode name: „regen“ finds 🧥 and ☂️ even though neither of them is called that. ' +
+  'The suggestion above is the same index, scored against the tokens of the item name — client-side, offline, testable (invariant 4).</p>' +
+  '<p class="cost">Cost: the index has to be curated. The full CLDR table proposes a 🏛️ for „Bau“; here there are 92 packing-relevant entries.</p></div>' +
   '<div class="phone"><div class="bar">‹ Neuer Artikel<span class="grow"></span>Marke wählen</div>' +
   '<div class="body" id="pickerbody"></div></div></div>' +
 
-  '<div class="vcol"><div class="vcap"><span class="k">Was der Picker beweisen soll</span>' +
-  '<h2>Drei Fälle, die er überleben muss</h2>' +
-  '<p><strong>Der Treffer.</strong> „Zahnbürste“ → 🪥 steht vorne, ein Tap. Das ist der Normalfall und er muss ohne Suchfeld auskommen.</p>' +
-  '<p><strong>Der schiefe Treffer.</strong> „Stirnlampe“ → 🔦 ist eine Taschenlampe. Nah genug zum Scannen, falsch als Aussage. ' +
-  'Deshalb ist der Vorschlag ein <em>Angebot</em> und nie eine stille Vorbelegung.</p>' +
-  '<p><strong>Der Leerfall.</strong> „Zwischenringe“, „Trekkingstöcke“, „Fleecepullover“ → nichts. Der Screen muss das als gültigen Zustand zeigen, ' +
-  'nicht als Lücke, die man füllen muss — sonst tippt sich jeder ein 📦 hin und die Spalte wird wieder bedeutungslos.</p>' +
+  '<div class="vcol"><div class="vcap"><span class="k">What the picker has to prove</span>' +
+  '<h2>Three cases it has to survive</h2>' +
+  '<p><strong>The hit.</strong> „Zahnbürste“ → 🪥 comes first, one tap. That is the common case, and it has to work without the search field.</p>' +
+  '<p><strong>The skewed hit.</strong> „Stirnlampe“ → 🔦 is a torch. Close enough to scan by, wrong as a statement. ' +
+  'That is why the suggestion is an <em>offer</em> and never a silent default.</p>' +
+  '<p><strong>The empty case.</strong> „Zwischenringe“, „Trekkingstöcke“, „Fleecepullover“ → nothing. The screen has to show that as a valid state, ' +
+  'not as a gap to be filled — otherwise everyone taps a 📦 in and the column is meaningless again.</p>' +
   '</div></div>'
 
 drawPicker()
 
 document.getElementById('notes').innerHTML = [
-  { c:'warm', h:'Entschieden: A (Owner, 2026-08-17)', b:
-    '<p>Die vier Listen nebeneinander beantworten die Frage deutlicher als die Argumente davor. ' +
-    'B ist ruhig und regelkonform und trägt <strong>trotzdem nicht</strong>: auf 34 px sind die Striche zu ähnlich, ' +
-    'und die Ersatzquote ist höher als bei Emoji, weil Bibliotheken Gear führen und keinen Alltag. ' +
-    'D zeigt, dass eine Marke ohne Bedeutung schlechter ist als keine.</p>' +
-    '<p>C ist keine eigene Variante, sondern die <em>Regel innerhalb</em> von A: wo ein Foto existiert, gewinnt es. ' +
-    'Was C hier zeigt, ist der Preis davon — die Spalte wird uneinheitlich — und der ist bezahlt, ' +
-    'weil ein Foto sonst gar keinen Platz mehr hätte. Ausspezifiziert in PRD §3.28 und UI-Spec G-15.</p>' },
-  { h:'Was das an Arbeit heißt', b:
+  { c:'warm', h:'Decided: A (owner, 2026-08-17)', b:
+    '<p>The four lists side by side answer the question more clearly than the arguments before them. ' +
+    'B is calm and rule-conformant and <strong>still does not carry</strong>: at 34 px the strokes are too similar, ' +
+    'and the substitute rate is higher than with emoji, because libraries carry gear and not everyday life. ' +
+    'D shows that a mark without meaning is worse than none.</p>' +
+    '<p>C is not a variant of its own but the <em>rule inside</em> A: where a photo exists, it wins. ' +
+    'What C shows here is the price of that — the column becomes inconsistent — and it is paid, ' +
+    'because otherwise a photo would have no place at all. Specified out in PRD §3.28 and UI-Spec G-15.</p>' },
+  { h:'What that means in work', b:
     '<ul>' +
-    '<li>Neue Migration: <strong>icon TEXT</strong> auf <code>items</code> und <code>templates</code>, NULL = keine Marke. ' +
-    'Gewöhnliche Sync-Spalte im Master-Feed — der billige Gegenentwurf zum BLOB-Sonderweg von ADR-002 (FR-28.9).</li>' +
-    '<li>Selbst gehostete, subgesetzte Emoji-Font, sonst sieht dieselbe geteilte Liste auf zwei Geräten anders aus (FR-28.6). ' +
-    'Gewicht messen, bevor es committet wird — und einmal <code>make visual-update</code>, weil jede Baseline neu gerendert wird.</li>' +
-    '<li>Kuratierter Keyword-Index in <code>client/src/domain/itemMarks.ts</code> — Suche und Vorschlag sind dieselbe Funktion (FR-28.2/28.3).</li>' +
-    '<li>G-15 hält die Marke im Inhalt: kein Emoji in Buttons, Status oder Fortschritt (FR-28.5).</li>' +
+    '<li>New migration: <strong>icon TEXT</strong> on <code>items</code> and <code>templates</code>, NULL = no mark. ' +
+    'An ordinary sync column in the master feed — the cheap counterpart to the BLOB detour of ADR-002 (FR-28.9).</li>' +
+    '<li>A self-hosted, subsetted emoji font, otherwise the same shared list looks different on two devices (FR-28.6). ' +
+    'Measure the weight before committing it — and one <code>make visual-update</code>, because every baseline is re-rendered.</li>' +
+    '<li>A curated keyword index in <code>client/src/domain/itemMarks.ts</code> — search and suggestion are the same function (FR-28.2/28.3).</li>' +
+    '<li>G-15 keeps the mark inside content: no emoji in buttons, status or progress (FR-28.5).</li>' +
     '</ul>' },
-  { h:'Was in der Spec offen blieb', b:
+  { h:'What the spec left open', b:
     '<ul>' +
-    '<li>Eine trip-eigene Marke gibt es <em>nicht</em>: die Zeile liest die des Stammartikels (FR-28.7). Revisit-Trigger dort.</li>' +
-    '<li>Ad-hoc-Zeilen aus dem Quick-Add bleiben ohne Marke, bis sie ein Stammartikel sind.</li>' +
-    '<li>Latte ist nicht gerendert: Emoji sind für hellen Grund gezeichnet, diese Runde ist Mocha. ' +
-    'Gehört in den Eyeball der Umsetzung.</li>' +
-    '<li>Der ADR wird mit dem Code geschrieben, nicht hier — <code>adr/README.md</code>: ein ADR ohne Code ist ein Plan.</li>' +
+    '<li>There is <em>no</em> trip-local mark: the row reads the master item\'s (FR-28.7). Revisit trigger there.</li>' +
+    '<li>Ad-hoc rows from the quick-add stay without a mark until they are a master item.</li>' +
+    '<li>Latte is not rendered: emoji are drawn for a light ground, and this round is Mocha. ' +
+    'That belongs in the eyeball of the implementation.</li>' +
+    '<li>The ADR is written with the code, not here — <code>adr/README.md</code>: an ADR without code is a plan.</li>' +
     '</ul>' },
 ].map((n) => '<div class="note' + (n.c ? ' ' + n.c : '') + '"><h3>' + n.h + '</h3>' + n.b + '</div>').join('')
 </script>

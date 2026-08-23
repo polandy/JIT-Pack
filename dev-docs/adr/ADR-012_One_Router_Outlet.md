@@ -13,7 +13,7 @@
 
 ## The defect that prompted this
 
-Reported by the maintainer while testing the M4 rebuild: *"auf dem desktop sind die menu punkte links. sie funktionieren aber nicht. in der mobil ansicht gibt es keine moeglichkeit zwischen diesen zu navigieren. der backbutton oben links funktioniert nicht."*
+Reported by the maintainer while testing the M4 rebuild: *on the desktop the menu entries sit on the left but do not work; in the mobile view there is no way to navigate between them at all; and the back button at the top left does nothing.*
 
 Measured on the running build, from the packing list:
 

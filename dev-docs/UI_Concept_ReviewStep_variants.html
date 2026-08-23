@@ -763,14 +763,14 @@ body{padding:0;margin:0}
 <body>
 <div class="vwrap">
   <div class="vhead">
-    <h1>„Review“ heisst heute: die Menge</h1>
-    <p>M3 Schritt 4 zeigt jede erzeugte Zeile und lässt genau eine Sache ändern — die <em>Anzahl</em>.
-      Nicht: eine Zeile rauswerfen, die man dieses Mal nicht braucht; nicht: „kaufen statt packen“;
-      nicht: die Zuständigkeit; nicht: etwas ergänzen, das man beim Durchlesen vermisst. Das alles
-      geht erst, wenn die Reise existiert.</p>
-    <p><strong>Die eigentliche Frage ist nicht „welche Felder“, sondern <em>wo</em>.</strong> M4 und das
-      M5-Sheet können das alles bereits. Jeder Editor im Wizard ist ein zweiter Ort für dieselbe
-      Regel — und der zweite Ort ist der, der später auseinanderläuft.</p>
+    <h1>"Review" today means: the quantity</h1>
+    <p>M3 step 4 shows every generated row and lets exactly one thing be changed — the <em>amount</em>.
+      Not: dropping a row you do not need this time; not: buying instead of packing; not: who is
+      responsible; not: adding something you notice is missing while reading through. None of that is
+      possible until the trip exists.</p>
+    <p><strong>The real question is not which fields, but <em>where</em>.</strong> M4 and the M5 sheet
+      can do all of it already. Every editor in the wizard is a second place for the same rule — and
+      the second place is the one that drifts later.</p>
   </div>
   <div class="vgrid" id="grid"></div>
 </div>
@@ -846,15 +846,15 @@ function summary(){
 }
 
 const VARIANTS = [
-  { key:'A', title:'Die Zeile kann alles', render:inline,
-    why:'Jede Zeile trägt ihre Entscheidungen selbst: Menge, ✕ zum Weglassen (die Zeile bleibt sichtbar und durchgestrichen — FR-5.5 „bewusst weggelassen“, nicht spurlos weg), Chips für „kaufen“ und „pro Person“, und unten eine Ergänzen-Zeile. Kein Overlay, alles auf einer Fläche.',
-    cost:'Kosten: die Zeile wird voll, und jede weitere Entscheidung macht sie voller. Umbenennen und Kategorien passen nicht mehr hinein — irgendwann ist es doch ein Editor, nur einer ohne Platz.' },
-  { key:'B', title:'Das M5-Sheet, vorgezogen', render:sheetVariant,
-    why:'Die Zeile öffnet dasselbe Sheet wie auf der Packliste, in reduzierter Form: Menge, Beschaffung, Zuständigkeit, Weglassen. Packen, Kommentare und Vorbereitung fehlen sichtbar, weil es sie ohne Reise nicht gibt. Eine Grammatik, zwei Zeitpunkte.',
-    cost:'Kosten: ein zweiter Zustand desselben Sheets. Jedes künftige Feld muss beantworten „gibt es mich vor der Reise?“ — und die Antwort steht dann an zwei Stellen im Code.' },
-  { key:'C', title:'Gar nicht hier bearbeiten', render:summary,
-    why:'Schritt 4 wird ehrlich zur Zusammenfassung — was entsteht, was zusammengeführt wurde, was zu kaufen ist, welche Mengen die Historie vorschlägt — und der Knopf legt an und öffnet M4. Dort bearbeitest du mit den Werkzeugen, mit denen du es auch nächste Woche tust.',
-    cost:'Kosten: „anlegen“ fühlt sich verbindlicher an als „weiter“. Wer eine Zeile schon im Wizard sicher nicht will, muss sie einmal entstehen lassen — und Archivieren/Löschen der ganzen Reise ist der einzige Rückweg.' },
+  { key:'A', title:'The row can do everything', render:inline,
+    why:'Every row carries its own decisions: quantity, a ✕ that leaves it out (the row stays visible and struck through — FR-5.5 deliberately skipped, not gone without trace), chips for buying and per-person, and an add row at the foot. No overlay, everything on one surface.',
+    cost:'Cost: the row fills up, and every further decision fills it more. Renaming and categories no longer fit — at some point it is an editor after all, just one with no room.' },
+  { key:'B', title:'The M5 sheet, pulled forward', render:sheetVariant,
+    why:'The row opens the same sheet as on the packing list, in a reduced form: quantity, procurement, responsibility, skipping. Packing, comments and preparation are visibly absent, because they do not exist without a trip. One grammar, two moments in time.',
+    cost:'Cost: a second state of the same sheet. Every future field has to answer "do I exist before the trip?" — and the answer then lives in two places in the code.' },
+  { key:'C', title:'Do not edit here at all', render:summary,
+    why:'Step 4 honestly becomes a summary — what is created, what was merged, what is to be bought, which quantities the history suggests — and the button creates the trip and opens M4. There you edit with the tools you will still be using next week.',
+    cost:'Cost: „anlegen“ feels more committal than „weiter“. Anyone certain in the wizard that they do not want a row has to let it come into existence first — and archiving or deleting the whole trip is the only way back.' },
 ]
 
 document.getElementById('grid').innerHTML = VARIANTS.map((v) =>

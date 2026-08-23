@@ -160,77 +160,75 @@ table.cmp td:first-child{color:var(--text)}
 <body>
 <div class="vwrap">
   <div class="vhead">
-    <h1>Der Abschluss-Durchgang — eigener Screen oder ein Modus von M4?</h1>
-    <p>FR-9.3 hat alles andere entschieden und genau diese Frage offen gelassen, weil sie
-      am Bild hängt und nicht am Argument. Beide Varianten zeigen denselben Moment:
-      <em>„Reise abschliessen“</em> ist getippt, die Reise ist noch nicht archiviert, und
-      gefragt wird nach den Sachen, die mitgereist und nicht gebraucht wurden.</p>
-    <p>Beide sind überspringbar, beide markieren nur <em>ungenutzt</em>, und beide zeigen
-      ausschliesslich <strong>gepackte</strong> Zeilen — eine ungepackte ist entweder
-      FR-5.5-weggelassen oder vergessen, und keins von beidem ist „ungenutzt“.</p>
+    <h1>The closing pass — its own screen, or a mode of M4?</h1>
+    <p>FR-9.3 decided everything else and deliberately left this one question open, because it
+      hangs on the picture rather than on the argument. Both variants show the same moment:
+      <em>„Reise abschliessen“</em> has been tapped, the trip is not archived yet, and the
+      question being asked is which things travelled along and were not needed.</p>
+    <p>Both are skippable, both mark only <em>unused</em>, and both show <strong>packed</strong>
+      rows exclusively — an unpacked one is either FR-5.5 skipped or forgotten, and neither of
+      those is "unused".</p>
   </div>
 
   <div class="vgrid">
     <div class="vcol">
       <div class="vcap">
-        <div class="k">Variante A</div>
-        <h2>Eigener Screen</h2>
-        <p>Eine flache Liste, nach Gruppe beschriftet statt gruppiert, ein Tipp pro Zeile.
-          Nur über die Abschluss-Aktion erreichbar, danach nie wieder.</p>
-        <p class="cost">Kosten: eine neue M-Nummer und eine zweite Listendarstellung, die
-          mit M4 mitwachsen muss.</p>
+        <div class="k">Variant A</div>
+        <h2>Its own screen</h2>
+        <p>A flat list, labelled by group rather than grouped, one tap per row. Reachable only
+          through the closing action, and never again afterwards.</p>
+        <p class="cost">Cost: a new M number and a second list rendering that has to grow along
+          with M4.</p>
       </div>
       ${A}
     </div>
     <div class="vcol">
       <div class="vcap">
-        <div class="k">Variante B</div>
-        <h2>Modus von M4</h2>
-        <p>Die Liste, die es schon gibt, in anderer Haltung: Gruppierung, Facetten und Suche
-          bleiben, der Stepper weicht dem Schalter, ein Band oben sagt, worin man steckt.</p>
-        <p class="cost">Kosten: derselbe Screen bedeutet zwei Dinge — und die Zeilengesten
-          sind dort bereits vergeben.</p>
+        <div class="k">Variant B</div>
+        <h2>A mode of M4</h2>
+        <p>The list that already exists, in a different posture: grouping, facets and search stay,
+          the stepper gives way to the switch, and a band at the top says what you are in.</p>
+        <p class="cost">Cost: the same screen means two things — and the row gestures there are
+          already taken.</p>
       </div>
       ${B}
     </div>
   </div>
 
   <div class="shared">
-    <h2>Woran es sich entscheidet</h2>
+    <h2>What it turns on</h2>
     <table class="cmp">
-      <tr><th>Frage</th><th>A · eigener Screen</th><th>B · Modus von M4</th></tr>
-      <tr><td>Kann man versehentlich hineinlaufen?</td>
-        <td>Nein. Es gibt genau einen Eingang.</td>
-        <td>Ja — es ist die Liste, die man ohnehin ständig offen hat.</td></tr>
-      <tr><td>Was kostet die zweite Darstellung?</td>
-        <td>Eine eigene Liste, die M4s Verbesserungen künftig nachziehen muss.</td>
-        <td>Nichts. Facetten (FR-25.11), Gruppierung und Suche gelten sofort mit.</td></tr>
-      <tr><td>Kollidieren die Gesten?</td>
-        <td>Nein, der Screen kennt nur eine Handlung.</td>
-        <td>Ja. Press-and-hold trägt dort schon FR-5.5 und künftig FR-9.3s Menüeintrag.</td></tr>
-      <tr><td>Sieht man, wie viel noch kommt?</td>
-        <td>Ja, es ist eine Liste mit Ende — genau was FR-27.11 am Kartenstapel vermisst hat.</td>
-        <td>Ja, aber vermischt mit allem, was M4 sonst zeigt.</td></tr>
-      <tr><td>Wie liest sich eine Reise mit 120 Zeilen?</td>
-        <td>Lang und ununterbrochen; die Gruppenspalte ist die einzige Ordnung.</td>
-        <td>Wie M4 — eingeklappte Gruppen, Filter, Suche. Der klare Vorteil.</td></tr>
-      <tr><td>Was passiert nach „Fertig“?</td>
-        <td>Archiviert, weiter zu M14. Ein Weg, ein Ende.</td>
-        <td>Modus aus — und man steht wieder in der Liste einer Reise, die es so nicht mehr gibt.</td></tr>
+      <tr><th>Question</th><th>A · its own screen</th><th>B · a mode of M4</th></tr>
+      <tr><td>Can you walk into it by accident?</td>
+        <td>No. There is exactly one entrance.</td>
+        <td>Yes — it is the list you have open all the time anyway.</td></tr>
+      <tr><td>What does the second rendering cost?</td>
+        <td>A list of its own, which has to follow M4's future improvements.</td>
+        <td>Nothing. Facets (FR-25.11), grouping and search apply immediately.</td></tr>
+      <tr><td>Do the gestures collide?</td>
+        <td>No, the screen knows only one action.</td>
+        <td>Yes. Press-and-hold there already carries FR-5.5, and FR-9.3's entry in future.</td></tr>
+      <tr><td>Can you see how much is still to come?</td>
+        <td>Yes, it is a list with an end — exactly what FR-27.11 missed in the card stack.</td>
+        <td>Yes, but mixed in with everything else M4 shows.</td></tr>
+      <tr><td>How does a 120-row trip read?</td>
+        <td>Long and uninterrupted; the group column is the only order in it.</td>
+        <td>Like M4 — collapsed groups, filters, search. The clear advantage.</td></tr>
+      <tr><td>What happens after „Fertig“?</td>
+        <td>Archived, on to M14. One path, one ending.</td>
+        <td>The mode switches off — and you are back in the list of a trip that no longer exists that way.</td></tr>
     </table>
-    <p>Die letzte Zeile ist die, die am meisten zu denken gibt: B endet dort, wo es
-      angefangen hat, auf der Packliste einer archivierten Reise. A hat einen Ausgang.</p>
-    <h2 style="margin-top:26px">Entschieden am 23.08.2026: keine von beiden</h2>
-    <p>Die Runde hat eine <em>dritte</em> Form hervorgebracht, und die ist es geworden:
-      <strong>B mit A's Ausgang</strong> — der Modus von M4, dessen <em>„Fertig“</em> die Reise
-      archiviert und M14 öffnet, statt bloss den Modus auszuschalten. Damit fällt die letzte
-      Tabellenzeile weg, und B behält alles, was es oben gewinnt: Gruppierung, Facetten, Suche,
-      nichts davon ein zweites Mal gebaut.</p>
-    <p>Der Preis steht in Zeile drei und wird bezahlt, nicht wegerklärt: <strong>in dieser
-      Haltung trägt die Zeile genau eine Geste — den Tipp, der markiert — und das
-      Gedrückthalten ist stumm.</strong> Eine Ansicht, die eine Frage stellt, darf nicht drei
-      beantworten; beide Menüeinträge sind einen Moment früher auf denselben Zeilen erreichbar.
-      Der Wortlaut steht in FR-9.3.</p>
+    <p>The last row is the one that gives most pause: B ends where it started, on the packing list
+      of an archived trip. A has an exit.</p>
+    <h2 style="margin-top:26px">Decided 2026-08-23: neither of them</h2>
+    <p>The round produced a <em>third</em> form, and that is the one chosen:
+      <strong>B with A's exit</strong> — the mode of M4 whose <em>„Fertig“</em> archives the trip
+      and opens M14, instead of merely switching the mode off. That removes the last table row, and
+      B keeps everything it wins above: grouping, facets, search, none of it built a second time.</p>
+    <p>The price stands in row three and is paid rather than explained away: <strong>in that
+      posture the row carries exactly one gesture — the tap that marks — and press-and-hold is
+      inert.</strong> A view that asks one question must not answer three; both menu entries are
+      reachable on the same rows a moment earlier. The wording is in FR-9.3.</p>
   </div>
 </div>
 </body></html>`
