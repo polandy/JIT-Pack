@@ -17,6 +17,12 @@ type Outcome string
 const (
 	OutcomeApplied Outcome = "applied"
 	OutcomeMerged  Outcome = "merged"
+	// Neither of the next two is produced by the merge itself: the store
+	// reports them for a mutation it refused and for one it has already
+	// applied. They live here so the four words are one vocabulary rather
+	// than three spellings across three packages (NFR-4.14).
+	OutcomeRejected  Outcome = "rejected"
+	OutcomeDuplicate Outcome = "duplicate"
 )
 
 // Item states that the terminal-precedence rule (NFR-4.2a rule 2) names.
