@@ -50,3 +50,4 @@ __screenshots__/
 .shot-*.mjs
 .repro-*.mjs
 .measure*.mjs
+dist-cli

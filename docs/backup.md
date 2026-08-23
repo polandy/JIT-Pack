@@ -368,11 +368,11 @@ import endpoint**: importing is not something you do with `curl` against this in
 
 Everything above gets data *out*. To put a portable YAML file back **in** from a shell —
 seeding a new instance, restoring on a machine with no screen, replaying a file you edited
-by hand — use the import command that ships with the repository:
+by hand — use the import command that ships with the repository. Build it once with `npm run build:cli` in `client/`, then:
 
 ```bash
-node tools/jitpack-import.mjs my-template.yaml
-node tools/jitpack-import.mjs --server https://jitpack.example.com --token "$TOKEN" backup.yaml
+node client/dist-cli/jitpack-import.mjs my-template.yaml
+node client/dist-cli/jitpack-import.mjs --server https://jitpack.example.com --token "$TOKEN" backup.yaml
 ```
 
 It needs Node, and it talks to a **running** instance over the same sync API the app uses;

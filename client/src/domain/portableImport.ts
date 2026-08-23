@@ -397,6 +397,25 @@ export function importPortableDocument(
  * name is skipped rather than aborting the restore — the rest of the file is
  * still the user's data.
  */
+/**
+ * The merge decisions a *restore* makes on its own (FR-18.4): every name the
+ * inventory already knows is merged, near-duplicates included. There is
+ * nobody to ask — a per-item prompt fifty times over is not a restore — and
+ * the filter is deliberately `existingId` rather than `exact`, so a name the
+ * matcher recognises within a Levenshtein-2 lands on the item it recognised
+ * rather than beside it.
+ */
+export function restoreDecisions(
+  doc: PortableDocument,
+  env: PortableImportEnv,
+): Map<string, string> {
+  const decisions = new Map<string, string>()
+  for (const match of matchPortableItems(doc, env.master.itemList)) {
+    if (match.existingId) decisions.set(match.name, match.existingId)
+  }
+  return decisions
+}
+
 export function importPortableBackup(
   docs: PortableDocument[],
   env: PortableImportEnv,
@@ -408,11 +427,7 @@ export function importPortableBackup(
   const restoredTemplates = new Map<string, string>()
   for (const doc of docs) {
     if (doc.name.trim() === '') continue
-    const decisions = new Map<string, string>()
-    for (const match of matchPortableItems(doc, env.master.itemList)) {
-      if (match.existingId) decisions.set(match.name, match.existingId)
-    }
-    const result = importPortableDocument(doc, decisions, env, restoredTemplates)
+    const result = importPortableDocument(doc, restoreDecisions(doc, env), env, restoredTemplates)
     if (result.kind === 'template') restoredTemplates.set(doc.name, result.id)
     imported.push(result)
   }
