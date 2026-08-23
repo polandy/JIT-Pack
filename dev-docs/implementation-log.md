@@ -5402,6 +5402,14 @@ absorbable only by ticking it as a category row. The alternative — a
 asks for three, paid on every import to protect against a layout not yet seen.
 The revisit trigger is written into FR-16.1: the first sheet read wrong.
 
+**And the same process trap for the third time in two days.** A `git checkout --`
+to undo a mutation proof also took an uncommitted `data-testid` with it; the
+four cases that had just passed went red with "element(s) not found", which
+names the symptom and not the cause. The lesson was already written down twice
+(see the ADR-024 entry) and writing it down is evidently not what fixes it. What
+would: never reach for `checkout --` at all — revert the mutation the same way
+it was made, by editing the line back.
+
 Against the owner's actual file the wizard now proposes 29 named trips with
 their years, 195 items and the 19 real categories, with the two columns whose
 header says nothing left unticked — that last one a deliberate deviation from
