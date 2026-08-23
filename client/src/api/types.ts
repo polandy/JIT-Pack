@@ -157,6 +157,44 @@ export interface PresenceMember {
 }
 
 /**
+ * ConflictEntry is one audited last-write-wins loser. MutationID and
+ * ActorUserID name who lost what: the pair was added with per-field clocks
+ * (ADR-022) and the client's hand-written copy of this type never grew them,
+ * which is the drift this file exists to make impossible.
+ */
+export interface ConflictEntry {
+  id: string
+  entity_table: string
+  entity_id: string
+  field: string
+  losing_value: string
+  winning_value: string
+  mutation_id: string
+  actor_user_id: string
+  resolved_at: string
+  // True once the losing value has been restored by a revert (ADR-023).
+  reverted: boolean
+}
+
+/**
+ * ConflictListResponse is what both conflict endpoints answer — one query
+ * serves the trip partition and the master partition alike.
+ */
+export interface ConflictListResponse {
+  conflicts: ConflictEntry[]
+}
+
+/**
+ * RevertResponse is the §8 RPC envelope. The revert materialises as an
+ * ordinary change-log entry, so the caller learns the new value by pulling
+ * from the hint rather than from this body (Sync-API P-1).
+ */
+export interface RevertResponse {
+  ok: boolean
+  pull_hint: PullHint
+}
+
+/**
  * ErrorCode is the machine-readable half of an error. The client branches on
  * these values, so they are named once here and generated into the client
  * rather than spelled again as literals (CODING_PRINCIPLES §4a).

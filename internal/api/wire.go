@@ -138,6 +138,40 @@ type PresenceMember struct {
 	InSync      bool   `json:"in_sync"`
 }
 
+// --- Conflict log (Sync-API §8, NFR-4.2a) ---
+
+// ConflictEntry is one audited last-write-wins loser. MutationID and
+// ActorUserID name who lost what: the pair was added with per-field clocks
+// (ADR-022) and the client's hand-written copy of this type never grew them,
+// which is the drift this file exists to make impossible.
+type ConflictEntry struct {
+	ID           string `json:"id"`
+	EntityTable  string `json:"entity_table"`
+	EntityID     string `json:"entity_id"`
+	Field        string `json:"field"`
+	LosingValue  string `json:"losing_value"`
+	WinningValue string `json:"winning_value"`
+	MutationID   string `json:"mutation_id"`
+	ActorUserID  string `json:"actor_user_id"`
+	ResolvedAt   string `json:"resolved_at"`
+	// True once the losing value has been restored by a revert (ADR-023).
+	Reverted bool `json:"reverted"`
+}
+
+// ConflictListResponse is what both conflict endpoints answer — one query
+// serves the trip partition and the master partition alike.
+type ConflictListResponse struct {
+	Conflicts []ConflictEntry `json:"conflicts"`
+}
+
+// RevertResponse is the §8 RPC envelope. The revert materialises as an
+// ordinary change-log entry, so the caller learns the new value by pulling
+// from the hint rather than from this body (Sync-API P-1).
+type RevertResponse struct {
+	OK       bool     `json:"ok"`
+	PullHint PullHint `json:"pull_hint"`
+}
+
 // --- Errors (Sync-API §9) ---
 
 // ErrorCode is the machine-readable half of an error. The client branches on

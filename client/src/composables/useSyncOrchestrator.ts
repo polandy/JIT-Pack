@@ -20,7 +20,7 @@ import { CLIENT_ACTOR_PLACEHOLDER, useMutations } from './useMutations'
 import { useSyncStatus } from './useSyncStatus'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
-import type { PullChange, WSEvent } from '@/api/types'
+import type { ConflictEntry, PresenceMember, PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
 import { planClone, type CloneOptions } from '@/domain/clone'
@@ -77,24 +77,12 @@ import type {
 } from '@/types/domain'
 
 /** One entry of a trip's presence facepile (G-10, Sync-API §7). */
-export interface PresenceUser {
-  user_id: string
-  device_count: number
-  in_sync: boolean
-}
-
-/** One audited LWW loser from the trip's conflict log (G-2, NFR-4.2a). */
-export interface ConflictEntry {
-  id: string
-  entity_table: string
-  entity_id: string
-  field: string
-  losing_value: string
-  winning_value: string
-  resolved_at: string
-  /** Whether the losing value has already been restored (NFR-4.2a). */
-  reverted: boolean
-}
+// Both shapes come from the contract now (NFR-4.14). The names are kept as
+// aliases because the screens read this module, not the wire: what changed is
+// that neither can drift from what the server sends — the conflict entry had
+// already lost `mutation_id` and `actor_user_id` that way.
+export type PresenceUser = PresenceMember
+export type { ConflictEntry }
 
 /** Everything the M3 wizard collected before "Create trip". */
 export interface TripWizardDraft {
