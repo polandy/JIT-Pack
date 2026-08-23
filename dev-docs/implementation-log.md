@@ -131,6 +131,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The pull cursor came out of the push (2026-08-22)](#the-pull-cursor-came-out-of-the-push-2026-08-22) — the client took `pull_hint.next_cursor` as its pull cursor, stepping permanently over everything another device wrote while it was away; the e2e case that should have caught it was green against the defect, because three overlapping drains repair the skip by accident, so the assertion moved from the screen to the wire.
 - [An optimistic row is a whole row (2026-08-22)](#an-optimistic-row-is-a-whole-row-2026-08-22) — a partial upsert's fields were applied as the optimistic row, which a store applies by replacing what it holds: saving a trip's name dropped its `status` and took the trip off M2 for good in Local Mode; two of the three lost fields had tests that said otherwise, one of them green only because the seeded year was the current one.
 - [The conflict log had two partitions and one query (2026-08-22)](#the-conflict-log-had-two-partitions-and-one-query-2026-08-22) — NFR-4.2a's audit filtered on `trip_id`, so every master-partition loser was written and read by nothing; the case that makes it matter is `trips`, whose own fields merge there, and the sheet's helpful-sounding hint was what hid it.
+- [`merged` was a quieter `applied` (2026-08-22)](#merged-was-a-quieter-applied-2026-08-22) — the push response's `conflicts[]` was read by no code path, so a mutation that lost a field left the queue exactly like one that applied; one toast per push (never per conflict) plus a standing line in the G-2 sheet, and the e2e assertion had to move because it was racing the toast's own dismissal timer.
 - [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
 - [Field-level LWW was row-level, and "packed always wins" was hiding it (2026-08-22)](#field-level-lww-was-row-level-and-packed-always-wins-was-hiding-it-2026-08-22) — the store kept one `updated_hlc` per row where §6 says per field-group, so an offline pack lost to any unrelated later edit; the backlog's "packed beats everything" branch was the compensation for exactly one state, and narrowing it to the spec alone would have kept the fault and dropped the mask; ADR-022 ships a clock per field and the narrow rule together, and the conflict log now names the losing push and its actor.
 
@@ -4986,6 +4987,37 @@ therefore a reload, not a navigation.
 Corrected on the way past: `ListConflicts`' doc comment claimed rows live
 "until the trip is archived". No compaction exists; they live as long as the
 trip's row does, by `ON DELETE CASCADE`.
+
+## `merged` was a quieter `applied` (2026-08-22)
+
+The push response has carried `conflicts[]` since the protocol was written,
+and the client read it in **no code path at all**. `useSyncOutbox` looked at
+one outcome, `rejected`, so that it could park it; `merged` fell through the
+same branch as `applied` and the mutation left the queue with no record that
+anything of it had been dropped. NFR-4.2a's promise — *every automatic
+resolution is surfaced so users can audit* — was met by a log the user had
+no reason to suspect existed.
+
+**One toast per push, not per conflict.** A reconnect drains a whole queue,
+and a device that was offline through an afternoon can lose fields on a
+dozen mutations at once; one toast each is a wall. The count is summed over
+the push's results and announced once, and the report carries the partition
+so *Ansehen* opens the log that actually holds the detail rather than
+whichever one happened to be reachable.
+
+**The toast tells, the sheet keeps.** A toast reaches someone who was not
+looking — which is the whole defect — but it is gone in six seconds, so the
+detail sheet carries the same count as a standing line for the session. The
+line is deliberately session-scoped: the durable record is the server's log,
+and a client-side tally that pretended to be durable would be a second,
+worse copy of it.
+
+**Where a test learned the same lesson.** The e2e assertion first sat after
+the case's existing M5 steps and passed — comfortably, until you notice it
+was racing the toast's own dismissal timer, which is exactly the kind of
+"passes on this machine" the timing rule exists to forbid. It is asserted
+immediately after the drain now and dismissed by hand, so nothing later
+depends on it still being there.
 
 ## Field-level LWW was row-level, and "packed always wins" was hiding it (2026-08-22)
 
