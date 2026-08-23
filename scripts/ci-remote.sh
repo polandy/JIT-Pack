@@ -34,6 +34,19 @@ if [ "$branch" = "main" ]; then
   exit 1
 fi
 
+# The dispatch checks the commit, not the working tree -- unlike `make ci`,
+# which checks what is on disk. A tracked-but-uncommitted change would there-
+# fore earn a green verdict for code the developer does not have, which is the
+# one failure mode this tool must not have. Untracked files are fine: they
+# cannot be part of what CI would build anyway.
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "ci-remote: tracked changes are not committed. CI would check the commit," >&2
+  echo "           not your working tree, so the verdict would not be about your" >&2
+  echo "           code. Commit (or stash) first:" >&2
+  git status --short --untracked-files=no >&2
+  exit 1
+fi
+
 # The dispatch runs whatever the *remote* branch holds, so an unpushed commit
 # would silently be checked in its absence. Push first, always.
 echo "ci-remote: pushing $branch"
