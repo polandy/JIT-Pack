@@ -421,25 +421,25 @@ async function openRowMenu(item: TripItem) {
               },
             ]
           : skipped
-          ? [
-              {
-                text: t('packing.unskipAction'),
-                icon: refreshOutline,
-                handler: () => onUnskipItem(item),
-              },
-            ]
-          : [
-              {
-                text: t('mode.pack'),
-                icon: contrastOutline,
-                handler: () => onPackingNow(item),
-              },
-              {
-                text: t('packing.skipAction'),
-                icon: closeCircleOutline,
-                handler: () => onSkipItem(item),
-              },
-            ]),
+            ? [
+                {
+                  text: t('packing.unskipAction'),
+                  icon: refreshOutline,
+                  handler: () => onUnskipItem(item),
+                },
+              ]
+            : [
+                {
+                  text: t('mode.pack'),
+                  icon: contrastOutline,
+                  handler: () => onPackingNow(item),
+                },
+                {
+                  text: t('packing.skipAction'),
+                  icon: closeCircleOutline,
+                  handler: () => onSkipItem(item),
+                },
+              ]),
         { text: t('common.cancel'), role: 'cancel' },
       ],
     })
@@ -1375,10 +1375,18 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                     <p v-if="lockNote(child.item)" class="stamp" data-testid="m4-lock-note">
                       {{ lockNote(child.item) }}
                     </p>
-                    <p v-else-if="ownClaimNote(child.item)" class="stamp" data-testid="m4-own-claim">
+                    <p
+                      v-else-if="ownClaimNote(child.item)"
+                      class="stamp"
+                      data-testid="m4-own-claim"
+                    >
                       {{ ownClaimNote(child.item) }}
                     </p>
-                    <p v-else-if="staleClaimNote(child.item)" class="stamp stale" data-testid="m4-stale-claim">
+                    <p
+                      v-else-if="staleClaimNote(child.item)"
+                      class="stamp stale"
+                      data-testid="m4-stale-claim"
+                    >
                       {{ staleClaimNote(child.item) }}
                     </p>
                     <p v-else-if="skippedNote(child.item)" class="stamp">
@@ -1455,7 +1463,11 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                   <p v-else-if="ownClaimNote(entry.item)" class="stamp" data-testid="m4-own-claim">
                     {{ ownClaimNote(entry.item) }}
                   </p>
-                  <p v-else-if="staleClaimNote(entry.item)" class="stamp stale" data-testid="m4-stale-claim">
+                  <p
+                    v-else-if="staleClaimNote(entry.item)"
+                    class="stamp stale"
+                    data-testid="m4-stale-claim"
+                  >
                     {{ staleClaimNote(entry.item) }}
                   </p>
                   <p v-else-if="skippedNote(entry.item)" class="stamp">
