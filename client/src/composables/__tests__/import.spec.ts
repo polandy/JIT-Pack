@@ -123,6 +123,39 @@ describe('commitImport (FR-16.2)', () => {
     expect(todos[0]!.task_state).toBe('open')
   })
 
+  /**
+   * The wire order, not the store's. A tag assignment points at an item by
+   * foreign key, so a server applying the batch in order refuses every one of
+   * them when the link is enqueued before the row it links to — and nothing on
+   * the importing device can tell, because its own store took both
+   * optimistically. The whole inventory arrived untagged (found 2026-08-23 by
+   * importing into the real instance on :3000).
+   */
+  it('enqueues every master item before the tag assignment that references it', async () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+
+    orch.commitImport(plan)
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
+
+    const pushed = fetchMock.mock.calls
+      .map(([, init]) => init?.body)
+      .filter((b): b is string => typeof b === 'string')
+      .flatMap((b) => JSON.parse(b).mutations ?? [])
+
+    const seenItems = new Set<string>()
+    const orphans: string[] = []
+    for (const m of pushed) {
+      if (m.table === 'items') seenItems.add(m.id)
+      else if (m.table === 'item_tags' && !seenItems.has(m.fields.item_id)) {
+        orphans.push(m.fields.item_id)
+      }
+    }
+
+    expect(orphans, 'item_tags pushed before the items they name').toEqual([])
+    // A positive signal: the assertion above is vacuous if nothing was pushed.
+    expect(pushed.filter((m) => m.table === 'item_tags').length).toBeGreaterThan(0)
+  })
+
   it('reuses an existing category instead of duplicating it', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const master = useMasterStore()
