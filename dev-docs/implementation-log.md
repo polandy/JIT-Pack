@@ -135,6 +135,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
 - [Field-level LWW was row-level, and "packed always wins" was hiding it (2026-08-22)](#field-level-lww-was-row-level-and-packed-always-wins-was-hiding-it-2026-08-22) — the store kept one `updated_hlc` per row where §6 says per field-group, so an offline pack lost to any unrelated later edit; the backlog's "packed beats everything" branch was the compensation for exactly one state, and narrowing it to the spec alone would have kept the fault and dropped the mask; ADR-022 ships a clock per field and the narrow rule together, and the conflict log now names the losing push and its actor.
 - [The sheet's glyph rode half a line high (2026-08-23)](#the-sheets-glyph-rode-half-a-line-high-2026-08-23) — an eyeball of the merged conflict-log work found two rendering defects that every gate had passed: a state glyph aligned to a title *block* whose `h1` carried a 20 px margin nothing asked for, and an empty state that had copied the house pattern without its padding; the review corrected the entry's own first answer — a visual baseline would **not** have caught the offset either, at 591 px against a 0.002 gate, so what let both live is that nothing measured them.
+- [A hidden element is not a small element (2026-08-23)](#a-hidden-element-is-not-a-small-element-2026-08-23) — the toast-on-the-tab-bar fix was three lines; what it cost was two wrong measurements, both from a box of height zero: a `display: none` anchor makes Ionic subtract a whole viewport instead of clearing the bar, and the geometric test that should have caught the defect first failed against a hidden bar at the origin, where *every* overlap assertion resolves in both directions.
 
 ## Current state
 
@@ -5128,3 +5129,46 @@ user-agent margin is none of those, and neither is a missing padding. This is
 the same lesson invariant 9b already carries from the M4 group card that
 painted itself the exact colour of the page behind it: a rule can be satisfied
 completely and the result can still be wrong, and only a rendered pixel says so.
+
+## A hidden element is not a small element (2026-08-23)
+
+FR-9.4's last point was a two-number defect: at 430×932 the toast occupied
+876–924 and the navigation bar 875–932, so every confirmation in the app was
+written across the four tab labels. Ionic has the answer built in —
+`positionAnchor` puts a `position: 'bottom'` toast *above* a named element —
+and **five of the nine call sites had already found it**, passing their own
+screen's FAB. Four had not. One of the five even carried the comment *„Above
+the FAB rather than behind the tab bar"*, which is the shape of a rule that
+lives in nine places: it was known, written down, and still missed four times.
+So the fix is not an anchor at four more call sites; it is `lib/toast.ts`,
+and the choice stops being per screen.
+
+What is worth recording is not that, though. It is that **the same
+zero-height box produced two wrong answers in one afternoon**, in opposite
+directions.
+
+**First, in the production code.** The obvious implementation is "anchor to
+the tab bar if it exists". It exists on every screen but M4 — above 900 px it
+is merely `display: none`, because G-9 hands the job to the rail. Ionic
+measures the anchor with `getBoundingClientRect()` and computes
+`offset -= innerHeight - box.top`; against a zeroed box that subtracts a whole
+viewport height and throws the toast off the screen. A hidden bar therefore
+has to read as *no bar*, not as a bar of height zero — the helper checks the
+measured height rather than the element's presence. Ionic warns about this
+(`warnIfAnchorIsHidden`), into a console nobody was reading.
+
+**Then, in the test.** E2E-M22-09 asserts the toast's bottom edge against the
+bar's top edge. It failed on the first run — and for the wrong reason: the
+Playwright project is Desktop Chrome at 1280 px, where that same
+`display: none` bar reports `top: 0`, so the assertion read
+`924 <= 0`. Red, convincingly, and about nothing. A hidden element does not
+merely measure small: it measures as a point at the origin, and **every**
+geometric assertion resolves against it, in whichever direction the operator
+happens to point. The case now sets a phone viewport and asserts both boxes
+have height *before* comparing them — the positive signal a negative
+assertion needs, applied to geometry rather than to a rendered control.
+
+The one call site left on `toastController` is M4's pack announcement, and
+deliberately: it creates, checks a liveness flag, arms its dismiss handler and
+only then presents. A helper that presents on creation would put the snackbar
+on screen before the check that decides it must not be.
