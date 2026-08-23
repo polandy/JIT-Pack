@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * FR-28.2/28.3 — the one picker M10 and M8 both open.
  *

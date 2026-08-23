@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * M21's screen-level rules (FR-27.5). The recognition and the write plan are
  * domain-owned and the reachable flow is E2E-M21-01…03b; what is pinned here

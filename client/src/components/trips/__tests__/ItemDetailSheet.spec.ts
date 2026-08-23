@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * M5 — the FR-9.1 trip-feedback control behind *Details ▾* (UI-Spec M5).
  *

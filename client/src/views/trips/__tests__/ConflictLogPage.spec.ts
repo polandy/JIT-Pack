@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * G-2's conflict log and its revert control (NFR-4.2a, ADR-023). The
  * reachable happy path is E2E-G2-07; what is pinned here is the half a

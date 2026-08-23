@@ -137,6 +137,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Field-level LWW was row-level, and "packed always wins" was hiding it (2026-08-22)](#field-level-lww-was-row-level-and-packed-always-wins-was-hiding-it-2026-08-22) — the store kept one `updated_hlc` per row where §6 says per field-group, so an offline pack lost to any unrelated later edit; the backlog's "packed beats everything" branch was the compensation for exactly one state, and narrowing it to the spec alone would have kept the fault and dropped the mask; ADR-022 ships a clock per field and the narrow rule together, and the conflict log now names the losing push and its actor.
 - [The sheet's glyph rode half a line high (2026-08-23)](#the-sheets-glyph-rode-half-a-line-high-2026-08-23) — an eyeball of the merged conflict-log work found two rendering defects that every gate had passed: a state glyph aligned to a title *block* whose `h1` carried a 20 px margin nothing asked for, and an empty state that had copied the house pattern without its padding; the review corrected the entry's own first answer — a visual baseline would **not** have caught the offset either, at 591 px against a 0.002 gate, so what let both live is that nothing measured them.
 - [The lock stopped at the row (2026-08-22)](#the-lock-stopped-at-the-row-2026-08-22) — G-3's padlock was on M4's row and nowhere else, so the row you could not pack from the list was fully editable one tap deeper, and the sheet *accepted* the edit before the next merge threw it away; no screen named the holder; and §7's promised environment variable for the staleness window had never existed as anything but a client constant. What the backlog also asked for — server-side lock enforcement — is what §7 deliberately does not do, and it is left to the owner rather than built.
+- [Every spec paid for a DOM, and one of them was green for the wrong reason (2026-08-23)](#every-spec-paid-for-a-dom-and-one-of-them-was-green-for-the-wrong-reason-2026-08-23) — the suite built a jsdom window for all 114 spec files when 32 use one, costing ~48 % of its wall-clock; the premise that started the work was itself wrong (a cold-cache run read 252 s where the warm figure is 88 s), and the interesting find is the failure mode of the fix: a missing `@vitest-environment jsdom` is *not* reliably a red test, because production code that reads a DOM global inside a `try` takes the `catch` instead and the spec passes while exercising the error path.
 
 ## Current state
 
@@ -5260,3 +5261,65 @@ together — the coupling defined once, where the merge already defines it,
 rather than a second list in the store that could drift from the first.
 Independent fields stay independently revertable; the log lists them apart
 because they *are* apart.
+
+## Every spec paid for a DOM, and one of them was green for the wrong reason (2026-08-23)
+
+Asked whether this project would be worth developing on a bigger machine, the
+answer had to start with a measurement rather than an opinion — and the first
+measurement was wrong in a way worth recording, because it is the easy mistake
+to make here. A single `npx vitest run` on a cold checkout reported **252 s**,
+with `environment` at 483 s cumulative. Both numbers are Vite's dep-prebundling
+and transform caches being empty. Warm, and repeated, the suite runs in **88 s**
+with `environment` at 166 s. **A one-shot timing of a Vite-based suite measures
+the cache, not the suite**; every figure below is the median of load-controlled
+interleaved runs.
+
+What the honest number still showed: `environment` was the largest single
+component of the run — 166 s cumulative against 14 s of actual test execution —
+because `vitest.config.ts` set `environment: 'jsdom'` globally and Vitest builds
+a jsdom window per file, at roughly 1.5 s each. Of 114 spec files, **32 need
+one**. The other 82 are the pure domain rules (invariant 4), the stores, the
+sync layer and the theme assertions, and they were each paying about a second
+and a half for a DOM they never touch.
+
+The fix is per-file: the default is `node`, and a spec that needs a window says
+so with a `@vitest-environment jsdom` docblock. 88 s → 45 s, with the same 114
+files and the same 1251 tests.
+
+**The part that is not mechanical, and the reason this entry exists.** The
+obvious way to find the 32 files is to flip the default and keep whatever turns
+red. That is very nearly right, and it is wrong in one specific place. Production
+code that reads a DOM global defensively does not fail under `node` — it takes
+its own error path:
+
+    // useInventoryProperties.ts
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      ...
+    } catch { /* ignore */ }
+
+Under `node` there is no `localStorage`, so the `getItem` throws a
+`ReferenceError`, the `catch` swallows it, and `inventoryProperties.spec.ts`
+**passes** — while testing the ignore-the-failure branch instead of the read-back
+branch it was written for. Red tests do not find this. Grep does not find it
+either: the spec never mentions a DOM global, its subject does, three imports
+away.
+
+What found it was a **coverage diff between the two configurations** — same
+suite, run once with `jsdom` everywhere and once with the new per-file split,
+compared per file. Total line coverage was identical at 4167; branch coverage
+was down by exactly one, in exactly that file. After adding the docblock there,
+both totals match the old configuration exactly (4167 lines, 2714 branches),
+which is the actual evidence that the change is behaviour-preserving — the green
+suite by itself is not, and would not have been.
+
+No gate was added for this. A gate would have to decide whether a spec's
+*transitive* subject touches a DOM global, and the honest versions of that check
+are either loose enough to miss the next `try`/`catch` or tight enough to push
+most of the 82 files back onto jsdom and undo the change. The trap is written
+into `vitest.config.ts` instead, next to the setting that causes it, with the
+coverage diff named as the check that catches it.
+
+Left deliberately alone: the 32 jsdom files are not a target to shrink. Several
+of them could be rewritten to stub what they need, and the second and a half
+each is not worth the loss of a real DOM in a component test.
