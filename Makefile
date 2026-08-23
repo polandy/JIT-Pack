@@ -34,7 +34,7 @@ endif
 # Everything CI checks that runs fast and needs no browser or docker daemon.
 # `e2e` (Playwright browsers) and `docker-build` (needs dockerd) are separate
 # on purpose — run them explicitly when you touch the client UI or the image.
-ci: pins log-index fmt-check test tidy-check go-lint client
+ci: pins log-index proxy-host fmt-check test tidy-check go-lint client
 
 # Cheap and first: the toolchain majors are named in three files each, and a
 # disagreement is invisible to every other check (see the script's header).
@@ -46,6 +46,12 @@ pins:
 # nothing else can see that.
 log-index:
 	@$(RUN) node scripts/log-index-gate.mjs
+
+# And beside those two: the browser's Host header must reach the backend
+# with its port, or the WebSocket handshake is refused while every REST
+# call stays green — a failure no other check can see (see the script).
+proxy-host:
+	@$(RUN) node scripts/proxy-host-gate.mjs
 
 # The full set, including the two slow jobs.
 all: ci e2e docker-build

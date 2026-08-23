@@ -99,14 +99,26 @@ The second half of the same cause is upgrade headers: even with `/ws` routed, th
 must pass `Upgrade` and `Connection` through and must not impose a short idle timeout that
 kills an otherwise healthy socket.
 
-**Fix:** route `/ws` to the backend and allow the WebSocket upgrade.
+A third cause — and the one that actually happened to this project's own reference
+setup — is the `Host` header. The handshake is checked for same origin: `jitpackd`
+compares the browser's `Origin` against the `Host` it was given, and the browser's
+`Origin` **carries the port**. An nginx proxy that forwards `proxy_set_header Host $host`
+strips the port off, so an instance published on `:3000` is answered `403` on every dial
+even though the hostname matches. Use `$http_host`, which forwards what the browser sent.
+The tell is in the backend log: `request Origin "…:3000" is not authorized for Host "…"`,
+with the two names differing.
+
+**Fix:** route `/ws` to the backend, allow the WebSocket upgrade, and forward the
+browser's `Host` unchanged.
 [Installation](installation.md) has working reverse-proxy configuration; the reference
 Docker setup proxies `/api`, `/ws`, and `/health`.
 
 To confirm the socket is the problem, watch for a `101 Switching Protocols` in your proxy
-access log when the client connects. Browsers cannot set headers on a WebSocket dial, so
-the client passes its token as a `?token=` query parameter instead — make sure your proxy
-does not strip the query string.
+access log when the client connects. If you reproduce the handshake with `curl`, send the
+`Origin` header too: the same-origin check is skipped entirely when it is absent, so
+without it the command succeeds against a proxy every real browser is refused by.
+Browsers cannot set headers on a WebSocket dial, so the client passes its token as a
+`?token=` query parameter instead — make sure your proxy does not strip the query string.
 
 On a **single-user instance** there is no token, and the client dials `/ws` with no query
 string at all. An access-log line without `?token=` is correct there, not a stripped
