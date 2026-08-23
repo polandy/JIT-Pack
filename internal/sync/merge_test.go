@@ -362,3 +362,96 @@ func TestGroupedWith_CoupledFieldsTravelTogether(t *testing.T) {
 		})
 	}
 }
+
+// A conflict entry is a record of a value that was *overwritten*
+// (NFR-4.2a). A field the losing push carried unchanged overwrote
+// nothing, so it is not one — it would otherwise fill the log with
+// "2026 → 2026" rows, each offering a revert that restores what is
+// already there.
+func TestMerge_UnchangedFieldCarriedAlong_IsNotAConflict(t *testing.T) {
+	m := Mutation{
+		Op:     OpUpsert,
+		Fields: map[string]any{"quantity": 9, "name": "Unterhosen"},
+		HLC:    olderHLC,
+	}
+
+	res := Merge(rowAt(openItem(), rowHLC), m)
+
+	if !hasConflictFor(res.Conflicts, "quantity") {
+		t.Errorf("the changed field must still conflict, got %v", res.Conflicts)
+	}
+	if hasConflictFor(res.Conflicts, "name") {
+		t.Errorf("name was carried along unchanged and overwrote nothing, got %v", res.Conflicts)
+	}
+}
+
+// The outcome follows from the same rule: a push that lost every field it
+// carried, but changed none of them, has nothing to announce. Without
+// this the client's merge toast (Sync-API §5) reports overwritten fields
+// to a user whose data was never touched.
+func TestMerge_LosingPushThatChangedNothing_IsApplied(t *testing.T) {
+	m := Mutation{
+		Op:     OpUpsert,
+		Fields: map[string]any{"name": "Unterhosen", "quantity": 5},
+		HLC:    olderHLC,
+	}
+
+	res := Merge(rowAt(openItem(), rowHLC), m)
+
+	if res.Outcome != OutcomeApplied {
+		t.Errorf("outcome = %q, want %q (conflicts: %v)", res.Outcome, OutcomeApplied, res.Conflicts)
+	}
+	if len(res.Conflicts) != 0 {
+		t.Errorf("conflicts = %v, want none", res.Conflicts)
+	}
+}
+
+// The coupled group is dropped as a unit by rule 2, but "dropped" and
+// "overwritten" are still two different things (FR-5.4).
+func TestMerge_UnchangedStateGroup_IsNotAConflict(t *testing.T) {
+	m := Mutation{
+		Op:     OpUpsert,
+		Fields: map[string]any{"state": "packed", "packed_count": 5},
+		HLC:    olderHLC,
+	}
+
+	res := Merge(rowAt(packedItem(), rowHLC), m)
+
+	if len(res.Conflicts) != 0 {
+		t.Errorf("conflicts = %v, want none: the group already holds these values", res.Conflicts)
+	}
+}
+
+// The values being compared come from two different worlds: the mutation's
+// are decoded from JSON (float64, bool), the row's from SQLite (int64, and
+// 0/1 for booleans). Comparing them with == would call every one of these
+// pairs a conflict, which is the defect this exists to prevent.
+func TestSameValue_ComparesAcrossTheJSONAndSQLiteTypes(t *testing.T) {
+	cases := []struct {
+		name string
+		a, b any
+		want bool
+	}{
+		{"json number against sqlite integer", float64(2026), int64(2026), true},
+		{"json number against a plain int", float64(5), 5, true},
+		{"different numbers", float64(6), int64(3), false},
+		{"json true against sqlite 1", true, int64(1), true},
+		{"json false against sqlite 0", false, int64(0), true},
+		{"json false against sqlite 1", false, int64(1), false},
+		{"equal strings", "Zelt", "Zelt", true},
+		{"different strings", "Zelt", "Zelt (gross)", false},
+		{"both null", nil, nil, true},
+		{"null against a value", nil, "2026-07-25", false},
+		{"a string is never its numeric twin", "5", int64(5), false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := sameValue(tc.a, tc.b); got != tc.want {
+				t.Errorf("sameValue(%#v, %#v) = %v, want %v", tc.a, tc.b, got, tc.want)
+			}
+			if got := sameValue(tc.b, tc.a); got != tc.want {
+				t.Errorf("sameValue is not symmetric: (%#v, %#v) = %v, want %v", tc.b, tc.a, got, tc.want)
+			}
+		})
+	}
+}
