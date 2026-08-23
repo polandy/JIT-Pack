@@ -43,20 +43,19 @@ func TestListUsers_Directory(t *testing.T) {
 // trip plus roster and gains trip-partition access.
 func TestMasterPush_ShareTripGrantsAccess(t *testing.T) {
 	srv := newTestServer(t)
-	masterURL := srv.URL + "/api/v1/sync/master"
 
 	body := map[string]any{"mutations": []any{
 		masterMutation("trips", "trip-shared", "sh-1", "insert",
 			map[string]any{"name": "Geteilt", "year": 2026, "end_date": "2026-09-01", "status": "planning"},
 			"0000000001000-0000-aaaaaaaa"),
 	}}
-	resp, raw := doJSON(t, http.MethodPost, masterURL, token(t, userA, testSecret), body)
+	resp, raw := doJSON(t, http.MethodPost, masterURL(srv), token(t, userA, testSecret), body)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("create push status = %d, body %s", resp.StatusCode, raw)
 	}
 
 	// The stranger has no access yet.
-	resp, _ = doJSON(t, http.MethodGet, srv.URL+"/api/v1/sync/trips/trip-shared?cursor=0",
+	resp, _ = doJSON(t, http.MethodGet, srv.URL+"/api/v1/trips/trip-shared/sync?cursor=0",
 		token(t, "user-x", testSecret), nil)
 	if resp.StatusCode != http.StatusForbidden {
 		t.Fatalf("pre-share trip pull status = %d, want 403", resp.StatusCode)
@@ -67,7 +66,7 @@ func TestMasterPush_ShareTripGrantsAccess(t *testing.T) {
 			map[string]any{"trip_id": "trip-shared", "user_id": "user-x", "role": "editor"},
 			"0000000002000-0000-aaaaaaaa"),
 	}}
-	resp, raw = doJSON(t, http.MethodPost, masterURL, token(t, userA, testSecret), body)
+	resp, raw = doJSON(t, http.MethodPost, masterURL(srv), token(t, userA, testSecret), body)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("share push status = %d, body %s", resp.StatusCode, raw)
 	}
@@ -84,7 +83,7 @@ func TestMasterPush_ShareTripGrantsAccess(t *testing.T) {
 	}
 
 	// The new member's master pull now delivers the trip and the roster.
-	resp, raw = doJSON(t, http.MethodGet, masterURL+"?cursor=0", token(t, "user-x", testSecret), nil)
+	resp, raw = doJSON(t, http.MethodGet, masterURL(srv)+"?cursor=0", token(t, "user-x", testSecret), nil)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("member master pull status = %d, body %s", resp.StatusCode, raw)
 	}
@@ -110,7 +109,7 @@ func TestMasterPush_ShareTripGrantsAccess(t *testing.T) {
 	}
 
 	// …and trip-partition access works.
-	resp, raw = doJSON(t, http.MethodGet, srv.URL+"/api/v1/sync/trips/trip-shared?cursor=0",
+	resp, raw = doJSON(t, http.MethodGet, srv.URL+"/api/v1/trips/trip-shared/sync?cursor=0",
 		token(t, "user-x", testSecret), nil)
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("post-share trip pull status = %d, body %s", resp.StatusCode, raw)

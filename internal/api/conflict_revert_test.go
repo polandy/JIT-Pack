@@ -214,17 +214,17 @@ func TestRevertMasterConflict_RestoresTheLoser_NFR42a(t *testing.T) {
 		m := mutation("tpl-rv", mutID, "upsert", fields, hlc)
 		m["table"] = "templates"
 		body := map[string]any{"mutations": []any{m}}
-		resp, raw := doJSON(t, http.MethodPost, srv.URL+"/api/v1/sync/master", token(t, userA, testSecret), body)
+		resp, raw := doJSON(t, http.MethodPost, masterURL(srv), token(t, userA, testSecret), body)
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("push status = %d, body %s", resp.StatusCode, raw)
 		}
 	}
 	push("mrv-1", "0000000002000-0000-bbbbbbbb", map[string]any{"owner_id": userA, "name": "Ferien"})
 	push("mrv-2", "0000000001000-0000-aaaaaaaa", map[string]any{"name": "Sommerferien"})
-	id := firstConflictID(t, srv, "/api/v1/conflicts/master")
+	id := firstConflictID(t, srv, "/api/v1/master/conflicts")
 
 	resp, raw := doJSON(t, http.MethodPost,
-		srv.URL+"/api/v1/conflicts/master/"+id+"/revert",
+		srv.URL+"/api/v1/master/conflicts/"+id+"/revert",
 		token(t, userA, testSecret), nil)
 
 	if resp.StatusCode != http.StatusOK {
@@ -246,7 +246,7 @@ func TestRevertMasterConflict_TripEntryIsNotInTheMasterLog_NFR42a(t *testing.T) 
 	id := seedTripConflict(t, srv)
 
 	resp, _ := doJSON(t, http.MethodPost,
-		srv.URL+"/api/v1/conflicts/master/"+id+"/revert",
+		srv.URL+"/api/v1/master/conflicts/"+id+"/revert",
 		token(t, userA, testSecret), nil)
 
 	if resp.StatusCode != http.StatusNotFound {
@@ -257,7 +257,7 @@ func TestRevertMasterConflict_TripEntryIsNotInTheMasterLog_NFR42a(t *testing.T) 
 func TestRevertMasterConflict_RequiresAuth(t *testing.T) {
 	srv := newTestServer(t)
 
-	resp, _ := doJSON(t, http.MethodPost, srv.URL+"/api/v1/conflicts/master/any/revert", "", nil)
+	resp, _ := doJSON(t, http.MethodPost, srv.URL+"/api/v1/master/conflicts/any/revert", "", nil)
 
 	if resp.StatusCode != http.StatusUnauthorized {
 		t.Errorf("status = %d, want 401", resp.StatusCode)
@@ -296,7 +296,7 @@ func TestRevertMasterConflict_VisibleButUnwritableIsForbidden_NFR42a(t *testing.
 	}
 
 	resp, raw := doJSON(t, http.MethodPost,
-		srv.URL+"/api/v1/conflicts/master/cf-owner/revert", token(t, userA, testSecret), nil)
+		srv.URL+"/api/v1/master/conflicts/cf-owner/revert", token(t, userA, testSecret), nil)
 
 	if resp.StatusCode != http.StatusForbidden {
 		t.Fatalf("status = %d, want 403, body %s", resp.StatusCode, raw)

@@ -91,12 +91,12 @@ func TestExportFull_VisibilityFiltered(t *testing.T) {
 				"hlc":    "0000000001001-0000-bbbbbbbb"},
 		},
 	}
-	if resp, raw := doJSON(t, http.MethodPost, srv.URL+"/api/v1/sync/master",
+	if resp, raw := doJSON(t, http.MethodPost, masterURL(srv),
 		token(t, userB, testSecret), push); resp.StatusCode != http.StatusOK {
 		t.Fatalf("master push status = %d, body: %s", resp.StatusCode, raw)
 	}
 
-	resp, raw := doJSON(t, http.MethodGet, srv.URL+"/api/v1/export/full",
+	resp, raw := doJSON(t, http.MethodGet, srv.URL+"/api/v1/me/export.json",
 		token(t, userA, testSecret), nil)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, body: %s", resp.StatusCode, raw)

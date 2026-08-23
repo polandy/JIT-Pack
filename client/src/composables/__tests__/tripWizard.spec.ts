@@ -174,8 +174,8 @@ describe('createTripFromWizard', () => {
     await vi.waitFor(() => expect(fetchMock.mock.calls.length).toBe(4))
 
     const urls = fetchMock.mock.calls.map((c) => String(c[0]))
-    expect(urls[0]).toContain('/api/v1/sync/master')
-    expect(urls[2]).toContain(`/api/v1/sync/trips/${tripId}`)
+    expect(urls[0]).toContain('/api/v1/master/sync')
+    expect(urls[2]).toContain(`/api/v1/trips/${tripId}/sync`)
   })
 
   it('accepts companion rows without a source template (FR-20.2)', async () => {
@@ -267,7 +267,7 @@ describe('createTripFromWizard', () => {
 
     const charger = tripStore.getItems(tripId).find((i) => i.name === 'Ladegerät')!
     const tripPush = fetchMock.mock.calls.find((c) =>
-      String(c[0]).includes(`/sync/trips/${tripId}`),
+      String(c[0]).includes(`/trips/${tripId}/sync`),
     )
     const mutations = JSON.parse(String(tripPush![1].body)).mutations as {
       table: string

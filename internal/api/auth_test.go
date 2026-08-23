@@ -304,7 +304,7 @@ func TestAuthToken_BrokersLoginAndIssuesFirstPartySession(t *testing.T) {
 		masterMutation("items", "item-oidc", "ao-1", "insert",
 			map[string]any{"name": "Stirnlampe"}, "0000000001000-0000-aaaaaaaa"),
 	}}
-	resp, raw = doJSON(t, http.MethodPost, srv.URL+"/api/v1/sync/master", out.AccessToken, body)
+	resp, raw = doJSON(t, http.MethodPost, masterURL(srv), out.AccessToken, body)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("push with session token: status = %d, body %s", resp.StatusCode, raw)
 	}
