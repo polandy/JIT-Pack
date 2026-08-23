@@ -5699,6 +5699,15 @@ holds every nginx sample in the repository, the manual's fenced blocks included,
 to `$http_host`; it is the fourth gate written for the same reason as the other
 three, which is a claim a document makes about itself that nothing checks.
 
+**One option was weighed and rejected**, because it is the first thing anybody
+reaches for when a handshake answers `403`: giving the server an allow-list —
+`websocket.AcceptOptions.OriginPatterns` behind a `JITPACK_ALLOWED_ORIGINS`
+variable. It was not taken. It would have made a correct check configurable in
+order to accommodate a proxy that was misconfigured by us, and it would have
+put the operator in charge of a security boundary to work around a one-word
+edit in our own file. If a deployment ever genuinely needs an origin that is
+not its own host, that is when the variable earns its place.
+
 Measured on the running stack rather than reasoned about: `403` with the message
 above before, `101 Switching Protocols` after reloading nginx with the fixed
 config, REST unaffected in both directions.
