@@ -81,61 +81,6 @@ func seedOwner(t *testing.T, st *store.Store) {
 	}
 }
 
-func TestImportTemplate(t *testing.T) {
-	st := openTestStore(t)
-	ctx := context.Background()
-
-	// Seed owner user.
-	if _, err := st.DB().Exec(
-		`INSERT INTO users (id, oidc_subject, display_name) VALUES ('u1', 'auth|u1', 'Alice')`); err != nil {
-		t.Fatalf("seed user: %v", err)
-	}
-
-	doc := portable.Document{
-		Kind:          "template",
-		SchemaVersion: 1,
-		Name:          "Imported Template",
-		Items: []portable.Item{
-			{Name: "Toothbrush", Quantity: 1, Assignment: "per_person"},
-			{Name: "Sunscreen", Quantity: 2, Assignment: "trip_global",
-				DefaultMode: "buy_before", LatePacker: true, Dedup: "sum"},
-		},
-	}
-
-	templateID, err := st.ImportTemplate(ctx, "u1", doc)
-	if err != nil {
-		t.Fatalf("ImportTemplate: %v", err)
-	}
-	if templateID == "" {
-		t.Fatal("templateID is empty")
-	}
-
-	// Verify by re-exporting.
-	got, err := st.ExportTemplate(ctx, templateID)
-	if err != nil {
-		t.Fatalf("re-export: %v", err)
-	}
-	if got.Name != "Imported Template" {
-		t.Errorf("name = %q", got.Name)
-	}
-	if len(got.Items) != 2 {
-		t.Fatalf("items = %d, want 2", len(got.Items))
-	}
-	// Items sorted by name.
-	if got.Items[0].Name != "Sunscreen" {
-		t.Errorf("items[0].name = %q", got.Items[0].Name)
-	}
-	if got.Items[0].DefaultMode != "buy_before" {
-		t.Errorf("items[0].default_mode = %q", got.Items[0].DefaultMode)
-	}
-	if !got.Items[0].LatePacker {
-		t.Error("items[0].late_packer should be true")
-	}
-	if got.Items[0].Dedup != "sum" {
-		t.Errorf("items[0].dedup = %q", got.Items[0].Dedup)
-	}
-}
-
 func TestExportTrip(t *testing.T) {
 	st := openTestStore(t)
 	ctx := context.Background()
@@ -219,116 +164,39 @@ func TestExportTrip_NotFound(t *testing.T) {
 	}
 }
 
-func TestImportTrip(t *testing.T) {
-	st := openTestStore(t)
-	ctx := context.Background()
-
-	// Seed owner user.
-	if _, err := st.DB().Exec(
-		`INSERT INTO users (id, oidc_subject, display_name) VALUES ('u1', 'auth|u1', 'Alice')`); err != nil {
-		t.Fatalf("seed user: %v", err)
-	}
-
-	doc := portable.Document{
-		Kind:          "trip",
-		SchemaVersion: 1,
-		Name:          "Imported Trip",
-		StartDate:     "2026-08-01",
-		EndDate:       "2026-08-10",
-		Travelers: []portable.Traveler{
-			{Name: "Andy"},
-		},
-		Containers: []portable.Container{
-			{Name: "Backpack", Carrier: "Andy", MaxWeightGrams: 8000},
-		},
-		Items: []portable.Item{
-			{Name: "Toothbrush", Quantity: 1, Mode: "pack", Category: "Toiletries",
-				Traveler: "Andy", Container: "Backpack"},
-			{Name: "Socks", Quantity: 3, Mode: "buy_before"},
-		},
-	}
-
-	tripID, err := st.ImportTrip(ctx, "u1", doc)
-	if err != nil {
-		t.Fatalf("ImportTrip: %v", err)
-	}
-	if tripID == "" {
-		t.Fatal("tripID is empty")
-	}
-
-	// Verify by re-exporting.
-	got, err := st.ExportTrip(ctx, tripID, false)
-	if err != nil {
-		t.Fatalf("re-export: %v", err)
-	}
-	if got.Name != "Imported Trip" {
-		t.Errorf("name = %q", got.Name)
-	}
-	if got.StartDate != "2026-08-01" {
-		t.Errorf("start_date = %q", got.StartDate)
-	}
-	if len(got.Travelers) != 1 {
-		t.Fatalf("travelers = %d", len(got.Travelers))
-	}
-	if got.Travelers[0].Name != "Andy" {
-		t.Errorf("traveler = %q", got.Travelers[0].Name)
-	}
-	if len(got.Containers) != 1 {
-		t.Fatalf("containers = %d", len(got.Containers))
-	}
-	if got.Containers[0].Carrier != "Andy" {
-		t.Errorf("carrier = %q", got.Containers[0].Carrier)
-	}
-	if got.Containers[0].MaxWeightGrams != 8000 {
-		t.Errorf("max_weight = %d", got.Containers[0].MaxWeightGrams)
-	}
-	if len(got.Items) != 2 {
-		t.Fatalf("items = %d", len(got.Items))
-	}
-	// Items sorted by name.
-	if got.Items[0].Name != "Socks" {
-		t.Errorf("items[0].name = %q", got.Items[0].Name)
-	}
-	if got.Items[0].Mode != "buy_before" {
-		t.Errorf("items[0].mode = %q", got.Items[0].Mode)
-	}
-	if got.Items[1].Traveler != "Andy" {
-		t.Errorf("items[1].traveler = %q", got.Items[1].Traveler)
-	}
-	if got.Items[1].Container != "Backpack" {
-		t.Errorf("items[1].container = %q", got.Items[1].Container)
+// seedComposedTemplate writes a Ferien-Vorlage that includes one group, with
+// marks on all three levels and a preparation task on a group position — the
+// fixture both §3.27 export promises are read from.
+func seedComposedTemplate(t *testing.T, st *store.Store) {
+	t.Helper()
+	for _, q := range []string{
+		`INSERT INTO templates (id, owner_id, name, kind, icon) VALUES ('tpl', 'u1', 'Fototage', 'template', '📷')`,
+		`INSERT INTO templates (id, owner_id, name, kind, icon) VALUES ('grp', 'u1', 'Makro Fotografie', 'group', '⛺')`,
+		`INSERT INTO template_includes (id, template_id, included_template_id) VALUES ('inc', 'tpl', 'grp')`,
+		`INSERT INTO items (id, name, icon) VALUES ('cam', 'Kamera', '📸')`,
+		`INSERT INTO items (id, name) VALUES ('ring', 'Ringlicht')`,
+		`INSERT INTO items (id, name) VALUES ('med', 'Reiseapotheke')`,
+		`INSERT INTO template_items (id, template_id, item_id, quantity) VALUES ('p1', 'grp', 'cam', 1)`,
+		`INSERT INTO template_items (id, template_id, item_id, quantity) VALUES ('p2', 'grp', 'ring', 1)`,
+		`INSERT INTO template_items (id, template_id, item_id, quantity) VALUES ('p3', 'tpl', 'med', 1)`,
+		`INSERT INTO template_item_tasks (id, template_item_id, task) VALUES ('tk1', 'p1', 'Akkus laden')`,
+	} {
+		if _, err := st.DB().Exec(q); err != nil {
+			t.Fatalf("seed %q: %v", q, err)
+		}
 	}
 }
 
-// TestExportImportTemplate_CarriesCompositionAndTasks is the §3.27 round trip
-// (FR-27.1/27.7, ADR-017): a Ferien-Vorlage exported and imported again is
-// still composed, and its positions still carry their preparation tasks.
-func TestExportImportTemplate_CarriesCompositionAndTasks(t *testing.T) {
+// A Ferien-Vorlage exports composed (FR-27.1, ADR-017): the groups it is made
+// of travel *whole*, with their positions and each position's preparation
+// tasks (FR-27.7), because a bare group name means nothing on the instance
+// the file is opened on.
+func TestExportTemplate_CarriesCompositionAndTasks(t *testing.T) {
 	st := openTestStore(t)
-	ctx := context.Background()
 	seedOwner(t, st)
+	seedComposedTemplate(t, st)
 
-	source := portable.Document{
-		Kind:          portable.KindTemplate,
-		SchemaVersion: 1,
-		Name:          "Fototage",
-		Scope:         portable.ScopeTemplate,
-		Includes: []portable.Group{{
-			Name: "Makro Fotografie",
-			Items: []portable.Item{
-				{Name: "Kamera", Quantity: 1, Tasks: []string{"Akkus laden"}},
-				{Name: "Ringlicht", Quantity: 1},
-			},
-		}},
-		Items: []portable.Item{{Name: "Reiseapotheke", Quantity: 1}},
-	}
-
-	templateID, err := st.ImportTemplate(ctx, "u1", source)
-	if err != nil {
-		t.Fatalf("ImportTemplate: %v", err)
-	}
-
-	got, err := st.ExportTemplate(ctx, templateID)
+	got, err := st.ExportTemplate(context.Background(), "tpl")
 	if err != nil {
 		t.Fatalf("ExportTemplate: %v", err)
 	}
@@ -345,42 +213,23 @@ func TestExportImportTemplate_CarriesCompositionAndTasks(t *testing.T) {
 	if len(group.Items) != 2 {
 		t.Fatalf("group items = %d, want 2", len(group.Items))
 	}
-	if got := group.Items[0].Tasks; len(got) != 1 || got[0] != "Akkus laden" {
-		t.Errorf("tasks = %+v, want [Akkus laden]", got)
+	if tasks := group.Items[0].Tasks; len(tasks) != 1 || tasks[0] != "Akkus laden" {
+		t.Errorf("tasks = %+v, want [Akkus laden]", tasks)
 	}
 	if len(got.Items) != 1 || got.Items[0].Name != "Reiseapotheke" {
 		t.Errorf("own items = %+v", got.Items)
 	}
 }
 
-// FR-28.10: the mark survives the round trip on all three levels. Without it
-// the fold-back §3.27 depends on would strip the marks off a whole Vorlage,
-// silently and irreversibly.
-func TestExportImportTemplate_CarriesTheMark_FR28_10(t *testing.T) {
+// FR-28.10: the mark is exported on all three levels. Without it the fold-back
+// §3.27 depends on would strip the marks off a whole Vorlage, silently and
+// irreversibly.
+func TestExportTemplate_CarriesTheMark_FR28_10(t *testing.T) {
 	st := openTestStore(t)
-	ctx := context.Background()
 	seedOwner(t, st)
+	seedComposedTemplate(t, st)
 
-	source := portable.Document{
-		Kind:          portable.KindTemplate,
-		SchemaVersion: 1,
-		Name:          "Fototage",
-		Scope:         portable.ScopeTemplate,
-		Icon:          "\U0001F4F7",
-		Includes: []portable.Group{{
-			Name:  "Makro Fotografie",
-			Icon:  "\u26FA",
-			Items: []portable.Item{{Name: "Kamera", Icon: "\U0001F4F8", Quantity: 1}},
-		}},
-		Items: []portable.Item{{Name: "Reiseapotheke", Quantity: 1}},
-	}
-
-	templateID, err := st.ImportTemplate(ctx, "u1", source)
-	if err != nil {
-		t.Fatalf("ImportTemplate: %v", err)
-	}
-
-	got, err := st.ExportTemplate(ctx, templateID)
+	got, err := st.ExportTemplate(context.Background(), "tpl")
 	if err != nil {
 		t.Fatalf("ExportTemplate: %v", err)
 	}
@@ -396,123 +245,5 @@ func TestExportImportTemplate_CarriesTheMark_FR28_10(t *testing.T) {
 	// An unmarked item stays unmarked rather than inheriting anything.
 	if got.Items[0].Icon != "" {
 		t.Errorf("own item came back marked %q", got.Items[0].Icon)
-	}
-}
-
-// TestImportTemplate_LinksAnExistingGroupWithoutRewritingIt is the rule that
-// keeps an import from reaching other people's trips: a group of the same name
-// is *linked*, and its contents are left exactly as they are. Overwriting it
-// would edit every Ferien-Vorlage that includes it and, through FR-27.4, every
-// trip that follows one.
-func TestImportTemplate_LinksAnExistingGroupWithoutRewritingIt(t *testing.T) {
-	st := openTestStore(t)
-	ctx := context.Background()
-	seedOwner(t, st)
-
-	existingID, err := st.ImportTemplate(ctx, "u1", portable.Document{
-		Kind:  portable.KindTemplate,
-		Name:  "Makro Fotografie",
-		Scope: portable.ScopeGroup,
-		Items: []portable.Item{{Name: "Kamera", Quantity: 1}},
-	})
-	if err != nil {
-		t.Fatalf("seed group: %v", err)
-	}
-
-	vorlageID, err := st.ImportTemplate(ctx, "u1", portable.Document{
-		Kind:  portable.KindTemplate,
-		Name:  "Fototage",
-		Scope: portable.ScopeTemplate,
-		Includes: []portable.Group{{
-			Name:  "Makro Fotografie",
-			Items: []portable.Item{{Name: "Stativ", Quantity: 1}},
-		}},
-	})
-	if err != nil {
-		t.Fatalf("import vorlage: %v", err)
-	}
-
-	// Linked, not duplicated: one group of that name exists.
-	var groups int
-	if err := st.DB().QueryRow(
-		`SELECT COUNT(*) FROM templates WHERE name = 'Makro Fotografie'`).Scan(&groups); err != nil {
-		t.Fatalf("count groups: %v", err)
-	}
-	if groups != 1 {
-		t.Errorf("groups named Makro Fotografie = %d, want 1", groups)
-	}
-
-	var includes int
-	if err := st.DB().QueryRow(
-		`SELECT COUNT(*) FROM template_includes WHERE template_id = ? AND included_template_id = ?`,
-		vorlageID, existingID).Scan(&includes); err != nil {
-		t.Fatalf("count includes: %v", err)
-	}
-	if includes != 1 {
-		t.Errorf("include rows = %d, want 1", includes)
-	}
-
-	// And untouched: the file's "Stativ" did not join the existing group.
-	existing, err := st.ExportTemplate(ctx, existingID)
-	if err != nil {
-		t.Fatalf("export existing: %v", err)
-	}
-	if len(existing.Items) != 1 || existing.Items[0].Name != "Kamera" {
-		t.Errorf("existing group was rewritten: %+v", existing.Items)
-	}
-}
-
-// TestImportTemplate_LinksAGroupDocumentToTheExistingGroup pins ADR-017's
-// identity rule on a group's *own* document, not only on the groups a
-// Ferien-Vorlage carries nested: a backup names the same group both ways, so
-// importing the standalone document must land on the group already here
-// rather than on a second copy of it.
-func TestImportTemplate_LinksAGroupDocumentToTheExistingGroup(t *testing.T) {
-	st := openTestStore(t)
-	ctx := context.Background()
-	seedOwner(t, st)
-
-	first, err := st.ImportTemplate(ctx, "u1", portable.Document{
-		Kind:  portable.KindTemplate,
-		Scope: portable.ScopeGroup,
-		Name:  "Makro Fotografie",
-		Items: []portable.Item{{Name: "Stativ", Quantity: 1}},
-	})
-	if err != nil {
-		t.Fatalf("seed group: %v", err)
-	}
-
-	second, err := st.ImportTemplate(ctx, "u1", portable.Document{
-		Kind:  portable.KindTemplate,
-		Scope: portable.ScopeGroup,
-		Name:  "Makro Fotografie",
-		Items: []portable.Item{{Name: "Kamera", Quantity: 1}},
-	})
-	if err != nil {
-		t.Fatalf("import group document again: %v", err)
-	}
-	if second != first {
-		t.Fatalf("group document created a second group: %q then %q", first, second)
-	}
-
-	var groups int
-	if err := st.DB().QueryRow(
-		`SELECT count(*) FROM templates WHERE kind = ?`, portable.ScopeGroup).Scan(&groups); err != nil {
-		t.Fatalf("count groups: %v", err)
-	}
-	if groups != 1 {
-		t.Fatalf("groups = %d, want 1", groups)
-	}
-
-	// Linked, not rewritten: the second file's Kamera did not join the group.
-	var names string
-	if err := st.DB().QueryRow(`
-		SELECT group_concat(i.name)
-		FROM template_items ti JOIN items i ON i.id = ti.item_id
-		WHERE ti.template_id = ?`, first).Scan(&names); err != nil {
-		t.Fatalf("read positions: %v", err)
-	}
-	if names != "Stativ" {
-		t.Fatalf("positions = %q, want %q", names, "Stativ")
 	}
 }

@@ -134,7 +134,6 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("DELETE /api/v1/items/{itemID}/image", s.authed(s.handleDeleteItemImage))
 	mux.HandleFunc("PUT /api/v1/users/{userID}/display-name", s.authed(s.self(s.handlePutDisplayName)))
 	mux.HandleFunc("GET /api/v1/templates/{templateID}/export", s.authed(s.handleExportTemplate))
-	mux.HandleFunc("POST /api/v1/templates/import", s.authed(s.handleImportTemplate))
 	mux.HandleFunc("GET /api/v1/trips/{tripID}/conflicts", s.authed(s.member(s.handleListConflicts)))
 	mux.HandleFunc("GET /api/v1/conflicts/master", s.authed(s.handleListMasterConflicts))
 	// The revert half of NFR-4.2a, one endpoint per partition beside its
@@ -144,7 +143,6 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/conflicts/master/{conflictID}/revert",
 		s.authed(s.handleRevertMasterConflict))
 	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.yaml", s.authed(s.member(s.handleExportTrip)))
-	mux.HandleFunc("POST /api/v1/trips/import", s.authed(s.handleImportTrip))
 	mux.HandleFunc("POST /api/v1/auth/token", s.handleAuthToken)
 	mux.HandleFunc("POST /api/v1/auth/refresh", s.handleAuthRefresh)
 	mux.HandleFunc("GET /api/v1/auth/config", s.handleAuthConfig)
