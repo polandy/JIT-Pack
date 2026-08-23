@@ -190,6 +190,20 @@ it. Item numbers stay stable even as items close, because the log refers back to
    which anchors above the bar. Build the rest against those texts; the rejected options are
    written there.
 
+16. **NFR-4.14 — the client/server contract is written twice and checked nowhere**
+   (owner request 2026-08-23, **specified, not built**). The error *envelope* is already
+   uniform (104 `writeError` calls across 40 routes, zero bare error statuses) — what is not a
+   contract is everything around it: `internal/api`'s structs and `client/src/api/types.ts`
+   describe the same wire independently, and the 16 error codes are string literals at both
+   ends. That shape produced three defects in one week, each invisible to both test suites
+   (the client read a `status` key no server sends; it took `pull_hint.next_cursor` as its
+   pull cursor; one partition answered `500` where the other answered `rejected`). Wanted: one
+   description both sides consume, client types **generated** from it, codes named once, route
+   shapes made predictable — and **a CI gate**, because a contract the build does not check is
+   a comment. **Scope boundary in the NFR: this is not about moving logic to the server**;
+   invariant 4 stands. How the description is expressed is a real tradeoff and is **owed an
+   ADR** rather than decided in the FR.
+
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,
 the North-Star Plan/During phases, FR-27.8's per-trip usage history, and FR-1.6's publish/fork
