@@ -553,8 +553,9 @@ A packing list is **scanned, not read**: forty rows, most of them known, the eye
     The M5 *Details* toggles stay as the spelled-out home, exactly the menu-plus-control pair
     FR-5.5 settled on (variants A + C there).
   * **A closing pass at the moment of archiving.** *„Reise abschliessen"* does not archive
-    straight away: it opens **one screen listing the rows that were actually packed**, each
-    with a single *ungenutzt* toggle, and a way to finish without judging anything. This is
+    straight away: it puts **M4 into a review posture** listing the rows that were actually
+    packed, each with a single *ungenutzt* toggle, and a way to finish without judging
+    anything. This is
     where „am Ende einmal durchgehen" lives, and it is the only point in the lifecycle where
     the user is thinking about the whole trip at once. **Packed rows only, deliberately:** an
     unpacked row is either FR-5.5-skipped — already a judgement, and the opposite one — or it
@@ -576,12 +577,33 @@ A packing list is **scanned, not read**: forty rows, most of them known, the eye
   that the user then has to argue with; **asking one row at a time in a card stack** — FR-27.11
   rejected the stack for the same harvest, for the same reason: it hides how much is left.
 
-  **Open for the owner, and the only thing this FR leaves undecided:** whether the closing
-  pass is **its own screen** (a new M-number, reached from the archive action and nowhere
-  else) or **a mode of M4** (the list it already is, with the packed rows revealed and one
-  toggle per row). The second reuses the whole rendering and the FR-25.11 facets; the first
-  cannot be walked into by accident. Decide it on a rendered pair, as §3.28 and FR-25.13c
-  were.
+  **Where the pass lives — decided on the rendered pair (owner, 2026-08-23):** it is
+  **a mode of M4 that archives and continues to M14**. The pair
+  (`UI_Concept_ClosingPass_variants.html`, built by `build-closing-pass-variants.mjs` with
+  the prototype's stylesheet lifted verbatim, so no difference between the options can come
+  from the CSS) offered its own screen against a mode of M4, and neither won outright — the
+  chosen shape is a **third one the rendering produced**.
+
+  **Why neither of the two:** a mode of M4 wins the question you ask first — at a hundred and
+  twenty rows it brings the grouping, the FR-25.11 facets and the search, and none of that has
+  to be built a second time — and loses the question you ask last, because it ends where it
+  began, in the packing list of a trip that no longer exists. Its own screen is the mirror
+  image: an endless single column, whose one virtue is that it has an **exit**, and the exit
+  leads where the marks are going. So the mode keeps M4's rendering and takes the screen's
+  ending: *„Fertig"* **archives the trip and opens M14**, rather than merely switching a mode
+  off. A closing pass that hands you back the list you just finished with is not a closing
+  pass.
+
+  **What the choice costs, and the rule that pays it:** M4's row already carries a
+  press-and-hold (FR-5.5, and this FR adds *ungenutzt* to that same menu). **In the review
+  posture the row has exactly one gesture — the tap, which marks — and press-and-hold is
+  inert.** One posture, one meaning: a screen that asks a single question must not answer
+  three, and the two menu entries are both reachable a second earlier, on the same rows,
+  before the pass is entered.
+
+  *Also rejected here, not only above:* leaving the pass as its own M-number for the sake of
+  being unenterable by accident. It cannot be walked into either way — the only door is the
+  archive action, and it is a door that asks.
 
   **Revisit trigger:** the pass is skipped every time. If it is, the pass asks the wrong
   question at the wrong moment, and the answer is not to make it harder to skip.
@@ -618,6 +640,7 @@ A packing list is **scanned, not read**: forty rows, most of them known, the eye
 ## Part C — Refined & New Non-Functional Requirements
 
 * **NFR-4.2a (Conflict Resolution Strategy — refines NFR-4.2):** Offline conflicts are resolved with field-level Last-Write-Wins based on hybrid logical clocks, with two domain rules taking precedence: (1) terminal states win over transient states (*Packed* beats *Packing Now*), and (2) additive operations (comments, tasks, flags) are always merged, never overwritten. Every automatic resolution is written to a per-trip conflict log surfaced in the UI so users can audit and manually revert. **Retention:** conflict log entries persist until the trip is archived, at which point they are compacted into the trip's permanent history record rather than kept as individually actionable rows.
+  * **Clarified 2026-08-22, against the code (ADR-022):** „field-level" means a clock **per field, persisted** (`field_hlcs` beside `updated_hlc`, Sync-API §6); the server had compared every field against the row's single clock, so an offline pack lost to any unrelated later edit of the same row. And rule (1) is exactly the pair it names — *Packed* beats *Packing Now*, nothing wider: between a pack made offline and a later deliberate unpack or skip (FR-5.5) the later decision stands and the pack is logged. The code had let every incoming *Packed* win regardless of clock, which silently reversed later decisions and wrote no conflict. Each conflict entry now also names the losing `mutation_id` and the `actor_user_id` who pushed it — the grouping a revert needs and the person it belongs to; the revert control and the „your change lost" surface are the client half and follow separately.
 * **NFR-4.5 (Export & Backup):** The system provides a full instance export (all templates, items, trips, history) as versioned JSON via UI and CLI, plus a per-trip CSV export of the packing list. The deployment documentation includes a reference backup strategy suitable for home-lab operation.
 * **NFR-4.6 (Self-Hosted Notification Architecture):** Push notifications (FR-6.2) must function without mandatory dependence on third-party cloud services. Web clients use standards-based Web Push with self-generated VAPID keys. Native mobile clients prefer UnifiedPush; FCM/APNs support is an optional, explicitly opt-in build configuration. In-app notifications over the existing WebSocket channel (FR-4.4) serve as the universal fallback. Not applicable in Single-User Mode (FR-17.3).
 * **NFR-4.7 (Import Robustness):** The import wizard (3.16) must tolerate real-world spreadsheet noise: merged category header rows, empty columns, trailing question marks in item names (imported as an attached open task per FR-7.2), and mixed-language labels. Imports are transactional: a failed import leaves no partial data behind.

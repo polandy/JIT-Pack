@@ -147,10 +147,11 @@ it. Item numbers stay stable even as items close, because the log refers back to
    (NFR-4.2a: HLC + field-level LWW, additive fields, terminal precedence, the `conflict_log`,
    G-3's lock, presence, FR-25.19/25.20's assignment). Five places do not do what the spec says,
    each verified in the code, worst first:
-   **(a)** `groupDecision` (`internal/sync/merge.go`) lets *any* incoming `packed` win regardless
-   of HLC, where §6 says only that packed beats `packing_now` — so a stale offline pack overwrites
-   a later deliberate unpack or FR-5.5 skip, **and logs no conflict**, the group having applied.
-   Silent data loss, and **the one item here that needs an owner decision first: spec or code.**
+   **(a)** ~~`groupDecision` let *any* incoming `packed` win regardless of HLC~~ — **done**
+   (2026-08-22, ADR-022): the real fault under it was one `updated_hlc` per row where §6 says
+   per field-group; `field_hlcs` now carries a clock per field, rule 2 is the two pairs §6
+   names, and a conflict entry names the losing `mutation_id` and `actor_user_id`.
+   Log: *„Field-level LWW was row-level, and ‚packed always wins' was hiding it"*.
    **(b)** Master-partition conflicts are write-only: they are logged with `trip_id = NULL` and
    `ListConflicts` filters by `trip_id`. `trips` lives there, so a conflict on a trip's name or
    dates is recorded and unreachable. **(c)** The push response's `conflicts[]` is read by nothing
@@ -168,9 +169,12 @@ it. Item numbers stay stable even as items close, because the log refers back to
    *Details*, nothing ever asks for it, and FR-9.1's `active`-only gate shuts the window
    before M14 shows what a flag was worth. Decided in FR-9.3: the judgement joins the row's
    press-and-hold menu (FR-5.5's idiom), a **skippable closing pass at archive time** covers
-   the packed rows in one screen, and the flag stays correctable on the archived trip.
-   **One thing is deliberately left to a rendered pair** — whether that pass is its own screen
-   or a mode of M4. FR-9.4 carries what M14's first render with real proposals showed: the
+   the packed rows, and the flag stays correctable on the archived trip. Where the pass lives
+   was decided on the rendered pair (`UI_Concept_ClosingPass_variants.html`, 2026-08-23) and
+   is **neither of the two options**: it is a **mode of M4 whose *„Fertig"* archives and
+   opens M14**, which keeps M4's grouping and facets and still has an exit. Its price is
+   written there too — in that posture the row's press-and-hold goes inert, because one
+   posture asks one question. FR-9.4 carries what M14's first render with real proposals showed: the
    unlabelled ✕ behind *„Nie mehr fragen"*, handled cards that never leave *Offen* (so the
    heading reads „Offen · 0" above two of them), and the snackbar landing on the tab bar.
    Build against those texts; the rejected options are written there.

@@ -65,7 +65,7 @@ func TestApplyMutation_InsertCreatesRowAndChangeLogEntry(t *testing.T) {
 		HLC:    sync.HLC("0000000001000-0000-aaaaaaaa"),
 	}
 
-	res, err := s.ApplyMutation(context.Background(), testTrip, m)
+	res, err := s.ApplyMutation(context.Background(), testTrip, testUser, m)
 	if err != nil {
 		t.Fatalf("ApplyMutation: %v", err)
 	}
@@ -92,12 +92,12 @@ func TestApplyMutation_LWWConflict_WritesConflictLog(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()
 	seed := upsert("item-1", "mut-1", map[string]any{"trip_id": testTrip, "name": "Socken", "quantity": 5}, "0000000002000-0000-bbbbbbbb")
-	if _, err := s.ApplyMutation(ctx, testTrip, seed); err != nil {
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, seed); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
 
 	stale := upsert("item-1", "mut-2", map[string]any{"quantity": 9}, "0000000001000-0000-aaaaaaaa")
-	res, err := s.ApplyMutation(ctx, testTrip, stale)
+	res, err := s.ApplyMutation(ctx, testTrip, testUser, stale)
 	if err != nil {
 		t.Fatalf("ApplyMutation: %v", err)
 	}
@@ -130,12 +130,12 @@ func TestApplyMutation_DuplicateMutationID_ReturnsRecordedResult(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()
 	m := upsert("item-1", "mut-1", map[string]any{"trip_id": testTrip, "name": "Helm", "quantity": 1}, "0000000001000-0000-aaaaaaaa")
-	first, err := s.ApplyMutation(ctx, testTrip, m)
+	first, err := s.ApplyMutation(ctx, testTrip, testUser, m)
 	if err != nil {
 		t.Fatalf("first apply: %v", err)
 	}
 
-	replay, err := s.ApplyMutation(ctx, testTrip, m)
+	replay, err := s.ApplyMutation(ctx, testTrip, testUser, m)
 	if err != nil {
 		t.Fatalf("replay: %v", err)
 	}
@@ -262,7 +262,7 @@ func TestApplyMutation_RejectsUnknownTableAndColumns(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if _, err := s.ApplyMutation(ctx, testTrip, tc.m); err == nil {
+			if _, err := s.ApplyMutation(ctx, testTrip, testUser, tc.m); err == nil {
 				t.Error("expected validation error, got nil")
 			}
 		})
@@ -271,7 +271,7 @@ func TestApplyMutation_RejectsUnknownTableAndColumns(t *testing.T) {
 
 func (s *Store) mustApply(t *testing.T, tripID string, m sync.Mutation) {
 	t.Helper()
-	if _, err := s.ApplyMutation(context.Background(), tripID, m); err != nil {
+	if _, err := s.ApplyMutation(context.Background(), tripID, testUser, m); err != nil {
 		t.Fatalf("ApplyMutation(%s): %v", m.MutationID, err)
 	}
 }
@@ -298,7 +298,7 @@ func TestApplyMutation_CommentsTable_InsertAndPull(t *testing.T) {
 		},
 		HLC: sync.HLC("0000000001000-0001-aaaaaaaa"),
 	}
-	res, err := s.ApplyMutation(ctx, testTrip, m)
+	res, err := s.ApplyMutation(ctx, testTrip, testUser, m)
 	if err != nil {
 		t.Fatalf("ApplyMutation: %v", err)
 	}
@@ -333,7 +333,7 @@ func TestApplyMutation_TravelersTable(t *testing.T) {
 		Fields: map[string]any{"trip_id": testTrip, "name": "Alice"},
 		HLC:    sync.HLC("0000000001000-0000-aaaaaaaa"),
 	}
-	res, err := s.ApplyMutation(ctx, testTrip, m)
+	res, err := s.ApplyMutation(ctx, testTrip, testUser, m)
 	if err != nil {
 		t.Fatalf("ApplyMutation: %v", err)
 	}
@@ -358,7 +358,7 @@ func TestApplyMutation_ContainersTable(t *testing.T) {
 		Fields: map[string]any{"trip_id": testTrip, "name": "Suitcase", "max_weight_grams": 23000},
 		HLC:    sync.HLC("0000000001000-0000-aaaaaaaa"),
 	}
-	res, err := s.ApplyMutation(ctx, testTrip, m)
+	res, err := s.ApplyMutation(ctx, testTrip, testUser, m)
 	if err != nil {
 		t.Fatalf("ApplyMutation: %v", err)
 	}

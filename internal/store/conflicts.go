@@ -15,7 +15,12 @@ type ConflictEntry struct {
 	Field        string
 	LosingValue  string
 	WinningValue string
-	ResolvedAt   string
+	// MutationID groups the fields one push lost together; ActorUserID is
+	// who pushed it — the person a revert belongs to.
+	MutationID  string
+	ActorUserID string
+	ResolvedAt  string
+	Reverted    bool
 }
 
 // The two partitions keep two logs in one table, told apart by trip_id
@@ -24,7 +29,8 @@ type ConflictEntry struct {
 // that mixed them would show a member of one trip the losers of another.
 const (
 	conflictColumns = `id, entity_table, entity_id, field,
-	        coalesce(losing_value, ''), coalesce(winning_value, ''), resolved_at`
+	        coalesce(losing_value, ''), coalesce(winning_value, ''),
+	        mutation_id, actor_user_id, resolved_at, reverted`
 	conflictOrder = ` ORDER BY resolved_at DESC, id`
 )
 
@@ -77,7 +83,8 @@ func scanConflicts(rows *sql.Rows) ([]ConflictEntry, error) {
 	for rows.Next() {
 		var c ConflictEntry
 		if err := rows.Scan(&c.ID, &c.EntityTable, &c.EntityID, &c.Field,
-			&c.LosingValue, &c.WinningValue, &c.ResolvedAt); err != nil {
+			&c.LosingValue, &c.WinningValue, &c.MutationID, &c.ActorUserID,
+			&c.ResolvedAt, &c.Reverted); err != nil {
 			return nil, fmt.Errorf("scan conflict: %w", err)
 		}
 		entries = append(entries, c)

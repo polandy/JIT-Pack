@@ -17,6 +17,15 @@ const (
 	OutcomeMerged  Outcome = "merged"
 )
 
+// Item states that the terminal-precedence rule (NFR-4.2a rule 2) names.
+const (
+	StatePacked     = "packed"
+	StatePackingNow = "packing_now"
+)
+
+// FieldState is the trip_items column the state machine lives on.
+const FieldState = "state"
+
 // Mutation is one client-side change from the push envelope.
 type Mutation struct {
 	MutationID string
@@ -25,6 +34,24 @@ type Mutation struct {
 	ID         string
 	Fields     map[string]any
 	HLC        HLC
+}
+
+// FieldClocks records, per field, the HLC of the write that last set it —
+// the "row.updated_hlc(f-group)" of Sync-API Spec §6. A field that is
+// missing here is as old as the row itself (Row.HLC): rows written before
+// the per-field record existed, or by a path that does not merge, fall
+// back to row-level precedence rather than to "never written".
+type FieldClocks map[string]HLC
+
+// Row is what the server currently holds for one entity, as Merge needs
+// it. Fields and Clocks are nil when the row does not exist.
+type Row struct {
+	Exists bool
+	Fields map[string]any
+	// HLC is the row-level maximum of every write, kept for tombstones
+	// (a delete is an all-fields decision) and as the fallback clock.
+	HLC    HLC
+	Clocks FieldClocks
 }
 
 // Conflict records a dropped field for the conflict_log (NFR-4.2a).
@@ -41,11 +68,16 @@ type MergeResult struct {
 	Conflicts []Conflict
 	Deleted   bool
 	RowHLC    HLC
+	// Clocks is the row's per-field record after this mutation: every
+	// applied field stamped with the mutation's HLC, every other field
+	// exactly as it was. The caller persists it beside the row.
+	Clocks FieldClocks
 }
 
 // stateGroup couples packed_count and state: they encode one logical fact
-// (FR-5.4) and must win or lose together.
-var stateGroup = map[string]bool{"state": true, "packed_count": true}
+// (FR-5.4) and must win or lose together, so they share one clock — the
+// newest of the two.
+var stateGroup = map[string]bool{FieldState: true, "packed_count": true}
 
 // additiveFields always apply when set to a truthy value (NFR-4.2a rule 1):
 // trip feedback must never be lost to a concurrent write (FR-9.1).
@@ -54,38 +86,45 @@ var additiveFields = map[string]bool{"flag_unused": true, "flag_missing": true}
 // Merge resolves one mutation against the current row state per
 // Sync-API Spec §6. It is a pure function: persistence, permission checks,
 // and idempotency (mutation_id replay) live in the calling layer.
-func Merge(current map[string]any, currentHLC HLC, exists bool, m Mutation) MergeResult {
-	res := MergeResult{Applied: map[string]any{}, RowHLC: maxHLC(currentHLC, m.HLC)}
+//
+// Precedence is decided per field against that field's own clock, never
+// against the row's: a packing made offline at 10:00 is not displaced by a
+// container assigned at 10:30, because the two never competed.
+func Merge(row Row, m Mutation) MergeResult {
+	res := MergeResult{Applied: map[string]any{}, RowHLC: maxHLC(row.HLC, m.HLC), Clocks: FieldClocks{}}
+	for f, c := range row.Clocks {
+		res.Clocks[f] = c
+	}
 
 	if m.Op == OpDelete {
-		res.Deleted = m.HLC > currentHLC
+		res.Deleted = m.HLC > row.HLC
 		res.Outcome = outcomeFor(res.Deleted)
 		return res
 	}
 
-	if !exists {
+	if !row.Exists {
 		for f, v := range m.Fields {
 			res.Applied[f] = v
+			res.Clocks[f] = m.HLC
 		}
 		res.Outcome = OutcomeApplied
 		return res
 	}
 
-	newer := m.HLC > currentHLC
-	applyGroup := groupDecision(current, m, newer)
+	applyGroup := groupDecision(row, m)
 
 	for f, v := range m.Fields {
 		switch {
 		case additiveFields[f] && isTruthy(v):
-			res.Applied[f] = v
+			res.apply(f, v, m.HLC)
 		case stateGroup[f] && applyGroup:
-			res.Applied[f] = v
+			res.apply(f, v, m.HLC)
 		case stateGroup[f] && !applyGroup:
-			res.Conflicts = append(res.Conflicts, Conflict{Field: f, LosingValue: v, WinningValue: current[f]})
-		case newer:
-			res.Applied[f] = v
+			res.drop(f, v, row.Fields[f])
+		case m.HLC > row.clockOf(f):
+			res.apply(f, v, m.HLC)
 		default:
-			res.Conflicts = append(res.Conflicts, Conflict{Field: f, LosingValue: v, WinningValue: current[f]})
+			res.drop(f, v, row.Fields[f])
 		}
 	}
 
@@ -93,18 +132,51 @@ func Merge(current map[string]any, currentHLC HLC, exists bool, m Mutation) Merg
 	return res
 }
 
-// groupDecision applies NFR-4.2a rule 2 to the state field group:
-// terminal "packed" always wins; "packing_now" never displaces "packed";
-// everything else falls back to LWW (rule 3).
-func groupDecision(current map[string]any, m Mutation, newer bool) bool {
-	incoming, hasState := m.Fields["state"]
+func (r *MergeResult) apply(field string, value any, at HLC) {
+	r.Applied[field] = value
+	r.Clocks[field] = at
+}
+
+func (r *MergeResult) drop(field string, losing, winning any) {
+	r.Conflicts = append(r.Conflicts, Conflict{Field: field, LosingValue: losing, WinningValue: winning})
+}
+
+// clockOf is the HLC the field was last set at, falling back to the row's.
+func (row Row) clockOf(field string) HLC {
+	if c, ok := row.Clocks[field]; ok {
+		return c
+	}
+	return row.HLC
+}
+
+// groupClock is the state group's clock: the newest write to either of
+// its fields, since the two are one fact (FR-5.4).
+func (row Row) groupClock() HLC {
+	var newest HLC
+	for f := range stateGroup {
+		newest = maxHLC(newest, row.clockOf(f))
+	}
+	return newest
+}
+
+// groupDecision applies NFR-4.2a rule 2 to the state field group, and
+// rule 3 where rule 2 says nothing. Rule 2 is exactly as narrow as §6
+// writes it: "packed" beats "packing_now" regardless of HLC, and
+// "packing_now" never displaces "packed". Between any other pair of
+// states — a packing made offline against a later deliberate unpack or
+// skip — the later decision wins and the earlier one is logged, because a
+// person made both and only the clock can say which was the last word.
+func groupDecision(row Row, m Mutation) bool {
+	newer := m.HLC > row.groupClock()
+	incoming, hasState := m.Fields[FieldState]
 	if !hasState {
 		return newer
 	}
+	current := row.Fields[FieldState]
 	switch {
-	case incoming == "packed":
+	case incoming == StatePacked && current == StatePackingNow:
 		return true
-	case incoming == "packing_now" && current["state"] == "packed":
+	case incoming == StatePackingNow && current == StatePacked:
 		return false
 	default:
 		return newer
