@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>JIT-Pack · UI-Konzept — Masken-Übersicht</title>
+<title>JIT-Pack · UI concept — screen overview</title>
 <!--
   Concept coverage overview for the clickable UI prototype (phase-hub concept).
   Maintained in git (docs/); a copy is served next to the prototype on :3000 as /overview.html.
@@ -77,230 +77,229 @@ ul.check li::before{content:"☐";position:absolute;left:2px;color:var(--teal)}
 </head>
 <body><div class="wrap">
 
-<div class="kicker">JIT-Pack · UI-Konzept · Stand 08.08.2026</div>
-<h1>Masken-Übersicht — <em>was ist testbar?</em></h1>
-<p class="sub">Alle Screens der UI-Spec (M1–M20) und ihr Stand im anklickbaren Konzept-Prototyp.
-Prototyp öffnen: <code>http://&lt;host&gt;:3000</code> — grüne Karten sind fertig ausgestaltet und warten auf deinen Test;
-die Checkboxen sind deine Prüfpunkte. Die Screenshots zeigen den aktuellen Prototyp — sie werden mit <code>node dev-docs/assets/shoot-screens.mjs</code> neu erzeugt, damit sie nicht veralten; Bild antippen öffnet es gross.</p>
+<div class="kicker">JIT-Pack · UI concept · status 2026-08-08</div>
+<h1>Screen overview — <em>what is testable?</em></h1>
+<p class="sub">Every screen of the UI spec (M1–M20) and where it stands in the clickable concept prototype.
+Open the prototype at <code>http://&lt;host&gt;:3000</code> — green cards are fully worked out and waiting for your test;
+the checkboxes are your check points. The screenshots show the current prototype — they are regenerated with <code>node dev-docs/assets/shoot-screens.mjs</code> so they cannot go stale; tapping an image opens it large.</p>
 
 <div class="meter">
   <div class="bar">
     <i style="width:60%;background:linear-gradient(90deg,var(--teal),var(--green))"></i>
     <i style="width:5%;background:var(--o0)"></i>
   </div>
-  <b>12 / 19 Masken im Konzept · +Phasen-Hub · M13 entfernt</b>
+  <b>12 / 19 screens in the concept · plus the phase hub · M13 removed</b>
 </div>
 <div class="legend">
-  <span><span class="dot" style="background:var(--green)"></span>Konzept fertig — bitte testen</span>
-  <span><span class="dot" style="background:var(--peach)"></span>Konzept-Kern (neu, ohne M-Nummer)</span>
-  <span><span class="dot" style="background:var(--s2)"></span>noch offen</span>
-  <span><span class="dot" style="background:var(--o0)"></span>entfernt (nicht Teil des Produkts)</span>
+  <span><span class="dot" style="background:var(--green)"></span>concept finished — please test</span>
+  <span><span class="dot" style="background:var(--peach)"></span>concept core (new, no M number)</span>
+  <span><span class="dot" style="background:var(--s2)"></span>still open</span>
+  <span><span class="dot" style="background:var(--o0)"></span>removed (not part of the product)</span>
 </div>
 
-<div class="sec">Konzept-Kern</div>
+<div class="sec">Concept core</div>
 <div class="grid">
   <div class="card hub">
-    <div class="chead"><span class="mid">HUB</span><span class="cname">Phasen-Hub — Trip als Ferien mit vier Phasen</span><span class="status">KONZEPT-KERN</span></div>
-    <div class="path"><b>Pfad:</b> Tab „Reisen“ → Toskana antippen → Phasen-Leiste oben</div>
+    <div class="chead"><span class="mid">HUB</span><span class="cname">Phase hub — a trip as a holiday with four phases</span><span class="status">CONCEPT CORE</span></div>
+    <div class="path"><b>Path:</b> tab „Reisen“ → tap Toskana → phase bar at the top</div>
     <ul class="check">
-      <li>Vier Phasen umschalten: Planen · Vorbereiten · Unterwegs · Danach</li>
-      <li>Vorbereiten ist voll ausgestaltet (→ M4 ff.); Planen (Ideen-Board), Unterwegs (Tagesplan/Kasse) und Danach (Review-Statistik) sind bewusst nur Skizzen der North-Star-Vision</li>
+      <li>Switch between the four phases: Planen · Vorbereiten · Unterwegs · Danach</li>
+      <li>Vorbereiten is fully worked out (→ M4 ff.); Planen (idea board), Unterwegs (day plan/cash) and Danach (review statistics) are deliberately only sketches of the North Star vision</li>
     </ul>
   </div>
 </div>
 
-<div class="sec">Fertig im Konzept — bitte testen</div>
+<div class="sec">Finished in the concept — please test</div>
 <div class="grid">
 
   <div class="card done">
-    <div class="chead"><span class="mid">M1</span><span class="cname">Übersicht (Dashboard)</span><span class="status">TESTEN</span></div>
-    <div class="path"><b>Pfad:</b> Tab „Übersicht“ (Start)</div>
+    <div class="chead"><span class="mid">M1</span><span class="cname">Übersicht (dashboard)</span><span class="status">TEST</span></div>
+    <div class="path"><b>Path:</b> tab „Übersicht“ (start)</div>
     <div class="shots"><figure><a href="assets/screens/m1-dashboard.png" target="_blank"><img src="assets/screens/m1-dashboard.png" alt="M1 – Übersicht" loading="lazy"></a><figcaption>Übersicht</figcaption></figure></div>
     <ul class="check">
-      <li>„Meine offenen Sachen“ — Checkbox hakt ab, Zähler zählt live</li>
-      <li>„Dir zum Packen übergeben“ — blaue Karte (Kinderbücher, von Sara)</li>
-      <li>Vorbereitungen: filtern (Suchfeld) + abhaken, Artikelname → M5</li>
-      <li>Hero-Karte → Phasen-Hub</li>
+      <li>„Meine offenen Sachen“ — the checkbox ticks off, the counter counts live</li>
+      <li>„Dir zum Packen übergeben“ — blue card (Kinderbücher, from Sara)</li>
+      <li>Preparations: filter (search field) and tick off, item name → M5</li>
+      <li>Hero card → phase hub</li>
     </ul>
   </div>
 
   <div class="card done">
-    <div class="chead"><span class="mid">M2</span><span class="cname">Reisen-Liste</span><span class="status">TESTEN</span></div>
-    <div class="path"><b>Pfad:</b> Tab „Reisen“</div>
+    <div class="chead"><span class="mid">M2</span><span class="cname">Trip list</span><span class="status">TEST</span></div>
+    <div class="path"><b>Path:</b> tab „Reisen“</div>
     <div class="shots"><figure><a href="assets/screens/m2-trips.png" target="_blank"><img src="assets/screens/m2-trips.png" alt="M2 – Reisen" loading="lazy"></a><figcaption>Reisen</figcaption></figure></div>
     <ul class="check">
-      <li>Suche + Statusfilter (Alle/Aktiv/Geplant/Archiv)</li>
-      <li>Seriengruppe „◆ Toskana“ mit 3 Reisen, Archiv gedimmt</li>
-      <li>Fortschrittsringe je Status, Reise antippen → Hub</li>
+      <li>Search plus status filter (Alle/Aktiv/Geplant/Archiv)</li>
+      <li>Series group „◆ Toskana“ with 3 trips, the archive dimmed</li>
+      <li>Progress rings per status, tapping a trip → hub</li>
     </ul>
-    <div class="todo"><b>TODO</b> · Standard-Sortierung nach Datum (jüngste zuoberst), keine Serien-Gruppierung als Default — Serie wird optionale Ansicht (§3.25, 17.07.).</div>
+    <div class="todo"><b>TODO</b> · default sort by date (most recent first), no series grouping as the default — the series becomes an optional view (§3.25, 17.07.).</div>
   </div>
 
   <div class="card done">
-    <div class="chead"><span class="mid">M3</span><span class="cname">Reise-Wizard (4 Schritte)</span><span class="status">TESTEN</span></div>
-    <div class="path"><b>Pfad:</b> ＋-FAB auf „Übersicht“ oder „Reisen“</div>
+    <div class="chead"><span class="mid">M3</span><span class="cname">Trip wizard (4 steps)</span><span class="status">TEST</span></div>
+    <div class="path"><b>Path:</b> the ＋ FAB on „Übersicht“ or „Reisen“</div>
     <div class="shots"><figure><a href="assets/screens/m3-wizard.png" target="_blank"><img src="assets/screens/m3-wizard.png" alt="M3 – Assistent Schritt 1" loading="lazy"></a><figcaption>Assistent Schritt 1</figcaption></figure></div>
     <ul class="check">
-      <li>Schritt 1: Datum → Dauer live; Serie „Toskana“ befüllt leere Attribut-Chips</li>
-      <li>Schritt 2: Reisende Erwachsen/Kind; Teilen-Block (Editor/Admin)</li>
-      <li>Schritt 3: Vorlagen-Suche + Filter; Live-Footer (Duplikate, Saison-Ausschlüsse, Companions)</li>
-      <li>Schritt 4: Mengen aus den Vorlagen + Ein-Tipp-Verlaufsvorschlag; Ziel-Checkliste opt-out</li>
+      <li>Step 1: date → duration live; the series „Toskana“ fills the empty attribute chips</li>
+      <li>Step 2: travelers adult/child; sharing block (editor/admin)</li>
+      <li>Step 3: template search and filter; live footer (duplicates, season exclusions, companions)</li>
+      <li>Step 4: quantities from the templates plus a one-tap history suggestion; destination checklist opt-out</li>
     </ul>
   </div>
 
   <div class="card done">
-    <div class="chead"><span class="mid">M4</span><span class="cname">Packliste</span><span class="status">TESTEN</span></div>
-    <div class="path"><b>Pfad:</b> Reise → „Vorbereiten“ → „Packliste öffnen“</div>
+    <div class="chead"><span class="mid">M4</span><span class="cname">Packing list</span><span class="status">TEST</span></div>
+    <div class="path"><b>Path:</b> trip → „Vorbereiten“ → „Packliste öffnen“</div>
     <div class="shots"><figure><a href="assets/screens/m4-packliste.png" target="_blank"><img src="assets/screens/m4-packliste.png" alt="M4 – Packliste" loading="lazy"></a><figcaption>Packliste</figcaption></figure><figure><a href="assets/screens/m4-filter.png" target="_blank"><img src="assets/screens/m4-filter.png" alt="M4 – Filter-Sheet" loading="lazy"></a><figcaption>Filter-Sheet</figcaption></figure><figure><a href="assets/screens/m4-gefaltet.png" target="_blank"><img src="assets/screens/m4-gefaltet.png" alt="M4 – alle Gruppen gefaltet" loading="lazy"></a><figcaption>alle Gruppen gefaltet</figcaption></figure></div>
     <ul class="check">
-      <li><b>Kopfleiste (G-12):</b> 🔍 Suchen · Filter (Zähler als Abzeichen) · Falten — oben in der App-Leiste, wo sonst das Zahnrad sitzt. Auf der Reisetitel-Zeile: 🛒 Einkauf (mit Anzahl) · 🧳 Gepäck · 📊 Auswertung. <b>Kein ⋯ mehr.</b> Langdrücken zeigt den Namen als Bubble</li>
-      <li><b>Filter-Sheet:</b> Gruppieren nach · Erledigte · Person / Kategorie / Beschaffung / Gepäck / Merkmale. Innerhalb einer Gruppe ODER, zwischen Gruppen UND; aktive Werte als entfernbare Chips unter dem Kopf</li>
-      <li><b>Gruppen falten:</b> Kopfzeile antippen → Gruppe klappt auf ihre Zeile zusammen und zeigt dort „N offen“; Falt-Icon klappt alles zu</li>
-      <li><b>Gepackte verschwinden</b>, „Erledigte“ blendet sie ausgegraut wieder ein — mit <b>„gepackt von … · heute 14:32“</b>. Eine ganz gepackte Gruppe verschwindet komplett</li>
-      <li>Swipe rechts = packen · links = überspringen · im Übersprungen-Bereich rechts = zurückholen</li>
-      <li>Stepper (8/10) vs. Checkbox; amber = gepackt mit offener Vorbereitung. <b>Letzte Vorbereitung abhaken → Artikel gilt als fertig und verlässt die Liste</b></li>
-      <li>Schnellzugabe: ＋-FAB öffnet und fokussiert sie, sichtbarer Bestätigen-Knopf; <b>„Pro Person“-Modus</b> mit Menge je Reisende:r (Andy 2 · Leo 3 · Mia 0 → <b>ein</b> Artikel als Cluster, FR-25.8/25.1)</li>
-      <li>Leerzustand ehrlich: „Alles gepackt 🎉“ nur ohne Suche <i>und</i> ohne Filter — sonst „Keine Treffer“ mit Zurücksetzen</li>
-      <li>Sektionen „Vorbereitung“ + „Bewusst übersprungen“ aufklappen</li>
+      <li><b>Header bar (G-12):</b> 🔍 search · filter (count as a badge) · fold — at the top in the app bar, where the gear otherwise sits. On the trip title line: 🛒 shopping (with a count) · 🧳 luggage · 📊 analytics. <b>No more ⋯.</b> Press-and-hold shows the name as a bubble</li>
+      <li><b>Filter sheet:</b> Gruppieren nach · Erledigte · Person / Kategorie / Beschaffung / Gepäck / Merkmale. OR within a group, AND between groups; active values as removable chips under the head</li>
+      <li><b>Folding groups:</b> tap the header row → the group collapses onto its own row and shows „N offen“ there; the fold icon collapses everything</li>
+      <li><b>Packed rows disappear</b>, „Erledigte“ brings them back greyed out — with <b>„gepackt von … · heute 14:32“</b>. A fully packed group disappears entirely</li>
+      <li>Swipe right = pack · left = skip · in the skipped section, right = bring back</li>
+      <li>Stepper (8/10) vs. checkbox; amber = packed with an open preparation. <b>Ticking the last preparation → the item counts as done and leaves the list</b></li>
+      <li>Quick-add: the ＋ FAB opens and focuses it, with a visible confirm button; <b>a „Pro Person“ mode</b> with a quantity per traveler (Andy 2 · Leo 3 · Mia 0 → <b>one</b> item as a cluster, FR-25.8/25.1)</li>
+      <li>An honest empty state: „Alles gepackt 🎉“ only with no search <i>and</i> no filter — otherwise „Keine Treffer“ with a reset</li>
+      <li>The sections „Vorbereitung“ and „Bewusst übersprungen“ unfold</li>
     </ul>
-    <div class="todo"><b>KOPF ENTSCHIEDEN (17.07.)</b> · schlanke Ein-Zeilen-Kopfzeile (Trip · gepackt · Gewicht · Prep), Tools hinter ⋯; beim Runterscrollen blendet die Kopfzeile aus und <b>Trip-Name + Präsenz wandern in die Top-Bar</b> (Collapsing-Header), beim Hochscrollen zurück; Schnellzugabe per ＋-FAB; obere App-Leiste flacher (Ein-Zeilen-Titel, dezentes Linien-Logo). <b>Erledigt (17.07.):</b> gepackte Zeilen fallen aus der Liste, „N gepackte anzeigen“-Toggle blendet sie ausgegraut (45 %) wieder ein; „gepackt mit offener Vorbereitung“ bleibt sichtbar (FR-25.2). <b>Vollbild-Packen (17.07.):</b> die untere Tab-Leiste ist auf M4 ausgeblendet (Vollbild), ＋-FAB rutscht nach unten, zurück über ‹ (aus 3 Varianten gewählt). <b>Pro-Person entschieden (17.07.):</b> Per-Person-Artikel als <b>benannter Cluster</b> — Artikelname einmal als Unterkopf mit <code>erledigt/gesamt</code>, darunter eine eingerückte Kindzeile je Reisende:r (Avatar + Name + eigene Checkbox/Stepper, einzeln packbar); bei Gruppierung <i>nach Person</i> (oder einer einzelnen Instanz) Rückfall auf flache „Artikel · Person“-Zeile; folgt der Ausblend-Regel FR-25.2 (aus 2 Varianten A flach / B Cluster gewählt). <b>Packer-Avatar entschieden (17.07.):</b> wer gepackt hat, erscheint als Avatar am <b>rechten</b> Zeilenrand — abgesetzt vom Reisenden-Avatar (links, „für wen“) durch <b>Grün-Ring + ✓-Badge</b>; sichtbar sobald etwas gepackt ist (auch teil-gepackte Stepper-Zeile), bei Cluster je gepackte Kindzeile; ersetzt den bisherigen „gepackt von …“-Untertitel (FR-25.3). <b>Modus &amp; Filter entschieden (18.07.):</b> Beschaffungsmodus als Glyph <b>nur bei den Kauf-Modi</b> (🛒 Vorher · 📍 Vor Ort) — 🧳 Packen bleibt icon-frei, damit die Kauf-Ausnahmen auffallen; bei Cluster einmal am Kopf. Darunter eine <b>Mehrfach-Filterleiste</b> (Alle · 🧳 · 🛒 · 📍 mit Live-Zählern), die Modus-Pills kombinierbar (z. B. Vorher + Vor Ort), „Alle“ setzt zurück. Später-Packer bleibt ein <b>eigenes ⏰-Flag</b>, orthogonal zum Modus (FR-25.4). Damit ist §3.25 für M4 vollständig abgehandelt. <b>M4 abgeschlossen (08.08.):</b> Modus-Pillenleiste und Gruppierungsleiste sind im <b>Facetten-Filter</b> (FR-25.11) aufgegangen, das <b>⋯-Overflow ist entfallen</b> — die drei Reise-Ansichten sitzen als Icons auf der Titelzeile, Suche/Filter/Falten oben in der App-Leiste (G-12). Dazu: <b>faltbare Gruppen</b> mit „N offen“ auf der Kopfzeile (FR-25.16), <b>„gepackt von … · wann“</b> auf eingeblendeten Zeilen (FR-25.17), <b>Suche</b> in M4, und drei beim Testen gefundene Fehler behoben — Leerzustand meldete „Alles gepackt“ bei erfolgloser Suche (FR-25.11e war zu eng formuliert), offene Vorbereitung war als Zahl gespeichert statt aus den Aufgaben abgeleitet (Artikel konnte nie fertig werden, FR-7.3), und der FAB verdeckte dauerhaft die letzte Zeile (FR-25.11h).</div>
+    <div class="todo"><b>HEADER DECIDED (17.07.)</b> · a slim one-line header (trip · packed · weight · prep), tools behind ⋯; scrolling down hides the header and <b>the trip name and presence move into the top bar</b> (collapsing header), scrolling up brings them back; quick-add via the ＋ FAB; a flatter app bar (one-line title, a discreet line logo). <b>Done (17.07.):</b> packed rows fall out of the list, an „N gepackte anzeigen“ toggle brings them back greyed out (45 %); „gepackt mit offener Vorbereitung“ stays visible (FR-25.2). <b>Full-screen packing (17.07.):</b> the bottom tab bar is hidden on M4 (full screen), the ＋ FAB moves down, back is via ‹ (chosen from 3 variants). <b>Per-person decided (17.07.):</b> per-person items as a <b>named cluster</b> — the item name once as a sub-head with <code>done/total</code>, and under it one indented child row per traveler (avatar + name + its own checkbox/stepper, packable individually); when grouping <i>by person</i> (or for a single instance) it falls back to a flat „Artikel · Person“ row; it follows the hiding rule FR-25.2 (chosen from 2 variants, A flat / B cluster). <b>Packer avatar decided (17.07.):</b> whoever packed appears as an avatar at the <b>right</b> edge of the row — set apart from the traveler avatar (left, „für wen“) by a <b>green ring and a ✓ badge</b>; visible as soon as anything is packed (a partly packed stepper row included), and per packed child row in a cluster; it replaces the previous „gepackt von …“ subtitle (FR-25.3). <b>Mode &amp; filter decided (18.07.):</b> the procurement mode as a glyph <b>only for the buying modes</b> (🛒 Vorher · 📍 Vor Ort) — 🧳 packing stays icon-free so the buying exceptions stand out; once at the head in a cluster. Below it a <b>multi-select filter bar</b> (Alle · 🧳 · 🛒 · 📍 with live counts) whose mode pills combine (e.g. Vorher + Vor Ort), and „Alle“ resets. The late packer stays <b>a flag of its own, ⏰</b>, orthogonal to the mode (FR-25.4). That settles §3.25 for M4 completely. <b>M4 closed (08.08.):</b> the mode pill bar and the grouping bar have been absorbed into the <b>facet filter</b> (FR-25.11) and the <b>⋯ overflow is gone</b> — the three trip views sit as icons on the title line, and search/filter/fold at the top in the app bar (G-12). Plus: <b>foldable groups</b> with „N offen“ on the header row (FR-25.16), <b>„gepackt von … · wann“</b> on revealed rows (FR-25.17), <b>search</b> in M4, and three defects found while testing fixed — the empty state reported „Alles gepackt“ for a fruitless search (FR-25.11e was worded too narrowly), the open preparation was stored as a number instead of derived from the tasks (an item could never become done, FR-7.3), and the FAB permanently covered the last row (FR-25.11h).</div>
   </div>
 
   <div class="card done">
-    <div class="chead"><span class="mid">M5</span><span class="cname">Artikel-Detail (Sheet)</span><span class="status">TESTEN</span></div>
-    <div class="path"><b>Pfad:</b> Zeile in M4 antippen · schließen: Griff nach unten ziehen</div>
+    <div class="chead"><span class="mid">M5</span><span class="cname">Item detail (sheet)</span><span class="status">TEST</span></div>
+    <div class="path"><b>Path:</b> tap a row in M4 · close: pull the handle down</div>
     <div class="shots"><figure><a href="assets/screens/m5-sheet.png" target="_blank"><img src="assets/screens/m5-sheet.png" alt="M5 – Detail-Sheet, Per-Person" loading="lazy"></a><figcaption>Detail-Sheet, Per-Person</figcaption></figure></div>
     <ul class="check">
-      <li><b>Aufgeräumt via Progressive Disclosure (18.07.):</b> Ebene 1 = Kopf + kompakte Übersichts-Chips + Vorbereitung + Kommentare (mit Eingabefeld); alles Weitere hinter „Details ▾“</li>
-      <li><b>„Verwendet von“ entfernt (18.07.):</b> stattdessen „Wer braucht das?“ — Gemeinsam / Reisende-Mehrfachauswahl; Person hinzufügen legt eine eigene Packlisten-Zeile an (z. B. Sonnenbrille für Leonardo → FR-25.1/25.10)</li>
-      <li>Delegieren rücknehmbar: „Gepackt von“ hat ein „niemand“; Modus-Labels 🧳🛒📍, Später-Packer als ⏰-Flag</li>
-      <li>Modus Vorher kaufen → „Jetzt gekauft“ mit Undo-Snackbar; Verlaufs-Sparkline; Vorbereitungen hinzufügen/abhaken; Kommentar „als Aufgabe“ → Vorbereitung</li>
+      <li><b>Tidied via progressive disclosure (18.07.):</b> level 1 = head + compact overview chips + preparation + comments (with an input field); everything else behind „Details ▾“</li>
+      <li><b>„Verwendet von“ removed (18.07.):</b> „Wer braucht das?“ instead — Gemeinsam / a multi-select of travelers; adding a person creates a packing row of their own (e.g. sunglasses for Leonardo → FR-25.1/25.10)</li>
+      <li>Delegation is revocable: „Gepackt von“ has a „niemand“; mode labels 🧳🛒📍, the late packer as an ⏰ flag</li>
+      <li>The mode Vorher kaufen → „Jetzt gekauft“ with an undo snackbar; a history sparkline; adding and ticking preparations; a comment „als Aufgabe“ → preparation</li>
     </ul>
-    <div class="todo"><b>Erledigt (§3.25, 18.07.):</b> Delegieren rücknehmbar, Kommentar-Eingabefeld, Container optional hinter „Details“, Modus-Labels + Später-Packer-Flag, Progressive Disclosure. <b>Ergänzt (08.08.):</b> Per-Person-Artikel zeigen ihre Summe als <b>reines Anzeigefeld</b> (0/3) statt als Stepper — „+1“ könnte nicht sagen, für wen — und darunter <b>eine Zeile je Person</b> mit eigener Checkbox/Stepper (FR-25.14). <b>Kein Speichern-Knopf:</b> es speichert laufend, angezeigt durch gelb „wird gespeichert“ → grün „gespeichert“; bewusst getrennt von G-2, das nur den Server-Abgleich meint (FR-25.15). — Shopping-„für wen“ (FR-25.6) ist seit 07.08. aufgelöst, siehe M6. Prototyp-Bugfix (18.07.): `bindPack` band `[data-act]` dokumentweit und überschrieb die Sheet-Handler (jetzt auf M4-Container begrenzt).</div>
+    <div class="todo"><b>Done (§3.25, 18.07.):</b> revocable delegation, a comment input field, containers optional behind „Details“, mode labels plus the late-packer flag, progressive disclosure. <b>Added (08.08.):</b> per-person items show their sum as a <b>plain display field</b> (0/3) rather than a stepper — „+1“ could not say for whom — and under it <b>one row per person</b> with its own checkbox/stepper (FR-25.14). <b>No save button:</b> it saves continuously, shown as yellow „wird gespeichert“ → green „gespeichert“; deliberately separate from G-2, which means the server exchange only (FR-25.15). — The shopping „für wen“ (FR-25.6) was resolved on 07.08., see M6. Prototype bugfix (18.07.): `bindPack` bound `[data-act]` document-wide and overwrote the sheet handlers (now scoped to the M4 container).</div>
   </div>
 
   <div class="card done">
-    <div class="chead"><span class="mid">M6</span><span class="cname">Einkauf</span><span class="status">TESTEN</span></div>
-    <div class="path"><b>Pfad:</b> 🛒-Icon auf der Reisetitel-Zeile in M4</div>
+    <div class="chead"><span class="mid">M6</span><span class="cname">Shopping</span><span class="status">TEST</span></div>
+    <div class="path"><b>Path:</b> the 🛒 icon on the trip title line in M4</div>
     <div class="shots"><figure><a href="assets/screens/m6-einkauf.png" target="_blank"><img src="assets/screens/m6-einkauf.png" alt="M6 – Einkauf" loading="lazy"></a><figcaption>Einkauf</figcaption></figure><figure><a href="assets/screens/m6-hinzufuegen.png" target="_blank"><img src="assets/screens/m6-hinzufuegen.png" alt="M6 – Hinzufügen mit Beschreibung + Zuweisung" loading="lazy"></a><figcaption>Hinzufügen mit Beschreibung + Zuweisung</figcaption></figure></div>
     <ul class="check">
-      <li>Tabs „Vor Abreise“/„Vor Ort“ mit echten Zählern; 🔍 und Filter oben in der App-Leiste (G-12), Suchfeld erscheint erst auf Tippen</li>
-      <li><b>Filter</b> nach Zugewiesen an / Für wen / Kategorie — dasselbe Sheet wie M4, nur andere Facetten</li>
-      <li><b>Per-Person-Artikel als <i>eine</i> Kaufzeile</b> mit Summe und Empfängern („Sonnenhut 3 Stk · für Sia, Leonardo“) — abgeleitet, nicht eingegeben (FR-25.6). Abhaken erledigt alle Instanzen</li>
-      <li><b>Zugewiesen an</b> (wer kauft) + <b>Beschreibung</b> — im Zeilen-Sheet <i>und</i> direkt beim Hinzufügen; Zuweisung bleibt für den nächsten Artikel stehen</li>
-      <li><b>Kategorie beim Hinzufügen</b>, meist automatisch: Vervollständigung aus dem Artikelstamm übernimmt sie mit</li>
-      <li>Abhaken vor Abreise → Artikel wandert auf die Packliste (Snackbar); <b>„Erledigte“ im Filter holt Gekauftes zurück</b> — ausgegraut, mit „gekauft von … · wann“, nochmal tippen macht rückgängig</li>
-      <li>„Vor Ort“: Ziel-Checkliste der Serie (Feigen, Chianti, Pecorino)</li>
+      <li>Tabs „Vor Abreise“/„Vor Ort“ with real counts; 🔍 and the filter at the top in the app bar (G-12), the search field appears only on tapping</li>
+      <li><b>Filter</b> by Zugewiesen an / Für wen / Kategorie — the same sheet as M4, only different facets</li>
+      <li><b>A per-person item as <i>one</i> buying row</b> with a sum and the recipients („Sonnenhut 3 Stk · für Sia, Leonardo“) — derived, not entered (FR-25.6). Ticking it off completes every instance</li>
+      <li><b>Zugewiesen an</b> (who buys) and a <b>description</b> — in the row sheet <i>and</i> directly when adding; the assignment stays put for the next item</li>
+      <li><b>The category when adding</b>, usually automatically: completion from the item master carries it along</li>
+      <li>Ticking off before departure → the item moves to the packing list (snackbar); <b>„Erledigte“ in the filter brings bought things back</b> — greyed out, with „gekauft von … · wann“, and tapping again undoes it</li>
+      <li>„Vor Ort“: the series' destination checklist (Feigen, Chianti, Pecorino)</li>
     </ul>
-    <div class="todo"><b>Erledigt (§3.25, 07./08.08.):</b> FR-25.6 aufgelöst — „für wen“ wird <b>abgeleitet</b>, nicht neu erfasst; „zugewiesen an“ ist die Beschaffungs-Delegation und etwas anderes (FR-25.12). Dazu Facetten-Filter (FR-25.11g), Felder beim Hinzufügen (FR-25.13a), Kategorie + Autocomplete (FR-25.13b), Gekauftes wieder einblenden (FR-25.11i/j). <b>Fehler gefunden:</b> Per-Person-Artikel im Kaufmodus erschienen <i>gar nicht</i> im Einkauf (Menge lag auf den Instanzen, Vergleich lief gegen <code>undefined</code>).</div>
+    <div class="todo"><b>Done (§3.25, 07./08.08.):</b> FR-25.6 resolved — „für wen“ is <b>derived</b> rather than captured again; „zugewiesen an“ is the procurement delegation and a different thing (FR-25.12). Plus the facet filter (FR-25.11g), fields when adding (FR-25.13a), category and autocomplete (FR-25.13b), and revealing bought things again (FR-25.11i/j). <b>Defect found:</b> per-person items in a buying mode did not appear in the shopping list <i>at all</i> (the quantity sat on the instances and the comparison ran against <code>undefined</code>).</div>
   </div>
 
   <div class="card done">
-    <div class="chead"><span class="mid">M7</span><span class="cname">Vorlagen-Liste</span><span class="status">TESTEN</span></div>
-    <div class="path"><b>Pfad:</b> Tab „Vorlagen“</div>
+    <div class="chead"><span class="mid">M7</span><span class="cname">Template list</span><span class="status">TEST</span></div>
+    <div class="path"><b>Path:</b> tab „Vorlagen“</div>
     <div class="shots"><figure><a href="assets/screens/m7-vorlagen.png" target="_blank"><img src="assets/screens/m7-vorlagen.png" alt="M7 – Vorlagen" loading="lazy"></a><figcaption>Vorlagen</figcaption></figure></div>
     <ul class="check">
-      <li>Suche + Filter Alle/Meine/Veröffentlicht; fork-Chip bei fremden</li>
-      <li>Positionszahlen live (ändern sich nach M8-Edits)</li>
+      <li>Search plus the filter Alle/Meine/Veröffentlicht; a fork chip on other people's</li>
+      <li>Position counts live (they change after M8 edits)</li>
     </ul>
   </div>
 
   <div class="card done">
-    <div class="chead"><span class="mid">M8</span><span class="cname">Vorlagen-Editor</span><span class="status">TESTEN</span></div>
-    <div class="path"><b>Pfad:</b> Vorlage in M7 antippen · neu: ＋-FAB</div>
+    <div class="chead"><span class="mid">M8</span><span class="cname">Template editor</span><span class="status">TEST</span></div>
+    <div class="path"><b>Path:</b> tap a template in M7 · new: the ＋ FAB</div>
     <div class="shots"><figure><a href="assets/screens/m8-vorlagen-editor.png" target="_blank"><img src="assets/screens/m8-vorlagen-editor.png" alt="M8 – Vorlagen-Editor" loading="lazy"></a><figcaption>Vorlagen-Editor</figcaption></figure></div>
     <ul class="check">
-      <li>Mengen-Chip „6ד; Position antippen → M5-Sheet mit Mengen-Stepper</li>
-      <li>Formeln entfernt (FR-1.3/1.5 retired 2026-08-08) — Mengen sind einfache Zahlen</li>
-      <li>Pro Person/global · Modus · Dedup max/Summe · Bedingungs-Chips</li>
-      <li>Veröffentlichen-Warnung (FR-2.4); fremde Vorlage → read-only + „Fork erstellen“</li>
-      <li>Position hinzufügen: Suche + „neu anlegen“ (landet auch in M9)</li>
+      <li>The quantity chip „6ד; tapping a position → the M5 sheet with a quantity stepper</li>
+      <li>Formulas removed (FR-1.3/1.5 retired 2026-08-08) — quantities are plain numbers</li>
+      <li>Per person/global · mode · dedup max/sum · condition chips</li>
+      <li>The publish warning (FR-2.4); someone else's template → read-only plus „Fork erstellen“</li>
+      <li>Adding a position: search plus „neu anlegen“ (which also lands in M9)</li>
     </ul>
-    <div class="todo"><b>REDESIGN</b> · Kernfeature — Position erfassen ist mit allen Parametern zu schwer. Vernünftige Defaults + Parameter nur on demand (progressive disclosure); neu mocken. §3.25 / FR-25.7. <b>+ Mengen pro Personentyp</b> (Erwachsen/Kind, FR-25.9). 17.07.</div>
+    <div class="todo"><b>REDESIGN</b> · the core feature — capturing a position with all its parameters is too heavy. Sensible defaults plus parameters on demand (progressive disclosure); to be mocked again. §3.25 / FR-25.7. <b>+ quantities per person type</b> (adult/child, FR-25.9). 17.07.</div>
   </div>
 
   <div class="card done">
-    <div class="chead"><span class="mid">M9</span><span class="cname">Inventar (Stammdaten)</span><span class="status">TESTEN</span></div>
-    <div class="path"><b>Pfad:</b> Tab „Inventar“</div>
+    <div class="chead"><span class="mid">M9</span><span class="cname">Inventory (master data)</span><span class="status">TEST</span></div>
+    <div class="path"><b>Path:</b> tab „Inventar“</div>
     <div class="shots"><figure><a href="assets/screens/m9-inventar.png" target="_blank"><img src="assets/screens/m9-inventar.png" alt="M9 – Inventar" loading="lazy"></a><figcaption>Inventar</figcaption></figure></div>
     <ul class="check">
-      <li>Multi-Tags als Chips an jeder Zeile (neu, FR-24.1 proposed)</li>
-      <li>Tag-Filter „Sommer“ zeigt Artikel quer über Kategorien</li>
-      <li>Gruppierung nach primärem Tag; Zeile → M10</li>
+      <li>Multi-tags as chips on every row (new, FR-24.1 proposed)</li>
+      <li>The tag filter „Sommer“ shows items across categories</li>
+      <li>Grouping by primary tag; a row → M10</li>
     </ul>
-    <div class="todo"><b>TODO</b> · Swipe-Löschen direkt in der Liste (spezifiziert 17.07., UI-Spec M9): Swipe zeigt je nach Verwendung „Ausblenden“ (logisch) oder „Endgültig löschen“ (physisch, FR-24.3) + Undo — noch nicht im Prototyp.</div>
+    <div class="todo"><b>TODO</b> · swipe-to-delete directly in the list (specified 17.07., UI-Spec M9): depending on usage the swipe offers „Ausblenden“ (logical) or „Endgültig löschen“ (physical, FR-24.3) plus undo — not in the prototype yet.</div>
   </div>
 
   <div class="card done">
-    <div class="chead"><span class="mid">M10</span><span class="cname">Artikel-Editor (Stammdaten)</span><span class="status">TESTEN</span></div>
-    <div class="path"><b>Pfad:</b> Artikel in M9 antippen · neu: ＋-FAB</div>
+    <div class="chead"><span class="mid">M10</span><span class="cname">Item editor (master data)</span><span class="status">TEST</span></div>
+    <div class="path"><b>Path:</b> tap an item in M9 · new: the ＋ FAB</div>
     <div class="shots"><figure><a href="assets/screens/m10-artikel-editor.png" target="_blank"><img src="assets/screens/m10-artikel-editor.png" alt="M10 – Artikel-Editor" loading="lazy"></a><figcaption>Artikel-Editor</figcaption></figure></div>
     <ul class="check">
-      <li>Mehrere Tags zuweisen + neuen Tag inline anlegen</li>
-      <li>Schlank: Name + Primär-Tag; Gewicht/Preis/Tags per Auge-Icon konfigurierbar</li>
-      <li>Löschen: verwendet → logisch (Hinweisbox) · nie verwendet → endgültig (FR-24.3 proposed)</li>
+      <li>Assign several tags and create a new tag inline</li>
+      <li>Lean: name plus primary tag; weight/price/tags configurable via the eye icon</li>
+      <li>Deleting: in use → logical (with an explanatory box) · never used → permanent (FR-24.3 proposed)</li>
     </ul>
   </div>
 
   <div class="card done">
-    <div class="chead"><span class="mid">M11</span><span class="cname">Gepäck &amp; Container</span><span class="status">TESTEN</span></div>
-    <div class="path"><b>So findest du's:</b> Packliste → <b>🧳-Icon auf der Reisetitel-Zeile</b>. (War früher hinter dem Gruppierungs-Umschalter und danach hinter ⋯ vergraben — beim Test beide Male nicht gefunden; seit 08.08. ein eigenes Icon, G-12.)</div>
-    <div class="shots"><figure><a href="assets/screens/m11-gepaeck.png" target="_blank"><img src="assets/screens/m11-gepaeck.png" alt="M11 – Gepäck & Container" loading="lazy"></a><figcaption>Gepäck & Container</figcaption></figure></div>
+    <div class="chead"><span class="mid">M11</span><span class="cname">Luggage &amp; containers</span><span class="status">TEST</span></div>
+    <div class="path"><b>How to find it:</b> packing list → <b>the 🧳 icon on the trip title line</b>. (It used to be buried behind the grouping switch and then behind ⋯ — not found in either test; since 08.08. it has an icon of its own, G-12.)</div>
+    <div class="shots"><figure><a href="assets/screens/m11-gepaeck.png" target="_blank"><img src="assets/screens/m11-gepaeck.png" alt="M11 – Gepäck & Container" loading="lazy"></a><figcaption>Gepäck &amp; Container</figcaption></figure></div>
     <ul class="check">
-      <li>Gewichtsbalken: grün → amber (≥90 %) → rot (über Limit)</li>
-      <li>Koffer-Paar-Balance (±15 %): startet im Ungleichgewicht</li>
-      <li>Unzugewiesene zuweisen — Trinkwasser (18 kg) → Rucksack = rot ⚠</li>
+      <li>Weight bars: green → amber (≥90 %) → red (over the limit)</li>
+      <li>Suitcase pair balance (±15 %): starts out of balance</li>
+      <li>Assign the unassigned — Trinkwasser (18 kg) → Rucksack = red ⚠</li>
     </ul>
   </div>
 
   <div class="card done">
-    <div class="chead"><span class="mid">M12</span><span class="cname">Auswertung (Analytics)</span><span class="status">TESTEN</span></div>
-    <div class="path"><b>So findest du's:</b> Packliste → <b>📊-Icon auf der Reisetitel-Zeile</b>. (Der KPI-Streifen, über den man früher hierher kam, ist mit dem M4-Umbau entfallen; seit 08.08. ein eigenes Icon, G-12.)</div>
+    <div class="chead"><span class="mid">M12</span><span class="cname">Analytics</span><span class="status">TEST</span></div>
+    <div class="path"><b>How to find it:</b> packing list → <b>the 📊 icon on the trip title line</b>. (The KPI strip that used to lead here disappeared with the M4 rebuild; since 08.08. it has an icon of its own, G-12.)</div>
     <div class="shots"><figure><a href="assets/screens/m12-auswertung.png" target="_blank"><img src="assets/screens/m12-auswertung.png" alt="M12 – Auswertung" loading="lazy"></a><figcaption>Auswertung</figcaption></figure></div>
     <ul class="check">
-      <li>Dimension Person/Kategorie/Gepäck; Balken = gepackt/geplant</li>
-      <li>Balken antippen → M4 in dieser Gruppierung</li>
-      <li>„ohne Gewichtsangabe“-Hinweis (Schnellzugabe-Artikel tauchen dort auf)</li>
-      <li>Serien-Trend (kg pro Jahr) + „Häufig markiert“</li>
+      <li>The dimension Person/Kategorie/Gepäck; bars = packed/planned</li>
+      <li>Tapping a bar → M4 in that grouping</li>
+      <li>The „ohne Gewichtsangabe“ note (quick-add items show up there)</li>
+      <li>The series trend (kg per year) plus „Häufig markiert“</li>
     </ul>
   </div>
 
 </div>
 
-<div class="sec">Noch offen</div>
+<div class="sec">Still open</div>
 <div class="grid">
-  <div class="card open"><div class="chead"><span class="mid">M14</span><span class="cname">Review-Assistent (nach Archivierung)</span><span class="status">OFFEN</span></div>
-    <div class="note">Kartenstapel mit Vorschlägen aus „Ungenutzt/Fehlt“-Markierungen — nächster Kandidat fürs Konzept. Einstieg (M4-Toolbar „Archiv“) zeigt vorerst einen Hinweis.</div></div>
-  <div class="card open"><div class="chead"><span class="mid">M15</span><span class="cname">Import-Wizard (CSV)</span><span class="status">OFFEN</span></div>
-    <div class="note">Legacy-Spreadsheet-Import — im Konzept noch nicht dargestellt.</div></div>
-  <div class="card open"><div class="chead"><span class="mid">M16</span><span class="cname">Serie &amp; Reiseziel-Profil</span><span class="status">OFFEN</span></div>
-    <div class="note">Serienkopf in M2 zeigt vorerst nur einen Hinweis. Defaults/Ziel-Checkliste wirken aber schon in M3/M6.</div></div>
-  <div class="card open"><div class="chead"><span class="mid">M17</span><span class="cname">Einstellungen</span><span class="status">OFFEN</span></div>
-    <div class="note">Zahnrad oben rechts zeigt vorerst nur einen Hinweis.</div></div>
-  <div class="card open"><div class="chead"><span class="mid">M18</span><span class="cname">Portabler Import (YAML)</span><span class="status">OFFEN</span></div>
-    <div class="note">Vorschau/Zusammenführen beim YAML-Import — nicht dargestellt.</div></div>
-  <div class="card open"><div class="chead"><span class="mid">M19</span><span class="cname">Modus-Wahl (Erststart)</span><span class="status">OFFEN</span></div>
-    <div class="note">Der Prototyp startet direkt in der App; Local/Server-Wahl existiert real bereits im Client.</div></div>
-  <div class="card open"><div class="chead"><span class="mid">M20</span><span class="cname">Administration</span><span class="status">OFFEN</span></div>
-    <div class="note">Instanz-Verwaltung — real implementiert, im Konzept nicht dargestellt.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M14</span><span class="cname">Review assistant (after archiving)</span><span class="status">OPEN</span></div>
+    <div class="note">A card stack of proposals from the „Ungenutzt/Fehlt“ flags — the next candidate for the concept. The entry point (the M4 toolbar „Archiv“) shows a placeholder note for now.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M15</span><span class="cname">Import wizard (CSV)</span><span class="status">OPEN</span></div>
+    <div class="note">The legacy spreadsheet import — not yet shown in the concept.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M16</span><span class="cname">Series &amp; destination profile</span><span class="status">OPEN</span></div>
+    <div class="note">The series head in M2 shows a placeholder note for now. Defaults and the destination checklist already take effect in M3/M6, though.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M17</span><span class="cname">Settings</span><span class="status">OPEN</span></div>
+    <div class="note">The gear at the top right shows a placeholder note for now.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M18</span><span class="cname">Portable import (YAML)</span><span class="status">OPEN</span></div>
+    <div class="note">Preview and merging on a YAML import — not shown.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M19</span><span class="cname">Mode choice (first start)</span><span class="status">OPEN</span></div>
+    <div class="note">The prototype starts straight in the app; the local/server choice already exists for real in the client.</div></div>
+  <div class="card open"><div class="chead"><span class="mid">M20</span><span class="cname">Administration</span><span class="status">OPEN</span></div>
+    <div class="note">Instance administration — implemented for real, not shown in the concept.</div></div>
 </div>
 
-<div class="sec">Entfernt</div>
+<div class="sec">Removed</div>
 <div class="grid">
-  <div class="card depr"><div class="chead"><span class="mid">M13</span><span class="cname">Rückpacken (Repack)</span><span class="status">ENTFERNT</span></div>
-    <div class="note">Entscheid 17.07.2026: nicht gewünscht, aus dem Produkt entfernt. Spec zurückgezogen (PRD §3.11, UI-Spec M13). Aus dem Prototyp raus (Toolbar zeigt jetzt „Gepäck“ + „Auswertung“). Der bereits im Client vorhandene Code (`domain/repack.ts`, `RepackPage.vue`, Tests, `outbound_packed`-Spalten) wird als separater Code-Cleanup entfernt.</div></div>
+  <div class="card depr"><div class="chead"><span class="mid">M13</span><span class="cname">Repack</span><span class="status">REMOVED</span></div>
+    <div class="note">Decision 2026-07-17: not wanted, removed from the product. The spec is withdrawn (PRD §3.11, UI-Spec M13). Out of the prototype (the toolbar now shows „Gepäck“ and „Auswertung“). The code already present in the client (`domain/repack.ts`, `RepackPage.vue`, tests, the `outbound_packed` columns) is removed as a separate code cleanup.</div></div>
 </div>
 
 <div class="foot">
-  <b>Querschnitt zum Mitprüfen:</b> die einheitliche <b>Filterleiste</b> (Suche + Chips, ✕-löschen, Fokus bleibt beim Tippen)
-  ist auf sechs Listen gespiegelt — M2, M6, M7, M9, Wizard-Schritt 3, Dashboard-Vorbereitungen. In der echten App wird das
-  <b>eine</b> wiederverwendbare Komponente.<br>
-  <b>Neu erfasste Anforderungen</b> aus dieser Konzeptarbeit (alle <i>proposed</i>): Multi-Tags &amp; lebenszyklus-bewusstes Löschen
-  (§3.24, FR-24), Packmasken-Verfeinerungen M2/M4/M5 (§3.25, FR-25), und <b>Mehrsprachigkeit</b> Deutsch + Englisch,
-  Deutsch primär (NFR-4.12) — neue Screens werden von Anfang an string-externalisiert gebaut.<br>
-  Diese Seite lebt in <code>dev-docs/UI_Concept_Overview.html</code> und wird bei jeder Statusänderung nachgeführt;
-  eine Kopie liegt neben dem Prototyp auf <code>:3000/overview.html</code>.
+  <b>Cross-cutting, to check along the way:</b> the uniform <b>filter bar</b> (search plus chips, ✕ to clear, focus stays while typing)
+  is mirrored on six lists — M2, M6, M7, M9, wizard step 3, dashboard preparations. In the real app that becomes
+  <b>one</b> reusable component.<br>
+  <b>Requirements newly captured</b> in this concept work (all <i>proposed</i>): multi-tags and lifecycle-aware deletion
+  (§3.24, FR-24), packing-screen refinements for M2/M4/M5 (§3.25, FR-25), and <b>multilingualism</b> German plus English,
+  German primary (NFR-4.12) — new screens are built with externalised strings from the start.<br>
+  This page lives in <code>dev-docs/UI_Concept_Overview.html</code> and is kept up to date on every status change;
+  a copy sits beside the prototype at <code>:3000/overview.html</code>.
 </div>
-
 </div></body>
 </html>
