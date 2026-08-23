@@ -1,6 +1,7 @@
 /**
  * G-2 conflict log: the orchestrator fetches a trip's audited LWW
- * losers from the server; Local Mode has no server conflicts and
+ * losers from the server and can ask the server to take one back
+ * (NFR-4.2a's two halves); Local Mode has no server conflicts and
  * resolves empty without touching the network (FR-19.6).
  */
 import 'fake-indexeddb/auto'
@@ -104,6 +105,65 @@ describe('fetchMasterConflicts', () => {
     })
 
     expect(await orch.fetchMasterConflicts()).toEqual([])
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('revertConflict', () => {
+  /** An empty 200 for the revert, then one for the drain's pull. */
+  function okResponses(): void {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, pull_hint: { next_cursor: 3 }, changes: [] }), {
+        status: 200,
+      }),
+    )
+  }
+
+  it('posts a trip conflict to the trip partition endpoint', async () => {
+    okResponses()
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+
+    await orch.revertConflict('c1', 't1')
+
+    const [url, init] = fetchMock.mock.calls[0]!
+    expect(String(url)).toContain('/api/v1/trips/t1/conflicts/c1/revert')
+    expect((init as RequestInit).method).toBe('POST')
+  })
+
+  it('posts a master conflict to the master endpoint, which takes no trip', async () => {
+    okResponses()
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+
+    await orch.revertConflict('c2')
+
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('/api/v1/conflicts/master/c2/revert')
+  })
+
+  it('surfaces the server refusal rather than swallowing it', async () => {
+    // §6 rule 2 outranks a revert, and the user has to be told which
+    // refusal applied — a resolved promise would read as success.
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: { code: 'revert_refused', message: 'no' } }), {
+        status: 409,
+      }),
+    )
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+
+    await expect(orch.revertConflict('c3', 't1')).rejects.toMatchObject({
+      status: 409,
+      apiError: { code: 'revert_refused' },
+    })
+  })
+
+  it('does nothing in Local Mode, which has no conflicts to revert', async () => {
+    const orch = useSyncOrchestrator({
+      baseUrl: '',
+      getToken: () => null,
+      local: new IndexedDBPersistence(),
+    })
+
+    await orch.revertConflict('c4', 't1')
+
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })
