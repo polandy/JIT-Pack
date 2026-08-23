@@ -75,7 +75,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [M7 gets its two scopes (§3.27, FR-27.1/27.6)](#2026-08-15--m7-gets-its-two-scopes-327-fr-271276) — scope had been in the schema for two migrations and no client read it.
 - [M7's two open decisions, settled by rendered variants](#2026-08-15--m7s-two-open-decisions-settled-by-rendered-variants) — built as working variants instead of argued in prose; the swipe lost here first.
 - [M8 rebuilt: the scope-shaped editor (§3.27, FR-27.2/27.4/27.6/27.7)](#2026-08-15--m8-rebuilt-the-scope-shaped-editor-327-fr-272274276277) — the client could read §3.27's schema but not write it.
-- [M9/M10 — the inventory on a tag set (§3.24, 2026-08-16)](#m9m10--the-inventory-on-a-tag-set-324-2026-08-16) — the owner's "wir machen es mit tags", and an explicitly allowed destructive migration.
+- [M9/M10 — the inventory on a tag set (§3.24, 2026-08-16)](#m9m10--the-inventory-on-a-tag-set-324-2026-08-16) — the owner's "we do it with tags", and an explicitly allowed destructive migration.
 - [M11 — containers rebuilt on the concept round (FR-10.1–10.3, 2026-08-16)](#m11--containers-rebuilt-on-the-concept-round-fr-101103-2026-08-16) — a screen rejected in concept without ever having been rendered.
 - [Browser back with the M5 sheet open (Navigation Concept §7 case 4, 2026-08-16)](#browser-back-with-the-m5-sheet-open-navigation-concept-7-case-4-2026-08-16) — the sheet *replaces* its history entry on purpose; `overlayBackGuard.ts` is the fix.
 - [M11 joins the visual baselines, and the image gets a platform (2026-08-16)](#m11-joins-the-visual-baselines-and-the-image-gets-a-platform-2026-08-16) — which screens earn a baseline, and on what argument.
@@ -317,7 +317,7 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   client traveler type and the M3 step-2 control.
 - **§3.27 Template composition ("Gruppen") + trip→template round-trip — added to the MVP by
   owner decision 2026-08-08** (explicitly asked whether to park it per the 2026-08-07 scope rule;
-  answer: "nein, das gehört zum MVP" — this amends decision 1 above for M3/M7/M8). **Concept
+  answer: "no, that belongs in the MVP" — this amends decision 1 above for M3/M7/M8). **Concept
   CLOSED 2026-08-08:** mocked end-to-end in the prototype (M7 composition display, M8 groups
   section with cycle guard + resolution footer + blast-radius note, M3 real dedup preview with
   named merges + single-item picker, M2 applied-changes chip, new M21 "Vorlage aus Reise"),
@@ -370,16 +370,17 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   2026-08-08** (screen inventory + full entry + cross-screen flow 6 in `UI_Spec_v1.10.md`,
   documenting the mocked screen; the test spec's "entry to follow" note is gone).
 
-- **Gruppe in die laufende Reise (FR-27.10, owner request 2026-08-08) — mocked + specced,
-  implementation open:** the M4 quick-add adds **whole groups**, not only items ("ich möchte auch
-  in den Ferien eine Gruppe von Pack-Elementen hinzufügen können, bspw. Makro Fotografie").
+- **A group onto a running trip (FR-27.10, owner request 2026-08-08) — mocked + specced,
+  implementation open:** the M4 quick-add adds **whole groups**, not only items (the owner asked
+  to be able to add a group of packing elements while already on the trip, macro photography for
+  instance).
   Group suggestions filter as you type under *„Ganze Gruppe hinzufügen“*; one tap runs the same
   resolution M3 does at generation — dedup against the trip's existing rows, provenance stamped
   (so FR-27.5 still recognises them), FR-27.7 tasks materialised as prep todos — and reports the
   outcome. Not flagged *Missing* on purpose: an added group is a grown plan, not a forgotten item,
   and the flag would feed M14 a false signal. E2E M4-26/27.
 
-- **Packlisten-Filter überlebt die Session (FR-25.18, owner request 2026-08-08) — mocked +
+- **The packing filter survives the session (FR-25.18, owner request 2026-08-08) — mocked +
   specced, implementation open:** filter, *Erledigte* switch and grouping are remembered per trip
   for the session (restored before first paint, so M4 never flashes unfiltered). Session-scoped on
   purpose where grouping is durable — a filter hides rows, and a forgotten one reads as "nothing
@@ -407,7 +408,7 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   prüfen →"), beside the M21 entry: M21 folds back structure, M14 folds back single items.
   E2E M14-04/05. Implementation open.
 
-- **M11 Gepäck & Container — Konzeptrunde nachgeholt 2026-08-08, mocked + specced:** three real
+- **M11 luggage & containers — concept round caught up 2026-08-08, mocked + specced:** three real
   gaps closed. Containers could not be **created or edited** at all (the FAB did nothing here);
   they now use the M5 sheet grammar — name, carrier, limit, pairing, delete, auto-save chip — and
   creation is the FR-24.5 minimal form (FAB creates with a placeholder name and opens the sheet).
@@ -429,7 +430,7 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   — one contribution per traveler by Person, summed back into one bucket by Kategorie/Gepäck.
   E2E M12-04/05. Implementation open.
 
-- **Zuständigkeit ≠ Packbeleg (FR-25.19, owner correction 2026-08-08) — mocked + specced:** the M5
+- **Responsibility ≠ packing record (FR-25.19, owner correction 2026-08-08) — mocked + specced:** the M5
   control read *„Gepackt von · Person“* but assigned the row (its own hint said „Delegieren löst
   Push aus“), and the FR-25.3 avatar plus FR-25.17 stamp read that same field as a record — so
   delegating to Sia and packing it yourself claimed Sia had packed it. Now two things:
@@ -448,7 +449,7 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   asserted what the sheet *does to the model* by setting fields directly, so no assertion ever
   clicked the control — that is how it survived. The new cases drive real clicks.
 
-- **Fremd zugewiesene Zeilen standardmässig ausgeblendet (FR-25.20, owner request 2026-08-08) —
+- **Rows assigned to somebody else are hidden by default (FR-25.20, owner request 2026-08-08) —
   mocked + specced:** M4 opens on your own work; rows whose FR-25.19 responsible person is someone
   else are filtered out, unassigned rows always stay (nobody claimed them, so they are everyone's).
   Never silent — a reveal bar at the foot names the count and the people, mirroring FR-25.2's done
@@ -472,7 +473,7 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   clickable.
 
 - **Die drei Fragen des Konsistenz-Durchgangs, beantwortet 2026-08-08 (owner) und umgesetzt:**
-  - **§3.20 Abhängigkeiten bleiben — nachgemockt.** M10 lists *Hängt ab von* with a
+  - **§3.20 dependencies stay — mocked after the fact.** M10 lists *Hängt ab von* with a
     nötig/empfohlen toggle and, read-only, *Wird gebraucht von*; the M4 quick-add pulls required
     companions onto the trip and says so, and skipping an item co-skips them with the reason
     naming the parent (FR-20.1/20.2/20.4). The feature had been shipped since 2026-07 but was
@@ -494,8 +495,8 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   — FR-24.5 new). Tag capture is a **filter-or-create search field** (FR-24.1 refinement; typing filters chips, ＋/Enter creates unmatched names). E2E M9-01/05, M10-01/07/08 + matrix. Implementation of the two FRs is open
   (client M9/M10 rework).
 
-- **FR-1.8 Einheiten — REMOVED end-to-end (owner decision 2026-08-08,** "wir haben nur
-  Stück"**):** `items.unit` dropped (migration 015), sync whitelist trimmed, portable YAML
+- **FR-1.8 Units — REMOVED end-to-end (owner decision 2026-08-08, "we only have
+  pieces"):** `items.unit` dropped (migration 015), sync whitelist trimmed, portable YAML
   `unit` field gone (legacy files import fine — unknown fields ignored, FR-18.5), client
   type/editor/inventory/quick-add cleaned, prototype unit chips and M10 segment removed,
   G-6 unit-label clause void. All suites green.
@@ -513,8 +514,8 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   adjusted, test spec M8-01/M3-08 + matrix updated. All suites green (go -race, 428 vitest,
   build, lint, 76 prototype assertions).
 
-- **FR-1.7 Verbrauchsartikel — REMOVED end-to-end (owner decision 2026-08-08,** "das Feature
-  brauche ich nicht"**):** consumable flag *and* the per-day unit/rate it fed. Migration 013
+- **FR-1.7 Consumables — REMOVED end-to-end (owner decision 2026-08-08, "I don't need that
+  feature"):** consumable flag *and* the per-day unit/rate it fed. Migration 013
   rebuilds `items` without `is_consumable`/`per_day_rate` (unit CHECK narrowed to
   pieces/pairs, `per_day` rows folded to pieces), sync whitelist trimmed, client UI (M9
   chip/filter, M10 toggle + rate field), `instantiate.ts` per-day branch, prototype and all
@@ -842,7 +843,7 @@ manual describes the mark's artwork.
 
 ## Navigation: the back button that was built but unreachable (ADR-011)
 
-Reported by the owner while looking at M3 — "es fehlt ein zurück button". It was
+Reported by the owner while looking at M3 — a back button is missing. It was
 there: `TripWizardPage.vue` has an `IonBackButton` with a `default-href`, and so
 do sixteen other screens. Measuring instead of reading the stylesheet found why
 nobody had ever seen one.
@@ -1042,8 +1043,8 @@ fifth complaint — "my trip wasn't persisted" — turned out to be two more
 defects wearing that costume.
 
 His verdict on the process is the important part and is now in the working
-agreement: *„dir wäre das nicht passiert, wenn du saubere e2e ui tests
-gemacht hättest. das gehört immer dazu."* He is right, and the failure mode
+agreement: *this would not have happened to you if you had written proper e2e UI tests —
+they are always part of the job.* He is right, and the failure mode
 is specific: the M3 and M4 units were both green throughout. A per-screen
 suite proves the screen. Nothing exercised getting to it, leaving it, or
 what the app bar did afterwards — and the cases for exactly that
@@ -1140,9 +1141,9 @@ the wrong thing.
 
 ## The list's own hierarchy
 
-Reported after looking at the rebuilt list: „der Titel Kleidung als
-Oberkategorie ist kleiner als die Unterkategorien Regenjacke und
-Sonnenhut", and the categories were hard to tell apart at all.
+Reported after looking at the rebuilt list: the heading "Kleidung" as the parent category was
+smaller than its child categories "Regenjacke" and "Sonnenhut", and the categories were hard to
+tell apart at all.
 
 Both were mine. The group header had shipped as G-12-style uppercase
 micro-type — 0.82rem against the rows' 0.88rem — so the heading was
@@ -1171,8 +1172,8 @@ wrong order of importance.
 
 ## A trip needs a year, not a date (FR-2.1b)
 
-Owner decision: „Das Datum für einen Trip soll optional sein. Nur das Jahr
-ist required. bei der Selektion ist das aktuelle Jahr bereits vorgewählt."
+Owner decision: the date of a trip should be optional; only the year is required, and the
+current year is preselected.
 
 FR-2.1a had already made the *start* date optional and kept the end date
 as "the trip's planning anchor". That was the wrong anchor. A trip exists
@@ -1207,8 +1208,8 @@ the old gate, which is what makes it a guard rather than a description.
 
 ## Trip creation, folded (FR-2.1c)
 
-Owner: „beim trip erstellen, sollen die optionalen parameter weniger
-stark sichtbar sein, um den user nicht zu überfordern."
+Owner: when creating a trip, the optional parameters should be less prominent, so as not to
+overwhelm the user.
 
 The house already had the idiom — FR-25.7 for template positions, FR-24.5
 for master items, M5's own *Details ▾* — so this is that pattern applied
@@ -1229,9 +1230,8 @@ the screen it drives changes shape, that is where the change surfaces.
 
 ## Default travellers (FR-2.5a)
 
-Owner: „man sollte default travelers konfigurieren können, welche im
-wizard dann automatisch schon drin sind … Im Wizard sollte man das
-einfach anpassen können."
+Owner: it should be possible to configure default travelers who are then already in the
+wizard automatically … and it should be easy to adjust them in the wizard.
 
 Configured once in M17, present in M3's step 2, and fully editable there —
 the last part is what keeps them a starting point rather than a rule.
@@ -1255,8 +1255,8 @@ modelled.
 
 ## M5, rebuilt as a sheet
 
-Owner: „von einem packlisten element die detail ansicht ist nicht
-ansprechend und unübersichtlich. gestalte das als ux experte neu."
+Owner: the detail view of a packing-list element is unattractive and cluttered — redesign it
+as a UX expert would.
 
 The concept was never the problem — §3.25 settled M5 in the mock a week
 ago. The *build* had never followed it: nine equally loud sections, all
@@ -2059,7 +2059,7 @@ and `excludeItemIds` (a position the template carries is not suggested
 again). The position sheet is a new `PositionSheet.vue` in the as-built M5
 grammar: glance chips, Menge with a plain stepper (0 = "bewusst nicht dabei",
 FR-5.5), the FR-27.7 task list with the blocking rule stated inline, and
-assignment/procurement/dedup/conditions/Später-Packer behind "Details ▾".
+assignment/procurement/dedup/conditions/late-packer behind "Details ▾".
 The M3 attribute catalogue moved to `lib/attributeLabels.ts` so the FR-15.2
 condition chips and the wizard's fold summary read one vocabulary. M7's
 long-press menu gained the rename and delete it had reserved space for —
@@ -2506,8 +2506,8 @@ comes from a dependency, not from a template position, so it has no tasks.
 
 ## FR-27.12: a group stops being a name with a number (2026-08-16, PR pending)
 
-Owner question after the §3.27 generation PR: „die Gruppe, bspw. Makro
-Fotografie, sollte man anschauen können. haben wir das spezifiziert?" — no, and
+Owner question after the §3.27 generation PR — you should be able to look inside a group,
+macro photography for instance; have we specified that? — no, and
 the gap was wider than one screen. A group announced *how many* items it held
 and never *which*, in all three places it is offered: M3 step 3, M8's Gruppen
 section and M14's target picker. The only answer was the M8 editor, which from
@@ -2551,9 +2551,8 @@ more than it used to.
 
 ## The dev seed grows a master partition (2026-08-16)
 
-Owner, wanting to test the freshly merged §3.27 work: „kannst du zu Testzwecken
-Items und Gruppen zum initialen Datenstand hinzufügen. Das soll auch künftig so
-sein als Standard."
+Owner, wanting to test the freshly merged §3.27 work: add items and groups to the initial
+data set for testing purposes, and keep doing that as the standard from now on.
 
 `sampleTrip.ts` seeded a trip and nothing else, which was enough while the trip
 screens were the ones being built. Since §3.27 it is not: a trip carries its own
@@ -3156,19 +3155,19 @@ ships. The dev seed grew a second, *planned* trip for the same reason — the
 existing sample trip is active on purpose and therefore frozen, so without it
 the feature cannot be looked at.
 
-**Owner-Eyeball, 2026-08-18:** Chip angenommen. Eine Änderung daraus — der Log
-steht **bis zehn Einträgen direkt unter der Zeile**, darüber klappt er hinter den
-Chip. Die Schwelle statt „immer geklappt": ein paar Zeilen sind es wert, dort
-gelesen zu werden, wo sie passiert sind, aber M2 ist der Haupteinstieg und es gibt
-bewusst kein *gesehen* — ein unbegrenzter Log schöbe jede andere Reise nach unten,
-bis die betriebsame abreist. Der Chip ist in der Inline-Fassung ein Label ohne
-Interaktion; ein Bedienelement, das nichts umschaltet, lügt über Zustand.
+**Owner eyeball, 2026-08-18:** the chip is accepted, with one change out of it —
+the log stands **directly under the row up to ten entries**, and folds behind the
+chip above that. The threshold rather than "always collapsed": a few lines are
+worth being read where they happened, but M2 is the main entry point and there is
+deliberately no *seen* state, so an unbounded log would push every other trip down
+until the busy one departs. In its inline form the chip is a label without
+interaction; a control that toggles nothing lies about state.
 
-Die Umstellung deckte einen echten Testfehler auf: seit der Log inline steht,
-enthält M2 das Wort „Stativ" ebenfalls, und während des Ionic-Übergangs sind beide
-Seiten kurz sichtbar — `getByText('Stativ')` löste auf zwei Elemente auf. Der Fall
-prüft jetzt die *Überschrift* der Zeile. Merke: eine Textsuche auf der „sichtbaren
-Seite" ist nur eindeutig, solange kein zweiter Screen dasselbe Wort trägt.
+The change uncovered a real test defect: now that the log stands inline, M2
+carries the word "Stativ" as well, and during the Ionic transition both pages are
+briefly visible — `getByText('Stativ')` resolved to two elements. The case checks
+the row's *heading* instead. The lesson: a text search on "the visible page" is
+unambiguous only as long as no second screen carries the same word.
 
 ### The §4a pass that came with it
 
@@ -3187,9 +3186,9 @@ from both routing sets is dropped in silence.
 
 ## FR-27.4, revised the day after it landed: the group *asks* (2026-08-18)
 
-Owner, hours after the refresh merged: „wenn ich eine Gruppe ändere, die in einem
-aktiven Trip verwendet wird, so soll ich gefragt werden, ob es auf die angewendet
-werden soll. Auf vergangene Trips soll es keinen Impact haben." That inverts two
+Owner, hours after the refresh merged: when I change a group that is used by an active trip,
+I should be asked whether it is to be applied to that trip; past trips must not be affected at
+all. That inverts two
 of the three rules the merged model rested on — *planning* trips followed
 silently, everything else was frozen from departure onward.
 
@@ -3603,8 +3602,8 @@ starting at t≈0, roughly 4 min. Measured on this PR's own run — see the PR.
 
 ## FR-27.10 — a whole group onto a trip that already exists (2026-08-19)
 
-The last open piece of §3.27 except M21. „Ich möchte auch in den Ferien eine
-Gruppe von Pack-Elementen hinzufügen können" — you decide on site that you will
+The last open piece of §3.27 except M21. The owner wants to add a whole group of packing
+elements while already on the trip — you decide on site that you will
 shoot macro this time, and until now the alternative was hand-copying a dozen
 positions or regenerating a trip that has already been packed against.
 
@@ -3930,8 +3929,8 @@ Current line — until October 2026, while 24 is Active LTS.
 **The first fix was the wrong shape.** Ignoring `semver-major` in
 `.github/dependabot.yml` removes the bad PR and the good one with it: the next
 LTS would then have to be *remembered*, which is exactly the kind of promise a
-single maintainer does not keep. Owner, on reading it: „ich möchte das aber
-nicht manuell erinnern."
+single maintainer does not keep. Owner, on reading it: but I don't want to have to remember
+that by hand.
 
 So the majors stay in Dependabot's hands and `scripts/toolchain-pins-gate.sh`
 holds the three declarations of each together — node across `client/Dockerfile`,
