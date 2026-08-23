@@ -375,7 +375,14 @@ export function importPortableDocument(
     }
   }
 
-  restoreRefreshState(env, tripId, doc, restoredTemplates ?? new Map(), travelerIDs, rowIdByPosition)
+  restoreRefreshState(
+    env,
+    tripId,
+    doc,
+    restoredTemplates ?? new Map(),
+    travelerIDs,
+    rowIdByPosition,
+  )
 
   return { kind: 'trip', id: tripId }
 }

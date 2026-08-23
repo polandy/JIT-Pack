@@ -1872,7 +1872,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     mergeDecisions: Map<string, string>,
     restoredTemplates?: Map<string, string>,
   ): PortableImportResult {
-    const result = importPortableDocument(doc, mergeDecisions, portableImportEnv(), restoredTemplates)
+    const result = importPortableDocument(
+      doc,
+      mergeDecisions,
+      portableImportEnv(),
+      restoredTemplates,
+    )
     drainAfterImport(result.kind === 'trip' ? result.id : null)
     return result
   }
@@ -1896,7 +1901,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       .then(() => (tripId ? drainTrip(tripId) : Promise.resolve()))
       .catch(() => {})
   }
-
 
   // --- Master data actions (M7–M10; master partition) ---
 

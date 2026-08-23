@@ -62,7 +62,9 @@ function parse(text: string): PortableDocument {
 }
 
 const rowsFor = (recorded: Recorded[], table: string) =>
-  recorded.filter((r) => r.table === table).map((r) => (r.mutation.fields ?? {}) as Record<string, unknown>)
+  recorded
+    .filter((r) => r.table === table)
+    .map((r) => (r.mutation.fields ?? {}) as Record<string, unknown>)
 
 describe('the portable import rules, with no Vue and no Pinia', () => {
   it('runs without a DOM at all', () => {
