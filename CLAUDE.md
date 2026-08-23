@@ -184,8 +184,10 @@ it. Item numbers stay stable even as items close, because the log refers back to
    written there too — in that posture the row's press-and-hold goes inert, because one
    posture asks one question. FR-9.4 carries what M14's first render with real proposals showed: the
    unlabelled ✕ behind *„Nie mehr fragen"*, handled cards that never leave *Offen* (so the
-   heading reads „Offen · 0" above two of them), and the snackbar landing on the tab bar.
-   Build against those texts; the rejected options are written there.
+   heading reads „Offen · 0" above two of them). Its fourth point, the snackbar landing on the
+   tab bar, is **fixed** (2026-08-23): every bottom toast goes through `client/src/lib/toast.ts`,
+   which anchors above the bar. Build the rest against those texts; the rejected options are
+   written there.
 
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,

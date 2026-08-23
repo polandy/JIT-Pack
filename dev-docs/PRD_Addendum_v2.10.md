@@ -632,10 +632,17 @@ A packing list is **scanned, not read**: forty rows, most of them known, the eye
     list is empty, and applying or skipping never empties it — so the one way to see a finished
     review is to dismiss both proposals permanently. Whatever the previous point decides,
     it decides this one too.
-  * **Defect (open): the snackbar lands on the navigation bar.** Measured at 430×932: the toast
-    occupies 876–924, the tab bar 875–932. Every confirmation on this screen — applied,
-    skipped, never-ask — is written across the four tab labels and is cut off at the right.
-    Not M14's alone, but M14 is where every action produces one.
+  * **Defect — fixed 2026-08-23: the snackbar landed on the navigation bar.** Measured at
+    430×932: the toast occupied 876–924, the tab bar 875–932. Every confirmation — applied,
+    skipped, never-ask — was written across the four tab labels and cut off at the right; not
+    M14's alone, but M14 is where every action produces one. Ionic's `positionAnchor` puts a
+    bottom toast above a named element, and **five of nine call sites had found that** and
+    passed their screen's FAB while four had not. Deciding the anchor per screen is what made
+    it forgettable, so the decision moved into `client/src/lib/toast.ts` and the call sites go
+    through it: a caller's own anchor still wins, and **a hidden tab bar counts as no tab bar**
+    — Ionic measures a `display: none` anchor as a zeroed box and subtracts a whole viewport
+    height from the offset, which throws the toast off screen instead of onto the bar.
+    E2E-M22-09 asserts the geometry.
 
 ---
 
