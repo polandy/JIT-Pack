@@ -399,3 +399,55 @@ func conflictIDForField(t *testing.T, s *Store, field string) string {
 	}
 	return id
 }
+
+// A master-partition entry outlives the entity it names: `templates` is
+// visible to everyone, so a conflict on a template deleted since stays in
+// the log and keeps offering its revert. The refusal is what makes that
+// harmless — one logged field cannot rebuild a row, and rebuilding a
+// partial one would put a nameless template back in everybody's picker.
+func TestRevertMasterConflict_DeletedEntityIsRefused_NFR42a(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	seed := sync.Mutation{
+		MutationID: "tpl-1", Op: sync.OpInsert, Table: TableTemplates, ID: "tpl-x",
+		Fields: map[string]any{"name": "Ferien", "owner_id": testUser}, HLC: winningHLC,
+	}
+	if _, err := s.ApplyMasterMutation(ctx, testUser, seed); err != nil {
+		t.Fatal(err)
+	}
+	stale := sync.Mutation{
+		MutationID: "tpl-2", Op: sync.OpUpsert, Table: TableTemplates, ID: "tpl-x",
+		Fields: map[string]any{"name": "Sommerferien"}, HLC: sync.HLC("0000000001000-0000-aaaaaaaa"),
+	}
+	if _, err := s.ApplyMasterMutation(ctx, testUser, stale); err != nil {
+		t.Fatal(err)
+	}
+	id := onlyConflictID(t, s)
+	gone := sync.Mutation{
+		MutationID: "tpl-3", Op: sync.OpDelete, Table: TableTemplates, ID: "tpl-x",
+		HLC: sync.HLC("0000000009000-0000-dddddddd"),
+	}
+	if _, err := s.ApplyMasterMutation(ctx, testUser, gone); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := s.RevertMasterConflict(ctx, testUser, id)
+
+	if !errors.Is(err, ErrConflictRowGone) {
+		t.Fatalf("err = %v, want ErrConflictRowGone", err)
+	}
+	var exists int
+	if err := s.db.QueryRow(`SELECT count(*) FROM templates WHERE id = 'tpl-x'`).Scan(&exists); err != nil {
+		t.Fatal(err)
+	}
+	if exists != 0 {
+		t.Error("a refused revert must not resurrect the deleted row")
+	}
+	var reverted int
+	if err := s.db.QueryRow(`SELECT reverted FROM conflict_log WHERE id = ?`, id).Scan(&reverted); err != nil {
+		t.Fatal(err)
+	}
+	if reverted != 0 {
+		t.Error("a refused revert must leave the entry unspent")
+	}
+}
