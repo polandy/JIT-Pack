@@ -918,6 +918,7 @@ export const en = {
   'conflicts.field.carrier_traveler_id': 'Carried by',
   'conflicts.field.container_id': 'Container',
   'conflicts.field.paired_container_id': 'Paired container',
+  'conflicts.field.source_item_id': 'Inventory article',
   'conflicts.field.source_template_id': 'From list',
   'conflicts.field.series_id': 'Series',
   'conflicts.revertFailed.alreadyReverted': 'This conflict has already been reverted.',

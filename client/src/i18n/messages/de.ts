@@ -925,6 +925,7 @@ export const de: Record<keyof typeof en, string> = {
   'conflicts.field.carrier_traveler_id': 'Getragen von',
   'conflicts.field.container_id': 'Behälter',
   'conflicts.field.paired_container_id': 'Gegenstück',
+  'conflicts.field.source_item_id': 'Stammartikel',
   'conflicts.field.source_template_id': 'Aus Liste',
   'conflicts.field.series_id': 'Serie',
   'conflicts.revertFailed.alreadyReverted': 'Dieser Konflikt wurde bereits zurückgenommen.',

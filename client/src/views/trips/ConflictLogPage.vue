@@ -157,6 +157,7 @@ const FIELD_LABELS: Partial<Record<string, MessageKey>> = {
   carrier_traveler_id: 'conflicts.field.carrier_traveler_id',
   container_id: 'conflicts.field.container_id',
   paired_container_id: 'conflicts.field.paired_container_id',
+  source_item_id: 'conflicts.field.source_item_id',
   source_template_id: 'conflicts.field.source_template_id',
   series_id: 'conflicts.field.series_id',
 }
