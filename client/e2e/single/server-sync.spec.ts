@@ -417,7 +417,7 @@ test.describe('Single-User backend sync @single', () => {
     // Filtered by this test's own losing value, not by `trips · name`: the
     // master partition is shared for the whole run (one database), so
     // every case that loses a rename adds another row that would match.
-    // E2E-G2-07 is one, and it only passed here by running second.
+    // E2E-G2-10 is one, and it only passed here by running second.
     const row = visiblePage(pageB)
       .getByTestId('conflict-row')
       .filter({ hasText: `${trip} B` })
@@ -431,7 +431,7 @@ test.describe('Single-User backend sync @single', () => {
   })
 
   /**
-   * E2E-G2-07 (NFR-4.2a, ADR-023): the log's second promise — the loser
+   * E2E-G2-10 (NFR-4.2a, ADR-023): the log's second promise — the loser
    * can be put back. The audit half shipped without it, so the page named
    * a value it could do nothing about.
    *

@@ -63,7 +63,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-FLOW-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-FLOW-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-G2-04 — the durable outbox (B2, NFR-4.1), added 2026-08-21.** A new
 case in the `single` unit: pack a row offline, reload the page *while still
@@ -157,7 +157,7 @@ the *trip* partition, and this rename is queued on the master one. The drain
 here is the app start the durable outbox gave it (B2) — a reload, not a
 navigation. Mutation-proved by pointing the query back at `trip_id`.
 
-**E2E-G2-07 — the loss can be taken back, added 2026-08-22.** NFR-4.2a
+**E2E-G2-10 — the loss can be taken back, added 2026-08-22.** NFR-4.2a
 promises audit *and* manual revert in one sentence; only the audit existed,
 so the page named a value it could do nothing about. The case is
 E2E-G2-06's scenario carried one step further: B loses the rename, reads it
@@ -1014,7 +1014,7 @@ the two-context convergence smoke (E2E-FLOW-01, partial), the offline
 queue round-trip (E2E-FLOW-06 + E2E-G2-01's queue half), the losing-edit
 conflict (E2E-FLOW-08/E2E-NFR-04, partial, + E2E-G2-01's conflict-log
 half), the G-2 sheet outside a trip, the master-partition log (E2E-G2-06)
-and its revert (E2E-G2-07).
+and its revert (E2E-G2-10).
 
 **The harness, for the units that will extend it** (Track C's durable
 outbox is the named next tenant):
