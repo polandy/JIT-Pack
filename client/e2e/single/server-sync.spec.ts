@@ -592,6 +592,11 @@ test.describe('Single-User backend sync @single', () => {
     await serviceWorkerControlsPage(page)
 
     const indicator = page.getByTestId('sync-indicator')
+    // Wait for the setup writes to drain before going offline: without it the
+    // queue holds whatever quickAddItem left plus the pack, and "1" below is
+    // a race the test wins most of the time — the pattern every other offline
+    // case here already follows.
+    await expect(indicator).toHaveAttribute('data-state', 'synced')
     await ctx.setOffline(true)
     await packItem(page, item)
     await expect(indicator).toHaveAttribute('data-state', 'offline')
