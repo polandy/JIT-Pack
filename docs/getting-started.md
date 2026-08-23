@@ -49,11 +49,15 @@ Two startup failures you might see instead, both fatal and both immediate:
 - `config: JITPACK_LOCAL_USER_ID is required in single-user mode` — `JITPACK_SINGLE_USER` is `true` but the user id is missing.
 - `config: JITPACK_SESSION_SECRET is required in multi-user mode …` — `JITPACK_SINGLE_USER` is not exactly the string `true`, so the server fell through to multi-user mode. Any other value, including `1` or `TRUE`, counts as off.
 
-Now check it over HTTP. Both of these go through nginx, so a good answer also proves the proxy routes are right:
+Now check it over HTTP. All three go through nginx, so a good answer also proves the proxy routes are right:
 
 ```bash
 curl -i http://localhost:3000/health
 curl -s http://localhost:3000/api/v1/me
+curl -i -H "Connection: Upgrade" -H "Upgrade: websocket" \
+     -H "Sec-WebSocket-Version: 13" -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
+     -H "Origin: http://localhost:3000" \
+     http://localhost:3000/ws
 ```
 
 `/health` returns `200 OK` with an empty body. `/api/v1/me` returns your identity as JSON — in single-user mode it answers without any credentials:
@@ -63,6 +67,8 @@ curl -s http://localhost:3000/api/v1/me
 ```
 
 The display name is a seeded default that you can change later in the app; the `user_id` is the value you configured.
+
+The third is the sync WebSocket, and it answers `101 Switching Protocols`. It is worth running even though nothing in the four steps depends on it, because it is the one part of the stack that fails **silently**: the app loads and every screen works while live updates between devices never arrive. Send the `Origin` header exactly as shown — the handshake is only checked against it, so leaving it off turns this into a test that cannot fail. A `403` naming an `Origin` and a `Host` that differ means the proxy is not forwarding the address the browser used; [Installation](installation.md#serving-the-spa-behind-a-reverse-proxy) has the rule.
 
 ## Step 3 — Open the app
 
