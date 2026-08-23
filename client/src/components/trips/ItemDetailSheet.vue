@@ -225,7 +225,8 @@ function onContainerChange(id: string | null) {
 }
 /** FR-9.1: the judgement is revocable, so the toggle writes both ways. */
 function onReviewFlag(flag: ReviewFlag, value: boolean) {
-  if (item.value && !isLocked.value) orchestrator.setReviewFlag(props.tripId, item.value, flag, value)
+  if (item.value && !isLocked.value)
+    orchestrator.setReviewFlag(props.tripId, item.value, flag, value)
 }
 
 function onLatePacker(value: boolean) {
@@ -600,7 +601,7 @@ const packedStamp = computed(() => {
             slot="end"
             :checked="item.flag_unused"
             :disabled="isLocked"
-          data-testid="m5-flag-unused"
+            data-testid="m5-flag-unused"
             @ion-change="(e: CustomEvent) => onReviewFlag('unused', e.detail.checked)"
           />
         </IonItem>
@@ -614,7 +615,7 @@ const packedStamp = computed(() => {
             slot="end"
             :checked="item.flag_missing"
             :disabled="isLocked"
-          data-testid="m5-flag-missing"
+            data-testid="m5-flag-missing"
             @ion-change="(e: CustomEvent) => onReviewFlag('missing', e.detail.checked)"
           />
         </IonItem>
