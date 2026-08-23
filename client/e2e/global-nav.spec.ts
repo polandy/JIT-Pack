@@ -322,6 +322,80 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(sheet.getByTestId('sync-detail-backup-age')).toHaveText('Last backup today')
   })
 
+  /*
+   * E2E-G2-08 (G-2): the sheet's state glyph is centred on its title.
+   *
+   * It was not: `.head` aligned the 38px circle to the top of the title
+   * *block*, and the h1 inside carried a 20px top margin nothing had asked
+   * for — `.jp-sheet-title` names a type role and no spacing at all. The
+   * circle therefore rode half a line high on every screen that can open the
+   * sheet, in every mode.
+   *
+   * Geometry rather than a visual baseline, deliberately: a baseline reports
+   * that a pixel moved, this reports which rule broke. The baseline added
+   * beside it guards the rest of the sheet.
+   */
+  test('E2E-G2-08: the sheet glyph is centred on its title', async ({ page }) => {
+    // The width every design decision is made against; the offset is
+    // width-independent, but the number below is not a desktop artefact.
+    await page.setViewportSize(MOBILE)
+    await page.goto('/tabs/trips')
+    await page.getByTestId('sync-indicator').click()
+
+    const sheet = page.getByTestId('sync-detail-sheet')
+    await expect(sheet).toBeVisible()
+    await expect(sheet.getByTestId('sync-detail-glyph')).toBeVisible()
+    // The display face is self-hosted: measuring before it resolves would
+    // measure the fallback's line box. A settled state, not a wait.
+    await page.evaluate(() => document.fonts.ready)
+
+    const offset = await sheet.evaluate((el) => {
+      const glyph = el.querySelector('[data-testid="sync-detail-glyph"]')!.getBoundingClientRect()
+      const title = el.querySelector('h1')!
+      // The first line's own box, which is what the eye pairs the circle
+      // with — not the h1's border box, which includes any leading.
+      const range = document.createRange()
+      range.selectNodeContents(title)
+      const line = range.getClientRects()[0]!
+      return glyph.top + glyph.height / 2 - (line.top + line.height / 2)
+    })
+
+    // One CSS pixel of half-leading is invisible; half a line is not.
+    expect(Math.abs(offset)).toBeLessThanOrEqual(2)
+  })
+
+  /*
+   * E2E-G2-09 (G-7): the master log's empty state is inset like every other
+   * empty state in the app.
+   *
+   * `.empty-state` here was copied from the house pattern without its
+   * `padding` and `text-align`, which nothing noticed while the only string
+   * it held was short enough to fit one line and shrink-to-fit looked
+   * centred. The master log's sentence names three things and wraps, and the
+   * wrapped paragraph then ran from edge to edge under a centred icon.
+   *
+   * Driven in Local Mode and by URL rather than through the sheet: the mode
+   * has no server, so `fetchMasterConflicts` answers `[]` and the empty state
+   * is reached without a backend and without depending on a shared database
+   * being empty. The button that leads here is server-only by design (G-8).
+   */
+  test('E2E-G2-09: the empty master conflict log is inset from both edges', async ({ page }) => {
+    await page.setViewportSize(MOBILE)
+    await page.goto('/conflicts/master')
+
+    const empty = page.getByTestId('conflict-empty')
+    await expect(empty).toBeVisible()
+    const paragraph = empty.locator('p')
+    // The long sentence is the whole point: a short one would fit one line
+    // and pass against the unfixed build.
+    await expect(paragraph).toContainText('inventory')
+    await page.evaluate(() => document.fonts.ready)
+
+    const box = (await paragraph.boundingBox())!
+    expect(box.x).toBeGreaterThanOrEqual(16)
+    expect(MOBILE.width - (box.x + box.width)).toBeGreaterThanOrEqual(16)
+  })
+
   // E2E-G8-02: the dev sample-trip seed is a development affordance, not
   // Demo Mode returning. This suite runs the production build, where it
   // must not exist at all.

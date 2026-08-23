@@ -105,12 +105,20 @@ function formatTime(iso: string): string {
   font-weight: var(--jp-weight-semibold);
 }
 
+/*
+ * The house empty state (G-7), which this had copied without its padding and
+ * text-align. Nothing noticed while the only sentence here fit one line and
+ * shrink-to-fit looked centred; the master log's names three things, wraps,
+ * and ran edge to edge (E2E-G2-09).
+ */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   color: var(--ion-color-medium);
   margin-top: 48px;
+  padding: 0 24px;
+  text-align: center;
 }
 
 .empty-icon {

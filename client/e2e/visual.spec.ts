@@ -286,3 +286,25 @@ test('visual: M11 container sheet @local @visual', async ({ page, seedMode }) =>
   await settled(page)
   await expect(page).toHaveScreenshot('m11-sheet.png')
 })
+
+/*
+ * E2E-VIS-08: the G-2 detail sheet. It is the one surface reachable from
+ * every screen in every mode, and it was covered by no baseline at all —
+ * which is how its state glyph came to sit half a line above its title
+ * without anything going red. E2E-G2-08 guards that one measurement; this
+ * guards the rest of the header, the state line and the sheet's own plane.
+ */
+test('visual: G-2 sync detail sheet @local @visual', async ({ page, seedMode }) => {
+  await freeze(page)
+  await seedMode({ mode: 'local' })
+  await page.goto('/tabs/trips')
+  await expect(shown(page)).toBeVisible()
+
+  await page.getByTestId('sync-indicator').click()
+  await expect(page.getByTestId('sync-detail-sheet')).toBeVisible()
+  // The storage block resolves asynchronously; baselining before it lands
+  // would bake in whichever of its two states won the race.
+  await expect(page.getByTestId('sync-detail-storage')).toBeVisible()
+  await settled(page)
+  await expect(page).toHaveScreenshot('g2-sheet.png')
+})
