@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { createAuthRefresher, AUTH_EXPIRED_EVENT } from '../refresh'
 import { loadTokens } from '../tokens'

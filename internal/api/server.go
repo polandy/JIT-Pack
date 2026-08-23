@@ -38,6 +38,9 @@ type Server struct {
 	localUserID    string
 	hub            *Hub
 	oidc           *oidcBroker
+	// lockTimeout is the G-3 staleness window served to clients
+	// (Sync-API §7, JITPACK_LOCK_TIMEOUT); zero means the default.
+	lockTimeout time.Duration
 	// Web Push (NFR-4.6): VAPID keypair lazily loaded/generated via the
 	// store; contact is the RFC 8292 sub claim.
 	pushContact string
@@ -134,11 +137,18 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/templates/import", s.authed(s.handleImportTemplate))
 	mux.HandleFunc("GET /api/v1/trips/{tripID}/conflicts", s.authed(s.member(s.handleListConflicts)))
 	mux.HandleFunc("GET /api/v1/conflicts/master", s.authed(s.handleListMasterConflicts))
+	// The revert half of NFR-4.2a, one endpoint per partition beside its
+	// list — a conflict belongs to the partition it was pushed to.
+	mux.HandleFunc("POST /api/v1/trips/{tripID}/conflicts/{conflictID}/revert",
+		s.authed(s.member(s.handleRevertConflict)))
+	mux.HandleFunc("POST /api/v1/conflicts/master/{conflictID}/revert",
+		s.authed(s.handleRevertMasterConflict))
 	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.yaml", s.authed(s.member(s.handleExportTrip)))
 	mux.HandleFunc("POST /api/v1/trips/import", s.authed(s.handleImportTrip))
 	mux.HandleFunc("POST /api/v1/auth/token", s.handleAuthToken)
 	mux.HandleFunc("POST /api/v1/auth/refresh", s.handleAuthRefresh)
 	mux.HandleFunc("GET /api/v1/auth/config", s.handleAuthConfig)
+	mux.HandleFunc("GET /api/v1/config", s.handleConfig)
 	mux.HandleFunc("GET /ws", s.wsAuth(s.handleWS))
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)

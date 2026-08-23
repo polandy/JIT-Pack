@@ -2,9 +2,9 @@
 /**
  * M15 — Import Wizard (FR-16.1–16.3, NFR-4.7).
  *
- * Four steps: file/paste → mapping (item column, category rows, trip
- * columns with include-toggle/name/date/series) → dedup against the
- * master inventory → confirm. Commit lands client-side through the
+ * Four steps: file/paste → mapping (item column, category column or
+ * category rows, trip columns with include-toggle/name/date/series) →
+ * dedup against the master inventory → confirm. Commit lands client-side through the
  * orchestrator (FR-19.4: Local Mode parity). CSV only — XLSX is
  * deferred; every spreadsheet tool exports CSV.
  */
@@ -37,12 +37,21 @@ import {
 } from '@/domain/spreadsheet'
 import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
+import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import { filterForStatus, TRIP_FILTER_QUERY } from '@/views/trips/tripFilter'
 
 const router = useRouter()
 const master = useMasterStore()
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
+
+/**
+ * The category-column picker's "none" choice. IonSegment values are strings
+ * and every other one is a column index, so the absence needs a name of its
+ * own rather than an empty string a stray column could also produce.
+ */
+const NO_CATEGORY_COLUMN = 'none'
 
 const step = ref(1)
 
@@ -63,13 +72,16 @@ function analyze() {
   const a = analyzeGrid(grid.value)
   analysis.value = a
   itemColumn.value = a.itemColumn
+  categoryColumn.value = a.categoryColumn
   categoryRows.value = new Set(a.categoryRows)
-  // FR-16.1: all trip columns preselected ("select all" default).
+  // FR-16.1: all trip columns preselected ("select all" default) — except
+  // one the header neither names nor dates, which cannot be validated and
+  // would hold the whole mapping hostage until it is found among thirty.
   trips.value = a.tripColumns.map((t) => ({
     column: t.index,
-    include: true,
-    name: t.header || `Trip ${t.index}`,
-    date: t.header,
+    include: t.name !== '' || t.date !== '',
+    name: t.name,
+    date: t.date,
     seriesId: '',
   }))
   step.value = 2
@@ -77,7 +89,37 @@ function analyze() {
 
 // --- Step 2: mapping (FR-16.1) ---
 const itemColumn = ref(0)
+const categoryColumn = ref<number | null>(null)
 const categoryRows = ref<Set<number>>(new Set())
+
+/** The header block's own rows, which describe columns rather than items. */
+const headerRows = computed(() => analysis.value?.headerRows ?? 1)
+
+/**
+ * Candidates for the item- and category-column pickers: every column that is
+ * not a trip column. A sheet of thirty trips would otherwise offer thirty-four
+ * buttons labelled by their year — neither of these two columns can be one
+ * that holds quantities, so offering them is noise, not choice.
+ */
+const columnChoices = computed(() => {
+  const trips = new Set(analysis.value?.tripColumns.map((t) => t.index) ?? [])
+  return Array.from({ length: Math.max(0, ...grid.value.map((r) => r.length)) }, (_, idx) => idx)
+    .filter((idx) => !trips.has(idx))
+    .map((idx) => ({ idx, label: columnLabel(idx) }))
+})
+
+/**
+ * A column's own label. The *last* header cell that says anything, because
+ * where a header block has two rows the lower one names and the upper one
+ * dates — and a column called "2016" names nothing here.
+ */
+function columnLabel(idx: number): string {
+  for (let rowIdx = headerRows.value - 1; rowIdx >= 0; rowIdx--) {
+    const value = (grid.value[rowIdx]?.[idx] ?? '').trim()
+    if (value !== '') return value
+  }
+  return t('import.wizard.column', { n: idx + 1 })
+}
 const trips = ref<
   { column: number; include: boolean; name: string; date: string; seriesId: string }[]
 >([])
@@ -89,16 +131,35 @@ function toggleCategoryRow(rowIdx: number, on: boolean) {
   categoryRows.value = next
 }
 
+/** Rows the plan would import as items — the category ticks are not items. */
+const importableRows = computed(
+  () => namedRows.value.filter((r) => !categoryRows.value.has(r.idx)).length,
+)
+
+/**
+ * FR-16.1: a trip column is *not* required. A sheet that is a list of things
+ * rather than a matrix of trips is the ordinary way an inventory arrives, and
+ * demanding one made the only way in a throwaway trip the user then deleted.
+ * What is required is something to import and, for the columns that are
+ * ticked, the two facts a trip cannot be created without.
+ */
 const mappingValid = computed(
   () =>
-    trips.value.some((t) => t.include) &&
+    importableRows.value > 0 &&
     trips.value
       .filter((t) => t.include)
       .every((t) => t.name.trim() !== '' && normalizeTripDate(t.date) !== null),
 )
 
+/** Which of the two reasons the mapping is not valid yet, for the note. */
+const mappingHint = computed(() =>
+  importableRows.value === 0 ? 'import.wizard.nothingToImport' : 'import.wizard.mappingInvalid',
+)
+
 const mapping = computed(() => ({
+  headerRows: headerRows.value,
   itemColumn: itemColumn.value,
+  categoryColumn: categoryColumn.value,
   categoryRows: [...categoryRows.value],
   trips: trips.value
     .filter((t) => t.include)
@@ -114,7 +175,7 @@ const mapping = computed(() => ({
 const namedRows = computed(() =>
   grid.value
     .map((row, idx) => ({ idx, name: (row[itemColumn.value] ?? '').trim() }))
-    .filter((r) => r.idx > 0 && r.name !== ''),
+    .filter((r) => r.idx >= headerRows.value && r.name !== ''),
 )
 
 // --- Step 3: dedup (FR-16.3) ---
@@ -168,7 +229,19 @@ const summaryLine = computed(() =>
 
 function commit() {
   orchestrator.commitImport(plan.value)
-  router.replace('/tabs/trips')
+  // Land where the result is. FR-16.2 creates archived trips and M2 opens on
+  // Active, so without naming the segment a migration of a decade of history
+  // ended on the words "No active trips" (the miss ADR-024 fixed on the
+  // restore path) — and an import that created no trip at all has its whole
+  // result in the inventory, where the trip list would say the same thing.
+  router.replace(
+    plan.value.trips.length === 0
+      ? { path: '/tabs/items' }
+      : {
+          path: '/tabs/trips',
+          query: { [TRIP_FILTER_QUERY]: filterForStatus(TRIP_STATUS_ARCHIVED) },
+        },
+  )
 }
 
 // ADR-011: the one header bar renders this page's title.
@@ -185,12 +258,18 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
         <input type="file" accept=".csv,text/csv" @change="onFile" />
         <IonTextarea
           class="paste-area"
+          data-testid="import-paste"
           :placeholder="t('import.wizard.paste')"
           :value="rawText"
           :rows="8"
           @ionInput="(e: CustomEvent) => (rawText = e.detail.value ?? '')"
         />
-        <IonButton expand="block" :disabled="rawText.trim() === ''" @click="analyze">
+        <IonButton
+          expand="block"
+          data-testid="import-analyze"
+          :disabled="rawText.trim() === ''"
+          @click="analyze"
+        >
           {{ t('import.wizard.analyze') }}
         </IonButton>
       </section>
@@ -199,7 +278,11 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
       <section v-if="step === 2">
         <h2 class="section-title jp-eyebrow">{{ t('import.wizard.tripsTitle') }}</h2>
         <IonList>
-          <IonItem v-for="trip in trips" :key="trip.column">
+          <IonItem
+            v-for="trip in trips"
+            :key="trip.column"
+            :data-testid="`import-trip-${trip.column}`"
+          >
             <IonCheckbox
               slot="start"
               :checked="trip.include"
@@ -230,15 +313,45 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
             </IonSelect>
           </IonItem>
         </IonList>
-        <IonNote v-if="!mappingValid">{{ t('import.wizard.mappingInvalid') }}</IonNote>
+        <IonNote v-if="!mappingValid" data-testid="import-mapping-note">
+          {{ t(mappingHint) }}
+        </IonNote>
 
         <h2 class="section-title jp-eyebrow">{{ t('import.wizard.itemColumn') }}</h2>
         <IonSegment
+          data-testid="item-column"
           :value="String(itemColumn)"
           @ionChange="(e: CustomEvent) => (itemColumn = Number(e.detail.value))"
         >
-          <IonSegmentButton v-for="(header, idx) in grid[0]" :key="idx" :value="String(idx)">
-            <IonLabel>{{ header || t('import.wizard.column', { n: idx + 1 }) }}</IonLabel>
+          <IonSegmentButton
+            v-for="choice in columnChoices"
+            :key="choice.idx"
+            :value="String(choice.idx)"
+          >
+            <IonLabel>{{ choice.label }}</IonLabel>
+          </IonSegmentButton>
+        </IonSegment>
+
+        <h2 class="section-title jp-eyebrow">{{ t('import.wizard.categoryColumn') }}</h2>
+        <p class="hint">{{ t('import.wizard.categoryColumnHint') }}</p>
+        <IonSegment
+          data-testid="category-column"
+          :value="categoryColumn === null ? NO_CATEGORY_COLUMN : String(categoryColumn)"
+          @ionChange="
+            (e: CustomEvent) =>
+              (categoryColumn =
+                e.detail.value === NO_CATEGORY_COLUMN ? null : Number(e.detail.value))
+          "
+        >
+          <IonSegmentButton :value="NO_CATEGORY_COLUMN">
+            <IonLabel>{{ t('import.wizard.noCategoryColumn') }}</IonLabel>
+          </IonSegmentButton>
+          <IonSegmentButton
+            v-for="choice in columnChoices"
+            :key="choice.idx"
+            :value="String(choice.idx)"
+          >
+            <IonLabel>{{ choice.label }}</IonLabel>
           </IonSegmentButton>
         </IonSegment>
 
@@ -258,7 +371,7 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
 
         <div class="wizard-nav">
           <IonButton fill="outline" @click="step = 1">{{ t('common.back') }}</IonButton>
-          <IonButton :disabled="!mappingValid" @click="enterDedup">
+          <IonButton data-testid="import-next" :disabled="!mappingValid" @click="enterDedup">
             {{ t('import.wizard.next') }}
           </IonButton>
         </div>
@@ -305,9 +418,14 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
         <h2 class="section-title jp-eyebrow">{{ t('import.wizard.summary') }}</h2>
         <IonList>
           <IonItem lines="none">
-            <IonLabel>{{ summaryLine }}</IonLabel>
+            <IonLabel data-testid="import-summary-line">{{ summaryLine }}</IonLabel>
           </IonItem>
-          <IonItem v-for="trip in plan.trips" :key="trip.name" lines="none">
+          <IonItem
+            v-for="trip in plan.trips"
+            :key="trip.name"
+            :data-testid="`import-summary-${trip.name}`"
+            lines="none"
+          >
             <IonLabel>
               <h3>{{ trip.name }}</h3>
               <p>{{ trip.endDate }} · {{ t('import.portable.items', { n: trip.items.length }) }}</p>
@@ -318,7 +436,9 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
           <IonButton fill="outline" @click="step = duplicates.length > 0 ? 3 : 2">
             {{ t('common.back') }}
           </IonButton>
-          <IonButton color="primary" @click="commit">{{ t('import.wizard.commit') }}</IonButton>
+          <IonButton data-testid="import-commit" color="primary" @click="commit">
+            {{ t('import.wizard.commit') }}
+          </IonButton>
         </div>
       </section>
     </IonContent>

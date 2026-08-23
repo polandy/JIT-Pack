@@ -326,6 +326,7 @@ async function exportTrip(trip: Trip) {
     travelers: store.getTravelers(trip.id),
     containers: store.getContainers(trip.id),
     includeProgress: data,
+    ...masterStore.portableResolvers(),
   })
   saveText(yaml, `${safeFilename(trip.name)}.yaml`)
 }
@@ -371,6 +372,7 @@ async function handleRefresh(event: CustomEvent) {
             <IonButton
               fill="clear"
               size="small"
+              data-testid="m2-spreadsheet-import"
               :aria-label="t('items.importSpreadsheet')"
               router-link="/import"
             >

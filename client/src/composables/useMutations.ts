@@ -9,7 +9,7 @@ import { TABLE } from '@/types/tables'
 import { newId } from '@/lib/ids'
 import type { Mutation, MutationOp } from '@/api/types'
 import type { HLCGenerator } from '@/sync/hlc'
-import { REVIEW_FLAG_FIELD } from '@/types/domain'
+import { REVIEW_FLAG_FIELD, TRIP_STATUS_PLANNING } from '@/types/domain'
 import type { Trip } from '@/types/domain'
 import type {
   AppliedChange,
@@ -17,6 +17,7 @@ import type {
   ItemMode,
   ReviewFlag,
   TemplateKind,
+  TripStatus,
 } from '@/types/domain'
 
 /**
@@ -434,7 +435,12 @@ export function useMutations(hlc: HLCGenerator) {
     year: number,
     startDate: string | null,
     endDate: string | null,
-    opts: { seriesId?: string | null; attributes?: Record<string, unknown> | null } = {},
+    opts: {
+      seriesId?: string | null
+      attributes?: Record<string, unknown> | null
+      /** FR-2.2: a restore gives back the status it saved (ADR-024). */
+      status?: TripStatus
+    } = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
     const mutation = make('insert', TABLE.trips, id, {
@@ -443,7 +449,7 @@ export function useMutations(hlc: HLCGenerator) {
       year,
       start_date: startDate,
       end_date: endDate,
-      status: 'planning',
+      status: opts.status ?? TRIP_STATUS_PLANNING,
       series_id: opts.seriesId ?? null,
       attributes: opts.attributes ? JSON.stringify(opts.attributes) : null,
     })
@@ -492,12 +498,16 @@ export function useMutations(hlc: HLCGenerator) {
   /** createImportedTrip inserts a historical trip: archived, marked imported. */
   function createImportedTrip(
     name: string,
+    year: number,
     endDate: string,
     seriesId: string | null,
   ): { mutation: Mutation; id: string } {
     const id = newId()
     const mutation = make('insert', TABLE.trips, id, {
       name,
+      // FR-2.1b: the one required temporal fact. Omitting it made every
+      // imported trip a NOT NULL violation the server refuses.
+      year,
       start_date: null,
       end_date: endDate,
       status: 'archived',

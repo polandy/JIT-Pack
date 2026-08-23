@@ -581,6 +581,18 @@ function locked(item: TripItem): boolean {
 }
 
 /**
+ * G-3 asks the row to name the locker, not only to wear a padlock — "in
+ * progress by Andy". A padlock alone says a row is unavailable without
+ * saying who to ask, which is the one question it raises.
+ */
+function lockNote(item: TripItem): string | null {
+  const holder = orchestrator.lockHolder(props.tripId, item)
+  if (holder === null) return null
+  const who = nameOf(holder)
+  return who ? t('packing.lockedBy', { who }) : t('packing.lockedByUnknown')
+}
+
+/**
  * The one avatar at the right edge (FR-25.19): who packed it once it is
  * packed, who is responsible for it while it is open. Never both — the
  * revealed row's stamp below names them both where they differ, which is
@@ -1324,7 +1336,10 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                   </div>
                   <IonLabel>
                     <h3>{{ child.traveler?.name ?? child.label }}</h3>
-                    <p v-if="skippedNote(child.item)" class="stamp">
+                    <p v-if="lockNote(child.item)" class="stamp" data-testid="m4-lock-note">
+                      {{ lockNote(child.item) }}
+                    </p>
+                    <p v-else-if="skippedNote(child.item)" class="stamp">
                       {{ skippedNote(child.item) }}
                     </p>
                     <p v-else-if="child.done && packedStamp(child.item)" class="stamp">
@@ -1392,7 +1407,12 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                       <IonIcon :icon="buildOutline" /> {{ openTodoCount(entry.item.id) }}
                     </IonBadge>
                   </h3>
-                  <p v-if="skippedNote(entry.item)" class="stamp">{{ skippedNote(entry.item) }}</p>
+                  <p v-if="lockNote(entry.item)" class="stamp" data-testid="m4-lock-note">
+                    {{ lockNote(entry.item) }}
+                  </p>
+                  <p v-else-if="skippedNote(entry.item)" class="stamp">
+                    {{ skippedNote(entry.item) }}
+                  </p>
                   <p v-else-if="entry.done && packedStamp(entry.item)" class="stamp">
                     {{ packedStamp(entry.item) }}
                     <span v-if="responsibleNote(entry.item)" class="muted">

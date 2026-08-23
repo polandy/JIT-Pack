@@ -152,15 +152,23 @@ it. Item numbers stay stable even as items close, because the log refers back to
    per field-group; `field_hlcs` now carries a clock per field, rule 2 is the two pairs §6
    names, and a conflict entry names the losing `mutation_id` and `actor_user_id`.
    Log: *„Field-level LWW was row-level, and ‚packed always wins' was hiding it"*.
-   **(b)** Master-partition conflicts are write-only: they are logged with `trip_id = NULL` and
-   `ListConflicts` filters by `trip_id`. `trips` lives there, so a conflict on a trip's name or
-   dates is recorded and unreachable. **(c)** The push response's `conflicts[]` is read by nothing
-   — `merged` is treated exactly like `applied`, so a user is never told an edit lost; the log is
-   the only surface and only reachable while a trip is open. **(d)** G-3's lock ends at the row:
-   `ItemDetailSheet` has no lock awareness, so a locked item is fully editable one tap deeper; no
-   screen ever names who holds it; the 15-minute staleness is a client constant where §7 promises
-   an environment variable, and the server neither expires a lock nor refuses a push for one.
-   **(e)** NFR-4.2a promises audit **and manual revert**; only the audit exists.
+   **(b)** ~~Master-partition conflicts were write-only~~ — **done** (2026-08-22): one query
+   serves both partitions, so a conflict on a trip's name or dates is reachable.
+   Log: *„The conflict log had two partitions and one query"*.
+   **(c)** ~~The push response's `conflicts[]` was read by nothing~~ — **done** (2026-08-22):
+   a `merged` push raises one toast per push naming how many fields were overwritten, and the
+   G-2 sheet carries the count as a standing line. Log: *„`merged` was a quieter `applied`"*.
+   ~~**(d)** G-3's lock ends at the row~~ — **done**
+   (2026-08-22): the sheet goes read-only and names the holder, M4's row names them too, and the
+   staleness window is `JITPACK_LOCK_TIMEOUT` served by `GET /api/v1/config`. The fourth part of
+   that finding — the server neither expiring a lock nor refusing a push for one — **is not a
+   defect and was not built**: §7 makes the lock advisory on purpose, and refusal would wedge an
+   offline device's outbox. **Open as an owner decision** if collision *prevention* is wanted
+   instead of avoidance. Log: *„The lock stopped at the row"*.
+   ~~**(e)** NFR-4.2a promises audit **and manual revert**~~ — **done** (2026-08-22,
+   ADR-023): a revert is an ordinary mutation with a fresh server HLC, not an undo, so
+   the merge rules can refuse it and each refusal has its own sentence. No schema change
+   was owed — `losing_value` and an unused `reverted` flag were already there.
    Found 2026-08-22 while answering how concurrent packers are kept from overwriting each other.
 
 15. **FR-9.3/9.4 — the trip's feedback is expensive to give and impossible to correct**
@@ -221,6 +229,13 @@ Test-first: every behaviour starts as a failing test that reads as its specifica
 - **Real in-memory SQLite** (`:memory:`) for store and api tests — never a mocked database. Hand-written fakes behind small consumer-side interfaces; no mocking frameworks.
 - **Failure paths** are covered wherever code enforces a correctness or authorization rule, not just the happy path.
 - **No non-deterministic timing constraints** — in Go, Vitest and Playwright alike. A test must never depend on wall-clock timing that only *probably* holds: no sleeps, no fixed waits for async work, no polling for an effect that might not land. If a test can only pass by waiting-and-hoping, the fault is in the production code — give it a deterministic seam (injected clock, completion signal, settled state) so the test asserts the outcome directly instead of racing it.
+- **A Vitest spec declares its own environment.** The default is `node`; a spec that
+  needs a DOM carries a `// @vitest-environment jsdom` docblock. Add it whenever the
+  spec's *subject* touches `localStorage`, `document` or `window` — **even if the suite
+  is green without it**. A missing docblock is not reliably a red test: production code
+  that reads a DOM global inside a `try` takes the `catch` under `node`, and the spec
+  passes while asserting against the error path. Only a coverage diff between the two
+  environments catches that.
 - **Always `-race`.**
 
 ## Working agreement (see CODING_PRINCIPLES.md for the full detail)

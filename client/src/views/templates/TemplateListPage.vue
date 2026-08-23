@@ -297,8 +297,9 @@ function exportTemplate(tpl: Template) {
   const yaml = serializeTemplate(
     tpl,
     store.getTemplateItems(tpl.id),
-    (id) => store.getItem(id),
+    store.portableResolvers().masterItem,
     compositionFrom(tpl, store.compositionSource()),
+    store.portableResolvers().tagsOf,
   )
   saveText(yaml, `${safeFilename(tpl.name)}.yaml`)
 }

@@ -196,6 +196,77 @@ test.describe('Single-User backend sync @single', () => {
   })
 
   /**
+   * E2E-G3-01 (partial) + E2E-G3-03 (G-3): a row somebody else is packing
+   * names its holder, and is read-only one tap deeper.
+   *
+   * Both contexts are the same Single-User identity, so this does not
+   * prove *whose* name is rendered — it proves the mechanism: B never
+   * claimed the row, so B's client treats the claim as foreign, exactly
+   * as it would a second account's. What is asserted is the pair that was
+   * missing, the padlock's name and the sheet's refusal, not the identity
+   * semantics the future mock-IdP project owns.
+   */
+  test('a row another device is packing names its holder and refuses edits', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Sils ${id}`
+    const item = `Stirnlampe-${id}`
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA)
+    const tripPath = await createTripViaWizard(pageA, { name: trip })
+    await quickAddItem(pageA, item)
+
+    const ctxB = await browser.newContext()
+    const pageB = await ctxB.newPage()
+    await seed(pageB, { mode: 'server' })
+    const wsB = pageB.waitForEvent('websocket')
+    await pageB.goto(tripPath)
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${item}`)).toBeVisible()
+    await wsSubscribed(pageB, wsB)
+
+    // A claims the row (FR-5.2), through the row menu M4 offers.
+    await visiblePage(pageA).getByTestId(`m4-row-${item}`).dispatchEvent('contextmenu')
+    await expect(pageA.locator('ion-action-sheet')).toBeVisible()
+    await pageA
+      .locator('ion-action-sheet')
+      .getByRole('button', { name: /^pack$/i })
+      .click()
+    await expect(pageA.locator('ion-action-sheet')).toHaveCount(0)
+
+    // G-3 on B: the row says who has it, not merely that it is unavailable.
+    const rowB = visiblePage(pageB).getByTestId(`m4-row-${item}`)
+    await expect(rowB.getByTestId('m4-lock-note')).toBeVisible()
+    await expect(rowB.getByTestId('m4-lock-note')).toContainText(/packing this right now/i)
+
+    // One tap deeper the sheet used to hand the row over in full.
+    await rowB.click()
+    await expect(pageB.getByTestId('m5-sheet')).toBeVisible()
+    await expect(pageB.getByTestId('m5-lock')).toContainText(/packing this right now/i)
+    await expect(pageB.getByTestId('m5-name')).toHaveText(item)
+    // The controls are gone rather than dimmed — nothing to tap and lose.
+    await expect(pageB.getByTestId('m5-skip')).toHaveCount(0)
+    await expect(pageB.getByTestId('m5-note-add')).toHaveCount(0)
+    // The stepper is the exception, and deliberately so: it is where the
+    // count is read, so it stays on screen and stops writing instead.
+    await expect(
+      pageB.getByTestId('m5-sheet').getByTestId('row-check').locator('ion-checkbox'),
+    ).toBeDisabled()
+    await pageB.getByTestId('m5-details').click()
+    await expect(pageB.getByTestId('m5-late')).toBeDisabled()
+
+    // A, who holds it, keeps every control: the lock is for the others.
+    await visiblePage(pageA).getByTestId(`m4-row-${item}`).click()
+    await expect(pageA.getByTestId('m5-sheet')).toBeVisible()
+    await expect(pageA.getByTestId('m5-lock')).toHaveCount(0)
+    await expect(pageA.getByTestId('m5-skip')).toBeVisible()
+
+    await ctxA.close()
+    await ctxB.close()
+  })
+
+  /**
    * E2E-G2-01 (queue half) + E2E-FLOW-06 (NFR-4.1, G-2, G-5): offline edits
    * queue and are announced; the queue drains on the app's next own action
    * once the network is back; the server converges.
@@ -414,7 +485,13 @@ test.describe('Single-User backend sync @single', () => {
     await expect(pageB.getByTestId('sync-detail-sheet')).toBeVisible()
     await pageB.getByTestId('sync-detail-master-conflicts').click()
 
-    const row = visiblePage(pageB).getByTestId('conflict-row').filter({ hasText: 'trips · name' })
+    // Filtered by this test's own losing value, not by `trips · name`: the
+    // master partition is shared for the whole run (one database), so
+    // every case that loses a rename adds another row that would match.
+    // E2E-G2-10 is one, and it only passed here by running second.
+    const row = visiblePage(pageB)
+      .getByTestId('conflict-row')
+      .filter({ hasText: `${trip} B` })
     await expect(row).toHaveCount(1)
     // What lost and what won, both rendered — the page's whole promise.
     await expect(row.getByTestId('conflict-losing')).toContainText(`${trip} B`)
@@ -423,6 +500,74 @@ test.describe('Single-User backend sync @single', () => {
     await ctxA.close()
     await ctxB.close()
   })
+
+  /**
+   * E2E-G2-10 (NFR-4.2a, ADR-023): the log's second promise — the loser
+   * can be put back. The audit half shipped without it, so the page named
+   * a value it could do nothing about.
+   *
+   * The same scenario as E2E-G2-06, carried one step further: B loses the
+   * rename, reads the loss from the master log, reverts it, and the name
+   * B wanted is what the trip is called again — on B's own screen, which
+   * only got it by pulling the revert the server wrote. Nothing here waits
+   * on a timer: the revert drains the master partition before it resolves,
+   * and the assertion is on the repainted header.
+   */
+  test('a loss recorded in the master log can be taken back', async ({ browser }) => {
+    const id = uniq()
+    const trip = `Engadin ${id}`
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA)
+    const tripPath = await createTripViaWizard(pageA, { name: trip, travelers: ['Andy'] })
+
+    const ctxB = await browser.newContext()
+    const pageB = await bootPage(ctxB, tripPath)
+    await expect(visiblePage(pageB).getByTestId('m4-fab')).toBeVisible()
+    await warmTripList(pageB, trip)
+
+    await ctxB.setOffline(true)
+    await renameTrip(pageB, `${trip} B`)
+    await expect(pageB.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'offline')
+
+    await renameTrip(pageA, `${trip} A`)
+
+    await ctxB.setOffline(false)
+    await pageB.reload()
+    await expect(pageB.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+    await expect(pageB.getByTestId('header-title')).toContainText(`${trip} A`)
+
+    await pageB.getByTestId('header-back').click()
+    await pageB.getByTestId('sync-indicator').click()
+    await expect(pageB.getByTestId('sync-detail-sheet')).toBeVisible()
+    await pageB.getByTestId('sync-detail-master-conflicts').click()
+
+    // This trip's own row, named by the value it lost — `trips · name`
+    // matches every other rename case in the shared master log.
+    const row = visiblePage(pageB)
+      .getByTestId('conflict-row')
+      .filter({ hasText: `${trip} B` })
+    await expect(row).toHaveCount(1)
+    await row.getByTestId('conflict-revert').click()
+
+    // The entry is spent, and the page says so where the button was — a
+    // revert is a fact about the entry, not a repeatable command.
+    await expect(row.getByTestId('conflict-reverted')).toBeVisible()
+    await expect(row.getByTestId('conflict-revert')).toHaveCount(0)
+    // And the value is back where the user can see it. This is the half
+    // that proves the revert travelled: B's own copy of the trip was
+    // holding A's name a moment ago and only the pull changed it.
+    // The header bar is the app's single one and lives *outside* the
+    // router outlet (ADR-011), so it is the one control here that must not
+    // be scoped to the visible page.
+    await pageB.getByTestId('header-back').click()
+    await visiblePage(pageB).getByTestId('trips-filter-planned').click()
+    await expect(visiblePage(pageB).getByTestId(`trip-row-${trip} B`)).toBeVisible()
+
+    await ctxA.close()
+    await ctxB.close()
+  })
+
   /**
    * E2E-G2-04 (B2, NFR-4.1): the queue is on the device, not in the tab.
    *
@@ -540,10 +685,7 @@ test.describe('Single-User backend sync @single', () => {
     // Mia leaves the trip on the other device. Her packed row goes with her.
     await pageB.getByTestId('m4-edit').click()
     await expect(visiblePage(pageB).getByTestId('trip-edit-name')).toBeVisible()
-    await visiblePage(pageB)
-      .locator('ion-button[data-testid^="traveler-remove-"]')
-      .nth(1)
-      .click()
+    await visiblePage(pageB).locator('ion-button[data-testid^="traveler-remove-"]').nth(1).click()
     // By role, not by label: the destructive choice is the one that takes
     // her packed rows with her, and the role survives both catalogues.
     await pageB.locator('ion-alert button.alert-button-role-destructive').click()
@@ -558,7 +700,8 @@ test.describe('Single-User backend sync @single', () => {
     await ctxA.setOffline(false)
     const areq: string[] = []
     pageA.on('request', (r) => {
-      if (r.url().includes('/api/v1/sync/')) areq.push(`${r.method()} ${r.url().split('/api/v1')[1]}`)
+      if (r.url().includes('/api/v1/sync/'))
+        areq.push(`${r.method()} ${r.url().split('/api/v1')[1]}`)
     })
     await reopenTrip(pageA, trip)
 
@@ -664,6 +807,122 @@ test.describe('Single-User backend sync @single', () => {
     // And A's own offline pack reached the server — the fix must not have
     // traded one direction for the other.
     await expect(visiblePage(pageB).getByTestId(`m4-row-${mine}`)).toBeHidden()
+
+    await ctxA.close()
+    await ctxB.close()
+  })
+  /**
+   * E2E-M15-05 (FR-16.1/16.2, FR-2.1b): the legacy spreadsheet import
+   * reaches the server, not only the screen that started it.
+   *
+   * It is a backend case on purpose. `createImportedTrip` omitted `year`,
+   * which `trips` declares NOT NULL, so every imported trip was refused —
+   * and nothing on the importing device could tell: the optimistic row was
+   * already in its own store, so M2 showed the migration that had not
+   * happened. Only a device that never saw the optimistic write can say
+   * whether the wire carried it, which is what context B is here.
+   *
+   * The CSV is the layout the wizard was taught to read: the year above the
+   * trip's name (two header rows) and the category in its own column.
+   */
+  test('a spreadsheet import lands on the server, not only on the device', async ({ browser }) => {
+    const id = uniq()
+    const trip = `Laos ${id}`
+    const net = `Moskitonetz-${id}`
+    const boots = `Wanderschuhe-${id}`
+    const csv = [`,,2016`, `,,${trip}`, `Reise,${net},2`, `,${boots},1`].join('\n')
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA, '/import')
+
+    await visiblePage(pageA).getByTestId('import-paste').locator('textarea').fill(csv)
+    await visiblePage(pageA).getByTestId('import-analyze').click()
+
+    // The header block gave the column both halves of its identity: the
+    // name from the row that names it, the date from the row above.
+    const row = visiblePage(pageA).getByTestId('import-trip-2')
+    await expect(row.locator('ion-input').first().locator('input')).toHaveValue(trip)
+    await expect(row.locator('ion-input').nth(1).locator('input')).toHaveValue('2016')
+
+    // Both column pickers offer *candidates*, not every column: a column that
+    // holds quantities can be neither of the two they choose. With one trip
+    // column in this sheet, the category picker is "none" plus two — it listed
+    // all three before, and on a thirty-column sheet that is the whole defect.
+    const columnPicker = visiblePage(pageA).getByTestId('category-column')
+    await expect(columnPicker.locator('ion-segment-button')).toHaveCount(3)
+    await expect(
+      visiblePage(pageA).getByTestId('item-column').locator('ion-segment-button'),
+    ).toHaveCount(2)
+    await expect(columnPicker.locator('ion-segment-button.segment-button-checked')).toHaveText(
+      'Col 1',
+    )
+
+    await visiblePage(pageA).getByTestId('import-next').click()
+    await expect(visiblePage(pageA).getByTestId(`import-summary-${trip}`)).toBeVisible()
+    await visiblePage(pageA).getByTestId('import-commit').click()
+
+    // FR-16.2 imports history, so the wizard names the segment it lands on.
+    await expect(visiblePage(pageA).getByTestId(`trip-row-${trip}`)).toBeVisible()
+    await expect(pageA.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+
+    const ctxB = await browser.newContext()
+    const pageB = await bootPage(ctxB, '/tabs/trips')
+    await visiblePage(pageB).getByTestId('trips-filter-archived').click()
+    await expect(visiblePage(pageB).getByTestId(`trip-row-${trip}`)).toBeVisible()
+
+    // And the rows travelled with it — behind M4's done bar, because
+    // FR-16.2 imports them already packed.
+    await visiblePage(pageB).getByTestId(`trip-row-${trip}`).click()
+    await visiblePage(pageB).getByTestId('m4-done-bar').click()
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${net}`)).toBeVisible()
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${boots}`)).toBeVisible()
+
+    await ctxA.close()
+    await ctxB.close()
+  })
+  /**
+   * E2E-M15-09 (FR-24.2/16.3): the imported category reaches the server as a
+   * tag *on the item*, and a repeated name arrives once.
+   *
+   * Both halves were refused at the wire and neither was visible on the
+   * importing device. The tag assignment names its item by foreign key and was
+   * enqueued before the item's own insert, so a whole inventory arrived with
+   * every tag created and nothing filed under one; and `items` is UNIQUE
+   * (name), so the sheet's second "Regenhosen" was dropped with its amounts.
+   * Context B is the only place either shows.
+   */
+  test('an imported item reaches the server filed under its category', async ({ browser }) => {
+    const id = uniq()
+    const tag = `Velo-${id}`
+    const item = `Regenhose-${id}`
+    const other = `Pumpe-${id}`
+    const csv = [
+      `,,2019`,
+      `,,Ausfahrt ${id}`,
+      `${tag},${item},1`,
+      `Werkzeug-${id},${other},1`,
+      // The same thing again, under the other category — one item, not two,
+      // and it keeps the category of its first appearance.
+      `,${item},2`,
+    ].join('\n')
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA, '/import')
+    await visiblePage(pageA).getByTestId('import-paste').locator('textarea').fill(csv)
+    await visiblePage(pageA).getByTestId('import-analyze').click()
+    await visiblePage(pageA).getByTestId('import-next').click()
+    // Two items out of three rows — the repeat folded before anything was sent.
+    await expect(visiblePage(pageA).getByTestId('import-summary-line')).toContainText('2 new items')
+    await visiblePage(pageA).getByTestId('import-commit').click()
+    await expect(pageA.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+
+    const ctxB = await browser.newContext()
+    const pageB = await bootPage(ctxB, '/tabs/items')
+    // The tag axis carries the imported category, and filtering to it leaves
+    // the item standing — which is the link, not merely the tag's existence.
+    await visiblePage(pageB).getByTestId(`m9-tag-chip-${tag}`).click()
+    await expect(visiblePage(pageB).getByText(item)).toBeVisible()
+    await expect(visiblePage(pageB).getByText(other)).toHaveCount(0)
 
     await ctxA.close()
     await ctxB.close()

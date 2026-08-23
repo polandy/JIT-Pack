@@ -39,7 +39,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Harness smoke | E2E-M19-01 (partial), E2E-M19-04, E2E-G7-01 | `local` | [`smoke.spec.ts`](../client/e2e/smoke.spec.ts) |
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05 | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
-| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
+| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
@@ -58,12 +58,30 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
-| M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
+| M15 spreadsheet import | E2E-M15-06, E2E-M15-07, E2E-M15-08 | `local` | [`spreadsheet-import.spec.ts`](../client/e2e/spreadsheet-import.spec.ts) |
+| M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-FLOW-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-M15-05, E2E-M15-09 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+
+**E2E-M15-05 — the spreadsheet import, added 2026-08-23, and M15's first
+case of any kind.** Until it, M15 had **no** e2e coverage — four written
+cases, none implemented — and its unit tests ran against fakes with no
+schema. What that combination hid: `createImportedTrip` never wrote `year`,
+which `trips` declares NOT NULL, so the server refused every trip the wizard
+imported. Nothing on the importing device could notice, because the
+optimistic row was already in its own store and M2 rendered the migration
+that had not happened. The case therefore asserts from a **second browser
+context**, which never saw the optimistic write; the assertion on page A
+alone is green against the defect. Rebuild before mutating (`npm run build`)
+— Playwright drives the built bundle, so a source-only revert proves nothing.
+
+Two smaller things the case had to learn about the screen it drives: an
+`ion-checkbox` contributes a hidden `input` to its row, so the two IonInputs
+are addressed as `ion-input` and not as `input`; and FR-16.2 imports rows
+already packed, so on M4 they are behind the done bar rather than in the list.
 
 **E2E-G2-04 — the durable outbox (B2, NFR-4.1), added 2026-08-21.** A new
 case in the `single` unit: pack a row offline, reload the page *while still
@@ -108,6 +126,32 @@ a timer, so asserting it after the case's M5 steps would race that timer —
 the first draft did exactly that. Nothing after the dismissal depends on it;
 what the later steps assert is the sheet's standing line, which has no
 timer.
+
+**E2E-M18-09 — the status survives the round trip, added 2026-08-23.** The
+backup's read half gained the thing it had been quietly dropping: every
+restored trip was `planning` (FR-18.4), so a device of archived history came
+back as plans. The case takes a trip through the app's own lifecycle, backs it
+up, and restores it onto a second context — and asserts both halves, that it is
+on *Archived* **and** that it is not on *Planned*, because Planned is exactly
+where it used to be and an assertion that only checked Archived would have
+passed against a segment picked for it rather than derived from it.
+
+Two things it had to learn, both cheap and both invisible from the source:
+
+- **A single-document backup never reaches the restore branch.** A device with
+  one trip and no template produces one document, and M18 then shows the
+  per-item merge preview instead — `portable-restore-commit` never appears. The
+  case builds a template as well, which is what a real device has anyway.
+- **`segment-button-after-checked` contains the word "checked".** The regex
+  guards the full `segment-button-checked`, and a looser one would have matched
+  the *neighbour* of the selected segment.
+
+**What is deliberately not here:** the marks-and-tags half of ADR-024. It is
+unit-covered at the same boundary this case crosses — `buildBackup` into
+`commitPortableRestore` on a fresh store — and building a tagged, marked
+inventory item through M10 would double this case to assert what is already
+asserted. Recorded rather than assumed, so nobody reads the id list as a claim
+that the whole ADR is e2e-covered.
 
 **E2E-G2-08 and E2E-G2-09 — what the eyeball found, added 2026-08-23.** Both
 came out of rendering PR #160 rather than out of reading its diff, and both are
@@ -156,6 +200,50 @@ code. And the master queue does not move on a trip open: a trip open drains
 the *trip* partition, and this rename is queued on the master one. The drain
 here is the app start the durable outbox gave it (B2) — a reload, not a
 navigation. Mutation-proved by pointing the query back at `trip_id`.
+
+**E2E-G2-10 — the loss can be taken back, added 2026-08-22.** NFR-4.2a
+promises audit *and* manual revert in one sentence; only the audit existed,
+so the page named a value it could do nothing about. The case is
+E2E-G2-06's scenario carried one step further: B loses the rename, reads it
+in the master log, taps *Revert*, and the name B wanted is what the trip is
+called again — read back **from M2**, not from the log page, because that
+is the half that proves the restore travelled. B's own copy was holding A's
+name a moment earlier and only the pull changed it.
+
+**What it costs nothing to wait for.** There is no timer and no drain to
+hope for: `revertConflict` drains the partition it wrote before it
+resolves, so the assertion lands on a repainted screen. **The negative half
+is a positive signal** — the button is asserted *gone* only beside an
+assertion that the *Reverted* note is there, because a row that failed to
+render at all would satisfy the absence on its own. The refusals the server
+distinguishes (`already_reverted`, `row_deleted`, `revert_refused`) stay
+where they can be stated exhaustively, in `store/conflict_revert_test.go`
+and `api/conflict_revert_test.go`: no screen can delete a row on a second
+device or pack an item mid-revert inside one case.
+
+**The first run failed, and the reason is a rule for every later case
+here.** The row was located by `trips · name`, the way E2E-G2-06 does —
+and found two, then three. **The master partition is shared for the whole
+run** (one database, named in this unit's harness notes), so every case
+that loses a rename leaves a row that matches. E2E-G2-06 was passing only
+because it ran first; both cases now filter by the value *their own* trip
+lost, which the per-test `uniq()` suffix makes unique. A conflict-log
+assertion in this unit must never identify its row by table and field
+alone.
+
+**The second failure was the scoping rule read backwards.** Getting out of
+the log used `visiblePage(page).getByTestId('header-back')` — and the one
+header bar lives *outside* the router outlet (ADR-011), so the scoped
+locator waits forever on a control that is on screen. The rule is "assert
+what is rendered, scoped to the visible page"; the header is the standing
+exception, and every other case in this file already addresses it
+unscoped.
+
+**Testids added with it**, per the ledger's own selector rule:
+`conflict-revert` (the control), `conflict-reverted` (the note that
+replaces it), `conflict-revert-error` (the per-row refusal sentence) and
+`conflict-revert-hint` (the line saying a revert is a new change).
+
 
 **E2E-M22-08 — an edited trip is still on M2, added 2026-08-22.** The trip
 editor sends a partial upsert on purpose — an upsert of the whole row would
@@ -969,7 +1057,8 @@ configuration (spec §2.2), the client in its `server` mode. Four cases —
 the two-context convergence smoke (E2E-FLOW-01, partial), the offline
 queue round-trip (E2E-FLOW-06 + E2E-G2-01's queue half), the losing-edit
 conflict (E2E-FLOW-08/E2E-NFR-04, partial, + E2E-G2-01's conflict-log
-half) and the G-2 sheet outside a trip.
+half), the G-2 sheet outside a trip, the master-partition log (E2E-G2-06)
+and its revert (E2E-G2-10).
 
 **The harness, for the units that will extend it** (Track C's durable
 outbox is the named next tenant):
@@ -1324,3 +1413,62 @@ And one that is about the feature rather than the harness:
   and asserted its mark — a correct failure. Both paths are now in the
   case, because "this row shows no mark" only means something beside a row
   that shows one.
+
+## E2E-G3-01 (partial) + E2E-G3-03 — the lock goes one tap deeper (2026-08-22)
+
+Backlog item 14(d). G-3 promises two things a padlock on M4's row was not
+delivering: that a locked row **names its holder**, and that it is
+"non-interactive for others except viewing". `ItemDetailSheet` had no lock
+awareness at all, so the row that could not be packed from the list was
+fully editable from the sheet one tap below it — and that is the worse of
+the two, because the sheet *accepted* the edit and the other device simply
+lost it at the next merge. No screen ever named the holder either, which is
+the one question a padlock raises.
+
+**What the new case in `single/server-sync.spec.ts` actually proves.** Both
+contexts there are the same Single-User identity, so it does not prove
+*whose* name is rendered. It proves the mechanism, which is the half that
+was broken: device B never claimed the row, so B's client treats the claim
+as foreign exactly as it would a second account's — the row carries the
+holder line, the sheet carries the banner, its packing/skip/note/prep
+controls are absent and *Details* is disabled, while name, quantity and
+state stay readable. The holder's own sheet is asserted **untouched** in
+the same case, because "locked for everyone including me" is the obvious
+wrong fix and nothing else would catch it. The identity half stays with
+E2E-G3-01 on the mock-IdP `server` project that does not exist yet.
+
+**Proven able to fail.** The suite runs against `dist`, so a source-only
+mutation proves nothing (the M10 lesson). Making `lockHolder` return `null`
+unconditionally and rebuilding reddens the case at the row's holder line —
+8 passed, 1 failed — and restoring it turns it green again. One trap on the
+way: the first mutation was `if (true) return null`, which makes TypeScript
+treat the rest of the function as unreachable, drop its narrowing, and fail
+`vue-tsc` before a bundle is ever built. A mutation has to keep the build
+honest to be worth anything.
+
+**Why the whole sheet, not the packing block.** G-3's words are "except
+viewing", and a mode where the quantity is frozen but the container is not
+is a third state with no mental model behind it. The cost is real and
+accepted: a note cannot be left on a row while somebody packs it. Each
+write path is guarded in the handler *as well as* disabled in the template
+— a control that flips back on its own is worse than one that never moved,
+and the guard is what a vitest case can assert without depending on how
+Ionic renders a disabled toggle.
+
+**The 15 minutes stopped being a client constant.** Sync-API §7 had decided
+the staleness window is "configurable via an environment variable"; the only
+place it existed was `LOCK_TIMEOUT_MS` in the orchestrator.
+`JITPACK_LOCK_TIMEOUT` now names it and `GET /api/v1/config` serves it. The
+vitest case for it is written so it can only pass if the served value
+arrived: the row is five minutes old — stale under the test's 60-second
+window, fresh under the built-in default — so a client that ignored the
+answer would keep the row locked and fail.
+
+**What was checked and deliberately not built.** The backlog item also said
+"the server neither expires a lock nor refuses a push for one". §7 does not
+promise either: it makes locks advisory, persisted as ordinary
+`packing_now` mutations, ignored by *clients* past the window. Server-side
+refusal would be a different concurrency model, not a bug fix — it would put
+a permanent 4xx in front of an offline device that packed a row somebody
+claimed after it went offline, which is the outbox-wedge shape PR #156 had
+just removed. That is an owner decision, and it is left as one.

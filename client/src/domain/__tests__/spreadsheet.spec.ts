@@ -1,8 +1,8 @@
 /**
  * M15 spreadsheet import (FR-16.1–16.3, NFR-4.7): CSV parsing with
  * delimiter detection, grid analysis (item column, trip columns,
- * category rows, '?' noise), near-duplicate matching, and the final
- * import plan.
+ * category rows and a category column, '?' noise), near-duplicate
+ * matching, and the final import plan.
  */
 import { describe, it, expect } from 'vitest'
 
@@ -60,11 +60,195 @@ describe('analyzeGrid (FR-16.1, NFR-4.7)', () => {
 
   it('finds the item-name column and the trip columns with headers', () => {
     expect(analysis.itemColumn).toBe(0)
-    expect(analysis.tripColumns.map((t) => t.header)).toEqual(['2023', '2024', '2025'])
+    expect(analysis.tripColumns.map((t) => t.name)).toEqual(['2023', '2024', '2025'])
   })
 
   it('suggests rows without any quantities as category rows', () => {
     expect(analysis.categoryRows).toEqual([1, 4])
+    expect(analysis.categoryColumn).toBeNull()
+  })
+
+  it('reads a lone year header as both the name and the date (FR-16.1)', () => {
+    expect(analysis.headerRows).toBe(1)
+    expect(analysis.tripColumns.map((t) => t.date)).toEqual(['2023', '2024', '2025'])
+  })
+})
+
+/*
+ * The layout a decade-old family spreadsheet actually has (FR-16.1, found
+ * 2026-08-23 on a real 34-column sheet): the column header is two rows —
+ * the year above the trip's name — and the category is its own column,
+ * forward-filled, rather than a grouping row.
+ */
+const twoRowHeaderCSV = [
+  ',,2016,2016,2017',
+  ',,Sjas,Laos,Moskau',
+  'Schuhe,Wanderschuhe,1,1,',
+  ',Sandalen,1,,2',
+  'Unterwäsche,Socken,9,9,9',
+].join('\n')
+
+describe('analyzeGrid — two-row header and category column (FR-16.1)', () => {
+  const grid = parseSpreadsheet(twoRowHeaderCSV)
+  const analysis = analyzeGrid(grid)
+
+  it('counts the leading rows that carry no quantity as the header block', () => {
+    expect(analysis.headerRows).toBe(2)
+  })
+
+  it('names each trip from the header row that names them, not from the year row', () => {
+    expect(analysis.tripColumns.map((t) => t.name)).toEqual(['Sjas', 'Laos', 'Moskau'])
+  })
+
+  it('takes the date from the header row that parses as one', () => {
+    expect(analysis.tripColumns.map((t) => t.date)).toEqual(['2016', '2016', '2017'])
+  })
+
+  it('finds the item column beside the category column, not the category column', () => {
+    expect(analysis.itemColumn).toBe(1)
+    expect(analysis.categoryColumn).toBe(0)
+  })
+
+  it('suggests no category rows once a category column carries them', () => {
+    // Without this, an item nobody ever packed reads as a category heading:
+    // the rule that finds category rows is "no quantity anywhere".
+    expect(analysis.categoryRows).toEqual([])
+  })
+})
+
+/*
+ * An inventory with no history at all (FR-16.1, added 2026-08-23): the sheet
+ * is a list of things, not a matrix. Nothing distinguishes a category row from
+ * an item row without a quantity column to be empty in — so the wizard must
+ * claim neither, and the user ticks the categories.
+ */
+const inventoryOnlyCSV = [
+  'Kategorie,Artikel',
+  'Schuhe,Wanderschuhe',
+  ',Sandalen',
+  'Bad,Handtuch',
+].join('\n')
+
+/** The same thing without even a category column: a bare list of names. */
+const bareListCSV = ['Artikel', 'Wanderschuhe', 'Sandalen', 'Handtuch'].join('\n')
+
+describe('analyzeGrid — a bare list with nothing but names (FR-16.1)', () => {
+  const grid = parseSpreadsheet(bareListCSV)
+  const analysis = analyzeGrid(grid)
+
+  it('claims no category rows, because every row qualifies once there are none', () => {
+    // "A row with no quantity in any trip column" is vacuously true for every
+    // row when there is no trip column, so the whole list read as headings and
+    // the import produced categories and not one item.
+    expect(analysis.tripColumns).toEqual([])
+    expect(analysis.categoryRows).toEqual([])
+  })
+
+  it('imports every row as an item', () => {
+    const plan = buildImportPlan(
+      grid,
+      {
+        headerRows: analysis.headerRows,
+        itemColumn: analysis.itemColumn,
+        categoryColumn: analysis.categoryColumn,
+        categoryRows: analysis.categoryRows,
+        trips: [],
+      },
+      new Map(),
+    )
+    expect(plan.items.map((i) => i.name)).toEqual(['Wanderschuhe', 'Sandalen', 'Handtuch'])
+    expect(plan.newCategories).toEqual([])
+  })
+})
+
+describe('analyzeGrid — an inventory with no trip columns (FR-16.1)', () => {
+  const grid = parseSpreadsheet(inventoryOnlyCSV)
+  const analysis = analyzeGrid(grid)
+
+  it('finds no trip columns and claims no category rows', () => {
+    expect(analysis.tripColumns).toEqual([])
+    // Every row is "empty in all trip columns" when there are none, and the
+    // old rule therefore turned the whole inventory into category headings.
+    expect(analysis.categoryRows).toEqual([])
+  })
+
+  it('still finds the item column and its category column', () => {
+    expect(analysis.itemColumn).toBe(1)
+    expect(analysis.categoryColumn).toBe(0)
+  })
+})
+
+describe('buildImportPlan — an inventory with no trips (FR-16.1/16.2)', () => {
+  it('imports the items and creates no trip', () => {
+    const grid = parseSpreadsheet(inventoryOnlyCSV)
+    const a = analyzeGrid(grid)
+    const plan = buildImportPlan(
+      grid,
+      {
+        headerRows: a.headerRows,
+        itemColumn: a.itemColumn,
+        categoryColumn: a.categoryColumn,
+        categoryRows: a.categoryRows,
+        trips: [],
+      },
+      new Map(),
+    )
+
+    expect(plan.trips).toEqual([])
+    expect(plan.items.map((i) => i.name)).toEqual(['Wanderschuhe', 'Sandalen', 'Handtuch'])
+    expect(plan.items.map((i) => i.categoryName)).toEqual(['Schuhe', 'Schuhe', 'Bad'])
+  })
+})
+
+/*
+ * The same thing listed twice in one sheet (FR-16.3, found 2026-08-23 on the
+ * owner's file, where "Regenhosen" and "Tele" each appear under two
+ * categories). `items` is UNIQUE (name), so the second row was refused at the
+ * wire and its amounts were lost — silently, because the dedup step compares
+ * the file against the *inventory* and never against itself.
+ */
+const repeatedNameCSV = [
+  'Kategorie,Artikel,2024,2025',
+  'Hosen,Regenhosen,1,1',
+  'Velo,regenhosen ,,3',
+  ',Pumpe?,1,',
+  ',Pumpe,,2',
+].join('\n')
+
+describe('buildImportPlan — a name repeated inside one file (FR-16.3)', () => {
+  const grid = parseSpreadsheet(repeatedNameCSV)
+  const analysis = analyzeGrid(grid)
+  const mapping = {
+    headerRows: analysis.headerRows,
+    itemColumn: analysis.itemColumn,
+    categoryColumn: analysis.categoryColumn,
+    categoryRows: analysis.categoryRows,
+    trips: analysis.tripColumns.map((t) => ({
+      column: t.index,
+      name: t.name,
+      endDate: normalizeTripDate(t.date)!,
+      seriesId: null,
+    })),
+  }
+  const plan = buildImportPlan(grid, mapping, new Map())
+
+  it('folds the repeats into one item, keeping the first spelling and category', () => {
+    expect(plan.items.map((i) => i.name)).toEqual(['Regenhosen', 'Pumpe'])
+    expect(plan.items[0]!.categoryName).toBe('Hosen')
+  })
+
+  it('merges the amounts per trip, taking the larger of the two rows', () => {
+    const amounts = plan.trips.map((t) => [t.name, t.items.map((i) => i.quantity)])
+    // 2024: only the first row has Regenhosen (1) and only the '?' row has
+    // Pumpe (1). 2025: Regenhosen 1 vs 3 → 3, Pumpe 2.
+    expect(amounts).toEqual([
+      ['2024', [1, 1]],
+      ['2025', [3, 2]],
+    ])
+  })
+
+  it('keeps the open task when either row carried the question mark (NFR-4.7)', () => {
+    expect(plan.items.find((i) => i.name === 'Pumpe')!.hasOpenTask).toBe(true)
   })
 })
 
@@ -102,7 +286,9 @@ describe('normalizeTripDate', () => {
 describe('buildImportPlan (FR-16.2, NFR-4.7)', () => {
   const grid = parseSpreadsheet(legacyCSV)
   const mapping = {
+    headerRows: 1,
     itemColumn: 0,
+    categoryColumn: null,
     categoryRows: [1, 4],
     trips: [
       { column: 1, name: 'Engadin 2023', endDate: '2023-12-31', seriesId: 'ser-1' },
@@ -132,7 +318,14 @@ describe('buildImportPlan (FR-16.2, NFR-4.7)', () => {
 
     expect(plan.trips).toHaveLength(2)
     const t2023 = plan.trips[0]!
-    expect(t2023).toMatchObject({ name: 'Engadin 2023', endDate: '2023-12-31', seriesId: 'ser-1' })
+    expect(t2023).toMatchObject({
+      name: 'Engadin 2023',
+      // FR-2.1b: the one required temporal fact, and the column that the
+      // schema refuses a trip without.
+      year: 2023,
+      endDate: '2023-12-31',
+      seriesId: 'ser-1',
+    })
     const quantities = t2023.items.map((ti) => ({
       name: plan.items[ti.itemIndex]!.name,
       quantity: ti.quantity,
@@ -160,5 +353,42 @@ describe('buildImportPlan (FR-16.2, NFR-4.7)', () => {
     const socken = plan.items.findIndex((i) => i.name === 'Socken')
     const entry = plan.trips[0]!.items.find((ti) => ti.itemIndex === socken)
     expect(entry?.quantity).toBe(1)
+  })
+})
+
+describe('buildImportPlan — two-row header and category column (FR-16.1/16.2)', () => {
+  const grid = parseSpreadsheet(twoRowHeaderCSV)
+  const analysis = analyzeGrid(grid)
+  const mapping = {
+    headerRows: analysis.headerRows,
+    itemColumn: analysis.itemColumn,
+    categoryColumn: analysis.categoryColumn,
+    categoryRows: analysis.categoryRows,
+    trips: analysis.tripColumns.map((t) => ({
+      column: t.index,
+      name: t.name,
+      endDate: normalizeTripDate(t.date)!,
+      seriesId: null,
+    })),
+  }
+
+  it('does not turn a header row into an item', () => {
+    const plan = buildImportPlan(grid, mapping, new Map())
+    expect(plan.items.map((i) => i.name)).toEqual(['Wanderschuhe', 'Sandalen', 'Socken'])
+  })
+
+  it('forward-fills the category column down its rows', () => {
+    const plan = buildImportPlan(grid, mapping, new Map())
+    expect(plan.newCategories).toEqual(['Schuhe', 'Unterwäsche'])
+    expect(plan.items.map((i) => i.categoryName)).toEqual(['Schuhe', 'Schuhe', 'Unterwäsche'])
+  })
+
+  it('carries each trip year, which the schema requires (FR-2.1b)', () => {
+    const plan = buildImportPlan(grid, mapping, new Map())
+    expect(plan.trips.map((t) => [t.name, t.year, t.endDate])).toEqual([
+      ['Sjas', 2016, '2016-12-31'],
+      ['Laos', 2016, '2016-12-31'],
+      ['Moskau', 2017, '2017-12-31'],
+    ])
   })
 })

@@ -67,6 +67,7 @@ function source(over: Partial<BackupSource> = {}): BackupSource {
     templates: [],
     trips: [],
     masterItem: () => undefined,
+    tagsOf: () => [],
     template: () => undefined,
     composition: { includes: [], templates: [], itemsOf: () => [], tasksOf: () => [] },
     ...over,

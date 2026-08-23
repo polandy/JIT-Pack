@@ -132,9 +132,15 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [An optimistic row is a whole row (2026-08-22)](#an-optimistic-row-is-a-whole-row-2026-08-22) — a partial upsert's fields were applied as the optimistic row, which a store applies by replacing what it holds: saving a trip's name dropped its `status` and took the trip off M2 for good in Local Mode; two of the three lost fields had tests that said otherwise, one of them green only because the seeded year was the current one.
 - [The conflict log had two partitions and one query (2026-08-22)](#the-conflict-log-had-two-partitions-and-one-query-2026-08-22) — NFR-4.2a's audit filtered on `trip_id`, so every master-partition loser was written and read by nothing; the case that makes it matter is `trips`, whose own fields merge there, and the sheet's helpful-sounding hint was what hid it.
 - [`merged` was a quieter `applied` (2026-08-22)](#merged-was-a-quieter-applied-2026-08-22) — the push response's `conflicts[]` was read by no code path, so a mutation that lost a field left the queue exactly like one that applied; one toast per push (never per conflict) plus a standing line in the G-2 sheet, and the e2e assertion had to move because it was racing the toast's own dismissal timer.
+- [The revert was already half-built, in a column nobody used (2026-08-22)](#the-revert-was-already-half-built-in-a-column-nobody-used-2026-08-22) — NFR-4.2a's second verb, built as a new mutation rather than an undo (ADR-022); the schema change the work was budgeted for did not exist, and a single-connection pool turned an obvious visibility check into a deadlock against itself.
 - [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
 - [Field-level LWW was row-level, and "packed always wins" was hiding it (2026-08-22)](#field-level-lww-was-row-level-and-packed-always-wins-was-hiding-it-2026-08-22) — the store kept one `updated_hlc` per row where §6 says per field-group, so an offline pack lost to any unrelated later edit; the backlog's "packed beats everything" branch was the compensation for exactly one state, and narrowing it to the spec alone would have kept the fault and dropped the mask; ADR-022 ships a clock per field and the narrow rule together, and the conflict log now names the losing push and its actor.
 - [The sheet's glyph rode half a line high (2026-08-23)](#the-sheets-glyph-rode-half-a-line-high-2026-08-23) — an eyeball of the merged conflict-log work found two rendering defects that every gate had passed: a state glyph aligned to a title *block* whose `h1` carried a 20 px margin nothing asked for, and an empty state that had copied the house pattern without its padding; the review corrected the entry's own first answer — a visual baseline would **not** have caught the offset either, at 591 px against a 0.002 gate, so what let both live is that nothing measured them.
+- [The lock stopped at the row (2026-08-22)](#the-lock-stopped-at-the-row-2026-08-22) — G-3's padlock was on M4's row and nowhere else, so the row you could not pack from the list was fully editable one tap deeper, and the sheet *accepted* the edit before the next merge threw it away; no screen named the holder; and §7's promised environment variable for the staleness window had never existed as anything but a client constant. What the backlog also asked for — server-side lock enforcement — is what §7 deliberately does not do, and it is left to the owner rather than built.
+- [A backup gave back plans instead of history (2026-08-23)](#a-backup-gave-back-plans-instead-of-history-2026-08-23) — the portable file carried neither a trip's status nor an item's tags, so a restore turned archived history into plans and dropped every master item no template also used; the field that made the fix possible is the one that says whether a trip row came from the inventory at all, and the change quietly falsified a *constant* two screens away.
+- [A year is a quantity, and that is why M15 could not find its header (2026-08-23)](#a-year-is-a-quantity-and-that-is-why-m15-could-not-find-its-header-2026-08-23) — the legacy spreadsheet importer wrote no `year`, so a NOT NULL column made the server refuse every trip it imported while the importing device rendered the migration anyway; underneath sat two layout assumptions a real family sheet broke, and the rule for finding the header block had to stop asking about quantities.
+- [The store that already agrees with you (2026-08-23)](#the-store-that-already-agrees-with-you-2026-08-23) — three defects in one import path, all of the same shape: the client applies its own write optimistically, the server refuses it, and no screen on the importing device can tell the difference. Found by importing into the real instance instead of a test double, which is a different act from running the suite.
+- [Every spec paid for a DOM, and one of them was green for the wrong reason (2026-08-23)](#every-spec-paid-for-a-dom-and-one-of-them-was-green-for-the-wrong-reason-2026-08-23) — the suite built a jsdom window for all 114 spec files when 32 use one, costing ~48 % of its wall-clock; the premise that started the work was itself wrong (a cold-cache run read 252 s where the warm figure is 88 s), and the interesting find is the failure mode of the fix: a missing `@vitest-environment jsdom` is *not* reliably a red test, because production code that reads a DOM global inside a `try` takes the `catch` instead and the spec passes while exercising the error path.
 - [A hidden element is not a small element (2026-08-23)](#a-hidden-element-is-not-a-small-element-2026-08-23) — the toast-on-the-tab-bar fix was three lines; what it cost was two wrong measurements, both from a box of height zero: a `display: none` anchor makes Ionic subtract a whole viewport instead of clearing the bar, and the geometric test that should have caught the defect first failed against a hidden bar at the origin, where *every* overlap assertion resolves in both directions.
 
 ## Current state
@@ -5129,6 +5135,398 @@ user-agent margin is none of those, and neither is a missing padding. This is
 the same lesson invariant 9b already carries from the M4 group card that
 painted itself the exact colour of the page behind it: a rule can be satisfied
 completely and the result can still be wrong, and only a rendered pixel says so.
+## The lock stopped at the row (2026-08-22)
+
+Backlog item 14(d). Three of its four parts were real and are fixed; the
+fourth was a premise worth checking before building against it.
+
+**The sheet was the dangerous half.** M4's row wore a padlock and refused
+its menu, so the collision G-3 exists to prevent looked handled. But the
+row still opened M5 — correctly, since G-3 keeps viewing — and M5 had no
+lock awareness at all. Every control there wrote. That is worse than an
+unlocked row, because the sheet *confirmed* the edit: the save indicator
+went green, the field showed the new value, and the loss happened later and
+elsewhere, at a merge nobody was watching. A defect that shows a success
+message is not found by using the app.
+
+**All-or-nothing, and the cost is named.** G-3's wording is "non-interactive
+for others except viewing", so the whole sheet goes read-only rather than
+the packing block alone — a mode where the quantity is frozen and the
+container is not is a third state with no model behind it. The accepted
+cost: you cannot leave a note on a row while somebody packs it. Each write
+path is guarded in the handler *as well as* disabled in the template. Both
+halves earn their keep: the guard is what a unit test can assert without
+depending on how Ionic renders a disabled web component, and the disabled
+control is what stops a toggle from flipping and springing back, which
+reads as a bug rather than as a rule.
+
+**Naming the holder needed the function that already existed to stop
+throwing the answer away.** `isLockedByOther` computed exactly who held a
+row and then returned a boolean. It is now `lockHolder`, returning the user
+id, with the boolean as its one-line caller — the view resolves the id to a
+name, because only it knows the trip's participants. Note the empty string
+is a *held* lock with an unnameable holder, distinct from `null`; a row that
+says "somebody is packing this" is right, and one that silently unlocks
+because a directory fetch failed is not.
+
+**§7's environment variable had never existed.** The spec decided in so many
+words that 15 minutes is "the shipped default, configurable via an
+environment variable"; the implementation was `const LOCK_TIMEOUT_MS = 15 *
+60 * 1000` in the orchestrator, and nothing else. `JITPACK_LOCK_TIMEOUT` and
+`GET /api/v1/config` close it. The endpoint is unauthenticated and
+mode-independent on purpose — it carries no per-user data and a Single-User
+client needs the window too. A client that cannot reach it keeps the
+default, because the window is advisory and a missing answer must leave
+neither every row locked forever nor none locked at all.
+
+The vitest case for it is written so it cannot pass by accident: the row
+under test is five minutes old, which is stale under the test's 60-second
+window and fresh under the built-in default, so a client that ignored the
+served value fails rather than agreeing with itself.
+
+**The part that was not a defect.** The item also read "the server neither
+expires a lock nor refuses a push for one". §7 promises neither. It makes
+the lock advisory: persisted as an ordinary `packing_now` mutation, merged
+like any other field, and applied by *clients* when they decide what to
+render. Building refusal would be a different concurrency model — and a
+costly one, because it puts a permanent 4xx in front of an offline device
+that packed a row somebody claimed after it went offline, which is exactly
+the outbox-wedge shape removed days earlier. G-3 is collision *avoidance*;
+the net under a real collision is the field-level merge and the conflict
+log, which exist. Left as an owner decision rather than built, and the spec
+now says so out loud instead of leaving the silence to be read as an
+oversight.
+
+**A mutation has to keep the build honest.** Proving the new e2e case can
+fail meant rebuilding `dist`, and the first attempt — `if (true) return
+null` at the top of `lockHolder` — never got that far: TypeScript treats the
+rest of the function as unreachable, drops its narrowing, and `vue-tsc`
+fails on code that was correct a moment earlier. A mutation that cannot
+compile proves nothing about a test.
+
+## The revert was already half-built, in a column nobody used (2026-08-22)
+
+NFR-4.2a names two verbs in one sentence — audit **and manually revert** —
+and the second had never been built. Backlog item 14(e). The work was
+planned as "store the losing value, then restore it"; the first half turned
+out to be done, and in a way worth recording.
+
+**The schema was already right, and one column of it was dead.**
+`conflict_log` has carried `losing_value` since the beginning, and it has
+also carried `reverted INTEGER NOT NULL DEFAULT 0` — written by nothing,
+read by nothing, present in `schema.sql` and in no Go file. So a change
+budgeted as "a schema change, therefore every development database is
+deleted" (invariant 2) cost no schema change at all. The lesson is small
+and repeatable: **before planning a column, grep for it** — dead schema from
+a design that ran ahead of its implementation is cheaper to find than to
+re-derive.
+
+**The decision the ADR exists for** is what a revert *means* when the only
+ordering in the system is an HLC. Writing the value back in place, keeping
+the row's old clock, is the intuitive answer and it silently does not work:
+every device that already pulled the winner holds it under a *newer* clock,
+so the next thing that touches the field re-establishes the winner and the
+user's repair evaporates minutes later with nothing to see. A revert is
+therefore an ordinary new mutation with a fresh server HLC — it wins by
+being newer, not by being special (ADR-022). The cost is accepted openly:
+it can be **refused**, which a real undo could not, and the UI needed four
+sentences instead of none.
+
+**The trap, and it cost the first implementation.** The store's pool is
+capped at one connection on purpose (SQLite has a single writer). The
+master-partition revert has to answer "may this user even see this entry?",
+and `masterVisible` is right there — so the first version called it inside
+the revert's transaction. It does its own `s.db.QueryRowContext`, which
+asks the pool for a connection the open transaction is holding. Not an
+error: the test run simply never finished. **Any helper that reads through
+`s.db` is unusable inside a `BeginTx` block here**, and the ones that take a
+`*sql.Tx` are the ones that can be composed. The visibility check moved
+above the transaction, where it belongs anyway — it is a read about the
+caller, not about the row being written.
+
+**Two things were deliberately not built.** There is no actor on a revert:
+`conflict_log` records no one for the losing write either, so a shared trip
+still cannot answer "who took this back" — that gap is named in the ADR as
+its own revisit trigger rather than papered over with the pusher's id.
+And the refusals are **four codes, not one 409**: already reverted, row
+deleted, merge rules outrank it, not yours to write. Each is a different
+sentence for the reader, and the page renders it on the row rather than as
+a snackbar — which on this app lands on the tab bar (FR-9.4).
+
+**Found in this PR's own review: the revert restored half a fact.** The log
+lists one row per lost *field*, and the first implementation restored exactly
+that field. For `state` and `packed_count` — coupled since FR-5.4, and merged
+as one unit by the very algorithm that wrote the entries — that produced
+`state = packed` beside `packed_count = 0` on a quantity of five: a row no
+screen has a rendering for and no state machine describes. The fix uses the
+column #164 had just added for it, `mutation_id`, to find the sibling entries
+of the same push, and `sync.GroupedWith` to decide which of them travel
+together — the coupling defined once, where the merge already defines it,
+rather than a second list in the store that could drift from the first.
+Independent fields stay independently revertable; the log lists them apart
+because they *are* apart.
+
+
+## A backup gave back plans instead of history (2026-08-23)
+
+The owner asked whether templates could be declared in a file and imported, and
+then whether trips and templates could live in **one** file as a backup. Both
+already existed — the portable YAML (FR-18.1–18.6) and `buildBackup` — so the
+work was not building them but finding what they did not carry. Three things,
+and the third is the one that made the other two possible.
+
+**Status.** Every imported trip was `planning`, and FR-18.4 said so on purpose:
+a file one person hands another should land in your planning list, not
+rearrange your trips. For the only copy of a device that is the wrong rule —
+thirty-one archived trips restore as thirty-one plans, and the FR-3.14
+historical quantities they exist for go with them. ADR-024 weighs the three
+ways out; the owner chose one format that always carries and always honours the
+status, over a backup-only document kind and over honouring it on the restore
+path alone. **The accepted cost is written down rather than smoothed over:** a
+trip somebody shares with you can now arrive archived. The rejected middle
+option is the interesting one — the same file behaving differently depending on
+which button opened it, with nothing on screen saying so, is the kind of rule
+nobody can predict and no bug report can describe.
+
+**Tags, ordered.** `item_tags.position` *is* the order, and position 0 is the
+primary tag the grouped inventory files an item under. So the list carries the
+primary tag without a second field to name it — and a set, which is what tags
+look like at first glance, would carry the same names and lose exactly that.
+
+**`from_inventory`, which is the load-bearing one.** A trip row that came from
+the inventory and a row the user typed on the trip are both, in the file, a
+name. The first idea was to create a master item for every trip row on restore;
+that is faithful for the first kind and wrong for the second — it fills the
+inventory with things somebody deliberately kept ad-hoc. Without a marker the
+importer has to pick one of two errors, and it had been picking the other one:
+a master item that only a trip referenced was dropped, taking its mark and its
+tags with it. One boolean is what lets a restore be faithful in both
+directions.
+
+**An unknown status is dropped, not refused — and that reversed a decision made
+an hour earlier.** The first implementation refused the document, by analogy
+with `scope`, which refuses an unknown value. Writing the second implementation
+made the analogy fail: a group imported as a Ferien-Vorlage is *structurally*
+wrong and corrupts the composition, while an unreadable status is one field
+with a correct fallback the reader already supplies. The closer precedent was
+`Quantity`, which folds a legacy formula string rather than failing the whole
+file. Losing a trip out of a restore to save its lifecycle state is the wrong
+trade, so both implementations now drop it. What neither may do is pass the
+value on: the schema's CHECK would refuse it, and a failed constraint parks the
+whole push and reports a database error where a file problem happened.
+
+**The change falsified a constant two screens away, and only reading the code
+found it.** M18 sent the user to M2's *planned* segment after a restore, and
+that literal was correct *because* every imported trip was planning — its own
+comment said so, and it existed to fix a restore that ended on the words "No
+active trips". A device of archived history would have landed on an empty
+Planned list: the identical failure the constant was introduced to prevent, one
+status over. It is derived from the first restored trip now, through a mapping
+that lives in the module both screens already share, because `planning` and
+*planned* are the one place the database word and the display word differ.
+
+**A cost of the shape, and the review found I had paid it badly.** Every writer
+has to pass the two resolvers. I wired the three I knew about — the device
+backup and both single exports — by hand-assembling the same two lines at each,
+and left the arguments optional. The review's own mutation is what exposed it:
+with all three returning no tags, **the whole unit suite (1237) and the whole
+M18 e2e unit stayed green** while the backup lost every tag. Three copies, no
+driver, and the exact shape §4.0 of the review skill was written after.
+
+The fix is not a fourth test. `masterStore.portableResolvers()` is one source
+with one driving case, and the serializers take the resolvers as **required**
+arguments — because a test can only watch the call sites that exist, while the
+compiler watches every future one. That distinction paid for itself
+immediately: making them required surfaced a **fourth** writer nobody had
+wired, the template list's own export, which would have shipped templates
+without tags.
+
+**And one mistake worth keeping — which I then repeated.** Mid-way through, a
+`git checkout --` meant to undo a deliberate mutation-proof wiped the
+orchestrator work along with it, because that work was not committed yet. The
+mutation proof is the right habit; doing it against uncommitted code is not.
+Commit the green step first, then mutate. Writing that down did not stop me
+doing it a second time an hour later, to `masterStore.ts`, in the middle of the
+review — which is the more useful half of the lesson: the rule has to be a
+habit at the keyboard, not a paragraph in a log.
+
+## A year is a quantity, and that is why M15 could not find its header (2026-08-23)
+
+The owner asked to import a decade of trips out of the family spreadsheet.
+Three things stood between the file and the app; only the first is a bug in
+the ordinary sense, and it is the one that had been invisible longest.
+
+**`createImportedTrip` never wrote `year`.** `trips.year` is NOT NULL with a
+CHECK, so every trip M15 imported came back `rejected` — measured against the
+store's own SQLite with exactly the field set the client sends, then measured
+again with the year added, which applied. Local Mode has no such constraint
+and took the rows, filing a decade of history under the current year.
+
+What let it live for so long is worth more than the fix. M15 had **no e2e
+case at all** — four written in the UI-Test-Spec, none implemented — and its
+unit tests run against fakes with no schema, so nothing in the suite had ever
+seen this mutation meet a database. And the obvious e2e case would not have
+caught it either: the optimistic row is in the importing device's own store
+before the push, so M2 renders the migration whether or not the wire carried
+it. E2E-M15-05 asserts from a second browser context for that reason. The
+same shape appears again in the landing segment: the wizard sent the user to
+M2's default *Active* tab while FR-16.2 only ever produces archived trips, so
+a successful migration ended on the words "No active trips" — the identical
+miss ADR-024 had just fixed on the restore path, in a second screen nobody
+thought to look at.
+
+**The premise that had to go: a header row cannot be found by having no
+quantities in it, because a year parses as one.** The first implementation of
+the header block did exactly that and detected zero header rows on a sheet
+whose first row is `2016, 2016, 2017`. A row of years and a row of amounts are
+indistinguishable by their cells; what separates them is that a header row
+names no item. So the block is counted down the *item* column — which needs
+the item column, which needs the block. The circle is broken with a
+provisional guess under the old one-row assumption, and that is honest rather
+than clever: the provisional answer only has to be right about which column
+holds names, not about where the data starts.
+
+**Two rows of header, and a category column.** The real sheet writes the year
+above the trip's name, so the name and the date come from two different rows —
+each chosen over the whole block by counting hits across the trip columns,
+not per column, because a stray `0` sitting alone in a third header row would
+otherwise become one trip's name (it exists in that sheet, and it did). And
+the category is a *column* beside the item, written only where it changes:
+under the old rule, which reads a category as a row with no quantities, the
+sheet produced four categories, all of them items nobody had ever packed,
+while the nineteen real ones were never seen. A detected category column now
+suppresses the row suggestions, because with one present that rule stops
+meaning "heading" and starts meaning "never packed".
+
+**The cost taken knowingly:** the header block and its two chosen rows are
+inferred with no manual override. A misread leaves one stray row as an item,
+absorbable only by ticking it as a category row. The alternative — a
+"header rows: 1 / 2 / 3" control — is a fourth decision on a step that already
+asks for three, paid on every import to protect against a layout not yet seen.
+The revisit trigger is written into FR-16.1: the first sheet read wrong.
+
+**And the same process trap for the third time in two days.** A `git checkout --`
+to undo a mutation proof also took an uncommitted `data-testid` with it; the
+four cases that had just passed went red with "element(s) not found", which
+names the symptom and not the cause. The lesson was already written down twice
+(see the ADR-024 entry) and writing it down is evidently not what fixes it. What
+would: never reach for `checkout --` at all — revert the mutation the same way
+it was made, by editing the line back.
+
+Against the owner's actual file the wizard now proposes 29 named trips with
+their years, 195 items and the 19 real categories, with the two columns whose
+header says nothing left unticked — that last one a deliberate deviation from
+FR-16.1's select-all default, since a column that can never validate would
+otherwise hold the other thirty hostage.
+## Every spec paid for a DOM, and one of them was green for the wrong reason (2026-08-23)
+
+Asked whether this project would be worth developing on a bigger machine, the
+answer had to start with a measurement rather than an opinion — and the first
+measurement was wrong in a way worth recording, because it is the easy mistake
+to make here. A single `npx vitest run` on a cold checkout reported **252 s**,
+with `environment` at 483 s cumulative. Both numbers are Vite's dep-prebundling
+and transform caches being empty. Warm, and repeated, the suite runs in **88 s**
+with `environment` at 166 s. **A one-shot timing of a Vite-based suite measures
+the cache, not the suite**; every figure below is the median of load-controlled
+interleaved runs.
+
+What the honest number still showed: `environment` was the largest single
+component of the run — 166 s cumulative against 14 s of actual test execution —
+because `vitest.config.ts` set `environment: 'jsdom'` globally and Vitest builds
+a jsdom window per file, at roughly 1.5 s each. Of 114 spec files, **32 need
+one**. The other 82 are the pure domain rules (invariant 4), the stores, the
+sync layer and the theme assertions, and they were each paying about a second
+and a half for a DOM they never touch.
+
+The fix is per-file: the default is `node`, and a spec that needs a window says
+so with a `@vitest-environment jsdom` docblock. 88 s → 45 s, with the same 114
+files and the same 1251 tests.
+
+**The part that is not mechanical, and the reason this entry exists.** The
+obvious way to find the 32 files is to flip the default and keep whatever turns
+red. That is very nearly right, and it is wrong in one specific place. Production
+code that reads a DOM global defensively does not fail under `node` — it takes
+its own error path:
+
+    // useInventoryProperties.ts
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      ...
+    } catch { /* ignore */ }
+
+Under `node` there is no `localStorage`, so the `getItem` throws a
+`ReferenceError`, the `catch` swallows it, and `inventoryProperties.spec.ts`
+**passes** — while testing the ignore-the-failure branch instead of the read-back
+branch it was written for. Red tests do not find this. Grep does not find it
+either: the spec never mentions a DOM global, its subject does, three imports
+away.
+
+What found it was a **coverage diff between the two configurations** — same
+suite, run once with `jsdom` everywhere and once with the new per-file split,
+compared per file. Total line coverage was identical at 4167; branch coverage
+was down by exactly one, in exactly that file. After adding the docblock there,
+both totals match the old configuration exactly (4167 lines, 2714 branches),
+which is the actual evidence that the change is behaviour-preserving — the green
+suite by itself is not, and would not have been.
+
+No gate was added for this. A gate would have to decide whether a spec's
+*transitive* subject touches a DOM global, and the honest versions of that check
+are either loose enough to miss the next `try`/`catch` or tight enough to push
+most of the 82 files back onto jsdom and undo the change. The trap is written
+into `vitest.config.ts` instead, next to the setting that causes it, with the
+coverage diff named as the check that catches it.
+
+Left deliberately alone: the 32 jsdom files are not a target to shrink. Several
+of them could be rewritten to stub what they need, and the second and a half
+each is not worth the loss of a real DOM in a component test.
+
+## The store that already agrees with you (2026-08-23)
+
+The owner asked for the spreadsheet to be imported into the running instance on
+`:3000`. It went through: 29 archived trips, 193 items, 19 tags, the sync glyph
+green. Then reading the server's own database:
+
+```
+item_tags   0
+items       193      (the plan had 195)
+```
+
+**Every category link had been refused, and two items with it** — after two PRs
+that had already fixed two other defects in this same path. All three are the
+same shape, and it is worth naming because the shape is what generalises: the
+client applies its own mutation optimistically, the server refuses it, and
+**nothing on the importing device can tell the difference**. M2 shows the trips.
+M9 shows the items. The glyph says synced, truthfully — the outbox *is* empty,
+a refusal empties it too.
+
+- The **year**: `trips.year` is NOT NULL and the mutation omitted it.
+- The **tag links**: `item_tags.item_id` is a foreign key and the assignment was
+  enqueued *before* the item's own insert. `commitImport`'s doc comment claimed
+  "parents precede children in the queues"; it was describing an intention.
+- The **repeated names**: `items` is UNIQUE (name), and the dedup step compares
+  the file against the inventory but never against itself. The owner's sheet
+  lists "Regenhosen" and "Tele" under two categories each.
+
+Local Mode sees none of them — it skips the outbox, so there is no wire to
+refuse anything — and every unit test asserted the client store, which holds
+what the client wrote regardless of what the server did with it. That is why
+the driving test for the tag order is an assertion about the **push body**
+(`item_tags` may not precede its `items` row) rather than about the store, and
+why E2E-M15-09 reads the result from a **second browser context**.
+
+**The lesson is not "write more tests".** It is that a green suite and a green
+glyph are both compatible with a server that took none of it, and the only
+cheap instrument that is not, is a second reader. On this path there are now
+three of them: the push-body assertion, the second context, and — the one that
+actually found all three — running the thing against a real instance and then
+reading the database instead of the screen.
+
+**Two decisions inside the second fix.** A repeated name folds *without* asking:
+within one file it is a listing accident, not two things, and the user has no
+second answer to give (unlike FR-16.3's prompt against existing inventory, where
+"keep separate" is a real choice). And where two folded rows both carry an amount
+for the same trip, the **larger** wins rather than the sum: they describe one
+packing, and adding them invents luggage that was never in the car.
 
 ## A hidden element is not a small element (2026-08-23)
 

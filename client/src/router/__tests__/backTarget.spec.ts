@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 import { ORIGIN_QUERY_PARAM, backTarget, enteredFrom, originFrom } from '@/router/backTarget'
 import { routes } from '@/router'

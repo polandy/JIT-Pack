@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * FR-28.4/28.5 — the fallback ladder lives here and nowhere else.
  *

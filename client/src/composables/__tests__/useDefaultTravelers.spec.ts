@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * FR-2.5a — the people who come along by default.
  *

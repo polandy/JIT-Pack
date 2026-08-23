@@ -127,6 +127,9 @@ export const de: Record<keyof typeof en, string> = {
   'packing.packedBy': 'gepackt von {who} · {when}',
   'packing.packedByUnknown': 'gepackt · {when}',
   'packing.responsibleWas': 'zuständig war {who}',
+  'packing.lockedBy': '{who} packt das gerade',
+  'packing.lockedByUnknown': 'Jemand packt das gerade',
+  'packing.lockedHint': 'Bis dahin nur zum Anschauen.',
   'stamp.today': 'heute',
   'stamp.yesterday': 'gestern',
 
@@ -716,9 +719,15 @@ export const de: Record<keyof typeof en, string> = {
   'import.wizard.seriesLabel': 'Zielserie',
   'import.wizard.mappingInvalid':
     'Jede ausgewählte Reise braucht einen Namen und ein Jahr (z. B. 2024) oder Datum.',
+  'import.wizard.nothingToImport':
+    'Keine Zeilen zum Importieren — wähle die Spalte mit den Artikelnamen.',
   'import.wizard.itemColumn': 'Artikelspalte',
   'import.wizard.column': 'Sp. {n}',
   'import.wizard.categoryRows': 'Kategoriezeilen',
+  'import.wizard.categoryColumn': 'Kategoriespalte',
+  'import.wizard.categoryColumnHint':
+    'Manche Tabellen führen die Kategorie in einer eigenen Spalte neben dem Artikel, fortgeschrieben bis sie wechselt.',
+  'import.wizard.noCategoryColumn': 'Keine',
   'import.wizard.duplicates': 'Mögliche Dubletten',
   'import.wizard.duplicatesHint': 'Diese importierten Namen ähneln Artikeln, die es schon gibt.',
   'import.wizard.existing': 'vorhanden: {name}',
@@ -877,6 +886,16 @@ export const de: Record<keyof typeof en, string> = {
   'conflicts.emptyMaster':
     'Keine Konflikte in Inventar, Gruppen oder Reisedaten — alles sauber zusammengeführt',
   'conflicts.emptyValue': '—',
+  'conflicts.revert': 'Zurücknehmen',
+  'conflicts.reverted': 'Zurückgenommen',
+  'conflicts.revertHint':
+    'Zurücknehmen schreibt den unterlegenen Wert neu — als normale Änderung, die auf allen Geräten ankommt.',
+  'conflicts.revertFailed.alreadyReverted': 'Dieser Konflikt wurde bereits zurückgenommen.',
+  'conflicts.revertFailed.rowDeleted': 'Der Eintrag wurde inzwischen gelöscht.',
+  'conflicts.revertFailed.refused':
+    'Zurücknehmen nicht möglich: der Artikel ist inzwischen eingepackt.',
+  'conflicts.revertFailed.forbidden': 'Du darfst diesen Eintrag nicht ändern.',
+  'conflicts.revertFailed.generic': 'Zurücknehmen fehlgeschlagen — offline?',
 
   // M20 Benutzerverwaltung (Addendum 3.23).
   'admin.title': 'Benutzerverwaltung',

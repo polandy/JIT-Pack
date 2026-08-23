@@ -95,6 +95,8 @@ export interface ConflictEntry {
   losing_value: string
   winning_value: string
   resolved_at: string
+  /** Whether the losing value has already been restored (NFR-4.2a). */
+  reverted: boolean
 }
 
 /** Everything the M3 wizard collected before "Create trip". */
@@ -209,6 +211,13 @@ const TRIP_STORE_TABLES: ReadonlySet<string> = new Set<string>([
   TABLE.tripAppliedChanges,
 ])
 
+/**
+ * The G-3 lock staleness window a client falls back to (Sync-API §7): the
+ * shipped default an instance may override with JITPACK_LOCK_TIMEOUT, and
+ * the only window Local Mode ever uses.
+ */
+export const DEFAULT_LOCK_TIMEOUT_MS = 15 * 60 * 1000
+
 const MASTER_STORE_TABLES: ReadonlySet<string> = new Set<string>([
   TABLE.tags,
   TABLE.itemTags,
@@ -242,17 +251,59 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   // the synced packing_now state. myLocks marks claims made on this
   // device — the client may not know its own user id, so identity
   // comparison against packing_now_by is not reliable.
-  const LOCK_TIMEOUT_MS = 15 * 60 * 1000 // §7 staleness rule
+  // §7's staleness window. The 15 minutes are the *shipped default*, not
+  // the rule: the instance decides via JITPACK_LOCK_TIMEOUT and answers
+  // with it on GET /api/v1/config, so a household that packs slowly can
+  // widen it without a client build. Reactive because a row that stops
+  // being locked has to repaint.
+  const lockTimeoutMs = ref(DEFAULT_LOCK_TIMEOUT_MS)
   const itemLocks = ref<Map<string, Map<string, { by_user: string; at: number }>>>(new Map())
   const myLocks = new Set<string>()
 
+  /**
+   * fetchLockTimeout asks the instance for its G-3 window (Sync-API §7).
+   * Local Mode has no server and no second packer, and an instance that
+   * cannot answer keeps the shipped default — the window is advisory, so
+   * a missing answer must never leave every row unlocked or every row
+   * locked forever.
+   */
+  async function fetchLockTimeout(): Promise<void> {
+    if (local) return
+    try {
+      const resp = await client.get<{ lock_timeout_seconds?: number }>('/api/v1/config')
+      const seconds = resp.lock_timeout_seconds
+      if (typeof seconds === 'number' && seconds > 0) lockTimeoutMs.value = seconds * 1000
+    } catch {
+      // Default stands.
+    }
+  }
+
+  /** Whether a claim made at `at` is still inside the §7 window. */
+  function lockIsFresh(at: number): boolean {
+    return Date.now() - at < lockTimeoutMs.value
+  }
+
   function isLockedByOther(tripId: string, item: TripItem): boolean {
-    if (myLocks.has(item.id)) return false
+    return lockHolder(tripId, item) !== null
+  }
+
+  /**
+   * lockHolder answers *who* is packing this row, or null where it is not
+   * locked for me (G-3 wants the name, not only the padlock). The user id
+   * is what the client has; resolving it to a display name is the view's
+   * job, since only it knows the trip's participants.
+   */
+  function lockHolder(tripId: string, item: TripItem): string | null {
+    if (myLocks.has(item.id)) return null
     const ephemeral = itemLocks.value.get(tripId)?.get(item.id)
-    if (ephemeral && Date.now() - ephemeral.at < LOCK_TIMEOUT_MS) return true
-    if (item.state !== 'packing_now') return false
-    if (!item.packing_now_at) return true // no timestamp — assume fresh
-    return Date.now() - Date.parse(item.packing_now_at) < LOCK_TIMEOUT_MS
+    if (ephemeral && lockIsFresh(ephemeral.at)) return ephemeral.by_user
+    if (item.state !== 'packing_now') return null
+    // No timestamp — assume fresh: a claim we cannot date is likelier to
+    // be live than abandoned, and the cost of the wrong guess is a row
+    // that waits rather than one that is overwritten.
+    if (!item.packing_now_at) return item.packing_now_by ?? ''
+    if (!lockIsFresh(Date.parse(item.packing_now_at))) return null
+    return item.packing_now_by ?? ''
   }
 
   function setItemLock(tripId: string, itemId: string, byUser: string) {
@@ -1702,10 +1753,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const itemIDs: (string | null)[] = plan.items.map((item) => {
       if (item.existingItemId) return item.existingItemId
       const { mutation, id } = mutations.createMasterItem(item.name)
-      // The imported category becomes the item's primary tag (FR-24.2), so
-      // the inventory files it exactly where the spreadsheet said it goes.
-      const tagID = item.categoryName ? tagIDs.get(item.categoryName.toLowerCase()) : undefined
-      if (tagID) assignTagLocally(id, tagID, 0)
       onPullChanges([
         {
           seq: 0,
@@ -1716,6 +1763,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         },
       ])
       if (!local) outbox.enqueue('master', null, mutation)
+      // Only now: the imported category becomes the item's primary tag
+      // (FR-24.2), and a tag assignment names its item by foreign key. Sent
+      // first, every one of them is refused by a server that has not seen the
+      // item yet — invisibly, because this device already holds both.
+      const tagID = item.categoryName ? tagIDs.get(item.categoryName.toLowerCase()) : undefined
+      if (tagID) assignTagLocally(id, tagID, 0)
       return id
     })
 
@@ -1723,6 +1776,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     for (const trip of plan.trips) {
       const { mutation: tripMut, id: tripId } = mutations.createImportedTrip(
         trip.name,
+        trip.year,
         trip.endDate,
         trip.seriesId,
       )
@@ -1989,6 +2043,26 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     }
   }
 
+  /**
+   * File a restored master item under the tags the document named, in order
+   * (FR-24.1/24.2) — the list's order *is* `item_tags.position`, so the first
+   * name becomes the primary tag.
+   *
+   * A tag is linked by name and only created when this device has never heard
+   * of it, the same identity rule groups follow (ADR-017): `tags.name` is
+   * UNIQUE, so a second copy is not merely untidy, it is impossible.
+   */
+  function applyTags(itemId: string, names: string[]): void {
+    if (names.length === 0) return
+    const byName = new Map(masterStore.tagList.map((t) => [t.name.toLowerCase(), t.id]))
+    names.forEach((name, position) => {
+      const existing = byName.get(name.toLowerCase())
+      const tagId = existing ?? createTag(name)
+      if (!existing) byName.set(name.toLowerCase(), tagId)
+      assignTagLocally(itemId, tagId, position)
+    })
+  }
+
   function commitPortableImport(
     doc: PortableDocument,
     mergeDecisions: Map<string, string>,
@@ -2002,7 +2076,14 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const resolveItem = (item: PortableItem): string | null => {
       const merged = mergeDecisions.get(item.name)
       if (merged) return merged
-      if (doc.kind === 'trip') return null // unmatched trip rows stay ad-hoc
+      /*
+       * A trip row is only inventory if it says so (ADR-024). Before the file
+       * carried that, every unmatched row stayed ad-hoc, which lost the master
+       * item of anything no template also used — and with it the mark and the
+       * tags. Creating one for *every* row would be the opposite error: a row
+       * the user typed once on a trip is not something they filed away.
+       */
+      if (doc.kind === 'trip' && !item.from_inventory) return null
       const { mutation, id } = mutations.createMasterItem(item.name, { icon: item.icon })
       onPullChanges([
         {
@@ -2014,6 +2095,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         },
       ])
       if (!local) outbox.enqueue('master', null, mutation)
+      applyTags(id, item.tags)
       return id
     }
 
@@ -2082,6 +2164,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       portableYear(doc),
       doc.start_date,
       doc.end_date,
+      // FR-2.2/ADR-024: the status the file carried, or planning when it
+      // carried none — which every file written before ADR-024 does, and
+      // which is exactly what those files have always produced.
+      { status: doc.status ?? undefined },
     )
     onPullChanges([
       {
@@ -2627,6 +2713,27 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     if (local) return []
     const resp = await client.get<{ conflicts: ConflictEntry[] }>('/api/v1/conflicts/master', {})
     return resp.conflicts
+  }
+
+  /**
+   * revertConflict restores the losing value of one audited merge —
+   * NFR-4.2a's second promise, beside the audit. The server writes it as
+   * an ordinary mutation with a fresh HLC rather than rewriting the past
+   * (ADR-023), so the restored value arrives here the normal way: the
+   * drain below pulls it, and every other device pulls it too.
+   *
+   * `tripId` picks the partition, exactly as the two fetchers do. Local
+   * Mode has one writer, so it has no conflicts to revert (FR-19.6).
+   */
+  async function revertConflict(conflictId: string, tripId?: string): Promise<void> {
+    if (local) return
+    if (tripId !== undefined) {
+      await client.post(`/api/v1/trips/${tripId}/conflicts/${conflictId}/revert`)
+      await drainTrip(tripId)
+      return
+    }
+    await client.post(`/api/v1/conflicts/master/${conflictId}/revert`)
+    await drainMaster()
   }
 
   // --- Profile & data (M17) ---
@@ -3224,7 +3331,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     getPresence,
     fetchConflicts,
     fetchMasterConflicts,
+    revertConflict,
     isLockedByOther,
+    lockHolder,
+    fetchLockTimeout,
 
     // Drain
     drainTrip,

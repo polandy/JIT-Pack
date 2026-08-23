@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * G-2 — the status glyph in the app bar.
  *

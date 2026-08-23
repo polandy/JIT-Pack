@@ -37,9 +37,15 @@ matched to what already exists **by name**, so restoring onto a device that stil
 merges rather than duplicates. A document the file no longer holds intact is listed as
 *skipped* with the reason, and the rest still import.
 
-Restored trips arrive in **planning** status, and the app takes you straight to the Trips
-screen's **Planned** tab when the restore finishes — that is where they are. The *Active*
-tab, which the list normally opens on, stays empty until you start a trip.
+Restored trips come back **in the status they were saved in** — an archived trip is
+archived again, a running one is running — and the app takes you straight to the tab where
+they are, so a restore never finishes on an empty list. An item that a trip took from your
+inventory comes back as an inventory item, with its icon and the tags it was filed under; a
+tag the device already has is reused rather than duplicated. Something you typed straight
+onto a trip stays where it was, on the trip, and does not appear in your inventory.
+
+A backup taken with an older version of the app carries no status, and its trips arrive in
+**planning** as they always did.
 
 A trip that was built from groups keeps **following** them after a restore, and the
 restore list says so next to it. What you already told a group carries over too: a change
@@ -158,6 +164,40 @@ Stop the server, put the backup file in place at `JITPACK_DB_PATH` (removing any
 
 There is no restore endpoint and no scheduled-backup feature; scheduling is your host's
 job (a cron job or systemd timer around one of the commands above).
+
+## Importing a spreadsheet you already keep
+
+Most people arrive with years of packing history in one spreadsheet: rows are items,
+columns are trips, cells are amounts. The **spreadsheet import** — the upload icon on the
+Trips screen, and the button on the Items screen while your inventory is still empty —
+reads exactly that shape. Export your sheet as
+**CSV** (comma, semicolon and tab all work) and paste it in or pick the file.
+
+The wizard reads the sheet's own layout and shows you what it found, so you correct rather
+than describe:
+
+- **Two header rows are fine.** A sheet that writes the year above the trip's name gives
+  each column both — the name it is called by and the date it is filed under. A single
+  header row of years still works; the trips are then named by their year.
+- **Categories may be a column or a row.** If the category sits in its own column beside
+  the item and is only written where it changes, say so with the *Category column* picker —
+  it is carried down until the next one. If instead the category is a heading row spanning
+  the sheet, leave the picker on *None* and tick those rows under *Category rows*.
+- **A column the sheet never named is not imported unless you name it.** Every other column
+  is preselected.
+- **A thing listed twice is imported once.** If the same name appears under two
+  categories, you get one item — filed under the first — and where both rows give an
+  amount for the same trip, the larger one is kept.
+- **A sheet with no trips in it at all is fine.** If your file is just a list of things —
+  categories and item names, no amounts — import it as it is: you get the inventory and no
+  trip, and the app takes you to the Items screen where the result is.
+
+Each imported column becomes an **archived** trip in the year its header gives, with the
+amounts recorded as packed, and the app lands you on the Archived tab where they are.
+Items are matched against your inventory by name, with a merge prompt for near-misses, and
+the category becomes the item's tag. An item name ending in `?` is imported without the
+question mark and gets an open task on that trip, which is how those sheets usually mark
+"check this before leaving".
 
 ## Getting data out over the API
 

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * NFR-4.6 client half: browser push registration flow against a fake
  * pushManager, and the base64url→bytes conversion PushManager needs.

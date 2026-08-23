@@ -75,13 +75,28 @@ function detectDelimiter(text: string): string {
 
 export interface TripColumnGuess {
   index: number
-  header: string
+  /** The column's own label, from the header row that names the trips. */
+  name: string
+  /** A year or ISO date read from the header, '' when none is there. */
+  date: string
 }
 
 export interface GridAnalysis {
+  /**
+   * Leading rows that describe the columns rather than an item. A decade-old
+   * family spreadsheet routinely spends two on it — the year above the trip's
+   * name — and reading only the first names every trip after its year.
+   */
+  headerRows: number
   /** Column holding the item names (most non-quantity text). */
   itemColumn: number
-  /** Candidate trip columns with their header-row label. */
+  /**
+   * Column holding the item's category, forward-filled down the rows, or
+   * null when the sheet groups by category *rows* instead. Both layouts are
+   * in the wild and neither is a variant of the other.
+   */
+  categoryColumn: number | null
+  /** Candidate trip columns with their header labels. */
   tripColumns: TripColumnGuess[]
   /** Suggested category grouping rows (no quantities anywhere). */
   categoryRows: number[]
@@ -89,38 +104,146 @@ export interface GridAnalysis {
 
 export function analyzeGrid(grid: string[][]): GridAnalysis {
   const width = Math.max(0, ...grid.map((r) => r.length))
+  // The two answers depend on each other: which rows are header depends on
+  // where the item names are, and counting those names has to skip the
+  // header. A provisional guess under the old one-row assumption breaks it.
+  const headerRows = countHeaderRows(grid, pickTextColumn(grid, width, 1))
+  const itemColumn = pickTextColumn(grid, width, headerRows)
 
-  let itemColumn = 0
+  const quantityColumns: number[] = []
+  for (let col = 0; col < width; col++) {
+    if (col === itemColumn) continue
+    const hasQuantity = grid.some(
+      (r, rowIdx) => rowIdx >= headerRows && parseQuantity(r[col] ?? '') !== null,
+    )
+    if (hasQuantity) quantityColumns.push(col)
+  }
+
+  const { nameRow, dateRow } = pickHeaderRows(grid, headerRows, quantityColumns)
+  const tripColumns: TripColumnGuess[] = quantityColumns.map((col) => {
+    const date = dateRow === null ? '' : (grid[dateRow]?.[col] ?? '')
+    // A sheet whose only header is the year names its trips by it, which is
+    // what this wizard has always done — and better than "Trip 3".
+    const name = nameRow === null ? date : (grid[nameRow]?.[col] ?? '')
+    return { index: col, name, date }
+  })
+
+  const categoryColumn = findCategoryColumn(grid, width, headerRows, itemColumn, quantityColumns)
+
+  /*
+   * "A row with no quantity in any trip column" only means a heading while
+   * there is a trip column for it to be empty in. With a category column it
+   * means an item nobody ever packed; with no trip column at all it is
+   * vacuously true of every row, and an inventory-only sheet would import as
+   * nothing but categories. In both cases the ticks are the user's to make.
+   */
+  const categoryRows: number[] = []
+  if (categoryColumn === null && tripColumns.length > 0) {
+    for (let rowIdx = headerRows; rowIdx < grid.length; rowIdx++) {
+      const name = grid[rowIdx]?.[itemColumn] ?? ''
+      if (name === '') continue
+      const empty = tripColumns.every((t) => (grid[rowIdx]?.[t.index] ?? '') === '')
+      if (empty) categoryRows.push(rowIdx)
+    }
+  }
+
+  return { headerRows, itemColumn, categoryColumn, tripColumns, categoryRows }
+}
+
+/** pickTextColumn returns the column with the most non-quantity text below `from`. */
+function pickTextColumn(grid: string[][], width: number, from: number): number {
+  let column = 0
   let bestText = -1
   for (let col = 0; col < width; col++) {
     let text = 0
-    for (let rowIdx = 1; rowIdx < grid.length; rowIdx++) {
+    for (let rowIdx = from; rowIdx < grid.length; rowIdx++) {
       const value = grid[rowIdx]?.[col] ?? ''
       if (value !== '' && parseQuantity(value) === null) text++
     }
     if (text > bestText) {
       bestText = text
-      itemColumn = col
+      column = col
     }
   }
+  return column
+}
 
-  const tripColumns: TripColumnGuess[] = []
+/**
+ * The header block is the leading rows that name no item. Counting rows
+ * without a *quantity* would not do: a year reads as one, so a header row of
+ * years is indistinguishable from a row of amounts by its cells alone.
+ * There is always at least one header row — every sheet labels its columns.
+ */
+function countHeaderRows(grid: string[][], itemColumn: number): number {
+  let rows = 0
+  while (rows < grid.length && (grid[rows]?.[itemColumn] ?? '').trim() === '') rows++
+  return Math.min(Math.max(1, rows), Math.max(0, grid.length - 1))
+}
+
+/**
+ * Which header row names the trips and which one dates them, decided over
+ * the whole block rather than per column: a stray cell in an otherwise empty
+ * header row would otherwise become one trip's name.
+ */
+function pickHeaderRows(
+  grid: string[][],
+  headerRows: number,
+  quantityColumns: number[],
+): { nameRow: number | null; dateRow: number | null } {
+  let dateRow: number | null = null
+  let dateHits = 0
+  let nameRow: number | null = null
+  let nameHits = 0
+
+  for (let rowIdx = 0; rowIdx < headerRows; rowIdx++) {
+    let dates = 0
+    let names = 0
+    for (const col of quantityColumns) {
+      const value = (grid[rowIdx]?.[col] ?? '').trim()
+      if (value === '') continue
+      if (normalizeTripDate(value) !== null) dates++
+      else names++
+    }
+    if (dates > dateHits) {
+      dateHits = dates
+      dateRow = rowIdx
+    }
+    if (names > nameHits) {
+      nameHits = names
+      nameRow = rowIdx
+    }
+  }
+  return { nameRow, dateRow }
+}
+
+/**
+ * A category column is the one column beside the item names that carries
+ * sparse text and no quantities — the layout where "Schuhe" sits left of
+ * "Wanderschuhe" instead of above it.
+ */
+function findCategoryColumn(
+  grid: string[][],
+  width: number,
+  headerRows: number,
+  itemColumn: number,
+  quantityColumns: number[],
+): number | null {
+  const quantity = new Set(quantityColumns)
+  let best: number | null = null
+  let bestText = 0
   for (let col = 0; col < width; col++) {
-    if (col === itemColumn) continue
-    const hasQuantity = grid.some((r, rowIdx) => rowIdx > 0 && parseQuantity(r[col] ?? '') !== null)
-    if (!hasQuantity) continue
-    tripColumns.push({ index: col, header: grid[0]?.[col] ?? '' })
+    if (col === itemColumn || quantity.has(col)) continue
+    let text = 0
+    for (let rowIdx = headerRows; rowIdx < grid.length; rowIdx++) {
+      const value = (grid[rowIdx]?.[col] ?? '').trim()
+      if (value !== '' && parseQuantity(value) === null) text++
+    }
+    if (text > bestText) {
+      bestText = text
+      best = col
+    }
   }
-
-  const categoryRows: number[] = []
-  for (let rowIdx = 1; rowIdx < grid.length; rowIdx++) {
-    const name = grid[rowIdx]?.[itemColumn] ?? ''
-    if (name === '') continue
-    const empty = tripColumns.every((t) => (grid[rowIdx]?.[t.index] ?? '') === '')
-    if (empty) categoryRows.push(rowIdx)
-  }
-
-  return { itemColumn, tripColumns, categoryRows }
+  return best
 }
 
 /** parseQuantity reads a cell as a quantity: integers, or x/✓ marks as 1. */
@@ -198,7 +321,11 @@ function levenshtein(a: string, b: string): number {
 // --- Import plan (FR-16.2) ---
 
 export interface ImportMapping {
+  /** Leading rows that describe the columns; never items. */
+  headerRows: number
   itemColumn: number
+  /** Forward-filled category column, or null when categories are rows. */
+  categoryColumn: number | null
   categoryRows: number[]
   /** Included trip columns only (FR-16.1: user-selected). */
   trips: { column: number; name: string; endDate: string; seriesId: string | null }[]
@@ -215,6 +342,12 @@ export interface ImportPlanItem {
 
 export interface ImportPlanTrip {
   name: string
+  /**
+   * FR-2.1b: the one required temporal fact, read off the end date the
+   * mapping validated. `trips.year` is NOT NULL, so a trip without it is
+   * refused by the server rather than imported.
+   */
+  year: number
   endDate: string
   seriesId: string | null
   items: { itemIndex: number; quantity: number }[]
@@ -241,8 +374,22 @@ export function buildImportPlan(
   const items: ImportPlanItem[] = []
   const rowToItemIndex = new Map<number, number>()
 
+  // FR-16.3: `items` is UNIQUE (name), so a name the sheet lists twice is one
+  // item — the dedup step catches it against the inventory but never against
+  // the file itself, and the second insert is refused at the wire.
+  const itemIndexByName = new Map<string, number>()
+
   let currentCategory: string | null = null
-  for (let rowIdx = 1; rowIdx < grid.length; rowIdx++) {
+  for (let rowIdx = mapping.headerRows; rowIdx < grid.length; rowIdx++) {
+    if (mapping.categoryColumn !== null) {
+      // A category column names the category on the row where it changes and
+      // stays silent afterwards, so it is carried forward rather than read.
+      const cell = (grid[rowIdx]?.[mapping.categoryColumn] ?? '').trim()
+      if (cell !== '') {
+        currentCategory = cell
+        if (!newCategories.includes(cell)) newCategories.push(cell)
+      }
+    }
     const raw = (grid[rowIdx]?.[mapping.itemColumn] ?? '').trim()
     if (raw === '') continue
     if (categoryRows.has(rowIdx)) {
@@ -252,6 +399,17 @@ export function buildImportPlan(
     }
     const hasOpenTask = raw.endsWith('?')
     const name = hasOpenTask ? raw.replace(/\?+$/, '').trim() : raw
+
+    const seen = itemIndexByName.get(normalize(name))
+    if (seen !== undefined) {
+      // The first row keeps the spelling and the category; a question mark on
+      // either occurrence is a question about the thing, not about the row.
+      rowToItemIndex.set(rowIdx, seen)
+      if (hasOpenTask) items[seen]!.hasOpenTask = true
+      continue
+    }
+
+    itemIndexByName.set(normalize(name), items.length)
     rowToItemIndex.set(rowIdx, items.length)
     items.push({
       name,
@@ -262,13 +420,33 @@ export function buildImportPlan(
   }
 
   const trips: ImportPlanTrip[] = mapping.trips.map((trip) => {
-    const tripItems: { itemIndex: number; quantity: number }[] = []
+    // Keyed by item rather than by row, because two rows may now be one item.
+    // Where both carry an amount for the same trip they describe one packing,
+    // so the larger is the honest answer — adding them would invent luggage.
+    const byItem = new Map<number, number>()
     for (const [rowIdx, itemIndex] of rowToItemIndex) {
       const quantity = parseQuantity(grid[rowIdx]?.[trip.column] ?? '')
-      if (quantity !== null) tripItems.push({ itemIndex, quantity })
+      if (quantity === null) continue
+      byItem.set(itemIndex, Math.max(byItem.get(itemIndex) ?? 0, quantity))
     }
-    return { name: trip.name, endDate: trip.endDate, seriesId: trip.seriesId, items: tripItems }
+    const tripItems = [...byItem].map(([itemIndex, quantity]) => ({ itemIndex, quantity }))
+    return {
+      name: trip.name,
+      year: tripYear(trip.endDate),
+      endDate: trip.endDate,
+      seriesId: trip.seriesId,
+      items: tripItems,
+    }
   })
 
   return { newCategories, items, trips }
+}
+
+/**
+ * tripYear reads FR-2.1b's required year off the end date the mapping has
+ * already validated through normalizeTripDate, which is why it can be a
+ * plain slice: a bare year became `YYYY-12-31` there.
+ */
+function tripYear(endDate: string): number {
+  return Number(endDate.slice(0, 4))
 }

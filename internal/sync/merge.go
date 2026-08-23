@@ -1,5 +1,7 @@
 package sync
 
+import "sort"
+
 // Op is the mutation kind carried in a push envelope (Sync-API Spec §5).
 type Op string
 
@@ -78,6 +80,23 @@ type MergeResult struct {
 // (FR-5.4) and must win or lose together, so they share one clock — the
 // newest of the two.
 var stateGroup = map[string]bool{FieldState: true, "packed_count": true}
+
+// GroupedWith returns every field that merges as one unit with field —
+// the field itself included, and just the field where nothing is coupled
+// to it. A caller that re-issues one logged field (NFR-4.2a's revert) has
+// to carry the whole group, or it writes half of a fact: a restored
+// "packed" beside the packed_count that was never restored with it.
+func GroupedWith(field string) []string {
+	if !stateGroup[field] {
+		return []string{field}
+	}
+	group := make([]string, 0, len(stateGroup))
+	for f := range stateGroup {
+		group = append(group, f)
+	}
+	sort.Strings(group)
+	return group
+}
 
 // additiveFields always apply when set to a truthy value (NFR-4.2a rule 1):
 // trip feedback must never be lost to a concurrent write (FR-9.1).
