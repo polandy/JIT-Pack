@@ -144,6 +144,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A hidden element is not a small element (2026-08-23)](#a-hidden-element-is-not-a-small-element-2026-08-23) — the toast-on-the-tab-bar fix was three lines; what it cost was two wrong measurements, both from a box of height zero: a `display: none` anchor makes Ionic subtract a whole viewport instead of clearing the bar, and the geometric test that should have caught the defect first failed against a hidden bar at the origin, where *every* overlap assertion resolves in both directions.
 - [The importer nobody called, and the exporter behind it (2026-08-23)](#the-importer-nobody-called-and-the-exporter-behind-it-2026-08-23) — ADR-025. The server had its own reader *and* writer for the portable format, reachable from no product surface, and both had drifted: the import wrote no change-log entry, so a `curl` import existed in the database and on no screen. Found by rendering, not by testing. The fix was deletion, and the precondition for it was getting the rules out of a 3600-line composable — where ADR-008 had always said they were not.
 - [The manual said it, the shipped config did not (2026-08-23)](#the-manual-said-it-the-shipped-config-did-not-2026-08-23) — the sync WebSocket never connected on the `:3000` stack: nginx forwarded `Host $host`, which drops the port, and the handshake's same-origin check compares the browser's port-carrying `Origin` against it. The manual had already written the rule and then broke it in its own copy-paste block, and its verification `curl` sent no `Origin` at all — a check that could not fail. Nothing in Go or Playwright loads an nginx config, so the guard is a gate.
+- [The wire was described twice, and the second description was fiction (2026-08-23)](#the-wire-was-described-twice-and-the-second-description-was-fiction-2026-08-23) — NFR-4.14/ADR-026. The envelope was already uniform; what was not a contract was two independent descriptions of one wire, and the mechanism found two more drifted types on its first run. Three things the code cannot show: why both suites were blind (a fake agrees with its author), why the gate generates beside the tree rather than over it, and the trap that a generated file under `client/src` must be prettier-clean or `make fmt` fails the gate on a file nobody edited.
 
 ## Current state
 
@@ -5711,3 +5712,71 @@ not its own host, that is when the variable earns its place.
 Measured on the running stack rather than reasoned about: `403` with the message
 above before, `101 Switching Protocols` after reloading nginx with the fixed
 config, REST unaffected in both directions.
+## The wire was described twice, and the second description was fiction (2026-08-23)
+
+NFR-4.14, ADR-026. The owner asked for clean backend APIs that the frontend
+actually consumes. The first move was to measure rather than assume, and the
+measurement split cleanly in two: the error **envelope** was already uniform —
+`writeError` at 90 production call sites, **zero** handlers writing a bare error
+status, and `APIRequestError` parsing exactly that shape — while everything
+around it was two independent descriptions of one wire.
+
+**What the second description had already cost, before this work started:** the
+three defects of one week, each found by hand and each invisible to both suites
+(the client read a `status` key no server sends; it took `pull_hint.next_cursor`
+as its pull cursor; one partition answered `500` where the other answered
+`rejected`). What is worth recording is *why* the tests could not see them. A
+fake written from the same wrong mental model as the code agrees with it
+perfectly. `pushContract.spec.ts` and its shared fixture were added after the
+first defect precisely to break that symmetry — and they only cover the push
+response, so the other two walked past them.
+
+**Two more of the same shape surfaced the moment the mechanism ran**, which is
+the strongest evidence for it: the client's `ConflictEntry` had never grown
+`mutation_id` and `actor_user_id`, added to the server's copy by ADR-022 — so
+the fields ADR-022 exists to expose were on the wire and read by nothing. And
+`PresenceUser` was a second hand-written spelling of `PresenceMember`. Neither
+had a test that could fail; both were three-line fixes once the compiler could
+see them.
+
+**The generated types are more truthful than the hand-written ones were, and
+that hurt in a useful way.** A nil Go map or pointer marshals to `null`, so
+`row` and the WebSocket `payload` are `| null`, and `vue-tsc` immediately
+rejected eight call sites that indexed a payload without checking plus six that
+passed a possibly-null row into a parameter typed `| undefined`. Every one of
+them was a real (if unlikely) crash the old `Record<string, any>` had hidden.
+The hand-written type had not been wrong by accident — it had been *convenient*,
+which is the same thing arriving later.
+
+**Two decisions inside the mechanism worth keeping.**
+
+*The generator parses the source; it does not reflect over the types.* Doc
+comments and the constants of an enum are part of the contract, and neither
+survives into a runtime type. Parsing gets both, keeps `internal/wiregen` a leaf
+that imports nothing of the application, and makes it a pure function of
+`(filename, src)` — so its behaviour is table-tested with no filesystem at all.
+
+*The gate generates beside the tree, never over it.* The first version ran the
+real generator and asked `git diff --quiet`, which is wrong in a way that looks
+right: it fails on any uncommitted change to the target, including the correct
+one you are about to commit, and it rewrites the very file it is judging. It now
+writes to a temp file and diffs. **Mutation-proved**: adding a field to
+`wire.go` turns it red and names the field; removing it again turns it green.
+
+**The one trap this leaves behind.** The generated file lives under
+`client/src`, where prettier and eslint run over it. If the generator's output
+is not *already* formatted, `make fmt` rewrites it and the gate fails on a file
+nobody edited — a self-inflicted flake that would be maddening to diagnose. The
+generator therefore wraps unions at the client's print width and emits exactly
+one trailing newline, and two tests pin both. `client/.prettierrc.json` is now a
+file the Go side depends on; if its print width changes, `wiregen` follows.
+
+**What was deliberately not built,** so the next reader does not mistake it for
+an oversight: the NFR's third point, the route shapes. `export.csv`/`export.yaml`
+put the format in the path, `/templates/{id}/export` does not, `/export/full` is
+a third form, and conflicts are `/trips/{id}/conflicts` in one partition and
+`/conflicts/master` in the other. Renaming them touches client, Vitest, e2e and
+`docs/` while fixing no known defect, so it is its own change (owner,
+2026-08-23). The gate also covers only what `wire.go` declares — the admin,
+notification, config and auth responses are still typed by hand on both sides,
+and growing the file is how they join.

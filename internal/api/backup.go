@@ -17,14 +17,14 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(userIDKey).(string)
 	name, err := s.store.UserDisplayName(r.Context(), userID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "display name lookup failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "display name lookup failed")
 		return
 	}
 	// is_instance_admin tells the client whether to render the M20
 	// entry point (FR-23.2); the admin endpoints enforce it regardless.
 	admin, err := s.store.IsInstanceAdmin(r.Context(), userID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "admin lookup failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "admin lookup failed")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -41,7 +41,7 @@ func (s *Server) handleExportFull(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(userIDKey).(string)
 	export, err := s.store.ExportFull(r.Context(), userID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "export failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "export failed")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -56,7 +56,7 @@ func (s *Server) handleExportTripCSV(w http.ResponseWriter, r *http.Request) {
 	tripID := r.PathValue("tripID")
 	items, err := s.store.TripCSVRows(r.Context(), tripID)
 	if err != nil {
-		writeError(w, http.StatusNotFound, "trip_not_found", "trip not found")
+		writeError(w, http.StatusNotFound, ErrTripNotFound, "trip not found")
 		return
 	}
 

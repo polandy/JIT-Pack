@@ -49,12 +49,12 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 		return MutationResult{}, err
 	}
 	if !allowed {
-		res.Outcome = OutcomeRejected
+		res.Outcome = sync.OutcomeRejected
 		return res, finalize(ctx, tx, res)
 	}
 
 	merged := sync.Merge(row, m)
-	res.Outcome = string(merged.Outcome)
+	res.Outcome = merged.Outcome
 	res.Conflicts = merged.Conflicts
 
 	// FK cascades delete child rows silently; collect their ids up front
@@ -70,7 +70,7 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 			// e.g. deleting an item still referenced by a template, or two
 			// admins racing to add the same member (UNIQUE): the statement
 			// failed, the transaction survives — reject cleanly.
-			res.Outcome = OutcomeRejected
+			res.Outcome = sync.OutcomeRejected
 			res.Conflicts = nil
 			return res, finalize(ctx, tx, res)
 		}

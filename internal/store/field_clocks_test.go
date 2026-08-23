@@ -38,7 +38,7 @@ func TestApplyMutation_FieldClocks_UnrelatedNewerEditDoesNotDisplaceOfflinePack(
 		t.Fatal(err)
 	}
 
-	if res.Outcome != string(sync.OutcomeApplied) {
+	if res.Outcome != sync.OutcomeApplied {
 		t.Fatalf("outcome = %q, want applied; conflicts %v", res.Outcome, res.Conflicts)
 	}
 	var state, containerID string
@@ -73,7 +73,7 @@ func TestApplyMutation_StalePackLosesToLaterSkip_LoggedWithMutationAndActor(t *t
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.Outcome != string(sync.OutcomeMerged) {
+	if res.Outcome != sync.OutcomeMerged {
 		t.Fatalf("outcome = %q, want merged", res.Outcome)
 	}
 
@@ -106,7 +106,7 @@ func TestApplyMutation_RowWithoutFieldClocks_FallsBackToRowHLC(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.Outcome != string(sync.OutcomeMerged) {
+	if res.Outcome != sync.OutcomeMerged {
 		t.Errorf("outcome = %q, want merged", res.Outcome)
 	}
 }

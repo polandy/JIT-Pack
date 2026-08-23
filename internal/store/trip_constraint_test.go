@@ -75,7 +75,7 @@ func TestApplyMutation_ConstraintViolation_RejectedNotErrored(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ApplyMutation returned an error, want a rejected result: %v", err)
 			}
-			if res.Outcome != OutcomeRejected {
+			if res.Outcome != sync.OutcomeRejected {
 				t.Errorf("outcome = %q, want rejected", res.Outcome)
 			}
 
@@ -85,7 +85,7 @@ func TestApplyMutation_ConstraintViolation_RejectedNotErrored(t *testing.T) {
 			if err != nil {
 				t.Fatalf("replay: %v", err)
 			}
-			if replay.Outcome != OutcomeDuplicate {
+			if replay.Outcome != sync.OutcomeDuplicate {
 				t.Errorf("replayed outcome = %q, want duplicate", replay.Outcome)
 			}
 		})
@@ -103,7 +103,7 @@ func TestApplyMutation_AfterAConstraintRefusal_TheNextMutationStillApplies(t *te
 	}
 
 	bad := upsert("item-1", "mut-1", map[string]any{"container_id": "gone-container"}, "0000000002000-0000-bbbbbbbb")
-	if res, err := s.ApplyMutation(ctx, testTrip, testUser, bad); err != nil || res.Outcome != OutcomeRejected {
+	if res, err := s.ApplyMutation(ctx, testTrip, testUser, bad); err != nil || res.Outcome != sync.OutcomeRejected {
 		t.Fatalf("bad mutation: outcome %q err %v, want rejected", res.Outcome, err)
 	}
 

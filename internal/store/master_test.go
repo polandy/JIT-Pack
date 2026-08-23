@@ -337,7 +337,7 @@ func TestApplyMasterMutation_TemplateIncludesTwoLevelsOnly(t *testing.T) {
 		name          string
 		parent, child string
 		mutationID    string
-		want          string
+		want          sync.Outcome
 	}{
 		{"vacation template includes a group", "vorlage-a", "gruppe-a", "in-1", "applied"},
 		{"group includes a group", "gruppe-a", "gruppe-b", "in-2", "rejected"},
@@ -542,7 +542,7 @@ func TestApplyMasterMutation_IncludeEnforcesTwoLevelRule(t *testing.T) {
 	tests := []struct {
 		name    string
 		fields  map[string]any
-		outcome string
+		outcome sync.Outcome
 	}{
 		{"template includes group", map[string]any{"template_id": "tpl-fer", "included_template_id": "tpl-grp"}, "applied"},
 		{"missing parent field", map[string]any{"included_template_id": "tpl-grp"}, "rejected"},

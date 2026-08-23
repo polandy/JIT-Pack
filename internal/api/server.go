@@ -165,19 +165,19 @@ func (s *Server) authed(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		raw, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 		if !ok || raw == "" {
-			writeError(w, http.StatusUnauthorized, "unauthorized", "missing bearer token")
+			writeError(w, http.StatusUnauthorized, ErrUnauthorized, "missing bearer token")
 			return
 		}
 		claims := jwt.MapClaims{}
 		_, err := jwt.ParseWithClaims(raw, claims, s.keyFunc,
 			jwt.WithValidMethods(s.validMethods))
 		if err != nil {
-			writeError(w, http.StatusUnauthorized, "unauthorized", "invalid token")
+			writeError(w, http.StatusUnauthorized, ErrUnauthorized, "invalid token")
 			return
 		}
 		sub, err := claims.GetSubject()
 		if err != nil || sub == "" {
-			writeError(w, http.StatusUnauthorized, "unauthorized", "token has no subject")
+			writeError(w, http.StatusUnauthorized, ErrUnauthorized, "token has no subject")
 			return
 		}
 		// Session tokens carry users.id directly (ADR-007): identity was
@@ -186,10 +186,10 @@ func (s *Server) authed(next http.HandlerFunc) http.HandlerFunc {
 		// FR-23.3: a deactivated account loses all access — distinct
 		// error code so the client can tell it from a stale token.
 		if deactivated, err := s.store.UserDeactivated(r.Context(), userID); err != nil {
-			writeError(w, http.StatusInternalServerError, "internal", "account lookup failed")
+			writeError(w, http.StatusInternalServerError, ErrInternal, "account lookup failed")
 			return
 		} else if deactivated {
-			writeError(w, http.StatusForbidden, "account_deactivated", "account is deactivated")
+			writeError(w, http.StatusForbidden, ErrAccountDeactivated, "account is deactivated")
 			return
 		}
 		next(w, r.WithContext(context.WithValue(r.Context(), userIDKey, userID)))
@@ -203,11 +203,11 @@ func (s *Server) adminOnly(next http.HandlerFunc) http.HandlerFunc {
 		userID := r.Context().Value(userIDKey).(string)
 		admin, err := s.store.IsInstanceAdmin(r.Context(), userID)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "internal", "admin lookup failed")
+			writeError(w, http.StatusInternalServerError, ErrInternal, "admin lookup failed")
 			return
 		}
 		if !admin {
-			writeError(w, http.StatusForbidden, "forbidden", "instance admin role required")
+			writeError(w, http.StatusForbidden, ErrForbidden, "instance admin role required")
 			return
 		}
 		next(w, r)
@@ -225,11 +225,11 @@ func (s *Server) member(next http.HandlerFunc) http.HandlerFunc {
 		userID, _ := r.Context().Value(userIDKey).(string)
 		ok, err := s.store.IsTripMember(r.Context(), tripID, userID)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "internal", "membership check failed")
+			writeError(w, http.StatusInternalServerError, ErrInternal, "membership check failed")
 			return
 		}
 		if !ok {
-			writeError(w, http.StatusForbidden, "forbidden", "not a member of this trip")
+			writeError(w, http.StatusForbidden, ErrForbidden, "not a member of this trip")
 			return
 		}
 		next(w, r)
@@ -249,25 +249,11 @@ func (s *Server) self(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, _ := r.Context().Value(userIDKey).(string)
 		if userID == "" || r.PathValue("userID") != userID {
-			writeError(w, http.StatusForbidden, "forbidden", "cannot modify another user's profile")
+			writeError(w, http.StatusForbidden, ErrForbidden, "cannot modify another user's profile")
 			return
 		}
 		next(w, r)
 	}
-}
-
-type wireChange struct {
-	Seq     int64          `json:"seq"`
-	Table   string         `json:"table"`
-	ID      string         `json:"id"`
-	Deleted bool           `json:"deleted"`
-	Row     map[string]any `json:"row"`
-}
-
-type pullResponse struct {
-	Changes    []wireChange `json:"changes"`
-	NextCursor int64        `json:"next_cursor"`
-	HasMore    bool         `json:"has_more"`
 }
 
 func (s *Server) handlePull(w http.ResponseWriter, r *http.Request) {
@@ -278,7 +264,7 @@ func (s *Server) handlePull(w http.ResponseWriter, r *http.Request) {
 
 	page, err := s.store.Pull(r.Context(), r.PathValue("tripID"), cursor, int(limit))
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "pull failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "pull failed")
 		return
 	}
 	writePullPage(w, page)
@@ -287,59 +273,25 @@ func (s *Server) handlePull(w http.ResponseWriter, r *http.Request) {
 func parsePullQuery(w http.ResponseWriter, r *http.Request) (cursor, limit int64, ok bool) {
 	cursor, err := queryInt(r, "cursor", 0)
 	if err != nil {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "cursor must be an integer")
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "cursor must be an integer")
 		return 0, 0, false
 	}
 	limit, err = queryInt(r, "limit", defaultPullLimit)
 	if err != nil || limit < 1 || limit > maxPullLimit {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "limit must be 1..1000")
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "limit must be 1..1000")
 		return 0, 0, false
 	}
 	return cursor, limit, true
 }
 
 func writePullPage(w http.ResponseWriter, page store.PullPage) {
-	out := pullResponse{Changes: []wireChange{}, NextCursor: page.NextCursor, HasMore: page.HasMore}
+	out := PullResponse{Changes: []PullChange{}, NextCursor: page.NextCursor, HasMore: page.HasMore}
 	for _, c := range page.Changes {
-		out.Changes = append(out.Changes, wireChange{
+		out.Changes = append(out.Changes, PullChange{
 			Seq: c.Seq, Table: c.Table, ID: c.ID, Deleted: c.Deleted, Row: c.Row,
 		})
 	}
 	writeJSON(w, out)
-}
-
-type wireMutation struct {
-	MutationID string         `json:"mutation_id"`
-	Op         string         `json:"op"`
-	Table      string         `json:"table"`
-	ID         string         `json:"id"`
-	Fields     map[string]any `json:"fields"`
-	HLC        string         `json:"hlc"`
-}
-
-type pushRequest struct {
-	ClientHLC string         `json:"client_hlc"`
-	Mutations []wireMutation `json:"mutations"`
-}
-
-type wireConflict struct {
-	Field        string `json:"field"`
-	LosingValue  any    `json:"losing_value"`
-	WinningValue any    `json:"winning_value"`
-}
-
-type pushResult struct {
-	MutationID string         `json:"mutation_id"`
-	Outcome    string         `json:"outcome"`
-	Conflicts  []wireConflict `json:"conflicts,omitempty"`
-	Error      string         `json:"error,omitempty"`
-}
-
-type pushResponse struct {
-	Results  []pushResult `json:"results"`
-	PullHint struct {
-		NextCursor int64 `json:"next_cursor"`
-	} `json:"pull_hint"`
 }
 
 func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
@@ -437,7 +389,7 @@ func setMutationField(m *syncpkg.Mutation, field string, value any) {
 // notifyLockEvents emits item.locked/item.unlocked for state changes
 // that touched packing_now. Over-notifying on merges is fine — the
 // events are ephemeral hints, clients converge via pull (§7).
-func (s *Server) notifyLockEvents(tripID, userID string, muts []syncpkg.Mutation, results []pushResult) {
+func (s *Server) notifyLockEvents(tripID, userID string, muts []syncpkg.Mutation, results []MutationResult) {
 	for i, m := range muts {
 		if i >= len(results) || m.Table != store.TableTripItems {
 			continue
@@ -461,19 +413,19 @@ func (s *Server) notifyLockEvents(tripID, userID string, muts []syncpkg.Mutation
 // applyPushBatch decodes the push envelope and applies each mutation via
 // apply, calling prepare (if set) first. It reports ok=false after
 // writing an error response itself.
-func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpkg.Mutation), apply func(syncpkg.Mutation) (store.MutationResult, error)) (pushResponse, []syncpkg.Mutation, bool) {
-	var req pushRequest
+func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpkg.Mutation), apply func(syncpkg.Mutation) (store.MutationResult, error)) (PushResponse, []syncpkg.Mutation, bool) {
+	var req PushRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "malformed push envelope")
-		return pushResponse{}, nil, false
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "malformed push envelope")
+		return PushResponse{}, nil, false
 	}
 	if len(req.Mutations) > maxPushBatch {
-		writeError(w, http.StatusUnprocessableEntity, "validation",
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation,
 			fmt.Sprintf("batch exceeds %d mutations", maxPushBatch))
-		return pushResponse{}, nil, false
+		return PushResponse{}, nil, false
 	}
 
-	var out pushResponse
+	var out PushResponse
 	muts := make([]syncpkg.Mutation, 0, len(req.Mutations))
 	for _, m := range req.Mutations {
 		mut := syncpkg.Mutation{
@@ -486,7 +438,7 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpk
 		// FR-28.9: refused by length before the store sees it, so the client
 		// is told which field was wrong rather than meeting a CHECK.
 		if err := capMark(&mut); err != nil {
-			out.Results = append(out.Results, pushResult{
+			out.Results = append(out.Results, MutationResult{
 				MutationID: m.MutationID, Outcome: "rejected", Error: err.Error(),
 			})
 			continue
@@ -495,16 +447,16 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpk
 		res, err := apply(mut)
 		switch {
 		case errors.Is(err, store.ErrUnknownTable), errors.Is(err, store.ErrUnknownColumn):
-			out.Results = append(out.Results, pushResult{
-				MutationID: m.MutationID, Outcome: store.OutcomeRejected, Error: err.Error(),
+			out.Results = append(out.Results, MutationResult{
+				MutationID: m.MutationID, Outcome: OutcomeRejected, Error: err.Error(),
 			})
 			continue
 		case err != nil:
-			writeError(w, http.StatusInternalServerError, "internal", "push failed")
-			return pushResponse{}, nil, false
+			writeError(w, http.StatusInternalServerError, ErrInternal, "push failed")
+			return PushResponse{}, nil, false
 		}
-		out.Results = append(out.Results, pushResult{
-			MutationID: res.MutationID, Outcome: res.Outcome, Conflicts: toWireConflicts(res.Conflicts),
+		out.Results = append(out.Results, MutationResult{
+			MutationID: res.MutationID, Outcome: MutationOutcome(res.Outcome), Conflicts: toWireConflicts(res.Conflicts),
 		})
 		if res.Seq > out.PullHint.NextCursor {
 			out.PullHint.NextCursor = res.Seq
@@ -513,13 +465,13 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpk
 	return out, muts, true
 }
 
-func toWireConflicts(conflicts []syncpkg.Conflict) []wireConflict {
+func toWireConflicts(conflicts []syncpkg.Conflict) []MutationConflict {
 	if len(conflicts) == 0 {
 		return nil
 	}
-	out := make([]wireConflict, len(conflicts))
+	out := make([]MutationConflict, len(conflicts))
 	for i, c := range conflicts {
-		out[i] = wireConflict{Field: c.Field, LosingValue: c.LosingValue, WinningValue: c.WinningValue}
+		out[i] = MutationConflict{Field: c.Field, LosingValue: c.LosingValue, WinningValue: c.WinningValue}
 	}
 	return out
 }
@@ -539,10 +491,11 @@ func writeJSON(w http.ResponseWriter, v any) {
 	}
 }
 
-func writeError(w http.ResponseWriter, status int, code, message string) {
+// writeError writes the one error shape the whole surface uses (NFR-4.14).
+// The code is an ErrorCode rather than a string so a value the client does not
+// know cannot be invented at a call site.
+func writeError(w http.ResponseWriter, status int, code ErrorCode, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(map[string]any{
-		"error": map[string]string{"code": code, "message": message},
-	})
+	_ = json.NewEncoder(w).Encode(APIError{Error: APIErrorBody{Code: code, Message: message}})
 }

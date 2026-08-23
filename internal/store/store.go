@@ -30,14 +30,6 @@ var (
 	ErrUnknownColumn = errors.New("column not syncable")
 )
 
-// The two outcomes the store reports beside sync.Merge's own applied and
-// merged (Sync-API §5): a refusal the client parks instead of retrying, and
-// the replay of a mutation_id already recorded.
-const (
-	OutcomeRejected  = "rejected"
-	OutcomeDuplicate = "duplicate"
-)
-
 // columnTripID is the column that ties a row to its trip. It is compared
 // against rather than merely written, in the trip partition's confinement
 // and in the master partition's parent checks, so it is named once.
@@ -363,7 +355,7 @@ func applySchema(db *sql.DB, ddl string, fingerprint int64) error {
 // MutationResult is the per-mutation answer of the push endpoint.
 type MutationResult struct {
 	MutationID string
-	Outcome    string // applied | merged | duplicate
+	Outcome    sync.Outcome
 	Conflicts  []sync.Conflict
 	Seq        int64
 }
@@ -393,13 +385,13 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID, userID string, m sync
 	}
 
 	if !belongsToTrip(tripID, m, row.Fields, row.Exists) {
-		res := MutationResult{MutationID: m.MutationID, Outcome: OutcomeRejected}
+		res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected}
 		return res, finalize(ctx, tx, res)
 	}
 
 	merged := sync.Merge(row, m)
 
-	res := MutationResult{MutationID: m.MutationID, Outcome: string(merged.Outcome), Conflicts: merged.Conflicts}
+	res := MutationResult{MutationID: m.MutationID, Outcome: merged.Outcome, Conflicts: merged.Conflicts}
 	changed, err := persist(ctx, tx, m.Table, m, merged, row.Exists)
 	if err != nil {
 		if isConstraintViolation(err) {
@@ -410,7 +402,7 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID, userID string, m sync
 			// where an error would become a 500, and a 5xx is the one answer
 			// the outbox keeps retrying, wedging the whole partition behind
 			// the bad row. Same treatment as the master partition.
-			res := MutationResult{MutationID: m.MutationID, Outcome: OutcomeRejected}
+			res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected}
 			return res, finalize(ctx, tx, res)
 		}
 		return MutationResult{}, err
@@ -490,7 +482,7 @@ func recordedResult(ctx context.Context, tx *sql.Tx, mutationID string) (Mutatio
 	if err != nil {
 		return MutationResult{}, false, fmt.Errorf("idempotency lookup: %w", err)
 	}
-	res := MutationResult{MutationID: mutationID, Outcome: OutcomeDuplicate, Seq: seq}
+	res := MutationResult{MutationID: mutationID, Outcome: sync.OutcomeDuplicate, Seq: seq}
 	if err := json.Unmarshal([]byte(conflictsJSON), &res.Conflicts); err != nil {
 		return MutationResult{}, false, fmt.Errorf("decode recorded conflicts: %w", err)
 	}

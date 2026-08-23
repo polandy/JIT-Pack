@@ -16,7 +16,7 @@ import (
 func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := s.store.AdminUsers(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "user overview failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "user overview failed")
 		return
 	}
 	type wireAdminUser struct {
@@ -45,12 +45,12 @@ func (s *Server) handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 func adminUserAction(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, store.ErrUserNotFound):
-		writeError(w, http.StatusNotFound, "not_found", "no such user")
+		writeError(w, http.StatusNotFound, ErrNotFound, "no such user")
 	case errors.Is(err, store.ErrAdminUndeactivatable):
 		// FR-23.3: remove the address from JITPACK_ADMIN_EMAILS first.
-		writeError(w, http.StatusConflict, "admin_undeactivatable", "instance admins cannot be deactivated")
+		writeError(w, http.StatusConflict, ErrAdminUndeactivatable, "instance admins cannot be deactivated")
 	case err != nil:
-		writeError(w, http.StatusInternalServerError, "internal", "admin action failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "admin action failed")
 	default:
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]bool{"ok": true})

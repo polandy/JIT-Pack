@@ -16,7 +16,7 @@ const maxItemImageUploadBytes = 150 * 1024
 func (s *Server) handleGetItemImage(w http.ResponseWriter, r *http.Request) {
 	data, hash, err := s.store.GetItemImage(r.Context(), r.PathValue("itemID"))
 	if err != nil || data == nil {
-		writeError(w, http.StatusNotFound, "not_found", "no image for this item")
+		writeError(w, http.StatusNotFound, ErrNotFound, "no image for this item")
 		return
 	}
 	w.Header().Set("ETag", `"`+hash+`"`)
@@ -33,27 +33,27 @@ func (s *Server) handleGetItemImage(w http.ResponseWriter, r *http.Request) {
 // trip association; the route wires it behind s.authed alone.
 func (s *Server) handlePutItemImage(w http.ResponseWriter, r *http.Request) {
 	if ct := r.Header.Get("Content-Type"); ct != "image/jpeg" {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "item image must be image/jpeg")
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "item image must be image/jpeg")
 		return
 	}
 	data, err := io.ReadAll(io.LimitReader(r.Body, maxItemImageUploadBytes+1))
 	if err != nil {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "could not read upload")
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "could not read upload")
 		return
 	}
 	if len(data) > maxItemImageUploadBytes {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "item image exceeds 150 KB limit")
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "item image exceeds 150 KB limit")
 		return
 	}
 
 	if _, err := s.store.SetItemImage(r.Context(), r.PathValue("itemID"), data); err != nil {
 		switch {
 		case errors.Is(err, store.ErrItemNotFound):
-			writeError(w, http.StatusNotFound, "not_found", "no such item")
+			writeError(w, http.StatusNotFound, ErrNotFound, "no such item")
 		case errors.Is(err, store.ErrItemImageTooLarge):
-			writeError(w, http.StatusUnprocessableEntity, "validation", err.Error())
+			writeError(w, http.StatusUnprocessableEntity, ErrValidation, err.Error())
 		default:
-			writeError(w, http.StatusInternalServerError, "internal", "could not store item image")
+			writeError(w, http.StatusInternalServerError, ErrInternal, "could not store item image")
 		}
 		return
 	}
@@ -65,10 +65,10 @@ func (s *Server) handlePutItemImage(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleDeleteItemImage(w http.ResponseWriter, r *http.Request) {
 	if err := s.store.DeleteItemImage(r.Context(), r.PathValue("itemID")); err != nil {
 		if errors.Is(err, store.ErrItemNotFound) {
-			writeError(w, http.StatusNotFound, "not_found", "no such item")
+			writeError(w, http.StatusNotFound, ErrNotFound, "no such item")
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "internal", "could not remove item image")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "could not remove item image")
 		return
 	}
 	s.notifyMasterChangedToActor(r)

@@ -20,7 +20,7 @@ func (s *Server) handlePullMaster(w http.ResponseWriter, r *http.Request) {
 
 	page, err := s.store.PullMaster(r.Context(), userID, cursor, int(limit))
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal", "pull failed")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "pull failed")
 		return
 	}
 	writePullPage(w, page)

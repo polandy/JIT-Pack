@@ -20,11 +20,11 @@ const maxAvatarUploadBytes = 100 * 1024
 func (s *Server) handleGetAvatar(w http.ResponseWriter, r *http.Request) {
 	data, err := s.store.GetAvatar(r.Context(), r.PathValue("userID"))
 	if err != nil {
-		writeError(w, http.StatusNotFound, "not_found", "no avatar for this user")
+		writeError(w, http.StatusNotFound, ErrNotFound, "no avatar for this user")
 		return
 	}
 	if data == nil {
-		writeError(w, http.StatusNotFound, "not_found", "no avatar for this user")
+		writeError(w, http.StatusNotFound, ErrNotFound, "no avatar for this user")
 		return
 	}
 	sum := sha256.Sum256(data)
@@ -40,25 +40,25 @@ func (s *Server) handleGetAvatar(w http.ResponseWriter, r *http.Request) {
 // JPEG-only limits independently of this handler.
 func (s *Server) handlePutAvatar(w http.ResponseWriter, r *http.Request) {
 	if ct := r.Header.Get("Content-Type"); ct != "image/jpeg" {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "avatar must be image/jpeg")
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "avatar must be image/jpeg")
 		return
 	}
 	data, err := io.ReadAll(io.LimitReader(r.Body, maxAvatarUploadBytes+1))
 	if err != nil {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "could not read upload")
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "could not read upload")
 		return
 	}
 	if len(data) > maxAvatarUploadBytes {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "avatar exceeds 100 KB limit")
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "avatar exceeds 100 KB limit")
 		return
 	}
 
 	if err := s.store.SetAvatar(r.Context(), r.PathValue("userID"), data); err != nil {
 		if errors.Is(err, store.ErrAvatarTooLarge) {
-			writeError(w, http.StatusUnprocessableEntity, "validation", err.Error())
+			writeError(w, http.StatusUnprocessableEntity, ErrValidation, err.Error())
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "internal", "could not store avatar")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "could not store avatar")
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -74,15 +74,15 @@ type displayNameRequest struct {
 func (s *Server) handlePutDisplayName(w http.ResponseWriter, r *http.Request) {
 	var req displayNameRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusUnprocessableEntity, "validation", "malformed request body")
+		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "malformed request body")
 		return
 	}
 	if err := s.store.SetDisplayName(r.Context(), r.PathValue("userID"), req.DisplayName); err != nil {
 		if errors.Is(err, store.ErrInvalidDisplayName) {
-			writeError(w, http.StatusUnprocessableEntity, "validation", err.Error())
+			writeError(w, http.StatusUnprocessableEntity, ErrValidation, err.Error())
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "internal", "could not update display name")
+		writeError(w, http.StatusInternalServerError, ErrInternal, "could not update display name")
 		return
 	}
 	w.WriteHeader(http.StatusOK)

@@ -717,12 +717,32 @@ A packing list is **scanned, not read**: forty rows, most of them known, the eye
   belongs on the server is a separate question, to be asked per rule with that price written
   out, and this NFR does not open it.
 
-  **Deliberately left open for the implementing round:** whether the description is OpenAPI with
-  generated TypeScript, Go structs annotated and exported, or types generated from the Go source
-  — that is a real tradeoff (a generator and its build step against a hand-kept file that has
-  now drifted three times) and it is owed an **ADR** rather than a decision made in this
-  paragraph. Sync-API-Spec v1.3 stays the prose account of *why* the protocol behaves as it
-  does; what this NFR adds is the machine-checkable *shape* beside it.
+  **Built 2026-08-23 (ADR-026): the Go declaration is the source.** `internal/api/wire.go` is the
+  one declaration of the sync envelopes, the WebSocket frame, the conflict-log shapes and the
+  error vocabulary; `cmd/wiregen` writes `client/src/api/types.ts` from it, `make wire`
+  regenerates, and `scripts/wire-contract-gate.sh` — in `make ci` and in the CI `go` job — fails
+  the build when the checked-in file does not match. The 16 codes are `ErrorCode` constants in Go
+  and a generated union plus a frozen `ERROR_CODE` object in TypeScript, so `writeError` cannot
+  invent a code the client does not know and the screen that branches on one is checked rather
+  than disciplined. OpenAPI was weighed and rejected there: the failure being fixed *is* a
+  hand-kept file that drifted three times, and adding a third artefact to keep in agreement is
+  not an answer to it. Sync-API-Spec v1.3 stays the prose account of *why* the protocol behaves
+  as it does; `wire.go` is the machine-checkable shape beside it.
+
+  **Two findings the mechanism produced on its first run**, both of the same shape as the three
+  above and both invisible until then: the client's `ConflictEntry` had never grown the
+  `mutation_id` and `actor_user_id` that ADR-022 added to the server's copy, and `PresenceUser`
+  was a second hand-written spelling of `PresenceMember`. The generated types also turned out to
+  be **more truthful** than the hand-written ones — a nil Go map or pointer marshals to `null`,
+  so `row` and the WebSocket `payload` are nullable, and the compiler found eight call sites that
+  indexed a payload without checking.
+
+  **What the gate covers, stated so the coverage is not overstated:** the shapes in `wire.go` —
+  which is what the client's `api/types.ts` consumed. The admin, notification, config and auth
+  responses are still typed by hand on both sides; growing `wire.go` is how they join. **And the
+  third point above — the route shapes — is deliberately not built** (owner, 2026-08-23): the
+  rename touches client, Vitest, e2e and `docs/` without fixing a known defect, so it is its own
+  change rather than a passenger on this one.
 
 * **NFR-4.13 (Installable PWA & App Shell — accepted 2026-08-20):** The web client is installable to the home screen (manifest with the Packed Backpack icon set incl. a maskable variant, `display: standalone`, the Apple tag set, a `theme-color` that follows the FR-21 flavour) and, once opened online, **starts without a network**: a service worker — the same script that carries NFR-4.6's push handlers — precaches the built bundle and answers navigations with the cached shell when the network is gone. The shell cache carries the *bundle only*, never data: `/api`, `/ws` and `/health` are never answered or cached by the worker, because sync consistency belongs to NFR-4.2a and `/health` must always tell the truth about the server. Registration happens unconditionally at app start (not only when push is enabled); on an insecure origin there is no service worker and no install offer, and the app must run exactly as before — plain-HTTP LAN instances stay supported as ordinary websites. **Update policy:** a new version installs in the background and takes over on the next launch — never an unprompted reload; the running app announces it through the G-2 indicator (dot on the glyph, sentence in the detail sheet). Mechanism and tradeoff (hand-rolled worker vs. `vite-plugin-pwa`) are ADR-019. Applies to all three run modes; in Local Mode this closes the gap that the *data* was offline-first while the app itself still needed the network to boot.
 

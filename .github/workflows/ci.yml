@@ -26,6 +26,10 @@ jobs:
       # module tree. CI has no node_modules, but the two must not diverge.
       - run: go build ./cmd/... ./internal/...
       - run: go vet ./cmd/... ./internal/...
+      # Before the tests, because a contract the client has not followed is a
+      # cheaper failure to read than whatever it breaks downstream (NFR-4.14).
+      - name: Check the client's wire types match the contract
+        run: ./scripts/wire-contract-gate.sh
       - run: go test ./cmd/... ./internal/... -race -count=1 -coverprofile=coverage.txt
       # Thresholds live in the script, so `make cover` enforces the same ones.
       - name: Enforce coverage gates (working agreement)
