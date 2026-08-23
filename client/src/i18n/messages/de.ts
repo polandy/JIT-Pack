@@ -719,6 +719,8 @@ export const de: Record<keyof typeof en, string> = {
   'import.wizard.seriesLabel': 'Zielserie',
   'import.wizard.mappingInvalid':
     'Jede ausgewählte Reise braucht einen Namen und ein Jahr (z. B. 2024) oder Datum.',
+  'import.wizard.nothingToImport':
+    'Keine Zeilen zum Importieren — wähle die Spalte mit den Artikelnamen.',
   'import.wizard.itemColumn': 'Artikelspalte',
   'import.wizard.column': 'Sp. {n}',
   'import.wizard.categoryRows': 'Kategoriezeilen',

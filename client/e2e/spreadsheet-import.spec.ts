@@ -31,6 +31,14 @@ async function openMapping(page: import('@playwright/test').Page) {
   await expect(visiblePage(page).getByTestId('import-trip-2')).toBeVisible()
 }
 
+/** An inventory: a list of things, with no trip and no quantity anywhere. */
+const INVENTORY_CSV = [
+  'Kategorie,Artikel',
+  'Schuhe,Wanderschuhe',
+  ',Sandalen',
+  'Bad,Handtuch',
+].join('\n')
+
 test.describe('M15 mapping — category column or category rows @local @m15', () => {
   test('E2E-M15-06: the detected category column files the items under it', async ({ page }) => {
     await openMapping(page)
@@ -62,5 +70,37 @@ test.describe('M15 mapping — category column or category rows @local @m15', ()
     // Nothing ticks the category rows in their place, so the plan carries no
     // category at all — the override is honoured rather than re-detected.
     await expect(visiblePage(page).getByTestId('import-summary-line')).toContainText('0 categories')
+  })
+  /**
+   * E2E-M15-08 (FR-16.1): a sheet with no trip column at all imports.
+   *
+   * It used to be refused — the mapping demanded one included trip column —
+   * so the only way to bring an inventory in was to invent a trip and delete
+   * it afterwards. The landing is the other half: with no trip created, the
+   * whole result is in the inventory, and the trip list would have nothing
+   * to show for it.
+   */
+  test('E2E-M15-08: an inventory with no trip column imports into the inventory', async ({
+    page,
+  }) => {
+    await seed(page, { mode: 'local' })
+    await page.goto('/import')
+    await visiblePage(page).getByTestId('import-paste').locator('textarea').fill(INVENTORY_CSV)
+    await visiblePage(page).getByTestId('import-analyze').click()
+
+    // No trip rows to tick, and the step is passable anyway.
+    await expect(visiblePage(page).getByTestId('import-mapping-note')).toHaveCount(0)
+    await visiblePage(page).getByTestId('import-next').click()
+
+    await expect(visiblePage(page).getByTestId('import-summary-line')).toContainText(
+      '0 archived trips',
+    )
+    await expect(visiblePage(page).getByTestId('import-summary-line')).toContainText('3 new items')
+    await visiblePage(page).getByTestId('import-commit').click()
+
+    // M9, not M2: the import's whole result is master data.
+    await expect(visiblePage(page).getByTestId('m9-row').first()).toBeVisible()
+    await expect(visiblePage(page).getByText('Wanderschuhe')).toBeVisible()
+    await expect(visiblePage(page).getByText('Handtuch')).toBeVisible()
   })
 })

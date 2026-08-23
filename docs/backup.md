@@ -185,6 +185,9 @@ than describe:
   the sheet, leave the picker on *None* and tick those rows under *Category rows*.
 - **A column the sheet never named is not imported unless you name it.** Every other column
   is preselected.
+- **A sheet with no trips in it at all is fine.** If your file is just a list of things —
+  categories and item names, no amounts — import it as it is: you get the inventory and no
+  trip, and the app takes you to the Items screen where the result is.
 
 Each imported column becomes an **archived** trip in the year its header gives, with the
 amounts recorded as packed, and the app lands you on the Archived tab where they are.

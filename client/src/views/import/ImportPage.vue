@@ -131,12 +131,29 @@ function toggleCategoryRow(rowIdx: number, on: boolean) {
   categoryRows.value = next
 }
 
+/** Rows the plan would import as items — the category ticks are not items. */
+const importableRows = computed(
+  () => namedRows.value.filter((r) => !categoryRows.value.has(r.idx)).length,
+)
+
+/**
+ * FR-16.1: a trip column is *not* required. A sheet that is a list of things
+ * rather than a matrix of trips is the ordinary way an inventory arrives, and
+ * demanding one made the only way in a throwaway trip the user then deleted.
+ * What is required is something to import and, for the columns that are
+ * ticked, the two facts a trip cannot be created without.
+ */
 const mappingValid = computed(
   () =>
-    trips.value.some((t) => t.include) &&
+    importableRows.value > 0 &&
     trips.value
       .filter((t) => t.include)
       .every((t) => t.name.trim() !== '' && normalizeTripDate(t.date) !== null),
+)
+
+/** Which of the two reasons the mapping is not valid yet, for the note. */
+const mappingHint = computed(() =>
+  importableRows.value === 0 ? 'import.wizard.nothingToImport' : 'import.wizard.mappingInvalid',
 )
 
 const mapping = computed(() => ({
@@ -212,13 +229,19 @@ const summaryLine = computed(() =>
 
 function commit() {
   orchestrator.commitImport(plan.value)
-  // FR-16.2 creates archived trips, and M2 opens on Active: without naming
-  // the segment, a migration of a decade of history ended on the words
-  // "No active trips" — the same miss the restore path had (ADR-024).
-  router.replace({
-    path: '/tabs/trips',
-    query: { [TRIP_FILTER_QUERY]: filterForStatus(TRIP_STATUS_ARCHIVED) },
-  })
+  // Land where the result is. FR-16.2 creates archived trips and M2 opens on
+  // Active, so without naming the segment a migration of a decade of history
+  // ended on the words "No active trips" (the miss ADR-024 fixed on the
+  // restore path) — and an import that created no trip at all has its whole
+  // result in the inventory, where the trip list would say the same thing.
+  router.replace(
+    plan.value.trips.length === 0
+      ? { path: '/tabs/items' }
+      : {
+          path: '/tabs/trips',
+          query: { [TRIP_FILTER_QUERY]: filterForStatus(TRIP_STATUS_ARCHIVED) },
+        },
+  )
 }
 
 // ADR-011: the one header bar renders this page's title.
@@ -290,7 +313,9 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
             </IonSelect>
           </IonItem>
         </IonList>
-        <IonNote v-if="!mappingValid">{{ t('import.wizard.mappingInvalid') }}</IonNote>
+        <IonNote v-if="!mappingValid" data-testid="import-mapping-note">
+          {{ t(mappingHint) }}
+        </IonNote>
 
         <h2 class="section-title jp-eyebrow">{{ t('import.wizard.itemColumn') }}</h2>
         <IonSegment
