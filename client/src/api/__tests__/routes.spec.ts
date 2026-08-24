@@ -16,6 +16,8 @@ describe('API routes', () => {
     expect(API.tripSync('t1')).toBe('/api/v1/trips/t1/sync')
     expect(API.tripConflicts('t1')).toBe('/api/v1/trips/t1/conflicts')
     expect(API.tripConflictRevert('t1', 'c1')).toBe('/api/v1/trips/t1/conflicts/c1/revert')
+    expect(API.tripTakeover('t1', 'ti1')).toBe('/api/v1/trips/t1/items/ti1/takeover')
+    expect(API.tripLockEvents('t1')).toBe('/api/v1/trips/t1/lock-events')
     expect(API.tripExportCsv('t1')).toBe('/api/v1/trips/t1/export.csv')
   })
 
@@ -51,6 +53,8 @@ describe('API routes', () => {
       tripSync: '/api/v1/trips/ID1/sync',
       tripConflicts: '/api/v1/trips/ID1/conflicts',
       tripConflictRevert: '/api/v1/trips/ID1/conflicts/ID2/revert',
+      tripTakeover: '/api/v1/trips/ID1/items/ID2/takeover',
+      tripLockEvents: '/api/v1/trips/ID1/lock-events',
       tripExportCsv: '/api/v1/trips/ID1/export.csv',
       masterSync: '/api/v1/master/sync',
       masterConflicts: '/api/v1/master/conflicts',

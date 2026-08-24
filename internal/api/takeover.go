@@ -53,11 +53,11 @@ func (s *Server) notifyTakeover(ctx context.Context, ev store.LockEvent) {
 		}
 	}
 	s.createAndNotify(ctx, ev.FromUserID, store.NotifyLockTaken, map[string]any{
-		"trip_id":    ev.TripID,
-		"item_id":    ev.TripItemID,
-		"item_name":  ev.ItemName,
-		"actor_id":   ev.ToUserID,
-		"actor_name": actorName,
+		payloadTripID:    ev.TripID,
+		payloadItemID:    ev.TripItemID,
+		payloadItemName:  ev.ItemName,
+		payloadActorID:   ev.ToUserID,
+		payloadActorName: actorName,
 	})
 }
 

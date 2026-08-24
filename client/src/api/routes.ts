@@ -21,6 +21,9 @@ export const API = {
   tripConflicts: (tripId: string) => `${V1}/trips/${tripId}/conflicts`,
   tripConflictRevert: (tripId: string, conflictId: string) =>
     `${V1}/trips/${tripId}/conflicts/${conflictId}/revert`,
+  tripTakeover: (tripId: string, itemId: string) =>
+    `${V1}/trips/${tripId}/items/${itemId}/takeover`,
+  tripLockEvents: (tripId: string) => `${V1}/trips/${tripId}/lock-events`,
   tripExportCsv: (tripId: string) => `${V1}/trips/${tripId}/export.csv`,
 
   // Master scope.

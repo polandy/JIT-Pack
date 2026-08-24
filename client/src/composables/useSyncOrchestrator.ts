@@ -21,7 +21,7 @@ import { CLIENT_ACTOR_PLACEHOLDER, useMutations } from './useMutations'
 import { useSyncStatus } from './useSyncStatus'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
-import type { ConflictEntry, PresenceMember, PullChange, WSEvent } from '@/api/types'
+import type { ConflictEntry, LockEvent, PresenceMember, PullChange, WSEvent } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
 import { planClone, type CloneOptions } from '@/domain/clone'
@@ -83,7 +83,7 @@ import type {
 // that neither can drift from what the server sends — the conflict entry had
 // already lost `mutation_id` and `actor_user_id` that way.
 export type PresenceUser = PresenceMember
-export type { ConflictEntry }
+export type { ConflictEntry, LockEvent }
 
 /** Everything the M3 wizard collected before "Create trip". */
 export interface TripWizardDraft {
@@ -272,7 +272,13 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     itemLocks.value = next
   }
 
-  function clearItemLock(tripId: string, itemId: string) {
+  /**
+   * clearEphemeralLock drops the WS-delivered lock without touching
+   * `myLocks`, which `clearItemLock` also clears: after a takeover the
+   * row *is* mine, so forgetting that would make my own claim render as
+   * somebody else's.
+   */
+  function clearEphemeralLock(tripId: string, itemId: string) {
     const tripLocks = itemLocks.value.get(tripId)
     if (!tripLocks?.has(itemId)) return
     const next = new Map(itemLocks.value)
@@ -280,6 +286,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     cleared.delete(itemId)
     next.set(tripId, cleared)
     itemLocks.value = next
+  }
+
+  function clearItemLock(tripId: string, itemId: string) {
+    clearEphemeralLock(tripId, itemId)
     myLocks.delete(itemId)
   }
 
@@ -747,6 +757,49 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         row: { ...itemRow(item), ...mut.fields },
       },
     })
+  }
+
+  /**
+   * takeOverClaim ends somebody else's claim and starts mine, in one step
+   * (FR-5.7). It is the only part of G-3's lock that goes through the
+   * server rather than the outbox: only the server can stamp who took
+   * over (invariant 3) and notify the account it was taken from, and a
+   * client cannot send itself a notification.
+   *
+   * Nothing is written optimistically. An outbox mutation would have to
+   * be undone when the server refuses — the row may have been packed or
+   * released in the meantime — and a taker shown a claim they do not hold
+   * is the one outcome worse than waiting for the answer. The row arrives
+   * by the drain below, like every other server-originated change.
+   *
+   * Returns who was holding it, which the confirmation named beforehand
+   * and the snackbar names afterwards. Local Mode has no server and no
+   * second person, so the surface never reaches here (G-8).
+   */
+  async function takeOverClaim(tripId: string, item: TripItem): Promise<string> {
+    if (local) return ''
+    const resp = await client.post<{ previous_holder?: string }>(
+      API.tripTakeover(tripId, item.id),
+    )
+    // The claim is mine from here: `myLocks` is how this device knows a
+    // row is its own, and without it the row I just took would render as
+    // locked against me.
+    myLocks.add(item.id)
+    clearEphemeralLock(tripId, item.id)
+    await drainTrip(tripId)
+    return resp.previous_holder ?? ''
+  }
+
+  /**
+   * fetchLockEvents reads the trip's takeover record (FR-5.7) — who took
+   * what from whom. Deliberately not part of the conflict log: that one
+   * holds merge losers, and a list of two unrelated kinds of event stops
+   * being readable (ADR-028).
+   */
+  async function fetchLockEvents(tripId: string): Promise<LockEvent[]> {
+    if (local) return []
+    const resp = await client.get<{ lock_events: LockEvent[] }>(API.tripLockEvents(tripId), {})
+    return resp.lock_events
   }
 
   /**
@@ -2923,6 +2976,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     isLockedByOther,
     holdsClaim,
     releaseClaim,
+    takeOverClaim,
+    fetchLockEvents,
     lockHolder,
 
     // Drain

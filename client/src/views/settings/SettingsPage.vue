@@ -137,6 +137,7 @@ const prefRows: { kind: keyof NotificationPrefs; label: MessageKey; hint: Messag
   { kind: 'delegation', label: 'settings.prefDelegation', hint: 'settings.prefDelegationHint' },
   { kind: 'mention', label: 'settings.prefMention', hint: 'settings.prefMentionHint' },
   { kind: 'task', label: 'settings.prefTask', hint: 'settings.prefTaskHint' },
+  { kind: 'lock_taken', label: 'settings.prefLockTaken', hint: 'settings.prefLockTakenHint' },
 ]
 
 async function togglePref(kind: keyof NotificationPrefs, enabled: boolean) {

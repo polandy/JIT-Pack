@@ -34,7 +34,7 @@ import { t } from '@/i18n'
 import type { MessageKey } from '@/i18n'
 import { APIRequestError } from '@/api/client'
 import { ERROR_CODE, type ErrorCode } from '@/api/types'
-import type { ConflictEntry, useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import type { ConflictEntry, LockEvent, useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const props = defineProps<{ tripId?: string }>()
 
@@ -42,6 +42,15 @@ const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrato
 
 const conflicts = ref<ConflictEntry[]>([])
 const failed = ref(false)
+
+/**
+ * FR-5.7's record, on this page but never in the list above it: a
+ * takeover is not a merge loser, and one list holding two unrelated
+ * kinds of event stops being readable (ADR-028). It belongs to a trip,
+ * so the master log — which belongs to none — does not ask for it.
+ */
+const lockEvents = ref<LockEvent[]>([])
+const names = ref(new Map<string, string>())
 
 async function load() {
   try {
@@ -52,6 +61,23 @@ async function load() {
   } catch {
     failed.value = true
   }
+  if (!props.tripId) return
+  try {
+    lockEvents.value = await orchestrator.fetchLockEvents(props.tripId)
+    if (lockEvents.value.length > 0) {
+      const users = await orchestrator.fetchUsers()
+      names.value = new Map(users.map((u) => [u.user_id, u.display_name]))
+    }
+  } catch {
+    // The takeover record is context beside the conflicts, not the
+    // reason the page exists: failing to read it must not empty the log.
+    lockEvents.value = []
+  }
+}
+
+/** An id is a poor name but a true one — better than an empty sentence. */
+function nameOf(userId: string): string {
+  return names.value.get(userId) ?? userId
 }
 
 onMounted(load)
@@ -163,11 +189,34 @@ function formatTime(iso: string): string {
         <p v-if="failed">{{ t('conflicts.unavailable') }}</p>
         <p v-else>{{ t(props.tripId ? 'conflicts.empty' : 'conflicts.emptyMaster') }}</p>
       </div>
+
+      <section v-if="lockEvents.length > 0" class="takeovers">
+        <h2 class="jp-eyebrow">{{ t('conflicts.takeoverSection') }}</h2>
+        <IonList>
+          <IonItem v-for="e in lockEvents" :key="e.id" lines="inset" data-testid="lock-event-row">
+            <IonLabel>
+              <h3>{{ e.item_name }}</h3>
+              <p>
+                {{ t('conflicts.takeoverLine', { to: nameOf(e.to_user_id), from: nameOf(e.from_user_id) }) }}
+              </p>
+              <IonNote>{{ formatTime(e.created_at) }}</IonNote>
+            </IonLabel>
+          </IonItem>
+        </IonList>
+      </section>
     </IonContent>
   </IonPage>
 </template>
 
 <style scoped>
+.takeovers {
+  margin-top: 24px;
+}
+
+.takeovers h2 {
+  padding: 0 16px;
+}
+
 .losing {
   text-decoration: line-through;
   color: var(--ion-color-medium);

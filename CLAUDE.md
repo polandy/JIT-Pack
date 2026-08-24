@@ -207,21 +207,14 @@ it. Item numbers stay stable even as items close, because the log refers back to
    admin, notification, config and auth responses are not in it yet — nor are the routes, which
    are agreed by two test tables rather than generated (ADR-027's second revisit trigger).
 
-17. **FR-5.7 — a claim is broken by a person, not by a clock** (owner decision 2026-08-23,
-   **specified, not built**). §7's staleness window goes: a claim holds until somebody ends it,
-   and everyone else's way out is to **take it over** — one gesture that ends the previous claim
-   and starts the taker's, confirmed against the holder's name, notified to the holder through
-   FR-6.2, and recorded in its own table beside the conflict log. Three consequences to plan for
-   before starting: it **reverses** 14(d)'s "the lock stays a client-side courtesy" (only the
-   server can stamp who took over and notify another account); it is a **schema change**, so
-   every development database is refused and reseeded, `:3000` included (owner accepted); and it
-   **deletes** `JITPACK_LOCK_TIMEOUT`, `lock_timeout_seconds` on `GET /config`, the client's
-   staleness test and the expired-claim row note — all of them two days old. **ADR-028** settles the
-   tradeoff: a claim only a person can end blocks a row when its holder walks away, which the
-   window used to clear unattended — accepted, because the block is soft and every break gains an
-   author. The middle option, *expire and announce*, lost on a cost nobody had priced: only the
-   server can notice an expiry, and expiry is the one event no request causes, so it needs
-   periodic work in a process whose only goroutine is the listener.
+17. ~~**FR-5.7 — a claim is broken by a person, not by a clock**~~ — **done** (2026-08-24,
+   ADR-028): the staleness window and everything serving it are deleted, and a claim now ends
+   only by being packed, released, or **taken over** — confirmed against the holder's name,
+   stamped by the server, recorded in `lock_events`, and notified to the holder as a fourth
+   FR-6.2 kind. It reverses 14(d)'s "client-side courtesy" for the takeover alone. What building
+   it settled is in FR-5.7 itself: the takeover has **no reachable e2e case** until a mock-IdP
+   `server` project exists — two contexts of one identity can only take over their own claim —
+   so E2E-G3-02 runs the G-8 gate instead. Log: *„A claim stops having a lifetime"*.
 
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,

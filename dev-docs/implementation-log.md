@@ -148,6 +148,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The wire was described twice, and the second description was fiction (2026-08-23)](#the-wire-was-described-twice-and-the-second-description-was-fiction-2026-08-23) — NFR-4.14/ADR-026. The envelope was already uniform; what was not a contract was two independent descriptions of one wire, and the mechanism found two more drifted types on its first run. Three things the code cannot show: why both suites were blind (a fake agrees with its author), why the gate generates beside the tree rather than over it, and the trap that a generated file under `client/src` must be prettier-clean or `make fmt` fails the gate on a file nobody edited.
 - [A conflict is an overwrite, not a lost race (2026-08-23)](#a-conflict-is-an-overwrite-not-a-lost-race-2026-08-23) — the conflict log had been logging fields nobody overwrote, so it read `2026 → 2026` and offered a revert for it, and the outcome `merged` announced the loss to a user who had none. Two things the code cannot show: it was found by rendering a merged, reviewed feature that no one had looked at, and the fix's real difficulty is that the two values being compared arrive from different type systems — JSON on one side, SQLite on the other.
 - [A route names its scope first (2026-08-24)](#a-route-names-its-scope-first-2026-08-24) — NFR-4.14's third point/ADR-027. Four things the code cannot show: the backlog item's own complaint had gone stale (ADR-025 had already deleted two of the four shapes it named, so it was re-measured before it was acted on), why the sync endpoints were widened into a scope the owner's question did not name, the trap that a router's 404 and a handler's 404 are the same status — which made the first negative test green on the two revert routes for the wrong reason — and the latent defect that typed route builders exposed.
+- [A claim stops having a lifetime (2026-08-24)](#a-claim-stops-having-a-lifetime-2026-08-24) — FR-5.7/ADR-028. Four things the code cannot show: why the option that looked like the compromise was the most expensive one, why the takeover is the one lock action with no optimistic write, why it has no reachable Playwright case and will not until a second identity exists, and the two-day-old work that was deleted rather than adapted.
 
 ## Current state
 
@@ -5955,3 +5956,61 @@ reformatted three spec files this change has no business touching, and the
 churn was only visible because `git status` listed files no sweep had reported.
 Reverted. The lesson is cheap but recurring: **run the project's format command,
 not prettier with a path you chose.**
+
+## A claim stops having a lifetime (2026-08-24)
+
+FR-5.7, ADR-028, backlog 17. Two days earlier a claim had gained a way to
+*end* — the holder could release it — and the other way out was still §7's
+15-minute staleness window, applied by every client and enforced by none. The
+owner's decision removed the window entirely: a claim is claimed until a
+person ends it, and everyone else's way past it is to **take it over**.
+
+**The middle option was the expensive one, and nothing had priced it.** Three
+shapes were on the table: a claim that only a person can end, a claim that
+expires silently (what existed), and a claim that expires *and announces the
+expiry*. The third reads as the compromise — it removes the silence, which is
+the worst property of the second, while keeping the unattended clearing, which
+is its best. It lost because announcing an expiry needs the **server** to
+notice one, and expiry is the one event no request causes: that is what makes
+it an expiry. So it needs periodic work, and `jitpackd` has exactly one
+goroutine — the listener. There is no scheduler, no ticker, no job runner to
+extend. Once the notification, the M17 toggle and the record are paid for —
+and all three are the same in both options — the clock is no longer buying
+cheapness. It is only buying the ability to decide, badly, on the holder's
+behalf. Fifteen minutes is not a statement about whether somebody is still in
+the cellar looking for the tent.
+
+**The takeover is the one lock action with no optimistic write.** Everything
+else the client does to a row goes through the outbox and repaints
+immediately. This does not, and deliberately: the server can refuse — the
+holder may have packed or released the row while the confirmation was open —
+and a refusal would then have to be undone on screen. A taker who waits a
+moment for the answer is strictly better than a taker shown a claim they do
+not hold, which is the one outcome that would make the lock worse than no lock
+at all. The row arrives by the drain, like any other server-originated change.
+
+**It has no reachable Playwright case, and that is structural.** The `single`
+project runs two browser contexts against a Single-User backend, which is how
+E2E-G3-03 covers a foreign claim: B never claimed the row, so B's client
+treats the claim as foreign. That trick does not extend here. Both contexts
+are the *same identity*, so a takeover from one to the other is a takeover of
+one's own claim — which the server refuses by design, and correctly.
+Seeding tokens would not help: the backend stamps its single user either way.
+E2E-G3-02 therefore asserts the half that is reachable and is a real promise
+of its own — the G-8 gate, that where there is no second account the claimed
+row offers nothing at all rather than an action that would be refused. The
+taking-over path waits for the mock-IdP `server` project, at exactly the wall
+E2E-G3-01's identity half has been standing at. Worth saying plainly rather
+than leaving a green suite to imply otherwise: the mechanism is covered by Go
+API tests and orchestrator units, and the *screen* is not.
+
+**Two days of work was deleted rather than adapted.** The window had just been
+made per-instance — `JITPACK_LOCK_TIMEOUT`, `lock_timeout_seconds`,
+`GET /api/v1/config` to serve it, a client freshness test, and the yellow row
+line that said a claim had aged out. All of it went. `GET /api/v1/config`
+served nothing else, so the endpoint went too. The alternative was keeping a
+window that no longer decides anything, which is two rules for one question.
+The one thing that was *inverted* rather than deleted is the vitest case that
+asserted a 20-minute-old claim stops locking its row: it now asserts the
+opposite, so the rule that replaced the window has a driving test instead of
+leaving a hole where the old one was.

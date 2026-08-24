@@ -278,3 +278,78 @@ describe('releasing a claim (G-3)', () => {
   })
 })
 
+
+describe('taking a claim over (FR-5.7)', () => {
+  function claimedByOther(store: ReturnType<typeof useTripStore>) {
+    return seedItem(store, {
+      state: 'packing_now',
+      packing_now_by: 'sarah',
+      packing_now_at: new Date().toISOString(),
+    })
+  }
+
+  it('asks the server, because only it can stamp who took over', async () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    fetchMock.mockImplementation((url: string) =>
+      Promise.resolve(
+        url.endsWith('/takeover')
+          ? new Response(
+              JSON.stringify({ ok: true, previous_holder: 'sarah', pull_hint: { next_cursor: 4 } }),
+              { status: 200 },
+            )
+          : new Response(JSON.stringify({ changes: [], pull_hint: { next_cursor: 4 } }), {
+              status: 200,
+            }),
+      ),
+    )
+
+    const holder = await orch.takeOverClaim('t1', claimedByOther(store))
+
+    expect(holder).toBe('sarah')
+    const calls = fetchMock.mock.calls.map((c) => String(c[0]))
+    expect(calls.some((u) => u.endsWith('/api/v1/trips/t1/items/ti1/takeover'))).toBe(true)
+  })
+
+  it('leaves the row claimed by me, never free in between', async () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = claimedByOther(store)
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({ ok: true, previous_holder: 'sarah', pull_hint: { next_cursor: 4 } }),
+        { status: 200 },
+      ),
+    )
+
+    // The positive signal the assertion below needs: before the takeover
+    // the row is somebody else's, so "not locked for me" afterwards is
+    // the takeover's doing rather than an unread row.
+    expect(orch.isLockedByOther('t1', item)).toBe(true)
+
+    await orch.takeOverClaim('t1', item)
+
+    const after = store.getItems('t1')[0]!
+    expect(after.state).toBe('packing_now')
+    expect(orch.isLockedByOther('t1', after)).toBe(false)
+    expect(orch.holdsClaim('t1', after)).toBe(true)
+  })
+
+  it('leaves the claim where it was when the server refuses', async () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = claimedByOther(store)
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: 'claim_not_held', message: 'nobody is packing this row' } }), {
+        status: 409,
+      }),
+    )
+
+    await expect(orch.takeOverClaim('t1', item)).rejects.toThrow(/nobody is packing/)
+
+    // A refusal that had already moved the row locally would show the
+    // taker a claim they do not have.
+    expect(orch.holdsClaim('t1', store.getItems('t1')[0]!)).toBe(false)
+    expect(orch.isLockedByOther('t1', store.getItems('t1')[0]!)).toBe(true)
+  })
+})

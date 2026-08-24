@@ -271,6 +271,57 @@ test.describe('Single-User backend sync @single', () => {
   })
 
   /**
+   * E2E-G3-02 (G-3, FR-5.7): where there is no second account, a claimed
+   * row offers no way past the claim.
+   *
+   * This is the half of FR-5.7 that *can* run here, and the reason the
+   * other half cannot is worth stating: both contexts are the same
+   * Single-User identity, so a takeover would be a takeover of one's own
+   * claim, which the server refuses by design. The taking-over path
+   * therefore waits for the mock-IdP `server` project, exactly as
+   * E2E-G3-01's identity half does. What is asserted here is the G-8
+   * promise — the surface is *absent*, not shown and then refused.
+   */
+  test('a claimed row offers no takeover where there is no second account', async ({ browser }) => {
+    const id = uniq()
+    const trip = `Maloja ${id}`
+    const item = `Pickel-${id}`
+
+    const ctxA = await browser.newContext()
+    const pageA = await bootPage(ctxA)
+    const tripPath = await createTripViaWizard(pageA, { name: trip })
+    await quickAddItem(pageA, item)
+
+    const ctxB = await browser.newContext()
+    const pageB = await ctxB.newPage()
+    await seed(pageB, { mode: 'server' })
+    const wsB = pageB.waitForEvent('websocket')
+    await pageB.goto(tripPath)
+    await expect(visiblePage(pageB).getByTestId(`m4-row-${item}`)).toBeVisible()
+    await wsSubscribed(pageB, wsB)
+
+    await visiblePage(pageA).getByTestId(`m4-row-${item}`).dispatchEvent('contextmenu')
+    await expect(pageA.locator('ion-action-sheet')).toBeVisible()
+    await pageA
+      .locator('ion-action-sheet')
+      .getByRole('button', { name: /^pack$/i })
+      .click()
+    await expect(pageA.locator('ion-action-sheet')).toHaveCount(0)
+
+    // The positive signal the absence below needs: the row really is
+    // claimed on B, so "no menu" is the mode gate rather than an unread
+    // row or a row that never arrived.
+    const rowB = visiblePage(pageB).getByTestId(`m4-row-${item}`)
+    await expect(rowB.getByTestId('m4-lock-note')).toBeVisible()
+
+    await rowB.dispatchEvent('contextmenu')
+    await expect(pageB.locator('ion-action-sheet')).toHaveCount(0)
+
+    await ctxA.close()
+    await ctxB.close()
+  })
+
+  /**
    * E2E-G2-01 (queue half) + E2E-FLOW-06 (NFR-4.1, G-2, G-5): offline edits
    * queue and are announced; the queue drains on the app's next own action
    * once the network is back; the server converges.

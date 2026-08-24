@@ -12,7 +12,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import ConflictLogPage from '../ConflictLogPage.vue'
 import { APIRequestError } from '@/api/client'
 import { ERROR_CODE, type ErrorCode } from '@/api/types'
-import type { ConflictEntry } from '@/composables/useSyncOrchestrator'
+import type { ConflictEntry, LockEvent } from '@/composables/useSyncOrchestrator'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 
@@ -34,6 +34,25 @@ const orchestrator = {
   fetchConflicts: vi.fn<() => Promise<ConflictEntry[]>>(),
   fetchMasterConflicts: vi.fn<() => Promise<ConflictEntry[]>>(),
   revertConflict: vi.fn<() => Promise<void>>(),
+  fetchLockEvents: vi.fn<() => Promise<LockEvent[]>>(),
+  fetchUsers: vi.fn(() =>
+    Promise.resolve([
+      { user_id: 'u-sia', display_name: 'Sia' },
+      { user_id: 'u-andy', display_name: 'Andy' },
+    ]),
+  ),
+}
+
+function takeover(over: Partial<LockEvent> = {}): LockEvent {
+  return {
+    id: 'lk-1',
+    trip_item_id: 'item-1',
+    item_name: 'Zelt',
+    from_user_id: 'u-andy',
+    to_user_id: 'u-sia',
+    created_at: '2026-08-24T10:00:00Z',
+    ...over,
+  }
 }
 
 beforeEach(() => {
@@ -41,6 +60,7 @@ beforeEach(() => {
   orchestrator.fetchConflicts.mockResolvedValue([entry()])
   orchestrator.fetchMasterConflicts.mockResolvedValue([entry()])
   orchestrator.revertConflict.mockResolvedValue(undefined)
+  orchestrator.fetchLockEvents.mockResolvedValue([])
 })
 
 async function mountPage(props: { tripId?: string } = { tripId: 'trip-1' }) {
@@ -122,5 +142,45 @@ describe('each refusal reaches the reader as its own sentence', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-testid="conflict-revert"]').exists()).toBe(false)
+  })
+})
+
+/**
+ * FR-5.7's record. It is on this page but *not* in the conflict list:
+ * that one holds merge losers, and a list carrying two unrelated kinds
+ * of event stops being readable (ADR-028).
+ */
+describe('the takeover record', () => {
+  it('names who took what from whom', async () => {
+    orchestrator.fetchLockEvents.mockResolvedValue([takeover()])
+
+    const wrapper = await mountPage()
+
+    const rows = wrapper.findAll('[data-testid="lock-event-row"]')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.text()).toContain('Zelt')
+    expect(rows[0]!.text()).toContain('Sia')
+    expect(rows[0]!.text()).toContain('Andy')
+    // The two logs stay two logs: the takeover must not appear as a
+    // conflict row, which is what the separate table exists for.
+    expect(wrapper.findAll('[data-testid="conflict-row"]')).toHaveLength(1)
+  })
+
+  it('is absent on the master log, which belongs to no trip', async () => {
+    orchestrator.fetchLockEvents.mockResolvedValue([takeover()])
+
+    const wrapper = await mountPage({})
+
+    expect(orchestrator.fetchLockEvents).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="lock-event-row"]').exists()).toBe(false)
+  })
+
+  it('shows nothing at all when no row was ever taken over', async () => {
+    // The positive signal for the negative above: the section is absent
+    // because the trip has no takeovers, not because it never renders.
+    const wrapper = await mountPage()
+
+    expect(orchestrator.fetchLockEvents).toHaveBeenCalledWith('trip-1')
+    expect(wrapper.find('[data-testid="lock-event-row"]').exists()).toBe(false)
   })
 })
