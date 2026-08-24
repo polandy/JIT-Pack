@@ -172,6 +172,126 @@ type RevertResponse struct {
 	PullHint PullHint `json:"pull_hint"`
 }
 
+// --- Identity (Sync-API §8) ---
+
+// MeResponse is the caller's own identity. IsInstanceAdmin decides whether the
+// client renders the M20 entry point (FR-23.2); the admin endpoints enforce it
+// regardless of what the client does with it.
+type MeResponse struct {
+	UserID          string `json:"user_id"`
+	DisplayName     string `json:"display_name"`
+	IsInstanceAdmin bool   `json:"is_instance_admin"`
+}
+
+// DirectoryUser is one entry of the instance user directory — name and id
+// only, which is what the M3 sharing step needs (FR-4.5).
+type DirectoryUser struct {
+	UserID      string `json:"user_id"`
+	DisplayName string `json:"display_name"`
+}
+
+// UserListResponse is the directory envelope, ordered by name with
+// deactivated accounts excluded (FR-23.3).
+type UserListResponse struct {
+	Users []DirectoryUser `json:"users"`
+}
+
+// --- Admin (Addendum 3.23) ---
+
+// AdminUser is one row of the FR-23.2 account overview. DeactivatedAt is null
+// for an active account rather than absent, because the client renders the two
+// states differently and an absent key would read as "unknown".
+type AdminUser struct {
+	UserID      string `json:"user_id"`
+	DisplayName string `json:"display_name"`
+	// Absent where the IdP provided none.
+	Email           string  `json:"email,omitempty"`
+	CreatedAt       string  `json:"created_at"`
+	IsInstanceAdmin bool    `json:"is_instance_admin"`
+	DeactivatedAt   *string `json:"deactivated_at"`
+	TripCount       int     `json:"trip_count"`
+	TemplateCount   int     `json:"template_count"`
+}
+
+// AdminUserListResponse is the overview envelope.
+type AdminUserListResponse struct {
+	Users []AdminUser `json:"users"`
+}
+
+// --- Notifications (FR-6.2) ---
+
+// NotificationEntry is one notification. It is not named Notification because
+// that is a DOM global on the client, and a generated type shadowing it would
+// be a trap rather than a contract.
+type NotificationEntry struct {
+	ID   string `json:"id"`
+	Kind string `json:"kind"`
+	// The teaser the toast and the OS notification render; the deep link
+	// carries the rest. Null where the stored payload was empty.
+	Payload   map[string]any `json:"payload"`
+	CreatedAt string         `json:"created_at"`
+	// Absent while unread.
+	ReadAt *string `json:"read_at,omitempty"`
+}
+
+// NotificationListResponse is the list envelope, newest first.
+type NotificationListResponse struct {
+	Notifications []NotificationEntry `json:"notifications"`
+}
+
+// NotificationPrefs is the per-kind toggle set (UI-Spec M17). The server
+// answers all three keys always — a kind the stored value omits comes back
+// enabled — so none of them is optional on the wire.
+type NotificationPrefs struct {
+	Delegation bool `json:"delegation"`
+	Mention    bool `json:"mention"`
+	Task       bool `json:"task"`
+}
+
+// --- Web Push (NFR-4.6) ---
+
+// VAPIDKeyResponse carries the instance's public VAPID key, generated on
+// first use and persisted beside the database.
+type VAPIDKeyResponse struct {
+	Key string `json:"key"`
+}
+
+// --- Instance configuration ---
+
+// ConfigResponse is what a client cannot know on its own. Unauthenticated and
+// mode-independent on purpose: it carries no per-user data, and Single-User
+// Mode needs the G-3 window too (invariant 5).
+type ConfigResponse struct {
+	LockTimeoutSeconds int64 `json:"lock_timeout_seconds"`
+}
+
+// --- Auth (ADR-007) ---
+
+// AuthConfigResponse tells the client where to send the user to log in. A
+// server without OIDC answers 501 `not_configured` instead, which is how
+// Single-User Mode is discovered (invariant 5).
+type AuthConfigResponse struct {
+	AuthorizeURL string `json:"authorize_url"`
+	ClientID     string `json:"client_id"`
+}
+
+// SessionTokens is the first-party session pair the login broker issues.
+// ExpiresIn is the access token's lifetime in seconds.
+type SessionTokens struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int    `json:"expires_in"`
+}
+
+// --- Acknowledgements ---
+
+// OKResponse is the body of an action that has nothing to report but its own
+// success. It is one type rather than a map at each call site, so the client
+// cannot be written against a key that is spelled differently in one handler.
+type OKResponse struct {
+	OK bool `json:"ok"`
+}
+
 // --- Errors (Sync-API §9) ---
 
 // ErrorCode is the machine-readable half of an error. The client branches on

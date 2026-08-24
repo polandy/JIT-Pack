@@ -5,22 +5,19 @@
  * notifications; it cannot import modules, so keep both in sync.
  */
 
-export interface ServerNotification {
-  id: string
-  kind: string
-  payload: Record<string, unknown>
-  created_at: string
-  read_at?: string | null
-}
+import type { NotificationEntry, NotificationPrefs } from '@/api/types'
 
-export interface NotificationPrefs {
-  delegation: boolean
-  mention: boolean
-  task: boolean
-}
+/**
+ * The server's notification row. Generated from internal/api/wire.go — this
+ * name is the one the client has always used; the generated type is called
+ * NotificationEntry because `Notification` is a DOM global.
+ */
+export type ServerNotification = NotificationEntry
 
-function str(payload: Record<string, unknown>, key: string): string {
-  const v = payload[key]
+export type { NotificationPrefs }
+
+function str(payload: Record<string, unknown> | null, key: string): string {
+  const v = payload?.[key]
   return typeof v === 'string' ? v : ''
 }
 

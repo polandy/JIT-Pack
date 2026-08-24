@@ -13,6 +13,7 @@
  * Single-User and Local Mode there is no second account to share with
  * (FR-17.3/FR-19.3/G-8).
  */
+import type { DirectoryUser } from '@/api/types'
 import {
   IonPage,
   IonContent,
@@ -154,7 +155,7 @@ function removeTraveler(index: number) {
 const mode = localStorage.getItem('jitpack_mode') as 'local' | 'server' | null
 const collaborative = mode === 'server' && !!loadTokens()
 
-const directory = ref<{ user_id: string; display_name: string }[]>([])
+const directory = ref<DirectoryUser[]>([])
 const myUserId = ref<string | null>(null)
 const shares = ref<{ userId: string; role: 'admin' | 'editor' }[]>([])
 

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 )
 
@@ -14,14 +13,9 @@ func (s *Server) handleListUsers(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, ErrInternal, "user listing failed")
 		return
 	}
-	type wireUser struct {
-		UserID      string `json:"user_id"`
-		DisplayName string `json:"display_name"`
-	}
-	out := make([]wireUser, 0, len(users))
+	out := make([]DirectoryUser, 0, len(users))
 	for _, u := range users {
-		out = append(out, wireUser{UserID: u.UserID, DisplayName: u.DisplayName})
+		out = append(out, DirectoryUser{UserID: u.UserID, DisplayName: u.DisplayName})
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{"users": out})
+	writeJSON(w, UserListResponse{Users: out})
 }
