@@ -603,6 +603,28 @@ describe('the closing pass lists what was packed (FR-9.3)', () => {
     expect(names).toEqual(['Stativ'])
   })
 
+  it('keeps a per-person cluster, with only the travelers who packed theirs', () => {
+    const shorts = (travelerId: string, over: Partial<TripItem> = {}) =>
+      item({
+        name: 'Shorts',
+        source_item_id: 'src-shorts',
+        assigned_traveler_id: travelerId,
+        ...over,
+      })
+
+    const result = view([shorts(andy.id, { packed_count: 1, state: 'packed' }), shorts(leo.id)], {
+      packedOnly: true,
+      showDone: true,
+    })
+
+    const [entry] = result.groups[0]?.entries ?? []
+    // The pass asks one question per row, and a cluster's rows are its
+    // children — so the cluster survives with the child that can answer.
+    expect(entry?.kind).toBe('cluster')
+    if (entry?.kind !== 'cluster') return
+    expect(entry.children.map((c) => c.traveler?.name)).toEqual(['Andy'])
+  })
+
   it('leaves the ordinary list alone — packed rows only is the pass, not the screen', () => {
     const names = visibleNames([packed({ name: 'Stativ' }), item({ name: 'Regenjacke' })], {
       showDone: true,

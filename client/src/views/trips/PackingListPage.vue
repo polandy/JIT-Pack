@@ -993,6 +993,11 @@ async function onFlagUnused(item: TripItem, value: boolean) {
  * hundred rows is noise, not confirmation.
  */
 function onPassToggle(item: TripItem) {
+  // G-3 reaches into the leaf: a row somebody else is holding is theirs,
+  // and the pass is no exception. A packed row rarely carries a live claim
+  // — packing ends it — but this control must not be the one place that
+  // decides otherwise.
+  if (locked(item)) return
   orchestrator.setReviewFlag(props.tripId, item, 'unused', !item.flag_unused)
 }
 
@@ -1545,8 +1550,9 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                          the sheet instead of counting. -->
                   <div slot="start" class="row-start" @click.stop.prevent>
                     <!-- A per-person row is judged like any other (FR-9.3). -->
+                    <IonIcon v-if="locked(child.item)" :icon="lockClosedOutline" class="lock" />
                     <button
-                      v-if="closingPass"
+                      v-else-if="closingPass"
                       class="pass-toggle"
                       :class="{ on: child.item.flag_unused }"
                       :aria-pressed="child.item.flag_unused"
@@ -1556,11 +1562,6 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                     >
                       <IonIcon :icon="removeCircleOutline" />
                     </button>
-                    <IonIcon
-                      v-else-if="locked(child.item)"
-                      :icon="lockClosedOutline"
-                      class="lock"
-                    />
                     <QuantityStepper
                       v-else
                       :quantity="child.item.quantity"
@@ -1627,8 +1628,9 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                        a checkbox is M4's *packed* idiom, so the mark gets a
                        control of its own that renders off the row rather
                        than off its own internal state. -->
+                  <IonIcon v-if="locked(entry.item)" :icon="lockClosedOutline" class="lock" />
                   <button
-                    v-if="closingPass"
+                    v-else-if="closingPass"
                     class="pass-toggle"
                     :class="{ on: entry.item.flag_unused }"
                     :aria-pressed="entry.item.flag_unused"
@@ -1638,7 +1640,6 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                   >
                     <IonIcon :icon="removeCircleOutline" />
                   </button>
-                  <IonIcon v-else-if="locked(entry.item)" :icon="lockClosedOutline" class="lock" />
                   <QuantityStepper
                     v-else
                     :quantity="entry.item.quantity"
