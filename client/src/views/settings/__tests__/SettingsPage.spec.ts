@@ -35,7 +35,7 @@ vi.mock('@/notifications/push', () => ({
 const orchestratorFake = {
   fetchMe: vi.fn(() => Promise.resolve({ user_id: 'u1', display_name: 'Andy' })),
   fetchNotificationPrefs: vi.fn(() =>
-    Promise.resolve({ delegation: true, mention: true, task: false }),
+    Promise.resolve({ delegation: true, mention: true, task: false, lock_taken: true }),
   ),
   saveNotificationPrefs: vi.fn(),
   drainAll: vi.fn(() => Promise.resolve()),
@@ -72,6 +72,9 @@ describe('M17 notification preferences (NFR-4.12)', () => {
     expect(wrapper.text()).toContain('An item was handed to you to pack')
     expect(wrapper.text()).toContain('Mentions')
     expect(wrapper.text()).toContain('Tasks')
+    // FR-5.7's kind is a row like any other: switching it off has to stop
+    // the notification at the source, which needs a toggle to switch.
+    expect(wrapper.text()).toContain('Items taken over')
   })
 
   it('renders them in German once the language is German', async () => {
@@ -82,6 +85,7 @@ describe('M17 notification preferences (NFR-4.12)', () => {
     expect(wrapper.text()).toContain('Ein Packelement wurde dir zum Packen übergeben')
     expect(wrapper.text()).toContain('Erwähnungen')
     expect(wrapper.text()).toContain('Aufgaben')
+    expect(wrapper.text()).toContain('Übernommene Artikel')
     // And the English is gone rather than merely joined by the German.
     expect(wrapper.text()).not.toContain('Delegations')
   })

@@ -30,6 +30,18 @@ describe('describeNotification', () => {
       want: 'Sarah opened a task on “Kocher”',
     },
     {
+      // FR-5.7: the one kind the recipient did not set in motion, so the
+      // wording has to say what happened rather than only who did it.
+      name: 'a claim taken over',
+      n: notif('lock_taken', { actor_name: 'Sarah', item_name: 'Zelt' }),
+      want: 'Sarah took “Zelt” over from you',
+    },
+    {
+      name: 'a claim taken over, item unnamed',
+      n: notif('lock_taken', { actor_name: 'Sarah' }),
+      want: 'Sarah took an item over from you',
+    },
+    {
       name: 'unknown kind falls back gracefully',
       n: notif('shiny_new_kind', { actor_name: 'Andy' }),
       want: 'Andy sent you a notification',

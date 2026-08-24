@@ -25,12 +25,14 @@ import type {
   AdminUserListResponse,
   ConflictEntry,
   ConflictListResponse,
-  ConfigResponse,
   DirectoryUser,
+  LockEvent,
+  LockEventListResponse,
   MeResponse,
   NotificationListResponse,
   PresenceMember,
   PullChange,
+  TakeoverResponse,
   UserListResponse,
   VAPIDKeyResponse,
   WSEvent,
@@ -96,7 +98,7 @@ import type {
 // that neither can drift from what the server sends — the conflict entry had
 // already lost `mutation_id` and `actor_user_id` that way.
 export type PresenceUser = PresenceMember
-export type { ConflictEntry }
+export type { ConflictEntry, LockEvent }
 
 /** Everything the M3 wizard collected before "Create trip". */
 export interface TripWizardDraft {
@@ -210,13 +212,6 @@ const TRIP_STORE_TABLES: ReadonlySet<string> = new Set<string>([
   TABLE.tripAppliedChanges,
 ])
 
-/**
- * The G-3 lock staleness window a client falls back to (Sync-API §7): the
- * shipped default an instance may override with JITPACK_LOCK_TIMEOUT, and
- * the only window Local Mode ever uses.
- */
-export const DEFAULT_LOCK_TIMEOUT_MS = 15 * 60 * 1000
-
 const MASTER_STORE_TABLES: ReadonlySet<string> = new Set<string>([
   TABLE.tags,
   TABLE.itemTags,
@@ -250,37 +245,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   // the synced packing_now state. myLocks marks claims made on this
   // device — the client may not know its own user id, so identity
   // comparison against packing_now_by is not reliable.
-  // §7's staleness window. The 15 minutes are the *shipped default*, not
-  // the rule: the instance decides via JITPACK_LOCK_TIMEOUT and answers
-  // with it on GET /api/v1/config, so a household that packs slowly can
-  // widen it without a client build. Reactive because a row that stops
-  // being locked has to repaint.
-  const lockTimeoutMs = ref(DEFAULT_LOCK_TIMEOUT_MS)
-  const itemLocks = ref<Map<string, Map<string, { by_user: string; at: number }>>>(new Map())
+  //
+  // There is no staleness window (FR-5.7, ADR-028): a claim is claimed
+  // until a person ends it, so a lock is never judged by its age.
+  const itemLocks = ref<Map<string, Map<string, { by_user: string }>>>(new Map())
   const myLocks = new Set<string>()
-
-  /**
-   * fetchLockTimeout asks the instance for its G-3 window (Sync-API §7).
-   * Local Mode has no server and no second packer, and an instance that
-   * cannot answer keeps the shipped default — the window is advisory, so
-   * a missing answer must never leave every row unlocked or every row
-   * locked forever.
-   */
-  async function fetchLockTimeout(): Promise<void> {
-    if (local) return
-    try {
-      const resp = await client.get<ConfigResponse>(API.config)
-      const seconds = resp.lock_timeout_seconds
-      if (typeof seconds === 'number' && seconds > 0) lockTimeoutMs.value = seconds * 1000
-    } catch {
-      // Default stands.
-    }
-  }
-
-  /** Whether a claim made at `at` is still inside the §7 window. */
-  function lockIsFresh(at: number): boolean {
-    return Date.now() - at < lockTimeoutMs.value
-  }
 
   function isLockedByOther(tripId: string, item: TripItem): boolean {
     return lockHolder(tripId, item) !== null
@@ -295,13 +264,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function lockHolder(tripId: string, item: TripItem): string | null {
     if (myLocks.has(item.id)) return null
     const ephemeral = itemLocks.value.get(tripId)?.get(item.id)
-    if (ephemeral && lockIsFresh(ephemeral.at)) return ephemeral.by_user
+    if (ephemeral) return ephemeral.by_user
     if (item.state !== 'packing_now') return null
-    // No timestamp — assume fresh: a claim we cannot date is likelier to
-    // be live than abandoned, and the cost of the wrong guess is a row
-    // that waits rather than one that is overwritten.
-    if (!item.packing_now_at) return item.packing_now_by ?? ''
-    if (!lockIsFresh(Date.parse(item.packing_now_at))) return null
     return item.packing_now_by ?? ''
   }
 
@@ -315,34 +279,21 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return myLocks.has(item.id) && item.state === 'packing_now'
   }
 
-  /**
-   * staleClaim answers who *had* claimed this row, once the §7 window has
-   * passed and the claim stopped counting. `lockHolder` deliberately says
-   * nothing then — the row is operable again — but a row that simply
-   * stops being locked explains nothing to whoever was waiting for it,
-   * and the claim itself does not go away: nothing clears `packing_now`
-   * except packing or a release, so the row would otherwise sit in a
-   * state it no longer honours, indefinitely and silently.
-   */
-  function staleClaim(tripId: string, item: TripItem): string | null {
-    if (myLocks.has(item.id)) return null
-    if (item.state !== 'packing_now') return null
-    if (!item.packing_now_at) return null
-    if (lockIsFresh(Date.parse(item.packing_now_at))) return null
-    const ephemeral = itemLocks.value.get(tripId)?.get(item.id)
-    if (ephemeral && lockIsFresh(ephemeral.at)) return null
-    return item.packing_now_by ?? ''
-  }
-
   function setItemLock(tripId: string, itemId: string, byUser: string) {
     const next = new Map(itemLocks.value)
     const tripLocks = new Map(next.get(tripId) ?? [])
-    tripLocks.set(itemId, { by_user: byUser, at: Date.now() })
+    tripLocks.set(itemId, { by_user: byUser })
     next.set(tripId, tripLocks)
     itemLocks.value = next
   }
 
-  function clearItemLock(tripId: string, itemId: string) {
+  /**
+   * clearEphemeralLock drops the WS-delivered lock without touching
+   * `myLocks`, which `clearItemLock` also clears: after a takeover the
+   * row *is* mine, so forgetting that would make my own claim render as
+   * somebody else's.
+   */
+  function clearEphemeralLock(tripId: string, itemId: string) {
     const tripLocks = itemLocks.value.get(tripId)
     if (!tripLocks?.has(itemId)) return
     const next = new Map(itemLocks.value)
@@ -350,6 +301,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     cleared.delete(itemId)
     next.set(tripId, cleared)
     itemLocks.value = next
+  }
+
+  function clearItemLock(tripId: string, itemId: string) {
+    clearEphemeralLock(tripId, itemId)
     myLocks.delete(itemId)
   }
 
@@ -817,6 +772,47 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         row: { ...itemRow(item), ...mut.fields },
       },
     })
+  }
+
+  /**
+   * takeOverClaim ends somebody else's claim and starts mine, in one step
+   * (FR-5.7). It is the only part of G-3's lock that goes through the
+   * server rather than the outbox: only the server can stamp who took
+   * over (invariant 3) and notify the account it was taken from, and a
+   * client cannot send itself a notification.
+   *
+   * Nothing is written optimistically. An outbox mutation would have to
+   * be undone when the server refuses — the row may have been packed or
+   * released in the meantime — and a taker shown a claim they do not hold
+   * is the one outcome worse than waiting for the answer. The row arrives
+   * by the drain below, like every other server-originated change.
+   *
+   * Returns who was holding it, which the confirmation named beforehand
+   * and the snackbar names afterwards. Local Mode has no server and no
+   * second person, so the surface never reaches here (G-8).
+   */
+  async function takeOverClaim(tripId: string, item: TripItem): Promise<string> {
+    if (local) return ''
+    const resp = await client.post<TakeoverResponse>(API.tripItemTakeover(tripId, item.id))
+    // The claim is mine from here: `myLocks` is how this device knows a
+    // row is its own, and without it the row I just took would render as
+    // locked against me.
+    myLocks.add(item.id)
+    clearEphemeralLock(tripId, item.id)
+    await drainTrip(tripId)
+    return resp.previous_holder ?? ''
+  }
+
+  /**
+   * fetchLockEvents reads the trip's takeover record (FR-5.7) — who took
+   * what from whom. Deliberately not part of the conflict log: that one
+   * holds merge losers, and a list of two unrelated kinds of event stops
+   * being readable (ADR-028).
+   */
+  async function fetchLockEvents(tripId: string): Promise<LockEvent[]> {
+    if (local) return []
+    const resp = await client.get<LockEventListResponse>(API.tripLockEvents(tripId), {})
+    return resp.lock_events
   }
 
   /**
@@ -2981,10 +2977,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     revertConflict,
     isLockedByOther,
     holdsClaim,
-    staleClaim,
     releaseClaim,
+    takeOverClaim,
+    fetchLockEvents,
     lockHolder,
-    fetchLockTimeout,
 
     // Drain
     drainTrip,

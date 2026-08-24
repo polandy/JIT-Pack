@@ -65,7 +65,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-M15-05, E2E-M15-09 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-M15-05 — the spreadsheet import, added 2026-08-23, and M15's first
 case of any kind.** Until it, M15 had **no** e2e coverage — four written
@@ -1509,3 +1509,32 @@ refusal would be a different concurrency model, not a bug fix — it would put
 a permanent 4xx in front of an offline device that packed a row somebody
 claimed after it went offline, which is the outbox-wedge shape PR #156 had
 just removed. That is an owner decision, and it is left as one.
+
+## E2E-G3-02 — the half of a takeover that a single identity can prove (2026-08-24)
+
+FR-5.7 removed the staleness window, so the case that used to advance the
+clock past `JITPACK_LOCK_TIMEOUT` had nothing left to assert. What replaced
+the window is the takeover, and **the takeover cannot be driven here at all**.
+
+The reason is not a missing fixture. The `single` project's two browser
+contexts are the same Single-User identity — that is exactly the trick
+E2E-G3-03 relies on, since B never claimed the row and therefore treats the
+claim as foreign. A takeover is different: it asks the *server* who holds the
+row, and the server sees one user on both sides. `TakeOverClaim` refuses a
+takeover of one's own claim, correctly, so the case would assert a 409.
+Seeding a token changes nothing — the backend stamps its single user either
+way.
+
+So the case asserts the promise that *is* reachable and is a requirement in
+its own right: **where there is no second account, a claimed row offers no
+action at all** (G-8 — absent, not shown and then refused). Its positive
+signal is the lock note on B's row, so "no action sheet" means the mode gate
+rather than a row that never arrived or was never claimed.
+
+The rest of E2E-G3-02 is owed by the future mock-IdP `server` project, beside
+E2E-G3-01's identity half, which has been waiting at the same wall since
+2026-08-22. Until then the takeover's mechanism is covered by Go API tests
+(the claim moves, the holder is notified, each refusal answers its own code)
+and by orchestrator units (nothing is written optimistically, a refusal leaves
+the claim where it was) — and the *screen* is covered by neither. Saying so
+here is the point of this ledger.

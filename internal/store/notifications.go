@@ -17,10 +17,14 @@ const (
 	NotifyDelegation = "delegation"
 	NotifyMention    = "mention"
 	NotifyTask       = "task"
+	// NotifyLockTaken tells the holder of a claim that somebody took the
+	// row over (FR-5.7). It is the one kind the person notified did not
+	// set in motion themselves, which is exactly why it exists.
+	NotifyLockTaken = "lock_taken"
 )
 
 // notificationKinds is the closed set of valid preference keys.
-var notificationKinds = []string{NotifyDelegation, NotifyMention, NotifyTask}
+var notificationKinds = []string{NotifyDelegation, NotifyMention, NotifyTask, NotifyLockTaken}
 
 // NotificationKinds returns the closed set of preference keys. It is a copy:
 // the set is closed, and a caller able to append to it could widen what

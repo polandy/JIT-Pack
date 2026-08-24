@@ -246,6 +246,8 @@ type NotificationPrefs struct {
 	Delegation bool `json:"delegation"`
 	Mention    bool `json:"mention"`
 	Task       bool `json:"task"`
+	// FR-5.7: somebody took over a row this user had claimed.
+	LockTaken bool `json:"lock_taken"`
 }
 
 // --- Web Push (NFR-4.6) ---
@@ -254,15 +256,6 @@ type NotificationPrefs struct {
 // first use and persisted beside the database.
 type VAPIDKeyResponse struct {
 	Key string `json:"key"`
-}
-
-// --- Instance configuration ---
-
-// ConfigResponse is what a client cannot know on its own. Unauthenticated and
-// mode-independent on purpose: it carries no per-user data, and Single-User
-// Mode needs the G-3 window too (invariant 5).
-type ConfigResponse struct {
-	LockTimeoutSeconds int64 `json:"lock_timeout_seconds"`
 }
 
 // --- Auth (ADR-007) ---
@@ -292,6 +285,36 @@ type OKResponse struct {
 	OK bool `json:"ok"`
 }
 
+// --- Takeovers (Sync-API §8, FR-5.7) ---
+
+// TakeoverResponse is what a takeover answers. Like a revert it is an
+// ordinary change-log entry underneath (ADR-028), so the caller learns the
+// row's new state by pulling from the hint. PreviousHolder is what the
+// screen needs on the way back: the confirmation named the holder before
+// the fact, and the snackbar afterwards names whom it was taken from.
+type TakeoverResponse struct {
+	OK             bool     `json:"ok"`
+	PreviousHolder string   `json:"previous_holder"`
+	PullHint       PullHint `json:"pull_hint"`
+}
+
+// LockEvent is one recorded takeover. The item is named rather than only
+// referenced because the record has to stay readable after the row it names
+// is deleted — a line saying "took over 4f3a…" answers nothing.
+type LockEvent struct {
+	ID         string `json:"id"`
+	TripItemID string `json:"trip_item_id"`
+	ItemName   string `json:"item_name"`
+	FromUserID string `json:"from_user_id"`
+	ToUserID   string `json:"to_user_id"`
+	CreatedAt  string `json:"created_at"`
+}
+
+// LockEventListResponse is a trip's takeover record, newest first.
+type LockEventListResponse struct {
+	LockEvents []LockEvent `json:"lock_events"`
+}
+
 // --- Errors (Sync-API §9) ---
 
 // ErrorCode is the machine-readable half of an error. The client branches on
@@ -315,6 +338,8 @@ const (
 	ErrAlreadyReverted      ErrorCode = "already_reverted"
 	ErrRevertRefused        ErrorCode = "revert_refused"
 	ErrRowDeleted           ErrorCode = "row_deleted"
+	ErrClaimNotHeld         ErrorCode = "claim_not_held"
+	ErrClaimIsOwn           ErrorCode = "claim_is_own"
 	ErrIDPError             ErrorCode = "idp_error"
 	ErrIDPUnreachable       ErrorCode = "idp_unreachable"
 )
@@ -360,6 +385,8 @@ const (
 	RouteTripSync           = "/api/v1/trips/{tripID}/sync"
 	RouteTripConflicts      = "/api/v1/trips/{tripID}/conflicts"
 	RouteTripConflictRevert = "/api/v1/trips/{tripID}/conflicts/{conflictID}/revert"
+	RouteTripItemTakeover   = "/api/v1/trips/{tripID}/items/{itemID}/takeover"
+	RouteTripLockEvents     = "/api/v1/trips/{tripID}/lock-events"
 	RouteTripExportCSV      = "/api/v1/trips/{tripID}/export.csv"
 
 	// Master scope — the partition that belongs to no trip, so its scope
@@ -401,7 +428,6 @@ const (
 	RouteAuthToken   = "/api/v1/auth/token"
 	RouteAuthRefresh = "/api/v1/auth/refresh"
 	RouteAuthConfig  = "/api/v1/auth/config"
-	RouteConfig      = "/api/v1/config"
 
 	// Outside the versioned surface on purpose: the socket carries the
 	// versioned frame in its payload, and a health probe is not an API.

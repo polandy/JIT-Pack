@@ -278,6 +278,8 @@ export interface NotificationPrefs {
   delegation: boolean
   mention: boolean
   task: boolean
+  // FR-5.7: somebody took over a row this user had claimed.
+  lock_taken: boolean
 }
 
 /**
@@ -286,15 +288,6 @@ export interface NotificationPrefs {
  */
 export interface VAPIDKeyResponse {
   key: string
-}
-
-/**
- * ConfigResponse is what a client cannot know on its own. Unauthenticated and
- * mode-independent on purpose: it carries no per-user data, and Single-User
- * Mode needs the G-3 window too (invariant 5).
- */
-export interface ConfigResponse {
-  lock_timeout_seconds: number
 }
 
 /**
@@ -327,6 +320,40 @@ export interface OKResponse {
 }
 
 /**
+ * TakeoverResponse is what a takeover answers. Like a revert it is an
+ * ordinary change-log entry underneath (ADR-028), so the caller learns the
+ * row's new state by pulling from the hint. PreviousHolder is what the
+ * screen needs on the way back: the confirmation named the holder before
+ * the fact, and the snackbar afterwards names whom it was taken from.
+ */
+export interface TakeoverResponse {
+  ok: boolean
+  previous_holder: string
+  pull_hint: PullHint
+}
+
+/**
+ * LockEvent is one recorded takeover. The item is named rather than only
+ * referenced because the record has to stay readable after the row it names
+ * is deleted — a line saying "took over 4f3a…" answers nothing.
+ */
+export interface LockEvent {
+  id: string
+  trip_item_id: string
+  item_name: string
+  from_user_id: string
+  to_user_id: string
+  created_at: string
+}
+
+/**
+ * LockEventListResponse is a trip's takeover record, newest first.
+ */
+export interface LockEventListResponse {
+  lock_events: LockEvent[]
+}
+
+/**
  * ErrorCode is the machine-readable half of an error. The client branches on
  * these values, so they are named once here and generated into the client
  * rather than spelled again as literals (CODING_PRINCIPLES §4a).
@@ -346,6 +373,8 @@ export type ErrorCode =
   | 'already_reverted'
   | 'revert_refused'
   | 'row_deleted'
+  | 'claim_not_held'
+  | 'claim_is_own'
   | 'idp_error'
   | 'idp_unreachable'
 
@@ -364,6 +393,8 @@ export const ERROR_CODE = {
   already_reverted: 'already_reverted',
   revert_refused: 'revert_refused',
   row_deleted: 'row_deleted',
+  claim_not_held: 'claim_not_held',
+  claim_is_own: 'claim_is_own',
   idp_error: 'idp_error',
   idp_unreachable: 'idp_unreachable',
 } as const

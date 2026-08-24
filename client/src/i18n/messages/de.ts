@@ -130,9 +130,17 @@ export const de: Record<keyof typeof en, string> = {
   'packing.packedByUnknown': 'gepackt · {when}',
   'packing.responsibleWas': 'zuständig war {who}',
   'packing.claimedByMe': 'Du packst das — die anderen können es gerade nicht ändern',
-  'packing.claimStale': '{who} hat vor über 15 Minuten begonnen — du kannst übernehmen',
-  'packing.claimStaleUnknown': 'Jemand hat vor über 15 Minuten begonnen — du kannst übernehmen',
   'packing.releaseAction': 'Artikel wieder freigeben',
+  'packing.takeoverAction': 'Übernehmen',
+  'packing.takeoverConfirmTitle': 'Artikel übernehmen?',
+  'packing.takeoverConfirmBody':
+    '{who} packt „{item}" gerade. Wenn du übernimmst, gehört der Artikel dir — und {who} wird benachrichtigt.',
+  'packing.takeoverConfirmBodyUnknown':
+    'Jemand packt „{item}" gerade. Wenn du übernimmst, gehört der Artikel dir — und die Person wird benachrichtigt.',
+  'packing.takeoverDone': 'Von {who} übernommen',
+  'packing.takeoverDoneUnknown': 'Übernommen',
+  'packing.takeoverFailed':
+    'Nicht übernommen — der Artikel wird gerade nicht mehr von jemandem gepackt.',
   'packing.lockedBy': '{who} packt das gerade',
   'packing.lockedByUnknown': 'Jemand packt das gerade',
   'packing.lockedHint': 'Bis dahin nur zum Anschauen.',
@@ -483,6 +491,8 @@ export const de: Record<keyof typeof en, string> = {
   'settings.prefMentionHint': 'Jemand hat @dich in einem Kommentar erwähnt',
   'settings.prefTask': 'Aufgaben',
   'settings.prefTaskHint': 'Zu deinem Packelement wurde eine Aufgabe eröffnet',
+  'settings.prefLockTaken': 'Übernommene Artikel',
+  'settings.prefLockTakenHint': 'Jemand hat einen Artikel übernommen, den du gerade gepackt hast',
   'settings.push': 'Push auf diesem Gerät',
   'settings.pushHint': 'Systemmeldungen, während die App geschlossen ist',
   'settings.pushUnsupported': 'Von diesem Browser nicht unterstützt',
@@ -886,6 +896,8 @@ export const de: Record<keyof typeof en, string> = {
 
   // G-2 Konfliktprotokoll (NFR-4.2a).
   'conflicts.title': 'Konfliktprotokoll',
+  'conflicts.takeoverSection': 'Übernommene Artikel',
+  'conflicts.takeoverLine': '{to} hat den Artikel von {from} übernommen',
   'conflicts.titleMaster': 'Konflikte · Stammdaten',
   'conflicts.unavailable': 'Konfliktprotokoll nicht verfügbar — offline?',
   'conflicts.empty': 'Keine Konflikte — alles sauber zusammengeführt',

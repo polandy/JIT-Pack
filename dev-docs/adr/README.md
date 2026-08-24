@@ -33,6 +33,7 @@ One file per decision, named `ADR-00N_Short_Title.md`, numbered in the order the
 | [025](ADR-025_One_Importer.md) | One implementation of the portable format: the server's reader *and* writer are deleted and the CLI runs the client's, over porting them to Go behind a shared conformance corpus (ADR-008, FR-18.7) | Accepted |
 | [026](ADR-026_Generated_Wire_Contract.md) | The client/server contract is declared once in Go and the client's types are generated from it with a CI gate, over a hand-kept OpenAPI file or a compare-only gate (NFR-4.14) | Accepted |
 | [027](ADR-027_Route_Shapes.md) | A route names its scope first, then the resource — the master partition's scope segment is `master` and an export names its format — over a collection-first shape that would exempt the sync channel (NFR-4.14) | Accepted |
+| [028](ADR-028_Claims_End_By_Decision.md) | A packing claim ends by decision — taken over by a named person, notified and recorded — over expiring on a clock, or expiring with an announcement, which costs the same and still lets a duration overrule a person (FR-5.7/FR-5.3) | Accepted |
 
 **Outbound Content Fetching** — `Vision_NorthStar` names this as the gate that must exist before any Plan-phase feature makes the server fetch external content. It had informally reserved number 007, which Session Brokering has since taken; it gets the next free number when it is written.
 
