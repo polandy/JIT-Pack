@@ -140,13 +140,13 @@ setHeaderTitle(() => t('shopping.headerTitle', { trip: trip.value?.name ?? '' })
 
 <template>
   <IonPage>
-    <IonContent>
+    <IonContent data-testid="m6-page">
       <!-- ADR-011: a view switcher is page content, not header chrome. -->
       <IonSegment :value="tab" @ionChange="(e: CustomEvent) => (tab = e.detail.value)">
-        <IonSegmentButton value="buy_before">
+        <IonSegmentButton value="buy_before" data-testid="m6-tab-before">
           <IonLabel>{{ t('shopping.beforeDeparture', { n: lists.buyBefore.length }) }}</IonLabel>
         </IonSegmentButton>
-        <IonSegmentButton value="buy_local">
+        <IonSegmentButton value="buy_local" data-testid="m6-tab-local">
           <IonLabel>{{ t('shopping.atDestination', { n: lists.buyLocal.length }) }}</IonLabel>
         </IonSegmentButton>
       </IonSegment>

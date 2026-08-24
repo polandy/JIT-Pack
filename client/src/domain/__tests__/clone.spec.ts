@@ -48,6 +48,7 @@ function tripItem(over: Partial<TripItem> = {}): TripItem {
     container_id: null,
     packing_now_by: null,
     packing_now_at: null,
+    bought_from: null,
     flag_unused: true,
     flag_missing: false,
     updated_hlc: '',
