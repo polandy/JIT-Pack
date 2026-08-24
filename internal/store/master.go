@@ -92,8 +92,8 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 			// row syncs like any other so every device learns the roster.
 			memberID := randomID()
 			if _, err := tx.ExecContext(ctx,
-				`INSERT INTO trip_members (id, trip_id, user_id, role, updated_hlc) VALUES (?, ?, ?, 'owner', ?)`,
-				memberID, m.ID, userID, string(m.HLC)); err != nil {
+				`INSERT INTO trip_members (id, trip_id, user_id, role, updated_hlc) VALUES (?, ?, ?, ?, ?)`,
+				memberID, m.ID, userID, RoleOwner, string(m.HLC)); err != nil {
 				return MutationResult{}, fmt.Errorf("creator membership: %w", err)
 			}
 			member := sync.Mutation{Table: TableTripMembers, ID: memberID, HLC: m.HLC}
