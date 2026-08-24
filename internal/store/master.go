@@ -81,9 +81,10 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 	changed, err := persist(ctx, tx, m.Table, m, merged, row.Exists)
 	if err != nil {
 		if isConstraintViolation(err) {
-			// e.g. deleting an item still referenced by a template, or two
-			// admins racing to add the same member (UNIQUE): the statement
-			// failed, the transaction survives — reject cleanly.
+			// What is left after the pre-check above: two admins racing to
+			// add the same member (UNIQUE), a mutation naming a parent that
+			// is gone (FK), values a CHECK refuses. The statement failed and
+			// the transaction survives — reject cleanly.
 			res.Outcome = sync.OutcomeRejected
 			res.Reason = ReasonConstraintViolated
 			res.Conflicts = nil
