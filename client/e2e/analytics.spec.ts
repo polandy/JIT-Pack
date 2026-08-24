@@ -200,6 +200,8 @@ test.describe('M12 analytics @local @m12', () => {
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
     await page.getByTestId('m4-archive').click()
+    // FR-9.3: the archive action opens the closing pass; *Fertig* archives.
+    await page.getByTestId('m4-pass-finish').click()
 
     // This year's trip, in the same series.
     await createTripViaWizard(page, {
