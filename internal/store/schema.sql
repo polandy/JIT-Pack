@@ -276,6 +276,15 @@ CREATE TABLE trip_items (
                          CHECK (state IN ('open','packing_now','partial','packed','skipped')),
     mode                 TEXT NOT NULL DEFAULT 'pack'
                          CHECK (mode IN ('pack','buy_before','buy_local')), -- FR-3.1/3.3
+    -- Which shopping list the row was bought from (FR-25.11j). Buying a
+    -- BUY_BEFORE row *changes* its mode (FR-3.3), so without this record the
+    -- row is gone from the shopping side and the purchase cannot be undone.
+    -- Deliberately nullable and independent of `mode`: field-level LWW merges
+    -- fields one at a time (NFR-4.2a), so a NOT NULL, or a CHECK tying the two
+    -- together, would refuse an ordinary single-field mutation — and a
+    -- rejected mutation leaves the outbox, taking the user's change with it.
+    -- Same vocabulary as `mode`, because the value is one.
+    bought_from          TEXT CHECK (bought_from IN ('pack','buy_before','buy_local')), -- FR-25.11j
     late_packer          INTEGER NOT NULL DEFAULT 0 CHECK (late_packer IN (0,1)), -- FR-5.1
     assigned_traveler_id TEXT REFERENCES travelers(id),   -- FR-4.2 "Assigned to"
     -- Since FR-25.19 this is the *assignment*; packed_by_user_id below is the
