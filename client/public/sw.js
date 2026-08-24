@@ -120,6 +120,11 @@ self.addEventListener('push', (event) => {
     case 'task':
       body = item ? `${actor} opened a task on “${item}”` : `${actor} opened a task for you`
       break
+    case 'lock_taken':
+      body = item
+        ? `${actor} took “${item}” over from you`
+        : `${actor} took an item over from you`
+      break
     default:
       body = `${actor} sent you a notification`
   }

@@ -143,7 +143,12 @@ describe('notification endpoints', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     fetchMock.mockResolvedValueOnce(new Response('{"ok":true}', { status: 200 }))
 
-    await orch.saveNotificationPrefs({ delegation: false, mention: true, task: true })
+    await orch.saveNotificationPrefs({
+      delegation: false,
+      mention: true,
+      task: true,
+      lock_taken: false,
+    })
 
     const [url, init] = fetchMock.mock.calls[0]!
     expect(String(url)).toContain('/api/v1/me/notification-prefs')
@@ -152,6 +157,7 @@ describe('notification endpoints', () => {
       delegation: false,
       mention: true,
       task: true,
+      lock_taken: false,
     })
   })
 

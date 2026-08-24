@@ -152,10 +152,19 @@ func (s *Server) notifyDelegation(ctx context.Context, tripID, actor, actorName 
 		return
 	}
 	s.createAndNotify(ctx, target, store.NotifyDelegation, map[string]any{
-		"trip_id": tripID, "item_id": m.ID,
-		"actor_id": actor, "actor_name": actorName, "item_name": itemName,
+		payloadTripID: tripID, payloadItemID: m.ID,
+		payloadActorID: actor, payloadActorName: actorName, payloadItemName: itemName,
 	})
 }
+
+// Payload keys shared by every notification kind (FR-6.3 deep link).
+const (
+	payloadTripID    = "trip_id"
+	payloadItemID    = "item_id"
+	payloadItemName  = "item_name"
+	payloadActorID   = "actor_id"
+	payloadActorName = "actor_name"
+)
 
 // notifyComment fires mention notifications for @display-name matches
 // and a task notification to the item's packer when the comment is a
@@ -164,8 +173,8 @@ func (s *Server) notifyDelegation(ctx context.Context, tripID, actor, actorName 
 func (s *Server) notifyComment(ctx context.Context, tripID, actor, actorName string, m syncpkg.Mutation, members []store.MemberName) {
 	body, _ := m.Fields["body"].(string)
 	payload := map[string]any{
-		"trip_id": tripID, "comment_id": m.ID,
-		"actor_id": actor, "actor_name": actorName, "preview": truncate(body, previewLen),
+		payloadTripID: tripID, "comment_id": m.ID,
+		payloadActorID: actor, payloadActorName: actorName, "preview": truncate(body, previewLen),
 	}
 	notified := map[string]bool{}
 
@@ -175,8 +184,8 @@ func (s *Server) notifyComment(ctx context.Context, tripID, actor, actorName str
 			slog.Error("notification item lookup", "item", itemID, "error", err)
 			return
 		}
-		payload["item_id"] = itemID
-		payload["item_name"] = itemName
+		payload[payloadItemID] = itemID
+		payload[payloadItemName] = itemName
 		if isTruthy(m.Fields["is_task"]) && packer != "" && packer != actor {
 			s.createAndNotify(ctx, packer, store.NotifyTask, payload)
 			notified[packer] = true

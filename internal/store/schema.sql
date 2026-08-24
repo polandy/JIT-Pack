@@ -438,6 +438,21 @@ CREATE TABLE conflict_log (
     reverted      INTEGER NOT NULL DEFAULT 0 CHECK (reverted IN (0,1))
 );
 
+-- Who took a packing claim from whom (FR-5.7). Its own table beside
+-- conflict_log rather than a row in it (ADR-028): that one holds merge
+-- losers, and one table for two unrelated kinds of event is how a log
+-- stops being readable. item_name is stored rather than joined so the
+-- record stays readable after the row it names is deleted.
+CREATE TABLE lock_events (
+    id           TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    trip_id      TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    trip_item_id TEXT NOT NULL,
+    item_name    TEXT NOT NULL,
+    from_user_id TEXT NOT NULL REFERENCES users(id),
+    to_user_id   TEXT NOT NULL REFERENCES users(id),
+    created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
 -- Idempotency memo of the push endpoint.
 CREATE TABLE mutations (
     mutation_id TEXT PRIMARY KEY,
@@ -454,6 +469,7 @@ CREATE INDEX idx_change_log_master ON change_log (seq) WHERE trip_id IS NULL;
 CREATE INDEX idx_change_log_trip   ON change_log (trip_id, seq);
 CREATE INDEX idx_item_dependencies_main ON item_dependencies (depends_on_item_id);
 CREATE INDEX idx_item_tags_tag ON item_tags (tag_id);
+CREATE INDEX idx_lock_events_trip ON lock_events (trip_id, created_at DESC);
 CREATE INDEX idx_notifications_user ON notifications (user_id, created_at DESC);
 CREATE INDEX idx_push_subscriptions_user ON push_subscriptions (user_id);
 CREATE INDEX idx_sessions_user ON sessions(user_id);

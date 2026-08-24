@@ -2,10 +2,8 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"strings"
-	"time"
 )
 
 // Config holds the startup-time configuration read from environment
@@ -41,13 +39,6 @@ type Config struct {
 	// matched case-insensitively against the verified email the UserInfo
 	// endpoint reports at login. Empty ⇒ the feature is dormant.
 	AdminEmails []string // JITPACK_ADMIN_EMAILS
-
-	// LockTimeout is the G-3 staleness window (Sync-API §7): a
-	// `packing_now` claim older than this is ignored, so a device that
-	// went offline mid-pack never holds a row hostage. A Go duration
-	// ("15m", "90s"). Zero means unset — api.DefaultLockTimeout then
-	// stands, so the 15 minutes are written in exactly one place.
-	LockTimeout time.Duration // JITPACK_LOCK_TIMEOUT
 }
 
 // LoadConfig reads configuration from the environment. It returns an
@@ -75,12 +66,6 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 		AdminEmails: splitList(getenv("JITPACK_ADMIN_EMAILS")),
 	}
 
-	lockTimeout, err := parseLockTimeout(getenv("JITPACK_LOCK_TIMEOUT"))
-	if err != nil {
-		return Config{}, err
-	}
-	c.LockTimeout = lockTimeout
-
 	if c.SingleUser {
 		if c.LocalUserID == "" {
 			return Config{}, errors.New("JITPACK_LOCAL_USER_ID is required in single-user mode")
@@ -103,25 +88,6 @@ func loadConfigFrom(getenv func(string) string) (Config, error) {
 		return Config{}, errors.New("JITPACK_OIDC_ISSUER, JITPACK_OIDC_CLIENT_ID, and JITPACK_OIDC_CLIENT_SECRET must be set together")
 	}
 	return c, nil
-}
-
-// parseLockTimeout reads the G-3 window. A value that cannot be parsed,
-// or one that is not positive, is refused rather than quietly replaced
-// by the default: "0s" would switch G-3 off, and an operator who typed
-// it deserves to hear about it at startup instead of at the first
-// collision.
-func parseLockTimeout(raw string) (time.Duration, error) {
-	if raw == "" {
-		return 0, nil
-	}
-	d, err := time.ParseDuration(raw)
-	if err != nil {
-		return 0, fmt.Errorf("JITPACK_LOCK_TIMEOUT must be a duration such as \"15m\": %w", err)
-	}
-	if d <= 0 {
-		return 0, errors.New("JITPACK_LOCK_TIMEOUT must be positive (it is the G-3 lock staleness window)")
-	}
-	return d, nil
 }
 
 func envOr(getenv func(string) string, key, fallback string) string {

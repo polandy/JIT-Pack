@@ -46,4 +46,21 @@ If your own row does not show the admin role, log out and back in (the stamp hap
 
 Master data — items, tags, templates — is **instance-wide**: everyone sees and extends the same inventory, so whoever curates the packing templates does it once for everyone. Trips, by contrast, are **membership-scoped**: a trip is visible only to its members, and the creator adds the others on the trip's **Members** screen. Once everyone is a member, packing is live for all of them — a checkmark on one phone lands on the others as it happens.
 
+## 6. Two people, one row
+
+When somebody starts packing a row, everyone else's device shows it as theirs — with their name — and will not let it be changed. Two people cannot pack the same thing twice, and nobody overwrites anybody's count.
+
+**The reservation has no time limit.** It ends when the person packs the row, when they give it back, or when somebody else **takes it over**. There is no window after which it quietly stops counting: while the row says Sia has the tent, Sia has the tent, however long she takes.
+
+Taking a row over is one action, and it is not free:
+
+- The app names who you are interrupting and asks you to confirm it.
+- The row becomes *yours* — it does not go free in between, because you take it over in order to pack it.
+- **The person you took it from is told**, in the app and, if they turned it on, on their phone. They can turn that notification off like any other (see [Notifications](notifications.md)).
+- The trip keeps a record of it: who took what from whom, and when.
+
+The cost of having no window is worth knowing: if somebody starts packing a row and then walks away, that row stays theirs until a person takes it. It is not stuck — every member can take it in one action, and the row says whose it is, so in a household the usual fix is to ask them.
+
+In Single-User Mode and Local Mode none of this appears: there is no second person to take a row from. Giving your own row back works everywhere.
+
 From here it is normal operation: [Backup](backup.md) for keeping the database safe, [Upgrades](upgrades.md) for moving versions without losing the history.

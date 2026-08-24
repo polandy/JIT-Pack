@@ -41,6 +41,7 @@ import {
   IonFabButton,
   IonModal,
   actionSheetController,
+  alertController,
   toastController,
 } from '@ionic/vue'
 import {
@@ -83,6 +84,7 @@ import SearchRow from '@/components/global/SearchRow.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import QuickAddItem from '@/components/global/QuickAddItem.vue'
 import { groupAdditionMessage } from '@/lib/groupAdditionMessage'
+import { loadTokens } from '@/auth/tokens'
 import { presentToast } from '@/lib/toast'
 import { peekScroll, rememberScroll, takeScroll } from '@/lib/scrollMemory'
 import UserAvatar from '@/components/global/UserAvatar.vue'
@@ -400,9 +402,14 @@ let rowMenuActive = false
 
 async function openRowMenu(item: TripItem) {
   hold.cancel()
-  // A locked row is somebody else's (G-3); its menu would offer actions
-  // that the row itself already refuses.
-  if (locked(item)) return
+  // A locked row is somebody else's (G-3), so every action on it belongs
+  // to its holder — except the one that makes it mine (FR-5.7). In the
+  // modes where there is nobody to take it from, the menu still opens
+  // onto nothing.
+  if (locked(item)) {
+    if (canTakeOver) await openTakeoverMenu(item)
+    return
+  }
   rowMenuActive = true
   try {
     const skipped = item.state === 'skipped'
@@ -607,21 +614,12 @@ function lockNote(item: TripItem): string | null {
 }
 
 /**
- * The other two things a claim can be, both of which the row used to keep
- * to itself: mine — where nothing is locked *for me*, so without a word
- * here I cannot tell that I am holding the row against everyone else —
- * and abandoned, where the §7 window passed and the row quietly became
- * operable again for a reason nobody was told.
+ * The row I claimed says so to *me*: nothing is locked for my own device,
+ * so without a word here I cannot tell that I am holding the row against
+ * everyone else.
  */
 function ownClaimNote(item: TripItem): string | null {
   return orchestrator.holdsClaim(props.tripId, item) ? t('packing.claimedByMe') : null
-}
-
-function staleClaimNote(item: TripItem): string | null {
-  const holder = orchestrator.staleClaim(props.tripId, item)
-  if (holder === null) return null
-  const who = nameOf(holder)
-  return who ? t('packing.claimStale', { who }) : t('packing.claimStaleUnknown')
 }
 
 /**
@@ -831,6 +829,79 @@ function onPackingNow(item: TripItem) {
 /** Give the row back without packing it (G-3). */
 function onReleaseClaim(item: TripItem) {
   orchestrator.releaseClaim(props.tripId, item)
+}
+
+/**
+ * FR-5.7: the only way past somebody else's claim. Server Mode only —
+ * Local Mode has no server and Single-User Mode has one account, so
+ * there is nobody to take a row from and the surface is absent rather
+ * than shown inert (G-8).
+ */
+const canTakeOver = localStorage.getItem('jitpack_mode') === 'server' && !!loadTokens()
+
+async function openTakeoverMenu(item: TripItem) {
+  rowMenuActive = true
+  try {
+    const sheet = await actionSheetController.create({
+      header: item.name,
+      buttons: [
+        {
+          text: t('packing.takeoverAction'),
+          icon: lockOpenOutline,
+          handler: () => void onTakeOver(item),
+        },
+        { text: t('common.cancel'), role: 'cancel' },
+      ],
+    })
+    await sheet.present()
+    await sheet.onDidDismiss()
+  } finally {
+    rowMenuActive = false
+  }
+}
+
+/**
+ * The confirmation is the requirement, not politeness: it names whom you
+ * are interrupting *before* the fact, and that is the whole difference
+ * between a lock that can be broken and a lock that is not a lock.
+ */
+async function onTakeOver(item: TripItem) {
+  const holderId = orchestrator.lockHolder(props.tripId, item)
+  const who = holderId ? nameOf(holderId) : ''
+  const alert = await alertController.create({
+    header: t('packing.takeoverConfirmTitle'),
+    message: who
+      ? t('packing.takeoverConfirmBody', { who, item: item.name })
+      : t('packing.takeoverConfirmBodyUnknown', { item: item.name }),
+    buttons: [
+      { text: t('common.cancel'), role: 'cancel' },
+      { text: t('packing.takeoverAction'), role: 'confirm' },
+    ],
+  })
+  await alert.present()
+  const { role } = await alert.onDidDismiss()
+  if (role !== 'confirm') return
+
+  try {
+    const previous = await orchestrator.takeOverClaim(props.tripId, item)
+    const previousName = previous ? nameOf(previous) : ''
+    await presentToast({
+      message: previousName
+        ? t('packing.takeoverDone', { who: previousName })
+        : t('packing.takeoverDoneUnknown'),
+      duration: 3000,
+      positionAnchor: 'm4-fab-anchor',
+    })
+  } catch {
+    // The claim did not move, and the likeliest reason is that the screen
+    // is behind: the holder packed or released the row while the sheet
+    // was open. Saying so beats a silent no-op.
+    await presentToast({
+      message: t('packing.takeoverFailed'),
+      duration: 3000,
+      positionAnchor: 'm4-fab-anchor',
+    })
+  }
 }
 
 /**
@@ -1383,13 +1454,6 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                     >
                       {{ ownClaimNote(child.item) }}
                     </p>
-                    <p
-                      v-else-if="staleClaimNote(child.item)"
-                      class="stamp stale"
-                      data-testid="m4-stale-claim"
-                    >
-                      {{ staleClaimNote(child.item) }}
-                    </p>
                     <p v-else-if="skippedNote(child.item)" class="stamp">
                       {{ skippedNote(child.item) }}
                     </p>
@@ -1463,13 +1527,6 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                   </p>
                   <p v-else-if="ownClaimNote(entry.item)" class="stamp" data-testid="m4-own-claim">
                     {{ ownClaimNote(entry.item) }}
-                  </p>
-                  <p
-                    v-else-if="staleClaimNote(entry.item)"
-                    class="stamp stale"
-                    data-testid="m4-stale-claim"
-                  >
-                    {{ staleClaimNote(entry.item) }}
                   </p>
                   <p v-else-if="skippedNote(entry.item)" class="stamp">
                     {{ skippedNote(entry.item) }}
@@ -1968,12 +2025,6 @@ ion-content.pack-content::part(scroll) {
 
 .stamp {
   font-size: var(--jp-text-xs);
-}
-
-/* A claim nobody honours any more is not an error and not business as
-   usual — the same warning hue M11 uses for its weight thresholds. */
-.stamp.stale {
-  color: var(--ct-yellow);
 }
 
 .prep {

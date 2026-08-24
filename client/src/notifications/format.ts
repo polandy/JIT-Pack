@@ -33,6 +33,8 @@ export function describeNotification(n: ServerNotification): string {
       return preview ? `${actor} mentioned you: ${preview}` : `${actor} mentioned you`
     case 'task':
       return item ? `${actor} opened a task on “${item}”` : `${actor} opened a task for you`
+    case 'lock_taken':
+      return item ? `${actor} took “${item}” over from you` : `${actor} took an item over from you`
     default:
       return `${actor} sent you a notification`
   }

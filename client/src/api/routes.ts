@@ -16,6 +16,9 @@ export const API = {
   tripConflicts: (tripID: string) => `/api/v1/trips/${tripID}/conflicts`,
   tripConflictRevert: (tripID: string, conflictID: string) =>
     `/api/v1/trips/${tripID}/conflicts/${conflictID}/revert`,
+  tripItemTakeover: (tripID: string, itemID: string) =>
+    `/api/v1/trips/${tripID}/items/${itemID}/takeover`,
+  tripLockEvents: (tripID: string) => `/api/v1/trips/${tripID}/lock-events`,
   tripExportCSV: (tripID: string) => `/api/v1/trips/${tripID}/export.csv`,
 
   // Master scope — the partition that belongs to no trip, so its scope
@@ -57,7 +60,6 @@ export const API = {
   authToken: '/api/v1/auth/token',
   authRefresh: '/api/v1/auth/refresh',
   authConfig: '/api/v1/auth/config',
-  config: '/api/v1/config',
 
   // Outside the versioned surface on purpose: the socket carries the
   // versioned frame in its payload, and a health probe is not an API.

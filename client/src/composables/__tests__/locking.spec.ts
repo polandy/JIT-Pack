@@ -139,17 +139,20 @@ describe('lock state (G-3)', () => {
     expect(orch.isLockedByOther('t1', item)).toBe(true)
   })
 
-  it('ignores stale locks older than 15 minutes (§7 timeout rule)', () => {
+  // FR-5.7 / ADR-028: this asserted the opposite until 2026-08-24 — a
+  // claim older than the §7 window stopped locking the row. There is no
+  // window now, so age says nothing and the row stays held.
+  it('keeps honouring a claim however old it is (FR-5.7)', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const store = useTripStore()
-    const stale = new Date(Date.now() - 20 * 60 * 1000).toISOString()
     const item = seedItem(store, {
       state: 'packing_now',
       packing_now_by: 'sarah',
-      packing_now_at: stale,
+      packing_now_at: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
     })
 
-    expect(orch.isLockedByOther('t1', item)).toBe(false)
+    expect(orch.isLockedByOther('t1', item)).toBe(true)
+    expect(orch.lockHolder('t1', item)).toBe('sarah')
   })
 })
 
@@ -190,56 +193,6 @@ describe('who holds the lock (G-3)', () => {
     orch.packingNow('t1', item)
 
     expect(orch.lockHolder('t1', store.getItems('t1')[0]!)).toBeNull()
-  })
-})
-
-describe('a claim that expired (G-3)', () => {
-  it('names the abandoned claim, because the row going quiet explains nothing', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-    const store = useTripStore()
-    const item = seedItem(store, {
-      state: 'packing_now',
-      packing_now_by: 'sarah',
-      packing_now_at: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
-    })
-
-    // The row is operable again — that half already worked. What did not
-    // is *saying so*: it simply stopped being locked, and whoever was
-    // waiting for it had no way to tell that from never having looked.
-    expect(orch.isLockedByOther('t1', item)).toBe(false)
-    expect(orch.staleClaim('t1', item)).toBe('sarah')
-  })
-
-  it('says nothing about a claim that is still inside the window', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-    const store = useTripStore()
-    const item = seedItem(store, {
-      state: 'packing_now',
-      packing_now_by: 'sarah',
-      packing_now_at: new Date().toISOString(),
-    })
-
-    // The positive signal that the claim is seen at all, so the null below
-    // is the window's doing rather than an unread row.
-    expect(orch.lockHolder('t1', item)).toBe('sarah')
-    expect(orch.staleClaim('t1', item)).toBeNull()
-  })
-
-  it('says nothing about a claim of my own, however old', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-    const store = useTripStore()
-    const item = seedItem(store)
-
-    orch.packingNow('t1', item)
-
-    expect(orch.staleClaim('t1', store.getItems('t1')[0]!)).toBeNull()
-  })
-
-  it('says nothing about a row nobody claimed', () => {
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-    const store = useTripStore()
-
-    expect(orch.staleClaim('t1', seedItem(store))).toBeNull()
   })
 })
 
@@ -325,46 +278,82 @@ describe('releasing a claim (G-3)', () => {
   })
 })
 
-describe('the staleness window comes from the server (Sync-API §7)', () => {
-  it('applies the instance window instead of the built-in 15 minutes', async () => {
+describe('taking a claim over (FR-5.7)', () => {
+  function claimedByOther(store: ReturnType<typeof useTripStore>) {
+    return seedItem(store, {
+      state: 'packing_now',
+      packing_now_by: 'sarah',
+      packing_now_at: new Date().toISOString(),
+    })
+  }
+
+  it('asks the server, because only it can stamp who took over', async () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
     fetchMock.mockImplementation((url: string) =>
       Promise.resolve(
-        url.endsWith('/api/v1/config')
-          ? new Response(JSON.stringify({ lock_timeout_seconds: 60 }), { status: 200 })
-          : new Response(JSON.stringify({ results: [], pull_hint: { next_cursor: 1 } }), {
+        url.endsWith('/takeover')
+          ? new Response(
+              JSON.stringify({ ok: true, previous_holder: 'sarah', pull_hint: { next_cursor: 4 } }),
+              { status: 200 },
+            )
+          : new Response(JSON.stringify({ changes: [], pull_hint: { next_cursor: 4 } }), {
               status: 200,
             }),
       ),
     )
-    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
-    const store = useTripStore()
-    const item = seedItem(store, {
-      state: 'packing_now',
-      packing_now_by: 'sarah',
-      // Five minutes old: stale under a 60-second window, fresh under
-      // the built-in default — so this can only pass if the server's
-      // value actually reached the rule.
-      packing_now_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    })
-    expect(orch.isLockedByOther('t1', item)).toBe(true)
 
-    await orch.fetchLockTimeout()
+    const holder = await orch.takeOverClaim('t1', claimedByOther(store))
 
-    expect(orch.isLockedByOther('t1', item)).toBe(false)
+    expect(holder).toBe('sarah')
+    const calls = fetchMock.mock.calls.map((c) => String(c[0]))
+    expect(calls.some((u) => u.endsWith('/api/v1/trips/t1/items/ti1/takeover'))).toBe(true)
   })
 
-  it('keeps the 15-minute default when the instance does not answer', async () => {
-    fetchMock.mockResolvedValue(new Response('nope', { status: 500 }))
+  it('leaves the row claimed by me, never free in between', async () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const store = useTripStore()
-    const item = seedItem(store, {
-      state: 'packing_now',
-      packing_now_by: 'sarah',
-      packing_now_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    })
+    const item = claimedByOther(store)
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({ ok: true, previous_holder: 'sarah', pull_hint: { next_cursor: 4 } }),
+        { status: 200 },
+      ),
+    )
 
-    await orch.fetchLockTimeout()
-
+    // The positive signal the assertion below needs: before the takeover
+    // the row is somebody else's, so "not locked for me" afterwards is
+    // the takeover's doing rather than an unread row.
     expect(orch.isLockedByOther('t1', item)).toBe(true)
+
+    await orch.takeOverClaim('t1', item)
+
+    const after = store.getItems('t1')[0]!
+    expect(after.state).toBe('packing_now')
+    expect(orch.isLockedByOther('t1', after)).toBe(false)
+    expect(orch.holdsClaim('t1', after)).toBe(true)
+  })
+
+  it('leaves the claim where it was when the server refuses', async () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = claimedByOther(store)
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: { code: 'claim_not_held', message: 'nobody is packing this row' },
+        }),
+        {
+          status: 409,
+        },
+      ),
+    )
+
+    await expect(orch.takeOverClaim('t1', item)).rejects.toThrow(/nobody is packing/)
+
+    // A refusal that had already moved the row locally would show the
+    // taker a claim they do not have.
+    expect(orch.holdsClaim('t1', store.getItems('t1')[0]!)).toBe(false)
+    expect(orch.isLockedByOther('t1', store.getItems('t1')[0]!)).toBe(true)
   })
 })

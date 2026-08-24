@@ -38,9 +38,6 @@ type Server struct {
 	localUserID    string
 	hub            *Hub
 	oidc           *oidcBroker
-	// lockTimeout is the G-3 staleness window served to clients
-	// (Sync-API §7, JITPACK_LOCK_TIMEOUT); zero means the default.
-	lockTimeout time.Duration
 	// Web Push (NFR-4.6): VAPID keypair lazily loaded/generated via the
 	// store; contact is the RFC 8292 sub claim.
 	pushContact string
@@ -122,6 +119,10 @@ func (s *Server) Handler() http.Handler {
 	// The revert half of NFR-4.2a, one endpoint per partition beside its
 	// list — a conflict belongs to the partition it was pushed to.
 	mux.HandleFunc(pattern(http.MethodPost, RouteTripConflictRevert), s.authed(s.member(s.handleRevertConflict)))
+	// The one server-side part of G-3's lock (FR-5.7): a takeover has to
+	// be stamped and has to notify, so it is an RPC rather than a mutation.
+	mux.HandleFunc(pattern(http.MethodPost, RouteTripItemTakeover), s.authed(s.member(s.handleTakeover)))
+	mux.HandleFunc(pattern(http.MethodGet, RouteTripLockEvents), s.authed(s.member(s.handleListLockEvents)))
 	mux.HandleFunc(pattern(http.MethodGet, RouteTripExportCSV), s.authed(s.member(s.handleExportTripCSV)))
 
 	// Master scope.
@@ -168,7 +169,6 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc(pattern(http.MethodPost, RouteAuthToken), s.handleAuthToken)
 	mux.HandleFunc(pattern(http.MethodPost, RouteAuthRefresh), s.handleAuthRefresh)
 	mux.HandleFunc(pattern(http.MethodGet, RouteAuthConfig), s.handleAuthConfig)
-	mux.HandleFunc(pattern(http.MethodGet, RouteConfig), s.handleConfig)
 	mux.HandleFunc(pattern(http.MethodGet, RouteWS), s.wsAuth(s.handleWS))
 	mux.HandleFunc(pattern(http.MethodGet, RouteHealth), func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -373,7 +373,7 @@ func stampActor(m *syncpkg.Mutation, userID string) {
 
 		state, hasState := m.Fields["state"].(string)
 		switch {
-		case state == "packing_now":
+		case state == store.StatePackingNow:
 			setMutationField(m, "packing_now_by", userID)
 			if at, _ := m.Fields["packing_now_at"].(string); at == "" {
 				setMutationField(m, "packing_now_at", time.Now().UTC().Format(time.RFC3339))
@@ -426,7 +426,7 @@ func (s *Server) notifyLockEvents(tripID, userID string, muts []syncpkg.Mutation
 			continue
 		}
 		name, _ := m.Fields["name"].(string)
-		if state == "packing_now" {
+		if state == store.StatePackingNow {
 			s.hub.NotifyItemLocked(tripID, m.ID, userID, name)
 		} else {
 			s.hub.NotifyItemUnlocked(tripID, m.ID, userID, name)
