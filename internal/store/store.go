@@ -83,6 +83,19 @@ const (
 	MarkMaxBytes = 32
 )
 
+// The two template scopes (FR-27.1), named once: they are compared
+// against in the include rule, in the scope-switch guards and in the
+// schema's own CHECK, and a mistyped literal reads as "some other scope"
+// rather than as a build failure (CODING_PRINCIPLES §4a).
+const (
+	// KindTemplate is a Ferien-Vorlage: it may include groups and is what
+	// a trip is generated from.
+	KindTemplate = "template"
+	// KindGroup is a Gruppe: it carries item positions only and is the
+	// thing a Ferien-Vorlage includes.
+	KindGroup = "group"
+)
+
 // The trip roles (FR-4.5/4.7), named once: they are compared against in
 // every authorization decision, and a mistyped literal reads as "not that
 // role" rather than as a build failure.

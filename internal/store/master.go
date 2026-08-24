@@ -159,8 +159,12 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 		// if the parked ownership model returns.
 		if !exists && m.Op != sync.OpDelete {
 			setField(m, "owner_id", userID)
+			return true, nil
 		}
-		return true, nil
+		if m.Op == sync.OpDelete {
+			return true, nil
+		}
+		return validKindSwitch(ctx, tx, current, m)
 
 	case TableTemplateItems, TableTemplateItemTasks:
 		// Positions and their preparation tasks (FR-27.7) follow their
@@ -308,7 +312,7 @@ func validInclude(ctx context.Context, tx *sql.Tx, current map[string]any, m *sy
 	if parent == "" || child == "" {
 		return false, nil
 	}
-	for _, want := range []struct{ id, kind string }{{parent, "template"}, {child, "group"}} {
+	for _, want := range []struct{ id, kind string }{{parent, KindTemplate}, {child, KindGroup}} {
 		var kind string
 		err := tx.QueryRowContext(ctx, `SELECT kind FROM templates WHERE id = ?`, want.id).Scan(&kind)
 		if errors.Is(err, sql.ErrNoRows) {
@@ -322,6 +326,33 @@ func validInclude(ctx context.Context, tx *sql.Tx, current map[string]any, m *sy
 		}
 	}
 	return true, nil
+}
+
+// validKindSwitch enforces the two FR-27.6 scope guards on the push path,
+// where the M8 editor's own guards cannot reach: a Ferien-Vorlage that
+// still includes groups may not become a Gruppe, and a Gruppe that is
+// included somewhere may not be promoted. Without them the FR-27.1
+// two-level rule is a two-step formality — flip both ends of an edge and
+// `validInclude` accepts the reverse edge, persisting a cycle.
+//
+// Only a mutation that actually *changes* the scope is judged. A push
+// carrying no `kind`, or restating the one already stored, is an ordinary
+// edit: rejecting it would drop a legitimate offline rename, and a
+// rejected mutation is a change the client's outbox discards (NFR-4.2a).
+func validKindSwitch(ctx context.Context, tx *sql.Tx, current map[string]any, m *sync.Mutation) (bool, error) {
+	kind, ok := m.Fields["kind"].(string)
+	if !ok || kind == current["kind"] {
+		return true, nil
+	}
+	query := `SELECT count(*) FROM template_includes WHERE included_template_id = ?`
+	if kind == KindGroup {
+		query = `SELECT count(*) FROM template_includes WHERE template_id = ?`
+	}
+	var edges int
+	if err := tx.QueryRowContext(ctx, query, m.ID).Scan(&edges); err != nil {
+		return false, fmt.Errorf("scope switch lookup: %w", err)
+	}
+	return edges == 0, nil
 }
 
 func parentIDs(current map[string]any, m *sync.Mutation, field string) map[string]bool {
