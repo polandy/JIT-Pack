@@ -724,10 +724,29 @@ const visibleOpenRows = computed(
 const openTotal = computed(() => Math.max(kpis.value.totalItems - kpis.value.packedItems, 0))
 const hiddenOpenCount = computed(() => Math.max(openTotal.value - visibleOpenRows.value, 0))
 
+/**
+ * FR-25.20's hiding is not a filter anybody set, so it must not be
+ * reported as one. Reachable since FR-25.19 gave the assignment a writer:
+ * a list whose rows are all somebody else's said „no matches · 1 open item
+ * is behind the filter" and offered to clear a search and facets that were
+ * never there.
+ */
+const onlyOthersHidden = computed(
+  () =>
+    search.value.trim() === '' &&
+    view.value.activeFacetCount === 0 &&
+    view.value.hiddenOtherCount > 0,
+)
+
 const emptyReason = computed(() => {
   const term = search.value.trim()
   if (term && view.value.activeFacetCount > 0) return t('packing.noMatchesBoth', { term })
   if (term) return t('packing.noMatchesSearch', { term })
+  if (onlyOthersHidden.value)
+    return t('packing.emptyOthers', {
+      n: view.value.hiddenOtherCount,
+      who: view.value.hiddenOtherNames.join(' · '),
+    })
   return t('packing.noMatchesFilter', { n: hiddenOpenCount.value })
 })
 
@@ -1729,13 +1748,17 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
            a packing app tells someone they are finished when they are not. -->
       <div v-else class="empty" data-testid="packing-empty">
         <template v-if="view.narrowed">
-          <strong>{{ t('packing.noMatches') }}</strong>
+          <strong>{{
+            onlyOthersHidden ? t('packing.emptyOthersHead') : t('packing.noMatches')
+          }}</strong>
           <p>{{ emptyReason }}</p>
           <IonButton size="small" fill="outline" data-testid="m4-reset" @click="resetNarrowing">
             {{
-              search.trim() && view.activeFacetCount === 0
-                ? t('packing.resetSearch')
-                : t('packing.resetAll')
+              onlyOthersHidden
+                ? t('packing.emptyOthersAction')
+                : search.trim() && view.activeFacetCount === 0
+                  ? t('packing.resetSearch')
+                  : t('packing.resetAll')
             }}
           </IonButton>
         </template>

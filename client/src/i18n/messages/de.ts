@@ -156,6 +156,9 @@ export const de: Record<keyof typeof en, string> = {
   'stamp.yesterday': 'gestern',
 
   // FR-25.11e — eine leere Liste bedeutet zweierlei sehr Verschiedenes.
+  'packing.emptyOthersHead': 'Alles ist bei jemand anderem',
+  'packing.emptyOthers': '{n} Position liegt bei {who}. | {n} Positionen liegen bei {who}.',
+  'packing.emptyOthersAction': 'Alle anzeigen',
   'packing.noMatches': 'Keine Treffer',
   'packing.noMatchesSearch': 'Nichts passt zu „{term}“.',
   'packing.noMatchesFilter':

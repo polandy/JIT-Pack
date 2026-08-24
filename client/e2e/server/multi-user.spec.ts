@@ -259,6 +259,18 @@ test.describe('Two accounts on one instance @server', () => {
     await expect(visiblePage(alice).getByTestId(`m4-row-${item}`)).toHaveCount(0)
     await expect(visiblePage(alice).getByTestId('m4-others-bar')).toContainText(ACCOUNT_NAMES.bob)
 
+    // …and the empty list says what actually happened. It used to report
+    // „no matches · behind the filter" and offer to clear a search and
+    // facets nobody had set: FR-25.20's hiding is not a filter, and this
+    // state was unreachable until the assignment had a writer.
+    const empty = visiblePage(alice).getByTestId('packing-empty')
+    await expect(empty).toContainText(ACCOUNT_NAMES.bob)
+    await expect(empty).not.toContainText(/filter/i)
+
+    // The action reveals rather than clearing something that was never on.
+    await visiblePage(alice).getByTestId('m4-reset').click()
+    await expect(visiblePage(alice).getByTestId(`m4-row-${item}`)).toBeVisible()
+
     await ctxAlice.close()
     await ctxBob.close()
   })
