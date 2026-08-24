@@ -354,15 +354,14 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 func stampActor(m *syncpkg.Mutation, userID string) {
 	switch m.Table {
 	case store.TableComments:
-		// Authorship is decided once, when the comment comes into being,
-		// and every later op is barred from touching it. Re-stamping the
-		// pusher on an edit would be the opposite defect — it would hand
-		// a foreign comment to whoever last flagged it as a task — and
-		// leaving the field alone would let any member rewrite it. A
-		// comment the client creates always arrives as an insert; an
-		// upsert that happens to create one keeps no author to fall back
-		// on and is refused by the NOT NULL column, which is a refusal
-		// the outbox can park rather than a forged attribution.
+		// Authorship is decided once, when the comment comes into being.
+		// Re-stamping the pusher on a later op would be the opposite
+		// defect — flagging a foreign comment as a task (FR-7.2) is an
+		// upsert, and would transfer its authorship — so the field is
+		// taken away from every op and given back only to the insert.
+		// An upsert that creates a comment then has no author and is
+		// refused by the NOT NULL column, which is what the one shape no
+		// client produces should get.
 		delete(m.Fields, "author_id")
 		if m.Op == syncpkg.OpInsert {
 			setMutationField(m, "author_id", userID)
@@ -384,15 +383,13 @@ func stampActor(m *syncpkg.Mutation, userID string) {
 		tapped, _ := m.Fields["packed_at"].(string)
 		delete(m.Fields, "packed_at")
 
-		// G-3's claim holder is server-owned for the same reason and is
-		// discarded the same way (FR-5.7): the claim *is* the state, so
-		// the switch below is the only thing allowed to name a holder.
-		// Without this a mutation that carries packing_now_by and no
-		// state at all never meets the switch, and the row would name
-		// whoever the pusher chose — the value FR-5.7's takeover and M4's
-		// row both read as authoritative. Its clock follows the claim it
-		// belongs to, and is kept from the client on the same terms as
-		// packed_at above.
+		// G-3's claim holder is server-owned the same way (FR-5.7): the
+		// claim *is* the state, so only the switch below may name a
+		// holder. Without the strip, a mutation carrying packing_now_by
+		// and no state never meets that switch and the row names whoever
+		// the pusher chose — which the takeover and M4's row then read as
+		// authoritative. Its clock follows the claim, on the same terms
+		// as packed_at above.
 		delete(m.Fields, "packing_now_by")
 		claimed, _ := m.Fields["packing_now_at"].(string)
 		delete(m.Fields, "packing_now_at")
