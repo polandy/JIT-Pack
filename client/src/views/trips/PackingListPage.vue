@@ -51,6 +51,7 @@ import {
   bagHandleOutline,
   contrastOutline,
   closeCircleOutline,
+  removeCircleOutline,
   flagOutline,
   refreshOutline,
   personOutline,
@@ -234,6 +235,13 @@ async function reportGroupAnswer(message: string) {
 const trip = computed(() => store.getTrip(props.tripId))
 const kpis = computed(() => store.kpis(props.tripId))
 const isActive = computed(() => trip.value?.status === 'active')
+/**
+ * FR-9.3: a trip can be judged while it runs and after it is archived —
+ * the assistant that shows what a judgement was worth runs on the
+ * archived trip, so the window must not shut before it. A planning trip
+ * has nothing to judge yet.
+ */
+const judgeable = computed(() => isActive.value || trip.value?.status === 'archived')
 const allItems = computed(() => store.getItems(props.tripId))
 
 /**
@@ -448,6 +456,21 @@ async function openRowMenu(item: TripItem) {
                   handler: () => onSkipItem(item),
                 },
               ]),
+        // FR-9.3: the judgement leaves the fold. *Unused* used to cost
+        // three taps into M5's *Details* block, which nothing ever asks
+        // for — one gesture from the list is the idiom this app already
+        // uses for a one-word judgement about a row (FR-5.5).
+        ...(judgeable.value
+          ? [
+              {
+                text: item.flag_unused
+                  ? t('packing.unflagUnusedAction')
+                  : t('packing.flagUnusedAction'),
+                icon: removeCircleOutline,
+                handler: () => onFlagUnused(item, !item.flag_unused),
+              },
+            ]
+          : []),
         { text: t('common.cancel'), role: 'cancel' },
       ],
     })
@@ -923,6 +946,21 @@ function onSkipItem(item: TripItem) {
     item.name,
     affected.slice(1).map((row) => row.name),
   )
+}
+
+/**
+ * FR-9.3: the flag is a judgement, not a stamp — the same menu entry sets
+ * it and takes it back, which is the undo, so the confirmation names what
+ * happened rather than offering a second path to reverse it.
+ */
+async function onFlagUnused(item: TripItem, value: boolean) {
+  orchestrator.setReviewFlag(props.tripId, item, 'unused', value)
+  await presentToast({
+    message: value
+      ? t('packing.flagUnusedToast', { item: item.name })
+      : t('packing.unflagUnusedToast', { item: item.name }),
+    duration: 3000,
+  })
 }
 
 function onUnskipItem(item: TripItem) {
@@ -1539,6 +1577,15 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                   </p>
                 </IonLabel>
                 <div slot="end" class="row-end">
+                  <!-- FR-9.3: a judgement made from the row's menu has to be
+                       visible on the row, or the pass cannot be reviewed. -->
+                  <IonIcon
+                    v-if="entry.item.flag_unused"
+                    :icon="removeCircleOutline"
+                    class="unused-mark"
+                    :aria-label="t('facet.flagUnused')"
+                    :data-testid="`m4-unused-${entry.item.name}`"
+                  />
                   <IonIcon
                     v-if="modeIcon(entry.item.mode)"
                     :icon="modeIcon(entry.item.mode)!"
@@ -2021,6 +2068,11 @@ ion-content.pack-content::part(scroll) {
 
 .locked {
   opacity: 0.65;
+}
+
+.unused-mark {
+  font-size: var(--jp-icon-sm);
+  color: var(--ct-mauve);
 }
 
 .stamp {
