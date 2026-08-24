@@ -116,6 +116,7 @@ Every name comparison is trimmed and case-folded, which is what FR-16.3 and `app
 - **A Vorlage that changed cannot be re-imported over the one that is here.** The file is not merged into it; it is skipped whole. Bringing a newer version of a Vorlage across instances now means renaming it, or editing it in the app.
 - **A renamed trip is a new trip to the next import.** Rename *Samedan* to *Samedan Sommer* and the backup that still says *Samedan* restores a second copy. Accepted because the alternative is a stable identifier in the file, which makes a file from another instance import as "the same trip" as one of yours purely by id collision.
 - The rule lives in the import path, so a future writer that creates trips another way does not inherit it.
+- **It is only as good as what the device knows.** The comparison is against the client's own stores, so importing on a Server Mode device that has not finished its first pull can still create a duplicate — the instance holds the trip, this device does not know it yet. `jitpack-import` closes that by pulling the master partition before it plans anything; the app does not gate the import screen on a completed sync, and deliberately: blocking a restore behind the network is the wrong failure for a feature whose whole point is working without one.
 
 **Neutral**
 
