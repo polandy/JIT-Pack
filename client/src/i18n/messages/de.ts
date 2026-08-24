@@ -128,8 +128,6 @@ export const de: Record<keyof typeof en, string> = {
   'packing.packedByUnknown': 'gepackt · {when}',
   'packing.responsibleWas': 'zuständig war {who}',
   'packing.claimedByMe': 'Du packst das — die anderen können es gerade nicht ändern',
-  'packing.claimStale': '{who} hat vor über 15 Minuten begonnen — du kannst übernehmen',
-  'packing.claimStaleUnknown': 'Jemand hat vor über 15 Minuten begonnen — du kannst übernehmen',
   'packing.releaseAction': 'Artikel wieder freigeben',
   'packing.lockedBy': '{who} packt das gerade',
   'packing.lockedByUnknown': 'Jemand packt das gerade',

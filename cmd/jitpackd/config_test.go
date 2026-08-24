@@ -2,9 +2,7 @@ package main
 
 import (
 	"reflect"
-	"strings"
 	"testing"
-	"time"
 )
 
 // The configuration surface follows the session-brokering model (ADR-007):
@@ -178,56 +176,4 @@ func searchString(s, substr string) bool {
 		}
 	}
 	return false
-}
-
-// Sync-API §7: the G-3 lock staleness window is an operator setting, not
-// a client constant. Unset leaves the zero value so the API layer's own
-// DefaultLockTimeout stays the single place the 15 minutes are written.
-func TestLoadConfig_LockTimeout(t *testing.T) {
-	tests := []struct {
-		name    string
-		value   string
-		want    time.Duration
-		wantErr string
-	}{
-		{name: "unset leaves the server default", value: "", want: 0},
-		{name: "duration string", value: "45m", want: 45 * time.Minute},
-		{name: "seconds granularity", value: "90s", want: 90 * time.Second},
-		{
-			name:    "unparseable value is refused, never silently defaulted",
-			value:   "fifteen minutes",
-			wantErr: "JITPACK_LOCK_TIMEOUT",
-		},
-		{
-			name:    "zero would disable G-3 by accident",
-			value:   "0s",
-			wantErr: "JITPACK_LOCK_TIMEOUT",
-		},
-		{
-			name:    "negative is refused",
-			value:   "-5m",
-			wantErr: "JITPACK_LOCK_TIMEOUT",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			env := map[string]string{"JITPACK_SESSION_SECRET": "s3cret"}
-			if tt.value != "" {
-				env["JITPACK_LOCK_TIMEOUT"] = tt.value
-			}
-			got, err := loadConfigFrom(func(k string) string { return env[k] })
-			if tt.wantErr != "" {
-				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
-					t.Fatalf("err = %v, want one naming %s", err, tt.wantErr)
-				}
-				return
-			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if got.LockTimeout != tt.want {
-				t.Fatalf("LockTimeout = %v, want %v", got.LockTimeout, tt.want)
-			}
-		})
-	}
 }

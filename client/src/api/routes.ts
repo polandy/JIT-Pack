@@ -60,5 +60,4 @@ export const API = {
   authToken: `${V1}/auth/token`,
   authRefresh: `${V1}/auth/refresh`,
   authConfig: `${V1}/auth/config`,
-  config: `${V1}/config`,
 } as const

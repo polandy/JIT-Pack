@@ -126,8 +126,6 @@ export const en = {
   'packing.packedByUnknown': 'packed · {when}',
   'packing.responsibleWas': 'assigned to {who}',
   'packing.claimedByMe': 'You are packing this — the others cannot change it',
-  'packing.claimStale': '{who} started this over 15 minutes ago — you can take over',
-  'packing.claimStaleUnknown': 'Somebody started this over 15 minutes ago — you can take over',
   'packing.releaseAction': 'Give the item back',
   'packing.lockedBy': '{who} is packing this right now',
   'packing.lockedByUnknown': 'Somebody is packing this right now',

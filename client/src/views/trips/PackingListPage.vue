@@ -606,22 +606,14 @@ function lockNote(item: TripItem): string | null {
 }
 
 /**
- * The other two things a claim can be, both of which the row used to keep
- * to itself: mine — where nothing is locked *for me*, so without a word
- * here I cannot tell that I am holding the row against everyone else —
- * and abandoned, where the §7 window passed and the row quietly became
- * operable again for a reason nobody was told.
+ * The row I claimed says so to *me*: nothing is locked for my own device,
+ * so without a word here I cannot tell that I am holding the row against
+ * everyone else.
  */
 function ownClaimNote(item: TripItem): string | null {
   return orchestrator.holdsClaim(props.tripId, item) ? t('packing.claimedByMe') : null
 }
 
-function staleClaimNote(item: TripItem): string | null {
-  const holder = orchestrator.staleClaim(props.tripId, item)
-  if (holder === null) return null
-  const who = nameOf(holder)
-  return who ? t('packing.claimStale', { who }) : t('packing.claimStaleUnknown')
-}
 
 /**
  * The one avatar at the right edge (FR-25.19): who packed it once it is
@@ -1382,13 +1374,6 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                     >
                       {{ ownClaimNote(child.item) }}
                     </p>
-                    <p
-                      v-else-if="staleClaimNote(child.item)"
-                      class="stamp stale"
-                      data-testid="m4-stale-claim"
-                    >
-                      {{ staleClaimNote(child.item) }}
-                    </p>
                     <p v-else-if="skippedNote(child.item)" class="stamp">
                       {{ skippedNote(child.item) }}
                     </p>
@@ -1462,13 +1447,6 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                   </p>
                   <p v-else-if="ownClaimNote(entry.item)" class="stamp" data-testid="m4-own-claim">
                     {{ ownClaimNote(entry.item) }}
-                  </p>
-                  <p
-                    v-else-if="staleClaimNote(entry.item)"
-                    class="stamp stale"
-                    data-testid="m4-stale-claim"
-                  >
-                    {{ staleClaimNote(entry.item) }}
                   </p>
                   <p v-else-if="skippedNote(entry.item)" class="stamp">
                     {{ skippedNote(entry.item) }}
@@ -1967,12 +1945,6 @@ ion-content.pack-content::part(scroll) {
 
 .stamp {
   font-size: var(--jp-text-xs);
-}
-
-/* A claim nobody honours any more is not an error and not business as
-   usual — the same warning hue M11 uses for its weight thresholds. */
-.stamp.stale {
-  color: var(--ct-yellow);
 }
 
 .prep {

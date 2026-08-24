@@ -74,7 +74,6 @@ describe('API routes', () => {
       authToken: '/api/v1/auth/token',
       authRefresh: '/api/v1/auth/refresh',
       authConfig: '/api/v1/auth/config',
-      config: '/api/v1/config',
     })
   })
 })

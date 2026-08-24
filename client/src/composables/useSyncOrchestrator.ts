@@ -197,13 +197,6 @@ const TRIP_STORE_TABLES: ReadonlySet<string> = new Set<string>([
   TABLE.tripAppliedChanges,
 ])
 
-/**
- * The G-3 lock staleness window a client falls back to (Sync-API §7): the
- * shipped default an instance may override with JITPACK_LOCK_TIMEOUT, and
- * the only window Local Mode ever uses.
- */
-export const DEFAULT_LOCK_TIMEOUT_MS = 15 * 60 * 1000
-
 const MASTER_STORE_TABLES: ReadonlySet<string> = new Set<string>([
   TABLE.tags,
   TABLE.itemTags,
@@ -237,37 +230,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   // the synced packing_now state. myLocks marks claims made on this
   // device — the client may not know its own user id, so identity
   // comparison against packing_now_by is not reliable.
-  // §7's staleness window. The 15 minutes are the *shipped default*, not
-  // the rule: the instance decides via JITPACK_LOCK_TIMEOUT and answers
-  // with it on GET /api/v1/config, so a household that packs slowly can
-  // widen it without a client build. Reactive because a row that stops
-  // being locked has to repaint.
-  const lockTimeoutMs = ref(DEFAULT_LOCK_TIMEOUT_MS)
-  const itemLocks = ref<Map<string, Map<string, { by_user: string; at: number }>>>(new Map())
+  //
+  // There is no staleness window (FR-5.7, ADR-028): a claim is claimed
+  // until a person ends it, so a lock is never judged by its age.
+  const itemLocks = ref<Map<string, Map<string, { by_user: string }>>>(new Map())
   const myLocks = new Set<string>()
-
-  /**
-   * fetchLockTimeout asks the instance for its G-3 window (Sync-API §7).
-   * Local Mode has no server and no second packer, and an instance that
-   * cannot answer keeps the shipped default — the window is advisory, so
-   * a missing answer must never leave every row unlocked or every row
-   * locked forever.
-   */
-  async function fetchLockTimeout(): Promise<void> {
-    if (local) return
-    try {
-      const resp = await client.get<{ lock_timeout_seconds?: number }>(API.config)
-      const seconds = resp.lock_timeout_seconds
-      if (typeof seconds === 'number' && seconds > 0) lockTimeoutMs.value = seconds * 1000
-    } catch {
-      // Default stands.
-    }
-  }
-
-  /** Whether a claim made at `at` is still inside the §7 window. */
-  function lockIsFresh(at: number): boolean {
-    return Date.now() - at < lockTimeoutMs.value
-  }
 
   function isLockedByOther(tripId: string, item: TripItem): boolean {
     return lockHolder(tripId, item) !== null
@@ -282,13 +249,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function lockHolder(tripId: string, item: TripItem): string | null {
     if (myLocks.has(item.id)) return null
     const ephemeral = itemLocks.value.get(tripId)?.get(item.id)
-    if (ephemeral && lockIsFresh(ephemeral.at)) return ephemeral.by_user
+    if (ephemeral) return ephemeral.by_user
     if (item.state !== 'packing_now') return null
-    // No timestamp — assume fresh: a claim we cannot date is likelier to
-    // be live than abandoned, and the cost of the wrong guess is a row
-    // that waits rather than one that is overwritten.
-    if (!item.packing_now_at) return item.packing_now_by ?? ''
-    if (!lockIsFresh(Date.parse(item.packing_now_at))) return null
     return item.packing_now_by ?? ''
   }
 
@@ -302,29 +264,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return myLocks.has(item.id) && item.state === 'packing_now'
   }
 
-  /**
-   * staleClaim answers who *had* claimed this row, once the §7 window has
-   * passed and the claim stopped counting. `lockHolder` deliberately says
-   * nothing then — the row is operable again — but a row that simply
-   * stops being locked explains nothing to whoever was waiting for it,
-   * and the claim itself does not go away: nothing clears `packing_now`
-   * except packing or a release, so the row would otherwise sit in a
-   * state it no longer honours, indefinitely and silently.
-   */
-  function staleClaim(tripId: string, item: TripItem): string | null {
-    if (myLocks.has(item.id)) return null
-    if (item.state !== 'packing_now') return null
-    if (!item.packing_now_at) return null
-    if (lockIsFresh(Date.parse(item.packing_now_at))) return null
-    const ephemeral = itemLocks.value.get(tripId)?.get(item.id)
-    if (ephemeral && lockIsFresh(ephemeral.at)) return null
-    return item.packing_now_by ?? ''
-  }
-
   function setItemLock(tripId: string, itemId: string, byUser: string) {
     const next = new Map(itemLocks.value)
     const tripLocks = new Map(next.get(tripId) ?? [])
-    tripLocks.set(itemId, { by_user: byUser, at: Date.now() })
+    tripLocks.set(itemId, { by_user: byUser })
     next.set(tripId, tripLocks)
     itemLocks.value = next
   }
@@ -2979,10 +2922,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     revertConflict,
     isLockedByOther,
     holdsClaim,
-    staleClaim,
     releaseClaim,
     lockHolder,
-    fetchLockTimeout,
 
     // Drain
     drainTrip,
