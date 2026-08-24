@@ -16,7 +16,7 @@ import { matchPortableItems, portableYear } from '@/domain/portable'
 import type { PortableDocument, PortableItem } from '@/domain/portable'
 import { ledgerId, positionKey, propagatedItemId } from '@/domain/refresh'
 import type { Mutation } from '@/api/types'
-import type { GeneratedPosition, MasterItem, Tag, Template } from '@/types/domain'
+import type { GeneratedPosition, MasterItem, Tag, Template, Trip } from '@/types/domain'
 import type { useMutations } from '@/composables/useMutations'
 
 /**
@@ -37,12 +37,50 @@ export interface PortableImportMasterView {
   readonly itemList: MasterItem[]
   readonly tagList: Tag[]
   readonly templateList: Template[]
+  /**
+   * The trips this instance already holds — read for ADR-030's identity rule,
+   * and live like the rest of the view: a trip created for one document has
+   * to be found by the next one in the same file.
+   */
+  readonly tripList: Trip[]
 }
+
+/**
+ * What one imported document did.
+ *
+ * `duplicate` is a success, not a failure: the instance already holds what
+ * the document describes, so the import added nothing and `id` names what was
+ * there. Only a trip can report it (ADR-030) — a group links by name and has
+ * always done so (ADR-017), and two Ferien-Vorlagen of one name are two
+ * different plans.
+ */
+export type PortableImportOutcome = 'created' | 'duplicate'
 
 /** What one imported document produced. */
 export interface PortableImportResult {
   kind: 'template' | 'trip'
   id: string
+  outcome: PortableImportOutcome
+}
+
+/**
+ * A trip's identity across files and devices: its year and its name (ADR-030).
+ *
+ * Case-folded and trimmed, the way FR-16.3 compares an item name — the same
+ * holiday spelled `Samedan` in one file and `samedan` in another is one trip,
+ * and a restore that made it two would be the duplication this rule exists to
+ * prevent.
+ */
+export function findTripByIdentity(trips: Trip[], name: string, year: number): Trip | undefined {
+  const wanted = tripIdentity(name, year)
+  return trips.find((trip) => tripIdentity(trip.name, trip.year) === wanted)
+}
+
+/** NUL cannot occur in a trip name, so the two halves can never run together. */
+const TRIP_IDENTITY_SEPARATOR = '\u0000'
+
+function tripIdentity(name: string, year: number): string {
+  return `${year}${TRIP_IDENTITY_SEPARATOR}${name.trim().toLowerCase()}`
 }
 
 export interface PortableImportEnv {
@@ -280,7 +318,7 @@ export function importPortableDocument(
     // A group document is the same group the Vorlagen carry nested, so it
     // obeys the same identity rule rather than arriving as a copy.
     const groupId = ensureGroup(env, doc.name, doc.items, resolveItem, doc.icon)
-    return { kind: 'template', id: groupId }
+    return { kind: 'template', id: groupId, outcome: 'created' }
   }
 
   if (doc.kind === 'template') {
@@ -308,16 +346,27 @@ export function importPortableDocument(
       env.emit('master', null, TABLE.templateIncludes, inc.id, inc.mutation)
     }
 
-    return { kind: 'template', id: templateId }
+    return { kind: 'template', id: templateId, outcome: 'created' }
   }
 
   // Trip import — planning status (FR-18.4), fresh trip partition.
   // FR-2.1b: neither date has to be there any more, so an absent one
   // stays absent rather than being invented as today's date; the year
   // is what the document must yield, from its own field or its dates.
+  const year = portableYear(doc)
+
+  /*
+   * ADR-030: the same trip must not arrive twice. Checked before anything is
+   * written, so a document that is already here costs no master item, no tag
+   * and no trip row — a re-run of a restore is then a no-op rather than a
+   * second copy of a decade of history.
+   */
+  const already = findTripByIdentity(env.master.tripList, doc.name, year)
+  if (already) return { kind: 'trip', id: already.id, outcome: 'duplicate' }
+
   const { mutation: tripMut, id: tripId } = env.mutations.createTrip(
     doc.name,
-    portableYear(doc),
+    year,
     doc.start_date,
     doc.end_date,
     // FR-2.2/ADR-024: the status the file carried, or planning when it
@@ -384,7 +433,7 @@ export function importPortableDocument(
     rowIdByPosition,
   )
 
-  return { kind: 'trip', id: tripId }
+  return { kind: 'trip', id: tripId, outcome: 'created' }
 }
 
 /**

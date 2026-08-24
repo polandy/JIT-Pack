@@ -724,6 +724,12 @@ export const de: Record<keyof typeof en, string> = {
     '{n} Dokument in dieser Datei. Der Import ergänzt, was schon auf diesem Gerät ist; vorhandene Artikel werden über den Namen zugeordnet. | {n} Dokumente in dieser Datei. Der Import ergänzt, was schon auf diesem Gerät ist; vorhandene Artikel werden über den Namen zugeordnet.',
   'import.portable.unreadable': 'Unlesbares Dokument',
   'import.portable.skipped': 'übersprungen',
+  // ADR-030: Eine Reise ist über Jahr und Name identifiziert.
+  'import.portable.alreadyHere': 'Schon vorhanden',
+  'import.portable.tripAlreadyHere':
+    'Diese Reise ist auf diesem Gerät schon vorhanden — sie wird nicht ein zweites Mal angelegt.',
+  'import.portable.restoreAlreadyHere':
+    '{n} Reise war schon vorhanden und wurde nicht doppelt angelegt. | {n} Reisen waren schon vorhanden und wurden nicht doppelt angelegt.',
   'import.portable.importAll': 'Alle importieren',
   // FR-27.4: Eine wiederhergestellte Reise folgt ihren Gruppen weiter.
   'import.portable.follows': 'folgt {n} Gruppe | folgt {n} Gruppen',

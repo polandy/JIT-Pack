@@ -154,6 +154,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A trip could be judged only one row at a time (2026-08-24)](#a-trip-could-be-judged-only-one-row-at-a-time-2026-08-24) — FR-9.3/9.4. Three things the code cannot show: how many affordances a "one posture, one question" screen turns out to have once it is rendered, why a handled proposal became a record line rather than a dimmed card, and the control that was replaced twice before it rendered the row rather than itself.
 - [A claim stops having a lifetime (2026-08-24)](#a-claim-stops-having-a-lifetime-2026-08-24) — FR-5.7/ADR-028. Four things the code cannot show: why the option that looked like the compromise was the most expensive one, why the takeover is the one lock action with no optimistic write, why it has no reachable Playwright case and will not until a second identity exists, and the two-day-old work that was deleted rather than adapted.
 - [A second account arrives, and finds a claim nobody could revoke (2026-08-24)](#a-second-account-arrives-and-finds-a-claim-nobody-could-revoke-2026-08-24) — MVP-plan Track B step 2 / ADR-029: the mock-IdP `server` project. Four things the code cannot show: why a real Authelia was weighed and lost to a 250-line fixture, why the ordering of two processes is a design decision rather than a script detail, the defect the project found on its first run — a takeover that the loser's screen contradicted — and why the identity behind the fix cannot come from the token provider the rest of the client uses.
+- [The restore could be run twice, and the manual said it could not (2026-08-24)](#the-restore-could-be-run-twice-and-the-manual-said-it-could-not-2026-08-24) — FR-18.4/ADR-030: a trip's identity on import is its year and its name. Four things the code cannot show: the documentation that had described the item rule as if it were the whole rule, why the database constraint that looks like the obvious enforcement is the worst of the four options, why the trips were invisible to a view called `master`, and the cost the family's own data pays for the rule.
 
 ## Current state
 
@@ -6275,3 +6276,53 @@ and unmarked states off a downscaled screenshot, decided they looked identical,
 and was about to change the colour — the computed values were `#cba6f7` against
 `#6c7086`, which is exactly the distinction that was intended. A rendered pixel
 answers a question about rendered pixels; an *impression* of one does not.
+## The restore could be run twice, and the manual said it could not (2026-08-24)
+
+**What changed:** an imported trip is identified by its **year and its name**
+(ADR-030). An import that finds one already there writes nothing at all and
+reports which trip it was; M18 marks the document in the restore list *before*
+the button is pressed, the commit counts what it left alone, and
+`jitpack-import` says it per document and in its summary, `--dry-run` included.
+
+**The premise that was already written down as true.** `docs/backup.md` said,
+of a restore onto a device that still has data, that everything is "matched to
+what already exists **by name**, so restoring onto a device that still has data
+merges rather than duplicates". That was the rule for items, for tags and for
+groups, and it had been generalised in prose to the whole file. Trips had never
+had it: restoring a 33-trip backup twice produced 66 trips, quietly, with the
+first 33 still on screen. The page was not lying about behaviour anybody had
+decided against — it was describing a rule that only covered part of what the
+file contains, which is the harder kind of documentation error to see, because
+every sentence around it is true.
+
+**Why not a UNIQUE constraint, which is what a database is for.** It scored
+worst of the four options considered, and the reason is not the schema
+freeze (invariant 2), which is only a timing problem. It is that a refused
+mutation **parks the outbox**: the queue is ordered, a rejected write stays at
+its head, and every later write on that device waits behind it. That failure
+mode was found on 2026-08-22 and fixed once already. Trading a duplicated trip
+for a wedged device is a bad trade, and the constraint would additionally turn
+two people creating *Samedan 2027* on two phones — ordinary concurrent use,
+which LWW exists to settle — into a hard error. The other two options fail
+more simply: a `(import)` suffix labels the duplication instead of preventing
+it, and a row-level merge cannot tell "add what is missing" from "undo what the
+user deleted".
+
+**Trips are in the master partition and not in the master store.** The import
+rules read the instance through a view called `master`, and the CLI carried a
+comment saying a trip's own rows are "written, never matched against" — true
+until this rule needed to match against them. The `trips` table lives in the
+master *partition* but belongs to the *trip* store, so nothing that held the
+view could see them. The view now names `tripList` explicitly and both call
+sites assemble it through getters rather than a snapshot: the rules read their
+own output back between documents, so a trip created by document 12 has to be
+visible to document 13 in the same file.
+
+**What the rule costs, in this project's own data.** The family sheet these
+imports exist for has *Janosch & Andy* twice in 2021 — two different weekends,
+one name, one year. Under this rule only the first can be imported, and the
+second has to be named apart in the file. That is written into ADR-030 as an
+accepted cost rather than discovered later, and it is also the concrete thing
+the revisit trigger waits for: the fix, when somebody wants it, is a way for
+the import to say "no, this is a different one", not a different notion of
+identity.

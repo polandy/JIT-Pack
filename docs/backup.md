@@ -47,6 +47,18 @@ onto a trip stays where it was, on the trip, and does not appear in your invento
 A backup taken with an older version of the app carries no status, and its trips arrive in
 **planning** as they always did.
 
+**A trip you already have is not added a second time.** A trip is recognised by its **year
+and its name**, so restoring the same file twice — or restoring a newer backup that
+overlaps an older one — leaves you with one of each. The restore list marks such a trip
+*Schon vorhanden* before you press the button, and after the import the app tells you how
+many it left alone. That means a restore is safe to repeat when you are not sure the last
+one finished.
+
+The flip side is worth knowing before it surprises you: if you have **two different trips
+with the same name in the same year**, only the first of them can be imported. Give one of
+them a different name in the file, and both come in. And if you rename a trip in the app,
+a backup that still holds the old name will restore it again as a second trip.
+
 A trip that was built from groups keeps **following** them after a restore, and the
 restore list says so next to it. What you already told a group carries over too: a change
 you accepted stays in the trip's change log with the date it happened, and one you
@@ -360,6 +372,16 @@ backup.yaml #3: unreadable — unknown kind "nonsense"
 3 documents: 2 imported, 1 unreadable
 ```
 
+**Running it again is safe.** A trip the instance already holds is recognised by its year
+and name, skipped, and counted on its own — so re-running a file after a connection died
+tops up what is missing instead of doubling what is there:
+
+```
+backup.yaml #1 template "Ferien": imported
+backup.yaml #2 trip "Wiriehorn": already here — nothing added
+2 documents: 1 imported, 1 already here, 0 failed
+```
+
 **One bad document never costs the ones behind it.** Whatever went wrong is said on its own
 line and the rest of the file still goes in. The command exits with `1` if any document
 failed and `2` if the command line itself was wrong, so a script can tell "nothing landed"
@@ -369,11 +391,11 @@ from "most of it did".
 |---|---|
 | `--server URL` | The instance to import into. Defaults to `$JITPACK_SERVER`, then `http://localhost:3000`. |
 | `--token TOKEN` | Bearer token, for an instance with accounts. Defaults to `$JITPACK_TOKEN`. A single-user instance needs none. |
-| `--dry-run` | Read the file and report what is in it without importing anything. |
+| `--dry-run` | Read the file and report what is in it without importing anything, including which trips are already here. |
 
 Use `--dry-run` before importing a file you wrote or edited yourself — it tells you how many
-documents the file really has and which of them the app can read, while nothing has changed
-yet.
+documents the file really has, which of them the app can read, and which trips it would
+leave alone because they are already there, while nothing has changed yet.
 
 Local Mode has no server, so there is nothing to import into from a shell; restore a Local
 Mode backup in the app, on the device.

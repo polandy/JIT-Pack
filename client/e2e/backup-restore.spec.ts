@@ -213,6 +213,75 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await fresh.close()
   })
 
+  /*
+   * E2E-M18-10 (FR-18.4, ADR-030): the same file, restored twice.
+   *
+   * The invitation is real — a restore is what you run when you are not sure
+   * whether the last one worked — and before ADR-030 the second run built a
+   * second copy of every trip, silently and with the first still on screen.
+   * A trip's identity is its year and its name, so the second run adds nothing
+   * and says which trips it left alone.
+   *
+   * The positive signal is `toHaveCount(1)`: a case that only asserted "no
+   * second row" would pass just as well against a restore that deleted the
+   * first one.
+   */
+  test('E2E-M18-10: restoring the same backup twice leaves one trip, not two', async ({
+    page,
+    browser,
+  }) => {
+    test.slow()
+
+    await page.goto('/tabs/templates')
+    await createTemplate(page, 'group', 'Makro')
+    await addPosition(page, 'Kamera')
+    await backToList(page)
+    await createTripViaWizard(page, TRIP)
+
+    await page.getByTestId('sync-indicator').click()
+    const sheet = page.getByTestId('sync-detail-sheet')
+    await expect(sheet).toBeVisible()
+    const downloadPromise = page.waitForEvent('download')
+    await sheet.getByTestId('sync-detail-backup').click()
+    const backup = await readFile(await (await downloadPromise).path(), 'utf8')
+
+    // --- a device that has never seen this trip -------------------------
+    const fresh = await browser.newContext({ baseURL: new URL(page.url()).origin })
+    const restored = await fresh.newPage()
+    await seed(restored, { mode: 'local' })
+
+    const restoreOnce = async () => {
+      await restored.goto('/tabs/trips')
+      await restored.getByTestId('m2-portable-import').click()
+      await restored.getByTestId('portable-paste').locator('textarea').fill(backup)
+      await restored.getByTestId('portable-preview').click()
+      await expect(restored.getByTestId('portable-restore')).toBeVisible()
+    }
+
+    await restoreOnce()
+    // Nothing is here yet, so the preview says nothing is here yet.
+    await expect(restored.getByTestId('portable-already-here')).toHaveCount(0)
+    await restored.getByTestId('portable-restore-commit').click()
+    await expect(visible(restored).getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(1)
+
+    // --- the same file again, on the device that just took it -----------
+    await restoreOnce()
+    const tripRow = restored.getByTestId('portable-restore-row').filter({ hasText: TRIP.name })
+    await expect(tripRow.getByTestId('portable-already-here')).toBeVisible()
+
+    await restored.getByTestId('portable-restore-commit').click()
+    await expect(restored.locator('ion-toast')).toContainText(/schon vorhanden|already here/i)
+
+    // One trip, still there — not two, and not none.
+    await expect(visible(restored).getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(1)
+
+    // The group came back by name both times (ADR-017), so it is one group too.
+    await restored.getByTestId('rail-templates').click()
+    await expect(visible(restored).getByRole('heading', { name: 'Makro' })).toHaveCount(1)
+
+    await fresh.close()
+  })
+
   // E2E-M18-07 (FR-27.1/27.7, ADR-017): the composition is part of the only
   // copy. A Vorlage that came back as a bare name would look restored and
   // generate an empty trip — the failure would surface a wizard run later, on
