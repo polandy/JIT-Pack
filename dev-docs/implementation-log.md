@@ -154,6 +154,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A trip could be judged only one row at a time (2026-08-24)](#a-trip-could-be-judged-only-one-row-at-a-time-2026-08-24) — FR-9.3/9.4. Three things the code cannot show: how many affordances a "one posture, one question" screen turns out to have once it is rendered, why a handled proposal became a record line rather than a dimmed card, and the control that was replaced twice before it rendered the row rather than itself.
 - [A claim stops having a lifetime (2026-08-24)](#a-claim-stops-having-a-lifetime-2026-08-24) — FR-5.7/ADR-028. Four things the code cannot show: why the option that looked like the compromise was the most expensive one, why the takeover is the one lock action with no optimistic write, why it has no reachable Playwright case and will not until a second identity exists, and the two-day-old work that was deleted rather than adapted.
 - [A second account arrives, and finds a claim nobody could revoke (2026-08-24)](#a-second-account-arrives-and-finds-a-claim-nobody-could-revoke-2026-08-24) — MVP-plan Track B step 2 / ADR-029: the mock-IdP `server` project. Four things the code cannot show: why a real Authelia was weighed and lost to a 250-line fixture, why the ordering of two processes is a design decision rather than a script detail, the defect the project found on its first run — a takeover that the loser's screen contradicted — and why the identity behind the fix cannot come from the token provider the rest of the client uses.
+- [The clock the client was told to read, and never received (2026-08-25)](#the-clock-the-client-was-told-to-read-and-never-received-2026-08-25) — a data-model review's sync half. Four things the code cannot show: how a rule implemented correctly on both sides never once ran, why a deleted trip's *master*-partition children are the tombstones that matter while its trip-partition ones need none, a review finding that was wrong and how far I built it before opening the citation, and why a connection-scoped pragma is not a schema rule.
 
 ## Current state
 
@@ -6275,3 +6276,65 @@ and unmarked states off a downscaled screenshot, decided they looked identical,
 and was about to change the colour — the computed values were `#cba6f7` against
 `#6c7086`, which is exactly the distinction that was intended. A rendered pixel
 answers a question about rendered pixels; an *impression* of one does not.
+
+## The clock the client was told to read, and never received (2026-08-25)
+
+A data-model review of `schema.sql` against the PRD, the Sync-API spec and
+the store's own code. Five defects and one non-defect came out of the sync
+half of it; the schema's own constraints are a separate change.
+
+**A rule can be implemented on both sides and still never run.** Sync-API §3
+has every client advance `last_seen_hlc` to the highest HLC it has observed,
+and the client implements it exactly — `usePull.ts` and `useSyncOutbox.ts`
+both read `row['updated_hlc']` off each pulled snapshot. The server builds a
+snapshot from `syncableColumns`, and `updated_hlc` is deliberately not one of
+them, so `loadRow` scanned the clock into a variable that `Pull` and
+`PullMaster` then dropped on the floor with `c.Row, _, _, err = …`. The guard
+was therefore false on every change any device has ever pulled. Nothing was
+red: the client's typeof check makes the dead path indistinguishable from a
+row that simply has no clock, and no test asserted the field's presence
+because both sides had been written from the same spec sentence and each
+assumed the other end held it up. What it cost is invisible until it isn't —
+a device whose wall clock lags keeps minting HLCs *older* than writes it has
+already seen, and loses its own later edits to them. The fix is one line in
+`loadSnapshot`, but the lesson is the shape: **two correct implementations of
+one sentence do not add up to a working rule, and the thing to test is the
+seam between them, not either side.**
+
+**A foreign-key cascade is a delete no change feed can see.** The master
+partition already knew this — `cascadeChildren` exists precisely to collect
+child ids before a parent goes and tombstone them by hand — but the list had
+two holes, and one whole partition had never been given the machinery at all.
+Deleting a trip cascaded `trip_members`, `trip_template_sources` and
+`trip_applied_changes`, all three of which travel the *master* feed, with no
+tombstone behind them; deleting a trip item cascaded its comments in the trip
+partition, which called `cascadeChildren` from nowhere. Both leave rows alive
+on every other device permanently. Worth writing down is why a trip's
+*remaining* children need nothing: `change_log.trip_id` cascades too, so the
+trip partition's entire feed is deleted along with the trip it describes, and
+the master feed is the only one left to carry the news. That asymmetry is
+easy to read as an oversight and is in fact the reason the master-side
+tombstones are the ones that matter.
+
+**A finding that did not survive its own verification.** The review also
+reported that the idempotency memo's `outcome` column was write-only and that
+a replayed `rejected` push therefore came back as a bare `duplicate`, losing
+the refusal. The first half is true and harmless; the second was wrong, and I
+had already written the fix and four red tests before checking the spec text
+rather than the summary of it. §5 defines `duplicate` as "mutation_id seen
+before, **recorded result returned**", and P-5 says in as many words that "the
+second push returns `duplicate`" — the *recorded result* being the seq and the
+conflicts, both of which the code was already returning. The change was
+reverted and the tests replaced by the one assertion P-5 makes that nothing
+had covered: a replay appends nothing to the change log. **A review finding is
+a hypothesis with a citation, and the citation is the part to open.**
+
+**A pragma that holds for one connection is not a schema rule.** `PRAGMA
+foreign_keys = ON` was executed once after `sql.Open`. It is per connection,
+SQLite defaults it off, and `database/sql` replaces a connection it finds
+broken — so a pool that ever re-dialled would hand back a handle on which
+every `REFERENCES` clause in `schema.sql` is decorative, with an orphaned row
+as the first symptom and nothing naming the cause. It is in the DSN now. The
+test needed a deterministic seam rather than a hope that a reconnect happens:
+`SetMaxIdleConns(0)` makes the pool close each connection on release, so the
+next query provably runs on a fresh one.
