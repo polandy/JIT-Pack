@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 )
 
@@ -154,5 +155,22 @@ func TestTripMemberNamesAndTripItemInfo(t *testing.T) {
 	_, packer, err = s.TripItemInfo(ctx, "item-2")
 	if err != nil || packer != "" {
 		t.Errorf("unset packer = %q/%v, want empty", packer, err)
+	}
+}
+
+// The kind set is closed, and the wire contract's NotificationPrefs is held
+// against it (see internal/api's wire_test.go). A caller that could append to
+// the returned slice would widen what SetNotificationPrefs accepts without
+// the contract noticing, so the accessor hands out a copy.
+func TestNotificationKinds_IsAClosedSetAndACopy(t *testing.T) {
+	want := []string{NotifyDelegation, NotifyMention, NotifyTask, NotifyLockTaken}
+	got := NotificationKinds()
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("NotificationKinds() = %v, want %v", got, want)
+	}
+
+	got[0] = "tampered"
+	if again := NotificationKinds()[0]; again != NotifyDelegation {
+		t.Errorf("mutating the result changed the set: first kind is now %q", again)
 	}
 }

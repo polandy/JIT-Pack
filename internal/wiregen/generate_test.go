@@ -194,3 +194,110 @@ func TestGenerate_EndsWithExactlyOneNewline(t *testing.T) {
 		t.Errorf("a trailing blank line is what prettier strips, and the strip is what fails the gate:\n%q", got[len(got)-10:])
 	}
 }
+
+// generateRoutes runs the route generator over an in-line contract source.
+func generateRoutes(t *testing.T, src string) string {
+	t.Helper()
+	out, err := wiregen.GenerateRoutes("wire.go", []byte("package api\n\n"+src))
+	if err != nil {
+		t.Fatalf("GenerateRoutes: %v", err)
+	}
+	return out
+}
+
+// NFR-4.14/ADR-027: the path is declared once in Go and the client's builders
+// come from that declaration, so a rename cannot land on one side only.
+func TestGenerateRoutes_ShapesTheBuilderAfterTheParameters(t *testing.T) {
+	tests := []struct {
+		name, decl, want string
+	}{
+		{
+			"a fixed path is a constant, not a function",
+			`const RouteMasterSync = "/api/v1/master/sync"`,
+			"masterSync: '/api/v1/master/sync',",
+		},
+		{
+			"a placeholder becomes a parameter of its own name",
+			`const RouteTripSync = "/api/v1/trips/{tripID}/sync"`,
+			"tripSync: (tripID: string) => `/api/v1/trips/${tripID}/sync`,",
+		},
+		{
+			"two placeholders keep the order the path has",
+			`const RouteMemberRole = "/api/v1/trips/{tripID}/members/{userID}"`,
+			"memberRole: (tripID: string, userID: string) => `/api/v1/trips/${tripID}/members/${userID}`,",
+		},
+		{
+			"an initialism keeps its case after the first word",
+			`const RouteTripExportCSV = "/api/v1/trips/{tripID}/export.csv"`,
+			"tripExportCSV: (tripID: string) =>",
+		},
+		{
+			"a name that is all initialism lowercases whole",
+			`const RouteWS = "/ws"`,
+			"ws: '/ws',",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := generateRoutes(t, tc.decl); !strings.Contains(got, tc.want) {
+				t.Errorf("want %q in:\n%s", tc.want, got)
+			}
+		})
+	}
+}
+
+// The generated file is formatted by prettier along with the rest of
+// client/src, so a line the generator leaves too long is rewritten and the
+// drift gate fails on a file nobody edited.
+func TestGenerateRoutes_BreaksALongBuilderWherePrettierWould(t *testing.T) {
+	out := generateRoutes(t,
+		`const RouteTripConflictRevert = "/api/v1/trips/{tripID}/conflicts/{conflictID}/revert"`)
+	want := "  tripConflictRevert: (tripID: string, conflictID: string) =>\n" +
+		"    `/api/v1/trips/${tripID}/conflicts/${conflictID}/revert`,"
+	if !strings.Contains(out, want) {
+		t.Errorf("want the prettier break:\n%s\ngot:\n%s", want, out)
+	}
+	for _, line := range strings.Split(out, "\n") {
+		if len(line) > 100 {
+			t.Errorf("line exceeds the client's print width: %q", line)
+		}
+	}
+}
+
+// Only the route constants: the contract's other constants — the error
+// vocabulary, the path-variable names — are not paths and must not become
+// builders that resolve to nothing.
+func TestGenerateRoutes_TakesOnlyWhatIsARoute(t *testing.T) {
+	out := generateRoutes(t, `
+const PathTripID = "tripID"
+
+type ErrorCode string
+
+const ErrNotFound ErrorCode = "not_found"
+
+const RouteConfig = "/api/v1/config"
+`)
+	if !strings.Contains(out, "config: '/api/v1/config',") {
+		t.Errorf("the route is missing:\n%s", out)
+	}
+	for _, unwanted := range []string{"tripID", "not_found"} {
+		if strings.Contains(out, unwanted) {
+			t.Errorf("%q is not a route and must not be emitted:\n%s", unwanted, out)
+		}
+	}
+}
+
+// The grouping comments are the scope rule written where the reader is, so
+// they cross over rather than being an ADR reference the client cannot follow.
+func TestGenerateRoutes_CarriesTheDeclarationsComment(t *testing.T) {
+	out := generateRoutes(t, "const (\n\t// Master scope.\n\tRouteMasterSync = \"/api/v1/master/sync\"\n)")
+	if !strings.Contains(out, "  // Master scope.\n  masterSync:") {
+		t.Errorf("want the comment above the entry:\n%s", out)
+	}
+}
+
+func TestGenerateRoutes_RefusesADeclarationWithNoRoutes(t *testing.T) {
+	if _, err := wiregen.GenerateRoutes("wire.go", []byte("package api\n")); err == nil {
+		t.Fatal("a generator that found no route must fail rather than write an empty object")
+	}
+}

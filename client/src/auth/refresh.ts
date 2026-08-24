@@ -12,6 +12,7 @@
  */
 
 import { API } from '@/api/routes'
+import type { SessionTokens } from '@/api/types'
 import { clearTokens, loadTokens, saveTokens } from './tokens'
 
 /** Refresh this long before expiry so in-flight requests don't race the deadline. */
@@ -67,11 +68,11 @@ export function createAuthRefresher(baseUrl: string): AuthRefresher {
     }
     if (!resp.ok) return tokens.access_token
 
-    const set = (await resp.json()) as {
-      access_token?: string
-      refresh_token?: string
-      expires_in?: number
-    }
+    // Partial rather than SessionTokens: the server always sends all three,
+    // but the guard below is about a body that is not one — an interposed
+    // proxy, a truncated response — and a non-optional type would make it
+    // read as dead code.
+    const set = (await resp.json()) as Partial<SessionTokens>
     if (!set.access_token) return tokens.access_token
     saveTokens({
       access_token: set.access_token,

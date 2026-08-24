@@ -1,6 +1,7 @@
 /** WebSocket composable — thin event pings, not data carriers (P-1, Sync-API §7). */
 
 import type { TokenProvider } from '@/api/client'
+import { API } from '@/api/routes'
 import type { WSEvent } from '@/api/types'
 
 export interface WSOptions {
@@ -26,7 +27,7 @@ export function useWebSocket(opts: WSOptions) {
     // "invalid token" where the truth was "no token": a wrong answer to
     // the first question anyone debugging a dead socket asks.
     const query = token ? `?token=${encodeURIComponent(token)}` : ''
-    socket = new WebSocket(`${httpToWs(opts.baseUrl)}/ws${query}`)
+    socket = new WebSocket(`${httpToWs(opts.baseUrl)}${API.ws}${query}`)
 
     socket.onopen = () => {
       if (pendingChannels.length > 0) {

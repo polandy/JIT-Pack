@@ -754,11 +754,45 @@ A packing list is **scanned, not read**: forty rows, most of them known, the eye
   could tell whether the client had followed. Two of the shapes the point complains about had
   already gone with ADR-025 (`export.yaml`, `/templates/{id}/export`).
 
-  **What this point does *not* buy, stated so it is not assumed:** the routes are still not in
-  the contract. `wire.go` declares the envelopes, so the paths are held by a Go test table and a
-  Vitest spec spelling the same strings — agreement by two tests rather than one declaration.
-  Moving them into `wire.go` and generating `client/src/api/routes.ts` is the answer if a rename
-  ever lands on one side only, and it is ADR-027's second revisit trigger.
+  **Closed the same day: the paths joined the contract too** (owner request). ADR-027's second
+  revisit trigger said "if a rename ever lands on one side only"; it was discharged without
+  waiting for that, because the cost of moving the routes in rises with every call site and the
+  drift being waited for is a defect reaching a user. `wire.go` now declares all 29 paths as
+  `Route*` constants and the five path variables as `Path*` constants; the mux registers from
+  them, and `cmd/wiregen` writes `client/src/api/routes.ts` from the same declaration, so the
+  drift gate that held the envelopes holds the paths. A path with no placeholder generates a
+  string, one with placeholders a function whose parameters *are* the placeholder names — so an
+  id cannot be forgotten and the two spellings of a path variable cannot come apart. Four AST
+  rules hold the Go side: a declared route the mux does not serve, a route or a path variable
+  taken from a literal instead of the declaration, and a placeholder no constant names. The
+  version prefix stays spelled out on every line on purpose — the block is a table, and `/api/v2`
+  is one pass over it.
+
+  **Coverage closed 2026-08-24: every response body is a declared type.** The gate protected what
+  `wire.go` declared, and four families were outside it — the admin overview, the notification
+  list and its preference set, the instance config, and the auth pair — each a map literal at the
+  call site with a hand-written twin on the client. Eleven types join the contract and the
+  handlers encode them; the client's two hand-written copies become aliases of the generated
+  ones. **No wire key changed**: the tag set gained the thirteen names that had only existed
+  inside map literals and lost none, which is the measurement the change was checked against
+  rather than an assurance. Only key *order* moves, because a map encodes sorted and a struct
+  encodes in field order.
+
+  Two tests keep it closed, and the second exists because the first has a blind spot.
+  `TestEveryResponseBodyIsADeclaredType` reads `internal/api`'s own AST and fails on a map
+  literal handed to `writeJSON` or an encoder, so the next response cannot be added untyped — but
+  it cannot see a map held in a *variable*, which is exactly what the preference handler did.
+  `TestWire_NotificationPrefsNamesEveryKindTheStoreKnows` therefore holds the wire struct against
+  `store.NotificationKinds()`: a fourth notification kind added to the store now fails the build
+  instead of being persisted, honoured server-side and invisible on the wire. **A gate that
+  overstates its reach is worse than one that names its limit**, so the limit is written in the
+  test itself.
+
+  One drift was found while doing it, of the same shape as the five before: a notification's
+  `payload` is **nullable** — a nil map marshals to `null` — and the client's copy declared it
+  otherwise while both of its readers indexed it directly. The *request* body of the preference
+  endpoint stays an untyped map on purpose: a missing key there means *leave that kind enabled*,
+  and a struct would decode it as `false` and switch the kind off.
 
   **Two findings the mechanism produced on its first run**, both of the same shape as the three
   above and both invisible until then: the client's `ConflictEntry` had never grown the

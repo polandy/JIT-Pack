@@ -21,7 +21,22 @@ import { CLIENT_ACTOR_PLACEHOLDER, useMutations } from './useMutations'
 import { useSyncStatus } from './useSyncStatus'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
-import type { ConflictEntry, LockEvent, PresenceMember, PullChange, WSEvent } from '@/api/types'
+import type {
+  AdminUserListResponse,
+  ConflictEntry,
+  ConflictListResponse,
+  DirectoryUser,
+  LockEvent,
+  LockEventListResponse,
+  MeResponse,
+  NotificationListResponse,
+  PresenceMember,
+  PullChange,
+  TakeoverResponse,
+  UserListResponse,
+  VAPIDKeyResponse,
+  WSEvent,
+} from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
 import { planClone, type CloneOptions } from '@/domain/clone'
@@ -429,7 +444,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   async function surfaceUnreadNotifications(): Promise<void> {
     if (local || !config.onNotification) return
     try {
-      const resp = await client.get<{ notifications: ServerNotification[] }>(API.notifications, {
+      const resp = await client.get<NotificationListResponse>(API.notifications, {
         unread: '1',
       })
       for (const n of resp.notifications ?? []) {
@@ -465,7 +480,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   /** Server half of the Web Push dance (NFR-4.6) for notifications/push.ts. */
   const pushApi: PushServerAPI = {
     async getVapidKey() {
-      return (await client.get<{ key: string }>(API.pushVapidKey)).key
+      return (await client.get<VAPIDKeyResponse>(API.pushVAPIDKey)).key
     },
     async registerSubscription(sub) {
       await client.post(API.pushSubscriptions, sub)
@@ -778,7 +793,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    */
   async function takeOverClaim(tripId: string, item: TripItem): Promise<string> {
     if (local) return ''
-    const resp = await client.post<{ previous_holder?: string }>(API.tripTakeover(tripId, item.id))
+    const resp = await client.post<TakeoverResponse>(API.tripItemTakeover(tripId, item.id))
     // The claim is mine from here: `myLocks` is how this device knows a
     // row is its own, and without it the row I just took would render as
     // locked against me.
@@ -796,7 +811,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    */
   async function fetchLockEvents(tripId: string): Promise<LockEvent[]> {
     if (local) return []
-    const resp = await client.get<{ lock_events: LockEvent[] }>(API.tripLockEvents(tripId), {})
+    const resp = await client.get<LockEventListResponse>(API.tripLockEvents(tripId), {})
     return resp.lock_events
   }
 
@@ -2337,7 +2352,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    */
   async function fetchConflicts(tripId: string): Promise<ConflictEntry[]> {
     if (local) return []
-    const resp = await client.get<{ conflicts: ConflictEntry[] }>(API.tripConflicts(tripId), {})
+    const resp = await client.get<ConflictListResponse>(API.tripConflicts(tripId), {})
     return resp.conflicts
   }
 
@@ -2350,7 +2365,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    */
   async function fetchMasterConflicts(): Promise<ConflictEntry[]> {
     if (local) return []
-    const resp = await client.get<{ conflicts: ConflictEntry[] }>(API.masterConflicts, {})
+    const resp = await client.get<ConflictListResponse>(API.masterConflicts, {})
     return resp.conflicts
   }
 
@@ -2381,18 +2396,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * fetchMe resolves the own identity; null in Local Mode (no server).
    * is_instance_admin gates the M20 entry point (FR-23.2).
    */
-  async function fetchMe(): Promise<{
-    user_id: string
-    display_name: string
-    is_instance_admin?: boolean
-  } | null> {
+  async function fetchMe(): Promise<MeResponse | null> {
     if (local) return null
     try {
-      return await client.get<{
-        user_id: string
-        display_name: string
-        is_instance_admin?: boolean
-      }>(API.me, {})
+      return await client.get<MeResponse>(API.me, {})
     } catch {
       return null
     }
@@ -2403,7 +2410,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   // partitions (users is outside both).
 
   async function fetchAdminUsers(): Promise<AdminUserRow[]> {
-    const resp = await client.get<{ users: AdminUserRow[] }>(API.adminUsers, {})
+    const resp = await client.get<AdminUserListResponse>(API.adminUsers, {})
     return resp.users ?? []
   }
 
@@ -2500,13 +2507,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * fetchUsers loads the instance's user directory for the M3 sharing
    * picker (FR-4.5); empty offline or in Local Mode (no accounts).
    */
-  async function fetchUsers(): Promise<{ user_id: string; display_name: string }[]> {
+  async function fetchUsers(): Promise<DirectoryUser[]> {
     if (local) return []
     try {
-      const resp = await client.get<{ users: { user_id: string; display_name: string }[] }>(
-        API.users,
-        {},
-      )
+      const resp = await client.get<UserListResponse>(API.users, {})
       return resp.users ?? []
     } catch {
       return []

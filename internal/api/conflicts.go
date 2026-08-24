@@ -13,7 +13,7 @@ import (
 )
 
 func (s *Server) handleListConflicts(w http.ResponseWriter, r *http.Request) {
-	entries, err := s.store.ListConflicts(r.Context(), r.PathValue("tripID"))
+	entries, err := s.store.ListConflicts(r.Context(), r.PathValue(PathTripID))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, ErrInternal, "conflict log failed")
 		return
@@ -46,9 +46,9 @@ func writeConflicts(w http.ResponseWriter, entries []store.ConflictEntry) {
 }
 
 func (s *Server) handleRevertConflict(w http.ResponseWriter, r *http.Request) {
-	tripID := r.PathValue("tripID")
+	tripID := r.PathValue(PathTripID)
 
-	seq, err := s.store.RevertTripConflict(r.Context(), tripID, r.PathValue("conflictID"))
+	seq, err := s.store.RevertTripConflict(r.Context(), tripID, r.PathValue(PathConflictID))
 	if err != nil {
 		writeRevertError(w, err)
 		return
@@ -60,7 +60,7 @@ func (s *Server) handleRevertConflict(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleRevertMasterConflict(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(userIDKey).(string)
 
-	seq, err := s.store.RevertMasterConflict(r.Context(), userID, r.PathValue("conflictID"))
+	seq, err := s.store.RevertMasterConflict(r.Context(), userID, r.PathValue(PathConflictID))
 	if err != nil {
 		writeRevertError(w, err)
 		return

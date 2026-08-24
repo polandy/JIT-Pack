@@ -26,14 +26,6 @@ const (
 	previewLen = 120
 )
 
-type wireNotification struct {
-	ID        string         `json:"id"`
-	Kind      string         `json:"kind"`
-	Payload   map[string]any `json:"payload"`
-	CreatedAt string         `json:"created_at"`
-	ReadAt    *string        `json:"read_at,omitempty"`
-}
-
 // handleListNotifications serves GET /api/v1/notifications
 // (?unread=1 filters, ?limit= caps; own notifications only).
 func (s *Server) handleListNotifications(w http.ResponseWriter, r *http.Request) {
@@ -50,19 +42,19 @@ func (s *Server) handleListNotifications(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusInternalServerError, ErrInternal, "list failed")
 		return
 	}
-	out := make([]wireNotification, 0, len(list))
+	out := make([]NotificationEntry, 0, len(list))
 	for _, n := range list {
-		out = append(out, wireNotification{
+		out = append(out, NotificationEntry{
 			ID: n.ID, Kind: n.Kind, Payload: n.Payload, CreatedAt: n.CreatedAt, ReadAt: n.ReadAt,
 		})
 	}
-	writeJSON(w, map[string]any{"notifications": out})
+	writeJSON(w, NotificationListResponse{Notifications: out})
 }
 
 // handleMarkNotificationRead serves POST /api/v1/notifications/{notificationID}/read.
 func (s *Server) handleMarkNotificationRead(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(userIDKey).(string)
-	err := s.store.MarkNotificationRead(r.Context(), userID, r.PathValue("notificationID"))
+	err := s.store.MarkNotificationRead(r.Context(), userID, r.PathValue(PathNotificationID))
 	if errors.Is(err, store.ErrNotificationNotFound) {
 		writeError(w, http.StatusNotFound, ErrNotificationNotFound, "no such notification")
 		return
@@ -71,7 +63,7 @@ func (s *Server) handleMarkNotificationRead(w http.ResponseWriter, r *http.Reque
 		writeError(w, http.StatusInternalServerError, ErrInternal, "mark read failed")
 		return
 	}
-	writeJSON(w, map[string]any{"ok": true})
+	writeJSON(w, OKResponse{OK: true})
 }
 
 // handleGetNotificationPrefs serves GET /api/v1/me/notification-prefs.
@@ -82,13 +74,20 @@ func (s *Server) handleGetNotificationPrefs(w http.ResponseWriter, r *http.Reque
 		writeError(w, http.StatusInternalServerError, ErrInternal, "prefs failed")
 		return
 	}
-	writeJSON(w, prefs)
+	writeJSON(w, NotificationPrefs{
+		Delegation: prefs[store.NotifyDelegation],
+		Mention:    prefs[store.NotifyMention],
+		Task:       prefs[store.NotifyTask],
+	})
 }
 
 // handlePutNotificationPrefs serves PUT /api/v1/me/notification-prefs
 // with a {"delegation":bool,"mention":bool,"task":bool} body.
 func (s *Server) handlePutNotificationPrefs(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(userIDKey).(string)
+	// The *request* is deliberately a map rather than the wire struct: a
+	// missing key means "leave it enabled" (UI-Spec M17), and a struct would
+	// decode it as false and silently switch the kind off.
 	var prefs map[string]bool
 	if err := json.NewDecoder(r.Body).Decode(&prefs); err != nil {
 		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "malformed prefs body")
@@ -98,7 +97,7 @@ func (s *Server) handlePutNotificationPrefs(w http.ResponseWriter, r *http.Reque
 		writeError(w, http.StatusInternalServerError, ErrInternal, "save prefs failed")
 		return
 	}
-	writeJSON(w, map[string]any{"ok": true})
+	writeJSON(w, OKResponse{OK: true})
 }
 
 // emitNotifications scans applied push mutations for FR-6.2 triggers and

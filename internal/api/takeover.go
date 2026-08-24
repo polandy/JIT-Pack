@@ -16,7 +16,7 @@ import (
 
 // handleTakeover serves POST /trips/{tripID}/items/{itemID}/takeover.
 func (s *Server) handleTakeover(w http.ResponseWriter, r *http.Request) {
-	tripID, itemID := r.PathValue("tripID"), r.PathValue("itemID")
+	tripID, itemID := r.PathValue(PathTripID), r.PathValue(PathItemID)
 	takerID, _ := r.Context().Value(userIDKey).(string)
 
 	ev, err := s.store.TakeOverClaim(r.Context(), tripID, itemID, takerID)
@@ -66,7 +66,7 @@ func (s *Server) notifyTakeover(ctx context.Context, ev store.LockEvent) {
 // conflict log is. It is deliberately not part of that log (ADR-028) —
 // one list holding two unrelated kinds of event stops being readable.
 func (s *Server) handleListLockEvents(w http.ResponseWriter, r *http.Request) {
-	events, err := s.store.ListLockEvents(r.Context(), r.PathValue("tripID"))
+	events, err := s.store.ListLockEvents(r.Context(), r.PathValue(PathTripID))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, ErrInternal, "lock events failed")
 		return

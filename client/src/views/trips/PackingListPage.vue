@@ -24,6 +24,7 @@
  *    packed" from "nothing matches" (FR-25.11e) — announcing completion
  *    over a narrowed list is the failure that rule exists to prevent.
  */
+import type { DirectoryUser } from '@/api/types'
 import {
   IonPage,
   IonContent,
@@ -130,7 +131,7 @@ const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrato
 // is the correct answer there: nothing is assignable, so nothing is hidden
 // and no row can name a packer.
 const myUserId = ref<string | null>(null)
-const directory = ref<{ user_id: string; display_name: string }[]>([])
+const directory = ref<DirectoryUser[]>([])
 
 onMounted(async () => {
   orchestrator.subscribeTrip(props.tripId)

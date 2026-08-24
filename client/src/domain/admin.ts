@@ -7,17 +7,10 @@
  * is always available, and there is no delete anywhere (FR-23.5).
  */
 
-/** One row of GET /api/v1/admin/users. */
-export interface AdminUserRow {
-  user_id: string
-  display_name: string
-  email?: string
-  created_at: string
-  is_instance_admin: boolean
-  deactivated_at: string | null
-  trip_count: number
-  template_count: number
-}
+import type { AdminUser } from '@/api/types'
+
+/** One row of the admin user overview. Generated from internal/api/wire.go. */
+export type AdminUserRow = AdminUser
 
 export type AdminAction = 'deactivate' | 'reactivate' | 'reset-avatar' | 'reset-name'
 

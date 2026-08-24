@@ -172,6 +172,119 @@ type RevertResponse struct {
 	PullHint PullHint `json:"pull_hint"`
 }
 
+// --- Identity (Sync-API §8) ---
+
+// MeResponse is the caller's own identity. IsInstanceAdmin decides whether the
+// client renders the M20 entry point (FR-23.2); the admin endpoints enforce it
+// regardless of what the client does with it.
+type MeResponse struct {
+	UserID          string `json:"user_id"`
+	DisplayName     string `json:"display_name"`
+	IsInstanceAdmin bool   `json:"is_instance_admin"`
+}
+
+// DirectoryUser is one entry of the instance user directory — name and id
+// only, which is what the M3 sharing step needs (FR-4.5).
+type DirectoryUser struct {
+	UserID      string `json:"user_id"`
+	DisplayName string `json:"display_name"`
+}
+
+// UserListResponse is the directory envelope, ordered by name with
+// deactivated accounts excluded (FR-23.3).
+type UserListResponse struct {
+	Users []DirectoryUser `json:"users"`
+}
+
+// --- Admin (Addendum 3.23) ---
+
+// AdminUser is one row of the FR-23.2 account overview. DeactivatedAt is null
+// for an active account rather than absent, because the client renders the two
+// states differently and an absent key would read as "unknown".
+type AdminUser struct {
+	UserID      string `json:"user_id"`
+	DisplayName string `json:"display_name"`
+	// Absent where the IdP provided none.
+	Email           string  `json:"email,omitempty"`
+	CreatedAt       string  `json:"created_at"`
+	IsInstanceAdmin bool    `json:"is_instance_admin"`
+	DeactivatedAt   *string `json:"deactivated_at"`
+	TripCount       int     `json:"trip_count"`
+	TemplateCount   int     `json:"template_count"`
+}
+
+// AdminUserListResponse is the overview envelope.
+type AdminUserListResponse struct {
+	Users []AdminUser `json:"users"`
+}
+
+// --- Notifications (FR-6.2) ---
+
+// NotificationEntry is one notification. It is not named Notification because
+// that is a DOM global on the client, and a generated type shadowing it would
+// be a trap rather than a contract.
+type NotificationEntry struct {
+	ID   string `json:"id"`
+	Kind string `json:"kind"`
+	// The teaser the toast and the OS notification render; the deep link
+	// carries the rest. Null where the stored payload was empty.
+	Payload   map[string]any `json:"payload"`
+	CreatedAt string         `json:"created_at"`
+	// Absent while unread.
+	ReadAt *string `json:"read_at,omitempty"`
+}
+
+// NotificationListResponse is the list envelope, newest first.
+type NotificationListResponse struct {
+	Notifications []NotificationEntry `json:"notifications"`
+}
+
+// NotificationPrefs is the per-kind toggle set (UI-Spec M17). The server
+// answers all three keys always — a kind the stored value omits comes back
+// enabled — so none of them is optional on the wire.
+type NotificationPrefs struct {
+	Delegation bool `json:"delegation"`
+	Mention    bool `json:"mention"`
+	Task       bool `json:"task"`
+	// FR-5.7: somebody took over a row this user had claimed.
+	LockTaken bool `json:"lock_taken"`
+}
+
+// --- Web Push (NFR-4.6) ---
+
+// VAPIDKeyResponse carries the instance's public VAPID key, generated on
+// first use and persisted beside the database.
+type VAPIDKeyResponse struct {
+	Key string `json:"key"`
+}
+
+// --- Auth (ADR-007) ---
+
+// AuthConfigResponse tells the client where to send the user to log in. A
+// server without OIDC answers 501 `not_configured` instead, which is how
+// Single-User Mode is discovered (invariant 5).
+type AuthConfigResponse struct {
+	AuthorizeURL string `json:"authorize_url"`
+	ClientID     string `json:"client_id"`
+}
+
+// SessionTokens is the first-party session pair the login broker issues.
+// ExpiresIn is the access token's lifetime in seconds.
+type SessionTokens struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int    `json:"expires_in"`
+}
+
+// --- Acknowledgements ---
+
+// OKResponse is the body of an action that has nothing to report but its own
+// success. It is one type rather than a map at each call site, so the client
+// cannot be written against a key that is spelled differently in one handler.
+type OKResponse struct {
+	OK bool `json:"ok"`
+}
+
 // --- Takeovers (Sync-API §8, FR-5.7) ---
 
 // TakeoverResponse is what a takeover answers. Like a revert it is an
@@ -243,3 +356,81 @@ type APIErrorBody struct {
 type APIError struct {
 	Error APIErrorBody `json:"error"`
 }
+
+// --- Routes (ADR-027) ---
+
+// The path-variable names. A placeholder is written in a route pattern and read
+// back with r.PathValue; naming it once is what keeps the two spellings from
+// drifting into a nil id that no compiler and no handler test would notice.
+const (
+	PathTripID         = "tripID"
+	PathConflictID     = "conflictID"
+	PathUserID         = "userID"
+	PathItemID         = "itemID"
+	PathNotificationID = "notificationID"
+)
+
+// Every path this instance serves, declared once. The server registers from
+// these constants and cmd/wiregen writes the client's builders from them, so a
+// rename is one edit rather than an agreement between two test tables
+// (NFR-4.14). The shape rule is ADR-027: a path names its scope first, then the
+// resource; the master partition's scope segment is the literal `master`; an
+// export names its format as the path's extension.
+//
+// The version prefix is spelled out on every line rather than concatenated from
+// a constant: this is a table, and a reader checking a path against the spec
+// should not have to assemble it. Moving to /api/v2 is one pass over one block.
+const (
+	// Trip scope.
+	RouteTripSync           = "/api/v1/trips/{tripID}/sync"
+	RouteTripConflicts      = "/api/v1/trips/{tripID}/conflicts"
+	RouteTripConflictRevert = "/api/v1/trips/{tripID}/conflicts/{conflictID}/revert"
+	RouteTripItemTakeover   = "/api/v1/trips/{tripID}/items/{itemID}/takeover"
+	RouteTripLockEvents     = "/api/v1/trips/{tripID}/lock-events"
+	RouteTripExportCSV      = "/api/v1/trips/{tripID}/export.csv"
+
+	// Master scope — the partition that belongs to no trip, so its scope
+	// segment is a literal rather than an id.
+	RouteMasterSync           = "/api/v1/master/sync"
+	RouteMasterConflicts      = "/api/v1/master/conflicts"
+	RouteMasterConflictRevert = "/api/v1/master/conflicts/{conflictID}/revert"
+
+	// The caller's own scope. The full export lives here because it is
+	// filtered to what the caller may pull, and it names its format.
+	RouteMe                  = "/api/v1/me"
+	RouteMeNotificationPrefs = "/api/v1/me/notification-prefs"
+	RouteMeExport            = "/api/v1/me/export.json"
+
+	// User scope.
+	RouteUsers           = "/api/v1/users"
+	RouteUserAvatar      = "/api/v1/users/{userID}/avatar"
+	RouteUserDisplayName = "/api/v1/users/{userID}/display-name"
+
+	// Item scope.
+	RouteItemImage = "/api/v1/items/{itemID}/image"
+
+	// Notification scope.
+	RouteNotifications    = "/api/v1/notifications"
+	RouteNotificationRead = "/api/v1/notifications/{notificationID}/read"
+
+	// Web Push scope.
+	RoutePushVAPIDKey      = "/api/v1/push/vapid-key"
+	RoutePushSubscriptions = "/api/v1/push/subscriptions"
+
+	// Admin scope.
+	RouteAdminUsers            = "/api/v1/admin/users"
+	RouteAdminDeactivateUser   = "/api/v1/admin/users/{userID}/deactivate"
+	RouteAdminReactivateUser   = "/api/v1/admin/users/{userID}/reactivate"
+	RouteAdminResetAvatar      = "/api/v1/admin/users/{userID}/avatar"
+	RouteAdminResetDisplayName = "/api/v1/admin/users/{userID}/display-name"
+
+	// Instance scope: no caller, no partition.
+	RouteAuthToken   = "/api/v1/auth/token"
+	RouteAuthRefresh = "/api/v1/auth/refresh"
+	RouteAuthConfig  = "/api/v1/auth/config"
+
+	// Outside the versioned surface on purpose: the socket carries the
+	// versioned frame in its payload, and a health probe is not an API.
+	RouteWS     = "/ws"
+	RouteHealth = "/health"
+)

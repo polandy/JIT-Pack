@@ -6,6 +6,7 @@
  * HS256) answer 501 — no login is needed there.
  */
 import { API } from '@/api/routes'
+import type { AuthConfigResponse } from '@/api/types'
 import { IonPage, IonContent, IonButton, IonIcon, IonNote } from '@ionic/vue'
 import { logInOutline } from 'ionicons/icons'
 import { onMounted, ref } from 'vue'
@@ -35,7 +36,7 @@ async function signIn() {
       error.value = t('login.noOidc')
       return
     }
-    const config = (await resp.json()) as { authorize_url: string; client_id: string }
+    const config = (await resp.json()) as AuthConfigResponse
 
     const verifier = generateVerifier()
     const state = generateVerifier()

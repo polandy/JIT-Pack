@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 
 import { describeNotification, notificationRoute, type ServerNotification } from '../format'
 
-function notif(kind: string, payload: Record<string, unknown>): ServerNotification {
+function notif(kind: string, payload: Record<string, unknown> | null): ServerNotification {
   return { id: 'n1', kind, payload, created_at: '2026-07-09T12:00:00Z' }
 }
 
@@ -77,5 +77,21 @@ describe('notificationRoute (G-4)', () => {
 
   it('returns null without a trip', () => {
     expect(notificationRoute(notif('mention', {}))).toBeNull()
+  })
+})
+
+/**
+ * The wire's payload is nullable — a nil map marshals to `null` — which the
+ * client's hand-written copy of this type denied until the contract generated
+ * it (NFR-4.14). Reading a key off null throws, so both readers are asserted
+ * against one rather than left to a type that says it cannot happen.
+ */
+describe('a notification whose payload is null', () => {
+  it('still describes the kind', () => {
+    expect(describeNotification(notif('delegation', null))).toBe('Someone delegated an item to you')
+  })
+
+  it('routes nowhere rather than to a route built from nothing', () => {
+    expect(notificationRoute(notif('delegation', null))).toBeNull()
   })
 })
