@@ -1,6 +1,7 @@
-import type { BrowserContext, Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
 
 import { test, expect, seed, createTripViaWizard, visiblePage } from '../fixtures'
+import { bootPage, packItem, quickAddItem, uniq, wsSubscribed } from '../serverMode'
 
 // Both sync endpoints, whichever partition: the path leads with its scope
 // (NFR-4.14, ADR-027), so no single prefix covers them any more.
@@ -27,47 +28,13 @@ const SYNC_PATH = /\/api\/v1\/(?:trips\/[^/]+|master)\/sync/
  * Honesty notes (also in dev-docs/e2e-tests.md):
  *  - Both browser contexts are the same Single-User identity. The
  *    multi-context cases prove real-time convergence over the wire, not
- *    multi-identity semantics (locks, attribution) — those stay with the
- *    future mock-IdP `server` project.
+ *    multi-identity semantics (locks, attribution) — those live in the
+ *    `server` project (e2e/server/, ADR-029).
  *  - There is still no reconnect drain: the queue moves on the app's next
  *    own action (a mutation, a trip open, a WS ping) — or on the next app
  *    start, which the durable outbox added (B2). Track C stopped there
  *    deliberately; an `online`-event drain is not built.
  */
-
-/** Suffix that keeps one test's master data out of another's. */
-function uniq(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
-}
-
-/** A page in server mode. The context owns the network (setOffline). */
-async function bootPage(context: BrowserContext, path = '/'): Promise<Page> {
-  const page = await context.newPage()
-  await seed(page, { mode: 'server' })
-  await page.goto(path)
-  return page
-}
-
-/** FR-25.13 quick-add on M4, committed via the ＋ confirm. */
-async function quickAddItem(page: Page, name: string) {
-  const input = visiblePage(page).getByTestId('quick-add-input')
-  if (!(await input.isVisible().catch(() => false))) {
-    await visiblePage(page).getByTestId('m4-fab').click()
-    await expect(input).toBeVisible()
-  }
-  await input.locator('input').fill(name)
-  await page.getByTestId('quick-add-confirm').click()
-  await expect(visiblePage(page).getByTestId(`m4-row-${name}`)).toBeVisible()
-}
-
-/** Pack a row via its checkbox (G-6: the control acts, it never navigates). */
-async function packItem(page: Page, name: string) {
-  await visiblePage(page)
-    .getByTestId(`m4-row-${name}`)
-    .getByTestId('row-check')
-    .locator('ion-checkbox')
-    .click()
-}
 
 /**
  * Assign the item to a traveler through M5's popover select — the app's one
@@ -125,20 +92,6 @@ async function reopenTrip(page: Page, tripName: string) {
   await expect(visiblePage(page).getByTestId(`trip-row-${tripName}`)).toBeVisible()
   await visiblePage(page).getByTestId(`trip-row-${tripName}`).click()
   await expect(visiblePage(page).getByTestId('m4-fab')).toBeVisible()
-}
-
-/**
- * Wait until this page's WebSocket subscription for the trip is registered
- * server-side. Deterministic, not hopeful: the hub answers a subscribe with
- * a `presence` broadcast to the trip's subscribers — the subscriber
- * included — so receiving that frame proves the hub has the connection in
- * the trip's set, and every later `trip.changed` must reach it.
- */
-async function wsSubscribed(page: Page, wsPromise: Promise<import('@playwright/test').WebSocket>) {
-  const ws = await wsPromise
-  await ws.waitForEvent('framereceived', {
-    predicate: (frame) => String(frame.payload).includes('"presence"'),
-  })
 }
 
 /**
@@ -208,7 +161,7 @@ test.describe('Single-User backend sync @single', () => {
    * claimed the row, so B's client treats the claim as foreign, exactly
    * as it would a second account's. What is asserted is the pair that was
    * missing, the padlock's name and the sheet's refusal, not the identity
-   * semantics the future mock-IdP project owns.
+   * semantics the `server` project owns.
    */
   test('a row another device is packing names its holder and refuses edits', async ({
     browser,
@@ -277,10 +230,10 @@ test.describe('Single-User backend sync @single', () => {
    * This is the half of FR-5.7 that *can* run here, and the reason the
    * other half cannot is worth stating: both contexts are the same
    * Single-User identity, so a takeover would be a takeover of one's own
-   * claim, which the server refuses by design. The taking-over path
-   * therefore waits for the mock-IdP `server` project, exactly as
-   * E2E-G3-01's identity half does. What is asserted here is the G-8
-   * promise — the surface is *absent*, not shown and then refused.
+   * claim, which the server refuses by design. The taking-over path lives
+   * in the `server` project, exactly as E2E-G3-01's identity half does.
+   * What is asserted here is the G-8 promise — the surface is *absent*,
+   * not shown and then refused.
    */
   test('a claimed row offers no takeover where there is no second account', async ({ browser }) => {
     const id = uniq()
@@ -559,9 +512,7 @@ test.describe('Single-User backend sync @single', () => {
     // The timestamp follows the app's language, not the device's. The suite
     // runs on a de-CH device with the app pinned to English (see the config):
     // `toLocaleString()` took the device and rendered `22.08.2026`.
-    await expect(row.getByTestId('conflict-time')).toContainText(
-      /[A-Z][a-z]{2} \d{1,2}, \d{4}/,
-    )
+    await expect(row.getByTestId('conflict-time')).toContainText(/[A-Z][a-z]{2} \d{1,2}, \d{4}/)
 
     await ctxA.close()
     await ctxB.close()

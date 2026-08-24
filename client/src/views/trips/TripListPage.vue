@@ -531,6 +531,7 @@ async function handleRefresh(event: CustomEvent) {
                 <IonItemOption
                   v-if="collaborative"
                   color="secondary"
+                  :data-testid="`m2-share-${trip.name}`"
                   :aria-label="t('trips.actionShare')"
                   @click="$router.push(`/trips/${trip.id}/members`)"
                 >

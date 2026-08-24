@@ -64,7 +64,7 @@ async function signIn() {
         <p v-if="loginRequired === false" class="hint">{{ t('login.notRequired') }}</p>
         <template v-else>
           <p class="hint">{{ t('login.hint') }}</p>
-          <IonButton expand="block" @click="signIn">
+          <IonButton expand="block" data-testid="login-action" @click="signIn">
             <IonIcon slot="start" :icon="logInOutline" />
             {{ t('login.action') }}
           </IonButton>

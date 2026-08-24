@@ -14,6 +14,7 @@ import { TABLE } from '@/types/tables'
 import { computed, ref, shallowRef } from 'vue'
 
 import { APIClient, type TokenProvider } from '@/api/client'
+import { loadTokens, subjectOf } from '@/auth/tokens'
 import { HLCGenerator } from '@/sync/hlc'
 import { SyncOutbox, type ConflictReport } from './useSyncOutbox'
 import { useWebSocket } from './useWebSocket'
@@ -154,6 +155,13 @@ export interface SyncOrchestratorConfig {
   baseUrl: string
   getToken: TokenProvider
   /**
+   * The account this session belongs to, or null where there is none
+   * (Local Mode, Single-User Mode). Only claims consult it — see
+   * `heldByAnotherAccount`. Defaults to the subject of the stored session
+   * token; injected in tests.
+   */
+  currentUserId?: () => string | null
+  /**
    * OIDC only: called when a request 401s despite the provided token —
    * forces a token refresh, and the request is retried once (Sync-API §2).
    */
@@ -231,6 +239,21 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const masterStore = useMasterStore()
   const syncStatus = useSyncStatus()
   const local = config.local ?? null
+  // Deliberately not `config.getToken`: that provider may refresh and is
+  // therefore async, and a lock decision is made while rendering a row.
+  // The stored session answers the same question synchronously — memoised
+  // on the token itself, because M4 asks it three times per row per render
+  // and the answer only changes when the session does.
+  let cachedSession: { token: string | null; subject: string | null } | null = null
+  const currentUserId =
+    config.currentUserId ??
+    (() => {
+      const token = loadTokens()?.access_token ?? null
+      if (!cachedSession || cachedSession.token !== token) {
+        cachedSession = { token, subject: subjectOf(token) }
+      }
+      return cachedSession.subject
+    })
   const today = config.today ?? localIsoDate
   if (local) syncStatus.setLocal()
 
@@ -243,13 +266,47 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   // G-3 locking (FR-5.3): ephemeral locks from item.locked events plus
   // the synced packing_now state. myLocks marks claims made on this
-  // device — the client may not know its own user id, so identity
-  // comparison against packing_now_by is not reliable.
+  // device, because the device is the only distinction Local and
+  // Single-User Mode have — there is one account in both.
   //
   // There is no staleness window (FR-5.7, ADR-028): a claim is claimed
   // until a person ends it, so a lock is never judged by its age.
   const itemLocks = ref<Map<string, Map<string, { by_user: string }>>>(new Map())
   const myLocks = new Set<string>()
+
+  /**
+   * Whether `holder` is somebody else — the question a device claim cannot
+   * answer for itself.
+   *
+   * Where the session names an account (Server Mode with OIDC), a holder
+   * that is a *different* account revokes this device's claim: that is what
+   * a takeover is (FR-5.7), and without this the device that lost the row
+   * kept rendering it as its own while the server had handed it on — the
+   * notification arrived and the row contradicted it. Where there is no
+   * account to compare against, the device rule stands unchanged.
+   */
+  function heldByAnotherAccount(holder: string | null): boolean {
+    // The optimistic claim writes a placeholder until the server stamps the
+    // real actor (invariant 3). It means "me, unconfirmed", so reading it
+    // as a foreign account would revoke every claim the moment it is made.
+    if (!holder || holder === CLIENT_ACTOR_PLACEHOLDER) return false
+    const me = currentUserId()
+    return me !== null && holder !== me
+  }
+
+  /** The holder the server knows of, ephemeral event first, then the pull. */
+  function syncedHolder(tripId: string, item: TripItem): string | null {
+    const ephemeral = itemLocks.value.get(tripId)?.get(item.id)
+    if (ephemeral) return ephemeral.by_user
+    if (item.state !== 'packing_now') return null
+    return item.packing_now_by ?? ''
+  }
+
+  /** Whether this device's claim on the row still stands (FR-5.7). */
+  function claimIsMine(tripId: string, item: TripItem): boolean {
+    if (!myLocks.has(item.id)) return false
+    return !heldByAnotherAccount(syncedHolder(tripId, item))
+  }
 
   function isLockedByOther(tripId: string, item: TripItem): boolean {
     return lockHolder(tripId, item) !== null
@@ -262,11 +319,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * job, since only it knows the trip's participants.
    */
   function lockHolder(tripId: string, item: TripItem): string | null {
-    if (myLocks.has(item.id)) return null
-    const ephemeral = itemLocks.value.get(tripId)?.get(item.id)
-    if (ephemeral) return ephemeral.by_user
-    if (item.state !== 'packing_now') return null
-    return item.packing_now_by ?? ''
+    if (claimIsMine(tripId, item)) return null
+    return syncedHolder(tripId, item)
   }
 
   /**
@@ -275,8 +329,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * the row for me — which leaves the one screen that could say "you are
    * holding this against the others" unable to know it.
    */
-  function holdsClaim(_tripId: string, item: TripItem): boolean {
-    return myLocks.has(item.id) && item.state === 'packing_now'
+  function holdsClaim(tripId: string, item: TripItem): boolean {
+    return claimIsMine(tripId, item) && item.state === 'packing_now'
   }
 
   function setItemLock(tripId: string, itemId: string, byUser: string) {
@@ -415,9 +469,15 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       case 'item.locked': {
         const tripId = event.payload?.['trip_id'] as string | undefined
         const itemId = event.payload?.['item_id'] as string | undefined
-        if (tripId && itemId && !myLocks.has(itemId)) {
-          setItemLock(tripId, itemId, (event.payload?.['by_user'] as string) ?? '')
-        }
+        const byUser = (event.payload?.['by_user'] as string) ?? ''
+        if (!tripId || !itemId) break
+        // A lock naming another account on a row this device holds is a
+        // takeover (FR-5.7): the claim is gone, so the device flag goes
+        // with it rather than outliving the row it describes. The hub
+        // broadcasts a claim to every subscriber including the claimer,
+        // so "an event arrived" alone would misread my own claim.
+        if (heldByAnotherAccount(byUser)) myLocks.delete(itemId)
+        if (!myLocks.has(itemId)) setItemLock(tripId, itemId, byUser)
         break
       }
       case 'item.unlocked': {

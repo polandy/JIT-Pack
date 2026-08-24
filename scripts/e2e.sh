@@ -39,25 +39,29 @@ if [ "$(uname -s)" != "Linux" ]; then
   install='npm ci --no-audit --no-fund >/dev/null && '
 fi
 
-# The backend-backed `single` project (playwright.config.ts) is switched on
-# by E2E_BACKEND and needs the CGO-free jitpackd prebuilt at the repo root —
+# The backend-backed projects (playwright.config.ts) are switched on by
+# E2E_BACKEND (`single`) and E2E_SERVER (`server`, which also starts the mock
+# IdP) and need the CGO-free jitpackd prebuilt at the repo root —
 # built on the host, run inside the container off the repo mount, which is
 # exactly why the binary must be static. Failing here names the fix; failing
 # inside Playwright would name a dead webServer.
 env_flags=()
-if [ -n "${E2E_BACKEND:-}" ]; then
+if [ -n "${E2E_BACKEND:-}" ] || [ -n "${E2E_SERVER:-}" ]; then
   if [ ! -x "${repo_root}/jitpackd-e2e" ]; then
-    echo "error: E2E_BACKEND is set but ${repo_root}/jitpackd-e2e is missing." >&2
+    echo "error: a backend-backed project is selected but ${repo_root}/jitpackd-e2e is missing." >&2
     echo "       Build it first: go build -o jitpackd-e2e ./cmd/jitpackd" >&2
     exit 1
   fi
-  env_flags+=(-e E2E_BACKEND)
+  if [ -n "${E2E_BACKEND:-}" ]; then env_flags+=(-e E2E_BACKEND); fi
+  if [ -n "${E2E_SERVER:-}" ]; then env_flags+=(-e E2E_SERVER); fi
 fi
-if [ -n "${E2E_API_PORT:-}" ]; then
-  env_flags+=(-e E2E_API_PORT)
-fi
-# Both ports are host ports (--network host), so two worktrees running the
-# suite at once collide on them. Playwright's own message for that names
+for port_var in E2E_API_PORT E2E_SERVER_API_PORT E2E_IDP_PORT E2E_SERVER_PORT; do
+  if [ -n "${!port_var:-}" ]; then
+    env_flags+=(-e "${port_var}")
+  fi
+done
+# Every port here is a host port (--network host), so two worktrees running
+# the suite at once collide on them. Playwright's own message for that names
 # the port and not the cause ("make sure that nothing is running on the
 # port/url"), so the override has to reach the container to be usable.
 if [ -n "${E2E_PORT:-}" ]; then

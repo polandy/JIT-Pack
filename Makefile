@@ -3,7 +3,7 @@
 # green pipeline. When you change a job in ci.yml, change its target here.
 .PHONY: ci ci-remote pins log-index wire wire-check proxy-host build vet fmt fmt-check test cover tidy-check go-lint \
         client client-deps client-lint client-tokens client-marks client-build client-test client-fmt \
-        e2e e2e-single visual visual-update docker-build all
+        e2e e2e-single e2e-server visual visual-update docker-build all
 
 ## --- toolchain -------------------------------------------------------------
 # `mise.toml` is the one place the toolchain is pinned. But CLAUDE.md points
@@ -215,6 +215,15 @@ e2e: client-build
 e2e-single: client-build
 	CGO_ENABLED=0 $(RUN) go build -o jitpackd-e2e ./cmd/jitpackd
 	E2E_BACKEND=1 scripts/e2e.sh --project=single
+
+# The multi-identity cases (UI-Test-Spec §2.3, mode `server`): the same
+# binary, this time in OIDC mode against the mock IdP in client/e2e/server/,
+# with two browser contexts logged in as two different accounts. Separate
+# from `e2e-single` because the two backends are separate processes with
+# mutually exclusive configurations — Single-User bypasses auth entirely.
+e2e-server: client-build
+	CGO_ENABLED=0 $(RUN) go build -o jitpackd-e2e ./cmd/jitpackd
+	E2E_SERVER=1 scripts/e2e.sh --project=server
 
 ## --- docker-build job -----------------------------------------------------
 # Left out of `ci` because it needs a running docker daemon.
