@@ -256,9 +256,10 @@ test.describe('M14 review assistant — the positive half @local @m14', () => {
     await expect(row(page, 'Stativ')).toBeVisible()
 
     await row(page, 'Stativ').getByTestId('m14-apply').click()
-    await expect(row(page, 'Stativ').getByTestId('m14-state')).toContainText('applied')
+    // Applied rows are read back under the outcome block (FR-9.4).
+    await expect(handledRow(page, 'Stativ').getByTestId('m14-state')).toContainText('applied')
     await row(page, MISSING_ITEM).getByTestId('m14-apply').click()
-    await expect(row(page, MISSING_ITEM).getByTestId('m14-state')).toContainText('applied')
+    await expect(handledRow(page, MISSING_ITEM).getByTestId('m14-state')).toContainText('applied')
 
     await openGroup(page, GROUP)
     const positions = visible(page).locator('ion-item')

@@ -590,6 +590,11 @@ setHeaderActions(() => {
       onClick: toggleFoldAll,
     },
   ]
+  // One posture, one question (FR-9.3): the pass is *inside* the archive
+  // action, so offering it again — or the trip's properties — from the bar
+  // would be two doors into a room you are standing in. Search, filter and
+  // fold stay: they are why the pass is a mode of M4 at all.
+  if (closingPass.value) return items
   // FR-2.7: the trip's own properties. Before the lifecycle steps, because
   // it is the one action here that changes the trip rather than advancing it.
   items.push({
@@ -1442,6 +1447,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
       </div>
 
       <QuickAddItem
+        v-if="!closingPass"
         ref="quickAdd"
         :is-active="isActive"
         :offer-groups="true"
@@ -1538,7 +1544,23 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                          propagation never cancelled it, so every tap on the stepper opened
                          the sheet instead of counting. -->
                   <div slot="start" class="row-start" @click.stop.prevent>
-                    <IonIcon v-if="locked(child.item)" :icon="lockClosedOutline" class="lock" />
+                    <!-- A per-person row is judged like any other (FR-9.3). -->
+                    <button
+                      v-if="closingPass"
+                      class="pass-toggle"
+                      :class="{ on: child.item.flag_unused }"
+                      :aria-pressed="child.item.flag_unused"
+                      :aria-label="t('facet.flagUnused')"
+                      :data-testid="`m4-pass-toggle-${entry.name}-${child.traveler?.name ?? ''}`"
+                      @click="onPassToggle(child.item)"
+                    >
+                      <IonIcon :icon="removeCircleOutline" />
+                    </button>
+                    <IonIcon
+                      v-else-if="locked(child.item)"
+                      :icon="lockClosedOutline"
+                      class="lock"
+                    />
                     <QuantityStepper
                       v-else
                       :quantity="child.item.quantity"
@@ -1601,14 +1623,21 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                          the sheet instead of counting. -->
                 <div slot="start" class="row-start" @click.stop.prevent>
                   <!-- FR-9.3: one posture, one gesture. The stepper counts
-                       what is packed, which is not what the pass asks. -->
-                  <IonCheckbox
+                       what is packed, which is not what the pass asks — and
+                       a checkbox is M4's *packed* idiom, so the mark gets a
+                       control of its own that renders off the row rather
+                       than off its own internal state. -->
+                  <button
                     v-if="closingPass"
-                    :checked="entry.item.flag_unused"
+                    class="pass-toggle"
+                    :class="{ on: entry.item.flag_unused }"
+                    :aria-pressed="entry.item.flag_unused"
                     :aria-label="t('facet.flagUnused')"
                     :data-testid="`m4-pass-toggle-${entry.item.name}`"
-                    @ion-change="onPassToggle(entry.item)"
-                  />
+                    @click="onPassToggle(entry.item)"
+                  >
+                    <IonIcon :icon="removeCircleOutline" />
+                  </button>
                   <IonIcon v-else-if="locked(entry.item)" :icon="lockClosedOutline" class="lock" />
                   <QuantityStepper
                     v-else
@@ -1660,7 +1689,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                   <!-- FR-9.3: a judgement made from the row's menu has to be
                        visible on the row, or the pass cannot be reviewed. -->
                   <IonIcon
-                    v-if="entry.item.flag_unused"
+                    v-if="entry.item.flag_unused && !closingPass"
                     :icon="removeCircleOutline"
                     class="unused-mark"
                     :aria-label="t('facet.flagUnused')"
@@ -1719,7 +1748,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
       <!-- FR-25.2 / FR-25.20: two classes of hidden rows, one affordance —
            state the count, name the people, one tap to reveal. -->
       <button
-        v-if="view.doneCount > 0"
+        v-if="view.doneCount > 0 && !closingPass"
         class="reveal-bar"
         :class="{ on: showDone }"
         data-testid="m4-done-bar"
@@ -1780,7 +1809,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
            layer up). -->
       <IonFab id="m4-fab-anchor" slot="fixed" vertical="bottom" horizontal="end">
         <IonFabButton
-          v-if="!quickAddExpanded"
+          v-if="!quickAddExpanded && !closingPass"
           data-testid="m4-fab"
           :aria-label="t('common.add')"
           @click="openQuickAdd"
@@ -2168,6 +2197,23 @@ ion-content.pack-content::part(scroll) {
   display: flex;
   flex-shrink: 0;
   align-items: center;
+}
+
+.pass-toggle {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ct-overlay0);
+  font-size: var(--jp-icon-md);
+  cursor: pointer;
+}
+
+.pass-toggle.on {
+  color: var(--ct-mauve);
 }
 
 .unused-mark {

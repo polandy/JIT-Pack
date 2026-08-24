@@ -43,6 +43,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
+| FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
 | Visual baselines | E2E-VIS-01 … E2E-VIS-08 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
@@ -1538,3 +1539,39 @@ E2E-G3-01's identity half, which has been waiting at the same wall since
 and by orchestrator units (nothing is written optimistically, a refusal leaves
 the claim where it was) — and the *screen* is covered by neither. Saying so
 here is the point of this ledger.
+
+## FR-9.3/9.4 — the closing pass, and what its cases had to be careful about (2026-08-24)
+
+Five new cases in `closing-pass.spec.ts` (E2E-M4-51 … 55) and one rewritten
+M14 case. Three things are worth keeping, because each of them made a first
+draft green against the unfixed build.
+
+**E2E-M14-05 asserted the defect.** Its last line read „the empty state does
+not take over a list that has decided rows" — which is exactly the behaviour
+FR-9.4 removes. The case was written when the empty state could only be
+reached by dismissing every proposal for good, and it pinned that as the
+promise. A test that encodes the shape of a defect is not neutral about the
+fix: it makes the fix look like a regression. Renaming the assertion was the
+whole of the work, but finding it was not — it was found by running the suite,
+not by reading it.
+
+**„Nothing happened" needed a positive control, and the control needed the
+right moment.** E2E-M4-55 asserts that press-and-hold is inert inside the
+pass. On its own that is true of a list that never rendered, of a row that was
+never added and of a broken gesture — so the case opens the menu on the *same
+row* one moment earlier and closes it again. The first draft did that *after*
+packing the row, and it failed: a packed row leaves the list (FR-25.2), so the
+control was asserting against a row that was not there. The order matters as
+much as the control does.
+
+**A mark is read back off the row, never off the control that made it.**
+E2E-M4-54's first draft asserted the pass toggle's own `aria-pressed`, which a
+control with purely internal state would satisfy without a single write. It now
+navigates back to the trip afterwards, reveals the packed rows and reads the
+mark from the row — which is the same place the M14 assistant reads it.
+
+*(The earlier draft of the pass used an `IonCheckbox` for the row's toggle. It
+was replaced for two reasons found by rendering it: a checkbox is M4's *packed*
+idiom sitting beside rows that say „packed · today", and Ionic's checkbox
+keeps its own checked state, which drifted from the row on the very first tap.
+The control now renders straight off `flag_unused`.)*
