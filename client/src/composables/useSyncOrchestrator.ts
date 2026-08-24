@@ -778,9 +778,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    */
   async function takeOverClaim(tripId: string, item: TripItem): Promise<string> {
     if (local) return ''
-    const resp = await client.post<{ previous_holder?: string }>(
-      API.tripTakeover(tripId, item.id),
-    )
+    const resp = await client.post<{ previous_holder?: string }>(API.tripTakeover(tripId, item.id))
     // The claim is mine from here: `myLocks` is how this device knows a
     // row is its own, and without it the row I just took would render as
     // locked against me.

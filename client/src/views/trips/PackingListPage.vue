@@ -621,7 +621,6 @@ function ownClaimNote(item: TripItem): string | null {
   return orchestrator.holdsClaim(props.tripId, item) ? t('packing.claimedByMe') : null
 }
 
-
 /**
  * The one avatar at the right edge (FR-25.19): who packed it once it is
  * packed, who is responsible for it while it is open. Never both — the

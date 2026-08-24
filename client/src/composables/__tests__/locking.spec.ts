@@ -278,7 +278,6 @@ describe('releasing a claim (G-3)', () => {
   })
 })
 
-
 describe('taking a claim over (FR-5.7)', () => {
   function claimedByOther(store: ReturnType<typeof useTripStore>) {
     return seedItem(store, {
@@ -340,9 +339,14 @@ describe('taking a claim over (FR-5.7)', () => {
     const store = useTripStore()
     const item = claimedByOther(store)
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ error: { code: 'claim_not_held', message: 'nobody is packing this row' } }), {
-        status: 409,
-      }),
+      new Response(
+        JSON.stringify({
+          error: { code: 'claim_not_held', message: 'nobody is packing this row' },
+        }),
+        {
+          status: 409,
+        },
+      ),
     )
 
     await expect(orch.takeOverClaim('t1', item)).rejects.toThrow(/nobody is packing/)

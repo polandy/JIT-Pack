@@ -131,8 +131,10 @@ export const en = {
   'packing.releaseAction': 'Give the item back',
   'packing.takeoverAction': 'Take over',
   'packing.takeoverConfirmTitle': 'Take this item over?',
-  'packing.takeoverConfirmBody': '{who} is packing “{item}” right now. If you take over, the item becomes yours — and {who} is told.',
-  'packing.takeoverConfirmBodyUnknown': 'Somebody is packing “{item}” right now. If you take over, the item becomes yours — and they are told.',
+  'packing.takeoverConfirmBody':
+    '{who} is packing “{item}” right now. If you take over, the item becomes yours — and {who} is told.',
+  'packing.takeoverConfirmBodyUnknown':
+    'Somebody is packing “{item}” right now. If you take over, the item becomes yours — and they are told.',
   'packing.takeoverDone': 'Taken over from {who}',
   'packing.takeoverDoneUnknown': 'Taken over',
   'packing.takeoverFailed': 'Not taken over — nobody is packing this item any more.',

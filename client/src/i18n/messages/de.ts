@@ -133,11 +133,14 @@ export const de: Record<keyof typeof en, string> = {
   'packing.releaseAction': 'Artikel wieder freigeben',
   'packing.takeoverAction': 'Übernehmen',
   'packing.takeoverConfirmTitle': 'Artikel übernehmen?',
-  'packing.takeoverConfirmBody': '{who} packt „{item}" gerade. Wenn du übernimmst, gehört der Artikel dir — und {who} wird benachrichtigt.',
-  'packing.takeoverConfirmBodyUnknown': 'Jemand packt „{item}" gerade. Wenn du übernimmst, gehört der Artikel dir — und die Person wird benachrichtigt.',
+  'packing.takeoverConfirmBody':
+    '{who} packt „{item}" gerade. Wenn du übernimmst, gehört der Artikel dir — und {who} wird benachrichtigt.',
+  'packing.takeoverConfirmBodyUnknown':
+    'Jemand packt „{item}" gerade. Wenn du übernimmst, gehört der Artikel dir — und die Person wird benachrichtigt.',
   'packing.takeoverDone': 'Von {who} übernommen',
   'packing.takeoverDoneUnknown': 'Übernommen',
-  'packing.takeoverFailed': 'Nicht übernommen — der Artikel wird gerade nicht mehr von jemandem gepackt.',
+  'packing.takeoverFailed':
+    'Nicht übernommen — der Artikel wird gerade nicht mehr von jemandem gepackt.',
   'packing.lockedBy': '{who} packt das gerade',
   'packing.lockedByUnknown': 'Jemand packt das gerade',
   'packing.lockedHint': 'Bis dahin nur zum Anschauen.',

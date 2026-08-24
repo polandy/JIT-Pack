@@ -38,7 +38,11 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { APIRequestError } from '@/api/client'
 import { ERROR_CODE, type ErrorCode } from '@/api/types'
-import type { ConflictEntry, LockEvent, useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import type {
+  ConflictEntry,
+  LockEvent,
+  useSyncOrchestrator,
+} from '@/composables/useSyncOrchestrator'
 
 const props = defineProps<{ tripId?: string }>()
 
@@ -337,7 +341,12 @@ function formatTime(iso: string): string {
             <IonLabel>
               <h3>{{ e.item_name }}</h3>
               <p>
-                {{ t('conflicts.takeoverLine', { to: nameOf(e.to_user_id), from: nameOf(e.from_user_id) }) }}
+                {{
+                  t('conflicts.takeoverLine', {
+                    to: nameOf(e.to_user_id),
+                    from: nameOf(e.from_user_id),
+                  })
+                }}
               </p>
               <IonNote>{{ formatTime(e.created_at) }}</IonNote>
             </IonLabel>
