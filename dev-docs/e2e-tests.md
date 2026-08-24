@@ -219,6 +219,25 @@ the *trip* partition, and this rename is queued on the master one. The drain
 here is the app start the durable outbox gave it (B2) — a reload, not a
 navigation. Mutation-proved by pointing the query back at `trip_id`.
 
+**Widened 2026-08-24 — the row is read, so it is asserted as read.** Both
+G-2 log cases were asserting that the row said *something*, and both were
+green while it said the wrong thing.
+
+- **E2E-G2-01** asserted `trip_items · assigned_traveler_id` and then, of
+  the two values, only that neither was empty — with the comment that
+  *which* string they were was not the case's business. They were two raw
+  uuids. It now pins `Seil-x · Assigned to` with `Mia → Andy`.
+- **E2E-G2-06** used `toContainText` for the losing and winning names. The
+  column stores the JSON of a mutation field, and `"Engadin 7 B"` *contains*
+  `Engadin 7 B`: the assertion was green against exactly the quoted form it
+  looked like it was catching. It is `toHaveText` now.
+- The same row asserts the **timestamp is in the app's language**. The suite
+  runs a de-CH device with the app pinned to English, so the unfixed
+  `toLocaleString()` rendered `24.8.2026, 00:42:54` — measured, not assumed.
+
+Each of the three was mutation-proved separately, because the first two live
+in one test and the earlier failure hides the later assertion.
+
 **E2E-G2-10 — the loss can be taken back, added 2026-08-22.** NFR-4.2a
 promises audit *and* manual revert in one sentence; only the audit existed,
 so the page named a value it could do nothing about. The case is
