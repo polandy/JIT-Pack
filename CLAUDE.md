@@ -14,7 +14,7 @@ Read this file fully before touching code. It is the orientation document: what 
 - **Run the slow jobs on GitHub, not on this machine** (owner, 2026-08-23): `make ci-remote` pushes the current branch, dispatches `ci.yml` against it and waits for the verdict — no pull request needed. `e2e`, `visual`, `docker-build` and the coverage profile all run there already, and on a two-core laptop they are the largest source of contention between concurrent sessions (measured: foreign load costs ~25 % of wall-clock, about what a hardware upgrade would buy). `make cover` in particular is fully redundant — the CI `go` job runs the same profile and the same `scripts/coverage-gate.sh`. **`make ci` stays local**: at ~80 s it is the fast gate, and GitHub's verdict takes minutes.
 - Coverage gates live once, in `scripts/coverage-gate.sh`, shared by `make cover` and the CI `go` job: **≥75 % overall, ≥90 % `internal/sync`**
 - Client only: `cd client && npm run dev` (Vite dev server), `npx vitest run`, `npm run build` (type-check + build)
-- **After changing `internal/api/wire.go`: `make wire`** — it regenerates `client/src/api/types.ts`, which is generated and must never be hand-edited (NFR-4.14, ADR-026). `make ci` runs the gate that catches the omission.
+- **After changing `internal/api/wire.go`: `make wire`** — it regenerates `client/src/api/types.ts` *and* `client/src/api/routes.ts`, both generated and never hand-edited (NFR-4.14, ADR-026/027). `make ci` runs the gate that catches the omission.
 - **Test data**: the dev build's M2 empty state carries *„Beispieldaten anlegen (Dev)"* — it seeds the
   **master partition first** (`client/src/dev/sampleMaster.ts`: tagged inventory, three groups, a
   composed Ferien-Vorlage with an FR-27.7 task) and then the sample trip (`sampleTrip.ts`). Standing
@@ -207,8 +207,11 @@ it. Item numbers stay stable even as items close, because the log refers back to
    `TestEveryResponseBodyIsADeclaredType` (an AST check over `internal/api`, so the next response
    cannot be a map literal) and, for the blind spot that check has, by
    `TestWire_NotificationPrefsNamesEveryKindTheStoreKnows`.
-   **Still owed:** the **routes** are agreed by two test tables rather than generated — the
-   answer if a rename ever lands on one side only is ADR-027's second revisit trigger.
+   The **routes** followed the same day: `wire.go` declares every path and every path variable,
+   the mux registers from those constants, `cmd/wiregen` writes `client/src/api/routes.ts`, and
+   four AST rules refuse a route or a path variable taken from a literal. ADR-027's second
+   revisit trigger is discharged, and NFR-4.14 owes nothing further. Log: *„A path stopped being
+   written twice"*.
 
 17. **FR-5.7 — a claim is broken by a person, not by a clock** (owner decision 2026-08-23,
    **specified, not built**). §7's staleness window goes: a claim holds until somebody ends it,
@@ -232,9 +235,9 @@ ownership model (each carries a revisit trigger in its stub).
 
 - `cmd/jitpackd` — wiring only: env-parsed `Config`, picks `api.New` (+ `EnableOIDC` after discovery) / `api.NewSingleUser`, graceful shutdown. No logic.
 - `internal/sync` — HLC generator + field-level merge algorithm (NFR-4.2a). Pure, zero I/O, zero internal imports.
-- `internal/wiregen` — turns `internal/api/wire.go` into the client's TypeScript (ADR-026). A second pure leaf beside `sync`: `go/ast` in, a string out, zero I/O. `cmd/wiregen` is the thin main that reads and writes the two files.
+- `internal/wiregen` — turns `internal/api/wire.go` into the client's TypeScript: the shapes (`types.ts`, ADR-026) and the paths (`routes.ts`, ADR-027). A second pure leaf beside `sync`: `go/ast` in, a string out, zero I/O. `cmd/wiregen` is the thin main that reads the contract and writes both files.
 - `internal/store` — the only package that imports `database/sql`. SQLite repositories, change-log/conflict-log, the two sync partitions (`master.go` for tags/items/templates/trips/series/members, the trip partition for trip_items/travelers/containers/comments), the schema applied from `schema.sql` and fingerprinted in `PRAGMA user_version` (ADR-018).
-- `internal/api` — HTTP handlers, WebSocket hub (`hub.go`/`ws.go`), first-party session auth + OIDC login broker (ADR-007), notifications, Web Push, admin surface, export. **`wire.go` is the contract** — the one declaration of the envelopes, the frame, the conflict shapes and the error vocabulary, generated into the client (NFR-4.14, ADR-026). **Export only** — importing is the client's (invariant 4, ADR-025).
+- `internal/api` — HTTP handlers, WebSocket hub (`hub.go`/`ws.go`), first-party session auth + OIDC login broker (ADR-007), notifications, Web Push, admin surface, export. **`wire.go` is the contract** — the one declaration of the envelopes, the frame, the conflict shapes, the error vocabulary and the routes, generated into the client (NFR-4.14, ADR-026/027). **Export only** — importing is the client's (invariant 4, ADR-025).
 - `client/src/domain` — the pure client-side rules: quantity formulas, template instantiation, dependencies, containers, analytics, review, clone, spreadsheet import, the portable format in both directions (`portable.ts` writes and reads, `portableImport.ts` turns a document into rows — shared by M18 and the FR-18.7 command), members. No I/O, exhaustively unit-tested. **This is where the Go layout's planned `internal/domain` actually ended up** — deliberately, see invariant 4.
 
 ## Invariants — do not break these

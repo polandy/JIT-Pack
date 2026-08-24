@@ -54,7 +54,7 @@ func (s *Server) handleListNotifications(w http.ResponseWriter, r *http.Request)
 // handleMarkNotificationRead serves POST /api/v1/notifications/{notificationID}/read.
 func (s *Server) handleMarkNotificationRead(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(userIDKey).(string)
-	err := s.store.MarkNotificationRead(r.Context(), userID, r.PathValue("notificationID"))
+	err := s.store.MarkNotificationRead(r.Context(), userID, r.PathValue(PathNotificationID))
 	if errors.Is(err, store.ErrNotificationNotFound) {
 		writeError(w, http.StatusNotFound, ErrNotificationNotFound, "no such notification")
 		return

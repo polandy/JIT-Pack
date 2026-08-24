@@ -102,73 +102,75 @@ func NewSingleUser(st *store.Store, localUserID string) *Server {
 	return &Server{store: st, singleUserMode: true, localUserID: localUserID, hub: hub}
 }
 
+// pattern is the mux's "METHOD /path" spelling. The method stays at the
+// registration because it is the server's own; the path comes from wire.go
+// because the client needs the same one.
+func pattern(method, route string) string { return method + " " + route }
+
 // Handler returns the routed HTTP handler.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	// Grouped by scope, because the scope is what the path leads with
-	// (NFR-4.14, ADR-027): a route's group is the first segment after the
-	// version, so the rule is legible here rather than only in the spec.
+	// (NFR-4.14, ADR-027). The paths themselves are declared in wire.go and
+	// generated into the client from there; what belongs here is the method
+	// and the middleware, which are the server's alone.
 
 	// Trip scope.
-	mux.HandleFunc("GET /api/v1/trips/{tripID}/sync", s.authed(s.member(s.handlePull)))
-	mux.HandleFunc("POST /api/v1/trips/{tripID}/sync", s.authed(s.member(s.handlePush)))
-	mux.HandleFunc("GET /api/v1/trips/{tripID}/conflicts", s.authed(s.member(s.handleListConflicts)))
+	mux.HandleFunc(pattern(http.MethodGet, RouteTripSync), s.authed(s.member(s.handlePull)))
+	mux.HandleFunc(pattern(http.MethodPost, RouteTripSync), s.authed(s.member(s.handlePush)))
+	mux.HandleFunc(pattern(http.MethodGet, RouteTripConflicts), s.authed(s.member(s.handleListConflicts)))
 	// The revert half of NFR-4.2a, one endpoint per partition beside its
 	// list — a conflict belongs to the partition it was pushed to.
-	mux.HandleFunc("POST /api/v1/trips/{tripID}/conflicts/{conflictID}/revert",
-		s.authed(s.member(s.handleRevertConflict)))
-	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.csv", s.authed(s.member(s.handleExportTripCSV)))
+	mux.HandleFunc(pattern(http.MethodPost, RouteTripConflictRevert), s.authed(s.member(s.handleRevertConflict)))
+	mux.HandleFunc(pattern(http.MethodGet, RouteTripExportCSV), s.authed(s.member(s.handleExportTripCSV)))
 
-	// Master scope — the partition that belongs to no trip, so its scope
-	// segment is a literal rather than an id.
-	mux.HandleFunc("GET /api/v1/master/sync", s.authed(s.handlePullMaster))
-	mux.HandleFunc("POST /api/v1/master/sync", s.authed(s.handlePushMaster))
-	mux.HandleFunc("GET /api/v1/master/conflicts", s.authed(s.handleListMasterConflicts))
-	mux.HandleFunc("POST /api/v1/master/conflicts/{conflictID}/revert",
-		s.authed(s.handleRevertMasterConflict))
+	// Master scope.
+	mux.HandleFunc(pattern(http.MethodGet, RouteMasterSync), s.authed(s.handlePullMaster))
+	mux.HandleFunc(pattern(http.MethodPost, RouteMasterSync), s.authed(s.handlePushMaster))
+	mux.HandleFunc(pattern(http.MethodGet, RouteMasterConflicts), s.authed(s.handleListMasterConflicts))
+	mux.HandleFunc(pattern(http.MethodPost, RouteMasterConflictRevert), s.authed(s.handleRevertMasterConflict))
 
-	// The caller's own scope. The full export lives here because it is
-	// filtered to what the caller may pull, and it names its format.
-	mux.HandleFunc("GET /api/v1/me", s.authed(s.handleMe))
-	mux.HandleFunc("GET /api/v1/me/notification-prefs", s.authed(s.handleGetNotificationPrefs))
-	mux.HandleFunc("PUT /api/v1/me/notification-prefs", s.authed(s.handlePutNotificationPrefs))
-	mux.HandleFunc("GET /api/v1/me/export.json", s.authed(s.handleExportFull))
+	// The caller's own scope.
+	mux.HandleFunc(pattern(http.MethodGet, RouteMe), s.authed(s.handleMe))
+	mux.HandleFunc(pattern(http.MethodGet, RouteMeNotificationPrefs), s.authed(s.handleGetNotificationPrefs))
+	mux.HandleFunc(pattern(http.MethodPut, RouteMeNotificationPrefs), s.authed(s.handlePutNotificationPrefs))
+	mux.HandleFunc(pattern(http.MethodGet, RouteMeExport), s.authed(s.handleExportFull))
 
 	// User scope.
-	mux.HandleFunc("GET /api/v1/users", s.authed(s.handleListUsers))
-	mux.HandleFunc("GET /api/v1/users/{userID}/avatar", s.handleGetAvatar)
-	mux.HandleFunc("PUT /api/v1/users/{userID}/avatar", s.authed(s.self(s.handlePutAvatar)))
-	mux.HandleFunc("PUT /api/v1/users/{userID}/display-name", s.authed(s.self(s.handlePutDisplayName)))
+	mux.HandleFunc(pattern(http.MethodGet, RouteUsers), s.authed(s.handleListUsers))
+	mux.HandleFunc(pattern(http.MethodGet, RouteUserAvatar), s.handleGetAvatar)
+	mux.HandleFunc(pattern(http.MethodPut, RouteUserAvatar), s.authed(s.self(s.handlePutAvatar)))
+	mux.HandleFunc(pattern(http.MethodPut, RouteUserDisplayName), s.authed(s.self(s.handlePutDisplayName)))
 
 	// Item scope. Item images (FR-22): GET public like avatars; PUT/DELETE
 	// need only authentication (FR-22.6) — items carry no trip role to check.
-	mux.HandleFunc("GET /api/v1/items/{itemID}/image", s.handleGetItemImage)
-	mux.HandleFunc("PUT /api/v1/items/{itemID}/image", s.authed(s.handlePutItemImage))
-	mux.HandleFunc("DELETE /api/v1/items/{itemID}/image", s.authed(s.handleDeleteItemImage))
+	mux.HandleFunc(pattern(http.MethodGet, RouteItemImage), s.handleGetItemImage)
+	mux.HandleFunc(pattern(http.MethodPut, RouteItemImage), s.authed(s.handlePutItemImage))
+	mux.HandleFunc(pattern(http.MethodDelete, RouteItemImage), s.authed(s.handleDeleteItemImage))
 
 	// Notification scope.
-	mux.HandleFunc("GET /api/v1/notifications", s.authed(s.handleListNotifications))
-	mux.HandleFunc("POST /api/v1/notifications/{notificationID}/read", s.authed(s.handleMarkNotificationRead))
+	mux.HandleFunc(pattern(http.MethodGet, RouteNotifications), s.authed(s.handleListNotifications))
+	mux.HandleFunc(pattern(http.MethodPost, RouteNotificationRead), s.authed(s.handleMarkNotificationRead))
 
 	// Web Push scope.
-	mux.HandleFunc("GET /api/v1/push/vapid-key", s.authed(s.handleGetVAPIDKey))
-	mux.HandleFunc("POST /api/v1/push/subscriptions", s.authed(s.handleRegisterPushSubscription))
-	mux.HandleFunc("DELETE /api/v1/push/subscriptions", s.authed(s.handleDeletePushSubscription))
+	mux.HandleFunc(pattern(http.MethodGet, RoutePushVAPIDKey), s.authed(s.handleGetVAPIDKey))
+	mux.HandleFunc(pattern(http.MethodPost, RoutePushSubscriptions), s.authed(s.handleRegisterPushSubscription))
+	mux.HandleFunc(pattern(http.MethodDelete, RoutePushSubscriptions), s.authed(s.handleDeletePushSubscription))
 
 	// Admin scope.
-	mux.HandleFunc("GET /api/v1/admin/users", s.authed(s.adminOnly(s.handleAdminUsers)))
-	mux.HandleFunc("POST /api/v1/admin/users/{userID}/deactivate", s.authed(s.adminOnly(s.handleDeactivateUser)))
-	mux.HandleFunc("POST /api/v1/admin/users/{userID}/reactivate", s.authed(s.adminOnly(s.handleReactivateUser)))
-	mux.HandleFunc("DELETE /api/v1/admin/users/{userID}/avatar", s.authed(s.adminOnly(s.handleAdminResetAvatar)))
-	mux.HandleFunc("DELETE /api/v1/admin/users/{userID}/display-name", s.authed(s.adminOnly(s.handleAdminResetDisplayName)))
+	mux.HandleFunc(pattern(http.MethodGet, RouteAdminUsers), s.authed(s.adminOnly(s.handleAdminUsers)))
+	mux.HandleFunc(pattern(http.MethodPost, RouteAdminDeactivateUser), s.authed(s.adminOnly(s.handleDeactivateUser)))
+	mux.HandleFunc(pattern(http.MethodPost, RouteAdminReactivateUser), s.authed(s.adminOnly(s.handleReactivateUser)))
+	mux.HandleFunc(pattern(http.MethodDelete, RouteAdminResetAvatar), s.authed(s.adminOnly(s.handleAdminResetAvatar)))
+	mux.HandleFunc(pattern(http.MethodDelete, RouteAdminResetDisplayName), s.authed(s.adminOnly(s.handleAdminResetDisplayName)))
 
 	// Instance scope: no caller, no partition.
-	mux.HandleFunc("POST /api/v1/auth/token", s.handleAuthToken)
-	mux.HandleFunc("POST /api/v1/auth/refresh", s.handleAuthRefresh)
-	mux.HandleFunc("GET /api/v1/auth/config", s.handleAuthConfig)
-	mux.HandleFunc("GET /api/v1/config", s.handleConfig)
-	mux.HandleFunc("GET /ws", s.wsAuth(s.handleWS))
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
+	mux.HandleFunc(pattern(http.MethodPost, RouteAuthToken), s.handleAuthToken)
+	mux.HandleFunc(pattern(http.MethodPost, RouteAuthRefresh), s.handleAuthRefresh)
+	mux.HandleFunc(pattern(http.MethodGet, RouteAuthConfig), s.handleAuthConfig)
+	mux.HandleFunc(pattern(http.MethodGet, RouteConfig), s.handleConfig)
+	mux.HandleFunc(pattern(http.MethodGet, RouteWS), s.wsAuth(s.handleWS))
+	mux.HandleFunc(pattern(http.MethodGet, RouteHealth), func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 	return mux
@@ -243,7 +245,7 @@ func (s *Server) member(next http.HandlerFunc) http.HandlerFunc {
 		return next
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		tripID := r.PathValue("tripID")
+		tripID := r.PathValue(PathTripID)
 		userID, _ := r.Context().Value(userIDKey).(string)
 		ok, err := s.store.IsTripMember(r.Context(), tripID, userID)
 		if err != nil {
@@ -270,7 +272,7 @@ func (s *Server) self(next http.HandlerFunc) http.HandlerFunc {
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, _ := r.Context().Value(userIDKey).(string)
-		if userID == "" || r.PathValue("userID") != userID {
+		if userID == "" || r.PathValue(PathUserID) != userID {
 			writeError(w, http.StatusForbidden, ErrForbidden, "cannot modify another user's profile")
 			return
 		}
@@ -284,7 +286,7 @@ func (s *Server) handlePull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	page, err := s.store.Pull(r.Context(), r.PathValue("tripID"), cursor, int(limit))
+	page, err := s.store.Pull(r.Context(), r.PathValue(PathTripID), cursor, int(limit))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, ErrInternal, "pull failed")
 		return
@@ -317,7 +319,7 @@ func writePullPage(w http.ResponseWriter, page store.PullPage) {
 }
 
 func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
-	tripID := r.PathValue("tripID")
+	tripID := r.PathValue(PathTripID)
 	userID, _ := r.Context().Value(userIDKey).(string)
 	out, muts, ok := applyPushBatch(w, r,
 		func(m *syncpkg.Mutation) { stampActor(m, userID) },
