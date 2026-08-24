@@ -70,7 +70,12 @@ setHeaderTitle(() =>
   <IonPage>
     <IonContent>
       <IonList v-if="view.rows.length > 0">
-        <IonItem v-for="row in view.rows" :key="row.member.id" lines="inset">
+        <IonItem
+          v-for="row in view.rows"
+          :key="row.member.id"
+          lines="inset"
+          :data-testid="`member-row-${row.displayName}`"
+        >
           <IonLabel>
             {{ row.displayName
             }}<span v-if="row.isSelf" class="self-marker">{{ t('members.self') }}</span>
@@ -112,6 +117,7 @@ setHeaderTitle(() =>
         <IonItem v-if="view.candidates.length > 0" lines="none">
           <IonSelect
             interface="popover"
+            data-testid="members-add"
             :placeholder="t('members.addUser')"
             :aria-label="t('members.addUserLabel')"
             :value="null"
