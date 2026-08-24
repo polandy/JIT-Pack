@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"jitpack/internal/sync"
@@ -78,8 +79,9 @@ func TestPull_UpdatedHLCIsNotWritableByAClient(t *testing.T) {
 
 	_, err := s.ApplyMutation(context.Background(), testTrip, testUser, m)
 
-	if err == nil {
-		t.Fatalf("a mutation naming %s was accepted; the push whitelist must refuse it", updatedHLCColumn)
+	if !errors.Is(err, ErrUnknownColumn) {
+		t.Fatalf("ApplyMutation naming %s = %v, want %v — the push whitelist must refuse the column by name",
+			updatedHLCColumn, err, ErrUnknownColumn)
 	}
 }
 

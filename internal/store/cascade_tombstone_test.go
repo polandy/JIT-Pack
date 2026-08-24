@@ -140,3 +140,62 @@ func assertTombstoned(t *testing.T, page PullPage, table, id string) {
 	}
 	t.Errorf("no tombstone for %s/%s — the cascade deleted it without telling any client", table, id)
 }
+
+// The cascade must stop at the row it names. `comments.trip_item_id` is
+// NULL for a trip-level comment (schema: "NULL = trip-level"), and a query
+// that resolved the item's trip instead would tombstone every comment of
+// the trip — rows the server still holds, deleted on every device that
+// pulls. Asserted against a positive signal on both sides: the sibling's
+// comment and the trip-level one are still readable afterwards.
+func TestApplyMutation_DeletingATripItemLeavesTripLevelAndSiblingComments(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+
+	mustExec(t, s, `INSERT INTO trip_items (id, trip_id, name) VALUES ('ti-a', ?, 'Zelt')`, testTrip)
+	mustExec(t, s, `INSERT INTO trip_items (id, trip_id, name) VALUES ('ti-b', ?, 'Schlafsack')`, testTrip)
+	mustExec(t, s, `INSERT INTO comments (id, trip_id, trip_item_id, author_id, body)
+	                VALUES ('cm-a', ?, 'ti-a', ?, 'Heringe prüfen')`, testTrip, testUser)
+	mustExec(t, s, `INSERT INTO comments (id, trip_id, trip_item_id, author_id, body)
+	                VALUES ('cm-b', ?, 'ti-b', ?, 'Waschen')`, testTrip, testUser)
+	mustExec(t, s, `INSERT INTO comments (id, trip_id, trip_item_id, author_id, body)
+	                VALUES ('cm-trip', ?, NULL, ?, 'Abfahrt um sechs')`, testTrip, testUser)
+
+	before, err := s.HeadSeq(ctx, testTrip)
+	if err != nil {
+		t.Fatalf("HeadSeq: %v", err)
+	}
+
+	del := sync.Mutation{
+		MutationID: "mut-del-item-scope", Op: sync.OpDelete, Table: TableTripItems, ID: "ti-a",
+		HLC: sync.HLC("0000000009300-0000-aaaaaaaa"),
+	}
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, del); err != nil {
+		t.Fatalf("ApplyMutation: %v", err)
+	}
+
+	page, err := s.Pull(ctx, testTrip, before, 50)
+	if err != nil {
+		t.Fatalf("Pull: %v", err)
+	}
+	assertTombstoned(t, page, TableComments, "cm-a")
+	for _, id := range []string{"cm-b", "cm-trip"} {
+		var rows int
+		if err := s.db.QueryRow(`SELECT count(*) FROM comments WHERE id = ?`, id).Scan(&rows); err != nil {
+			t.Fatalf("count comment %s: %v", id, err)
+		}
+		if rows != 1 {
+			t.Errorf("comment %s is gone from the database; the cascade reached past the row it names", id)
+		}
+		assertNotTombstoned(t, page, TableComments, id)
+	}
+}
+
+// assertNotTombstoned fails when the page carries a delete for the entity.
+func assertNotTombstoned(t *testing.T, page PullPage, table, id string) {
+	t.Helper()
+	for _, c := range page.Changes {
+		if c.Table == table && c.ID == id && c.Deleted {
+			t.Errorf("%s/%s was tombstoned; every device would delete a comment the server still holds", table, id)
+		}
+	}
+}
