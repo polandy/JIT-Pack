@@ -16,7 +16,14 @@ import { matchPortableItems, portableYear } from '@/domain/portable'
 import type { PortableDocument, PortableItem } from '@/domain/portable'
 import { ledgerId, positionKey, propagatedItemId } from '@/domain/refresh'
 import type { Mutation } from '@/api/types'
-import type { GeneratedPosition, MasterItem, Tag, Template, Trip } from '@/types/domain'
+import type {
+  GeneratedPosition,
+  MasterItem,
+  Tag,
+  Template,
+  TemplateKind,
+  Trip,
+} from '@/types/domain'
 import type { useMutations } from '@/composables/useMutations'
 
 /**
@@ -49,10 +56,8 @@ export interface PortableImportMasterView {
  * What one imported document did.
  *
  * `duplicate` is a success, not a failure: the instance already holds what
- * the document describes, so the import added nothing and `id` names what was
- * there. Only a trip can report it (ADR-030) — a group links by name and has
- * always done so (ADR-017), and two Ferien-Vorlagen of one name are two
- * different plans.
+ * the document describes, so the import added nothing at all and `id` names
+ * what was there (ADR-030).
  */
 export type PortableImportOutcome = 'created' | 'duplicate'
 
@@ -64,23 +69,48 @@ export interface PortableImportResult {
 }
 
 /**
- * A trip's identity across files and devices: its year and its name (ADR-030).
- *
- * Case-folded and trimmed, the way FR-16.3 compares an item name — the same
- * holiday spelled `Samedan` in one file and `samedan` in another is one trip,
- * and a restore that made it two would be the duplication this rule exists to
- * prevent.
+ * How every name in this format is compared: trimmed and case-folded, the way
+ * FR-16.3 already compares an item name and `applyTags` a tag name. The same
+ * holiday spelled `Samedan` in one file and `samedan` in another is one thing,
+ * not two.
  */
-export function findTripByIdentity(trips: Trip[], name: string, year: number): Trip | undefined {
-  const wanted = tripIdentity(name, year)
-  return trips.find((trip) => tripIdentity(trip.name, trip.year) === wanted)
+function sameName(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase()
 }
 
-/** NUL cannot occur in a trip name, so the two halves can never run together. */
-const TRIP_IDENTITY_SEPARATOR = '\u0000'
+/**
+ * A trip's identity across files and devices: its year and its name (ADR-030).
+ * A name alone will not do — a family goes back to the same place, so `Samedan`
+ * names several trips and only the year tells them apart.
+ */
+export function findTripByIdentity(trips: Trip[], name: string, year: number): Trip | undefined {
+  return trips.find((trip) => trip.year === year && sameName(trip.name, name))
+}
 
-function tripIdentity(name: string, year: number): string {
-  return `${year}${TRIP_IDENTITY_SEPARATOR}${name.trim().toLowerCase()}`
+/**
+ * What this document would be a second copy of, or nothing (ADR-030).
+ *
+ * One function for all three document kinds, because the reporting is one
+ * sentence: a document whose subject the instance already holds adds nothing
+ * and says so. A group has always linked by name (ADR-017); a Ferien-Vorlage
+ * now does too, in place of the `(import)` suffix it used to land under; a trip
+ * is its year and its name.
+ *
+ * Exported because M18 answers the same question in its restore list *before*
+ * the button is pressed — the same function rather than a second reading of
+ * the rule.
+ */
+export function findExistingSubject(
+  doc: Pick<PortableDocument, 'kind' | 'scope' | 'name' | 'year' | 'start_date' | 'end_date'>,
+  master: Pick<PortableImportMasterView, 'templateList' | 'tripList'>,
+): PortableImportResult | undefined {
+  if (doc.kind === 'trip') {
+    const trip = findTripByIdentity(master.tripList, doc.name, portableYear(doc))
+    return trip ? { kind: 'trip', id: trip.id, outcome: 'duplicate' } : undefined
+  }
+  const kind: TemplateKind = doc.scope === 'group' ? 'group' : 'template'
+  const template = master.templateList.find((t) => t.kind === kind && sameName(t.name, doc.name))
+  return template ? { kind: 'template', id: template.id, outcome: 'duplicate' } : undefined
 }
 
 export interface PortableImportEnv {
@@ -150,7 +180,7 @@ function ensureGroup(
   resolveItem: (item: PortableItem) => string | null,
   icon: string | null = null,
 ): string {
-  const existing = env.master.templateList.find((t) => t.kind === 'group' && t.name === name)
+  const existing = env.master.templateList.find((t) => t.kind === 'group' && sameName(t.name, name))
   if (existing) return existing.id
 
   const created = env.mutations.createTemplate(name, '', 'group', icon)
@@ -297,6 +327,15 @@ export function importPortableDocument(
    */
   restoredTemplates?: Map<string, string>,
 ): PortableImportResult {
+  /*
+   * ADR-030: nothing this instance already holds arrives a second time.
+   * Checked before anything is written, so a document that is already here
+   * costs no master item, no tag, no template position and no trip row — a
+   * re-run of a restore is a no-op rather than a second copy of the data.
+   */
+  const existing = findExistingSubject(doc, env.master)
+  if (existing) return existing
+
   const resolveItem = (item: PortableItem): string | null => {
     const merged = mergeDecisions.get(item.name)
     if (merged) return merged
@@ -322,13 +361,8 @@ export function importPortableDocument(
   }
 
   if (doc.kind === 'template') {
-    // UNIQUE(owner_id, name): dodge collisions with a visible suffix. Two
-    // Ferien-Vorlagen of one name are two different plans — unlike groups,
-    // merging them would lose one, so only groups link (ADR-017).
-    const taken = new Set(env.master.templateList.map((t) => t.name))
-    const name = taken.has(doc.name) ? `${doc.name} (import)` : doc.name
     const { mutation, id: templateId } = env.mutations.createTemplate(
-      name,
+      doc.name,
       '',
       'template',
       doc.icon,
@@ -353,20 +387,9 @@ export function importPortableDocument(
   // FR-2.1b: neither date has to be there any more, so an absent one
   // stays absent rather than being invented as today's date; the year
   // is what the document must yield, from its own field or its dates.
-  const year = portableYear(doc)
-
-  /*
-   * ADR-030: the same trip must not arrive twice. Checked before anything is
-   * written, so a document that is already here costs no master item, no tag
-   * and no trip row — a re-run of a restore is then a no-op rather than a
-   * second copy of a decade of history.
-   */
-  const already = findTripByIdentity(env.master.tripList, doc.name, year)
-  if (already) return { kind: 'trip', id: already.id, outcome: 'duplicate' }
-
   const { mutation: tripMut, id: tripId } = env.mutations.createTrip(
     doc.name,
-    year,
+    portableYear(doc),
     doc.start_date,
     doc.end_date,
     // FR-2.2/ADR-024: the status the file carried, or planning when it

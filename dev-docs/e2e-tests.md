@@ -1641,7 +1641,9 @@ The control now renders straight off `flag_unused`.)*
 **E2E-M18-10 — the same file, twice, added 2026-08-24.** A restore is what you
 run when you are not sure the last one worked, so running it again is the
 normal case and not the odd one. Until ADR-030 the second run built a second
-copy of every trip, silently, with the first still on screen.
+copy of every trip, silently, with the first still on screen — and a second
+copy of every Ferien-Vorlage under a `(import)` suffix, which is why the case
+carries all three document kinds rather than only the trip.
 
 Three things worth keeping from writing it:
 

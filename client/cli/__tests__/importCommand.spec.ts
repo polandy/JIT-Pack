@@ -328,6 +328,28 @@ describe('a trip the instance already holds', () => {
     expect(instance.mutations).toEqual([])
   })
 
+  it('covers a Ferien-Vorlage too, which used to arrive under a suffix', async () => {
+    instance.feed = [
+      {
+        seq: 1,
+        table: 'templates',
+        id: 'tpl-existing',
+        deleted: false,
+        row: { id: 'tpl-existing', name: 'Ferien', kind: 'template' },
+      },
+    ]
+    const out = io({ 'tpl.yaml': TEMPLATE })
+
+    const code = await runImport(
+      { serverUrl: 'http://x', token: null, dryRun: false, files: ['tpl.yaml'] },
+      out,
+    )
+
+    expect(code).toBe(EXIT.ok)
+    expect(out.lines.at(-1)).toBe('1 document: 0 imported, 1 already here, 0 failed')
+    expect(instance.mutations).toEqual([])
+  })
+
   it('does not stop the documents around it', async () => {
     alreadyThere()
     const out = io({ 'backup.yaml': `${TEMPLATE}---\n${TRIP}` })

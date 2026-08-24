@@ -236,6 +236,12 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await createTemplate(page, 'group', 'Makro')
     await addPosition(page, 'Kamera')
     await backToList(page)
+    // A Ferien-Vorlage as well as a group: the two used to be handled
+    // differently here, the group linking and the Vorlage landing beside
+    // itself under a suffix.
+    await createTemplate(page, 'template', 'Fototage')
+    await addPosition(page, 'Stativ')
+    await backToList(page)
     await createTripViaWizard(page, TRIP)
 
     await page.getByTestId('sync-indicator').click()
@@ -266,8 +272,16 @@ test.describe('Local Mode backup and restore @local @m18', () => {
 
     // --- the same file again, on the device that just took it -----------
     await restoreOnce()
-    const tripRow = restored.getByTestId('portable-restore-row').filter({ hasText: TRIP.name })
-    await expect(tripRow.getByTestId('portable-already-here')).toBeVisible()
+    // Every document of the file is already here now — the trip, the group and
+    // the Vorlage — so the list says so on each of them, not only on the trip.
+    const rows = restored.getByTestId('portable-restore-row')
+    await expect(
+      rows.filter({ hasText: TRIP.name }).getByTestId('portable-already-here'),
+    ).toBeVisible()
+    await expect(
+      rows.filter({ hasText: 'Fototage' }).getByTestId('portable-already-here'),
+    ).toBeVisible()
+    await expect(restored.getByTestId('portable-already-here')).toHaveCount(await rows.count())
 
     await restored.getByTestId('portable-restore-commit').click()
     await expect(restored.locator('ion-toast')).toContainText(/schon vorhanden|already here/i)
@@ -275,9 +289,13 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     // One trip, still there — not two, and not none.
     await expect(visible(restored).getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(1)
 
-    // The group came back by name both times (ADR-017), so it is one group too.
+    // One group and one Ferien-Vorlage, both linked by name rather than copied
+    // (ADR-017 for the group, ADR-030 for the Vorlage, which used to arrive a
+    // second time as "Fototage (import)").
     await restored.getByTestId('rail-templates').click()
     await expect(visible(restored).getByRole('heading', { name: 'Makro' })).toHaveCount(1)
+    await expect(visible(restored).getByRole('heading', { name: 'Fototage' })).toHaveCount(1)
+    await expect(visible(restored).getByText('(import)')).toHaveCount(0)
 
     await fresh.close()
   })

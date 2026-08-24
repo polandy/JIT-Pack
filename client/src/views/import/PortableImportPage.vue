@@ -29,14 +29,12 @@ import {
   matchPortableItems,
   parsePortable,
   parsePortableAll,
-  portableYear,
   PORTABLE_FILE_ACCEPT,
   type ParseResult,
   type PortableDocument,
 } from '@/domain/portable'
-import { findTripByIdentity } from '@/domain/portableImport'
+import { findExistingSubject } from '@/domain/portableImport'
 import { presentToast } from '@/lib/toast'
-import type { Trip } from '@/types/domain'
 import { t } from '@/i18n'
 import { TRIP_FILTER_QUERY, filterForStatus } from '@/views/trips/tripFilter'
 import { useTripStore } from '@/stores/tripStore'
@@ -85,15 +83,21 @@ function preview() {
 const doc = computed(() => parsed.value?.doc ?? null)
 
 /**
- * The trip this document would be a second copy of (ADR-030), or nothing.
+ * Whether this document would be a second copy of something already here
+ * (ADR-030). The import rules' own function, not a second reading of them.
  *
  * Asked in the preview rather than only after the fact: "already here" is a
  * perfectly good answer, but a screen that gives it only once the button has
  * been pressed reads as an import that silently did nothing.
  */
-function alreadyHere(candidate: PortableDocument | null | undefined): Trip | undefined {
-  if (!candidate || candidate.kind !== 'trip') return undefined
-  return findTripByIdentity(tripStore.tripList, candidate.name, portableYear(candidate))
+function alreadyHere(candidate: PortableDocument | null | undefined): boolean {
+  if (!candidate) return false
+  return (
+    findExistingSubject(candidate, {
+      templateList: master.templateList,
+      tripList: tripStore.tripList,
+    }) !== undefined
+  )
 }
 
 /** How long a confirmation stays up, as everywhere else on the app. */
@@ -177,7 +181,7 @@ function commit() {
   }
   const result = orchestrator.commitPortableImport(doc.value, decisions)
   if (result.outcome === 'duplicate') {
-    void presentToast({ message: t('import.portable.tripAlreadyHere'), duration: TOAST_MS })
+    void presentToast({ message: t('import.portable.alreadyHereHint'), duration: TOAST_MS })
   }
   router.replace(result.kind === 'template' ? `/templates/${result.id}` : `/trips/${result.id}`)
 }
@@ -278,7 +282,7 @@ function commit() {
         </IonNote>
         <IonNote v-if="alreadyHere(doc)" class="schema-warning" data-testid="portable-already-here">
           <IonIcon :icon="warningOutline" />
-          {{ t('import.portable.tripAlreadyHere') }}
+          {{ t('import.portable.alreadyHereHint') }}
         </IonNote>
 
         <IonList>

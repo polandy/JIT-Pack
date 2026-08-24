@@ -184,6 +184,61 @@ items:
  * ADR-030: a trip's identity across files and devices is its year and its
  * name, and an import that finds one already there adds nothing.
  */
+describe('a Ferien-Vorlage that is already on this instance (FR-18.4, ADR-030)', () => {
+  const ferien = (name = 'Ferien') =>
+    parse(`kind: template
+name: ${JSON.stringify(name)}
+items:
+  - name: Zelt
+    quantity: 1
+`)
+
+  it('is left alone rather than landing beside itself under a suffix', () => {
+    const { env, recorded } = fakeEnv({
+      templates: [{ id: 'tpl-existing', name: 'Ferien', kind: 'template' } as Template],
+    })
+
+    const result = importPortableDocument(ferien(), new Map(), env)
+
+    expect(result).toEqual({ kind: 'template', id: 'tpl-existing', outcome: 'duplicate' })
+    // The suffix this replaces wrote a whole second Vorlage: template row,
+    // positions, and a master item for every one of them.
+    expect(recorded).toEqual([])
+  })
+
+  it('is not confused with a group of the same name', () => {
+    const { env, recorded } = fakeEnv({
+      templates: [{ id: 'grp-existing', name: 'Ferien', kind: 'group' } as Template],
+    })
+
+    const result = importPortableDocument(ferien(), new Map(), env)
+
+    expect(result.outcome).toBe('created')
+    expect(rowsFor(recorded, TABLE.templates)).toEqual([
+      expect.objectContaining({ name: 'Ferien', kind: 'template' }),
+    ])
+  })
+
+  it('links a group that is already here instead of copying its positions', () => {
+    const { env, recorded } = fakeEnv({
+      templates: [{ id: 'grp-existing', name: 'Küche', kind: 'group' } as Template],
+    })
+    const group = parse(`kind: template
+scope: group
+name: küche
+items:
+  - name: Pfanne
+    quantity: 1
+`)
+
+    const result = importPortableDocument(group, new Map(), env)
+
+    // Spelled differently in the two files, and still one group.
+    expect(result).toEqual({ kind: 'template', id: 'grp-existing', outcome: 'duplicate' })
+    expect(recorded).toEqual([])
+  })
+})
+
 describe('a trip that is already on this instance (FR-18.4, ADR-030)', () => {
   const cannobio = (year: number, name = 'Cannobio') =>
     parse(`kind: trip

@@ -47,17 +47,18 @@ onto a trip stays where it was, on the trip, and does not appear in your invento
 A backup taken with an older version of the app carries no status, and its trips arrive in
 **planning** as they always did.
 
-**A trip you already have is not added a second time.** A trip is recognised by its **year
-and its name**, so restoring the same file twice — or restoring a newer backup that
-overlaps an older one — leaves you with one of each. The restore list marks such a trip
-*Schon vorhanden* before you press the button, and after the import the app tells you how
-many it left alone. That means a restore is safe to repeat when you are not sure the last
-one finished.
+**What you already have is not added a second time.** A trip is recognised by its **year
+and its name**, a template and a group by their **name**, so restoring the same file twice —
+or restoring a newer backup that overlaps an older one — leaves you with one of each. The
+restore list marks such a document *Schon vorhanden* before you press the button, and after
+the import the app tells you how many it left alone. That means a restore is safe to repeat
+when you are not sure the last one finished.
 
 The flip side is worth knowing before it surprises you: if you have **two different trips
-with the same name in the same year**, only the first of them can be imported. Give one of
-them a different name in the file, and both come in. And if you rename a trip in the app,
-a backup that still holds the old name will restore it again as a second trip.
+with the same name in the same year** — or two different templates of one name — only the
+first can be imported. Give one of them a different name in the file, and both come in. And
+if you rename a trip in the app, a backup that still holds the old name will restore it
+again as a second trip.
 
 A trip that was built from groups keeps **following** them after a restore, and the
 restore list says so next to it. What you already told a group carries over too: a change
@@ -337,8 +338,9 @@ you want the file's version alongside it.
 
 The same linking applies when you import a **group document** on its own: if a group of that
 name is already here, the import lands on it and changes nothing, rather than leaving a
-second copy behind. Importing a *holiday template* whose name is taken creates a second one,
-suffixed *(import)* — two templates of one name are two different plans.
+second copy behind. A *holiday template* whose name is taken is treated the same way since ADR-030: the import
+lands on the one that is here and changes nothing. It used to create a second one suffixed
+*(import)*, which meant restoring a backup twice doubled every template in it.
 
 A group document (`scope: group`) carries no `includes:` — a group is never composed of
 other groups.
@@ -372,9 +374,9 @@ backup.yaml #3: unreadable — unknown kind "nonsense"
 3 documents: 2 imported, 1 unreadable
 ```
 
-**Running it again is safe.** A trip the instance already holds is recognised by its year
-and name, skipped, and counted on its own — so re-running a file after a connection died
-tops up what is missing instead of doubling what is there:
+**Running it again is safe.** Anything the instance already holds — a trip by its year and
+name, a template or group by its name — is skipped and counted on its own, so re-running a
+file after a connection died tops up what is missing instead of doubling what is there:
 
 ```
 backup.yaml #1 template "Ferien": imported
@@ -391,10 +393,10 @@ from "most of it did".
 |---|---|
 | `--server URL` | The instance to import into. Defaults to `$JITPACK_SERVER`, then `http://localhost:3000`. |
 | `--token TOKEN` | Bearer token, for an instance with accounts. Defaults to `$JITPACK_TOKEN`. A single-user instance needs none. |
-| `--dry-run` | Read the file and report what is in it without importing anything, including which trips are already here. |
+| `--dry-run` | Read the file and report what is in it without importing anything, including what is already here. |
 
 Use `--dry-run` before importing a file you wrote or edited yourself — it tells you how many
-documents the file really has, which of them the app can read, and which trips it would
+documents the file really has, which of them the app can read, and which of them it would
 leave alone because they are already there, while nothing has changed yet.
 
 Local Mode has no server, so there is nothing to import into from a shell; restore a Local

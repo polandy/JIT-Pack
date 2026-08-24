@@ -21,12 +21,11 @@ import { MAX_PUSH_BATCH } from '@/composables/useSyncOutbox'
 import { HLCGenerator } from '@/sync/hlc'
 import { parsePortableAll } from '@/domain/portable'
 import {
-  findTripByIdentity,
+  findExistingSubject,
   importPortableDocument,
   restoreDecisions,
   type PortableImportEnv,
 } from '@/domain/portableImport'
-import { portableYear } from '@/domain/portable'
 
 /** Where the command looks when a flag is omitted, so a shell can be set up once. */
 export const ENV_SERVER = 'JITPACK_SERVER'
@@ -115,7 +114,7 @@ export async function runImport(opts: ImportOptions, io: ImportIO): Promise<numb
   const master = useMasterStore()
   // Trips are in the master partition but not in the master store, and
   // ADR-030's rule has to read them: a file re-run against an instance that
-  // already holds its trips must add nothing.
+  // already holds its trips and templates must add nothing.
   const trips = useTripStore()
   const hlc = new HLCGenerator(io.now, io.deviceId)
   const client = new APIClient(opts.serverUrl, () => opts.token)
@@ -173,9 +172,11 @@ export async function runImport(opts: ImportOptions, io: ImportIO): Promise<numb
       const doc = parsed.doc
       const what = `${where} ${doc.kind} "${doc.name}"`
       // Reported on both paths: a dry run whose job is "what would this file
-      // do?" must say which trips it would leave alone (ADR-030).
-      const duplicate =
-        doc.kind === 'trip' && findTripByIdentity(trips.tripList, doc.name, portableYear(doc))
+      // do?" must say what it would leave alone (ADR-030).
+      const duplicate = findExistingSubject(doc, {
+        templateList: master.templateList,
+        tripList: trips.tripList,
+      })
       if (opts.dryRun) {
         io.write(`${what}: ${duplicate ? 'already here' : 'readable'} (dry run, not sent)`)
         continue

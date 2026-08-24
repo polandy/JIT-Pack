@@ -1,7 +1,7 @@
-# ADR-030: What makes an imported trip the same trip — year and name vs. a database constraint vs. a suffix
+# ADR-030: What makes an imported document the same thing — name (and year, for a trip) vs. a database constraint vs. a suffix
 
 **Status:** Accepted
-**Related:** FR-18.4 (round-trip import), FR-18.7 (`jitpack-import`), NFR-4.11 / ADR-015 (the device backup), ADR-017 (a group's identity is its name), ADR-024 (a restored trip keeps its status), invariant 2 (no migrations in the development phase), invariant 4 (generation runs client-side), invariant 5 (three modes, one artifact), E2E-M18-10
+**Related:** FR-18.4 (round-trip import), FR-18.7 (`jitpack-import`), NFR-4.11 / ADR-015 (the device backup), **ADR-017 (a group's identity is its name — its Vorlage exception is superseded here)**, ADR-024 (a restored trip keeps its status), invariant 2 (no migrations in the development phase), invariant 4 (generation runs client-side), invariant 5 (three modes, one artifact), E2E-M18-10
 
 **Decision Drivers (in priority order):**
 1. **A restore run twice must not produce two of everything.** Running it again is exactly what someone does when they are not sure the first one worked, and before this the second run built a second copy of every trip — silently, with the first still on screen.
@@ -26,6 +26,7 @@ A trip's identity across files and devices is `(year, name)`, compared trimmed a
 - It is a client-side rule in `client/src/domain`, so it holds in Local Mode with no server and in Single-User and Server Mode alike (drivers 3 and 5, invariants 4 and 5).
 - No schema change, so no constraint can refuse a push and park the queue (driver 4), and no development database has to be deleted (invariant 2).
 - It matches the identity rule the format already uses everywhere else: a group is its name (ADR-017), a tag is its name, an item is its name. A trip needs the year because names repeat across years by design — *Samedan* is a place the family goes back to.
+- **Extended to Ferien-Vorlagen after the fact, on the measurement below.** The rule was first written for trips alone, on ADR-017's reasoning that two Vorlagen of one name are two different plans. Importing a real 57-document file twice settled it: the trips held at 33, and the three Vorlagen became six with their includes going 35 → 70. ADR-017's premise was right about a file somebody *shares* and wrong about the file that actually gets re-imported, which is the user's own backup.
 
 **Cons**
 
@@ -49,9 +50,9 @@ Let the database refuse the second one.
 - It cannot be added in the development phase without deleting every existing database (invariant 2), and it would still not help Local Mode, whose enforcement would have to be written a second time in the client anyway (driver 3).
 - The user-visible message would be a constraint violation, arriving long after the import, from the sync layer.
 
-### Option C — import it under a suffixed name, as a Ferien-Vorlage does
+### Option C — import it under a suffixed name, as a Ferien-Vorlage used to
 
-`Samedan` becomes `Samedan (import)`, the way a template name collision is already handled.
+`Samedan` becomes `Samedan (import)`, the way a Ferien-Vorlage name collision was handled until this ADR.
 
 **Pros**
 
@@ -61,7 +62,7 @@ Let the database refuse the second one.
 **Cons**
 
 - **It does not prevent duplication, it labels it** (driver 1). Restoring a 33-trip backup twice yields 66 trips, 33 of them parenthesised.
-- The reason the suffix is right for a Ferien-Vorlage is that two Vorlagen of one name are two different *plans* the user may well want. A trip is a thing that happened once; a second copy of it is never what anybody wanted.
+- The reason the suffix looked right for a Ferien-Vorlage is that two Vorlagen of one name are two different *plans* the user may well want. That reasoning survives for a file somebody hands you and fails for the file that is actually re-imported — your own backup — which is why the suffix is retired here rather than merely not extended.
 
 ### Option D — merge the document into the existing trip
 
@@ -95,21 +96,24 @@ Add the rows the trip does not have; leave the rest alone.
 
 ## Decision
 
-**A trip's identity is its year and its name**, trimmed and case-folded, decided in `client/src/domain/portableImport.ts` (`findTripByIdentity`) and applied before anything is written. An import that finds the trip already there adds nothing and returns `outcome: 'duplicate'` naming it, and every surface that imports reports it — the M18 restore list before the commit, a toast after it, and one line per document in `jitpack-import` including its `--dry-run`.
+**A document is a second copy of something this instance already holds when their names match** — plus the year, for a trip, because a family goes back to the same place and only the year tells two *Samedan* trips apart. One function decides it for all three document kinds (`findExistingSubject` in `client/src/domain/portableImport.ts`), before anything is written. An import that finds one adds nothing and returns `outcome: 'duplicate'` naming what was there, and every surface that imports reports it — the M18 restore list before the commit, a toast after it, and one line per document in `jitpack-import` including its `--dry-run`.
 
-The scope is trips only. Groups already link by name (ADR-017), tags and items already merge by name (FR-16.3), and two Ferien-Vorlagen of one name stay two plans — that suffix is a decision this ADR does not reopen.
+Every name comparison is trimmed and case-folded, which is what FR-16.3 and `applyTags` already did; `ensureGroup`'s exact match was the outlier and joins them.
+
+**This retires the `(import)` suffix** ADR-017 kept for Ferien-Vorlagen. Tags and items are untouched: they still merge by name through FR-16.3's matcher, near-duplicates included.
 
 ## Consequences
 
 **Positive**
 
-- A restore is repeatable. Running the same file twice, or running a newer backup that overlaps an older one, costs nothing and says what it skipped.
+- A restore is repeatable, whole. Measured on a real 57-document file (21 groups, 3 Vorlagen, 33 trips, 1826 positions): the second run reports `57 documents: 0 imported, 57 already here, 0 failed` and the database does not move.
 - The command line is safe to put in a script: `jitpack-import backup.yaml` is idempotent per trip, and `--dry-run` answers what a file would actually do.
 - No schema change, no migration, no database deleted, and no new way for a push to be refused.
 
 **Negative / accepted costs**
 
-- **Two distinct trips of one name in one year cannot both be imported**, and the family sheet contains exactly that case. The remedy is to name them apart in the file; the import says which document it left alone, so the case is visible rather than silent.
+- **Two distinct trips of one name in one year cannot both be imported**, and the family sheet contains exactly that case. The same now holds for two distinct Ferien-Vorlagen of one name — the case ADR-017 protected. The remedy is the same: name them apart in the file. The import says which document it left alone, so the case is visible rather than silent.
+- **A Vorlage that changed cannot be re-imported over the one that is here.** The file is not merged into it; it is skipped whole. Bringing a newer version of a Vorlage across instances now means renaming it, or editing it in the app.
 - **A renamed trip is a new trip to the next import.** Rename *Samedan* to *Samedan Sommer* and the backup that still says *Samedan* restores a second copy. Accepted because the alternative is a stable identifier in the file, which makes a file from another instance import as "the same trip" as one of yours purely by id collision.
 - The rule lives in the import path, so a future writer that creates trips another way does not inherit it.
 
@@ -119,6 +123,6 @@ The scope is trips only. Groups already link by name (ADR-017), tags and items a
 
 ## Revisit Trigger
 
-**Someone needs two trips of one name in one year badly enough to say so** — the sheet's *Janosch & Andy* pair is the first candidate. The answer then is not to drop the rule but to give the import a way to say "no, this is a different one", which is a screen and a flag rather than a change of identity.
+**Someone needs two trips of one name in one year, or two Vorlagen of one name, badly enough to say so** — the sheet's *Janosch & Andy* pair is the first candidate. The answer then is not to drop the rule but to give the import a way to say "no, this is a different one", which is a screen and a flag rather than a change of identity.
 
 **Or:** the portable format grows a stable per-trip identifier (a UUID written on export). Then identity stops being derived from what the user can edit, renames stop creating copies, and this rule becomes the fallback for files that carry no id.

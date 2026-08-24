@@ -722,10 +722,10 @@ export const en = {
   'import.portable.skipped': 'skipped',
   // ADR-030: a trip is identified by its year and its name.
   'import.portable.alreadyHere': 'Already here',
-  'import.portable.tripAlreadyHere':
-    'This trip is already on this device — it will not be created a second time.',
+  'import.portable.alreadyHereHint':
+    'This is already on this device — it will not be created a second time.',
   'import.portable.restoreAlreadyHere':
-    '{n} trip was already here and was not created twice. | {n} trips were already here and were not created twice.',
+    '{n} trip or template was already here and was not created again. | {n} trips and templates were already here and were not created again.',
   'import.portable.importAll': 'Import all',
   // FR-27.4: a restored trip keeps following its groups, so the list says so.
   'import.portable.follows': 'follows {n} group | follows {n} groups',

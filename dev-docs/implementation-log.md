@@ -154,7 +154,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A trip could be judged only one row at a time (2026-08-24)](#a-trip-could-be-judged-only-one-row-at-a-time-2026-08-24) — FR-9.3/9.4. Three things the code cannot show: how many affordances a "one posture, one question" screen turns out to have once it is rendered, why a handled proposal became a record line rather than a dimmed card, and the control that was replaced twice before it rendered the row rather than itself.
 - [A claim stops having a lifetime (2026-08-24)](#a-claim-stops-having-a-lifetime-2026-08-24) — FR-5.7/ADR-028. Four things the code cannot show: why the option that looked like the compromise was the most expensive one, why the takeover is the one lock action with no optimistic write, why it has no reachable Playwright case and will not until a second identity exists, and the two-day-old work that was deleted rather than adapted.
 - [A second account arrives, and finds a claim nobody could revoke (2026-08-24)](#a-second-account-arrives-and-finds-a-claim-nobody-could-revoke-2026-08-24) — MVP-plan Track B step 2 / ADR-029: the mock-IdP `server` project. Four things the code cannot show: why a real Authelia was weighed and lost to a 250-line fixture, why the ordering of two processes is a design decision rather than a script detail, the defect the project found on its first run — a takeover that the loser's screen contradicted — and why the identity behind the fix cannot come from the token provider the rest of the client uses.
-- [The restore could be run twice, and the manual said it could not (2026-08-24)](#the-restore-could-be-run-twice-and-the-manual-said-it-could-not-2026-08-24) — FR-18.4/ADR-030: a trip's identity on import is its year and its name. Four things the code cannot show: the documentation that had described the item rule as if it were the whole rule, why the database constraint that looks like the obvious enforcement is the worst of the four options, why the trips were invisible to a view called `master`, and the cost the family's own data pays for the rule.
+- [The restore could be run twice, and the manual said it could not (2026-08-24)](#the-restore-could-be-run-twice-and-the-manual-said-it-could-not-2026-08-24) — FR-18.4/ADR-030: an imported document is a second copy when its name matches, plus the year for a trip. Five things the code cannot show: the documentation that had described the item rule as if it were the whole rule, why the database constraint that looks like the obvious enforcement is the worst of the four options, why the trips were invisible to a view called `master`, how ADR-017's Vorlage exception was reversed by a measurement rather than an argument, and the cost the family's own data pays for the rule.
 
 ## Current state
 
@@ -6278,11 +6278,12 @@ and was about to change the colour — the computed values were `#cba6f7` agains
 answers a question about rendered pixels; an *impression* of one does not.
 ## The restore could be run twice, and the manual said it could not (2026-08-24)
 
-**What changed:** an imported trip is identified by its **year and its name**
-(ADR-030). An import that finds one already there writes nothing at all and
-reports which trip it was; M18 marks the document in the restore list *before*
-the button is pressed, the commit counts what it left alone, and
-`jitpack-import` says it per document and in its summary, `--dry-run` included.
+**What changed:** an imported document is a second copy of something this
+instance already holds when their **names** match — plus the **year**, for a
+trip (ADR-030). An import that finds one writes nothing at all and reports what
+was there; M18 marks the document in the restore list *before* the button is
+pressed, the commit counts what it left alone, and `jitpack-import` says it per
+document and in its summary, `--dry-run` included.
 
 **The premise that was already written down as true.** `docs/backup.md` said,
 of a restore onto a device that still has data, that everything is "matched to
@@ -6318,11 +6319,26 @@ sites assemble it through getters rather than a snapshot: the rules read their
 own output back between documents, so a trip created by document 12 has to be
 visible to document 13 in the same file.
 
+**A decision reversed by a measurement rather than an argument.** The rule was
+written for trips alone, because ADR-017 had explicitly declined to extend the
+group's link-by-name identity to Ferien-Vorlagen: two of one name are two
+different plans, and merging them loses one. That reasoning is sound about a
+file somebody *hands* you. It is wrong about the file that actually gets
+re-imported, which is your own backup — and the difference only became visible
+by importing a real one twice and counting rows: the trips held at 33, while
+the three Vorlagen became six and their includes went 35 → 70. Reading the ADR
+would not have produced that; running the thing did. The suffix is retired, and
+ADR-017 carries the supersession note.
+
 **What the rule costs, in this project's own data.** The family sheet these
 imports exist for has *Janosch & Andy* twice in 2021 — two different weekends,
 one name, one year. Under this rule only the first can be imported, and the
-second has to be named apart in the file. That is written into ADR-030 as an
-accepted cost rather than discovered later, and it is also the concrete thing
+second has to be named apart in the file. Since the rule reaches Vorlagen too,
+the same holds for two different Ferien-Vorlagen of one name — the very case
+ADR-017 was protecting — and a *changed* Vorlage can no longer be re-imported
+over the one that is here: it is skipped whole rather than merged. All of that
+is written into ADR-030 as accepted cost rather than discovered later, and it
+is also the concrete thing
 the revisit trigger waits for: the fix, when somebody wants it, is a way for
 the import to say "no, this is a different one", not a different notion of
 identity.

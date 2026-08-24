@@ -726,10 +726,10 @@ export const de: Record<keyof typeof en, string> = {
   'import.portable.skipped': 'übersprungen',
   // ADR-030: Eine Reise ist über Jahr und Name identifiziert.
   'import.portable.alreadyHere': 'Schon vorhanden',
-  'import.portable.tripAlreadyHere':
-    'Diese Reise ist auf diesem Gerät schon vorhanden — sie wird nicht ein zweites Mal angelegt.',
+  'import.portable.alreadyHereHint':
+    'Das ist auf diesem Gerät schon vorhanden — es wird nicht ein zweites Mal angelegt.',
   'import.portable.restoreAlreadyHere':
-    '{n} Reise war schon vorhanden und wurde nicht doppelt angelegt. | {n} Reisen waren schon vorhanden und wurden nicht doppelt angelegt.',
+    '{n} Reise oder Vorlage war schon vorhanden und wurde nicht neu angelegt. | {n} Reisen und Vorlagen waren schon vorhanden und wurden nicht neu angelegt.',
   'import.portable.importAll': 'Alle importieren',
   // FR-27.4: Eine wiederhergestellte Reise folgt ihren Gruppen weiter.
   'import.portable.follows': 'folgt {n} Gruppe | folgt {n} Gruppen',
