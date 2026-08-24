@@ -63,9 +63,7 @@ test.describe('Two accounts on one instance @server', () => {
     await alice.goto(`${tripPath}/members`)
     // Alice's own row proves the JIT provisioning carried the IdP's display
     // name through: nothing in the client ever typed "Alice".
-    await expect(
-      visiblePage(alice).getByTestId(`member-row-${ACCOUNT_NAMES.alice}`),
-    ).toBeVisible()
+    await expect(visiblePage(alice).getByTestId(`member-row-${ACCOUNT_NAMES.alice}`)).toBeVisible()
     await visiblePage(alice).getByTestId('members-add').click()
     await alice
       .locator('ion-popover ion-select-popover ion-item')

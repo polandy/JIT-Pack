@@ -28,8 +28,8 @@ const SYNC_PATH = /\/api\/v1\/(?:trips\/[^/]+|master)\/sync/
  * Honesty notes (also in dev-docs/e2e-tests.md):
  *  - Both browser contexts are the same Single-User identity. The
  *    multi-context cases prove real-time convergence over the wire, not
- *    multi-identity semantics (locks, attribution) — those stay with the
- *    future mock-IdP `server` project.
+ *    multi-identity semantics (locks, attribution) — those live in the
+ *    `server` project (e2e/server/, ADR-029).
  *  - There is still no reconnect drain: the queue moves on the app's next
  *    own action (a mutation, a trip open, a WS ping) — or on the next app
  *    start, which the durable outbox added (B2). Track C stopped there
@@ -161,7 +161,7 @@ test.describe('Single-User backend sync @single', () => {
    * claimed the row, so B's client treats the claim as foreign, exactly
    * as it would a second account's. What is asserted is the pair that was
    * missing, the padlock's name and the sheet's refusal, not the identity
-   * semantics the future mock-IdP project owns.
+   * semantics the `server` project owns.
    */
   test('a row another device is packing names its holder and refuses edits', async ({
     browser,
@@ -230,10 +230,10 @@ test.describe('Single-User backend sync @single', () => {
    * This is the half of FR-5.7 that *can* run here, and the reason the
    * other half cannot is worth stating: both contexts are the same
    * Single-User identity, so a takeover would be a takeover of one's own
-   * claim, which the server refuses by design. The taking-over path
-   * therefore waits for the mock-IdP `server` project, exactly as
-   * E2E-G3-01's identity half does. What is asserted here is the G-8
-   * promise — the surface is *absent*, not shown and then refused.
+   * claim, which the server refuses by design. The taking-over path lives
+   * in the `server` project, exactly as E2E-G3-01's identity half does.
+   * What is asserted here is the G-8 promise — the surface is *absent*,
+   * not shown and then refused.
    */
   test('a claimed row offers no takeover where there is no second account', async ({ browser }) => {
     const id = uniq()
@@ -512,9 +512,7 @@ test.describe('Single-User backend sync @single', () => {
     // The timestamp follows the app's language, not the device's. The suite
     // runs on a de-CH device with the app pinned to English (see the config):
     // `toLocaleString()` took the device and rendered `22.08.2026`.
-    await expect(row.getByTestId('conflict-time')).toContainText(
-      /[A-Z][a-z]{2} \d{1,2}, \d{4}/,
-    )
+    await expect(row.getByTestId('conflict-time')).toContainText(/[A-Z][a-z]{2} \d{1,2}, \d{4}/)
 
     await ctxA.close()
     await ctxB.close()
