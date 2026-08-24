@@ -68,6 +68,8 @@ const props = defineProps<{
   itemId: string
   /** Trip members, so the packing record can name a person (FR-25.17). */
   participants: TripParticipant[]
+  /** Who I am, so a row is never offered to me (FR-25.19). Null off-server. */
+  currentUserId?: string | null
 }>()
 
 const emit = defineEmits<{ close: [] }>()
@@ -81,6 +83,28 @@ const trip = computed(() => tripStore.getTrip(props.tripId))
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
 const containers = computed(() => tripStore.getContainers(props.tripId))
 const isActive = computed(() => trip.value?.status === 'active')
+/**
+ * FR-25.19: who a row can be handed to — the trip's **members**, not every
+ * account the instance knows. The `participants` prop is the directory
+ * plus the roster, because it also has to name whoever packed a row; a
+ * picker built from it would offer people who cannot open the trip at all
+ * (P-3 scopes the partition to its members), and the notification would
+ * reach somebody with nowhere to go.
+ *
+ * Myself is excluded for the reason UI-Spec M5 gives for hiding the whole
+ * control in Single-User Mode: the sole user is already every row's
+ * packer. A membership row exists there too — the store writes one for
+ * every trip's creator — so "are there members" is the wrong question and
+ * "is there anybody else" is the right one. It also answers an unshared
+ * Server-Mode trip, where handing a row to myself means nothing.
+ */
+const assignable = computed(() => {
+  const members = new Set(tripStore.getMembers(props.tripId).map((m) => m.user_id))
+  return props.participants.filter(
+    (p) => members.has(p.user_id) && p.user_id !== props.currentUserId,
+  )
+})
+
 /** FR-9.3's window, decided once in the domain (`canJudgeUnused`). */
 const judgeable = computed(() => canJudgeUnused(trip.value))
 
@@ -574,7 +598,7 @@ const packedStamp = computed(() => {
            disabled where there is nobody to hand it to (G-8): Local Mode has
            no members, and in Single-User the sole user is already every row's
            packer. -->
-      <IonItem v-if="participants.length > 0">
+      <IonItem v-if="assignable.length > 0">
         <IonLabel>{{ t('item.assignedTo') }}</IonLabel>
         <IonSelect
           :value="item.packer_user_id"
@@ -585,7 +609,7 @@ const packedStamp = computed(() => {
         >
           <IonSelectOption :value="null">{{ t('item.assignedToNobody') }}</IonSelectOption>
           <IonSelectOption
-            v-for="member in participants"
+            v-for="member in assignable"
             :key="member.user_id"
             :value="member.user_id"
           >

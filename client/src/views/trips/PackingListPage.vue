@@ -1838,6 +1838,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
             :trip-id="tripId"
             :item-id="openItemId"
             :participants="participants"
+            :current-user-id="myUserId"
             @close="closeItem"
           />
         </IonContent>
@@ -1847,6 +1848,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
           :trip-id="tripId"
           :item-id="openItemId"
           :participants="participants"
+          :current-user-id="myUserId"
           @close="closeItem"
         />
       </aside>

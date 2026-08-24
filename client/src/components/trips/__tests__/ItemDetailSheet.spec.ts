@@ -68,9 +68,22 @@ function seedTrip(
   return store
 }
 
-function mountSheet(participants: typeof MEMBERS = []) {
+/** Membership is what makes somebody assignable (FR-4.5 / P-3). */
+function seedMembers(store: ReturnType<typeof useTripStore>, userIds: string[]) {
+  userIds.forEach((user_id, i) =>
+    store.applyChange({
+      seq: 0,
+      table: 'trip_members',
+      id: `m${i}`,
+      deleted: false,
+      row: { trip_id: 't1', user_id, role: i === 0 ? 'owner' : 'editor' },
+    }),
+  )
+}
+
+function mountSheet(participants: typeof MEMBERS = [], currentUserId: string | null = 'u-alice') {
   return mount(ItemDetailSheet, {
-    props: { tripId: 't1', itemId: 'ti1', participants },
+    props: { tripId: 't1', itemId: 'ti1', participants, currentUserId },
     global: { provide: { orchestrator: orchestratorFake } },
   })
 }
@@ -306,7 +319,7 @@ describe('M5 respects the G-3 lock', () => {
  */
 describe('M5 FR-25.19 assignment', () => {
   it('assigns the row to a trip member through the orchestrator', async () => {
-    seedTrip('active')
+    seedMembers(seedTrip('active'), ['u-alice', 'u-bob'])
     const wrapper = await openDetails(mountSheet(MEMBERS))
 
     await wrapper.get('[data-testid="m5-assignee"]').trigger('ionChange', {
@@ -321,7 +334,7 @@ describe('M5 FR-25.19 assignment', () => {
   })
 
   it('clears the assignment with "niemand" — delegation is reversible', async () => {
-    seedTrip('active')
+    seedMembers(seedTrip('active'), ['u-alice', 'u-bob'])
     const wrapper = await openDetails(mountSheet(MEMBERS))
 
     await wrapper.get('[data-testid="m5-assignee"]').trigger('ionChange', {
@@ -337,15 +350,49 @@ describe('M5 FR-25.19 assignment', () => {
     )
   })
 
-  it('offers every member and the clear, and nothing else', async () => {
-    seedTrip('active')
-    const wrapper = await openDetails(mountSheet(MEMBERS))
+  it('offers everybody else on the trip, plus the clear', async () => {
+    seedMembers(seedTrip('active'), ['u-alice', 'u-bob'])
+    // Mounted as Alice, so Alice is not among her own options.
+    const wrapper = await openDetails(mountSheet(MEMBERS, 'u-alice'))
 
     const options = wrapper
       .get('[data-testid="m5-assignee"]')
       .findAll('ion-select-option')
       .map((o) => o.text())
-    expect(options).toEqual([expect.any(String), 'Alice', 'Bob'])
+    expect(options).toEqual([expect.any(String), 'Bob'])
+  })
+
+  it("offers the trip's members only, never everyone the instance knows", async () => {
+    const store = seedTrip('active')
+    seedMembers(store, ['u-alice', 'u-bob'])
+    // `participants` carries the whole directory, because it also has to
+    // name whoever packed a row. Cara is on the instance and not on this
+    // trip: handing her a row would notify somebody who cannot open it
+    // (P-3 scopes the partition to its members).
+    const directory = [
+      ...MEMBERS,
+      { user_id: 'u-cara', display_name: 'Cara', avatar_url: null, role: 'editor' as const },
+    ]
+    const wrapper = await openDetails(mountSheet(directory, 'u-alice'))
+
+    const options = wrapper
+      .get('[data-testid="m5-assignee"]')
+      .findAll('ion-select-option')
+      .map((o) => o.text())
+    expect(options).toContain('Bob')
+    expect(options).not.toContain('Cara')
+  })
+
+  it('offers no picker where the only member is me (Single-User, or a trip nobody shares)', async () => {
+    const store = seedTrip('active')
+    // The store writes a membership row for every trip's creator, in
+    // Single-User Mode too — so "has members" is true there and is the
+    // wrong question. UI-Spec M5 hides the control because the sole user
+    // is already every row's packer.
+    seedMembers(store, ['u-alice'])
+    const wrapper = await openDetails(mountSheet(MEMBERS, 'u-alice'))
+
+    expect(wrapper.find('[data-testid="m5-assignee"]').exists()).toBe(false)
   })
 
   it('offers no picker where there is nobody to assign to (G-8)', async () => {
@@ -358,7 +405,7 @@ describe('M5 FR-25.19 assignment', () => {
   })
 
   it('writes nothing while somebody else holds the row (G-3)', async () => {
-    seedTrip('active')
+    seedMembers(seedTrip('active'), ['u-alice', 'u-bob'])
     orchestratorFake.lockHolder.mockReturnValue('u-alice')
     const wrapper = await openDetails(mountSheet(MEMBERS))
 
