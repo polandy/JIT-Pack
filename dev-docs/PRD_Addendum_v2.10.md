@@ -753,11 +753,19 @@ A packing list is **scanned, not read**: forty rows, most of them known, the eye
   could tell whether the client had followed. Two of the shapes the point complains about had
   already gone with ADR-025 (`export.yaml`, `/templates/{id}/export`).
 
-  **What this point does *not* buy, stated so it is not assumed:** the routes are still not in
-  the contract. `wire.go` declares the envelopes, so the paths are held by a Go test table and a
-  Vitest spec spelling the same strings — agreement by two tests rather than one declaration.
-  Moving them into `wire.go` and generating `client/src/api/routes.ts` is the answer if a rename
-  ever lands on one side only, and it is ADR-027's second revisit trigger.
+  **Closed the same day: the paths joined the contract too** (owner request). ADR-027's second
+  revisit trigger said "if a rename ever lands on one side only"; it was discharged without
+  waiting for that, because the cost of moving the routes in rises with every call site and the
+  drift being waited for is a defect reaching a user. `wire.go` now declares all 29 paths as
+  `Route*` constants and the five path variables as `Path*` constants; the mux registers from
+  them, and `cmd/wiregen` writes `client/src/api/routes.ts` from the same declaration, so the
+  drift gate that held the envelopes holds the paths. A path with no placeholder generates a
+  string, one with placeholders a function whose parameters *are* the placeholder names — so an
+  id cannot be forgotten and the two spellings of a path variable cannot come apart. Four AST
+  rules hold the Go side: a declared route the mux does not serve, a route or a path variable
+  taken from a literal instead of the declaration, and a placeholder no constant names. The
+  version prefix stays spelled out on every line on purpose — the block is a table, and `/api/v2`
+  is one pass over it.
 
   **Coverage closed 2026-08-24: every response body is a declared type.** The gate protected what
   `wire.go` declared, and four families were outside it — the admin overview, the notification

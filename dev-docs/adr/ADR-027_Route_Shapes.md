@@ -111,10 +111,20 @@ The client's UI router follows the same move for the one path it shares the disa
 - **Typing those builders found a latent defect.** `SyncOutbox.syncPath` took a nullable id, and a *trip* partition with no id used to interpolate as the literal string `null` — a push to `/api/v1/sync/trips/null`, which the server answers 404 and the outbox retries forever, naming nothing. A template literal accepted it silently; a typed builder did not. It now refuses, with a case asserting the refusal beside the two that assert the paths.
 - **The routes are still not in the contract.** `wire.go` declares the envelopes, not the paths, so this rule is held by a Go test and a Vitest spec that spell the same strings on both sides rather than by the ADR-026 gate. That is weaker than the envelopes have, and deliberately so for now — see the trigger.
 
+## Amendment, 2026-08-24: the paths joined the contract
+
+The trigger above said "if a rename ever lands on one side without the other". It was discharged early instead, on driver 3: the cost of moving the routes into the contract is at its lowest now and rises with every call site and every consumer, so waiting for the drift would have meant paying more for the same fix — and the drift it waited for is a defect reaching a user, which is a strange thing to schedule.
+
+What changed: `internal/api/wire.go` declares every path as a `Route*` constant and every path variable as a `Path*` constant. The mux registers from those constants — the method stays at the registration, because it is the server's alone — and `cmd/wiregen` writes `client/src/api/routes.ts` from the same declaration, so the drift gate that already held the envelopes now holds the paths. A route with no placeholder generates a string; one with placeholders generates a function whose parameters *are* the placeholder names, so a caller cannot forget an id and the two spellings of a path variable cannot come apart.
+
+Four rules hold the Go side, and each was proved by breaking it: `TestEveryDeclaredRouteIsRouted` (a declared path the mux does not serve), `TestNoRouteIsRegisteredFromALiteral` and `TestNoPathValueIsReadFromALiteral` (a second declaration, however correct it looks today), and `TestEveryPlaceholderIsADeclaredPathParam`.
+
+Two things were deliberately *not* done. The version prefix stays spelled out on all twenty-nine lines rather than concatenated from a constant: the block is a table, and a reader checking a path against the spec should not have to assemble it — `/api/v2` is one pass over one block. And `client/src/api/__tests__/routes.spec.ts` stays, although the gate now makes disagreement impossible: what it still holds is the *values*, so a rename in the contract arrives as a red test rather than as a silently regenerated file. A generated file with nothing pinning it is a rename that nobody has to agree to.
+
 ## Revisit Trigger
 
 Any of:
 
 1. **A route the rule does not answer.** The likely first one is a resource scoped to two things at once (an item within a trip, say). If the rule needs a second sentence, it needs a second look.
-2. **A third route-shape drift.** The paths are agreed by two test tables, not generated from one declaration. If a rename ever lands on one side without the other — the exact failure NFR-4.14 exists to prevent — the answer is to move the routes into `wire.go` and let `cmd/wiregen` emit `routes.ts`, which would put them behind the gate that already holds the envelopes.
+2. ~~**A third route-shape drift.**~~ **Discharged 2026-08-24, without waiting for the drift** (owner request) — see the amendment below.
 3. **A published API.** After a release the old paths have consumers, and Option D stops being a way of keeping a mistake reachable and starts being a deprecation policy.
