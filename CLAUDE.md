@@ -216,9 +216,12 @@ it. Item numbers stay stable even as items close, because the log refers back to
    server can stamp who took over and notify another account); it is a **schema change**, so
    every development database is refused and reseeded, `:3000` included (owner accepted); and it
    **deletes** `JITPACK_LOCK_TIMEOUT`, `lock_timeout_seconds` on `GET /config`, the client's
-   staleness test and the expired-claim row note — all of them two days old. **An ADR is owed**
-   on the tradeoff itself: a claim only a person can end blocks a row when its holder walks away,
-   which the window used to clear unattended.
+   staleness test and the expired-claim row note — all of them two days old. **ADR-028** settles the
+   tradeoff: a claim only a person can end blocks a row when its holder walks away, which the
+   window used to clear unattended — accepted, because the block is soft and every break gains an
+   author. The middle option, *expire and announce*, lost on a cost nobody had priced: only the
+   server can notice an expiry, and expiry is the one event no request causes, so it needs
+   periodic work in a process whose only goroutine is the listener.
 
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,
