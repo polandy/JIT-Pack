@@ -133,6 +133,8 @@ export class SyncOutbox {
   private durable = true
   /** How many mutations are parked — restored count plus this session's. */
   private parked = 0
+  /** The reason of the most recent refusal, which is the one G-2 names. */
+  private lastReason: string | null = null
 
   /**
    * Tail of the chain of storage writes issued so far. It exists so a test
@@ -182,6 +184,16 @@ export class SyncOutbox {
     return this.parked
   }
 
+  /**
+   * Why the most recent parked mutation was refused (Sync-API §5), or null
+   * when nothing has been refused. A count on its own tells the user that
+   * something of theirs is gone but not what — and the row is usually still
+   * on their screen, because the delete rendered optimistically.
+   */
+  lastParkedReason(): string | null {
+    return this.lastReason
+  }
+
   /** The parked mutations themselves, for the G-2 detail and the conflict log. */
   loadParked(): Promise<ParkedMutation[]> {
     return this.store?.loadParked() ?? Promise.resolve([])
@@ -207,7 +219,10 @@ export class SyncOutbox {
     let pending
     try {
       pending = await this.store.loadPending()
-      this.parked = (await this.store.loadParked()).length
+      const parked = await this.store.loadParked()
+      this.parked = parked.length
+      // Oldest first, so the reason to show is the tail's.
+      this.lastReason = parked.at(-1)?.reason ?? null
     } catch {
       // A browser with IndexedDB switched off fails here, on the boot path.
       // Losing durability is a degradation; taking `connect()` down with it
@@ -381,6 +396,7 @@ export class SyncOutbox {
     )
     const entry: ParkedMutation = { partition: key, mutation, reason, at: this.now() }
     this.parked++
+    this.lastReason = reason
     this.persist(() => this.store?.park(key, mutation, reason, entry.at))
     this.onParked?.(entry)
   }

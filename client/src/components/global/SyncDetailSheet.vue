@@ -33,6 +33,7 @@ import { SYNC_GLYPHS } from './syncGlyphs'
 import { formatNumber, t } from '@/i18n'
 import { reminderState } from '@/local/exportReminder'
 import { evictionRisk, type StorageStatus } from '@/local/storageStatus'
+import { rejectionReasonKey } from '@/sync/rejectionReasons'
 import { SYNC_EXPLAIN_KEYS, SYNC_LABEL_KEYS, type SyncState } from '@/composables/useSyncStatus'
 
 const props = withDefaults(
@@ -49,6 +50,12 @@ const props = withDefaults(
     queueDurable?: boolean
     /** Mutations the server refused for good, parked out of the queue. */
     parkedCount?: number
+    /**
+     * Why the most recent one was refused (Sync-API §5). A count alone
+     * cannot be acted on — the app has usually already removed the row the
+     * server kept, and this is the only place that says why.
+     */
+    parkedReason?: string | null
     /**
      * Fields of this device's changes the server merged away this session
      * (NFR-4.2a). The durable record is the conflict log; this is the
@@ -93,6 +100,15 @@ const showPending = computed(() => !isLocal.value && props.pendingCount > 0)
  * anything, so the line would describe a mode the user is not in.
  */
 const showParked = computed(() => !isLocal.value && (props.parkedCount ?? 0) > 0)
+
+/**
+ * The refusal in words, or null when the server sent something this build
+ * has no sentence for — raw server text is a diagnostic, not screen copy.
+ */
+const parkedReasonText = computed(() => {
+  const key = rejectionReasonKey(props.parkedReason)
+  return key === null ? null : t(key)
+})
 const showConflicted = computed(() => !isLocal.value && (props.conflictCount ?? 0) > 0)
 
 const megabytes = (bytes: number) =>
@@ -149,6 +165,9 @@ const backupAge = computed(() => {
       <p class="warn" data-testid="sync-detail-parked">
         <IonIcon :icon="warningOutline" />
         <span>{{ t('sync.detail.parked', { n: parkedCount ?? 0 }) }}</span>
+      </p>
+      <p v-if="parkedReasonText" class="note" data-testid="sync-detail-parked-reason">
+        {{ parkedReasonText }}
       </p>
       <p class="note" data-testid="sync-detail-parked-hint">
         {{ t('sync.detail.parkedHint') }}

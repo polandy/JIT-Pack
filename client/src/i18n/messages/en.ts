@@ -77,6 +77,14 @@ export const en = {
   'sync.detail.parked': 'The server rejected {n} change | The server rejected {n} changes',
   'sync.detail.parkedHint':
     'They were taken out of the queue so the rest could be sent, and are kept on this device. They will not be tried again.',
+  'sync.detail.rejected.notAuthorized': 'You are not allowed to make that change.',
+  'sync.detail.rejected.outOfScope': 'It named a trip other than the one it was sent for.',
+  'sync.detail.rejected.stillReferenced':
+    'Other data still refers to it — deleting it would take that with it, so the server kept it.',
+  'sync.detail.rejected.templateScope':
+    'It would break the rule that a Vorlage contains groups and a group contains items.',
+  'sync.detail.rejected.constraintViolated':
+    'Something it refers to no longer exists on the server.',
 
   // Trips.
   'trip.daysUntil': '{n} days to go',
