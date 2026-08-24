@@ -160,6 +160,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The clock the client was told to read, and never received (2026-08-25)](#the-clock-the-client-was-told-to-read-and-never-received-2026-08-25) — a data-model review's sync half. Four things the code cannot show: how a rule implemented correctly on both sides never once ran, why a deleted trip's *master*-partition children are the tombstones that matter while its trip-partition ones need none, a review finding that was wrong and how far I built it before opening the citation, and why a connection-scoped pragma is not a schema rule.
 - [What a constraint costs when the outbox drops a refusal (2026-08-25)](#what-a-constraint-costs-when-the-outbox-drops-a-refusal-2026-08-25) — the same review's schema half. Four things the code cannot show: why the two-level rule was a two-step formality, the lens every candidate constraint was decided by and the two that failed it, why a per-owner unique name contradicted the FR above it, and the dead schema that was kept on purpose.
 - [A refusal that could not be read (2026-08-25)](#a-refusal-that-could-not-be-read-2026-08-25) — Sync-API §5 / FR-9.2. Four things the code cannot show: why the foreign key that started the finding was never the defect, why the reason is asked for instead of read out of the driver's error, why M7 does not pre-empt a delete it cannot judge, and the divergence this PR announces without closing.
+- [A purchase that could not be taken back (2026-08-25)](#a-purchase-that-could-not-be-taken-back-2026-08-25) — FR-25.11j, the review's last item. Three things the code cannot show: the column that was weighed and not added, why the reveal declines the persistence FR-25.18 would seem to hand it, and the round trip left open on purpose because the file that closes it belongs to somebody else.
 
 ## Current state
 
@@ -6659,3 +6660,44 @@ divergence itself is open, and the e2e case records it deliberately by ending
 on a second device that still finds the group. Undoing a parked mutation
 against the local store is a bigger mechanism than this PR, and it wants its
 own decision about what an optimistic write owes when it is refused.
+
+
+## A purchase that could not be taken back (2026-08-25)
+
+FR-25.11j, accepted 2026-08-07 and unbuilt since, was the last item of the
+data-model review. M6's check-off called `setMode(item, 'pack')`: the row left
+the shopping side by the same act that marked it done, and nothing recorded
+where it had gone. There was no *„Erledigte"* to find it in, and no way back.
+
+**A bought-at time and a buyer were weighed, and not added.** They are the
+obvious neighbours of a record — `packed_at` and `packed_by_user_id` sit right
+there — and the FR asks for neither. The BUY_LOCAL half already has both for
+free: being bought at the destination *is* being packed, so the ordinary
+FR-25.17 path stamps them. The BUY_BEFORE half is not a packing act, so a
+`bought_at` there would be a column no screen renders and no rule reads —
+which is precisely what FR-25.9 removed a field for. The cost of declining is
+that "who bought the coffee" is unanswerable for a purchase before departure;
+the moment a screen asks, the column is one line and its own FR.
+
+**The reveal declines the persistence FR-25.18 would seem to hand it.** M4's
+*Erledigte* switch is remembered per trip for the session, and copying that
+here looked like consistency. FR-25.18's own argument is against it: it is
+about not re-picking a filter of **four facet values**, and about a filter that
+*hides* rows being dangerous to forget. M6's reveal is one tap whose off-state
+is the safe one — and the M6 **tab** is not remembered at all, so a restored
+reveal would open on a list the reader did not choose. The switch that looks
+the same is not the same control.
+
+**The round trip is open on purpose.** The Local Mode backup (NFR-4.11) is
+written and read through the portable format, and `PortableItem` has no
+`bought_from`, so a backup and restore loses which list a row was bought from
+— the same shape ADR-024 paid for with status, tags and the mark. Half the fix
+is one field in `client/src/domain/portable.ts`; the other half is in
+`portableImport.ts`, which another session holds. Writing only the half I own
+would put a field into the file that nothing reads back, which looks finished
+and is worse than the gap. It is named in FR-25.11j instead.
+
+One thing the diff does show but is worth the pointer: making `bought_from`
+required on `TripItem` turned eleven test fixtures red at once, and that is the
+mechanism #169 asked for — an optional field is the one that gets forgotten at
+a call site, and only the compiler asks every one of them.
