@@ -537,7 +537,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-2.5 | E2E | M3-03 |
 | FR-3.1 | E2E | M5-02 |
 | FR-3.2 | E2E | M6-01/04, M4-11 |
-| FR-3.3 | E2E | M6-02, M5-09, FLOW-03 |
+| FR-3.3 | E2E | M6-02, M6-22, M5-09, FLOW-03 |
 | FR-4.1 | E2E | M3-04 (share on create) |
 | FR-4.2 | E2E | M5-01 |
 | FR-4.3 | E2E | M4-06, M5-07 |
@@ -641,7 +641,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-25.11g | E2E | M6-14 (same panel, shop facets, independent state) |
 | FR-25.11h | E2E | M4-20, M6-15 (last row clears the FAB) |
 | FR-25.11i | E2E | M6-17; M4-14 (reveal, dimmed, still interactive) |
-| FR-25.11j | E2E | M6-17 (BUY_BEFORE leaves the list and comes back) |
+| FR-25.11j | E2E | M6-17 (BUY_BEFORE leaves the list and comes back), M6-22 (the destination tab's own reveal) |
 | FR-25.11k | E2E | M6-18, G12-01/04 (collapsed search, filter icon with badge, one header line) |
 | G-12 | E2E | G12-01…06 (app-bar placement, two clusters + no overflow, survives collapse, one line, literal icons, nameable glyphs) |
 | FR-25.16 | E2E | M4-22 (fold one / fold all), M4-23 (folding vs doneness stay separate) |
