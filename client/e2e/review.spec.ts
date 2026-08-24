@@ -47,7 +47,7 @@ test.describe('M14 review assistant @local @m14', () => {
     // how much is open even when that is nothing.
     await expect(visible(page).getByTestId('m14-open-count')).toContainText('0')
     await expect(visible(page).getByTestId('m14-empty')).toBeVisible()
-    await expect(visible(page).getByTestId('m14-row')).toHaveCount(0)
+    await expect(visible(page).getByTestId('m14-open-row')).toHaveCount(0)
   })
 
   test('E2E-G9 coverage: back from the review renders the packing list', async ({
@@ -148,9 +148,14 @@ async function flaggedTrip(page: Page): Promise<string> {
   return path
 }
 
-/** The row whose proposal is about `item`. */
+/** The open row whose proposal is about `item`. */
 function row(page: Page, item: string) {
-  return visible(page).getByTestId('m14-row').filter({ hasText: item })
+  return visible(page).getByTestId('m14-open-row').filter({ hasText: item })
+}
+
+/** The same proposal after it was handled — FR-9.4 moves it, keeps it. */
+function handledRow(page: Page, item: string) {
+  return visible(page).getByTestId('m14-handled-row').filter({ hasText: item })
 }
 
 /**
@@ -262,16 +267,21 @@ test.describe('M14 review assistant — the positive half @local @m14', () => {
 
     await row(page, 'Stativ').getByTestId('m14-skip').click()
 
-    // Skipped is a decision, not a disappearance (FR-27.11).
-    await expect(row(page, 'Stativ').getByTestId('m14-state')).toContainText('skipped')
-    await expect(visible(page).getByTestId('m14-row')).toHaveCount(2)
+    // Skipped is a decision, not a disappearance (FR-27.11) — and since
+    // FR-9.4 the decided row leaves *Offen* for the outcome block instead
+    // of sitting under a heading that no longer counts it.
+    await expect(handledRow(page, 'Stativ').getByTestId('m14-state')).toContainText('skipped')
+    await expect(row(page, 'Stativ')).toHaveCount(0)
     await expect(visible(page).getByTestId('m14-open-count')).toContainText('1')
+    await expect(visible(page).getByTestId('m14-handled-count')).toContainText('1')
 
     await row(page, MISSING_ITEM).getByTestId('m14-apply').click()
     await expect(visible(page).getByTestId('m14-open-count')).toContainText('0')
     await expect(visible(page).getByTestId('m14-summary')).toBeVisible()
-    // …and the empty state does not take over a list that has decided rows.
-    await expect(visible(page).getByTestId('m14-empty')).toHaveCount(0)
+    // The finished pass is reachable by finishing it: the empty state used
+    // to be behind „never ask again" for both rows (FR-9.4).
+    await expect(visible(page).getByTestId('m14-empty')).toBeVisible()
+    await expect(visible(page).getByTestId('m14-handled-row')).toHaveCount(2)
   })
 
   test('E2E-M14-03: “never ask again” removes the pair for good, and only that pair', async ({

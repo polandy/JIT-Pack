@@ -587,10 +587,11 @@ export const de: Record<keyof typeof en, string> = {
   'review.never': 'Nie mehr fragen',
   'review.stateApplied': 'übernommen ✓',
   'review.stateSkipped': 'übersprungen',
-  'review.appliedHead': 'Übernommen · {n}',
+  'review.handledHead': 'Erledigt · {n}',
   'review.appliedSummary':
     '{n} Änderung in die Gruppen geschrieben. Reisen, die den Gruppen folgen, werden beim nächsten Öffnen gefragt. | {n} Änderungen in die Gruppen geschrieben. Reisen, die den Gruppen folgen, werden beim nächsten Öffnen gefragt.',
   'review.empty': 'Nichts zu prüfen — keine Merkmale gesetzt.',
+  'review.done': 'Durchgesehen — alle Vorschläge erledigt.',
   'review.snackUnused': 'Menge von „{item}“ in Gruppe „{group}“ auf 0 gesetzt',
   'review.snackMissing': '„{item}“ in Gruppe „{group}“ aufgenommen',
   'review.snackNever': 'Wird für diesen Artikel und diese Gruppe nicht mehr vorgeschlagen',

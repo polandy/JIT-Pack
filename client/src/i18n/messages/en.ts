@@ -586,10 +586,11 @@ export const en = {
   'review.never': 'Never ask again',
   'review.stateApplied': 'applied ✓',
   'review.stateSkipped': 'skipped',
-  'review.appliedHead': 'Applied · {n}',
+  'review.handledHead': 'Handled · {n}',
   'review.appliedSummary':
     '{n} change written to the groups. Trips that follow them are asked on their next open. | {n} changes written to the groups. Trips that follow them are asked on their next open.',
   'review.empty': 'Nothing to review — no flags were set.',
+  'review.done': 'All done — every proposal has been handled.',
   'review.snackUnused': 'Set “{item}” to 0 in group “{group}”',
   'review.snackMissing': 'Added “{item}” to group “{group}”',
   'review.snackNever': 'Won’t be suggested again for this item and group',

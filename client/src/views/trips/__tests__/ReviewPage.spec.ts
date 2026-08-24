@@ -18,6 +18,7 @@ import ReviewPage from '../ReviewPage.vue'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { isDismissed } from '@/local/reviewDismissals'
+import { t } from '@/i18n'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 
@@ -131,7 +132,7 @@ describe('ReviewPage (M14, FR-27.11)', () => {
 
     const wrapper = mountPage()
 
-    const rows = wrapper.findAll('[data-testid="m14-row"]')
+    const rows = wrapper.findAll('[data-testid="m14-open-row"]')
     expect(rows).toHaveLength(2)
     expect(wrapper.get('[data-testid="m14-open-count"]').text()).toContain('2')
   })
@@ -143,7 +144,7 @@ describe('ReviewPage (M14, FR-27.11)', () => {
     const wrapper = mountPage()
 
     const options = wrapper
-      .findAll('[data-testid="m14-row"]')[1]!
+      .findAll('[data-testid="m14-open-row"]')[1]!
       .findAll('ion-select-option')
       .map((o) => o.text())
     expect(options).toContain('Fotografie')
@@ -159,7 +160,7 @@ describe('ReviewPage (M14, FR-27.11)', () => {
 
     // Row 0 is the unused Stativ; only g1 contains item1.
     const options = wrapper
-      .findAll('[data-testid="m14-row"]')[0]!
+      .findAll('[data-testid="m14-open-row"]')[0]!
       .findAll('ion-select-option')
       .map((o) => o.text())
     expect(options).toEqual(['Fotografie'])
@@ -176,9 +177,11 @@ describe('ReviewPage (M14, FR-27.11)', () => {
       expect.objectContaining({ kind: 'unused', itemId: 'item1' }),
       'g1',
     )
-    const rows = wrapper.findAll('[data-testid="m14-row"]')
-    expect(rows).toHaveLength(2)
-    expect(rows[0]!.get('[data-testid="m14-state"]').text()).toContain('applied')
+    // FR-27.11: it stays visible and marked — under the outcome block since
+    // FR-9.4, never gone.
+    const handled = wrapper.findAll('[data-testid="m14-handled-row"]')
+    expect(handled).toHaveLength(1)
+    expect(handled[0]!.get('[data-testid="m14-state"]').text()).toContain('applied')
     // The footer counts what was written; the open count drops.
     const summary = wrapper.get('[data-testid="m14-summary"]').text()
     expect(summary).toContain('1')
@@ -198,7 +201,7 @@ describe('ReviewPage (M14, FR-27.11)', () => {
     await wrapper.findAll('[data-testid="m14-skip"]')[0]!.trigger('click')
 
     expect(orchestratorFake.applyReviewProposal).not.toHaveBeenCalled()
-    expect(wrapper.findAll('[data-testid="m14-row"]')).toHaveLength(2)
+    expect(wrapper.findAll('[data-testid="m14-handled-row"]')).toHaveLength(1)
     expect(wrapper.get('[data-testid="m14-state"]').text()).toContain('skipped')
   })
 
@@ -209,7 +212,7 @@ describe('ReviewPage (M14, FR-27.11)', () => {
     const wrapper = mountPage()
     await wrapper.findAll('[data-testid="m14-never"]')[0]!.trigger('click')
 
-    expect(wrapper.findAll('[data-testid="m14-row"]')).toHaveLength(1)
+    expect(wrapper.findAll('[data-testid="m14-open-row"]')).toHaveLength(1)
     expect(isDismissed('item1::g1')).toBe(true)
     // Pair-scoped, not item-global (UI-Spec M14 decision).
     expect(isDismissed('item1::g2')).toBe(false)
@@ -259,7 +262,74 @@ describe('ReviewPage (M14, FR-27.11)', () => {
 
     const wrapper = mountPage()
 
-    expect(wrapper.find('[data-testid="m14-row"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="m14-open-row"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="m14-empty"]').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="m14-empty"]').text()).toContain(t('review.empty'))
+  })
+  // --- FR-9.4: what M14's first render with real proposals showed ---
+
+  it('a handled row leaves Offen and is counted once, under the outcome block', async () => {
+    seedMaster()
+    seedTrip()
+
+    const wrapper = mountPage()
+    await wrapper.findAll('[data-testid="m14-apply"]')[0]!.trigger('click')
+
+    // The heading counted open proposals while the cards stayed where they
+    // were, so a finished pass read "Offen · 0" above two cards — and the
+    // block below counted one of them a second time.
+    const open = wrapper.findAll('[data-testid="m14-open-row"]')
+    const handled = wrapper.findAll('[data-testid="m14-handled-row"]')
+    expect(open).toHaveLength(1)
+    expect(handled).toHaveLength(1)
+    expect(open[0]!.text()).toContain('Moskitonetz')
+    expect(handled[0]!.text()).toContain('Stativ')
+    expect(wrapper.get('[data-testid="m14-open-count"]').text()).toContain('1')
+    expect(wrapper.get('[data-testid="m14-handled-count"]').text()).toContain('1')
+  })
+
+  it('a skipped row is handled too — it leaves Offen without being applied', async () => {
+    seedMaster()
+    seedTrip()
+
+    const wrapper = mountPage()
+    await wrapper.findAll('[data-testid="m14-skip"]')[0]!.trigger('click')
+
+    expect(wrapper.findAll('[data-testid="m14-open-row"]')).toHaveLength(1)
+    const handled = wrapper.findAll('[data-testid="m14-handled-row"]')
+    expect(handled).toHaveLength(1)
+    expect(handled[0]!.get('[data-testid="m14-state"]').text()).toContain('skipped')
+    // Nothing was written, so the applied summary must not claim it.
+    expect(wrapper.find('[data-testid="m14-summary"]').exists()).toBe(false)
+  })
+
+  it('handling every proposal reaches the finished state — the empty state is not behind the dismissal', async () => {
+    seedMaster()
+    seedTrip()
+
+    const wrapper = mountPage()
+    await wrapper.findAll('[data-testid="m14-apply"]')[0]!.trigger('click')
+    await wrapper.findAll('[data-testid="m14-skip"]')[0]!.trigger('click')
+
+    expect(wrapper.findAll('[data-testid="m14-open-row"]')).toHaveLength(0)
+    expect(wrapper.get('[data-testid="m14-open-count"]').text()).toContain('0')
+    expect(wrapper.find('[data-testid="m14-empty"]').exists()).toBe(true)
+    // Finished a pass, not "nothing was ever there" — asserted against the
+    // catalogue, because the suite runs in English and a German literal here
+    // would pass no matter which of the two the screen renders.
+    expect(wrapper.get('[data-testid="m14-empty"]').text()).toContain(t('review.done'))
+    expect(wrapper.get('[data-testid="m14-empty"]').text()).not.toContain(t('review.empty'))
+    expect(wrapper.findAll('[data-testid="m14-handled-row"]')).toHaveLength(2)
+  })
+
+  it('"never ask again" is worded, not an unlabelled icon (FR-27.15 grammar)', () => {
+    seedMaster()
+    seedTrip()
+
+    const button = mountPage().findAll('[data-testid="m14-never"]')[0]!
+    // aria-label and title are no label at all on a phone, and this is the
+    // one action on the screen that is permanent and device-local.
+    expect(button.text().trim()).not.toBe('')
+    expect(button.find('ion-icon[slot="icon-only"]').exists()).toBe(false)
   })
 })
