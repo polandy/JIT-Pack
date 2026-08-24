@@ -56,6 +56,7 @@ import { CLIENT_ACTOR_PLACEHOLDER } from '@/composables/useMutations'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
 import { relativeStamp } from '@/domain/stamp'
+import { canJudgeUnused } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
 import { currentLocale, t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
@@ -80,14 +81,8 @@ const trip = computed(() => tripStore.getTrip(props.tripId))
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
 const containers = computed(() => tripStore.getContainers(props.tripId))
 const isActive = computed(() => trip.value?.status === 'active')
-/**
- * FR-9.3: *unused* stays settable and revocable after the trip is
- * archived, because M14 — where the flag is finally worth something —
- * runs on the archived trip. *Missing* keeps FR-9.1's live-trip gate: it
- * is stamped by the FR-5.6 quick-add, and a thing bought afterwards is
- * not a thing that was missing.
- */
-const judgeable = computed(() => isActive.value || trip.value?.status === 'archived')
+/** FR-9.3's window, decided once in the domain (`canJudgeUnused`). */
+const judgeable = computed(() => canJudgeUnused(trip.value))
 
 /**
  * G-3: while somebody else is packing this row, the sheet is a view of it

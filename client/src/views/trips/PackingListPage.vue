@@ -105,6 +105,7 @@ import {
   type PackingRow,
 } from '@/domain/packingView'
 import { relativeStamp } from '@/domain/stamp'
+import { canJudgeUnused } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
 import { currentLocale, t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
@@ -235,13 +236,8 @@ async function reportGroupAnswer(message: string) {
 const trip = computed(() => store.getTrip(props.tripId))
 const kpis = computed(() => store.kpis(props.tripId))
 const isActive = computed(() => trip.value?.status === 'active')
-/**
- * FR-9.3: a trip can be judged while it runs and after it is archived —
- * the assistant that shows what a judgement was worth runs on the
- * archived trip, so the window must not shut before it. A planning trip
- * has nothing to judge yet.
- */
-const judgeable = computed(() => isActive.value || trip.value?.status === 'archived')
+/** FR-9.3's window, decided once in the domain (`canJudgeUnused`). */
+const judgeable = computed(() => canJudgeUnused(trip.value))
 
 /**
  * FR-9.3's closing pass: a *mode of M4*, not a screen of its own. It keeps
