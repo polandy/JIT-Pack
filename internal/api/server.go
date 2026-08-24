@@ -345,12 +345,25 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 }
 
 // stampActor fills server-owned actor columns from the authenticated
-// pusher (FR-4.2): comment authors, the packing-now locker, and the
-// packer. Client-sent values are placeholders (the client may not know
-// its user id) and are never trusted.
+// pusher (FR-4.2): comment authors, the packing-now locker (FR-5.7) and
+// the packer. Client-sent values are placeholders (the client may not
+// know its user id) and are never trusted, so each of those columns is
+// removed from the mutation first and written back only where this
+// function decides it — invariant 3 holds for every op, not only the one
+// the client happens to send.
 func stampActor(m *syncpkg.Mutation, userID string) {
 	switch m.Table {
 	case store.TableComments:
+		// Authorship is decided once, when the comment comes into being,
+		// and every later op is barred from touching it. Re-stamping the
+		// pusher on an edit would be the opposite defect — it would hand
+		// a foreign comment to whoever last flagged it as a task — and
+		// leaving the field alone would let any member rewrite it. A
+		// comment the client creates always arrives as an insert; an
+		// upsert that happens to create one keeps no author to fall back
+		// on and is refused by the NOT NULL column, which is a refusal
+		// the outbox can park rather than a forged attribution.
+		delete(m.Fields, "author_id")
 		if m.Op == syncpkg.OpInsert {
 			setMutationField(m, "author_id", userID)
 		}
@@ -371,32 +384,48 @@ func stampActor(m *syncpkg.Mutation, userID string) {
 		tapped, _ := m.Fields["packed_at"].(string)
 		delete(m.Fields, "packed_at")
 
+		// G-3's claim holder is server-owned for the same reason and is
+		// discarded the same way (FR-5.7): the claim *is* the state, so
+		// the switch below is the only thing allowed to name a holder.
+		// Without this a mutation that carries packing_now_by and no
+		// state at all never meets the switch, and the row would name
+		// whoever the pusher chose — the value FR-5.7's takeover and M4's
+		// row both read as authoritative. Its clock follows the claim it
+		// belongs to, and is kept from the client on the same terms as
+		// packed_at above.
+		delete(m.Fields, "packing_now_by")
+		claimed, _ := m.Fields["packing_now_at"].(string)
+		delete(m.Fields, "packing_now_at")
+
 		state, hasState := m.Fields["state"].(string)
 		switch {
 		case state == store.StatePackingNow:
 			setMutationField(m, "packing_now_by", userID)
-			if at, _ := m.Fields["packing_now_at"].(string); at == "" {
-				setMutationField(m, "packing_now_at", time.Now().UTC().Format(time.RFC3339))
-			}
+			setMutationField(m, "packing_now_at", tapTime(claimed))
 			setMutationField(m, "packed_by_user_id", nil)
 			setMutationField(m, "packed_at", nil)
 		case state == "packed":
+			setMutationField(m, "packing_now_by", nil)
+			setMutationField(m, "packing_now_at", nil)
 			setMutationField(m, "packed_by_user_id", userID)
-			setMutationField(m, "packed_at", packedAt(tapped))
+			setMutationField(m, "packed_at", tapTime(tapped))
 		case hasState:
-			// Un-packed in any way (open, partial, skipped): the stamp is
-			// cleared with the state it described (FR-25.17), never left
-			// to outlive it.
+			// Un-packed in any way (open, partial, skipped): both stamps
+			// are cleared with the state they described (FR-25.17/FR-5.3),
+			// never left to outlive it. The client used to null the claim
+			// itself; a released claim may not depend on it doing so.
+			setMutationField(m, "packing_now_by", nil)
+			setMutationField(m, "packing_now_at", nil)
 			setMutationField(m, "packed_by_user_id", nil)
 			setMutationField(m, "packed_at", nil)
 		}
 	}
 }
 
-// packedAt keeps the client's tap time when it is a real instant and
+// tapTime keeps the client's tap time when it is a real instant and
 // falls back to now otherwise, so an offline row keeps the moment it was
-// actually packed instead of the moment its push arrived.
-func packedAt(tapped string) string {
+// actually packed or claimed instead of the moment its push arrived.
+func tapTime(tapped string) string {
 	if _, err := time.Parse(time.RFC3339, tapped); err == nil {
 		return tapped
 	}
