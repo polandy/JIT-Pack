@@ -138,6 +138,17 @@ async function startTrip(page: Page) {
   await expect(page.getByTestId('m4-archive')).toBeVisible()
 }
 
+/**
+ * FR-9.3: *Reise abschliessen* opens the closing pass, and *Fertig* is what
+ * archives. The pass is skippable by design, so finishing it without marking
+ * anything is the ordinary path to M14.
+ */
+async function archiveThroughPass(page: Page) {
+  await page.getByTestId('m4-archive').click()
+  await expect(visible(page).getByTestId('m4-pass-banner')).toBeVisible()
+  await page.getByTestId('m4-pass-finish').click()
+}
+
 /** Everything above, in order, ending on the *archived* trip's M4. */
 async function flaggedTrip(page: Page): Promise<string> {
   await seedGroups(page)
@@ -197,7 +208,7 @@ test.describe('M14 review assistant — the positive half @local @m14', () => {
   }) => {
     await flaggedTrip(page)
 
-    await page.getByTestId('m4-archive').click()
+    await archiveThroughPass(page)
 
     // Rendered, not routed: archiving lands on the assistant itself.
     await expect(visible(page).getByTestId('m14-open-count')).toContainText('2')
@@ -211,7 +222,7 @@ test.describe('M14 review assistant — the positive half @local @m14', () => {
     page,
   }) => {
     await flaggedTrip(page)
-    await page.getByTestId('m4-archive').click()
+    await archiveThroughPass(page)
     await expect(row(page, 'Stativ')).toBeVisible()
 
     // The unused row defaults to the group the position came from, and
@@ -241,7 +252,7 @@ test.describe('M14 review assistant — the positive half @local @m14', () => {
     page,
   }) => {
     await flaggedTrip(page)
-    await page.getByTestId('m4-archive').click()
+    await archiveThroughPass(page)
     await expect(row(page, 'Stativ')).toBeVisible()
 
     await row(page, 'Stativ').getByTestId('m14-apply').click()
@@ -262,7 +273,7 @@ test.describe('M14 review assistant — the positive half @local @m14', () => {
     page,
   }) => {
     await flaggedTrip(page)
-    await page.getByTestId('m4-archive').click()
+    await archiveThroughPass(page)
     await expect(visible(page).getByTestId('m14-open-count')).toContainText('2')
 
     await row(page, 'Stativ').getByTestId('m14-skip').click()
@@ -288,7 +299,7 @@ test.describe('M14 review assistant — the positive half @local @m14', () => {
     page,
   }) => {
     const tripPath = await flaggedTrip(page)
-    await page.getByTestId('m4-archive').click()
+    await archiveThroughPass(page)
     await expect(row(page, 'Stativ')).toBeVisible()
 
     await row(page, 'Stativ').getByTestId('m14-never').click()

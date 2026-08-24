@@ -577,3 +577,37 @@ describe('grouping', () => {
     expect(result.groups.map((g) => g.name)).toEqual(['Andy', 'Leo', null])
   })
 })
+
+describe('the closing pass lists what was packed (FR-9.3)', () => {
+  it('keeps packed rows and drops what was never packed', () => {
+    const names = visibleNames(
+      [
+        packed({ name: 'Stativ' }),
+        item({ name: 'Zelt', packed_count: 1, quantity: 3 }),
+        item({ name: 'Regenjacke' }),
+      ],
+      { packedOnly: true, showDone: true },
+    )
+
+    // A partly packed row was taken along, so it can have gone unused; a
+    // row nobody packed was forgotten, and that is not the same judgement.
+    expect(names).toEqual(['Stativ', 'Zelt'])
+  })
+
+  it('drops a consciously skipped row — that judgement is already made, and it is the opposite one', () => {
+    const names = visibleNames(
+      [packed({ name: 'Stativ' }), item({ name: 'Drohne', state: 'skipped' })],
+      { packedOnly: true, showDone: true },
+    )
+
+    expect(names).toEqual(['Stativ'])
+  })
+
+  it('leaves the ordinary list alone — packed rows only is the pass, not the screen', () => {
+    const names = visibleNames([packed({ name: 'Stativ' }), item({ name: 'Regenjacke' })], {
+      showDone: true,
+    })
+
+    expect(names).toContain('Regenjacke')
+  })
+})

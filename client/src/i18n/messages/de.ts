@@ -98,6 +98,10 @@ export const de: Record<keyof typeof en, string> = {
   'packing.skipped': 'Bewusst weggelassen',
   'packing.undo': 'Rückgängig',
   'packing.skippedVia': 'weggelassen: „{name}“ ist nicht dabei',
+  'packing.passTitle': 'Reise abschliessen',
+  'packing.passHint':
+    'Tippe an, was du mitgenommen und nicht gebraucht hast. Du kannst auch direkt abschliessen.',
+  'packing.passFinish': 'Fertig',
   'packing.flagUnusedAction': 'Als ungenutzt markieren',
   'packing.unflagUnusedAction': 'Ungenutzt aufheben',
   'packing.flagUnusedToast': '„{item}“ als ungenutzt markiert',

@@ -242,6 +242,16 @@ const isActive = computed(() => trip.value?.status === 'active')
  * has nothing to judge yet.
  */
 const judgeable = computed(() => isActive.value || trip.value?.status === 'archived')
+
+/**
+ * FR-9.3's closing pass: a *mode of M4*, not a screen of its own. It keeps
+ * this list's grouping, facets and search — at a hundred and twenty rows
+ * that is the whole reason it lives here — and takes the ending the
+ * rejected own-screen variant had: *Fertig* archives and opens M14, so
+ * the pass leads where the marks are going rather than handing back the
+ * list it started in. The only door into it is the archive action.
+ */
+const closingPass = ref(false)
 const allItems = computed(() => store.getItems(props.tripId))
 
 /**
@@ -282,13 +292,14 @@ const view = computed(() =>
     containers: store.getContainers(props.tripId),
     participants: participants.value,
     groupBy: groupBy.value,
-    showDone: showDone.value,
+    showDone: showDone.value || closingPass.value,
     facets: facets.value,
     search: search.value,
     currentUserId: myUserId.value,
     showOthers: showOthers.value,
     collapsedGroups: collapsedGroups.value,
     itemsWithOpenPrep: openPrepItems.value.map((entry) => entry.item.id),
+    packedOnly: closingPass.value,
   }),
 )
 
@@ -307,6 +318,10 @@ const openItemId = computed(() => props.itemId ?? null)
  */
 function openItem(itemId: string) {
   if (rowMenuActive) return
+  // One posture, one meaning (FR-9.3): in the pass the tap is the mark,
+  // and the detail sheet — which asks a dozen other questions — is not
+  // what this screen is asking.
+  if (closingPass.value) return
   rememberScroll(props.tripId, { top: currentScrollTop, headerCollapsed: headCollapsed.value })
   restorePending = true
   router.replace(`/trips/${props.tripId}/items/${itemId}`)
@@ -410,6 +425,10 @@ let rowMenuActive = false
 
 async function openRowMenu(item: TripItem) {
   hold.cancel()
+  // FR-9.3's stated price: in the review posture the row's press-and-hold
+  // goes inert. Both of its entries are reachable a second earlier, on the
+  // same rows, before the pass is entered.
+  if (closingPass.value) return
   // A locked row is somebody else's (G-3), so every action on it belongs
   // to its holder — except the one that makes it mine (FR-5.7). In the
   // modes where there is nobody to take it from, the menu still opens
@@ -963,6 +982,15 @@ async function onFlagUnused(item: TripItem, value: boolean) {
   })
 }
 
+/**
+ * The pass's single gesture. No snackbar here, unlike the menu's entry:
+ * the row carries the mark, and one toast per tap in a pass over a
+ * hundred rows is noise, not confirmation.
+ */
+function onPassToggle(item: TripItem) {
+  orchestrator.setReviewFlag(props.tripId, item, 'unused', !item.flag_unused)
+}
+
 function onUnskipItem(item: TripItem) {
   orchestrator.unskipItem(props.tripId, item)
 }
@@ -1191,7 +1219,28 @@ async function onStart() {
  * skipped with a toast instead of an empty screen (UI-Spec M14 states);
  * the archived M4 leads with the closing card either way.
  */
-async function onArchive() {
+/**
+ * FR-9.3: *Reise abschliessen* does not archive straight away — it opens
+ * the closing pass, the one point in the lifecycle where the user is
+ * thinking about the whole trip at once. The pass never gates archiving:
+ * *Fertig* finishes it whether or not anything was marked.
+ */
+function onArchive() {
+  closingPass.value = true
+}
+
+/** Leaves the pass without archiving — the door asks, so it can be closed. */
+function onCancelClosingPass() {
+  closingPass.value = false
+}
+
+/** FR-9.3's ending: the pass archives the trip and continues into M14. */
+async function onFinishClosingPass() {
+  closingPass.value = false
+  await archiveAndReview()
+}
+
+async function archiveAndReview() {
   orchestrator.archiveTrip(props.tripId)
   const flagged = store.getItems(props.tripId).some((item) => item.flag_unused || item.flag_missing)
   if (!flagged) {
@@ -1299,6 +1348,28 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
             </span>
           </div>
           <PresenceFacepile v-if="presenceUsers.length > 1" :users="presenceUsers" />
+        </div>
+      </div>
+
+      <!-- FR-9.3: the pass says what it is asking and how to leave, and
+           *Fertig* is the archive step itself — never a gate in front of it. -->
+      <div v-if="closingPass" class="jp-card pass-banner" data-testid="m4-pass-banner">
+        <div class="grow">
+          <h2 class="jp-eyebrow">{{ t('packing.passTitle') }}</h2>
+          <p>{{ t('packing.passHint') }}</p>
+        </div>
+        <div class="pass-actions">
+          <IonButton size="small" data-testid="m4-pass-finish" @click="onFinishClosingPass">
+            {{ t('packing.passFinish') }}
+          </IonButton>
+          <IonButton
+            size="small"
+            fill="clear"
+            data-testid="m4-pass-cancel"
+            @click="onCancelClosingPass"
+          >
+            {{ t('common.cancel') }}
+          </IonButton>
         </div>
       </div>
 
@@ -1529,7 +1600,16 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                          propagation never cancelled it, so every tap on the stepper opened
                          the sheet instead of counting. -->
                 <div slot="start" class="row-start" @click.stop.prevent>
-                  <IonIcon v-if="locked(entry.item)" :icon="lockClosedOutline" class="lock" />
+                  <!-- FR-9.3: one posture, one gesture. The stepper counts
+                       what is packed, which is not what the pass asks. -->
+                  <IonCheckbox
+                    v-if="closingPass"
+                    :checked="entry.item.flag_unused"
+                    :aria-label="t('facet.flagUnused')"
+                    :data-testid="`m4-pass-toggle-${entry.item.name}`"
+                    @ion-change="onPassToggle(entry.item)"
+                  />
+                  <IonIcon v-else-if="locked(entry.item)" :icon="lockClosedOutline" class="lock" />
                   <QuantityStepper
                     v-else
                     :quantity="entry.item.quantity"
@@ -2068,6 +2148,26 @@ ion-content.pack-content::part(scroll) {
 
 .locked {
   opacity: 0.65;
+}
+
+.pass-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.pass-banner p {
+  margin: 4px 0 0;
+  font-size: var(--jp-text-sm);
+  color: var(--ct-subtext0);
+}
+
+.pass-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
 }
 
 .unused-mark {
