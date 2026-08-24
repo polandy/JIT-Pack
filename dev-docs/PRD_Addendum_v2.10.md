@@ -759,6 +759,32 @@ A packing list is **scanned, not read**: forty rows, most of them known, the eye
   Moving them into `wire.go` and generating `client/src/api/routes.ts` is the answer if a rename
   ever lands on one side only, and it is ADR-027's second revisit trigger.
 
+  **Coverage closed 2026-08-24: every response body is a declared type.** The gate protected what
+  `wire.go` declared, and four families were outside it — the admin overview, the notification
+  list and its preference set, the instance config, and the auth pair — each a map literal at the
+  call site with a hand-written twin on the client. Eleven types join the contract and the
+  handlers encode them; the client's two hand-written copies become aliases of the generated
+  ones. **No wire key changed**: the tag set gained the thirteen names that had only existed
+  inside map literals and lost none, which is the measurement the change was checked against
+  rather than an assurance. Only key *order* moves, because a map encodes sorted and a struct
+  encodes in field order.
+
+  Two tests keep it closed, and the second exists because the first has a blind spot.
+  `TestEveryResponseBodyIsADeclaredType` reads `internal/api`'s own AST and fails on a map
+  literal handed to `writeJSON` or an encoder, so the next response cannot be added untyped — but
+  it cannot see a map held in a *variable*, which is exactly what the preference handler did.
+  `TestWire_NotificationPrefsNamesEveryKindTheStoreKnows` therefore holds the wire struct against
+  `store.NotificationKinds()`: a fourth notification kind added to the store now fails the build
+  instead of being persisted, honoured server-side and invisible on the wire. **A gate that
+  overstates its reach is worse than one that names its limit**, so the limit is written in the
+  test itself.
+
+  One drift was found while doing it, of the same shape as the five before: a notification's
+  `payload` is **nullable** — a nil map marshals to `null` — and the client's copy declared it
+  otherwise while both of its readers indexed it directly. The *request* body of the preference
+  endpoint stays an untyped map on purpose: a missing key there means *leave that kind enabled*,
+  and a struct would decode it as `false` and switch the kind off.
+
   **Two findings the mechanism produced on its first run**, both of the same shape as the three
   above and both invisible until then: the client's `ConflictEntry` had never grown the
   `mutation_id` and `actor_user_id` that ADR-022 added to the server's copy, and `PresenceUser`

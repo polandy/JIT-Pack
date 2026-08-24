@@ -27,12 +27,7 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, ErrInternal, "admin lookup failed")
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
-		"user_id":           userID,
-		"display_name":      name,
-		"is_instance_admin": admin,
-	})
+	writeJSON(w, MeResponse{UserID: userID, DisplayName: name, IsInstanceAdmin: admin})
 }
 
 // handleExportFull streams the NFR-4.5 versioned JSON backup, filtered

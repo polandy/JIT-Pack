@@ -22,6 +22,17 @@ const (
 // notificationKinds is the closed set of valid preference keys.
 var notificationKinds = []string{NotifyDelegation, NotifyMention, NotifyTask}
 
+// NotificationKinds returns the closed set of preference keys. It is a copy:
+// the set is closed, and a caller able to append to it could widen what
+// SetNotificationPrefs accepts. The wire contract's NotificationPrefs is held
+// against this list by a test, so a fourth kind cannot be added to the store
+// without the client's type growing with it.
+func NotificationKinds() []string {
+	out := make([]string, len(notificationKinds))
+	copy(out, notificationKinds)
+	return out
+}
+
 // ErrNotificationNotFound is returned when a notification does not exist
 // or belongs to another user — deliberately indistinguishable.
 var ErrNotificationNotFound = errors.New("notification not found")

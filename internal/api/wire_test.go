@@ -2,8 +2,11 @@ package api
 
 import (
 	"encoding/json"
+	"reflect"
+	"sort"
 	"testing"
 
+	"jitpack/internal/store"
 	syncpkg "jitpack/internal/sync"
 )
 
@@ -76,5 +79,25 @@ func TestWire_EmptyPushResponseEncodesAnArrayNotNull(t *testing.T) {
 	const want = `{"results":[],"pull_hint":{"next_cursor":0}}`
 	if string(out) != want {
 		t.Errorf("an empty batch must be an empty array:\n got %s\nwant %s", out, want)
+	}
+}
+
+// The prefs response is a struct naming its three kinds, and the store owns
+// the closed set they come from. A fourth kind added there would otherwise
+// travel to no client: the handler builds the struct key by key, so the new
+// kind would be persisted, honoured server-side, and invisible on the wire.
+// The AST gate in typed_responses_test.go cannot see this — the store's map is
+// a variable, not a literal — so the agreement is asserted here instead.
+func TestWire_NotificationPrefsNamesEveryKindTheStoreKnows(t *testing.T) {
+	var declared []string
+	fields := reflect.TypeOf(NotificationPrefs{})
+	for i := 0; i < fields.NumField(); i++ {
+		declared = append(declared, fields.Field(i).Tag.Get("json"))
+	}
+	kinds := store.NotificationKinds()
+	sort.Strings(declared)
+	sort.Strings(kinds)
+	if !reflect.DeepEqual(declared, kinds) {
+		t.Errorf("NotificationPrefs declares %v, the store knows %v", declared, kinds)
 	}
 }

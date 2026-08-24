@@ -5,6 +5,7 @@
  * set, and enters the app.
  */
 import { API } from '@/api/routes'
+import type { SessionTokens } from '@/api/types'
 import { IonPage, IonContent, IonSpinner, IonButton } from '@ionic/vue'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -44,7 +45,7 @@ onMounted(async () => {
       error.value = t('login.rejected')
       return
     }
-    saveTokens(await resp.json())
+    saveTokens((await resp.json()) as SessionTokens)
     // Full reload so the orchestrator starts with the token in place.
     window.location.replace('/tabs/dashboard')
   } catch {

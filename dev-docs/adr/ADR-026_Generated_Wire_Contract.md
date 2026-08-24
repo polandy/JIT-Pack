@@ -44,7 +44,7 @@ One file, `internal/api/wire.go`, declares the sync envelopes, the WebSocket fra
 **Cons**
 - **The generator is code we own.** It supports the Go subset the contract uses and refuses the rest; a future field of an unsupported shape means extending it. That is deliberate — it fails loudly rather than emitting something plausible — but it is work that a third-party generator would not have needed.
 - It formats its own output to the client's prettier settings (print width, quote style, trailing newline). If those settings change, the generator has to follow, or `make fmt` rewrites a generated file and the gate fails on a file nobody edited. Accepted with a test pinning the print width.
-- **It covers the shapes the client consumes, not all 40 routes.** The admin, notification, config and auth responses are still hand-typed on both sides today. The gate protects what is in `wire.go`; growing that file is how the rest joins.
+- **It covers the shapes the client consumes, not all 40 routes.** The admin, notification, config and auth responses are still hand-typed on both sides today. The gate protects what is in `wire.go`; growing that file is how the rest joins. **Done 2026-08-24**: those four families joined, and the rule is now held by a check rather than by intent — an AST test over `internal/api` fails on a map literal handed to `writeJSON`, so the next response cannot be added untyped. It has one blind spot (a map held in a variable, which the preference handler did) and a second test closes exactly that one.
 
 ### Option B — OpenAPI as the source, both sides generated or validated from it
 
@@ -98,6 +98,7 @@ Two things this explicitly does **not** decide:
 ## Consequences
 
 - A wire change is now two files in one commit, and the gate says so by name when it is one.
+- **The response *type* is now the enforced unit, not just the sync envelope** (added 2026-08-24). Encoding a map literal fails a test, so a new endpoint declares its shape here before it can answer. Two consequences that were accepted rather than avoided: a struct encodes its keys in field order where a map encoded them sorted, so key order moved on eight responses (no consumer depends on it, and no wire *name* changed — the tag set gained thirteen and lost none); and a *request* body may still be a map where an absent key means something other than the zero value, which is why the notification preference body stays one.
 - The outcome vocabulary moved into `internal/sync` so `store`, `api` and the client all say the same four words; `api`'s wire copy is held to it by a test, because `sync` may import nothing internal (invariant 1) and so cannot own the wire declaration itself.
 - The generated types are **more truthful than the hand-written ones were**, and the compiler found where the client had assumed otherwise: a nil map or pointer marshals to `null`, so `row`, `payload` and the conflict fields are nullable, and eight call sites that indexed a payload without checking now check.
 - `internal/wiregen` is a new leaf package importing nothing internal, beside `internal/sync`. `cmd/wiregen` is the second command in the tree; `cmd/jitpackd` stays wiring-only.

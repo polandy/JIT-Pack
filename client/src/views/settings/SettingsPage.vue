@@ -20,6 +20,7 @@
  * device-local display preference — shown in every mode, never synced.
  */
 import { API } from '@/api/routes'
+import type { MeResponse } from '@/api/types'
 import {
   IonPage,
   IonContent,
@@ -75,7 +76,7 @@ const editable = mode === 'server' && !loadTokens()
 /** Multi-user instance → notifications exist (FR-17.3/FR-19.3 hide them otherwise). */
 const collaborative = mode === 'server' && !!loadTokens()
 
-const me = ref<{ user_id: string; display_name: string; is_instance_admin?: boolean } | null>(null)
+const me = ref<MeResponse | null>(null)
 const nameDraft = ref('')
 const nameSaved = ref(false)
 const avatarVersion = ref(0)

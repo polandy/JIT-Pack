@@ -149,6 +149,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A conflict is an overwrite, not a lost race (2026-08-23)](#a-conflict-is-an-overwrite-not-a-lost-race-2026-08-23) — the conflict log had been logging fields nobody overwrote, so it read `2026 → 2026` and offered a revert for it, and the outcome `merged` announced the loss to a user who had none. Two things the code cannot show: it was found by rendering a merged, reviewed feature that no one had looked at, and the fix's real difficulty is that the two values being compared arrive from different type systems — JSON on one side, SQLite on the other.
 - [The conflict log was showing the wire (2026-08-24)](#the-conflict-log-was-showing-the-wire-2026-08-24) — the three findings the previous entry left standing, plus one only the render found: the log's values were two uuids either side of an arrow. Two things the code cannot show: which limits are deliberate (a name this device does not know, a column with no word for it) and why the e2e case that "covered" the row was green against every one of these.
 - [A route names its scope first (2026-08-24)](#a-route-names-its-scope-first-2026-08-24) — NFR-4.14's third point/ADR-027. Four things the code cannot show: the backlog item's own complaint had gone stale (ADR-025 had already deleted two of the four shapes it named, so it was re-measured before it was acted on), why the sync endpoints were widened into a scope the owner's question did not name, the trap that a router's 404 and a handler's 404 are the same status — which made the first negative test green on the two revert routes for the wrong reason — and the latent defect that typed route builders exposed.
+- [The gate protected what the file happened to declare (2026-08-24)](#the-gate-protected-what-the-file-happened-to-declare-2026-08-24) — NFR-4.14's coverage half. Three things the code cannot show: that the rule needed a *check* rather than eleven more types, that the check has a blind spot which the very handler that motivated it fell into — and how that was closed rather than papered over — and why a request body is allowed to stay a map where a response body is not.
 
 ## Current state
 
@@ -5992,3 +5993,56 @@ reformatted three spec files this change has no business touching, and the
 churn was only visible because `git status` listed files no sweep had reported.
 Reverted. The lesson is cheap but recurring: **run the project's format command,
 not prettier with a path you chose.**
+
+
+## The gate protected what the file happened to declare (2026-08-24)
+
+ADR-026 built the mechanism and said, in its own cons, that it covered the
+shapes the client consumed rather than all forty routes: the admin,
+notification, config and auth responses were still hand-typed at both ends.
+This closes that. The eleven types are mechanical; what follows is not.
+
+**Adding types would not have been the fix.** Eleven declarations plus eleven
+handler edits leaves the *next* response free to be a map literal again, and
+the reason the four families were outside the contract in the first place is
+that nothing said they had to be inside it. So the change is a check first and
+types second: `TestEveryResponseBodyIsADeclaredType` parses `internal/api`'s
+own source and fails on a composite map literal handed to `writeJSON` or to a
+`json.NewEncoder(w).Encode`. Run against `main` it named twelve call sites
+across six files — which is also how the work list was found rather than
+guessed.
+
+**The check has a blind spot, and the handler that motivated the whole change
+was sitting in it.** The AST sees literals, not types, so
+`writeJSON(w, prefs)` — a `map[string]bool` handed straight through from the
+store — passed silently. Two ways out were weighed. Going to `go/types` would
+see it, at the cost of a type-checked build inside a test and an importer to
+keep working. The cheaper one, taken: state the limit in the test's own doc
+comment and close *that* case positively, with
+`TestWire_NotificationPrefsNamesEveryKindTheStoreKnows` — it reflects over the
+wire struct's JSON tags and compares them to `store.NotificationKinds()`. That
+buys something the AST check never could: a fourth notification kind added to
+the store now fails the build, where before it would have been persisted,
+honoured server-side, and invisible on the wire. **A gate that overstates its
+reach is worse than one that names its limit**, and the limit is written where
+the next reader will be.
+
+**A request body is not a response body.** The preference endpoint's *request*
+stays an untyped `map[string]bool` and the check is written so it does not
+object. An absent key there means *leave that kind enabled* (UI-Spec M17), and
+a struct with three booleans would decode the absence as `false` and switch the
+kind off — a silent behaviour change wearing the costume of a type improvement.
+The rule is about what the server *promises*, and only the response is a
+promise.
+
+**What the sweep found, and what it deliberately did not change.** One drift,
+the same shape as the five before it: a notification's `payload` is nullable,
+because a nil map marshals to `null`, and the client's hand-written copy said
+otherwise while both readers indexed it directly. Two Vitest cases now assert
+against a null payload, and reverting the guard turns both red. What did *not*
+change is the wire: the JSON tag multiset gained the thirteen names that had
+only lived inside map literals and lost none — measured with a script over
+both revisions rather than asserted — so the only observable difference is key
+*order*, since a map encodes sorted and a struct encodes in field order. That
+was worth checking precisely because it is the kind of claim that is easy to
+make and easy to be wrong about.

@@ -77,12 +77,6 @@ type idpTokenSet struct {
 
 // sessionTokens is what the client receives: a short-lived HS256 access
 // token and the current link of the refresh chain.
-type sessionTokens struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int    `json:"expires_in"`
-}
-
 func (s *Server) handleAuthToken(w http.ResponseWriter, r *http.Request) {
 	if s.oidc == nil {
 		writeError(w, http.StatusNotImplemented, ErrNotConfigured, "OIDC login is not configured")
@@ -233,9 +227,9 @@ func (s *Server) handleAuthConfig(w http.ResponseWriter, _ *http.Request) {
 		writeError(w, http.StatusNotImplemented, ErrNotConfigured, "OIDC login is not configured")
 		return
 	}
-	writeJSON(w, map[string]string{
-		"authorize_url": s.oidc.authorizeURL,
-		"client_id":     s.oidc.clientID,
+	writeJSON(w, AuthConfigResponse{
+		AuthorizeURL: s.oidc.authorizeURL,
+		ClientID:     s.oidc.clientID,
 	})
 }
 
@@ -300,7 +294,7 @@ func (s *Server) writeSessionTokens(w http.ResponseWriter, userID, refresh strin
 		writeError(w, http.StatusInternalServerError, ErrInternal, "token signing failed")
 		return
 	}
-	writeJSON(w, sessionTokens{
+	writeJSON(w, SessionTokens{
 		AccessToken:  signed,
 		RefreshToken: refresh,
 		ExpiresIn:    int(sessionAccessTTL.Seconds()),
