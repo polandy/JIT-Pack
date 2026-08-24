@@ -241,9 +241,19 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const local = config.local ?? null
   // Deliberately not `config.getToken`: that provider may refresh and is
   // therefore async, and a lock decision is made while rendering a row.
-  // The stored session answers the same question synchronously.
+  // The stored session answers the same question synchronously — memoised
+  // on the token itself, because M4 asks it three times per row per render
+  // and the answer only changes when the session does.
+  let cachedSession: { token: string | null; subject: string | null } | null = null
   const currentUserId =
-    config.currentUserId ?? (() => subjectOf(loadTokens()?.access_token ?? null))
+    config.currentUserId ??
+    (() => {
+      const token = loadTokens()?.access_token ?? null
+      if (!cachedSession || cachedSession.token !== token) {
+        cachedSession = { token, subject: subjectOf(token) }
+      }
+      return cachedSession.subject
+    })
   const today = config.today ?? localIsoDate
   if (local) syncStatus.setLocal()
 
