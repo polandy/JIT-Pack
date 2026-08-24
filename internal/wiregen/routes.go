@@ -55,7 +55,9 @@ func GenerateRoutes(filename string, src []byte) (string, error) {
 		}
 	}
 	if found == 0 {
-		return "", fmt.Errorf("%s declares no %s* constant — a generator that found nothing must not write an empty contract", filename, routeConstPrefix)
+		return "", fmt.Errorf(
+			"%s declares no %s* constant — a generator that found nothing must not write an empty contract",
+			filename, routeConstPrefix)
 	}
 	b.WriteString("} as const\n")
 	return b.String(), nil
@@ -136,7 +138,7 @@ func writeRoutesHeader(b *strings.Builder, filename string) {
 	fmt.Fprintf(b, `/**
  * Generated from internal/api/%s by cmd/wiregen. Do not edit.
  *
- * Every HTTP path the client calls, built from the server's own declaration
+ * Every HTTP path this instance serves, built from the server's own declaration
  * (NFR-4.14). The shape is a rule rather than a convention (ADR-027):
  *
  * - the path names the **scope** first, then the resource;

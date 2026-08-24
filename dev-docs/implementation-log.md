@@ -6059,7 +6059,7 @@ only rises, because every new call site is another edit. Driver 3 of the ADR
 already said as much about the rename itself: there is no released version and
 no third-party consumer, so this is the cheapest this will ever be.
 
-**What it changed.** `internal/api/wire.go` declares all 31 paths as `Route*`
+**What it changed.** `internal/api/wire.go` declares all 29 paths as `Route*`
 constants and the five path variables as `Path*` constants. The mux registers
 from those constants — the *method* stays at the registration, because a path is
 shared with the client and a method is not — and `cmd/wiregen` writes
@@ -6070,7 +6070,7 @@ pattern, in the builder's signature and at `r.PathValue`.
 
 **The rule was written as tests, and each was proved by breaking it.** That is
 the same pattern as the wire-coverage work the day before: `TestNoRouteIsRegisteredFromALiteral`
-run against the old code named all 33 registrations, which was the work list.
+run against the old code named all 36 registrations, which was the work list.
 Beside it, `TestEveryDeclaredRouteIsRouted` (a declared path the mux does not
 serve — it probes `GET` on every route, because a registered path answering the
 wrong method is a 405, and only an *unrouted* path is a plain 404),
@@ -6078,7 +6078,7 @@ wrong method is a 405, and only an *unrouted* path is a plain 404),
 
 **Two things deliberately not done.**
 
-The version prefix is spelled out on all 31 lines rather than concatenated from
+The version prefix is spelled out on all 29 lines rather than concatenated from
 an `apiV1` constant. That reads like a §4a violation and was weighed as one. It
 was rejected because the block is a *table*: a reader checking a path against
 the Sync-API-Spec should be able to read it, not assemble it, and the change it

@@ -119,7 +119,7 @@ What changed: `internal/api/wire.go` declares every path as a `Route*` constant 
 
 Four rules hold the Go side, and each was proved by breaking it: `TestEveryDeclaredRouteIsRouted` (a declared path the mux does not serve), `TestNoRouteIsRegisteredFromALiteral` and `TestNoPathValueIsReadFromALiteral` (a second declaration, however correct it looks today), and `TestEveryPlaceholderIsADeclaredPathParam`.
 
-Two things were deliberately *not* done. The version prefix stays spelled out on all thirty-one lines rather than concatenated from a constant: the block is a table, and a reader checking a path against the spec should not have to assemble it — `/api/v2` is one pass over one block. And `client/src/api/__tests__/routes.spec.ts` stays, although the gate now makes disagreement impossible: what it still holds is the *values*, so a rename in the contract arrives as a red test rather than as a silently regenerated file. A generated file with nothing pinning it is a rename that nobody has to agree to.
+Two things were deliberately *not* done. The version prefix stays spelled out on all twenty-nine lines rather than concatenated from a constant: the block is a table, and a reader checking a path against the spec should not have to assemble it — `/api/v2` is one pass over one block. And `client/src/api/__tests__/routes.spec.ts` stays, although the gate now makes disagreement impossible: what it still holds is the *values*, so a rename in the contract arrives as a red test rather than as a silently regenerated file. A generated file with nothing pinning it is a rename that nobody has to agree to.
 
 ## Revisit Trigger
 

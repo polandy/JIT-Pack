@@ -1,7 +1,7 @@
 /**
  * Generated from internal/api/wire.go by cmd/wiregen. Do not edit.
  *
- * Every HTTP path the client calls, built from the server's own declaration
+ * Every HTTP path this instance serves, built from the server's own declaration
  * (NFR-4.14). The shape is a rule rather than a convention (ADR-027):
  *
  * - the path names the **scope** first, then the resource;

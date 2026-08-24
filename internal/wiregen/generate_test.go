@@ -249,7 +249,7 @@ func TestGenerateRoutes_ShapesTheBuilderAfterTheParameters(t *testing.T) {
 // The generated file is formatted by prettier along with the rest of
 // client/src, so a line the generator leaves too long is rewritten and the
 // drift gate fails on a file nobody edited.
-func TestGenerateRoutes_BreaksALongBuilderWherePrettierWouldWithNoRoomForTheSignature(t *testing.T) {
+func TestGenerateRoutes_BreaksALongBuilderWherePrettierWould(t *testing.T) {
 	out := generateRoutes(t,
 		`const RouteTripConflictRevert = "/api/v1/trips/{tripID}/conflicts/{conflictID}/revert"`)
 	want := "  tripConflictRevert: (tripID: string, conflictID: string) =>\n" +

@@ -756,7 +756,7 @@ A packing list is **scanned, not read**: forty rows, most of them known, the eye
   **Closed the same day: the paths joined the contract too** (owner request). ADR-027's second
   revisit trigger said "if a rename ever lands on one side only"; it was discharged without
   waiting for that, because the cost of moving the routes in rises with every call site and the
-  drift being waited for is a defect reaching a user. `wire.go` now declares all 31 paths as
+  drift being waited for is a defect reaching a user. `wire.go` now declares all 29 paths as
   `Route*` constants and the five path variables as `Path*` constants; the mux registers from
   them, and `cmd/wiregen` writes `client/src/api/routes.ts` from the same declaration, so the
   drift gate that held the envelopes holds the paths. A path with no placeholder generates a
