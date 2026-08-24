@@ -367,7 +367,7 @@ func stampActor(m *syncpkg.Mutation, userID string) {
 
 		state, hasState := m.Fields["state"].(string)
 		switch {
-		case state == "packing_now":
+		case state == store.StatePackingNow:
 			setMutationField(m, "packing_now_by", userID)
 			if at, _ := m.Fields["packing_now_at"].(string); at == "" {
 				setMutationField(m, "packing_now_at", time.Now().UTC().Format(time.RFC3339))
@@ -420,7 +420,7 @@ func (s *Server) notifyLockEvents(tripID, userID string, muts []syncpkg.Mutation
 			continue
 		}
 		name, _ := m.Fields["name"].(string)
-		if state == "packing_now" {
+		if state == store.StatePackingNow {
 			s.hub.NotifyItemLocked(tripID, m.ID, userID, name)
 		} else {
 			s.hub.NotifyItemUnlocked(tripID, m.ID, userID, name)
