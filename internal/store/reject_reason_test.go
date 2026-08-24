@@ -202,3 +202,70 @@ func TestApplyMutation_AMutationNamingAnotherTrip_IsRefusedAsOutOfScope(t *testi
 		t.Errorf("trip_items rows = %d, want the foreign row never written", rows)
 	}
 }
+
+// The trip partition has blocking references of its own, and the same
+// pre-check answers for them: a traveler a row is assigned to, a container a
+// row is packed into. Without a case here the trip-partition branch of the
+// check was reached by nothing.
+func TestApplyMutation_DeletingATravelerARowIsAssignedTo_IsRefusedAsStillReferenced(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO travelers (id, trip_id, name) VALUES ('trv-1', ?, 'Mia')`, testTrip)
+	assigned := upsert("ti-1", "tr-1", map[string]any{
+		"trip_id": testTrip, "name": "Schlafsack", "assigned_traveler_id": "trv-1",
+	}, "0000000001000-0000-aaaaaaaa")
+	if _, err := s.ApplyMutation(ctx, testTrip, testUser, assigned); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	res, err := s.ApplyMutation(ctx, testTrip, testUser, sync.Mutation{
+		MutationID: "tr-2", Op: sync.OpDelete, Table: TableTravelers, ID: "trv-1",
+		HLC: "0000000002000-0000-bbbbbbbb",
+	})
+	if err != nil {
+		t.Fatalf("ApplyMutation: %v", err)
+	}
+
+	if res.Outcome != sync.OutcomeRejected {
+		t.Fatalf("outcome = %q, want rejected", res.Outcome)
+	}
+	if res.Reason != ReasonStillReferenced {
+		t.Errorf("reason = %q, want %q", res.Reason, ReasonStillReferenced)
+	}
+	var rows int
+	if err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM travelers WHERE id = 'trv-1'`).Scan(&rows); err != nil {
+		t.Fatal(err)
+	}
+	if rows != 1 {
+		t.Errorf("traveler rows = %d, want the delete refused", rows)
+	}
+}
+
+// FR-10.3 pairs a container with another one, and a row may point at itself.
+// Counting that pointer would refuse the delete SQLite is perfectly happy to
+// make — the row and its own reference go together.
+func TestApplyMutation_DeletingASelfPairedContainer_Applies(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	mustExec(t, s, `INSERT INTO containers (id, trip_id, name) VALUES ('c-1', ?, 'Rucksack')`, testTrip)
+	mustExec(t, s, `UPDATE containers SET paired_container_id = 'c-1' WHERE id = 'c-1'`)
+
+	res, err := s.ApplyMutation(ctx, testTrip, testUser, sync.Mutation{
+		MutationID: "sp-1", Op: sync.OpDelete, Table: TableContainers, ID: "c-1",
+		HLC: "0000000002000-0000-bbbbbbbb",
+	})
+	if err != nil {
+		t.Fatalf("ApplyMutation: %v", err)
+	}
+
+	if res.Outcome == sync.OutcomeRejected {
+		t.Fatalf("outcome = rejected (%q), want the delete to apply", res.Reason)
+	}
+	var rows int
+	if err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM containers WHERE id = 'c-1'`).Scan(&rows); err != nil {
+		t.Fatal(err)
+	}
+	if rows != 0 {
+		t.Errorf("container rows = %d, want 0", rows)
+	}
+}
