@@ -625,6 +625,19 @@ A packing list is **scanned, not read**: forty rows, most of them known, the eye
   being unenterable by accident. It cannot be walked into either way — the only door is the
   archive action, and it is a door that asks.
 
+  **Built 2026-08-24.** Two things were widened while building, both found by rendering the
+  posture rather than by reading this text. **The price above priced one affordance, and there
+  were five.** Press-and-hold going inert is what this FR named; the rendered mode also carried
+  the quick-add row, the ＋ FAB, the FR-25.2 *„n gepackte zeigen"* reveal bar and an app-bar
+  cluster still offering *Reise bearbeiten* and *Reise abschliessen* — the archive action, offered
+  from inside the room it opens. All five are gone in the posture; what stays is what the mode was
+  chosen for (grouping, FR-25.11 facets, search). The rule is not "hide the controls" but **a
+  screen asking one question offers nothing that answers another**. And **the mark needs a control
+  of its own**: the first version used a checkbox, which is M4's *packed* idiom sitting beside rows
+  whose subtitle reads „gepackt · heute", and whose Ionic-owned checked state drifted from the row
+  on the first tap. It is a button rendering straight off `flag_unused`, and G-3's padlock still
+  wins over it.
+
   **Revisit trigger:** the pass is skipped every time. If it is, the pass asks the wrong
   question at the wrong moment, and the answer is not to make it harder to skip.
 
@@ -661,6 +674,13 @@ A packing list is **scanned, not read**: forty rows, most of them known, the eye
     — Ionic measures a `display: none` anchor as a zeroed box and subtracts a whole viewport
     height from the offset, which throws the toast off screen instead of onto the bar.
     E2E-M22-09 asserts the geometry.
+
+  **Built 2026-08-24** (the first three points; the fourth was already fixed). One thing the three
+  decisions did not settle: **what a handled proposal looks like once it arrives under *Erledigt***.
+  The obvious answer — the same card at reduced opacity — keeps a target picker, a peek chevron and
+  a blast-radius line for a decision already made. It is one record line instead: kind, item, target
+  group, outcome. The block is a record of the pass, not a second workspace, which is what lets it
+  hold twenty rows without becoming the screen.
 
 ---
 

@@ -132,6 +132,35 @@ describe('M5 FR-9.1 flags', () => {
     expect(wrapper.find('[data-testid="m5-flag-missing"]').exists()).toBe(false)
   })
 
+  it('keeps the unused window open on the archived trip, where M14 shows what it was worth (FR-9.3)', async () => {
+    seedTrip('archived')
+    const wrapper = await openDetails(mountSheet())
+
+    // FR-9.1's active-only gate was true of *setting* a flag in the moment
+    // and false of correcting it: the assistant runs on the archived trip,
+    // so the first sight of what a flag did used to be the moment it could
+    // no longer be given or taken back.
+    expect(wrapper.find('[data-testid="m5-flag-unused"]').exists()).toBe(true)
+
+    await wrapper.get('[data-testid="m5-flag-unused"]').trigger('ionChange', {
+      detail: { checked: true },
+    })
+    expect(orchestratorFake.setReviewFlag).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'ti1' }),
+      'unused',
+      true,
+    )
+  })
+
+  it('offers no *missing* control once the trip is archived — it is stamped, not judged (FR-9.3)', async () => {
+    seedTrip('archived')
+    const wrapper = await openDetails(mountSheet())
+
+    // A thing bought after the trip is not a thing that was missing on it.
+    expect(wrapper.find('[data-testid="m5-flag-missing"]').exists()).toBe(false)
+  })
+
   it('shows an unused flag in the glance row, like missing (UI-Spec M5)', () => {
     seedTrip('active', { flag_unused: true })
 

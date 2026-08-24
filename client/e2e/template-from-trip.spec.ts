@@ -71,6 +71,10 @@ async function archiveTrip(page: Page) {
   // write landed — a fixed wait would only probably hold.
   await expect(page.getByTestId('m4-archive')).toBeVisible()
   await page.getByTestId('m4-archive').click()
+  // FR-9.3: the action opens the closing pass, and *Fertig* is what
+  // archives — skipping the pass without judging anything is its own
+  // supported path (E2E-M4-53 owns the pass itself).
+  await page.getByTestId('m4-pass-finish').click()
   await expect(visible(page).getByTestId('m4-template-from-trip')).toBeVisible()
 }
 
@@ -123,6 +127,7 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     await expect(visible(page).getByTestId('m4-template-from-trip')).toHaveCount(0)
 
     await page.getByTestId('m4-archive').click()
+    await page.getByTestId('m4-pass-finish').click()
     await expect(visible(page).getByTestId('m4-template-from-trip')).toBeVisible()
   })
 

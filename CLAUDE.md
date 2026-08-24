@@ -94,8 +94,9 @@ it. Item numbers stay stable even as items close, because the log refers back to
    M8, M9/M10, M11, M12 and M14, all localized with `t()`. Plan:
    `dev-docs/design-foundation-plan.md`. Log: eleven sections, from *„The app gets its own two
    faces"* to *„M14 — review assistant rebuilt"*.
-   **What is still owed from it:** M14 has never been **eyeballed with real proposals** (the
-   dev gallery's fixture button, `src/dev/reviewFixture.ts`, is the fastest path).
+   **What was still owed from it is paid** (2026-08-24): M14 has been eyeballed with real
+   proposals, first from the dev fixture and then from a trip built through the app — what it
+   showed became FR-9.4, and item 15 built the answers.
    E2E-M12-03's positive half is **written since 2026-08-21**, and the cost M4 carried from
    the M5 rebuild — losing its scroll position when a detail opened — is **paid** with it:
    `lib/scrollMemory.ts` holds the offset *and* the header-line state across the replace
@@ -176,23 +177,14 @@ it. Item numbers stay stable even as items close, because the log refers back to
    was owed — `losing_value` and an unused `reverted` flag were already there.
    Found 2026-08-22 while answering how concurrent packers are kept from overwriting each other.
 
-15. **FR-9.3/9.4 — the trip's feedback is expensive to give and impossible to correct**
-   (owner request 2026-08-22, **specified, not built**). *Missing* stamps itself as a
-   by-product of adding a row; *unused* costs three taps per row inside a fold called
-   *Details*, nothing ever asks for it, and FR-9.1's `active`-only gate shuts the window
-   before M14 shows what a flag was worth. Decided in FR-9.3: the judgement joins the row's
-   press-and-hold menu (FR-5.5's idiom), a **skippable closing pass at archive time** covers
-   the packed rows, and the flag stays correctable on the archived trip. Where the pass lives
-   was decided on the rendered pair (`UI_Concept_ClosingPass_variants.html`, 2026-08-23) and
-   is **neither of the two options**: it is a **mode of M4 whose *„Fertig"* archives and
-   opens M14**, which keeps M4's grouping and facets and still has an exit. Its price is
-   written there too — in that posture the row's press-and-hold goes inert, because one
-   posture asks one question. FR-9.4 carries what M14's first render with real proposals showed: the
-   unlabelled ✕ behind *„Nie mehr fragen"*, handled cards that never leave *Offen* (so the
-   heading reads „Offen · 0" above two of them). Its fourth point, the snackbar landing on the
-   tab bar, is **fixed** (2026-08-23): every bottom toast goes through `client/src/lib/toast.ts`,
-   which anchors above the bar. Build the rest against those texts; the rejected options are
-   written there.
+15. ~~**FR-9.3/9.4 — the trip's feedback is expensive to give and impossible to correct**~~ —
+   **done** (2026-08-24). *ungenutzt* joins M4's press-and-hold menu beside FR-5.5's entry and the
+   row carries the mark; the window stays open on the **archived** trip, where M14 runs, while
+   *missing* keeps its live-trip gate; and *„Reise abschliessen"* opens the closing pass — a mode of
+   M4 over the packed rows whose *„Fertig"* archives and opens M14. FR-9.4's three points went with
+   it: a handled proposal leaves *Offen* for an *Erledigt* block, the finished state is reachable by
+   finishing, and *„Nie mehr fragen"* is worded. Five e2e cases in `client/e2e/closing-pass.spec.ts`.
+   Log: *„A trip could be judged only one row at a time"*.
 
 16. ~~**NFR-4.14 — the client/server contract is written twice and checked nowhere**~~ —
    **done** (2026-08-23/24). The mechanism is ADR-026: `internal/api/wire.go` is the one

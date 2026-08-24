@@ -51,6 +51,7 @@ import {
   bagHandleOutline,
   contrastOutline,
   closeCircleOutline,
+  removeCircleOutline,
   flagOutline,
   refreshOutline,
   personOutline,
@@ -104,6 +105,7 @@ import {
   type PackingRow,
 } from '@/domain/packingView'
 import { relativeStamp } from '@/domain/stamp'
+import { canJudgeUnused } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
 import { currentLocale, t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
@@ -234,6 +236,18 @@ async function reportGroupAnswer(message: string) {
 const trip = computed(() => store.getTrip(props.tripId))
 const kpis = computed(() => store.kpis(props.tripId))
 const isActive = computed(() => trip.value?.status === 'active')
+/** FR-9.3's window, decided once in the domain (`canJudgeUnused`). */
+const judgeable = computed(() => canJudgeUnused(trip.value))
+
+/**
+ * FR-9.3's closing pass: a *mode of M4*, not a screen of its own. It keeps
+ * this list's grouping, facets and search — at a hundred and twenty rows
+ * that is the whole reason it lives here — and takes the ending the
+ * rejected own-screen variant had: *Fertig* archives and opens M14, so
+ * the pass leads where the marks are going rather than handing back the
+ * list it started in. The only door into it is the archive action.
+ */
+const closingPass = ref(false)
 const allItems = computed(() => store.getItems(props.tripId))
 
 /**
@@ -274,13 +288,14 @@ const view = computed(() =>
     containers: store.getContainers(props.tripId),
     participants: participants.value,
     groupBy: groupBy.value,
-    showDone: showDone.value,
+    showDone: showDone.value || closingPass.value,
     facets: facets.value,
     search: search.value,
     currentUserId: myUserId.value,
     showOthers: showOthers.value,
     collapsedGroups: collapsedGroups.value,
     itemsWithOpenPrep: openPrepItems.value.map((entry) => entry.item.id),
+    packedOnly: closingPass.value,
   }),
 )
 
@@ -299,6 +314,10 @@ const openItemId = computed(() => props.itemId ?? null)
  */
 function openItem(itemId: string) {
   if (rowMenuActive) return
+  // One posture, one meaning (FR-9.3): in the pass the tap is the mark,
+  // and the detail sheet — which asks a dozen other questions — is not
+  // what this screen is asking.
+  if (closingPass.value) return
   rememberScroll(props.tripId, { top: currentScrollTop, headerCollapsed: headCollapsed.value })
   restorePending = true
   router.replace(`/trips/${props.tripId}/items/${itemId}`)
@@ -402,6 +421,10 @@ let rowMenuActive = false
 
 async function openRowMenu(item: TripItem) {
   hold.cancel()
+  // FR-9.3's stated price: in the review posture the row's press-and-hold
+  // goes inert. Both of its entries are reachable a second earlier, on the
+  // same rows, before the pass is entered.
+  if (closingPass.value) return
   // A locked row is somebody else's (G-3), so every action on it belongs
   // to its holder — except the one that makes it mine (FR-5.7). In the
   // modes where there is nobody to take it from, the menu still opens
@@ -448,6 +471,21 @@ async function openRowMenu(item: TripItem) {
                   handler: () => onSkipItem(item),
                 },
               ]),
+        // FR-9.3: the judgement leaves the fold. *Unused* used to cost
+        // three taps into M5's *Details* block, which nothing ever asks
+        // for — one gesture from the list is the idiom this app already
+        // uses for a one-word judgement about a row (FR-5.5).
+        ...(judgeable.value
+          ? [
+              {
+                text: item.flag_unused
+                  ? t('packing.unflagUnusedAction')
+                  : t('packing.flagUnusedAction'),
+                icon: removeCircleOutline,
+                handler: () => onFlagUnused(item, !item.flag_unused),
+              },
+            ]
+          : []),
         { text: t('common.cancel'), role: 'cancel' },
       ],
     })
@@ -548,6 +586,11 @@ setHeaderActions(() => {
       onClick: toggleFoldAll,
     },
   ]
+  // One posture, one question (FR-9.3): the pass is *inside* the archive
+  // action, so offering it again — or the trip's properties — from the bar
+  // would be two doors into a room you are standing in. Search, filter and
+  // fold stay: they are why the pass is a mode of M4 at all.
+  if (closingPass.value) return items
   // FR-2.7: the trip's own properties. Before the lifecycle steps, because
   // it is the one action here that changes the trip rather than advancing it.
   items.push({
@@ -925,6 +968,35 @@ function onSkipItem(item: TripItem) {
   )
 }
 
+/**
+ * FR-9.3: the flag is a judgement, not a stamp — the same menu entry sets
+ * it and takes it back, which is the undo, so the confirmation names what
+ * happened rather than offering a second path to reverse it.
+ */
+async function onFlagUnused(item: TripItem, value: boolean) {
+  orchestrator.setReviewFlag(props.tripId, item, 'unused', value)
+  await presentToast({
+    message: value
+      ? t('packing.flagUnusedToast', { item: item.name })
+      : t('packing.unflagUnusedToast', { item: item.name }),
+    duration: 3000,
+  })
+}
+
+/**
+ * The pass's single gesture. No snackbar here, unlike the menu's entry:
+ * the row carries the mark, and one toast per tap in a pass over a
+ * hundred rows is noise, not confirmation.
+ */
+function onPassToggle(item: TripItem) {
+  // G-3 reaches into the leaf: a row somebody else is holding is theirs,
+  // and the pass is no exception. A packed row rarely carries a live claim
+  // — packing ends it — but this control must not be the one place that
+  // decides otherwise.
+  if (locked(item)) return
+  orchestrator.setReviewFlag(props.tripId, item, 'unused', !item.flag_unused)
+}
+
 function onUnskipItem(item: TripItem) {
   orchestrator.unskipItem(props.tripId, item)
 }
@@ -1153,7 +1225,28 @@ async function onStart() {
  * skipped with a toast instead of an empty screen (UI-Spec M14 states);
  * the archived M4 leads with the closing card either way.
  */
-async function onArchive() {
+/**
+ * FR-9.3: *Reise abschliessen* does not archive straight away — it opens
+ * the closing pass, the one point in the lifecycle where the user is
+ * thinking about the whole trip at once. The pass never gates archiving:
+ * *Fertig* finishes it whether or not anything was marked.
+ */
+function onArchive() {
+  closingPass.value = true
+}
+
+/** Leaves the pass without archiving — the door asks, so it can be closed. */
+function onCancelClosingPass() {
+  closingPass.value = false
+}
+
+/** FR-9.3's ending: the pass archives the trip and continues into M14. */
+async function onFinishClosingPass() {
+  closingPass.value = false
+  await archiveAndReview()
+}
+
+async function archiveAndReview() {
   orchestrator.archiveTrip(props.tripId)
   const flagged = store.getItems(props.tripId).some((item) => item.flag_unused || item.flag_missing)
   if (!flagged) {
@@ -1264,6 +1357,28 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
         </div>
       </div>
 
+      <!-- FR-9.3: the pass says what it is asking and how to leave, and
+           *Fertig* is the archive step itself — never a gate in front of it. -->
+      <div v-if="closingPass" class="jp-card pass-banner" data-testid="m4-pass-banner">
+        <div class="grow">
+          <h2 class="jp-eyebrow">{{ t('packing.passTitle') }}</h2>
+          <p>{{ t('packing.passHint') }}</p>
+        </div>
+        <div class="pass-actions">
+          <IonButton size="small" data-testid="m4-pass-finish" @click="onFinishClosingPass">
+            {{ t('packing.passFinish') }}
+          </IonButton>
+          <IonButton
+            size="small"
+            fill="clear"
+            data-testid="m4-pass-cancel"
+            @click="onCancelClosingPass"
+          >
+            {{ t('common.cancel') }}
+          </IonButton>
+        </div>
+      </div>
+
       <!-- FR-25.11k: the field exists only while it is being used. -->
       <SearchRow
         v-if="searchOpen || search"
@@ -1333,6 +1448,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
       </div>
 
       <QuickAddItem
+        v-if="!closingPass"
         ref="quickAdd"
         :is-active="isActive"
         :offer-groups="true"
@@ -1429,7 +1545,19 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                          propagation never cancelled it, so every tap on the stepper opened
                          the sheet instead of counting. -->
                   <div slot="start" class="row-start" @click.stop.prevent>
+                    <!-- A per-person row is judged like any other (FR-9.3). -->
                     <IonIcon v-if="locked(child.item)" :icon="lockClosedOutline" class="lock" />
+                    <button
+                      v-else-if="closingPass"
+                      class="pass-toggle"
+                      :class="{ on: child.item.flag_unused }"
+                      :aria-pressed="child.item.flag_unused"
+                      :aria-label="t('facet.flagUnused')"
+                      :data-testid="`m4-pass-toggle-${entry.name}-${child.traveler?.name ?? ''}`"
+                      @click="onPassToggle(child.item)"
+                    >
+                      <IonIcon :icon="removeCircleOutline" />
+                    </button>
                     <QuantityStepper
                       v-else
                       :quantity="child.item.quantity"
@@ -1495,7 +1623,23 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                          propagation never cancelled it, so every tap on the stepper opened
                          the sheet instead of counting. -->
                 <div slot="start" class="row-start" @click.stop.prevent>
+                  <!-- FR-9.3: one posture, one gesture. The stepper counts
+                       what is packed, which is not what the pass asks — and
+                       a checkbox is M4's *packed* idiom, so the mark gets a
+                       control of its own that renders off the row rather
+                       than off its own internal state. -->
                   <IonIcon v-if="locked(entry.item)" :icon="lockClosedOutline" class="lock" />
+                  <button
+                    v-else-if="closingPass"
+                    class="pass-toggle"
+                    :class="{ on: entry.item.flag_unused }"
+                    :aria-pressed="entry.item.flag_unused"
+                    :aria-label="t('facet.flagUnused')"
+                    :data-testid="`m4-pass-toggle-${entry.item.name}`"
+                    @click="onPassToggle(entry.item)"
+                  >
+                    <IonIcon :icon="removeCircleOutline" />
+                  </button>
                   <QuantityStepper
                     v-else
                     :quantity="entry.item.quantity"
@@ -1547,6 +1691,15 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                   </p>
                 </IonLabel>
                 <div slot="end" class="row-end">
+                  <!-- FR-9.3: a judgement made from the row's menu has to be
+                       visible on the row, or the pass cannot be reviewed. -->
+                  <IonIcon
+                    v-if="entry.item.flag_unused && !closingPass"
+                    :icon="removeCircleOutline"
+                    class="unused-mark"
+                    :aria-label="t('facet.flagUnused')"
+                    :data-testid="`m4-unused-${entry.item.name}`"
+                  />
                   <IonIcon
                     v-if="modeIcon(entry.item.mode)"
                     :icon="modeIcon(entry.item.mode)!"
@@ -1600,7 +1753,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
       <!-- FR-25.2 / FR-25.20: two classes of hidden rows, one affordance —
            state the count, name the people, one tap to reveal. -->
       <button
-        v-if="view.doneCount > 0"
+        v-if="view.doneCount > 0 && !closingPass"
         class="reveal-bar"
         :class="{ on: showDone }"
         data-testid="m4-done-bar"
@@ -1661,7 +1814,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
            layer up). -->
       <IonFab id="m4-fab-anchor" slot="fixed" vertical="bottom" horizontal="end">
         <IonFabButton
-          v-if="!quickAddExpanded"
+          v-if="!quickAddExpanded && !closingPass"
           data-testid="m4-fab"
           :aria-label="t('common.add')"
           @click="openQuickAdd"
@@ -2029,6 +2182,48 @@ ion-content.pack-content::part(scroll) {
 
 .locked {
   opacity: 0.65;
+}
+
+.pass-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.pass-banner p {
+  margin: 4px 0 0;
+  font-size: var(--jp-text-sm);
+  color: var(--ct-subtext0);
+}
+
+.pass-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.pass-toggle {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ct-overlay0);
+  font-size: var(--jp-icon-md);
+  cursor: pointer;
+}
+
+.pass-toggle.on {
+  color: var(--ct-mauve);
+}
+
+.unused-mark {
+  font-size: var(--jp-icon-sm);
+  color: var(--ct-mauve);
 }
 
 .stamp {
