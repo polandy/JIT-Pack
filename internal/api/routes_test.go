@@ -4,8 +4,8 @@ import (
 	"go/ast"
 	"go/parser"
 	gotoken "go/token"
-	"io/fs"
 	"net/http"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -28,10 +28,33 @@ const pathParamPrefix = "Path"
 // placeholder matches the mux's path-variable spelling, `{name}`.
 var placeholder = regexp.MustCompile(`\{([^}]+)\}`)
 
-// notATestFile keeps both source rules judging the production package only: a
-// test may well spell a path out, and asserting against the literal is often
-// the point.
-func notATestFile(fi fs.FileInfo) bool { return !strings.HasSuffix(fi.Name(), "_test.go") }
+// productionFiles parses the package's own source, test files excluded: a test
+// may well spell a path out, and asserting against the literal is often the
+// point. It parses file by file rather than with parser.ParseDir, which is
+// deprecated and would pull in a dependency this package does not need.
+func productionFiles(t *testing.T) (map[string]*ast.File, *gotoken.FileSet) {
+	t.Helper()
+	names, err := filepath.Glob("*.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fset := gotoken.NewFileSet()
+	out := map[string]*ast.File{}
+	for _, name := range names {
+		if strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		file, err := parser.ParseFile(fset, name, nil, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out[name] = file
+	}
+	if len(out) == 0 {
+		t.Fatal("no source parsed — a rule that scanned nothing must not report ok")
+	}
+	return out, fset
+}
 
 type routeDecl struct {
 	constName string
@@ -131,35 +154,8 @@ func TestEveryDeclaredRouteIsRouted(t *testing.T) {
 // path registered from a literal is a second declaration, however correct it
 // looks today. wire.go is exempt because it *is* the declaration.
 func TestNoRouteIsRegisteredFromALiteral(t *testing.T) {
-	fset := gotoken.NewFileSet()
-	pkgs, err := parser.ParseDir(fset, ".", notATestFile, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	var offenders []string
-	for _, pkg := range pkgs {
-		for name, file := range pkg.Files {
-			if name == "wire.go" {
-				continue
-			}
-			ast.Inspect(file, func(n ast.Node) bool {
-				call, ok := n.(*ast.CallExpr)
-				if !ok || len(call.Args) == 0 {
-					return true
-				}
-				sel, ok := call.Fun.(*ast.SelectorExpr)
-				if !ok || sel.Sel.Name != "HandleFunc" && sel.Sel.Name != "Handle" {
-					return true
-				}
-				if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == gotoken.STRING {
-					offenders = append(offenders, fset.Position(call.Pos()).String()+": "+lit.Value)
-				}
-				return true
-			})
-		}
-	}
-	sort.Strings(offenders)
+	offenders := literalArgumentsTo(t, func(name string) bool { return name == "HandleFunc" || name == "Handle" },
+		func(fileName string) bool { return fileName == "wire.go" })
 	if len(offenders) > 0 {
 		t.Errorf("a route is registered from a literal instead of wire.go's declaration:\n  %s",
 			strings.Join(offenders, "\n  "))
@@ -169,36 +165,43 @@ func TestNoRouteIsRegisteredFromALiteral(t *testing.T) {
 // The read side of the same rule. A placeholder that a handler picks up by
 // literal is the second spelling again, one function call further along.
 func TestNoPathValueIsReadFromALiteral(t *testing.T) {
-	fset := gotoken.NewFileSet()
-	pkgs, err := parser.ParseDir(fset, ".", notATestFile, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	var offenders []string
-	for _, pkg := range pkgs {
-		for _, file := range pkg.Files {
-			ast.Inspect(file, func(n ast.Node) bool {
-				call, ok := n.(*ast.CallExpr)
-				if !ok || len(call.Args) != 1 {
-					return true
-				}
-				sel, ok := call.Fun.(*ast.SelectorExpr)
-				if !ok || sel.Sel.Name != "PathValue" {
-					return true
-				}
-				if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == gotoken.STRING {
-					offenders = append(offenders, fset.Position(call.Pos()).String()+": "+lit.Value)
-				}
-				return true
-			})
-		}
-	}
-	sort.Strings(offenders)
+	offenders := literalArgumentsTo(t, func(name string) bool { return name == "PathValue" },
+		func(string) bool { return false })
 	if len(offenders) > 0 {
 		t.Errorf("a path variable is read from a literal instead of wire.go's declaration:\n  %s",
 			strings.Join(offenders, "\n  "))
 	}
+}
+
+// literalArgumentsTo reports every call to a named method that is handed a
+// string literal, as "file:line: literal", sorted so a failure reads the same
+// way twice. Both rules above are that one shape.
+func literalArgumentsTo(t *testing.T, isCall func(method string) bool, skipFile func(name string) bool) []string {
+	t.Helper()
+	files, fset := productionFiles(t)
+
+	var offenders []string
+	for name, file := range files {
+		if skipFile(name) {
+			continue
+		}
+		ast.Inspect(file, func(n ast.Node) bool {
+			call, ok := n.(*ast.CallExpr)
+			if !ok || len(call.Args) == 0 {
+				return true
+			}
+			sel, ok := call.Fun.(*ast.SelectorExpr)
+			if !ok || !isCall(sel.Sel.Name) {
+				return true
+			}
+			if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == gotoken.STRING {
+				offenders = append(offenders, fset.Position(call.Pos()).String()+": "+lit.Value)
+			}
+			return true
+		})
+	}
+	sort.Strings(offenders)
+	return offenders
 }
 
 // A placeholder is only useful if a handler reads it back under the same name,
