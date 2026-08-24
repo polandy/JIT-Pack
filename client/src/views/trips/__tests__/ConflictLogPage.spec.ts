@@ -8,11 +8,16 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 
 import ConflictLogPage from '../ConflictLogPage.vue'
 import { APIRequestError } from '@/api/client'
 import { ERROR_CODE, type ErrorCode } from '@/api/types'
 import type { ConflictEntry } from '@/composables/useSyncOrchestrator'
+import { setLocale } from '@/i18n'
+import { useMasterStore } from '@/stores/masterStore'
+import { useTripStore } from '@/stores/tripStore'
+import type { Trip } from '@/types/domain'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
 
@@ -37,6 +42,8 @@ const orchestrator = {
 }
 
 beforeEach(() => {
+  setActivePinia(createPinia())
+  setLocale('en')
   vi.clearAllMocks()
   orchestrator.fetchConflicts.mockResolvedValue([entry()])
   orchestrator.fetchMasterConflicts.mockResolvedValue([entry()])
@@ -122,5 +129,162 @@ describe('each refusal reaches the reader as its own sentence', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-testid="conflict-revert"]').exists()).toBe(false)
+  })
+})
+
+/**
+ * The log is read by a person, not by the wire it stores (NFR-4.2a). Its first
+ * rendered row said `trips · year — 2026 → 2026`: a table name, a column name,
+ * and a value still wearing its JSON quotes.
+ */
+describe('a row says what it is about in words', () => {
+  it('names the trip and the column, not the table and the field', async () => {
+    const trips = useTripStore()
+    trips.setTrip({ id: 'trip-1', name: 'Sommerferien Sardinien', year: 2026 } as Trip)
+    orchestrator.fetchConflicts.mockResolvedValue([
+      entry({ entity_table: 'trips', entity_id: 'trip-1', field: 'start_date' }),
+    ])
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-testid="conflict-subject"]').text()).toBe('Sommerferien Sardinien')
+    expect(wrapper.find('[data-testid="conflict-field"]').text()).toContain('Start date')
+    expect(wrapper.find('[data-testid="conflict-field"]').text()).not.toContain('trips')
+  })
+
+  it('names a packing position by the item on it', async () => {
+    const trips = useTripStore()
+    trips.applyChange({
+      seq: 1,
+      table: 'trip_items',
+      id: 'ti-1',
+      deleted: false,
+      row: { trip_id: 'trip-1', name: 'Sonnencreme', quantity: 1 },
+    })
+    orchestrator.fetchConflicts.mockResolvedValue([
+      entry({ entity_table: 'trip_items', entity_id: 'ti-1', field: 'quantity' }),
+    ])
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-testid="conflict-subject"]').text()).toBe('Sonnencreme')
+  })
+
+  it('names an inventory item from the master partition', async () => {
+    const master = useMasterStore()
+    master.items.set('it-1', { id: 'it-1', name: 'Zahnbürste' } as never)
+    orchestrator.fetchMasterConflicts.mockResolvedValue([
+      entry({ entity_table: 'items', entity_id: 'it-1', field: 'weight_grams' }),
+    ])
+
+    const wrapper = await mountPage({})
+
+    expect(wrapper.find('[data-testid="conflict-subject"]').text()).toBe('Zahnbürste')
+  })
+
+  it('falls back to the kind of thing when this device does not know the row', async () => {
+    // A row deleted since, or one this device has never pulled: an id says
+    // nothing, and the entry is still evidence of what was overwritten.
+    orchestrator.fetchConflicts.mockResolvedValue([
+      entry({ entity_table: 'trip_items', entity_id: 'gone', field: 'quantity' }),
+    ])
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-testid="conflict-subject"]').text()).toBe('Item')
+  })
+
+  it('keeps a column it has no word for rather than inventing one', async () => {
+    orchestrator.fetchConflicts.mockResolvedValue([entry({ field: 'image_hash' })])
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-testid="conflict-field"]').text()).toContain('image_hash')
+  })
+})
+
+describe('a value is shown, not its encoding', () => {
+  it('drops the JSON quotes from a name', async () => {
+    orchestrator.fetchConflicts.mockResolvedValue([
+      entry({ field: 'name', losing_value: '"Sardinien"', winning_value: '"Sizilien"' }),
+    ])
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-testid="conflict-losing"]').text()).toBe('Sardinien')
+    expect(wrapper.find('[data-testid="conflict-winning"]').text()).toBe('Sizilien')
+  })
+
+  it('reads a flag as a word', async () => {
+    orchestrator.fetchConflicts.mockResolvedValue([
+      entry({ field: 'flag_missing', losing_value: 'true', winning_value: 'false' }),
+    ])
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-testid="conflict-losing"]').text()).toBe('Yes')
+    expect(wrapper.find('[data-testid="conflict-winning"]').text()).toBe('No')
+  })
+
+  it('shows an absent value as the em dash, whether it is null or empty', async () => {
+    orchestrator.fetchConflicts.mockResolvedValue([
+      entry({ field: 'end_date', losing_value: 'null', winning_value: '' }),
+    ])
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-testid="conflict-losing"]').text()).toBe('—')
+    expect(wrapper.find('[data-testid="conflict-winning"]').text()).toBe('—')
+  })
+})
+
+describe('a foreign key is shown as the thing it points at', () => {
+  it('names the travelers an assignment moved between', async () => {
+    const trips = useTripStore()
+    for (const { id, name } of [
+      { id: 'tr-1', name: 'Mia' },
+      { id: 'tr-2', name: 'Andy' },
+    ]) {
+      trips.applyChange({
+        seq: 1,
+        table: 'travelers',
+        id,
+        deleted: false,
+        row: { trip_id: 'trip-1', name },
+      })
+    }
+    orchestrator.fetchConflicts.mockResolvedValue([
+      entry({ field: 'assigned_traveler_id', losing_value: '"tr-1"', winning_value: '"tr-2"' }),
+    ])
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-testid="conflict-field"]').text()).toContain('Assigned to')
+    expect(wrapper.find('[data-testid="conflict-losing"]').text()).toBe('Mia')
+    expect(wrapper.find('[data-testid="conflict-winning"]').text()).toBe('Andy')
+  })
+
+  it('keeps the id when this device cannot name it', async () => {
+    orchestrator.fetchConflicts.mockResolvedValue([
+      entry({ field: 'container_id', losing_value: '"c-gone"', winning_value: 'null' }),
+    ])
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-testid="conflict-losing"]').text()).toBe('c-gone')
+    expect(wrapper.find('[data-testid="conflict-winning"]').text()).toBe('—')
+  })
+})
+
+describe('the timestamp follows the language (NFR-4.12)', () => {
+  it('is not the American default when the app speaks German', async () => {
+    setLocale('de')
+    const wrapper = await mountPage()
+
+    const shown = wrapper.findAll('[data-testid="conflict-time"]').map((n) => n.text())
+    // 22.08.2026 in German; the American default puts the month first and
+    // adds an AM/PM the catalogue has no word for.
+    expect(shown.some((s) => s.includes('22.08.2026'))).toBe(true)
+    expect(shown.some((s) => /Aug 22, 2026|PM/.test(s))).toBe(false)
   })
 })

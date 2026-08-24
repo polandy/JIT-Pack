@@ -400,14 +400,16 @@ test.describe('Single-User backend sync @single', () => {
     await expect(pageB.getByTestId('sync-detail-sheet')).toBeVisible()
     await pageB.getByTestId('sync-detail-conflicts').click()
     await expect(visiblePage(pageB).getByTestId('conflict-row')).toHaveCount(1)
+    // The row names the *thing*, not the table it lives in: `trip_items` is
+    // a schema fact and the reader has never seen it.
     await expect(visiblePage(pageB).getByTestId('conflict-field')).toHaveText(
-      'trip_items · assigned_traveler_id',
+      `${item} · Assigned to`,
     )
-    // The page's whole promise is "what lost, what won" — both values must
-    // render as something, not as blanks (the raw values are traveler ids,
-    // so *which* string is not this case's business).
-    await expect(visiblePage(pageB).getByTestId('conflict-losing')).not.toBeEmpty()
-    await expect(visiblePage(pageB).getByTestId('conflict-winning')).not.toBeEmpty()
+    // And the values are the two travelers, not the two uuids the column
+    // stores. This is the assertion the case could not make before: it read
+    // "both render as something", which a pair of raw ids satisfies.
+    await expect(visiblePage(pageB).getByTestId('conflict-losing')).toHaveText('Mia')
+    await expect(visiblePage(pageB).getByTestId('conflict-winning')).toHaveText('Andy')
 
     await ctxA.close()
     await ctxB.close()
@@ -498,8 +500,17 @@ test.describe('Single-User backend sync @single', () => {
       .filter({ hasText: `${trip} B` })
     await expect(row).toHaveCount(1)
     // What lost and what won, both rendered — the page's whole promise.
-    await expect(row.getByTestId('conflict-losing')).toContainText(`${trip} B`)
-    await expect(row.getByTestId('conflict-winning')).toContainText(`${trip} A`)
+    // `toHaveText`, not `toContainText`: the column stores the JSON of the
+    // mutation field, so the unfixed page rendered `"Engadin 7 B"` quotes
+    // and all, and a containment assertion is green either way.
+    await expect(row.getByTestId('conflict-losing')).toHaveText(`${trip} B`)
+    await expect(row.getByTestId('conflict-winning')).toHaveText(`${trip} A`)
+    // The timestamp follows the app's language, not the device's. The suite
+    // runs on a de-CH device with the app pinned to English (see the config):
+    // `toLocaleString()` took the device and rendered `22.08.2026`.
+    await expect(row.getByTestId('conflict-time')).toContainText(
+      /[A-Z][a-z]{2} \d{1,2}, \d{4}/,
+    )
 
     await ctxA.close()
     await ctxB.close()
