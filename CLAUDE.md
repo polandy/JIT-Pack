@@ -235,6 +235,15 @@ it. Item numbers stay stable even as items close, because the log refers back to
    a localized button under an English sentence is worse than consistent English. The full finding
    is in NFR-4.12.
 
+20. ~~**FR-25.19 — responsibility was read everywhere and written nowhere**~~ — **done**
+   (2026-08-25). UI-Spec M5 had promised *„Zugewiesen an" → notification (FR-6.2)* since the
+   concept round; `packer_user_id` was written once when a row was generated and never again, so
+   M4's edge avatar, the „zuständig war …" stamp and FR-25.20's filter all described a state
+   nobody could produce, and the delegation notification the server fires could not be produced
+   by using the app. The picker sits in M5's *Details ▾* with *„niemand"* as its clear, absent
+   where there is nobody to assign to (G-8) and silent on a locked row (G-3). E2E-FLOW-02 covers
+   the chain. Log: *„A column everything read and nothing wrote"*.
+
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,
 the North-Star Plan/During phases, FR-27.8's per-trip usage history, and FR-1.6's publish/fork
