@@ -210,9 +210,18 @@ it. Item numbers stay stable even as items close, because the log refers back to
    only by being packed, released, or **taken over** — confirmed against the holder's name,
    stamped by the server, recorded in `lock_events`, and notified to the holder as a fourth
    FR-6.2 kind. It reverses 14(d)'s "client-side courtesy" for the takeover alone. What building
-   it settled is in FR-5.7 itself: the takeover has **no reachable e2e case** until a mock-IdP
-   `server` project exists — two contexts of one identity can only take over their own claim —
-   so E2E-G3-02 runs the G-8 gate instead. Log: *„A claim stops having a lifetime"*.
+   it settled is in FR-5.7 itself. Its e2e case became reachable the next day, with the mock-IdP
+   `server` project (item 18) — which found that a takeover left the *loser's* device still
+   believing it held the row. Log: *„A claim stops having a lifetime"*.
+
+18. ~~**A second identity was unreachable in the e2e suite**~~ — **done** (2026-08-24, ADR-029):
+   the `server` Playwright project runs jitpackd in OIDC mode against a mock IdP fixture
+   (`client/e2e/server/`), with two browser contexts logged in as two accounts through the app's
+   own login. `make e2e-server`, its own CI job, gated on `E2E_SERVER` the way `single` is on
+   `E2E_BACKEND`. It closes MVP-plan blocker B3 and the identity halves of E2E-G3-01/02/03 and
+   E2E-FLOW-01. Still owed and named in `dev-docs/e2e-tests.md`: presence (G-10), delegation
+   (E2E-FLOW-02), the admin surface (M20) and any real-provider coverage. Log: *„A second account
+   arrives…"*.
 
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,

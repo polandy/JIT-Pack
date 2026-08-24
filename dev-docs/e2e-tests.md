@@ -66,6 +66,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
+| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-M15-05 — the spreadsheet import, added 2026-08-23, and M15's first
@@ -334,6 +335,7 @@ Two things this unit still does *not* cover, both by decision:
   UI (it only ever sends columns the server knows). The parking rules are
   covered in `client/src/composables/__tests__/useSyncOutbox.spec.ts`
   instead, and G-2's rendering of them in the SyncDetailSheet component test.
+| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial) | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Language choice (NFR-4.12) | E2E-M17-10, E2E-M17-11 | `local` | [`i18n.spec.ts`](../client/e2e/i18n.spec.ts) |
 
@@ -1540,6 +1542,65 @@ E2E-G3-01's identity half, which has been waiting at the same wall since
 and by orchestrator units (nothing is written optimistically, a refusal leaves
 the claim where it was) — and the *screen* is covered by neither. Saying so
 here is the point of this ledger.
+
+## The `server` project — two accounts, and what one identity was hiding (2026-08-24)
+
+MVP-plan Track B step 2. The harness is ADR-029: a mock IdP fixture, a
+second `jitpackd` in OIDC mode, a second `vite preview` in front of it, and
+two browser contexts that log in as *different people* through the app's own
+login page. Three cases land with it, and each of them asserts something no
+`local` or `single` case can express.
+
+**What it caught on its first green run — and this is the reason the
+project exists.** The takeover case failed on Alice's screen: Bob took her
+row over, her toast said *„Bob took „Trockenanzug" over from you"*, and her
+row went on saying *„You are packing this — the others cannot change it"*.
+The notification and the row disagreed, and the row was still fully
+interactive, so both of them could pack the same thing — the exact failure
+FR-5.3 exists to prevent.
+
+The cause is that a claim is a *device* flag. `myLocks` has to be, because
+Local and Single-User Mode have no second account to compare against, and
+`lockHolder` returned `null` for anything in that set unconditionally. So
+the one event that moves a claim to somebody else had no way to revoke it,
+and the WS handler made it worse by ignoring `item.locked` outright for rows
+in `myLocks`. A claim now stops being this device's when the holder the
+server names is a *different account* — identity taken from the session
+token's subject, which is `null` in exactly the two modes where the device
+rule must stand alone. Two traps on the way:
+
+- **The optimistic claim writes `current-user`.** The first fix read that
+  placeholder as a foreign account and revoked every claim the instant it
+  was made — one vitest case went red immediately, which is the only reason
+  it did not ship as "the row never says it is mine".
+- **`getToken` is async in the running app** (`refresher.freshToken()`),
+  so it cannot answer a question a render asks. The identity comes from the
+  stored session instead, behind an injectable seam, which is also what
+  lets the unit cases name an account without a token.
+
+**Proven able to fail**, both directions. Before the fix the takeover case
+failed on the assertion above; after it, all three pass in 27 s. And with
+`displayNameClaim` mutated so the IdP's name never reaches the app, **all
+three** go red — which is the point of the project: every one of them
+depends on an identity that came through the login, not on anything the
+client invented.
+
+**What this unit deliberately does not cover**, so the green does not read
+as more than it is:
+
+- **Presence (G-10) and delegation (E2E-FLOW-02)** — both are `server`-only
+  and both are still unwritten.
+- **The `lock_events` record** ADR-028 writes: asserted by Go tests, not by
+  the screen.
+- **The M2 Share entry is asserted as present in the DOM, not as visible** —
+  it lives behind Ionic's slide gesture, which no case in this suite drives.
+  What that assertion proves is the `collaborative` gate (G-8's positive
+  half), and nothing about the gesture.
+- **The admin surface (M20)** — the mock IdP's `alice` is the instance
+  admin and `JITPACK_ADMIN_EMAILS` names her, so the subject exists; the
+  cases do not.
+- **A real provider.** ADR-029 accepts this outright: an Authelia-specific
+  defect still ships green, and Track H's deployment is where it gets paid.
 
 ## FR-9.3/9.4 — the closing pass, and what its cases had to be careful about (2026-08-24)
 

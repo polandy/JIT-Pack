@@ -3,7 +3,7 @@ import path from 'node:path'
 
 import { defineConfig, devices } from '@playwright/test'
 
-import { E2E_API_PORT } from './e2e/backendPort'
+import { E2E_API_PORT, E2E_IDP_PORT, E2E_SERVER_API_PORT } from './e2e/backendPort'
 
 /**
  * Playwright E2E configuration for the JIT-Pack client.
@@ -25,9 +25,15 @@ import { E2E_API_PORT } from './e2e/backendPort'
  * client in its `server` mode against it. It exists only when
  * `E2E_BACKEND=1`, because it needs the Go binary prebuilt at the repo root
  * (`go build -o jitpackd-e2e ./cmd/jitpackd`) — a prerequisite the default
- * run and the four CI shard legs do not have. The mock-IdP `server` project
- * (spec §2.3, multi-identity) is still future work and will extend this
- * harness — Track C's durable-outbox e2e extends it too.
+ * run and the four CI shard legs do not have.
+ *
+ * Multi-identity coverage (spec §2.3, mode `server`) is the `server` project:
+ * a second jitpackd, in OIDC mode against the mock IdP in `e2e/server/`, with
+ * its own `vite preview` in front of it. Two backends rather than one because
+ * the two configurations are mutually exclusive in one process — Single-User
+ * bypasses auth entirely — and two previews because the client reaches its
+ * server same-origin, so each backend needs its own origin. Gated on
+ * `E2E_SERVER` for the same reason `single` is gated: the binary.
  */
 
 /**
@@ -48,6 +54,28 @@ const BASE_URL = `http://localhost:${PORT}`
  */
 const BACKEND = !!process.env.E2E_BACKEND
 
+/** The multi-user project's own gate — see the note above. */
+const MULTI_USER = !!process.env.E2E_SERVER
+
+/** The preview origin the `server` project drives, in front of that backend. */
+const SERVER_PORT = Number(process.env.E2E_SERVER_PORT ?? 4174)
+const SERVER_BASE_URL = `http://localhost:${SERVER_PORT}`
+
+/**
+ * The confidential-client credentials the broker and the mock IdP share.
+ * Test material by construction: the IdP that honours them is started by
+ * this file and lives for the run.
+ */
+const OIDC_CLIENT_ID = 'jitpack-e2e'
+const OIDC_CLIENT_SECRET = 'jitpack-e2e-secret'
+const SESSION_SECRET = 'jitpack-e2e-session-secret'
+
+/**
+ * Alice is the instance admin (FR-23.1) — the address matches the mock IdP's
+ * `alice` account, which is what the admin cases will need when they land.
+ */
+const ADMIN_EMAILS = 'alice@example.test'
+
 /**
  * Where jitpackd listens — named once in e2e/backendPort.ts, shared with
  * `vite.config.ts`'s preview proxy target: the client reaches the backend
@@ -58,6 +86,14 @@ const API_PORT = E2E_API_PORT
 
 /** The backend-backed specs, in one place for the three projects that name them. */
 const BACKEND_SPECS = '**/single/**'
+
+/**
+ * The multi-identity specs, likewise named once. Spelled out to the file
+ * rather than to the directory: `e2e/server/` also holds the harness's own
+ * `.mjs` modules, and a directory-wide `testMatch` hands those to the
+ * runner as tests.
+ */
+const SERVER_SPECS = '**/server/*.spec.ts'
 
 export default defineConfig({
   testDir: './e2e',
@@ -117,12 +153,12 @@ export default defineConfig({
      */
     {
       name: 'chromium',
-      testIgnore: ['**/visual.spec.ts', BACKEND_SPECS],
+      testIgnore: ['**/visual.spec.ts', BACKEND_SPECS, SERVER_SPECS],
       use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'webkit',
-      testIgnore: ['**/visual.spec.ts', BACKEND_SPECS],
+      testIgnore: ['**/visual.spec.ts', BACKEND_SPECS, SERVER_SPECS],
       use: { ...devices['Desktop Safari'] },
     },
     /*
@@ -148,6 +184,26 @@ export default defineConfig({
             testMatch: BACKEND_SPECS,
             fullyParallel: false,
             use: { ...devices['Desktop Chrome'] },
+          },
+        ]
+      : []),
+    /*
+     * Multi-identity cases (UI-Test-Spec §2.3, mode `server`): a real
+     * jitpackd in OIDC mode, a mock IdP behind it, and two browser contexts
+     * logged in as *different* accounts. This is the only project where
+     * "whose name is on the row" can be asserted at all.
+     *
+     * Serial for the same reason `single` is: one backend per run, so the
+     * shared master partition is not raced. Chromium only — what is under
+     * test is identity and the wire, not a rendering engine.
+     */
+    ...(MULTI_USER
+      ? [
+          {
+            name: 'server',
+            testMatch: SERVER_SPECS,
+            fullyParallel: false,
+            use: { ...devices['Desktop Chrome'], baseURL: SERVER_BASE_URL },
           },
         ]
       : []),
@@ -235,6 +291,41 @@ export default defineConfig({
               JITPACK_SINGLE_USER: 'true',
               JITPACK_LOCAL_USER_ID: 'e2e-local',
             },
+          },
+        ]
+      : []),
+    /*
+     * The multi-user stack: `e2e/server/backend.mjs` starts the mock IdP and
+     * only then jitpackd (the ordering note is there), and a second
+     * `vite preview` fronts it. The preview learns its proxy target from
+     * `E2E_API_PORT` in *its own* environment — vite.config.ts reads the
+     * variable per process, which is what lets two previews point at two
+     * different backends without a second config file.
+     */
+    ...(MULTI_USER
+      ? [
+          {
+            command: 'node e2e/server/backend.mjs',
+            url: `http://localhost:${E2E_SERVER_API_PORT}/health`,
+            reuseExistingServer: false,
+            timeout: 30_000,
+            env: {
+              E2E_IDP_PORT: String(E2E_IDP_PORT),
+              E2E_SERVER_API_PORT: String(E2E_SERVER_API_PORT),
+              E2E_OIDC_CLIENT_ID: OIDC_CLIENT_ID,
+              E2E_OIDC_CLIENT_SECRET: OIDC_CLIENT_SECRET,
+              E2E_SESSION_SECRET: SESSION_SECRET,
+              E2E_ADMIN_EMAILS: ADMIN_EMAILS,
+              E2E_SERVER_DB_PATH: path.join(os.tmpdir(), `jitpackd-e2e-server-${Date.now()}.db`),
+              E2E_JITPACKD: path.join('..', 'jitpackd-e2e'),
+            },
+          },
+          {
+            command: `npm run preview -- --port ${SERVER_PORT} --strictPort`,
+            url: SERVER_BASE_URL,
+            reuseExistingServer: !process.env.CI,
+            timeout: 120_000,
+            env: { E2E_API_PORT: String(E2E_SERVER_API_PORT) },
           },
         ]
       : []),

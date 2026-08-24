@@ -153,6 +153,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A path stopped being written twice (2026-08-24)](#a-path-stopped-being-written-twice-2026-08-24) — NFR-4.14's last half: the routes joined `wire.go` and the client's builders are generated from it. What the code cannot show: why ADR-027's revisit trigger was discharged *before* the drift it waits for, why the version prefix is deliberately spelled out on every line, why a pin on a generated file is not redundant, and the trap that a generator must emit prettier's own line breaks or the drift gate fails on a file nobody edited.
 - [A trip could be judged only one row at a time (2026-08-24)](#a-trip-could-be-judged-only-one-row-at-a-time-2026-08-24) — FR-9.3/9.4. Three things the code cannot show: how many affordances a "one posture, one question" screen turns out to have once it is rendered, why a handled proposal became a record line rather than a dimmed card, and the control that was replaced twice before it rendered the row rather than itself.
 - [A claim stops having a lifetime (2026-08-24)](#a-claim-stops-having-a-lifetime-2026-08-24) — FR-5.7/ADR-028. Four things the code cannot show: why the option that looked like the compromise was the most expensive one, why the takeover is the one lock action with no optimistic write, why it has no reachable Playwright case and will not until a second identity exists, and the two-day-old work that was deleted rather than adapted.
+- [A second account arrives, and finds a claim nobody could revoke (2026-08-24)](#a-second-account-arrives-and-finds-a-claim-nobody-could-revoke-2026-08-24) — MVP-plan Track B step 2 / ADR-029: the mock-IdP `server` project. Four things the code cannot show: why a real Authelia was weighed and lost to a 250-line fixture, why the ordering of two processes is a design decision rather than a script detail, the defect the project found on its first run — a takeover that the loser's screen contradicted — and why the identity behind the fix cannot come from the token provider the rest of the client uses.
 
 ## Current state
 
@@ -6167,6 +6168,69 @@ The one thing that was *inverted* rather than deleted is the vitest case that
 asserted a 20-minute-old claim stops locking its row: it now asserts the
 opposite, so the rule that replaced the window has a driving test instead of
 leaving a hole where the old one was.
+
+## A second account arrives, and finds a claim nobody could revoke (2026-08-24)
+
+MVP-plan Track B step 2, the last piece of the plan's Blocker B3 that was
+still open: `single` proved the wire, and nothing proved *identity*. The
+harness is ADR-029 and the coverage — including what it deliberately leaves
+uncovered — is in `dev-docs/e2e-tests.md`. What follows is only what neither
+of those files can show.
+
+**A real Authelia was the option to beat, and it lost on things that are not
+about correctness.** It covers strictly more than a fixture does: the
+provider's own quirks, its consent step, its refresh asymmetry for disabled
+accounts. What sank it is that the suite already runs *inside* the pinned
+Playwright image, so the reference provider arrives as a nested container, a
+third hand-bumped digest (invariant 8), and a configuration surface —
+sessions, storage, notifier, a users file — that is a second product to
+keep. Against a project that runs in 27 s, that is a large bill for
+behaviour the manual pre-release check against the family instance already
+covers. The bill is not waved away: ADR-029 writes down that an
+Authelia-specific defect still ships green, and where it gets paid instead.
+
+**The two processes have an order, and the order is the design.** jitpackd
+resolves OIDC discovery at start-up and exits when the issuer does not
+answer — which is correct, and it means an IdP that loses the boot race
+produces a dead backend and a suite reporting a missing health endpoint. Two
+Playwright `webServer` entries would have raced. One launcher that starts
+the IdP, waits for `listening`, and only then spawns the server has no race
+to lose and nothing to poll. The same reasoning put the `server` project on
+its own `vite preview`: the client reaches its backend same-origin, and the
+Single-User instance is a different process with a mutually exclusive
+configuration, so one preview could not front both.
+
+**The defect it found is the one the project was built to find.** Bob takes
+Alice's row over; Alice's toast says so; Alice's row goes on saying *„You are
+packing this — the others cannot change it"*, still fully interactive. Two
+people can now pack the tent, which is the failure FR-5.3 exists to prevent,
+and every layer below the screen was green: the Go tests move the claim, the
+orchestrator units refuse to write it optimistically, the notification
+arrives. The gap was that a claim is a **device** flag (`myLocks`) — it has
+to be, because Local and Single-User Mode have no second account to compare
+against — and nothing could revoke it, since `lockHolder` returned `null` for
+anything in that set unconditionally and the WS handler ignored
+`item.locked` for those rows outright. It took a second identity to make the
+absence visible, which is exactly why it survived two rounds of work on G-3
+and one on FR-5.7.
+
+**The identity could not come from where the client keeps its token.** The
+obvious source is `config.getToken`, which the rest of the orchestrator
+uses — and in the running app that is `refresher.freshToken()`, a promise,
+because it may refresh mid-flight. A lock decision is made while rendering a
+row, so it cannot await anything. The answer is the *stored* session's
+subject, read synchronously, behind an injectable seam so the unit cases can
+name an account without minting a token. It is `null` in Local and
+Single-User Mode by construction, and that is the load-bearing part: the
+device rule has to stand alone in exactly those two modes, where there is
+one account and two devices.
+
+One trap worth the line it costs: the first version of the fix read the
+optimistic claim's `current-user` placeholder (invariant 3 — the server
+stamps the real actor later) as a foreign account, and revoked every claim
+the instant it was made. A vitest case caught it immediately; without it the
+feature would have shipped as *„the row never says it is mine"*, which no
+e2e case in the suite was asserting.
 
 ## A trip could be judged only one row at a time (2026-08-24)
 
