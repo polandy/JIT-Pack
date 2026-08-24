@@ -284,7 +284,9 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await expect(restored.getByTestId('portable-already-here')).toHaveCount(await rows.count())
 
     await restored.getByTestId('portable-restore-commit').click()
-    await expect(restored.locator('ion-toast')).toContainText(/schon vorhanden|already here/i)
+    // `seed()` pins the app language to English, so the catalogue text is
+    // known rather than guessed at with an alternation.
+    await expect(restored.locator('ion-toast')).toContainText('already here')
 
     // One trip, still there — not two, and not none.
     await expect(visible(restored).getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(1)
@@ -298,6 +300,51 @@ test.describe('Local Mode backup and restore @local @m18', () => {
     await expect(visible(restored).getByText('(import)')).toHaveCount(0)
 
     await fresh.close()
+  })
+
+  /*
+   * E2E-M18-11 (FR-18.4, ADR-030): the *single-document* half of the same rule.
+   *
+   * A file holding one document is M18's merge preview, not the restore list —
+   * a different branch of the screen, with its own way of saying "already
+   * here" and its own commit. E2E-M18-10 covers the restore list; without this
+   * the preview's note and its toast were written into a template nothing ran.
+   *
+   * A device with one trip and no template produces exactly one document, so
+   * the file is taken from the app's own backup rather than hand-written —
+   * which also keeps the year out of the fixture, where it would have been
+   * whatever `new Date()` said on the day.
+   */
+  test('E2E-M18-11: a single trip document that is already here says so before importing', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+
+    await page.getByTestId('sync-indicator').click()
+    const sheet = page.getByTestId('sync-detail-sheet')
+    await expect(sheet).toBeVisible()
+    const downloadPromise = page.waitForEvent('download')
+    await sheet.getByTestId('sync-detail-backup').click()
+    const oneDocument = await readFile(await (await downloadPromise).path(), 'utf8')
+
+    await page.goto('/tabs/trips')
+    await page.getByTestId('m2-portable-import').click()
+    await page.getByTestId('portable-paste').locator('textarea').fill(oneDocument)
+    await page.getByTestId('portable-preview').click()
+
+    // The merge preview, not the restore list — and it answers before the
+    // button is pressed.
+    await expect(page.getByTestId('portable-restore')).toHaveCount(0)
+    await expect(page.getByTestId('portable-already-here')).toBeVisible()
+
+    await page.getByTestId('portable-commit').click()
+
+    await expect(page.locator('ion-toast')).toContainText('already on this device')
+    // It opened the trip that was already here rather than a copy of it.
+    await expectTripOpen(page, TRIP.name)
+
+    await page.goto('/tabs/trips?status=planned')
+    await expect(visible(page).getByTestId(`trip-row-${TRIP.name}`)).toHaveCount(1)
   })
 
   // E2E-M18-07 (FR-27.1/27.7, ADR-017): the composition is part of the only

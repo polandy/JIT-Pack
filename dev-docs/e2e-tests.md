@@ -61,7 +61,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
 | M15 spreadsheet import | E2E-M15-06, E2E-M15-07, E2E-M15-08 | `local` | [`spreadsheet-import.spec.ts`](../client/e2e/spreadsheet-import.spec.ts) |
-| M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
+| M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
@@ -1660,3 +1660,22 @@ Three things worth keeping from writing it:
   attempt at the red proof ran `npm run build-only` from the wrong directory,
   the build failed, and the "mutated" run passed against the old bundle — the
   trap already written down for e2e work, walked into again.
+
+**E2E-M18-11 — the other branch of the same screen, added 2026-08-25.** Found by
+this PR's own review rather than while building: M18-10 covers the restore
+list, and M18 has a *second* branch for a file holding one document — the merge
+preview, with its own note and its own commit. Both were written and neither
+was run.
+
+Two things it settled:
+
+- **The file comes from the app, not from the fixture.** A device with one trip
+  and no template backs itself up as exactly one document, which is both the
+  branch this case needs and a way to keep the trip's *year* out of the test —
+  hand-writing the YAML would have pinned whatever `new Date()` said that day.
+- **The suite's app language is English, and the assertion now says so.** The
+  first draft matched `/schon vorhanden|already here/i`, which looks
+  locale-agnostic and is not: `seed()` pins `jitpack_locale` to `en`, the German
+  half could never match, and the English half happened to appear in one
+  catalogue string and not the other. It failed for the right reason and the
+  alternation was replaced by the exact text.
