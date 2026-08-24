@@ -203,9 +203,12 @@ it. Item numbers stay stable even as items close, because the log refers back to
    the master partition's scope segment is the literal `master`, and an export names its format
    (`/trips/{id}/sync`, `/master/sync`, `/master/conflicts`, `/me/export.json`). Log: *„The wire
    was described twice…"* and *„A route names its scope first"*.
-   **Still owed, and it is the one open half:** the gate protects what is in `wire.go`, and the
-   admin, notification, config and auth responses are not in it yet — nor are the routes, which
-   are agreed by two test tables rather than generated (ADR-027's second revisit trigger).
+   Coverage closed 2026-08-24: **every response body is a declared type**, held there by
+   `TestEveryResponseBodyIsADeclaredType` (an AST check over `internal/api`, so the next response
+   cannot be a map literal) and, for the blind spot that check has, by
+   `TestWire_NotificationPrefsNamesEveryKindTheStoreKnows`.
+   **Still owed:** the **routes** are agreed by two test tables rather than generated — the
+   answer if a rename ever lands on one side only is ADR-027's second revisit trigger.
 
 17. **FR-5.7 — a claim is broken by a person, not by a clock** (owner decision 2026-08-23,
    **specified, not built**). §7's staleness window goes: a claim holds until somebody ends it,

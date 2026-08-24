@@ -80,7 +80,7 @@ func (s *Server) handleGetVAPIDKey(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, ErrInternal, "vapid keys unavailable")
 		return
 	}
-	writeJSON(w, map[string]string{"key": pub})
+	writeJSON(w, VAPIDKeyResponse{Key: pub})
 }
 
 // pushSubscriptionBody mirrors the browser's PushSubscription.toJSON().
@@ -108,7 +108,7 @@ func (s *Server) handleRegisterPushSubscription(w http.ResponseWriter, r *http.R
 		writeError(w, http.StatusInternalServerError, ErrInternal, "save subscription failed")
 		return
 	}
-	writeJSON(w, map[string]any{"ok": true})
+	writeJSON(w, OKResponse{OK: true})
 }
 
 // handleDeletePushSubscription serves DELETE /api/v1/push/subscriptions
@@ -126,7 +126,7 @@ func (s *Server) handleDeletePushSubscription(w http.ResponseWriter, r *http.Req
 		writeError(w, http.StatusInternalServerError, ErrInternal, "delete subscription failed")
 		return
 	}
-	writeJSON(w, map[string]any{"ok": true})
+	writeJSON(w, OKResponse{OK: true})
 }
 
 // sendWebPush delivers a created notification to all push endpoints of

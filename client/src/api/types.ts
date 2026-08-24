@@ -195,6 +195,138 @@ export interface RevertResponse {
 }
 
 /**
+ * MeResponse is the caller's own identity. IsInstanceAdmin decides whether the
+ * client renders the M20 entry point (FR-23.2); the admin endpoints enforce it
+ * regardless of what the client does with it.
+ */
+export interface MeResponse {
+  user_id: string
+  display_name: string
+  is_instance_admin: boolean
+}
+
+/**
+ * DirectoryUser is one entry of the instance user directory — name and id
+ * only, which is what the M3 sharing step needs (FR-4.5).
+ */
+export interface DirectoryUser {
+  user_id: string
+  display_name: string
+}
+
+/**
+ * UserListResponse is the directory envelope, ordered by name with
+ * deactivated accounts excluded (FR-23.3).
+ */
+export interface UserListResponse {
+  users: DirectoryUser[]
+}
+
+/**
+ * AdminUser is one row of the FR-23.2 account overview. DeactivatedAt is null
+ * for an active account rather than absent, because the client renders the two
+ * states differently and an absent key would read as "unknown".
+ */
+export interface AdminUser {
+  user_id: string
+  display_name: string
+  // Absent where the IdP provided none.
+  email?: string
+  created_at: string
+  is_instance_admin: boolean
+  deactivated_at: string | null
+  trip_count: number
+  template_count: number
+}
+
+/**
+ * AdminUserListResponse is the overview envelope.
+ */
+export interface AdminUserListResponse {
+  users: AdminUser[]
+}
+
+/**
+ * NotificationEntry is one notification. It is not named Notification because
+ * that is a DOM global on the client, and a generated type shadowing it would
+ * be a trap rather than a contract.
+ */
+export interface NotificationEntry {
+  id: string
+  kind: string
+  // The teaser the toast and the OS notification render; the deep link
+  // carries the rest. Null where the stored payload was empty.
+  payload: Record<string, unknown> | null
+  created_at: string
+  // Absent while unread.
+  read_at?: string
+}
+
+/**
+ * NotificationListResponse is the list envelope, newest first.
+ */
+export interface NotificationListResponse {
+  notifications: NotificationEntry[]
+}
+
+/**
+ * NotificationPrefs is the per-kind toggle set (UI-Spec M17). The server
+ * answers all three keys always — a kind the stored value omits comes back
+ * enabled — so none of them is optional on the wire.
+ */
+export interface NotificationPrefs {
+  delegation: boolean
+  mention: boolean
+  task: boolean
+}
+
+/**
+ * VAPIDKeyResponse carries the instance's public VAPID key, generated on
+ * first use and persisted beside the database.
+ */
+export interface VAPIDKeyResponse {
+  key: string
+}
+
+/**
+ * ConfigResponse is what a client cannot know on its own. Unauthenticated and
+ * mode-independent on purpose: it carries no per-user data, and Single-User
+ * Mode needs the G-3 window too (invariant 5).
+ */
+export interface ConfigResponse {
+  lock_timeout_seconds: number
+}
+
+/**
+ * AuthConfigResponse tells the client where to send the user to log in. A
+ * server without OIDC answers 501 `not_configured` instead, which is how
+ * Single-User Mode is discovered (invariant 5).
+ */
+export interface AuthConfigResponse {
+  authorize_url: string
+  client_id: string
+}
+
+/**
+ * SessionTokens is the first-party session pair the login broker issues.
+ * ExpiresIn is the access token's lifetime in seconds.
+ */
+export interface SessionTokens {
+  access_token: string
+  refresh_token: string
+  expires_in: number
+}
+
+/**
+ * OKResponse is the body of an action that has nothing to report but its own
+ * success. It is one type rather than a map at each call site, so the client
+ * cannot be written against a key that is spelled differently in one handler.
+ */
+export interface OKResponse {
+  ok: boolean
+}
+
+/**
  * ErrorCode is the machine-readable half of an error. The client branches on
  * these values, so they are named once here and generated into the client
  * rather than spelled again as literals (CODING_PRINCIPLES §4a).

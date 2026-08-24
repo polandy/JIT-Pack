@@ -6,6 +6,7 @@
  */
 
 import { API } from '@/api/routes'
+import type { SessionTokens } from '@/api/types'
 
 export type AuthConfig = { mode: 'single-user' } | { mode: 'oidc'; baseUrl: string }
 
@@ -48,7 +49,7 @@ export function useAuth(config: AuthConfig) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, code_verifier: codeVerifier, redirect_uri: redirectUri }),
     })
-    const json = await resp.json()
+    const json = (await resp.json()) as SessionTokens
     tokens = {
       accessToken: json.access_token,
       refreshToken: json.refresh_token,
@@ -63,7 +64,7 @@ export function useAuth(config: AuthConfig) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: tokens.refreshToken }),
     })
-    const json = await resp.json()
+    const json = (await resp.json()) as SessionTokens
     tokens = {
       accessToken: json.access_token,
       refreshToken: json.refresh_token,

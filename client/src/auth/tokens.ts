@@ -4,6 +4,7 @@
  * are long-lived (IdP default 90 days) to survive offline stretches.
  */
 
+import type { SessionTokens } from '@/api/types'
 const KEY = 'jitpack_tokens'
 
 export interface StoredTokens {
@@ -13,11 +14,7 @@ export interface StoredTokens {
   expires_at: number
 }
 
-export function saveTokens(set: {
-  access_token: string
-  refresh_token: string
-  expires_in: number
-}): void {
+export function saveTokens(set: SessionTokens): void {
   const stored: StoredTokens = {
     access_token: set.access_token,
     refresh_token: set.refresh_token,

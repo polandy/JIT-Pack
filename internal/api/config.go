@@ -36,7 +36,7 @@ func (s *Server) lockTimeoutOrDefault() time.Duration {
 // carries no per-user data, and the client needs the G-3 window in
 // Single-User Mode too (invariant 5).
 func (s *Server) handleConfig(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, map[string]any{
-		"lock_timeout_seconds": int64(s.lockTimeoutOrDefault() / time.Second),
+	writeJSON(w, ConfigResponse{
+		LockTimeoutSeconds: int64(s.lockTimeoutOrDefault() / time.Second),
 	})
 }
