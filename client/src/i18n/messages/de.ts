@@ -352,6 +352,8 @@ export const de: Record<keyof typeof en, string> = {
   'item.flagAsTask': 'Als Vorbereitung markieren',
   'item.companions': 'Gehört dazu',
   'item.usedBy': 'Wer braucht das?',
+  'item.assignedTo': 'Zugewiesen an',
+  'item.assignedToNobody': 'niemand',
   'item.luggageOptional': 'Gepäck · optional',
   'item.latePackerHint': 'Erst am Abreisetag packen',
   'item.flags': 'Markierungen',

@@ -227,6 +227,16 @@ function onContainerChange(id: string | null) {
   if (item.value && !isLocked.value) orchestrator.assignContainer(props.tripId, item.value, id)
 }
 /** FR-9.1: the judgement is revocable, so the toggle writes both ways. */
+/**
+ * The picker's clear option carries `null`, but Ionic hands back `''` for a
+ * value it does not recognise — and an empty string in a foreign key is the
+ * placeholder invariant 3 exists to keep out.
+ */
+function onAssigneeChange(value: string | null) {
+  if (item.value && !isLocked.value)
+    orchestrator.setPacker(props.tripId, item.value, value ? value : null)
+}
+
 function onReviewFlag(flag: ReviewFlag, value: boolean) {
   if (item.value && !isLocked.value)
     orchestrator.setReviewFlag(props.tripId, item.value, flag, value)
@@ -556,6 +566,31 @@ const packedStamp = computed(() => {
           <IonSelectOption value="pack">{{ t('mode.pack') }}</IonSelectOption>
           <IonSelectOption value="buy_before">{{ t('mode.buyBefore') }}</IonSelectOption>
           <IonSelectOption value="buy_local">{{ t('mode.buyLocal') }}</IonSelectOption>
+        </IonSelect>
+      </IonItem>
+      <!-- FR-25.19: the *responsibility*, which is assigned deliberately and
+           notifies the person (FR-6.2) — never the packing record beside it,
+           which the server stamps and no control may pick. Absent rather than
+           disabled where there is nobody to hand it to (G-8): Local Mode has
+           no members, and in Single-User the sole user is already every row's
+           packer. -->
+      <IonItem v-if="participants.length > 0">
+        <IonLabel>{{ t('item.assignedTo') }}</IonLabel>
+        <IonSelect
+          :value="item.packer_user_id"
+          interface="popover"
+          :disabled="isLocked"
+          data-testid="m5-assignee"
+          @ion-change="(e: CustomEvent) => onAssigneeChange(e.detail.value)"
+        >
+          <IonSelectOption :value="null">{{ t('item.assignedToNobody') }}</IonSelectOption>
+          <IonSelectOption
+            v-for="member in participants"
+            :key="member.user_id"
+            :value="member.user_id"
+          >
+            {{ member.display_name }}
+          </IonSelectOption>
         </IonSelect>
       </IonItem>
       <IonItem>

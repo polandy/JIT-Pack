@@ -345,6 +345,8 @@ export const en = {
   'item.flagAsTask': 'Turn into a preparation task',
   'item.companions': 'Belongs with',
   'item.usedBy': 'Who needs this?',
+  'item.assignedTo': 'Assigned to',
+  'item.assignedToNobody': 'nobody',
   'item.luggageOptional': 'Luggage · optional',
   'item.latePackerHint': 'Pack on departure day',
   'item.flags': 'Flags',
