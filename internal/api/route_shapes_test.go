@@ -32,6 +32,8 @@ func TestRouteShapes_ScopeFirst(t *testing.T) {
 		{"trip revert", http.MethodPost, "/api/v1/trips/" + trip + "/conflicts/nope/revert"},
 		{"full export", http.MethodGet, "/api/v1/me/export.json"},
 		{"trip CSV export", http.MethodGet, "/api/v1/trips/" + trip + "/export.csv"},
+		{"claim takeover", http.MethodPost, "/api/v1/trips/" + trip + "/items/nope/takeover"},
+		{"trip lock events", http.MethodGet, "/api/v1/trips/" + trip + "/lock-events"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if !routed(t, srv.URL+tc.path, tc.method, bearer) {

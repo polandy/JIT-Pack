@@ -114,6 +114,11 @@ func (s *Server) Handler() http.Handler {
 	// list — a conflict belongs to the partition it was pushed to.
 	mux.HandleFunc("POST /api/v1/trips/{tripID}/conflicts/{conflictID}/revert",
 		s.authed(s.member(s.handleRevertConflict)))
+	// The one server-side part of G-3's lock (FR-5.7): a takeover has to
+	// be stamped and has to notify, so it is an RPC rather than a mutation.
+	mux.HandleFunc("POST /api/v1/trips/{tripID}/items/{itemID}/takeover",
+		s.authed(s.member(s.handleTakeover)))
+	mux.HandleFunc("GET /api/v1/trips/{tripID}/lock-events", s.authed(s.member(s.handleListLockEvents)))
 	mux.HandleFunc("GET /api/v1/trips/{tripID}/export.csv", s.authed(s.member(s.handleExportTripCSV)))
 
 	// Master scope — the partition that belongs to no trip, so its scope
