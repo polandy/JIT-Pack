@@ -151,6 +151,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A route names its scope first (2026-08-24)](#a-route-names-its-scope-first-2026-08-24) — NFR-4.14's third point/ADR-027. Four things the code cannot show: the backlog item's own complaint had gone stale (ADR-025 had already deleted two of the four shapes it named, so it was re-measured before it was acted on), why the sync endpoints were widened into a scope the owner's question did not name, the trap that a router's 404 and a handler's 404 are the same status — which made the first negative test green on the two revert routes for the wrong reason — and the latent defect that typed route builders exposed.
 - [The gate protected what the file happened to declare (2026-08-24)](#the-gate-protected-what-the-file-happened-to-declare-2026-08-24) — NFR-4.14's coverage half. Three things the code cannot show: that the rule needed a *check* rather than eleven more types, that the check has a blind spot which the very handler that motivated it fell into — and how that was closed rather than papered over — and why a request body is allowed to stay a map where a response body is not.
 - [A path stopped being written twice (2026-08-24)](#a-path-stopped-being-written-twice-2026-08-24) — NFR-4.14's last half: the routes joined `wire.go` and the client's builders are generated from it. What the code cannot show: why ADR-027's revisit trigger was discharged *before* the drift it waits for, why the version prefix is deliberately spelled out on every line, why a pin on a generated file is not redundant, and the trap that a generator must emit prettier's own line breaks or the drift gate fails on a file nobody edited.
+- [A trip could be judged only one row at a time (2026-08-24)](#a-trip-could-be-judged-only-one-row-at-a-time-2026-08-24) — FR-9.3/9.4. Three things the code cannot show: how many affordances a "one posture, one question" screen turns out to have once it is rendered, why a handled proposal became a record line rather than a dimmed card, and the control that was replaced twice before it rendered the row rather than itself.
 - [A claim stops having a lifetime (2026-08-24)](#a-claim-stops-having-a-lifetime-2026-08-24) — FR-5.7/ADR-028. Four things the code cannot show: why the option that looked like the compromise was the most expensive one, why the takeover is the one lock action with no optimistic write, why it has no reachable Playwright case and will not until a second identity exists, and the two-day-old work that was deleted rather than adapted.
 - [A second account arrives, and finds a claim nobody could revoke (2026-08-24)](#a-second-account-arrives-and-finds-a-claim-nobody-could-revoke-2026-08-24) — MVP-plan Track B step 2 / ADR-029: the mock-IdP `server` project. Four things the code cannot show: why a real Authelia was weighed and lost to a 250-line fixture, why the ordering of two processes is a design decision rather than a script detail, the defect the project found on its first run — a takeover that the loser's screen contradicted — and why the identity behind the fix cannot come from the token provider the rest of the client uses.
 
@@ -6230,3 +6231,47 @@ stamps the real actor later) as a foreign account, and revoked every claim
 the instant it was made. A vitest case caught it immediately; without it the
 feature would have shipped as *„the row never says it is mine"*, which no
 e2e case in the suite was asserting.
+
+## A trip could be judged only one row at a time (2026-08-24)
+
+FR-9.3, FR-9.4, backlog 15. *Missing* had always stamped itself as a
+by-product of adding a row; *unused* cost three taps into a fold called
+*Details* that nothing ever asked for — and *unused* is the input the M14
+assistant is built around, so the assistant ran on an empty set. The decisions
+were all made before the branch opened: the judgement joins the row's menu, a
+skippable pass covers the packed rows at archive time, and the pass is a mode
+of M4 whose *Fertig* archives and opens M14. What building it added is below.
+
+**"One posture, one question" priced one affordance and there were five.** The
+FR names the cost precisely — inside the pass the row's press-and-hold goes
+inert — and that is the cost it names. Rendered, the posture also carried the
+quick-add row, the ＋ FAB, the *„3 gepackte zeigen"* reveal bar, and an app-bar
+cluster still offering *Reise bearbeiten* and *Reise abschliessen*: the archive
+action, offered from inside the room it opens. None of that is wrong in M4's
+ordinary posture, and none of it survives the question this posture asks. What
+stayed is what the FR chose the mode *for*: the grouping, the FR-25.11 facets
+and the search. The rule the list needed was not "hide the controls" but "a
+screen asking one question offers nothing that answers another", and only the
+render produces the inventory of what those are.
+
+**A handled proposal became a record line, not a dimmed card.** FR-27.11
+settled that applied and skipped rows stay visible and marked; FR-9.4 settled
+that they leave *Offen*. Neither says what they should look like once they
+arrive under *Erledigt*, and the obvious answer — the same card at 55 %
+opacity — keeps a target picker, a peek chevron and a blast-radius line for a
+decision already made. They are now one line: kind, item, target group,
+outcome. The block is a record of the pass, not a second workspace, and the
+distinction is what lets *Erledigt* hold twenty rows without becoming the
+screen.
+
+**The pass's control was wrong twice, and rendering said so both times.** It
+started as an `IonCheckbox`, which is M4's *packed* idiom — sitting, in the
+pass, beside rows whose subtitle reads „packed · today". Worse, Ionic's
+checkbox keeps its own checked state: the first tap wrote the flag and left the
+box unfilled, so the screen and the row disagreed from the very first
+interaction. It is now a button that renders straight off `flag_unused`. The
+second correction was mine and not the code's: I read the replacement's marked
+and unmarked states off a downscaled screenshot, decided they looked identical,
+and was about to change the colour — the computed values were `#cba6f7` against
+`#6c7086`, which is exactly the distinction that was intended. A rendered pixel
+answers a question about rendered pixels; an *impression* of one does not.

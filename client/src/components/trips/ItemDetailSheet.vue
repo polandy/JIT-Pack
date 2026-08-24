@@ -56,6 +56,7 @@ import { CLIENT_ACTOR_PLACEHOLDER } from '@/composables/useMutations'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
 import { relativeStamp } from '@/domain/stamp'
+import { canJudgeUnused } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
 import { currentLocale, t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
@@ -80,6 +81,8 @@ const trip = computed(() => tripStore.getTrip(props.tripId))
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
 const containers = computed(() => tripStore.getContainers(props.tripId))
 const isActive = computed(() => trip.value?.status === 'active')
+/** FR-9.3's window, decided once in the domain (`canJudgeUnused`). */
+const judgeable = computed(() => canJudgeUnused(trip.value))
 
 /**
  * G-3: while somebody else is packing this row, the sheet is a view of it
@@ -587,10 +590,9 @@ const packedStamp = computed(() => {
           @ion-change="(e: CustomEvent) => onLatePacker(e.detail.checked)"
         />
       </IonItem>
-      <!-- FR-9.1: the two review flags only mean anything on a live trip,
-           and they are what M14 harvests afterwards — so they are controls
-           here, not a readout. -->
-      <template v-if="isActive">
+      <!-- FR-9.1: the two review flags are what M14 harvests afterwards —
+           so they are controls here, not a readout. -->
+      <template v-if="judgeable">
         <IonItem>
           <IonIcon slot="start" :icon="removeCircleOutline" />
           <IonLabel>
@@ -605,7 +607,7 @@ const packedStamp = computed(() => {
             @ion-change="(e: CustomEvent) => onReviewFlag('unused', e.detail.checked)"
           />
         </IonItem>
-        <IonItem>
+        <IonItem v-if="isActive">
           <IonIcon slot="start" :icon="alertCircleOutline" />
           <IonLabel>
             <h3>{{ t('facet.flagMissing') }}</h3>

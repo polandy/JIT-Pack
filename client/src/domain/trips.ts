@@ -1,4 +1,4 @@
-import { TRIP_STATUS_ARCHIVED, type Trip } from '@/types/domain'
+import { TRIP_STATUS_ACTIVE, TRIP_STATUS_ARCHIVED, type Trip } from '@/types/domain'
 
 /**
  * What a trip *is* in time: how it sorts (FR-2.1b), and whether it is past —
@@ -46,4 +46,23 @@ export function followsGroups(trip: Trip, today: string): boolean {
   // not over. Both sides are ISO `YYYY-MM-DD`, where string order is date
   // order; the last day still counts, the trip is over when the day is.
   return trip.end_date === null || trip.end_date >= today
+}
+
+/**
+ * Whether the trip is in a state where its rows can be judged *unused*
+ * (FR-9.3).
+ *
+ * A running trip and an archived one, and nothing else: a planning trip
+ * has not happened, so a judgement about it means nothing. The window
+ * deliberately outlasts the trip, because M14 — the first place anyone
+ * sees what a flag was worth — runs on the archived trip, and FR-9.1's
+ * active-only rule was true of *making* a judgement and false of
+ * correcting one. (*Missing* keeps that rule; it is stamped by the FR-5.6
+ * quick-add, and this predicate is not about it.)
+ *
+ * It lives here rather than in each screen because M4's row menu and M5's
+ * toggle answer the same question, and two copies drift.
+ */
+export function canJudgeUnused(trip: Trip | undefined): boolean {
+  return trip?.status === TRIP_STATUS_ACTIVE || trip?.status === TRIP_STATUS_ARCHIVED
 }

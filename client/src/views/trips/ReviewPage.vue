@@ -16,7 +16,7 @@
  * appearing on the next visit.
  */
 import { IonPage, IonContent, IonButton, IonIcon, IonSelect, IonSelectOption } from '@ionic/vue'
-import { checkmarkCircleOutline, chevronForwardOutline, closeOutline } from 'ionicons/icons'
+import { checkmarkCircleOutline, chevronForwardOutline } from 'ionicons/icons'
 import { computed, inject, ref, watchEffect } from 'vue'
 
 import { t } from '@/i18n'
@@ -121,7 +121,14 @@ watchEffect(() => {
   ]
 })
 
-const openCount = computed(() => rows.value.filter((r) => r.state === null).length)
+/**
+ * FR-9.4: *Offen* holds only what is open. A handled row stays visible —
+ * FR-27.11 is right that it must not vanish — but under the outcome
+ * block, so a finished pass cannot read „Offen · 0" above two cards and
+ * count one of them a second time below.
+ */
+const openRows = computed(() => rows.value.filter((r) => r.state === null))
+const handledRows = computed(() => rows.value.filter((r) => r.state !== null))
 const appliedCount = computed(() => rows.value.filter((r) => r.state === 'applied').length)
 
 function whyText(p: ReviewProposal): string {
@@ -189,16 +196,15 @@ setHeaderTitle(() => `${t('review.title')} · ${trip.value?.name ?? ''}`)
       <p class="intro">{{ t('review.intro') }}</p>
 
       <h2 class="section-title jp-eyebrow" data-testid="m14-open-count">
-        {{ t('review.open', { n: openCount }) }}
+        {{ t('review.open', { n: openRows.length }) }}
       </h2>
 
-      <template v-if="rows.length > 0">
+      <template v-if="openRows.length > 0">
         <article
-          v-for="row in rows"
+          v-for="row in openRows"
           :key="rowKey(row.p)"
           class="jp-card row"
-          :class="{ decided: row.state !== null }"
-          data-testid="m14-row"
+          data-testid="m14-open-row"
         >
           <div class="head">
             <span class="chip kind" :class="row.p.kind">
@@ -208,21 +214,13 @@ setHeaderTitle(() => `${t('review.title')} · ${trip.value?.name ?? ''}`)
               <div class="name">{{ row.p.itemName }}</div>
               <div class="why">{{ whyText(row.p) }}</div>
             </div>
-            <span v-if="row.state" class="chip state" :class="row.state" data-testid="m14-state">
-              {{ row.state === 'applied' ? t('review.stateApplied') : t('review.stateSkipped') }}
-            </span>
           </div>
 
           <label class="target">
             <span>{{
               row.p.kind === 'unused' ? t('review.targetFrom') : t('review.targetTo')
             }}</span>
-            <IonSelect
-              v-model="row.target"
-              interface="popover"
-              :disabled="row.state !== null"
-              data-testid="m14-target"
-            >
+            <IonSelect v-model="row.target" interface="popover" data-testid="m14-target">
               <IonSelectOption v-for="g in pickerGroups(row)" :key="g.id" :value="g.id">
                 {{ g.name }}
               </IonSelectOption>
@@ -243,24 +241,25 @@ setHeaderTitle(() => `${t('review.title')} · ${trip.value?.name ?? ''}`)
 
           <p v-if="blastText(row)" class="blast" data-testid="m14-blast">{{ blastText(row) }}</p>
 
-          <div v-if="row.state === null" class="actions">
+          <div class="actions">
             <IonButton size="small" data-testid="m14-apply" @click="apply(row)">
               {{ t('review.apply') }}
             </IonButton>
             <IonButton size="small" fill="outline" data-testid="m14-skip" @click="skip(row)">
               {{ t('review.skip') }}
             </IonButton>
+            <!-- FR-9.4: worded, in FR-27.15's grammar. This is the one
+                 action on the screen that is permanent and device-local,
+                 and an aria-label is no label at all on a phone. -->
             <IonButton
               size="small"
               fill="clear"
               color="medium"
               class="never"
               data-testid="m14-never"
-              :aria-label="t('review.never')"
-              :title="t('review.never')"
               @click="neverAskAgain(row)"
             >
-              <IonIcon slot="icon-only" :icon="closeOutline" />
+              {{ t('review.never') }}
             </IonButton>
           </div>
         </article>
@@ -268,12 +267,37 @@ setHeaderTitle(() => `${t('review.title')} · ${trip.value?.name ?? ''}`)
 
       <div v-else class="empty" data-testid="m14-empty">
         <IonIcon :icon="checkmarkCircleOutline" class="empty-icon" />
-        <p>{{ t('review.empty') }}</p>
+        <!-- Two different facts, and the pass must not claim the wrong one:
+             a trip that produced no proposal at all, and one whose
+             proposals have all been handled (FR-9.4). -->
+        <p>{{ handledRows.length > 0 ? t('review.done') : t('review.empty') }}</p>
       </div>
 
-      <template v-if="appliedCount > 0">
-        <h2 class="section-title jp-eyebrow">{{ t('review.appliedHead', { n: appliedCount }) }}</h2>
-        <p class="jp-card summary" data-testid="m14-summary">
+      <template v-if="handledRows.length > 0">
+        <h2 class="section-title jp-eyebrow" data-testid="m14-handled-count">
+          {{ t('review.handledHead', { n: handledRows.length }) }}
+        </h2>
+        <!-- A record of the pass, not a second workspace: the decision is
+             made, so the row keeps its name, its target and its outcome and
+             drops the controls that made it (FR-27.11 — visible, marked). -->
+        <div
+          v-for="row in handledRows"
+          :key="rowKey(row.p)"
+          class="jp-card handled"
+          data-testid="m14-handled-row"
+        >
+          <span class="chip kind" :class="row.p.kind">
+            {{ row.p.kind === 'unused' ? t('review.kindUnused') : t('review.kindMissing') }}
+          </span>
+          <span class="grow">
+            <span class="name">{{ row.p.itemName }}</span>
+            <span class="why">{{ groupName(row.target) }}</span>
+          </span>
+          <span class="chip state" :class="row.state" data-testid="m14-state">
+            {{ row.state === 'applied' ? t('review.stateApplied') : t('review.stateSkipped') }}
+          </span>
+        </div>
+        <p v-if="appliedCount > 0" class="jp-card summary" data-testid="m14-summary">
           {{ t('review.appliedSummary', { n: appliedCount }) }}
         </p>
       </template>
@@ -316,10 +340,6 @@ setHeaderTitle(() => `${t('review.title')} · ${trip.value?.name ?? ''}`)
 .row {
   padding: 12px 14px;
   margin-bottom: 10px;
-}
-
-.row.decided {
-  opacity: 0.55;
 }
 
 .head {
@@ -418,6 +438,20 @@ setHeaderTitle(() => `${t('review.title')} · ${trip.value?.name ?? ''}`)
 .empty-icon {
   font-size: var(--jp-icon-xl);
   color: var(--jp-done);
+}
+
+.handled {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  opacity: 0.75;
+}
+
+.handled .grow {
+  display: flex;
+  flex-direction: column;
 }
 
 .summary {

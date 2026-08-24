@@ -43,6 +43,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
+| FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
 | Colour anchors | E2E-G11-02, E2E-G11-03, E2E-G11-04, E2E-G11-05 | `local` | [`colour-anchors.spec.ts`](../client/e2e/colour-anchors.spec.ts) |
 | Visual baselines | E2E-VIS-01 … E2E-VIS-08 | `local` | [`visual.spec.ts`](../client/e2e/visual.spec.ts) |
@@ -562,6 +563,7 @@ Following spec §10, adjusted for what is now built:
 - **Seed through the app, not around it** (spec §2.4). Use `createTripViaWizard` and friends. A fast-path that writes rows directly is allowed only for `server`-mode preconditions that are not themselves under test.
 - **No sleeps, ever.** Playwright's `expect` retries on its own; assert the outcome, never wait a fixed time for it. If a case can only pass by waiting and hoping, the fault is in the production code — give it a deterministic seam. This is the same rule the Go suite follows and it is not negotiable in either.
 - **Tags:** `@smoke`, `@local`, `@single`, `@server`, plus `@mNN` per screen. Run a slice with `npm run test:e2e -- --grep @local`.
+- **An archived trip takes two clicks, not one** (FR-9.3, 2026-08-24). `m4-archive` no longer archives: it opens the closing pass, and **`m4-pass-finish` is what archives**. Every case that needs an archived trip — M14's, M21's, M12's trend, the backup unit — goes `m4-start` → `m4-archive` → `m4-pass-finish`. Skipping the pass without marking anything is a supported path, so a case that only wants the archived state needs no extra staging. This is written here because it is the kind of change that breaks *other* people's units: three specs kept clicking the one control and failed across three shards, and the still-owed `server` cases (delegation, presence, M20) will all reach for an archived trip eventually.
 
 ## M9/M10 — inventory and item editor (`e2e/inventory.spec.ts`, 2026-08-16)
 
@@ -1599,3 +1601,39 @@ as more than it is:
   cases do not.
 - **A real provider.** ADR-029 accepts this outright: an Authelia-specific
   defect still ships green, and Track H's deployment is where it gets paid.
+
+## FR-9.3/9.4 — the closing pass, and what its cases had to be careful about (2026-08-24)
+
+Five new cases in `closing-pass.spec.ts` (E2E-M4-51 … 55) and one rewritten
+M14 case. Three things are worth keeping, because each of them made a first
+draft green against the unfixed build.
+
+**E2E-M14-05 asserted the defect.** Its last line read „the empty state does
+not take over a list that has decided rows" — which is exactly the behaviour
+FR-9.4 removes. The case was written when the empty state could only be
+reached by dismissing every proposal for good, and it pinned that as the
+promise. A test that encodes the shape of a defect is not neutral about the
+fix: it makes the fix look like a regression. Renaming the assertion was the
+whole of the work, but finding it was not — it was found by running the suite,
+not by reading it.
+
+**„Nothing happened" needed a positive control, and the control needed the
+right moment.** E2E-M4-55 asserts that press-and-hold is inert inside the
+pass. On its own that is true of a list that never rendered, of a row that was
+never added and of a broken gesture — so the case opens the menu on the *same
+row* one moment earlier and closes it again. The first draft did that *after*
+packing the row, and it failed: a packed row leaves the list (FR-25.2), so the
+control was asserting against a row that was not there. The order matters as
+much as the control does.
+
+**A mark is read back off the row, never off the control that made it.**
+E2E-M4-54's first draft asserted the pass toggle's own `aria-pressed`, which a
+control with purely internal state would satisfy without a single write. It now
+navigates back to the trip afterwards, reveals the packed rows and reads the
+mark from the row — which is the same place the M14 assistant reads it.
+
+*(The earlier draft of the pass used an `IonCheckbox` for the row's toggle. It
+was replaced for two reasons found by rendering it: a checkbox is M4's *packed*
+idiom sitting beside rows that say „packed · today", and Ionic's checkbox
+keeps its own checked state, which drifted from the row on the very first tap.
+The control now renders straight off `flag_unused`.)*

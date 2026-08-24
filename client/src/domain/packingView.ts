@@ -163,6 +163,12 @@ export interface PackingViewInput {
   collapsedGroups: string[]
   /** Ids of items carrying an unresolved preparation todo (FR-7.3). */
   itemsWithOpenPrep: string[]
+  /**
+   * FR-9.3's closing pass: list only what was actually packed. An
+   * unpacked row is either consciously skipped — already a judgement, and
+   * the opposite one — or it was forgotten, and neither is *unused*.
+   */
+  packedOnly?: boolean
 }
 
 /**
@@ -258,6 +264,7 @@ export function buildPackingView(input: PackingViewInput): PackingView {
     showOthers,
     collapsedGroups,
     itemsWithOpenPrep,
+    packedOnly = false,
   } = input
 
   const travelerById = new Map(travelers.map((t) => [t.id, t]))
@@ -291,7 +298,12 @@ export function buildPackingView(input: PackingViewInput): PackingView {
   const othersJob = (item: TripItem) =>
     currentUserId !== null && item.packer_user_id !== null && item.packer_user_id !== currentUserId
 
-  const matching = items.filter((item) => passesFacets(item) && matchesSearch(item))
+  /** FR-9.3: taken along, in whole or in part — and not consciously left behind. */
+  const wasPacked = (item: TripItem) => item.packed_count > 0 && item.state !== 'skipped'
+
+  const matching = items.filter(
+    (item) => (!packedOnly || wasPacked(item)) && passesFacets(item) && matchesSearch(item),
+  )
 
   // Offered for reveal only what revealing would actually show: rows already
   // excluded by a facet, the search or the done rule stay out of the count, or
