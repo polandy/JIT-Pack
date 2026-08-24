@@ -6,17 +6,19 @@ import { API } from '../routes'
  * the resource; the master partition's scope segment is `master`; an export
  * names its format as the path's extension (ADR-027).
  *
- * These cases are the client half of `TestRouteShapes_ScopeFirst` in
- * `internal/api/route_shapes_test.go`. Neither half can catch a rename the
- * other side did not follow — that is the wire gate's job for the envelopes
- * and, for the paths, the reason both tables spell the same strings.
+ * This file is generated from `internal/api/wire.go`, so it can no longer
+ * disagree with the server about a path — the gate regenerates it. What these
+ * cases still hold is the *values*: a rename in the contract arrives here as a
+ * red test rather than as a silently regenerated file, which is what makes it
+ * a decision. `internal/api/routes_test.go` holds the same paths against the
+ * mux.
  */
 describe('API routes', () => {
   it('leads with the scope for a trip', () => {
     expect(API.tripSync('t1')).toBe('/api/v1/trips/t1/sync')
     expect(API.tripConflicts('t1')).toBe('/api/v1/trips/t1/conflicts')
     expect(API.tripConflictRevert('t1', 'c1')).toBe('/api/v1/trips/t1/conflicts/c1/revert')
-    expect(API.tripExportCsv('t1')).toBe('/api/v1/trips/t1/export.csv')
+    expect(API.tripExportCSV('t1')).toBe('/api/v1/trips/t1/export.csv')
   })
 
   it('gives the master partition a scope segment of its own', () => {
@@ -51,7 +53,7 @@ describe('API routes', () => {
       tripSync: '/api/v1/trips/ID1/sync',
       tripConflicts: '/api/v1/trips/ID1/conflicts',
       tripConflictRevert: '/api/v1/trips/ID1/conflicts/ID2/revert',
-      tripExportCsv: '/api/v1/trips/ID1/export.csv',
+      tripExportCSV: '/api/v1/trips/ID1/export.csv',
       masterSync: '/api/v1/master/sync',
       masterConflicts: '/api/v1/master/conflicts',
       masterConflictRevert: '/api/v1/master/conflicts/ID1/revert',
@@ -64,7 +66,7 @@ describe('API routes', () => {
       itemImage: '/api/v1/items/ID1/image',
       notifications: '/api/v1/notifications',
       notificationRead: '/api/v1/notifications/ID1/read',
-      pushVapidKey: '/api/v1/push/vapid-key',
+      pushVAPIDKey: '/api/v1/push/vapid-key',
       pushSubscriptions: '/api/v1/push/subscriptions',
       adminUsers: '/api/v1/admin/users',
       adminDeactivateUser: '/api/v1/admin/users/ID1/deactivate',
@@ -75,6 +77,8 @@ describe('API routes', () => {
       authRefresh: '/api/v1/auth/refresh',
       authConfig: '/api/v1/auth/config',
       config: '/api/v1/config',
+      ws: '/ws',
+      health: '/health',
     })
   })
 })

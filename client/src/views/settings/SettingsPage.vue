@@ -289,7 +289,7 @@ async function exportFull() {
 
 async function exportTripCSV() {
   if (!csvTripId.value) return
-  const blob = await orchestrator.downloadExport(API.tripExportCsv(csvTripId.value))
+  const blob = await orchestrator.downloadExport(API.tripExportCSV(csvTripId.value))
   const trip = tripStore.getTrip(csvTripId.value)
   if (blob) saveBlob(blob, `${trip?.name ?? 'trip'}.csv`)
 }

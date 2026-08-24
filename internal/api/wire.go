@@ -331,3 +331,80 @@ type APIErrorBody struct {
 type APIError struct {
 	Error APIErrorBody `json:"error"`
 }
+
+// --- Routes (ADR-027) ---
+
+// The path-variable names. A placeholder is written in a route pattern and read
+// back with r.PathValue; naming it once is what keeps the two spellings from
+// drifting into a nil id that no compiler and no handler test would notice.
+const (
+	PathTripID         = "tripID"
+	PathConflictID     = "conflictID"
+	PathUserID         = "userID"
+	PathItemID         = "itemID"
+	PathNotificationID = "notificationID"
+)
+
+// Every path this instance serves, declared once. The server registers from
+// these constants and cmd/wiregen writes the client's builders from them, so a
+// rename is one edit rather than an agreement between two test tables
+// (NFR-4.14). The shape rule is ADR-027: a path names its scope first, then the
+// resource; the master partition's scope segment is the literal `master`; an
+// export names its format as the path's extension.
+//
+// The version prefix is spelled out on every line rather than concatenated from
+// a constant: this is a table, and a reader checking a path against the spec
+// should not have to assemble it. Moving to /api/v2 is one pass over one block.
+const (
+	// Trip scope.
+	RouteTripSync           = "/api/v1/trips/{tripID}/sync"
+	RouteTripConflicts      = "/api/v1/trips/{tripID}/conflicts"
+	RouteTripConflictRevert = "/api/v1/trips/{tripID}/conflicts/{conflictID}/revert"
+	RouteTripExportCSV      = "/api/v1/trips/{tripID}/export.csv"
+
+	// Master scope — the partition that belongs to no trip, so its scope
+	// segment is a literal rather than an id.
+	RouteMasterSync           = "/api/v1/master/sync"
+	RouteMasterConflicts      = "/api/v1/master/conflicts"
+	RouteMasterConflictRevert = "/api/v1/master/conflicts/{conflictID}/revert"
+
+	// The caller's own scope. The full export lives here because it is
+	// filtered to what the caller may pull, and it names its format.
+	RouteMe                  = "/api/v1/me"
+	RouteMeNotificationPrefs = "/api/v1/me/notification-prefs"
+	RouteMeExport            = "/api/v1/me/export.json"
+
+	// User scope.
+	RouteUsers           = "/api/v1/users"
+	RouteUserAvatar      = "/api/v1/users/{userID}/avatar"
+	RouteUserDisplayName = "/api/v1/users/{userID}/display-name"
+
+	// Item scope.
+	RouteItemImage = "/api/v1/items/{itemID}/image"
+
+	// Notification scope.
+	RouteNotifications    = "/api/v1/notifications"
+	RouteNotificationRead = "/api/v1/notifications/{notificationID}/read"
+
+	// Web Push scope.
+	RoutePushVAPIDKey      = "/api/v1/push/vapid-key"
+	RoutePushSubscriptions = "/api/v1/push/subscriptions"
+
+	// Admin scope.
+	RouteAdminUsers            = "/api/v1/admin/users"
+	RouteAdminDeactivateUser   = "/api/v1/admin/users/{userID}/deactivate"
+	RouteAdminReactivateUser   = "/api/v1/admin/users/{userID}/reactivate"
+	RouteAdminResetAvatar      = "/api/v1/admin/users/{userID}/avatar"
+	RouteAdminResetDisplayName = "/api/v1/admin/users/{userID}/display-name"
+
+	// Instance scope: no caller, no partition.
+	RouteAuthToken   = "/api/v1/auth/token"
+	RouteAuthRefresh = "/api/v1/auth/refresh"
+	RouteAuthConfig  = "/api/v1/auth/config"
+	RouteConfig      = "/api/v1/config"
+
+	// Outside the versioned surface on purpose: the socket carries the
+	// versioned frame in its payload, and a health probe is not an API.
+	RouteWS     = "/ws"
+	RouteHealth = "/health"
+)

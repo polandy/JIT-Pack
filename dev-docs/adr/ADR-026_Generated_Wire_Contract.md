@@ -31,7 +31,7 @@ Two more were found *while implementing this ADR*, which is the point: `Conflict
 
 ### Option A — Go declares the contract; the client's types are generated from it *(recommended, accepted)*
 
-One file, `internal/api/wire.go`, declares the sync envelopes, the WebSocket frame, the conflict-log shapes and the error vocabulary. `cmd/wiregen` parses it and writes `client/src/api/types.ts`; `scripts/wire-contract-gate.sh` regenerates into a temporary file and fails the build when the checked-in one differs. `make wire` is the one way to update it.
+One file, `internal/api/wire.go`, declares the sync envelopes, the WebSocket frame, the conflict-log shapes and the error vocabulary. `cmd/wiregen` parses it and writes `client/src/api/types.ts` — and, since ADR-027's amendment of 2026-08-24, the paths as well, into `client/src/api/routes.ts`; `scripts/wire-contract-gate.sh` regenerates into a temporary file and fails the build when the checked-in one differs. `make wire` is the one way to update it.
 
 **Pros**
 - The declaration sits where the wire is actually served, so it cannot describe an endpoint that does not exist.

@@ -525,7 +525,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   /** Server half of the Web Push dance (NFR-4.6) for notifications/push.ts. */
   const pushApi: PushServerAPI = {
     async getVapidKey() {
-      return (await client.get<VAPIDKeyResponse>(API.pushVapidKey)).key
+      return (await client.get<VAPIDKeyResponse>(API.pushVAPIDKey)).key
     },
     async registerSubscription(sub) {
       await client.post(API.pushSubscriptions, sub)

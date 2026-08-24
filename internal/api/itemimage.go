@@ -14,7 +14,7 @@ const maxItemImageUploadBytes = 150 * 1024
 // Public like the avatar GET (ADR-002): item photos are shared, low-
 // sensitivity presentation data. The ETag is the stored image_hash.
 func (s *Server) handleGetItemImage(w http.ResponseWriter, r *http.Request) {
-	data, hash, err := s.store.GetItemImage(r.Context(), r.PathValue("itemID"))
+	data, hash, err := s.store.GetItemImage(r.Context(), r.PathValue(PathItemID))
 	if err != nil || data == nil {
 		writeError(w, http.StatusNotFound, ErrNotFound, "no image for this item")
 		return
@@ -46,7 +46,7 @@ func (s *Server) handlePutItemImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := s.store.SetItemImage(r.Context(), r.PathValue("itemID"), data); err != nil {
+	if _, err := s.store.SetItemImage(r.Context(), r.PathValue(PathItemID), data); err != nil {
 		switch {
 		case errors.Is(err, store.ErrItemNotFound):
 			writeError(w, http.StatusNotFound, ErrNotFound, "no such item")
@@ -63,7 +63,7 @@ func (s *Server) handlePutItemImage(w http.ResponseWriter, r *http.Request) {
 
 // handleDeleteItemImage removes an item's photo (FR-22.5).
 func (s *Server) handleDeleteItemImage(w http.ResponseWriter, r *http.Request) {
-	if err := s.store.DeleteItemImage(r.Context(), r.PathValue("itemID")); err != nil {
+	if err := s.store.DeleteItemImage(r.Context(), r.PathValue(PathItemID)); err != nil {
 		if errors.Is(err, store.ErrItemNotFound) {
 			writeError(w, http.StatusNotFound, ErrNotFound, "no such item")
 			return

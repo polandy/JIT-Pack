@@ -18,7 +18,7 @@ const maxAvatarUploadBytes = 100 * 1024
 // of low-sensitivity, presentation-only data a static file server would
 // happily serve to anyone holding the URL.
 func (s *Server) handleGetAvatar(w http.ResponseWriter, r *http.Request) {
-	data, err := s.store.GetAvatar(r.Context(), r.PathValue("userID"))
+	data, err := s.store.GetAvatar(r.Context(), r.PathValue(PathUserID))
 	if err != nil {
 		writeError(w, http.StatusNotFound, ErrNotFound, "no avatar for this user")
 		return
@@ -53,7 +53,7 @@ func (s *Server) handlePutAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.store.SetAvatar(r.Context(), r.PathValue("userID"), data); err != nil {
+	if err := s.store.SetAvatar(r.Context(), r.PathValue(PathUserID), data); err != nil {
 		if errors.Is(err, store.ErrAvatarTooLarge) {
 			writeError(w, http.StatusUnprocessableEntity, ErrValidation, err.Error())
 			return
@@ -77,7 +77,7 @@ func (s *Server) handlePutDisplayName(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "malformed request body")
 		return
 	}
-	if err := s.store.SetDisplayName(r.Context(), r.PathValue("userID"), req.DisplayName); err != nil {
+	if err := s.store.SetDisplayName(r.Context(), r.PathValue(PathUserID), req.DisplayName); err != nil {
 		if errors.Is(err, store.ErrInvalidDisplayName) {
 			writeError(w, http.StatusUnprocessableEntity, ErrValidation, err.Error())
 			return

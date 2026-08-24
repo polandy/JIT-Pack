@@ -45,17 +45,17 @@ func adminUserAction(w http.ResponseWriter, err error) {
 }
 
 func (s *Server) handleDeactivateUser(w http.ResponseWriter, r *http.Request) {
-	adminUserAction(w, s.store.DeactivateUser(r.Context(), r.PathValue("userID")))
+	adminUserAction(w, s.store.DeactivateUser(r.Context(), r.PathValue(PathUserID)))
 }
 
 func (s *Server) handleReactivateUser(w http.ResponseWriter, r *http.Request) {
-	adminUserAction(w, s.store.ReactivateUser(r.Context(), r.PathValue("userID")))
+	adminUserAction(w, s.store.ReactivateUser(r.Context(), r.PathValue(PathUserID)))
 }
 
 func (s *Server) handleAdminResetAvatar(w http.ResponseWriter, r *http.Request) {
-	adminUserAction(w, s.store.ResetAvatar(r.Context(), r.PathValue("userID")))
+	adminUserAction(w, s.store.ResetAvatar(r.Context(), r.PathValue(PathUserID)))
 }
 
 func (s *Server) handleAdminResetDisplayName(w http.ResponseWriter, r *http.Request) {
-	adminUserAction(w, s.store.ResetDisplayName(r.Context(), r.PathValue("userID")))
+	adminUserAction(w, s.store.ResetDisplayName(r.Context(), r.PathValue(PathUserID)))
 }

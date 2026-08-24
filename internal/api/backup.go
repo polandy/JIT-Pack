@@ -48,7 +48,7 @@ func (s *Server) handleExportFull(w http.ResponseWriter, r *http.Request) {
 // (NFR-4.5) — deliberately not round-trippable; the form that reads back is
 // the portable YAML the app writes (FR-18.3, ADR-025).
 func (s *Server) handleExportTripCSV(w http.ResponseWriter, r *http.Request) {
-	tripID := r.PathValue("tripID")
+	tripID := r.PathValue(PathTripID)
 	items, err := s.store.TripCSVRows(r.Context(), tripID)
 	if err != nil {
 		writeError(w, http.StatusNotFound, ErrTripNotFound, "trip not found")
