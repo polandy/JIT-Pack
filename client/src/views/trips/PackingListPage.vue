@@ -1457,7 +1457,11 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                     <p v-else-if="skippedNote(child.item)" class="stamp">
                       {{ skippedNote(child.item) }}
                     </p>
-                    <p v-else-if="child.done && packedStamp(child.item)" class="stamp">
+                    <p
+                      v-else-if="child.done && packedStamp(child.item)"
+                      class="stamp"
+                      data-testid="m4-packed-stamp"
+                    >
                       {{ packedStamp(child.item) }}
                       <span v-if="responsibleNote(child.item)" class="muted">
                         · {{ responsibleNote(child.item) }}
@@ -1531,7 +1535,11 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                   <p v-else-if="skippedNote(entry.item)" class="stamp">
                     {{ skippedNote(entry.item) }}
                   </p>
-                  <p v-else-if="entry.done && packedStamp(entry.item)" class="stamp">
+                  <p
+                    v-else-if="entry.done && packedStamp(entry.item)"
+                    class="stamp"
+                    data-testid="m4-packed-stamp"
+                  >
                     {{ packedStamp(entry.item) }}
                     <span v-if="responsibleNote(entry.item)" class="muted">
                       · {{ responsibleNote(entry.item) }}

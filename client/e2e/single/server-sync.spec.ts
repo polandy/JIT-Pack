@@ -1,6 +1,7 @@
-import type { BrowserContext, Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
 
 import { test, expect, seed, createTripViaWizard, visiblePage } from '../fixtures'
+import { bootPage, packItem, quickAddItem, uniq, wsSubscribed } from '../serverMode'
 
 // Both sync endpoints, whichever partition: the path leads with its scope
 // (NFR-4.14, ADR-027), so no single prefix covers them any more.
@@ -34,40 +35,6 @@ const SYNC_PATH = /\/api\/v1\/(?:trips\/[^/]+|master)\/sync/
  *    start, which the durable outbox added (B2). Track C stopped there
  *    deliberately; an `online`-event drain is not built.
  */
-
-/** Suffix that keeps one test's master data out of another's. */
-function uniq(): string {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
-}
-
-/** A page in server mode. The context owns the network (setOffline). */
-async function bootPage(context: BrowserContext, path = '/'): Promise<Page> {
-  const page = await context.newPage()
-  await seed(page, { mode: 'server' })
-  await page.goto(path)
-  return page
-}
-
-/** FR-25.13 quick-add on M4, committed via the ＋ confirm. */
-async function quickAddItem(page: Page, name: string) {
-  const input = visiblePage(page).getByTestId('quick-add-input')
-  if (!(await input.isVisible().catch(() => false))) {
-    await visiblePage(page).getByTestId('m4-fab').click()
-    await expect(input).toBeVisible()
-  }
-  await input.locator('input').fill(name)
-  await page.getByTestId('quick-add-confirm').click()
-  await expect(visiblePage(page).getByTestId(`m4-row-${name}`)).toBeVisible()
-}
-
-/** Pack a row via its checkbox (G-6: the control acts, it never navigates). */
-async function packItem(page: Page, name: string) {
-  await visiblePage(page)
-    .getByTestId(`m4-row-${name}`)
-    .getByTestId('row-check')
-    .locator('ion-checkbox')
-    .click()
-}
 
 /**
  * Assign the item to a traveler through M5's popover select — the app's one
@@ -125,20 +92,6 @@ async function reopenTrip(page: Page, tripName: string) {
   await expect(visiblePage(page).getByTestId(`trip-row-${tripName}`)).toBeVisible()
   await visiblePage(page).getByTestId(`trip-row-${tripName}`).click()
   await expect(visiblePage(page).getByTestId('m4-fab')).toBeVisible()
-}
-
-/**
- * Wait until this page's WebSocket subscription for the trip is registered
- * server-side. Deterministic, not hopeful: the hub answers a subscribe with
- * a `presence` broadcast to the trip's subscribers — the subscriber
- * included — so receiving that frame proves the hub has the connection in
- * the trip's set, and every later `trip.changed` must reach it.
- */
-async function wsSubscribed(page: Page, wsPromise: Promise<import('@playwright/test').WebSocket>) {
-  const ws = await wsPromise
-  await ws.waitForEvent('framereceived', {
-    predicate: (frame) => String(frame.payload).includes('"presence"'),
-  })
 }
 
 /**

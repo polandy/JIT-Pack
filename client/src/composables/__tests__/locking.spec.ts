@@ -196,6 +196,111 @@ describe('who holds the lock (G-3)', () => {
   })
 })
 
+/**
+ * FR-5.7 / ADR-028. A claim is made on a *device* (`myLocks`) because Local
+ * and Single-User Mode have no second account to compare against — and that
+ * is exactly what a takeover breaks: the server hands the row to somebody
+ * else, and the device that lost it must stop believing it still holds one.
+ * Found by the `server` e2e project on 2026-08-24: the notification landed
+ * on the loser's screen while her row went on saying "You are packing this".
+ */
+describe('a claim that was taken over (FR-5.7)', () => {
+  it('stops being mine when a lock event names another account', async () => {
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      currentUserId: () => 'alice',
+    })
+    const store = useTripStore()
+    const item = seedItem(store)
+    await orch.connect()
+
+    orch.packingNow('t1', item)
+    const claimed = store.getItems('t1')[0]!
+    expect(orch.holdsClaim('t1', claimed)).toBe(true)
+
+    wsInstances[0]!.onmessage!({
+      data: JSON.stringify({
+        type: 'item.locked',
+        payload: { trip_id: 't1', item_id: 'ti1', by_user: 'bob', name: 'Zelt' },
+      }),
+    })
+
+    const after = store.getItems('t1')[0]!
+    expect(orch.holdsClaim('t1', after)).toBe(false)
+    expect(orch.lockHolder('t1', after)).toBe('bob')
+    expect(orch.isLockedByOther('t1', after)).toBe(true)
+  })
+
+  it('stops being mine when the pull names another account, with no event', () => {
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      currentUserId: () => 'alice',
+    })
+    const store = useTripStore()
+    const item = seedItem(store)
+
+    orch.packingNow('t1', item)
+    // What a drain after the takeover writes: the server has stamped the
+    // taker (invariant 3), and this device may have been offline for the
+    // event entirely.
+    const taken = seedItem(store, {
+      state: 'packing_now',
+      packing_now_by: 'bob',
+      packing_now_at: new Date().toISOString(),
+    })
+
+    expect(orch.lockHolder('t1', taken)).toBe('bob')
+    expect(orch.holdsClaim('t1', taken)).toBe(false)
+  })
+
+  it('leaves my claim alone when the account is my own', async () => {
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      currentUserId: () => 'alice',
+    })
+    const store = useTripStore()
+    const item = seedItem(store)
+    await orch.connect()
+
+    orch.packingNow('t1', item)
+    // The hub broadcasts a claim to every subscriber including the claimer,
+    // and my own second device is still me — this must not read as a
+    // takeover.
+    wsInstances[0]!.onmessage!({
+      data: JSON.stringify({
+        type: 'item.locked',
+        payload: { trip_id: 't1', item_id: 'ti1', by_user: 'alice', name: 'Zelt' },
+      }),
+    })
+
+    const after = store.getItems('t1')[0]!
+    expect(orch.holdsClaim('t1', after)).toBe(true)
+    expect(orch.lockHolder('t1', after)).toBeNull()
+  })
+
+  it('keeps the device rule where there is no identity to compare (Single-User)', async () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    const item = seedItem(store)
+    await orch.connect()
+
+    orch.packingNow('t1', item)
+    wsInstances[0]!.onmessage!({
+      data: JSON.stringify({
+        type: 'item.locked',
+        payload: { trip_id: 't1', item_id: 'ti1', by_user: 'e2e-local', name: 'Zelt' },
+      }),
+    })
+
+    // One account, two devices: the claim belongs to the device that made
+    // it, and there is no second person who could have taken it.
+    expect(orch.holdsClaim('t1', store.getItems('t1')[0]!)).toBe(true)
+  })
+})
+
 describe('my own claim (G-3)', () => {
   it('is reported to me, because nothing else on the row can be', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
