@@ -223,6 +223,18 @@ it. Item numbers stay stable even as items close, because the log refers back to
    (E2E-FLOW-02), the admin surface (M20) and any real-provider coverage. Log: *„A second account
    arrives…"*.
 
+19. **NFR-4.12 — notifications are the one surface still written in English**
+   (found 2026-08-24 while building FR-25.19's assignment control, **specified, not built**).
+   `client/src/notifications/format.ts` builds every FR-6.2 body as a literal, and
+   `client/public/sw.js` carries a **second copy** for the OS notification. The i18n migration
+   missed it because its unit was the *screen*; review missed it because no e2e project could
+   reach a notification before ADR-029. The in-app half is a plain `t()` migration; the OS half
+   needs the worker to know the locale, which lives in `localStorage` where a service worker
+   cannot read it — **an ADR is owed** on that mechanism (post it to the worker, mirror it into
+   IndexedDB, or have the push payload carry rendered text). Deliberately **not fixed in halves**:
+   a localized button under an English sentence is worse than consistent English. The full finding
+   is in NFR-4.12.
+
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,
 the North-Star Plan/During phases, FR-27.8's per-trip usage history, and FR-1.6's publish/fork
