@@ -222,7 +222,7 @@ export class SyncOutbox {
       const parked = await this.store.loadParked()
       this.parked = parked.length
       // Oldest first, so the reason to show is the tail's.
-      this.lastReason = parked.at(-1)?.reason ?? null
+      this.lastReason = parked.length > 0 ? parked[parked.length - 1]!.reason : null
     } catch {
       // A browser with IndexedDB switched off fails here, on the boot path.
       // Losing durability is a degradation; taking `connect()` down with it

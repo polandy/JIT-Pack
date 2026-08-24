@@ -81,7 +81,8 @@ export const de: Record<keyof typeof en, string> = {
   'sync.detail.parkedHint':
     'Sie wurden aus der Warteschlange genommen, damit der Rest rausgeht, und bleiben auf diesem Gerät. Erneut versucht werden sie nicht.',
   'sync.detail.rejected.notAuthorized': 'Du darfst diese Änderung nicht machen.',
-  'sync.detail.rejected.outOfScope': 'Sie nannte eine andere Reise als die, für die sie gesendet wurde.',
+  'sync.detail.rejected.outOfScope':
+    'Sie nannte eine andere Reise als die, für die sie gesendet wurde.',
   'sync.detail.rejected.stillReferenced':
     'Andere Daten verweisen noch darauf — mit dem Löschen ginge das mit verloren, deshalb hat der Server es behalten.',
   'sync.detail.rejected.templateScope':
