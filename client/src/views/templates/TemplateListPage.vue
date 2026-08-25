@@ -59,6 +59,7 @@ import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
 import { useLongPress } from '@/composables/useLongPress'
 import { t } from '@/i18n'
+import { DELETION_RETIRE } from '@/domain/masterDeletion'
 import { presentToast } from '@/lib/toast'
 
 const store = useMasterStore()
@@ -308,8 +309,18 @@ async function deleteTemplate(tpl: Template) {
     })
     return
   }
+  // FR-24.3: the confirm says which of the two deletions this is, before it
+  // happens rather than after. A Vorlage a trip was generated from is hidden
+  // and kept (FR-9.2); one no trip ever used is removed.
+  const outlook = orchestrator.templateDeletionOutlook(tpl.id)
+  const sentence =
+    outlook.kind === DELETION_RETIRE
+      ? t('templates.deleteRetire')
+      : outlook.certain
+        ? t('templates.deleteRemove')
+        : t('templates.deleteRemoveMaybe')
   const alert = await alertController.create({
-    message: t('templates.deleteConfirm', { name: tpl.name }),
+    message: `${t('templates.deleteConfirm', { name: tpl.name })} ${sentence}`,
     buttons: [
       { text: t('common.cancel'), role: 'cancel' },
       {

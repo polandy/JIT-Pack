@@ -14,7 +14,7 @@ import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { DELETION_REMOVE, DELETION_RETIRE } from '@/domain/masterDeletion'
-import type { PullResponse, PushResponse } from '@/api/types'
+import type { PushResponse } from '@/api/types'
 
 let fetchMock: ReturnType<typeof vi.fn>
 

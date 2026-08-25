@@ -81,7 +81,7 @@ describe('FR-24.3 — which deletion a row gets', () => {
 describe('FR-24.3 — the marker as a display rule', () => {
   it('reads an absent marker as active', () => {
     expect(isRetired(item('a'))).toBe(false)
-    expect(isRetired({ id: 'a', name: 'a' })).toBe(false)
+    expect(isRetired({})).toBe(false)
   })
 
   it('reads a stamped marker as retired', () => {

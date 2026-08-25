@@ -32,6 +32,7 @@ import {
   IonIcon,
   IonNote,
   IonSearchbar,
+  alertController,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -53,6 +54,7 @@ import SaveIndicator from '@/components/global/SaveIndicator.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
 import MarkPicker from '@/components/items/MarkPicker.vue'
 import { t } from '@/i18n'
+import { DELETION_RETIRE } from '@/domain/masterDeletion'
 import type { DependencyMode, Tag } from '@/types/domain'
 
 const props = defineProps<{ itemId?: string }>()
@@ -352,6 +354,43 @@ function onDependencyModeChange(dependencyId: string, mode: string) {
 
 function onRemoveDependency(dependencyId: string) {
   orchestrator.deleteItemDependency(dependencyId)
+}
+
+/**
+ * FR-24.3: which of the two deletions this item will get, worked out before
+ * the user confirms rather than reported afterwards. `certain` is false only
+ * where this device cannot see every trip (ADR-032).
+ */
+const deletionOutlook = computed(() =>
+  props.itemId ? orchestrator.masterItemDeletionOutlook(props.itemId) : null,
+)
+
+const deletionSentence = computed(() => {
+  const outlook = deletionOutlook.value
+  if (!outlook) return ''
+  if (outlook.kind === DELETION_RETIRE) return t('items.editor.deleteRetire')
+  return outlook.certain ? t('items.editor.deleteRemove') : t('items.editor.deleteRemoveMaybe')
+})
+
+async function onDelete() {
+  const current = item.value
+  if (!current) return
+  const alert = await alertController.create({
+    header: t('items.editor.deleteConfirm', { name: current.name }),
+    message: deletionSentence.value,
+    buttons: [
+      { text: t('common.cancel'), role: 'cancel' },
+      {
+        text: t('common.delete'),
+        role: 'destructive',
+        handler: () => {
+          orchestrator.deleteMasterItem(current.id)
+          router.replace({ name: 'items' })
+        },
+      },
+    ],
+  })
+  await alert.present()
 }
 
 // ADR-011: the one header bar renders this page's title.
@@ -661,6 +700,24 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
             </IonButton>
           </div>
 
+          <section class="jp-card delete-card" data-testid="m10-section-delete">
+            <h2 class="section-title jp-eyebrow">{{ t('items.editor.delete') }}</h2>
+            <p class="section-hint" data-testid="m10-delete-usage">
+              {{ t('items.editor.deleteUsage', { n: deletionOutlook?.references ?? 0 }) }}
+            </p>
+            <p class="section-hint" data-testid="m10-delete-outlook">{{ deletionSentence }}</p>
+            <IonButton
+              fill="outline"
+              color="danger"
+              expand="block"
+              data-testid="m10-delete"
+              @click="onDelete()"
+            >
+              <IonIcon slot="start" :icon="trashOutline" />
+              {{ t('items.editor.delete') }}
+            </IonButton>
+          </section>
+
           <template v-if="companions.length > 0">
             <h2 class="section-title jp-eyebrow">{{ t('items.editor.companions') }}</h2>
             <p class="section-hint">
@@ -696,6 +753,11 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 .edit-head {
   display: flex;
   justify-content: flex-end;
+}
+
+.delete-card {
+  margin-top: 24px;
+  padding: 16px;
 }
 
 .section-title {
