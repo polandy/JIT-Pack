@@ -787,7 +787,28 @@ func relogRefused(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutation, 
 		// describes what the server holds, and nothing about it changed.
 		entry.HLC = row.HLC
 	}
-	return appendChangeLog(ctx, tx, tripID, entry, !row.Exists)
+	seq, err := appendChangeLog(ctx, tx, tripID, entry, !row.Exists)
+	if err != nil {
+		return 0, err
+	}
+	if m.Op != sync.OpDelete || !row.Exists {
+		return seq, nil
+	}
+	// A delete takes its children with it, and the client mirrors that
+	// cascade optimistically — so re-logging the row alone brings a Vorlage
+	// back with none of its positions. The repair carries back everything
+	// the refused delete appeared to take.
+	children, err := cascadeChildren(ctx, tx, m, true, true)
+	if err != nil {
+		return 0, err
+	}
+	for _, c := range children {
+		child := sync.Mutation{Table: c.table, ID: c.id, HLC: m.HLC}
+		if seq, err = appendChangeLog(ctx, tx, tripID, child, false); err != nil {
+			return 0, err
+		}
+	}
+	return seq, nil
 }
 
 // logConflicts records every field the merge dropped, naming the mutation

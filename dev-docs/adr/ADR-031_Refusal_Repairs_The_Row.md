@@ -115,11 +115,12 @@ The user is told: a push that came back with refusals raises one toast per push 
 
 - The screen and the server agree again after a refusal, for every reason in the vocabulary, without a new endpoint and without the outbox holding anything back.
 - A refused insert cleans itself up: the tombstone is the same mechanism, decided by what the server holds.
+- A refused **delete** carries its children back too. The client mirrors the server's cascade optimistically — deleting a Vorlage takes its positions off the screen with it — so re-logging the named row alone put the Vorlage back empty. Rendering the repair is what found that; an assertion on the row alone was green against it.
 - The repair rides the existing broadcast, so a device that was not the pusher converges through the same ping-and-pull it already does.
 
 **Negative / accepted costs**
 
-- One `change_log` entry per refusal reaches every device on the partition. Accepted: a refusal is an exceptional event, and the alternative was a second read path.
+- One `change_log` entry per refusal reaches every device on the partition — and a refused *delete* costs one per cascaded child as well, because the repair has to undo the whole optimistic cascade. Accepted: a refusal is an exceptional event, and the alternative was a second read path.
 - A rejection is no longer a no-op transaction on the server. It never was one in full — the idempotency memo was already written — but it now touches the feed.
 - **A residue stays**: if the refused master row is one `masterVisible` hides from the pusher (a trip they are not a member of), the pull filters the repair out and their optimistic row survives. They are told by the toast and by G-2; the row is corrected the moment the entity becomes visible to them, and never otherwise. Left open deliberately rather than closed with a tombstone, which would be the server saying "this does not exist" about a row that does.
 - Two mechanisms rather than one, split by the reason on the wire.

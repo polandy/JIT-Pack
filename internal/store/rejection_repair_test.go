@@ -229,3 +229,48 @@ func TestApplyMasterMutation_ReplayingARefusedMutation_ReLogsNothingFurther(t *t
 		t.Errorf("the replay appended %d further change(s), want none", len(page.Changes))
 	}
 }
+
+// Rendering the repair is what found this one. The client mirrors the
+// server's cascade when it deletes a template — the positions go with it,
+// optimistically — so re-logging the template alone put the Vorlage back on
+// screen with none of its contents. The repair has to carry back everything
+// the delete took, not only the row the mutation named.
+func TestPullMaster_AfterARefusedDelete_OffersTheChildrenTheClientMirroredAway(t *testing.T) {
+	s := openTestStore(t)
+
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, TableTemplates, "grp-wash", "rc-1",
+		map[string]any{"name": "Waschbeutel", "kind": KindGroup}, "0000000001000-0000-aaaaaaaa"))
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, TableItems, "item-soap", "rc-1b",
+		map[string]any{"name": "Seife"}, "0000000001000-0000-aaaaaaab"))
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, TableTemplateItems, "pos-soap", "rc-2",
+		map[string]any{"template_id": "grp-wash", "item_id": "item-soap", "quantity": 1},
+		"0000000001001-0000-aaaaaaaa"))
+	generated := upsert("ti-wash", "rc-3", map[string]any{
+		"trip_id": testTrip, "name": "Seife", "source_template_id": "grp-wash",
+	}, "0000000001002-0000-aaaaaaaa")
+	if _, err := s.ApplyMutation(context.Background(), testTrip, testUser, generated); err != nil {
+		t.Fatalf("seed trip item: %v", err)
+	}
+	caughtUp := pullMasterAfter(t, s, testUser, 0).NextCursor
+
+	res := applyMaster(t, s, testUser, masterMut(sync.OpDelete, TableTemplates, "grp-wash", "rc-4",
+		nil, "0000000002000-0000-aaaaaaaa"))
+	if res.Reason != ReasonStillReferenced {
+		t.Fatalf("reason = %q, want %q", res.Reason, ReasonStillReferenced)
+	}
+
+	page := pullMasterAfter(t, s, testUser, caughtUp)
+
+	var position *Change
+	for i, c := range page.Changes {
+		if c.Table == TableTemplateItems && c.ID == "pos-soap" {
+			position = &page.Changes[i]
+		}
+	}
+	if position == nil {
+		t.Fatalf("the group came back empty: the refusal re-logged the template and none of its %d positions", 1)
+	}
+	if position.Deleted {
+		t.Errorf("the position came back as a tombstone, want the row the server still has")
+	}
+}
