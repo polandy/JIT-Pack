@@ -120,6 +120,10 @@ export interface SyncOutboxOptions {
 export class SyncOutbox {
   private queues = new Map<string, Mutation[]>()
   private cursors = new Map<string, number>()
+  /** The drain currently running for a partition, while one is (see `drain`). */
+  private draining = new Map<string, Promise<void>>()
+  /** The one follow-up drain already promised to callers that arrived too late. */
+  private queuedDrain = new Map<string, Promise<void>>()
   private readonly client: APIClient
   private readonly hlc: HLCGenerator
   private readonly onChanges: (changes: PullChange[]) => void
@@ -243,8 +247,51 @@ export class SyncOutbox {
     return order.map(partitionRef)
   }
 
-  /** Push pending mutations then pull canonical state. */
-  async drain(type: PartitionType, id: string | null): Promise<void> {
+  /**
+   * Push pending mutations then pull canonical state — one drain per
+   * partition at a time.
+   *
+   * Most callers do not await this: the WebSocket's `master.changed` handler
+   * fires it and moves on, and so do the trip actions. Two of them landing on
+   * top of each other pushed the same chunk twice and pulled the same pages
+   * twice, which since the feed became a *paged* one costs the whole
+   * partition rather than one request.
+   *
+   * A late caller waits for a **further** drain rather than being handed the
+   * running one: a drain works through the snapshot of the queue it took when
+   * it started, so handing back the running promise would report a mutation
+   * enqueued since then as sent while it had never left the device. Every
+   * caller that arrives during one drain shares that single follow-up.
+   */
+  drain(type: PartitionType, id: string | null): Promise<void> {
+    const key = partitionKey(type, id)
+    const running = this.draining.get(key)
+    if (!running) {
+      // `finally` and not `then`: a drain that fails must release the
+      // partition, or one lost network moment would take it out of sync for
+      // the rest of the session.
+      // Nothing else can have registered a drain for this partition in the
+      // meantime — that is what the map is for — so the entry this clears is
+      // always this drain's own.
+      const started = this.runDrain(type, id).finally(() => this.draining.delete(key))
+      this.draining.set(key, started)
+      return started
+    }
+    const promised = this.queuedDrain.get(key)
+    if (promised) return promised
+    // The running drain's failure belongs to whoever started it; this caller
+    // gets the outcome of its own drain, which has not happened yet.
+    const follow = running
+      .catch(() => {})
+      .then(() => {
+        this.queuedDrain.delete(key)
+        return this.drain(type, id)
+      })
+    this.queuedDrain.set(key, follow)
+    return follow
+  }
+
+  private async runDrain(type: PartitionType, id: string | null): Promise<void> {
     const key = partitionKey(type, id)
     const queue = this.queues.get(key) ?? []
 
