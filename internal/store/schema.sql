@@ -70,10 +70,19 @@ CREATE TABLE items (                            -- FR-1.1
     -- Unicode adds emoji every year and a "is this really an emoji" table
     -- silently rejects next year's valid input (FR-28.9).
     icon          TEXT CHECK (icon IS NULL OR length(icon) <= 32),
+    -- FR-24.3: NULL while the row is active, an RFC3339 stamp once a delete
+    -- was answered by retiring the row. Deliberately free of NOT NULL and of
+    -- a CHECK: field-level LWW merges this column on its own, and a
+    -- constraint that can refuse a single-field mutation loses the user's
+    -- decision, because a rejected mutation is one the outbox drops.
+    retired_at    TEXT,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
-    updated_hlc   TEXT NOT NULL DEFAULT '',
-    UNIQUE (name)                                 -- FR-16.3
+    updated_hlc   TEXT NOT NULL DEFAULT ''
+    -- FR-16.3's uniqueness is over what the user can see: a retired row
+    -- holding a name nothing renders is a name taken by nothing, and
+    -- re-creating the item you just deleted is the common case.
 );
+CREATE UNIQUE INDEX idx_items_active_name ON items (name) WHERE retired_at IS NULL;
 
 -- The bytes stay out of the sync envelope (ADR-002); only items.image_hash
 -- flows through the master feed.
@@ -134,15 +143,17 @@ CREATE TABLE templates (
                  CHECK (kind IN ('group','template')),
     is_published INTEGER NOT NULL DEFAULT 0 CHECK (is_published IN (0,1)),
     icon         TEXT CHECK (icon IS NULL OR length(icon) <= 32),  -- FR-28.8
+    retired_at   TEXT,                                   -- FR-24.3, see items.retired_at
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
-    updated_hlc  TEXT NOT NULL DEFAULT '',
+    updated_hlc  TEXT NOT NULL DEFAULT ''
     -- Instance-wide, not per owner: under the FR-1.6 MVP simplification
     -- every account sees every template, so two same-named groups from two
     -- accounts are two rows nobody can tell apart — and FR-18.2/18.4 link
     -- an imported group *by name* across the whole instance. Same rule as
-    -- items.name and tags.name.
-    UNIQUE (name)
+    -- items.name and tags.name. Over the *active* rows only, for the reason
+    -- items.name gives (FR-24.3).
 );
+CREATE UNIQUE INDEX idx_templates_active_name ON templates (name) WHERE retired_at IS NULL;
 
 CREATE TABLE template_items (
     id               TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
