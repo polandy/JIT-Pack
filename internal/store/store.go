@@ -96,6 +96,38 @@ const (
 	KindGroup = "group"
 )
 
+// RejectReason names why a mutation was refused, so a `rejected` outcome
+// can be turned into a sentence instead of a shrug (Sync-API §5). The set is
+// closed and travels as the push result's `error`: the client maps it to
+// copy, and could branch on it. It is a vocabulary rather than a message
+// because the message belongs to whoever renders it — in the user's own
+// language, which the server does not know.
+type RejectReason string
+
+// The reasons a push can be refused for. Every place in this package that
+// produces sync.OutcomeRejected names one of them.
+const (
+	// ReasonNone is the zero value: an outcome that is not a refusal.
+	ReasonNone RejectReason = ""
+	// ReasonNotAuthorized is a rule about the person (FR-4.5/4.7): they may
+	// not touch this row, however valid the change itself is.
+	ReasonNotAuthorized RejectReason = "not_authorized"
+	// ReasonOutOfScope is a mutation aimed outside the partition it was
+	// pushed to (Sync-API P-3) — a client bug rather than a user's mistake.
+	ReasonOutOfScope RejectReason = "out_of_scope"
+	// ReasonStillReferenced is a delete the rest of the database depends on:
+	// deleting a Vorlage a trip item names would strip FR-9.2 provenance from
+	// an archived trip, so the row stays and the delete is refused.
+	ReasonStillReferenced RejectReason = "still_referenced"
+	// ReasonTemplateScope is the FR-27.1 two-level rule and the FR-27.6 scope
+	// switches that protect it — structural, not a matter of permission.
+	ReasonTemplateScope RejectReason = "template_scope"
+	// ReasonConstraintViolated is everything the schema itself refused: a
+	// foreign key whose parent is gone, a UNIQUE two devices raced into, a
+	// CHECK the mutation's values fail.
+	ReasonConstraintViolated RejectReason = "constraint_violated"
+)
+
 // The trip roles (FR-4.5/4.7), named once: they are compared against in
 // every authorization decision, and a mistyped literal reads as "not that
 // role" rather than as a build failure.
@@ -393,6 +425,9 @@ type MutationResult struct {
 	Outcome    sync.Outcome
 	Conflicts  []sync.Conflict
 	Seq        int64
+	// Reason is set exactly when Outcome is rejected, and is what lets the
+	// client say what happened instead of parking the mutation in silence.
+	Reason RejectReason
 }
 
 // ApplyMutation resolves one trip-partition mutation transactionally:
@@ -420,11 +455,21 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID, userID string, m sync
 	}
 
 	if !belongsToTrip(tripID, m, row.Fields, row.Exists) {
-		res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected}
+		res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected, Reason: ReasonOutOfScope}
 		return res, finalize(ctx, tx, res)
 	}
 
 	merged := sync.Merge(row, m)
+
+	// Asked before the delete rather than read out of the failure it would
+	// cause: the driver's constraint error is a message, and a message is
+	// not a contract to branch on.
+	if blocked, err := stillReferenced(ctx, tx, m, merged.Deleted, row.Exists); err != nil {
+		return MutationResult{}, err
+	} else if blocked {
+		res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected, Reason: ReasonStillReferenced}
+		return res, finalize(ctx, tx, res)
+	}
 
 	// FK cascades delete child rows inside SQLite, where the change feed
 	// cannot see them; collect their ids before the delete so they can be
@@ -445,7 +490,7 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID, userID string, m sync
 			// where an error would become a 500, and a 5xx is the one answer
 			// the outbox keeps retrying, wedging the whole partition behind
 			// the bad row. Same treatment as the master partition.
-			res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected}
+			res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected, Reason: ReasonConstraintViolated}
 			return res, finalize(ctx, tx, res)
 		}
 		return MutationResult{}, err

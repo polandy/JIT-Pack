@@ -14,6 +14,7 @@ import { mount } from '@vue/test-utils'
 
 import SyncDetailSheet from '../SyncDetailSheet.vue'
 import type { StorageStatus } from '@/local/storageStatus'
+import { REJECTION_REASON } from '@/sync/rejectionReasons'
 
 const DAY = 86_400_000
 const NOW = 1_760_000_000_000
@@ -277,6 +278,35 @@ describe('SyncDetailSheet — the durable queue', () => {
 
     expect(text(wrapper, 'sync-detail-parked')).toBe('The server rejected 1 change')
     expect(text(wrapper, 'sync-detail-parked-hint')).toContain('will not be tried again')
+  })
+
+  /**
+   * The refusal used to be a count and nothing else, so "the server rejected
+   * 1 change" was the whole story a user got about a template the app had
+   * already removed from their screen. The reason is what makes the count
+   * actionable (Sync-API §5).
+   */
+  it('says why the last refusal happened', () => {
+    const wrapper = mountSheet({
+      state: 'synced',
+      parkedCount: 1,
+      parkedReason: REJECTION_REASON.stillReferenced,
+    })
+
+    expect(text(wrapper, 'sync-detail-parked-reason')).toContain('still refers to it')
+  })
+
+  it('says nothing rather than showing raw server words it has no sentence for', () => {
+    const wrapper = mountSheet({
+      state: 'synced',
+      parkedCount: 1,
+      parkedReason: 'unknown column: trip_items.nope',
+    })
+
+    // The positive companion: the refusal itself is still reported, so the
+    // absence below is a missing *reason*, not a missing story.
+    expect(has(wrapper, 'sync-detail-parked')).toBe(true)
+    expect(has(wrapper, 'sync-detail-parked-reason')).toBe(false)
   })
 
   it('stays quiet when the server has refused nothing', () => {

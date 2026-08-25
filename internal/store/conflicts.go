@@ -177,7 +177,8 @@ func (s *Store) RevertMasterConflict(ctx context.Context, userID, conflictID str
 		return 0, ErrConflictNotFound
 	}
 	authorize := func(tx *sql.Tx, m *sync.Mutation, current map[string]any) (bool, error) {
-		return authorizeMaster(ctx, tx, userID, m, current, true)
+		reason, err := authorizeMaster(ctx, tx, userID, m, current, true)
+		return reason == ReasonNone, err
 	}
 	return s.applyRevert(ctx, conflictID, e, masterPartitionTables, nil, authorize)
 }
