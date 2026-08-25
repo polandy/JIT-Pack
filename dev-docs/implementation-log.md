@@ -155,6 +155,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A trip could be judged only one row at a time (2026-08-24)](#a-trip-could-be-judged-only-one-row-at-a-time-2026-08-24) — FR-9.3/9.4. Three things the code cannot show: how many affordances a "one posture, one question" screen turns out to have once it is rendered, why a handled proposal became a record line rather than a dimmed card, and the control that was replaced twice before it rendered the row rather than itself.
 - [A claim stops having a lifetime (2026-08-24)](#a-claim-stops-having-a-lifetime-2026-08-24) — FR-5.7/ADR-028. Four things the code cannot show: why the option that looked like the compromise was the most expensive one, why the takeover is the one lock action with no optimistic write, why it has no reachable Playwright case and will not until a second identity exists, and the two-day-old work that was deleted rather than adapted.
 - [A second account arrives, and finds a claim nobody could revoke (2026-08-24)](#a-second-account-arrives-and-finds-a-claim-nobody-could-revoke-2026-08-24) — MVP-plan Track B step 2 / ADR-029: the mock-IdP `server` project. Four things the code cannot show: why a real Authelia was weighed and lost to a 250-line fixture, why the ordering of two processes is a design decision rather than a script detail, the defect the project found on its first run — a takeover that the loser's screen contradicted — and why the identity behind the fix cannot come from the token provider the rest of the client uses.
+- [A device only ever got the first page (2026-08-25)](#a-device-only-ever-got-the-first-page-2026-08-25) — Sync-API §4: the pull ignored `has_more`. Four things the code cannot show: why every fixture in the suite was too small to catch it, why the obvious second half of the fix — remembering the cursor — made the app *emptier*, why the correct implementation was already in the repo and unused, and what found it in the end.
 - [The restore could be run twice, and the manual said it could not (2026-08-24)](#the-restore-could-be-run-twice-and-the-manual-said-it-could-not-2026-08-24) — FR-18.4/ADR-030: an imported document is a second copy when its name matches, plus the year for a trip. Five things the code cannot show: the documentation that had described the item rule as if it were the whole rule, why the database constraint that looks like the obvious enforcement is the worst of the four options, why the trips were invisible to a view called `master`, how ADR-017's Vorlage exception was reversed by a measurement rather than an argument, and the cost the family's own data pays for the rule.
 
 ## Current state
@@ -6388,3 +6389,52 @@ literal, with a second copy in `sw.js` for the OS notification. It is backlog
 item 19 rather than a commit in this PR: the worker cannot read the locale
 from `localStorage`, so the OS half needs a mechanism decision and an ADR, and
 a localized button under an English sentence is worse than consistent English.
+## A device only ever got the first page (2026-08-25)
+
+**What changed:** the pull asks page after page until the server says there is
+no more (Sync-API §4). It used to ask once, apply the 500 changes it got back,
+and stop — `has_more` was read by nothing.
+
+**What it looked like.** After importing a decade of the family's real trips
+into the `:3000` instance, a fresh browser opened on M2 and said *„Keine
+archivierten Reisen"*, with the G-2 glyph green and no error anywhere. The
+instance held 717 master rows; the trips sit at `change_log.seq 652` and up,
+behind the first page, so not one of them was ever delivered. What did arrive
+was 16 of 21 groups and one group holding 19 of its 20 items — a world that
+looks plausible and is a fraction of the truth.
+
+**Why nothing caught it.** Every fixture in the suite is smaller than a page.
+The unit cases stubbed the pull with a single response and asserted what came
+out of it; the e2e projects build their world by clicking, and clicking does not
+produce five hundred rows. A rule about what happens *past* the first page
+cannot be tested by data that never reaches it, and the honest fix was to push
+520 rows straight at the API in E2E-SYNC-01 — the one case in the suite whose
+subject is the size of a partition rather than a screen.
+
+**The second half of the fix made it worse, and the measurement said so.**
+The cursor lived in an in-memory `Map`, so a reload asked from zero again. That
+looks like the other half of the same bug, and persisting it in IndexedDB
+beside the outbox queue was written, tested and green. Then it ran against the
+real instance: **zero rows**, on every screen. Outside Local Mode the pulled
+rows are not kept either — they live in the Pinia stores and go with the tab —
+so a device that remembers how far it read and not *what* it read asks for the
+changes after that point, is correctly told there are none, and renders an
+empty app. The memory-only cursor was not an oversight; it is what makes a
+memory-only store correct. That half was reverted, and the unit case that had
+asserted persistence now asserts the opposite, with the reason in its body.
+
+**The correct implementation was already in the repository.**
+`client/src/composables/usePull.ts` has `pullMasterAll` with exactly the
+`while (hasMore)` loop this needed — and `grep -rn "usePull(" src` finds no
+caller outside its own tests. The app pulls through `SyncOutbox.drain`, which
+grew its own single-request version. Two implementations of one protocol rule,
+one of them unreachable from the product, is the shape ADR-025 deleted a
+different instance of a fortnight earlier: the reachable copy drifted and
+nobody could see it, because the correct one was never run.
+
+**What found it.** Not a test, and not a review — using the thing. The import
+went in through the CLI, which writes server-side only, so a browser had to
+pull the instance from scratch for the first time. Every previous load of that
+data had been written *by* the browser that then displayed it, which is exactly
+why a decade of use had never asked the question. It is also what every second
+family device does on its first launch.
