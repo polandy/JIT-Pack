@@ -33,7 +33,11 @@ beforeEach(() => {
 })
 
 function newLocalOrch() {
-  return useSyncOrchestrator({ baseUrl: '', getToken: () => null, local: new IndexedDBPersistence() })
+  return useSyncOrchestrator({
+    baseUrl: '',
+    getToken: () => null,
+    local: new IndexedDBPersistence(),
+  })
 }
 
 const RETIRED = '2026-08-25T09:00:00Z'
