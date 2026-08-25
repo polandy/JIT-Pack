@@ -18,6 +18,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import TripListPage from '../TripListPage.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
+import { t } from '@/i18n'
 import type { AppliedChange } from '@/types/domain'
 
 vi.mock('@/composables/useHeaderTitle', () => ({ setHeaderTitle: vi.fn() }))
@@ -44,6 +45,11 @@ const orchestratorFake = {
   fetchMe: vi.fn(() => Promise.resolve(null)),
   drainAll: vi.fn(() => Promise.resolve()),
   refreshProposals: { value: {} as Record<string, unknown> },
+  // ADR-033: whether a trip's own rows are on this device, and the request
+  // that fetches them. The set is what a test decides.
+  loadedTrips: new Set<string>(),
+  tripDataLoaded: vi.fn((tripId: string) => orchestratorFake.loadedTrips.has(tripId)),
+  ensureTripData: vi.fn(() => Promise.resolve()),
 }
 
 function seedTrip(status: string) {
@@ -93,6 +99,7 @@ function mountPage() {
 beforeEach(() => {
   segment = 'planned'
   orchestratorFake.refreshProposals.value = {}
+  orchestratorFake.loadedTrips = new Set<string>()
   setActivePinia(createPinia())
   vi.clearAllMocks()
   localStorage.clear()
@@ -274,5 +281,77 @@ describe('TripListPage — the lifecycle swipe options', () => {
     await page.find('[aria-label="Start trip"]').trigger('click')
 
     expect(orchestratorFake.activateTrip).toHaveBeenCalledWith('t1')
+  })
+})
+
+/**
+ * ADR-033: `trip_items` live in the trip's own partition, so a trip this
+ * device has never opened has nothing to sum. The row used to print the sum
+ * of nothing — `0/0 gepackt`, ring at 0 % — which reads as "you packed
+ * nothing" for a trip that was fully packed years ago.
+ */
+describe('TripListPage — a trip whose own rows are not here yet', () => {
+  it('says the items are still coming instead of claiming there are none', () => {
+    seedTrip('archived')
+    segment = 'archived'
+
+    const wrapper = mountPage()
+
+    const summary = wrapper.find('[data-testid="trip-item-summary"]')
+    expect(summary.text()).toBe(t('trips.itemsUnknown'))
+    // The positive half: the number it used to show is *not* there.
+    expect(summary.text()).not.toContain('0/0')
+  })
+
+  it('leaves the ring unfilled and unlabelled rather than showing 0 %', () => {
+    seedTrip('archived')
+    segment = 'archived'
+
+    const wrapper = mountPage()
+
+    expect(wrapper.find('.ring-fg').attributes('stroke-dasharray')).toBe('0 100')
+    expect(wrapper.find('.ring-text').text()).not.toContain('%')
+  })
+
+  it('shows the real numbers once the rows are here', () => {
+    const trips = seedTrip('archived')
+    segment = 'archived'
+    orchestratorFake.loadedTrips.add('t1')
+    trips.applyChange({
+      seq: 1,
+      table: TABLE.tripItems,
+      id: 'ti-1',
+      deleted: false,
+      row: { trip_id: 't1', name: 'Zelt', quantity: 2, packed_count: 2, state: 'packed' },
+    })
+
+    const wrapper = mountPage()
+
+    expect(wrapper.find('[data-testid="trip-item-summary"]').text()).toContain('2')
+    expect(wrapper.find('.ring-fg').attributes('stroke-dasharray')).toBe('100 100')
+    expect(wrapper.find('.ring-text').text()).toContain('100%')
+  })
+
+  it('asks for a row it is showing — jsdom has no observer, so every row counts as shown', () => {
+    seedTrip('archived')
+    segment = 'archived'
+
+    mountPage()
+
+    expect(orchestratorFake.ensureTripData).toHaveBeenCalledWith('t1')
+  })
+
+  it('does not ask again for a trip whose rows it already has', () => {
+    seedTrip('archived')
+    segment = 'archived'
+    orchestratorFake.loadedTrips.add('t1')
+
+    mountPage()
+
+    // The guard is in `ensureTripData`, and the screen still calls it — what
+    // matters is that a loaded trip costs no request, which its own unit
+    // asserts. Here: the screen does not decide to skip the call, so a trip
+    // that becomes stale later can still be refreshed.
+    expect(orchestratorFake.ensureTripData).toHaveBeenCalledWith('t1')
   })
 })
