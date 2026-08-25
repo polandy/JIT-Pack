@@ -6973,7 +6973,7 @@ one. But `idx_items_active_name` ranges over `retired_at IS NULL` deliberately, 
 *frees the name*, and the whole reason that was chosen — re-creating what you just deleted
 is the common case — is precisely the sequence that then makes a restore impossible. The
 free restore and the freed name were two bullets under one FR, each right on its own. What
-that cost is a whole ADR (033) for a feature described as costing nothing.
+that cost is a whole ADR (034) for a feature described as costing nothing.
 
 **The collision is answered on the client, which is the opposite of what ADR-032 had just
 decided — and the difference is which question is being asked.** ADR-032 made the client's
