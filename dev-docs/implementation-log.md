@@ -6501,3 +6501,19 @@ as the first symptom and nothing naming the cause. It is in the DSN now. The
 test needed a deterministic seam rather than a hope that a reconnect happens:
 `SetMaxIdleConns(0)` makes the pool close each connection on release, so the
 next query provably runs on a fresh one.
+
+**A rule that never ran was hiding two things.** Making the snapshot carry
+`updated_hlc` was one line; merging it forward onto a `main` that had meanwhile
+gained the multi-page pull fix turned `e2e-single` red, on *that* fix's own new
+case. The cause was not paging. `observeHLCs` had finally been given something
+to parse, and `parseHLC` throws by design — so the first malformed clock in the
+feed aborted the page, and the 520-row fixture behind the case was minting
+device ids out of a non-hex `uniq()`. Two defects had been sitting behind a
+guard that was always false: a test fixture producing HLCs the client's own
+parser refuses, and a client that lets one bad row make every other row of a
+partition unreachable, on every device, for as long as that row exists. The
+server stores an HLC verbatim and never checks its device id, so one buggy
+producer is enough to trigger it. Observing a clock is an optimisation for
+causality, not a gate on rendering, so it is tolerant now and says what it
+refused. **A dead code path does not fail; it waits** — and what it was hiding
+surfaced only because something else was fixed.
