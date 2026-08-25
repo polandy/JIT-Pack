@@ -213,6 +213,11 @@ export const en = {
   'templates.import': 'Import template from file',
   'templates.rename': 'Rename',
   'templates.deleteConfirm': 'Delete “{name}”? Trips already generated keep their rows.',
+  'templates.deleteRetire':
+    'It will be hidden, not removed: the trips generated from it keep showing where their things came from.',
+  'templates.deleteRemove': 'No trip has used it — it will be removed for good.',
+  'templates.deleteRemoveMaybe':
+    'No trip on this device has used it, so it will be removed for good. If a trip this device has not opened was generated from it, it is only hidden instead.',
   'templates.includedBlocked': 'Included in “{name}” — remove it there first.',
 
   // M8 template editor (§3.27, FR-27.6/27.7).
@@ -354,6 +359,14 @@ export const en = {
   'items.editor.dependencyCycle': 'That would close a circle: {path}.',
   'items.editor.companions': 'Companions',
   'items.editor.companionsHint': 'These items depend on {name}:',
+  'items.editor.delete': 'Delete item',
+  'items.editor.deleteUsage': 'Used in {n} place | Used in {n} places',
+  'items.editor.deleteRetire':
+    'It will be hidden, not removed: finished trips and the analytics keep reading it.',
+  'items.editor.deleteRemove': 'Nothing uses it — it will be removed for good.',
+  'items.editor.deleteRemoveMaybe':
+    'Nothing on this device uses it, so it will be removed for good. If a trip this device has not opened still uses it, it is only hidden instead.',
+  'items.editor.deleteConfirm': 'Delete “{name}”?',
   'items.editor.unknownItem': 'Unknown item',
 
   // M5 item detail.

@@ -43,26 +43,25 @@ func pullMasterAfter(t *testing.T, s *Store, userID string, cursor int64) PullPa
 	return page
 }
 
-// The motivating case, end to end (FR-9.2, Sync-API §5): the Vorlage a trip
-// item still names cannot be deleted, the client has already removed it from
-// the screen, and the next pull has to put it back.
+// The motivating case, end to end (Sync-API §5): a row the data still
+// depends on cannot be deleted, the client has already removed it from the
+// screen, and the next pull has to put it back. The example is a series a
+// trip names — the Vorlage this test was written around moved onto FR-24.3's
+// retire branch, where the repair below covers the same ground.
 func TestPullMaster_AfterARefusedDelete_OffersTheRowAgain(t *testing.T) {
 	s := openTestStore(t)
 
-	applyMaster(t, s, testUser, masterMut(sync.OpInsert, TableTemplates, "tpl-ferien", "rr-1",
-		map[string]any{"name": "Ferien", "kind": KindTemplate}, "0000000001000-0000-aaaaaaaa"))
-	generated := upsert("ti-1", "rr-2", map[string]any{
-		"trip_id": testTrip, "name": "Zahnbürste", "source_template_id": "tpl-ferien",
-	}, "0000000001001-0000-aaaaaaaa")
-	if _, err := s.ApplyMutation(context.Background(), testTrip, testUser, generated); err != nil {
-		t.Fatalf("seed trip item: %v", err)
-	}
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, TableTripSeries, "ser-ferien", "rr-1",
+		map[string]any{"name": "Ferien"}, "0000000001000-0000-aaaaaaaa"))
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, TableTrips, "trip-ferien", "rr-2",
+		map[string]any{"name": "Engadin", "year": 2026, "series_id": "ser-ferien"},
+		"0000000001001-0000-aaaaaaaa"))
 
 	// The device is up to date: everything written so far is behind its
 	// cursor, which is exactly the state that makes the divergence permanent.
 	caughtUp := pullMasterAfter(t, s, testUser, 0).NextCursor
 
-	res := applyMaster(t, s, testUser, masterMut(sync.OpDelete, TableTemplates, "tpl-ferien", "rr-3",
+	res := applyMaster(t, s, testUser, masterMut(sync.OpDelete, TableTripSeries, "ser-ferien", "rr-3",
 		nil, "0000000002000-0000-aaaaaaaa"))
 	if res.Outcome != sync.OutcomeRejected || res.Reason != ReasonStillReferenced {
 		t.Fatalf("outcome/reason = %q/%q, want rejected/%s", res.Outcome, res.Reason, ReasonStillReferenced)
@@ -72,13 +71,13 @@ func TestPullMaster_AfterARefusedDelete_OffersTheRowAgain(t *testing.T) {
 
 	var repaired *Change
 	for i, c := range page.Changes {
-		if c.Table == TableTemplates && c.ID == "tpl-ferien" {
+		if c.Table == TableTripSeries && c.ID == "ser-ferien" {
 			repaired = &page.Changes[i]
 		}
 	}
 	if repaired == nil {
 		t.Fatalf("the refused delete was never re-logged: pull after the refusal offered %d changes, "+
-			"so the device keeps a template the server still has", len(page.Changes))
+			"so the device keeps a series the server still has", len(page.Changes))
 	}
 	if repaired.Deleted {
 		t.Errorf("the repair is a tombstone, want the snapshot of a row that still exists")
@@ -234,8 +233,11 @@ func TestApplyMasterMutation_ReplayingARefusedMutation_ReLogsNothingFurther(t *t
 // server's cascade when it deletes a template — the positions go with it,
 // optimistically — so re-logging the template alone put the Vorlage back on
 // screen with none of its contents. The repair has to carry back everything
-// the delete took, not only the row the mutation named.
-func TestPullMaster_AfterARefusedDelete_OffersTheChildrenTheClientMirroredAway(t *testing.T) {
+// the delete took, not only the row the mutation named. Since FR-24.3 the
+// delete this Vorlage meets is a *retire* rather than a refusal, and the
+// same debt is owed: a row that survives a delete the client already drew
+// has to bring its children with it.
+func TestPullMaster_AfterARetire_OffersTheChildrenTheClientMirroredAway(t *testing.T) {
 	s := openTestStore(t)
 
 	applyMaster(t, s, testUser, masterMut(sync.OpInsert, TableTemplates, "grp-wash", "rc-1",
@@ -255,8 +257,8 @@ func TestPullMaster_AfterARefusedDelete_OffersTheChildrenTheClientMirroredAway(t
 
 	res := applyMaster(t, s, testUser, masterMut(sync.OpDelete, TableTemplates, "grp-wash", "rc-4",
 		nil, "0000000002000-0000-aaaaaaaa"))
-	if res.Reason != ReasonStillReferenced {
-		t.Fatalf("reason = %q, want %q", res.Reason, ReasonStillReferenced)
+	if res.Outcome == sync.OutcomeRejected {
+		t.Fatalf("outcome = rejected (%s), want the FR-24.3 retire", res.Reason)
 	}
 
 	page := pullMasterAfter(t, s, testUser, caughtUp)

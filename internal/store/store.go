@@ -83,6 +83,23 @@ const (
 	MarkMaxBytes = 32
 )
 
+// RetiredColumn carries FR-24.3's lifecycle marker on items and templates
+// alike: NULL while the row is active, an RFC3339 stamp once a delete was
+// answered by retiring the row instead of removing it. It is an ordinary
+// synced column — the marker has to reach every device, or a row is hidden
+// on the one that deleted it and present everywhere else.
+const RetiredColumn = "retired_at"
+
+// lifecycleTables names the two entities FR-24.3 governs. Everything else
+// blockingReferences knows about — a series, a traveler, a container —
+// keeps refusing its delete: those are not history the way a master item is,
+// and a retired traveler would be a person nobody can see attached to rows
+// everybody can.
+var lifecycleTables = map[string]bool{
+	TableItems:     true,
+	TableTemplates: true,
+}
+
 // The two template scopes (FR-27.1), named once: they are compared
 // against in the include rule, in the scope-switch guards and in the
 // schema's own CHECK, and a mistyped literal reads as "some other scope"
@@ -188,13 +205,14 @@ var syncableColumns = map[string]map[string]bool{
 		"created_by",
 		"image_hash",
 		MarkColumn,
+		RetiredColumn,
 	),
 	// is_published stays in the schema but off this list: the publish gate
 	// is parked with the FR-1.6 MVP simplification (templates are shared
 	// instance-wide), and an unreadable column no client can set is the
 	// honest state until the stub's revisit trigger fires.
 	TableTemplates: toSet(
-		"owner_id", "name", "kind", MarkColumn,
+		"owner_id", "name", "kind", MarkColumn, RetiredColumn,
 	),
 	TableTemplateItems: toSet(
 		"template_id", "item_id", "quantity", "assignment",
@@ -794,11 +812,17 @@ func relogRefused(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutation, 
 	if m.Op != sync.OpDelete || !row.Exists {
 		return seq, nil
 	}
-	// A delete takes its children with it, and the client mirrors that
-	// cascade optimistically — so re-logging the row alone brings a Vorlage
-	// back with none of its positions. The repair carries back everything
-	// the refused delete appeared to take.
-	children, err := cascadeChildren(ctx, tx, m, true, true)
+	return relogCascadeChildren(ctx, tx, tripID, m, seq)
+}
+
+// relogCascadeChildren names every child a delete of m would have taken,
+// alive, in the change log. A delete takes its children with it and the
+// client mirrors that cascade optimistically — so a row that survives the
+// delete, whether because it was refused (ADR-031) or because FR-24.3
+// retired it instead, comes back on that device with none of its children
+// unless they are re-logged too.
+func relogCascadeChildren(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutation, seq int64) (int64, error) {
+	children, err := cascadeChildren(ctx, tx, sync.Mutation{Table: m.Table, ID: m.ID, HLC: m.HLC}, true, true)
 	if err != nil {
 		return 0, err
 	}

@@ -38,6 +38,7 @@ One file per decision, named `ADR-00N_Short_Title.md`, numbered in the order the
 | [030](ADR-030_Trip_Identity_On_Import.md) | An imported document is a second copy when the **name** matches (plus the **year**, for a trip), decided in the client and reported per document, over a UNIQUE constraint (which parks the outbox), a `(import)` suffix (which labels duplication rather than preventing it) or a merge. Retires ADR-017's suffix for Ferien-Vorlagen (FR-18.4) | Accepted |
 
 | [031](ADR-031_Refusal_Repairs_The_Row.md) | A refused mutation repairs the row it refused — the server re-logs it so the ordinary pull carries the truth, and the client drops the one row the server cannot re-log without leaking it — over a client-side undo, a second read path for one entity, or a whole-partition resync (Sync-API §5, P-1/P-3) | Accepted |
+| [032](ADR-032_Retire_Decided_Twice.md) | FR-24.3's retire-or-remove decision runs **on the server, authoritatively, and on the client, advisorily** — over one rule reached through a new usage endpoint, or one rule on the client with the server merely refusing; and `itemList`/`templateList` keep meaning everything while display surfaces opt in to the active lists (FR-24.3, invariants 4/5) | Accepted |
 
 **Outbound Content Fetching** — `Vision_NorthStar` names this as the gate that must exist before any Plan-phase feature makes the server fetch external content. It had informally reserved number 007, which Session Brokering has since taken; it gets the next free number when it is written.
 
