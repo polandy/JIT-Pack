@@ -397,6 +397,17 @@ func cascadeChildren(ctx context.Context, tx *sql.Tx, m sync.Mutation, deleted, 
 			// every open.
 			{TableTripTemplateSources, `SELECT id FROM trip_template_sources WHERE template_id = ?`},
 		}
+	case TableTrips:
+		// A deleted trip takes three master-partition tables with it. They
+		// need tombstones of their own precisely because the trip's *other*
+		// children cannot have any: change_log.trip_id cascades too, so the
+		// trip partition's whole feed is deleted with the row it describes,
+		// and only the master feed survives to carry the news.
+		children = []childQuery{
+			{TableTripMembers, `SELECT id FROM trip_members WHERE trip_id = ?`},
+			{TableTripTemplateSources, `SELECT id FROM trip_template_sources WHERE trip_id = ?`},
+			{TableTripAppliedChanges, `SELECT id FROM trip_applied_changes WHERE trip_id = ?`},
+		}
 	case TableTemplateItems:
 		children = []childQuery{
 			{TableTemplateItemTasks, `SELECT id FROM template_item_tasks WHERE template_item_id = ?`},
@@ -423,6 +434,15 @@ func cascadeChildren(ctx context.Context, tx *sql.Tx, m sync.Mutation, deleted, 
 	case TableDestinationProfiles:
 		children = []childQuery{
 			{TableDestinationChecklistItems, `SELECT id FROM destination_checklist_items WHERE profile_id = ?`},
+		}
+	case TableTripItems:
+		// The one cascade of the *trip* partition: a row's comments and
+		// FR-7.3 todos hang off it (comments.trip_item_id ON DELETE
+		// CASCADE). Trip-level comments have a NULL trip_item_id and are
+		// untouched by the delete, so the query names the row explicitly
+		// rather than matching on the trip.
+		children = []childQuery{
+			{TableComments, `SELECT id FROM comments WHERE trip_item_id = ?`},
 		}
 	}
 
@@ -513,7 +533,7 @@ func (s *Store) PullMaster(ctx context.Context, userID string, cursor int64, lim
 			if !visible {
 				continue
 			}
-			c.Row, _, _, err = s.loadSnapshot(ctx, c.Table, c.ID)
+			c.Row, err = s.loadSnapshot(ctx, c.Table, c.ID)
 			if err != nil {
 				return PullPage{}, err
 			}
