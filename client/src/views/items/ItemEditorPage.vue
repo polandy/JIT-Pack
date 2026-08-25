@@ -163,7 +163,7 @@ async function createItem() {
   }
   // The name identifies the item since FR-24.1 dropped the category from
   // its UNIQUE — report the clash here rather than let the push reject.
-  if (masterStore.itemList.some((i) => i.name.toLowerCase() === name.toLowerCase())) {
+  if (masterStore.activeItemList.some((i) => i.name.toLowerCase() === name.toLowerCase())) {
     nameError.value = t('items.editor.nameTaken', { name })
     return
   }
@@ -306,7 +306,9 @@ const dependencyErrorText = computed(() => {
 
 const pickableMains = computed(() => {
   const taken = new Set(dependsOn.value.map((d) => d.depends_on_item_id))
-  const pool = mainSearch.value ? masterStore.searchItems(mainSearch.value) : masterStore.itemList
+  const pool = mainSearch.value
+    ? masterStore.searchItems(mainSearch.value)
+    : masterStore.activeItemList
   return pool.filter((i) => i.id !== props.itemId && !taken.has(i.id)).slice(0, 10)
 })
 

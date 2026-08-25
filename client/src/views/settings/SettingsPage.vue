@@ -499,7 +499,7 @@ async function exportTripCSV() {
               @ionChange="(e: CustomEvent) => (yamlTemplateId = e.detail.value)"
             >
               <IonSelectOption
-                v-for="tpl in masterStore.templateList"
+                v-for="tpl in masterStore.activeTemplateList"
                 :key="tpl.id"
                 :value="tpl.id"
               >

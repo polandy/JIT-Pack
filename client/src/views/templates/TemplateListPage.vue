@@ -95,7 +95,7 @@ function toRow(template: Template): TemplateRow {
 }
 
 const visibleRows = computed(() =>
-  store.templateList
+  store.activeTemplateList
     .filter((tpl) => matches(tpl.name))
     .filter((tpl) => tab.value === 'all' || tpl.kind === tab.value)
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -107,7 +107,7 @@ const groupRows = computed(() => visibleRows.value.filter((r) => r.template.kind
 
 const isEmpty = computed(() => visibleRows.value.length === 0)
 /** Nothing at all versus nothing *matching* — different sentences (G-7). */
-const hasTemplates = computed(() => store.templateList.length > 0)
+const hasTemplates = computed(() => store.activeTemplateList.length > 0)
 
 /** The sections shown under *Alle*; a single-scope tab renders one unlabelled list. */
 const sections = computed(() =>

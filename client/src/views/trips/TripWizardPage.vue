@@ -266,7 +266,7 @@ interface ScopeRow {
 }
 
 function scopeRows(kind: TemplateKind): ScopeRow[] {
-  return masterStore.templateList
+  return masterStore.activeTemplateList
     .filter((tpl) => tpl.kind === kind)
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((tpl) => {
@@ -995,7 +995,7 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
           </div>
         </div>
 
-        <div v-if="masterStore.templateList.length === 0" class="empty-hint">
+        <div v-if="masterStore.activeTemplateList.length === 0" class="empty-hint">
           {{ t('wizard.templatesEmpty') }}
         </div>
 
