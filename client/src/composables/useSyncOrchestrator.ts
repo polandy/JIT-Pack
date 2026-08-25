@@ -1443,9 +1443,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     let seriesId = draft.seriesId ?? null
     if (draft.newSeriesName) {
       const { mutation, id } = mutations.createSeries(draft.newSeriesName, draft.attributes)
-      onPullChanges([
-        optimisticInsert(mutation),
-      ])
+      onPullChanges([optimisticInsert(mutation)])
       if (!local) outbox.enqueue('master', null, mutation)
       seriesId = id
     }
@@ -1457,26 +1455,20 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       draft.endDate,
       { attributes: draft.attributes, seriesId },
     )
-    onPullChanges([
-      optimisticInsert(tripMut),
-    ])
+    onPullChanges([optimisticInsert(tripMut)])
     if (!local) outbox.enqueue('master', null, tripMut)
 
     // Member grants follow the trips insert in the same master queue —
     // the server authorizes them against the freshly created trip.
     for (const member of draft.members ?? []) {
       const { mutation } = mutations.addTripMember(tripId, member.userId, member.role)
-      onPullChanges([
-        optimisticInsert(mutation),
-      ])
+      onPullChanges([optimisticInsert(mutation)])
       if (!local) outbox.enqueue('master', null, mutation)
     }
 
     const travelerIds = draft.travelers.map((tr) => {
       const { mutation, id } = mutations.addTraveler(tripId, tr.name, tr.linkedUserId ?? null)
-      onPullChanges([
-        optimisticInsert(mutation),
-      ])
+      onPullChanges([optimisticInsert(mutation)])
       if (!local) outbox.enqueue('trip', tripId, mutation)
       return id
     })
@@ -1485,9 +1477,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       const assignedTravelerId =
         item.traveler_index === null ? null : (travelerIds[item.traveler_index] ?? null)
       const { mutation, id } = mutations.addGeneratedTripItem(tripId, item, assignedTravelerId)
-      onPullChanges([
-        optimisticInsert(mutation),
-      ])
+      onPullChanges([optimisticInsert(mutation)])
       if (!local) outbox.enqueue('trip', tripId, mutation)
 
       // FR-27.7: a position's preparation tasks become ordinary FR-7.3 todos
@@ -1502,9 +1492,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
           CLIENT_ACTOR_PLACEHOLDER,
           taskBody,
         )
-        onPullChanges([
-          optimisticInsert(todoMut),
-        ])
+        onPullChanges([optimisticInsert(todoMut)])
         if (!local) outbox.enqueue('trip', tripId, todoMut)
       }
     }
@@ -1514,17 +1502,13 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // against a trip it has already created.
     for (const templateId of draft.sourceTemplateIds ?? []) {
       const { mutation } = mutations.registerTripSource(tripId, templateId)
-      onPullChanges([
-        optimisticInsert(mutation),
-      ])
+      onPullChanges([optimisticInsert(mutation)])
       if (!local) outbox.enqueue('master', null, mutation)
     }
 
     for (const chk of draft.checklistItems ?? []) {
       const { mutation } = mutations.addTripItem(tripId, chk.label, { mode: chk.mode })
-      onPullChanges([
-        optimisticInsert(mutation),
-      ])
+      onPullChanges([optimisticInsert(mutation)])
       if (!local) outbox.enqueue('trip', tripId, mutation)
     }
 
@@ -1571,16 +1555,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       draft.endDate,
       { seriesId: source.series_id, attributes: source.attributes },
     )
-    onPullChanges([
-      optimisticInsert(tripMut),
-    ])
+    onPullChanges([optimisticInsert(tripMut)])
     if (!local) outbox.enqueue('master', null, tripMut)
 
     const travelerIds = plan.travelers.map((tr) => {
       const { mutation, id } = mutations.addTraveler(tripId, tr.name, null)
-      onPullChanges([
-        optimisticInsert(mutation),
-      ])
+      onPullChanges([optimisticInsert(mutation)])
       if (!local) outbox.enqueue('trip', tripId, mutation)
       return id
     })
@@ -1593,9 +1573,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
             : (travelerIds[c.carrier_traveler_index] ?? null),
         maxWeightGrams: c.max_weight_grams,
       })
-      onPullChanges([
-        optimisticInsert(mutation),
-      ])
+      onPullChanges([optimisticInsert(mutation)])
       if (!local) outbox.enqueue('trip', tripId, mutation)
       return id
     })
@@ -1626,9 +1604,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         item.traveler_index === null ? null : (travelerIds[item.traveler_index] ?? null),
         item.container_index === null ? null : (containerIds[item.container_index] ?? null),
       )
-      onPullChanges([
-        optimisticInsert(mutation),
-      ])
+      onPullChanges([optimisticInsert(mutation)])
       if (!local) outbox.enqueue('trip', tripId, mutation)
     }
 
@@ -1658,9 +1634,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    */
   function assignTagLocally(itemId: string, tagId: string, position: number): void {
     const { mutation } = mutations.assignTag(itemId, tagId, position)
-    onPullChanges([
-      optimisticInsert(mutation),
-    ])
+    onPullChanges([optimisticInsert(mutation)])
     if (!local) outbox.enqueue('master', null, mutation)
   }
 
@@ -1674,9 +1648,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     for (const name of plan.newCategories) {
       if (tagIDs.has(name.toLowerCase())) continue
       const { mutation, id } = mutations.createTag(name)
-      onPullChanges([
-        optimisticInsert(mutation),
-      ])
+      onPullChanges([optimisticInsert(mutation)])
       if (!local) outbox.enqueue('master', null, mutation)
       tagIDs.set(name.toLowerCase(), id)
     }
@@ -1684,9 +1656,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const itemIDs: (string | null)[] = plan.items.map((item) => {
       if (item.existingItemId) return item.existingItemId
       const { mutation, id } = mutations.createMasterItem(item.name)
-      onPullChanges([
-        optimisticInsert(mutation),
-      ])
+      onPullChanges([optimisticInsert(mutation)])
       if (!local) outbox.enqueue('master', null, mutation)
       // Only now: the imported category becomes the item's primary tag
       // (FR-24.2), and a tag assignment names its item by foreign key. Sent
@@ -1705,9 +1675,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         trip.endDate,
         trip.seriesId,
       )
-      onPullChanges([
-        optimisticInsert(tripMut),
-      ])
+      onPullChanges([optimisticInsert(tripMut)])
       if (!local) outbox.enqueue('master', null, tripMut)
       tripIds.push(tripId)
 
@@ -1720,9 +1688,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
           categoryName: item.categoryName,
           quantity: entry.quantity,
         })
-        onPullChanges([
-          optimisticInsert(mutation),
-        ])
+        onPullChanges([optimisticInsert(mutation)])
         if (!local) outbox.enqueue('trip', tripId, mutation)
 
         if (item.hasOpenTask) {
@@ -1733,9 +1699,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
             'import',
             `Imported with '?' — clarify: ${item.name}`,
           )
-          onPullChanges([
-            optimisticInsert(todo.mutation),
-          ])
+          onPullChanges([optimisticInsert(todo.mutation)])
           if (!local) outbox.enqueue('trip', tripId, todo.mutation)
         }
       }
