@@ -148,9 +148,13 @@ the one every current and future call site inherits by default.
   a distinction the code cannot derive.
 
 **Neutral**
-- The marker is an ordinary synced column, so "restore" is one mutation clearing it. The
-  data side of the FR's free restore is built and tested; the surface that would list
-  retired rows is not, and is named as owed.
+- The marker is an ordinary synced column, so "restore" is one mutation clearing it.
+  **The surface followed the next day** — UI-Spec M23, ADR-033 — and building it found that
+  only the *data* side of the FR's free restore was free: the partial name indexes mean a
+  retire releases the name, so a restore can collide with the row that took it. That
+  collision is answered on the client too, and unlike the reference count above the
+  client's answer there is **complete rather than advisory** — the master partition is
+  pulled whole, so every device knows every active name exactly.
 
 ## Revisit Trigger
 

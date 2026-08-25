@@ -168,6 +168,15 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/trips/ConflictLogPage.vue'),
   },
   {
+    // M23 (FR-24.3). Like the master conflict log beside it, it belongs to
+    // no one screen — a retire can start in M9 or in M7 — so it is offered
+    // from Settings and returns where it was opened from (ADR-011 amendment).
+    path: '/master/retired',
+    name: 'master-retired',
+    meta: { parent: '/tabs/settings', acceptsFrom: true, titleKey: 'retired.title' },
+    component: () => import('@/views/master/RetiredMasterPage.vue'),
+  },
+  {
     path: '/trips/:tripId/conflicts',
     meta: { parent: '/trips/:tripId', titleKey: 'conflicts.title' },
     name: 'trip-conflicts',

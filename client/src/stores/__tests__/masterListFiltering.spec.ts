@@ -102,6 +102,22 @@ describe('FR-24.3 — the complete master lists are read on purpose (ADR-032)', 
     }
   })
 
+  it('keeps the restore surface on the retired lists and off both others', () => {
+    // M23 is the third classification ADR-032's split did not have: its
+    // subject *is* the retired row. Reading the complete list would put
+    // every active row on a screen that offers to restore them, and reading
+    // the active list would leave it permanently empty.
+    const path = 'src/views/master/RetiredMasterPage.vue'
+    const source = new Map(sources.map(({ path: p, source: c }) => [p, c])).get(path)
+    expect(source, `${path} is not in the scanned sources`).toBeDefined()
+    expect(COMPLETE_LIST.test(source!), `${path} reads a complete master list`).toBe(false)
+    expect(/\.(activeItemList|activeTemplateList)\b/.test(source!)).toBe(false)
+    expect(/\.retiredItemList\b/.test(source!), `${path} does not list retired items`).toBe(true)
+    expect(/\.retiredTemplateList\b/.test(source!), `${path} does not list retired Vorlagen`).toBe(
+      true,
+    )
+  })
+
   it('keeps the surfaces that offer rows off the complete lists', () => {
     // Named rather than left to the rule above, because these are the screens
     // FR-24.3 is about: the inventory, the pickers, the autocomplete.

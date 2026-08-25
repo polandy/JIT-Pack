@@ -249,8 +249,11 @@ it. Item numbers stay stable even as items close, because the log refers back to
    server's `stillReferenced` check turned from a refusal into the choice, M10's delete card (which
    did not exist) and M7's confirm stating which of the two happens *before* it does, and
    `itemList`/`templateList` deliberately still meaning everything while display surfaces opt into
-   the active lists. §3.24 is closed. Restore is named as owed in the FR — the data is ready, the
-   surface is not. Log: *„A delete that could only be refused"*.
+   the active lists. §3.24 is closed. **Restore followed the same day** (ADR-033): M23 lists the
+   retired rows off M17, and the collision the partial name index makes possible — the freed name
+   taken by a new row — is refused on the client before the mutation, with a replacement name
+   written in the same write. A retired row nothing references any more can still be removed for
+   good. Log: *„A delete that could only be refused"*, *„The restore was free, the name was not"*.
 
 **Parked, specified, do not start:** §3.26 calendar feed,
 the North-Star Plan/During phases, FR-27.8's per-trip usage history, and FR-1.6's publish/fork

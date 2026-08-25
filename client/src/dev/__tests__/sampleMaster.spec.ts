@@ -49,7 +49,9 @@ describe('seedSampleMaster (dev)', () => {
     const vacation = master.getTemplate(result.vacationTemplateId)
     expect(vacation?.kind).toBe('template')
     expect(master.getIncludes(result.vacationTemplateId)).toHaveLength(2)
-    expect(master.templateList.filter((t) => t.kind === 'group')).toHaveLength(7)
+    // Seven from GROUPS plus the FR-24.3 'Wellness' group, whose two
+    // retired items give M23 something to show on a fresh device.
+    expect(master.templateList.filter((t) => t.kind === 'group')).toHaveLength(8)
   })
 
   it('adopts what it already wrote when it runs a second time (FR-1.6)', () => {
@@ -80,6 +82,7 @@ describe('seedSampleMaster (dev)', () => {
       'Wandern',
       'Erste Hilfe',
       'Strom & Laden',
+      'Wellness',
     ])
     // The picker's search field is gated on more than PICKER_SEARCH_MIN_GROUPS
     // searchable groups; the seed must clear that bar on a fresh device.
@@ -129,6 +132,24 @@ describe('seedSampleMaster (dev)', () => {
       { item: 'Ersatzakkus', dependsOn: 'Kamera', mode: 'required' },
       { item: 'Ringlicht', dependsOn: 'Makro-Objektiv', mode: 'required' },
     ])
+  })
+
+  it('leaves two retired items behind, one of whose names is already taken again (FR-24.3)', () => {
+    const { master } = seed()
+
+    // M23 opens on something rather than on its empty state, and its hard
+    // case — a restore whose name an active row holds — is one tap away.
+    expect(master.retiredItemList.map((i) => i.name).sort()).toEqual([
+      'Reisewecker',
+      'Sonnenbrille',
+    ])
+    expect(master.activeItemList.filter((i) => i.name === 'Sonnenbrille')).toHaveLength(1)
+    expect(master.activeItemList.filter((i) => i.name === 'Reisewecker')).toHaveLength(0)
+    // The group that kept them alive still holds all three positions: a
+    // retire keeps its children (ADR-032), and the visible one is the
+    // positive signal that the group itself was not emptied.
+    const wellness = master.activeTemplateList.find((t) => t.name === 'Wellness')!
+    expect(master.getTemplateItems(wellness.id)).toHaveLength(3)
   })
 
   it('tags every inventory item, so M9 groups them', () => {

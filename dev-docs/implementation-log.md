@@ -166,6 +166,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A name that could only be refused by the server (2026-08-25)](#a-name-that-could-only-be-refused-by-the-server-2026-08-25) — FR-1.6 / FR-13.1: the mitigation the constraint owed. Four things the code cannot show: the one surface that could have adopted the existing row and deliberately does not, the rule that was already live for items in a single view, why the return type was the actual work, and how the diacritics question was settled.
 
 - [A delete that could only be refused](#a-delete-that-could-only-be-refused-2026-08-25) — FR-24.3 unparked: the refusal already held the discriminator; why the filtering keeps `itemList` complete; the rule written twice with only one copy allowed to be wrong; the usage endpoint designed and dropped.
+- [The restore was free, the name was not](#the-restore-was-free-the-name-was-not-2026-08-25) — FR-24.3 / ADR-033 / M23: the entry above closed by naming restore as owed, and this is the day after. Four things the code cannot show: the promise the FR made that the schema had already broken, why the collision is refused on the *client* when ADR-032 had just argued the opposite, the surface chosen against three that were rejected, and the defect only a rendered case found — twice, in one test.
 ## Current state
 
 > **Repack (Return-Trip Mode) is REMOVED (owner decision, 2026-07-17).** Spec retired (PRD Addendum
@@ -6951,3 +6952,64 @@ M9, a section in settings, its own screen) is a UI round with no rendered eviden
 it. The mitigating fact, and the reason this is acceptable rather than a trap: the retire
 is announced before it happens, in the card and again in the confirm, instead of being
 discovered afterwards.
+
+## The restore was free, the name was not (2026-08-25)
+
+The entry above closed by writing down that restore was owed, and naming that as the
+decision. This is the day after, and the first thing building it found is that the
+sentence FR-24.3 had carried since the concept phase — *"a future restore affordance is
+free, since logically-deleted items retain everything"* — was true about the data and
+false about the name, and had been false since the day before, when the same FR made both
+unique indexes partial.
+
+**The FR contradicted itself and nothing noticed, because the two halves were written
+apart.** `retired_at` is an ordinary synced column, so clearing it really is one mutation:
+four Go tests written first against the unchanged server all passed on the first run, which
+is the honest report — the server needed no change and these pin a claim rather than drive
+one. But `idx_items_active_name` ranges over `retired_at IS NULL` deliberately, so retiring
+*frees the name*, and the whole reason that was chosen — re-creating what you just deleted
+is the common case — is precisely the sequence that then makes a restore impossible. The
+free restore and the freed name were two bullets under one FR, each right on its own. What
+that cost is a whole ADR (033) for a feature described as costing nothing.
+
+**The collision is answered on the client, which is the opposite of what ADR-032 had just
+decided — and the difference is which question is being asked.** ADR-032 made the client's
+FR-24.3 answer *advisory* because a reference count needs trip partitions the device does
+not hold. A name does not: the master partition is pulled whole, so every device knows every
+active name exactly, in every mode. This is the first FR-24.3 rule the client is
+authoritative about, and it has to be, because Local Mode has no push to be refused by. The
+alternative was to let the server's `constraint_violated` do it — and on screen that is a
+row that comes back and vanishes a drain later, ADR-031's repair doing its job on a refusal
+that was predictable before the tap. The server still refuses it; nobody is meant to get
+there.
+
+**The surface was chosen against three others, and the reason is the same in each case.**
+A filter chip on M9's tag axis puts hidden rows one tap from browsing, which is the opposite
+of what hiding them was for — and a lifecycle state is not a tag, so the axis would then mean
+two things. A folded section at the foot of M9 *and* M7 is two surfaces for one rule, in the
+screen FR-24.4 had just been made lean. A `?retired=1` mode of M9 inherits a grouping, a tag
+axis, a property sheet and a FAB, none of which mean anything for a list whose only actions
+are restore and delete-for-good. M23 sits beside the conflict-log pointer in M17 because it
+is the same *kind* of screen: corrective, opened after something went wrong, never during
+work. That is a classification the code cannot express — `masterListFiltering.spec.ts` now
+carries a third entry for it, because the existing split (complete lists resolve, active
+lists offer) had no room for a surface whose subject *is* the retired row.
+
+**Rendering it found the defect twice, in one test, and neither was visible from the code.**
+The first run of the collision case failed on a count, and the page snapshot showed why: the
+restored item was named **"K"**. An `ion-alert` input had taken the first keystroke of
+`pressSequentially` and dropped the rest — and every assertion in the case was still
+satisfiable by it, because one row is one row whatever it is called. The input's value is
+asserted before the button is clicked now. Underneath that was a second one shared by both
+cases: `page.goto` after a Local Mode write reloads before the write reaches IndexedDB, so
+the restore was there and then not. The assertion that had looked like a settled signal —
+the row leaving M23 — reports the *optimistic* state and says nothing about durability. The
+sync indicator is the seam that exists for this, and every reload in the file waits on it.
+
+**Delete-for-good was built rather than named as owed, for a reason worth stating.** A
+retired row whose last reference is gone is unreferenced, so FR-24.3's own second branch
+applies to it — but with no surface offering that branch, a retire would have been permanent
+by omission, which is not what a logical delete is supposed to mean. It is offered *only*
+where the delete would actually be physical: a button that silently re-retires the row is
+worse than no button, and in Server Mode the same three-form hedge M10 carries applies here
+unchanged.

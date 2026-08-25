@@ -527,4 +527,36 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // the discriminator, for the same mid-transition reason as G9-12.
     await expect(page.getByTestId('m9-empty')).toHaveCount(0)
   })
+
+  /**
+   * E2E-G9-14 (FR-24.3, M23): the same contract for the newest screen of
+   * this class. M23 is reached from Settings and declares `/tabs/settings`
+   * as its parent, so the interesting half is the app bar — the screen owns
+   * no title of its own and relies entirely on the one header bar naming it
+   * (ADR-011), which is exactly the promise a route added without a
+   * `titleKey` breaks silently.
+   */
+  test('E2E-G9-14: the hidden-rows screen is named by the app bar and returns to settings', async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE)
+    await page.goto('/tabs/settings')
+    await expect(onVisibleScreen(page, 'settings-retired')).toBeVisible()
+
+    await onVisibleScreen(page, 'settings-retired').click()
+
+    await atPath(page, '/master/retired')
+    await expect(onVisibleScreen(page, 'm23-segment')).toBeVisible()
+    // The screen renders no heading of its own, so this is the only place
+    // the user is told what they are looking at.
+    await expect(page.getByTestId('header-title')).toHaveText('Hidden master data')
+
+    await page.getByTestId('header-back').click()
+
+    await atPath(page, '/tabs/settings')
+    await expect(onVisibleScreen(page, 'settings-language')).toBeVisible()
+    // And the bar goes back to naming Settings rather than keeping the
+    // title of the screen that has been left.
+    await expect(page.getByTestId('header-title')).toHaveText('Settings')
+  })
 })
