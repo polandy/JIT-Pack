@@ -1100,4 +1100,60 @@ test.describe('Single-User backend sync @single', () => {
     await ctx.close()
     await ctxFresh.close()
   })
+
+  /**
+   * E2E-G2-12 (Sync-API §5, ADR-031) — the refusal repairs the row.
+   *
+   * The case above ends at the divergence: the group is gone from this
+   * device and still on the server, and the sheet is the only thing that
+   * knows. That state used to be permanent — the server row had not
+   * changed, so its change_log entry was already behind this device's
+   * cursor and no pull would ever offer it again.
+   *
+   * The refusal now re-logs the row, so the pull the same drain makes puts
+   * it back, and the toast says the change was undone rather than letting
+   * the list change back by itself.
+   */
+  test('a refused delete puts the row back on the device that made it', async ({ browser }) => {
+    const id = uniq()
+    const group = `Waschbeutel-${id}`
+    const trip = `Sils ${id}`
+
+    const ctx = await browser.newContext()
+    const page = await bootPage(ctx, '/tabs/templates')
+    await createTemplate(page, 'group', group)
+    await addPosition(page, `Seife-${id}`)
+    await backToTemplateList(page)
+    await createTripFollowingGroup(page, trip, group)
+
+    const indicator = page.getByTestId('sync-indicator')
+    await expect(indicator).toHaveAttribute('data-state', 'synced')
+
+    await page.goto('/tabs/templates')
+    await visiblePage(page).getByTestId('m7-scope-group').click()
+    const row = visiblePage(page).locator('ion-item', { hasText: group })
+    await expect(row).toBeVisible()
+    await row.dispatchEvent('contextmenu')
+    const menu = page.locator('ion-action-sheet')
+    await expect(menu).toBeVisible()
+    await menu.getByRole('button', { name: 'Delete' }).click()
+    const confirm = page.locator('ion-alert')
+    await expect(confirm).toBeVisible()
+    await confirm.getByRole('button', { name: 'Delete' }).click()
+
+    // Said out loud: the count of undone changes and the reason for it.
+    await expect(page.locator('ion-toast')).toContainText('Other data still refers to it')
+
+    // And repaired: the row is back on the screen that removed it, from the
+    // server's own copy rather than from anything this device kept — with
+    // its position, which the optimistic delete had mirrored away with it.
+    // Rendering this is what found that half: the group first came back
+    // empty, and an assertion on the row alone was green against it.
+    await expect(visiblePage(page).locator('ion-item', { hasText: group })).toContainText(
+      '1 item',
+    )
+    await expect(indicator).toHaveAttribute('data-state', 'synced')
+
+    await ctx.close()
+  })
 })

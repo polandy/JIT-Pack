@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * The refusal vocabulary the server speaks (Sync-API §5).
  *
@@ -8,7 +9,8 @@
  */
 import { describe, it, expect } from 'vitest'
 
-import { REJECTION_REASON, rejectionReasonKey } from '../rejectionReasons'
+import { REJECTION_REASON, rejectionReasonKey, rejectionToastMessage } from '../rejectionReasons'
+import { setLocale } from '@/i18n'
 import { en } from '@/i18n/messages/en'
 import { de } from '@/i18n/messages/de'
 
@@ -25,5 +27,36 @@ describe('rejectionReasonKey', () => {
   it('answers null for anything else, so a raw server string never becomes UI copy', () => {
     expect(rejectionReasonKey('unknown column: trip_items.nope')).toBeNull()
     expect(rejectionReasonKey('')).toBeNull()
+  })
+})
+
+describe('rejectionToastMessage (ADR-031)', () => {
+  it('says how many changes were undone and why', () => {
+    setLocale('en')
+    const message = rejectionToastMessage(1, REJECTION_REASON.stillReferenced)
+
+    expect(message).toContain('1')
+    expect(message).toContain(en['sync.detail.rejected.stillReferenced'])
+  })
+
+  it('says it in the language the app is in', () => {
+    setLocale('de')
+    const message = rejectionToastMessage(2, REJECTION_REASON.notAuthorized)
+    setLocale('en')
+
+    expect(message).toContain(de['sync.detail.rejected.notAuthorized'])
+  })
+
+  /**
+   * A validation error names a column. It is a diagnostic, and pasting it
+   * into a toast would be the app talking to itself — the count still has
+   * to be said, because the change is undone either way.
+   */
+  it('still reports the undo when the reason is not one it has words for', () => {
+    setLocale('en')
+    const message = rejectionToastMessage(1, 'unknown column: trip_items.nope')
+
+    expect(message).not.toContain('trip_items')
+    expect(message).toContain('1')
   })
 })

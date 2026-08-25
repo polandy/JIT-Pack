@@ -77,6 +77,8 @@ export const en = {
   'sync.detail.parked': 'The server rejected {n} change | The server rejected {n} changes',
   'sync.detail.parkedHint':
     'They were taken out of the queue so the rest could be sent, and are kept on this device. They will not be tried again.',
+  'sync.rejectionToast':
+    'The server refused {n} change — it has been undone | The server refused {n} changes — they have been undone',
   'sync.detail.rejected.notAuthorized': 'You are not allowed to make that change.',
   'sync.detail.rejected.outOfScope': 'It named a trip other than the one it was sent for.',
   'sync.detail.rejected.stillReferenced':
