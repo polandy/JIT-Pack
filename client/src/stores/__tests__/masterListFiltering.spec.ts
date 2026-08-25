@@ -79,6 +79,29 @@ describe('FR-24.3 — the complete master lists are read on purpose (ADR-032)', 
     expect(stale).toEqual([])
   })
 
+  it('keeps every mixed reader reading the active lists too', () => {
+    // These four resolve *and* offer, so the rule above cannot speak for
+    // them: they are on the allowlist for their resolution reads. What can
+    // be pinned is that their offer reads exist at all — a wholesale revert
+    // to the complete lists fails here, which is otherwise asserted nowhere.
+    const mixed = [
+      'src/views/templates/TemplateEditorPage.vue', // pickers + FR-27.15 folds
+      'src/views/trips/TripWizardPage.vue', // scope rows + the empty hint
+      'src/views/trips/ReviewPage.vue', // the FR-27.11 retarget offer
+      'src/views/trips/TemplateFromTripPage.vue', // the groups M21 offers
+      'src/components/global/QuickAddItem.vue', // chips, group matches, browse door
+    ]
+    const byPath = new Map(sources.map(({ path, source }) => [path, source]))
+    for (const path of mixed) {
+      const source = byPath.get(path)
+      expect(source, `${path} is not in the scanned sources`).toBeDefined()
+      expect(
+        /\.(activeItemList|activeTemplateList)\b/.test(source!),
+        `${path} reads no active list`,
+      ).toBe(true)
+    }
+  })
+
   it('keeps the surfaces that offer rows off the complete lists', () => {
     // Named rather than left to the rule above, because these are the screens
     // FR-24.3 is about: the inventory, the pickers, the autocomplete.
