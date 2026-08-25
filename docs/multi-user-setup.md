@@ -44,7 +44,7 @@ If your own row does not show the admin role, log out and back in (the stamp hap
 
 ## 5. Share a trip
 
-Master data — items, tags, templates — is **instance-wide**: everyone sees and extends the same inventory, so whoever curates the packing templates does it once for everyone. Trips, by contrast, are **membership-scoped**: a trip is visible only to its members, and the creator adds the others on the trip's **Members** screen. Once everyone is a member, packing is live for all of them — a checkmark on one phone lands on the others as it happens.
+Master data — items, tags, templates — is **instance-wide**: everyone sees and extends the same inventory, so whoever curates the packing templates does it once for everyone. Because there is only one set, **a template, group or trip-series name can exist only once on the instance** — capitalisation aside. If someone tries to create a second "Sommer", the app says which one already has the name and offers to open it instead of quietly making a duplicate nobody could tell apart. Trips, by contrast, are **membership-scoped**: a trip is visible only to its members, and the creator adds the others on the trip's **Members** screen. Once everyone is a member, packing is live for all of them — a checkmark on one phone lands on the others as it happens.
 
 ## 6. Two people, one row
 

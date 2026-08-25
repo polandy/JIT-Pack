@@ -103,7 +103,7 @@ describe('series actions (FR-13.1)', () => {
     const orch = newOrch()
     const master = useMasterStore()
 
-    const id = orch.createSeries('Samedan Winter', { season: 'winter' })
+    const id = orch.createSeries('Samedan Winter', { season: 'winter' })!
 
     expect(master.getSeries(id)).toMatchObject({
       name: 'Samedan Winter',
@@ -116,7 +116,7 @@ describe('series actions (FR-13.1)', () => {
   it('updateSeries patches fields and keeps the rest', () => {
     const orch = newOrch()
     const master = useMasterStore()
-    const id = orch.createSeries('Samedan', { season: 'summer' })
+    const id = orch.createSeries('Samedan', { season: 'summer' })!
 
     orch.updateSeries(master.getSeries(id)!, { name: 'Samedan Sommer' })
 
@@ -174,7 +174,7 @@ describe('wizard integration (FR-13.1/13.3)', () => {
   it('attaches an existing series and adds the offered checklist items (FR-13.3)', () => {
     const orch = newOrch()
     const trips = useTripStore()
-    const seriesId = orch.createSeries('Samedan')
+    const seriesId = orch.createSeries('Samedan')!
 
     const tripId = orch.createTripFromWizard({
       name: 'Engadin 2026',
@@ -203,7 +203,7 @@ describe('destination profile actions (FR-13.2/13.3)', () => {
   it('ensureDestinationProfile creates once and then reuses the profile', () => {
     const orch = newOrch()
     const master = useMasterStore()
-    const seriesId = orch.createSeries('Samedan')
+    const seriesId = orch.createSeries('Samedan')!
 
     const profileId = orch.ensureDestinationProfile(seriesId)
     expect(master.getDestinationProfile(seriesId)?.id).toBe(profileId)
@@ -213,7 +213,7 @@ describe('destination profile actions (FR-13.2/13.3)', () => {
   it('updateDestinationProfile saves the notes', () => {
     const orch = newOrch()
     const master = useMasterStore()
-    const seriesId = orch.createSeries('Samedan')
+    const seriesId = orch.createSeries('Samedan')!
     const profileId = orch.ensureDestinationProfile(seriesId)
 
     orch.updateDestinationProfile(master.getDestinationProfile(seriesId)!, {
@@ -227,7 +227,7 @@ describe('destination profile actions (FR-13.2/13.3)', () => {
   it('checklist lifecycle: add, update, delete (FR-13.3)', () => {
     const orch = newOrch()
     const master = useMasterStore()
-    const seriesId = orch.createSeries('Samedan')
+    const seriesId = orch.createSeries('Samedan')!
     const profileId = orch.ensureDestinationProfile(seriesId)
 
     const itemId = orch.addChecklistItem(profileId, 'Milch', 'buy_local')

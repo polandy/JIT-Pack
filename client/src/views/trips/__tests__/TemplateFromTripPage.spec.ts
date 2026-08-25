@@ -32,6 +32,7 @@ vi.mock('@ionic/vue', async () => {
 
 const orchestratorFake = {
   createTemplateFromTrip: vi.fn(() => 'tpl-new'),
+  templateNameCollision: vi.fn(() => undefined),
   today: () => '2026-03-01',
 }
 

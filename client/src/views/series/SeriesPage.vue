@@ -31,6 +31,7 @@ import type { ItemMode, Trip } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { tripOrderKey } from '@/domain/trips'
+import { presentToast } from '@/lib/toast'
 
 const props = defineProps<{ seriesId: string }>()
 
@@ -44,9 +45,23 @@ const checklist = computed(() => (profile.value ? master.getChecklistItems(profi
 
 // --- Series name & default attributes (FR-15.1) ---
 
-function saveName(name: string) {
-  if (!series.value || !name.trim() || name === series.value.name) return
-  orchestrator.updateSeries(series.value, { name: name.trim() })
+/**
+ * FR-13.1: `trip_series.name` is UNIQUE instance-wide, so a rename onto a
+ * taken name is refused here rather than by a push. The field goes back to
+ * what the series is still called — a refused spelling left in it reads as
+ * saved (G-5's auto-save has no other acknowledgement).
+ */
+async function saveName(field: HTMLIonInputElement) {
+  const name = String(field.value ?? '').trim()
+  const current = series.value
+  if (!current || !name || name === current.name) return
+  const taken = orchestrator.seriesNameCollision(name, current.id)
+  if (taken) {
+    field.value = current.name
+    await presentToast({ message: t('series.nameTaken', { name: taken.name }), duration: 3000 })
+    return
+  }
+  orchestrator.updateSeries(current, { name })
 }
 
 function attribute(key: string): string {
@@ -143,7 +158,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
               :label="t('series.name')"
               label-placement="stacked"
               :value="series.name"
-              @ionChange="(e: CustomEvent) => saveName(e.detail.value ?? '')"
+              @ionChange="(e: CustomEvent) => saveName(e.target as HTMLIonInputElement)"
             />
           </IonItem>
           <IonItem>
