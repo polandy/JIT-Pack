@@ -19,7 +19,7 @@ import { usePull } from '@/composables/usePull'
 import { usePush } from '@/composables/usePush'
 import { MAX_PUSH_BATCH } from '@/composables/useSyncOutbox'
 import { HLCGenerator } from '@/sync/hlc'
-import { optimisticInsert } from '@/composables/sync/optimistic'
+import { optimisticInsert } from '@/sync/optimistic'
 import { parsePortableAll } from '@/domain/portable'
 import {
   findExistingSubject,

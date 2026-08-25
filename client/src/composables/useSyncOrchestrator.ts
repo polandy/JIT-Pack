@@ -23,7 +23,7 @@ import {
   optimisticDelete,
   optimisticInsert,
   optimisticUpdate,
-} from './sync/optimistic'
+} from '@/sync/optimistic'
 import { useWebSocket } from './useWebSocket'
 import { CLIENT_ACTOR_PLACEHOLDER, useMutations } from './useMutations'
 import { useSyncStatus } from './useSyncStatus'
