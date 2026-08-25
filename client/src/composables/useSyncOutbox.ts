@@ -21,7 +21,7 @@
 import { API } from '@/api/routes'
 import { APIRequestError, type APIClient } from '@/api/client'
 import type { Mutation, PullChange, PullResponse, PushResponse } from '@/api/types'
-import type { HLCGenerator } from '@/sync/hlc'
+import { observeRemote, type HLCGenerator } from '@/sync/hlc'
 import type { OutboxStore, ParkedMutation, PartitionKey } from '@/sync/outboxStore'
 
 type PartitionType = 'trip' | 'master'
@@ -342,7 +342,8 @@ export class SyncOutbox {
         this.onChanges(pullResp.changes)
         for (const c of pullResp.changes) {
           if (c.row && typeof c.row['updated_hlc'] === 'string') {
-            this.hlc.observe(c.row['updated_hlc'])
+            // See observeRemote: one unusable clock must not cost the page.
+            observeRemote(this.hlc, c.row['updated_hlc'])
           }
         }
       }
