@@ -1013,4 +1013,67 @@ test.describe('Single-User backend sync @single', () => {
 
     await fresh.close()
   })
+
+  /*
+   * E2E-M2-10 (ADR-033): a trip's progress on the list, without opening it.
+   *
+   * `trip_items` live in the trip's own partition, pulled when the trip is
+   * opened — so a device that had never opened a trip summed nothing and the
+   * row read `0/0 packed`, ring at 0 %. On the family's imported archive that
+   * was every trip: a decade of fully packed holidays, all reported as
+   * untouched.
+   *
+   * The assertion is on a **second browser context**, which is a device that
+   * has never opened this trip. Asserting it on the context that built the
+   * trip would pass against a screen that loads nothing at all, because the
+   * rows would already be in its store.
+   */
+  test('E2E-M2-10: a trip the device has never opened still shows its progress', async ({
+    browser,
+    baseURL,
+  }) => {
+    test.slow()
+    const tripName = `Progress ${uniq()}`
+    const context = await browser.newContext({ baseURL })
+    const author = await bootPage(context)
+    await createTripViaWizard(author, { name: tripName, travelers: ['Andy'] })
+    await quickAddItem(author, 'Zelt')
+    await quickAddItem(author, 'Schlafsack')
+    await packItem(author, 'Zelt')
+    await expect(visiblePage(author).getByTestId('m4-progress')).toContainText('1/2')
+    await context.close()
+
+    // --- a device that has never been inside this trip -------------------
+    const fresh = await browser.newContext({ baseURL })
+    const page = await fresh.newPage()
+    let tripPulls = 0
+    page.on('request', (r) => {
+      if (r.method() === 'GET' && /\/api\/v1\/trips\/[^/]+\/sync/.test(r.url())) tripPulls++
+    })
+    await seed(page, { mode: 'server' })
+    await page.goto('/tabs/trips?status=planned')
+
+    const row = visiblePage(page).getByTestId(`trip-row-${tripName}`)
+    await expect(row).toBeVisible({ timeout: 30_000 })
+    /*
+     * Scrolled to, because that is the rule and not a workaround: ADR-033
+     * fetches the partition of a row that is *on screen*, so a row further
+     * down a shared list has not been asked for yet. Found by the full-suite
+     * run — alone this trip is the only one and the assertion passed without
+     * the scroll, which would have made the case a promise about test
+     * isolation rather than about the app.
+     */
+    await row.scrollIntoViewIfNeeded()
+    // The number, on the list, with nothing opened. Before ADR-033 this row
+    // said "0/0 packed" for ever.
+    await expect(row.getByTestId('trip-item-summary')).toHaveText('1/2 packed', {
+      timeout: 30_000,
+    })
+    // It got there by fetching the row's own partition, which is the whole
+    // mechanism — without this the assertion above could pass on a screen
+    // that had the rows for some other reason.
+    expect(tripPulls).toBeGreaterThan(0)
+
+    await fresh.close()
+  })
 })
