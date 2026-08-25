@@ -1831,3 +1831,34 @@ Three things worth carrying forward:
 and M16's rename — has unit coverage
 (`composables/__tests__/nameCollision.spec.ts`) but no Playwright case. It
 belongs with the M16 unit, which does not exist yet.
+
+## The refusal lost its only UI path (2026-08-25)
+
+E2E-G2-11 and E2E-G2-12 were written around `still_referenced`: the user
+deletes a group a trip generated from, the server refuses, and the client
+first learns to *say* so (Sync-API §5) and then to *undo* it (ADR-031). Both
+drove that through M7's delete, because it was the only place in the app where
+a refusal could be produced on purpose.
+
+FR-24.3 took that place away. A master item or Vorlage is now retired instead
+of refused, and the other entities the refusal still governs are unreachable:
+a series has no delete control at all, and container and traveler deletes
+unassign their rows first, precisely so the refusal never happens. **There is
+no UI path to a refusal any more.**
+
+Both cases were therefore retargeted onto the behaviour the same tap now
+produces — the retire being accepted with nothing parked, and the trip keeping
+its rows on a device that never saw the delete. What they used to prove is
+asserted where it is still reachable, and is named here so it is not mistaken
+for lost:
+
+- the server's re-log of a refused row and its children —
+  `internal/store/rejection_repair_test.go` (on a series);
+- the reason reaching the wire — `internal/api/rejection_reason_test.go`;
+- the client's toast, its parked count and reason, and the repaired row
+  replacing the optimistic one — `client/src/composables/__tests__/rejectionRepair.spec.ts`
+  and `durableOutbox.spec.ts`.
+
+If a UI path to a refusal ever returns — a series delete control is the likely
+one — it should carry an e2e case again, because the client half of that path
+is the half these two were written to protect.
