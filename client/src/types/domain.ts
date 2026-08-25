@@ -49,6 +49,14 @@ export interface TripParticipant {
 export type ItemState = 'open' | 'packing_now' | 'partial' | 'packed' | 'skipped'
 export type ItemMode = 'pack' | 'buy_before' | 'buy_local'
 
+/**
+ * The two procurement modes M6 gives a tab to (FR-3.2), and the values
+ * `trip_items.bought_from` records (FR-25.11j). Derived from {@link ItemMode}
+ * rather than written out again: a purchase records a mode, and a second
+ * spelling of the same vocabulary is one that can drift from the schema's.
+ */
+export type ShoppingMode = Exclude<ItemMode, 'pack'>
+
 export interface TripItem {
   id: string
   trip_id: string
@@ -79,6 +87,12 @@ export interface TripItem {
   packing_now_at: string | null
   flag_unused: boolean
   flag_missing: boolean
+  /**
+   * Which shopping list the row was bought from (FR-25.11j), or null if it
+   * was not bought. Buying changes the row's mode (FR-3.3), so this is what
+   * lets M6 find the row again and put it back.
+   */
+  bought_from: ShoppingMode | null
   updated_hlc: string
 }
 
@@ -222,6 +236,10 @@ export interface MasterItem {
   /** FR-28.1: the optional item mark — one emoji, or absent, which is a
    * first-class state and not a gap to be filled. */
   icon?: string | null
+  /** FR-24.3: null while the row is active, an RFC3339 stamp once a delete
+   * retired it. Display surfaces hide a retired row; resolution, export and
+   * backup keep reading it, which is the whole point of keeping it. */
+  retired_at?: string | null
 }
 
 /**
@@ -241,6 +259,10 @@ export interface Template {
   kind: TemplateKind
   /** FR-28.8: the same optional mark items carry, on the same terms. */
   icon?: string | null
+  /** FR-24.3: null while the row is active, an RFC3339 stamp once a delete
+   * retired it. Display surfaces hide a retired row; resolution, export and
+   * backup keep reading it, which is the whole point of keeping it. */
+  retired_at?: string | null
 }
 
 /** FR-27.1: one (Ferien-Vorlage, Gruppe) pair — groups are referenced, never copied. */

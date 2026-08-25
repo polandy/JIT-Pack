@@ -244,8 +244,18 @@ it. Item numbers stay stable even as items close, because the log refers back to
    where there is nobody to assign to (G-8) and silent on a locked row (G-3). E2E-FLOW-02 covers
    the chain. Log: *„A column everything read and nothing wrote"*.
 
-**Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
-unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,
+19. ~~**FR-24.3 — a delete of a referenced master row was refused, not decided**~~ — **done**
+   (2026-08-25, ADR-032), for master items **and** Vorlagen: `retired_at` on both tables, the
+   server's `stillReferenced` check turned from a refusal into the choice, M10's delete card (which
+   did not exist) and M7's confirm stating which of the two happens *before* it does, and
+   `itemList`/`templateList` deliberately still meaning everything while display surfaces opt into
+   the active lists. §3.24 is closed. **Restore followed the same day** (ADR-033): M23 lists the
+   retired rows off M17, and the collision the partial name index makes possible — the freed name
+   taken by a new row — is refused on the client before the mutation, with a replacement name
+   written in the same write. A retired row nothing references any more can still be removed for
+   good. Log: *„A delete that could only be refused"*, *„The restore was free, the name was not"*.
+
+**Parked, specified, do not start:** §3.26 calendar feed,
 the North-Star Plan/During phases, FR-27.8's per-trip usage history, and FR-1.6's publish/fork
 ownership model (each carries a revisit trigger in its stub).
 

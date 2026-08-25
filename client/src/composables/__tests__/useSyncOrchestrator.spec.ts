@@ -78,6 +78,80 @@ describe('useSyncOrchestrator', () => {
     expect(tripStore.getItems('t1')[0]!.flag_missing).toBe(true)
   })
 
+  /**
+   * FR-25.11j through the optimistic write. Every trip-item mutation rebuilds
+   * the row from `itemRow(item)` plus the fields it changes, so a column
+   * missing there is silently dropped by the *next unrelated* action on that
+   * row — the shape #158 paid for, where the optimistic row was only the
+   * form. A purchase that survives being bought and then vanishes when
+   * somebody packs it is the same defect with a longer fuse.
+   */
+  it('an unrelated mutation on a bought row keeps its bought_from (FR-25.11j)', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const tripStore = useTripStore()
+
+    tripStore.applyChange({
+      seq: 1,
+      table: 'trip_items',
+      id: 'i1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Kaffee',
+        quantity: 1,
+        packed_count: 0,
+        state: 'open',
+        mode: 'pack',
+        bought_from: 'buy_before',
+        updated_hlc: '',
+      },
+    })
+
+    mockPush()
+    mockPull()
+
+    orch.packComplete('t1', tripStore.getItems('t1')[0]!)
+
+    const row = tripStore.getItems('t1')[0]!
+    expect(row.state).toBe('packed')
+    expect(row.bought_from).toBe('buy_before')
+  })
+
+  it('buyItem records the list and moves the row off it, in one write (FR-25.11j)', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const tripStore = useTripStore()
+
+    tripStore.applyChange({
+      seq: 1,
+      table: 'trip_items',
+      id: 'i1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Kaffee',
+        quantity: 1,
+        packed_count: 0,
+        state: 'open',
+        mode: 'buy_before',
+        updated_hlc: '',
+      },
+    })
+
+    mockPush()
+    mockPull()
+    orch.buyItem('t1', tripStore.getItems('t1')[0]!, 'buy_before')
+
+    expect(tripStore.getItems('t1')[0]!.mode).toBe('pack')
+    expect(tripStore.getItems('t1')[0]!.bought_from).toBe('buy_before')
+
+    mockPush()
+    mockPull()
+    orch.unbuyItem('t1', tripStore.getItems('t1')[0]!, 'buy_before')
+
+    expect(tripStore.getItems('t1')[0]!.mode).toBe('buy_before')
+    expect(tripStore.getItems('t1')[0]!.bought_from).toBeNull()
+  })
+
   it('packToggle flips item between open and packed', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()

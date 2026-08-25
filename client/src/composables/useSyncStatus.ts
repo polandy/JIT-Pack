@@ -43,6 +43,12 @@ export interface SyncStatus {
    */
   parkedCount: Ref<number>
   /**
+   * Why the most recent refusal happened (Sync-API §5), or null when there
+   * was none. The count says that something was refused; only this says
+   * what the user can do about it.
+   */
+  parkedReason: Ref<string | null>
+  /**
    * Fields of this device's changes the server merged away, counted for
    * this session. The durable record is the conflict log (NFR-4.2a); this
    * is what lets G-2 say it happened at all.
@@ -68,8 +74,12 @@ export interface SyncStatus {
   setLocal(): void
   /** Update the pending mutation count. */
   setPendingCount(n: number): void
-  /** Update how many mutations the server refused for good. */
-  setParkedCount(n: number): void
+  /**
+   * Update how many mutations the server refused for good, and why the most
+   * recent one was refused — the count and the reason move together because
+   * a count without a reason is a number nobody can act on.
+   */
+  setParked(n: number, reason: string | null): void
   /** Adds to this session's tally of merged-away fields (NFR-4.2a). */
   addConflicts(n: number): void
   /** Report whether the queue is still being written to the device. */
@@ -82,6 +92,7 @@ export function useSyncStatus(): SyncStatus {
   const isLocal = ref(false)
   const pendingCount = ref(0)
   const parkedCount = ref(0)
+  const parkedReason = ref<string | null>(null)
   const conflictCount = ref(0)
   // Optimistic on purpose: the outbox announces the *loss* of durability,
   // and a device that never had a queue to keep has lost nothing.
@@ -139,8 +150,9 @@ export function useSyncStatus(): SyncStatus {
     pendingCount.value = n
   }
 
-  function setParkedCount(n: number) {
+  function setParked(n: number, reason: string | null) {
     parkedCount.value = n
+    parkedReason.value = reason
   }
 
   /** Adds to the session's tally; the log holds what was actually lost. */
@@ -156,6 +168,7 @@ export function useSyncStatus(): SyncStatus {
     state,
     pendingCount,
     parkedCount,
+    parkedReason,
     conflictCount,
     queueDurable,
     label,
@@ -164,7 +177,7 @@ export function useSyncStatus(): SyncStatus {
     setOffline,
     setLocal,
     setPendingCount,
-    setParkedCount,
+    setParked,
     addConflicts,
     setQueueDurable,
   }

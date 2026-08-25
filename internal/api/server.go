@@ -345,12 +345,24 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 }
 
 // stampActor fills server-owned actor columns from the authenticated
-// pusher (FR-4.2): comment authors, the packing-now locker, and the
-// packer. Client-sent values are placeholders (the client may not know
-// its user id) and are never trusted.
+// pusher (FR-4.2): comment authors, the packing-now locker (FR-5.7) and
+// the packer. Client-sent values are placeholders (the client may not
+// know its user id) and are never trusted, so each of those columns is
+// removed from the mutation first and written back only where this
+// function decides it — invariant 3 holds for every op, not only the one
+// the client happens to send.
 func stampActor(m *syncpkg.Mutation, userID string) {
 	switch m.Table {
 	case store.TableComments:
+		// Authorship is decided once, when the comment comes into being.
+		// Re-stamping the pusher on a later op would be the opposite
+		// defect — flagging a foreign comment as a task (FR-7.2) is an
+		// upsert, and would transfer its authorship — so the field is
+		// taken away from every op and given back only to the insert.
+		// An upsert that creates a comment then has no author and is
+		// refused by the NOT NULL column, which is what the one shape no
+		// client produces should get.
+		delete(m.Fields, "author_id")
 		if m.Op == syncpkg.OpInsert {
 			setMutationField(m, "author_id", userID)
 		}
@@ -371,32 +383,46 @@ func stampActor(m *syncpkg.Mutation, userID string) {
 		tapped, _ := m.Fields["packed_at"].(string)
 		delete(m.Fields, "packed_at")
 
+		// G-3's claim holder is server-owned the same way (FR-5.7): the
+		// claim *is* the state, so only the switch below may name a
+		// holder. Without the strip, a mutation carrying packing_now_by
+		// and no state never meets that switch and the row names whoever
+		// the pusher chose — which the takeover and M4's row then read as
+		// authoritative. Its clock follows the claim, on the same terms
+		// as packed_at above.
+		delete(m.Fields, "packing_now_by")
+		claimed, _ := m.Fields["packing_now_at"].(string)
+		delete(m.Fields, "packing_now_at")
+
 		state, hasState := m.Fields["state"].(string)
 		switch {
 		case state == store.StatePackingNow:
 			setMutationField(m, "packing_now_by", userID)
-			if at, _ := m.Fields["packing_now_at"].(string); at == "" {
-				setMutationField(m, "packing_now_at", time.Now().UTC().Format(time.RFC3339))
-			}
+			setMutationField(m, "packing_now_at", tapTime(claimed))
 			setMutationField(m, "packed_by_user_id", nil)
 			setMutationField(m, "packed_at", nil)
 		case state == "packed":
+			setMutationField(m, "packing_now_by", nil)
+			setMutationField(m, "packing_now_at", nil)
 			setMutationField(m, "packed_by_user_id", userID)
-			setMutationField(m, "packed_at", packedAt(tapped))
+			setMutationField(m, "packed_at", tapTime(tapped))
 		case hasState:
-			// Un-packed in any way (open, partial, skipped): the stamp is
-			// cleared with the state it described (FR-25.17), never left
-			// to outlive it.
+			// Un-packed in any way (open, partial, skipped): both stamps
+			// are cleared with the state they described (FR-25.17/FR-5.3),
+			// never left to outlive it. The client used to null the claim
+			// itself; a released claim may not depend on it doing so.
+			setMutationField(m, "packing_now_by", nil)
+			setMutationField(m, "packing_now_at", nil)
 			setMutationField(m, "packed_by_user_id", nil)
 			setMutationField(m, "packed_at", nil)
 		}
 	}
 }
 
-// packedAt keeps the client's tap time when it is a real instant and
+// tapTime keeps the client's tap time when it is a real instant and
 // falls back to now otherwise, so an offline row keeps the moment it was
-// actually packed instead of the moment its push arrived.
-func packedAt(tapped string) string {
+// actually packed or claimed instead of the moment its push arrived.
+func tapTime(tapped string) string {
 	if _, err := time.Parse(time.RFC3339, tapped); err == nil {
 		return tapped
 	}
@@ -463,7 +489,7 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpk
 		// is told which field was wrong rather than meeting a CHECK.
 		if err := capMark(&mut); err != nil {
 			out.Results = append(out.Results, MutationResult{
-				MutationID: m.MutationID, Outcome: "rejected", Error: err.Error(),
+				MutationID: m.MutationID, Outcome: OutcomeRejected, Error: err.Error(),
 			})
 			continue
 		}
@@ -479,8 +505,13 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpk
 			writeError(w, http.StatusInternalServerError, ErrInternal, "push failed")
 			return PushResponse{}, nil, false
 		}
+		// Sync-API §5: a refusal carries its reason, so the client can say
+		// what happened instead of parking the mutation in silence. The
+		// vocabulary is the store's; the sentence is the client's, because
+		// only it knows the user's language.
 		out.Results = append(out.Results, MutationResult{
-			MutationID: res.MutationID, Outcome: MutationOutcome(res.Outcome), Conflicts: toWireConflicts(res.Conflicts),
+			MutationID: res.MutationID, Outcome: MutationOutcome(res.Outcome),
+			Conflicts: toWireConflicts(res.Conflicts), Error: string(res.Reason),
 		})
 		if res.Seq > out.PullHint.NextCursor {
 			out.PullHint.NextCursor = res.Seq

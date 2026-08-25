@@ -10,6 +10,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import type { Mutation, PullResponse, PushResponse } from '@/api/types'
 import type { OutboxStore, ParkedMutation, PendingMutation } from '@/sync/outboxStore'
+import { REJECTION_REASON } from '@/sync/rejectionReasons'
 
 let fetchMock: ReturnType<typeof vi.fn>
 
@@ -155,6 +156,69 @@ describe('durable outbox on boot', () => {
     await orch.connect()
 
     expect(orch.syncStatus.parkedCount.value).toBe(1)
+  })
+
+  /**
+   * The count alone could not be acted on: the refusal the server sent had a
+   * reason since Sync-API §5, and nothing carried it as far as G-2. This is
+   * the whole path — push answer → parked entry → status → the sheet's prop.
+   */
+  it('carries the reason of the refusal all the way to the status', async () => {
+    const store = new FakeStore([{ partition: 'trip:trip-1', mutation: queued('u1') }])
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      outboxStore: store,
+    })
+    jsonOnce({
+      results: [
+        {
+          mutation_id: 'u1',
+          outcome: 'rejected',
+          error: REJECTION_REASON.stillReferenced,
+        },
+      ],
+      pull_hint: { next_cursor: 0 },
+    })
+    jsonOnce({ changes: [], next_cursor: 0, has_more: false } satisfies PullResponse)
+
+    await orch.connect()
+
+    expect(orch.syncStatus.parkedCount.value).toBe(1)
+    expect(orch.syncStatus.parkedReason.value).toBe(REJECTION_REASON.stillReferenced)
+  })
+
+  it('remembers the reason of a refusal an earlier session parked', async () => {
+    const store = new FakeStore(
+      [],
+      [
+        {
+          partition: 'master',
+          mutation: queued('old'),
+          reason: REJECTION_REASON.notAuthorized,
+          at: 1,
+        },
+        {
+          partition: 'master',
+          mutation: queued('newer'),
+          reason: REJECTION_REASON.stillReferenced,
+          at: 2,
+        },
+      ],
+    )
+    const orch = useSyncOrchestrator({
+      baseUrl: 'http://localhost',
+      getToken: () => null,
+      outboxStore: store,
+    })
+    jsonOnce({ changes: [], next_cursor: 0, has_more: false } satisfies PullResponse)
+
+    await orch.connect()
+
+    expect(orch.syncStatus.parkedCount.value).toBe(2)
+    // The newest, not the first: what the sheet says has to be the refusal
+    // the user most recently caused.
+    expect(orch.syncStatus.parkedReason.value).toBe(REJECTION_REASON.stillReferenced)
   })
 
   it('withdraws the durability promise when the device refuses the write', async () => {

@@ -70,10 +70,19 @@ CREATE TABLE items (                            -- FR-1.1
     -- Unicode adds emoji every year and a "is this really an emoji" table
     -- silently rejects next year's valid input (FR-28.9).
     icon          TEXT CHECK (icon IS NULL OR length(icon) <= 32),
+    -- FR-24.3: NULL while the row is active, an RFC3339 stamp once a delete
+    -- was answered by retiring the row. Deliberately free of NOT NULL and of
+    -- a CHECK: field-level LWW merges this column on its own, and a
+    -- constraint that can refuse a single-field mutation loses the user's
+    -- decision, because a rejected mutation is one the outbox drops.
+    retired_at    TEXT,
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
-    updated_hlc   TEXT NOT NULL DEFAULT '',
-    UNIQUE (name)                                 -- FR-16.3
+    updated_hlc   TEXT NOT NULL DEFAULT ''
+    -- FR-16.3's uniqueness is over what the user can see: a retired row
+    -- holding a name nothing renders is a name taken by nothing, and
+    -- re-creating the item you just deleted is the common case.
 );
+CREATE UNIQUE INDEX idx_items_active_name ON items (name) WHERE retired_at IS NULL;
 
 -- The bytes stay out of the sync envelope (ADR-002); only items.image_hash
 -- flows through the master feed.
@@ -134,10 +143,17 @@ CREATE TABLE templates (
                  CHECK (kind IN ('group','template')),
     is_published INTEGER NOT NULL DEFAULT 0 CHECK (is_published IN (0,1)),
     icon         TEXT CHECK (icon IS NULL OR length(icon) <= 32),  -- FR-28.8
+    retired_at   TEXT,                                   -- FR-24.3, see items.retired_at
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
-    updated_hlc  TEXT NOT NULL DEFAULT '',
-    UNIQUE (owner_id, name)
+    updated_hlc  TEXT NOT NULL DEFAULT ''
+    -- Instance-wide, not per owner: under the FR-1.6 MVP simplification
+    -- every account sees every template, so two same-named groups from two
+    -- accounts are two rows nobody can tell apart — and FR-18.2/18.4 link
+    -- an imported group *by name* across the whole instance. Same rule as
+    -- items.name and tags.name. Over the *active* rows only, for the reason
+    -- items.name gives (FR-24.3).
 );
+CREATE UNIQUE INDEX idx_templates_active_name ON templates (name) WHERE retired_at IS NULL;
 
 CREATE TABLE template_items (
     id               TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
@@ -189,7 +205,7 @@ CREATE TABLE trip_series (
     default_attributes TEXT CHECK (default_attributes IS NULL OR json_valid(default_attributes)),
     field_hlcs TEXT NOT NULL DEFAULT '{}',  -- per-field HLC record (NFR-4.2a field-level LWW, ADR-022)
     updated_hlc        TEXT NOT NULL DEFAULT '',
-    UNIQUE (owner_id, name)
+    UNIQUE (name)                                        -- instance-wide, like templates.name (FR-13.1/FR-1.6)
 );
 
 CREATE TABLE trips (
@@ -271,6 +287,15 @@ CREATE TABLE trip_items (
                          CHECK (state IN ('open','packing_now','partial','packed','skipped')),
     mode                 TEXT NOT NULL DEFAULT 'pack'
                          CHECK (mode IN ('pack','buy_before','buy_local')), -- FR-3.1/3.3
+    -- Which shopping list the row was bought from (FR-25.11j). Buying a
+    -- BUY_BEFORE row *changes* its mode (FR-3.3), so without this record the
+    -- row is gone from the shopping side and the purchase cannot be undone.
+    -- Deliberately nullable and independent of `mode`: field-level LWW merges
+    -- fields one at a time (NFR-4.2a), so a NOT NULL, or a CHECK tying the two
+    -- together, would refuse an ordinary single-field mutation — and a
+    -- rejected mutation leaves the outbox, taking the user's change with it.
+    -- Same vocabulary as `mode`, because the value is one.
+    bought_from          TEXT CHECK (bought_from IN ('pack','buy_before','buy_local')), -- FR-25.11j
     late_packer          INTEGER NOT NULL DEFAULT 0 CHECK (late_packer IN (0,1)), -- FR-5.1
     assigned_traveler_id TEXT REFERENCES travelers(id),   -- FR-4.2 "Assigned to"
     -- Since FR-25.19 this is the *assignment*; packed_by_user_id below is the
@@ -467,6 +492,11 @@ CREATE TABLE mutations (
 
 CREATE INDEX idx_change_log_master ON change_log (seq) WHERE trip_id IS NULL;
 CREATE INDEX idx_change_log_trip   ON change_log (trip_id, seq);
+-- The two hot conflict_log queries: the per-partition listing (trip_id = ?
+-- for a trip, IS NULL for the master half, newest first) and the revert's
+-- lookup of everything one push lost together.
+CREATE INDEX idx_conflict_log_partition ON conflict_log (trip_id, resolved_at DESC, id);
+CREATE INDEX idx_conflict_log_mutation  ON conflict_log (mutation_id, entity_table, entity_id);
 CREATE INDEX idx_item_dependencies_main ON item_dependencies (depends_on_item_id);
 CREATE INDEX idx_item_tags_tag ON item_tags (tag_id);
 CREATE INDEX idx_lock_events_trip ON lock_events (trip_id, created_at DESC);
@@ -477,26 +507,10 @@ CREATE INDEX idx_template_includes_included ON template_includes (included_templ
 CREATE INDEX idx_template_item_tasks_position ON template_item_tasks (template_item_id);
 CREATE INDEX idx_trip_applied_changes_trip ON trip_applied_changes (trip_id, created_at);
 CREATE INDEX idx_trip_generated_positions_trip ON trip_generated_positions (trip_id);
-CREATE INDEX idx_trip_items_mode   ON trip_items (trip_id, mode);
-CREATE INDEX idx_trip_items_packer ON trip_items (packer_user_id) WHERE state <> 'packed';
 CREATE INDEX idx_trip_items_trip   ON trip_items (trip_id);
+-- FR-4.5: a trip has exactly one Owner. No client can reach the role
+-- (authorizeMaster refuses every client-sent 'owner' and freezes the
+-- creator's row), so this index can only ever catch a server bug — which
+-- is what it is for.
+CREATE UNIQUE INDEX idx_trip_members_owner ON trip_members (trip_id) WHERE role = 'owner';
 CREATE INDEX idx_trip_template_sources_template ON trip_template_sources (template_id);
-
--- ---------------------------------------------------------------------------
--- Views
--- ---------------------------------------------------------------------------
-
-CREATE VIEW item_series_history AS
-SELECT t.series_id,
-       ti.source_item_id,
-       ti.name,
-       t.id            AS trip_id,
-       t.name          AS trip_name,
-       t.start_date,
-       t.duration_days,
-       ti.quantity,
-       ti.flag_unused,
-       ti.flag_missing
-FROM trip_items ti
-JOIN trips t ON t.id = ti.trip_id
-WHERE t.status = 'archived' AND t.series_id IS NOT NULL;

@@ -83,6 +83,68 @@ const (
 	MarkMaxBytes = 32
 )
 
+// RetiredColumn carries FR-24.3's lifecycle marker on items and templates
+// alike: NULL while the row is active, an RFC3339 stamp once a delete was
+// answered by retiring the row instead of removing it. It is an ordinary
+// synced column — the marker has to reach every device, or a row is hidden
+// on the one that deleted it and present everywhere else.
+const RetiredColumn = "retired_at"
+
+// lifecycleTables names the two entities FR-24.3 governs. Everything else
+// blockingReferences knows about — a series, a traveler, a container —
+// keeps refusing its delete: those are not history the way a master item is,
+// and a retired traveler would be a person nobody can see attached to rows
+// everybody can.
+var lifecycleTables = map[string]bool{
+	TableItems:     true,
+	TableTemplates: true,
+}
+
+// The two template scopes (FR-27.1), named once: they are compared
+// against in the include rule, in the scope-switch guards and in the
+// schema's own CHECK, and a mistyped literal reads as "some other scope"
+// rather than as a build failure (CODING_PRINCIPLES §4a).
+const (
+	// KindTemplate is a Ferien-Vorlage: it may include groups and is what
+	// a trip is generated from.
+	KindTemplate = "template"
+	// KindGroup is a Gruppe: it carries item positions only and is the
+	// thing a Ferien-Vorlage includes.
+	KindGroup = "group"
+)
+
+// RejectReason names why a mutation was refused, so a `rejected` outcome
+// can be turned into a sentence instead of a shrug (Sync-API §5). The set is
+// closed and travels as the push result's `error`: the client maps it to
+// copy, and could branch on it. It is a vocabulary rather than a message
+// because the message belongs to whoever renders it — in the user's own
+// language, which the server does not know.
+type RejectReason string
+
+// The reasons a push can be refused for. Every place in this package that
+// produces sync.OutcomeRejected names one of them.
+const (
+	// ReasonNone is the zero value: an outcome that is not a refusal.
+	ReasonNone RejectReason = ""
+	// ReasonNotAuthorized is a rule about the person (FR-4.5/4.7): they may
+	// not touch this row, however valid the change itself is.
+	ReasonNotAuthorized RejectReason = "not_authorized"
+	// ReasonOutOfScope is a mutation aimed outside the partition it was
+	// pushed to (Sync-API P-3) — a client bug rather than a user's mistake.
+	ReasonOutOfScope RejectReason = "out_of_scope"
+	// ReasonStillReferenced is a delete the rest of the database depends on:
+	// deleting a Vorlage a trip item names would strip FR-9.2 provenance from
+	// an archived trip, so the row stays and the delete is refused.
+	ReasonStillReferenced RejectReason = "still_referenced"
+	// ReasonTemplateScope is the FR-27.1 two-level rule and the FR-27.6 scope
+	// switches that protect it — structural, not a matter of permission.
+	ReasonTemplateScope RejectReason = "template_scope"
+	// ReasonConstraintViolated is everything the schema itself refused: a
+	// foreign key whose parent is gone, a UNIQUE two devices raced into, a
+	// CHECK the mutation's values fail.
+	ReasonConstraintViolated RejectReason = "constraint_violated"
+)
+
 // The trip roles (FR-4.5/4.7), named once: they are compared against in
 // every authorization decision, and a mistyped literal reads as "not that
 // role" rather than as a build failure.
@@ -99,6 +161,10 @@ var syncableColumns = map[string]map[string]bool{
 		"trip_id", "source_item_id", "source_template_id", "name",
 		"weight_grams", "value_cents", "category_name", "quantity",
 		"packed_count", "state", "mode", "late_packer",
+		// FR-25.11j: the list the row was bought from. A client-chosen
+		// value like packer_user_id beside it — it records a decision the
+		// person made, not an identity claim, so stampActor leaves it alone.
+		"bought_from",
 		"assigned_traveler_id", "packer_user_id", "container_id",
 		"packing_now_by", "packing_now_at", "flag_unused", "flag_missing",
 		"outbound_packed",
@@ -139,13 +205,14 @@ var syncableColumns = map[string]map[string]bool{
 		"created_by",
 		"image_hash",
 		MarkColumn,
+		RetiredColumn,
 	),
 	// is_published stays in the schema but off this list: the publish gate
 	// is parked with the FR-1.6 MVP simplification (templates are shared
 	// instance-wide), and an unreadable column no client can set is the
 	// honest state until the stub's revisit trigger fires.
 	TableTemplates: toSet(
-		"owner_id", "name", "kind", MarkColumn,
+		"owner_id", "name", "kind", MarkColumn, RetiredColumn,
 	),
 	TableTemplateItems: toSet(
 		"template_id", "item_id", "quantity", "assignment",
@@ -260,14 +327,11 @@ func schemaFingerprint() int64 {
 // current schema: an empty file gets schema.sql applied, an up-to-date one is
 // used as it is, and anything else is refused.
 func Open(dsn string) (*Store, error) {
-	db, err := sql.Open("sqlite", dsn)
+	db, err := sql.Open("sqlite", withForeignKeys(dsn))
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
 	db.SetMaxOpenConns(1)
-	if _, err := db.Exec(`PRAGMA foreign_keys = ON`); err != nil {
-		return nil, fmt.Errorf("enable foreign keys: %w", err)
-	}
 	// WAL is a property of the file and persists, but it is set here on every
 	// open rather than in schema.sql: journal_mode cannot be changed inside a
 	// transaction, and applySchema runs in one. An in-memory database answers
@@ -286,6 +350,25 @@ func Open(dsn string) (*Store, error) {
 }
 
 func (s *Store) Close() error { return s.db.Close() }
+
+// foreignKeysPragma switches SQLite's foreign key enforcement on. SQLite
+// defaults it *off* and the setting is per connection, not per database.
+const foreignKeysPragma = "_pragma=foreign_keys(1)"
+
+// withForeignKeys puts the pragma into the DSN rather than running it once
+// after connecting. `PRAGMA foreign_keys = ON` applies only to the
+// connection that executed it, so database/sql replacing a broken pooled
+// connection would silently hand back one where every REFERENCES clause in
+// schema.sql is decorative — and the first sign of it would be an orphaned
+// row nobody can explain. In the DSN the driver applies it to every
+// connection it ever opens.
+func withForeignKeys(dsn string) string {
+	sep := "?"
+	if strings.Contains(dsn, "?") {
+		sep = "&"
+	}
+	return dsn + sep + foreignKeysPragma
+}
 
 // ensureSchema applies schema.sql to an empty database and otherwise checks
 // that the one it was handed came from the same schema.
@@ -364,6 +447,9 @@ type MutationResult struct {
 	Outcome    sync.Outcome
 	Conflicts  []sync.Conflict
 	Seq        int64
+	// Reason is set exactly when Outcome is rejected, and is what lets the
+	// client say what happened instead of parking the mutation in silence.
+	Reason RejectReason
 }
 
 // ApplyMutation resolves one trip-partition mutation transactionally:
@@ -391,11 +477,32 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID, userID string, m sync
 	}
 
 	if !belongsToTrip(tripID, m, row.Fields, row.Exists) {
-		res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected}
+		res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected, Reason: ReasonOutOfScope}
 		return res, finalize(ctx, tx, res)
 	}
 
 	merged := sync.Merge(row, m)
+
+	// Asked before the delete rather than read out of the failure it would
+	// cause: the driver's constraint error is a message, and a message is
+	// not a contract to branch on.
+	if blocked, err := stillReferenced(ctx, tx, m, merged.Deleted, row.Exists); err != nil {
+		return MutationResult{}, err
+	} else if blocked {
+		res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected, Reason: ReasonStillReferenced}
+		if res.Seq, err = relogRefused(ctx, tx, tripID, m, row); err != nil {
+			return MutationResult{}, err
+		}
+		return res, finalize(ctx, tx, res)
+	}
+
+	// FK cascades delete child rows inside SQLite, where the change feed
+	// cannot see them; collect their ids before the delete so they can be
+	// tombstoned like any other change (same reason as the master path).
+	cascaded, err := cascadeChildren(ctx, tx, m, merged.Deleted, row.Exists)
+	if err != nil {
+		return MutationResult{}, err
+	}
 
 	res := MutationResult{MutationID: m.MutationID, Outcome: merged.Outcome, Conflicts: merged.Conflicts}
 	changed, err := persist(ctx, tx, m.Table, m, merged, row.Exists)
@@ -408,7 +515,10 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID, userID string, m sync
 			// where an error would become a 500, and a 5xx is the one answer
 			// the outbox keeps retrying, wedging the whole partition behind
 			// the bad row. Same treatment as the master partition.
-			res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected}
+			res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected, Reason: ReasonConstraintViolated}
+			if res.Seq, err = relogRefused(ctx, tx, tripID, m, row); err != nil {
+				return MutationResult{}, err
+			}
 			return res, finalize(ctx, tx, res)
 		}
 		return MutationResult{}, err
@@ -417,6 +527,12 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID, userID string, m sync
 		res.Seq, err = appendChangeLog(ctx, tx, tripID, m, merged.Deleted)
 		if err != nil {
 			return MutationResult{}, err
+		}
+		for _, c := range cascaded {
+			tombstone := sync.Mutation{Table: c.table, ID: c.id, HLC: m.HLC}
+			if _, err := appendChangeLog(ctx, tx, tripID, tombstone, true); err != nil {
+				return MutationResult{}, err
+			}
 		}
 	}
 	if err := logConflicts(ctx, tx, tripID, userID, m, merged.Conflicts); err != nil {
@@ -488,6 +604,11 @@ func recordedResult(ctx context.Context, tx *sql.Tx, mutationID string) (Mutatio
 	if err != nil {
 		return MutationResult{}, false, fmt.Errorf("idempotency lookup: %w", err)
 	}
+	// Sync-API §5/P-5: the replay's own outcome is `duplicate`, and the
+	// "recorded result" it returns is the seq and the conflicts of the
+	// original push — which is why both are read back here. The stored
+	// `outcome` is the memo's audit half: what the first attempt did,
+	// answerable after the fact without replaying it.
 	res := MutationResult{MutationID: mutationID, Outcome: sync.OutcomeDuplicate, Seq: seq}
 	if err := json.Unmarshal([]byte(conflictsJSON), &res.Conflicts); err != nil {
 		return MutationResult{}, false, fmt.Errorf("decode recorded conflicts: %w", err)
@@ -514,10 +635,18 @@ func recordResult(ctx context.Context, tx *sql.Tx, res MutationResult) error {
 // never merge (P-4), so it stays out of pull snapshots and push whitelists.
 const fieldClocksColumn = "field_hlcs"
 
+// updatedHLCColumn holds the row's own HLC. Unlike fieldClocksColumn it
+// *does* travel in pull snapshots: Sync-API §3 has the client advance its
+// clock to the highest HLC it has observed, and a snapshot is the only
+// place a pulling device meets one. It stays off the push whitelist, so a
+// client can read the clock but never set it (P-4: clients never merge).
+const updatedHLCColumn = "updated_hlc"
+
 func loadRow(ctx context.Context, tx *sql.Tx, table, id string) (sync.Row, error) {
 	cols := columnList(table)
 	row := tx.QueryRowContext(ctx, fmt.Sprintf(
-		`SELECT %s, updated_hlc, %s FROM %s WHERE id = ?`, strings.Join(cols, ", "), fieldClocksColumn, table), id)
+		`SELECT %s, %s, %s FROM %s WHERE id = ?`,
+		strings.Join(cols, ", "), updatedHLCColumn, fieldClocksColumn, table), id)
 
 	values := make([]any, len(cols)+2)
 	ptrs := make([]any, len(values))
@@ -570,6 +699,12 @@ func encodeClocks(clocks sync.FieldClocks) (string, error) {
 
 func persist(ctx context.Context, tx *sql.Tx, table string, m sync.Mutation, merged sync.MergeResult, exists bool) (changed bool, err error) {
 	switch {
+	case merged.Deleted && !exists:
+		// Sync-API §5.1: a delete of a row that is already gone stays
+		// accepted and writes nothing. Reporting it as a change would
+		// append a tombstone per retry for a row no device ever had —
+		// work every client redoes, for a row none of them can hold.
+		return false, nil
 	case merged.Deleted:
 		_, err = tx.ExecContext(ctx, fmt.Sprintf(`DELETE FROM %s WHERE id = ?`, table), m.ID)
 		return err == nil, err
@@ -650,6 +785,56 @@ func appendChangeLog(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutatio
 	return seq, nil
 }
 
+// relogRefused re-delivers the row a refusal did *not* change, so the device
+// that pushed the refused mutation converges through its ordinary next pull
+// instead of keeping its optimistic copy forever (ADR-031, Sync-API §5).
+//
+// The entry's `deleted` flag is read from the server's own row rather than
+// from the mutation's op: a refused delete or update re-delivers the
+// snapshot, and a refused insert — for which there is no server row to
+// deliver — delivers a tombstone that drops the phantom. That is the whole
+// of the insert/update asymmetry, decided by what the server holds.
+//
+// It is deliberately not called for `out_of_scope`: the row is not this
+// partition's, and an entry for it here would hand the pusher a foreign
+// row's snapshot on the next pull (P-3). That one is repaired client-side.
+func relogRefused(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutation, row sync.Row) (int64, error) {
+	entry := sync.Mutation{Table: m.Table, ID: m.ID, HLC: m.HLC}
+	if row.Exists {
+		// The row's own clock, not the refused mutation's: the entry
+		// describes what the server holds, and nothing about it changed.
+		entry.HLC = row.HLC
+	}
+	seq, err := appendChangeLog(ctx, tx, tripID, entry, !row.Exists)
+	if err != nil {
+		return 0, err
+	}
+	if m.Op != sync.OpDelete || !row.Exists {
+		return seq, nil
+	}
+	return relogCascadeChildren(ctx, tx, tripID, m, seq)
+}
+
+// relogCascadeChildren names every child a delete of m would have taken,
+// alive, in the change log. A delete takes its children with it and the
+// client mirrors that cascade optimistically — so a row that survives the
+// delete, whether because it was refused (ADR-031) or because FR-24.3
+// retired it instead, comes back on that device with none of its children
+// unless they are re-logged too.
+func relogCascadeChildren(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutation, seq int64) (int64, error) {
+	children, err := cascadeChildren(ctx, tx, sync.Mutation{Table: m.Table, ID: m.ID, HLC: m.HLC}, true, true)
+	if err != nil {
+		return 0, err
+	}
+	for _, c := range children {
+		child := sync.Mutation{Table: c.table, ID: c.id, HLC: m.HLC}
+		if seq, err = appendChangeLog(ctx, tx, tripID, child, false); err != nil {
+			return 0, err
+		}
+	}
+	return seq, nil
+}
+
 // logConflicts records every field the merge dropped, naming the mutation
 // that lost them and the user who pushed it (NFR-4.2a).
 func logConflicts(ctx context.Context, tx *sql.Tx, tripID any, userID string, m sync.Mutation, conflicts []sync.Conflict) error {
@@ -712,7 +897,7 @@ func (s *Store) Pull(ctx context.Context, tripID string, cursor int64, limit int
 	for _, c := range compact(entries) {
 		if !c.Deleted {
 			if _, ok := syncableColumns[c.Table]; ok {
-				c.Row, _, _, err = s.loadSnapshot(ctx, c.Table, c.ID)
+				c.Row, err = s.loadSnapshot(ctx, c.Table, c.ID)
 				if err != nil {
 					return PullPage{}, err
 				}
@@ -756,17 +941,26 @@ func compact(entries []Change) []Change {
 	return out
 }
 
-func (s *Store) loadSnapshot(ctx context.Context, table, id string) (map[string]any, sync.HLC, bool, error) {
+// loadSnapshot reads the pull representation of one row: its syncable
+// columns plus updatedHLCColumn, which is not one of them. The clock is
+// added here rather than by each caller because it is part of what a
+// snapshot *is* — Sync-API §3 has every pulling client advance its own
+// clock past it, and a snapshot without it silently disables that rule.
+func (s *Store) loadSnapshot(ctx context.Context, table, id string) (map[string]any, error) {
 	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
-		return nil, "", false, fmt.Errorf("begin snapshot read: %w", err)
+		return nil, fmt.Errorf("begin snapshot read: %w", err)
 	}
 	defer tx.Rollback()
 	row, err := loadRow(ctx, tx, table, id)
 	if err != nil {
-		return nil, "", false, err
+		return nil, err
 	}
-	return row.Fields, row.HLC, row.Exists, nil
+	if !row.Exists {
+		return nil, nil
+	}
+	row.Fields[updatedHLCColumn] = string(row.HLC)
+	return row.Fields, nil
 }
 
 func columnList(table string) []string {

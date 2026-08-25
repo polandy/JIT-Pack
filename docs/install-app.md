@@ -53,6 +53,23 @@ Two things worth knowing:
   detail view then says so instead of promising your changes are safe — back
   out of the packing screen and reconnect before you close the app.
 
+## When a change is refused
+
+Some changes cannot be kept. Deleting a Vorlage a finished trip still refers
+to is the common one — the trip would lose the record of where its things came
+from, so the server keeps the Vorlage instead. It can also happen because
+somebody else changed the same thing first, or because you are not allowed to
+change it.
+
+You do not have to look for those. The change is **undone on your device**, and
+a short message says how many changes were refused and, where it can, why. The
+sync indicator's detail view keeps the last reason, so you can read it again
+after the message is gone.
+
+The refused change is not tried again — trying forever would hold up everything
+behind it. If you still want it, make it again once the reason no longer
+applies.
+
 ## Updates
 
 The app updates itself: whenever it is opened with a connection, it fetches the current version in the background. A newly downloaded version does not interrupt you — the sync indicator in the app bar shows a small dot, and its detail view says a new version is ready. It takes over the next time you open the app.

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"jitpack/internal/sync"
 )
@@ -44,18 +45,49 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 	}
 
 	res := MutationResult{MutationID: m.MutationID}
-	allowed, err := authorizeMaster(ctx, tx, userID, &m, row.Fields, row.Exists)
+	refused, err := authorizeMaster(ctx, tx, userID, &m, row.Fields, row.Exists)
 	if err != nil {
 		return MutationResult{}, err
 	}
-	if !allowed {
+	if refused != ReasonNone {
 		res.Outcome = sync.OutcomeRejected
+		res.Reason = refused
+		if res.Seq, err = relogRefused(ctx, tx, nil, m, row); err != nil {
+			return MutationResult{}, err
+		}
 		return res, finalize(ctx, tx, res)
 	}
 
 	merged := sync.Merge(row, m)
 	res.Outcome = merged.Outcome
 	res.Conflicts = merged.Conflicts
+
+	// Asked before the delete rather than read out of the failure it would
+	// cause: the driver's constraint error is a message, and a message is
+	// not a contract to branch on. FR-9.2 is why the reference blocks at all
+	// — an archived trip keeps knowing which Vorlage its rows came from.
+	var retiring bool
+	if blocked, err := stillReferenced(ctx, tx, m, merged.Deleted, row.Exists); err != nil {
+		return MutationResult{}, err
+	} else if blocked && lifecycleTables[m.Table] {
+		// FR-24.3: for a master item or a Vorlage the reference does not
+		// refuse the delete, it decides which delete this is. The row is
+		// kept so history keeps resolving against it and marked so no
+		// display surface offers it again.
+		retiring = true
+		m = retireInstead(m, time.Now().UTC().Format(time.RFC3339))
+		merged = sync.Merge(row, m)
+		res.Outcome = merged.Outcome
+		res.Conflicts = merged.Conflicts
+	} else if blocked {
+		res.Outcome = sync.OutcomeRejected
+		res.Reason = ReasonStillReferenced
+		res.Conflicts = nil
+		if res.Seq, err = relogRefused(ctx, tx, nil, m, row); err != nil {
+			return MutationResult{}, err
+		}
+		return res, finalize(ctx, tx, res)
+	}
 
 	// FK cascades delete child rows silently; collect their ids up front
 	// so the whole cascade can be tombstoned for clients.
@@ -67,11 +99,16 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 	changed, err := persist(ctx, tx, m.Table, m, merged, row.Exists)
 	if err != nil {
 		if isConstraintViolation(err) {
-			// e.g. deleting an item still referenced by a template, or two
-			// admins racing to add the same member (UNIQUE): the statement
-			// failed, the transaction survives — reject cleanly.
+			// What is left after the pre-check above: two admins racing to
+			// add the same member (UNIQUE), a mutation naming a parent that
+			// is gone (FK), values a CHECK refuses. The statement failed and
+			// the transaction survives — reject cleanly.
 			res.Outcome = sync.OutcomeRejected
+			res.Reason = ReasonConstraintViolated
 			res.Conflicts = nil
+			if res.Seq, err = relogRefused(ctx, tx, nil, m, row); err != nil {
+				return MutationResult{}, err
+			}
 			return res, finalize(ctx, tx, res)
 		}
 		return MutationResult{}, err
@@ -87,13 +124,22 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 				return MutationResult{}, err
 			}
 		}
+		if retiring {
+			// The device that asked for the delete already drew its
+			// cascade (ADR-031). Nothing was cascaded, so every child has
+			// to be named again — alive — or a retired Vorlage comes back
+			// with none of its positions.
+			if res.Seq, err = relogCascadeChildren(ctx, tx, nil, m, res.Seq); err != nil {
+				return MutationResult{}, err
+			}
+		}
 		if m.Table == TableTrips && !row.Exists && !merged.Deleted {
 			// The creator becomes the trip's Owner (FR-4.5); the membership
 			// row syncs like any other so every device learns the roster.
 			memberID := randomID()
 			if _, err := tx.ExecContext(ctx,
-				`INSERT INTO trip_members (id, trip_id, user_id, role, updated_hlc) VALUES (?, ?, ?, 'owner', ?)`,
-				memberID, m.ID, userID, string(m.HLC)); err != nil {
+				`INSERT INTO trip_members (id, trip_id, user_id, role, updated_hlc) VALUES (?, ?, ?, ?, ?)`,
+				memberID, m.ID, userID, RoleOwner, string(m.HLC)); err != nil {
 				return MutationResult{}, fmt.Errorf("creator membership: %w", err)
 			}
 			member := sync.Mutation{Table: TableTripMembers, ID: memberID, HLC: m.HLC}
@@ -132,24 +178,28 @@ func finalize(ctx context.Context, tx *sql.Tx, res MutationResult) error {
 
 // authorizeMaster decides whether userID may apply m and stamps
 // server-owned columns on insert. current is the existing row, if any.
-func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mutation, current map[string]any, exists bool) (bool, error) {
+// It answers ReasonNone when the mutation may proceed and otherwise the
+// reason it may not — the two structural rules (FR-27.1/27.6) refuse for a
+// different reason than the permission rules, and the user is owed the
+// difference.
+func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mutation, current map[string]any, exists bool) (RejectReason, error) {
 	switch m.Table {
 	case TableTags, TableItemTags:
 		// Shared master data like the items they classify (FR-24.1): any
 		// authenticated user creates a tag by typing it in M10, and there
 		// is no separate tag-management screen to gate.
-		return true, nil
+		return ReasonNone, nil
 
 	case TableItems:
 		if !exists && m.Op != sync.OpDelete {
 			setField(m, "created_by", userID)
 		}
-		return true, nil
+		return ReasonNone, nil
 
 	case TableItemDependencies:
 		// Shared like the items they connect (FR-20.1): anyone may relate
 		// two master items; invalid endpoints fail the FK and reject.
-		return true, nil
+		return ReasonNone, nil
 
 	case TableTemplates:
 		// Shared instance-wide like master items (FR-1.6 MVP simplification,
@@ -159,14 +209,18 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 		// if the parked ownership model returns.
 		if !exists && m.Op != sync.OpDelete {
 			setField(m, "owner_id", userID)
+			return ReasonNone, nil
 		}
-		return true, nil
+		if m.Op == sync.OpDelete {
+			return ReasonNone, nil
+		}
+		return validKindSwitch(ctx, tx, current, m)
 
 	case TableTemplateItems, TableTemplateItemTasks:
 		// Positions and their preparation tasks (FR-27.7) follow their
 		// template's governance (FR-1.6 MVP): shared. An invalid parent id
 		// fails the FK and rejects.
-		return true, nil
+		return ReasonNone, nil
 
 	case TableTemplateIncludes:
 		// Shared like everything else, but structurally constrained: the
@@ -174,7 +228,7 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 		// so a shape that would break it is refused here rather than
 		// discovered later by a resolver.
 		if m.Op == sync.OpDelete {
-			return true, nil
+			return ReasonNone, nil
 		}
 		return validInclude(ctx, tx, current, m)
 
@@ -183,19 +237,19 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 			if m.Op != sync.OpDelete {
 				setField(m, "owner_id", userID)
 			}
-			return true, nil
+			return ReasonNone, nil
 		}
-		return current["owner_id"] == userID, nil
+		return authorized(current["owner_id"] == userID), nil
 
 	case TableDestinationProfiles:
 		// Ownership follows the series chain (FR-13.2) — current and
 		// target series alike, so profiles can't move to foreign series.
-		return ownsAll(ctx, tx, userID,
+		return owned(ctx, tx, userID,
 			`SELECT owner_id FROM trip_series WHERE id = ?`,
 			parentIDs(current, m, "series_id"))
 
 	case TableDestinationChecklistItems:
-		return ownsAll(ctx, tx, userID,
+		return owned(ctx, tx, userID,
 			`SELECT s.owner_id FROM destination_profiles p
 			 JOIN trip_series s ON s.id = p.series_id WHERE p.id = ?`,
 			parentIDs(current, m, "profile_id"))
@@ -205,19 +259,19 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 			if m.Op != sync.OpDelete {
 				setField(m, "created_by", userID)
 			}
-			return true, nil
+			return ReasonNone, nil
 		}
 		role, err := memberRole(ctx, tx, m.ID, userID)
 		if err != nil {
-			return false, err
+			return ReasonNone, err
 		}
 		if role == "" {
-			return false, nil
+			return ReasonNotAuthorized, nil
 		}
 		if m.Op == sync.OpDelete {
-			return role == RoleOwner || role == RoleAdmin, nil
+			return authorized(role == RoleOwner || role == RoleAdmin), nil
 		}
-		return true, nil
+		return ReasonNone, nil
 
 	case TableTripTemplateSources, TableTripAppliedChanges:
 		// FR-27.4 bookkeeping about a trip: writable by anyone who may edit
@@ -227,47 +281,47 @@ func authorizeMaster(ctx context.Context, tx *sql.Tx, userID string, m *sync.Mut
 		// trip open.
 		trips := parentIDs(current, m, columnTripID)
 		if len(trips) == 0 {
-			return false, nil
+			return ReasonNotAuthorized, nil
 		}
 		for tripID := range trips {
 			role, err := memberRole(ctx, tx, tripID, userID)
 			if err != nil {
-				return false, err
+				return ReasonNone, err
 			}
 			if role == "" {
-				return false, nil
+				return ReasonNotAuthorized, nil
 			}
 		}
-		return true, nil
+		return ReasonNone, nil
 
 	case TableTripMembers:
 		// Clients can never grant 'owner' — the creator's server-created
 		// row is the trip's only Owner (FR-4.5).
 		if role, ok := m.Fields["role"].(string); ok && role == RoleOwner {
-			return false, nil
+			return ReasonNotAuthorized, nil
 		}
 		// The creator's row is the only one with role 'owner' and is
 		// immutable — no demotion, no removal, not even by an Admin
 		// (FR-4.7).
 		if exists && current["role"] == RoleOwner {
-			return false, nil
+			return ReasonNotAuthorized, nil
 		}
 		trips := parentIDs(current, m, columnTripID)
 		if len(trips) == 0 {
-			return false, nil
+			return ReasonNotAuthorized, nil
 		}
 		for tripID := range trips {
 			role, err := memberRole(ctx, tx, tripID, userID)
 			if err != nil {
-				return false, err
+				return ReasonNone, err
 			}
 			if role != RoleOwner && role != RoleAdmin {
-				return false, nil // FR-4.7: only Owner/Admin manage members
+				return ReasonNotAuthorized, nil // FR-4.7: only Owner/Admin manage members
 			}
 		}
-		return true, nil
+		return ReasonNone, nil
 	}
-	return false, nil
+	return ReasonNotAuthorized, nil
 }
 
 // memberRole returns userID's role on the trip, or "" for non-members.
@@ -294,7 +348,7 @@ func memberRole(ctx context.Context, tx *sql.Tx, tripID, userID string) (string,
 // mutation, so an include can never be re-pointed into an illegal shape.
 // A missing template denies — the FK would reject it anyway, and denying
 // keeps the answer a clean "rejected" instead of an error.
-func validInclude(ctx context.Context, tx *sql.Tx, current map[string]any, m *sync.Mutation) (bool, error) {
+func validInclude(ctx context.Context, tx *sql.Tx, current map[string]any, m *sync.Mutation) (RejectReason, error) {
 	field := func(name string) string {
 		if v, ok := m.Fields[name].(string); ok {
 			return v
@@ -306,22 +360,148 @@ func validInclude(ctx context.Context, tx *sql.Tx, current map[string]any, m *sy
 	}
 	parent, child := field("template_id"), field("included_template_id")
 	if parent == "" || child == "" {
-		return false, nil
+		return ReasonTemplateScope, nil
 	}
-	for _, want := range []struct{ id, kind string }{{parent, "template"}, {child, "group"}} {
+	for _, want := range []struct{ id, kind string }{{parent, KindTemplate}, {child, KindGroup}} {
 		var kind string
 		err := tx.QueryRowContext(ctx, `SELECT kind FROM templates WHERE id = ?`, want.id).Scan(&kind)
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
+			return ReasonTemplateScope, nil
 		}
 		if err != nil {
-			return false, fmt.Errorf("include scope lookup: %w", err)
+			return ReasonNone, fmt.Errorf("include scope lookup: %w", err)
 		}
 		if kind != want.kind {
-			return false, nil
+			return ReasonTemplateScope, nil
 		}
 	}
-	return true, nil
+	return ReasonNone, nil
+}
+
+// validKindSwitch enforces the two FR-27.6 scope guards on the push path,
+// where the M8 editor's own guards cannot reach: a Ferien-Vorlage that
+// still includes groups may not become a Gruppe, and a Gruppe that is
+// included somewhere may not be promoted. Without them the FR-27.1
+// two-level rule is a two-step formality — flip both ends of an edge and
+// `validInclude` accepts the reverse edge, persisting a cycle.
+//
+// Only a mutation that actually *changes* the scope is judged. A push
+// carrying no `kind`, or restating the one already stored, is an ordinary
+// edit: rejecting it would drop a legitimate offline rename, and a
+// rejected mutation is a change the client's outbox discards (NFR-4.2a).
+func validKindSwitch(ctx context.Context, tx *sql.Tx, current map[string]any, m *sync.Mutation) (RejectReason, error) {
+	kind, ok := m.Fields["kind"].(string)
+	if !ok || kind == current["kind"] {
+		return ReasonNone, nil
+	}
+	query := `SELECT count(*) FROM template_includes WHERE included_template_id = ?`
+	if kind == KindGroup {
+		query = `SELECT count(*) FROM template_includes WHERE template_id = ?`
+	}
+	var edges int
+	if err := tx.QueryRowContext(ctx, query, m.ID).Scan(&edges); err != nil {
+		return ReasonNone, fmt.Errorf("scope switch lookup: %w", err)
+	}
+	if edges > 0 {
+		return ReasonTemplateScope, nil
+	}
+	return ReasonNone, nil
+}
+
+// authorized turns a plain ownership answer into the reason vocabulary.
+func authorized(ok bool) RejectReason {
+	if ok {
+		return ReasonNone
+	}
+	return ReasonNotAuthorized
+}
+
+// owned is ownsAll in the reason vocabulary, so the switch above reads the
+// same whichever branch answers.
+func owned(ctx context.Context, tx *sql.Tx, userID, ownerQuery string, ids map[string]bool) (RejectReason, error) {
+	ok, err := ownsAll(ctx, tx, userID, ownerQuery, ids)
+	if err != nil {
+		return ReasonNone, err
+	}
+	return authorized(ok), nil
+}
+
+// blockingReference is one child column that refuses its parent's delete,
+// i.e. a foreign key deliberately declared without ON DELETE.
+type blockingReference struct {
+	table  string
+	column string
+}
+
+// blockingReferences lists, per deletable table, the references that keep a
+// row alive. It exists so the refusal can be *asked for* instead of inferred
+// from a driver error string, which is not a stable contract across driver
+// versions (CODING_PRINCIPLES §4a: the situation is named once, here).
+//
+// Only the restricting foreign keys belong here — a reference declared
+// ON DELETE CASCADE takes the child with the parent and blocks nothing, and
+// cascadeChildren is the list of those.
+var blockingReferences = map[string][]blockingReference{
+	// FR-9.2: an archived trip keeps naming the Vorlage its rows came from,
+	// so the Vorlage cannot be deleted while any trip item names it.
+	TableTemplates: {
+		{TableTripItems, "source_template_id"},
+	},
+	TableItems: {
+		{TableTemplateItems, "item_id"},
+		{TableTripItems, "source_item_id"},
+	},
+	TableTripSeries: {
+		{TableTrips, "series_id"},
+	},
+	TableTravelers: {
+		{TableTripItems, "assigned_traveler_id"},
+		{TableContainers, "carrier_traveler_id"},
+	},
+	TableContainers: {
+		{TableTripItems, "container_id"},
+		{TableContainers, "paired_container_id"},
+	},
+}
+
+// retireInstead turns a delete FR-24.3 will not perform into the write that
+// records the decision behind it: the row survives, the marker is stamped,
+// and the mutation keeps its own id and clock so the merge treats it as the
+// ordinary single-field write it now is.
+func retireInstead(m sync.Mutation, at string) sync.Mutation {
+	m.Op = sync.OpUpsert
+	m.Fields = map[string]any{RetiredColumn: at}
+	return m
+}
+
+// stillReferenced reports whether m's delete would be refused because rows
+// elsewhere still point at the row. Nothing but a delete of an existing row
+// can be blocked, so everything else answers false without a query.
+func stillReferenced(ctx context.Context, tx *sql.Tx, m sync.Mutation, deleted, exists bool) (bool, error) {
+	if !deleted || !exists {
+		return false, nil
+	}
+	for _, ref := range blockingReferences[m.Table] {
+		// A self-reference does not keep its own row alive: SQLite drops the
+		// row and the pointer together, and counting it would refuse every
+		// delete of a paired container.
+		query := fmt.Sprintf(`SELECT count(*) FROM %s WHERE %s = ?`, ref.table, ref.column)
+		if ref.table == m.Table {
+			query += ` AND id <> ?`
+		}
+		args := []any{m.ID}
+		if ref.table == m.Table {
+			args = append(args, m.ID)
+		}
+		var refs int
+		if err := tx.QueryRowContext(ctx, query, args...).Scan(&refs); err != nil {
+			return false, fmt.Errorf("reference lookup on %s.%s: %w", ref.table, ref.column, err)
+		}
+		if refs > 0 {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func parentIDs(current map[string]any, m *sync.Mutation, field string) map[string]bool {
@@ -397,6 +577,17 @@ func cascadeChildren(ctx context.Context, tx *sql.Tx, m sync.Mutation, deleted, 
 			// every open.
 			{TableTripTemplateSources, `SELECT id FROM trip_template_sources WHERE template_id = ?`},
 		}
+	case TableTrips:
+		// A deleted trip takes three master-partition tables with it. They
+		// need tombstones of their own precisely because the trip's *other*
+		// children cannot have any: change_log.trip_id cascades too, so the
+		// trip partition's whole feed is deleted with the row it describes,
+		// and only the master feed survives to carry the news.
+		children = []childQuery{
+			{TableTripMembers, `SELECT id FROM trip_members WHERE trip_id = ?`},
+			{TableTripTemplateSources, `SELECT id FROM trip_template_sources WHERE trip_id = ?`},
+			{TableTripAppliedChanges, `SELECT id FROM trip_applied_changes WHERE trip_id = ?`},
+		}
 	case TableTemplateItems:
 		children = []childQuery{
 			{TableTemplateItemTasks, `SELECT id FROM template_item_tasks WHERE template_item_id = ?`},
@@ -423,6 +614,15 @@ func cascadeChildren(ctx context.Context, tx *sql.Tx, m sync.Mutation, deleted, 
 	case TableDestinationProfiles:
 		children = []childQuery{
 			{TableDestinationChecklistItems, `SELECT id FROM destination_checklist_items WHERE profile_id = ?`},
+		}
+	case TableTripItems:
+		// The one cascade of the *trip* partition: a row's comments and
+		// FR-7.3 todos hang off it (comments.trip_item_id ON DELETE
+		// CASCADE). Trip-level comments have a NULL trip_item_id and are
+		// untouched by the delete, so the query names the row explicitly
+		// rather than matching on the trip.
+		children = []childQuery{
+			{TableComments, `SELECT id FROM comments WHERE trip_item_id = ?`},
 		}
 	}
 
@@ -513,7 +713,7 @@ func (s *Store) PullMaster(ctx context.Context, userID string, cursor int64, lim
 			if !visible {
 				continue
 			}
-			c.Row, _, _, err = s.loadSnapshot(ctx, c.Table, c.ID)
+			c.Row, err = s.loadSnapshot(ctx, c.Table, c.ID)
 			if err != nil {
 				return PullPage{}, err
 			}

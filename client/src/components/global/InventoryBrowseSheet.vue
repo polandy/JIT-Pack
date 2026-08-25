@@ -50,11 +50,11 @@ const tagFilter = ref<string | null>(null)
  * the swimsuit that is filed under *Kleidung*.
  */
 const filtered = computed<MasterItem[]>(() => {
-  if (tagFilter.value === null) return masterStore.itemList
+  if (tagFilter.value === null) return masterStore.activeItemList
   const onTag = new Set(
     masterStore.itemTagList.filter((a) => a.tag_id === tagFilter.value).map((a) => a.item_id),
   )
-  return masterStore.itemList.filter((item) => onTag.has(item.id))
+  return masterStore.activeItemList.filter((item) => onTag.has(item.id))
 })
 
 const groups = computed(() => masterStore.itemsByPrimaryTag(filtered.value))

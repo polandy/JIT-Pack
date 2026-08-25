@@ -11,6 +11,7 @@ import { ref, computed } from 'vue'
 import type {
   AppliedChange,
   GeneratedPosition,
+  ShoppingMode,
   Trip,
   TripItem,
   TripKPIs,
@@ -55,12 +56,32 @@ export const useTripStore = defineStore(TABLE.trips, () => {
    * getShoppingItems derives the M6 procurement lists (FR-3.2): open
    * BUY_BEFORE and BUY_LOCAL items. Purchased BUY_BEFORE items flip to
    * PACK (FR-3.3) and thereby leave the list.
+   *
+   * Beside each open list is what was bought from it (FR-25.11j), found by
+   * `bought_from` because the purchase is exactly what removed the row from
+   * its own list. The two are disjoint by construction rather than by a
+   * second condition: a row still on the open list is never also reported as
+   * bought, so an actionable row can never hide under the reveal — the
+   * failure FR-25.11a names.
    */
-  function getShoppingItems(tripId: string): { buyBefore: TripItem[]; buyLocal: TripItem[] } {
-    const open = getItems(tripId).filter((i) => i.state !== 'packed' && i.state !== 'skipped')
+  function getShoppingItems(tripId: string): {
+    buyBefore: TripItem[]
+    buyLocal: TripItem[]
+    boughtBefore: TripItem[]
+    boughtLocal: TripItem[]
+  } {
+    const items = getItems(tripId)
+    const open = items.filter((i) => i.state !== 'packed' && i.state !== 'skipped')
+    const buyBefore = open.filter((i) => i.mode === 'buy_before')
+    const buyLocal = open.filter((i) => i.mode === 'buy_local')
+    const stillOpen = new Set([...buyBefore, ...buyLocal].map((i) => i.id))
+    const bought = (from: ShoppingMode) =>
+      items.filter((i) => i.bought_from === from && !stillOpen.has(i.id))
     return {
-      buyBefore: open.filter((i) => i.mode === 'buy_before'),
-      buyLocal: open.filter((i) => i.mode === 'buy_local'),
+      buyBefore,
+      buyLocal,
+      boughtBefore: bought('buy_before'),
+      boughtLocal: bought('buy_local'),
     }
   }
 
@@ -542,6 +563,7 @@ function rowToTripItem(id: string, row: Record<string, unknown>): TripItem {
     container_id: (row['container_id'] as string) ?? null,
     packing_now_by: (row['packing_now_by'] as string) ?? null,
     packing_now_at: (row['packing_now_at'] as string) ?? null,
+    bought_from: (row['bought_from'] as TripItem['bought_from']) ?? null,
     flag_unused: Boolean(row['flag_unused']),
     flag_missing: Boolean(row['flag_missing']),
     updated_hlc: (row['updated_hlc'] as string) ?? '',

@@ -23,7 +23,7 @@ import {
   type ServerNotification,
 } from '@/notifications/format'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
-import type { ConflictReport } from '@/composables/useSyncOutbox'
+import type { ConflictReport, RejectionReport } from '@/composables/useSyncOutbox'
 import { serverBaseUrl } from '@/config'
 import { IndexedDBPersistence } from '@/local/persistence'
 import SheetModal from '@/components/global/SheetModal.vue'
@@ -34,6 +34,7 @@ import { readStorageStatus, type StorageStatus } from '@/local/storageStatus'
 import { saveText } from '@/lib/download'
 import { swUpdateReady } from '@/pwa/register'
 import { t } from '@/i18n'
+import { rejectionToastMessage } from '@/sync/rejectionReasons'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { provide, computed, onMounted, onUnmounted, ref } from 'vue'
@@ -65,6 +66,7 @@ const orchestrator = mode.value
       local: mode.value === 'local' ? new IndexedDBPersistence() : undefined,
       onNotification: showNotificationToast,
       onConflicts: showConflictToast,
+      onRejections: showRejectionToast,
     })
   : null
 
@@ -89,6 +91,22 @@ async function showConflictToast(report: ConflictReport) {
         },
       },
     ],
+  })
+  await toast.present()
+}
+
+/**
+ * Sync-API §5 / ADR-031: a refused mutation is undone — by the row the
+ * server re-logged, or by the client dropping one the server could not send
+ * back. Either way the row changes back under the user's hands, and this is
+ * the moment it is said out loud; G-2's sheet keeps the standing record.
+ * One toast per push, like the conflict one beside it.
+ */
+async function showRejectionToast(report: RejectionReport) {
+  const toast = await toastController.create({
+    message: rejectionToastMessage(report.count, report.reason),
+    duration: 6000,
+    position: 'top',
   })
   await toast.present()
 }
@@ -273,6 +291,7 @@ async function saveBackup() {
           :pending-count="syncStatus.pendingCount.value"
           :queue-durable="syncStatus.queueDurable.value"
           :parked-count="syncStatus.parkedCount.value"
+          :parked-reason="syncStatus.parkedReason.value"
           :conflict-count="syncStatus.conflictCount.value"
           :mode="mode"
           :can-open-conflicts="mode === 'server' && tripId !== null"
