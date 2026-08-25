@@ -116,13 +116,14 @@ describe('useSyncStatus — durable queue facts', () => {
     expect(status.queueDurable.value).toBe(true)
   })
 
-  it('carries the parked count and the withdrawn durability', () => {
+  it('carries the parked count, its reason, and the withdrawn durability', () => {
     const status = useSyncStatus()
 
-    status.setParkedCount(2)
+    status.setParked(2, 'still_referenced')
     status.setQueueDurable(false)
 
     expect(status.parkedCount.value).toBe(2)
+    expect(status.parkedReason.value).toBe('still_referenced')
     expect(status.queueDurable.value).toBe(false)
   })
 })

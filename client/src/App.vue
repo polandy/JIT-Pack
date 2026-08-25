@@ -273,6 +273,7 @@ async function saveBackup() {
           :pending-count="syncStatus.pendingCount.value"
           :queue-durable="syncStatus.queueDurable.value"
           :parked-count="syncStatus.parkedCount.value"
+          :parked-reason="syncStatus.parkedReason.value"
           :conflict-count="syncStatus.conflictCount.value"
           :mode="mode"
           :can-open-conflicts="mode === 'server' && tripId !== null"
