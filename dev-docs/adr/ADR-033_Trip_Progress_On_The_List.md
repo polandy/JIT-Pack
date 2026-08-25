@@ -103,6 +103,7 @@ An `IntersectionObserver` per row; a row that becomes visible asks for its trip'
 
 - **The list fills in.** Rows that were never on screen have no numbers, and a fast scroll leaves a trail of them behind. This is visible behaviour, not a bug, and it is the price of driver 3.
 - **A screen triggers network.** The dedup that makes that safe is one map in the orchestrator; a second caller that forgets to go through `ensureTripData` would reintroduce the stampede.
+- **A drain nobody asked for must not answer for the app.** `drainTrip` gained a `background` mode with this: it does the data work and leaves the G-2 glyph alone. Without it a row that fails — a trip the user was removed from answers 403 while the network is fine — would announce an outage nobody caused, and eight rows appearing at once would flicker the glyph through *syncing* on every visit to the list.
 - Option D's freeness is genuinely attractive and is being turned down on a correctness argument, not a cost one.
 
 **Neutral**

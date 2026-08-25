@@ -558,18 +558,31 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   // --- Drain operations ---
 
-  async function drainTrip(tripId: string): Promise<void> {
+  /**
+   * `background` is a drain nobody asked for — since ADR-033 a list loads the
+   * rows it is showing. It leaves the G-2 glyph alone: that glyph answers for
+   * what the *user* did, and a row that fails (a trip they were removed from
+   * answers 403 while the network is fine) would otherwise announce an outage
+   * nobody caused, and eight rows appearing at once would flicker it through
+   * *syncing* on every visit to the list.
+   */
+  async function drainTrip(
+    tripId: string,
+    { background = false }: { background?: boolean } = {},
+  ): Promise<void> {
     if (local) return
-    syncStatus.setSyncing()
+    if (!background) syncStatus.setSyncing()
     try {
       await outbox.drain('trip', tripId)
       loadedTripPartitions.add(tripId)
-      syncStatus.setPendingCount(outbox.totalPending())
-      syncStatus.setSynced()
+      if (!background) {
+        syncStatus.setPendingCount(outbox.totalPending())
+        syncStatus.setSynced()
+      }
       // Report the new cursor so the server recomputes in_sync (§7).
       ws.sendCursor(tripId, outbox.getCursor('trip', tripId))
     } catch {
-      syncStatus.setOffline()
+      if (!background) syncStatus.setOffline()
     }
   }
 
@@ -1292,7 +1305,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     if (tripDataLoaded(tripId)) return Promise.resolve()
     const existing = tripDataRequests.get(tripId)
     if (existing) return existing
-    const request = drainTrip(tripId).finally(() => tripDataRequests.delete(tripId))
+    const request = drainTrip(tripId, { background: true }).finally(() =>
+      tripDataRequests.delete(tripId),
+    )
     tripDataRequests.set(tripId, request)
     return request
   }

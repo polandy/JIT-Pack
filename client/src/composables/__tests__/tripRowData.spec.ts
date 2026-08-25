@@ -122,4 +122,35 @@ describe('a trip whose own rows are not on the device (ADR-033)', () => {
 
     expect(seen).toEqual([false, true])
   })
+
+  /*
+   * The G-2 glyph reports what the *user* asked for. Since a list now loads
+   * rows by itself, a row that fails must not tell the whole app it is
+   * offline: a trip the user was removed from answers 403 while the network
+   * is perfectly fine, and the glyph would announce an outage nobody caused.
+   */
+  it('does not report the app offline when one row fails to load', async () => {
+    const orch = newOrch()
+    // The orchestrator's own status, not a fresh `useSyncStatus()` — that
+    // composable builds new refs per call, so a second instance would have
+    // asserted nothing at all. (It did, for about two minutes.)
+    const status = orch.syncStatus
+    fetchMock.mockRejectedValue(new Error('403'))
+
+    await orch.ensureTripData('trip-1')
+
+    expect(orch.tripDataLoaded('trip-1')).toBe(false)
+    expect(status.state.value).not.toBe('offline')
+  })
+
+  it('leaves the indicator alone even when the row loads fine', async () => {
+    const orch = newOrch()
+    const status = orch.syncStatus
+    const before = status.state.value
+
+    await orch.ensureTripData('trip-1')
+
+    expect(orch.tripDataLoaded('trip-1')).toBe(true)
+    expect(status.state.value).toBe(before)
+  })
 })
