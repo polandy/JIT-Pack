@@ -244,24 +244,34 @@ export function seedSampleMaster(orchestrator: Orchestrator): SampleMaster {
 
   // A second seed run on a device that already carries the sample data finds
   // every one of these names taken (FR-1.6) — createTemplate refuses it, and
-  // the seed adopts what is already there instead of writing a duplicate the
-  // server would have refused anyway.
-  const seedTemplate = (name: string, kind: TemplateKind, icon: string | null): string =>
-    orchestrator.createTemplate(name, kind, icon) ?? orchestrator.templateNameCollision(name)!.id
+  // the seed adopts what is already there rather than writing a duplicate the
+  // server would have refused anyway. What it must not then do is fill that
+  // adopted template a second time: `template_includes` and `template_items`
+  // are UNIQUE on their pairs, so the contents are written only for a
+  // template this run actually created.
+  const created = new Set<string>()
+  const seedTemplate = (name: string, kind: TemplateKind, icon: string | null): string => {
+    const id = orchestrator.createTemplate(name, kind, icon)
+    if (id === null) return orchestrator.templateNameCollision(name)!.id
+    created.add(id)
+    return id
+  }
 
   const groupIds = new Map<string, string>()
   for (const group of GROUPS) {
     const id = seedTemplate(group.name, 'group', group.icon ?? null)
     groupIds.set(group.name, id)
-    addPositions(orchestrator, id, itemIds, group.positions)
+    if (created.has(id)) addPositions(orchestrator, id, itemIds, group.positions)
   }
 
   const vacationTemplateId = seedTemplate(VACATION.name, 'template', VACATION.icon)
-  for (const name of VACATION.includes) {
-    const groupId = groupIds.get(name)
-    if (groupId) orchestrator.addTemplateInclude(vacationTemplateId, groupId)
+  if (created.has(vacationTemplateId)) {
+    for (const name of VACATION.includes) {
+      const groupId = groupIds.get(name)
+      if (groupId) orchestrator.addTemplateInclude(vacationTemplateId, groupId)
+    }
+    addPositions(orchestrator, vacationTemplateId, itemIds, VACATION.positions)
   }
-  addPositions(orchestrator, vacationTemplateId, itemIds, VACATION.positions)
 
   return {
     vacationTemplateId,

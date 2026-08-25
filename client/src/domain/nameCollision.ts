@@ -26,9 +26,14 @@ export interface NamedRow {
  * database accepts, so folding them would refuse a name the user is entitled
  * to. The FR-27.13 picker search folds them because recall is free in a
  * search; here a hit blocks a write, and precision wins.
+ *
+ * `toLowerCase` and not `toLocaleLowerCase`: the fold has to be the same on
+ * every device, and a Turkish locale maps "I" to a different letter than the
+ * Unicode default does. Two devices disagreeing about whether a name is free
+ * is a worse failure than either answer.
  */
 export function foldName(name: string): string {
-  return name.trim().toLocaleLowerCase()
+  return name.trim().toLowerCase()
 }
 
 /**

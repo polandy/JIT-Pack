@@ -23,6 +23,13 @@ describe('foldName', () => {
   it('keeps diacritics, because the database would accept the unfolded spelling', () => {
     expect(foldName('Frühling')).not.toBe(foldName('Fruhling'))
   })
+
+  it('folds the same way whatever locale the device runs in', () => {
+    // toLocaleLowerCase would map the Turkish dotted I differently, and two
+    // devices disagreeing about whether a name is free is worse than either
+    // answer. Asserted against the value, not against the call.
+    expect(foldName('ISTANBUL')).toBe('istanbul')
+  })
 })
 
 describe('findNameCollision', () => {
