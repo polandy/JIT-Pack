@@ -255,9 +255,10 @@ export class SyncOutbox {
       // `finally` and not `then`: a drain that fails must release the
       // partition, or one lost network moment would take it out of sync for
       // the rest of the session.
-      const started = this.runDrain(type, id).finally(() => {
-        if (this.draining.get(key) === started) this.draining.delete(key)
-      })
+      // Nothing else can have registered a drain for this partition in the
+      // meantime — that is what the map is for — so the entry this clears is
+      // always this drain's own.
+      const started = this.runDrain(type, id).finally(() => this.draining.delete(key))
       this.draining.set(key, started)
       return started
     }
