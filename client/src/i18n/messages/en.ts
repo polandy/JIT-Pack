@@ -591,7 +591,6 @@ export const en = {
   'retired.purge': 'Delete for good',
   'retired.purgeConfirm': 'Remove “{name}” for good?',
   'retired.purged': '“{name}” was removed for good.',
-  'retired.openItem': 'Open',
   'settings.retired': 'Hidden master data',
   'settings.retiredRow': 'Restore hidden items and templates',
   'settings.retiredHint': 'Bring back what a delete only hid.',

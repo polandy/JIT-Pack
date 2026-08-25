@@ -14,6 +14,7 @@ import { describe, it, expect } from 'vitest'
 
 import { RETIRED_FIELD } from '../masterDeletion'
 import {
+  RESTORE_NAME_MISSING,
   RESTORE_NAME_TAKEN,
   RESTORE_READY,
   restoreFields,
@@ -103,8 +104,10 @@ describe('restoreVerdict', () => {
     expect(verdict.kind === RESTORE_NAME_TAKEN && verdict.holder.id).toBe('other')
   })
 
-  it('refuses a blank replacement rather than writing a nameless row', () => {
-    expect(restoreVerdict(retired, [], '   ').kind).toBe(RESTORE_NAME_TAKEN)
+  it('refuses a blank replacement as its own verdict, naming no holder', () => {
+    // Reporting it as "taken" would have to invent a holder for a name
+    // nothing holds, and the sentence built from it would be nonsense.
+    expect(restoreVerdict(retired, [], '   ')).toEqual({ kind: RESTORE_NAME_MISSING })
   })
 
   it('sees the row that a previous restore of a same-named twin just activated', () => {

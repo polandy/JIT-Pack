@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * M23 — Hidden items and templates (FR-24.3, ADR-033)
+ * M23 — Hidden master data (FR-24.3, ADR-033)
  *
  * The other half of the lifecycle delete: a master item or Vorlage something
  * still uses is *retired* rather than removed, and until this screen existed
@@ -41,7 +41,7 @@ import type { MessageKey } from '@/i18n'
 import { presentToast } from '@/lib/toast'
 import { useMasterStore } from '@/stores/masterStore'
 import { DELETION_REMOVE } from '@/domain/masterDeletion'
-import { RESTORE_READY, type RestoreVerdict } from '@/domain/masterRestore'
+import { RESTORE_NAME_TAKEN, type RestoreVerdict } from '@/domain/masterRestore'
 import type { MasterItem, Template } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
@@ -72,8 +72,6 @@ interface RetiredRow {
   references: number
   /** Whether a *permanent* delete would now be physical (FR-24.3's second branch). */
   removable: boolean
-  /** Whether this device can be sure of that — false in Server Mode (ADR-032). */
-  certain: boolean
   /** The sentence the permanent-delete confirm carries. */
   removeKey: MessageKey
   /** The sentence a collided restore explains itself with. */
@@ -94,7 +92,6 @@ const itemRows = computed<RetiredRow[]>(() =>
       photoItem: item,
       references: outlook.references,
       removable: outlook.kind === DELETION_REMOVE,
-      certain: outlook.certain,
       removeKey: outlook.certain ? 'items.editor.deleteRemove' : 'items.editor.deleteRemoveMaybe',
       takenKey: 'retired.nameTakenItem',
       verdict: (name?: string) => orchestrator.masterItemRestoreVerdict(item.id, name),
@@ -115,7 +112,6 @@ const templateRows = computed<RetiredRow[]>(() =>
       photoItem: null,
       references: outlook.references,
       removable: outlook.kind === DELETION_REMOVE,
-      certain: outlook.certain,
       removeKey: outlook.certain ? 'templates.deleteRemove' : 'templates.deleteRemoveMaybe',
       // Which scope holds the name is a fact, not a bug — `templates.name`
       // is UNIQUE instance-wide and across both scopes (FR-1.6).
@@ -140,7 +136,10 @@ const emptyKey = computed<MessageKey>(() =>
  */
 function takenMessage(row: RetiredRow, name: string): string {
   const verdict = row.verdict(name)
-  if (verdict === null || verdict.kind === RESTORE_READY) return t(row.takenKey, { name })
+  // Only a taken name has a holder to name. The other two verdicts reach
+  // here only if the row vanished under us, and the row's own sentence is
+  // the least wrong thing to say then.
+  if (verdict === null || verdict.kind !== RESTORE_NAME_TAKEN) return t(row.takenKey, { name })
   const holder = verdict.holder
   if (segment.value === SEGMENT_TEMPLATES) {
     const scope = (holder as Template).kind

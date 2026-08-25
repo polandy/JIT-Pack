@@ -33,13 +33,17 @@ import { isRetired, RETIRED_FIELD, type Retirable } from './masterDeletion'
 export const RESTORE_READY = 'ready'
 /** An active row holds that name — restoring it would make two of them. */
 export const RESTORE_NAME_TAKEN = 'name_taken'
+/** The replacement name was blank. A nameless row is unreachable everywhere. */
+export const RESTORE_NAME_MISSING = 'name_missing'
 
 /**
  * What a restore of one retired row would do. `name` is the name that would
  * be written, already trimmed, so the caller never re-derives it.
  */
 export type RestoreVerdict<T> =
-  { kind: typeof RESTORE_READY; name: string } | { kind: typeof RESTORE_NAME_TAKEN; holder: T }
+  | { kind: typeof RESTORE_READY; name: string }
+  | { kind: typeof RESTORE_NAME_TAKEN; holder: T }
+  | { kind: typeof RESTORE_NAME_MISSING }
 
 /**
  * The retired rows of a list, order preserved — the exact complement of
@@ -66,11 +70,12 @@ export function restoreVerdict<T extends NamedRow & Retirable>(
   proposedName?: string,
 ): RestoreVerdict<T> {
   const name = (proposedName ?? row.name).trim()
-  const holder = name ? findNameCollision(name, active, row.id) : undefined
+  // Refused rather than written, and as its own verdict: a nameless row is
+  // unreachable on every surface, which is worse than staying hidden — and
+  // reporting it as "taken" would name a holder that does not exist.
+  if (!name) return { kind: RESTORE_NAME_MISSING }
+  const holder = findNameCollision(name, active, row.id)
   if (holder) return { kind: RESTORE_NAME_TAKEN, holder }
-  // A blank replacement is refused rather than written: a nameless row is
-  // unreachable on every surface, which is worse than staying hidden.
-  if (!name) return { kind: RESTORE_NAME_TAKEN, holder: row }
   return { kind: RESTORE_READY, name }
 }
 

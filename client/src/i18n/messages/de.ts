@@ -596,7 +596,6 @@ export const de: Record<keyof typeof en, string> = {
   'retired.purge': 'Endgültig löschen',
   'retired.purgeConfirm': '„{name}“ endgültig entfernen?',
   'retired.purged': '„{name}“ wurde endgültig entfernt.',
-  'retired.openItem': 'Öffnen',
   'settings.retired': 'Ausgeblendete Stammdaten',
   'settings.retiredRow': 'Ausgeblendete Artikel und Vorlagen zurückholen',
   'settings.retiredHint': 'Zurückholen, was ein Löschen nur ausgeblendet hat.',
