@@ -19,9 +19,24 @@ import type { ItemTag, MasterItem, Tag } from '@/types/domain'
  */
 export const UNTAGGED_KEY = 'untagged'
 
+/**
+ * Order of two assignments of one item, primary first (FR-24.2).
+ *
+ * The position decides, and the assignment's own id breaks a tie. There is
+ * a tie to break because nothing stops two rows sharing a position:
+ * reordering N tags is N separate mutations, so the intermediate states are
+ * legal on purpose (a UNIQUE would refuse the first half of every reorder
+ * and, offline, lose it). Without the tie-break the answer came out of the
+ * arrival order of the rows, so two devices could file the same item under
+ * two different headings and neither was wrong.
+ */
+function byPositionThenId(a: ItemTag, b: ItemTag): number {
+  return a.position - b.position || a.id.localeCompare(b.id)
+}
+
 /** This item's assignments, primary first. */
 function assignmentsOf(itemId: string, assignments: ItemTag[]): ItemTag[] {
-  return assignments.filter((a) => a.item_id === itemId).sort((a, b) => a.position - b.position)
+  return assignments.filter((a) => a.item_id === itemId).sort(byPositionThenId)
 }
 
 /**
@@ -57,12 +72,12 @@ export function groupByPrimaryTag(
   // for its tags: the readable per-item helpers each scan the whole
   // assignment list, which turns the grouping into items x assignments — and
   // this runs on every keystroke in the M9 search (NFR-4.3).
-  // Ties on position keep the earlier row, matching tagsOfItem's stable sort.
+  // Ties on position fall to the lower id, exactly as tagsOfItem orders them.
   const primaryAssignment = new Map<string, ItemTag>()
   for (const a of assignments) {
     if (!byId.has(a.tag_id)) continue // its tag is gone; not a heading
     const current = primaryAssignment.get(a.item_id)
-    if (!current || a.position < current.position) primaryAssignment.set(a.item_id, a)
+    if (!current || byPositionThenId(a, current) < 0) primaryAssignment.set(a.item_id, a)
   }
 
   const buckets = new Map<string, MasterItem[]>()
