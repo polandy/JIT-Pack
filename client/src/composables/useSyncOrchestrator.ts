@@ -19,7 +19,7 @@ import {
   deletionKind,
   type DeletionKind,
 } from '@/domain/masterDeletion'
-import { computed, ref, shallowRef } from 'vue'
+import { computed, reactive, ref, shallowRef } from 'vue'
 
 import { APIClient, type TokenProvider } from '@/api/client'
 import { loadTokens, subjectOf } from '@/auth/tokens'
@@ -432,8 +432,14 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * rows are here would read an empty trip and re-add every position it
    * already has. The refresh needs a *settled* signal, not a hopeful one.
    */
-  const loadedTripPartitions = new Set<string>()
-  let localHydrated = false
+  /*
+   * Reactive, both of them: since ADR-033 a *screen* reads them — M2's ring
+   * asks whether a trip's rows are here — and a plain Set is a value Vue
+   * cannot see change. The row loaded correctly and went on saying it was
+   * still loading.
+   */
+  const loadedTripPartitions = reactive(new Set<string>())
+  const localHydrated = ref(false)
 
   /** Whether another save has been queued behind the one just finished. */
   let localWrites = 0
@@ -587,18 +593,31 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   // --- Drain operations ---
 
-  async function drainTrip(tripId: string): Promise<void> {
+  /**
+   * `background` is a drain nobody asked for — since ADR-033 a list loads the
+   * rows it is showing. It leaves the G-2 glyph alone: that glyph answers for
+   * what the *user* did, and a row that fails (a trip they were removed from
+   * answers 403 while the network is fine) would otherwise announce an outage
+   * nobody caused, and eight rows appearing at once would flicker it through
+   * *syncing* on every visit to the list.
+   */
+  async function drainTrip(
+    tripId: string,
+    { background = false }: { background?: boolean } = {},
+  ): Promise<void> {
     if (local) return
-    syncStatus.setSyncing()
+    if (!background) syncStatus.setSyncing()
     try {
       await outbox.drain('trip', tripId)
       loadedTripPartitions.add(tripId)
-      syncStatus.setPendingCount(outbox.totalPending())
-      syncStatus.setSynced()
+      if (!background) {
+        syncStatus.setPendingCount(outbox.totalPending())
+        syncStatus.setSynced()
+      }
       // Report the new cursor so the server recomputes in_sync (§7).
       ws.sendCursor(tripId, outbox.getCursor('trip', tripId))
     } catch {
-      syncStatus.setOffline()
+      if (!background) syncStatus.setOffline()
     }
   }
 
@@ -1334,7 +1353,31 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * it exists to keep right.
    */
   function tripDataLoaded(tripId: string): boolean {
-    return local ? localHydrated : loadedTripPartitions.has(tripId)
+    return local ? localHydrated.value : loadedTripPartitions.has(tripId)
+  }
+
+  /** One in-flight `ensureTripData` per trip, so callers share a request. */
+  const tripDataRequests = new Map<string, Promise<void>>()
+
+  /**
+   * ensureTripData fetches a trip's own rows for a caller that needs them
+   * without opening the trip — M2's progress ring is the first (ADR-033).
+   *
+   * Callers are deduplicated because the caller is a *list*: eight rows
+   * scrolling into view together is the ordinary case, and eight identical
+   * requests would be the cost this was supposed to avoid. A failed attempt
+   * drops out of the map rather than being remembered, or one lost packet
+   * would leave the row blank until the app restarts.
+   */
+  function ensureTripData(tripId: string): Promise<void> {
+    if (tripDataLoaded(tripId)) return Promise.resolve()
+    const existing = tripDataRequests.get(tripId)
+    if (existing) return existing
+    const request = drainTrip(tripId, { background: true }).finally(() =>
+      tripDataRequests.delete(tripId),
+    )
+    tripDataRequests.set(tripId, request)
+    return request
   }
 
   /**
@@ -3302,7 +3345,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       // FR-19.2: startup load goes through the same applyChanges path
       // as a server pull; NFR-4.11: ask for storage durability.
       onPullChanges(await local.load())
-      localHydrated = true
+      localHydrated.value = true
       void local.requestDurability()
       return
     }
@@ -3348,6 +3391,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     // Drain
     drainTrip,
+    tripDataLoaded,
+    ensureTripData,
     drainMaster,
     drainAll,
 

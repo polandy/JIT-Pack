@@ -840,6 +840,8 @@ export const en = {
   'trips.seriesFallback': 'Series',
   'trips.seriesCount': '{n} trip | {n} trips',
   'trips.itemSummary': '{packed}/{total} packed',
+  // ADR-033: a trip whose own rows are not on this device yet.
+  'trips.itemsUnknown': 'Loading items …',
   'trips.new': 'New trip',
   'trips.actionExport': 'Export trip',
   'trips.actionShare': 'Share',

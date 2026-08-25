@@ -40,7 +40,15 @@ import {
   peopleOutline,
   trashOutline,
 } from 'ionicons/icons'
-import { ref, computed, inject, onMounted, watch } from 'vue'
+import {
+  ref,
+  computed,
+  inject,
+  onMounted,
+  onUnmounted,
+  watch,
+  type ComponentPublicInstance,
+} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { loadTokens } from '@/auth/tokens'
 import { serializeTrip } from '@/domain/portable'
@@ -48,6 +56,7 @@ import { safeFilename, saveText } from '@/lib/download'
 import { parseTripFilter, TRIP_FILTER_QUERY, type TripFilter } from './tripFilter'
 import { describeAppliedChange } from '@/lib/refreshWording'
 import { proposedChangeCount } from '@/domain/refresh'
+import { useOnFirstVisible } from '@/composables/useOnFirstVisible'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { AppliedChange, Trip } from '@/types/domain'
@@ -187,6 +196,17 @@ const groupedTrips = computed(() => {
   return groups.sort((a, b) => Number(a.seriesId === null) - Number(b.seriesId === null))
 })
 
+/**
+ * ADR-033: a trip's rows live in its own partition, so a trip this device has
+ * never opened has nothing to sum. The ring and the line report that as
+ * *unknown* rather than as zero — summing nothing and printing `0/0 gepackt`
+ * is the "not pulled yet is not empty" mistake the orchestrator guards
+ * against everywhere else.
+ */
+function tripDataKnown(trip: Trip): boolean {
+  return orchestrator.tripDataLoaded(trip.id)
+}
+
 function progressPercent(trip: Trip): number {
   const k = store.kpis(trip.id)
   if (k.totalItems === 0) return 0
@@ -206,6 +226,22 @@ function itemSummary(trip: Trip): string {
   const k = store.kpis(trip.id)
   return t('trips.itemSummary', { packed: k.packedItems, total: k.totalItems })
 }
+
+/**
+ * Fetch a row's own data when the row is on screen, not when the list is.
+ * A decade of archived trips is a decade of partitions; the viewport is what
+ * bounds the cost, and it grows with scrolling instead of with the archive.
+ */
+const rowsOnScreen = useOnFirstVisible((tripId) => {
+  void orchestrator.ensureTripData(tripId)
+})
+
+function watchRow(el: Element | ComponentPublicInstance | null, tripId: string) {
+  const node = el instanceof Element ? el : ((el?.$el ?? null) as Element | null)
+  if (node) rowsOnScreen.observe(node, tripId)
+}
+
+onUnmounted(() => rowsOnScreen.stop())
 
 function onFilterChange(event: CustomEvent) {
   filter.value = event.detail.value as FilterStatus
@@ -432,6 +468,7 @@ async function handleRefresh(event: CustomEvent) {
           <div class="jp-card trip-card">
             <IonItemSliding v-for="trip in group.trips" :key="trip.id">
               <IonItem
+                :ref="(el) => watchRow(el as Element | ComponentPublicInstance | null, trip.id)"
                 button
                 :data-testid="`trip-row-${trip.name}`"
                 :router-link="`/trips/${trip.id}`"
@@ -448,14 +485,14 @@ async function handleRefresh(event: CustomEvent) {
                       fill="none"
                       stroke-width="3"
                       :stroke="progressColor(trip)"
-                      :stroke-dasharray="`${progressPercent(trip)} 100`"
+                      :stroke-dasharray="`${tripDataKnown(trip) ? progressPercent(trip) : 0} 100`"
                       stroke-linecap="round"
                     />
                     <!-- font-size is an SVG attribute, not CSS: inside viewBox="0 0 36 36"
                        it is 9 *user units*, a proportion of the ring, and a px token
                        from the type scale would be meaningless here. -->
                     <text x="18" y="20.5" font-size="9" class="ring-text">
-                      {{ progressPercent(trip) }}%
+                      {{ tripDataKnown(trip) ? `${progressPercent(trip)}%` : '·' }}
                     </text>
                   </svg>
                 </div>
@@ -464,7 +501,9 @@ async function handleRefresh(event: CustomEvent) {
                   <!-- FR-2.1b: a trip may have both dates, one, or neither.
                      With neither, its year is what it is called by. -->
                   <p data-testid="trip-when">{{ tripWhen(trip) }}</p>
-                  <p>{{ itemSummary(trip) }}</p>
+                  <p data-testid="trip-item-summary">
+                    {{ tripDataKnown(trip) ? itemSummary(trip) : t('trips.itemsUnknown') }}
+                  </p>
                   <!-- FR-27.4: a trip follows its source groups until it is
                      past. The row says what it took over, because a list that
                      changed under you with no trace reads as data loss.
