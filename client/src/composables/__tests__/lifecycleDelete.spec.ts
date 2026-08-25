@@ -49,7 +49,13 @@ function newOrch() {
 /** An item held by one group position — the FR-24.3 "ever referenced" case. */
 function seedReferencedItem() {
   const master = useMasterStore()
-  master.applyChange({ seq: 0, table: 'items', id: 'it-1', deleted: false, row: { name: 'Kamera' } })
+  master.applyChange({
+    seq: 0,
+    table: 'items',
+    id: 'it-1',
+    deleted: false,
+    row: { name: 'Kamera' },
+  })
   master.applyChange({
     seq: 0,
     table: 'templates',

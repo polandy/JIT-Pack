@@ -165,6 +165,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A refusal that only announced itself (2026-08-25)](#a-refusal-that-only-announced-itself-2026-08-25) — Sync-API §5 / ADR-031: the divergence the entry above left open. Four things the code cannot show: why a whole-partition resync scored well and still lost, why the insert/update asymmetry turned out to be the server's question and not the client's, the one refusal that must repair nothing, and the repair that came back empty and was only visible in a screenshot.
 - [A name that could only be refused by the server (2026-08-25)](#a-name-that-could-only-be-refused-by-the-server-2026-08-25) — FR-1.6 / FR-13.1: the mitigation the constraint owed. Four things the code cannot show: the one surface that could have adopted the existing row and deliberately does not, the rule that was already live for items in a single view, why the return type was the actual work, and how the diacritics question was settled.
 
+- [A delete that could only be refused](#a-delete-that-could-only-be-refused-2026-08-25) — FR-24.3 unparked: the refusal already held the discriminator; why the filtering keeps `itemList` complete; the rule written twice with only one copy allowed to be wrong; the usage endpoint designed and dropped.
 ## Current state
 
 > **Repack (Return-Trip Mode) is REMOVED (owner decision, 2026-07-17).** Spec retired (PRD Addendum
@@ -6873,3 +6874,80 @@ search folds them because a wrong hit in a search costs a glance; here a hit
 blocks a write. **No ADR is owed** — the tradeoff was decided where the
 constraint that causes it lives, in FR-1.6's own stub, and an ADR restating one
 FR's paragraph is a second place for it to go stale.
+
+## A delete that could only be refused (2026-08-25)
+
+FR-24.3 had been parked since the tag model was unparked without it, and the note added
+to it that morning was already the whole diagnosis: what runs today is *a third
+behaviour*, neither of the FR's two — the delete is refused. Unparking it was therefore
+not "build a tombstone system"; it was turning one `if` from a decline into a choice. The
+discriminator was already there, built for the refusal itself: `blockingReferences` names,
+per table, the references that keep a row alive, and `stillReferenced` asks it before the
+delete is attempted. The FR's two branches are exactly its two answers.
+
+**The half nobody had priced was the filtering, and its two directions are not
+symmetric.** There are 37 non-test call sites of `masterStore.itemList` and 36 of
+`templateList`. A retired row that turns up in a picker is annoying. A retired row that is
+*missing* is data loss, and two of the sites are the ones that would lose it: `resolve()`
+expands a Vorlage's includes, so filtering there empties a generated trip; and
+`compositionSource()` feeds M7's export, the settings export **and** the NFR-4.11 backup,
+so filtering there costs a Local Mode device its only copy. The decision that follows is
+in ADR-032: `itemList` and `templateList` keep meaning *everything*, and the display
+surfaces opt in to `activeItemList` / `activeTemplateList`. It is more edits, not fewer —
+but it makes the destructive direction the one an author has to choose, rather than the
+one every future call site inherits by writing the obvious thing.
+
+**The rule is written twice on purpose, and only one copy is allowed to be wrong.** The
+complete reference count exists only where all the data does: on the server in Server
+Mode, on the device in Local Mode, which has no server at all. So the decision cannot live
+only on the server (invariant 5 would lose the feature) and cannot live only on the client
+— the client holds the trip partitions it has *opened*, never every trip's, so it is blind
+to precisely the FR-9.2 case the feature is about. The shape that resolves this is not
+discipline but asymmetry: the client's only possible disagreement with the server is
+"remove" where the server retires, and the server answers that by retiring anyway, so the
+pull the device already makes corrects it. A wrong client answer costs a wrong sentence,
+never a wrong row. The client-only variant was considered and is the shape the UI-Spec had
+already rejected for M7 nine days earlier — *"a pre-check would call the delete safe in
+exactly the case that then fails."*
+
+**A usage endpoint was designed and then not built.** M10 has to state the outcome before
+the confirm, and in Server Mode the client's count can be short — so a
+`GET /master/items/{id}/usage` was the obvious answer, and it is Option B in the ADR. It
+was dropped because it buys the case it cannot serve: offline, the dialog is back to
+hedging, and putting a network round-trip inside a delete confirm is the one place an
+offline-first app should not. The hedge is a third sentence instead, and it names the
+condition rather than apologising for it.
+
+**M10 had no delete control at all.** `orchestrator.deleteMasterItem` existed and had zero
+non-test callers; M9's swipe-delete was specified in July and never built. So "M10 states
+which deletion will happen before the user confirms" had nothing to state it on, and the
+FR's UI half was a card to write rather than a sentence to add. The swipe stays proposed
+and the UI-Spec now says why: once the card had to carry a count *and* a reason, a swipe
+reveal has room for a label and not for a reason.
+
+**Two consequences of the marker that the FR did not mention.**
+The first is uniqueness. `items.name` and `templates.name` are UNIQUE instance-wide, and a
+retired row would go on holding a name nothing renders — so deleting an item and creating
+it again, which is what a physical delete used to allow, would start failing for a reason
+no screen could show. Both became partial unique indexes over `retired_at IS NULL`, and
+the client's `templateNameCollision` moved onto the active list to match. The second is
+ADR-031's cascade repair: a retire is a delete the client has *already drawn*, positions
+and all, so the same children have to be re-logged alive. That was found by reading
+ADR-031 rather than by a failing test, and the test that pins it now was written after —
+the honest order.
+
+**What the refusal keeps.** FR-24.3 names master items and Vorlagen. `blockingReferences`
+also lists series, travelers and containers, and those keep refusing: they are not history
+the way a master item is, and a retired traveler would be a person nobody can see attached
+to rows everybody can. That left four tests asserting the refusal *through* a template or
+an item — they moved onto a series, which is the ground the refusal still governs, so the
+`still_referenced` machinery kept its coverage instead of losing it to the feature that
+replaced one of its cases.
+
+**Restore is owed, and saying so is the decision.** The marker is an ordinary synced field,
+so clearing it is one mutation — a Go test asserts exactly that, and it passes. What does
+not exist is any surface that *lists* retired rows, and inventing one (a filter chip on
+M9, a section in settings, its own screen) is a UI round with no rendered evidence behind
+it. The mitigating fact, and the reason this is acceptable rather than a trap: the retire
+is announced before it happens, in the card and again in the confirm, instead of being
+discovered afterwards.
