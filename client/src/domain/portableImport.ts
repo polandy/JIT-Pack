@@ -11,7 +11,6 @@
  * and what to do with one.
  */
 
-import { TABLE } from '@/types/tables'
 import { matchPortableItems, portableYear } from '@/domain/portable'
 import type { PortableDocument, PortableItem } from '@/domain/portable'
 import { ledgerId, positionKey, propagatedItemId } from '@/domain/refresh'
@@ -121,13 +120,7 @@ export interface PortableImportEnv {
    * be visible in `master` by the time it returns, because the rules above
    * read their own output back.
    */
-  emit(
-    partition: 'master' | 'trip',
-    tripId: string | null,
-    table: string,
-    id: string,
-    mutation: Mutation,
-  ): void
+  emit(partition: 'master' | 'trip', tripId: string | null, mutation: Mutation): void
 }
 
 /**
@@ -152,11 +145,11 @@ function importPositions(
       latePacker: item.late_packer,
       conditions: item.conditions,
     })
-    env.emit('master', null, TABLE.templateItems, ti.id, ti.mutation)
+    env.emit('master', null, ti.mutation)
 
     for (const task of item.tasks) {
       const t = env.mutations.addTemplateItemTask(ti.id, task)
-      env.emit('master', null, TABLE.templateItemTasks, t.id, t.mutation)
+      env.emit('master', null, t.mutation)
     }
   }
 }
@@ -184,7 +177,7 @@ function ensureGroup(
   if (existing) return existing.id
 
   const created = env.mutations.createTemplate(name, '', 'group', icon)
-  env.emit('master', null, TABLE.templates, created.id, created.mutation)
+  env.emit('master', null, created.mutation)
   importPositions(env, created.id, items, resolveItem)
   return created.id
 }
@@ -219,8 +212,8 @@ function restoreRefreshState(
   for (const name of doc.follows) {
     const followed = templateId(name)
     if (!followed) continue
-    const { mutation, id } = env.mutations.registerTripSource(tripId, followed)
-    env.emit('master', null, TABLE.tripTemplateSources, id, mutation)
+    const { mutation } = env.mutations.registerTripSource(tripId, followed)
+    env.emit('master', null, mutation)
   }
 
   for (const entry of doc.generated) {
@@ -253,11 +246,11 @@ function restoreRefreshState(
       tasks: entry.tasks,
     }
     const mutation = env.mutations.writeGeneratedPosition(position)
-    env.emit('trip', tripId, TABLE.tripGeneratedPositions, position.id, mutation)
+    env.emit('trip', tripId, mutation)
   }
 
   for (const change of doc.applied_changes) {
-    const { mutation, id } = env.mutations.logAppliedChange(
+    const { mutation } = env.mutations.logAppliedChange(
       {
         trip_id: tripId,
         source_template_id: templateId(change.source) ?? '',
@@ -268,7 +261,7 @@ function restoreRefreshState(
       },
       change.at,
     )
-    env.emit('master', null, TABLE.tripAppliedChanges, id, mutation)
+    env.emit('master', null, mutation)
   }
 }
 
@@ -295,7 +288,7 @@ function applyTags(env: PortableImportEnv, itemId: string, names: string[]): voi
 /** Create a tag by name (FR-24.1) — there is no tag admin. */
 function createTag(env: PortableImportEnv, name: string): string {
   const { mutation, id } = env.mutations.createTag(name, env.master.tagList.length)
-  env.emit('master', null, TABLE.tags, id, mutation)
+  env.emit('master', null, mutation)
   return id
 }
 
@@ -305,8 +298,8 @@ function createTag(env: PortableImportEnv, name: string): string {
  * mutations and drains once at the end.
  */
 function assignTag(env: PortableImportEnv, itemId: string, tagId: string, position: number): void {
-  const { mutation, id } = env.mutations.assignTag(itemId, tagId, position)
-  env.emit('master', null, TABLE.itemTags, id, mutation)
+  const { mutation } = env.mutations.assignTag(itemId, tagId, position)
+  env.emit('master', null, mutation)
 }
 
 /**
@@ -348,7 +341,7 @@ export function importPortableDocument(
      */
     if (doc.kind === 'trip' && !item.from_inventory) return null
     const { mutation, id } = env.mutations.createMasterItem(item.name, { icon: item.icon })
-    env.emit('master', null, TABLE.items, id, mutation)
+    env.emit('master', null, mutation)
     applyTags(env, id, item.tags)
     return id
   }
@@ -367,7 +360,7 @@ export function importPortableDocument(
       'template',
       doc.icon,
     )
-    env.emit('master', null, TABLE.templates, templateId, mutation)
+    env.emit('master', null, mutation)
 
     importPositions(env, templateId, doc.items, resolveItem)
 
@@ -377,7 +370,7 @@ export function importPortableDocument(
       const groupId = ensureGroup(env, group.name, group.items, resolveItem, group.icon)
 
       const inc = env.mutations.addTemplateInclude(templateId, groupId)
-      env.emit('master', null, TABLE.templateIncludes, inc.id, inc.mutation)
+      env.emit('master', null, inc.mutation)
     }
 
     return { kind: 'template', id: templateId, outcome: 'created' }
@@ -397,12 +390,12 @@ export function importPortableDocument(
     // which is exactly what those files have always produced.
     { status: doc.status ?? undefined },
   )
-  env.emit('master', null, TABLE.trips, tripId, tripMut)
+  env.emit('master', null, tripMut)
 
   const travelerIDs = new Map<string, string>()
   for (const traveler of doc.travelers) {
     const { mutation, id } = env.mutations.addTraveler(tripId, traveler.name, null)
-    env.emit('trip', tripId, TABLE.travelers, id, mutation)
+    env.emit('trip', tripId, mutation)
     travelerIDs.set(traveler.name, id)
   }
 
@@ -412,7 +405,7 @@ export function importPortableDocument(
       carrierTravelerId: container.carrier ? (travelerIDs.get(container.carrier) ?? null) : null,
       maxWeightGrams: container.max_weight_grams,
     })
-    env.emit('trip', tripId, TABLE.containers, id, mutation)
+    env.emit('trip', tripId, mutation)
     containerIDs.set(container.name, id)
   }
 
@@ -437,7 +430,7 @@ export function importPortableDocument(
       item.traveler ? (travelerIDs.get(item.traveler) ?? null) : null,
       item.container ? (containerIDs.get(item.container) ?? null) : null,
     )
-    env.emit('trip', tripId, TABLE.tripItems, id, mutation)
+    env.emit('trip', tripId, mutation)
     if (sourceItemId) {
       const key = positionKey(
         sourceItemId,

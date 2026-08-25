@@ -169,6 +169,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A delete that could only be refused](#a-delete-that-could-only-be-refused-2026-08-25) — FR-24.3 unparked: the refusal already held the discriminator; why the filtering keeps `itemList` complete; the rule written twice with only one copy allowed to be wrong; the usage endpoint designed and dropped.
 - [The restore was free, the name was not](#the-restore-was-free-the-name-was-not-2026-08-25) — FR-24.3 / ADR-033 / M23: the entry above closed by naming restore as owed, and this is the day after. Four things the code cannot show: the promise the FR made that the schema had already broken, why the collision is refused on the *client* when ADR-032 had just argued the opposite, the surface chosen against three that were rejected, and the defect only a rendered case found — twice, in one test.
 - [Two actor columns a client could still name (2026-08-25)](#two-actor-columns-a-client-could-still-name-2026-08-25) — invariant 3 / FR-4.2, FR-5.7. Three things the code cannot show: why an edit may not re-stamp the author it can no longer forge, why the obvious shape of the claim fix would have left every packed row claimed, and the evidence that decided which op a comment is allowed to be born from.
+- [An invariant that lived at eighty-seven call sites (2026-08-25)](#an-invariant-that-lived-at-eighty-seven-call-sites-2026-08-25) — the optimistic `PullChange` gets one builder. Four things the code cannot show: the throwing probe that turned "the table and the id always match the mutation" from a reading into a measurement, the field a hand-built row had been dropping since it was written, why the same duplication had already crossed a module boundary into the FR-18.7 command, and why the twelve ids the cleanup freed are evidence rather than tidying.
 
 ## Current state
 
@@ -7121,3 +7122,53 @@ other tests' trips push it below the fold, and ADR-033 has deliberately not
 fetched it. The case was asserting test isolation while claiming to assert the
 app. It scrolls the row into view now, which is what a person does, and what the
 feature actually promises.
+## An invariant that lived at eighty-seven call sites (2026-08-25)
+
+`useSyncOrchestrator.ts` built the optimistic twin of every write by hand:
+eighty-seven copies of the same five-key literal, each repeating the table and
+the id that the mutation beside it already carried, and — for an update — the
+`{ ...itemRow(item), ...mut.fields }` spread that keeps the row whole. That
+spread is the whole invariant. The stores apply a change by *replacing* the
+row, so a column the mutation does not mention is blanked; in Local Mode no
+pull ever arrives to heal it. The rule was written once, in a comment, and then
+depended on at eighty-seven places.
+
+**The probe.** Deriving the table and the id from the mutation is only safe if
+the two never disagreed, and eighty-seven sites is too many to establish that
+by reading. So it was measured instead: a throwing comparison was added inside
+`enqueueAndDrain`, the whole suite was run against it, and the throw never
+fired. That is weaker than a proof — the suite does not reach every site — but
+it is evidence, and it cost one edit and one run. The probe was deleted once the
+helpers made the comparison tautological. The technique generalises: **an
+assumption a refactor depends on can be installed as a temporary invariant and
+run rather than argued.**
+
+**A field that had been quietly dropped.** `flagCommentAsTask` enumerated the
+comment row by hand and left out `created_at`. Nothing was visibly lost, because
+the row survives as a *todo* and `ItemTodo` has no such field — but the
+omission was one "unflag" feature away from mattering, and it had been there
+since the row was written. This is the shape the helper exists to prevent, found
+by converting the site rather than by reviewing it. The mapper also has to carry
+`is_task`, which is not a column the action changes: the store *routes* on it,
+so an optimistic row without it moves the row to the other list.
+
+**The duplication had already left the file.** `PortableImportEnv.emit` took a
+partition, a trip id, a table, an id *and* the mutation that already carried the
+last two — and the FR-18.7 import command, which implements that interface
+outside the browser, had its own copy of the hand-built literal. Invariant 4
+keeps the *rules* single; it does not by itself keep their plumbing single.
+`emit(partition, tripId, mutation)` is the whole contract now.
+
+**Why the freed ids are the interesting part.** Dropping the redundant
+arguments left twelve `const { mutation, id } = …` destructurings whose `id`
+had no reader, and the linter named every one. That is what a redundant
+parameter looks like from the inside: not a duplicated value, but a dozen
+variables kept alive to feed it. The cleanup is not tidying — it is the
+measurement of how far the duplication had spread.
+
+**What was deliberately not done.** The row mappers are still hand-maintained
+field lists with nothing checking them for completeness — a new column on a
+domain type has to be added there or every optimistic update silently blanks
+it. Five more mappers were added here rather than fewer, precisely so the next
+pass has *one list* to pin instead of a literal per call site. Pinning them is
+its own change.

@@ -43,7 +43,8 @@ function fakeEnv(
   const env: PortableImportEnv = {
     master: { itemList: items, tagList: tags, templateList: templates, tripList: trips },
     mutations: useMutations(new HLCGenerator(() => 1_700_000_000_000, 'aabbccdd')),
-    emit(partition, tripId, table, id, mutation) {
+    emit(partition, tripId, mutation) {
+      const { table, id } = mutation
       recorded.push({ partition, tripId, table, id, mutation })
       const row = (mutation.fields ?? {}) as Record<string, unknown>
       if (table === TABLE.items) {
