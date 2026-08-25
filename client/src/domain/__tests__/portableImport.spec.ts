@@ -8,7 +8,7 @@ import { useMutations } from '@/composables/useMutations'
 import { HLCGenerator } from '@/sync/hlc'
 import { TABLE } from '@/types/tables'
 import type { Mutation } from '@/api/types'
-import type { MasterItem, Tag, Template } from '@/types/domain'
+import type { MasterItem, Tag, Template, Trip } from '@/types/domain'
 
 /**
  * These cases exist for one property the app's own suite cannot show: the
@@ -31,14 +31,17 @@ interface Recorded {
  * returns, which is the contract the rules rely on when they read their own
  * output back.
  */
-function fakeEnv(seed: Partial<{ items: MasterItem[]; tags: Tag[]; templates: Template[] }> = {}) {
+function fakeEnv(
+  seed: Partial<{ items: MasterItem[]; tags: Tag[]; templates: Template[]; trips: Trip[] }> = {},
+) {
   const items = [...(seed.items ?? [])]
   const tags = [...(seed.tags ?? [])]
   const templates = [...(seed.templates ?? [])]
+  const trips = [...(seed.trips ?? [])]
   const recorded: Recorded[] = []
 
   const env: PortableImportEnv = {
-    master: { itemList: items, tagList: tags, templateList: templates },
+    master: { itemList: items, tagList: tags, templateList: templates, tripList: trips },
     mutations: useMutations(new HLCGenerator(() => 1_700_000_000_000, 'aabbccdd')),
     emit(partition, tripId, table, id, mutation) {
       recorded.push({ partition, tripId, table, id, mutation })
@@ -49,10 +52,12 @@ function fakeEnv(seed: Partial<{ items: MasterItem[]; tags: Tag[]; templates: Te
         tags.push({ id, name: row['name'] as string, sort_order: 0 })
       } else if (table === TABLE.templates) {
         templates.push({ id, name: row['name'] as string, kind: row['kind'] } as Template)
+      } else if (table === TABLE.trips) {
+        trips.push({ id, name: row['name'] as string, year: row['year'] as number } as Trip)
       }
     },
   }
-  return { env, recorded, items, tags, templates }
+  return { env, recorded, items, tags, templates, trips }
 }
 
 function parse(text: string): PortableDocument {
@@ -172,5 +177,142 @@ items:
     expect(rowsFor(recorded, TABLE.tripItems)).toEqual([
       expect.objectContaining({ source_item_id: itemId }),
     ])
+  })
+})
+
+/**
+ * ADR-030: a trip's identity across files and devices is its year and its
+ * name, and an import that finds one already there adds nothing.
+ */
+describe('a Ferien-Vorlage that is already on this instance (FR-18.4, ADR-030)', () => {
+  const ferien = (name = 'Ferien') =>
+    parse(`kind: template
+name: ${JSON.stringify(name)}
+items:
+  - name: Zelt
+    quantity: 1
+`)
+
+  it('is left alone rather than landing beside itself under a suffix', () => {
+    const { env, recorded } = fakeEnv({
+      templates: [{ id: 'tpl-existing', name: 'Ferien', kind: 'template' } as Template],
+    })
+
+    const result = importPortableDocument(ferien(), new Map(), env)
+
+    expect(result).toEqual({ kind: 'template', id: 'tpl-existing', outcome: 'duplicate' })
+    // The suffix this replaces wrote a whole second Vorlage: template row,
+    // positions, and a master item for every one of them.
+    expect(recorded).toEqual([])
+  })
+
+  it('is not confused with a group of the same name', () => {
+    const { env, recorded } = fakeEnv({
+      templates: [{ id: 'grp-existing', name: 'Ferien', kind: 'group' } as Template],
+    })
+
+    const result = importPortableDocument(ferien(), new Map(), env)
+
+    expect(result.outcome).toBe('created')
+    expect(rowsFor(recorded, TABLE.templates)).toEqual([
+      expect.objectContaining({ name: 'Ferien', kind: 'template' }),
+    ])
+  })
+
+  it('links a group that is already here instead of copying its positions', () => {
+    const { env, recorded } = fakeEnv({
+      templates: [{ id: 'grp-existing', name: 'Küche', kind: 'group' } as Template],
+    })
+    const group = parse(`kind: template
+scope: group
+name: küche
+items:
+  - name: Pfanne
+    quantity: 1
+`)
+
+    const result = importPortableDocument(group, new Map(), env)
+
+    // Spelled differently in the two files, and still one group.
+    expect(result).toEqual({ kind: 'template', id: 'grp-existing', outcome: 'duplicate' })
+    expect(recorded).toEqual([])
+  })
+})
+
+describe('a trip that is already on this instance (FR-18.4, ADR-030)', () => {
+  const cannobio = (year: number, name = 'Cannobio') =>
+    parse(`kind: trip
+name: ${JSON.stringify(name)}
+year: ${year}
+items:
+  - name: Zelt
+    quantity: 1
+    from_inventory: true
+`)
+
+  it('is left alone, and says so, when year and name both match', () => {
+    const { env, recorded } = fakeEnv({
+      trips: [{ id: 'trip-existing', name: 'Cannobio', year: 2024 } as Trip],
+    })
+
+    const result = importPortableDocument(cannobio(2024), new Map(), env)
+
+    expect(result).toEqual({ kind: 'trip', id: 'trip-existing', outcome: 'duplicate' })
+    // Nothing at all was written — not the trip, not its rows, not the
+    // master item the rows would have needed.
+    expect(recorded).toEqual([])
+  })
+
+  it('is a different trip in a different year', () => {
+    const { env, recorded } = fakeEnv({
+      trips: [{ id: 'trip-existing', name: 'Cannobio', year: 2024 } as Trip],
+    })
+
+    const result = importPortableDocument(cannobio(2025), new Map(), env)
+
+    expect(result.outcome).toBe('created')
+    expect(rowsFor(recorded, TABLE.trips)).toEqual([
+      expect.objectContaining({ name: 'Cannobio', year: 2025 }),
+    ])
+  })
+
+  it('is the same trip however the two files spell its name', () => {
+    const { env, recorded } = fakeEnv({
+      trips: [{ id: 'trip-existing', name: 'Cannobio', year: 2024 } as Trip],
+    })
+
+    const result = importPortableDocument(cannobio(2024, '  cannobio '), new Map(), env)
+
+    expect(result.outcome).toBe('duplicate')
+    expect(rowsFor(recorded, TABLE.trips)).toEqual([])
+  })
+
+  it('leaves a same-named trip of another year untouched', () => {
+    const { env } = fakeEnv({
+      trips: [{ id: 'trip-2024', name: 'Cannobio', year: 2024 } as Trip],
+    })
+
+    const result = importPortableDocument(cannobio(2025), new Map(), env)
+
+    expect(result.id).not.toBe('trip-2024')
+  })
+
+  it('catches the second of two identical trips inside one file', () => {
+    const { env, recorded } = fakeEnv()
+
+    const results = importPortableBackup([cannobio(2024), cannobio(2024)], env)
+
+    expect(results.map((r) => r.outcome)).toEqual(['created', 'duplicate'])
+    expect(rowsFor(recorded, TABLE.trips)).toHaveLength(1)
+    // Both results name the one trip, so a caller can still open it.
+    expect(results[0]!.id).toBe(results[1]!.id)
+  })
+
+  it('reports a created document as created', () => {
+    const { env } = fakeEnv()
+
+    const results = importPortableBackup([parse('kind: template\nname: Ferien\nitems: []\n')], env)
+
+    expect(results.map((r) => r.outcome)).toEqual(['created'])
   })
 })

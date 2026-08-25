@@ -16,7 +16,14 @@ import { matchPortableItems, portableYear } from '@/domain/portable'
 import type { PortableDocument, PortableItem } from '@/domain/portable'
 import { ledgerId, positionKey, propagatedItemId } from '@/domain/refresh'
 import type { Mutation } from '@/api/types'
-import type { GeneratedPosition, MasterItem, Tag, Template } from '@/types/domain'
+import type {
+  GeneratedPosition,
+  MasterItem,
+  Tag,
+  Template,
+  TemplateKind,
+  Trip,
+} from '@/types/domain'
 import type { useMutations } from '@/composables/useMutations'
 
 /**
@@ -37,12 +44,73 @@ export interface PortableImportMasterView {
   readonly itemList: MasterItem[]
   readonly tagList: Tag[]
   readonly templateList: Template[]
+  /**
+   * The trips this instance already holds — read for ADR-030's identity rule,
+   * and live like the rest of the view: a trip created for one document has
+   * to be found by the next one in the same file.
+   */
+  readonly tripList: Trip[]
 }
+
+/**
+ * What one imported document did.
+ *
+ * `duplicate` is a success, not a failure: the instance already holds what
+ * the document describes, so the import added nothing at all and `id` names
+ * what was there (ADR-030).
+ */
+export type PortableImportOutcome = 'created' | 'duplicate'
 
 /** What one imported document produced. */
 export interface PortableImportResult {
   kind: 'template' | 'trip'
   id: string
+  outcome: PortableImportOutcome
+}
+
+/**
+ * How every name in this format is compared: trimmed and case-folded, the way
+ * FR-16.3 already compares an item name and `applyTags` a tag name. The same
+ * holiday spelled `Samedan` in one file and `samedan` in another is one thing,
+ * not two.
+ */
+function sameName(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase()
+}
+
+/**
+ * A trip's identity across files and devices: its year and its name (ADR-030).
+ * A name alone will not do — a family goes back to the same place, so `Samedan`
+ * names several trips and only the year tells them apart.
+ */
+export function findTripByIdentity(trips: Trip[], name: string, year: number): Trip | undefined {
+  return trips.find((trip) => trip.year === year && sameName(trip.name, name))
+}
+
+/**
+ * What this document would be a second copy of, or nothing (ADR-030).
+ *
+ * One function for all three document kinds, because the reporting is one
+ * sentence: a document whose subject the instance already holds adds nothing
+ * and says so. A group has always linked by name (ADR-017); a Ferien-Vorlage
+ * now does too, in place of the `(import)` suffix it used to land under; a trip
+ * is its year and its name.
+ *
+ * Exported because M18 answers the same question in its restore list *before*
+ * the button is pressed — the same function rather than a second reading of
+ * the rule.
+ */
+export function findExistingSubject(
+  doc: Pick<PortableDocument, 'kind' | 'scope' | 'name' | 'year' | 'start_date' | 'end_date'>,
+  master: Pick<PortableImportMasterView, 'templateList' | 'tripList'>,
+): PortableImportResult | undefined {
+  if (doc.kind === 'trip') {
+    const trip = findTripByIdentity(master.tripList, doc.name, portableYear(doc))
+    return trip ? { kind: 'trip', id: trip.id, outcome: 'duplicate' } : undefined
+  }
+  const kind: TemplateKind = doc.scope === 'group' ? 'group' : 'template'
+  const template = master.templateList.find((t) => t.kind === kind && sameName(t.name, doc.name))
+  return template ? { kind: 'template', id: template.id, outcome: 'duplicate' } : undefined
 }
 
 export interface PortableImportEnv {
@@ -112,7 +180,7 @@ function ensureGroup(
   resolveItem: (item: PortableItem) => string | null,
   icon: string | null = null,
 ): string {
-  const existing = env.master.templateList.find((t) => t.kind === 'group' && t.name === name)
+  const existing = env.master.templateList.find((t) => t.kind === 'group' && sameName(t.name, name))
   if (existing) return existing.id
 
   const created = env.mutations.createTemplate(name, '', 'group', icon)
@@ -259,6 +327,15 @@ export function importPortableDocument(
    */
   restoredTemplates?: Map<string, string>,
 ): PortableImportResult {
+  /*
+   * ADR-030: nothing this instance already holds arrives a second time.
+   * Checked before anything is written, so a document that is already here
+   * costs no master item, no tag, no template position and no trip row — a
+   * re-run of a restore is a no-op rather than a second copy of the data.
+   */
+  const existing = findExistingSubject(doc, env.master)
+  if (existing) return existing
+
   const resolveItem = (item: PortableItem): string | null => {
     const merged = mergeDecisions.get(item.name)
     if (merged) return merged
@@ -280,17 +357,12 @@ export function importPortableDocument(
     // A group document is the same group the Vorlagen carry nested, so it
     // obeys the same identity rule rather than arriving as a copy.
     const groupId = ensureGroup(env, doc.name, doc.items, resolveItem, doc.icon)
-    return { kind: 'template', id: groupId }
+    return { kind: 'template', id: groupId, outcome: 'created' }
   }
 
   if (doc.kind === 'template') {
-    // UNIQUE(owner_id, name): dodge collisions with a visible suffix. Two
-    // Ferien-Vorlagen of one name are two different plans — unlike groups,
-    // merging them would lose one, so only groups link (ADR-017).
-    const taken = new Set(env.master.templateList.map((t) => t.name))
-    const name = taken.has(doc.name) ? `${doc.name} (import)` : doc.name
     const { mutation, id: templateId } = env.mutations.createTemplate(
-      name,
+      doc.name,
       '',
       'template',
       doc.icon,
@@ -308,7 +380,7 @@ export function importPortableDocument(
       env.emit('master', null, TABLE.templateIncludes, inc.id, inc.mutation)
     }
 
-    return { kind: 'template', id: templateId }
+    return { kind: 'template', id: templateId, outcome: 'created' }
   }
 
   // Trip import — planning status (FR-18.4), fresh trip partition.
@@ -384,7 +456,7 @@ export function importPortableDocument(
     rowIdByPosition,
   )
 
-  return { kind: 'trip', id: tripId }
+  return { kind: 'trip', id: tripId, outcome: 'created' }
 }
 
 /**

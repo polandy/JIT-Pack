@@ -284,3 +284,84 @@ describe('runImport', () => {
     expect(instance.pushed.every((p) => p.mutations.length <= 200)).toBe(true)
   })
 })
+
+/**
+ * ADR-030: running the same file twice is what a shell invites, and the
+ * instance the command talks to is the one that already holds the trips.
+ */
+describe('a trip the instance already holds', () => {
+  const alreadyThere = () => {
+    instance.feed = [
+      {
+        seq: 1,
+        table: 'trips',
+        id: 'trip-existing',
+        deleted: false,
+        row: { id: 'trip-existing', name: 'Cannobio', year: 2024, status: 'archived' },
+      },
+    ]
+  }
+
+  it('is not imported a second time, and the run says so', async () => {
+    alreadyThere()
+    const out = io({ 'trip.yaml': TRIP })
+
+    const code = await runImport(
+      { serverUrl: 'http://x', token: null, dryRun: false, files: ['trip.yaml'] },
+      out,
+    )
+
+    expect(code).toBe(EXIT.ok)
+    expect(out.lines.some((l) => l.includes('already here'))).toBe(true)
+    expect(out.lines.at(-1)).toBe('1 document: 0 imported, 1 already here, 0 failed')
+    // The proof is the wire, not the wording: nothing was pushed at all.
+    expect(instance.mutations).toEqual([])
+  })
+
+  it('is reported by a dry run too, so the file can be checked before it is sent', async () => {
+    alreadyThere()
+    const out = io({ 'trip.yaml': TRIP })
+
+    await runImport({ serverUrl: 'http://x', token: null, dryRun: true, files: ['trip.yaml'] }, out)
+
+    expect(out.lines[0]).toContain('already here')
+    expect(instance.mutations).toEqual([])
+  })
+
+  it('covers a Ferien-Vorlage too, which used to arrive under a suffix', async () => {
+    instance.feed = [
+      {
+        seq: 1,
+        table: 'templates',
+        id: 'tpl-existing',
+        deleted: false,
+        row: { id: 'tpl-existing', name: 'Ferien', kind: 'template' },
+      },
+    ]
+    const out = io({ 'tpl.yaml': TEMPLATE })
+
+    const code = await runImport(
+      { serverUrl: 'http://x', token: null, dryRun: false, files: ['tpl.yaml'] },
+      out,
+    )
+
+    expect(code).toBe(EXIT.ok)
+    expect(out.lines.at(-1)).toBe('1 document: 0 imported, 1 already here, 0 failed')
+    expect(instance.mutations).toEqual([])
+  })
+
+  it('does not stop the documents around it', async () => {
+    alreadyThere()
+    const out = io({ 'backup.yaml': `${TEMPLATE}---\n${TRIP}` })
+
+    const code = await runImport(
+      { serverUrl: 'http://x', token: null, dryRun: false, files: ['backup.yaml'] },
+      out,
+    )
+
+    expect(code).toBe(EXIT.ok)
+    expect(out.lines.at(-1)).toBe('2 documents: 1 imported, 1 already here, 0 failed')
+    expect(instance.tables()).toContain('templates')
+    expect(instance.tables()).not.toContain('trips')
+  })
+})

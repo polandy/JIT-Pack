@@ -31,7 +31,10 @@ import {
   parsePortableAll,
   PORTABLE_FILE_ACCEPT,
   type ParseResult,
+  type PortableDocument,
 } from '@/domain/portable'
+import { findExistingSubject } from '@/domain/portableImport'
+import { presentToast } from '@/lib/toast'
 import { t } from '@/i18n'
 import { TRIP_FILTER_QUERY, filterForStatus } from '@/views/trips/tripFilter'
 import { useTripStore } from '@/stores/tripStore'
@@ -78,6 +81,27 @@ function preview() {
 }
 
 const doc = computed(() => parsed.value?.doc ?? null)
+
+/**
+ * Whether this document would be a second copy of something already here
+ * (ADR-030). The import rules' own function, not a second reading of them.
+ *
+ * Asked in the preview rather than only after the fact: "already here" is a
+ * perfectly good answer, but a screen that gives it only once the button has
+ * been pressed reads as an import that silently did nothing.
+ */
+function alreadyHere(candidate: PortableDocument | null | undefined): boolean {
+  if (!candidate) return false
+  return (
+    findExistingSubject(candidate, {
+      templateList: master.templateList,
+      tripList: tripStore.tripList,
+    }) !== undefined
+  )
+}
+
+/** How long a confirmation stays up, as everywhere else on the app. */
+const TOAST_MS = 3000
 const matches = computed(() => (doc.value ? matchPortableItems(doc.value, master.itemList) : []))
 
 /** Near-duplicates offer merge/keep-separate; exact matches default to merge. */
@@ -112,6 +136,16 @@ function commitRestore() {
   const results = orchestrator.commitPortableRestore(
     documents.flatMap((r) => (r.doc ? [r.doc] : [])),
   )
+  // ADR-030: a restore run twice adds nothing the second time, and saying how
+  // many trips it left alone is the difference between that and a restore
+  // that failed silently.
+  const untouched = results.filter((r) => r.outcome === 'duplicate').length
+  if (untouched > 0) {
+    void presentToast({
+      message: t('import.portable.restoreAlreadyHere', { n: untouched }),
+      duration: TOAST_MS,
+    })
+  }
   restore.value = null
   const firstTrip = results.find((r) => r.kind === 'trip')
   const status = firstTrip ? tripStore.getTrip(firstTrip.id)?.status : undefined
@@ -146,6 +180,9 @@ function commit() {
     }
   }
   const result = orchestrator.commitPortableImport(doc.value, decisions)
+  if (result.outcome === 'duplicate') {
+    void presentToast({ message: t('import.portable.alreadyHereHint'), duration: TOAST_MS })
+  }
   router.replace(result.kind === 'template' ? `/templates/${result.id}` : `/trips/${result.id}`)
 }
 </script>
@@ -200,6 +237,15 @@ function commit() {
             <IonChip v-if="!entry.doc" slot="end" color="danger" outline>
               {{ t('import.portable.skipped') }}
             </IonChip>
+            <IonChip
+              v-else-if="alreadyHere(entry.doc)"
+              slot="end"
+              color="medium"
+              outline
+              data-testid="portable-already-here"
+            >
+              {{ t('import.portable.alreadyHere') }}
+            </IonChip>
           </IonItem>
         </IonList>
         <div class="actions">
@@ -233,6 +279,10 @@ function commit() {
         <IonNote v-if="parsed?.newerSchema" class="schema-warning">
           <IonIcon :icon="warningOutline" />
           {{ t('import.portable.newerSchema') }}
+        </IonNote>
+        <IonNote v-if="alreadyHere(doc)" class="schema-warning" data-testid="portable-already-here">
+          <IonIcon :icon="warningOutline" />
+          {{ t('import.portable.alreadyHereHint') }}
         </IonNote>
 
         <IonList>
