@@ -978,6 +978,11 @@ export const en = {
   'shopping.atDestination': 'At destination ({n})',
   'shopping.uncategorized': 'Uncategorized',
   'shopping.bought': 'Bought: {name}',
+  'shopping.showBought': 'Show {n} bought',
+  'shopping.hideBought': 'Hide {n} bought',
+  'shopping.undoBought': 'Not bought after all: {name}',
+  'shopping.wentToPacking': 'on the packing list',
+  'shopping.wentPacked': 'packed',
   'shopping.emptyBefore': 'Nothing to buy before departure',
   'shopping.emptyLocal': 'Nothing to buy at the destination',
 

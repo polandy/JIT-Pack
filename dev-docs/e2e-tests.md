@@ -52,7 +52,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
 | M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (completed by the M8 unit), E2E-M7-08, E2E-M7-09 | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
 | M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-15, E2E-M8-16, E2E-M8-17, E2E-M8-21, E2E-M8-22, E2E-M8-23 (two tests), E2E-M8-18 | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
-| M6 shopping (composer wiring) | E2E-M6-21 | `local` | [`shopping.spec.ts`](../client/e2e/shopping.spec.ts) |
+| M6 shopping (composer wiring, FR-25.11j reveal) | E2E-M6-21, E2E-M6-17, E2E-M6-22 | `local` | [`shopping.spec.ts`](../client/e2e/shopping.spec.ts) |
 | M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-02, E2E-M9-03, E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed), E2E-M10-13 (German-seeded) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | §3.28 the item mark | E2E-M10-11, E2E-M10-12, E2E-M9-07, E2E-M4-48, E2E-G15-01, E2E-G15-02, E2E-M5-15 | `local` | [`item-mark.spec.ts`](../client/e2e/item-mark.spec.ts) |
 | M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
@@ -1754,3 +1754,25 @@ against, and it is also the divergence itself on record: the deleting device
 removed the row optimistically and the server kept it. **Closing that gap —
 putting the refused row back on the device that tried to delete it — is not in
 this case and not built**; the refusal is announced, not undone.
+
+
+**E2E-M6-17 / E2E-M6-22 — what M6 hides is counted, named and reversible,
+added 2026-08-25 (FR-25.11j).** Buying a BUY_BEFORE row changes its mode, so
+the row leaves *both* tabs: every "it disappeared" assertion here is worth a
+positive one beside it, and the bar counting what disappeared is that signal.
+M6-17 walks the whole way — bar absent while nothing is bought, `Show 1
+bought` after the tap, the revealed row naming where it went, and its checkbox
+putting it back on the list it was bought from. M6-22 does the destination
+tab, where the mode never changes and `bought_from` is the only thing keeping
+the two reveals apart.
+
+Proved by mutation: with the previous check-off restored
+(`setMode`/`packComplete`, no record written) the bar never appears and both
+cases fail on it, while E2E-M6-21 beside them stays green.
+
+Two traps paid for, both cheap to hit again. **ADR-012 leaves M4 mounted and
+*visible* behind M6**, so `visiblePage` resolves to two pages and every shared
+testid — the composer's above all — is ambiguous; the cases scope through an
+`m6-page` testid instead. And a **segment button swallows a click aimed at its
+own `ion-label`**, the same finding `packing-list.spec.ts` already carries: the
+tabs got their own testids rather than being reached by text.

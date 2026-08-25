@@ -84,6 +84,50 @@ describe('useMutations', () => {
     expect(mut.fields).toEqual({ mode: 'buy_before' })
   })
 
+  // FR-25.11j: buying a row records the list it left *in the same upsert*
+  // that changes the mode. Two mutations would leave a window — and, offline,
+  // a landing order — in which the row has left the shopping side with no
+  // record of where from, and the purchase is then irreversible.
+  it('buyItem records the list a BUY_BEFORE row left as it moves to packing (FR-25.11j)', () => {
+    const m = useMutations(mockHLC())
+    const mut = m.buyItem('i1', 'buy_before', 3)
+    expect(mut.op).toBe('upsert')
+    expect(mut.table).toBe('trip_items')
+    expect(mut.fields).toEqual({ bought_from: 'buy_before', mode: 'pack' })
+  })
+
+  it('buyItem marks a BUY_LOCAL row packed and records the list too (FR-25.11j)', () => {
+    const m = useMutations(mockHLC())
+    const mut = m.buyItem('i1', 'buy_local', 3)
+    expect(mut.fields).toEqual({
+      bought_from: 'buy_local',
+      packed_count: 3,
+      state: 'packed',
+      packed_at: expect.any(String),
+      packing_now_by: null,
+      packing_now_at: null,
+    })
+  })
+
+  it('unbuyItem puts a BUY_BEFORE row back on the list it was bought from (FR-25.11j)', () => {
+    const m = useMutations(mockHLC())
+    const mut = m.unbuyItem('i1', 'buy_before')
+    expect(mut.fields).toEqual({ bought_from: null, mode: 'buy_before' })
+  })
+
+  it('unbuyItem unpacks a BUY_LOCAL row without touching its mode (FR-25.11j)', () => {
+    const m = useMutations(mockHLC())
+    const mut = m.unbuyItem('i1', 'buy_local')
+    expect(mut.fields).toEqual({
+      bought_from: null,
+      packed_count: 0,
+      state: 'open',
+      packed_at: null,
+      packing_now_by: null,
+      packing_now_at: null,
+    })
+  })
+
   it('addTripItem creates insert with unique id', () => {
     const m = useMutations(mockHLC())
     const { mutation, id } = m.addTripItem('t1', 'Towel', {

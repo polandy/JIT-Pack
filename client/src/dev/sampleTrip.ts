@@ -1,4 +1,5 @@
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import { useTripStore } from '@/stores/tripStore'
 import {
   PORTABLE_SCHEMA_VERSION,
   type PortableDocument,
@@ -25,7 +26,10 @@ import {
  * categories for the grouping and the Kategorie facet, both buy modes for
  * Beschaffung and the shopping list, a late packer, two per-person items
  * that render as clusters (FR-25.1), and rows already packed so the
- * FR-25.2 reveal bar and the FR-25.17 stamp have something to show.
+ * FR-25.2 reveal bar and the FR-25.17 stamp have something to show. One
+ * shopping row is already bought (FR-25.11j), so M6's own reveal has
+ * something to show as well — without it the affordance is invisible on a
+ * fresh device until somebody buys something.
  */
 type Orchestrator = ReturnType<typeof useSyncOrchestrator>
 
@@ -134,7 +138,23 @@ export function seedSampleTrip(
   }
   const { id } = orchestrator.commitPortableImport(sampleDocument(), merges)
   orchestrator.activateTrip(id)
+  buyOneShoppingRow(id, orchestrator)
   return id
+}
+
+/**
+ * FR-25.11j: one row is bought before departure, through the same action the
+ * screen calls. The portable document has no field for it — the format does
+ * not carry `bought_from` yet — and a seed that wrote the row directly would
+ * be a second way of buying something, which is the one that would drift.
+ */
+const SEED_BOUGHT_ROW = 'Kaffee'
+
+function buyOneShoppingRow(tripId: string, orchestrator: Orchestrator): void {
+  const item = useTripStore()
+    .getItems(tripId)
+    .find((row) => row.name === SEED_BOUGHT_ROW)
+  if (item) orchestrator.buyItem(tripId, item, 'buy_before')
 }
 
 /**

@@ -48,6 +48,7 @@ function item(id: string, containerId: string, weightGrams: number): TripItem {
     container_id: containerId,
     packing_now_by: null,
     packing_now_at: null,
+    bought_from: null,
     flag_unused: false,
     flag_missing: false,
     updated_hlc: '',

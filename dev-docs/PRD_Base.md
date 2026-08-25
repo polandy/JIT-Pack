@@ -41,7 +41,7 @@ System and environment configurations are 100% declarative, managed strictly via
   * BUY_BEFORE (Purchase at home before departure).
   * BUY_LOCAL (Purchase after arrival at the destination).
 * **FR-3.2 (Dynamic Filter Views):** The app provides dedicated sub-views (e.g., a "Pre-trip Shopping List") that aggregate all items marked as BUY_BEFORE or BUY_LOCAL.
-* **FR-3.3 (State Transition):** When a BUY_BEFORE item is marked as purchased, it automatically shifts its mode to PACK and populates the main packing list.
+* **FR-3.3 (State Transition):** When a BUY_BEFORE item is marked as purchased, it automatically shifts its mode to PACK and populates the main packing list. *(Completed by FR-25.11j, built 2026-08-25: the shift is recorded — the row keeps which list it was bought from, so the purchase can be found again and undone. Without that record this transition is one-way.)*
 
 ### 3.4 Multi-User, Collaboration & Delegation
 

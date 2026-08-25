@@ -49,6 +49,14 @@ export interface TripParticipant {
 export type ItemState = 'open' | 'packing_now' | 'partial' | 'packed' | 'skipped'
 export type ItemMode = 'pack' | 'buy_before' | 'buy_local'
 
+/**
+ * The two procurement modes M6 gives a tab to (FR-3.2), and the values
+ * `trip_items.bought_from` records (FR-25.11j). Derived from {@link ItemMode}
+ * rather than written out again: a purchase records a mode, and a second
+ * spelling of the same vocabulary is one that can drift from the schema's.
+ */
+export type ShoppingMode = Exclude<ItemMode, 'pack'>
+
 export interface TripItem {
   id: string
   trip_id: string
@@ -79,6 +87,12 @@ export interface TripItem {
   packing_now_at: string | null
   flag_unused: boolean
   flag_missing: boolean
+  /**
+   * Which shopping list the row was bought from (FR-25.11j), or null if it
+   * was not bought. Buying changes the row's mode (FR-3.3), so this is what
+   * lets M6 find the row again and put it back.
+   */
+  bought_from: ShoppingMode | null
   updated_hlc: string
 }
 
