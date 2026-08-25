@@ -586,7 +586,7 @@ async function exportTripCSV() {
           @click="$router.push('/master/retired')"
         >
           <IonLabel>
-            <h3>{{ t('settings.retired') }}</h3>
+            <h3>{{ t('settings.retiredRow') }}</h3>
             <p>{{ t('settings.retiredHint') }}</p>
           </IonLabel>
           <IonNote v-if="retiredCount > 0" slot="end" data-testid="settings-retired-count">

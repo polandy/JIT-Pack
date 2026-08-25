@@ -574,7 +574,7 @@ export const de: Record<keyof typeof en, string> = {
     'Automatisch aufgelöste Zusammenführungen werden je Reise protokolliert — öffne eine Reise und tippe auf die Synchronisationsanzeige in der Kopfzeile.',
   'settings.about': 'Über',
   // M23 — Ausgeblendete Stammdaten (FR-24.3).
-  'retired.title': 'Ausgeblendete Artikel und Vorlagen',
+  'retired.title': 'Ausgeblendete Stammdaten',
   'retired.hint':
     'Wer etwas löscht, das noch verwendet wird, blendet es aus statt es zu entfernen — abgeschlossene Reisen und die Auswertung lesen es weiter. Hier kommt es zurück.',
   'retired.segmentItems': 'Artikel',
@@ -597,7 +597,8 @@ export const de: Record<keyof typeof en, string> = {
   'retired.purgeConfirm': '„{name}“ endgültig entfernen?',
   'retired.purged': '„{name}“ wurde endgültig entfernt.',
   'retired.openItem': 'Öffnen',
-  'settings.retired': 'Ausgeblendete Artikel und Vorlagen',
+  'settings.retired': 'Ausgeblendete Stammdaten',
+  'settings.retiredRow': 'Ausgeblendete Artikel und Vorlagen zurückholen',
   'settings.retiredHint': 'Zurückholen, was ein Löschen nur ausgeblendet hat.',
   'settings.retiredCount': '{n} ausgeblendete Zeile | {n} ausgeblendete Zeilen',
   'settings.modeLocal': 'Modus: Lokal (nur dieses Gerät)',

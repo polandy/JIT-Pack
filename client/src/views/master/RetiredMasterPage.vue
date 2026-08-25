@@ -26,7 +26,6 @@ import {
   IonList,
   IonItem,
   IonLabel,
-  IonNote,
   IonIcon,
   IonButton,
   IonSegment,
@@ -243,10 +242,10 @@ function hiddenOn(row: RetiredRow): string {
 <template>
   <IonPage>
     <IonContent>
-      <div class="ion-padding">
-        <h1 class="page-title jp-page-title">{{ t('retired.title') }}</h1>
-        <p class="page-hint">{{ t('retired.hint') }}</p>
-      </div>
+      <!-- No <h1>: the route carries `titleKey`, so the one header bar
+           already names this screen (ADR-011). A second copy of the same
+           words cost two lines of a 430 px page. -->
+      <p class="page-hint ion-padding">{{ t('retired.hint') }}</p>
 
       <IonSegment
         :value="segment"
@@ -278,11 +277,9 @@ function hiddenOn(row: RetiredRow): string {
           />
           <IonLabel>
             <h2 data-testid="m23-row-name">{{ row.name }}</h2>
-            <p>
-              <span>{{ hiddenOn(row) }}</span>
-              <IonNote v-if="row.references > 0" class="usage">
-                · {{ t('retired.stillUsed', { n: row.references }) }}
-              </IonNote>
+            <p>{{ hiddenOn(row) }}</p>
+            <p v-if="row.references > 0" class="usage">
+              {{ t('retired.stillUsed', { n: row.references }) }}
             </p>
           </IonLabel>
 
@@ -315,10 +312,6 @@ function hiddenOn(row: RetiredRow): string {
 </template>
 
 <style scoped>
-.page-title {
-  margin: 16px 0 8px;
-}
-
 .page-hint {
   color: var(--ion-color-medium);
   font-size: var(--jp-text-sm);
