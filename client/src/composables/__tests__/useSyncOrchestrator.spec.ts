@@ -183,6 +183,43 @@ describe('useSyncOrchestrator', () => {
     expect(tripStore.getItems('t1')[0]!.state).toBe('packed')
   })
 
+  // The rule every optimistic update rests on: the store *replaces* the row
+  // it is given, so an action that mentions two columns must still hand back
+  // the other six. In Local Mode no pull ever arrives to heal them, which is
+  // why the test asserts what the action did *not* change.
+  it('keeps the columns its mutation never mentions', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const tripStore = useTripStore()
+
+    tripStore.applyChange({
+      seq: 1,
+      table: 'trip_items',
+      id: 'i1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Regenjacke',
+        quantity: 3,
+        packed_count: 0,
+        state: 'open',
+        mode: 'pack',
+        category_name: 'Kleidung',
+        late_packer: 1,
+        updated_hlc: '',
+      },
+    })
+
+    orch.packIncrement('t1', tripStore.getItems('t1')[0]!)
+
+    const item = tripStore.getItems('t1')[0]!
+    expect(item.packed_count).toBe(1)
+    expect(item.name).toBe('Regenjacke')
+    expect(item.quantity).toBe(3)
+    expect(item.mode).toBe('pack')
+    expect(item.category_name).toBe('Kleidung')
+    expect(item.late_packer).toBe(true)
+  })
+
   it('skipItem sets state to skipped optimistically', () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const tripStore = useTripStore()
