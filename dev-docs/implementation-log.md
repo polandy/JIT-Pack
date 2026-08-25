@@ -162,6 +162,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [What a constraint costs when the outbox drops a refusal (2026-08-25)](#what-a-constraint-costs-when-the-outbox-drops-a-refusal-2026-08-25) — the same review's schema half. Four things the code cannot show: why the two-level rule was a two-step formality, the lens every candidate constraint was decided by and the two that failed it, why a per-owner unique name contradicted the FR above it, and the dead schema that was kept on purpose.
 - [A refusal that could not be read (2026-08-25)](#a-refusal-that-could-not-be-read-2026-08-25) — Sync-API §5 / FR-9.2. Four things the code cannot show: why the foreign key that started the finding was never the defect, why the reason is asked for instead of read out of the driver's error, why M7 does not pre-empt a delete it cannot judge, and the divergence this PR announces without closing.
 - [A purchase that could not be taken back (2026-08-25)](#a-purchase-that-could-not-be-taken-back-2026-08-25) — FR-25.11j, the review's last item. Three things the code cannot show: the column that was weighed and not added, why the reveal declines the persistence FR-25.18 would seem to hand it, and the round trip left open on purpose because the file that closes it belongs to somebody else.
+- [A refusal that only announced itself (2026-08-25)](#a-refusal-that-only-announced-itself-2026-08-25) — Sync-API §5 / ADR-031: the divergence the entry above left open. Four things the code cannot show: why a whole-partition resync scored well and still lost, why the insert/update asymmetry turned out to be the server's question and not the client's, the one refusal that must repair nothing, and the repair that came back empty and was only visible in a screenshot.
 
 ## Current state
 
@@ -6756,3 +6757,71 @@ One thing the diff does show but is worth the pointer: making `bought_from`
 required on `TripItem` turned eleven test fixtures red at once, and that is the
 mechanism #169 asked for — an optional field is the one that gets forgotten at
 a call site, and only the compiler asks every one of them.
+
+## A refusal that only announced itself (2026-08-25)
+
+The entry above this one ends by naming what it did not do: a refused mutation
+was given a reason and put on screen, and the row it refused stayed exactly as
+the device had optimistically drawn it. That is the gap this closes (ADR-031),
+and it was never about the delete that motivated it — an authorization denial,
+a scope refusal, a template rule and a constraint all leave the same wrong row
+behind.
+
+**A plain pull cannot repair it, and that is the whole design problem.** The
+server row did not change, so its `change_log` entry sits behind the client's
+cursor; the cursor is an exclusive lower bound that only moves forward, so the
+row is never offered again. Every candidate solution is an answer to that one
+sentence, and the sentence is what makes the obvious one — "just pull" — wrong.
+
+**The option that scored second was the one I most wanted to reject on sight.**
+Resyncing the partition from cursor 0 after a refusal needs no server change,
+no new endpoint and no carve-outs, and it repairs phantom inserts for free. It
+lost on a single property: it rebuilds the store from the server, which erases
+the optimistic rows of everything still sitting in the outbox. On a phone that
+has been off wifi since morning that is the entire day's packing, and it would
+be destroyed by the mechanism whose job is to protect it. A high score and a
+disqualifying failure mode is worth writing down, because the matrix on its own
+reads as if it were close.
+
+**The insert/update asymmetry turned out to belong to the server.** The brief
+framed it as a client problem — a rejected insert has no server row, so the
+client has to know it was an insert and drop the row. The client's `op` is a
+poor witness (another device may have deleted the row meanwhile, and the outbox
+entry cannot know), but the server does not need a witness at all: at the
+moment it refuses, it holds the row or it does not. So the repair entry's
+`deleted` flag is read from `row.Exists`, and one mechanism covers both cases —
+a refused delete or update re-delivers the snapshot, a refused insert delivers
+a tombstone that drops the phantom. The asymmetry did not need a second code
+path; it needed a different question.
+
+**`out_of_scope` must repair nothing, and the reason is the leak the refusal
+exists to prevent.** That reason means the row belongs to another trip. Writing
+a `change_log` entry for it under *this* trip is precisely how the partition
+reaches into another one: the next pull would hand the pusher the foreign row's
+whole snapshot — the failure `belongsToTrip` was added for. So it is the one
+refusal repaired client-side, and it is repairable there without guessing,
+because the reason is the answer: a row this partition may not touch is a row
+it must not keep. Two mechanisms, split by a value that already travels the
+wire.
+
+**The repair came back empty, and only a screenshot said so.** With the
+server-side half green — a Go test asserting the pull now carries the template,
+an e2e asserting the group is visible in M7 again — the rendered screen showed
+the Vorlage back in the list reading „0 items". The client mirrors the server's
+cascade when it deletes a template: the positions leave the store with the
+parent, optimistically. Re-logging the row the mutation named brought back a
+group with nothing in it, and **both tests were green against that**, because
+neither asked what the row contained. The store now re-logs the rows the
+cascade would have taken as well, and the e2e counts the positions instead of
+asserting visibility. It is the same lesson as the M4 card that painted itself
+the colour of the page: a repair can satisfy every assertion and still not be a
+repair, and only a rendered pixel can tell you.
+
+**Local Mode is not a special case, and saying so is the point.** It has no
+server, no outbox and no push, so nothing can be refused there: its optimistic
+rows are the only copy that exists and cannot diverge from a second one. The
+repair path is not inert code in that mode — it is not constructed at all,
+because the outbox that owns it is not. What *can* fail on a Local Mode write
+is the write to the device, and that already has its own signal in G-2. A mode
+question with the answer "the question does not arise here" is worth writing
+out, because the alternative is a reader later assuming it was forgotten.
