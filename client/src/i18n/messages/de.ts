@@ -989,6 +989,11 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.atDestination': 'Vor Ort ({n})',
   'shopping.uncategorized': 'Ohne Kategorie',
   'shopping.bought': 'Gekauft: {name}',
+  'shopping.showBought': '{n} gekaufte anzeigen',
+  'shopping.hideBought': '{n} gekaufte ausblenden',
+  'shopping.undoBought': 'Doch nicht gekauft: {name}',
+  'shopping.wentToPacking': 'auf der Packliste',
+  'shopping.wentPacked': 'eingepackt',
   'shopping.emptyBefore': 'Vor der Abreise ist nichts zu kaufen',
   'shopping.emptyLocal': 'Vor Ort ist nichts zu kaufen',
 

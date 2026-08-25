@@ -191,3 +191,45 @@ func TestStampActor_ClearsRecordOnEveryTripItemMutation_Invariant3(t *testing.T)
 		t.Errorf("client-sent packing record reached the store: %v", v)
 	}
 }
+
+// FR-25.11j: which list a row was bought from is a decision the person made
+// on screen, not a claim about who they are, so it belongs to the client the
+// way the FR-25.19 assignment does. stampActor must leave it untouched — a
+// stripped value would take the undo with it, and a row bought at the
+// destination is packed in the same mutation, which is where the stamping
+// rules above do reach.
+func TestStampActor_BoughtFrom_IsTheClientsToChoose_FR25_11j(t *testing.T) {
+	const acting = "user-andy"
+
+	tests := []struct {
+		name   string
+		fields map[string]any
+		want   any
+	}{
+		{
+			name:   "a purchase before departure carries the list it left",
+			fields: map[string]any{"bought_from": "buy_before", "mode": "pack"},
+			want:   "buy_before",
+		},
+		{
+			name:   "a purchase at the destination survives beside the packing stamp",
+			fields: map[string]any{"bought_from": "buy_local", "state": "packed"},
+			want:   "buy_local",
+		},
+		{
+			name:   "undoing a purchase clears it, and the clearing survives too",
+			fields: map[string]any{"bought_from": nil, "mode": "buy_before"},
+			want:   nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := &syncpkg.Mutation{Table: "trip_items", Op: syncpkg.OpUpsert, Fields: tc.fields}
+
+			stampActor(m, acting)
+
+			assertField(t, m, "bought_from", tc.want)
+		})
+	}
+}

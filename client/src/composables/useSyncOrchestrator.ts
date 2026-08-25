@@ -81,6 +81,7 @@ import type {
   ItemTodo,
   MasterItem,
   ReviewFlag,
+  ShoppingMode,
   Template,
   TemplateKind,
   TemplateItem,
@@ -792,6 +793,39 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   function unskipItem(tripId: string, item: TripItem) {
     const mut = mutations.unskipItem(item.id)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0,
+        table: TABLE.tripItems,
+        id: item.id,
+        deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  /**
+   * Check a row off one of M6's shopping lists, or put it back (FR-25.11j).
+   * One mutation each way, so the record of the list and the change it
+   * explains can never land apart — see `useMutations.buyItem`.
+   */
+  function buyItem(tripId: string, item: TripItem, from: ShoppingMode) {
+    const mut = mutations.buyItem(item.id, from, item.quantity)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0,
+        table: TABLE.tripItems,
+        id: item.id,
+        deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  function unbuyItem(tripId: string, item: TripItem, from: ShoppingMode) {
+    const mut = mutations.unbuyItem(item.id, from)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
       optimistic: {
@@ -3110,6 +3144,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     restoreSkip,
     skipItem,
     unskipItem,
+    buyItem,
+    unbuyItem,
     setMode,
     packingNow,
     assignTraveler,
@@ -3350,6 +3386,7 @@ function itemRow(item: TripItem): Record<string, unknown> {
     container_id: item.container_id,
     packing_now_by: item.packing_now_by,
     packing_now_at: item.packing_now_at,
+    bought_from: item.bought_from,
     flag_unused: item.flag_unused ? 1 : 0,
     flag_missing: item.flag_missing ? 1 : 0,
     updated_hlc: item.updated_hlc,
