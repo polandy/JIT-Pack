@@ -549,4 +549,134 @@ describe('SyncOutbox durability', () => {
       limit: '500',
     })
   })
+  describe('a partition that does not fit in one page (Sync-API §4)', () => {
+    /** A server holding `total` changes, answering `limit` of them per request. */
+    function pagedServer(total: number, limit = 500) {
+      const asked: number[] = []
+      const get = vi.fn((_path: string, params: Record<string, string>) => {
+        const cursor = Number(params['cursor'])
+        asked.push(cursor)
+        const changes: PullChange[] = []
+        for (let seq = cursor + 1; seq <= Math.min(cursor + limit, total); seq++) {
+          changes.push({ seq, table: 'items', id: `i${seq}`, deleted: false, row: {} })
+        }
+        const next = cursor + changes.length
+        return Promise.resolve({
+          changes,
+          next_cursor: next,
+          has_more: next < total,
+        } satisfies PullResponse)
+      })
+      return { get, asked }
+    }
+
+    it('keeps asking until the server says there is no more', async () => {
+      const server = pagedServer(717)
+      client.get = server.get
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+
+      await outbox.drain('master', null)
+
+      expect(server.asked).toEqual([0, 500])
+      const delivered: PullChange[] = (onChanges as ReturnType<typeof vi.fn>).mock.calls.flatMap(
+        (c) => c[0] as PullChange[],
+      )
+      expect(delivered).toHaveLength(717)
+      // The last row of the feed is the point: it is the one the trips sat in.
+      expect(delivered[delivered.length - 1]).toMatchObject({ seq: 717 })
+      expect(outbox.getCursor('master', null)).toBe(717)
+    })
+
+    it('stops rather than spinning when the server does not advance the cursor', async () => {
+      // A server that claims more and hands back nothing would otherwise be an
+      // infinite loop on the boot path — a hung tab, not a failed request.
+      client.get = vi.fn().mockResolvedValue({
+        changes: [],
+        next_cursor: 0,
+        has_more: true,
+      } satisfies PullResponse)
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+
+      await outbox.drain('master', null)
+
+      expect(client.get).toHaveBeenCalledTimes(1)
+    })
+
+    /*
+     * The cursor is deliberately *not* kept on the device, and this is the
+     * case that says why: outside Local Mode the pulled rows are not kept
+     * either — they live in the Pinia stores and go with the tab. A device
+     * that remembered how far it had read and not what it had read would ask
+     * for the changes after that point, receive none, and render an empty
+     * app. Measured while building this fix: persisting the cursor turned
+     * "the first 500 rows" into "no rows at all".
+     */
+    it('reads the feed from the start again in a new session, because the rows do not persist', async () => {
+      const server = pagedServer(717)
+      client.get = server.get
+
+      const first = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      await first.drain('master', null)
+      expect(server.asked).toEqual([0, 500])
+
+      server.asked.length = 0
+      const second = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      await second.drain('master', null)
+
+      expect(server.asked).toEqual([0, 500])
+    })
+
+    it('keeps a partly-pulled feed rather than losing the pages already taken', async () => {
+      // A phone that loses the network mid-feed: the pages that arrived are
+      // applied, and the next drain in the same session continues from the
+      // last one instead of asking for the whole thing again.
+      const TOTAL = 3
+      let calls = 0
+      const asked: number[] = []
+      client.get = vi.fn((_path: string, params: Record<string, string>) => {
+        calls++
+        const cursor = Number(params['cursor'])
+        asked.push(cursor)
+        if (calls === 2) return Promise.reject(new Error('offline'))
+        const seq = cursor + 1
+        return Promise.resolve({
+          changes:
+            seq <= TOTAL ? [{ seq, table: 'items', id: `i${seq}`, deleted: false, row: {} }] : [],
+          next_cursor: Math.min(seq, TOTAL),
+          has_more: seq < TOTAL,
+        } satisfies PullResponse)
+      })
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+
+      await expect(outbox.drain('master', null)).rejects.toThrow(/offline/)
+      expect(outbox.getCursor('master', null)).toBe(1)
+
+      await outbox.drain('master', null)
+
+      // It resumed at 1 rather than starting over at 0.
+      expect(asked).toEqual([0, 1, 1, 2])
+      expect(outbox.getCursor('master', null)).toBe(TOTAL)
+    })
+
+    it('pages a trip partition by the same rule', async () => {
+      const server = pagedServer(1200)
+      client.get = server.get
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+
+      await outbox.drain('trip', 'trip-1')
+
+      expect(server.asked).toEqual([0, 500, 1000])
+      expect(outbox.getCursor('trip', 'trip-1')).toBe(1200)
+    })
+  })
 })
+
+/**
+ * A partition bigger than one page (Sync-API §4).
+ *
+ * The pull asked once, ignored `has_more`, and kept its cursor in a plain
+ * `Map` that a reload threw away — so an instance of 717 master rows served
+ * a browser the same first 500 for ever, and the trips (which sit behind
+ * them in `change_log`) were never delivered at all. Measured on the family
+ * instance 2026-08-25; the sync indicator was green throughout.
+ */

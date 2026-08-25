@@ -944,4 +944,73 @@ test.describe('Single-User backend sync @single', () => {
     await ctxA.close()
     await ctxB.close()
   })
+
+  /*
+   * E2E-SYNC-01 (Sync-API §4): a partition bigger than one page arrives whole.
+   *
+   * The pull asked once and ignored `has_more`, so a device only ever saw the
+   * first page of the feed while the G-2 glyph read *synced*. Found on the
+   * family instance 2026-08-25: 717 master rows, the trips sitting behind the
+   * first 500 in `change_log`, and M2 saying "no archived trips".
+   *
+   * The rows are pushed straight at the API rather than built through the UI:
+   * this case is about the size of a partition, and five hundred trips of
+   * clicking would be a different test. What it then asserts is the *app* —
+   * the last item of the feed rendered on a device that booted after them.
+   */
+  test('E2E-SYNC-01: a master partition larger than one page arrives whole', async ({
+    browser,
+    baseURL,
+  }) => {
+    test.slow()
+    const tag = uniq()
+    // Comfortably more than PULL_PAGE_SIZE (500, useSyncOutbox.ts). The
+    // request-count assertion below is what keeps this honest if that number
+    // ever changes: one page would mean one request, and the case fails.
+    const ROWS = 520
+    const PUSH_BATCH = 200 // MAX_PUSH_BATCH (Sync-API §9)
+    const last = `zz-last-${tag}`
+
+    const api = await browser.newContext({ baseURL })
+    for (let start = 0; start < ROWS; start += PUSH_BATCH) {
+      const mutations = []
+      for (let i = start; i < Math.min(start + PUSH_BATCH, ROWS); i++) {
+        const name = i === ROWS - 1 ? last : `bulk-${tag}-${i}`
+        mutations.push({
+          mutation_id: `${tag}-${i}-0000-0000-000000000000`.padEnd(36, '0').slice(0, 36),
+          op: 'upsert',
+          table: 'items',
+          id: `${tag}-item-${i}`,
+          fields: { name },
+          hlc: `000000000${String(1000 + i).padStart(4, '0')}-0000-${tag.slice(0, 8).padEnd(8, '0')}`,
+        })
+      }
+      const resp = await api.request.post('/api/v1/master/sync', {
+        data: { client_hlc: mutations[mutations.length - 1]!.hlc, mutations },
+      })
+      expect(resp.ok(), await resp.text()).toBe(true)
+    }
+    await api.close()
+
+    // A device that has never talked to this instance before.
+    const fresh = await browser.newContext({ baseURL })
+    const page = await fresh.newPage()
+    let pulls = 0
+    page.on('request', (r) => {
+      if (r.method() === 'GET' && /\/api\/v1\/master\/sync/.test(r.url())) pulls++
+    })
+    await seed(page, { mode: 'server' })
+    await page.goto('/tabs/items')
+
+    // The last row of the feed, on screen. Before the fix it was unreachable:
+    // it sits past the first page, and the pull stopped there.
+    await expect(visiblePage(page).getByText(last, { exact: true })).toBeVisible({
+      timeout: 30_000,
+    })
+    // More than one request, or the seed above no longer exceeds a page and
+    // this case would be proving nothing.
+    expect(pulls).toBeGreaterThan(1)
+
+    await fresh.close()
+  })
 })

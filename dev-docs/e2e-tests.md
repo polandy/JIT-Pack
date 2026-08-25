@@ -61,6 +61,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
 | M15 spreadsheet import | E2E-M15-06, E2E-M15-07, E2E-M15-08 | `local` | [`spreadsheet-import.spec.ts`](../client/e2e/spreadsheet-import.spec.ts) |
+| Sync paging | E2E-SYNC-01 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
@@ -1706,3 +1707,24 @@ notification. This is the in-app channel — NFR-4.6's universal fallback — an
 Web Push needs a browser permission this harness does not grant. The service
 worker's own copy of the wording (`client/public/sw.js`) is therefore still
 covered by nothing, which is also where backlog item 19's second copy lives.
+
+**E2E-SYNC-01 — a partition bigger than one page, added 2026-08-25.** The
+defect it pins was found by *using* the app, not by testing it: after importing
+a decade of real trips into the `:3000` instance, a fresh browser said
+„Keine archivierten Reisen" with the sync glyph green. The pull took the first
+500 changes, ignored `has_more`, and the trips sat behind them in `change_log`.
+
+Three things worth keeping:
+
+- **Every fixture in the suite was under one page**, which is why nothing caught
+  it. A test for a paging rule has to build a partition big enough to page, and
+  that means pushing rows at the API rather than driving the UI — 520 items
+  through M10 would be a different, much slower test about a different thing.
+- **The request count is asserted next to the visible row.** Without it the case
+  quietly stops proving anything the day `PULL_PAGE_SIZE` grows past the seed:
+  one page would still show the row, and the name of the test would be a lie.
+- **Persisting the cursor made it worse, and the unit case now says so.**
+  Outside Local Mode the pulled rows are not kept either, so a device that
+  remembered its read position and not the rows asked for the changes after it,
+  got none, and rendered an empty app. Measured while building the fix: "the
+  first 500 rows" became "no rows at all".
