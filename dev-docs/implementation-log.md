@@ -156,6 +156,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A claim stops having a lifetime (2026-08-24)](#a-claim-stops-having-a-lifetime-2026-08-24) — FR-5.7/ADR-028. Four things the code cannot show: why the option that looked like the compromise was the most expensive one, why the takeover is the one lock action with no optimistic write, why it has no reachable Playwright case and will not until a second identity exists, and the two-day-old work that was deleted rather than adapted.
 - [A second account arrives, and finds a claim nobody could revoke (2026-08-24)](#a-second-account-arrives-and-finds-a-claim-nobody-could-revoke-2026-08-24) — MVP-plan Track B step 2 / ADR-029: the mock-IdP `server` project. Four things the code cannot show: why a real Authelia was weighed and lost to a 250-line fixture, why the ordering of two processes is a design decision rather than a script detail, the defect the project found on its first run — a takeover that the loser's screen contradicted — and why the identity behind the fix cannot come from the token provider the rest of the client uses.
 - [A device only ever got the first page (2026-08-25)](#a-device-only-ever-got-the-first-page-2026-08-25) — Sync-API §4: the pull ignored `has_more`. Four things the code cannot show: why every fixture in the suite was too small to catch it, why the obvious second half of the fix — remembering the cursor — made the app *emptier*, why the correct implementation was already in the repo and unused, and what found it in the end.
+- [A drain could land on top of a drain (2026-08-25)](#a-drain-could-land-on-top-of-a-drain-2026-08-25) — Sync-API §4: one drain per partition at a time. Three things the code cannot show: why the doubled traffic I thought I had measured was my own eyeball script rebooting the app, why the obvious guard — hand the running drain back to the late caller — silently loses a mutation, and why this only became worth fixing once the pull was paged.
 - [The restore could be run twice, and the manual said it could not (2026-08-24)](#the-restore-could-be-run-twice-and-the-manual-said-it-could-not-2026-08-24) — FR-18.4/ADR-030: an imported document is a second copy when its name matches, plus the year for a trip. Five things the code cannot show: the documentation that had described the item rule as if it were the whole rule, why the database constraint that looks like the obvious enforcement is the worst of the four options, why the trips were invisible to a view called `master`, how ADR-017's Vorlage exception was reversed by a measurement rather than an argument, and the cost the family's own data pays for the rule.
 - [The clock the client was told to read, and never received (2026-08-25)](#the-clock-the-client-was-told-to-read-and-never-received-2026-08-25) — a data-model review's sync half. Four things the code cannot show: how a rule implemented correctly on both sides never once ran, why a deleted trip's *master*-partition children are the tombstones that matter while its trip-partition ones need none, a review finding that was wrong and how far I built it before opening the citation, and why a connection-scoped pragma is not a schema rule.
 - [What a constraint costs when the outbox drops a refusal (2026-08-25)](#what-a-constraint-costs-when-the-outbox-drops-a-refusal-2026-08-25) — the same review's schema half. Four things the code cannot show: why the two-level rule was a two-step formality, the lens every candidate constraint was decided by and the two that failed it, why a per-owner unique name contradicted the FR above it, and the dead schema that was kept on purpose.
@@ -6441,6 +6442,60 @@ pull the instance from scratch for the first time. Every previous load of that
 data had been written *by* the browser that then displayed it, which is exactly
 why a decade of use had never asked the question. It is also what every second
 family device does on its first launch.
+
+
+## A drain could land on top of a drain (2026-08-25)
+
+`SyncOutbox.drain` pushes a partition's queue and then pulls it back. Nothing
+stopped two of them running at once, and most callers do not await it: the
+WebSocket's `master.changed` handler fires a `drainMaster()` and moves on, and
+so do four trip actions. Two overlapping drains pushed the same chunk twice —
+harmless, the server memoizes by `mutation_id` and answers `duplicate` — and
+pulled the same pages twice, which is the half that changed price.
+
+**Why it was worth fixing now and not before.** As long as a pull was one
+request, an overlap cost one extra request. Since the pull became a loop over
+pages (the fix a day earlier), an overlap costs the *whole partition*: on the
+family instance, 717 rows fetched a second time on the boot path. The defect is
+the same age as the outbox; only its price moved.
+
+**The doubled traffic I thought I had measured was my own script.** Verifying
+that day's paging fix against the real instance, I traced two full drains — four
+requests, `cursor=0` and `cursor=500` twice — and wrote it down as re-entrancy
+caught in the act. It was not. The trace script navigated with
+`page.goto('/tabs/trips')`, and a `goto` reloads the SPA: two page loads, one
+drain each, exactly as designed. Re-run with in-app navigation only, a load
+produces one drain and two requests. **A `goto` in an eyeball script is a reboot,
+and every boot-path request appears once per `goto`** — which makes any counting
+assertion built on one meaningless. The re-entrancy is real, but it is a latent
+hazard reachable from named call sites, not something the instance was observed
+doing; the fix is cheap enough that the distinction did not change the decision,
+only the sentence describing it.
+
+**The obvious guard is wrong, and a test says so.** The one-line version is to
+keep the running promise and hand it to any caller that arrives while it is open.
+That loses writes: `drain` works through the snapshot of the queue it took when
+it started, so a mutation enqueued a moment later is not in it. A caller that
+awaits the returned promise — `enqueueAndDrain` does — would be told its
+mutation had been sent while it had never left the device, and would sit in the
+queue until something else happened to drain the partition. So a late caller
+waits for a **further** drain instead, and every caller arriving during one
+drain shares that single follow-up. Written as coalescing first and mutated back
+to it afterwards: the case that catches it is
+*„still sends a mutation that was enqueued while a drain was running"*, and it is
+the only one of the seven that plain coalescing fails on a push path.
+
+Two smaller decisions in the same shape. The guard is released in a `finally`,
+not a `then`, because a guard a failed drain leaves standing would take the
+partition out of sync for the rest of the session — a worse failure than the
+double work it prevents. And the follow-up swallows the running drain's
+rejection before chaining: that failure belongs to the caller that started it,
+while the late caller gets the outcome of its own drain, which has not happened
+yet.
+
+**Not fixed, still true:** there are two paging implementations of this protocol
+rule — `SyncOutbox.drain` and `usePull.pullMasterAll`, the latter reachable only
+from the FR-18.7 command line — and the guard added here is the drain's alone.
 
 ## The clock the client was told to read, and never received (2026-08-25)
 

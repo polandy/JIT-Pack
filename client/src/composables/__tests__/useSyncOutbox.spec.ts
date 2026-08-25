@@ -549,6 +549,162 @@ describe('SyncOutbox durability', () => {
       limit: '500',
     })
   })
+  describe('one drain at a time per partition', () => {
+    /**
+     * A promise the test resolves by hand, so "while a drain is running" is a
+     * state the test puts the outbox in rather than a moment it hopes to hit.
+     */
+    function deferred<T>() {
+      let settle!: (value: T) => void
+      const promise = new Promise<T>((resolve) => {
+        settle = resolve
+      })
+      return { promise, settle }
+    }
+
+    const emptyPage: PullResponse = { changes: [], next_cursor: 0, has_more: false }
+
+    it('does not push the same mutation twice when a second drain arrives mid-flight', async () => {
+      // Every unawaited `drainMaster()` — the WebSocket `master.changed`
+      // handler is one — can land on top of a drain already running.
+      const held = deferred<PullResponse>()
+      client.get = vi.fn().mockReturnValueOnce(held.promise).mockResolvedValue(emptyPage)
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+      outbox.enqueue('master', null, makeMutation({ table: 'items' }))
+
+      const first = outbox.drain('master', null)
+      const second = outbox.drain('master', null)
+      expect(client.post).toHaveBeenCalledTimes(1)
+
+      held.settle(emptyPage)
+      await Promise.all([first, second])
+
+      // The queue was emptied by the first drain, so the follow-up has
+      // nothing left to send — one push, not two of the same chunk.
+      expect(client.post).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not pull the same page twice when a second drain arrives mid-flight', async () => {
+      const held = deferred<PullResponse>()
+      client.get = vi
+        .fn()
+        .mockReturnValueOnce(held.promise)
+        .mockResolvedValue({
+          changes: [],
+          next_cursor: 500,
+          has_more: false,
+        } satisfies PullResponse)
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+
+      const first = outbox.drain('master', null)
+      const second = outbox.drain('master', null)
+      // The second drain has not asked for anything while the first is open.
+      expect(client.get).toHaveBeenCalledTimes(1)
+
+      held.settle({
+        changes: [{ seq: 500, table: 'items', id: 'i500', deleted: false, row: {} }],
+        next_cursor: 500,
+        has_more: false,
+      })
+      await Promise.all([first, second])
+
+      // Two calls, not three: the first drain's page, then the follow-up's
+      // own pull from the cursor that page left behind.
+      expect(client.get).toHaveBeenCalledTimes(2)
+      expect(client.get).toHaveBeenLastCalledWith('/api/v1/master/sync', {
+        cursor: '500',
+        limit: '500',
+      })
+    })
+
+    /*
+     * Why the second caller waits for a *further* drain instead of simply
+     * being handed the running one: a drain works through the snapshot of
+     * the queue it took when it started, so a mutation enqueued after that
+     * moment is not in it. Handing the running promise back would report
+     * that mutation as sent while it had never left the device.
+     */
+    it('still sends a mutation that was enqueued while a drain was running', async () => {
+      const held = deferred<PullResponse>()
+      client.get = vi.fn().mockReturnValueOnce(held.promise).mockResolvedValue(emptyPage)
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+
+      const first = outbox.drain('master', null)
+      const late = makeMutation({ table: 'items', id: 'late' })
+      outbox.enqueue('master', null, late)
+      const second = outbox.drain('master', null)
+
+      held.settle(emptyPage)
+      await Promise.all([first, second])
+
+      expect(client.post).toHaveBeenCalledTimes(1)
+      expect(client.post).toHaveBeenCalledWith(
+        '/api/v1/master/sync',
+        expect.objectContaining({ mutations: [late] }),
+      )
+      expect(outbox.pendingCount('master', null)).toBe(0)
+    })
+
+    it('coalesces every caller that arrives during one drain into a single follow-up', async () => {
+      const held = deferred<PullResponse>()
+      client.get = vi.fn().mockReturnValueOnce(held.promise).mockResolvedValue(emptyPage)
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+
+      const drains = [
+        outbox.drain('master', null),
+        outbox.drain('master', null),
+        outbox.drain('master', null),
+        outbox.drain('master', null),
+      ]
+
+      held.settle(emptyPage)
+      await Promise.all(drains)
+
+      expect(client.get).toHaveBeenCalledTimes(2)
+    })
+
+    it('lets a different partition drain beside a running one', async () => {
+      // The guard is per partition: a trip must not wait behind the master
+      // feed, which on a real instance is the long one.
+      const held = deferred<PullResponse>()
+      client.get = vi.fn().mockReturnValueOnce(held.promise).mockResolvedValue(emptyPage)
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+
+      const master = outbox.drain('master', null)
+      await outbox.drain('trip', 'trip-1')
+
+      expect(client.get).toHaveBeenCalledTimes(2)
+      held.settle(emptyPage)
+      await master
+    })
+
+    it('lets the next drain run after one has failed', async () => {
+      // A guard that is not released by a rejection would take the partition
+      // out of sync for the rest of the session — the failure mode of the
+      // fix would be worse than the double work it prevents.
+      client.get = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(emptyPage)
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+
+      await expect(outbox.drain('master', null)).rejects.toThrow(/offline/)
+      await outbox.drain('master', null)
+
+      expect(client.get).toHaveBeenCalledTimes(2)
+    })
+
+    it("reports the follow-up drain's own failure to the caller that waited for it", async () => {
+      const held = deferred<PullResponse>()
+      client.get = vi.fn().mockReturnValueOnce(held.promise).mockRejectedValue(new Error('offline'))
+      const outbox = new SyncOutbox(client as unknown as APIClient, hlc, onChanges, {})
+
+      const first = outbox.drain('master', null)
+      const second = outbox.drain('master', null)
+
+      held.settle(emptyPage)
+      await first
+      await expect(second).rejects.toThrow(/offline/)
+    })
+  })
+
   describe('a partition that does not fit in one page (Sync-API §4)', () => {
     /** A server holding `total` changes, answering `limit` of them per request. */
     function pagedServer(total: number, limit = 500) {
