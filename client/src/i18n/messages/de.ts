@@ -219,6 +219,11 @@ export const de: Record<keyof typeof en, string> = {
   'templates.import': 'Vorlage aus Datei importieren',
   'templates.rename': 'Umbenennen',
   'templates.deleteConfirm': '„{name}“ löschen? Bereits erzeugte Reisen behalten ihre Einträge.',
+  'templates.deleteRetire':
+    'Sie wird ausgeblendet, nicht entfernt: die daraus erzeugten Reisen zeigen weiter, woher ihre Sachen kommen.',
+  'templates.deleteRemove': 'Keine Reise hat sie verwendet — sie wird endgültig entfernt.',
+  'templates.deleteRemoveMaybe':
+    'Auf diesem Gerät hat keine Reise sie verwendet, sie wird also endgültig entfernt. Wurde eine Reise daraus erzeugt, die dieses Gerät noch nicht geöffnet hat, wird sie stattdessen nur ausgeblendet.',
   'templates.includedBlocked': 'Wird in „{name}“ verwendet — dort zuerst entfernen.',
 
   // M8 Vorlagen-Editor (§3.27, FR-27.6/27.7).
@@ -364,6 +369,14 @@ export const de: Record<keyof typeof en, string> = {
   'items.editor.dependencyCycle': 'Das schlösse einen Kreis: {path}.',
   'items.editor.companions': 'Begleitartikel',
   'items.editor.companionsHint': 'Diese Artikel hängen von {name} ab:',
+  'items.editor.delete': 'Artikel löschen',
+  'items.editor.deleteUsage': 'An {n} Stelle verwendet | An {n} Stellen verwendet',
+  'items.editor.deleteRetire':
+    'Er wird ausgeblendet, nicht entfernt: abgeschlossene Reisen und die Auswertung lesen ihn weiter.',
+  'items.editor.deleteRemove': 'Nichts verwendet ihn — er wird endgültig entfernt.',
+  'items.editor.deleteRemoveMaybe':
+    'Auf diesem Gerät verwendet ihn nichts, er wird also endgültig entfernt. Verwendet ihn eine Reise, die dieses Gerät noch nicht geöffnet hat, wird er stattdessen nur ausgeblendet.',
+  'items.editor.deleteConfirm': '„{name}“ löschen?',
   'items.editor.unknownItem': 'Unbekannter Artikel',
 
   // M5 Artikel-Detail.

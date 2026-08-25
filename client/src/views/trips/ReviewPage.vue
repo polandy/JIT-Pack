@@ -140,7 +140,7 @@ function whyText(p: ReviewProposal): string {
 /** FR-27.11: the picker offers groups only; unused rows can move only
  * between groups that actually carry the item. */
 function pickerGroups(row: Row) {
-  return retargetGroups(row.p, master.templateList, (id) => master.getTemplateItems(id))
+  return retargetGroups(row.p, master.activeTemplateList, (id) => master.getTemplateItems(id))
 }
 
 /** FR-27.4 blast radius of the row's *selected* group, live. */

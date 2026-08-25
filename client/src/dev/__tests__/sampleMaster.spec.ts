@@ -162,7 +162,7 @@ describe('seedSampleData (dev)', () => {
     // Two trips since FR-27.4: the sample trip is imported and therefore
     // follows nothing, so a generated one is what makes the refresh visible.
     expect(outcome.summary).toBe(
-      'Beispieldaten: 21 Artikel, 7 Gruppen, 1 Vorlage, 2 Reisen (1 geplant, mit offener Gruppenfrage)',
+      'Beispieldaten: 22 Artikel, 7 Gruppen, 1 Vorlage, 2 Reisen (1 geplant, mit offener Gruppenfrage)',
     )
   })
 

@@ -236,6 +236,10 @@ export interface MasterItem {
   /** FR-28.1: the optional item mark — one emoji, or absent, which is a
    * first-class state and not a gap to be filled. */
   icon?: string | null
+  /** FR-24.3: null while the row is active, an RFC3339 stamp once a delete
+   * retired it. Display surfaces hide a retired row; resolution, export and
+   * backup keep reading it, which is the whole point of keeping it. */
+  retired_at?: string | null
 }
 
 /**
@@ -255,6 +259,10 @@ export interface Template {
   kind: TemplateKind
   /** FR-28.8: the same optional mark items carry, on the same terms. */
   icon?: string | null
+  /** FR-24.3: null while the row is active, an RFC3339 stamp once a delete
+   * retired it. Display surfaces hide a retired row; resolution, export and
+   * backup keep reading it, which is the whole point of keeping it. */
+  retired_at?: string | null
 }
 
 /** FR-27.1: one (Ferien-Vorlage, Gruppe) pair — groups are referenced, never copied. */

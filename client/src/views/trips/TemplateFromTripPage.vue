@@ -59,8 +59,8 @@ const trip = computed(() => store.getTrip(props.tripId))
 const composition = computed(() =>
   recogniseTripComposition({
     tripItems: store.getItems(props.tripId),
-    templates: master.templateList,
-    positions: master.templateList.flatMap((tpl) => master.getTemplateItems(tpl.id)),
+    templates: master.activeTemplateList,
+    positions: master.activeTemplateList.flatMap((tpl) => master.getTemplateItems(tpl.id)),
     masterItems: master.itemList,
   }),
 )

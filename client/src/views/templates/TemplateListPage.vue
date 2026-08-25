@@ -59,6 +59,7 @@ import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
 import { useLongPress } from '@/composables/useLongPress'
 import { t } from '@/i18n'
+import { DELETION_RETIRE } from '@/domain/masterDeletion'
 import { presentToast } from '@/lib/toast'
 
 const store = useMasterStore()
@@ -95,7 +96,7 @@ function toRow(template: Template): TemplateRow {
 }
 
 const visibleRows = computed(() =>
-  store.templateList
+  store.activeTemplateList
     .filter((tpl) => matches(tpl.name))
     .filter((tpl) => tab.value === 'all' || tpl.kind === tab.value)
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -107,7 +108,7 @@ const groupRows = computed(() => visibleRows.value.filter((r) => r.template.kind
 
 const isEmpty = computed(() => visibleRows.value.length === 0)
 /** Nothing at all versus nothing *matching* — different sentences (G-7). */
-const hasTemplates = computed(() => store.templateList.length > 0)
+const hasTemplates = computed(() => store.activeTemplateList.length > 0)
 
 /** The sections shown under *Alle*; a single-scope tab renders one unlabelled list. */
 const sections = computed(() =>
@@ -308,8 +309,18 @@ async function deleteTemplate(tpl: Template) {
     })
     return
   }
+  // FR-24.3: the confirm says which of the two deletions this is, before it
+  // happens rather than after. A Vorlage a trip was generated from is hidden
+  // and kept (FR-9.2); one no trip ever used is removed.
+  const outlook = orchestrator.templateDeletionOutlook(tpl.id)
+  const sentence =
+    outlook.kind === DELETION_RETIRE
+      ? t('templates.deleteRetire')
+      : outlook.certain
+        ? t('templates.deleteRemove')
+        : t('templates.deleteRemoveMaybe')
   const alert = await alertController.create({
-    message: t('templates.deleteConfirm', { name: tpl.name }),
+    message: `${t('templates.deleteConfirm', { name: tpl.name })} ${sentence}`,
     buttons: [
       { text: t('common.cancel'), role: 'cancel' },
       {

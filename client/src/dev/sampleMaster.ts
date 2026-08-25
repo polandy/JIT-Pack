@@ -83,6 +83,10 @@ const INVENTORY: ItemSeed[] = [
   { name: 'Blasenpflaster', tag: 'Bad', weightGrams: 20 },
   { name: 'Powerbank', tag: 'Technik', weightGrams: 350, icon: '🔋' },
   { name: 'Ladegerät', tag: 'Technik', weightGrams: 180 },
+  // Deliberately in no group and in no trip: FR-24.3's *physical* branch
+  // needs an item nothing has ever referenced, and on a fresh device every
+  // other item here is held by at least one group position.
+  { name: 'Fernglas', tag: 'Technik', weightGrams: 620 },
 ]
 
 /**

@@ -11,6 +11,13 @@
 
 import { API } from '@/api/routes'
 import { TABLE } from '@/types/tables'
+import {
+  DELETION_RETIRE,
+  countItemReferences,
+  countTemplateReferences,
+  deletionKind,
+  type DeletionKind,
+} from '@/domain/masterDeletion'
 import { computed, ref, shallowRef } from 'vue'
 
 import { APIClient, type TokenProvider } from '@/api/client'
@@ -94,6 +101,17 @@ import type {
   Traveler,
   TravelerChangeReport,
 } from '@/types/domain'
+
+/**
+ * FR-24.3: what a delete of one master row will do, as far as this device can
+ * tell. `certain` is false exactly where the count may be short — Server Mode,
+ * where trip partitions arrive only as trips are opened (ADR-032).
+ */
+export interface DeletionOutlook {
+  kind: DeletionKind
+  references: number
+  certain: boolean
+}
 
 /** One entry of a trip's presence facepile (G-10, Sync-API §7). */
 // Both shapes come from the contract now (NFR-4.14). The names are kept as
@@ -2169,7 +2187,59 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
+  /**
+   * FR-24.3: what deleting this master item will do, and whether this device
+   * can be sure of it. A count of zero is only certain where the device holds
+   * every trip — Local Mode. In Server Mode the trip partitions arrive as
+   * trips are opened, so "nothing references it" means "nothing I have seen",
+   * and the server may still answer the delete by retiring the row (ADR-032).
+   */
+  function masterItemDeletionOutlook(itemId: string): DeletionOutlook {
+    const references = countItemReferences(itemId, {
+      positions: masterStore.templateList.flatMap((t) => masterStore.getTemplateItems(t.id)),
+      tripItems: knownTripItems(),
+    })
+    return outlookOf(references)
+  }
+
+  /** FR-24.3 for a Vorlage: the trip rows that still name it (FR-9.2). */
+  function templateDeletionOutlook(templateId: string): DeletionOutlook {
+    return outlookOf(countTemplateReferences(templateId, { tripItems: knownTripItems() }))
+  }
+
+  function outlookOf(references: number): DeletionOutlook {
+    const kind = deletionKind(references)
+    return { kind, references, certain: kind === DELETION_RETIRE || local !== null }
+  }
+
+  /** Every trip row this device holds. Complete in Local Mode only. */
+  function knownTripItems(): TripItem[] {
+    return tripStore.tripList.flatMap((t) => tripStore.getItems(t.id))
+  }
+
+  /**
+   * FR-24.3: a delete is one of two acts. A master item something resolves
+   * against is retired — the row stays and stops being offered — and one
+   * nothing has ever used is removed. The server decides the same thing over
+   * the complete picture and corrects this device through the next pull, so
+   * a short count here costs a wrong sentence, never a wrong row.
+   */
   function deleteMasterItem(itemId: string) {
+    const item = masterStore.getItem(itemId)
+    if (item && masterItemDeletionOutlook(itemId).kind === DELETION_RETIRE) {
+      const retired_at = new Date().toISOString()
+      enqueueAndDrain('master', null, {
+        mutation: mutations.updateMasterItem(itemId, { retired_at }),
+        optimistic: {
+          seq: 0,
+          table: TABLE.items,
+          id: itemId,
+          deleted: false,
+          row: { ...masterItemRow(item), retired_at },
+        },
+      })
+      return
+    }
     enqueueAndDrain('master', null, {
       mutation: mutations.deleteMasterItem(itemId),
       optimistic: { seq: 0, table: TABLE.items, id: itemId, deleted: true, row: null },
@@ -2243,10 +2313,13 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * (FR-1.6), or undefined. `templates.name` is UNIQUE **instance-wide and
    * across both scopes**, so a Gruppe can hold the name a Ferien-Vorlage
    * wants — the caller reports the kind so that reads as a fact rather than
-   * as a bug.
+   * as a bug. Retired templates are not consulted: since FR-24.3 the
+   * database's uniqueness is over the active rows, and refusing a name the
+   * constraint would accept — held by a row no screen shows — is a name taken
+   * away with nothing the user can do about it.
    */
   function templateNameCollision(name: string, excludeId?: string): Template | undefined {
-    return findNameCollision(name, masterStore.templateList, excludeId)
+    return findNameCollision(name, masterStore.activeTemplateList, excludeId)
   }
 
   /** seriesNameCollision names the series already holding `name` (FR-13.1). */
@@ -2357,8 +2430,28 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
-  /** deleteTemplate removes a template; the store mirrors the cascades. */
+  /**
+   * deleteTemplate applies FR-24.3 to a Vorlage: a group a trip was generated
+   * from is retired rather than removed, because FR-9.2 keeps those rows
+   * naming their source for the life of the archived trip. Otherwise the row
+   * goes and the store mirrors the cascades.
+   */
   function deleteTemplate(templateId: string) {
+    const template = masterStore.getTemplate(templateId)
+    if (template && templateDeletionOutlook(templateId).kind === DELETION_RETIRE) {
+      const retired_at = new Date().toISOString()
+      enqueueAndDrain('master', null, {
+        mutation: mutations.updateTemplate(templateId, { retired_at }),
+        optimistic: {
+          seq: 0,
+          table: TABLE.templates,
+          id: templateId,
+          deleted: false,
+          row: { ...templateRow(template), retired_at },
+        },
+      })
+      return
+    }
     enqueueAndDrain('master', null, {
       mutation: mutations.deleteTemplate(templateId),
       optimistic: { seq: 0, table: TABLE.templates, id: templateId, deleted: true, row: null },
@@ -2910,8 +3003,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     const composition = recogniseTripComposition({
       tripItems: tripStore.getItems(tripId),
-      templates: masterStore.templateList,
-      positions: masterStore.templateList.flatMap((t) => masterStore.getTemplateItems(t.id)),
+      // M21 offers existing groups to fold the trip into, so it offers only
+      // groups that still exist for the user (FR-24.3).
+      templates: masterStore.activeTemplateList,
+      positions: masterStore.activeTemplateList.flatMap((t) => masterStore.getTemplateItems(t.id)),
       masterItems: masterStore.itemList,
     })
     const writes = planTemplateFromTrip({
@@ -3224,6 +3319,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     unassignTag,
     updateMasterItem,
     deleteMasterItem,
+    masterItemDeletionOutlook,
+    templateDeletionOutlook,
     setItemImage,
     deleteItemImage,
     itemImageUrl,
@@ -3381,6 +3478,7 @@ function masterItemRow(item: MasterItem): Record<string, unknown> {
     value_cents: item.value_cents,
     image_hash: item.image_hash ?? null,
     icon: item.icon ?? null,
+    retired_at: item.retired_at ?? null,
   }
 }
 
@@ -3390,6 +3488,7 @@ function templateRow(template: Template): Record<string, unknown> {
     name: template.name,
     kind: template.kind,
     icon: template.icon ?? null,
+    retired_at: template.retired_at ?? null,
   }
 }
 

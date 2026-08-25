@@ -116,7 +116,7 @@ const recentsVersion = ref(0)
 const chips = computed(() => {
   void recentsVersion.value
   return chipSuggestions({
-    items: masterStore.itemList,
+    items: masterStore.activeItemList,
     chosenItemIds: props.excludeItemIds,
     recentItemIds: recentItemIds(),
     primaryTagOf: (itemId) => masterStore.getPrimaryTag(itemId),
@@ -143,7 +143,7 @@ const relatedTagNames = computed(() => chips.value.relatedTags.map((tag) => tag.
 const groupMatches = computed(() => {
   if (!props.offerGroups || query.value.length < MIN_SEARCH_LENGTH) return []
   const needle = query.value.trim().toLowerCase()
-  return masterStore.templateList
+  return masterStore.activeTemplateList
     .filter((tpl) => tpl.kind === 'group' && tpl.name.toLowerCase().includes(needle))
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((tpl) => {
@@ -235,7 +235,7 @@ const browseOpen = ref(false)
  * with nothing in it has nothing to browse.
  */
 const showBrowseEntry = computed(
-  () => query.value.trim().length === 0 && masterStore.itemList.length > 0,
+  () => query.value.trim().length === 0 && masterStore.activeItemList.length > 0,
 )
 
 /** A sheet add is a chip add: FR-25.7 defaults, no refocus, sheet stays open. */

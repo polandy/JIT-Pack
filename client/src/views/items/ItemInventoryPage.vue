@@ -91,7 +91,7 @@ const filtered = computed<MasterItem[]>(() => {
     tagFilter.value === null
       ? null
       : new Set(store.itemTagList.filter((a) => a.tag_id === tagFilter.value).map((a) => a.item_id))
-  return store.itemList.filter((item) => {
+  return store.activeItemList.filter((item) => {
     if (term && !item.name.toLowerCase().includes(term)) return false
     return onTag === null || onTag.has(item.id)
   })
@@ -99,7 +99,7 @@ const filtered = computed<MasterItem[]>(() => {
 
 const groups = computed(() => store.itemsByPrimaryTag(filtered.value))
 
-const isEmpty = computed(() => store.itemList.length === 0)
+const isEmpty = computed(() => store.activeItemList.length === 0)
 const noResults = computed(() => !isEmpty.value && filtered.value.length === 0)
 
 /** The heading a group renders — the untagged bucket is not a tag name. */

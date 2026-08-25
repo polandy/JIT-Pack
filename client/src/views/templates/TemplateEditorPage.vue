@@ -198,7 +198,7 @@ const newGroupInput = ref<InstanceType<typeof IonInput> | null>(null)
 /** Groups only, never already-included ones — the two-level rule's picker. */
 const availableGroups = computed(() => {
   const included = new Set(includes.value.map((inc) => inc.included_template_id))
-  return masterStore.templateList
+  return masterStore.activeTemplateList
     .filter((tpl) => tpl.kind === 'group' && tpl.id !== props.templateId && !included.has(tpl.id))
     .sort((a, b) => a.name.localeCompare(b.name))
 })
@@ -222,7 +222,7 @@ const pickerQuery = ref('')
  */
 const searchCandidates = computed<GroupSearchCandidate[]>(() => {
   const included = new Set(includes.value.map((inc) => inc.included_template_id))
-  return masterStore.templateList
+  return masterStore.activeTemplateList
     .filter((tpl) => tpl.kind === 'group' && tpl.id !== props.templateId)
     .map((tpl) => ({
       id: tpl.id,
@@ -370,7 +370,7 @@ const dismissals = foldDismissals()
 const groupMatches = computed<GroupMatch[]>(() => {
   if (isGroup.value) return []
   const included = new Set(includes.value.map((inc) => inc.included_template_id))
-  const candidates = masterStore.templateList
+  const candidates = masterStore.activeTemplateList
     .filter((tpl) => tpl.kind === 'group' && tpl.id !== props.templateId)
     .map((tpl) => ({
       id: tpl.id,

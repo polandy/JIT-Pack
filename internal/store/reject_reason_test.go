@@ -20,24 +20,21 @@ import (
 // refusal actually happened: the row the mutation wanted to change is
 // still, or not yet, what it was.
 
-// The motivating case (FR-9.2): `trip_items.source_template_id` deliberately
-// carries no ON DELETE clause, so a Vorlage that ever generated a trip item
-// cannot be deleted — an archived trip must keep knowing where its rows came
-// from. The refusal is correct; being unable to name it was the defect.
-func TestApplyMasterMutation_DeletingATemplateATripItemStillNames_IsRefusedAsStillReferenced(t *testing.T) {
+// The refusal's remaining ground, now that FR-24.3 has taken master items
+// and Vorlagen onto the retire branch: a series a trip names. `trips.series_id`
+// carries no ON DELETE clause, the refusal is correct, and being unable to
+// name it was the defect this test was written for.
+func TestApplyMasterMutation_DeletingASeriesATripStillNames_IsRefusedAsStillReferenced(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()
 
-	applyMaster(t, s, testUser, masterMut(sync.OpInsert, TableTemplates, "tpl-ferien", "sr-1",
-		map[string]any{"name": "Ferien", "kind": KindTemplate}, "0000000001000-0000-aaaaaaaa"))
-	generated := upsert("ti-1", "sr-2", map[string]any{
-		"trip_id": testTrip, "name": "Zahnbürste", "source_template_id": "tpl-ferien",
-	}, "0000000001001-0000-aaaaaaaa")
-	if _, err := s.ApplyMutation(ctx, testTrip, testUser, generated); err != nil {
-		t.Fatalf("seed trip item: %v", err)
-	}
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, TableTripSeries, "ser-sommer", "sr-1",
+		map[string]any{"name": "Sommerferien"}, "0000000001000-0000-aaaaaaaa"))
+	applyMaster(t, s, testUser, masterMut(sync.OpInsert, TableTrips, "trip-sommer", "sr-2",
+		map[string]any{"name": "Engadin", "year": 2026, "series_id": "ser-sommer"},
+		"0000000001001-0000-aaaaaaaa"))
 
-	res := applyMaster(t, s, testUser, masterMut(sync.OpDelete, TableTemplates, "tpl-ferien", "sr-3",
+	res := applyMaster(t, s, testUser, masterMut(sync.OpDelete, TableTripSeries, "ser-sommer", "sr-3",
 		nil, "0000000002000-0000-aaaaaaaa"))
 
 	if res.Outcome != sync.OutcomeRejected {
@@ -49,8 +46,8 @@ func TestApplyMasterMutation_DeletingATemplateATripItemStillNames_IsRefusedAsSti
 	// The positive signal: the row is still there, which is the whole point
 	// of the refusal and what the client's optimistic delete disagrees with.
 	var name string
-	if err := s.db.QueryRowContext(ctx, `SELECT name FROM templates WHERE id = 'tpl-ferien'`).Scan(&name); err != nil {
-		t.Fatalf("the template was deleted after a rejected delete: %v", err)
+	if err := s.db.QueryRowContext(ctx, `SELECT name FROM trip_series WHERE id = 'ser-sommer'`).Scan(&name); err != nil {
+		t.Fatalf("the series was deleted after a rejected delete: %v", err)
 	}
 }
 
