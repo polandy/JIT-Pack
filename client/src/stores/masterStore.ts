@@ -25,6 +25,7 @@ import type { PullChange } from '@/api/types'
 import { resolveTemplate, type Resolution } from '@/domain/templates'
 import { groupByPrimaryTag, primaryTagOf, tagsOfItem } from '@/domain/tags'
 import { activeOnly } from '@/domain/masterDeletion'
+import { retiredOnly } from '@/domain/masterRestore'
 
 /**
  * How much a user has to type before an inventory search offers anything
@@ -70,6 +71,25 @@ export const useMasterStore = defineStore('master', () => {
 
   /** What M7, the group pickers and M3's scope lists may offer (FR-24.3). */
   const activeTemplateList = computed(() => activeOnly(templateList.value))
+
+  /**
+   * The retired rows, newest first — M23's whole content and nothing else's.
+   * A third list rather than a filter at the call site: the restore surface
+   * is the one place a retired row is the subject, and ADR-032's split (the
+   * complete lists resolve, the active lists offer) has no room for it.
+   */
+  const retiredItemList = computed(() => byRetiredDesc(retiredOnly(itemList.value)))
+
+  /** The retired Vorlagen, newest first — see `retiredItemList`. */
+  const retiredTemplateList = computed(() => byRetiredDesc(retiredOnly(templateList.value)))
+
+  /**
+   * Newest retire first: the row someone wants back is almost always the one
+   * they just lost. RFC3339 stamps compare correctly as strings.
+   */
+  function byRetiredDesc<T extends { retired_at?: string | null }>(rows: T[]): T[] {
+    return [...rows].sort((a, b) => (b.retired_at ?? '').localeCompare(a.retired_at ?? ''))
+  }
 
   function getItem(id: string): MasterItem | undefined {
     return items.value.get(id)
@@ -384,6 +404,8 @@ export const useMasterStore = defineStore('master', () => {
     templateList,
     activeItemList,
     activeTemplateList,
+    retiredItemList,
+    retiredTemplateList,
     getItem,
     getTemplate,
     getTemplateItems,

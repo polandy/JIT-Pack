@@ -573,6 +573,33 @@ export const de: Record<keyof typeof en, string> = {
   'settings.conflictLogNote':
     'Automatisch aufgelöste Zusammenführungen werden je Reise protokolliert — öffne eine Reise und tippe auf die Synchronisationsanzeige in der Kopfzeile.',
   'settings.about': 'Über',
+  // M23 — Ausgeblendete Stammdaten (FR-24.3).
+  'retired.title': 'Ausgeblendete Artikel und Vorlagen',
+  'retired.hint':
+    'Wer etwas löscht, das noch verwendet wird, blendet es aus statt es zu entfernen — abgeschlossene Reisen und die Auswertung lesen es weiter. Hier kommt es zurück.',
+  'retired.segmentItems': 'Artikel',
+  'retired.segmentTemplates': 'Vorlagen',
+  'retired.emptyItems': 'Nichts ausgeblendet — jeder Artikel im Inventar ist sichtbar.',
+  'retired.emptyTemplates': 'Nichts ausgeblendet — jede Vorlage und jede Gruppe ist sichtbar.',
+  'retired.hiddenOn': 'Ausgeblendet am {date}',
+  'retired.stillUsed': 'An {n} Stelle verwendet | An {n} Stellen verwendet',
+  'retired.restore': 'Wiederherstellen',
+  'retired.restored': '„{name}“ ist wieder sichtbar.',
+  'retired.nameTakenTitle': 'Der Name ist vergeben',
+  'retired.nameTakenItem':
+    'Ein anderer Artikel heisst jetzt „{name}“. Gib diesem einen anderen Namen, damit er zurückkommt.',
+  'retired.nameTakenGroup':
+    'Eine Gruppe heisst jetzt „{name}“. Gib dieser einen anderen Namen, damit sie zurückkommt.',
+  'retired.nameTakenTemplate':
+    'Eine Ferien-Vorlage heisst jetzt „{name}“. Gib dieser einen anderen Namen, damit sie zurückkommt.',
+  'retired.namePlaceholder': 'Neuer Name',
+  'retired.purge': 'Endgültig löschen',
+  'retired.purgeConfirm': '„{name}“ endgültig entfernen?',
+  'retired.purged': '„{name}“ wurde endgültig entfernt.',
+  'retired.openItem': 'Öffnen',
+  'settings.retired': 'Ausgeblendete Artikel und Vorlagen',
+  'settings.retiredHint': 'Zurückholen, was ein Löschen nur ausgeblendet hat.',
+  'settings.retiredCount': '{n} ausgeblendete Zeile | {n} ausgeblendete Zeilen',
   'settings.modeLocal': 'Modus: Lokal (nur dieses Gerät)',
   'settings.modeServer': 'Modus: Server ({url})',
   // Avatar crop (FR-17.13).

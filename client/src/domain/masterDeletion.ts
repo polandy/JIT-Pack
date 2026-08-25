@@ -19,6 +19,14 @@
  */
 import type { TemplateItem, TripItem } from '../types/domain'
 
+/**
+ * The column carrying FR-24.3's marker, named once because three writes have
+ * to agree on it: the retire that stamps it, the restore that clears it, and
+ * the pull projection that reads it (§4a). `store.RetiredColumn` is the same
+ * name on the Go side.
+ */
+export const RETIRED_FIELD = 'retired_at'
+
 /** The row is kept and hidden — something still resolves against it. */
 export const DELETION_RETIRE = 'retire'
 /** The row is removed outright — nothing has ever referenced it. */
@@ -53,7 +61,7 @@ export function deletionKind(references: number): DeletionKind {
 
 /** Whether the row has been retired (FR-24.3). Absent marker = active. */
 export function isRetired(row: Retirable): boolean {
-  return row.retired_at != null
+  return row[RETIRED_FIELD] != null
 }
 
 /**

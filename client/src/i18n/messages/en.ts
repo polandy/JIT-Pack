@@ -568,6 +568,33 @@ export const en = {
   'settings.conflictLogNote':
     'Automatic merge resolutions are logged per trip — open a trip and tap the sync indicator in the header to review them.',
   'settings.about': 'About',
+  // M23 — Hidden master data (FR-24.3): what a delete only hid, and the way back.
+  'retired.title': 'Hidden items and templates',
+  'retired.hint':
+    'Deleting something that is still in use hides it instead of removing it, so finished trips and the analytics keep reading it. Bring it back here.',
+  'retired.segmentItems': 'Items',
+  'retired.segmentTemplates': 'Templates',
+  'retired.emptyItems': 'Nothing is hidden — every item in the inventory is visible.',
+  'retired.emptyTemplates': 'Nothing is hidden — every template and group is visible.',
+  'retired.hiddenOn': 'Hidden on {date}',
+  'retired.stillUsed': 'Used in {n} place | Used in {n} places',
+  'retired.restore': 'Restore',
+  'retired.restored': '“{name}” is visible again.',
+  'retired.nameTakenTitle': 'The name is taken',
+  'retired.nameTakenItem':
+    'Another item is called “{name}” now. Give this one a different name to bring it back.',
+  'retired.nameTakenGroup':
+    'A group is called “{name}” now. Give this one a different name to bring it back.',
+  'retired.nameTakenTemplate':
+    'A holiday template is called “{name}” now. Give this one a different name to bring it back.',
+  'retired.namePlaceholder': 'New name',
+  'retired.purge': 'Delete for good',
+  'retired.purgeConfirm': 'Remove “{name}” for good?',
+  'retired.purged': '“{name}” was removed for good.',
+  'retired.openItem': 'Open',
+  'settings.retired': 'Hidden items and templates',
+  'settings.retiredHint': 'Bring back what a delete only hid.',
+  'settings.retiredCount': '{n} hidden row | {n} hidden rows',
   'settings.modeLocal': 'Mode: Local (this device only)',
   'settings.modeServer': 'Mode: Server ({url})',
   // Avatar crop (FR-17.13).

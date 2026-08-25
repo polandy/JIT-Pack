@@ -194,6 +194,14 @@ async function onAvatarCropped(blob: Blob) {
   avatarVersion.value++
 }
 
+/**
+ * FR-24.3: how many master rows a delete only hid. Shown beside the row so
+ * the screen is worth opening — or visibly not.
+ */
+const retiredCount = computed(
+  () => masterStore.retiredItemList.length + masterStore.retiredTemplateList.length,
+)
+
 // --- Data section (NFR-4.5; Local Mode: portable YAML per NFR-4.11) ---
 
 const csvTripId = ref('')
@@ -563,6 +571,29 @@ async function exportTripCSV() {
           </IonItem>
         </IonList>
       </template>
+
+      <!-- M23 (FR-24.3): what a delete only hid, and the way back. Beside
+           the conflict log because both are corrective surfaces rather than
+           browsing ones, reached after something went wrong. -->
+      <h2 class="section-title jp-eyebrow" data-testid="settings-section-retired">
+        {{ t('settings.retired') }}
+      </h2>
+      <IonList>
+        <IonItem
+          button
+          lines="none"
+          data-testid="settings-retired"
+          @click="$router.push('/master/retired')"
+        >
+          <IonLabel>
+            <h3>{{ t('settings.retired') }}</h3>
+            <p>{{ t('settings.retiredHint') }}</p>
+          </IonLabel>
+          <IonNote v-if="retiredCount > 0" slot="end" data-testid="settings-retired-count">
+            {{ t('settings.retiredCount', { n: retiredCount }) }}
+          </IonNote>
+        </IonItem>
+      </IonList>
 
       <!-- Conflict log pointer (G-2) -->
       <h2 class="section-title jp-eyebrow" data-testid="settings-section-conflicts">
