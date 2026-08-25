@@ -970,6 +970,15 @@ test.describe('Single-User backend sync @single', () => {
     const ROWS = 520
     const PUSH_BATCH = 200 // MAX_PUSH_BATCH (Sync-API §9)
     const last = `zz-last-${tag}`
+    // An HLC's device id must be lowercase hex — `parseHLC` refuses anything
+    // else, and since the pull snapshot started carrying `updated_hlc` the
+    // client actually parses what this fixture mints. `uniq()` is not hex, so
+    // it is folded into hex here rather than sliced raw.
+    const device = [...tag]
+      .map((c) => c.charCodeAt(0).toString(16))
+      .join('')
+      .slice(0, 8)
+      .padEnd(8, '0')
 
     const api = await browser.newContext({ baseURL })
     for (let start = 0; start < ROWS; start += PUSH_BATCH) {
@@ -982,7 +991,7 @@ test.describe('Single-User backend sync @single', () => {
           table: 'items',
           id: `${tag}-item-${i}`,
           fields: { name },
-          hlc: `000000000${String(1000 + i).padStart(4, '0')}-0000-${tag.slice(0, 8).padEnd(8, '0')}`,
+          hlc: `000000000${String(1000 + i).padStart(4, '0')}-0000-${device}`,
         })
       }
       const resp = await api.request.post('/api/v1/master/sync', {

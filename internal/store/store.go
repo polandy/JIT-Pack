@@ -83,6 +83,19 @@ const (
 	MarkMaxBytes = 32
 )
 
+// The two template scopes (FR-27.1), named once: they are compared
+// against in the include rule, in the scope-switch guards and in the
+// schema's own CHECK, and a mistyped literal reads as "some other scope"
+// rather than as a build failure (CODING_PRINCIPLES §4a).
+const (
+	// KindTemplate is a Ferien-Vorlage: it may include groups and is what
+	// a trip is generated from.
+	KindTemplate = "template"
+	// KindGroup is a Gruppe: it carries item positions only and is the
+	// thing a Ferien-Vorlage includes.
+	KindGroup = "group"
+)
+
 // The trip roles (FR-4.5/4.7), named once: they are compared against in
 // every authorization decision, and a mistyped literal reads as "not that
 // role" rather than as a build failure.
@@ -260,14 +273,11 @@ func schemaFingerprint() int64 {
 // current schema: an empty file gets schema.sql applied, an up-to-date one is
 // used as it is, and anything else is refused.
 func Open(dsn string) (*Store, error) {
-	db, err := sql.Open("sqlite", dsn)
+	db, err := sql.Open("sqlite", withForeignKeys(dsn))
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
 	db.SetMaxOpenConns(1)
-	if _, err := db.Exec(`PRAGMA foreign_keys = ON`); err != nil {
-		return nil, fmt.Errorf("enable foreign keys: %w", err)
-	}
 	// WAL is a property of the file and persists, but it is set here on every
 	// open rather than in schema.sql: journal_mode cannot be changed inside a
 	// transaction, and applySchema runs in one. An in-memory database answers
@@ -286,6 +296,25 @@ func Open(dsn string) (*Store, error) {
 }
 
 func (s *Store) Close() error { return s.db.Close() }
+
+// foreignKeysPragma switches SQLite's foreign key enforcement on. SQLite
+// defaults it *off* and the setting is per connection, not per database.
+const foreignKeysPragma = "_pragma=foreign_keys(1)"
+
+// withForeignKeys puts the pragma into the DSN rather than running it once
+// after connecting. `PRAGMA foreign_keys = ON` applies only to the
+// connection that executed it, so database/sql replacing a broken pooled
+// connection would silently hand back one where every REFERENCES clause in
+// schema.sql is decorative — and the first sign of it would be an orphaned
+// row nobody can explain. In the DSN the driver applies it to every
+// connection it ever opens.
+func withForeignKeys(dsn string) string {
+	sep := "?"
+	if strings.Contains(dsn, "?") {
+		sep = "&"
+	}
+	return dsn + sep + foreignKeysPragma
+}
 
 // ensureSchema applies schema.sql to an empty database and otherwise checks
 // that the one it was handed came from the same schema.
@@ -397,6 +426,14 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID, userID string, m sync
 
 	merged := sync.Merge(row, m)
 
+	// FK cascades delete child rows inside SQLite, where the change feed
+	// cannot see them; collect their ids before the delete so they can be
+	// tombstoned like any other change (same reason as the master path).
+	cascaded, err := cascadeChildren(ctx, tx, m, merged.Deleted, row.Exists)
+	if err != nil {
+		return MutationResult{}, err
+	}
+
 	res := MutationResult{MutationID: m.MutationID, Outcome: merged.Outcome, Conflicts: merged.Conflicts}
 	changed, err := persist(ctx, tx, m.Table, m, merged, row.Exists)
 	if err != nil {
@@ -417,6 +454,12 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID, userID string, m sync
 		res.Seq, err = appendChangeLog(ctx, tx, tripID, m, merged.Deleted)
 		if err != nil {
 			return MutationResult{}, err
+		}
+		for _, c := range cascaded {
+			tombstone := sync.Mutation{Table: c.table, ID: c.id, HLC: m.HLC}
+			if _, err := appendChangeLog(ctx, tx, tripID, tombstone, true); err != nil {
+				return MutationResult{}, err
+			}
 		}
 	}
 	if err := logConflicts(ctx, tx, tripID, userID, m, merged.Conflicts); err != nil {
@@ -488,6 +531,11 @@ func recordedResult(ctx context.Context, tx *sql.Tx, mutationID string) (Mutatio
 	if err != nil {
 		return MutationResult{}, false, fmt.Errorf("idempotency lookup: %w", err)
 	}
+	// Sync-API §5/P-5: the replay's own outcome is `duplicate`, and the
+	// "recorded result" it returns is the seq and the conflicts of the
+	// original push — which is why both are read back here. The stored
+	// `outcome` is the memo's audit half: what the first attempt did,
+	// answerable after the fact without replaying it.
 	res := MutationResult{MutationID: mutationID, Outcome: sync.OutcomeDuplicate, Seq: seq}
 	if err := json.Unmarshal([]byte(conflictsJSON), &res.Conflicts); err != nil {
 		return MutationResult{}, false, fmt.Errorf("decode recorded conflicts: %w", err)
@@ -514,10 +562,18 @@ func recordResult(ctx context.Context, tx *sql.Tx, res MutationResult) error {
 // never merge (P-4), so it stays out of pull snapshots and push whitelists.
 const fieldClocksColumn = "field_hlcs"
 
+// updatedHLCColumn holds the row's own HLC. Unlike fieldClocksColumn it
+// *does* travel in pull snapshots: Sync-API §3 has the client advance its
+// clock to the highest HLC it has observed, and a snapshot is the only
+// place a pulling device meets one. It stays off the push whitelist, so a
+// client can read the clock but never set it (P-4: clients never merge).
+const updatedHLCColumn = "updated_hlc"
+
 func loadRow(ctx context.Context, tx *sql.Tx, table, id string) (sync.Row, error) {
 	cols := columnList(table)
 	row := tx.QueryRowContext(ctx, fmt.Sprintf(
-		`SELECT %s, updated_hlc, %s FROM %s WHERE id = ?`, strings.Join(cols, ", "), fieldClocksColumn, table), id)
+		`SELECT %s, %s, %s FROM %s WHERE id = ?`,
+		strings.Join(cols, ", "), updatedHLCColumn, fieldClocksColumn, table), id)
 
 	values := make([]any, len(cols)+2)
 	ptrs := make([]any, len(values))
@@ -570,6 +626,12 @@ func encodeClocks(clocks sync.FieldClocks) (string, error) {
 
 func persist(ctx context.Context, tx *sql.Tx, table string, m sync.Mutation, merged sync.MergeResult, exists bool) (changed bool, err error) {
 	switch {
+	case merged.Deleted && !exists:
+		// Sync-API §5.1: a delete of a row that is already gone stays
+		// accepted and writes nothing. Reporting it as a change would
+		// append a tombstone per retry for a row no device ever had —
+		// work every client redoes, for a row none of them can hold.
+		return false, nil
 	case merged.Deleted:
 		_, err = tx.ExecContext(ctx, fmt.Sprintf(`DELETE FROM %s WHERE id = ?`, table), m.ID)
 		return err == nil, err
@@ -712,7 +774,7 @@ func (s *Store) Pull(ctx context.Context, tripID string, cursor int64, limit int
 	for _, c := range compact(entries) {
 		if !c.Deleted {
 			if _, ok := syncableColumns[c.Table]; ok {
-				c.Row, _, _, err = s.loadSnapshot(ctx, c.Table, c.ID)
+				c.Row, err = s.loadSnapshot(ctx, c.Table, c.ID)
 				if err != nil {
 					return PullPage{}, err
 				}
@@ -756,17 +818,26 @@ func compact(entries []Change) []Change {
 	return out
 }
 
-func (s *Store) loadSnapshot(ctx context.Context, table, id string) (map[string]any, sync.HLC, bool, error) {
+// loadSnapshot reads the pull representation of one row: its syncable
+// columns plus updatedHLCColumn, which is not one of them. The clock is
+// added here rather than by each caller because it is part of what a
+// snapshot *is* — Sync-API §3 has every pulling client advance its own
+// clock past it, and a snapshot without it silently disables that rule.
+func (s *Store) loadSnapshot(ctx context.Context, table, id string) (map[string]any, error) {
 	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
-		return nil, "", false, fmt.Errorf("begin snapshot read: %w", err)
+		return nil, fmt.Errorf("begin snapshot read: %w", err)
 	}
 	defer tx.Rollback()
 	row, err := loadRow(ctx, tx, table, id)
 	if err != nil {
-		return nil, "", false, err
+		return nil, err
 	}
-	return row.Fields, row.HLC, row.Exists, nil
+	if !row.Exists {
+		return nil, nil
+	}
+	row.Fields[updatedHLCColumn] = string(row.HLC)
+	return row.Fields, nil
 }
 
 func columnList(table string) []string {

@@ -158,6 +158,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A decade of packed trips, all reading zero (2026-08-25)](#a-decade-of-packed-trips-all-reading-zero-2026-08-25) — FR-2.3/ADR-033: M2 loads the partitions of the rows on screen and says *unknown* until they arrive. Four things the code cannot show: the option that is free for ever and was turned down anyway, the number that decided between loading everything and loading what is visible, the bug that only rendering could find, and the test that was right to fail in company.
 - [A device only ever got the first page (2026-08-25)](#a-device-only-ever-got-the-first-page-2026-08-25) — Sync-API §4: the pull ignored `has_more`. Four things the code cannot show: why every fixture in the suite was too small to catch it, why the obvious second half of the fix — remembering the cursor — made the app *emptier*, why the correct implementation was already in the repo and unused, and what found it in the end.
 - [The restore could be run twice, and the manual said it could not (2026-08-24)](#the-restore-could-be-run-twice-and-the-manual-said-it-could-not-2026-08-24) — FR-18.4/ADR-030: an imported document is a second copy when its name matches, plus the year for a trip. Five things the code cannot show: the documentation that had described the item rule as if it were the whole rule, why the database constraint that looks like the obvious enforcement is the worst of the four options, why the trips were invisible to a view called `master`, how ADR-017's Vorlage exception was reversed by a measurement rather than an argument, and the cost the family's own data pays for the rule.
+- [The clock the client was told to read, and never received (2026-08-25)](#the-clock-the-client-was-told-to-read-and-never-received-2026-08-25) — a data-model review's sync half. Four things the code cannot show: how a rule implemented correctly on both sides never once ran, why a deleted trip's *master*-partition children are the tombstones that matter while its trip-partition ones need none, a review finding that was wrong and how far I built it before opening the citation, and why a connection-scoped pragma is not a schema rule.
+- [What a constraint costs when the outbox drops a refusal (2026-08-25)](#what-a-constraint-costs-when-the-outbox-drops-a-refusal-2026-08-25) — the same review's schema half. Four things the code cannot show: why the two-level rule was a two-step formality, the lens every candidate constraint was decided by and the two that failed it, why a per-owner unique name contradicted the FR above it, and the dead schema that was kept on purpose.
 
 ## Current state
 
@@ -6439,6 +6441,161 @@ pull the instance from scratch for the first time. Every previous load of that
 data had been written *by* the browser that then displayed it, which is exactly
 why a decade of use had never asked the question. It is also what every second
 family device does on its first launch.
+
+## The clock the client was told to read, and never received (2026-08-25)
+
+A data-model review of `schema.sql` against the PRD, the Sync-API spec and
+the store's own code. Five defects and one non-defect came out of the sync
+half of it; the schema's own constraints are a separate change.
+
+**A rule can be implemented on both sides and still never run.** Sync-API §3
+has every client advance `last_seen_hlc` to the highest HLC it has observed,
+and the client implements it exactly — `usePull.ts` and `useSyncOutbox.ts`
+both read `row['updated_hlc']` off each pulled snapshot. The server builds a
+snapshot from `syncableColumns`, and `updated_hlc` is deliberately not one of
+them, so `loadRow` scanned the clock into a variable that `Pull` and
+`PullMaster` then dropped on the floor with `c.Row, _, _, err = …`. The guard
+was therefore false on every change any device has ever pulled. Nothing was
+red: the client's typeof check makes the dead path indistinguishable from a
+row that simply has no clock, and no test asserted the field's presence
+because both sides had been written from the same spec sentence and each
+assumed the other end held it up. What it cost is invisible until it isn't —
+a device whose wall clock lags keeps minting HLCs *older* than writes it has
+already seen, and loses its own later edits to them. The fix is one line in
+`loadSnapshot`, but the lesson is the shape: **two correct implementations of
+one sentence do not add up to a working rule, and the thing to test is the
+seam between them, not either side.**
+
+**A foreign-key cascade is a delete no change feed can see.** The master
+partition already knew this — `cascadeChildren` exists precisely to collect
+child ids before a parent goes and tombstone them by hand — but the list had
+two holes, and one whole partition had never been given the machinery at all.
+Deleting a trip cascaded `trip_members`, `trip_template_sources` and
+`trip_applied_changes`, all three of which travel the *master* feed, with no
+tombstone behind them; deleting a trip item cascaded its comments in the trip
+partition, which called `cascadeChildren` from nowhere. Both leave rows alive
+on every other device permanently. Worth writing down is why a trip's
+*remaining* children need nothing: `change_log.trip_id` cascades too, so the
+trip partition's entire feed is deleted along with the trip it describes, and
+the master feed is the only one left to carry the news. That asymmetry is
+easy to read as an oversight and is in fact the reason the master-side
+tombstones are the ones that matter.
+
+**A finding that did not survive its own verification.** The review also
+reported that the idempotency memo's `outcome` column was write-only and that
+a replayed `rejected` push therefore came back as a bare `duplicate`, losing
+the refusal. The first half is true and harmless; the second was wrong, and I
+had already written the fix and four red tests before checking the spec text
+rather than the summary of it. §5 defines `duplicate` as "mutation_id seen
+before, **recorded result returned**", and P-5 says in as many words that "the
+second push returns `duplicate`" — the *recorded result* being the seq and the
+conflicts, both of which the code was already returning. The change was
+reverted and the tests replaced by the one assertion P-5 makes that nothing
+had covered: a replay appends nothing to the change log. **A review finding is
+a hypothesis with a citation, and the citation is the part to open.**
+
+**A pragma that holds for one connection is not a schema rule.** `PRAGMA
+foreign_keys = ON` was executed once after `sql.Open`. It is per connection,
+SQLite defaults it off, and `database/sql` replaces a connection it finds
+broken — so a pool that ever re-dialled would hand back a handle on which
+every `REFERENCES` clause in `schema.sql` is decorative, with an orphaned row
+as the first symptom and nothing naming the cause. It is in the DSN now. The
+test needed a deterministic seam rather than a hope that a reconnect happens:
+`SetMaxIdleConns(0)` makes the pool close each connection on release, so the
+next query provably runs on a fresh one.
+
+**A rule that never ran was hiding two things.** Making the snapshot carry
+`updated_hlc` was one line; merging it forward onto a `main` that had meanwhile
+gained the multi-page pull fix turned `e2e-single` red, on *that* fix's own new
+case. The cause was not paging. `observeHLCs` had finally been given something
+to parse, and `parseHLC` throws by design — so the first malformed clock in the
+feed aborted the page, and the 520-row fixture behind the case was minting
+device ids out of a non-hex `uniq()`. Two defects had been sitting behind a
+guard that was always false: a test fixture producing HLCs the client's own
+parser refuses, and a client that lets one bad row make every other row of a
+partition unreachable, on every device, for as long as that row exists. The
+server stores an HLC verbatim and never checks its device id, so one buggy
+producer is enough to trigger it. Observing a clock is an optimisation for
+causality, not a gate on rendering, so it is tolerant now and says what it
+refused. **A dead code path does not fail; it waits** — and what it was hiding
+surfaced only because something else was fixed.
+
+## What a constraint costs when the outbox drops a refusal (2026-08-25)
+
+The second half of the data-model review: `schema.sql`'s own constraints,
+read against the FRs that claim them.
+
+**A structural guarantee that took two steps to break.** FR-27.1 says the
+two-level hierarchy makes include cycles *structurally impossible*, and
+`validInclude` does enforce it: the parent must be a Ferien-Vorlage, the
+child a Gruppe. But `templates.kind` was an ordinary syncable column with no
+guard on it, so the shape it checked was not stable. Include B into A, push
+`A.kind='group'` and `B.kind='template'` — both accepted — and the include
+rule now reads the *reverse* edge as perfectly legal. A→B→A, persisted, by
+three ordinary pushes. What makes it worth recording is where the two guards
+that prevent it already existed: in FR-27.6, spelled out in full, describing
+the **M8 editor**. A rule that only the editor enforces is not a rule; it is
+a convention the UI happens to follow, and the push endpoint is a supported
+write path with the same authority. The reproduction was written as a test
+first and passed against the unfixed code, which is what "verified" has to
+mean for a hole rather than a defect: a bug report you cannot make green by
+breaking is not a bug report.
+
+**The lens: a constraint that can refuse a legitimate offline mutation
+destroys the user's change to buy an invariant.** Push is the only write
+path, a constraint violation returns `rejected`, and the client's outbox
+drops a rejected mutation — so a CHECK is not a safety net here, it is a
+delete. Five candidates were judged by that, and the two that read most
+obviously "correct" are the two that failed:
+
+* FR-5.5 says a skip writes `state='skipped'` **and** quantity 0, and the
+  client does send both — so `CHECK (state <> 'skipped' OR quantity = 0)`
+  looks free. It is not, because *the merge decides the two fields
+  separately*: another device's newer quantity leaves the skip applied on
+  its own. With the CHECK added and the case run, that push came back
+  `rejected` — the whole skip lost, to protect a pairing nothing reads.
+* FR-24.2's "the first tag is the primary tag" suggests
+  `UNIQUE (item_id, position)`. Reordering N tags is N mutations, so every
+  intermediate state has two rows at one position; with the index added, the
+  *first half* of a two-tag swap was refused. The honest fix is a read-time
+  tie-break, which the client did not have — it sorted by position and let
+  the tie fall to arrival order, so two devices could file one item under
+  two different headings and neither was wrong.
+
+Both were **measured against the constraint before being written off**, which
+is the only way this reasoning stays honest: "it might reject a legitimate
+push" is a guess until the schema is mutated and the push is run. The two
+that passed the lens are the ones no client traffic can reach — the one-Owner
+index (`authorizeMaster` refuses every client-sent `owner`, so the index can
+only ever catch a *server* bug) — and the one whose cost is a considered
+trade rather than an accident.
+
+**A uniqueness scope that contradicted the sentence above it.** `templates`
+was `UNIQUE (owner_id, name)` while FR-1.6's MVP simplification says
+templates are shared instance-wide and `owner_id` "grants no exclusivity".
+Both cannot be true: per-owner uniqueness lets two accounts hold two
+"Sommer" that every screen shows side by side and nothing tells apart, and
+three built mechanisms already assume there is exactly one — FR-18.2/18.4
+link an imported group by name and derive the `(import)` suffix from a name
+being taken, FR-27.5/27.15 recognition keys on the shared set. `items.name`
+and `tags.name` had been globally unique since the beginning; the templates
+scope was left behind when the ownership model was parked. This one carries a
+real offline cost, unlike the index above it — two devices creating "Sommer"
+offline now means one of them loses it — and that is written into FR-1.6
+rather than into a commit message, because it is the kind of thing that
+surfaces later as a question about a missing group.
+
+**Dead schema, and the one piece of it that earns its keep.** The
+`item_series_history` view had zero consumers anywhere in the repository —
+per-series analytics run client-side per invariant 4 — and two `trip_items`
+indexes served filters (`mode`, `packer_user_id`) that also happen only on
+the client. All three are gone. `trips.duration_days` is in the same
+position, read by no server query, and it **stays**: the Sync-API spec uses
+it as its worked example of "a generated column is in neither direction of
+the protocol, so the client derives it", and a spec sentence with a live
+referent is worth more than one generated integer per trip row. Dead schema
+is a choice under ADR-018, so it needs a reason each way rather than a rule.
+
 ## A decade of packed trips, all reading zero (2026-08-25)
 
 **What changed:** M2's row reports *unknown* while a trip's own rows are not on
