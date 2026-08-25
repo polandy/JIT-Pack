@@ -95,7 +95,7 @@ items:
     expect(master.itemList.find((i) => i.name === 'Skibrille')).toBeDefined()
   })
 
-  it('avoids own-template name collisions with a suffix', () => {
+  it('leaves a Ferien-Vorlage of that name alone rather than landing beside it (ADR-030)', () => {
     const orch = newOrch()
     const master = useMasterStore()
     master.applyChange({
@@ -103,12 +103,15 @@ items:
       table: 'templates',
       id: 'tpl-1',
       deleted: false,
-      row: { owner_id: 'me', name: 'Base Travel' },
+      row: { owner_id: 'me', name: 'Base Travel', kind: 'template' },
     })
 
     const result = orch.commitPortableImport(doc, new Map())
 
-    expect(master.getTemplate(result.id)?.name).toBe('Base Travel (import)')
+    // It used to import beside itself as "Base Travel (import)"; a restore run
+    // twice therefore doubled every Vorlage in the file.
+    expect(result).toMatchObject({ id: 'tpl-1', outcome: 'duplicate' })
+    expect(master.templateList.map((t) => t.name)).toEqual(['Base Travel'])
   })
 })
 
@@ -387,22 +390,24 @@ items:
     expect(names).toEqual(['Stativ'])
   })
 
-  it('still suffixes a Ferien-Vorlage whose name is taken — only groups link', () => {
-    // The identity rule is a group rule (ADR-017): two Ferien-Vorlagen of the
-    // same name are two different plans, and silently merging them would lose
-    // one of them.
+  it('links a Ferien-Vorlage whose name is taken, as its groups already did (ADR-030)', () => {
+    // ADR-017 kept the suffix here on the grounds that two Vorlagen of one
+    // name are two different plans. ADR-030 reverses it: the file people
+    // actually re-import is their own backup, where the second copy is never
+    // what anybody wanted.
     const orch = newOrch()
     const master = useMasterStore()
     orch.createTemplate('Fototage', 'template')
 
-    orch.commitPortableImport(parsePortable(file).doc!, new Map())
+    const result = orch.commitPortableImport(parsePortable(file).doc!, new Map())
 
+    expect(result.outcome).toBe('duplicate')
     expect(
       master.templateList
         .filter((t) => t.kind === 'template')
         .map((t) => t.name)
         .sort(),
-    ).toEqual(['Fototage', 'Fototage (import)'])
+    ).toEqual(['Fototage'])
   })
 })
 
