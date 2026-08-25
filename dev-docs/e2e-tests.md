@@ -68,7 +68,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
 | Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-M15-05 — the spreadsheet import, added 2026-08-23, and M15's first
 case of any kind.** Until it, M15 had **no** e2e coverage — four written
@@ -1752,8 +1752,30 @@ The case ends on a second context that never saw the delete and still finds
 the group. That is the positive signal the sheet's sentence is asserted
 against, and it is also the divergence itself on record: the deleting device
 removed the row optimistically and the server kept it. **Closing that gap —
-putting the refused row back on the device that tried to delete it — is not in
-this case and not built**; the refusal is announced, not undone.
+putting the refused row back on the device that tried to delete it — is
+E2E-G2-12 below, built the next day.**
+
+
+**E2E-G2-12 — the refusal repairs the row, added 2026-08-25 (ADR-031).**
+E2E-G2-11 ends at the divergence and records it: the group is gone from the
+deleting device and still on the server. That state used to be *permanent* —
+the server row had not changed, so its `change_log` entry was already behind
+that device's cursor and no pull would ever offer it again. This case drives
+the same refusal and asserts the two things that close it: the toast naming
+how many changes were undone and why, and the group back in M7's list.
+
+Proved by mutation: with the re-log removed from the store's
+`still_referenced` branch (`internal/store/master.go`), the toast is still
+green and the row assertion fails — the announcement without the repair, which
+is exactly the state before this change.
+
+**The row assertion counts the group's positions, and that is the case's
+second finding.** It first read `toBeVisible()` on the group row, which was
+green against a repair that put the Vorlage back **empty**: the client mirrors
+the server's cascade when it deletes a template, so its positions had gone
+optimistically too and re-logging the named row alone did not bring them back.
+Only rendering it showed "0 items". The store now re-logs the cascade's rows
+as well, and the case asserts `1 item` rather than mere visibility.
 
 
 **E2E-M6-17 / E2E-M6-22 — what M6 hides is counted, named and reversible,

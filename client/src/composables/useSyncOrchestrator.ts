@@ -16,7 +16,7 @@ import { computed, ref, shallowRef } from 'vue'
 import { APIClient, type TokenProvider } from '@/api/client'
 import { loadTokens, subjectOf } from '@/auth/tokens'
 import { HLCGenerator } from '@/sync/hlc'
-import { SyncOutbox, type ConflictReport } from './useSyncOutbox'
+import { SyncOutbox, type ConflictReport, type RejectionReport } from './useSyncOutbox'
 import { useWebSocket } from './useWebSocket'
 import { CLIENT_ACTOR_PLACEHOLDER, useMutations } from './useMutations'
 import { useSyncStatus } from './useSyncStatus'
@@ -193,6 +193,13 @@ export interface SyncOrchestratorConfig {
    * report names the partition, which is which conflict log to open.
    */
   onConflicts?: (report: ConflictReport) => void
+  /**
+   * Called when a push came back with refused mutations (Sync-API §5,
+   * ADR-031). The change is undone either way — by the row the server
+   * re-logged or by the client dropping it — and this is what lets the user
+   * be told rather than watch a row change back by itself.
+   */
+  onRejections?: (report: RejectionReport) => void
   /**
    * Where the outbox keeps its queue between sessions (B2, NFR-4.1).
    * Injected so a test can drive a store it can see; Server Mode defaults
@@ -382,6 +389,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       syncStatus.addConflicts(report.count)
       config.onConflicts?.(report)
     },
+    onRejections: (report) => config.onRejections?.(report),
     onDurabilityChanged: (durable) => syncStatus.setQueueDurable(durable),
   })
 

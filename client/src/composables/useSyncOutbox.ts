@@ -23,6 +23,7 @@ import { APIRequestError, type APIClient } from '@/api/client'
 import type { Mutation, PullChange, PullResponse, PushResponse } from '@/api/types'
 import { observeRemote, type HLCGenerator } from '@/sync/hlc'
 import type { OutboxStore, ParkedMutation, PartitionKey } from '@/sync/outboxStore'
+import { REJECTION_REASON } from '@/sync/rejectionReasons'
 
 type PartitionType = 'trip' | 'master'
 
@@ -87,6 +88,22 @@ function isPermanentRefusal(err: unknown): err is APIRequestError {
   )
 }
 
+/**
+ * What one push had refused, and why (Sync-API §5, ADR-031).
+ *
+ * Reported per *push* rather than per mutation, for the same reason the
+ * conflict report is: a reconnect drains a whole queue, and a refusal that
+ * repeats across it would stack a wall of identical signals.
+ */
+export interface RejectionReport {
+  /** How many mutations of this push the server refused. */
+  count: number
+  /** The reason of the last of them — the closed vocabulary of §5. */
+  reason: string
+  type: PartitionType
+  id: string | null
+}
+
 /** What one push lost, and where to go and look at it (NFR-4.2a). */
 export interface ConflictReport {
   /** Fields the server dropped across every mutation of this push. */
@@ -109,6 +126,14 @@ export interface SyncOutboxOptions {
    */
   onConflicts?: (report: ConflictReport) => void
   /**
+   * Called after a push the server refused mutations of. The repair itself
+   * needs no caller — it arrives through the ordinary pull, or is applied
+   * locally — so this exists only to say that it happened: a row that
+   * changes back under the user's hands with nothing said is its own defect
+   * (ADR-031).
+   */
+  onRejections?: (report: RejectionReport) => void
+  /**
    * Called when the device starts or stops being able to keep the queue.
    * G-2 must not promise durability it does not have (NFR-4.11).
    */
@@ -130,6 +155,7 @@ export class SyncOutbox {
   private readonly store: OutboxStore | null
   private readonly onParked?: (entry: ParkedMutation) => void
   private readonly onConflicts?: (report: ConflictReport) => void
+  private readonly onRejections?: (report: RejectionReport) => void
   private readonly onDurabilityChanged?: (durable: boolean) => void
   private readonly now: () => number
 
@@ -159,6 +185,7 @@ export class SyncOutbox {
     this.store = options.store ?? null
     this.onParked = options.onParked
     this.onConflicts = options.onConflicts
+    this.onRejections = options.onRejections
     this.onDurabilityChanged = options.onDurabilityChanged
     this.now = options.now ?? (() => Date.now())
   }
@@ -322,6 +349,7 @@ export class SyncOutbox {
         // writes, and a device that died between them would have dropped a
         // refused mutation without leaving the evidence behind.
         const parked = this.parkRejected(key, chunk, resp)
+        this.repairRejected(type, id, chunk, resp)
         this.reportConflicts(type, id, resp)
         // Drop what was pushed by id rather than by count: the chunk and
         // the live queue can have drifted apart while the request was open.
@@ -405,6 +433,43 @@ export class SyncOutbox {
       if (result.outcome === OUTCOME_MERGED) count += result.conflicts?.length ?? 0
     }
     if (count > 0) this.onConflicts({ count, type, id })
+  }
+
+  /**
+   * Closes the divergence a refusal leaves behind (ADR-031), and says that
+   * it happened.
+   *
+   * The server repairs what it can: it re-logs the row it refused, so the
+   * pull this drain makes next carries the truth and replaces the optimistic
+   * copy. The one refusal it cannot re-log is `out_of_scope` — the row
+   * belongs to another trip, and an entry for it in this partition would
+   * hand over a foreign row's snapshot (P-3). That one is repaired here,
+   * with what the client already knows: a row this partition may not touch
+   * is a row this partition must not keep.
+   */
+  private repairRejected(
+    type: PartitionType,
+    id: string | null,
+    chunk: Mutation[],
+    resp: PushResponse,
+  ): void {
+    const refused = new Map(
+      resp.results.filter((r) => r.outcome === OUTCOME_REJECTED).map((r) => [r.mutation_id, r]),
+    )
+    if (refused.size === 0) return
+
+    const dropped: PullChange[] = []
+    let last = UNSPECIFIED_REJECTION
+    for (const mutation of chunk) {
+      const result = refused.get(mutation.mutation_id)
+      if (!result) continue
+      last = result.error ?? UNSPECIFIED_REJECTION
+      if (result.error === REJECTION_REASON.outOfScope) {
+        dropped.push({ seq: 0, table: mutation.table, id: mutation.id, deleted: true, row: null })
+      }
+    }
+    if (dropped.length > 0) this.onChanges(dropped)
+    this.onRejections?.({ count: refused.size, reason: last, type, id })
   }
 
   /**

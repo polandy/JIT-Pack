@@ -80,6 +80,8 @@ export const de: Record<keyof typeof en, string> = {
     'Der Server hat {n} Änderung abgelehnt | Der Server hat {n} Änderungen abgelehnt',
   'sync.detail.parkedHint':
     'Sie wurden aus der Warteschlange genommen, damit der Rest rausgeht, und bleiben auf diesem Gerät. Erneut versucht werden sie nicht.',
+  'sync.rejectionToast':
+    'Der Server hat {n} Änderung abgelehnt — sie wurde zurückgenommen | Der Server hat {n} Änderungen abgelehnt — sie wurden zurückgenommen',
   'sync.detail.rejected.notAuthorized': 'Du darfst diese Änderung nicht machen.',
   'sync.detail.rejected.outOfScope':
     'Sie nannte eine andere Reise als die, für die sie gesendet wurde.',

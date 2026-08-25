@@ -472,6 +472,9 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID, userID string, m sync
 		return MutationResult{}, err
 	} else if blocked {
 		res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected, Reason: ReasonStillReferenced}
+		if res.Seq, err = relogRefused(ctx, tx, tripID, m, row); err != nil {
+			return MutationResult{}, err
+		}
 		return res, finalize(ctx, tx, res)
 	}
 
@@ -495,6 +498,9 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID, userID string, m sync
 			// the outbox keeps retrying, wedging the whole partition behind
 			// the bad row. Same treatment as the master partition.
 			res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected, Reason: ReasonConstraintViolated}
+			if res.Seq, err = relogRefused(ctx, tx, tripID, m, row); err != nil {
+				return MutationResult{}, err
+			}
 			return res, finalize(ctx, tx, res)
 		}
 		return MutationResult{}, err
@@ -757,6 +763,50 @@ func appendChangeLog(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutatio
 	seq, err := res.LastInsertId()
 	if err != nil {
 		return 0, fmt.Errorf("change_log seq: %w", err)
+	}
+	return seq, nil
+}
+
+// relogRefused re-delivers the row a refusal did *not* change, so the device
+// that pushed the refused mutation converges through its ordinary next pull
+// instead of keeping its optimistic copy forever (ADR-031, Sync-API §5).
+//
+// The entry's `deleted` flag is read from the server's own row rather than
+// from the mutation's op: a refused delete or update re-delivers the
+// snapshot, and a refused insert — for which there is no server row to
+// deliver — delivers a tombstone that drops the phantom. That is the whole
+// of the insert/update asymmetry, decided by what the server holds.
+//
+// It is deliberately not called for `out_of_scope`: the row is not this
+// partition's, and an entry for it here would hand the pusher a foreign
+// row's snapshot on the next pull (P-3). That one is repaired client-side.
+func relogRefused(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutation, row sync.Row) (int64, error) {
+	entry := sync.Mutation{Table: m.Table, ID: m.ID, HLC: m.HLC}
+	if row.Exists {
+		// The row's own clock, not the refused mutation's: the entry
+		// describes what the server holds, and nothing about it changed.
+		entry.HLC = row.HLC
+	}
+	seq, err := appendChangeLog(ctx, tx, tripID, entry, !row.Exists)
+	if err != nil {
+		return 0, err
+	}
+	if m.Op != sync.OpDelete || !row.Exists {
+		return seq, nil
+	}
+	// A delete takes its children with it, and the client mirrors that
+	// cascade optimistically — so re-logging the row alone brings a Vorlage
+	// back with none of its positions. The repair carries back everything
+	// the refused delete appeared to take.
+	children, err := cascadeChildren(ctx, tx, m, true, true)
+	if err != nil {
+		return 0, err
+	}
+	for _, c := range children {
+		child := sync.Mutation{Table: c.table, ID: c.id, HLC: m.HLC}
+		if seq, err = appendChangeLog(ctx, tx, tripID, child, false); err != nil {
+			return 0, err
+		}
 	}
 	return seq, nil
 }

@@ -51,6 +51,9 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 	if refused != ReasonNone {
 		res.Outcome = sync.OutcomeRejected
 		res.Reason = refused
+		if res.Seq, err = relogRefused(ctx, tx, nil, m, row); err != nil {
+			return MutationResult{}, err
+		}
 		return res, finalize(ctx, tx, res)
 	}
 
@@ -68,6 +71,9 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 		res.Outcome = sync.OutcomeRejected
 		res.Reason = ReasonStillReferenced
 		res.Conflicts = nil
+		if res.Seq, err = relogRefused(ctx, tx, nil, m, row); err != nil {
+			return MutationResult{}, err
+		}
 		return res, finalize(ctx, tx, res)
 	}
 
@@ -88,6 +94,9 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 			res.Outcome = sync.OutcomeRejected
 			res.Reason = ReasonConstraintViolated
 			res.Conflicts = nil
+			if res.Seq, err = relogRefused(ctx, tx, nil, m, row); err != nil {
+				return MutationResult{}, err
+			}
 			return res, finalize(ctx, tx, res)
 		}
 		return MutationResult{}, err

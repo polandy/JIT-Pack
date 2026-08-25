@@ -11,7 +11,7 @@
  * words are diagnostics, not copy, and G-2 keeps its general hint for them.
  */
 
-import type { MessageKey } from '@/i18n'
+import { t, type MessageKey } from '@/i18n'
 
 /** The vocabulary, named once (CODING_PRINCIPLES §4a). */
 export const REJECTION_REASON = Object.freeze({
@@ -40,4 +40,16 @@ const REASON_KEYS: Record<RejectionReason, MessageKey> = {
 export function rejectionReasonKey(reason: string | null | undefined): MessageKey | null {
   if (!reason) return null
   return REASON_KEYS[reason as RejectionReason] ?? null
+}
+
+/**
+ * The sentence the toast says when a push came back with refusals
+ * (ADR-031). Composed here rather than in the view because it is the same
+ * two halves everywhere: how many changes were undone, and — where this
+ * build has a sentence for it — why.
+ */
+export function rejectionToastMessage(count: number, reason: string | null): string {
+  const headline = t('sync.rejectionToast', { n: count })
+  const key = rejectionReasonKey(reason)
+  return key ? `${headline}. ${t(key)}` : `${headline}.`
 }
