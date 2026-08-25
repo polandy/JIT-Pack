@@ -159,6 +159,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A drain could land on top of a drain (2026-08-25)](#a-drain-could-land-on-top-of-a-drain-2026-08-25) — Sync-API §4: one drain per partition at a time. Three things the code cannot show: why the doubled traffic I thought I had measured was my own eyeball script rebooting the app, why the obvious guard — hand the running drain back to the late caller — silently loses a mutation, and why this only became worth fixing once the pull was paged.
 - [The restore could be run twice, and the manual said it could not (2026-08-24)](#the-restore-could-be-run-twice-and-the-manual-said-it-could-not-2026-08-24) — FR-18.4/ADR-030: an imported document is a second copy when its name matches, plus the year for a trip. Five things the code cannot show: the documentation that had described the item rule as if it were the whole rule, why the database constraint that looks like the obvious enforcement is the worst of the four options, why the trips were invisible to a view called `master`, how ADR-017's Vorlage exception was reversed by a measurement rather than an argument, and the cost the family's own data pays for the rule.
 - [The clock the client was told to read, and never received (2026-08-25)](#the-clock-the-client-was-told-to-read-and-never-received-2026-08-25) — a data-model review's sync half. Four things the code cannot show: how a rule implemented correctly on both sides never once ran, why a deleted trip's *master*-partition children are the tombstones that matter while its trip-partition ones need none, a review finding that was wrong and how far I built it before opening the citation, and why a connection-scoped pragma is not a schema rule.
+- [What a constraint costs when the outbox drops a refusal (2026-08-25)](#what-a-constraint-costs-when-the-outbox-drops-a-refusal-2026-08-25) — the same review's schema half. Four things the code cannot show: why the two-level rule was a two-step formality, the lens every candidate constraint was decided by and the two that failed it, why a per-owner unique name contradicted the FR above it, and the dead schema that was kept on purpose.
 
 ## Current state
 
@@ -6572,3 +6573,79 @@ producer is enough to trigger it. Observing a clock is an optimisation for
 causality, not a gate on rendering, so it is tolerant now and says what it
 refused. **A dead code path does not fail; it waits** — and what it was hiding
 surfaced only because something else was fixed.
+
+## What a constraint costs when the outbox drops a refusal (2026-08-25)
+
+The second half of the data-model review: `schema.sql`'s own constraints,
+read against the FRs that claim them.
+
+**A structural guarantee that took two steps to break.** FR-27.1 says the
+two-level hierarchy makes include cycles *structurally impossible*, and
+`validInclude` does enforce it: the parent must be a Ferien-Vorlage, the
+child a Gruppe. But `templates.kind` was an ordinary syncable column with no
+guard on it, so the shape it checked was not stable. Include B into A, push
+`A.kind='group'` and `B.kind='template'` — both accepted — and the include
+rule now reads the *reverse* edge as perfectly legal. A→B→A, persisted, by
+three ordinary pushes. What makes it worth recording is where the two guards
+that prevent it already existed: in FR-27.6, spelled out in full, describing
+the **M8 editor**. A rule that only the editor enforces is not a rule; it is
+a convention the UI happens to follow, and the push endpoint is a supported
+write path with the same authority. The reproduction was written as a test
+first and passed against the unfixed code, which is what "verified" has to
+mean for a hole rather than a defect: a bug report you cannot make green by
+breaking is not a bug report.
+
+**The lens: a constraint that can refuse a legitimate offline mutation
+destroys the user's change to buy an invariant.** Push is the only write
+path, a constraint violation returns `rejected`, and the client's outbox
+drops a rejected mutation — so a CHECK is not a safety net here, it is a
+delete. Five candidates were judged by that, and the two that read most
+obviously "correct" are the two that failed:
+
+* FR-5.5 says a skip writes `state='skipped'` **and** quantity 0, and the
+  client does send both — so `CHECK (state <> 'skipped' OR quantity = 0)`
+  looks free. It is not, because *the merge decides the two fields
+  separately*: another device's newer quantity leaves the skip applied on
+  its own. With the CHECK added and the case run, that push came back
+  `rejected` — the whole skip lost, to protect a pairing nothing reads.
+* FR-24.2's "the first tag is the primary tag" suggests
+  `UNIQUE (item_id, position)`. Reordering N tags is N mutations, so every
+  intermediate state has two rows at one position; with the index added, the
+  *first half* of a two-tag swap was refused. The honest fix is a read-time
+  tie-break, which the client did not have — it sorted by position and let
+  the tie fall to arrival order, so two devices could file one item under
+  two different headings and neither was wrong.
+
+Both were **measured against the constraint before being written off**, which
+is the only way this reasoning stays honest: "it might reject a legitimate
+push" is a guess until the schema is mutated and the push is run. The two
+that passed the lens are the ones no client traffic can reach — the one-Owner
+index (`authorizeMaster` refuses every client-sent `owner`, so the index can
+only ever catch a *server* bug) — and the one whose cost is a considered
+trade rather than an accident.
+
+**A uniqueness scope that contradicted the sentence above it.** `templates`
+was `UNIQUE (owner_id, name)` while FR-1.6's MVP simplification says
+templates are shared instance-wide and `owner_id` "grants no exclusivity".
+Both cannot be true: per-owner uniqueness lets two accounts hold two
+"Sommer" that every screen shows side by side and nothing tells apart, and
+three built mechanisms already assume there is exactly one — FR-18.2/18.4
+link an imported group by name and derive the `(import)` suffix from a name
+being taken, FR-27.5/27.15 recognition keys on the shared set. `items.name`
+and `tags.name` had been globally unique since the beginning; the templates
+scope was left behind when the ownership model was parked. This one carries a
+real offline cost, unlike the index above it — two devices creating "Sommer"
+offline now means one of them loses it — and that is written into FR-1.6
+rather than into a commit message, because it is the kind of thing that
+surfaces later as a question about a missing group.
+
+**Dead schema, and the one piece of it that earns its keep.** The
+`item_series_history` view had zero consumers anywhere in the repository —
+per-series analytics run client-side per invariant 4 — and two `trip_items`
+indexes served filters (`mode`, `packer_user_id`) that also happen only on
+the client. All three are gone. `trips.duration_days` is in the same
+position, read by no server query, and it **stays**: the Sync-API spec uses
+it as its worked example of "a generated column is in neither direction of
+the protocol, so the client derives it", and a spec sentence with a live
+referent is worth more than one generated integer per trip row. Dead schema
+is a choice under ADR-018, so it needs a reason each way rather than a rule.
