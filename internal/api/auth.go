@@ -192,8 +192,8 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 			}
 		case idpRejected:
 			// The IdP disowned the session — only this ends it (§2).
-			_ = s.store.DeleteSession(r.Context(), oldHash)
-			writeError(w, http.StatusUnauthorized, ErrUnauthorized, "IdP rejected the session")
+			s.endSession(r.Context(), oldHash, sessionEndIDPRejected)
+			writeError(w, http.StatusUnauthorized, ErrUnauthorized, sessionEndIDPRejected)
 			return
 		case idpUnreachable:
 			// Offline is normal, not a logout: leave the chain intact.
@@ -206,8 +206,8 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, ErrInternal, "account lookup failed")
 		return
 	} else if deactivated {
-		_ = s.store.DeleteSession(r.Context(), oldHash)
-		writeError(w, http.StatusForbidden, ErrAccountDeactivated, "account is deactivated")
+		s.endSession(r.Context(), oldHash, sessionEndDeactivated)
+		writeError(w, http.StatusForbidden, ErrAccountDeactivated, sessionEndDeactivated)
 		return
 	}
 
@@ -220,6 +220,29 @@ func (s *Server) handleAuthRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.writeSessionTokens(w, sess.UserID, newRefresh, now)
+}
+
+// Why a refresh ends the session it was given. Each reason is both the
+// message the client is refused with and the one the cleanup is logged
+// under, so the two can never describe different events.
+const (
+	sessionEndIDPRejected = "IdP rejected the session"
+	sessionEndDeactivated = "account is deactivated"
+)
+
+// msgSessionCleanupFailed is asserted by the tests, so it is named once
+// (CODING_PRINCIPLES §4a).
+const msgSessionCleanupFailed = "session cleanup failed"
+
+// endSession deletes the refresh row behind a session that has just been
+// refused. The refusal has already been decided and does not depend on
+// this succeeding — the client is logged out either way — so a failure is
+// logged rather than returned: it leaves a row alive that should be dead,
+// and the log line is the only trace it would otherwise have.
+func (s *Server) endSession(ctx context.Context, refreshHash, reason string) {
+	if err := s.store.DeleteSession(ctx, refreshHash); err != nil {
+		slog.Error(msgSessionCleanupFailed, "reason", reason, "error", err)
+	}
 }
 
 func (s *Server) handleAuthConfig(w http.ResponseWriter, _ *http.Request) {
