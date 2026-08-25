@@ -83,6 +83,23 @@ const (
 	MarkMaxBytes = 32
 )
 
+// RetiredColumn carries FR-24.3's lifecycle marker on items and templates
+// alike: NULL while the row is active, an RFC3339 stamp once a delete was
+// answered by retiring the row instead of removing it. It is an ordinary
+// synced column — the marker has to reach every device, or a row is hidden
+// on the one that deleted it and present everywhere else.
+const RetiredColumn = "retired_at"
+
+// lifecycleTables names the two entities FR-24.3 governs. Everything else
+// blockingReferences knows about — a series, a traveler, a container —
+// keeps refusing its delete: those are not history the way a master item is,
+// and a retired traveler would be a person nobody can see attached to rows
+// everybody can.
+var lifecycleTables = map[string]bool{
+	TableItems:     true,
+	TableTemplates: true,
+}
+
 // The two template scopes (FR-27.1), named once: they are compared
 // against in the include rule, in the scope-switch guards and in the
 // schema's own CHECK, and a mistyped literal reads as "some other scope"
@@ -144,6 +161,10 @@ var syncableColumns = map[string]map[string]bool{
 		"trip_id", "source_item_id", "source_template_id", "name",
 		"weight_grams", "value_cents", "category_name", "quantity",
 		"packed_count", "state", "mode", "late_packer",
+		// FR-25.11j: the list the row was bought from. A client-chosen
+		// value like packer_user_id beside it — it records a decision the
+		// person made, not an identity claim, so stampActor leaves it alone.
+		"bought_from",
 		"assigned_traveler_id", "packer_user_id", "container_id",
 		"packing_now_by", "packing_now_at", "flag_unused", "flag_missing",
 		"outbound_packed",
@@ -184,13 +205,14 @@ var syncableColumns = map[string]map[string]bool{
 		"created_by",
 		"image_hash",
 		MarkColumn,
+		RetiredColumn,
 	),
 	// is_published stays in the schema but off this list: the publish gate
 	// is parked with the FR-1.6 MVP simplification (templates are shared
 	// instance-wide), and an unreadable column no client can set is the
 	// honest state until the stub's revisit trigger fires.
 	TableTemplates: toSet(
-		"owner_id", "name", "kind", MarkColumn,
+		"owner_id", "name", "kind", MarkColumn, RetiredColumn,
 	),
 	TableTemplateItems: toSet(
 		"template_id", "item_id", "quantity", "assignment",
@@ -468,6 +490,9 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID, userID string, m sync
 		return MutationResult{}, err
 	} else if blocked {
 		res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected, Reason: ReasonStillReferenced}
+		if res.Seq, err = relogRefused(ctx, tx, tripID, m, row); err != nil {
+			return MutationResult{}, err
+		}
 		return res, finalize(ctx, tx, res)
 	}
 
@@ -491,6 +516,9 @@ func (s *Store) ApplyMutation(ctx context.Context, tripID, userID string, m sync
 			// the outbox keeps retrying, wedging the whole partition behind
 			// the bad row. Same treatment as the master partition.
 			res := MutationResult{MutationID: m.MutationID, Outcome: sync.OutcomeRejected, Reason: ReasonConstraintViolated}
+			if res.Seq, err = relogRefused(ctx, tx, tripID, m, row); err != nil {
+				return MutationResult{}, err
+			}
 			return res, finalize(ctx, tx, res)
 		}
 		return MutationResult{}, err
@@ -753,6 +781,56 @@ func appendChangeLog(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutatio
 	seq, err := res.LastInsertId()
 	if err != nil {
 		return 0, fmt.Errorf("change_log seq: %w", err)
+	}
+	return seq, nil
+}
+
+// relogRefused re-delivers the row a refusal did *not* change, so the device
+// that pushed the refused mutation converges through its ordinary next pull
+// instead of keeping its optimistic copy forever (ADR-031, Sync-API §5).
+//
+// The entry's `deleted` flag is read from the server's own row rather than
+// from the mutation's op: a refused delete or update re-delivers the
+// snapshot, and a refused insert — for which there is no server row to
+// deliver — delivers a tombstone that drops the phantom. That is the whole
+// of the insert/update asymmetry, decided by what the server holds.
+//
+// It is deliberately not called for `out_of_scope`: the row is not this
+// partition's, and an entry for it here would hand the pusher a foreign
+// row's snapshot on the next pull (P-3). That one is repaired client-side.
+func relogRefused(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutation, row sync.Row) (int64, error) {
+	entry := sync.Mutation{Table: m.Table, ID: m.ID, HLC: m.HLC}
+	if row.Exists {
+		// The row's own clock, not the refused mutation's: the entry
+		// describes what the server holds, and nothing about it changed.
+		entry.HLC = row.HLC
+	}
+	seq, err := appendChangeLog(ctx, tx, tripID, entry, !row.Exists)
+	if err != nil {
+		return 0, err
+	}
+	if m.Op != sync.OpDelete || !row.Exists {
+		return seq, nil
+	}
+	return relogCascadeChildren(ctx, tx, tripID, m, seq)
+}
+
+// relogCascadeChildren names every child a delete of m would have taken,
+// alive, in the change log. A delete takes its children with it and the
+// client mirrors that cascade optimistically — so a row that survives the
+// delete, whether because it was refused (ADR-031) or because FR-24.3
+// retired it instead, comes back on that device with none of its children
+// unless they are re-logged too.
+func relogCascadeChildren(ctx context.Context, tx *sql.Tx, tripID any, m sync.Mutation, seq int64) (int64, error) {
+	children, err := cascadeChildren(ctx, tx, sync.Mutation{Table: m.Table, ID: m.ID, HLC: m.HLC}, true, true)
+	if err != nil {
+		return 0, err
+	}
+	for _, c := range children {
+		child := sync.Mutation{Table: c.table, ID: c.id, HLC: m.HLC}
+		if seq, err = appendChangeLog(ctx, tx, tripID, child, false); err != nil {
+			return 0, err
+		}
 	}
 	return seq, nil
 }

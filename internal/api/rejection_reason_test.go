@@ -14,28 +14,28 @@ import (
 // a constraint, a delete the data still depends on — arrived as a bare
 // `rejected`, so the client parked the mutation with nothing to tell anyone.
 //
-// The motivating case is FR-9.2's provenance: `trip_items.source_template_id`
-// has no ON DELETE clause on purpose, so a Vorlage that ever generated a trip
-// item can never be deleted. The user deletes the group in M7, the client
+// The motivating case is a series a trip still names: `trips.series_id` has
+// no ON DELETE clause on purpose. The user deletes the series, the client
 // removes it optimistically, the server keeps it, and the two diverge for
 // good — which nothing on screen could say while the refusal was wordless.
-func TestPush_RefusingToDeleteAReferencedTemplate_NamesTheReason(t *testing.T) {
+// (Master items and Vorlagen used to answer here too; FR-24.3 moved them onto
+// the retire branch, where the delete succeeds as a tombstone marker.)
+func TestPush_RefusingToDeleteAReferencedSeries_NamesTheReason(t *testing.T) {
 	srv, st := newTestServerWithStore(t)
 	if _, err := st.DB().Exec(
-		`INSERT INTO templates (id, name, kind, owner_id) VALUES ('tpl-ferien', 'Ferien', ?, ?)`,
-		store.KindTemplate, userA); err != nil {
-		t.Fatalf("seed template: %v", err)
+		`INSERT INTO trip_series (id, name, owner_id) VALUES ('ser-ferien', 'Ferien', ?)`,
+		userA); err != nil {
+		t.Fatalf("seed series: %v", err)
 	}
 	if _, err := st.DB().Exec(
-		`INSERT INTO trip_items (id, trip_id, name, source_template_id) VALUES ('ti-1', ?, 'Zahnbürste', 'tpl-ferien')`,
-		trip); err != nil {
-		t.Fatalf("seed trip item: %v", err)
+		`UPDATE trips SET series_id = 'ser-ferien' WHERE id = ?`, trip); err != nil {
+		t.Fatalf("attach series: %v", err)
 	}
 
 	body := map[string]any{"mutations": []any{
 		map[string]any{
-			"mutation_id": "mut-del", "op": "delete", "table": store.TableTemplates,
-			"id": "tpl-ferien", "hlc": "0000000002000-0000-bbbbbbbb",
+			"mutation_id": "mut-del", "op": "delete", "table": store.TableTripSeries,
+			"id": "ser-ferien", "hlc": "0000000002000-0000-bbbbbbbb",
 		},
 		// The counter-signal: an ordinary mutation in the same batch must
 		// come back with no reason at all, so "error is set" cannot be an
@@ -74,10 +74,10 @@ func TestPush_RefusingToDeleteAReferencedTemplate_NamesTheReason(t *testing.T) {
 	// The positive signal the assertion is made against: the server really
 	// did keep the row, so there is something to tell the user about.
 	var rows int
-	if err := st.DB().QueryRow(`SELECT count(*) FROM templates WHERE id = 'tpl-ferien'`).Scan(&rows); err != nil {
+	if err := st.DB().QueryRow(`SELECT count(*) FROM trip_series WHERE id = 'ser-ferien'`).Scan(&rows); err != nil {
 		t.Fatal(err)
 	}
 	if rows != 1 {
-		t.Errorf("template rows = %d, want the delete refused", rows)
+		t.Errorf("series rows = %d, want the delete refused", rows)
 	}
 }

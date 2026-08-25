@@ -38,7 +38,7 @@ Server-side: OIDC broker + first-party sessions (ADR-007), JIT user provisioning
 - **S4 — M14 has never been eyeballed with real proposals** (positive e2e written 2026-08-20; a rendered owner eyeball is still owed). E2E-M12-03's positive half is owed-but-unwritten.
 - **S5 — Docs gaps for the operator path:** no push/notifications page (HTTPS requirement, iOS install requirement, how to verify), no upgrade procedure ("export *before* pulling"), no backup cron/timer example, no IdP-startup-ordering note (server fail-fasts if the IdP loses the boot race), no "create your family's users in the IdP" walkthrough.
 
-**Deliberately out of the MVP** (specified, decided, do not start): FR-27.13 group-picker search, §3.28 item mark (emoji), FR-24.3 delete lifecycle, §3.26 calendar feed, North-Star phases, FR-27.8 usage history, FR-1.6 publish/fork. Also out: Capacitor native shell (ADR-006 stays planned — the PWA covers the vacation).
+**Deliberately out of the MVP** (specified, decided, do not start): FR-27.13 group-picker search, §3.28 item mark (emoji), FR-24.3 delete lifecycle (all three built since), §3.26 calendar feed, North-Star phases, FR-27.8 usage history, FR-1.6 publish/fork. Also out: Capacitor native shell (ADR-006 stays planned — the PWA covers the vacation).
 
 ## 4. Tracks — designed for parallel agents
 

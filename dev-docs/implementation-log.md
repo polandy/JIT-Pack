@@ -157,10 +157,18 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A second account arrives, and finds a claim nobody could revoke (2026-08-24)](#a-second-account-arrives-and-finds-a-claim-nobody-could-revoke-2026-08-24) — MVP-plan Track B step 2 / ADR-029: the mock-IdP `server` project. Four things the code cannot show: why a real Authelia was weighed and lost to a 250-line fixture, why the ordering of two processes is a design decision rather than a script detail, the defect the project found on its first run — a takeover that the loser's screen contradicted — and why the identity behind the fix cannot come from the token provider the rest of the client uses.
 - [A decade of packed trips, all reading zero (2026-08-25)](#a-decade-of-packed-trips-all-reading-zero-2026-08-25) — FR-2.3/ADR-033: M2 loads the partitions of the rows on screen and says *unknown* until they arrive. Four things the code cannot show: the option that is free for ever and was turned down anyway, the number that decided between loading everything and loading what is visible, the bug that only rendering could find, and the test that was right to fail in company.
 - [A device only ever got the first page (2026-08-25)](#a-device-only-ever-got-the-first-page-2026-08-25) — Sync-API §4: the pull ignored `has_more`. Four things the code cannot show: why every fixture in the suite was too small to catch it, why the obvious second half of the fix — remembering the cursor — made the app *emptier*, why the correct implementation was already in the repo and unused, and what found it in the end.
+- [A drain could land on top of a drain (2026-08-25)](#a-drain-could-land-on-top-of-a-drain-2026-08-25) — Sync-API §4: one drain per partition at a time. Three things the code cannot show: why the doubled traffic I thought I had measured was my own eyeball script rebooting the app, why the obvious guard — hand the running drain back to the late caller — silently loses a mutation, and why this only became worth fixing once the pull was paged.
 - [The restore could be run twice, and the manual said it could not (2026-08-24)](#the-restore-could-be-run-twice-and-the-manual-said-it-could-not-2026-08-24) — FR-18.4/ADR-030: an imported document is a second copy when its name matches, plus the year for a trip. Five things the code cannot show: the documentation that had described the item rule as if it were the whole rule, why the database constraint that looks like the obvious enforcement is the worst of the four options, why the trips were invisible to a view called `master`, how ADR-017's Vorlage exception was reversed by a measurement rather than an argument, and the cost the family's own data pays for the rule.
 - [The clock the client was told to read, and never received (2026-08-25)](#the-clock-the-client-was-told-to-read-and-never-received-2026-08-25) — a data-model review's sync half. Four things the code cannot show: how a rule implemented correctly on both sides never once ran, why a deleted trip's *master*-partition children are the tombstones that matter while its trip-partition ones need none, a review finding that was wrong and how far I built it before opening the citation, and why a connection-scoped pragma is not a schema rule.
 - [What a constraint costs when the outbox drops a refusal (2026-08-25)](#what-a-constraint-costs-when-the-outbox-drops-a-refusal-2026-08-25) — the same review's schema half. Four things the code cannot show: why the two-level rule was a two-step formality, the lens every candidate constraint was decided by and the two that failed it, why a per-owner unique name contradicted the FR above it, and the dead schema that was kept on purpose.
 - [A refusal that could not be read (2026-08-25)](#a-refusal-that-could-not-be-read-2026-08-25) — Sync-API §5 / FR-9.2. Four things the code cannot show: why the foreign key that started the finding was never the defect, why the reason is asked for instead of read out of the driver's error, why M7 does not pre-empt a delete it cannot judge, and the divergence this PR announces without closing.
+- [A purchase that could not be taken back (2026-08-25)](#a-purchase-that-could-not-be-taken-back-2026-08-25) — FR-25.11j, the review's last item. Three things the code cannot show: the column that was weighed and not added, why the reveal declines the persistence FR-25.18 would seem to hand it, and the round trip left open on purpose because the file that closes it belongs to somebody else.
+- [A refusal that only announced itself (2026-08-25)](#a-refusal-that-only-announced-itself-2026-08-25) — Sync-API §5 / ADR-031: the divergence the entry above left open. Four things the code cannot show: why a whole-partition resync scored well and still lost, why the insert/update asymmetry turned out to be the server's question and not the client's, the one refusal that must repair nothing, and the repair that came back empty and was only visible in a screenshot.
+- [A name that could only be refused by the server (2026-08-25)](#a-name-that-could-only-be-refused-by-the-server-2026-08-25) — FR-1.6 / FR-13.1: the mitigation the constraint owed. Four things the code cannot show: the one surface that could have adopted the existing row and deliberately does not, the rule that was already live for items in a single view, why the return type was the actual work, and how the diacritics question was settled.
+
+- [A delete that could only be refused](#a-delete-that-could-only-be-refused-2026-08-25) — FR-24.3 unparked: the refusal already held the discriminator; why the filtering keeps `itemList` complete; the rule written twice with only one copy allowed to be wrong; the usage endpoint designed and dropped.
+- [The restore was free, the name was not](#the-restore-was-free-the-name-was-not-2026-08-25) — FR-24.3 / ADR-033 / M23: the entry above closed by naming restore as owed, and this is the day after. Four things the code cannot show: the promise the FR made that the schema had already broken, why the collision is refused on the *client* when ADR-032 had just argued the opposite, the surface chosen against three that were rejected, and the defect only a rendered case found — twice, in one test.
+- [Two actor columns a client could still name (2026-08-25)](#two-actor-columns-a-client-could-still-name-2026-08-25) — invariant 3 / FR-4.2, FR-5.7. Three things the code cannot show: why an edit may not re-stamp the author it can no longer forge, why the obvious shape of the claim fix would have left every packed row claimed, and the evidence that decided which op a comment is allowed to be born from.
 
 ## Current state
 
@@ -6443,6 +6451,60 @@ data had been written *by* the browser that then displayed it, which is exactly
 why a decade of use had never asked the question. It is also what every second
 family device does on its first launch.
 
+
+## A drain could land on top of a drain (2026-08-25)
+
+`SyncOutbox.drain` pushes a partition's queue and then pulls it back. Nothing
+stopped two of them running at once, and most callers do not await it: the
+WebSocket's `master.changed` handler fires a `drainMaster()` and moves on, and
+so do four trip actions. Two overlapping drains pushed the same chunk twice —
+harmless, the server memoizes by `mutation_id` and answers `duplicate` — and
+pulled the same pages twice, which is the half that changed price.
+
+**Why it was worth fixing now and not before.** As long as a pull was one
+request, an overlap cost one extra request. Since the pull became a loop over
+pages (the fix a day earlier), an overlap costs the *whole partition*: on the
+family instance, 717 rows fetched a second time on the boot path. The defect is
+the same age as the outbox; only its price moved.
+
+**The doubled traffic I thought I had measured was my own script.** Verifying
+that day's paging fix against the real instance, I traced two full drains — four
+requests, `cursor=0` and `cursor=500` twice — and wrote it down as re-entrancy
+caught in the act. It was not. The trace script navigated with
+`page.goto('/tabs/trips')`, and a `goto` reloads the SPA: two page loads, one
+drain each, exactly as designed. Re-run with in-app navigation only, a load
+produces one drain and two requests. **A `goto` in an eyeball script is a reboot,
+and every boot-path request appears once per `goto`** — which makes any counting
+assertion built on one meaningless. The re-entrancy is real, but it is a latent
+hazard reachable from named call sites, not something the instance was observed
+doing; the fix is cheap enough that the distinction did not change the decision,
+only the sentence describing it.
+
+**The obvious guard is wrong, and a test says so.** The one-line version is to
+keep the running promise and hand it to any caller that arrives while it is open.
+That loses writes: `drain` works through the snapshot of the queue it took when
+it started, so a mutation enqueued a moment later is not in it. A caller that
+awaits the returned promise — `enqueueAndDrain` does — would be told its
+mutation had been sent while it had never left the device, and would sit in the
+queue until something else happened to drain the partition. So a late caller
+waits for a **further** drain instead, and every caller arriving during one
+drain shares that single follow-up. Written as coalescing first and mutated back
+to it afterwards: the case that catches it is
+*„still sends a mutation that was enqueued while a drain was running"*, and it is
+the only one of the seven that plain coalescing fails on a push path.
+
+Two smaller decisions in the same shape. The guard is released in a `finally`,
+not a `then`, because a guard a failed drain leaves standing would take the
+partition out of sync for the rest of the session — a worse failure than the
+double work it prevents. And the follow-up swallows the running drain's
+rejection before chaining: that failure belongs to the caller that started it,
+while the late caller gets the outcome of its own drain, which has not happened
+yet.
+
+**Not fixed, still true:** there are two paging implementations of this protocol
+rule — `SyncOutbox.drain` and `usePull.pullMasterAll`, the latter reachable only
+from the FR-18.7 command line — and the guard added here is the drain's alone.
+
 ## The clock the client was told to read, and never received (2026-08-25)
 
 A data-model review of `schema.sql` against the PRD, the Sync-API spec and
@@ -6660,6 +6722,359 @@ divergence itself is open, and the e2e case records it deliberately by ending
 on a second device that still finds the group. Undoing a parked mutation
 against the local store is a bigger mechanism than this PR, and it wants its
 own decision about what an optimistic write owes when it is refused.
+
+
+## A purchase that could not be taken back (2026-08-25)
+
+FR-25.11j, accepted 2026-08-07 and unbuilt since, was the last item of the
+data-model review. M6's check-off called `setMode(item, 'pack')`: the row left
+the shopping side by the same act that marked it done, and nothing recorded
+where it had gone. There was no *„Erledigte"* to find it in, and no way back.
+
+**A bought-at time and a buyer were weighed, and not added.** They are the
+obvious neighbours of a record — `packed_at` and `packed_by_user_id` sit right
+there — and the FR asks for neither. The BUY_LOCAL half already has both for
+free: being bought at the destination *is* being packed, so the ordinary
+FR-25.17 path stamps them. The BUY_BEFORE half is not a packing act, so a
+`bought_at` there would be a column no screen renders and no rule reads —
+which is precisely what FR-25.9 removed a field for. The cost of declining is
+that "who bought the coffee" is unanswerable for a purchase before departure;
+the moment a screen asks, the column is one line and its own FR.
+
+**The reveal declines the persistence FR-25.18 would seem to hand it.** M4's
+*Erledigte* switch is remembered per trip for the session, and copying that
+here looked like consistency. FR-25.18's own argument is against it: it is
+about not re-picking a filter of **four facet values**, and about a filter that
+*hides* rows being dangerous to forget. M6's reveal is one tap whose off-state
+is the safe one — and the M6 **tab** is not remembered at all, so a restored
+reveal would open on a list the reader did not choose. The switch that looks
+the same is not the same control.
+
+**The round trip is open on purpose.** The Local Mode backup (NFR-4.11) is
+written and read through the portable format, and `PortableItem` has no
+`bought_from`, so a backup and restore loses which list a row was bought from
+— the same shape ADR-024 paid for with status, tags and the mark. Half the fix
+is one field in `client/src/domain/portable.ts`; the other half is in
+`portableImport.ts`, which another session holds. Writing only the half I own
+would put a field into the file that nothing reads back, which looks finished
+and is worse than the gap. It is named in FR-25.11j instead.
+
+One thing the diff does show but is worth the pointer: making `bought_from`
+required on `TripItem` turned eleven test fixtures red at once, and that is the
+mechanism #169 asked for — an optional field is the one that gets forgotten at
+a call site, and only the compiler asks every one of them.
+
+## A refusal that only announced itself (2026-08-25)
+
+The entry above this one ends by naming what it did not do: a refused mutation
+was given a reason and put on screen, and the row it refused stayed exactly as
+the device had optimistically drawn it. That is the gap this closes (ADR-031),
+and it was never about the delete that motivated it — an authorization denial,
+a scope refusal, a template rule and a constraint all leave the same wrong row
+behind.
+
+**A plain pull cannot repair it, and that is the whole design problem.** The
+server row did not change, so its `change_log` entry sits behind the client's
+cursor; the cursor is an exclusive lower bound that only moves forward, so the
+row is never offered again. Every candidate solution is an answer to that one
+sentence, and the sentence is what makes the obvious one — "just pull" — wrong.
+
+**The option that scored second was the one I most wanted to reject on sight.**
+Resyncing the partition from cursor 0 after a refusal needs no server change,
+no new endpoint and no carve-outs, and it repairs phantom inserts for free. It
+lost on a single property: it rebuilds the store from the server, which erases
+the optimistic rows of everything still sitting in the outbox. On a phone that
+has been off wifi since morning that is the entire day's packing, and it would
+be destroyed by the mechanism whose job is to protect it. A high score and a
+disqualifying failure mode is worth writing down, because the matrix on its own
+reads as if it were close.
+
+**The insert/update asymmetry turned out to belong to the server.** The brief
+framed it as a client problem — a rejected insert has no server row, so the
+client has to know it was an insert and drop the row. The client's `op` is a
+poor witness (another device may have deleted the row meanwhile, and the outbox
+entry cannot know), but the server does not need a witness at all: at the
+moment it refuses, it holds the row or it does not. So the repair entry's
+`deleted` flag is read from `row.Exists`, and one mechanism covers both cases —
+a refused delete or update re-delivers the snapshot, a refused insert delivers
+a tombstone that drops the phantom. The asymmetry did not need a second code
+path; it needed a different question.
+
+**`out_of_scope` must repair nothing, and the reason is the leak the refusal
+exists to prevent.** That reason means the row belongs to another trip. Writing
+a `change_log` entry for it under *this* trip is precisely how the partition
+reaches into another one: the next pull would hand the pusher the foreign row's
+whole snapshot — the failure `belongsToTrip` was added for. So it is the one
+refusal repaired client-side, and it is repairable there without guessing,
+because the reason is the answer: a row this partition may not touch is a row
+it must not keep. Two mechanisms, split by a value that already travels the
+wire.
+
+**The repair came back empty, and only a screenshot said so.** With the
+server-side half green — a Go test asserting the pull now carries the template,
+an e2e asserting the group is visible in M7 again — the rendered screen showed
+the Vorlage back in the list reading „0 items". The client mirrors the server's
+cascade when it deletes a template: the positions leave the store with the
+parent, optimistically. Re-logging the row the mutation named brought back a
+group with nothing in it, and **both tests were green against that**, because
+neither asked what the row contained. The store now re-logs the rows the
+cascade would have taken as well, and the e2e counts the positions instead of
+asserting visibility. It is the same lesson as the M4 card that painted itself
+the colour of the page: a repair can satisfy every assertion and still not be a
+repair, and only a rendered pixel can tell you.
+
+**Local Mode is not a special case, and saying so is the point.** It has no
+server, no outbox and no push, so nothing can be refused there: its optimistic
+rows are the only copy that exists and cannot diverge from a second one. The
+repair path is not inert code in that mode — it is not constructed at all,
+because the outbox that owns it is not. What *can* fail on a Local Mode write
+is the write to the device, and that already has its own signal in G-2. A mode
+question with the answer "the question does not arise here" is worth writing
+out, because the alternative is a reader later assuming it was forgotten.
+
+## A name that could only be refused by the server (2026-08-25)
+
+FR-1.6 and FR-13.1, the mitigation the entry *„What a constraint costs when the
+outbox drops a refusal"* left owed. Four things the diff does not say.
+
+**The wizard was the one place that could have adopted the existing row, and
+deliberately does not.** Every other surface either has nothing to hand over
+(M21 folds a trip; the fold is not an edit of a template that happens to share
+the name) or hands it over openly (M7's *Öffnen*, M8's picker including the
+group). M3's *neue Serie* is different: the trip is on its way somewhere, the
+existing series is in the select directly above the field, and attaching to it
+would be one line of code and no interruption at all. It was written that way
+first and then taken out. A series is the anchor a household's history hangs
+on, and silently deciding *whose* series a trip joins is a choice the wizard
+does not have the standing to make on the user's behalf — particularly when the
+name matched only by capitals. The note names the series and the step waits.
+
+**The item path was already doing this, and that is why nobody noticed.**
+M8's quick-add has always resolved a typed name against the master items and
+reused the row it finds (`onQuickAdd`, a lowercased comparison). So the *item*
+half of FR-16.3 has been live since the composer was built, and the template
+half looked like it worked because nobody had two templates of one name yet.
+The rule was in the codebase, in one view, reachable only through a Vue
+composable — the shape invariant 4 warns about. It now lives in
+`domain/nameCollision.ts` where the wizard, M16, M21 and both template screens
+read the same one.
+
+**Changing the return type was the work.** `createTemplate` and `createSeries`
+returned `string`; making them return `string | null` turned "which paths write
+a name?" from a grep into a compile error, and the compiler produced the list —
+including `createTemplateFromTrip`, which creates a group *and* a template and
+had to grow its check **above its first write**, since it writes master items
+and group updates before either. The enumeration is worth more than the guard:
+a grep for `createTemplate` would have found the same call sites, and would
+have gone on finding nothing the next time one was added.
+
+**A check stricter than the constraint is a false alarm; a looser one still
+loses the push.** That framing is what settled the diacritics question. Folding
+case is prevention — the database would hold "Sommer" and "sommer", and no
+screen could tell them apart. Folding diacritics is not: "Frühling" and
+"Fruhling" are two names `UNIQUE (name)` accepts, so refusing the second one
+takes away a name with nothing the user can do about it. FR-27.13's picker
+search folds them because a wrong hit in a search costs a glance; here a hit
+blocks a write. **No ADR is owed** — the tradeoff was decided where the
+constraint that causes it lives, in FR-1.6's own stub, and an ADR restating one
+FR's paragraph is a second place for it to go stale.
+
+## A delete that could only be refused (2026-08-25)
+
+FR-24.3 had been parked since the tag model was unparked without it, and the note added
+to it that morning was already the whole diagnosis: what runs today is *a third
+behaviour*, neither of the FR's two — the delete is refused. Unparking it was therefore
+not "build a tombstone system"; it was turning one `if` from a decline into a choice. The
+discriminator was already there, built for the refusal itself: `blockingReferences` names,
+per table, the references that keep a row alive, and `stillReferenced` asks it before the
+delete is attempted. The FR's two branches are exactly its two answers.
+
+**The half nobody had priced was the filtering, and its two directions are not
+symmetric.** There are 37 non-test call sites of `masterStore.itemList` and 36 of
+`templateList`. A retired row that turns up in a picker is annoying. A retired row that is
+*missing* is data loss, and two of the sites are the ones that would lose it: `resolve()`
+expands a Vorlage's includes, so filtering there empties a generated trip; and
+`compositionSource()` feeds M7's export, the settings export **and** the NFR-4.11 backup,
+so filtering there costs a Local Mode device its only copy. The decision that follows is
+in ADR-032: `itemList` and `templateList` keep meaning *everything*, and the display
+surfaces opt in to `activeItemList` / `activeTemplateList`. It is more edits, not fewer —
+but it makes the destructive direction the one an author has to choose, rather than the
+one every future call site inherits by writing the obvious thing.
+
+**The rule is written twice on purpose, and only one copy is allowed to be wrong.** The
+complete reference count exists only where all the data does: on the server in Server
+Mode, on the device in Local Mode, which has no server at all. So the decision cannot live
+only on the server (invariant 5 would lose the feature) and cannot live only on the client
+— the client holds the trip partitions it has *opened*, never every trip's, so it is blind
+to precisely the FR-9.2 case the feature is about. The shape that resolves this is not
+discipline but asymmetry: the client's only possible disagreement with the server is
+"remove" where the server retires, and the server answers that by retiring anyway, so the
+pull the device already makes corrects it. A wrong client answer costs a wrong sentence,
+never a wrong row. The client-only variant was considered and is the shape the UI-Spec had
+already rejected for M7 nine days earlier — *"a pre-check would call the delete safe in
+exactly the case that then fails."*
+
+**A usage endpoint was designed and then not built.** M10 has to state the outcome before
+the confirm, and in Server Mode the client's count can be short — so a
+`GET /master/items/{id}/usage` was the obvious answer, and it is Option B in the ADR. It
+was dropped because it buys the case it cannot serve: offline, the dialog is back to
+hedging, and putting a network round-trip inside a delete confirm is the one place an
+offline-first app should not. The hedge is a third sentence instead, and it names the
+condition rather than apologising for it.
+
+**M10 had no delete control at all.** `orchestrator.deleteMasterItem` existed and had zero
+non-test callers; M9's swipe-delete was specified in July and never built. So "M10 states
+which deletion will happen before the user confirms" had nothing to state it on, and the
+FR's UI half was a card to write rather than a sentence to add. The swipe stays proposed
+and the UI-Spec now says why: once the card had to carry a count *and* a reason, a swipe
+reveal has room for a label and not for a reason.
+
+**Two consequences of the marker that the FR did not mention.**
+The first is uniqueness. `items.name` and `templates.name` are UNIQUE instance-wide, and a
+retired row would go on holding a name nothing renders — so deleting an item and creating
+it again, which is what a physical delete used to allow, would start failing for a reason
+no screen could show. Both became partial unique indexes over `retired_at IS NULL`, and
+the client's `templateNameCollision` moved onto the active list to match. The second is
+ADR-031's cascade repair: a retire is a delete the client has *already drawn*, positions
+and all, so the same children have to be re-logged alive. That was found by reading
+ADR-031 rather than by a failing test, and the test that pins it now was written after —
+the honest order.
+
+**What the refusal keeps.** FR-24.3 names master items and Vorlagen. `blockingReferences`
+also lists series, travelers and containers, and those keep refusing: they are not history
+the way a master item is, and a retired traveler would be a person nobody can see attached
+to rows everybody can. That left four tests asserting the refusal *through* a template or
+an item — they moved onto a series, which is the ground the refusal still governs, so the
+`still_referenced` machinery kept its coverage instead of losing it to the feature that
+replaced one of its cases.
+
+**Restore is owed, and saying so is the decision.** The marker is an ordinary synced field,
+so clearing it is one mutation — a Go test asserts exactly that, and it passes. What does
+not exist is any surface that *lists* retired rows, and inventing one (a filter chip on
+M9, a section in settings, its own screen) is a UI round with no rendered evidence behind
+it. The mitigating fact, and the reason this is acceptable rather than a trap: the retire
+is announced before it happens, in the card and again in the confirm, instead of being
+discovered afterwards.
+
+## The restore was free, the name was not (2026-08-25)
+
+The entry above closed by writing down that restore was owed, and naming that as the
+decision. This is the day after, and the first thing building it found is that the
+sentence FR-24.3 had carried since the concept phase — *"a future restore affordance is
+free, since logically-deleted items retain everything"* — was true about the data and
+false about the name, and had been false since the day before, when the same FR made both
+unique indexes partial.
+
+**The FR contradicted itself and nothing noticed, because the two halves were written
+apart.** `retired_at` is an ordinary synced column, so clearing it really is one mutation:
+four Go tests written first against the unchanged server all passed on the first run, which
+is the honest report — the server needed no change and these pin a claim rather than drive
+one. But `idx_items_active_name` ranges over `retired_at IS NULL` deliberately, so retiring
+*frees the name*, and the whole reason that was chosen — re-creating what you just deleted
+is the common case — is precisely the sequence that then makes a restore impossible. The
+free restore and the freed name were two bullets under one FR, each right on its own. What
+that cost is a whole ADR (033) for a feature described as costing nothing.
+
+**The collision is answered on the client, which is the opposite of what ADR-032 had just
+decided — and the difference is which question is being asked.** ADR-032 made the client's
+FR-24.3 answer *advisory* because a reference count needs trip partitions the device does
+not hold. A name does not: the master partition is pulled whole, so every device knows every
+active name exactly, in every mode. This is the first FR-24.3 rule the client is
+authoritative about, and it has to be, because Local Mode has no push to be refused by. The
+alternative was to let the server's `constraint_violated` do it — and on screen that is a
+row that comes back and vanishes a drain later, ADR-031's repair doing its job on a refusal
+that was predictable before the tap. The server still refuses it; nobody is meant to get
+there.
+
+**The surface was chosen against three others, and the reason is the same in each case.**
+A filter chip on M9's tag axis puts hidden rows one tap from browsing, which is the opposite
+of what hiding them was for — and a lifecycle state is not a tag, so the axis would then mean
+two things. A folded section at the foot of M9 *and* M7 is two surfaces for one rule, in the
+screen FR-24.4 had just been made lean. A `?retired=1` mode of M9 inherits a grouping, a tag
+axis, a property sheet and a FAB, none of which mean anything for a list whose only actions
+are restore and delete-for-good. M23 sits beside the conflict-log pointer in M17 because it
+is the same *kind* of screen: corrective, opened after something went wrong, never during
+work. That is a classification the code cannot express — `masterListFiltering.spec.ts` now
+carries a third entry for it, because the existing split (complete lists resolve, active
+lists offer) had no room for a surface whose subject *is* the retired row.
+
+**Rendering it found the defect twice, in one test, and neither was visible from the code.**
+The first run of the collision case failed on a count, and the page snapshot showed why: the
+restored item was named **"K"**. An `ion-alert` input had taken the first keystroke of
+`pressSequentially` and dropped the rest — and every assertion in the case was still
+satisfiable by it, because one row is one row whatever it is called. The input's value is
+asserted before the button is clicked now. Underneath that was a second one shared by both
+cases: `page.goto` after a Local Mode write reloads before the write reaches IndexedDB, so
+the restore was there and then not. The assertion that had looked like a settled signal —
+the row leaving M23 — reports the *optimistic* state and says nothing about durability. The
+sync indicator is the seam that exists for this, and every reload in the file waits on it.
+
+**Delete-for-good was built rather than named as owed, for a reason worth stating.** A
+retired row whose last reference is gone is unreferenced, so FR-24.3's own second branch
+applies to it — but with no surface offering that branch, a retire would have been permanent
+by omission, which is not what a logical delete is supposed to mean. It is offered *only*
+where the delete would actually be physical: a button that silently re-retires the row is
+worse than no button, and in Server Mode the same three-form hedge M10 carries applies here
+unchanged.
+## Two actor columns a client could still name (2026-08-25)
+
+Invariant 3 says the server stamps every actor column itself. Two columns
+were outside that promise, both found by reading the data model rather than
+by a failing test: `comments.author_id` and `trip_items.packing_now_by`.
+Neither is exotic — an ordinary trip member, authenticated and authorized for
+the trip, could push a mutation naming somebody else.
+
+**An edit may not re-stamp the author it can no longer forge.** `author_id`
+was stamped on `insert` and left alone on every other op, so an `upsert`
+could rewrite it — and the whitelist in `internal/store` lets the column
+through. The repair that suggests itself is to stamp the pusher on every op,
+the way `packed_by_user_id` is handled. That is the *opposite* defect: the
+comment surfaces push upserts for `task_state` and `is_task` (FR-7.2's
+"flag as task", the todo resolve/reopen), so flagging somebody else's comment
+would quietly transfer its authorship to whoever tapped. Authorship is
+decided once, at the moment the row comes into being, so the field is
+stripped from every non-insert op instead: an edit changes what a comment
+says and never who said it, and the stored value survives because a partial
+upsert only writes the fields it carries.
+
+That leaves the case the strip cannot serve: an `upsert` that *creates* a
+comment has no author to fall back on. The client never sends one — every
+comment is born from `addComment` or `addTodo`, both `insert` — so rather
+than invent a rule for a shape no product surface produces, the push is
+allowed to fall onto the `NOT NULL` column, where `ApplyMutation` already
+turns a constraint violation into a `rejected` outcome. A refusal the outbox
+can park is the correct answer for a mutation nothing legitimate emits; the
+alternative would have been to attribute it to the pusher, which is the
+forgery the whole change is about.
+
+**The obvious shape of the claim fix would have left every packed row
+claimed.** `packing_now_by` was written only inside the `state`-driven
+switch, so a mutation carrying the column and no `state` never met the code
+that owns it — the holder that FR-5.7's takeover confirms against and M4's
+row names was the client's to choose. Stripping it unconditionally at the top
+of the branch, the way `packed_by_user_id` is stripped, is only half a fix,
+and the half that was missing is invisible in the server: the *release* of a
+claim was the client nulling the column (`packItem` and `releasePackingNow`
+send `packing_now_by: null`), and the switch's `packed` branch never cleared
+it. Strip the column and trust that path, and packing a row would have left
+its claim standing forever — a G-3 lock nothing could end.
+
+So the claim is now derived rather than accepted: the claim *is* the state
+(FR-5.3), so every branch of the switch writes both `packing_now_by` and
+`packing_now_at` — the pusher when the state becomes `packing_now`, `NULL`
+for every other state — and a mutation with no state at all leaves an
+existing claim untouched. The cost accepted with it: a state-carrying
+mutation that used to leave a claim alone now ends it, `restoreSkipped`
+included. That is the coherent reading — a holder on a row whose state is not
+`packing_now` is a claim nobody can see — and it is what the client already
+documented itself as doing.
+
+**A clock is not an identity claim, and stays one.** `packing_now_at` is
+stripped with the holder but handed back through the same helper
+`packed_at` uses, so a client may still name the moment it tapped (packing
+happens offline; the push can land days later) while an unparseable value is
+replaced by the server's own time. The helper was called `packedAt` and is
+now `tapTime`, because it serves both stamps.
 
 ## A decade of packed trips, all reading zero (2026-08-25)
 

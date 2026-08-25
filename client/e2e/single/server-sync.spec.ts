@@ -9,6 +9,7 @@ import {
   createTemplate,
   createTripFollowingGroup,
   createTripViaWizard,
+  expectTripOpen,
   visiblePage,
 } from '../fixtures'
 import { bootPage, packItem, quickAddItem, uniq, wsSubscribed } from '../serverMode'
@@ -1034,22 +1035,27 @@ test.describe('Single-User backend sync @single', () => {
   })
 
   /**
-   * E2E-G2-06 (FR-9.2, Sync-API §5) — a refusal the user can read.
+   * E2E-G2-11 (FR-24.3, FR-9.2, Sync-API §5) — the delete a trip's provenance
+   * used to forbid.
    *
    * `trip_items.source_template_id` carries no ON DELETE clause on purpose:
-   * an archived trip must keep knowing which Vorlage its rows came from. So
-   * deleting a group a trip already used is refused — correctly — and until
-   * the reason existed the refusal was a silent one: the client removed the
-   * row optimistically, the server kept it, and the only trace anywhere was
-   * a number in the G-2 sheet.
+   * an archived trip must keep knowing which Vorlage its rows came from. Until
+   * FR-24.3 that made the delete a **refusal**, and this case asserted the
+   * divergence it left behind — the row gone here, still on the server, and
+   * only the G-2 sheet knowing. Since 2026-08-25 the same reference decides
+   * instead of declining: the Vorlage is retired, so the delete is *accepted*
+   * and there is nothing to park.
    *
    * The whole path runs here because only a real jitpackd produces the
-   * refusal: the client cannot pre-empt it (it holds the trip partitions it
-   * has opened, never every trip's).
+   * decision: the client cannot pre-empt it (it holds the trip partitions it
+   * has opened, never every trip's), so its own guess is advisory (ADR-032).
    */
-  test('a group a trip still uses cannot be deleted, and G-2 says why', async ({ browser }) => {
+  test('a group a trip still uses is retired, not refused, and every device agrees', async ({
+    browser,
+  }) => {
     const id = uniq()
     const group = `Kulturbeutel-${id}`
+    const survivor = `Werkzeug-${id}`
     const trip = `Samedan ${id}`
 
     const ctx = await browser.newContext()
@@ -1057,47 +1063,134 @@ test.describe('Single-User backend sync @single', () => {
     await createTemplate(page, 'group', group)
     await addPosition(page, `Zahnbürste-${id}`)
     await backToTemplateList(page)
+    // A second group nothing will touch. It is what makes the fresh device's
+    // "the retired one is absent" an outcome rather than a device that has
+    // not pulled yet — an empty list is equally consistent with both.
+    await createTemplate(page, 'group', survivor)
+    await addPosition(page, `Zange-${id}`)
+    await backToTemplateList(page)
     await createTripFollowingGroup(page, trip, group)
 
-    const indicator = page.getByTestId('sync-indicator')
-    await expect(indicator).toHaveAttribute('data-state', 'synced')
+    await expect(page.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+    await ctx.close()
+
+    // **A device that never opened the trip** does the deleting, which is the
+    // whole point: its own count is 0, so it sends a physical delete, and the
+    // decision that follows is the server's alone (ADR-032). Doing it on the
+    // device that just built the trip would exercise the client's guess.
+    const ctxB = await browser.newContext()
+    const pageB = await bootPage(ctxB, '/tabs/templates')
+    const indicator = pageB.getByTestId('sync-indicator')
+    await visiblePage(pageB).getByTestId('m7-scope-group').click()
 
     // M7's own guard (FR-27.6) covers a group another Vorlage includes; a
     // group a *trip* used is invisible to it, so the delete goes out.
-    await page.goto('/tabs/templates')
-    await visiblePage(page).getByTestId('m7-scope-group').click()
-    const row = visiblePage(page).locator('ion-item', { hasText: group })
+    const row = visiblePage(pageB).locator('ion-item', { hasText: group })
     await expect(row).toBeVisible()
     await row.dispatchEvent('contextmenu')
-    const menu = page.locator('ion-action-sheet')
+    const menu = pageB.locator('ion-action-sheet')
     await expect(menu).toBeVisible()
     await menu.getByRole('button', { name: 'Delete' }).click()
-    const confirm = page.locator('ion-alert')
+    const confirm = pageB.locator('ion-alert')
     await expect(confirm).toBeVisible()
     await confirm.getByRole('button', { name: 'Delete' }).click()
 
-    // The divergence itself: the row is gone from this device and the push
-    // has been answered — the client believed a delete the server refused.
-    await expect(visiblePage(page).locator('ion-item', { hasText: group })).toHaveCount(0)
+    await expect(visiblePage(pageB).locator('ion-item', { hasText: group })).toHaveCount(0)
     await expect(indicator).toHaveAttribute('data-state', 'synced')
 
+    // Nothing was refused, so nothing is parked and the sheet says so. This
+    // is the assertion the old case made in reverse, and it is the whole
+    // behaviour change — a parked count renders whenever there is one, so
+    // its absence is a rendered outcome rather than an element that never
+    // existed (the hint beside it is the positive signal that the sheet is
+    // the sheet).
     await indicator.click()
-    const detail = page.getByTestId('sync-detail-sheet')
+    const detail = pageB.getByTestId('sync-detail-sheet')
     await expect(detail).toBeVisible()
-    await expect(detail.getByTestId('sync-detail-parked')).toContainText('1')
-    await expect(detail.getByTestId('sync-detail-parked-reason')).toContainText(
-      'Other data still refers to it',
-    )
-    await page.getByTestId('sync-detail-close').click()
+    await expect(detail.getByTestId('sync-detail-parked')).toHaveCount(0)
+    await expect(detail.getByTestId('sync-detail-explain')).toBeVisible()
+    await pageB.getByTestId('sync-detail-close').click()
 
-    // The positive signal the sheet is telling the truth about: a device
-    // that never saw the delete still finds the group on the server.
+    // And the server agrees rather than this device having diverged: a third
+    // device, which saw neither the trip nor the delete, does not find the
+    // group either.
     const ctxFresh = await browser.newContext()
     const pageFresh = await bootPage(ctxFresh, '/tabs/templates')
     await visiblePage(pageFresh).getByTestId('m7-scope-group').click()
-    await expect(visiblePage(pageFresh).locator('ion-item', { hasText: group })).toBeVisible()
+    // The untouched group arriving is the settled signal: the master pull
+    // has landed, so the other one's absence is what the server sent.
+    await expect(visiblePage(pageFresh).locator('ion-item', { hasText: survivor })).toBeVisible()
+    await expect(visiblePage(pageFresh).locator('ion-item', { hasText: group })).toHaveCount(0)
 
+    await ctxB.close()
+    await ctxFresh.close()
+  })
+
+  /**
+   * E2E-G2-12 (FR-24.3, FR-9.2, ADR-031) — what the retire exists to protect.
+   *
+   * The retire is only worth doing if the thing the refusal guarded actually
+   * survives it. That is the trip: its rows keep naming a Vorlage the user
+   * deleted, so they keep their provenance, their name and their count.
+   *
+   * This case previously asserted ADR-031's *refusal* repair — the row coming
+   * back on the device that removed it. FR-24.3 removed the only UI path to a
+   * refusal (a series has no delete control, and container and traveler
+   * deletes unassign their rows first), so that half is asserted where it is
+   * still reachable: `store/rejection_repair_test.go` for the re-log, and
+   * `composables/__tests__/rejectionRepair.spec.ts` for the toast, the parked
+   * reason and the repaired row. The cascade half of the same mechanism — a
+   * surviving row bringing its children back — runs on the retire path here
+   * and in `TestApplyMasterMutation_RetiringATemplate_KeepsAndRelogsItsPositions_FR24_3`.
+   */
+  test('a trip keeps its rows when the group they came from is retired', async ({ browser }) => {
+    const id = uniq()
+    const group = `Waschbeutel-${id}`
+    const item = `Seife-${id}`
+    const trip = `Sils ${id}`
+
+    const ctx = await browser.newContext()
+    const page = await bootPage(ctx, '/tabs/templates')
+    await createTemplate(page, 'group', group)
+    await addPosition(page, item)
+    await backToTemplateList(page)
+    const tripPath = await createTripFollowingGroup(page, trip, group)
+
+    await expect(page.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+    // The premise, rendered before it is depended on.
+    await expect(visiblePage(page).getByText(item)).toBeVisible()
     await ctx.close()
+
+    // Deleted from a device that never opened the trip, so the server is
+    // what decides (ADR-032) — the same setup as E2E-G2-11.
+    const ctxB = await browser.newContext()
+    const pageB = await bootPage(ctxB, '/tabs/templates')
+    await visiblePage(pageB).getByTestId('m7-scope-group').click()
+    const row = visiblePage(pageB).locator('ion-item', { hasText: group })
+    await expect(row).toBeVisible()
+    await row.dispatchEvent('contextmenu')
+    const menu = pageB.locator('ion-action-sheet')
+    await expect(menu).toBeVisible()
+    await menu.getByRole('button', { name: 'Delete' }).click()
+    const confirm = pageB.locator('ion-alert')
+    await expect(confirm).toBeVisible()
+    await confirm.getByRole('button', { name: 'Delete' }).click()
+    await expect(visiblePage(pageB).locator('ion-item', { hasText: group })).toHaveCount(0)
+    // *After* the drain, not only optimistically: this is what tells a retire
+    // from the refusal it replaced, because ADR-031's repair re-logs a refused
+    // row and the ordinary pull would have put it straight back on this list.
+    await expect(pageB.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'synced')
+    await expect(visiblePage(pageB).locator('ion-item', { hasText: group })).toHaveCount(0)
+
+    // On a device that never saw any of it: the trip is there with its row,
+    // read from the server. A physical delete would have taken the trip item
+    // with it — or been refused — and either way this line would fail.
+    const ctxFresh = await browser.newContext()
+    const pageFresh = await bootPage(ctxFresh, tripPath)
+    await expectTripOpen(pageFresh, trip)
+    await expect(visiblePage(pageFresh).getByText(item)).toBeVisible()
+
+    await ctxB.close()
     await ctxFresh.close()
   })
 

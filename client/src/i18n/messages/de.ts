@@ -80,6 +80,8 @@ export const de: Record<keyof typeof en, string> = {
     'Der Server hat {n} Änderung abgelehnt | Der Server hat {n} Änderungen abgelehnt',
   'sync.detail.parkedHint':
     'Sie wurden aus der Warteschlange genommen, damit der Rest rausgeht, und bleiben auf diesem Gerät. Erneut versucht werden sie nicht.',
+  'sync.rejectionToast':
+    'Der Server hat {n} Änderung abgelehnt — sie wurde zurückgenommen | Der Server hat {n} Änderungen abgelehnt — sie wurden zurückgenommen',
   'sync.detail.rejected.notAuthorized': 'Du darfst diese Änderung nicht machen.',
   'sync.detail.rejected.outOfScope':
     'Sie nannte eine andere Reise als die, für die sie gesendet wurde.',
@@ -217,6 +219,11 @@ export const de: Record<keyof typeof en, string> = {
   'templates.import': 'Vorlage aus Datei importieren',
   'templates.rename': 'Umbenennen',
   'templates.deleteConfirm': '„{name}“ löschen? Bereits erzeugte Reisen behalten ihre Einträge.',
+  'templates.deleteRetire':
+    'Sie wird ausgeblendet, nicht entfernt: die daraus erzeugten Reisen zeigen weiter, woher ihre Sachen kommen.',
+  'templates.deleteRemove': 'Keine Reise hat sie verwendet — sie wird endgültig entfernt.',
+  'templates.deleteRemoveMaybe':
+    'Auf diesem Gerät hat keine Reise sie verwendet, sie wird also endgültig entfernt. Wurde eine Reise daraus erzeugt, die dieses Gerät noch nicht geöffnet hat, wird sie stattdessen nur ausgeblendet.',
   'templates.includedBlocked': 'Wird in „{name}“ verwendet — dort zuerst entfernen.',
 
   // M8 Vorlagen-Editor (§3.27, FR-27.6/27.7).
@@ -258,6 +265,15 @@ export const de: Record<keyof typeof en, string> = {
   'templates.addToTemplate': 'Zur Vorlage hinzufügen',
   'templates.duplicate': '„{name}“ ist schon drin — nicht doppelt',
   'templates.added': '„{name}“ hinzugefügt',
+  // FR-1.6/FR-13.1: templates and series are keyed by their name across the
+  // whole instance, so the sentence names what holds it and in which scope.
+  'templates.nameTakenTemplate': 'Die Vorlage „{name}“ gibt es schon.',
+  'templates.nameTakenGroup': 'Die Gruppe „{name}“ gibt es schon.',
+  'templates.nameTakenOpen': 'Öffnen',
+  'templates.renameTaken': 'Der Name „{name}“ ist schon vergeben.',
+  'templates.groupExists': '„{name}“ gibt es schon — eingebunden',
+  'templates.groupNameIsTemplate':
+    'Diesen Namen trägt schon eine Vorlage — Vorlagen und Gruppen teilen sich die Namen.',
   'templates.resolvedCount': '{n} Artikel aufgelöst | {n} Artikel aufgelöst',
   'templates.ownPositionCount': '{n} eigene Position | {n} eigene Positionen',
   'templates.mergeMax': '{name} nur {n}× — in {groups}',
@@ -353,6 +369,14 @@ export const de: Record<keyof typeof en, string> = {
   'items.editor.dependencyCycle': 'Das schlösse einen Kreis: {path}.',
   'items.editor.companions': 'Begleitartikel',
   'items.editor.companionsHint': 'Diese Artikel hängen von {name} ab:',
+  'items.editor.delete': 'Artikel löschen',
+  'items.editor.deleteUsage': 'An {n} Stelle verwendet | An {n} Stellen verwendet',
+  'items.editor.deleteRetire':
+    'Er wird ausgeblendet, nicht entfernt: abgeschlossene Reisen und die Auswertung lesen ihn weiter.',
+  'items.editor.deleteRemove': 'Nichts verwendet ihn — er wird endgültig entfernt.',
+  'items.editor.deleteRemoveMaybe':
+    'Auf diesem Gerät verwendet ihn nichts, er wird also endgültig entfernt. Verwendet ihn eine Reise, die dieses Gerät noch nicht geöffnet hat, wird er stattdessen nur ausgeblendet.',
+  'items.editor.deleteConfirm': '„{name}“ löschen?',
   'items.editor.unknownItem': 'Unbekannter Artikel',
 
   // M5 Artikel-Detail.
@@ -457,6 +481,7 @@ export const de: Record<keyof typeof en, string> = {
   'wizard.seriesNew': 'Neue Serie…',
   'wizard.seriesName': 'Name der Serie',
   'wizard.seriesNamePlaceholder': 'z. B. Samedan Sommer',
+  'wizard.seriesNameTaken': 'Die Serie „{name}“ gibt es schon — wähle sie oben aus.',
   'wizard.sectionAttributes': 'Merkmale',
   'wizard.season': 'Jahreszeit',
   'wizard.transport': 'Transport',
@@ -548,6 +573,33 @@ export const de: Record<keyof typeof en, string> = {
   'settings.conflictLogNote':
     'Automatisch aufgelöste Zusammenführungen werden je Reise protokolliert — öffne eine Reise und tippe auf die Synchronisationsanzeige in der Kopfzeile.',
   'settings.about': 'Über',
+  // M23 — Ausgeblendete Stammdaten (FR-24.3).
+  'retired.title': 'Ausgeblendete Stammdaten',
+  'retired.hint':
+    'Wer etwas löscht, das noch verwendet wird, blendet es aus statt es zu entfernen — abgeschlossene Reisen und die Auswertung lesen es weiter. Hier kommt es zurück.',
+  'retired.segmentItems': 'Artikel',
+  'retired.segmentTemplates': 'Vorlagen',
+  'retired.emptyItems': 'Nichts ausgeblendet — jeder Artikel im Inventar ist sichtbar.',
+  'retired.emptyTemplates': 'Nichts ausgeblendet — jede Vorlage und jede Gruppe ist sichtbar.',
+  'retired.hiddenOn': 'Ausgeblendet am {date}',
+  'retired.stillUsed': 'An {n} Stelle verwendet | An {n} Stellen verwendet',
+  'retired.restore': 'Wiederherstellen',
+  'retired.restored': '„{name}“ ist wieder sichtbar.',
+  'retired.nameTakenTitle': 'Der Name ist vergeben',
+  'retired.nameTakenItem':
+    'Ein anderer Artikel heisst jetzt „{name}“. Gib diesem einen anderen Namen, damit er zurückkommt.',
+  'retired.nameTakenGroup':
+    'Eine Gruppe heisst jetzt „{name}“. Gib dieser einen anderen Namen, damit sie zurückkommt.',
+  'retired.nameTakenTemplate':
+    'Eine Ferien-Vorlage heisst jetzt „{name}“. Gib dieser einen anderen Namen, damit sie zurückkommt.',
+  'retired.namePlaceholder': 'Neuer Name',
+  'retired.purge': 'Endgültig löschen',
+  'retired.purgeConfirm': '„{name}“ endgültig entfernen?',
+  'retired.purged': '„{name}“ wurde endgültig entfernt.',
+  'settings.retired': 'Ausgeblendete Stammdaten',
+  'settings.retiredRow': 'Ausgeblendete Artikel und Vorlagen zurückholen',
+  'settings.retiredHint': 'Zurückholen, was ein Löschen nur ausgeblendet hat.',
+  'settings.retiredCount': '{n} ausgeblendete Zeile | {n} ausgeblendete Zeilen',
   'settings.modeLocal': 'Modus: Lokal (nur dieses Gerät)',
   'settings.modeServer': 'Modus: Server ({url})',
   // Avatar crop (FR-17.13).
@@ -709,6 +761,8 @@ export const de: Record<keyof typeof en, string> = {
   'templateFromTrip.create': 'Vorlage erstellen ✓',
   'templateFromTrip.created': 'Vorlage „{name}“ erstellt — Gruppen wiederverwendet ✓',
   'templateFromTrip.notLoaded': 'Die Artikel dieser Reise sind noch nicht geladen.',
+  'templateFromTrip.nameTaken': 'Der Name „{name}“ ist schon vergeben.',
+  'templateFromTrip.bundleSameName': 'Gruppe und Vorlage brauchen verschiedene Namen.',
 
   'settings.language': 'Sprache',
   'settings.languageHint': 'Nur auf diesem Gerät.',
@@ -991,12 +1045,18 @@ export const de: Record<keyof typeof en, string> = {
   'shopping.atDestination': 'Vor Ort ({n})',
   'shopping.uncategorized': 'Ohne Kategorie',
   'shopping.bought': 'Gekauft: {name}',
+  'shopping.showBought': '{n} gekaufte anzeigen',
+  'shopping.hideBought': '{n} gekaufte ausblenden',
+  'shopping.undoBought': 'Doch nicht gekauft: {name}',
+  'shopping.wentToPacking': 'auf der Packliste',
+  'shopping.wentPacked': 'eingepackt',
   'shopping.emptyBefore': 'Vor der Abreise ist nichts zu kaufen',
   'shopping.emptyLocal': 'Vor Ort ist nichts zu kaufen',
 
   // M16 Serie und Zielort-Profil (FR-13.1/13.2/13.3).
   'series.section': 'Serie',
   'series.name': 'Name',
+  'series.nameTaken': 'Der Name „{name}“ gehört schon einer anderen Serie.',
   'series.defaultsNote': 'Diese Vorgaben füllen den Assistenten für neue Reisen der Serie vor.',
   'series.sectionNotes': 'Notizen zum Ziel',
   'series.notesPlaceholder': 'z. B. Waschmaschine vorhanden',

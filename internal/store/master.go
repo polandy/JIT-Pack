@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"jitpack/internal/sync"
 )
@@ -51,6 +52,9 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 	if refused != ReasonNone {
 		res.Outcome = sync.OutcomeRejected
 		res.Reason = refused
+		if res.Seq, err = relogRefused(ctx, tx, nil, m, row); err != nil {
+			return MutationResult{}, err
+		}
 		return res, finalize(ctx, tx, res)
 	}
 
@@ -62,12 +66,26 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 	// cause: the driver's constraint error is a message, and a message is
 	// not a contract to branch on. FR-9.2 is why the reference blocks at all
 	// — an archived trip keeps knowing which Vorlage its rows came from.
+	var retiring bool
 	if blocked, err := stillReferenced(ctx, tx, m, merged.Deleted, row.Exists); err != nil {
 		return MutationResult{}, err
+	} else if blocked && lifecycleTables[m.Table] {
+		// FR-24.3: for a master item or a Vorlage the reference does not
+		// refuse the delete, it decides which delete this is. The row is
+		// kept so history keeps resolving against it and marked so no
+		// display surface offers it again.
+		retiring = true
+		m = retireInstead(m, time.Now().UTC().Format(time.RFC3339))
+		merged = sync.Merge(row, m)
+		res.Outcome = merged.Outcome
+		res.Conflicts = merged.Conflicts
 	} else if blocked {
 		res.Outcome = sync.OutcomeRejected
 		res.Reason = ReasonStillReferenced
 		res.Conflicts = nil
+		if res.Seq, err = relogRefused(ctx, tx, nil, m, row); err != nil {
+			return MutationResult{}, err
+		}
 		return res, finalize(ctx, tx, res)
 	}
 
@@ -88,6 +106,9 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 			res.Outcome = sync.OutcomeRejected
 			res.Reason = ReasonConstraintViolated
 			res.Conflicts = nil
+			if res.Seq, err = relogRefused(ctx, tx, nil, m, row); err != nil {
+				return MutationResult{}, err
+			}
 			return res, finalize(ctx, tx, res)
 		}
 		return MutationResult{}, err
@@ -100,6 +121,15 @@ func (s *Store) ApplyMasterMutation(ctx context.Context, userID string, m sync.M
 		for _, c := range cascaded {
 			tombstone := sync.Mutation{Table: c.table, ID: c.id, HLC: m.HLC}
 			if _, err := appendChangeLog(ctx, tx, nil, tombstone, true); err != nil {
+				return MutationResult{}, err
+			}
+		}
+		if retiring {
+			// The device that asked for the delete already drew its
+			// cascade (ADR-031). Nothing was cascaded, so every child has
+			// to be named again — alive — or a retired Vorlage comes back
+			// with none of its positions.
+			if res.Seq, err = relogCascadeChildren(ctx, tx, nil, m, res.Seq); err != nil {
 				return MutationResult{}, err
 			}
 		}
@@ -432,6 +462,16 @@ var blockingReferences = map[string][]blockingReference{
 		{TableTripItems, "container_id"},
 		{TableContainers, "paired_container_id"},
 	},
+}
+
+// retireInstead turns a delete FR-24.3 will not perform into the write that
+// records the decision behind it: the row survives, the marker is stamped,
+// and the mutation keeps its own id and clock so the merge treats it as the
+// ordinary single-field write it now is.
+func retireInstead(m sync.Mutation, at string) sync.Mutation {
+	m.Op = sync.OpUpsert
+	m.Fields = map[string]any{RetiredColumn: at}
+	return m
 }
 
 // stillReferenced reports whether m's delete would be refused because rows

@@ -399,31 +399,6 @@ func TestApplyMasterMutation_TemplateDeleteTombstonesComposition(t *testing.T) {
 	}
 }
 
-// Deleting an item still referenced by a template must not 500 — the FK
-// violation maps to a rejected outcome.
-func TestApplyMasterMutation_DeleteReferencedItemRejected(t *testing.T) {
-	s := openTestStore(t)
-	mustExec(t, s, `INSERT INTO items (id, name) VALUES ('item-ref', 'Socken')`)
-	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "templates", "tpl-ref", "dr-1",
-		map[string]any{"name": "Ref"}, "0000000001000-0000-aaaaaaaa"))
-	applyMaster(t, s, testUser, masterMut(sync.OpInsert, "template_items", "ti-ref", "dr-2",
-		map[string]any{"template_id": "tpl-ref", "item_id": "item-ref", "quantity": 1},
-		"0000000001001-0000-aaaaaaaa"))
-
-	res := applyMaster(t, s, testUser, masterMut(sync.OpDelete, "items", "item-ref", "dr-3", nil,
-		"0000000002000-0000-aaaaaaaa"))
-	if res.Outcome != "rejected" {
-		t.Errorf("outcome = %q, want rejected", res.Outcome)
-	}
-	var n int
-	if err := s.db.QueryRow(`SELECT count(*) FROM items WHERE id = 'item-ref'`).Scan(&n); err != nil {
-		t.Fatal(err)
-	}
-	if n != 1 {
-		t.Error("item must survive the rejected delete")
-	}
-}
-
 func TestPullMaster_VisibilityPerUser(t *testing.T) {
 	s := openTestStore(t)
 	seedUserB(t, s)

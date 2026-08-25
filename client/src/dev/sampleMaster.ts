@@ -1,4 +1,5 @@
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import type { TemplateKind } from '@/types/domain'
 
 /**
  * A ready-made master partition to test against — inventory, tags, groups and
@@ -82,6 +83,10 @@ const INVENTORY: ItemSeed[] = [
   { name: 'Blasenpflaster', tag: 'Bad', weightGrams: 20 },
   { name: 'Powerbank', tag: 'Technik', weightGrams: 350, icon: '🔋' },
   { name: 'Ladegerät', tag: 'Technik', weightGrams: 180 },
+  // Deliberately in no group and in no trip: FR-24.3's *physical* branch
+  // needs an item nothing has ever referenced, and on a fresh device every
+  // other item here is held by at least one group position.
+  { name: 'Fernglas', tag: 'Technik', weightGrams: 620 },
 ]
 
 /**
@@ -213,6 +218,59 @@ function addPositions(
 }
 
 /**
+ * FR-24.3's two retired rows, so M23 has something to show on a fresh device
+ * and its hard case can be met without staging a delete by hand.
+ *
+ * Both are put into a group first, because that reference is what turns a
+ * delete into a *retire* rather than a removal. The second one's name is then
+ * taken by a freshly created item — the collision a restore has to survive,
+ * which is otherwise reachable only by deleting something, re-creating it and
+ * remembering why. Everything here goes through the orchestrator's own
+ * actions, so every row is one a user could have produced.
+ */
+const RETIRE_DEMO = {
+  group: 'Wellness',
+  /** The tag its items carry — one the rest of the seed already uses. */
+  tag: 'Bad',
+  /** Stays visible, so the group is not left looking empty. */
+  keep: 'Badetuch',
+  /** Restores cleanly — its name is free. */
+  plain: 'Reisewecker',
+  /** Its name is taken by an active twin by the time M23 offers it back. */
+  contested: 'Sonnenbrille',
+} as const
+
+function seedRetiredRows(
+  orchestrator: Orchestrator,
+  itemIds: Map<string, string>,
+  tagIds: Map<string, string>,
+): void {
+  const groupId = orchestrator.createTemplate(RETIRE_DEMO.group, 'group', '🧼')
+  if (groupId === null) return
+  const keepId = itemIds.get(RETIRE_DEMO.keep)
+  if (keepId) orchestrator.addTemplateItem(groupId, keepId, {})
+
+  // Tagged like every other seeded item: M9 groups by primary tag, and an
+  // untagged row would land in a bucket the rest of the seed never uses.
+  const tagId = tagIds.get(RETIRE_DEMO.tag)
+  const seedItem = (name: string, icon: string | null): string => {
+    const itemId = orchestrator.createMasterItem(name, { weightGrams: null, icon })
+    if (tagId) orchestrator.assignTag(itemId, tagId)
+    return itemId
+  }
+
+  for (const name of [RETIRE_DEMO.plain, RETIRE_DEMO.contested]) {
+    const itemId = seedItem(name, null)
+    orchestrator.addTemplateItem(groupId, itemId, {})
+    orchestrator.deleteMasterItem(itemId)
+  }
+
+  // The retired row's name, now held by a different item — which is exactly
+  // what the partial unique index allows and what M23 has to answer.
+  seedItem(RETIRE_DEMO.contested, '🕶️')
+}
+
+/**
  * Seeds inventory, tags, groups and the composed Vorlage, and returns what it
  * created. Safe to call once per fresh device; it does not check for existing
  * rows, because a dev seed run twice is a dev's problem and a duplicate check
@@ -241,19 +299,40 @@ export function seedSampleMaster(orchestrator: Orchestrator): SampleMaster {
     if (itemId && mainId) orchestrator.addItemDependency(itemId, mainId, { mode: 'required' })
   }
 
-  const groupIds = new Map<string, string>()
-  for (const group of GROUPS) {
-    const id = orchestrator.createTemplate(group.name, 'group', group.icon ?? null)
-    groupIds.set(group.name, id)
-    addPositions(orchestrator, id, itemIds, group.positions)
+  // A second seed run on a device that already carries the sample data finds
+  // every one of these names taken (FR-1.6) — createTemplate refuses it, and
+  // the seed adopts what is already there rather than writing a duplicate the
+  // server would have refused anyway. What it must not then do is fill that
+  // adopted template a second time: `template_includes` and `template_items`
+  // are UNIQUE on their pairs, so the contents are written only for a
+  // template this run actually created.
+  const created = new Set<string>()
+  const seedTemplate = (name: string, kind: TemplateKind, icon: string | null): string => {
+    const id = orchestrator.createTemplate(name, kind, icon)
+    if (id === null) return orchestrator.templateNameCollision(name)!.id
+    created.add(id)
+    return id
   }
 
-  const vacationTemplateId = orchestrator.createTemplate(VACATION.name, 'template', VACATION.icon)
-  for (const name of VACATION.includes) {
-    const groupId = groupIds.get(name)
-    if (groupId) orchestrator.addTemplateInclude(vacationTemplateId, groupId)
+  const groupIds = new Map<string, string>()
+  for (const group of GROUPS) {
+    const id = seedTemplate(group.name, 'group', group.icon ?? null)
+    groupIds.set(group.name, id)
+    if (created.has(id)) addPositions(orchestrator, id, itemIds, group.positions)
   }
-  addPositions(orchestrator, vacationTemplateId, itemIds, VACATION.positions)
+
+  const vacationTemplateId = seedTemplate(VACATION.name, 'template', VACATION.icon)
+  if (created.has(vacationTemplateId)) {
+    for (const name of VACATION.includes) {
+      const groupId = groupIds.get(name)
+      if (groupId) orchestrator.addTemplateInclude(vacationTemplateId, groupId)
+    }
+    addPositions(orchestrator, vacationTemplateId, itemIds, VACATION.positions)
+  }
+
+  // Only on a run that actually created templates: a second run finds every
+  // name taken and would otherwise add a second pair of retired rows.
+  if (created.size > 0) seedRetiredRows(orchestrator, itemIds, tagIds)
 
   return {
     vacationTemplateId,

@@ -11,12 +11,20 @@
 
 import { API } from '@/api/routes'
 import { TABLE } from '@/types/tables'
+import {
+  DELETION_RETIRE,
+  RETIRED_FIELD,
+  countItemReferences,
+  countTemplateReferences,
+  deletionKind,
+  type DeletionKind,
+} from '@/domain/masterDeletion'
 import { computed, reactive, ref, shallowRef } from 'vue'
 
 import { APIClient, type TokenProvider } from '@/api/client'
 import { loadTokens, subjectOf } from '@/auth/tokens'
 import { HLCGenerator } from '@/sync/hlc'
-import { SyncOutbox, type ConflictReport } from './useSyncOutbox'
+import { SyncOutbox, type ConflictReport, type RejectionReport } from './useSyncOutbox'
 import { useWebSocket } from './useWebSocket'
 import { CLIENT_ACTOR_PLACEHOLDER, useMutations } from './useMutations'
 import { useSyncStatus } from './useSyncStatus'
@@ -49,6 +57,13 @@ import {
   type RefreshPlan,
 } from '@/domain/refresh'
 import { followsGroups } from '@/domain/trips'
+import { findNameCollision, foldName, renameTarget } from '@/domain/nameCollision'
+import {
+  RESTORE_READY,
+  restoreFields,
+  restoreVerdict,
+  type RestoreVerdict,
+} from '@/domain/masterRestore'
 import { planGroupAddition, type GroupAdditionReport } from '@/domain/groupAdd'
 import {
   pairWrites,
@@ -81,6 +96,7 @@ import type {
   ItemTodo,
   MasterItem,
   ReviewFlag,
+  ShoppingMode,
   Template,
   TemplateKind,
   TemplateItem,
@@ -92,6 +108,17 @@ import type {
   Traveler,
   TravelerChangeReport,
 } from '@/types/domain'
+
+/**
+ * FR-24.3: what a delete of one master row will do, as far as this device can
+ * tell. `certain` is false exactly where the count may be short — Server Mode,
+ * where trip partitions arrive only as trips are opened (ADR-032).
+ */
+export interface DeletionOutlook {
+  kind: DeletionKind
+  references: number
+  certain: boolean
+}
 
 /** One entry of a trip's presence facepile (G-10, Sync-API §7). */
 // Both shapes come from the contract now (NFR-4.14). The names are kept as
@@ -192,6 +219,13 @@ export interface SyncOrchestratorConfig {
    * report names the partition, which is which conflict log to open.
    */
   onConflicts?: (report: ConflictReport) => void
+  /**
+   * Called when a push came back with refused mutations (Sync-API §5,
+   * ADR-031). The change is undone either way — by the row the server
+   * re-logged or by the client dropping it — and this is what lets the user
+   * be told rather than watch a row change back by itself.
+   */
+  onRejections?: (report: RejectionReport) => void
   /**
    * Where the outbox keeps its queue between sessions (B2, NFR-4.1).
    * Injected so a test can drive a store it can see; Server Mode defaults
@@ -381,6 +415,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       syncStatus.addConflicts(report.count)
       config.onConflicts?.(report)
     },
+    onRejections: (report) => config.onRejections?.(report),
     onDurabilityChanged: (durable) => syncStatus.setQueueDurable(durable),
   })
 
@@ -811,6 +846,39 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   function unskipItem(tripId: string, item: TripItem) {
     const mut = mutations.unskipItem(item.id)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0,
+        table: TABLE.tripItems,
+        id: item.id,
+        deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  /**
+   * Check a row off one of M6's shopping lists, or put it back (FR-25.11j).
+   * One mutation each way, so the record of the list and the change it
+   * explains can never land apart — see `useMutations.buyItem`.
+   */
+  function buyItem(tripId: string, item: TripItem, from: ShoppingMode) {
+    const mut = mutations.buyItem(item.id, from, item.quantity)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0,
+        table: TABLE.tripItems,
+        id: item.id,
+        deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
+  function unbuyItem(tripId: string, item: TripItem, from: ShoppingMode) {
+    const mut = mutations.unbuyItem(item.id, from)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
       optimistic: {
@@ -2169,11 +2237,136 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
+  /**
+   * FR-24.3: what deleting this master item will do, and whether this device
+   * can be sure of it. A count of zero is only certain where the device holds
+   * every trip — Local Mode. In Server Mode the trip partitions arrive as
+   * trips are opened, so "nothing references it" means "nothing I have seen",
+   * and the server may still answer the delete by retiring the row (ADR-032).
+   */
+  function masterItemDeletionOutlook(itemId: string): DeletionOutlook {
+    const references = countItemReferences(itemId, {
+      positions: masterStore.templateList.flatMap((t) => masterStore.getTemplateItems(t.id)),
+      tripItems: knownTripItems(),
+    })
+    return outlookOf(references)
+  }
+
+  /** FR-24.3 for a Vorlage: the trip rows that still name it (FR-9.2). */
+  function templateDeletionOutlook(templateId: string): DeletionOutlook {
+    return outlookOf(countTemplateReferences(templateId, { tripItems: knownTripItems() }))
+  }
+
+  function outlookOf(references: number): DeletionOutlook {
+    const kind = deletionKind(references)
+    return { kind, references, certain: kind === DELETION_RETIRE || local !== null }
+  }
+
+  /** Every trip row this device holds. Complete in Local Mode only. */
+  function knownTripItems(): TripItem[] {
+    return tripStore.tripList.flatMap((t) => tripStore.getItems(t.id))
+  }
+
+  /**
+   * FR-24.3: a delete is one of two acts. A master item something resolves
+   * against is retired — the row stays and stops being offered — and one
+   * nothing has ever used is removed. The server decides the same thing over
+   * the complete picture and corrects this device through the next pull, so
+   * a short count here costs a wrong sentence, never a wrong row.
+   */
   function deleteMasterItem(itemId: string) {
+    const item = masterStore.getItem(itemId)
+    if (item && masterItemDeletionOutlook(itemId).kind === DELETION_RETIRE) {
+      const marker = { [RETIRED_FIELD]: new Date().toISOString() }
+      enqueueAndDrain('master', null, {
+        mutation: mutations.updateMasterItem(itemId, marker),
+        optimistic: {
+          seq: 0,
+          table: TABLE.items,
+          id: itemId,
+          deleted: false,
+          row: { ...masterItemRow(item), ...marker },
+        },
+      })
+      return
+    }
     enqueueAndDrain('master', null, {
       mutation: mutations.deleteMasterItem(itemId),
       optimistic: { seq: 0, table: TABLE.items, id: itemId, deleted: true, row: null },
     })
+  }
+
+  /**
+   * FR-24.3's restore, for a master item. The marker is an ordinary field,
+   * so bringing the row back is one mutation — but the *name* is not free:
+   * retiring released it (the unique indexes are partial over the active
+   * rows), so an active row may hold it by now. That is checked here, over
+   * the complete master partition every device holds, and it is the one
+   * FR-24.3 question the client can answer exactly in all three modes.
+   */
+  function masterItemRestoreVerdict(
+    itemId: string,
+    proposedName?: string,
+  ): RestoreVerdict<MasterItem> | null {
+    const item = masterStore.getItem(itemId)
+    if (!item) return null
+    return restoreVerdict(item, masterStore.activeItemList, proposedName)
+  }
+
+  /** The same for a Vorlage — `templates.name` is UNIQUE across both scopes. */
+  function templateRestoreVerdict(
+    templateId: string,
+    proposedName?: string,
+  ): RestoreVerdict<Template> | null {
+    const template = masterStore.getTemplate(templateId)
+    if (!template) return null
+    return restoreVerdict(template, masterStore.activeTemplateList, proposedName)
+  }
+
+  /**
+   * restoreMasterItem clears FR-24.3's marker, optionally under a new name
+   * when the old one was taken while the row was hidden. Returns false when
+   * the name it would write is still taken — refused *before* the outbox, so
+   * the user meets a sentence instead of an optimistic row that reverses
+   * itself when the push is rejected (ADR-031).
+   */
+  function restoreMasterItem(itemId: string, name?: string): boolean {
+    const item = masterStore.getItem(itemId)
+    if (!item) return false
+    const verdict = restoreVerdict(item, masterStore.activeItemList, name)
+    if (verdict.kind !== RESTORE_READY) return false
+    const fields = restoreFields(name === undefined ? null : verdict.name)
+    enqueueAndDrain('master', null, {
+      mutation: mutations.updateMasterItem(itemId, fields),
+      optimistic: {
+        seq: 0,
+        table: TABLE.items,
+        id: itemId,
+        deleted: false,
+        row: { ...masterItemRow(item), ...fields },
+      },
+    })
+    return true
+  }
+
+  /** restoreTemplate is restoreMasterItem for a Vorlage (FR-24.3). */
+  function restoreTemplate(templateId: string, name?: string): boolean {
+    const template = masterStore.getTemplate(templateId)
+    if (!template) return false
+    const verdict = restoreVerdict(template, masterStore.activeTemplateList, name)
+    if (verdict.kind !== RESTORE_READY) return false
+    const fields = restoreFields(name === undefined ? null : verdict.name)
+    enqueueAndDrain('master', null, {
+      mutation: mutations.updateTemplate(templateId, fields),
+      optimistic: {
+        seq: 0,
+        table: TABLE.templates,
+        id: templateId,
+        deleted: false,
+        row: { ...templateRow(template), ...fields },
+      },
+    })
+    return true
   }
 
   /**
@@ -2238,6 +2431,40 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return `${config.baseUrl}${API.itemImage(item.id)}?v=${item.image_hash}`
   }
 
+  /**
+   * templateNameCollision names the template already holding `name`
+   * (FR-1.6), or undefined. `templates.name` is UNIQUE **instance-wide and
+   * across both scopes**, so a Gruppe can hold the name a Ferien-Vorlage
+   * wants — the caller reports the kind so that reads as a fact rather than
+   * as a bug. Retired templates are not consulted: since FR-24.3 the
+   * database's uniqueness is over the active rows, and refusing a name the
+   * constraint would accept — held by a row no screen shows — is a name taken
+   * away with nothing the user can do about it.
+   */
+  function templateNameCollision(name: string, excludeId?: string): Template | undefined {
+    return findNameCollision(name, masterStore.activeTemplateList, excludeId)
+  }
+
+  /** seriesNameCollision names the series already holding `name` (FR-13.1). */
+  function seriesNameCollision(name: string, excludeId?: string): TripSeries | undefined {
+    return findNameCollision(name, masterStore.seriesList, excludeId)
+  }
+
+  /**
+   * Whether an edit patch renames a row onto a name somebody else holds. The
+   * guard sits here rather than only in the views because Local Mode has no
+   * constraint behind it: this is the only thing between the user and two
+   * rows nothing on screen can tell apart.
+   */
+  function isTakenRename(
+    fields: Record<string, unknown>,
+    id: string,
+    find: (name: string, excludeId?: string) => { id: string } | undefined,
+  ): boolean {
+    const next = renameTarget(fields)
+    return next !== null && find(next, id) !== undefined
+  }
+
   /** createTemplate makes a new template. Templates are shared
    * instance-wide (FR-1.6 MVP), so owner_id is creator metadata only; it is
    * stamped server-side on push and the optimistic row leaves it empty.
@@ -2250,7 +2477,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     kind: TemplateKind = 'template',
     /** FR-28.8: the optional mark, set at creation by the seed and the import. */
     icon: string | null = null,
-  ): string {
+  ): string | null {
+    if (templateNameCollision(name)) return null
     const { mutation, id } = mutations.createTemplate(name, '', kind, icon)
     enqueueAndDrain('master', null, {
       mutation,
@@ -2265,7 +2493,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return id
   }
 
-  function updateTemplate(template: Template, fields: Record<string, unknown>) {
+  function updateTemplate(template: Template, fields: Record<string, unknown>): boolean {
+    if (isTakenRename(fields, template.id, templateNameCollision)) return false
     enqueueAndDrain('master', null, {
       mutation: mutations.updateTemplate(template.id, fields),
       optimistic: {
@@ -2276,6 +2505,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         row: { ...templateRow(template), ...fields },
       },
     })
+    return true
   }
 
   function addTemplateItem(
@@ -2323,8 +2553,28 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     })
   }
 
-  /** deleteTemplate removes a template; the store mirrors the cascades. */
+  /**
+   * deleteTemplate applies FR-24.3 to a Vorlage: a group a trip was generated
+   * from is retired rather than removed, because FR-9.2 keeps those rows
+   * naming their source for the life of the archived trip. Otherwise the row
+   * goes and the store mirrors the cascades.
+   */
   function deleteTemplate(templateId: string) {
+    const template = masterStore.getTemplate(templateId)
+    if (template && templateDeletionOutlook(templateId).kind === DELETION_RETIRE) {
+      const marker = { [RETIRED_FIELD]: new Date().toISOString() }
+      enqueueAndDrain('master', null, {
+        mutation: mutations.updateTemplate(templateId, marker),
+        optimistic: {
+          seq: 0,
+          table: TABLE.templates,
+          id: templateId,
+          deleted: false,
+          row: { ...templateRow(template), ...marker },
+        },
+      })
+      return
+    }
     enqueueAndDrain('master', null, {
       mutation: mutations.deleteTemplate(templateId),
       optimistic: { seq: 0, table: TABLE.templates, id: templateId, deleted: true, row: null },
@@ -2664,7 +2914,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function createSeries(
     name: string,
     defaultAttributes: Record<string, unknown> | null = null,
-  ): string {
+  ): string | null {
+    if (seriesNameCollision(name)) return null
     const { mutation, id } = mutations.createSeries(name, defaultAttributes)
     enqueueAndDrain('master', null, {
       mutation,
@@ -2679,7 +2930,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return id
   }
 
-  function updateSeries(series: TripSeries, fields: Record<string, unknown>) {
+  function updateSeries(series: TripSeries, fields: Record<string, unknown>): boolean {
+    if (isTakenRename(fields, series.id, seriesNameCollision)) return false
     enqueueAndDrain('master', null, {
       mutation: mutations.updateSeries(series.id, fields),
       optimistic: {
@@ -2690,6 +2942,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         row: { ...seriesRow(series), ...fields },
       },
     })
+    return true
   }
 
   /** setTripSeries attaches (or, with null, detaches) a trip to a series. */
@@ -2862,11 +3115,21 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     },
   ): string | null {
     if (!tripDataLoaded(tripId)) return null
+    // Before the first write, not between them: this screen creates a
+    // Vorlage and possibly a group, and half of M21's work landing before a
+    // refused name would leave the trip folded into nothing (FR-1.6).
+    if (templateNameCollision(answers.templateName)) return null
+    if (answers.bundleName !== null) {
+      if (templateNameCollision(answers.bundleName)) return null
+      if (foldName(answers.bundleName) === foldName(answers.templateName)) return null
+    }
 
     const composition = recogniseTripComposition({
       tripItems: tripStore.getItems(tripId),
-      templates: masterStore.templateList,
-      positions: masterStore.templateList.flatMap((t) => masterStore.getTemplateItems(t.id)),
+      // M21 offers existing groups to fold the trip into, so it offers only
+      // groups that still exist for the user (FR-24.3).
+      templates: masterStore.activeTemplateList,
+      positions: masterStore.activeTemplateList.flatMap((t) => masterStore.getTemplateItems(t.id)),
       masterItems: masterStore.itemList,
     })
     const writes = planTemplateFromTrip({
@@ -2900,12 +3163,14 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const includeIds = [...writes.template.includeGroupIds]
     if (writes.newGroup) {
       const groupId = createTemplate(writes.newGroup.name, 'group')
+      if (groupId === null) return null
       write(groupId, writes.newGroup.positions)
       includeIds.push(groupId)
     }
 
     // 4. The composed Ferien-Vorlage itself.
     const templateId = createTemplate(writes.template.name, 'template')
+    if (templateId === null) return null
     write(templateId, writes.template.positions)
     for (const groupId of includeIds) addTemplateInclude(templateId, groupId)
 
@@ -3155,6 +3420,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     restoreSkip,
     skipItem,
     unskipItem,
+    buyItem,
+    unbuyItem,
     setMode,
     packingNow,
     assignTraveler,
@@ -3177,10 +3444,18 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     unassignTag,
     updateMasterItem,
     deleteMasterItem,
+    masterItemDeletionOutlook,
+    templateDeletionOutlook,
+    masterItemRestoreVerdict,
+    templateRestoreVerdict,
+    restoreMasterItem,
+    restoreTemplate,
     setItemImage,
     deleteItemImage,
     itemImageUrl,
     createTemplate,
+    templateNameCollision,
+    seriesNameCollision,
     updateTemplate,
     deleteTemplate,
     addTemplateInclude,
@@ -3332,6 +3607,7 @@ function masterItemRow(item: MasterItem): Record<string, unknown> {
     value_cents: item.value_cents,
     image_hash: item.image_hash ?? null,
     icon: item.icon ?? null,
+    retired_at: item.retired_at ?? null,
   }
 }
 
@@ -3341,6 +3617,7 @@ function templateRow(template: Template): Record<string, unknown> {
     name: template.name,
     kind: template.kind,
     icon: template.icon ?? null,
+    retired_at: template.retired_at ?? null,
   }
 }
 
@@ -3395,6 +3672,7 @@ function itemRow(item: TripItem): Record<string, unknown> {
     container_id: item.container_id,
     packing_now_by: item.packing_now_by,
     packing_now_at: item.packing_now_at,
+    bought_from: item.bought_from,
     flag_unused: item.flag_unused ? 1 : 0,
     flag_missing: item.flag_missing ? 1 : 0,
     updated_hlc: item.updated_hlc,

@@ -39,7 +39,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Harness smoke | E2E-M19-01 (partial), E2E-M19-04, E2E-G7-01 | `local` | [`smoke.spec.ts`](../client/e2e/smoke.spec.ts) |
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05 | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
-| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
+| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
@@ -50,10 +50,12 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
 | Deliberately not packed | E2E-M4-37 … E2E-M4-42, E2E-M5-16 | `local` | [`skip-item.spec.ts`](../client/e2e/skip-item.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
-| M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (completed by the M8 unit), E2E-M7-08, E2E-M7-09 | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
-| M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-15, E2E-M8-16, E2E-M8-17, E2E-M8-21, E2E-M8-22, E2E-M8-23 (two tests), E2E-M8-18 | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
-| M6 shopping (composer wiring) | E2E-M6-21 | `local` | [`shopping.spec.ts`](../client/e2e/shopping.spec.ts) |
+| M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (completed by the M8 unit), E2E-M7-08, E2E-M7-09, E2E-M7-10 (two tests) | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
+| M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-15, E2E-M8-16, E2E-M8-17, E2E-M8-21, E2E-M8-22, E2E-M8-23 (two tests), E2E-M8-18, E2E-M8-24 (two tests) | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
+| M6 shopping (composer wiring, FR-25.11j reveal) | E2E-M6-21, E2E-M6-17, E2E-M6-22 | `local` | [`shopping.spec.ts`](../client/e2e/shopping.spec.ts) |
 | M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-02, E2E-M9-03, E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed), E2E-M10-13 (German-seeded) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
+| FR-24.3 lifecycle delete | E2E-M10-14, E2E-M10-15, E2E-M7-11 | `local` | [`lifecycle-delete.spec.ts`](../client/e2e/lifecycle-delete.spec.ts) |
+| FR-24.3 restore (M23) | E2E-M23-01, E2E-M23-02, E2E-M23-03 | `local` | [`restore-retired.spec.ts`](../client/e2e/restore-retired.spec.ts) |
 | §3.28 the item mark | E2E-M10-11, E2E-M10-12, E2E-M9-07, E2E-M4-48, E2E-G15-01, E2E-G15-02, E2E-M5-15 | `local` | [`item-mark.spec.ts`](../client/e2e/item-mark.spec.ts) |
 | M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
 | M12 analytics | E2E-M12-01, E2E-M12-02, E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
@@ -69,7 +71,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
 | Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-M15-05 — the spreadsheet import, added 2026-08-23, and M15's first
 case of any kind.** Until it, M15 had **no** e2e coverage — four written
@@ -1753,6 +1755,142 @@ The case ends on a second context that never saw the delete and still finds
 the group. That is the positive signal the sheet's sentence is asserted
 against, and it is also the divergence itself on record: the deleting device
 removed the row optimistically and the server kept it. **Closing that gap —
+putting the refused row back on the device that tried to delete it — is
+E2E-G2-12 below, built the next day.**
+
+
+**E2E-G2-12 — the refusal repairs the row, added 2026-08-25 (ADR-031).**
+E2E-G2-11 ends at the divergence and records it: the group is gone from the
+deleting device and still on the server. That state used to be *permanent* —
+the server row had not changed, so its `change_log` entry was already behind
+that device's cursor and no pull would ever offer it again. This case drives
+the same refusal and asserts the two things that close it: the toast naming
+how many changes were undone and why, and the group back in M7's list.
+
+Proved by mutation: with the re-log removed from the store's
+`still_referenced` branch (`internal/store/master.go`), the toast is still
+green and the row assertion fails — the announcement without the repair, which
+is exactly the state before this change.
+
+**The row assertion counts the group's positions, and that is the case's
+second finding.** It first read `toBeVisible()` on the group row, which was
+green against a repair that put the Vorlage back **empty**: the client mirrors
+the server's cascade when it deletes a template, so its positions had gone
+optimistically too and re-logging the named row alone did not bring them back.
+Only rendering it showed "0 items". The store now re-logs the cascade's rows
+as well, and the case asserts `1 item` rather than mere visibility.
+
+
+**E2E-M6-17 / E2E-M6-22 — what M6 hides is counted, named and reversible,
+added 2026-08-25 (FR-25.11j).** Buying a BUY_BEFORE row changes its mode, so
+the row leaves *both* tabs: every "it disappeared" assertion here is worth a
+positive one beside it, and the bar counting what disappeared is that signal.
+M6-17 walks the whole way — bar absent while nothing is bought, `Show 1
+bought` after the tap, the revealed row naming where it went, and its checkbox
+putting it back on the list it was bought from. M6-22 does the destination
+tab, where the mode never changes and `bought_from` is the only thing keeping
+the two reveals apart.
+
+Proved by mutation: with the previous check-off restored
+(`setMode`/`packComplete`, no record written) the bar never appears and both
+cases fail on it, while E2E-M6-21 beside them stays green.
+
+Two traps paid for, both cheap to hit again. **ADR-012 leaves M4 mounted and
+*visible* behind M6**, so `visiblePage` resolves to two pages and every shared
+testid — the composer's above all — is ambiguous; the cases scope through an
+`m6-page` testid instead. And a **segment button swallows a click aimed at its
+own `ion-label`**, the same finding `packing-list.spec.ts` already carries: the
+tabs got their own testids rather than being reached by text.
+
+## FR-1.6 — a name that is already taken (2026-08-25)
+
+Four tests in the two template units, all `local`, because Local Mode is the
+run mode with **no constraint behind the client** — whatever the client fails
+to catch there is never caught at all.
+
+| Case | What it drives | File |
+|---|---|---|
+| E2E-M7-10 | the create sheet names the scope holding the name, disables *Anlegen* and *Öffnen* navigates to that row; a free name still writes | `template-list.spec.ts` |
+| E2E-M7-10 | the rename alert refuses, keeps the typed name, and the row keeps its own | `template-list.spec.ts` |
+| E2E-M8-24 | *„Neue Gruppe anlegen…"* includes the group that already holds the name; a Vorlage holding it is reported as the different thing it is | `template-editor.spec.ts` |
+| E2E-M8-24 | M8's own name field refuses a rename and the field goes back to the stored name | `template-editor.spec.ts` |
+
+Three things worth carrying forward:
+
+- **Every refusal is paired with the same field doing the write.** "Nothing was
+  created" is equally true of a button that does nothing, so each test ends by
+  putting a free name into the same control and asserting the row it produces.
+- **`toBeDisabled()` is wrong on an `ion-button`.** The host carries
+  `aria-disabled`; the native attribute sits on its shadow child, and
+  Playwright reads the host. The first draft of E2E-M7-10 failed against a
+  button whose own DOM dump in the error said `disabled`.
+- **"Exactly one Kamera" has to be counted on the row title.** Once the group
+  is included, the Vorlage's row *names* it in the `enthält: …` line, so a
+  row-level `hasText` filter finds two rows and the assertion fails for the
+  reason it was meant to prove.
+
+**Still owed and not covered here:** FR-13.1's half — M3's *neue Serie* note
+and M16's rename — has unit coverage
+(`composables/__tests__/nameCollision.spec.ts`) but no Playwright case. It
+belongs with the M16 unit, which does not exist yet.
+
+## The refusal lost its only UI path (2026-08-25)
+
+E2E-G2-11 and E2E-G2-12 were written around `still_referenced`: the user
+deletes a group a trip generated from, the server refuses, and the client
+first learns to *say* so (Sync-API §5) and then to *undo* it (ADR-031). Both
+drove that through M7's delete, because it was the only place in the app where
+a refusal could be produced on purpose.
+
+FR-24.3 took that place away. A master item or Vorlage is now retired instead
+of refused, and the other entities the refusal still governs are unreachable:
+a series has no delete control at all, and container and traveler deletes
+unassign their rows first, precisely so the refusal never happens. **There is
+no UI path to a refusal any more.**
+
+Both cases were therefore retargeted onto the behaviour the same tap now
+produces — the retire being accepted with nothing parked, and the trip keeping
+its rows on a device that never saw the delete. What they used to prove is
+asserted where it is still reachable, and is named here so it is not mistaken
+for lost:
+
+- the server's re-log of a refused row and its children —
+  `internal/store/rejection_repair_test.go` (on a series);
+- the reason reaching the wire — `internal/api/rejection_reason_test.go`;
+- the client's toast, its parked count and reason, and the repaired row
+  replacing the optimistic one — `client/src/composables/__tests__/rejectionRepair.spec.ts`
+  and `durableOutbox.spec.ts`.
+
+If a UI path to a refusal ever returns — a series delete control is the likely
+one — it should carry an e2e case again, because the client half of that path
+is the half these two were written to protect.
+
+## The restore's hard case is the one only a rendered test could show (2026-08-25)
+
+M23's three cases are the way back from a retire, and the middle one is the
+reason the file exists. Retiring frees the name (the unique indexes are
+partial over the active rows), so the sequence *retire → someone re-creates
+the name → restore* is ordinary, and the restore then cannot have its old
+name back. The unit tests state that rule in both places it runs; what they
+cannot see is **when** the user meets it. A restore that is enqueued and
+refused by the push looks, on screen, like a row that comes back and then
+vanishes again a drain later — ADR-031's repair doing exactly its job. Only a
+rendered case distinguishes that from the refusal arriving *before* the tap
+takes effect, which is what E2E-M23-02 asserts by finding the row still on
+M23 behind the alert.
+
+Two traps were paid for while writing these, both worth keeping:
+
+- **A `page.goto` after a Local Mode write reloads before the write lands.**
+  The first run restored a row and then found the inventory without it,
+  because the assertion that settled the *optimistic* state (the row leaving
+  M23) says nothing about IndexedDB. Every reload here now waits for the
+  sync indicator to read `local` first, the seam that exists for this.
+- **An `ion-alert` input does not reliably take `pressSequentially`.** The
+  first run typed "Kamera (alt)" and restored a row named **"K"** — and every
+  count in the case was still satisfied by it, because one row is one row.
+  The input's value is asserted before the button is clicked.
+
 putting the refused row back on the device that tried to delete it — is not in
 this case and not built**; the refusal is announced, not undone.
 

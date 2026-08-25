@@ -77,6 +77,8 @@ export const en = {
   'sync.detail.parked': 'The server rejected {n} change | The server rejected {n} changes',
   'sync.detail.parkedHint':
     'They were taken out of the queue so the rest could be sent, and are kept on this device. They will not be tried again.',
+  'sync.rejectionToast':
+    'The server refused {n} change — it has been undone | The server refused {n} changes — they have been undone',
   'sync.detail.rejected.notAuthorized': 'You are not allowed to make that change.',
   'sync.detail.rejected.outOfScope': 'It named a trip other than the one it was sent for.',
   'sync.detail.rejected.stillReferenced':
@@ -211,6 +213,11 @@ export const en = {
   'templates.import': 'Import template from file',
   'templates.rename': 'Rename',
   'templates.deleteConfirm': 'Delete “{name}”? Trips already generated keep their rows.',
+  'templates.deleteRetire':
+    'It will be hidden, not removed: the trips generated from it keep showing where their things came from.',
+  'templates.deleteRemove': 'No trip has used it — it will be removed for good.',
+  'templates.deleteRemoveMaybe':
+    'No trip on this device has used it, so it will be removed for good. If a trip this device has not opened was generated from it, it is only hidden instead.',
   'templates.includedBlocked': 'Included in “{name}” — remove it there first.',
 
   // M8 template editor (§3.27, FR-27.6/27.7).
@@ -251,6 +258,13 @@ export const en = {
   'templates.addToTemplate': 'Add to template',
   'templates.duplicate': '“{name}” is already in — not added twice',
   'templates.added': '“{name}” added',
+  'templates.nameTakenTemplate': 'The template “{name}” already exists.',
+  'templates.nameTakenGroup': 'The group “{name}” already exists.',
+  'templates.nameTakenOpen': 'Open',
+  'templates.renameTaken': 'The name “{name}” is already taken.',
+  'templates.groupExists': '“{name}” already exists — included',
+  'templates.groupNameIsTemplate':
+    'A template already carries this name — templates and groups share one name space.',
   'templates.resolvedCount': '{n} item resolved | {n} items resolved',
   'templates.ownPositionCount': '{n} own position | {n} own positions',
   'templates.mergeMax': '{name} only {n}× — in {groups}',
@@ -345,6 +359,14 @@ export const en = {
   'items.editor.dependencyCycle': 'That would close a circle: {path}.',
   'items.editor.companions': 'Companions',
   'items.editor.companionsHint': 'These items depend on {name}:',
+  'items.editor.delete': 'Delete item',
+  'items.editor.deleteUsage': 'Used in {n} place | Used in {n} places',
+  'items.editor.deleteRetire':
+    'It will be hidden, not removed: finished trips and the analytics keep reading it.',
+  'items.editor.deleteRemove': 'Nothing uses it — it will be removed for good.',
+  'items.editor.deleteRemoveMaybe':
+    'Nothing on this device uses it, so it will be removed for good. If a trip this device has not opened still uses it, it is only hidden instead.',
+  'items.editor.deleteConfirm': 'Delete “{name}”?',
   'items.editor.unknownItem': 'Unknown item',
 
   // M5 item detail.
@@ -450,6 +472,7 @@ export const en = {
   'wizard.seriesNew': 'New series…',
   'wizard.seriesName': 'Series name',
   'wizard.seriesNamePlaceholder': 'e.g. Samedan Summer',
+  'wizard.seriesNameTaken': 'The series “{name}” already exists — pick it above.',
   'wizard.sectionAttributes': 'Attributes',
   'wizard.season': 'Season',
   'wizard.transport': 'Transport',
@@ -545,6 +568,33 @@ export const en = {
   'settings.conflictLogNote':
     'Automatic merge resolutions are logged per trip — open a trip and tap the sync indicator in the header to review them.',
   'settings.about': 'About',
+  // M23 — Hidden master data (FR-24.3): what a delete only hid, and the way back.
+  'retired.title': 'Hidden master data',
+  'retired.hint':
+    'Deleting something that is still in use hides it instead of removing it, so finished trips and the analytics keep reading it. Bring it back here.',
+  'retired.segmentItems': 'Items',
+  'retired.segmentTemplates': 'Templates',
+  'retired.emptyItems': 'Nothing is hidden — every item in the inventory is visible.',
+  'retired.emptyTemplates': 'Nothing is hidden — every template and group is visible.',
+  'retired.hiddenOn': 'Hidden on {date}',
+  'retired.stillUsed': 'Used in {n} place | Used in {n} places',
+  'retired.restore': 'Restore',
+  'retired.restored': '“{name}” is visible again.',
+  'retired.nameTakenTitle': 'The name is taken',
+  'retired.nameTakenItem':
+    'Another item is called “{name}” now. Give this one a different name to bring it back.',
+  'retired.nameTakenGroup':
+    'A group is called “{name}” now. Give this one a different name to bring it back.',
+  'retired.nameTakenTemplate':
+    'A holiday template is called “{name}” now. Give this one a different name to bring it back.',
+  'retired.namePlaceholder': 'New name',
+  'retired.purge': 'Delete for good',
+  'retired.purgeConfirm': 'Remove “{name}” for good?',
+  'retired.purged': '“{name}” was removed for good.',
+  'settings.retired': 'Hidden master data',
+  'settings.retiredRow': 'Restore hidden items and templates',
+  'settings.retiredHint': 'Bring back what a delete only hid.',
+  'settings.retiredCount': '{n} hidden row | {n} hidden rows',
   'settings.modeLocal': 'Mode: Local (this device only)',
   'settings.modeServer': 'Mode: Server ({url})',
   // Avatar crop (FR-17.13).
@@ -704,6 +754,8 @@ export const en = {
   'templateFromTrip.create': 'Create template ✓',
   'templateFromTrip.created': 'Template "{name}" created — groups reused ✓',
   'templateFromTrip.notLoaded': "This trip's items have not loaded yet.",
+  'templateFromTrip.nameTaken': 'The name “{name}” is already taken.',
+  'templateFromTrip.bundleSameName': 'The group and the template need different names.',
 
   'settings.language': 'Language',
   'settings.languageHint': 'This device only.',
@@ -980,12 +1032,18 @@ export const en = {
   'shopping.atDestination': 'At destination ({n})',
   'shopping.uncategorized': 'Uncategorized',
   'shopping.bought': 'Bought: {name}',
+  'shopping.showBought': 'Show {n} bought',
+  'shopping.hideBought': 'Hide {n} bought',
+  'shopping.undoBought': 'Not bought after all: {name}',
+  'shopping.wentToPacking': 'on the packing list',
+  'shopping.wentPacked': 'packed',
   'shopping.emptyBefore': 'Nothing to buy before departure',
   'shopping.emptyLocal': 'Nothing to buy at the destination',
 
   // M16 series & destination profile (FR-13.1/13.2/13.3).
   'series.section': 'Series',
   'series.name': 'Name',
+  'series.nameTaken': 'The name “{name}” belongs to another series.',
   'series.defaultsNote': 'Defaults prefill the wizard for new trips in this series.',
   'series.sectionNotes': 'Destination notes',
   'series.notesPlaceholder': 'e.g. washing machine available',
