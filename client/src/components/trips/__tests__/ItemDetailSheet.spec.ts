@@ -24,8 +24,15 @@ const orchestratorFake = {
   setReviewFlag: vi.fn(),
   setLatePacker: vi.fn(),
   packToggle: vi.fn(),
+  setPacker: vi.fn(),
   lockHolder: vi.fn(() => null as string | null),
 }
+
+/** Two accounts on the trip — what Server Mode looks like (FR-4.5). */
+const MEMBERS = [
+  { user_id: 'u-alice', display_name: 'Alice', avatar_url: null, role: 'owner' as const },
+  { user_id: 'u-bob', display_name: 'Bob', avatar_url: null, role: 'editor' as const },
+]
 
 function seedTrip(
   status: TripStatus,
@@ -61,9 +68,22 @@ function seedTrip(
   return store
 }
 
-function mountSheet() {
+/** Membership is what makes somebody assignable (FR-4.5 / P-3). */
+function seedMembers(store: ReturnType<typeof useTripStore>, userIds: string[]) {
+  userIds.forEach((user_id, i) =>
+    store.applyChange({
+      seq: 0,
+      table: 'trip_members',
+      id: `m${i}`,
+      deleted: false,
+      row: { trip_id: 't1', user_id, role: i === 0 ? 'owner' : 'editor' },
+    }),
+  )
+}
+
+function mountSheet(participants: typeof MEMBERS = [], currentUserId: string | null = 'u-alice') {
   return mount(ItemDetailSheet, {
-    props: { tripId: 't1', itemId: 'ti1', participants: [] },
+    props: { tripId: 't1', itemId: 'ti1', participants, currentUserId },
     global: { provide: { orchestrator: orchestratorFake } },
   })
 }
@@ -283,5 +303,123 @@ describe('M5 respects the G-3 lock', () => {
 
     expect(wrapper.find('[data-testid="m5-lock"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="m5-skip"]').exists()).toBe(true)
+  })
+})
+
+/**
+ * FR-25.19 — *Zugewiesen an* is the one actor column the client chooses
+ * (invariant 3): responsibility is assigned deliberately and triggers the
+ * FR-6.2 notification, while *who packed it* is stamped by the server the
+ * moment the row is checked and is deliberately not editable.
+ *
+ * Until this control existed, `packer_user_id` was written once at row
+ * creation and never again: every surface read it — M4's avatar, the
+ * "zuständig war …" stamp, FR-25.20's filter — and nothing set it, so the
+ * delegation notification the server implements could not fire from the app.
+ */
+describe('M5 FR-25.19 assignment', () => {
+  it('assigns the row to a trip member through the orchestrator', async () => {
+    seedMembers(seedTrip('active'), ['u-alice', 'u-bob'])
+    const wrapper = await openDetails(mountSheet(MEMBERS))
+
+    await wrapper.get('[data-testid="m5-assignee"]').trigger('ionChange', {
+      detail: { value: 'u-bob' },
+    })
+
+    expect(orchestratorFake.setPacker).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'ti1' }),
+      'u-bob',
+    )
+  })
+
+  it('clears the assignment with "niemand" — delegation is reversible', async () => {
+    seedMembers(seedTrip('active'), ['u-alice', 'u-bob'])
+    const wrapper = await openDetails(mountSheet(MEMBERS))
+
+    await wrapper.get('[data-testid="m5-assignee"]').trigger('ionChange', {
+      detail: { value: '' },
+    })
+
+    // Null, not the empty string: the column is nullable and a placeholder
+    // id in a foreign key is the trap invariant 3 exists to prevent.
+    expect(orchestratorFake.setPacker).toHaveBeenCalledWith(
+      't1',
+      expect.objectContaining({ id: 'ti1' }),
+      null,
+    )
+  })
+
+  it('offers everybody else on the trip, plus the clear', async () => {
+    seedMembers(seedTrip('active'), ['u-alice', 'u-bob'])
+    // Mounted as Alice, so Alice is not among her own options.
+    const wrapper = await openDetails(mountSheet(MEMBERS, 'u-alice'))
+
+    const options = wrapper
+      .get('[data-testid="m5-assignee"]')
+      .findAll('ion-select-option')
+      .map((o) => o.text())
+    expect(options).toEqual([expect.any(String), 'Bob'])
+  })
+
+  it("offers the trip's members only, never everyone the instance knows", async () => {
+    const store = seedTrip('active')
+    seedMembers(store, ['u-alice', 'u-bob'])
+    // `participants` carries the whole directory, because it also has to
+    // name whoever packed a row. Cara is on the instance and not on this
+    // trip: handing her a row would notify somebody who cannot open it
+    // (P-3 scopes the partition to its members).
+    const directory = [
+      ...MEMBERS,
+      { user_id: 'u-cara', display_name: 'Cara', avatar_url: null, role: 'editor' as const },
+    ]
+    const wrapper = await openDetails(mountSheet(directory, 'u-alice'))
+
+    const options = wrapper
+      .get('[data-testid="m5-assignee"]')
+      .findAll('ion-select-option')
+      .map((o) => o.text())
+    expect(options).toContain('Bob')
+    expect(options).not.toContain('Cara')
+  })
+
+  it('offers no picker where the only member is me (Single-User, or a trip nobody shares)', async () => {
+    const store = seedTrip('active')
+    // The store writes a membership row for every trip's creator, in
+    // Single-User Mode too — so "has members" is true there and is the
+    // wrong question. UI-Spec M5 hides the control because the sole user
+    // is already every row's packer.
+    seedMembers(store, ['u-alice'])
+    const wrapper = await openDetails(mountSheet(MEMBERS, 'u-alice'))
+
+    expect(wrapper.find('[data-testid="m5-assignee"]').exists()).toBe(false)
+  })
+
+  it('offers no picker where there is nobody to assign to (G-8)', async () => {
+    seedTrip('active')
+    // No members is Local Mode and Single-User Mode, where the sole user is
+    // already every row's packer — absent, not disabled.
+    const wrapper = await openDetails(mountSheet([]))
+
+    expect(wrapper.find('[data-testid="m5-assignee"]').exists()).toBe(false)
+  })
+
+  it('writes nothing while somebody else holds the row (G-3)', async () => {
+    seedMembers(seedTrip('active'), ['u-alice', 'u-bob'])
+    orchestratorFake.lockHolder.mockReturnValue('u-alice')
+    const wrapper = await openDetails(mountSheet(MEMBERS))
+
+    // The sheet knows it is locked — the positive signal, without which
+    // "nothing was written" would also be true of a sheet that never
+    // rendered. `:disabled` is deliberately not the assertion: Ionic sets
+    // it as a DOM property, so it is invisible to `attributes()` and a
+    // check on it passes whether or not the guard exists.
+    expect(wrapper.find('[data-testid="m5-lock"]').exists()).toBe(true)
+
+    await wrapper.get('[data-testid="m5-assignee"]').trigger('ionChange', {
+      detail: { value: 'u-bob' },
+    })
+
+    expect(orchestratorFake.setPacker).not.toHaveBeenCalled()
   })
 })

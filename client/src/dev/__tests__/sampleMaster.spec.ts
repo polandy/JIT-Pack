@@ -49,7 +49,24 @@ describe('seedSampleMaster (dev)', () => {
     const vacation = master.getTemplate(result.vacationTemplateId)
     expect(vacation?.kind).toBe('template')
     expect(master.getIncludes(result.vacationTemplateId)).toHaveLength(2)
-    expect(master.templateList.filter((t) => t.kind === 'group')).toHaveLength(7)
+    // Seven from GROUPS plus the FR-24.3 'Wellness' group, whose two
+    // retired items give M23 something to show on a fresh device.
+    expect(master.templateList.filter((t) => t.kind === 'group')).toHaveLength(8)
+  })
+
+  it('adopts what it already wrote when it runs a second time (FR-1.6)', () => {
+    // templates.name is UNIQUE instance-wide, so a re-seed on a device that
+    // already carries the sample data cannot write these names again. It
+    // takes the ids that exist rather than returning nulls into a broken
+    // composition — every group the Vorlage names must still resolve.
+    const { orchestrator, result, master } = seed()
+    const before = master.templateList.length
+
+    const again = seedSampleMaster(orchestrator)
+
+    expect(master.templateList).toHaveLength(before)
+    expect(again.vacationTemplateId).toBe(result.vacationTemplateId)
+    expect(master.getIncludes(again.vacationTemplateId)).toHaveLength(2)
   })
 
   it('leaves groups unincluded, so M8s picker and M3s section have offers — enough of them that the FR-27.13 search appears', () => {
@@ -65,6 +82,7 @@ describe('seedSampleMaster (dev)', () => {
       'Wandern',
       'Erste Hilfe',
       'Strom & Laden',
+      'Wellness',
     ])
     // The picker's search field is gated on more than PICKER_SEARCH_MIN_GROUPS
     // searchable groups; the seed must clear that bar on a fresh device.
@@ -116,6 +134,24 @@ describe('seedSampleMaster (dev)', () => {
     ])
   })
 
+  it('leaves two retired items behind, one of whose names is already taken again (FR-24.3)', () => {
+    const { master } = seed()
+
+    // M23 opens on something rather than on its empty state, and its hard
+    // case — a restore whose name an active row holds — is one tap away.
+    expect(master.retiredItemList.map((i) => i.name).sort()).toEqual([
+      'Reisewecker',
+      'Sonnenbrille',
+    ])
+    expect(master.activeItemList.filter((i) => i.name === 'Sonnenbrille')).toHaveLength(1)
+    expect(master.activeItemList.filter((i) => i.name === 'Reisewecker')).toHaveLength(0)
+    // The group that kept them alive still holds all three positions: a
+    // retire keeps its children (ADR-032), and the visible one is the
+    // positive signal that the group itself was not emptied.
+    const wellness = master.activeTemplateList.find((t) => t.name === 'Wellness')!
+    expect(master.getTemplateItems(wellness.id)).toHaveLength(3)
+  })
+
   it('tags every inventory item, so M9 groups them', () => {
     const { master } = seed()
 
@@ -147,7 +183,7 @@ describe('seedSampleData (dev)', () => {
     // Two trips since FR-27.4: the sample trip is imported and therefore
     // follows nothing, so a generated one is what makes the refresh visible.
     expect(outcome.summary).toBe(
-      'Beispieldaten: 21 Artikel, 7 Gruppen, 1 Vorlage, 2 Reisen (1 geplant, mit offener Gruppenfrage)',
+      'Beispieldaten: 22 Artikel, 7 Gruppen, 1 Vorlage, 2 Reisen (1 geplant, mit offener Gruppenfrage)',
     )
   })
 

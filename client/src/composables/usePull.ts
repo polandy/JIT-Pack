@@ -3,7 +3,7 @@
 import { API } from '@/api/routes'
 import type { APIClient } from '@/api/client'
 import type { PullChange, PullResponse } from '@/api/types'
-import type { HLCGenerator } from '@/sync/hlc'
+import { observeRemote, type HLCGenerator } from '@/sync/hlc'
 
 export interface PullResult {
   changes: PullChange[]
@@ -14,7 +14,10 @@ export interface PullResult {
 function observeHLCs(hlc: HLCGenerator, changes: PullChange[]): void {
   for (const c of changes) {
     if (c.row && typeof c.row['updated_hlc'] === 'string') {
-      hlc.observe(c.row['updated_hlc'])
+      // Tolerant on purpose: a page must survive one row whose clock is
+      // unusable, or that row makes every other one unreachable (see
+      // observeRemote).
+      observeRemote(hlc, c.row['updated_hlc'])
     }
   }
 }

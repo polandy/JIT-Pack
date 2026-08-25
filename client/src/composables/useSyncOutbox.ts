@@ -21,8 +21,9 @@
 import { API } from '@/api/routes'
 import { APIRequestError, type APIClient } from '@/api/client'
 import type { Mutation, PullChange, PullResponse, PushResponse } from '@/api/types'
-import type { HLCGenerator } from '@/sync/hlc'
+import { observeRemote, type HLCGenerator } from '@/sync/hlc'
 import type { OutboxStore, ParkedMutation, PartitionKey } from '@/sync/outboxStore'
+import { REJECTION_REASON } from '@/sync/rejectionReasons'
 
 type PartitionType = 'trip' | 'master'
 
@@ -34,6 +35,13 @@ export interface PartitionRef {
 
 /** Server-side push limit per batch (Sync-API §9). */
 export const MAX_PUSH_BATCH = 200
+
+/**
+ * How many changes one pull asks for (Sync-API §4). Module-private: unlike
+ * `MAX_PUSH_BATCH`, which the command line has to respect too, nothing
+ * outside this file decides how big a page is.
+ */
+const PULL_PAGE_SIZE = 500
 
 /** The partition key prefix a trip's queue carries in storage. */
 const TRIP_PREFIX = 'trip:'
@@ -80,6 +88,22 @@ function isPermanentRefusal(err: unknown): err is APIRequestError {
   )
 }
 
+/**
+ * What one push had refused, and why (Sync-API §5, ADR-031).
+ *
+ * Reported per *push* rather than per mutation, for the same reason the
+ * conflict report is: a reconnect drains a whole queue, and a refusal that
+ * repeats across it would stack a wall of identical signals.
+ */
+export interface RejectionReport {
+  /** How many mutations of this push the server refused. */
+  count: number
+  /** The reason of the last of them — the closed vocabulary of §5. */
+  reason: string
+  type: PartitionType
+  id: string | null
+}
+
 /** What one push lost, and where to go and look at it (NFR-4.2a). */
 export interface ConflictReport {
   /** Fields the server dropped across every mutation of this push. */
@@ -102,6 +126,14 @@ export interface SyncOutboxOptions {
    */
   onConflicts?: (report: ConflictReport) => void
   /**
+   * Called after a push the server refused mutations of. The repair itself
+   * needs no caller — it arrives through the ordinary pull, or is applied
+   * locally — so this exists only to say that it happened: a row that
+   * changes back under the user's hands with nothing said is its own defect
+   * (ADR-031).
+   */
+  onRejections?: (report: RejectionReport) => void
+  /**
    * Called when the device starts or stops being able to keep the queue.
    * G-2 must not promise durability it does not have (NFR-4.11).
    */
@@ -113,12 +145,17 @@ export interface SyncOutboxOptions {
 export class SyncOutbox {
   private queues = new Map<string, Mutation[]>()
   private cursors = new Map<string, number>()
+  /** The drain currently running for a partition, while one is (see `drain`). */
+  private draining = new Map<string, Promise<void>>()
+  /** The one follow-up drain already promised to callers that arrived too late. */
+  private queuedDrain = new Map<string, Promise<void>>()
   private readonly client: APIClient
   private readonly hlc: HLCGenerator
   private readonly onChanges: (changes: PullChange[]) => void
   private readonly store: OutboxStore | null
   private readonly onParked?: (entry: ParkedMutation) => void
   private readonly onConflicts?: (report: ConflictReport) => void
+  private readonly onRejections?: (report: RejectionReport) => void
   private readonly onDurabilityChanged?: (durable: boolean) => void
   private readonly now: () => number
 
@@ -126,6 +163,8 @@ export class SyncOutbox {
   private durable = true
   /** How many mutations are parked — restored count plus this session's. */
   private parked = 0
+  /** The reason of the most recent refusal, which is the one G-2 names. */
+  private lastReason: string | null = null
 
   /**
    * Tail of the chain of storage writes issued so far. It exists so a test
@@ -146,6 +185,7 @@ export class SyncOutbox {
     this.store = options.store ?? null
     this.onParked = options.onParked
     this.onConflicts = options.onConflicts
+    this.onRejections = options.onRejections
     this.onDurabilityChanged = options.onDurabilityChanged
     this.now = options.now ?? (() => Date.now())
   }
@@ -175,6 +215,16 @@ export class SyncOutbox {
     return this.parked
   }
 
+  /**
+   * Why the most recent parked mutation was refused (Sync-API §5), or null
+   * when nothing has been refused. A count on its own tells the user that
+   * something of theirs is gone but not what — and the row is usually still
+   * on their screen, because the delete rendered optimistically.
+   */
+  lastParkedReason(): string | null {
+    return this.lastReason
+  }
+
   /** The parked mutations themselves, for the G-2 detail and the conflict log. */
   loadParked(): Promise<ParkedMutation[]> {
     return this.store?.loadParked() ?? Promise.resolve([])
@@ -200,7 +250,10 @@ export class SyncOutbox {
     let pending
     try {
       pending = await this.store.loadPending()
-      this.parked = (await this.store.loadParked()).length
+      const parked = await this.store.loadParked()
+      this.parked = parked.length
+      // Oldest first, so the reason to show is the tail's.
+      this.lastReason = parked.length > 0 ? parked[parked.length - 1]!.reason : null
     } catch {
       // A browser with IndexedDB switched off fails here, on the boot path.
       // Losing durability is a degradation; taking `connect()` down with it
@@ -221,8 +274,51 @@ export class SyncOutbox {
     return order.map(partitionRef)
   }
 
-  /** Push pending mutations then pull canonical state. */
-  async drain(type: PartitionType, id: string | null): Promise<void> {
+  /**
+   * Push pending mutations then pull canonical state — one drain per
+   * partition at a time.
+   *
+   * Most callers do not await this: the WebSocket's `master.changed` handler
+   * fires it and moves on, and so do the trip actions. Two of them landing on
+   * top of each other pushed the same chunk twice and pulled the same pages
+   * twice, which since the feed became a *paged* one costs the whole
+   * partition rather than one request.
+   *
+   * A late caller waits for a **further** drain rather than being handed the
+   * running one: a drain works through the snapshot of the queue it took when
+   * it started, so handing back the running promise would report a mutation
+   * enqueued since then as sent while it had never left the device. Every
+   * caller that arrives during one drain shares that single follow-up.
+   */
+  drain(type: PartitionType, id: string | null): Promise<void> {
+    const key = partitionKey(type, id)
+    const running = this.draining.get(key)
+    if (!running) {
+      // `finally` and not `then`: a drain that fails must release the
+      // partition, or one lost network moment would take it out of sync for
+      // the rest of the session.
+      // Nothing else can have registered a drain for this partition in the
+      // meantime — that is what the map is for — so the entry this clears is
+      // always this drain's own.
+      const started = this.runDrain(type, id).finally(() => this.draining.delete(key))
+      this.draining.set(key, started)
+      return started
+    }
+    const promised = this.queuedDrain.get(key)
+    if (promised) return promised
+    // The running drain's failure belongs to whoever started it; this caller
+    // gets the outcome of its own drain, which has not happened yet.
+    const follow = running
+      .catch(() => {})
+      .then(() => {
+        this.queuedDrain.delete(key)
+        return this.drain(type, id)
+      })
+    this.queuedDrain.set(key, follow)
+    return follow
+  }
+
+  private async runDrain(type: PartitionType, id: string | null): Promise<void> {
     const key = partitionKey(type, id)
     const queue = this.queues.get(key) ?? []
 
@@ -253,6 +349,7 @@ export class SyncOutbox {
         // writes, and a device that died between them would have dropped a
         // refused mutation without leaving the evidence behind.
         const parked = this.parkRejected(key, chunk, resp)
+        this.repairRejected(type, id, chunk, resp)
         this.reportConflicts(type, id, resp)
         // Drop what was pushed by id rather than by count: the chunk and
         // the live queue can have drifted apart while the request was open.
@@ -269,21 +366,37 @@ export class SyncOutbox {
     // exclusive lower bound (Sync-API §4) and only moves forward, so what it
     // steps over is never offered again. The hint says a pull is worth
     // making, which the drain does unconditionally.
-    const pullResp = await this.client.get<PullResponse>(this.syncPath(type, id), {
-      cursor: String(this.getCursor(type, id)),
-      limit: '500',
-    })
+    //
+    // A page at a time until the server says there is no more: a partition is
+    // routinely larger than one page — a decade of trips is — and taking only
+    // the first one delivered a device a fraction of the instance while the
+    // G-2 glyph read *synced*. Each page is applied and its cursor recorded
+    // before the next is asked for, so a feed interrupted halfway keeps what
+    // it already has rather than paying for it again.
+    let hasMore = true
+    while (hasMore) {
+      const cursor = this.getCursor(type, id)
+      const pullResp = await this.client.get<PullResponse>(this.syncPath(type, id), {
+        cursor: String(cursor),
+        limit: String(PULL_PAGE_SIZE),
+      })
 
-    if (pullResp.changes.length > 0) {
-      this.onChanges(pullResp.changes)
-      for (const c of pullResp.changes) {
-        if (c.row && typeof c.row['updated_hlc'] === 'string') {
-          this.hlc.observe(c.row['updated_hlc'])
+      if (pullResp.changes.length > 0) {
+        this.onChanges(pullResp.changes)
+        for (const c of pullResp.changes) {
+          if (c.row && typeof c.row['updated_hlc'] === 'string') {
+            // See observeRemote: one unusable clock must not cost the page.
+            observeRemote(this.hlc, c.row['updated_hlc'])
+          }
         }
       }
-    }
 
-    this.cursors.set(key, pullResp.next_cursor)
+      this.cursors.set(key, pullResp.next_cursor)
+      // A server that claims more and does not move the cursor would spin
+      // this loop for ever — a hung tab on the boot path, which is worse
+      // than a short feed. Progress is the condition, not the claim.
+      hasMore = pullResp.has_more && pullResp.next_cursor > cursor
+    }
   }
 
   // The id is nullable because the master partition has none. A *trip*
@@ -323,6 +436,43 @@ export class SyncOutbox {
   }
 
   /**
+   * Closes the divergence a refusal leaves behind (ADR-031), and says that
+   * it happened.
+   *
+   * The server repairs what it can: it re-logs the row it refused, so the
+   * pull this drain makes next carries the truth and replaces the optimistic
+   * copy. The one refusal it cannot re-log is `out_of_scope` — the row
+   * belongs to another trip, and an entry for it in this partition would
+   * hand over a foreign row's snapshot (P-3). That one is repaired here,
+   * with what the client already knows: a row this partition may not touch
+   * is a row this partition must not keep.
+   */
+  private repairRejected(
+    type: PartitionType,
+    id: string | null,
+    chunk: Mutation[],
+    resp: PushResponse,
+  ): void {
+    const refused = new Map(
+      resp.results.filter((r) => r.outcome === OUTCOME_REJECTED).map((r) => [r.mutation_id, r]),
+    )
+    if (refused.size === 0) return
+
+    const dropped: PullChange[] = []
+    let last = UNSPECIFIED_REJECTION
+    for (const mutation of chunk) {
+      const result = refused.get(mutation.mutation_id)
+      if (!result) continue
+      last = result.error ?? UNSPECIFIED_REJECTION
+      if (result.error === REJECTION_REASON.outOfScope) {
+        dropped.push({ seq: 0, table: mutation.table, id: mutation.id, deleted: true, row: null })
+      }
+    }
+    if (dropped.length > 0) this.onChanges(dropped)
+    this.onRejections?.({ count: refused.size, reason: last, type, id })
+  }
+
+  /**
    * Parks every mutation the push response reports as rejected (§9) and
    * reports which ids those were, so the caller does not also delete them.
    */
@@ -358,6 +508,7 @@ export class SyncOutbox {
     )
     const entry: ParkedMutation = { partition: key, mutation, reason, at: this.now() }
     this.parked++
+    this.lastReason = reason
     this.persist(() => this.store?.park(key, mutation, reason, entry.at))
     this.onParked?.(entry)
   }

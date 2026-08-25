@@ -16,6 +16,7 @@ import type {
   GeneratedPosition,
   ItemMode,
   ReviewFlag,
+  ShoppingMode,
   TemplateKind,
   TripStatus,
 } from '@/types/domain'
@@ -155,6 +156,37 @@ export function useMutations(hlc: HLCGenerator) {
     })
   }
 
+  /**
+   * buyItem checks a row off one of M6's shopping lists (FR-3.3, FR-25.11j).
+   *
+   * `bought_from` travels in the *same* upsert as the change it explains.
+   * Buying a BUY_BEFORE row moves it to the packing list, so the record of
+   * where it came from is the only way back — and a second mutation carrying
+   * it would leave a window (offline, an unbounded one) in which the row has
+   * left the shopping side with nothing saying which list it left.
+   */
+  function buyItem(itemId: string, from: ShoppingMode, quantity: number): Mutation {
+    if (from === 'buy_local') {
+      // Bought at the destination: that is its packed state, and the mode
+      // stays what it was — the row never leaves its own list.
+      const packed = packItem(itemId, quantity, 'packed')
+      return { ...packed, fields: { bought_from: from, ...packed.fields } }
+    }
+    return make('upsert', TABLE.tripItems, itemId, { bought_from: from, mode: 'pack' })
+  }
+
+  /**
+   * unbuyItem is FR-25.11j's undo: the row goes back on the list it was
+   * bought from, and the record that sent it there is cleared with it.
+   */
+  function unbuyItem(itemId: string, from: ShoppingMode): Mutation {
+    if (from === 'buy_local') {
+      const unpacked = packItem(itemId, 0, 'open')
+      return { ...unpacked, fields: { bought_from: null, ...unpacked.fields } }
+    }
+    return make('upsert', TABLE.tripItems, itemId, { bought_from: null, mode: from })
+  }
+
   function setItemMode(itemId: string, mode: ItemMode): Mutation {
     return make('upsert', TABLE.tripItems, itemId, { mode })
   }
@@ -179,6 +211,19 @@ export function useMutations(hlc: HLCGenerator) {
    */
   function setReviewFlag(itemId: string, flag: ReviewFlag, value: boolean): Mutation {
     return make('upsert', TABLE.tripItems, itemId, { [REVIEW_FLAG_FIELD[flag]]: value ? 1 : 0 })
+  }
+
+  /**
+   * setPacker assigns responsibility for a row, or clears it (FR-25.19).
+   *
+   * This is the one actor column the client is allowed to choose:
+   * `packed_by_user_id` is stamped by the server and stripped from every
+   * incoming mutation, while *who is responsible* is a decision somebody
+   * makes deliberately — and the server turns it into the FR-6.2
+   * delegation notification.
+   */
+  function setPacker(itemId: string, userId: string | null): Mutation {
+    return make('upsert', TABLE.tripItems, itemId, { packer_user_id: userId })
   }
 
   function addTripItem(
@@ -926,11 +971,14 @@ export function useMutations(hlc: HLCGenerator) {
     skipItem,
     restoreSkipped,
     unskipItem,
+    buyItem,
+    unbuyItem,
     setItemMode,
     assignTraveler,
     assignContainer,
     setLatePacker,
     setReviewFlag,
+    setPacker,
     addTripItem,
     deleteTripItem,
     addTraveler,

@@ -151,10 +151,22 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A route names its scope first (2026-08-24)](#a-route-names-its-scope-first-2026-08-24) — NFR-4.14's third point/ADR-027. Four things the code cannot show: the backlog item's own complaint had gone stale (ADR-025 had already deleted two of the four shapes it named, so it was re-measured before it was acted on), why the sync endpoints were widened into a scope the owner's question did not name, the trap that a router's 404 and a handler's 404 are the same status — which made the first negative test green on the two revert routes for the wrong reason — and the latent defect that typed route builders exposed.
 - [The gate protected what the file happened to declare (2026-08-24)](#the-gate-protected-what-the-file-happened-to-declare-2026-08-24) — NFR-4.14's coverage half. Three things the code cannot show: that the rule needed a *check* rather than eleven more types, that the check has a blind spot which the very handler that motivated it fell into — and how that was closed rather than papered over — and why a request body is allowed to stay a map where a response body is not.
 - [A path stopped being written twice (2026-08-24)](#a-path-stopped-being-written-twice-2026-08-24) — NFR-4.14's last half: the routes joined `wire.go` and the client's builders are generated from it. What the code cannot show: why ADR-027's revisit trigger was discharged *before* the drift it waits for, why the version prefix is deliberately spelled out on every line, why a pin on a generated file is not redundant, and the trap that a generator must emit prettier's own line breaks or the drift gate fails on a file nobody edited.
+- [A column everything read and nothing wrote (2026-08-25)](#a-column-everything-read-and-nothing-wrote-2026-08-25) — FR-25.19/E2E-FLOW-02. Three things the code cannot show: how the gap survived four screens and a spec that named it, why the fix was one control rather than a feature, and the test assertion that would have passed with or without the rule it was written for.
 - [A trip could be judged only one row at a time (2026-08-24)](#a-trip-could-be-judged-only-one-row-at-a-time-2026-08-24) — FR-9.3/9.4. Three things the code cannot show: how many affordances a "one posture, one question" screen turns out to have once it is rendered, why a handled proposal became a record line rather than a dimmed card, and the control that was replaced twice before it rendered the row rather than itself.
 - [A claim stops having a lifetime (2026-08-24)](#a-claim-stops-having-a-lifetime-2026-08-24) — FR-5.7/ADR-028. Four things the code cannot show: why the option that looked like the compromise was the most expensive one, why the takeover is the one lock action with no optimistic write, why it has no reachable Playwright case and will not until a second identity exists, and the two-day-old work that was deleted rather than adapted.
 - [A second account arrives, and finds a claim nobody could revoke (2026-08-24)](#a-second-account-arrives-and-finds-a-claim-nobody-could-revoke-2026-08-24) — MVP-plan Track B step 2 / ADR-029: the mock-IdP `server` project. Four things the code cannot show: why a real Authelia was weighed and lost to a 250-line fixture, why the ordering of two processes is a design decision rather than a script detail, the defect the project found on its first run — a takeover that the loser's screen contradicted — and why the identity behind the fix cannot come from the token provider the rest of the client uses.
+- [A device only ever got the first page (2026-08-25)](#a-device-only-ever-got-the-first-page-2026-08-25) — Sync-API §4: the pull ignored `has_more`. Four things the code cannot show: why every fixture in the suite was too small to catch it, why the obvious second half of the fix — remembering the cursor — made the app *emptier*, why the correct implementation was already in the repo and unused, and what found it in the end.
+- [A drain could land on top of a drain (2026-08-25)](#a-drain-could-land-on-top-of-a-drain-2026-08-25) — Sync-API §4: one drain per partition at a time. Three things the code cannot show: why the doubled traffic I thought I had measured was my own eyeball script rebooting the app, why the obvious guard — hand the running drain back to the late caller — silently loses a mutation, and why this only became worth fixing once the pull was paged.
+- [The restore could be run twice, and the manual said it could not (2026-08-24)](#the-restore-could-be-run-twice-and-the-manual-said-it-could-not-2026-08-24) — FR-18.4/ADR-030: an imported document is a second copy when its name matches, plus the year for a trip. Five things the code cannot show: the documentation that had described the item rule as if it were the whole rule, why the database constraint that looks like the obvious enforcement is the worst of the four options, why the trips were invisible to a view called `master`, how ADR-017's Vorlage exception was reversed by a measurement rather than an argument, and the cost the family's own data pays for the rule.
+- [The clock the client was told to read, and never received (2026-08-25)](#the-clock-the-client-was-told-to-read-and-never-received-2026-08-25) — a data-model review's sync half. Four things the code cannot show: how a rule implemented correctly on both sides never once ran, why a deleted trip's *master*-partition children are the tombstones that matter while its trip-partition ones need none, a review finding that was wrong and how far I built it before opening the citation, and why a connection-scoped pragma is not a schema rule.
+- [What a constraint costs when the outbox drops a refusal (2026-08-25)](#what-a-constraint-costs-when-the-outbox-drops-a-refusal-2026-08-25) — the same review's schema half. Four things the code cannot show: why the two-level rule was a two-step formality, the lens every candidate constraint was decided by and the two that failed it, why a per-owner unique name contradicted the FR above it, and the dead schema that was kept on purpose.
+- [A refusal that could not be read (2026-08-25)](#a-refusal-that-could-not-be-read-2026-08-25) — Sync-API §5 / FR-9.2. Four things the code cannot show: why the foreign key that started the finding was never the defect, why the reason is asked for instead of read out of the driver's error, why M7 does not pre-empt a delete it cannot judge, and the divergence this PR announces without closing.
+- [A purchase that could not be taken back (2026-08-25)](#a-purchase-that-could-not-be-taken-back-2026-08-25) — FR-25.11j, the review's last item. Three things the code cannot show: the column that was weighed and not added, why the reveal declines the persistence FR-25.18 would seem to hand it, and the round trip left open on purpose because the file that closes it belongs to somebody else.
+- [A refusal that only announced itself (2026-08-25)](#a-refusal-that-only-announced-itself-2026-08-25) — Sync-API §5 / ADR-031: the divergence the entry above left open. Four things the code cannot show: why a whole-partition resync scored well and still lost, why the insert/update asymmetry turned out to be the server's question and not the client's, the one refusal that must repair nothing, and the repair that came back empty and was only visible in a screenshot.
+- [A name that could only be refused by the server (2026-08-25)](#a-name-that-could-only-be-refused-by-the-server-2026-08-25) — FR-1.6 / FR-13.1: the mitigation the constraint owed. Four things the code cannot show: the one surface that could have adopted the existing row and deliberately does not, the rule that was already live for items in a single view, why the return type was the actual work, and how the diacritics question was settled.
 
+- [A delete that could only be refused](#a-delete-that-could-only-be-refused-2026-08-25) — FR-24.3 unparked: the refusal already held the discriminator; why the filtering keeps `itemList` complete; the rule written twice with only one copy allowed to be wrong; the usage endpoint designed and dropped.
+- [The restore was free, the name was not](#the-restore-was-free-the-name-was-not-2026-08-25) — FR-24.3 / ADR-033 / M23: the entry above closed by naming restore as owed, and this is the day after. Four things the code cannot show: the promise the FR made that the schema had already broken, why the collision is refused on the *client* when ADR-032 had just argued the opposite, the surface chosen against three that were rejected, and the defect only a rendered case found — twice, in one test.
 - [Two actor columns a client could still name (2026-08-25)](#two-actor-columns-a-client-could-still-name-2026-08-25) — invariant 3 / FR-4.2, FR-5.7. Three things the code cannot show: why an edit may not re-stamp the author it can no longer forge, why the obvious shape of the claim fix would have left every packed row claimed, and the evidence that decided which op a comment is allowed to be born from.
 
 ## Current state
@@ -6277,6 +6289,732 @@ and unmarked states off a downscaled screenshot, decided they looked identical,
 and was about to change the colour — the computed values were `#cba6f7` against
 `#6c7086`, which is exactly the distinction that was intended. A rendered pixel
 answers a question about rendered pixels; an *impression* of one does not.
+## The restore could be run twice, and the manual said it could not (2026-08-24)
+
+**What changed:** an imported document is a second copy of something this
+instance already holds when their **names** match — plus the **year**, for a
+trip (ADR-030). An import that finds one writes nothing at all and reports what
+was there; M18 marks the document in the restore list *before* the button is
+pressed, the commit counts what it left alone, and `jitpack-import` says it per
+document and in its summary, `--dry-run` included.
+
+**The premise that was already written down as true.** `docs/backup.md` said,
+of a restore onto a device that still has data, that everything is "matched to
+what already exists **by name**, so restoring onto a device that still has data
+merges rather than duplicates". That was the rule for items, for tags and for
+groups, and it had been generalised in prose to the whole file. Trips had never
+had it: restoring a 33-trip backup twice produced 66 trips, quietly, with the
+first 33 still on screen. The page was not lying about behaviour anybody had
+decided against — it was describing a rule that only covered part of what the
+file contains, which is the harder kind of documentation error to see, because
+every sentence around it is true.
+
+**Why not a UNIQUE constraint, which is what a database is for.** It scored
+worst of the four options considered, and the reason is not the schema
+freeze (invariant 2), which is only a timing problem. It is that a refused
+mutation **parks the outbox**: the queue is ordered, a rejected write stays at
+its head, and every later write on that device waits behind it. That failure
+mode was found on 2026-08-22 and fixed once already. Trading a duplicated trip
+for a wedged device is a bad trade, and the constraint would additionally turn
+two people creating *Samedan 2027* on two phones — ordinary concurrent use,
+which LWW exists to settle — into a hard error. The other two options fail
+more simply: a `(import)` suffix labels the duplication instead of preventing
+it, and a row-level merge cannot tell "add what is missing" from "undo what the
+user deleted".
+
+**Trips are in the master partition and not in the master store.** The import
+rules read the instance through a view called `master`, and the CLI carried a
+comment saying a trip's own rows are "written, never matched against" — true
+until this rule needed to match against them. The `trips` table lives in the
+master *partition* but belongs to the *trip* store, so nothing that held the
+view could see them. The view now names `tripList` explicitly and both call
+sites assemble it through getters rather than a snapshot: the rules read their
+own output back between documents, so a trip created by document 12 has to be
+visible to document 13 in the same file.
+
+**A decision reversed by a measurement rather than an argument.** The rule was
+written for trips alone, because ADR-017 had explicitly declined to extend the
+group's link-by-name identity to Ferien-Vorlagen: two of one name are two
+different plans, and merging them loses one. That reasoning is sound about a
+file somebody *hands* you. It is wrong about the file that actually gets
+re-imported, which is your own backup — and the difference only became visible
+by importing a real one twice and counting rows: the trips held at 33, while
+the three Vorlagen became six and their includes went 35 → 70. Reading the ADR
+would not have produced that; running the thing did. The suffix is retired, and
+ADR-017 carries the supersession note.
+
+**What the rule costs, in this project's own data.** The family sheet these
+imports exist for has *Janosch & Andy* twice in 2021 — two different weekends,
+one name, one year. Under this rule only the first can be imported, and the
+second has to be named apart in the file. Since the rule reaches Vorlagen too,
+the same holds for two different Ferien-Vorlagen of one name — the very case
+ADR-017 was protecting — and a *changed* Vorlage can no longer be re-imported
+over the one that is here: it is skipped whole rather than merged. All of that
+is written into ADR-030 as accepted cost rather than discovered later, and it
+is also the concrete thing
+the revisit trigger waits for: the fix, when somebody wants it, is a way for
+the import to say "no, this is a different one", not a different notion of
+identity.
+
+
+## A column everything read and nothing wrote (2026-08-25)
+
+FR-25.19's *Zugewiesen an*, and E2E-FLOW-02 with it. The task began as a test:
+the `server` project had just made a second identity reachable, so the owed
+delegation case was writable at last. It was not — its first step did not
+exist. `packer_user_id` was written once, when a row was generated from a
+template or a clone, and never again.
+
+**The gap survived because every other part of it was built.** M4's edge
+avatar reads the column, with the FR-25.19 precedence rule (the packer after
+packing, the assignee before, never both). The revealed row's stamp names both
+where they differ. FR-25.20's filter hides other people's rows and its reveal
+bar names them — and all of that is unit-tested, with synthetic rows carrying
+an assignment no screen could make. The server fires `notifyDelegation` on any
+push carrying the column, with its own Go test. UI-Spec M5's Actions line has
+said *„set Zugewiesen an → notification (FR-6.2)"* since the concept round.
+Four correct pieces around a missing one, and each of them looked like
+coverage of it.
+
+**So the fix was one control, not a feature.** The plan had a step for
+*„M4's consequences"*, and that step dissolved on inspection: nothing was owed
+there, because the reading side was complete. Worth writing down as a
+sequencing lesson rather than a defect — when a column is read in four places
+and written in none, the honest estimate is *one writer*, and the temptation
+is to plan work for the four.
+
+**The test I wrote for the G-3 rule would have passed without the rule.**
+It asserted `attributes('disabled')` on the picker. Ionic sets `disabled` as a
+DOM *property* on its custom element, so `attributes()` never sees it — the
+assertion returns undefined whether the control is disabled or not, and the
+existing `m5-container` select proves it: it has carried `:disabled="isLocked"`
+since the rebuild and shows no such attribute either. The case now asserts the
+rule — a locked row writes nothing — with the lock banner as its positive
+signal, and reversing the guard reddens it. The same shape has now been found
+in Playwright (`aria-disabled` on `ion-button`) and in Vitest; the common half
+is that **a rendered attribute is not where Ionic keeps state**.
+
+**And one thing was deliberately not fixed here.** The same reading found that
+notifications are not localized at all — every FR-6.2 body is an English
+literal, with a second copy in `sw.js` for the OS notification. It is backlog
+item 19 rather than a commit in this PR: the worker cannot read the locale
+from `localStorage`, so the OS half needs a mechanism decision and an ADR, and
+a localized button under an English sentence is worse than consistent English.
+## A device only ever got the first page (2026-08-25)
+
+**What changed:** the pull asks page after page until the server says there is
+no more (Sync-API §4). It used to ask once, apply the 500 changes it got back,
+and stop — `has_more` was read by nothing.
+
+**What it looked like.** After importing a decade of the family's real trips
+into the `:3000` instance, a fresh browser opened on M2 and said *„Keine
+archivierten Reisen"*, with the G-2 glyph green and no error anywhere. The
+instance held 717 master rows; the trips sit at `change_log.seq 652` and up,
+behind the first page, so not one of them was ever delivered. What did arrive
+was 16 of 21 groups and one group holding 19 of its 20 items — a world that
+looks plausible and is a fraction of the truth.
+
+**Why nothing caught it.** Every fixture in the suite is smaller than a page.
+The unit cases stubbed the pull with a single response and asserted what came
+out of it; the e2e projects build their world by clicking, and clicking does not
+produce five hundred rows. A rule about what happens *past* the first page
+cannot be tested by data that never reaches it, and the honest fix was to push
+520 rows straight at the API in E2E-SYNC-01 — the one case in the suite whose
+subject is the size of a partition rather than a screen.
+
+**The second half of the fix made it worse, and the measurement said so.**
+The cursor lived in an in-memory `Map`, so a reload asked from zero again. That
+looks like the other half of the same bug, and persisting it in IndexedDB
+beside the outbox queue was written, tested and green. Then it ran against the
+real instance: **zero rows**, on every screen. Outside Local Mode the pulled
+rows are not kept either — they live in the Pinia stores and go with the tab —
+so a device that remembers how far it read and not *what* it read asks for the
+changes after that point, is correctly told there are none, and renders an
+empty app. The memory-only cursor was not an oversight; it is what makes a
+memory-only store correct. That half was reverted, and the unit case that had
+asserted persistence now asserts the opposite, with the reason in its body.
+
+**The correct implementation was already in the repository.**
+`client/src/composables/usePull.ts` has `pullMasterAll` with exactly the
+`while (hasMore)` loop this needed — and `grep -rn "usePull(" src` finds no
+caller outside its own tests. The app pulls through `SyncOutbox.drain`, which
+grew its own single-request version. Two implementations of one protocol rule,
+one of them unreachable from the product, is the shape ADR-025 deleted a
+different instance of a fortnight earlier: the reachable copy drifted and
+nobody could see it, because the correct one was never run.
+
+**What found it.** Not a test, and not a review — using the thing. The import
+went in through the CLI, which writes server-side only, so a browser had to
+pull the instance from scratch for the first time. Every previous load of that
+data had been written *by* the browser that then displayed it, which is exactly
+why a decade of use had never asked the question. It is also what every second
+family device does on its first launch.
+
+
+## A drain could land on top of a drain (2026-08-25)
+
+`SyncOutbox.drain` pushes a partition's queue and then pulls it back. Nothing
+stopped two of them running at once, and most callers do not await it: the
+WebSocket's `master.changed` handler fires a `drainMaster()` and moves on, and
+so do four trip actions. Two overlapping drains pushed the same chunk twice —
+harmless, the server memoizes by `mutation_id` and answers `duplicate` — and
+pulled the same pages twice, which is the half that changed price.
+
+**Why it was worth fixing now and not before.** As long as a pull was one
+request, an overlap cost one extra request. Since the pull became a loop over
+pages (the fix a day earlier), an overlap costs the *whole partition*: on the
+family instance, 717 rows fetched a second time on the boot path. The defect is
+the same age as the outbox; only its price moved.
+
+**The doubled traffic I thought I had measured was my own script.** Verifying
+that day's paging fix against the real instance, I traced two full drains — four
+requests, `cursor=0` and `cursor=500` twice — and wrote it down as re-entrancy
+caught in the act. It was not. The trace script navigated with
+`page.goto('/tabs/trips')`, and a `goto` reloads the SPA: two page loads, one
+drain each, exactly as designed. Re-run with in-app navigation only, a load
+produces one drain and two requests. **A `goto` in an eyeball script is a reboot,
+and every boot-path request appears once per `goto`** — which makes any counting
+assertion built on one meaningless. The re-entrancy is real, but it is a latent
+hazard reachable from named call sites, not something the instance was observed
+doing; the fix is cheap enough that the distinction did not change the decision,
+only the sentence describing it.
+
+**The obvious guard is wrong, and a test says so.** The one-line version is to
+keep the running promise and hand it to any caller that arrives while it is open.
+That loses writes: `drain` works through the snapshot of the queue it took when
+it started, so a mutation enqueued a moment later is not in it. A caller that
+awaits the returned promise — `enqueueAndDrain` does — would be told its
+mutation had been sent while it had never left the device, and would sit in the
+queue until something else happened to drain the partition. So a late caller
+waits for a **further** drain instead, and every caller arriving during one
+drain shares that single follow-up. Written as coalescing first and mutated back
+to it afterwards: the case that catches it is
+*„still sends a mutation that was enqueued while a drain was running"*, and it is
+the only one of the seven that plain coalescing fails on a push path.
+
+Two smaller decisions in the same shape. The guard is released in a `finally`,
+not a `then`, because a guard a failed drain leaves standing would take the
+partition out of sync for the rest of the session — a worse failure than the
+double work it prevents. And the follow-up swallows the running drain's
+rejection before chaining: that failure belongs to the caller that started it,
+while the late caller gets the outcome of its own drain, which has not happened
+yet.
+
+**Not fixed, still true:** there are two paging implementations of this protocol
+rule — `SyncOutbox.drain` and `usePull.pullMasterAll`, the latter reachable only
+from the FR-18.7 command line — and the guard added here is the drain's alone.
+
+## The clock the client was told to read, and never received (2026-08-25)
+
+A data-model review of `schema.sql` against the PRD, the Sync-API spec and
+the store's own code. Five defects and one non-defect came out of the sync
+half of it; the schema's own constraints are a separate change.
+
+**A rule can be implemented on both sides and still never run.** Sync-API §3
+has every client advance `last_seen_hlc` to the highest HLC it has observed,
+and the client implements it exactly — `usePull.ts` and `useSyncOutbox.ts`
+both read `row['updated_hlc']` off each pulled snapshot. The server builds a
+snapshot from `syncableColumns`, and `updated_hlc` is deliberately not one of
+them, so `loadRow` scanned the clock into a variable that `Pull` and
+`PullMaster` then dropped on the floor with `c.Row, _, _, err = …`. The guard
+was therefore false on every change any device has ever pulled. Nothing was
+red: the client's typeof check makes the dead path indistinguishable from a
+row that simply has no clock, and no test asserted the field's presence
+because both sides had been written from the same spec sentence and each
+assumed the other end held it up. What it cost is invisible until it isn't —
+a device whose wall clock lags keeps minting HLCs *older* than writes it has
+already seen, and loses its own later edits to them. The fix is one line in
+`loadSnapshot`, but the lesson is the shape: **two correct implementations of
+one sentence do not add up to a working rule, and the thing to test is the
+seam between them, not either side.**
+
+**A foreign-key cascade is a delete no change feed can see.** The master
+partition already knew this — `cascadeChildren` exists precisely to collect
+child ids before a parent goes and tombstone them by hand — but the list had
+two holes, and one whole partition had never been given the machinery at all.
+Deleting a trip cascaded `trip_members`, `trip_template_sources` and
+`trip_applied_changes`, all three of which travel the *master* feed, with no
+tombstone behind them; deleting a trip item cascaded its comments in the trip
+partition, which called `cascadeChildren` from nowhere. Both leave rows alive
+on every other device permanently. Worth writing down is why a trip's
+*remaining* children need nothing: `change_log.trip_id` cascades too, so the
+trip partition's entire feed is deleted along with the trip it describes, and
+the master feed is the only one left to carry the news. That asymmetry is
+easy to read as an oversight and is in fact the reason the master-side
+tombstones are the ones that matter.
+
+**A finding that did not survive its own verification.** The review also
+reported that the idempotency memo's `outcome` column was write-only and that
+a replayed `rejected` push therefore came back as a bare `duplicate`, losing
+the refusal. The first half is true and harmless; the second was wrong, and I
+had already written the fix and four red tests before checking the spec text
+rather than the summary of it. §5 defines `duplicate` as "mutation_id seen
+before, **recorded result returned**", and P-5 says in as many words that "the
+second push returns `duplicate`" — the *recorded result* being the seq and the
+conflicts, both of which the code was already returning. The change was
+reverted and the tests replaced by the one assertion P-5 makes that nothing
+had covered: a replay appends nothing to the change log. **A review finding is
+a hypothesis with a citation, and the citation is the part to open.**
+
+**A pragma that holds for one connection is not a schema rule.** `PRAGMA
+foreign_keys = ON` was executed once after `sql.Open`. It is per connection,
+SQLite defaults it off, and `database/sql` replaces a connection it finds
+broken — so a pool that ever re-dialled would hand back a handle on which
+every `REFERENCES` clause in `schema.sql` is decorative, with an orphaned row
+as the first symptom and nothing naming the cause. It is in the DSN now. The
+test needed a deterministic seam rather than a hope that a reconnect happens:
+`SetMaxIdleConns(0)` makes the pool close each connection on release, so the
+next query provably runs on a fresh one.
+
+**A rule that never ran was hiding two things.** Making the snapshot carry
+`updated_hlc` was one line; merging it forward onto a `main` that had meanwhile
+gained the multi-page pull fix turned `e2e-single` red, on *that* fix's own new
+case. The cause was not paging. `observeHLCs` had finally been given something
+to parse, and `parseHLC` throws by design — so the first malformed clock in the
+feed aborted the page, and the 520-row fixture behind the case was minting
+device ids out of a non-hex `uniq()`. Two defects had been sitting behind a
+guard that was always false: a test fixture producing HLCs the client's own
+parser refuses, and a client that lets one bad row make every other row of a
+partition unreachable, on every device, for as long as that row exists. The
+server stores an HLC verbatim and never checks its device id, so one buggy
+producer is enough to trigger it. Observing a clock is an optimisation for
+causality, not a gate on rendering, so it is tolerant now and says what it
+refused. **A dead code path does not fail; it waits** — and what it was hiding
+surfaced only because something else was fixed.
+
+## What a constraint costs when the outbox drops a refusal (2026-08-25)
+
+The second half of the data-model review: `schema.sql`'s own constraints,
+read against the FRs that claim them.
+
+**A structural guarantee that took two steps to break.** FR-27.1 says the
+two-level hierarchy makes include cycles *structurally impossible*, and
+`validInclude` does enforce it: the parent must be a Ferien-Vorlage, the
+child a Gruppe. But `templates.kind` was an ordinary syncable column with no
+guard on it, so the shape it checked was not stable. Include B into A, push
+`A.kind='group'` and `B.kind='template'` — both accepted — and the include
+rule now reads the *reverse* edge as perfectly legal. A→B→A, persisted, by
+three ordinary pushes. What makes it worth recording is where the two guards
+that prevent it already existed: in FR-27.6, spelled out in full, describing
+the **M8 editor**. A rule that only the editor enforces is not a rule; it is
+a convention the UI happens to follow, and the push endpoint is a supported
+write path with the same authority. The reproduction was written as a test
+first and passed against the unfixed code, which is what "verified" has to
+mean for a hole rather than a defect: a bug report you cannot make green by
+breaking is not a bug report.
+
+**The lens: a constraint that can refuse a legitimate offline mutation
+destroys the user's change to buy an invariant.** Push is the only write
+path, a constraint violation returns `rejected`, and the client's outbox
+drops a rejected mutation — so a CHECK is not a safety net here, it is a
+delete. Five candidates were judged by that, and the two that read most
+obviously "correct" are the two that failed:
+
+* FR-5.5 says a skip writes `state='skipped'` **and** quantity 0, and the
+  client does send both — so `CHECK (state <> 'skipped' OR quantity = 0)`
+  looks free. It is not, because *the merge decides the two fields
+  separately*: another device's newer quantity leaves the skip applied on
+  its own. With the CHECK added and the case run, that push came back
+  `rejected` — the whole skip lost, to protect a pairing nothing reads.
+* FR-24.2's "the first tag is the primary tag" suggests
+  `UNIQUE (item_id, position)`. Reordering N tags is N mutations, so every
+  intermediate state has two rows at one position; with the index added, the
+  *first half* of a two-tag swap was refused. The honest fix is a read-time
+  tie-break, which the client did not have — it sorted by position and let
+  the tie fall to arrival order, so two devices could file one item under
+  two different headings and neither was wrong.
+
+Both were **measured against the constraint before being written off**, which
+is the only way this reasoning stays honest: "it might reject a legitimate
+push" is a guess until the schema is mutated and the push is run. The two
+that passed the lens are the ones no client traffic can reach — the one-Owner
+index (`authorizeMaster` refuses every client-sent `owner`, so the index can
+only ever catch a *server* bug) — and the one whose cost is a considered
+trade rather than an accident.
+
+**A uniqueness scope that contradicted the sentence above it.** `templates`
+was `UNIQUE (owner_id, name)` while FR-1.6's MVP simplification says
+templates are shared instance-wide and `owner_id` "grants no exclusivity".
+Both cannot be true: per-owner uniqueness lets two accounts hold two
+"Sommer" that every screen shows side by side and nothing tells apart, and
+three built mechanisms already assume there is exactly one — FR-18.2/18.4
+link an imported group by name and derive the `(import)` suffix from a name
+being taken, FR-27.5/27.15 recognition keys on the shared set. `items.name`
+and `tags.name` had been globally unique since the beginning; the templates
+scope was left behind when the ownership model was parked. This one carries a
+real offline cost, unlike the index above it — two devices creating "Sommer"
+offline now means one of them loses it — and that is written into FR-1.6
+rather than into a commit message, because it is the kind of thing that
+surfaces later as a question about a missing group.
+
+**Dead schema, and the one piece of it that earns its keep.** The
+`item_series_history` view had zero consumers anywhere in the repository —
+per-series analytics run client-side per invariant 4 — and two `trip_items`
+indexes served filters (`mode`, `packer_user_id`) that also happen only on
+the client. All three are gone. `trips.duration_days` is in the same
+position, read by no server query, and it **stays**: the Sync-API spec uses
+it as its worked example of "a generated column is in neither direction of
+the protocol, so the client derives it", and a spec sentence with a live
+referent is worth more than one generated integer per trip row. Dead schema
+is a choice under ADR-018, so it needs a reason each way rather than a rule.
+
+
+## A refusal that could not be read (2026-08-25)
+
+The finding that started this was phrased as a schema defect: *deleting a
+template that ever generated trip items is impossible, and nothing tells
+anyone.* Half of that was true. The delete is impossible on purpose —
+`trip_items.source_template_id` carries no `ON DELETE` clause because FR-9.2
+has an archived trip keep naming the Vorlage its rows came from — and the
+permissive fixes are both worse than they look. `ON DELETE SET NULL` strips
+provenance from finished trips silently, which is exactly the data FR-9.2,
+FR-27.5 and M14 all read; `CASCADE` is not even expressible, because the
+parent is a master-partition row and the children live in N trip partitions,
+so one mutation would have to write tombstones into partitions it is not
+addressed to. **The foreign key was never the defect.** The defect was the
+second half of the sentence: nothing tells anyone.
+
+**A refusal had nowhere to put its reason.** `store.MutationResult` had four
+fields and none of them was a reason, so five different situations —
+authorization, out-of-partition, the FR-27.1 two-level rule, a constraint, a
+blocked delete — arrived at the client as the single word `rejected`. The
+wire had been ready for this since v1.0: `error` is declared beside the
+outcome in `wire.go` and printed in Sync-API §5, and it was written for
+exactly two validation errors, both raised *before* the store is called. And
+because §5's P-5 makes any outcome an acknowledgement, the outbox drops the
+mutation on receipt. The user deletes a group, the client removes it
+optimistically, the server keeps it, and the two diverge permanently with a
+number in the G-2 sheet as the only trace. Adding a field is a small diff;
+the reason this entry exists is that the small diff was invisible from the
+symptom the review reported.
+
+**The reason is asked for, not read out of the failure.** The obvious
+implementation is to catch the constraint error and look at it —
+`isConstraintViolation` already matches `"constraint failed"` in the driver's
+message. That is a string from a dependency, and telling an FK apart from a
+UNIQUE that way would put a product decision behind a substring nobody
+promised to keep. So the blocked delete is a **pre-check**: a table of the
+references that are deliberately declared *without* `ON DELETE`, and one
+`count(*)` per reference before the delete is attempted. It sits beside
+`cascadeChildren`, which is the list of references that behave the opposite
+way, and the two lists together are now the whole answer to "what happens to
+the children". Generic constraint failures keep the string match and the
+generic reason; nothing branches on the text.
+
+**M7 does not pre-empt the delete, and that is a decision.** M7 already
+pre-empts one delete: a group another Vorlage includes refuses with the
+consumer's name (FR-27.6). Doing the same for a group a *trip* used looks
+like symmetry and is not: `getIncludedBy` reads the master partition, which
+the client holds in full, while trip items live in trip partitions the client
+loads one at a time — in Server Mode it holds the trips it has opened, never
+every trip's. A pre-check over what is loaded would answer "safe to delete"
+for precisely the trips that then refuse it, and a guard that is right about
+the case you are looking at and wrong about the rest is worse than no guard:
+it teaches the user that no warning means it will work. The refusal is
+reported instead.
+
+**What is announced and not closed.** The device that made the delete still
+shows the row as gone. Nothing brings it back: the server row did not change,
+so no change-log entry exists, so no pull resurrects it. G-2 now says a change
+was refused and why, which is the smallest honest treatment — but the
+divergence itself is open, and the e2e case records it deliberately by ending
+on a second device that still finds the group. Undoing a parked mutation
+against the local store is a bigger mechanism than this PR, and it wants its
+own decision about what an optimistic write owes when it is refused.
+
+
+## A purchase that could not be taken back (2026-08-25)
+
+FR-25.11j, accepted 2026-08-07 and unbuilt since, was the last item of the
+data-model review. M6's check-off called `setMode(item, 'pack')`: the row left
+the shopping side by the same act that marked it done, and nothing recorded
+where it had gone. There was no *„Erledigte"* to find it in, and no way back.
+
+**A bought-at time and a buyer were weighed, and not added.** They are the
+obvious neighbours of a record — `packed_at` and `packed_by_user_id` sit right
+there — and the FR asks for neither. The BUY_LOCAL half already has both for
+free: being bought at the destination *is* being packed, so the ordinary
+FR-25.17 path stamps them. The BUY_BEFORE half is not a packing act, so a
+`bought_at` there would be a column no screen renders and no rule reads —
+which is precisely what FR-25.9 removed a field for. The cost of declining is
+that "who bought the coffee" is unanswerable for a purchase before departure;
+the moment a screen asks, the column is one line and its own FR.
+
+**The reveal declines the persistence FR-25.18 would seem to hand it.** M4's
+*Erledigte* switch is remembered per trip for the session, and copying that
+here looked like consistency. FR-25.18's own argument is against it: it is
+about not re-picking a filter of **four facet values**, and about a filter that
+*hides* rows being dangerous to forget. M6's reveal is one tap whose off-state
+is the safe one — and the M6 **tab** is not remembered at all, so a restored
+reveal would open on a list the reader did not choose. The switch that looks
+the same is not the same control.
+
+**The round trip is open on purpose.** The Local Mode backup (NFR-4.11) is
+written and read through the portable format, and `PortableItem` has no
+`bought_from`, so a backup and restore loses which list a row was bought from
+— the same shape ADR-024 paid for with status, tags and the mark. Half the fix
+is one field in `client/src/domain/portable.ts`; the other half is in
+`portableImport.ts`, which another session holds. Writing only the half I own
+would put a field into the file that nothing reads back, which looks finished
+and is worse than the gap. It is named in FR-25.11j instead.
+
+One thing the diff does show but is worth the pointer: making `bought_from`
+required on `TripItem` turned eleven test fixtures red at once, and that is the
+mechanism #169 asked for — an optional field is the one that gets forgotten at
+a call site, and only the compiler asks every one of them.
+
+## A refusal that only announced itself (2026-08-25)
+
+The entry above this one ends by naming what it did not do: a refused mutation
+was given a reason and put on screen, and the row it refused stayed exactly as
+the device had optimistically drawn it. That is the gap this closes (ADR-031),
+and it was never about the delete that motivated it — an authorization denial,
+a scope refusal, a template rule and a constraint all leave the same wrong row
+behind.
+
+**A plain pull cannot repair it, and that is the whole design problem.** The
+server row did not change, so its `change_log` entry sits behind the client's
+cursor; the cursor is an exclusive lower bound that only moves forward, so the
+row is never offered again. Every candidate solution is an answer to that one
+sentence, and the sentence is what makes the obvious one — "just pull" — wrong.
+
+**The option that scored second was the one I most wanted to reject on sight.**
+Resyncing the partition from cursor 0 after a refusal needs no server change,
+no new endpoint and no carve-outs, and it repairs phantom inserts for free. It
+lost on a single property: it rebuilds the store from the server, which erases
+the optimistic rows of everything still sitting in the outbox. On a phone that
+has been off wifi since morning that is the entire day's packing, and it would
+be destroyed by the mechanism whose job is to protect it. A high score and a
+disqualifying failure mode is worth writing down, because the matrix on its own
+reads as if it were close.
+
+**The insert/update asymmetry turned out to belong to the server.** The brief
+framed it as a client problem — a rejected insert has no server row, so the
+client has to know it was an insert and drop the row. The client's `op` is a
+poor witness (another device may have deleted the row meanwhile, and the outbox
+entry cannot know), but the server does not need a witness at all: at the
+moment it refuses, it holds the row or it does not. So the repair entry's
+`deleted` flag is read from `row.Exists`, and one mechanism covers both cases —
+a refused delete or update re-delivers the snapshot, a refused insert delivers
+a tombstone that drops the phantom. The asymmetry did not need a second code
+path; it needed a different question.
+
+**`out_of_scope` must repair nothing, and the reason is the leak the refusal
+exists to prevent.** That reason means the row belongs to another trip. Writing
+a `change_log` entry for it under *this* trip is precisely how the partition
+reaches into another one: the next pull would hand the pusher the foreign row's
+whole snapshot — the failure `belongsToTrip` was added for. So it is the one
+refusal repaired client-side, and it is repairable there without guessing,
+because the reason is the answer: a row this partition may not touch is a row
+it must not keep. Two mechanisms, split by a value that already travels the
+wire.
+
+**The repair came back empty, and only a screenshot said so.** With the
+server-side half green — a Go test asserting the pull now carries the template,
+an e2e asserting the group is visible in M7 again — the rendered screen showed
+the Vorlage back in the list reading „0 items". The client mirrors the server's
+cascade when it deletes a template: the positions leave the store with the
+parent, optimistically. Re-logging the row the mutation named brought back a
+group with nothing in it, and **both tests were green against that**, because
+neither asked what the row contained. The store now re-logs the rows the
+cascade would have taken as well, and the e2e counts the positions instead of
+asserting visibility. It is the same lesson as the M4 card that painted itself
+the colour of the page: a repair can satisfy every assertion and still not be a
+repair, and only a rendered pixel can tell you.
+
+**Local Mode is not a special case, and saying so is the point.** It has no
+server, no outbox and no push, so nothing can be refused there: its optimistic
+rows are the only copy that exists and cannot diverge from a second one. The
+repair path is not inert code in that mode — it is not constructed at all,
+because the outbox that owns it is not. What *can* fail on a Local Mode write
+is the write to the device, and that already has its own signal in G-2. A mode
+question with the answer "the question does not arise here" is worth writing
+out, because the alternative is a reader later assuming it was forgotten.
+
+## A name that could only be refused by the server (2026-08-25)
+
+FR-1.6 and FR-13.1, the mitigation the entry *„What a constraint costs when the
+outbox drops a refusal"* left owed. Four things the diff does not say.
+
+**The wizard was the one place that could have adopted the existing row, and
+deliberately does not.** Every other surface either has nothing to hand over
+(M21 folds a trip; the fold is not an edit of a template that happens to share
+the name) or hands it over openly (M7's *Öffnen*, M8's picker including the
+group). M3's *neue Serie* is different: the trip is on its way somewhere, the
+existing series is in the select directly above the field, and attaching to it
+would be one line of code and no interruption at all. It was written that way
+first and then taken out. A series is the anchor a household's history hangs
+on, and silently deciding *whose* series a trip joins is a choice the wizard
+does not have the standing to make on the user's behalf — particularly when the
+name matched only by capitals. The note names the series and the step waits.
+
+**The item path was already doing this, and that is why nobody noticed.**
+M8's quick-add has always resolved a typed name against the master items and
+reused the row it finds (`onQuickAdd`, a lowercased comparison). So the *item*
+half of FR-16.3 has been live since the composer was built, and the template
+half looked like it worked because nobody had two templates of one name yet.
+The rule was in the codebase, in one view, reachable only through a Vue
+composable — the shape invariant 4 warns about. It now lives in
+`domain/nameCollision.ts` where the wizard, M16, M21 and both template screens
+read the same one.
+
+**Changing the return type was the work.** `createTemplate` and `createSeries`
+returned `string`; making them return `string | null` turned "which paths write
+a name?" from a grep into a compile error, and the compiler produced the list —
+including `createTemplateFromTrip`, which creates a group *and* a template and
+had to grow its check **above its first write**, since it writes master items
+and group updates before either. The enumeration is worth more than the guard:
+a grep for `createTemplate` would have found the same call sites, and would
+have gone on finding nothing the next time one was added.
+
+**A check stricter than the constraint is a false alarm; a looser one still
+loses the push.** That framing is what settled the diacritics question. Folding
+case is prevention — the database would hold "Sommer" and "sommer", and no
+screen could tell them apart. Folding diacritics is not: "Frühling" and
+"Fruhling" are two names `UNIQUE (name)` accepts, so refusing the second one
+takes away a name with nothing the user can do about it. FR-27.13's picker
+search folds them because a wrong hit in a search costs a glance; here a hit
+blocks a write. **No ADR is owed** — the tradeoff was decided where the
+constraint that causes it lives, in FR-1.6's own stub, and an ADR restating one
+FR's paragraph is a second place for it to go stale.
+
+## A delete that could only be refused (2026-08-25)
+
+FR-24.3 had been parked since the tag model was unparked without it, and the note added
+to it that morning was already the whole diagnosis: what runs today is *a third
+behaviour*, neither of the FR's two — the delete is refused. Unparking it was therefore
+not "build a tombstone system"; it was turning one `if` from a decline into a choice. The
+discriminator was already there, built for the refusal itself: `blockingReferences` names,
+per table, the references that keep a row alive, and `stillReferenced` asks it before the
+delete is attempted. The FR's two branches are exactly its two answers.
+
+**The half nobody had priced was the filtering, and its two directions are not
+symmetric.** There are 37 non-test call sites of `masterStore.itemList` and 36 of
+`templateList`. A retired row that turns up in a picker is annoying. A retired row that is
+*missing* is data loss, and two of the sites are the ones that would lose it: `resolve()`
+expands a Vorlage's includes, so filtering there empties a generated trip; and
+`compositionSource()` feeds M7's export, the settings export **and** the NFR-4.11 backup,
+so filtering there costs a Local Mode device its only copy. The decision that follows is
+in ADR-032: `itemList` and `templateList` keep meaning *everything*, and the display
+surfaces opt in to `activeItemList` / `activeTemplateList`. It is more edits, not fewer —
+but it makes the destructive direction the one an author has to choose, rather than the
+one every future call site inherits by writing the obvious thing.
+
+**The rule is written twice on purpose, and only one copy is allowed to be wrong.** The
+complete reference count exists only where all the data does: on the server in Server
+Mode, on the device in Local Mode, which has no server at all. So the decision cannot live
+only on the server (invariant 5 would lose the feature) and cannot live only on the client
+— the client holds the trip partitions it has *opened*, never every trip's, so it is blind
+to precisely the FR-9.2 case the feature is about. The shape that resolves this is not
+discipline but asymmetry: the client's only possible disagreement with the server is
+"remove" where the server retires, and the server answers that by retiring anyway, so the
+pull the device already makes corrects it. A wrong client answer costs a wrong sentence,
+never a wrong row. The client-only variant was considered and is the shape the UI-Spec had
+already rejected for M7 nine days earlier — *"a pre-check would call the delete safe in
+exactly the case that then fails."*
+
+**A usage endpoint was designed and then not built.** M10 has to state the outcome before
+the confirm, and in Server Mode the client's count can be short — so a
+`GET /master/items/{id}/usage` was the obvious answer, and it is Option B in the ADR. It
+was dropped because it buys the case it cannot serve: offline, the dialog is back to
+hedging, and putting a network round-trip inside a delete confirm is the one place an
+offline-first app should not. The hedge is a third sentence instead, and it names the
+condition rather than apologising for it.
+
+**M10 had no delete control at all.** `orchestrator.deleteMasterItem` existed and had zero
+non-test callers; M9's swipe-delete was specified in July and never built. So "M10 states
+which deletion will happen before the user confirms" had nothing to state it on, and the
+FR's UI half was a card to write rather than a sentence to add. The swipe stays proposed
+and the UI-Spec now says why: once the card had to carry a count *and* a reason, a swipe
+reveal has room for a label and not for a reason.
+
+**Two consequences of the marker that the FR did not mention.**
+The first is uniqueness. `items.name` and `templates.name` are UNIQUE instance-wide, and a
+retired row would go on holding a name nothing renders — so deleting an item and creating
+it again, which is what a physical delete used to allow, would start failing for a reason
+no screen could show. Both became partial unique indexes over `retired_at IS NULL`, and
+the client's `templateNameCollision` moved onto the active list to match. The second is
+ADR-031's cascade repair: a retire is a delete the client has *already drawn*, positions
+and all, so the same children have to be re-logged alive. That was found by reading
+ADR-031 rather than by a failing test, and the test that pins it now was written after —
+the honest order.
+
+**What the refusal keeps.** FR-24.3 names master items and Vorlagen. `blockingReferences`
+also lists series, travelers and containers, and those keep refusing: they are not history
+the way a master item is, and a retired traveler would be a person nobody can see attached
+to rows everybody can. That left four tests asserting the refusal *through* a template or
+an item — they moved onto a series, which is the ground the refusal still governs, so the
+`still_referenced` machinery kept its coverage instead of losing it to the feature that
+replaced one of its cases.
+
+**Restore is owed, and saying so is the decision.** The marker is an ordinary synced field,
+so clearing it is one mutation — a Go test asserts exactly that, and it passes. What does
+not exist is any surface that *lists* retired rows, and inventing one (a filter chip on
+M9, a section in settings, its own screen) is a UI round with no rendered evidence behind
+it. The mitigating fact, and the reason this is acceptable rather than a trap: the retire
+is announced before it happens, in the card and again in the confirm, instead of being
+discovered afterwards.
+
+## The restore was free, the name was not (2026-08-25)
+
+The entry above closed by writing down that restore was owed, and naming that as the
+decision. This is the day after, and the first thing building it found is that the
+sentence FR-24.3 had carried since the concept phase — *"a future restore affordance is
+free, since logically-deleted items retain everything"* — was true about the data and
+false about the name, and had been false since the day before, when the same FR made both
+unique indexes partial.
+
+**The FR contradicted itself and nothing noticed, because the two halves were written
+apart.** `retired_at` is an ordinary synced column, so clearing it really is one mutation:
+four Go tests written first against the unchanged server all passed on the first run, which
+is the honest report — the server needed no change and these pin a claim rather than drive
+one. But `idx_items_active_name` ranges over `retired_at IS NULL` deliberately, so retiring
+*frees the name*, and the whole reason that was chosen — re-creating what you just deleted
+is the common case — is precisely the sequence that then makes a restore impossible. The
+free restore and the freed name were two bullets under one FR, each right on its own. What
+that cost is a whole ADR (033) for a feature described as costing nothing.
+
+**The collision is answered on the client, which is the opposite of what ADR-032 had just
+decided — and the difference is which question is being asked.** ADR-032 made the client's
+FR-24.3 answer *advisory* because a reference count needs trip partitions the device does
+not hold. A name does not: the master partition is pulled whole, so every device knows every
+active name exactly, in every mode. This is the first FR-24.3 rule the client is
+authoritative about, and it has to be, because Local Mode has no push to be refused by. The
+alternative was to let the server's `constraint_violated` do it — and on screen that is a
+row that comes back and vanishes a drain later, ADR-031's repair doing its job on a refusal
+that was predictable before the tap. The server still refuses it; nobody is meant to get
+there.
+
+**The surface was chosen against three others, and the reason is the same in each case.**
+A filter chip on M9's tag axis puts hidden rows one tap from browsing, which is the opposite
+of what hiding them was for — and a lifecycle state is not a tag, so the axis would then mean
+two things. A folded section at the foot of M9 *and* M7 is two surfaces for one rule, in the
+screen FR-24.4 had just been made lean. A `?retired=1` mode of M9 inherits a grouping, a tag
+axis, a property sheet and a FAB, none of which mean anything for a list whose only actions
+are restore and delete-for-good. M23 sits beside the conflict-log pointer in M17 because it
+is the same *kind* of screen: corrective, opened after something went wrong, never during
+work. That is a classification the code cannot express — `masterListFiltering.spec.ts` now
+carries a third entry for it, because the existing split (complete lists resolve, active
+lists offer) had no room for a surface whose subject *is* the retired row.
+
+**Rendering it found the defect twice, in one test, and neither was visible from the code.**
+The first run of the collision case failed on a count, and the page snapshot showed why: the
+restored item was named **"K"**. An `ion-alert` input had taken the first keystroke of
+`pressSequentially` and dropped the rest — and every assertion in the case was still
+satisfiable by it, because one row is one row whatever it is called. The input's value is
+asserted before the button is clicked now. Underneath that was a second one shared by both
+cases: `page.goto` after a Local Mode write reloads before the write reaches IndexedDB, so
+the restore was there and then not. The assertion that had looked like a settled signal —
+the row leaving M23 — reports the *optimistic* state and says nothing about durability. The
+sync indicator is the seam that exists for this, and every reload in the file waits on it.
+
+**Delete-for-good was built rather than named as owed, for a reason worth stating.** A
+retired row whose last reference is gone is unreferenced, so FR-24.3's own second branch
+applies to it — but with no surface offering that branch, a retire would have been permanent
+by omission, which is not what a logical delete is supposed to mean. It is offered *only*
+where the delete would actually be physical: a button that silently re-retires the row is
+worse than no button, and in Server Mode the same three-form hedge M10 carries applies here
+unchanged.
 ## Two actor columns a client could still name (2026-08-25)
 
 Invariant 3 says the server stamps every actor column itself. Two columns

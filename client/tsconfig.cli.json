@@ -1,0 +1,16 @@
+// TSConfig for `jitpack-import` (FR-18.7): the app's own rules, run by Node.
+//
+// It is a separate project rather than a folder inside the app's, because the
+// command needs `@types/node` and the app must not: `process` and `node:fs`
+// compiling inside `src/` is the mistake this split prevents. Without it the
+// command was type-checked by nothing at all — `vite build` transpiles it — so
+// a change to a rule it consumes broke it silently.
+{
+  "extends": "./tsconfig.app.json",
+  "include": ["cli/**/*", "env.d.ts"],
+  "exclude": [],
+  "compilerOptions": {
+    "types": ["node"],
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.cli.tsbuildinfo"
+  }
+}

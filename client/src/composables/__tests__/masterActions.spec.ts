@@ -156,7 +156,7 @@ describe('master data actions', () => {
     const master = useMasterStore()
     mockDrain()
 
-    const id = orch.createTemplate('Ski-Trip')
+    const id = orch.createTemplate('Ski-Trip')!
 
     const tpl = master.getTemplate(id)
     expect(tpl?.name).toBe('Ski-Trip')
@@ -305,6 +305,57 @@ describe('FR-9.1 review flags (M5 Details)', () => {
     expect(item.flag_missing).toBe(false)
     expect(item.state).toBe('packed')
     expect(item.packed_count).toBe(1)
+  })
+
+  it('setPacker assigns a row without disturbing its packing record (FR-25.19)', () => {
+    const orch = newOrch()
+    const trips = useTripStore()
+    trips.applyChange({
+      seq: 0,
+      table: 'trip_items',
+      id: 'ti1',
+      deleted: false,
+      row: {
+        trip_id: 't1',
+        name: 'Regenhose',
+        quantity: 1,
+        packed_count: 1,
+        state: 'packed',
+        mode: 'pack',
+        packed_by_user_id: 'u-alice',
+        source_template_id: 'g1',
+      },
+    })
+    mockDrain()
+    const before = trips.getItems('t1')[0]!
+
+    orch.setPacker('t1', before, 'u-bob')
+
+    // Responsibility and record are two things (FR-25.19): assigning must
+    // not touch who packed it, and the optimistic row is a *replacement*,
+    // so a projection that forgets a column erases it — permanently in
+    // Local Mode, which is what made the provenance defect of 2026-08-20.
+    const after = trips.getItems('t1')[0]!
+    expect(after).toEqual({
+      ...before,
+      packer_user_id: 'u-bob',
+      updated_hlc: after.updated_hlc,
+    })
+  })
+
+  it('setPacker hands a row back with null — never an empty id (FR-25.19)', () => {
+    const orch = newOrch()
+    const trips = seedRow()
+    mockDrain()
+    mockDrain()
+
+    orch.setPacker('t1', trips.getItems('t1')[0]!, 'u-bob')
+    expect(trips.getItems('t1')[0]!.packer_user_id).toBe('u-bob')
+
+    orch.setPacker('t1', trips.getItems('t1')[0]!, null)
+    // Null, not '': a placeholder in a foreign key is what invariant 3
+    // exists to keep out, and the column is nullable for exactly this.
+    expect(trips.getItems('t1')[0]!.packer_user_id).toBeNull()
   })
 
   it('setReviewFlag clears a flag again — a wrong judgement is not permanent', () => {

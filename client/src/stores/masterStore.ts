@@ -24,6 +24,8 @@ import type {
 import type { PullChange } from '@/api/types'
 import { resolveTemplate, type Resolution } from '@/domain/templates'
 import { groupByPrimaryTag, primaryTagOf, tagsOfItem } from '@/domain/tags'
+import { activeOnly } from '@/domain/masterDeletion'
+import { retiredOnly } from '@/domain/masterRestore'
 
 /**
  * How much a user has to type before an inventory search offers anything
@@ -53,9 +55,41 @@ export const useMasterStore = defineStore('master', () => {
 
   const itemTagList = computed(() => [...itemTags.value.values()])
 
+  /**
+   * The whole inventory, retired rows included (FR-24.3). Everything that
+   * *resolves* — template expansion, generation, export, the NFR-4.11 backup,
+   * import matching — reads this one, because a retired row missing where
+   * history reads it is data loss. Display surfaces read `activeItemList`.
+   */
   const itemList = computed(() => [...items.value.values()])
 
+  /** Every template, retired ones included — see `itemList` (ADR-032). */
   const templateList = computed(() => [...templates.value.values()])
+
+  /** What the inventory, the pickers and the autocomplete may offer (FR-24.3). */
+  const activeItemList = computed(() => activeOnly(itemList.value))
+
+  /** What M7, the group pickers and M3's scope lists may offer (FR-24.3). */
+  const activeTemplateList = computed(() => activeOnly(templateList.value))
+
+  /**
+   * The retired rows, newest first — M23's whole content and nothing else's.
+   * A third list rather than a filter at the call site: the restore surface
+   * is the one place a retired row is the subject, and ADR-032's split (the
+   * complete lists resolve, the active lists offer) has no room for it.
+   */
+  const retiredItemList = computed(() => byRetiredDesc(retiredOnly(itemList.value)))
+
+  /** The retired Vorlagen, newest first — see `retiredItemList`. */
+  const retiredTemplateList = computed(() => byRetiredDesc(retiredOnly(templateList.value)))
+
+  /**
+   * Newest retire first: the row someone wants back is almost always the one
+   * they just lost. RFC3339 stamps compare correctly as strings.
+   */
+  function byRetiredDesc<T extends { retired_at?: string | null }>(rows: T[]): T[] {
+    return [...rows].sort((a, b) => (b.retired_at ?? '').localeCompare(a.retired_at ?? ''))
+  }
 
   function getItem(id: string): MasterItem | undefined {
     return items.value.get(id)
@@ -199,11 +233,16 @@ export const useMasterStore = defineStore('master', () => {
     return primaryTagOf(itemId, itemTagList.value, tagList.value)
   }
 
-  /** Search items by name substring (case-insensitive). See MIN_SEARCH_LENGTH. */
+  /**
+   * Search items by name substring (case-insensitive). See MIN_SEARCH_LENGTH.
+   * Retired items are absent: every caller is an offer — the quick-add
+   * autocomplete, M3's picker, M10's dependency picker — and offering a row
+   * the inventory no longer shows is how a retired item comes back by itself.
+   */
   function searchItems(query: string): MasterItem[] {
-    if (!query) return itemList.value
+    if (!query) return activeItemList.value
     const q = query.toLowerCase()
-    return itemList.value.filter((i) => i.name.toLowerCase().includes(q))
+    return activeItemList.value.filter((i) => i.name.toLowerCase().includes(q))
   }
 
   // --- Mutations ---
@@ -363,6 +402,10 @@ export const useMasterStore = defineStore('master', () => {
     itemTagList,
     itemList,
     templateList,
+    activeItemList,
+    activeTemplateList,
+    retiredItemList,
+    retiredTemplateList,
     getItem,
     getTemplate,
     getTemplateItems,
@@ -419,6 +462,7 @@ function rowToItem(id: string, row: Record<string, unknown>): MasterItem {
     value_cents: (row['value_cents'] as number) ?? null,
     image_hash: (row['image_hash'] as string) ?? null,
     icon: (row['icon'] as string) ?? null,
+    retired_at: (row['retired_at'] as string) ?? null,
   }
 }
 
@@ -431,6 +475,7 @@ function rowToTemplate(id: string, row: Record<string, unknown>): Template {
     // were used as; a row from an older client is read the same way.
     kind: (row['kind'] as TemplateKind) ?? 'template',
     icon: (row['icon'] as string) ?? null,
+    retired_at: (row['retired_at'] as string) ?? null,
   }
 }
 

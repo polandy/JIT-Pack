@@ -489,7 +489,7 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpk
 		// is told which field was wrong rather than meeting a CHECK.
 		if err := capMark(&mut); err != nil {
 			out.Results = append(out.Results, MutationResult{
-				MutationID: m.MutationID, Outcome: "rejected", Error: err.Error(),
+				MutationID: m.MutationID, Outcome: OutcomeRejected, Error: err.Error(),
 			})
 			continue
 		}
@@ -505,8 +505,13 @@ func applyPushBatch(w http.ResponseWriter, r *http.Request, prepare func(*syncpk
 			writeError(w, http.StatusInternalServerError, ErrInternal, "push failed")
 			return PushResponse{}, nil, false
 		}
+		// Sync-API §5: a refusal carries its reason, so the client can say
+		// what happened instead of parking the mutation in silence. The
+		// vocabulary is the store's; the sentence is the client's, because
+		// only it knows the user's language.
 		out.Results = append(out.Results, MutationResult{
-			MutationID: res.MutationID, Outcome: MutationOutcome(res.Outcome), Conflicts: toWireConflicts(res.Conflicts),
+			MutationID: res.MutationID, Outcome: MutationOutcome(res.Outcome),
+			Conflicts: toWireConflicts(res.Conflicts), Error: string(res.Reason),
 		})
 		if res.Seq > out.PullHint.NextCursor {
 			out.PullHint.NextCursor = res.Seq
