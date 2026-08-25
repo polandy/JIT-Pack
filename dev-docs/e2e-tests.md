@@ -63,6 +63,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
 | M15 spreadsheet import | E2E-M15-06, E2E-M15-07, E2E-M15-08 | `local` | [`spreadsheet-import.spec.ts`](../client/e2e/spreadsheet-import.spec.ts) |
+| M2 trip progress | E2E-M2-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Sync paging | E2E-SYNC-01 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
@@ -1889,3 +1890,25 @@ Two traps were paid for while writing these, both worth keeping:
   first run typed "Kamera (alt)" and restored a row named **"K"** — and every
   count in the case was still satisfied by it, because one row is one row.
   The input's value is asserted before the button is clicked.
+
+putting the refused row back on the device that tried to delete it — is not in
+this case and not built**; the refusal is announced, not undone.
+
+**E2E-M2-10 — progress on a trip nobody opened, added 2026-08-25.** The row
+summed a partition that was not on the device and printed `0/0 packed`, which
+on the family's imported archive meant a decade of finished holidays reported
+as untouched (ADR-033).
+
+Two things the run taught, one of them by failing:
+
+- **The second browser context is the assertion.** On the context that built
+  the trip the rows are already in the store, so the case would pass against a
+  screen that fetches nothing at all. Same reason E2E-M18-05 restores onto a
+  fresh device.
+- **`scrollIntoViewIfNeeded` is the rule, not a workaround — and only the full
+  suite said so.** Run alone, the trip is the only one on the list, sits in the
+  first screenful, and the assertion passed without scrolling. Run with the
+  suite, the shared master partition has other tests' trips above it, the row
+  is below the fold, and ADR-033 deliberately has not fetched it: the summary
+  stayed on „Loading items …" for thirty seconds. A case that passes alone and
+  fails in company was, that time, telling the truth about the feature.

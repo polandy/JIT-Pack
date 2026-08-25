@@ -155,6 +155,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A trip could be judged only one row at a time (2026-08-24)](#a-trip-could-be-judged-only-one-row-at-a-time-2026-08-24) — FR-9.3/9.4. Three things the code cannot show: how many affordances a "one posture, one question" screen turns out to have once it is rendered, why a handled proposal became a record line rather than a dimmed card, and the control that was replaced twice before it rendered the row rather than itself.
 - [A claim stops having a lifetime (2026-08-24)](#a-claim-stops-having-a-lifetime-2026-08-24) — FR-5.7/ADR-028. Four things the code cannot show: why the option that looked like the compromise was the most expensive one, why the takeover is the one lock action with no optimistic write, why it has no reachable Playwright case and will not until a second identity exists, and the two-day-old work that was deleted rather than adapted.
 - [A second account arrives, and finds a claim nobody could revoke (2026-08-24)](#a-second-account-arrives-and-finds-a-claim-nobody-could-revoke-2026-08-24) — MVP-plan Track B step 2 / ADR-029: the mock-IdP `server` project. Four things the code cannot show: why a real Authelia was weighed and lost to a 250-line fixture, why the ordering of two processes is a design decision rather than a script detail, the defect the project found on its first run — a takeover that the loser's screen contradicted — and why the identity behind the fix cannot come from the token provider the rest of the client uses.
+- [A decade of packed trips, all reading zero (2026-08-25)](#a-decade-of-packed-trips-all-reading-zero-2026-08-25) — FR-2.3/ADR-033: M2 loads the partitions of the rows on screen and says *unknown* until they arrive. Four things the code cannot show: the option that is free for ever and was turned down anyway, the number that decided between loading everything and loading what is visible, the bug that only rendering could find, and the test that was right to fail in company.
 - [A device only ever got the first page (2026-08-25)](#a-device-only-ever-got-the-first-page-2026-08-25) — Sync-API §4: the pull ignored `has_more`. Four things the code cannot show: why every fixture in the suite was too small to catch it, why the obvious second half of the fix — remembering the cursor — made the app *emptier*, why the correct implementation was already in the repo and unused, and what found it in the end.
 - [A drain could land on top of a drain (2026-08-25)](#a-drain-could-land-on-top-of-a-drain-2026-08-25) — Sync-API §4: one drain per partition at a time. Three things the code cannot show: why the doubled traffic I thought I had measured was my own eyeball script rebooting the app, why the obvious guard — hand the running drain back to the late caller — silently loses a mutation, and why this only became worth fixing once the pull was paged.
 - [The restore could be run twice, and the manual said it could not (2026-08-24)](#the-restore-could-be-run-twice-and-the-manual-said-it-could-not-2026-08-24) — FR-18.4/ADR-030: an imported document is a second copy when its name matches, plus the year for a trip. Five things the code cannot show: the documentation that had described the item rule as if it were the whole rule, why the database constraint that looks like the obvious enforcement is the worst of the four options, why the trips were invisible to a view called `master`, how ADR-017's Vorlage exception was reversed by a measurement rather than an argument, and the cost the family's own data pays for the rule.
@@ -7076,6 +7077,51 @@ happens offline; the push can land days later) while an unparseable value is
 replaced by the server's own time. The helper was called `packedAt` and is
 now `tapTime`, because it serves both stamps.
 
+## A decade of packed trips, all reading zero (2026-08-25)
+
+**What changed:** M2's row reports *unknown* while a trip's own rows are not on
+the device, and the screen fetches the partition of a row when that row is on
+screen (ADR-033).
+
+**The complaint was about the imported archive, the defect was older than the
+import.** `trip_items` live in the trip's own partition, which is pulled when a
+trip is opened. A device that had never opened a trip therefore summed nothing
+— and printed the sum: `0/0 gepackt`, ring at 0 %. For an archive of finished
+holidays that reads as *you packed none of it*. It had always been true; it took
+a list where every row was a fully packed trip for anyone to see it.
+
+**The option that is free for ever, and why it lost.** Putting `packed`/`total`
+on the trip row itself costs nothing at any archive size — `trips` is in the
+master partition, which M2 already pulls. It was turned down on correctness
+rather than cost: a count is a *derived aggregate*, and under field-level LWW
+two devices packing offline both compute one and the merge rule has to let one
+win. Every other field the protocol carries is a value somebody typed; this one
+would be arithmetic, silently wrong, and inexplicable to the person looking at
+it. That argument is the whole of ADR-033's decision, and it is the kind that
+does not survive being left in a commit message.
+
+**One measurement decided the rest.** Loading every trip's partition when M2
+opens is the simple correct thing, and the machinery already existed — the
+pull-to-refresh does exactly that. Measured on the family's instance: **33
+partitions, 357 ms and 1.1 MB**, to render eight rows, growing with the archive
+for ever. Loading only what is on screen: **8 requests on opening the list, 18
+after scrolling through all 33.** Without those two numbers the choice is taste.
+
+**A bug only rendering could find.** The first implementation loaded correctly
+and rendered "Positionen werden geladen …" for ever. `loadedTripPartitions` was
+a plain `Set` and `localHydrated` a plain `let` — internal state, until a
+*screen* began reading it, and a value Vue cannot see change is not a value a
+template can read. Every unit test passed, because a function that returns the
+right answer when asked is exactly what they check. The unit case that now pins
+it watches the value through `watchEffect` rather than calling it.
+
+**A test that was right to fail in company.** E2E-M2-10 passed alone and failed
+in the full `single` project. The reason was not flakiness: run alone, the trip
+is the only one on the list and sits in the first screenful; run with the suite,
+other tests' trips push it below the fold, and ADR-033 has deliberately not
+fetched it. The case was asserting test isolation while claiming to assert the
+app. It scrolls the row into view now, which is what a person does, and what the
+feature actually promises.
 ## An invariant that lived at eighty-seven call sites (2026-08-25)
 
 `useSyncOrchestrator.ts` built the optimistic twin of every write by hand:
