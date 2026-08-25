@@ -37,6 +37,13 @@ const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrato
 
 const source = computed(() => store.getTrip(props.tripId))
 
+// ADR-033: the source trip's rows live in its own partition, which this
+// device may never have pulled. Ask for them, and until they are here the
+// preview says so and the clone stays locked — summing an absence would
+// read "0 Packelemente" and clone exactly that.
+const sourceLoaded = computed(() => orchestrator.tripDataLoaded(props.tripId))
+orchestrator.ensureTripData(props.tripId)
+
 const name = ref('')
 // FR-2.1b: a clone is a trip of its own year, and the year is the only
 // temporal fact it needs. Defaults to this one, like M3.
@@ -77,6 +84,7 @@ const preview = computed(() => {
 
 /** What the clone will contain, counted before it is made (FR-13.2). */
 const previewSummary = computed(() => {
+  if (!sourceLoaded.value) return t('clone.previewLoading')
   const plan = preview.value
   if (!plan) return ''
   const parts = [
@@ -89,7 +97,7 @@ const previewSummary = computed(() => {
   return `${parts.join(', ')}.`
 })
 
-const valid = computed(() => name.value.trim() !== '')
+const valid = computed(() => name.value.trim() !== '' && sourceLoaded.value)
 
 function clone() {
   const tripId = orchestrator.cloneTrip(props.tripId, {
@@ -113,6 +121,7 @@ setHeaderTitle(() => t('clone.title', { name: source.value?.name ?? '' }))
         <IonList>
           <IonItem>
             <IonInput
+              data-testid="clone-name"
               :label="t('wizard.name')"
               label-placement="stacked"
               :placeholder="source.name"
@@ -182,7 +191,7 @@ setHeaderTitle(() => t('clone.title', { name: source.value?.name ?? '' }))
           </IonItem>
         </IonList>
 
-        <IonNote v-if="preview">{{ previewSummary }}</IonNote>
+        <IonNote data-testid="clone-preview">{{ previewSummary }}</IonNote>
 
         <IonButton expand="block" class="confirm" :disabled="!valid" @click="clone">
           {{ t('clone.create') }}

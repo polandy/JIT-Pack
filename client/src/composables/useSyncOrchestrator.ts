@@ -1808,11 +1808,14 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * createTripFromWizard — trips row to the master partition first,
    * then travelers, containers (pairing as a second pass, a forward
    * pair reference would violate the FK), then items with remapped
-   * links. Returns the new trip id, or null when the source is unknown.
+   * links. Returns the new trip id, or null when the source is unknown
+   * or its rows are not on the device — "not pulled yet" must never be
+   * read as "empty trip" (ADR-033), or the clone silently carries nothing.
    */
   function cloneTrip(sourceTripId: string, draft: CloneDraft): string | null {
     const source = tripStore.getTrip(sourceTripId)
     if (!source) return null
+    if (!tripDataLoaded(sourceTripId)) return null
 
     const plan = planClone(
       {
