@@ -149,7 +149,7 @@ the one every current and future call site inherits by default.
 
 **Neutral**
 - The marker is an ordinary synced column, so "restore" is one mutation clearing it.
-  **The surface followed the next day** — UI-Spec M23, ADR-033 — and building it found that
+  **The surface followed the next day** — UI-Spec M23, ADR-034 — and building it found that
   only the *data* side of the FR's free restore was free: the partial name indexes mean a
   retire releases the name, so a restore can collide with the row that took it. That
   collision is answered on the client too, and unlike the reference count above the
