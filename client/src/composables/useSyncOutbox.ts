@@ -35,8 +35,12 @@ export interface PartitionRef {
 /** Server-side push limit per batch (Sync-API §9). */
 export const MAX_PUSH_BATCH = 200
 
-/** How many changes one pull asks for (Sync-API §4). */
-export const PULL_PAGE_SIZE = 500
+/**
+ * How many changes one pull asks for (Sync-API §4). Module-private: unlike
+ * `MAX_PUSH_BATCH`, which the command line has to respect too, nothing
+ * outside this file decides how big a page is.
+ */
+const PULL_PAGE_SIZE = 500
 
 /** The partition key prefix a trip's queue carries in storage. */
 const TRIP_PREFIX = 'trip:'
