@@ -13,6 +13,7 @@ import { API } from '@/api/routes'
 import { TABLE } from '@/types/tables'
 import {
   DELETION_RETIRE,
+  RETIRED_FIELD,
   countItemReferences,
   countTemplateReferences,
   deletionKind,
@@ -57,6 +58,12 @@ import {
 } from '@/domain/refresh'
 import { followsGroups } from '@/domain/trips'
 import { findNameCollision, foldName, renameTarget } from '@/domain/nameCollision'
+import {
+  RESTORE_READY,
+  restoreFields,
+  restoreVerdict,
+  type RestoreVerdict,
+} from '@/domain/masterRestore'
 import { planGroupAddition, type GroupAdditionReport } from '@/domain/groupAdd'
 import {
   pairWrites,
@@ -2227,15 +2234,15 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function deleteMasterItem(itemId: string) {
     const item = masterStore.getItem(itemId)
     if (item && masterItemDeletionOutlook(itemId).kind === DELETION_RETIRE) {
-      const retired_at = new Date().toISOString()
+      const marker = { [RETIRED_FIELD]: new Date().toISOString() }
       enqueueAndDrain('master', null, {
-        mutation: mutations.updateMasterItem(itemId, { retired_at }),
+        mutation: mutations.updateMasterItem(itemId, marker),
         optimistic: {
           seq: 0,
           table: TABLE.items,
           id: itemId,
           deleted: false,
-          row: { ...masterItemRow(item), retired_at },
+          row: { ...masterItemRow(item), ...marker },
         },
       })
       return
@@ -2244,6 +2251,79 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       mutation: mutations.deleteMasterItem(itemId),
       optimistic: { seq: 0, table: TABLE.items, id: itemId, deleted: true, row: null },
     })
+  }
+
+  /**
+   * FR-24.3's restore, for a master item. The marker is an ordinary field,
+   * so bringing the row back is one mutation — but the *name* is not free:
+   * retiring released it (the unique indexes are partial over the active
+   * rows), so an active row may hold it by now. That is checked here, over
+   * the complete master partition every device holds, and it is the one
+   * FR-24.3 question the client can answer exactly in all three modes.
+   */
+  function masterItemRestoreVerdict(
+    itemId: string,
+    proposedName?: string,
+  ): RestoreVerdict<MasterItem> | null {
+    const item = masterStore.getItem(itemId)
+    if (!item) return null
+    return restoreVerdict(item, masterStore.activeItemList, proposedName)
+  }
+
+  /** The same for a Vorlage — `templates.name` is UNIQUE across both scopes. */
+  function templateRestoreVerdict(
+    templateId: string,
+    proposedName?: string,
+  ): RestoreVerdict<Template> | null {
+    const template = masterStore.getTemplate(templateId)
+    if (!template) return null
+    return restoreVerdict(template, masterStore.activeTemplateList, proposedName)
+  }
+
+  /**
+   * restoreMasterItem clears FR-24.3's marker, optionally under a new name
+   * when the old one was taken while the row was hidden. Returns false when
+   * the name it would write is still taken — refused *before* the outbox, so
+   * the user meets a sentence instead of an optimistic row that reverses
+   * itself when the push is rejected (ADR-031).
+   */
+  function restoreMasterItem(itemId: string, name?: string): boolean {
+    const item = masterStore.getItem(itemId)
+    if (!item) return false
+    const verdict = restoreVerdict(item, masterStore.activeItemList, name)
+    if (verdict.kind !== RESTORE_READY) return false
+    const fields = restoreFields(name === undefined ? null : verdict.name)
+    enqueueAndDrain('master', null, {
+      mutation: mutations.updateMasterItem(itemId, fields),
+      optimistic: {
+        seq: 0,
+        table: TABLE.items,
+        id: itemId,
+        deleted: false,
+        row: { ...masterItemRow(item), ...fields },
+      },
+    })
+    return true
+  }
+
+  /** restoreTemplate is restoreMasterItem for a Vorlage (FR-24.3). */
+  function restoreTemplate(templateId: string, name?: string): boolean {
+    const template = masterStore.getTemplate(templateId)
+    if (!template) return false
+    const verdict = restoreVerdict(template, masterStore.activeTemplateList, name)
+    if (verdict.kind !== RESTORE_READY) return false
+    const fields = restoreFields(name === undefined ? null : verdict.name)
+    enqueueAndDrain('master', null, {
+      mutation: mutations.updateTemplate(templateId, fields),
+      optimistic: {
+        seq: 0,
+        table: TABLE.templates,
+        id: templateId,
+        deleted: false,
+        row: { ...templateRow(template), ...fields },
+      },
+    })
+    return true
   }
 
   /**
@@ -2439,15 +2519,15 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function deleteTemplate(templateId: string) {
     const template = masterStore.getTemplate(templateId)
     if (template && templateDeletionOutlook(templateId).kind === DELETION_RETIRE) {
-      const retired_at = new Date().toISOString()
+      const marker = { [RETIRED_FIELD]: new Date().toISOString() }
       enqueueAndDrain('master', null, {
-        mutation: mutations.updateTemplate(templateId, { retired_at }),
+        mutation: mutations.updateTemplate(templateId, marker),
         optimistic: {
           seq: 0,
           table: TABLE.templates,
           id: templateId,
           deleted: false,
-          row: { ...templateRow(template), retired_at },
+          row: { ...templateRow(template), ...marker },
         },
       })
       return
@@ -3321,6 +3401,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     deleteMasterItem,
     masterItemDeletionOutlook,
     templateDeletionOutlook,
+    masterItemRestoreVerdict,
+    templateRestoreVerdict,
+    restoreMasterItem,
+    restoreTemplate,
     setItemImage,
     deleteItemImage,
     itemImageUrl,

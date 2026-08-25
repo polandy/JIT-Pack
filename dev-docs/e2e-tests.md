@@ -39,7 +39,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Harness smoke | E2E-M19-01 (partial), E2E-M19-04, E2E-G7-01 | `local` | [`smoke.spec.ts`](../client/e2e/smoke.spec.ts) |
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05 | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
-| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
+| Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
@@ -55,6 +55,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M6 shopping (composer wiring, FR-25.11j reveal) | E2E-M6-21, E2E-M6-17, E2E-M6-22 | `local` | [`shopping.spec.ts`](../client/e2e/shopping.spec.ts) |
 | M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-02, E2E-M9-03, E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed), E2E-M10-13 (German-seeded) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | FR-24.3 lifecycle delete | E2E-M10-14, E2E-M10-15, E2E-M7-11 | `local` | [`lifecycle-delete.spec.ts`](../client/e2e/lifecycle-delete.spec.ts) |
+| FR-24.3 restore (M23) | E2E-M23-01, E2E-M23-02, E2E-M23-03 | `local` | [`restore-retired.spec.ts`](../client/e2e/restore-retired.spec.ts) |
 | §3.28 the item mark | E2E-M10-11, E2E-M10-12, E2E-M9-07, E2E-M4-48, E2E-G15-01, E2E-G15-02, E2E-M5-15 | `local` | [`item-mark.spec.ts`](../client/e2e/item-mark.spec.ts) |
 | M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
 | M12 analytics | E2E-M12-01, E2E-M12-02, E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
@@ -1862,3 +1863,29 @@ for lost:
 If a UI path to a refusal ever returns — a series delete control is the likely
 one — it should carry an e2e case again, because the client half of that path
 is the half these two were written to protect.
+
+## The restore's hard case is the one only a rendered test could show (2026-08-25)
+
+M23's three cases are the way back from a retire, and the middle one is the
+reason the file exists. Retiring frees the name (the unique indexes are
+partial over the active rows), so the sequence *retire → someone re-creates
+the name → restore* is ordinary, and the restore then cannot have its old
+name back. The unit tests state that rule in both places it runs; what they
+cannot see is **when** the user meets it. A restore that is enqueued and
+refused by the push looks, on screen, like a row that comes back and then
+vanishes again a drain later — ADR-031's repair doing exactly its job. Only a
+rendered case distinguishes that from the refusal arriving *before* the tap
+takes effect, which is what E2E-M23-02 asserts by finding the row still on
+M23 behind the alert.
+
+Two traps were paid for while writing these, both worth keeping:
+
+- **A `page.goto` after a Local Mode write reloads before the write lands.**
+  The first run restored a row and then found the inventory without it,
+  because the assertion that settled the *optimistic* state (the row leaving
+  M23) says nothing about IndexedDB. Every reload here now waits for the
+  sync indicator to read `local` first, the seam that exists for this.
+- **An `ion-alert` input does not reliably take `pressSequentially`.** The
+  first run typed "Kamera (alt)" and restored a row named **"K"** — and every
+  count in the case was still satisfied by it, because one row is one row.
+  The input's value is asserted before the button is clicked.
