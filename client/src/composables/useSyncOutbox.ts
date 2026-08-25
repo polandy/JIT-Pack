@@ -35,6 +35,13 @@ export interface PartitionRef {
 /** Server-side push limit per batch (Sync-API §9). */
 export const MAX_PUSH_BATCH = 200
 
+/**
+ * How many changes one pull asks for (Sync-API §4). Module-private: unlike
+ * `MAX_PUSH_BATCH`, which the command line has to respect too, nothing
+ * outside this file decides how big a page is.
+ */
+const PULL_PAGE_SIZE = 500
+
 /** The partition key prefix a trip's queue carries in storage. */
 const TRIP_PREFIX = 'trip:'
 /** The partition key the master feed's queue carries in storage. */
@@ -269,21 +276,36 @@ export class SyncOutbox {
     // exclusive lower bound (Sync-API §4) and only moves forward, so what it
     // steps over is never offered again. The hint says a pull is worth
     // making, which the drain does unconditionally.
-    const pullResp = await this.client.get<PullResponse>(this.syncPath(type, id), {
-      cursor: String(this.getCursor(type, id)),
-      limit: '500',
-    })
+    //
+    // A page at a time until the server says there is no more: a partition is
+    // routinely larger than one page — a decade of trips is — and taking only
+    // the first one delivered a device a fraction of the instance while the
+    // G-2 glyph read *synced*. Each page is applied and its cursor recorded
+    // before the next is asked for, so a feed interrupted halfway keeps what
+    // it already has rather than paying for it again.
+    let hasMore = true
+    while (hasMore) {
+      const cursor = this.getCursor(type, id)
+      const pullResp = await this.client.get<PullResponse>(this.syncPath(type, id), {
+        cursor: String(cursor),
+        limit: String(PULL_PAGE_SIZE),
+      })
 
-    if (pullResp.changes.length > 0) {
-      this.onChanges(pullResp.changes)
-      for (const c of pullResp.changes) {
-        if (c.row && typeof c.row['updated_hlc'] === 'string') {
-          this.hlc.observe(c.row['updated_hlc'])
+      if (pullResp.changes.length > 0) {
+        this.onChanges(pullResp.changes)
+        for (const c of pullResp.changes) {
+          if (c.row && typeof c.row['updated_hlc'] === 'string') {
+            this.hlc.observe(c.row['updated_hlc'])
+          }
         }
       }
-    }
 
-    this.cursors.set(key, pullResp.next_cursor)
+      this.cursors.set(key, pullResp.next_cursor)
+      // A server that claims more and does not move the cursor would spin
+      // this loop for ever — a hung tab on the boot path, which is worse
+      // than a short feed. Progress is the condition, not the claim.
+      hasMore = pullResp.has_more && pullResp.next_cursor > cursor
+    }
   }
 
   // The id is nullable because the master partition has none. A *trip*
