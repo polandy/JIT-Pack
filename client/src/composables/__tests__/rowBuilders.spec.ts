@@ -13,22 +13,22 @@
  *
  * Two assertions per case, and the first is what keeps the second honest:
  *
- *  1. **The seed fills every field the mapper reads.** A field left
- *     `undefined` means this fixture has gone stale — a column reached
- *     `rowTo…` and never reached here — so the survival check below would be
- *     asserting about a field nobody set. This is the half that fails when a
- *     new column is added to the store and nowhere else.
+ *  1. **The seed produces exactly the expected entity**, so the fixture the
+ *     survival check compares against is one the mapper really builds rather
+ *     than a list of hopes.
  *  2. **A one-field action changes that one field and nothing else.** This is
- *     the half that fails when the column reached the mapper but not the
+ *     the half that fails when a column reached the mapper but not the
  *     builder.
+ *
+ * Neither can catch a *new* column, and no runtime assertion can: a mapper
+ * reads a missing column as `null`, which is indistinguishable from a column
+ * that is genuinely null. That guard is the `satisfies` on each `expected`
+ * instead — see its doc comment below — and it is a compile error rather
+ * than a red test.
  *
  * The builders are module-private, so each case reaches its own through a
  * real action rather than by importing it: what is being defended is the
  * optimistic write, not a function signature.
- *
- * `derived` is the carve-out, and it is per case rather than global on
- * purpose: a field the store keeps but no column carries has to be named
- * with the entity it belongs to, or the list becomes a place to hide things.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
@@ -126,8 +126,12 @@ const CASES: BuilderCase[] = [
     expected: {
       id: 'it-1',
       name: 'Zelt',
-      // Not a column: denormalised for display by whoever renders it, and
-      // therefore not something an optimistic row can or should carry.
+      // The one carve-out, and it is not the display decoration the type
+      // says it is: `items` has no such column and no mapper fills it, so it
+      // is `undefined` on every master item there has ever been. A master
+      // item's category is its primary tag (ADR-014), which is what
+      // QuickAddItem reads; the three call sites that read this field
+      // instead get nothing, and closing that is its own change.
       category_name: undefined,
       weight_grams: 2400,
       value_cents: 39900,
@@ -180,8 +184,6 @@ const CASES: BuilderCase[] = [
       id: 'tpi-1',
       template_id: 'tpl-1',
       item_id: 'it-1',
-      // Not a column either — the item's name, joined in for display.
-      item_name: undefined,
       quantity: 3,
       assignment: 'trip_global',
       dedup: 'sum',

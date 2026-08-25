@@ -327,9 +327,6 @@ export interface TemplateItem {
   id: string
   template_id: string
   item_id: string
-  /** Denormalised for display only — joined from the master item, never a
-   * column, so no row builder carries it (`rowBuilders.spec.ts`). */
-  item_name?: string
   /** Plain amount (FR-1.3/1.5 formulas retired 2026-08-08). */
   quantity: number
   assignment: TemplateAssignment
