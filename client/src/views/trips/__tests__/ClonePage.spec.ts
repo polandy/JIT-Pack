@@ -51,7 +51,14 @@ function seedSource() {
     table: TABLE.tripItems,
     id: 'a',
     deleted: false,
-    row: { trip_id: 'src', name: 'Zelt', quantity: 1, packed_count: 1, state: 'packed', mode: 'pack' },
+    row: {
+      trip_id: 'src',
+      name: 'Zelt',
+      quantity: 1,
+      packed_count: 1,
+      state: 'packed',
+      mode: 'pack',
+    },
   })
   return trips
 }
@@ -82,7 +89,9 @@ describe('ClonePage — rows not on the device (ADR-033)', () => {
     expect(wrapper.text()).not.toContain(t('clone.previewItems', { n: 0 }))
 
     // A name alone must not unlock the button while the rows are missing.
-    await wrapper.findComponent(IonInput).vm.$emit('ionInput', { detail: { value: 'Engadin 2026' } })
+    await wrapper
+      .findComponent(IonInput)
+      .vm.$emit('ionInput', { detail: { value: 'Engadin 2026' } })
     expect(wrapper.findComponent(IonButton).props('disabled')).toBe(true)
   })
 
@@ -95,7 +104,9 @@ describe('ClonePage — rows not on the device (ADR-033)', () => {
     expect(wrapper.text()).toContain(t('clone.previewTravelers', { n: 1 }))
     expect(wrapper.text()).not.toContain(t('clone.previewLoading'))
 
-    await wrapper.findComponent(IonInput).vm.$emit('ionInput', { detail: { value: 'Engadin 2026' } })
+    await wrapper
+      .findComponent(IonInput)
+      .vm.$emit('ionInput', { detail: { value: 'Engadin 2026' } })
     expect(wrapper.findComponent(IonButton).props('disabled')).toBe(false)
   })
 })
