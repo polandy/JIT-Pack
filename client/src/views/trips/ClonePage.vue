@@ -42,7 +42,7 @@ const source = computed(() => store.getTrip(props.tripId))
 // preview says so and the clone stays locked — summing an absence would
 // read "0 Packelemente" and clone exactly that.
 const sourceLoaded = computed(() => orchestrator.tripDataLoaded(props.tripId))
-orchestrator.ensureTripData(props.tripId)
+void orchestrator.ensureTripData(props.tripId)
 
 const name = ref('')
 // FR-2.1b: a clone is a trip of its own year, and the year is the only
