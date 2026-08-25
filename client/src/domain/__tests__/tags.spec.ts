@@ -117,3 +117,27 @@ describe('groupByPrimaryTag (FR-24.2)', () => {
     ).toEqual(['Anorak', 'Zelt'])
   })
 })
+
+describe('two tags at one position (FR-24.2)', () => {
+  // Nothing in the schema stops it: a reorder is one mutation per row, so
+  // the intermediate states are legal and a UNIQUE would refuse them.
+  // What must not happen is the answer depending on the row order, which
+  // is arrival order and therefore per device.
+  const tied: ItemTag[] = [
+    { id: 'a-zzz', item_id: 'i-tied', tag_id: 't-sommer', position: 0 },
+    { id: 'a-aaa', item_id: 'i-tied', tag_id: 't-kleidung', position: 0 },
+  ]
+
+  it('breaks the tie on the assignment id, in either arrival order', () => {
+    expect(primaryTagOf('i-tied', tied, tags)?.name).toBe('Kleidung')
+    expect(primaryTagOf('i-tied', [...tied].reverse(), tags)?.name).toBe('Kleidung')
+  })
+
+  it('files the item under the same heading in either arrival order', () => {
+    const one = groupByPrimaryTag([item('i-tied', 'Badehose')], tied, tags)
+    const other = groupByPrimaryTag([item('i-tied', 'Badehose')], [...tied].reverse(), tags)
+
+    expect([...one.keys()]).toEqual(['Kleidung'])
+    expect([...other.keys()]).toEqual(['Kleidung'])
+  })
+})
