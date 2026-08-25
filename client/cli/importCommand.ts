@@ -11,7 +11,7 @@
 
 import { createPinia, setActivePinia } from 'pinia'
 import { APIClient } from '@/api/client'
-import type { Mutation, PullChange } from '@/api/types'
+import type { Mutation } from '@/api/types'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { useMutations } from '@/composables/useMutations'
@@ -19,6 +19,7 @@ import { usePull } from '@/composables/usePull'
 import { usePush } from '@/composables/usePush'
 import { MAX_PUSH_BATCH } from '@/composables/useSyncOutbox'
 import { HLCGenerator } from '@/sync/hlc'
+import { optimisticInsert } from '@/composables/sync/optimistic'
 import { parsePortableAll } from '@/domain/portable'
 import {
   findExistingSubject,
@@ -199,14 +200,8 @@ export async function runImport(opts: ImportOptions, io: ImportIO): Promise<numb
           },
         },
         mutations,
-        emit(partition, tripId, table, id, mutation) {
-          const change: PullChange = {
-            seq: 0,
-            table,
-            id,
-            deleted: false,
-            row: mutation.fields ?? {},
-          }
+        emit(partition, tripId, mutation) {
+          const change = optimisticInsert(mutation)
           // Only the master partition is read back by the rules — a trip's own
           // rows are written, never matched against. Both stores see it: the
           // `trips` table is in this partition and belongs to the trip store.

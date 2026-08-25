@@ -17,6 +17,13 @@ import { APIClient, type TokenProvider } from '@/api/client'
 import { loadTokens, subjectOf } from '@/auth/tokens'
 import { HLCGenerator } from '@/sync/hlc'
 import { SyncOutbox, type ConflictReport } from './useSyncOutbox'
+import {
+  localChange,
+  localTombstone,
+  optimisticDelete,
+  optimisticInsert,
+  optimisticUpdate,
+} from './sync/optimistic'
 import { useWebSocket } from './useWebSocket'
 import { CLIENT_ACTOR_PLACEHOLDER, useMutations } from './useMutations'
 import { useSyncStatus } from './useSyncStatus'
@@ -626,13 +633,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mut = mutations.incrementPacked(item.id, item.packed_count, item.quantity)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripItems,
-        id: item.id,
-        deleted: false,
-        row: { ...itemRow(item), ...mut.fields },
-      },
+      optimistic: optimisticUpdate(mut, itemRow(item)),
     })
   }
 
@@ -640,13 +641,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mut = mutations.decrementPacked(item.id, item.packed_count)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripItems,
-        id: item.id,
-        deleted: false,
-        row: { ...itemRow(item), ...mut.fields },
-      },
+      optimistic: optimisticUpdate(mut, itemRow(item)),
     })
   }
 
@@ -654,13 +649,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mut = mutations.completePacked(item.id, item.quantity)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripItems,
-        id: item.id,
-        deleted: false,
-        row: { ...itemRow(item), ...mut.fields },
-      },
+      optimistic: optimisticUpdate(mut, itemRow(item)),
     })
   }
 
@@ -668,13 +657,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mut = mutations.zeroPacked(item.id)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripItems,
-        id: item.id,
-        deleted: false,
-        row: { ...itemRow(item), ...mut.fields },
-      },
+      optimistic: optimisticUpdate(mut, itemRow(item)),
     })
   }
 
@@ -697,13 +680,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mut = mutations.packItem(itemId, packedCount, state)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripItems,
-        id: itemId,
-        deleted: false,
-        row: { ...itemRow(current), ...mut.fields },
-      },
+      optimistic: optimisticUpdate(mut, itemRow(current)),
     })
   }
 
@@ -711,13 +688,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mut = mutations.togglePacked(item.id, item.packed_count)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripItems,
-        id: item.id,
-        deleted: false,
-        row: { ...itemRow(item), ...mut.fields },
-      },
+      optimistic: optimisticUpdate(mut, itemRow(item)),
     })
   }
 
@@ -734,13 +705,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       const mut = mutations.skipItem(target.id)
       return {
         mutation: mut,
-        optimistic: {
-          seq: 0,
-          table: TABLE.tripItems,
-          id: target.id,
-          deleted: false,
-          row: { ...itemRow(target), ...mut.fields },
-        } satisfies PullChange,
+        optimistic: optimisticUpdate(mut, itemRow(target)),
       }
     }
     // FR-20.2: skipping a main item co-skips its (transitive) companions —
@@ -778,13 +743,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       )
       muts.push({
         mutation: mut,
-        optimistic: {
-          seq: 0,
-          table: TABLE.tripItems,
-          id: record.itemId,
-          deleted: false,
-          row: { ...itemRow(row), ...mut.fields },
-        } satisfies PullChange,
+        optimistic: optimisticUpdate(mut, itemRow(row)),
       })
     }
     if (muts.length > 0) enqueueAndDrain('trip', tripId, ...muts)
@@ -794,13 +753,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mut = mutations.unskipItem(item.id)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripItems,
-        id: item.id,
-        deleted: false,
-        row: { ...itemRow(item), ...mut.fields },
-      },
+      optimistic: optimisticUpdate(mut, itemRow(item)),
     })
   }
 
@@ -808,13 +761,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mut = mutations.setItemMode(item.id, mode)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripItems,
-        id: item.id,
-        deleted: false,
-        row: { ...itemRow(item), ...mut.fields },
-      },
+      optimistic: optimisticUpdate(mut, itemRow(item)),
     })
   }
 
@@ -824,13 +771,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     myLocks.add(item.id)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripItems,
-        id: item.id,
-        deleted: false,
-        row: { ...itemRow(item), ...mut.fields },
-      },
+      optimistic: optimisticUpdate(mut, itemRow(item)),
     })
   }
 
@@ -891,13 +832,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     myLocks.delete(item.id)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripItems,
-        id: item.id,
-        deleted: false,
-        row: { ...itemRow(item), ...mut.fields },
-      },
+      optimistic: optimisticUpdate(mut, itemRow(item)),
     })
   }
 
@@ -905,13 +840,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mut = mutations.assignTraveler(item.id, travelerId)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripItems,
-        id: item.id,
-        deleted: false,
-        row: { ...itemRow(item), ...mut.fields },
-      },
+      optimistic: optimisticUpdate(mut, itemRow(item)),
     })
   }
 
@@ -919,13 +848,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mut = mutations.assignContainer(item.id, containerId)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripItems,
-        id: item.id,
-        deleted: false,
-        row: { ...itemRow(item), ...mut.fields },
-      },
+      optimistic: optimisticUpdate(mut, itemRow(item)),
     })
   }
 
@@ -933,13 +856,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mut = mutations.setLatePacker(item.id, latePacker)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripItems,
-        id: item.id,
-        deleted: false,
-        row: { ...itemRow(item), ...mut.fields },
-      },
+      optimistic: optimisticUpdate(mut, itemRow(item)),
     })
   }
 
@@ -958,13 +875,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mut = mutations.setPacker(item.id, userId)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripItems,
-        id: item.id,
-        deleted: false,
-        row: { ...itemRow(item), ...mut.fields },
-      },
+      optimistic: optimisticUpdate(mut, itemRow(item)),
     })
   }
 
@@ -972,13 +883,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mut = mutations.setReviewFlag(item.id, flag, value)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripItems,
-        id: item.id,
-        deleted: false,
-        row: { ...itemRow(item), ...mut.fields },
-      },
+      optimistic: optimisticUpdate(mut, itemRow(item)),
     })
   }
 
@@ -994,19 +899,13 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     },
     isActive: boolean,
   ) {
-    const { mutation, id } = mutations.addTripItem(tripId, name, {
+    const { mutation } = mutations.addTripItem(tripId, name, {
       ...opts,
       flagMissing: isActive,
     })
     enqueueAndDrain('trip', tripId, {
       mutation,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripItems,
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
+      optimistic: optimisticInsert(mutation),
     })
     if (opts.sourceItemId) {
       addRequiredCompanions(tripId)
@@ -1026,7 +925,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       masterItems: masterStore.itemList,
     })
     for (const companion of resolution.required) {
-      const { mutation, id } = mutations.addGeneratedTripItem(
+      const { mutation } = mutations.addGeneratedTripItem(
         tripId,
         {
           source_item_id: companion.item_id,
@@ -1043,13 +942,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       )
       enqueueAndDrain('trip', tripId, {
         mutation,
-        optimistic: {
-          seq: 0,
-          table: TABLE.tripItems,
-          id,
-          deleted: false,
-          row: mutation.fields as Record<string, unknown>,
-        },
+        optimistic: optimisticInsert(mutation),
       })
     }
   }
@@ -1071,11 +964,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     id: string,
     fields: Record<string, unknown> | null | undefined,
   ): PullChange {
-    return { seq: 0, table, id, deleted: false, row: (fields ?? {}) as Record<string, unknown> }
+    return localChange(table, id, (fields ?? {}) as Record<string, unknown>)
   }
 
   function tombstone(table: string, id: string): PullChange {
-    return { seq: 0, table, id, deleted: true, row: null }
+    return localTombstone(table, id)
   }
 
   /**
@@ -1485,7 +1378,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mutation = mutations.removeTravelerRow(travelerId)
     enqueueAndDrain('trip', tripId, {
       mutation,
-      optimistic: { seq: 0, table: TABLE.travelers, id: travelerId, deleted: true, row: {} },
+      optimistic: optimisticDelete(mutation),
     })
 
     const report = applyTravelerConsequences(tripId, trip)
@@ -1551,13 +1444,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     if (draft.newSeriesName) {
       const { mutation, id } = mutations.createSeries(draft.newSeriesName, draft.attributes)
       onPullChanges([
-        {
-          seq: 0,
-          table: TABLE.tripSeries,
-          id,
-          deleted: false,
-          row: mutation.fields as Record<string, unknown>,
-        },
+        optimisticInsert(mutation),
       ])
       if (!local) outbox.enqueue('master', null, mutation)
       seriesId = id
@@ -1571,28 +1458,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       { attributes: draft.attributes, seriesId },
     )
     onPullChanges([
-      {
-        seq: 0,
-        table: TABLE.trips,
-        id: tripId,
-        deleted: false,
-        row: tripMut.fields ?? {},
-      },
+      optimisticInsert(tripMut),
     ])
     if (!local) outbox.enqueue('master', null, tripMut)
 
     // Member grants follow the trips insert in the same master queue —
     // the server authorizes them against the freshly created trip.
     for (const member of draft.members ?? []) {
-      const { mutation, id } = mutations.addTripMember(tripId, member.userId, member.role)
+      const { mutation } = mutations.addTripMember(tripId, member.userId, member.role)
       onPullChanges([
-        {
-          seq: 0,
-          table: TABLE.tripMembers,
-          id,
-          deleted: false,
-          row: mutation.fields as Record<string, unknown>,
-        },
+        optimisticInsert(mutation),
       ])
       if (!local) outbox.enqueue('master', null, mutation)
     }
@@ -1600,13 +1475,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const travelerIds = draft.travelers.map((tr) => {
       const { mutation, id } = mutations.addTraveler(tripId, tr.name, tr.linkedUserId ?? null)
       onPullChanges([
-        {
-          seq: 0,
-          table: TABLE.travelers,
-          id,
-          deleted: false,
-          row: mutation.fields as Record<string, unknown>,
-        },
+        optimisticInsert(mutation),
       ])
       if (!local) outbox.enqueue('trip', tripId, mutation)
       return id
@@ -1617,13 +1486,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         item.traveler_index === null ? null : (travelerIds[item.traveler_index] ?? null)
       const { mutation, id } = mutations.addGeneratedTripItem(tripId, item, assignedTravelerId)
       onPullChanges([
-        {
-          seq: 0,
-          table: TABLE.tripItems,
-          id,
-          deleted: false,
-          row: mutation.fields as Record<string, unknown>,
-        },
+        optimisticInsert(mutation),
       ])
       if (!local) outbox.enqueue('trip', tripId, mutation)
 
@@ -1633,20 +1496,14 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       // Enqueued inside this loop so each todo follows the trip_items row it
       // references; pushed ahead of it, the server rejects the foreign key.
       for (const taskBody of item.tasks) {
-        const { mutation: todoMut, id: todoId } = mutations.addTodo(
+        const { mutation: todoMut } = mutations.addTodo(
           tripId,
           id,
           CLIENT_ACTOR_PLACEHOLDER,
           taskBody,
         )
         onPullChanges([
-          {
-            seq: 0,
-            table: TABLE.comments,
-            id: todoId,
-            deleted: false,
-            row: todoMut.fields as Record<string, unknown>,
-          },
+          optimisticInsert(todoMut),
         ])
         if (!local) outbox.enqueue('trip', tripId, todoMut)
       }
@@ -1656,29 +1513,17 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // trips row and in the same master queue — the server resolves the FK
     // against a trip it has already created.
     for (const templateId of draft.sourceTemplateIds ?? []) {
-      const { mutation, id } = mutations.registerTripSource(tripId, templateId)
+      const { mutation } = mutations.registerTripSource(tripId, templateId)
       onPullChanges([
-        {
-          seq: 0,
-          table: TABLE.tripTemplateSources,
-          id,
-          deleted: false,
-          row: mutation.fields as Record<string, unknown>,
-        },
+        optimisticInsert(mutation),
       ])
       if (!local) outbox.enqueue('master', null, mutation)
     }
 
     for (const chk of draft.checklistItems ?? []) {
-      const { mutation, id } = mutations.addTripItem(tripId, chk.label, { mode: chk.mode })
+      const { mutation } = mutations.addTripItem(tripId, chk.label, { mode: chk.mode })
       onPullChanges([
-        {
-          seq: 0,
-          table: TABLE.tripItems,
-          id,
-          deleted: false,
-          row: mutation.fields as Record<string, unknown>,
-        },
+        optimisticInsert(mutation),
       ])
       if (!local) outbox.enqueue('trip', tripId, mutation)
     }
@@ -1727,26 +1572,14 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       { seriesId: source.series_id, attributes: source.attributes },
     )
     onPullChanges([
-      {
-        seq: 0,
-        table: TABLE.trips,
-        id: tripId,
-        deleted: false,
-        row: tripMut.fields ?? {},
-      },
+      optimisticInsert(tripMut),
     ])
     if (!local) outbox.enqueue('master', null, tripMut)
 
     const travelerIds = plan.travelers.map((tr) => {
       const { mutation, id } = mutations.addTraveler(tripId, tr.name, null)
       onPullChanges([
-        {
-          seq: 0,
-          table: TABLE.travelers,
-          id,
-          deleted: false,
-          row: mutation.fields as Record<string, unknown>,
-        },
+        optimisticInsert(mutation),
       ])
       if (!local) outbox.enqueue('trip', tripId, mutation)
       return id
@@ -1761,13 +1594,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         maxWeightGrams: c.max_weight_grams,
       })
       onPullChanges([
-        {
-          seq: 0,
-          table: TABLE.containers,
-          id,
-          deleted: false,
-          row: mutation.fields as Record<string, unknown>,
-        },
+        optimisticInsert(mutation),
       ])
       if (!local) outbox.enqueue('trip', tripId, mutation)
       return id
@@ -1779,41 +1606,28 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       })
       const base = plan.containers[i]!
       onPullChanges([
-        {
-          seq: 0,
-          table: TABLE.containers,
-          id: containerIds[i]!,
-          deleted: false,
-          row: {
-            trip_id: tripId,
-            name: base.name,
-            carrier_traveler_id:
-              base.carrier_traveler_index === null
-                ? null
-                : (travelerIds[base.carrier_traveler_index] ?? null),
-            max_weight_grams: base.max_weight_grams,
-            paired_container_id: containerIds[c.paired_container_index],
-          },
-        },
+        optimisticUpdate(mutation, {
+          trip_id: tripId,
+          name: base.name,
+          carrier_traveler_id:
+            base.carrier_traveler_index === null
+              ? null
+              : (travelerIds[base.carrier_traveler_index] ?? null),
+          max_weight_grams: base.max_weight_grams,
+        }),
       ])
       if (!local) outbox.enqueue('trip', tripId, mutation)
     })
 
     for (const item of plan.items) {
-      const { mutation, id } = mutations.addClonedTripItem(
+      const { mutation } = mutations.addClonedTripItem(
         tripId,
         item,
         item.traveler_index === null ? null : (travelerIds[item.traveler_index] ?? null),
         item.container_index === null ? null : (containerIds[item.container_index] ?? null),
       )
       onPullChanges([
-        {
-          seq: 0,
-          table: TABLE.tripItems,
-          id,
-          deleted: false,
-          row: mutation.fields as Record<string, unknown>,
-        },
+        optimisticInsert(mutation),
       ])
       if (!local) outbox.enqueue('trip', tripId, mutation)
     }
@@ -1843,15 +1657,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * mutations and drains once at the end.
    */
   function assignTagLocally(itemId: string, tagId: string, position: number): void {
-    const { mutation, id } = mutations.assignTag(itemId, tagId, position)
+    const { mutation } = mutations.assignTag(itemId, tagId, position)
     onPullChanges([
-      {
-        seq: 0,
-        table: TABLE.itemTags,
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
+      optimisticInsert(mutation),
     ])
     if (!local) outbox.enqueue('master', null, mutation)
   }
@@ -1867,13 +1675,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       if (tagIDs.has(name.toLowerCase())) continue
       const { mutation, id } = mutations.createTag(name)
       onPullChanges([
-        {
-          seq: 0,
-          table: TABLE.tags,
-          id,
-          deleted: false,
-          row: mutation.fields as Record<string, unknown>,
-        },
+        optimisticInsert(mutation),
       ])
       if (!local) outbox.enqueue('master', null, mutation)
       tagIDs.set(name.toLowerCase(), id)
@@ -1883,13 +1685,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       if (item.existingItemId) return item.existingItemId
       const { mutation, id } = mutations.createMasterItem(item.name)
       onPullChanges([
-        {
-          seq: 0,
-          table: TABLE.items,
-          id,
-          deleted: false,
-          row: mutation.fields as Record<string, unknown>,
-        },
+        optimisticInsert(mutation),
       ])
       if (!local) outbox.enqueue('master', null, mutation)
       // Only now: the imported category becomes the item's primary tag
@@ -1910,13 +1706,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         trip.seriesId,
       )
       onPullChanges([
-        {
-          seq: 0,
-          table: TABLE.trips,
-          id: tripId,
-          deleted: false,
-          row: tripMut.fields as Record<string, unknown>,
-        },
+        optimisticInsert(tripMut),
       ])
       if (!local) outbox.enqueue('master', null, tripMut)
       tripIds.push(tripId)
@@ -1931,13 +1721,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
           quantity: entry.quantity,
         })
         onPullChanges([
-          {
-            seq: 0,
-            table: TABLE.tripItems,
-            id,
-            deleted: false,
-            row: mutation.fields as Record<string, unknown>,
-          },
+          optimisticInsert(mutation),
         ])
         if (!local) outbox.enqueue('trip', tripId, mutation)
 
@@ -1950,13 +1734,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
             `Imported with '?' — clarify: ${item.name}`,
           )
           onPullChanges([
-            {
-              seq: 0,
-              table: TABLE.comments,
-              id: todo.id,
-              deleted: false,
-              row: todo.mutation.fields as Record<string, unknown>,
-            },
+            optimisticInsert(todo.mutation),
           ])
           if (!local) outbox.enqueue('trip', tripId, todo.mutation)
         }
@@ -2002,16 +1780,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         },
       },
       mutations,
-      emit(partition, tripId, table, id, mutation) {
-        onPullChanges([
-          {
-            seq: 0,
-            table,
-            id,
-            deleted: false,
-            row: (mutation.fields ?? {}) as Record<string, unknown>,
-          },
-        ])
+      emit(partition, tripId, mutation) {
+        onPullChanges([optimisticInsert(mutation)])
         if (!local) outbox.enqueue(partition, tripId, mutation)
       },
     }
@@ -2060,13 +1830,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const { mutation, id } = mutations.createTag(name, masterStore.tagList.length)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tags,
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
+      optimistic: optimisticInsert(mutation),
     })
     return id
   }
@@ -2077,21 +1841,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const { mutation, id } = mutations.assignTag(itemId, tagId, position)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: {
-        seq: 0,
-        table: TABLE.itemTags,
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
+      optimistic: optimisticInsert(mutation),
     })
     return id
   }
 
   function unassignTag(assignmentId: string): void {
+    const mutation = mutations.unassignTag(assignmentId)
     enqueueAndDrain('master', null, {
-      mutation: mutations.unassignTag(assignmentId),
-      optimistic: { seq: 0, table: TABLE.itemTags, id: assignmentId, deleted: true, row: null },
+      mutation,
+      optimistic: optimisticDelete(mutation),
     })
   }
 
@@ -2102,34 +1861,24 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const { mutation, id } = mutations.createMasterItem(name, opts)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: {
-        seq: 0,
-        table: TABLE.items,
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
+      optimistic: optimisticInsert(mutation),
     })
     return id
   }
 
   function updateMasterItem(item: MasterItem, fields: Record<string, unknown>) {
+    const mutation = mutations.updateMasterItem(item.id, fields)
     enqueueAndDrain('master', null, {
-      mutation: mutations.updateMasterItem(item.id, fields),
-      optimistic: {
-        seq: 0,
-        table: TABLE.items,
-        id: item.id,
-        deleted: false,
-        row: { ...masterItemRow(item), ...fields },
-      },
+      mutation,
+      optimistic: optimisticUpdate(mutation, masterItemRow(item)),
     })
   }
 
   function deleteMasterItem(itemId: string) {
+    const mutation = mutations.deleteMasterItem(itemId)
     enqueueAndDrain('master', null, {
-      mutation: mutations.deleteMasterItem(itemId),
-      optimistic: { seq: 0, table: TABLE.items, id: itemId, deleted: true, row: null },
+      mutation,
+      optimistic: optimisticDelete(mutation),
     })
   }
 
@@ -2146,13 +1895,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       await local.putImage(item.id, optimized)
       const hash = await hashBlob(optimized)
       onPullChanges([
-        {
-          seq: 0,
-          table: TABLE.items,
-          id: item.id,
-          deleted: false,
-          row: { ...masterItemRow(item), image_hash: hash },
-        },
+        localChange(TABLE.items, item.id, { ...masterItemRow(item), image_hash: hash }),
       ])
       return
     }
@@ -2165,13 +1908,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     if (local) {
       await local.deleteImage(item.id)
       onPullChanges([
-        {
-          seq: 0,
-          table: TABLE.items,
-          id: item.id,
-          deleted: false,
-          row: { ...masterItemRow(item), image_hash: null },
-        },
+        localChange(TABLE.items, item.id, { ...masterItemRow(item), image_hash: null }),
       ])
       return
     }
@@ -2211,27 +1948,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const { mutation, id } = mutations.createTemplate(name, '', kind, icon)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: {
-        seq: 0,
-        table: TABLE.templates,
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
+      optimistic: optimisticInsert(mutation),
     })
     return id
   }
 
   function updateTemplate(template: Template, fields: Record<string, unknown>) {
+    const mutation = mutations.updateTemplate(template.id, fields)
     enqueueAndDrain('master', null, {
-      mutation: mutations.updateTemplate(template.id, fields),
-      optimistic: {
-        seq: 0,
-        table: TABLE.templates,
-        id: template.id,
-        deleted: false,
-        row: { ...templateRow(template), ...fields },
-      },
+      mutation,
+      optimistic: optimisticUpdate(mutation, templateRow(template)),
     })
   }
 
@@ -2243,48 +1969,33 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const { mutation, id } = mutations.addTemplateItem(templateId, itemId, opts)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: {
-        seq: 0,
-        table: TABLE.templateItems,
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
+      optimistic: optimisticInsert(mutation),
     })
     return id
   }
 
   function updateTemplateItem(templateItem: TemplateItem, fields: Record<string, unknown>) {
+    const mutation = mutations.updateTemplateItem(templateItem.id, fields)
     enqueueAndDrain('master', null, {
-      mutation: mutations.updateTemplateItem(templateItem.id, fields),
-      optimistic: {
-        seq: 0,
-        table: TABLE.templateItems,
-        id: templateItem.id,
-        deleted: false,
-        row: { ...templateItemRow(templateItem), ...fields },
-      },
+      mutation,
+      optimistic: optimisticUpdate(mutation, templateItemRow(templateItem)),
     })
   }
 
   function deleteTemplateItem(templateItemId: string) {
+    const mutation = mutations.deleteTemplateItem(templateItemId)
     enqueueAndDrain('master', null, {
-      mutation: mutations.deleteTemplateItem(templateItemId),
-      optimistic: {
-        seq: 0,
-        table: TABLE.templateItems,
-        id: templateItemId,
-        deleted: true,
-        row: null,
-      },
+      mutation,
+      optimistic: optimisticDelete(mutation),
     })
   }
 
   /** deleteTemplate removes a template; the store mirrors the cascades. */
   function deleteTemplate(templateId: string) {
+    const mutation = mutations.deleteTemplate(templateId)
     enqueueAndDrain('master', null, {
-      mutation: mutations.deleteTemplate(templateId),
-      optimistic: { seq: 0, table: TABLE.templates, id: templateId, deleted: true, row: null },
+      mutation,
+      optimistic: optimisticDelete(mutation),
     })
   }
 
@@ -2293,27 +2004,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const { mutation, id } = mutations.addTemplateInclude(templateId, includedTemplateId)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: {
-        seq: 0,
-        table: TABLE.templateIncludes,
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
+      optimistic: optimisticInsert(mutation),
     })
     return id
   }
 
   function removeTemplateInclude(includeId: string) {
+    const mutation = mutations.removeTemplateInclude(includeId)
     enqueueAndDrain('master', null, {
-      mutation: mutations.removeTemplateInclude(includeId),
-      optimistic: {
-        seq: 0,
-        table: TABLE.templateIncludes,
-        id: includeId,
-        deleted: true,
-        row: null,
-      },
+      mutation,
+      optimistic: optimisticDelete(mutation),
     })
   }
 
@@ -2322,21 +2022,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const { mutation, id } = mutations.addTemplateItemTask(templateItemId, task)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: {
-        seq: 0,
-        table: TABLE.templateItemTasks,
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
+      optimistic: optimisticInsert(mutation),
     })
     return id
   }
 
   function deleteTemplateItemTask(taskId: string) {
+    const mutation = mutations.deleteTemplateItemTask(taskId)
     enqueueAndDrain('master', null, {
-      mutation: mutations.deleteTemplateItemTask(taskId),
-      optimistic: { seq: 0, table: TABLE.templateItemTasks, id: taskId, deleted: true, row: null },
+      mutation,
+      optimistic: optimisticDelete(mutation),
     })
   }
 
@@ -2350,56 +2045,34 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const { mutation, id } = mutations.addItemDependency(itemId, dependsOnItemId, opts)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: {
-        seq: 0,
-        table: TABLE.itemDependencies,
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
+      optimistic: optimisticInsert(mutation),
     })
     return id
   }
 
   function updateItemDependency(dependency: ItemDependency, fields: Record<string, unknown>) {
+    const mutation = mutations.updateItemDependency(dependency.id, fields)
     enqueueAndDrain('master', null, {
-      mutation: mutations.updateItemDependency(dependency.id, fields),
-      optimistic: {
-        seq: 0,
-        table: TABLE.itemDependencies,
-        id: dependency.id,
-        deleted: false,
-        row: { ...dependencyRow(dependency), ...fields },
-      },
+      mutation,
+      optimistic: optimisticUpdate(mutation, dependencyRow(dependency)),
     })
   }
 
   function deleteItemDependency(dependencyId: string) {
+    const mutation = mutations.deleteItemDependency(dependencyId)
     enqueueAndDrain('master', null, {
-      mutation: mutations.deleteItemDependency(dependencyId),
-      optimistic: {
-        seq: 0,
-        table: TABLE.itemDependencies,
-        id: dependencyId,
-        deleted: true,
-        row: null,
-      },
+      mutation,
+      optimistic: optimisticDelete(mutation),
     })
   }
 
   // --- Todo actions (FR-7.3) ---
 
   function addPrepTodo(tripId: string, tripItemId: string, authorId: string, body: string) {
-    const { mutation, id } = mutations.addTodo(tripId, tripItemId, authorId, body)
+    const { mutation } = mutations.addTodo(tripId, tripItemId, authorId, body)
     enqueueAndDrain('trip', tripId, {
       mutation,
-      optimistic: {
-        seq: 0,
-        table: TABLE.comments,
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
+      optimistic: optimisticInsert(mutation),
     })
   }
 
@@ -2407,20 +2080,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mut = mutations.resolveTodo(todo.id)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.comments,
-        id: todo.id,
-        deleted: false,
-        row: {
-          trip_id: todo.trip_id,
-          trip_item_id: todo.trip_item_id,
-          author_id: todo.author_id,
-          body: todo.body,
-          is_task: 1,
-          task_state: 'resolved',
-        },
-      },
+      optimistic: optimisticUpdate(mut, todoRow(todo)),
     })
   }
 
@@ -2428,20 +2088,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mut = mutations.reopenTodo(todo.id)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.comments,
-        id: todo.id,
-        deleted: false,
-        row: {
-          trip_id: todo.trip_id,
-          trip_item_id: todo.trip_item_id,
-          author_id: todo.author_id,
-          body: todo.body,
-          is_task: 1,
-          task_state: 'open',
-        },
-      },
+      optimistic: optimisticUpdate(mut, todoRow(todo)),
     })
   }
 
@@ -2548,15 +2195,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function setTripStatus(tripId: string, status: TripStatus) {
     const trip = tripStore.getTrip(tripId)
     if (!trip) return
+    const mutation = mutations.updateTripStatus(tripId, status)
     enqueueAndDrain('master', null, {
-      mutation: mutations.updateTripStatus(tripId, status),
-      optimistic: {
-        seq: 0,
-        table: TABLE.trips,
-        id: tripId,
-        deleted: false,
-        row: { ...tripRow(trip), status },
-      },
+      mutation,
+      optimistic: optimisticUpdate(mutation, tripRow(trip)),
     })
   }
 
@@ -2571,34 +2213,24 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const { mutation, id } = mutations.addTripMember(tripId, userId, role)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripMembers,
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
+      optimistic: optimisticInsert(mutation),
     })
     return id
   }
 
   function setTripMemberRole(member: TripMember, role: 'admin' | 'editor') {
+    const mutation = mutations.setTripMemberRole(member.id, role)
     enqueueAndDrain('master', null, {
-      mutation: mutations.setTripMemberRole(member.id, role),
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripMembers,
-        id: member.id,
-        deleted: false,
-        row: { trip_id: member.trip_id, user_id: member.user_id, role },
-      },
+      mutation,
+      optimistic: optimisticUpdate(mutation, memberRow(member)),
     })
   }
 
   function removeTripMember(memberId: string) {
+    const mutation = mutations.removeTripMember(memberId)
     enqueueAndDrain('master', null, {
-      mutation: mutations.removeTripMember(memberId),
-      optimistic: { seq: 0, table: TABLE.tripMembers, id: memberId, deleted: true, row: null },
+      mutation,
+      optimistic: optimisticDelete(mutation),
     })
   }
 
@@ -2625,27 +2257,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const { mutation, id } = mutations.createSeries(name, defaultAttributes)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripSeries,
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
+      optimistic: optimisticInsert(mutation),
     })
     return id
   }
 
   function updateSeries(series: TripSeries, fields: Record<string, unknown>) {
+    const mutation = mutations.updateSeries(series.id, fields)
     enqueueAndDrain('master', null, {
-      mutation: mutations.updateSeries(series.id, fields),
-      optimistic: {
-        seq: 0,
-        table: TABLE.tripSeries,
-        id: series.id,
-        deleted: false,
-        row: { ...seriesRow(series), ...fields },
-      },
+      mutation,
+      optimistic: optimisticUpdate(mutation, seriesRow(series)),
     })
   }
 
@@ -2653,15 +2274,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function setTripSeries(tripId: string, seriesId: string | null) {
     const trip = tripStore.getTrip(tripId)
     if (!trip) return
+    const mutation = mutations.setTripSeries(tripId, seriesId)
     enqueueAndDrain('master', null, {
-      mutation: mutations.setTripSeries(tripId, seriesId),
-      optimistic: {
-        seq: 0,
-        table: TABLE.trips,
-        id: tripId,
-        deleted: false,
-        row: { ...tripRow(trip), series_id: seriesId },
-      },
+      mutation,
+      optimistic: optimisticUpdate(mutation, tripRow(trip)),
     })
   }
 
@@ -2675,27 +2291,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const { mutation, id } = mutations.createDestinationProfile(seriesId)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: {
-        seq: 0,
-        table: TABLE.destinationProfiles,
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
+      optimistic: optimisticInsert(mutation),
     })
     return id
   }
 
   function updateDestinationProfile(profile: DestinationProfile, fields: Record<string, unknown>) {
+    const mutation = mutations.updateDestinationProfile(profile.id, fields)
     enqueueAndDrain('master', null, {
-      mutation: mutations.updateDestinationProfile(profile.id, fields),
-      optimistic: {
-        seq: 0,
-        table: TABLE.destinationProfiles,
-        id: profile.id,
-        deleted: false,
-        row: { series_id: profile.series_id, notes: profile.notes, ...fields },
-      },
+      mutation,
+      optimistic: optimisticUpdate(mutation, profileRow(profile)),
     })
   }
 
@@ -2703,40 +2308,24 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const { mutation, id } = mutations.addChecklistItem(profileId, label, mode)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: {
-        seq: 0,
-        table: TABLE.destinationChecklistItems,
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
+      optimistic: optimisticInsert(mutation),
     })
     return id
   }
 
   function updateChecklistItem(item: DestinationChecklistItem, fields: Record<string, unknown>) {
+    const mutation = mutations.updateChecklistItem(item.id, fields)
     enqueueAndDrain('master', null, {
-      mutation: mutations.updateChecklistItem(item.id, fields),
-      optimistic: {
-        seq: 0,
-        table: TABLE.destinationChecklistItems,
-        id: item.id,
-        deleted: false,
-        row: { profile_id: item.profile_id, label: item.label, mode: item.mode, ...fields },
-      },
+      mutation,
+      optimistic: optimisticUpdate(mutation, checklistItemRow(item)),
     })
   }
 
   function deleteChecklistItem(itemId: string) {
+    const mutation = mutations.deleteChecklistItem(itemId)
     enqueueAndDrain('master', null, {
-      mutation: mutations.deleteChecklistItem(itemId),
-      optimistic: {
-        seq: 0,
-        table: TABLE.destinationChecklistItems,
-        id: itemId,
-        deleted: true,
-        row: null,
-      },
+      mutation,
+      optimistic: optimisticDelete(mutation),
     })
   }
 
@@ -2761,9 +2350,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * enforces the role, this is the optimistic tombstone). Cascades on the
    * server; the local store drops the trip and its child rows at once. */
   function deleteTrip(tripId: string) {
+    const mutation = mutations.deleteTrip(tripId)
     enqueueAndDrain('master', null, {
-      mutation: mutations.deleteTrip(tripId),
-      optimistic: { seq: 0, table: TABLE.trips, id: tripId, deleted: true, row: null },
+      mutation,
+      optimistic: optimisticDelete(mutation),
     })
   }
 
@@ -2879,27 +2469,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const { mutation, id } = mutations.addContainer(tripId, name, opts)
     enqueueAndDrain('trip', tripId, {
       mutation,
-      optimistic: {
-        seq: 0,
-        table: TABLE.containers,
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
+      optimistic: optimisticInsert(mutation),
     })
     return id
   }
 
   function updateContainer(tripId: string, container: Container, fields: Record<string, unknown>) {
+    const mutation = mutations.updateContainer(container.id, fields)
     enqueueAndDrain('trip', tripId, {
-      mutation: mutations.updateContainer(container.id, fields),
-      optimistic: {
-        seq: 0,
-        table: TABLE.containers,
-        id: container.id,
-        deleted: false,
-        row: { ...containerRow(container), ...fields },
-      },
+      mutation,
+      optimistic: optimisticUpdate(mutation, containerRow(container)),
     })
   }
 
@@ -2912,18 +2491,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     for (const write of writes) {
       const current = containers.find((c) => c.id === write.containerId)
       if (!current) continue
-      muts.push({
-        mutation: mutations.updateContainer(write.containerId, {
-          paired_container_id: write.paired_container_id,
-        }),
-        optimistic: {
-          seq: 0,
-          table: TABLE.containers,
-          id: write.containerId,
-          deleted: false,
-          row: { ...containerRow(current), paired_container_id: write.paired_container_id },
-        },
+      const mutation = mutations.updateContainer(write.containerId, {
+        paired_container_id: write.paired_container_id,
       })
+      muts.push({ mutation, optimistic: optimisticUpdate(mutation, containerRow(current)) })
     }
     return muts
   }
@@ -2963,18 +2534,13 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       const mut = mutations.assignContainer(item.id, null)
       muts.push({
         mutation: mut,
-        optimistic: {
-          seq: 0,
-          table: TABLE.tripItems,
-          id: item.id,
-          deleted: false,
-          row: { ...itemRow(item), container_id: null },
-        },
+        optimistic: optimisticUpdate(mut, itemRow(item)),
       })
     }
+    const deleteMut = mutations.deleteContainer(containerId)
     muts.push({
-      mutation: mutations.deleteContainer(containerId),
-      optimistic: { seq: 0, table: TABLE.containers, id: containerId, deleted: true, row: null },
+      mutation: deleteMut,
+      optimistic: optimisticDelete(deleteMut),
     })
     enqueueAndDrain('trip', tripId, ...muts)
   }
@@ -2990,13 +2556,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const { mutation, id } = mutations.addComment(tripId, tripItemId, authorId, body)
     enqueueAndDrain('trip', tripId, {
       mutation,
-      optimistic: {
-        seq: 0,
-        table: TABLE.comments,
-        id,
-        deleted: false,
-        row: mutation.fields as Record<string, unknown>,
-      },
+      optimistic: optimisticInsert(mutation),
     })
     return id
   }
@@ -3006,27 +2566,15 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mut = mutations.flagCommentAsTask(comment.id)
     enqueueAndDrain('trip', tripId, {
       mutation: mut,
-      optimistic: {
-        seq: 0,
-        table: TABLE.comments,
-        id: comment.id,
-        deleted: false,
-        row: {
-          trip_id: comment.trip_id,
-          trip_item_id: comment.trip_item_id,
-          author_id: comment.author_id,
-          body: comment.body,
-          is_task: 1,
-          task_state: 'open',
-        },
-      },
+      optimistic: optimisticUpdate(mut, commentRow(comment)),
     })
   }
 
   function deleteComment(tripId: string, commentId: string) {
+    const mutation = mutations.deleteComment(commentId)
     enqueueAndDrain('trip', tripId, {
-      mutation: mutations.deleteComment(commentId),
-      optimistic: { seq: 0, table: TABLE.comments, id: commentId, deleted: true, row: null },
+      mutation,
+      optimistic: optimisticDelete(mutation),
     })
   }
 
@@ -3254,6 +2802,56 @@ function seriesRow(series: TripSeries): Record<string, unknown> {
     default_attributes: series.default_attributes
       ? JSON.stringify(series.default_attributes)
       : null,
+  }
+}
+
+function memberRow(member: TripMember): Record<string, unknown> {
+  return {
+    trip_id: member.trip_id,
+    user_id: member.user_id,
+    role: member.role,
+  }
+}
+
+/**
+ * A comment and a todo are the same row (FR-7.2), told apart by `is_task`
+ * — which is why both mappers carry it: the store routes on that column,
+ * so an optimistic row without it moves the row to the other list.
+ */
+function commentRow(comment: ItemComment): Record<string, unknown> {
+  return {
+    trip_id: comment.trip_id,
+    trip_item_id: comment.trip_item_id,
+    author_id: comment.author_id,
+    body: comment.body,
+    created_at: comment.created_at,
+    is_task: 0,
+  }
+}
+
+function todoRow(todo: ItemTodo): Record<string, unknown> {
+  return {
+    trip_id: todo.trip_id,
+    trip_item_id: todo.trip_item_id,
+    author_id: todo.author_id,
+    body: todo.body,
+    is_task: 1,
+    task_state: todo.task_state,
+  }
+}
+
+function profileRow(profile: DestinationProfile): Record<string, unknown> {
+  return {
+    series_id: profile.series_id,
+    notes: profile.notes,
+  }
+}
+
+function checklistItemRow(item: DestinationChecklistItem): Record<string, unknown> {
+  return {
+    profile_id: item.profile_id,
+    label: item.label,
+    mode: item.mode,
   }
 }
 
