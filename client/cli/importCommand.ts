@@ -13,6 +13,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { APIClient } from '@/api/client'
 import type { Mutation, PullChange } from '@/api/types'
 import { useMasterStore } from '@/stores/masterStore'
+import { useTripStore } from '@/stores/tripStore'
 import { useMutations } from '@/composables/useMutations'
 import { usePull } from '@/composables/usePull'
 import { usePush } from '@/composables/usePush'
@@ -20,6 +21,7 @@ import { MAX_PUSH_BATCH } from '@/composables/useSyncOutbox'
 import { HLCGenerator } from '@/sync/hlc'
 import { parsePortableAll } from '@/domain/portable'
 import {
+  findExistingSubject,
   importPortableDocument,
   restoreDecisions,
   type PortableImportEnv,
@@ -110,6 +112,10 @@ interface PendingWrites {
 export async function runImport(opts: ImportOptions, io: ImportIO): Promise<number> {
   setActivePinia(createPinia())
   const master = useMasterStore()
+  // Trips are in the master partition but not in the master store, and
+  // ADR-030's rule has to read them: a file re-run against an instance that
+  // already holds its trips and templates must add nothing.
+  const trips = useTripStore()
   const hlc = new HLCGenerator(io.now, io.deviceId)
   const client = new APIClient(opts.serverUrl, () => opts.token)
   const mutations = useMutations(hlc)
@@ -122,6 +128,7 @@ export async function runImport(opts: ImportOptions, io: ImportIO): Promise<numb
   try {
     const pulled = await pullMasterAll(0)
     master.applyChanges(pulled.changes)
+    trips.applyChanges(pulled.changes)
   } catch (e) {
     io.write(`${opts.serverUrl}: ${message(e)}`)
     return EXIT.documentFailed
@@ -129,6 +136,7 @@ export async function runImport(opts: ImportOptions, io: ImportIO): Promise<numb
 
   let total = 0
   let failed = 0
+  let skipped = 0
 
   for (const path of opts.files) {
     let text: string
@@ -163,14 +171,33 @@ export async function runImport(opts: ImportOptions, io: ImportIO): Promise<numb
       }
       const doc = parsed.doc
       const what = `${where} ${doc.kind} "${doc.name}"`
+      // Reported on both paths: a dry run whose job is "what would this file
+      // do?" must say what it would leave alone (ADR-030).
+      const duplicate = findExistingSubject(doc, {
+        templateList: master.templateList,
+        tripList: trips.tripList,
+      })
       if (opts.dryRun) {
-        io.write(`${what}: readable (dry run, not sent)`)
+        io.write(`${what}: ${duplicate ? 'already here' : 'readable'} (dry run, not sent)`)
         continue
       }
 
       const pending: PendingWrites = { master: [], trips: new Map() }
       const env: PortableImportEnv = {
-        master,
+        master: {
+          get itemList() {
+            return master.itemList
+          },
+          get tagList() {
+            return master.tagList
+          },
+          get templateList() {
+            return master.templateList
+          },
+          get tripList() {
+            return trips.tripList
+          },
+        },
         mutations,
         emit(partition, tripId, table, id, mutation) {
           const change: PullChange = {
@@ -180,10 +207,13 @@ export async function runImport(opts: ImportOptions, io: ImportIO): Promise<numb
             deleted: false,
             row: mutation.fields ?? {},
           }
-          // Only the master partition is read back by the rules, and only the
-          // master store is loaded here — a trip's own rows are written, never
-          // matched against.
-          if (partition === 'master') master.applyChanges([change])
+          // Only the master partition is read back by the rules — a trip's own
+          // rows are written, never matched against. Both stores see it: the
+          // `trips` table is in this partition and belongs to the trip store.
+          if (partition === 'master') {
+            master.applyChanges([change])
+            trips.applyChanges([change])
+          }
           if (partition === 'trip' && tripId) {
             pending.trips.set(tripId, [...(pending.trips.get(tripId) ?? []), mutation])
           } else {
@@ -194,6 +224,12 @@ export async function runImport(opts: ImportOptions, io: ImportIO): Promise<numb
 
       const result = importPortableDocument(doc, restoreDecisions(doc, env), env, restoredTemplates)
       if (result.kind === 'template') restoredTemplates.set(doc.name, result.id)
+
+      if (result.outcome === 'duplicate') {
+        io.write(`${what}: already here — nothing added`)
+        skipped++
+        continue
+      }
 
       try {
         await pushAll(pending, pushMaster, pushTrip)
@@ -207,8 +243,9 @@ export async function runImport(opts: ImportOptions, io: ImportIO): Promise<numb
   }
 
   const [landed, lost] = opts.dryRun ? ['readable', 'unreadable'] : ['imported', 'failed']
+  const alreadyHere = skipped > 0 ? `, ${skipped} already here` : ''
   io.write(
-    `${total} ${total === 1 ? 'document' : 'documents'}: ${total - failed} ${landed}, ${failed} ${lost}`,
+    `${total} ${total === 1 ? 'document' : 'documents'}: ${total - failed - skipped} ${landed}${alreadyHere}, ${failed} ${lost}`,
   )
   return failed > 0 ? EXIT.documentFailed : EXIT.ok
 }

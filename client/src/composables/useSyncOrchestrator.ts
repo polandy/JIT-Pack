@@ -1961,7 +1961,26 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    */
   function portableImportEnv(): PortableImportEnv {
     return {
-      master: masterStore,
+      /*
+       * Trips live in the trip store rather than the master one, so the view
+       * is assembled here — through getters, because ADR-030's rule reads it
+       * back between writes and a snapshot taken now would not see the trip
+       * the previous document just created.
+       */
+      master: {
+        get itemList() {
+          return masterStore.itemList
+        },
+        get tagList() {
+          return masterStore.tagList
+        },
+        get templateList() {
+          return masterStore.templateList
+        },
+        get tripList() {
+          return tripStore.tripList
+        },
+      },
       mutations,
       emit(partition, tripId, table, id, mutation) {
         onPullChanges([
