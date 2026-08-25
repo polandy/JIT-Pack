@@ -219,9 +219,30 @@ it. Item numbers stay stable even as items close, because the log refers back to
    (`client/e2e/server/`), with two browser contexts logged in as two accounts through the app's
    own login. `make e2e-server`, its own CI job, gated on `E2E_SERVER` the way `single` is on
    `E2E_BACKEND`. It closes MVP-plan blocker B3 and the identity halves of E2E-G3-01/02/03 and
-   E2E-FLOW-01. Still owed and named in `dev-docs/e2e-tests.md`: presence (G-10), delegation
-   (E2E-FLOW-02), the admin surface (M20) and any real-provider coverage. Log: *„A second account
-   arrives…"*.
+   E2E-FLOW-01. Still owed and named in `dev-docs/e2e-tests.md`: presence (G-10), the admin
+   surface (M20) and any real-provider coverage. Delegation (E2E-FLOW-02) came 2026-08-25 with
+   item 20's control. Log: *„A second account arrives…"*.
+
+19. **NFR-4.12 — notifications are the one surface still written in English**
+   (found 2026-08-24 while building FR-25.19's assignment control, **specified, not built**).
+   `client/src/notifications/format.ts` builds every FR-6.2 body as a literal, and
+   `client/public/sw.js` carries a **second copy** for the OS notification. The i18n migration
+   missed it because its unit was the *screen*; review missed it because no e2e project could
+   reach a notification before ADR-029. The in-app half is a plain `t()` migration; the OS half
+   needs the worker to know the locale, which lives in `localStorage` where a service worker
+   cannot read it — **an ADR is owed** on that mechanism (post it to the worker, mirror it into
+   IndexedDB, or have the push payload carry rendered text). Deliberately **not fixed in halves**:
+   a localized button under an English sentence is worse than consistent English. The full finding
+   is in NFR-4.12.
+
+20. ~~**FR-25.19 — responsibility was read everywhere and written nowhere**~~ — **done**
+   (2026-08-25). UI-Spec M5 had promised *„Zugewiesen an" → notification (FR-6.2)* since the
+   concept round; `packer_user_id` was written once when a row was generated and never again, so
+   M4's edge avatar, the „zuständig war …" stamp and FR-25.20's filter all described a state
+   nobody could produce, and the delegation notification the server fires could not be produced
+   by using the app. The picker sits in M5's *Details ▾* with *„niemand"* as its clear, absent
+   where there is nobody to assign to (G-8) and silent on a locked row (G-3). E2E-FLOW-02 covers
+   the chain. Log: *„A column everything read and nothing wrote"*.
 
 **Parked, specified, do not start:** §3.24's FR-24.3 lifecycle-aware delete (the *tag* half was
 unparked and built 2026-08-16 — ADR-014, migration 022), §3.26 calendar feed,
