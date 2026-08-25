@@ -55,6 +55,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M6 shopping (composer wiring, FR-25.11j reveal) | E2E-M6-21, E2E-M6-17, E2E-M6-22 | `local` | [`shopping.spec.ts`](../client/e2e/shopping.spec.ts) |
 | M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-02, E2E-M9-03, E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed), E2E-M10-13 (German-seeded) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | FR-24.3 lifecycle delete | E2E-M10-14, E2E-M10-15, E2E-M7-11 | `local` | [`lifecycle-delete.spec.ts`](../client/e2e/lifecycle-delete.spec.ts) |
+| FR-24.3 restore (M23) | E2E-M23-01, E2E-M23-02, E2E-M23-03 | `local` | [`restore-retired.spec.ts`](../client/e2e/restore-retired.spec.ts) |
 | §3.28 the item mark | E2E-M10-11, E2E-M10-12, E2E-M9-07, E2E-M4-48, E2E-G15-01, E2E-G15-02, E2E-M5-15 | `local` | [`item-mark.spec.ts`](../client/e2e/item-mark.spec.ts) |
 | M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
 | M12 analytics | E2E-M12-01, E2E-M12-02, E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
@@ -1862,3 +1863,29 @@ for lost:
 If a UI path to a refusal ever returns — a series delete control is the likely
 one — it should carry an e2e case again, because the client half of that path
 is the half these two were written to protect.
+
+## The restore's hard case is the one only a rendered test could show (2026-08-25)
+
+M23's three cases are the way back from a retire, and the middle one is the
+reason the file exists. Retiring frees the name (the unique indexes are
+partial over the active rows), so the sequence *retire → someone re-creates
+the name → restore* is ordinary, and the restore then cannot have its old
+name back. The unit tests state that rule in both places it runs; what they
+cannot see is **when** the user meets it. A restore that is enqueued and
+refused by the push looks, on screen, like a row that comes back and then
+vanishes again a drain later — ADR-031's repair doing exactly its job. Only a
+rendered case distinguishes that from the refusal arriving *before* the tap
+takes effect, which is what E2E-M23-02 asserts by finding the row still on
+M23 behind the alert.
+
+Two traps were paid for while writing these, both worth keeping:
+
+- **A `page.goto` after a Local Mode write reloads before the write lands.**
+  The first run restored a row and then found the inventory without it,
+  because the assertion that settled the *optimistic* state (the row leaving
+  M23) says nothing about IndexedDB. Every reload here now waits for the
+  sync indicator to read `local` first, the seam that exists for this.
+- **An `ion-alert` input does not reliably take `pressSequentially`.** The
+  first run typed "Kamera (alt)" and restored a row named **"K"** — and every
+  count in the case was still satisfied by it, because one row is one row.
+  The input's value is asserted before the button is clicked.
