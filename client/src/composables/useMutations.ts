@@ -181,6 +181,19 @@ export function useMutations(hlc: HLCGenerator) {
     return make('upsert', TABLE.tripItems, itemId, { [REVIEW_FLAG_FIELD[flag]]: value ? 1 : 0 })
   }
 
+  /**
+   * setPacker assigns responsibility for a row, or clears it (FR-25.19).
+   *
+   * This is the one actor column the client is allowed to choose:
+   * `packed_by_user_id` is stamped by the server and stripped from every
+   * incoming mutation, while *who is responsible* is a decision somebody
+   * makes deliberately — and the server turns it into the FR-6.2
+   * delegation notification.
+   */
+  function setPacker(itemId: string, userId: string | null): Mutation {
+    return make('upsert', TABLE.tripItems, itemId, { packer_user_id: userId })
+  }
+
   function addTripItem(
     tripId: string,
     name: string,
@@ -931,6 +944,7 @@ export function useMutations(hlc: HLCGenerator) {
     assignContainer,
     setLatePacker,
     setReviewFlag,
+    setPacker,
     addTripItem,
     deleteTripItem,
     addTraveler,

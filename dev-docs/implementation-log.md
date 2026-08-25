@@ -151,6 +151,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A route names its scope first (2026-08-24)](#a-route-names-its-scope-first-2026-08-24) — NFR-4.14's third point/ADR-027. Four things the code cannot show: the backlog item's own complaint had gone stale (ADR-025 had already deleted two of the four shapes it named, so it was re-measured before it was acted on), why the sync endpoints were widened into a scope the owner's question did not name, the trap that a router's 404 and a handler's 404 are the same status — which made the first negative test green on the two revert routes for the wrong reason — and the latent defect that typed route builders exposed.
 - [The gate protected what the file happened to declare (2026-08-24)](#the-gate-protected-what-the-file-happened-to-declare-2026-08-24) — NFR-4.14's coverage half. Three things the code cannot show: that the rule needed a *check* rather than eleven more types, that the check has a blind spot which the very handler that motivated it fell into — and how that was closed rather than papered over — and why a request body is allowed to stay a map where a response body is not.
 - [A path stopped being written twice (2026-08-24)](#a-path-stopped-being-written-twice-2026-08-24) — NFR-4.14's last half: the routes joined `wire.go` and the client's builders are generated from it. What the code cannot show: why ADR-027's revisit trigger was discharged *before* the drift it waits for, why the version prefix is deliberately spelled out on every line, why a pin on a generated file is not redundant, and the trap that a generator must emit prettier's own line breaks or the drift gate fails on a file nobody edited.
+- [A column everything read and nothing wrote (2026-08-25)](#a-column-everything-read-and-nothing-wrote-2026-08-25) — FR-25.19/E2E-FLOW-02. Three things the code cannot show: how the gap survived four screens and a spec that named it, why the fix was one control rather than a feature, and the test assertion that would have passed with or without the rule it was written for.
 - [A trip could be judged only one row at a time (2026-08-24)](#a-trip-could-be-judged-only-one-row-at-a-time-2026-08-24) — FR-9.3/9.4. Three things the code cannot show: how many affordances a "one posture, one question" screen turns out to have once it is rendered, why a handled proposal became a record line rather than a dimmed card, and the control that was replaced twice before it rendered the row rather than itself.
 - [A claim stops having a lifetime (2026-08-24)](#a-claim-stops-having-a-lifetime-2026-08-24) — FR-5.7/ADR-028. Four things the code cannot show: why the option that looked like the compromise was the most expensive one, why the takeover is the one lock action with no optimistic write, why it has no reachable Playwright case and will not until a second identity exists, and the two-day-old work that was deleted rather than adapted.
 - [A second account arrives, and finds a claim nobody could revoke (2026-08-24)](#a-second-account-arrives-and-finds-a-claim-nobody-could-revoke-2026-08-24) — MVP-plan Track B step 2 / ADR-029: the mock-IdP `server` project. Four things the code cannot show: why a real Authelia was weighed and lost to a 250-line fixture, why the ordering of two processes is a design decision rather than a script detail, the defect the project found on its first run — a takeover that the loser's screen contradicted — and why the identity behind the fix cannot come from the token provider the rest of the client uses.
@@ -6342,3 +6343,48 @@ is also the concrete thing
 the revisit trigger waits for: the fix, when somebody wants it, is a way for
 the import to say "no, this is a different one", not a different notion of
 identity.
+
+
+## A column everything read and nothing wrote (2026-08-25)
+
+FR-25.19's *Zugewiesen an*, and E2E-FLOW-02 with it. The task began as a test:
+the `server` project had just made a second identity reachable, so the owed
+delegation case was writable at last. It was not — its first step did not
+exist. `packer_user_id` was written once, when a row was generated from a
+template or a clone, and never again.
+
+**The gap survived because every other part of it was built.** M4's edge
+avatar reads the column, with the FR-25.19 precedence rule (the packer after
+packing, the assignee before, never both). The revealed row's stamp names both
+where they differ. FR-25.20's filter hides other people's rows and its reveal
+bar names them — and all of that is unit-tested, with synthetic rows carrying
+an assignment no screen could make. The server fires `notifyDelegation` on any
+push carrying the column, with its own Go test. UI-Spec M5's Actions line has
+said *„set Zugewiesen an → notification (FR-6.2)"* since the concept round.
+Four correct pieces around a missing one, and each of them looked like
+coverage of it.
+
+**So the fix was one control, not a feature.** The plan had a step for
+*„M4's consequences"*, and that step dissolved on inspection: nothing was owed
+there, because the reading side was complete. Worth writing down as a
+sequencing lesson rather than a defect — when a column is read in four places
+and written in none, the honest estimate is *one writer*, and the temptation
+is to plan work for the four.
+
+**The test I wrote for the G-3 rule would have passed without the rule.**
+It asserted `attributes('disabled')` on the picker. Ionic sets `disabled` as a
+DOM *property* on its custom element, so `attributes()` never sees it — the
+assertion returns undefined whether the control is disabled or not, and the
+existing `m5-container` select proves it: it has carried `:disabled="isLocked"`
+since the rebuild and shows no such attribute either. The case now asserts the
+rule — a locked row writes nothing — with the lock banner as its positive
+signal, and reversing the guard reddens it. The same shape has now been found
+in Playwright (`aria-disabled` on `ion-button`) and in Vitest; the common half
+is that **a rendered attribute is not where Ionic keeps state**.
+
+**And one thing was deliberately not fixed here.** The same reading found that
+notifications are not localized at all — every FR-6.2 body is an English
+literal, with a second copy in `sw.js` for the OS notification. It is backlog
+item 19 rather than a commit in this PR: the worker cannot read the locale
+from `localStorage`, so the OS half needs a mechanism decision and an ADR, and
+a localized button under an English sentence is worse than consistent English.

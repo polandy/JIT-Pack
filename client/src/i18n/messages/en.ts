@@ -152,6 +152,9 @@ export const en = {
   'stamp.yesterday': 'yesterday',
 
   // FR-25.11e — an empty list means one of two very different things.
+  'packing.emptyOthersHead': 'Everything here is somebody else\u2019s',
+  'packing.emptyOthers': '{n} item is with {who}. | {n} items are with {who}.',
+  'packing.emptyOthersAction': 'Show all',
   'packing.noMatches': 'No matches',
   'packing.noMatchesSearch': 'Nothing matches “{term}”.',
   'packing.noMatchesFilter':
@@ -345,6 +348,8 @@ export const en = {
   'item.flagAsTask': 'Turn into a preparation task',
   'item.companions': 'Belongs with',
   'item.usedBy': 'Who needs this?',
+  'item.assignedTo': 'Assigned to',
+  'item.assignedToNobody': 'nobody',
   'item.luggageOptional': 'Luggage · optional',
   'item.latePackerHint': 'Pack on departure day',
   'item.flags': 'Flags',

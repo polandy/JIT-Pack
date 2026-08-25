@@ -204,7 +204,90 @@ test.describe('Two accounts on one instance @server', () => {
     await ctxAlice.close()
     await ctxBob.close()
   })
+  /**
+   * E2E-FLOW-02 (FR-4.3 → FR-6.2 → FR-6.3, FR-25.19/25.20): Alice hands a
+   * row to Bob, Bob is told, and the telling leads back to the row.
+   *
+   * The whole chain was unreachable until 2026-08-24. The server has always
+   * fired `notifyDelegation` on a push carrying `packer_user_id` — Go tests
+   * cover it — but no client surface ever wrote that column: it was set
+   * once when a row was generated and never again, so the FR-6.2 delegation
+   * notification could not be produced by using the app. M5's *Zugewiesen
+   * an* picker is the writer; this case is the proof that the writer, the
+   * notification, the deep link and FR-25.20's filter are one chain rather
+   * than four separately-tested pieces.
+   */
+  test('a row handed to the other account notifies them, and the notice leads to the row', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Lofoten ${id}`
+    const item = `Trockenanzug-${id}`
+
+    const ctxBob = await browser.newContext()
+    const bob = await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    await quickAddItem(alice, item)
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+
+    const wsBob = bob.waitForEvent('websocket')
+    await bob.goto(tripPath)
+    await expect(visiblePage(bob).getByTestId(`m4-row-${item}`)).toBeVisible()
+    await wsSubscribed(bob, wsBob)
+
+    await alice.goto(tripPath)
+    await assignTo(alice, item, ACCOUNT_NAMES.bob)
+
+    // FR-6.2's in-app channel: the toast is the delivery — there is no
+    // inbox screen — and it names who handed over what.
+    const notice = bob.locator('ion-toast')
+    await expect(notice).toContainText(ACCOUNT_NAMES.alice)
+    await expect(notice).toContainText(item)
+
+    // FR-6.3/G-4: the notice leads to the item context, asserted on the
+    // rendered sheet rather than on the URL.
+    await notice.getByRole('button', { name: /open/i }).click()
+    await expect(visiblePage(bob).getByTestId('m5-sheet')).toBeVisible()
+    await expect(visiblePage(bob).getByTestId('m5-sheet')).toContainText(item)
+
+    // FR-25.20, reachable for the first time: the row is Bob's job now, so
+    // Alice's list hides it — and says so rather than hiding it silently.
+    await alice.goto(tripPath)
+    await expect(visiblePage(alice).getByTestId(`m4-row-${item}`)).toHaveCount(0)
+    await expect(visiblePage(alice).getByTestId('m4-others-bar')).toContainText(ACCOUNT_NAMES.bob)
+
+    // …and the empty list says what actually happened. It used to report
+    // „no matches · behind the filter" and offer to clear a search and
+    // facets nobody had set: FR-25.20's hiding is not a filter, and this
+    // state was unreachable until the assignment had a writer.
+    const empty = visiblePage(alice).getByTestId('packing-empty')
+    await expect(empty).toContainText(ACCOUNT_NAMES.bob)
+    await expect(empty).not.toContainText(/filter/i)
+
+    // The action reveals rather than clearing something that was never on.
+    await visiblePage(alice).getByTestId('m4-reset').click()
+    await expect(visiblePage(alice).getByTestId(`m4-row-${item}`)).toBeVisible()
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
 })
+
+/** Hand a row to somebody through M5's *Zugewiesen an* picker (FR-25.19). */
+async function assignTo(page: import('@playwright/test').Page, item: string, name: string) {
+  await visiblePage(page).getByTestId(`m4-row-${item}`).getByRole('heading').click()
+  await expect(page.getByTestId('m5-sheet')).toBeVisible()
+  await page.getByTestId('m5-details').click()
+  await page.getByTestId('m5-assignee').click()
+  await page.locator('ion-popover ion-select-popover ion-item').filter({ hasText: name }).click()
+  // The sheet's own avatar is the settled signal that the write landed.
+  await expect(page.getByTestId('m5-sheet')).toContainText(name)
+  await page.getByTestId('m5-close').click()
+  await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+}
 
 /** Add a member to a trip through M4's own roster screen (FR-4.5). */
 async function shareWith(page: import('@playwright/test').Page, tripPath: string, name: string) {

@@ -1588,8 +1588,8 @@ client invented.
 **What this unit deliberately does not cover**, so the green does not read
 as more than it is:
 
-- **Presence (G-10) and delegation (E2E-FLOW-02)** — both are `server`-only
-  and both are still unwritten.
+- **Presence (G-10)** — `server`-only and still unwritten. *(Delegation,
+  E2E-FLOW-02, was in this list until 2026-08-25; see the section below.)*
 - **The `lock_events` record** ADR-028 writes: asserted by Go tests, not by
   the screen.
 - **The M2 Share entry is asserted as present in the DOM, not as visible** —
@@ -1679,3 +1679,30 @@ Two things it settled:
   half could never match, and the English half happened to appear in one
   catalogue string and not the other. It failed for the right reason and the
   alternation was replaced by the exact text.
+
+## E2E-FLOW-02 — delegation, and the control it turned out to need (2026-08-25)
+
+Writing this case is what found that **`packer_user_id` had no writer**. The
+server has always fired `notifyDelegation` on a push carrying that column and
+Go tests cover it; every client surface *read* it — M4's edge avatar, the
+„zuständig war …" stamp, FR-25.20's filter and its reveal bar — and nothing
+set it, because it was written once when a row was generated and never again.
+So the whole FR-6.2 delegation path was unreachable by using the app, and the
+case could not be written until M5 gained the FR-25.19 picker.
+
+Worth keeping, because it generalises: **a case that cannot be written is a
+finding about the product, not about the suite.** The two before it followed
+the same shape — *unused* had no writer until FR-9.3, and a takeover had no
+second identity until ADR-029.
+
+**What the case asserts, deliberately as one chain rather than four units:**
+the assignment lands, the toast on the *other* account names the actor and the
+item, its *Open* button lands on the **rendered sheet** (never the URL), and
+Alice's own list then hides the row and names Bob in the FR-25.20 reveal bar.
+Any of those four could pass alone while the chain is broken.
+
+**What it does not cover, so the green is not read as more:** the **OS**
+notification. This is the in-app channel — NFR-4.6's universal fallback — and
+Web Push needs a browser permission this harness does not grant. The service
+worker's own copy of the wording (`client/public/sw.js`) is therefore still
+covered by nothing, which is also where backlog item 19's second copy lives.

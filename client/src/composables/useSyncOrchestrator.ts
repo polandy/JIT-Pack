@@ -948,6 +948,26 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * field, the rest of the row preserved, so flagging never touches the
    * packing record it is a judgement about.
    */
+  /**
+   * setPacker hands a row to somebody (FR-25.19), or takes it back with
+   * `null`. The FR-6.2 notification is the server's half: it fires on any
+   * push carrying `packer_user_id` and skips a self-assignment, so the
+   * client owes nothing beyond the ordinary mutation.
+   */
+  function setPacker(tripId: string, item: TripItem, userId: string | null) {
+    const mut = mutations.setPacker(item.id, userId)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: {
+        seq: 0,
+        table: TABLE.tripItems,
+        id: item.id,
+        deleted: false,
+        row: { ...itemRow(item), ...mut.fields },
+      },
+    })
+  }
+
   function setReviewFlag(tripId: string, item: TripItem, flag: ReviewFlag, value: boolean) {
     const mut = mutations.setReviewFlag(item.id, flag, value)
     enqueueAndDrain('trip', tripId, {
@@ -3096,6 +3116,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     assignContainer,
     setLatePacker,
     setReviewFlag,
+    setPacker,
     quickAddItem,
     addGroupToTrip,
     updateTrip,
