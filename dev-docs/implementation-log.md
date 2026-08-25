@@ -167,6 +167,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 
 - [A delete that could only be refused](#a-delete-that-could-only-be-refused-2026-08-25) — FR-24.3 unparked: the refusal already held the discriminator; why the filtering keeps `itemList` complete; the rule written twice with only one copy allowed to be wrong; the usage endpoint designed and dropped.
 - [The restore was free, the name was not](#the-restore-was-free-the-name-was-not-2026-08-25) — FR-24.3 / ADR-033 / M23: the entry above closed by naming restore as owed, and this is the day after. Four things the code cannot show: the promise the FR made that the schema had already broken, why the collision is refused on the *client* when ADR-032 had just argued the opposite, the surface chosen against three that were rejected, and the defect only a rendered case found — twice, in one test.
+- [Two actor columns a client could still name (2026-08-25)](#two-actor-columns-a-client-could-still-name-2026-08-25) — invariant 3 / FR-4.2, FR-5.7. Three things the code cannot show: why an edit may not re-stamp the author it can no longer forge, why the obvious shape of the claim fix would have left every packed row claimed, and the evidence that decided which op a comment is allowed to be born from.
+
 ## Current state
 
 > **Repack (Return-Trip Mode) is REMOVED (owner decision, 2026-07-17).** Spec retired (PRD Addendum
@@ -7013,3 +7015,62 @@ by omission, which is not what a logical delete is supposed to mean. It is offer
 where the delete would actually be physical: a button that silently re-retires the row is
 worse than no button, and in Server Mode the same three-form hedge M10 carries applies here
 unchanged.
+## Two actor columns a client could still name (2026-08-25)
+
+Invariant 3 says the server stamps every actor column itself. Two columns
+were outside that promise, both found by reading the data model rather than
+by a failing test: `comments.author_id` and `trip_items.packing_now_by`.
+Neither is exotic — an ordinary trip member, authenticated and authorized for
+the trip, could push a mutation naming somebody else.
+
+**An edit may not re-stamp the author it can no longer forge.** `author_id`
+was stamped on `insert` and left alone on every other op, so an `upsert`
+could rewrite it — and the whitelist in `internal/store` lets the column
+through. The repair that suggests itself is to stamp the pusher on every op,
+the way `packed_by_user_id` is handled. That is the *opposite* defect: the
+comment surfaces push upserts for `task_state` and `is_task` (FR-7.2's
+"flag as task", the todo resolve/reopen), so flagging somebody else's comment
+would quietly transfer its authorship to whoever tapped. Authorship is
+decided once, at the moment the row comes into being, so the field is
+stripped from every non-insert op instead: an edit changes what a comment
+says and never who said it, and the stored value survives because a partial
+upsert only writes the fields it carries.
+
+That leaves the case the strip cannot serve: an `upsert` that *creates* a
+comment has no author to fall back on. The client never sends one — every
+comment is born from `addComment` or `addTodo`, both `insert` — so rather
+than invent a rule for a shape no product surface produces, the push is
+allowed to fall onto the `NOT NULL` column, where `ApplyMutation` already
+turns a constraint violation into a `rejected` outcome. A refusal the outbox
+can park is the correct answer for a mutation nothing legitimate emits; the
+alternative would have been to attribute it to the pusher, which is the
+forgery the whole change is about.
+
+**The obvious shape of the claim fix would have left every packed row
+claimed.** `packing_now_by` was written only inside the `state`-driven
+switch, so a mutation carrying the column and no `state` never met the code
+that owns it — the holder that FR-5.7's takeover confirms against and M4's
+row names was the client's to choose. Stripping it unconditionally at the top
+of the branch, the way `packed_by_user_id` is stripped, is only half a fix,
+and the half that was missing is invisible in the server: the *release* of a
+claim was the client nulling the column (`packItem` and `releasePackingNow`
+send `packing_now_by: null`), and the switch's `packed` branch never cleared
+it. Strip the column and trust that path, and packing a row would have left
+its claim standing forever — a G-3 lock nothing could end.
+
+So the claim is now derived rather than accepted: the claim *is* the state
+(FR-5.3), so every branch of the switch writes both `packing_now_by` and
+`packing_now_at` — the pusher when the state becomes `packing_now`, `NULL`
+for every other state — and a mutation with no state at all leaves an
+existing claim untouched. The cost accepted with it: a state-carrying
+mutation that used to leave a claim alone now ends it, `restoreSkipped`
+included. That is the coherent reading — a holder on a row whose state is not
+`packing_now` is a claim nobody can see — and it is what the client already
+documented itself as doing.
+
+**A clock is not an identity claim, and stays one.** `packing_now_at` is
+stripped with the holder but handed back through the same helper
+`packed_at` uses, so a client may still name the moment it tapped (packing
+happens offline; the push can land days later) while an unparseable value is
+replaced by the server's own time. The helper was called `packedAt` and is
+now `tapTime`, because it serves both stamps.
