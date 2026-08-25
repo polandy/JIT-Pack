@@ -17,7 +17,7 @@
  * the device. What the client's count is *for* is stating the outcome before
  * the user confirms; the server decides what actually happens. See ADR-032.
  */
-import type { MasterItem, Template, TemplateItem, TripItem } from '../types/domain'
+import type { TemplateItem, TripItem } from '../types/domain'
 
 /** The row is kept and hidden — something still resolves against it. */
 export const DELETION_RETIRE = 'retire'
@@ -89,7 +89,3 @@ export function countTemplateReferences(
 ): number {
   return from.tripItems.filter((t) => t.source_template_id === templateId).length
 }
-
-/** Narrowing helpers exist only so callers read as what they filter. */
-export type ActiveItems = MasterItem[]
-export type ActiveTemplates = Template[]
