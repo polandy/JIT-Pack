@@ -1,4 +1,5 @@
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import type { TemplateKind } from '@/types/domain'
 
 /**
  * A ready-made master partition to test against — inventory, tags, groups and
@@ -241,14 +242,21 @@ export function seedSampleMaster(orchestrator: Orchestrator): SampleMaster {
     if (itemId && mainId) orchestrator.addItemDependency(itemId, mainId, { mode: 'required' })
   }
 
+  // A second seed run on a device that already carries the sample data finds
+  // every one of these names taken (FR-1.6) — createTemplate refuses it, and
+  // the seed adopts what is already there instead of writing a duplicate the
+  // server would have refused anyway.
+  const seedTemplate = (name: string, kind: TemplateKind, icon: string | null): string =>
+    orchestrator.createTemplate(name, kind, icon) ?? orchestrator.templateNameCollision(name)!.id
+
   const groupIds = new Map<string, string>()
   for (const group of GROUPS) {
-    const id = orchestrator.createTemplate(group.name, 'group', group.icon ?? null)
+    const id = seedTemplate(group.name, 'group', group.icon ?? null)
     groupIds.set(group.name, id)
     addPositions(orchestrator, id, itemIds, group.positions)
   }
 
-  const vacationTemplateId = orchestrator.createTemplate(VACATION.name, 'template', VACATION.icon)
+  const vacationTemplateId = seedTemplate(VACATION.name, 'template', VACATION.icon)
   for (const name of VACATION.includes) {
     const groupId = groupIds.get(name)
     if (groupId) orchestrator.addTemplateInclude(vacationTemplateId, groupId)

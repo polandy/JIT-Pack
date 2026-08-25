@@ -168,12 +168,32 @@ function resetChooser() {
   pendingName.value = ''
 }
 
+/**
+ * FR-1.6: `templates.name` is UNIQUE instance-wide and across both scopes,
+ * and the client holds the whole master partition — so the taken name is
+ * found while it is being typed, not by a push the server refuses. The
+ * existing row is offered rather than only named: the user who types a name
+ * that exists almost always means the thing that has it.
+ */
+const createCollision = computed(() =>
+  pendingKind.value ? (orchestrator.templateNameCollision(pendingName.value) ?? null) : null,
+)
+
+function openCollision() {
+  const taken = createCollision.value
+  if (!taken) return
+  resetChooser()
+  router.push(`/templates/${taken.id}`)
+}
+
 function commitCreate() {
   const kind = pendingKind.value
   const name = pendingName.value.trim()
-  if (!kind || !name) return
+  if (!kind || !name || createCollision.value) return
+  const id = orchestrator.createTemplate(name, kind)
+  if (id === null) return
   resetChooser()
-  router.push(`/templates/${orchestrator.createTemplate(name, kind)}`)
+  router.push(`/templates/${id}`)
 }
 
 // --- Row actions (FR-18.2): long-press / right-click menu ------------------
@@ -250,9 +270,19 @@ async function renameTemplate(tpl: Template) {
       { text: t('common.cancel'), role: 'cancel' },
       {
         text: t('common.save'),
-        handler: (values: { name?: string }) => {
+        handler: async (values: { name?: string }) => {
           const name = values.name?.trim()
           if (!name || name === tpl.name) return
+          const taken = orchestrator.templateNameCollision(name, tpl.id)
+          if (taken) {
+            await presentToast({
+              message: t('templates.renameTaken', { name: taken.name }),
+              duration: 3000,
+            })
+            // Keeping the alert open leaves the typed name where it can be
+            // corrected; dismissing it would throw the edit away.
+            return false
+          }
           orchestrator.updateTemplate(tpl, { name })
         },
       },
@@ -494,11 +524,28 @@ async function handleRefresh(event: CustomEvent) {
               @keyup.enter="commitCreate"
             />
             <IonButton
-              :disabled="!pendingName.trim()"
+              :disabled="!pendingName.trim() || createCollision !== null"
               data-testid="m7-create-commit"
               @click="commitCreate"
             >
               {{ t('templates.create') }}
+            </IonButton>
+          </div>
+          <div v-if="createCollision" class="name-taken" data-testid="m7-name-taken">
+            <span class="name-taken-text">
+              {{
+                createCollision.kind === 'group'
+                  ? t('templates.nameTakenGroup', { name: createCollision.name })
+                  : t('templates.nameTakenTemplate', { name: createCollision.name })
+              }}
+            </span>
+            <IonButton
+              fill="clear"
+              size="small"
+              data-testid="m7-name-taken-open"
+              @click="openCollision"
+            >
+              {{ t('templates.nameTakenOpen') }}
             </IonButton>
           </div>
         </div>
@@ -654,6 +701,21 @@ ion-segment {
   align-items: center;
   gap: 8px;
   margin-top: 4px;
+}
+
+/* The refusal reads as a note, not an alarm: it names something that
+   exists rather than something that went wrong (G-14). */
+.name-taken {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  color: var(--ct-yellow);
+}
+
+.name-taken-text {
+  flex: 1;
+  font-size: var(--jp-text-sm);
 }
 
 .name-field {
