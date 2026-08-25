@@ -84,6 +84,29 @@ The signing keys the broker needs to verify ID tokens could not be fetched from 
 the advertised `jwks_uri` points somewhere the server cannot reach. Same fix as above:
 make the URL resolvable from inside the server's network.
 
+## Logins start failing on a server that has been running fine
+
+**Symptom:** nobody can log in any more, or everybody is suddenly logged out, on an
+instance that was working yesterday. Nothing about the configuration changed.
+
+**Cause:** the server keeps a copy of the IdP's signing keys and refreshes it every five
+minutes. A refresh that fails is not fatal — the cached keys keep working — so the
+instance carries on until the IdP rotates its keys, and only *then* do logins break. The
+server logs the moment the refresh stopped working, which is usually well before the
+symptom:
+
+| Log message | What it means |
+|---|---|
+| `JWKS refresh failed; serving the cached keys` | the key endpoint stopped answering. Logged **once**, when it starts failing — not on every attempt. The `url` and `error` fields say which endpoint and why. |
+| `JWKS refresh recovered` | it is answering again, and the keys are current. |
+| `JWKS key dropped: cannot be parsed` | the IdP advertised a key the server cannot read, and it was left out of the set. Tokens signed with that key are refused as `unknown kid`, which on its own names neither the key nor the reason — this line names both, in its `kid` field. Unlike the first line it repeats at every refresh, so its presence in the last five minutes of log means the key is still being advertised. |
+
+**Fix:** search your logs for `JWKS`. If the first line is there without the second, the
+key endpoint is still unreachable from the server: check that the IdP is up, and that the
+`jwks_uri` in its discovery document resolves from inside the server's network (the same
+check as at startup, above). Once the endpoint answers again, the next refresh picks the
+keys up by itself — no restart is needed.
+
 ## Everything works, but nothing updates in real time
 
 **Symptom:** logging in, loading trips, and saving changes all work, but a change made on
@@ -267,7 +290,7 @@ and the admin role) to the client registration.
 
 | Message | Cause |
 |---|---|
-| `ID token failed verification` | signature, issuer, or audience did not check out. The audience must be the client id you configured; the issuer must be the configured one; the signing key must be in the IdP's advertised JWKS. Rotating IdP keys and a stale JWKS cache can also produce this transiently. |
+| `ID token failed verification` | signature, issuer, or audience did not check out. The audience must be the client id you configured; the issuer must be the configured one; the signing key must be in the IdP's advertised JWKS. Rotating IdP keys and a stale JWKS cache can also produce this transiently — see *Logins start failing on a server that has been running fine* above. |
 | `ID token has no subject` | the IdP issued a token without a `sub` claim. |
 | `UserInfo subject does not match ID token` | the UserInfo response describes a different subject than the ID token — the check that defends against a swapped-in access token. |
 | `IdP rejected the request` | the IdP refused the authorization code exchange, e.g. a reused or expired code, or a `redirect_uri` that does not match the registration. |

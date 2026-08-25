@@ -151,9 +151,12 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A route names its scope first (2026-08-24)](#a-route-names-its-scope-first-2026-08-24) — NFR-4.14's third point/ADR-027. Four things the code cannot show: the backlog item's own complaint had gone stale (ADR-025 had already deleted two of the four shapes it named, so it was re-measured before it was acted on), why the sync endpoints were widened into a scope the owner's question did not name, the trap that a router's 404 and a handler's 404 are the same status — which made the first negative test green on the two revert routes for the wrong reason — and the latent defect that typed route builders exposed.
 - [The gate protected what the file happened to declare (2026-08-24)](#the-gate-protected-what-the-file-happened-to-declare-2026-08-24) — NFR-4.14's coverage half. Three things the code cannot show: that the rule needed a *check* rather than eleven more types, that the check has a blind spot which the very handler that motivated it fell into — and how that was closed rather than papered over — and why a request body is allowed to stay a map where a response body is not.
 - [A path stopped being written twice (2026-08-24)](#a-path-stopped-being-written-twice-2026-08-24) — NFR-4.14's last half: the routes joined `wire.go` and the client's builders are generated from it. What the code cannot show: why ADR-027's revisit trigger was discharged *before* the drift it waits for, why the version prefix is deliberately spelled out on every line, why a pin on a generated file is not redundant, and the trap that a generator must emit prettier's own line breaks or the drift gate fails on a file nobody edited.
+- [A column everything read and nothing wrote (2026-08-25)](#a-column-everything-read-and-nothing-wrote-2026-08-25) — FR-25.19/E2E-FLOW-02. Three things the code cannot show: how the gap survived four screens and a spec that named it, why the fix was one control rather than a feature, and the test assertion that would have passed with or without the rule it was written for.
 - [A trip could be judged only one row at a time (2026-08-24)](#a-trip-could-be-judged-only-one-row-at-a-time-2026-08-24) — FR-9.3/9.4. Three things the code cannot show: how many affordances a "one posture, one question" screen turns out to have once it is rendered, why a handled proposal became a record line rather than a dimmed card, and the control that was replaced twice before it rendered the row rather than itself.
 - [A claim stops having a lifetime (2026-08-24)](#a-claim-stops-having-a-lifetime-2026-08-24) — FR-5.7/ADR-028. Four things the code cannot show: why the option that looked like the compromise was the most expensive one, why the takeover is the one lock action with no optimistic write, why it has no reachable Playwright case and will not until a second identity exists, and the two-day-old work that was deleted rather than adapted.
 - [A second account arrives, and finds a claim nobody could revoke (2026-08-24)](#a-second-account-arrives-and-finds-a-claim-nobody-could-revoke-2026-08-24) — MVP-plan Track B step 2 / ADR-029: the mock-IdP `server` project. Four things the code cannot show: why a real Authelia was weighed and lost to a 250-line fixture, why the ordering of two processes is a design decision rather than a script detail, the defect the project found on its first run — a takeover that the loser's screen contradicted — and why the identity behind the fix cannot come from the token provider the rest of the client uses.
+- [A device only ever got the first page (2026-08-25)](#a-device-only-ever-got-the-first-page-2026-08-25) — Sync-API §4: the pull ignored `has_more`. Four things the code cannot show: why every fixture in the suite was too small to catch it, why the obvious second half of the fix — remembering the cursor — made the app *emptier*, why the correct implementation was already in the repo and unused, and what found it in the end.
+- [The restore could be run twice, and the manual said it could not (2026-08-24)](#the-restore-could-be-run-twice-and-the-manual-said-it-could-not-2026-08-24) — FR-18.4/ADR-030: an imported document is a second copy when its name matches, plus the year for a trip. Five things the code cannot show: the documentation that had described the item rule as if it were the whole rule, why the database constraint that looks like the obvious enforcement is the worst of the four options, why the trips were invisible to a view called `master`, how ADR-017's Vorlage exception was reversed by a measurement rather than an argument, and the cost the family's own data pays for the rule.
 - [The clock the client was told to read, and never received (2026-08-25)](#the-clock-the-client-was-told-to-read-and-never-received-2026-08-25) — a data-model review's sync half. Four things the code cannot show: how a rule implemented correctly on both sides never once ran, why a deleted trip's *master*-partition children are the tombstones that matter while its trip-partition ones need none, a review finding that was wrong and how far I built it before opening the citation, and why a connection-scoped pragma is not a schema rule.
 
 ## Current state
@@ -6276,6 +6279,166 @@ and unmarked states off a downscaled screenshot, decided they looked identical,
 and was about to change the colour — the computed values were `#cba6f7` against
 `#6c7086`, which is exactly the distinction that was intended. A rendered pixel
 answers a question about rendered pixels; an *impression* of one does not.
+## The restore could be run twice, and the manual said it could not (2026-08-24)
+
+**What changed:** an imported document is a second copy of something this
+instance already holds when their **names** match — plus the **year**, for a
+trip (ADR-030). An import that finds one writes nothing at all and reports what
+was there; M18 marks the document in the restore list *before* the button is
+pressed, the commit counts what it left alone, and `jitpack-import` says it per
+document and in its summary, `--dry-run` included.
+
+**The premise that was already written down as true.** `docs/backup.md` said,
+of a restore onto a device that still has data, that everything is "matched to
+what already exists **by name**, so restoring onto a device that still has data
+merges rather than duplicates". That was the rule for items, for tags and for
+groups, and it had been generalised in prose to the whole file. Trips had never
+had it: restoring a 33-trip backup twice produced 66 trips, quietly, with the
+first 33 still on screen. The page was not lying about behaviour anybody had
+decided against — it was describing a rule that only covered part of what the
+file contains, which is the harder kind of documentation error to see, because
+every sentence around it is true.
+
+**Why not a UNIQUE constraint, which is what a database is for.** It scored
+worst of the four options considered, and the reason is not the schema
+freeze (invariant 2), which is only a timing problem. It is that a refused
+mutation **parks the outbox**: the queue is ordered, a rejected write stays at
+its head, and every later write on that device waits behind it. That failure
+mode was found on 2026-08-22 and fixed once already. Trading a duplicated trip
+for a wedged device is a bad trade, and the constraint would additionally turn
+two people creating *Samedan 2027* on two phones — ordinary concurrent use,
+which LWW exists to settle — into a hard error. The other two options fail
+more simply: a `(import)` suffix labels the duplication instead of preventing
+it, and a row-level merge cannot tell "add what is missing" from "undo what the
+user deleted".
+
+**Trips are in the master partition and not in the master store.** The import
+rules read the instance through a view called `master`, and the CLI carried a
+comment saying a trip's own rows are "written, never matched against" — true
+until this rule needed to match against them. The `trips` table lives in the
+master *partition* but belongs to the *trip* store, so nothing that held the
+view could see them. The view now names `tripList` explicitly and both call
+sites assemble it through getters rather than a snapshot: the rules read their
+own output back between documents, so a trip created by document 12 has to be
+visible to document 13 in the same file.
+
+**A decision reversed by a measurement rather than an argument.** The rule was
+written for trips alone, because ADR-017 had explicitly declined to extend the
+group's link-by-name identity to Ferien-Vorlagen: two of one name are two
+different plans, and merging them loses one. That reasoning is sound about a
+file somebody *hands* you. It is wrong about the file that actually gets
+re-imported, which is your own backup — and the difference only became visible
+by importing a real one twice and counting rows: the trips held at 33, while
+the three Vorlagen became six and their includes went 35 → 70. Reading the ADR
+would not have produced that; running the thing did. The suffix is retired, and
+ADR-017 carries the supersession note.
+
+**What the rule costs, in this project's own data.** The family sheet these
+imports exist for has *Janosch & Andy* twice in 2021 — two different weekends,
+one name, one year. Under this rule only the first can be imported, and the
+second has to be named apart in the file. Since the rule reaches Vorlagen too,
+the same holds for two different Ferien-Vorlagen of one name — the very case
+ADR-017 was protecting — and a *changed* Vorlage can no longer be re-imported
+over the one that is here: it is skipped whole rather than merged. All of that
+is written into ADR-030 as accepted cost rather than discovered later, and it
+is also the concrete thing
+the revisit trigger waits for: the fix, when somebody wants it, is a way for
+the import to say "no, this is a different one", not a different notion of
+identity.
+
+
+## A column everything read and nothing wrote (2026-08-25)
+
+FR-25.19's *Zugewiesen an*, and E2E-FLOW-02 with it. The task began as a test:
+the `server` project had just made a second identity reachable, so the owed
+delegation case was writable at last. It was not — its first step did not
+exist. `packer_user_id` was written once, when a row was generated from a
+template or a clone, and never again.
+
+**The gap survived because every other part of it was built.** M4's edge
+avatar reads the column, with the FR-25.19 precedence rule (the packer after
+packing, the assignee before, never both). The revealed row's stamp names both
+where they differ. FR-25.20's filter hides other people's rows and its reveal
+bar names them — and all of that is unit-tested, with synthetic rows carrying
+an assignment no screen could make. The server fires `notifyDelegation` on any
+push carrying the column, with its own Go test. UI-Spec M5's Actions line has
+said *„set Zugewiesen an → notification (FR-6.2)"* since the concept round.
+Four correct pieces around a missing one, and each of them looked like
+coverage of it.
+
+**So the fix was one control, not a feature.** The plan had a step for
+*„M4's consequences"*, and that step dissolved on inspection: nothing was owed
+there, because the reading side was complete. Worth writing down as a
+sequencing lesson rather than a defect — when a column is read in four places
+and written in none, the honest estimate is *one writer*, and the temptation
+is to plan work for the four.
+
+**The test I wrote for the G-3 rule would have passed without the rule.**
+It asserted `attributes('disabled')` on the picker. Ionic sets `disabled` as a
+DOM *property* on its custom element, so `attributes()` never sees it — the
+assertion returns undefined whether the control is disabled or not, and the
+existing `m5-container` select proves it: it has carried `:disabled="isLocked"`
+since the rebuild and shows no such attribute either. The case now asserts the
+rule — a locked row writes nothing — with the lock banner as its positive
+signal, and reversing the guard reddens it. The same shape has now been found
+in Playwright (`aria-disabled` on `ion-button`) and in Vitest; the common half
+is that **a rendered attribute is not where Ionic keeps state**.
+
+**And one thing was deliberately not fixed here.** The same reading found that
+notifications are not localized at all — every FR-6.2 body is an English
+literal, with a second copy in `sw.js` for the OS notification. It is backlog
+item 19 rather than a commit in this PR: the worker cannot read the locale
+from `localStorage`, so the OS half needs a mechanism decision and an ADR, and
+a localized button under an English sentence is worse than consistent English.
+## A device only ever got the first page (2026-08-25)
+
+**What changed:** the pull asks page after page until the server says there is
+no more (Sync-API §4). It used to ask once, apply the 500 changes it got back,
+and stop — `has_more` was read by nothing.
+
+**What it looked like.** After importing a decade of the family's real trips
+into the `:3000` instance, a fresh browser opened on M2 and said *„Keine
+archivierten Reisen"*, with the G-2 glyph green and no error anywhere. The
+instance held 717 master rows; the trips sit at `change_log.seq 652` and up,
+behind the first page, so not one of them was ever delivered. What did arrive
+was 16 of 21 groups and one group holding 19 of its 20 items — a world that
+looks plausible and is a fraction of the truth.
+
+**Why nothing caught it.** Every fixture in the suite is smaller than a page.
+The unit cases stubbed the pull with a single response and asserted what came
+out of it; the e2e projects build their world by clicking, and clicking does not
+produce five hundred rows. A rule about what happens *past* the first page
+cannot be tested by data that never reaches it, and the honest fix was to push
+520 rows straight at the API in E2E-SYNC-01 — the one case in the suite whose
+subject is the size of a partition rather than a screen.
+
+**The second half of the fix made it worse, and the measurement said so.**
+The cursor lived in an in-memory `Map`, so a reload asked from zero again. That
+looks like the other half of the same bug, and persisting it in IndexedDB
+beside the outbox queue was written, tested and green. Then it ran against the
+real instance: **zero rows**, on every screen. Outside Local Mode the pulled
+rows are not kept either — they live in the Pinia stores and go with the tab —
+so a device that remembers how far it read and not *what* it read asks for the
+changes after that point, is correctly told there are none, and renders an
+empty app. The memory-only cursor was not an oversight; it is what makes a
+memory-only store correct. That half was reverted, and the unit case that had
+asserted persistence now asserts the opposite, with the reason in its body.
+
+**The correct implementation was already in the repository.**
+`client/src/composables/usePull.ts` has `pullMasterAll` with exactly the
+`while (hasMore)` loop this needed — and `grep -rn "usePull(" src` finds no
+caller outside its own tests. The app pulls through `SyncOutbox.drain`, which
+grew its own single-request version. Two implementations of one protocol rule,
+one of them unreachable from the product, is the shape ADR-025 deleted a
+different instance of a fortnight earlier: the reachable copy drifted and
+nobody could see it, because the correct one was never run.
+
+**What found it.** Not a test, and not a review — using the thing. The import
+went in through the CLI, which writes server-side only, so a browser had to
+pull the instance from scratch for the first time. Every previous load of that
+data had been written *by* the browser that then displayed it, which is exactly
+why a decade of use had never asked the question. It is also what every second
+family device does on its first launch.
 
 ## The clock the client was told to read, and never received (2026-08-25)
 

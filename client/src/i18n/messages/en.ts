@@ -152,6 +152,9 @@ export const en = {
   'stamp.yesterday': 'yesterday',
 
   // FR-25.11e — an empty list means one of two very different things.
+  'packing.emptyOthersHead': 'Everything here is somebody else\u2019s',
+  'packing.emptyOthers': '{n} item is with {who}. | {n} items are with {who}.',
+  'packing.emptyOthersAction': 'Show all',
   'packing.noMatches': 'No matches',
   'packing.noMatchesSearch': 'Nothing matches “{term}”.',
   'packing.noMatchesFilter':
@@ -345,6 +348,8 @@ export const en = {
   'item.flagAsTask': 'Turn into a preparation task',
   'item.companions': 'Belongs with',
   'item.usedBy': 'Who needs this?',
+  'item.assignedTo': 'Assigned to',
+  'item.assignedToNobody': 'nobody',
   'item.luggageOptional': 'Luggage · optional',
   'item.latePackerHint': 'Pack on departure day',
   'item.flags': 'Flags',
@@ -720,6 +725,12 @@ export const en = {
     '{n} document in this file. Importing adds it to what is already on this device; items that already exist are matched by name. | {n} documents in this file. Importing adds them to what is already on this device; items that already exist are matched by name.',
   'import.portable.unreadable': 'Unreadable document',
   'import.portable.skipped': 'skipped',
+  // ADR-030: a trip is identified by its year and its name.
+  'import.portable.alreadyHere': 'Already here',
+  'import.portable.alreadyHereHint':
+    'This is already on this device — it will not be created a second time.',
+  'import.portable.restoreAlreadyHere':
+    '{n} trip or template was already here and was not created again. | {n} trips and templates were already here and were not created again.',
   'import.portable.importAll': 'Import all',
   // FR-27.4: a restored trip keeps following its groups, so the list says so.
   'import.portable.follows': 'follows {n} group | follows {n} groups',

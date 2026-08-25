@@ -61,7 +61,8 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
 | M15 spreadsheet import | E2E-M15-06, E2E-M15-07, E2E-M15-08 | `local` | [`spreadsheet-import.spec.ts`](../client/e2e/spreadsheet-import.spec.ts) |
-| M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
+| Sync paging | E2E-SYNC-01 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
@@ -1588,8 +1589,8 @@ client invented.
 **What this unit deliberately does not cover**, so the green does not read
 as more than it is:
 
-- **Presence (G-10) and delegation (E2E-FLOW-02)** — both are `server`-only
-  and both are still unwritten.
+- **Presence (G-10)** — `server`-only and still unwritten. *(Delegation,
+  E2E-FLOW-02, was in this list until 2026-08-25; see the section below.)*
 - **The `lock_events` record** ADR-028 writes: asserted by Go tests, not by
   the screen.
 - **The M2 Share entry is asserted as present in the DOM, not as visible** —
@@ -1637,3 +1638,93 @@ was replaced for two reasons found by rendering it: a checkbox is M4's *packed*
 idiom sitting beside rows that say „packed · today", and Ionic's checkbox
 keeps its own checked state, which drifted from the row on the very first tap.
 The control now renders straight off `flag_unused`.)*
+
+**E2E-M18-10 — the same file, twice, added 2026-08-24.** A restore is what you
+run when you are not sure the last one worked, so running it again is the
+normal case and not the odd one. Until ADR-030 the second run built a second
+copy of every trip, silently, with the first still on screen — and a second
+copy of every Ferien-Vorlage under a `(import)` suffix, which is why the case
+carries all three document kinds rather than only the trip.
+
+Three things worth keeping from writing it:
+
+- **The assertion is `toHaveCount(1)`, not "no second row".** A case that only
+  checked for the absence of a duplicate would be equally green against a
+  restore that deleted the trip it already had — the exact failure the rule is
+  supposed to make impossible.
+- **The chip and the rule are two call sites, and both are asserted.** The
+  restore list answers the question before the button is pressed (`findTripByIdentity`
+  read straight from the trip store), and the import answers it again while
+  writing. Mutating the rule reddens the count but *not* the chip, which is
+  what tells you they are independent paths rather than one assertion twice.
+- **Rebuild between the two mutation runs.** The suite drives `dist`; the first
+  attempt at the red proof ran `npm run build-only` from the wrong directory,
+  the build failed, and the "mutated" run passed against the old bundle — the
+  trap already written down for e2e work, walked into again.
+
+**E2E-M18-11 — the other branch of the same screen, added 2026-08-25.** Found by
+this PR's own review rather than while building: M18-10 covers the restore
+list, and M18 has a *second* branch for a file holding one document — the merge
+preview, with its own note and its own commit. Both were written and neither
+was run.
+
+Two things it settled:
+
+- **The file comes from the app, not from the fixture.** A device with one trip
+  and no template backs itself up as exactly one document, which is both the
+  branch this case needs and a way to keep the trip's *year* out of the test —
+  hand-writing the YAML would have pinned whatever `new Date()` said that day.
+- **The suite's app language is English, and the assertion now says so.** The
+  first draft matched `/schon vorhanden|already here/i`, which looks
+  locale-agnostic and is not: `seed()` pins `jitpack_locale` to `en`, the German
+  half could never match, and the English half happened to appear in one
+  catalogue string and not the other. It failed for the right reason and the
+  alternation was replaced by the exact text.
+
+## E2E-FLOW-02 — delegation, and the control it turned out to need (2026-08-25)
+
+Writing this case is what found that **`packer_user_id` had no writer**. The
+server has always fired `notifyDelegation` on a push carrying that column and
+Go tests cover it; every client surface *read* it — M4's edge avatar, the
+„zuständig war …" stamp, FR-25.20's filter and its reveal bar — and nothing
+set it, because it was written once when a row was generated and never again.
+So the whole FR-6.2 delegation path was unreachable by using the app, and the
+case could not be written until M5 gained the FR-25.19 picker.
+
+Worth keeping, because it generalises: **a case that cannot be written is a
+finding about the product, not about the suite.** The two before it followed
+the same shape — *unused* had no writer until FR-9.3, and a takeover had no
+second identity until ADR-029.
+
+**What the case asserts, deliberately as one chain rather than four units:**
+the assignment lands, the toast on the *other* account names the actor and the
+item, its *Open* button lands on the **rendered sheet** (never the URL), and
+Alice's own list then hides the row and names Bob in the FR-25.20 reveal bar.
+Any of those four could pass alone while the chain is broken.
+
+**What it does not cover, so the green is not read as more:** the **OS**
+notification. This is the in-app channel — NFR-4.6's universal fallback — and
+Web Push needs a browser permission this harness does not grant. The service
+worker's own copy of the wording (`client/public/sw.js`) is therefore still
+covered by nothing, which is also where backlog item 19's second copy lives.
+
+**E2E-SYNC-01 — a partition bigger than one page, added 2026-08-25.** The
+defect it pins was found by *using* the app, not by testing it: after importing
+a decade of real trips into the `:3000` instance, a fresh browser said
+„Keine archivierten Reisen" with the sync glyph green. The pull took the first
+500 changes, ignored `has_more`, and the trips sat behind them in `change_log`.
+
+Three things worth keeping:
+
+- **Every fixture in the suite was under one page**, which is why nothing caught
+  it. A test for a paging rule has to build a partition big enough to page, and
+  that means pushing rows at the API rather than driving the UI — 520 items
+  through M10 would be a different, much slower test about a different thing.
+- **The request count is asserted next to the visible row.** Without it the case
+  quietly stops proving anything the day `PULL_PAGE_SIZE` grows past the seed:
+  one page would still show the row, and the name of the test would be a lie.
+- **Persisting the cursor made it worse, and the unit case now says so.**
+  Outside Local Mode the pulled rows are not kept either, so a device that
+  remembered its read position and not the rows asked for the changes after it,
+  got none, and rendered an empty app. Measured while building the fix: "the
+  first 500 rows" became "no rows at all".

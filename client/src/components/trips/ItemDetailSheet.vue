@@ -68,6 +68,8 @@ const props = defineProps<{
   itemId: string
   /** Trip members, so the packing record can name a person (FR-25.17). */
   participants: TripParticipant[]
+  /** Who I am, so a row is never offered to me (FR-25.19). Null off-server. */
+  currentUserId?: string | null
 }>()
 
 const emit = defineEmits<{ close: [] }>()
@@ -81,6 +83,28 @@ const trip = computed(() => tripStore.getTrip(props.tripId))
 const travelers = computed(() => tripStore.getTravelers(props.tripId))
 const containers = computed(() => tripStore.getContainers(props.tripId))
 const isActive = computed(() => trip.value?.status === 'active')
+/**
+ * FR-25.19: who a row can be handed to — the trip's **members**, not every
+ * account the instance knows. The `participants` prop is the directory
+ * plus the roster, because it also has to name whoever packed a row; a
+ * picker built from it would offer people who cannot open the trip at all
+ * (P-3 scopes the partition to its members), and the notification would
+ * reach somebody with nowhere to go.
+ *
+ * Myself is excluded for the reason UI-Spec M5 gives for hiding the whole
+ * control in Single-User Mode: the sole user is already every row's
+ * packer. A membership row exists there too — the store writes one for
+ * every trip's creator — so "are there members" is the wrong question and
+ * "is there anybody else" is the right one. It also answers an unshared
+ * Server-Mode trip, where handing a row to myself means nothing.
+ */
+const assignable = computed(() => {
+  const members = new Set(tripStore.getMembers(props.tripId).map((m) => m.user_id))
+  return props.participants.filter(
+    (p) => members.has(p.user_id) && p.user_id !== props.currentUserId,
+  )
+})
+
 /** FR-9.3's window, decided once in the domain (`canJudgeUnused`). */
 const judgeable = computed(() => canJudgeUnused(trip.value))
 
@@ -227,6 +251,16 @@ function onContainerChange(id: string | null) {
   if (item.value && !isLocked.value) orchestrator.assignContainer(props.tripId, item.value, id)
 }
 /** FR-9.1: the judgement is revocable, so the toggle writes both ways. */
+/**
+ * The picker's clear option carries `null`, but Ionic hands back `''` for a
+ * value it does not recognise — and an empty string in a foreign key is the
+ * placeholder invariant 3 exists to keep out.
+ */
+function onAssigneeChange(value: string | null) {
+  if (item.value && !isLocked.value)
+    orchestrator.setPacker(props.tripId, item.value, value ? value : null)
+}
+
 function onReviewFlag(flag: ReviewFlag, value: boolean) {
   if (item.value && !isLocked.value)
     orchestrator.setReviewFlag(props.tripId, item.value, flag, value)
@@ -556,6 +590,31 @@ const packedStamp = computed(() => {
           <IonSelectOption value="pack">{{ t('mode.pack') }}</IonSelectOption>
           <IonSelectOption value="buy_before">{{ t('mode.buyBefore') }}</IonSelectOption>
           <IonSelectOption value="buy_local">{{ t('mode.buyLocal') }}</IonSelectOption>
+        </IonSelect>
+      </IonItem>
+      <!-- FR-25.19: the *responsibility*, which is assigned deliberately and
+           notifies the person (FR-6.2) — never the packing record beside it,
+           which the server stamps and no control may pick. Absent rather than
+           disabled where there is nobody to hand it to (G-8): Local Mode has
+           no members, and in Single-User the sole user is already every row's
+           packer. -->
+      <IonItem v-if="assignable.length > 0">
+        <IonLabel>{{ t('item.assignedTo') }}</IonLabel>
+        <IonSelect
+          :value="item.packer_user_id"
+          interface="popover"
+          :disabled="isLocked"
+          data-testid="m5-assignee"
+          @ion-change="(e: CustomEvent) => onAssigneeChange(e.detail.value)"
+        >
+          <IonSelectOption :value="null">{{ t('item.assignedToNobody') }}</IonSelectOption>
+          <IonSelectOption
+            v-for="member in assignable"
+            :key="member.user_id"
+            :value="member.user_id"
+          >
+            {{ member.display_name }}
+          </IonSelectOption>
         </IonSelect>
       </IonItem>
       <IonItem>

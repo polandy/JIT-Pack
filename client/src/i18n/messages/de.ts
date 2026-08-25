@@ -156,6 +156,9 @@ export const de: Record<keyof typeof en, string> = {
   'stamp.yesterday': 'gestern',
 
   // FR-25.11e — eine leere Liste bedeutet zweierlei sehr Verschiedenes.
+  'packing.emptyOthersHead': 'Alles ist bei jemand anderem',
+  'packing.emptyOthers': '{n} Position liegt bei {who}. | {n} Positionen liegen bei {who}.',
+  'packing.emptyOthersAction': 'Alle anzeigen',
   'packing.noMatches': 'Keine Treffer',
   'packing.noMatchesSearch': 'Nichts passt zu „{term}“.',
   'packing.noMatchesFilter':
@@ -352,6 +355,8 @@ export const de: Record<keyof typeof en, string> = {
   'item.flagAsTask': 'Als Vorbereitung markieren',
   'item.companions': 'Gehört dazu',
   'item.usedBy': 'Wer braucht das?',
+  'item.assignedTo': 'Zugewiesen an',
+  'item.assignedToNobody': 'niemand',
   'item.luggageOptional': 'Gepäck · optional',
   'item.latePackerHint': 'Erst am Abreisetag packen',
   'item.flags': 'Markierungen',
@@ -724,6 +729,12 @@ export const de: Record<keyof typeof en, string> = {
     '{n} Dokument in dieser Datei. Der Import ergänzt, was schon auf diesem Gerät ist; vorhandene Artikel werden über den Namen zugeordnet. | {n} Dokumente in dieser Datei. Der Import ergänzt, was schon auf diesem Gerät ist; vorhandene Artikel werden über den Namen zugeordnet.',
   'import.portable.unreadable': 'Unlesbares Dokument',
   'import.portable.skipped': 'übersprungen',
+  // ADR-030: Eine Reise ist über Jahr und Name identifiziert.
+  'import.portable.alreadyHere': 'Schon vorhanden',
+  'import.portable.alreadyHereHint':
+    'Das ist auf diesem Gerät schon vorhanden — es wird nicht ein zweites Mal angelegt.',
+  'import.portable.restoreAlreadyHere':
+    '{n} Reise oder Vorlage war schon vorhanden und wurde nicht neu angelegt. | {n} Reisen und Vorlagen waren schon vorhanden und wurden nicht neu angelegt.',
   'import.portable.importAll': 'Alle importieren',
   // FR-27.4: Eine wiederhergestellte Reise folgt ihren Gruppen weiter.
   'import.portable.follows': 'folgt {n} Gruppe | folgt {n} Gruppen',

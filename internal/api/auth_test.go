@@ -521,6 +521,50 @@ func TestAuthRefresh_RotatesAndReplayDies(t *testing.T) {
 	}
 }
 
+// An account disabled at the IdP is cut off at refresh cadence rather
+// than never (ADR-007, spec §2) — but the deactivation this covers is
+// JIT-Pack's own (FR-23.3), which the IdP knows nothing about, so the
+// refusal has to come from the broker's own account check. The session
+// row goes with the refusal: leaving it alive would let a reactivation
+// resume a chain that was already handed back to the user as dead.
+func TestAuthRefresh_DeactivatedAccountLosesItsSession(t *testing.T) {
+	idp := newFakeIDP(t)
+	srv, st := newBrokerServer(t, idp)
+	_, refresh1 := login(t, srv.URL)
+
+	var userID string
+	if err := st.DB().QueryRow(`SELECT id FROM users WHERE oidc_subject = 'auth|sarah'`).Scan(&userID); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.DeactivateUser(t.Context(), userID); err != nil {
+		t.Fatal(err)
+	}
+
+	resp, raw := doJSON(t, http.MethodPost, srv.URL+"/api/v1/auth/refresh", "", map[string]any{
+		"refresh_token": refresh1,
+	})
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("status = %d, want 403 (body %s)", resp.StatusCode, raw)
+	}
+	var body api.APIError
+	if err := json.Unmarshal(raw, &body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Error.Code != api.ErrAccountDeactivated {
+		t.Errorf("code = %q, want %q", body.Error.Code, api.ErrAccountDeactivated)
+	}
+
+	// The positive signal that the cleanup ran: no session row survives
+	// the refusal, so reactivating cannot revive the chain.
+	var sessions int
+	if err := st.DB().QueryRow(`SELECT COUNT(*) FROM sessions WHERE user_id = ?`, userID).Scan(&sessions); err != nil {
+		t.Fatal(err)
+	}
+	if sessions != 0 {
+		t.Errorf("sessions left for the deactivated user = %d, want 0", sessions)
+	}
+}
+
 // TestAuthRefresh_ClassifiesIdPFailures pins the one distinction the
 // whole session model rests on (ADR-007, spec §2): only an RFC 6749
 // §5.2 `invalid_grant` ends a session; everything else leaves the chain
