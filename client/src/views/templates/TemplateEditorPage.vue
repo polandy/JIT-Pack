@@ -96,10 +96,20 @@ async function toast(message: string, undo?: { text: string; handler: () => void
 
 // --- Name (auto-saves on commit, G-5) --------------------------------------
 
-function commitName(raw: string | null | undefined) {
-  const name = (raw ?? '').trim()
+async function commitName(field: HTMLIonInputElement) {
+  const name = String(field.value ?? '').trim()
   const tpl = template.value
   if (!tpl || !name || name === tpl.name) return
+  // FR-1.6: the name is the instance-wide key, so a taken one is refused
+  // here rather than by a push whose rejection would arrive on another
+  // screen. The field goes back to what the row is still called — leaving
+  // the refused spelling in it would read as saved.
+  const taken = orchestrator.templateNameCollision(name, tpl.id)
+  if (taken) {
+    field.value = tpl.name
+    await toast(t('templates.renameTaken', { name: taken.name }))
+    return
+  }
   orchestrator.updateTemplate(tpl, { name })
 }
 
@@ -271,7 +281,26 @@ function openNewGroup() {
 async function commitNewGroup() {
   const name = newGroupName.value.trim()
   if (!name) return
+  // Groups and Vorlagen share one name space (FR-1.6), so the answer depends
+  // on which scope holds it. A group of that name is what this picker exists
+  // to reference — include it instead of refusing the user their own words.
+  // A Vorlage cannot stand in for it, and saying so is the only way the
+  // refusal does not read as a bug.
+  const taken = orchestrator.templateNameCollision(name)
+  if (taken?.kind === 'template') {
+    await toast(t('templates.groupNameIsTemplate'))
+    return
+  }
+  if (taken) {
+    if (!includes.value.some((i) => i.included_template_id === taken.id)) {
+      orchestrator.addTemplateInclude(props.templateId, taken.id)
+    }
+    closePicker()
+    await toast(t('templates.groupExists', { name: taken.name }))
+    return
+  }
   const groupId = orchestrator.createTemplate(name, 'group')
+  if (groupId === null) return
   orchestrator.addTemplateInclude(props.templateId, groupId)
   closePicker()
   await toast(t('templates.groupCreated', { name }))
@@ -443,9 +472,7 @@ const mergeLines = computed(() =>
               class="name-field"
               data-testid="m8-name"
               :aria-label="t('templates.namePlaceholder')"
-              @ionBlur="
-                (e: CustomEvent) => commitName((e.target as HTMLIonInputElement).value as string)
-              "
+              @ionBlur="(e: CustomEvent) => commitName(e.target as HTMLIonInputElement)"
               @keyup.enter="(e: KeyboardEvent) => (e.target as HTMLElement).blur()"
             />
           </div>

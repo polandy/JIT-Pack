@@ -49,6 +49,7 @@ import {
   type RefreshPlan,
 } from '@/domain/refresh'
 import { followsGroups } from '@/domain/trips'
+import { findNameCollision, foldName, renameTarget } from '@/domain/nameCollision'
 import { planGroupAddition, type GroupAdditionReport } from '@/domain/groupAdd'
 import {
   pairWrites,
@@ -2237,6 +2238,37 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return `${config.baseUrl}${API.itemImage(item.id)}?v=${item.image_hash}`
   }
 
+  /**
+   * templateNameCollision names the template already holding `name`
+   * (FR-1.6), or undefined. `templates.name` is UNIQUE **instance-wide and
+   * across both scopes**, so a Gruppe can hold the name a Ferien-Vorlage
+   * wants — the caller reports the kind so that reads as a fact rather than
+   * as a bug.
+   */
+  function templateNameCollision(name: string, excludeId?: string): Template | undefined {
+    return findNameCollision(name, masterStore.templateList, excludeId)
+  }
+
+  /** seriesNameCollision names the series already holding `name` (FR-13.1). */
+  function seriesNameCollision(name: string, excludeId?: string): TripSeries | undefined {
+    return findNameCollision(name, masterStore.seriesList, excludeId)
+  }
+
+  /**
+   * Whether an edit patch renames a row onto a name somebody else holds. The
+   * guard sits here rather than only in the views because Local Mode has no
+   * constraint behind it: this is the only thing between the user and two
+   * rows nothing on screen can tell apart.
+   */
+  function isTakenRename(
+    fields: Record<string, unknown>,
+    id: string,
+    find: (name: string, excludeId?: string) => { id: string } | undefined,
+  ): boolean {
+    const next = renameTarget(fields)
+    return next !== null && find(next, id) !== undefined
+  }
+
   /** createTemplate makes a new template. Templates are shared
    * instance-wide (FR-1.6 MVP), so owner_id is creator metadata only; it is
    * stamped server-side on push and the optimistic row leaves it empty.
@@ -2249,7 +2281,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     kind: TemplateKind = 'template',
     /** FR-28.8: the optional mark, set at creation by the seed and the import. */
     icon: string | null = null,
-  ): string {
+  ): string | null {
+    if (templateNameCollision(name)) return null
     const { mutation, id } = mutations.createTemplate(name, '', kind, icon)
     enqueueAndDrain('master', null, {
       mutation,
@@ -2264,7 +2297,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return id
   }
 
-  function updateTemplate(template: Template, fields: Record<string, unknown>) {
+  function updateTemplate(template: Template, fields: Record<string, unknown>): boolean {
+    if (isTakenRename(fields, template.id, templateNameCollision)) return false
     enqueueAndDrain('master', null, {
       mutation: mutations.updateTemplate(template.id, fields),
       optimistic: {
@@ -2275,6 +2309,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         row: { ...templateRow(template), ...fields },
       },
     })
+    return true
   }
 
   function addTemplateItem(
@@ -2663,7 +2698,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   function createSeries(
     name: string,
     defaultAttributes: Record<string, unknown> | null = null,
-  ): string {
+  ): string | null {
+    if (seriesNameCollision(name)) return null
     const { mutation, id } = mutations.createSeries(name, defaultAttributes)
     enqueueAndDrain('master', null, {
       mutation,
@@ -2678,7 +2714,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return id
   }
 
-  function updateSeries(series: TripSeries, fields: Record<string, unknown>) {
+  function updateSeries(series: TripSeries, fields: Record<string, unknown>): boolean {
+    if (isTakenRename(fields, series.id, seriesNameCollision)) return false
     enqueueAndDrain('master', null, {
       mutation: mutations.updateSeries(series.id, fields),
       optimistic: {
@@ -2689,6 +2726,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         row: { ...seriesRow(series), ...fields },
       },
     })
+    return true
   }
 
   /** setTripSeries attaches (or, with null, detaches) a trip to a series. */
@@ -2861,6 +2899,14 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     },
   ): string | null {
     if (!tripDataLoaded(tripId)) return null
+    // Before the first write, not between them: this screen creates a
+    // Vorlage and possibly a group, and half of M21's work landing before a
+    // refused name would leave the trip folded into nothing (FR-1.6).
+    if (templateNameCollision(answers.templateName)) return null
+    if (answers.bundleName !== null) {
+      if (templateNameCollision(answers.bundleName)) return null
+      if (foldName(answers.bundleName) === foldName(answers.templateName)) return null
+    }
 
     const composition = recogniseTripComposition({
       tripItems: tripStore.getItems(tripId),
@@ -2899,12 +2945,14 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const includeIds = [...writes.template.includeGroupIds]
     if (writes.newGroup) {
       const groupId = createTemplate(writes.newGroup.name, 'group')
+      if (groupId === null) return null
       write(groupId, writes.newGroup.positions)
       includeIds.push(groupId)
     }
 
     // 4. The composed Ferien-Vorlage itself.
     const templateId = createTemplate(writes.template.name, 'template')
+    if (templateId === null) return null
     write(templateId, writes.template.positions)
     for (const groupId of includeIds) addTemplateInclude(templateId, groupId)
 
@@ -3180,6 +3228,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     deleteItemImage,
     itemImageUrl,
     createTemplate,
+    templateNameCollision,
+    seriesNameCollision,
     updateTemplate,
     deleteTemplate,
     addTemplateInclude,

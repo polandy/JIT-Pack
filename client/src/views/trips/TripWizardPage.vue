@@ -506,6 +506,18 @@ const optionalSummary = computed(() => {
   return parts.join(' · ')
 })
 
+/**
+ * FR-13.1: `trip_series.name` is UNIQUE instance-wide. The series the user is
+ * describing is already in the select right above this field, so the step
+ * points at it rather than inventing a second one — attaching the trip to it
+ * silently would be a choice made on their behalf about whose series it is.
+ */
+const seriesTaken = computed(() =>
+  seriesChoice.value === 'new'
+    ? (orchestrator.seriesNameCollision(newSeriesName.value) ?? null)
+    : null,
+)
+
 // --- Navigation ---
 const stepValid = computed(() => {
   if (step.value === 1) {
@@ -513,7 +525,8 @@ const stepValid = computed(() => {
     // only thing that can be missing here is a name.
     return (
       name.value.trim() !== '' &&
-      (seriesChoice.value !== 'new' || newSeriesName.value.trim() !== '')
+      (seriesChoice.value !== 'new' ||
+        (newSeriesName.value.trim() !== '' && seriesTaken.value === null))
     )
   }
   if (step.value === 2) return travelers.value.every((t) => t.name.trim() !== '')
@@ -678,6 +691,11 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
                 @keydown.enter="stepDefaultAction"
                 @ionInput="(e: CustomEvent) => (newSeriesName = e.detail.value ?? '')"
               />
+            </IonItem>
+            <IonItem v-if="seriesTaken" lines="none">
+              <IonNote class="name-taken" data-testid="wizard-series-name-taken">
+                {{ t('wizard.seriesNameTaken', { name: seriesTaken.name }) }}
+              </IonNote>
             </IonItem>
           </IonList>
           <h2 class="section-title jp-eyebrow">{{ t('wizard.sectionAttributes') }}</h2>
@@ -1377,6 +1395,11 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
   justify-content: flex-end;
   gap: 8px;
   margin-top: 24px;
+}
+
+/* A note about something that exists, not an error state (G-14). */
+.name-taken {
+  color: var(--ct-yellow);
 }
 
 .pick-mark {

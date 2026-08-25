@@ -253,6 +253,13 @@ export const en = {
   'templates.addToTemplate': 'Add to template',
   'templates.duplicate': '“{name}” is already in — not added twice',
   'templates.added': '“{name}” added',
+  'templates.nameTakenTemplate': 'The template “{name}” already exists.',
+  'templates.nameTakenGroup': 'The group “{name}” already exists.',
+  'templates.nameTakenOpen': 'Open',
+  'templates.renameTaken': 'The name “{name}” is already taken.',
+  'templates.groupExists': '“{name}” already exists — included',
+  'templates.groupNameIsTemplate':
+    'A template already carries this name — templates and groups share one name space.',
   'templates.resolvedCount': '{n} item resolved | {n} items resolved',
   'templates.ownPositionCount': '{n} own position | {n} own positions',
   'templates.mergeMax': '{name} only {n}× — in {groups}',
@@ -452,6 +459,7 @@ export const en = {
   'wizard.seriesNew': 'New series…',
   'wizard.seriesName': 'Series name',
   'wizard.seriesNamePlaceholder': 'e.g. Samedan Summer',
+  'wizard.seriesNameTaken': 'The series “{name}” already exists — pick it above.',
   'wizard.sectionAttributes': 'Attributes',
   'wizard.season': 'Season',
   'wizard.transport': 'Transport',
@@ -706,6 +714,8 @@ export const en = {
   'templateFromTrip.create': 'Create template ✓',
   'templateFromTrip.created': 'Template "{name}" created — groups reused ✓',
   'templateFromTrip.notLoaded': "This trip's items have not loaded yet.",
+  'templateFromTrip.nameTaken': 'The name “{name}” is already taken.',
+  'templateFromTrip.bundleSameName': 'The group and the template need different names.',
 
   'settings.language': 'Language',
   'settings.languageHint': 'This device only.',
@@ -991,6 +1001,7 @@ export const en = {
   // M16 series & destination profile (FR-13.1/13.2/13.3).
   'series.section': 'Series',
   'series.name': 'Name',
+  'series.nameTaken': 'The name “{name}” belongs to another series.',
   'series.defaultsNote': 'Defaults prefill the wizard for new trips in this series.',
   'series.sectionNotes': 'Destination notes',
   'series.notesPlaceholder': 'e.g. washing machine available',

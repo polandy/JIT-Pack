@@ -25,6 +25,7 @@ import {
   IonSegment,
   IonSegmentButton,
   IonLabel,
+  IonNote,
   IonToggle,
 } from '@ionic/vue'
 import { computed, inject, ref, watch } from 'vue'
@@ -40,6 +41,7 @@ import {
   type LooseReason,
 } from '@/domain/templateFromTrip'
 import { tripsReachedBy } from '@/domain/templates'
+import { foldName } from '@/domain/nameCollision'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -132,7 +134,36 @@ function looseReason(reason: LooseReason, templateName: string | undefined): str
     : t('templateFromTrip.looseAdHoc')
 }
 
-const canCreate = computed(() => templateName.value.trim().length > 0 && !creating.value)
+/**
+ * FR-1.6: M21 writes a Vorlage and possibly a group, and both names land in
+ * the one instance-wide space. This screen has no existing row to offer — a
+ * fold is not an edit of the template that happens to share the name — so a
+ * taken name is refused where it is typed, before any of the screen's other
+ * writes have run.
+ */
+const nameTaken = computed(() => orchestrator.templateNameCollision(templateName.value) ?? null)
+
+const bundleTaken = computed(() => {
+  if (!bundleOn.value) return null
+  return orchestrator.templateNameCollision(bundleName.value) ?? null
+})
+
+/** The two names this screen writes must also differ from each other. */
+const bundleSameName = computed(
+  () =>
+    bundleOn.value &&
+    bundleName.value.trim().length > 0 &&
+    foldName(bundleName.value) === foldName(templateName.value),
+)
+
+const canCreate = computed(
+  () =>
+    templateName.value.trim().length > 0 &&
+    !creating.value &&
+    nameTaken.value === null &&
+    bundleTaken.value === null &&
+    !bundleSameName.value,
+)
 
 async function toast(message: string) {
   await presentToast({ message, duration: 3000 })
@@ -185,6 +216,11 @@ setHeaderTitle(() => t('templateFromTrip.title'))
             :value="templateName"
             @ionInput="(e: CustomEvent) => (templateName = e.detail.value ?? '')"
           />
+        </IonItem>
+        <IonItem v-if="nameTaken" lines="none">
+          <IonNote class="name-taken" data-testid="m21-name-taken">
+            {{ t('templateFromTrip.nameTaken', { name: nameTaken.name }) }}
+          </IonNote>
         </IonItem>
       </IonList>
 
@@ -286,6 +322,15 @@ setHeaderTitle(() => t('templateFromTrip.title'))
             :value="bundleName"
             @ionInput="(e: CustomEvent) => (bundleName = e.detail.value ?? '')"
           />
+        </IonItem>
+        <IonItem v-if="bundleTaken || bundleSameName" lines="none">
+          <IonNote class="name-taken" data-testid="m21-bundle-name-taken">
+            {{
+              bundleTaken
+                ? t('templateFromTrip.nameTaken', { name: bundleTaken.name })
+                : t('templateFromTrip.bundleSameName')
+            }}
+          </IonNote>
         </IonItem>
       </IonList>
 
@@ -397,6 +442,11 @@ setHeaderTitle(() => t('templateFromTrip.title'))
   margin: 10px 0 0;
   padding-top: 10px;
   border-top: 1px solid var(--ct-surface0);
+}
+
+/* A note about something that exists, not an error state (G-14). */
+.name-taken {
+  color: var(--ct-yellow);
 }
 
 .create {

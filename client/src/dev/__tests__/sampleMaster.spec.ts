@@ -52,6 +52,21 @@ describe('seedSampleMaster (dev)', () => {
     expect(master.templateList.filter((t) => t.kind === 'group')).toHaveLength(7)
   })
 
+  it('adopts what it already wrote when it runs a second time (FR-1.6)', () => {
+    // templates.name is UNIQUE instance-wide, so a re-seed on a device that
+    // already carries the sample data cannot write these names again. It
+    // takes the ids that exist rather than returning nulls into a broken
+    // composition — every group the Vorlage names must still resolve.
+    const { orchestrator, result, master } = seed()
+    const before = master.templateList.length
+
+    const again = seedSampleMaster(orchestrator)
+
+    expect(master.templateList).toHaveLength(before)
+    expect(again.vacationTemplateId).toBe(result.vacationTemplateId)
+    expect(master.getIncludes(again.vacationTemplateId)).toHaveLength(2)
+  })
+
   it('leaves groups unincluded, so M8s picker and M3s section have offers — enough of them that the FR-27.13 search appears', () => {
     const { result, master } = seed()
 

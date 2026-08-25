@@ -132,8 +132,8 @@ describe('Local Mode', () => {
     const orch = newLocalOrch(persistence)
     const master = useMasterStore()
 
-    const vacId = orch.createTemplate('Fotoreise', 'template')
-    const grpId = orch.createTemplate('Makro', 'group')
+    const vacId = orch.createTemplate('Fotoreise', 'template')!
+    const grpId = orch.createTemplate('Makro', 'group')!
     orch.addTemplateInclude(vacId, grpId)
     const itemId = orch.createMasterItem('Kamera')
     const positionId = orch.addTemplateItem(grpId, itemId, { assignment: 'trip_global' })

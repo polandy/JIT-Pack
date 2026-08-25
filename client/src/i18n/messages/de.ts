@@ -260,6 +260,15 @@ export const de: Record<keyof typeof en, string> = {
   'templates.addToTemplate': 'Zur Vorlage hinzufügen',
   'templates.duplicate': '„{name}“ ist schon drin — nicht doppelt',
   'templates.added': '„{name}“ hinzugefügt',
+  // FR-1.6/FR-13.1: templates and series are keyed by their name across the
+  // whole instance, so the sentence names what holds it and in which scope.
+  'templates.nameTakenTemplate': 'Die Vorlage „{name}“ gibt es schon.',
+  'templates.nameTakenGroup': 'Die Gruppe „{name}“ gibt es schon.',
+  'templates.nameTakenOpen': 'Öffnen',
+  'templates.renameTaken': 'Der Name „{name}“ ist schon vergeben.',
+  'templates.groupExists': '„{name}“ gibt es schon — eingebunden',
+  'templates.groupNameIsTemplate':
+    'Diesen Namen trägt schon eine Vorlage — Vorlagen und Gruppen teilen sich die Namen.',
   'templates.resolvedCount': '{n} Artikel aufgelöst | {n} Artikel aufgelöst',
   'templates.ownPositionCount': '{n} eigene Position | {n} eigene Positionen',
   'templates.mergeMax': '{name} nur {n}× — in {groups}',
@@ -459,6 +468,7 @@ export const de: Record<keyof typeof en, string> = {
   'wizard.seriesNew': 'Neue Serie…',
   'wizard.seriesName': 'Name der Serie',
   'wizard.seriesNamePlaceholder': 'z. B. Samedan Sommer',
+  'wizard.seriesNameTaken': 'Die Serie „{name}“ gibt es schon — wähle sie oben aus.',
   'wizard.sectionAttributes': 'Merkmale',
   'wizard.season': 'Jahreszeit',
   'wizard.transport': 'Transport',
@@ -711,6 +721,8 @@ export const de: Record<keyof typeof en, string> = {
   'templateFromTrip.create': 'Vorlage erstellen ✓',
   'templateFromTrip.created': 'Vorlage „{name}“ erstellt — Gruppen wiederverwendet ✓',
   'templateFromTrip.notLoaded': 'Die Artikel dieser Reise sind noch nicht geladen.',
+  'templateFromTrip.nameTaken': 'Der Name „{name}“ ist schon vergeben.',
+  'templateFromTrip.bundleSameName': 'Gruppe und Vorlage brauchen verschiedene Namen.',
 
   'settings.language': 'Sprache',
   'settings.languageHint': 'Nur auf diesem Gerät.',
@@ -1002,6 +1014,7 @@ export const de: Record<keyof typeof en, string> = {
   // M16 Serie und Zielort-Profil (FR-13.1/13.2/13.3).
   'series.section': 'Serie',
   'series.name': 'Name',
+  'series.nameTaken': 'Der Name „{name}“ gehört schon einer anderen Serie.',
   'series.defaultsNote': 'Diese Vorgaben füllen den Assistenten für neue Reisen der Serie vor.',
   'series.sectionNotes': 'Notizen zum Ziel',
   'series.notesPlaceholder': 'z. B. Waschmaschine vorhanden',

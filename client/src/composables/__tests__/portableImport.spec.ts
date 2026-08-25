@@ -309,7 +309,7 @@ items: []
     // reaches every trip that follows it — an import must not be an editor.
     const orch = newOrch()
     const master = useMasterStore()
-    const existingId = orch.createTemplate('Makro Fotografie', 'group')
+    const existingId = orch.createTemplate('Makro Fotografie', 'group')!
     const itemId = orch.createMasterItem('Stativ', {})
     orch.addTemplateItem(existingId, itemId, {
       quantity: 1,
@@ -371,7 +371,7 @@ items:
     // second one behind, and must not rewrite the positions of the first.
     const orch = newOrch()
     const master = useMasterStore()
-    const existingId = orch.createTemplate('Makro Fotografie', 'group')
+    const existingId = orch.createTemplate('Makro Fotografie', 'group')!
     const itemId = orch.createMasterItem('Stativ', {})
     orch.addTemplateItem(existingId, itemId, {
       quantity: 1,

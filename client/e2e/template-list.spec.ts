@@ -216,3 +216,91 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     await expect(list.getByTestId('m7-scope-segment')).toHaveCount(0)
   })
 })
+
+/**
+ * E2E-M7-10 — the name is the instance-wide key, so M7 says so while it is
+ * being typed (FR-1.6).
+ *
+ * `templates.name` is UNIQUE across the whole instance *and* across both
+ * scopes, so a Gruppe blocks a Ferien-Vorlage. Local Mode is the run mode
+ * that has no constraint behind the client at all: whatever this case proves
+ * here, nothing else would have caught.
+ */
+test.describe('M7 — a taken name never becomes a write (FR-1.6)', () => {
+  test.beforeEach(async ({ seedMode, page }) => {
+    await seedMode({ mode: 'local' })
+    await page.goto('/tabs/templates')
+  })
+
+  test('E2E-M7-10: a taken name is named with its scope, offers the row that holds it, and a free one still writes', async ({
+    page,
+  }) => {
+    await createTemplate(page, 'group', 'Makro')
+    await backToList(page)
+
+    // Same name, other scope, other capitals — one name to a person, and one
+    // row to the database.
+    await page.getByTestId('m7-fab').click()
+    await page.getByTestId('m7-kind-template').click()
+    await page.getByTestId('m7-name-field').locator('input').fill('makro')
+    const taken = page.getByTestId('m7-name-taken')
+    await expect(taken).toContainText('The group “Makro” already exists.')
+    // aria-disabled, not :disabled — an ion-button renders the native
+    // attribute on its shadow child and Playwright reads the host.
+    await expect(page.getByTestId('m7-create-commit')).toHaveAttribute('aria-disabled', 'true')
+
+    // The offer is the point: it hands over the row that holds the name.
+    await page.getByTestId('m7-name-taken-open').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Makro')
+    await backToList(page)
+
+    // The positive signal beside the refusal: the same field, a free name,
+    // and the write lands. Without it "nothing was created" is true of a
+    // broken button too.
+    await page.getByTestId('m7-fab').click()
+    await page.getByTestId('m7-kind-template').click()
+    await page.getByTestId('m7-name-field').locator('input').fill('Makro Fotoreise')
+    await expect(page.getByTestId('m7-name-taken')).toHaveCount(0)
+    await page.getByTestId('m7-create-commit').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Makro Fotoreise')
+
+    await backToList(page)
+    await expect(visible(page).locator('ion-item').filter({ hasText: 'Makro' })).toHaveCount(2)
+  })
+
+  test('E2E-M7-10: renaming onto a taken name is refused and the alert keeps the edit', async ({
+    page,
+  }) => {
+    await createTemplate(page, 'group', 'Makro')
+    await backToList(page)
+    await createTemplate(page, 'template', 'Fotoreise')
+    await backToList(page)
+
+    const row = visible(page).locator('ion-item').filter({ hasText: 'Fotoreise' }).first()
+    await row.click({ button: 'right' })
+    await page.locator('ion-action-sheet').last().getByRole('button', { name: 'Rename' }).click()
+
+    const alert = page.locator('ion-alert').last()
+    await expect(alert).toBeVisible()
+    await alert.locator('input').fill('Makro')
+    await alert.getByRole('button', { name: 'Save' }).click()
+
+    await expect(page.locator('ion-toast').last()).toContainText(
+      'The name “Makro” is already taken.',
+    )
+    // The alert stays open with the typed name, so the edit survives the
+    // refusal — and the row is still called what it was.
+    await expect(alert.locator('input')).toHaveValue('Makro')
+    await alert.getByRole('button', { name: 'Cancel' }).click()
+    await expect(visible(page).locator('ion-item').filter({ hasText: 'Fotoreise' })).toHaveCount(1)
+
+    // Positive signal: the same menu, a free name, and the rename lands.
+    await row.click({ button: 'right' })
+    await page.locator('ion-action-sheet').last().getByRole('button', { name: 'Rename' }).click()
+    await alert.locator('input').fill('Fotoreise 2027')
+    await alert.getByRole('button', { name: 'Save' }).click()
+    await expect(
+      visible(page).locator('ion-item').filter({ hasText: 'Fotoreise 2027' }),
+    ).toHaveCount(1)
+  })
+})

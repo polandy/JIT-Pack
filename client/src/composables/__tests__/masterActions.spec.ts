@@ -156,7 +156,7 @@ describe('master data actions', () => {
     const master = useMasterStore()
     mockDrain()
 
-    const id = orch.createTemplate('Ski-Trip')
+    const id = orch.createTemplate('Ski-Trip')!
 
     const tpl = master.getTemplate(id)
     expect(tpl?.name).toBe('Ski-Trip')

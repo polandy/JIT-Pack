@@ -163,6 +163,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A refusal that could not be read (2026-08-25)](#a-refusal-that-could-not-be-read-2026-08-25) — Sync-API §5 / FR-9.2. Four things the code cannot show: why the foreign key that started the finding was never the defect, why the reason is asked for instead of read out of the driver's error, why M7 does not pre-empt a delete it cannot judge, and the divergence this PR announces without closing.
 - [A purchase that could not be taken back (2026-08-25)](#a-purchase-that-could-not-be-taken-back-2026-08-25) — FR-25.11j, the review's last item. Three things the code cannot show: the column that was weighed and not added, why the reveal declines the persistence FR-25.18 would seem to hand it, and the round trip left open on purpose because the file that closes it belongs to somebody else.
 - [A refusal that only announced itself (2026-08-25)](#a-refusal-that-only-announced-itself-2026-08-25) — Sync-API §5 / ADR-031: the divergence the entry above left open. Four things the code cannot show: why a whole-partition resync scored well and still lost, why the insert/update asymmetry turned out to be the server's question and not the client's, the one refusal that must repair nothing, and the repair that came back empty and was only visible in a screenshot.
+- [A name that could only be refused by the server (2026-08-25)](#a-name-that-could-only-be-refused-by-the-server-2026-08-25) — FR-1.6 / FR-13.1: the mitigation the constraint owed. Four things the code cannot show: the one surface that could have adopted the existing row and deliberately does not, the rule that was already live for items in a single view, why the return type was the actual work, and how the diacritics question was settled.
 
 ## Current state
 
@@ -6825,3 +6826,50 @@ because the outbox that owns it is not. What *can* fail on a Local Mode write
 is the write to the device, and that already has its own signal in G-2. A mode
 question with the answer "the question does not arise here" is worth writing
 out, because the alternative is a reader later assuming it was forgotten.
+
+## A name that could only be refused by the server (2026-08-25)
+
+FR-1.6 and FR-13.1, the mitigation the entry *„What a constraint costs when the
+outbox drops a refusal"* left owed. Four things the diff does not say.
+
+**The wizard was the one place that could have adopted the existing row, and
+deliberately does not.** Every other surface either has nothing to hand over
+(M21 folds a trip; the fold is not an edit of a template that happens to share
+the name) or hands it over openly (M7's *Öffnen*, M8's picker including the
+group). M3's *neue Serie* is different: the trip is on its way somewhere, the
+existing series is in the select directly above the field, and attaching to it
+would be one line of code and no interruption at all. It was written that way
+first and then taken out. A series is the anchor a household's history hangs
+on, and silently deciding *whose* series a trip joins is a choice the wizard
+does not have the standing to make on the user's behalf — particularly when the
+name matched only by capitals. The note names the series and the step waits.
+
+**The item path was already doing this, and that is why nobody noticed.**
+M8's quick-add has always resolved a typed name against the master items and
+reused the row it finds (`onQuickAdd`, a lowercased comparison). So the *item*
+half of FR-16.3 has been live since the composer was built, and the template
+half looked like it worked because nobody had two templates of one name yet.
+The rule was in the codebase, in one view, reachable only through a Vue
+composable — the shape invariant 4 warns about. It now lives in
+`domain/nameCollision.ts` where the wizard, M16, M21 and both template screens
+read the same one.
+
+**Changing the return type was the work.** `createTemplate` and `createSeries`
+returned `string`; making them return `string | null` turned "which paths write
+a name?" from a grep into a compile error, and the compiler produced the list —
+including `createTemplateFromTrip`, which creates a group *and* a template and
+had to grow its check **above its first write**, since it writes master items
+and group updates before either. The enumeration is worth more than the guard:
+a grep for `createTemplate` would have found the same call sites, and would
+have gone on finding nothing the next time one was added.
+
+**A check stricter than the constraint is a false alarm; a looser one still
+loses the push.** That framing is what settled the diacritics question. Folding
+case is prevention — the database would hold "Sommer" and "sommer", and no
+screen could tell them apart. Folding diacritics is not: "Frühling" and
+"Fruhling" are two names `UNIQUE (name)` accepts, so refusing the second one
+takes away a name with nothing the user can do about it. FR-27.13's picker
+search folds them because a wrong hit in a search costs a glance; here a hit
+blocks a write. **No ADR is owed** — the tradeoff was decided where the
+constraint that causes it lives, in FR-1.6's own stub, and an ADR restating one
+FR's paragraph is a second place for it to go stale.

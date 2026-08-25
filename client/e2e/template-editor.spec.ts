@@ -916,3 +916,91 @@ test.describe('M8 group marks (FR-28.8)', () => {
     await expect(vorlage.getByTestId('item-mark')).toHaveText('🧴')
   })
 })
+
+/**
+ * E2E-M8-24 — the inline "Neue Gruppe anlegen…" meets a name that exists
+ * (FR-1.6, FR-27.6).
+ *
+ * Vorlagen and Gruppen share one UNIQUE name space, so the answer depends on
+ * which scope holds it: a group of that name is exactly what this picker
+ * exists to reference, and a Vorlage cannot stand in for it.
+ */
+test.describe('M8 — the group picker and a taken name (FR-1.6)', () => {
+  test.beforeEach(async ({ seedMode, page }) => {
+    await seedMode({ mode: 'local' })
+    await page.goto('/tabs/templates')
+  })
+
+  test('E2E-M8-24: a taken group name includes that group, a Vorlage name says so instead', async ({
+    page,
+  }) => {
+    await createTemplate(page, 'group', 'Kamera')
+    await backToList(page)
+    await createTemplate(page, 'template', 'Fotoreise')
+
+    // The group exists, so "create" means "the one you already have".
+    await visible(page).getByTestId('m8-include-open').click()
+    await visible(page).getByTestId('m8-new-group').click()
+    await fillIonic(visible(page).getByTestId('m8-new-group-name'), 'kamera')
+    await visible(page).getByTestId('m8-new-group-commit').click()
+
+    await expect(page.locator('ion-toast').last()).toContainText('“Kamera” already exists')
+    await expect(
+      visible(page).locator('[data-testid^="m8-group-"]').filter({ hasText: 'Kamera' }),
+    ).toBeVisible()
+
+    // No second group was written — counted on M7, which is the only place
+    // that shows every template there is.
+    await backToList(page)
+    // On the row's own title, not anywhere in the row: the Fotoreise row now
+    // names Kamera in its "contains: …" line, which is the include working.
+    await expect(
+      visible(page)
+        .locator('ion-item h2')
+        .filter({ hasText: /^Kamera$/ }),
+    ).toHaveCount(1)
+
+    // A Vorlage holding the name is the cross-scope case: it is reported as
+    // the fact it is, and nothing is included or created.
+    await visible(page).locator('ion-item').filter({ hasText: 'Fotoreise' }).first().click()
+    await visible(page).getByTestId('m8-include-open').click()
+    await visible(page).getByTestId('m8-new-group').click()
+    await fillIonic(visible(page).getByTestId('m8-new-group-name'), 'Fotoreise')
+    await visible(page).getByTestId('m8-new-group-commit').click()
+
+    await expect(page.locator('ion-toast').last()).toContainText(
+      'A template already carries this name',
+    )
+    // The picker is still open — nothing was committed — and the positive
+    // signal beside it: a free name in the same field does create and include.
+    await fillIonic(visible(page).getByTestId('m8-new-group-name'), 'Wildlife')
+    await visible(page).getByTestId('m8-new-group-commit').click()
+    await expect(
+      visible(page).locator('[data-testid^="m8-group-"]').filter({ hasText: 'Wildlife' }),
+    ).toBeVisible()
+  })
+
+  test('E2E-M8-24: renaming a Vorlage onto a taken name is refused and the field goes back', async ({
+    page,
+  }) => {
+    await createTemplate(page, 'group', 'Kamera')
+    await backToList(page)
+    await createTemplate(page, 'template', 'Fotoreise')
+
+    await fillIonic(visible(page).getByTestId('m8-name'), 'Kamera')
+    await visible(page).getByTestId('m8-name').locator('input').blur()
+
+    await expect(page.locator('ion-toast').last()).toContainText(
+      'The name “Kamera” is already taken.',
+    )
+    // Not merely "the store was not written": the field itself is back to
+    // what the row is still called, which is what the user sees.
+    await expect(visible(page).getByTestId('m8-name').locator('input')).toHaveValue('Fotoreise')
+    await expect(page.getByTestId('header-title')).toHaveText('Fotoreise')
+
+    // Positive signal: a free name in the same field does save.
+    await fillIonic(visible(page).getByTestId('m8-name'), 'Fotoreise 2027')
+    await visible(page).getByTestId('m8-name').locator('input').blur()
+    await expect(page.getByTestId('header-title')).toHaveText('Fotoreise 2027')
+  })
+})
