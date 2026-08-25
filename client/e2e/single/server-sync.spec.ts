@@ -1,6 +1,16 @@
 import type { Page } from '@playwright/test'
 
-import { test, expect, seed, createTripViaWizard, visiblePage } from '../fixtures'
+import {
+  test,
+  expect,
+  seed,
+  addPosition,
+  backToTemplateList,
+  createTemplate,
+  createTripFollowingGroup,
+  createTripViaWizard,
+  visiblePage,
+} from '../fixtures'
 import { bootPage, packItem, quickAddItem, uniq, wsSubscribed } from '../serverMode'
 
 // Both sync endpoints, whichever partition: the path leads with its scope
@@ -1021,6 +1031,74 @@ test.describe('Single-User backend sync @single', () => {
     expect(pulls).toBeGreaterThan(1)
 
     await fresh.close()
+  })
+
+  /**
+   * E2E-G2-06 (FR-9.2, Sync-API §5) — a refusal the user can read.
+   *
+   * `trip_items.source_template_id` carries no ON DELETE clause on purpose:
+   * an archived trip must keep knowing which Vorlage its rows came from. So
+   * deleting a group a trip already used is refused — correctly — and until
+   * the reason existed the refusal was a silent one: the client removed the
+   * row optimistically, the server kept it, and the only trace anywhere was
+   * a number in the G-2 sheet.
+   *
+   * The whole path runs here because only a real jitpackd produces the
+   * refusal: the client cannot pre-empt it (it holds the trip partitions it
+   * has opened, never every trip's).
+   */
+  test('a group a trip still uses cannot be deleted, and G-2 says why', async ({ browser }) => {
+    const id = uniq()
+    const group = `Kulturbeutel-${id}`
+    const trip = `Samedan ${id}`
+
+    const ctx = await browser.newContext()
+    const page = await bootPage(ctx, '/tabs/templates')
+    await createTemplate(page, 'group', group)
+    await addPosition(page, `Zahnbürste-${id}`)
+    await backToTemplateList(page)
+    await createTripFollowingGroup(page, trip, group)
+
+    const indicator = page.getByTestId('sync-indicator')
+    await expect(indicator).toHaveAttribute('data-state', 'synced')
+
+    // M7's own guard (FR-27.6) covers a group another Vorlage includes; a
+    // group a *trip* used is invisible to it, so the delete goes out.
+    await page.goto('/tabs/templates')
+    await visiblePage(page).getByTestId('m7-scope-group').click()
+    const row = visiblePage(page).locator('ion-item', { hasText: group })
+    await expect(row).toBeVisible()
+    await row.dispatchEvent('contextmenu')
+    const menu = page.locator('ion-action-sheet')
+    await expect(menu).toBeVisible()
+    await menu.getByRole('button', { name: 'Delete' }).click()
+    const confirm = page.locator('ion-alert')
+    await expect(confirm).toBeVisible()
+    await confirm.getByRole('button', { name: 'Delete' }).click()
+
+    // The divergence itself: the row is gone from this device and the push
+    // has been answered — the client believed a delete the server refused.
+    await expect(visiblePage(page).locator('ion-item', { hasText: group })).toHaveCount(0)
+    await expect(indicator).toHaveAttribute('data-state', 'synced')
+
+    await indicator.click()
+    const detail = page.getByTestId('sync-detail-sheet')
+    await expect(detail).toBeVisible()
+    await expect(detail.getByTestId('sync-detail-parked')).toContainText('1')
+    await expect(detail.getByTestId('sync-detail-parked-reason')).toContainText(
+      'Other data still refers to it',
+    )
+    await page.getByTestId('sync-detail-close').click()
+
+    // The positive signal the sheet is telling the truth about: a device
+    // that never saw the delete still finds the group on the server.
+    const ctxFresh = await browser.newContext()
+    const pageFresh = await bootPage(ctxFresh, '/tabs/templates')
+    await visiblePage(pageFresh).getByTestId('m7-scope-group').click()
+    await expect(visiblePage(pageFresh).locator('ion-item', { hasText: group })).toBeVisible()
+
+    await ctx.close()
+    await ctxFresh.close()
   })
 
   /*

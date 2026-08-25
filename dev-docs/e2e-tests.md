@@ -69,7 +69,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
 | Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
-| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-M15-05 — the spreadsheet import, added 2026-08-23, and M15's first
 case of any kind.** Until it, M15 had **no** e2e coverage — four written
@@ -1729,6 +1729,32 @@ Three things worth keeping:
   remembered its read position and not the rows asked for the changes after it,
   got none, and rendered an empty app. Measured while building the fix: "the
   first 500 rows" became "no rows at all".
+
+**E2E-G2-11 — a refusal the user can read, added 2026-08-25.** E2E-G2-05
+proved that a refused mutation is *parked*; this one proves the user can find
+out **why**. It drives the motivating case end to end against a real
+`jitpackd`: a group is built in M7/M8, a trip is generated from it, and the
+group is then deleted from M7 — which the server refuses, because FR-9.2 keeps
+`trip_items.source_template_id` pointing at it.
+
+It has to run in the `single` project because nothing else produces the
+refusal. **The client cannot pre-empt it**: it holds the trip partitions it has
+opened, never every trip's, so an M7 pre-check would call the delete safe in
+exactly the case that then fails. M7's existing guard is no help either — it
+covers a group another *Vorlage* includes (FR-27.6), which the master partition
+can see.
+
+Proved by mutation: dropping `Error: string(res.Reason)` from the push
+handler's result construction leaves `sync-detail-parked` green with its count
+of 1 and makes `sync-detail-parked-reason` not exist — which is precisely the
+defect the case was written for, a number where a sentence belongs.
+
+The case ends on a second context that never saw the delete and still finds
+the group. That is the positive signal the sheet's sentence is asserted
+against, and it is also the divergence itself on record: the deleting device
+removed the row optimistically and the server kept it. **Closing that gap —
+putting the refused row back on the device that tried to delete it — is not in
+this case and not built**; the refusal is announced, not undone.
 
 **E2E-M2-10 — progress on a trip nobody opened, added 2026-08-25.** The row
 summed a partition that was not on the device and printed `0/0 packed`, which

@@ -376,7 +376,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   const outbox = new SyncOutbox(client, hlc, onPullChanges, {
     store: outboxStore ?? undefined,
-    onParked: () => syncStatus.setParkedCount(outbox.parkedCount()),
+    onParked: (entry) => syncStatus.setParked(outbox.parkedCount(), entry.reason),
     onConflicts: (report) => {
       syncStatus.addConflicts(report.count)
       config.onConflicts?.(report)
@@ -3076,7 +3076,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // drains of the same partition would push the same chunk twice.
     const restored = await outbox.restore()
     syncStatus.setPendingCount(outbox.totalPending())
-    syncStatus.setParkedCount(outbox.parkedCount())
+    syncStatus.setParked(outbox.parkedCount(), outbox.lastParkedReason())
     for (const partition of restored) {
       await (partition.type === 'master' ? drainMaster() : drainTrip(partition.id!))
     }

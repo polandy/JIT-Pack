@@ -160,6 +160,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The restore could be run twice, and the manual said it could not (2026-08-24)](#the-restore-could-be-run-twice-and-the-manual-said-it-could-not-2026-08-24) — FR-18.4/ADR-030: an imported document is a second copy when its name matches, plus the year for a trip. Five things the code cannot show: the documentation that had described the item rule as if it were the whole rule, why the database constraint that looks like the obvious enforcement is the worst of the four options, why the trips were invisible to a view called `master`, how ADR-017's Vorlage exception was reversed by a measurement rather than an argument, and the cost the family's own data pays for the rule.
 - [The clock the client was told to read, and never received (2026-08-25)](#the-clock-the-client-was-told-to-read-and-never-received-2026-08-25) — a data-model review's sync half. Four things the code cannot show: how a rule implemented correctly on both sides never once ran, why a deleted trip's *master*-partition children are the tombstones that matter while its trip-partition ones need none, a review finding that was wrong and how far I built it before opening the citation, and why a connection-scoped pragma is not a schema rule.
 - [What a constraint costs when the outbox drops a refusal (2026-08-25)](#what-a-constraint-costs-when-the-outbox-drops-a-refusal-2026-08-25) — the same review's schema half. Four things the code cannot show: why the two-level rule was a two-step formality, the lens every candidate constraint was decided by and the two that failed it, why a per-owner unique name contradicted the FR above it, and the dead schema that was kept on purpose.
+- [A refusal that could not be read (2026-08-25)](#a-refusal-that-could-not-be-read-2026-08-25) — Sync-API §5 / FR-9.2. Four things the code cannot show: why the foreign key that started the finding was never the defect, why the reason is asked for instead of read out of the driver's error, why M7 does not pre-empt a delete it cannot judge, and the divergence this PR announces without closing.
 
 ## Current state
 
@@ -6595,6 +6596,70 @@ it as its worked example of "a generated column is in neither direction of
 the protocol, so the client derives it", and a spec sentence with a live
 referent is worth more than one generated integer per trip row. Dead schema
 is a choice under ADR-018, so it needs a reason each way rather than a rule.
+
+
+## A refusal that could not be read (2026-08-25)
+
+The finding that started this was phrased as a schema defect: *deleting a
+template that ever generated trip items is impossible, and nothing tells
+anyone.* Half of that was true. The delete is impossible on purpose —
+`trip_items.source_template_id` carries no `ON DELETE` clause because FR-9.2
+has an archived trip keep naming the Vorlage its rows came from — and the
+permissive fixes are both worse than they look. `ON DELETE SET NULL` strips
+provenance from finished trips silently, which is exactly the data FR-9.2,
+FR-27.5 and M14 all read; `CASCADE` is not even expressible, because the
+parent is a master-partition row and the children live in N trip partitions,
+so one mutation would have to write tombstones into partitions it is not
+addressed to. **The foreign key was never the defect.** The defect was the
+second half of the sentence: nothing tells anyone.
+
+**A refusal had nowhere to put its reason.** `store.MutationResult` had four
+fields and none of them was a reason, so five different situations —
+authorization, out-of-partition, the FR-27.1 two-level rule, a constraint, a
+blocked delete — arrived at the client as the single word `rejected`. The
+wire had been ready for this since v1.0: `error` is declared beside the
+outcome in `wire.go` and printed in Sync-API §5, and it was written for
+exactly two validation errors, both raised *before* the store is called. And
+because §5's P-5 makes any outcome an acknowledgement, the outbox drops the
+mutation on receipt. The user deletes a group, the client removes it
+optimistically, the server keeps it, and the two diverge permanently with a
+number in the G-2 sheet as the only trace. Adding a field is a small diff;
+the reason this entry exists is that the small diff was invisible from the
+symptom the review reported.
+
+**The reason is asked for, not read out of the failure.** The obvious
+implementation is to catch the constraint error and look at it —
+`isConstraintViolation` already matches `"constraint failed"` in the driver's
+message. That is a string from a dependency, and telling an FK apart from a
+UNIQUE that way would put a product decision behind a substring nobody
+promised to keep. So the blocked delete is a **pre-check**: a table of the
+references that are deliberately declared *without* `ON DELETE`, and one
+`count(*)` per reference before the delete is attempted. It sits beside
+`cascadeChildren`, which is the list of references that behave the opposite
+way, and the two lists together are now the whole answer to "what happens to
+the children". Generic constraint failures keep the string match and the
+generic reason; nothing branches on the text.
+
+**M7 does not pre-empt the delete, and that is a decision.** M7 already
+pre-empts one delete: a group another Vorlage includes refuses with the
+consumer's name (FR-27.6). Doing the same for a group a *trip* used looks
+like symmetry and is not: `getIncludedBy` reads the master partition, which
+the client holds in full, while trip items live in trip partitions the client
+loads one at a time — in Server Mode it holds the trips it has opened, never
+every trip's. A pre-check over what is loaded would answer "safe to delete"
+for precisely the trips that then refuse it, and a guard that is right about
+the case you are looking at and wrong about the rest is worse than no guard:
+it teaches the user that no warning means it will work. The refusal is
+reported instead.
+
+**What is announced and not closed.** The device that made the delete still
+shows the row as gone. Nothing brings it back: the server row did not change,
+so no change-log entry exists, so no pull resurrects it. G-2 now says a change
+was refused and why, which is the smallest honest treatment — but the
+divergence itself is open, and the e2e case records it deliberately by ending
+on a second device that still finds the group. Undoing a parked mutation
+against the local store is a bigger mechanism than this PR, and it wants its
+own decision about what an optimistic write owes when it is refused.
 
 ## A decade of packed trips, all reading zero (2026-08-25)
 
