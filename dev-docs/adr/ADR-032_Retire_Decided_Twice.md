@@ -138,10 +138,14 @@ the one every current and future call site inherits by default.
   places it runs, and neither is a mock of the other.
 - In Server Mode, offline or with unopened trips, M10's promise of a physical delete is
   conditional and worded as such. That sentence is longer than the FR's two.
-- Every display surface has to *choose* the active list. The choice is enumerated in the
-  PR that introduced it rather than enforced by a type — a lint rule over
-  `masterStore.itemList` was considered and rejected as unable to tell a picker from an
-  exporter.
+- Every display surface has to *choose* the active list, and no type can make that choice
+  for it — a compiler cannot tell a picker from an exporter. What holds it instead is the
+  enumeration itself, made executable: `client/src/stores/__tests__/masterListFiltering.spec.ts`
+  reads the sources and fails when a file not on the list reads `itemList`/`templateList`,
+  when a listed file stops reading them, or when one of the named offer surfaces starts.
+  A new call site therefore has to be *classified* rather than merely written. That is an
+  allowlist with a reason per entry, which is weaker than a rule — it is the honest cost of
+  a distinction the code cannot derive.
 
 **Neutral**
 - The marker is an ordinary synced column, so "restore" is one mutation clearing it. The

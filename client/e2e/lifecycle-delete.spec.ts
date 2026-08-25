@@ -4,6 +4,7 @@ import {
   addPosition,
   backToTemplateList,
   createTemplate,
+  openQuickAdd,
   test,
   expect,
   visiblePage as visible,
@@ -107,6 +108,21 @@ test.describe('FR-24.3 — a delete is one of two acts', () => {
     await visible(page).locator('ion-item', { hasText: 'Fotografie' }).click()
     await expect(page.getByTestId('header-title')).toHaveText('Fotografie')
     await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Kamera' })).toHaveCount(1)
+
+    // FR-24.3 names the quick-add autocomplete as a surface a retired item
+    // leaves. The row above proves it still exists; this proves it is no
+    // longer offered — the pair is what "hidden" means. In a *second* group
+    // deliberately: the composer already excludes what the open template
+    // holds, so asserting it here would be green whatever the filter does.
+    await backToTemplateList(page)
+    await createTemplate(page, 'group', 'Zweite Gruppe')
+    await openQuickAdd(page, 'm8-fab')
+    await visible(page).getByTestId('quick-add-input').locator('input').pressSequentially('Kam')
+    // The settled signal is the free-text confirm, which the composer always
+    // offers: waiting on it means the suggestion list has been recomputed, so
+    // "no suggestion" is an outcome rather than a race.
+    await expect(visible(page).getByTestId('quick-add-confirm')).toBeVisible()
+    await expect(visible(page).getByTestId('quick-add-suggestion')).toHaveCount(0)
   })
 
   test('E2E-M10-15: an item nothing has ever used is removed for good', async ({
