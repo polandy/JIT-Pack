@@ -99,3 +99,27 @@ export class HLCGenerator {
     }
   }
 }
+
+/**
+ * Observe a clock that came from somewhere else, and report whether it was
+ * usable. Returns false for a value `parseHLC` refuses.
+ *
+ * `observe` throwing is right for the generator's own contract, and wrong at
+ * the boundary where a pull meets another device's data: the clock is an
+ * optimisation for causality (§3), not a gate on rendering, so one unusable
+ * value must never cost the page it arrived in. It can be produced — the
+ * server stores an HLC verbatim and does not check its device id — and a
+ * throw would then make every *other* row of that partition unreachable on
+ * every device, for as long as the row exists.
+ */
+export function observeRemote(gen: HLCGenerator, remote: string): boolean {
+  try {
+    gen.observe(remote as HLC)
+    return true
+  } catch {
+    // Not silent: a value nobody can parse means a producer that needs
+    // finding, and the value is the only thing that identifies it.
+    console.warn(`ignoring unusable remote HLC "${remote}"`)
+    return false
+  }
+}
