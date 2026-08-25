@@ -99,7 +99,7 @@ symptom:
 |---|---|
 | `JWKS refresh failed; serving the cached keys` | the key endpoint stopped answering. Logged **once**, when it starts failing — not on every attempt. The `url` and `error` fields say which endpoint and why. |
 | `JWKS refresh recovered` | it is answering again, and the keys are current. |
-| `JWKS key dropped: cannot be parsed` | the IdP advertised a key the server cannot read, and it was left out of the set. Tokens signed with that key are refused as `unknown kid`, which on its own names neither the key nor the reason — this line names both, in its `kid` field. |
+| `JWKS key dropped: cannot be parsed` | the IdP advertised a key the server cannot read, and it was left out of the set. Tokens signed with that key are refused as `unknown kid`, which on its own names neither the key nor the reason — this line names both, in its `kid` field. Unlike the first line it repeats at every refresh, so its presence in the last five minutes of log means the key is still being advertised. |
 
 **Fix:** search your logs for `JWKS`. If the first line is there without the second, the
 key endpoint is still unreachable from the server: check that the IdP is up, and that the
