@@ -1,34 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import type { PullResponse, PushResponse } from '@/api/types'
+import { installHarness } from '@/__tests__/harness'
 
 // Mock fetch globally
 let fetchMock: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
-  setActivePinia(createPinia())
-  fetchMock = vi.fn()
-  vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal(
-    'WebSocket',
-    vi.fn(() => ({
-      send: vi.fn(),
-      close: vi.fn(),
-      readyState: 1,
-      onopen: null,
-      onmessage: null,
-      onclose: null,
-    })),
-  )
-  // Stub localStorage
-  const storage = new Map<string, string>()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
+  ;({ fetch: fetchMock } = installHarness())
 })
 
 function mockPush(results: PushResponse['results'] = []) {

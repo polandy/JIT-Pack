@@ -20,6 +20,14 @@ export default mergeConfig(
       // "Every spec paid for a DOM, and one of them was green for the wrong
       // reason".
       environment: 'node',
+      // A `vi.stubGlobal` inside one test must not outlive it. Without this
+      // it does, and the leak stays latent for as long as a `beforeEach`
+      // happens to install a fresh stub over it — so no case is wrong today,
+      // and the first spec to *stop* stubbing in `beforeEach` inherits five
+      // failures it did not cause. `ids.spec.ts` had already bought itself
+      // out with its own `vi.unstubAllGlobals()`; this is that, for every
+      // file, so the protection is not per-author.
+      unstubGlobals: true,
       exclude: [...configDefaults.exclude, 'e2e/**'],
       root: fileURLToPath(new URL('./', import.meta.url)),
     },

@@ -4,7 +4,6 @@
  * and FR-5.5 skipped state for quantity-zero items.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
 
 import { useMutations } from '../useMutations'
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
@@ -12,29 +11,12 @@ import { HLCGenerator } from '@/sync/hlc'
 import { useTripStore } from '@/stores/tripStore'
 import type { GeneratedItem } from '@/domain/instantiate'
 import type { PullResponse, PushResponse } from '@/api/types'
+import { installHarness } from '@/__tests__/harness'
 
 let fetchMock: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
-  setActivePinia(createPinia())
-  fetchMock = vi.fn()
-  vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal(
-    'WebSocket',
-    vi.fn(() => ({
-      send: vi.fn(),
-      close: vi.fn(),
-      readyState: 1,
-      onopen: null,
-      onmessage: null,
-      onclose: null,
-    })),
-  )
-  const storage = new Map<string, string>()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
+  ;({ fetch: fetchMock } = installHarness())
 })
 
 function mockPush() {

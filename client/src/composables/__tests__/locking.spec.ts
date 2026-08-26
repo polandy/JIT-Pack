@@ -4,12 +4,12 @@
  * stale locks (>15 min) are ignored.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
 
 import { useMutations } from '@/composables/useMutations'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { HLCGenerator } from '@/sync/hlc'
 import { useTripStore } from '@/stores/tripStore'
+import { installHarness } from '@/__tests__/harness'
 
 interface WSStub {
   send: ReturnType<typeof vi.fn>
@@ -24,14 +24,8 @@ let fetchMock: ReturnType<typeof vi.fn>
 let wsInstances: WSStub[]
 
 beforeEach(() => {
-  setActivePinia(createPinia())
-  fetchMock = vi
-    .fn()
-    .mockResolvedValue(
-      new Response(JSON.stringify({ results: [], pull_hint: { next_cursor: 1 } }), { status: 200 }),
-    )
+  ;({ fetch: fetchMock } = installHarness())
   wsInstances = []
-  vi.stubGlobal('fetch', fetchMock)
   vi.stubGlobal('WebSocket', function () {
     const inst: WSStub = {
       send: vi.fn(),
@@ -44,11 +38,6 @@ beforeEach(() => {
     wsInstances.push(inst)
     return inst
   } as unknown as typeof WebSocket)
-  const storage = new Map<string, string>()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
 })
 
 function seedItem(store: ReturnType<typeof useTripStore>, row: Record<string, unknown> = {}) {
