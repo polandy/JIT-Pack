@@ -32,6 +32,25 @@ import {
   optimisticInsert,
   optimisticUpdate,
 } from '@/sync/optimistic'
+import {
+  checklistItemRow,
+  commentRow,
+  dependencyRow,
+  generateDeviceId,
+  hashBlob,
+  itemRow,
+  masterItemRow,
+  memberRow,
+  profileRow,
+  seriesRow,
+  templateItemRow,
+  templateRow,
+  todoRow,
+  travelerRow,
+  tripRow,
+} from './sync/rows'
+import { createContainerActions } from './sync/actions/containers'
+import type { QueuedMutation, SyncContext } from './sync/context'
 import { useWebSocket } from './useWebSocket'
 import { CLIENT_ACTOR_PLACEHOLDER, useMutations } from './useMutations'
 import { useSyncStatus } from './useSyncStatus'
@@ -72,12 +91,6 @@ import {
   type RestoreVerdict,
 } from '@/domain/masterRestore'
 import { planGroupAddition, type GroupAdditionReport } from '@/domain/groupAdd'
-import {
-  pairWrites,
-  releasePartnersOnDelete,
-  unpairWrites,
-  type PairingWrite,
-} from '@/domain/containers'
 import { optimizeItemImage } from '@/lib/imageResize'
 import type { ImportPlan } from '@/domain/spreadsheet'
 import type { PortableDocument } from '@/domain/portable'
@@ -94,7 +107,6 @@ import { IndexedDBOutboxStore, type OutboxStore } from '@/sync/outboxStore'
 import { TRIP_STATUS_PLANNING } from '@/types/domain'
 import type { TripEdit } from './useMutations'
 import type {
-  Container,
   DestinationChecklistItem,
   DestinationProfile,
   ItemComment,
@@ -112,7 +124,6 @@ import type {
   TripMember,
   TripSeries,
   TripStatus,
-  Traveler,
   TravelerChangeReport,
 } from '@/types/domain'
 
@@ -661,11 +672,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   // --- High-level actions (optimistic + enqueue) ---
 
-  function enqueueAndDrain(
-    type: 'trip' | 'master',
-    id: string | null,
-    ...muts: { mutation: ReturnType<typeof mutations.skipItem>; optimistic?: PullChange }[]
-  ) {
+  function enqueueAndDrain(type: 'trip' | 'master', id: string | null, ...muts: QueuedMutation[]) {
     for (const m of muts) {
       if (m.optimistic) {
         onPullChanges([m.optimistic])
@@ -681,6 +688,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const drainFn = type === 'master' ? drainMaster() : drainTrip(id!)
     drainFn.catch(() => {})
   }
+
+  /** The spine the extracted action groups are bound to (R-4). */
+  const ctx: SyncContext = { tripStore, mutations, enqueueAndDrain }
+  const containerActions = createContainerActions(ctx)
 
   /** Pack: increment packed count on a trip item. */
   function packIncrement(tripId: string, item: TripItem) {
@@ -2704,92 +2715,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return templateId
   }
 
-  // --- Container actions (FR-10.1, M11) ---
-
-  function addContainer(
-    tripId: string,
-    name: string,
-    opts: Parameters<typeof mutations.addContainer>[2] = {},
-  ): string {
-    const { mutation, id } = mutations.addContainer(tripId, name, opts)
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
-    return id
-  }
-
-  function updateContainer(tripId: string, container: Container, fields: Record<string, unknown>) {
-    const mutation = mutations.updateContainer(container.id, fields)
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, containerRow(container)),
-    })
-  }
-
-  /** pairingMuts turns domain-computed paired_container_id writes into queue entries. */
-  function pairingMuts(
-    containers: Container[],
-    writes: PairingWrite[],
-  ): Parameters<typeof enqueueAndDrain>[2][] {
-    const muts: Parameters<typeof enqueueAndDrain>[2][] = []
-    for (const write of writes) {
-      const current = containers.find((c) => c.id === write.containerId)
-      if (!current) continue
-      const mutation = mutations.updateContainer(write.containerId, {
-        paired_container_id: write.paired_container_id,
-      })
-      muts.push({ mutation, optimistic: optimisticUpdate(mutation, containerRow(current)) })
-    }
-    return muts
-  }
-
-  /** applyPairingWrites persists a domain-computed set of paired_container_id writes. */
-  function applyPairingWrites(tripId: string, writes: PairingWrite[]) {
-    const muts = pairingMuts(tripStore.getContainers(tripId), writes)
-    if (muts.length > 0) enqueueAndDrain('trip', tripId, ...muts)
-  }
-
-  /**
-   * pairContainer pairs two containers exclusively, writing both sides at
-   * once and releasing any previous partner of either (FR-10.3, M11).
-   */
-  function pairContainer(tripId: string, aId: string, bId: string) {
-    applyPairingWrites(tripId, pairWrites(tripStore.getContainers(tripId), aId, bId))
-  }
-
-  /** unpairContainer clears both sides of the container's pair (FR-10.3, M11). */
-  function unpairContainer(tripId: string, containerId: string) {
-    applyPairingWrites(tripId, unpairWrites(tripStore.getContainers(tripId), containerId))
-  }
-
-  /**
-   * deleteContainer unassigns the container's items first —
-   * trip_items.container_id is a plain FK, a dangling reference would
-   * reject the delete server-side. A surviving pair partner is released
-   * with it (FR-10.3): deleting one side frees the other.
-   */
-  function deleteContainer(tripId: string, containerId: string) {
-    const containers = tripStore.getContainers(tripId)
-    // One enqueueAndDrain for release + unassign + delete, so the batch
-    // stays atomic in the queue.
-    const muts = pairingMuts(containers, releasePartnersOnDelete(containers, containerId))
-    for (const item of tripStore.getItems(tripId)) {
-      if (item.container_id !== containerId) continue
-      const mut = mutations.assignContainer(item.id, null)
-      muts.push({
-        mutation: mut,
-        optimistic: optimisticUpdate(mut, itemRow(item)),
-      })
-    }
-    const deleteMut = mutations.deleteContainer(containerId)
-    muts.push({
-      mutation: deleteMut,
-      optimistic: optimisticDelete(deleteMut),
-    })
-    enqueueAndDrain('trip', tripId, ...muts)
-  }
-
   // --- Comment actions (FR-7.1/7.2) ---
 
   function addComment(
@@ -2965,11 +2890,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     deleteComment,
 
     // Containers (FR-10.1, M11)
-    addContainer,
-    updateContainer,
-    pairContainer,
-    unpairContainer,
-    deleteContainer,
+    ...containerActions,
 
     // Trip membership (FR-4.5/4.7)
     addTripMember,
@@ -3017,199 +2938,5 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     connect,
     subscribeTrip,
     disconnect,
-  }
-}
-
-// --- Helpers ---
-
-function generateDeviceId(): string {
-  const bytes = new Uint8Array(4)
-  crypto.getRandomValues(bytes)
-  return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
-}
-
-// The base an optimistic row is rebuilt on — see `masterItemRow`. No
-// `duration_days`: the store derives it from the dates rather than keeping it.
-function tripRow(trip: Trip): Record<string, unknown> {
-  return {
-    name: trip.name,
-    year: trip.year,
-    status: trip.status,
-    start_date: trip.start_date,
-    end_date: trip.end_date,
-    series_id: trip.series_id,
-    attributes: trip.attributes ? JSON.stringify(trip.attributes) : null,
-    imported: trip.imported ? 1 : 0,
-  }
-}
-
-/** The base an optimistic row is rebuilt on — see `masterItemRow`. */
-function travelerRow(traveler: Traveler): Record<string, unknown> {
-  return {
-    trip_id: traveler.trip_id,
-    name: traveler.name,
-    linked_user_id: traveler.linked_user_id,
-  }
-}
-
-function seriesRow(series: TripSeries): Record<string, unknown> {
-  return {
-    owner_id: series.owner_id,
-    name: series.name,
-    default_attributes: series.default_attributes
-      ? JSON.stringify(series.default_attributes)
-      : null,
-  }
-}
-
-function memberRow(member: TripMember): Record<string, unknown> {
-  return {
-    trip_id: member.trip_id,
-    user_id: member.user_id,
-    role: member.role,
-  }
-}
-
-/**
- * A comment and a todo are the same row (FR-7.2), told apart by `is_task`
- * — which is why both mappers carry it: the store routes on that column,
- * so an optimistic row without it moves the row to the other list.
- */
-function commentRow(comment: ItemComment): Record<string, unknown> {
-  return {
-    trip_id: comment.trip_id,
-    trip_item_id: comment.trip_item_id,
-    author_id: comment.author_id,
-    body: comment.body,
-    created_at: comment.created_at,
-    is_task: 0,
-  }
-}
-
-function todoRow(todo: ItemTodo): Record<string, unknown> {
-  return {
-    trip_id: todo.trip_id,
-    trip_item_id: todo.trip_item_id,
-    author_id: todo.author_id,
-    body: todo.body,
-    is_task: 1,
-    task_state: todo.task_state,
-  }
-}
-
-function profileRow(profile: DestinationProfile): Record<string, unknown> {
-  return {
-    series_id: profile.series_id,
-    notes: profile.notes,
-  }
-}
-
-function checklistItemRow(item: DestinationChecklistItem): Record<string, unknown> {
-  return {
-    profile_id: item.profile_id,
-    label: item.label,
-    mode: item.mode,
-  }
-}
-
-function containerRow(container: Container): Record<string, unknown> {
-  return {
-    trip_id: container.trip_id,
-    name: container.name,
-    carrier_traveler_id: container.carrier_traveler_id,
-    max_weight_grams: container.max_weight_grams,
-    paired_container_id: container.paired_container_id,
-  }
-}
-
-/** hashBlob mirrors the server's image_hash: the hex of the first 8 bytes
- * of the SHA-256 digest. Used in Local Mode, where there is no server to
- * stamp the change signal (FR-22 sync hint). */
-async function hashBlob(blob: Blob): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer())
-  return Array.from(new Uint8Array(digest).slice(0, 8))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
-}
-
-// The base an optimistic row is rebuilt on, so every column the store keeps
-// must appear here: a field left out is blanked until the next pull puts it
-// back. That is how editing a weight used to drop the reference photo.
-function masterItemRow(item: MasterItem): Record<string, unknown> {
-  return {
-    name: item.name,
-    weight_grams: item.weight_grams,
-    value_cents: item.value_cents,
-    image_hash: item.image_hash ?? null,
-    icon: item.icon ?? null,
-    retired_at: item.retired_at ?? null,
-  }
-}
-
-function templateRow(template: Template): Record<string, unknown> {
-  return {
-    owner_id: template.owner_id,
-    name: template.name,
-    kind: template.kind,
-    icon: template.icon ?? null,
-    retired_at: template.retired_at ?? null,
-  }
-}
-
-function templateItemRow(ti: TemplateItem): Record<string, unknown> {
-  return {
-    template_id: ti.template_id,
-    item_id: ti.item_id,
-    quantity: ti.quantity,
-    assignment: ti.assignment,
-    dedup: ti.dedup,
-    conditions: ti.conditions ? JSON.stringify(ti.conditions) : null,
-    default_mode: ti.default_mode,
-    late_packer: ti.late_packer ? 1 : 0,
-  }
-}
-
-function dependencyRow(d: ItemDependency): Record<string, unknown> {
-  return {
-    item_id: d.item_id,
-    depends_on_item_id: d.depends_on_item_id,
-    mode: d.mode,
-    quantity: d.quantity,
-  }
-}
-
-/**
- * The row an optimistic update carries, and it must be *complete*: both
- * the store and IndexedDB put the whole row rather than patching it, so a
- * column missing here is a column erased from the device — permanently in
- * Local Mode, where no pull ever restores it. `source_template_id` was
- * exactly that: one M5 edit detached a generated row from the group it
- * came from, and FR-27.4, FR-27.5 and M14 all read that provenance.
- */
-function itemRow(item: TripItem): Record<string, unknown> {
-  return {
-    trip_id: item.trip_id,
-    name: item.name,
-    source_item_id: item.source_item_id,
-    source_template_id: item.source_template_id,
-    weight_grams: item.weight_grams,
-    value_cents: item.value_cents,
-    category_name: item.category_name,
-    quantity: item.quantity,
-    packed_count: item.packed_count,
-    state: item.state,
-    mode: item.mode,
-    late_packer: item.late_packer ? 1 : 0,
-    assigned_traveler_id: item.assigned_traveler_id,
-    packer_user_id: item.packer_user_id,
-    packed_by_user_id: item.packed_by_user_id,
-    packed_at: item.packed_at,
-    container_id: item.container_id,
-    packing_now_by: item.packing_now_by,
-    packing_now_at: item.packing_now_at,
-    bought_from: item.bought_from,
-    flag_unused: item.flag_unused ? 1 : 0,
-    flag_missing: item.flag_missing ? 1 : 0,
-    updated_hlc: item.updated_hlc,
   }
 }

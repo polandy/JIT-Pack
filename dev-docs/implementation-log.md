@@ -171,7 +171,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Two actor columns a client could still name (2026-08-25)](#two-actor-columns-a-client-could-still-name-2026-08-25) — invariant 3 / FR-4.2, FR-5.7. Three things the code cannot show: why an edit may not re-stamp the author it can no longer forge, why the obvious shape of the claim fix would have left every packed row claimed, and the evidence that decided which op a comment is allowed to be born from.
 - [A name rule the system's own names could not pass (2026-08-26)](#a-name-rule-the-systems-own-names-could-not-pass-2026-08-26) — FR-17.13's charset rejected the server's seeded "Demo User" and every IdP name with a space or diacritic, and the FR contradicted itself in one sentence; the mid-word gap in M17's traveller label was Chromium rounding glyph runs under the stacked label's `scale(0.75)`, not an i18n defect — measured intact, painted broken; and the G-9/G-12 gear contradiction resolved toward G-9's origin-return amendment.
 - [An invariant that lived at eighty-seven call sites (2026-08-25)](#an-invariant-that-lived-at-eighty-seven-call-sites-2026-08-25) — the optimistic `PullChange` gets one builder. Four things the code cannot show: the throwing probe that turned "the table and the id always match the mutation" from a reading into a measurement, the field a hand-built row had been dropping since it was written, why the same duplication had already crossed a module boundary into the FR-18.7 command, and why the twelve ids the cleanup freed are evidence rather than tidying.
-- [A field nobody had ever written (2026-08-26)](#a-field-nobody-had-ever-written-2026-08-26) — the four remaining row builders get their completeness cases. Three things the code cannot show: why `duration_days`' absence is correct and `series_name`'s is a defect, that `Trip.series_name` has been `null` on every device since it was typed so FR-14.3's trend heading has only ever named the trip, and why the guard that matters here is a compile error rather than an assertion, and the two holes a 41-run mutation sweep found in the suite itself — a one-field action cannot defend the field it changes, and a fixture equal to its mapper's default is a false green.
+- [A field nobody had ever written (2026-08-26)](#a-field-nobody-had-ever-written-2026-08-26) — the four remaining row builders get their completeness cases. Three things the code cannot show: why `duration_days`' absence is correct and `series_name`'s is a defect, that `Trip.series_name` has been `null` on every device since it was typed so FR-14.3's trend heading has only ever named the trip, and why the guard that matters here is a compile error rather than an assertion, and the two holes a 66-run mutation sweep found in the suite itself — a one-field action cannot defend the field it changes, and a fixture equal to its mapper's default is a false green.
+- [The orchestrator starts coming apart (2026-08-26)](#the-orchestrator-starts-coming-apart-2026-08-26) — R-4's first cut: the row builders and the container group leave the 3,215-line composable, bound to a `SyncContext` that carries only what a moved group needs. Three things the code cannot show: why the extraction needed its own spec even though the group was already covered through the facade, why the context is grown per group rather than declared up front, and that the file holds **fourteen** row builders where R-3 defended the nine its review had listed.
 
 ## Current state
 
@@ -7284,3 +7285,41 @@ is no second writer that could observe its loss.
 Worth keeping beyond this file: **the sweep is the review**. Four spot checks
 read as proof and were not; running the same mutation over every column cost
 minutes of machine time and found the two cases that mattered.
+
+## The orchestrator starts coming apart (2026-08-26)
+
+R-4's first cut. `useSyncOrchestrator.ts` was one 3,215-line file whose closure
+ran from line 278 to 3,021 — 134 inner functions and a ~120-key return object.
+Moved out: the row builders and the two other module-level helpers into
+`composables/sync/rows.ts`, and the container group (FR-10.1, M11) into
+`composables/sync/actions/containers.ts`, bound to a `SyncContext`. The facade's
+return shape is unchanged, so no call site outside the composable moved.
+
+Three things the diff does not say.
+
+**The seam is asserted, not assumed.** The container actions were already
+covered — `containerActions.spec.ts` drives them through the real orchestrator,
+and it stayed green through the move, which is exactly why it proves nothing
+about the extraction. What the split is *for* is that a group can be
+constructed without `fetch`, a WebSocket, an outbox or the other 129 functions,
+and only a test that does so can show it. `sync/__tests__/containers.seam.spec.ts`
+builds the group on a hand-written context whose `enqueueAndDrain` is a
+recorder, and reads what was queued. It is four cases and it cost minutes; a
+move that claims isolation and never exercises it is a claim, not a boundary.
+
+**The context carries what a moved group needs and nothing else.** Three
+fields today — `tripStore`, `mutations`, `enqueueAndDrain` — because that is
+what containers use. The tempting version declares the whole spine up front
+(`masterStore`, `api`, `today`, the outbox) so later groups need no edit. That
+version is a list of guesses, and a guessed field is one nobody can delete
+later without checking every group. A field arrives with the group that needs
+it.
+
+**Fourteen row builders were in that file, and nine have completeness cases.**
+The R-3 review named nine; the file has `memberRow`, `commentRow`, `todoRow`,
+`profileRow` and `checklistItemRow` as well. R-3 was closed against the review's
+list rather than against the file, and the list was where the error was — the
+same shape as the finding R-3 itself recorded, one level up: a hand-written
+enumeration driven by nothing. The five are undefended today, and gathering
+them into one module is what made it visible. **Do not read the closure of a
+backlog item as coverage of its subject**; read the subject.
