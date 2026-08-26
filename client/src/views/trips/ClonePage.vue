@@ -26,6 +26,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
+import DateField from '@/components/global/DateField.vue'
 import { t } from '@/i18n'
 
 const props = defineProps<{ tripId: string }>()
@@ -144,21 +145,19 @@ setHeaderTitle(() => t('clone.title', { name: source.value?.name ?? '' }))
             </IonSelect>
           </IonItem>
           <IonItem>
-            <IonInput
+            <DateField
+              testid="clone-start-date"
               :label="t('wizard.startDate')"
-              label-placement="stacked"
-              type="date"
               :value="startDate"
-              @ionInput="(e: CustomEvent) => (startDate = e.detail.value ?? '')"
+              @update="startDate = $event"
             />
           </IonItem>
           <IonItem>
-            <IonInput
+            <DateField
+              testid="clone-end-date"
               :label="t('wizard.endDate')"
-              label-placement="stacked"
-              type="date"
               :value="endDate"
-              @ionInput="(e: CustomEvent) => (endDate = e.detail.value ?? '')"
+              @update="endDate = $event"
             />
           </IonItem>
         </IonList>

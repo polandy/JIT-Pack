@@ -35,6 +35,7 @@ import {
 } from '@/domain/portable'
 import { findExistingSubject } from '@/domain/portableImport'
 import { presentToast } from '@/lib/toast'
+import FilePickButton from '@/components/global/FilePickButton.vue'
 import { t } from '@/i18n'
 import { TRIP_FILTER_QUERY, filterForStatus } from '@/views/trips/tripFilter'
 import { useTripStore } from '@/stores/tripStore'
@@ -58,9 +59,7 @@ const parsed = ref<ParseResult | null>(null)
  */
 const restore = ref<ParseResult[] | null>(null)
 
-async function onFile(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (!file) return
+async function onFile(file: File) {
   rawText.value = await file.text()
   preview()
 }
@@ -194,7 +193,7 @@ function commit() {
       <template v-if="!doc && !restore">
         <h2 class="section-title jp-eyebrow">{{ t('import.portable.fileTitle') }}</h2>
         <p class="hint">{{ t('import.portable.fileHint') }}</p>
-        <input type="file" :accept="PORTABLE_FILE_ACCEPT" @change="onFile" />
+        <FilePickButton :accept="PORTABLE_FILE_ACCEPT" testid="portable-file" @file="onFile" />
         <IonTextarea
           class="paste-area"
           data-testid="portable-paste"
