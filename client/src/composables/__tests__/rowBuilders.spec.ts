@@ -11,16 +11,14 @@
  * own review caught `itemRow` erasing the purchase record on the next pack.
  * Both were found by a person looking; neither call site looked wrong.
  *
- * Two assertions per case, and the first is what keeps the second honest:
+ * One seed assertion per case plus one per action, and the seed is what keeps
+ * the rest honest:
  *
  *  1. **The seed produces exactly the expected entity**, so the fixture the
- *     survival check compares against is one the mapper really builds rather
+ *     survival checks compare against is one the mapper really builds rather
  *     than a list of hopes.
- *  2. **A one-field action changes that one field and nothing else.** This is
- *     the half that fails when a column reached the mapper but not the
- *     builder — but only for the columns that action does *not* supply
- *     itself, which is why most builders carry two. See `acts` below; the
- *     gap it closes was measured, not assumed.
+ *  2. **Each action changes its one field and nothing else** — for every
+ *     column that action does not supply itself. See `acts`.
  *
  * Neither can catch a *new* column, and no runtime assertion can: a mapper
  * reads a missing column as `null`, which is indistinguishable from a column
@@ -330,10 +328,8 @@ const CASES: BuilderCase[] = [
     read: () => useTripStore().getTrip(TRIP_ID) as unknown as Record<string, unknown>,
     acts: [
       { act: () => newOrch().activateTrip(TRIP_ID), changed: 'status', becomes: 'active' },
-      // The second action is what defends `status`: activateTrip supplies
-      // that column itself, so it is the one column it cannot notice being
-      // dropped — and dropping it is #158's defect exactly, a trip that
-      // vanishes from M2.
+      // This entry is what defends `status` — the column #158 dropped, which
+      // made a trip permanently invisible on M2.
       { act: () => newOrch().setTripSeries(TRIP_ID, null), changed: 'series_id', becomes: null },
     ],
     expected: {
