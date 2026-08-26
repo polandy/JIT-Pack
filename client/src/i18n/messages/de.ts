@@ -498,6 +498,7 @@ export const de: Record<keyof typeof en, string> = {
   'clone.previewItems': '{n} Packelement | {n} Packelemente',
   'clone.previewTravelers': '{n} Reisende | {n} Reisende',
   'clone.previewContainers': '{n} Gepäckstück | {n} Gepäckstücke',
+  'clone.previewLoading': 'Positionen werden geladen …',
   'clone.create': 'Klon erstellen',
   'clone.notFound': 'Diese Reise ist auf diesem Gerät nicht vorhanden.',
 

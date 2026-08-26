@@ -490,6 +490,7 @@ export const en = {
   'clone.previewItems': '{n} item | {n} items',
   'clone.previewTravelers': '{n} traveller | {n} travellers',
   'clone.previewContainers': '{n} container | {n} containers',
+  'clone.previewLoading': 'Loading items …',
   'clone.create': 'Create clone',
   'clone.notFound': 'Trip not found on this device.',
 

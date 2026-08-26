@@ -1256,4 +1256,56 @@ test.describe('Single-User backend sync @single', () => {
 
     await fresh.close()
   })
+
+  /**
+   * E2E-M2-11 (ADR-033): cloning a trip the device has never opened.
+   *
+   * ClonePage sums the source's rows for its preview and its plan. On a
+   * device that never pulled the trip's partition both summed an absence:
+   * the preview read "0 items, 0 travellers" and the button cloned exactly
+   * that — an empty trip, silently. The page now fetches the partition,
+   * says so while it does, and the clone carries the real rows.
+   *
+   * Same second-context rule as E2E-M2-10: asserting on the authoring
+   * context would pass with no loading at all, because its store already
+   * holds the rows.
+   */
+  test('E2E-M2-11: cloning a trip the device has never opened carries its items', async ({
+    browser,
+    baseURL,
+  }) => {
+    test.slow()
+    const u = uniq()
+    const tripName = `Clone source ${u}`
+    const context = await browser.newContext({ baseURL })
+    const author = await bootPage(context)
+    const tripPath = await createTripViaWizard(author, { name: tripName, travelers: ['Andy'] })
+    await quickAddItem(author, `Zelt ${u}`)
+    await quickAddItem(author, `Schlafsack ${u}`)
+    await packItem(author, `Zelt ${u}`)
+    await context.close()
+
+    // --- a device that has never been inside this trip -------------------
+    const fresh = await browser.newContext({ baseURL })
+    const page = await fresh.newPage()
+    await seed(page, { mode: 'server' })
+    await page.goto(`${tripPath}/clone`)
+
+    // The preview waits for the partition and then names the real contents.
+    // Before the guard this line settled on "0 items, 0 travellers."
+    const preview = visiblePage(page).getByTestId('clone-preview')
+    await expect(preview).toHaveText('2 items, 1 traveller.', { timeout: 30_000 })
+
+    await visiblePage(page).getByTestId('clone-name').locator('input').fill(`Clone ${u}`)
+    await visiblePage(page)
+      .getByRole('button', { name: /create clone/i })
+      .click()
+
+    // The clone is a real trip with the source's rows, not an empty shell.
+    await expectTripOpen(page, `Clone ${u}`)
+    await expect(visiblePage(page).getByTestId(`m4-row-Zelt ${u}`)).toBeVisible()
+    await expect(visiblePage(page).getByTestId(`m4-row-Schlafsack ${u}`)).toBeVisible()
+
+    await fresh.close()
+  })
 })

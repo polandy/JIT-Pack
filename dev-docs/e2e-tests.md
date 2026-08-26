@@ -64,6 +64,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
 | M15 spreadsheet import | E2E-M15-06, E2E-M15-07, E2E-M15-08 | `local` | [`spreadsheet-import.spec.ts`](../client/e2e/spreadsheet-import.spec.ts) |
 | M2 trip progress | E2E-M2-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| Clone without opening the source | E2E-M2-11 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Sync paging | E2E-SYNC-01 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
@@ -1912,3 +1913,16 @@ Two things the run taught, one of them by failing:
   is below the fold, and ADR-033 deliberately has not fetched it: the summary
   stayed on „Loading items …" for thirty seconds. A case that passes alone and
   fails in company was, that time, telling the truth about the feature.
+
+**E2E-M2-11 — cloning a trip nobody opened, added 2026-08-26.** The same
+absence E2E-M2-10 caught on the list reached further on ClonePage: the preview
+summed rows that were never pulled and read `0 items, 0 travellers`, and the
+button cloned exactly that — an empty trip, silently, with no error anywhere.
+`cloneTrip` now refuses while the source's rows are not on the device
+(the same "not pulled ≠ empty" guard the group refresh and FR-27.10 already
+carry), and the page fetches the partition via `ensureTripData`, shows
+„Loading items …" until it lands, and keeps the button locked. The case
+asserts on a second context: preview text with the real counts, then the
+clone opened with both source rows visible. The component halves (the loading
+line, the locked button, the guard's `null`) are unit-tested in
+`ClonePage.spec.ts` and `clone.spec.ts`.
