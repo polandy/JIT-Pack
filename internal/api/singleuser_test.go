@@ -199,10 +199,12 @@ func TestDisplayName_ValidUpdateRoundTrips(t *testing.T) {
 	}
 }
 
-func TestDisplayName_InvalidCharsetRejected(t *testing.T) {
+func TestDisplayName_InvalidNameRejected(t *testing.T) {
 	srv, localID := newSingleUserTestServer(t)
 
-	resp, _ := doJSON(t, http.MethodPut, displayNameURL(srv, localID), "", map[string]string{"display_name": "Andy Pollari!"})
+	// Edge whitespace violates FR-17.13's revised rule (1–50 printable
+	// characters, no leading or trailing whitespace).
+	resp, _ := doJSON(t, http.MethodPut, displayNameURL(srv, localID), "", map[string]string{"display_name": " Andy Pollari"})
 
 	if resp.StatusCode != http.StatusUnprocessableEntity {
 		t.Errorf("status = %d, want 422", resp.StatusCode)

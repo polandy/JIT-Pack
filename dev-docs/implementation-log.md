@@ -169,6 +169,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A delete that could only be refused](#a-delete-that-could-only-be-refused-2026-08-25) — FR-24.3 unparked: the refusal already held the discriminator; why the filtering keeps `itemList` complete; the rule written twice with only one copy allowed to be wrong; the usage endpoint designed and dropped.
 - [The restore was free, the name was not](#the-restore-was-free-the-name-was-not-2026-08-25) — FR-24.3 / ADR-034 / M23: the entry above closed by naming restore as owed, and this is the day after. Four things the code cannot show: the promise the FR made that the schema had already broken, why the collision is refused on the *client* when ADR-032 had just argued the opposite, the surface chosen against three that were rejected, and the defect only a rendered case found — twice, in one test.
 - [Two actor columns a client could still name (2026-08-25)](#two-actor-columns-a-client-could-still-name-2026-08-25) — invariant 3 / FR-4.2, FR-5.7. Three things the code cannot show: why an edit may not re-stamp the author it can no longer forge, why the obvious shape of the claim fix would have left every packed row claimed, and the evidence that decided which op a comment is allowed to be born from.
+- [A name rule the system's own names could not pass (2026-08-26)](#a-name-rule-the-systems-own-names-could-not-pass-2026-08-26) — FR-17.13's charset rejected the server's seeded "Demo User" and every IdP name with a space or diacritic, and the FR contradicted itself in one sentence; the mid-word gap in M17's traveller label was Chromium rounding glyph runs under the stacked label's `scale(0.75)`, not an i18n defect — measured intact, painted broken; and the G-9/G-12 gear contradiction resolved toward G-9's origin-return amendment.
 - [An invariant that lived at eighty-seven call sites (2026-08-25)](#an-invariant-that-lived-at-eighty-seven-call-sites-2026-08-25) — the optimistic `PullChange` gets one builder. Four things the code cannot show: the throwing probe that turned "the table and the id always match the mutation" from a reading into a measurement, the field a hand-built row had been dropping since it was written, why the same duplication had already crossed a module boundary into the FR-18.7 command, and why the twelve ids the cleanup freed are evidence rather than tidying.
 
 ## Current state
@@ -7172,3 +7173,46 @@ domain type has to be added there or every optimistic update silently blanks
 it. Five more mappers were added here rather than fewer, precisely so the next
 pass has *one list* to pin instead of a literal per call site. Pinning them is
 its own change.
+
+## A name rule the system's own names could not pass (2026-08-26)
+
+The UX review's Settings batch (UX-3, UX-12, UX-16 — one PR). What the diff
+cannot show:
+
+**The rule contradicted its own default, inside one FR.** FR-17.13 restricted
+the display name to `[A-Za-z0-9._-]` "(no spaces or other punctuation)" and, in
+the next clause of the same bullet, declared "Demo User" — a name with a space —
+to be "simply the initial value of this same editable field". The server seeds
+that name (`internal/store/singleuser.go`), OIDC provisioning stamps in IdP
+names with spaces and diacritics unvalidated, and the DB CHECK only bounds the
+length. So every layer of the system produced names the validation layer
+refused, and the screen opened with a standing red error under an untouched
+field. The revised rule — 1–50 printable characters, no edge whitespace — is
+not a loosening for convenience; it is the narrowest rule that admits what the
+system itself hands out. The lesson generalises: **a validation rule must be
+tested against the values the system generates, not only against values a user
+might type.** The rule also moved from an inline component regex to
+`client/src/domain/displayName.ts` (invariant 4's cut), and the note now waits
+for the field to be touched.
+
+**The mid-word gap was paint, not text.** M17's traveller label rendered as
+„Reisende:n hinzuf ügen" — which reads as an i18n or hyphenation defect. It is
+neither: per-character `Range` rects showed the line laid out contiguously
+(`f@118.3+5.3, ü@123.5`) and the latin-ext font file not even loaded. The gaps
+(also after the „R") are Chromium rounding glyph runs when rasterising under
+the stacked label's `transform: scale(0.75)`. There is no CSS knob for that, so
+the fix is the one M22 already uses for the *same* control: a placeholder input
+and a labelled button, no scaled floating label. Worth keeping: **when text
+renders broken, measure the layout before blaming the string** — the DOM was
+correct in every inspectable way, and only the rendered pixels carried the
+defect.
+
+**G-12 and G-9 disagreed about the gear, and the later decision wins.** G-12
+(2026-08-19) says the settings gear hides on every chevron screen; G-9's
+origin-return amendment (2026-08-21) requires it on every screen — "back
+returns to where the gear was tapped" needs a gear to tap. The implementation
+follows G-9, so G-12's sentence described a UI that never shipped. Resolved
+minimally: the gear hides only on M17 itself, where it can only reopen the
+page it is on; G-12's placement bullet now states the reality and points the
+remaining crowding question (M4's cluster *and* gear) at UX-13, where it is an
+open finding rather than a rule.

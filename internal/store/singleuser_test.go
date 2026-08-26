@@ -112,10 +112,14 @@ func TestEnsureLocalSingleUserID_SeedsConfiguredIDAndIsIdempotent(t *testing.T) 
 	}
 }
 
-func TestSetDisplayName_ValidatesCharsetAndLength(t *testing.T) {
+func TestSetDisplayName_AcceptsHumanNamesAndRejectsUnprintable(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()
 
+	// FR-17.13: 1–50 printable characters, no leading or trailing
+	// whitespace. The rule must accept every name the system itself
+	// produces — the seeded "Demo User" and IdP-sourced names with
+	// spaces or diacritics.
 	cases := []struct {
 		name    string
 		value   string
@@ -124,9 +128,13 @@ func TestSetDisplayName_ValidatesCharsetAndLength(t *testing.T) {
 		{"alphanumeric ok", "Andy_Pollari-99", false},
 		{"exactly 50 chars ok", strings.Repeat("a", 50), false},
 		{"51 chars rejected", strings.Repeat("a", 51), true},
-		{"space rejected", "Andy Pollari", true},
+		{"the seeded default ok", "Demo User", false},
+		{"diacritics ok", "Béatrice Müller", false},
 		{"empty rejected", "", true},
-		{"unicode rejected", "Andyé", true},
+		{"leading space rejected", " Andy", true},
+		{"trailing space rejected", "Andy ", true},
+		{"only spaces rejected", "   ", true},
+		{"control character rejected", "Andy\tPollari", true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

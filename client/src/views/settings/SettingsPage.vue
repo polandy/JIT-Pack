@@ -56,6 +56,7 @@ import { loadTokens } from '@/auth/tokens'
 import { serverBaseUrl } from '@/config'
 import type { NotificationPrefs } from '@/notifications/format'
 import { pushRegistered, pushSupported, registerPush, unregisterPush } from '@/notifications/push'
+import { isValidDisplayName } from '@/domain/displayName'
 import { compositionFrom, serializeTemplate, serializeTrip } from '@/domain/portable'
 import { safeFilename, saveBlob, saveText } from '@/lib/download'
 import { useMasterStore } from '@/stores/masterStore'
@@ -156,8 +157,10 @@ async function togglePush(enabled: boolean) {
   }
 }
 
-// FR-17.13: max 50 chars, [A-Za-z0-9._-] only, validated inline.
-const nameValid = computed(() => /^[A-Za-z0-9._-]{1,50}$/.test(nameDraft.value))
+// FR-17.13: validated inline, but only after the field was touched — the
+// untouched server-provided name must never greet the user with an error.
+const nameValid = computed(() => isValidDisplayName(nameDraft.value))
+const nameTouched = ref(false)
 
 async function saveName() {
   if (!me.value || !nameValid.value) return
@@ -340,15 +343,22 @@ async function exportTripCSV() {
             <IonInput
               :label="t('settings.displayName')"
               label-placement="stacked"
+              data-testid="settings-name-input"
               :value="nameDraft"
               :readonly="!editable"
               :maxlength="50"
-              @ionInput="(e: CustomEvent) => (nameDraft = e.detail.value ?? '')"
+              @ionInput="
+                (e: CustomEvent) => {
+                  nameDraft = e.detail.value ?? ''
+                  nameTouched = true
+                }
+              "
             />
             <IonButton
               v-if="editable"
               slot="end"
               size="small"
+              data-testid="settings-name-save"
               :disabled="!nameValid || nameDraft === me.display_name"
               @click="saveName"
             >
@@ -356,7 +366,11 @@ async function exportTripCSV() {
             </IonButton>
           </IonItem>
         </IonList>
-        <IonNote v-if="editable && !nameValid" color="danger">
+        <IonNote
+          v-if="editable && nameTouched && !nameValid"
+          color="danger"
+          data-testid="settings-name-rule"
+        >
           {{ t('settings.nameRule') }}
         </IonNote>
         <IonNote v-else-if="!editable">{{ t('settings.profileManaged') }}</IonNote>
@@ -417,23 +431,28 @@ async function exportTripCSV() {
             <IonIcon slot="icon-only" :icon="closeOutline" />
           </IonButton>
         </IonItem>
-        <IonItem>
+        <!-- Same add-row shape as M22's traveller editor: a placeholder
+             input and a labelled button, no stacked label — the scaled
+             floating label rendered with glyph gaps mid-word (UX review
+             2026-08-25) and its lone + read as detached. -->
+        <IonItem lines="none">
           <IonInput
             data-testid="default-traveler-input"
-            :label="t('settings.addTraveler')"
-            label-placement="stacked"
+            :aria-label="t('settings.addTraveler')"
+            fill="outline"
+            :placeholder="t('settings.addTraveler')"
             :value="newTraveler"
             @ionInput="(e: CustomEvent) => (newTraveler = e.detail.value ?? '')"
             @keydown.enter="addTraveler"
           />
           <IonButton
             slot="end"
-            size="small"
             data-testid="default-traveler-add"
             :disabled="newTraveler.trim() === ''"
             @click="addTraveler"
           >
-            <IonIcon slot="icon-only" :icon="addOutline" />
+            <IonIcon slot="start" :icon="addOutline" />
+            {{ t('common.add') }}
           </IonButton>
         </IonItem>
       </IonList>

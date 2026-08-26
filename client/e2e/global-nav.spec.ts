@@ -559,4 +559,23 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // title of the screen that has been left.
     await expect(page.getByTestId('header-title')).toHaveText('Settings')
   })
+
+  /*
+   * E2E-G9-15 (G-9): the gear is on every screen except the one it opens.
+   * On M17 it pointed at the page the user was already on (UX review
+   * 2026-08-25, UX-16).
+   */
+  test('E2E-G9-15: the settings gear is everywhere but on settings itself', async ({ page }) => {
+    await page.setViewportSize(MOBILE)
+    await page.goto('/tabs/dashboard')
+    await expect(onVisibleScreen(page, 'dashboard-greeting')).toBeVisible()
+    await expect(page.getByTestId('header-settings')).toBeVisible()
+
+    await page.getByTestId('header-settings').click()
+
+    // Rendered, not routed: the settings screen is on the display, and the
+    // gear — which would only reopen it — is gone from the bar.
+    await expect(onVisibleScreen(page, 'settings-language')).toBeVisible()
+    await expect(page.getByTestId('header-settings')).toHaveCount(0)
+  })
 })

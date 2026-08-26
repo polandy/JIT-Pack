@@ -527,7 +527,7 @@ export const de: Record<keyof typeof en, string> = {
   'settings.changePicture': 'Bild ändern',
   'settings.displayName': 'Anzeigename',
   'settings.saved': 'Gespeichert',
-  'settings.nameRule': '1–50 Zeichen, nur Buchstaben, Ziffern und ._-',
+  'settings.nameRule': '1–50 Zeichen, ohne Leerzeichen am Anfang oder Ende.',
   'settings.profileManaged': 'Das Profil verwaltet dein Identitätsanbieter.',
   'settings.profileUnavailable': 'Profil nicht verfügbar — Server nicht erreichbar.',
   'settings.lightThemeHint':

@@ -10,8 +10,9 @@ import (
 
 var (
 	// ErrInvalidDisplayName is returned when a display name violates
-	// Addendum FR-17.13 (max 50 chars, [A-Za-z0-9._-] only).
-	ErrInvalidDisplayName = errors.New("display name must be 1-50 characters from [A-Za-z0-9._-]")
+	// Addendum FR-17.13 (1–50 printable characters, no leading or
+	// trailing whitespace).
+	ErrInvalidDisplayName = errors.New("display name must be 1-50 printable characters with no leading or trailing whitespace")
 	// ErrAvatarTooLarge is returned when an avatar upload exceeds the
 	// 100 KB hard cap also enforced at the database layer (Schema v0.4).
 	ErrAvatarTooLarge = errors.New("avatar exceeds 100 KB limit")
@@ -19,7 +20,11 @@ var (
 
 const maxAvatarBytes = 100 * 1024
 
-var displayNamePattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,50}$`)
+// displayNamePattern accepts every name the system itself hands out —
+// the seeded "Demo User", IdP-sourced names with spaces or diacritics —
+// while rejecting control characters and edge whitespace (FR-17.13).
+// The client applies the same rule (client/src/domain/displayName.ts).
+var displayNamePattern = regexp.MustCompile(`^[^\p{C}\s]([^\p{C}]{0,48}[^\p{C}\s])?$`)
 
 const localSingleUserDefaultName = "Demo User"
 

@@ -524,7 +524,7 @@ export const en = {
   'settings.changePicture': 'Change picture',
   'settings.displayName': 'Display name',
   'settings.saved': 'Saved',
-  'settings.nameRule': '1–50 characters, letters/digits/._- only.',
+  'settings.nameRule': '1–50 characters, no leading or trailing spaces.',
   'settings.profileManaged': 'Profile is managed by your identity provider.',
   'settings.profileUnavailable': 'Profile unavailable — server not reachable.',
   'settings.lightThemeHint': 'Catppuccin Latte — dark (Mocha) is the default. This device only.',
