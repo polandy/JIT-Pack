@@ -24,7 +24,7 @@ import {
   type DimensionSlice,
 } from '@/domain/analytics'
 import { t } from '@/i18n'
-import { formatWeight } from '@/lib/format'
+import { formatValue, formatWeight } from '@/lib/format'
 import { useTripStore } from '@/stores/tripStore'
 import { setHeaderTitle } from '@/composables/useHeaderTitle'
 import { setStoredFacet, setStoredGroupBy } from '@/composables/usePackingFilter'
@@ -85,10 +85,6 @@ const flagged = computed(() => {
   if (!seriesId) return []
   return seriesTopFlagged(store.tripList, (id) => store.getItems(id), seriesId)
 })
-
-function formatValue(cents: number): string {
-  return (cents / 100).toFixed(2)
-}
 
 function kilos(grams: number): string {
   return (grams / 1000).toFixed(1)
@@ -158,16 +154,22 @@ setHeaderTitle(() => `${t('packing.analytics')} · ${trip.value?.name ?? ''}`)
         {{ t('analytics.unweighted', { n: analysis.unweightedCount }) }}
       </p>
 
-      <!-- Trip totals (FR-8.1) -->
-      <div class="kpis">
-        <div class="jp-card kpi" data-testid="analytics-kpi-weight">
+      <!-- Trip totals (FR-8.1). A tile with nothing to total stays away
+           (UX-11): zero tiles under the empty explainer restated the same
+           absence as numbers, and "0.00" posed as an amount. -->
+      <div v-if="analysis.slices.length > 0 || analysis.totalValue > 0" class="kpis">
+        <div
+          v-if="analysis.slices.length > 0"
+          class="jp-card kpi"
+          data-testid="analytics-kpi-weight"
+        >
           <div class="jp-figure kpi-n">
             {{ formatWeight(analysis.packedWeight) }}
             <span class="kpi-of">/ {{ formatWeight(analysis.plannedWeight) }}</span>
           </div>
           <div class="kpi-l">{{ t('analytics.kpiWeight') }}</div>
         </div>
-        <div class="jp-card kpi" data-testid="analytics-kpi-value">
+        <div v-if="analysis.totalValue > 0" class="jp-card kpi" data-testid="analytics-kpi-value">
           <div class="jp-figure kpi-n">{{ formatValue(analysis.totalValue) }}</div>
           <div class="kpi-l">{{ t('analytics.kpiValue') }}</div>
         </div>

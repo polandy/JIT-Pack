@@ -52,7 +52,7 @@ import {
   type InventoryProperty,
 } from '@/composables/useInventoryProperties'
 import { UNTAGGED_KEY } from '@/domain/tags'
-import { formatWeight } from '@/lib/format'
+import { formatValue, formatWeight } from '@/lib/format'
 import { t } from '@/i18n'
 import type { MasterItem } from '@/types/domain'
 
@@ -118,7 +118,7 @@ function extrasFor(item: MasterItem): string[] {
     extras.push(formatWeight(item.weight_grams))
   }
   if (props.isShown('price') && item.value_cents !== null) {
-    extras.push((item.value_cents / 100).toFixed(2))
+    extras.push(formatValue(item.value_cents))
   }
   return extras
 }

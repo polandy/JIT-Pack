@@ -27,14 +27,15 @@ async function fillIonic(field: ReturnType<Page['locator']>, value: string) {
   await expect(input).toHaveValue(value)
 }
 
-/** A master item with weight, created in M10's minimal form (FR-24.5). */
-async function createMasterItem(page: Page, name: string, weightGrams: number) {
+/** A master item with weight (and optionally a price), created in M10's minimal form (FR-24.5). */
+async function createMasterItem(page: Page, name: string, weightGrams: number, price?: string) {
   await page.goto('/tabs/items')
   await visible(page).getByTestId('m9-fab').click()
   await expect(visible(page).getByTestId('m10-new-hint')).toBeVisible()
   await fillIonic(visible(page).getByTestId('m10-name'), name)
   await visible(page).getByTestId('m10-more').click()
   await fillIonic(visible(page).getByTestId('m10-weight'), String(weightGrams))
+  if (price) await fillIonic(visible(page).getByTestId('m10-price'), price)
   await visible(page).getByTestId('m10-create').click()
   await expect(page.getByTestId('header-title')).toHaveText(name)
 }
@@ -144,6 +145,27 @@ test.describe('M12 analytics @local @m12', () => {
     await expect(visible(page).getByTestId('analytics-unweighted')).toContainText('1')
     // No weighted rows → no bars, and the empty state says why.
     await expect(visible(page).getByTestId('analytics-empty')).toBeVisible()
+    // UX-11: with the explainer up, no zero tiles restate the absence —
+    // "0 g / 0 g" and a unit-less "0.00" under it doubled the empty state.
+    // The two visible assertions above are the settled positive signal.
+    await expect(visible(page).getByTestId('analytics-kpi-weight')).toHaveCount(0)
+    await expect(visible(page).getByTestId('analytics-kpi-value')).toHaveCount(0)
+  })
+
+  // E2E-M12-07 (FR-8.1, UX-11): the value KPI exists only when something
+  // actually carries a value, and renders it in the locale's number format
+  // rather than a bare toFixed.
+  test('E2E-M12-07: the value tile appears with a value and stays away without one', async ({
+    page,
+  }) => {
+    await createMasterItem(page, 'Zelt', 5000, '120.50')
+    await createTripViaWizard(page, TRIP)
+    await quickAddFromMaster(page, 'Zelt')
+
+    await openAnalytics(page)
+
+    await expect(visible(page).getByTestId('analytics-kpi-weight')).toBeVisible()
+    await expect(visible(page).getByTestId('analytics-kpi-value')).toContainText('120.50')
   })
 
   // E2E-M12-03 (FR-14.3), the absence half: a series with no archived

@@ -64,6 +64,7 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import SearchRow from '@/components/global/SearchRow.vue'
 import { tripOrderKey } from '@/domain/trips'
 import { t } from '@/i18n'
+import { formatTripPeriod } from '@/lib/format'
 import { presentToast } from '@/lib/toast'
 import { useContextSearch } from '@/composables/useContextSearch'
 import { setHeaderActions } from '@/composables/useHeaderActions'
@@ -156,13 +157,8 @@ const {
 } = useContextSearch()
 setHeaderActions(() => [action()])
 
-/** The temporal line under a trip's name, whatever it actually knows. */
-function tripWhen(trip: Trip): string {
-  if (trip.start_date && trip.end_date) return `${trip.start_date} – ${trip.end_date}`
-  if (trip.end_date) return t('trip.until', { date: trip.end_date })
-  if (trip.start_date) return t('trip.from', { date: trip.start_date })
-  return String(trip.year)
-}
+/** The temporal line under a trip's name, whatever it actually knows (UX-5). */
+const tripWhen = formatTripPeriod
 
 const filteredTrips = computed(() =>
   store.tripList

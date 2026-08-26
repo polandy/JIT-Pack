@@ -932,6 +932,8 @@ export const de: Record<keyof typeof en, string> = {
   'dashboard.greetingMorning': 'Guten Morgen',
   'dashboard.greetingAfternoon': 'Guten Tag',
   'dashboard.greetingEvening': 'Guten Abend',
+  // Nachts absichtlich neutral (UX-15): jede Tageszeit-Behauptung um 00:14 ist falsch.
+  'dashboard.greetingNight': 'Hallo',
   'dashboard.subtitle': 'Was beim Packen ansteht',
   'dashboard.planTrip': 'Reise planen',
   'dashboard.prepTodo': 'Vorzubereiten ({n})',
