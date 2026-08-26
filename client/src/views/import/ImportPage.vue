@@ -31,11 +31,11 @@ import {
   analyzeGrid,
   buildImportPlan,
   findDuplicates,
-  normalizeTripDate,
   parseSpreadsheet,
+  parseTripDate,
   type GridAnalysis,
 } from '@/domain/spreadsheet'
-import { t } from '@/i18n'
+import { formatDay, t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -148,7 +148,7 @@ const mappingValid = computed(
     importableRows.value > 0 &&
     trips.value
       .filter((t) => t.include)
-      .every((t) => t.name.trim() !== '' && normalizeTripDate(t.date) !== null),
+      .every((t) => t.name.trim() !== '' && parseTripDate(t.date) !== null),
 )
 
 /** Which of the two reasons the mapping is not valid yet, for the note. */
@@ -166,7 +166,7 @@ const mapping = computed(() => ({
     .map((t) => ({
       column: t.column,
       name: t.name.trim(),
-      endDate: normalizeTripDate(t.date)!,
+      ...parseTripDate(t.date)!,
       seriesId: t.seriesId || null,
     })),
 }))
@@ -428,7 +428,10 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
           >
             <IonLabel>
               <h3>{{ trip.name }}</h3>
-              <p>{{ trip.endDate }} · {{ t('import.portable.items', { n: trip.items.length }) }}</p>
+              <p>
+                {{ trip.endDate ? formatDay(trip.endDate) : trip.year }} ·
+                {{ t('import.portable.items', { n: trip.items.length }) }}
+              </p>
             </IonLabel>
           </IonItem>
         </IonList>

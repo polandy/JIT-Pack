@@ -201,7 +201,7 @@ function pickHeaderRows(
     for (const col of quantityColumns) {
       const value = (grid[rowIdx]?.[col] ?? '').trim()
       if (value === '') continue
-      if (normalizeTripDate(value) !== null) dates++
+      if (parseTripDate(value) !== null) dates++
       else names++
     }
     if (dates > dateHits) {
@@ -256,11 +256,20 @@ export function parseQuantity(value: string): number | null {
   return Math.ceil(n)
 }
 
-/** normalizeTripDate accepts a bare year (→ Dec 31) or a full ISO date. */
-export function normalizeTripDate(input: string): string | null {
+/** What a trip-column header's date cell actually said (FR-2.1b). */
+export interface ParsedTripDate {
+  year: number
+  /** null when the header named only a year — no Dec 31 is fabricated (UX-5). */
+  endDate: string | null
+}
+
+/** parseTripDate accepts a bare year or a full ISO date, refusing anything else. */
+export function parseTripDate(input: string): ParsedTripDate | null {
   const v = input.trim()
-  if (/^\d{4}$/.test(v)) return `${v}-12-31`
-  if (/^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v))) return v
+  if (/^\d{4}$/.test(v)) return { year: Number(v), endDate: null }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v))) {
+    return { year: Number(v.slice(0, 4)), endDate: v }
+  }
   return null
 }
 
@@ -327,8 +336,14 @@ export interface ImportMapping {
   /** Forward-filled category column, or null when categories are rows. */
   categoryColumn: number | null
   categoryRows: number[]
-  /** Included trip columns only (FR-16.1: user-selected). */
-  trips: { column: number; name: string; endDate: string; seriesId: string | null }[]
+  /** Included trip columns only (FR-16.1: user-selected), dated per parseTripDate. */
+  trips: {
+    column: number
+    name: string
+    year: number
+    endDate: string | null
+    seriesId: string | null
+  }[]
 }
 
 export interface ImportPlanItem {
@@ -343,12 +358,12 @@ export interface ImportPlanItem {
 export interface ImportPlanTrip {
   name: string
   /**
-   * FR-2.1b: the one required temporal fact, read off the end date the
-   * mapping validated. `trips.year` is NOT NULL, so a trip without it is
-   * refused by the server rather than imported.
+   * FR-2.1b: the one required temporal fact. `trips.year` is NOT NULL, so a
+   * trip without it is refused by the server rather than imported. The end
+   * date exists only when the sheet actually named one (UX-5).
    */
   year: number
-  endDate: string
+  endDate: string | null
   seriesId: string | null
   items: { itemIndex: number; quantity: number }[]
 }
@@ -432,7 +447,7 @@ export function buildImportPlan(
     const tripItems = [...byItem].map(([itemIndex, quantity]) => ({ itemIndex, quantity }))
     return {
       name: trip.name,
-      year: tripYear(trip.endDate),
+      year: trip.year,
       endDate: trip.endDate,
       seriesId: trip.seriesId,
       items: tripItems,
@@ -442,11 +457,3 @@ export function buildImportPlan(
   return { newCategories, items, trips }
 }
 
-/**
- * tripYear reads FR-2.1b's required year off the end date the mapping has
- * already validated through normalizeTripDate, which is why it can be a
- * plain slice: a bare year became `YYYY-12-31` there.
- */
-function tripYear(endDate: string): number {
-  return Number(endDate.slice(0, 4))
-}

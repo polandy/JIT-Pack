@@ -116,15 +116,62 @@ export function t(key: MessageKey, params?: MessageParams): string {
   return interpolate(selectPlural(message, params), params)
 }
 
+/**
+ * The concrete BCP-47 tag handed to Intl: the browser's own regional variant
+ * of the active language when it offers one (`de` → `de-CH` on a Swiss
+ * device), else the bare language code. The language is the app's choice,
+ * the regional conventions (decimal separators, date punctuation) are the
+ * device's — a de-CH household writes 12.50 where de-DE writes 12,50.
+ */
+function intlLocale(): string {
+  const languages = globalThis.navigator?.languages ?? []
+  return languages.find((tag) => tag.toLowerCase().startsWith(locale.value)) ?? locale.value
+}
+
 /** Locale-aware number formatting (NFR-4.12 scope note). */
 export function formatNumber(value: number, options?: Intl.NumberFormatOptions): string {
-  return new Intl.NumberFormat(locale.value, options).format(value)
+  return new Intl.NumberFormat(intlLocale(), options).format(value)
 }
 
 /** Locale-aware date formatting; defaults to a compact, unambiguous day/month/year. */
 export function formatDate(value: Date, options?: Intl.DateTimeFormatOptions): string {
   return new Intl.DateTimeFormat(
-    locale.value,
+    intlLocale(),
     options ?? { year: 'numeric', month: 'short', day: 'numeric' },
   ).format(value)
+}
+
+/**
+ * Calendar-day presentation per locale (UX-5): numeric two-digit for German
+ * (22.08.2026), short month for English (Aug 22, 2026) — the numeric form
+ * would read as month-first there.
+ */
+const dayOptions: Record<Locale, Intl.DateTimeFormatOptions> = {
+  de: { day: '2-digit', month: '2-digit', year: 'numeric' },
+  en: { day: 'numeric', month: 'short', year: 'numeric' },
+}
+
+/**
+ * An ISO `YYYY-MM-DD` as a *local* calendar day. `new Date(iso)` would parse
+ * UTC midnight, which is the previous day west of Greenwich.
+ */
+function parseISODay(iso: string): Date {
+  const [year = 0, month = 1, day = 1] = iso.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
+/** Formats one ISO calendar day in the active locale (UX-5). */
+export function formatDay(iso: string): string {
+  return new Intl.DateTimeFormat(intlLocale(), dayOptions[locale.value]).format(parseISODay(iso))
+}
+
+/**
+ * Formats an ISO day range, letting Intl collapse the shared parts:
+ * `22.08. – 05.09.2026` inside one year, both years across a boundary.
+ */
+export function formatDayRange(startIso: string, endIso: string): string {
+  return new Intl.DateTimeFormat(intlLocale(), dayOptions[locale.value]).formatRange(
+    parseISODay(startIso),
+    parseISODay(endIso),
+  )
 }

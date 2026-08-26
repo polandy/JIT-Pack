@@ -31,7 +31,8 @@ const plan: ImportPlan = {
     {
       name: 'Engadin 2023',
       year: 2023,
-      endDate: '2023-12-31',
+      // UX-5: a year column yields no end date — the year carries the fact.
+      endDate: null,
       seriesId: null,
       items: [
         { itemIndex: 0, quantity: 5 },
@@ -83,6 +84,8 @@ describe('commitImport (FR-16.2)', () => {
     expect(t2023).toMatchObject({
       name: 'Engadin 2023',
       year: 2023,
+      // No fabricated Dec-31 (UX-5): what the sheet did not say stays absent.
+      end_date: null,
       status: 'archived',
       imported: true,
     })
