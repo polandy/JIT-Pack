@@ -58,7 +58,8 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | FR-24.3 restore (M23) | E2E-M23-01, E2E-M23-02, E2E-M23-03 | `local` | [`restore-retired.spec.ts`](../client/e2e/restore-retired.spec.ts) |
 | §3.28 the item mark | E2E-M10-11, E2E-M10-12, E2E-M9-07, E2E-M4-48, E2E-G15-01, E2E-G15-02, E2E-M5-15 | `local` | [`item-mark.spec.ts`](../client/e2e/item-mark.spec.ts) |
 | M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
-| M12 analytics | E2E-M12-01, E2E-M12-02, E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
+| M12 analytics | E2E-M12-01, E2E-M12-02 (incl. the UX-11 tile absences), E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05, E2E-M12-07 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
+| M2 trip list rows | E2E-M2-12 (locale dates, UX-5) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |

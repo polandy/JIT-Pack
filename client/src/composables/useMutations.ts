@@ -558,7 +558,8 @@ export function useMutations(hlc: HLCGenerator) {
   function createImportedTrip(
     name: string,
     year: number,
-    endDate: string,
+    // Null when the sheet named only a year — nothing is fabricated (UX-5).
+    endDate: string | null,
     seriesId: string | null,
   ): { mutation: Mutation; id: string } {
     const id = newId()
