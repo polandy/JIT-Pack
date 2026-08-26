@@ -58,6 +58,10 @@ const title = computed(
 // than teleported into this toolbar — see useHeaderActions.
 const pageActions = computed(() => actionsFor(route.path))
 
+// G-9: the gear is on every screen — except M17 itself, where it would
+// only reopen the screen it is on.
+const onSettings = computed(() => route.path === '/tabs/settings')
+
 function goHome() {
   ionRouter.navigate('/tabs/dashboard', 'back', 'replace')
 }
@@ -132,6 +136,7 @@ function goBack() {
           @tap="emit('syncTap')"
         />
         <IonButton
+          v-if="!onSettings"
           router-link="/tabs/settings"
           data-testid="header-settings"
           :aria-label="t('settings.title')"
