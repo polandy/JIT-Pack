@@ -1,4 +1,4 @@
-import { test, expect, expectTripOpen } from './fixtures'
+import { test, expect, expectTripOpen, setDateField } from './fixtures'
 import {
   addPosition,
   backToTemplateList as backToList,
@@ -114,10 +114,23 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     await nameField.fill('Herbstferien Wallis')
     await nameField.blur()
 
+    // G-17 (ADR-035): the date is set through the app's picker, and the field
+    // renders the locale display — never the ISO the state holds.
+    await setDateField(page, 'trip-edit-start', '2026-10-03')
+    await expect(visible(page).getByTestId('trip-edit-start').locator('input')).toHaveValue(
+      'Oct 3, 2026',
+    )
+
     // Asserted on the rendered screen, never on the URL: the name has to come
     // back through the store and repaint M4, which is the whole point.
     await page.goto(trip)
     await expectTripOpen(page, 'Herbstferien Wallis')
+
+    // The date write survived the round trip too, not only the optimistic paint.
+    await openTripEdit(page)
+    await expect(visible(page).getByTestId('trip-edit-start').locator('input')).toHaveValue(
+      'Oct 3, 2026',
+    )
   })
 
   test('E2E-M22-02: a traveller added extends the per-person rows straight away', async ({

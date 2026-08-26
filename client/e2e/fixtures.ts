@@ -82,6 +82,51 @@ export interface TripSeed {
   series?: string
 }
 
+
+/**
+ * Sets a DateField (ADR-035): opens its picker sheet, walks the calendar to
+ * the target month with the header arrows and confirms the day. Replaces the
+ * fill() that drove the native date input the field used to be. Every hop
+ * asserts the rendered month header, so the walk is bounded and observable —
+ * never a wait.
+ */
+export async function setDateField(page: Page, testid: string, iso: string): Promise<void> {
+  const [year, month, day] = iso.split('-').map(Number)
+  await page.getByTestId(testid).click()
+  const picker = page.getByTestId(`${testid}-picker`)
+  await expect(picker).toBeVisible()
+
+  const headerFor = (y: number, m: number) =>
+    new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(new Date(y, m - 1, 1))
+  const monthIndex = (name: string) =>
+    Array.from({ length: 12 }, (_, i) =>
+      new Intl.DateTimeFormat('en', { month: 'long' }).format(new Date(2000, i, 1)),
+    ).indexOf(name) + 1
+
+  const target = headerFor(year, month)
+  const MAX_HOPS = 36
+  for (let hop = 0; hop <= MAX_HOPS; hop++) {
+    const shown = (await picker.locator('.calendar-month-year').innerText()).trim()
+    if (shown === target) break
+    if (hop === MAX_HOPS) throw new Error(`date picker never reached ${target}, still at ${shown}`)
+    const [shownMonth, shownYear] = shown.split(' ')
+    const forward = Number(shownYear) * 12 + monthIndex(shownMonth) < year * 12 + month
+    const arrows = picker.locator('.calendar-next-prev ion-button')
+    await arrows.nth(forward ? 1 : 0).click()
+    await expect(picker.locator('.calendar-month-year')).not.toHaveText(shown)
+  }
+
+  // The working (centre) grid is the navigated month; the neighbours can
+  // carry the same day as an adjacent-day cell, so the scope matters.
+  await picker
+    .locator(
+      `.calendar-month:nth-child(2) .calendar-day[data-day="${day}"][data-month="${month}"][data-year="${year}"]`,
+    )
+    .click()
+  await picker.getByText('Done', { exact: true }).click()
+  await expect(picker).toBeHidden()
+}
+
 /**
  * Create a trip by driving M3, and return the new trip's path.
  *
@@ -99,10 +144,10 @@ export async function createTripViaWizard(page: Page, trip: TripSeed): Promise<s
   if (trip.startDate || trip.endDate || trip.series) {
     await page.getByTestId('wizard-more').click()
     if (trip.startDate) {
-      await page.getByTestId('wizard-start-date').locator('input').fill(trip.startDate)
+      await setDateField(page, 'wizard-start-date', trip.startDate)
     }
     if (trip.endDate) {
-      await page.getByTestId('wizard-end-date').locator('input').fill(trip.endDate)
+      await setDateField(page, 'wizard-end-date', trip.endDate)
     }
     if (trip.series) {
       await page.getByTestId('wizard-series').click()

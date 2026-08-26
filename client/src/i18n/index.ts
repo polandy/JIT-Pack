@@ -123,7 +123,7 @@ export function t(key: MessageKey, params?: MessageParams): string {
  * the regional conventions (decimal separators, date punctuation) are the
  * device's — a de-CH household writes 12.50 where de-DE writes 12,50.
  */
-function intlLocale(): string {
+export function intlLocale(): string {
   const languages = globalThis.navigator?.languages ?? []
   return languages.find((tag) => tag.toLowerCase().startsWith(locale.value)) ?? locale.value
 }

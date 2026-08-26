@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 
-import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
+import { test, expect, createTripViaWizard, openQuickAdd, setDateField } from './fixtures'
 import type { Page } from '@playwright/test'
 
 /**
@@ -257,12 +257,12 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(page.getByTestId('wizard-more-summary')).toBeVisible()
 
     await page.getByTestId('wizard-more').click()
-    await page.getByTestId('wizard-end-date').locator('input').fill('2026-09-20')
+    await setDateField(page, 'wizard-end-date', '2026-09-20')
     await page.getByTestId('wizard-more').click()
 
     // Folded again — with what was set now stated on the row itself.
     await expect(page.getByTestId('wizard-end-date')).toHaveCount(0)
-    await expect(page.getByTestId('wizard-more-summary')).toContainText('2026-09-20')
+    await expect(page.getByTestId('wizard-more-summary')).toContainText('Sep 20, 2026')
   })
 
   // E2E-G2-02 (G-2/FR-19.6): the glyph used to be a symbol with nothing

@@ -41,7 +41,8 @@ import { computed, inject, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { loadTokens } from '@/auth/tokens'
-import { t } from '@/i18n'
+import DateField from '@/components/global/DateField.vue'
+import { t, formatDay, formatDayRange } from '@/i18n'
 import GroupPeekSheet from '@/components/templates/GroupPeekSheet.vue'
 import SheetModal from '@/components/global/SheetModal.vue'
 import ItemMark from '@/components/items/ItemMark.vue'
@@ -490,8 +491,11 @@ function travelerName(index: number | null): string | null {
  */
 const optionalSummary = computed(() => {
   const parts: string[] = []
-  if (startDate.value && endDate.value) parts.push(`${startDate.value} – ${endDate.value}`)
-  else if (startDate.value || endDate.value) parts.push(startDate.value || endDate.value)
+  if (startDate.value && endDate.value) {
+    parts.push(formatDayRange(startDate.value, endDate.value))
+  } else if (startDate.value || endDate.value) {
+    parts.push(formatDay(startDate.value || endDate.value))
+  }
   const series = masterStore.seriesList.find((s) => s.id === seriesChoice.value)
   if (series) parts.push(series.name)
   else if (seriesChoice.value === 'new' && newSeriesName.value.trim()) {
@@ -642,25 +646,19 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
         <template v-if="moreOpen">
           <IonList>
             <IonItem>
-              <IonInput
-                data-testid="wizard-start-date"
+              <DateField
+                testid="wizard-start-date"
                 :label="t('wizard.startDate')"
-                label-placement="stacked"
-                type="date"
                 :value="startDate"
-                @keydown.enter="stepDefaultAction"
-                @ionInput="(e: CustomEvent) => (startDate = e.detail.value ?? '')"
+                @update="startDate = $event"
               />
             </IonItem>
             <IonItem>
-              <IonInput
-                data-testid="wizard-end-date"
+              <DateField
+                testid="wizard-end-date"
                 :label="t('wizard.endDate')"
-                label-placement="stacked"
-                type="date"
                 :value="endDate"
-                @keydown.enter="stepDefaultAction"
-                @ionInput="(e: CustomEvent) => (endDate = e.detail.value ?? '')"
+                @update="endDate = $event"
               />
             </IonItem>
             <IonItem v-if="duration !== null" lines="none">
