@@ -3,32 +3,14 @@
  * /api/v1/admin/ endpoints with the right methods.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
+import { installHarness } from '@/__tests__/harness'
 
 let fetchMock: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
-  setActivePinia(createPinia())
-  fetchMock = vi.fn()
-  vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal(
-    'WebSocket',
-    vi.fn(() => ({
-      send: vi.fn(),
-      close: vi.fn(),
-      readyState: 1,
-      onopen: null,
-      onmessage: null,
-      onclose: null,
-    })),
-  )
-  const storage = new Map<string, string>()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
+  ;({ fetch: fetchMock } = installHarness())
 })
 
 function ok(body: unknown) {

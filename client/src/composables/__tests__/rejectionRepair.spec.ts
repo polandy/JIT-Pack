@@ -13,7 +13,6 @@
  *    trip's, and an entry here would leak it), so the client drops it.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { useTripStore } from '@/stores/tripStore'
@@ -21,26 +20,12 @@ import { REJECTION_REASON } from '@/sync/rejectionReasons'
 import { TABLE } from '@/types/tables'
 import type { Mutation, PullResponse } from '@/api/types'
 import type { OutboxStore, ParkedMutation, PendingMutation } from '@/sync/outboxStore'
+import { installHarness } from '@/__tests__/harness'
 
 let fetchMock: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
-  setActivePinia(createPinia())
-  fetchMock = vi.fn()
-  vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal(
-    'WebSocket',
-    class {
-      readyState = 1
-      send() {}
-      close() {}
-    },
-  )
-  const storage = new Map<string, string>()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
+  ;({ fetch: fetchMock } = installHarness())
 })
 
 /** In-memory OutboxStore standing in for the device's IndexedDB. */
