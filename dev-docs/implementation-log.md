@@ -171,6 +171,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Two actor columns a client could still name (2026-08-25)](#two-actor-columns-a-client-could-still-name-2026-08-25) — invariant 3 / FR-4.2, FR-5.7. Three things the code cannot show: why an edit may not re-stamp the author it can no longer forge, why the obvious shape of the claim fix would have left every packed row claimed, and the evidence that decided which op a comment is allowed to be born from.
 - [A name rule the system's own names could not pass (2026-08-26)](#a-name-rule-the-systems-own-names-could-not-pass-2026-08-26) — FR-17.13's charset rejected the server's seeded "Demo User" and every IdP name with a space or diacritic, and the FR contradicted itself in one sentence; the mid-word gap in M17's traveller label was Chromium rounding glyph runs under the stacked label's `scale(0.75)`, not an i18n defect — measured intact, painted broken; and the G-9/G-12 gear contradiction resolved toward G-9's origin-return amendment.
 - [An invariant that lived at eighty-seven call sites (2026-08-25)](#an-invariant-that-lived-at-eighty-seven-call-sites-2026-08-25) — the optimistic `PullChange` gets one builder. Four things the code cannot show: the throwing probe that turned "the table and the id always match the mutation" from a reading into a measurement, the field a hand-built row had been dropping since it was written, why the same duplication had already crossed a module boundary into the FR-18.7 command, and why the twelve ids the cleanup freed are evidence rather than tidying.
+- [A field nobody had ever written (2026-08-26)](#a-field-nobody-had-ever-written-2026-08-26) — the four remaining row builders get their completeness cases. Three things the code cannot show: why `duration_days`' absence is correct and `series_name`'s is a defect, that `Trip.series_name` has been `null` on every device since it was typed so FR-14.3's trend heading has only ever named the trip, and why the guard that matters here is a compile error rather than an assertion, and the two holes a 41-run mutation sweep found in the suite itself — a one-field action cannot defend the field it changes, and a fixture equal to its mapper's default is a false green.
 
 ## Current state
 
@@ -7216,3 +7217,70 @@ minimally: the gear hides only on M17 itself, where it can only reopen the
 page it is on; G-12's placement bullet now states the reality and points the
 remaining crowding question (M4's cluster *and* gear) at UX-13, where it is an
 open finding rather than a rule.
+
+## A field nobody had ever written (2026-08-26)
+
+Closing the row-builder completeness suite meant four cases — `tripRow`,
+`travelerRow`, `seriesRow`, `dependencyRow` — that the first pass had left
+open because two columns on `Trip` looked derived and wanted deciding. Both
+were, and only one of them honestly.
+
+**`duration_days` is derived and correctly absent.** `trips.duration_days` is
+a `GENERATED ALWAYS ... STORED` column in `schema.sql`, so it never travels the
+sync protocol and no pull carries one; the store computes it from the two dates
+the builder does carry. Nothing to fix, and the case now says so where the next
+reader will look.
+
+**`series_name` is not derived from anything.** No such column exists — not in
+`schema.sql`, not in any Go mapper, not on any wire envelope. The client's
+`rowToTrip` reads `row['series_name'] ?? null`, which has therefore returned
+`null` for every trip that has ever been read on any device. Its one reader is
+AnalyticsPage's FR-14.3 trend heading, `trip?.series_name ?? trip?.name`, so
+the fallback is the only branch that has ever been taken: the heading over a
+series trend names the *trip*, never the series. It is the second field of this
+exact shape — `MasterItem.category_name` is the first, documented in the same
+file — and both were found the same way: **a completeness test has to state
+what the seed produces, and a field that cannot be produced is a field nothing
+writes.** A type is not evidence that a column exists. Deliberately not fixed
+here: the name lives on the master store's series row, which the trip store
+cannot reach, so closing it is a decision about where that join belongs rather
+than a line in a builder.
+
+**What defends the builders is a compile error, not a red test**, and this is
+worth restating because it is counter-intuitive in a test file: no runtime
+assertion can catch a *new* column, because a mapper reads a missing column as
+`null` and that is indistinguishable from a column that is genuinely null. The
+`satisfies Record<keyof T, unknown>` on each fixture is the guard — measured by
+adding a field to `Trip` and watching `rowBuilders.spec.ts` stop compiling
+(TS1360) while every test stayed green. The runtime half defends the columns
+that exist: dropping one line from each of the four builders reddens that
+builder's case and no other.
+
+**And the suite that was written to defend the columns was not defending all
+of them.** Mutating *every* column of all nine builders one at a
+time — 66 runs — rather than the four that motivated the change turned up two
+holes, neither of which any assertion could report:
+
+- **A one-field action cannot defend the field it changes.** That column comes
+  from the mutation, so it is written whether or not the builder carries it.
+  `activateTrip` supplies `status`, and `status` is #158's defect exactly — the
+  column whose loss makes a trip vanish from M2. The suite named after that
+  defect could not have caught it. The fix is a *second* action per builder,
+  changing something else; the case list is now `acts[]` and the second entry
+  is the one doing the work. Where only one writer exists — `travelerRow`,
+  because FR-2.7 forbids re-creating a traveller to rename them — one entry is
+  complete, and the case says so rather than leaving the gap silent.
+- **A fixture value equal to the mapper's default is a false green.** `rowToTrip`
+  reads `Number(row['year'] ?? new Date().getFullYear())`, and the seed said
+  2026. Dropping `year` from `tripRow` therefore changed nothing the assertion
+  could see. Seeding 2025 makes the default differ from the fixture. The
+  general form: **never seed a column with the value its mapper falls back to**
+  — the test then passes through the fallback and reports nothing.
+
+After both fixes the sweep reports 65 of 66 columns defended. The one that is
+not is `travelerRow.name`, and it is unreachable rather than untested — there
+is no second writer that could observe its loss.
+
+Worth keeping beyond this file: **the sweep is the review**. Four spot checks
+read as proof and were not; running the same mutation over every column cost
+minutes of machine time and found the two cases that mattered.

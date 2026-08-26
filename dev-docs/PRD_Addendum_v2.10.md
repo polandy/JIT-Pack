@@ -41,6 +41,15 @@
 * **FR-14.2 (Smart Quantity Suggestions):** The system proposes a default quantity derived from the series history — **decided: the duration-normalized median of the last three series trips** — which the user can accept with a single tap or override manually at any time.
 * **FR-14.3 (Long-Term Analytics):** Across the full trip history, the system can surface trends: most frequently forgotten items (Missing flags per FR-9.1), consistently unused items (Unused flags), and per-series weight development over the years.
 
+  **Open finding (2026-08-26): the per-series trend heading has never named the series.** It reads
+  `Trip.series_name`, and no such column exists — not in `schema.sql`, not in any mapper, not on the
+  wire. The client's trip mapper has therefore returned `null` for it on every device since the field
+  was typed, and the heading's `?? trip.name` fallback is the only branch ever taken. The name lives
+  on the master partition's `trip_series` row, which the trip store cannot reach, so the fix is a
+  decision about where that join belongs — resolve it in the analytics view from `series_id`, or
+  give the trip store the lookup. Found while writing the row-builder completeness cases; the
+  builder itself is correct, since there is no column to carry.
+
 ### 3.15 Conditional Items & Trip Attributes
 
 * **FR-15.1 (Trip Attributes):** Trips carry structured attributes beyond dates and participants. **Decided model:** a small fixed core — *Season* (summer/winter/transitional), *Transport Mode* (car, bike, plane, train), and *Accommodation Type* (hotel, holiday flat, camping) — plus user-definable free-form tags, usable in conditional rules (FR-15.2). Attributes and tags are defined per trip and inherited as defaults from the Trip Series.
