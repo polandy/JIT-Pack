@@ -345,6 +345,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M9-04** `all` (G-7/NFR-4.7): empty state → import entry (M15).
 * **E2E-M9-06** `all` (FR-24.2) — **implemented**: the tag chip axis filters on **any** of an item's tags while the grouping stays on the primary one — filtering by *Sommer* surfaces the swimsuit filed under *Kleidung*. Asserted on rendered rows, since the two rules differ only in what is painted.
 * **E2E-M9-05** `all` (FR-24.4) — **implemented** (partially: the reload half is unit-tested in `inventoryProperties.spec.ts`, since a device-local reload assertion belongs where the storage seam is): the eye icon opens the "Angezeigte Eigenschaften" sheet; enabling Gewicht/Preis/Tags adds exactly those to the rows, the icon shows a count badge while anything is enabled, and the preference survives a reload **on this device only** (device-local, never synced).
+* **E2E-M9-08** `all` (UX review 2026-08-25, UX-4) — **implemented** (`e2e/inventory.spec.ts`): the first group heading clears the tag axis by a visible gap. Asserted as geometry (bounding boxes on settled elements, not pixels): at a 0px gap the active chip's underline sits flush against the heading and reads as the heading sliding under the bar.
 
 ### M10 — Item Editor
 * **E2E-M10-01** `all` (FR-1.1): name, tags (inline-create), weight, price — no unit control (FR-1.8 retired).
