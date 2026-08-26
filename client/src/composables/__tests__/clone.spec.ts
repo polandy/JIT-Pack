@@ -92,10 +92,11 @@ function seedSource(store: ReturnType<typeof useTripStore>) {
 }
 
 describe('cloneTrip (FR-12)', () => {
-  it('clones the curated list with remapped links and fresh state', () => {
+  it('clones the curated list with remapped links and fresh state', async () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const store = useTripStore()
     seedSource(store)
+    await orch.ensureTripData('src')
 
     const tripId = orch.cloneTrip('src', {
       name: 'Engadin 2026',
@@ -140,10 +141,11 @@ describe('cloneTrip (FR-12)', () => {
     expect(items.find((i) => i.name === 'Schneeschuhe')?.state).toBe('skipped')
   })
 
-  it('drops links and containers when the carry-over options are off', () => {
+  it('drops links and containers when the carry-over options are off', async () => {
     const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
     const store = useTripStore()
     seedSource(store)
+    await orch.ensureTripData('src')
 
     const tripId = orch.cloneTrip('src', {
       name: 'Engadin 2026',
@@ -162,5 +164,23 @@ describe('cloneTrip (FR-12)', () => {
     expect(zelt.assigned_traveler_id).toBeNull()
     expect(zelt.container_id).toBeNull()
     expect(zelt.packer_user_id).toBeNull()
+  })
+
+  it('refuses to clone a trip whose rows are not on the device (ADR-033)', () => {
+    const orch = useSyncOrchestrator({ baseUrl: 'http://localhost', getToken: () => null })
+    const store = useTripStore()
+    seedSource(store)
+
+    // The partition was never pulled: "not pulled yet" must not be read as
+    // "empty trip" — before the guard this produced a clone with zero items.
+    const tripId = orch.cloneTrip('src', {
+      name: 'Engadin 2026',
+      year: 2026,
+      startDate: null,
+      endDate: null,
+      options: { travelerAssignments: true, packerDelegations: true, containerAssignments: true },
+    })
+
+    expect(tripId).toBeNull()
   })
 })
