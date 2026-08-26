@@ -173,6 +173,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [An invariant that lived at eighty-seven call sites (2026-08-25)](#an-invariant-that-lived-at-eighty-seven-call-sites-2026-08-25) — the optimistic `PullChange` gets one builder. Four things the code cannot show: the throwing probe that turned "the table and the id always match the mutation" from a reading into a measurement, the field a hand-built row had been dropping since it was written, why the same duplication had already crossed a module boundary into the FR-18.7 command, and why the twelve ids the cleanup freed are evidence rather than tidying.
 - [A field nobody had ever written (2026-08-26)](#a-field-nobody-had-ever-written-2026-08-26) — the four remaining row builders get their completeness cases. Three things the code cannot show: why `duration_days`' absence is correct and `series_name`'s is a defect, that `Trip.series_name` has been `null` on every device since it was typed so FR-14.3's trend heading has only ever named the trip, and why the guard that matters here is a compile error rather than an assertion, and the two holes a 66-run mutation sweep found in the suite itself — a one-field action cannot defend the field it changes, and a fixture equal to its mapper's default is a false green.
 - [The orchestrator starts coming apart (2026-08-26)](#the-orchestrator-starts-coming-apart-2026-08-26) — R-4's first cut: the row builders and the container group leave the 3,215-line composable, bound to a `SyncContext` that carries only what a moved group needs. Three things the code cannot show: why the extraction needed its own spec even though the group was already covered through the facade, why the context is grown per group rather than declared up front, and that the file holds **fourteen** row builders where R-3 defended the nine its review had listed.
+- [The five builders the list had hidden (2026-08-26)](#the-five-builders-the-list-had-hidden-2026-08-26) — R-3's remainder: `memberRow`, `commentRow`, `todoRow`, `profileRow`, `checklistItemRow`. Three things the code cannot show: that none of the five was actually dropping a column, so what landed is the guard and not a fix; why `commentRow` cannot be read back through the store at all and which two of its columns are therefore unreachable — a hard-coded column is only as defended as the writer that contradicts it; and that the mutation sweep reported all twenty columns undefended because its own red-detection was broken, which is what a sweep measuring itself looks like.
 
 ## Current state
 
@@ -7323,3 +7324,55 @@ same shape as the finding R-3 itself recorded, one level up: a hand-written
 enumeration driven by nothing. The five are undefended today, and gathering
 them into one module is what made it visible. **Do not read the closure of a
 backlog item as coverage of its subject**; read the subject.
+
+## The five builders the list had hidden (2026-08-26)
+
+R-3's remainder. `memberRow`, `commentRow`, `todoRow`, `profileRow` and
+`checklistItemRow` get the completeness cases the other nine already had,
+which closes the gap the R-4 move surfaced: the review had named nine
+builders, the file holds fourteen, and R-3 was closed against the list.
+
+**No column was actually being dropped.** All five builders were complete when
+checked against their domain types, so this PR fixes no live defect — it
+installs the guard that keeps them complete, which is a compile error
+(`satisfies Record<keyof T, unknown>`) rather than an assertion. Worth saying
+plainly, because "we found five undefended builders" and "we found five
+blanked columns" are different claims and only the first one is true.
+
+**`commentRow` does not fit the shared shape, and the reason is the finding.**
+Its one writer is `flagCommentAsTask`, which promotes the row from comment to
+todo — the store moves it between two maps, so it cannot be read back as the
+entity the seed produced. The case reads the *todo* instead and asserts every
+column `ItemTodo` names survived the promotion. Two of the builder's columns
+stay unreachable, both structurally:
+
+- `created_at`, because `ItemTodo` has no such field — once the row is a task,
+  no client surface can show the timestamp at all. It is in `commentRow`
+  because PR #204 found it missing, and the `satisfies` is what keeps it there.
+- `is_task: 0`, because the only writer overrides it with 1. `todoRow`'s
+  `is_task: 1` *is* defended — resolve and reopen both rebuild a row that has
+  to stay a task. **A hard-coded column is only as defended as the writer that
+  contradicts it.**
+
+Three more columns are unreachable for the reason #215 already recorded — a
+one-field action cannot defend the field it changes, and these builders have
+exactly one writer each: `memberRow.role` (`setTripMemberRole`),
+`todoRow.task_state` (resolve and reopen change the same column, so a second
+action buys nothing here) and `profileRow.notes` (the profile has two columns
+and one writer). Fifteen of twenty defended, five unreachable, each said out
+loud in its case.
+
+**And the sweep lied first.** The mutation sweep over the twenty columns came
+back green on all twenty — every column apparently undefended, including ones
+whose cases had just been written to catch exactly that. The fault was in the
+harness: it decided "red" by grepping the runner's stdout for `FAIL`, and the
+lines were not there to grep. Running one mutation by hand reddened two cases
+immediately. Switching the check to the process exit code produced the fifteen
+reds above.
+
+The lesson is not about vitest. **A sweep whose result is "nothing is covered"
+is far more likely to be measuring itself than the code**, and it is
+indistinguishable from a catastrophic finding until you check. Prove the
+harness can see a known-red run before trusting any of its greens — the same
+positive-signal rule the project already applies to tests that assert
+something did *not* happen.
