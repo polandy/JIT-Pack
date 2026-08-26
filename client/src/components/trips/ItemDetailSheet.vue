@@ -397,7 +397,11 @@ const packedStamp = computed(() => {
       </span>
     </p>
 
-    <!-- What the screen is opened for, and therefore the biggest control. -->
+    <!-- What the screen is opened for, and therefore the biggest control.
+         Labelled like prep and notes below (UX pass 2026-08-25): without the
+         eyebrow, a quantity-1 row rendered as an unlabelled box holding only
+         a checkbox and the state chip. -->
+    <h2 class="sl pack-label" data-testid="m5-pack-label">{{ t('packing.packSection') }}</h2>
     <div class="pack" data-testid="m5-pack">
       <QuantityStepper
         :quantity="item.quantity"

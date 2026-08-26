@@ -76,6 +76,10 @@ test.describe('M5 item detail @local @m5', () => {
     await page.getByTestId('m4-row-Zelt').getByRole('heading').click()
 
     await expect(page.getByTestId('m5-pack')).toBeVisible()
+    // UX pass 2026-08-25 (UX-10): the pack box names itself the way prep and
+    // notes do — before this label it was an unlabelled box holding only a
+    // checkbox and the state chip.
+    await expect(page.getByTestId('m5-pack-label')).toHaveText('Packing')
     await expect(page.getByTestId('m5-todo-input')).toBeVisible()
     await expect(page.getByTestId('m5-note-input')).toBeVisible()
     // FR-25.15: the sheet confirms local capture — settled ✓ once open.

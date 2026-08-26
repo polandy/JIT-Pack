@@ -122,6 +122,28 @@ test.describe('M11 containers @local @m11', () => {
     await expect(sheetChip(page, 'Links')).not.toHaveClass(/sel/)
   })
 
+  // E2E-M11-07 (UX pass 2026-08-25): with no containers, "everything is
+  // assigned to a container" would be a lie right under "no containers yet".
+  // The unassigned section says nothing until there is either a container to
+  // assign to or something unassigned to list — the first container is the
+  // positive signal that the section can still appear.
+  test('E2E-M11-07: with no containers the unassigned section is absent, and the first container brings it back', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await openLuggage(page)
+
+    await expect(visible(page).getByTestId('m11-empty')).toBeVisible()
+    await expect(visible(page).getByTestId('m11-unassigned-title')).toHaveCount(0)
+    await expect(visible(page).getByTestId('m11-unassigned-none')).toHaveCount(0)
+
+    await createContainer(page, 'Duffel')
+    await expect(visible(page).getByTestId('m11-unassigned-title')).toContainText(
+      'Unassigned items (0)',
+    )
+    await expect(visible(page).getByTestId('m11-unassigned-none')).toBeVisible()
+  })
+
   // E2E-M11-02 (FR-10.3): the weight bar grades against the limit —
   // amber at 90 %, red beyond — driven by a real item weight that came
   // in through the app's own paths (master item → quick-add suggestion).
