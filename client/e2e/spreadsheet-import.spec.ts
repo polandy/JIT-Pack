@@ -40,6 +40,23 @@ const INVENTORY_CSV = [
 ].join('\n')
 
 test.describe('M15 mapping — category column or category rows @local @m15', () => {
+  // E2E-M15-10 (UX-6, ADR-035): the file control is the app's own button —
+  // catalogue-labelled, not the browser's "Choose File / No file chosen"
+  // chrome — and a picked file lands on the same path the paste area feeds.
+  test('E2E-M15-10: the file control is a themed button, and a picked file lands', async ({
+    page,
+  }) => {
+    await seed(page, { mode: 'local' })
+    await page.goto('/import')
+    await expect(visiblePage(page).getByTestId('import-file')).toHaveText('Choose file')
+    await visiblePage(page)
+      .getByTestId('import-file-input')
+      .setInputFiles({ name: 'history.csv', mimeType: 'text/csv', buffer: Buffer.from(CSV) })
+    await expect(visiblePage(page).getByTestId('import-paste').locator('textarea')).toHaveValue(CSV)
+    await visiblePage(page).getByTestId('import-analyze').click()
+    await expect(visiblePage(page).getByTestId('import-trip-2')).toBeVisible()
+  })
+
   test('E2E-M15-06: the detected category column files the items under it', async ({ page }) => {
     await openMapping(page)
 
