@@ -38,13 +38,18 @@ import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
 import type {
   Container,
+  DestinationChecklistItem,
+  DestinationProfile,
+  ItemComment,
   ItemDependency,
+  ItemTodo,
   MasterItem,
   Template,
   TemplateItem,
   Traveler,
   Trip,
   TripItem,
+  TripMember,
   TripSeries,
 } from '@/types/domain'
 import { installHarness } from '@/__tests__/harness'
@@ -451,6 +456,137 @@ const CASES: BuilderCase[] = [
       quantity: 2,
     } satisfies Record<keyof ItemDependency, unknown>,
   },
+  {
+    builder: 'memberRow',
+    seed: () =>
+      pullIn(useTripStore(), TABLE.tripMembers, 'mem-1', {
+        trip_id: TRIP_ID,
+        user_id: 'user-a',
+        // Not `editor`: that is what `rowToMember` falls back to, and a
+        // fixture equal to its mapper's default reports nothing.
+        role: 'admin',
+      }),
+    read: () =>
+      useTripStore()
+        .getMembers(TRIP_ID)
+        .find((m) => m.id === 'mem-1') as unknown as Record<string, unknown>,
+    // One entry, and `role` is the column it cannot defend: `setTripMemberRole`
+    // is the only writer that rebuilds a membership row — the other two
+    // actions insert and delete — so nothing observes `role` being dropped.
+    // Unreachable rather than untested, like `travelerRow.name`.
+    acts: [
+      {
+        act: (m) => newOrch().setTripMemberRole(m, 'editor'),
+        changed: 'role',
+        becomes: 'editor',
+      },
+    ],
+    expected: {
+      id: 'mem-1',
+      trip_id: TRIP_ID,
+      user_id: 'user-a',
+      role: 'admin',
+    } satisfies Record<keyof TripMember, unknown>,
+  },
+  {
+    builder: 'todoRow',
+    seed: () =>
+      pullIn(useTripStore(), TABLE.comments, 'td-1', {
+        trip_id: TRIP_ID,
+        trip_item_id: 'ti-1',
+        author_id: 'user-a',
+        body: 'Zeltstangen prüfen',
+        is_task: 1,
+        // Not `open`: `rowToTodo` falls back to it.
+        task_state: 'resolved',
+      }),
+    read: () =>
+      useTripStore()
+        .getTodos(TRIP_ID)
+        .find((t) => t.id === 'td-1') as unknown as Record<string, unknown>,
+    // Two entries and they defend the same four columns, because both
+    // writers change `task_state` and nothing else — so `task_state` is the
+    // unreachable one here. They are still both worth running: resolve and
+    // reopen are separate paths, and either could be the one that drops a
+    // column.
+    acts: [
+      {
+        act: (t) => newOrch().reopenPrepTodo(TRIP_ID, t),
+        changed: 'task_state',
+        becomes: 'open',
+      },
+      {
+        act: (t) => newOrch().resolvePrepTodo(TRIP_ID, t),
+        changed: 'task_state',
+        becomes: 'resolved',
+      },
+    ],
+    expected: {
+      id: 'td-1',
+      trip_id: TRIP_ID,
+      trip_item_id: 'ti-1',
+      author_id: 'user-a',
+      body: 'Zeltstangen prüfen',
+      task_state: 'resolved',
+    } satisfies Record<keyof ItemTodo, unknown>,
+  },
+  {
+    builder: 'profileRow',
+    seed: () =>
+      pullIn(useMasterStore(), TABLE.destinationProfiles, 'prof-1', {
+        series_id: 'ser-1',
+        notes: 'Adapter Typ G',
+      }),
+    read: () =>
+      useMasterStore().getDestinationProfile('ser-1') as unknown as Record<string, unknown>,
+    // One entry, and `notes` is the column it cannot defend: the profile has
+    // exactly two columns and `updateDestinationProfile` is the only writer
+    // that rebuilds the row, so there is no second field to change.
+    acts: [
+      {
+        act: (p) => newOrch().updateDestinationProfile(p, { notes: 'Adapter Typ I' }),
+        changed: 'notes',
+        becomes: 'Adapter Typ I',
+      },
+    ],
+    expected: {
+      id: 'prof-1',
+      series_id: 'ser-1',
+      notes: 'Adapter Typ G',
+    } satisfies Record<keyof DestinationProfile, unknown>,
+  },
+  {
+    builder: 'checklistItemRow',
+    seed: () =>
+      pullIn(useMasterStore(), TABLE.destinationChecklistItems, 'chk-1', {
+        profile_id: 'prof-1',
+        label: 'Reiseadapter',
+        // Not `buy_local`: `rowToChecklistItem` falls back to it.
+        mode: 'pack',
+      }),
+    read: () =>
+      useMasterStore()
+        .getChecklistItems('prof-1')
+        .find((c) => c.id === 'chk-1') as unknown as Record<string, unknown>,
+    acts: [
+      {
+        act: (c) => newOrch().updateChecklistItem(c, { label: 'Adapter' }),
+        changed: 'label',
+        becomes: 'Adapter',
+      },
+      {
+        act: (c) => newOrch().updateChecklistItem(c, { mode: 'buy_before' }),
+        changed: 'mode',
+        becomes: 'buy_before',
+      },
+    ],
+    expected: {
+      id: 'chk-1',
+      profile_id: 'prof-1',
+      label: 'Reiseadapter',
+      mode: 'pack',
+    } satisfies Record<keyof DestinationChecklistItem, unknown>,
+  },
 ]
 
 describe.each(CASES)('$builder', (testCase) => {
@@ -470,4 +606,76 @@ describe.each(CASES)('$builder', (testCase) => {
       expect(testCase.read()).toEqual({ ...testCase.expected, [changed]: becomes })
     },
   )
+})
+
+/**
+ * `commentRow` does not fit the shape above, and the reason is the point of
+ * the case.
+ *
+ * Its one writer is `flagCommentAsTask`, which promotes the row from comment
+ * to todo (FR-7.2) — the store moves it between two maps, so it cannot be
+ * read back as the entity the seed produced. What can be read is the todo,
+ * and every column `ItemTodo` names has to have survived the promotion.
+ *
+ * Two of its columns are unreachable, both for the same structural reason and
+ * neither by oversight:
+ *
+ *  - `created_at` — `ItemTodo` does not carry it, so once the row is a task
+ *    no client surface can show it. It is in `commentRow` on purpose: PR #204
+ *    found it missing, which meant an optimistic promotion blanked the
+ *    timestamp, permanently in Local Mode. The `satisfies` on `expected`
+ *    holds it, not an assertion.
+ *  - `is_task: 0` — the only writer sets it to 1, so dropping the constant
+ *    changes nothing today. `todoRow`'s `is_task: 1` *is* defended, because
+ *    resolve and reopen both rebuild a row that has to stay a task. The
+ *    asymmetry is worth knowing: a hard-coded column is only as defended as
+ *    the writer that contradicts it.
+ */
+describe('commentRow', () => {
+  const COMMENT_ID = 'cmt-1'
+
+  function seedComment(): void {
+    pullIn(useTripStore(), TABLE.comments, COMMENT_ID, {
+      trip_id: TRIP_ID,
+      trip_item_id: 'ti-1',
+      author_id: 'user-a',
+      body: 'Reissverschluss klemmt',
+      created_at: '2026-08-20T10:00:00Z',
+      is_task: 0,
+    })
+  }
+
+  const expected = {
+    id: COMMENT_ID,
+    trip_id: TRIP_ID,
+    trip_item_id: 'ti-1',
+    author_id: 'user-a',
+    body: 'Reissverschluss klemmt',
+    created_at: '2026-08-20T10:00:00Z',
+  } satisfies Record<keyof ItemComment, unknown>
+
+  it('the seed reaches the store whole, so this fixture cannot go stale', () => {
+    seedComment()
+
+    expect(useTripStore().getItemComments(TRIP_ID, 'ti-1')).toEqual([expected])
+  })
+
+  it('promoting the comment to a task keeps every column the todo can show', () => {
+    seedComment()
+    const comment = useTripStore().getItemComments(TRIP_ID, 'ti-1')[0]!
+
+    newOrch().flagCommentAsTask(TRIP_ID, comment)
+
+    expect(useTripStore().getItemComments(TRIP_ID, 'ti-1')).toEqual([])
+    expect(useTripStore().getTodos(TRIP_ID)).toEqual([
+      {
+        id: COMMENT_ID,
+        trip_id: TRIP_ID,
+        trip_item_id: 'ti-1',
+        author_id: 'user-a',
+        body: 'Reissverschluss klemmt',
+        task_state: 'open',
+      } satisfies Record<keyof ItemTodo, unknown>,
+    ])
+  })
 })
