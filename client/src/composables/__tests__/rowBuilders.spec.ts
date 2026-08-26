@@ -36,7 +36,17 @@ import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
-import type { Container, MasterItem, Template, TemplateItem, TripItem } from '@/types/domain'
+import type {
+  Container,
+  ItemDependency,
+  MasterItem,
+  Template,
+  TemplateItem,
+  Traveler,
+  Trip,
+  TripItem,
+  TripSeries,
+} from '@/types/domain'
 import { installHarness } from '@/__tests__/harness'
 
 beforeEach(() => {
@@ -256,6 +266,113 @@ const CASES: BuilderCase[] = [
       max_weight_grams: 23000,
       paired_container_id: 'co-2',
     } satisfies Record<keyof Container, unknown>,
+  },
+  {
+    builder: 'tripRow',
+    seed: () =>
+      pullIn(useTripStore(), TABLE.trips, TRIP_ID, {
+        name: 'Engadin',
+        year: 2026,
+        status: 'planning',
+        start_date: '2026-08-01',
+        end_date: '2026-08-10',
+        series_id: 'ser-1',
+        attributes: JSON.stringify({ season: 'summer' }),
+        imported: 1,
+      }),
+    read: () => useTripStore().getTrip(TRIP_ID) as unknown as Record<string, unknown>,
+    act: () => newOrch().activateTrip(TRIP_ID),
+    changed: 'status',
+    becomes: 'active',
+    expected: {
+      id: TRIP_ID,
+      name: 'Engadin',
+      year: 2026,
+      status: 'planning',
+      start_date: '2026-08-01',
+      end_date: '2026-08-10',
+      // Absent from `tripRow` on purpose and safe to be: `trips.duration_days`
+      // is a GENERATED column, so no pull ever carries one and the store
+      // derives it from the two dates the builder does carry.
+      duration_days: 10,
+      series_id: 'ser-1',
+      // The second carve-out, and unlike `duration_days` it is not derived
+      // from anything: no `series_name` column exists in `schema.sql`, no
+      // mapper fills one, and so every trip that has ever been read carries
+      // `null` here. AnalyticsPage's FR-14.3 trend heading is the one reader,
+      // and its `?? trip.name` fallback is therefore the only branch taken.
+      // Closing that is its own change — the name lives on the master
+      // store's series row, which the trip store cannot reach.
+      series_name: null,
+      attributes: { season: 'summer' },
+      imported: true,
+    } satisfies Record<keyof Trip, unknown>,
+  },
+  {
+    builder: 'travelerRow',
+    seed: () => {
+      seedTrip()
+      pullIn(useTripStore(), TABLE.travelers, 'tr-1', {
+        trip_id: TRIP_ID,
+        name: 'Andy',
+        linked_user_id: 'user-a',
+      })
+    },
+    read: () => useTripStore().getTravelers(TRIP_ID)[0] as unknown as Record<string, unknown>,
+    act: () => newOrch().renameTraveler(TRIP_ID, 'tr-1', 'Andrea'),
+    changed: 'name',
+    becomes: 'Andrea',
+    expected: {
+      id: 'tr-1',
+      trip_id: TRIP_ID,
+      name: 'Andy',
+      // The column this case exists for: FR-2.7 forbids re-creating a
+      // traveler to rename them, because every assigned row points at this
+      // one. A rename that dropped the link would undo the account
+      // connection at the moment the user meant it least.
+      linked_user_id: 'user-a',
+    } satisfies Record<keyof Traveler, unknown>,
+  },
+  {
+    builder: 'seriesRow',
+    seed: () =>
+      pullIn(useMasterStore(), TABLE.tripSeries, 'ser-1', {
+        owner_id: 'user-a',
+        name: 'Engadin',
+        default_attributes: JSON.stringify({ season: 'summer' }),
+      }),
+    read: () => useMasterStore().getSeries('ser-1') as unknown as Record<string, unknown>,
+    act: (series) => newOrch().updateSeries(series, { name: 'Samedan' }),
+    changed: 'name',
+    becomes: 'Samedan',
+    expected: {
+      id: 'ser-1',
+      owner_id: 'user-a',
+      name: 'Engadin',
+      default_attributes: { season: 'summer' },
+    } satisfies Record<keyof TripSeries, unknown>,
+  },
+  {
+    builder: 'dependencyRow',
+    seed: () =>
+      pullIn(useMasterStore(), TABLE.itemDependencies, 'dep-1', {
+        item_id: 'it-2',
+        depends_on_item_id: 'it-1',
+        mode: 'suggested',
+        quantity: 2,
+      }),
+    read: () =>
+      useMasterStore().getItemDependencies('it-2')[0] as unknown as Record<string, unknown>,
+    act: (dep) => newOrch().updateItemDependency(dep, { mode: 'required' }),
+    changed: 'mode',
+    becomes: 'required',
+    expected: {
+      id: 'dep-1',
+      item_id: 'it-2',
+      depends_on_item_id: 'it-1',
+      mode: 'suggested',
+      quantity: 2,
+    } satisfies Record<keyof ItemDependency, unknown>,
   },
 ]
 

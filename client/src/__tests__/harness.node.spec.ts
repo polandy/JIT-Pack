@@ -39,7 +39,6 @@ describe('installHarness under node', () => {
  * off. These two cases run in declaration order and assert across the seam.
  */
 declare global {
-  // eslint-disable-next-line no-var
   var __leakProbe: string | undefined
 }
 
