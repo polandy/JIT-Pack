@@ -179,6 +179,26 @@ test.describe('M9 inventory — lean list on the tag set (FR-24.2/24.4)', () => 
     // The painted row changed — not merely the stored preference.
     await expect(visible(page).getByTestId('m9-row').first()).toContainText('900 g')
   })
+
+  test('E2E-M9-08: the first group heading clears the tag axis instead of touching it', async ({
+    page,
+  }) => {
+    await createItem(page, 'Badehose', ['Kleidung'])
+    await backToInventory(page)
+
+    const list = visible(page)
+    const axis = list.getByTestId('m9-tag-axis')
+    await expect(axis).toBeVisible()
+    const head = list.getByTestId('m9-group-head').first()
+    await expect(head).toBeVisible()
+
+    // Geometry, not pixels: at a 0px gap the segment's active underline sits
+    // flush against the heading and reads as the heading sliding under the
+    // axis (UX-4). Both elements are settled — the boxes are layout facts.
+    const axisBox = (await axis.boundingBox())!
+    const headBox = (await head.boundingBox())!
+    expect(headBox.y).toBeGreaterThanOrEqual(axisBox.y + axisBox.height + 8)
+  })
 })
 
 test.describe('M10 item editor — minimal creation (FR-24.5)', () => {
