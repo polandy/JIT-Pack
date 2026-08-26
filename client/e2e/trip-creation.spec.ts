@@ -1,5 +1,5 @@
 import { test, expect, expectTripOpen } from './fixtures'
-import { createTripViaWizard } from './fixtures'
+import { createTripViaWizard, setDateField } from './fixtures'
 import type { Locator } from '@playwright/test'
 
 /**
@@ -56,8 +56,13 @@ test('M3: step 1 gates Next on the name, and derives the duration @local @m3', a
 
   // FR-2.1c: the dates are optional and therefore folded away.
   await page.getByTestId('wizard-more').click()
-  await page.getByTestId('wizard-start-date').locator('input').fill('2026-09-13')
-  await page.getByTestId('wizard-end-date').locator('input').fill('2026-09-20')
+  await setDateField(page, 'wizard-start-date', '2026-09-13')
+  await setDateField(page, 'wizard-end-date', '2026-09-20')
+
+  // ADR-035 (UX-6): the field renders the locale display through formatDay,
+  // never the ISO string its state holds — the picked day proves the picker
+  // wrote through, the wording proves the browser no longer owns the text.
+  await expect(page.getByTestId('wizard-start-date').locator('input')).toHaveValue('Sep 13, 2026')
 
   // FR-2.1a: duration is derived from the dates, never entered — and it
   // counts both endpoints, so the 13th to the 20th is 8 travel days.
@@ -109,7 +114,7 @@ test('M3: step 2 requires every added traveler to be named @local @m3', async ({
 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
   await page.getByTestId('wizard-more').click()
-  await page.getByTestId('wizard-end-date').locator('input').fill(TRIP.endDate)
+  await setDateField(page, 'wizard-end-date', TRIP.endDate)
   await page.getByTestId('wizard-next').click()
 
   await expect(page.getByTestId('wizard-step-2')).toBeVisible()
@@ -138,7 +143,7 @@ test('M3: local mode hides the sharing section @local @m3 @g8', async ({ page, s
 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
   await page.getByTestId('wizard-more').click()
-  await page.getByTestId('wizard-end-date').locator('input').fill(TRIP.endDate)
+  await setDateField(page, 'wizard-end-date', TRIP.endDate)
   await page.getByTestId('wizard-next').click()
 
   await expect(page.getByTestId('wizard-step-2')).toBeVisible()
@@ -164,7 +169,7 @@ test('M3: the dashboard CTA leads through the wizard to a created trip @local @m
 
   await page.getByTestId('wizard-name').locator('input').fill(TRIP.name)
   await page.getByTestId('wizard-more').click()
-  await page.getByTestId('wizard-end-date').locator('input').fill(TRIP.endDate)
+  await setDateField(page, 'wizard-end-date', TRIP.endDate)
   await page.getByTestId('wizard-next').click()
 
   await expect(page.getByTestId('wizard-step-2')).toBeVisible()

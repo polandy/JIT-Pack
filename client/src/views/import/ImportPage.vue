@@ -35,6 +35,7 @@ import {
   parseTripDate,
   type GridAnalysis,
 } from '@/domain/spreadsheet'
+import FilePickButton from '@/components/global/FilePickButton.vue'
 import { formatDay, t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { TRIP_STATUS_ARCHIVED } from '@/types/domain'
@@ -60,9 +61,7 @@ const rawText = ref('')
 const grid = ref<string[][]>([])
 const analysis = ref<GridAnalysis | null>(null)
 
-async function onFile(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (!file) return
+async function onFile(file: File) {
   rawText.value = await file.text()
 }
 
@@ -255,7 +254,7 @@ setHeaderTitle(() => t('import.wizard.title', { step: step.value }))
       <section v-if="step === 1">
         <h2 class="section-title jp-eyebrow">{{ t('import.wizard.csvTitle') }}</h2>
         <p class="hint">{{ t('import.wizard.csvHint') }}</p>
-        <input type="file" accept=".csv,text/csv" @change="onFile" />
+        <FilePickButton accept=".csv,text/csv" testid="import-file" @file="onFile" />
         <IonTextarea
           class="paste-area"
           data-testid="import-paste"

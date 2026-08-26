@@ -168,7 +168,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M2-09** `all` (FR-18.4): overflow → Import trip from file → M18.
 
 ### M3 — Trip Creation Wizard
-* **E2E-M3-01** `all` (FR-2.1/2.1a/15.1): step 1 metadata — name, dates auto-compute + display duration, attribute chips (season/transport/accommodation) set.
+* **E2E-M3-01** `all` (FR-2.1/2.1a/15.1): step 1 metadata — name, dates auto-compute + display duration, attribute chips (season/transport/accommodation) set. Since 2026-08-26 (G-17, ADR-035) the dates are set through the `DateField` picker via `setDateField`, and the case asserts the field's rendered value is the locale display (`Sep 13, 2026`), never the ISO string the state holds.
 * **E2E-M3-02** `all` (FR-13.1/13.2): series picker incl. inline "New series…"; picking a series prefills empty attribute chips from its defaults.
 * **E2E-M3-03** `all` (FR-2.5): step 2 adds travelers **by name**; asserts there is **no** Adult/Child control and no type on the created traveler records (removed 2026-08-08 with FR-25.9).
 * **E2E-M3-04** `server` (FR-4.5/4.7): step 2 sharing — user picker (minus self), Editor/Admin role select; grants applied on create.
@@ -418,6 +418,7 @@ no-flags case to E2E-M14-06.)*
 * **E2E-M15-06** `all` (FR-16.1) — **implemented**: a sheet whose category is a *column* has it detected, and the confirm step reports the categories it produced and no item turned into one.
 * **E2E-M15-07** `all` (FR-16.1) — **implemented**: setting the category-column picker back to *None* is honoured rather than re-detected, and the plan then carries no category at all. The override is the escape hatch for a column the detector reads wrong — a *Notes* column carrying text and no quantities looks exactly like a category to it.
 * **E2E-M15-08** `all` (FR-16.1) — **implemented**: a sheet with no trip column at all passes the mapping step, reports *0 archived trips* with its items, and lands on the inventory rather than on the trip list. It used to be refused outright, and the bare list it imports would have arrived as categories and no items.
+* **E2E-M15-10** `all` (UX-6, G-17, ADR-035) — **implemented**: M15's file control is the app's own catalogue-labelled button, not the browser's file chrome, and a file picked through it lands its text on the same path the paste area feeds — asserted end to end by the mapping step appearing for the picked CSV.
 * **E2E-M15-09** `single` (FR-24.2/16.3) — **implemented**: after an import, a **second browser context** filters M9's tag axis to the imported category and finds the item under it, and a name the sheet listed twice is there once. Both halves were refused at the wire and invisible on the importing device: the tag link was enqueued before its item, and `items` is UNIQUE (name).
 
 ### M16 — Series & Destination Profile

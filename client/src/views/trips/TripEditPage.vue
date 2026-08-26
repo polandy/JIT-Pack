@@ -29,6 +29,7 @@ import {
 import { addOutline, closeOutline } from 'ionicons/icons'
 import { computed, inject, ref, watch } from 'vue'
 
+import DateField from '@/components/global/DateField.vue'
 import { t } from '@/i18n'
 import { presentToast } from '@/lib/toast'
 import { useTripStore } from '@/stores/tripStore'
@@ -205,25 +206,21 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
             />
           </IonItem>
           <IonItem>
-            <IonInput
-              type="date"
+            <DateField
+              testid="trip-edit-start"
               :label="t('tripEdit.startDate')"
-              label-placement="stacked"
               :value="startDate"
               :readonly="readOnly"
-              data-testid="trip-edit-start"
-              @ionChange="onStartDate(String($event.detail.value ?? ''))"
+              @update="onStartDate($event)"
             />
           </IonItem>
           <IonItem>
-            <IonInput
-              type="date"
+            <DateField
+              testid="trip-edit-end"
               :label="t('tripEdit.endDate')"
-              label-placement="stacked"
               :value="endDate"
               :readonly="readOnly"
-              data-testid="trip-edit-end"
-              @ionChange="onEndDate(String($event.detail.value ?? ''))"
+              @update="onEndDate($event)"
             />
           </IonItem>
         </IonList>
