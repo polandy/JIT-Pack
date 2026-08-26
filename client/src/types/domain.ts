@@ -327,7 +327,6 @@ export interface TemplateItem {
   id: string
   template_id: string
   item_id: string
-  item_name?: string
   /** Plain amount (FR-1.3/1.5 formulas retired 2026-08-08). */
   quantity: number
   assignment: TemplateAssignment
