@@ -10,7 +10,7 @@ import {
   analyzeGrid,
   buildImportPlan,
   findDuplicates,
-  normalizeTripDate,
+  parseTripDate,
   parseSpreadsheet,
 } from '@/domain/spreadsheet'
 import type { MasterItem } from '@/types/domain'
@@ -226,7 +226,7 @@ describe('buildImportPlan — a name repeated inside one file (FR-16.3)', () => 
     trips: analysis.tripColumns.map((t) => ({
       column: t.index,
       name: t.name,
-      endDate: normalizeTripDate(t.date)!,
+      ...parseTripDate(t.date)!,
       seriesId: null,
     })),
   }
@@ -272,14 +272,15 @@ describe('findDuplicates (FR-16.3)', () => {
   })
 })
 
-describe('normalizeTripDate', () => {
+describe('parseTripDate', () => {
   it.each([
-    ['2024', '2024-12-31'],
-    ['2026-08-10', '2026-08-10'],
+    // UX-5: a bare year stays a bare year — no Dec-31 is fabricated.
+    ['2024', { year: 2024, endDate: null }],
+    ['2026-08-10', { year: 2026, endDate: '2026-08-10' }],
     ['nonsense', null],
     ['', null],
-  ])('%s → %s', (input, want) => {
-    expect(normalizeTripDate(input)).toBe(want)
+  ] as const)('%s → %o', (input, want) => {
+    expect(parseTripDate(input)).toEqual(want)
   })
 })
 
@@ -291,8 +292,8 @@ describe('buildImportPlan (FR-16.2, NFR-4.7)', () => {
     categoryColumn: null,
     categoryRows: [1, 4],
     trips: [
-      { column: 1, name: 'Engadin 2023', endDate: '2023-12-31', seriesId: 'ser-1' },
-      { column: 3, name: 'Engadin 2025', endDate: '2025-12-31', seriesId: 'ser-1' },
+      { column: 1, name: 'Engadin 2023', year: 2023, endDate: null, seriesId: 'ser-1' },
+      { column: 3, name: 'Engadin 2025', year: 2025, endDate: null, seriesId: 'ser-1' },
     ],
   }
 
@@ -323,7 +324,7 @@ describe('buildImportPlan (FR-16.2, NFR-4.7)', () => {
       // FR-2.1b: the one required temporal fact, and the column that the
       // schema refuses a trip without.
       year: 2023,
-      endDate: '2023-12-31',
+      endDate: null,
       seriesId: 'ser-1',
     })
     const quantities = t2023.items.map((ti) => ({
@@ -346,7 +347,7 @@ describe('buildImportPlan (FR-16.2, NFR-4.7)', () => {
       grid,
       {
         ...mapping,
-        trips: [{ column: 2, name: 'Engadin 2024', endDate: '2024-12-31', seriesId: null }],
+        trips: [{ column: 2, name: 'Engadin 2024', year: 2024, endDate: null, seriesId: null }],
       },
       new Map(),
     )
@@ -367,7 +368,7 @@ describe('buildImportPlan — two-row header and category column (FR-16.1/16.2)'
     trips: analysis.tripColumns.map((t) => ({
       column: t.index,
       name: t.name,
-      endDate: normalizeTripDate(t.date)!,
+      ...parseTripDate(t.date)!,
       seriesId: null,
     })),
   }
@@ -386,9 +387,9 @@ describe('buildImportPlan — two-row header and category column (FR-16.1/16.2)'
   it('carries each trip year, which the schema requires (FR-2.1b)', () => {
     const plan = buildImportPlan(grid, mapping, new Map())
     expect(plan.trips.map((t) => [t.name, t.year, t.endDate])).toEqual([
-      ['Sjas', 2016, '2016-12-31'],
-      ['Laos', 2016, '2016-12-31'],
-      ['Moskau', 2017, '2017-12-31'],
+      ['Sjas', 2016, null],
+      ['Laos', 2016, null],
+      ['Moskau', 2017, null],
     ])
   })
 })

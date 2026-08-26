@@ -921,6 +921,8 @@ export const en = {
   'dashboard.greetingMorning': 'Good morning',
   'dashboard.greetingAfternoon': 'Good afternoon',
   'dashboard.greetingEvening': 'Good evening',
+  // Deliberately neutral at night (UX-15): any time-of-day claim at 00:14 is wrong.
+  'dashboard.greetingNight': 'Hello',
   'dashboard.subtitle': 'Your packing tasks',
   'dashboard.planTrip': 'Plan a trip',
   'dashboard.prepTodo': 'Prep to do ({n})',

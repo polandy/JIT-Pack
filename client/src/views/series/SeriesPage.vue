@@ -25,6 +25,7 @@ import { addOutline, closeOutline, copyOutline, trendingUpOutline } from 'ionico
 import { computed, inject, ref } from 'vue'
 
 import { t, type MessageKey } from '@/i18n'
+import { formatTripPeriod } from '@/lib/format'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import type { ItemMode, Trip } from '@/types/domain'
@@ -126,16 +127,8 @@ function tripStats(trip: Trip): string {
   return t('trips.itemSummary', { packed: k.packedItems, total: k.totalItems })
 }
 
-/**
- * The temporal line of a history row. FR-2.1b again: a trip may know both
- * dates or only its end, and "until 12.09." is a sentence in a way that a
- * bare dash is not.
- */
-function tripWhen(trip: Trip): string {
-  return trip.start_date
-    ? `${trip.start_date} – ${trip.end_date ?? ''}`
-    : t('trip.until', { date: trip.end_date ?? '' })
-}
+/** The temporal line of a history row (FR-2.1b, UX-5). */
+const tripWhen = formatTripPeriod
 
 /** Trend shortcut (M12): analytics of the series' most recent trip. */
 const trendTripId = computed(() => seriesTrips.value[0]?.id ?? null)

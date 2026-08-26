@@ -24,6 +24,8 @@ import {
 import { trainOutline, addOutline, buildOutline } from 'ionicons/icons'
 import { computed, inject } from 'vue'
 import { t } from '@/i18n'
+import { formatTripPeriod } from '@/lib/format'
+import { greetingKey } from '@/lib/greeting'
 import { useTripStore } from '@/stores/tripStore'
 import type { Trip, ItemTodo } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
@@ -35,12 +37,7 @@ const activeTrips = computed(() => store.tripList.filter((t) => t.status === 'ac
 
 const isEmpty = computed(() => activeTrips.value.length === 0)
 
-const greeting = computed(() => {
-  const hour = new Date().getHours()
-  if (hour < 12) return t('dashboard.greetingMorning')
-  if (hour < 18) return t('dashboard.greetingAfternoon')
-  return t('dashboard.greetingEvening')
-})
+const greeting = computed(() => t(greetingKey(new Date().getHours())))
 
 function tripKpis(trip: Trip) {
   return store.kpis(trip.id)
@@ -156,12 +153,7 @@ async function handleRefresh(event: CustomEvent) {
       <IonCard v-for="trip in activeTrips" :key="trip.id" button :router-link="`/trips/${trip.id}`">
         <IonCardHeader>
           <IonCardTitle>{{ trip.name }}</IonCardTitle>
-          <p class="trip-dates">
-            <template v-if="trip.start_date">
-              {{ trip.start_date }} &ndash; {{ trip.end_date }}
-            </template>
-            <template v-else>{{ t('trip.until', { date: trip.end_date ?? '' }) }}</template>
-          </p>
+          <p class="trip-dates">{{ formatTripPeriod(trip) }}</p>
         </IonCardHeader>
 
         <IonProgressBar :value="progressFraction(trip)" />
