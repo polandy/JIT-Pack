@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import {
   inventoryProperties,
   INVENTORY_PROPERTIES,
@@ -12,20 +12,9 @@ import {
  * The inventory is a lookup surface, not a spreadsheet.
  */
 
-function memoryStorage(): Storage {
-  const map = new Map<string, string>()
-  return {
-    getItem: (k: string) => map.get(k) ?? null,
-    setItem: (k: string, v: string) => void map.set(k, v),
-    removeItem: (k: string) => void map.delete(k),
-    clear: () => map.clear(),
-    key: () => null,
-    length: 0,
-  } as unknown as Storage
-}
-
 beforeEach(() => {
-  vi.stubGlobal('localStorage', memoryStorage())
+  // jsdom supplies the real Storage; a stub here would assert against itself.
+  localStorage.clear()
   inventoryProperties().reset()
 })
 

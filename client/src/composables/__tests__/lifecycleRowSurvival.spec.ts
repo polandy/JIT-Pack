@@ -12,24 +12,17 @@
  */
 import 'fake-indexeddb/auto'
 import { IDBFactory } from 'fake-indexeddb'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
+import { describe, it, expect, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
+import { installHarness } from '@/__tests__/harness'
 
 beforeEach(() => {
-  setActivePinia(createPinia())
   globalThis.indexedDB = new IDBFactory()
-  vi.stubGlobal('fetch', vi.fn())
-  vi.stubGlobal('WebSocket', vi.fn())
-  const storage = new Map<string, string>()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
+  installHarness()
 })
 
 function newLocalOrch() {

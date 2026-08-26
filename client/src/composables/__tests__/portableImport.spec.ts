@@ -4,7 +4,7 @@
  * trip imports become a planning trip with travelers/containers
  * remapped by name and pack progress preserved.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
@@ -12,30 +12,10 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { joinDocuments, parsePortable, parsePortableAll } from '@/domain/portable'
 import { buildBackup } from '@/local/backup'
-
-let fetchMock: ReturnType<typeof vi.fn>
+import { installHarness } from '@/__tests__/harness'
 
 beforeEach(() => {
-  setActivePinia(createPinia())
-  fetchMock = vi.fn().mockResolvedValue(
-    new Response(
-      JSON.stringify({
-        results: [],
-        pull_hint: { next_cursor: 1 },
-        changes: [],
-        next_cursor: 1,
-        has_more: false,
-      }),
-      { status: 200 },
-    ),
-  )
-  vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal('WebSocket', vi.fn())
-  const storage = new Map<string, string>()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
+  installHarness().mockDrain()
 })
 
 function newOrch() {

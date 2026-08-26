@@ -15,14 +15,10 @@ import {
   setTheme,
 } from '../theme'
 
-let storage: Map<string, string>
-
 beforeEach(() => {
-  storage = new Map()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
+  // jsdom supplies the real Storage; stubbing it here would mean asserting
+  // against the stub instead of against the API the code actually writes to.
+  localStorage.clear()
   document.documentElement.classList.remove(LATTE_CLASS)
 })
 
@@ -46,7 +42,7 @@ describe('initTheme', () => {
   })
 
   it('applies the persisted latte choice before mount', () => {
-    storage.set(THEME_STORAGE_KEY, 'latte')
+    localStorage.setItem(THEME_STORAGE_KEY, 'latte')
     expect(initTheme()).toBe('latte')
     expect(document.documentElement.classList.contains(LATTE_CLASS)).toBe(true)
   })
@@ -109,7 +105,7 @@ describe('theme-color meta (NFR-4.13)', () => {
 describe('setTheme / currentTheme', () => {
   it('latte persists the choice and tags the root element', () => {
     setTheme('latte')
-    expect(storage.get(THEME_STORAGE_KEY)).toBe('latte')
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('latte')
     expect(document.documentElement.classList.contains(LATTE_CLASS)).toBe(true)
     expect(currentTheme()).toBe('latte')
   })
@@ -117,7 +113,7 @@ describe('setTheme / currentTheme', () => {
   it('switching back to mocha removes the root tag and persists', () => {
     setTheme('latte')
     setTheme('mocha')
-    expect(storage.get(THEME_STORAGE_KEY)).toBe('mocha')
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('mocha')
     expect(document.documentElement.classList.contains(LATTE_CLASS)).toBe(false)
     expect(currentTheme()).toBe('mocha')
   })

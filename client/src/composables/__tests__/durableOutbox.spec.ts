@@ -5,36 +5,17 @@
  * like an all-clear.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import type { Mutation, PullResponse, PushResponse } from '@/api/types'
 import type { OutboxStore, ParkedMutation, PendingMutation } from '@/sync/outboxStore'
 import { REJECTION_REASON } from '@/sync/rejectionReasons'
+import { installHarness } from '@/__tests__/harness'
 
 let fetchMock: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
-  setActivePinia(createPinia())
-  fetchMock = vi.fn()
-  vi.stubGlobal('fetch', fetchMock)
-  // A class, not `vi.fn(() => ({…}))`: these cases actually run `connect()`,
-  // which does `new WebSocket(...)`, and an arrow function cannot be
-  // constructed — it surfaces as an unhandled TypeError rather than a
-  // failure, which is worse than a red test.
-  vi.stubGlobal(
-    'WebSocket',
-    class {
-      readyState = 1
-      send() {}
-      close() {}
-    },
-  )
-  const storage = new Map<string, string>()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
+  ;({ fetch: fetchMock } = installHarness())
 })
 
 /** In-memory OutboxStore standing in for the device's IndexedDB. */

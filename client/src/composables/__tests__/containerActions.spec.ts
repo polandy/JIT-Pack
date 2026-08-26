@@ -5,29 +5,15 @@
  * would reject the delete.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
 
 import { useMutations } from '@/composables/useMutations'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { HLCGenerator } from '@/sync/hlc'
 import { useTripStore } from '@/stores/tripStore'
+import { installHarness } from '@/__tests__/harness'
 
 beforeEach(() => {
-  setActivePinia(createPinia())
-  vi.stubGlobal(
-    'fetch',
-    vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ results: [], pull_hint: { next_cursor: 1 } }), {
-        status: 200,
-      }),
-    ),
-  )
-  vi.stubGlobal('WebSocket', vi.fn())
-  const storage = new Map<string, string>()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
+  installHarness().mockDrain()
 })
 
 describe('container mutations', () => {

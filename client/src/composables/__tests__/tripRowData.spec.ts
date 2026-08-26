@@ -13,31 +13,14 @@ import { setActivePinia, createPinia } from 'pinia'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { IndexedDBPersistence } from '@/local/persistence'
+import { installHarness } from '@/__tests__/harness'
 
 let fetchMock: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
-  setActivePinia(createPinia())
-  fetchMock = vi.fn().mockResolvedValue(
-    new Response(JSON.stringify({ changes: [], next_cursor: 0, has_more: false }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    }),
-  )
-  vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal(
-    'WebSocket',
-    class {
-      readyState = 1
-      send() {}
-      close() {}
-    },
-  )
-  const storage = new Map<string, string>()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
+  const harness = installHarness()
+  fetchMock = harness.fetch
+  harness.mockDrain()
 })
 
 const newOrch = () => useSyncOrchestrator({ baseUrl: '', getToken: () => null })

@@ -5,35 +5,18 @@
  * profile with its checklist.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
+import { installHarness } from '@/__tests__/harness'
 
 let fetchMock: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
-  setActivePinia(createPinia())
-  fetchMock = vi.fn().mockResolvedValue(
-    new Response(
-      JSON.stringify({
-        results: [],
-        pull_hint: { next_cursor: 1 },
-        changes: [],
-        next_cursor: 1,
-        has_more: false,
-      }),
-      { status: 200 },
-    ),
-  )
-  vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal('WebSocket', vi.fn())
-  const storage = new Map<string, string>()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
+  const harness = installHarness()
+  fetchMock = harness.fetch
+  harness.mockDrain()
 })
 
 function newOrch() {

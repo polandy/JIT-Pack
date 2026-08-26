@@ -7,14 +7,14 @@
  * untouched, and that a trip whose rows are not on the device is refused
  * rather than turned into an empty template.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
+import { describe, it, expect, beforeEach } from 'vitest'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
 import { TABLE } from '@/types/tables'
 import type { PullChange } from '@/api/types'
+import { installHarness } from '@/__tests__/harness'
 
 const TRIP_ID = 'trip-1'
 const GROUP_ID = 'grp-1'
@@ -29,16 +29,7 @@ const ANSWERS = {
 }
 
 beforeEach(() => {
-  setActivePinia(createPinia())
-  vi.stubGlobal(
-    'WebSocket',
-    vi.fn(() => ({ send: vi.fn(), close: vi.fn(), readyState: 1 })),
-  )
-  const storage = new Map<string, string>()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
+  installHarness()
 })
 
 function change(table: string, id: string, row: Record<string, unknown>): PullChange {

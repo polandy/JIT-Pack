@@ -5,10 +5,10 @@
  * (Sync-API §7).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import type { PullResponse } from '@/api/types'
+import { installHarness } from '@/__tests__/harness'
 
 interface WSStub {
   send: ReturnType<typeof vi.fn>
@@ -23,10 +23,8 @@ let fetchMock: ReturnType<typeof vi.fn>
 let wsInstances: WSStub[]
 
 beforeEach(() => {
-  setActivePinia(createPinia())
-  fetchMock = vi.fn()
+  ;({ fetch: fetchMock } = installHarness())
   wsInstances = []
-  vi.stubGlobal('fetch', fetchMock)
   // Must be constructible ("new WebSocket(...)"), so no arrow function.
   vi.stubGlobal('WebSocket', function () {
     const inst: WSStub = {
@@ -40,11 +38,6 @@ beforeEach(() => {
     wsInstances.push(inst)
     return inst
   } as unknown as typeof WebSocket)
-  const storage = new Map<string, string>()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
 })
 
 function newOrch() {

@@ -11,29 +11,18 @@
 import 'fake-indexeddb/auto'
 import { IDBFactory } from 'fake-indexeddb'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { IndexedDBPersistence } from '@/local/persistence'
 import { useMasterStore } from '@/stores/masterStore'
 import type { PushResponse } from '@/api/types'
+import { installHarness } from '@/__tests__/harness'
 
 let fetchMock: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
-  setActivePinia(createPinia())
   globalThis.indexedDB = new IDBFactory()
-  fetchMock = vi.fn()
-  vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal(
-    'WebSocket',
-    vi.fn(() => ({ send: vi.fn(), close: vi.fn(), readyState: 1 })),
-  )
-  const storage = new Map<string, string>()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
+  ;({ fetch: fetchMock } = installHarness())
 })
 
 function mockDrain() {

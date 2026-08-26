@@ -301,6 +301,12 @@ Test-first: every behaviour starts as a failing test that reads as its specifica
   that reads a DOM global inside a `try` takes the `catch` under `node`, and the spec
   passes while asserting against the error path. Only a coverage diff between the two
   environments catches that.
+- **The globals come from one harness**, `client/src/__tests__/harness.ts`
+  (`installHarness()` in `beforeEach`): pinia, `fetch`, `WebSocket` and the response
+  builders. It stubs `localStorage` **only under `node`** — under `jsdom` the real one
+  stays, because replacing it means asserting against the stub instead of the environment
+  the spec declared. A spec still owns anything bespoke (a constructible `WebSocket` that
+  records instances, a storage that throws) by stubbing after the call.
 - **Always `-race`.**
 
 ## Working agreement (see CODING_PRINCIPLES.md for the full detail)

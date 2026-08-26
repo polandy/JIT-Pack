@@ -1,30 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { useTripStore } from '@/stores/tripStore'
 import { useMasterStore } from '@/stores/masterStore'
+import { installHarness } from '@/__tests__/harness'
 
 // Item-dependency runtime behavior (Addendum 3.20): the co-skip cascade
 // on the main item (FR-20.2) and required companions joining a quick-add
 // automatically (FR-20.4/FR-5.6).
 
 beforeEach(() => {
-  setActivePinia(createPinia())
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(() =>
-      Promise.resolve(
-        new Response(JSON.stringify({ changes: [], next_cursor: 1, has_more: false }), {
-          status: 200,
-        }),
-      ),
-    ),
-  )
-  const storage = new Map<string, string>()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
+  installHarness()
 })
 
 function seedMaster() {

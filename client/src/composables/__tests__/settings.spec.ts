@@ -4,24 +4,16 @@
  * server identity, no server exports).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
 
 import { useSyncOrchestrator } from '../useSyncOrchestrator'
 import { IndexedDBPersistence } from '@/local/persistence'
 import 'fake-indexeddb/auto'
+import { installHarness } from '@/__tests__/harness'
 
 let fetchMock: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
-  setActivePinia(createPinia())
-  fetchMock = vi.fn()
-  vi.stubGlobal('fetch', fetchMock)
-  vi.stubGlobal('WebSocket', vi.fn())
-  const storage = new Map<string, string>()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
+  ;({ fetch: fetchMock } = installHarness())
 })
 
 describe('M17 profile & data actions', () => {
