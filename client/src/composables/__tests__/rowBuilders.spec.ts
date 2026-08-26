@@ -26,9 +26,9 @@
  * instead — see its doc comment below — and it is a compile error rather
  * than a red test.
  *
- * The builders are module-private, so each case reaches its own through a
- * real action rather than by importing it: what is being defended is the
- * optimistic write, not a function signature.
+ * Each case reaches its builder through a real action rather than by
+ * importing it from `sync/rows.ts`: what is being defended is the optimistic
+ * write, not a function signature.
  */
 import { describe, it, expect, beforeEach } from 'vitest'
 
