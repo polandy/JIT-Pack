@@ -283,6 +283,13 @@ function handleRefresh(event: CustomEvent) {
   margin: 16px 0 8px;
 }
 
+/* Clearance below the axis (UX-4): at 0px the active chip's underline sat
+   flush against the first group heading, which read as the heading sliding
+   under the bar. Inset to match M7's segment. */
+ion-segment {
+  margin: 0 12px 12px;
+}
+
 .tag-group {
   margin: 0 0 18px;
 }
