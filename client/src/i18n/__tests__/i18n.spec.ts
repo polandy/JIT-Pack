@@ -20,18 +20,14 @@ import {
   t,
 } from '../index'
 
-let storage: Map<string, string>
-
 function stubNavigatorLanguages(languages: string[]): void {
   vi.stubGlobal('navigator', { ...globalThis.navigator, languages })
 }
 
 beforeEach(() => {
-  storage = new Map()
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => storage.get(k) ?? null,
-    setItem: (k: string, v: string) => storage.set(k, v),
-  })
+  // jsdom supplies the real Storage; stubbing it here would mean asserting
+  // against the stub instead of against the API the code actually writes to.
+  localStorage.clear()
   stubNavigatorLanguages(['en-GB'])
   setLocale('en')
 })
@@ -142,7 +138,7 @@ describe('t', () => {
 describe('setLocale / initLocale', () => {
   it('persists the choice device-local', () => {
     setLocale('de')
-    expect(storage.get(LOCALE_STORAGE_KEY)).toBe('de')
+    expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe('de')
   })
 
   it('reflects the choice in currentLocale', () => {
@@ -169,7 +165,7 @@ describe('setLocale / initLocale', () => {
   })
 
   it('applies the persisted locale at boot', () => {
-    storage.set(LOCALE_STORAGE_KEY, 'de')
+    localStorage.setItem(LOCALE_STORAGE_KEY, 'de')
     expect(initLocale()).toBe('de')
     expect(t('common.cancel')).toBe('Abbrechen')
   })
