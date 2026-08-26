@@ -33,23 +33,21 @@ import {
   optimisticUpdate,
 } from '@/sync/optimistic'
 import {
-  checklistItemRow,
-  commentRow,
-  dependencyRow,
   generateDeviceId,
   hashBlob,
   itemRow,
   masterItemRow,
   memberRow,
-  profileRow,
-  seriesRow,
   templateItemRow,
   templateRow,
-  todoRow,
   travelerRow,
   tripRow,
 } from './sync/rows'
 import { createContainerActions } from './sync/actions/containers'
+import { createCommentActions } from './sync/actions/comments'
+import { createDependencyActions } from './sync/actions/dependencies'
+import { createSeriesActions } from './sync/actions/series'
+import { createNameGuards, isTakenRename } from './sync/names'
 import type { QueuedMutation, SyncContext } from './sync/context'
 import { useWebSocket } from './useWebSocket'
 import { CLIENT_ACTOR_PLACEHOLDER, useMutations } from './useMutations'
@@ -83,7 +81,7 @@ import {
   type RefreshPlan,
 } from '@/domain/refresh'
 import { followsGroups } from '@/domain/trips'
-import { findNameCollision, foldName, renameTarget } from '@/domain/nameCollision'
+import { foldName } from '@/domain/nameCollision'
 import {
   RESTORE_READY,
   restoreFields,
@@ -107,12 +105,7 @@ import { IndexedDBOutboxStore, type OutboxStore } from '@/sync/outboxStore'
 import { TRIP_STATUS_PLANNING } from '@/types/domain'
 import type { TripEdit } from './useMutations'
 import type {
-  DestinationChecklistItem,
-  DestinationProfile,
-  ItemComment,
-  ItemDependency,
   ItemMode,
-  ItemTodo,
   MasterItem,
   ReviewFlag,
   ShoppingMode,
@@ -122,7 +115,6 @@ import type {
   Trip,
   TripItem,
   TripMember,
-  TripSeries,
   TripStatus,
   TravelerChangeReport,
 } from '@/types/domain'
@@ -690,8 +682,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   }
 
   /** The spine the extracted action groups are bound to (R-4). */
-  const ctx: SyncContext = { tripStore, mutations, enqueueAndDrain }
+  const names = createNameGuards(masterStore)
+  const ctx: SyncContext = { tripStore, masterStore, mutations, enqueueAndDrain, names }
   const containerActions = createContainerActions(ctx)
+  const commentActions = createCommentActions(ctx)
+  const dependencyActions = createDependencyActions(ctx)
+  const seriesActions = createSeriesActions(ctx)
 
   /** Pack: increment packed count on a trip item. */
   function packIncrement(tripId: string, item: TripItem) {
@@ -1179,7 +1175,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       // same shape generation writes — enqueued after the row they hang
       // off, or the server rejects the foreign key.
       for (const body of add.generated.tasks) {
-        addPrepTodo(tripId, id, CLIENT_ACTOR_PLACEHOLDER, body)
+        commentActions.addPrepTodo(tripId, id, CLIENT_ACTOR_PLACEHOLDER, body)
       }
     }
 
@@ -1195,7 +1191,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         })
       }
       for (const body of update.addTasks) {
-        addPrepTodo(tripId, update.item.id, CLIENT_ACTOR_PLACEHOLDER, body)
+        commentActions.addPrepTodo(tripId, update.item.id, CLIENT_ACTOR_PLACEHOLDER, body)
       }
       for (const todo of update.removeTodos) {
         enqueueAndDrain('trip', tripId, {
@@ -1327,7 +1323,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       // FR-27.7 tasks become ordinary FR-7.3 todos, enqueued after the row
       // they hang off — pushed ahead of it, the server rejects the key.
       for (const body of add.generated.tasks) {
-        addPrepTodo(tripId, id, CLIENT_ACTOR_PLACEHOLDER, body)
+        commentActions.addPrepTodo(tripId, id, CLIENT_ACTOR_PLACEHOLDER, body)
       }
     }
 
@@ -2120,40 +2116,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return `${config.baseUrl}${API.itemImage(item.id)}?v=${item.image_hash}`
   }
 
-  /**
-   * templateNameCollision names the template already holding `name`
-   * (FR-1.6), or undefined. `templates.name` is UNIQUE **instance-wide and
-   * across both scopes**, so a Gruppe can hold the name a Ferien-Vorlage
-   * wants — the caller reports the kind so that reads as a fact rather than
-   * as a bug. Retired templates are not consulted: since FR-24.3 the
-   * database's uniqueness is over the active rows, and refusing a name the
-   * constraint would accept — held by a row no screen shows — is a name taken
-   * away with nothing the user can do about it.
-   */
-  function templateNameCollision(name: string, excludeId?: string): Template | undefined {
-    return findNameCollision(name, masterStore.activeTemplateList, excludeId)
-  }
-
-  /** seriesNameCollision names the series already holding `name` (FR-13.1). */
-  function seriesNameCollision(name: string, excludeId?: string): TripSeries | undefined {
-    return findNameCollision(name, masterStore.seriesList, excludeId)
-  }
-
-  /**
-   * Whether an edit patch renames a row onto a name somebody else holds. The
-   * guard sits here rather than only in the views because Local Mode has no
-   * constraint behind it: this is the only thing between the user and two
-   * rows nothing on screen can tell apart.
-   */
-  function isTakenRename(
-    fields: Record<string, unknown>,
-    id: string,
-    find: (name: string, excludeId?: string) => { id: string } | undefined,
-  ): boolean {
-    const next = renameTarget(fields)
-    return next !== null && find(next, id) !== undefined
-  }
-
   /** createTemplate makes a new template. Templates are shared
    * instance-wide (FR-1.6 MVP), so owner_id is creator metadata only; it is
    * stamped server-side on push and the optimistic row leaves it empty.
@@ -2167,7 +2129,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     /** FR-28.8: the optional mark, set at creation by the seed and the import. */
     icon: string | null = null,
   ): string | null {
-    if (templateNameCollision(name)) return null
+    if (names.templateNameCollision(name)) return null
     const { mutation, id } = mutations.createTemplate(name, '', kind, icon)
     enqueueAndDrain('master', null, {
       mutation,
@@ -2177,7 +2139,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   }
 
   function updateTemplate(template: Template, fields: Record<string, unknown>): boolean {
-    if (isTakenRename(fields, template.id, templateNameCollision)) return false
+    if (isTakenRename(fields, template.id, names.templateNameCollision)) return false
     const mutation = mutations.updateTemplate(template.id, fields)
     enqueueAndDrain('master', null, {
       mutation,
@@ -2273,63 +2235,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     enqueueAndDrain('master', null, {
       mutation,
       optimistic: optimisticDelete(mutation),
-    })
-  }
-
-  // --- Item dependency actions (Addendum 3.20, FR-20.1) ---
-
-  function addItemDependency(
-    itemId: string,
-    dependsOnItemId: string,
-    opts: Parameters<typeof mutations.addItemDependency>[2] = {},
-  ): string {
-    const { mutation, id } = mutations.addItemDependency(itemId, dependsOnItemId, opts)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
-    return id
-  }
-
-  function updateItemDependency(dependency: ItemDependency, fields: Record<string, unknown>) {
-    const mutation = mutations.updateItemDependency(dependency.id, fields)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, dependencyRow(dependency)),
-    })
-  }
-
-  function deleteItemDependency(dependencyId: string) {
-    const mutation = mutations.deleteItemDependency(dependencyId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticDelete(mutation),
-    })
-  }
-
-  // --- Todo actions (FR-7.3) ---
-
-  function addPrepTodo(tripId: string, tripItemId: string, authorId: string, body: string) {
-    const { mutation } = mutations.addTodo(tripId, tripItemId, authorId, body)
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
-  }
-
-  function resolvePrepTodo(tripId: string, todo: ItemTodo) {
-    const mut = mutations.resolveTodo(todo.id)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, todoRow(todo)),
-    })
-  }
-
-  function reopenPrepTodo(tripId: string, todo: ItemTodo) {
-    const mut = mutations.reopenTodo(todo.id)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, todoRow(todo)),
     })
   }
 
@@ -2489,90 +2394,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     }
   }
 
-  // --- Series & destination actions (FR-13.1/13.2, M16) ---
-
-  function createSeries(
-    name: string,
-    defaultAttributes: Record<string, unknown> | null = null,
-  ): string | null {
-    if (seriesNameCollision(name)) return null
-    const { mutation, id } = mutations.createSeries(name, defaultAttributes)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
-    return id
-  }
-
-  function updateSeries(series: TripSeries, fields: Record<string, unknown>): boolean {
-    if (isTakenRename(fields, series.id, seriesNameCollision)) return false
-    const mutation = mutations.updateSeries(series.id, fields)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, seriesRow(series)),
-    })
-    return true
-  }
-
-  /** setTripSeries attaches (or, with null, detaches) a trip to a series. */
-  function setTripSeries(tripId: string, seriesId: string | null) {
-    const trip = tripStore.getTrip(tripId)
-    if (!trip) return
-    const mutation = mutations.setTripSeries(tripId, seriesId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, tripRow(trip)),
-    })
-  }
-
-  /**
-   * ensureDestinationProfile returns the series' profile id, creating
-   * the (unique, FR-13.2) profile on first use.
-   */
-  function ensureDestinationProfile(seriesId: string): string {
-    const existing = masterStore.getDestinationProfile(seriesId)
-    if (existing) return existing.id
-    const { mutation, id } = mutations.createDestinationProfile(seriesId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
-    return id
-  }
-
-  function updateDestinationProfile(profile: DestinationProfile, fields: Record<string, unknown>) {
-    const mutation = mutations.updateDestinationProfile(profile.id, fields)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, profileRow(profile)),
-    })
-  }
-
-  function addChecklistItem(profileId: string, label: string, mode: ItemMode): string {
-    const { mutation, id } = mutations.addChecklistItem(profileId, label, mode)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
-    return id
-  }
-
-  function updateChecklistItem(item: DestinationChecklistItem, fields: Record<string, unknown>) {
-    const mutation = mutations.updateChecklistItem(item.id, fields)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, checklistItemRow(item)),
-    })
-  }
-
-  function deleteChecklistItem(itemId: string) {
-    const mutation = mutations.deleteChecklistItem(itemId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticDelete(mutation),
-    })
-  }
-
   // --- Post-trip review (FR-9.2, M14) ---
 
   /**
@@ -2656,9 +2477,9 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // Before the first write, not between them: this screen creates a
     // Vorlage and possibly a group, and half of M21's work landing before a
     // refused name would leave the trip folded into nothing (FR-1.6).
-    if (templateNameCollision(answers.templateName)) return null
+    if (names.templateNameCollision(answers.templateName)) return null
     if (answers.bundleName !== null) {
-      if (templateNameCollision(answers.bundleName)) return null
+      if (names.templateNameCollision(answers.bundleName)) return null
       if (foldName(answers.bundleName) === foldName(answers.templateName)) return null
     }
 
@@ -2713,39 +2534,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     for (const groupId of includeIds) addTemplateInclude(templateId, groupId)
 
     return templateId
-  }
-
-  // --- Comment actions (FR-7.1/7.2) ---
-
-  function addComment(
-    tripId: string,
-    tripItemId: string | null,
-    authorId: string,
-    body: string,
-  ): string {
-    const { mutation, id } = mutations.addComment(tripId, tripItemId, authorId, body)
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
-    return id
-  }
-
-  /** Promote a plain comment into an open ticket (FR-7.2). */
-  function flagCommentAsTask(tripId: string, comment: ItemComment) {
-    const mut = mutations.flagCommentAsTask(comment.id)
-    enqueueAndDrain('trip', tripId, {
-      mutation: mut,
-      optimistic: optimisticUpdate(mut, commentRow(comment)),
-    })
-  }
-
-  function deleteComment(tripId: string, commentId: string) {
-    const mutation = mutations.deleteComment(commentId)
-    enqueueAndDrain('trip', tripId, {
-      mutation,
-      optimistic: optimisticDelete(mutation),
-    })
   }
 
   // --- Lifecycle ---
@@ -2864,8 +2652,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     deleteItemImage,
     itemImageUrl,
     createTemplate,
-    templateNameCollision,
-    seriesNameCollision,
+    templateNameCollision: names.templateNameCollision,
+    seriesNameCollision: names.seriesNameCollision,
     updateTemplate,
     deleteTemplate,
     addTemplateInclude,
@@ -2875,19 +2663,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     addTemplateItem,
     updateTemplateItem,
     deleteTemplateItem,
-    addItemDependency,
-    updateItemDependency,
-    deleteItemDependency,
+    ...dependencyActions,
 
-    // Todos
-    addPrepTodo,
-    resolvePrepTodo,
-    reopenPrepTodo,
-
-    // Comments (FR-7.1/7.2)
-    addComment,
-    flagCommentAsTask,
-    deleteComment,
+    // Comments and todos (FR-7.1/7.2/7.3)
+    ...commentActions,
 
     // Containers (FR-10.1, M11)
     ...containerActions,
@@ -2899,14 +2678,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     fetchUsers,
 
     // Series & destinations (FR-13.1/13.2, M16)
-    createSeries,
-    updateSeries,
-    setTripSeries,
-    ensureDestinationProfile,
-    updateDestinationProfile,
-    addChecklistItem,
-    updateChecklistItem,
-    deleteChecklistItem,
+    ...seriesActions,
 
     // Profile & data (M17)
     fetchMe,

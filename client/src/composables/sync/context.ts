@@ -10,6 +10,8 @@
 import type { Mutation, PullChange } from '@/api/types'
 import type { useMutations } from '../useMutations'
 import type { useTripStore } from '@/stores/tripStore'
+import type { useMasterStore } from '@/stores/masterStore'
+import type { NameGuards } from './names'
 
 /** One queued write: the mutation itself plus the row it optimistically paints. */
 export interface QueuedMutation {
@@ -30,6 +32,8 @@ export type EnqueueAndDrain = (
 
 export interface SyncContext {
   tripStore: ReturnType<typeof useTripStore>
+  masterStore: ReturnType<typeof useMasterStore>
   mutations: ReturnType<typeof useMutations>
   enqueueAndDrain: EnqueueAndDrain
+  names: NameGuards
 }
