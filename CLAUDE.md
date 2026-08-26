@@ -249,7 +249,7 @@ it. Item numbers stay stable even as items close, because the log refers back to
    server's `stillReferenced` check turned from a refusal into the choice, M10's delete card (which
    did not exist) and M7's confirm stating which of the two happens *before* it does, and
    `itemList`/`templateList` deliberately still meaning everything while display surfaces opt into
-   the active lists. §3.24 is closed. **Restore followed the same day** (ADR-033): M23 lists the
+   the active lists. §3.24 is closed. **Restore followed the same day** (ADR-034): M23 lists the
    retired rows off M17, and the collision the partial name index makes possible — the freed name
    taken by a new row — is refused on the client before the mutation, with a replacement name
    written in the same write. A retired row nothing references any more can still be removed for

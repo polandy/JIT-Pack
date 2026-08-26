@@ -1,4 +1,4 @@
-# ADR-033: A restore that collides makes room for itself — rename vs. refuse vs. merge vs. let the push decide
+# ADR-034: A restore that collides makes room for itself — rename vs. refuse vs. merge vs. let the push decide
 
 **Status:** Accepted
 **Related:** FR-24.3, FR-16.3, FR-1.6, FR-9.2, ADR-031 (a refusal repairs the row), ADR-032 (the retire decided twice), UI-Spec M23/M9/M10/M7, invariants 4 and 5, `internal/store/schema.sql` (`idx_items_active_name`, `idx_templates_active_name`), `client/src/domain/masterRestore.ts`
