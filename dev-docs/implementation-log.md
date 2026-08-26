@@ -167,7 +167,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A name that could only be refused by the server (2026-08-25)](#a-name-that-could-only-be-refused-by-the-server-2026-08-25) — FR-1.6 / FR-13.1: the mitigation the constraint owed. Four things the code cannot show: the one surface that could have adopted the existing row and deliberately does not, the rule that was already live for items in a single view, why the return type was the actual work, and how the diacritics question was settled.
 
 - [A delete that could only be refused](#a-delete-that-could-only-be-refused-2026-08-25) — FR-24.3 unparked: the refusal already held the discriminator; why the filtering keeps `itemList` complete; the rule written twice with only one copy allowed to be wrong; the usage endpoint designed and dropped.
-- [The restore was free, the name was not](#the-restore-was-free-the-name-was-not-2026-08-25) — FR-24.3 / ADR-033 / M23: the entry above closed by naming restore as owed, and this is the day after. Four things the code cannot show: the promise the FR made that the schema had already broken, why the collision is refused on the *client* when ADR-032 had just argued the opposite, the surface chosen against three that were rejected, and the defect only a rendered case found — twice, in one test.
+- [The restore was free, the name was not](#the-restore-was-free-the-name-was-not-2026-08-25) — FR-24.3 / ADR-034 / M23: the entry above closed by naming restore as owed, and this is the day after. Four things the code cannot show: the promise the FR made that the schema had already broken, why the collision is refused on the *client* when ADR-032 had just argued the opposite, the surface chosen against three that were rejected, and the defect only a rendered case found — twice, in one test.
 - [Two actor columns a client could still name (2026-08-25)](#two-actor-columns-a-client-could-still-name-2026-08-25) — invariant 3 / FR-4.2, FR-5.7. Three things the code cannot show: why an edit may not re-stamp the author it can no longer forge, why the obvious shape of the claim fix would have left every packed row claimed, and the evidence that decided which op a comment is allowed to be born from.
 - [An invariant that lived at eighty-seven call sites (2026-08-25)](#an-invariant-that-lived-at-eighty-seven-call-sites-2026-08-25) — the optimistic `PullChange` gets one builder. Four things the code cannot show: the throwing probe that turned "the table and the id always match the mutation" from a reading into a measurement, the field a hand-built row had been dropping since it was written, why the same duplication had already crossed a module boundary into the FR-18.7 command, and why the twelve ids the cleanup freed are evidence rather than tidying.
 
@@ -6974,7 +6974,7 @@ one. But `idx_items_active_name` ranges over `retired_at IS NULL` deliberately, 
 *frees the name*, and the whole reason that was chosen — re-creating what you just deleted
 is the common case — is precisely the sequence that then makes a restore impossible. The
 free restore and the freed name were two bullets under one FR, each right on its own. What
-that cost is a whole ADR (033) for a feature described as costing nothing.
+that cost is a whole ADR (034) for a feature described as costing nothing.
 
 **The collision is answered on the client, which is the opposite of what ADR-032 had just
 decided — and the difference is which question is being asked.** ADR-032 made the client's

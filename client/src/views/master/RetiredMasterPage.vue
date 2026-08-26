@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * M23 — Hidden master data (FR-24.3, ADR-033)
+ * M23 — Hidden master data (FR-24.3, ADR-034)
  *
  * The other half of the lifecycle delete: a master item or Vorlage something
  * still uses is *retired* rather than removed, and until this screen existed
