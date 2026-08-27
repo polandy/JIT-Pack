@@ -13,7 +13,8 @@
  * It is the first group that depends on another one. FR-27.7's preparation
  * tasks arrive as ordinary FR-7.3 prep todos, so the comment group's writer
  * is passed in beside the context — a group edge is an argument, deliberately
- * visible at the wiring, rather than another field on the spine.
+ * visible at the wiring, rather than another field on the spine. The argument
+ * is a named object because the next group along needed three of them.
  */
 import { computed, shallowRef } from 'vue'
 import { TABLE } from '@/types/tables'
@@ -37,9 +38,10 @@ import type { createCommentActions } from './comments'
  */
 export function createGroupRefreshActions(
   ctx: SyncContext,
-  commentActions: ReturnType<typeof createCommentActions>,
+  deps: { comments: ReturnType<typeof createCommentActions> },
 ) {
   const { mutations, enqueueAndDrain, tripStore, masterStore, today, tripDataLoaded } = ctx
+  const { comments: commentActions } = deps
 
   /**
    * The open questions, by trip id (FR-27.4). Derived state, deliberately

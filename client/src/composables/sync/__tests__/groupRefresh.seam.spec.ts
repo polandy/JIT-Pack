@@ -30,7 +30,7 @@ let queued: Recorded[]
 let ctx: SyncContext
 
 function build(ctx: SyncContext) {
-  return createGroupRefreshActions(ctx, createCommentActions(ctx))
+  return createGroupRefreshActions(ctx, { comments: createCommentActions(ctx) })
 }
 
 /**

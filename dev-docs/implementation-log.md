@@ -178,6 +178,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The first group that has to know which mode it is in (2026-08-27)](#the-first-group-that-has-to-know-which-mode-it-is-in-2026-08-27) — R-4's third cut: tags, master items and Vorlagen. Why FR-24.3 makes those three one group, why the item photo stayed behind despite sharing the table, what `SyncContext` grew a `local` field for, and the allowlist that caught a moved read nothing else could see.
 - [The seam's queue started applying what it was handed (2026-08-27)](#the-seams-queue-started-applying-what-it-was-handed-2026-08-27) — R-4's fourth cut: the packing group. Why G-3's claim stayed behind, the test double that had to start applying optimistic changes before a two-write group could be tested at all, and the sweep mutation that stayed green because the case only ever passed one of M6's two lists.
 - [A group that needed another group (2026-08-27)](#a-group-that-needed-another-group-2026-08-27) — R-4's fifth cut: the FR-27.4 refresh. The first group edge — passed as an argument rather than added to the spine — the two seams the context grew instead of a closure, an alias that turned out to be its own import, and a guard that no test can hold because the domain already applies it.
+- [The trip's own life, and a doc comment that had been written twice (2026-08-27)](#the-trips-own-life-and-a-doc-comment-that-had-been-written-twice-2026-08-27) — R-4's sixth cut: the trip after it exists. Why creation stayed behind, the group edge that became a named `deps` object once there were three of them, and the two small repairs a move makes visible — a duplicated doc block sitting on the wrong function, and the status trio comparing its own vocabulary against string literals.
 
 ## Current state
 
@@ -7568,3 +7569,48 @@ entry knows about — a row added by hand, or one whose entry never arrived —
 and asserts that exactly one write goes out, the bookkeeping one, with no
 question asked. That is the whole of what `proposeTripRefresh` is allowed to
 do without an answer.
+## The trip's own life, and a doc comment that had been written twice (2026-08-27)
+
+R-4's sixth cut moves what changes a trip *after* it exists into
+`composables/sync/actions/tripLifecycle.ts`: its own fields (FR-2.7), its
+status, its roster, and FR-27.10's whole group added to a running trip. The
+orchestrator drops from 1,876 to 1,572 lines.
+
+**Creation deliberately stayed behind.** `createTripFromWizard` and `cloneTrip`
+look like they belong here and do not: they write across both partitions in an
+order the server's foreign keys dictate, and drain between them. What they are
+about is the transport, not the trip, and a group that carried them would have
+to carry `drainTrip` and `drainMaster` with it. They move when the transport is
+cut.
+
+**Three edges made the argument an object.** The refresh introduced the rule a
+cut earlier — an edge between two groups is an argument, not a spine field —
+with one edge and a positional parameter. This group has three: the roster
+reaches FR-27.4 through the refresh, a group addition writes FR-27.7 tasks
+through the comments and FR-20.4 companions through the packing group. Three
+positional parameters is where that shape stops reading, so both call sites now
+take a named `deps` object. The retrofit of `createGroupRefreshActions` cost one
+line and one test call, which is the right price for having one pattern instead
+of two.
+
+**A move makes small wrongness visible, and two things surfaced.**
+
+The first: `removeTraveler`'s doc comment existed **twice** — once correctly
+above the function, and once above `packedRowsOf`, which it does not describe.
+Reading the two blocks side by side in a 250-line region is what surfaced it;
+in a 1,900-line file they are 40 lines apart and each reads fine alone. The
+orphan is gone.
+
+The second: `activateTrip` and `archiveTrip` passed `'active'` and `'archived'`
+as string literals into `setTripStatus`, while `TRIP_STATUS_ACTIVE` and
+`TRIP_STATUS_ARCHIVED` have existed in `types/domain.ts` since the constants
+were named for exactly this — a typo in one of them compiles cleanly and simply
+never matches (§4a). They name the constants now.
+
+Neither is a defect anybody could have observed, and neither is why the cut was
+made. They are recorded because they are the recurring argument *for* the cuts:
+the file was not too long to work in, it was too long to notice things in.
+
+Ten mutations, ten red. The verification was the same as the previous cuts — the
+extracted body compared byte-for-byte against the pre-cut capture before the two
+repairs were applied, so the move and the repairs are separable in review.
