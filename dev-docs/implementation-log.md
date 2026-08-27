@@ -179,6 +179,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The seam's queue started applying what it was handed (2026-08-27)](#the-seams-queue-started-applying-what-it-was-handed-2026-08-27) — R-4's fourth cut: the packing group. Why G-3's claim stayed behind, the test double that had to start applying optimistic changes before a two-write group could be tested at all, and the sweep mutation that stayed green because the case only ever passed one of M6's two lists.
 - [A group that needed another group (2026-08-27)](#a-group-that-needed-another-group-2026-08-27) — R-4's fifth cut: the FR-27.4 refresh. The first group edge — passed as an argument rather than added to the spine — the two seams the context grew instead of a closure, an alias that turned out to be its own import, and a guard that no test can hold because the domain already applies it.
 - [The trip's own life, and a doc comment that had been written twice (2026-08-27)](#the-trips-own-life-and-a-doc-comment-that-had-been-written-twice-2026-08-27) — R-4's sixth cut: the trip after it exists. Why creation stayed behind, the group edge that became a named `deps` object once there were three of them, and the two small repairs a move makes visible — a duplicated doc block sitting on the wrong function, and the status trio comparing its own vocabulary against string literals.
+- [The group that runs the other way round (2026-08-27)](#the-group-that-runs-the-other-way-round-2026-08-27) — R-4's seventh cut: M14's proposals and M21's fold. Why those two are one group, the guard that has to refuse *before* the first write, and a test comment that promised more folding than `foldName` does.
 
 ## Current state
 
@@ -7614,3 +7615,31 @@ the file was not too long to work in, it was too long to notice things in.
 Ten mutations, ten red. The verification was the same as the previous cuts — the
 extracted body compared byte-for-byte against the pre-cut capture before the two
 repairs were applied, so the move and the repairs are separable in review.
+## The group that runs the other way round (2026-08-27)
+
+R-4's seventh cut moves FR-9.2's review write-back and FR-27.5's fold of a
+finished trip into `composables/sync/actions/postTrip.ts`. The orchestrator
+drops from 1,572 to 1,452 lines.
+
+**The two belong together for a reason none of the earlier groups had.** Every
+other group takes master data as input and writes trip rows; these two take a
+*trip* as input and write master data. Neither queues a mutation of its own —
+both compose the master-data group's writers — so the whole module has exactly
+one edge and no reach into the queue at all.
+
+**The guard that has to refuse before the first write.** M21 creates a Vorlage
+and possibly a group, and the name check runs ahead of both rather than in
+front of each: half of M21's work landing before a refused name folds the trip
+into nothing. That is the kind of ordering a move can silently invert, so it
+has its own mutation — moving the check past the first write turns a case red.
+
+**A test comment claimed more than the code does.** The bundle-name case was
+first written with `'ferien  engadin'` against `'Ferien Engadin'`, on the
+assumption that `foldName` collapses internal whitespace. It does not: it
+trims and lower-cases, nothing else. The case failed against correct code,
+which is the cheap way to find out — the comment now says what the function
+does instead of what its name suggests. Worth noting because the same
+assumption has already cost once: FR-27.13 recorded that the diacritics
+folding it promised existed nowhere in the codebase either.
+
+Eight mutations, eight red.
