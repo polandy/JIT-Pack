@@ -163,28 +163,36 @@ setHeaderTitle(() => `${t('container.title')} · ${trip.value?.name ?? ''}`)
           </p>
         </button>
 
-        <!-- Unassigned bucket (FR-10.2): one tappable row per item. -->
-        <h2 class="section-title jp-eyebrow">
-          {{ t('container.unassigned') }} ({{ unassigned.length }})
-        </h2>
-        <IonList v-if="unassigned.length > 0" class="unassigned-list jp-card">
-          <IonItem
-            v-for="item in unassigned"
-            :key="item.id"
-            button
-            :detail="true"
-            data-testid="m11-unassigned-row"
-            @click="pickingItemId = item.id"
-          >
-            <IonLabel>
-              <h3>{{ item.name }}</h3>
-              <p v-if="item.weight_grams">{{ formatWeight(item.weight_grams * item.quantity) }}</p>
-            </IonLabel>
-          </IonItem>
-        </IonList>
-        <div v-else class="empty-hint" data-testid="m11-unassigned-none">
-          {{ t('container.unassignedNone') }}
-        </div>
+        <!-- Unassigned bucket (FR-10.2): one tappable row per item. With no
+             containers and nothing to list, "everything is assigned" would
+             contradict the empty state right above it — the section only
+             speaks when there is a container to assign to or an item to
+             assign. -->
+        <template v-if="containers.length > 0 || unassigned.length > 0">
+          <h2 class="section-title jp-eyebrow" data-testid="m11-unassigned-title">
+            {{ t('container.unassigned') }} ({{ unassigned.length }})
+          </h2>
+          <IonList v-if="unassigned.length > 0" class="unassigned-list jp-card">
+            <IonItem
+              v-for="item in unassigned"
+              :key="item.id"
+              button
+              :detail="true"
+              data-testid="m11-unassigned-row"
+              @click="pickingItemId = item.id"
+            >
+              <IonLabel>
+                <h3>{{ item.name }}</h3>
+                <p v-if="item.weight_grams">
+                  {{ formatWeight(item.weight_grams * item.quantity) }}
+                </p>
+              </IonLabel>
+            </IonItem>
+          </IonList>
+          <div v-else class="empty-hint" data-testid="m11-unassigned-none">
+            {{ t('container.unassignedNone') }}
+          </div>
+        </template>
       </div>
 
       <IonFab vertical="bottom" horizontal="end" slot="fixed">
