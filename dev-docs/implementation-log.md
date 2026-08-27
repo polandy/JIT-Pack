@@ -176,6 +176,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The five builders the list had hidden (2026-08-26)](#the-five-builders-the-list-had-hidden-2026-08-26) — R-3's remainder: `memberRow`, `commentRow`, `todoRow`, `profileRow`, `checklistItemRow`. Three things the code cannot show: that none of the five was actually dropping a column, so what landed is the guard and not a fix; why `commentRow` cannot be read back through the store at all and which two of its columns are therefore unreachable — a hard-coded column is only as defended as the writer that contradicts it; and that the mutation sweep reported all twenty columns undefended because its own red-detection was broken, which is what a sweep measuring itself looks like.
 - [Three more groups leave, and the context stops being free (2026-08-27)](#three-more-groups-leave-and-the-context-stops-being-free-2026-08-27) — R-4's second cut: comments/todos, item dependencies, series/destinations and the shared name guards. Three things the code cannot show: why comments and todos are one group and not two, that growing `SyncContext` broke the existing seam spec at compile time and that this is the design working rather than a cost, and why the name guards are shared context rather than one group's private helper.
 - [The first group that has to know which mode it is in (2026-08-27)](#the-first-group-that-has-to-know-which-mode-it-is-in-2026-08-27) — R-4's third cut: tags, master items and Vorlagen. Why FR-24.3 makes those three one group, why the item photo stayed behind despite sharing the table, what `SyncContext` grew a `local` field for, and the allowlist that caught a moved read nothing else could see.
+- [The seam's queue started applying what it was handed (2026-08-27)](#the-seams-queue-started-applying-what-it-was-handed-2026-08-27) — R-4's fourth cut: the packing group. Why G-3's claim stayed behind, the test double that had to start applying optimistic changes before a two-write group could be tested at all, and the sweep mutation that stayed green because the case only ever passed one of M6's two lists.
 
 ## Current state
 
@@ -7478,3 +7479,39 @@ allowlist that permits that read is keyed by file path, so moving the read
 moved it out from under its classification. Nothing else would have caught it —
 no rendered test sees which list a composable reads. It cost one line and a
 reason, which is exactly what that enumeration exists to charge.
+
+## The seam's queue started applying what it was handed (2026-08-27)
+
+R-4's fourth cut moves the packing group — the pack-out (FR-25.2), FR-5.5's
+skip with its FR-20.2 companions, M6's check-off (FR-25.11j), the per-row
+assignments (FR-25.19/25.20) and FR-9.1's flags — out of the orchestrator,
+which drops from 2,396 to 2,096 lines. Nineteen actions, no context growth:
+they all want a queue, a trip store and the dependency rules, and the context
+already carried every one of them.
+
+**G-3's claim stayed behind**, though M4 renders it on the same row and M5 in
+the same sheet. `packingNow` and `releaseClaim` write the device's own
+`myLocks` bookkeeping, and `takeOverClaim` goes through the server rather than
+the outbox because only the server may stamp who took over (FR-5.7, ADR-028,
+invariant 3). None of that is a queue write, and a group that carried it would
+have to carry the lock state with it.
+
+**What the cut actually found is in the test double.** The seam context's
+`enqueueAndDrain` recorded what it was handed and did nothing else, which was
+enough for four groups. It is not enough for a group that writes twice and
+reads its own first write back: `quickAddItem` adds a row and then resolves
+FR-20.4's required companions _against the settled list_, so with a recording
+double the companion never resolves and the case fails against correct code.
+The double now applies each optimistic change to its store before recording,
+the way the real one does — and that is the more faithful shape, so it stays
+for the other five specs too. It is coarser than production in exactly one
+way, written down where it is done: it routes by partition rather than by
+table, so the master partition's per-trip tables (spec P-3) would land in the
+wrong store. No group holding one has moved yet.
+
+**One mutation in the sweep came back green, and it was the spec's fault.**
+Hard-coding `buyItem`'s `from` argument to `'buy_local'` changed nothing,
+because the case only ever passed `'buy_local'`. M6 has two lists; a case that
+exercises one of them cannot tell an argument from a constant. The case now
+passes `'buy_before'`, and the mutation is red. Twelve of thirteen had been
+red on the first run, which is precisely why the thirteenth was worth having.

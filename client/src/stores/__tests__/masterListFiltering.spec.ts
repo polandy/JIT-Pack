@@ -30,6 +30,8 @@ const COMPLETE_LIST_READERS: Record<string, string> = {
     'generation, the FR-27.4 refresh, FR-27.10, clone and M21 all resolve positions that may name a retired row',
   'src/composables/sync/actions/masterData.ts':
     "FR-24.3's reference count — a position inside a retired Vorlage still keeps its item alive",
+  'src/composables/sync/actions/packing.ts':
+    'FR-20.4 resolution looks up the item a dependency names — a retired one still has to resolve, or the companion row has no name',
   'src/domain/portableImport.ts': 'import matches against everything, or it duplicates a name',
   'src/views/import/ImportPage.vue':
     'FR-16.3 dedup — matching a retired item beats creating a twin',
