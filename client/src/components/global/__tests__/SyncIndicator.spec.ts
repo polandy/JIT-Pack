@@ -35,4 +35,9 @@ describe('SyncIndicator', () => {
   it('shows nothing once the queue is empty', () => {
     expect(badge(mountIndicator({ state: 'offline', pendingCount: 0 })).exists()).toBe(false)
   })
+
+  it('names itself with the label, not only a tooltip (UX-13)', () => {
+    const button = mountIndicator({ label: 'Auf diesem Gerät' }).find('button')
+    expect(button.attributes('aria-label')).toBe('Auf diesem Gerät')
+  })
 })
