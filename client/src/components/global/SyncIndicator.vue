@@ -28,6 +28,7 @@ const icon = computed(() => SYNC_GLYPHS[props.state])
     class="sync-indicator"
     :class="state"
     :title="label"
+    :aria-label="label"
     data-testid="sync-indicator"
     :data-state="state"
     @click="emit('tap')"
