@@ -252,7 +252,12 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
             <IonSelectOption value="buy_before">{{ t('mode.buyBefore') }}</IonSelectOption>
             <IonSelectOption value="pack">{{ t('mode.pack') }}</IonSelectOption>
           </IonSelect>
-          <IonButton fill="outline" size="small" @click="addChecklistEntry">
+          <IonButton
+            fill="outline"
+            size="small"
+            :aria-label="t('common.add')"
+            @click="addChecklistEntry"
+          >
             <IonIcon slot="icon-only" :icon="addOutline" />
           </IonButton>
         </div>
