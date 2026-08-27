@@ -34,6 +34,8 @@ const COMPLETE_LIST_READERS: Record<string, string> = {
     'FR-27.4 re-resolves a trip against the Vorlagen it follows — a retired one still resolves, or the refresh proposes deleting every row it ever produced',
   'src/composables/sync/actions/tripLifecycle.ts':
     'FR-27.10 resolves the group being added — a retired Vorlage inside it still contributes the positions it always did',
+  'src/composables/sync/actions/postTrip.ts':
+    'M21 folds a trip into a Vorlage against every master item, retired or not — a row the trip carries must still be recognised rather than invented a second time (the group list beside it is deliberately the active one)',
   'src/composables/sync/actions/packing.ts':
     'FR-20.4 resolution looks up the item a dependency names — a retired one still has to resolve, or the companion row has no name',
   'src/domain/portableImport.ts': 'import matches against everything, or it duplicates a name',
