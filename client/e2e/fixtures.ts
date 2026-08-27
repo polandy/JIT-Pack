@@ -121,23 +121,20 @@ export async function setDateField(page: Page, testid: string, iso: string): Pro
     `.calendar-month:nth-child(2) .calendar-day[data-day="${day}"][data-month="${month}"][data-year="${year}"]`,
   )
 
-  // The click is a *coordinate* click into a grid the calendar may still be
-  // scrolling into place, and a point that lands one month over selects the
-  // day at the same row and column — 22 August and 26 September 2026 are both
-  // the fourth Saturday of their month. That misfire is silent: the picker
-  // takes a date nobody asked for and it surfaces screens later as a trip
-  // whose end precedes its start.
+  // Dispatched, not clicked at a point. A real click is delivered at
+  // coordinates, and the calendar may still be scrolling its grids into
+  // place: a point that lands one month over selects the day at the same row
+  // and column — 22 August and 26 September 2026 are both the fourth Saturday
+  // — and Ionic *confirms* immediately on an adjacent-day cell, so the wrong
+  // date is taken silently and surfaces screens later. The day button carries
+  // a plain `onClick`, so dispatching removes the coordinates from the
+  // question entirely rather than racing them.
   //
-  // So the click is checked against a positive signal and repeated a bounded
-  // number of times, the same shape the month walk above uses — never a wait.
-  const MAX_PICKS = 3
-  for (let attempt = 1; attempt <= MAX_PICKS; attempt++) {
-    await cell.click()
-    if (await cell.evaluate((el) => el.classList.contains('calendar-day-active'))) break
-    if (attempt === MAX_PICKS) {
-      throw new Error(`date picker would not take ${iso}: the day never became the active one`)
-    }
-  }
+  // Enabled is asserted first, because dispatching also bypasses the
+  // `disabled` a bound puts on an out-of-range day (FR-2.1d) — the helper
+  // must not be able to set what the app refuses to offer.
+  await expect(cell).toBeEnabled()
+  await cell.dispatchEvent('click')
 
   await picker.getByText('Done', { exact: true }).click()
   await expect(picker).toBeHidden()

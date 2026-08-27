@@ -248,7 +248,7 @@ test('M3: Enter in a plain field is the Weiter click, gated like it @local @m3 @
 // rejects — it is one the calendar never offers. Asserted on the picker
 // itself rather than on a refused submit: the bound is the mechanism, and a
 // message the user has to read is the fallback the mechanism removes.
-test('M3: the start picker offers no day after the end already set @local @m3', async ({
+test('M3: the end picker offers no day before the start already set @local @m3', async ({
   page,
   seedMode,
 }) => {
@@ -257,18 +257,21 @@ test('M3: the start picker offers no day after the end already set @local @m3', 
   await expect(page.getByTestId('wizard-step-1')).toBeVisible()
   await page.getByTestId('wizard-more').click()
 
-  await setDateField(page, 'wizard-end-date', '2026-09-05')
+  await setDateField(page, 'wizard-start-date', '2026-09-10')
+  await setDateField(page, 'wizard-end-date', '2026-09-20')
 
-  await page.getByTestId('wizard-start-date').click()
-  const picker = page.getByTestId('wizard-start-date-picker')
+  // Re-opened rather than opened: a picker with a value opens on that value's
+  // month, so the grid under test is the same one on any day of any year —
+  // an empty picker opens on *today* and the case would rot with the calendar.
+  await page.getByTestId('wizard-end-date').click()
+  const picker = page.getByTestId('wizard-end-date-picker')
   await expect(picker).toBeVisible()
   const september = picker.locator(
     '.calendar-month:nth-child(2) .calendar-day[data-month="9"][data-year="2026"]',
   )
 
-  // The day the earlier defect actually stored — 26 September, the same row
-  // and column as 22 August — is out of reach, while a day inside the bound
-  // is not. Both halves, or "everything is disabled" would pass too.
-  await expect(september.filter({ hasText: /^26$/ })).toBeDisabled()
-  await expect(september.filter({ hasText: /^4$/ })).toBeEnabled()
+  // Both halves: a day before the start is out of reach, one after it is not.
+  // "Everything is disabled" would pass the first assertion on its own.
+  await expect(september.filter({ hasText: /^5$/ })).toBeDisabled()
+  await expect(september.filter({ hasText: /^15$/ })).toBeEnabled()
 })

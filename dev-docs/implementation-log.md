@@ -7694,8 +7694,19 @@ forbid the past that every archived trip lives in.
 one — the absence every consumer already handles. It had no direct test at
 all; it has four now.
 
-**The helper checks its own work.** `setDateField` now confirms the day it
-clicked became the active one before pressing *Done*, retrying a bounded number
-of times — the same shape the month walk above it already used, and never a
-wait. Without it the misfire is silent and surfaces screens later as a date
-nobody typed, which is precisely how this cost a day.
+**The helper stops clicking at coordinates.** The first attempt at this was a
+bounded retry: click, check the day went active, click again. CI rejected it —
+selecting a day re-renders the grids, so the very locator the check depended on
+stopped matching and the case died on a timeout instead. The fix that works is
+the one that removes the question: Ionic's day button carries a plain
+`onClick`, so `dispatchEvent('click')` delivers the event to the element with
+no coordinates and no hit-testing, and the scroll cannot get between them. The
+cell is asserted **enabled** first, because dispatching would otherwise bypass
+the `disabled` that FR-2.1d's own bound puts on an out-of-range day — a helper
+that can set what the app refuses to offer is a worse tool than a flaky one.
+
+The same CI run rejected the new e2e case for a plainer reason: it asserted on
+September cells in a picker that opens on *today*. It re-opens a picker that
+already holds a value now, which opens on that value's month — so the grid
+under test is the same on any day of any year, rather than one that rots with
+the calendar.
