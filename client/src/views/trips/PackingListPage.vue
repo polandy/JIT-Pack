@@ -1587,8 +1587,15 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                       @zero="onZero(child.item)"
                       @toggle="onToggle(child.item)"
                     />
-                    <UserAvatar :name="child.traveler?.name" :seed="child.traveler?.id" />
                   </div>
+                  <!-- Outside the fixed-width control column (UX-9): beside
+                       the name it sits where a top-level row's mark does, so
+                       the label column stays straight across both kinds. -->
+                  <UserAvatar
+                    class="row-avatar"
+                    :name="child.traveler?.name"
+                    :seed="child.traveler?.id"
+                  />
                   <IonLabel>
                     <h3>{{ child.traveler?.name ?? child.label }}</h3>
                     <p v-if="lockNote(child.item)" class="stamp" data-testid="m4-lock-note">
@@ -1669,12 +1676,13 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
                     @zero="onZero(entry.item)"
                     @toggle="onToggle(entry.item)"
                   />
-                  <UserAvatar
-                    v-if="entry.traveler"
-                    :name="entry.traveler.name"
-                    :seed="entry.traveler.id"
-                  />
                 </div>
+                <UserAvatar
+                  v-if="entry.traveler"
+                  class="row-avatar"
+                  :name="entry.traveler.name"
+                  :seed="entry.traveler.id"
+                />
                 <ItemMark
                   :mark="masterOf(entry.item)?.icon ?? null"
                   surface="packing"
@@ -2177,6 +2185,13 @@ ion-content.pack-content::part(scroll) {
   display: flex;
   align-items: center;
   gap: 8px;
+  /* UX-9: the control column holds one width whatever it carries (checkbox,
+     stepper, pass toggle, lock), so item names line up in a straight column.
+     Sized to its widest resident, the G-6 stepper (two 28px buttons, the
+     36px count, two 4px gaps, plus tap headroom); min- rather than fixed
+     width so an outsized count degrades to one misaligned row instead of an
+     overlap. */
+  min-width: 108px;
 }
 
 .row-end {
@@ -2456,5 +2471,13 @@ ion-content.pack-content::part(scroll) {
    one column on a list where most rows carry no mark. */
 .row-mark {
   margin-inline-end: 10px;
+}
+
+/* The traveler avatar shares the mark's column (24px + 8px = the mark slot's
+   22px + 10px), so child rows and top-level rows start their names at the
+   same x. */
+.row-avatar {
+  flex: none;
+  margin-inline-end: 8px;
 }
 </style>
