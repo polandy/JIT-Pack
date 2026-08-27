@@ -588,6 +588,7 @@ grouping rules, and the shape of the creation form.
 | a duplicate name is reported before it reaches the push | E2E-M10-10 | The consequence of `UNIQUE(name)` (ADR-014) reaching the user as a sentence rather than a failed sync. |
 | an unmatched tag name is created and assigned in one step | E2E-M10-08 | Filter-or-create, including the *second* item finding the tag instead of duplicating it. |
 | unassigning a tag refiles the item | E2E-M10-08 | The store's cascade mirroring, seen from the list. |
+| an empty tag query offers a capped shelf, and search reaches past it | E2E-M10-16 | UX-14: eight chips plus a tail naming the rest, the cap lifted by a query, the tail handing focus to the search — and, at phone width in German, that the placeholder fits its box, measured by rendering it as the value (`scrollWidth`), not by a canvas re-measure that used the wrong font and could not fail. |
 | the sections an existing item owns follow the app language | E2E-M10-13 | NFR-4.12 on the half of M10 that only exists after the save. **Seeded in German, and that is the case**: the suite's app language is English, and against English a catalogue lookup and the hard-coded word it replaced render identically — so an English assertion here could not fail. Its negative counterpart above moved off the headings' words onto test ids for the same reason. |
 
 **Not covered here, on purpose:** the device-local *reload* half of FR-24.4

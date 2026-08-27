@@ -110,13 +110,37 @@ const assignedTags = computed<Tag[]>(() => {
 
 const assignedIds = computed(() => new Set(assignedTags.value.map((tag) => tag.id)))
 
+/**
+ * With no query the offer row is a shelf, not the whole vocabulary (UX-14):
+ * a grown instance carries dozens of tags, and rendering them all made every
+ * item form scroll. Two chip rows at phone width; the tail names the rest.
+ */
+const TAG_OFFER_CAP = 8
+
 /** Unassigned tags matching the query — assigned ones stay pinned above. */
-const tagMatches = computed(() => {
+const unassignedMatches = computed(() => {
   const q = tagQuery.value.trim().toLowerCase()
   return masterStore.tagList.filter(
     (tag) => !assignedIds.value.has(tag.id) && (!q || tag.name.toLowerCase().includes(q)),
   )
 })
+
+const tagMatches = computed(() =>
+  tagQuery.value.trim() ? unassignedMatches.value : unassignedMatches.value.slice(0, TAG_OFFER_CAP),
+)
+
+/** What the shelf holds back — zero while a query is filtering. */
+const hiddenOfferCount = computed(() => unassignedMatches.value.length - tagMatches.value.length)
+
+const tagSearch = ref<{ $el: HTMLElement } | null>(null)
+
+/** The shelf's tail hands over to the search — the way past the cap. */
+async function focusTagSearch() {
+  const native = await (
+    tagSearch.value?.$el as HTMLIonSearchbarElement | undefined
+  )?.getInputElement?.()
+  native?.focus()
+}
 
 /** True when the typed name is not an existing tag — the ＋ offer. */
 const canCreateTag = computed(() => {
@@ -461,6 +485,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
         <h2 class="section-title jp-eyebrow">{{ t('items.editor.tags') }}</h2>
 
         <IonSearchbar
+          ref="tagSearch"
           :value="tagQuery"
           data-testid="m10-tag-search"
           :placeholder="t('items.editor.tagSearchPlaceholder')"
@@ -493,6 +518,16 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
             @click="assign(tag.id)"
           >
             {{ tag.name }}
+          </button>
+
+          <button
+            v-if="hiddenOfferCount > 0"
+            type="button"
+            class="chip more"
+            data-testid="m10-tag-more"
+            @click="focusTagSearch"
+          >
+            {{ t('items.editor.tagMoreOffers', { n: hiddenOfferCount }) }}
           </button>
 
           <button
@@ -806,6 +841,12 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
 .chip.create {
   border-style: dashed;
   color: var(--jp-brand);
+}
+
+/* The tail is a hand-over, not a tag: quieter than the offers around it. */
+.chip.more {
+  border-style: dashed;
+  background: transparent;
 }
 
 .tag-summary {

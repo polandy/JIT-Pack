@@ -328,3 +328,92 @@ test.describe('M10 item editor — the saved item speaks the catalogue (NFR-4.12
     await expect(visible(page).getByPlaceholder('Artikel durchsuchen…')).toBeVisible()
   })
 })
+
+/**
+ * UX-14 (review 2026-08-25): with a grown vocabulary, an empty query rendered
+ * every unassigned tag as a chip — twenty per form on the real instance — and
+ * the de placeholder ran out of its box at phone width. The empty query now
+ * offers a capped shelf with a "more via search" tail, and the search still
+ * reaches everything.
+ *
+ * Phone viewport on purpose: the placeholder assertion is about fitting the
+ * narrow box, and at the behaviour projects' desktop width it could not fail.
+ */
+test.describe('M10 item editor — the tag shelf stays short (UX-14)', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test.beforeEach(async ({ seedMode, page }) => {
+    // German on purpose: the de placeholder is the one that clipped, and the
+    // suite's default English would leave it unmeasured (the #151 trap —
+    // an assertion that never sees the string it is about).
+    await seedMode({ mode: 'local', locale: 'de' })
+    await page.goto('/tabs/items')
+  })
+
+  test('E2E-M10-16: an empty query offers a capped shelf, and search reaches past it', async ({
+    page,
+  }) => {
+    test.slow() // ten tags are built through the form itself (§2.4)
+
+    // Alphabetical creation order, so the shelf's "first eight" is the same
+    // set whether the list orders by sort_order or by name.
+    const tags = [
+      'Angeln',
+      'Baden',
+      'Camping',
+      'Deko',
+      'Elektro',
+      'Fischen',
+      'Garten',
+      'Hygiene',
+      'Werkzeug',
+      'Zubehör',
+    ]
+    await createItem(page, 'Träger', tags)
+    await backToInventory(page)
+
+    // A fresh form: all ten are unassigned, the query is empty.
+    await visible(page).getByTestId('m9-fab').click()
+    await expect(visible(page).getByTestId('m10-new-hint')).toBeVisible()
+
+    const offers = visible(page).locator('[data-testid^="m10-tag-offer-"]')
+    await expect(offers).toHaveCount(8)
+    await expect(visible(page).getByTestId('m10-tag-offer-Werkzeug')).toHaveCount(0)
+    // The tail names what the shelf holds back, so the cap is visible state
+    // rather than a silently shorter vocabulary.
+    await expect(visible(page).getByTestId('m10-tag-more')).toContainText('2')
+
+    // The search reaches past the cap…
+    await fillIonic(visible(page).getByTestId('m10-tag-search'), 'Werkzeug')
+    await expect(visible(page).getByTestId('m10-tag-offer-Werkzeug')).toBeVisible()
+
+    // …and clearing it returns to the shelf. Cleared by keys, not fill(''):
+    // deleting through the keyboard dispatches an input event per keystroke,
+    // the same reason fillIonic types (see its comment).
+    const searchInput = visible(page).getByTestId('m10-tag-search').locator('input')
+    await searchInput.click()
+    await searchInput.press('ControlOrMeta+a')
+    await searchInput.press('Backspace')
+    await expect(searchInput).toHaveValue('')
+    await expect(offers).toHaveCount(8)
+
+    // The tail hands over to the search: after the tap, typing starts there.
+    await visible(page).getByTestId('m10-tag-more').click()
+    await expect(visible(page).getByTestId('m10-tag-search').locator('input')).toBeFocused()
+
+    // The placeholder fits its box at phone width — the de string used to run
+    // out of the searchbar. Measured by rendering, not by reproducing the
+    // font: the text briefly becomes the value, and scrollWidth then reports
+    // what the box actually shows (a canvas re-measure quietly used the wrong
+    // font and could not fail).
+    const fits = await searchInput.evaluate((input: HTMLInputElement) => {
+      input.value = input.placeholder
+      const width = { text: input.scrollWidth, box: input.clientWidth }
+      input.value = ''
+      return width
+    })
+    expect(fits.text, `placeholder ${fits.text}px must fit ${fits.box}px`).toBeLessThanOrEqual(
+      fits.box,
+    )
+  })
+})
