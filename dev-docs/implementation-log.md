@@ -174,6 +174,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A field nobody had ever written (2026-08-26)](#a-field-nobody-had-ever-written-2026-08-26) — the four remaining row builders get their completeness cases. Three things the code cannot show: why `duration_days`' absence is correct and `series_name`'s is a defect, that `Trip.series_name` has been `null` on every device since it was typed so FR-14.3's trend heading has only ever named the trip, and why the guard that matters here is a compile error rather than an assertion, and the two holes a 66-run mutation sweep found in the suite itself — a one-field action cannot defend the field it changes, and a fixture equal to its mapper's default is a false green.
 - [The orchestrator starts coming apart (2026-08-26)](#the-orchestrator-starts-coming-apart-2026-08-26) — R-4's first cut: the row builders and the container group leave the 3,215-line composable, bound to a `SyncContext` that carries only what a moved group needs. Three things the code cannot show: why the extraction needed its own spec even though the group was already covered through the facade, why the context is grown per group rather than declared up front, and that the file holds **fourteen** row builders where R-3 defended the nine its review had listed.
 - [The five builders the list had hidden (2026-08-26)](#the-five-builders-the-list-had-hidden-2026-08-26) — R-3's remainder: `memberRow`, `commentRow`, `todoRow`, `profileRow`, `checklistItemRow`. Three things the code cannot show: that none of the five was actually dropping a column, so what landed is the guard and not a fix; why `commentRow` cannot be read back through the store at all and which two of its columns are therefore unreachable — a hard-coded column is only as defended as the writer that contradicts it; and that the mutation sweep reported all twenty columns undefended because its own red-detection was broken, which is what a sweep measuring itself looks like.
+- [Three more groups leave, and the context stops being free (2026-08-27)](#three-more-groups-leave-and-the-context-stops-being-free-2026-08-27) — R-4's second cut: comments/todos, item dependencies, series/destinations and the shared name guards. Three things the code cannot show: why comments and todos are one group and not two, that growing `SyncContext` broke the existing seam spec at compile time and that this is the design working rather than a cost, and why the name guards are shared context rather than one group's private helper.
 
 ## Current state
 
@@ -7376,3 +7377,52 @@ indistinguishable from a catastrophic finding until you check. Prove the
 harness can see a known-red run before trusting any of its greens — the same
 positive-signal rule the project already applies to tests that assert
 something did *not* happen.
+
+## Three more groups leave, and the context stops being free (2026-08-27)
+
+R-4's second cut. Out of the closure: the comment/todo group (FR-7.1/7.2/7.3),
+the item-dependency group (FR-20.1) and the series/destination group
+(FR-13.1/13.2), plus the two name-collision lookups and `isTakenRename` into
+`composables/sync/names.ts`. 2,942 lines down to 2,714; the facade's return
+shape is unchanged, so nothing outside the composable moved.
+
+Three things the diff does not say.
+
+**Comments and todos are one group because they are one table.** The obvious
+cut is by feature — FR-7.1 comments here, FR-7.3 todos there — and it is the
+wrong one: a todo *is* a comment with `is_task = 1`, `flagCommentAsTask` carries
+a row from one to the other, and the store moves it between two maps when it
+does. Splitting them would have put the two halves of one promotion in two
+files and left neither able to test it. The seam spec reads the promoted row
+back through `getItemTodos`, which only works because both writers are in
+front of it.
+
+**Growing the context is not free, and that is the useful part.** Adding
+`masterStore` and `names` to `SyncContext` broke the *existing* container seam
+spec at compile time — it hand-builds a context, and a hand-built context has
+to grow with the type. That is the design working: the alternative, a context
+declared up front with every field the orchestrator might one day pass, would
+have made this edit invisible and left nobody able to prune a field later. The
+cost is paid once per growth, in one place: `sync/__tests__/seamContext.ts`
+builds the context for all four seam specs, so a new field is one TS2739 there
+rather than a silently half-built context in four files. A helper that
+*defaulted* the new field would have removed the warning and the point with it.
+
+**The name guards moved because two groups need them, not because they fit.**
+`seriesNameCollision` went with the series group's callers; `templateNameCollision`
+has none of its callers moved yet — templates are still inside the closure —
+and `isTakenRename` is used by both. Leaving them in the orchestrator would have
+meant passing three functions to the series factory; moving only the one the
+series group uses would have split a pair that is read as a pair. They are on
+the context as one `names` object, and the facade still re-exports both lookups
+because the views ask before they write. This is the first thing on the context
+that is not plumbing, and it is worth naming: **the refusal paths are why the
+guards are shared state rather than a group's private helper** — a name is taken
+instance-wide, so no single group owns the question.
+
+Nine mutations, each dropped one at a time and each red: both refusal guards,
+`ensureDestinationProfile`'s create-once, the master-partition routing, and the
+five whole-row optimistic paints. The `default_attributes` fixture is the wire's
+JSON *text*, not the domain object — `rowToSeries` parses and `seriesRow`
+stringifies, and a fixture in the domain's shape throws inside the store rather
+than failing an assertion.

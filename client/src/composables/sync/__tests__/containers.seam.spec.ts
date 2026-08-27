@@ -13,44 +13,23 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { createContainerActions } from '../actions/containers'
-import type { QueuedMutation, SyncContext } from '../context'
-import { useMutations } from '@/composables/useMutations'
-import { HLCGenerator } from '@/sync/hlc'
-import { useTripStore } from '@/stores/tripStore'
+import { makeSeamContext, pullIn as seedRow, type Recorded } from './seamContext'
+import type { SyncContext } from '../context'
 import { TABLE } from '@/types/tables'
 
 const TRIP_ID = 'trip-1'
-
-interface Recorded {
-  type: 'trip' | 'master'
-  id: string | null
-  muts: QueuedMutation[]
-}
 
 let queued: Recorded[]
 let ctx: SyncContext
 
 beforeEach(() => {
   setActivePinia(createPinia())
-  queued = []
-  ctx = {
-    tripStore: useTripStore(),
-    mutations: useMutations(new HLCGenerator(() => 1, 'aabbccdd')),
-    enqueueAndDrain: (type, id, ...muts) => {
-      queued.push({ type, id, muts })
-    },
-  }
+  ;({ ctx, queued } = makeSeamContext())
 })
 
-/** Seeds one row the way a pull would, so the store maps it itself. */
+/** Seeds one trip-partition row the way a pull would. */
 function pullIn(table: string, id: string, row: object): void {
-  ;(ctx.tripStore as unknown as { applyChange: (c: never) => void }).applyChange({
-    seq: 1,
-    table,
-    id,
-    deleted: false,
-    row: { trip_id: TRIP_ID, ...row },
-  } as never)
+  seedRow(ctx.tripStore, table, id, { trip_id: TRIP_ID, ...row })
 }
 
 describe('createContainerActions without an orchestrator', () => {
