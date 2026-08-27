@@ -1,4 +1,13 @@
-import { test, expect, createTripViaWizard, openQuickAdd, visiblePage as visible } from './fixtures'
+import {
+  test,
+  expect,
+  createTripViaWizard,
+  createTemplate,
+  createTripFollowingGroup,
+  addPosition,
+  openQuickAdd,
+  visiblePage as visible,
+} from './fixtures'
 import type { Page } from '@playwright/test'
 
 /**
@@ -633,5 +642,45 @@ test.describe('M4 packing list — scroll memory @local @m4', () => {
     // list restored under an open line shows different rows at the same
     // number.
     await expect(visible(page).getByTestId('m4-header')).toHaveClass(/collapsed/)
+  })
+
+  // E2E-M4-56 (UX pass 2026-08-25, UX-9): the packing control column holds
+  // one width whatever it carries, so the name column is straight — before
+  // this rule a stepper row started its name 86 px right of a checkbox row.
+  // Built through M8 per spec §2.4, because a quantity can only come from a
+  // position; measured on rendered boxes, not on the stylesheet.
+  test('E2E-M4-56: a checkbox row and a stepper row start the name at the same x', async ({
+    page,
+  }) => {
+    test.slow()
+    await page.goto('/tabs/templates')
+    await createTemplate(page, 'group', 'Camping')
+    await addPosition(page, 'Heringe')
+    await addPosition(page, 'Lampe')
+    await page.keyboard.press('Escape')
+    await visible(page).locator('ion-item h2').filter({ hasText: 'Heringe' }).first().click()
+    await expect(page.getByTestId('m8-position-sheet')).toBeVisible()
+    await page.getByTestId('m8-qty-inc').click()
+    await page.getByTestId('m8-qty-inc').click()
+    await page.getByTestId('m8-position-close').click()
+    await expect(page.getByTestId('m8-position-sheet')).toHaveCount(0)
+
+    await createTripFollowingGroup(page, 'Spaltenprobe', 'Camping')
+
+    const stepperRow = page.getByTestId('m4-row-Heringe')
+    const checkboxRow = page.getByTestId('m4-row-Lampe')
+    // The variants really are on screen — without this, a world where both
+    // rows render the same control would pass the equality vacuously.
+    await expect(stepperRow.getByTestId('row-minus')).toBeVisible()
+    await expect(checkboxRow.getByTestId('row-check').locator('ion-checkbox')).toBeVisible()
+
+    const stepperName = await stepperRow.locator('h3').first().boundingBox()
+    const checkboxName = await checkboxRow.locator('h3').first().boundingBox()
+    expect(stepperName!.x).toBe(checkboxName!.x)
+
+    // The rule behind it: the control column is one width for every row.
+    const stepperSlot = await stepperRow.locator('.row-start').boundingBox()
+    const checkboxSlot = await checkboxRow.locator('.row-start').boundingBox()
+    expect(stepperSlot!.width).toBe(checkboxSlot!.width)
   })
 })
