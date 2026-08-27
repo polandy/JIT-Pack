@@ -28,6 +28,8 @@ const COMPLETE_LIST_READERS: Record<string, string> = {
   'src/App.vue': 'the NFR-4.11 device backup — fidelity, not a listing',
   'src/composables/useSyncOrchestrator.ts':
     'generation, the FR-27.4 refresh, FR-27.10, clone and M21 all resolve positions that may name a retired row',
+  'src/composables/sync/actions/masterData.ts':
+    "FR-24.3's reference count — a position inside a retired Vorlage still keeps its item alive",
   'src/domain/portableImport.ts': 'import matches against everything, or it duplicates a name',
   'src/views/import/ImportPage.vue':
     'FR-16.3 dedup — matching a retired item beats creating a twin',
