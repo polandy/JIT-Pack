@@ -30,8 +30,21 @@ export interface Recorded {
  * `local` decides the mode the group is asked in: null is Server Mode, any
  * store is Local Mode. It is only ever compared against null by the groups,
  * so a spec that needs Local Mode passes an empty stand-in.
+ *
+ * `today` and `tripDataLoaded` default to the two answers a group is normally
+ * asked under — a fixed date, and rows that are on the device. A spec that is
+ * *about* the other answer overrides it; a spec that is not must not have to
+ * know they exist.
  */
-export function makeSeamContext(opts: { local?: IndexedDBPersistence | null } = {}): {
+export const SEAM_TODAY = '2026-06-01'
+
+export function makeSeamContext(
+  opts: {
+    local?: IndexedDBPersistence | null
+    today?: string
+    tripDataLoaded?: (tripId: string) => boolean
+  } = {},
+): {
   ctx: SyncContext
   queued: Recorded[]
 } {
@@ -57,6 +70,8 @@ export function makeSeamContext(opts: { local?: IndexedDBPersistence | null } = 
     },
     names: createNameGuards(masterStore),
     local: opts.local ?? null,
+    today: () => opts.today ?? SEAM_TODAY,
+    tripDataLoaded: opts.tripDataLoaded ?? (() => true),
   }
   return { ctx, queued }
 }
