@@ -126,6 +126,7 @@ export const de: Record<keyof typeof en, string> = {
   'packing.skippedToastWith': '„{name}“ bleibt zu Hause — mit {companions}',
   'packing.packedToast': '„{name}“ gepackt ✓',
   'packing.openPrep': '{n} Vorbereitung offen | {n} Vorbereitungen offen',
+  'packing.packSection': 'Einpacken',
   'packing.prepSection': 'Vorbereitung',
   'packing.empty': 'Noch nichts auf dieser Liste',
   'packing.emptyHint': 'Mit ＋ das erste Packelement hinzufügen.',

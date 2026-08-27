@@ -123,6 +123,7 @@ export const en = {
   'packing.skippedToastWith': '“{name}” stays at home — along with {companions}',
   'packing.packedToast': '“{name}” packed ✓',
   'packing.openPrep': '{n} preparation open | {n} preparations open',
+  'packing.packSection': 'Packing',
   'packing.prepSection': 'Preparation',
   'packing.empty': 'Nothing on this list yet',
   'packing.emptyHint': 'Add the first item with ＋.',
