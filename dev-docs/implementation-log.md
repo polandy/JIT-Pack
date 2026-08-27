@@ -7,7 +7,7 @@ along the way. This is **history**: append to it, don't restructure it.
 live, and the invariants that must hold. It deliberately no longer carries this
 log, because a file that grows with every shipped feature stops working as the
 thing you read first. If something recorded here is still load-bearing for
-*future* work, it belongs in `CLAUDE.md`'s invariants or in an ADR as well —
+_future_ work, it belongs in `CLAUDE.md`'s invariants or in an ADR as well —
 this log alone is not where a binding rule should live.
 
 ## What earns an entry
@@ -30,11 +30,11 @@ Write the entry when the work produced something the code cannot show:
 - **who decided what, and on what evidence** — owner calls, rendered variant
   rounds, measurements.
 
-An ADR is the better home when the tradeoff is *load-bearing for future work*
+An ADR is the better home when the tradeoff is _load-bearing for future work_
 (`adr/README.md` decides); the log holds the narrative around it. New entries go
 at the bottom, and **get a line in the index below** — `scripts/log-index-gate.mjs`
 (`make ci`, CI client job) fails the build for a section the index does not name,
-because the index is read *instead of* this file and an unlisted section is
+because the index is read _instead of_ this file and an unlisted section is
 unreachable.
 
 ## Index
@@ -49,7 +49,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Basics audit, 2026-08-08 — one toolchain](#basics-audit-2026-08-08--one-toolchain) — audit-and-harden rather than rework; why the toolchain had to be pinned before anything else.
 - [Basics audit, 2026-08-08 — FR-23.1 required an unverified claim](#basics-audit-2026-08-08--fr-231-required-an-unverified-claim) — a live privilege-escalation path: admin re-derived per request from a claim the client controlled.
 - [Basics audit, 2026-08-08 — first-party sessions (ADR-007)](#basics-audit-2026-08-08--first-party-sessions-adr-007) — Authelia is the reference IdP; why passing the IdP token set through was wrong at the root.
-- [Basics audit, 2026-08-09 — failure-path coverage](#basics-audit-2026-08-09--failure-path-coverage) — green gates hid uncovered *rejection* branches; coverage total ≠ coverage of the rules.
+- [Basics audit, 2026-08-09 — failure-path coverage](#basics-audit-2026-08-09--failure-path-coverage) — green gates hid uncovered _rejection_ branches; coverage total ≠ coverage of the rules.
 - [Basics audit, 2026-08-09 — supply-chain pinning (NFR-4.3 / invariant 8)](#basics-audit-2026-08-09--supply-chain-pinning-nfr-43--invariant-8) — the docs restructure had opened an unpinned surface nobody was watching.
 - [M19: the server URL arrives pre-filled (FR-19.1)](#m19-the-server-url-arrives-pre-filled-fr-191) — found by deploying, not by reading: first launch demanded an address the app already knew.
 - [Migrations 018/019: the two schema debts the concept left open (FR-25.9, FR-25.19)](#migrations-018019-the-two-schema-debts-the-concept-left-open-fr-259-fr-2519) — why `packed_by` and `packer` are two columns; the owner's "pragmatic, still in development" steer.
@@ -77,7 +77,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [M8 rebuilt: the scope-shaped editor (§3.27, FR-27.2/27.4/27.6/27.7)](#2026-08-15--m8-rebuilt-the-scope-shaped-editor-327-fr-272274276277) — the client could read §3.27's schema but not write it.
 - [M9/M10 — the inventory on a tag set (§3.24, 2026-08-16)](#m9m10--the-inventory-on-a-tag-set-324-2026-08-16) — the owner's "we do it with tags", and an explicitly allowed destructive migration.
 - [M11 — containers rebuilt on the concept round (FR-10.1–10.3, 2026-08-16)](#m11--containers-rebuilt-on-the-concept-round-fr-101103-2026-08-16) — a screen rejected in concept without ever having been rendered.
-- [Browser back with the M5 sheet open (Navigation Concept §7 case 4, 2026-08-16)](#browser-back-with-the-m5-sheet-open-navigation-concept-7-case-4-2026-08-16) — the sheet *replaces* its history entry on purpose; `overlayBackGuard.ts` is the fix.
+- [Browser back with the M5 sheet open (Navigation Concept §7 case 4, 2026-08-16)](#browser-back-with-the-m5-sheet-open-navigation-concept-7-case-4-2026-08-16) — the sheet _replaces_ its history entry on purpose; `overlayBackGuard.ts` is the fix.
 - [M11 joins the visual baselines, and the image gets a platform (2026-08-16)](#m11-joins-the-visual-baselines-and-the-image-gets-a-platform-2026-08-16) — which screens earn a baseline, and on what argument.
 - [What "covered by e2e" was not covering (2026-08-16)](#what-covered-by-e2e-was-not-covering-2026-08-16) — all test ids present and green, three real gaps anyway; why `e2e-tests.md` is a ledger.
 - [M12 — analytics rebuilt on the concept round (FR-8.1/8.2/14.3, 2026-08-16)](#m12--analytics-rebuilt-on-the-concept-round-fr-8182143-2026-08-16) — the slice tap filters rather than groups; the honest unweighted bucket.
@@ -87,45 +87,45 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The dev seed grows a master partition (2026-08-16)](#the-dev-seed-grows-a-master-partition-2026-08-16) — the standing rule that new master-data features extend the seed.
 - [Plain HTTP could not write at all (2026-08-16)](#plain-http-could-not-write-at-all-2026-08-16) — one line, everywhere: a browser API that silently needs a secure context. Found on an iPad, not in CI.
 - [The dev-only surfaces were not dev-only (2026-08-16)](#the-dev-only-surfaces-were-not-dev-only-2026-08-16) — the doc, the comment and CLAUDE.md all repeated a claim that was false; a `v-if` ships the code.
-- [FR-27.14: the footer stops being the whole answer (2026-08-17)](#fr-2714-the-footer-stops-being-the-whole-answer-2026-08-17) — a count answers *how many* and never *what*.
+- [FR-27.14: the footer stops being the whole answer (2026-08-17)](#fr-2714-the-footer-stops-being-the-whole-answer-2026-08-17) — a count answers _how many_ and never _what_.
 - [The ＋ answers where it is (2026-08-17)](#the--answers-where-it-is-2026-08-17) — the FAB follows the scope instead of asking.
 - [The sheet header's two round controls (2026-08-16, FR-25.15 / G-14)](#the-sheet-headers-two-round-controls-2026-08-16-fr-2515--g-14) — 26 px against 34 px, measured from a render rather than guessed.
 - [§3.28: the packing row gets a mark, decided on pixels (2026-08-17, spec only)](#328-the-packing-row-gets-a-mark-decided-on-pixels-2026-08-17-spec-only) — the icon library lost **on the pixels**, not on the argument. Don't reopen the round.
 - [G-2's detail, and the Local Mode backup behind it (2026-08-17, FR-19.6/NFR-4.11)](#g-2s-detail-and-the-local-mode-backup-behind-it-2026-08-17-fr-196nfr-411) — that the glyph had to be asked about was the defect (ADR-015).
-- [FR-2.6 variant A: the review step reviews (2026-08-17)](#fr-26-variant-a-the-review-step-reviews-2026-08-17) — dropping a row is FR-5.5 *skipped*, never deletion; nothing may become wizard-only.
+- [FR-2.6 variant A: the review step reviews (2026-08-17)](#fr-26-variant-a-the-review-step-reviews-2026-08-17) — dropping a row is FR-5.5 _skipped_, never deletion; nothing may become wizard-only.
 - [Coverage audit of 2026-08-17's merged PRs — the two gaps it found](#coverage-audit-of-2026-08-17s-merged-prs--the-two-gaps-it-found) — `commitRestore` ran silently into nothing; a feature only half in the diff marked ✅.
 - [The review step that let both gaps through, and what changed in it](#the-review-step-that-let-both-gaps-through-and-what-changed-in-it) — process, not code: the origin of `/pr-review`'s §4.0 changed-file → driving-test table.
 - [The restore landing (owner call, 2026-08-17)](#the-restore-landing-owner-call-2026-08-17) — a restore landed on a tab that hid everything it had just written.
 - [FR-5.5 — "bewusst nicht einpacken" gets a control (2026-08-18)](#fr-55--bewusst-nicht-einpacken-gets-a-control-2026-08-18) — two of the backlog note's three premises were wrong; the swipe was removed rather than repaired.
 - [FR-27.4: a planned trip follows the groups it was made from](#2026-08-18--fr-274-a-planned-trip-follows-the-groups-it-was-made-from) — ADR-016: a ledger, not a snapshot column; "not loaded ≠ empty".
 - [The §4a pass that came with it](#the-4a-pass-that-came-with-it) — the owner stopped the PR twice on the same literal; how CODING_PRINCIPLES §4a came to exist.
-- [FR-27.4, revised the day after it landed: the group *asks*](#fr-274-revised-the-day-after-it-landed-the-group-asks-2026-08-18) — declining = advancing the snapshot, which is why there is no pending state to sync.
-- [FR-27.3 — single items in M3 (2026-08-18)](#fr-273--single-items-in-m3-2026-08-18) — they resolve *after* the composition; that ordering is what makes "already included" decidable.
+- [FR-27.4, revised the day after it landed: the group _asks_](#fr-274-revised-the-day-after-it-landed-the-group-asks-2026-08-18) — declining = advancing the snapshot, which is why there is no pending state to sync.
+- [FR-27.3 — single items in M3 (2026-08-18)](#fr-273--single-items-in-m3-2026-08-18) — they resolve _after_ the composition; that ordering is what makes "already included" decidable.
 - [Portable YAML learns the composition (2026-08-18, ADR-017)](#portable-yaml-learns-the-composition-2026-08-18-adr-017) — a shared file used to import a Vorlage that resolved to nothing.
 - [The identity rule was half a rule (2026-08-18, ADR-017)](#the-identity-rule-was-half-a-rule-2026-08-18-adr-017) — identity belongs to the group, not to where a file happens to list it.
 - [The Go test suite spent 96 % of its time replaying migrations](#the-go-test-suite-spent-96--of-its-time-replaying-migrations) — measured per package, not guessed; the pre-migrated template.
-- [The development phase drops DDL migrations (2026-08-19, ADR-018)](#the-development-phase-drops-ddl-migrations-2026-08-19-adr-018) — owner decision *against* the recommendation on the desk, and what the recommendation was actually about.
+- [The development phase drops DDL migrations (2026-08-19, ADR-018)](#the-development-phase-drops-ddl-migrations-2026-08-19-adr-018) — owner decision _against_ the recommendation on the desk, and what the recommendation was actually about.
 - [The e2e job moves into the pinned Playwright image and shards (2026-08-19)](#the-e2e-job-moves-into-the-pinned-playwright-image-and-shards-2026-08-19) — 1124 s of a 29-minute job was `playwright install --with-deps`.
 - [The e2e job loses its gate and gains two shards (2026-08-19)](#the-e2e-job-loses-its-gate-and-gains-two-shards-2026-08-19) — the whole pipeline was one path; every other job finished under 90 s.
-- [FR-27.10 — a whole group onto a trip that already exists (2026-08-19)](#fr-2710--a-whole-group-onto-a-trip-that-already-exists-2026-08-19) — dedup by master item *and* by name, so a hand-typed row is recognised. Six review findings.
-- [M21 — Vorlage aus Reise (FR-27.5), 2026-08-19](#m21--vorlage-aus-reise-fr-275-2026-08-19) — needed a lifecycle step nobody had built; only a *Gruppe* can be recognised; a fuzzy match without a confirmation step.
+- [FR-27.10 — a whole group onto a trip that already exists (2026-08-19)](#fr-2710--a-whole-group-onto-a-trip-that-already-exists-2026-08-19) — dedup by master item _and_ by name, so a hand-typed row is recognised. Six review findings.
+- [M21 — Vorlage aus Reise (FR-27.5), 2026-08-19](#m21--vorlage-aus-reise-fr-275-2026-08-19) — needed a lifecycle step nobody had built; only a _Gruppe_ can be recognised; a fuzzy match without a confirmation step.
 - [M4's trip name leaves the app bar (2026-08-19)](#m4s-trip-name-leaves-the-app-bar-2026-08-19) — width decides where a title lives; the visual-gate tolerance stays 0.002 (owner call).
-- [M14's positive tests, and the flag nobody could set (2026-08-20)](#m14s-positive-tests-and-the-flag-nobody-could-set-2026-08-20) — *unused* had no writer anywhere in the app, and an ordinary M5 edit erased `source_template_id`.
-- [M4 comes back where it was left, and the header line stops flipping (2026-08-21)](#m4-comes-back-where-it-was-left-and-the-header-line-stops-flipping-2026-08-21) — a `<script setup>` top-level binding is per *instance*; a scroll position on M4 is an offset *and* a header state; the collapsing line fed its own layout change back as a user scroll. Closes E2E-M12-03's positive half too.
+- [M14's positive tests, and the flag nobody could set (2026-08-20)](#m14s-positive-tests-and-the-flag-nobody-could-set-2026-08-20) — _unused_ had no writer anywhere in the app, and an ordinary M5 edit erased `source_template_id`.
+- [M4 comes back where it was left, and the header line stops flipping (2026-08-21)](#m4-comes-back-where-it-was-left-and-the-header-line-stops-flipping-2026-08-21) — a `<script setup>` top-level binding is per _instance_; a scroll position on M4 is an offset _and_ a header state; the collapsing line fed its own layout change back as a user scroll. Closes E2E-M12-03's positive half too.
 - [A build image's major is a toolchain version, and a gate says so (2026-08-21)](#a-build-images-major-is-a-toolchain-version-and-a-gate-says-so-2026-08-21) — a Node major merged green because no check builds anything with that image.
 - [Dependabot skips the Node majors that can never be taken (2026-08-21)](#dependabot-skips-the-node-majors-that-can-never-be-taken-2026-08-21) — odd Node majors never reach LTS; Dependabot only ever offers the newest, so from October 2026 it would chase 27 past the 26 that becomes LTS. Bundler syntax, because that is what the docker ecosystem parses.
 - [The sync outbox survives a reload (2026-08-21)](#the-sync-outbox-survives-a-reload-2026-08-21) — MVP Track C / blocker B2: the queue moved to IndexedDB and is replayed before the first pull. Replay safety is the server's `mutation_id` memo, not the merge algorithm; a permanently refused mutation is parked so it cannot wedge a partition.
 - [The device backup carries the FR-27.4 refresh state (2026-08-21)](#the-device-backup-carries-the-fr-274-refresh-state-2026-08-21-mvp-track-f) — a restored device kept everything visible and forgot every answer it had given its groups; the restore re-keys by identity, not by name, because a renamed row is exactly the row the user has made theirs.
 - [A trip stops being frozen (FR-2.7 / M22, 2026-08-21)](#a-trip-stops-being-frozen-fr-27--m22-2026-08-21) — the consequence rule already existed in FR-27.4 and refresh.ts, so the new module was deleted; two defects only a render could see; the sibling e2e was green for the wrong reason three times.
-- [The chevron learns where it came from (2026-08-21)](#the-chevron-learns-where-it-came-from-2026-08-21) — the gear inside a trip went back to the dashboard: a gap in ADR-011's route table, not a bug under it. §7 had promised the flows mechanism for months and nothing implemented it; the new e2e case was false-green because `toHaveURL` matched the *query's* tail.
+- [The chevron learns where it came from (2026-08-21)](#the-chevron-learns-where-it-came-from-2026-08-21) — the gear inside a trip went back to the dashboard: a gap in ADR-011's route table, not a bug under it. §7 had promised the flows mechanism for months and nothing implemented it; the new e2e case was false-green because `toHaveURL` matched the _query's_ tail.
 - [A refusing control is worse than an absent one (2026-08-21)](#a-refusing-control-is-worse-than-an-absent-one-2026-08-21) — M22's ✕ shipped present-but-disabled on a written-down argument; the owner overruled it in the hand. The e2e prefix locator also counted the explanation as a button.
 - [M17 was the last screen, and the trap was a constant (2026-08-22)](#m17-was-the-last-screen-and-the-trap-was-a-constant-2026-08-22) — finished text in a module-level constant is evaluated once at import, so no language switch reaches it; the section it hid in is unreachable by either Playwright project, so it is covered by a component test or not at all.
 - [The i18n migration, closed except for M15 and M17 (2026-08-21)](#the-i18n-migration-closed-except-for-m15-and-m17-2026-08-21) — NFR-4.12: a nav anchor and a route title stored finished English text, so no language choice could reach the chrome; what is on the catalogue now and what is not.
 - [The composer offers chips before it asks for typing (2026-08-21)](#the-composer-offers-chips-before-it-asks-for-typing-2026-08-21) — FR-25.13c decided on a rendered three-way round (ADR-020): chips now, browse-sheet as FR-25.13d, tag tiles rejected; the autofocus removal is the accepted cost, and two e2e case numbers were already taken by specs not yet built.
-- [The composer's second posture: the browse-sheet (2026-08-22)](#the-composers-second-posture-the-browse-sheet-2026-08-22) — FR-25.13d: *Erfassen*/*Zusammenstellen* landed at zero rollout cost because the sheet lives inside the shared composer; „schon drin" is derived feedback, not bookkeeping; focusing after a modal loses to Ionic's teardown; M6 excludes the trip's whole contents; the E2E-M8-21 collision paid by renumbering FR-27.15's case to M8-23.
+- [The composer's second posture: the browse-sheet (2026-08-22)](#the-composers-second-posture-the-browse-sheet-2026-08-22) — FR-25.13d: _Erfassen_/_Zusammenstellen_ landed at zero rollout cost because the sheet lives inside the shared composer; „schon drin" is derived feedback, not bookkeeping; focusing after a modal loses to Ionic's teardown; M6 excludes the trip's whole contents; the E2E-M8-21 collision paid by renumbering FR-27.15's case to M8-23.
 - [FR-27.15: the editor learns to recognise its own duplicates (2026-08-22)](#fr-2715-the-editor-learns-to-recognise-its-own-duplicates-2026-08-22) — the FR’s stated sentence named the quantity, and following it literally would have let the fold turn a per-person position trip-global in silence; the dismissal is keyed to the item set because that is what makes „has it changed“ decidable without a schema; `ion-modal` never leaves the DOM, and an `Escape` assertion that passes before the sheet has presented leaves a live overlay eating the next tap.
 - [The i18n gap that was a measurement error (2026-08-22)](#the-i18n-gap-that-was-a-measurement-error-2026-08-22) — `vue-tsc --noEmit` on a solution-style tsconfig checks nothing and exits 0, which is where the belief came from that a wrong `MessageKey` in a template ships silently; `strictTemplates` measured at 1104 errors; the real gap was the avatar crop modal, which no Playwright project can open.
-- [§3.28: the mark gets built (2026-08-22, FR-28.1–28.11, ADR-021)](#328-the-mark-gets-built-2026-08-22-fr-2812811-adr-021) — the self-hosted face is about *agreement* (🧥 is a trench coat here and a peacoat on both platforms), not availability; the substring rule was unproven until „Reise" turned up an ice cube; the seed may only speak the index's vocabulary; and a master-item edit had been silently dropping the reference photo in Local Mode.
+- [§3.28: the mark gets built (2026-08-22, FR-28.1–28.11, ADR-021)](#328-the-mark-gets-built-2026-08-22-fr-2812811-adr-021) — the self-hosted face is about _agreement_ (🧥 is a trench coat here and a peacoat on both platforms), not availability; the substring rule was unproven until „Reise" turned up an ice cube; the seed may only speak the index's vocabulary; and a master-item edit had been silently dropping the reference photo in Local Mode.
 - [The trip partition was never confined to its trip (2026-08-22)](#the-trip-partition-was-never-confined-to-its-trip-2026-08-22) — membership was checked for the endpoint's trip while every statement addressed its row by primary key, so any member of any trip could read, rewrite, delete and seed every other trip's rows; the master partition had carried the equivalent check since its first day, which is why nothing looked missing.
 - [Two halves of one refusal path (2026-08-22)](#two-halves-of-one-refusal-path-2026-08-22) — the trip partition answered 500 where the master answered `rejected`, and a 5xx is the one status the outbox retries, so one bad row wedged a partition forever; the client meanwhile read a `status` key no server has ever sent, which made the whole parked surface dead code that its own fakes kept green.
 - [The pull cursor came out of the push (2026-08-22)](#the-pull-cursor-came-out-of-the-push-2026-08-22) — the client took `pull_hint.next_cursor` as its pull cursor, stepping permanently over everything another device wrote while it was away; the e2e case that should have caught it was green against the defect, because three overlapping drains repair the skip by accident, so the assertion moved from the screen to the wire.
@@ -136,30 +136,30 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The revert was already half-built, in a column nobody used (2026-08-22)](#the-revert-was-already-half-built-in-a-column-nobody-used-2026-08-22) — NFR-4.2a's second verb, built as a new mutation rather than an undo (ADR-022); the schema change the work was budgeted for did not exist, and a single-connection pool turned an obvious visibility check into a deadlock against itself.
 - [M10 was not done, and the test said it was (2026-08-22)](#m10-was-not-done-and-the-test-said-it-was-2026-08-22) — the i18n migration reported itself complete while the half of M10 that only exists after the save was still English; the e2e case guarding it asserted the English heading, so translating the screen would have turned it green; the suite's app language is English by design, which makes a catalogue lookup and the literal it replaced indistinguishable; and the e2e run serves the built bundle, so a mutation proof without a rebuild proves nothing.
 - [Field-level LWW was row-level, and "packed always wins" was hiding it (2026-08-22)](#field-level-lww-was-row-level-and-packed-always-wins-was-hiding-it-2026-08-22) — the store kept one `updated_hlc` per row where §6 says per field-group, so an offline pack lost to any unrelated later edit; the backlog's "packed beats everything" branch was the compensation for exactly one state, and narrowing it to the spec alone would have kept the fault and dropped the mask; ADR-022 ships a clock per field and the narrow rule together, and the conflict log now names the losing push and its actor.
-- [The sheet's glyph rode half a line high (2026-08-23)](#the-sheets-glyph-rode-half-a-line-high-2026-08-23) — an eyeball of the merged conflict-log work found two rendering defects that every gate had passed: a state glyph aligned to a title *block* whose `h1` carried a 20 px margin nothing asked for, and an empty state that had copied the house pattern without its padding; the review corrected the entry's own first answer — a visual baseline would **not** have caught the offset either, at 591 px against a 0.002 gate, so what let both live is that nothing measured them.
-- [The lock stopped at the row (2026-08-22)](#the-lock-stopped-at-the-row-2026-08-22) — G-3's padlock was on M4's row and nowhere else, so the row you could not pack from the list was fully editable one tap deeper, and the sheet *accepted* the edit before the next merge threw it away; no screen named the holder; and §7's promised environment variable for the staleness window had never existed as anything but a client constant. What the backlog also asked for — server-side lock enforcement — is what §7 deliberately does not do, and it is left to the owner rather than built.
-- [A backup gave back plans instead of history (2026-08-23)](#a-backup-gave-back-plans-instead-of-history-2026-08-23) — the portable file carried neither a trip's status nor an item's tags, so a restore turned archived history into plans and dropped every master item no template also used; the field that made the fix possible is the one that says whether a trip row came from the inventory at all, and the change quietly falsified a *constant* two screens away.
+- [The sheet's glyph rode half a line high (2026-08-23)](#the-sheets-glyph-rode-half-a-line-high-2026-08-23) — an eyeball of the merged conflict-log work found two rendering defects that every gate had passed: a state glyph aligned to a title _block_ whose `h1` carried a 20 px margin nothing asked for, and an empty state that had copied the house pattern without its padding; the review corrected the entry's own first answer — a visual baseline would **not** have caught the offset either, at 591 px against a 0.002 gate, so what let both live is that nothing measured them.
+- [The lock stopped at the row (2026-08-22)](#the-lock-stopped-at-the-row-2026-08-22) — G-3's padlock was on M4's row and nowhere else, so the row you could not pack from the list was fully editable one tap deeper, and the sheet _accepted_ the edit before the next merge threw it away; no screen named the holder; and §7's promised environment variable for the staleness window had never existed as anything but a client constant. What the backlog also asked for — server-side lock enforcement — is what §7 deliberately does not do, and it is left to the owner rather than built.
+- [A backup gave back plans instead of history (2026-08-23)](#a-backup-gave-back-plans-instead-of-history-2026-08-23) — the portable file carried neither a trip's status nor an item's tags, so a restore turned archived history into plans and dropped every master item no template also used; the field that made the fix possible is the one that says whether a trip row came from the inventory at all, and the change quietly falsified a _constant_ two screens away.
 - [A year is a quantity, and that is why M15 could not find its header (2026-08-23)](#a-year-is-a-quantity-and-that-is-why-m15-could-not-find-its-header-2026-08-23) — the legacy spreadsheet importer wrote no `year`, so a NOT NULL column made the server refuse every trip it imported while the importing device rendered the migration anyway; underneath sat two layout assumptions a real family sheet broke, and the rule for finding the header block had to stop asking about quantities.
 - [The store that already agrees with you (2026-08-23)](#the-store-that-already-agrees-with-you-2026-08-23) — three defects in one import path, all of the same shape: the client applies its own write optimistically, the server refuses it, and no screen on the importing device can tell the difference. Found by importing into the real instance instead of a test double, which is a different act from running the suite.
-- [Every spec paid for a DOM, and one of them was green for the wrong reason (2026-08-23)](#every-spec-paid-for-a-dom-and-one-of-them-was-green-for-the-wrong-reason-2026-08-23) — the suite built a jsdom window for all 114 spec files when 32 use one, costing ~48 % of its wall-clock; the premise that started the work was itself wrong (a cold-cache run read 252 s where the warm figure is 88 s), and the interesting find is the failure mode of the fix: a missing `@vitest-environment jsdom` is *not* reliably a red test, because production code that reads a DOM global inside a `try` takes the `catch` instead and the spec passes while exercising the error path.
-- [A hidden element is not a small element (2026-08-23)](#a-hidden-element-is-not-a-small-element-2026-08-23) — the toast-on-the-tab-bar fix was three lines; what it cost was two wrong measurements, both from a box of height zero: a `display: none` anchor makes Ionic subtract a whole viewport instead of clearing the bar, and the geometric test that should have caught the defect first failed against a hidden bar at the origin, where *every* overlap assertion resolves in both directions.
-- [The importer nobody called, and the exporter behind it (2026-08-23)](#the-importer-nobody-called-and-the-exporter-behind-it-2026-08-23) — ADR-025. The server had its own reader *and* writer for the portable format, reachable from no product surface, and both had drifted: the import wrote no change-log entry, so a `curl` import existed in the database and on no screen. Found by rendering, not by testing. The fix was deletion, and the precondition for it was getting the rules out of a 3600-line composable — where ADR-008 had always said they were not.
+- [Every spec paid for a DOM, and one of them was green for the wrong reason (2026-08-23)](#every-spec-paid-for-a-dom-and-one-of-them-was-green-for-the-wrong-reason-2026-08-23) — the suite built a jsdom window for all 114 spec files when 32 use one, costing ~48 % of its wall-clock; the premise that started the work was itself wrong (a cold-cache run read 252 s where the warm figure is 88 s), and the interesting find is the failure mode of the fix: a missing `@vitest-environment jsdom` is _not_ reliably a red test, because production code that reads a DOM global inside a `try` takes the `catch` instead and the spec passes while exercising the error path.
+- [A hidden element is not a small element (2026-08-23)](#a-hidden-element-is-not-a-small-element-2026-08-23) — the toast-on-the-tab-bar fix was three lines; what it cost was two wrong measurements, both from a box of height zero: a `display: none` anchor makes Ionic subtract a whole viewport instead of clearing the bar, and the geometric test that should have caught the defect first failed against a hidden bar at the origin, where _every_ overlap assertion resolves in both directions.
+- [The importer nobody called, and the exporter behind it (2026-08-23)](#the-importer-nobody-called-and-the-exporter-behind-it-2026-08-23) — ADR-025. The server had its own reader _and_ writer for the portable format, reachable from no product surface, and both had drifted: the import wrote no change-log entry, so a `curl` import existed in the database and on no screen. Found by rendering, not by testing. The fix was deletion, and the precondition for it was getting the rules out of a 3600-line composable — where ADR-008 had always said they were not.
 - [The manual said it, the shipped config did not (2026-08-23)](#the-manual-said-it-the-shipped-config-did-not-2026-08-23) — the sync WebSocket never connected on the `:3000` stack: nginx forwarded `Host $host`, which drops the port, and the handshake's same-origin check compares the browser's port-carrying `Origin` against it. The manual had already written the rule and then broke it in its own copy-paste block, and its verification `curl` sent no `Origin` at all — a check that could not fail. Nothing in Go or Playwright loads an nginx config, so the guard is a gate.
 - [The wire was described twice, and the second description was fiction (2026-08-23)](#the-wire-was-described-twice-and-the-second-description-was-fiction-2026-08-23) — NFR-4.14/ADR-026. The envelope was already uniform; what was not a contract was two independent descriptions of one wire, and the mechanism found two more drifted types on its first run. Three things the code cannot show: why both suites were blind (a fake agrees with its author), why the gate generates beside the tree rather than over it, and the trap that a generated file under `client/src` must be prettier-clean or `make fmt` fails the gate on a file nobody edited.
 - [A conflict is an overwrite, not a lost race (2026-08-23)](#a-conflict-is-an-overwrite-not-a-lost-race-2026-08-23) — the conflict log had been logging fields nobody overwrote, so it read `2026 → 2026` and offered a revert for it, and the outcome `merged` announced the loss to a user who had none. Two things the code cannot show: it was found by rendering a merged, reviewed feature that no one had looked at, and the fix's real difficulty is that the two values being compared arrive from different type systems — JSON on one side, SQLite on the other.
 - [The conflict log was showing the wire (2026-08-24)](#the-conflict-log-was-showing-the-wire-2026-08-24) — the three findings the previous entry left standing, plus one only the render found: the log's values were two uuids either side of an arrow. Two things the code cannot show: which limits are deliberate (a name this device does not know, a column with no word for it) and why the e2e case that "covered" the row was green against every one of these.
 - [A route names its scope first (2026-08-24)](#a-route-names-its-scope-first-2026-08-24) — NFR-4.14's third point/ADR-027. Four things the code cannot show: the backlog item's own complaint had gone stale (ADR-025 had already deleted two of the four shapes it named, so it was re-measured before it was acted on), why the sync endpoints were widened into a scope the owner's question did not name, the trap that a router's 404 and a handler's 404 are the same status — which made the first negative test green on the two revert routes for the wrong reason — and the latent defect that typed route builders exposed.
-- [The gate protected what the file happened to declare (2026-08-24)](#the-gate-protected-what-the-file-happened-to-declare-2026-08-24) — NFR-4.14's coverage half. Three things the code cannot show: that the rule needed a *check* rather than eleven more types, that the check has a blind spot which the very handler that motivated it fell into — and how that was closed rather than papered over — and why a request body is allowed to stay a map where a response body is not.
-- [A path stopped being written twice (2026-08-24)](#a-path-stopped-being-written-twice-2026-08-24) — NFR-4.14's last half: the routes joined `wire.go` and the client's builders are generated from it. What the code cannot show: why ADR-027's revisit trigger was discharged *before* the drift it waits for, why the version prefix is deliberately spelled out on every line, why a pin on a generated file is not redundant, and the trap that a generator must emit prettier's own line breaks or the drift gate fails on a file nobody edited.
+- [The gate protected what the file happened to declare (2026-08-24)](#the-gate-protected-what-the-file-happened-to-declare-2026-08-24) — NFR-4.14's coverage half. Three things the code cannot show: that the rule needed a _check_ rather than eleven more types, that the check has a blind spot which the very handler that motivated it fell into — and how that was closed rather than papered over — and why a request body is allowed to stay a map where a response body is not.
+- [A path stopped being written twice (2026-08-24)](#a-path-stopped-being-written-twice-2026-08-24) — NFR-4.14's last half: the routes joined `wire.go` and the client's builders are generated from it. What the code cannot show: why ADR-027's revisit trigger was discharged _before_ the drift it waits for, why the version prefix is deliberately spelled out on every line, why a pin on a generated file is not redundant, and the trap that a generator must emit prettier's own line breaks or the drift gate fails on a file nobody edited.
 - [A column everything read and nothing wrote (2026-08-25)](#a-column-everything-read-and-nothing-wrote-2026-08-25) — FR-25.19/E2E-FLOW-02. Three things the code cannot show: how the gap survived four screens and a spec that named it, why the fix was one control rather than a feature, and the test assertion that would have passed with or without the rule it was written for.
 - [A trip could be judged only one row at a time (2026-08-24)](#a-trip-could-be-judged-only-one-row-at-a-time-2026-08-24) — FR-9.3/9.4. Three things the code cannot show: how many affordances a "one posture, one question" screen turns out to have once it is rendered, why a handled proposal became a record line rather than a dimmed card, and the control that was replaced twice before it rendered the row rather than itself.
 - [A claim stops having a lifetime (2026-08-24)](#a-claim-stops-having-a-lifetime-2026-08-24) — FR-5.7/ADR-028. Four things the code cannot show: why the option that looked like the compromise was the most expensive one, why the takeover is the one lock action with no optimistic write, why it has no reachable Playwright case and will not until a second identity exists, and the two-day-old work that was deleted rather than adapted.
 - [A second account arrives, and finds a claim nobody could revoke (2026-08-24)](#a-second-account-arrives-and-finds-a-claim-nobody-could-revoke-2026-08-24) — MVP-plan Track B step 2 / ADR-029: the mock-IdP `server` project. Four things the code cannot show: why a real Authelia was weighed and lost to a 250-line fixture, why the ordering of two processes is a design decision rather than a script detail, the defect the project found on its first run — a takeover that the loser's screen contradicted — and why the identity behind the fix cannot come from the token provider the rest of the client uses.
-- [A decade of packed trips, all reading zero (2026-08-25)](#a-decade-of-packed-trips-all-reading-zero-2026-08-25) — FR-2.3/ADR-033: M2 loads the partitions of the rows on screen and says *unknown* until they arrive. Four things the code cannot show: the option that is free for ever and was turned down anyway, the number that decided between loading everything and loading what is visible, the bug that only rendering could find, and the test that was right to fail in company.
-- [A device only ever got the first page (2026-08-25)](#a-device-only-ever-got-the-first-page-2026-08-25) — Sync-API §4: the pull ignored `has_more`. Four things the code cannot show: why every fixture in the suite was too small to catch it, why the obvious second half of the fix — remembering the cursor — made the app *emptier*, why the correct implementation was already in the repo and unused, and what found it in the end.
+- [A decade of packed trips, all reading zero (2026-08-25)](#a-decade-of-packed-trips-all-reading-zero-2026-08-25) — FR-2.3/ADR-033: M2 loads the partitions of the rows on screen and says _unknown_ until they arrive. Four things the code cannot show: the option that is free for ever and was turned down anyway, the number that decided between loading everything and loading what is visible, the bug that only rendering could find, and the test that was right to fail in company.
+- [A device only ever got the first page (2026-08-25)](#a-device-only-ever-got-the-first-page-2026-08-25) — Sync-API §4: the pull ignored `has_more`. Four things the code cannot show: why every fixture in the suite was too small to catch it, why the obvious second half of the fix — remembering the cursor — made the app _emptier_, why the correct implementation was already in the repo and unused, and what found it in the end.
 - [A drain could land on top of a drain (2026-08-25)](#a-drain-could-land-on-top-of-a-drain-2026-08-25) — Sync-API §4: one drain per partition at a time. Three things the code cannot show: why the doubled traffic I thought I had measured was my own eyeball script rebooting the app, why the obvious guard — hand the running drain back to the late caller — silently loses a mutation, and why this only became worth fixing once the pull was paged.
 - [The restore could be run twice, and the manual said it could not (2026-08-24)](#the-restore-could-be-run-twice-and-the-manual-said-it-could-not-2026-08-24) — FR-18.4/ADR-030: an imported document is a second copy when its name matches, plus the year for a trip. Five things the code cannot show: the documentation that had described the item rule as if it were the whole rule, why the database constraint that looks like the obvious enforcement is the worst of the four options, why the trips were invisible to a view called `master`, how ADR-017's Vorlage exception was reversed by a measurement rather than an argument, and the cost the family's own data pays for the rule.
-- [The clock the client was told to read, and never received (2026-08-25)](#the-clock-the-client-was-told-to-read-and-never-received-2026-08-25) — a data-model review's sync half. Four things the code cannot show: how a rule implemented correctly on both sides never once ran, why a deleted trip's *master*-partition children are the tombstones that matter while its trip-partition ones need none, a review finding that was wrong and how far I built it before opening the citation, and why a connection-scoped pragma is not a schema rule.
+- [The clock the client was told to read, and never received (2026-08-25)](#the-clock-the-client-was-told-to-read-and-never-received-2026-08-25) — a data-model review's sync half. Four things the code cannot show: how a rule implemented correctly on both sides never once ran, why a deleted trip's _master_-partition children are the tombstones that matter while its trip-partition ones need none, a review finding that was wrong and how far I built it before opening the citation, and why a connection-scoped pragma is not a schema rule.
 - [What a constraint costs when the outbox drops a refusal (2026-08-25)](#what-a-constraint-costs-when-the-outbox-drops-a-refusal-2026-08-25) — the same review's schema half. Four things the code cannot show: why the two-level rule was a two-step formality, the lens every candidate constraint was decided by and the two that failed it, why a per-owner unique name contradicted the FR above it, and the dead schema that was kept on purpose.
 - [A refusal that could not be read (2026-08-25)](#a-refusal-that-could-not-be-read-2026-08-25) — Sync-API §5 / FR-9.2. Four things the code cannot show: why the foreign key that started the finding was never the defect, why the reason is asked for instead of read out of the driver's error, why M7 does not pre-empt a delete it cannot judge, and the divergence this PR announces without closing.
 - [A purchase that could not be taken back (2026-08-25)](#a-purchase-that-could-not-be-taken-back-2026-08-25) — FR-25.11j, the review's last item. Three things the code cannot show: the column that was weighed and not added, why the reveal declines the persistence FR-25.18 would seem to hand it, and the round trip left open on purpose because the file that closes it belongs to somebody else.
@@ -167,7 +167,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A name that could only be refused by the server (2026-08-25)](#a-name-that-could-only-be-refused-by-the-server-2026-08-25) — FR-1.6 / FR-13.1: the mitigation the constraint owed. Four things the code cannot show: the one surface that could have adopted the existing row and deliberately does not, the rule that was already live for items in a single view, why the return type was the actual work, and how the diacritics question was settled.
 
 - [A delete that could only be refused](#a-delete-that-could-only-be-refused-2026-08-25) — FR-24.3 unparked: the refusal already held the discriminator; why the filtering keeps `itemList` complete; the rule written twice with only one copy allowed to be wrong; the usage endpoint designed and dropped.
-- [The restore was free, the name was not](#the-restore-was-free-the-name-was-not-2026-08-25) — FR-24.3 / ADR-034 / M23: the entry above closed by naming restore as owed, and this is the day after. Four things the code cannot show: the promise the FR made that the schema had already broken, why the collision is refused on the *client* when ADR-032 had just argued the opposite, the surface chosen against three that were rejected, and the defect only a rendered case found — twice, in one test.
+- [The restore was free, the name was not](#the-restore-was-free-the-name-was-not-2026-08-25) — FR-24.3 / ADR-034 / M23: the entry above closed by naming restore as owed, and this is the day after. Four things the code cannot show: the promise the FR made that the schema had already broken, why the collision is refused on the _client_ when ADR-032 had just argued the opposite, the surface chosen against three that were rejected, and the defect only a rendered case found — twice, in one test.
 - [Two actor columns a client could still name (2026-08-25)](#two-actor-columns-a-client-could-still-name-2026-08-25) — invariant 3 / FR-4.2, FR-5.7. Three things the code cannot show: why an edit may not re-stamp the author it can no longer forge, why the obvious shape of the claim fix would have left every packed row claimed, and the evidence that decided which op a comment is allowed to be born from.
 - [A name rule the system's own names could not pass (2026-08-26)](#a-name-rule-the-systems-own-names-could-not-pass-2026-08-26) — FR-17.13's charset rejected the server's seeded "Demo User" and every IdP name with a space or diacritic, and the FR contradicted itself in one sentence; the mid-word gap in M17's traveller label was Chromium rounding glyph runs under the stacked label's `scale(0.75)`, not an i18n defect — measured intact, painted broken; and the G-9/G-12 gear contradiction resolved toward G-9's origin-return amendment.
 - [An invariant that lived at eighty-seven call sites (2026-08-25)](#an-invariant-that-lived-at-eighty-seven-call-sites-2026-08-25) — the optimistic `PullChange` gets one builder. Four things the code cannot show: the throwing probe that turned "the table and the id always match the mutation" from a reading into a measurement, the field a hand-built row had been dropping since it was written, why the same duplication had already crossed a module boundary into the FR-18.7 command, and why the twelve ids the cleanup freed are evidence rather than tidying.
@@ -175,6 +175,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The orchestrator starts coming apart (2026-08-26)](#the-orchestrator-starts-coming-apart-2026-08-26) — R-4's first cut: the row builders and the container group leave the 3,215-line composable, bound to a `SyncContext` that carries only what a moved group needs. Three things the code cannot show: why the extraction needed its own spec even though the group was already covered through the facade, why the context is grown per group rather than declared up front, and that the file holds **fourteen** row builders where R-3 defended the nine its review had listed.
 - [The five builders the list had hidden (2026-08-26)](#the-five-builders-the-list-had-hidden-2026-08-26) — R-3's remainder: `memberRow`, `commentRow`, `todoRow`, `profileRow`, `checklistItemRow`. Three things the code cannot show: that none of the five was actually dropping a column, so what landed is the guard and not a fix; why `commentRow` cannot be read back through the store at all and which two of its columns are therefore unreachable — a hard-coded column is only as defended as the writer that contradicts it; and that the mutation sweep reported all twenty columns undefended because its own red-detection was broken, which is what a sweep measuring itself looks like.
 - [Three more groups leave, and the context stops being free (2026-08-27)](#three-more-groups-leave-and-the-context-stops-being-free-2026-08-27) — R-4's second cut: comments/todos, item dependencies, series/destinations and the shared name guards. Three things the code cannot show: why comments and todos are one group and not two, that growing `SyncContext` broke the existing seam spec at compile time and that this is the design working rather than a cost, and why the name guards are shared context rather than one group's private helper.
+- [The first group that has to know which mode it is in (2026-08-27)](#the-first-group-that-has-to-know-which-mode-it-is-in-2026-08-27) — R-4's third cut: tags, master items and Vorlagen. Why FR-24.3 makes those three one group, why the item photo stayed behind despite sharing the table, what `SyncContext` grew a `local` field for, and the allowlist that caught a moved read nothing else could see.
 
 ## Current state
 
@@ -187,12 +188,13 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 
 `go test -race ./...` → all green, 194 tests. Client: 407 vitest tests (52 files).
 
-**CI/CD** (`.github/`, modeled on skipper-cd, 2026-07-10): `ci.yml` — Go job (build, vet, `-race` tests, coverage gates 75 % overall / 90 % `internal/sync`, `go mod tidy` check), golangci-lint (config in `.golangci.yml`: errcheck excludes for deferred-cleanup/response-writing idioms, staticcheck all minus QF1001, `client/` excluded), client job (`npm ci`, oxlint + eslint *without* `--fix`, `npm run build` = type-check + vite, `vitest run`), **autoformat job** (gofmt + prettier, commits `style: apply automatic formatting` back to the branch; skipped on fork PRs; GITHUB_TOKEN pushes don't retrigger CI — fine, formatting is semantics-free), docker-build check. `docker.yml` — ghcr.io push on `v*` tags (semver + sha + latest). `release.yml` — release-please (go) maintains the release PR from Conventional Commits; authenticates with a PAT (`secrets.RELEASE_PLEASE_TOKEN`, falls back to `GITHUB_TOKEN` if unset) so the release PR gets CI and the release tag it creates triggers docker.yml directly (GITHUB_TOKEN-raised events never trigger workflows — that's why the old explicit docker dispatch existed; removed 2026-07-11 to avoid a double build once the PAT lands). PAT is a fine-grained token on this repo with contents:write + pull-requests:write + workflows. Dependabot weekly (gomod, npm in /client, actions, docker) + auto-merge for patch/minor. Client `src/` is fully prettier-formatted since 2026-07-10 — keep it that way or the autoformat bot will. Branch protection/rulesets are **unavailable** (free-plan private repo, API returns 403 "Upgrade to GitHub Pro or make this repository public") — Dependabot merging is instead gated by the `dependabot-merge` job in ci.yml (`needs` all check jobs, so it waits for green by construction; majors stay open for review). The Actions setting "allow GitHub Actions to create and approve pull requests" is enabled (2026-07-10, release-please needs it). If the repo ever goes public: add real branch protection on `main` with go/go-lint/client/docker-build as required checks.
+**CI/CD** (`.github/`, modeled on skipper-cd, 2026-07-10): `ci.yml` — Go job (build, vet, `-race` tests, coverage gates 75 % overall / 90 % `internal/sync`, `go mod tidy` check), golangci-lint (config in `.golangci.yml`: errcheck excludes for deferred-cleanup/response-writing idioms, staticcheck all minus QF1001, `client/` excluded), client job (`npm ci`, oxlint + eslint _without_ `--fix`, `npm run build` = type-check + vite, `vitest run`), **autoformat job** (gofmt + prettier, commits `style: apply automatic formatting` back to the branch; skipped on fork PRs; GITHUB_TOKEN pushes don't retrigger CI — fine, formatting is semantics-free), docker-build check. `docker.yml` — ghcr.io push on `v*` tags (semver + sha + latest). `release.yml` — release-please (go) maintains the release PR from Conventional Commits; authenticates with a PAT (`secrets.RELEASE_PLEASE_TOKEN`, falls back to `GITHUB_TOKEN` if unset) so the release PR gets CI and the release tag it creates triggers docker.yml directly (GITHUB_TOKEN-raised events never trigger workflows — that's why the old explicit docker dispatch existed; removed 2026-07-11 to avoid a double build once the PAT lands). PAT is a fine-grained token on this repo with contents:write + pull-requests:write + workflows. Dependabot weekly (gomod, npm in /client, actions, docker) + auto-merge for patch/minor. Client `src/` is fully prettier-formatted since 2026-07-10 — keep it that way or the autoformat bot will. Branch protection/rulesets are **unavailable** (free-plan private repo, API returns 403 "Upgrade to GitHub Pro or make this repository public") — Dependabot merging is instead gated by the `dependabot-merge` job in ci.yml (`needs` all check jobs, so it waits for green by construction; majors stay open for review). The Actions setting "allow GitHub Actions to create and approve pull requests" is enabled (2026-07-10, release-please needs it). If the repo ever goes public: add real branch protection on `main` with go/go-lint/client/docker-build as required checks.
 
 **Built:**
+
 - `internal/sync` — HLC generator + field-level merge algorithm (NFR-4.2a). Pure, zero I/O.
 - `internal/store` — SQLite repositories: change_log/conflict_log, pull with tombstone+compaction, push with idempotent mutation replay (trip partition: trip_items, travelers, containers, comments), Single-User bootstrap, avatar + display-name, template/trip export+import. Membership with three-tier role model (owner/admin/editor, FR-4.5/4.7). Master-partition sync (`master.go`, spec §4/§5): `ApplyMasterMutation`/`PullMaster` for categories, items, templates, template_items, trips — authorization enforced (trips by member, delete owner/admin; templates/template_items shared instance-wide since the FR-1.6 MVP simplification), `owner_id`/`created_by` stamped server-side on insert and never rewritten, trip insert auto-creates owner membership, template delete tombstones cascaded template_items, FK violations → outcome `rejected`, pull visibility per user (member trips; categories/items/templates instance-wide). Migrations tracked via `PRAGMA user_version` (reopen-safe). Series in the master partition since migration 006 (M16): trip_series (owner_id stamped, owner-only visibility), destination_profiles/destination_checklist_items authorized+visible via the series-owner chain (`ownsAll`/`ownedBy`), series/profile deletes tombstone their FK cascade (`cascadeChildren`). trip_members in the master partition since migration 009 (FR-4.5/4.7): single-column `id` + `updated_hlc` (natural key kept as UNIQUE(trip_id, user_id)), managed only by Owner/Admin, clients can never grant `owner`, the creator's row is immutable (any mutation of a role=owner row rejects), duplicate adds reject via the broadened `isConstraintViolation` (FK+UNIQUE+CHECK → outcome `rejected`); trip insert logs the auto-created owner membership, and a member grant re-logs the `trips` row so a late-added member's cursor picks the trip up (`memberTrip` touch); roster rows visible to every member of their trip. `ListUsers` directory for the M3 sharing picker.
-- `internal/api` — HTTP handlers: pull/push for both partitions (`/sync/trips/{id}` + `/sync/master`), JWT auth (HS256 shared secret or RS256 via JWKS from IdP), trip-membership enforcement, Single-User Mode (`api.NewSingleUser`, bypasses auth *and* membership per FR-17.3), avatar upload/download with ETag, display-name endpoint. WebSocket hub (`hub.go`/`ws.go`): spec-§7 wire protocol (`?token=` query-param auth for browser dials, `{"subscribe": ["trip:<id>"]}`/`unsubscribe`/`{"cursor": {trip_id, seq}}` client frames, `{type, payload}` envelope), per-trip subscriptions, `trip.changed` broadcast on push, `master.changed` to the pusher's own connections only (lazy discovery for others, spec §8), presence as `users:[{user_id, device_count, in_sync}]`. Portable YAML export/import endpoints for templates and trips. JWKS provider (`jwks.go`): fetches RSA public keys on startup, refreshes every 5 min, key lookup by `kid`.
+- `internal/api` — HTTP handlers: pull/push for both partitions (`/sync/trips/{id}` + `/sync/master`), JWT auth (HS256 shared secret or RS256 via JWKS from IdP), trip-membership enforcement, Single-User Mode (`api.NewSingleUser`, bypasses auth _and_ membership per FR-17.3), avatar upload/download with ETag, display-name endpoint. WebSocket hub (`hub.go`/`ws.go`): spec-§7 wire protocol (`?token=` query-param auth for browser dials, `{"subscribe": ["trip:<id>"]}`/`unsubscribe`/`{"cursor": {trip_id, seq}}` client frames, `{type, payload}` envelope), per-trip subscriptions, `trip.changed` broadcast on push, `master.changed` to the pusher's own connections only (lazy discovery for others, spec §8), presence as `users:[{user_id, device_count, in_sync}]`. Portable YAML export/import endpoints for templates and trips. JWKS provider (`jwks.go`): fetches RSA public keys on startup, refreshes every 5 min, key lookup by `kid`.
 - `internal/portable` — YAML wire types for portable template/trip export/import (FR-18.1–18.6). Pure marshal/unmarshal, no I/O deps. `gopkg.in/yaml.v3`.
 - Two-client end-to-end tests (`internal/api/e2e_test.go`) proving concurrent offline edits converge per NFR-4.2a over real HTTP.
 
@@ -210,7 +212,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
    - **Sync orchestrator:** Wires stores ↔ outbox ↔ WebSocket. Optimistic UI (G-5): mutations apply locally first, drain fires in background. Pull changes auto-route to correct store. WebSocket `trip.changed`/`master.changed` trigger drains. Todo actions (add/resolve/reopen FR-7.3).
    - **Domain layer (`src/domain/`, pure, no I/O):** `instantiate.ts` — template instantiation (FR-2.2/2.3a/1.4/15.2): conditions filter with preview reasons, plain integer quantities (`formula.ts` and the FR-1.3/1.5 engine were **removed 2026-08-08**, owner decision — see the Open-items record), per_person expansion to one row per traveler, dedup across templates (max default, sum if any side requests it), merged/excluded reported for the M3 preview footer. Client-side by design so Local Mode gets it for free.
    - **Global patterns:** G-2 sync indicator (synced/syncing/offline/local), G-6 quantity stepper (checkbox for qty=1, +/- for qty>1), G-9 responsive layout (desktop nav rail ≥900px, mobile bottom tabs), G-10 presence facepile + group-sync badge in M4 (fed by WS presence events; client reports its pull cursor after each trip drain so the server can compute `in_sync`; hidden with ≤1 user, so inert in Single-User/Local per G-8). G-2 conflict log: `GET /trips/{id}/conflicts` (documented in spec §8), ConflictLogPage at `/trips/:tripId/conflicts`, opened by tapping the sync indicator inside a trip; Local Mode resolves empty without network (single writer).
-   - **Screens:** M1 Dashboard (greeting, trip cards, KPIs, prep todos FR-7.3), M2 Trip List (filter, progress rings, FAB; Share slide option → TripMembersPage at `/trips/:tripId/members` per FR-4.5/4.7 — roster with role select (Editor/Admin) and remove for Owner/Admin, read-only for Editors, owner row immutable, add-picker from `GET /users`; pure view logic in `src/domain/members.ts` `buildRosterView`, mirrors the server rules; Share hidden without an OIDC session per G-8), M3 Trip Creation Wizard (4 steps: metadata + attribute chips FR-15.1, travelers FR-2.5, template selection with live dedup/exclusion preview, quantity review with overrides; `createTripFromWizard` cascade: trips → master partition first, then travelers/trip_items → trip partition, because the server grants creator membership on the master push; series picker in step 1 with inline "New series…" — inline series enqueue *before* the trip in the same master queue, a separate drain could race; picking a series prefills empty attribute chips from its defaults, `?series=` preselects from M16; step 4 offers the series' destination checklist (FR-13.3) as opt-out extra trip items; sharing/role step in step 2 (FR-4.5/4.7): user picker from `GET /users` minus self, Editor/Admin role select, grants enqueued *after* the trips insert in the same master queue (server authorizes against the fresh trip), rendered only with an OIDC session per G-8 — Single-User/Local hide it), M4 Packing List (KPI strip with prep counter, grouping, stepper, skip/unskip, inline quick-add FR-5.6, collapsible prep section, item prep badges), M5 Item Detail (stepper, mode, assignment, flags, preparation todos section, comment thread FR-7.1 with flag-as-task FR-7.2 — flagged comments become todos in the same comments table; note: FR-7.2's hard completion-block is superseded by FR-7.3's "packed with open prep" state; trip-level comments modeled in the store, UI deferred), M6 Shopping Views (two tabs buy_before/buy_local grouped by category, check-off: BUY_BEFORE → mode pack per FR-3.3, BUY_LOCAL → packed; quick-add per list via `addTripItem` mode opt; M4 toolbar entry with badge, hidden when empty; FR-13.3 destination checklists are offered in M3 step 4, not here), M11 Container Management (FR-10.1–10.3: CRUD with carrier/max-weight/pairing on `containers` incl. `paired_container_id`; pure weight math in `src/domain/containers.ts` — planned weight × quantity, amber ≥90 %/red >max, pairing imbalance vs heavier side with 15 % default overridable per trip via `attributes.imbalance_threshold`; unassigned bucket with assign select; `deleteContainer` unassigns items first — plain FK would reject the delete; entry from M4's container grouping; no threshold-setting UI yet), M12 Analytics (FR-8.2/10.4/14.3: `src/domain/analytics.ts` pure — `analyzeByDimension` person/category/container with planned/packed weight, value totals, honest "unweighted (n)" bucket; `seriesWeightTrend` + `topFlagged` over archived trips synced to the device; page at `/trips/:tripId/analytics` with stacked bars, dimension segment, trend section when the trip has a series; tap slice → M4 grouped by that dimension — per-slice deep filters not built; entry: tap the M4 KPI strip), M13 Repack Mode — **removed 2026-07-17, see the note at the top of this section** (one survivor of that work is kept because it was never repack-specific: the outbox chunks pushes at the 200-mutation server cap and only drops pushed chunks, so large wizard trips no longer wedge the queue), M14 Post-Trip Review Assistant (FR-9.1/9.2: `src/domain/review.ts` pure `buildReviewProposals` — unused-flagged templated items → "set quantity to 0 in the source template", missing-flagged items → "add to the trip's dominant template" (the one that contributed most items), dedup against items the template already contains, ad-hoc names matched to master items case-insensitively (unmatched → apply creates the master item first); proposals are recomputed from current state, so applied cards vanish = resumability for free; runs client-side like generation, spec §8 archive/review rows marked superseded; `archiveTrip` = plain `trips.status` mutation, `applyReviewProposal` writes ordinary master mutations straight to the source template (the fork path went with the FR-1.6 MVP simplification, 2026-08-08); "Never ask again" scoped to the item–template pair in a device-local localStorage store (`src/local/reviewDismissals.ts`) — deliberate: no synced table for UI mutings, another device asks at most once more; flag history counted over archived series trips synced to the device (M12-style honesty); page at `/trips/:tripId/review` = card stack Apply/Skip/Never + applied-changes summary; M4 toolbar: archive on active trips auto-launches review, sparkles re-entry on archived trips. Open: NFR-4.2a conflict-log compaction on archive has no server trigger now that archiving is a plain status mutation — noted in spec §8), M7 Template List (one shared list, item count), M8 Template Editor (item picker, quantity, swipe-to-delete), M9 Item Inventory (search, category groups, unit chips), M10 Item Editor (name, category, weight, value, unit), M16 Series & Destination Profile (FR-13.1–13.3: page at `/series/:seriesId` — name + default attribute chips (M3 prefill source), destination notes and checklist editor on the lazily created unique profile (`ensureDestinationProfile`), trip history with per-trip stats and detach, attach-select over series-less trips, "New trip in series" → M3 `?series=`, trends shortcut → newest trip's M12; M2 groups trips by series with tappable header → M16; orchestrator: createSeries/updateSeries/setTripSeries/ensureDestinationProfile/updateDestinationProfile/add-update-deleteChecklistItem, all master partition), Trip Cloning (FR-12.1/12.2: `src/domain/clone.ts` pure `planClone` — curated list with fresh pack state (skips travel with the clone as list curation, pack progress/flags don't), three carry-over toggles (traveler assignments / packer delegations / container assignments; containers only copied when their toggle is on), quantities carry over unchanged (formula re-evaluation retired with FR-1.3/1.5); `cloneTrip` cascade mirrors the wizard (trips→master first; container *pairing* set in a second upsert pass — a forward pair reference would violate the FK); ClonePage at `/trips/:tripId/clone` with fresh dates + toggles + live preview; entries: M2 slide option on archived trips (slide-archive on active trips now actually works → M14), M16 "Clone last trip" on the newest archived series trip per FR-12.1; spec §8 clone row superseded), M15 Import Wizard (FR-16.1–16.3/NFR-4.7: `src/domain/spreadsheet.ts` pure — CSV parser with ,/;/tab auto-detect + quotes, `analyzeGrid` suggests item column/trip columns/category rows, `parseQuantity` (x/✓ → 1), `normalizeTripDate` (bare year → Dec 31), `findDuplicates` (exact-normalized auto-merge + Levenshtein ≤2 prompts, FR-16.3), `buildImportPlan` (category grouping, trailing '?' → open task); `commitImport` cascade: categories reused case-insensitively then created, master items merged per dedup decision, trips archived+`imported` with original quantities as packed rows, '?' noise → todo comment on the row; page at `/import` 4 steps (file/paste → mapping with select-all-default trip toggles + per-trip series target → dedup merge/keep-separate → confirm); entries: M2 title-row upload icon, M9 empty state. Scope cuts, documented in spec §8: CSV only (XLSX = export to CSV; parser dep fails NFR-4.3), NFR-4.7 transactionality approximated by pre-validation + parents-first idempotent enqueue — no cross-mutation server transaction), M17 Settings (page at `/tabs/settings`, header gear now resolves — it was a dead link; profile per FR-17.13: editable display name (inline `[A-Za-z0-9._-]{1,50}` validation) + avatar upload with on-device 256×256 JPEG center-crop when *no* OIDC session exists (single-user server), read-only IdP note otherwise, plain note in Local Mode; identity via new `GET /api/v1/me`; data section: NFR-4.5 full-JSON + per-trip-CSV downloads through `downloadExport` (auth-header blob), portable-YAML note in Local Mode; conflict-log pointer (G-2 lives on the trip sync indicator), about section. Deliberate gap: avatar pan/zoom crop positioning deferred, center-crop only. Notification prefs + Web-Push toggle live in the Notifications section since 2026-07-10 (item 8). Server: `internal/api/backup.go` + `internal/store/backup.go` (ExportFull visibility-filtered, UserDisplayName, CSV from the portable ExportTrip document); APIClient gained put/putRaw/getBlob and tolerates empty 200 bodies), M18 Portable Import Preview (FR-18.4/18.5: `src/domain/portable.ts` pure — YAML parse via the `yaml` package (already a transitive Vite dep, zero added footprint) with validation (malformed rejected at the picker), forward compatibility (unknown fields ignored, newer `schema_version` → warning + best-effort), `matchPortableItems` reuses the M15 `findDuplicates` for new/matched/near states; `commitPortableImport` client-side — **decided: import runs client-side** because the portable export is Local Mode's backup (NFR-4.11) and restore must work serverless, and the FR-16.3 merge prompts need decisions before commit; the server's POST import endpoints remain for API use. Template → new shared template (FR-1.6 MVP, name collision → " (import)" suffix, unmatched items create master items, conditions/dedup/late_packer carried); trip → *planning* trip, travelers/containers remapped by name, progress preserved via state derivation (open/partial/packed/skipped), unmatched trip rows stay ad-hoc; single-screen page at `/portable-import` (summary header, state chips, merge segments, schema warning); entries: M7 + M2 title rows. `addTemplateItem` mutation now carries conditions. **Portable export UI (FR-18.2/18.3)**: `serializeTemplate`/`serializeTrip` in portable.ts write the exact server format (field names, omit-empty, by-name ordering — round-trip tested against `parsePortable`), generated **client-side from the stores** so Local Mode backups work without a server (NFR-4.11) and FR-19.5's migration path is complete in both directions; M7 download button per template, M2 slide option with progress/clean ActionSheet per FR-18.3, M17 Local-Mode data section offers trip+template YAML downloads; shared `src/lib/download.ts`).
+   - **Screens:** M1 Dashboard (greeting, trip cards, KPIs, prep todos FR-7.3), M2 Trip List (filter, progress rings, FAB; Share slide option → TripMembersPage at `/trips/:tripId/members` per FR-4.5/4.7 — roster with role select (Editor/Admin) and remove for Owner/Admin, read-only for Editors, owner row immutable, add-picker from `GET /users`; pure view logic in `src/domain/members.ts` `buildRosterView`, mirrors the server rules; Share hidden without an OIDC session per G-8), M3 Trip Creation Wizard (4 steps: metadata + attribute chips FR-15.1, travelers FR-2.5, template selection with live dedup/exclusion preview, quantity review with overrides; `createTripFromWizard` cascade: trips → master partition first, then travelers/trip_items → trip partition, because the server grants creator membership on the master push; series picker in step 1 with inline "New series…" — inline series enqueue _before_ the trip in the same master queue, a separate drain could race; picking a series prefills empty attribute chips from its defaults, `?series=` preselects from M16; step 4 offers the series' destination checklist (FR-13.3) as opt-out extra trip items; sharing/role step in step 2 (FR-4.5/4.7): user picker from `GET /users` minus self, Editor/Admin role select, grants enqueued _after_ the trips insert in the same master queue (server authorizes against the fresh trip), rendered only with an OIDC session per G-8 — Single-User/Local hide it), M4 Packing List (KPI strip with prep counter, grouping, stepper, skip/unskip, inline quick-add FR-5.6, collapsible prep section, item prep badges), M5 Item Detail (stepper, mode, assignment, flags, preparation todos section, comment thread FR-7.1 with flag-as-task FR-7.2 — flagged comments become todos in the same comments table; note: FR-7.2's hard completion-block is superseded by FR-7.3's "packed with open prep" state; trip-level comments modeled in the store, UI deferred), M6 Shopping Views (two tabs buy_before/buy_local grouped by category, check-off: BUY_BEFORE → mode pack per FR-3.3, BUY_LOCAL → packed; quick-add per list via `addTripItem` mode opt; M4 toolbar entry with badge, hidden when empty; FR-13.3 destination checklists are offered in M3 step 4, not here), M11 Container Management (FR-10.1–10.3: CRUD with carrier/max-weight/pairing on `containers` incl. `paired_container_id`; pure weight math in `src/domain/containers.ts` — planned weight × quantity, amber ≥90 %/red >max, pairing imbalance vs heavier side with 15 % default overridable per trip via `attributes.imbalance_threshold`; unassigned bucket with assign select; `deleteContainer` unassigns items first — plain FK would reject the delete; entry from M4's container grouping; no threshold-setting UI yet), M12 Analytics (FR-8.2/10.4/14.3: `src/domain/analytics.ts` pure — `analyzeByDimension` person/category/container with planned/packed weight, value totals, honest "unweighted (n)" bucket; `seriesWeightTrend` + `topFlagged` over archived trips synced to the device; page at `/trips/:tripId/analytics` with stacked bars, dimension segment, trend section when the trip has a series; tap slice → M4 grouped by that dimension — per-slice deep filters not built; entry: tap the M4 KPI strip), M13 Repack Mode — **removed 2026-07-17, see the note at the top of this section** (one survivor of that work is kept because it was never repack-specific: the outbox chunks pushes at the 200-mutation server cap and only drops pushed chunks, so large wizard trips no longer wedge the queue), M14 Post-Trip Review Assistant (FR-9.1/9.2: `src/domain/review.ts` pure `buildReviewProposals` — unused-flagged templated items → "set quantity to 0 in the source template", missing-flagged items → "add to the trip's dominant template" (the one that contributed most items), dedup against items the template already contains, ad-hoc names matched to master items case-insensitively (unmatched → apply creates the master item first); proposals are recomputed from current state, so applied cards vanish = resumability for free; runs client-side like generation, spec §8 archive/review rows marked superseded; `archiveTrip` = plain `trips.status` mutation, `applyReviewProposal` writes ordinary master mutations straight to the source template (the fork path went with the FR-1.6 MVP simplification, 2026-08-08); "Never ask again" scoped to the item–template pair in a device-local localStorage store (`src/local/reviewDismissals.ts`) — deliberate: no synced table for UI mutings, another device asks at most once more; flag history counted over archived series trips synced to the device (M12-style honesty); page at `/trips/:tripId/review` = card stack Apply/Skip/Never + applied-changes summary; M4 toolbar: archive on active trips auto-launches review, sparkles re-entry on archived trips. Open: NFR-4.2a conflict-log compaction on archive has no server trigger now that archiving is a plain status mutation — noted in spec §8), M7 Template List (one shared list, item count), M8 Template Editor (item picker, quantity, swipe-to-delete), M9 Item Inventory (search, category groups, unit chips), M10 Item Editor (name, category, weight, value, unit), M16 Series & Destination Profile (FR-13.1–13.3: page at `/series/:seriesId` — name + default attribute chips (M3 prefill source), destination notes and checklist editor on the lazily created unique profile (`ensureDestinationProfile`), trip history with per-trip stats and detach, attach-select over series-less trips, "New trip in series" → M3 `?series=`, trends shortcut → newest trip's M12; M2 groups trips by series with tappable header → M16; orchestrator: createSeries/updateSeries/setTripSeries/ensureDestinationProfile/updateDestinationProfile/add-update-deleteChecklistItem, all master partition), Trip Cloning (FR-12.1/12.2: `src/domain/clone.ts` pure `planClone` — curated list with fresh pack state (skips travel with the clone as list curation, pack progress/flags don't), three carry-over toggles (traveler assignments / packer delegations / container assignments; containers only copied when their toggle is on), quantities carry over unchanged (formula re-evaluation retired with FR-1.3/1.5); `cloneTrip` cascade mirrors the wizard (trips→master first; container _pairing_ set in a second upsert pass — a forward pair reference would violate the FK); ClonePage at `/trips/:tripId/clone` with fresh dates + toggles + live preview; entries: M2 slide option on archived trips (slide-archive on active trips now actually works → M14), M16 "Clone last trip" on the newest archived series trip per FR-12.1; spec §8 clone row superseded), M15 Import Wizard (FR-16.1–16.3/NFR-4.7: `src/domain/spreadsheet.ts` pure — CSV parser with ,/;/tab auto-detect + quotes, `analyzeGrid` suggests item column/trip columns/category rows, `parseQuantity` (x/✓ → 1), `normalizeTripDate` (bare year → Dec 31), `findDuplicates` (exact-normalized auto-merge + Levenshtein ≤2 prompts, FR-16.3), `buildImportPlan` (category grouping, trailing '?' → open task); `commitImport` cascade: categories reused case-insensitively then created, master items merged per dedup decision, trips archived+`imported` with original quantities as packed rows, '?' noise → todo comment on the row; page at `/import` 4 steps (file/paste → mapping with select-all-default trip toggles + per-trip series target → dedup merge/keep-separate → confirm); entries: M2 title-row upload icon, M9 empty state. Scope cuts, documented in spec §8: CSV only (XLSX = export to CSV; parser dep fails NFR-4.3), NFR-4.7 transactionality approximated by pre-validation + parents-first idempotent enqueue — no cross-mutation server transaction), M17 Settings (page at `/tabs/settings`, header gear now resolves — it was a dead link; profile per FR-17.13: editable display name (inline `[A-Za-z0-9._-]{1,50}` validation) + avatar upload with on-device 256×256 JPEG center-crop when _no_ OIDC session exists (single-user server), read-only IdP note otherwise, plain note in Local Mode; identity via new `GET /api/v1/me`; data section: NFR-4.5 full-JSON + per-trip-CSV downloads through `downloadExport` (auth-header blob), portable-YAML note in Local Mode; conflict-log pointer (G-2 lives on the trip sync indicator), about section. Deliberate gap: avatar pan/zoom crop positioning deferred, center-crop only. Notification prefs + Web-Push toggle live in the Notifications section since 2026-07-10 (item 8). Server: `internal/api/backup.go` + `internal/store/backup.go` (ExportFull visibility-filtered, UserDisplayName, CSV from the portable ExportTrip document); APIClient gained put/putRaw/getBlob and tolerates empty 200 bodies), M18 Portable Import Preview (FR-18.4/18.5: `src/domain/portable.ts` pure — YAML parse via the `yaml` package (already a transitive Vite dep, zero added footprint) with validation (malformed rejected at the picker), forward compatibility (unknown fields ignored, newer `schema_version` → warning + best-effort), `matchPortableItems` reuses the M15 `findDuplicates` for new/matched/near states; `commitPortableImport` client-side — **decided: import runs client-side** because the portable export is Local Mode's backup (NFR-4.11) and restore must work serverless, and the FR-16.3 merge prompts need decisions before commit; the server's POST import endpoints remain for API use. Template → new shared template (FR-1.6 MVP, name collision → " (import)" suffix, unmatched items create master items, conditions/dedup/late_packer carried); trip → _planning_ trip, travelers/containers remapped by name, progress preserved via state derivation (open/partial/packed/skipped), unmatched trip rows stay ad-hoc; single-screen page at `/portable-import` (summary header, state chips, merge segments, schema warning); entries: M7 + M2 title rows. `addTemplateItem` mutation now carries conditions. **Portable export UI (FR-18.2/18.3)**: `serializeTemplate`/`serializeTrip` in portable.ts write the exact server format (field names, omit-empty, by-name ordering — round-trip tested against `parsePortable`), generated **client-side from the stores** so Local Mode backups work without a server (NFR-4.11) and FR-19.5's migration path is complete in both directions; M7 download button per template, M2 slide option with progress/clean ActionSheet per FR-18.3, M17 Local-Mode data section offers trip+template YAML downloads; shared `src/lib/download.ts`).
    - **Persistence wiring:** all editor mutations go through the orchestrator — M8/M10 master edits (`createMasterItem`/`updateMasterItem`/`deleteMasterItem`/`updateTemplate`/`addTemplateItem`/`updateTemplateItem`/`deleteTemplateItem` actions on the master partition), M5 assignment controls (`assignTraveler`/`assignContainer`/`setLatePacker` on the trip partition). No store-local placeholder mutations remain.
    - **M2 Delete (FR-4.5, done 2026-07-11):** destructive slide option with confirm, shown only to the trip Owner (`canDelete`: non-collaborative modes always, else the roster is checked against `fetchMe`); `deleteTrip` mutation + orchestrator action tombstone the trip on the master partition, server enforces Owner/Admin and cascades, local store drops the trip + child rows.
    - **M7/M9 creation UI (done 2026-07-11):** the New Template (M7) and New Item (M9) FABs prompt for a name, create the row (`createTemplate` — new orchestrator action, owner_id server-stamped; `createMasterItem` — existing), and open the editor (M8/M10).
@@ -229,29 +231,35 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
    - Still open: FR-19.3 collaboration-UI gating is trivially satisfied today (no collaboration UI exists yet) — gate it when sharing/presence UI lands. NFR-4.11 export reminder (>30 days) + storage-detail popover done 2026-07-11 (client item 6). FR-19.5 migration is complete in both directions: M18 imports and the client-side YAML exports (M7/M2/M17) both work serverless.
 
 8. ~~**Notification system (FR-6.2, NFR-4.6, UI-Spec M17).**~~ — **DONE** (2026-07-10), three commits (server core, Web Push, client):
-   - **Server detection** (`internal/api/notifications.go`, hooked into `handlePush` after `trip.changed`): three kinds — `delegation` (a push sets `packer_user_id` to another member; state=packed never triggers because `stampActor` self-stamps), `mention` (`@display-name` in a comment body, case-insensitive, names may contain spaces, word-boundary after the name), `task` (task comment on an item whose packer is another member; a packer who is also mentioned gets only the task). Skipped entirely in Single-User Mode (FR-17.3) and on solo trips. Store: `internal/store/notifications.go` (rows in the existing `notifications` table, payload = FR-6.3 deep-link context incl. `actor_name`/`item_name`/`preview`), per-kind prefs as JSON on `users.notification_prefs` (NULL/missing key = enabled) checked at *creation* time. Migration 007.
-   - **API**: `GET /notifications` (`?unread=1`), `POST /notifications/{id}/read` (owner-scoped, idempotent), `GET/PUT /me/notification-prefs`. WS `notification.created {notification_id}` goes to all connections *authenticated* as the target (no `user:` subscription needed — the frame is accepted but redundant, spec §7 updated).
+   - **Server detection** (`internal/api/notifications.go`, hooked into `handlePush` after `trip.changed`): three kinds — `delegation` (a push sets `packer_user_id` to another member; state=packed never triggers because `stampActor` self-stamps), `mention` (`@display-name` in a comment body, case-insensitive, names may contain spaces, word-boundary after the name), `task` (task comment on an item whose packer is another member; a packer who is also mentioned gets only the task). Skipped entirely in Single-User Mode (FR-17.3) and on solo trips. Store: `internal/store/notifications.go` (rows in the existing `notifications` table, payload = FR-6.3 deep-link context incl. `actor_name`/`item_name`/`preview`), per-kind prefs as JSON on `users.notification_prefs` (NULL/missing key = enabled) checked at _creation_ time. Migration 007.
+   - **API**: `GET /notifications` (`?unread=1`), `POST /notifications/{id}/read` (owner-scoped, idempotent), `GET/PUT /me/notification-prefs`. WS `notification.created {notification_id}` goes to all connections _authenticated_ as the target (no `user:` subscription needed — the frame is accepted but redundant, spec §7 updated).
    - **Web Push (NFR-4.6)**: `internal/api/push.go` + `internal/store/push.go`, migration 008 (`push_subscriptions`, `server_keys`). VAPID keypair self-generated on first use, persisted first-writer-wins in `server_keys`. `GET /push/vapid-key`, `POST /push/subscriptions` (endpoint = identity, rebinds on re-register), `DELETE /push/subscriptions` (owner-scoped). Sends run in a detached goroutine, RFC 8291 `aes128gcm`; 404/410 from the push service drops the subscription. Env `JITPACK_PUSH_CONTACT` (VAPID sub). Dependency `github.com/SherClockHolmes/webpush-go` (RFC 8291 encryption + VAPID signing — crypto not to hand-roll; only pulls x/crypto). UnifiedPush/FCM/APNs not implemented (no native build exists); WS is the universal in-app fallback.
    - **Client**: `src/notifications/format.ts` pure (`describeNotification` wording + `notificationRoute` deep link — mirrored in `public/sw.js`, which can't import modules); `src/notifications/push.ts` (browser dance: permission → SW register → `pushManager.subscribe` with the VAPID key → server registration; server half injected as `PushServerAPI` = `orchestrator.pushApi`). Orchestrator: `onNotification` config callback, `notification.created` → fetch unread → surface each id once (`surfacedNotifications` set), `connect()` also surfaces unread missed while away; `markNotificationRead`/`fetchNotificationPrefs`/`saveNotificationPrefs` actions; APIClient gained `delete`. App.vue: toast per notification (top, 6 s, "Open" → deep link route), read stamped on dismiss — deliberate: no inbox screen exists in the UI spec, the toast is the delivery. M17: Notifications section (three kind toggles + "Push on this device" with support detection), only rendered with an OIDC session (`collaborative`) per FR-17.3/FR-19.3/G-8.
    - G-4 deep-link highlight implemented 2026-07-11 (mention/task → M5 flashes the referenced comment; see client item 6). `public/sw.js` is push-only — no caching, offline remains the state-sync story.
 
 9. ~~**Theming / Dark Mode Default (Addendum 3.21, FR-21.1–21.4, UI-Spec G-11).**~~ — **DONE** (2026-07-10). `client/src/theme/catppuccin.css` is the single FR-21.2 token table: Mocha on `:root` (dark default in every mode, FR-21.1), Latte behind the `jitpack-latte` root class; Ionic's variables (all 9 colors incl. rgb/contrast/shade/tint, background/text, stepped colors via `color-mix()` from the two anchors) consume the same `--ct-*` custom properties — no parallel color system. Semantic mapping: primary=blue, secondary=teal, tertiary=mauve, success=green, warning=peach, danger=red, light=surface0, medium=overlay1, dark=text; app bg=mantle, cards/items=base. `client/src/theme/theme.ts` (`initTheme`/`setTheme`/`resolveTheme`, key `jitpack_theme`) flips the class; `dark.system.css` removed from `main.ts`. FR-21.4 twice: inline pre-paint script in `index.html` + synchronous `initTheme()` before mount — dark is the stylesheet default, so a missing preference can't flash. M17 gained an Appearance section (light-theme toggle, every mode, device-local). The claude.ai/design project "JIT-Pack Design System" shows the same token table on every card (Mocha/Latte side by side).
 10. ~~**Instance User Management (Addendum 3.23, FR-23.1–23.6, UI-Spec M20).**~~ — **DONE** (2026-07-10), two commits (server, client):
-   - **Server**: migration 010 (`users.is_instance_admin`, `deactivated_at`). Admin role is declarative (FR-23.1): `JITPACK_ADMIN_EMAILS` (comma-separated, `cmd/jitpackd/config.go` `splitList`) matched case-insensitively against the token's `email` claim (`isAdminEmail`), stamped authoritatively in both directions by `EnsureOIDCUser` on every login — which now also stamps `users.email` (empty claim leaves it alone) and re-stamps a reset ('') display name from the IdP claim, all in one conditional UPDATE that keeps the per-request hot path read-only. Deactivation (FR-23.3, `internal/store/admin.go`): 403 `account_deactivated` in `authed` (covers `wsAuth` — it delegates), push subscriptions deleted, `CreateNotification` suppressed at the single source, hidden from `GET /users`, JIT login never resurrects; data/attributions untouched; admins → 409 `admin_undeactivatable` (remove from the env list first). `/api/v1/admin/` surface behind `adminOnly` (layered on `authed` like `member`): overview with usage counts (`AdminUsers`), deactivate/reactivate, avatar + display-name reset (FR-23.4). `GET /me` gained `is_instance_admin`. No delete anywhere (FR-23.5, anonymization is the revisit path). Single-User bypasses `authed` → whole feature inert (FR-17.11/G-8).
-   - **Client**: `email` scope added to the authorize request (`pkce.ts` — prerequisite for the claim). `src/domain/admin.ts` pure `adminActionsFor` (no Deactivate on admins/own row, Reactivate on deactivated rows, resets always, mirrors the server). Orchestrator: `fetchAdminUsers`/`deactivateUser`/`reactivateUser`/`adminResetAvatar`/`adminResetDisplayName`, `fetchMe` typed with the admin flag. M20 `AdminPage` at `/admin`: account list (avatar, email, provisioning date, usage counts, Admin/Deactivated chips, "(you)" marker, dimmed deactivated rows), per-row ActionSheet, FR-23.3 consequences spelled out in the deactivation confirm; M17 gained the Administration row (rendered only `collaborative && me.is_instance_admin`).
+
+- **Server**: migration 010 (`users.is_instance_admin`, `deactivated_at`). Admin role is declarative (FR-23.1): `JITPACK_ADMIN_EMAILS` (comma-separated, `cmd/jitpackd/config.go` `splitList`) matched case-insensitively against the token's `email` claim (`isAdminEmail`), stamped authoritatively in both directions by `EnsureOIDCUser` on every login — which now also stamps `users.email` (empty claim leaves it alone) and re-stamps a reset ('') display name from the IdP claim, all in one conditional UPDATE that keeps the per-request hot path read-only. Deactivation (FR-23.3, `internal/store/admin.go`): 403 `account_deactivated` in `authed` (covers `wsAuth` — it delegates), push subscriptions deleted, `CreateNotification` suppressed at the single source, hidden from `GET /users`, JIT login never resurrects; data/attributions untouched; admins → 409 `admin_undeactivatable` (remove from the env list first). `/api/v1/admin/` surface behind `adminOnly` (layered on `authed` like `member`): overview with usage counts (`AdminUsers`), deactivate/reactivate, avatar + display-name reset (FR-23.4). `GET /me` gained `is_instance_admin`. No delete anywhere (FR-23.5, anonymization is the revisit path). Single-User bypasses `authed` → whole feature inert (FR-17.11/G-8).
+- **Client**: `email` scope added to the authorize request (`pkce.ts` — prerequisite for the claim). `src/domain/admin.ts` pure `adminActionsFor` (no Deactivate on admins/own row, Reactivate on deactivated rows, resets always, mirrors the server). Orchestrator: `fetchAdminUsers`/`deactivateUser`/`reactivateUser`/`adminResetAvatar`/`adminResetDisplayName`, `fetchMe` typed with the admin flag. M20 `AdminPage` at `/admin`: account list (avatar, email, provisioning date, usage counts, Admin/Deactivated chips, "(you)" marker, dimmed deactivated rows), per-row ActionSheet, FR-23.3 consequences spelled out in the deactivation confirm; M17 gained the Administration row (rendered only `collaborative && me.is_instance_admin`).
+
 11. ~~**Item Dependencies / "Companion Items" (Addendum 3.20, FR-20.1–20.4).**~~ — **DONE** (2026-07-10), four commits (server, domain, wiring, UI):
-   - **Server**: migration 011 `item_dependencies` (`item_id` depends on `depends_on_item_id`, mode `required`/`suggested`, optional `quantity` (plain integer since migration 014); UNIQUE pair, CHECK against self-reference). Master partition via whitelist only — shared like `items` (anyone writes, everyone sees); item deletes cascade both directions and tombstone the relations (`cascadeChildren`). No server-side cycle check — that's save-time client validation per the addendum, and the resolver tolerates synced cycles.
-   - **Domain** (`client/src/domain/dependencies.ts`, pure): `resolveDependencies` runs after `generateTripItems` — required companions join transitively (BFS, visited-set cycle guard), suggested surface as one-tap candidates, anything already on the list dedups by `source_item_id` per FR-20.3 (two mains requiring the same companion merge at max, FR-2.3a — the relation carries no dedup attribute). Companion quantities reuse `computeQuantity` (plain integer since the FR-1.3/1.5 removal). `dependentsOf` = transitive co-skip set; `dependencyCycleError` = save-time validator with readable path.
-   - **Wiring**: masterStore `item_dependencies` case + `dependencyList`/`getItemDependencies`/`getCompanionDependencies`; orchestrator `addItemDependency`/`updateItemDependency`/`deleteItemDependency` (master partition), `skipItem` co-skips transitive dependents in the same push (FR-20.2), `quickAddItem` with a `sourceItemId` auto-adds missing *required* companions (FR-20.4: required never prompts).
-   - **UI**: M10 "Depends on" section (picker excludes self+existing, mode select, inline cycle error) + read-only "Companions" list; M3 step-3 chip "+ N companion items (…)", step-4 companion list with via-item, FR-20.3 dedup notes ("already on the list, not duplicated"), suggested companions as opt-in checkboxes (checkbox = the one tap; accepted rows commit with `source_template_id: null` — `TripWizardDraft.items` widened accordingly); M5 "Companions" hint with one-tap Add (via quickAdd, which chains required companions of the accepted suggestion); M4 skipped section shows the co-skip reason ("skipped: Kamera not on this trip").
+
+- **Server**: migration 011 `item_dependencies` (`item_id` depends on `depends_on_item_id`, mode `required`/`suggested`, optional `quantity` (plain integer since migration 014); UNIQUE pair, CHECK against self-reference). Master partition via whitelist only — shared like `items` (anyone writes, everyone sees); item deletes cascade both directions and tombstone the relations (`cascadeChildren`). No server-side cycle check — that's save-time client validation per the addendum, and the resolver tolerates synced cycles.
+- **Domain** (`client/src/domain/dependencies.ts`, pure): `resolveDependencies` runs after `generateTripItems` — required companions join transitively (BFS, visited-set cycle guard), suggested surface as one-tap candidates, anything already on the list dedups by `source_item_id` per FR-20.3 (two mains requiring the same companion merge at max, FR-2.3a — the relation carries no dedup attribute). Companion quantities reuse `computeQuantity` (plain integer since the FR-1.3/1.5 removal). `dependentsOf` = transitive co-skip set; `dependencyCycleError` = save-time validator with readable path.
+- **Wiring**: masterStore `item_dependencies` case + `dependencyList`/`getItemDependencies`/`getCompanionDependencies`; orchestrator `addItemDependency`/`updateItemDependency`/`deleteItemDependency` (master partition), `skipItem` co-skips transitive dependents in the same push (FR-20.2), `quickAddItem` with a `sourceItemId` auto-adds missing _required_ companions (FR-20.4: required never prompts).
+- **UI**: M10 "Depends on" section (picker excludes self+existing, mode select, inline cycle error) + read-only "Companions" list; M3 step-3 chip "+ N companion items (…)", step-4 companion list with via-item, FR-20.3 dedup notes ("already on the list, not duplicated"), suggested companions as opt-in checkboxes (checkbox = the one tap; accepted rows commit with `source_template_id: null` — `TripWizardDraft.items` widened accordingly); M5 "Companions" hint with one-tap Add (via quickAdd, which chains required companions of the accepted suggestion); M4 skipped section shows the co-skip reason ("skipped: Kamera not on this trip").
+
 12. ~~**Item Images (Addendum 3.22, FR-22.1–22.6).**~~ — **DONE** (2026-07-11), three commits (server, client core, UI):
-   - **Server**: migration 012 `item_images` (`item_id` PK → `items(id) ON DELETE CASCADE`, `image BLOB`, `mime` CHECK `image/jpeg`, `CHECK length ≤ 153600`, `updated_at`) + `items.image_hash TEXT` (nullable, added to `syncableColumns["items"]`). The BLOB is deliberately outside the sync envelope (ADR-002); only `image_hash` flows through the master feed. Store `SetItemImage`/`GetItemImage`/`DeleteItemImage` (`internal/store/itemimage.go`) stamp `image_hash` through the master change-log with a fresh **server-side HLC** — new `Store.hlc` generator (random per-process device id; wall-clock ms keeps HLCs increasing across restarts) since there's no client mutation behind the fact. `withImageTx` bumps `items.updated_hlc` + appends the change_log entry in one tx; a missing item → `ErrItemNotFound`. API (`internal/api/itemimage.go`): `GET /items/{id}/image` (public, ETag = hash, like avatars), `PUT`/`DELETE` behind `s.authed` **only** — FR-22.6 forbids a trip-role gate on shared item data. 150 KB / JPEG validated at handler + store + CHECK (defense-in-depth). `master.changed` pinged to the actor's own devices. 13 tests (7 store, 6 api).
-   - **Client core**: `src/lib/imageResize.ts` — zero-config optimizer (FR-22.2/22.3): `fitDimensions` (longer edge ≤ 1024, no crop, no upscale) + `backoffEncode` (pure, injected-encoder tested; steps JPEG quality 0.82→0.4, then shrinks dims 15 %/round until ≤150 KB) + `canvasEncoder`/`optimizeItemImage` (browser `createImageBitmap` + `toBlob`). `src/local/persistence.ts` gained an IndexedDB `images` store (DB v2) keyed by item id, blobs kept as `ArrayBuffer` for cross-runtime structured-clone safety. Orchestrator `setItemImage`/`deleteItemImage`/`itemImageUrl`: Server Mode uploads then `drainMaster()` pulls the stamped `image_hash` back; Local Mode writes the blob + a client-computed hash (`hashBlob`, sha256[:8] to match the server) through the same `onPullChanges` funnel; `itemImageUrl` returns the public GET URL (`?v=hash` cache-buster) or a Local Mode object URL. `MasterItem.image_hash` carried through `rowToItem`. 11 tests.
-   - **UI**: M10 ItemEditorPage "Photo" section (add/replace/remove, live preview, object-URL lifecycle managed); reusable `ItemThumbnail.vue` (resolves the URL via the orchestrator, owns its lifecycle, renders nothing without a photo); M9 ItemInventoryPage row thumbnails; M5 ItemDetailPage shows the source master item's photo.
-   - Open: avatar-style pan/zoom crop is intentionally absent (a reference photo keeps its aspect ratio, FR-22.3). Revisit trigger unchanged from ADR-002 — filesystem/object storage if photos grow past ~150 KB or the deployment leaves home-lab scale.
+
+- **Server**: migration 012 `item_images` (`item_id` PK → `items(id) ON DELETE CASCADE`, `image BLOB`, `mime` CHECK `image/jpeg`, `CHECK length ≤ 153600`, `updated_at`) + `items.image_hash TEXT` (nullable, added to `syncableColumns["items"]`). The BLOB is deliberately outside the sync envelope (ADR-002); only `image_hash` flows through the master feed. Store `SetItemImage`/`GetItemImage`/`DeleteItemImage` (`internal/store/itemimage.go`) stamp `image_hash` through the master change-log with a fresh **server-side HLC** — new `Store.hlc` generator (random per-process device id; wall-clock ms keeps HLCs increasing across restarts) since there's no client mutation behind the fact. `withImageTx` bumps `items.updated_hlc` + appends the change_log entry in one tx; a missing item → `ErrItemNotFound`. API (`internal/api/itemimage.go`): `GET /items/{id}/image` (public, ETag = hash, like avatars), `PUT`/`DELETE` behind `s.authed` **only** — FR-22.6 forbids a trip-role gate on shared item data. 150 KB / JPEG validated at handler + store + CHECK (defense-in-depth). `master.changed` pinged to the actor's own devices. 13 tests (7 store, 6 api).
+- **Client core**: `src/lib/imageResize.ts` — zero-config optimizer (FR-22.2/22.3): `fitDimensions` (longer edge ≤ 1024, no crop, no upscale) + `backoffEncode` (pure, injected-encoder tested; steps JPEG quality 0.82→0.4, then shrinks dims 15 %/round until ≤150 KB) + `canvasEncoder`/`optimizeItemImage` (browser `createImageBitmap` + `toBlob`). `src/local/persistence.ts` gained an IndexedDB `images` store (DB v2) keyed by item id, blobs kept as `ArrayBuffer` for cross-runtime structured-clone safety. Orchestrator `setItemImage`/`deleteItemImage`/`itemImageUrl`: Server Mode uploads then `drainMaster()` pulls the stamped `image_hash` back; Local Mode writes the blob + a client-computed hash (`hashBlob`, sha256[:8] to match the server) through the same `onPullChanges` funnel; `itemImageUrl` returns the public GET URL (`?v=hash` cache-buster) or a Local Mode object URL. `MasterItem.image_hash` carried through `rowToItem`. 11 tests.
+- **UI**: M10 ItemEditorPage "Photo" section (add/replace/remove, live preview, object-URL lifecycle managed); reusable `ItemThumbnail.vue` (resolves the URL via the orchestrator, owns its lifecycle, renders nothing without a photo); M9 ItemInventoryPage row thumbnails; M5 ItemDetailPage shows the source master item's photo.
+- Open: avatar-style pan/zoom crop is intentionally absent (a reference photo keeps its aspect ratio, FR-22.3). Revisit trigger unchanged from ADR-002 — filesystem/object storage if photos grow past ~150 KB or the deployment leaves home-lab scale.
+
 13. ~~**Single-origin deployment (nginx client container).**~~ — **DONE** (2026-07-14). `client/Dockerfile` builds the SPA and serves it from nginx; `client/nginx.conf` reverse-proxies `/api`, `/ws` and `/health` to the backend, so the deliberately CORS-less API is reached same-origin. `docker-compose.yml` gained a `web` service on `:3000` and the `app` service became internal-only. Single-User Mode is now a genuine open-and-use path: open the app, pick Server Mode, no login. Shipped with `fix(singleuser)`: `EnsureLocalSingleUserID` (`internal/store/singleuser.go`) seeds the configured `JITPACK_LOCAL_USER_ID` row on startup — the single-user server attributes every request to that id, so without the row the first write failed on the `owner_id` foreign key (trips, memberships). Idempotent, and it preserves a display name the user later changed (FR-17.2).
 14. ~~**Playwright E2E harness scaffold.**~~ — **SCAFFOLD ONLY.** `client/playwright.config.ts`, `client/e2e/` (`fixtures.ts`, `smoke.spec.ts`, `README.md`), a CI job, and `dev-docs/UI_Test_Spec_v1.0.md` (per-screen cases + FR/NFR traceability matrix). The **cases themselves are not written** — and per the Open-items note above they should wait for the M4/M5/M6/M8 concept lock, since the redesign rewrites them.
-15. **Concept & direction documents** (2026-07-12 – 2026-07-18) — the current phase's output, all *specification*, no code:
+15. **Concept & direction documents** (2026-07-12 – 2026-07-18) — the current phase's output, all _specification_, no code:
     - `dev-docs/UI_Concept_Prototype.html` — the clickable prototype every §3.25 decision was tested against. `dev-docs/UI_Concept_Overview.html` — M1–M20 coverage overview.
     - `dev-docs/Navigation_Concept_v1.0.md` — information architecture: nav rail, trip entry points, back-stack, onboarding, empty states, edge cases.
     - `dev-docs/Vision_NorthStar_v1.0.md` — directional expansion from packing app to family vacation companion (Plan/Prepare/During/After). **Not authoritative over shipped scope**, drives no implementation. Flags **ADR-007 (outbound fetching)** as the gate for planning features — note that ADR is referenced but **not yet written**, and its number has since been taken — ADR-007 is now Session Brokering — so the outbound-fetching decision gets the next free number when written.
@@ -263,8 +271,8 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
     - M17 gained a Language row (IonSelect, English/German) beside the Appearance toggle. 24 tests.
     - **Open:** the ~300 existing hard-coded English strings across 35 `.vue` files are **not yet externalized** — only the new Language row uses `t()`. Until that migration lands, switching to German changes very little on screen. Sequenced after the M4/M5 rebuild on purpose (see the MVP order above).
 17. **M4/M5 rebuild (§3.25, FR-25.1–25.10)** — **IN PROGRESS** (started 2026-08-07).
-    - **Done: the pure view model** `client/src/domain/packingView.ts` (26 tests). `buildPackingView` turns items + travelers + containers into groups of entries, where an entry is either a flat row or a per-person **cluster**. It owns the three behaviours that are pure list arithmetic: FR-25.1 clustering, FR-25.2 hiding done rows, FR-25.4 the multi-select mode filter. `isDone` is the single definition of "done" — fully packed **or** skipped, but *never* a packed row with an open preparation todo (FR-7.3), because hiding that is exactly the false "all done" the state exists to prevent.
-    - Invariant worth keeping: **headers count over the full set, lists render the filtered set.** Group headers, cluster headers and the mode pills all tally over every row, so a group reading "3/8" while showing five rows is honest. Two consequences are deliberate and tested: cluster-vs-flat is decided over the full set (packing one instance must not restructure the list), and mode counts are taken over *open* rows before filtering (so the pills do not renumber as you toggle them).
+    - **Done: the pure view model** `client/src/domain/packingView.ts` (26 tests). `buildPackingView` turns items + travelers + containers into groups of entries, where an entry is either a flat row or a per-person **cluster**. It owns the three behaviours that are pure list arithmetic: FR-25.1 clustering, FR-25.2 hiding done rows, FR-25.4 the multi-select mode filter. `isDone` is the single definition of "done" — fully packed **or** skipped, but _never_ a packed row with an open preparation todo (FR-7.3), because hiding that is exactly the false "all done" the state exists to prevent.
+    - Invariant worth keeping: **headers count over the full set, lists render the filtered set.** Group headers, cluster headers and the mode pills all tally over every row, so a group reading "3/8" while showing five rows is honest. Two consequences are deliberate and tested: cluster-vs-flat is decided over the full set (packing one instance must not restructure the list), and mode counts are taken over _open_ rows before filtering (so the pills do not renumber as you toggle them).
     - Not yet built: the screen itself — lean header + overflow, full-screen (hidden tab bar), collapsing header, pack-out animation + undo snackbar, packer avatar (FR-25.3), quick-add FAB behaviour.
 
 ## Deviations
@@ -274,7 +282,7 @@ None open. D-001 (CGO SQLite driver) was resolved 2026-07-09: `internal/store` n
 ## Concept phase, 2026-08-07/08 — the packing MVP
 
 Recorded here because it is history: what was decided, mocked and specced, and
-why. The remaining *work* is listed in CLAUDE.md under "Not built yet"; this
+why. The remaining _work_ is listed in CLAUDE.md under "Not built yet"; this
 section is the reasoning behind it. Everything below was settled in the clickable
 prototype (`dev-docs/UI_Concept_Prototype.html`, driven headless by
 `dev-docs/UI_Concept_Prototype.verify.mjs`) before being written up.
@@ -288,18 +296,18 @@ specification.** The concept phase (§3.24–§3.26, North Star) had grown open-
 bounded. Two decisions fix the scope:
 
 1. **The surrounding features stay as they are.** M1/M2/M3/M7/M9/M10/M16/M17/M20, Local Mode,
-   import/export and the whole backend are *not* reworked to the new concept (no top-bar
+   import/export and the whole backend are _not_ reworked to the new concept (no top-bar
    slim-down, no `Navigation_Concept` rebuild) — they already work. Only what packing needs gets
    touched.
-2. **i18n ships with the MVP** (NFR-4.12, now *accepted*): **English is the primary/default
+2. **i18n ships with the MVP** (NFR-4.12, now _accepted_): **English is the primary/default
    language, German is fully supported.** The client is currently hard-coded English, so this is
-   externalizing ~300 existing strings plus a German catalogue — done *before* the M4/M5 rebuild
+   externalizing ~300 existing strings plus a German catalogue — done _before_ the M4/M5 rebuild
    so the new screens are localized from the start rather than retrofitted. Implemented in-house,
    no `vue-i18n` (footprint justification and revisit trigger in NFR-4.12).
 
 **Sequencing decision (owner, 2026-08-08) — concept first, then the foundation:**
 
-1. **Everything around packing is finished conceptually and as a mockup *before* effective
+1. **Everything around packing is finished conceptually and as a mockup _before_ effective
    implementation starts.** Reason: every concept round so far has invalidated code that was
    already written — units, quantity formulas, consumables and publish/fork were each built and
    then removed again. Implementing a moving target is the expensive failure this rule prevents.
@@ -310,7 +318,7 @@ bounded. Two decisions fix the scope:
    (OIDC/JWT/JWKS, sync, store, CI); the question to raise then is audit-and-harden vs. rework,
    not build-from-scratch.
 
-Work done *before* this decision on 2026-08-08 (FR-1.6 relaxation, migration 016) is kept, not
+Work done _before_ this decision on 2026-08-08 (FR-1.6 relaxation, migration 016) is kept, not
 reverted — it is green, and the schema it adds is what the closed §3.27 concept calls for.
 
 **In the MVP, in order:**
@@ -321,7 +329,7 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   the pure view model (`src/domain/packingView.ts`) exists, the screen itself is not rebuilt yet
   and must be built from the mock and localized with `t()` from the first line.
 - **Translate the surrounding screens** — the ~300 existing hard-coded English strings across
-  M1/M2/M3/M7/M9/M10/M16/M17/M20. Deliberately sequenced *after* the M4/M5 rebuild (owner
+  M1/M2/M3/M7/M9/M10/M16/M17/M20. Deliberately sequenced _after_ the M4/M5 rebuild (owner
   decision 2026-08-07): those two screens are being replaced anyway, so translating their old
   markup first would be thrown away.
 - **M6** — re-mocked 2026-08-07, **FR-25.6 resolved**: "for whom" is derived from membership and
@@ -340,7 +348,7 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   above.
 
 - **FR-25.9 Erwachsen/Kind-Mengen — REMOVED (owner decision 2026-08-08,** "es gibt keine
-  Unterscheidung von Erwachsenen- und Kind-Mengen"**), and with it the traveler *type* itself
+  Unterscheidung von Erwachsenen- und Kind-Mengen"**), and with it the traveler _type_ itself
   (FR-2.5):** a per-person position carries one quantity for everyone; concrete per-person numbers
   are set on the trip (FR-25.8), where the actual people are known. The Adult/Child field was the
   only thing FR-25.9 read, so it went too — asked and confirmed rather than assumed. Prototype,
@@ -383,7 +391,7 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   **FR-1.6 relaxation IMPLEMENTED end-to-end 2026-08-08:** server — `master.go` pull filter
   and mutation authorization treat templates/template_items like master items (shared;
   `owner_id` still stamped on insert, never rewritten by an editor), `is_published` off the
-  sync whitelist and out of the backup filter (the column *stays* in the schema, dormant, so
+  sync whitelist and out of the backup filter (the column _stays_ in the schema, dormant, so
   the parked stub needs no migration to come back); client — `Template.is_published` gone
   from the type, store, mutations and portable export, `forkTemplate`/`requiresFork` and the
   `applyReviewProposal({fork})` branch removed, M7 is one shared list without the publish
@@ -391,7 +399,7 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   M18, FR-18.2/18.4) follow. **Schema + sync wiring IMPLEMENTED 2026-08-08 (migration 016):**
   `templates.kind` (`CHECK ('group','template')`, default `template` so existing rows become
   Ferien-Vorlagen), `template_includes` (unique pair, self-include CHECK, index on the
-  included side) and `template_item_tasks` (a row per task, *not* a JSON column — field-level
+  included side) and `template_item_tasks` (a row per task, _not_ a JSON column — field-level
   LWW would treat a blob as one field and lose concurrent edits); all three on the master
   partition whitelist, shared visibility, FR-27.1's two-level rule enforced in
   `validInclude` (a Gruppe including a Gruppe rejects like any invalid mutation), and a
@@ -406,27 +414,27 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   implementation open:** the M4 quick-add adds **whole groups**, not only items (the owner asked
   to be able to add a group of packing elements while already on the trip, macro photography for
   instance).
-  Group suggestions filter as you type under *„Ganze Gruppe hinzufügen“*; one tap runs the same
+  Group suggestions filter as you type under _„Ganze Gruppe hinzufügen“_; one tap runs the same
   resolution M3 does at generation — dedup against the trip's existing rows, provenance stamped
   (so FR-27.5 still recognises them), FR-27.7 tasks materialised as prep todos — and reports the
-  outcome. Not flagged *Missing* on purpose: an added group is a grown plan, not a forgotten item,
+  outcome. Not flagged _Missing_ on purpose: an added group is a grown plan, not a forgotten item,
   and the flag would feed M14 a false signal. E2E M4-26/27.
 
 - **The packing filter survives the session (FR-25.18, owner request 2026-08-08) — mocked +
-  specced, implementation open:** filter, *Erledigte* switch and grouping are remembered per trip
+  specced, implementation open:** filter, _Erledigte_ switch and grouping are remembered per trip
   for the session (restored before first paint, so M4 never flashes unfiltered). Session-scoped on
   purpose where grouping is durable — a filter hides rows, and a forgotten one reads as "nothing
   left to do" (FR-25.11a); a fresh session starts unfiltered. The search term is not restored.
   E2E M4-28.
 
-- **Phasen-Hub gestrichen, M4 *ist* der Reise-Screen (owner decision 2026-08-08) — mocked +
+- **Phasen-Hub gestrichen, M4 _ist_ der Reise-Screen (owner decision 2026-08-08) — mocked +
   specced:** a trip opens straight into its packing list; the four-phase hub
   (Planen/Vorbereiten/Unterwegs/Danach) is gone from the prototype. Three of its four panels were
   North-Star content with nothing behind them (idea board, day plan, expenses), and its entries
-  duplicated M4's G-12 trip line. What was real about *Danach* survives as M4's **closing card on
+  duplicated M4's G-12 trip line. What was real about _Danach_ survives as M4's **closing card on
   an archived trip**: "Vorlage aus dieser Reise" (M21/FR-27.5, whose entry moved here) plus the
   M14 suggestions. Re-entry point recorded in UI-Spec M4 and `Vision_NorthStar_v1.0.md` §2 so the
-  phase model is picked up deliberately when Plan/During get content — the frame then goes *above*
+  phase model is picked up deliberately when Plan/During get content — the frame then goes _above_
   M4. E2E M4-29, M21-01 reworded.
 
 - **M14 Review-Assistent — Konzeptrunde nachgeholt 2026-08-08 (FR-27.11), mocked + specced:**
@@ -445,7 +453,7 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   they now use the M5 sheet grammar — name, carrier, limit, pairing, delete, auto-save chip — and
   creation is the FR-24.5 minimal form (FAB creates with a placeholder name and opens the sheet).
   **Pairing was unreachable code** — the seed had no pair, so FR-10.3's imbalance indicator had
-  never rendered; the seed now has two paired suitcases, and pairing is set and released on *both*
+  never rendered; the seed now has two paired suitcases, and pairing is set and released on _both_
   sides (a half-set pair renders an imbalance against a container that disagrees). **Assignment
   was a button wall** (one button per container per row, growing with containers × items); it is
   now one tappable row opening the container picker, each option showing its current load.
@@ -463,7 +471,7 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   E2E M12-04/05. Implementation open.
 
 - **Responsibility ≠ packing record (FR-25.19, owner correction 2026-08-08) — mocked + specced:** the M5
-  control read *„Gepackt von · Person“* but assigned the row (its own hint said „Delegieren löst
+  control read _„Gepackt von · Person“_ but assigned the row (its own hint said „Delegieren löst
   Push aus“), and the FR-25.3 avatar plus FR-25.17 stamp read that same field as a record — so
   delegating to Sia and packing it yourself claimed Sia had packed it. Now two things:
   **Verantwortliche Person** is assigned (push, FR-6.2), **who packed it** is written automatically
@@ -474,25 +482,25 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
 
 - **Prototype defect found by clicking, 2026-08-08 (pre-existing):** in the M5 sheet a
   per-person item is rendered from a **derived aggregate copy** (`{...raw, …}`), and the action
-  handler wrote item-level edits to that copy — so on exactly those rows *responsibility, mode,
-  luggage, late-packer, the unused/missing flags and the buy-now undo* silently did nothing and
+  handler wrote item-level edits to that copy — so on exactly those rows _responsibility, mode,
+  luggage, late-packer, the unused/missing flags and the buy-now undo_ silently did nothing and
   reverted on the next render. Fixed by writing to the stored item; for a plain item the two are
   the same object, which is why it never showed there. **Method note:** the verify suite had
-  asserted what the sheet *does to the model* by setting fields directly, so no assertion ever
+  asserted what the sheet _does to the model_ by setting fields directly, so no assertion ever
   clicked the control — that is how it survived. The new cases drive real clicks.
 
 - **Rows assigned to somebody else are hidden by default (FR-25.20, owner request 2026-08-08) —
   mocked + specced:** M4 opens on your own work; rows whose FR-25.19 responsible person is someone
   else are filtered out, unassigned rows always stay (nobody claimed them, so they are everyone's).
   Never silent — a reveal bar at the foot names the count and the people, mirroring FR-25.2's done
-  bar, and the switch joins *Erledigte* in the filter panel (both render from one shape now). The
+  bar, and the switch joins _Erledigte_ in the filter panel (both render from one shape now). The
   header stays unfiltered per G-12, which is what makes a short list safe. Session-scoped like the
   rest of the view (FR-25.18). E2E M4-31. Implementation open.
 
 - **Konsistenz-Durchgang 2026-08-08 (owner request).** Method: every visible control on every
-  screen was clicked in isolation on a freshly loaded page and checked for *any* effect on DOM,
+  screen was clicked in isolation on a freshly loaded page and checked for _any_ effect on DOM,
   view or model — 258 controls; then the specs' concrete claims were probed against the mockup.
-  Note on method: the first pass compared DOM *lengths* and therefore missed class swaps (a
+  Note on method: the first pass compared DOM _lengths_ and therefore missed class swaps (a
   segment moving its `sel`), which produced false positives until it compared the DOM exactly.
   **Two dead controls found and fixed:** the M3 "+ Neue Serie…" chip opened a native `prompt()` —
   the only place in the app that left the inline-capture pattern (FR-25.13), and on a phone the
@@ -505,8 +513,8 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   clickable.
 
 - **Die drei Fragen des Konsistenz-Durchgangs, beantwortet 2026-08-08 (owner) und umgesetzt:**
-  - **§3.20 dependencies stay — mocked after the fact.** M10 lists *Hängt ab von* with a
-    nötig/empfohlen toggle and, read-only, *Wird gebraucht von*; the M4 quick-add pulls required
+  - **§3.20 dependencies stay — mocked after the fact.** M10 lists _Hängt ab von_ with a
+    nötig/empfohlen toggle and, read-only, _Wird gebraucht von_; the M4 quick-add pulls required
     companions onto the trip and says so, and skipping an item co-skips them with the reason
     naming the parent (FR-20.1/20.2/20.4). The feature had been shipped since 2026-07 but was
     invisible in the concept, so the rebuild would have dropped it.
@@ -547,7 +555,7 @@ reverted — it is green, and the schema it adds is what the closed §3.27 conce
   build, lint, 76 prototype assertions).
 
 - **FR-1.7 Consumables — REMOVED end-to-end (owner decision 2026-08-08, "I don't need that
-  feature"):** consumable flag *and* the per-day unit/rate it fed. Migration 013
+  feature"):** consumable flag _and_ the per-day unit/rate it fed. Migration 013
   rebuilds `items` without `is_consumable`/`per_day_rate` (unit CHECK narrowed to
   pieces/pairs, `per_day` rows folded to pieces), sync whitelist trimmed, client UI (M9
   chip/filter, M10 toggle + rate field), `instantiate.ts` per-day branch, prototype and all
@@ -582,7 +590,7 @@ Deliberate cuts (revisit only with cause): M15 XLSX support (CSV only, NFR-4.3, 
 Owner decision after the concept merged (PR #51 / `259fdac`): the build starts with the
 domain-free basics, and because login/users/sync/CI already exist and are green, the mode
 is **audit-and-harden, not rework**. First finding, and the one that had to go first
-because it is the *verification* command everything else leans on:
+because it is the _verification_ command everything else leans on:
 
 - **`flake.nix` and `mise.toml` pinned the same three tools to different versions.** Worse
   than the "two mechanisms for one job" the backlog item described. The devShell listed only
@@ -632,7 +640,7 @@ as a JSON bool or the string `"true"` (providers differ), treating everything el
 absent included — as unverified. Both call sites, the `authed` middleware and the
 OIDC broker's JIT provisioning in `auth.go`, were updated.
 
-Two properties worth keeping in the tests: the role is *re-stamped* per request, so
+Two properties worth keeping in the tests: the role is _re-stamped_ per request, so
 withdrawing verification has to take the role away again rather than leave a permanent
 admin behind; and the tests assert the consequence — whether the admin-only surface
 opens — instead of reading `users.is_instance_admin`, so they still describe the rule
@@ -652,7 +660,7 @@ so on a shared IdP a token minted for a different application validates here.
 Owner directive during the audit: **Authelia is the reference IdP — where it
 prescribes something, JIT-Pack conforms.** Held against that, the auth layer was
 wrong at its root, not at its edges: the broker passed the IdP token set through
-and `authed` validated the IdP *access token* per request, reading identity out
+and `authed` validated the IdP _access token_ per request, reading identity out
 of it. Authelia's access tokens are opaque by default, carry no identity claims
 unless a claims policy copies them in, and their `aud` is the introspection
 endpoint — the owner's real deployment (`access_token_signed_response_alg:
@@ -704,7 +712,7 @@ what makes the expiry tests deterministic.
 
 Third audit field: not the coverage total (the gates were green throughout) but
 whether the rules that enforce authorization and correctness cover their
-*rejection* branches — CODING_PRINCIPLES §2's "an uncovered branch in merge
+_rejection_ branches — CODING_PRINCIPLES §2's "an uncovered branch in merge
 logic fails review regardless of the total".
 
 Method worth keeping: the gate profile is per-package, so functions exercised
@@ -774,7 +782,7 @@ and the one plausible-looking wrong answer, the backend port, is exactly what
 `docs/getting-started.md` already needed a warning box against.
 
 The right default was never ambiguous. The API sets no CORS headers, so a
-self-hosted instance *must* serve the SPA and the API from one origin (that is
+self-hosted instance _must_ serve the SPA and the API from one origin (that is
 what `client/nginx.conf` is for). `window.location.origin` is therefore correct
 by construction in every real deployment, and the two exceptions are both
 explicit: a build-time `VITE_API_URL` still wins, and the Vite dev server keeps
@@ -787,7 +795,7 @@ repeating the literal.
 
 Both new tests were run red against the old implementation before being kept —
 the vitest cases fail with `http://localhost:8080`, and the e2e case
-(E2E-M19-04) fails the same way on Chromium *and* WebKit. That mattered here:
+(E2E-M19-04) fails the same way on Chromium _and_ WebKit. That mattered here:
 the natural `toBeEnabled()` assertion on the Connect `ion-button` is false-green
 (the custom element is never "disabled" in the DOM sense), so the case asserts
 the input's value and reaches through to the inner `button`.
@@ -805,7 +813,7 @@ writing it: `ALTER TABLE travelers DROP COLUMN profile` succeeds, rows intact.
 The rebuild would have been thirty lines of risk (two inbound foreign keys) for
 nothing. Unlike `outbound_packed`, which stays inert because nothing asks for
 it, this field was on the sync whitelist and on a screen — so it goes rather
-than lingering: schema, whitelist (a client still sending it is now *rejected*,
+than lingering: schema, whitelist (a client still sending it is now _rejected_,
 not ignored), the portable YAML type, the client traveler type, and the M3
 step-2 Adult/Child segment. A trip exported before this still imports; yaml.v3
 ignores unknown keys, so the retired field is dropped rather than refused, and
@@ -906,7 +914,7 @@ The accepted cost is real and worth restating: **G-9's "home from anywhere" is
 gone.** It was load-bearing — Navigation_Concept §7's cold-start deep-link case
 named the logo as the guaranteed escape. That guarantee moves to a back-target
 contract: every non-root route declares its parent, so `‹ back` leads somewhere
-real even when history has one entry. §7's former *proposal* is now binding, and
+real even when history has one entry. §7's former _proposal_ is now binding, and
 the declaration belongs in `router/index.ts` where a missing parent is visible.
 
 Concept and specs are updated ahead of the code, deliberately — the owner asked
@@ -922,7 +930,7 @@ finally has the `position: relative` that stops Ionic's outlet from escaping.
 
 **The back target comes from the route, not from history.** `meta.parent` is a
 path pattern filled from the current route's params (`router/backTarget.ts`).
-Two tests guard it: the resolution itself, and a sweep over the *real* route
+Two tests guard it: the resolution itself, and a sweep over the _real_ route
 table asserting every non-root route declares a parent — which is what makes
 "someone adds a screen without a way back" a failing build rather than a thing
 noticed months later. That sweep carries a second assertion that it inspected
@@ -930,15 +938,15 @@ more than ten routes, so a broken flattening cannot make it pass vacuously.
 
 **Two bugs surfaced while building, neither of them the one we set out to fix.**
 
-*The title vanished on M4.* Coming from the wizard, the header rendered empty. A
+_The title vanished on M4._ Coming from the wizard, the header rendered empty. A
 single shared ref for the dynamic title looked obvious and was wrong: Ionic keeps
 the outgoing page mounted through the transition, so the wizard's `onUnmounted`
-fires *after* M4 has set its title and wiped it. Titles are now keyed by route
+fires _after_ M4 has set its title and wiped it. Titles are now keyed by route
 path, which makes the outcome independent of unmount ordering instead of racing
 it — the same reflex the no-timing rule asks for. Five unit tests pin the
 ordering, including the late-unmount case directly.
 
-*The desktop rail rendered at every width.* Pre-existing, and visible on the
+_The desktop rail rendered at every width._ Pre-existing, and visible on the
 deployed build too — checked before assuming it was mine. `.desktop-nav` in
 `App.vue` (specificity 0,1,0) never beat `NavRail.vue`'s scoped `.nav-rail`
 (0,2,0), so `display: none` never applied and the media query was decorative.
@@ -963,7 +971,7 @@ way back from a trip to the trip list. The navigation itself works — the URL
 changes, the list renders — so nothing in the suite had ever noticed.
 
 The first diagnosis was wrong and worth recording as such. `goBack` asked Ionic
-for the `'pop'` action, and since the declared parent is frequently *not* the
+for the `'pop'` action, and since the declared parent is frequently _not_ the
 entry Ionic pushed (a deep-linked child has no such entry at all), unwinding a
 stack that does not match looked like an obvious cause. Changing it moved the
 message from `classList` to `ionPageElement` — a symptom shifting, not a fix.
@@ -971,7 +979,7 @@ Trying all four variants (`'back'`, no direction, `router.push`, `router.replace
 produced the error every time, which ruled out the call shape entirely.
 
 **It predates ADR-011.** Built the commit before the one-header change, drove
-list → trip → *browser* back, and got the identical error. The single header bar
+list → trip → _browser_ back, and got the identical error. The single header bar
 did not introduce it; it made the path a one-tap affordance instead of a
 gesture, and the new assertion made it visible. The real shape is Ionic
 animating from a root-outlet page back to a route that lives inside the nested
@@ -1001,12 +1009,12 @@ translated.
 carried clustering, hide-done and the mode counts from the concept phase —
 written then, never wired to anything. It gained the facet filter (OR within,
 AND across), the FR-25.20 default that hides other people's rows, and the fold
-state, and lost its own mode filter: FR-25.4's pill strip is the *Beschaffung*
+state, and lost its own mode filter: FR-25.4's pill strip is the _Beschaffung_
 facet now, and keeping a second path to the same question is how two filters
 start disagreeing.
 
 Three rules there are worth stating because getting them wrong is invisible on
-screen. Facet counts run against the *other* active facets but not the value's
+screen. Facet counts run against the _other_ active facets but not the value's
 own, so a number says what picking it would yield rather than what is already
 shown; a selected value survives at zero, since a filter you cannot undo from
 inside the panel is a trap; an unselected dead end is not offered at all. The
@@ -1017,12 +1025,12 @@ in one flag, so the component cannot re-derive "is anything hiding rows?" per
 empty state, which is exactly how the original implementation came to announce
 "Alles gepackt" over an unmatched search.
 
-**FR-25.17 needed a column.** „gepackt von Andy · heute 14:32" wants a *when*,
+**FR-25.17 needed a column.** „gepackt von Andy · heute 14:32" wants a _when_,
 and nothing on the row could stand in: `updated_hlc` is the last touch of any
 kind, so a comment added afterwards would redate the packing. Migration 020
 adds `trip_items.packed_at`, stamped and cleared by `stampActor` with the
 record it belongs to. One deliberate difference from the user id beside it: a
-client-supplied RFC 3339 value is *kept*, because packing happens offline and
+client-supplied RFC 3339 value is _kept_, because packing happens offline and
 the envelope can land days later. A clock is not an identity claim — invariant
 3 governs actors and foreign keys — and `packing_now_at` has taken client
 values since it was written. Unparseable values are replaced rather than
@@ -1033,7 +1041,7 @@ there rather than inventing one.
 **What the screen dropped.** The KPI tile strip, the grouping segment bar and
 the two filter toggles are gone — none survived the redesign. The separate
 "consciously skipped" section went with them: FR-25.2 counts a skipped row as
-done, so it is revealed by the same *Erledigte* switch as a packed one, and two
+done, so it is revealed by the same _Erledigte_ switch as a packed one, and two
 mechanisms for one class of rows would have shown them twice with both on. The
 UI-Spec's Elements list still described that section and has been corrected.
 Archive kept its app-bar button although the mock has no such control anywhere:
@@ -1041,19 +1049,19 @@ it is the only path to M14 today, and matching a mock that never modelled
 archiving would have removed a working feature.
 
 **Three defects surfaced while writing the Playwright unit, none of them test
-artefacts.** Tapping a row's checkbox opened M5 *and* packed the row, because
+artefacts.** Tapping a row's checkbox opened M5 _and_ packed the row, because
 the control sits inside a row that is a link. The first tap after adding an
 item was swallowed entirely: the quick-add collapsed on blur, which removes a
 block from the flow above the list, so the rows moved between pointer-down and
 pointer-up and the browser dispatched no click at all — the form now closes
 only when asked to, which FR-25.13a permits and which is the better trade
 against a list that ignores one tap in a place nobody would look for it. And
-the filter sheet's footer — the outcome line and *Zurücksetzen*, the two things
+the filter sheet's footer — the outcome line and _Zurücksetzen_, the two things
 FR-25.11b puts there — sat below the viewport, because Ionic's drag breakpoints
 keep the modal box full-height and translate it down; the sheet is sized and
 anchored instead.
 
-**Found and not fixed:** in Local Mode a trip's *items* do not come back after
+**Found and not fixed:** in Local Mode a trip's _items_ do not come back after
 a reload, though the trip itself does and the rows are demonstrably in
 IndexedDB (`jitpack-local` / `rows`). It is the local persistence path rather
 than the packing list, so it was reported instead of being repaired inside an
@@ -1075,12 +1083,12 @@ fifth complaint — "my trip wasn't persisted" — turned out to be two more
 defects wearing that costume.
 
 His verdict on the process is the important part and is now in the working
-agreement: *this would not have happened to you if you had written proper e2e UI tests —
-they are always part of the job.* He is right, and the failure mode
+agreement: _this would not have happened to you if you had written proper e2e UI tests —
+they are always part of the job._ He is right, and the failure mode
 is specific: the M3 and M4 units were both green throughout. A per-screen
 suite proves the screen. Nothing exercised getting to it, leaving it, or
 what the app bar did afterwards — and the cases for exactly that
-(E2E-G1-01, G9-01…08, G12-01) had been *written* since the UI-Test-Spec was
+(E2E-G1-01, G9-01…08, G12-01) had been _written_ since the UI-Test-Spec was
 drafted and never implemented. A specified case nobody runs is a comment.
 
 **One cause under three symptoms.** The four anchors lived under an
@@ -1089,7 +1097,7 @@ route rendered in the root one. Crossing between them left the outgoing
 page painted while the URL moved on — so the rail, the tab bar and back
 all "did nothing" in the only sense a user cares about. It also threw the
 `classList` error that a session in August reproduced on the pre-ADR-011
-build and filed as *cosmetic*; it was this, and the exemption in
+build and filed as _cosmetic_; it was this, and the exemption in
 `navigation.spec.ts` was quietly hiding the evidence. ADR-012 removes the
 second outlet, `TabBar.vue` becomes plain links beside the one that
 remains, and the exemption is gone with the error.
@@ -1100,22 +1108,22 @@ M4's app-bar actions were `<Teleport>`ed into the header's DOM — which
 Ionic relocates after mount — so on a cold boot Vue patched a container
 that had moved and threw `emitsOptions of null` mid-patch, aborting the
 render. An empty screen reads as lost data; it was a crash. Actions are
-now *described* (`useHeaderActions`) and the header owns its own DOM, the
+now _described_ (`useHeaderActions`) and the header owns its own DOM, the
 same shape `useHeaderTitle` already had. Second, and genuinely a
 durability bug: the Local Mode save was fire-and-forget, so a row added
 and immediately followed by a reload went into a transaction the
 navigation cancelled — FR-19.2 promises durability and the app said
 "saved" while the write was still open. Writes are serialised now, and
-the G-2 indicator reports *syncing* until the write lands.
+the G-2 indicator reports _syncing_ until the write lands.
 
 That last part is also what made the case testable without a sleep. The
 rule the suite already had — no waiting on durations — forced the right
 fix rather than a longer timeout: if there is nothing observable to wait
-for, the missing signal *is* the defect.
+for, the missing signal _is_ the defect.
 
 **The duplicate that hid behind back.** With the outlets merged, `‹ back`
 still left two live instances of the trip list, because it navigated with
-the default *push*. The stale instance kept winning the header's action
+the default _push_. The stale instance kept winning the header's action
 registry, so the search field rendered on a page nobody could see. Back
 replaces now.
 
@@ -1123,11 +1131,11 @@ replaces now.
 active trip with categories, both buy modes, a late packer and two
 per-person clusters. It is dev-only (`import.meta.env.DEV`), so it leaves
 the production bundle entirely, and E2E-G8-02 asserts that — Demo Mode was
-removed in Addendum v2.10 as a *product* surface and is not returning
+removed in Addendum v2.10 as a _product_ surface and is not returning
 through a side door. It lands through the existing M18 portable-import
 path rather than a second way of building a trip, and `activateTrip` had
 to be added because the wizard only ever produced planning trips: until
-now nothing in the app could move one to *active* at all.
+now nothing in the app could move one to _active_ at all.
 
 ## The filter panel, reworked from mockups
 
@@ -1140,23 +1148,23 @@ Three were drawn and driven: all values open as chips, a master/detail
 split with the facets on the left, and one row per facet showing its
 current selection. The owner chose the first. The trade is honest and
 worth recording: it is the longest panel of the three and it scrolls,
-which buys the thing the other two cannot — you see what is set *and*
+which buys the thing the other two cannot — you see what is set _and_
 what picking anything else would yield, without a single tap.
 
 **The apply button was a fiction.** The list underneath had already
 changed by the time the footer offered to confirm it; the button asked
 for a tap to agree with something that had happened. The outcome line
 moved into the head, where it describes the state rather than promising
-one, and *Zurücksetzen* appears there only when there is something to
+one, and _Zurücksetzen_ appears there only when there is something to
 undo.
 
 **The fold was what made it unreadable.** Reading the current filter cost
 one tap per axis, and FR-25.11d's counts — the ones that say what picking
-a value would yield, computed against the *other* facets — were hidden
+a value would yield, computed against the _other_ facets — were hidden
 exactly while they were most useful. As chips they visibly shrink while
 you filter, so the rule is doing its work in the open. The per-facet
-*Alle*/*Keine* pair went with the fold: *Alle* is what an empty facet
-already means, and *Keine* is the facet's own *zurücksetzen*.
+_Alle_/_Keine_ pair went with the fold: _Alle_ is what an empty facet
+already means, and _Keine_ is the facet's own _zurücksetzen_.
 
 The panel is now mantle against the page's base with a rim, a shadow and
 a dimmed backdrop; the way out is a ✕ in a circle; and every axis carries
@@ -1191,7 +1199,7 @@ bordered card, so the seam between categories is an edge.
 
 Two things surfaced while checking it in the browser rather than in the
 stylesheet, which is why that rule exists. The sticky trip line was
-painted *through* by the rows: its background came from
+painted _through_ by the rows: its background came from
 `--ion-background-color`, which resolves to nothing inside `ion-content`,
 and `ion-item-sliding` is positioned and transformed, so at `z-index: 2`
 the list won. And the line faded its opacity while collapsing, so
@@ -1207,7 +1215,7 @@ wrong order of importance.
 Owner decision: the date of a trip should be optional; only the year is required, and the
 current year is preselected.
 
-FR-2.1a had already made the *start* date optional and kept the end date
+FR-2.1a had already made the _start_ date optional and kept the end date
 as "the trip's planning anchor". That was the wrong anchor. A trip exists
 as a plan long before its dates do, so requiring the end date meant
 inventing one — and an invented date is worse than an absent one, because
@@ -1220,7 +1228,7 @@ required to have. `duration_days` needs both dates now; everything
 derived from it already had a no-duration path from FR-2.1a.
 
 **The rebuild swallowed a column, and the suite caught it.** Modelled on
-migration 004, the new `trips` table reproduced the shape from *then* —
+migration 004, the new `trips` table reproduced the shape from _then_ —
 without `updated_hlc`, which 005 had added since. Every master pull of a
 trip broke instantly. A twelve-step rebuild has to carry every column the
 table has grown, and the only reliable way to know that is to read the
@@ -1244,9 +1252,9 @@ Owner: when creating a trip, the optional parameters should be less prominent, s
 overwhelm the user.
 
 The house already had the idiom — FR-25.7 for template positions, FR-24.5
-for master items, M5's own *Details ▾* — so this is that pattern applied
+for master items, M5's own _Details ▾_ — so this is that pattern applied
 to M3 rather than a new one invented for it. Name and year stand alone;
-dates, series and the three attributes sit behind one *Mehr Optionen* row.
+dates, series and the three attributes sit behind one _Mehr Optionen_ row.
 
 The part worth stating: the row **summarises what is set behind it**. A
 series prefills transport and accommodation (FR-13.2), so a fold that
@@ -1281,7 +1289,7 @@ per-person row ambiguous. The setting refuses to produce either, so the
 screen downstream never has to.
 
 No prototype change: the mock has always shown Andy, Sia and Leonardo
-prefilled in step 2 — that *is* this behaviour, and what is new is where
+prefilled in step 2 — that _is_ this behaviour, and what is new is where
 the three names come from, which is a settings list the mock has never
 modelled.
 
@@ -1291,18 +1299,18 @@ Owner: the detail view of a packing-list element is unattractive and cluttered �
 as a UX expert would.
 
 The concept was never the problem — §3.25 settled M5 in the mock a week
-ago. The *build* had never followed it: nine equally loud sections, all
+ago. The _build_ had never followed it: nine equally loud sections, all
 expanded, in the order they happened to be written. Same story as M4.
 
 The order is now the order of the reasons someone opens the screen:
 identity, then **packing** as the biggest control on it, then a read-only
 glance row, then **preparation** and **notes** — the two things touched
-while packing — and everything else behind *Details ▾*. The photo shrank
+while packing — and everything else behind _Details ▾_. The photo shrank
 from 200 px to 44 px beside the title: it helps you recognise the thing,
 and most rows have none at all.
 
 **Presentation cost one architectural decision.** M5 is specified as a
-sheet over M4, so the item URL must render the list *and* the sheet.
+sheet over M4, so the item URL must render the list _and_ the sheet.
 Making it its own route mounted a second copy of the list behind the
 sheet — Ionic keeps a page per matched path — so the item path is now an
 **alias of the trip route**, and opening or closing **replaces** rather
@@ -1332,13 +1340,13 @@ to remember as its hits.
 
 **The critical one: a single failed IndexedDB write silenced the session.**
 `persistence.ts` serialises writes through a promise tail, which is what
-FR-19.2's durability rests on. The tail was the *uncaught* promise, so one
+FR-19.2's durability rests on. The tail was the _uncaught_ promise, so one
 rejection — a quota error, a transaction the browser aborted — left it
 rejected forever: every later `save()` chained `.then` onto a rejected
 promise, the callback never ran, and the change was dropped with no
 signal. In the one mode that has nowhere else to put the data. The tail is
 now the caught promise and the caller still receives its own rejection.
-`whenSettled()` therefore reports *drained*, not *succeeded* — which is
+`whenSettled()` therefore reports _drained_, not _succeeded_ — which is
 what the G-2 glyph needs, since it has to leave the syncing state either
 way. Fixing that exposed a second leak behind it: `setLocal()` did not
 clear the offline flag, so the glyph would have stranded on "offline" for
@@ -1354,8 +1362,8 @@ token is percent-encoded.
 
 **How severe this is was got wrong first, and the correction is the
 useful part.** It was written up — in the review, in this log, in the PR
-body — as *"Single-User Mode could never open its WebSocket, rejected
-403"*. Running the branch by hand on 2026-08-14 disproved that in about a
+body — as _"Single-User Mode could never open its WebSocket, rejected
+403"_. Running the branch by hand on 2026-08-14 disproved that in about a
 minute: `authed` **bypasses the token entirely in single-user mode**
 (`server.go:153`), so that mode upgraded to `101` with `?token=null` and
 without it alike. The real effect is narrower and lives in multi-user
@@ -1385,7 +1393,7 @@ back from M12** — it was never unmounted — and a value in storage is read
 at mount and never again. The tap navigated and the grouping stayed put,
 exactly as before. Both unit tests were green throughout, because each
 side was correct about its own state; only a test that crossed the screen
-boundary could see it. So `setStoredGroupBy` writes storage *and* moves
+boundary could see it. So `setStoredGroupBy` writes storage _and_ moves
 the live ref of the mount already on screen, which a small per-trip
 registry in `usePackingFilter` makes reachable. Worth remembering as a
 shape, not just a fix: **a handoff between two screens cannot be verified
@@ -1398,7 +1406,7 @@ among the ones the filter lets through, unchanged by the toggle, because
 the bar labels the same set in both directions.
 
 **`/trips/new` had lost its anchors.** The rule that makes M4 full-screen
-matched on path *shape*, and the wizard has the same one without being a
+matched on path _shape_, and the wizard has the same one without being a
 drill-down. E2E-G1-03 covers it; the existing G1-02 asserted "hidden on
 M4 and nowhere else" and could not see it, because it only ever visited
 M4.
@@ -1446,7 +1454,7 @@ two dependencies to ship four static assets.
 
 **The face follows the role, never the tag.** The tempting shortcut —
 `h1, h2 { font-family: display }` — is wrong, and the prototype says so:
-it sets M2's trip rows in the *UI* face. Putting every card title in the
+it sets M2's trip rows in the _UI_ face. Putting every card title in the
 serif would flatten the hierarchy the serif exists to state. So each role
 is named once (`.jp-page-title`, `.jp-hero-title`, `.jp-sheet-title`,
 `.jp-num`) and applied where that role occurs. Every screen touched also
@@ -1489,7 +1497,7 @@ the role; only that block decides which hue a role is.
 
 **The brand is deliberately not the primary.** It was tempting — one line
 and the whole app turns peach. But primary is what Ionic paints on
-buttons and links, and those are things you *act on*; repainting them
+buttons and links, and those are things you _act on_; repainting them
 would make every button shout the brand. Identity gets the few surfaces
 that carry it: the anchor you are on, the create FAB, the eyebrows, the
 preparation and shopping marks.
@@ -1514,7 +1522,7 @@ cautions.
 
 **Twelve literal fallbacks are gone.** `var(--ion-color-light, #eee)` and
 its eleven siblings read as harmless defensive code, and the plan
-undercounted them at nine. Every one was a *light* colour sitting behind
+undercounted them at nine. Every one was a _light_ colour sitting behind
 a dark-default theme, so the fallback could only ever paint the wrong
 thing, and only when something was already broken. A unit case now
 rejects a hex literal anywhere under `client/src`.
@@ -1524,7 +1532,7 @@ not against a hex, so they hold in Latte as well as Mocha. And the first
 version of them failed against a correct page twice, both times for
 reasons worth keeping: a custom property computes to the token text it
 was given (`#fab387`) while `color` computes to `rgb(250, 179, 135)`, so
-the two need separate readers; and the tab bar is *hidden* at the default
+the two need separate readers; and the tab bar is _hidden_ at the default
 desktop viewport, where the rail carries the anchors instead — the case
 now asserts both presentations, which is what G-11 actually claims.
 
@@ -1533,7 +1541,7 @@ themselves rather than the code.** `--ion-color-primary` still reached for
 `--ct-blue` directly, so `--jp-action` had no consumer at all and blue was
 decided in two places while peach and green were decided in one — the
 anchor block described a rule that two of its three roles followed. Primary
-now resolves *through* the role.
+now resolves _through_ the role.
 
 And `seed({ theme })` in the e2e fixtures wrote `'dark'`/`'light'` into
 `jitpack_theme`, which `readTheme` does not recognise: anything but
@@ -1541,11 +1549,11 @@ And `seed({ theme })` in the e2e fixtures wrote `'dark'`/`'light'` into
 dark theme and passed. Nothing used it yet, which is why nobody noticed —
 and the Latte case added here would have been the first victim. The option
 is typed as `Theme` now, and the case asserts `jitpack-latte` is on the
-root *before* it asserts anything about colour. Verified by seeding Mocha
+root _before_ it asserts anything about colour. Verified by seeding Mocha
 and watching it go red.
 
 **Latte reads the brand deeper (owner, 2026-08-14, after seeing it
-rendered).** "Peach is the brand" turned out to be one *role* with two
+rendered).** "Peach is the brand" turned out to be one _role_ with two
 readings rather than one value. Latte's peach is a saturated orange on a
 near-white ground where Mocha's is a pastel on a near-black one, so the
 light theme shouted.
@@ -1555,12 +1563,12 @@ choice — a paler, softer peach, or Latte's own rosewater — would have made
 things worse: stock Latte peach already managed only **2.45:1** as an
 11 px tab label, and rosewater is **2.17:1**. On a light ground quieter
 and darker are the same direction, so deepening the token calms the shout
-*and* fixes the legibility in one move (**3.56:1**). It is a `color-mix`
+_and_ fixes the legibility in one move (**3.56:1**). It is a `color-mix`
 of two palette tokens, not a picked hex, so it still follows the flavour.
 
 Rendering caught the correction inside the correction: deepening the FAB
 gradient's far stop alongside it lands on **brick**, because Latte's
-maroon plus ink is a red — the create button read as *danger*. The far
+maroon plus ink is a red — the create button read as _danger_. The far
 stop stays in the peach family instead. That is not a detail a contrast
 number could have told me, which is the argument for looking at both.
 
@@ -1579,14 +1587,14 @@ reason: fewer places that can disagree.
 
 **Correction, same day, from reviewing that change:** the note above said a
 unit case keeps `--jp-brand-rgb` in step with the mix. It did not — it
-asserted only that the Latte block *restates both*, which catches
+asserted only that the Latte block _restates both_, which catches
 forgetting one and nothing else. A hand-written triplet that is simply
 **wrong** passes it, and the only symptom would be Ionic's ripples sitting
 on the old hue. E2E-G11-05 now resolves both through a canvas — the one
 place a browser will normalise `color(srgb …)` and `rgb(…)` to the same
 bytes — and compares them per channel. Proved red by pasting the stock
-Latte peach back into the triplet: *"latte: --jp-brand 192,93,44 and
---jp-brand-rgb 254,100,11 disagree"*.
+Latte peach back into the triplet: _"latte: --jp-brand 192,93,44 and
+--jp-brand-rgb 254,100,11 disagree"_.
 
 Worth keeping as a shape, since it is the second time in two PRs: **a test
 that asserts a rule is stated is not a test that the rule holds.** The
@@ -1605,7 +1613,7 @@ object and its background. A stylesheet reads as correct either way; only a
 rendered pixel says otherwise.
 
 So depth became a role, the way brand and action did: page → card → sunken,
-each named once, with Ionic's background variables resolving *through* the
+each named once, with Ionic's background variables resolving _through_ the
 roles rather than beside them. `.jp-card` carries plane, rim, radius and lift
 together, and its children defer to it.
 
@@ -1629,7 +1637,7 @@ dirt on near-white.
 
 The gate had the defect it exists to prevent. Run from the wrong working
 directory it resolved a path that matched nothing, globbed zero files, and
-printed *ok*. It was found by accidentally running it from `client/src` — a
+printed _ok_. It was found by accidentally running it from `client/src` — a
 gate that scans nothing now exits non-zero, because "ok" is the worst answer it
 could give.
 
@@ -1658,7 +1666,7 @@ thing an element is, spacing describes one particular layout.
 **Two more findings from reviewing the same PR, and one of them is the
 fourth false green.**
 
-*The scrim.* `--jp-scrim` was derived from `--jp-shadow-alpha` on the
+_The scrim._ `--jp-scrim` was derived from `--jp-shadow-alpha` on the
 reasoning that a backdrop and the shadow its sheet casts should be the same
 darkness. That is true of a backdrop and wrong of a scrim: the avatar crop
 mask is not suggesting depth, it is making a circle legible against
@@ -1666,27 +1674,27 @@ everything outside it. Latte's shadow weight is deliberately light (0.22, so
 a card does not look grimy), which took the crop mask from 0.55 to 0.198 —
 a functional opacity quietly inheriting an aesthetic one. It has its own
 `--jp-scrim-alpha` now, restated per flavour and held near Mocha's, because
-what a scrim has to *do* does not change with the flavour, only which ink it
+what a scrim has to _do_ does not change with the flavour, only which ink it
 does it in.
 
-*The M2 separators, and the test that did not catch them.* Wrapping each
+_The M2 separators, and the test that did not catch them._ Wrapping each
 series in a card, I set `lines="none"` on the list to stop Ionic's
 full-width line spilling past the card's radius. Three trips in one card
-then ran together with nothing between them — a card bounds the *group*, not
+then ran together with nothing between them — a card bounds the _group_, not
 its entries. Found by rendering M2 with three trips rather than the one the
 screenshot happened to have.
 
 The guard written for it **passed against `lines="none"`**. It read
 `--inner-border-width` on the `ion-item` host; Ionic drives that line from an
 attribute selector in its own stylesheet, so on a row nobody styled the
-custom property is simply *unset* — and "unset" is not "0". It now measures
+custom property is simply _unset_ — and "unset" is not "0". It now measures
 the rendered `border-bottom-width` on `.item-inner` inside the shadow root,
 and is proved red in both directions: no seam between rows, and a seam on the
 last row that duplicates the card's own edge.
 
 **Fourth occurrence, and the pattern is now specific enough to act on.** All
-four had the same shape — the assertion was made against the *nearest
-readable thing* rather than against the rendered outcome: a token's presence
+four had the same shape — the assertion was made against the _nearest
+readable thing_ rather than against the rendered outcome: a token's presence
 instead of its value, a declared property instead of a painted pixel, "darker
 than the card" instead of "dark enough to be a shadow". The check that would
 have caught every one of them is cheap: **make the mutation the test claims
@@ -1696,7 +1704,7 @@ did.
 
 One more, and it is the gate reviewing itself: it flagged the unit test that
 asserts what `--jp-scrim` resolves to. Tests are excluded now, and by rule
-rather than by convenience — the gate stops a *view* from deciding colour or
+rather than by convenience — the gate stops a _view_ from deciding colour or
 shape, and a test that asserts a token's text paints nothing. Verified after
 the exclusion that a real view is still caught, by putting a raw radius back
 into `SearchRow.vue`.
@@ -1741,7 +1749,7 @@ and where the gate grew its fourth rule.
 **Most of it was mechanical. Three things were not, and none was visible
 before doing the work.**
 
-*Icons needed a table, not an exemption.* The plan had said the gate would
+_Icons needed a table, not an exemption._ The plan had said the gate would
 carve out icon sizing "by rule rather than by allowlist". That was the wrong
 shape: `font-size` on an `ion-icon` is a **glyph box**, not a text size, and
 an exemption would have left 40 sites unowned. A second scale
@@ -1749,7 +1757,7 @@ an exemption would have left 40 sites unowned. A second scale
 exemption at all, and it stops the thing an exemption would have permitted —
 a later adjustment to body copy silently resizing every icon in the app.
 
-*The section label was an unnamed role, not eleven stray sizes.* Nine screens
+_The section label was an unnamed role, not eleven stray sizes._ Nine screens
 carried it as a 16px semibold sentence; two carried it as the small uppercase
 label the concept prototype actually specifies. Same element, two answers,
 neither of them written down anywhere. Migrating the nine onto a token would
@@ -1760,7 +1768,7 @@ stops being a label, and leaving that to nine call sites is nine chances to
 forget. **This is the one visible change in an otherwise mechanical pass**, so
 it shipped with before/after screenshots rather than as a footnote.
 
-*The scale grew where the app pushed on it.* Seven sites — two badges, an
+_The scale grew where the app pushed on it._ Seven sites — two badges, an
 avatar's initials and its tick, two counts and a prep marker — sat below 11px
 with nowhere to go, so
 `--jp-text-3xs` was added rather than the sites rounded up out of their
@@ -1799,7 +1807,7 @@ five places from an impression is five wrong places.
 And `.tick` was the one site the migration genuinely moved: 8px to 10px,
 inside a 12px circle. Measured rather than assumed — the glyph's line box
 comes out 13px, which reads as an overflow until you look: 13px is the em
-box, and the checkmark's *ink* stays inside the disc. Rendered at 6× beside
+box, and the checkmark's _ink_ stays inside the disc. Rendered at 6× beside
 the old size to confirm, and it is the more legible of the two at real size.
 Kept. The measurement is recorded because "13 in 12" is exactly the kind of
 number that would otherwise be re-discovered and 'fixed' later.
@@ -1816,11 +1824,11 @@ rows, finding the row and un-checking it.
 **The plan's shape held. Three things inside it did not, and each was found by
 running rather than reading.**
 
-*No view-model change was needed.* The plan expected the list to hold a "still
+_No view-model change was needed._ The plan expected the list to hold a "still
 animating" set so a done row could outlive its own removal. `<TransitionGroup>`
 already owns exactly that, so `buildPackingView` is untouched and stays pure.
 
-*A custom property does not transition.* The wash was written first as
+_A custom property does not transition._ The wash was written first as
 `--background` — which is what Ionic reads — and unregistered custom properties
 animate discretely, so the green appeared and disappeared within one frame. It
 is a real `background` now. The split shade that showed while both the item and
@@ -1828,7 +1836,7 @@ its slider carried the wash was settled by measurement rather than by argument:
 one side was the tint over `--ct-base`, the other the same tint over
 `--ct-surface0`, which named the duplication immediately.
 
-*The snackbar landed under the FAB* — on top of the one control it exists for.
+_The snackbar landed under the FAB_ — on top of the one control it exists for.
 Ionic 8's `positionAnchor` puts it above, which is FR-25.11h's rule one layer up.
 
 **Two defects the new cases caught, both of them mine.**
@@ -1836,7 +1844,7 @@ Ionic 8's `positionAnchor` puts it above, which is FR-25.11h's rule one layer up
 The outgoing snackbar's dismiss handler disarmed the **incoming** pack's undo:
 `announcePacked` awaited `packToast?.dismiss()` and the outgoing toast's
 `onDidDismiss` then found itself still current, so packing two rows in a row
-left the second with no undo. Clearing the handle *before* dismissing makes the
+left the second with no undo. Clearing the handle _before_ dismissing makes the
 outgoing handler's identity check fail, which is what it was for.
 
 And E2E-M4-35 — "un-packing announces nothing" — **passed against the build
@@ -1885,7 +1893,7 @@ dependency like every other (invariant 8). The costs are real and named
 there: a second browser mechanism in CI, image bumps that rewrite every
 baseline, and PNGs that git keeps forever.
 
-**The plan contained a contradiction.** It asked for a dev-only gallery *and*
+**The plan contained a contradiction.** It asked for a dev-only gallery _and_
 for baselines covering it — but a route behind `import.meta.env.DEV` is not
 in the bundle the visual project drives. Split the jobs rather than the
 difference: baselines cover the real screens, the gallery is a human tool
@@ -1895,12 +1903,12 @@ production build finds no gallery chunk.
 **Determinism was the actual work.** Two sources of randomness would have
 made every baseline fail on its second run:
 
-*Avatar colours.* `UserAvatar` hashes its seed into a palette colour, and the
+_Avatar colours._ `UserAvatar` hashes its seed into a palette colour, and the
 seed is a traveler id — `crypto.randomUUID()`. Stubbed in the spec so the
 whole app is deterministic, rather than masking the avatars, which would have
 blinded the baselines to the one component the colour step was about.
 
-*And the clock, which turned out to be the opposite of what it looked like.*
+_And the clock, which turned out to be the opposite of what it looked like._
 Freezing `Date.now()` so a rendered year cannot drift is the obvious
 companion — and with it the packed row never leaves the list. Probing said
 why the row stayed but not why the write did: the checkbox flips and the
@@ -1951,7 +1959,7 @@ exactly the error the surrounding paragraph warns about.
 The first of the screen rebuilds the design foundation was built for. M7 was
 a flat list of names with an item count; §3.27 gave templates a **scope** two
 migrations ago and nothing in the client had ever read it. Now the list is
-scope-shaped: *Alle · Ferien · Gruppen*, with *Alle* rendering the two scopes
+scope-shaped: _Alle · Ferien · Gruppen_, with _Alle_ rendering the two scopes
 as sections — vacation templates first, because they are what a trip starts
 from and groups are the building blocks — group rows carrying their chip, and
 the FAB asking which scope to create instead of assuming one.
@@ -1961,7 +1969,7 @@ the reason the FAB opens a chooser rather than creating a template and
 letting usage decide: a freshly created group that nothing includes yet would
 be unclassifiable, and "it has no includes, so it must be a group" would
 misfile every empty Ferien-Vorlage. The chooser is two cards with one line
-each, because *Gruppe* alone does not say what a group is for.
+each, because _Gruppe_ alone does not say what a group is for.
 
 **One resolution, three callers.** `client/src/domain/templates.ts` expands a
 template's includes and merges the result by master item under the existing
@@ -1969,7 +1977,7 @@ FR-2.3a rule. It is deliberately **not** a new algorithm — FR-27.2 says as
 much — and deliberately not a second one either: the M7 row count reads the
 same resolution the M8 footer and trip generation will, so the count on the
 row and the count in the trip cannot drift apart. Expansion stops after one
-level on purpose. FR-27.1 fixes the hierarchy at two levels, and *that* is
+level on purpose. FR-27.1 fixes the hierarchy at two levels, and _that_ is
 what makes include cycles structurally impossible; following a group's own
 includes would quietly hand the cycle back and leave the validator that no
 longer exists to catch it. A mutation test guards exactly this: making the
@@ -1978,7 +1986,7 @@ expansion transitive turns the case red.
 **What the row now counts.** A composed Ferien-Vorlage with no positions of
 its own used to read "0 Artikel", which described the row rather than the
 trip it would produce. It now counts the resolved set. The include-dependent
-half of that display — the "2 Gruppen ·" prefix and the *enthält: …* line —
+half of that display — the "2 Gruppen ·" prefix and the _enthält: …_ line —
 is built and unit-tested but not yet reachable, because nothing in the app
 can write an include until the M8 rebuild. The e2e ledger says so rather than
 letting a partial case read as a full one.
@@ -1989,7 +1997,7 @@ as a Ferien-Vorlage — the same name, the wrong thing. The YAML now carries a
 `scope` field beside `kind`, which are two different questions: `kind` says
 whether the document is a template or a trip, `scope` says which of the two
 template scopes it is. Both parsers reject an unknown scope rather than
-defaulting it, and a scope on a *trip* document is an error rather than an
+defaulting it, and a scope on a _trip_ document is an error rather than an
 ignored field. Files written before scopes existed carry none and read back
 as `template` — the same default migration 016 applies to pre-scope rows.
 
@@ -2007,7 +2015,7 @@ removed: transitive expansion, a `sum` default instead of `max`, groups
 rendered before vacation templates, a create path that ignores the chosen
 scope, a template row read without its kind, includes left behind by a
 deleted template. Five of the six turned a case red on the first try. The
-sixth did not — nothing asserted that a Vorlage's *own* position leads the
+sixth did not — nothing asserted that a Vorlage's _own_ position leads the
 merge report ahead of its groups' — so that case was written before the
 mutation was reverted. That is the pattern this project has now paid for six
 times: the assertion that was never watched failing is the assertion that is
@@ -2028,7 +2036,7 @@ mock never showed that cost. The owner picked A2 (long-press) and B2
 
 **The implementation found a real bug the variant did not have to face.** The
 first guard against "the hold's release also opens the row" was a one-shot
-swallow-next-click flag. A hold-driven e2e case went red on its *last*
+swallow-next-click flag. A hold-driven e2e case went red on its _last_
 assertion: after cancelling the menu, a legitimate tap no longer opened the
 row. Cause: the release click usually never reaches the row at all (down on
 the row, up on the presented overlay — the click fires on their common
@@ -2043,7 +2051,7 @@ name-guard removed.
 500 ms with `page.clock` worked on a freshly loaded page and failed
 nondeterministically on a warm app — under the faked clock, Ionic's action
 sheet sometimes never attaches (chromium, one repeat in three), and on webkit
-any `getAnimations()`-based settle hangs on an unrelated *infinite* spinner
+any `getAnimations()`-based settle hangs on an unrelated _infinite_ spinner
 animation. Under CI's full-suite load, `page.goBack()` across the root→tabs
 outlet boundary additionally wedges the outlet — the pre-existing Ionic
 transition defect from the navigation work, in a new costume; the suite now
@@ -2052,7 +2060,7 @@ moved to where they are deterministic: `useLongPress`, a pure composable
 unit-tested with fake timers (arm, fire once, release disarms, slop disarms,
 jitter survives), while the e2e case proves the guard through `contextmenu` —
 the same handler the hold fires into. The one-line `pointerdown` wiring is
-the accepted, *stated* gap; the ledger names it.
+the accepted, _stated_ gap; the ledger names it.
 
 Two Ionic locator lessons re-paid, one of them for the second time:
 `toBeDisabled()` does not see an `ion-button`'s disabled state (it lives as
@@ -2103,7 +2111,7 @@ no swipe-to-delete and no reorder (no order column; the M7 render killed
 swipe-in-card), and the blast note deliberately also fires on a group reached
 through an including Vorlage. The first draft of the amendment also waved the
 FR-25.15 indicator away as "G-2 already says it" — the /pr-review pass caught
-that FR-25.15 *explicitly rejects that argument* (captured-here versus
+that FR-25.15 _explicitly rejects that argument_ (captured-here versus
 reached-the-server is the offline story), so the indicator was built instead
 of excused: one shared `SaveIndicator` (amber ● in flight → green ✓ settled,
 seam = the FR-19.2 orchestrator state), now in **both** sheets — the M5
@@ -2125,8 +2133,8 @@ known patterns. (1) E2E-M7-07 collects the `.section-head` sequence with a
 one-shot `allInnerTexts()`, and the M8 rebuild gave the editor the same
 class — during the back transition the outgoing editor still counts as a
 visible page, so the collection read both screens at once. The e2e helpers
-now treat "back on M7" as *settled* (the editor's scope switch gone from
-the visible page), not merely *arrived* — the same one-visible-page lesson
+now treat "back on M7" as _settled_ (the editor's scope switch gone from
+the visible page), not merely _arrived_ — the same one-visible-page lesson
 the M7 round taught, applied to a locator that spans pages. (2) The visual
 dashboard baseline encodes "Good morning", so the `visual` job was green
 only inside the baseline's own time-of-day window — #87 and #88 passed it
@@ -2147,7 +2155,7 @@ schema: `items.UNIQUE(name, category_id)` becomes `UNIQUE(name)`. With no
 category on the item there is no second column to be unique against, so
 "Adapter" can no longer exist once under Technik and once under Velo. The
 model's answer is one Adapter with two tags — the point of the feature — but
-it is a capability removed, and the migration therefore *renames* colliding
+it is a capability removed, and the migration therefore _renames_ colliding
 rows rather than dropping them: archived trips reach their master items
 through `trip_items.source_item_id`, and deleting one to satisfy a
 constraint would cut a trip loose from its own history. Two passes, because
@@ -2155,7 +2163,7 @@ two rows with no category could collide before 022 (SQLite treats NULLs as
 distinct in a UNIQUE) and the category-name suffix would not separate them.
 
 **The scoping decision that kept this small:** `trip_items.category_name`
-did not move. It was always a denormalised snapshot of *one* grouping key
+did not move. It was always a denormalised snapshot of _one_ grouping key
 taken at generation time, and one grouping key is still what a trip row
 needs — from here it is the primary tag. Renaming it would have rippled
 through M4, M12, analytics, export and the spreadsheet import for no
@@ -2180,12 +2188,12 @@ build.
    Same fix applied to the `category_id` rejection test. This is the fifth
    consecutive PR to pay for asserting against the nearest readable thing.
 2. **The desktop visual baselines under-detect by ~3.5×.** `maxDiffPixelRatio:
-   0.002` scales with viewport *area*: 658 px of tolerance at 390×844, but
+0.002` scales with viewport _area_: 658 px of tolerance at 390×844, but
    2304 px at 1280×900. M9's rebuild changed three lines of empty-state copy
    and added an app-bar icon; the mobile baseline failed at 4075 differing
    pixels and **the desktop one passed**. Worse, `--update-snapshots` only
    rewrites baselines whose comparison failed, so the desktop PNG kept
-   depicting the *old* screen — text and all — and would have gone on
+   depicting the _old_ screen — text and all — and would have gone on
    tolerating drift from an already-wrong picture. It was force-regenerated
    by deleting it. The threshold itself is ADR-013's tuning and deliberately
    left alone here; the finding is recorded for the owner to decide, since
@@ -2195,7 +2203,7 @@ build.
 **Shape of the two screens.** M9 is lean by default and the chip axis
 filters wider than the list groups — an item matches a chip when the tag is
 anywhere in its set, while the grouping stays on the primary tag, so
-filtering by *Sommer* surfaces the swimsuit filed under *Kleidung*. The
+filtering by _Sommer_ surfaces the swimsuit filed under _Kleidung_. The
 FR-24.4 property preference reuses the `HeaderAction` badge the M4 filter
 introduced. M10's tag control keeps assigned tags pinned above the matches,
 because a filter that can hide what the item already carries is a filter
@@ -2221,7 +2229,7 @@ built in its place. What runs now: a card per container (name, carrier,
 weight bar with the FR-10.3 grades, imbalance line), the M5-grammar
 `ContainerSheet` for editing, FR-24.5 placeholder-name creation from the
 FAB, and an unassigned bucket of plain rows whose tap opens the same sheet
-surface as a container *picker* with each option's current load.
+surface as a container _picker_ with each option's current load.
 
 **The defect worth the rebuild: pairing was one-sided.** The old screen
 wrote `paired_container_id` only on the tapped container, so the partner
@@ -2257,7 +2265,7 @@ this entry records execution, not decision.
 
 Found by the owner on the first eyeball after M11: back on an open item
 detail landed on the trip list, skipping the packing list. Root cause: the
-sheet *replaces* the trip's history entry (deliberate — a push measurably
+sheet _replaces_ the trip's history entry (deliberate — a push measurably
 mounts a twin packing list, re-verified during this fix), so the entry under
 the overlay does not exist and a history pop goes two screens back. The
 chevron was already overlay-aware (`backTarget`); the browser's button was
@@ -2268,7 +2276,7 @@ route with an active `meta.overlayParam` as "close the overlay": the pop
 completes, then the overlay parent is pushed. Two rejected mechanics, both
 paid for in the attempt: a `beforeEach` redirect renders the wrong screen
 under the right URL, because Ionic latches the pending pop direction when a
-navigation *confirms* and an aborted pop leaves it stale for the corrective
+navigation _confirms_ and an aborted pop leaves it stale for the corrective
 navigation to consume; and intercepting `popstate` before the router means
 forging vue-router's position state. Letting both navigations confirm keeps
 Ionic coherent, costs one brief visible bounce through the trip list, and
@@ -2293,7 +2301,7 @@ the bar grades something.
 
 **The finding is next to the images, not in them.** Generating them off the
 runner surfaced that ADR-013's digest pin was half a pin. A digest fixes
-*what is in* the image; on an Apple-Silicon machine docker resolves that
+_what is in_ the image; on an Apple-Silicon machine docker resolves that
 same digest to its arm64 variant, so a baseline recorded on a development
 machine would be judged in CI against a rendering it never saw. The image
 now carries `--platform linux/amd64`, which is a no-op on the amd64 runner
@@ -2303,19 +2311,19 @@ named, all 16 pre-existing baselines reproduced byte-identically on the Mac
 images kept.
 
 **The platform pin was only half of "generatable off the runner."** Naming it
-made the *images* comparable; the run still could not start. `make visual`
+made the _images_ comparable; the run still could not start. `make visual`
 mounts the worktree, which hands the container the host's `node_modules`, and
 rolldown ships a native binary — so vite's preview server died at "Cannot find
 module … linux-x64" before a single pixel was rendered. That the baselines
 above exist at all is because they were produced in a copy whose dependencies
-were installed *inside* the image. `scripts/visual.sh` now does that itself
+were installed _inside_ the image. `scripts/visual.sh` now does that itself
 when the host is not Linux: the container mounts its own tree out of the
 user's cache directory and fills it with `npm ci`, which costs ~9 s over
 virtiofs — cheap enough that a staleness check would cost more than redoing
 it. The first attempt put that tree under `client/`, and `make ci` rejected it
 within a minute: a second `node_modules` inside the project is walked by
 everything that walks the project, and eslint followed it in. Ignoring it in
-one tool would have moved the problem to the next one. CI is untouched, because there the host *is* Linux and the
+one tool would have moved the problem to the next one. CI is untouched, because there the host _is_ Linux and the
 mount is already right. Proven by running `make visual` unmodified on the Mac:
 20/20, the M11 images included.
 
@@ -2335,7 +2343,7 @@ gaps was a missing test id. All six M11 ids were implemented and green.
    is released "when cleared **or when one side is deleted**". Only the first
    half was asserted; the second lived as a domain unit
    (`releasePartnersOnDelete`) and was marked implemented anyway. It now sits
-   in E2E-M11-04, because that is the only place it is *visible*: with two
+   in E2E-M11-04, because that is the only place it is _visible_: with two
    empty containers a released and an un-released survivor render identically,
    so an assertion there would have passed whatever the code did. Under a
    skew, a survivor still pointing at a deleted partner goes on reporting
@@ -2359,7 +2367,7 @@ With the rebuild the case is red without the release and green with it.
 
 All three gaps are now checks in `.claude/skills/pr-review/SKILL.md` §5:
 read the spec's case text against the test body sentence by sentence, read it
-against the *screen* too, cover the global patterns rather than only the
+against the _screen_ too, cover the global patterns rather than only the
 screen, and mutation-prove the case that owns the PR's headline defect —
 rebuilding between the two runs.
 
@@ -2394,7 +2402,7 @@ round found, and what the rebuild does about it:
 
 Sequencing note: E2E-M12-03's positive half (trend columns on screen) is
 blocked on a product gap found while writing the case — nothing user-facing
-can move a trip to *active*, so nothing can archive one; the ledger records
+can move a trip to _active_, so nothing can archive one; the ledger records
 it and the North-Star phase owns the transition. i18n rode along: M12 is
 t()-localized in both catalogues, including the analytics keys added here.
 
@@ -2413,17 +2421,17 @@ the rebuild follows the prototype:
    state lives in a merge of live proposals and session decisions
    (`watchEffect`), so a proposal applied elsewhere disappears while a row
    decided here survives its own recompute.
-2. **Proposals target groups** (`domain/review.ts` rewritten): *ungenutzt*
-   defaults to the group the row's provenance names, *fehlte* to the group
+2. **Proposals target groups** (`domain/review.ts` rewritten): _ungenutzt_
+   defaults to the group the row's provenance names, _fehlte_ to the group
    that contributed most of the trip; a row whose provenance is a
    Ferien-Vorlage's own position yields nothing — that structure feedback
    is M21's job (FR-27.5). The per-row picker offers groups only, and for
-   an *unused* row only groups that carry the item (`retargetGroups`) —
+   an _unused_ row only groups that carry the item (`retargetGroups`) —
    zeroing a position that does not exist would apply as a silent no-op;
    recorded in the UI-Spec as a decision. Apply takes the picker's group,
    not the default (`applyReviewProposal(proposal, groupId)`), and the
    FR-27.4 blast radius is stated per row from `planningTripsUsing` on
-   the *selected* group, live.
+   the _selected_ group, live.
 3. **"Nie mehr fragen" is pair-scoped** — `dismissalKey(itemRef, groupId)`
    against the row's current target; the same item still surfaces for a
    different group. Archiving a flag-less trip now skips the assistant
@@ -2431,9 +2439,9 @@ the rebuild follows the prototype:
    `onArchive`).
 4. **Coverage splits three ways, honestly.** Domain arithmetic in
    `domain/__tests__/review.spec.ts` (21 cases); the list semantics in a
-   *component* test (`views/trips/__tests__/ReviewPage.spec.ts`, first of
+   _component_ test (`views/trips/__tests__/ReviewPage.spec.ts`, first of
    its kind for a page) because every positive e2e case needs an FR-9.1
-   flag and the only flag writer gates on an *active* trip — the same
+   flag and the only flag writer gates on an _active_ trip — the same
    planning→active product gap the M12 unit recorded; the e2e unit
    (`e2e/review.spec.ts`) pins the reachable surface (framed empty state,
    G-9 back) and the ledger names the owed cases for when the transition
@@ -2449,7 +2457,7 @@ Because no app path can produce a populated M14 at all (not even in dev —
 the sample trip's rows carry no provenance and FR-27.10's group add is part
 of the unbuilt §3.27 package), the dev gallery grew a fixture button
 (`src/dev/reviewFixture.ts`): it seeds in-memory rows covering both proposal
-kinds, the retarget picker and the blast radius, then opens the *real*
+kinds, the retarget picker and the blast radius, then opens the _real_
 route. State only — a reload clears it — and DEV-only like the gallery
 itself, so it is absent from the production bundle.
 
@@ -2457,13 +2465,13 @@ With this, every screen rebuild from the 2026-08-14 plan is code. What the
 plan still owes is in CLAUDE.md's "Not built yet": the §3.27 client package
 (instantiate expansion, FR-27.4 refresh, M21), the i18n remainder, the
 Playwright backlog — and M14, like M12, is unverifiable end-to-end until
-something user-facing moves a trip to *active*.
+something user-facing moves a trip to _active_.
 
 ## §3.27 generation: composed templates actually reach the packing list (2026-08-16, PR pending)
 
 The first half of "Not built yet" item 2. Everything M7 and M8 could build
 since 2026-08-15 was inert at the one moment that matters: `instantiate.ts`
-filtered template positions by the templates it was *handed*, so a trip
+filtered template positions by the templates it was _handed_, so a trip
 generated from a Ferien-Vorlage carried only that Vorlage's own positions and
 silently dropped every group attached to it. The machinery existed on both
 ends — `template_includes` in migration 016, `resolveTemplate` for M7's row
@@ -2472,7 +2480,7 @@ count and M8's footer — with nothing joining them.
 Four things, in the order they were built:
 
 1. **Include expansion at generation (FR-27.2).** `GenerationInput` now takes
-   the template *catalogue* plus the picked ids, rather than a pre-filtered
+   the template _catalogue_ plus the picked ids, rather than a pre-filtered
    list: the caller cannot know a Vorlage's composition, so generation
    resolves it. Expansion is one level, matching `resolveTemplate` and the
    two-level hierarchy FR-27.1 fixed — following an included group's own
@@ -2494,7 +2502,7 @@ Four things, in the order they were built:
    foreign key. The `'current-user'` actor placeholder became a named constant
    with the invariant-3 reasoning on it; it had been a literal in three files.
 3. **M3 step 3, scope-shaped (FR-27.6).** Two sections mirroring M7. Every row
-   counts what picking it *resolves* to rather than its own positions — a
+   counts what picking it _resolves_ to rather than its own positions — a
    Vorlage frequently owns none and is nothing but its groups — and a group a
    picked Vorlage already brings says so on the row instead of letting a second
    tap look like it added something (the FR-25.13 duplicate-report rule). The
@@ -2510,8 +2518,8 @@ Four things, in the order they were built:
 That last one was **not a flake, and a retry would have buried it.**
 `template_includes` has no sort column, so the rows arrive in whatever order
 the sync or IndexedDB produced — and both `resolveTemplate` and generation read
-that order straight through. It decides which group is a merged item's *first
-contributor*, hence whose attributes and `source_template_id` the generated row
+that order straight through. It decides which group is a merged item's _first
+contributor_, hence whose attributes and `source_template_id` the generated row
 carries: two devices could have disagreed about where a packed item came from.
 `includedTemplatesOf` now derives the order (group name, include id as
 tie-break) for both callers, and the superseded case asserting "the order they
@@ -2540,8 +2548,8 @@ comes from a dependency, not from a template position, so it has no tasks.
 
 Owner question after the §3.27 generation PR — you should be able to look inside a group,
 macro photography for instance; have we specified that? — no, and
-the gap was wider than one screen. A group announced *how many* items it held
-and never *which*, in all three places it is offered: M3 step 3, M8's Gruppen
+the gap was wider than one screen. A group announced _how many_ items it held
+and never _which_, in all three places it is offered: M3 step 3, M8's Gruppen
 section and M14's target picker. The only answer was the M8 editor, which from
 the wizard costs the draft and from M14 the review pass.
 
@@ -2599,7 +2607,7 @@ recorded in CLAUDE.md where a dev looks rather than only here.
 
 Same two constraints as the trip seed, for the same reasons. It is **dev-only**
 behind `import.meta.env.DEV`, so module and trigger drop out of a production
-build — this is not Demo Mode returning; that was a *product* surface and stays
+build — this is not Demo Mode returning; that was a _product_ surface and stays
 removed (Addendum v2.10). And it writes through the **orchestrator's own
 actions**, so every row it creates is one a user could have created, rather than
 inventing a second seeding path that would be the one nobody notices breaking.
@@ -2610,11 +2618,11 @@ name in both M3's footer and M8's resolution footer; a Vorlage with **own
 positions beside its two groups**, so the resolved count differs from either
 half; an FR-27.7 task on a shared position, so a generated trip starts with a
 real prep todo; and a third group left **deliberately unincluded**, so M8's
-picker and M3's *Zusätzliche Gruppen* both have an offer. Six tests pin those
+picker and M3's _Zusätzliche Gruppen_ both have an offer. Six tests pin those
 properties — not the contents — because a seed that quietly stops producing a
 resolvable composition wastes the session that discovers it.
 
-**Still open, deliberately:** the sample *trip* is still built through the M18
+**Still open, deliberately:** the sample _trip_ is still built through the M18
 portable-import path, so its rows carry no `source_template_id`. Generating it
 from the seeded Vorlage instead would give it provenance and finally make M14
 reachable with real proposals — but it changes what the trip seed is, so it is a
@@ -2671,7 +2679,7 @@ of every release, and the same was true of the M14 fixture.
 The mistake is worth naming precisely, because it looks correct: the guard was
 `v-if="isDev"` **on the button**, while the `import('@/dev/sampleTrip')` inside
 the handler stayed a live code path. A `v-if` hides a surface; only a
-compile-time-false branch *around the import* removes the code, which is the
+compile-time-false branch _around the import_ removes the code, which is the
 shape `router/index.ts` has always used for the gallery route. Moving the guard
 to `if (!import.meta.env.DEV) return` prunes all three.
 
@@ -2679,7 +2687,7 @@ to `if (!import.meta.env.DEV) return` prunes all three.
 surface and an absent one are indistinguishable from the outside; only the
 bundle can tell them apart. So the fix ships with `scripts/dev-code-gate.mjs`
 (`make client`, CI client job): it fails the build when a dev chunk name or a
-piece of seed *data* appears in `dist`.
+piece of seed _data_ appears in `dist`.
 
 Two things that gate taught while being written, both kept in its comments:
 
@@ -2688,7 +2696,7 @@ Two things that gate taught while being written, both kept in its comments:
    guard that fires on shipping product text is worse than no guard. The marks
    are now strings only the seeds contain („Fotoreise (Beispiel)", „Kartusche
    prüfen"), and the gate was proved by planting one in a built chunk.
-2. **The claim is now stated as narrowly as it is true.** The *modules* are
+2. **The claim is now stated as narrowly as it is true.** The _modules_ are
    gone; the button's `v-if` branch still leaves its label in the page chunk as
    dead string. That is an inert branch of a few bytes, not a reachable
    surface, and the comments say so rather than rounding up to "entirely".
@@ -2696,7 +2704,7 @@ Two things that gate taught while being written, both kept in its comments:
 ## FR-27.14: the footer stops being the whole answer (2026-08-17)
 
 M8 said „6 Artikel · 2 Gruppen + 1 eigene Position" and left it there. The
-number answers *how many* and never *what*, so from the editor of a Ferien-
+number answers _how many_ and never _what_, so from the editor of a Ferien-
 Vorlage — the thing whose entire purpose is to produce a packing list — there
 was no way to see what a trip would get. Owner asked for it with a mockup, then
 picked variant A from the rendered round.
@@ -2708,16 +2716,16 @@ point and the information a bare list was missing. The footer became a button;
 
 Three marks, each defending a specific lie a number would tell:
 
-* **nur 1×** — the line exists once because a merge collapsed it, not because
+- **nur 1×** — the line exists once because a merge collapsed it, not because
   one template asked once (FR-27.2).
-* **pro Person** — a per-person position fans out at generation over travelers
-  the *trip* knows about; a template printing „3×" would be guessing (FR-25.8).
-* **the procurement mode and mit Bedingung** — at template level nothing is
+- **pro Person** — a per-person position fans out at generation over travelers
+  the _trip_ knows about; a template printing „3×" would be guessing (FR-25.8).
+- **the procurement mode and mit Bedingung** — at template level nothing is
   excluded yet, so a conditional row must say so rather than appearing as a
   promise the trip may break (FR-15.2).
 
 **One rule came out of a failing test rather than the plan.** Provenance was
-going to be shown on every line; peeking a *group* then reads „aus Makro
+going to be shown on every line; peeking a _group_ then reads „aus Makro
 Fotografie" on every row of Makro Fotografie. The rule is narrower: a template
 that includes nothing has only one possible source, so the sheet stays quiet —
 provenance is information only once a composition can differ. The same sheet
@@ -2734,13 +2742,13 @@ untouched — the M3 unit's lesson, arriving a second time in the same week.
 ## The ＋ answers where it is (2026-08-17)
 
 Owner, testing: the ＋ should appear only where something can be added, and on
-M7 it should follow the context — standing on *Gruppen*, it should create a
+M7 it should follow the context — standing on _Gruppen_, it should create a
 group rather than ask.
 
 **M7's chooser now asks only where the question is real.** The scope segment
 already states what you are looking at, so a single-scope tab answers it and
 the sheet opens on the name, titled with the scope it is about to create. Only
-*Alle* still asks. The rule lives in `domain/templates.ts` as
+_Alle_ still asks. The rule lives in `domain/templates.ts` as
 `scopeForNewTemplate`, returning **null for "ask" rather than a default**: the
 two kinds are not interchangeable (FR-27.1), and a wrong guess is not
 recoverable once something includes the group.
@@ -2757,13 +2765,13 @@ what is already open, and the composer wants the room.
 **One regression nearly shipped inside that fix.** Hiding the whole `IonFab`
 also removes `#m4-fab-anchor` / `#m8-fab-anchor` — the elements both screens
 position their toasts against — which would have dropped every toast behind the
-tab bar, the exact defect fixed on 2026-08-15. The guard sits on the *button*
+tab bar, the exact defect fixed on 2026-08-15. The guard sits on the _button_
 instead, and E2E-M8-17 asserts the container survives, so the next person to
 tidy this cannot quietly reintroduce it.
 
 **The durable fix is one level further, and is not made here** (raised by the
-session working on #101, 2026-08-17): the anchor is *infrastructure that
-happens to live inside the FAB*. As its own always-present element it could not
+session working on #101, 2026-08-17): the anchor is _infrastructure that
+happens to live inside the FAB_. As its own always-present element it could not
 be removed by a change to the button at all, and the coupling that produced
 this near-miss would be gone rather than guarded. Worth doing when a third
 screen needs an anchored toast; for one guarded pair it is more machinery than
@@ -2777,7 +2785,7 @@ composer case above.
 **The hiding broke a real flow, and CI caught what the hand check could not.**
 Eight visual baselines and part of the e2e suite failed on the first run: the
 specs add several items in a loop and tap the ＋ each time, but the composer
-*stays open* after an add (FR-25.13) — so the second iteration waited forever
+_stays open_ after an add (FR-25.13) — so the second iteration waited forever
 for a button that had just, correctly, disappeared. Adding three things in a
 row is not a test artefact; it is the flow. My manual check added one item and
 was blind to it by construction.
@@ -2820,12 +2828,12 @@ geometry has its own assertion rather than relying on the screenshots.
 
 Owner question: a pack item can carry a photo — would emojis, or an icon from a
 library, not make more sense? With three conditions attached: recognisable per
-icon, searchable the way WhatsApp is, and ideally *suggested*.
+icon, searchable the way WhatsApp is, and ideally _suggested_.
 
 The answer is not either/or, and saying so was the first useful move: the photo
 (§3.22) answers **which** jacket, and it exists on a handful of rows because
 nobody photographs forty items. What a forty-row list lacks is a **mark** — the
-always-affordable symbol that says *what kind of thing this is* before the name
+always-affordable symbol that says _what kind of thing this is_ before the name
 is read. So the photo stays and the mark is added beside it, with a ladder
 deciding which is shown (FR-28.4).
 
@@ -2842,10 +2850,10 @@ null variant. Two things only the render could settle:
    distinguishability does. The argument favoured it; the pixels did not.
 2. **The null variant is worse than nothing.** A coloured initial repeats, in a
    circle, the name standing next to it. That is what made "no mark" an
-   acceptable and *normal* row state in FR-28.1 rather than a gap to fill.
+   acceptable and _normal_ row state in FR-28.1 rather than a gap to fill.
 
-The list was seeded on purpose with a row nothing fits (*Trekkingstöcke*) and
-several near-misses (*Fleecepullover*, *Schlafsack*, *Wasserflasche* — Unicode
+The list was seeded on purpose with a row nothing fits (_Trekkingstöcke_) and
+several near-misses (_Fleecepullover_, _Schlafsack_, _Wasserflasche_ — Unicode
 has no water bottle): a symbol system is decided in its tail, not in its head.
 
 Counting those beat a claim I had already written down: the first draft of this
@@ -2857,7 +2865,7 @@ a working picker: one keyword index (de + en), scored against the item name.
 `Tarnzelt → ⛺`, `Kaffeekanne → ☕`, `Wasserflasche → 🧴🥤💧`. One correction came
 out of running it: German compounds need splitting, but a suffix may only become
 a token when the index already knows it — the first version happily tokenised
-„Zahnbürste" into *ürste*, and the suggestion line read like noise. That rule is
+„Zahnbürste" into _ürste_, and the suggestion line read like noise. That rule is
 in FR-28.3 and is a test name, not a comment.
 
 Two costs are accepted in writing rather than discovered later: the mark is the
@@ -2872,8 +2880,8 @@ this round as its evidence.
 
 ## G-2's detail, and the Local Mode backup behind it (2026-08-17, FR-19.6/NFR-4.11)
 
-Owner question, from the running instance: *„was bedeutet das Icon zwischen Lupe
-und Zahnrad?"* — the phone glyph. That the question had to be asked is the
+Owner question, from the running instance: _„was bedeutet das Icon zwischen Lupe
+und Zahnrad?"_ — the phone glyph. That the question had to be asked is the
 defect: G-2 has specified a detail behind the glyph since UI-Spec v1.0, and the
 app had none. `onSyncTap` pushed `/trips/:id/conflicts` when a trip route
 happened to be open and returned silently everywhere else, which is most of the
@@ -2885,11 +2893,11 @@ that no server exists, reports storage against quota with the NFR-4.11 eviction
 warning, and offers the backup. Local Mode never offers the conflict log — one
 writer produces none, and an entry that describes a mode you are not in is
 worse than no entry. The split is on `mode` rather than on `state` because an
-in-flight Local Mode write reports as *syncing* (FR-19.2) and must still get
+in-flight Local Mode write reports as _syncing_ (FR-19.2) and must still get
 the storage story.
 
 **The one-tap export had to become a whole-device backup.** M17 already exported
-one trip or one template at a time; NFR-4.11 calls the export *the* backup, and
+one trip or one template at a time; NFR-4.11 calls the export _the_ backup, and
 a backup that asks the user to remember each trip and template one by one is not
 one anybody performs. So the file is every trip and every template as one
 multi-document YAML — which immediately owed the other half: **our own importer
@@ -2903,12 +2911,12 @@ shipped a duplicate inventory on every restore.
 
 **Two defects only the rendered pixel showed, both in the same sheet.**
 
-1. *The last line sat under the tab bar.* An auto-height Ionic sheet is measured
+1. _The last line sat under the tab bar._ An auto-height Ionic sheet is measured
    once at presentation, and the storage section arrived a tick later because
    `navigator.storage.estimate()` is async. The fix is ordering — read the facts,
    then open — not padding. Found by screenshotting; invisible in the markup and
    invisible to the component test, which has no modal.
-2. *„Last backup -1 days ago."* The sheet captures `now` when it opens, the
+2. _„Last backup -1 days ago."_ The sheet captures `now` when it opens, the
    stamp is written when the user taps, so the stamp is the later of the two and
    `Math.floor` of a small negative is −1. `reminderState` clamps at zero now,
    which also covers a device whose clock moved back. **The e2e case caught this,
@@ -2934,23 +2942,23 @@ a list it would not let you correct.
 
 **What A means concretely, and where its edges are:**
 
-* **✕ drops a row as FR-5.5 *skipped*, never as a deletion.** The row stays,
+- **✕ drops a row as FR-5.5 _skipped_, never as a deletion.** The row stays,
   struck through and reversible, and reaches the trip with quantity 0 — which
   `addGeneratedTripItem` already turns into `skipped`. Deleting instead would
   make this one gesture behave differently here than everywhere else in the
   product, and would leave the next trip nothing to learn from.
-* **The marks are labels, not controls.** *pro Person* and the procurement mode
+- **The marks are labels, not controls.** _pro Person_ and the procurement mode
   explain what the row already is. Turning them into editors would put a second
   procurement-and-assignment surface beside M5, which is the thing FR-2.6
   argues against in the first place.
-* **The create button counts what is actually coming.** A number that still
+- **The create button counts what is actually coming.** A number that still
   includes the row you just dropped is worse than no number.
-* **The mockup's add line is not built here.** Adding single items to a trip
+- **The mockup's add line is not built here.** Adding single items to a trip
   being created is FR-27.3's, and it owns that in step 3; a second path in
   step 4 would leave two mechanisms for one act.
 
 Reusing `quantityOverrides` made the whole thing small: dropping is an override
-of 0, restoring is deleting the override, and *dropped* is derived rather than
+of 0, restoring is deleting the override, and _dropped_ is derived rather than
 stored — so the state that decides the row's fate is the one already travelling
 to `createTripFromWizard`, with nothing to keep in sync.
 
@@ -2964,8 +2972,8 @@ count was guessed instead of derived from the list under test.
 Not a feature. The day's four merged PRs (#99 sheet-header pair, #101 G-2
 detail + backup, #102 FR-27.14 peek entry + the scope-following ＋, #103 FR-2.6
 review step) were re-read against what actually drives them, unit and e2e. Two
-had a hole, and both holes were of the same kind: the *reading* half of a
-behaviour whose *writing* half was covered.
+had a hole, and both holes were of the same kind: the _reading_ half of a
+behaviour whose _writing_ half was covered.
 
 **#101 — the backup could be written and never read.** `commitPortableRestore`
 had unit cases and E2E-G2-03 asserted the download, but nothing walked M18's
@@ -2981,12 +2989,12 @@ is **not a route** (only `/trips/new` and `/trips/:tripId` are). The restore
 happened, the router matched nothing, and the user was left looking at the
 import form with the file still pasted into it — no trips, no message, no sign
 anything had been imported. Fixed to `/tabs/trips`. The first draft of the case
-did not see it either: `getByText('Samedan 2026')` was green *because* the
+did not see it either: `getByText('Samedan 2026')` was green _because_ the
 pasted YAML was on screen, so the assertion moved onto `trip-row-<name>`. A
 test that reads back the input it just filled proves nothing.
 
 A second observation from that run is left as an owner question rather than
-designed around: a restored trip is *planning*, M2 opens on *Active*, so a
+designed around: a restored trip is _planning_, M2 opens on _Active_, so a
 restore currently ends on a screen that says "No active trips". The case selects
 the Planned segment and says why.
 
@@ -3017,11 +3025,11 @@ Worth recording beside the gaps themselves, because the fix is process rather
 than code. `/pr-review` **ran** on #101 and #102 and marked client coverage ✅
 on both. Reading the two verdicts back:
 
-* #101's own summary says *"M18 now reads such a file"* — and no section of
+- #101's own summary says _"M18 now reads such a file"_ — and no section of
   that review mentions `PortableImportPage.vue`, which the same diff changed.
-* #102's verdict is entirely about FR-27.14. The diff also amended FR-25.13a
+- #102's verdict is entirely about FR-27.14. The diff also amended FR-25.13a
   across two screens; that half appears nowhere in the review.
-* #103 got no `/pr-review` at all.
+- #103 got no `/pr-review` at all.
 
 Both reviews checked the feature named in the **title**. A PR routinely carries
 two, and the second one is the one that ships untested — which is exactly what
@@ -3029,8 +3037,8 @@ happened twice in one day. Being more careful is not a fix for that; a step that
 cannot be answered from the tests that exist is.
 
 So the skill gained **§4.0**: before any other coverage check, build a table with
-one row per changed production file naming the test that drives *that file's
-changed lines*, and **post the table in the verdict** rather than a claim that it
+one row per changed production file naming the test that drives _that file's
+changed lines_, and **post the table in the verdict** rather than a claim that it
 was built. A row that cannot be filled is a finding regardless of the title.
 Three rules came out of the same two misses and sit with it: a write half and a
 read half are two behaviours (and for the only copy of a user's data, the read
@@ -3041,7 +3049,7 @@ and a shared test helper that tolerates both states is never the assertion.
 ### The restore landing (owner call, 2026-08-17)
 
 The audit above left one thing as a question rather than deciding it: a restore
-landed on M2, which opens on *Active*, while every imported trip is `planning`
+landed on M2, which opens on _Active_, while every imported trip is `planning`
 (FR-18.4) — so a restore that had just written the user's whole device back
 ended on the words "No active trips". Owner's answer: land on **Planned**.
 
@@ -3049,13 +3057,13 @@ Built as a route query rather than a flag on the page: `client/src/views/trips/
 tripFilter.ts` names the three segments once and parses a query value, M2 honours
 it through a `watch` and M18 sets it. Three details are deliberate.
 
-* **A watch, not a read at setup.** Ionic keeps M2 mounted, so a restore arriving
+- **A watch, not a read at setup.** Ionic keeps M2 mounted, so a restore arriving
   while the page is already alive would otherwise land on whatever segment was
   last tapped.
-* **An unknown or absent value changes nothing.** `parseTripFilter` returns null
+- **An unknown or absent value changes nothing.** `parseTripFilter` returns null
   rather than defaulting to `active`, because a default would silently reset the
   user's own choice every time the list is re-entered without a query.
-* **`planned` is the segment, `planning` the DB status.** The two are one keystroke
+- **`planned` is the segment, `planning` the DB status.** The two are one keystroke
   apart and a unit case pins that they are not interchangeable — the query is a
   UI vocabulary, not a status column leaking into the URL.
 
@@ -3069,16 +3077,16 @@ user sees rather than the mechanism.
 The backlog said the state existed and no view could reach it. Two of its three
 premises turned out to be wrong, and checking them is what shaped the work:
 
-* **A view did call `skipItem`.** M4 carried an `IonItemSliding` with *skip* and
-  *unskip* options — kept through the §3.25 rebuild rather than dropped, as the
+- **A view did call `skipItem`.** M4 carried an `IonItemSliding` with _skip_ and
+  _unskip_ options — kept through the §3.25 rebuild rather than dropped, as the
   note assumed.
-* **M4 did not badge a skipped row.** Nothing was rendered where a packed row
+- **M4 did not badge a skipped row.** Nothing was rendered where a packed row
   carries its FR-25.17 stamp, so a revealed skipped row was indistinguishable
   from a packed one — the confusion FR-5.5 exists to remove, reintroduced one
   screen later.
-* **The swipe was broken in a way only a render shows.** Opened, its option panel
+- **The swipe was broken in a way only a render shows.** Opened, its option panel
   left the row's `.jp-card`: square block to the screen edge, the row losing its
-  stepper, and the label a *state name* ("Bewusst weggelassen") rather than an
+  stepper, and the label a _state name_ ("Bewusst weggelassen") rather than an
   action. That is the same failure the swipe lost the M7 A2/B2 round on, and it
   had been sitting in M4 since the rebuild because nothing swiped it.
 
@@ -3087,27 +3095,27 @@ Four variants were rendered (`dev-docs/build-skip-control-variants.mjs` →
 `UI_Concept_SkipControl_variants.html`, with the defect screenshot beside them);
 the owner chose **A + C**, the split M7/M8 already use:
 
-* **A — press and hold a row** → the action sheet: *Jetzt packen* · *Nicht
-  einpacken*, and on a skipped row *Doch einpacken* and nothing else. Reuses
+- **A — press and hold a row** → the action sheet: _Jetzt packen_ · _Nicht
+  einpacken_, and on a skipped row _Doch einpacken_ and nothing else. Reuses
   `useLongPress` and M7's `rowMenuActive` guard verbatim, including the reason it
   is a state with an end rather than a swallow-next-click flag.
-* **C — a spelled-out control in the M5 sheet**, beside the stepper. The stepper
-  says *how many*; only this says *none, on purpose*.
+- **C — a spelled-out control in the M5 sheet**, beside the stepper. The stepper
+  says _how many_; only this says _none, on purpose_.
 
 **D was rejected on the meaning, not the mechanics**: long-pressing "−" already
-zeroes a row, and letting that zero *be* the decision would put words in the
+zeroes a row, and letting that zero _be_ the decision would put words in the
 user's mouth. Quantity 0 stays a counter reading; skipping writes both.
 
 Three things moved into the domain rather than staying inline, because the view
-needed the *list* and not just the effect:
+needed the _list_ and not just the effect:
 
-* `coSkipTargets` — which rows the FR-20.2 cascade takes along. `skipItem` now
+- `coSkipTargets` — which rows the FR-20.2 cascade takes along. `skipItem` now
   returns them, snapshotted before the write, which is what lets the snackbar
   name them and the undo restore exactly those.
-* `skippedVia` — why a co-skipped row is skipped, **derived** from the dependency
+- `skippedVia` — why a co-skipped row is skipped, **derived** from the dependency
   graph and the current states. A stored reason would have to survive un-skips on
   either side and edits to the dependency itself; this cannot go stale.
-* `usePackUndo` became `useRowUndo`: it holds *rows*, plural, and takes its
+- `usePackUndo` became `useRowUndo`: it holds _rows_, plural, and takes its
   restore per action — a pack changes `packed_count` and `state`, a skip changes
   `quantity` too, and one shared restore would write back a field its action never
   touched, reverting whatever a sync had put there.
@@ -3121,13 +3129,13 @@ M4 cases and leaves M5 green, removing the M5 control reddens M5 alone.
 ## 2026-08-18 — FR-27.4: a planned trip follows the groups it was made from
 
 The last mechanical piece of the §3.27 client package. A group edited after a
-trip was generated used to reach nothing: the M8 blast-radius note *warned*
+trip was generated used to reach nothing: the M8 blast-radius note _warned_
 about a propagation that did not exist. It exists now — migration 023, ADR-016
 — and the shape of it was decided by one question the schema could not answer.
 
 **"Manual edits always win" is not a rule until something can evaluate it.**
 The trip row says 5, the group says 3. Did the user set 5, or did the group say
-5 last week? Comparing the row against the *current* template cannot tell, so
+5 last week? Comparing the row against the _current_ template cannot tell, so
 the refresh keeps a ledger of what generation last produced per position
 (`trip_generated_positions`). Row equals the snapshot → untouched, an update may
 land. Row differs → theirs, leave it. **Ledger entry with no row at all → they
@@ -3137,14 +3145,14 @@ reason that option lost. The full weighing is ADR-016.
 
 Three things settled while building, each of which changes behaviour:
 
-* **Protection is broader than the snapshot.** A row is also the user's once
+- **Protection is broader than the snapshot.** A row is also the user's once
   packing has begun on it or it was skipped (FR-5.5) — a template edit must not
   rewrite a count somebody physically verified, nor quietly undo a decision.
-* **A protected row's snapshot is deliberately not refreshed.** Nudging it
+- **A protected row's snapshot is deliberately not refreshed.** Nudging it
   forward would hand the row back to the template the moment the user reverted
   their own edit, which is the opposite of what FR-27.4 promises.
-* **Travelers are part of what a trip follows.** The diff re-resolves against
-  the *current* roster, so a person added to a planning trip gets the per-person
+- **Travelers are part of what a trip follows.** The diff re-resolves against
+  the _current_ roster, so a person added to a planning trip gets the per-person
   positions (FR-25.8) and one removed takes their untouched rows along. That
   falls out of re-resolution rather than being built, but it is a decision, so
   it is written down and tested.
@@ -3152,7 +3160,7 @@ Three things settled while building, each of which changes behaviour:
 **Two devices, one trip.** Both pull the same group edit, both run the refresh,
 and with random ids both insert their own row — a duplicate produced by the
 feature whose job is to keep the list right. The ids of propagated rows and
-ledger entries are therefore *derived* from (trip, item, traveler), so the two
+ledger entries are therefore _derived_ from (trip, item, traveler), so the two
 inserts are one row that the NFR-4.2a merge resolves. The cost is that trip-item
 ids stop being opaque; nothing depends on that today, and ADR-016 carries the
 revisit trigger.
@@ -3165,7 +3173,7 @@ It also means **M14 owes nothing extra**: applying a proposal writes to the
 group, and the trips following it log it on their next open.
 
 **Nothing lands silently.** `trip_applied_changes` is the log behind M2's chip,
-and it stores *structured* detail (`{"field":"quantity","from":2,"to":3}`) rather
+and it stores _structured_ detail (`{"field":"quantity","from":2,"to":3}`) rather
 than a sentence — the row syncs, and a sentence would freeze one language into
 the database. The view words it.
 
@@ -3182,8 +3190,8 @@ purpose.
 E2E-M8-09 runs the whole circle (edit the group → open the trip → the row is
 there → M2 names it), mutation-proved in both directions and repeated three
 times on both browsers. The frozen case stayed a component test: reaching an
-*active* trip in the browser still needs the planning→active transition no UI
-ships. The dev seed grew a second, *planned* trip for the same reason — the
+_active_ trip in the browser still needs the planning→active transition no UI
+ships. The dev seed grew a second, _planned_ trip for the same reason — the
 existing sample trip is active on purpose and therefore frozen, so without it
 the feature cannot be looked at.
 
@@ -3191,14 +3199,14 @@ the feature cannot be looked at.
 the log stands **directly under the row up to ten entries**, and folds behind the
 chip above that. The threshold rather than "always collapsed": a few lines are
 worth being read where they happened, but M2 is the main entry point and there is
-deliberately no *seen* state, so an unbounded log would push every other trip down
+deliberately no _seen_ state, so an unbounded log would push every other trip down
 until the busy one departs. In its inline form the chip is a label without
 interaction; a control that toggles nothing lies about state.
 
 The change uncovered a real test defect: now that the log stands inline, M2
 carries the word "Stativ" as well, and during the Ionic transition both pages are
 briefly visible — `getByText('Stativ')` resolved to two elements. The case checks
-the row's *heading* instead. The lesson: a text search on "the visible page" is
+the row's _heading_ instead. The lesson: a text search on "the visible page" is
 unambiguous only as long as no second screen carries the same word.
 
 ### The §4a pass that came with it
@@ -3216,12 +3224,12 @@ orchestrator's two routing sets are hoisted out of `onPullChanges` rather than
 rebuilt on every pull. The failure this prevents is specific: a table missing
 from both routing sets is dropped in silence.
 
-## FR-27.4, revised the day after it landed: the group *asks* (2026-08-18)
+## FR-27.4, revised the day after it landed: the group _asks_ (2026-08-18)
 
 Owner, hours after the refresh merged: when I change a group that is used by an active trip,
 I should be asked whether it is to be applied to that trip; past trips must not be affected at
 all. That inverts two
-of the three rules the merged model rested on — *planning* trips followed
+of the three rules the merged model rested on — _planning_ trips followed
 silently, everything else was frozen from departure onward.
 
 Three decisions settled it. **Past means archived or the end date gone by**, the
@@ -3229,27 +3237,27 @@ broader of the two options offered (the recommendation had been archived-only).
 **The question is asked at the trip, and nowhere else** — not when the group is
 saved. Three holes in asking at save time, one of them already paid for in #106:
 in Server Mode the person editing the group is not the person travelling; the
-affected trips' partitions are not loaded on the editing device (*„nicht geladen
-≠ leer"*); and a modal on every group edit trains the user to dismiss it. And
+affected trips' partitions are not loaded on the editing device (_„nicht geladen
+≠ leer"_); and a modal on every group edit trains the user to dismiss it. And
 **#106 merges first**, the new model as a follow-up — the machinery it built is
 exactly what the new one needs.
 
 **The change turned out to be cheap, for a reason worth recording.** `planRefresh`
-was already a pure derivation with the writes kept separate, so a *proposal* is
+was already a pure derivation with the writes kept separate, so a _proposal_ is
 simply a diff nobody has applied yet: no table, no pending state, nothing to sync.
 The three surfaces split apart — `proposeTripRefresh` derives, `acceptTripRefresh`
 applies, `declineTripRefresh` applies `declinePlan`.
 
 **Declining needed no new state at all.** The ledger already records what
 generation last produced, and `isProtected` already reads a row that differs from
-it as the user's own — so writing the *refused* version into the ledger detaches
+it as the user's own — so writing the _refused_ version into the ledger detaches
 exactly the refused positions and leaves the rest of the group still speaking for
 the trip. No flag, no expiry, nothing extra on the wire.
 
 That has a consequence the UI has to say out loud, and the note under the two
 buttons says it: **a refused position stops following the group in that trip.** A
 working note written before the code claimed the user would be re-asked on the
-group's *next* change; that is false against `isProtected`, which skips a
+group's _next_ change; that is false against `isProtected`, which skips a
 protected row entirely. Per-position detachment is the coherent rule, and other
 positions keep following — so a later group edit still reaches the trip.
 
@@ -3259,14 +3267,14 @@ old model untestable in the browser — stops mattering here. What it did cost i
 one boundary that cannot be reached through the UI at all: a trip whose end date
 has gone by needs either a clock or a date the wizard will not produce. So the
 clock became a seam (`today` injected into the orchestrator, defaulting to the
-*local* calendar date — `toISOString()` answers in UTC and would put a trip a day
+_local_ calendar date — `toISOString()` answers in UTC and would put a trip a day
 out for anyone far enough east or west on the evening it ends), and the boundary
 is pinned in the unit with a value a test can stand on either side of.
 
 **Two findings from the work itself.** The sweep over loaded trips carried its
 own copy of the status rule (`status !== 'planning'`), which would have stayed
 behind silently after `planRefresh` was fixed — found by reading the function,
-not by a red test. And two of the decline tests were green against a *broken*
+not by a red test. And two of the decline tests were green against a _broken_
 `declinePlan`: they asserted a downstream effect (nothing proposed on the next
 run) that an empty ledger produces just as well. They now assert the declined
 snapshot itself, and fall when it is wrong. Both e2e cases were mutation-proved
@@ -3283,10 +3291,10 @@ rather than packing.
 them **after** the templates, which is the whole design: "already there" is only
 decidable once the composition is resolved. Three consequences fell out of that
 ordering rather than being decided separately — an item a template already
-brought is *reported* (`alreadyIncluded`) instead of duplicated; a **per-person
+brought is _reported_ (`alreadyIncluded`) instead of duplicated; a **per-person
 fan-out counts as present**, because the item is on the trip twice already and a
 trip-global third row reads as a third one; and a position a **condition kept
-out** (FR-15.2) is *overridden* by the hand-pick, with the exclusion report no
+out** (FR-15.2) is _overridden_ by the hand-pick, with the exclusion report no
 longer claiming the item is off the list.
 
 **One type change with teeth.** `GeneratedItem.source_template_id` widened to
@@ -3298,7 +3306,7 @@ caller is the point.
 
 **The picker is deliberately not the quick-add.** §3.25's consistency directive
 points at `QuickAddItem`, and M8 reused it verbatim for exactly that reason. It
-is the wrong component here: it exists to *write a row*, free text included, and
+is the wrong component here: it exists to _write a row_, free text included, and
 to stay open through a run of rows. Step 3 picks something that already exists —
 a name nobody owns has no weight, no tag and nothing for FR-27.5 to recognise a
 year later. What the two share is `searchItems`, which is the part that must not
@@ -3317,7 +3325,7 @@ group, so a fresh device can exercise the picker as it stands.
 ## Portable YAML learns the composition (2026-08-18, ADR-017)
 
 The format could describe a template's positions and nothing about what a
-Ferien-Vorlage is *made of*. Two consequences, one of them quiet and bad: a
+Ferien-Vorlage is _made of_. Two consequences, one of them quiet and bad: a
 shared file imported a Vorlage that resolved to nothing, and the NFR-4.11
 backup — the only copy a Local Mode device has — restored the same emptiness.
 The failure surfaces at the next trip generation, on a device that no longer
@@ -3330,7 +3338,7 @@ not a backup.
 
 **The identity rule is the half worth remembering.** The name is a group's
 identity across instances — nothing else survives the trip — so an import
-*links* a group of that name and never rewrites it. That rule is not politeness:
+_links_ a group of that name and never rewrites it. That rule is not politeness:
 since FR-27.4 a group edit reaches every trip that follows it, so an importer
 that "helpfully" merged the file's positions into an existing group would change
 other people's packing lists from a file they never opened. The cost, stated in
@@ -3340,7 +3348,7 @@ the ADR, is that an import can give you less than the file described.
 exported through the server came back a Ferien-Vorlage — the exact defect
 FR-27.1's spec text warns about, three lines above a client parser that rejects
 an unknown scope. It had no test because nothing asserted the exported
-*document*, only its items.
+_document_, only its items.
 
 **Where it is enforced:** both parsers reject includes on a trip, includes on a
 group (FR-27.1 is two levels, which is what makes cycles impossible) and an
@@ -3352,7 +3360,7 @@ settings export and the backup cannot disagree about what a file contains.
 
 Found reviewing the branch that introduced it, before it merged. ADR-017's
 link-or-create rule lived only in the `includes` loop, so it decided what
-happened to a group *nested in a Vorlage* and said nothing about the group's
+happened to a group _nested in a Vorlage_ and said nothing about the group's
 own document. A backup carries the same group both ways — the ADR calls that
 redundancy deliberate — so the result depended on which document the file
 listed first:
@@ -3379,7 +3387,7 @@ group document hit `UNIQUE(owner_id, name)` and failed the import outright. It
 already had an `ensureGroup` helper doing link-or-create for nested groups; the
 document path now goes through it too.
 
-**What the rule is, stated properly:** it belongs to the *group*, not to where
+**What the rule is, stated properly:** it belongs to the _group_, not to where
 in a file the group appears. Ferien-Vorlagen deliberately keep the `(import)`
 suffix instead — two of one name are two different plans, and linking them
 would lose one.
@@ -3410,7 +3418,7 @@ Open(":memory:")   with    -race:   1658 ms      <- 30x
 ```
 
 `modernc.org/sqlite` is pure Go (D-001), which is normally invisible — but it
-means the race detector instruments the SQLite engine *itself*. Every test was
+means the race detector instruments the SQLite engine _itself_. Every test was
 driving 23 migrations and ~50 KB of DDL through that instrumentation. At
 1.66 s x 232 store+api tests, that single line was essentially the whole Go job.
 
@@ -3431,7 +3439,7 @@ Result on this machine: `internal/store` 180 s -> 23.5 s, `internal/api`
 `storetest` subpackage**, which is where it belongs on taste: seventeen of the
 store package's test files are `package store`, and Go forbids a test file of
 package P from importing a package that imports P. A subpackage would have been
-reachable from `internal/api` and *not* from the suite with the larger problem.
+reachable from `internal/api` and _not_ from the suite with the larger problem.
 The cost is one exported function compiled into `jitpackd` that nothing in
 production calls. It was judged too small a tradeoff for an ADR and is explained
 at the declaration instead.
@@ -3459,15 +3467,15 @@ image (already used by the `visual` job, ADR-013) has them baked in.
 
 Owner decision, taken against the recommendation on the desk: while the schema
 is still moving, no migration chain — one always-current `internal/store/schema.sql`.
-The recommendation it overrode was about *speed* (squashing the chain buys ~1 s
+The recommendation it overrode was about _speed_ (squashing the chain buys ~1 s
 on top of the test template above, so it does not pay), and the question the
-owner actually asked was about *friction*. On that one the history argues for
+owner actually asked was about _friction_. On that one the history argues for
 dropping:
 
-| | |
-|---|---|
-| Migrations since v0.1.0 (2026-07-10) | 11 in six weeks |
-| …in the final week alone | 6 (018–023) |
+|                                                                         |                        |
+| ----------------------------------------------------------------------- | ---------------------- |
+| Migrations since v0.1.0 (2026-07-10)                                    | 11 in six weeks        |
+| …in the final week alone                                                | 6 (018–023)            |
 | Migrations that exist **only** because an earlier file cannot be edited | 4 (013, 014, 015, 018) |
 
 Those four retired features. In SQLite that means the twelve-step table rebuild,
@@ -3503,10 +3511,10 @@ column to `schema.sql` and watching it fail, then removed together with the
 migrations it compared against.
 
 **What the change cost, stated rather than glossed.** Four tests staged a
-database one migration short of a change and asserted the *transformation*
+database one migration short of a change and asserted the _transformation_
 against real rows: 019's packing-record backfill, 021's year derivation from
 the end date, and 022's category-to-tag rename with its FR-16.3 collision
-handling. Their subject no longer exists. What was assertable as *schema* was
+handling. Their subject no longer exists. What was assertable as _schema_ was
 kept and renamed — `concept_migrations_test.go` became `schema_shape_test.go`
 with six `TestSchema_*` cases, and `TestSchema_ItemNameIsUniqueOnItsOwn_FR16_3`
 preserves what 022's collision test was ultimately about. What was genuinely
@@ -3542,11 +3550,11 @@ rests on the fact that reversing it is an hour's work.
 The second half of the CI investigation that produced the Go test template.
 Measured on the `e2e` job of PR #111, per step:
 
-| Step | Duration |
-|---|---|
-| `npx playwright install --with-deps chromium webkit` | **1124 s** |
-| `npm run test:e2e` | 615 s |
-| everything else (checkout, node, `npm ci`, build, upload) | 37 s |
+| Step                                                      | Duration   |
+| --------------------------------------------------------- | ---------- |
+| `npx playwright install --with-deps chromium webkit`      | **1124 s** |
+| `npm run test:e2e`                                        | 615 s      |
+| everything else (checkout, node, `npm ci`, build, upload) | 37 s       |
 
 **63 % of the job was installing browsers**, and the cache was working: the
 binaries were cached, the ~200 apt packages WebKit links against are not
@@ -3563,7 +3571,7 @@ Measured locally in the image with 2 workers: Chromium 3.8 min, WebKit
 10.6 min. A per-browser split is bounded by WebKit for its entire duration
 while the other runner idles for seven minutes — and it puts two WebKit
 contexts on a runner where roughly one ran before. That is not free, which the
-run proved: E2E-M12-05 failed, twice, at *different lines each time*, which is
+run proved: E2E-M12-05 failed, twice, at _different lines each time_, which is
 the signature of a unit exceeding its budget rather than a broken assertion.
 `--shard` instead: 133 tests each, 5.7 min and 10.0 min, both legs carrying
 both engines. Still uneven — Playwright shards by file and the heavy files
@@ -3571,7 +3579,7 @@ cluster — but nothing idles.
 
 **What that failure actually exposed.** E2E-M12-05 takes 21.4 s uncontended.
 A full WebKit run says 16 of 123 tests take 20 s or more, and the slowest
-*passing* one took 31.9 s — against Playwright's 30 s default, which
+_passing_ one took 31.9 s — against Playwright's 30 s default, which
 `playwright.config.ts` had never overridden. Nobody had chosen that number;
 the suite had simply been living under it, and the CI run before this one
 already carried one WebKit retry. The budget is now set explicitly at 60 s
@@ -3583,12 +3591,12 @@ makes them worth having and exactly what costs the seconds.
 **And one genuine test defect, found by running it.** E2E-M3-12 asserted
 `visible(page).getByRole('heading', { name: 'Drohne' })` right after the
 wizard creates the trip. Both pages are briefly un-hidden during that
-transition, so the locator matches the step-4 preview heading *and* the M4 row
+transition, so the locator matches the step-4 preview heading _and_ the M4 row
 heading, and the assertion fails as a strict-mode violation depending on which
 frame it lands in — the same shape as the settled-vs-arrived lesson from #89.
 It now asserts the row by test id, which is unique and is the stronger claim
 anyway. Verified with `--repeat-each=3` on WebKit. `backup-restore.spec.ts:232`
-has the same shape and is *not* currently ambiguous (the page being left holds
+has the same shape and is _not_ currently ambiguous (the page being left holds
 no template headings); it is recorded here rather than changed on speculation.
 
 **One cost this moves onto us.** The browsers now come from a digest that
@@ -3649,37 +3657,37 @@ summary is what lets somebody choose without opening anything.
 
 **The resolution is `generateTripItems`, unchanged.** `domain/groupAdd.ts` is
 thin on purpose: it feeds the group in as the single selected template with the
-trip's *current* travelers, and everything §3.27 already decided — one level of
+trip's _current_ travelers, and everything §3.27 already decided — one level of
 includes, the FR-2.3a merge, the per-person fan-out, FR-15.2 conditions,
 FR-27.7 tasks — follows without a second implementation. What the module owns
 is the one question generation never had to ask: **what is already there.**
 
 Four things settled while building, each visible in the code:
 
-* **Presence is master item first, name second, trip-global.** A generated row
+- **Presence is master item first, name second, trip-global.** A generated row
   carries its `source_item_id`; a row typed into the same composer five minutes
   earlier carries none, and „Kamera" typed by hand is the thing the group is
   about to bring. Trip-global rather than per traveler is FR-27.3's stance for
   single items, and for its reason: a per-person fan-out means the item is on
   the trip already, so one more row reads as one more thing to pack.
-* **A third outcome the FR did not name.** „Added N, M already there" and „already
+- **A third outcome the FR did not name.** „Added N, M already there" and „already
   fully on the list" are two; a group whose every position this trip's attributes
   excluded (FR-15.2) is a third, and reporting „hinzugefügt — 0 Positionen" about
   it would be false in both directions. It gets its own sentence.
-* **The registration is written even when nothing was placed.** Following a
-  group is about what it does *from here on*, not about what it happened to
+- **The registration is written even when nothing was placed.** Following a
+  group is about what it does _from here on_, not about what it happened to
   contribute today — a group that is already fully present is exactly the one
   whose next change the trip wants to hear about.
-* **No ledger rows.** `planRefresh` adopts a row it finds without a ledger
+- **No ledger rows.** `planRefresh` adopts a row it finds without a ledger
   entry — the path a hand-added row takes — so the first refresh records these
   with no extra mechanism, and writing them here would only be a second way to
   say the same thing.
 
 **No FR-9.1 flag**, which is the one line of this feature that is a product
 decision rather than a mechanism: a single ad-hoc add on an active trip is
-flagged *Missing* because something was forgotten, and an added group is a plan
+flagged _Missing_ because something was forgotten, and an added group is a plan
 that grew. Flagging it would feed M14 a lie and produce „nimm es in die Vorlage
-auf" proposals for rows that came *from* a template.
+auf" proposals for rows that came _from_ a template.
 
 **One gap the PR's own review found:** the group path skipped FR-20.4. A
 single quick-add pulls its required companions and M3's generation does too,
@@ -3689,8 +3697,8 @@ the resolution runs once for the whole group, since it reads the settled list
 either way.
 
 **Where the tests had to move.** Two halves of the specified e2e cases — the
-absent *Missing* flag, and a past trip registering nothing — need a trip that is
-active or archived, and nothing user-facing moves a trip out of *planning* yet
+absent _Missing_ flag, and a past trip registering nothing — need a trip that is
+active or archived, and nothing user-facing moves a trip out of _planning_ yet
 (the same gap the M12 and M14 units hit). Asserted in Playwright they would have
 passed on a planning trip whatever the production code did, so they are unit
 tests naming the reason, and the e2e ledger records the swap rather than hiding
@@ -3707,9 +3715,9 @@ any of the outcomes the requirement worried about. Second, `previewText` had
 become a verbatim copy in two views (`lib/groupPreview.ts` now). Third, and the
 one worth remembering: reading the UI-Test-Spec's own sentences against the test
 bodies found **two false promises** — the case claimed to assert provenance,
-which is invisible on M4, and M4-27's text still said an *active* trip does not
+which is invisible on M4, and M4-27's text still said an _active_ trip does not
 follow its groups, which FR-27.4's revision of 2026-08-18 had already replaced
-with *past*. The spec was describing the pre-revision model in a case nobody had
+with _past_. The spec was describing the pre-revision model in a case nobody had
 run yet.
 
 Two smaller notes. The composer matches **group names only** — searching the
@@ -3727,8 +3735,8 @@ as template" copies the trip flat and forks every group it came from — next
 year two divergent camera lists.
 
 **The screen was unreachable, and finding that out changed the plan.** Every
-M21 entry sits on an *archived* trip. Both archive affordances are gated on
-*active*, `activateTrip` existed in the orchestrator with a doc-comment
+M21 entry sits on an _archived_ trip. Both archive affordances are gated on
+_active_, `activateTrip` existed in the orchestrator with a doc-comment
 describing exactly this hole, and **no view called it**. So the first thing the
 PR shipped was not M21 at all: one action on M4's app bar and one M2 swipe
 option. The owner approved it as a deliberate scope call rather than a quiet
@@ -3747,7 +3755,7 @@ spelled out came up immediately and are covered by name in
 
 - A row generated from the old **Ferien-Vorlage's own** positions carries that
   Vorlage as provenance. FR-27.1 fixes the hierarchy at two levels, so there is
-  nothing to reference — the row is *loose*, and says so differently from an
+  nothing to reference — the row is _loose_, and says so differently from an
   ad-hoc one ("aus „X“ — als eigene Position übernommen"). It was planned, just
   not by a reusable building block.
 - A provenance id this device cannot resolve is loose too. An unresolvable id
@@ -3755,7 +3763,7 @@ spelled out came up immediately and are covered by name in
   (the M12 honesty rule).
 
 **„Auf der Reise ergänzt" describes a path the app cannot walk.** The spec —
-and the prototype's mock — picture a row added *under a group* while packing.
+and the prototype's mock — picture a row added _under a group_ while packing.
 A quick-add writes `source_template_id = null`, so that row is loose by
 construction, and there is no surface anywhere that attaches a trip row to a
 group. What actually produces a row whose group no longer contains it is the
@@ -3765,13 +3773,13 @@ deserve the same offer, so the computation is right; only the sentence blames
 the wrong end. Left as-is with a revisit trigger in FR-27.5 rather than
 reworded unilaterally — the alternative wording ("Auf dieser Reise dabei, in
 der Gruppe nicht") is a product voice decision. The e2e case produces the
-deviation the real way: archive first, *then* remove the position, because a
+deviation the real way: archive first, _then_ remove the position, because a
 past trip is never asked to follow along.
 
 **No group change history table.** FR-27.5 asks for each fold-back to be
 "recorded in the group's change history with its origin". No such table exists,
 and FR-27.4 already carries the consequence — the edit is offered to every trip
-that still follows the group and lands in *that trip's* applied-changes log. A
+that still follows the group and lands in _that trip's_ applied-changes log. A
 per-group ledger for one writer was not invented.
 
 **What the render caught that the stylesheet could not.** Three defects, all
@@ -3783,7 +3791,7 @@ statement it contradicts.
 
 **And one finding about the visual gate itself.** The ten M4 baselines were
 regenerated deliberately (ADR-013) because the new app-bar action changes every
-planning-trip shot — but the *old* baselines still **passed** against the new
+planning-trip shot — but the _old_ baselines still **passed** against the new
 render. An added 24 px icon plus the title truncation lands under
 `maxDiffPixelRatio: 0.002` (658 px of 329 160). The gate is looser than it
 reads; whether to tighten it is a decision with a flake cost, so it is recorded
@@ -3795,14 +3803,14 @@ step. Mutation-proved throughout: dropping the `addTemplateInclude` loop,
 flipping `DEFAULT_DEVIATION_CHOICE`, ungating the archive action, removing the
 `source_item_id` shortcut and relaxing the kind check each felled exactly the
 cases that claim them. Two false-green locators found on the way — Ionic marks
-the chosen segment button with a *class* rather than `aria-checked`, and
+the chosen segment button with a _class_ rather than `aria-checked`, and
 `ion-toggle` **is** the switch rather than containing one.
 
 **No ADR.** FR-27.5 had already weighed the tradeoff and chosen; the
 implementation weighed nothing new.
 
-**Wording follow-up (2026-08-19, owner).** The deviation line reads *„Während
-der Reise ergänzt"* rather than *„Auf der Reise ergänzt"*. Chosen after the
+**Wording follow-up (2026-08-19, owner).** The deviation line reads _„Während
+der Reise ergänzt"_ rather than _„Auf der Reise ergänzt"_. Chosen after the
 note above was raised: it reads better, and the observation it answers — that
 the app cannot actually produce a row added under a group while packing — is
 unchanged. The neutral alternative („Auf dieser Reise dabei, in der Gruppe
@@ -3836,7 +3844,7 @@ owner chose **B without its condensation**.
 the name with the trip's other views, then the figures with the facepile — and
 **still collapses entirely on scroll-down**, name included. The variant that
 kept a slim „Samedan 2026 · 12/38" strip standing was rejected on the grounds
-that *you generally know which packing list you are on*. That retires the
+that _you generally know which packing list you are on_. That retires the
 Addendum's „identity collapses into the top app bar" directive rather than
 implementing it: nothing migrates up, because nothing needs to.
 
@@ -3867,7 +3875,7 @@ or a header that failed to mount would satisfy the assertion.
 **The rejected two are worth keeping.** Moving only the lifecycle icon down to
 🛒🧳📊 was rendered honestly and turns „S…" into „Samed…" — it relieves the bar
 without solving anything, and seeing that took a render. Moving search, filter
-and fold-all onto their own permanent tool row *does* solve it and keeps the
+and fold-all onto their own permanent tool row _does_ solve it and keeps the
 title, but it reopens the 2026-08-07 G-12 decision; the reason recorded there
 („the sub-header collapses on scroll") does **not** apply to that row, which is
 worth knowing if the question returns.
@@ -3887,18 +3895,18 @@ to find the gate loose finds the reason with it.
 **Cost.** Eight M4 baselines regenerated deliberately (ADR-013), four of them
 twice, and twelve e2e assertions moved from `header-title` to a new `expectTripOpen` helper. Those
 had been using the app-bar title as the „M4 is open" signal; the helper scopes
-to the *painted* page, because the name now lives inside the router outlet
+to the _painted_ page, because the name now lives inside the router outlet
 where Ionic keeps the outgoing page mounted through a transition — unscoped, it
 could read the trip being left.
 
 ## M14's positive tests, and the flag nobody could set (2026-08-20)
 
-M14's positive e2e cases had been recorded as *owed but unwritten* since M21
+M14's positive e2e cases had been recorded as _owed but unwritten_ since M21
 shipped the planning→active step. Writing them found that the recorded block
 was only half the story, and that a defect had been hiding behind it.
 
 **The flag the assistant is about had no writer.** FR-9.1 names two flags.
-*Missing* is stamped by M4's quick-add on an active trip; *unused* — the one
+_Missing_ is stamped by M4's quick-add on an active trip; _unused_ — the one
 FR-9.2's assistant is mostly written around, because the harvest of a trip is
 mostly „mitgenommen, nie gebraucht" — could not be set anywhere in the app.
 M5's Details block listed the pair the way the UI-Spec does, but as a
@@ -3910,7 +3918,7 @@ active trips only, both revocable — the merge already allows that: setting a
 flag is additive (NFR-4.2a rule 1), clearing one is ordinary last-writer-wins.
 
 **Then the first run showed one proposal instead of two, and that was a real
-defect.** The client's optimistic update carries a *whole row*, and both the
+defect.** The client's optimistic update carries a _whole row_, and both the
 store and the Local Mode IndexedDB write **replace** rather than patch — so the
 hand-maintained projection behind it (`itemRow`) was a list of columns that had
 to mirror a growing type, and did not. It omitted `source_template_id`,
@@ -3939,11 +3947,11 @@ sentence names the gap instead of marking the id done.
 
 **One more thing the render caught.** M14's applied-changes footer still said
 planning trips „übernehmen sie sofort" — the FR-27.4 model as it stood before
-the 2026-08-18 revision made a group change an *offer* answered at the trip.
+the 2026-08-18 revision made a group change an _offer_ answered at the trip.
 The per-row blast line on the same screen already said „wird N Reisen
 vorgeschlagen", so the screen carried both models at once and one of them was a
 promise the app does not keep. Corrected in both catalogues, and the component
-test asserts the *claim* (no „sofort"/„immediately") rather than the copy. It
+test asserts the _claim_ (no „sofort"/„immediately") rather than the copy. It
 took **rendering the screen with real proposals** to see it: the sentence only
 appears once something has been applied, which is a state no test and no
 screenshot had ever reached.
@@ -3953,21 +3961,21 @@ screenshot had ever reached.
 Dependabot bumped `client/Dockerfile` from `node:24-alpine` to `26-alpine` and
 every check went green — because no check builds anything with that image. CI
 compiles the client through `setup-node` at the version `ci.yml` names (24,
-matching `mise.toml`), and `docker-build` only proves the Dockerfile *builds*.
+matching `mise.toml`), and `docker-build` only proves the Dockerfile _builds_.
 The published client image would therefore have shipped a bundle compiled by a
 Node major nothing in the repo tests with, and Node 26 is `lts: false` — the
 Current line — until October 2026, while 24 is Active LTS.
 
 **The first fix was the wrong shape.** Ignoring `semver-major` in
 `.github/dependabot.yml` removes the bad PR and the good one with it: the next
-LTS would then have to be *remembered*, which is exactly the kind of promise a
+LTS would then have to be _remembered_, which is exactly the kind of promise a
 single maintainer does not keep. Owner, on reading it: but I don't want to have to remember
 that by hand.
 
 So the majors stay in Dependabot's hands and `scripts/toolchain-pins-gate.sh`
 holds the three declarations of each together — node across `client/Dockerfile`,
 `mise.toml` and every `node-version:` in `ci.yml`; go across `Dockerfile`,
-`mise.toml` and `go.mod`. It runs in `make ci` and as the *first* step of the
+`mise.toml` and `go.mod`. It runs in `make ci` and as the _first_ step of the
 `docker-build` job, before either image builds. A major bump now arrives on its
 own, goes red, and the error names the files still to change. Mutation-proved
 three ways: image-only bump, one `node-version:` moved out of four, and the
@@ -3979,14 +3987,14 @@ the one from Node 26 have the same final image id, precache prologue included,
 so the two toolchains produce the same bundle. Digests and patch/minor keep
 flowing automatically, which is what the pinning in invariant 8 is for.
 
-Worth recording because the bump was *correct in isolation*: a green pipeline
+Worth recording because the bump was _correct in isolation_: a green pipeline
 said nothing about it, and the drift is only visible if you ask which artifact
 a version actually builds.
 
 ## The device backup carries the FR-27.4 refresh state (2026-08-21, MVP Track F)
 
 The backup wrote every trip and every Vorlage and stopped there. What it left
-behind were the three tables that record *how* a trip follows its groups —
+behind were the three tables that record _how_ a trip follows its groups —
 `trip_template_sources`, `trip_generated_positions`, `trip_applied_changes` —
 so a restored device kept everything visible and silently forgot every answer
 the user had given. Proposals already refused came back as fresh offers, and a
@@ -4006,7 +4014,7 @@ sits. Every id is new after a restore, so a ledger entry rebuilds its own from
 (trip, master item, traveler) — the identity `planRefresh` already keys on — and
 finds its row by that same identity rather than by name. Matching by name was
 the first draft and it is wrong for the one case the ledger exists to serve: a
-row the user *renamed* is precisely a row that has become theirs. An entry
+row the user _renamed_ is precisely a row that has become theirs. An entry
 whose row is not there keeps the id the row would have had, because "the entry
 outlives the row" **is** FR-27.4's record of a deleted position.
 
@@ -4020,21 +4028,21 @@ is repeating it, and stamping "now" would file a year-old change at the top of
 M2's list as today's news.
 
 **The old-file fallback is a test, not a comment.** A backup without the three
-sections restores as it always did; a malformed entry *inside* one of them is
+sections restores as it always did; a malformed entry _inside_ one of them is
 skipped rather than failing the document. That asymmetry against the items —
 where a nameless item aborts the document — is deliberate: the items are the
 user's data, these three are bookkeeping the refresh can re-derive.
 
 **M18 came with it**, since the restore branch is its screen: both import
 screens are localized (`import.portable.*`, `import.wizard.*`), and the restore
-list now says a trip *follows N groups* — the only place the new data is
+list now says a trip _follows N groups_ — the only place the new data is
 visible before anything is imported, and the rendered assertion E2E-M18-08
 leads with. The parser's own error strings stay English; they interpolate the
 YAML library's message and would need an error model rather than a catalogue
 key. Noted, not done.
 
 **E2E-M18-08 is built around the absence problem.** Everything the case proves
-is something that must *not* happen, so it ends by adding a new position to the
+is something that must _not_ happen, so it ends by adding a new position to the
 group on the restored device: the proposal that appears names it and only it.
 Without the restored sources there would be no proposal at all; without the
 restored ledger the refused position would be standing next to it.
@@ -4048,7 +4056,7 @@ is right, so this only trims what it has to say no to.
 
 Odd-numbered Node majors never become LTS — Current for six months, then end of
 life — so `.github/dependabot.yml` ignores the odd lines for `client/Dockerfile`.
-Even majors stay enabled, because they *do* reach LTS in the October after their
+Even majors stay enabled, because they _do_ reach LTS in the October after their
 release and the repo does want them, on its own schedule; the gate is what
 decides when. The near-term reason it is worth doing at all: Node 27 arrives in
 October 2026, and Dependabot only ever offers the newest — so from that month it
@@ -4078,7 +4086,7 @@ That is the moment the gate exists for.
 
 The Server-Mode outbox was a JS array. Every mutation that had not reached the
 server lived in exactly one place — the open document — so a reload or an app
-kill while offline discarded it *silently*: the glyph came back clean and the
+kill while offline discarded it _silently_: the glyph came back clean and the
 change was gone. That is the ordinary case on a phone in a hotel, not an edge
 case, and it is the reason the MVP plan lists it as blocker B2.
 
@@ -4087,7 +4095,7 @@ IndexedDB database of its own (`jitpack-outbox`), a record per mutation, the
 same serialize-the-writes discipline as `local/persistence.ts` and for the
 same two reasons — a write issued and immediately followed by a navigation
 lands in a transaction the navigation cancels, and the stored tail must be the
-*caught* promise or one failure silently skips every write after it.
+_caught_ promise or one failure silently skips every write after it.
 `SyncOutbox` writes through it on enqueue, removes on acknowledgement, and
 `restore()` rebuilds the queue on boot. The orchestrator replays before the
 first pull, awaited rather than fired off: App.vue's own `drainMaster` follows
@@ -4103,7 +4111,7 @@ guarantee). The guarantee is the **`mutations` memo table in
 `TestApplyMutation_DuplicateMutationID_ReturnsRecordedResult`: a replayed
 `mutation_id` returns the recorded result and appends nothing to the change
 log. What the client owes that guarantee is that the id is minted once, at
-enqueue, and stored *with* the mutation — a replay that re-minted it would be
+enqueue, and stored _with_ the mutation — a replay that re-minted it would be
 a second write rather than a retry.
 
 **Parking, because a wedged queue is worse than a lost mutation.** A mutation
@@ -4111,7 +4119,7 @@ answered `rejected`, or a whole batch refused with a 4xx a retry cannot fix
 (anything but 401/408/425/429), is moved out of the queue and kept on the
 device with the server's own reason. Keeping it would stop the entire
 partition from ever syncing again because of one bad row. A network failure
-and a 5xx are explicitly *not* refusals. Two consequences stated rather than
+and a 5xx are explicitly _not_ refusals. Two consequences stated rather than
 hidden: G-2 counts the parked mutations but **no screen lists them** (revisit
 trigger in Sync-API §5.1 — the conflict log is trip-scoped and this list is
 device-scoped, so it is not simply a row in it), and the case has **no e2e**,
@@ -4121,13 +4129,13 @@ because the app cannot produce a permanently-refused push through its own UI.
 
 1. **The queue count was a property of the wrong thing.** The badge rendered
    only while `state === 'offline'`. That was already a small lie before this
-   work — a master partition can drain to *synced* while a trip's queue waits
+   work — a master partition can drain to _synced_ while a trip's queue waits
    for its trip to be opened — and a durable queue makes it a large one, since
    the queue now outlives the tab. The badge counts the queue.
 2. **Durability has to be able to say no.** An IndexedDB write can be refused
    (quota, an aborted transaction). Losing the mutation there would be the
    worse failure, so it stays queued and is still pushed; what is withdrawn is
-   the *promise*, and G-2 says so instead of claiming a reload is safe.
+   the _promise_, and G-2 says so instead of claiming a reload is safe.
 3. **The e2e assertion for "the shell painted" is screen-dependent.**
    E2E-PWA-01 waits for the header logo; inside a trip the app bar carries the
    back button and no logo, so the same assertion looks for a control that
@@ -4142,7 +4150,7 @@ every event) and was left out rather than smuggled in.
 ## M4 comes back where it was left, and the header line stops flipping (2026-08-21)
 
 ADR-012's overlay amendment recorded a cost and named its repair: the M5 sheet
-is an *alias* of M4's route and opening it `replace`s, which re-renders the
+is an _alias_ of M4's route and opening it `replace`s, which re-renders the
 list from the top, "the cheaper repair is on the other side: remember M4's
 offset per trip". This is that repair, plus the four things it turned out to
 need — none of which the amendment could have known, and all of which are the
@@ -4150,13 +4158,13 @@ reason it took a rendered measurement rather than a stylesheet reading.
 
 **The memory cannot live in the component, and nearly did.** The first version
 kept a `Map` at the top of `PackingListPage.vue`. In a `<script setup>` block a
-top-level binding is created per *instance*, and the instance is exactly what
+top-level binding is created per _instance_, and the instance is exactly what
 the replace tears down — so every read found an empty map. It lives in
 `client/src/lib/scrollMemory.ts` now, with its own unit tests, and the module's
 own doc comment names the trap.
 
 **A scroll position on this screen is two values.** M4's header line is sticky
-but in flow: it holds 84 px of the *scrolled* content, so putting the offset
+but in flow: it holds 84 px of the _scrolled_ content, so putting the offset
 back under a re-opened line shows different rows than the ones the user was
 reading. The collapsed state therefore travels with the number, and is applied
 during setup — the first painted frame after the sheet is already correct, so
@@ -4190,13 +4198,13 @@ scrolled the list back to the top before the measurement.
 
 **The same PR closed E2E-M12-03's positive half**, owed since the lifecycle
 step landed, and it too found things the diff cannot show. The trend counts the
-weight actually *carried*, so the case has to pack the row — an unpacked one
+weight actually _carried_, so the case has to pack the row — an unpacked one
 puts a 0 kg column on the chart that a "the section exists" assertion would have
 accepted. `seriesTopFlagged` reports an empty list for "nothing was flagged" and
-for "the flag was never written" alike, so the case reads the *Missing* chip
+for "the flag was never written" alike, so the case reads the _Missing_ chip
 back off the stored row in M5 before relying on the list. And M14's open count
 is not the signal it looks like: asserted after archiving it read `0`, because a
-*missing* proposal needs a group to target and that world has no templates at
+_missing_ proposal needs a group to target and that world has no templates at
 all — that coverage belongs to `review.spec.ts`, which builds them.
 
 ## The i18n migration, closed except for M15 and M17 (2026-08-21)
@@ -4215,7 +4223,7 @@ header bar's route titles, the presence facepile and the quantity stepper.
 
 **Three of these were not string swaps, and those are the part worth recording.**
 
-*A nav anchor and a route title used to store the finished English text.*
+_A nav anchor and a route title used to store the finished English text._
 `NAV_ANCHORS[].name` and `meta.title` were read straight into the template, so
 no language switch could ever reach the bar that sits above every screen or the
 labels at the foot of it. They store a `MessageKey` now (`nameKey`,
@@ -4223,13 +4231,13 @@ labels at the foot of it. They store a `MessageKey` now (`nameKey`,
 case mounts the same route in German, which is the only kind of test that would
 have caught the original shape.
 
-*The roster's role chip was `role.charAt(0).toUpperCase() + role.slice(1)`.*
+_The roster's role chip was `role.charAt(0).toUpperCase() + role.slice(1)`._
 That is an English spelling rule wearing a label's clothes: it renders "Editor"
 in every language, and would render "Owner" as "Owner" forever. It moved to
 `lib/roleLabels.ts` beside `attributeLabels.ts`, same shape, same
 unknown-value-falls-back-to-itself rule, with its own test.
 
-*M16 kept a second copy of two vocabularies.* It spelled the season, transport
+_M16 kept a second copy of two vocabularies._ It spelled the season, transport
 and accommodation values in its own English words rather than through
 `attributeLabel`, and had its own three words for the procurement modes that a
 position calls `mode.*`. A checklist entry and a packing position mean the same
@@ -4239,14 +4247,14 @@ disagree — this is the same class of finding as FR-27.2's include order.
 **The catalogue-integrity test grew two checks.** Key-set parity was all it
 proved, and key parity is not structural parity: a translation that drops a
 `{name}` slot loses the only variable part of its sentence, and one that drops
-the ` | ` plural split makes `t()` return the singular for every count. Both
+the `|` plural split makes `t()` return the singular for every count. Both
 render as plausible German, so neither surfaces as a missing string — they
 surface as a sentence that is quietly wrong. Both checks were proved failing
 against injected breaks before being kept.
 
 **Two conventions fell out of the work.** A count that is grammatically plural
-gets a pluralized key, not an "(s)" — M20's *„Provisioned … · N trip(s) · N
-template(s)"* is three keys now, because German has no such spelling and
+gets a pluralized key, not an "(s)" — M20's _„Provisioned … · N trip(s) · N
+template(s)"_ is three keys now, because German has no such spelling and
 because two counts cannot share one `n`. And a composed hover title (the
 presence facepile: who, on how many devices, whether in sync) is assembled in
 script, since a template expression cannot pluralize through the catalogue.
@@ -4254,7 +4262,7 @@ script, since a template expression cannot pluralize through the catalogue.
 **What is left, and why.** **M15** (`views/import/ImportPage.vue`) and **M18**
 (`PortableImportPage.vue`) were excluded by file, not by judgement: the parallel
 backup track owns both files for this MVP push and localizes them itself. Their
-*route titles* are on the catalogue here, because the route table is chrome.
+_route titles_ are on the catalogue here, because the route table is chrome.
 **M17 Settings** is the one screen this pass leaves genuinely half-translated,
 and it was already so before it: ten `t()` calls beside roughly fifteen
 literals, plus the avatar crop modal, which is untouched. It is a section, so
@@ -4271,9 +4279,9 @@ the packing progress, which is what makes it not one.
 **The consequence rule already existed, and finding that changed the work.**
 The first implementation was a new pure module with its own rules for extending
 and withdrawing per-person rows. It was wrong twice over: FR-27.4 already
-specifies traveller changes (*"a person added receives the per-person positions
-… one removed takes their untouched rows along"*), and `domain/refresh.ts`
-already implements them, because the trip re-resolves against its *current*
+specifies traveller changes (_"a person added receives the per-person positions
+… one removed takes their untouched rows along"_), and `domain/refresh.ts`
+already implements them, because the trip re-resolves against its _current_
 travellers. The module was deleted before it reached a PR. What was left is
 small: write the traveller mutation, then call `acceptTripRefresh` — the same
 path the "yes" on M4's card takes. A second expansion of per-person rows would
@@ -4289,23 +4297,23 @@ the next open what they just did in front of the app is a dialogue with no
 second party in it.
 
 **Removal is offered only before departure** (owner), which is what keeps the
-rule from ever having to weigh a *departed* trip's packing record.
+rule from ever having to weigh a _departed_ trip's packing record.
 
 It still has to answer for a packed row, though, and the first cut answered it
 alone: unpacked rows go, packed ones stay unassigned. The owner rejected that
 the same day, and was right — a packed row means somebody physically put the
 thing in the bag, and whether it should come back out is not a property of the
-data. On one trip the answer is *take it out*; on another it is *leave it
-visible so somebody remembers to*. So it is asked, at the confirmation, and
+data. On one trip the answer is _take it out_; on another it is _leave it
+visible so somebody remembers to_. So it is asked, at the confirmation, and
 **only when there is something to answer about**: with nothing packed the
 removal has one outcome, and a question with one answer teaches the user to
 dismiss questions. The question names the quantity for the same reason
 FR-27.4's card lists its changes instead of counting them.
 
-Underneath, *Gepackte behalten* is simply FR-27.4's ordinary protection, and
-*Alles entfernen* deletes those rows outright — that protection is exactly what
+Underneath, _Gepackte behalten_ is simply FR-27.4's ordinary protection, and
+_Alles entfernen_ deletes those rows outright — that protection is exactly what
 the user overruled for this person. A skipped or hand-edited row follows the
-*behalten* branch either way: nobody was asked about it.
+_behalten_ branch either way: nobody was asked about it.
 
 **Two defects the type-checker could not see.** The date inputs used a
 two-statement inline handler; Vue parses an inline handler as a single
@@ -4319,10 +4327,10 @@ was present, it simply had no surface.
 trousers — was green for the wrong reason three times**, and the sequence is
 the reusable part. Asserting the count and the surviving name passes against an
 over-broad removal, because the refresh re-resolves afterwards and generates
-the sibling's row *again*: same name, same count, different row. Packing the
+the sibling's row _again_: same name, same count, different row. Packing the
 sibling to prove identity fails differently — a packed row leaves the list
 through the FR-25.2 pack-out, so the seeded position now carries quantity 2 and
-a *part*-packed row keeps its place. And the first working version raced:
+a _part_-packed row keeps its place. And the first working version raced:
 `page.goto` outran the removal and the case failed against correct code. Only
 after all three does the mutation redden it.
 
@@ -4330,7 +4338,7 @@ after all three does the mutation redden it.
 to en-US and UTC, so every rendered date was a US date and "today" was a UTC
 one — and the FR-27.4 boundary is a date comparison, so a run just after
 midnight in Zurich was reading yesterday. `de-CH` and `Europe/Zurich` now. The
-app *language* is deliberately not left to the device: `resolveLocale` falls
+app _language_ is deliberately not left to the device: `resolveLocale` falls
 back to `navigator.languages`, so a German device would flip the whole UI and
 every English assertion with it; the fixture pins `jitpack_locale` instead, and
 only when the key is absent — an unconditional write re-seeds after a reload
@@ -4346,10 +4354,10 @@ something to show in.
 MVP Track I. The owner's report was one sentence: inside a trip, tap the gear,
 tap `‹`, and the app is on the dashboard.
 
-**The premise that was wrong.** ADR-011 made the back target *declared* rather
+**The premise that was wrong.** ADR-011 made the back target _declared_ rather
 than read from history, because a cold-start deep link has no history to read.
 One static `meta.parent` per route — and for a drill-down that is exactly right.
-The unexamined half is that it assumed every screen *has* one parent. The gear is
+The unexamined half is that it assumed every screen _has_ one parent. The gear is
 offered on every screen by decision of that same ADR (it is what keeps the
 conflict log reachable inside a trip), so `/tabs/settings` had no true parent to
 declare, and the one it declared was a guess that happened to be right on one
@@ -4357,7 +4365,7 @@ screen out of twenty.
 
 **Two things came out of the same hole, and both were older than the report.**
 
-Navigation_Concept §7's route table has a *flows* row promising "the origin the
+Navigation_Concept §7's route table has a _flows_ row promising "the origin the
 flow was entered from". There was no `from`, `origin` or `returnTo` anywhere in
 the router: the promise was four words in a table with no mechanism behind it,
 and it had read as implemented for as long as the table existed. Concretely,
@@ -4368,7 +4376,7 @@ less.
 
 And `ROOT_PATHS` in `backTarget.spec.ts` listed `/tabs/settings` among the routes
 that "show the logo and therefore owe no parent", while the route table gave it
-one. Nothing objected, because the test only ever asserted that non-roots *have*
+one. Nothing objected, because the test only ever asserted that non-roots _have_
 a parent and never that roots lack one. An exemption list that is never checked
 is a claim, not a rule; the reverse assertion is now there and would have failed
 on the day the contradiction was introduced.
@@ -4382,7 +4390,7 @@ the origin is recorded verbatim: trip → gear → admin → `‹` → Settings 
 trip unwinds hop by hop with no code that knows about chains.
 
 **The trap, with its price.** The first version of E2E-G9-12 passed against the
-*unfixed* build. `expect(page).toHaveURL(/\/tabs\/trips$/)` matches any URL
+_unfixed_ build. `expect(page).toHaveURL(/\/tabs\/trips$/)` matches any URL
 ending in that text — and the fix's whole point is that the URL now ends in
 `?from=/tabs/trips`. The assertion was reading its own mechanism as the result.
 Its neighbour was no better: `onVisibleScreen(page, 'trips-new')` found the trip
@@ -4417,7 +4425,7 @@ Worth recording because the argument was not wrong, it was **untested**: it was
 decided from the code and never from the screen. The project already has the rule
 for this ("don't judge a UI change from the stylesheet — render it, and let the
 maintainer eyeball it"), and this is the same failure one level up: an
-*interaction* affordance judged from the reasoning about it rather than from
+_interaction_ affordance judged from the reasoning about it rather than from
 having it in the hand.
 
 **The test trap that came with the fix.** `E2E-M22-04` counts the remove controls
@@ -4439,13 +4447,13 @@ FR-25.13c, decided and built the same day. What the diff cannot show:
   mocked in the app's own token system (chips in the composer · inventory
   browse-sheet · two-step tag tiles) and judged as an artifact page, the G-14
   lesson applied to a concept decision. The matrix and the loser live in
-  ADR-020; the short version is that the *smallest* variant won the first
+  ADR-020; the short version is that the _smallest_ variant won the first
   build precisely because the composer is one shared component, so FR-25.13's
   "one way to add, everywhere" survives without a rollout. The browse-sheet is
   **decided, specified as FR-25.13d, and not started** — its door (the "Mehr
-  aus dem Inventar…" entry) was deliberately *not* shipped now, because a
+  aus dem Inventar…" entry) was deliberately _not_ shipped now, because a
   control that leads nowhere is worse than none.
-- **The accepted cost is the autofocus.** FR-25.13a's "expands *and focuses*"
+- **The accepted cost is the autofocus.** FR-25.13a's "expands _and focuses_"
   was load-bearing wording for a year of specs and one e2e assertion; it
   turned around because the raised keyboard covers exactly the offer the
   empty composer now leads with. Whoever wants to type pays one tap, on
@@ -4454,7 +4462,7 @@ FR-25.13c, decided and built the same day. What the diff cannot show:
   positions from the autocomplete since the beginning; M4 never passed its
   contents at all, so the duplicate path survived there silently. The chips
   forced the question and the answer is uniform: what a scope carries is
-  offered nowhere — and E2E-M4-46 exists *only* for M4's wiring, because no
+  offered nowhere — and E2E-M4-46 exists _only_ for M4's wiring, because no
   shared-component test can see a dropped prop.
 - **Two case numbers were already taken by written-but-unbuilt specs.**
   E2E-M8-18 belongs to FR-28.8 and E2E-M8-19 to a group-refresh case; the new
@@ -4462,7 +4470,7 @@ FR-25.13c, decided and built the same day. What the diff cannot show:
   numbers in specs ahead of implementation means the ledger, not the spec, is
   where a free number is found.
 - **The recents trail is deliberately device-local and unsynced** (the
-  review-dismissals stance): recency of *this device's* adds is a typing
+  review-dismissals stance): recency of _this device's_ adds is a typing
   convenience, not domain data. Free-text adds record nothing — at the
   composer's level they have no master item yet; the caller creates it later.
 
@@ -4473,20 +4481,20 @@ What the diff cannot show:
 
 - **The naming question the ADR flagged resolved without re-wording the FR's
   "one way".** ADR-020 warned that building the sheet means either re-wording
-  FR-25.13 into *Erfassen* vs. *Zusammenstellen* or rolling the sheet out to
+  FR-25.13 into _Erfassen_ vs. _Zusammenstellen_ or rolling the sheet out to
   every list screen at once. Both happened at zero rollout cost, for the same
-  reason A won the first build: the sheet lives *inside* the shared composer,
+  reason A won the first build: the sheet lives _inside_ the shared composer,
   so M4, M6 and M8 got it in one change, and the two postures are two doors
   in one component rather than two components.
 - **The „schon drin" flip is the feedback mechanism, not just a state.** The
   sheet passes the caller's `excludeItemIds` straight through as the carried
   set, so a tapped row flips in place when the caller's scope grows — no
   toast, no counter, and the sheet never closes during a run. That also means
-  the state is *derived*, never bookkept: a second device adding the same
+  the state is _derived_, never bookkept: a second device adding the same
   item over sync flips the row too.
 - **Focusing after a modal loses to Ionic's teardown.** The free-text footer
   first set `is-open` to false and called the composer's focus; the field
-  ended `inactive` because modal dismissal restores focus *after* that. The
+  ended `inactive` because modal dismissal restores focus _after_ that. The
   fix is the house rule applied to production code: the focus moved into the
   modal's own `didDismiss` handler behind a pending flag — a settled-state
   seam, not a wait.
@@ -4507,7 +4515,7 @@ What the diff cannot show:
 
 Backlog item 4 closes here. M17 had been half-translated since before the
 migration — about ten `t()` calls beside fifteen literals — and it is the worst
-screen to leave that way, because the language switch *lives on it*: the user
+screen to leave that way, because the language switch _lives on it_: the user
 changes the setting and watches half the page ignore them.
 
 **The part that was not mechanical.** The notification rows were a module-level
@@ -4522,7 +4530,7 @@ render.
 
 **And that section is unreachable by the e2e suite**, which is why it earns an
 entry rather than a commit message. Notifications exist only on a multi-user
-instance (`server` mode *and* an OIDC session, FR-17.3/FR-19.3), and neither
+instance (`server` mode _and_ an OIDC session, FR-17.3/FR-19.3), and neither
 Playwright project can be one: `local` has no server, `single` has no tokens. So
 the one section carrying the actual defect is covered by a **component test**
 (`views/settings/__tests__/SettingsPage.spec.ts`, mounted with a fake session)
@@ -4542,7 +4550,7 @@ English on a German screen.
 M8 now notices when a Ferien-Vorlage's loose positions are, together, a Gruppe
 that already exists, and offers to fold them into an include. The concept was
 decided in the FR a day earlier and the build followed it; what is worth keeping
-is the three places where following it *literally* would have been wrong, and
+is the three places where following it _literally_ would have been wrong, and
 one trap that cost a red WebKit run.
 
 **The FR's own sentence was too narrow, and the FR says why.** Its example
@@ -4561,22 +4569,22 @@ the text.
 **The dismissal's key is the feature.** „Re-offer only when the group's
 resolved item set has changed" reads like a timestamp problem and is not one:
 there is no clock a device can trust for this, and Local Mode has no server to
-ask. Storing the *set's signature* makes the question decidable locally, in all
+ask. Storing the _set's signature_ makes the question decidable locally, in all
 three modes, with no schema — which is also why the store drops a malformed
 entry rather than keeping it. An unreadable signature matches nothing, so a
 kept one would suppress that suggestion permanently and invisibly.
 
 **Nothing recomputes after a fold, and nothing should.** The FR promises a
 subsumed candidate disappears rather than converting the same items twice; the
-detector runs over the live positions, so removing them *is* the recomputation.
+detector runs over the live positions, so removing them _is_ the recomputation.
 The same falls out for the two guards — the folded group becomes an include,
 and an include is already excluded. This is the one place where propose-only
 paid for itself in code rather than in principle: there is no applied state to
 keep consistent, because nothing was applied.
 
 **The trap, with its price.** The e2e case closed the FR-27.12 peek with
-`Escape` and then asserted `ion-modal.show-modal` was gone. It passed — *before
-the sheet had finished presenting* — and the still-live overlay then swallowed
+`Escape` and then asserted `ion-modal.show-modal` was gone. It passed — _before
+the sheet had finished presenting_ — and the still-live overlay then swallowed
 the next tap, which surfaced 292 retries later as an unrelated-looking timeout
 inside the shared `includeGroup` helper. The sheet's own close button plus the
 same assertion is deterministic. The obvious-looking alternative is wrong for a
@@ -4590,11 +4598,12 @@ deliberate, per the standing seed rule, and it is why the eyeball needed no
 typing. And the deviation warning carries its own tint rather than the bare
 `--ct-yellow` the blast-note uses: rendered on Latte, small yellow text on
 near-white is thin, which no stylesheet reading would have told us.
+
 ## The i18n gap that was a measurement error (2026-08-22)
 
 Written after a session set out to close what the M17 work had recorded as an
-open hole: *a wrong catalogue key in a **template** expression is not caught by
-the compiler, so it ships as a raw `avatarCrop.zoomXX` on the screen.* The
+open hole: _a wrong catalogue key in a **template** expression is not caught by
+the compiler, so it ships as a raw `avatarCrop.zoomXX` on the screen._ The
 finding had a measurement behind it — `vue-tsc --noEmit` had exited 0 with a
 deliberately broken key in place — and it was still wrong.
 
@@ -4628,8 +4637,8 @@ agree with the first is not redundancy, it is one more thing to keep true.
 `AvatarCropModal` (FR-17.13) had no test of any kind: the modal opens only
 behind a native file picker, so no Playwright project can reach it, and the
 crop math it delegates to (`lib/avatarCrop`) was the only tested half. Its
-shell — cover-scale placement, the canvas crop, and *releasing the object URL
-on both exits* — is now a component test. The two leak checks are the point:
+shell — cover-scale placement, the canvas crop, and _releasing the object URL
+on both exits_ — is now a component test. The two leak checks are the point:
 `createObjectURL` hands out a reference the browser holds until it is revoked,
 which is invisible on screen and shows up only as memory a long session never
 returns.
@@ -4641,10 +4650,10 @@ Three things that cost time there, all jsdom-shaped:
   and everything asserted is the component's own markup inside it. The sibling
   sheet tests do not hit this because their components are plain `<section>`
   bodies whose modal chrome lives in the caller.
-- **`expand="block"` never reaches the DOM.** It is an Ionic *prop*, so an
+- **`expand="block"` never reaches the DOM.** It is an Ionic _prop_, so an
   attribute selector matches nothing; the confirm button is found by its label.
 - **A false-green the mutation run caught.** The language-switch assertion
-  originally rested on the zoom slider's `aria-label` — and *Zoom* is the same
+  originally rested on the zoom slider's `aria-label` — and _Zoom_ is the same
   word in both catalogues, so a hardcoded English string survives the switch
   untouched. No rendered assertion can tell those apart; the check now rests on
   the two labels that differ, and the zoom line is documented as guarding the
@@ -4653,12 +4662,12 @@ Three things that cost time there, all jsdom-shaped:
 ## §3.28: the mark gets built (2026-08-22, FR-28.1–28.11, ADR-021)
 
 The spec was decided on pixels in August and sat unbuilt for five days
-(*„§3.28: the packing row gets a mark"*). Building it produced five things
+(_„§3.28: the packing row gets a mark"_). Building it produced five things
 the diff does not say.
 
 **The self-hosted face is about agreement, not availability.** FR-28.6's
 stated reason is Local Mode's missing network, which is true and secondary.
-The measured reason is that a packing list is *shared*: rendered in the
+The measured reason is that a packing list is _shared_: rendered in the
 pinned Playwright image, 🧥 is a **tan trench coat** in the subsetted Noto
 face and a **navy peacoat** on both platform faces. Two people looking at
 one list would be looking at two different jackets. The weight was measured
@@ -4667,13 +4676,13 @@ points**, against ~180 KB for the two text faces — because a footprint
 argued after the commit is a footprint accepted.
 
 **The index had to be proved against German, and the tests found two
-holes.** Four entries carried only the loanword (*Tennis*, *Radio*,
-*Basketball*, *Snowboard*), which reads as coverage and is not — a German
-inventory never reaches them. Worse, the substring rule was *unproven*: the
+holes.** Four entries carried only the loanword (_Tennis_, _Radio_,
+_Basketball_, _Snowboard_), which reads as coverage and is not — a German
+inventory never reaches them. Worse, the substring rule was _unproven_: the
 minimum-length constant could be mutated from 4 to 1 without reddening
 anything, because the test that justified it had been written against a
 case I had already removed. The real case is not hypothetical — the letters
-*eis* sit inside **„Reise"**, so without the rule every travel item in the
+_eis_ sit inside **„Reise"**, so without the rule every travel item in the
 app would have been offered an ice cube.
 
 **The seed may only speak the index's vocabulary.** The dev seed reached
@@ -4691,7 +4700,7 @@ master item was rebuilt from a helper that listed name, weight and price
 and nothing else, so `updateMasterItem(item, { weight_grams })` wrote a row
 with `image_hash: undefined` — and the item lost its reference photo until
 the next pull put it back. In Server Mode the pull hides it; **in Local Mode
-the optimistic row *is* the row**, so it was permanent. The mark would have
+the optimistic row _is_ the row**, so it was permanent. The mark would have
 had the identical shape, which is how it was found: writing the driving test
 for „editing a weight must not drop the mark" reddened on the photo too.
 The base now carries every column the store keeps.
@@ -4711,7 +4720,7 @@ rewrites every visual baseline, and CLAUDE.md carried that as one of three
 things the implementing PR owed. The deliberate `make visual-update` moved
 **four of twenty-two**, all M4 — and none of them for the face: the visual
 fixture's rows are ad-hoc, so no emoji is painted anywhere in the suite. What
-moved was the *held empty slot*, 32 px of column. A face confined to content
+moved was the _held empty slot_, 32 px of column. A face confined to content
 is invisible to every screen that has no content of that kind, which is
 precisely the containment the invariant-9 exception was granted for. The
 prediction was pessimistic in the useful direction, and it is recorded because
@@ -4720,17 +4729,17 @@ believed.
 
 **Two things only the rendered pixels said, both after the code was green.**
 FR-28.8's fallback rule reads as one sentence — „no mark → no slot, never a
-letter" — and is two rules. In a *column* (M7's list, M3 step 3) dropping the
+letter" — and is two rules. In a _column_ (M7's list, M3 step 3) dropping the
 slot pushed every marked group's name right of the unmarked ones standing
 beside it, which is exactly the misalignment FR-28.4's held slot exists to
-prevent one screen over. Beside a *single* name there is no column, so nothing
+prevent one screen over. Beside a _single_ name there is no column, so nothing
 is the right answer there. The letter is refused everywhere, and that is the
 half of the rule that was actually load-bearing.
 
 The second one nearly shipped invisible: **the seed's own trip could not show a
 mark at all.** `sampleTrip.ts` imported its rows with an empty merge map, so
 every one was ad-hoc — no `source_item_id`, hence no mark and, quietly since
-§3.22, no reference photo either. The seed button opens *that* trip, so a dev
+§3.22, no reference photo either. The seed button opens _that_ trip, so a dev
 pressing it landed on the one screen the feature is for and saw nothing. It now
 links every row the inventory knows by name and leaves the rest ad-hoc on
 purpose, because the mixture is what the empty slot is for. Both findings cost
@@ -4741,8 +4750,9 @@ Three harness traps are in `dev-docs/e2e-tests.md` rather than here, but one
 belongs with the feature: **M4's composer has two add paths and only one can
 inherit a mark.** The suggestion carries `source_item_id`, the free-text
 confirm creates an ad-hoc row by design (FR-28.7). The first draft of
-E2E-M9-07 added *Zelt* by free text and asserted its mark — a correct
+E2E-M9-07 added _Zelt_ by free text and asserted its mark — a correct
 failure that named a real distinction, and both paths are now in the case.
+
 ## The trip partition was never confined to its trip (2026-08-22)
 
 Found by a read-only bug sweep over the whole tree, not by a failure: the
@@ -4755,7 +4765,7 @@ and rewrite it, delete it, or insert a row carrying someone else's
 
 **The read half is the worse one, and it is the part that is easy to miss.**
 The write is loud; the leak is silent. Because the change_log entry is
-written under the *pusher's* trip, the pusher's very next pull returns
+written under the _pusher's_ trip, the pusher's very next pull returns
 `loadSnapshot` of the foreign row — the full current state of a trip they
 are not a member of — while the trip that owns the row gets no entry at all
 and therefore never learns anything happened. A stranger could read a
@@ -4765,7 +4775,7 @@ foreign trip's rows one id at a time, and the owners' G-2 stayed green.
 check since its first day: `authorizeMaster` resolves `parentIDs(current, m,
 "trip_id")` for every trip-scoped master table and checks both the row's
 current parent and the one the mutation proposes. The trip partition looked
-like it needed no such thing, because its endpoint *names* the trip — the
+like it needed no such thing, because its endpoint _names_ the trip — the
 authorization was there, it just never reached the row. The asymmetry is the
 whole bug: one partition proves the parent, the other assumed it.
 
@@ -4774,7 +4784,7 @@ Three decisions worth keeping:
 - **A refusal, not an error.** The mutation is answered `rejected` rather
   than failing the batch, so it lands on the client's park pile instead of
   taking every mutation behind it hostage (§5). This matters more than it
-  looks: the trip partition currently turns *any* constraint violation into
+  looks: the trip partition currently turns _any_ constraint violation into
   a 500, and the outbox treats 5xx as "the server is failing" and retries
   forever — so an errored mutation wedges the whole partition. Rejecting
   through the same door the master partition already uses avoids adding one
@@ -4792,7 +4802,7 @@ Three decisions worth keeping:
   changes shape.
 
 The spec owed a sentence here too. P-3 described the partitions as a
-*routing* rule — which table travels which feed — and nowhere said that a
+_routing_ rule — which table travels which feed — and nowhere said that a
 partition is also a boundary a mutation may not reach across. The rule was
 always the intent; it had simply never been written down, which is part of
 why the code could omit it without looking wrong.
@@ -4800,14 +4810,14 @@ why the code could omit it without looking wrong.
 ## Two halves of one refusal path (2026-08-22)
 
 Two findings from the same sweep, fixed together because either one alone
-leaves the other's damage in place: the server could not say *rejected*
+leaves the other's damage in place: the server could not say _rejected_
 where it mattered, and the client could not hear it.
 
 **The server half.** `ApplyMutation` returned a constraint violation as an
 error, which the handler answers as 500. The master partition had always
 translated one into `rejected` (`master.go`); the trip partition never did.
 That asymmetry alone would be cosmetic if a 500 were harmless — but §5.1
-makes a 5xx the one answer the outbox *keeps retrying*, on the reasonable
+makes a 5xx the one answer the outbox _keeps retrying_, on the reasonable
 theory that a failing server recovers. So the mutation stayed at the head of
 its queue and every later mutation for that trip stayed behind it. One row
 stopped a trip from syncing, permanently, with G-2 showing an offline count
@@ -4831,7 +4841,7 @@ parked surface built in #101 has never once run against a real response.
 **Why two test suites both missed it.** Each side tested against its own
 idea of the envelope: the client's fakes answered `status`, so the parking
 tests passed while the production path could not work. That is the failure
-mode a contract needs a *shared artefact* for, not more tests — so
+mode a contract needs a _shared artefact_ for, not more tests — so
 `internal/api/testdata/push_response.json` is now the one document, held on
 the Go side by marshalling the real response struct against it and on the
 client side by parsing it and driving a real `SyncOutbox` with it. Renaming
@@ -4839,14 +4849,14 @@ a key on either side now fails on that side. Both directions were proved by
 mutation before the fix landed.
 
 **The spec was complicit, and that is the part worth remembering.** §5
-listed the *values* — `applied | merged | duplicate | rejected` — and never
+listed the _values_ — `applied | merged | duplicate | rejected` — and never
 named the key they arrive under. A spec that describes a vocabulary without
 the envelope leaves each implementation to guess the envelope, and two of
 them guessed differently for months. §5 now prints the response document.
 
 ## The pull cursor came out of the push (2026-08-22)
 
-`pull_hint.next_cursor` is the highest `change_log.seq` *that push* wrote.
+`pull_hint.next_cursor` is the highest `change_log.seq` _that push_ wrote.
 The client set its pull cursor from it. A pull cursor is an exclusive lower
 bound and only ever moves forward, so a device that had been offline came
 back, pushed, and then asked for `seq > its-own-newest-write` — stepping
@@ -4860,13 +4870,13 @@ and re-pulled the whole partition.
 and finding out why took longer than the fix.** The obvious case — B writes
 a row while A is offline, A reconnects, the row must appear — passes on the
 broken build. Logging A's traffic explained it: a reconnect fires three
-drains almost simultaneously, each reads the cursor when it *starts*, and
+drains almost simultaneously, each reads the cursor when it _starts_, and
 one of them is still holding the pre-push value and pulls the gap by
 accident. So the rows do arrive, most of the time, by a race. The damage is
 real and the screen cannot witness it.
 
 The assertion therefore moved from the screen to the wire: **every `cursor`
-the client sends must be one a *pull* returned**, 0 until one has. That is
+the client sends must be one a _pull_ returned**, 0 until one has. That is
 the rule itself rather than one of its symptoms, it is immune to the race,
 and a `5` after the server has only ever answered `3` is the whole defect in
 one number. 3/3 red without the fix, 3/3 green with it.
@@ -4881,36 +4891,35 @@ device never went offline and the case stopped testing anything. Neither
 failure looked like a harness bug from the failure message.
 
 Removed on the way past: `SyncOutbox.setCursor`, which had no caller and
-whose doc comment (*„from an external source, e.g. WebSocket trip.changed
-hint")* invited exactly the mistake that was just taken out of `drain`.
+whose doc comment (_„from an external source, e.g. WebSocket trip.changed
+hint")_ invited exactly the mistake that was just taken out of `drain`.
 
 **What the spec owed.** §5 said the hint exists "so the client immediately
-pulls its own canonical state" — true, and read as *pull from here*. It now
+pulls its own canonical state" — true, and read as _pull from here_. It now
 says what it is: a signal that a pull is worth making, never the cursor to
 make it from.
-
 
 ## An optimistic row is a whole row (2026-08-22)
 
 A trip editor saves a form, not a row, so `updateTrip` sends a partial
 upsert — deliberately: an upsert of the whole row would hand back a value
 another device changed meanwhile, which is what the field-level merge exists
-to avoid. The *optimistic* row applied locally was built from the same
+to avoid. The _optimistic_ row applied locally was built from the same
 fields. A store applies a change by replacing the row it holds, so saving a
 name dropped `status`, and M2 lists by status: the trip left every segment at
 once. In Server Mode the next pull repairs that within a second. In Local
 Mode there is no next pull, and the trip is gone.
 
 The rule was already written down — on `masterItemRow`, in a comment that
-says *"a field left out is blanked until the next pull puts it back. That is
-how editing a weight used to drop the reference photo."* Twelve call sites
+says _"a field left out is blanked until the next pull puts it back. That is
+how editing a weight used to drop the reference photo."_ Twelve call sites
 follow it (`{ ...itemRow(item), ...mut.fields }`); two did not. The rule now
 sits on `change()` itself, where the row is built, rather than on one of the
 helpers a correct call site happens to use.
 
 **Two of the three fields were being lost by tests that said they were
 not.** `tripProperties.spec.ts` asserted `year === 2026` under the comment
-*"untouched fields stay"* — and `rowToTrip` defaults a missing `year` to the
+_"untouched fields stay"_ — and `rowToTrip` defaults a missing `year` to the
 current year, which in 2026 is 2026. The assertion held while the field was
 dropped, and would have started failing in January 2027 for a reason no one
 would have connected to this. It seeds 2031 now. `renameTraveler` dropped
@@ -4933,10 +4942,10 @@ proved: red without the fix, green with it.
 
 ## M10 was not done, and the test said it was (2026-08-22)
 
-Backlog item 4 had been closed the same day: *„Every screen is on the
-catalogue."* M10 was on it — the creation form, every label, every error. What
+Backlog item 4 had been closed the same day: _„Every screen is on the
+catalogue."_ M10 was on it — the creation form, every label, every error. What
 nobody had looked at is the half of the screen that **only exists once the item
-is saved**: the photo section, *Depends on*, the dependency picker, the
+is saved**: the photo section, _Depends on_, the dependency picker, the
 companions list. Four headings, two hints, six controls, all in finished
 English, all rendered by a `v-if="!isCreating && item"` that the migration's
 pass over the file never entered.
@@ -4945,27 +4954,27 @@ That is worth recording not because a screen was missed but because of **why it
 stayed missed for a whole migration**, and the answer is in the test suite.
 
 **The guard was aimed at the wrong thing.** E2E-M10-01 asserts that the
-creation form does *not* show those sections — FR-24.5's "absent, not emptied".
+creation form does _not_ show those sections — FR-24.5's "absent, not emptied".
 It did that by their words:
 
 ```ts
-await expect(form.getByText('Photo')).toHaveCount(0)
-await expect(form.getByText('Depends on')).toHaveCount(0)
+await expect(form.getByText("Photo")).toHaveCount(0);
+await expect(form.getByText("Depends on")).toHaveCount(0);
 ```
 
 Read it as a translator rather than as its author: the day someone renders that
-heading as *Foto*, the assertion still passes — and it passes **more** easily,
+heading as _Foto_, the assertion still passes — and it passes **more** easily,
 because now nothing on the page could ever match. A negative assertion written
 against a literal does not survive the literal changing; it just stops being
 about anything. The case is on test ids now, and its positive half
-(E2E-M10-13) asserts the same two sections are *present* once the item exists,
+(E2E-M10-13) asserts the same two sections are _present_ once the item exists,
 so an id that quietly stops rendering fails somewhere rather than satisfying
 the absence check for free.
 
 **English cannot test English.** The obvious positive case — assert the heading
-reads *Photo* — is worthless here, because that is exactly what the hard-coded
+reads _Photo_ — is worthless here, because that is exactly what the hard-coded
 literal produced. `t('items.editor.photo')` and the word `Photo` are the same
-pixels; only the *other* language separates them. The suite pins the app
+pixels; only the _other_ language separates them. The suite pins the app
 language to English on purpose (a German device would otherwise flip every
 assertion in the suite), so E2E-M10-13 is the one block that seeds `locale:
 'de'` — and that seed is the case, not a detail of it.
@@ -4986,7 +4995,6 @@ like a genuinely false-green test rather than a stale artifact. `npm run build`
 between mutation and run is not optional, and the same applies to any local
 e2e check made after touching client sources.
 
-
 ## The conflict log had two partitions and one query (2026-08-22)
 
 NFR-4.2a promises that every automatic resolution is auditable. The audit
@@ -4997,7 +5005,7 @@ its id, the master partition's carry NULL — and the only query filtered
 nothing: a group renamed on two devices, an item's weight, a series.
 
 **The case that makes it matter is `trips`.** A trip's own fields — name,
-dates, year, status — are merged on the *master* partition, beside the
+dates, year, status — are merged on the _master_ partition, beside the
 templates, not in the trip's own. So the conflict a user is most likely to
 hit on a shared trip, and most likely to go looking for, was the one the
 trip's log structurally could not contain.
@@ -5012,15 +5020,15 @@ entity, and naming one the user cannot see leaks it. That is not a
 hypothetical: `trips` in the master partition is visible only to members.
 
 **The sheet's hint was the tell, and it read as helpful.** With no trip
-open, G-2's detail said *"The conflict log belongs to a trip — open one to
-see it."* Written when there was one log, it was a sentence that named a log
+open, G-2's detail said _"The conflict log belongs to a trip — open one to
+see it."_ Written when there was one log, it was a sentence that named a log
 the user could reach and silently denied the existence of one they could
 not. It is two buttons now.
 
 **What the e2e case had to learn.** The losing device cannot be navigated to
 by its own trip name — the name is exactly what it lost, so the helper
 searched for a row that no longer existed and the case timed out against
-correct code. And a trip open drains the *trip* partition; this rename sits
+correct code. And a trip open drains the _trip_ partition; this rename sits
 in the master queue, which moves on the app's next start (B2). The drain is
 therefore a reload, not a navigation.
 
@@ -5034,15 +5042,15 @@ The push response has carried `conflicts[]` since the protocol was written,
 and the client read it in **no code path at all**. `useSyncOutbox` looked at
 one outcome, `rejected`, so that it could park it; `merged` fell through the
 same branch as `applied` and the mutation left the queue with no record that
-anything of it had been dropped. NFR-4.2a's promise — *every automatic
-resolution is surfaced so users can audit* — was met by a log the user had
+anything of it had been dropped. NFR-4.2a's promise — _every automatic
+resolution is surfaced so users can audit_ — was met by a log the user had
 no reason to suspect existed.
 
 **One toast per push, not per conflict.** A reconnect drains a whole queue,
 and a device that was offline through an afternoon can lose fields on a
 dozen mutations at once; one toast each is a wall. The count is summed over
 the push's results and announced once, and the report carries the partition
-so *Ansehen* opens the log that actually holds the detail rather than
+so _Ansehen_ opens the log that actually holds the detail rather than
 whichever one happened to be reachable.
 
 **The toast tells, the sheet keeps.** A toast reaches someone who was not
@@ -5061,11 +5069,11 @@ depends on it still being there.
 
 ## Field-level LWW was row-level, and "packed always wins" was hiding it (2026-08-22)
 
-Backlog 14 (a) stood as *"`groupDecision` lets any incoming `packed` win regardless of HLC, and
-logs no conflict — needs an owner decision: spec or code."* Asked to investigate the whole
+Backlog 14 (a) stood as _"`groupDecision` lets any incoming `packed` win regardless of HLC, and
+logs no conflict — needs an owner decision: spec or code."_ Asked to investigate the whole
 multi-user half before choosing, the investigation changed the question.
 
-**The premise that was wrong.** NFR-4.2a and Sync-API §6 say *field-level* LWW — "apply f iff
+**The premise that was wrong.** NFR-4.2a and Sync-API §6 say _field-level_ LWW — "apply f iff
 m.hlc > row.updated_hlc(**f-group**)". The store kept **one** `updated_hlc` per row and `Merge`
 compared every incoming field against it. The wire was already field-granular (`packItem` sends
 `state`/`packed_count`, `assignContainer` sends `container_id`); the granularity was dropped at the
@@ -5075,13 +5083,14 @@ for that one state. Every other field lost to unrelated later edits, was logged,
 one.
 
 **Why this mattered for the decision.** "Code follows spec" — narrowing rule 2 to the pair §6
-names — would have *removed the compensation and kept the fault*: offline packing would have started
+names — would have _removed the compensation and kept the fault_: offline packing would have started
 losing to container assignments. "Spec follows code" would have kept silent reversal of deliberate
 unpacks and skips. Neither was the real decision; the real one is ADR-022, and both halves ship
 together: a clock per field (`field_hlcs` JSON column beside `updated_hlc`), and rule 2 exactly as
 narrow as written.
 
 **Two things settled while building, neither visible in the diff.**
+
 - **A default taken at insert time was written then.** The first store test was red for a reason
   the sync tests could not show: the seed insert did not name `state`, so `state` had no clock and
   fell back to the row clock — which an unrelated later edit had moved. `insertRow` stamps every
@@ -5092,7 +5101,7 @@ narrow as written.
   mutation lost (a revert restores `state` and `packed_count` together or not at all);
   `actor_user_id` is who to tell. `ApplyMutation` therefore takes the acting user, which the master
   partition's apply always had. Neither is read by the client yet — that is the next PR: the push
-  response's `conflicts[]`, which nothing reads, and *Wiederherstellen* on the conflict view.
+  response's `conflicts[]`, which nothing reads, and _Wiederherstellen_ on the conflict view.
 
 **A cost accepted.** Two devices that both set `packed` with different clocks log the older as a
 conflict whose losing and winning values are equal. Harmless in the audit; the client surface that
@@ -5112,7 +5121,7 @@ same shape: every written rule honoured, and the pixels still wrong.
 
 **The glyph.** The G-2 sheet's state circle sat 14.5 px above its title.
 `.head` was `align-items: flex-start`, which aligned the 38 px circle to the
-top of the *title block* — and the `h1` inside that block carried a 20 px top
+top of the _title block_ — and the `h1` inside that block carried a 20 px top
 margin. Nothing had asked for it: `.jp-sheet-title` names a face, a weight, a
 size, a tracking and a leading, and no spacing whatsoever. The 20 px were an
 inherited user-agent default the component never reset, so the text began well
@@ -5150,7 +5159,7 @@ here, but it would not have caught this, and a PR that claimed otherwise would
 have left the next reader trusting a guard that does not hold.
 
 `playwright.config.ts` already says so, in the owner's own words from
-2026-08-19: *"this gate catches layout changes, not small ones"*, with a worked
+2026-08-19: _"this gate catches layout changes, not small ones"_, with a worked
 example of a whole 24 px app-bar icon plus a truncated title passing at 658 px.
 The tolerance is loose on purpose, because a gate that cries wolf is worth less
 than the miss it prevents. This is a second worked example of the miss that
@@ -5167,6 +5176,7 @@ user-agent margin is none of those, and neither is a missing padding. This is
 the same lesson invariant 9b already carries from the M4 group card that
 painted itself the exact colour of the page behind it: a rule can be satisfied
 completely and the result can still be wrong, and only a rendered pixel says so.
+
 ## The lock stopped at the row (2026-08-22)
 
 Backlog item 14(d). Three of its four parts were real and are fixed; the
@@ -5176,7 +5186,7 @@ fourth was a premise worth checking before building against it.
 its menu, so the collision G-3 exists to prevent looked handled. But the
 row still opened M5 — correctly, since G-3 keeps viewing — and M5 had no
 lock awareness at all. Every control there wrote. That is worse than an
-unlocked row, because the sheet *confirmed* the edit: the save indicator
+unlocked row, because the sheet _confirmed_ the edit: the save indicator
 went green, the field showed the new value, and the loss happened later and
 elsewhere, at a merge nobody was watching. A defect that shows a success
 message is not found by using the app.
@@ -5186,7 +5196,7 @@ for others except viewing", so the whole sheet goes read-only rather than
 the packing block alone — a mode where the quantity is frozen and the
 container is not is a third state with no model behind it. The accepted
 cost: you cannot leave a note on a row while somebody packs it. Each write
-path is guarded in the handler *as well as* disabled in the template. Both
+path is guarded in the handler _as well as_ disabled in the template. Both
 halves earn their keep: the guard is what a unit test can assert without
 depending on how Ionic renders a disabled web component, and the disabled
 control is what stops a toggle from flipping and springing back, which
@@ -5197,7 +5207,7 @@ throwing the answer away.** `isLockedByOther` computed exactly who held a
 row and then returned a boolean. It is now `lockHolder`, returning the user
 id, with the boolean as its one-line caller — the view resolves the id to a
 name, because only it knows the trip's participants. Note the empty string
-is a *held* lock with an unnameable holder, distinct from `null`; a row that
+is a _held_ lock with an unnameable holder, distinct from `null`; a row that
 says "somebody is packing this" is right, and one that silently unlocks
 because a directory fetch failed is not.
 
@@ -5219,11 +5229,11 @@ served value fails rather than agreeing with itself.
 **The part that was not a defect.** The item also read "the server neither
 expires a lock nor refuses a push for one". §7 promises neither. It makes
 the lock advisory: persisted as an ordinary `packing_now` mutation, merged
-like any other field, and applied by *clients* when they decide what to
+like any other field, and applied by _clients_ when they decide what to
 render. Building refusal would be a different concurrency model — and a
 costly one, because it puts a permanent 4xx in front of an offline device
 that packed a row somebody claimed after it went offline, which is exactly
-the outbox-wedge shape removed days earlier. G-3 is collision *avoidance*;
+the outbox-wedge shape removed days earlier. G-3 is collision _avoidance_;
 the net under a real collision is the field-level merge and the conflict
 log, which exist. Left as an owner decision rather than built, and the spec
 now says so out loud instead of leaving the silence to be read as an
@@ -5253,10 +5263,10 @@ and repeatable: **before planning a column, grep for it** — dead schema from
 a design that ran ahead of its implementation is cheaper to find than to
 re-derive.
 
-**The decision the ADR exists for** is what a revert *means* when the only
+**The decision the ADR exists for** is what a revert _means_ when the only
 ordering in the system is an HLC. Writing the value back in place, keeping
 the row's old clock, is the intuitive answer and it silently does not work:
-every device that already pulled the winner holds it under a *newer* clock,
+every device that already pulled the winner holds it under a _newer_ clock,
 so the next thing that touches the field re-establishes the winner and the
 user's repair evaporates minutes later with nothing to see. A revert is
 therefore an ordinary new mutation with a fresh server HLC — it wins by
@@ -5286,7 +5296,7 @@ sentence for the reader, and the page renders it on the row rather than as
 a snackbar — which on this app lands on the tab bar (FR-9.4).
 
 **Found in this PR's own review: the revert restored half a fact.** The log
-lists one row per lost *field*, and the first implementation restored exactly
+lists one row per lost _field_, and the first implementation restored exactly
 that field. For `state` and `packed_count` — coupled since FR-5.4, and merged
 as one unit by the very algorithm that wrote the entries — that produced
 `state = packed` beside `packed_count = 0` on a quantity of five: a row no
@@ -5296,8 +5306,7 @@ of the same push, and `sync.GroupedWith` to decide which of them travel
 together — the coupling defined once, where the merge already defines it,
 rather than a second list in the store that could drift from the first.
 Independent fields stay independently revertable; the log lists them apart
-because they *are* apart.
-
+because they _are_ apart.
 
 ## A backup gave back plans instead of history (2026-08-23)
 
@@ -5320,7 +5329,7 @@ option is the interesting one — the same file behaving differently depending o
 which button opened it, with nothing on screen saying so, is the kind of rule
 nobody can predict and no bug report can describe.
 
-**Tags, ordered.** `item_tags.position` *is* the order, and position 0 is the
+**Tags, ordered.** `item_tags.position` _is_ the order, and position 0 is the
 primary tag the grouped inventory files an item under. So the list carries the
 primary tag without a second field to name it — and a set, which is what tags
 look like at first glance, would carry the same names and lose exactly that.
@@ -5338,7 +5347,7 @@ directions.
 **An unknown status is dropped, not refused — and that reversed a decision made
 an hour earlier.** The first implementation refused the document, by analogy
 with `scope`, which refuses an unknown value. Writing the second implementation
-made the analogy fail: a group imported as a Ferien-Vorlage is *structurally*
+made the analogy fail: a group imported as a Ferien-Vorlage is _structurally_
 wrong and corrupts the composition, while an unreadable status is one field
 with a correct fallback the reader already supplies. The closer precedent was
 `Quantity`, which folds a legacy formula string rather than failing the whole
@@ -5348,14 +5357,14 @@ value on: the schema's CHECK would refuse it, and a failed constraint parks the
 whole push and reports a database error where a file problem happened.
 
 **The change falsified a constant two screens away, and only reading the code
-found it.** M18 sent the user to M2's *planned* segment after a restore, and
-that literal was correct *because* every imported trip was planning — its own
+found it.** M18 sent the user to M2's _planned_ segment after a restore, and
+that literal was correct _because_ every imported trip was planning — its own
 comment said so, and it existed to fix a restore that ended on the words "No
 active trips". A device of archived history would have landed on an empty
 Planned list: the identical failure the constant was introduced to prevent, one
 status over. It is derived from the first restored trip now, through a mapping
 that lives in the module both screens already share, because `planning` and
-*planned* are the one place the database word and the display word differ.
+_planned_ are the one place the database word and the display word differ.
 
 **A cost of the shape, and the review found I had paid it badly.** Every writer
 has to pass the two resolvers. I wired the three I knew about — the device
@@ -5402,7 +5411,7 @@ caught it either: the optimistic row is in the importing device's own store
 before the push, so M2 renders the migration whether or not the wire carried
 it. E2E-M15-05 asserts from a second browser context for that reason. The
 same shape appears again in the landing segment: the wizard sent the user to
-M2's default *Active* tab while FR-16.2 only ever produces archived trips, so
+M2's default _Active_ tab while FR-16.2 only ever produces archived trips, so
 a successful migration ended on the words "No active trips" — the identical
 miss ADR-024 had just fixed on the restore path, in a second screen nobody
 thought to look at.
@@ -5412,7 +5421,7 @@ quantities in it, because a year parses as one.** The first implementation of
 the header block did exactly that and detected zero header rows on a sheet
 whose first row is `2016, 2016, 2017`. A row of years and a row of amounts are
 indistinguishable by their cells; what separates them is that a header row
-names no item. So the block is counted down the *item* column — which needs
+names no item. So the block is counted down the _item_ column — which needs
 the item column, which needs the block. The circle is broken with a
 provisional guess under the old one-row assumption, and that is honest rather
 than clever: the provisional answer only has to be right about which column
@@ -5423,7 +5432,7 @@ above the trip's name, so the name and the date come from two different rows —
 each chosen over the whole block by counting hits across the trip columns,
 not per column, because a stray `0` sitting alone in a third header row would
 otherwise become one trip's name (it exists in that sheet, and it did). And
-the category is a *column* beside the item, written only where it changes:
+the category is a _column_ beside the item, written only where it changes:
 under the old rule, which reads a category as a row with no quantities, the
 sheet produced four categories, all of them items nobody had ever packed,
 while the nineteen real ones were never seen. A detected category column now
@@ -5450,6 +5459,7 @@ their years, 195 items and the 19 real categories, with the two columns whose
 header says nothing left unticked — that last one a deliberate deviation from
 FR-16.1's select-all default, since a column that can never validate would
 otherwise hold the other thirty hostage.
+
 ## Every spec paid for a DOM, and one of them was green for the wrong reason (2026-08-23)
 
 Asked whether this project would be worth developing on a bigger machine, the
@@ -5502,7 +5512,7 @@ which is the actual evidence that the change is behaviour-preserving — the gre
 suite by itself is not, and would not have been.
 
 No gate was added for this. A gate would have to decide whether a spec's
-*transitive* subject touches a DOM global, and the honest versions of that check
+_transitive_ subject touches a DOM global, and the honest versions of that check
 are either loose enough to miss the next `try`/`catch` or tight enough to push
 most of the 82 files back onto jsdom and undo the change. The trap is written
 into `vitest.config.ts` instead, next to the setting that causes it, with the
@@ -5528,12 +5538,12 @@ that had already fixed two other defects in this same path. All three are the
 same shape, and it is worth naming because the shape is what generalises: the
 client applies its own mutation optimistically, the server refuses it, and
 **nothing on the importing device can tell the difference**. M2 shows the trips.
-M9 shows the items. The glyph says synced, truthfully — the outbox *is* empty,
+M9 shows the items. The glyph says synced, truthfully — the outbox _is_ empty,
 a refusal empties it too.
 
 - The **year**: `trips.year` is NOT NULL and the mutation omitted it.
 - The **tag links**: `item_tags.item_id` is a foreign key and the assignment was
-  enqueued *before* the item's own insert. `commitImport`'s doc comment claimed
+  enqueued _before_ the item's own insert. `commitImport`'s doc comment claimed
   "parents precede children in the queues"; it was describing an intention.
 - The **repeated names**: `items` is UNIQUE (name), and the dedup step compares
   the file against the inventory but never against itself. The owner's sheet
@@ -5553,7 +5563,7 @@ three of them: the push-body assertion, the second context, and — the one that
 actually found all three — running the thing against a real instance and then
 reading the database instead of the screen.
 
-**Two decisions inside the second fix.** A repeated name folds *without* asking:
+**Two decisions inside the second fix.** A repeated name folds _without_ asking:
 within one file it is a listing accident, not two things, and the user has no
 second answer to give (unlike FR-16.3's prompt against existing inventory, where
 "keep separate" is a real choice). And where two folded rows both carry an amount
@@ -5565,10 +5575,10 @@ packing, and adding them invents luggage that was never in the car.
 FR-9.4's last point was a two-number defect: at 430×932 the toast occupied
 876–924 and the navigation bar 875–932, so every confirmation in the app was
 written across the four tab labels. Ionic has the answer built in —
-`positionAnchor` puts a `position: 'bottom'` toast *above* a named element —
+`positionAnchor` puts a `position: 'bottom'` toast _above_ a named element —
 and **five of the nine call sites had already found it**, passing their own
-screen's FAB. Four had not. One of the five even carried the comment *„Above
-the FAB rather than behind the tab bar"*, which is the shape of a rule that
+screen's FAB. Four had not. One of the five even carried the comment _„Above
+the FAB rather than behind the tab bar"_, which is the shape of a rule that
 lives in nine places: it was known, written down, and still missed four times.
 So the fix is not an anchor at four more call sites; it is `lib/toast.ts`,
 and the choice stops being per screen.
@@ -5583,7 +5593,7 @@ is merely `display: none`, because G-9 hands the job to the rail. Ionic
 measures the anchor with `getBoundingClientRect()` and computes
 `offset -= innerHeight - box.top`; against a zeroed box that subtracts a whole
 viewport height and throws the toast off the screen. A hidden bar therefore
-has to read as *no bar*, not as a bar of height zero — the helper checks the
+has to read as _no bar_, not as a bar of height zero — the helper checks the
 measured height rather than the element's presence. Ionic warns about this
 (`warnIfAnchorIsHidden`), into a console nobody was reading.
 
@@ -5595,13 +5605,14 @@ Playwright project is Desktop Chrome at 1280 px, where that same
 merely measure small: it measures as a point at the origin, and **every**
 geometric assertion resolves against it, in whichever direction the operator
 happens to point. The case now sets a phone viewport and asserts both boxes
-have height *before* comparing them — the positive signal a negative
+have height _before_ comparing them — the positive signal a negative
 assertion needs, applied to geometry rather than to a rendered control.
 
 The one call site left on `toastController` is M4's pack announcement, and
 deliberately: it creates, checks a liveness flag, arms its dismiss handler and
 only then presents. A helper that presents on creation would put the snackbar
 on screen before the check that decides it must not be.
+
 ## The importer nobody called, and the exporter behind it (2026-08-23)
 
 Owner decision, taken on rendered evidence: **the portable format has one
@@ -5617,7 +5628,7 @@ as a limitation.
 endpoints and reviewed the result as a normal PR. The review found two gaps and
 called them "inherited, not introduced". They were symptoms. The actual finding
 came from doing what the manual says a user does — import, then look — and the
-Templates screen said *"No templates yet"* over a database holding one
+Templates screen said _"No templates yet"_ over a database holding one
 Ferien-Vorlage, 18 groups and 182 positions. `appendChangeLog` is called zero
 times from `internal/store/export.go`, templates reach a client through no other
 route, and the master feed of the running instance held 459 entries with
@@ -5627,7 +5638,7 @@ nothing reads.
 **What made it invisible for so long.** The Go importer had no caller. Not one:
 the client serializes and parses portable YAML itself, so M17, M18, M21 and the
 NFR-4.11 backup never touch those endpoints. A second implementation with no
-users cannot drift *visibly* — it can only drift. By the time it was measured it
+users cannot drift _visibly_ — it can only drift. By the time it was measured it
 had lost the trip status (FR-18.4/ADR-024 promise the file's), `packed_count`,
 tags, `from_inventory`, `trips.imported` and the whole FR-27.4 refresh state, and
 matched item names case-sensitively where the client folds case and accepts a
@@ -5653,8 +5664,8 @@ which is the whole reason a second implementation existed at all. They now take
 a `PortableImportEnv` — an inventory view, the mutation factory, and a sink for
 each write — and the app and the CLI differ only in the sink. The trap worth
 recording: the `master` view has to be **live, not a snapshot**, because the
-rules deliberately read their own output back (a group created for document *n*
-is found by document *n+1*; the FR-27.4 ledger indexes items the same import
+rules deliberately read their own output back (a group created for document _n_
+is found by document _n+1_; the FR-27.4 ledger indexes items the same import
 just created). A snapshot would have passed most tests and quietly duplicated
 master items across a backup restore.
 
@@ -5672,7 +5683,7 @@ directly; it is the price of going through the sync path, and it is the right
 price.
 
 **What the CSV export cost.** `GET /trips/{id}/export.csv` used the portable
-*document* as its data source, so deleting the exporter broke it. It now has its
+_document_ as its data source, so deleting the exporter broke it. It now has its
 own flat query, `Store.TripCSVRows` — which is the honest shape: a spreadsheet
 dump and a round-trippable document are different artefacts that were sharing a
 loader.
@@ -5686,14 +5697,13 @@ line names the port, not the file. And `git add -A` in a worktree where a second
 agent was editing swept its in-progress work into an unrelated commit; staging
 explicit paths is not pedantry when anything else is writing.
 
-
 ## A claim had no way out (2026-08-23)
 
 G-3's lock was built long ago and the two halves it was missing arrived
 this week from another session: the row names its holder, and the detail
 sheet — the open window beside the locked door — goes read-only. What was
 left is the part a mockup surfaced rather than a bug report: a claim could
-only *end* by packing the row or by ageing out of §7's window.
+only _end_ by packing the row or by ageing out of §7's window.
 
 **The device holding a row is the one device that sees no padlock.** My own
 claim never locks the row for me — that is what makes it usable — so the
@@ -5709,7 +5719,7 @@ that is the rule `incrementPacked` already uses — a release that always
 wrote `open` would have thrown away work already in the bag.
 
 **An expired claim does not leave the data.** The §7 window only decides
-whether a claim still *counts*; nothing clears `packing_now` but packing or
+whether a claim still _counts_; nothing clears `packing_now` but packing or
 a release. So a row abandoned mid-pack sits in a state nobody honours,
 indefinitely — and before this it did so in silence, becoming operable
 again for a reason whoever was waiting for it was never told.
@@ -5726,6 +5736,7 @@ The variant question the mockup put to the owner — the holder's name in the
 row's sub-line versus an avatar in the stepper slot — was answered A, and
 was already built that way. What the mockup was actually worth was the two
 states nobody had asked about.
+
 ## The manual said it, the shipped config did not (2026-08-23)
 
 Presence, the G-3 lock and every live update were absent on the `:3000`
@@ -5739,7 +5750,7 @@ own cause the moment anybody asked for it:
 `websocket.Accept` runs with the library's default options, which authorize an
 `Origin` only when its host — **port included** — equals the request's `Host`.
 nginx forwarded `proxy_set_header Host $host`, and `$host` is the hostname
-*without* the port. The browser sends `localhost:3000`; the backend was told
+_without_ the port. The browser sends `localhost:3000`; the backend was told
 `localhost`; every dial was answered `403`.
 
 **The rule was already written down, and the same file broke it.**
@@ -5757,12 +5768,12 @@ proves the `/ws` route reaches the backend, and it sent no `Origin` header. The
 same-origin check is skipped entirely when the header is absent, so that command
 answered `101` against exactly the broken proxy it existed to detect. It now
 sends the header, and `docs/getting-started.md` gained the same check, because
-the four-step stack it describes *is* the stack this was found on.
+the four-step stack it describes _is_ the stack this was found on.
 
 **Why the guard is a gate and not a test.** The defect lives in a config file:
 no Go test loads it, Playwright drives `npm run preview` rather than nginx, and
 the `docker-build` job builds the image without ever making a request through
-it. Two Go cases now pin the *server* contract — a port-carrying `Origin` is
+it. Two Go cases now pin the _server_ contract — a port-carrying `Origin` is
 accepted when `Host` matches, and refused when a proxy strips the port — but
 they were green before this work and would have stayed green forever, because
 the server was never the thing that was wrong. `scripts/proxy-host-gate.mjs`
@@ -5782,6 +5793,7 @@ not its own host, that is when the variable earns its place.
 Measured on the running stack rather than reasoned about: `403` with the message
 above before, `101 Switching Protocols` after reloading nginx with the fixed
 config, REST unaffected in both directions.
+
 ## The wire was described twice, and the second description was fiction (2026-08-23)
 
 NFR-4.14, ADR-026. The owner asked for clean backend APIs that the frontend
@@ -5795,7 +5807,7 @@ around it was two independent descriptions of one wire.
 three defects of one week, each found by hand and each invisible to both suites
 (the client read a `status` key no server sends; it took `pull_hint.next_cursor`
 as its pull cursor; one partition answered `500` where the other answered
-`rejected`). What is worth recording is *why* the tests could not see them. A
+`rejected`). What is worth recording is _why_ the tests could not see them. A
 fake written from the same wrong mental model as the code agrees with it
 perfectly. `pushContract.spec.ts` and its shared fixture were added after the
 first defect precisely to break that symmetry — and they only cover the push
@@ -5815,18 +5827,18 @@ that hurt in a useful way.** A nil Go map or pointer marshals to `null`, so
 rejected eight call sites that indexed a payload without checking plus six that
 passed a possibly-null row into a parameter typed `| undefined`. Every one of
 them was a real (if unlikely) crash the old `Record<string, any>` had hidden.
-The hand-written type had not been wrong by accident — it had been *convenient*,
+The hand-written type had not been wrong by accident — it had been _convenient_,
 which is the same thing arriving later.
 
 **Two decisions inside the mechanism worth keeping.**
 
-*The generator parses the source; it does not reflect over the types.* Doc
+_The generator parses the source; it does not reflect over the types._ Doc
 comments and the constants of an enum are part of the contract, and neither
 survives into a runtime type. Parsing gets both, keeps `internal/wiregen` a leaf
 that imports nothing of the application, and makes it a pure function of
 `(filename, src)` — so its behaviour is table-tested with no filesystem at all.
 
-*The gate generates beside the tree, never over it.* The first version ran the
+_The gate generates beside the tree, never over it._ The first version ran the
 real generator and asked `git diff --quiet`, which is wrong in a way that looks
 right: it fails on any uncommitted change to the target, including the correct
 one you are about to commit, and it rewrites the very file it is judging. It now
@@ -5835,7 +5847,7 @@ writes to a temp file and diffs. **Mutation-proved**: adding a field to
 
 **The one trap this leaves behind.** The generated file lives under
 `client/src`, where prettier and eslint run over it. If the generator's output
-is not *already* formatted, `make fmt` rewrites it and the gate fails on a file
+is not _already_ formatted, `make fmt` rewrites it and the gate fails on a file
 nobody edited — a self-inflicted flake that would be maddening to diagnose. The
 generator therefore wraps unions at the client's print width and emits exactly
 one trailing newline, and two tests pin both. `client/.prettierrc.json` is now a
@@ -5850,7 +5862,6 @@ a third form, and conflicts are `/trips/{id}/conflicts` in one partition and
 2026-08-23). The gate also covers only what `wire.go` declares — the admin,
 notification, config and auth responses are still typed by hand on both sides,
 and growing the file is how they join.
-
 
 ## A conflict is an overwrite, not a lost race (2026-08-23)
 
@@ -5867,8 +5878,8 @@ trips · year        2026 → 2026        REVERT
 
 **What the merge was comparing.** Rule 3 is last-write-wins by clock, and the
 implementation read that literally: every field of a losing push was dropped and
-every dropped field became a `conflict_log` row. But *losing the write* and
-*having a value overwritten* are different events, and only the second one has
+every dropped field became a `conflict_log` row. But _losing the write_ and
+_having a value overwritten_ are different events, and only the second one has
 anything to audit or revert. A push that carried a field along unchanged left
 the row holding exactly what that push wanted.
 
@@ -5881,7 +5892,7 @@ produce the same entry.
 
 **The half that reaches the user.** The outcome is derived from the conflict
 count, so a push that changed nothing came back `merged` instead of `applied` —
-and since PR #163 the client *announces* `merged` as a toast naming how many
+and since PR #163 the client _announces_ `merged` as a toast naming how many
 fields were overwritten. A correct, uncontested edit could therefore tell
 someone their work had been overwritten. The audit noise was the visible defect;
 this was the expensive one.
@@ -5895,7 +5906,7 @@ or `1`. A `==` between them is false for every pair that is in fact equal, which
 would have left the defect in place while the tests read as if it were fixed.
 `sameValue` therefore widens both sides before comparing, and is conservative
 where it cannot: a value that is neither numeric, textual nor null is reported
-as *different*, so an unforeseen shape keeps logging a conflict rather than
+as _different_, so an unforeseen shape keeps logging a conflict rather than
 silently swallowing one.
 
 The unit table covers the type pairs, but the test that would have caught a
@@ -5907,7 +5918,7 @@ sides, it would have passed against the unfixed code.
 **Two things worth keeping.** A feature can be built, reviewed, merged and
 covered by a green suite while its first screenful is nonsense — the defect was
 in `internal/sync`, the most heavily tested package in the repo, at ≥90 %
-coverage, and every one of those tests asserted on values that *did* differ.
+coverage, and every one of those tests asserted on values that _did_ differ.
 And the eyeball is not a formality at the end of a feature: this one was
 outstanding for a day, and it took about a minute to find something two review
 passes had not.
@@ -5931,16 +5942,16 @@ trip partition, `b34e91b… → b8439760…` where two travelers belong.
 
 **The e2e case for that last one was green, and it says why in its own
 comment.** It asserted the two values were `not.toBeEmpty()`, with a note that
-*which* string they were "is not this case's business". A pair of raw uuids
+_which_ string they were "is not this case's business". A pair of raw uuids
 satisfies that exactly. The other one used `toContainText` for a name, and
 `"Engadin 7 B"` contains `Engadin 7 B` — so the assertion was green against
 precisely the quoted form it looked like it was catching. Both are the same
 mistake: an assertion written to be robust against detail, on a screen where
-the detail *is* the behaviour.
+the detail _is_ the behaviour.
 
 **What is deliberately not resolved**, because saying less beats saying
 something untrue: a row this device cannot name — deleted since, never pulled,
-or in a partition it has not loaded — falls back to the *kind* of thing
+or in a partition it has not loaded — falls back to the _kind_ of thing
 (`Item`) or to the raw id, rather than to a guess; and a column with no word in
 the catalogue keeps its own name. `image_hash` reads worse than "Photo" and
 never reads wrong.
@@ -5954,7 +5965,8 @@ indirection. It is driven by the component spec instead, against real Pinia
 stores, which is the surface it actually serves.
 
 **No visual baseline moved**, because the conflict log is in none — the G-2
-*sheet* is (E2E-VIS-08), the log it leads to is not.
+_sheet_ is (E2E-VIS-08), the log it leads to is not.
+
 ## A route names its scope first (2026-08-24)
 
 NFR-4.14's third point, kept out of ADR-026 on purpose so a mechanical rename
@@ -5973,8 +5985,8 @@ which rule was worth choosing.
 **The widening, and why it was asked rather than assumed.** The point named the
 conflict and export paths. It did not name `/sync/master` and
 `/sync/trips/{id}` — which lead with the channel where the rest of the surface
-leads with the scope. Leaving them would have made the rule *"scope first,
-except the sync channel"*, and an exception is the thing that has to be
+leads with the scope. Leaving them would have made the rule _"scope first,
+except the sync channel"_, and an exception is the thing that has to be
 memorised, which is precisely what the requirement exists to remove. It is also
 the hottest path in the application and the largest single blast radius in the
 tree (64 references, 29 files), so it was put to the owner as a decision with
@@ -5986,7 +5998,7 @@ first test green for the wrong reason.** The test that proves a rename is not an
 alias asserts the old paths are gone. Written against the status code, it passed
 immediately on `POST /conflicts/master/{id}/revert` — not because the route had
 been renamed, but because the conflict id in the fixture does not exist and the
-handler answers 404 too. The same confusion had the *positive* table calling a
+handler answers 404 too. The same confusion had the _positive_ table calling a
 routed path unrouted. The discriminator is the body: `writeError` writes the
 `APIError` envelope, and `http.ServeMux` writes plain text. Worth remembering
 beyond this file — **any test that asserts "this endpoint is gone" by status
@@ -5996,7 +6008,7 @@ same code.
 **What typing forty string literals found.** The client's paths moved into
 `client/src/api/routes.ts` (§4a) — not required by the rename, but the rename is
 what proved the cost of their absence. `SyncOutbox.syncPath` takes an id that is
-nullable because the master partition has none; a *trip* partition without one
+nullable because the master partition has none; a _trip_ partition without one
 had been interpolating as the literal string `null` and pushing to
 `/api/v1/sync/trips/null`, a path the server answers 404 and the outbox retries
 forever, naming nothing in either place. A template literal accepted it in
@@ -6019,7 +6031,6 @@ churn was only visible because `git status` listed files no sweep had reported.
 Reverted. The lesson is cheap but recurring: **run the project's format command,
 not prettier with a path you chose.**
 
-
 ## The gate protected what the file happened to declare (2026-08-24)
 
 ADR-026 built the mechanism and said, in its own cons, that it covered the
@@ -6028,7 +6039,7 @@ notification, config and auth responses were still hand-typed at both ends.
 This closes that. The eleven types are mechanical; what follows is not.
 
 **Adding types would not have been the fix.** Eleven declarations plus eleven
-handler edits leaves the *next* response free to be a map literal again, and
+handler edits leaves the _next_ response free to be a map literal again, and
 the reason the four families were outside the contract in the first place is
 that nothing said they had to be inside it. So the change is a check first and
 types second: `TestEveryResponseBodyIsADeclaredType` parses `internal/api`'s
@@ -6043,7 +6054,7 @@ was sitting in it.** The AST sees literals, not types, so
 store — passed silently. Two ways out were weighed. Going to `go/types` would
 see it, at the cost of a type-checked build inside a test and an importer to
 keep working. The cheaper one, taken: state the limit in the test's own doc
-comment and close *that* case positively, with
+comment and close _that_ case positively, with
 `TestWire_NotificationPrefsNamesEveryKindTheStoreKnows` — it reflects over the
 wire struct's JSON tags and compares them to `store.NotificationKinds()`. That
 buys something the AST check never could: a fourth notification kind added to
@@ -6052,30 +6063,30 @@ honoured server-side, and invisible on the wire. **A gate that overstates its
 reach is worse than one that names its limit**, and the limit is written where
 the next reader will be.
 
-**A request body is not a response body.** The preference endpoint's *request*
+**A request body is not a response body.** The preference endpoint's _request_
 stays an untyped `map[string]bool` and the check is written so it does not
-object. An absent key there means *leave that kind enabled* (UI-Spec M17), and
+object. An absent key there means _leave that kind enabled_ (UI-Spec M17), and
 a struct with three booleans would decode the absence as `false` and switch the
 kind off — a silent behaviour change wearing the costume of a type improvement.
-The rule is about what the server *promises*, and only the response is a
+The rule is about what the server _promises_, and only the response is a
 promise.
 
 **What the sweep found, and what it deliberately did not change.** One drift,
 the same shape as the five before it: a notification's `payload` is nullable,
 because a nil map marshals to `null`, and the client's hand-written copy said
 otherwise while both readers indexed it directly. Two Vitest cases now assert
-against a null payload, and reverting the guard turns both red. What did *not*
+against a null payload, and reverting the guard turns both red. What did _not_
 change is the wire: the JSON tag multiset gained the thirteen names that had
 only lived inside map literals and lost none — measured with a script over
 both revisions rather than asserted — so the only observable difference is key
-*order*, since a map encodes sorted and a struct encodes in field order. That
+_order_, since a map encodes sorted and a struct encodes in field order. That
 was worth checking precisely because it is the kind of claim that is easy to
 make and easy to be wrong about.
 
 ## A path stopped being written twice (2026-08-24)
 
-ADR-027 left one thing open and wrote down when to close it: *"if a rename ever
-lands on one side without the other"*. That trigger was discharged without
+ADR-027 left one thing open and wrote down when to close it: _"if a rename ever
+lands on one side without the other"_. That trigger was discharged without
 waiting for it, on the owner's request, and the reasoning is worth keeping
 because it applies to any trigger of that shape. The thing being waited for is a
 defect reaching a user — a strange event to schedule — and the cost of the fix
@@ -6085,11 +6096,11 @@ no third-party consumer, so this is the cheapest this will ever be.
 
 **What it changed.** `internal/api/wire.go` declares all 29 paths as `Route*`
 constants and the five path variables as `Path*` constants. The mux registers
-from those constants — the *method* stays at the registration, because a path is
+from those constants — the _method_ stays at the registration, because a path is
 shared with the client and a method is not — and `cmd/wiregen` writes
 `client/src/api/routes.ts` from the same declaration. A path with no placeholder
 generates a string; one with placeholders generates a function whose parameters
-*are* the placeholder names, so `PathTripID` is the same identifier in the
+_are_ the placeholder names, so `PathTripID` is the same identifier in the
 pattern, in the builder's signature and at `r.PathValue`.
 
 **The rule was written as tests, and each was proved by breaking it.** That is
@@ -6097,14 +6108,14 @@ the same pattern as the wire-coverage work the day before: `TestNoRouteIsRegiste
 run against the old code named all 36 registrations, which was the work list.
 Beside it, `TestEveryDeclaredRouteIsRouted` (a declared path the mux does not
 serve — it probes `GET` on every route, because a registered path answering the
-wrong method is a 405, and only an *unrouted* path is a plain 404),
+wrong method is a 405, and only an _unrouted_ path is a plain 404),
 `TestNoPathValueIsReadFromALiteral` and `TestEveryPlaceholderIsADeclaredPathParam`.
 
 **Two things deliberately not done.**
 
 The version prefix is spelled out on all 29 lines rather than concatenated from
 an `apiV1` constant. That reads like a §4a violation and was weighed as one. It
-was rejected because the block is a *table*: a reader checking a path against
+was rejected because the block is a _table_: a reader checking a path against
 the Sync-API-Spec should be able to read it, not assemble it, and the change it
 protects against — `/api/v2` — is one pass over one block, not a hunt across
 files. The generator would also have had to evaluate constant expressions, and
@@ -6113,12 +6124,12 @@ for a cosmetic gain.
 
 `client/src/api/__tests__/routes.spec.ts` stays, although the gate now makes
 disagreement between the two files impossible. What it still holds is the
-*values*: with nothing pinning them, a rename in the contract would arrive in
+_values_: with nothing pinning them, a rename in the contract would arrive in
 the client as a silently regenerated file. A pin turns that into a red test —
 which is the difference between a change being made and a change being decided.
 
 **The trap the generator carries.** `client/src/api/routes.ts` is generated
-*and* formatted by prettier along with the rest of `client/src`, so the
+_and_ formatted by prettier along with the rest of `client/src`, so the
 generator has to emit prettier's own line breaks — for a builder too long to fit
 beside its signature, a break after the `=>` and a four-space indent. Get it
 wrong and `make fmt` rewrites the file, the drift gate then reports a mismatch,
@@ -6132,18 +6143,19 @@ became `tripExportCSV` and `pushVapidKey` became `pushVAPIDKey` — because the
 key is now derived from the Go constant, and Go names an initialism in full.
 Deriving mechanically and accepting two renames is cheaper than a mapping table
 that would need a decision per route forever.
+
 ## A claim stops having a lifetime (2026-08-24)
 
 FR-5.7, ADR-028, backlog 17. Two days earlier a claim had gained a way to
-*end* — the holder could release it — and the other way out was still §7's
+_end_ — the holder could release it — and the other way out was still §7's
 15-minute staleness window, applied by every client and enforced by none. The
 owner's decision removed the window entirely: a claim is claimed until a
 person ends it, and everyone else's way past it is to **take it over**.
 
 **The middle option was the expensive one, and nothing had priced it.** Three
 shapes were on the table: a claim that only a person can end, a claim that
-expires silently (what existed), and a claim that expires *and announces the
-expiry*. The third reads as the compromise — it removes the silence, which is
+expires silently (what existed), and a claim that expires _and announces the
+expiry_. The third reads as the compromise — it removes the silence, which is
 the worst property of the second, while keeping the unattended clearing, which
 is its best. It lost because announcing an expiry needs the **server** to
 notice one, and expiry is the one event no request causes: that is what makes
@@ -6168,7 +6180,7 @@ at all. The row arrives by the drain, like any other server-originated change.
 project runs two browser contexts against a Single-User backend, which is how
 E2E-G3-03 covers a foreign claim: B never claimed the row, so B's client
 treats the claim as foreign. That trick does not extend here. Both contexts
-are the *same identity*, so a takeover from one to the other is a takeover of
+are the _same identity_, so a takeover from one to the other is a takeover of
 one's own claim — which the server refuses by design, and correctly.
 Seeding tokens would not help: the backend stamps its single user either way.
 E2E-G3-02 therefore asserts the half that is reachable and is a real promise
@@ -6177,7 +6189,7 @@ row offers nothing at all rather than an action that would be refused. The
 taking-over path waits for the mock-IdP `server` project, at exactly the wall
 E2E-G3-01's identity half has been standing at. Worth saying plainly rather
 than leaving a green suite to imply otherwise: the mechanism is covered by Go
-API tests and orchestrator units, and the *screen* is not.
+API tests and orchestrator units, and the _screen_ is not.
 
 **Two days of work was deleted rather than adapted.** The window had just been
 made per-instance — `JITPACK_LOCK_TIMEOUT`, `lock_timeout_seconds`,
@@ -6185,7 +6197,7 @@ made per-instance — `JITPACK_LOCK_TIMEOUT`, `lock_timeout_seconds`,
 line that said a claim had aged out. All of it went. `GET /api/v1/config`
 served nothing else, so the endpoint went too. The alternative was keeping a
 window that no longer decides anything, which is two rules for one question.
-The one thing that was *inverted* rather than deleted is the vitest case that
+The one thing that was _inverted_ rather than deleted is the vitest case that
 asserted a 20-minute-old claim stops locking its row: it now asserts the
 opposite, so the rule that replaced the window has a driving test instead of
 leaving a hole where the old one was.
@@ -6193,7 +6205,7 @@ leaving a hole where the old one was.
 ## A second account arrives, and finds a claim nobody could revoke (2026-08-24)
 
 MVP-plan Track B step 2, the last piece of the plan's Blocker B3 that was
-still open: `single` proved the wire, and nothing proved *identity*. The
+still open: `single` proved the wire, and nothing proved _identity_. The
 harness is ADR-029 and the coverage — including what it deliberately leaves
 uncovered — is in `dev-docs/e2e-tests.md`. What follows is only what neither
 of those files can show.
@@ -6201,7 +6213,7 @@ of those files can show.
 **A real Authelia was the option to beat, and it lost on things that are not
 about correctness.** It covers strictly more than a fixture does: the
 provider's own quirks, its consent step, its refresh asymmetry for disabled
-accounts. What sank it is that the suite already runs *inside* the pinned
+accounts. What sank it is that the suite already runs _inside_ the pinned
 Playwright image, so the reference provider arrives as a nested container, a
 third hand-bumped digest (invariant 8), and a configuration surface —
 sessions, storage, notifier, a users file — that is a second product to
@@ -6222,8 +6234,8 @@ Single-User instance is a different process with a mutually exclusive
 configuration, so one preview could not front both.
 
 **The defect it found is the one the project was built to find.** Bob takes
-Alice's row over; Alice's toast says so; Alice's row goes on saying *„You are
-packing this — the others cannot change it"*, still fully interactive. Two
+Alice's row over; Alice's toast says so; Alice's row goes on saying _„You are
+packing this — the others cannot change it"_, still fully interactive. Two
 people can now pack the tent, which is the failure FR-5.3 exists to prevent,
 and every layer below the screen was green: the Go tests move the claim, the
 orchestrator units refuse to write it optimistically, the notification
@@ -6239,7 +6251,7 @@ and one on FR-5.7.
 obvious source is `config.getToken`, which the rest of the orchestrator
 uses — and in the running app that is `refresher.freshToken()`, a promise,
 because it may refresh mid-flight. A lock decision is made while rendering a
-row, so it cannot await anything. The answer is the *stored* session's
+row, so it cannot await anything. The answer is the _stored_ session's
 subject, read synchronously, behind an injectable seam so the unit cases can
 name an account without minting a token. It is `null` in Local and
 Single-User Mode by construction, and that is the load-bearing part: the
@@ -6250,43 +6262,43 @@ One trap worth the line it costs: the first version of the fix read the
 optimistic claim's `current-user` placeholder (invariant 3 — the server
 stamps the real actor later) as a foreign account, and revoked every claim
 the instant it was made. A vitest case caught it immediately; without it the
-feature would have shipped as *„the row never says it is mine"*, which no
+feature would have shipped as _„the row never says it is mine"_, which no
 e2e case in the suite was asserting.
 
 ## A trip could be judged only one row at a time (2026-08-24)
 
-FR-9.3, FR-9.4, backlog 15. *Missing* had always stamped itself as a
-by-product of adding a row; *unused* cost three taps into a fold called
-*Details* that nothing ever asked for — and *unused* is the input the M14
+FR-9.3, FR-9.4, backlog 15. _Missing_ had always stamped itself as a
+by-product of adding a row; _unused_ cost three taps into a fold called
+_Details_ that nothing ever asked for — and _unused_ is the input the M14
 assistant is built around, so the assistant ran on an empty set. The decisions
 were all made before the branch opened: the judgement joins the row's menu, a
 skippable pass covers the packed rows at archive time, and the pass is a mode
-of M4 whose *Fertig* archives and opens M14. What building it added is below.
+of M4 whose _Fertig_ archives and opens M14. What building it added is below.
 
 **"One posture, one question" priced one affordance and there were five.** The
 FR names the cost precisely — inside the pass the row's press-and-hold goes
 inert — and that is the cost it names. Rendered, the posture also carried the
-quick-add row, the ＋ FAB, the *„3 gepackte zeigen"* reveal bar, and an app-bar
-cluster still offering *Reise bearbeiten* and *Reise abschliessen*: the archive
+quick-add row, the ＋ FAB, the _„3 gepackte zeigen"_ reveal bar, and an app-bar
+cluster still offering _Reise bearbeiten_ and _Reise abschliessen_: the archive
 action, offered from inside the room it opens. None of that is wrong in M4's
 ordinary posture, and none of it survives the question this posture asks. What
-stayed is what the FR chose the mode *for*: the grouping, the FR-25.11 facets
+stayed is what the FR chose the mode _for_: the grouping, the FR-25.11 facets
 and the search. The rule the list needed was not "hide the controls" but "a
 screen asking one question offers nothing that answers another", and only the
 render produces the inventory of what those are.
 
 **A handled proposal became a record line, not a dimmed card.** FR-27.11
 settled that applied and skipped rows stay visible and marked; FR-9.4 settled
-that they leave *Offen*. Neither says what they should look like once they
-arrive under *Erledigt*, and the obvious answer — the same card at 55 %
+that they leave _Offen_. Neither says what they should look like once they
+arrive under _Erledigt_, and the obvious answer — the same card at 55 %
 opacity — keeps a target picker, a peek chevron and a blast-radius line for a
 decision already made. They are now one line: kind, item, target group,
 outcome. The block is a record of the pass, not a second workspace, and the
-distinction is what lets *Erledigt* hold twenty rows without becoming the
+distinction is what lets _Erledigt_ hold twenty rows without becoming the
 screen.
 
 **The pass's control was wrong twice, and rendering said so both times.** It
-started as an `IonCheckbox`, which is M4's *packed* idiom — sitting, in the
+started as an `IonCheckbox`, which is M4's _packed_ idiom — sitting, in the
 pass, beside rows whose subtitle reads „packed · today". Worse, Ionic's
 checkbox keeps its own checked state: the first tap wrote the flag and left the
 box unfilled, so the screen and the row disagreed from the very first
@@ -6295,13 +6307,14 @@ second correction was mine and not the code's: I read the replacement's marked
 and unmarked states off a downscaled screenshot, decided they looked identical,
 and was about to change the colour — the computed values were `#cba6f7` against
 `#6c7086`, which is exactly the distinction that was intended. A rendered pixel
-answers a question about rendered pixels; an *impression* of one does not.
+answers a question about rendered pixels; an _impression_ of one does not.
+
 ## The restore could be run twice, and the manual said it could not (2026-08-24)
 
 **What changed:** an imported document is a second copy of something this
 instance already holds when their **names** match — plus the **year**, for a
 trip (ADR-030). An import that finds one writes nothing at all and reports what
-was there; M18 marks the document in the restore list *before* the button is
+was there; M18 marks the document in the restore list _before_ the button is
 pressed, the commit counts what it left alone, and `jitpack-import` says it per
 document and in its summary, `--dry-run` included.
 
@@ -6323,7 +6336,7 @@ mutation **parks the outbox**: the queue is ordered, a rejected write stays at
 its head, and every later write on that device waits behind it. That failure
 mode was found on 2026-08-22 and fixed once already. Trading a duplicated trip
 for a wedged device is a bad trade, and the constraint would additionally turn
-two people creating *Samedan 2027* on two phones — ordinary concurrent use,
+two people creating _Samedan 2027_ on two phones — ordinary concurrent use,
 which LWW exists to settle — into a hard error. The other two options fail
 more simply: a `(import)` suffix labels the duplication instead of preventing
 it, and a row-level merge cannot tell "add what is missing" from "undo what the
@@ -6333,7 +6346,7 @@ user deleted".
 rules read the instance through a view called `master`, and the CLI carried a
 comment saying a trip's own rows are "written, never matched against" — true
 until this rule needed to match against them. The `trips` table lives in the
-master *partition* but belongs to the *trip* store, so nothing that held the
+master _partition_ but belongs to the _trip_ store, so nothing that held the
 view could see them. The view now names `tripList` explicitly and both call
 sites assemble it through getters rather than a snapshot: the rules read their
 own output back between documents, so a trip created by document 12 has to be
@@ -6343,7 +6356,7 @@ visible to document 13 in the same file.
 written for trips alone, because ADR-017 had explicitly declined to extend the
 group's link-by-name identity to Ferien-Vorlagen: two of one name are two
 different plans, and merging them loses one. That reasoning is sound about a
-file somebody *hands* you. It is wrong about the file that actually gets
+file somebody _hands_ you. It is wrong about the file that actually gets
 re-imported, which is your own backup — and the difference only became visible
 by importing a real one twice and counting rows: the trips held at 33, while
 the three Vorlagen became six and their includes went 35 → 70. Reading the ADR
@@ -6351,11 +6364,11 @@ would not have produced that; running the thing did. The suffix is retired, and
 ADR-017 carries the supersession note.
 
 **What the rule costs, in this project's own data.** The family sheet these
-imports exist for has *Janosch & Andy* twice in 2021 — two different weekends,
+imports exist for has _Janosch & Andy_ twice in 2021 — two different weekends,
 one name, one year. Under this rule only the first can be imported, and the
 second has to be named apart in the file. Since the rule reaches Vorlagen too,
 the same holds for two different Ferien-Vorlagen of one name — the very case
-ADR-017 was protecting — and a *changed* Vorlage can no longer be re-imported
+ADR-017 was protecting — and a _changed_ Vorlage can no longer be re-imported
 over the one that is here: it is skipped whole rather than merged. All of that
 is written into ADR-030 as accepted cost rather than discovered later, and it
 is also the concrete thing
@@ -6363,10 +6376,9 @@ the revisit trigger waits for: the fix, when somebody wants it, is a way for
 the import to say "no, this is a different one", not a different notion of
 identity.
 
-
 ## A column everything read and nothing wrote (2026-08-25)
 
-FR-25.19's *Zugewiesen an*, and E2E-FLOW-02 with it. The task began as a test:
+FR-25.19's _Zugewiesen an_, and E2E-FLOW-02 with it. The task began as a test:
 the `server` project had just made a second identity reachable, so the owed
 delegation case was writable at last. It was not — its first step did not
 exist. `packer_user_id` was written once, when a row was generated from a
@@ -6379,20 +6391,20 @@ where they differ. FR-25.20's filter hides other people's rows and its reveal
 bar names them — and all of that is unit-tested, with synthetic rows carrying
 an assignment no screen could make. The server fires `notifyDelegation` on any
 push carrying the column, with its own Go test. UI-Spec M5's Actions line has
-said *„set Zugewiesen an → notification (FR-6.2)"* since the concept round.
+said _„set Zugewiesen an → notification (FR-6.2)"_ since the concept round.
 Four correct pieces around a missing one, and each of them looked like
 coverage of it.
 
 **So the fix was one control, not a feature.** The plan had a step for
-*„M4's consequences"*, and that step dissolved on inspection: nothing was owed
+_„M4's consequences"_, and that step dissolved on inspection: nothing was owed
 there, because the reading side was complete. Worth writing down as a
 sequencing lesson rather than a defect — when a column is read in four places
-and written in none, the honest estimate is *one writer*, and the temptation
+and written in none, the honest estimate is _one writer_, and the temptation
 is to plan work for the four.
 
 **The test I wrote for the G-3 rule would have passed without the rule.**
 It asserted `attributes('disabled')` on the picker. Ionic sets `disabled` as a
-DOM *property* on its custom element, so `attributes()` never sees it — the
+DOM _property_ on its custom element, so `attributes()` never sees it — the
 assertion returns undefined whether the control is disabled or not, and the
 existing `m5-container` select proves it: it has carried `:disabled="isLocked"`
 since the rebuild and shows no such attribute either. The case now asserts the
@@ -6407,6 +6419,7 @@ literal, with a second copy in `sw.js` for the OS notification. It is backlog
 item 19 rather than a commit in this PR: the worker cannot read the locale
 from `localStorage`, so the OS half needs a mechanism decision and an ADR, and
 a localized button under an English sentence is worse than consistent English.
+
 ## A device only ever got the first page (2026-08-25)
 
 **What changed:** the pull asks page after page until the server says there is
@@ -6414,8 +6427,8 @@ no more (Sync-API §4). It used to ask once, apply the 500 changes it got back,
 and stop — `has_more` was read by nothing.
 
 **What it looked like.** After importing a decade of the family's real trips
-into the `:3000` instance, a fresh browser opened on M2 and said *„Keine
-archivierten Reisen"*, with the G-2 glyph green and no error anywhere. The
+into the `:3000` instance, a fresh browser opened on M2 and said _„Keine
+archivierten Reisen"_, with the G-2 glyph green and no error anywhere. The
 instance held 717 master rows; the trips sit at `change_log.seq 652` and up,
 behind the first page, so not one of them was ever delivered. What did arrive
 was 16 of 21 groups and one group holding 19 of its 20 items — a world that
@@ -6424,7 +6437,7 @@ looks plausible and is a fraction of the truth.
 **Why nothing caught it.** Every fixture in the suite is smaller than a page.
 The unit cases stubbed the pull with a single response and asserted what came
 out of it; the e2e projects build their world by clicking, and clicking does not
-produce five hundred rows. A rule about what happens *past* the first page
+produce five hundred rows. A rule about what happens _past_ the first page
 cannot be tested by data that never reaches it, and the honest fix was to push
 520 rows straight at the API in E2E-SYNC-01 — the one case in the suite whose
 subject is the size of a partition rather than a screen.
@@ -6435,7 +6448,7 @@ looks like the other half of the same bug, and persisting it in IndexedDB
 beside the outbox queue was written, tested and green. Then it ran against the
 real instance: **zero rows**, on every screen. Outside Local Mode the pulled
 rows are not kept either — they live in the Pinia stores and go with the tab —
-so a device that remembers how far it read and not *what* it read asks for the
+so a device that remembers how far it read and not _what_ it read asks for the
 changes after that point, is correctly told there are none, and renders an
 empty app. The memory-only cursor was not an oversight; it is what makes a
 memory-only store correct. That half was reverted, and the unit case that had
@@ -6453,10 +6466,9 @@ nobody could see it, because the correct one was never run.
 **What found it.** Not a test, and not a review — using the thing. The import
 went in through the CLI, which writes server-side only, so a browser had to
 pull the instance from scratch for the first time. Every previous load of that
-data had been written *by* the browser that then displayed it, which is exactly
+data had been written _by_ the browser that then displayed it, which is exactly
 why a decade of use had never asked the question. It is also what every second
 family device does on its first launch.
-
 
 ## A drain could land on top of a drain (2026-08-25)
 
@@ -6469,7 +6481,7 @@ pulled the same pages twice, which is the half that changed price.
 
 **Why it was worth fixing now and not before.** As long as a pull was one
 request, an overlap cost one extra request. Since the pull became a loop over
-pages (the fix a day earlier), an overlap costs the *whole partition*: on the
+pages (the fix a day earlier), an overlap costs the _whole partition_: on the
 family instance, 717 rows fetched a second time on the boot path. The defect is
 the same age as the outbox; only its price moved.
 
@@ -6496,7 +6508,7 @@ queue until something else happened to drain the partition. So a late caller
 waits for a **further** drain instead, and every caller arriving during one
 drain shares that single follow-up. Written as coalescing first and mutated back
 to it afterwards: the case that catches it is
-*„still sends a mutation that was enqueued while a drain was running"*, and it is
+_„still sends a mutation that was enqueued while a drain was running"_, and it is
 the only one of the seven that plain coalescing fails on a push path.
 
 Two smaller decisions in the same shape. The guard is released in a `finally`,
@@ -6529,7 +6541,7 @@ red: the client's typeof check makes the dead path indistinguishable from a
 row that simply has no clock, and no test asserted the field's presence
 because both sides had been written from the same spec sentence and each
 assumed the other end held it up. What it cost is invisible until it isn't —
-a device whose wall clock lags keeps minting HLCs *older* than writes it has
+a device whose wall clock lags keeps minting HLCs _older_ than writes it has
 already seen, and loses its own later edits to them. The fix is one line in
 `loadSnapshot`, but the lesson is the shape: **two correct implementations of
 one sentence do not add up to a working rule, and the thing to test is the
@@ -6540,11 +6552,11 @@ partition already knew this — `cascadeChildren` exists precisely to collect
 child ids before a parent goes and tombstone them by hand — but the list had
 two holes, and one whole partition had never been given the machinery at all.
 Deleting a trip cascaded `trip_members`, `trip_template_sources` and
-`trip_applied_changes`, all three of which travel the *master* feed, with no
+`trip_applied_changes`, all three of which travel the _master_ feed, with no
 tombstone behind them; deleting a trip item cascaded its comments in the trip
 partition, which called `cascadeChildren` from nowhere. Both leave rows alive
 on every other device permanently. Worth writing down is why a trip's
-*remaining* children need nothing: `change_log.trip_id` cascades too, so the
+_remaining_ children need nothing: `change_log.trip_id` cascades too, so the
 trip partition's entire feed is deleted along with the trip it describes, and
 the master feed is the only one left to carry the news. That asymmetry is
 easy to read as an oversight and is in fact the reason the master-side
@@ -6557,7 +6569,7 @@ the refusal. The first half is true and harmless; the second was wrong, and I
 had already written the fix and four red tests before checking the spec text
 rather than the summary of it. §5 defines `duplicate` as "mutation_id seen
 before, **recorded result returned**", and P-5 says in as many words that "the
-second push returns `duplicate`" — the *recorded result* being the seq and the
+second push returns `duplicate`" — the _recorded result_ being the seq and the
 conflicts, both of which the code was already returning. The change was
 reverted and the tests replaced by the one assertion P-5 makes that nothing
 had covered: a replay appends nothing to the change log. **A review finding is
@@ -6575,7 +6587,7 @@ next query provably runs on a fresh one.
 
 **A rule that never ran was hiding two things.** Making the snapshot carry
 `updated_hlc` was one line; merging it forward onto a `main` that had meanwhile
-gained the multi-page pull fix turned `e2e-single` red, on *that* fix's own new
+gained the multi-page pull fix turned `e2e-single` red, on _that_ fix's own new
 case. The cause was not paging. `observeHLCs` had finally been given something
 to parse, and `parseHLC` throws by design — so the first malformed clock in the
 feed aborted the page, and the 520-row fixture behind the case was minting
@@ -6595,12 +6607,12 @@ The second half of the data-model review: `schema.sql`'s own constraints,
 read against the FRs that claim them.
 
 **A structural guarantee that took two steps to break.** FR-27.1 says the
-two-level hierarchy makes include cycles *structurally impossible*, and
+two-level hierarchy makes include cycles _structurally impossible_, and
 `validInclude` does enforce it: the parent must be a Ferien-Vorlage, the
 child a Gruppe. But `templates.kind` was an ordinary syncable column with no
 guard on it, so the shape it checked was not stable. Include B into A, push
 `A.kind='group'` and `B.kind='template'` — both accepted — and the include
-rule now reads the *reverse* edge as perfectly legal. A→B→A, persisted, by
+rule now reads the _reverse_ edge as perfectly legal. A→B→A, persisted, by
 three ordinary pushes. What makes it worth recording is where the two guards
 that prevent it already existed: in FR-27.6, spelled out in full, describing
 the **M8 editor**. A rule that only the editor enforces is not a rule; it is
@@ -6617,16 +6629,16 @@ drops a rejected mutation — so a CHECK is not a safety net here, it is a
 delete. Five candidates were judged by that, and the two that read most
 obviously "correct" are the two that failed:
 
-* FR-5.5 says a skip writes `state='skipped'` **and** quantity 0, and the
+- FR-5.5 says a skip writes `state='skipped'` **and** quantity 0, and the
   client does send both — so `CHECK (state <> 'skipped' OR quantity = 0)`
-  looks free. It is not, because *the merge decides the two fields
-  separately*: another device's newer quantity leaves the skip applied on
+  looks free. It is not, because _the merge decides the two fields
+  separately_: another device's newer quantity leaves the skip applied on
   its own. With the CHECK added and the case run, that push came back
   `rejected` — the whole skip lost, to protect a pairing nothing reads.
-* FR-24.2's "the first tag is the primary tag" suggests
+- FR-24.2's "the first tag is the primary tag" suggests
   `UNIQUE (item_id, position)`. Reordering N tags is N mutations, so every
   intermediate state has two rows at one position; with the index added, the
-  *first half* of a two-tag swap was refused. The honest fix is a read-time
+  _first half_ of a two-tag swap was refused. The honest fix is a read-time
   tie-break, which the client did not have — it sorted by position and let
   the tie fall to arrival order, so two devices could file one item under
   two different headings and neither was wrong.
@@ -6636,7 +6648,7 @@ is the only way this reasoning stays honest: "it might reject a legitimate
 push" is a guess until the schema is mutated and the push is run. The two
 that passed the lens are the ones no client traffic can reach — the one-Owner
 index (`authorizeMaster` refuses every client-sent `owner`, so the index can
-only ever catch a *server* bug) — and the one whose cost is a considered
+only ever catch a _server_ bug) — and the one whose cost is a considered
 trade rather than an accident.
 
 **A uniqueness scope that contradicted the sentence above it.** `templates`
@@ -6665,12 +6677,11 @@ the protocol, so the client derives it", and a spec sentence with a live
 referent is worth more than one generated integer per trip row. Dead schema
 is a choice under ADR-018, so it needs a reason each way rather than a rule.
 
-
 ## A refusal that could not be read (2026-08-25)
 
-The finding that started this was phrased as a schema defect: *deleting a
+The finding that started this was phrased as a schema defect: _deleting a
 template that ever generated trip items is impossible, and nothing tells
-anyone.* Half of that was true. The delete is impossible on purpose —
+anyone._ Half of that was true. The delete is impossible on purpose —
 `trip_items.source_template_id` carries no `ON DELETE` clause because FR-9.2
 has an archived trip keep naming the Vorlage its rows came from — and the
 permissive fixes are both worse than they look. `ON DELETE SET NULL` strips
@@ -6687,7 +6698,7 @@ authorization, out-of-partition, the FR-27.1 two-level rule, a constraint, a
 blocked delete — arrived at the client as the single word `rejected`. The
 wire had been ready for this since v1.0: `error` is declared beside the
 outcome in `wire.go` and printed in Sync-API §5, and it was written for
-exactly two validation errors, both raised *before* the store is called. And
+exactly two validation errors, both raised _before_ the store is called. And
 because §5's P-5 makes any outcome an acknowledgement, the outbox drops the
 mutation on receipt. The user deletes a group, the client removes it
 optimistically, the server keeps it, and the two diverge permanently with a
@@ -6701,7 +6712,7 @@ implementation is to catch the constraint error and look at it —
 message. That is a string from a dependency, and telling an FK apart from a
 UNIQUE that way would put a product decision behind a substring nobody
 promised to keep. So the blocked delete is a **pre-check**: a table of the
-references that are deliberately declared *without* `ON DELETE`, and one
+references that are deliberately declared _without_ `ON DELETE`, and one
 `count(*)` per reference before the delete is attempted. It sits beside
 `cascadeChildren`, which is the list of references that behave the opposite
 way, and the two lists together are now the whole answer to "what happens to
@@ -6710,7 +6721,7 @@ generic reason; nothing branches on the text.
 
 **M7 does not pre-empt the delete, and that is a decision.** M7 already
 pre-empts one delete: a group another Vorlage includes refuses with the
-consumer's name (FR-27.6). Doing the same for a group a *trip* used looks
+consumer's name (FR-27.6). Doing the same for a group a _trip_ used looks
 like symmetry and is not: `getIncludedBy` reads the master partition, which
 the client holds in full, while trip items live in trip partitions the client
 loads one at a time — in Server Mode it holds the trips it has opened, never
@@ -6729,18 +6740,17 @@ on a second device that still finds the group. Undoing a parked mutation
 against the local store is a bigger mechanism than this PR, and it wants its
 own decision about what an optimistic write owes when it is refused.
 
-
 ## A purchase that could not be taken back (2026-08-25)
 
 FR-25.11j, accepted 2026-08-07 and unbuilt since, was the last item of the
 data-model review. M6's check-off called `setMode(item, 'pack')`: the row left
 the shopping side by the same act that marked it done, and nothing recorded
-where it had gone. There was no *„Erledigte"* to find it in, and no way back.
+where it had gone. There was no _„Erledigte"_ to find it in, and no way back.
 
 **A bought-at time and a buyer were weighed, and not added.** They are the
 obvious neighbours of a record — `packed_at` and `packed_by_user_id` sit right
 there — and the FR asks for neither. The BUY_LOCAL half already has both for
-free: being bought at the destination *is* being packed, so the ordinary
+free: being bought at the destination _is_ being packed, so the ordinary
 FR-25.17 path stamps them. The BUY_BEFORE half is not a packing act, so a
 `bought_at` there would be a column no screen renders and no rule reads —
 which is precisely what FR-25.9 removed a field for. The cost of declining is
@@ -6748,10 +6758,10 @@ that "who bought the coffee" is unanswerable for a purchase before departure;
 the moment a screen asks, the column is one line and its own FR.
 
 **The reveal declines the persistence FR-25.18 would seem to hand it.** M4's
-*Erledigte* switch is remembered per trip for the session, and copying that
+_Erledigte_ switch is remembered per trip for the session, and copying that
 here looked like consistency. FR-25.18's own argument is against it: it is
 about not re-picking a filter of **four facet values**, and about a filter that
-*hides* rows being dangerous to forget. M6's reveal is one tap whose off-state
+_hides_ rows being dangerous to forget. M6's reveal is one tap whose off-state
 is the safe one — and the M6 **tab** is not remembered at all, so a restored
 reveal would open on a list the reader did not choose. The switch that looks
 the same is not the same control.
@@ -6808,7 +6818,7 @@ path; it needed a different question.
 
 **`out_of_scope` must repair nothing, and the reason is the leak the refusal
 exists to prevent.** That reason means the row belongs to another trip. Writing
-a `change_log` entry for it under *this* trip is precisely how the partition
+a `change_log` entry for it under _this_ trip is precisely how the partition
 reaches into another one: the next pull would hand the pusher the foreign row's
 whole snapshot — the failure `belongsToTrip` was added for. So it is the one
 refusal repaired client-side, and it is repairable there without guessing,
@@ -6833,31 +6843,31 @@ repair, and only a rendered pixel can tell you.
 server, no outbox and no push, so nothing can be refused there: its optimistic
 rows are the only copy that exists and cannot diverge from a second one. The
 repair path is not inert code in that mode — it is not constructed at all,
-because the outbox that owns it is not. What *can* fail on a Local Mode write
+because the outbox that owns it is not. What _can_ fail on a Local Mode write
 is the write to the device, and that already has its own signal in G-2. A mode
 question with the answer "the question does not arise here" is worth writing
 out, because the alternative is a reader later assuming it was forgotten.
 
 ## A name that could only be refused by the server (2026-08-25)
 
-FR-1.6 and FR-13.1, the mitigation the entry *„What a constraint costs when the
-outbox drops a refusal"* left owed. Four things the diff does not say.
+FR-1.6 and FR-13.1, the mitigation the entry _„What a constraint costs when the
+outbox drops a refusal"_ left owed. Four things the diff does not say.
 
 **The wizard was the one place that could have adopted the existing row, and
 deliberately does not.** Every other surface either has nothing to hand over
 (M21 folds a trip; the fold is not an edit of a template that happens to share
-the name) or hands it over openly (M7's *Öffnen*, M8's picker including the
-group). M3's *neue Serie* is different: the trip is on its way somewhere, the
+the name) or hands it over openly (M7's _Öffnen_, M8's picker including the
+group). M3's _neue Serie_ is different: the trip is on its way somewhere, the
 existing series is in the select directly above the field, and attaching to it
 would be one line of code and no interruption at all. It was written that way
 first and then taken out. A series is the anchor a household's history hangs
-on, and silently deciding *whose* series a trip joins is a choice the wizard
+on, and silently deciding _whose_ series a trip joins is a choice the wizard
 does not have the standing to make on the user's behalf — particularly when the
 name matched only by capitals. The note names the series and the step waits.
 
 **The item path was already doing this, and that is why nobody noticed.**
 M8's quick-add has always resolved a typed name against the master items and
-reused the row it finds (`onQuickAdd`, a lowercased comparison). So the *item*
+reused the row it finds (`onQuickAdd`, a lowercased comparison). So the _item_
 half of FR-16.3 has been live since the composer was built, and the template
 half looked like it worked because nobody had two templates of one name yet.
 The rule was in the codebase, in one view, reachable only through a Vue
@@ -6868,7 +6878,7 @@ read the same one.
 **Changing the return type was the work.** `createTemplate` and `createSeries`
 returned `string`; making them return `string | null` turned "which paths write
 a name?" from a grep into a compile error, and the compiler produced the list —
-including `createTemplateFromTrip`, which creates a group *and* a template and
+including `createTemplateFromTrip`, which creates a group _and_ a template and
 had to grow its check **above its first write**, since it writes master items
 and group updates before either. The enumeration is worth more than the guard:
 a grep for `createTemplate` would have found the same call sites, and would
@@ -6888,8 +6898,8 @@ FR's paragraph is a second place for it to go stale.
 ## A delete that could only be refused (2026-08-25)
 
 FR-24.3 had been parked since the tag model was unparked without it, and the note added
-to it that morning was already the whole diagnosis: what runs today is *a third
-behaviour*, neither of the FR's two — the delete is refused. Unparking it was therefore
+to it that morning was already the whole diagnosis: what runs today is _a third
+behaviour_, neither of the FR's two — the delete is refused. Unparking it was therefore
 not "build a tombstone system"; it was turning one `if` from a decline into a choice. The
 discriminator was already there, built for the refusal itself: `blockingReferences` names,
 per table, the references that keep a row alive, and `stillReferenced` asks it before the
@@ -6898,11 +6908,11 @@ delete is attempted. The FR's two branches are exactly its two answers.
 **The half nobody had priced was the filtering, and its two directions are not
 symmetric.** There are 37 non-test call sites of `masterStore.itemList` and 36 of
 `templateList`. A retired row that turns up in a picker is annoying. A retired row that is
-*missing* is data loss, and two of the sites are the ones that would lose it: `resolve()`
+_missing_ is data loss, and two of the sites are the ones that would lose it: `resolve()`
 expands a Vorlage's includes, so filtering there empties a generated trip; and
 `compositionSource()` feeds M7's export, the settings export **and** the NFR-4.11 backup,
 so filtering there costs a Local Mode device its only copy. The decision that follows is
-in ADR-032: `itemList` and `templateList` keep meaning *everything*, and the display
+in ADR-032: `itemList` and `templateList` keep meaning _everything_, and the display
 surfaces opt in to `activeItemList` / `activeTemplateList`. It is more edits, not fewer —
 but it makes the destructive direction the one an author has to choose, rather than the
 one every future call site inherits by writing the obvious thing.
@@ -6911,14 +6921,14 @@ one every future call site inherits by writing the obvious thing.
 complete reference count exists only where all the data does: on the server in Server
 Mode, on the device in Local Mode, which has no server at all. So the decision cannot live
 only on the server (invariant 5 would lose the feature) and cannot live only on the client
-— the client holds the trip partitions it has *opened*, never every trip's, so it is blind
+— the client holds the trip partitions it has _opened_, never every trip's, so it is blind
 to precisely the FR-9.2 case the feature is about. The shape that resolves this is not
 discipline but asymmetry: the client's only possible disagreement with the server is
 "remove" where the server retires, and the server answers that by retiring anyway, so the
 pull the device already makes corrects it. A wrong client answer costs a wrong sentence,
 never a wrong row. The client-only variant was considered and is the shape the UI-Spec had
-already rejected for M7 nine days earlier — *"a pre-check would call the delete safe in
-exactly the case that then fails."*
+already rejected for M7 nine days earlier — _"a pre-check would call the delete safe in
+exactly the case that then fails."_
 
 **A usage endpoint was designed and then not built.** M10 has to state the outcome before
 the confirm, and in Server Mode the client's count can be short — so a
@@ -6932,7 +6942,7 @@ condition rather than apologising for it.
 non-test callers; M9's swipe-delete was specified in July and never built. So "M10 states
 which deletion will happen before the user confirms" had nothing to state it on, and the
 FR's UI half was a card to write rather than a sentence to add. The swipe stays proposed
-and the UI-Spec now says why: once the card had to carry a count *and* a reason, a swipe
+and the UI-Spec now says why: once the card had to carry a count _and_ a reason, a swipe
 reveal has room for a label and not for a reason.
 
 **Two consequences of the marker that the FR did not mention.**
@@ -6941,7 +6951,7 @@ retired row would go on holding a name nothing renders — so deleting an item a
 it again, which is what a physical delete used to allow, would start failing for a reason
 no screen could show. Both became partial unique indexes over `retired_at IS NULL`, and
 the client's `templateNameCollision` moved onto the active list to match. The second is
-ADR-031's cascade repair: a retire is a delete the client has *already drawn*, positions
+ADR-031's cascade repair: a retire is a delete the client has _already drawn_, positions
 and all, so the same children have to be re-logged alive. That was found by reading
 ADR-031 rather than by a failing test, and the test that pins it now was written after —
 the honest order.
@@ -6949,14 +6959,14 @@ the honest order.
 **What the refusal keeps.** FR-24.3 names master items and Vorlagen. `blockingReferences`
 also lists series, travelers and containers, and those keep refusing: they are not history
 the way a master item is, and a retired traveler would be a person nobody can see attached
-to rows everybody can. That left four tests asserting the refusal *through* a template or
+to rows everybody can. That left four tests asserting the refusal _through_ a template or
 an item — they moved onto a series, which is the ground the refusal still governs, so the
 `still_referenced` machinery kept its coverage instead of losing it to the feature that
 replaced one of its cases.
 
 **Restore is owed, and saying so is the decision.** The marker is an ordinary synced field,
 so clearing it is one mutation — a Go test asserts exactly that, and it passes. What does
-not exist is any surface that *lists* retired rows, and inventing one (a filter chip on
+not exist is any surface that _lists_ retired rows, and inventing one (a filter chip on
 M9, a section in settings, its own screen) is a UI round with no rendered evidence behind
 it. The mitigating fact, and the reason this is acceptable rather than a trap: the retire
 is announced before it happens, in the card and again in the confirm, instead of being
@@ -6966,8 +6976,8 @@ discovered afterwards.
 
 The entry above closed by writing down that restore was owed, and naming that as the
 decision. This is the day after, and the first thing building it found is that the
-sentence FR-24.3 had carried since the concept phase — *"a future restore affordance is
-free, since logically-deleted items retain everything"* — was true about the data and
+sentence FR-24.3 had carried since the concept phase — _"a future restore affordance is
+free, since logically-deleted items retain everything"_ — was true about the data and
 false about the name, and had been false since the day before, when the same FR made both
 unique indexes partial.
 
@@ -6976,14 +6986,14 @@ apart.** `retired_at` is an ordinary synced column, so clearing it really is one
 four Go tests written first against the unchanged server all passed on the first run, which
 is the honest report — the server needed no change and these pin a claim rather than drive
 one. But `idx_items_active_name` ranges over `retired_at IS NULL` deliberately, so retiring
-*frees the name*, and the whole reason that was chosen — re-creating what you just deleted
+_frees the name_, and the whole reason that was chosen — re-creating what you just deleted
 is the common case — is precisely the sequence that then makes a restore impossible. The
 free restore and the freed name were two bullets under one FR, each right on its own. What
 that cost is a whole ADR (034) for a feature described as costing nothing.
 
 **The collision is answered on the client, which is the opposite of what ADR-032 had just
 decided — and the difference is which question is being asked.** ADR-032 made the client's
-FR-24.3 answer *advisory* because a reference count needs trip partitions the device does
+FR-24.3 answer _advisory_ because a reference count needs trip partitions the device does
 not hold. A name does not: the master partition is pulled whole, so every device knows every
 active name exactly, in every mode. This is the first FR-24.3 rule the client is
 authoritative about, and it has to be, because Local Mode has no push to be refused by. The
@@ -6995,14 +7005,14 @@ there.
 **The surface was chosen against three others, and the reason is the same in each case.**
 A filter chip on M9's tag axis puts hidden rows one tap from browsing, which is the opposite
 of what hiding them was for — and a lifecycle state is not a tag, so the axis would then mean
-two things. A folded section at the foot of M9 *and* M7 is two surfaces for one rule, in the
+two things. A folded section at the foot of M9 _and_ M7 is two surfaces for one rule, in the
 screen FR-24.4 had just been made lean. A `?retired=1` mode of M9 inherits a grouping, a tag
 axis, a property sheet and a FAB, none of which mean anything for a list whose only actions
 are restore and delete-for-good. M23 sits beside the conflict-log pointer in M17 because it
-is the same *kind* of screen: corrective, opened after something went wrong, never during
+is the same _kind_ of screen: corrective, opened after something went wrong, never during
 work. That is a classification the code cannot express — `masterListFiltering.spec.ts` now
 carries a third entry for it, because the existing split (complete lists resolve, active
-lists offer) had no room for a surface whose subject *is* the retired row.
+lists offer) had no room for a surface whose subject _is_ the retired row.
 
 **Rendering it found the defect twice, in one test, and neither was visible from the code.**
 The first run of the collision case failed on a count, and the page snapshot showed why: the
@@ -7012,16 +7022,17 @@ satisfiable by it, because one row is one row whatever it is called. The input's
 asserted before the button is clicked now. Underneath that was a second one shared by both
 cases: `page.goto` after a Local Mode write reloads before the write reaches IndexedDB, so
 the restore was there and then not. The assertion that had looked like a settled signal —
-the row leaving M23 — reports the *optimistic* state and says nothing about durability. The
+the row leaving M23 — reports the _optimistic_ state and says nothing about durability. The
 sync indicator is the seam that exists for this, and every reload in the file waits on it.
 
 **Delete-for-good was built rather than named as owed, for a reason worth stating.** A
 retired row whose last reference is gone is unreferenced, so FR-24.3's own second branch
 applies to it — but with no surface offering that branch, a retire would have been permanent
-by omission, which is not what a logical delete is supposed to mean. It is offered *only*
+by omission, which is not what a logical delete is supposed to mean. It is offered _only_
 where the delete would actually be physical: a button that silently re-retires the row is
 worse than no button, and in Server Mode the same three-form hedge M10 carries applies here
 unchanged.
+
 ## Two actor columns a client could still name (2026-08-25)
 
 Invariant 3 says the server stamps every actor column itself. Two columns
@@ -7034,7 +7045,7 @@ the trip, could push a mutation naming somebody else.
 was stamped on `insert` and left alone on every other op, so an `upsert`
 could rewrite it — and the whitelist in `internal/store` lets the column
 through. The repair that suggests itself is to stamp the pusher on every op,
-the way `packed_by_user_id` is handled. That is the *opposite* defect: the
+the way `packed_by_user_id` is handled. That is the _opposite_ defect: the
 comment surfaces push upserts for `task_state` and `is_task` (FR-7.2's
 "flag as task", the todo resolve/reopen), so flagging somebody else's comment
 would quietly transfer its authorship to whoever tapped. Authorship is
@@ -7043,7 +7054,7 @@ stripped from every non-insert op instead: an edit changes what a comment
 says and never who said it, and the stored value survives because a partial
 upsert only writes the fields it carries.
 
-That leaves the case the strip cannot serve: an `upsert` that *creates* a
+That leaves the case the strip cannot serve: an `upsert` that _creates_ a
 comment has no author to fall back on. The client never sends one — every
 comment is born from `addComment` or `addTodo`, both `insert` — so rather
 than invent a rule for a shape no product surface produces, the push is
@@ -7059,13 +7070,13 @@ switch, so a mutation carrying the column and no `state` never met the code
 that owns it — the holder that FR-5.7's takeover confirms against and M4's
 row names was the client's to choose. Stripping it unconditionally at the top
 of the branch, the way `packed_by_user_id` is stripped, is only half a fix,
-and the half that was missing is invisible in the server: the *release* of a
+and the half that was missing is invisible in the server: the _release_ of a
 claim was the client nulling the column (`packItem` and `releasePackingNow`
 send `packing_now_by: null`), and the switch's `packed` branch never cleared
 it. Strip the column and trust that path, and packing a row would have left
 its claim standing forever — a G-3 lock nothing could end.
 
-So the claim is now derived rather than accepted: the claim *is* the state
+So the claim is now derived rather than accepted: the claim _is_ the state
 (FR-5.3), so every branch of the switch writes both `packing_now_by` and
 `packing_now_at` — the pusher when the state becomes `packing_now`, `NULL`
 for every other state — and a mutation with no state at all leaves an
@@ -7084,7 +7095,7 @@ now `tapTime`, because it serves both stamps.
 
 ## A decade of packed trips, all reading zero (2026-08-25)
 
-**What changed:** M2's row reports *unknown* while a trip's own rows are not on
+**What changed:** M2's row reports _unknown_ while a trip's own rows are not on
 the device, and the screen fetches the partition of a row when that row is on
 screen (ADR-033).
 
@@ -7092,13 +7103,13 @@ screen (ADR-033).
 import.** `trip_items` live in the trip's own partition, which is pulled when a
 trip is opened. A device that had never opened a trip therefore summed nothing
 — and printed the sum: `0/0 gepackt`, ring at 0 %. For an archive of finished
-holidays that reads as *you packed none of it*. It had always been true; it took
+holidays that reads as _you packed none of it_. It had always been true; it took
 a list where every row was a fully packed trip for anyone to see it.
 
 **The option that is free for ever, and why it lost.** Putting `packed`/`total`
 on the trip row itself costs nothing at any archive size — `trips` is in the
 master partition, which M2 already pulls. It was turned down on correctness
-rather than cost: a count is a *derived aggregate*, and under field-level LWW
+rather than cost: a count is a _derived aggregate_, and under field-level LWW
 two devices packing offline both compute one and the merge rule has to let one
 win. Every other field the protocol carries is a value somebody typed; this one
 would be arithmetic, silently wrong, and inexplicable to the person looking at
@@ -7115,7 +7126,7 @@ after scrolling through all 33.** Without those two numbers the choice is taste.
 **A bug only rendering could find.** The first implementation loaded correctly
 and rendered "Positionen werden geladen …" for ever. `loadedTripPartitions` was
 a plain `Set` and `localHydrated` a plain `let` — internal state, until a
-*screen* began reading it, and a value Vue cannot see change is not a value a
+_screen_ began reading it, and a value Vue cannot see change is not a value a
 template can read. Every unit test passed, because a function that returns the
 right answer when asked is exactly what they check. The unit case that now pins
 it watches the value through `watchEffect` rather than calling it.
@@ -7127,13 +7138,14 @@ other tests' trips push it below the fold, and ADR-033 has deliberately not
 fetched it. The case was asserting test isolation while claiming to assert the
 app. It scrolls the row into view now, which is what a person does, and what the
 feature actually promises.
+
 ## An invariant that lived at eighty-seven call sites (2026-08-25)
 
 `useSyncOrchestrator.ts` built the optimistic twin of every write by hand:
 eighty-seven copies of the same five-key literal, each repeating the table and
 the id that the mutation beside it already carried, and — for an update — the
 `{ ...itemRow(item), ...mut.fields }` spread that keeps the row whole. That
-spread is the whole invariant. The stores apply a change by *replacing* the
+spread is the whole invariant. The stores apply a change by _replacing_ the
 row, so a column the mutation does not mention is blanked; in Local Mode no
 pull ever arrives to heal it. The rule was written once, in a comment, and then
 depended on at eighty-seven places.
@@ -7150,18 +7162,18 @@ run rather than argued.**
 
 **A field that had been quietly dropped.** `flagCommentAsTask` enumerated the
 comment row by hand and left out `created_at`. Nothing was visibly lost, because
-the row survives as a *todo* and `ItemTodo` has no such field — but the
+the row survives as a _todo_ and `ItemTodo` has no such field — but the
 omission was one "unflag" feature away from mattering, and it had been there
 since the row was written. This is the shape the helper exists to prevent, found
 by converting the site rather than by reviewing it. The mapper also has to carry
-`is_task`, which is not a column the action changes: the store *routes* on it,
+`is_task`, which is not a column the action changes: the store _routes_ on it,
 so an optimistic row without it moves the row to the other list.
 
 **The duplication had already left the file.** `PortableImportEnv.emit` took a
-partition, a trip id, a table, an id *and* the mutation that already carried the
+partition, a trip id, a table, an id _and_ the mutation that already carried the
 last two — and the FR-18.7 import command, which implements that interface
 outside the browser, had its own copy of the hand-built literal. Invariant 4
-keeps the *rules* single; it does not by itself keep their plumbing single.
+keeps the _rules_ single; it does not by itself keep their plumbing single.
 `emit(partition, tripId, mutation)` is the whole contract now.
 
 **Why the freed ids are the interesting part.** Dropping the redundant
@@ -7175,7 +7187,7 @@ measurement of how far the duplication had spread.
 field lists with nothing checking them for completeness — a new column on a
 domain type has to be added there or every optimistic update silently blanks
 it. Five more mappers were added here rather than fewer, precisely so the next
-pass has *one list* to pin instead of a literal per call site. Pinning them is
+pass has _one list_ to pin instead of a literal per call site. Pinning them is
 its own change.
 
 ## A name rule the system's own names could not pass (2026-08-26)
@@ -7205,7 +7217,7 @@ neither: per-character `Range` rects showed the line laid out contiguously
 (`f@118.3+5.3, ü@123.5`) and the latin-ext font file not even loaded. The gaps
 (also after the „R") are Chromium rounding glyph runs when rasterising under
 the stacked label's `transform: scale(0.75)`. There is no CSS knob for that, so
-the fix is the one M22 already uses for the *same* control: a placeholder input
+the fix is the one M22 already uses for the _same_ control: a placeholder input
 and a labelled button, no scaled floating label. Worth keeping: **when text
 renders broken, measure the layout before blaming the string** — the DOM was
 correct in every inspectable way, and only the rendered pixels carried the
@@ -7218,7 +7230,7 @@ returns to where the gear was tapped" needs a gear to tap. The implementation
 follows G-9, so G-12's sentence described a UI that never shipped. Resolved
 minimally: the gear hides only on M17 itself, where it can only reopen the
 page it is on; G-12's placement bullet now states the reality and points the
-remaining crowding question (M4's cluster *and* gear) at UX-13, where it is an
+remaining crowding question (M4's cluster _and_ gear) at UX-13, where it is an
 open finding rather than a rule.
 
 ## A field nobody had ever written (2026-08-26)
@@ -7240,7 +7252,7 @@ reader will look.
 `null` for every trip that has ever been read on any device. Its one reader is
 AnalyticsPage's FR-14.3 trend heading, `trip?.series_name ?? trip?.name`, so
 the fallback is the only branch that has ever been taken: the heading over a
-series trend names the *trip*, never the series. It is the second field of this
+series trend names the _trip_, never the series. It is the second field of this
 exact shape — `MasterItem.category_name` is the first, documented in the same
 file — and both were found the same way: **a completeness test has to state
 what the seed produces, and a field that cannot be produced is a field nothing
@@ -7251,7 +7263,7 @@ than a line in a builder.
 
 **What defends the builders is a compile error, not a red test**, and this is
 worth restating because it is counter-intuitive in a test file: no runtime
-assertion can catch a *new* column, because a mapper reads a missing column as
+assertion can catch a _new_ column, because a mapper reads a missing column as
 `null` and that is indistinguishable from a column that is genuinely null. The
 `satisfies Record<keyof T, unknown>` on each fixture is the guard — measured by
 adding a field to `Trip` and watching `rowBuilders.spec.ts` stop compiling
@@ -7260,7 +7272,7 @@ that exist: dropping one line from each of the four builders reddens that
 builder's case and no other.
 
 **And the suite that was written to defend the columns was not defending all
-of them.** Mutating *every* column of all nine builders one at a
+of them.** Mutating _every_ column of all nine builders one at a
 time — 66 runs — rather than the four that motivated the change turned up two
 holes, neither of which any assertion could report:
 
@@ -7268,14 +7280,13 @@ holes, neither of which any assertion could report:
   from the mutation, so it is written whether or not the builder carries it.
   `activateTrip` supplies `status`, and `status` is #158's defect exactly — the
   column whose loss makes a trip vanish from M2. The suite named after that
-  defect could not have caught it. The fix is a *second* action per builder,
+  defect could not have caught it. The fix is a _second_ action per builder,
   changing something else; the case list is now `acts[]` and the second entry
   is the one doing the work. Where only one writer exists — `travelerRow`,
   because FR-2.7 forbids re-creating a traveller to rename them — one entry is
   complete, and the case says so rather than leaving the gap silent.
 - **A fixture value equal to the mapper's default is a false green.** `rowToTrip`
-  reads `Number(row['year'] ?? new Date().getFullYear())`, and the seed said
-  2026. Dropping `year` from `tripRow` therefore changed nothing the assertion
+  reads `Number(row['year'] ?? new Date().getFullYear())`, and the seed said 2026. Dropping `year` from `tripRow` therefore changed nothing the assertion
   could see. Seeding 2025 makes the default differ from the fixture. The
   general form: **never seed a column with the value its mapper falls back to**
   — the test then passes through the fallback and reports nothing.
@@ -7302,7 +7313,7 @@ Three things the diff does not say.
 **The seam is asserted, not assumed.** The container actions were already
 covered — `containerActions.spec.ts` drives them through the real orchestrator,
 and it stayed green through the move, which is exactly why it proves nothing
-about the extraction. What the split is *for* is that a group can be
+about the extraction. What the split is _for_ is that a group can be
 constructed without `fetch`, a WebSocket, an outbox or the other 129 functions,
 and only a test that does so can show it. `sync/__tests__/containers.seam.spec.ts`
 builds the group on a hand-written context whose `enqueueAndDrain` is a
@@ -7343,7 +7354,7 @@ blanked columns" are different claims and only the first one is true.
 **`commentRow` does not fit the shared shape, and the reason is the finding.**
 Its one writer is `flagCommentAsTask`, which promotes the row from comment to
 todo — the store moves it between two maps, so it cannot be read back as the
-entity the seed produced. The case reads the *todo* instead and asserts every
+entity the seed produced. The case reads the _todo_ instead and asserts every
 column `ItemTodo` names survived the promotion. Two of the builder's columns
 stay unreachable, both structurally:
 
@@ -7351,7 +7362,7 @@ stay unreachable, both structurally:
   no client surface can show the timestamp at all. It is in `commentRow`
   because PR #204 found it missing, and the `satisfies` is what keeps it there.
 - `is_task: 0`, because the only writer overrides it with 1. `todoRow`'s
-  `is_task: 1` *is* defended — resolve and reopen both rebuild a row that has
+  `is_task: 1` _is_ defended — resolve and reopen both rebuild a row that has
   to stay a task. **A hard-coded column is only as defended as the writer that
   contradicts it.**
 
@@ -7376,7 +7387,7 @@ is far more likely to be measuring itself than the code**, and it is
 indistinguishable from a catastrophic finding until you check. Prove the
 harness can see a known-red run before trusting any of its greens — the same
 positive-signal rule the project already applies to tests that assert
-something did *not* happen.
+something did _not_ happen.
 
 ## Three more groups leave, and the context stops being free (2026-08-27)
 
@@ -7390,7 +7401,7 @@ Three things the diff does not say.
 
 **Comments and todos are one group because they are one table.** The obvious
 cut is by feature — FR-7.1 comments here, FR-7.3 todos there — and it is the
-wrong one: a todo *is* a comment with `is_task = 1`, `flagCommentAsTask` carries
+wrong one: a todo _is_ a comment with `is_task = 1`, `flagCommentAsTask` carries
 a row from one to the other, and the store moves it between two maps when it
 does. Splitting them would have put the two halves of one promotion in two
 files and left neither able to test it. The seam spec reads the promoted row
@@ -7398,7 +7409,7 @@ back through `getItemTodos`, which only works because both writers are in
 front of it.
 
 **Growing the context is not free, and that is the useful part.** Adding
-`masterStore` and `names` to `SyncContext` broke the *existing* container seam
+`masterStore` and `names` to `SyncContext` broke the _existing_ container seam
 spec at compile time — it hand-builds a context, and a hand-built context has
 to grow with the type. That is the design working: the alternative, a context
 declared up front with every field the orchestrator might one day pass, would
@@ -7406,7 +7417,7 @@ have made this edit invisible and left nobody able to prune a field later. The
 cost is paid once per growth, in one place: `sync/__tests__/seamContext.ts`
 builds the context for all four seam specs, so a new field is one TS2739 there
 rather than a silently half-built context in four files. A helper that
-*defaulted* the new field would have removed the warning and the point with it.
+_defaulted_ the new field would have removed the warning and the point with it.
 
 **The name guards moved because two groups need them, not because they fit.**
 `seriesNameCollision` went with the series group's callers; `templateNameCollision`
@@ -7423,6 +7434,47 @@ instance-wide, so no single group owns the question.
 Nine mutations, each dropped one at a time and each red: both refusal guards,
 `ensureDestinationProfile`'s create-once, the master-partition routing, and the
 five whole-row optimistic paints. The `default_attributes` fixture is the wire's
-JSON *text*, not the domain object — `rowToSeries` parses and `seriesRow`
+JSON _text_, not the domain object — `rowToSeries` parses and `seriesRow`
 stringifies, and a fixture in the domain's shape throws inside the store rather
 than failing an assertion.
+
+## The first group that has to know which mode it is in (2026-08-27)
+
+R-4's third cut: master data — tags (FR-24.1/24.2), master items and Vorlagen
+(FR-24.3, FR-27.1, FR-28.8) — leaves `useSyncOrchestrator`, which drops from
+2,714 to 2,396 lines. The moves are verbatim; the facade's return shape is
+unchanged; fifteen seam cases construct the group with no `fetch`, no
+WebSocket, no outbox and no orchestrator, and eleven mutations were dropped one
+at a time and every one of them turned the spec red.
+
+**Tags, items and Vorlagen are one group because FR-24.3 is one rule asked
+twice.** The obvious cut is three modules along three tables. It is wrong here:
+the reference count, the deletion outlook and the restore verdict are written
+once and answered for both an item and a Vorlage, and `outlookOf` is the same
+four lines for either. Splitting them puts one rule in two files, and the second
+copy is the one that drifts.
+
+**The item _photo_ deliberately stayed behind.** It is the same table, and the
+last cut's own lesson was that one table is one group — but ADR-002 draws a line
+straight through `items`: the bytes never enter the sync envelope, so
+`setItemImage` and its two siblings queue no mutation at all. They need the API
+client, the device store, the pull router and a drain; the twenty-two actions
+that moved need a queue. Taking them along would have meant handing the group
+the whole transport to carry three functions that share nothing with it but the
+row they paint.
+
+**This is the first group whose behaviour depends on the mode**, and that is
+what `SyncContext` grew for: `local` decides whether a reference count of zero
+is a fact or a guess (ADR-032). It is not a boolean, because the field the image
+trio will want later is the store itself, and a group asks it only whether it
+exists. The seam factory therefore takes it as an option and defaults it to
+null — Server Mode — so a spec that wants the other answer passes an empty
+stand-in rather than building a second context by hand.
+
+**The guard that ADR-032 recorded as an accepted cost paid for itself.** The
+extraction was green, typed and linted, and `masterListFiltering.spec.ts` failed
+anyway: `masterItemDeletionOutlook` reads the _complete_ `templateList`, and the
+allowlist that permits that read is keyed by file path, so moving the read
+moved it out from under its classification. Nothing else would have caught it —
+no rendered test sees which list a composable reads. It cost one line and a
+reason, which is exactly what that enumeration exists to charge.

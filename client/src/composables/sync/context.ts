@@ -12,6 +12,7 @@ import type { useMutations } from '../useMutations'
 import type { useTripStore } from '@/stores/tripStore'
 import type { useMasterStore } from '@/stores/masterStore'
 import type { NameGuards } from './names'
+import type { IndexedDBPersistence } from '@/local/persistence'
 
 /** One queued write: the mutation itself plus the row it optimistically paints. */
 export interface QueuedMutation {
@@ -36,4 +37,10 @@ export interface SyncContext {
   mutations: ReturnType<typeof useMutations>
   enqueueAndDrain: EnqueueAndDrain
   names: NameGuards
+  /**
+   * The device's own store in Local Mode, null wherever a server answers.
+   * A group reads it to know whether what this device holds is the whole
+   * picture — FR-24.3's reference count is exact only where it is (ADR-032).
+   */
+  local: IndexedDBPersistence | null
 }

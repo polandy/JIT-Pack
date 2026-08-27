@@ -11,14 +11,6 @@
 
 import { API } from '@/api/routes'
 import { TABLE } from '@/types/tables'
-import {
-  DELETION_RETIRE,
-  RETIRED_FIELD,
-  countItemReferences,
-  countTemplateReferences,
-  deletionKind,
-  type DeletionKind,
-} from '@/domain/masterDeletion'
 import { computed, reactive, ref, shallowRef } from 'vue'
 
 import { APIClient, type TokenProvider } from '@/api/client'
@@ -38,8 +30,6 @@ import {
   itemRow,
   masterItemRow,
   memberRow,
-  templateItemRow,
-  templateRow,
   travelerRow,
   tripRow,
 } from './sync/rows'
@@ -47,7 +37,11 @@ import { createContainerActions } from './sync/actions/containers'
 import { createCommentActions } from './sync/actions/comments'
 import { createDependencyActions } from './sync/actions/dependencies'
 import { createSeriesActions } from './sync/actions/series'
-import { createNameGuards, isTakenRename } from './sync/names'
+import { createMasterDataActions } from './sync/actions/masterData'
+// The screens read this module rather than the group, so the type keeps its
+// public home even though FR-24.3's rules moved.
+export type { DeletionOutlook } from './sync/actions/masterData'
+import { createNameGuards } from './sync/names'
 import type { QueuedMutation, SyncContext } from './sync/context'
 import { useWebSocket } from './useWebSocket'
 import { CLIENT_ACTOR_PLACEHOLDER, useMutations } from './useMutations'
@@ -82,12 +76,6 @@ import {
 } from '@/domain/refresh'
 import { followsGroups } from '@/domain/trips'
 import { foldName } from '@/domain/nameCollision'
-import {
-  RESTORE_READY,
-  restoreFields,
-  restoreVerdict,
-  type RestoreVerdict,
-} from '@/domain/masterRestore'
 import { planGroupAddition, type GroupAdditionReport } from '@/domain/groupAdd'
 import { optimizeItemImage } from '@/lib/imageResize'
 import type { ImportPlan } from '@/domain/spreadsheet'
@@ -109,26 +97,12 @@ import type {
   MasterItem,
   ReviewFlag,
   ShoppingMode,
-  Template,
-  TemplateKind,
-  TemplateItem,
   Trip,
   TripItem,
   TripMember,
   TripStatus,
   TravelerChangeReport,
 } from '@/types/domain'
-
-/**
- * FR-24.3: what a delete of one master row will do, as far as this device can
- * tell. `certain` is false exactly where the count may be short — Server Mode,
- * where trip partitions arrive only as trips are opened (ADR-032).
- */
-export interface DeletionOutlook {
-  kind: DeletionKind
-  references: number
-  certain: boolean
-}
 
 /** One entry of a trip's presence facepile (G-10, Sync-API §7). */
 // Both shapes come from the contract now (NFR-4.14). The names are kept as
@@ -683,11 +657,12 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   /** The spine the extracted action groups are bound to (R-4). */
   const names = createNameGuards(masterStore)
-  const ctx: SyncContext = { tripStore, masterStore, mutations, enqueueAndDrain, names }
+  const ctx: SyncContext = { tripStore, masterStore, mutations, enqueueAndDrain, names, local }
   const containerActions = createContainerActions(ctx)
   const commentActions = createCommentActions(ctx)
   const dependencyActions = createDependencyActions(ctx)
   const seriesActions = createSeriesActions(ctx)
+  const masterDataActions = createMasterDataActions(ctx)
 
   /** Pack: increment packed count on a trip item. */
   function packIncrement(tripId: string, item: TripItem) {
@@ -1896,176 +1871,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       .catch(() => {})
   }
 
-  // --- Master data actions (M7–M10; master partition) ---
-
-  /** Create a tag by typing its name (FR-24.1) — there is no tag admin. */
-  function createTag(name: string): string {
-    const { mutation, id } = mutations.createTag(name, masterStore.tagList.length)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
-    return id
-  }
-
-  /** Assign a tag to an item; appended last unless it is the first (FR-24.2). */
-  function assignTag(itemId: string, tagId: string): string {
-    const position = masterStore.getItemTags(itemId).length
-    const { mutation, id } = mutations.assignTag(itemId, tagId, position)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
-    return id
-  }
-
-  function unassignTag(assignmentId: string): void {
-    const mutation = mutations.unassignTag(assignmentId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticDelete(mutation),
-    })
-  }
-
-  function createMasterItem(
-    name: string,
-    opts: Parameters<typeof mutations.createMasterItem>[1] = {},
-  ): string {
-    const { mutation, id } = mutations.createMasterItem(name, opts)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
-    return id
-  }
-
-  function updateMasterItem(item: MasterItem, fields: Record<string, unknown>) {
-    const mutation = mutations.updateMasterItem(item.id, fields)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, masterItemRow(item)),
-    })
-  }
-
-  /**
-   * FR-24.3: what deleting this master item will do, and whether this device
-   * can be sure of it. A count of zero is only certain where the device holds
-   * every trip — Local Mode. In Server Mode the trip partitions arrive as
-   * trips are opened, so "nothing references it" means "nothing I have seen",
-   * and the server may still answer the delete by retiring the row (ADR-032).
-   */
-  function masterItemDeletionOutlook(itemId: string): DeletionOutlook {
-    const references = countItemReferences(itemId, {
-      positions: masterStore.templateList.flatMap((t) => masterStore.getTemplateItems(t.id)),
-      tripItems: knownTripItems(),
-    })
-    return outlookOf(references)
-  }
-
-  /** FR-24.3 for a Vorlage: the trip rows that still name it (FR-9.2). */
-  function templateDeletionOutlook(templateId: string): DeletionOutlook {
-    return outlookOf(countTemplateReferences(templateId, { tripItems: knownTripItems() }))
-  }
-
-  function outlookOf(references: number): DeletionOutlook {
-    const kind = deletionKind(references)
-    return { kind, references, certain: kind === DELETION_RETIRE || local !== null }
-  }
-
-  /** Every trip row this device holds. Complete in Local Mode only. */
-  function knownTripItems(): TripItem[] {
-    return tripStore.tripList.flatMap((t) => tripStore.getItems(t.id))
-  }
-
-  /**
-   * FR-24.3: a delete is one of two acts. A master item something resolves
-   * against is retired — the row stays and stops being offered — and one
-   * nothing has ever used is removed. The server decides the same thing over
-   * the complete picture and corrects this device through the next pull, so
-   * a short count here costs a wrong sentence, never a wrong row.
-   */
-  function deleteMasterItem(itemId: string) {
-    const item = masterStore.getItem(itemId)
-    if (item && masterItemDeletionOutlook(itemId).kind === DELETION_RETIRE) {
-      const retire = mutations.updateMasterItem(itemId, {
-        [RETIRED_FIELD]: new Date().toISOString(),
-      })
-      enqueueAndDrain('master', null, {
-        mutation: retire,
-        optimistic: optimisticUpdate(retire, masterItemRow(item)),
-      })
-      return
-    }
-    const mutation = mutations.deleteMasterItem(itemId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticDelete(mutation),
-    })
-  }
-
-  /**
-   * FR-24.3's restore, for a master item. The marker is an ordinary field,
-   * so bringing the row back is one mutation — but the *name* is not free:
-   * retiring released it (the unique indexes are partial over the active
-   * rows), so an active row may hold it by now. That is checked here, over
-   * the complete master partition every device holds, and it is the one
-   * FR-24.3 question the client can answer exactly in all three modes.
-   */
-  function masterItemRestoreVerdict(
-    itemId: string,
-    proposedName?: string,
-  ): RestoreVerdict<MasterItem> | null {
-    const item = masterStore.getItem(itemId)
-    if (!item) return null
-    return restoreVerdict(item, masterStore.activeItemList, proposedName)
-  }
-
-  /** The same for a Vorlage — `templates.name` is UNIQUE across both scopes. */
-  function templateRestoreVerdict(
-    templateId: string,
-    proposedName?: string,
-  ): RestoreVerdict<Template> | null {
-    const template = masterStore.getTemplate(templateId)
-    if (!template) return null
-    return restoreVerdict(template, masterStore.activeTemplateList, proposedName)
-  }
-
-  /**
-   * restoreMasterItem clears FR-24.3's marker, optionally under a new name
-   * when the old one was taken while the row was hidden. Returns false when
-   * the name it would write is still taken — refused *before* the outbox, so
-   * the user meets a sentence instead of an optimistic row that reverses
-   * itself when the push is rejected (ADR-031).
-   */
-  function restoreMasterItem(itemId: string, name?: string): boolean {
-    const item = masterStore.getItem(itemId)
-    if (!item) return false
-    const verdict = restoreVerdict(item, masterStore.activeItemList, name)
-    if (verdict.kind !== RESTORE_READY) return false
-    const fields = restoreFields(name === undefined ? null : verdict.name)
-    const mutation = mutations.updateMasterItem(itemId, fields)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, masterItemRow(item)),
-    })
-    return true
-  }
-
-  /** restoreTemplate is restoreMasterItem for a Vorlage (FR-24.3). */
-  function restoreTemplate(templateId: string, name?: string): boolean {
-    const template = masterStore.getTemplate(templateId)
-    if (!template) return false
-    const verdict = restoreVerdict(template, masterStore.activeTemplateList, name)
-    if (verdict.kind !== RESTORE_READY) return false
-    const fields = restoreFields(name === undefined ? null : verdict.name)
-    const mutation = mutations.updateTemplate(templateId, fields)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, templateRow(template)),
-    })
-    return true
-  }
-
   /**
    * setItemImage attaches or replaces an item's reference photo (FR-22.1/
    * 22.5). The source is optimized on-device first (FR-22.2/22.3), then in
@@ -2114,128 +1919,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       return blob ? URL.createObjectURL(blob) : null
     }
     return `${config.baseUrl}${API.itemImage(item.id)}?v=${item.image_hash}`
-  }
-
-  /** createTemplate makes a new template. Templates are shared
-   * instance-wide (FR-1.6 MVP), so owner_id is creator metadata only; it is
-   * stamped server-side on push and the optimistic row leaves it empty.
-   * Returns the new id so the caller can open M8.
-   *
-   * The scope is chosen at creation and never derived from usage (FR-27.1):
-   * a group nothing includes yet would otherwise be unclassifiable. */
-  function createTemplate(
-    name: string,
-    kind: TemplateKind = 'template',
-    /** FR-28.8: the optional mark, set at creation by the seed and the import. */
-    icon: string | null = null,
-  ): string | null {
-    if (names.templateNameCollision(name)) return null
-    const { mutation, id } = mutations.createTemplate(name, '', kind, icon)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
-    return id
-  }
-
-  function updateTemplate(template: Template, fields: Record<string, unknown>): boolean {
-    if (isTakenRename(fields, template.id, names.templateNameCollision)) return false
-    const mutation = mutations.updateTemplate(template.id, fields)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, templateRow(template)),
-    })
-    return true
-  }
-
-  function addTemplateItem(
-    templateId: string,
-    itemId: string,
-    opts: Parameters<typeof mutations.addTemplateItem>[2] = {},
-  ): string {
-    const { mutation, id } = mutations.addTemplateItem(templateId, itemId, opts)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
-    return id
-  }
-
-  function updateTemplateItem(templateItem: TemplateItem, fields: Record<string, unknown>) {
-    const mutation = mutations.updateTemplateItem(templateItem.id, fields)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticUpdate(mutation, templateItemRow(templateItem)),
-    })
-  }
-
-  function deleteTemplateItem(templateItemId: string) {
-    const mutation = mutations.deleteTemplateItem(templateItemId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticDelete(mutation),
-    })
-  }
-
-  /**
-   * deleteTemplate applies FR-24.3 to a Vorlage: a group a trip was generated
-   * from is retired rather than removed, because FR-9.2 keeps those rows
-   * naming their source for the life of the archived trip. Otherwise the row
-   * goes and the store mirrors the cascades.
-   */
-  function deleteTemplate(templateId: string) {
-    const template = masterStore.getTemplate(templateId)
-    if (template && templateDeletionOutlook(templateId).kind === DELETION_RETIRE) {
-      const retire = mutations.updateTemplate(templateId, {
-        [RETIRED_FIELD]: new Date().toISOString(),
-      })
-      enqueueAndDrain('master', null, {
-        mutation: retire,
-        optimistic: optimisticUpdate(retire, templateRow(template)),
-      })
-      return
-    }
-    const mutation = mutations.deleteTemplate(templateId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticDelete(mutation),
-    })
-  }
-
-  /** addTemplateInclude references a Gruppe from a Ferien-Vorlage (FR-27.1). */
-  function addTemplateInclude(templateId: string, includedTemplateId: string): string {
-    const { mutation, id } = mutations.addTemplateInclude(templateId, includedTemplateId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
-    return id
-  }
-
-  function removeTemplateInclude(includeId: string) {
-    const mutation = mutations.removeTemplateInclude(includeId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticDelete(mutation),
-    })
-  }
-
-  /** addTemplateItemTask attaches one FR-27.7 preparation task to a position. */
-  function addTemplateItemTask(templateItemId: string, task: string): string {
-    const { mutation, id } = mutations.addTemplateItemTask(templateItemId, task)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticInsert(mutation),
-    })
-    return id
-  }
-
-  function deleteTemplateItemTask(taskId: string) {
-    const mutation = mutations.deleteTemplateItemTask(taskId)
-    enqueueAndDrain('master', null, {
-      mutation,
-      optimistic: optimisticDelete(mutation),
-    })
   }
 
   /**
@@ -2437,11 +2120,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       const target = masterStore
         .getTemplateItems(groupId)
         .find((ti) => ti.item_id === proposal.itemId)
-      if (target) updateTemplateItem(target, { quantity: 0 })
+      if (target) masterDataActions.updateTemplateItem(target, { quantity: 0 })
       return groupId
     }
-    const itemId = proposal.itemId ?? createMasterItem(proposal.itemName)
-    addTemplateItem(groupId, itemId)
+    const itemId = proposal.itemId ?? masterDataActions.createMasterItem(proposal.itemName)
+    masterDataActions.addTemplateItem(groupId, itemId)
     return groupId
   }
 
@@ -2502,7 +2185,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     // 1. The master items the ad-hoc names had no counterpart for (FR-9.2).
     const invented = new Map<string, string>()
-    for (const name of writes.newMasterItems) invented.set(name, createMasterItem(name))
+    for (const name of writes.newMasterItems)
+      invented.set(name, masterDataActions.createMasterItem(name))
     const itemIdOf = (p: PositionDraft) => p.itemId ?? invented.get(p.name)
 
     // A trip row is one thing somebody packed, not a per-head rule — the
@@ -2511,7 +2195,8 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const write = (templateId: string, positions: PositionDraft[]) => {
       for (const p of positions) {
         const itemId = itemIdOf(p)
-        if (itemId) addTemplateItem(templateId, itemId, { assignment: 'trip_global' })
+        if (itemId)
+          masterDataActions.addTemplateItem(templateId, itemId, { assignment: 'trip_global' })
       }
     }
 
@@ -2521,17 +2206,17 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // 3. The optional bundle group, included like any other.
     const includeIds = [...writes.template.includeGroupIds]
     if (writes.newGroup) {
-      const groupId = createTemplate(writes.newGroup.name, 'group')
+      const groupId = masterDataActions.createTemplate(writes.newGroup.name, 'group')
       if (groupId === null) return null
       write(groupId, writes.newGroup.positions)
       includeIds.push(groupId)
     }
 
     // 4. The composed Ferien-Vorlage itself.
-    const templateId = createTemplate(writes.template.name, 'template')
+    const templateId = masterDataActions.createTemplate(writes.template.name, 'template')
     if (templateId === null) return null
     write(templateId, writes.template.positions)
-    for (const groupId of includeIds) addTemplateInclude(templateId, groupId)
+    for (const groupId of includeIds) masterDataActions.addTemplateInclude(templateId, groupId)
 
     return templateId
   }
@@ -2636,33 +2321,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     packedRowsOf,
 
     // Master data
-    createMasterItem,
-    createTag,
-    assignTag,
-    unassignTag,
-    updateMasterItem,
-    deleteMasterItem,
-    masterItemDeletionOutlook,
-    templateDeletionOutlook,
-    masterItemRestoreVerdict,
-    templateRestoreVerdict,
-    restoreMasterItem,
-    restoreTemplate,
     setItemImage,
     deleteItemImage,
     itemImageUrl,
-    createTemplate,
     templateNameCollision: names.templateNameCollision,
     seriesNameCollision: names.seriesNameCollision,
-    updateTemplate,
-    deleteTemplate,
-    addTemplateInclude,
-    removeTemplateInclude,
-    addTemplateItemTask,
-    deleteTemplateItemTask,
-    addTemplateItem,
-    updateTemplateItem,
-    deleteTemplateItem,
     ...dependencyActions,
 
     // Comments and todos (FR-7.1/7.2/7.3)
@@ -2679,6 +2342,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
     // Series & destinations (FR-13.1/13.2, M16)
     ...seriesActions,
+    ...masterDataActions,
 
     // Profile & data (M17)
     fetchMe,

@@ -9,6 +9,7 @@
  */
 import { createNameGuards } from '../names'
 import type { QueuedMutation, SyncContext } from '../context'
+import type { IndexedDBPersistence } from '@/local/persistence'
 import { useMutations } from '@/composables/useMutations'
 import { HLCGenerator } from '@/sync/hlc'
 import { useMasterStore } from '@/stores/masterStore'
@@ -24,8 +25,15 @@ export interface Recorded {
 /**
  * makeSeamContext builds the context and the log its `enqueueAndDrain`
  * writes to. Pinia must already be active.
+ *
+ * `local` decides the mode the group is asked in: null is Server Mode, any
+ * store is Local Mode. It is only ever compared against null by the groups,
+ * so a spec that needs Local Mode passes an empty stand-in.
  */
-export function makeSeamContext(): { ctx: SyncContext; queued: Recorded[] } {
+export function makeSeamContext(opts: { local?: IndexedDBPersistence | null } = {}): {
+  ctx: SyncContext
+  queued: Recorded[]
+} {
   const queued: Recorded[] = []
   const masterStore = useMasterStore()
   const ctx: SyncContext = {
@@ -36,6 +44,7 @@ export function makeSeamContext(): { ctx: SyncContext; queued: Recorded[] } {
       queued.push({ type, id, muts })
     },
     names: createNameGuards(masterStore),
+    local: opts.local ?? null,
   }
   return { ctx, queued }
 }
