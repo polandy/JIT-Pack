@@ -43,4 +43,16 @@ export interface SyncContext {
    * picture — FR-24.3's reference count is exact only where it is (ADR-032).
    */
   local: IndexedDBPersistence | null
+  /**
+   * Today, as the device reckons it. Injected rather than read from the
+   * clock so a group that decides by date — FR-27.4 only offers a group's
+   * changes to a trip that has not started — is testable without one.
+   */
+  today: () => string
+  /**
+   * Whether this trip's own rows are on the device. The guard that keeps a
+   * group from reading "not pulled yet" as "empty trip" (ADR-016), which is
+   * the one way a refresh could duplicate the list it exists to keep right.
+   */
+  tripDataLoaded: (tripId: string) => boolean
 }
