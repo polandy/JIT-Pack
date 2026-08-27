@@ -177,6 +177,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Three more groups leave, and the context stops being free (2026-08-27)](#three-more-groups-leave-and-the-context-stops-being-free-2026-08-27) — R-4's second cut: comments/todos, item dependencies, series/destinations and the shared name guards. Three things the code cannot show: why comments and todos are one group and not two, that growing `SyncContext` broke the existing seam spec at compile time and that this is the design working rather than a cost, and why the name guards are shared context rather than one group's private helper.
 - [The first group that has to know which mode it is in (2026-08-27)](#the-first-group-that-has-to-know-which-mode-it-is-in-2026-08-27) — R-4's third cut: tags, master items and Vorlagen. Why FR-24.3 makes those three one group, why the item photo stayed behind despite sharing the table, what `SyncContext` grew a `local` field for, and the allowlist that caught a moved read nothing else could see.
 - [The seam's queue started applying what it was handed (2026-08-27)](#the-seams-queue-started-applying-what-it-was-handed-2026-08-27) — R-4's fourth cut: the packing group. Why G-3's claim stayed behind, the test double that had to start applying optimistic changes before a two-write group could be tested at all, and the sweep mutation that stayed green because the case only ever passed one of M6's two lists.
+- [A group that needed another group (2026-08-27)](#a-group-that-needed-another-group-2026-08-27) — R-4's fifth cut: the FR-27.4 refresh. The first group edge — passed as an argument rather than added to the spine — the two seams the context grew instead of a closure, an alias that turned out to be its own import, and a guard that no test can hold because the domain already applies it.
 
 ## Current state
 
@@ -7515,3 +7516,55 @@ because the case only ever passed `'buy_local'`. M6 has two lists; a case that
 exercises one of them cannot tell an argument from a constant. The case now
 passes `'buy_before'`, and the mutation is red. Twelve of thirteen had been
 red on the first run, which is precisely why the thirteenth was worth having.
+## A group that needed another group (2026-08-27)
+
+R-4's fifth cut moves the FR-27.4 group refresh out of `useSyncOrchestrator`
+into `composables/sync/actions/groupRefresh.ts`: derive, propose, accept,
+decline, the sweep after a master pull, and the `proposals` state itself. The
+orchestrator drops from 2,091 to 1,876 lines.
+
+**It is the first group that depends on another one.** FR-27.7's preparation
+tasks arrive on a refreshed position as ordinary FR-7.3 prep todos, which the
+comment group already writes. The choice was to put `addPrepTodo` on
+`SyncContext` — where every group would then see it — or to pass the comment
+group in beside the context. It is the second: `createGroupRefreshActions(ctx,
+commentActions)`. The spine is what a group needs to *reach* the system; an
+edge to a named group is a fact about these two groups, and hiding it in a
+field shared by all of them would make it invisible at the one place worth
+seeing it, the wiring.
+
+**The context grew by two, and both are seams rather than data.** `today` and
+`tripDataLoaded` were closure functions the refresh read for free. `today` was
+already an injected clock at the orchestrator's boundary, so moving it into
+the context only carries an existing seam one level down. `tripDataLoaded` is
+ADR-016's guard — "not pulled yet" must never read as "empty trip" — and a
+predicate is exactly the shape a group should receive rather than reconstruct:
+the group has no business knowing that Local Mode answers it with a hydration
+flag and Server Mode with a set of loaded partitions.
+
+**`change` and `tombstone` were their own imports wearing a closure.** Both
+were declared under the refresh's header and used across the file, and both
+turned out to be exact aliases of `localChange`/`localTombstone` from
+`sync/optimistic.ts` — the extra `| null` in the parameter type was the only
+difference, and no caller passed one. Rather than duplicating a six-line alias
+into the new module or leaving a shadow behind, the aliases are gone and the
+thirteen call sites name the import. The doc comment they carried said what
+`optimistic.ts`'s own header already says.
+
+**One mutation in the sweep is green on purpose, and it is written down where
+it happens.** `proposeRefreshForLoadedTrips` skips a trip whose groups it no
+longer follows; removing that check changes no outcome, because `planRefresh`
+asks `followsGroups` itself and returns an empty plan. The guard is a cost
+short-circuit — it avoids re-resolving every archived trip on the device after
+every master pull — and no test can hold it, so the code now says so. Eight of
+the nine mutations were red; a green one that is honest is worth more than a
+red one arranged for.
+
+The case that was worth rewriting is the other end of the same block. The
+first version asserted that a plan proposing nothing writes nothing, which is
+true and proves nothing: the branch it was aimed at only writes when the
+ledger is *behind*. It now seeds a position already on the trip that no ledger
+entry knows about — a row added by hand, or one whose entry never arrived —
+and asserts that exactly one write goes out, the bookkeeping one, with no
+question asked. That is the whole of what `proposeTripRefresh` is allowed to
+do without an answer.

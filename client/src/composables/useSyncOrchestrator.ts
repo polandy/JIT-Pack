@@ -11,7 +11,7 @@
 
 import { API } from '@/api/routes'
 import { TABLE } from '@/types/tables'
-import { computed, reactive, ref, shallowRef } from 'vue'
+import { reactive, ref } from 'vue'
 
 import { APIClient, type TokenProvider } from '@/api/client'
 import { loadTokens, subjectOf } from '@/auth/tokens'
@@ -39,6 +39,7 @@ import { createDependencyActions } from './sync/actions/dependencies'
 import { createSeriesActions } from './sync/actions/series'
 import { createMasterDataActions } from './sync/actions/masterData'
 import { createPackingActions } from './sync/actions/packing'
+import { createGroupRefreshActions } from './sync/actions/groupRefresh'
 // The screens read this module rather than the group, so the type keeps its
 // public home even though FR-24.3's rules moved.
 export type { DeletionOutlook } from './sync/actions/masterData'
@@ -67,13 +68,6 @@ import type {
 } from '@/api/types'
 import { durationDays, type GeneratedItem } from '@/domain/instantiate'
 import { planClone, type CloneOptions } from '@/domain/clone'
-import {
-  declinePlan,
-  isEmptyPlan,
-  planRefresh,
-  proposedChangeCount,
-  type RefreshPlan,
-} from '@/domain/refresh'
 import { followsGroups } from '@/domain/trips'
 import { foldName } from '@/domain/nameCollision'
 import { planGroupAddition, type GroupAdditionReport } from '@/domain/groupAdd'
@@ -614,7 +608,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       // the trips that follow it work out what it would mean for them here —
       // the device does not have to be on any particular screen. Local Mode
       // returns above, and App.vue sweeps once after its hydration instead.
-      proposeRefreshForLoadedTrips()
+      groupRefreshActions.proposeRefreshForLoadedTrips()
     } catch {
       syncStatus.setOffline()
     }
@@ -655,13 +649,23 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   /** The spine the extracted action groups are bound to (R-4). */
   const names = createNameGuards(masterStore)
-  const ctx: SyncContext = { tripStore, masterStore, mutations, enqueueAndDrain, names, local }
+  const ctx: SyncContext = {
+    tripStore,
+    masterStore,
+    mutations,
+    enqueueAndDrain,
+    names,
+    local,
+    today,
+    tripDataLoaded,
+  }
   const containerActions = createContainerActions(ctx)
   const commentActions = createCommentActions(ctx)
   const dependencyActions = createDependencyActions(ctx)
   const seriesActions = createSeriesActions(ctx)
   const masterDataActions = createMasterDataActions(ctx)
   const packingActions = createPackingActions(ctx)
+  const groupRefreshActions = createGroupRefreshActions(ctx, commentActions)
 
   /** Claim an item for packing (FR-5.2); locks it for others (G-3). */
   function packingNow(tripId: string, item: TripItem) {
@@ -732,211 +736,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       mutation: mut,
       optimistic: optimisticUpdate(mut, itemRow(item)),
     })
-  }
-
-  // --- The group refresh (FR-27.4) ---
-
-  /**
-   * The optimistic PullChange for a write — applied before the push lands.
-   *
-   * `fields` must be the **whole** row, not the mutation's fields: a store
-   * applies a change by replacing the row it has, so a column left out here
-   * is blanked until a pull puts it back — and in Local Mode no pull ever
-   * comes. For an update of an existing row that means spreading the row
-   * helper first (`{ ...tripRow(trip), ...mutation.fields }`); only an insert
-   * may pass `mutation.fields` alone, because there the two are the same.
-   */
-  function change(
-    table: string,
-    id: string,
-    fields: Record<string, unknown> | null | undefined,
-  ): PullChange {
-    return localChange(table, id, (fields ?? {}) as Record<string, unknown>)
-  }
-
-  function tombstone(table: string, id: string): PullChange {
-    return localTombstone(table, id)
-  }
-
-  /**
-   * The open questions, by trip id (FR-27.4). Derived state, deliberately
-   * not synced: a proposal is a diff between rows that are already synced,
-   * so every device computes the same one and none of them has to agree
-   * with the others about a pending decision.
-   */
-  // shallowRef, not ref: a plan is replaced wholesale and never edited in
-  // place, and deep reactivity over a diff of every changed row would be paid
-  // for on every trip open.
-  const proposals = shallowRef<Record<string, RefreshPlan>>({})
-  const refreshProposals = computed(() => proposals.value)
-
-  /**
-   * proposeTripRefresh re-resolves one trip against the groups it follows
-   * and *offers* what moved (FR-27.4). It runs on every trip open and after
-   * every master pull, so the empty plan is the normal case and must cost
-   * nothing.
-   *
-   * Nothing on the trip is written here — that is the whole point of the
-   * split: the owner's rule (2026-08-18) is that a group change reaches a
-   * trip by being asked about, and the question is asked at the trip. What
-   * this *does* write, immediately and silently, is the bookkeeping half of
-   * a plan that proposes nothing: adopting a hand-added row into the ledger
-   * changes nothing the user could answer a question about, and leaving it
-   * unwritten would re-derive it on every open forever.
-   *
-   * Returns the plan, so a caller (and a test) can read what is on offer
-   * rather than infer it from the resulting rows.
-   */
-  function proposeTripRefresh(tripId: string): RefreshPlan | null {
-    const plan = deriveTripRefresh(tripId)
-    if (!plan) return null
-    if (proposedChangeCount(plan) === 0) {
-      applyRefreshPlan(tripId, plan)
-      clearProposal(tripId)
-      return plan
-    }
-    proposals.value = { ...proposals.value, [tripId]: plan }
-    return plan
-  }
-
-  /**
-   * acceptTripRefresh is the answer "yes": the trip takes the changes over
-   * and M2's log records them.
-   *
-   * It re-derives rather than applying the plan it was shown. The group may
-   * have moved again between the question and the answer — on this device or
-   * another one — and applying the fresher diff is both simpler to reason
-   * about than reconciling two plans and closer to what the user meant.
-   */
-  function acceptTripRefresh(tripId: string): RefreshPlan | null {
-    const plan = deriveTripRefresh(tripId)
-    if (!plan) return null
-    applyRefreshPlan(tripId, plan)
-    clearProposal(tripId)
-    return plan
-  }
-
-  /**
-   * declineTripRefresh is the answer "no": the trip keeps what it has and
-   * the refused positions stop following the group (see declinePlan).
-   */
-  function declineTripRefresh(tripId: string): RefreshPlan | null {
-    const plan = deriveTripRefresh(tripId)
-    if (!plan) return null
-    const declined = declinePlan(plan)
-    applyRefreshPlan(tripId, declined)
-    clearProposal(tripId)
-    return declined
-  }
-
-  function clearProposal(tripId: string): void {
-    if (!(tripId in proposals.value)) return
-    const next = { ...proposals.value }
-    delete next[tripId]
-    proposals.value = next
-  }
-
-  /** The diff, derived and never applied. Null when the trip cannot be seen. */
-  function deriveTripRefresh(tripId: string): RefreshPlan | null {
-    const trip = tripStore.getTrip(tripId)
-    if (!trip) return null
-    if (!tripDataLoaded(tripId)) return null
-
-    return planRefresh({
-      trip,
-      sources: tripStore.getTemplateSources(tripId),
-      templates: masterStore.templateList,
-      includes: masterStore.includeList,
-      templateItems: [...masterStore.templateList].flatMap((t) =>
-        masterStore.getTemplateItems(t.id),
-      ),
-      templateItemTasks: masterStore.templateItemTaskList,
-      masterItems: masterStore.itemList,
-      travelers: tripStore.getTravelers(tripId),
-      items: tripStore.getItems(tripId),
-      todos: tripStore.getTodos(tripId),
-      ledger: tripStore.getGeneratedPositions(tripId),
-      today: today(),
-    })
-  }
-
-  /** Writes a plan out — every half of it, in dependency order. */
-  function applyRefreshPlan(tripId: string, plan: RefreshPlan): void {
-    if (isEmptyPlan(plan)) return
-
-    for (const add of plan.add) {
-      const travelerId = add.traveler_id
-      const { mutation, id } = mutations.addGeneratedTripItem(
-        tripId,
-        add.generated,
-        travelerId,
-        add.trip_item_id,
-      )
-      enqueueAndDrain('trip', tripId, {
-        mutation,
-        optimistic: change(TABLE.tripItems, id, mutation.fields),
-      })
-      // FR-27.7: the position's tasks arrive as ordinary prep todos, the
-      // same shape generation writes — enqueued after the row they hang
-      // off, or the server rejects the foreign key.
-      for (const body of add.generated.tasks) {
-        commentActions.addPrepTodo(tripId, id, CLIENT_ACTOR_PLACEHOLDER, body)
-      }
-    }
-
-    for (const update of plan.update) {
-      if (Object.keys(update.fields).length > 0) {
-        const mutation = mutations.updateGeneratedTripItem(update.item.id, update.fields)
-        enqueueAndDrain('trip', tripId, {
-          mutation,
-          optimistic: change(TABLE.tripItems, update.item.id, {
-            ...itemRow(update.item),
-            ...mutation.fields,
-          }),
-        })
-      }
-      for (const body of update.addTasks) {
-        commentActions.addPrepTodo(tripId, update.item.id, CLIENT_ACTOR_PLACEHOLDER, body)
-      }
-      for (const todo of update.removeTodos) {
-        enqueueAndDrain('trip', tripId, {
-          mutation: mutations.deleteTodo(todo.id),
-          optimistic: tombstone(TABLE.comments, todo.id),
-        })
-      }
-    }
-
-    for (const removal of plan.remove) {
-      enqueueAndDrain('trip', tripId, {
-        mutation: mutations.deleteTripItem(removal.item.id),
-        optimistic: tombstone(TABLE.tripItems, removal.item.id),
-      })
-    }
-
-    for (const entry of plan.ledgerUpsert) {
-      const mutation = mutations.writeGeneratedPosition(entry)
-      enqueueAndDrain('trip', tripId, {
-        mutation,
-        optimistic: change(TABLE.tripGeneratedPositions, entry.id, mutation.fields),
-      })
-    }
-
-    for (const entryId of plan.ledgerDelete) {
-      enqueueAndDrain('trip', tripId, {
-        mutation: mutations.deleteGeneratedPosition(entryId),
-        optimistic: tombstone(TABLE.tripGeneratedPositions, entryId),
-      })
-    }
-
-    // The log travels the master partition so M2 can render the chip
-    // without this trip's partition being loaded (P-3, migration 023).
-    for (const entry of plan.log) {
-      const { mutation, id } = mutations.logAppliedChange(entry)
-      enqueueAndDrain('master', null, {
-        mutation,
-        optimistic: change(TABLE.tripAppliedChanges, id, mutation.fields),
-      })
-    }
   }
 
   /**
@@ -1023,7 +822,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       )
       enqueueAndDrain('trip', tripId, {
         mutation,
-        optimistic: change(TABLE.tripItems, id, mutation.fields),
+        optimistic: localChange(TABLE.tripItems, id, mutation.fields),
       })
       // FR-27.7 tasks become ordinary FR-7.3 todos, enqueued after the row
       // they hang off — pushed ahead of it, the server rejects the key.
@@ -1047,7 +846,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       const { mutation, id } = mutations.registerTripSource(tripId, templateId)
       enqueueAndDrain('master', null, {
         mutation,
-        optimistic: change(TABLE.tripTemplateSources, id, mutation.fields),
+        optimistic: localChange(TABLE.tripTemplateSources, id, mutation.fields),
       })
     }
 
@@ -1068,7 +867,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mutation = mutations.updateTrip(tripId, fields)
     enqueueAndDrain('master', null, {
       mutation,
-      optimistic: change(TABLE.trips, tripId, { ...tripRow(trip), ...mutation.fields }),
+      optimistic: localChange(TABLE.trips, tripId, { ...tripRow(trip), ...mutation.fields }),
     })
   }
 
@@ -1084,7 +883,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const mutation = mutations.renameTraveler(travelerId, name)
     enqueueAndDrain('trip', tripId, {
       mutation,
-      optimistic: change(TABLE.travelers, travelerId, {
+      optimistic: localChange(TABLE.travelers, travelerId, {
         ...travelerRow(traveler),
         ...mutation.fields,
       }),
@@ -1111,7 +910,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     const { mutation, id } = mutations.addTraveler(tripId, name)
     enqueueAndDrain('trip', tripId, {
       mutation,
-      optimistic: change(TABLE.travelers, id, mutation.fields),
+      optimistic: localChange(TABLE.travelers, id, mutation.fields),
     })
 
     return { travelerId: id, ...applyTravelerConsequences(tripId, trip) }
@@ -1175,7 +974,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
         // just overruled for this person.
         enqueueAndDrain('trip', tripId, {
           mutation: mutations.deleteTripItem(item.id),
-          optimistic: tombstone(TABLE.tripItems, item.id),
+          optimistic: localTombstone(TABLE.tripItems, item.id),
         })
         takenPacked += 1
         continue
@@ -1213,7 +1012,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   ): Omit<TravelerChangeReport, 'travelerId'> {
     if (!followsGroups(trip, today())) return { added: 0, removed: 0, kept: 0 }
     const before = tripStore.getItems(tripId).length
-    const plan = acceptTripRefresh(tripId)
+    const plan = groupRefreshActions.acceptTripRefresh(tripId)
     if (!plan) return { added: 0, removed: 0, kept: 0 }
     const after = tripStore.getItems(tripId).length
     return {
@@ -1223,20 +1022,6 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
       // inferred: a row that stays behind after its person left is exactly
       // the thing a user finds later and does not understand.
       kept: Math.max(0, before - after - plan.remove.length) + plan.update.length,
-    }
-  }
-
-  /**
-   * proposeRefreshForLoadedTrips derives a proposal for every trip this
-   * device actually holds. Called after a master pull: a group edited on
-   * another device arrives there, and M2 must be able to say which trips it
-   * concerns before any of them is opened.
-   */
-  function proposeRefreshForLoadedTrips(): void {
-    const now = today()
-    for (const trip of tripStore.tripList) {
-      if (!followsGroups(trip, now)) continue
-      proposeTripRefresh(trip.id)
     }
   }
 
@@ -2015,11 +1800,11 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // reach?" answers with the same date the refresh itself uses — two
     // clocks would let the warning and the behaviour disagree by a day.
     today,
-    proposeTripRefresh,
-    acceptTripRefresh,
-    declineTripRefresh,
-    proposeRefreshForLoadedTrips,
-    refreshProposals,
+    proposeTripRefresh: groupRefreshActions.proposeTripRefresh,
+    acceptTripRefresh: groupRefreshActions.acceptTripRefresh,
+    declineTripRefresh: groupRefreshActions.declineTripRefresh,
+    proposeRefreshForLoadedTrips: groupRefreshActions.proposeRefreshForLoadedTrips,
+    refreshProposals: groupRefreshActions.refreshProposals,
     cloneTrip,
     commitImport,
     commitPortableImport,
