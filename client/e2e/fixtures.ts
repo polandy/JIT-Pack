@@ -82,7 +82,6 @@ export interface TripSeed {
   series?: string
 }
 
-
 /**
  * Sets a DateField (ADR-035): opens its picker sheet, walks the calendar to
  * the target month with the header arrows and confirms the day. Replaces the
@@ -118,11 +117,28 @@ export async function setDateField(page: Page, testid: string, iso: string): Pro
 
   // The working (centre) grid is the navigated month; the neighbours can
   // carry the same day as an adjacent-day cell, so the scope matters.
-  await picker
-    .locator(
-      `.calendar-month:nth-child(2) .calendar-day[data-day="${day}"][data-month="${month}"][data-year="${year}"]`,
-    )
-    .click()
+  const cell = picker.locator(
+    `.calendar-month:nth-child(2) .calendar-day[data-day="${day}"][data-month="${month}"][data-year="${year}"]`,
+  )
+
+  // The click is a *coordinate* click into a grid the calendar may still be
+  // scrolling into place, and a point that lands one month over selects the
+  // day at the same row and column — 22 August and 26 September 2026 are both
+  // the fourth Saturday of their month. That misfire is silent: the picker
+  // takes a date nobody asked for and it surfaces screens later as a trip
+  // whose end precedes its start.
+  //
+  // So the click is checked against a positive signal and repeated a bounded
+  // number of times, the same shape the month walk above uses — never a wait.
+  const MAX_PICKS = 3
+  for (let attempt = 1; attempt <= MAX_PICKS; attempt++) {
+    await cell.click()
+    if (await cell.evaluate((el) => el.classList.contains('calendar-day-active'))) break
+    if (attempt === MAX_PICKS) {
+      throw new Error(`date picker would not take ${iso}: the day never became the active one`)
+    }
+  }
+
   await picker.getByText('Done', { exact: true }).click()
   await expect(picker).toBeHidden()
 }
