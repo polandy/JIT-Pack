@@ -243,3 +243,35 @@ test('M3: Enter in a plain field is the Weiter click, gated like it @local @m3 @
   await page.getByTestId('wizard-next').click()
   await expect(page.getByTestId('wizard-step-4')).toBeVisible()
 })
+
+// E2E-M3-20 (FR-2.1d): a trip whose end precedes its start is not a state M3
+// rejects — it is one the calendar never offers. Asserted on the picker
+// itself rather than on a refused submit: the bound is the mechanism, and a
+// message the user has to read is the fallback the mechanism removes.
+test('M3: the end picker offers no day before the start already set @local @m3', async ({
+  page,
+  seedMode,
+}) => {
+  await seedMode({ mode: 'local' })
+  await page.goto('/trips/new')
+  await expect(page.getByTestId('wizard-step-1')).toBeVisible()
+  await page.getByTestId('wizard-more').click()
+
+  await setDateField(page, 'wizard-start-date', '2026-09-10')
+  await setDateField(page, 'wizard-end-date', '2026-09-20')
+
+  // Re-opened rather than opened: a picker with a value opens on that value's
+  // month, so the grid under test is the same one on any day of any year —
+  // an empty picker opens on *today* and the case would rot with the calendar.
+  await page.getByTestId('wizard-end-date').click()
+  const picker = page.getByTestId('wizard-end-date-picker')
+  await expect(picker).toBeVisible()
+  const september = picker.locator(
+    '.calendar-month:nth-child(2) .calendar-day[data-month="9"][data-year="2026"]',
+  )
+
+  // Both halves: a day before the start is out of reach, one after it is not.
+  // "Everything is disabled" would pass the first assertion on its own.
+  await expect(september.filter({ hasText: /^5$/ })).toBeDisabled()
+  await expect(september.filter({ hasText: /^15$/ })).toBeEnabled()
+})

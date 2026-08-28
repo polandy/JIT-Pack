@@ -180,6 +180,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A group that needed another group (2026-08-27)](#a-group-that-needed-another-group-2026-08-27) — R-4's fifth cut: the FR-27.4 refresh. The first group edge — passed as an argument rather than added to the spine — the two seams the context grew instead of a closure, an alias that turned out to be its own import, and a guard that no test can hold because the domain already applies it.
 - [The trip's own life, and a doc comment that had been written twice (2026-08-27)](#the-trips-own-life-and-a-doc-comment-that-had-been-written-twice-2026-08-27) — R-4's sixth cut: the trip after it exists. Why creation stayed behind, the group edge that became a named `deps` object once there were three of them, and the two small repairs a move makes visible — a duplicated doc block sitting on the wrong function, and the status trio comparing its own vocabulary against string literals.
 - [The group that runs the other way round (2026-08-27)](#the-group-that-runs-the-other-way-round-2026-08-27) — R-4's seventh cut: M14's proposals and M21's fold. Why those two are one group, the guard that has to refuse *before* the first write, and a test comment that promised more folding than `foldName` does.
+- [A test that was red on every first attempt (2026-08-27)](#a-test-that-was-red-on-every-first-attempt-2026-08-27) — the trip whose end preceded its start: what `retries: 1` had been hiding on `main`, why the answer was a bound rather than a validation, and the grid geometry that made the wrong date look like a random one.
 - [A menu entry that navigated made the next screen invisible (2026-08-28)](#a-menu-entry-that-navigated-made-the-next-screen-invisible-2026-08-28) — B10's content column and the M4 bar's ⋮. The trap under the second one: an action run from inside an Ionic overlay's own handler races the teardown that clears `aria-hidden` on the router outlet, so the screen that opens is painted, clickable and absent from the accessibility tree — and every pixel assertion stays green through it.
 
 ## Current state
@@ -7644,6 +7645,72 @@ assumption has already cost once: FR-27.13 recorded that the diacritics
 folding it promised existed nowhere in the codebase either.
 
 Eight mutations, eight red.
+## A test that was red on every first attempt (2026-08-27)
+
+While triaging a red e2e shard on an unrelated PR, `E2E-M2-12` turned out to
+fail on its **first** attempt in every shard-2 run examined — including two on
+`main` whose diffs had nothing to do with it. It was green only because
+`retries: 1` gave it a second go. That is the trap PR #156 already recorded,
+in its most expensive form: not a case that fabricates green once, but one
+that has been fabricating it on `main` for days.
+
+**The answer was in the screenshot, not the log.** The Playwright artifact of
+the last *green* `main` run was downloaded and the failure image read: the trip
+the wizard had just created rendered as **"Sep 26 – 5, 2026"** where the test
+asked for 22 August → 5 September. Reproducing the string settled what was
+stored — `formatRange(2026-09-26, 2026-09-05)` in `en` is exactly that, month
+collapsed because both fall in September. So the trip held an end date
+*before* its start.
+
+**26 September is not a random date.** August and September 2026 both put a
+Saturday at row 4, column 6 of a Monday-first grid: 22 August and 26 September.
+The helper's click is a coordinate click into a calendar the component may
+still be scrolling into place on open, and a point that lands one grid over
+picks the day at the same row and column. The selector was never wrong — it
+pinned day, month and year — the pixels were.
+
+**Two defects, and only one of them was the test's.** The wizard accepted the
+inverted pair without a word, and `durationDays` returned the negative
+difference: that trip carried `duration_days = -20` into its row *and* into
+generation, where duration is a quantity input. A user picking two dates in the
+wrong order gets the same result with no race anywhere.
+
+**A bound, not a validation** (FR-2.1d). The obvious fix is a check with a
+message, on three screens — M3, M22 and the clone form all edit the pair. That
+is three error states to word, three places to keep in step, and a fourth
+surface tomorrow that forgets. Instead the date control carries `min`/`max`
+and each field bounds the other's calendar, so the invalid pair is unreachable
+rather than refused. What that buys is visible in the tests: the rule is one
+component's two props, and each screen's spec asserts only that it wired them.
+
+Two things the bound deliberately does **not** do. It does not constrain the
+field's own *value*, so a row that already holds an inverted range — synced
+from a device that predates this, or imported — still renders and is still
+repairable from either end; M22's spec pins that. And it does not invent a
+default: an unset counterpart is no restriction, because FR-2.1b makes both
+dates optional and independent, and a bound defaulting to today would quietly
+forbid the past that every archived trip lives in.
+
+`durationDays` reads an inverted pair as **no length** rather than a negative
+one — the absence every consumer already handles. It had no direct test at
+all; it has four now.
+
+**The helper stops clicking at coordinates.** The first attempt at this was a
+bounded retry: click, check the day went active, click again. CI rejected it —
+selecting a day re-renders the grids, so the very locator the check depended on
+stopped matching and the case died on a timeout instead. The fix that works is
+the one that removes the question: Ionic's day button carries a plain
+`onClick`, so `dispatchEvent('click')` delivers the event to the element with
+no coordinates and no hit-testing, and the scroll cannot get between them. The
+cell is asserted **enabled** first, because dispatching would otherwise bypass
+the `disabled` that FR-2.1d's own bound puts on an out-of-range day — a helper
+that can set what the app refuses to offer is a worse tool than a flaky one.
+
+The same CI run rejected the new e2e case for a plainer reason: it asserted on
+September cells in a picker that opens on *today*. It re-opens a picker that
+already holds a value now, which opens on that value's month — so the grid
+under test is the same on any day of any year, rather than one that rots with
+the calendar.
 
 ### A menu entry that navigated made the next screen invisible (2026-08-28)
 

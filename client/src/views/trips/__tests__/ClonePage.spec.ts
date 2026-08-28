@@ -14,6 +14,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { IonButton, IonInput } from '@ionic/vue'
 
 import ClonePage from '../ClonePage.vue'
+import DateField from '@/components/global/DateField.vue'
 import { useTripStore } from '@/stores/tripStore'
 import { TABLE } from '@/types/tables'
 import { t } from '@/i18n'
@@ -108,5 +109,45 @@ describe('ClonePage — rows not on the device (ADR-033)', () => {
       .findComponent(IonInput)
       .vm.$emit('ionInput', { detail: { value: 'Engadin 2026' } })
     expect(wrapper.findComponent(IonButton).props('disabled')).toBe(false)
+  })
+})
+
+describe('ClonePage — the two dates bound each other (FR-2.1d)', () => {
+  const fields = (w: ReturnType<typeof mountPage>) => {
+    const [start, end] = w.findAllComponents(DateField)
+    return { start: start!, end: end! }
+  }
+
+  it('offers no end before the start it already has', async () => {
+    seedSource()
+    orchestratorFake.loadedTrips.add('src')
+    const wrapper = mountPage()
+
+    await fields(wrapper).start.vm.$emit('update', '2026-09-26')
+
+    // The bound travels to the calendar, so the invalid day is never
+    // offered — there is no state to reject afterwards.
+    expect(fields(wrapper).end.props('min')).toBe('2026-09-26')
+  })
+
+  it('offers no start after the end it already has', async () => {
+    seedSource()
+    orchestratorFake.loadedTrips.add('src')
+    const wrapper = mountPage()
+
+    await fields(wrapper).end.vm.$emit('update', '2026-09-05')
+
+    expect(fields(wrapper).start.props('max')).toBe('2026-09-05')
+  })
+
+  it('leaves the counterpart unbounded while it is empty', () => {
+    seedSource()
+    orchestratorFake.loadedTrips.add('src')
+    const wrapper = mountPage()
+
+    // No date set is no restriction: a clone of a trip whose dates are still
+    // open must be able to reach any day in either field.
+    expect(fields(wrapper).start.props('max')).toBe('')
+    expect(fields(wrapper).end.props('min')).toBe('')
   })
 })
