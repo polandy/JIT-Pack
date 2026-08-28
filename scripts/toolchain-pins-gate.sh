@@ -68,7 +68,45 @@ go_mod=$(sed -n 's|^go \([0-9]*\.[0-9]*\).*|\1|p' go.mod | head -1)
 [ -n "$go_image" ] || fail "go: no digest-pinned FROM golang:<version>-alpine in Dockerfile"
 
 check_all_equal "go" "$go_image" \
-	"Moving the version means changing Dockerfile (tag *and* digest), mise.toml and the go directive in go.mod together." \
+	"Moving the version means changing Dockerfile (tag *and* digest), mise.toml and the go directive in go.mod together — and golangci-lint with them, see below." \
 	"Dockerfile=$go_image" "mise.toml=$go_mise" "go.mod=$go_mod"
 
-echo "toolchain-pins: ok — node $node_image, go $go_image agree everywhere"
+# --- golangci-lint: a fourth place the Go language version is named ---------
+#
+# The linter refuses to load a config for a module targeting a newer Go than
+# the one golangci-lint itself was built with ("the Go language version
+# (go1.26) used to build golangci-lint is lower than the targeted Go version
+# (1.27.0)"). So a Go major drags the linter along, and the linter version is
+# named twice: mise.toml is what `make ci` runs, ci.yml is what the pipeline
+# runs, and a lint result that differs between the two is the whole problem
+# this file exists to prevent.
+#
+# What is *not* checked here is whether the pinned version is new enough for
+# the go directive above — that depends on the toolchain the release was built
+# with, which is not readable from any file in the repository. golangci-lint's
+# own go.mod stays a major behind on purpose ("the minimum Go version must
+# always be latest-1"), so it answers a different question and reading it
+# would mislead. Only running the binary says, and `make ci` does exactly that
+# one step later. The coupling is named in the failure hints instead.
+
+golangci_mise=$(sed -n 's|^golangci-lint *= *"\([0-9.]*\)".*|\1|p' mise.toml | head -1)
+# Scoped to the step that uses it: a bare `version:` is a key any other action
+# may also carry, and matching those would compare unrelated pins.
+golangci_ci=$(awk '
+	/golangci\/golangci-lint-action/ { step = 1; next }
+	step && $1 == "version:" { v = $2; sub(/^v/, "", v); print v; step = 0 }
+	step && /^ *- / { step = 0 }
+' .github/workflows/ci.yml | sort -u)
+
+[ -n "$golangci_mise" ] || fail "golangci-lint: no golangci-lint = \"<version>\" in mise.toml"
+[ -n "$golangci_ci" ] || fail "golangci-lint: no version: under golangci-lint-action in .github/workflows/ci.yml"
+# As with node: sort -u collapsed the lines, so more than one left means the
+# workflow lints with two different versions and no single comparison shows it.
+[ "$(printf '%s\n' "$golangci_ci" | wc -l)" -eq 1 ] ||
+	fail "golangci-lint: .github/workflows/ci.yml uses more than one version ($(echo $golangci_ci))"
+
+check_all_equal "golangci-lint" "$golangci_mise" \
+	"Moving it means changing mise.toml and the golangci-lint-action version: in ci.yml together. A Go bump needs one too: the linter must be built with a Go at least as new as the go directive, or it refuses the config outright." \
+	"mise.toml=$golangci_mise" ".github/workflows/ci.yml=$golangci_ci"
+
+echo "toolchain-pins: ok — node $node_image, go $go_image, golangci-lint $golangci_mise agree everywhere"

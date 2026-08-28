@@ -182,6 +182,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The group that runs the other way round (2026-08-27)](#the-group-that-runs-the-other-way-round-2026-08-27) — R-4's seventh cut: M14's proposals and M21's fold. Why those two are one group, the guard that has to refuse *before* the first write, and a test comment that promised more folding than `foldName` does.
 - [A test that was red on every first attempt (2026-08-27)](#a-test-that-was-red-on-every-first-attempt-2026-08-27) — the trip whose end preceded its start: what `retries: 1` had been hiding on `main`, why the answer was a bound rather than a validation, and the grid geometry that made the wrong date look like a random one.
 - [A menu entry that navigated made the next screen invisible (2026-08-28)](#a-menu-entry-that-navigated-made-the-next-screen-invisible-2026-08-28) — B10's content column and the M4 bar's ⋮. The trap under the second one: an action run from inside an Ionic overlay's own handler races the teardown that clears `aria-hidden` on the router outlet, so the screen that opens is painted, clickable and absent from the accessibility tree — and every pixel assertion stays green through it.
+- [A version that was named in a fourth place (2026-08-28)](#a-version-that-was-named-in-a-fourth-place-2026-08-28) — the Go 1.27 move: the toolchain gate was right to refuse the lone image bump, and then the linter turned out to name the language version too. Why the gate now holds the linter's two pins to each other but deliberately refuses to judge whether the pinned release is new enough.
 
 ## Current state
 
@@ -7753,3 +7754,56 @@ stayed under the 0.002 tolerance on desktop too. That is the same
 `--update-snapshots` blind spot §"M4's control column" recorded — confirmed
 here in the other direction, where a stale baseline would have been kept rather
 than a real change missed.
+
+
+## A version that was named in a fourth place (2026-08-28)
+
+Dependabot proposed `golang:1.26-alpine` → `1.27-alpine` on its own (#232) and
+`scripts/toolchain-pins-gate.sh` refused it — working exactly as designed, and
+the message named the other two files. Making all three agree (`Dockerfile`
+tag *and* digest, `mise.toml`, the `go` directive in `go.mod`) turned the gate
+green. `ci.yml` needed nothing, because every job reads
+`go-version-file: go.mod`.
+
+Then `go-lint` failed:
+
+```
+can't load config: the Go language version (go1.26) used to build golangci-lint
+is lower than the targeted Go version (1.27.0)
+```
+
+**The premise that was wrong is the number three.** The gate was built around a
+count — a major lives in *three* files — and that count was never the rule. The
+rule is that anything which compiles or parses the module knows the language
+version, and golangci-lint does both. It is a fourth place, and the gate could
+not have caught it, because the gate did not know it existed.
+
+**Why the gate now checks only half of the coupling.** The obvious ask after a
+failure like this is "make the gate verify the linter is new enough for the go
+directive". It cannot, honestly. The constraint is on the Go toolchain the
+golangci-lint *release was built with*, and no file in this repository records
+that. The tempting proxy is the linter's own `go.mod` — and it is a trap:
+v2.13.2's says `go 1.26.0`, with a comment stating the minimum "must always be
+latest-1". Read as an answer it says the release cannot handle 1.27, which is
+false; it is the *minimum module* it supports, a different question. Only
+running the binary answers, and `make ci` runs it one step later anyway.
+
+So the gate does the part it can decide from files: **the linter version is
+named twice** — `mise.toml` for `make ci`, the `golangci-lint-action`
+`version:` for the pipeline — and those two must agree, because a lint result
+that differs between the local gate and the pipeline is the same defect the
+node/go checks exist to prevent, in a smaller costume. The go↔linter coupling
+is carried in the failure hints instead of being asserted.
+
+Two smaller things the extraction had to get right, both proved by mutation
+rather than by reading: a bare `version:` is a key any action may carry, so the
+match is scoped to the step that follows `golangci-lint-action` (a decoy
+`version: v9.9` on a neighbouring step is ignored); and `sort -u` collapsing
+the matches means "more than one line left" is the only way a workflow that
+lints twice with two versions becomes visible.
+
+**What it cost to find out:** nothing but a CI round, because the gate had
+already stopped the bad half from merging. That is worth stating plainly — the
+gate did not prevent this failure, and was never going to. It made it happen at
+the right moment, on a branch, with a message naming files, instead of six
+weeks later on a published artifact.
