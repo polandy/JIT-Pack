@@ -67,7 +67,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M2 trip progress | E2E-M2-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Clone without opening the source | E2E-M2-11 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Sync paging | E2E-SYNC-01 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
-| Editable display name (FR-17.13) | E2E-M17-04 | `single` | [`single/settings-profile.spec.ts`](../client/e2e/single/settings-profile.spec.ts) |
+| Editable display name and profile circle (FR-17.13, FR-23.4a) | E2E-M17-04 | `single` | [`single/settings-profile.spec.ts`](../client/e2e/single/settings-profile.spec.ts) |
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
@@ -2014,12 +2014,18 @@ placeholder had never rendered in its life.
 `UserAvatar` now takes an optional `src` and lays it **over** the initials,
 so the letters are the ground rather than a fallback: still loading, absent
 and refused all show a person instead of a gap. Both screens use it, and two
-hand-rolled circles are gone. E2E-M20-01 asserts the initials and the
-*absence* of a picture element on an account that has none; the four states
-(none, present, failed, re-uploaded) are exhaustive in
-`UserAvatar.spec.ts` — including the retry on a changed URL, without which
-FR-17.13's cache-busting query would leave a freshly uploaded picture hidden
-behind the previous failure.
+hand-rolled circles are gone. The four states (none, present, failed,
+re-uploaded) are exhaustive in `UserAvatar.spec.ts` — including the retry on
+a changed URL, without which FR-17.13's cache-busting query would leave a
+freshly uploaded picture hidden behind the previous failure.
+
+**Both screens are asserted, not one.** The defect was written into two
+templates, so one screen keeping the fix says nothing about the other:
+E2E-M20-01 pins the circle and the absent picture element on the admin
+overview, and E2E-M17-04 pins the same pair on the profile — and, after the
+rename it already performed, that the circle is initialled from the *new*
+name, so the two halves of the profile cannot drift apart. Both
+mutation-proved by putting the bare `<img>` back.
 
 ### G-10 was rebuilt rather than completed (2026-08-28)
 

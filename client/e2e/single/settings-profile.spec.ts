@@ -25,6 +25,16 @@ test('E2E-M17-04: a human display name is accepted, and the rule only speaks whe
   await expect(input).toBeVisible()
   await expect(screen.getByTestId('settings-name-rule')).toHaveCount(0)
 
+  // FR-23.4a: this account never uploaded a picture, and the avatar
+  // endpoint answers 404 for such an account — which used to leave a 64 px
+  // hole here, with the placeholder written for the case sitting behind a
+  // condition that is never false. The circle carries initials and no
+  // `<img>`. Asserted on *this* screen and not only on M20, because the
+  // same defect was written into two templates.
+  const face = screen.getByTestId('user-avatar')
+  await expect(face).toBeVisible()
+  await expect(face.getByTestId('user-avatar-picture')).toHaveCount(0)
+
   // Emptying the field is the first touch, and only now the rule speaks.
   await input.locator('input').fill('')
   await expect(screen.getByTestId('settings-name-rule')).toBeVisible()
@@ -40,6 +50,9 @@ test('E2E-M17-04: a human display name is accepted, and the rule only speaks whe
   await expect(
     visiblePage(page).getByTestId('settings-name-input').locator('input'),
   ).toHaveValue(name)
+  // …and the circle is initialled from that name, so the two halves of the
+  // profile cannot drift apart.
+  await expect(visiblePage(page).getByTestId('user-avatar')).toHaveText('BM')
 
   await context.close()
 })
