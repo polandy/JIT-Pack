@@ -1,4 +1,11 @@
-import { test, expect, seed, createTripViaWizard } from './fixtures'
+import {
+  test,
+  expect,
+  seed,
+  createTripViaWizard,
+  tripAction,
+  expectTripActionOffered,
+} from './fixtures'
 import type { Page } from '@playwright/test'
 
 /**
@@ -31,10 +38,98 @@ test.describe('M2 trip list @local @m2', () => {
     })
 
     await page.goto('/tabs/trips')
-    // A fresh trip is *planning*, so the default Active filter hides it.
+    // A fresh trip is *planning*. Since FR-2.8 the list opens there by
+    // itself; the tap stays, so this case keeps testing the dates alone.
     await visible(page).getByTestId('trips-filter-planned').click()
     const when = visible(page).getByTestId('trip-row-Elba').getByTestId('trip-when')
     // Whitespace-tolerant: Intl is free to use thin spaces around the dash.
     await expect(when).toHaveText(/^Aug 22\s*–\s*Sep 5, 2026$/)
+  })
+})
+
+/**
+ * E2E-M2-13 (FR-2.8): the opening segment is derived from what the list
+ * holds. `local` because the walk needs a device whose whole trip world the
+ * test built — in `single` the master partition is shared by the run.
+ */
+test.describe('M2 opening segment @local @m2', () => {
+  test.beforeEach(async ({ page }) => {
+    await seed(page, { mode: 'local' })
+  })
+
+  /** The count under a segment's label, or null while it is unknown. */
+  async function countOf(page: import('@playwright/test').Page, segment: string) {
+    const count = visible(page).getByTestId(`trips-filter-${segment}`).locator('.segment-count')
+    return (await count.count()) === 0 ? null : (await count.innerText()).trim()
+  }
+
+  /** Planning → active → archived, the way the app does it (FR-9.3). */
+  async function archiveTrip(page: import('@playwright/test').Page) {
+    await tripAction(page, 'start')
+    await expectTripActionOffered(page, 'archive')
+    await tripAction(page, 'archive')
+    await page.getByTestId('m4-pass-finish').click()
+    await expect(visible(page).getByTestId('m4-template-from-trip')).toBeVisible()
+  }
+
+  test('E2E-M2-13: an empty Active is left for the planned trip, and each segment states its count', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, { name: 'Elba' })
+
+    await page.goto('/tabs/trips')
+
+    // No tap on a segment anywhere in this case: the row being visible is
+    // the assertion, since *Active* is where the list used to open.
+    await expect(visible(page).getByTestId('trip-row-Elba')).toBeVisible()
+    expect(await countOf(page, 'active')).toBe('0')
+    expect(await countOf(page, 'planned')).toBe('1')
+    expect(await countOf(page, 'archived')).toBe('0')
+  })
+
+  test('E2E-M2-13b: with nothing active or planned, the list falls through to the archive', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, { name: 'Kreta' })
+    await archiveTrip(page)
+
+    await page.goto('/tabs/trips')
+
+    await expect(visible(page).getByTestId('trip-row-Kreta')).toBeVisible()
+    expect(await countOf(page, 'archived')).toBe('1')
+  })
+
+  test('E2E-M2-13c: a segment the user chose is not taken away on the way back', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, { name: 'Kreta' })
+    await archiveTrip(page)
+    await createTripViaWizard(page, { name: 'Elba' })
+
+    // Opens on *Planned* — Active is empty — and the user goes to the archive.
+    await page.goto('/tabs/trips')
+    await expect(visible(page).getByTestId('trip-row-Elba')).toBeVisible()
+    await visible(page).getByTestId('trips-filter-archived').click()
+    await expect(visible(page).getByTestId('trip-row-Kreta')).toBeVisible()
+
+    // Away and back: this is the re-entry the walk runs on, and *Archived*
+    // holds a trip, so it is left alone.
+    await page.getByTestId('tab-items').click()
+    await expect(page.getByTestId('tab-trips')).toBeVisible()
+    await page.getByTestId('tab-trips').click()
+
+    await expect(visible(page).getByTestId('trip-row-Kreta')).toBeVisible()
+    await expect(visible(page).getByTestId('trip-row-Elba')).toHaveCount(0)
+  })
+
+  test('E2E-M2-13d: a caller naming the segment outranks the walk', async ({ page }) => {
+    // M18's restore and M15's migration land where their own result is —
+    // even when that is an empty segment (ADR-024).
+    await createTripViaWizard(page, { name: 'Elba' })
+
+    await page.goto('/tabs/trips?status=active')
+
+    await expect(visible(page).getByTestId('trip-row-Elba')).toHaveCount(0)
+    expect(await countOf(page, 'planned')).toBe('1')
   })
 })

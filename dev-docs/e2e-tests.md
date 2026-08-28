@@ -60,6 +60,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in), E2E-M11-07 (UX-8 empty state) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
 | M12 analytics | E2E-M12-01, E2E-M12-02 (incl. the UX-11 tile absences), E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05, E2E-M12-07 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
 | M2 trip list rows | E2E-M2-12 (locale dates, UX-5) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
+| M2 opening segment (FR-2.8) | E2E-M2-13, E2E-M2-13b, E2E-M2-13c, E2E-M2-13d | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | FR-27.4 group changes | E2E-M8-09, E2E-M8-19 | `local` | [`group-refresh.spec.ts`](../client/e2e/group-refresh.spec.ts) |
 | M3 composed templates | E2E-M3-11, E2E-M3-13, E2E-M3-18 | `local` | [`trip-composition.spec.ts`](../client/e2e/trip-composition.spec.ts) |
 | FR-27.10 group into a running trip | E2E-M4-26 (two cases), E2E-M4-27, E2E-M8-20 | `local` | [`group-to-trip.spec.ts`](../client/e2e/group-to-trip.spec.ts) |
@@ -67,6 +68,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M2 trip progress | E2E-M2-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Clone without opening the source | E2E-M2-11 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Sync paging | E2E-SYNC-01 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
+| M2 opening segment, settled guard | E2E-M2-14 | `single` | [`single/opening-segment.spec.ts`](../client/e2e/single/opening-segment.spec.ts) |
 | Editable display name and profile circle (FR-17.13, FR-23.4a) | E2E-M17-04 | `single` | [`single/settings-profile.spec.ts`](../client/e2e/single/settings-profile.spec.ts) |
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
@@ -2097,3 +2099,24 @@ count a person with no face to point at.
   can only assert the row that is both. The split is exhaustive in
   `domain/__tests__/admin.spec.ts`.
 
+**E2E-M2-13/14 — the opening segment, added 2026-08-29 (FR-2.8).** M2 always
+opened on *Active*, which for most of the year is the one empty segment: the
+family's device greeted „No active trips" while twenty-nine trips sat one tap
+away. Three notes from building the cases:
+
+- **Where the walk can be asserted at all is decided by the database.** The
+  `single` project shares one jitpackd database for the whole run, so other
+  tests' trips are in the list this device shows and no walk *target* is
+  predictable there. The targets are `local` cases, on a device whose entire
+  trip world the test built; the `single` case asserts only what needs a real
+  wire — that nothing is decided before the list arrives — and, afterwards,
+  that whatever segment it chose is one holding trips.
+- **The held pull is a promise, not a wait.** `page.route` on the master pull
+  parks the first one until the test resolves its own promise, so „before the
+  list arrives" is a state the test *holds* rather than a window it hopes to
+  hit.
+- **Only one of the four `local` legs exercises the re-entry.** The other
+  three decide on mount, which is a different hook — the tab is left for
+  another one and returned to precisely so the `onIonViewWillEnter` half is
+  covered, since a rule that only fires on a cold start would pass all three
+  of them.
