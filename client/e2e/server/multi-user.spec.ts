@@ -1,7 +1,7 @@
 import { test, expect, createTripViaWizard, visiblePage } from '../fixtures'
 import { packItem, quickAddItem, uniq, wsSubscribed } from '../serverMode'
 
-import { ACCOUNT_NAMES, loginAs } from './fixtures'
+import { ACCOUNT_NAMES, loginAs, shareWith } from './fixtures'
 
 /**
  * Two accounts on one instance (UI-Test-Spec §2.3, mode `server`) — the
@@ -287,14 +287,6 @@ async function assignTo(page: import('@playwright/test').Page, item: string, nam
   await expect(page.getByTestId('m5-sheet')).toContainText(name)
   await page.getByTestId('m5-close').click()
   await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
-}
-
-/** Add a member to a trip through M4's own roster screen (FR-4.5). */
-async function shareWith(page: import('@playwright/test').Page, tripPath: string, name: string) {
-  await page.goto(`${tripPath}/members`)
-  await visiblePage(page).getByTestId('members-add').click()
-  await page.locator('ion-popover ion-select-popover ion-item').filter({ hasText: name }).click()
-  await expect(visiblePage(page).getByTestId(`member-row-${name}`)).toBeVisible()
 }
 
 /** Claim a row through M4's press-and-hold menu (G-3, FR-25.17). */

@@ -17,6 +17,8 @@ function httpToWs(url: string): string {
 export function useWebSocket(opts: WSOptions) {
   let socket: WebSocket | null = null
   let pendingChannels: string[] = []
+  // Held per trip, latest seq wins — see sendCursor.
+  const pendingCursors = new Map<string, number>()
 
   // Async because the token provider may refresh first (?token= dial, §7).
   async function connect() {
@@ -34,6 +36,13 @@ export function useWebSocket(opts: WSOptions) {
         sendSubscribe(pendingChannels)
         pendingChannels = []
       }
+      // Subscriptions first: the server records a cursor against the
+      // connection, but only a subscribed connection is in the presence
+      // list the cursor is there to inform.
+      for (const [tripId, seq] of pendingCursors) {
+        sendCursorFrame(tripId, seq)
+      }
+      pendingCursors.clear()
     }
 
     socket.onmessage = (ev) => {
@@ -58,10 +67,30 @@ export function useWebSocket(opts: WSOptions) {
     }
   }
 
-  /** Report the pull cursor so the server can compute in_sync (§7). */
+  function sendCursorFrame(tripId: string, seq: number) {
+    socket?.send(JSON.stringify({ cursor: { trip_id: tripId, seq } }))
+  }
+
+  /**
+   * Report the pull cursor so the server can compute in_sync (§7).
+   *
+   * Held until the socket opens, the way a subscription is. A cold page
+   * load reports its cursor the moment the first drain returns, and an HTTP
+   * pull regularly beats the WebSocket handshake — so dropping the report
+   * meant the server never learned the device had caught up and G-10's
+   * "everyone has the latest state" badge could not appear at all. Found by
+   * E2E-G10-01, the first test ever to render the facepile.
+   *
+   * The newest seq wins rather than the last caller: two drains racing to
+   * open must not leave the server told the older of the two.
+   */
   function sendCursor(tripId: string, seq: number) {
     if (socket && socket.readyState === 1) {
-      socket.send(JSON.stringify({ cursor: { trip_id: tripId, seq } }))
+      sendCursorFrame(tripId, seq)
+      return
+    }
+    if (seq > (pendingCursors.get(tripId) ?? -1)) {
+      pendingCursors.set(tripId, seq)
     }
   }
 

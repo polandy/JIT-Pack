@@ -18,10 +18,14 @@ import { expect, type BrowserContext, type Page } from '@playwright/test'
 import { seed, visiblePage } from '../fixtures'
 
 /** The mock IdP's accounts (e2e/server/mockIdp.mjs). */
-export type Account = 'alice' | 'bob'
+export type Account = 'alice' | 'bob' | 'carol'
 
 /** The display names those accounts carry into the app via UserInfo. */
-export const ACCOUNT_NAMES: Record<Account, string> = { alice: 'Alice', bob: 'Bob' }
+export const ACCOUNT_NAMES: Record<Account, string> = {
+  alice: 'Alice',
+  bob: 'Bob',
+  carol: 'Carol',
+}
 
 /**
  * Log a fresh page in as `account` and leave it on the dashboard.
@@ -48,4 +52,19 @@ export async function loginAs(context: BrowserContext, account: Account): Promis
   // done, so the greeting is the proof that a session exists.
   await expect(visiblePage(page).getByTestId('dashboard-greeting')).toBeVisible()
   return page
+}
+
+/**
+ * Add a member to a trip through M4's own roster screen (FR-4.5).
+ *
+ * Every case in this project that needs two people on one trip goes through
+ * here rather than seeding a membership row: P-3 makes the membership the
+ * thing that opens the trip partition at all, so a fast path would skip the
+ * mechanism half these cases rest on.
+ */
+export async function shareWith(page: Page, tripPath: string, name: string): Promise<void> {
+  await page.goto(`${tripPath}/members`)
+  await visiblePage(page).getByTestId('members-add').click()
+  await page.locator('ion-popover ion-select-popover ion-item').filter({ hasText: name }).click()
+  await expect(visiblePage(page).getByTestId(`member-row-${name}`)).toBeVisible()
 }

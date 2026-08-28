@@ -67,13 +67,15 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M2 trip progress | E2E-M2-10 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Clone without opening the source | E2E-M2-11 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Sync paging | E2E-SYNC-01 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
-| Editable display name (FR-17.13) | E2E-M17-04 | `single` | [`single/settings-profile.spec.ts`](../client/e2e/single/settings-profile.spec.ts) |
+| Editable display name and profile circle (FR-17.13, FR-23.4a) | E2E-M17-04 | `single` | [`single/settings-profile.spec.ts`](../client/e2e/single/settings-profile.spec.ts) |
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
-| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
+| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-FLOW-02 (delegation) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
+| M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-04, E2E-M20-05 | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
+| G-10 trip presence | E2E-G10-01 (facepile and badge; the per-person list is unbuilt) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-M15-05 — the spreadsheet import, added 2026-08-23, and M15's first
@@ -570,7 +572,7 @@ Following spec §10, adjusted for what is now built:
 - **Seed through the app, not around it** (spec §2.4). Use `createTripViaWizard` and friends. A fast-path that writes rows directly is allowed only for `server`-mode preconditions that are not themselves under test.
 - **No sleeps, ever.** Playwright's `expect` retries on its own; assert the outcome, never wait a fixed time for it. If a case can only pass by waiting and hoping, the fault is in the production code — give it a deterministic seam. This is the same rule the Go suite follows and it is not negotiable in either.
 - **Tags:** `@smoke`, `@local`, `@single`, `@server`, plus `@mNN` per screen. Run a slice with `npm run test:e2e -- --grep @local`.
-- **An archived trip takes two clicks, not one** (FR-9.3, 2026-08-24). `m4-archive` no longer archives: it opens the closing pass, and **`m4-pass-finish` is what archives**. Every case that needs an archived trip — M14's, M21's, M12's trend, the backup unit — goes `m4-start` → `m4-archive` → `m4-pass-finish`. Skipping the pass without marking anything is a supported path, so a case that only wants the archived state needs no extra staging. This is written here because it is the kind of change that breaks *other* people's units: three specs kept clicking the one control and failed across three shards, and the still-owed `server` cases (delegation, presence, M20) will all reach for an archived trip eventually.
+- **An archived trip takes two clicks, not one** (FR-9.3, 2026-08-24). `m4-archive` no longer archives: it opens the closing pass, and **`m4-pass-finish` is what archives**. Every case that needs an archived trip — M14's, M21's, M12's trend, the backup unit — goes `m4-start` → `m4-archive` → `m4-pass-finish`. Skipping the pass without marking anything is a supported path, so a case that only wants the archived state needs no extra staging. This is written here because it is the kind of change that breaks *other* people's units: three specs kept clicking the one control and failed across three shards, and the `server` cases that were still owed when this was written — delegation, presence, M20, all landed since — will all reach for an archived trip eventually.
 
 ## M9/M10 — inventory and item editor (`e2e/inventory.spec.ts`, 2026-08-16)
 
@@ -1929,3 +1931,169 @@ asserts on a second context: preview text with the real counts, then the
 clone opened with both source rows visible. The component halves (the loading
 line, the locked button, the guard's `null`) are unit-tested in
 `ClonePage.spec.ts` and `clone.spec.ts`.
+
+## M20 and G-10 — the two areas the `server` project named as owed (2026-08-28)
+
+When the `server` project landed it named three things it had not reached:
+delegation, presence and the admin surface. Delegation came with FR-25.19's
+control; these are the other two, and both were in the same state — fully
+built, fully unit-tested, and carrying **not one `data-testid` between
+them**, which is the plainest available statement that no test had ever
+rendered either one.
+
+Neither could have been covered anywhere else. Every rule in M20 is a rule
+about *another account* — who may be deactivated, whose row says "(you)",
+who is refused the overview — and every G-10 assertion needs a second person
+on the same trip, which is exactly what `single`'s two contexts cannot be.
+
+**The mock IdP grew a third account, `carol`.** These cases *change* the
+account they act on, and one backend serves the whole run with
+`admin.spec.ts` and `multi-user.spec.ts` free to land on two workers.
+Deactivating `bob` mid-run would have reached sideways into the other unit's
+trips. Carol exists to be administered and does nothing else. The one
+irreversible action — resetting a display name — is deliberately the last
+step of the last test that touches her, because the row is addressed *by*
+that name.
+
+### What rendering it found
+
+**G-10 named nobody.** The facepile initialled `PresenceUser.user_id`, and
+`users.id` is `lower(hex(randomblob(16)))` — so the faces read as two random
+hex characters, different on every run. The component's own comment said
+initials "stand in for avatars until user profiles sync to the client",
+which had stopped being true: M4 already resolves names for the packing
+stamps, and G-10 now takes the same `participants` directory. The case
+asserts the initials `AL` and `BO` rather than the faces' presence, because
+neither `L` nor `O` is a hex digit — the assertion is red against any build
+that initials the id, whichever ids that run happens to mint.
+
+**The group-sync badge could never appear.** This is the one that only a run
+could have found, and it did: the case went red on `presence-in-sync` with
+everything above it green. `sendCursor` dropped the report when the socket
+was not yet open, while `subscribe` beside it queued — and on a cold page
+load the HTTP drain regularly returns before the WebSocket handshake
+finishes. So the server never learned the device had caught up, `in_sync`
+stayed false for everyone, and "everyone has the latest state" was a badge
+with no reachable state. The cursor is held and flushed on open now, newest
+seq per trip winning: two drains racing to open must not leave the server
+told the older of the two. Subscriptions flush first, since only a
+subscribed connection is in the presence list the cursor informs.
+
+**A deactivated account was told nothing.** FR-23.3 is enforced per request
+in the auth middleware and the Go tests cover it thoroughly — but the
+client had no branch on `account_deactivated` at all, and the tokens stay in
+`localStorage` looking valid, so nothing expired them. The app went on
+booting, every request 403'd, and the screen was indistinguishable from an
+offline one. The session now ends on that error code and the screen is the
+login again, which is what makes E2E-M20-02's access half assertable on a
+rendered page instead of on a status code. It narrows on the **code**, not
+the status: a 403 is also how the server refuses a non-admin the M20
+endpoints, and logging that person out would have been the worse defect —
+E2E-M20-05 stands on Bob's session surviving exactly that.
+
+**And a fourth, found by looking at the screenshot rather than the run.**
+M20's provisioning date came from a bare `toLocaleDateString()`, which
+follows the *device*: on the suite's de-CH device with the app pinned to
+English the overview read `Provisioned 28.8.2026` under English copy. It is
+the same defect E2E-G2-01 found on the conflict log on 2026-08-24, in the one
+other place the codebase still called `toLocale*` without a locale — the two
+were the complete set. It goes through `formatDate()` now, and E2E-M20-01
+pins a month abbreviation, which the numeric German form cannot produce.
+
+**And a fifth, raised as an owner call and answered the same day.** An
+account that never uploaded an avatar rendered the browser's torn-picture
+glyph on M20. The answer needed no design decision, because the design
+already existed and was already shipped: `UserAvatar` (FR-25.3) draws a
+person as a coloured circle of initials and M4 and M5 have used it for
+weeks. M20 had hand-rolled an `<img>` instead — and so, it turned out, had
+**M17**, where the `@error` handler hides the element and leaves a 64 px
+hole, with the `personCircleOutline` placeholder written for exactly that
+case sitting behind `v-if="avatarUrl"`, a condition that is never false. The
+placeholder had never rendered in its life.
+
+`UserAvatar` now takes an optional `src` and lays it **over** the initials,
+so the letters are the ground rather than a fallback: still loading, absent
+and refused all show a person instead of a gap. Both screens use it, and two
+hand-rolled circles are gone. The four states (none, present, failed,
+re-uploaded) are exhaustive in `UserAvatar.spec.ts` — including the retry on
+a changed URL, without which FR-17.13's cache-busting query would leave a
+freshly uploaded picture hidden behind the previous failure.
+
+**Both screens are asserted, not one.** The defect was written into two
+templates, so one screen keeping the fix says nothing about the other:
+E2E-M20-01 pins the circle and the absent picture element on the admin
+overview, and E2E-M17-04 pins the same pair on the profile — and, after the
+rename it already performed, that the circle is initialled from the *new*
+name, so the two halves of the profile cannot drift apart. Both
+mutation-proved by putting the bare `<img>` back.
+
+### G-10 was rebuilt rather than completed (2026-08-28)
+
+The review left the per-person sheet standing as an owner call. The owner
+asked for it to be solved, and the answer was not to build it.
+
+**The gap was never only the tap.** G-10 had three sub-bullets and all three
+diverged: the facepile rendered every present user with no cap and no "+N";
+the badge was a labelled chip beside the pile that appeared *only* when
+everyone was in sync, with no amber; and nothing opened. A fourth
+divergence sat one screen away — UI-Spec M2 asked for the facepile on the
+trip rows, two lines after G-10 says presence is meaningless outside a
+trip. The spec contradicted itself, and the wire settles it: presence is
+broadcast per *subscribed* trip, so M2 would have to subscribe every listed
+row to draw circles. That line is deleted.
+
+**What the pattern can say is three fields** — `user_id`, `device_count`,
+`in_sync` — and it is exactly what the hover `title` already said. On a
+phone there is no hover, and that is the whole of the real gap: when the
+badge goes amber the only useful question is *who*, because you turn to that
+person. So the state moved onto the faces (an amber ring on whoever is
+catching up) and the tap kept only the half a hover cannot give a touch
+device — the name, in a line under the pile. The sheet was rejected for
+putting that one actionable fact one tap deeper than a pile already on
+screen; the device count was dropped outright.
+
+**The badge is a glyph with a bubble, not a labelled chip** (owner,
+2026-08-28). The first build spelled *„1 catching up"* out beside the pile;
+the app already has a grammar for exactly this — G-2's `SyncIndicator`
+carries its queue as a count on the glyph's corner — and a header that
+already holds the trip's name has no room for a second sentence. The words
+survive as the element's accessible name, so the colour is not the only
+thing carrying the state, and `presence-behind-count` is asserted separately
+from the name for that reason.
+
+**One decision came from rendering it, not from writing it.** The first
+build ringed everyone who *was* caught up, in green. On screen that makes
+the ordinary state loud, repeats what the badge beside it says, and leaves
+the one person worth noticing marked by an *absence*. Ringing the exception
+in amber inverts all three, and it is the vocabulary G-10's own badge
+already used.
+
+**Where each half is tested, and why it is not all in one place.** A device
+is "behind" only while its reported pull cursor sits below the trip head,
+and the client reports one the moment its pull returns — so no Playwright
+case can produce a lagging device without racing it, which this project
+forbids. E2E-G10-01 therefore owns what a real run can hold still: the pile,
+both people named, the badge in sync, the badge's counterpart absent, and
+the tap in both directions. Amber, the ordering rule and the overflow are
+stated against props in `PresenceFacepile.spec.ts`, and the three states are
+in the dev gallery so they can be looked at. The ordering rule earns its own
+case: **the "+N" bubble must never hide somebody who is behind**, or the
+pile would summarise away the fact it exists to show and the badge would
+count a person with no face to point at.
+
+### What is deliberately not covered
+
+- **Amber for a lagging device, end to end.** Producing a genuinely lagging
+  device inside one case would mean holding a pull open, which is a seam the
+  production code does not have — and inventing one to watch a colour is the
+  wrong trade. It is a unit case and a gallery entry instead.
+- **E2E-M20-03's avatar half.** *Remove avatar* changes no pixel on M20: the
+  row's `img` src is the same URL either way and the served bytes are the
+  placeholder before and after. The name half is asserted because it *is*
+  rendered; the avatar half stays where it can be stated, in
+  `store/admin_test.go`.
+- **The two reasons a row offers no Deactivate.** FR-23.3 exempts admins and
+  the own row, and this instance has exactly one admin — so the rendered case
+  can only assert the row that is both. The split is exhaustive in
+  `domain/__tests__/admin.spec.ts`.
+

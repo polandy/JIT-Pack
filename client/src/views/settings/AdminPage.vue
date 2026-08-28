@@ -24,9 +24,10 @@ import {
 } from '@ionic/vue'
 import { inject, onMounted, ref } from 'vue'
 
+import UserAvatar from '@/components/global/UserAvatar.vue'
 import { adminActionsFor, type AdminAction, type AdminUserRow } from '@/domain/admin'
 import { serverBaseUrl } from '@/config'
-import { t, type MessageKey } from '@/i18n'
+import { formatDate, t, type MessageKey } from '@/i18n'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
@@ -119,29 +120,44 @@ function avatarUrl(user: AdminUserRow): string {
   return `${serverBaseUrl()}${API.userAvatar(user.user_id)}`
 }
 
+/**
+ * `toLocaleDateString()` with no locale follows the *device*, not the app —
+ * so an English instance on a German phone printed `28.8.2026` under
+ * "Provisioned". The same defect the conflict log had (E2E-G2-01, 2026-08-24).
+ */
 function provisioned(user: AdminUserRow): string {
-  return new Date(user.created_at).toLocaleDateString()
+  return formatDate(new Date(user.created_at))
 }
 </script>
 
 <template>
   <IonPage>
     <IonContent>
-      <IonNote v-if="failed" class="hint">{{ t('admin.unavailable') }}</IonNote>
+      <IonNote v-if="failed" class="hint" data-testid="admin-unavailable">{{
+        t('admin.unavailable')
+      }}</IonNote>
 
-      <IonList v-else>
+      <IonList v-else data-testid="admin-list">
         <IonItem
           v-for="user in users"
           :key="user.user_id"
           button
           :class="{ deactivated: !!user.deactivated_at }"
+          :data-testid="`admin-row-${user.display_name || user.user_id}`"
           @click="openActions(user)"
         >
-          <img slot="start" class="avatar" :src="avatarUrl(user)" alt="" />
+          <UserAvatar
+            slot="start"
+            class="avatar"
+            :name="user.display_name || user.user_id"
+            :seed="user.user_id"
+            :src="avatarUrl(user)"
+            :size="40"
+          />
           <IonLabel>
             <h3>
               {{ user.display_name || user.user_id }}
-              <span v-if="user.user_id === myUserId" class="self-marker">
+              <span v-if="user.user_id === myUserId" class="self-marker" data-testid="admin-self">
                 {{ t('admin.self') }}
               </span>
             </h3>
@@ -152,8 +168,16 @@ function provisioned(user: AdminUserRow): string {
               {{ t('admin.templateCount', { n: user.template_count }) }}
             </p>
           </IonLabel>
-          <IonChip v-if="user.is_instance_admin" outline disabled>{{ t('role.admin') }}</IonChip>
-          <IonChip v-if="user.deactivated_at" outline disabled color="danger">
+          <IonChip v-if="user.is_instance_admin" outline disabled data-testid="admin-role-chip">{{
+            t('role.admin')
+          }}</IonChip>
+          <IonChip
+            v-if="user.deactivated_at"
+            outline
+            disabled
+            color="danger"
+            data-testid="admin-deactivated-chip"
+          >
             {{ t('admin.deactivated') }}
           </IonChip>
         </IonItem>
@@ -164,11 +188,7 @@ function provisioned(user: AdminUserRow): string {
 
 <style scoped>
 .avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--ion-color-light);
-  object-fit: cover;
+  margin-inline-end: 16px;
 }
 
 .self-marker {
