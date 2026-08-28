@@ -20,9 +20,14 @@ function user(overrides: Partial<PresenceUser> = {}): PresenceUser {
   return { user_id: 'anna', device_count: 1, in_sync: false, ...overrides } as PresenceUser
 }
 
-function titles(users: PresenceUser[]): string[] {
-  const wrapper = mount(PresenceFacepile, { props: { users } })
+function titles(users: PresenceUser[], names?: Record<string, string>): string[] {
+  const wrapper = mount(PresenceFacepile, { props: { users, names } })
   return wrapper.findAll('.face').map((face) => face.attributes('title') ?? '')
+}
+
+function initials(users: PresenceUser[], names?: Record<string, string>): string[] {
+  const wrapper = mount(PresenceFacepile, { props: { users, names } })
+  return wrapper.findAll('.face').map((face) => face.text())
 }
 
 afterAll(() => setLocale('en'))
@@ -49,5 +54,31 @@ describe('PresenceFacepile — the composed face title', () => {
       'anna (3 Geräte) · synchron',
     ])
     expect(titles([user({ device_count: 2 })])).toEqual(['anna (2 Geräte)'])
+  })
+})
+
+/**
+ * The presence event carries user ids alone, and `users.id` is a random
+ * 32-hex-character key — initialling it names nobody. The caller resolves
+ * the name; what is tested here is that the component uses it, and what it
+ * does when the directory has not answered yet.
+ */
+describe('PresenceFacepile — the name behind a face (G-10, FR-4.6)', () => {
+  const NAMES = { a1b2c3: 'Alice' }
+
+  it('initials the resolved name rather than the id', () => {
+    setLocale('en')
+    expect(initials([user({ user_id: 'a1b2c3' })], NAMES)).toEqual(['AL'])
+  })
+
+  it('titles the resolved name too', () => {
+    setLocale('en')
+    expect(titles([user({ user_id: 'a1b2c3' })], NAMES)).toEqual(['Alice'])
+  })
+
+  it('falls back to the id where the directory does not know the person', () => {
+    setLocale('en')
+    expect(initials([user({ user_id: 'a1b2c3' })], {})).toEqual(['A1'])
+    expect(titles([user({ user_id: 'a1b2c3' })])).toEqual(['a1b2c3'])
   })
 })

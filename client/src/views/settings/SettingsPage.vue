@@ -580,9 +580,11 @@ async function exportTripCSV() {
       <!-- Administration entry (Addendum 3.23, FR-23.2): instance
            admins with an OIDC session only — same gating as M20. -->
       <template v-if="collaborative && me?.is_instance_admin">
-        <h2 class="section-title jp-eyebrow">{{ t('settings.administration') }}</h2>
+        <h2 class="section-title jp-eyebrow" data-testid="settings-section-admin">
+          {{ t('settings.administration') }}
+        </h2>
         <IonList>
-          <IonItem button lines="none" @click="$router.push('/admin')">
+          <IonItem button lines="none" data-testid="settings-admin" @click="$router.push('/admin')">
             <IonLabel>
               <h3>{{ t('settings.userAdmin') }}</h3>
               <p>{{ t('settings.userAdminHint') }}</p>

@@ -127,21 +127,30 @@ function provisioned(user: AdminUserRow): string {
 <template>
   <IonPage>
     <IonContent>
-      <IonNote v-if="failed" class="hint">{{ t('admin.unavailable') }}</IonNote>
+      <IonNote v-if="failed" class="hint" data-testid="admin-unavailable">{{
+        t('admin.unavailable')
+      }}</IonNote>
 
-      <IonList v-else>
+      <IonList v-else data-testid="admin-list">
         <IonItem
           v-for="user in users"
           :key="user.user_id"
           button
           :class="{ deactivated: !!user.deactivated_at }"
+          :data-testid="`admin-row-${user.display_name || user.user_id}`"
           @click="openActions(user)"
         >
-          <img slot="start" class="avatar" :src="avatarUrl(user)" alt="" />
+          <img
+            slot="start"
+            class="avatar"
+            :src="avatarUrl(user)"
+            alt=""
+            data-testid="admin-avatar"
+          />
           <IonLabel>
             <h3>
               {{ user.display_name || user.user_id }}
-              <span v-if="user.user_id === myUserId" class="self-marker">
+              <span v-if="user.user_id === myUserId" class="self-marker" data-testid="admin-self">
                 {{ t('admin.self') }}
               </span>
             </h3>
@@ -152,8 +161,16 @@ function provisioned(user: AdminUserRow): string {
               {{ t('admin.templateCount', { n: user.template_count }) }}
             </p>
           </IonLabel>
-          <IonChip v-if="user.is_instance_admin" outline disabled>{{ t('role.admin') }}</IonChip>
-          <IonChip v-if="user.deactivated_at" outline disabled color="danger">
+          <IonChip v-if="user.is_instance_admin" outline disabled data-testid="admin-role-chip">{{
+            t('role.admin')
+          }}</IonChip>
+          <IonChip
+            v-if="user.deactivated_at"
+            outline
+            disabled
+            color="danger"
+            data-testid="admin-deactivated-chip"
+          >
             {{ t('admin.deactivated') }}
           </IonChip>
         </IonItem>

@@ -6,7 +6,11 @@
  * whether everyone has caught up ("group in sync"). Rendered only with
  * two or more users, so it naturally disappears in Single-User and
  * Local Mode (G-8). Initials stand in for avatars until user profiles
- * sync to the client.
+ * sync to the client, and they are initials of the person's *name* —
+ * which the caller resolves, because a presence entry carries the
+ * account id alone and `users.id` is a random hex key. Initialling that
+ * named nobody, which is what E2E-G10-01 found the first time anything
+ * rendered this component.
  */
 import { IonChip, IonIcon, IonLabel } from '@ionic/vue'
 import { checkmarkDoneOutline } from 'ionicons/icons'
@@ -15,7 +19,16 @@ import { computed } from 'vue'
 import { t } from '@/i18n'
 import type { PresenceUser } from '@/composables/useSyncOrchestrator'
 
-const props = defineProps<{ users: PresenceUser[] }>()
+const props = defineProps<{
+  users: PresenceUser[]
+  /** Display name per user id; a face falls back to its id where absent. */
+  names?: Record<string, string>
+}>()
+
+/** Who a face is, as the trip knows them (M4's participant directory). */
+function nameOf(userId: string): string {
+  return props.names?.[userId] || userId
+}
 
 const allInSync = computed(() => props.users.length > 0 && props.users.every((u) => u.in_sync))
 
@@ -27,12 +40,12 @@ const allInSync = computed(() => props.users.length > 0 && props.users.every((u)
 function faceTitle(user: PresenceUser): string {
   const devices =
     user.device_count > 1 ? ` ${t('presence.deviceCount', { n: user.device_count })}` : ''
-  return `${user.user_id}${devices}${user.in_sync ? t('presence.inSyncSuffix') : ''}`
+  return `${nameOf(user.user_id)}${devices}${user.in_sync ? t('presence.inSyncSuffix') : ''}`
 }
 
 function initials(userId: string): string {
   return (
-    userId
+    nameOf(userId)
       .replace(/[^a-z0-9]/gi, '')
       .slice(0, 2)
       .toUpperCase() || '?'
@@ -41,17 +54,24 @@ function initials(userId: string): string {
 </script>
 
 <template>
-  <div class="facepile" :aria-label="t('presence.activeMembers')">
+  <div class="facepile" :aria-label="t('presence.activeMembers')" data-testid="presence-facepile">
     <span
       v-for="user in users"
       :key="user.user_id"
       class="face"
       :class="{ 'in-sync': user.in_sync }"
       :title="faceTitle(user)"
+      :data-testid="`presence-face-${nameOf(user.user_id)}`"
     >
       {{ initials(user.user_id) }}
     </span>
-    <IonChip v-if="allInSync" color="success" class="group-sync" :title="t('presence.allInSync')">
+    <IonChip
+      v-if="allInSync"
+      color="success"
+      class="group-sync"
+      :title="t('presence.allInSync')"
+      data-testid="presence-in-sync"
+    >
       <IonIcon :icon="checkmarkDoneOutline" />
       <IonLabel>{{ t('presence.inSync') }}</IonLabel>
     </IonChip>

@@ -161,6 +161,8 @@ already-issued access token fails:
 with HTTP `403`. No token refresh has to happen first, and there is no window to wait out.
 In addition:
 
+- The app on the person's device ends its session at the next request and returns to the login
+  screen, so they are told rather than left with an app that quietly stops syncing.
 - The account's Web Push subscriptions are deleted, so it stops receiving push notifications.
 - A **login** attempt is refused outright with the same `403 account_deactivated`, rather
   than issuing tokens every endpoint would reject anyway.

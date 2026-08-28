@@ -516,6 +516,16 @@ onUnmounted(() => breakpoint.removeEventListener('change', onBreakpoint))
 // --- Header line --------------------------------------------------------
 
 const presenceUsers = computed(() => orchestrator.getPresence(props.tripId))
+
+/**
+ * G-10's faces are named from the same directory the packing stamps use.
+ * The presence event carries user ids alone, and an id is a random hex
+ * string — a facepile initialled from it says who is here in a code
+ * nobody can read.
+ */
+const presenceNames = computed<Record<string, string>>(() =>
+  Object.fromEntries(participants.value.map((p) => [p.user_id, p.display_name])),
+)
 const openPrepCount = computed(() => store.getOpenTodos(props.tripId).length)
 
 // M6 entry: the count is what makes the icon worth a tap; it stays visible
@@ -1379,7 +1389,11 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
               · {{ t('packing.openPrep', { n: openPrepCount }) }}
             </span>
           </div>
-          <PresenceFacepile v-if="presenceUsers.length > 1" :users="presenceUsers" />
+          <PresenceFacepile
+            v-if="presenceUsers.length > 1"
+            :users="presenceUsers"
+            :names="presenceNames"
+          />
         </div>
       </div>
 

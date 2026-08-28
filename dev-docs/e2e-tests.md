@@ -73,7 +73,9 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
-| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
+| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-FLOW-02 (delegation) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
+| M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-04, E2E-M20-05 | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
+| G-10 trip presence | E2E-G10-01 (facepile and badge; the per-person list is unbuilt) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 
 **E2E-M15-05 — the spreadsheet import, added 2026-08-23, and M15's first
@@ -570,7 +572,7 @@ Following spec §10, adjusted for what is now built:
 - **Seed through the app, not around it** (spec §2.4). Use `createTripViaWizard` and friends. A fast-path that writes rows directly is allowed only for `server`-mode preconditions that are not themselves under test.
 - **No sleeps, ever.** Playwright's `expect` retries on its own; assert the outcome, never wait a fixed time for it. If a case can only pass by waiting and hoping, the fault is in the production code — give it a deterministic seam. This is the same rule the Go suite follows and it is not negotiable in either.
 - **Tags:** `@smoke`, `@local`, `@single`, `@server`, plus `@mNN` per screen. Run a slice with `npm run test:e2e -- --grep @local`.
-- **An archived trip takes two clicks, not one** (FR-9.3, 2026-08-24). `m4-archive` no longer archives: it opens the closing pass, and **`m4-pass-finish` is what archives**. Every case that needs an archived trip — M14's, M21's, M12's trend, the backup unit — goes `m4-start` → `m4-archive` → `m4-pass-finish`. Skipping the pass without marking anything is a supported path, so a case that only wants the archived state needs no extra staging. This is written here because it is the kind of change that breaks *other* people's units: three specs kept clicking the one control and failed across three shards, and the still-owed `server` cases (delegation, presence, M20) will all reach for an archived trip eventually.
+- **An archived trip takes two clicks, not one** (FR-9.3, 2026-08-24). `m4-archive` no longer archives: it opens the closing pass, and **`m4-pass-finish` is what archives**. Every case that needs an archived trip — M14's, M21's, M12's trend, the backup unit — goes `m4-start` → `m4-archive` → `m4-pass-finish`. Skipping the pass without marking anything is a supported path, so a case that only wants the archived state needs no extra staging. This is written here because it is the kind of change that breaks *other* people's units: three specs kept clicking the one control and failed across three shards, and the `server` cases that were still owed when this was written — delegation, presence, M20, all landed since — will all reach for an archived trip eventually.
 
 ## M9/M10 — inventory and item editor (`e2e/inventory.spec.ts`, 2026-08-16)
 
@@ -1929,3 +1931,82 @@ asserts on a second context: preview text with the real counts, then the
 clone opened with both source rows visible. The component halves (the loading
 line, the locked button, the guard's `null`) are unit-tested in
 `ClonePage.spec.ts` and `clone.spec.ts`.
+
+## M20 and G-10 — the two areas the `server` project named as owed (2026-08-28)
+
+When the `server` project landed it named three things it had not reached:
+delegation, presence and the admin surface. Delegation came with FR-25.19's
+control; these are the other two, and both were in the same state — fully
+built, fully unit-tested, and carrying **not one `data-testid` between
+them**, which is the plainest available statement that no test had ever
+rendered either one.
+
+Neither could have been covered anywhere else. Every rule in M20 is a rule
+about *another account* — who may be deactivated, whose row says "(you)",
+who is refused the overview — and every G-10 assertion needs a second person
+on the same trip, which is exactly what `single`'s two contexts cannot be.
+
+**The mock IdP grew a third account, `carol`.** These cases *change* the
+account they act on, and one backend serves the whole run with
+`admin.spec.ts` and `multi-user.spec.ts` free to land on two workers.
+Deactivating `bob` mid-run would have reached sideways into the other unit's
+trips. Carol exists to be administered and does nothing else. The one
+irreversible action — resetting a display name — is deliberately the last
+step of the last test that touches her, because the row is addressed *by*
+that name.
+
+### What rendering it found
+
+**G-10 named nobody.** The facepile initialled `PresenceUser.user_id`, and
+`users.id` is `lower(hex(randomblob(16)))` — so the faces read as two random
+hex characters, different on every run. The component's own comment said
+initials "stand in for avatars until user profiles sync to the client",
+which had stopped being true: M4 already resolves names for the packing
+stamps, and G-10 now takes the same `participants` directory. The case
+asserts the initials `AL` and `BO` rather than the faces' presence, because
+neither `L` nor `O` is a hex digit — the assertion is red against any build
+that initials the id, whichever ids that run happens to mint.
+
+**The group-sync badge could never appear.** This is the one that only a run
+could have found, and it did: the case went red on `presence-in-sync` with
+everything above it green. `sendCursor` dropped the report when the socket
+was not yet open, while `subscribe` beside it queued — and on a cold page
+load the HTTP drain regularly returns before the WebSocket handshake
+finishes. So the server never learned the device had caught up, `in_sync`
+stayed false for everyone, and "everyone has the latest state" was a badge
+with no reachable state. The cursor is held and flushed on open now, newest
+seq per trip winning: two drains racing to open must not leave the server
+told the older of the two. Subscriptions flush first, since only a
+subscribed connection is in the presence list the cursor informs.
+
+**A deactivated account was told nothing.** FR-23.3 is enforced per request
+in the auth middleware and the Go tests cover it thoroughly — but the
+client had no branch on `account_deactivated` at all, and the tokens stay in
+`localStorage` looking valid, so nothing expired them. The app went on
+booting, every request 403'd, and the screen was indistinguishable from an
+offline one. The session now ends on that error code and the screen is the
+login again, which is what makes E2E-M20-02's access half assertable on a
+rendered page instead of on a status code. It narrows on the **code**, not
+the status: a 403 is also how the server refuses a non-admin the M20
+endpoints, and logging that person out would have been the worse defect —
+E2E-M20-05 stands on Bob's session surviving exactly that.
+
+### What is deliberately not covered
+
+- **The per-person sync list** G-10 sketches behind a tap on the badge. It
+  does not exist in the component; the UI-Spec now says so rather than the
+  ledger implying a case covers it.
+- **Amber for a lagging device.** The component has caught-up and not, not a
+  third state. Producing a genuinely lagging device inside one case would
+  mean holding a pull open, which is a seam the production code does not
+  have — and inventing one to watch a colour is the wrong trade.
+- **E2E-M20-03's avatar half.** *Remove avatar* changes no pixel on M20: the
+  row's `img` src is the same URL either way and the served bytes are the
+  placeholder before and after. The name half is asserted because it *is*
+  rendered; the avatar half stays where it can be stated, in
+  `store/admin_test.go`.
+- **The two reasons a row offers no Deactivate.** FR-23.3 exempts admins and
+  the own row, and this instance has exactly one admin — so the rendered case
+  can only assert the row that is both. The split is exhaustive in
+  `domain/__tests__/admin.spec.ts`.
+

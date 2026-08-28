@@ -219,9 +219,12 @@ it. Item numbers stay stable even as items close, because the log refers back to
    (`client/e2e/server/`), with two browser contexts logged in as two accounts through the app's
    own login. `make e2e-server`, its own CI job, gated on `E2E_SERVER` the way `single` is on
    `E2E_BACKEND`. It closes MVP-plan blocker B3 and the identity halves of E2E-G3-01/02/03 and
-   E2E-FLOW-01. Still owed and named in `dev-docs/e2e-tests.md`: presence (G-10), the admin
-   surface (M20) and any real-provider coverage. Delegation (E2E-FLOW-02) came 2026-08-25 with
-   item 20's control. Log: *„A second account arrives…"*.
+   E2E-FLOW-01. The three areas it named as owed are all closed: delegation (E2E-FLOW-02)
+   2026-08-25 with item 20's control, presence (G-10) and the admin surface (M20) 2026-08-28 —
+   the last two found a facepile initialling a random key, a group-sync badge whose state was
+   unreachable, and a deactivated account whose app looked offline instead of saying so. Only
+   real-provider coverage is still open. Log: *„A second account arrives…"*, *„Two screens
+   nobody had ever rendered"*.
 
 19. **NFR-4.12 — notifications are the one surface still written in English**
    (found 2026-08-24 while building FR-25.19's assignment control, **specified, not built**).
