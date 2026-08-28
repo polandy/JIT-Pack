@@ -20,7 +20,7 @@
     "import": "node dist-cli/jitpack-import.mjs"
   },
   "dependencies": {
-    "@ionic/vue": "^8.8.16",
+    "@ionic/vue": "^9.0.0",
     "@ionic/vue-router": "^8.8.18",
     "ionicons": "^8.1.0",
     "pinia": "^4.0.3",
