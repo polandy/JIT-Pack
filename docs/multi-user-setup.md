@@ -34,7 +34,8 @@ So the rollout is literally: everyone opens `https://jitpack.example.com` on the
 
 - **Install it to the home screen.** On iOS this is also what makes [push notifications](notifications.md) possible at all.
 - **Enable push in Settings** on each device that should be notified.
-- **Check the display name** that arrived. With an OIDC session the profile is read-only in the app — Settings says *Profile is managed by your identity provider* — so a wrong name is fixed at the IdP and catches up at the next login or refresh. The name matters most for `@mentions` in comments.
+- **Check the display name** that arrived. With an OIDC session the name is read-only in the app — Settings says *Your display name comes from your identity provider* — so a wrong name is fixed at the IdP and catches up at the next login or refresh. The name matters most for `@mentions` in comments.
+- **The profile picture is the exception, and everyone sets their own.** No identity provider hands one out, so JIT-Pack does not take it from yours: each person opens **Settings → Profile**, picks a photo and positions the circular crop, and the app does the rest — it is never asked about resolution, format or file size. Until someone does, their initials stand in wherever a face appears. Nothing about this needs configuring on your side.
 
 ## 4. Check the roster on the admin page
 
