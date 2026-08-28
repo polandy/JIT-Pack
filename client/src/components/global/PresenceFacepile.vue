@@ -10,7 +10,9 @@
  * carries three fields, and the answer that is worth acting on is *who* is
  * behind — you turn to that person. So the state sits on each face rather
  * than behind a tap: an amber ring marks somebody still catching up, and
- * the badge counts them. G-10 had specified a sheet listing each person
+ * the glyph beside the pile carries their count in a bubble — the same
+ * grammar G-2's own indicator uses, because a header ornament that spells
+ * a sentence competes with the trip's name next to it. G-10 had specified a sheet listing each person
  * instead; a sheet was rejected because it puts the one actionable fact one
  * tap deeper than the pile that is already there, and because on a phone
  * its whole content is three fields.
@@ -30,8 +32,8 @@
  * Names come from the host screen (M4's participant directory): a presence
  * entry carries the account id alone, and `users.id` is a random hex key.
  */
-import { IonChip, IonIcon, IonLabel } from '@ionic/vue'
-import { checkmarkDoneOutline, closeOutline, timeOutline } from 'ionicons/icons'
+import { IonBadge, IonIcon } from '@ionic/vue'
+import { checkmarkDoneOutline, closeOutline, syncOutline } from 'ionicons/icons'
 import { computed, ref, watch } from 'vue'
 
 import UserAvatar from './UserAvatar.vue'
@@ -127,24 +129,32 @@ const namedUser = computed(() => props.users.find((u) => u.user_id === named.val
         {{ t('presence.more', { n: overflow }) }}
       </span>
 
-      <IonChip
+      <!-- The group answer in the app's own indicator grammar (G-2's
+           SyncIndicator): a glyph, and a count in a bubble on its corner
+           where there is something to count. The state is named on the
+           element rather than spelled out beside it — the pile is a header
+           ornament, and a sentence there competes with the trip's name. -->
+      <span
         v-if="allInSync"
-        class="group-sync"
+        class="group-sync synced"
+        role="img"
         :title="t('presence.allInSync')"
+        :aria-label="t('presence.allInSync')"
         data-testid="presence-in-sync"
       >
         <IonIcon :icon="checkmarkDoneOutline" />
-        <IonLabel>{{ t('presence.inSync') }}</IonLabel>
-      </IonChip>
-      <IonChip
+      </span>
+      <span
         v-else
         class="group-sync lagging"
-        :title="t('presence.someBehind')"
+        role="img"
+        :title="t('presence.behind', { n: behind })"
+        :aria-label="t('presence.behind', { n: behind })"
         data-testid="presence-behind"
       >
-        <IonIcon :icon="timeOutline" />
-        <IonLabel>{{ t('presence.behind', { n: behind }) }}</IonLabel>
-      </IonChip>
+        <IonIcon :icon="syncOutline" />
+        <IonBadge color="warning" data-testid="presence-behind-count">{{ behind }}</IonBadge>
+      </span>
     </div>
 
     <!-- The touch half of the hover title: a phone has no hover, and *who*
@@ -214,17 +224,33 @@ const namedUser = computed(() => props.users.find((u) => u.user_id === named.val
   font-weight: var(--jp-weight-semibold);
 }
 
+/* The same shape as the G-2 indicator: a relative box so the count can sit
+   on the glyph's corner rather than beside it. */
 .group-sync {
-  height: 24px;
-  font-size: var(--jp-text-2xs);
-  margin-left: 8px;
-  --background: color-mix(in srgb, var(--jp-done) 16%, transparent);
-  --color: var(--jp-done);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 12px;
+}
+
+.group-sync ion-icon {
+  font-size: var(--jp-icon-md);
+}
+
+.group-sync.synced {
+  color: var(--ion-color-success);
 }
 
 .group-sync.lagging {
-  --background: color-mix(in srgb, var(--ct-yellow) 16%, transparent);
-  --color: var(--ct-yellow);
+  color: var(--ion-color-warning);
+}
+
+.group-sync ion-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  font-size: var(--jp-text-3xs);
+  padding: 2px 4px;
 }
 
 .named {

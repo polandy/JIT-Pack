@@ -7925,6 +7925,15 @@ went entirely: that somebody has the trip open twice is not something anyone
 packing acts on, and it stays on the wire unrendered rather than being
 removed from a contract for nothing.
 
+**The badge follows the house indicator rather than inventing a chip**
+(owner, 2026-08-28). The first build wrote *„1 catching up"* out in a chip
+beside the pile. `SyncIndicator` had been carrying G-2's queue as a count in
+a bubble on the glyph's corner all along, and the pile sits in a header that
+already holds the trip's name — a second sentence there competes with it.
+The words did not disappear, they moved: they are the element's
+`aria-label`, so the state is not carried by colour alone, and the unit case
+asserts the bubble's number and that name separately.
+
 **One decision came out of the render, not the diff.** The first build
 ringed everyone who *was* caught up, in green. On screen that makes the
 ordinary state loud, repeats the badge beside it, and leaves the one person

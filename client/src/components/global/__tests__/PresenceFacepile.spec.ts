@@ -74,14 +74,33 @@ describe('PresenceFacepile — the group answer', () => {
     expect(w.find('[data-testid="presence-behind"]').exists()).toBe(false)
   })
 
-  it('counts the ones still catching up, and pluralizes the count', () => {
+  /**
+   * The count rides in a bubble on the glyph's corner, the way G-2's own
+   * indicator carries its queue — the pile sits in a header beside the
+   * trip's name, and a spelled-out sentence there competes with it. The
+   * words survive as the element's name, so nothing is lost to a reader
+   * who cannot see the colour.
+   */
+  it('counts the ones still catching up in a bubble, and names itself in words', () => {
     setLocale('en')
     const one = render([user({ user_id: 'u1', in_sync: true }), user({ user_id: 'u2' })], NAMES)
-    expect(one.find('[data-testid="presence-behind"]').text()).toBe('1 catching up')
+    expect(one.find('[data-testid="presence-behind-count"]').text()).toBe('1')
+    expect(one.find('[data-testid="presence-behind"]').attributes('aria-label')).toBe(
+      '1 catching up',
+    )
     expect(one.find('[data-testid="presence-in-sync"]').exists()).toBe(false)
 
     const two = render([user({ user_id: 'u1' }), user({ user_id: 'u2' })], NAMES)
-    expect(two.find('[data-testid="presence-behind"]').text()).toBe('2 catching up')
+    expect(two.find('[data-testid="presence-behind-count"]').text()).toBe('2')
+  })
+
+  /** Nothing to count, so no bubble — the glyph alone is the good state. */
+  it('carries no bubble when the group is in sync', () => {
+    const w = render(everyone(true), NAMES)
+    expect(w.find('[data-testid="presence-behind-count"]').exists()).toBe(false)
+    expect(w.find('[data-testid="presence-in-sync"]').attributes('aria-label')).toBe(
+      'Everyone has the latest state',
+    )
   })
 
   /**

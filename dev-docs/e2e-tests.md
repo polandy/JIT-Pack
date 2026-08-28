@@ -2046,6 +2046,15 @@ device — the name, in a line under the pile. The sheet was rejected for
 putting that one actionable fact one tap deeper than a pile already on
 screen; the device count was dropped outright.
 
+**The badge is a glyph with a bubble, not a labelled chip** (owner,
+2026-08-28). The first build spelled *„1 catching up"* out beside the pile;
+the app already has a grammar for exactly this — G-2's `SyncIndicator`
+carries its queue as a count on the glyph's corner — and a header that
+already holds the trip's name has no room for a second sentence. The words
+survive as the element's accessible name, so the colour is not the only
+thing carrying the state, and `presence-behind-count` is asserted separately
+from the name for that reason.
+
 **One decision came from rendering it, not from writing it.** The first
 build ringed everyone who *was* caught up, in green. On screen that makes
 the ordinary state loud, repeats what the badge beside it says, and leaves

@@ -917,8 +917,6 @@ export const en = {
   // G-1 presence facepile and the shared quantity stepper.
   'presence.activeMembers': 'Currently active members',
   'presence.allInSync': 'Everyone has the latest state',
-  'presence.inSync': 'In sync',
-  'presence.someBehind': 'Somebody has not caught up yet',
   'presence.behind': '{n} catching up | {n} catching up',
   'presence.stateSynced': 'up to date',
   'presence.stateBehind': 'catching up',
