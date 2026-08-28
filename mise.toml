@@ -10,6 +10,6 @@
 #   golangci-lint — ci.yml's golangci-lint-action `version`
 # When you change one of those in ci.yml or go.mod, change it here too.
 [tools]
-go = "1.26"
+go = "1.27"
 node = "24"
-golangci-lint = "2.12"
+golangci-lint = "2.13"
