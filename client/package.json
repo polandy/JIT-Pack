@@ -20,8 +20,8 @@
     "import": "node dist-cli/jitpack-import.mjs"
   },
   "dependencies": {
-    "@ionic/vue": "^8.8.16",
-    "@ionic/vue-router": "^8.8.18",
+    "@ionic/vue": "^9.0.0",
+    "@ionic/vue-router": "^9.0.0",
     "ionicons": "^8.1.0",
     "pinia": "^4.0.3",
     "vue": "^3.5.41",
@@ -32,7 +32,7 @@
     "@playwright/test": "^1.62.1",
     "@tsconfig/node24": "^24.0.5",
     "@types/jsdom": "^30.0.0",
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.3.0",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vitest/eslint-plugin": "^1.6.27",
     "@vue/eslint-config-typescript": "^14.8.0",

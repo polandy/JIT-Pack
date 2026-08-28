@@ -1,4 +1,11 @@
-import { test, expect, expectTripOpen } from './fixtures'
+import {
+  test,
+  expect,
+  expectTripOpen,
+  tripAction,
+  expectTripActionOffered,
+  expectTripActionAbsent,
+} from './fixtures'
 import {
   addPosition,
   backToTemplateList as backToList,
@@ -66,11 +73,11 @@ async function quickAddVerbatim(page: Page, name: string) {
 
 /** Drive the trip through its lifecycle to *archived*, where M21 lives. */
 async function archiveTrip(page: Page) {
-  await page.getByTestId('m4-start').click()
+  await tripAction(page, 'start')
   // The archive action appearing is the settled signal that the status
   // write landed — a fixed wait would only probably hold.
-  await expect(page.getByTestId('m4-archive')).toBeVisible()
-  await page.getByTestId('m4-archive').click()
+  await expectTripActionOffered(page, 'archive')
+  await tripAction(page, 'archive')
   // FR-9.3: the action opens the closing pass, and *Fertig* is what
   // archives — skipping the pass without judging anything is its own
   // supported path (E2E-M4-53 owns the pass itself).
@@ -113,20 +120,20 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     await tripFromGroup(page, 'Samedan Sommer 2026')
 
     // Planning: no archiving, and therefore no closing card either.
-    await expect(page.getByTestId('m4-archive')).toHaveCount(0)
+    await expectTripActionAbsent(page, 'archive')
     await expect(visible(page).getByTestId('m4-template-from-trip')).toHaveCount(0)
 
-    await page.getByTestId('m4-start').click()
+    await tripAction(page, 'start')
 
     // Active: archiving is offered, starting is not offered twice — and the
     // closing card still stays away. The card belongs to a *finished* trip,
     // and a running one offering "make a template of this" would be an
     // invitation to harvest a trip that has not happened yet.
-    await expect(page.getByTestId('m4-archive')).toBeVisible()
-    await expect(page.getByTestId('m4-start')).toHaveCount(0)
+    await expectTripActionOffered(page, 'archive')
+    await expectTripActionAbsent(page, 'start')
     await expect(visible(page).getByTestId('m4-template-from-trip')).toHaveCount(0)
 
-    await page.getByTestId('m4-archive').click()
+    await tripAction(page, 'archive')
     await page.getByTestId('m4-pass-finish').click()
     await expect(visible(page).getByTestId('m4-template-from-trip')).toBeVisible()
   })
@@ -186,9 +193,7 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     // Default is *update* — a trip mutation is learned truth (FR-27.5).
     // Ionic marks the chosen segment with a class, not with aria-checked;
     // asserting the attribute was green-by-absence in the wrong direction.
-    await expect(group.getByTestId('m21-choice-update')).toHaveClass(
-      /segment-button-checked/,
-    )
+    await expect(group.getByTestId('m21-choice-update')).toHaveClass(/segment-button-checked/)
     await expect(group.getByTestId('m21-blast')).toBeVisible()
 
     // Choosing "only in this template" retracts the blast note with it.
@@ -299,9 +304,11 @@ test.describe('M21 — a finished trip folded back into templates (FR-27.5)', ()
     // Two includes now, and the loose row is in the new group rather than
     // sitting as an own position of the Vorlage.
     await expect(page.getByTestId('header-title')).toHaveText('Samedan Sommer 2027')
-    await expect(visible(page).locator('ion-item').filter({ hasText: 'Samedan Extras' })).toHaveCount(
-      1,
+    await expect(
+      visible(page).locator('ion-item').filter({ hasText: 'Samedan Extras' }),
+    ).toHaveCount(1)
+    await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Reisefön' })).toHaveCount(
+      0,
     )
-    await expect(visible(page).locator('ion-item h2').filter({ hasText: 'Reisefön' })).toHaveCount(0)
   })
 })

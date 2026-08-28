@@ -683,4 +683,46 @@ test.describe('M4 packing list — scroll memory @local @m4', () => {
     const checkboxSlot = await checkboxRow.locator('.row-start').boundingBox()
     expect(stepperSlot!.width).toBe(checkboxSlot!.width)
   })
+
+  /*
+   * E2E-M4-57 (G-12, UX-13): the bar keeps the actions used while packing
+   * and puts the once-per-trip ones behind the ⋮, where they are read as
+   * words. Before it, six glyphs plus the gear sat in a bar that on a phone
+   * had already given up its title to make room.
+   */
+  test('E2E-M4-57: the rare trip actions move behind the bar menu', async ({ page }) => {
+    await createTripViaWizard(page, { name: 'Elba' })
+    await expect(visible(page).getByTestId('m4-header')).toBeVisible()
+
+    // What stays: the three tapped while packing.
+    await expect(page.getByTestId('m4-search')).toBeVisible()
+    await expect(page.getByTestId('m4-filter')).toBeVisible()
+    await expect(page.getByTestId('m4-fold-all')).toBeVisible()
+    // What went: no longer a glyph of its own.
+    await expect(page.getByTestId('m4-edit')).toHaveCount(0)
+    await expect(page.getByTestId('m4-start')).toHaveCount(0)
+
+    await page.getByTestId('header-overflow').click()
+
+    // Named, not merely present — the whole reason for the menu.
+    const sheet = page.locator('ion-action-sheet')
+    await expect(sheet).toBeVisible()
+    await expect(sheet).toContainText('Trip properties')
+    await expect(sheet).toContainText('Start trip')
+
+    // And it acts: the properties entry lands on the rendered edit screen.
+    await sheet.getByText('Trip properties').click()
+    await expect(visible(page).getByTestId('trip-edit-name')).toBeVisible()
+
+    /*
+     * By role, not only by test id — and that distinction is the case's
+     * sharpest half. While an overlay is up Ionic marks the router outlet
+     * `aria-hidden`; an action that navigates from inside the sheet's own
+     * handler races the teardown and the flag stays behind, leaving the
+     * screen fully painted, fully clickable and absent from the
+     * accessibility tree. Every pixel assertion above stays green through
+     * that. This one does not.
+     */
+    await expect(visible(page).getByRole('textbox').first()).toBeVisible()
+  })
 })

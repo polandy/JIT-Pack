@@ -6,6 +6,8 @@ import {
   addPosition,
   createTripViaWizard,
   expectTripOpen,
+  tripAction,
+  expectTripActionOffered,
 } from './fixtures'
 import {
   addToGroup,
@@ -172,9 +174,9 @@ test.describe('Local Mode backup and restore @local @m18', () => {
 
     await createTripViaWizard(page, TRIP)
     // Planning → active → archived, the only path the app offers (E2E-M4-43).
-    await page.getByTestId('m4-start').click()
-    await expect(page.getByTestId('m4-archive')).toBeVisible()
-    await page.getByTestId('m4-archive').click()
+    await tripAction(page, 'start')
+    await expectTripActionOffered(page, 'archive')
+    await tripAction(page, 'archive')
     // FR-9.3: the archive action opens the closing pass; *Fertig* archives.
     await page.getByTestId('m4-pass-finish').click()
     await expect(visible(page).getByTestId('m4-template-from-trip')).toBeVisible()
