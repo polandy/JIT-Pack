@@ -117,6 +117,12 @@ export function durationDays(startDate: string | null, endDate: string | null): 
   if (!startDate || !endDate) return null
   const ms = Date.parse(endDate) - Date.parse(startDate)
   if (Number.isNaN(ms)) return null
+  // An end before its start has no length. The pickers make that pair
+  // unreachable in the app (FR-2.1d), but a row can still arrive inverted
+  // from a device that predates the bound or from an import — and a negative
+  // number here would reach generation as a quantity input rather than being
+  // read as the absence it is.
+  if (ms < 0) return null
   return Math.round(ms / 86_400_000) + 1
 }
 

@@ -648,6 +648,7 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
             <IonItem>
               <DateField
                 testid="wizard-start-date"
+                :max="endDate"
                 :label="t('wizard.startDate')"
                 :value="startDate"
                 @update="startDate = $event"
@@ -656,6 +657,7 @@ setHeaderTitle(() => t('wizard.headerTitle', { n: step.value }))
             <IonItem>
               <DateField
                 testid="wizard-end-date"
+                :min="startDate"
                 :label="t('wizard.endDate')"
                 :value="endDate"
                 @update="endDate = $event"

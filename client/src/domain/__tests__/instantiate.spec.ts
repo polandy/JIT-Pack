@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { generateTripItems, type GenerationInput } from '../instantiate'
+import { durationDays, generateTripItems, type GenerationInput } from '../instantiate'
 import type {
   MasterItem,
   Template,
@@ -696,5 +696,31 @@ describe('generateTripItems takes single items too (FR-27.3)', () => {
 
     expect(res.items).toEqual([])
     expect(res.alreadyIncluded).toEqual([])
+  })
+})
+
+describe('durationDays — the trip’s length, or none (FR-2.1b)', () => {
+  it('counts both end days, so a single-day trip is one day', () => {
+    expect(durationDays('2026-08-22', '2026-08-22')).toBe(1)
+    expect(durationDays('2026-08-22', '2026-09-05')).toBe(15)
+  })
+
+  it('has no length without both dates', () => {
+    expect(durationDays(null, '2026-09-05')).toBeNull()
+    expect(durationDays('2026-08-22', null)).toBeNull()
+    expect(durationDays(null, null)).toBeNull()
+  })
+
+  it('has no length when the end precedes the start', () => {
+    // The pickers make this unreachable in the app (FR-2.1d), but a row can
+    // still arrive inverted — synced from a device that predates the bound,
+    // or imported. A negative length is not a length: it would reach
+    // generation as a quantity input and multiply every per-day position by
+    // a negative number.
+    expect(durationDays('2026-09-26', '2026-09-05')).toBeNull()
+  })
+
+  it('has no length for an unparseable date', () => {
+    expect(durationDays('not-a-date', '2026-09-05')).toBeNull()
   })
 })
