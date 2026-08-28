@@ -531,7 +531,8 @@ export const en = {
   'settings.displayName': 'Display name',
   'settings.saved': 'Saved',
   'settings.nameRule': '1–50 characters, no leading or trailing spaces.',
-  'settings.profileManaged': 'Profile is managed by your identity provider.',
+  'settings.nameManaged':
+    'Your display name comes from your identity provider. The picture is yours to choose.',
   'settings.profileUnavailable': 'Profile unavailable — server not reachable.',
   'settings.lightThemeHint': 'Catppuccin Latte — dark (Mocha) is the default. This device only.',
   'settings.notifications': 'Notifications',
