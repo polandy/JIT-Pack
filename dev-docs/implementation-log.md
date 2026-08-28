@@ -7885,6 +7885,25 @@ confirmed the two were the complete set of bare `toLocale*` calls left in
 app's locale is a German date in an English app on every device the family
 actually owns.
 
+**And the finding that was filed as a design question and turned out not to
+be one.** The review flagged M20's missing-avatar glyph as an owner call —
+initials, a silhouette, or nothing. The owner asked for something better, and
+the better thing was already in the repository: `UserAvatar` (FR-25.3), a
+coloured circle of initials that M4 and M5 have drawn people with for weeks.
+M20 had hand-rolled an `<img>`; so had M17, where the error handler hides the
+element and leaves a hole, and where the `personCircleOutline` placeholder
+written for that exact case sits behind `v-if="avatarUrl"` — a computed that
+is non-null whenever `me` is, so the placeholder had never rendered once.
+
+Two things worth keeping from it. **The picture goes over the initials, not
+instead of them**, which makes the loading, absent and refused states one
+state instead of three. And **the retry on a changed URL is load-bearing**:
+FR-17.13 busts the cache with a query alone, so a `broken` flag that did not
+reset would leave a picture the user had just uploaded hidden behind the
+404 that preceded it. The letters take their size from two steps of the type
+table rather than a fraction of the circle, because invariant 9b keeps type
+values in `typography.css` — at 64 px the 24 px row size read as a typo.
+
 **The isolation cost, and what was refused.** The mock IdP grew a third account. `carol` exists because these cases
 *change* the account they act on and one backend serves the whole run with
 the two spec files free to land on two workers: deactivating `bob` would

@@ -66,6 +66,14 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
     await expect(aliceRow.getByTestId('admin-self')).toBeVisible()
     await expect(aliceRow.getByTestId('admin-role-chip')).toBeVisible()
 
+    // FR-25.3: nobody in this fixture ever uploaded a picture, and the
+    // avatar endpoint 404s for such an account. The circle carries the
+    // person's initials and no `<img>` at all — this row used to render the
+    // browser's torn-picture glyph.
+    const face = aliceRow.getByTestId('user-avatar')
+    await expect(face).toHaveText('AL')
+    await expect(face.getByTestId('user-avatar-picture')).toHaveCount(0)
+
     const bobRow = list.getByTestId(`admin-row-${ACCOUNT_NAMES.bob}`)
     await expect(bobRow).toContainText('bob@example.test')
     // The negatives are asserted beside a positive on the same row, so a row

@@ -24,6 +24,7 @@ import {
 } from '@ionic/vue'
 import { inject, onMounted, ref } from 'vue'
 
+import UserAvatar from '@/components/global/UserAvatar.vue'
 import { adminActionsFor, type AdminAction, type AdminUserRow } from '@/domain/admin'
 import { serverBaseUrl } from '@/config'
 import { formatDate, t, type MessageKey } from '@/i18n'
@@ -145,12 +146,13 @@ function provisioned(user: AdminUserRow): string {
           :data-testid="`admin-row-${user.display_name || user.user_id}`"
           @click="openActions(user)"
         >
-          <img
+          <UserAvatar
             slot="start"
             class="avatar"
+            :name="user.display_name || user.user_id"
+            :seed="user.user_id"
             :src="avatarUrl(user)"
-            alt=""
-            data-testid="admin-avatar"
+            :size="40"
           />
           <IonLabel>
             <h3>
@@ -186,11 +188,7 @@ function provisioned(user: AdminUserRow): string {
 
 <style scoped>
 .avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--ion-color-light);
-  object-fit: cover;
+  margin-inline-end: 16px;
 }
 
 .self-marker {

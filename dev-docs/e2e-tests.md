@@ -2000,11 +2000,26 @@ other place the codebase still called `toLocale*` without a locale — the two
 were the complete set. It goes through `formatDate()` now, and E2E-M20-01
 pins a month abbreviation, which the numeric German form cannot produce.
 
-**Still open on M20, and an owner call rather than a defect to guess at:** an
-account that never uploaded an avatar renders the browser's broken-image
-glyph, because `avatarUrl` always points at the endpoint and the row has no
-fallback. Named here rather than fixed, because what should be there instead
-— initials, a neutral silhouette, nothing at all — is a design decision.
+**And a fifth, raised as an owner call and answered the same day.** An
+account that never uploaded an avatar rendered the browser's torn-picture
+glyph on M20. The answer needed no design decision, because the design
+already existed and was already shipped: `UserAvatar` (FR-25.3) draws a
+person as a coloured circle of initials and M4 and M5 have used it for
+weeks. M20 had hand-rolled an `<img>` instead — and so, it turned out, had
+**M17**, where the `@error` handler hides the element and leaves a 64 px
+hole, with the `personCircleOutline` placeholder written for exactly that
+case sitting behind `v-if="avatarUrl"`, a condition that is never false. The
+placeholder had never rendered in its life.
+
+`UserAvatar` now takes an optional `src` and lays it **over** the initials,
+so the letters are the ground rather than a fallback: still loading, absent
+and refused all show a person instead of a gap. Both screens use it, and two
+hand-rolled circles are gone. E2E-M20-01 asserts the initials and the
+*absence* of a picture element on an account that has none; the four states
+(none, present, failed, re-uploaded) are exhaustive in
+`UserAvatar.spec.ts` — including the retry on a changed URL, without which
+FR-17.13's cache-busting query would leave a freshly uploaded picture hidden
+behind the previous failure.
 
 ### What is deliberately not covered
 
