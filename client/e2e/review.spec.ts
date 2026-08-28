@@ -8,6 +8,8 @@ import {
   expectTripOpen,
   openQuickAdd,
   visiblePage as visible,
+  tripAction,
+  expectTripActionOffered,
 } from './fixtures'
 import type { Page } from '@playwright/test'
 
@@ -134,8 +136,8 @@ async function quickAddMissing(page: Page, name: string) {
 
 /** Start the trip; the archive action appearing is the settled signal. */
 async function startTrip(page: Page) {
-  await page.getByTestId('m4-start').click()
-  await expect(page.getByTestId('m4-archive')).toBeVisible()
+  await tripAction(page, 'start')
+  await expectTripActionOffered(page, 'archive')
 }
 
 /**
@@ -144,7 +146,7 @@ async function startTrip(page: Page) {
  * anything is the ordinary path to M14.
  */
 async function archiveThroughPass(page: Page) {
-  await page.getByTestId('m4-archive').click()
+  await tripAction(page, 'archive')
   await expect(visible(page).getByTestId('m4-pass-banner')).toBeVisible()
   await page.getByTestId('m4-pass-finish').click()
 }

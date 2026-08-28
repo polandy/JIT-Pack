@@ -12,6 +12,7 @@
 export const en = {
   // Shared vocabulary — used across screens.
   'common.cancel': 'Cancel',
+  'common.moreActions': 'More actions',
   'common.save': 'Save',
   'common.delete': 'Delete',
   'common.add': 'Add',

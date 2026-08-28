@@ -12,6 +12,7 @@ import type { en } from './en'
 
 export const de: Record<keyof typeof en, string> = {
   'common.cancel': 'Abbrechen',
+  'common.moreActions': 'Weitere Aktionen',
   'common.save': 'Speichern',
   'common.delete': 'Löschen',
   'common.add': 'Hinzufügen',

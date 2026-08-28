@@ -1,6 +1,14 @@
 import { readFile } from 'node:fs/promises'
 
-import { test, expect, createTripViaWizard, openQuickAdd, setDateField } from './fixtures'
+import {
+  test,
+  expect,
+  createTripViaWizard,
+  openQuickAdd,
+  setDateField,
+  tripAction,
+  expectTripActionOffered,
+} from './fixtures'
 import type { Page } from '@playwright/test'
 
 /**
@@ -420,7 +428,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await page.setViewportSize(MOBILE)
     const trip = await createTripViaWizard(page, TRIP)
 
-    await page.getByTestId('m4-edit').click()
+    await tripAction(page, 'edit')
     // The painted screen, not the URL: a route change that does not repaint
     // keeps every URL assertion green.
     await expect(onVisibleScreen(page, 'trip-edit-name')).toBeVisible()
@@ -433,7 +441,7 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     await expect(onVisibleScreen(page, 'm4-fab')).toBeVisible()
     // And the app bar belongs to M4 again: below the breakpoint that screen
     // registers no title, so its own actions are the positive signal.
-    await expect(page.getByTestId('m4-edit')).toBeVisible()
+    await expectTripActionOffered(page, 'edit')
     await expect(onVisibleScreen(page, 'trip-edit-name')).toHaveCount(0)
   })
   /*
@@ -577,5 +585,40 @@ test.describe('Global navigation @local @g9 @g1 @g12', () => {
     // gear — which would only reopen it — is gone from the bar.
     await expect(onVisibleScreen(page, 'settings-language')).toBeVisible()
     await expect(page.getByTestId('header-settings')).toHaveCount(0)
+  })
+
+  /*
+   * E2E-G9-16 (G-9): on a wide screen the content stops at a column.
+   * Edge to edge, a settings row put its label and its control 1100 px
+   * apart and the M9 tag segment spread three chips across 1176 px — a
+   * line nobody can read as one thing (UX review 2026-08-25, UX-17).
+   */
+  test('E2E-G9-16: wide screens get a content column, narrow ones the full width', async ({
+    page,
+  }) => {
+    await page.setViewportSize(DESKTOP)
+    await page.goto('/tabs/settings')
+    // A block that spans whatever the content is given — a section heading,
+    // not a control that would sit at one edge whatever the width is.
+    const row = onVisibleScreen(page, 'settings-section-appearance')
+    await expect(row).toBeVisible()
+
+    const wide = (await row.boundingBox())!
+    // Capped: the row is far narrower than the area it sits in…
+    expect(wide.width).toBeLessThan(DESKTOP.width - 200)
+    // …and centred in it, rather than parked against the nav rail. The
+    // gutters are measured against the content area (the rail is outside
+    // it), so they are equal to within a pixel of rounding.
+    const area = (await page.locator('.app-content').boundingBox())!
+    const left = wide.x - area.x
+    const right = area.x + area.width - (wide.x + wide.width)
+    expect(Math.abs(left - right)).toBeLessThanOrEqual(1)
+
+    // The phone keeps every pixel it has: the cap must not become a
+    // margin on the screen the app is actually built for.
+    await page.setViewportSize(MOBILE)
+    await expect(row).toBeVisible()
+    const narrow = (await row.boundingBox())!
+    expect(narrow.width).toBeGreaterThan(MOBILE.width - 60)
   })
 })

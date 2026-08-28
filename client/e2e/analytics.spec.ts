@@ -1,4 +1,11 @@
-import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
+import {
+  test,
+  expect,
+  createTripViaWizard,
+  openQuickAdd,
+  tripAction,
+  expectTripActionOffered,
+} from './fixtures'
 import type { Page } from '@playwright/test'
 
 /**
@@ -89,8 +96,8 @@ async function assignTraveler(page: Page, itemName: string, travelerName: string
  * pair of actions swaps, which a fixed wait could only probably catch.
  */
 async function startTrip(page: Page) {
-  await page.getByTestId('m4-start').click()
-  await expect(page.getByTestId('m4-archive')).toBeVisible()
+  await tripAction(page, 'start')
+  await expectTripActionOffered(page, 'archive')
 }
 
 /** Pack a row, which is what a trend column actually counts. */
@@ -221,7 +228,7 @@ test.describe('M12 analytics @local @m12', () => {
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 
-    await page.getByTestId('m4-archive').click()
+    await tripAction(page, 'archive')
     // FR-9.3: the archive action opens the closing pass; *Fertig* archives.
     await page.getByTestId('m4-pass-finish').click()
 
