@@ -208,6 +208,7 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
           <IonItem>
             <DateField
               testid="trip-edit-start"
+              :max="endDate"
               :label="t('tripEdit.startDate')"
               :value="startDate"
               :readonly="readOnly"
@@ -217,6 +218,7 @@ async function removeTraveler(travelerId: string, travelerName: string): Promise
           <IonItem>
             <DateField
               testid="trip-edit-end"
+              :min="startDate"
               :label="t('tripEdit.endDate')"
               :value="endDate"
               :readonly="readOnly"

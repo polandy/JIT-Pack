@@ -26,7 +26,7 @@ const IonInputStub = {
 
 const IonDatetimeStub = {
   name: 'IonDatetime',
-  props: ['value', 'locale', 'firstDayOfWeek', 'doneText', 'cancelText', 'clearText'],
+  props: ['value', 'locale', 'firstDayOfWeek', 'doneText', 'cancelText', 'clearText', 'min', 'max'],
   emits: ['ionChange', 'ionCancel'],
   template: '<div data-stub="datetime" />',
 }
@@ -91,5 +91,28 @@ describe('DateField (ADR-035)', () => {
     await wrapper.find('[data-stub="input"]').trigger('click')
     await wrapper.findComponent(IonDatetimeStub).vm.$emit('ionChange', { detail: { value: null } })
     expect(wrapper.emitted('update')).toEqual([['']])
+  })
+
+  /**
+   * FR-2.1d: the bound is carried to the calendar rather than checked after
+   * the fact, so a trip whose end precedes its start is not a state the app
+   * has to reject — it is one the picker never offers.
+   */
+  it('hands its bounds to the calendar', async () => {
+    const wrapper = mountField({ value: '2026-09-13', min: '2026-09-01', max: '2026-09-30' })
+    await wrapper.find('[data-stub="input"]').trigger('click')
+    const picker = wrapper.findComponent(IonDatetimeStub)
+    expect(picker.props('min')).toBe('2026-09-01')
+    expect(picker.props('max')).toBe('2026-09-30')
+  })
+
+  it('leaves an absent bound absent rather than inventing one', async () => {
+    // An unset counterpart is *no* restriction. A default of today would
+    // silently forbid the past, which every archived trip needs.
+    const wrapper = mountField({ value: '2026-09-13' })
+    await wrapper.find('[data-stub="input"]').trigger('click')
+    const picker = wrapper.findComponent(IonDatetimeStub)
+    expect(picker.props('min')).toBeUndefined()
+    expect(picker.props('max')).toBeUndefined()
   })
 })

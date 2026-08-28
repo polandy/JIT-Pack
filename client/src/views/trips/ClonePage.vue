@@ -147,6 +147,7 @@ setHeaderTitle(() => t('clone.title', { name: source.value?.name ?? '' }))
           <IonItem>
             <DateField
               testid="clone-start-date"
+              :max="endDate"
               :label="t('wizard.startDate')"
               :value="startDate"
               @update="startDate = $event"
@@ -155,6 +156,7 @@ setHeaderTitle(() => t('clone.title', { name: source.value?.name ?? '' }))
           <IonItem>
             <DateField
               testid="clone-end-date"
+              :min="startDate"
               :label="t('wizard.endDate')"
               :value="endDate"
               @update="endDate = $event"

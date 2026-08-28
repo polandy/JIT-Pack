@@ -82,7 +82,6 @@ export interface TripSeed {
   series?: string
 }
 
-
 /**
  * Sets a DateField (ADR-035): opens its picker sheet, walks the calendar to
  * the target month with the header arrows and confirms the day. Replaces the
@@ -118,11 +117,25 @@ export async function setDateField(page: Page, testid: string, iso: string): Pro
 
   // The working (centre) grid is the navigated month; the neighbours can
   // carry the same day as an adjacent-day cell, so the scope matters.
-  await picker
-    .locator(
-      `.calendar-month:nth-child(2) .calendar-day[data-day="${day}"][data-month="${month}"][data-year="${year}"]`,
-    )
-    .click()
+  const cell = picker.locator(
+    `.calendar-month:nth-child(2) .calendar-day[data-day="${day}"][data-month="${month}"][data-year="${year}"]`,
+  )
+
+  // Dispatched, not clicked at a point. A real click is delivered at
+  // coordinates, and the calendar may still be scrolling its grids into
+  // place: a point that lands one month over selects the day at the same row
+  // and column — 22 August and 26 September 2026 are both the fourth Saturday
+  // — and Ionic *confirms* immediately on an adjacent-day cell, so the wrong
+  // date is taken silently and surfaces screens later. The day button carries
+  // a plain `onClick`, so dispatching removes the coordinates from the
+  // question entirely rather than racing them.
+  //
+  // Enabled is asserted first, because dispatching also bypasses the
+  // `disabled` a bound puts on an out-of-range day (FR-2.1d) — the helper
+  // must not be able to set what the app refuses to offer.
+  await expect(cell).toBeEnabled()
+  await cell.dispatchEvent('click')
+
   await picker.getByText('Done', { exact: true }).click()
   await expect(picker).toBeHidden()
 }
