@@ -3,11 +3,13 @@
  * M17 — Settings (personal preferences only; no admin functions, the
  * instance is configured declaratively per PRD Section 2).
  *
- * Profile: in Single-User Mode (no OIDC session) the display name and
- * avatar are editable per FR-17.13 — the avatar is pan/zoom cropped to a
- * 256×256 JPEG on-device (AvatarCropModal). With an OIDC session the
- * profile is read-only (IdP-sourced). Local Mode has no server identity,
- * so the section is a note.
+ * Profile (FR-17.13): the picture is editable wherever there is a server
+ * identity — pan/zoom cropped to a 256×256 JPEG on-device (AvatarCropModal)
+ * — because no identity provider supplies one, so gating it on Single-User
+ * Mode would mean a multi-user instance can never have one. The display
+ * name is different: with an OIDC session it comes from the IdP, so it
+ * stays read-only there rather than becoming an editable copy. Local Mode
+ * has no server identity at all, so the section is a note.
  *
  * Data: NFR-4.5 exports (full JSON, per-trip CSV). Local Mode points to
  * the portable YAML path instead.
@@ -73,7 +75,18 @@ const masterStore = useMasterStore()
 
 const mode = localStorage.getItem('jitpack_mode') as 'local' | 'server' | null
 /** OIDC session → profile is IdP-sourced and read-only (UI-Spec M17). */
-const editable = mode === 'server' && !loadTokens()
+/**
+ * The display name is IdP-sourced with an OIDC session, so editing it there
+ * would be editing a copy (FR-17.13).
+ */
+const nameEditable = mode === 'server' && !loadTokens()
+/**
+ * The picture is not: no identity provider supplies one, so a read-only
+ * profile in Server Mode means the picture can never exist in the mode a
+ * multi-user instance actually runs in. Editable wherever there is a server
+ * identity at all — Local Mode has none (FR-17.13).
+ */
+const pictureEditable = mode === 'server'
 /** Multi-user instance → notifications exist (FR-17.3/FR-19.3 hide them otherwise). */
 const collaborative = mode === 'server' && !!loadTokens()
 
@@ -325,7 +338,7 @@ async function exportTripCSV() {
             :src="avatarUrl"
             :size="64"
           />
-          <label v-if="editable" class="avatar-upload">
+          <label v-if="pictureEditable" class="avatar-upload">
             {{ t('settings.changePicture') }}
             <input type="file" accept="image/*" hidden @change="onAvatarFile" />
           </label>
@@ -343,7 +356,7 @@ async function exportTripCSV() {
               label-placement="stacked"
               data-testid="settings-name-input"
               :value="nameDraft"
-              :readonly="!editable"
+              :readonly="!nameEditable"
               :maxlength="50"
               @ionInput="
                 (e: CustomEvent) => {
@@ -353,7 +366,7 @@ async function exportTripCSV() {
               "
             />
             <IonButton
-              v-if="editable"
+              v-if="nameEditable"
               slot="end"
               size="small"
               data-testid="settings-name-save"
@@ -365,13 +378,15 @@ async function exportTripCSV() {
           </IonItem>
         </IonList>
         <IonNote
-          v-if="editable && nameTouched && !nameValid"
+          v-if="nameEditable && nameTouched && !nameValid"
           color="danger"
           data-testid="settings-name-rule"
         >
           {{ t('settings.nameRule') }}
         </IonNote>
-        <IonNote v-else-if="!editable">{{ t('settings.profileManaged') }}</IonNote>
+        <IonNote v-else-if="!nameEditable" data-testid="settings-name-managed">
+          {{ t('settings.nameManaged') }}
+        </IonNote>
       </template>
       <IonNote v-else>{{ t('settings.profileUnavailable') }}</IonNote>
 

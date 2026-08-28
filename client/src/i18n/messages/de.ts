@@ -534,7 +534,8 @@ export const de: Record<keyof typeof en, string> = {
   'settings.displayName': 'Anzeigename',
   'settings.saved': 'Gespeichert',
   'settings.nameRule': '1–50 Zeichen, ohne Leerzeichen am Anfang oder Ende.',
-  'settings.profileManaged': 'Das Profil verwaltet dein Identitätsanbieter.',
+  'settings.nameManaged':
+    'Dein Anzeigename kommt von deinem Identitätsanbieter. Das Bild wählst du selbst.',
   'settings.profileUnavailable': 'Profil nicht verfügbar — Server nicht erreichbar.',
   'settings.lightThemeHint':
     'Catppuccin Latte — dunkel (Mocha) ist die Voreinstellung. Nur auf diesem Gerät.',
