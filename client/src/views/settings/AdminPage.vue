@@ -26,7 +26,7 @@ import { inject, onMounted, ref } from 'vue'
 
 import { adminActionsFor, type AdminAction, type AdminUserRow } from '@/domain/admin'
 import { serverBaseUrl } from '@/config'
-import { t, type MessageKey } from '@/i18n'
+import { formatDate, t, type MessageKey } from '@/i18n'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
@@ -119,8 +119,13 @@ function avatarUrl(user: AdminUserRow): string {
   return `${serverBaseUrl()}${API.userAvatar(user.user_id)}`
 }
 
+/**
+ * `toLocaleDateString()` with no locale follows the *device*, not the app —
+ * so an English instance on a German phone printed `28.8.2026` under
+ * "Provisioned". The same defect the conflict log had (E2E-G2-01, 2026-08-24).
+ */
 function provisioned(user: AdminUserRow): string {
-  return new Date(user.created_at).toLocaleDateString()
+  return formatDate(new Date(user.created_at))
 }
 </script>
 

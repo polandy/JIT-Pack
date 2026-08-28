@@ -123,6 +123,11 @@ export class APIClient {
       // rather than on the status: a 403 is also how the server refuses a
       // non-admin the M20 endpoints, and logging that person out would be
       // a worse bug than the one being fixed.
+      //
+      // Imported rather than injected beside `onUnauthorized`, at the cost
+      // of the transport knowing the auth module: a hook has to be wired at
+      // every construction site, and behaviour lost by a missed wiring is
+      // the exact failure this branch exists to end.
       if (resp.status === 403 && apiError?.code === ERROR_CODE.account_deactivated) {
         endSession()
       }

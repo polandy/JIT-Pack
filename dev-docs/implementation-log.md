@@ -7876,6 +7876,15 @@ drives exactly that — so a fix written against `resp.status === 403` would
 have logged Bob out for visiting `/admin`. The wider bug would have been
 shipped by the narrower one's fix.
 
+A fourth came from the *screenshot* rather than the run, which is worth
+separating: M20's provisioning date used a bare `toLocaleDateString()` and so
+followed the device, printing `28.8.2026` under English copy. That is exactly
+what E2E-G2-01 found on the conflict log four days earlier — and a grep
+confirmed the two were the complete set of bare `toLocale*` calls left in
+`client/src`. The rule generalises past both: a date rendered without the
+app's locale is a German date in an English app on every device the family
+actually owns.
+
 **The isolation cost, and what was refused.** The mock IdP grew a third account. `carol` exists because these cases
 *change* the account they act on and one backend serves the whole run with
 the two spec files free to land on two workers: deactivating `bob` would

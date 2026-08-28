@@ -1991,6 +1991,21 @@ the status: a 403 is also how the server refuses a non-admin the M20
 endpoints, and logging that person out would have been the worse defect —
 E2E-M20-05 stands on Bob's session surviving exactly that.
 
+**And a fourth, found by looking at the screenshot rather than the run.**
+M20's provisioning date came from a bare `toLocaleDateString()`, which
+follows the *device*: on the suite's de-CH device with the app pinned to
+English the overview read `Provisioned 28.8.2026` under English copy. It is
+the same defect E2E-G2-01 found on the conflict log on 2026-08-24, in the one
+other place the codebase still called `toLocale*` without a locale — the two
+were the complete set. It goes through `formatDate()` now, and E2E-M20-01
+pins a month abbreviation, which the numeric German form cannot produce.
+
+**Still open on M20, and an owner call rather than a defect to guess at:** an
+account that never uploaded an avatar renders the browser's broken-image
+glyph, because `avatarUrl` always points at the endpoint and the row has no
+fallback. Named here rather than fixed, because what should be there instead
+— initials, a neutral silhouette, nothing at all — is a design decision.
+
 ### What is deliberately not covered
 
 - **The per-person sync list** G-10 sketches behind a tap on the badge. It

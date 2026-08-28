@@ -54,9 +54,14 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
     // point of the row is that an operator can read it.
     const aliceRow = list.getByTestId(`admin-row-${ACCOUNT_NAMES.alice}`)
     await expect(aliceRow).toContainText('alice@example.test')
-    await expect(aliceRow).toContainText(/Provisioned/)
     await expect(aliceRow).toContainText(/trips?/)
     await expect(aliceRow).toContainText(/templates?/)
+    // …and the date is in the *app's* language, not the device's. The suite
+    // runs a de-CH device with the app pinned to English, so the unfixed
+    // `toLocaleDateString()` printed `28.8.2026` under "Provisioned" — the
+    // same defect the conflict log had. A month abbreviation is something
+    // the numeric German form cannot produce.
+    await expect(aliceRow).toContainText(/Provisioned \w{3} \d{1,2}, \d{4}/)
     // The two markers that only ever belong on this row of this instance.
     await expect(aliceRow.getByTestId('admin-self')).toBeVisible()
     await expect(aliceRow.getByTestId('admin-role-chip')).toBeVisible()
@@ -94,6 +99,15 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
     await expect(ownSheet.getByRole('button', { name: /^Deactivate$/ })).toHaveCount(0)
     await expect(ownSheet.getByRole('button', { name: /^Reset display name$/ })).toBeVisible()
     await ownSheet.getByRole('button', { name: /^Cancel$/ }).click()
+    await expect(ownSheet).toHaveCount(0)
+
+    // Leaving is a behaviour too (ADR-011): M20 declares Settings as its
+    // static parent, and this is the only project where the screen exists at
+    // all — `global-nav.spec.ts` runs `local`, where G-8 removes the entry.
+    // The header lives outside the router outlet, so it is addressed
+    // unscoped while the destination is asserted on the visible page.
+    await alice.getByTestId('header-back').click()
+    await expect(visiblePage(alice).getByTestId('settings-admin')).toBeVisible()
 
     await ctxAlice.close()
     await ctxBob.close()
