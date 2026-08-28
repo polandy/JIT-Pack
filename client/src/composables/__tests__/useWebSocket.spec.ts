@@ -169,4 +169,58 @@ describe('useWebSocket', () => {
 
     expect(mock.readyState).toBe(3)
   })
+
+  /**
+   * G-10's in_sync (Sync-API §7). The cursor is reported the moment the
+   * first drain returns, and on a cold load an HTTP pull regularly beats the
+   * WebSocket handshake — a report dropped there is never repeated, so the
+   * server goes on believing the device is behind.
+   */
+  describe('the pull cursor survives a socket that is still opening', () => {
+    function opts(): WSOptions {
+      return { baseUrl: 'http://localhost:8080', getToken: () => 't', onEvent: vi.fn() }
+    }
+
+    it('flushes a cursor reported before the socket opened', async () => {
+      const ws = useWebSocket(opts())
+      await ws.connect()
+      const socket = MockWebSocket.instances[0]!
+
+      ws.sendCursor('trip-1', 7)
+      expect(socket.sent).toEqual([])
+
+      socket.simulateOpen()
+      expect(socket.sent).toContain(JSON.stringify({ cursor: { trip_id: 'trip-1', seq: 7 } }))
+    })
+
+    it('flushes the newest seq per trip, not the last caller', async () => {
+      const ws = useWebSocket(opts())
+      await ws.connect()
+      const socket = MockWebSocket.instances[0]!
+
+      ws.sendCursor('trip-1', 9)
+      ws.sendCursor('trip-1', 4)
+      ws.sendCursor('trip-2', 2)
+      socket.simulateOpen()
+
+      expect(socket.sent).toEqual([
+        JSON.stringify({ cursor: { trip_id: 'trip-1', seq: 9 } }),
+        JSON.stringify({ cursor: { trip_id: 'trip-2', seq: 2 } }),
+      ])
+    })
+
+    it('sends straight through once the socket is open, and holds nothing back', async () => {
+      const ws = useWebSocket(opts())
+      await ws.connect()
+      const socket = MockWebSocket.instances[0]!
+      socket.simulateOpen()
+
+      ws.sendCursor('trip-1', 3)
+      expect(socket.sent).toEqual([JSON.stringify({ cursor: { trip_id: 'trip-1', seq: 3 } })])
+
+      // A second open must not replay what was already delivered.
+      socket.simulateOpen()
+      expect(socket.sent).toHaveLength(1)
+    })
+  })
 })

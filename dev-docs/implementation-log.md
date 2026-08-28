@@ -183,6 +183,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A test that was red on every first attempt (2026-08-27)](#a-test-that-was-red-on-every-first-attempt-2026-08-27) — the trip whose end preceded its start: what `retries: 1` had been hiding on `main`, why the answer was a bound rather than a validation, and the grid geometry that made the wrong date look like a random one.
 - [A menu entry that navigated made the next screen invisible (2026-08-28)](#a-menu-entry-that-navigated-made-the-next-screen-invisible-2026-08-28) — B10's content column and the M4 bar's ⋮. The trap under the second one: an action run from inside an Ionic overlay's own handler races the teardown that clears `aria-hidden` on the router outlet, so the screen that opens is painted, clickable and absent from the accessibility tree — and every pixel assertion stays green through it.
 - [A version that was named in a fourth place (2026-08-28)](#a-version-that-was-named-in-a-fourth-place-2026-08-28) — the Go 1.27 move: the toolchain gate was right to refuse the lone image bump, and then the linter turned out to name the language version too. Why the gate now holds the linter's two pins to each other but deliberately refuses to judge whether the pinned release is new enough.
+- [Two screens nobody had ever rendered (2026-08-28)](#two-screens-nobody-had-ever-rendered-2026-08-28) — M20 and G-10, the last two areas the `server` project named as owed. Three defects that only a rendered multi-identity test could reach: a facepile initialling a random hex key, a group-sync badge whose state was unreachable because one frame was dropped while the socket was still opening, and a deactivated account whose app looked offline instead of saying so.
 
 ## Current state
 
@@ -7807,3 +7808,163 @@ already stopped the bad half from merging. That is worth stating plainly — the
 gate did not prevent this failure, and was never going to. It made it happen at
 the right moment, on a branch, with a message naming files, instead of six
 weeks later on a published artifact.
+
+## Two screens nobody had ever rendered (2026-08-28)
+
+The `server` project (ADR-029) named three areas it had not reached when it
+landed: delegation, presence and the admin surface. Delegation came with
+FR-25.19's control. These are the other two — E2E-M20-01…05 plus E2E-M17-09,
+and E2E-G10-01 — and closing them closes the list.
+
+**The premise worth writing down is how the two screens looked before the
+first case ran.** Both were complete: M20 had its overview, its per-row
+action sheet, its FR-23.3 confirmation and a pure `adminActionsFor` with its
+own exhaustive unit; G-10 had its facepile, its pluralized hover title and a
+unit for the one composed string on it. Both had been reviewed, both were
+green everywhere. Neither carried a single `data-testid`, and that turned
+out to be the whole story — three defects, one per surface plus one shared,
+none of them reachable by anything but a rendered run with two identities.
+
+**The facepile named nobody.** `initials()` took `PresenceUser.user_id`. `users.id` is
+`lower(hex(randomblob(16)))`, so every face read as two random hex
+characters that changed on each run. The component's comment explained it as
+a stand-in "until user profiles sync to the client" — which had quietly
+stopped being true: M4 resolves display names for the packing stamps and has
+done for a while, and G-10 now takes the same `participants` map.
+
+The assertion is on the initials `AL` and `BO` rather than on the faces
+being there, and the reason is worth keeping: neither `L` nor `O` is a hex
+digit, so the assertion is red against *any* build that initials the id, for
+*any* ids the run mints. A test that only checked the faces existed would
+have been green against the defect for the whole of its life.
+
+**The group-sync badge had no reachable state.** This one only a run could produce, and it did — the case went red on
+`presence-in-sync` with every assertion above it green.
+
+`useWebSocket` had two senders side by side. `subscribe` queued into
+`pendingChannels` when the socket was not open yet and flushed on `onopen`.
+`sendCursor` dropped the frame. And the cursor is reported exactly once, the
+moment the first drain returns — on a cold page load an HTTP pull regularly
+beats the WebSocket handshake, so the report was thrown away and never
+repeated. The server therefore never learned the device had caught up,
+`in_sync` was false for everyone for ever, and "everyone has the latest
+state" was a badge no state could produce.
+
+Two details of the fix are decisions rather than mechanics. The held cursor
+is **per trip, newest seq wins** — two drains racing to open must not leave
+the server told the older of the two — and subscriptions flush **before**
+cursors, because only a subscribed connection is in the presence list the
+cursor exists to inform.
+
+**A deactivated account was told nothing.** FR-23.3's enforcement is thorough on the server: a per-request check in the
+`authed` middleware, a login that refuses outright, a refresh that deletes
+the session row, and Go tests over all of it. The client had no branch on
+`account_deactivated` anywhere — the generated `ERROR_CODE` object carried
+the name and nothing read it.
+
+What that meant in practice is the part worth recording: the tokens sit in
+`localStorage` looking perfectly valid, so nothing expires them. The app
+boots, every request 403s, and the result is **indistinguishable from being
+offline** — the person is not logged out, not told, and their app simply
+stops syncing. The client now ends the session on that error code and lands
+back on the login screen, which is what makes the access half of E2E-M20-02
+assertable on a rendered page rather than on a status code.
+
+**It narrows on the code, not the status, and that is load-bearing.** A 403
+is also how the server refuses a non-admin the M20 endpoints — E2E-M20-05
+drives exactly that — so a fix written against `resp.status === 403` would
+have logged Bob out for visiting `/admin`. The wider bug would have been
+shipped by the narrower one's fix.
+
+A fourth came from the *screenshot* rather than the run, which is worth
+separating: M20's provisioning date used a bare `toLocaleDateString()` and so
+followed the device, printing `28.8.2026` under English copy. That is exactly
+what E2E-G2-01 found on the conflict log four days earlier — and a grep
+confirmed the two were the complete set of bare `toLocale*` calls left in
+`client/src`. The rule generalises past both: a date rendered without the
+app's locale is a German date in an English app on every device the family
+actually owns.
+
+**And the finding that was filed as a design question and turned out not to
+be one.** The review flagged M20's missing-avatar glyph as an owner call —
+initials, a silhouette, or nothing. The owner asked for something better, and
+the better thing was already in the repository: `UserAvatar` (FR-25.3), a
+coloured circle of initials that M4 and M5 have drawn people with for weeks.
+M20 had hand-rolled an `<img>`; so had M17, where the error handler hides the
+element and leaves a hole, and where the `personCircleOutline` placeholder
+written for that exact case sits behind `v-if="avatarUrl"` — a computed that
+is non-null whenever `me` is, so the placeholder had never rendered once.
+
+Two things worth keeping from it. **The picture goes over the initials, not
+instead of them**, which makes the loading, absent and refused states one
+state instead of three. And **the retry on a changed URL is load-bearing**:
+FR-17.13 busts the cache with a query alone, so a `broken` flag that did not
+reset would leave a picture the user had just uploaded hidden behind the
+404 that preceded it. The letters take their size from two steps of the type
+table rather than a fraction of the circle, because invariant 9b keeps type
+values in `typography.css` — at 64 px the 24 px row size read as a typo.
+
+**And G-10 was rebuilt rather than completed.** The per-person sheet was
+left as an owner call; the owner asked for it solved, and the answer was to
+not build it. Three things are worth keeping.
+
+The gap was never only the tap: all three of G-10's sub-bullets diverged —
+no overflow cap, a badge that appeared only in the good state and had no
+amber, and nothing behind the tap — plus a fourth divergence one screen
+away, where UI-Spec M2 asked for the facepile on the trip rows two lines
+after G-10 says presence is meaningless outside a trip. **The wire settles
+that one**: presence is broadcast per subscribed trip, so M2 would have had
+to subscribe every listed row to draw circles on it. The M2 line is deleted.
+
+**What a sheet could have shown is what the hover title already said.** The
+event carries three fields, and on a phone there is no hover — that is the
+whole real gap. When the badge goes amber the only useful question is *who*,
+because you turn to that person. So the state went onto the faces and the
+tap kept only the half a hover cannot give a touch device. The device count
+went entirely: that somebody has the trip open twice is not something anyone
+packing acts on, and it stays on the wire unrendered rather than being
+removed from a contract for nothing.
+
+**The badge follows the house indicator rather than inventing a chip**
+(owner, 2026-08-28). The first build wrote *„1 catching up"* out in a chip
+beside the pile. `SyncIndicator` had been carrying G-2's queue as a count in
+a bubble on the glyph's corner all along, and the pile sits in a header that
+already holds the trip's name — a second sentence there competes with it.
+The words did not disappear, they moved: they are the element's
+`aria-label`, so the state is not carried by colour alone, and the unit case
+asserts the bubble's number and that name separately.
+
+**One decision came out of the render, not the diff.** The first build
+ringed everyone who *was* caught up, in green. On screen that makes the
+ordinary state loud, repeats the badge beside it, and leaves the one person
+worth noticing marked by an absence — the hardest thing to see. Amber on the
+straggler inverts all three. It cost one commit's worth of rework and would
+not have been visible in any review of the markup.
+
+The testing split is forced rather than chosen: a device is behind only
+while its reported cursor sits below the trip head, and the client reports
+one the moment its pull returns, so no Playwright case can produce a lagging
+device without racing it. E2E-G10-01 holds what a run can hold still; amber,
+the ordering and the overflow are props-level cases, and the three states
+went into the dev gallery so they can be looked at at all. The ordering rule
+earns its own case — **the "+N" bubble must never hide somebody who is
+behind**, or the pile summarises away the fact it exists to show.
+
+**The isolation cost, and what was refused.** The mock IdP grew a third account. `carol` exists because these cases
+*change* the account they act on and one backend serves the whole run with
+the two spec files free to land on two workers: deactivating `bob` would
+have reached sideways into the multi-user unit's trips mid-test. The one
+irreversible action, resetting a display name, is the last step of the last
+test that touches her — the row is addressed *by* that name.
+
+Four things were deliberately not covered, and the ledger says so rather
+than letting an id list imply otherwise: G-10's per-person sync list behind a
+tap (it does not exist — the UI-Spec now says that instead of promising it),
+the amber lagging-device state (producing a genuinely lagging device needs a
+seam the production code does not have, and inventing one to watch a colour
+is the wrong trade), FR-23.4's avatar reset (it changes no pixel on M20 —
+same URL, same placeholder bytes, so it stays in `store/admin_test.go`), and
+the split between FR-23.3's two exemptions (this instance has exactly one
+admin, so the rendered case can only see the row that is both; the split is
+exhaustive in `domain/__tests__/admin.spec.ts`).
+

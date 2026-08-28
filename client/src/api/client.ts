@@ -1,5 +1,7 @@
 /** Thin HTTP client with auth header injection (Sync-API Spec §2). */
-import type { APIErrorBody } from './types'
+import { endSession } from '@/auth/refresh'
+
+import { ERROR_CODE, type APIErrorBody } from './types'
 
 export class APIRequestError extends Error {
   constructor(
@@ -114,6 +116,20 @@ export class APIClient {
         apiError = json.error ?? null
       } catch {
         // non-JSON error body
+      }
+      // FR-23.3: an account deactivated mid-session keeps tokens that
+      // still look valid, so nothing would ever expire them and every
+      // request from here on would 403 in silence. Narrow on the code
+      // rather than on the status: a 403 is also how the server refuses a
+      // non-admin the M20 endpoints, and logging that person out would be
+      // a worse bug than the one being fixed.
+      //
+      // Imported rather than injected beside `onUnauthorized`, at the cost
+      // of the transport knowing the auth module: a hook has to be wired at
+      // every construction site, and behaviour lost by a missed wiring is
+      // the exact failure this branch exists to end.
+      if (resp.status === 403 && apiError?.code === ERROR_CODE.account_deactivated) {
+        endSession()
       }
       throw new APIRequestError(resp.status, apiError)
     }

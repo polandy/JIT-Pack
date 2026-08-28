@@ -927,10 +927,11 @@ export const de: Record<keyof typeof en, string> = {
 
   // G-1 Anwesenheitsleiste und der gemeinsame Mengenschalter.
   'presence.activeMembers': 'Gerade aktiv',
-  'presence.deviceCount': '({n} Gerät) | ({n} Geräte)',
-  'presence.inSyncSuffix': ' · synchron',
   'presence.allInSync': 'Alle haben den aktuellen Stand',
-  'presence.inSync': 'Synchron',
+  'presence.behind': '{n} holt auf | {n} holen auf',
+  'presence.stateSynced': 'aktuell',
+  'presence.stateBehind': 'holt auf',
+  'presence.more': '+{n}',
   'packing.decrease': 'Weniger gepackt',
   'packing.increase': 'Mehr gepackt',
 

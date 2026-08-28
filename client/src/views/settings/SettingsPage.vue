@@ -40,7 +40,6 @@ import {
   addOutline,
   closeOutline,
   downloadOutline,
-  personCircleOutline,
   personOutline,
   warningOutline,
 } from 'ionicons/icons'
@@ -63,6 +62,7 @@ import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
 import { currentTheme, setTheme } from '@/theme/theme'
 import { type Locale, type MessageKey, currentLocale, formatNumber, setLocale, t } from '@/i18n'
+import UserAvatar from '@/components/global/UserAvatar.vue'
 import AvatarCropModal from '@/components/settings/AvatarCropModal.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
@@ -319,14 +319,12 @@ async function exportTripCSV() {
       </template>
       <template v-else-if="me">
         <div class="avatar-row">
-          <img
-            v-if="avatarUrl"
+          <UserAvatar
+            :name="me.display_name || me.user_id"
+            :seed="me.user_id"
             :src="avatarUrl"
-            class="avatar"
-            :alt="t('settings.avatarAlt')"
-            @error="($event.target as HTMLImageElement).style.visibility = 'hidden'"
+            :size="64"
           />
-          <IonIcon v-else :icon="personCircleOutline" class="avatar-placeholder" />
           <label v-if="editable" class="avatar-upload">
             {{ t('settings.changePicture') }}
             <input type="file" accept="image/*" hidden @change="onAvatarFile" />
@@ -580,9 +578,11 @@ async function exportTripCSV() {
       <!-- Administration entry (Addendum 3.23, FR-23.2): instance
            admins with an OIDC session only — same gating as M20. -->
       <template v-if="collaborative && me?.is_instance_admin">
-        <h2 class="section-title jp-eyebrow">{{ t('settings.administration') }}</h2>
+        <h2 class="section-title jp-eyebrow" data-testid="settings-section-admin">
+          {{ t('settings.administration') }}
+        </h2>
         <IonList>
-          <IonItem button lines="none" @click="$router.push('/admin')">
+          <IonItem button lines="none" data-testid="settings-admin" @click="$router.push('/admin')">
             <IonLabel>
               <h3>{{ t('settings.userAdmin') }}</h3>
               <p>{{ t('settings.userAdminHint') }}</p>
@@ -663,18 +663,6 @@ async function exportTripCSV() {
   align-items: center;
   gap: 16px;
   margin-bottom: 8px;
-}
-
-.avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.avatar-placeholder {
-  font-size: var(--jp-icon-2xl);
-  color: var(--ion-color-medium);
 }
 
 .avatar-upload {

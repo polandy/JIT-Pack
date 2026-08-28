@@ -1,5 +1,8 @@
+// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { APIClient, APIRequestError } from '../client'
+import { AUTH_EXPIRED_EVENT } from '@/auth/refresh'
+import { saveTokens, loadTokens } from '@/auth/tokens'
 
 describe('APIClient', () => {
   let fetchSpy: ReturnType<typeof vi.fn>
@@ -141,5 +144,57 @@ describe('APIClient', () => {
 
     expect(await blob.text()).toBe('data')
     expect(fetchSpy.mock.calls[1]![1].headers.Authorization).toBe('Bearer fresh-jwt')
+  })
+
+  /**
+   * FR-23.3, the client half. A deactivated account keeps tokens that still
+   * look valid in localStorage, so nothing expires them: without this branch
+   * every request 403s and the app is indistinguishable from an offline one.
+   *
+   * The failure path is the load-bearing one — a 403 is also how the server
+   * refuses a non-admin the M20 endpoints, and ending *that* session would
+   * be a worse defect than the one being fixed (E2E-M20-05 drives it).
+   */
+  describe('a 403 that ends the session, and the ones that must not', () => {
+    function forbidden(code: string): Response {
+      return new Response(JSON.stringify({ error: { code, message: 'nope' } }), { status: 403 })
+    }
+
+    function armed(): { expired: () => boolean; dispose: () => void } {
+      let fired = false
+      const onExpired = () => {
+        fired = true
+      }
+      window.addEventListener(AUTH_EXPIRED_EVENT, onExpired)
+      saveTokens({ access_token: 'a', refresh_token: 'r', expires_in: 300 })
+      return {
+        expired: () => fired,
+        dispose: () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired),
+      }
+    }
+
+    it('ends the session on account_deactivated', async () => {
+      const watch = armed()
+      fetchSpy.mockResolvedValueOnce(forbidden('account_deactivated'))
+      const client = new APIClient('http://localhost:8080', () => 'jwt')
+
+      await expect(client.get('/api/v1/trips')).rejects.toThrow(APIRequestError)
+
+      expect(watch.expired()).toBe(true)
+      expect(loadTokens()).toBeNull()
+      watch.dispose()
+    })
+
+    it('leaves the session alone on any other 403', async () => {
+      const watch = armed()
+      fetchSpy.mockResolvedValueOnce(forbidden('forbidden'))
+      const client = new APIClient('http://localhost:8080', () => 'jwt')
+
+      await expect(client.get('/api/v1/admin/users')).rejects.toThrow(APIRequestError)
+
+      expect(watch.expired()).toBe(false)
+      expect(loadTokens()).not.toBeNull()
+      watch.dispose()
+    })
   })
 })
