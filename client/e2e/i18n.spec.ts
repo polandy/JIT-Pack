@@ -58,7 +58,9 @@ test.describe('Language choice @local @nfr412', () => {
 
     // The positive English signal first: without it, "the German word is
     // there" would pass on a build that had never rendered either.
-    await expect(onVisibleScreen(page, 'trips-filter-planned')).toHaveText('Planned')
+    await expect(
+      onVisibleScreen(page, 'trips-filter-planned').locator('.segment-label'),
+    ).toHaveText('Planned')
     await expect(page.getByTestId('tab-trips')).toHaveText('Trips')
 
     await page.goto('/tabs/settings')
@@ -75,7 +77,9 @@ test.describe('Language choice @local @nfr412', () => {
 
     // And a screen's own words, on the screen the user navigates to next.
     await page.getByTestId('tab-trips').click()
-    await expect(onVisibleScreen(page, 'trips-filter-planned')).toHaveText('Geplant')
+    await expect(
+      onVisibleScreen(page, 'trips-filter-planned').locator('.segment-label'),
+    ).toHaveText('Geplant')
 
     // The desktop half of the same anchor: the rail and the bar read one list,
     // so the key has to reach both — and only one of them exists at a time.
@@ -86,7 +90,9 @@ test.describe('Language choice @local @nfr412', () => {
 
     // Device-local and persisted (FR-21.3's pattern), so a reload keeps it.
     await page.reload()
-    await expect(onVisibleScreen(page, 'trips-filter-planned')).toHaveText('Geplant')
+    await expect(
+      onVisibleScreen(page, 'trips-filter-planned').locator('.segment-label'),
+    ).toHaveText('Geplant')
     await expect(page.getByTestId('tab-trips')).toHaveText('Reisen')
   })
 
@@ -112,7 +118,9 @@ test.describe('Language choice @local @nfr412', () => {
     await expect(onVisibleScreen(page, 'settings-section-profile')).toHaveText('Profil')
     await expect(onVisibleScreen(page, 'settings-section-appearance')).toHaveText('Darstellung')
     await expect(onVisibleScreen(page, 'settings-section-data')).toHaveText('Daten')
-    await expect(onVisibleScreen(page, 'settings-section-conflicts')).toHaveText('Konfliktprotokoll')
+    await expect(onVisibleScreen(page, 'settings-section-conflicts')).toHaveText(
+      'Konfliktprotokoll',
+    )
     await expect(onVisibleScreen(page, 'settings-section-about')).toHaveText('Über')
 
     // Not only the headings: the Local Mode note under Data is a sentence the

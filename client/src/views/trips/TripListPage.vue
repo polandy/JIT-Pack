@@ -508,7 +508,7 @@ async function handleRefresh(event: CustomEvent) {
             :aria-label="segment.a11y"
           >
             <IonLabel>
-              {{ segment.label }}
+              <span class="segment-label">{{ segment.label }}</span>
               <!-- FR-2.8: a second line, because `Archived 129` truncates the
                    label before the number. Absent while the count is unknown,
                    `0` where the segment is empty — the two are not the same. -->

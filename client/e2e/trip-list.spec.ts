@@ -57,10 +57,19 @@ test.describe('M2 opening segment @local @m2', () => {
     await seed(page, { mode: 'local' })
   })
 
-  /** The count under a segment's label, or null while it is unknown. */
-  async function countOf(page: import('@playwright/test').Page, segment: string) {
-    const count = visible(page).getByTestId(`trips-filter-${segment}`).locator('.segment-count')
-    return (await count.count()) === 0 ? null : (await count.innerText()).trim()
+  /**
+   * The count under a segment's label. An assertion rather than a getter: in
+   * Local Mode the list is hydrated from IndexedDB, so a plain read races the
+   * hydration and answers for a screen that is not finished yet.
+   */
+  async function expectCount(
+    page: import('@playwright/test').Page,
+    segment: string,
+    value: string,
+  ) {
+    await expect(
+      visible(page).getByTestId(`trips-filter-${segment}`).locator('.segment-count'),
+    ).toHaveText(value)
   }
 
   /** Planning → active → archived, the way the app does it (FR-9.3). */
@@ -82,9 +91,9 @@ test.describe('M2 opening segment @local @m2', () => {
     // No tap on a segment anywhere in this case: the row being visible is
     // the assertion, since *Active* is where the list used to open.
     await expect(visible(page).getByTestId('trip-row-Elba')).toBeVisible()
-    expect(await countOf(page, 'active')).toBe('0')
-    expect(await countOf(page, 'planned')).toBe('1')
-    expect(await countOf(page, 'archived')).toBe('0')
+    await expectCount(page, 'active', '0')
+    await expectCount(page, 'planned', '1')
+    await expectCount(page, 'archived', '0')
   })
 
   test('E2E-M2-13b: with nothing active or planned, the list falls through to the archive', async ({
@@ -96,7 +105,7 @@ test.describe('M2 opening segment @local @m2', () => {
     await page.goto('/tabs/trips')
 
     await expect(visible(page).getByTestId('trip-row-Kreta')).toBeVisible()
-    expect(await countOf(page, 'archived')).toBe('1')
+    await expectCount(page, 'archived', '1')
   })
 
   test('E2E-M2-13c: a segment the user chose is not taken away on the way back', async ({
@@ -113,10 +122,12 @@ test.describe('M2 opening segment @local @m2', () => {
     await expect(visible(page).getByTestId('trip-row-Kreta')).toBeVisible()
 
     // Away and back: this is the re-entry the walk runs on, and *Archived*
-    // holds a trip, so it is left alone.
-    await page.getByTestId('tab-items').click()
-    await expect(page.getByTestId('tab-trips')).toBeVisible()
-    await page.getByTestId('tab-trips').click()
+    // holds a trip, so it is left alone. Through the trip and the ADR-011
+    // chevron rather than the tab bar, which the desktop projects do not
+    // render — the re-entry is the point, not which door it came through.
+    await visible(page).getByTestId('trip-row-Kreta').click()
+    await expect(visible(page).getByTestId('m4-header')).toBeVisible()
+    await page.getByTestId('header-back').click()
 
     await expect(visible(page).getByTestId('trip-row-Kreta')).toBeVisible()
     await expect(visible(page).getByTestId('trip-row-Elba')).toHaveCount(0)
@@ -129,7 +140,9 @@ test.describe('M2 opening segment @local @m2', () => {
 
     await page.goto('/tabs/trips?status=active')
 
+    // The count first: it is the settled signal, and an absence asserted
+    // against a screen that is still loading passes for the wrong reason.
+    await expectCount(page, 'planned', '1')
     await expect(visible(page).getByTestId('trip-row-Elba')).toHaveCount(0)
-    expect(await countOf(page, 'planned')).toBe('1')
   })
 })
