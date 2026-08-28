@@ -7904,6 +7904,43 @@ reset would leave a picture the user had just uploaded hidden behind the
 table rather than a fraction of the circle, because invariant 9b keeps type
 values in `typography.css` — at 64 px the 24 px row size read as a typo.
 
+**And G-10 was rebuilt rather than completed.** The per-person sheet was
+left as an owner call; the owner asked for it solved, and the answer was to
+not build it. Three things are worth keeping.
+
+The gap was never only the tap: all three of G-10's sub-bullets diverged —
+no overflow cap, a badge that appeared only in the good state and had no
+amber, and nothing behind the tap — plus a fourth divergence one screen
+away, where UI-Spec M2 asked for the facepile on the trip rows two lines
+after G-10 says presence is meaningless outside a trip. **The wire settles
+that one**: presence is broadcast per subscribed trip, so M2 would have had
+to subscribe every listed row to draw circles on it. The M2 line is deleted.
+
+**What a sheet could have shown is what the hover title already said.** The
+event carries three fields, and on a phone there is no hover — that is the
+whole real gap. When the badge goes amber the only useful question is *who*,
+because you turn to that person. So the state went onto the faces and the
+tap kept only the half a hover cannot give a touch device. The device count
+went entirely: that somebody has the trip open twice is not something anyone
+packing acts on, and it stays on the wire unrendered rather than being
+removed from a contract for nothing.
+
+**One decision came out of the render, not the diff.** The first build
+ringed everyone who *was* caught up, in green. On screen that makes the
+ordinary state loud, repeats the badge beside it, and leaves the one person
+worth noticing marked by an absence — the hardest thing to see. Amber on the
+straggler inverts all three. It cost one commit's worth of rework and would
+not have been visible in any review of the markup.
+
+The testing split is forced rather than chosen: a device is behind only
+while its reported cursor sits below the trip head, and the client reports
+one the moment its pull returns, so no Playwright case can produce a lagging
+device without racing it. E2E-G10-01 holds what a run can hold still; amber,
+the ordering and the overflow are props-level cases, and the three states
+went into the dev gallery so they can be looked at at all. The ordering rule
+earns its own case — **the "+N" bubble must never hide somebody who is
+behind**, or the pile summarises away the fact it exists to show.
+
 **The isolation cost, and what was refused.** The mock IdP grew a third account. `carol` exists because these cases
 *change* the account they act on and one backend serves the whole run with
 the two spec files free to land on two workers: deactivating `bob` would

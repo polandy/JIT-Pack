@@ -23,6 +23,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
+import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { seedReviewFixture } from '@/dev/reviewFixture'
 
@@ -36,6 +37,18 @@ function openReviewFixture() {
   const tripId = seedReviewFixture()
   router.push(`/trips/${tripId}/review`)
 }
+
+/** G-10 fixtures — the three states the pattern has (FR-4.6). */
+const PRESENCE_NAMES: Record<string, string> = {
+  p1: 'Andy',
+  p2: 'Mia',
+  p3: 'Leonardo',
+  p4: 'Sia',
+}
+const face = (id: string, in_sync: boolean) => ({ user_id: id, device_count: 1, in_sync })
+const PRESENCE_SYNCED = [face('p1', true), face('p2', true)]
+const PRESENCE_ONE_BEHIND = [face('p1', true), face('p2', false)]
+const PRESENCE_CROWD = [face('p1', true), face('p2', true), face('p3', false), face('p4', true)]
 </script>
 
 <template>
@@ -71,6 +84,17 @@ function openReviewFixture() {
         <UserAvatar name="Andy" seed="c" variant="assignee" />
         <UserAvatar name="Mia" seed="d" variant="packer" />
         <UserAvatar name="Andy" seed="e" :size="40" />
+      </div>
+
+      <h2 class="section-title jp-eyebrow">G-10 presence</h2>
+      <div class="jp-card demo col">
+        <p>
+          The lagging state cannot be produced end to end — a device reports its cursor the moment
+          its pull returns, so an e2e case could only race it. This is where it can be looked at.
+        </p>
+        <PresenceFacepile :users="PRESENCE_SYNCED" :names="PRESENCE_NAMES" />
+        <PresenceFacepile :users="PRESENCE_ONE_BEHIND" :names="PRESENCE_NAMES" />
+        <PresenceFacepile :users="PRESENCE_CROWD" :names="PRESENCE_NAMES" :max="2" />
       </div>
 
       <h2 class="section-title jp-eyebrow">M14 review (fixture)</h2>
@@ -132,6 +156,13 @@ function openReviewFixture() {
 .row {
   display: flex;
   align-items: center;
+  gap: 14px;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 14px;
 }
 

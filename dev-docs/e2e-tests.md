@@ -2021,15 +2021,57 @@ hand-rolled circles are gone. E2E-M20-01 asserts the initials and the
 FR-17.13's cache-busting query would leave a freshly uploaded picture hidden
 behind the previous failure.
 
+### G-10 was rebuilt rather than completed (2026-08-28)
+
+The review left the per-person sheet standing as an owner call. The owner
+asked for it to be solved, and the answer was not to build it.
+
+**The gap was never only the tap.** G-10 had three sub-bullets and all three
+diverged: the facepile rendered every present user with no cap and no "+N";
+the badge was a labelled chip beside the pile that appeared *only* when
+everyone was in sync, with no amber; and nothing opened. A fourth
+divergence sat one screen away — UI-Spec M2 asked for the facepile on the
+trip rows, two lines after G-10 says presence is meaningless outside a
+trip. The spec contradicted itself, and the wire settles it: presence is
+broadcast per *subscribed* trip, so M2 would have to subscribe every listed
+row to draw circles. That line is deleted.
+
+**What the pattern can say is three fields** — `user_id`, `device_count`,
+`in_sync` — and it is exactly what the hover `title` already said. On a
+phone there is no hover, and that is the whole of the real gap: when the
+badge goes amber the only useful question is *who*, because you turn to that
+person. So the state moved onto the faces (an amber ring on whoever is
+catching up) and the tap kept only the half a hover cannot give a touch
+device — the name, in a line under the pile. The sheet was rejected for
+putting that one actionable fact one tap deeper than a pile already on
+screen; the device count was dropped outright.
+
+**One decision came from rendering it, not from writing it.** The first
+build ringed everyone who *was* caught up, in green. On screen that makes
+the ordinary state loud, repeats what the badge beside it says, and leaves
+the one person worth noticing marked by an *absence*. Ringing the exception
+in amber inverts all three, and it is the vocabulary G-10's own badge
+already used.
+
+**Where each half is tested, and why it is not all in one place.** A device
+is "behind" only while its reported pull cursor sits below the trip head,
+and the client reports one the moment its pull returns — so no Playwright
+case can produce a lagging device without racing it, which this project
+forbids. E2E-G10-01 therefore owns what a real run can hold still: the pile,
+both people named, the badge in sync, the badge's counterpart absent, and
+the tap in both directions. Amber, the ordering rule and the overflow are
+stated against props in `PresenceFacepile.spec.ts`, and the three states are
+in the dev gallery so they can be looked at. The ordering rule earns its own
+case: **the "+N" bubble must never hide somebody who is behind**, or the
+pile would summarise away the fact it exists to show and the badge would
+count a person with no face to point at.
+
 ### What is deliberately not covered
 
-- **The per-person sync list** G-10 sketches behind a tap on the badge. It
-  does not exist in the component; the UI-Spec now says so rather than the
-  ledger implying a case covers it.
-- **Amber for a lagging device.** The component has caught-up and not, not a
-  third state. Producing a genuinely lagging device inside one case would
-  mean holding a pull open, which is a seam the production code does not
-  have — and inventing one to watch a colour is the wrong trade.
+- **Amber for a lagging device, end to end.** Producing a genuinely lagging
+  device inside one case would mean holding a pull open, which is a seam the
+  production code does not have — and inventing one to watch a colour is the
+  wrong trade. It is a unit case and a gallery entry instead.
 - **E2E-M20-03's avatar half.** *Remove avatar* changes no pixel on M20: the
   row's `img` src is the same URL either way and the served bytes are the
   placeholder before and after. The name half is asserted because it *is*

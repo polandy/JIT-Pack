@@ -518,6 +518,13 @@ onUnmounted(() => breakpoint.removeEventListener('change', onBreakpoint))
 const presenceUsers = computed(() => orchestrator.getPresence(props.tripId))
 
 /**
+ * How many faces fit before G-10's "+N" bubble. A question about the
+ * header's width, so the screen that owns the header answers it.
+ */
+const PRESENCE_FACES_MOBILE = 2
+const PRESENCE_FACES_DESKTOP = 4
+
+/**
  * G-10's faces are named from the same directory the packing stamps use.
  * The presence event carries user ids alone, and an id is a random hex
  * string — a facepile initialled from it says who is here in a code
@@ -1393,6 +1400,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
             v-if="presenceUsers.length > 1"
             :users="presenceUsers"
             :names="presenceNames"
+            :max="isDesktop ? PRESENCE_FACES_DESKTOP : PRESENCE_FACES_MOBILE"
           />
         </div>
       </div>

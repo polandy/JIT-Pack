@@ -84,6 +84,26 @@ test.describe('G-10 — who else is on this trip @server @g10', () => {
     // the assertion retries on a state the server recomputes and pushes.
     await expect(visiblePage(alice).getByTestId('presence-in-sync')).toBeVisible()
     await expect(visiblePage(bob).getByTestId('presence-in-sync')).toBeVisible()
+    // …and the badge that counts the stragglers is not also on screen. The
+    // two are exclusive by construction, which is worth pinning: a pile
+    // showing both answers at once is worse than showing neither.
+    await expect(visiblePage(alice).getByTestId('presence-behind')).toHaveCount(0)
+
+    // The tap that replaced G-10's specified sheet: a phone has no hover, so
+    // the face's title is unreachable there and the tap says it in the page.
+    await expect(visiblePage(alice).getByTestId('presence-named')).toHaveCount(0)
+    await pileAlice.getByTestId(`presence-face-${ACCOUNT_NAMES.bob}`).click()
+    const named = visiblePage(alice).getByTestId('presence-named')
+    await expect(named).toContainText(ACCOUNT_NAMES.bob)
+    // The state is in words rather than only in the ring, which is the whole
+    // point of naming somebody on a device that cannot hover.
+    await expect(named).toContainText(/up to date/i)
+
+    // Tapping the same face again puts it away — paired with the pile still
+    // standing, so a facepile that stopped rendering cannot pass the absence.
+    await pileAlice.getByTestId(`presence-face-${ACCOUNT_NAMES.bob}`).click()
+    await expect(visiblePage(alice).getByTestId('presence-named')).toHaveCount(0)
+    await expect(pileAlice).toBeVisible()
 
     // Leaving takes the pile with it, which is what makes it mean "now"
     // rather than "ever": one person left is G-8's case again, and the whole
