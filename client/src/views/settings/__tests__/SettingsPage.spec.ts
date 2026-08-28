@@ -136,4 +136,19 @@ describe('M17 profile with an OIDC session (FR-17.13)', () => {
     // stopped being true the moment the picture became editable here.
     expect(note.text()).not.toMatch(/^Profile is managed/)
   })
+
+  it('says it in German too, and says the same thing', async () => {
+    setLocale('de')
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    const note = wrapper.find('[data-testid="settings-name-managed"]')
+    // Both halves, because a catalogue entry that only carries the first
+    // sentence would leave the German screen claiming the provider owns the
+    // picture as well.
+    expect(note.text()).toContain('Anzeigename')
+    expect(note.text()).toContain('Bild')
+    // Not merely joined by the German — the English must be gone.
+    expect(note.text()).not.toContain('identity provider')
+  })
 })
