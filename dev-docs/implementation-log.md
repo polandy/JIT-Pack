@@ -180,6 +180,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A group that needed another group (2026-08-27)](#a-group-that-needed-another-group-2026-08-27) — R-4's fifth cut: the FR-27.4 refresh. The first group edge — passed as an argument rather than added to the spine — the two seams the context grew instead of a closure, an alias that turned out to be its own import, and a guard that no test can hold because the domain already applies it.
 - [The trip's own life, and a doc comment that had been written twice (2026-08-27)](#the-trips-own-life-and-a-doc-comment-that-had-been-written-twice-2026-08-27) — R-4's sixth cut: the trip after it exists. Why creation stayed behind, the group edge that became a named `deps` object once there were three of them, and the two small repairs a move makes visible — a duplicated doc block sitting on the wrong function, and the status trio comparing its own vocabulary against string literals.
 - [The group that runs the other way round (2026-08-27)](#the-group-that-runs-the-other-way-round-2026-08-27) — R-4's seventh cut: M14's proposals and M21's fold. Why those two are one group, the guard that has to refuse *before* the first write, and a test comment that promised more folding than `foldName` does.
+- [A menu entry that navigated made the next screen invisible (2026-08-28)](#a-menu-entry-that-navigated-made-the-next-screen-invisible-2026-08-28) — B10's content column and the M4 bar's ⋮. The trap under the second one: an action run from inside an Ionic overlay's own handler races the teardown that clears `aria-hidden` on the router outlet, so the screen that opens is painted, clickable and absent from the accessibility tree — and every pixel assertion stays green through it.
 
 ## Current state
 
@@ -7643,3 +7644,45 @@ assumption has already cost once: FR-27.13 recorded that the diacritics
 folding it promised existed nowhere in the codebase either.
 
 Eight mutations, eight red.
+
+### A menu entry that navigated made the next screen invisible (2026-08-28)
+
+Two owner decisions from the UX review, built together because both are about
+the app's frame: the content stops at a 960 px column on wide screens (UX-17),
+and M4's once-per-trip actions moved behind a ⋮ in the bar (UX-13's second
+half). Neither is interesting on its own — the column is four CSS lines, and
+the overflow is a flag on `HeaderAction` plus an action sheet. What the diff
+cannot show is what the second one taught.
+
+**The trap.** The first version passed each action's `onClick` straight to the
+sheet button's `handler`, which is what every other menu in the app does. Every
+other menu, though, acts on the screen it was opened from; this one navigates.
+While an overlay is presented Ionic marks the router outlet `aria-hidden="true"`
+and clears it on dismissal — and a handler that navigates runs *inside* that
+teardown, so the flag stayed on the outlet. The result: the trip-properties
+screen rendered completely, every control was clickable, `elementFromPoint` hit
+the right button, and the whole page was **absent from the accessibility tree**.
+A screen reader would have found nothing there at all.
+
+**What found it, and what nearly missed it.** Not a new case — nine existing
+specs that used to click the moved glyphs and now go through the fixture. Two
+of them failed, and only because they locate a control with `getByRole`, which
+reads the accessibility tree rather than the DOM. The new case for the feature
+itself asserted `getByTestId(...)` and stayed green throughout, as did the
+screenshot: the failure is invisible to every assertion that looks at pixels or
+at test ids. `E2E-M4-57` now carries a `getByRole` assertion for exactly that
+reason, mutation-proved against the unfixed build.
+
+The fix is the pattern `exportTrip` in M2 already used and this code had not
+copied: remember which entry was chosen, `await sheet.onDidDismiss()`, and run
+it afterwards. **A menu entry that leaves the screen must not run inside the
+menu's own handler** — and a scan of the other five action sheets confirmed this
+was the only place doing it.
+
+**One more measurement worth keeping.** Seventeen baselines were rewritten, and
+the ones that mattered were the ones that did *not* go red: not a single mobile
+scene failed although the M4 bar demonstrably changed, and `tab-dashboard`
+stayed under the 0.002 tolerance on desktop too. That is the same
+`--update-snapshots` blind spot §"M4's control column" recorded — confirmed
+here in the other direction, where a stale baseline would have been kept rather
+than a real change missed.

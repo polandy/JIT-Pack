@@ -1,4 +1,11 @@
-import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
+import {
+  test,
+  expect,
+  createTripViaWizard,
+  openQuickAdd,
+  tripAction,
+  expectTripActionOffered,
+} from './fixtures'
 
 /**
  * M5 — item detail (UI-Test-Spec §4), rebuilt 2026-08-14 as a sheet over
@@ -204,9 +211,9 @@ test.describe('M5 item detail @local @m5', () => {
 
     await page.getByTestId('m5-close').click()
     await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
-    await page.getByTestId('m4-start').click()
+    await tripAction(page, 'start')
     // The archive action appearing is the settled signal for the status write.
-    await expect(page.getByTestId('m4-archive')).toBeVisible()
+    await expectTripActionOffered(page, 'archive')
 
     await page.getByTestId('m4-row-Regenhose').getByRole('heading').click()
     await page.getByTestId('m5-details').click()

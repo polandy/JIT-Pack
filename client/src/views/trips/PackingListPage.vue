@@ -593,10 +593,15 @@ setHeaderActions(() => {
   if (closingPass.value) return items
   // FR-2.7: the trip's own properties. Before the lifecycle steps, because
   // it is the one action here that changes the trip rather than advancing it.
+  //
+  // Behind the ⋮ from here down (UX-13): search, filter and fold are tapped
+  // while packing, these once per trip — and as words in the menu they say
+  // what they do, which six glyphs in a row could not.
   items.push({
     id: 'm4-edit',
     icon: createOutline,
     label: t('tripEdit.title'),
+    overflow: true,
     onClick: () => router.push(`/trips/${props.tripId}/edit`),
   })
   // The two lifecycle steps, each offered only where it is the next one.
@@ -608,6 +613,7 @@ setHeaderActions(() => {
       id: 'm4-start',
       icon: playOutline,
       label: t('packing.start'),
+      overflow: true,
       onClick: onStart,
     })
   }
@@ -616,6 +622,7 @@ setHeaderActions(() => {
       id: 'm4-archive',
       icon: archiveOutline,
       label: t('packing.archive'),
+      overflow: true,
       onClick: onArchive,
     })
   }

@@ -13,6 +13,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 import AppHeader from '../AppHeader.vue'
+import { setActionsFor, clearActionsFor } from '@/composables/useHeaderActions'
 import { setTitleFor, clearTitleFor } from '@/composables/useHeaderTitle'
 import { setLocale } from '@/i18n'
 
@@ -93,6 +94,47 @@ describe('AppHeader — the left slot (G-9)', () => {
 
     expect(wrapper.find('[data-testid="header-logo"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="header-back"]').exists()).toBe(false)
+  })
+})
+
+/**
+ * G-12's overflow (UX-13, 2026-08-27): the bar had grown to six glyphs plus
+ * the gear on M4, so a page can now mark an action as belonging behind the
+ * ⋮ rather than beside the others. What is pinned here is that the bar
+ * decides *nothing* on its own — an unmarked action is always a glyph, and
+ * the ⋮ exists only when something asked for it.
+ */
+describe('AppHeader — the G-12 overflow', () => {
+  const action = (id: string, overflow?: boolean) => ({
+    id,
+    icon: 'x',
+    label: id,
+    onClick: vi.fn(),
+    ...(overflow ? { overflow: true } : {}),
+  })
+
+  beforeEach(() => clearActionsFor(M4_PATH))
+
+  it('renders a marked action behind one ⋮ instead of beside the others', () => {
+    setActionsFor(M4_PATH, [action('m4-search'), action('m4-edit', true), action('m4-start', true)])
+
+    const wrapper = mountHeader()
+
+    expect(wrapper.find('[data-testid="m4-search"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="m4-edit"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="m4-start"]').exists()).toBe(false)
+    // One ⋮ for the two of them, not one each.
+    expect(wrapper.findAll('[data-testid="header-overflow"]')).toHaveLength(1)
+  })
+
+  it('offers no ⋮ when no action asked for one', () => {
+    setActionsFor(M4_PATH, [action('m4-search'), action('m4-filter')])
+
+    const wrapper = mountHeader()
+
+    // The positive half: the bar did render its cluster.
+    expect(wrapper.find('[data-testid="m4-filter"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="header-overflow"]').exists()).toBe(false)
   })
 })
 
