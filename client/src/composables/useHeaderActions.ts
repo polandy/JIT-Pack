@@ -35,6 +35,14 @@ export interface HeaderAction {
   active?: boolean
   /** Rendered as a badge when > 0 — the FR-25.11a filter count. */
   badge?: number
+  /**
+   * Puts the action behind the bar's ⋮ instead of beside the others (G-12,
+   * UX-13). For the ones reached rarely: in the menu they are read as words,
+   * which an icon-only glyph never is, and the bar keeps the room a
+   * frequently-tapped target needs. The bar never decides this itself — an
+   * unmarked action is always a glyph.
+   */
+  overflow?: boolean
 }
 
 const actions = reactive(new Map<string, HeaderAction[]>())

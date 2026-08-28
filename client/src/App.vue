@@ -326,5 +326,13 @@ async function saveBackup() {
      strip, which is how seventeen back buttons ended up unreachable
      (ADR-011). */
   position: relative;
+  max-width: 960px;
+  margin-inline: auto;
+  width: 100%;
+  /* G-9's content column (UX-17). One rule for every screen, and here
+     rather than per view: a screen that had to remember to cap itself is
+     a screen that will forget. Sized so a line of body copy stays in the
+     readable range rather than to a device — below it the cap is inert,
+     which is why it needs no breakpoint of its own. */
 }
 </style>

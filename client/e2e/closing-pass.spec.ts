@@ -1,4 +1,11 @@
-import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
+import {
+  test,
+  expect,
+  createTripViaWizard,
+  openQuickAdd,
+  tripAction,
+  expectTripActionOffered,
+} from './fixtures'
 import type { Page } from '@playwright/test'
 
 /**
@@ -35,8 +42,8 @@ async function tripWithRows(page: Page, names: string[]): Promise<string> {
 
 /** Planning → active. The archive action appearing is the settled signal. */
 async function startTrip(page: Page) {
-  await page.getByTestId('m4-start').click()
-  await expect(page.getByTestId('m4-archive')).toBeVisible()
+  await tripAction(page, 'start')
+  await expectTripActionOffered(page, 'archive')
 }
 
 /**
@@ -97,7 +104,7 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
   test('E2E-M4-52: the unused window stays open on the archived trip', async ({ page }) => {
     await tripWithRows(page, ['Stativ'])
     await startTrip(page)
-    await page.getByTestId('m4-archive').click()
+    await tripAction(page, 'archive')
     await page.getByTestId('m4-pass-finish').click()
     // The closing card is the archived trip's own marker (UI-Spec M4).
     await expect(shown(page).getByTestId('m4-template-from-trip')).toBeVisible()
@@ -122,7 +129,7 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
     await tripWithRows(page, ['Stativ'])
     await startTrip(page)
 
-    await page.getByTestId('m4-archive').click()
+    await tripAction(page, 'archive')
     await expect(shown(page).getByTestId('m4-pass-banner')).toBeVisible()
 
     await page.getByTestId('m4-pass-cancel').click()
@@ -130,7 +137,7 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
     // Still active: the archived trip's closing card is what would say
     // otherwise, and the archive action is still on offer.
     await expect(shown(page).getByTestId('m4-template-from-trip')).toHaveCount(0)
-    await expect(page.getByTestId('m4-archive')).toBeVisible()
+    await expectTripActionOffered(page, 'archive')
   })
 
   // E2E-M4-54: packed rows only. An unpacked row is either consciously
@@ -144,7 +151,7 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
     await openRowMenu(page, 'Drohne')
     await chooseInRowMenu(page, /do not pack this/i)
 
-    await page.getByTestId('m4-archive').click()
+    await tripAction(page, 'archive')
     await expect(shown(page).getByTestId('m4-pass-banner')).toBeVisible()
 
     await expect(page.getByTestId('m4-row-Stativ')).toBeVisible()
@@ -190,7 +197,7 @@ test.describe('FR-9.3 — the trip is judged from the list @local @m4', () => {
     await expect(page.locator('ion-action-sheet')).toHaveCount(0)
 
     await packRow(page, 'Stativ')
-    await page.getByTestId('m4-archive').click()
+    await tripAction(page, 'archive')
     await expect(shown(page).getByTestId('m4-pass-banner')).toBeVisible()
 
     await page.getByTestId('m4-row-Stativ').dispatchEvent('contextmenu')

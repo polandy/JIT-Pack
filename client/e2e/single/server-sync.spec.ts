@@ -11,6 +11,7 @@ import {
   createTripViaWizard,
   expectTripOpen,
   visiblePage,
+  tripAction,
 } from '../fixtures'
 import { bootPage, packItem, quickAddItem, uniq, wsSubscribed } from '../serverMode'
 
@@ -85,7 +86,7 @@ async function warmTripList(page: Page, tripName: string): Promise<void> {
 
 /** Rename the trip through M22's editor (FR-2.7); commits on blur. */
 async function renameTrip(page: Page, name: string) {
-  await page.getByTestId('m4-edit').click()
+  await tripAction(page, 'edit')
   const field = visiblePage(page).getByTestId('trip-edit-name').locator('input')
   await expect(field).toBeVisible()
   await field.fill(name)
@@ -716,7 +717,7 @@ test.describe('Single-User backend sync @single', () => {
     await expect(indicatorA.getByTestId('sync-queue-count')).toHaveText('1')
 
     // Mia leaves the trip on the other device. Her packed row goes with her.
-    await pageB.getByTestId('m4-edit').click()
+    await tripAction(pageB, 'edit')
     await expect(visiblePage(pageB).getByTestId('trip-edit-name')).toBeVisible()
     await visiblePage(pageB).locator('ion-button[data-testid^="traveler-remove-"]').nth(1).click()
     // By role, not by label: the destructive choice is the one that takes

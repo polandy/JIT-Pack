@@ -353,6 +353,65 @@ export async function addToGroup(page: Page, group: string, item: string) {
   await addPosition(page, item)
 }
 
+/**
+ * The M4 bar's once-per-trip actions live behind the ⋮ since UX-13 (G-12):
+ * *Trip properties* and the one lifecycle step. Six specs used to click
+ * their glyphs directly, so the move is absorbed here rather than in each
+ * of them — and the next change to the cluster has one caller again.
+ */
+export const TRIP_ACTION = {
+  edit: 'Trip properties',
+  start: 'Start trip',
+  archive: 'Finish trip',
+} as const
+
+/** Open the bar's ⋮ and return it, settled and readable. */
+async function openTripMenu(page: Page) {
+  await page.getByTestId('header-overflow').click()
+  const sheet = page.locator('ion-action-sheet')
+  await expect(sheet).toBeVisible()
+  return sheet
+}
+
+/** Run one of M4's overflow actions through the menu the user sees. */
+export async function tripAction(page: Page, action: keyof typeof TRIP_ACTION) {
+  const sheet = await openTripMenu(page)
+  await sheet.getByText(TRIP_ACTION[action], { exact: true }).click()
+  // The dismissal belongs to the interaction: a sheet still on screen
+  // swallows the next click, which surfaces as an unrelated timeout.
+  await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+}
+
+/**
+ * What the menu offers right now — the readable form of "is this action
+ * available?". Returns the entries so an *absence* is asserted against a
+ * list that is demonstrably populated, never against a menu that failed
+ * to open.
+ */
+export async function tripActions(page: Page): Promise<string[]> {
+  const sheet = await openTripMenu(page)
+  const labels = await sheet.locator('.action-sheet-button-inner').allInnerTexts()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+  return labels.map((l) => l.trim())
+}
+
+/**
+ * That an action is offered — the settled signal the lifecycle cases used
+ * to take from the glyph pair swapping. Reads the whole menu, so the
+ * assertion sits on a list that is demonstrably there.
+ */
+export async function expectTripActionOffered(page: Page, action: keyof typeof TRIP_ACTION) {
+  expect(await tripActions(page)).toContain(TRIP_ACTION[action])
+}
+
+/** And that one is not — against the same populated list. */
+export async function expectTripActionAbsent(page: Page, action: keyof typeof TRIP_ACTION) {
+  const offered = await tripActions(page)
+  expect(offered.length).toBeGreaterThan(0)
+  expect(offered).not.toContain(TRIP_ACTION[action])
+}
+
 export const test = base.extend<Fixtures>({
   seedMode: async ({ page }, use) => {
     await use((opts: SeedOptions) => seed(page, opts))

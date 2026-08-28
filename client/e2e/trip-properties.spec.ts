@@ -1,4 +1,11 @@
-import { test, expect, expectTripOpen, setDateField } from './fixtures'
+import {
+  test,
+  expect,
+  expectTripOpen,
+  setDateField,
+  tripAction,
+  expectTripActionOffered,
+} from './fixtures'
 import {
   addPosition,
   backToTemplateList as backToList,
@@ -92,7 +99,7 @@ function pantsRows(page: Page) {
 }
 
 async function openTripEdit(page: Page) {
-  await page.getByTestId('m4-edit').click()
+  await tripAction(page, 'edit')
   await expect(visible(page).getByTestId('trip-edit-name')).toBeVisible()
 }
 
@@ -296,9 +303,9 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     page,
   }) => {
     await tripWithTwoTravellers(page, 'Kurztrip')
-    await page.getByTestId('m4-start').click()
+    await tripAction(page, 'start')
     // The archive action appearing is the settled signal that the status moved.
-    await expect(page.getByTestId('m4-archive')).toBeVisible()
+    await expectTripActionOffered(page, 'archive')
 
     await openTripEdit(page)
 

@@ -18,9 +18,10 @@ import {
   IonButton,
   IonBadge,
   IonIcon,
+  actionSheetController,
   useIonRouter,
 } from '@ionic/vue'
-import { chevronBackOutline, settingsOutline } from 'ionicons/icons'
+import { chevronBackOutline, ellipsisVerticalOutline, settingsOutline } from 'ionicons/icons'
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import BrandMark from './BrandMark.vue'
@@ -56,7 +57,43 @@ const title = computed(
 
 // G-12: the current page's icon cluster, described by the page rather
 // than teleported into this toolbar — see useHeaderActions.
-const pageActions = computed(() => actionsFor(route.path))
+const pageActions = computed(() => actionsFor(route.path).filter((a) => !a.overflow))
+
+// The ones the page put behind the ⋮ (UX-13). An action sheet rather than a
+// popover: it is the menu shape the rest of the app already uses (M2's and
+// M7's row menus), and it renders each entry as a *word*, which is what the
+// bar could not do for them.
+const overflowActions = computed(() => actionsFor(route.path).filter((a) => a.overflow))
+
+async function openOverflow() {
+  // Held in a box: assigned only inside a callback, so TypeScript's flow
+  // analysis would narrow a plain `let` back to `null` at the call below.
+  const chosen: { run: (() => void) | null } = { run: null }
+  const sheet = await actionSheetController.create({
+    buttons: [
+      ...overflowActions.value.map((action) => ({
+        text: action.label,
+        icon: action.icon,
+        handler: () => {
+          chosen.run = action.onClick
+        },
+      })),
+      { text: t('common.cancel'), role: 'cancel' },
+    ],
+  })
+  await sheet.present()
+  /*
+   * The action runs *after* the sheet is gone, not inside its handler.
+   * While an overlay is up Ionic marks the router outlet `aria-hidden` and
+   * clears it on dismissal; a handler that navigates races that teardown
+   * and the flag stays on the outlet — so the screen the user just opened
+   * is fully rendered, entirely clickable, and invisible to assistive
+   * technology. Found by an e2e case that could see the button in the DOM
+   * and not in the accessibility tree.
+   */
+  await sheet.onDidDismiss()
+  chosen.run?.()
+}
 
 // G-9: the gear is on every screen — except M17 itself, where it would
 // only reopen the screen it is on.
@@ -127,6 +164,15 @@ function goBack() {
           <IonBadge v-if="action.badge" color="primary" class="action-badge">
             {{ action.badge }}
           </IonBadge>
+        </IonButton>
+        <IonButton
+          v-if="overflowActions.length > 0"
+          data-testid="header-overflow"
+          :aria-label="t('common.moreActions')"
+          :title="t('common.moreActions')"
+          @click="openOverflow"
+        >
+          <IonIcon slot="icon-only" :icon="ellipsisVerticalOutline" />
         </IonButton>
         <SyncIndicator
           :state="syncState"
