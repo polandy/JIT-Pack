@@ -68,6 +68,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Clone without opening the source | E2E-M2-11 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Sync paging | E2E-SYNC-01 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
 | Editable display name and profile circle (FR-17.13, FR-23.4a) | E2E-M17-04 | `single` | [`single/settings-profile.spec.ts`](../client/e2e/single/settings-profile.spec.ts) |
+| Profile under an OIDC session: picture editable, name not (FR-17.13, revised 2026-08-29) | E2E-M17-05, E2E-M17-05b | `server` | [`server/settings-profile.spec.ts`](../client/e2e/server/settings-profile.spec.ts) |
 | M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
@@ -2097,3 +2098,27 @@ count a person with no face to point at.
   can only assert the row that is both. The split is exhaustive in
   `domain/__tests__/admin.spec.ts`.
 
+
+## The avatar upload itself has never been driven
+
+Recorded rather than quietly left, because the ledger's whole point is that a
+green `e2e` job is not the same as a verified UI.
+
+**What is covered:** that the picture control is *offered* to an OIDC account
+(E2E-M17-05), which is the branch the 2026-08-29 revision changed, and that the
+display name stays the provider's (E2E-M17-05b). The gate itself is also driven
+as a component test in `SettingsPage.spec.ts`, both assertions
+mutation-proven — reverting the flag reddens the picture case, making the name
+editable reddens the other.
+
+**What is not:** picking a file, positioning the crop and uploading — the open **E2E-M17-12**, which this revision widens from `single` to both projects. No project
+has ever driven `AvatarCropModal.vue`, and the signature is the familiar one —
+**the component carries no `data-testid` at all**, the same tell that marked M20
+as never-rendered before #242.
+
+**Why it was not added here.** The modal renders the chosen file into a canvas
+and the upload waits on that. There is no settled signal to assert against, so
+a case today could only wait-and-hope, which the testing rules forbid outright.
+The fix belongs in the production code — a completion signal on the modal, the
+same seam the G-2 indicator grew for in-flight Local Mode writes — and that is a
+change of its own rather than a rider on a one-flag PR.

@@ -11,7 +11,7 @@
  * covered here or nowhere.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import SettingsPage from '../SettingsPage.vue'
@@ -88,5 +88,52 @@ describe('M17 notification preferences (NFR-4.12)', () => {
     expect(wrapper.text()).toContain('Übernommene Artikel')
     // And the English is gone rather than merely joined by the German.
     expect(wrapper.text()).not.toContain('Delegations')
+  })
+})
+
+describe('M17 profile with an OIDC session (FR-17.13)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.setItem('jitpack_mode', 'server')
+  })
+
+  afterEach(() => {
+    localStorage.removeItem('jitpack_mode')
+    setLocale('en')
+  })
+
+  it('offers the picture control, because no identity provider supplies a picture', async () => {
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    expect(wrapper.find('.avatar-upload').exists()).toBe(true)
+    expect(wrapper.find('.avatar-upload input[type="file"]').exists()).toBe(true)
+  })
+
+  it('leaves the display name read-only, because that one is IdP-sourced', async () => {
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    // Asserted through the component's prop, not a DOM attribute: Ionic does
+    // not reflect a bound boolean onto the element, so `attributes('readonly')`
+    // reads undefined whether the binding is true or false and would pass
+    // against an editable field.
+    const nameInput = wrapper
+      .findAllComponents({ name: 'IonInput' })
+      .find((c) => c.attributes('data-testid') === 'settings-name-input')
+    expect(nameInput?.props('readonly')).toBe(true)
+    expect(wrapper.find('[data-testid="settings-name-save"]').exists()).toBe(false)
+  })
+
+  it('says which half the provider owns, rather than claiming the whole profile', async () => {
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    const note = wrapper.find('[data-testid="settings-name-managed"]')
+    expect(note.exists()).toBe(true)
+    expect(note.text()).toContain('display name')
+    // The old copy said "Profile is managed by your identity provider", which
+    // stopped being true the moment the picture became editable here.
+    expect(note.text()).not.toMatch(/^Profile is managed/)
   })
 })
