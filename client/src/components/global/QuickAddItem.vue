@@ -230,19 +230,6 @@ function selectChip(item: MasterItem) {
 const browseOpen = ref(false)
 
 /**
- * Bumped on every opening, and used as the sheet's `key`: the FR-25.13e
- * snapshot of "what was already in" is taken when the sheet mounts, so
- * re-opening it has to be a fresh mount. Keying rather than `v-if` keeps the
- * content in place while the modal plays its dismiss animation.
- */
-const browseRun = ref(0)
-
-function openBrowse() {
-  browseRun.value += 1
-  browseOpen.value = true
-}
-
-/**
  * The sheet's door lives beside the chips, in the empty composer only:
  * typing means the user is in the *Erfassen* posture, and an inventory
  * with nothing in it has nothing to browse.
@@ -383,7 +370,7 @@ function onKeydown(event: KeyboardEvent) {
         v-if="showBrowseEntry"
         class="browse-entry"
         data-testid="quick-add-browse-open"
-        @click="openBrowse()"
+        @click="browseOpen = true"
       >
         <IonIcon :icon="albumsOutline" />
         <span>{{ t('quickAdd.browseEntry') }}</span>
@@ -443,7 +430,6 @@ function onKeydown(event: KeyboardEvent) {
 
       <SheetModal :is-open="browseOpen" @dismiss="onBrowseDismiss">
         <InventoryBrowseSheet
-          :key="browseRun"
           :carried-item-ids="excludeItemIds"
           @add="onBrowseAdd"
           @free-text="onBrowseFreeText"

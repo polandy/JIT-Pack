@@ -468,10 +468,19 @@ test.describe('M4 packing list @local @m4', () => {
     await sheet.getByTestId('browse-close').click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
     await expect(page.getByTestId('m4-row-Lampe')).toBeVisible()
+
+    // Re-opening starts a new pass, so the previous run's add is now simply
+    // "already in" and goes with the rest: the snapshot is per opening, which
+    // is why the sheet is keyed rather than kept.
+    await visible(page).getByTestId('quick-add-browse-open').click()
+    await expect(sheet.getByTestId('browse-hide-count')).toHaveText('2 hidden')
+    await expect(sheet.getByTestId('browse-added-now')).toHaveCount(0)
+    await expect(sheet.getByTestId('browse-row')).toHaveCount(1)
+    await expect(sheet.getByTestId('browse-row')).toContainText('Kocher')
   })
 
   /**
-   * E2E-M4-58 (FR-25.13e): the switch that puts the carried rows away, and
+   * E2E-M4-59 (FR-25.13e): the switch that puts the carried rows away, and
    * the rule that makes it safe — what *this run* adds is never hidden.
    *
    * The load-bearing assertion is the positive one: after the switch is on,
@@ -480,7 +489,7 @@ test.describe('M4 packing list @local @m4', () => {
    * against exactly the implementation this rule exists to forbid, where the
    * row vanishes under the finger and the list reflows into the next tap.
    */
-  test('E2E-M4-58: hiding what is already in keeps what the run adds (FR-25.13e)', async ({
+  test('E2E-M4-59: hiding what is already in keeps what the run adds (FR-25.13e)', async ({
     page,
   }) => {
     for (const name of ['Zelt', 'Lampe', 'Kocher']) {
@@ -520,6 +529,15 @@ test.describe('M4 packing list @local @m4', () => {
     await sheet.getByTestId('browse-close').click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
     await expect(page.getByTestId('m4-row-Lampe')).toBeVisible()
+
+    // Re-opening starts a new pass, so the previous run's add is now simply
+    // "already in" and goes with the rest: the snapshot is per opening, which
+    // is why the sheet is keyed rather than kept.
+    await visible(page).getByTestId('quick-add-browse-open').click()
+    await expect(sheet.getByTestId('browse-hide-count')).toHaveText('2 hidden')
+    await expect(sheet.getByTestId('browse-added-now')).toHaveCount(0)
+    await expect(sheet.getByTestId('browse-row')).toHaveCount(1)
+    await expect(sheet.getByTestId('browse-row')).toContainText('Kocher')
   })
 
   // E2E-M4-02 (FR-8.2/25.18): the grouping is durable per trip — it arranges

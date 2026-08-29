@@ -8006,11 +8006,14 @@ Two smaller things the build settled:
   the text and not the ink. The screenshot said it, which is the whole reason
   the rule about rendering a UI change exists; the fix is the two-class
   selector, and the comment beside it says why it is two.
-- **A sheet that stays mounted hands the second visit the first visit's
-  snapshot.** `SheetModal` keeps its slot alive so the dismiss animation has
-  something to animate, so `QuickAddItem` keys the sheet per opening
-  (`browseRun`) rather than putting a `v-if` on it and emptying the sheet
-  mid-animation.
+- **A premise about the modal that turned out to be wrong, and cost a line of
+  code before it did.** The sheet was keyed per opening on the assumption that
+  `SheetModal` keeps its slot mounted, which would have handed the second visit
+  the first visit's snapshot. Mutating the key away left the re-opening
+  assertion green: Ionic destroys the modal's content on dismiss, so each
+  opening is already a fresh creation. The key went, rather than staying as
+  insurance nothing can fail against — E2E-M4-59's second half is what would
+  catch a future Ionic changing its mind.
 
 The count is scoped to the tag filter rather than to the inventory, because a
 number that does not match what the screen would hide is one the user can catch
