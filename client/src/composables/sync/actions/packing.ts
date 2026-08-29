@@ -10,9 +10,10 @@
  * the outbox (FR-5.7, ADR-028). They belong to the lock group, whose state
  * this group never touches.
  */
-import { optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
+import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/optimistic'
 import { itemRow } from '../rows'
 import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
+import { planMembership, type MembershipTarget } from '@/domain/membership'
 import type { ItemMode, ReviewFlag, ShoppingMode, TripItem } from '@/types/domain'
 import type { SyncContext } from '../context'
 
@@ -186,6 +187,70 @@ export function createPackingActions(ctx: SyncContext) {
     })
   }
 
+  /**
+   * FR-25.21: who needs this item, and how many each. The decision is
+   * `planMembership`'s (ADR-036); this only turns its plan into mutations, in
+   * one enqueue so a conversion reaches the outbox as a single unit.
+   *
+   * The inserted rows carry the plan's *derived* ids, which is the whole point
+   * of the derivation: two devices converting the same row offline converge on
+   * one row per traveler, and FR-27.4 later adopts the row instead of adding a
+   * second beside it. Deliberately not copied onto a new row: the container —
+   * a bag is a physical decision about one person's things, not a property of
+   * the item somebody else also needs.
+   */
+  function setMembership(
+    tripId: string,
+    rows: TripItem[],
+    target: MembershipTarget,
+    rowsWithContent: string[],
+  ) {
+    const plan = planMembership({
+      tripId,
+      rows,
+      travelers: tripStore.getTravelers(tripId),
+      rowsWithContent,
+      target,
+    })
+    if (plan.empty) return plan
+
+    const byId = new Map(rows.map((r) => [r.id, r]))
+    const muts = []
+
+    for (const u of plan.update) {
+      const row = byId.get(u.id)
+      if (!row) continue
+      const mut = mutations.setMembershipFields(u.id, u.fields)
+      muts.push({ mutation: mut, optimistic: optimisticUpdate(mut, itemRow(row)) })
+    }
+    for (const ins of plan.insert) {
+      const { mutation } = mutations.addGeneratedTripItem(
+        tripId,
+        {
+          source_item_id: ins.from.source_item_id,
+          source_template_id: ins.from.source_template_id,
+          name: ins.from.name,
+          category_name: ins.from.category_name,
+          weight_grams: ins.from.weight_grams,
+          value_cents: ins.from.value_cents,
+          quantity: ins.quantity,
+          mode: ins.from.mode,
+          late_packer: ins.from.late_packer,
+        },
+        ins.traveler_id,
+        ins.id,
+      )
+      muts.push({ mutation, optimistic: optimisticInsert(mutation) })
+    }
+    for (const id of plan.delete) {
+      const mut = mutations.deleteTripItem(id)
+      muts.push({ mutation: mut, optimistic: optimisticDelete(mut) })
+    }
+
+    enqueueAndDrain('trip', tripId, ...muts)
+    return plan
+  }
+
   function assignContainer(tripId: string, item: TripItem, containerId: string | null) {
     const mut = mutations.assignContainer(item.id, containerId)
     enqueueAndDrain('trip', tripId, {
@@ -290,6 +355,7 @@ export function createPackingActions(ctx: SyncContext) {
   }
 
   return {
+    setMembership,
     packIncrement,
     packDecrement,
     packComplete,

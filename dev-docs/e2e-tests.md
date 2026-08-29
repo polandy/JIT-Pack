@@ -41,7 +41,8 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05, E2E-M3-20 (FR-2.1d date bound) | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 | Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
-| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column), E2E-M4-57 (UX-13 bar overflow) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
+| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
+| FR-25.21 membership | E2E-M5-18, E2E-M5-19, E2E-M5-20 | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
@@ -2153,3 +2154,97 @@ a case today could only wait-and-hope, which the testing rules forbid outright.
 The fix belongs in the production code — a completion signal on the modal, the
 same seam the G-2 indicator grew for in-flight Local Mode writes — and that is a
 change of its own rather than a rider on a one-flag PR.
+
+
+## E2E-M4-59 — hiding what is already in (FR-25.13e, 2026-08-29)
+
+The browse-sheet's opt-in switch is otherwise a component-test subject: the
+counting, the two "everything is already in" sentences and the persistence are
+pinned in `InventoryBrowseSheet.spec.ts`. **Six of its seven cases are proven
+red** against a build with the filter disabled; the seventh is the *default off*
+case, which asserts the unfiltered sheet and is right to stay green there.
+
+Two of the six only became red on the second pass, and both for the same
+reason: they asserted the **tappable** rows, which look identical whether a
+carried row is hidden or merely rendered as *„schon drin"*. The list that
+separates the two is the carried one, and that is what they assert now. A
+count of red cases is worth nothing without knowing which assertion earned
+it.
+
+**What only the rendered case can pin** is the rule the whole feature stands on:
+with the switch on, a row tapped during the run **stays on screen** and reads
+*added*. The obvious implementation — filter the carried set on every render —
+passes every "the carried rows are gone" assertion and fails exactly here, with
+the row vanishing from under the finger and the next row sliding into the tap
+point. So the case asserts the presence of `browse-added-now` after the tap, not
+the absence of something, and it also asserts the count line does **not** tick
+up, which is the same clock stated twice.
+
+The snapshot is taken in the component's *setup*, not in `onMounted` — found by
+the persistence test, which mounted with the switch already on and caught the
+first paint rendering the carried rows as freshly added. That makes each
+*creation* of the sheet a new pass, and the case's second half asserts exactly
+that by re-opening it: the previous run's add is hidden with the rest. The id
+is **E2E-M4-59**, not 58 — 58 is claimed by the open FR-25.21 work.
+
+The re-opening half cost one red pipeline before it settled anything: the
+edit that added it matched a tail E2E-M4-47 has verbatim, so the block landed
+in **both** tests, and a local run filtered to the new id could not see it.
+Two shards found it. The lesson is the filter, not the edit — a change to a
+shared file is verified by running the neighbours it could have touched.
+
+It also settled a question the first draft got wrong. It was
+written assuming `SheetModal` keeps its slot mounted, so `QuickAddItem` keyed
+the sheet per opening to force a fresh snapshot. Removing that key left the case
+**green**: Ionic destroys the modal's content when it is dismissed, so the
+sheet is created afresh anyway. The key was deleted rather than kept as
+insurance — and this case is what would catch it if a future Ionic changed its
+mind.
+## FR-25.21 — the three cases, and the four traps they cost (2026-08-29)
+
+`e2e/membership.spec.ts`, three cases, all three red-proved. **E2E-M5-18** is the
+one that owns the feature: mutating `planMembership` to give every member the
+same amount reddens it, and nothing else in the suite noticed.
+
+Four things the cases cost, each worth more than the case:
+
+- **Five callers drove a control this PR deleted.** `m5-traveler`, M5's old
+  single-select, was driven by `skip-item`, `analytics` and `single/server-sync`
+  — three helpers with the same body plus two read-back assertions. `make ci`
+  stayed green through all of it, because e2e is not in it. A redirected action
+  needs **every** e2e caller, and grep is the only thing that finds them.
+- **The bundle is what runs.** `membership-close` existed in the source and the
+  case timed out waiting for it: `scripts/e2e.sh` drives `dist`, and the testid
+  had been added after the last build. Rebuild between editing production code
+  and running a case, always — the same rule a mutation proof needs.
+- **A quantity of one has no stepper** (G-6), so `0/1` is text that never
+  renders. Asserting the *control* — a checkbox for Mia, a stepper for Andy — is
+  both the honest assertion and a stronger one: it shows the amounts differ.
+- **An Ionic overlay stays mounted.** `expect(alert).toHaveCount(0)` after a
+  cancel never passes; `toBeHidden()` is the assertion. The count reads the
+  element, not the state.
+
+And one case shape worth copying: **E2E-M5-19 asserts the cancel**, not only the
+confirm. A destructive control that fires on the first tap and one that asks are
+indistinguishable from the confirmed path alone. It also asserts the *silent*
+half — a traveler whose row carries nothing leaves without a question — and that
+half needs the disappearing amount as its positive signal, because "no dialog
+appeared" is true of a build where the checkbox does nothing at all.
+
+**What the review pass added, and why it was missing.** Two of the three cases
+were written to their own shape rather than to the spec sentence they carry, and
+reading the two side by side is what found it:
+
+- **E2E-M5-20 promised that a preparation todo written before the conversion is
+  still there afterwards** — and asserted only the summed quantity. That clause
+  is not decoration: it is the entire reason ADR-036 chose keep-and-repoint over
+  delete-and-recreate, and a collapse that recreated the row would have summed
+  the amounts just as correctly. Deleting the content ladder from `survivorOf`
+  now reddens M5-20 and nothing else; before, it reddened nothing.
+- **E2E-M5-19 described three travelers and asserted two.** Harmless in itself,
+  but it is the same defect in a smaller costume — a spec sentence nobody read
+  back against the test body.
+
+The general form: **a case id in the UI-Test-Spec is a list of promises, and each
+clause has to be findable as an assertion.** The id existing is not the coverage,
+and a green case named after the promise is exactly what hides its absence.
