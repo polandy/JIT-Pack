@@ -12,8 +12,9 @@
  * appear — is E2E-M8-09.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
+import { ref } from 'vue'
 
 import TripListPage from '../TripListPage.vue'
 import { useTripStore } from '@/stores/tripStore'
@@ -40,6 +41,8 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }))
 
+const masterLoaded = ref(true)
+
 const orchestratorFake = {
   activateTrip: vi.fn(),
   fetchMe: vi.fn(() => Promise.resolve(null)),
@@ -49,6 +52,11 @@ const orchestratorFake = {
   // that fetches them. The set is what a test decides.
   loadedTrips: new Set<string>(),
   tripDataLoaded: vi.fn((tripId: string) => orchestratorFake.loadedTrips.has(tripId)),
+  // FR-2.8: whether the trip list itself is on the device. A ref, like both
+  // signals it stands in for — the screen reads it through a computed, and a
+  // plain property would make that computed permanently stale. Default true,
+  // so the cases above see a settled list; the FR-2.8 block drives it.
+  masterDataLoaded: vi.fn(() => masterLoaded.value),
   ensureTripData: vi.fn(() => Promise.resolve()),
 }
 
@@ -100,6 +108,7 @@ beforeEach(() => {
   segment = 'planned'
   orchestratorFake.refreshProposals.value = {}
   orchestratorFake.loadedTrips = new Set<string>()
+  masterLoaded.value = true
   setActivePinia(createPinia())
   vi.clearAllMocks()
   localStorage.clear()
@@ -353,5 +362,120 @@ describe('TripListPage — a trip whose own rows are not here yet', () => {
     // asserts. Here: the screen does not decide to skip the call, so a trip
     // that becomes stale later can still be refreshed.
     expect(orchestratorFake.ensureTripData).toHaveBeenCalledWith('t1')
+  })
+})
+
+/**
+ * FR-2.8 — the opening segment is derived from what the list holds. The pure
+ * walk is `openingFilter`'s own unit; what is tested here is the wiring the
+ * screen owes it: the settled guard, the `?status=` precedence, and the
+ * counts on the segment buttons.
+ */
+describe('TripListPage — the opening segment (FR-2.8)', () => {
+  /** A second trip beside `seedTrip`'s, so a walk has somewhere to walk to. */
+  function seedAlso(id: string, name: string, status: string) {
+    useTripStore().applyChange({
+      seq: 0,
+      table: TABLE.trips,
+      id,
+      deleted: false,
+      row: { name, year: 2026, status },
+    })
+  }
+
+  function countOf(wrapper: ReturnType<typeof mountPage>, name: string): string | null {
+    const button = wrapper.find(`[data-testid="trips-filter-${name}"]`)
+    const count = button.find('.segment-count')
+    return count.exists() ? count.text() : null
+  }
+
+  beforeEach(() => {
+    // No caller naming a segment: this is the ordinary opening of the tab.
+    segment = ''
+  })
+
+  it('leaves an empty Active for the planned trip', async () => {
+    seedTrip('planning')
+
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="trip-row-Samedan"]').exists()).toBe(true)
+  })
+
+  it('falls through to the archive when nothing is active or planned', async () => {
+    seedTrip('archived')
+
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="trip-row-Samedan"]').exists()).toBe(true)
+  })
+
+  it('stays on Active, with its own empty state, when there is no trip at all', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain(t('trips.emptyActive'))
+  })
+
+  it('honours a caller that names an empty segment', async () => {
+    // M18's restore and M15's migration land where their own result is, even
+    // when that is nowhere — being shown somebody else's trips instead would
+    // read as "your import went in there".
+    segment = 'active'
+    seedTrip('archived')
+
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain(t('trips.emptyActive'))
+    expect(wrapper.find('[data-testid="trip-row-Samedan"]').exists()).toBe(false)
+  })
+
+  it('does not decide on a list that has not arrived, and decides once it has', async () => {
+    // The sharpest edge in the FR: zeros read off an unpulled list are not
+    // zeros. Without the guard this lands on the archive on every cold start
+    // and stays there, because the walk decides on entry only.
+    masterLoaded.value = false
+    seedTrip('archived')
+
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="trip-row-Samedan"]').exists()).toBe(false)
+    expect(countOf(wrapper, 'archived')).toBeNull()
+
+    // The same entry, now settled: the deferred decision is what fires here,
+    // which is also what proves the assertion above was not simply empty.
+    masterLoaded.value = true
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="trip-row-Samedan"]').exists()).toBe(true)
+    expect(countOf(wrapper, 'archived')).toBe('(1)')
+  })
+
+  it('writes each segment its count, zero included', async () => {
+    seedTrip('planning')
+    seedAlso('t2', 'Rom', 'planning')
+    seedAlso('t3', 'Kreta 2019', 'archived')
+
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(countOf(wrapper, 'active')).toBe('(0)')
+    expect(countOf(wrapper, 'planned')).toBe('(2)')
+    expect(countOf(wrapper, 'archived')).toBe('(1)')
+  })
+
+  it('says the count in the button’s name, not only as a digit beside it', async () => {
+    seedTrip('planning')
+
+    const wrapper = mountPage()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="trips-filter-planned"]').attributes('aria-label')).toBe(
+      t('trips.filterCount', { label: t('trips.filterPlanned'), n: 1 }),
+    )
   })
 })

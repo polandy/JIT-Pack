@@ -24,6 +24,7 @@ import {
   IonButton,
   actionSheetController,
   alertController,
+  onIonViewWillEnter,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -53,7 +54,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { loadTokens } from '@/auth/tokens'
 import { serializeTrip } from '@/domain/portable'
 import { safeFilename, saveText } from '@/lib/download'
-import { parseTripFilter, TRIP_FILTER_QUERY, type TripFilter } from './tripFilter'
+import {
+  countTripsByFilter,
+  openingFilter,
+  parseTripFilter,
+  TRIP_FILTERS,
+  TRIP_FILTER_QUERY,
+  type TripFilter,
+} from './tripFilter'
 import { describeAppliedChange } from '@/lib/refreshWording'
 import { proposedChangeCount } from '@/domain/refresh'
 import { useOnFirstVisible } from '@/composables/useOnFirstVisible'
@@ -63,7 +71,7 @@ import type { AppliedChange, Trip } from '@/types/domain'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import SearchRow from '@/components/global/SearchRow.vue'
 import { tripOrderKey } from '@/domain/trips'
-import { t } from '@/i18n'
+import { t, type MessageKey } from '@/i18n'
 import { formatTripPeriod } from '@/lib/format'
 import { presentToast } from '@/lib/toast'
 import { useContextSearch } from '@/composables/useContextSearch'
@@ -160,15 +168,93 @@ setHeaderActions(() => [action()])
 /** The temporal line under a trip's name, whatever it actually knows (UX-5). */
 const tripWhen = formatTripPeriod
 
+/**
+ * The search alone, without the segment: what M2 shows is one slice of this,
+ * and each segment's count (FR-2.8) is the size of its own slice — which is
+ * why the search is applied once, here, rather than by each of them.
+ */
+const searchedTrips = computed(() => store.tripList.filter((trip) => matches(trip.name)))
+
 const filteredTrips = computed(() =>
-  store.tripList
-    .filter((trip) => matchesFilter(trip) && matches(trip.name))
+  searchedTrips.value
+    .filter((trip) => matchesFilter(trip))
     // Newest first (Addendum, M2 default ordering). The key survives a
     // trip that has only its year (FR-2.1b), which a raw date compare did
     // not — it put such a trip wherever the sort happened to leave it.
     .sort((a, b) => tripOrderKey(b).localeCompare(tripOrderKey(a))),
 )
 const isEmpty = computed(() => filteredTrips.value.length === 0)
+
+/**
+ * FR-2.8 — the segments, their counts and the opening decision.
+ *
+ * `countsKnown` is the guard the whole feature turns on: in Server Mode the
+ * trip list arrives after this screen is already on the display, and zeros
+ * read off a list that has not come yet are not zeros. Until the master
+ * partition is here, a segment shows its label alone and the walk does not
+ * run — deciding on nothing would send every cold start to the archive and,
+ * because the walk decides on entry only, leave it there.
+ */
+const countsKnown = computed(() => orchestrator.masterDataLoaded())
+
+/** The label each segment carries; the count is the line under it. */
+const SEGMENT_LABELS: Record<TripFilter, MessageKey> = {
+  active: 'trips.filterActive',
+  planned: 'trips.filterPlanned',
+  archived: 'trips.filterArchived',
+}
+
+/** The displayed counts follow the search, so they say where the hits are. */
+const segmentCounts = computed(() => countTripsByFilter(searchedTrips.value))
+
+const segments = computed(() =>
+  TRIP_FILTERS.map((value) => {
+    const label = t(SEGMENT_LABELS[value])
+    const count = countsKnown.value ? segmentCounts.value[value] : null
+    return {
+      value,
+      label,
+      count,
+      testid: `trips-filter-${value}`,
+      // The count is part of the name rather than a digit read out after it.
+      a11y: count === null ? label : t('trips.filterCount', { label, n: count }),
+    }
+  }),
+)
+
+/**
+ * Whether an entry to this screen still owes its decision. Ionic keeps M2
+ * mounted, so entering is the view becoming visible — and the decision is
+ * deferred rather than dropped when the list is not here yet, because the
+ * settled signal usually arrives a moment *after* the screen does.
+ */
+const openingDecisionOwed = ref(false)
+
+function decideOpeningSegment(): void {
+  if (!openingDecisionOwed.value || !countsKnown.value) return
+  openingDecisionOwed.value = false
+  // A caller that named the segment has the answer this rule is guessing at.
+  if (parseTripFilter(route.query[TRIP_FILTER_QUERY])) return
+  filter.value = openingFilter(filter.value, countTripsByFilter(store.tripList))
+}
+
+/**
+ * The walk reads the *unfiltered* counts, so a search left on the field
+ * cannot decide where the user lands — and it runs on entry only, so
+ * archiving the last active trip from M2's own context menu does not
+ * reorganise the list under the finger that did it.
+ */
+function enterScreen(): void {
+  openingDecisionOwed.value = true
+  decideOpeningSegment()
+}
+
+// Both, and neither is redundant: `onMounted` is the first entry — the app
+// starting on this tab — and `onIonViewWillEnter` is every one after it,
+// since Ionic keeps the page alive when you navigate away from it.
+onMounted(enterScreen)
+onIonViewWillEnter(enterScreen)
+watch(countsKnown, decideOpeningSegment)
 
 /**
  * FR-13.1: trips grouped by series with a tappable header (→ M16);
@@ -414,14 +500,22 @@ async function handleRefresh(event: CustomEvent) {
         </div>
 
         <IonSegment :value="filter" @ionChange="onFilterChange">
-          <IonSegmentButton value="active" data-testid="trips-filter-active">
-            <IonLabel>{{ t('trips.filterActive') }}</IonLabel>
-          </IonSegmentButton>
-          <IonSegmentButton value="planned" data-testid="trips-filter-planned">
-            <IonLabel>{{ t('trips.filterPlanned') }}</IonLabel>
-          </IonSegmentButton>
-          <IonSegmentButton value="archived" data-testid="trips-filter-archived">
-            <IonLabel>{{ t('trips.filterArchived') }}</IonLabel>
+          <IonSegmentButton
+            v-for="segment in segments"
+            :key="segment.value"
+            :value="segment.value"
+            :data-testid="segment.testid"
+            :aria-label="segment.a11y"
+          >
+            <IonLabel>
+              <span class="segment-label">{{ segment.label }}</span>
+              <!-- FR-2.8: beside the label, in brackets (owner, 2026-08-29).
+                   Absent while the count is unknown, `(0)` where the segment
+                   is empty — the two are not the same thing. -->
+              <span v-if="segment.count !== null" class="segment-count jp-num">
+                ({{ segment.count }})</span
+              >
+            </IonLabel>
           </IonSegmentButton>
         </IonSegment>
       </div>
@@ -626,6 +720,33 @@ async function handleRefresh(event: CustomEvent) {
 </template>
 
 <style scoped>
+/*
+ * FR-2.8: the count beside the segment's label. Recessive by opacity rather
+ * than by a colour of its own, so it follows the button through selected and
+ * unselected instead of needing a token per state.
+ */
+.segment-count {
+  opacity: 0.7;
+}
+
+/*
+ * The bracketed count costs four characters, and it is the German
+ * *ARCHIVIERT (29)* — the family's own archive — that has to fit at 390 px.
+ * Measured rather than guessed: with Ionic's default padding the number was
+ * cut off, and with the padding alone it still was. So the padding goes (the
+ * same remedy as M21's deviation segment) and the segment takes one step
+ * down the type scale, which is the last of these two the label can spend.
+ */
+ion-segment-button {
+  --padding-start: 4px;
+  --padding-end: 4px;
+}
+
+.segment-label,
+.segment-count {
+  font-size: var(--jp-text-xs);
+}
+
 .page-title {
   margin: 16px 0 16px;
 }

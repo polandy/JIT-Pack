@@ -65,6 +65,18 @@ describe('Local Mode', () => {
     expect(wsMock).not.toHaveBeenCalled()
   })
 
+  // FR-2.8: the hydration is also the answer to "is the trip list here?",
+  // which M2 asks before it picks a segment. A Local Mode device never pulls,
+  // so this load is the only thing that can ever make it true.
+  it('the load is what tells M2 the trip list has arrived (FR-2.8)', async () => {
+    const orch = newLocalOrch()
+
+    expect(orch.masterDataLoaded()).toBe(false)
+    await orch.connect()
+
+    expect(orch.masterDataLoaded()).toBe(true)
+  })
+
   it('createTripFromWizard works fully offline and persists everything', async () => {
     const persistence = new IndexedDBPersistence()
     const orch = newLocalOrch(persistence)

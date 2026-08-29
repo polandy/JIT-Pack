@@ -50,3 +50,36 @@ export function filterForStatus(status: string | undefined): TripFilter {
       return 'planned'
   }
 }
+
+/** How many trips each segment holds. */
+export type TripFilterCounts = Record<TripFilter, number>
+
+/**
+ * Tallies trips per segment (FR-2.8), through `filterForStatus` so the count
+ * and the list can never disagree about where a status belongs.
+ */
+export function countTripsByFilter(trips: readonly { status?: string }[]): TripFilterCounts {
+  const counts: TripFilterCounts = { active: 0, planned: 0, archived: 0 }
+  for (const trip of trips) counts[filterForStatus(trip.status)]++
+  return counts
+}
+
+/**
+ * The segment M2 opens on (FR-2.8): a segment showing nothing is left for the
+ * first one that shows something, in the order the segments are in.
+ *
+ * Two properties are the whole point, and both are visible in the two lines:
+ * a segment that still holds trips is returned unchanged — the rule fires
+ * only against an empty view, so it can never take a choice away from the
+ * user — and a device with no trips at all lands on the first segment, whose
+ * empty state is the one offering to plan a trip (G-7), rather than on
+ * whichever empty segment was last tapped.
+ *
+ * The caller owes the guard this cannot carry: counts taken from a list that
+ * has not arrived yet are zeros, and every zero here means "leave" — see
+ * `masterDataLoaded`.
+ */
+export function openingFilter(current: TripFilter, counts: TripFilterCounts): TripFilter {
+  if (counts[current] > 0) return current
+  return TRIP_FILTERS.find((filter) => counts[filter] > 0) ?? TRIP_FILTERS[0]
+}
