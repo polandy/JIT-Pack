@@ -218,7 +218,10 @@ type RowView =
   | { kind: 'free' }
 
 function rowView(item: MasterItem): RowView {
-  const act = actedNow.value.get(item.id) ?? derivedAdd(item)
+  // The ledger speaks only where the verbs do. Without them M6 and M8 have
+  // one add and no way back, so their tapped row keeps saying *„schon drin"*
+  // exactly as FR-25.13d wrote it — the e2e case for M8 is what said so.
+  const act = (verbs.value ? actedNow.value.get(item.id) : undefined) ?? derivedAdd(item)
   if (act) {
     return {
       kind: 'acted',

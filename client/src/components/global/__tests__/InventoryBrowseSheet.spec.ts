@@ -347,6 +347,19 @@ describe('InventoryBrowseSheet — the two verbs (FR-25.13f)', () => {
     expect(wrapper.find('[data-testid="browse-skip"]').exists()).toBe(false)
   })
 
+  it('leaves a verb-free sheet its own feedback: a tapped line still says “already in”', async () => {
+    const wrapper = mountSheet()
+
+    await wrapper.get('[data-testid="browse-row"]').trigger('click')
+    await wrapper.setProps({ carriedItemIds: ['i-badehose'] })
+
+    // M6 and M8 have one verb and no undo, so the run's ledger must not
+    // speak for them — FR-25.13d's state is the whole feedback they have.
+    expect(wrapper.find('[data-testid="browse-carried-state"]').text()).toContain('already in')
+    expect(wrapper.find('[data-testid="browse-added-now"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="browse-undo"]').exists()).toBe(false)
+  })
+
   it('adds and decides in one tap on a free line', async () => {
     const wrapper = mountWithVerbs([], states({}))
 

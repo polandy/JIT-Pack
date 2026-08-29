@@ -8144,6 +8144,16 @@ only then did the mutation redden. The general shape is the one this log keeps
 finding: **a second source of truth for one pixel is invisible until a test
 names which one wins.**
 
+**And the claim that the other two screens were untouched was false.** M6 and
+M8 share this sheet, and the run ledger spoke for them too: a row tapped in
+M8's picker started reading *„hinzugefügt · Rückgängig"* — an undo those
+callers do not implement — where FR-25.13d has it say *„schon drin"*. Nothing
+local caught it; E2E-M8-22 did, in both browsers. The ledger now speaks only
+where the verbs do, which is what the sentence in the FR had always claimed.
+The trap generalises: **a shared component gains a feature for one caller and
+changes behaviour for all of them**, and the only place that shows is the
+other callers' own cases.
+
 A smaller one, paid for in a wasted red run: the FR-25.13e switch is a shared
 module ref, so a new `describe` block that flips it hands its state to whatever
 runs next. Two unrelated cases went red for it, and the first red run of the
