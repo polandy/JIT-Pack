@@ -61,6 +61,17 @@ For the **visual baselines** the image is pinned by digest instead, in
 `scripts/visual.sh` — see ADR-013. Local and CI must render in the same
 userland there, which a tag cannot guarantee.
 
+`--update-snapshots` rewrites only the baselines whose diff is **over the
+per-image tolerance**, and says nothing about the rest. A layout change that
+stays under it therefore leaves `make visual` green *and* reports nothing to
+write — which has twice now hidden a real defect, most recently a segment
+label truncated at 390 px. When you changed a layout and the baselines do not
+move, force them and look at the picture:
+
+```bash
+scripts/visual.sh --update-snapshots=all -g "trips"    # the screens you touched
+```
+
 ## Layout
 
 - `fixtures.ts` — the shared `test`/`expect` plus run-mode seeding
@@ -95,5 +106,14 @@ Which spec cases are actually implemented is tracked in
   prove the unblocked state by clicking and asserting what changed.
 - **Ionic inputs:** `getByTestId('x')` resolves the `<ion-input>` host;
   fill its inner element via `.locator('input')`.
+- **The behaviour projects run at desktop width, where there is no tab
+  bar.** `chromium` and `webkit` use the `Desktop Chrome`/`Desktop Safari`
+  device profiles, and above the G-9 breakpoint the app navigates through the
+  desktop column instead — so a case that leaves a screen by clicking
+  `tab-items` fails in *both* browsers with a 60 s timeout on an element that
+  resolves but is never visible. Leave a screen the way the app does at that
+  width: through a drill-down and back out via the `header-back` chevron
+  (ADR-011). A case that genuinely needs the bar sets
+  `page.setViewportSize(MOBILE)` first, as `global-nav.spec.ts` does.
 - **Tags:** `@smoke`, `@local`, `@single`, `@server`, plus `@mNN` per
   screen — run a slice with `npm run test:e2e -- --grep @local`.
