@@ -591,7 +591,12 @@ const packedStamp = computed(() => {
       <!-- FR-25.21: a summary row, not a picker — a stepper per traveler does
            not fit in a popover. Absent below two travelers (G-8): there is no
            membership to distribute. -->
-      <IonItem v-if="travelers.length > 1" button :disabled="isLocked" @click="membershipOpen = true">
+      <IonItem
+        v-if="travelers.length > 1"
+        button
+        :disabled="isLocked"
+        @click="membershipOpen = true"
+      >
         <IonLabel>{{ t('item.usedBy') }}</IonLabel>
         <IonNote slot="end" data-testid="m5-membership">{{ membershipSummary }}</IonNote>
       </IonItem>
@@ -708,17 +713,17 @@ const packedStamp = computed(() => {
     <p>{{ t('item.notFound') }}</p>
   </section>
 
-    <IonModal :is-open="membershipOpen" @did-dismiss="membershipOpen = false">
-      <div class="membership-wrap">
-        <MembershipSheet
-          v-if="item"
-          :trip-id="tripId"
-          :item-id="item.id"
-          :locked="isLocked"
-          @close="membershipOpen = false"
-        />
-      </div>
-    </IonModal>
+  <IonModal :is-open="membershipOpen" @did-dismiss="membershipOpen = false">
+    <div class="membership-wrap">
+      <MembershipSheet
+        v-if="item"
+        :trip-id="tripId"
+        :item-id="item.id"
+        :locked="isLocked"
+        @close="membershipOpen = false"
+      />
+    </div>
+  </IonModal>
 </template>
 
 <style scoped>

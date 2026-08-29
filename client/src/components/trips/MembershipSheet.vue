@@ -57,7 +57,8 @@ const rowsWithContent = computed(() => {
   const ids = new Set<string>()
   for (const row of rows.value) {
     if (store.getItemComments(props.tripId, row.id).length > 0) ids.add(row.id)
-    else if (store.getTodos(props.tripId).some((todo) => todo.trip_item_id === row.id)) ids.add(row.id)
+    else if (store.getTodos(props.tripId).some((todo) => todo.trip_item_id === row.id))
+      ids.add(row.id)
   }
   return [...ids]
 })
@@ -82,15 +83,14 @@ function amountOf(travelerId: string): number | null {
 const members = computed(() =>
   travelers.value
     .map((tr) => ({ traveler: tr, quantity: amountOf(tr.id) }))
-    .filter((m): m is { traveler: (typeof travelers.value)[number]; quantity: number } =>
-      m.quantity !== null,
+    .filter(
+      (m): m is { traveler: (typeof travelers.value)[number]; quantity: number } =>
+        m.quantity !== null,
     ),
 )
 
 const totalQuantity = computed(() =>
-  perPerson.value
-    ? members.value.reduce((n, m) => n + m.quantity, 0)
-    : (item.value?.quantity ?? 0),
+  perPerson.value ? members.value.reduce((n, m) => n + m.quantity, 0) : (item.value?.quantity ?? 0),
 )
 
 /** A pending destructive change, held until the confirm answers. */
@@ -223,10 +223,17 @@ const confirmMessage = computed(() => {
       </button>
     </div>
 
-    <p class="hint">{{ showRoster ? t('membership.hintPerPerson') : t('membership.hintShared') }}</p>
+    <p class="hint">
+      {{ showRoster ? t('membership.hintPerPerson') : t('membership.hintShared') }}
+    </p>
 
     <ul v-if="showRoster" class="list">
-      <li v-for="tr in travelers" :key="tr.id" class="row" :class="{ off: amountOf(tr.id) === null }">
+      <li
+        v-for="tr in travelers"
+        :key="tr.id"
+        class="row"
+        :class="{ off: amountOf(tr.id) === null }"
+      >
         <IonCheckbox
           :checked="amountOf(tr.id) !== null"
           :disabled="locked"

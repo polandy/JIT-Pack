@@ -132,7 +132,8 @@ export const de: Record<keyof typeof en, string> = {
   'membership.shared': 'Gemeinsam',
   'membership.perPerson': 'Pro Person',
   'membership.hintShared': 'Eine Zeile für die ganze Reise.',
-  'membership.hintPerPerson': 'Jede angehakte Person bekommt eine eigene Zeile auf ihrer Packliste.',
+  'membership.hintPerPerson':
+    'Jede angehakte Person bekommt eine eigene Zeile auf ihrer Packliste.',
   'membership.summary': '{people} Person · {quantity} Stück | {people} Personen · {quantity} Stück',
   'membership.summaryShared': 'Gemeinsam · {quantity} Stück',
   'membership.rowShared': 'Gemeinsam',

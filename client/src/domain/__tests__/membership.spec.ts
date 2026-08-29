@@ -135,7 +135,9 @@ describe('planMembership', () => {
 
     it('KeepsTheRowCarryingContent_OverTheOneWithMorePacked', () => {
       // Andy's row has the comments; Leonardo's and Mia's have more packed.
-      const plan = planMembership(input(rows, { kind: 'shared' }, { rowsWithContent: ['row-andy'] }))
+      const plan = planMembership(
+        input(rows, { kind: 'shared' }, { rowsWithContent: ['row-andy'] }),
+      )
 
       expect(plan.update[0]?.id).toBe('row-andy')
       expect(plan.delete.sort()).toEqual(['row-leo', 'row-mia'])
@@ -203,7 +205,13 @@ describe('planMembership', () => {
       )
 
       expect(plan.destructive).toEqual([
-        { rowId: 'row-leo', travelerName: 'Leonardo', packedCount: 2, quantity: 3, hasContent: false },
+        {
+          rowId: 'row-leo',
+          travelerName: 'Leonardo',
+          packedCount: 2,
+          quantity: 3,
+          hasContent: false,
+        },
         { rowId: 'row-mia', travelerName: 'Mia', packedCount: 0, quantity: 1, hasContent: true },
       ])
     })

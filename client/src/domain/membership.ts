@@ -33,8 +33,7 @@ const MIN_QUANTITY = 1
 
 /** What the editor asks for: one shared row, or a row per named traveler. */
 export type MembershipTarget =
-  | { kind: 'shared' }
-  | { kind: 'perPerson'; members: MembershipMember[] }
+  { kind: 'shared' } | { kind: 'perPerson'; members: MembershipMember[] }
 
 export interface MembershipMember {
   traveler_id: string
@@ -148,7 +147,10 @@ function survivorOf(
 /** Fields that differ, so a no-op edit writes no mutation. */
 function diff(row: TripItem, next: MembershipUpdate['fields']): MembershipUpdate['fields'] {
   const out: MembershipUpdate['fields'] = {}
-  if (next.assigned_traveler_id !== undefined && next.assigned_traveler_id !== row.assigned_traveler_id) {
+  if (
+    next.assigned_traveler_id !== undefined &&
+    next.assigned_traveler_id !== row.assigned_traveler_id
+  ) {
     out.assigned_traveler_id = next.assigned_traveler_id
   }
   if (next.quantity !== undefined && next.quantity !== row.quantity) out.quantity = next.quantity
@@ -182,8 +184,7 @@ export function planMembership(input: MembershipInput): MembershipPlan {
   const { rows, travelers, target } = input
   const withContent = new Set(input.rowsWithContent)
   const order = orderOf(travelers)
-  const nameOf = (id: string | null): string =>
-    travelers.find((t) => t.id === id)?.name ?? ''
+  const nameOf = (id: string | null): string => travelers.find((t) => t.id === id)?.name ?? ''
 
   const empty: MembershipPlan = {
     update: [],
