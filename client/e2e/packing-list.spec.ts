@@ -531,6 +531,138 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(sheet.getByTestId('browse-row')).toContainText('Kocher')
   })
 
+  /**
+   * The three items every FR-25.13f case browses, created through M9/M10 so
+   * the sheet has a real inventory to work through.
+   */
+  async function inventory(page: Page, names: string[]) {
+    for (const name of names) {
+      await page.goto('/tabs/items')
+      await page.getByTestId('m9-fab').click()
+      await page.getByTestId('m10-name').locator('input').fill(name)
+      await page.getByTestId('m10-create').click()
+      await expect(page.getByTestId('header-title')).toHaveText(name)
+    }
+  }
+
+  /** Opens the browse-sheet on a trip's M4 and returns it. */
+  async function openBrowseSheet(page: Page) {
+    await openQuickAdd(page)
+    await visible(page).getByTestId('quick-add-browse-open').click()
+    const sheet = page.getByTestId('inventory-browse-sheet')
+    await expect(sheet).toBeVisible()
+    return sheet
+  }
+
+  /**
+   * E2E-M4-60 (FR-25.13f): ✓ on a line the trip does not carry yet adds the
+   * row *and* packs it, in one tap and without leaving the sheet.
+   *
+   * The assertion that matters is the one on M4 afterwards: a line that only
+   * said "packed" while the row landed open would keep this green, and that
+   * is precisely the half-write the single-mutation rule exists to forbid.
+   */
+  test('E2E-M4-60: one tap adds a row already packed (FR-25.13f)', async ({ page }) => {
+    await inventory(page, ['Zelt', 'Lampe'])
+    await createTripViaWizard(page, TRIP)
+
+    const sheet = await openBrowseSheet(page)
+    await sheet.getByRole('button', { name: 'Mark "Lampe" as packed' }).click()
+
+    // The line stays put and says what it did — the sheet has no toast.
+    await expect(sheet.getByTestId('browse-packed-now')).toHaveText(/packed/i)
+    await expect(sheet.getByTestId('browse-row').filter({ hasText: 'Zelt' })).toBeVisible()
+
+    await sheet.getByTestId('browse-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    // Packed rows are done (FR-25.2), so the row is behind the reveal bar
+    // rather than on the working list — and the count agrees.
+    await expect(page.getByTestId('m4-progress')).toContainText('1/1')
+    await expect(page.getByTestId('m4-row-Lampe')).toHaveCount(0)
+    await page.getByTestId('m4-done-bar').click()
+    await expect(page.getByTestId('m4-row-Lampe')).toBeVisible()
+  })
+
+  /**
+   * E2E-M4-61 (FR-25.13f): ✕ on a free line records the decision instead of
+   * losing it — the row lands as FR-5.5 *skipped*, not as an open one and
+   * not as nothing at all.
+   */
+  test('E2E-M4-61: one tap leaves an item at home, on the record (FR-25.13f)', async ({ page }) => {
+    await inventory(page, ['Zelt', 'Lampe'])
+    await createTripViaWizard(page, TRIP)
+
+    const sheet = await openBrowseSheet(page)
+    await sheet.getByRole('button', { name: 'Deliberately leave "Zelt" behind' }).click()
+
+    await expect(sheet.getByTestId('browse-skipped-now')).toHaveText(/staying home/i)
+
+    await sheet.getByTestId('browse-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+
+    // Not on the working list, and named as a decision where it is revealed
+    // — "deliberately not taken" is the whole point of spending a row on it.
+    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
+    await page.getByTestId('m4-done-bar').click()
+    await expect(page.getByTestId('m4-row-Zelt')).toContainText(/deliberately skipped/i)
+  })
+
+  /**
+   * E2E-M4-62 (FR-25.13f): the verbs reach the rows the trip already carries,
+   * which is the trip the sheet could not touch at all before — its lines
+   * were inert.
+   */
+  test('E2E-M4-62: the verbs act on a row the trip already carries (FR-25.13f)', async ({
+    page,
+  }) => {
+    await inventory(page, ['Zelt', 'Lampe'])
+    await createTripViaWizard(page, TRIP)
+
+    let sheet = await openBrowseSheet(page)
+    await sheet.getByTestId('browse-row').filter({ hasText: 'Zelt' }).click()
+    await expect(sheet.getByTestId('browse-added-now')).toHaveCount(1)
+    await sheet.getByTestId('browse-close').click()
+    await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
+
+    // A second pass over the same inventory: the line is "already in" now,
+    // and carries the verb rather than nothing.
+    sheet = await openBrowseSheet(page)
+    await sheet.getByRole('button', { name: 'Mark "Zelt" as packed' }).click()
+    await expect(sheet.getByTestId('browse-packed-now')).toHaveText(/packed/i)
+
+    await sheet.getByTestId('browse-close').click()
+    await expect(page.getByTestId('m4-progress')).toContainText('1/1')
+    await expect(page.getByTestId('m4-row-Zelt')).toHaveCount(0)
+  })
+
+  /**
+   * E2E-M4-63 (FR-25.13f): the way back lives in the line, and it takes the
+   * whole write back — an add that is undone leaves no row behind.
+   */
+  test('E2E-M4-63: the line’s undo takes the decision back (FR-25.13f)', async ({ page }) => {
+    await inventory(page, ['Zelt', 'Lampe'])
+    await createTripViaWizard(page, TRIP)
+
+    const sheet = await openBrowseSheet(page)
+    await sheet.getByRole('button', { name: 'Mark "Lampe" as packed' }).click()
+    await expect(sheet.getByTestId('browse-packed-now')).toHaveCount(1)
+
+    await sheet.getByTestId('browse-undo').click()
+
+    // The line is an offer again — which is what makes a different decision
+    // on it possible without closing the sheet.
+    await expect(sheet.getByTestId('browse-packed-now')).toHaveCount(0)
+    await expect(sheet.getByTestId('browse-row').filter({ hasText: 'Lampe' })).toBeVisible()
+
+    await sheet.getByTestId('browse-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    // The add is gone with it: nothing on the working list, nothing behind
+    // the reveal bar either, which is what an undone add has to mean.
+    await expect(page.getByTestId('m4-row-Lampe')).toHaveCount(0)
+    await expect(page.getByTestId('m4-done-bar')).toBeHidden()
+  })
+
   // E2E-M4-02 (FR-8.2/25.18): the grouping is durable per trip — it arranges
   // rows rather than hiding them, so nothing can be lost behind it.
   test('E2E-M4-02: the grouping choice survives a reload', async ({ page }) => {
