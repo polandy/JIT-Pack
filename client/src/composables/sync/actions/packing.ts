@@ -14,6 +14,7 @@ import { optimisticDelete, optimisticInsert, optimisticUpdate } from '@/sync/opt
 import { itemRow } from '../rows'
 import { coSkipTargets, resolveDependencies } from '@/domain/dependencies'
 import { planMembership, type MembershipTarget } from '@/domain/membership'
+import type { AddedItemDecision } from '@/composables/useMutations'
 import type { ItemMode, ReviewFlag, ShoppingMode, TripItem } from '@/types/domain'
 import type { SyncContext } from '../context'
 
@@ -294,6 +295,7 @@ export function createPackingActions(ctx: SyncContext) {
     })
   }
 
+  /** Returns the new row's id, which is what an undo of the add takes out. */
   function quickAddItem(
     tripId: string,
     name: string,
@@ -320,6 +322,69 @@ export function createPackingActions(ctx: SyncContext) {
     // The id is returned so FR-25.8's per-person add can open the membership
     // editor on the row it just wrote; the row is what the editor edits.
     return id
+  }
+
+  /**
+   * FR-25.13f: add a row from the browse sheet with its decision already
+   * made — *packed* ("that is already in the bag") or *skipped* ("we are
+   * deliberately leaving that at home").
+   *
+   * Two rules it does not share with {@link quickAddItem}:
+   *
+   * - **A skip-add is never flagged *Missing*.** FR-9.1 flags what the plan
+   *   forgot; "we are not taking this" is the opposite statement, and
+   *   writing both would feed M14's review assistant a contradiction — the
+   *   same reasoning FR-27.10 applies to a whole group.
+   * - **A skip-add pulls no companions.** FR-20.4 brings what a *packed*
+   *   item needs along; bringing the spare battery for a camera that is
+   *   staying home is exactly the offer nobody wants.
+   *
+   * Returns the new row's id, which is what the sheet's undo takes back out.
+   */
+  function addDecidedItem(
+    tripId: string,
+    name: string,
+    opts: {
+      sourceItemId?: string | null
+      weightGrams?: number | null
+      valueCents?: number | null
+      categoryName?: string | null
+      mode?: ItemMode
+    },
+    isActive: boolean,
+    decided: AddedItemDecision,
+  ): string {
+    const packed = decided === 'packed'
+    const { mutation, id } = mutations.addTripItem(tripId, name, {
+      ...opts,
+      flagMissing: packed && isActive,
+      decided,
+    })
+    enqueueAndDrain('trip', tripId, {
+      mutation,
+      optimistic: optimisticInsert(mutation),
+    })
+    if (packed && opts.sourceItemId) {
+      addRequiredCompanions(tripId)
+    }
+    return id
+  }
+
+  /**
+   * Take a row this device just added back out again (FR-25.13f's undo).
+   *
+   * A delete rather than a state change, because the row would not exist
+   * without the tap being undone — and it is looked up first for the same
+   * reason {@link restorePack} re-reads: a row another device deleted in
+   * the meantime is left alone rather than resurrected by a second delete.
+   */
+  function removeAddedItem(tripId: string, itemId: string) {
+    if (!tripStore.getItems(tripId).some((row) => row.id === itemId)) return
+    const mut = mutations.deleteTripItem(itemId)
+    enqueueAndDrain('trip', tripId, {
+      mutation: mut,
+      optimistic: optimisticDelete(mut),
+    })
   }
 
   /**
@@ -377,6 +442,8 @@ export function createPackingActions(ctx: SyncContext) {
     setPacker,
     setReviewFlag,
     quickAddItem,
+    addDecidedItem,
+    removeAddedItem,
     addRequiredCompanions,
   }
 }

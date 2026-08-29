@@ -451,6 +451,15 @@ export const en = {
   'quickAdd.browseAllCarriedTag': 'Everything with this tag is already in.',
   'quickAdd.browseAllCarried': 'Everything in the inventory is already in.',
   'quickAdd.browseShowAnyway': 'Show anyway',
+  'quickAdd.browseSubtitleVerbs': 'Tap = add · ✓ packed · ✕ leave behind',
+  'quickAdd.browsePackedNow': 'packed',
+  'quickAdd.browseSkippedNow': 'staying home',
+  'quickAdd.browseIsPacked': 'already packed',
+  'quickAdd.browseIsSkipped': 'staying home',
+  'quickAdd.browseRowCount': '{n} people',
+  'quickAdd.browsePackLabel': 'Mark "{name}" as packed',
+  'quickAdd.browseSkipLabel': 'Deliberately leave "{name}" behind',
+  'quickAdd.browseUndoLabel': '"{name}": undo the last action',
 
   // Faceted filter panel (FR-25.11), shared by M4 and M6.
   'filter.title': 'Filter',

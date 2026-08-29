@@ -98,6 +98,8 @@ import { useLongPress } from '@/composables/useLongPress'
 import { usePackingFilter } from '@/composables/usePackingFilter'
 import { useRowUndo, type RowUndoRecord } from '@/composables/useRowUndo'
 import { skippedVia } from '@/domain/dependencies'
+import { browseRowStates } from '@/domain/browseRows'
+import type { AddedItemDecision } from '@/composables/useMutations'
 import {
   buildPackingView,
   FACET_KEYS,
@@ -262,6 +264,17 @@ const quickAddExcludeIds = computed(() => [
     allItems.value.map((item) => item.source_item_id).filter((id): id is string => id !== null),
   ),
 ])
+/**
+ * FR-25.13f: what the browse-sheet's two verbs may do, per master item.
+ * Built here rather than in the sheet because only M4 knows the trip's rows
+ * and G-3's holders — the sheet renders the answer and emits the verb.
+ */
+const browseStates = computed(() =>
+  browseRowStates(allItems.value, (item) =>
+    locked(item) ? (lockNote(item) ?? t('packing.lockedByUnknown')) : null,
+  ),
+)
+
 const openPrepItems = computed(() => store.itemsWithOpenPrep(props.tripId))
 
 /**
@@ -1233,26 +1246,92 @@ function togglePrepTodo(todo: ItemTodo) {
  */
 const membershipItemId = ref<string | null>(null)
 
-function onQuickAdd(item: {
-  name: string
-  sourceItemId: string | null
-  weightGrams: number | null
-  valueCents: number | null
-  categoryName: string | null
-  perPerson: boolean
-}) {
-  const id = orchestrator.quickAddItem(
-    props.tripId,
-    item.name,
-    {
-      sourceItemId: item.sourceItemId,
-      weightGrams: item.weightGrams,
-      valueCents: item.valueCents,
-      categoryName: item.categoryName,
-    },
-    isActive.value,
-  )
-  if (item.perPerson) membershipItemId.value = id
+/**
+ * FR-25.13f: how to take back what the browse-sheet last did, keyed by the
+ * master item its line stands for.
+ *
+ * A plain `Map` rather than the FR-25.2 snackbar's `useRowUndo`: the sheet's
+ * undo lives *in the row* and therefore for as long as the sheet is open,
+ * where the snackbar's lives for three seconds and only ever holds one act.
+ * Each entry replaces the one before it, because the line only ever offers
+ * the way back out of the last thing it did.
+ */
+const browseUndo = new Map<string, () => void>()
+
+function onQuickAdd(
+  item: {
+    name: string
+    sourceItemId: string | null
+    weightGrams: number | null
+    valueCents: number | null
+    categoryName: string | null
+    perPerson: boolean
+  },
+  decided?: AddedItemDecision,
+) {
+  const opts = {
+    sourceItemId: item.sourceItemId,
+    weightGrams: item.weightGrams,
+    valueCents: item.valueCents,
+    categoryName: item.categoryName,
+  }
+  const addedId = decided
+    ? orchestrator.addDecidedItem(props.tripId, item.name, opts, isActive.value, decided)
+    : orchestrator.quickAddItem(props.tripId, item.name, opts, isActive.value)
+  // Only a row that came from the inventory has a line to offer the undo on;
+  // a typed name is not in the sheet at all.
+  if (item.sourceItemId) {
+    browseUndo.set(item.sourceItemId, () => orchestrator.removeAddedItem(props.tripId, addedId))
+  }
+  if (item.perPerson) membershipItemId.value = addedId
+}
+
+/** Every row the trip carries for one master item (FR-25.21's fan-out). */
+function rowsOfMasterItem(itemId: string): TripItem[] {
+  return allItems.value.filter((row) => row.source_item_id === itemId)
+}
+
+/**
+ * FR-25.13f: pack everything this master item stands for on the trip, in one
+ * tap. A row that is packed already is left alone — packing it again would
+ * restamp somebody else's packing record with mine.
+ */
+function onBrowsePack(itemId: string) {
+  const rows = rowsOfMasterItem(itemId).filter((row) => row.state !== 'packed')
+  const records = rows.map((row) => ({
+    itemId: row.id,
+    name: row.name,
+    quantity: row.quantity,
+    packedCount: row.packed_count,
+    state: row.state,
+  }))
+  for (const row of rows) orchestrator.packComplete(props.tripId, row)
+  browseUndo.set(itemId, () => restorePacked(records))
+}
+
+/**
+ * FR-25.13f: leave everything this master item stands for at home (FR-5.5),
+ * companions included — `skipItem` reports what went along, and the undo
+ * puts back exactly those rows.
+ */
+function onBrowseSkip(itemId: string) {
+  const affected = rowsOfMasterItem(itemId)
+    .filter((row) => row.state !== 'skipped')
+    .flatMap((row) => orchestrator.skipItem(props.tripId, row))
+  const records = affected.map((row) => ({
+    itemId: row.id,
+    quantity: row.quantity,
+    packedCount: row.packed_count,
+    state: row.state,
+  }))
+  browseUndo.set(itemId, () => orchestrator.restoreSkip(props.tripId, records))
+}
+
+function onBrowseUndo(itemId: string) {
+  const undo = browseUndo.get(itemId)
+  if (!undo) return
+  browseUndo.delete(itemId)
+  undo()
 }
 
 /**
@@ -1518,8 +1597,12 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
         :offer-groups="true"
         :offer-per-person="travelers.length > 1"
         :exclude-item-ids="quickAddExcludeIds"
+        :browse-row-states="browseStates"
         @add="onQuickAdd"
         @add-group="onQuickAddGroup"
+        @pack-carried="onBrowsePack"
+        @skip-carried="onBrowseSkip"
+        @undo-browse="onBrowseUndo"
       />
 
       <IonList v-if="view.groups.length > 0">

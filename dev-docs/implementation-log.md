@@ -186,6 +186,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Two screens nobody had ever rendered (2026-08-28)](#two-screens-nobody-had-ever-rendered-2026-08-28) — M20 and G-10, the last two areas the `server` project named as owed. Three defects that only a rendered multi-identity test could reach: a facepile initialling a random hex key, a group-sync badge whose state was unreachable because one frame was dropped while the socket was still opening, and a deactivated account whose app looked offline instead of saying so.
 - [The sheet learns to put finished rows away (2026-08-29)](#the-sheet-learns-to-put-finished-rows-away-2026-08-29) — FR-25.13e reverses FR-25.13d's "a carried item stays listed" for an opt-in switch. The rule that made the reversal affordable is that hiding is a **snapshot**, not a filter: what the run adds is never hidden, because a row vanishing under the finger reflows the list into the next tap and deletes the sheet's only feedback.
 - [The per-person model finally gets a writer (2026-08-29)](#the-per-person-model-finally-gets-a-writer-2026-08-29) — FR-25.21/ADR-036. Why a feature whose model had been complete since FR-25.1 still took a PR; the option that would have lost a comment thread on every membership edit; the tab that, as an action, could only assign the item to whoever is first in the roster; why a specification written against a mockup got the save button wrong; and the two case texts nobody had read back against their test bodies.
+- [The sheet learns two verbs (2026-08-29)](#the-sheet-learns-two-verbs-2026-08-29) — FR-25.13f. The decision made in front of the wardrobe — *already packed* / *staying home* — cost three screens per item. Two variants were rendered and rejected before one was built, and the case that mattered most is the one no failing test asked for: which signal wins when the run's own verb and FR-25.13e's derived *added* describe the same line.
 - [The quick-add gets a mode, and two waiting cases did not land where they waited (2026-08-29)](#the-quick-add-gets-a-mode-and-two-waiting-cases-did-not-land-where-they-waited-2026-08-29) — FR-25.8. Why the row is written *before* the membership editor opens rather than the mode collecting a draft; and the two e2e cases that had been parked on this feature since the concept round, one of which turned out to be a second run of another and the other to have lost its premise to G-8.
 
 ## Current state
@@ -8105,6 +8106,61 @@ searching the spec for the *behaviour* rather than for a free number is what
 tells the two apart. The id search that was run found no collision because it
 was looking for a free number, and found one.
 
+## The sheet learns two verbs (2026-08-29)
+
+FR-25.13f. The browse-sheet could add and, since FR-25.13e, put away what was
+done; what it could not do was the decision actually being made while standing
+in front of the wardrobe. *That is already packed* and *that stays home* both
+existed as verbs — M4's checkbox and M4's press-and-hold — and both cost the
+same three steps from inside the sheet: close it, find the row, act, come back.
+
+**Three variants were rendered before one was written.** Two icon targets on
+the line (A), a verb-mode bar in the sheet head deciding what a tap means (B),
+and one target cycling through the states (C). The owner picked A, and the
+reasoning is worth keeping because it is not the obvious one: B reads better on
+a mockup — one target per line, the name keeps its width — and loses on the
+actual task, because in front of a wardrobe the verb changes *per item* rather
+than in runs, so the mode would be paid for on nearly every line and would fail
+the way modes fail, silently. C was measured against the request rather than
+against taste: *nicht einpacken* costs three taps in it.
+
+**What the code cannot show.** A skip-add spends a row to record a decision
+that would otherwise evaporate — that is the accepted cost, confirmed against
+the cheaper option of offering ✕ only on carried lines. It is *not* flagged
+*Missing* and pulls no companions, because "the plan forgot this" is the
+opposite statement and the spare battery for a camera staying home is the one
+offer nobody wants. And the sheet deliberately does not name the FR-20.2
+companions a skip took along, which M4's snackbar does: there is no room on a
+line for a list, the undo restores them regardless, and a half-list is worse
+than none.
+
+**The case that mattered most was the one no failing test asked for.** The
+sheet now has two signals for the same line: FR-25.13e derives *added* from the
+caller's carried set growing while the switch is on, and FR-25.13f's ledger
+records what this run's tap actually did. They collide in exactly one place —
+switch on, ✓ tapped on a free line — and there the derived signal would
+overwrite *packed* with *added*. Reversing the two in the source left every
+test green. The unit case that pins the precedence was written afterwards, and
+only then did the mutation redden. The general shape is the one this log keeps
+finding: **a second source of truth for one pixel is invisible until a test
+names which one wins.**
+
+**And the claim that the other two screens were untouched was false.** M6 and
+M8 share this sheet, and the run ledger spoke for them too: a row tapped in
+M8's picker started reading *„hinzugefügt · Rückgängig"* — an undo those
+callers do not implement — where FR-25.13d has it say *„schon drin"*. Nothing
+local caught it; E2E-M8-22 did, in both browsers. The ledger now speaks only
+where the verbs do, which is what the sentence in the FR had always claimed.
+The trap generalises: **a shared component gains a feature for one caller and
+changes behaviour for all of them**, and the only place that shows is the
+other callers' own cases.
+
+A smaller one, paid for in a wasted red run: the FR-25.13e switch is a shared
+module ref, so a new `describe` block that flips it hands its state to whatever
+runs next. Two unrelated cases went red for it, and the first red run of the
+precedence case was a false one — it failed on an absent toggle rather than on
+the assertion, which is exactly the shape of a red-proof that proves nothing.
+
 ## The quick-add gets a mode, and two waiting cases did not land where they waited (2026-08-29)
 
 FR-25.8 had been half-built for as long as it had existed: the amendment that
@@ -8150,3 +8206,14 @@ screenshot did. The fix is the pattern the free-text line beside it already
 used, waiting for the sheet's own dismissed signal before emitting. The case
 that guards it asserts the checkbox can be **operated**, not that the editor is
 visible — the broken build renders the editor perfectly well.
+
+**A merge is where two features first meet, and the meeting is a decision.**
+FR-25.13f landed on `main` while this branch was open: the browse-sheet's lines
+grew two one-tap verbs. Neither PR conflicted on behaviour — git conflicted only
+on adjacent lines — and the resolution that compiles is the one where a verb tap
+in *Pro Person* mode quietly drops the mode. It also re-opens the defect this PR
+had already paid for once: the editor presented while the sheet is still up
+renders behind it. Both verbs therefore go through the same deferral as the plain
+add, carrying their decision with them, and the case that pins it is a unit case,
+because what it asserts is that **nothing** is emitted until the sheet's dismiss —
+an absence needing a positive signal, which the later emit is.

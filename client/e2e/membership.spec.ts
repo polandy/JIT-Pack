@@ -242,7 +242,7 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await expect(list.getByTestId(`m4-row-${ITEM}`)).toHaveCount(0)
   })
 
-  test('E2E-M4-60: with nobody to distribute over, the mode is absent (G-8)', async ({ page }) => {
+  test('E2E-M4-64: with nobody to distribute over, the mode is absent (G-8)', async ({ page }) => {
     await createTripViaWizard(page, { name: 'Solo', travelers: ['Andy'] })
     await openQuickAdd(page)
 
@@ -252,7 +252,7 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await expect(page.getByTestId('quick-add-input')).toBeVisible()
   })
 
-  test('E2E-M4-61: a per-person add from the browse-sheet closes it first', async ({ page }) => {
+  test('E2E-M4-65: a per-person add from the browse-sheet closes it first', async ({ page }) => {
     await page.goto('/tabs/items')
     await page.getByTestId('m9-fab').click()
     await page.getByTestId('m10-name').locator('input').fill('Sonnenhut')

@@ -14,11 +14,17 @@ import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import QuickAddItem from '../QuickAddItem.vue'
+import InventoryBrowseSheet from '../InventoryBrowseSheet.vue'
+import { useMasterStore } from '@/stores/masterStore'
+import type { MasterItem } from '@/types/domain'
 
 const NAME = 'Sonnenhut'
 
-function open(props: Record<string, unknown> = {}) {
-  const wrapper = mount(QuickAddItem, { props })
+/** Enough of a master item for the composer, which only forwards it. */
+const ITEM = { id: 'i1', name: NAME, weight_grams: null, value_cents: null } as MasterItem
+
+function open(props: Record<string, unknown> = {}, global?: Record<string, unknown>) {
+  const wrapper = mount(QuickAddItem, { props, ...(global ? { global } : {}) })
   return wrapper
 }
 
@@ -76,5 +82,39 @@ describe('QuickAddItem — FR-25.8 per-person mode', () => {
 
     const added = wrapper.emitted('add') ?? []
     expect((added[0]![0] as { perPerson: boolean }).perPerson).toBe(false)
+  })
+
+  /**
+   * FR-25.13f's two verbs go through the same deferral as a plain per-person
+   * add: whichever verb was tapped, the editor that follows is the caller's
+   * modal, and one presented while the sheet is still up renders behind it.
+   */
+  it('holds a decided browse add back until the sheet is gone, decision intact', async () => {
+    useMasterStore().applyChange({
+      seq: 0,
+      table: 'items',
+      id: ITEM.id,
+      deleted: false,
+      row: { name: ITEM.name },
+    })
+    // The sheet is an Ionic modal, which renders no slot content under jsdom;
+    // stubbing it keeps the browse-sheet — and its dismiss — reachable.
+    const wrapper = open(
+      { offerPerPerson: true },
+      { stubs: { SheetModal: { name: 'SheetModal', template: '<div><slot /></div>' } } },
+    )
+    await expand(wrapper)
+    await wrapper.find('[data-testid="quick-add-mode-per-person"]').trigger('click')
+    await wrapper.find('[data-testid="quick-add-browse-open"]').trigger('click')
+
+    await wrapper.findComponent(InventoryBrowseSheet).vm.$emit('add-packed', ITEM)
+    expect(wrapper.emitted('add')).toBeUndefined()
+
+    await wrapper.findComponent({ name: 'SheetModal' }).vm.$emit('dismiss')
+
+    const added = wrapper.emitted('add') ?? []
+    expect(added).toHaveLength(1)
+    expect((added[0]![0] as { perPerson: boolean }).perPerson).toBe(true)
+    expect(added[0]![1]).toBe('packed')
   })
 })

@@ -57,6 +57,8 @@ import SheetModal from '@/components/global/SheetModal.vue'
 import { MIN_SEARCH_LENGTH, useMasterStore } from '@/stores/masterStore'
 import { chipSuggestions } from '@/domain/quickAddChips'
 import { PREVIEW_ROW_NAMES, previewLines, resolvedLines } from '@/domain/templates'
+import type { AddedItemDecision } from '@/composables/useMutations'
+import type { BrowseRowSummary } from '@/domain/browseRows'
 import { recentItemIds, recordRecentItem } from '@/local/quickAddRecents'
 import { previewText } from '@/lib/groupPreview'
 import type { MasterItem } from '@/types/domain'
@@ -84,6 +86,12 @@ const props = withDefaults(
      * two of them (G-8) — there is no membership to distribute.
      */
     offerPerPerson?: boolean
+    /**
+     * FR-25.13f: the packing state of what the scope carries, per master
+     * item. Passed straight through to the browse-sheet, where its presence
+     * is what puts the two one-tap verbs on the rows — M4 only.
+     */
+    browseRowStates?: ReadonlyMap<string, BrowseRowSummary>
   }>(),
   {
     isActive: false,
@@ -91,10 +99,16 @@ const props = withDefaults(
     excludeItemIds: () => [],
     offerGroups: false,
     offerPerPerson: false,
+    browseRowStates: undefined,
   },
 )
 
 const emit = defineEmits<{
+  /**
+   * FR-25.13f: the second argument is the decision the browse-sheet's verbs
+   * add with — absent on every other path, which is what "add it, open"
+   * has always meant.
+   */
   add: [
     item: {
       name: string
@@ -105,9 +119,16 @@ const emit = defineEmits<{
       /** FR-25.8: the add was made in *Pro Person* mode. */
       perPerson: boolean
     },
+    decided?: AddedItemDecision,
   ]
   /** FR-27.10: expand this group onto the trip — the caller reports the result. */
   addGroup: [templateId: string]
+  /** FR-25.13f: pack every row the scope carries for this master item. */
+  packCarried: [itemId: string]
+  /** FR-25.13f: leave every row the scope carries for this master item home. */
+  skipCarried: [itemId: string]
+  /** FR-25.13f: take back what the sheet last did to this master item. */
+  undoBrowse: [itemId: string]
 }>()
 
 const masterStore = useMasterStore()
@@ -223,18 +244,22 @@ function toggle() {
  */
 defineExpose({ open, expanded })
 
-function emitMasterItem(item: MasterItem) {
-  emit('add', {
-    name: item.name,
-    sourceItemId: item.id,
-    weightGrams: item.weight_grams,
-    valueCents: item.value_cents,
-    // The generated row carries one grouping key, which since FR-24.1 is
-    // the master item's *primary* tag (FR-24.2) — the trip side keeps a
-    // single snapshot, it does not gain the whole set.
-    categoryName: masterStore.getPrimaryTag(item.id)?.name ?? null,
-    perPerson: perPerson.value,
-  })
+function emitMasterItem(item: MasterItem, decided?: AddedItemDecision) {
+  emit(
+    'add',
+    {
+      name: item.name,
+      sourceItemId: item.id,
+      weightGrams: item.weight_grams,
+      valueCents: item.value_cents,
+      // The generated row carries one grouping key, which since FR-24.1 is
+      // the master item's *primary* tag (FR-24.2) — the trip side keeps a
+      // single snapshot, it does not gain the whole set.
+      categoryName: masterStore.getPrimaryTag(item.id)?.name ?? null,
+      perPerson: perPerson.value,
+    },
+    decided,
+  )
   recordRecentItem(item.id)
   recentsVersion.value++
   query.value = ''
@@ -277,15 +302,45 @@ const showBrowseEntry = computed(
  * unreachable. The emit therefore waits for the sheet's own dismissed signal,
  * the same reason the free-text line waits for it below. Found by rendering it.
  */
-const browsePerPersonPending = ref<MasterItem | null>(null)
+const browsePerPersonPending = ref<{ item: MasterItem; decided?: AddedItemDecision } | null>(null)
+
+/**
+ * Holds the add back until the sheet is gone. Every browse verb goes through
+ * here in *Pro Person* mode, FR-25.13f's two included — the editor that
+ * follows is the caller's modal either way.
+ */
+function deferPerPerson(item: MasterItem, decided?: AddedItemDecision) {
+  browsePerPersonPending.value = { item, decided }
+  browseOpen.value = false
+}
 
 function onBrowseAdd(item: MasterItem) {
   if (perPerson.value) {
-    browsePerPersonPending.value = item
-    browseOpen.value = false
+    deferPerPerson(item)
     return
   }
   emitMasterItem(item)
+}
+
+/**
+ * FR-25.13f: the same add, with the decision already made. It goes down the
+ * add path rather than a second one, so a row born packed carries the same
+ * defaults, the same recents entry and the same primary tag as any other.
+ */
+function onBrowseAddPacked(item: MasterItem) {
+  if (perPerson.value) {
+    deferPerPerson(item, 'packed')
+    return
+  }
+  emitMasterItem(item, 'packed')
+}
+
+function onBrowseAddSkipped(item: MasterItem) {
+  if (perPerson.value) {
+    deferPerPerson(item, 'skipped')
+    return
+  }
+  emitMasterItem(item, 'skipped')
 }
 
 /**
@@ -305,7 +360,7 @@ function onBrowseDismiss() {
   const pending = browsePerPersonPending.value
   if (pending) {
     browsePerPersonPending.value = null
-    emitMasterItem(pending)
+    emitMasterItem(pending.item, pending.decided)
     return
   }
   if (browseFreeTextPending.value) {
@@ -506,7 +561,13 @@ function onKeydown(event: KeyboardEvent) {
       <SheetModal :is-open="browseOpen" @dismiss="onBrowseDismiss">
         <InventoryBrowseSheet
           :carried-item-ids="excludeItemIds"
+          :row-states="browseRowStates"
           @add="onBrowseAdd"
+          @add-packed="onBrowseAddPacked"
+          @add-skipped="onBrowseAddSkipped"
+          @pack="emit('packCarried', $event.id)"
+          @skip="emit('skipCarried', $event.id)"
+          @undo="emit('undoBrowse', $event.id)"
           @free-text="onBrowseFreeText"
           @close="browseOpen = false"
         />
