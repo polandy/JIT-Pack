@@ -137,3 +137,59 @@ describe('a trip whose own rows are not on the device (ADR-033)', () => {
     expect(status.state.value).toBe(before)
   })
 })
+
+/**
+ * The same question one partition up (FR-2.8): are the *trips* here? M2 picks
+ * its opening segment from the list, and a list that has not arrived is not an
+ * empty one — deciding on it sends every cold start to the archive.
+ */
+describe('whether the master partition is on the device (FR-2.8)', () => {
+  it('says no before anything has been pulled', () => {
+    expect(newOrch().masterDataLoaded()).toBe(false)
+  })
+
+  it('says yes once the partition has drained', async () => {
+    const orch = newOrch()
+
+    await orch.drainMaster()
+
+    expect(orch.masterDataLoaded()).toBe(true)
+  })
+
+  it('still says no when the drain failed — offline is not empty', async () => {
+    const orch = newOrch()
+    fetchMock.mockRejectedValue(new Error('offline'))
+
+    await orch.drainMaster()
+
+    expect(orch.masterDataLoaded()).toBe(false)
+  })
+
+  // Same trap as the ring's above: a screen reads this through a computed,
+  // and a value Vue cannot see change would freeze M2 on the label-only state.
+  it('is a change a screen can see', async () => {
+    const orch = newOrch()
+    const seen: boolean[] = []
+    watchEffect(() => seen.push(orch.masterDataLoaded()))
+
+    await orch.drainMaster()
+    await nextTick()
+
+    expect(seen).toEqual([false, true])
+  })
+
+  it('answers with Local Mode’s own hydration where there is no server', async () => {
+    setActivePinia(createPinia())
+    const orch = useSyncOrchestrator({
+      baseUrl: '',
+      getToken: () => null,
+      local: new IndexedDBPersistence(),
+    })
+
+    // Not loaded — a Local Mode device never pulls, so the answer has to come
+    // from its own hydration rather than from a request it will never make.
+    // The other half of that, after `connect()`, is in `localMode.spec.ts`,
+    // where the IndexedDB fake lives.
+    expect(orch.masterDataLoaded()).toBe(false)
+  })
+})

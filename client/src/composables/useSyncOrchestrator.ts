@@ -393,6 +393,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    */
   const loadedTripPartitions = reactive(new Set<string>())
   const localHydrated = ref(false)
+  const masterPulled = ref(false)
 
   /** Whether another save has been queued behind the one just finished. */
   let localWrites = 0
@@ -579,6 +580,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     syncStatus.setSyncing()
     try {
       await outbox.drain('master', null)
+      masterPulled.value = true
       syncStatus.setPendingCount(outbox.totalPending())
       syncStatus.setSynced()
       // FR-27.4: a group edited on another device arrives with this pull, and
@@ -729,6 +731,19 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    */
   function tripDataLoaded(tripId: string): boolean {
     return local ? localHydrated.value : loadedTripPartitions.has(tripId)
+  }
+
+  /**
+   * masterDataLoaded answers the same question for the master partition: are
+   * the trips, groups and inventory this device is entitled to actually here?
+   *
+   * FR-2.8 is the first caller and the reason it exists: M2 picks its opening
+   * segment from what the trip list holds, and a list that has not arrived yet
+   * is not an empty one — deciding on it would send every cold start to the
+   * archive. Same doctrine as the ring above (ADR-033), one partition up.
+   */
+  function masterDataLoaded(): boolean {
+    return local ? localHydrated.value : masterPulled.value
   }
 
   /** One in-flight `ensureTripData` per trip, so callers share a request. */
@@ -1366,6 +1381,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // Drain
     drainTrip,
     tripDataLoaded,
+    masterDataLoaded,
     ensureTripData,
     drainMaster,
     drainAll,
