@@ -8000,6 +8000,12 @@ Two smaller things the build settled:
   mounted with the switch already on and caught one frame in which every
   carried row rendered as *freshly added*, because the mount hook had not run
   yet. Nobody would have found that by looking at the sheet.
+- **The "added" state was written in green and painted grey.** `.is-added`
+  and `.carried-state` are both single-class rules and `.carried-state` is
+  declared later, so it won — every test stayed green, because a test asserts
+  the text and not the ink. The screenshot said it, which is the whole reason
+  the rule about rendering a UI change exists; the fix is the two-class
+  selector, and the comment beside it says why it is two.
 - **A sheet that stays mounted hands the second visit the first visit's
   snapshot.** `SheetModal` keeps its slot alive so the dismiss animation has
   something to animate, so `QuickAddItem` keys the sheet per opening

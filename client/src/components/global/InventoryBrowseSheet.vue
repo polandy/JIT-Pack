@@ -373,17 +373,6 @@ function groupLabel(key: string): string {
   cursor: pointer;
 }
 
-.is-added {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--jp-done);
-}
-
-.is-added ion-icon {
-  font-size: var(--jp-icon-sm);
-}
-
 .tag-group {
   margin: 0 0 12px;
 }
@@ -440,6 +429,20 @@ button.row:active {
   color: var(--ct-subtext0);
   font-size: var(--jp-text-sm);
   flex-shrink: 0;
+}
+
+/* Two classes on purpose: `.carried-state` is declared here, so a single-class
+   rule for the added state would lose the cascade and paint subtext grey — it
+   did, and only the rendered pixel said so (invariant 9b). */
+.carried-state.is-added {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--jp-done);
+}
+
+.carried-state.is-added ion-icon {
+  font-size: var(--jp-icon-sm);
 }
 
 .no-match {
