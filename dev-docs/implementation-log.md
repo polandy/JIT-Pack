@@ -188,6 +188,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The per-person model finally gets a writer (2026-08-29)](#the-per-person-model-finally-gets-a-writer-2026-08-29) — FR-25.21/ADR-036. Why a feature whose model had been complete since FR-25.1 still took a PR; the option that would have lost a comment thread on every membership edit; the tab that, as an action, could only assign the item to whoever is first in the roster; why a specification written against a mockup got the save button wrong; and the two case texts nobody had read back against their test bodies.
 - [The sheet learns two verbs (2026-08-29)](#the-sheet-learns-two-verbs-2026-08-29) — FR-25.13f. The decision made in front of the wardrobe — *already packed* / *staying home* — cost three screens per item. Two variants were rendered and rejected before one was built, and the case that mattered most is the one no failing test asked for: which signal wins when the run's own verb and FR-25.13e's derived *added* describe the same line.
 - [The quick-add gets a mode, and two waiting cases did not land where they waited (2026-08-29)](#the-quick-add-gets-a-mode-and-two-waiting-cases-did-not-land-where-they-waited-2026-08-29) — FR-25.8. Why the row is written *before* the membership editor opens rather than the mode collecting a draft; and the two e2e cases that had been parked on this feature since the concept round, one of which turned out to be a second run of another and the other to have lost its premise to G-8.
+- [The shop stops asking three times for one purchase (2026-08-29)](#the-shop-stops-asking-three-times-for-one-purchase-2026-08-29) — FR-25.6. The premise that made M6's aggregation invisible for three weeks, why the buy row is keyed by M4's own function rather than a second one, and the two places that had to follow the aggregation once it existed — the reveal and the tab counts.
 
 ## Current state
 
@@ -8217,3 +8218,46 @@ renders behind it. Both verbs therefore go through the same deferral as the plai
 add, carrying their decision with them, and the case that pins it is a unit case,
 because what it asserts is that **nothing** is emitted until the sheet's dismiss —
 an absence needing a positive signal, which the later emit is.
+
+## The shop stops asking three times for one purchase (2026-08-29)
+
+FR-25.6 decided on 2026-08-07 that a per-person item is **one** buy row —
+summed quantity, the recipients' names — because buying is a single act, and
+that checking it off settles every instance. `ShoppingPage.vue` grouped by
+category and checked off one row. It shipped that way and stayed that way for
+three weeks.
+
+**The premise that hid it**: nothing in the app could produce a per-person item
+by hand until FR-25.21 landed the membership editor two days ago, so the wrong
+rendering had no way to appear on anybody's screen. It was found by *reading*,
+not by using — the FR-25.21 spec claimed M6 "needs no change at all", and
+checking that claim against `ShoppingPage.vue` is what produced the finding.
+The general shape is worth keeping: **an estimate that ticks screens off as
+unchanged has to open each one**, or the spec inherits the assumption.
+
+**The key is M4's own function, not a second one.** `clusterKeyOf` in
+`domain/packingView.ts` — source item, else the folded name, and only for a row
+with a traveler — is now exported as `perPersonKey` and used by
+`domain/shoppingView.ts`. Writing M6 its own keying would have been three lines
+and would have been a second answer to "which rows are the same item", free to
+drift from the first the next time either screen learns something.
+
+**Two things had to follow the aggregation, and neither was in the FR.**
+
+- **The reveal below the list aggregates too.** A purchase made in one tap that
+  comes back as three rows costs three taps to undo, which is the same defect
+  wearing the undo's clothes.
+- **Each tab's segment counts rows to buy**, not `trip_items` rows. A segment
+  reading `Before departure (3)` over a list showing one row is the lie the
+  aggregation exists to remove, restated one line higher.
+
+**What the e2e ordering says about the product.** E2E-M6-05/06 set the
+procurement mode *before* converting the item to per-person, because the
+membership fan-out copies the surviving row's fields onto the rows it creates
+(ADR-036) — setting it afterwards from M5 would set it on **one** instance and
+leave the other two off the shopping list entirely. That is not a test detail:
+a per-person item's mode is still a per-row decision, and nothing changes it
+for the whole cluster in one act. Left as it is, deliberately — M5 opens on one
+instance by construction (the route is `trip/{id}/item/{id}`), and a mode
+control that silently reached five rows would be the FR-25.21 problem in
+reverse.

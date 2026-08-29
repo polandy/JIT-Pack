@@ -167,3 +167,125 @@ test.describe('M6 shopping — what was bought can be found and put back @local 
     await expect(m6(page).getByTestId('m6-row').filter({ hasText: 'Brot vor Ort' })).toBeVisible()
   })
 })
+
+/**
+ * FR-25.6 — a per-person item is one thing to buy.
+ *
+ * Built the way a person would: the item is made per-person in M5's
+ * membership editor with three different amounts, and only then looked at
+ * from the shop. The assertion that carries the case is that the list holds
+ * **one** row where the trip holds three — under the screen this replaced it
+ * held three, each with its own amount and its own check-off, and nobody had
+ * seen it because nothing could produce a per-person item by hand.
+ */
+test.describe('M6 shopping — a per-person item is one buy row @local @m6', () => {
+  const ITEM = 'Kurze Hosen'
+  // No end date: the wizard's date picker is not what these cases are about,
+  // and every hop through it is a step that can fail for a reason M6 does not
+  // own.
+  const PER_PERSON_TRIP = { name: 'Sommerferien Elba', travelers: ['Andy', 'Leonardo', 'Mia'] }
+
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  /** Pick a value from an `ion-select`'s popover, the way M17's language switch is driven. */
+  async function chooseInSelect(page: Page, testid: string, label: string) {
+    await page.getByTestId(testid).click()
+    const popover = page.locator('ion-popover ion-select-popover')
+    await expect(popover).toBeVisible()
+    await popover.locator('ion-item', { hasText: label }).click()
+    await expect(page.locator('ion-popover')).toHaveCount(0)
+  }
+
+  /**
+   * A trip whose "Kurze Hosen" is bought before departure and belongs to
+   * three travelers with 2, 3 and 1 — the amounts that make one aggregated
+   * row plainly right and three rows plainly wrong.
+   */
+  async function seedPerPersonPurchase(page: Page) {
+    await createTripViaWizard(page, PER_PERSON_TRIP)
+    await visible(page).getByTestId('m4-fab').click()
+    await visible(page).getByTestId('quick-add-input').locator('input').fill(ITEM)
+    await visible(page).getByTestId('quick-add-confirm').click()
+    await expect(visible(page).getByTestId(`m4-row-${ITEM}`)).toBeVisible()
+
+    // The mode first, while the item is still one row: the membership
+    // fan-out copies it onto the rows it creates (ADR-036).
+    await visible(page).getByTestId(`m4-row-${ITEM}`).click()
+    await page.getByTestId('m5-details').click()
+    await chooseInSelect(page, 'm5-mode', 'Buy before')
+
+    await page.getByTestId('m5-membership').click()
+    await expect(page.getByTestId('membership-sheet')).toBeVisible()
+    await page.getByTestId('membership-per-person').click()
+    for (const [name, quantity] of [
+      ['Andy', 2],
+      ['Leonardo', 3],
+      ['Mia', 1],
+    ] as const) {
+      await page.getByTestId(`membership-check-${name}`).click()
+      await expect(page.getByTestId(`membership-qty-${name}`)).toHaveText('1')
+      for (let n = 1; n < quantity; n += 1) {
+        await page.getByTestId(`membership-plus-${name}`).click()
+        await expect(page.getByTestId(`membership-qty-${name}`)).toHaveText(String(n + 1))
+      }
+    }
+    await page.getByTestId('membership-close').click()
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+
+    await visible(page).getByTestId('m4-nav-shopping').click()
+    await expect(visible(page).getByTestId('m6-page')).toBeVisible()
+  }
+
+  function m6(page: Page) {
+    return visible(page).getByTestId('m6-page')
+  }
+
+  // E2E-M6-05 (FR-25.6): three instances, one row — with the summed amount
+  // and the recipients derived from membership.
+  test('E2E-M6-05: a per-person item is one aggregated buy row (FR-25.6)', async ({ page }) => {
+    await seedPerPersonPurchase(page)
+
+    const rows = m6(page).getByTestId('m6-row')
+    await expect(rows).toHaveCount(1)
+    await expect(rows.first()).toContainText(ITEM)
+    await expect(rows.first()).toContainText('6×')
+    // Derived, never entered (FR-25.10) — and in roster order.
+    // `toContainText`: the recipients' avatars sit in the same line and
+    // contribute their initials to its text.
+    await expect(rows.first().getByTestId('m6-row-for')).toContainText('for Andy, Leonardo, Mia')
+    // The tab counts things to buy, so it agrees with what the list shows.
+    await expect(m6(page).getByTestId('m6-tab-before')).toContainText('(1)')
+  })
+
+  // E2E-M6-06 (FR-25.6/3.3): the half that matters — one act settles every
+  // instance. Two instances left behind would still render a row, so the
+  // empty state is the positive signal that none was, and the restored 6×
+  // is the positive signal that the undo took all of them with it.
+  test('E2E-M6-06: checking the aggregated row off settles every instance (FR-3.3)', async ({
+    page,
+  }) => {
+    await seedPerPersonPurchase(page)
+
+    await m6(page).getByTestId('m6-row').locator('ion-checkbox').click()
+
+    await expect(m6(page).getByTestId('m6-row')).toHaveCount(0)
+    await expect(m6(page).locator('.empty-state')).toBeVisible()
+    await expect(m6(page).getByTestId('m6-tab-before')).toContainText('(0)')
+
+    // And it came back as one purchase, not three.
+    const bar = m6(page).getByTestId('m6-bought-bar')
+    await expect(bar).toHaveText('Show 1 bought')
+    await bar.click()
+    const bought = m6(page).getByTestId('m6-bought-row')
+    await expect(bought).toHaveCount(1)
+    await expect(bought.getByTestId('m6-bought-note')).toHaveText('on the packing list')
+
+    await bought.locator('ion-checkbox').click()
+    const back = m6(page).getByTestId('m6-row')
+    await expect(back).toHaveCount(1)
+    await expect(back.first()).toContainText('6×')
+  })
+})
