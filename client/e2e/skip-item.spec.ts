@@ -231,7 +231,7 @@ test('M5: the sheet says a thing is not coming, and takes it back @local @m5', a
 })
 
 /**
- * Assign a row to a traveler through M5's popover select — the app's one way
+ * Assign a row to a traveler through M5's membership sheet — the app's one way
  * of making a row somebody's (FR-25.1), and the only way to reach the
  * per-person child rows below.
  */
@@ -239,10 +239,15 @@ async function assignTraveler(page: Page, row: Locator, travelerName: string) {
   await row.click()
   await expect(page.getByTestId('m5-sheet')).toBeVisible()
   await page.getByTestId('m5-details').click()
-  await page.getByTestId('m5-traveler').click()
-  const popover = page.locator('ion-popover ion-select-popover')
-  await popover.locator('ion-item', { hasText: travelerName }).click()
-  await expect(page.locator('ion-popover')).toHaveCount(0)
+  await page.getByTestId('m5-membership').click()
+  await expect(page.getByTestId('membership-sheet')).toBeVisible()
+  // The roster is a view, not a write: only the checkbox converts the row
+  // (FR-25.21). Asserting the amount is the settled signal that it landed.
+  await page.getByTestId('membership-per-person').click()
+  await page.getByTestId(`membership-check-${travelerName}`).click()
+  await expect(page.getByTestId(`membership-qty-${travelerName}`)).toHaveText('1')
+  await page.getByTestId('membership-close').click()
+  await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
   await page.getByTestId('m5-close').click()
   await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 }
