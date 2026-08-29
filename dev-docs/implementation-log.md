@@ -184,6 +184,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A menu entry that navigated made the next screen invisible (2026-08-28)](#a-menu-entry-that-navigated-made-the-next-screen-invisible-2026-08-28) — B10's content column and the M4 bar's ⋮. The trap under the second one: an action run from inside an Ionic overlay's own handler races the teardown that clears `aria-hidden` on the router outlet, so the screen that opens is painted, clickable and absent from the accessibility tree — and every pixel assertion stays green through it.
 - [A version that was named in a fourth place (2026-08-28)](#a-version-that-was-named-in-a-fourth-place-2026-08-28) — the Go 1.27 move: the toolchain gate was right to refuse the lone image bump, and then the linter turned out to name the language version too. Why the gate now holds the linter's two pins to each other but deliberately refuses to judge whether the pinned release is new enough.
 - [Two screens nobody had ever rendered (2026-08-28)](#two-screens-nobody-had-ever-rendered-2026-08-28) — M20 and G-10, the last two areas the `server` project named as owed. Three defects that only a rendered multi-identity test could reach: a facepile initialling a random hex key, a group-sync badge whose state was unreachable because one frame was dropped while the socket was still opening, and a deactivated account whose app looked offline instead of saying so.
+- [The sheet learns to put finished rows away (2026-08-29)](#the-sheet-learns-to-put-finished-rows-away-2026-08-29) — FR-25.13e reverses FR-25.13d's "a carried item stays listed" for an opt-in switch. The rule that made the reversal affordable is that hiding is a **snapshot**, not a filter: what the run adds is never hidden, because a row vanishing under the finger reflows the list into the next tap and deletes the sheet's only feedback.
 - [The per-person model finally gets a writer (2026-08-29)](#the-per-person-model-finally-gets-a-writer-2026-08-29) — FR-25.21/ADR-036. Why a feature whose model had been complete since FR-25.1 still took a PR; the option that would have lost a comment thread on every membership edit; the tab that, as an action, could only assign the item to whoever is first in the roster; why a specification written against a mockup got the save button wrong; and the two case texts nobody had read back against their test bodies.
 
 ## Current state
@@ -7969,6 +7970,59 @@ the split between FR-23.3's two exemptions (this instance has exactly one
 admin, so the rendered case can only see the row that is both; the split is
 exhaustive in `domain/__tests__/admin.spec.ts`).
 
+
+## The sheet learns to put finished rows away (2026-08-29)
+
+FR-25.13d wrote a rule down and gave a reason: a carried item stays listed in
+the inventory browse-sheet, because hiding it would imply it does not exist.
+The owner's request is the opposite, and the reason it is right is a number —
+on the family instance the inventory is 191 items, so *„schon drin"* is most
+of what the sheet renders while its whole job is showing what is missing. The
+reason for the old rule does not survive that; what survives is the worry
+behind it, which is why the reversal is opt-in, keeps a count, and offers
+*„Trotzdem anzeigen"* wherever it can empty the list.
+
+**The part worth recording is the one the request did not ask for.** The
+obvious build is a filter: drop every carried id from the rendered list. It
+passes every assertion anyone would write for the feature, and it breaks the
+sheet — a tapped row disappears from under the finger, the rows below slide up
+into the tap point, and the next tap in a run lands on the wrong item. It also
+throws away FR-25.13d(b): the flip to *„schon drin"* **is** the sheet's
+feedback, deliberately in place of a toast, and a hidden row gives none. So
+hiding is a **snapshot** taken when the posture begins — at the switch, at a
+tag change, at each opening — and never a live filter. What the run adds stays
+where it was tapped and says *„hinzugefügt"*. The count follows the same clock
+and deliberately does not tick up during the run: those rows are on screen, and
+calling them hidden would contradict the screen.
+
+Two smaller things the build settled:
+
+- **The snapshot belongs in setup, not in `onMounted`.** The persistence test
+  mounted with the switch already on and caught one frame in which every
+  carried row rendered as *freshly added*, because the mount hook had not run
+  yet. Nobody would have found that by looking at the sheet.
+- **The "added" state was written in green and painted grey.** `.is-added`
+  and `.carried-state` are both single-class rules and `.carried-state` is
+  declared later, so it won — every test stayed green, because a test asserts
+  the text and not the ink. The screenshot said it, which is the whole reason
+  the rule about rendering a UI change exists; the fix is the two-class
+  selector, and the comment beside it says why it is two.
+- **A premise about the modal that turned out to be wrong, and cost a line of
+  code before it did.** The sheet was keyed per opening on the assumption that
+  `SheetModal` keeps its slot mounted, which would have handed the second visit
+  the first visit's snapshot. Mutating the key away left the re-opening
+  assertion green: Ionic destroys the modal's content on dismiss, so each
+  opening is already a fresh creation. The key went, rather than staying as
+  insurance nothing can fail against — E2E-M4-59's second half is what would
+  catch a future Ionic changing its mind.
+
+The count is scoped to the tag filter rather than to the inventory, because a
+number that does not match what the screen would hide is one the user can catch
+out; and the line is absent rather than reading zero, because a control that
+would do nothing is furniture. No wire, no schema, no ADR: the tradeoff is the
+FR-25.13d reversal, and FR-25.13e carries it with its own revisit trigger — a
+switch that is permanently on means the default is wrong, and a switch nobody
+flips means the line is clutter.
 ## The per-person model finally gets a writer (2026-08-29)
 
 FR-25.21, ADR-036. Backlog item 22.

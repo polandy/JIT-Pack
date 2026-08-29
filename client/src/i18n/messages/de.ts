@@ -454,6 +454,14 @@ export const de: Record<keyof typeof en, string> = {
   'quickAdd.browseAlreadyIn': 'schon drin',
   'quickAdd.browseFreeText': 'Stattdessen neuen Namen eintippen…',
   'quickAdd.browseNoMatch': 'Noch keine Packelemente mit diesem Tag',
+  'quickAdd.browseHideCarried': 'ausblenden',
+  'quickAdd.browseHideCarriedLabel': '{n} schon drin — ausblenden',
+  'quickAdd.browseCarriedCount': '{n} schon drin',
+  'quickAdd.browseHiddenCount': '{n} ausgeblendet',
+  'quickAdd.browseAddedJustNow': 'hinzugefügt',
+  'quickAdd.browseAllCarriedTag': 'Alles mit diesem Tag ist schon drin.',
+  'quickAdd.browseAllCarried': 'Alles aus dem Inventar ist schon drin.',
+  'quickAdd.browseShowAnyway': 'Trotzdem anzeigen',
 
   // Facetten-Filter (FR-25.11), geteilt von M4 und M6.
   'filter.title': 'Filter',

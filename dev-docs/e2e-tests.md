@@ -41,7 +41,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05, E2E-M3-20 (FR-2.1d date bound) | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 | Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
-| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column), E2E-M4-57 (UX-13 bar overflow) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
+| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
 | FR-25.21 membership | E2E-M5-18, E2E-M5-19, E2E-M5-20 | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
@@ -2155,6 +2155,51 @@ The fix belongs in the production code — a completion signal on the modal, the
 same seam the G-2 indicator grew for in-flight Local Mode writes — and that is a
 change of its own rather than a rider on a one-flag PR.
 
+
+## E2E-M4-59 — hiding what is already in (FR-25.13e, 2026-08-29)
+
+The browse-sheet's opt-in switch is otherwise a component-test subject: the
+counting, the two "everything is already in" sentences and the persistence are
+pinned in `InventoryBrowseSheet.spec.ts`. **Six of its seven cases are proven
+red** against a build with the filter disabled; the seventh is the *default off*
+case, which asserts the unfiltered sheet and is right to stay green there.
+
+Two of the six only became red on the second pass, and both for the same
+reason: they asserted the **tappable** rows, which look identical whether a
+carried row is hidden or merely rendered as *„schon drin"*. The list that
+separates the two is the carried one, and that is what they assert now. A
+count of red cases is worth nothing without knowing which assertion earned
+it.
+
+**What only the rendered case can pin** is the rule the whole feature stands on:
+with the switch on, a row tapped during the run **stays on screen** and reads
+*added*. The obvious implementation — filter the carried set on every render —
+passes every "the carried rows are gone" assertion and fails exactly here, with
+the row vanishing from under the finger and the next row sliding into the tap
+point. So the case asserts the presence of `browse-added-now` after the tap, not
+the absence of something, and it also asserts the count line does **not** tick
+up, which is the same clock stated twice.
+
+The snapshot is taken in the component's *setup*, not in `onMounted` — found by
+the persistence test, which mounted with the switch already on and caught the
+first paint rendering the carried rows as freshly added. That makes each
+*creation* of the sheet a new pass, and the case's second half asserts exactly
+that by re-opening it: the previous run's add is hidden with the rest. The id
+is **E2E-M4-59**, not 58 — 58 is claimed by the open FR-25.21 work.
+
+The re-opening half cost one red pipeline before it settled anything: the
+edit that added it matched a tail E2E-M4-47 has verbatim, so the block landed
+in **both** tests, and a local run filtered to the new id could not see it.
+Two shards found it. The lesson is the filter, not the edit — a change to a
+shared file is verified by running the neighbours it could have touched.
+
+It also settled a question the first draft got wrong. It was
+written assuming `SheetModal` keeps its slot mounted, so `QuickAddItem` keyed
+the sheet per opening to force a fresh snapshot. Removing that key left the case
+**green**: Ionic destroys the modal's content when it is dismissed, so the
+sheet is created afresh anyway. The key was deleted rather than kept as
+insurance — and this case is what would catch it if a future Ionic changed its
+mind.
 ## FR-25.21 — the three cases, and the four traps they cost (2026-08-29)
 
 `e2e/membership.spec.ts`, three cases, all three red-proved. **E2E-M5-18** is the
