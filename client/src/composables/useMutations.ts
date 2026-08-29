@@ -18,6 +18,7 @@ import type {
   ReviewFlag,
   ShoppingMode,
   TemplateKind,
+  TripItem,
   TripStatus,
 } from '@/types/domain'
 
@@ -189,6 +190,19 @@ export function useMutations(hlc: HLCGenerator) {
 
   function setItemMode(itemId: string, mode: ItemMode): Mutation {
     return make('upsert', TABLE.tripItems, itemId, { mode })
+  }
+
+  /**
+   * FR-25.21's writer: the three fields a membership change may move, written
+   * together because a conversion decides them together (ADR-036). Narrow on
+   * purpose — a general "update any field" helper would be a way around the
+   * named ones above, and those are what make a mutation readable in the outbox.
+   */
+  function setMembershipFields(
+    itemId: string,
+    fields: Partial<Pick<TripItem, 'assigned_traveler_id' | 'quantity' | 'packed_count'>>,
+  ): Mutation {
+    return make('upsert', TABLE.tripItems, itemId, fields)
   }
 
   function assignTraveler(itemId: string, travelerId: string | null): Mutation {
@@ -975,6 +989,7 @@ export function useMutations(hlc: HLCGenerator) {
     buyItem,
     unbuyItem,
     setItemMode,
+    setMembershipFields,
     assignTraveler,
     assignContainer,
     setLatePacker,

@@ -100,6 +100,10 @@ test.describe('M5 item detail @local @m5', () => {
     await page.getByTestId('m5-details').click()
     await expect(page.getByTestId('m5-mode')).toBeVisible()
     await expect(page.getByTestId('m5-container')).toBeVisible()
+    // G-8, FR-25.21: with nobody to split the item between, *Wer braucht das?*
+    // is absent rather than an editor that can only say one thing. The two
+    // visible rows above are the positive signal that Details opened at all.
+    await expect(page.getByTestId('m5-membership')).toHaveCount(0)
   })
 
   // E2E-M5-12 (G-9): above the breakpoint the same content is a side panel

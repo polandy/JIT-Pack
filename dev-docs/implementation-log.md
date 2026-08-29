@@ -184,6 +184,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A menu entry that navigated made the next screen invisible (2026-08-28)](#a-menu-entry-that-navigated-made-the-next-screen-invisible-2026-08-28) — B10's content column and the M4 bar's ⋮. The trap under the second one: an action run from inside an Ionic overlay's own handler races the teardown that clears `aria-hidden` on the router outlet, so the screen that opens is painted, clickable and absent from the accessibility tree — and every pixel assertion stays green through it.
 - [A version that was named in a fourth place (2026-08-28)](#a-version-that-was-named-in-a-fourth-place-2026-08-28) — the Go 1.27 move: the toolchain gate was right to refuse the lone image bump, and then the linter turned out to name the language version too. Why the gate now holds the linter's two pins to each other but deliberately refuses to judge whether the pinned release is new enough.
 - [Two screens nobody had ever rendered (2026-08-28)](#two-screens-nobody-had-ever-rendered-2026-08-28) — M20 and G-10, the last two areas the `server` project named as owed. Three defects that only a rendered multi-identity test could reach: a facepile initialling a random hex key, a group-sync badge whose state was unreachable because one frame was dropped while the socket was still opening, and a deactivated account whose app looked offline instead of saying so.
+- [The per-person model finally gets a writer (2026-08-29)](#the-per-person-model-finally-gets-a-writer-2026-08-29) — FR-25.21/ADR-036. Why a feature whose model had been complete since FR-25.1 still took a PR; the option that would have lost a comment thread on every membership edit; the tab that, as an action, could only assign the item to whoever is first in the roster; why a specification written against a mockup got the save button wrong; and the two case texts nobody had read back against their test bodies.
 
 ## Current state
 
@@ -7968,3 +7969,83 @@ the split between FR-23.3's two exemptions (this instance has exactly one
 admin, so the rendered case can only see the row that is both; the split is
 exhaustive in `domain/__tests__/admin.spec.ts`).
 
+## The per-person model finally gets a writer (2026-08-29)
+
+FR-25.21, ADR-036. Backlog item 22.
+
+**The premise that was wrong for six weeks.** Per-traveler quantities were not a
+missing *feature*; they were a missing *writer*. A per-person item has been N
+`trip_items` rows with their own quantities since FR-25.1 chose rows over a
+nested structure, and M4's cluster, M12's analytics and the FR-27.4 refresh have
+all been reading that shape the whole time. FR-25.10 specified a multi-select in
+July and shipped as a single-select popover, so the only state the app could
+produce was *one* traveler. Everything downstream was correct and unreachable.
+The lesson is not about this feature: **a model that supports something is not
+evidence that anything can produce it**, and the readers being right is exactly
+what hides it.
+
+**The option that would have quietly cost the most.** Delete-and-recreate is the
+obvious implementation — membership is a set, so replace the set. It scored
+second in ADR-036's matrix and is wrong for a reason the matrix nearly buried:
+comments (FR-7.1), preparation todos (FR-7.3) and `packed_count` hang off the
+row, so *adding one traveler* to an item three people had already packed would
+have deleted all of it. Keep-and-repoint costs a ladder and a confirm sentence,
+and that is the trade. Its own accepted cost is written into the ADR: the
+surviving row's history is the item's, not the traveler's.
+
+**The reuse that paid twice, unplanned.** New rows take their ids from
+`propagatedItemId` — ADR-016's helper, built for the FR-27.4 refresh. The first
+payment is convergence: two devices converting the same shared row offline
+produce one row per traveler instead of two. The second was not designed for and
+is the better one: because the derivation is *the same*, the hand-made row and
+the row a later template refresh would generate **are the same row**, so the
+refresh adopts it through the path it already has for hand-added rows rather
+than adding a duplicate beside it.
+
+**A tab that was an action could only make a silent decision.** The first draft
+had `Pro Person` write, matching the mockup's segment. With nobody picked yet the
+only thing it could do was assign the item to whoever is first in the roster —
+a row appearing on a named person's packing list because somebody tapped a tab.
+It is a *view* switch now; checking a person is the write. This was invisible
+until the e2e helpers were rewired and the two-step read absurd on paper.
+
+**The mockup specified a control the house does not have.** The prototype drew an
+*Übernehmen* button and the spec described it. The sheet grammar has no save
+button at all — every control commits immediately (G-5, FR-25.15) — so the spec
+was corrected against the code rather than the code built against the spec. Worth
+keeping as a shape: **a mockup is a good way to decide what a screen says and a
+bad way to decide how it commits**, because commit behaviour is a house rule that
+lives in other screens, not in the picture.
+
+**One rule the build changed.** A collapse back to *gemeinsam* now always
+confirms, even when it destroys no packing progress — it takes the personal row
+off *everyone's* list, and the resulting amount (the sum, not the largest) is
+worth reading before it is written. A single traveler leaving still goes silently
+when their row carries nothing. The e2e case that caught the asymmetry was the
+one asserting the confirm appears.
+
+The four e2e traps this cost — five callers of a deleted testid, the bundle
+being what runs, G-6's missing stepper at quantity one, and a mounted Ionic
+overlay — are in `dev-docs/e2e-tests.md` beside the cases, where the next person
+writing a case will be standing.
+
+**The review pass found the case texts had never been read back.** Two of the
+three e2e cases were written to their own shape rather than to the sentences the
+UI-Test-Spec carries for them, and the expensive one was E2E-M5-20: it promised
+that a preparation todo written before a collapse survives it, and asserted only
+the summed quantity. That clause is the whole argument for ADR-036 — a
+delete-and-recreate collapse sums the amounts exactly as correctly and loses the
+todo — so the decision's one distinguishing consequence was the one thing not
+being tested. It is asserted now, and deleting the content ladder from
+`survivorOf` reddens that case alone.
+
+**And a case was invented for a promise that already had two.** The FR-25.6
+follow-up was written up as a new id, E2E-M6-23. E2E-M6-05 and E2E-M6-06 have
+said the same two things — one aggregated row naming its recipients, one
+check-off settling every instance — since FR-25.6 was specified, and neither has
+ever been implemented. The new id was deleted and the pair marked unimplemented
+instead. The trap is specific and worth naming: **when a screen's promise has no
+test, the absence looks identical to the promise never having been written**, and
+searching the spec for the *behaviour* rather than for a free number is what
+tells the two apart. The id search that was run found no collision because it
+was looking for a free number, and found one.

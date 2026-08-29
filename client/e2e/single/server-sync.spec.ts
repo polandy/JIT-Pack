@@ -49,17 +49,22 @@ const SYNC_PATH = /\/api\/v1\/(?:trips\/[^/]+|master)\/sync/
  */
 
 /**
- * Assign the item to a traveler through M5's popover select — the app's one
+ * Assign the item to a traveler through M5's membership sheet — the app's one
  * way of making a row somebody's (FR-25.1). Same driving as the M12 unit.
  */
 async function assignTraveler(page: Page, itemName: string, travelerName: string) {
   await visiblePage(page).getByTestId(`m4-row-${itemName}`).click()
   await expect(page.getByTestId('m5-sheet')).toBeVisible()
   await page.getByTestId('m5-details').click()
-  await page.getByTestId('m5-traveler').click()
-  const popover = page.locator('ion-popover ion-select-popover')
-  await popover.locator('ion-item', { hasText: travelerName }).click()
-  await expect(page.locator('ion-popover')).toHaveCount(0)
+  await page.getByTestId('m5-membership').click()
+  await expect(page.getByTestId('membership-sheet')).toBeVisible()
+  // The roster is a view, not a write: only the checkbox converts the row
+  // (FR-25.21). Asserting the amount is the settled signal that it landed.
+  await page.getByTestId('membership-per-person').click()
+  await page.getByTestId(`membership-check-${travelerName}`).click()
+  await expect(page.getByTestId(`membership-qty-${travelerName}`)).toHaveText('1')
+  await page.getByTestId('membership-close').click()
+  await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
   await page.getByTestId('m5-close').click()
   await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 }
@@ -376,7 +381,7 @@ test.describe('Single-User backend sync @single', () => {
     await visiblePage(pageCheck).getByTestId(`m4-row-${item}`).click()
     await expect(pageCheck.getByTestId('m5-sheet')).toBeVisible()
     await pageCheck.getByTestId('m5-details').click()
-    await expect(pageCheck.getByTestId('m5-traveler')).toContainText('Andy')
+    await expect(pageCheck.getByTestId('m5-membership')).toContainText('Andy')
     await ctxCheck.close()
 
     // B reconnects and drains through the trip re-open; its rendered state
@@ -405,7 +410,7 @@ test.describe('Single-User backend sync @single', () => {
     await visiblePage(pageB).getByTestId(`m4-row-${item}`).click()
     await expect(pageB.getByTestId('m5-sheet')).toBeVisible()
     await pageB.getByTestId('m5-details').click()
-    await expect(pageB.getByTestId('m5-traveler')).toContainText('Andy')
+    await expect(pageB.getByTestId('m5-membership')).toContainText('Andy')
     await pageB.getByTestId('m5-close').click()
     await expect(pageB.getByTestId('m5-sheet')).toHaveCount(0)
 
