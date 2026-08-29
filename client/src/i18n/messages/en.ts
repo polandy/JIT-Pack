@@ -443,6 +443,14 @@ export const en = {
   'quickAdd.browseAlreadyIn': 'already in',
   'quickAdd.browseFreeText': 'Type a new name instead…',
   'quickAdd.browseNoMatch': 'No items carry this tag yet',
+  'quickAdd.browseHideCarried': 'hide',
+  'quickAdd.browseHideCarriedLabel': 'Hide what is already in ({n})',
+  'quickAdd.browseCarriedCount': '{n} already in',
+  'quickAdd.browseHiddenCount': '{n} hidden',
+  'quickAdd.browseAddedJustNow': 'added',
+  'quickAdd.browseAllCarriedTag': 'Everything with this tag is already in.',
+  'quickAdd.browseAllCarried': 'Everything in the inventory is already in.',
+  'quickAdd.browseShowAnyway': 'Show anyway',
 
   // Faceted filter panel (FR-25.11), shared by M4 and M6.
   'filter.title': 'Filter',
