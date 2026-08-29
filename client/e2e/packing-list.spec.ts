@@ -468,15 +468,6 @@ test.describe('M4 packing list @local @m4', () => {
     await sheet.getByTestId('browse-close').click()
     await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
     await expect(page.getByTestId('m4-row-Lampe')).toBeVisible()
-
-    // Re-opening starts a new pass, so the previous run's add is now simply
-    // "already in" and goes with the rest: the snapshot is per opening, which
-    // is why the sheet is keyed rather than kept.
-    await visible(page).getByTestId('quick-add-browse-open').click()
-    await expect(sheet.getByTestId('browse-hide-count')).toHaveText('2 hidden')
-    await expect(sheet.getByTestId('browse-added-now')).toHaveCount(0)
-    await expect(sheet.getByTestId('browse-row')).toHaveCount(1)
-    await expect(sheet.getByTestId('browse-row')).toContainText('Kocher')
   })
 
   /**
@@ -531,8 +522,8 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('m4-row-Lampe')).toBeVisible()
 
     // Re-opening starts a new pass, so the previous run's add is now simply
-    // "already in" and goes with the rest: the snapshot is per opening, which
-    // is why the sheet is keyed rather than kept.
+    // "already in" and goes with the rest: the snapshot belongs to one
+    // creation of the sheet, and Ionic creates it afresh on every opening.
     await visible(page).getByTestId('quick-add-browse-open').click()
     await expect(sheet.getByTestId('browse-hide-count')).toHaveText('2 hidden')
     await expect(sheet.getByTestId('browse-added-now')).toHaveCount(0)

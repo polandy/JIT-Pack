@@ -2147,7 +2147,13 @@ first paint rendering the carried rows as freshly added. That makes each
 that by re-opening it: the previous run's add is hidden with the rest. The id
 is **E2E-M4-59**, not 58 — 58 is claimed by the open FR-25.21 work.
 
-The re-opening half also settled a question the first draft got wrong. It was
+The re-opening half cost one red pipeline before it settled anything: the
+edit that added it matched a tail E2E-M4-47 has verbatim, so the block landed
+in **both** tests, and a local run filtered to the new id could not see it.
+Two shards found it. The lesson is the filter, not the edit — a change to a
+shared file is verified by running the neighbours it could have touched.
+
+It also settled a question the first draft got wrong. It was
 written assuming `SheetModal` keeps its slot mounted, so `QuickAddItem` keyed
 the sheet per opening to force a fresh snapshot. Removing that key left the case
 **green**: Ionic destroys the modal's content when it is dismissed, so the
