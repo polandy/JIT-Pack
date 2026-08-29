@@ -11,6 +11,8 @@ Notifications exist **only in multi-user mode**. In Single-User Mode there is no
 
 Every notification arrives in-app (a toast while the app is open, and the notification list). **Web Push** additionally delivers it to a device while the app is closed — that is the part with operational requirements, and the rest of this page.
 
+Notifications are written in the **language the recipient's device is set to**, not the sender's — including the ones the operating system shows while the app is closed. One case is worth knowing about: a device that has been sent a push but has never actually had the app open (a fresh browser profile, or one where site storage is blocked) shows a neutral *„You have a new notification"* instead of the detail. Opening the app once is all it takes; the notice itself is then written in full, in the right language.
+
 ## What the server needs: nothing
 
 Web Push is zero-configuration on the server. The VAPID keypair that authenticates your instance to the browser vendors' push services is **generated on first use and persisted in the database** — there is no key to create, mount, or rotate.

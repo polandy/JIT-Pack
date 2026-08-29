@@ -1,11 +1,21 @@
 /**
  * FR-6.2 notification rendering — pure, no I/O. Turns a server
  * notification row into toast text and its FR-6.3 deep-link route.
- * The service worker (public/sw.js) mirrors this wording for OS
- * notifications; it cannot import modules, so keep both in sync.
+ *
+ * The wording itself lives in the catalogue (NFR-4.12) and is chosen in
+ * `messages.ts`, which the service worker is held to as well: it renders the
+ * *same* sentence for the OS notification out of the mirror it can read
+ * (ADR-037), rather than carrying a second English copy of this file.
  */
 
+import { t } from '@/i18n'
 import type { NotificationEntry, NotificationPrefs } from '@/api/types'
+import {
+  bodyMessageKey,
+  notificationBodyName,
+  notificationDetail,
+  notificationParams,
+} from './messages'
 
 /**
  * The server's notification row. Generated from internal/api/wire.go — this
@@ -16,28 +26,15 @@ export type ServerNotification = NotificationEntry
 
 export type { NotificationPrefs }
 
+/** Human-readable one-liner for a notification (toast/OS body). */
+export function describeNotification(n: ServerNotification): string {
+  const name = notificationBodyName(n.kind, notificationDetail(n.payload))
+  return t(bodyMessageKey(name), notificationParams(n, t('notify.actorUnknown')))
+}
+
 function str(payload: Record<string, unknown> | null, key: string): string {
   const v = payload?.[key]
   return typeof v === 'string' ? v : ''
-}
-
-/** Human-readable one-liner for a notification (toast/OS body). */
-export function describeNotification(n: ServerNotification): string {
-  const actor = str(n.payload, 'actor_name') || 'Someone'
-  const item = str(n.payload, 'item_name')
-  const preview = str(n.payload, 'preview')
-  switch (n.kind) {
-    case 'delegation':
-      return item ? `${actor} delegated “${item}” to you` : `${actor} delegated an item to you`
-    case 'mention':
-      return preview ? `${actor} mentioned you: ${preview}` : `${actor} mentioned you`
-    case 'task':
-      return item ? `${actor} opened a task on “${item}”` : `${actor} opened a task for you`
-    case 'lock_taken':
-      return item ? `${actor} took “${item}” over from you` : `${actor} took an item over from you`
-    default:
-      return `${actor} sent you a notification`
-  }
 }
 
 /**
