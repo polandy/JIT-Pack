@@ -2116,6 +2116,14 @@ away. Three notes from building the cases:
   parks the first one until the test resolves its own promise, so „before the
   list arrives" is a state the test *holds* rather than a window it hopes to
   hit.
+- **The visual gate did not see a truncated label.** When the count moved into
+  brackets beside the label (owner, 2026-08-29), the German *ARCHIVIERT (29)*
+  was cut off at 390 px — and `make visual` passed, because the changed pixels
+  stayed under the per-image tolerance. Rewriting the baseline needed
+  `--update-snapshots=all -g "trips"`; plain `--update-snapshots` writes only
+  over-tolerance diffs and reported nothing to write. Second time this exact
+  blindness has cost a finding (see the M2/M4 head-alignment note): a baseline
+  answers for a *layout*, and three cut-off words are apparently not one.
 - **Only one of the four `local` legs exercises the re-entry.** The other
   three decide on mount, which is a different hook — the tab is left for
   another one and returned to precisely so the `onIonViewWillEnter` half is

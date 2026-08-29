@@ -509,12 +509,12 @@ async function handleRefresh(event: CustomEvent) {
           >
             <IonLabel>
               <span class="segment-label">{{ segment.label }}</span>
-              <!-- FR-2.8: a second line, because `Archived 129` truncates the
-                   label before the number. Absent while the count is unknown,
-                   `0` where the segment is empty — the two are not the same. -->
-              <span v-if="segment.count !== null" class="segment-count jp-num">{{
-                segment.count
-              }}</span>
+              <!-- FR-2.8: beside the label, in brackets (owner, 2026-08-29).
+                   Absent while the count is unknown, `(0)` where the segment
+                   is empty — the two are not the same thing. -->
+              <span v-if="segment.count !== null" class="segment-count jp-num">
+                ({{ segment.count }})</span
+              >
             </IonLabel>
           </IonSegmentButton>
         </IonSegment>
@@ -721,14 +721,30 @@ async function handleRefresh(event: CustomEvent) {
 
 <style scoped>
 /*
- * FR-2.8: the count under the segment's label. Recessive by opacity rather
+ * FR-2.8: the count beside the segment's label. Recessive by opacity rather
  * than by a colour of its own, so it follows the button through selected and
  * unselected instead of needing a token per state.
  */
 .segment-count {
-  display: block;
-  font-size: var(--jp-text-2xs);
   opacity: 0.7;
+}
+
+/*
+ * The bracketed count costs four characters, and it is the German
+ * *ARCHIVIERT (29)* — the family's own archive — that has to fit at 390 px.
+ * Measured rather than guessed: with Ionic's default padding the number was
+ * cut off, and with the padding alone it still was. So the padding goes (the
+ * same remedy as M21's deviation segment) and the segment takes one step
+ * down the type scale, which is the last of these two the label can spend.
+ */
+ion-segment-button {
+  --padding-start: 4px;
+  --padding-end: 4px;
+}
+
+.segment-label,
+.segment-count {
+  font-size: var(--jp-text-xs);
 }
 
 .page-title {

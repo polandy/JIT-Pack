@@ -452,7 +452,7 @@ describe('TripListPage — the opening segment (FR-2.8)', () => {
     await flushPromises()
 
     expect(wrapper.find('[data-testid="trip-row-Samedan"]').exists()).toBe(true)
-    expect(countOf(wrapper, 'archived')).toBe('1')
+    expect(countOf(wrapper, 'archived')).toBe('(1)')
   })
 
   it('writes each segment its count, zero included', async () => {
@@ -463,9 +463,9 @@ describe('TripListPage — the opening segment (FR-2.8)', () => {
     const wrapper = mountPage()
     await flushPromises()
 
-    expect(countOf(wrapper, 'active')).toBe('0')
-    expect(countOf(wrapper, 'planned')).toBe('2')
-    expect(countOf(wrapper, 'archived')).toBe('1')
+    expect(countOf(wrapper, 'active')).toBe('(0)')
+    expect(countOf(wrapper, 'planned')).toBe('(2)')
+    expect(countOf(wrapper, 'archived')).toBe('(1)')
   })
 
   it('says the count in the button’s name, not only as a digit beside it', async () => {

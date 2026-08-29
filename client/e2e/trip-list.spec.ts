@@ -69,7 +69,7 @@ test.describe('M2 opening segment @local @m2', () => {
   ) {
     await expect(
       visible(page).getByTestId(`trips-filter-${segment}`).locator('.segment-count'),
-    ).toHaveText(value)
+    ).toHaveText(`(${value})`)
   }
 
   /** Planning → active → archived, the way the app does it (FR-9.3). */

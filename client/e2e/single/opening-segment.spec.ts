@@ -57,7 +57,8 @@ test.describe('M2 opening segment, backend-backed @single @m2', () => {
       .getByTestId(`trips-filter-${chosen}`)
       .locator('.segment-count')
       .innerText()
-    expect(Number(count)).toBeGreaterThan(0)
+    // `(3)` — the brackets are part of the rendered count (FR-2.8).
+    expect(Number(count.replace(/[^\d]/g, ''))).toBeGreaterThan(0)
 
     await context.close()
   })
