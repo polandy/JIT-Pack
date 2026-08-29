@@ -127,6 +127,25 @@ export const de: Record<keyof typeof en, string> = {
   'packing.skippedToastWith': '„{name}“ bleibt zu Hause — mit {companions}',
   'packing.packedToast': '„{name}“ gepackt ✓',
   'packing.openPrep': '{n} Vorbereitung offen | {n} Vorbereitungen offen',
+  // FR-25.21 — „Wer braucht das?": Mitgliedschaft und Mengen pro Person.
+  'membership.title': 'Wer braucht das?',
+  'membership.shared': 'Gemeinsam',
+  'membership.perPerson': 'Pro Person',
+  'membership.hintShared': 'Eine Zeile für die ganze Reise.',
+  'membership.hintPerPerson':
+    'Jede angehakte Person bekommt eine eigene Zeile auf ihrer Packliste.',
+  'membership.summary': '{people} Person · {quantity} Stück | {people} Personen · {quantity} Stück',
+  'membership.summaryShared': 'Gemeinsam · {quantity} Stück',
+  'membership.rowShared': 'Gemeinsam',
+  'membership.rowNobody': 'niemand',
+  'membership.less': 'Weniger für {name}',
+  'membership.more': 'Mehr für {name}',
+  'membership.confirmRemoveTitle': 'Zeile entfernen?',
+  'membership.confirmRemove':
+    '{name} hat davon schon {packed} von {quantity} gepackt. Die Zeile verschwindet aus der Packliste, der Packfortschritt geht verloren.',
+  'membership.confirmCollapseTitle': 'Wieder gemeinsam?',
+  'membership.confirmCollapse':
+    'Aus {rows} Zeilen wird eine mit {quantity} Stück, davon {packed} gepackt. Notizen und Vorbereitungs-Todos von {name}s Zeile bleiben; die übrigen Zeilen werden gelöscht.',
   'packing.packSection': 'Einpacken',
   'packing.prepSection': 'Vorbereitung',
   'packing.empty': 'Noch nichts auf dieser Liste',
@@ -435,6 +454,14 @@ export const de: Record<keyof typeof en, string> = {
   'quickAdd.browseAlreadyIn': 'schon drin',
   'quickAdd.browseFreeText': 'Stattdessen neuen Namen eintippen…',
   'quickAdd.browseNoMatch': 'Noch keine Packelemente mit diesem Tag',
+  'quickAdd.browseHideCarried': 'ausblenden',
+  'quickAdd.browseHideCarriedLabel': '{n} schon drin — ausblenden',
+  'quickAdd.browseCarriedCount': '{n} schon drin',
+  'quickAdd.browseHiddenCount': '{n} ausgeblendet',
+  'quickAdd.browseAddedJustNow': 'hinzugefügt',
+  'quickAdd.browseAllCarriedTag': 'Alles mit diesem Tag ist schon drin.',
+  'quickAdd.browseAllCarried': 'Alles aus dem Inventar ist schon drin.',
+  'quickAdd.browseShowAnyway': 'Trotzdem anzeigen',
 
   // Facetten-Filter (FR-25.11), geteilt von M4 und M6.
   'filter.title': 'Filter',
