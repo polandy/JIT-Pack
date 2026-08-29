@@ -319,6 +319,8 @@ export function createPackingActions(ctx: SyncContext) {
     if (opts.sourceItemId) {
       addRequiredCompanions(tripId)
     }
+    // The id is returned so FR-25.8's per-person add can open the membership
+    // editor on the row it just wrote; the row is what the editor edits.
     return id
   }
 

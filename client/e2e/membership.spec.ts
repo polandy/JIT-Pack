@@ -139,8 +139,11 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     await expect(page.locator('ion-alert')).toBeHidden()
     await closeAll(page)
 
-    // One member left: FR-25.1's flat fallback, not a one-child cluster.
+    // One member left: FR-25.1's flat fallback (E2E-M4-13) — an ordinary row
+    // carrying the person's name, not a one-child cluster. Both halves are the
+    // assertion: a cluster of one would also "show Andy" in its child.
     await expect(visiblePage(page).getByTestId(`m4-cluster-${ITEM}`)).toHaveCount(0)
+    await expect(visiblePage(page).getByTestId(`m4-row-${ITEM}`)).toContainText(`${ITEM} · Andy`)
   })
 
   test('E2E-M5-20: collapsing back to shared sums the amounts and keeps the row', async ({
@@ -184,5 +187,93 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     // The surviving row is the row, not a new one wearing its name.
     await visiblePage(page).getByTestId(`m4-row-${ITEM}`).click()
     await expect(page.getByTestId('m5-sheet')).toContainText(TODO)
+  })
+})
+
+/**
+ * FR-25.8 — the quick-add's own per-person path (E2E-M4-12 + E2E-M4-58).
+ *
+ * The two spec entries name one rendered outcome and this case asserts every
+ * clause of both: the `0/2` head M4-12 asks for, the absence of a second
+ * top-level row wearing the name — the 2026-08-07 regression, where each row
+ * was individually right and only the grouping was wrong — and M4-58's
+ * differing amounts on rows that have no `source_item_id`, which is what makes
+ * this the case that proves the folded-name cluster key.
+ */
+test.describe('FR-25.8 per-person quick-add @local @m4', () => {
+  test.beforeEach(async ({ seedMode }) => {
+    await seedMode({ mode: 'local' })
+  })
+
+  test('E2E-M4-12/E2E-M4-58: pro Person adds one cluster, not N items sharing a name', async ({
+    page,
+  }) => {
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+
+    await page.getByTestId('quick-add-mode-per-person').click()
+    await page.getByTestId('quick-add-input').locator('input').fill(ITEM)
+    await page.getByTestId('quick-add-confirm').click()
+
+    // The mode is the answer to which tab this is: the editor opens on the
+    // roster, and the first check is what fans the row out.
+    await expect(page.getByTestId('membership-sheet')).toBeVisible()
+    await expect(page.getByTestId('membership-check-Andy')).toBeVisible()
+    await setMember(page, 'Andy', 2)
+    await setMember(page, 'Leonardo', 3)
+    await page.getByTestId('membership-close').click()
+    await expect(page.getByTestId('membership-sheet')).toHaveCount(0)
+
+    const list = visiblePage(page)
+    await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/2')
+    await expect(list.getByTestId(`m4-child-${ITEM}-Andy`)).toContainText('0/2')
+    await expect(list.getByTestId(`m4-child-${ITEM}-Leonardo`)).toContainText('0/3')
+    // Each child carries its own working control (E2E-M4-12), not one shared
+    // by the cluster: two rows reading 0/2 and 0/3 could still be drawn by a
+    // head that packs them together.
+    await expect(list.getByTestId(`m4-child-${ITEM}-Andy`).getByTestId('row-plus')).toBeVisible()
+    await expect(
+      list.getByTestId(`m4-child-${ITEM}-Leonardo`).getByTestId('row-plus'),
+    ).toBeVisible()
+    // Mia was never checked, so she has no row at all — a quantity of 0 would
+    // be FR-5.5's *skipped*, which is a different statement (FR-25.21).
+    await expect(list.getByTestId(`m4-child-${ITEM}-Mia`)).toHaveCount(0)
+    // The name is not repeated as a top-level row beside the cluster.
+    await expect(list.getByTestId(`m4-row-${ITEM}`)).toHaveCount(0)
+  })
+
+  test('E2E-M4-64: with nobody to distribute over, the mode is absent (G-8)', async ({ page }) => {
+    await createTripViaWizard(page, { name: 'Solo', travelers: ['Andy'] })
+    await openQuickAdd(page)
+
+    // Not disabled — absent. There is no membership to distribute, and a
+    // control that can only say one thing is worse than no control.
+    await expect(page.getByTestId('quick-add-mode-per-person')).toHaveCount(0)
+    await expect(page.getByTestId('quick-add-input')).toBeVisible()
+  })
+
+  test('E2E-M4-65: a per-person add from the browse-sheet closes it first', async ({ page }) => {
+    await page.goto('/tabs/items')
+    await page.getByTestId('m9-fab').click()
+    await page.getByTestId('m10-name').locator('input').fill('Sonnenhut')
+    await page.getByTestId('m10-create').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Sonnenhut')
+
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-mode-per-person').click()
+    await visiblePage(page).getByTestId('quick-add-browse-open').click()
+    const sheet = page.getByTestId('inventory-browse-sheet')
+    await expect(sheet).toBeVisible()
+    await sheet.getByTestId('browse-row').filter({ hasText: 'Sonnenhut' }).click()
+
+    // The sheet is gone rather than merely covered, and the editor is
+    // *operable*: a modal presented under it renders behind it, greyed, and
+    // the click below is what tells the two apart — a visible-only assertion
+    // passes against the broken build.
+    await expect(sheet).toHaveCount(0)
+    await expect(page.getByTestId('membership-sheet')).toBeVisible()
+    await page.getByTestId('membership-check-Andy').click()
+    await expect(page.getByTestId('membership-qty-Andy')).toHaveText('1')
   })
 })
