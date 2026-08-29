@@ -333,7 +333,10 @@ describe('InventoryBrowseSheet — the two verbs (FR-25.13f)', () => {
     )
   }
 
-  function mountWithVerbs(carriedItemIds: string[], rowStates: ReadonlyMap<string, BrowseRowSummary>) {
+  function mountWithVerbs(
+    carriedItemIds: string[],
+    rowStates: ReadonlyMap<string, BrowseRowSummary>,
+  ) {
     return mount(InventoryBrowseSheet, { props: { carriedItemIds, rowStates } })
   }
 

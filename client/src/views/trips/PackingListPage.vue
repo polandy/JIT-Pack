@@ -1266,9 +1266,7 @@ function onQuickAdd(
   // Only a row that came from the inventory has a line to offer the undo on;
   // a typed name is not in the sheet at all.
   if (item.sourceItemId) {
-    browseUndo.set(item.sourceItemId, () =>
-      orchestrator.removeAddedItem(props.tripId, addedId),
-    )
+    browseUndo.set(item.sourceItemId, () => orchestrator.removeAddedItem(props.tripId, addedId))
   }
 }
 

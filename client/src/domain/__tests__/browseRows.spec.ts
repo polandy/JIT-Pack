@@ -93,8 +93,9 @@ describe('browseRowStates', () => {
   })
 
   it('locks the whole set when one of its rows is held by somebody else, and says who (G-3)', () => {
-    const states = browseRowStates([row('r1'), row('r2', { packing_now_by: 'user-sia' })], (item) =>
-      item.packing_now_by === 'user-sia' ? HELD_BY_SIA : null,
+    const states = browseRowStates(
+      [row('r1'), row('r2', { packing_now_by: 'user-sia' })],
+      (item) => (item.packing_now_by === 'user-sia' ? HELD_BY_SIA : null),
     )
 
     expect(states.get(SHORTS)).toEqual({
