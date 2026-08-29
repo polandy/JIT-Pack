@@ -226,17 +226,13 @@ it. Item numbers stay stable even as items close, because the log refers back to
    real-provider coverage is still open. Log: *„A second account arrives…"*, *„Two screens
    nobody had ever rendered"*.
 
-19. **NFR-4.12 — notifications are the one surface still written in English**
-   (found 2026-08-24 while building FR-25.19's assignment control, **specified, not built**).
-   `client/src/notifications/format.ts` builds every FR-6.2 body as a literal, and
-   `client/public/sw.js` carries a **second copy** for the OS notification. The i18n migration
-   missed it because its unit was the *screen*; review missed it because no e2e project could
-   reach a notification before ADR-029. The in-app half is a plain `t()` migration; the OS half
-   needs the worker to know the locale, which lives in `localStorage` where a service worker
-   cannot read it — **an ADR is owed** on that mechanism (post it to the worker, mirror it into
-   IndexedDB, or have the push payload carry rendered text). Deliberately **not fixed in halves**:
-   a localized button under an English sentence is worse than consistent English. The full finding
-   is in NFR-4.12.
+19. ~~**NFR-4.12 — notifications were the one surface still written in English**~~ — **done**
+   (2026-08-29, ADR-037). The bodies come off the catalogue, and the service worker's second copy
+   is gone: the app mirrors the finished templates for the active language into IndexedDB and
+   `sw.js` reads them there — the one mechanism that still works when a push wakes a worker with
+   no page open. The *selection* is written twice by necessity and held equal by a test that loads
+   the worker source and drives both renderers; the worker keeps exactly one English sentence, for
+   a device that has never written the mirror.
 
 20. ~~**FR-25.19 — responsibility was read everywhere and written nowhere**~~ — **done**
    (2026-08-25). UI-Spec M5 had promised *„Zugewiesen an" → notification (FR-6.2)* since the

@@ -36,9 +36,14 @@ export const ACCOUNT_NAMES: Record<Account, string> = {
  * duration — each step is awaited on the element or the page that proves
  * the previous one landed.
  */
-export async function loginAs(context: BrowserContext, account: Account): Promise<Page> {
+export async function loginAs(
+  context: BrowserContext,
+  account: Account,
+  /** The device's language (NFR-4.12); the suite's default is English. */
+  locale?: 'en' | 'de',
+): Promise<Page> {
   const page = await context.newPage()
-  await seed(page, { mode: 'server' })
+  await seed(page, { mode: 'server', locale })
   await page.goto('/')
 
   // App.vue: server mode + no tokens + the server offers OIDC → /login.
