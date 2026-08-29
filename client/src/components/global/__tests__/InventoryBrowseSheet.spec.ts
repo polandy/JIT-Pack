@@ -16,6 +16,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import InventoryBrowseSheet from '../InventoryBrowseSheet.vue'
 import { browseHideCarried } from '@/composables/useBrowseHideCarried'
 import { useMasterStore } from '@/stores/masterStore'
+import type { BrowseRowSummary } from '@/domain/browseRows'
 
 function tag(id: string, name: string, sortOrder: number) {
   useMasterStore().applyChange({
@@ -307,5 +308,145 @@ describe('InventoryBrowseSheet — hiding what is already in (FR-25.13e)', () =>
     localStorage.setItem('jitpack_browse_hide_carried', 'yes please')
     browseHideCarried().reload()
     expect(carriedNames(mountSheet(['i-pullover']))).toEqual([expect.stringContaining('Pullover')])
+  })
+})
+
+describe('InventoryBrowseSheet — the two verbs (FR-25.13f)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.clear()
+    // The FR-25.13e switch is a shared module ref — one test's flip is the
+    // next test's default without this.
+    browseHideCarried().reload()
+    seed()
+  })
+
+  /** M4's answer about what the trip carries; M6 and M8 pass none. */
+  function states(
+    entries: Record<string, Partial<BrowseRowSummary> & { state: BrowseRowSummary['state'] }>,
+  ): ReadonlyMap<string, BrowseRowSummary> {
+    return new Map(
+      Object.entries(entries).map(([id, value]) => [
+        id,
+        { itemIds: [`row-${id}`], lockNote: null, ...value },
+      ]),
+    )
+  }
+
+  function mountWithVerbs(
+    carriedItemIds: string[],
+    rowStates: ReadonlyMap<string, BrowseRowSummary>,
+  ) {
+    return mount(InventoryBrowseSheet, { props: { carriedItemIds, rowStates } })
+  }
+
+  it('offers no verbs where the caller reports no packing states (M6/M8, G-8)', () => {
+    const wrapper = mountSheet()
+
+    expect(wrapper.find('[data-testid="browse-pack"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="browse-skip"]').exists()).toBe(false)
+  })
+
+  it('leaves a verb-free sheet its own feedback: a tapped line still says “already in”', async () => {
+    const wrapper = mountSheet()
+
+    await wrapper.get('[data-testid="browse-row"]').trigger('click')
+    await wrapper.setProps({ carriedItemIds: ['i-badehose'] })
+
+    // M6 and M8 have one verb and no undo, so the run's ledger must not
+    // speak for them — FR-25.13d's state is the whole feedback they have.
+    expect(wrapper.find('[data-testid="browse-carried-state"]').text()).toContain('already in')
+    expect(wrapper.find('[data-testid="browse-added-now"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="browse-undo"]').exists()).toBe(false)
+  })
+
+  it('adds and decides in one tap on a free line', async () => {
+    const wrapper = mountWithVerbs([], states({}))
+
+    await wrapper.get(`[aria-label='Mark "Badehose" as packed']`).trigger('click')
+    await wrapper.get(`[aria-label='Deliberately leave "Pullover" behind']`).trigger('click')
+
+    expect(wrapper.emitted('addPacked')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
+    expect(wrapper.emitted('addSkipped')?.[0]?.[0]).toMatchObject({ id: 'i-pullover' })
+    // Neither is a plain add: the decision travels with it, not after it.
+    expect(wrapper.emitted('add')).toBeUndefined()
+  })
+
+  it('acts on the existing rows where the trip already carries the item', async () => {
+    const wrapper = mountWithVerbs(['i-badehose'], states({ 'i-badehose': { state: 'open' } }))
+
+    await wrapper.find('[data-testid="browse-pack"]').trigger('click')
+
+    expect(wrapper.emitted('pack')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
+    expect(wrapper.emitted('addPacked')).toBeUndefined()
+  })
+
+  it('says what the run did to a line, and how many people it reached (FR-25.21)', async () => {
+    const wrapper = mountWithVerbs(
+      ['i-badehose'],
+      states({ 'i-badehose': { state: 'open', itemIds: ['r1', 'r2', 'r3'] } }),
+    )
+
+    await wrapper.find('[data-testid="browse-pack"]').trigger('click')
+
+    const packed = wrapper.find('[data-testid="browse-packed-now"]')
+    expect(packed.exists()).toBe(true)
+    // A single ✓ that quietly packed three rows must not claim only one.
+    expect(packed.text()).toContain('3 people')
+    // The line stays where it is — FR-25.13e's rule, unchanged by the verbs.
+    const line = wrapper.find('[data-testid="browse-row-carried"]')
+    expect(line.text()).toContain('Badehose')
+    expect(line.find('[data-testid="browse-pack"]').exists()).toBe(false)
+  })
+
+  it('offers the way back in the line itself, once, and gives the line back afterwards', async () => {
+    const wrapper = mountWithVerbs([], states({}))
+
+    await wrapper.findAll('[data-testid="browse-skip"]')[0]!.trigger('click')
+    expect(wrapper.find('[data-testid="browse-skipped-now"]').exists()).toBe(true)
+
+    await wrapper.find('[data-testid="browse-undo"]').trigger('click')
+
+    expect(wrapper.emitted('undo')?.[0]?.[0]).toMatchObject({ id: 'i-badehose' })
+    // The run's record is gone, so the line renders from the props again —
+    // which is what makes a second decision on it possible.
+    expect(wrapper.find('[data-testid="browse-skipped-now"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="browse-undo"]').exists()).toBe(false)
+    expect(wrapper.findAll('[data-testid="browse-skip"]')).toHaveLength(4)
+  })
+
+  it('lets the run’s own verb outrank FR-25.13e’s added signal', async () => {
+    const wrapper = mountWithVerbs(['i-ladekabel'], states({ 'i-ladekabel': { state: 'open' } }))
+    await wrapper.find('[data-testid="browse-hide-toggle"]').trigger('click')
+
+    await wrapper.get(`[aria-label='Mark "Badehose" as packed']`).trigger('click')
+    // What the caller reports back is "carried since the snapshot" — which
+    // FR-25.13e reads as *added*. The tap knows better, and must win.
+    await wrapper.setProps({ carriedItemIds: ['i-ladekabel', 'i-badehose'] })
+
+    expect(wrapper.find('[data-testid="browse-packed-now"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="browse-added-now"]').exists()).toBe(false)
+  })
+
+  it('states a settled row and offers it nothing', () => {
+    const wrapper = mountWithVerbs(
+      ['i-badehose', 'i-pullover'],
+      states({ 'i-badehose': { state: 'packed' }, 'i-pullover': { state: 'skipped' } }),
+    )
+
+    const settled = wrapper.findAll('[data-testid="browse-settled"]').map((s) => s.text())
+    expect(settled).toEqual(['already packed', 'staying home'])
+    // Two of the four lines are settled; only the free ones carry verbs.
+    expect(wrapper.findAll('[data-testid="browse-pack"]')).toHaveLength(2)
+  })
+
+  it('hands a locked row to its holder, naming them (G-3)', () => {
+    const wrapper = mountWithVerbs(
+      ['i-badehose'],
+      states({ 'i-badehose': { state: 'locked', lockNote: 'Sia is packing this right now' } }),
+    )
+
+    expect(wrapper.find('[data-testid="browse-locked"]').text()).toContain('Sia is packing this')
+    expect(wrapper.findAll('[data-testid="browse-pack"]')).toHaveLength(3)
   })
 })
