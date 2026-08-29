@@ -470,6 +470,58 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('m4-row-Lampe')).toBeVisible()
   })
 
+  /**
+   * E2E-M4-58 (FR-25.13e): the switch that puts the carried rows away, and
+   * the rule that makes it safe — what *this run* adds is never hidden.
+   *
+   * The load-bearing assertion is the positive one: after the switch is on,
+   * a tapped row is still on screen and says "added". A case that only
+   * asserted the disappearance of the pre-carried rows would stay green
+   * against exactly the implementation this rule exists to forbid, where the
+   * row vanishes under the finger and the list reflows into the next tap.
+   */
+  test('E2E-M4-58: hiding what is already in keeps what the run adds (FR-25.13e)', async ({
+    page,
+  }) => {
+    for (const name of ['Zelt', 'Lampe', 'Kocher']) {
+      await page.goto('/tabs/items')
+      await page.getByTestId('m9-fab').click()
+      await page.getByTestId('m10-name').locator('input').fill(name)
+      await page.getByTestId('m10-create').click()
+      await expect(page.getByTestId('header-title')).toHaveText(name)
+    }
+
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    const input = page.getByTestId('quick-add-input').locator('input')
+    await input.fill('Zel')
+    await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Zelt' }).click()
+    await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
+
+    await visible(page).getByTestId('quick-add-browse-open').click()
+    const sheet = page.getByTestId('inventory-browse-sheet')
+    await expect(sheet.getByTestId('browse-hide-count')).toHaveText('1 already in')
+
+    await sheet.getByTestId('browse-hide-toggle').click()
+    await expect(sheet.getByTestId('browse-hide-count')).toHaveText('1 hidden')
+    await expect(sheet.getByTestId('browse-row-carried')).toHaveCount(0)
+
+    // The run's own add: it stays exactly where it was tapped, as the ledger
+    // of what this pass did.
+    await sheet.getByTestId('browse-row').filter({ hasText: 'Lampe' }).click()
+    await expect(sheet.getByTestId('browse-added-now')).toHaveCount(1)
+    await expect(
+      sheet.getByTestId('browse-row-carried').filter({ hasText: 'Lampe' }),
+    ).toBeVisible()
+    await expect(sheet.getByTestId('browse-hide-count')).toHaveText('1 hidden')
+    // Kocher is untouched, so the sheet is still a working list.
+    await expect(sheet.getByTestId('browse-row').filter({ hasText: 'Kocher' })).toBeVisible()
+
+    await sheet.getByTestId('browse-close').click()
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await expect(page.getByTestId('m4-row-Lampe')).toBeVisible()
+  })
+
   // E2E-M4-02 (FR-8.2/25.18): the grouping is durable per trip — it arranges
   // rows rather than hiding them, so nothing can be lost behind it.
   test('E2E-M4-02: the grouping choice survives a reload', async ({ page }) => {

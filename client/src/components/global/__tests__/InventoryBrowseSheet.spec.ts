@@ -14,6 +14,7 @@ import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 
 import InventoryBrowseSheet from '../InventoryBrowseSheet.vue'
+import { browseHideCarried } from '@/composables/useBrowseHideCarried'
 import { useMasterStore } from '@/stores/masterStore'
 
 function tag(id: string, name: string, sortOrder: number) {
@@ -158,5 +159,151 @@ describe('InventoryBrowseSheet (FR-25.13d)', () => {
     await wrapper.vm.$nextTick()
     await wrapper.find('[data-testid="browse-tag-Winter"]').trigger('click')
     expect(wrapper.find('[data-testid="browse-no-match"]').exists()).toBe(true)
+  })
+})
+
+/**
+ * FR-25.13e — the switch that puts the carried rows away.
+ *
+ * The rules pinned here are the ones that make the reversal of FR-25.13d's
+ * "a carried item stays listed" affordable: it is opt-in and remembered per
+ * device, the count is scoped to what the tag axis shows, what the *run*
+ * adds is never hidden (the snapshot rule), and every state this can empty
+ * says which kind of empty it is and offers the way back.
+ */
+describe('InventoryBrowseSheet — hiding what is already in (FR-25.13e)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.clear()
+    // The preference is a shared module ref: without this, one test's switch
+    // is the next test's default.
+    browseHideCarried().reload()
+    seed()
+  })
+
+  function toggle(wrapper: ReturnType<typeof mountSheet>) {
+    return wrapper.find('[data-testid="browse-hide-toggle"]').trigger('click')
+  }
+
+  /**
+   * The carried rows the sheet renders. Asserting on these rather than on the
+   * tappable ones is what distinguishes *hidden* from *listed as "already in"*
+   * — the free-row list looks identical either way.
+   */
+  function carriedNames(wrapper: ReturnType<typeof mountSheet>): string[] {
+    return wrapper.findAll('[data-testid="browse-row-carried"]').map((row) => row.text())
+  }
+
+  it('is off by default: the line only counts, and every carried row is listed', () => {
+    const wrapper = mountSheet(['i-pullover', 'i-ladekabel'])
+
+    expect(wrapper.find('[data-testid="browse-hide-count"]').text()).toBe('2 already in')
+    expect(wrapper.find('[data-testid="browse-hide-toggle"]').attributes('aria-pressed')).toBe(
+      'false',
+    )
+    expect(wrapper.findAll('[data-testid="browse-row-carried"]')).toHaveLength(2)
+  })
+
+  it('hides the carried rows when switched on, and says how many', async () => {
+    const wrapper = mountSheet(['i-pullover', 'i-ladekabel'])
+    await toggle(wrapper)
+
+    expect(rowNames(wrapper)).toEqual(['Badehose', 'Sonnenhut'])
+    expect(wrapper.findAll('[data-testid="browse-row-carried"]')).toHaveLength(0)
+    expect(wrapper.find('[data-testid="browse-hide-count"]').text()).toBe('2 hidden')
+    // A group left with no rows loses its heading — an empty heading promises
+    // a list that is not there.
+    expect(wrapper.findAll('[data-testid="browse-group-head"]').map((h) => h.text())).toEqual([
+      'Kleidung',
+      'Untagged',
+    ])
+  })
+
+  it('keeps a row added during the run visible, marked as added', async () => {
+    const wrapper = mountSheet(['i-pullover'])
+    await toggle(wrapper)
+    expect(rowNames(wrapper)).toContain('Badehose')
+
+    // The caller's carried set grows after the tap — the row must not vanish
+    // under the finger, and it is the run's only feedback.
+    await wrapper.setProps({ carriedItemIds: ['i-pullover', 'i-badehose'] })
+
+    const added = wrapper.find('[data-testid="browse-added-now"]')
+    expect(added.exists()).toBe(true)
+    expect(added.text()).toContain('added')
+    expect(wrapper.find('[data-testid="browse-row-carried"]').text()).toContain('Badehose')
+    // The count follows the same clock: the added row is on screen, so it is
+    // not counted as hidden.
+    expect(wrapper.find('[data-testid="browse-hide-count"]').text()).toBe('1 hidden')
+    // And the row the switch hid is still hidden — listed nowhere, neither as
+    // an offer nor as a carried row.
+    expect(rowNames(wrapper)).not.toContain('Pullover')
+    expect(carriedNames(wrapper)).toEqual([expect.stringContaining('Badehose')])
+  })
+
+  it('re-takes the snapshot when the tag filter changes', async () => {
+    const wrapper = mountSheet(['i-pullover'])
+    await toggle(wrapper)
+    await wrapper.setProps({ carriedItemIds: ['i-pullover', 'i-badehose'] })
+    expect(wrapper.find('[data-testid="browse-added-now"]').exists()).toBe(true)
+
+    // Moving the axis starts a new pass over a different part of the
+    // inventory: what is carried by then is what is in the way.
+    await wrapper.find('[data-testid="browse-tag-Kleidung"]').trigger('click')
+    expect(rowNames(wrapper)).toEqual([])
+    expect(wrapper.find('[data-testid="browse-added-now"]').exists()).toBe(false)
+  })
+
+  it('counts inside the tag filter, and drops the line where it would hide nothing', async () => {
+    const wrapper = mountSheet(['i-pullover', 'i-ladekabel'])
+
+    await wrapper.find('[data-testid="browse-tag-Technik"]').trigger('click')
+    expect(wrapper.find('[data-testid="browse-hide-count"]').text()).toBe('1 already in')
+
+    await wrapper.find('[data-testid="browse-tag-Sommer"]').trigger('click')
+    expect(wrapper.find('[data-testid="browse-hide-toggle"]').exists()).toBe(false)
+  })
+
+  it('separates the two kinds of empty, and offers the way back out', async () => {
+    const wrapper = mountSheet(['i-ladekabel'])
+    await wrapper.find('[data-testid="browse-tag-Technik"]').trigger('click')
+    await toggle(wrapper)
+
+    const tagSentence = wrapper.find('[data-testid="browse-all-carried"]')
+    expect(tagSentence.text()).toContain('Everything with this tag is already in.')
+    // Not the inventory-gap sentence: this list is finished, not empty.
+    expect(wrapper.find('[data-testid="browse-no-match"]').exists()).toBe(false)
+    // The tag axis stays: the next tag is one tap away.
+    expect(wrapper.find('[data-testid="browse-tag-all"]').exists()).toBe(true)
+
+    await wrapper.find('[data-testid="browse-show-anyway"]').trigger('click')
+    expect(wrapper.find('[data-testid="browse-row-carried"]').text()).toContain('Ladekabel')
+  })
+
+  it('has its own sentence when the whole inventory is already in', async () => {
+    const wrapper = mountSheet(['i-badehose', 'i-pullover', 'i-ladekabel', 'i-sonnenhut'])
+    await toggle(wrapper)
+
+    expect(wrapper.find('[data-testid="browse-all-carried"]').text()).toContain(
+      'Everything in the inventory is already in.',
+    )
+  })
+
+  it('remembers the switch per device, and never hides on a value it cannot read', async () => {
+    const wrapper = mountSheet(['i-pullover'])
+    await toggle(wrapper)
+    expect(localStorage.getItem('jitpack_browse_hide_carried')).toBe('true')
+
+    // A fresh mount opens in the remembered posture…
+    browseHideCarried().reload()
+    expect(carriedNames(mountSheet(['i-pullover']))).toEqual([])
+
+    // …while a stored value nothing wrote leaves the inventory alone rather
+    // than hiding rows the user never asked to hide.
+    localStorage.setItem('jitpack_browse_hide_carried', 'yes please')
+    browseHideCarried().reload()
+    expect(carriedNames(mountSheet(['i-pullover']))).toEqual([
+      expect.stringContaining('Pullover'),
+    ])
   })
 })

@@ -16,11 +16,20 @@
  * carried set grows and the row flips right here, which is the feedback a
  * run needs. Free text is demoted to an explicit footer line that hands
  * back to the composer's field; the sheet itself never raises a keyboard.
+ *
+ * **FR-25.13e** lets that stance be put away for a run: one opt-in switch
+ * hides the carried rows, and what it hides is the set carried **when the
+ * switch was flipped** — never what this run adds. A row vanishing under the
+ * finger would reflow the list into the next tap and would delete the flip
+ * above, which is the only feedback the sheet has; so a row added while the
+ * sheet is open stays where it is and says "added". The hidden rows stay
+ * present as a count, and every state this can empty offers a way back.
  */
 import { IonIcon } from '@ionic/vue'
-import { addCircleOutline, closeOutline, createOutline } from 'ionicons/icons'
-import { computed, ref } from 'vue'
+import { addCircleOutline, checkmarkOutline, closeOutline, createOutline } from 'ionicons/icons'
+import { computed, ref, watch } from 'vue'
 
+import { browseHideCarried } from '@/composables/useBrowseHideCarried'
 import { t } from '@/i18n'
 import { useMasterStore } from '@/stores/masterStore'
 import { UNTAGGED_KEY } from '@/domain/tags'
@@ -44,6 +53,27 @@ const masterStore = useMasterStore()
 /** `null` = the "Alle" chip: no tag filter (the M9 idiom). */
 const tagFilter = ref<string | null>(null)
 
+const { hideCarried, toggle: toggleHideCarried } = browseHideCarried()
+
+/**
+ * The FR-25.13e snapshot: item ids the scope carried when this posture began.
+ * Taken on exactly three events — the sheet being created (which is what
+ * re-opening it is, the caller keys it per run), the switch going on, and the
+ * tag filter changing.
+ */
+// Taken during setup rather than on mount: a sheet re-opened with the switch
+// already on must paint filtered, never one frame of "added just now" rows.
+const hidden = ref<ReadonlySet<string>>(new Set(props.carriedItemIds))
+
+function retakeSnapshot(): void {
+  hidden.value = new Set(props.carriedItemIds)
+}
+
+watch(hideCarried, (on) => {
+  if (on) retakeSnapshot()
+})
+watch(tagFilter, retakeSnapshot)
+
 /**
  * The M9 rule verbatim: a tag filter matches an item with the tag anywhere
  * in its set, not only as primary — filtering by *Sommer* has to surface
@@ -57,11 +87,39 @@ const filtered = computed<MasterItem[]>(() => {
   return masterStore.activeItemList.filter((item) => onTag.has(item.id))
 })
 
-const groups = computed(() => masterStore.itemsByPrimaryTag(filtered.value))
+/** What the list actually renders once the FR-25.13e switch has had its say. */
+const shown = computed<MasterItem[]>(() =>
+  hideCarried.value ? filtered.value.filter((item) => !hidden.value.has(item.id)) : filtered.value,
+)
+
+const groups = computed(() => masterStore.itemsByPrimaryTag(shown.value))
 
 const carried = computed(() => new Set(props.carriedItemIds))
 
+/**
+ * How many rows the switch is hiding, or would hide — always counted **inside
+ * the current tag filter**, because a number that does not match what the
+ * screen would hide is one the user can catch out.
+ */
+const hideableCount = computed(
+  () =>
+    filtered.value.filter((item) =>
+      hideCarried.value ? hidden.value.has(item.id) : carried.value.has(item.id),
+    ).length,
+)
+
 const noMatch = computed(() => filtered.value.length === 0)
+
+/** Everything the filter matches is carried and hidden — success, not emptiness. */
+const allCarried = computed(() => !noMatch.value && shown.value.length === 0)
+
+/**
+ * A carried row added during *this* run: it stays visible under the switch and
+ * says so, so the run keeps its ledger (see the FR-25.13e note above).
+ */
+function isAddedNow(id: string): boolean {
+  return hideCarried.value && carried.value.has(id) && !hidden.value.has(id)
+}
 
 /** The heading a group renders — the untagged bucket is not a tag name. */
 function groupLabel(key: string): string {
@@ -110,8 +168,43 @@ function groupLabel(key: string): string {
       </button>
     </div>
 
+    <!-- FR-25.13e: the count states what is in the way, the switch puts it
+         away. Absent at zero — a control that would do nothing is furniture. -->
+    <div v-if="hideableCount > 0" class="hide-line">
+      <span class="jp-num" data-testid="browse-hide-count">{{
+        hideCarried
+          ? t('quickAdd.browseHiddenCount', { n: hideableCount })
+          : t('quickAdd.browseCarriedCount', { n: hideableCount })
+      }}</span>
+      <button
+        class="hide-toggle"
+        type="button"
+        data-testid="browse-hide-toggle"
+        :aria-pressed="hideCarried"
+        :aria-label="t('quickAdd.browseHideCarriedLabel', { n: hideableCount })"
+        @click="toggleHideCarried()"
+      >
+        <span class="switch" :class="{ on: hideCarried }" aria-hidden="true"></span>
+        {{ t('quickAdd.browseHideCarried') }}
+      </button>
+    </div>
+
     <p v-if="noMatch" class="no-match" data-testid="browse-no-match">
       {{ t('quickAdd.browseNoMatch') }}
+    </p>
+
+    <!-- Its own sentence: an inventory gap and a finished list are different
+         answers, and this one carries the way back out. -->
+    <p v-else-if="allCarried" class="no-match" data-testid="browse-all-carried">
+      {{ tagFilter === null ? t('quickAdd.browseAllCarried') : t('quickAdd.browseAllCarriedTag') }}
+      <button
+        class="show-anyway"
+        type="button"
+        data-testid="browse-show-anyway"
+        @click="toggleHideCarried()"
+      >
+        {{ t('quickAdd.browseShowAnyway') }}
+      </button>
     </p>
 
     <section v-for="[key, groupItems] in groups" :key="key" class="tag-group">
@@ -124,7 +217,15 @@ function groupLabel(key: string): string {
           <!-- A carried row is a state: same place, no control (FR-25.13d). -->
           <div v-if="carried.has(item.id)" class="row is-carried" data-testid="browse-row-carried">
             <span class="row-name">{{ item.name }}</span>
-            <span class="carried-state" data-testid="browse-carried-state">
+            <span
+              v-if="isAddedNow(item.id)"
+              class="carried-state is-added"
+              data-testid="browse-added-now"
+            >
+              <IonIcon :icon="checkmarkOutline" aria-hidden="true" />
+              {{ t('quickAdd.browseAddedJustNow') }}
+            </span>
+            <span v-else class="carried-state" data-testid="browse-carried-state">
               {{ t('quickAdd.browseAlreadyIn') }}
             </span>
           </div>
@@ -206,6 +307,81 @@ function groupLabel(key: string): string {
   background: var(--ct-surface1);
   color: var(--ct-text);
   border-color: var(--ct-surface2);
+}
+
+.hide-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 2px 8px;
+  border-bottom: 1px solid var(--ct-surface0);
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+}
+
+.hide-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: none;
+  padding: 4px 0;
+  color: var(--jp-action);
+  font-size: var(--jp-text-sm);
+  cursor: pointer;
+}
+
+/* A switch is a shape, not an elevation: the pill and its knob are both
+   circles by rule, so they stay outside the radius scale (invariant 9b). */
+.switch {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: var(--jp-r-pill);
+  background: var(--ct-surface1);
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ct-overlay0);
+}
+
+.switch.on {
+  background: var(--ct-surface2);
+}
+
+.switch.on::after {
+  left: 16px;
+  background: var(--jp-action);
+}
+
+.show-anyway {
+  border: none;
+  background: none;
+  padding: 0 0 0 4px;
+  color: var(--jp-action);
+  font-size: var(--jp-text-sm);
+  font-weight: var(--jp-weight-semibold);
+  cursor: pointer;
+}
+
+.is-added {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--jp-done);
+}
+
+.is-added ion-icon {
+  font-size: var(--jp-icon-sm);
 }
 
 .tag-group {
