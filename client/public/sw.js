@@ -12,8 +12,11 @@
  *   { notification_id, kind, payload: { trip_id, item_id, actor_name,
  *     item_name, preview, ... } }
  *
- * The wording mirrors src/notifications/format.ts — a service worker
- * cannot import app modules, keep both in sync.
+ * The wording is **not** written here (NFR-4.12, ADR-037). A worker cannot
+ * import the catalogue and cannot read `localStorage`, so the app leaves the
+ * finished templates for the active language in IndexedDB and this file only
+ * picks one and fills its slots. The one English sentence below is the
+ * fallback for a device that has never written the mirror.
  */
 
 /*
@@ -96,6 +99,81 @@ self.addEventListener('fetch', (event) => {
   )
 })
 
+/*
+ * Where the app leaves the notification vocabulary for this worker
+ * (src/notifications/mirror.ts). All three names are contract between the
+ * two files; `notifications/__tests__/workerBody.spec.ts` reads this file
+ * and drives the two functions below against the app's own renderer.
+ */
+const MIRROR_DB = 'jitpack-sw'
+const MIRROR_STORE = 'meta'
+const MIRROR_KEY = 'notifications'
+
+/**
+ * The last resort, and the only sentence this worker owns: shown when the
+ * mirror is missing (storage denied, or a push before the app ever ran).
+ * Deliberately says nothing about *what* happened — a wrong-language detail
+ * would be worse than none, and the app itself says it correctly on open.
+ */
+const FALLBACK_BODY = 'You have a new notification'
+
+async function readMirror() {
+  try {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open(MIRROR_DB, 1)
+      // The app owns the schema. If the store is not there, this worker is
+      // ahead of an app that has never written it: let it go and fall back.
+      request.onupgradeneeded = () => request.transaction.abort()
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+      request.onblocked = () => reject(new Error('blocked'))
+    })
+    const mirror = await new Promise((resolve, reject) => {
+      const tx = db.transaction(MIRROR_STORE, 'readonly')
+      const get = tx.objectStore(MIRROR_STORE).get(MIRROR_KEY)
+      get.onsuccess = () => resolve(get.result)
+      get.onerror = () => reject(get.error)
+    })
+    db.close()
+    return mirror && mirror.bodies ? mirror : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Which body a notification renders with — the same two rules as
+ * `notificationBodyName` in src/notifications/messages.ts: a mention is
+ * about its preview, everything else about its item, and a kind with no
+ * detail (or one this client does not know) takes the plainer sentence.
+ */
+function bodyName(kind, payload) {
+  const known = ['delegation', 'mention', 'task', 'lock_taken']
+  if (known.indexOf(kind) === -1) return 'generic'
+  const named = kind === 'mention' ? payload.preview : payload.item_name
+  return named ? kind : kind + 'Plain'
+}
+
+/** `{slot}` substitution, as `t()` does it. An unknown slot is left alone. */
+function fill(template, params) {
+  return template.replace(/\{(\w+)\}/g, (slot, name) =>
+    Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : slot,
+  )
+}
+
+/** The OS notification's body, in the language the app last wrote. */
+function notificationBody(data, mirror) {
+  if (!mirror) return FALLBACK_BODY
+  const payload = data.payload || {}
+  const template = mirror.bodies[bodyName(data.kind, payload)] || mirror.bodies.generic
+  if (!template) return FALLBACK_BODY
+  return fill(template, {
+    actor: payload.actor_name || mirror.bodies.actorUnknown || '',
+    item: payload.item_name || '',
+    preview: payload.preview || '',
+  })
+}
+
 self.addEventListener('push', (event) => {
   let data = {}
   try {
@@ -104,30 +182,6 @@ self.addEventListener('push', (event) => {
     /* non-JSON push — show the generic fallback */
   }
   const payload = data.payload || {}
-  const actor = payload.actor_name || 'Someone'
-  const item = payload.item_name || ''
-
-  let body
-  switch (data.kind) {
-    case 'delegation':
-      body = item ? `${actor} delegated “${item}” to you` : `${actor} delegated an item to you`
-      break
-    case 'mention':
-      body = payload.preview
-        ? `${actor} mentioned you: ${payload.preview}`
-        : `${actor} mentioned you`
-      break
-    case 'task':
-      body = item ? `${actor} opened a task on “${item}”` : `${actor} opened a task for you`
-      break
-    case 'lock_taken':
-      body = item
-        ? `${actor} took “${item}” over from you`
-        : `${actor} took an item over from you`
-      break
-    default:
-      body = `${actor} sent you a notification`
-  }
 
   // Mirrors notificationRoute() (G-4): item context, plus the comment id
   // as ?comment= so M5 scrolls to and flashes the message.
@@ -142,11 +196,14 @@ self.addEventListener('push', (event) => {
   }
 
   event.waitUntil(
-    self.registration.showNotification('JIT-Pack', {
-      body,
-      tag: data.notification_id,
-      data: { url },
-    }),
+    (async () => {
+      const body = notificationBody(data, await readMirror())
+      await self.registration.showNotification('JIT-Pack', {
+        body,
+        tag: data.notification_id,
+        data: { url },
+      })
+    })(),
   )
 })
 
