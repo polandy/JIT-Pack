@@ -63,19 +63,25 @@ describe('setMembership (FR-25.21)', () => {
     const orch = orchestrator()
     const store = useTripStore()
 
-    orch.setMembership(TRIP_ID, rowsOf(store), {
-      kind: 'perPerson',
-      members: [
-        { traveler_id: 'tr-a', quantity: 2 },
-        { traveler_id: 'tr-b', quantity: 3 },
-      ],
-    }, [])
+    orch.setMembership(
+      TRIP_ID,
+      rowsOf(store),
+      {
+        kind: 'perPerson',
+        members: [
+          { traveler_id: 'tr-a', quantity: 2 },
+          { traveler_id: 'tr-b', quantity: 3 },
+        ],
+      },
+      [],
+    )
 
     const rows = rowsOf(store)
     expect(rows).toHaveLength(2)
-    expect(
-      rows.map((r) => [r.assigned_traveler_id, r.quantity]).sort(),
-    ).toEqual([['tr-a', 2], ['tr-b', 3]])
+    expect(rows.map((r) => [r.assigned_traveler_id, r.quantity]).sort()).toEqual([
+      ['tr-a', 2],
+      ['tr-b', 3],
+    ])
 
     // ADR-036: the existing row is re-pointed, never recreated — so anything
     // hanging off it survives. Its id is still among the rows.
@@ -94,13 +100,18 @@ describe('setMembership (FR-25.21)', () => {
     const orch = orchestrator()
     const store = useTripStore()
 
-    orch.setMembership(TRIP_ID, rowsOf(store), {
-      kind: 'perPerson',
-      members: [
-        { traveler_id: 'tr-a', quantity: 2 },
-        { traveler_id: 'tr-b', quantity: 3 },
-      ],
-    }, [])
+    orch.setMembership(
+      TRIP_ID,
+      rowsOf(store),
+      {
+        kind: 'perPerson',
+        members: [
+          { traveler_id: 'tr-a', quantity: 2 },
+          { traveler_id: 'tr-b', quantity: 3 },
+        ],
+      },
+      [],
+    )
     orch.setMembership(TRIP_ID, rowsOf(store), { kind: 'shared' }, [])
 
     const rows = rowsOf(store)
