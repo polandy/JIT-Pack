@@ -228,6 +228,13 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await expect(list.getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/2')
     await expect(list.getByTestId(`m4-child-${ITEM}-Andy`)).toContainText('0/2')
     await expect(list.getByTestId(`m4-child-${ITEM}-Leonardo`)).toContainText('0/3')
+    // Each child carries its own working control (E2E-M4-12), not one shared
+    // by the cluster: two rows reading 0/2 and 0/3 could still be drawn by a
+    // head that packs them together.
+    await expect(list.getByTestId(`m4-child-${ITEM}-Andy`).getByTestId('row-plus')).toBeVisible()
+    await expect(
+      list.getByTestId(`m4-child-${ITEM}-Leonardo`).getByTestId('row-plus'),
+    ).toBeVisible()
     // Mia was never checked, so she has no row at all — a quantity of 0 would
     // be FR-5.5's *skipped*, which is a different statement (FR-25.21).
     await expect(list.getByTestId(`m4-child-${ITEM}-Mia`)).toHaveCount(0)
