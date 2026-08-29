@@ -582,6 +582,9 @@ test.describe('M4 packing list @local @m4', () => {
     await expect(page.getByTestId('m4-row-Lampe')).toHaveCount(0)
     await page.getByTestId('m4-done-bar').click()
     await expect(page.getByTestId('m4-row-Lampe')).toBeVisible()
+    // FR-25.17: the row carries a packing record, which is what separates a
+    // row born packed from one whose count merely reached its quantity.
+    await expect(page.getByTestId('m4-packed-stamp')).toBeVisible()
   })
 
   /**
