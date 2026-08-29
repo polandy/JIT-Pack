@@ -89,7 +89,7 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     await expect(list.getByTestId(`m4-row-${ITEM}`)).toHaveCount(0)
   })
 
-  test('E2E-M5-19: removing a packed traveler is confirmed, and cancelling keeps the row', async ({
+  test('E2E-M5-19: removing a packed traveler is confirmed; removing a costless one is not', async ({
     page,
   }) => {
     await seedTrip(page)
@@ -98,6 +98,7 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     await page.getByTestId('membership-per-person').click()
     await setMember(page, 'Andy', 2)
     await setMember(page, 'Leonardo', 2)
+    await setMember(page, 'Mia', 1)
     await closeAll(page)
 
     // Pack one of Leonardo's, so removing him would cost something.
@@ -125,18 +126,48 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
     await expect(page.getByTestId('membership-qty-Leonardo')).toHaveCount(0)
     await closeAll(page)
 
+    // Two left, and the head counts people rather than units (FR-25.21a).
+    await expect(visiblePage(page).getByTestId(`m4-cluster-${ITEM}`)).toContainText('0/2')
+
+    // Mia's row carries nothing — no progress, no thread, no todo — so it is
+    // written without a question. The disappearing amount is the positive
+    // signal; the absent alert is what proves the question is raised by cost
+    // and not by the control.
+    await openMembership(page, ITEM, 'Andy')
+    await page.getByTestId('membership-check-Mia').click()
+    await expect(page.getByTestId('membership-qty-Mia')).toHaveCount(0)
+    await expect(page.locator('ion-alert')).toBeHidden()
+    await closeAll(page)
+
     // One member left: FR-25.1's flat fallback, not a one-child cluster.
     await expect(visiblePage(page).getByTestId(`m4-cluster-${ITEM}`)).toHaveCount(0)
   })
 
-  test('E2E-M5-20: collapsing back to shared sums the amounts', async ({ page }) => {
+  test('E2E-M5-20: collapsing back to shared sums the amounts and keeps the row', async ({
+    page,
+  }) => {
     await seedTrip(page)
 
     await openMembership(page, ITEM)
     await page.getByTestId('membership-per-person').click()
     await setMember(page, 'Andy', 2)
     await setMember(page, 'Leonardo', 3)
+    await closeAll(page)
 
+    // A preparation todo on Leonardo's row (FR-7.3). It makes his the survivor
+    // — content leads the ladder — and it is the thing ADR-036's keep-and-repoint
+    // exists to protect: delete-and-recreate would collapse the amounts just as
+    // correctly and lose this.
+    const TODO = 'Groesse pruefen'
+    await visiblePage(page).getByTestId(`m4-child-${ITEM}-Leonardo`).click()
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+    await page.getByTestId('m5-todo-input').locator('input').fill(TODO)
+    await page.getByTestId('m5-todo-add').click()
+    await expect(page.getByTestId('m5-sheet')).toContainText(TODO)
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+
+    await openMembership(page, ITEM, 'Leonardo')
     await page.getByTestId('membership-shared').click()
     const alert = page.locator('ion-alert')
     await expect(alert).toBeVisible()
@@ -149,5 +180,9 @@ test.describe('FR-25.21 membership with per-person amounts @local @m5', () => {
 
     await expect(visiblePage(page).getByTestId(`m4-cluster-${ITEM}`)).toHaveCount(0)
     await expect(visiblePage(page).getByTestId(`m4-row-${ITEM}`)).toContainText('0/5')
+
+    // The surviving row is the row, not a new one wearing its name.
+    await visiblePage(page).getByTestId(`m4-row-${ITEM}`).click()
+    await expect(page.getByTestId('m5-sheet')).toContainText(TODO)
   })
 })

@@ -184,7 +184,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A menu entry that navigated made the next screen invisible (2026-08-28)](#a-menu-entry-that-navigated-made-the-next-screen-invisible-2026-08-28) — B10's content column and the M4 bar's ⋮. The trap under the second one: an action run from inside an Ionic overlay's own handler races the teardown that clears `aria-hidden` on the router outlet, so the screen that opens is painted, clickable and absent from the accessibility tree — and every pixel assertion stays green through it.
 - [A version that was named in a fourth place (2026-08-28)](#a-version-that-was-named-in-a-fourth-place-2026-08-28) — the Go 1.27 move: the toolchain gate was right to refuse the lone image bump, and then the linter turned out to name the language version too. Why the gate now holds the linter's two pins to each other but deliberately refuses to judge whether the pinned release is new enough.
 - [Two screens nobody had ever rendered (2026-08-28)](#two-screens-nobody-had-ever-rendered-2026-08-28) — M20 and G-10, the last two areas the `server` project named as owed. Three defects that only a rendered multi-identity test could reach: a facepile initialling a random hex key, a group-sync badge whose state was unreachable because one frame was dropped while the socket was still opening, and a deactivated account whose app looked offline instead of saying so.
-- [The per-person model finally gets a writer (2026-08-29)](#the-per-person-model-finally-gets-a-writer-2026-08-29) — FR-25.21/ADR-036. Why a feature whose model had been complete since FR-25.1 still took a PR; the option that would have lost a comment thread on every membership edit; the tab that, as an action, could only assign the item to whoever is first in the roster; and why a specification written against a mockup got the save button wrong.
+- [The per-person model finally gets a writer (2026-08-29)](#the-per-person-model-finally-gets-a-writer-2026-08-29) — FR-25.21/ADR-036. Why a feature whose model had been complete since FR-25.1 still took a PR; the option that would have lost a comment thread on every membership edit; the tab that, as an action, could only assign the item to whoever is first in the roster; why a specification written against a mockup got the save button wrong; and the two case texts nobody had read back against their test bodies.
 
 ## Current state
 
@@ -8028,3 +8028,24 @@ The four e2e traps this cost — five callers of a deleted testid, the bundle
 being what runs, G-6's missing stepper at quantity one, and a mounted Ionic
 overlay — are in `dev-docs/e2e-tests.md` beside the cases, where the next person
 writing a case will be standing.
+
+**The review pass found the case texts had never been read back.** Two of the
+three e2e cases were written to their own shape rather than to the sentences the
+UI-Test-Spec carries for them, and the expensive one was E2E-M5-20: it promised
+that a preparation todo written before a collapse survives it, and asserted only
+the summed quantity. That clause is the whole argument for ADR-036 — a
+delete-and-recreate collapse sums the amounts exactly as correctly and loses the
+todo — so the decision's one distinguishing consequence was the one thing not
+being tested. It is asserted now, and deleting the content ladder from
+`survivorOf` reddens that case alone.
+
+**And a case was invented for a promise that already had two.** The FR-25.6
+follow-up was written up as a new id, E2E-M6-23. E2E-M6-05 and E2E-M6-06 have
+said the same two things — one aggregated row naming its recipients, one
+check-off settling every instance — since FR-25.6 was specified, and neither has
+ever been implemented. The new id was deleted and the pair marked unimplemented
+instead. The trap is specific and worth naming: **when a screen's promise has no
+test, the absence looks identical to the promise never having been written**, and
+searching the spec for the *behaviour* rather than for a free number is what
+tells the two apart. The id search that was run found no collision because it
+was looking for a free number, and found one.

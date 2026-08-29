@@ -2150,4 +2150,25 @@ Four things the cases cost, each worth more than the case:
 
 And one case shape worth copying: **E2E-M5-19 asserts the cancel**, not only the
 confirm. A destructive control that fires on the first tap and one that asks are
-indistinguishable from the confirmed path alone.
+indistinguishable from the confirmed path alone. It also asserts the *silent*
+half — a traveler whose row carries nothing leaves without a question — and that
+half needs the disappearing amount as its positive signal, because "no dialog
+appeared" is true of a build where the checkbox does nothing at all.
+
+**What the review pass added, and why it was missing.** Two of the three cases
+were written to their own shape rather than to the spec sentence they carry, and
+reading the two side by side is what found it:
+
+- **E2E-M5-20 promised that a preparation todo written before the conversion is
+  still there afterwards** — and asserted only the summed quantity. That clause
+  is not decoration: it is the entire reason ADR-036 chose keep-and-repoint over
+  delete-and-recreate, and a collapse that recreated the row would have summed
+  the amounts just as correctly. Deleting the content ladder from `survivorOf`
+  now reddens M5-20 and nothing else; before, it reddened nothing.
+- **E2E-M5-19 described three travelers and asserted two.** Harmless in itself,
+  but it is the same defect in a smaller costume — a spec sentence nobody read
+  back against the test body.
+
+The general form: **a case id in the UI-Test-Spec is a list of promises, and each
+clause has to be findable as an assertion.** The id existing is not the coverage,
+and a green case named after the promise is exactly what hides its absence.
