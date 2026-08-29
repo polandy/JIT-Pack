@@ -2128,8 +2128,16 @@ change of its own rather than a rider on a one-flag PR.
 
 The browse-sheet's opt-in switch is otherwise a component-test subject: the
 counting, the two "everything is already in" sentences and the persistence are
-pinned in `InventoryBrowseSheet.spec.ts`, all five mutation-proven against a
-build with the filter disabled.
+pinned in `InventoryBrowseSheet.spec.ts`. **Six of its seven cases are proven
+red** against a build with the filter disabled; the seventh is the *default off*
+case, which asserts the unfiltered sheet and is right to stay green there.
+
+Two of the six only became red on the second pass, and both for the same
+reason: they asserted the **tappable** rows, which look identical whether a
+carried row is hidden or merely rendered as *„schon drin"*. The list that
+separates the two is the carried one, and that is what they assert now. A
+count of red cases is worth nothing without knowing which assertion earned
+it.
 
 **What only the rendered case can pin** is the rule the whole feature stands on:
 with the switch on, a row tapped during the run **stays on screen** and reads

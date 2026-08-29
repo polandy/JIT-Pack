@@ -248,10 +248,14 @@ describe('InventoryBrowseSheet — hiding what is already in (FR-25.13e)', () =>
     expect(wrapper.find('[data-testid="browse-added-now"]').exists()).toBe(true)
 
     // Moving the axis starts a new pass over a different part of the
-    // inventory: what is carried by then is what is in the way.
+    // inventory: what is carried by then is what is in the way. Both lists are
+    // asserted — Kleidung is entirely carried by now, so "no tappable rows"
+    // is equally true of a sheet that hides nothing at all.
     await wrapper.find('[data-testid="browse-tag-Kleidung"]').trigger('click')
     expect(rowNames(wrapper)).toEqual([])
+    expect(carriedNames(wrapper)).toEqual([])
     expect(wrapper.find('[data-testid="browse-added-now"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="browse-all-carried"]').exists()).toBe(true)
   })
 
   it('counts inside the tag filter, and drops the line where it would hide nothing', async () => {
