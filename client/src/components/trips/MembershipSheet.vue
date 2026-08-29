@@ -35,6 +35,12 @@ const props = defineProps<{
   itemId: string
   /** G-3: a foreign claim on any instance freezes the whole editor. */
   locked: boolean
+  /**
+   * FR-25.8: open on the roster instead of on *Gemeinsam*. The quick-add's
+   * mode is already the answer to which tab this is, and asking for it twice
+   * would make the mode a label rather than a choice.
+   */
+  startPerPerson?: boolean
 }>()
 
 const emit = defineEmits<{ close: [] }>()
@@ -71,7 +77,7 @@ const perPerson = computed(() => rows.value.some((r) => r.assigned_traveler_id !
  * was assign the item to whoever happens to be first in the roster — a silent
  * decision on somebody's packing list. Checking a person is the write.
  */
-const perPersonView = ref(false)
+const perPersonView = ref(props.startPerPerson === true)
 const showRoster = computed(() => perPerson.value || perPersonView.value)
 
 /** The amount a traveler carries today, or null when they are not a member. */

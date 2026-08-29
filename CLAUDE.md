@@ -281,8 +281,12 @@ it. Item numbers stay stable even as items close, because the log refers back to
    **Built 2026-08-29:** `domain/membership.ts` (the ADR-036 planner, 19 unit cases),
    `MembershipSheet.vue` behind M5's *Details ▾*, and E2E-M5-18/19/20 — red-proved, and the five e2e
    callers of the deleted `m5-traveler` picker rewired with them. Log: *„The per-person model finally
-   gets a writer"*. **Still open, each its own PR:** FR-25.8's *Pro Person* quick-add (E2E-M4-58) and
-   FR-25.6's aggregated M6 buy row (E2E-M6-05/06, specified since FR-25.6 and never implemented), plus E2E-G3-04 in the `server` project.
+   gets a writer"*. **FR-25.8's *Pro Person* quick-add followed 2026-08-29**: a *Gemeinsam*/*Pro Person*
+   segment on the shared composer, offered only where there is somebody to distribute over (G-8, so
+   never on M8), writing the row first and opening the editor on it — E2E-M4-12/58, M4-13, M4-60.
+   Log: *„The quick-add gets a mode…"*. **Still open, each its own PR:** FR-25.6's aggregated M6 buy
+   row (E2E-M6-05/06, specified since FR-25.6 and never implemented), plus E2E-G3-04 in the `server`
+   project.
 
 **Parked, specified, do not start:** §3.26 calendar feed,
 the North-Star Plan/During phases, FR-27.8's per-trip usage history, and FR-1.6's publish/fork

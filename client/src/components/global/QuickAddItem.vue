@@ -29,6 +29,12 @@
  * takes no new control — the composer the user already types into filters
  * groups beside items, under their own heading and visibly not an item.
  *
+ * M4 also offers the **per-person mode** here (FR-25.8, `offerPerPerson`):
+ * *Gesamt* stays the default for the common case and *Pro Person* is one tap
+ * away. The composer only carries the choice on the `add` event — it knows
+ * nothing about rows, and who gets how many is decided in the membership
+ * editor the caller opens.
+ *
  * **Deliberately no collapse-on-blur**, which FR-25.13a's wording allows
  * for an empty form. Collapsing removes a block from the flow *above* the
  * list, so the rows move between the pointer going down and coming up and
@@ -72,8 +78,20 @@ const props = withDefaults(
     excludeItemIds?: string[]
     /** FR-27.10: offer whole groups beside the items (M4 only). */
     offerGroups?: boolean
+    /**
+     * FR-25.8: offer the *Pro Person* mode. The caller decides, because a
+     * template has no travelers (M8) and neither has a trip with fewer than
+     * two of them (G-8) — there is no membership to distribute.
+     */
+    offerPerPerson?: boolean
   }>(),
-  { isActive: false, confirmLabel: undefined, excludeItemIds: () => [], offerGroups: false },
+  {
+    isActive: false,
+    confirmLabel: undefined,
+    excludeItemIds: () => [],
+    offerGroups: false,
+    offerPerPerson: false,
+  },
 )
 
 const emit = defineEmits<{
@@ -84,6 +102,8 @@ const emit = defineEmits<{
       weightGrams: number | null
       valueCents: number | null
       categoryName: string | null
+      /** FR-25.8: the add was made in *Pro Person* mode. */
+      perPerson: boolean
     },
   ]
   /** FR-27.10: expand this group onto the trip — the caller reports the result. */
@@ -94,6 +114,13 @@ const masterStore = useMasterStore()
 
 const expanded = ref(false)
 const query = ref('')
+
+/**
+ * FR-25.8's mode. It survives an add, because a run of per-person rows is
+ * entered the same way a run of shared ones is, and it dies with the composer:
+ * *Gesamt* is the default the FR keeps, so the next opening starts there.
+ */
+const perPerson = ref(false)
 const inputRef = ref<InstanceType<typeof IonInput> | null>(null)
 
 const suggestions = computed(() => {
@@ -178,6 +205,7 @@ function open() {
 function close() {
   expanded.value = false
   query.value = ''
+  perPerson.value = false
   browseOpen.value = false
 }
 
@@ -204,6 +232,7 @@ function emitMasterItem(item: MasterItem) {
     // the master item's *primary* tag (FR-24.2) — the trip side keeps a
     // single snapshot, it does not gain the whole set.
     categoryName: masterStore.getPrimaryTag(item.id)?.name ?? null,
+    perPerson: perPerson.value,
   })
   recordRecentItem(item.id)
   recentsVersion.value++
@@ -273,6 +302,7 @@ function submitFreeText() {
     weightGrams: null,
     valueCents: null,
     categoryName: null,
+    perPerson: perPerson.value,
   })
   query.value = ''
   void focusInput()
@@ -297,6 +327,29 @@ function onKeydown(event: KeyboardEvent) {
     </button>
 
     <div v-else class="quick-add-form">
+      <!-- FR-25.8: the same two words the membership editor uses, because it
+           is the editor this mode opens. -->
+      <div v-if="offerPerPerson" class="seg" role="tablist">
+        <button
+          role="tab"
+          :aria-selected="!perPerson"
+          :class="{ on: !perPerson }"
+          data-testid="quick-add-mode-shared"
+          @click="perPerson = false"
+        >
+          {{ t('membership.shared') }}
+        </button>
+        <button
+          role="tab"
+          :aria-selected="perPerson"
+          :class="{ on: perPerson }"
+          data-testid="quick-add-mode-per-person"
+          @click="perPerson = true"
+        >
+          {{ t('membership.perPerson') }}
+        </button>
+      </div>
+
       <div class="input-row">
         <IonInput
           ref="inputRef"
@@ -468,6 +521,29 @@ function onKeydown(event: KeyboardEvent) {
   border: 1px solid var(--ct-blue);
   border-radius: var(--jp-r-sm);
   padding: 8px;
+}
+
+.seg {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  margin-bottom: 8px;
+  background: var(--jp-surface-sunken);
+  border-radius: var(--jp-r-md);
+}
+
+.seg button {
+  flex: 1;
+  padding: 7px 4px;
+  border: 0;
+  border-radius: var(--jp-r-sm);
+  background: none;
+  color: var(--ct-subtext0);
+}
+
+.seg button.on {
+  background: var(--jp-action);
+  color: var(--ct-on-accent);
 }
 
 .input-row {

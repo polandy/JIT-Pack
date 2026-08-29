@@ -80,6 +80,7 @@ import FilterSheet, {
   type FilterOption,
 } from '@/components/global/FilterSheet.vue'
 import ItemDetailSheet from '@/components/trips/ItemDetailSheet.vue'
+import MembershipSheet from '@/components/trips/MembershipSheet.vue'
 import PresenceFacepile from '@/components/global/PresenceFacepile.vue'
 import SearchRow from '@/components/global/SearchRow.vue'
 import QuantityStepper from '@/components/global/QuantityStepper.vue'
@@ -281,10 +282,12 @@ function clusterMaster(cluster: PackingCluster): MasterItem | null {
   return (cluster.sourceItemId ? masterStore.getItem(cluster.sourceItemId) : undefined) ?? null
 }
 
+const travelers = computed(() => store.getTravelers(props.tripId))
+
 const view = computed(() =>
   buildPackingView({
     items: allItems.value,
-    travelers: store.getTravelers(props.tripId),
+    travelers: travelers.value,
     containers: store.getContainers(props.tripId),
     participants: participants.value,
     groupBy: groupBy.value,
@@ -1219,14 +1222,26 @@ function togglePrepTodo(todo: ItemTodo) {
   }
 }
 
+/**
+ * FR-25.8: an item quick-added *pro Person* opens the membership editor on the
+ * row that was just written, and checking the travelers is what fans it out.
+ * The row exists first on purpose — the editor edits rows, and an editor that
+ * had to work on a draft would be a second implementation of the rules
+ * `domain/membership.ts` already owns (invariant 4). The accepted cost is that
+ * an abandoned flow leaves an ordinary shared row behind, which is what the
+ * user asked for in the first place.
+ */
+const membershipItemId = ref<string | null>(null)
+
 function onQuickAdd(item: {
   name: string
   sourceItemId: string | null
   weightGrams: number | null
   valueCents: number | null
   categoryName: string | null
+  perPerson: boolean
 }) {
-  orchestrator.quickAddItem(
+  const id = orchestrator.quickAddItem(
     props.tripId,
     item.name,
     {
@@ -1237,6 +1252,7 @@ function onQuickAdd(item: {
     },
     isActive.value,
   )
+  if (item.perPerson) membershipItemId.value = id
 }
 
 /**
@@ -1500,6 +1516,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
         ref="quickAdd"
         :is-active="isActive"
         :offer-groups="true"
+        :offer-per-person="travelers.length > 1"
         :exclude-item-ids="quickAddExcludeIds"
         @add="onQuickAdd"
         @add-group="onQuickAddGroup"
@@ -1882,6 +1899,28 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
           <IonIcon :icon="addOutline" />
         </IonFabButton>
       </IonFab>
+
+      <!-- FR-25.8: the membership editor over a freshly quick-added row.
+           `locked` is false because the id was minted a moment ago and nobody
+           else can be holding a claim on it yet (G-3). -->
+      <IonModal
+        :is-open="membershipItemId !== null"
+        data-testid="m4-membership-modal"
+        @did-dismiss="membershipItemId = null"
+      >
+        <IonContent>
+          <div class="membership-wrap">
+            <MembershipSheet
+              v-if="membershipItemId"
+              :trip-id="tripId"
+              :item-id="membershipItemId"
+              :locked="false"
+              :start-per-person="true"
+              @close="membershipItemId = null"
+            />
+          </div>
+        </IonContent>
+      </IonModal>
 
       <!-- M5 (UI-Spec M5 + G-9): a sheet on a phone, a side panel on a
            desktop — one content component either way. -->
@@ -2508,5 +2547,11 @@ ion-content.pack-content::part(scroll) {
 .row-avatar {
   flex: none;
   margin-inline-end: 8px;
+}
+
+/* FR-25.8's membership editor, given the same room M5 gives it. */
+.membership-wrap {
+  padding: 16px;
+  overflow-y: auto;
 }
 </style>

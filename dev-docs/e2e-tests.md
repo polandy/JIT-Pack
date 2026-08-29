@@ -440,9 +440,17 @@ category, a traveler or a buy mode, and **none of those can be set from
 M4**: the quick-add produces uncategorised, unassigned `pack` rows. Spec
 §2.4 forbids injecting such rows around the app, so these cases arrive
 with the screens that can produce them (M5, and the M9/M10 rebuild).
-Likewise E2E-M4-12/-13 (per-person clusters) need FR-25.8's per-person
-quick-add, -26/-27 need FR-27.10's group add, and -24/-30/-31 need a
-second account: all unbuilt or `server`-only today.
+Likewise E2E-M4-26/-27 need FR-27.10's group add, and -24/-30/-31 need a
+second account: `server`-only today. **E2E-M4-12/-13 arrived 2026-08-29**
+with FR-25.8's per-person quick-add, and neither landed where it was
+waiting: -12 is one case with -58, because the two entries describe one
+rendered outcome and the second would only re-run it, and -13's premise —
+*„the same quick-add for a single traveler"* — no longer exists, since
+G-8 makes the mode absent on a trip with one traveler. The state it
+promised is reached by a membership of one, which E2E-M5-19 already walks
+through, so the case is one assertion added there rather than a trip
+built to reach it. A blocked case is worth re-reading when it unblocks:
+what unblocks it is often not the thing it was written against.
 
 E2E-M4-28 covers the *session* half of FR-25.18 by leaving M4 and coming
 back; the *fresh session* half is a unit test on `usePackingFilter`,
