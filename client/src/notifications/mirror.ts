@@ -11,6 +11,8 @@
  * Its own database rather than Local Mode's: this is needed in Server Mode
  * too, where `IndexedDBPersistence` does not exist.
  */
+import { watchEffect } from 'vue'
+
 import { currentLocale, t } from '@/i18n'
 import { bodyMessageKey, NOTIFICATION_BODY_NAMES } from './messages'
 
@@ -66,4 +68,25 @@ export async function writeNotificationMirror(): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+/**
+ * Keeps the mirror current for as long as the app is running: once at start
+ * and again on every language change.
+ *
+ * A composable rather than a `watchEffect` in `App.vue` so the *wiring* is
+ * testable and not only the write — and one effect rather than a call beside
+ * each `setLocale`, which is how the last two mirrors of this shape went
+ * stale (NFR-4.12's own history).
+ */
+export function startNotificationMirror(write: () => unknown = writeNotificationMirror): void {
+  watchEffect(() => {
+    // Read the locale so the effect re-runs when it changes; the write
+    // itself reads it again through `currentMirror`. The writer is a
+    // parameter so a test can assert *that the effect ran* without racing
+    // IndexedDB for the answer — what the write itself does is covered
+    // against the real store above.
+    currentLocale()
+    void write()
+  })
 }

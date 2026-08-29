@@ -140,4 +140,19 @@ describe('the worker reads what the app wrote', () => {
 
     expect(await readMirror()).toBeNull()
   })
+
+  /*
+   * And that read must not poison the store for the write that follows it,
+   * which is the *ordinary* sequence in production: a push can reach a
+   * device before the app has ever run. The worker opens the database at
+   * version 1 and aborts the upgrade rather than creating a schema it does
+   * not own — this asserts the abort rolls back cleanly.
+   */
+  it('leaves the store creatable after reading an absent one', async () => {
+    expect(await loadWorker().readMirror()).toBeNull()
+
+    expect(await writeNotificationMirror()).toBe(true)
+
+    expect(await loadWorker().readMirror()).not.toBeNull()
+  })
 })

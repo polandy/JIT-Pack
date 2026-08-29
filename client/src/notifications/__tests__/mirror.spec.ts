@@ -8,10 +8,12 @@
 import 'fake-indexeddb/auto'
 import { IDBFactory } from 'fake-indexeddb'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { effectScope, nextTick } from 'vue'
 
-import { DEFAULT_LOCALE, setLocale } from '@/i18n'
+import { currentLocale, DEFAULT_LOCALE, setLocale } from '@/i18n'
 import {
   currentMirror,
+  startNotificationMirror,
   MIRROR_DB,
   MIRROR_KEY,
   MIRROR_STORE,
@@ -97,5 +99,44 @@ describe('the notification mirror', () => {
     } as unknown as IDBFactory
 
     await expect(writeNotificationMirror()).resolves.toBe(false)
+  })
+})
+
+/**
+ * The wiring, not only the write: a mirror nobody keeps current is the exact
+ * failure this replaces — `sw.js` held a correct copy of the sentences too,
+ * once.
+ */
+describe('keeping the mirror current', () => {
+  it('writes at start and again when the language changes', async () => {
+    // The languages the writes were made *in*, recorded as they happen, so
+    // the assertion is about the effect rather than about IndexedDB having
+    // caught up — no wait, no poll.
+    const wroteIn: string[] = []
+    const scope = effectScope()
+    scope.run(() => startNotificationMirror(() => wroteIn.push(currentLocale())))
+
+    expect(wroteIn).toEqual([DEFAULT_LOCALE])
+
+    setLocale('de')
+    await nextTick()
+
+    // The effect re-ran because it reads the locale, not because anything
+    // called it: a `setLocale` with no second call site is the whole point.
+    expect(wroteIn).toEqual([DEFAULT_LOCALE, 'de'])
+
+    scope.stop()
+  })
+
+  it('stops writing once the app that started it is gone', async () => {
+    const wroteIn: string[] = []
+    const scope = effectScope()
+    scope.run(() => startNotificationMirror(() => wroteIn.push(currentLocale())))
+    scope.stop()
+
+    setLocale('de')
+    await nextTick()
+
+    expect(wroteIn).toEqual([DEFAULT_LOCALE])
   })
 })

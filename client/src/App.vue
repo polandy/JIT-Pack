@@ -22,7 +22,7 @@ import {
   notificationRoute,
   type ServerNotification,
 } from '@/notifications/format'
-import { writeNotificationMirror } from '@/notifications/mirror'
+import { startNotificationMirror } from '@/notifications/mirror'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import type { ConflictReport, RejectionReport } from '@/composables/useSyncOutbox'
 import { serverBaseUrl } from '@/config'
@@ -34,11 +34,11 @@ import { lastExportAt, markExported } from '@/local/exportReminder'
 import { readStorageStatus, type StorageStatus } from '@/local/storageStatus'
 import { saveText } from '@/lib/download'
 import { swUpdateReady } from '@/pwa/register'
-import { currentLocale, t } from '@/i18n'
+import { t } from '@/i18n'
 import { rejectionToastMessage } from '@/sync/rejectionReasons'
 import { useMasterStore } from '@/stores/masterStore'
 import { useTripStore } from '@/stores/tripStore'
-import { provide, computed, onMounted, onUnmounted, ref, watchEffect } from 'vue'
+import { provide, computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const MODE_KEY = 'jitpack_mode'
@@ -140,18 +140,9 @@ provide('orchestrator', orchestrator)
 
 const syncStatus = orchestrator?.syncStatus ?? null
 
-/*
- * NFR-4.12: the OS notification is rendered by a worker that cannot read
- * `localStorage` and cannot import the catalogue, so the app leaves the
- * vocabulary for the active language where the worker can find it
- * (ADR-037). One effect rather than a call beside every `setLocale`: it
- * runs at boot and again on every language change, and a second call site
- * is how the last two of these went stale.
- */
-watchEffect(() => {
-  currentLocale()
-  void writeNotificationMirror()
-})
+// NFR-4.12: leave the notification vocabulary where the service worker can
+// read it — it can reach neither `localStorage` nor the catalogue (ADR-037).
+startNotificationMirror()
 
 onMounted(async () => {
   // Server Mode without a session: if the server offers OIDC, log in
