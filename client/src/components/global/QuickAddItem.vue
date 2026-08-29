@@ -29,6 +29,12 @@
  * takes no new control — the composer the user already types into filters
  * groups beside items, under their own heading and visibly not an item.
  *
+ * M4 also offers the **per-person mode** here (FR-25.8, `offerPerPerson`):
+ * *Gesamt* stays the default for the common case and *Pro Person* is one tap
+ * away. The composer only carries the choice on the `add` event — it knows
+ * nothing about rows, and who gets how many is decided in the membership
+ * editor the caller opens.
+ *
  * **Deliberately no collapse-on-blur**, which FR-25.13a's wording allows
  * for an empty form. Collapsing removes a block from the flow *above* the
  * list, so the rows move between the pointer going down and coming up and
@@ -75,6 +81,12 @@ const props = withDefaults(
     /** FR-27.10: offer whole groups beside the items (M4 only). */
     offerGroups?: boolean
     /**
+     * FR-25.8: offer the *Pro Person* mode. The caller decides, because a
+     * template has no travelers (M8) and neither has a trip with fewer than
+     * two of them (G-8) — there is no membership to distribute.
+     */
+    offerPerPerson?: boolean
+    /**
      * FR-25.13f: the packing state of what the scope carries, per master
      * item. Passed straight through to the browse-sheet, where its presence
      * is what puts the two one-tap verbs on the rows — M4 only.
@@ -86,6 +98,7 @@ const props = withDefaults(
     confirmLabel: undefined,
     excludeItemIds: () => [],
     offerGroups: false,
+    offerPerPerson: false,
     browseRowStates: undefined,
   },
 )
@@ -103,6 +116,8 @@ const emit = defineEmits<{
       weightGrams: number | null
       valueCents: number | null
       categoryName: string | null
+      /** FR-25.8: the add was made in *Pro Person* mode. */
+      perPerson: boolean
     },
     decided?: AddedItemDecision,
   ]
@@ -120,6 +135,13 @@ const masterStore = useMasterStore()
 
 const expanded = ref(false)
 const query = ref('')
+
+/**
+ * FR-25.8's mode. It survives an add, because a run of per-person rows is
+ * entered the same way a run of shared ones is, and it dies with the composer:
+ * *Gesamt* is the default the FR keeps, so the next opening starts there.
+ */
+const perPerson = ref(false)
 const inputRef = ref<InstanceType<typeof IonInput> | null>(null)
 
 const suggestions = computed(() => {
@@ -204,7 +226,9 @@ function open() {
 function close() {
   expanded.value = false
   query.value = ''
+  perPerson.value = false
   browseOpen.value = false
+  browsePerPersonPending.value = null
 }
 
 function toggle() {
@@ -232,6 +256,7 @@ function emitMasterItem(item: MasterItem, decided?: AddedItemDecision) {
       // the master item's *primary* tag (FR-24.2) — the trip side keeps a
       // single snapshot, it does not gain the whole set.
       categoryName: masterStore.getPrimaryTag(item.id)?.name ?? null,
+      perPerson: perPerson.value,
     },
     decided,
   )
@@ -268,8 +293,32 @@ const showBrowseEntry = computed(
   () => query.value.trim().length === 0 && masterStore.activeItemList.length > 0,
 )
 
-/** A sheet add is a chip add: FR-25.7 defaults, no refocus, sheet stays open. */
+/**
+ * A sheet add is a chip add: FR-25.7 defaults, no refocus, sheet stays open.
+ *
+ * **Except in *Pro Person* mode**, where the sheet has to close first. The add
+ * ends in the membership editor, which is a modal of the caller's — and a modal
+ * presented while this sheet is still up renders *behind* it, greyed and
+ * unreachable. The emit therefore waits for the sheet's own dismissed signal,
+ * the same reason the free-text line waits for it below. Found by rendering it.
+ */
+const browsePerPersonPending = ref<{ item: MasterItem; decided?: AddedItemDecision } | null>(null)
+
+/**
+ * Holds the add back until the sheet is gone. Every browse verb goes through
+ * here in *Pro Person* mode, FR-25.13f's two included — the editor that
+ * follows is the caller's modal either way.
+ */
+function deferPerPerson(item: MasterItem, decided?: AddedItemDecision) {
+  browsePerPersonPending.value = { item, decided }
+  browseOpen.value = false
+}
+
 function onBrowseAdd(item: MasterItem) {
+  if (perPerson.value) {
+    deferPerPerson(item)
+    return
+  }
   emitMasterItem(item)
 }
 
@@ -279,10 +328,18 @@ function onBrowseAdd(item: MasterItem) {
  * defaults, the same recents entry and the same primary tag as any other.
  */
 function onBrowseAddPacked(item: MasterItem) {
+  if (perPerson.value) {
+    deferPerPerson(item, 'packed')
+    return
+  }
   emitMasterItem(item, 'packed')
 }
 
 function onBrowseAddSkipped(item: MasterItem) {
+  if (perPerson.value) {
+    deferPerPerson(item, 'skipped')
+    return
+  }
   emitMasterItem(item, 'skipped')
 }
 
@@ -300,6 +357,12 @@ function onBrowseFreeText() {
 
 function onBrowseDismiss() {
   browseOpen.value = false
+  const pending = browsePerPersonPending.value
+  if (pending) {
+    browsePerPersonPending.value = null
+    emitMasterItem(pending.item, pending.decided)
+    return
+  }
   if (browseFreeTextPending.value) {
     browseFreeTextPending.value = false
     void focusInput()
@@ -316,6 +379,7 @@ function submitFreeText() {
     weightGrams: null,
     valueCents: null,
     categoryName: null,
+    perPerson: perPerson.value,
   })
   query.value = ''
   void focusInput()
@@ -340,6 +404,29 @@ function onKeydown(event: KeyboardEvent) {
     </button>
 
     <div v-else class="quick-add-form">
+      <!-- FR-25.8: the same two words the membership editor uses, because it
+           is the editor this mode opens. -->
+      <div v-if="offerPerPerson" class="seg" role="tablist">
+        <button
+          role="tab"
+          :aria-selected="!perPerson"
+          :class="{ on: !perPerson }"
+          data-testid="quick-add-mode-shared"
+          @click="perPerson = false"
+        >
+          {{ t('membership.shared') }}
+        </button>
+        <button
+          role="tab"
+          :aria-selected="perPerson"
+          :class="{ on: perPerson }"
+          data-testid="quick-add-mode-per-person"
+          @click="perPerson = true"
+        >
+          {{ t('membership.perPerson') }}
+        </button>
+      </div>
+
       <div class="input-row">
         <IonInput
           ref="inputRef"
@@ -517,6 +604,29 @@ function onKeydown(event: KeyboardEvent) {
   border: 1px solid var(--ct-blue);
   border-radius: var(--jp-r-sm);
   padding: 8px;
+}
+
+.seg {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  margin-bottom: 8px;
+  background: var(--jp-surface-sunken);
+  border-radius: var(--jp-r-md);
+}
+
+.seg button {
+  flex: 1;
+  padding: 7px 4px;
+  border: 0;
+  border-radius: var(--jp-r-sm);
+  background: none;
+  color: var(--ct-subtext0);
+}
+
+.seg button.on {
+  background: var(--jp-action);
+  color: var(--ct-on-accent);
 }
 
 .input-row {

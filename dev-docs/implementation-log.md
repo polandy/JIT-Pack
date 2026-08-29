@@ -187,6 +187,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The sheet learns to put finished rows away (2026-08-29)](#the-sheet-learns-to-put-finished-rows-away-2026-08-29) — FR-25.13e reverses FR-25.13d's "a carried item stays listed" for an opt-in switch. The rule that made the reversal affordable is that hiding is a **snapshot**, not a filter: what the run adds is never hidden, because a row vanishing under the finger reflows the list into the next tap and deletes the sheet's only feedback.
 - [The per-person model finally gets a writer (2026-08-29)](#the-per-person-model-finally-gets-a-writer-2026-08-29) — FR-25.21/ADR-036. Why a feature whose model had been complete since FR-25.1 still took a PR; the option that would have lost a comment thread on every membership edit; the tab that, as an action, could only assign the item to whoever is first in the roster; why a specification written against a mockup got the save button wrong; and the two case texts nobody had read back against their test bodies.
 - [The sheet learns two verbs (2026-08-29)](#the-sheet-learns-two-verbs-2026-08-29) — FR-25.13f. The decision made in front of the wardrobe — *already packed* / *staying home* — cost three screens per item. Two variants were rendered and rejected before one was built, and the case that mattered most is the one no failing test asked for: which signal wins when the run's own verb and FR-25.13e's derived *added* describe the same line.
+- [The quick-add gets a mode, and two waiting cases did not land where they waited (2026-08-29)](#the-quick-add-gets-a-mode-and-two-waiting-cases-did-not-land-where-they-waited-2026-08-29) — FR-25.8. Why the row is written *before* the membership editor opens rather than the mode collecting a draft; and the two e2e cases that had been parked on this feature since the concept round, one of which turned out to be a second run of another and the other to have lost its premise to G-8.
 
 ## Current state
 
@@ -8159,3 +8160,60 @@ module ref, so a new `describe` block that flips it hands its state to whatever
 runs next. Two unrelated cases went red for it, and the first red run of the
 precedence case was a false one — it failed on an absent toggle rather than on
 the assertion, which is exactly the shape of a red-proof that proves nothing.
+
+## The quick-add gets a mode, and two waiting cases did not land where they waited (2026-08-29)
+
+FR-25.8 had been half-built for as long as it had existed: the amendment that
+made a per-person item ordinary (FR-25.21) shipped its editor, and the composer
+still had no way to say *pro Person*. The feature itself is small — a segment
+above the field, a flag on the `add` event, and the caller opening the editor
+the flag asks for — and two decisions in it are worth the entry.
+
+**The row is written first, and the editor opens on it.** The obvious reading of
+*„give it a different quantity per traveler in one step"* is a draft: collect the
+membership in the composer, write N rows when it is confirmed. That was rejected,
+and not on effort. The editor edits rows — it reads the cluster, asks
+`planMembership` what a change would destroy, and words a confirm from the plan.
+An editor able to work on a draft would need a second source of truth and a
+second path through the same rules, which is exactly the duplication ADR-025 was
+written to undo. The accepted cost is stated where it is paid: abandoning the
+flow leaves an ordinary shared row behind — which is what typing the name asked
+for.
+
+**A blocked case is worth re-reading when it unblocks, because what unblocks it
+is often not what it was written against.** E2E-M4-12 and E2E-M4-13 had sat in
+`e2e-tests.md` for weeks under one sentence: they *„need FR-25.8's per-person
+quick-add"*. Building it, neither landed. M4-12 describes the same rendered
+outcome as M4-58 — one cluster, two children, no second top-level row wearing the
+name — with the amounts equal instead of pulled apart, so implementing both would
+have run one assertion set twice for a case id's sake. And M4-13's premise is
+**gone**: it reads *„the same quick-add for a single traveler"*, and G-8 makes the
+mode absent when there is nobody to distribute over. The state it promised —
+FR-25.1's flat fallback, a lone member rendering as *„Kurze Hosen · Andy"* rather
+than a one-child cluster — is reached by a membership of one, which E2E-M5-19
+already walks through and was one assertion short of proving: it checked that no
+cluster was drawn and never that the person was named. Reading the two entries
+back against the feature that unblocked them cost minutes; writing the trip that
+M4-13 asked for would have cost a test that proves nothing, against a control
+that is not there.
+
+**And one interaction had to be built rather than inherited.** The composer's
+browse-sheet (FR-25.13d) adds a row per tap and stays open for the run. In the
+new mode each add ends in the membership editor — a modal of M4's — and a modal
+presented while that sheet is still up renders *behind* it: greyed, inert,
+looking like nothing happened. Reading the code would not have shown it; the
+screenshot did. The fix is the pattern the free-text line beside it already
+used, waiting for the sheet's own dismissed signal before emitting. The case
+that guards it asserts the checkbox can be **operated**, not that the editor is
+visible — the broken build renders the editor perfectly well.
+
+**A merge is where two features first meet, and the meeting is a decision.**
+FR-25.13f landed on `main` while this branch was open: the browse-sheet's lines
+grew two one-tap verbs. Neither PR conflicted on behaviour — git conflicted only
+on adjacent lines — and the resolution that compiles is the one where a verb tap
+in *Pro Person* mode quietly drops the mode. It also re-opens the defect this PR
+had already paid for once: the editor presented while the sheet is still up
+renders behind it. Both verbs therefore go through the same deferral as the plain
+add, carrying their decision with them, and the case that pins it is a unit case,
+because what it asserts is that **nothing** is emitted until the sheet's dismiss —
+an absence needing a positive signal, which the later emit is.

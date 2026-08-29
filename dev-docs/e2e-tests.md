@@ -42,7 +42,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
-| FR-25.21 membership | E2E-M5-18, E2E-M5-19, E2E-M5-20 | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
+| FR-25.21 membership · FR-25.8 per-person quick-add | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-64 (G-8: the mode is absent), E2E-M4-65 (the browse-sheet path) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
@@ -441,9 +441,17 @@ category, a traveler or a buy mode, and **none of those can be set from
 M4**: the quick-add produces uncategorised, unassigned `pack` rows. Spec
 §2.4 forbids injecting such rows around the app, so these cases arrive
 with the screens that can produce them (M5, and the M9/M10 rebuild).
-Likewise E2E-M4-12/-13 (per-person clusters) need FR-25.8's per-person
-quick-add, -26/-27 need FR-27.10's group add, and -24/-30/-31 need a
-second account: all unbuilt or `server`-only today.
+Likewise E2E-M4-26/-27 need FR-27.10's group add, and -24/-30/-31 need a
+second account: `server`-only today. **E2E-M4-12/-13 arrived 2026-08-29**
+with FR-25.8's per-person quick-add, and neither landed where it was
+waiting: -12 is one case with -58, because the two entries describe one
+rendered outcome and the second would only re-run it, and -13's premise —
+*„the same quick-add for a single traveler"* — no longer exists, since
+G-8 makes the mode absent on a trip with one traveler. The state it
+promised is reached by a membership of one, which E2E-M5-19 already walks
+through, so the case is one assertion added there rather than a trip
+built to reach it. A blocked case is worth re-reading when it unblocks:
+what unblocks it is often not the thing it was written against.
 
 E2E-M4-28 covers the *session* half of FR-25.18 by leaving M4 and coming
 back; the *fresh session* half is a unit test on `usePackingFilter`,
