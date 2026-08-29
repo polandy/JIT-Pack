@@ -255,7 +255,11 @@ test.describe('M6 shopping — a per-person item is one buy row @local @m6', () 
     // Derived, never entered (FR-25.10) — and in roster order.
     // `toContainText`: the recipients' avatars sit in the same line and
     // contribute their initials to its text.
-    await expect(rows.first().getByTestId('m6-row-for')).toContainText('for Andy, Leonardo, Mia')
+    const forWhom = rows.first().getByTestId('m6-row-for')
+    await expect(forWhom).toContainText('for Andy, Leonardo, Mia')
+    // The spec promises the avatars beside the names, so they are asserted
+    // rather than left to the initials the text assertion swallows.
+    await expect(forWhom.getByTestId('user-avatar')).toHaveCount(3)
     // The tab counts things to buy, so it agrees with what the list shows.
     await expect(m6(page).getByTestId('m6-tab-before')).toContainText('(1)')
   })

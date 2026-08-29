@@ -99,7 +99,7 @@ export interface MembershipPlan {
  * The key a derived row id is built on. A generated row is keyed by its master
  * item, so membership and FR-27.4 land on the same id for the same traveler; an
  * FR-5.6 ad-hoc row has no master item and is keyed by its folded name instead,
- * the same fallback `clusterKeyOf` uses to hold such rows in one cluster.
+ * the same fallback `perPersonKey` uses to hold such rows in one cluster.
  */
 function identityKey(row: TripItem): string {
   return row.source_item_id ?? `name:${foldName(row.name)}`
@@ -108,7 +108,7 @@ function identityKey(row: TripItem): string {
 /**
  * membershipRows picks the rows that are *this* item — the FR-25.1 cluster the
  * editor acts on, including the row it was opened from. Keyed the same way
- * `clusterKeyOf` groups M4's children, so what the editor edits and what the
+ * `perPersonKey` groups M4's children, so what the editor edits and what the
  * list draws as one item can never disagree.
  */
 export function membershipRows(all: TripItem[], item: TripItem): TripItem[] {
