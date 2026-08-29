@@ -207,6 +207,7 @@ function close() {
   query.value = ''
   perPerson.value = false
   browseOpen.value = false
+  browsePerPersonPending.value = null
 }
 
 function toggle() {
@@ -267,8 +268,23 @@ const showBrowseEntry = computed(
   () => query.value.trim().length === 0 && masterStore.activeItemList.length > 0,
 )
 
-/** A sheet add is a chip add: FR-25.7 defaults, no refocus, sheet stays open. */
+/**
+ * A sheet add is a chip add: FR-25.7 defaults, no refocus, sheet stays open.
+ *
+ * **Except in *Pro Person* mode**, where the sheet has to close first. The add
+ * ends in the membership editor, which is a modal of the caller's — and a modal
+ * presented while this sheet is still up renders *behind* it, greyed and
+ * unreachable. The emit therefore waits for the sheet's own dismissed signal,
+ * the same reason the free-text line waits for it below. Found by rendering it.
+ */
+const browsePerPersonPending = ref<MasterItem | null>(null)
+
 function onBrowseAdd(item: MasterItem) {
+  if (perPerson.value) {
+    browsePerPersonPending.value = item
+    browseOpen.value = false
+    return
+  }
   emitMasterItem(item)
 }
 
@@ -286,6 +302,12 @@ function onBrowseFreeText() {
 
 function onBrowseDismiss() {
   browseOpen.value = false
+  const pending = browsePerPersonPending.value
+  if (pending) {
+    browsePerPersonPending.value = null
+    emitMasterItem(pending)
+    return
+  }
   if (browseFreeTextPending.value) {
     browseFreeTextPending.value = false
     void focusInput()

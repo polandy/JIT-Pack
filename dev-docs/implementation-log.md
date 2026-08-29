@@ -8140,3 +8140,13 @@ cluster was drawn and never that the person was named. Reading the two entries
 back against the feature that unblocked them cost minutes; writing the trip that
 M4-13 asked for would have cost a test that proves nothing, against a control
 that is not there.
+
+**And one interaction had to be built rather than inherited.** The composer's
+browse-sheet (FR-25.13d) adds a row per tap and stays open for the run. In the
+new mode each add ends in the membership editor — a modal of M4's — and a modal
+presented while that sheet is still up renders *behind* it: greyed, inert,
+looking like nothing happened. Reading the code would not have shown it; the
+screenshot did. The fix is the pattern the free-text line beside it already
+used, waiting for the sheet's own dismissed signal before emitting. The case
+that guards it asserts the checkbox can be **operated**, not that the editor is
+visible — the broken build renders the editor perfectly well.

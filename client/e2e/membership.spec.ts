@@ -251,4 +251,29 @@ test.describe('FR-25.8 per-person quick-add @local @m4', () => {
     await expect(page.getByTestId('quick-add-mode-per-person')).toHaveCount(0)
     await expect(page.getByTestId('quick-add-input')).toBeVisible()
   })
+
+  test('E2E-M4-61: a per-person add from the browse-sheet closes it first', async ({ page }) => {
+    await page.goto('/tabs/items')
+    await page.getByTestId('m9-fab').click()
+    await page.getByTestId('m10-name').locator('input').fill('Sonnenhut')
+    await page.getByTestId('m10-create').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Sonnenhut')
+
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-mode-per-person').click()
+    await visiblePage(page).getByTestId('quick-add-browse-open').click()
+    const sheet = page.getByTestId('inventory-browse-sheet')
+    await expect(sheet).toBeVisible()
+    await sheet.getByTestId('browse-row').filter({ hasText: 'Sonnenhut' }).click()
+
+    // The sheet is gone rather than merely covered, and the editor is
+    // *operable*: a modal presented under it renders behind it, greyed, and
+    // the click below is what tells the two apart — a visible-only assertion
+    // passes against the broken build.
+    await expect(sheet).toHaveCount(0)
+    await expect(page.getByTestId('membership-sheet')).toBeVisible()
+    await page.getByTestId('membership-check-Andy').click()
+    await expect(page.getByTestId('membership-qty-Andy')).toHaveText('1')
+  })
 })
