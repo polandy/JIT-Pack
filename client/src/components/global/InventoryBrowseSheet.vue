@@ -58,8 +58,9 @@ const { hideCarried, toggle: toggleHideCarried } = browseHideCarried()
 /**
  * The FR-25.13e snapshot: item ids the scope carried when this posture began.
  * Taken on exactly three events — the sheet being created (which is what
- * re-opening it is, the caller keys it per run), the switch going on, and the
- * tag filter changing.
+ * re-opening it is: Ionic destroys the modal's content on dismiss, so no key
+ * is needed on the caller's side), the switch going on, and the tag filter
+ * changing.
  */
 // Taken during setup rather than on mount: a sheet re-opened with the switch
 // already on must paint filtered, never one frame of "added just now" rows.
