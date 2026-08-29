@@ -205,6 +205,51 @@ test.describe('Two accounts on one instance @server', () => {
     await ctxBob.close()
   })
   /**
+   * E2E-NOTIFY-01 (NFR-4.12, ADR-037): the notification speaks the
+   * recipient's language, not the sender's and not the code's.
+   *
+   * The last surface written as an English literal, and the reason it stayed
+   * one so long is visible in this case's shape: producing a notification at
+   * all needs two accounts, so no project could reach the wording before
+   * ADR-029. Bob's device is German; Alice's is not, and hers is what fires
+   * the notification.
+   */
+  test('the notification is written in the recipient’s language', async ({ browser }) => {
+    const id = uniq()
+    const trip = `Sprachprobe ${id}`
+    const item = `Regenjacke-${id}`
+
+    const ctxBob = await browser.newContext()
+    const bob = await loginAs(ctxBob, 'bob', 'de')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    await quickAddItem(alice, item)
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+
+    const wsBob = bob.waitForEvent('websocket')
+    await bob.goto(tripPath)
+    await expect(visiblePage(bob).getByTestId(`m4-row-${item}`)).toBeVisible()
+    await wsSubscribed(bob, wsBob)
+
+    await alice.goto(tripPath)
+    await assignTo(alice, item, ACCOUNT_NAMES.bob)
+
+    // The whole German sentence, not a substring of it: the name and the
+    // item alone would be satisfied by the English wording too, which is
+    // exactly what this case exists to fail against.
+    // Filtered by the item for the reason FR-02's comment gives: Bob's other
+    // sessions are told about their rows too.
+    await expect(bob.locator('ion-toast').filter({ hasText: item })).toContainText(
+      `${ACCOUNT_NAMES.alice} hat dir „${item}“ zugewiesen`,
+    )
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
+
+  /**
    * E2E-FLOW-02 (FR-4.3 → FR-6.2 → FR-6.3, FR-25.19/25.20): Alice hands a
    * row to Bob, Bob is told, and the telling leads back to the row.
    *
@@ -243,7 +288,12 @@ test.describe('Two accounts on one instance @server', () => {
 
     // FR-6.2's in-app channel: the toast is the delivery — there is no
     // inbox screen — and it names who handed over what.
-    const notice = bob.locator('ion-toast')
+    //
+    // Filtered to *this* row's toast: notifications are addressed to the
+    // user, not to the page, so a second case running in parallel as the
+    // same account puts a second toast on this screen and an unfiltered
+    // `ion-toast` is then a strict-mode violation rather than an assertion.
+    const notice = bob.locator('ion-toast').filter({ hasText: item })
     await expect(notice).toContainText(ACCOUNT_NAMES.alice)
     await expect(notice).toContainText(item)
 
