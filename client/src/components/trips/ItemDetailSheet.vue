@@ -26,6 +26,7 @@ import {
   IonItem,
   IonLabel,
   IonList,
+  IonModal,
   IonNote,
   IonSelect,
   IonSelectOption,
@@ -54,7 +55,9 @@ import QuantityStepper from '@/components/global/QuantityStepper.vue'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import { CLIENT_ACTOR_PLACEHOLDER } from '@/composables/useMutations'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
+import MembershipSheet from '@/components/trips/MembershipSheet.vue'
 import { resolveDependencies, type SuggestedCompanion } from '@/domain/dependencies'
+import { membershipRows } from '@/domain/membership'
 import { relativeStamp } from '@/domain/stamp'
 import { canJudgeUnused } from '@/domain/trips'
 import { formatWeight } from '@/lib/format'
@@ -244,9 +247,27 @@ function addCompanion(companion: SuggestedCompanion) {
 function onModeChange(mode: ItemMode) {
   if (item.value && !isLocked.value) orchestrator.setMode(props.tripId, item.value, mode)
 }
-function onTravelerChange(id: string | null) {
-  if (item.value && !isLocked.value) orchestrator.assignTraveler(props.tripId, item.value, id)
-}
+/**
+ * FR-25.21: what the membership row says without being opened. Named amounts
+ * where they differ per person, because "3 Personen" hides exactly the thing
+ * this feature exists to show.
+ */
+const membershipOpen = ref(false)
+const membershipRowsForItem = computed(() =>
+  item.value ? membershipRows(tripStore.getItems(props.tripId), item.value) : [],
+)
+const membershipSummary = computed(() => {
+  const named = membershipRowsForItem.value
+    .filter((r) => r.assigned_traveler_id !== null)
+    .map((r) => ({
+      name: travelers.value.find((tr) => tr.id === r.assigned_traveler_id)?.name ?? '',
+      quantity: r.quantity,
+    }))
+    .filter((m) => m.name !== '')
+  if (named.length === 0) return t('membership.rowShared')
+  return named.map((m) => `${m.name} ${m.quantity}`).join(' · ')
+})
+
 function onContainerChange(id: string | null) {
   if (item.value && !isLocked.value) orchestrator.assignContainer(props.tripId, item.value, id)
 }
@@ -567,20 +588,12 @@ const packedStamp = computed(() => {
     </button>
 
     <IonList v-if="detailsOpen" class="details-body">
-      <IonItem>
+      <!-- FR-25.21: a summary row, not a picker — a stepper per traveler does
+           not fit in a popover. Absent below two travelers (G-8): there is no
+           membership to distribute. -->
+      <IonItem v-if="travelers.length > 1" button :disabled="isLocked" @click="membershipOpen = true">
         <IonLabel>{{ t('item.usedBy') }}</IonLabel>
-        <IonSelect
-          :value="item.assigned_traveler_id"
-          interface="popover"
-          :disabled="isLocked"
-          data-testid="m5-traveler"
-          @ion-change="(e: CustomEvent) => onTravelerChange(e.detail.value)"
-        >
-          <IonSelectOption :value="null">{{ t('facet.shared') }}</IonSelectOption>
-          <IonSelectOption v-for="traveler in travelers" :key="traveler.id" :value="traveler.id">
-            {{ traveler.name }}
-          </IonSelectOption>
-        </IonSelect>
+        <IonNote slot="end" data-testid="m5-membership">{{ membershipSummary }}</IonNote>
       </IonItem>
       <IonItem>
         <IonLabel>{{ t('facet.mode') }}</IonLabel>
@@ -694,6 +707,18 @@ const packedStamp = computed(() => {
   <section v-else class="missing" data-testid="m5-missing">
     <p>{{ t('item.notFound') }}</p>
   </section>
+
+    <IonModal :is-open="membershipOpen" @did-dismiss="membershipOpen = false">
+      <div class="membership-wrap">
+        <MembershipSheet
+          v-if="item"
+          :trip-id="tripId"
+          :item-id="item.id"
+          :locked="isLocked"
+          @close="membershipOpen = false"
+        />
+      </div>
+    </IonModal>
 </template>
 
 <style scoped>
@@ -991,5 +1016,12 @@ const packedStamp = computed(() => {
   padding: 32px 16px;
   text-align: center;
   color: var(--ct-subtext0);
+}
+</style>
+
+<style scoped>
+.membership-wrap {
+  padding: 16px;
+  overflow-y: auto;
 }
 </style>

@@ -258,19 +258,25 @@ it. Item numbers stay stable even as items close, because the log refers back to
    written in the same write. A retired row nothing references any more can still be removed for
    good. Log: *„A delete that could only be refused"*, *„The restore was free, the name was not"*.
 
-22. **FR-25.21 — the per-person model had no writer** (specified 2026-08-29, **not built**).
+22. **FR-25.21 — the per-person model had no writer** (specified 2026-08-29; **the editor is built,
+   two surfaces still open**).
    The model has carried per-traveler quantities since FR-25.1 — one `trip_items` row per traveler,
    its own quantity — and M4's cluster, M12 and the FR-27.4 refresh all read it. Nothing in the app could *produce* it: M5's *„Wer braucht das?"* is a single-select, so
    FR-25.10's multi-select was specified in July and shipped as a picker, and FR-25.8's per-traveler
    quick-add was never built. **M6 is a second unbuilt promise found with it**: FR-25.6's
    aggregated buy row was decided 2026-08-07 and `ShoppingPage.vue` groups by category
-   only, so a per-person item is N identical rows — in scope here, not a follow-up.
+   only, so a per-person item is N identical rows — inside this FR, not a separate one.
    The editor is one component on two surfaces, membership is a checkbox
    (0 stays FR-5.5's *skipped*), and the write path is ADR-036: keep-and-repoint with ADR-016-derived
    ids, which makes the hand-made row and the generated row the same row. Three points decided rather
    than parked — the cluster head counts people, collapsing sums, and the ADR was owed. No schema,
    server or sync-contract change. Full finding in FR-25.21; UI-Spec M5/M4; E2E-M5-18/19/20, M4-58,
    G3-04.
+   **Built 2026-08-29:** `domain/membership.ts` (the ADR-036 planner, 19 unit cases),
+   `MembershipSheet.vue` behind M5's *Details ▾*, and E2E-M5-18/19/20 — red-proved, and the five e2e
+   callers of the deleted `m5-traveler` picker rewired with them. Log: *„The per-person model finally
+   gets a writer"*. **Still open, each its own PR:** FR-25.8's *Pro Person* quick-add (E2E-M4-58) and
+   FR-25.6's aggregated M6 buy row (E2E-M6-09), plus E2E-G3-04 in the `server` project.
 
 **Parked, specified, do not start:** §3.26 calendar feed,
 the North-Star Plan/During phases, FR-27.8's per-trip usage history, and FR-1.6's publish/fork

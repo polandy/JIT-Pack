@@ -42,6 +42,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column), E2E-M4-57 (UX-13 bar overflow) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
+| FR-25.21 membership | E2E-M5-18, E2E-M5-19, E2E-M5-20 | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
@@ -2122,3 +2123,31 @@ a case today could only wait-and-hope, which the testing rules forbid outright.
 The fix belongs in the production code — a completion signal on the modal, the
 same seam the G-2 indicator grew for in-flight Local Mode writes — and that is a
 change of its own rather than a rider on a one-flag PR.
+
+## FR-25.21 — the three cases, and the four traps they cost (2026-08-29)
+
+`e2e/membership.spec.ts`, three cases, all three red-proved. **E2E-M5-18** is the
+one that owns the feature: mutating `planMembership` to give every member the
+same amount reddens it, and nothing else in the suite noticed.
+
+Four things the cases cost, each worth more than the case:
+
+- **Five callers drove a control this PR deleted.** `m5-traveler`, M5's old
+  single-select, was driven by `skip-item`, `analytics` and `single/server-sync`
+  — three helpers with the same body plus two read-back assertions. `make ci`
+  stayed green through all of it, because e2e is not in it. A redirected action
+  needs **every** e2e caller, and grep is the only thing that finds them.
+- **The bundle is what runs.** `membership-close` existed in the source and the
+  case timed out waiting for it: `scripts/e2e.sh` drives `dist`, and the testid
+  had been added after the last build. Rebuild between editing production code
+  and running a case, always — the same rule a mutation proof needs.
+- **A quantity of one has no stepper** (G-6), so `0/1` is text that never
+  renders. Asserting the *control* — a checkbox for Mia, a stepper for Andy — is
+  both the honest assertion and a stronger one: it shows the amounts differ.
+- **An Ionic overlay stays mounted.** `expect(alert).toHaveCount(0)` after a
+  cancel never passes; `toBeHidden()` is the assertion. The count reads the
+  element, not the state.
+
+And one case shape worth copying: **E2E-M5-19 asserts the cancel**, not only the
+confirm. A destructive control that fires on the first tap and one that asks are
+indistinguishable from the confirmed path alone.
