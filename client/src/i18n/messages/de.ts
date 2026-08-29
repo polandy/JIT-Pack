@@ -870,6 +870,7 @@ export const de: Record<keyof typeof en, string> = {
   'trips.filterActive': 'Aktiv',
   'trips.filterPlanned': 'Geplant',
   'trips.filterArchived': 'Archiviert',
+  'trips.filterCount': '{label}, {n} Reise | {label}, {n} Reisen',
   'trips.emptyActive': 'Keine aktiven Reisen',
   'trips.emptyPlanned': 'Keine geplanten Reisen',
   'trips.emptyArchived': 'Keine archivierten Reisen',

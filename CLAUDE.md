@@ -258,6 +258,12 @@ it. Item numbers stay stable even as items close, because the log refers back to
    written in the same write. A retired row nothing references any more can still be removed for
    good. Log: *„A delete that could only be refused"*, *„The restore was free, the name was not"*.
 
+21. ~~**FR-2.8 — M2 opens on the one segment that is usually empty**~~ — **done**
+   (2026-08-29): the opening segment is derived from what the list holds and each segment states
+   its count. The clause that carried the cost is the settled guard — a list that has not arrived
+   is not an empty one (ADR-033) — which is why this started in the orchestrator, with
+   `masterDataLoaded`, and not in M2. E2E-M2-13/13b/13c/13d and E2E-M2-14.
+
 22. **FR-25.21 — the per-person model had no writer** (specified 2026-08-29; **the editor is built,
    two surfaces still open**).
    The model has carried per-traveler quantities since FR-25.1 — one `trip_items` row per traveler,

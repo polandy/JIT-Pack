@@ -860,6 +860,7 @@ export const en = {
   'trips.filterActive': 'Active',
   'trips.filterPlanned': 'Planned',
   'trips.filterArchived': 'Archived',
+  'trips.filterCount': '{label}, {n} trip | {label}, {n} trips',
   'trips.emptyActive': 'No active trips',
   'trips.emptyPlanned': 'No planned trips',
   'trips.emptyArchived': 'No archived trips',
