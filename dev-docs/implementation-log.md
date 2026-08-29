@@ -8217,3 +8217,16 @@ renders behind it. Both verbs therefore go through the same deferral as the plai
 add, carrying their decision with them, and the case that pins it is a unit case,
 because what it asserts is that **nothing** is emitted until the sheet's dismiss —
 an absence needing a positive signal, which the later emit is.
+
+**A lock that described the wrong thing (2026-08-29, found reviewing the
+above).** FR-25.21 says the editor is read-only *„while any instance of the item
+is claimed by somebody else"*, and it had shipped as a `locked` prop each caller
+computed from the **one row the sheet was opened from**. On M5 that is nearly
+always the same answer, which is why it stood. On the quick-add it cannot be:
+the row was minted a moment earlier and can carry no claim at all, while its
+folded-name key can still pull an older, claimed ad-hoc row of the same name
+into the same cluster — and a conversion rewrites every row of it. The lock
+moved into the sheet, where the cluster is known; the prop stays for a caller's
+own reasons. The lesson generalises past this screen: **a rule about a set
+cannot be evaluated by whoever holds one element of it**, and the surface that
+made it visible was the one where the element is brand new.
