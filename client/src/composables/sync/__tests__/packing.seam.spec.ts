@@ -195,6 +195,85 @@ describe('createPackingActions without an orchestrator', () => {
     })
   })
 
+  it('addDecidedItem packs the new row in the same write that creates it (FR-25.13f)', () => {
+    createPackingActions(ctx).addDecidedItem(TRIP_ID, 'Zahnbürste', {}, false, 'packed')
+
+    // One mutation, not an insert followed by a decision: offline, the gap
+    // between the two is unbounded and the row sits undecided in it.
+    expect(queued).toHaveLength(1)
+    expect(queued[0]!.muts).toHaveLength(1)
+    expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({
+      name: 'Zahnbürste',
+      quantity: 1,
+      packed_count: 1,
+      state: 'packed',
+    })
+    expect(queued[0]!.muts[0]!.mutation.fields!.packed_at).toEqual(expect.any(String))
+  })
+
+  it('addDecidedItem writes FR-5.5’s own shape when the decision is to leave it home', () => {
+    createPackingActions(ctx).addDecidedItem(TRIP_ID, 'Regenjacke', {}, false, 'skipped')
+
+    expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({
+      quantity: 0,
+      packed_count: 0,
+      state: 'skipped',
+      packed_at: null,
+    })
+  })
+
+  it('flags a pack-add on an active trip Missing, and a skip-add never (FR-9.1/FR-25.13f)', () => {
+    const actions = createPackingActions(ctx)
+
+    actions.addDecidedItem(TRIP_ID, 'Zahnbürste', {}, true, 'packed')
+    actions.addDecidedItem(TRIP_ID, 'Regenjacke', {}, true, 'skipped')
+
+    expect(queued[0]!.muts[0]!.mutation.fields).toMatchObject({ flag_missing: 1 })
+    // "The plan forgot this" and "we are deliberately not taking it" are
+    // opposite statements; M14 would read both and believe the first.
+    expect(queued[1]!.muts[0]!.mutation.fields).toMatchObject({ flag_missing: 0 })
+  })
+
+  it('pulls companions for a pack-add and none for a skip-add (FR-20.4/FR-25.13f)', () => {
+    seedRow(ctx.masterStore, TABLE.items, 'item-tent', { name: 'Zelt', weight_grams: 2000 })
+    seedRow(ctx.masterStore, TABLE.items, 'item-pegs', { name: 'Heringe', weight_grams: 300 })
+    seedRow(ctx.masterStore, TABLE.itemDependencies, 'dep-1', {
+      item_id: 'item-pegs',
+      depends_on_item_id: 'item-tent',
+      mode: 'required',
+      quantity: 1,
+    })
+    const actions = createPackingActions(ctx)
+
+    actions.addDecidedItem(TRIP_ID, 'Zelt', { sourceItemId: 'item-tent' }, false, 'skipped')
+    const afterSkip = queued.length
+
+    actions.addDecidedItem(TRIP_ID, 'Zelt', { sourceItemId: 'item-tent' }, false, 'packed')
+
+    // The spare pegs for a tent that is staying home is the one offer
+    // nobody wants; for the packed one it is FR-20.4 as everywhere else.
+    expect(afterSkip).toBe(1)
+    expect(queued).toHaveLength(3)
+    expect(queued[2]!.muts[0]!.mutation.fields).toMatchObject({ source_item_id: 'item-pegs' })
+  })
+
+  it('removeAddedItem deletes the row the sheet just added, and leaves a vanished one alone', () => {
+    seedTripItem('ti-1')
+    const actions = createPackingActions(ctx)
+
+    actions.removeAddedItem(TRIP_ID, 'ti-1')
+    const afterDelete = queued.length
+
+    actions.removeAddedItem(TRIP_ID, 'ti-gone')
+
+    expect(afterDelete).toBe(1)
+    expect(queued[0]!.muts[0]!.mutation.op).toBe('delete')
+    expect(queued[0]!.muts[0]!.mutation.id).toBe('ti-1')
+    // A row another device deleted meanwhile is left deleted rather than
+    // chased with a second delete.
+    expect(queued).toHaveLength(1)
+  })
+
   it('addRequiredCompanions never adds a companion the list already carries (FR-20.3)', () => {
     seedTripItem('ti-main', { source_item_id: 'item-tent' })
     seedTripItem('ti-comp', { source_item_id: 'item-pegs' })

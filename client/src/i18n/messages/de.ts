@@ -462,6 +462,15 @@ export const de: Record<keyof typeof en, string> = {
   'quickAdd.browseAllCarriedTag': 'Alles mit diesem Tag ist schon drin.',
   'quickAdd.browseAllCarried': 'Alles aus dem Inventar ist schon drin.',
   'quickAdd.browseShowAnyway': 'Trotzdem anzeigen',
+  'quickAdd.browseSubtitleVerbs': 'Tipp = hinzufügen · ✓ gepackt · ✕ nicht einpacken',
+  'quickAdd.browsePackedNow': 'eingepackt',
+  'quickAdd.browseSkippedNow': 'bleibt zu Hause',
+  'quickAdd.browseIsPacked': 'schon eingepackt',
+  'quickAdd.browseIsSkipped': 'bleibt zu Hause',
+  'quickAdd.browseRowCount': '{n} Personen',
+  'quickAdd.browsePackLabel': '„{name}" als eingepackt markieren',
+  'quickAdd.browseSkipLabel': '„{name}" bewusst nicht einpacken',
+  'quickAdd.browseUndoLabel': '„{name}": letzte Aktion rückgängig machen',
 
   // Facetten-Filter (FR-25.11), geteilt von M4 und M6.
   'filter.title': 'Filter',

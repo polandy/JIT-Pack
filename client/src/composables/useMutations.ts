@@ -37,6 +37,19 @@ export type TripEdit = Partial<
   Pick<Trip, 'name' | 'year' | 'start_date' | 'end_date' | 'attributes'>
 >
 
+/**
+ * FR-25.13f: a row can be born with its decision already made — the two
+ * verbs the browse sheet offers. Only these two, and only as one write: an
+ * insert followed by a second mutation would leave a window in which the row
+ * exists undecided, and offline that window is unbounded.
+ *
+ * The shapes are the ones the verbs write elsewhere, so a row added this way
+ * is indistinguishable from one decided a minute later: *packed* is the pack
+ * mutation's (count meets quantity, `packed_at` at the tap — the server
+ * stamps who), *skipped* is the skip mutation's (quantity 0).
+ */
+export type AddedItemDecision = 'packed' | 'skipped'
+
 export function useMutations(hlc: HLCGenerator) {
   function make(
     op: MutationOp,
@@ -250,9 +263,12 @@ export function useMutations(hlc: HLCGenerator) {
       categoryName?: string | null
       flagMissing?: boolean
       mode?: ItemMode
+      decided?: AddedItemDecision
     } = {},
   ): { mutation: Mutation; id: string } {
     const id = newId()
+    const packed = opts.decided === 'packed'
+    const skipped = opts.decided === 'skipped'
     const mutation = make('insert', TABLE.tripItems, id, {
       trip_id: tripId,
       name,
@@ -260,9 +276,10 @@ export function useMutations(hlc: HLCGenerator) {
       weight_grams: opts.weightGrams ?? null,
       value_cents: opts.valueCents ?? null,
       category_name: opts.categoryName ?? null,
-      quantity: 1,
-      packed_count: 0,
-      state: 'open',
+      quantity: skipped ? 0 : 1,
+      packed_count: packed ? 1 : 0,
+      state: opts.decided ?? 'open',
+      packed_at: packed ? new Date().toISOString() : null,
       mode: opts.mode ?? 'pack',
       flag_missing: opts.flagMissing ? 1 : 0,
     })
