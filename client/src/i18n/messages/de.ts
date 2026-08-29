@@ -1155,4 +1155,14 @@ export const de: Record<keyof typeof en, string> = {
   'tripEdit.reportKept':
     '{n} Packelement bleibt ohne Zuordnung | {n} Packelemente bleiben ohne Zuordnung',
   'tripEdit.reportNothing': 'An der Liste ändert sich nichts.',
+  'notify.body.delegation': '{actor} hat dir „{item}“ zugewiesen',
+  'notify.body.delegationPlain': '{actor} hat dir einen Artikel zugewiesen',
+  'notify.body.mention': '{actor} hat dich erwähnt: {preview}',
+  'notify.body.mentionPlain': '{actor} hat dich erwähnt',
+  'notify.body.task': '{actor} hat eine Aufgabe zu „{item}“ eröffnet',
+  'notify.body.taskPlain': '{actor} hat eine Aufgabe für dich eröffnet',
+  'notify.body.lock_taken': '{actor} hat „{item}“ von dir übernommen',
+  'notify.body.lock_takenPlain': '{actor} hat einen Artikel von dir übernommen',
+  'notify.body.generic': '{actor} hat dir eine Benachrichtigung geschickt',
+  'notify.actorUnknown': 'Jemand',
 }

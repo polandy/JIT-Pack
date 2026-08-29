@@ -78,6 +78,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
 | Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-FLOW-02 (delegation) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
+| Notifications speak the recipient's language (NFR-4.12) | E2E-NOTIFY-01 | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-04, E2E-M20-05 | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
 | G-10 trip presence | E2E-G10-01 (facepile and badge; the per-person list is unbuilt) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
 | Single-User backend sync | E2E-FLOW-01 (partial), E2E-FLOW-06, E2E-G2-01, E2E-FLOW-08 / E2E-NFR-04 (partial), E2E-G2-04, E2E-G2-05, E2E-G2-06, E2E-G2-07, E2E-G2-10, E2E-G2-11, E2E-G2-12, E2E-FLOW-10, E2E-G3-01 (partial) + E2E-G3-03, E2E-G3-02 (mode gate only), E2E-M15-05, E2E-M15-09 | `single` | [`single/server-sync.spec.ts`](../client/e2e/single/server-sync.spec.ts) |
@@ -2162,6 +2163,22 @@ a case today could only wait-and-hope, which the testing rules forbid outright.
 The fix belongs in the production code — a completion signal on the modal, the
 same seam the G-2 indicator grew for in-flight Local Mode writes — and that is a
 change of its own rather than a rider on a one-flag PR.
+
+**E2E-NOTIFY-01 — the notification's language, added 2026-08-29 (NFR-4.12).**
+Two things it cost, both of them about a notification being addressed to a
+*person* rather than to a page:
+
+- **Two cases on the same account fight over the toast.** Adding a second
+  notification case turned E2E-FLOW-02 red: a notification reaches every
+  session its recipient has open, so with two workers Bob's other page
+  carried a second `ion-toast` and the unfiltered locator became a
+  strict-mode violation rather than an assertion. Both cases filter by their
+  own item name now, which is what each of them meant in the first place —
+  the fix is not serialising the file.
+- **The mutation has to go through a build.** The suite drives `dist`, so
+  putting `describeNotification` back on its English literal proves nothing
+  until `make e2e-server` rebuilds. It does, and then exactly this case
+  reddens while the other ten stay green.
 
 
 ## E2E-M4-59 — hiding what is already in (FR-25.13e, 2026-08-29)

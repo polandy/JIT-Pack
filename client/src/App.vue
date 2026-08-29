@@ -22,6 +22,7 @@ import {
   notificationRoute,
   type ServerNotification,
 } from '@/notifications/format'
+import { startNotificationMirror } from '@/notifications/mirror'
 import { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import type { ConflictReport, RejectionReport } from '@/composables/useSyncOutbox'
 import { serverBaseUrl } from '@/config'
@@ -138,6 +139,10 @@ async function showNotificationToast(n: ServerNotification) {
 provide('orchestrator', orchestrator)
 
 const syncStatus = orchestrator?.syncStatus ?? null
+
+// NFR-4.12: leave the notification vocabulary where the service worker can
+// read it — it can reach neither `localStorage` nor the catalogue (ADR-037).
+startNotificationMirror()
 
 onMounted(async () => {
   // Server Mode without a session: if the server offers OIDC, log in
