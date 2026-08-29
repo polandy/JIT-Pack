@@ -12,13 +12,15 @@
  * of the English sentences in the worker with a comment asking the next
  * person to keep them in sync, and the i18n migration walked past it.
  */
+import 'fake-indexeddb/auto'
+import { IDBFactory } from 'fake-indexeddb'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, beforeEach } from 'vitest'
 
 import { DEFAULT_LOCALE, setLocale } from '@/i18n'
 import { describeNotification, type ServerNotification } from '../format'
-import { currentMirror } from '../mirror'
+import { currentMirror, writeNotificationMirror } from '../mirror'
 
 /**
  * The worker's renderer, evaluated with a stub `self` so its top-level
@@ -28,6 +30,7 @@ import { currentMirror } from '../mirror'
  */
 function loadWorker(): {
   notificationBody: (data: unknown, mirror: unknown) => string
+  readMirror: () => Promise<unknown>
   FALLBACK_BODY: string
   source: string
 } {
@@ -39,10 +42,13 @@ function loadWorker(): {
     'indexedDB',
     'caches',
     'clients',
-    `${source}\n;return { notificationBody, FALLBACK_BODY }`,
+    `${source}\n;return { notificationBody, readMirror, FALLBACK_BODY }`,
   )
   const stub = { addEventListener: () => {}, location: { origin: 'http://localhost' } }
-  return { ...build(stub, undefined, undefined, undefined), source }
+  // The worker's own `indexedDB`, so its read path is exercised rather than
+  // stubbed: the three store names are contract between two files, and a
+  // typo in either is exactly what this can catch.
+  return { ...build(stub, globalThis.indexedDB, undefined, undefined), source }
 }
 
 function notif(kind: string, payload: Record<string, unknown> | null): ServerNotification {
@@ -100,5 +106,38 @@ describe('the worker renders the same body as the app', () => {
     )
 
     expect(leaked).toEqual([])
+  })
+})
+
+/**
+ * The other half of ADR-037's contract: the app writes, the worker reads,
+ * and the database, store and key names are the only thing binding them. A
+ * typo in either file is silent in production — the worker just falls back —
+ * so it is asserted across the real writer and the real reader.
+ */
+describe('the worker reads what the app wrote', () => {
+  beforeEach(() => {
+    globalThis.indexedDB = new IDBFactory()
+  })
+
+  afterEach(() => setLocale(DEFAULT_LOCALE))
+
+  it('finds the mirror at the names the app writes it to', async () => {
+    setLocale('de')
+    expect(await writeNotificationMirror()).toBe(true)
+
+    const { notificationBody, readMirror } = loadWorker()
+    const stored = await readMirror()
+
+    expect(stored).not.toBeNull()
+    expect(notificationBody({ kind: 'delegation', payload: { actor_name: 'Alice' } }, stored)).toBe(
+      describeNotification(notif('delegation', { actor_name: 'Alice' })),
+    )
+  })
+
+  it('falls back rather than throwing when nothing has been written', async () => {
+    const { readMirror } = loadWorker()
+
+    expect(await readMirror()).toBeNull()
   })
 })
