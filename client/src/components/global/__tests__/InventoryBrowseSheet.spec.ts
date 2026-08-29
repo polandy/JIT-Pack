@@ -302,8 +302,6 @@ describe('InventoryBrowseSheet — hiding what is already in (FR-25.13e)', () =>
     // than hiding rows the user never asked to hide.
     localStorage.setItem('jitpack_browse_hide_carried', 'yes please')
     browseHideCarried().reload()
-    expect(carriedNames(mountSheet(['i-pullover']))).toEqual([
-      expect.stringContaining('Pullover'),
-    ])
+    expect(carriedNames(mountSheet(['i-pullover']))).toEqual([expect.stringContaining('Pullover')])
   })
 })
