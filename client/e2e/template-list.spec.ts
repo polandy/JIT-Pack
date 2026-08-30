@@ -17,9 +17,15 @@ import {
  * unit-tested in useLongPress, because neither a real-time hold nor
  * page.clock is deterministic here — the faked clock keeps Ionic's overlay
  * from attaching, nondeterministically, on a warm app). The include-dependent half
- * of M7-07 — the "N Gruppen ·" prefix and the "enthält: …" line — needs a
- * template that includes a group, which only the M8 rebuild can create; the
- * resolution arithmetic behind it is covered in `domain/__tests__/templates`.
+ * of M7-07 — the "N Gruppen ·" prefix and the "enthält: …" line — is asserted in
+ * the M8 unit, where the composition is built; the resolution arithmetic behind it
+ * is covered in `domain/__tests__/templates`. What that case cannot see, and this
+ * one does since 2026-08-30, is the row's **resolved** count: the groups it
+ * composes are empty, so there the raw and the resolved count are both 0.
+ *
+ * Also here since that audit (backlog item 6): E2E-M7-06's second empty state and
+ * the search that produces it, and E2E-M7-05's built half — the header icon into
+ * M18 and the way back to M7.
  *
  * Local Mode throughout: M7 is backend-free, and the run mode that has no
  * server is the one where a missing client-side rule shows up.
@@ -145,7 +151,9 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     // reason the chooser exists at all is that "Gruppe" alone does not
     // (FR-27.6). Asserted on both cards: a shared hint would satisfy either
     // one on its own.
-    await expect(page.getByTestId('m7-kind-template')).toContainText('The starting point for a trip')
+    await expect(page.getByTestId('m7-kind-template')).toContainText(
+      'The starting point for a trip',
+    )
     await expect(page.getByTestId('m7-kind-group')).toContainText('A reusable block of items')
 
     await page.getByTestId('m7-kind-group').click()
