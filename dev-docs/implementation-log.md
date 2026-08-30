@@ -199,6 +199,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The amount finally says what it is in (2026-08-30)](#the-amount-finally-says-what-it-is-in-2026-08-30) — FR-21.9. Why the endpoint that already existed could not carry an instance setting, why the currency is not a device preference, and the Local Mode cost that was accepted rather than designed around.
 - [A credential that nothing remembers (2026-08-30)](#a-credential-that-nothing-remembers-2026-08-30) — FR-23.7/ADR-039. How checking one sentence about refresh tokens deleted a table, a schema change and a whole screen; the hole a ninety-day credential made reachable in `authed`; and why refusing a token the right to mint another is not the scope the concept rejected.
 - [Six numbers that each meant two things (2026-08-30)](#six-numbers-that-each-meant-two-things-2026-08-30) — backlog item 6, M5. How one screen's catalogue came to define six ids twice, why the suite's meaning wins and the loser is struck rather than renumbered, and the requirement that was quoted verbatim in the code violating it.
+- [The debt register empties, and one clause of it was never built (2026-08-30)](#the-debt-register-empties-and-one-clause-of-it-was-never-built-2026-08-30) — the four inherited id collisions read against their screens. Three were plain duplicates; the fourth split three ways and left a promise the quick-add has never kept.
 - [Two ids on the wrong tests (2026-08-30)](#two-ids-on-the-wrong-tests-2026-08-30) — backlog item 6, M9. Two case ids sitting on tests that implement two other promises, wrong since the commit that wrote both; why no gate can see a swap; the merge M9 never had, and the argument that leans on it.
 - [Five numbers, and two sections nobody had built (2026-08-30)](#five-numbers-and-two-sections-nobody-had-built-2026-08-30) — backlog item 6, M10. The same commit's larger swap, five ids deep; the ledger was the only document that had it right; the two sections built in July that no test had ever rendered; and an absence assertion over a section absent in both modes.
 
@@ -9021,6 +9022,48 @@ G-7 CTA is the always-present `trips-new` FAB rather than anything the empty
 state itself offers. One sentence naming four screens counted as four, which
 is the same shape as the review rule about one rule written into N
 templates. Recorded against the id; owed to M2's next pass, not built here.
+
+## The debt register empties, and one clause of it was never built (2026-08-30)
+
+`case-id-gate.mjs` shipped with four inherited collisions in it — `E2E-M3-11`,
+`-12`, `-13` and `E2E-M4-32`. This is the register emptied, and the register is
+meant to stay empty: the gate fails on a new collision rather than growing a
+line for it.
+
+**In all four the suite carried the first-listed meaning**, and three of the
+shadowed halves were plain duplicates of ids implemented under their own
+number — M3-15, M3-16 and M3-14 respectively.
+
+**M3-13 nearly went through on a summary.** Its shadowed text made three
+promises where the live entry makes one: the M17 configuration, the *order*,
+and that a traveller can still be removed. They are all genuinely asserted —
+but only reading E2E-M3-14's **test body** shows it, and a retirement justified
+by a sentence that merely sounds equivalent is exactly how a promise
+disappears. The rule the earlier audits wrote for spec text applies to
+retirement too: read the clauses, not the summary.
+
+**M4-32 is where the collision's cost stops being an argument.** Its clauses
+split three ways. The required pull and the co-skip are E2E-M4-40. That
+*suggested* companions do not join unasked became covered only the day before
+this, by E2E-M5-23 — so for the whole time the collision stood, that promise
+was unasserted **and** unreadable as a gap, because the number rendered as
+implemented while the suite carried an unrelated case under it. The defect this
+gate exists for produced a real, dated hole.
+
+**The third clause was never built.** *„…pulls its required companions onto the
+trip and reports it"*: `addRequiredCompanions` returns nothing and no caller
+raises a snackbar, so the companion appears silently. FR-20.2's *skip* does
+name what it took along, which is what makes the add's silence read as an
+omission rather than a decision — but it is a product question, so it is an
+owner decision with no case, the treatment the M2 audit gave its three unkept
+promises.
+
+**Left undone on purpose, and worth a number.** Of 300 case ids in the suite,
+**78 live only in a comment above a test, not in its title.** Every audit so far
+has leaned on `git grep <id>` to find gaps, and that is precisely the search
+those 78 defeat — the M4 audit already lost time to one. It is a convention
+drift across the whole suite rather than four defects, and folding it into a
+four-entry cleanup would bury it.
 
 ## Five numbers, and two sections nobody had built (2026-08-30)
 
