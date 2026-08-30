@@ -82,6 +82,9 @@ jobs:
       # step to pay for: the implementation log's index must name every
       # section, because it is meant to be read instead of the log.
       - run: node ../scripts/log-index-gate.mjs
+      # Same job, same reason: a UI-Test-Spec id that carries two different
+      # promises makes a green test read as coverage of the one nobody wrote.
+      - run: node ../scripts/case-id-gate.mjs
       # Same reason, and the file it guards ships in the client image: a
       # reverse proxy that drops the port from Host refuses every WebSocket
       # handshake while the whole REST surface stays green.

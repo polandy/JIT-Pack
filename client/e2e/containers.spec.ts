@@ -1,4 +1,4 @@
-import { test, expect, createTripViaWizard, openQuickAdd } from './fixtures'
+import { test, expect, chooseInSelect, createTripViaWizard, openQuickAdd } from './fixtures'
 import type { Page } from '@playwright/test'
 
 /**
@@ -188,6 +188,70 @@ test.describe('M11 containers @local @m11', () => {
     await expect(page.getByTestId('m11-sheet-load')).toContainText('Over the weight limit')
     await closeSheet(page)
     await expect(card(page, 'Packsack').locator('.weight-fill')).toHaveClass(/over/)
+  })
+
+  // E2E-M5-22 (FR-10.2): moving an item from one bag to another. E2E-M11-06
+  // covers the *first* assignment, from the unassigned bucket through M11's
+  // own picker; changing an existing one has only ever been possible from
+  // M5, and E2E-M11-03 said so in writing ("re-assignment lives in M5's
+  // container control, and belongs to that screen's cases") without the case
+  // ever being written. Until now `m5-container` was asserted visible and
+  // never operated.
+  //
+  // The readback is deliberately on M11 and by weight: the two cards are the
+  // only surface that states where the thing actually is, and a control that
+  // merely repaints its own value would satisfy an assertion made in the
+  // sheet. The bucket count is the third assertion — a move that dropped the
+  // old assignment without writing the new one leaves the item nowhere, and
+  // both card assertions would still pass.
+  test('E2E-M5-22: the sheet moves an item from one bag to another', async ({ page }) => {
+    await page.goto('/tabs/items')
+    await visible(page).getByTestId('m9-fab').click()
+    await expect(visible(page).getByTestId('m10-new-hint')).toBeVisible()
+    await fillIonic(visible(page).getByTestId('m10-name'), 'Zelt')
+    await visible(page).getByTestId('m10-more').click()
+    await fillIonic(visible(page).getByTestId('m10-weight'), '3000')
+    await visible(page).getByTestId('m10-create').click()
+    await expect(page.getByTestId('header-title')).toHaveText('Zelt')
+
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-input').locator('input').fill('Zel')
+    await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Zelt' }).click()
+    await expect(page.getByTestId('m4-row-Zelt')).toBeVisible()
+    await page.keyboard.press('Escape')
+
+    await openLuggage(page)
+    await createContainer(page, 'Packsack')
+    await createContainer(page, 'Seesack')
+
+    // The first assignment is M11's own path — this case is about the second.
+    await visible(page).getByTestId('m11-unassigned-row').filter({ hasText: 'Zelt' }).click()
+    await expect(page.getByTestId('m11-picker')).toBeVisible()
+    await page.getByTestId('m11-picker-option').filter({ hasText: 'Packsack' }).click()
+    await expect(page.getByTestId('m11-picker')).toHaveCount(0)
+    await expect(page.locator('ion-modal.show-modal')).toHaveCount(0)
+    await expect(card(page, 'Packsack')).toContainText('3.0 kg')
+
+    await page.getByTestId('header-back').click()
+    await expect(visible(page).getByTestId('m4-row-Zelt')).toBeVisible()
+    await visible(page).getByTestId('m4-row-Zelt').getByRole('heading').click()
+    await page.getByTestId('m5-details').click()
+    await chooseInSelect(page, 'm5-container', 'Seesack')
+    // The glance row renders off the stored row, so it is the write being
+    // read back rather than the select's own value.
+    await expect(page.getByTestId('m5-glance')).toContainText('Seesack')
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+
+    await openLuggage(page)
+    await expect(card(page, 'Seesack')).toContainText('3.0 kg')
+    // An empty bag reads "0 g" — `formatWeight` switches unit rather than
+    // padding kilograms, so the emptiness is asserted in the words the
+    // screen actually uses.
+    await expect(card(page, 'Packsack')).toContainText('0 g')
+    // It moved between bags — it did not fall out of both.
+    await expect(visible(page).getByTestId('m11-unassigned-row')).toHaveCount(0)
   })
 
   // E2E-M11-04 (FR-10.3): paired containers show the live imbalance once

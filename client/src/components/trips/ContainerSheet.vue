@@ -42,10 +42,6 @@ const container = computed(() => containers.value.find((c) => c.id === props.con
 const travelers = computed(() => store.getTravelers(props.tripId))
 const items = computed(() => store.getItems(props.tripId))
 
-// FR-25.15: the indicator reads the orchestrator's state — an open Local
-// Mode write reports as `syncing` (FR-19.2), so "settled" is observed.
-const saveState = computed(() => orchestrator.syncStatus.state.value)
-
 const threshold = computed(() => imbalanceThreshold(trip.value?.attributes ?? null))
 
 const load = computed(() => containerWeight(items.value, props.containerId))
@@ -120,7 +116,7 @@ function onDelete() {
           <span v-if="level === 'over'">· {{ t('container.overLimit') }}</span>
         </p>
       </div>
-      <SaveIndicator :state="saveState" />
+      <SaveIndicator :pending="orchestrator.capturePending.value" />
       <button
         class="x"
         data-testid="m11-sheet-close"

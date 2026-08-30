@@ -155,6 +155,26 @@ it. Item numbers stay stable even as items close, because the log refers back to
    `server` for the data section, which is a *different section* in Local Mode. Also worth
    carrying: **the theme toggle had never been pressed**, because every colour test seeds
    `jitpack_theme` and asserts the palette. Log: *„A promise that was its own defect"*.
+   **M5 followed as well**, and
+   found the failure mode the other two could not: **an id can mean two things**. Six
+   `E2E-M5-*` numbers were each defined twice — the v1.0 catalogue and the §3.25 rebuild,
+   in one section, never reconciled — so four *green* tests read as coverage of four
+   promises nothing asserted. Neither commit that caused it is reviewable as a mistake
+   (both are pure additions to a long list) and the coverage count went **up** each time.
+   The rule that resolved it, and the one to reuse: **a number means what the suite
+   implements**; the loser is struck through in place and says where its promise went,
+   never renumbered, because a reader arriving from an old commit has to land somewhere
+   that explains it. Under the collision sat the audit's real finding: FR-25.15's save
+   indicator was a relabelled G-2 glyph on all four sheets carrying it, so offline — the
+   one case the requirement exists for — an open write said *saved*. It had survived
+   because the component's doc comment quoted the requirement, its unit test pinned the
+   defect as the rule, and the shadowed id made the promise look answered from every
+   direction. Owner retirements: M5-01, -03, -04, -09, -06(A), and FR-7.3's never-built
+   resolution restriction. **The class is a gate now** — `scripts/case-id-gate.mjs`, in
+   `make ci` — because nothing here was catchable by eye; it found **four more** live
+   collisions the same hour (`E2E-M3-11/-12/-13`, `E2E-M4-32`), which are a shrink-only
+   debt register owed to those screens' audits. Log: *„Six numbers that each meant two
+   things"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).

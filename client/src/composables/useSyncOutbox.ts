@@ -138,6 +138,13 @@ export interface SyncOutboxOptions {
    * G-2 must not promise durability it does not have (NFR-4.11).
    */
   onDurabilityChanged?: (durable: boolean) => void
+  /**
+   * How many of this device's own edits are still on their way into the
+   * queue's storage (FR-25.15). Deliberately narrower than the queue: a
+   * mutation the server has taken is captured, and a drain rewriting the
+   * queue is not an edit — so only `enqueue` moves this number.
+   */
+  onCaptureChanged?: (uncaptured: number) => void
   /** Injected clock — parked entries are stamped with it, never Date.now(). */
   now?: () => number
 }
@@ -157,6 +164,7 @@ export class SyncOutbox {
   private readonly onConflicts?: (report: ConflictReport) => void
   private readonly onRejections?: (report: RejectionReport) => void
   private readonly onDurabilityChanged?: (durable: boolean) => void
+  private readonly onCaptureChanged?: (uncaptured: number) => void
   private readonly now: () => number
 
   /** Whether the last attempt to write the queue to the device succeeded. */
@@ -165,6 +173,8 @@ export class SyncOutbox {
   private parked = 0
   /** The reason of the most recent refusal, which is the one G-2 names. */
   private lastReason: string | null = null
+  /** Edits enqueued but not yet written to the device (FR-25.15). */
+  private uncaptured = 0
 
   /**
    * Tail of the chain of storage writes issued so far. It exists so a test
@@ -187,6 +197,7 @@ export class SyncOutbox {
     this.onConflicts = options.onConflicts
     this.onRejections = options.onRejections
     this.onDurabilityChanged = options.onDurabilityChanged
+    this.onCaptureChanged = options.onCaptureChanged
     this.now = options.now ?? (() => Date.now())
   }
 
@@ -195,7 +206,17 @@ export class SyncOutbox {
     const queue = this.queues.get(key) ?? []
     queue.push(mutation)
     this.queues.set(key, queue)
+    this.setUncaptured(this.uncaptured + 1)
     this.persist(() => this.store?.append(key, mutation))
+    // `persist` has just extended the chain, so its tail is this append.
+    // A device with no store resolves at once, which is the honest answer:
+    // there is nothing left for the edit to arrive in.
+    void this.persisted.then(() => this.setUncaptured(this.uncaptured - 1))
+  }
+
+  private setUncaptured(next: number): void {
+    this.uncaptured = next
+    this.onCaptureChanged?.(next)
   }
 
   pendingCount(type: PartitionType, id: string | null): number {

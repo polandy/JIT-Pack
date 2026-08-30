@@ -132,10 +132,6 @@ const lockNotice = computed(() => {
   return who ? t('packing.lockedBy', { who }) : t('packing.lockedByUnknown')
 })
 
-// FR-25.15: owed since the M5 rebuild — the sheet says its edits are
-// captured on this device, distinct from G-2's server story.
-const saveState = computed(() => orchestrator.syncStatus.state.value)
-
 /** Folded by default: the sheet opens on what is used, not on everything. */
 const detailsOpen = ref(false)
 
@@ -398,7 +394,7 @@ const packedStamp = computed(() => {
         <h1 class="jp-sheet-title" data-testid="m5-name">{{ item.name }}</h1>
         <p v-if="contextLine" class="context">{{ contextLine }}</p>
       </div>
-      <SaveIndicator :state="saveState" />
+      <SaveIndicator :pending="orchestrator.capturePending.value" />
       <button
         class="x"
         data-testid="m5-close"
@@ -525,6 +521,7 @@ const packedStamp = computed(() => {
         v-for="comment in itemComments"
         :id="`comment-${comment.id}`"
         :key="comment.id"
+        :data-testid="`m5-note-${comment.body}`"
         class="note"
         :class="{ flash: flashedCommentId === comment.id }"
       >
@@ -539,6 +536,7 @@ const packedStamp = computed(() => {
           size="small"
           :aria-label="t('item.flagAsTask')"
           :title="t('item.flagAsTask')"
+          :data-testid="`m5-note-flag-${comment.body}`"
           @click="flagAsTask(comment)"
         >
           <IonIcon slot="icon-only" :icon="alertCircleOutline" />
@@ -563,11 +561,16 @@ const packedStamp = computed(() => {
     </section>
 
     <!-- FR-20.4: companions of this item that are not on the list yet. -->
-    <section v-if="suggestedCompanions.length > 0 && !isLocked" class="sec">
+    <section
+      v-if="suggestedCompanions.length > 0 && !isLocked"
+      class="sec"
+      data-testid="m5-companions"
+    >
       <h2 class="sl"><IonIcon :icon="linkOutline" /> {{ t('item.companions') }}</h2>
       <IonChip
         v-for="companion in suggestedCompanions"
         :key="companion.item_id"
+        :data-testid="`m5-companion-${companion.name}`"
         outline
         @click="addCompanion(companion)"
       >
