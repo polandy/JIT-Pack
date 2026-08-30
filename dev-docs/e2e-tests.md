@@ -73,7 +73,8 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M2 opening segment, settled guard | E2E-M2-14 | `single` | [`single/opening-segment.spec.ts`](../client/e2e/single/opening-segment.spec.ts) |
 | Editable display name and profile circle (FR-17.13, FR-23.4a) | E2E-M17-04 | `single` | [`single/settings-profile.spec.ts`](../client/e2e/single/settings-profile.spec.ts) |
 | Profile under an OIDC session: picture editable, name not (FR-17.13, revised 2026-08-29) | E2E-M17-05, E2E-M17-05b | `server` | [`server/settings-profile.spec.ts`](../client/e2e/server/settings-profile.spec.ts) |
-| M18 backup & restore | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
+| M18 backup & restore (restore list) | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
+| M18 portable import (merge preview) | E2E-M18-01, E2E-M18-02, E2E-M18-03, E2E-M18-04 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
@@ -2649,3 +2650,56 @@ is restricted to the item's assignee or the trip owner"* — enforced nowhere,
 client or server, and contradicting the same FR's own sentence two lines
 earlier that todos are visible to every trip member. Struck with the owner's
 decision rather than left standing as a rule the app has never followed.
+## M18 — the branch the backup never took (2026-08-30)
+
+Backlog item 6, M18. Seven of its eleven ids were implemented and all seven
+drive the **restore list** — the branch a multi-document backup file opens. The
+four that were not written are all on the **merge preview**, the branch a file
+holding *one* document opens, and that branch had no rendered coverage at all:
+`packing-list.spec.ts` walks through it twice, but as a *fixture* for a trip
+with quantities — it clicks `portable-preview` and `portable-commit` in
+consecutive lines and asserts nothing about either.
+
+So the sorting here came out unlike the earlier screens': **no id was retired
+and none described an unbuilt screen.** Every one of the four described built
+behaviour that nothing had ever painted, on the screen where the file is the
+only copy of the data. All four are written.
+
+| the promise | case | what it took |
+|---|---|---|
+| the header names the document, and every item carries its state | E2E-M18-01 | The inventory the states are computed against is built by an import of its own — M18 is the screen that turns a file into master items, so the second document meets exactly what the first left behind. Asserts that a *decided* state offers no choice, which is what keeps the near row's segment meaningful. |
+| a trip arrives in the status its file names | E2E-M18-02 | Not a new rule — ADR-024's — but on the branch nobody drove. |
+| merge and keep-separate decide the inventory | E2E-M18-03 | Two near-duplicates in one document, one left on the default and one switched, so the row kept apart is the positive signal for the row that was merged. |
+| an unreadable file is refused here; a newer one still imports | E2E-M18-04 | The parser's rules are exhaustively unit-covered and **neither message was rendered by anything**. |
+
+**Three sentences were the defect, not the coverage.** The audit's actual value
+was in reading the clauses rather than counting the ids:
+
+- *„a trip import creates a new trip in **planning** status"* stopped being true
+  on 2026-08-23 (ADR-024). The stale wording had spread to four places — this
+  case id, UI-Spec M18's *Actions* line, its restore-branch paragraph and two
+  comments in `importPortableDocument`, one of them three lines above the code
+  that reads `doc.status`. A comment that contradicts the line under it is worse
+  than no comment: it is the one a reader trusts.
+- *„reusing the same dedup component as M15 Step 3"* was never true. M15 and M18
+  each render their own list and hold their own `mergeChoices` map; what they
+  share is `findDuplicates` and two catalogue keys. Somebody acting on that
+  sentence would have gone looking for a component to change.
+- *„a malformed file is rejected before this screen is ever shown"* describes the
+  refusal as happening somewhere else. It happens in M18's own picker step —
+  which is the point, because the pasted text is still in the field to correct.
+
+**And one word had reached the code.** E2E-M18-01 promised a *„private owned
+template"*; `templates.owner_id` is creator metadata the server stamps and every
+template is visible to every account (FR-1.6 MVP). The word was in the case, in
+`importPortableDocument`'s doc-comment and in the unit spec's docblock and test
+name — four places, none of them a property any template has ever had.
+
+**Red proofs**, one production line each, rebuilt between runs: the state chip
+forced to `matched` (M18-01 red, M18-03 green — the two are genuinely different
+subjects), `commit()` merging every match regardless of the choice (M18-03),
+`{ status: undefined }` in `importPortableDocument` (M18-02), and two for M18-04
+— `newerSchema` forced false, then the parse error's own string dropped.
+
+**The production diff is six test ids and four corrected comments.** The screen
+itself was right; only what was written about it was wrong.

@@ -304,10 +304,12 @@ function assignTag(env: PortableImportEnv, itemId: string, tagId: string, positi
 
 /**
  * importPortableDocument lands an M18 portable YAML document (FR-18.4):
- * a template becomes a new private owned template (FR-1.6) with its
- * master items merged per the dedup decisions (imported name →
- * existing item id) or created; a trip becomes a *planning* trip with
- * travelers/containers remapped by name and pack progress preserved.
+ * a template becomes a new template, shared instance-wide like every other
+ * (FR-1.6 MVP), with its master items merged per the dedup decisions
+ * (imported name → existing item id) or created; a trip becomes a trip in
+ * **the status the file carries, and planning when it carries none**
+ * (ADR-024), with travelers/containers remapped by name and pack progress
+ * preserved.
  */
 export function importPortableDocument(
   doc: PortableDocument,
@@ -376,7 +378,7 @@ export function importPortableDocument(
     return { kind: 'template', id: templateId, outcome: 'created' }
   }
 
-  // Trip import — planning status (FR-18.4), fresh trip partition.
+  // Trip import — the file's own status (ADR-024), fresh trip partition.
   // FR-2.1b: neither date has to be there any more, so an absent one
   // stays absent rather than being invented as today's date; the year
   // is what the document must yield, from its own field or its dates.

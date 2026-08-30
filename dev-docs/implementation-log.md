@@ -200,6 +200,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A credential that nothing remembers (2026-08-30)](#a-credential-that-nothing-remembers-2026-08-30) — FR-23.7/ADR-039. How checking one sentence about refresh tokens deleted a table, a schema change and a whole screen; the hole a ninety-day credential made reachable in `authed`; and why refusing a token the right to mint another is not the scope the concept rejected.
 - [Six numbers that each meant two things (2026-08-30)](#six-numbers-that-each-meant-two-things-2026-08-30) — backlog item 6, M5. How one screen's catalogue came to define six ids twice, why the suite's meaning wins and the loser is struck rather than renumbered, and the requirement that was quoted verbatim in the code violating it.
 - [Two ids on the wrong tests (2026-08-30)](#two-ids-on-the-wrong-tests-2026-08-30) — backlog item 6, M9. Two case ids sitting on tests that implement two other promises, wrong since the commit that wrote both; why no gate can see a swap; the merge M9 never had, and the argument that leans on it.
+- [The branch the backup never took (2026-08-30)](#the-branch-the-backup-never-took-2026-08-30) — backlog item 6, M18. The screen where every unwritten case was real, why a clause can be stale in four places at once, and the comment that contradicted the line three rows under it.
 
 ## Current state
 
@@ -9020,3 +9021,65 @@ G-7 CTA is the always-present `trips-new` FAB rather than anything the empty
 state itself offers. One sentence naming four screens counted as four, which
 is the same shape as the review rule about one rule written into N
 templates. Recorded against the id; owed to M2's next pass, not built here.
+## The branch the backup never took (2026-08-30)
+
+M18's turn at backlog item 6, and it sorted unlike every screen before it: of
+the four unwritten ids, **none was retired, none described an unbuilt screen and
+none was on the wrong test.** All four described built behaviour that nothing
+had ever painted. All four are written.
+
+**The whole gap was one branch.** M18 has two. A file holding more than one
+document is a device backup and gets the restore *list*; a file holding one
+document gets the per-item *merge preview*. Seven implemented cases, every one of
+them on the restore list — which is not an accident, because that branch was
+written as a coverage audit of the backup (ADR-015) and the preview predates it
+by a month. What made the gap invisible is that the preview is *used* by the
+suite: `packing-list.spec.ts` builds two trips through it, because a trip with
+quantities and two categories has no other path through the app. It clicks
+`portable-preview` and `portable-commit` on consecutive lines and asserts nothing
+in between. **A screen that appears in the suite as a fixture reads exactly like
+a screen that is covered** — the id list is what says otherwise, and only if
+somebody opens the tests under it.
+
+**A clause can be stale in four places at once.** *„A trip import creates a new
+trip in planning status"* stopped being true on 2026-08-23, when ADR-024 made an
+imported trip carry the status its file names — the whole point being that a
+restore must not turn a decade of archived history into a decade of plans. The
+case id said *planning*. So did UI-Spec M18's *Actions* line, its restore-branch
+paragraph („every imported trip is planning", explaining a segment the code has
+derived since the same day), `importPortableDocument`'s doc-comment, and an
+inline comment **three lines above the code that reads `doc.status`**. Nothing
+was wrong with the code; five sentences about it were. The one that costs most is
+the inline comment, because it is the sentence a reader trusts without checking:
+a comment contradicting the line under it is worse than no comment.
+
+**And one clause had never been true.** *„each near-duplicate row offers merge or
+keep separate, reusing the same dedup component as M15 Step 3"* — there is no
+such component. M15 and M18 each render their own list and hold their own
+`mergeChoices` map; what they share is `domain/spreadsheet.ts`'s `findDuplicates`
+(M18 reaches it through `matchPortableItems`) and two catalogue keys. The
+duplication is small and deliberate — M15's row is a spreadsheet cell being
+mapped, M18's is a document position with a state chip — but the sentence sends
+somebody looking for a component to change, and finding none, to make one.
+
+**What ADR-024 argued for is what the new case tests.** The ADR weighed
+honouring a document's status *only on the restore path* and rejected it,
+because the same file would then behave differently depending on which button
+opened it, with nothing on screen saying so. E2E-M18-09 has covered the restore
+path since the ADR landed. The preview path — the half that rejection is
+actually about — was covered by unit tests at the rule and by nothing at the
+screen. E2E-M18-02 is that half.
+
+**What the four cases cost, and one thing they did not.** The inventory the
+matcher runs against is built by an import of its own rather than through M10:
+M18 *is* the screen that turns a file into master items, so a first document
+leaves exactly what the second one meets, and the case needs no second screen to
+set itself up. What was resisted is folding M18-01 and M18-03 into one test —
+they share every line of setup — because they are different subjects: one is
+whether the screen *reads* the document, the other is whether the user's answer
+*decides* the inventory. The red proof settled it: forcing the state chip
+reddens M18-01 and leaves M18-03 green, and mutating `commit()` does the
+reverse.
+
+Six test ids and four corrected comments are the entire production diff. The
+screen was right; only what was written about it was wrong.

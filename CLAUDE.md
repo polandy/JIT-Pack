@@ -191,6 +191,17 @@ it. Item numbers stay stable even as items close, because the log refers back to
    (`m9-empty` existed in the suite only as an *absence* assertion), and **E2E-M9-10**, the
    word „searchable" in M9-01's sentence that nothing typed into. Log: *„Two ids on the wrong
    tests"*.
+   **M18 followed 2026-08-30 and inverted the pattern**: nothing was retired and nothing was
+   unbuilt — all four of its unwritten ids describe built behaviour on the **merge preview**,
+   the branch a single-document file opens, which no test had ever rendered. It was invisible
+   because the suite *uses* that branch: two `packing-list.spec.ts` cases click through it as a
+   fixture and assert nothing, and **a screen that appears as a fixture reads like a screen that
+   is covered**. All four written. The finding was in the clauses: „creates a trip in *planning*
+   status" was reversed by ADR-024 a year earlier and still stood in five places, one of them a
+   comment three lines above the code that reads `doc.status`; „the same dedup component as
+   M15" was never true (the shared thing is `findDuplicates`); „rejected before this screen is
+   ever shown" misplaces a refusal that is M18's own picker step. Log: *„The branch the backup
+   never took"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).
