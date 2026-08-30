@@ -8776,6 +8776,39 @@ delegation — is what says the channel is live and the delegation had its
 chance. That second positive also proves the switch is per kind rather than a
 mute, which is the actual promise.
 
+**The case broke two others, and the reason is a category this file did not
+have.** `multi-user.spec.ts` says in its header that the master partition is
+shared across the run, so every test names its trip and its items uniquely.
+A notification **preference** is neither: it belongs to the *account*. The
+first version of E2E-M17-01 turned Bob's delegations off and left them off,
+and E2E-NOTIFY-01 — which expects Bob to be told, in German — went red on a
+run where everything about it was unchanged. Two things came out of fixing it.
+**Carol is the right account**, and `mockIdp.mjs` already said why she exists:
+to keep a case from reaching across into the multi-user unit's own accounts.
+And **the preference is set through an idempotent helper and put back at the
+end**, because a case that toggles blindly cannot survive its own retry —
+which is precisely what happened next: the retry began with the preference
+already off and failed on its *control* assertion, the one written to prove
+the channel works.
+
+Its other half was a wait that could not settle. The case re-entered the trip
+after the settings detour and waited for a second WebSocket subscription;
+`waitForEvent('websocket')` resolves on the next socket, and after a reload
+that is the app's own connection rather than a trip subscription, so the wait
+ran to the 180-second test timeout. It is gone — a notification is addressed
+to the *user*, so it reaches whatever page they have open, and Carol simply
+stays in her settings. The unit went from 4.5 minutes with a failure to 1.5
+minutes green.
+
+**A defect this audit found in the previous one.** #266 inserted E2E-M2-05 by
+matching the opening line of an existing test, which put it between
+E2E-G3-01's doc comment and the test that comment describes — so `main` has
+been carrying a comment block that documents the wrong test since this
+morning. It is the same shape as the orphaned comment #265 caught in its own
+diff, and it merged this time because I matched on a test's first line
+without reading what stood above it. Moved back; the lesson is that an
+insertion marker has two neighbours.
+
 **A note on the machine rather than the code**, because it cost real time
 here: two sessions running `make e2e` in different worktrees collide on host
 port 4173. The Playwright container runs `--network host`, so the second
