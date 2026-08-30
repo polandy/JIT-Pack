@@ -671,7 +671,6 @@ async function handleRefresh(event: CustomEvent) {
                 <IonItemOption
                   v-if="trip.status === 'archived'"
                   color="primary"
-                  :data-testid="`m2-clone-${trip.name}`"
                   :aria-label="t('trips.actionClone')"
                   @click="$router.push(`/trips/${trip.id}/clone`)"
                 >
@@ -682,7 +681,6 @@ async function handleRefresh(event: CustomEvent) {
                 <IonItemOption
                   v-if="trip.status === 'planning'"
                   color="primary"
-                  :data-testid="`m2-start-${trip.name}`"
                   :aria-label="t('trips.actionStart')"
                   @click="startTrip(trip.id)"
                 >
@@ -692,7 +690,6 @@ async function handleRefresh(event: CustomEvent) {
                 <IonItemOption
                   v-else-if="trip.status === 'active'"
                   color="medium"
-                  :data-testid="`m2-archive-${trip.name}`"
                   :aria-label="t('trips.actionArchive')"
                   @click="archiveTrip(trip.id)"
                 >
