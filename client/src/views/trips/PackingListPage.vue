@@ -1998,6 +1998,7 @@ setHeaderTitle(() => (isDesktop.value ? tripName.value : null))
               :trip-id="tripId"
               :item-id="membershipItemId"
               :locked="false"
+              :participants="participants"
               :start-per-person="true"
               @close="membershipItemId = null"
             />

@@ -720,6 +720,7 @@ const packedStamp = computed(() => {
         :trip-id="tripId"
         :item-id="item.id"
         :locked="isLocked"
+        :participants="participants"
         @close="membershipOpen = false"
       />
     </div>
