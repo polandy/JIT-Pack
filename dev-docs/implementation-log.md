@@ -8742,6 +8742,20 @@ happened twice. The cost is stated rather than hidden: the section grows a
 dozen struck lines that will never be deleted, and every naive recount will
 go on counting them as gaps.
 
+**The class is guarded now, and the guard found four more.** Nothing about
+this was catchable by review: both offending diffs are pure additions to a
+long bulleted list, one defined the same id twice inside a single commit, and
+every automatic signal moved the *reassuring* way — the number of ids with a
+test went up each time. That is precisely the shape a checklist is worst at,
+so `scripts/case-id-gate.mjs` now fails on any id with more than one **live**
+definition (a struck entry keeps its number on purpose and is a tombstone).
+Running it for the first time turned up `E2E-M3-11`, `-12`, `-13` and
+`E2E-M4-32` — four more live pairs, each carrying two unrelated promises, on
+screens one of which had *just* been audited. They are a debt register inside
+the gate, owed to those screens, and the register may only shrink: the gate
+also fails when an entry in it has been fixed and not removed, so it cannot
+quietly become a permanent allowlist.
+
 **Sorted against the screen, the twelve went the way M6's and M4's had** —
 four already asserted under other ids, four describing a screen that had
 argued its way out of them, one never built, three real. The owner retired

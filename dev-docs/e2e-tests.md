@@ -2547,6 +2547,16 @@ what the suite implements**, the loser is struck through and re-headed
 *(v1.0 catalogue, shadowed)*, and only a promise that survives *and* has
 nowhere to live gets a fresh number. Two did: `E2E-M5-22` and `E2E-M5-23`.
 
+**It is a gate now.** `scripts/case-id-gate.mjs` fails on any id with more
+than one live definition, because nothing about this class is visible to a
+reviewer: both offending commits were pure additions to a long bulleted list,
+one of them defined the same id twice *inside a single commit*, and every
+automatic signal moved the reassuring way — the count of ids with a test rose
+each time. Writing the gate immediately found **four more**, `E2E-M3-11`,
+`-12`, `-13` and `E2E-M4-32`, all live pairs with two different promises. They
+sit in the gate's debt register, owed to those screens' own audits; a new
+collision is simply a failure.
+
 **Held against the screen, the twelve sorted the way the two earlier audits
 did** — four already asserted elsewhere (the G-3 lock banner, the delegation
 notification, the master photo, the prep lifecycle), four describing a

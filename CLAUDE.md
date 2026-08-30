@@ -160,7 +160,11 @@ it. Item numbers stay stable even as items close, because the log refers back to
    because the component's doc comment quoted the requirement, its unit test pinned the
    defect as the rule, and the shadowed id made the promise look answered from every
    direction. Owner retirements: M5-01, -03, -04, -09, -06(A), and FR-7.3's never-built
-   resolution restriction. Log: *„Six numbers that each meant two things"*.
+   resolution restriction. **The class is a gate now** — `scripts/case-id-gate.mjs`, in
+   `make ci` — because nothing here was catchable by eye; it found **four more** live
+   collisions the same hour (`E2E-M3-11/-12/-13`, `E2E-M4-32`), which are a shrink-only
+   debt register owed to those screens' audits. Log: *„Six numbers that each meant two
+   things"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).

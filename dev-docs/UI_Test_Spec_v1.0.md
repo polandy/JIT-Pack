@@ -279,6 +279,16 @@ got fresh numbers at the end — `E2E-M5-22` and `E2E-M5-23`. Nothing was
 renumbered, because a reader arriving from an older commit has to be able to
 find out what happened to the id it names.
 
+**And it is a gate now, because it was never catchable by eye.**
+`scripts/case-id-gate.mjs` (in `make ci` and the CI client job) fails when an
+id has more than one *live* definition; a struck entry keeps its number on
+purpose and is a tombstone, not a definition. Writing it turned up **four more
+collisions on other screens** — `E2E-M3-11`, `-12`, `-13` and `E2E-M4-32`, each
+a live pair carrying two different promises. They are listed in the gate as a
+debt register that may only shrink, owed to the M3 and M4 audits; the list is
+not a carve-out, and a *new* collision fails the build outright.
+
+
 * **E2E-M5-09** `all` (UI-Spec M5): tapping a row opens the detail **over** the list — M4 stays on screen — and the ✕ returns to the trip's own URL.
 * **E2E-M5-10** `all` (G-4): a cold boot straight onto an item URL opens the same sheet, since the route is the state. Its ✕ leads back to the trip.
 * **E2E-M5-11** `all` (UI-Spec M5 rework): packing, preparation and notes are on the first level; every attribute control is **absent** until *Details* is opened. **Extended 2026-08-27 (UX-10):** the packing block carries its eyebrow label („Einpacken" / "Packing"), the same pattern as the prep and notes sections.
