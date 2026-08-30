@@ -131,6 +131,45 @@ export interface MasterDeleteResponse {
 }
 
 /**
+ * APITokenExpiry is how long a minted token lives.
+ *
+ * A closed vocabulary rather than a number of days, so the screen's select,
+ * the CLI's flag and the handler's validation read the same four values from
+ * one declaration instead of agreeing by hand (§4a).
+ */
+export type APITokenExpiry = '30d' | '90d' | '365d' | 'never'
+
+export const API_TOKEN_EXPIRY = {
+  '30d': '30d',
+  '90d': '90d',
+  '365d': '365d',
+  never: 'never',
+} as const
+
+/**
+ * APITokenRequest asks for one token. Both fields are required: the server
+ * has no default lifetime on purpose, so the choice is made rather than
+ * inherited.
+ */
+export interface APITokenRequest {
+  name: string
+  expiry: APITokenExpiry
+}
+
+/**
+ * APITokenResponse is the only response in this API that carries a
+ * credential, and the only time the token is ever readable — nothing stores
+ * it.
+ */
+export interface APITokenResponse {
+  token: string
+  // RFC3339, or empty for a token that does not expire. Always present
+  // rather than omitted: an optional field would make every read site
+  // branch, and there is exactly one read site.
+  expires_at: string
+}
+
+/**
  * WSEventType is the kind of a WebSocket frame.
  */
 export type WSEventType =

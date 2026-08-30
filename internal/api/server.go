@@ -146,6 +146,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc(pattern(http.MethodGet, RouteMeNotificationPrefs), s.authed(s.handleGetNotificationPrefs))
 	mux.HandleFunc(pattern(http.MethodPut, RouteMeNotificationPrefs), s.authed(s.handlePutNotificationPrefs))
 	mux.HandleFunc(pattern(http.MethodGet, RouteMeExport), s.authed(s.handleExportFull))
+	mux.HandleFunc(pattern(http.MethodPost, RouteMeTokens), s.authed(s.handleMintAPIToken))
 
 	// User scope.
 	mux.HandleFunc(pattern(http.MethodGet, RouteUsers), s.authed(s.handleListUsers))
@@ -189,7 +190,12 @@ func (s *Server) Handler() http.Handler {
 
 type ctxKey int
 
-const userIDKey ctxKey = iota
+const (
+	userIDKey ctxKey = iota
+	// tokenKindKey carries the credential's own kind, so one endpoint —
+	// the mint — can refuse to be called by what it produces (FR-23.7).
+	tokenKindKey
+)
 
 func (s *Server) authed(next http.HandlerFunc) http.HandlerFunc {
 	if s.singleUserMode {
@@ -238,7 +244,9 @@ func (s *Server) authed(next http.HandlerFunc) http.HandlerFunc {
 			return
 		case store.AccountActive:
 		}
-		next(w, r.WithContext(context.WithValue(r.Context(), userIDKey, userID)))
+		ctx := context.WithValue(r.Context(), userIDKey, userID)
+		ctx = context.WithValue(ctx, tokenKindKey, stringClaim(claims, claimKind))
+		next(w, r.WithContext(ctx))
 	}
 }
 

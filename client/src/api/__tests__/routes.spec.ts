@@ -72,6 +72,7 @@ describe('API routes', () => {
       me: '/api/v1/me',
       meNotificationPrefs: '/api/v1/me/notification-prefs',
       meExport: '/api/v1/me/export.json',
+      meTokens: '/api/v1/me/tokens',
       users: '/api/v1/users',
       userAvatar: '/api/v1/users/ID1/avatar',
       userDisplayName: '/api/v1/users/ID1/display-name',
