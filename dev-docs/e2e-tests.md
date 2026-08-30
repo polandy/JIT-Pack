@@ -58,8 +58,8 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | FR-24.3 lifecycle delete | E2E-M10-14, E2E-M10-15, E2E-M7-11 | `local` | [`lifecycle-delete.spec.ts`](../client/e2e/lifecycle-delete.spec.ts) |
 | FR-24.3 restore (M23) | E2E-M23-01, E2E-M23-02, E2E-M23-03, E2E-M23-04 (the Vorlage half) | `local` | [`restore-retired.spec.ts`](../client/e2e/restore-retired.spec.ts) |
 | §3.28 the item mark | E2E-M10-11, E2E-M10-12, E2E-M9-07, E2E-M4-48, E2E-G15-01, E2E-G15-02, E2E-M5-15 | `local` | [`item-mark.spec.ts`](../client/e2e/item-mark.spec.ts) |
-| M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in), E2E-M5-22 (M5 moves an item between two of them), E2E-M11-07 (UX-8 empty state) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
-| M12 analytics | E2E-M12-01, E2E-M12-02 (incl. the UX-11 tile absences), E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05, E2E-M12-07 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
+| M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit and, since 2026-08-30, FR-25.15's absent Save button), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in), E2E-M5-22 (M5 moves an item between two of them), E2E-M11-07 (UX-8 empty state) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
+| M12 analytics | E2E-M12-01 (rewritten 2026-08-30: the Gepäck dimension over a real bag, FR-10.4), E2E-M12-02 (incl. the UX-11 tile absences), E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05, E2E-M12-07 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
 | M2 trip list rows | E2E-M2-12 (locale dates, UX-5) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | M2 row actions (the slide menu) | E2E-M2-06 (no Share without a session), E2E-M2-07 (export, both branches) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | M2 opening segment (FR-2.8) | E2E-M2-13, E2E-M2-13b, E2E-M2-13c, E2E-M2-13d | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
@@ -716,7 +716,8 @@ every tag instead of its primary one drops two of those cases.
 
 ## M11 — containers (`e2e/containers.spec.ts`, 2026-08-16)
 
-Four cases, Local Mode, landing with the M11 rebuild. The pairing *write
+Six cases, Local Mode: four landed with the M11 rebuild, E2E-M11-07 with the
+UX-8 pass and E2E-M5-22 with the 2026-08-30 audit round. The pairing *write
 semantics* (both sides at once, exclusive, released on delete) are unit
 territory — `src/domain/__tests__/containers.spec.ts` — so the e2e cases
 assert only what the user can see of them: the pair set in one sheet and
@@ -733,7 +734,8 @@ What the unit cost to learn:
    assertion counts.
 2. **An overlay's dismissal is part of the interaction.** A tap that arrives
    while the previous sheet is still animating out lands on the backdrop and
-   is swallowed. `closeSheet()` therefore waits for `ion-modal.show-modal`
+   is swallowed. `closeContainerSheet()` (in `fixtures.ts` since 2026-08-30)
+   therefore waits for `ion-modal.show-modal`
    to be gone, not merely for the sheet's content to detach — the same
    settled-not-arrived rule the M7 unit paid for, one layer down.
 3. **A spec sentence is a list of promises, and each one needs its own
@@ -756,6 +758,20 @@ What the unit cost to learn:
    inherits it by picking the quick-add *suggestion* — which got its
    `data-testid` with this unit; free-text quick-add creates weightless
    items and would have made the FR-10.3 grades untestable.
+
+**Audited 2026-08-30** (backlog item 6). What each promise is kept by:
+
+| Promise | Kept by | Note |
+|---|---|---|
+| create a container, name and limit commit with no Save button | E2E-M11-05 | The *„no Save button"* half was asserted on 2026-08-30; the FR-25.15 matrix row had credited this case with it since the rebuild while the body asserted only that the indicator is present. The indicator is the positive signal the absence stands against. |
+| the carrier can be set … | E2E-M11-05 | Set on the chip, read back off the card. |
+| … and taken off again | `ContainerSheet.spec.ts` (unit) | **New 2026-08-30.** FR-10.1 calls the carrier optional and nothing at any layer had ever cleared one; a chip that could only hand the bag on was indistinguishable from one that toggles. A write rule, so it is asserted at the write layer. |
+| the weight bar's amber and red grades | E2E-M11-02 + `containers.ts` (unit) | The boundary is the domain's; that the grade reaches the painted bar is the e2e's. |
+| paired containers report their imbalance, and a delete releases the survivor | E2E-M11-04 | Both cards, and the skew is what makes the release assertable at all. |
+| **the threshold is configurable per trip** | **nothing — it has no writer** | `imbalanceThreshold()` honours `attributes.imbalance_threshold`, and no screen writes that key: the wizard writes three attributes and `tags`, M16 writes the series' defaults of the same three, M22 touches attributes not at all. Left untested on purpose; owner decision (UI-Test-Spec M11, PRD FR-10.3). |
+| the unassigned bucket is rows, the picker shows loads, a delete unassigns | E2E-M11-06 | FR-25.5's *„never blocks packing"* is not restated here — every M4 case that packs an unassigned row keeps it. |
+| the bucket is absent when there is nothing to say | E2E-M11-07 | UX-8. |
+| moving an item between two bags | E2E-M5-22 | M11 offers no path to it — see E2E-M11-03. |
 
 ## E2E-M5-13 — browser back with the sheet open (2026-08-16)
 
@@ -809,6 +825,46 @@ Landed with the M12 rebuild. What the unit had to get right:
    `wizard-series-name` added for it) and reuses an existing series of the
    same name on later seeds — needed by E2E-M12-03 and by every future
    series-scoped case (M16).
+
+**Audited 2026-08-30** (backlog item 6), and this unit is where the audit paid
+for itself. M12 derives everything it shows, so most of its promises are
+`domain/analytics.ts`'s and only their *rendering* is e2e work — but the
+rendering is exactly where a screen of derived numbers can go quietly wrong,
+and E2E-M12-01 had two clauses that could not fail:
+
+1. **A world where packed equals planned cannot tell you the KPI is the
+   pair it claims.** One weighted item, packed, gave `5.0 kg / 5.0 kg`; a
+   template printing `plannedWeight` on both sides of the slash satisfied it
+   for as long as the case existed. The fix is a second, unpacked row — two
+   different numbers — and it costs nothing.
+2. **A dimension switch asserted against a locator both dimensions
+   render is not an assertion.** The case clicked *Gepäck* and expected
+   `analytics-slice-none`, which the *Kategorie* view it started on already
+   showed for the same uncategorized item: the absence bucket is keyed `''`
+   in every dimension, so the same element was on screen before and after
+   the click. Under that sat **FR-10.4** — containers are the Gepäck
+   dimension's data source — credited to this case since the rebuild while
+   **no test had ever put an item in a bag and opened this screen**. It now
+   creates one through M11's own FAB and asserts two slices where Kategorie
+   had one, the bag named and carrying its load: a segment that changes
+   nothing fails on the count alone.
+
+The M11 helpers (`openLuggage`, `createContainer`, `assignToContainer`,
+`closeContainerSheet`) moved into `fixtures.ts` for it rather than being
+copied — the M9 unit's lesson about two copies of one navigation sequence,
+one of which was missing a wait.
+
+| Promise | Kept by | Note |
+|---|---|---|
+| bars per dimension value, heaviest first | `analytics.ts` (unit) | Order is arithmetic; the e2e asserts the bars are there and what they say. |
+| the switcher reaches Person / Kategorie / Gepäck | E2E-M12-01 (Gepäck, Kategorie), E2E-M12-04/05 (Person) | Rewritten 2026-08-30 — see above. |
+| the KPI is packed *within* planned | E2E-M12-01 | Two different numbers since 2026-08-30. |
+| the value tile stands only with a value | E2E-M12-07 | Unit-less in `local`; the currency half is E2E-M9-09 on `single` (FR-21.9), same `formatValue`. |
+| an unweighted item is counted, never drawn | `analytics.ts` (unit) + E2E-M12-02 | The e2e world has no bars at all, so *„one bar, not two"* is the domain's; the counter and the empty line are the screen's. |
+| a tapped bar becomes M4's facet, clearing the others | E2E-M12-04 + `usePackingFilter.spec.ts` (unit) | The e2e never has a second facet in force, so *„clearing the others"* could not fail there. |
+| per-person rows contribute per person and sum back | E2E-M12-05 + `analytics.ts` (unit) | No `undefined` bucket, totals equal across dimensions. |
+| the series trend and its flags | E2E-M12-03 (both halves) + `analytics.ts` (unit) | |
+| **M11 is reachable from M12** | **nothing — the edge does not exist** | UI-Spec M11 has claimed it since before the rebuild; `AnalyticsPage.vue` pushes one route, `/trips/{id}`. Owner decision, and the UI-Spec sentence is struck. |
 
 ## M14 — review assistant (`e2e/review.spec.ts`, 2026-08-16)
 

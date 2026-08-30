@@ -195,6 +195,22 @@ it. Item numbers stay stable even as items close, because the log refers back to
    (`m9-empty` existed in the suite only as an *absence* assertion), and **E2E-M9-10**, the
    word „searchable" in M9-01's sentence that nothing typed into. Log: *„Two ids on the wrong
    tests"*.
+   **M11 and M12 followed 2026-08-30, and both had every id implemented** — so
+   the audit's product was not new cases but a **seventh shape: a clause whose
+   assertion cannot fail.** E2E-M12-01 switched to the *Gepäck* dimension and
+   asserted `analytics-slice-none`, which the *Kategorie* view it started on
+   already rendered — the absence bucket is keyed `''` in every dimension, so
+   the same element was on screen before and after the click; and its
+   packed/planned KPI was asserted in a world where the two were equal.
+   Underneath sat FR-10.4, credited to the case while **no test had ever put an
+   item in a bag and opened the screen**. The check that finds this shape:
+   **would the assertion have passed before the action?** Two more clauses were
+   credited and unasserted (M11-05's absent Save button, FR-10.1's carrier being
+   *optional* — nothing had ever cleared one), and **two promises are unbuilt**:
+   FR-10.3's per-trip imbalance threshold is honoured by the domain and written
+   by no screen, and UI-Spec M11's *„and from M12"* edge does not exist. Both
+   open with the owner, deliberately untested. Log: *„An assertion that was true
+   before the click"*.
    **M7 and M23 followed 2026-08-30.** M7's catalogue predates the 2026-08-15 variant pass that
    rebuilt the screen, so three of its ids describe surfaces that pass removed or never built:
    M7-01's my/published split (FR-1.6's simplification — nothing to render) and M7-03's name
