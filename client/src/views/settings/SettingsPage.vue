@@ -236,6 +236,8 @@ const tokenSheetOpen = ref(false)
  * switch, which is the trap M17 closed once already.
  */
 const tokenExpiryOptions = computed(() => [
+  { value: API_TOKEN_EXPIRY['1d'], label: t('settings.tokenExpiry1d') },
+  { value: API_TOKEN_EXPIRY['7d'], label: t('settings.tokenExpiry7d') },
   { value: API_TOKEN_EXPIRY['30d'], label: t('settings.tokenExpiry30d') },
   { value: API_TOKEN_EXPIRY['90d'], label: t('settings.tokenExpiry90d') },
   { value: API_TOKEN_EXPIRY['365d'], label: t('settings.tokenExpiry365d') },
@@ -771,6 +773,19 @@ async function exportTripCSV() {
 </template>
 
 <style scoped>
+/*
+ * The recessive line under a section heading. It was already used at the
+ * default-travelers block and defined nowhere — the class lives scoped inside
+ * ItemEditorPage, so on this screen it painted nothing and the hint read as
+ * ordinary body copy. Found by looking at the rendered screen; no test could
+ * have said it, and no stylesheet reading would have either.
+ */
+.section-hint {
+  font-size: var(--jp-text-sm);
+  color: var(--ct-subtext0);
+  margin: 0 0 8px;
+}
+
 .section-title {
   margin: 20px 0 8px;
 }

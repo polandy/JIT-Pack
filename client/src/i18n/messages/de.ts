@@ -654,6 +654,8 @@ export const de: Record<keyof typeof en, string> = {
   'settings.tokenName': 'Wofür ist es?',
   'settings.tokenNamePlaceholder': 'Aufräumskript',
   'settings.tokenExpiry': 'Läuft ab nach',
+  'settings.tokenExpiry1d': 'einem Tag',
+  'settings.tokenExpiry7d': 'einer Woche',
   'settings.tokenExpiry30d': '30 Tagen',
   'settings.tokenExpiry90d': '90 Tagen',
   'settings.tokenExpiry365d': 'einem Jahr',

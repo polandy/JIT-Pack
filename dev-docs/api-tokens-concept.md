@@ -188,7 +188,7 @@ matter.
 nearly settled by it too: with no revocation, `exp` is the *only* thing that ever ends a token's
 life without operator action.
 
-Recommendation: offer 30 / 90 / 365 days and *never*, **default 90**, and require the choice to be
+Answered: offer 1 / 7 / 30 / 90 / 365 days and *never*, **default 90**, and require the choice to be
 made rather than accepted silently. *Never* stays available, because a token for a script that runs
 once a year is a real case — but it should be the answer to a question, not a default nobody read.
 

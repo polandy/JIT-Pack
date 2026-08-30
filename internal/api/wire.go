@@ -130,10 +130,13 @@ type MasterDeleteResponse struct {
 // one declaration instead of agreeing by hand (§4a).
 type APITokenExpiry string
 
-// The four lifetimes on offer. `exp` is the only thing that ever ends an
-// unmanaged token's life on its own, which is why "never" is a deliberate
-// answer here and not the absence of one.
+// The lifetimes on offer, shortest first. `exp` is the only thing that ever
+// ends an unmanaged token's life on its own, which is why "never" is a
+// deliberate answer here and not the absence of one — and why the short end
+// matters: a credential for one cleanup run should be able to die with it.
 const (
+	APITokenExpiry1d    APITokenExpiry = "1d"
+	APITokenExpiry7d    APITokenExpiry = "7d"
 	APITokenExpiry30d   APITokenExpiry = "30d"
 	APITokenExpiry90d   APITokenExpiry = "90d"
 	APITokenExpiry365d  APITokenExpiry = "365d"
