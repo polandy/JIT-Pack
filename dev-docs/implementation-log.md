@@ -206,6 +206,10 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A control nobody had ever clicked (2026-08-30)](#a-control-nobody-had-ever-clicked-2026-08-30) — backlog item 6, M8. The first screen whose ids were all written, and the destructive control none of them touched; why the amendment that introduced it is exactly what kept it unread; and the three clauses checked and deliberately left untested.
 - [Five numbers, and two sections nobody had built (2026-08-30)](#five-numbers-and-two-sections-nobody-had-built-2026-08-30) — backlog item 6, M10. The same commit's larger swap, five ids deep; the ledger was the only document that had it right; the two sections built in July that no test had ever rendered; and an absence assertion over a section absent in both modes.
 - [The branch the backup never took (2026-08-30)](#the-branch-the-backup-never-took-2026-08-30) — backlog item 6, M18. The screen where every unwritten case was real, why a clause can be stale in four places at once, and the comment that contradicted the line three rows under it.
+- [A number that was right when it was written (2026-08-30)](#a-number-that-was-right-when-it-was-written-2026-08-30) — CI efficiency. A stale shard count with no red signal anywhere, why eight is bounded by the concurrency limit rather than by fixed cost, and the superseded-run cancellation that is the same constraint from the other side.
+  - [A workaround in the orientation document is a defect being paid for](#a-workaround-in-the-orientation-document-is-a-defect-being-paid-for) — ADR-040. Why the auto-formatting bot's push made a PR read as checkless, the PAT option rejected for what it costs, and the second change without which removing the bot would have dropped formatting enforcement entirely.
+  - [The Makefile now diverges from CI in exactly one place, on purpose](#the-makefile-now-diverges-from-ci-in-exactly-one-place-on-purpose) — the Go test cache locally, why it is sound rather than a shortcut, and the coverage-profile half that had to be checked instead of assumed.
+  - [The trap: a local timing on this machine is not a measurement](#the-trap-a-local-timing-on-this-machine-is-not-a-measurement) — 100 s became 368 s on an unchanged tree under a parallel session's suite; why that is a confident wrong answer rather than a weak one, and the change it stopped from landing.
 
 ## Current state
 
@@ -9465,3 +9469,106 @@ That is the second time this backlog item has found a specification
 sentence describing a state nobody can produce, and the shape is the same as
 M17's: **a promise can be wrong in a way only the screen can refute**, and
 reading it against another document will confirm it forever.
+
+## A number that was right when it was written (2026-08-30)
+
+The pipeline had grown to 11.5 minutes per pull request and nothing in it was
+broken. Every job was green, every job was doing work it should do, and the
+critical path was a single e2e shard at 11.2 minutes while every other job
+finished inside three. The cause was one integer that had been correct when
+somebody measured it.
+
+**The shard count is a measurement with a shelf life, and nothing says so.**
+`ci.yml` split the Playwright suite four ways on 2026-08-19, sized against a
+suite carrying ~1020 test-seconds, and the comment recording that arithmetic is
+unusually good — it names the simulation, the per-leg predictions and the
+fixed cost that bounds it. What it could not do is notice that backlog item 6's
+audits then roughly doubled the suite. Measured against run 33327549233 the four
+legs ran 5.0 / 7.5 / 9.5 / 10.0 minutes, ~1920 test-seconds.
+
+The reason this is worth an entry rather than a commit message is the **shape of
+the failure**, because the project has a rule for exactly this class and it did
+not fire. A stale shard count has **no red signal at any point**: not a failing
+test, not a warning, not a slow-test report. The only symptom is that every run
+is slower than it needs to be, and a run that is slower than it needs to be
+looks precisely like a run. Every automatic signal moves the reassuring way —
+the same sentence backlog item 6 wrote about a shadowed case id, arrived at from
+the opposite direction. The countermeasure is not a gate (there is no threshold
+to assert against; the right number depends on runner cost and the concurrency
+limit) but a **standing instruction to re-read the per-leg times**, which is now
+in the comment and in CLAUDE.md.
+
+Eight rather than more, and the reason is not the fixed cost. Per-leg fixed cost
+is ~60 s (image pull ~40 s, npm ci + build ~21 s warm), which alone would argue
+for twelve. The binding constraint is **concurrency**: a run carries 8 non-e2e
+jobs, so eight shards make 16 against the 20 concurrent jobs a public repository
+gets, and twelve would put a single run at the ceiling — where two overlapping
+runs start queueing against each other and the split gives back less than the
+queue takes. Measured after the change (run 33329405672): legs 201–395 s, worst
+leg 642 s → 395 s, critical path 11.2 min → 6.6.
+
+**The `concurrency` group is the same constraint seen from the other side.** A
+superseded PR run was holding 16 runners to produce a verdict about a commit
+nobody would read. It now cancels — but only for `pull_request`. A `push` to
+main is deliberately never cancelled: its run is the record that main was green,
+and two pushes landing close together must both be checked rather than the older
+one being dropped.
+
+### A workaround in the orientation document is a defect being paid for
+
+The `autoformat` job wrote formatting fixes and pushed them back, so formatting
+was never a red build. The price was that its push arrived as
+`github-actions[bot]`, which makes the resulting run `action_required`, which
+makes `gh pr checks` report *no checks at all* on a PR sitting at `BLOCKED` —
+not red, not pending, blank. That was diagnosed twice on one day in August and
+then carried for a week as a paragraph of standing instructions telling every
+future session how to approve the run by hand.
+
+That paragraph is the finding. **A workaround written into CLAUDE.md is a defect
+that was priced once and then paid every time**, and the orientation document is
+the worst place for it precisely because it makes the cost invisible: the
+instruction is always there, so nobody re-asks whether it should be. ADR-040
+weighs the options; the rejected one is worth naming here because it is the
+tempting one — push with a fine-grained PAT so the bot's run is attributed to a
+real account. It works, and it buys the convenience with the widest credential
+in the repository, held so that nobody has to run `make fmt`.
+
+The check-instead-of-fix option has a real cost and it is accepted rather than
+hidden: formatting can now fail a build, where before it could not. What bounds
+that cost is a second change without which this would merely have moved the
+failure to GitHub — `client-fmt` joins the `client` target, so `make ci` checks
+prettier as well as gofmt. **Neither CI job checked formatting at all**; the
+auto-fixing bot was the only thing enforcing it, which is why removing it
+without that addition would have quietly dropped the rule.
+
+### The Makefile now diverges from CI in exactly one place, on purpose
+
+`make ci` dropped `-count=1`, so Go's test cache answers for packages whose
+inputs have not moved; CI keeps it. This is a deliberate break in the file's
+1:1-mirror promise and is annotated as such. It is sound rather than a shortcut:
+the cache key covers the package's content, its dependencies, its flags and the
+files and environment the test read, so a hit means this exact run already
+happened — and these tests are hermetic (in-memory SQLite, no network, no wall
+clock), which is the condition that guarantee needs. **The half that had to be
+checked rather than assumed** is that a cached run still writes the coverage
+profile `scripts/coverage-gate.sh` reads; it does, byte-identically, verified
+before landing. Had it not, the gate would have gone on passing against a stale
+file — a silent hole in an enforced invariant, bought for a few seconds.
+
+### The trap: a local timing on this machine is not a measurement
+
+Mid-investigation `npx vitest run` took 368 s against the 100 s the same command
+had taken inside `make ci` twenty minutes earlier — on the same tree, same
+flags. Nothing had regressed. A parallel session was running its own Playwright
+suite locally; the load average was 21 on a four-core box and climbing past 33,
+and `user` time below `real` is the tell.
+
+The consequence is not a footnote, because this repository's standing rule is to
+**measure rather than guess** — and a measurement taken under foreign load is
+not a weaker measurement, it is a confident wrong one. Anything timed here needs
+the load average read alongside it, which is now in CLAUDE.md next to the
+`make ci` budget. It is also why the one change this investigation could not
+land is the Vitest worker pool: the pool only matters to *local* wall-clock (on
+CI the client job is 90 s and nowhere near the critical path), so the only
+measurement that could decide it is the one this machine could not produce
+honestly today. Left unchanged rather than changed on a guess.
