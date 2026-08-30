@@ -149,12 +149,20 @@ Global patterns are asserted once as dedicated cases and then relied upon (not r
 Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s) it exercises through the UI. IDs are stable references for the traceability matrix.
 
 ### M1 — Dashboard
-* **E2E-M1-01** `all` (FR-6.1): with active trips, dashboard shows per-trip cards with my open items (count + next 3) and my open tasks.
-* **E2E-M1-02** `all` (FR-7.3): "Prep to do" card lists open prep todos grouped by item; tapping a todo toggles it resolved; tapping the item name navigates to M5.
-* **E2E-M1-03** `server` (FR-6.1/6.3/4.4): items delegated to me since last visit are highlighted; badge counts update in real time when the other client delegates (WebSocket, no refresh).
-* **E2E-M1-04** `all` (FR-6.3/G-4): tapping a card deep-links into M4 at the item.
-* **E2E-M1-05** `all` (G-7): no active trips → "Plan a trip" CTA → M3.
-* **E2E-M1-06** `all` (FR-5.4): "Late Packer" section appears only on a trip's departure day (clock-controlled).
+> **Read 2026-08-30, audit of backlog item 6.** Until that day **no test had
+> ever rendered a populated M1**: the screen carried three `data-testid`s and
+> all three were in its empty state, the visual baseline is taken on a fresh
+> Local Mode with no trips, and every other spec passes *through* the
+> dashboard on its way somewhere. Two of the six ids are now implemented
+> (`e2e/dashboard.spec.ts`) and **three describe a surface that is not
+> built** — open with the owner, deliberately untested.
+
+* **E2E-M1-01** `all` (FR-6.1) — **implemented 2026-08-30** (`dashboard.spec.ts`), and two of its clauses are not the screen's. What is asserted: an **active** trip renders a card, the card counts what is open, previews three rows and reports the remainder as "+N more". The empty state's absence is asserted beside it, as the positive signal that the trip is active — M1 filters on the status, so a trip nobody started renders exactly the screen no trip at all does. ~~my open items~~: the dashboard is **not filtered by person**, it aggregates every open row of every active trip. FR-6.1's *"assigned to them"* has never been implemented, and it is an owner decision rather than a test gap — the state became producible only on 2026-08-25 (FR-25.19 gave `packer_user_id` a writer), and a filter would empty the screen in Local and Single-User Mode, where there is no account to be assigned anything. No case may claim the clause until it is decided. ~~next 3~~: "next" names an ordering **nothing defines** — the preview is the first three of the store's own array, whose order after a reload is IndexedDB's over random ids. The case asserts three of four rows and the fourth counted, which is the rule the screen actually keeps; it flaked once on the wording before it did.
+* **E2E-M1-02** `all` (FR-7.3) — **implemented 2026-08-30** (`dashboard.spec.ts`) for the two clauses that are built: the card lists open preparation todos **grouped by item** across active trips, and ticking one resolves it. The resolution is followed back into the trip — M4's prep badge, which counts open preparation off the todos themselves — because a card that merely stops listing the todo looks identical to a toggle that wrote nothing. ~~tapping the item name navigates to M5~~ — **not built**: the item name is a `<p>` with no handler and no link. UI-Spec M1 promises it too; owner decision.
+* **E2E-M1-03** ~~`server` (FR-6.1/6.3/4.4): items delegated to me since last visit are highlighted; badge counts update in real time when the other client delegates (WebSocket, no refresh).~~ — **not built, and no test is owed until it is (2026-08-30).** `DashboardPage.vue` reads neither `packer_user_id` nor the notification feed, and there is no badge of any kind on M1 to count anything. Delegation *is* delivered — as an FR-6.2 toast, asserted by E2E-FLOW-02 — so what is missing is this screen's standing surface for it. Open with the owner.
+* **E2E-M1-04** `all` (FR-6.3/G-4) — **half covered, half unbuilt.** That the card leads into M4 is asserted inside E2E-M1-01. ~~at the item~~: the preview rows are plain list items, not links, so M1 has no per-item deep link; the G-4 landing itself is E2E-G4-01's, from a notification. The clause is retired here rather than left open, because the screen answering it would be a *new* affordance and G-4's own case already keeps the promise it names.
+* **E2E-M1-05** `all` (G-7) — **implemented** (`trip-creation.spec.ts`, with E2E-M3-10): the empty state offers exactly one way forward and it reaches M3.
+* **E2E-M1-06** ~~`all` (FR-5.4): "Late Packer" section appears only on a trip's departure day (clock-controlled).~~ — **not built, and the sentence also cites the wrong requirement (2026-08-30).** The Late-Packer flag is **FR-5.1**; FR-5.4 is *Partial Quantities* and has nothing to do with a departure-day section — the traceability matrix had FR-5.4 traced to this case alone, so the one requirement it named was answered by a case for something else. M1 renders no such section (M4's own collapsed section is UI-Spec M4's, and is a different promise). Open with the owner.
 
 ### M2 — Trip List
 * **E2E-M2-01** `local` (FR-2.1) — **covered, where the rule is actually exercised**: the segments *partition* the list, which E2E-M2-13c asserts from the other side (standing on *Archived*, the planned trip is `toHaveCount(0)`) and E2E-M2-13d again. The rest of the sentence is retired: ~~archived render muted with final stats~~ — the muting is a class the visual baselines own, and there are no *final* stats, an archived row carrying the same `packed/total` summary as every other row.
@@ -608,10 +616,17 @@ no-flags case to E2E-M14-06.)*
 * **E2E-M18-04** `all` (FR-18.5) — **implemented 2026-08-30** (`e2e/backup-restore.spec.ts`): a newer `schema_version` shows a warning but imports best-effort — an unrecognised key and all — and a malformed file is refused **at this screen's own picker step**, with the parser's reason, no preview opened and the pasted text still in the field to correct. The parenthetical *„never reaches this screen“* is struck: the picker **is** M18's first state, and the refusal happening here is the point — refusing somewhere else would leave nothing to fix. Written because the parser's rules are exhaustively unit-covered (`domain/__tests__/portable.spec.ts`) and **nothing rendered either message**; a rule nobody paints is a rule the user never hears. *(Mutation-proved twice — `newerSchema` forced false, and the parse error's own string dropped.)*
 
 ### M19 — First-Launch Mode Selection
-* **E2E-M19-01** `local` (FR-19.1): first launch shows the two cards; "Just on this device" requests persistent storage and lands on M1 empty state; shown exactly once (not re-asked after reload).
-* **E2E-M19-02** `server/single` (FR-19.1): "Connect to a server" validates the URL against the health endpoint, then proceeds to OIDC login (`server`) or straight to M1 (`single`).
-* **E2E-M19-03** `local` (FR-19.1): unreachable server URL → inline error, stays on the screen.
-* **E2E-M19-04** `local` (FR-19.1): the server URL field is pre-filled with the page's own origin and Connect is enabled without typing.
+> **Read 2026-08-30, audit of backlog item 6.** M19 is the screen every
+> other spec **bypasses**: `seedMode` writes `jitpack_mode` into
+> localStorage before boot, so until this pass no test had ever *made* the
+> choice this screen exists for — its two cards were asserted visible and
+> neither had been clicked. The two ids that describe the connect path are
+> half unbuilt, and the unbuilt half is the same clause twice.
+
+* **E2E-M19-01** `local` (FR-19.1, NFR-4.11) — **implemented 2026-08-30**, no longer *partial* (`smoke.spec.ts`). The two cards were already asserted; the rest of the sentence is now one case: *"Just on this device"* lands on M1's empty state (G-7), the device asks the browser to keep what is now its only copy, and a reload does not ask again. The persistence request is asserted through a stubbed `navigator.storage` whose `persisted()` answers false, so the request is actually made and the case does not depend on whether *this* browser grants it. It happens on the boot after the choice rather than in the click handler — `connect()` asks, once the mode is persisted — which is what NFR-4.11's *"on first launch"* means in a client that re-inits by reloading.
+* **E2E-M19-02** `server/single` (FR-19.1) — **the two destinations are covered; the validation in front of them is not built.** The `server` destination is asserted by `loginAs` (`e2e/server/fixtures.ts`) in every multi-identity case: no session + an instance that offers OIDC → the login screen, and through it the real broker. The `single` destination is **E2E-M19-02's own case** (`e2e/single/mode-discovery.spec.ts`, new 2026-08-30) — it asserts the 501 from `/auth/config` beside the rendered dashboard, because "no login screen" is equally green on a device that never asked, and because invariant 5's whole Single-User distinction is that one response. ~~validates the URL against the health endpoint~~ — **not built**: `ModeSelectionPage.vue` validates the URL's *syntax* (parses, and `http:`/`https:`), stores it and reloads; nothing requests `/health`. Owner decision, and the design question inside it is real — the API sets no CORS headers, so a cross-origin check cannot tell an unreachable host from a reachable one that will not answer a scripted request, and reporting every remote instance as unreachable is worse than not checking. It has never been missed because the field arrives **pre-filled with the page's own origin** (E2E-M19-04), which is the correct answer for every self-hosted instance.
+* **E2E-M19-03** ~~`local` (FR-19.1): unreachable server URL → inline error, stays on the screen.~~ — **not built, and no test is owed until the decision in E2E-M19-02 is made (2026-08-30).** There is no connectivity check, so there is no failure to report: an unreachable URL is accepted, the app reloads into the shell, and the G-2 indicator says offline from there on. The inline error that *does* exist is the syntax one (`firstRun.serverUrlInvalid`), which is a different promise. Open with the owner as one question with M19-02.
+* **E2E-M19-04** `local` (FR-19.1) — **implemented** (`smoke.spec.ts`): the field carries the page's origin and Connect is reachable without typing. Asserted on the inner `button`, since `toBeEnabled()` on an `ion-button` host is false-green.
 
 ### M20 — User Administration
 * **E2E-M20-01** `server` (FR-23.2): admin sees the account list (avatar, name, email, provisioning date, status chip, usage counts, admin chip, "you" marker).
@@ -719,20 +734,20 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-4.1 | E2E | M3-04 (share on create) |
 | FR-4.2 | E2E | M4-24, M4-30 (the record), M5-18, M5-19 (for whom) — M5-01 retired |
 | FR-4.3 | E2E | FLOW-02, M4-30, M4-31 (M4-06 and the shadowed M5-07 are both retired) |
-| FR-4.4 | E2E | M4-10, M1-03, FLOW-01 |
+| FR-4.4 | E2E | M4-10, FLOW-01 (~~M1-03~~ — no live badge on M1 to update; not built, 2026-08-30) |
 | FR-4.5 | E2E | M2-05, M3-04, TripMembers |
 | FR-4.6 | UNIT | members.ts role model; surfaced via M3-04 |
 | FR-4.7 | E2E | M3-04 (role select) |
 | FR-5.1 | E2E | M4-03 |
 | FR-5.2 | E2E | M4-05 |
 | FR-5.3 | E2E | G3-01, FLOW-01 |
-| FR-5.4 | E2E | M1-06 |
+| FR-5.4 | E2E | M4-56 (both control variants rendered), G6-01 (the rule itself, still unimplemented) — ~~M1-06~~ was a mis-citation: the Late-Packer flag is FR-5.1, and the section is not built (2026-08-30) |
 | FR-5.5 | E2E | M4-06 |
 | FR-5.6 | E2E | M4-04, M6-03 |
 | FR-5.7 | E2E | G3-02 (mode gate), M4-49/50 |
-| FR-6.1 | E2E | M1-01/03 |
+| FR-6.1 | E2E | M1-01 (the aggregation; its *"assigned to me"* half is unbuilt), ~~M1-03~~ (not built) |
 | FR-6.2 | E2E | FLOW-02, NOTIFY-01, M17-01 |
-| FR-6.3 | E2E | G4-01, M1-04, FLOW-02 |
+| FR-6.3 | E2E | G4-01, FLOW-02 (M1-04's *at the item* is retired — M1 has no per-item link, 2026-08-30) |
 | FR-7.1 | E2E | M5-05 |
 | FR-7.2 | E2E | M5-05 (M4-09 retired — FR-7.3 overrides its refusal) |
 | FR-7.3 | E2E | M1-02, M4-08, M4-25 (M5-06's shadowed half; the resolution restriction is struck) |
@@ -773,7 +788,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-18.4 | E2E | M18-01 (the template preview, and Import landing it) + M18-02 (a trip in the status the file carries, ADR-024, on the **preview** branch — M18-09 is the restore branch's half), M2-09, M7-05 (the header icon that is the built half — the FAB menu it names is not, owner decision open), M18-08 (the FR-27.4 sections), M18-10 + M18-11 (ADR-030: what is already here is not imported twice — restore list and merge preview); travelers/containers remapped by name is unit-owned in `composables/__tests__/portableImport.spec.ts` |
 | FR-18.5 | E2E+UNIT | M18-04 (both ends rendered: the refusal with its reason, and the newer-schema warning followed by a best-effort import), M18-01 (the header names the `schema_version`); `domain/__tests__/portable.spec.ts` holds the parser's own rules |
 | FR-18.6 | E2E | FLOW-07 (round-trip) |
-| FR-19.1 | E2E | M19-01/02/03 |
+| FR-19.1 | E2E | M19-01 (full since 2026-08-30), M19-02 (both destinations; the health check in front of them is not built), M19-04 — ~~M19-03~~ has nothing to report until that check exists |
 | FR-19.2 | E2E | NFR-01 (local load path), **M4-32** (a write must have landed before a reload, not merely been applied) |
 | FR-19.3 | E2E | G8-01 (collab UI gated in Local) |
 | FR-19.4 | E2E | G2-02 (local glyph/state) |
@@ -870,7 +885,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | NFR-4.8 | E2E | NFR-02 |
 | NFR-4.9 | DOC/N-A | operator documentation only |
 | NFR-4.10 | DOC/N-A | retired (demo rate-limit) |
-| NFR-4.11 | E2E | M17-07, NFR-03, M18-05/06/07/08 |
+| NFR-4.11 | E2E | M17-07, NFR-03, M18-05/06/07/08, M19-01 (the persistence request itself, 2026-08-30) |
 | NFR-4.11 | E2E | M17-07, NFR-03 |
 | NFR-4.12 | E2E+UNIT | M17-10; `i18n/__tests__/i18n.spec.ts` (catalogue key, placeholder and plural-form parity), `lib/__tests__/roleLabels.spec.ts` |
 

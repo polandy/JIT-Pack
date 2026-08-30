@@ -204,6 +204,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [Two ids on the wrong tests (2026-08-30)](#two-ids-on-the-wrong-tests-2026-08-30) — backlog item 6, M9. Two case ids sitting on tests that implement two other promises, wrong since the commit that wrote both; why no gate can see a swap; the merge M9 never had, and the argument that leans on it.
 - [A row that could not count, and a segment nobody filled (2026-08-30)](#a-row-that-could-not-count-and-a-segment-nobody-filled-2026-08-30) — backlog item 6, M7 and M23. Why a case can assert a composition and still not see the one number the row computes, the spec sentence that described an unbuilt menu as built, and the cost one screen declined that the next screen could pay once for both.
 - [A control nobody had ever clicked (2026-08-30)](#a-control-nobody-had-ever-clicked-2026-08-30) — backlog item 6, M8. The first screen whose ids were all written, and the destructive control none of them touched; why the amendment that introduced it is exactly what kept it unread; and the three clauses checked and deliberately left untested.
+- [The check that cannot be written, on the screen nobody had clicked (2026-08-30)](#the-check-that-cannot-be-written-on-the-screen-nobody-had-clicked-2026-08-30) — backlog item 6, M1 and M19. Why a first-launch screen every spec seeds past had never been operated, the connectivity check that is an open design question rather than an omission, and a mutation that cannot be narrowed because the rule is one `if` on the boot path.
 - [Five numbers, and two sections nobody had built (2026-08-30)](#five-numbers-and-two-sections-nobody-had-built-2026-08-30) — backlog item 6, M10. The same commit's larger swap, five ids deep; the ledger was the only document that had it right; the two sections built in July that no test had ever rendered; and an absence assertion over a section absent in both modes.
 - [The branch the backup never took (2026-08-30)](#the-branch-the-backup-never-took-2026-08-30) — backlog item 6, M18. The screen where every unwritten case was real, why a clause can be stale in four places at once, and the comment that contradicted the line three rows under it.
 
@@ -9465,3 +9466,53 @@ That is the second time this backlog item has found a specification
 sentence describing a state nobody can produce, and the shape is the same as
 M17's: **a promise can be wrong in a way only the screen can refute**, and
 reading it against another document will confirm it forever.
+
+## The check that cannot be written, on the screen nobody had clicked (2026-08-30)
+
+M1 and M19 — the app's front door — through the same reading as the eleven
+screens before them. What they had in common is worth naming once, because it
+is not a property of either screen: **both are on the path to everything else,
+and being on the path is what kept them unexamined.** Forty spec files boot
+through M19 by seeding `jitpack_mode` and land on M1 on the way to somewhere
+else. The ledger even said so — E2E-M19-01 had read *partial* since the
+harness was built, and the missing part was the entire action the screen
+exists for.
+
+**The connectivity check is the finding worth keeping.** UI-Spec M19 has
+promised since the concept round that *Connect* validates the URL against the
+server's health endpoint, and E2E-M19-02/03 describe it and its inline error.
+It is not built — and the reason it should not simply be built is not effort.
+The API sets **no CORS headers**, deliberately: the SPA and the API share one
+origin on every self-hosted instance, which is also why this field arrives
+pre-filled with the page's own origin. A `fetch('/health')` from this screen
+against a *different* origin therefore fails whether the instance is
+unreachable or perfectly healthy, so the inline error the spec asks for would
+tell a user with a working server that their server is down. The honest
+options are a `no-cors` probe that can only distinguish "something answered"
+from "nothing did", CORS headers on one endpoint, or leaving it as it is and
+letting the G-2 indicator say offline. That is an owner decision with a cost on
+each branch, and writing the test first would have pinned the branch nobody
+chose. E2E-M19-03 has nothing to report until it is made.
+
+**Two clauses of M1 read as description and were requirements.** FR-6.1's
+dashboard aggregates *"items assigned to them"* and FR-7.3 repeats it for the
+prep card; the screen filters by nobody. It has been *possible* to build only
+since 2026-08-25, when FR-25.19 finally gave `packer_user_id` a writer — and it
+is still not obviously right, because in Local and Single-User Mode there is no
+account, so a personal filter empties the one screen the app opens on. The
+second is smaller and the same shape: "next 3" names an ordering that neither
+M1 nor the store defines. The preview is `getItems(...).slice(0, 3)`, and after
+a reload that array arrives in IndexedDB key order over random ids. The case
+flaked on it — which is how it was found — and now asserts the rule the screen
+keeps: three of four, and the fourth counted.
+
+**And one mutation could not be narrowed, which was itself the argument.**
+Invariant 5's Single-User distinction lives in one `if (resp.ok)` on the boot
+path: the client persists `jitpack_mode = 'server'` like any other server
+device and learns what it is talking to from a 501 on `/auth/config`. Flipping
+that condition reddens `E2E-M2-14` as well, with a message about a segment
+label. A rule whose breakage surfaces in other people's cases under another
+screen's name is exactly a rule that needs a case saying what actually
+happened, so `single/mode-discovery.spec.ts` asserts the 501 beside the
+rendered dashboard — "no login screen" alone being equally green on a device
+that never asked.
