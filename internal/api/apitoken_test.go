@@ -95,7 +95,7 @@ func TestMintAPIToken_ExpiryFollowsTheChosenLifetime(t *testing.T) {
 			if err != nil || exp == nil {
 				t.Fatalf("exp claim: %v", err)
 			}
-			if !exp.Time.Equal(tc.want) {
+			if !exp.Equal(tc.want) {
 				t.Errorf("exp = %v, want %v", exp.Time, tc.want)
 			}
 		})

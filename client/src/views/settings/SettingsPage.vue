@@ -22,7 +22,8 @@
  * device-local display preference — shown in every mode, never synced.
  */
 import { API } from '@/api/routes'
-import type { MeResponse } from '@/api/types'
+import { API_TOKEN_EXPIRY } from '@/api/types'
+import type { APITokenExpiry, MeResponse } from '@/api/types'
 import {
   IonPage,
   IonContent,
@@ -66,6 +67,7 @@ import { currentTheme, setTheme } from '@/theme/theme'
 import { type Locale, type MessageKey, currentLocale, formatNumber, setLocale, t } from '@/i18n'
 import UserAvatar from '@/components/global/UserAvatar.vue'
 import AvatarCropModal from '@/components/settings/AvatarCropModal.vue'
+import ApiTokenSheet from '@/components/settings/ApiTokenSheet.vue'
 import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 import { defaultTravelers } from '@/composables/useDefaultTravelers'
 
@@ -214,6 +216,61 @@ async function onAvatarCropped(blob: Blob) {
  * FR-24.3: how many master rows a delete only hid. Shown beside the row so
  * the screen is worth opening — or visibly not.
  */
+// --- API tokens (FR-23.7) ---------------------------------------------
+//
+// The minted token lives in component state and is dropped when the sheet
+// closes. It is never written to a store or to localStorage: nothing about a
+// token is persisted anywhere, which is the whole of ADR-039.
+
+const tokenName = ref('')
+const tokenExpiry = ref<APITokenExpiry>(API_TOKEN_EXPIRY['90d'])
+const tokenPending = ref(false)
+const tokenFailed = ref(false)
+const mintedToken = ref('')
+const mintedExpiresAt = ref('')
+const tokenSheetOpen = ref(false)
+
+/**
+ * The four lifetimes, built as a computed rather than a module constant:
+ * finished text in a module-level constant is unreachable by a language
+ * switch, which is the trap M17 closed once already.
+ */
+const tokenExpiryOptions = computed(() => [
+  { value: API_TOKEN_EXPIRY['30d'], label: t('settings.tokenExpiry30d') },
+  { value: API_TOKEN_EXPIRY['90d'], label: t('settings.tokenExpiry90d') },
+  { value: API_TOKEN_EXPIRY['365d'], label: t('settings.tokenExpiry365d') },
+  { value: API_TOKEN_EXPIRY.never, label: t('settings.tokenExpiryNever') },
+])
+
+async function createToken() {
+  tokenPending.value = true
+  tokenFailed.value = false
+  try {
+    const out = await orchestrator.createAPIToken(tokenName.value.trim(), tokenExpiry.value)
+    if (!out) {
+      tokenFailed.value = true
+      return
+    }
+    mintedToken.value = out.token
+    mintedExpiresAt.value = out.expires_at
+    tokenSheetOpen.value = true
+    tokenName.value = ''
+  } catch {
+    // Offline, or the server refused it — the sentence is the same either
+    // way, because neither is something the person can act on differently.
+    tokenFailed.value = true
+  } finally {
+    tokenPending.value = false
+  }
+}
+
+/** Closing the reveal is what ends the token's only readable moment. */
+function closeTokenSheet() {
+  tokenSheetOpen.value = false
+  mintedToken.value = ''
+  mintedExpiresAt.value = ''
+}
+
 const retiredCount = computed(
   () => masterStore.retiredItemList.length + masterStore.retiredTemplateList.length,
 )
@@ -606,6 +663,57 @@ async function exportTripCSV() {
         </IonList>
       </template>
 
+      <!-- API tokens (FR-23.7, ADR-039). Gated on `collaborative`, which
+           already means "Server Mode with a session": Single-User Mode
+           bypasses authentication and Local Mode has no server, so in both
+           a token would prove nothing there is anything to prove (G-8). -->
+      <template v-if="collaborative">
+        <h2 class="section-title jp-eyebrow" data-testid="settings-section-tokens">
+          {{ t('settings.apiTokens') }}
+        </h2>
+        <p class="section-hint">{{ t('settings.apiTokensHint') }}</p>
+        <IonList>
+          <IonItem lines="none">
+            <IonInput
+              :label="t('settings.tokenName')"
+              label-placement="stacked"
+              data-testid="token-name"
+              :value="tokenName"
+              :placeholder="t('settings.tokenNamePlaceholder')"
+              :maxlength="60"
+              @ionInput="(e: CustomEvent) => (tokenName = e.detail.value ?? '')"
+            />
+          </IonItem>
+          <IonItem lines="none">
+            <IonSelect
+              :label="t('settings.tokenExpiry')"
+              data-testid="token-expiry"
+              interface="popover"
+              :value="tokenExpiry"
+              @ionChange="(e: CustomEvent) => (tokenExpiry = e.detail.value)"
+            >
+              <IonSelectOption v-for="opt in tokenExpiryOptions" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </IonSelectOption>
+            </IonSelect>
+          </IonItem>
+          <IonItem lines="none">
+            <IonButton
+              slot="end"
+              size="small"
+              data-testid="token-create"
+              :disabled="!tokenName.trim() || tokenPending"
+              @click="createToken"
+            >
+              {{ t('settings.tokenCreate') }}
+            </IonButton>
+          </IonItem>
+          <IonItem v-if="tokenFailed" lines="none">
+            <IonNote data-testid="token-failed">{{ t('settings.tokenFailed') }}</IonNote>
+          </IonItem>
+        </IonList>
+      </template>
+
       <!-- M23 (FR-24.3): what a delete only hid, and the way back. Beside
            the conflict log because both are corrective surfaces rather than
            browsing ones, reached after something went wrong. -->
@@ -647,6 +755,14 @@ async function exportTripCSV() {
           </IonLabel>
         </IonItem>
       </IonList>
+    
+      <ApiTokenSheet
+        :open="tokenSheetOpen"
+        :token="mintedToken"
+        :expires-at="mintedExpiresAt"
+        @close="closeTokenSheet"
+      />
+
     </IonContent>
   </IonPage>
 </template>

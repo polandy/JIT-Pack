@@ -133,8 +133,10 @@ func TestIsTerminal_APipeIsNotOne(t *testing.T) {
 	if err != nil {
 		t.Fatalf("pipe: %v", err)
 	}
-	defer r.Close()
-	defer w.Close()
+	t.Cleanup(func() {
+		_ = r.Close() // a closed pipe in a finished test says nothing
+		_ = w.Close()
+	})
 	if isTerminal(w) {
 		t.Error("a pipe reported as a terminal — the secret guard would never fire")
 	}

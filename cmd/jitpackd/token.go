@@ -79,15 +79,37 @@ func runTokenCreate(ctx context.Context, args []string, env tokenEnv) error {
 
 	// fmt, never log: log writes to stderr with a timestamp, and is the
 	// stream most likely to be redirected into a file.
-	fmt.Fprintln(env.stdout, out.Token)
+	//
+	// The write is checked rather than ignored, unlike an HTTP response
+	// where a failure means the client is gone: here the token has already
+	// been minted, cannot be listed and cannot be revoked on its own, so a
+	// write that did not land leaves a live credential nobody has.
+	out2 := &checkedWriter{w: env.stdout}
+	out2.line(out.Token)
 	if out.ExpiresAt != "" {
-		fmt.Fprintf(env.stdout, "expires %s\n", out.ExpiresAt)
+		out2.line("expires " + out.ExpiresAt)
 	} else {
-		fmt.Fprintln(env.stdout, "does not expire")
+		out2.line("does not expire")
 	}
-	fmt.Fprintln(env.stdout, "This is the only time it is shown. It cannot be revoked on its own —")
-	fmt.Fprintln(env.stdout, "rotating JITPACK_SESSION_SECRET revokes every API token at once.")
+	out2.line("This is the only time it is shown. It cannot be revoked on its own —")
+	out2.line("rotating JITPACK_SESSION_SECRET revokes every API token at once.")
+	if out2.err != nil {
+		return fmt.Errorf("the token was minted but could not be written: %w", out2.err)
+	}
 	return nil
+}
+
+// checkedWriter keeps the first write error instead of four unchecked calls.
+type checkedWriter struct {
+	w   io.Writer
+	err error
+}
+
+func (c *checkedWriter) line(s string) {
+	if c.err != nil {
+		return
+	}
+	_, c.err = fmt.Fprintln(c.w, s)
 }
 
 // isTerminal reports whether f is a character device. Stdlib only: a
