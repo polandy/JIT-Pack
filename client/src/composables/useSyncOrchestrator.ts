@@ -1272,7 +1272,10 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
    * ever readable, so it is handed straight to the caller and kept nowhere:
    * this must not reach localStorage or any store.
    */
-  async function createAPIToken(name: string, expiry: APITokenExpiry): Promise<APITokenResponse | null> {
+  async function createAPIToken(
+    name: string,
+    expiry: APITokenExpiry,
+  ): Promise<APITokenResponse | null> {
     if (local) return null
     return client.post<APITokenResponse>(API.meTokens, { name, expiry })
   }
