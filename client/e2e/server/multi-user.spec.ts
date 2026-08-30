@@ -122,7 +122,7 @@ test.describe('Two accounts on one instance @server', () => {
     await expect(visiblePage(bob).getByTestId(`m4-row-${item}`)).toBeVisible()
     await wsSubscribed(bob, wsBob)
 
-    await claimRow(alice, item)
+    await claimRow(alice, `m4-row-${item}`)
 
     const rowBob = visiblePage(bob).getByTestId(`m4-row-${item}`)
     await expect(rowBob.getByTestId('m4-lock-note')).toContainText(ACCOUNT_NAMES.alice)
@@ -169,7 +169,7 @@ test.describe('Two accounts on one instance @server', () => {
     await expect(visiblePage(bob).getByTestId(`m4-row-${item}`)).toBeVisible()
     await wsSubscribed(bob, wsBob)
 
-    await claimRow(alice, item)
+    await claimRow(alice, `m4-row-${item}`)
     const rowBob = visiblePage(bob).getByTestId(`m4-row-${item}`)
     await expect(rowBob.getByTestId('m4-lock-note')).toContainText(ACCOUNT_NAMES.alice)
 
@@ -324,6 +324,74 @@ test.describe('Two accounts on one instance @server', () => {
     await ctxAlice.close()
     await ctxBob.close()
   })
+  /**
+   * E2E-G3-04 (FR-25.21, G-3): the membership editor is frozen by a claim on
+   * **any** instance of the item, and says whose.
+   *
+   * The claim is taken on one child row and the editor is opened from a
+   * *different*, unclaimed one — which is the whole point: a conversion
+   * rewrites the claimed row too, so a lock read off the row the sheet was
+   * opened from answers a narrower question than the write asks. That is also
+   * why the sheet has to name the holder itself: M5's own G-3 banner is
+   * absent on an unclaimed row, and the editor is a modal above M5 anyway.
+   *
+   * The positive signal is the same sheet after Alice gives the row back —
+   * a frozen editor and a broken one look identical from outside.
+   */
+  test('a claim on one instance freezes the membership editor on another', async ({ browser }) => {
+    const id = uniq()
+    const trip = `Elba ${id}`
+    const item = `Kurze-Hosen-${id}`
+
+    const ctxBob = await browser.newContext()
+    const bob = await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    const tripPath = await createTripViaWizard(alice, {
+      name: trip,
+      travelers: ['Andy', 'Leonardo'],
+    })
+    await quickAddItem(alice, item)
+    await makePerPerson(alice, item, ['Andy', 'Leonardo'])
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+
+    const wsBob = bob.waitForEvent('websocket')
+    await bob.goto(tripPath)
+    await expect(visiblePage(bob).getByTestId(`m4-child-${item}-Leonardo`)).toBeVisible()
+    await wsSubscribed(bob, wsBob)
+
+    await alice.goto(tripPath)
+    await claimRow(alice, `m4-child-${item}-Andy`)
+
+    // Bob opens the editor from Leonardo's row: unclaimed, so M5 itself is
+    // not locked — asserted, because a locked M5 would make the rest of this
+    // case prove the old, row-scoped rule instead of the new one.
+    const leonardo = visiblePage(bob).getByTestId(`m4-child-${item}-Leonardo`)
+    await leonardo.click()
+    await expect(bob.getByTestId('m5-sheet')).toBeVisible()
+    await expect(bob.getByTestId('m5-lock')).toHaveCount(0)
+    await bob.getByTestId('m5-details').click()
+    await bob.getByTestId('m5-membership').click()
+    await expect(bob.getByTestId('membership-sheet')).toBeVisible()
+
+    // G-3, one surface deeper than it used to reach: the reason is on the
+    // screen and it carries Alice's name.
+    await expect(bob.getByTestId('membership-lock')).toContainText(ACCOUNT_NAMES.alice)
+    await expect(bob.getByTestId('membership-shared')).toHaveAttribute('disabled', '')
+    await expect(bob.getByTestId('membership-plus-Leonardo')).toHaveAttribute('disabled', '')
+
+    // FR-5.7: a claim ends by decision. Alice gives the row back, and Bob's
+    // open sheet becomes operable without being reopened.
+    await releaseRow(alice, `m4-child-${item}-Andy`)
+
+    await expect(bob.getByTestId('membership-lock')).toHaveCount(0)
+    await bob.getByTestId('membership-plus-Leonardo').click()
+    await expect(bob.getByTestId('membership-qty-Leonardo')).toHaveText('2')
+
+    await ctxAlice.close()
+    await ctxBob.close()
+  })
 })
 
 /** Hand a row to somebody through M5's *Zugewiesen an* picker (FR-25.19). */
@@ -339,13 +407,54 @@ async function assignTo(page: import('@playwright/test').Page, item: string, nam
   await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
 }
 
-/** Claim a row through M4's press-and-hold menu (G-3, FR-25.17). */
-async function claimRow(page: import('@playwright/test').Page, item: string) {
-  await visiblePage(page).getByTestId(`m4-row-${item}`).dispatchEvent('contextmenu')
+/**
+ * Claim a row through M4's press-and-hold menu (G-3, FR-25.17).
+ *
+ * Addressed by test id rather than by item name: a per-person item has no
+ * `m4-row-<name>` at all — it is a cluster head with child rows, which is the
+ * very shape E2E-G3-04 needs to claim one of.
+ */
+async function claimRow(page: import('@playwright/test').Page, testId: string) {
+  await visiblePage(page).getByTestId(testId).dispatchEvent('contextmenu')
   await expect(page.locator('ion-action-sheet')).toBeVisible()
   await page
     .locator('ion-action-sheet')
     .getByRole('button', { name: /^pack$/i })
+    .click()
+  await expect(page.locator('ion-action-sheet')).toHaveCount(0)
+}
+
+/**
+ * Turn a shared row into an FR-25.1 cluster through the membership editor —
+ * the only writer of that shape (FR-25.21).
+ */
+async function makePerPerson(
+  page: import('@playwright/test').Page,
+  item: string,
+  travelers: string[],
+) {
+  await visiblePage(page).getByTestId(`m4-row-${item}`).click()
+  await expect(page.getByTestId('m5-sheet')).toBeVisible()
+  await page.getByTestId('m5-details').click()
+  await page.getByTestId('m5-membership').click()
+  await page.getByTestId('membership-per-person').click()
+  for (const name of travelers) {
+    await page.getByTestId(`membership-check-${name}`).click()
+    await expect(page.getByTestId(`membership-qty-${name}`)).toHaveText('1')
+  }
+  await page.getByTestId('membership-close').click()
+  await page.getByTestId('m5-close').click()
+  await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+  await expect(visiblePage(page).getByTestId(`m4-child-${item}-${travelers[0]}`)).toBeVisible()
+}
+
+/** Give a held row back through the same menu that claimed it (FR-5.7). */
+async function releaseRow(page: import('@playwright/test').Page, testId: string) {
+  await visiblePage(page).getByTestId(testId).dispatchEvent('contextmenu')
+  await expect(page.locator('ion-action-sheet')).toBeVisible()
+  await page
+    .locator('ion-action-sheet')
+    .getByRole('button', { name: /give the item back/i })
     .click()
   await expect(page.locator('ion-action-sheet')).toHaveCount(0)
 }

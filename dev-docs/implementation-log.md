@@ -189,6 +189,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The sheet learns two verbs (2026-08-29)](#the-sheet-learns-two-verbs-2026-08-29) — FR-25.13f. The decision made in front of the wardrobe — *already packed* / *staying home* — cost three screens per item. Two variants were rendered and rejected before one was built, and the case that mattered most is the one no failing test asked for: which signal wins when the run's own verb and FR-25.13e's derived *added* describe the same line.
 - [The quick-add gets a mode, and two waiting cases did not land where they waited (2026-08-29)](#the-quick-add-gets-a-mode-and-two-waiting-cases-did-not-land-where-they-waited-2026-08-29) — FR-25.8. Why the row is written *before* the membership editor opens rather than the mode collecting a draft; and the two e2e cases that had been parked on this feature since the concept round, one of which turned out to be a second run of another and the other to have lost its premise to G-8.
 - [The shop stops asking three times for one purchase (2026-08-29)](#the-shop-stops-asking-three-times-for-one-purchase-2026-08-29) — FR-25.6. The premise that made M6's aggregation invisible for three weeks, why the buy row is keyed by M4's own function rather than a second one, and the two places that had to follow the aggregation once it existed — the reveal and the tab counts.
+- [A rule that was complete and invisible (2026-08-30)](#a-rule-that-was-complete-and-invisible-2026-08-30) — E2E-G3-04. The G-3 cluster lock shipped correct and unobservable: every other G-3 surface names its holder, and the one surface that could inherit none of them said nothing at all. Why writing the two-identity case is what found it, and why the release — not the pack — is what the positive half needs.
 
 ## Current state
 
@@ -8273,3 +8274,39 @@ for the whole cluster in one act. Left as it is, deliberately — M5 opens on on
 instance by construction (the route is `trip/{id}/item/{id}`), and a mode
 control that silently reached five rows would be the FR-25.21 problem in
 reverse.
+
+## A rule that was complete and invisible (2026-08-30)
+
+E2E-G3-04 was the last thing FR-25.21 owed: the two-identity case for the rule
+that the membership editor is frozen by a claim on **any** instance of the item.
+The rule itself had landed the day before, correct and unit-covered. Writing the
+case is what showed that nothing on the screen said so.
+
+**The gap is structural, not an oversight.** G-3's other surfaces all name their
+holder, and the editor could inherit none of them. M5 carries a banner, but this
+case opens the editor from an *unclaimed* sibling row — where M5 is, correctly,
+not locked at all — so there is no banner to inherit. And the editor is an
+`IonModal` presented *above* M5, so even where the banner exists it is covered.
+What a person got was a sheet whose every control was dead, with no sentence
+anywhere explaining why. A frozen editor and a broken one are the same screen.
+
+So the fix that came out of writing the test is a product change rather than a
+test fixture: the editor carries its own G-3 line, naming the holder off the
+first claimed row of the cluster. The name needs the trip's people, which only a
+caller has, so `participants` became a prop the way `ItemDetailSheet` already
+takes it — the alternative, recomputing the directory-plus-roster join inside the
+component, would have been a second answer to a question one already exists for.
+
+**The positive half wanted a release, not a pack.** A claim ends three ways
+(FR-5.7) and two of them were available here. Packing the claimed row would also
+free it — and would take that row off the list Bob is looking at, changing two
+things at once. The release changes exactly one, so the recovery that follows
+measures the lock and nothing else. It is asserted on the **still-open** sheet:
+reopening it would prove the editor works, which was never in doubt; staying open
+proves the lock is read live rather than at mount.
+
+**A helper had to change shape, and that is the general point.** `claimRow` took
+an item name and built `m4-row-<name>` from it. A per-person item has no such
+row — it is a cluster head with child rows — so the helper could not address the
+row this case has to claim. Every convenience that encodes a screen's shape has
+a feature that ends it; this one lasted six days.

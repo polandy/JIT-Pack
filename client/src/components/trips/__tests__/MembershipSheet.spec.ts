@@ -72,7 +72,14 @@ function perPersonSeed() {
 
 function mountSheet(itemId = 'ti-new') {
   return mount(MembershipSheet, {
-    props: { tripId: TRIP, itemId, locked: false },
+    props: {
+      tripId: TRIP,
+      itemId,
+      locked: false,
+      participants: [
+        { user_id: 'u-bob', display_name: 'Bob', avatar_url: null, role: 'editor' as const },
+      ],
+    },
     global: { provide: { orchestrator: orchestratorFake } },
   })
 }
@@ -117,5 +124,38 @@ describe('MembershipSheet — G-3 covers the cluster, not the row', () => {
       .get('[data-testid="membership-check-Andy"]')
       .trigger('ionChange', { detail: { checked: true } })
     expect(orchestratorFake.setMembership).not.toHaveBeenCalled()
+  })
+
+  it('names the holder, because the surface that would has been covered over', async () => {
+    // The claim is on a sibling, so M5's own G-3 banner is absent — and the
+    // editor is a modal above M5 anyway, so a frozen sheet that said nothing
+    // would be a dead end with no reason on the screen.
+    perPersonSeed()
+    orchestratorFake.lockHolder.mockImplementation((_tripId, item) =>
+      item.id === 'ti-old' ? 'u-bob' : null,
+    )
+
+    const wrapper = mountSheet()
+
+    expect(wrapper.get('[data-testid="membership-lock"]').text()).toContain('Bob')
+  })
+
+  it('says somebody rather than nobody when the holder is not in the directory', async () => {
+    // A member the trip carries and the directory does not (an account
+    // removed while offline): the sheet still has to say why it is frozen.
+    perPersonSeed()
+    orchestratorFake.lockHolder.mockImplementation((_tripId, item) =>
+      item.id === 'ti-old' ? 'u-stranger' : null,
+    )
+
+    const wrapper = mountSheet()
+
+    const notice = wrapper.get('[data-testid="membership-lock"]').text()
+    expect(notice).not.toContain('Bob')
+    expect(notice.length).toBeGreaterThan(0)
+  })
+
+  it('carries no lock line while nothing is claimed', () => {
+    expect(mountSheet().find('[data-testid="membership-lock"]').exists()).toBe(false)
   })
 })
