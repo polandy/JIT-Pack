@@ -8558,3 +8558,13 @@ on the right edge is what FR-25.19 kept off it. M4-08 promises the amber
 "packed with open prep" cast, which the Addendum realises on M5. Both are
 plausible as features and wrong as silent retirements, so the entries say so and
 no case claims them.
+
+**A postscript the PR wrote about itself.** The entry above was drafted with a
+recount in it — "272 of 383" against the 250/370 the M6 audit had measured the
+same day. Both numbers are right and they are not comparable: the second grep
+used a broader id pattern, so it is a second *method*, not a second
+measurement. And a retired entry stays in the UI-Test-Spec struck through,
+because a reader has to be able to find out why it went — which means every
+naive recount counts it as a gap forever, and the number can only drift
+upwards as the audit does its work. The headline figure was left where it was
+and `CLAUDE.md` now says not to re-derive it. Measure a screen.

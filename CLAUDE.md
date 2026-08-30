@@ -125,11 +125,15 @@ it. Item numbers stay stable even as items close, because the log refers back to
    why grepping the id confirmed a gap that reading the suite refuted — four described a
    removed gesture or a reversed rule, and eight were real, small remainders now written.
    The rule the two screens agree on: **a coverage count says how many promises have no
-   test, never how many deserve one**, and the order is promise → screen → test. Two owner
-   decisions are open (M4's container chip, the amber prep cast on M4); worth carrying
-   forward: **`rowEdgeAvatar` had been a rule inside a component since the concept round**,
-   so its case could not be written at all until it moved. Log: *„A blocked case that had
-   quietly unblocked, and one that had quietly been covered"*.
+   test, never how many deserve one**, and the order is promise → screen → test. **Do not
+   re-derive the headline number to compare against it** — a second grep is a second
+   *method*, not a second measurement (a broader id pattern turns 250/370 into 272/383 on the
+   same tree), and a retired entry stays in the file struck through, so it goes on being
+   counted as a gap forever. Measure a screen, not the repository. Two owner decisions are
+   open (M4's container chip, the amber prep cast on M4); worth carrying forward:
+   **`rowEdgeAvatar` had been a rule inside a component since the concept round**, so its
+   case could not be written at all until it moved. Log: *„A blocked case that had quietly
+   unblocked, and one that had quietly been covered"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).
