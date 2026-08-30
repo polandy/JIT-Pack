@@ -16,7 +16,7 @@
  * 0 already means FR-5.5 *skipped* and one control must not carry two decisions.
  */
 import { IonAlert, IonCheckbox, IonIcon } from '@ionic/vue'
-import { addOutline, closeOutline, removeOutline } from 'ionicons/icons'
+import { addOutline, closeOutline, lockClosedOutline, removeOutline } from 'ionicons/icons'
 import { computed, inject, ref } from 'vue'
 
 import UserAvatar from '@/components/global/UserAvatar.vue'
@@ -29,12 +29,15 @@ import {
 } from '@/domain/membership'
 import { t } from '@/i18n'
 import { useTripStore } from '@/stores/tripStore'
+import type { TripParticipant } from '@/types/domain'
 
 const props = defineProps<{
   tripId: string
   itemId: string
   /** G-3: a foreign claim on any instance freezes the whole editor. */
   locked: boolean
+  /** G-3 wants the name, and only a caller knows the trip's people. */
+  participants: TripParticipant[]
   /**
    * FR-25.8: open on the roster instead of on *Gemeinsam*. The quick-add's
    * mode is already the answer to which tab this is, and asking for it twice
@@ -78,10 +81,24 @@ const perPerson = computed(() => rows.value.some((r) => r.assigned_traveler_id !
  * answer, because only it knows which rows the cluster holds. The prop stays
  * beside it: a caller has its own reasons to be read-only.
  */
-const claimedByOther = computed(() =>
-  rows.value.some((r) => orchestrator.lockHolder(props.tripId, r) !== null),
-)
-const isLocked = computed(() => props.locked || claimedByOther.value)
+const claimHolderId = computed(() => {
+  for (const row of rows.value) {
+    const holder = orchestrator.lockHolder(props.tripId, row)
+    if (holder !== null) return holder
+  }
+  return null
+})
+const isLocked = computed(() => props.locked || claimHolderId.value !== null)
+
+/**
+ * Why it is frozen, said here rather than left to M5's G-3 banner: the claim
+ * may be on a sibling row, so that banner is absent, and this editor is a
+ * modal *above* M5 either way.
+ */
+const lockNotice = computed(() => {
+  const who = props.participants.find((p) => p.user_id === claimHolderId.value)?.display_name
+  return who ? t('membership.lockedBy', { who }) : t('membership.lockedByUnknown')
+})
 
 /**
  * Switching the tab shows the roster; it writes nothing. The first draft made
@@ -237,6 +254,11 @@ const confirmMessage = computed(() => {
       </button>
     </header>
 
+    <p v-if="isLocked" class="lock" data-testid="membership-lock" role="status">
+      <IonIcon :icon="lockClosedOutline" />
+      <span>{{ lockNotice }} {{ t('membership.lockedHint') }}</span>
+    </p>
+
     <div class="seg" role="tablist">
       <button
         role="tab"
@@ -339,6 +361,15 @@ const confirmMessage = computed(() => {
   gap: 8px;
 }
 
+.lock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--ct-subtext0);
+  font-size: var(--jp-text-sm);
+}
+
 .head h2 {
   flex: 1;
   margin: 0;
@@ -372,6 +403,13 @@ const confirmMessage = computed(() => {
 .seg button.on {
   background: var(--jp-action);
   color: var(--ct-on-accent);
+}
+
+/* G-3: the tab stays where it is and stops looking tappable. Removing it
+   would take the answer to "which mode is this item in" with it. */
+.seg button:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .hint {

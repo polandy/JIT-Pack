@@ -77,7 +77,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
-| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-FLOW-02 (delegation) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
+| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | Notifications speak the recipient's language (NFR-4.12) | E2E-NOTIFY-01 | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-04, E2E-M20-05 | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
 | G-10 trip presence | E2E-G10-01 (facepile and badge; the per-person list is unbuilt) | `server` | [`server/presence.spec.ts`](../client/e2e/server/presence.spec.ts) |
@@ -2302,3 +2302,31 @@ red — the row count, the tab count, the fan-out and the aggregated reveal — 
 the fifth, which asserts a *shared* row is left alone with exactly one call,
 stays green in both builds. That last one is the guard against an aggregation
 that swallows the ordinary case.
+
+## E2E-G3-04 — the lock reaches the cluster, and says whose it is (2026-08-30)
+
+**E2E-G3-04**, `server`, in `server/multi-user.spec.ts`. Alice claims **one**
+child row of a per-person item; Bob opens the membership editor from a
+**different**, unclaimed child. Both halves are asserted on the way in: M5
+itself is *not* locked there (`m5-lock` count 0), so a green run cannot be the
+old, row-scoped rule quietly passing.
+
+**The case found a missing surface rather than a broken one.** The rule it
+asserts had shipped the day before; what had not was any way to *see* it. Every
+other G-3 surface names the holder, and this one could inherit nothing: M5's
+banner is absent on the unclaimed row the editor is opened from, and the editor
+is a modal *above* M5 in any case, so the banner would be covered even where it
+exists. A frozen editor with no sentence is indistinguishable from a broken one
+— which is exactly what the positive half of this case is written against.
+
+**Alice releases the row instead of packing it** (FR-5.7). Packing would end the
+claim too, but it also removes the row from the list Bob is looking at; the
+release leaves everything in place except the claim, so what the assertion
+measures afterwards is the lock and nothing else. The recovery is asserted on
+the **still-open** sheet, and the write that follows — Leonardo's amount
+stepping to 2 — is the positive signal.
+
+**A helper changed shape for it:** `claimRow` now takes a test id rather than an
+item name. A per-person item has no `m4-row-<name>` at all — it is a cluster
+head with child rows — so the two-argument convenience of the older cases could
+not address the row this one has to claim.
