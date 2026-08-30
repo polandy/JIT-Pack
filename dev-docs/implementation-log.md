@@ -9567,8 +9567,26 @@ The consequence is not a footnote, because this repository's standing rule is to
 **measure rather than guess** — and a measurement taken under foreign load is
 not a weaker measurement, it is a confident wrong one. Anything timed here needs
 the load average read alongside it, which is now in CLAUDE.md next to the
-`make ci` budget. It is also why the one change this investigation could not
-land is the Vitest worker pool: the pool only matters to *local* wall-clock (on
-CI the client job is 90 s and nowhere near the critical path), so the only
-measurement that could decide it is the one this machine could not produce
-honestly today. Left unchanged rather than changed on a guess.
+`make ci` budget.
+
+The Vitest worker pool is what this cost. `pool: 'threads'` matters mostly to
+*local* wall-clock — vitest was the largest single component of `make ci`, while
+on CI the client job is nowhere near the critical path — so the machine that
+could not measure honestly was the machine whose number mattered. Two attempts
+failed in different ways and both are worth knowing: the full suite ran 368 s on
+`forks` and 270 s on `threads`, which *looks* decisive until you notice the
+threads run happened under the heavier load, so the comparison is unpaired and
+the direction is luck. The obvious fix — alternate the two pools on a subset to
+average the drift out — came back 3.6 / 5.7 s and then 5.5 / 3.8 s: **the noise
+was larger than the effect and the ordering flipped between rounds.** A paired
+design does not rescue a measurement when the variance is that wide; it only
+makes the wrong answer look methodical.
+
+What settled it was moving the measurement rather than repeating it. CI's runner
+is stable to ±2 s (`npx vitest run` was 46 s and 48 s on two independent
+`forks` runs), so the same step under `threads` — **32 s** — is a real
+comparison, on the same four cores, of the same work. The rule to reuse:
+**when the environment cannot hold still, change where you measure, not how
+many times.** Isolation is untouched either way; `threads` still gives each file
+its own worker and module registry, which is what `unstubGlobals` and the
+per-file environment docblock depend on.

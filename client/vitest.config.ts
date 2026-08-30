@@ -20,6 +20,20 @@ export default mergeConfig(
       // "Every spec paid for a DOM, and one of them was green for the wrong
       // reason".
       environment: 'node',
+      // Chosen against a measurement, like `environment` above. Isolation is
+      // unchanged — `threads` still gives every file its own worker and its
+      // own module registry, so the per-file guarantee `unstubGlobals` and
+      // the environment docblock rely on still holds; it buys one with a
+      // worker thread instead of a child process, and this suite is 168 files
+      // of mostly-pure logic, so spawn and re-import dominate the wall clock.
+      //
+      // Measured on CI, because the machine this is developed on could not
+      // decide it: a parallel session's Playwright suite had the load average
+      // at 21–34 on four cores, which turned an unchanged 100 s run into
+      // 368 s, and a paired subset benchmark came back pure noise. CI's
+      // runner is stable to ±2 s — `npx vitest run` was 46 s and 48 s across
+      // two runs on `forks`, and 32 s on this. Re-measure there, not here.
+      pool: 'threads',
       // A `vi.stubGlobal` inside one test must not outlive it. Without this
       // it does, and the leak stays latent for as long as a `beforeEach`
       // happens to install a fresh stub over it — so no case is wrong today,
