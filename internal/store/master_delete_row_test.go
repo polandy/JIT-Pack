@@ -194,3 +194,21 @@ func TestDeletableTables_CannotBeRefusedAsStillReferenced_FR24_3(t *testing.T) {
 		}
 	}
 }
+
+// Why DeleteMasterRow only asks a lifecycle table about the marker: the other
+// deletable tables do not carry one, so "kept instead of deleted" is not a
+// state they can be in. Pinned against the schema rather than assumed, because
+// giving one of them a retired_at later would make the guard silently wrong.
+func TestDeleteMasterRow_ANonLifecycleTableHasNoMarkerToReport_FR24_3(t *testing.T) {
+	s := openTestStore(t)
+
+	for table := range deletableMasterTables {
+		if lifecycleTables[table] {
+			continue
+		}
+		if columns(t, s.db, table)[RetiredColumn] {
+			t.Errorf("%s carries %s but is not a lifecycle table — a delete of it can be kept, "+
+				"and DeleteMasterRow would report it as removed", table, RetiredColumn)
+		}
+	}
+}

@@ -31,8 +31,9 @@ var deletableMasterTables = toSet(TableTags, TableItems, TableTemplates, TableTe
 type DeleteMasterRowResult struct {
 	Outcome sync.Outcome
 	// Retired distinguishes FR-24.3's two deletions, which the outcome
-	// cannot: a retired row is still there. Read back from the row rather
-	// than reported by the merge, so it states what is true afterwards.
+	// cannot: a retired row is still there. It is read from the row's own
+	// marker afterwards rather than from mere survival, so a delete that
+	// did not apply at all cannot be reported as a retirement.
 	Retired bool
 	// Seq is the change_log position of the delete — what a caller polls
 	// the pull from, and proof other devices will learn of it.
@@ -87,16 +88,31 @@ func (s *Store) DeleteMasterRow(ctx context.Context, userID, table, id string) (
 	}
 
 	out := DeleteMasterRowResult{Outcome: res.Outcome, Seq: res.Seq, Reason: res.Reason}
-	if res.Outcome != sync.OutcomeRejected {
-		// Reading the row back is not a second decision — the decision was
-		// made once, inside the mutation. This asks what became of it.
-		_, stillThere, err := s.masterRowClock(ctx, table, id)
-		if err != nil {
+	if res.Outcome != sync.OutcomeRejected && lifecycleTables[table] {
+		// Reading the marker back is not a second decision — the decision
+		// was made once, inside the mutation. This asks what became of it.
+		// Only a lifecycle table can answer yes: nothing else carries the
+		// marker, so nothing else can be kept instead of deleted.
+		if out.Retired, err = s.masterRowRetired(ctx, table, id); err != nil {
 			return DeleteMasterRowResult{}, err
 		}
-		out.Retired = stillThere
 	}
 	return out, nil
+}
+
+// masterRowRetired reports whether the row carries FR-24.3's marker. A row
+// that is gone answers false: it was deleted, not kept.
+func (s *Store) masterRowRetired(ctx context.Context, table, id string) (bool, error) {
+	var retired sql.NullString
+	err := s.db.QueryRowContext(ctx,
+		fmt.Sprintf(`SELECT %s FROM %s WHERE id = ?`, RetiredColumn, table), id).Scan(&retired)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("read %s %s marker: %w", table, id, err)
+	}
+	return retired.Valid, nil
 }
 
 // masterRowClock reads a row's own HLC and reports whether it exists at all.
