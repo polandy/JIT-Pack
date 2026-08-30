@@ -113,7 +113,14 @@ it. Item numbers stay stable even as items close, because the log refers back to
 6. **Playwright suite** — `dev-docs/UI_Test_Spec_v1.0.md` is written and the per-screen cases
    are landing screen by screen. **`dev-docs/e2e-tests.md` is the ledger of what is actually
    covered, and it is the file to read and update** — a green `e2e` job is not the same as a
-   verified UI (log: *„What ‚covered by e2e' was not covering"*).
+   verified UI (log: *„What ‚covered by e2e' was not covering"*). Measured 2026-08-30:
+   **250 of 370 case ids have a test.** The count is not the backlog, though — **M6 was the
+   first screen taken through it**, and of its 17 unwritten ids only two needed a new case:
+   four were already asserted by cases that existed, four described behaviour the app had
+   deliberately reversed, and eight described a screen nobody built. Retired that day
+   (owner): M6's filter bar, search field, composer fields and per-item note; **owed and
+   decided to be built:** FR-25.12's row sheet. Log: *„Seventeen unwritten cases, two worth
+   writing"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).
