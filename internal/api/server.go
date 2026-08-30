@@ -130,6 +130,14 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc(pattern(http.MethodPost, RouteMasterSync), s.authed(s.handlePushMaster))
 	mux.HandleFunc(pattern(http.MethodGet, RouteMasterConflicts), s.authed(s.handleListMasterConflicts))
 	mux.HandleFunc(pattern(http.MethodPost, RouteMasterConflictRevert), s.authed(s.handleRevertMasterConflict))
+	mux.HandleFunc(pattern(http.MethodDelete, RouteMasterTag),
+		s.authed(s.deleteMasterRow(store.TableTags, PathTagID)))
+	mux.HandleFunc(pattern(http.MethodDelete, RouteMasterItem),
+		s.authed(s.deleteMasterRow(store.TableItems, PathItemID)))
+	mux.HandleFunc(pattern(http.MethodDelete, RouteMasterTemplate),
+		s.authed(s.deleteMasterRow(store.TableTemplates, PathTemplateID)))
+	mux.HandleFunc(pattern(http.MethodDelete, RouteMasterTemplateItem),
+		s.authed(s.deleteMasterRow(store.TableTemplateItems, PathTemplateItemID)))
 
 	// The caller's own scope.
 	mux.HandleFunc(pattern(http.MethodGet, RouteMe), s.authed(s.handleMe))
