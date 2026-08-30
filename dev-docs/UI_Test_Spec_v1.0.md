@@ -343,15 +343,50 @@ not a carve-out, and a *new* collision fails the build outright.
 * **E2E-M6-11** `all` (FR-25.13): M6 has **no permanent "add" row** and no native `prompt()`; the composer is the shared one, collapsed to its own trigger above the list, and Enter adds to the **currently open tab**. Three clauses of the original wording are gone, each superseded rather than untested — corrected 2026-08-30: M6 has **no ＋ FAB** (M4 has one, M6's composer carries its own trigger), the composer is **not focused** on opening (FR-25.13c, so the chips are not covered by the keyboard), and it **does not collapse on blur** (FR-25.13a as amended — collapsing reflows the list under the next tap).
 
 ### M7 — Template List
-* **E2E-M7-01** `all` (FR-1.2/1.6): one shared instance-wide list (no my-vs-published split — FR-1.6 MVP simplification); per-row name + item count.
+
+**The ids were read against the screen on 2026-08-30** (backlog item 6). M7's catalogue was
+written before the 2026-08-15 variant pass rebuilt the screen, and three of its ids still
+describe surfaces that pass deliberately removed or never built — the my/published split, the
+name prompt, the FAB's import menu. Two that read as *implemented* were missing a clause each,
+and one of those clauses is the arithmetic the row exists for.
+
+* ~~**E2E-M7-01**~~ `all` (FR-1.2/1.6) — **retired 2026-08-30**, not unimplemented. Its first
+  half is the FR-1.6 MVP simplification itself (one shared list, no my-vs-published split): there
+  is nothing to render and therefore nothing to assert — the same supersession that struck
+  E2E-M7-02, arrived at from the other side. Its second half, *per-row name + item count*, is
+  **E2E-M7-07**, which asserts the name on every row it filters by and, since 2026-08-30, the
+  count as well. *The promise as written:* one shared instance-wide list; per-row name + item count.
 * **E2E-M7-02** — **superseded by the FR-1.6 MVP simplification (2026-08-08):** no publishing, no forking; every template is editable by every account. Returns with the parked FR-1.6 model.
-* **E2E-M7-03** `all` (FR-1.2): FAB → name prompt → creates template → opens M8.
-* **E2E-M7-04** `all` (FR-18.2): long-press → Export → YAML download.
-* **E2E-M7-05** `all` (FR-18.4): FAB "+" menu → Import from file → M18.
-* **E2E-M7-06** `all` (G-7): empty state CTA (create / import).
-* **E2E-M7-07** `all` (FR-27.1/27.2/27.6): scope segmentation — *Alle* renders Ferien-Vorlagen and Gruppen as two sections (vacation templates first), the *Gruppen*/*Ferien-Vorlagen* tabs filter to one scope, group rows carry the *Gruppe* chip; a composed template's row shows its group count, its **resolved** item count (not 0 for a template with no own positions), and an "enthält: …" line naming the included groups.
+* ~~**E2E-M7-03**~~ `all` (FR-1.2) — **retired 2026-08-30: the name prompt was rejected, not
+  left unbuilt.** The create-then-rename flow it describes is the prototype's, and the owner
+  decision of 2026-08-15 replaced it with the scope chooser carrying the name field in the same
+  sheet, precisely so that no row exists before the name does — a `prompt()` cannot say what a
+  Gruppe is while you name one. **E2E-M7-08** and **E2E-M7-09** assert the flow that replaced it,
+  including the write that must *not* happen. *The promise as written:* FAB → name prompt →
+  creates template → opens M8.
+* **E2E-M7-04** `all` (FR-18.2) — **implemented**: long-press → Export → YAML download.
+* **E2E-M7-05** `all` (FR-18.4) — **the promise is half built, and the half that is has a case
+  since 2026-08-30.** Import from M7 exists and reaches M18; the **FAB "+" menu** it is promised
+  in does not, and the FAB opens the scope chooser instead. Import is a header icon beside the
+  page title, recorded as *still owed* in this spec's 2026-08-15 amendment and, until this audit,
+  contradicted by UI-Spec M7's own *Actions* line, which described the menu as built (corrected
+  the same day). **Owner decision owed:** build the menu entry, or strike the clause and let the
+  header icon be the entrance. The case now asserts what runs — the icon opens M18 and the way
+  back lands on **M7**, which is not M18's declared parent (E2E-G9-12 asserts the same rule for
+  the entrance from M2 and names M7 without covering it, so this entrance could silently have
+  returned to Settings).
+* **E2E-M7-06** `all` (G-7) — **implemented, and its CTA clause is retired.** The empty state
+  carries **no CTA buttons of its own**, by the decision recorded in UI-Spec M7's *States* line:
+  create is the FAB and import is the header icon, both already on screen. What the case asserts
+  instead is the two empty states the screen really has, which share one element and are told
+  apart by their words and by the segment beside them: nothing at all names both scopes and drops
+  the segment; nothing *matching* says *„Keine Vorlage gefunden"* and **keeps** it, because there
+  is something to widen back to. The second half is new on 2026-08-30 — the States line had
+  promised it since the rebuild and nothing had typed into M7's search (the same shape as
+  E2E-M9-10, found on the neighbouring screen the same day).
+* **E2E-M7-07** `all` (FR-27.1/27.2/27.6): scope segmentation — *Alle* renders Ferien-Vorlagen and Gruppen as two sections (vacation templates first), the *Gruppen*/*Ferien-Vorlagen* tabs filter to one scope, group rows carry the *Gruppe* chip; a composed template's row shows its group count, its **resolved** item count (not 0 for a template with no own positions), and an "enthält: …" line naming the included groups. **The resolved-count clause got its assertion on 2026-08-30**, in `template-list.spec.ts` rather than in the M8 case that carries the rest: E2E-M8-07 builds a composition out of groups that are *empty*, so the raw count and the resolved count are both 0 there and the one arithmetic this row exists for is invisible to it. The new case gives the group a position and asserts the Vorlage that owns none reads *1 item* — with the group's own row as the control, since the same sentence arrived at without any resolution is what says the number is a fact about the include.
 * **E2E-M7-09** `all` (FR-27.6): the ＋ follows the scope segment — on *Gruppen* the chooser is skipped and the sheet opens on the name, and the created template is a Gruppe (proved by the editor shape, which has no Gruppen section); on *Alle* both options are still offered.
-* **E2E-M7-08** `all` (FR-27.6): FAB opens the two-option scope chooser (Ferien-Vorlage / Gruppe with one-line explanations); picking a scope marks the card and reveals the name field **in the same sheet**, the commit stays disabled until a name exists (no unnamed row is ever written — dismissing the half-finished sheet leaves the list untouched), and Enter/Anlegen creates the template of that scope and opens the matching M8 editor shape.
+* **E2E-M7-08** `all` (FR-27.6): FAB opens the two-option scope chooser (Ferien-Vorlage / Gruppe with **one-line explanations** — asserted on both cards since 2026-08-30, because a hint on one of them satisfies a sentence that means both, and the explanations are the reason the chooser exists at all: *„Gruppe"* alone does not say what it is for); picking a scope marks the card and reveals the name field **in the same sheet**, the commit stays disabled until a name exists (no unnamed row is ever written — dismissing the half-finished sheet leaves the list untouched), and Enter/Anlegen creates the template of that scope and opens the matching M8 editor shape.
 * **E2E-M7-10** `local` (FR-1.6, *implemented 2026-08-25 as two tests*): a taken name never becomes a write. Typing a name a **Gruppe** holds into the create sheet's name field for a **Ferien-Vorlage** — differing only in capitals — renders a line naming the group that holds it, disables *Anlegen*, and the **Öffnen** beside it navigates to that row's editor; a free name in the same field still creates and opens the new template (the positive signal, without which "nothing was created" is also true of a broken button). The rename alert refuses onto a taken name with a toast naming the holder, **stays open with the typed name**, and the row keeps the name it had; the same menu with a free name renames. Local Mode deliberately, because it is the run mode with no constraint behind the client.
 
 ### M8 — Template Editor
@@ -413,13 +448,23 @@ test body under it separates a wrong number from a missing test.**
 * **E2E-M10-16** `all` (FR-24.1, UX-14) — **new 2026-08-27** (`inventory.spec.ts`): with ten unassigned tags and an empty query the form offers **eight** chips and a *„N weitere per Suche"* tail naming the two held back; the search reaches a tag past the cap; clearing the query (by keys — a programmatic clear is the event-loss path the suite's `fillIonic` exists to avoid) returns to the shelf; tapping the tail focuses the search. Runs at phone width and in German, where it also measures that the placeholder fits its box — by briefly rendering the text as the value and reading `scrollWidth`, because a canvas re-measure quietly used the wrong font and could not fail.
 * **E2E-M7-11** `all` (FR-24.3) — **new 2026-08-25**: M7's row menu → *Löschen* on a Vorlage no trip ever used; the confirm says it will be removed for good before the tap that does it, and the row goes. The retire branch for a Vorlage is covered by the store and the orchestrator units rather than here, because reaching it through the UI means generating a whole trip for one sentence.
 
-**M23 — Hidden items and templates (FR-24.3, the restore).** Three cases in `e2e/restore-retired.spec.ts`, all `local`, all reached through M17's row rather than a typed URL.
+**M23 — Hidden items and templates (FR-24.3, the restore).** Four cases in `e2e/restore-retired.spec.ts`, all `local`, all reached through M17's row rather than a typed URL.
+
+**Read clause by clause on 2026-08-30** (backlog item 6). M23-01/02/03 keep every promise their
+sentences make — this screen was written with its cases and they did not drift. What the reading
+found is what all three have in common: each of them retires an **item**, and FR-24.3 governs
+items *and* Vorlagen, which M23 renders from two different row builders. The Vorlagen segment had
+never held a row in any test — E2E-M23-01 uses its *emptiness* as a positive control, which only
+says something if it can ever be non-empty — and the Vorlage **retire** branch had no rendered
+case anywhere either (E2E-M7-11 covers the remove branch and says why it stops there). That is
+E2E-M23-04.
 
 * **E2E-M23-01** `all` (FR-24.3) — **new 2026-08-25**: an item a group holds is retired, M23 lists it, *Wiederherstellen* brings it back and M9 shows it again. Two positive controls the "it came back" assertion is made against: a *second*, untouched item is asserted still present, so "the inventory grew by one" cannot be produced by the list repainting from nothing; and the *Vorlagen* segment is asserted empty, so the items list being non-empty is a fact about the store rather than about the screen rendering anything at all.
 * **E2E-M23-02** `all` (FR-24.3, ADR-034) — **new 2026-08-25**, and the case the file exists for: after the retire, a *new* item takes the freed name, and the restore then collides. The alert names the holder **while the row is still on M23** — that assertion is what separates the refusal arriving before the write from a restore that is enqueued, refused by the push and reversed by ADR-031's repair, which on screen is a row appearing and vanishing. A replacement name is typed, the input's value is **asserted before the button is clicked** (the first run restored a row named "K" and every count still passed), and M9 then shows *both* rows — the restored one made room for itself rather than taking the name back. Finally the group still resolves the row under its new name, which is the retire's own promise surviving the rename.
 * **E2E-G9-14** `all` (FR-24.3, ADR-011) — **new 2026-08-25**, in `e2e/global-nav.spec.ts` rather than in M23's own file, because getting to a screen and leaving it are global behaviours: Settings → M23, and the assertion that carries it is the **app-bar title**, since M23 renders no heading of its own and the header is the only place the user is told what they are looking at. Back returns to Settings and the bar is asserted to say *Settings* again rather than keeping the title of the screen that was left. Proved red by removing the route's `titleKey` — *"expect(locator).toHaveText(expected) failed / Expected: 'Hidden master data' / element(s) not found"*.
 * **E2E-G9-15** `all` (G-9) — **new 2026-08-26**, in `e2e/global-nav.spec.ts`: the settings gear is on every screen except M17 itself, where it would only reopen the screen it is on (UX review 2026-08-25, UX-16). Asserted as presence on a tab root plus absence on the rendered settings screen — the settings page's own content is the positive signal the absence rides on.
 * **E2E-G9-16** `all` (G-9) — **new 2026-08-27**, in `e2e/global-nav.spec.ts`: at 1280 px a settings section heading is far narrower than the area it sits in **and centred in it** (equal gutters to within a pixel), and at 400 px it fills the width again. A section heading rather than a control, deliberately: a control sits at one edge whatever the layout does, so it could not tell the two states apart — the first draft measured the language `ion-select` and passed the cap assertion against the unfixed build. Both halves matter: the second is what keeps the column from becoming a margin on the phone the app is built for (UX-17).
+* **E2E-M23-04** `all` (FR-24.3, ADR-032) — **new 2026-08-30**: the other thing FR-24.3 retires. A group a trip was generated from is deleted from M7, and the confirm carries the sentence E2E-M7-11's twin does not — *hidden, not removed* — before the tap; the row leaves M7, appears on **M23's Vorlagen segment** (with the items segment asserted empty, the mirror of E2E-M23-01's control), offers the restore and **no** *Endgültig löschen* while the trip still holds it, and comes back to M7 still holding the position it was created with. One trip generation pays for two screens: the Vorlage retire branch and the second half of M23. Mutation-proved by pointing M23's template row at `restoreMasterItem` — a plausible copy-paste, since the two callbacks have the same shape — which reddens this case and leaves the three item cases green.
 * **E2E-M23-03** `all` (FR-24.3) — **new 2026-08-25**: a retired row does not become undeletable. While the group still holds it, M23 offers the restore and **no** *Endgültig löschen* — asserted as an absence beside the restore button's presence, so it is a statement about the row and not about an empty page. The group is then deleted, which makes the row unreferenced, the button appears, and the confirm carries M10's "removed for good" sentence. The proof it was physical is that the name is free again afterwards, which a row still holding it — retired or not — would refuse.
 * **E2E-M10-02** `all` (FR-2.4): usage footer ("Used in N templates, M archived trips"); delete blocked while referenced by templates.
 * **E2E-M10-09** `all` (FR-20.1/20.4): M10 lists the item's dependencies with a *nötig/empfohlen* toggle per row, and — read-only — the items that depend on it; the reverse list offers no editing, since the relation is owned by the item that needs the companion.
@@ -610,11 +655,11 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | Req | Coverage | E2E case(s) / note |
 |---|---|---|
 | FR-1.1 | E2E | M9-01 (grouped list), M9-10 (search), M10-01 (creation mode — the assertion the retired M9-02 duplicated), M8-04 |
-| FR-1.2 | E2E | M7-01/03, M8-06 |
+| FR-1.2 | E2E | M7-07 (the list and what a row says), M7-08/09 (creating one, and its scope), M8-06. **M7-01 and M7-03 are retired 2026-08-30** — the shared list is FR-1.6's simplification with nothing to render, and the name prompt was rejected in 2026-08-15's variant pass. |
 | FR-1.3 | DOC/N-A | retired 2026-08-08 — plain integer quantities (M8-01 covers the stepper) |
 | FR-1.4 | E2E | M8-02 |
 | FR-1.5 | DOC/N-A | retired 2026-08-08 with FR-1.3 |
-| FR-1.6 | E2E+UNIT | M7-01 (shared list), M14-02 (direct write), M18-01 — MVP shared model; M7-10 + M8-24 (the name is the instance-wide key: create, rename, and M8's picker adopting the group that holds it); `domain/nameCollision.ts` (the matching rule), `composables/__tests__/nameCollision.spec.ts` (the orchestrator refuses the write, Local Mode included); publish/fork cases parked with the FR-1.6 stub |
+| FR-1.6 | E2E+UNIT | M14-02 (direct write), M18-01 — MVP shared model; M7-10 + M8-24 (the name is the instance-wide key: create, rename, and M8's picker adopting the group that holds it); `domain/nameCollision.ts` (the matching rule), `composables/__tests__/nameCollision.spec.ts` (the orchestrator refuses the write, Local Mode included); publish/fork cases parked with the FR-1.6 stub |
 | FR-1.7 | DOC/N-A | retired 2026-08-08 (owner decision) — consumable flag and per-day unit removed |
 | FR-1.8 | DOC/N-A | retired 2026-08-08 — no units, everything counts in pieces |
 | FR-2.1 / 2.1a | E2E | M3-01, M2-01/03 (M2-03's participant avatars are not built — owner decision, see E2E-M2-03) |
@@ -679,7 +724,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-18.3 | E2E | M2-07 |
 | FR-2.3 | E2E | M2-10 (ADR-033: progress on a trip this device never opened) |
 | Sync-API §4 (paging) | E2E | SYNC-01 (a partition larger than one page arrives whole) |
-| FR-18.4 | E2E | M18-01/02, M2-09, M7-05, M18-08 (the FR-27.4 sections), M18-10 + M18-11 (ADR-030: what is already here is not imported twice — restore list and merge preview) |
+| FR-18.4 | E2E | M18-01/02, M2-09, M7-05 (the header icon that is the built half — the FAB menu it names is not, owner decision open), M18-08 (the FR-27.4 sections), M18-10 + M18-11 (ADR-030: what is already here is not imported twice — restore list and merge preview) |
 | FR-18.5 | E2E | M18-04 |
 | FR-18.6 | E2E | FLOW-07 (round-trip) |
 | FR-19.1 | E2E | M19-01/02/03 |
@@ -712,7 +757,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-23.5 | E2E | M20-04 |
 | FR-23.6 | SERVER | deactivation side-effects (push purge, notif suppress) — Go test; access-revocation asserted M20-02 |
 | FR-24.1 | E2E | M10-08 (filter-or-create tag capture); grouping/filtering M9-01/24.2 |
-| FR-24.3 | E2E+UNIT | M10-14 (a referenced item is hidden and still resolves in its group), M10-15 (an unreferenced one is really gone, and its name is free again), M7-11 (the Vorlage confirm states which deletion it is), **M23-01/02/03** (the restore, the collision and its rename, and that a retired row can still be removed for good); `domain/masterDeletion` + `domain/masterRestore` and `composables/lifecycleDelete` + `composables/lifecycleRestore` (both rules, both branches, and that resolution/export keep seeing retired rows); store-side both branches **and the restore** in Go, including a colliding restore rejected as `constraint_violated` with the row left retired |
+| FR-24.3 | E2E+UNIT | M10-14 (a referenced item is hidden and still resolves in its group), M10-15 (an unreferenced one is really gone, and its name is free again), M7-11 (the Vorlage confirm states which deletion it is), **M23-01/02/03/04** (the restore, the collision and its rename, that a retired row can still be removed for good, and the Vorlage half — retired by a trip, listed on its own segment, restored); `domain/masterDeletion` + `domain/masterRestore` and `composables/lifecycleDelete` + `composables/lifecycleRestore` (both rules, both branches, and that resolution/export keep seeing retired rows); store-side both branches **and the restore** in Go, including a colliding restore rejected as `constraint_violated` with the row left retired |
 | FR-24.4 | E2E | M9-01 (lean default), M9-05 (property sheet, device-local) |
 | FR-24.5 | E2E | M10-07 (minimal creation, sections absent), M11-05 (placeholder-name container) |
 | FR-25.1 | E2E+UNIT | M4-12/13/14; packingView.ts (clustering, flat fallback, full-set decision) |

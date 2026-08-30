@@ -191,6 +191,18 @@ it. Item numbers stay stable even as items close, because the log refers back to
    (`m9-empty` existed in the suite only as an *absence* assertion), and **E2E-M9-10**, the
    word „searchable" in M9-01's sentence that nothing typed into. Log: *„Two ids on the wrong
    tests"*.
+   **M7 and M23 followed 2026-08-30.** M7's catalogue predates the 2026-08-15 variant pass that
+   rebuilt the screen, so three of its ids describe surfaces that pass removed or never built:
+   M7-01's my/published split (FR-1.6's simplification — nothing to render) and M7-03's name
+   prompt are **retired**, and **M7-05's FAB import menu is an unbuilt promise** — an owner
+   decision, because import *is* reachable from the header icon and UI-Spec M7's Actions line
+   claimed the menu as built while the same document's amendment listed it as owed. Three
+   remainders written, each a clause of an id that read as covered: the row's **resolved** item
+   count (E2E-M8-07 composes only empty groups, where the raw and resolved counts are both 0, so
+   the one arithmetic the row does was invisible to it), M7's **no-match** state and the search
+   that produces it, and the header icon's trip to M18 and back to M7. M23-01/02/03 keep every
+   clause they promise — but all three retire an *item*, so **E2E-M23-04** renders the Vorlagen
+   half for the first time. Log: *„A row that could not count, and a segment nobody filled"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).

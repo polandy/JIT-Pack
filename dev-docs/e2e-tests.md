@@ -51,12 +51,12 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Pack-out & undo | E2E-M4-33, E2E-M4-34, E2E-M4-35 | `local` | [`pack-out.spec.ts`](../client/e2e/pack-out.spec.ts) |
 | Deliberately not packed | E2E-M4-37 … E2E-M4-42, E2E-M5-16 | `local` | [`skip-item.spec.ts`](../client/e2e/skip-item.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
-| M7 template scopes | E2E-M7-04, E2E-M7-06 (partial), E2E-M7-07 (completed by the M8 unit), E2E-M7-08, E2E-M7-09, E2E-M7-10 (two tests) | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
+| M7 template scopes | E2E-M7-04, E2E-M7-05 (the header icon into M18), E2E-M7-06 (both empty states), E2E-M7-07 (three tests here plus the include half in the M8 unit), E2E-M7-08, E2E-M7-09, E2E-M7-10 (two tests) | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
 | M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-15, E2E-M8-16, E2E-M8-17, E2E-M8-21, E2E-M8-22, E2E-M8-23 (two tests), E2E-M8-18, E2E-M8-24 (two tests) | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
 | M6 shopping (composer wiring, FR-25.11j reveal, FR-25.6 aggregation) | E2E-M6-21, E2E-M6-17, E2E-M6-22, E2E-M6-05, E2E-M6-06 | `local` | [`shopping.spec.ts`](../client/e2e/shopping.spec.ts) |
 | M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-06, E2E-M9-05, E2E-M9-08 (tag-axis clearance, UX-4), E2E-M9-10 (search filters), E2E-M9-04 (empty state → M15), E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed), E2E-M10-13 (German-seeded) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | FR-24.3 lifecycle delete | E2E-M10-14, E2E-M10-15, E2E-M7-11 | `local` | [`lifecycle-delete.spec.ts`](../client/e2e/lifecycle-delete.spec.ts) |
-| FR-24.3 restore (M23) | E2E-M23-01, E2E-M23-02, E2E-M23-03 | `local` | [`restore-retired.spec.ts`](../client/e2e/restore-retired.spec.ts) |
+| FR-24.3 restore (M23) | E2E-M23-01, E2E-M23-02, E2E-M23-03, E2E-M23-04 (the Vorlage half) | `local` | [`restore-retired.spec.ts`](../client/e2e/restore-retired.spec.ts) |
 | §3.28 the item mark | E2E-M10-11, E2E-M10-12, E2E-M9-07, E2E-M4-48, E2E-G15-01, E2E-G15-02, E2E-M5-15 | `local` | [`item-mark.spec.ts`](../client/e2e/item-mark.spec.ts) |
 | M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in), E2E-M5-22 (M5 moves an item between two of them), E2E-M11-07 (UX-8 empty state) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
 | M12 analytics | E2E-M12-01, E2E-M12-02 (incl. the UX-11 tile absences), E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05, E2E-M12-07 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
@@ -358,20 +358,39 @@ Two things this unit still does *not* cover, both by decision:
 | M17 device settings (theme, backup reminder, G-8) | E2E-M17-06, E2E-M17-07, E2E-M17-07b, E2E-M17-08 | `local` | [`settings.spec.ts`](../client/e2e/settings.spec.ts) |
 | M17 data export under a session (NFR-4.5) | E2E-M17-03 | `server` | [`server/data-export.spec.ts`](../client/e2e/server/data-export.spec.ts) |
 
-**Why E2E-M7-06 is partial.** The case asks for an empty-state *CTA*
-(create / import). The screen has neither as a button: create is the FAB and
-import is the header icon, both already on screen. The case asserts what the
-empty state does say and that the segment is absent; the UI-Spec now records
-the missing CTAs as a decision rather than an omission.
+**Why E2E-M7-06 stopped being partial (2026-08-30).** The case asks for an
+empty-state *CTA* (create / import). The screen has neither as a button: create
+is the FAB and import is the header icon, both already on screen, and the
+UI-Spec records that as a decision rather than an omission — so the clause is
+retired rather than owed. What the case was missing is the screen's *other*
+empty state: M7's States line has always promised two sentences, and both are
+painted into one element, so *„Keine Vorlage gefunden"* with the segment still
+in place is what tells a narrowed search from an empty instance. Nothing had
+typed into M7's search until this case — the twin of E2E-M9-10, found on the
+next screen the same day, and the same lesson: a screen's search is usually
+covered as far as *opening the field*.
 
-**E2E-M7-07 is complete since the M8 unit.** Its include-dependent half — the
+**E2E-M7-07 was called complete since the M8 unit, and was one clause short
+(corrected 2026-08-30).** The clause is the row's *resolved* item count, which
+is the only arithmetic the row does — and the M8 case cannot see it, because
+every group in the composition it builds is empty, so the raw count and the
+resolved count are both 0. A row that read its own positions instead would have
+been green there for as long as the case has existed. `template-list.spec.ts`
+now gives the group a position and reads the composed row.
+
+The rest of the original note stands: Its include-dependent half — the
 *"N Gruppen ·"* prefix and the *enthält: …* line — needed a Ferien-Vorlage
 that actually includes a group, a write only the M8 rebuild could make; the
 M8-07 case now builds that composition through the app and asserts both lines
-on the M7 row. The resolution arithmetic stays covered where it lives, in
-`client/src/domain/__tests__/templates.spec.ts`. One M7 case stays
-unimplemented because the surface does not exist: **E2E-M7-05** (Import from
-the FAB menu; import is a header icon).
+on the M7 row. The resolution arithmetic itself stays covered where it lives, in
+`client/src/domain/__tests__/templates.spec.ts` — what the new case adds is the
+*wiring*, which no domain test can see. **E2E-M7-05 is the FAB menu's entry, and the FAB has no menu** — the surface
+does not exist and is an open owner decision (build it, or strike the clause).
+The *function* it names does exist, on the header icon, and since 2026-08-30 it
+has a case: nothing in the suite had ever tapped that icon. E2E-G9-12 asserts
+M18's return-to-origin rule for the entrance from M2 and names M7 in its own
+comment without covering it, which is exactly the entrance that could have kept
+returning to M18's declared parent, Settings.
 
 **How E2E-M7-04 is split, and why.** The e2e case drives the menu through
 `contextmenu` — the same handler the touch hold fires into — and asserts the
@@ -1950,6 +1969,21 @@ Two traps were paid for while writing these, both worth keeping:
   first run typed "Kamera (alt)" and restored a row named **"K"** — and every
   count in the case was still satisfied by it, because one row is one row.
   The input's value is asserted before the button is clicked.
+
+**The fourth case, added 2026-08-30 (backlog item 6).** Reading the three
+against the screen found nothing wrong with them and one thing missing around
+them: all three retire an **item**, and M23 builds its two lists from two
+different row builders. Nothing had ever put a row on the Vorlagen segment —
+E2E-M23-01 asserts that segment *empty* as a positive control, which is only
+worth something if it can be non-empty — and the Vorlage **retire** branch was
+unrendered anywhere, because E2E-M7-11 covers the remove branch and stops
+there, on the stated grounds that reaching the other one costs a whole trip.
+E2E-M23-04 pays that cost once and gets both: the retire confirm's other
+sentence, the Vorlagen list, the purge button correctly absent while the trip
+holds the row, and the restore. It is mutation-proved by pointing the template
+row's `restore` callback at `restoreMasterItem` — the two have the same shape,
+so it is the copy-paste this screen is exposed to — which reddens the new case
+and leaves the three item cases green.
 
 putting the refused row back on the device that tried to delete it — is not in
 this case and not built**; the refusal is announced, not undone.

@@ -1,7 +1,9 @@
 import { test, expect } from './fixtures'
 import {
+  addPosition,
   backToTemplateList as backToList,
   createTemplate,
+  includeGroup,
   visiblePage as visible,
 } from './fixtures'
 
@@ -106,10 +108,46 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     await expect(list.locator('ion-item', { hasText: 'Makro' })).toHaveCount(0)
   })
 
+  test('E2E-M7-07: a composed row counts the resolved set, not its own positions', async ({
+    page,
+  }) => {
+    // The clause of M7-07 that no case asserted (found 2026-08-30, backlog
+    // item 6): M8-07 builds a composition and asserts the "N groups ·"
+    // prefix and the "contains: …" line, but every group in it is empty, so
+    // the raw count and the resolved count are both 0 there — the one
+    // arithmetic this row exists to get right is the one that case cannot
+    // see. A Vorlage with no positions of its own reading "0 items"
+    // describes the row rather than the trip it would produce.
+    await createTemplate(page, 'group', 'Makro')
+    await addPosition(page, 'Kamera')
+    await backToList(page)
+    await createTemplate(page, 'template', 'Fototage')
+    await includeGroup(page, 'Makro')
+    await backToList(page)
+
+    const list = visible(page)
+    const composed = list.locator('ion-item').filter({ hasText: 'Fototage' }).first()
+    await expect(composed).toContainText('1 group')
+    await expect(composed).toContainText('1 item')
+    // The group itself is the control: the same sentence, arrived at without
+    // any resolution, so "1 item" on the row above is a fact about the
+    // include rather than about the label being printed twice.
+    await expect(list.locator('ion-item').filter({ hasText: 'Makro' }).first()).toContainText(
+      '1 item',
+    )
+  })
+
   test('E2E-M7-08: the commit is disabled until a name exists — no unnamed row is ever written', async ({
     page,
   }) => {
     await page.getByTestId('m7-fab').click()
+    // Two options, each with the one line that says what it is for — the
+    // reason the chooser exists at all is that "Gruppe" alone does not
+    // (FR-27.6). Asserted on both cards: a shared hint would satisfy either
+    // one on its own.
+    await expect(page.getByTestId('m7-kind-template')).toContainText('The starting point for a trip')
+    await expect(page.getByTestId('m7-kind-group')).toContainText('A reusable block of items')
+
     await page.getByTestId('m7-kind-group').click()
     // The pick is stated where the eye is — on the card, not only in state.
     await expect(page.getByTestId('m7-kind-group')).toHaveClass(/picked/)
@@ -214,6 +252,49 @@ test.describe('M7 template list — scopes (FR-27.6)', () => {
     await expect(list.getByTestId('m7-empty')).toContainText('No templates yet')
     // With nothing to filter, the segment would be a control over an empty set.
     await expect(list.getByTestId('m7-scope-segment')).toHaveCount(0)
+  })
+
+  test('E2E-M7-06: nothing matching is a different state from nothing at all', async ({ page }) => {
+    // M7's States line has promised both sentences since the screen was
+    // built; only the first had a case (backlog item 6, 2026-08-30). They
+    // share one element, so what tells them apart is the words in it and the
+    // segment beside it — a search narrowing to nothing still has something
+    // to widen back to, and an empty instance does not.
+    await createTemplate(page, 'group', 'Makro')
+    await backToList(page)
+
+    await page.getByTestId('search').click()
+    const list = visible(page)
+    await list.getByTestId('templates-search-input').fill('makro')
+    await expect(list.locator('ion-item').filter({ hasText: 'Makro' })).toHaveCount(1)
+    await expect(list.getByTestId('m7-empty')).toHaveCount(0)
+
+    await list.getByTestId('templates-search-input').fill('zzz')
+    await expect(list.locator('ion-item')).toHaveCount(0)
+    await expect(list.getByTestId('m7-empty')).toContainText('No template found')
+    await expect(list.getByTestId('m7-scope-segment')).toBeVisible()
+  })
+
+  test('E2E-M7-05: the header icon opens the portable import and comes back to M7', async ({
+    page,
+  }) => {
+    // What survives of M7-05 (backlog item 6, 2026-08-30): the FAB "+" menu
+    // it names was never built, and import has been a header icon since. The
+    // icon had never been tapped by anything — E2E-G9-12 asserts the same
+    // return-to-origin rule for M18's *other* entrance, from M2, and the
+    // whole reason that rule exists is that M18 declares Settings as its
+    // parent, so an unasserted entrance is one that can silently land there.
+    await createTemplate(page, 'group', 'Makro')
+    await backToList(page)
+
+    await page.getByTestId('m7-portable-import').click()
+    await expect(visible(page).getByTestId('portable-paste')).toBeVisible()
+
+    await page.getByTestId('header-back').click()
+    await expect(visible(page).getByTestId('m7-fab')).toBeVisible()
+    await expect(visible(page).locator('ion-item').filter({ hasText: 'Makro' })).toHaveCount(1)
+    // Not the declared parent: the settings screen's own control is absent.
+    await expect(page.getByTestId('settings-language')).toHaveCount(0)
   })
 })
 
