@@ -297,3 +297,102 @@ describe('membershipRows', () => {
     expect(membershipRows(all, all[0]!).map((r) => r.id)).toEqual(['row-a', 'row-b'])
   })
 })
+
+/**
+ * FR-25.21 / FR-5.5 — a rewritten row's `state` must still be true of its own
+ * numbers.
+ *
+ * Both conversions change a row's quantity and its packed count, and neither
+ * used to touch the state that describes them. That is not cosmetic: `isDone`
+ * reads *skipped* and *fully packed* as done and FR-25.2 takes a done row off
+ * the list, so a row left claiming a state its numbers no longer support
+ * disappears while it is unfinished. The repair is a derivation, not a policy —
+ * the state falls back to *open* exactly when it has stopped being true — and
+ * only one of the two cases drops a decision somebody made, which is why only
+ * that one is reported for a confirm.
+ */
+describe('planMembership — the state follows the numbers', () => {
+  it('FanOut_OfASkippedRow_StopsClaimingItIsSkipped', () => {
+    const rows = [row('row-shared', { state: 'skipped', quantity: 0, packed_count: 0 })]
+
+    const plan = planMembership(
+      input(rows, { kind: 'perPerson', members: [{ traveler_id: ANDY.id, quantity: 2 }] }),
+    )
+
+    // Membership floors the amount at 1 (0 is FR-5.5's *skipped*, and one
+    // control must not carry two decisions) — so the row is taken along again,
+    // and the state has to say so.
+    expect(plan.update).toEqual([
+      { id: 'row-shared', fields: { assigned_traveler_id: ANDY.id, quantity: 2, state: 'open' } },
+    ])
+  })
+
+  it('FanOut_OfASkippedRow_IsReportedSoTheConversionCanAsk', () => {
+    const rows = [row('row-shared', { state: 'skipped', quantity: 0 })]
+
+    const plan = planMembership(
+      input(rows, { kind: 'perPerson', members: [{ traveler_id: ANDY.id, quantity: 1 }] }),
+    )
+
+    // The only decision a conversion can silently undo. Packing progress is a
+    // count and survives as one; *weggelassen* is somebody's answer.
+    expect(plan.unskipped).toEqual({ rowId: 'row-shared', travelerName: 'Andy' })
+  })
+
+  it('FanOut_OfAPackedRow_ReopensItWhenTheNewAmountIsLarger', () => {
+    const rows = [row('row-shared', { state: 'packed', quantity: 1, packed_count: 1 })]
+
+    const plan = planMembership(
+      input(rows, { kind: 'perPerson', members: [{ traveler_id: ANDY.id, quantity: 3 }] }),
+    )
+
+    expect(plan.update[0]!.fields).toEqual({
+      assigned_traveler_id: ANDY.id,
+      quantity: 3,
+      state: 'open',
+    })
+    // Nothing was lost and nothing is asked: one of three is still packed, and
+    // the numbers said so before the state was corrected to match.
+    expect(plan.unskipped).toBeNull()
+  })
+
+  it('FanOut_OfAPackedRow_KeepsThePackedStateWhenTheAmountStillFits', () => {
+    const rows = [row('row-shared', { state: 'packed', quantity: 2, packed_count: 2 })]
+
+    const plan = planMembership(
+      input(rows, { kind: 'perPerson', members: [{ traveler_id: ANDY.id, quantity: 2 }] }),
+    )
+
+    expect(plan.update[0]!.fields.state).toBeUndefined()
+  })
+
+  it('Collapse_OntoAPartlyPackedSum_StopsClaimingTheRowIsPacked', () => {
+    const rows = [
+      row('row-andy', { assigned_traveler_id: ANDY.id, quantity: 2, packed_count: 2, state: 'packed' }),
+      row('row-leo', { assigned_traveler_id: LEO.id, quantity: 3, packed_count: 0 }),
+    ]
+
+    const plan = planMembership(input(rows, { kind: 'shared' }))
+
+    // Two of five packed. The surviving row carried *packed* and would have
+    // kept it, hiding a cluster that is three items short of done. Its
+    // `packed_count` is absent from the diff because it did not move — the
+    // survivor already held those two — which is exactly why the state is the
+    // only thing that can tell the truth here.
+    expect(plan.totals).toEqual({ quantity: 5, packed: 2 })
+    expect(plan.update[0]!.fields).toMatchObject({ quantity: 5, state: 'open' })
+  })
+
+  it('Collapse_WhereEveryInstanceIsPacked_KeepsThePackedState', () => {
+    const rows = [
+      row('row-andy', { assigned_traveler_id: ANDY.id, quantity: 2, packed_count: 2, state: 'packed' }),
+      row('row-leo', { assigned_traveler_id: LEO.id, quantity: 1, packed_count: 1, state: 'packed' }),
+    ]
+
+    const plan = planMembership(input(rows, { kind: 'shared' }))
+
+    expect(plan.update[0]!.fields.state).toBeUndefined()
+    expect(plan.totals).toEqual({ quantity: 3, packed: 3 })
+  })
+})
+

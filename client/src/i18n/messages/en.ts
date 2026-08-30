@@ -139,6 +139,9 @@ export const en = {
   'membership.confirmRemoveTitle': 'Remove this row?',
   'membership.confirmRemove':
     '{name} has already packed {packed} of {quantity}. The row leaves the packing list and that progress is lost.',
+  'membership.confirmUnskipTitle': 'Take it along again?',
+  'membership.confirmUnskip':
+    '“{item}” is marked as left at home. Once {name} gets an amount it is coming along again, and that decision is undone.',
   'membership.confirmCollapseTitle': 'Share it again?',
   'membership.confirmCollapse':
     '{rows} rows become one with {quantity} items, {packed} of them packed. Notes and preparation todos on {name}\u2019s row stay; the other rows are deleted.',
