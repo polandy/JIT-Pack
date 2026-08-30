@@ -110,7 +110,7 @@ Files: `client/src/views/trips/PackingListPage.vue` (+ router/overlay layer per 
 
 1. M4 scroll restoration when a detail sheet closes (the ADR-012 overlay amendment's carried cost). Assert on rendered position, not URL.
 2. Write E2E-M12-03's positive half (unblocked since the lifecycle step exists).
-3. Stage real proposals on :3000 (`docker stop jitpack-web` frees the port) and get the owner's M14 eyeball — deliverable is a click-path note or artifact link, per the standing eyeball rule.
+3. Stage real proposals on :3000 (`docker stop jitpack-dev-web` frees the port) and get the owner's M14 eyeball — deliverable is a click-path note or artifact link, per the standing eyeball rule.
 
 ### Track J — a trip cannot be edited after it is created *(owner-found 2026-08-21 · **merged `443327d`**, FR-2.7 / M22)*
 

@@ -10,6 +10,13 @@
 #
 # The `web` container (nginx) serves the SPA and reverse-proxies /api,
 # /ws and /health to `app` — same origin, so the CORS-less API works.
+#
+# The project and its containers carry a `-dev` name so this stack can run
+# beside a deployed JIT-Pack on the same host: container names are unique
+# per daemon, and two compose projects sharing a name would treat each
+# other's containers as orphans.
+
+name: jitpack-dev
 
 volumes:
   data:
@@ -17,7 +24,7 @@ volumes:
 services:
   app:
     build: .
-    container_name: jitpack-app
+    container_name: jitpack-dev-app
     restart: unless-stopped
     mem_limit: 128m
     expose:
@@ -38,7 +45,7 @@ services:
 
   web:
     build: ./client
-    container_name: jitpack-web
+    container_name: jitpack-dev-web
     restart: unless-stopped
     mem_limit: 64m
     ports:
