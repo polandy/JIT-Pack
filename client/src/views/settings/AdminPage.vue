@@ -33,6 +33,18 @@ import type { useSyncOrchestrator } from '@/composables/useSyncOrchestrator'
 const orchestrator = inject<ReturnType<typeof useSyncOrchestrator>>('orchestrator')!
 
 const users = ref<AdminUserRow[]>([])
+/**
+ * Cache-busting counter for the avatar URLs, bumped when one is removed
+ * (FR-23.4, M17's own pattern for FR-17.13).
+ *
+ * Without it *Remove avatar* changes nothing on the screen that just did it:
+ * the row is keyed by user id, so reloading the list hands the same `<img>`
+ * the same `src` and the browser never asks again — and it would not be told
+ * anything if it did, since the avatar response carries `max-age=3600`.
+ * Moderation that leaves the picture on the moderator's screen reads as an
+ * action that did not happen.
+ */
+const avatarVersion = ref(0)
 const myUserId = ref<string | null>(null)
 const failed = ref(false)
 
@@ -90,6 +102,7 @@ async function runAction(action: AdminAction, user: AdminUserRow) {
         break
       case 'reset-avatar':
         await orchestrator.adminResetAvatar(user.user_id)
+        avatarVersion.value++
         break
       case 'reset-name':
         await orchestrator.adminResetDisplayName(user.user_id)
@@ -117,7 +130,7 @@ async function confirmDeactivation(user: AdminUserRow): Promise<boolean> {
 }
 
 function avatarUrl(user: AdminUserRow): string {
-  return `${serverBaseUrl()}${API.userAvatar(user.user_id)}`
+  return `${serverBaseUrl()}${API.userAvatar(user.user_id)}?v=${avatarVersion.value}`
 }
 
 /**

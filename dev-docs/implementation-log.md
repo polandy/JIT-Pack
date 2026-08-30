@@ -206,6 +206,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [A control nobody had ever clicked (2026-08-30)](#a-control-nobody-had-ever-clicked-2026-08-30) — backlog item 6, M8. The first screen whose ids were all written, and the destructive control none of them touched; why the amendment that introduced it is exactly what kept it unread; and the three clauses checked and deliberately left untested.
 - [Five numbers, and two sections nobody had built (2026-08-30)](#five-numbers-and-two-sections-nobody-had-built-2026-08-30) — backlog item 6, M10. The same commit's larger swap, five ids deep; the ledger was the only document that had it right; the two sections built in July that no test had ever rendered; and an absence assertion over a section absent in both modes.
 - [The branch the backup never took (2026-08-30)](#the-branch-the-backup-never-took-2026-08-30) — backlog item 6, M18. The screen where every unwritten case was real, why a clause can be stale in four places at once, and the comment that contradicted the line three rows under it.
+- [Two premises that had closed two cases (2026-08-30)](#two-premises-that-had-closed-two-cases-2026-08-30) — backlog item 6, M20 and G-10. The youngest coverage in the repository, read for the opposite error: two sentences saying a case *could not* be written, both wrong, and both hiding a defect — a lagging device nothing could render, a moderation that changed no pixel, and a login screen that told a deactivated person the server was fussy.
 
 ## Current state
 
@@ -9465,3 +9466,92 @@ That is the second time this backlog item has found a specification
 sentence describing a state nobody can produce, and the shape is the same as
 M17's: **a promise can be wrong in a way only the screen can refute**, and
 reading it against another document will confirm it forever.
+
+## Two premises that had closed two cases (2026-08-30)
+
+M20 and G-10 through the same reading as the eleven screens before them, and
+the risk profile was the opposite one. These two were rendered for the first
+time ever two days earlier (#242), so their case sentences were not stale —
+they were written *by* the people who had just built the screens, and the
+error to look for is a promise that describes the implementation instead of
+the requirement. Every id on both surfaces already had a test. So the read
+was clause by clause, and what it found were **two sentences declaring that
+a case could not be written**. Both were wrong, and each was sitting on a
+defect.
+
+**„An e2e case could only race it."** G-10's entry said the lagging half of
+the presence badge was unreachable: a device is behind only while its
+reported cursor sits below the trip head, and the client reports one the
+moment its pull returns. Every clause of that is true, and the conclusion
+does not follow. It was written as *holding a pull open*, which really is a
+race — but a lagging device is one whose pull has **not returned**, and
+`route.abort()` needs no seam in the production code at all. `drainTrip`
+reports the cursor only after the pull comes back, so a device whose trip
+partition is blocked keeps the cursor it had and stays behind until the
+block is lifted: a settled state, not a moment. E2E-G10-02 blocks Bob's
+pulls, has Alice move the head, and asserts the count in the bubble, the
+✓✓ gone, and *„Bob · catching up"* against *„Alice · up to date"* — then
+unblocks and moves the head again, because a state that cannot recover is a
+latch. What it adds over the units is the wire: `hub_test.go` computes
+`in_sync` from cursors and `PresenceFacepile.spec.ts` rings whoever a prop
+says is behind, and **nothing said the server's answer is that prop**. The
+mutation that proves it is one line of Go — `InSync: true` — and it reddens
+E2E-G10-02 alone.
+
+**„Remove avatar changes no pixel on M20."** The ledger's reason was that no
+fixture account has a picture, which is true and is not the whole reason.
+Put one there and the removal *still* changes no pixel: the row is keyed by
+account id, so reloading the list hands the same `<img>` the same `src`, the
+browser never asks again — and the response carries `max-age=3600`, so it
+would not be told anything if it did. M17 has had FR-17.13's cache-busting
+query since the profile picture shipped; M20 was written beside it without
+one. The failure mode is the worst kind for a moderation feature: the
+moderator does the thing and watches nothing happen. E2E-M20-03b uploads a
+1×1 JPEG through the `self`-guarded endpoint — not through M17's control,
+whose crop modal has no settled signal (the blocker E2E-M17-12 is still
+waiting on) — and the same sentence in the ledger was wrong a second way:
+there is no placeholder image, the endpoint **404s** and the initials are
+the ground (FR-23.4a).
+
+**A clause that was in no case at all.** FR-23.3 ends with *„open JIT
+provisioning does not resurrect a deactivated account … otherwise
+deactivation would be meaningless under FR-23.6"*. The store proves the
+login does not clear `deactivated_at`, `issueSession` refuses the exchange,
+and no case had ever taken the app through that refusal. The screen said
+*„The server rejected the login."* — the sentence a replayed code gets. This
+is the login-screen twin of the defect FR-23.3's own 2026-08-28 amendment
+fixed *inside* the app, and it survived the same amendment: the client
+narrows on `account_deactivated` in `client.ts`, and the OIDC callback,
+which is the other place that 403 arrives, was not touched. A permanent
+state read as a glitch, presented to the one person who cannot do anything
+about it by trying again. E2E-M20-06 asserts the sentence rather than the
+refusal, because a regex matching the generic one would pass against the
+build the case was written for.
+
+**Two clauses that cannot fail, kept and named as such.** E2E-G10-01
+asserts `presence-behind` absent right after `presence-in-sync` is visible,
+and the two are a `v-if`/`v-else` — that clause documents the exclusivity
+and cannot break independently of the line above it. E2E-M20-05's *„hidden
+entirely in `single`/`local`"* is the stronger version of the same shape:
+the gate is `collaborative && me?.is_instance_admin`, and neither project
+has a `me` at all, so deleting the `collaborative` half leaves the row just
+as hidden. A case written there would be green against the rule being gone.
+Both are recorded in the spec as what they are instead of being counted as
+coverage — the M10 audit's tautology, met twice more and left in place
+because the alternative is a test that lies in the other direction.
+
+**A traceability row about a different requirement.** FR-4.6 is the presence
+indicator. Its matrix row read `UNIT | members.ts role model; surfaced via
+M3-04`, which is FR-4.5/4.7's membership model — so the one requirement this
+audit's new case exists for had been reading as covered by a unit test about
+something else. The M9 audit's shape (an id on the wrong test) has a
+sibling: **a requirement pointed at the wrong evidence**, and neither gate
+can see either, because every id in both rows is real and used exactly once.
+
+**What M20 keeps that is worth not re-litigating.** FR-23.2 says *„active /
+deactivated status"* and the screen has one chip: deactivated, plus the
+dimming. There is no active chip, and adding one would put a label on every
+row to say that nothing is wrong. The spec now says which of the two the
+case can pin. And the dimming itself is asserted nowhere on purpose — the
+only way to reach it from Playwright is a class or an opacity, which is an
+assertion about the stylesheet, not about the pixel.

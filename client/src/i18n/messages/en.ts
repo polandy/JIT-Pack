@@ -1027,6 +1027,8 @@ export const en = {
   'login.completing': 'Completing sign-in…',
   'login.interrupted': 'Login was interrupted — please try again.',
   'login.rejected': 'The server rejected the login.',
+  'login.deactivated':
+    'This account is deactivated. Signing in again does not restore access — an instance admin has to reactivate it.',
   'login.failed': 'Login failed — server unreachable.',
   'login.backToLogin': 'Back to login',
 

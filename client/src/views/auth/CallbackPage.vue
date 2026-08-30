@@ -5,7 +5,7 @@
  * set, and enters the app.
  */
 import { API } from '@/api/routes'
-import type { SessionTokens } from '@/api/types'
+import { ERROR_CODE, type APIError, type SessionTokens } from '@/api/types'
 import { IonPage, IonContent, IonSpinner, IonButton } from '@ionic/vue'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -42,7 +42,17 @@ onMounted(async () => {
       }),
     })
     if (!resp.ok) {
-      error.value = t('login.rejected')
+      // FR-23.3: a deactivated account is refused at the broker rather than
+      // handed tokens every endpoint would 403 anyway — and it is the one
+      // refusal the person can do nothing about by trying again, so it is
+      // named. Anything else stays the generic sentence: the exchange fails
+      // for reasons (an expired code, a replayed one) that say nothing
+      // about the account and would only mislead if they did.
+      const body = (await resp.json().catch(() => null)) as APIError | null
+      error.value =
+        body?.error?.code === ERROR_CODE.account_deactivated
+          ? t('login.deactivated')
+          : t('login.rejected')
       return
     }
     saveTokens((await resp.json()) as SessionTokens)
@@ -63,7 +73,7 @@ onMounted(async () => {
           <p>{{ t('login.completing') }}</p>
         </template>
         <template v-else>
-          <p>{{ error }}</p>
+          <p data-testid="login-error">{{ error }}</p>
           <IonButton @click="router.replace('/login')">{{ t('login.backToLogin') }}</IonButton>
         </template>
       </div>

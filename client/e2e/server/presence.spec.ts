@@ -116,4 +116,101 @@ test.describe('G-10 — who else is on this trip @server @g10', () => {
 
     await ctxAlice.close()
   })
+
+  /**
+   * E2E-G10-02: the other half of the badge, and the amber ring — the state
+   * G-10 exists for, which nothing had ever produced over the wire.
+   *
+   * The spec entry called this half unassertable: a device is behind only
+   * while its reported cursor sits below the trip head, and the client
+   * reports one the moment its pull returns, so a case could only race it.
+   * That is true of a device that is *allowed* to pull. It stops being a
+   * race once the device cannot: `drainTrip` reports the cursor only after
+   * the pull returns, so a blocked pull leaves Bob's cursor where it was and
+   * the lagging state stands still until the block is lifted. Nothing here
+   * waits for a duration — every assertion is on a settled state the server
+   * recomputes and pushes.
+   *
+   * What only a rendered two-identity case can say: both ends were covered
+   * and the wire between them was not. `hub_test.go` computes `in_sync` from
+   * cursors, `PresenceFacepile.spec.ts` rings whoever a prop says is behind,
+   * and nothing said the server's answer is that prop.
+   */
+  test('E2E-G10-02: a device that cannot catch up is counted, ringed and named as behind', async ({
+    browser,
+  }) => {
+    const id = uniq()
+    const trip = `Ecrins ${id}`
+    const first = `Steigeisen-${id}`
+    const second = `Pickel-${id}`
+    const third = `Helm-${id}`
+
+    const ctxBob = await browser.newContext()
+    const bob = await loginAs(ctxBob, 'bob')
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+
+    const tripPath = await createTripViaWizard(alice, { name: trip })
+    await quickAddItem(alice, first)
+    await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
+
+    const wsAlice = alice.waitForEvent('websocket')
+    await alice.goto(tripPath)
+    await expect(visiblePage(alice).getByTestId(`m4-row-${first}`)).toBeVisible()
+    await wsSubscribed(alice, wsAlice)
+
+    const wsBob = bob.waitForEvent('websocket')
+    await bob.goto(tripPath)
+    await expect(visiblePage(bob).getByTestId(`m4-row-${first}`)).toBeVisible()
+    await wsSubscribed(bob, wsBob)
+
+    // Both have drained the trip, so the group is settled at the head — the
+    // positive this case then moves away from. Without it, "behind" could be
+    // the state the pile had been in all along.
+    await expect(visiblePage(alice).getByTestId('presence-in-sync')).toBeVisible()
+
+    // Bob's device stops being able to fetch the trip partition. It stays
+    // connected and subscribed — this is a device that is *behind*, not one
+    // that is gone, and the pile gives those two different answers.
+    await bob.route('**/api/v1/trips/*/sync**', (route) => route.abort())
+
+    // Alice moves the trip head, and her own drain reports her new cursor —
+    // which is what makes the server recompute presence at all.
+    await quickAddItem(alice, second)
+
+    await expect(visiblePage(alice).getByTestId('presence-behind')).toBeVisible()
+    await expect(visiblePage(alice).getByTestId('presence-behind-count')).toHaveText('1')
+    // Exactly one of the two answers is on screen. Asserted in *this*
+    // direction, because this is where a stale badge would survive: the ✓✓
+    // is what was on screen a moment ago.
+    await expect(visiblePage(alice).getByTestId('presence-in-sync')).toHaveCount(0)
+
+    // The state is per face, and it is Bob's face that carries it — the pile
+    // says *who*, which is the whole reason G-10 put the state on the faces
+    // instead of behind a sheet. Read through the tap, because the ring
+    // itself is a colour and the words are what a person acts on.
+    const pile = visiblePage(alice).getByTestId('presence-facepile')
+    await pile.getByTestId(`presence-face-${ACCOUNT_NAMES.bob}`).click()
+    const named = visiblePage(alice).getByTestId('presence-named')
+    await expect(named).toContainText(ACCOUNT_NAMES.bob)
+    await expect(named).toContainText(/catching up/i)
+
+    // And Alice, who is at the head, is named as up to date by the same
+    // control — so "catching up" is a statement about a person rather than
+    // about the trip.
+    await pile.getByTestId(`presence-face-${ACCOUNT_NAMES.alice}`).click()
+    await expect(visiblePage(alice).getByTestId('presence-named')).toContainText(/up to date/i)
+
+    // Lifting the block settles it again: the next trip.changed reaches Bob,
+    // his pull returns, he reports the head, and the badge flips back. That
+    // the state recovers is what makes it a state rather than a latch.
+    await bob.unroute('**/api/v1/trips/*/sync**')
+    await quickAddItem(alice, third)
+    await expect(visiblePage(bob).getByTestId(`m4-row-${second}`)).toBeVisible()
+    await expect(visiblePage(alice).getByTestId('presence-in-sync')).toBeVisible()
+    await expect(visiblePage(alice).getByTestId('presence-behind')).toHaveCount(0)
+
+    await ctxBob.close()
+    await ctxAlice.close()
+  })
 })
