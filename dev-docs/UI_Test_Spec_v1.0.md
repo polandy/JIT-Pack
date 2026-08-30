@@ -638,6 +638,8 @@ against a screen rather than against a stylesheet (G-14).
   `v-if` over the same list this case already moves, and an id invented for it would be the coverage
   inflation this programme exists to avoid. The **clone entry** (FR-12.1, offered when the series has
   an archived trip) is likewise left: it is a router-link to M2-04's screen, which that case owns.
+  Neither carries a `data-testid`, deliberately — a hook nothing addresses is the same „kept for
+  later" as dead code, and the sentence above is the record instead.
 
 ### M17 — Settings & Notifications
 * **E2E-M17-01** `server` (FR-6.2) — **implemented 2026-08-30**, in `e2e/server/multi-user.spec.ts`. Four kinds rather than the three this sentence used to name: `lock_taken` joined them with FR-5.7. Bob turns *Delegations* off in his own M17, the choice survives his reload, and Alice's next hand-over produces no toast on his screen — while the same pair of pages produced one before he touched it, and a **mention** afterwards still arrives. The two positives are what make the absence assertable: a toast that has not come yet looks exactly like one that never will, and the mention rides the same connection the suppressed delegation would have. It also proves the switch is *per kind* rather than a mute. The ends were covered and the wire between them was not — Go's `TestNotificationPrefs_DisabledKindSuppressesCreation` for the rule, `composables/__tests__/settings.spec.ts` for the PUT, and nothing saying the switch the user flips is the value the server reads.

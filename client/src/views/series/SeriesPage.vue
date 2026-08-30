@@ -188,7 +188,6 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
           </IonItem>
           <IonItem>
             <IonSelect
-              data-testid="m16-accommodation"
               :label="t('wizard.accommodation')"
               interface="popover"
               :value="attribute('accommodation')"
@@ -296,7 +295,7 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
             </IonButton>
           </IonItem>
         </IonList>
-        <IonNote v-else data-testid="m16-no-trips">{{ t('series.noTrips') }}</IonNote>
+        <IonNote v-else>{{ t('series.noTrips') }}</IonNote>
 
         <IonList v-if="attachableTrips.length > 0">
           <IonItem>
@@ -322,7 +321,6 @@ setHeaderTitle(() => series.value?.name ?? t('series.section'))
           <IonButton
             v-if="cloneSource"
             expand="block"
-            data-testid="m16-clone"
             :router-link="`/trips/${cloneSource.id}/clone`"
           >
             <IonIcon slot="start" :icon="copyOutline" />
