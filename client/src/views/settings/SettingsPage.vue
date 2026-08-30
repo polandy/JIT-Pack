@@ -38,6 +38,7 @@ import {
   IonIcon,
   IonToggle,
   alertController,
+  onIonViewWillEnter,
 } from '@ionic/vue'
 import {
   addOutline,
@@ -47,12 +48,7 @@ import {
   warningOutline,
 } from 'ionicons/icons'
 import { computed, inject, onMounted, ref } from 'vue'
-import {
-  EXPORT_REMINDER_DAYS,
-  lastExportAt,
-  markExported,
-  reminderState,
-} from '@/local/exportReminder'
+import { EXPORT_REMINDER_DAYS, lastExportAt, reminderState } from '@/local/exportReminder'
 
 import { loadTokens } from '@/auth/tokens'
 import { serverBaseUrl } from '@/config'
@@ -284,8 +280,15 @@ const csvTripId = ref('')
 const yamlTripId = ref('')
 const yamlTemplateId = ref('')
 
-// NFR-4.11 export reminder: recomputed on demand so it clears the moment
-// a Local Mode backup is downloaded.
+/*
+ * NFR-4.11 export reminder. What it tracks is the **whole-device** backup —
+ * the requirement's own words — which is the G-2 storage sheet's one-tap
+ * export and nothing else. The two YAML downloads below are a single trip
+ * and a single template, and until 2026-08-30 they stamped this same key:
+ * exporting one trip silenced the warning about everything the file did not
+ * contain. They were written when M17's YAML *was* the only export, and the
+ * device backup (ADR-015) arrived beside them without anyone revisiting it.
+ */
 const exportReminder = ref(reminderState(lastExportAt(), Date.now()))
 
 /*
@@ -305,17 +308,20 @@ const backupReminderText = computed(() => {
 const modeText = computed(() =>
   mode === 'local' ? t('settings.modeLocal') : t('settings.modeServer', { url: serverBaseUrl() }),
 )
+/**
+ * Re-read the stamp whenever the screen is entered. The backup that clears
+ * this warning is taken on the G-2 sheet — another component — so a value
+ * captured once at setup would go on warning for the rest of the session
+ * about a backup the user has just made. Ionic keeps this page mounted,
+ * which is exactly why entering has to be the trigger rather than mounting.
+ */
 function refreshReminder() {
   exportReminder.value = reminderState(lastExportAt(), Date.now())
 }
+onIonViewWillEnter(refreshReminder)
 
-/** Stamp a successful Local Mode backup so the reminder resets (NFR-4.11). */
-function recordBackup() {
-  markExported()
-  refreshReminder()
-}
-
-/** Local Mode backup: client-side YAML — there is no server to ask. */
+/** One trip as portable YAML, written client-side: there is no server to ask.
+ *  Not the NFR-4.11 backup — see the note on `exportReminder`. */
 function exportTripYAML() {
   const trip = tripStore.getTrip(yamlTripId.value)
   if (!trip) return
@@ -328,7 +334,6 @@ function exportTripYAML() {
     ...masterStore.portableResolvers(),
   })
   saveText(yaml, `${safeFilename(trip.name)}.yaml`)
-  recordBackup()
 }
 
 function exportTemplateYAML() {
@@ -342,7 +347,6 @@ function exportTemplateYAML() {
     masterStore.portableResolvers().tagsOf,
   )
   saveText(yaml, `${safeFilename(template.name)}.yaml`)
-  recordBackup()
 }
 
 /** Storage-detail popover (NFR-4.11): how much of the origin's quota the
@@ -462,6 +466,7 @@ async function exportTripCSV() {
           </IonLabel>
           <IonToggle
             slot="end"
+            data-testid="settings-theme"
             :checked="lightTheme"
             :aria-label="t('settings.lightTheme')"
             @ionChange="(e: CustomEvent) => toggleLightTheme(e.detail.checked)"
@@ -532,7 +537,9 @@ async function exportTripCSV() {
 
       <!-- Notifications (FR-6.2 / NFR-4.6) — multi-user only (G-8) -->
       <template v-if="collaborative">
-        <h2 class="section-title jp-eyebrow">{{ t('settings.notifications') }}</h2>
+        <h2 class="section-title jp-eyebrow" data-testid="settings-section-notifications">
+          {{ t('settings.notifications') }}
+        </h2>
         <IonList v-if="prefs">
           <IonItem v-for="p in prefRows" :key="p.kind">
             <IonLabel>
@@ -570,7 +577,11 @@ async function exportTripCSV() {
         {{ t('settings.data') }}
       </h2>
       <template v-if="mode === 'local'">
-        <div v-if="exportReminder.due" class="export-reminder">
+        <div
+          v-if="exportReminder.due"
+          class="export-reminder"
+          data-testid="settings-backup-reminder"
+        >
           <IonIcon :icon="warningOutline" />
           <span>{{ backupReminderText }}</span>
         </div>
@@ -625,7 +636,7 @@ async function exportTripCSV() {
       </template>
       <template v-else>
         <IonList>
-          <IonItem button :detail="false" @click="exportFull">
+          <IonItem button :detail="false" data-testid="settings-full-export" @click="exportFull">
             <IonIcon slot="start" :icon="downloadOutline" />
             <IonLabel>
               <h3>{{ t('settings.fullExport') }}</h3>
