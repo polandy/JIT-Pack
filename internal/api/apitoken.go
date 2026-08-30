@@ -127,10 +127,10 @@ func validTokenName(name string) (string, error) {
 	return trimmed, nil
 }
 
-// newTokenID is the jti: sixteen hex characters from crypto/rand. It buys
+// NewTokenID is the jti: sixteen hex characters from crypto/rand. It buys
 // nothing today and is what a denylist would key on if this ever grows one,
 // which is cheap enough now and impossible to add to tokens already issued.
-func newTokenID() string {
+func NewTokenID() string {
 	b := make([]byte, 8)
 	rand.Read(b) // crypto/rand.Read never fails on supported platforms
 	return hex.EncodeToString(b)
@@ -166,7 +166,7 @@ func (s *Server) handleMintAPIToken(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, ErrValidation, "name and expiry required")
 		return
 	}
-	out, err := MintAPIToken(s.sessionSecret, req, userID, newTokenID(), time.Now().UTC())
+	out, err := MintAPIToken(s.sessionSecret, req, userID, NewTokenID(), time.Now().UTC())
 	if err != nil {
 		writeError(w, http.StatusUnprocessableEntity, ErrValidation, err.Error())
 		return

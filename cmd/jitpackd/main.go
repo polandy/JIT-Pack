@@ -21,6 +21,18 @@ func main() {
 		log.Fatalf("config: %v", err)
 	}
 
+	// Before the store is opened and before OIDC discovery, which exits the
+	// process when the issuer is down — the one situation `token create` is
+	// most needed in (FR-23.7).
+	if len(os.Args) > 2 && os.Args[1] == cmdToken && os.Args[2] == "create" {
+		if err := runTokenCreate(context.Background(), os.Args[3:], tokenEnv{
+			cfg: cfg, stdout: os.Stdout, stdoutIsTerminal: isTerminal(os.Stdout),
+		}); err != nil {
+			log.Fatalf("%s create: %v", cmdToken, err)
+		}
+		return
+	}
+
 	st, err := store.Open(cfg.DBPath)
 	if err != nil {
 		log.Fatalf("store: %v", err)
