@@ -157,16 +157,16 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M1-06** `all` (FR-5.4): "Late Packer" section appears only on a trip's departure day (clock-controlled).
 
 ### M2 — Trip List
-* **E2E-M2-01** `all` (FR-2.1): segmented Active/Planned/Archived filter partitions trips; archived render muted with final stats.
-* **E2E-M2-06** `all` (M2 ordering, 2026-08-08): the list renders **flat** — asserts no series section headers — with the active trip first, upcoming trips **ascending** by date and archived ones descending. The series appears as a chip on the row and opens M16 without also opening the trip.
-* **E2E-M2-02** `all` (FR-13.1): trips group under series headers with destination + count; tap header → M16.
-* **E2E-M2-03** `all` (FR-2.1/8.1): per-trip row shows name, dates, progress ring, participant avatars.
-* **E2E-M2-04** `all` (FR-12.1): long-press → Clone → M-clone (ClonePage) opens with fresh dates.
-* **E2E-M2-05** `server` (FR-4.5): Delete slide option visible only to Owner; confirm tombstones the trip and it disappears from the list.
-* **E2E-M2-06** `single/local` (G-8/FR-17.3): context menu omits *Share*.
-* **E2E-M2-07** `all` (FR-18.3): Export slide option produces a portable YAML download with a progress/clean sheet.
-* **E2E-M2-08** `all` (FR-16.2): imported legacy trips carry an "Imported" chip.
-* **E2E-M2-09** `all` (FR-18.4): overflow → Import trip from file → M18.
+* **E2E-M2-01** `local` (FR-2.1) — **covered, where the rule is actually exercised**: the segments *partition* the list, which E2E-M2-13c asserts from the other side (standing on *Archived*, the planned trip is `toHaveCount(0)`) and E2E-M2-13d again. The rest of the sentence is retired: ~~archived render muted with final stats~~ — the muting is a class the visual baselines own, and there are no *final* stats, an archived row carrying the same `packed/total` summary as every other row.
+* **E2E-M2-02** ~~`all` (FR-13.1): trips group under series headers with destination + count; tap header → M16.~~ — **deliberately not written (2026-08-30).** The screen does group by series and the header does lead to M16 — and the grouping is the option the 2026-08-08 concept review **rejected**: UI-Spec M2 *Default ordering* and Addendum §M2 both say *not grouped by series*. A case here would nail down behaviour two documents say should not exist. It is one half of the finding under E2E-M2-15, and the id stays unclaimed until that is decided.
+* **E2E-M2-03** `local` (FR-2.1/8.1) — **covered in three of its four parts and blocked on the fourth.** The name is asserted by every case that addresses `trip-row-<name>`, the dates by E2E-M2-12, the progress ring by E2E-M2-10 (its percentage, off a trip the device never opened). ~~participant avatars~~ **are not built**: the row has no avatar of any kind. UI-Spec M2 removed the presence facepile on 2026-08-28 and left the words *„and participant avatars"* standing beside it; whether the trip's travellers belong on the row is an owner decision, not a test that is missing.
+* **E2E-M2-04** `local` (FR-12.1) — **covered, and the gesture in this sentence never existed**: ~~long-press → context menu~~ — M2's row actions are a **slide**, and *Clone* is offered on an archived trip only. That the clone opens with the source's rows is E2E-M2-11 (`single`, ADR-033, the case that found ClonePage summing a partition the device did not hold); that ClonePage opens on a year of its own with empty dates is unit-owned in `ClonePage.spec.ts` — a *fresh* date is the absence of the source's, which is the shape a rendered case asserts worst.
+* **E2E-M2-05** `server` (FR-4.5) — **implemented** (`e2e/server/multi-user.spec.ts`, 2026-08-30): Bob, an Editor on Alice's shared trip, is offered every other row action and not *Delete*; Alice, the owner, is. Her cancel leaves the trip where it was — without that half the confirm proves nothing about confirming — and her confirm takes it off her list and, after a reload, off Bob's, whose segment count is asserted first so the absence cannot pass against a list that has not arrived. `server` because `canDelete` reads the roster for the caller's own role: with one account the rule is inert by design, and the negative half exists nowhere else.
+* **E2E-M2-06** `local` (G-8/FR-17.3) — **implemented** (`e2e/trip-list.spec.ts`, 2026-08-30): a device with no session is offered no *Share*, asserted against the row's other options so an empty menu cannot satisfy the absence. The positive half is E2E-FLOW-01's, on `server`.
+* **E2E-M2-07** `local` (FR-18.3) — **implemented** (`e2e/trip-list.spec.ts`, 2026-08-30): the slide's *Export trip* asks progress-or-clean and the answer reaches the file — the same trip and the same row both times, `packed_count: 1` in one and no `packed_count` at all in the other. Both branches, because one alone cannot tell a working choice from a constant.
+* **E2E-M2-08** ~~`all` (FR-16.2): imported legacy trips carry an "Imported" chip.~~ — **not built, and no test is owed until it is (2026-08-30).** `trips.imported` is written by M15's migration, carried through the store into `Trip.imported`, and read by nothing: M2 renders no such chip. A column with a writer and no reader — the exact mirror of FR-25.19's `packer_user_id`, which had a reader and no writer. Open with the owner.
+* **E2E-M2-09** `local` (FR-18.4) — **covered by E2E-G9-12** (`e2e/global-nav.spec.ts`), which reaches M18 from the trip list and comes back to it. ~~overflow →~~ the entry is a button in M2's own title row beside M15's, not an overflow menu; the sentence described a menu M2 does not have.
+* **E2E-M2-15** ~~`all` (M2 ordering, 2026-08-08): the list renders **flat** — no series section headers — with the active trip first, upcoming trips **ascending** by date and archived ones descending, the series a chip on the row that opens M16 without also opening the trip.~~ — **renumbered from a second E2E-M2-06 (2026-08-30) and open with the owner.** None of it is built: `TripListPage` groups by series with a tappable header, sorts every segment strictly newest-first through `tripOrderKey`, and renders no series chip. The case and the UI-Spec agree with each other and disagree with the screen, so this is a defect against a settled decision rather than a missing test — and writing the case first would leave a red suite pointing at a rebuild nobody has scheduled. E2E-M2-02 is its other half.
 * **E2E-M2-13/13b/13c/13d** `local` (FR-2.8) — **implemented** (`e2e/trip-list.spec.ts`, 2026-08-29): with no active trip and one planned trip, opening M2 lands on **Planned** and renders that trip; with neither active nor planned and one archived trip, it lands on **Archived**; with nothing at all it stays on **Active** and shows the G-7 CTA. A third leg proves the rule cannot steal a non-empty segment: standing on *Archived* with trips on it, leaving M2 for another tab and coming back keeps *Archived* — which is also the only leg that exercises the re-entry hook rather than the mount. A fourth: `?status=active` with an empty *Active* still lands there, because the caller outranks the walk. `local` throughout, because the walk needs a device whose whole trip world the test built.
 * **E2E-M2-14** `single` (FR-2.8, ADR-033) — **implemented** (`e2e/single/opening-segment.spec.ts`, 2026-08-29): the jump waits for a settled list. With the master pull held, M2 shows the segment labels **without counts** and stays on *Active*; when the pull completes it decides once. The held pull is the whole case — against an unsettled list the rule would send every cold start to *Archived* and, because it decides on entry only, leave it there. Which segment it then lands on is deliberately not asserted there — the `single` run shares one database, so other tests' trips are in the list too; it asserts that the segment it chose is one that holds trips. The counts as rendered text (`0` on an empty segment, nothing while unknown) are E2E-M2-13's, and the settled guard's own failure mode is unit-proved in `TripListPage.spec.ts` by flipping the signal after the assertion.
 
@@ -571,7 +571,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-1.6 | E2E+UNIT | M7-01 (shared list), M14-02 (direct write), M18-01 — MVP shared model; M7-10 + M8-24 (the name is the instance-wide key: create, rename, and M8's picker adopting the group that holds it); `domain/nameCollision.ts` (the matching rule), `composables/__tests__/nameCollision.spec.ts` (the orchestrator refuses the write, Local Mode included); publish/fork cases parked with the FR-1.6 stub |
 | FR-1.7 | DOC/N-A | retired 2026-08-08 (owner decision) — consumable flag and per-day unit removed |
 | FR-1.8 | DOC/N-A | retired 2026-08-08 — no units, everything counts in pieces |
-| FR-2.1 / 2.1a | E2E | M3-01, M2-01/03 |
+| FR-2.1 / 2.1a | E2E | M3-01, M2-01/03 (M2-03's participant avatars are not built — owner decision, see E2E-M2-03) |
 | FR-2.2 | E2E+UNIT | M3-06; instantiate.ts |
 | FR-2.3 / 2.3a | E2E+UNIT | M3-06, M8-03; instantiate.ts |
 | FR-2.4 | E2E | M3-10, M8-05, M10-02 |
@@ -610,7 +610,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-11.1–11.3 | — | removed (Repack feature dropped, Addendum §3.11) |
 | FR-12.1 | E2E | M2-04 |
 | FR-12.2 | E2E+UNIT | ClonePage toggles; clone.ts |
-| FR-13.1 | E2E+UNIT | M2-02, M16-01; `composables/__tests__/nameCollision.spec.ts` (a taken series name is refused before the mutation — M3's wizard note and M16's rename have no e2e case yet, named in `e2e-tests.md`) |
+| FR-13.1 | E2E+UNIT | M2-02 (**unwritten on purpose** — the series grouping it describes is the option the 2026-08-08 review rejected, see E2E-M2-15), M16-01; `composables/__tests__/nameCollision.spec.ts` (a taken series name is refused before the mutation — M3's wizard note and M16's rename have no e2e case yet, named in `e2e-tests.md`) |
 | FR-13.2 | E2E | M16-03/04, M3-02 |
 | FR-13.3 | E2E | M3-09, M16-02, M6-01 |
 | FR-14.1 | E2E | M3-08, M5-04 |
@@ -620,7 +620,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-15.2 | E2E+UNIT | M3-06, M8-03; instantiate.ts |
 | FR-15.3 | DOC/N-A | void — retired with FR-1.3/1.5 (2026-08-08) |
 | FR-16.1 | E2E | M15-01, M15-05, M15-06, M15-07, M15-08 |
-| FR-16.2 | E2E | M2-08, M15-04, M15-05 |
+| FR-16.2 | E2E | M2-08 (**unwritten** — the *„Imported"* chip is not built; `trips.imported` has a writer and no reader), M15-04, M15-05 |
 | FR-16.3 | E2E+UNIT | M15-03, M15-09, M18-03, M9-03; spreadsheet.ts |
 | FR-17.1/17.2 | E2E | G1-01, G8-01 (Single-User surface) |
 | FR-17.3 | E2E | M2-06, M3-05, M5-08, M17-08 |
