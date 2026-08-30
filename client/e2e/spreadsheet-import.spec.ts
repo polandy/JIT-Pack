@@ -291,12 +291,16 @@ test.describe('M15 — the layout, the gate and the duplicates @local @m15', () 
       'exact match',
     )
 
-    // Both default to merge; the near one is kept apart, which is the answer
-    // the step exists to take.
-    await visiblePage(page)
-      .getByTestId('import-dup-Wanderschuh')
-      .getByTestId('import-dup-separate')
-      .click()
+    // Both rows arrive on *merge* — the near match no less than the exact one,
+    // so the switch below is a decision and not the row's own default.
+    const near = visiblePage(page).getByTestId('import-dup-Wanderschuh')
+    await expect(near.getByTestId('import-dup-merge')).toHaveClass(/segment-button-checked/)
+    await expect(
+      visiblePage(page).getByTestId('import-dup-Wanderschuhe').getByTestId('import-dup-merge'),
+    ).toHaveClass(/segment-button-checked/)
+
+    // The near one is kept apart, which is the answer the step exists to take.
+    await near.getByTestId('import-dup-separate').click()
     await visiblePage(page).getByTestId('import-dup-next').click()
 
     const summary = visiblePage(page).getByTestId('import-summary-line')
