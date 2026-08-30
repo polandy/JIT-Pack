@@ -98,6 +98,22 @@ function pantsRows(page: Page) {
     .or(visible(page).getByTestId('m4-row-Regenhose'))
 }
 
+/**
+ * The state, never a duration: the G-2 indicator returns to "on this device"
+ * once the IndexedDB write has actually landed (FR-19.2), and every
+ * `page.goto` in this file is a full reload that reads from there rather than
+ * from the optimistic store.
+ *
+ * Added 2026-08-30 (backlog item 6): E2E-M22-08 filled the name, blurred and
+ * navigated, and under load it failed against correct code — the trip was on
+ * no M2 segment because the rename had not been persisted when the reload
+ * threw the store away. The screen's own repaint is not that signal; it is
+ * satisfied by the optimistic row alone.
+ */
+async function localWriteSettled(page: Page) {
+  await expect(page.getByTestId('sync-indicator')).toHaveAttribute('data-state', 'local')
+}
+
 async function openTripEdit(page: Page) {
   await tripAction(page, 'edit')
   await expect(visible(page).getByTestId('trip-edit-name')).toBeVisible()
@@ -130,6 +146,7 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
 
     // Asserted on the rendered screen, never on the URL: the name has to come
     // back through the store and repaint M4, which is the whole point.
+    await localWriteSettled(page)
     await page.goto(trip)
     await expectTripOpen(page, 'Herbstferien Wallis')
 
@@ -151,9 +168,12 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     await visible(page).getByTestId('traveler-add').click()
 
     // The report is the signal the screen owes the user, and it is also the
-    // settled state to wait on — no clock involved.
-    await expect(page.locator('ion-toast')).toContainText('1')
+    // settled state to wait on — no clock involved. Asserted as the sentence
+    // rather than as the digit: "1" is also in "1 item removed", so the bare
+    // number would let the screen report the wrong half of FR-27.4's outcome.
+    await expect(page.locator('ion-toast')).toContainText('1 item added')
 
+    await localWriteSettled(page)
     await page.goto(trip)
     await expect(pantsRows(page)).toHaveCount(3)
     await expect(pantsRowFor(page, 'Mia')).toBeVisible()
@@ -237,6 +257,7 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     // all, so a failure below is about the rows rather than about the click.
     await expect(visible(page).getByTestId('traveler-row-Zoe')).toHaveCount(0)
 
+    await localWriteSettled(page)
     await page.goto(trip)
     // Zoe's share is gone and Xenia's is still there — asserted as two
     // separate facts. A count alone would be satisfied by a removal that took
@@ -262,6 +283,7 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     // the trip off *every* segment — and in Local Mode nothing pulls it back.
     // Asserted on the list rather than on the trip screen, which the defect
     // leaves intact.
+    await localWriteSettled(page)
     await page.goto('/tabs/trips')
     await visible(page).getByTestId('trips-filter-planned').click()
     await expect(visible(page).getByTestId('trip-row-Pfingsten Tessin')).toBeVisible()
@@ -284,8 +306,14 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     await confirm.getByRole('button', { name: /Remove everything/i }).click()
 
     await expect(visible(page).getByTestId('traveler-row-Zoe')).toHaveCount(0)
+    await localWriteSettled(page)
     await page.goto(trip)
     // Gone, not merely unassigned — and Xenia's untouched share is still hers.
+    // The count carries the first half: an *unassigned* row keeps neither
+    // Zoe's name nor a child test id, so "Zoe's row is not there" is equally
+    // true of a row that was only detached from her. One Regenhose row left
+    // is what says it was deleted.
+    await expect(pantsRows(page)).toHaveCount(1)
     await expect(pantsRowFor(page, 'Zoe')).toHaveCount(0)
     await expect(visible(page).getByTestId('m4-row-Regenhose')).toContainText('Xenia')
   })
@@ -318,6 +346,81 @@ test.describe('FR-2.7 — a trip can be edited after it is created', () => {
     await expect(removeButtons(page)).toHaveCount(0)
     // Adding still works on a started trip — only removal is gated.
     await expect(visible(page).getByTestId('traveler-add')).toBeVisible()
+  })
+
+  test('E2E-M22-10: an archived trip’s properties are read-only, all of them', async ({ page }) => {
+    // UI-Spec M22's *States* line has promised this since the screen shipped
+    // — "on an archived one the whole screen is read-only, consistent with
+    // FR-27.4's 'past trips are never touched'" — and no test had ever opened
+    // the editor on an archived trip. The unit spec pins the two DateFields;
+    // the name, the roster and the add row were unasserted anywhere.
+    await tripWithTwoTravellers(page, 'Letztes Jahr')
+    await tripAction(page, 'start')
+    await expectTripActionOffered(page, 'archive')
+    await tripAction(page, 'archive')
+    // FR-9.3: the archive action opens the closing pass, and *Fertig* is what
+    // archives — skipping the pass is a supported path (E2E-M4-53 owns it).
+    await page.getByTestId('m4-pass-finish').click()
+
+    await openTripEdit(page)
+
+    // The roster is rendered — every absence below is read against a screen
+    // that is demonstrably there rather than against one that failed to load.
+    await expect(visible(page).getByTestId('traveler-row-Xenia')).toBeVisible()
+    await expect(visible(page).getByTestId('traveler-row-Zoe')).toBeVisible()
+
+    await expect(visible(page).getByTestId('trip-edit-name').locator('input')).toHaveJSProperty(
+      'readOnly',
+      true,
+    )
+    await expect(
+      visible(page).getByTestId('traveler-row-Xenia').locator('input'),
+    ).toHaveJSProperty('readOnly', true)
+    await expect(removeButtons(page)).toHaveCount(0)
+    await expect(visible(page).getByTestId('traveler-add')).toHaveCount(0)
+    await expect(visible(page).getByTestId('traveler-add-input')).toHaveCount(0)
+
+    // And the finding this case also records: nothing on the screen says why.
+    // E2E-M22-04's note is gated on the trip *not* having started yet, so an
+    // archived trip loses the ✕, the add row and the sentence together — the
+    // one shape the owner ruled against on 2026-08-21 for the started trip
+    // ("a control that answers no tap reads as a broken app"), arrived at
+    // here by a different route. Owner decision, recorded in UI-Spec M22.
+    await expect(visible(page).getByTestId('traveler-remove-note')).toHaveCount(0)
+  })
+
+  test('E2E-M22-11: a traveller renamed in place keeps the rows she already packed', async ({
+    page,
+  }) => {
+    // UI-Spec M22 names three affordances per roster row — rename in place, ＋
+    // and ✕ — and until this case only two of them had ever been operated.
+    // The rule underneath is FR-2.7's: a rename is a rename, never a removal
+    // plus an addition, which would detach every row pointing at the person.
+    // The composable asserts that on the mutation; the screen's own blur
+    // wiring reads the value off the Ionic host, which no unit test sees.
+    const trip = await tripWithTwoTravellers(page, 'Namenswechsel')
+
+    // Her share, part-packed: the work that a remove-plus-add would lose.
+    await pantsRowFor(page, 'Xenia').getByTestId('row-plus').click()
+    await expect(pantsRowFor(page, 'Xenia')).toContainText('1/2')
+
+    await openTripEdit(page)
+    const field = visible(page).getByTestId('traveler-row-Xenia').locator('input')
+    await field.fill('Xenia Meier')
+    await field.blur()
+
+    // The row is keyed by the name the user can see, so the roster repainting
+    // under the new one is the settled state — no clock involved.
+    await expect(visible(page).getByTestId('traveler-row-Xenia Meier')).toBeVisible()
+    await expect(visible(page).getByTestId('traveler-row-Xenia')).toHaveCount(0)
+
+    await localWriteSettled(page)
+    await page.goto(trip)
+    // Two shares still, and hers is the same row: a rename that had gone
+    // through a removal would have taken the packed count with it, and one
+    // that had gone through an addition would have left three.
+    await expect(pantsRows(page)).toHaveCount(2)
+    await expect(pantsRowFor(page, 'Xenia Meier')).toContainText('1/2')
   })
 
   test('E2E-M22-07: a planning trip does offer the removal control', async ({ page }) => {

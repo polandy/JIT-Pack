@@ -78,8 +78,8 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M18 backup & restore (restore list) | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M18 portable import (merge preview) | E2E-M18-01, E2E-M18-02, E2E-M18-03, E2E-M18-04 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
-| M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
-| M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
+| M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M21-04, E2E-M21-05, E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
+| M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-10, E2E-M22-11, E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
 | Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation, and with it E2E-M4-30 + E2E-M4-31's header guard), E2E-M4-10 / E2E-M4-24 (attribution, inside FLOW-01), E2E-M2-05 (delete is the owner's alone), E2E-M17-01 (a preference silences one kind) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | Notifications speak the recipient's language (NFR-4.12) | E2E-NOTIFY-01 | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
@@ -516,8 +516,8 @@ rather than on a duration.
 
 ## M21 — template from trip (`e2e/template-from-trip.spec.ts`, 2026-08-19)
 
-Six cases, Local Mode, landed with the M21 screen (FR-27.5). Notes worth
-carrying forward:
+Eight cases, Local Mode; six landed with the M21 screen (FR-27.5) and two with
+the 2026-08-30 audit. Notes worth carrying forward:
 
 1. **The unit had to build the lifecycle step it needed.** Every M21 case
    starts from an *archived* trip, and no path in the app produced one —
@@ -553,6 +553,46 @@ carrying forward:
    `addTemplateInclude` loop, flipping `DEFAULT_DEVIATION_CHOICE` and
    ungating the archive action each felled exactly the cases that claim
    them.
+7. **Read clause by clause on 2026-08-30** (backlog item 6). Nothing here
+   describes a removed surface and no id sits on the wrong test — this
+   catalogue was written with its implementation. Three things it did not
+   cover, all of them inside sentences that read as implemented:
+   **(a)** the word *checked*. Every case leaves the loose rows in their
+   pre-checked state, so no test had ever operated one of those checkboxes —
+   a create that took every loose row was green, and so was a checkbox wired
+   to nothing (**E2E-M21-04**).
+   **(b)** the blast note's number. E2E-M21-02 asserts it *visible*, in a
+   world with no trip following the group, where it can only say „no trip
+   follows it right now" — the same shape as E2E-M7-07's resolved count:
+   a case whose world cannot tell the rule from its negation. The number is
+   asserted in **E2E-M21-03c**, the one case that has a following trip, and
+   the mutation that proves it leaves M21-02 green.
+   **(c)** the FR-1.6 name refusal, added to the screen on 2026-08-25 —
+   five days after its cases landed and never revisited by them. Neither the
+   note, the disabled *Vorlage erstellen*, nor the rule that exists nowhere
+   else (the Vorlage and the bundle group written in one pass must have
+   different names) had ever been rendered; the view's own unit spec returns
+   *no collision* from its orchestrator double, so it only paints the
+   accepting branch (**E2E-M21-05**). **A rule that arrives after a screen's
+   cases do is invisible to every one of them.**
+
+**Audited 2026-08-30** (backlog item 6). What each promise is kept by:
+
+| Promise | Kept by | Note |
+|---|---|---|
+| the closing card leads here from an archived trip, and only from one | E2E-M21-01 + E2E-M4-43 | The negative half is M4-43's, on both earlier statuses. |
+| every recognised group, with its on-trip count and the *wird wiederverwendet* marker | E2E-M21-01 + `templateFromTrip.ts` (unit) | One group on screen; *every*, and the order two devices must agree on, are the domain's. |
+| the loose ad-hoc rows, all pre-checked, under *Eigene Artikel* | E2E-M21-01 | |
+| a deviation names itself and defaults to *Gruppe aktualisieren* | E2E-M21-02 | Ionic marks the chosen segment with a class, not `aria-checked`. |
+| the blast line spells out what an accepted deviation reaches | **E2E-M21-03c** | Moved there 2026-08-30: M21-02's world has no following trip, so the note can only produce its *none* branch. |
+| an absent group position is reported and offers no choice | E2E-M21-02b | |
+| recognised groups are referenced, not copied | E2E-M21-03 (+03b) | M8's includes section is the proof; 03b adds that the Vorlage owns *no* positions, which is what tells an include from a copy. |
+| the **checked** loose rows become own positions | **E2E-M21-04** | **New 2026-08-30.** No test had ever operated one of those checkboxes. |
+| the deviation marked *aktualisieren* lands in the group | E2E-M21-03 | |
+| the deviation marked *own* leaves the group untouched | `templateFromTrip.ts` + `createTemplateFromTrip` (unit) | Both layers; M21-04 proves the screen's choices reach the write. |
+| the bundle toggle makes a fresh group instead | E2E-M21-03b | |
+| a taken name is refused where it is typed, for **both** names this screen writes | **E2E-M21-05** | **New 2026-08-30.** Added to the screen 2026-08-25, five days after its cases; nothing had rendered the note, the disabled button, or the two-names-must-differ rule. |
+| pressing create twice writes one Vorlage | `TemplateFromTripPage.spec.ts` (unit) | A real thumb can provoke it; an e2e case cannot, reliably. |
 
 **Not yet covered:** everything else in spec §3 (global patterns G-1–G-15), §4 (M1–M21 beyond the above), §5 (cross-screen flows) and §6 (non-functional journeys). The `single` mode has its first unit since 2026-08-20 (the harness and its four cases, see below) — everything screen-shaped in `single` beyond it is still open. The `server` mode (mock IdP, multiple identities) has no coverage at all (spec §10 step 5).
 
@@ -1414,9 +1454,9 @@ covered by a run as much as what is.
 
 ## M22 — a trip's properties and its travellers (`e2e/trip-properties.spec.ts`, 2026-08-21)
 
-Four cases, Local Mode, landed with the M22 screen (FR-2.7). The whole
-consequence rule runs client-side (invariant 4), so a broken rule shows up here
-rather than behind a round trip.
+Ten cases, Local Mode; the screen landed with four (FR-2.7) and grew the rest
+over the following nine days. The whole consequence rule runs client-side
+(invariant 4), so a broken rule shows up here rather than behind a round trip.
 
 **E2E-M22-03 is the case this file exists for, and it was green for the wrong
 reason three times.** Each version is worth knowing, because each mistake is
@@ -1442,8 +1482,71 @@ its **name** through a `data-testid`, because Ionic sets an input's value as a
 property rather than an attribute — `input[value="Zoe"]` never matches.
 
 E2E-M22-04 asserts an absence (removal is refused on a started trip), so it
-leans on the positive signals the screen renders anyway: the control is present
-and `aria-disabled`, and the reason is a visible note.
+leans on the positive signals the screen renders anyway: the ✕ is **gone**
+rather than disabled — the owner overruled the first, disabled version in the
+hand on 2026-08-21 — and the reason is a visible note under the roster.
+*(This paragraph still described the disabled control until 2026-08-30; the
+UI-Test-Spec recorded the reversal the same day it happened and the ledger
+did not, which is how a note about a positive signal came to describe the
+thing that was removed.)*
+
+**Read clause by clause on 2026-08-30** (backlog item 6). Every written id is
+implemented and none of them drifted. Four things the reading found:
+
+1. **A state nobody had rendered.** UI-Spec M22's *States* line has promised
+   since the screen shipped that an archived trip's editor is read-only
+   throughout; no test had ever opened it on an archived trip, and
+   `TripEditPage.spec.ts` pins only the two `DateField`s. **E2E-M22-10**
+   covers it — and found that the screen says *nothing* about it: the note
+   under the roster is gated on the trip not having started, so an archived
+   trip loses the ✕, the add row and the explanation together. Owner
+   decision, recorded in UI-Spec M22.
+2. **An affordance nobody had operated.** The roster row offers three things —
+   rename in place, ＋, ✕ — and until **E2E-M22-11** only two of them had ever
+   been driven in a browser. What it asserts is FR-2.7's rule rather than the
+   new string: a rename is never a removal plus an addition, so the renamed
+   traveller's part-packed share survives with its `1/2`.
+3. **Two assertions that could not fail.** The FR-27.4 report was asserted as
+   the digit `1`, which is equally true of „1 item removed"; and
+   „*Alles entfernen* deletes rather than unassigns" had nothing that could
+   tell those apart, since an unassigned row carries neither the traveller's
+   name nor a child test id. Both tightened in place.
+4. **A race in five cases, which had already been paid for once.** Point 3 of
+   E2E-M22-03's history above is exactly it — navigate straight after
+   confirming and `page.goto` outruns the write — and the repair was applied
+   to that one case only. E2E-M22-08 does the same thing after a name commit
+   and **failed against correct code** during this audit's mutation runs: the
+   reload discards the optimistic store and the trip was on no M2 segment.
+   Every `page.goto` in the file now waits on the G-2 indicator returning to
+   *on this device* first. **A fix written into one case is not a fix to the
+   file**: the note said what to do and the other five cases never got it.
+
+**Two elements UI-Spec M22 lists and the screen does not render** were found
+the same way, by reading the element list against the template rather than
+against the ids. The **year** has no field anywhere after creation — FR-2.1b
+makes it the one *required* temporal fact and only M3's wizard and the clone
+form write it, so a wrong year is permanent: **owner decision**, and not a
+test gap. The **series** is edited on **M16** (`setTripSeries` has one caller,
+`SeriesPage.vue`), so that clause is simply on the wrong screen and is
+corrected there.
+
+What each promise is kept by:
+
+| Promise | Kept by | Note |
+|---|---|---|
+| M4's cluster opens the editor, its chevron gives the trip back | E2E-M22-06 (`global-nav.spec.ts`) | Getting to a screen and leaving it are global behaviours. |
+| the name commits on blur and comes back through the store | E2E-M22-01 | |
+| the two dates are `DateField`s and bound each other | E2E-M22-01 (the picker and its locale display) + `TripEditPage.spec.ts` (the bound, both directions and an inverted range still repairable) | |
+| **the year** | **nothing — it has no writer after creation** | UI-Spec M22 lists it; the screen has no field and `TripEdit`'s only callers are M3's wizard and the clone form. Owner decision, not a test gap. |
+| **the series it belongs to** | **M16**, not M22 | `setTripSeries` has one caller, `SeriesPage.vue`. The UI-Spec clause is on the wrong screen and is corrected there. |
+| ＋ extends the per-person rows immediately, and the screen reports it | E2E-M22-02 | The report is the settled state, and since 2026-08-30 it is asserted as its sentence rather than as the digit. |
+| ✕ takes their rows and never a sibling's | E2E-M22-03 | The case this file exists for; three false-green versions are recorded above. |
+| a packed row of theirs is asked about, and *Alles entfernen* deletes | E2E-M22-05 | The count of surviving rows is what separates a delete from an unassign (2026-08-30). |
+| **rename in place** | **E2E-M22-11** | **New 2026-08-30.** The third roster affordance, never operated in a browser; it asserts that a rename is not a removal plus an addition. |
+| removal ends at departure — no ✕, and one sentence saying why | E2E-M22-04 + E2E-M22-07 | The positive half is what keeps „no ✕" from passing against a screen that renders none. |
+| an archived trip's editor is read-only throughout | **E2E-M22-10** | **New 2026-08-30.** And it says nothing about it — owner decision, UI-Spec M22. |
+| an edit is a partial write and the trip stays on M2 | E2E-M22-08 | |
+| the confirmation toast clears the tab bar | E2E-M22-09 | Geometry, because a screenshot cannot tell a covered toast from a translucent one. |
 
 ## Fixed: the losing-offline-edit case was never flaky (2026-08-22)
 
