@@ -282,6 +282,17 @@ type AuthConfigResponse struct {
 	ClientID     string `json:"client_id"`
 }
 
+// InstanceConfigResponse carries what the client must know about the
+// instance before it renders anything, and nothing that identifies a
+// caller — it is answered without a session, in every mode.
+//
+// Currency is an ISO-4217 code, or empty where the operator named none:
+// amounts then stay unit-less, as they were before FR-21.9. It is a label,
+// never a conversion — the stored amount is already in this currency.
+type InstanceConfigResponse struct {
+	Currency string `json:"currency"`
+}
+
 // SessionTokens is the first-party session pair the login broker issues.
 // ExpiresIn is the access token's lifetime in seconds.
 type SessionTokens struct {
@@ -454,6 +465,12 @@ const (
 	RouteAuthToken   = "/api/v1/auth/token"
 	RouteAuthRefresh = "/api/v1/auth/refresh"
 	RouteAuthConfig  = "/api/v1/auth/config"
+
+	// Instance-wide settings the client renders with (ADR-027: scope
+	// first). Deliberately its own path rather than a field on
+	// /auth/config, which answers 501 in Single-User Mode and would
+	// therefore hide the settings from a mode that has them.
+	RouteInstanceConfig = "/api/v1/instance/config"
 
 	// Outside the versioned surface on purpose: the socket carries the
 	// versioned frame in its payload, and a health probe is not an API.

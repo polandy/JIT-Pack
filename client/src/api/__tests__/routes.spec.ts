@@ -39,11 +39,11 @@ describe('API routes', () => {
   })
 
   /**
-   * Every entry, pinned. The four routes that are only reached from a view
-   * with no unit spec — `authConfig` from App.vue and LoginPage, `authToken`
-   * from CallbackPage, `userAvatar` from AdminPage — have their value asserted
-   * nowhere else, so a typo in this file would reach the running app with the
-   * whole suite green. That is the failure this file exists to prevent, and it
+   * Every entry, pinned. The routes that are only reached from a view with no
+   * unit spec — `authConfig` from App.vue and LoginPage, `instanceConfig` from
+   * App.vue, `authToken` from CallbackPage, `userAvatar` from AdminPage — have
+   * their value asserted nowhere else, so a typo in this file would reach the
+   * running app with the whole suite green. That is the failure this file exists to prevent, and it
    * would be silly to leave it open in the file itself.
    */
   it('pins every path it declares', () => {
@@ -88,6 +88,7 @@ describe('API routes', () => {
       authToken: '/api/v1/auth/token',
       authRefresh: '/api/v1/auth/refresh',
       authConfig: '/api/v1/auth/config',
+      instanceConfig: '/api/v1/instance/config',
       ws: '/ws',
       health: '/health',
     })

@@ -177,3 +177,45 @@ func searchString(s, substr string) bool {
 	}
 	return false
 }
+
+// FR-21.9: the instance names the currency its amounts are in, or names
+// none. A typo must not quietly become "no currency" — the label would
+// simply be missing and nothing would say why.
+func TestLoadConfig_Currency(t *testing.T) {
+	cases := []struct {
+		name    string
+		raw     string
+		want    string
+		wantErr bool
+	}{
+		{name: "unset means unit-less amounts", raw: "", want: ""},
+		{name: "an ISO-4217 code is taken as given", raw: "CHF", want: "CHF"},
+		{name: "lower case is normalised, not refused", raw: "eur", want: "EUR"},
+		{name: "surrounding space is trimmed", raw: "  GBP ", want: "GBP"},
+		{name: "a currency symbol is refused", raw: "€", wantErr: true},
+		{name: "a two-letter code is refused", raw: "CH", wantErr: true},
+		{name: "a four-letter code is refused", raw: "CHFX", wantErr: true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			env := map[string]string{
+				"JITPACK_SINGLE_USER":   "true",
+				"JITPACK_LOCAL_USER_ID": "local",
+				"JITPACK_CURRENCY":      tc.raw,
+			}
+			cfg, err := loadConfigFrom(func(key string) string { return env[key] })
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("loadConfigFrom(%q) = nil error, want a refusal", tc.raw)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("loadConfigFrom(%q): %v", tc.raw, err)
+			}
+			if cfg.Currency != tc.want {
+				t.Errorf("Currency = %q, want %q", cfg.Currency, tc.want)
+			}
+		})
+	}
+}
