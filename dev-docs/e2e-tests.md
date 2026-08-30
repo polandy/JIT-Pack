@@ -75,7 +75,8 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Profile under an OIDC session: picture editable, name not (FR-17.13, revised 2026-08-29) | E2E-M17-05, E2E-M17-05b | `server` | [`server/settings-profile.spec.ts`](../client/e2e/server/settings-profile.spec.ts) |
 | M18 backup & restore (restore list) | E2E-M18-05, E2E-M18-06, E2E-M18-07, E2E-M18-08, E2E-M18-09, E2E-M18-10, E2E-M18-11 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
 | M18 portable import (merge preview) | E2E-M18-01, E2E-M18-02, E2E-M18-03, E2E-M18-04 | `local` | [`backup-restore.spec.ts`](../client/e2e/backup-restore.spec.ts) |
-| M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b), E2E-M14-05, E2E-M14-06 + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
+| M14 review | E2E-M14-01, E2E-M14-02, E2E-M14-03 (pair scope), E2E-M14-04 (+04b, and the FR-27.12 peek since 2026-08-30), E2E-M14-05, E2E-M14-06 (both the archive that skips and the empty state, since 2026-08-30) + a G-9 back case | `local` | [`review.spec.ts`](../client/e2e/review.spec.ts) |
+| M16 series & destination profile | E2E-M16-01, E2E-M16-02, E2E-M16-03, E2E-M16-04 + a G-9 back case | `local` | [`series.spec.ts`](../client/e2e/series.spec.ts) |
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
@@ -2929,3 +2930,84 @@ of an id confirms a gap that reading the suite refutes — but it is a conventio
 drift across the whole suite, not four defects, and folding it into a
 four-entry cleanup would bury it. Recorded here so the next person measuring
 coverage by grep knows the number is soft.
+
+## M14 and M16 read against their screens (backlog item 6, 2026-08-30)
+
+Two screens at opposite ends of the coverage range: M14 had all six ids
+implemented and a component test carrying most of its rules, and M16 had
+**nothing at any layer** — four unwritten ids, no spec file, no unit, and not
+one `data-testid` in `SeriesPage.vue`.
+
+**M14: three clauses that had no assertion, two of which could not have had
+one where they stood.**
+
+1. **The why line's plural branch had never been rendered.** E2E-M14-01
+   promises *„auf {n} Reisen nicht gebraucht" when the series history says so*,
+   and its trip is in no series — so `historyCount` returns 1 and only the
+   singular branch is reachable. The split is what hid it: the **domain** takes
+   the count as a parameter (`flaggedTripCount`, unit-covered both ways) and the
+   function that derives it from the series' archived trips is `ReviewPage`'s
+   own, tested nowhere. Two component cases now pin it in both directions —
+   an archived sibling in the same series makes the line read *2*, one in a
+   different series does not. Red-proved separately (`return 1`, then dropping
+   the series filter). Not e2e: the world is E2E-M12-03's two-trip lifecycle,
+   the most expensive staging in the suite, for one sentence.
+2. **The FR-27.12 peek on a proposal's target group had coverage at no layer
+   and no id claiming it.** `m14-peek-*` occurred in no test and in no spec
+   sentence — on a screen where every other control was covered, which is why
+   an id count could not find it. Folded into E2E-M14-04, where the target
+   picker already is.
+3. **E2E-M14-06 asserted one of its three clauses.** *„Archiving skips the
+   assistant with a toast"* was never exercised — the case navigated straight to
+   `/review`. Writing it turned up the trap worth keeping: **`review.nothingToast`
+   and `review.empty` are the same sentence in both catalogues**, so asserting
+   the toast's text alone would have passed just as well on the screen the clause
+   is about *not* reaching. The case reads the archived M4's own closing card
+   instead, and filters the toast by its text — *Reise gestartet* is still on
+   screen and two matches are a strict-mode failure that presents as a flake.
+   The third clause, *„applied rows don't reappear"*, is (a): the recompute is
+   pinned in `domain/__tests__/review.spec.ts` and needs no e2e.
+
+**M16: the first screen with no coverage at all, and rendering it found a
+control that did not work.**
+
+The checklist's add-row `ion-input` rendered at **zero width**. Ionic gives
+`ion-select` `width: 100%`, which as a flex item is a flex-basis of the whole
+row; the free space is already negative, so the input beside it — basis 0 —
+grows by nothing and shrinks to nothing. The `＋` and the mode picker were on
+screen and the field was not, so FR-13.3's editor could not be typed into at
+all. **No assertion could have caught it**: the native input is in the DOM and
+`getByTestId` resolves it; only Playwright's *visible* check — and the
+screenshot beside it — says it has no box. Fixed by content-sizing the select.
+
+Two more things M16 is worth remembering for:
+
+* **`toContainText` on an `ion-select` matches its options, not its value.**
+  `toContainText('Summer')` is true of a season select nobody has ever touched,
+  because every option's text is inside the host. The assertion that caught it
+  was the *untouched second series*, asserted first for exactly that reason; the
+  value is read from `.select-text`.
+* **The detach control sits on a row that is itself a link to the trip.** Its
+  `@click.stop.prevent` is the whole thing keeping the gesture from opening the
+  trip, so the case asserts M16 is still the rendered page afterwards.
+
+| M16 promises | kept by | note |
+|---|---|---|
+| the name is editable | E2E-M16-01 | read back after leaving the screen. |
+| a rename onto a taken name is refused | E2E-M16-01 (the screen) + `nameCollision.spec.ts` (the rule) | the field reverts and the toast names the holder; the header is the read-back. |
+| the three defaults are editable | E2E-M16-01 | `.select-text`, not the host — see above. |
+| the defaults are M3's prefill source | E2E-M16-04 | asserted before *and* after the default exists. |
+| the destination profile is created lazily | E2E-M16-02 | the read-back after leaving is what proves the row exists. |
+| notes and checklist editor | E2E-M16-02 | and the field it types into did not render until this unit. |
+| trip history with per-trip stats | E2E-M16-03 | a trip in no series is absent from it. |
+| detach / attach | E2E-M16-03 | attach read back on M2's series count. |
+| the trends shortcut opens M12 | E2E-M16-04 | the *section* there is E2E-M12-03's, on both halves. |
+| a series with no trips at all | nothing — deliberately | one `v-if` over the list M16-03 already moves; an id for it would be inflation. |
+| the clone entry (FR-12.1) | E2E-M2-04 owns the screen it links to | left untested here on purpose. |
+
+**One unbuilt promise, owner decision owed.** UI-Spec M14's *Navigation* line
+says the archived trip's closing card *„teases the first two proposals"*. It
+renders a heading, a hint and two buttons and reads no proposal. No case id
+claims it, so nothing is red; the UI-Spec sentence is struck rather than
+reworded, the treatment the M2 and M11 audits gave their unkept promises.
+

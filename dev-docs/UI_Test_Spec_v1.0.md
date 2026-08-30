@@ -548,12 +548,29 @@ proposals target **groups**. The card-stack and template-target wording of the e
 cases is superseded; the duplicate id the section carried is resolved by renaming the
 no-flags case to E2E-M14-06.)*
 
-* **E2E-M14-01** `all` (FR-9.1/9.2) — **implemented 2026-08-20** (`e2e/review.spec.ts`): archiving a flagged trip auto-launches the assistant; a proposal reads correctly (kind chip *ungenutzt*/*fehlte*, the item name, the why line — "auf {n} Reisen nicht gebraucht" when the series history says so).
-* **E2E-M14-02** `all` (FR-9.2/1.6) — **implemented 2026-08-20**, both halves read back out of M8: Apply writes directly to the row's target **group** — shared instance-wide per the FR-1.6 MVP simplification; no fork prompt exists. An *unused* apply zeroes the position, a *missing* apply adds one (creating the master item first for an ad-hoc name).
+**Audited 2026-08-30** (backlog item 6): every id read clause by clause against the built screen
+and against `ReviewPage.spec.ts`, which is where most of M14's rules actually live. All six were
+implemented and none is retired, so the product is three unasserted clauses — two of them clauses
+that *could not fail* where they stood — and one unbuilt promise. The general note the audit leaves:
+**M14 is a screen of derived proposals, so the domain answers for which proposals exist and the
+component test for what the list does with them**; what e2e alone establishes is that archiving
+arrives here, that the row's controls write, and that the group is read back from M8.
+
+* **Not implemented, and not a test gap — the closing card does not tease the first two proposals.**
+  UI-Spec M14's *Navigation* line has said since the rebuild that the archived trip's closing card
+  *„teases the first two proposals and links to the full list"*. It links: `PackingListPage`'s
+  `closing-card` renders a heading, a hint and two buttons (*Vorlage aus dieser Reise*, *Vorschläge
+  ansehen*), and nothing that reads a proposal. No case id claims the teaser — E2E-M4-53 asserts the
+  card's presence and E2E-M4-29 points the M14 half at M4-53/54 — so nothing is red; the sentence
+  simply describes a surface the card has never had. **Owner decision:** build the teaser or strike
+  the clause. UI-Spec M14 is corrected to say it is not built; no other document leans on it.
+
+* **E2E-M14-01** `all` (FR-9.1/9.2) — **implemented 2026-08-20** (`e2e/review.spec.ts`): archiving a flagged trip auto-launches the assistant; a proposal reads correctly (kind chip *ungenutzt*/*fehlte*, the item name, the why line — "auf {n} Reisen nicht gebraucht" when the series history says so). **The last clause could not fail where it stood** (2026-08-30): the why line has two branches and this trip is in no series, so `historyCount` returns 1 and only the singular branch is reachable — the plural one had been rendered by nothing at any layer, because the *domain* takes the count as a parameter (`flaggedTripCount`, unit-covered) and the function that computes it from the series is the page's own. It is asserted since 2026-08-30 in `ReviewPage.spec.ts`, both directions: an archived sibling in the same series carrying the same flag makes the line read *2*, and an archived trip in a **different** series does not. Not e2e, deliberately — the world is E2E-M12-03's two-trip lifecycle staging, which is the suite's most expensive, for one sentence.
+* **E2E-M14-02** `all` (FR-9.2/1.6) — **implemented 2026-08-20**, both halves read back out of M8: Apply writes directly to the row's target **group** — shared instance-wide per the FR-1.6 MVP simplification; **no fork prompt exists** — which is a statement about FR-1.6's model rather than an assertable behaviour, since there is no fork code in any mode for a case to find absent (checked 2026-08-30; the clause is kept as the reason apply is one tap, not as coverage). An *unused* apply zeroes the position, a *missing* apply adds one (creating the master item first for an ad-hoc name).
 * **E2E-M14-03** `all` (FR-9.2) — **implemented 2026-08-20 for the pair scope and its persistence**: "Never ask again" removes that row and only that row, and the dismissal outlives the visit (the assistant is recomputed from current state, so this is the only piece of it that is stored). The second clause — *the same item still surfaces for another group* — needs the same item flagged twice under two groups, which one trip cannot produce; it stays unit-owned in `domain/__tests__/review.spec.ts`, and this sentence is its revisit trigger.
-* **E2E-M14-04** `all` (FR-27.11) — **implemented 2026-08-20**, split in two cases (`E2E-M14-04` for the targets, `E2E-M14-04b` for the blast radius, which needs a second planning trip following the group): every proposal names a **group** as its target and the picker offers groups only — never a Ferien-Vorlage; an *unused* row's picker offers only groups that actually carry the item, since zeroing a position that does not exist would apply as nothing. An *unused* proposal defaults to the group the row came from; a *missing* ad-hoc row defaults to the trip's dominant group. Applying writes to that group; the row states the FR-27.4 blast radius ("Wirkt auf N geplante Reisen …") when planning trips use the target. *(The FR-27.4 applied-change entry on each planning trip is produced by the refresh, which landed 2026-08-18: M14 writes to the group, and the trips following it log the change on their next open — one mechanism, so M14 owes no push of its own.)*
+* **E2E-M14-04** `all` (FR-27.11) — **implemented 2026-08-20**, split in two cases (`E2E-M14-04` for the targets, `E2E-M14-04b` for the blast radius, which needs a second planning trip following the group): every proposal names a **group** as its target and the picker offers groups only — never a Ferien-Vorlage (**that half is unit-owned**, read 2026-08-30: this case's world contains two groups and no Vorlage, so the absence is of something absent; `ReviewPage.spec.ts` and `retargetGroups` in `domain/__tests__/review.spec.ts` both assert it against a world that has one); an *unused* row's picker offers only groups that actually carry the item, since zeroing a position that does not exist would apply as nothing. An *unused* proposal defaults to the group the row came from; a *missing* ad-hoc row defaults to the trip's dominant group (**the dominant-group default is the domain's**, `buildReviewProposals — missing flags default to the dominant group`: the e2e reads the picker's *options*, not its current value). Applying writes to that group; the row states the FR-27.4 blast radius ("Wirkt auf N geplante Reisen …") when planning trips use the target. *(The FR-27.4 applied-change entry on each planning trip is produced by the refresh, which landed 2026-08-18: M14 writes to the group, and the trips following it log the change on their next open — one mechanism, so M14 owes no push of its own.)* **Extended 2026-08-30 with the FR-27.12 peek** — the chevron beside the picker, which opens the target group's resolved contents before the proposal is written into it. It had coverage at no layer and no id claimed it: `m14-peek-*` occurred in no test and in no spec sentence, on a screen whose every other control was covered. The case now opens it on the *missing* row, reads the group's two positions out of it, asserts the proposed item is **not** among them — which is why there is a proposal — and closes it. Red-proved by pointing the trigger at `null`.
 * **E2E-M14-05** `all` (FR-27.11, FR-9.4) — **implemented 2026-08-20, rewritten 2026-08-24**: the assistant renders as a **list with an open count**, not a card stack; applied and skipped rows remain visible and marked rather than disappearing, and "nie mehr fragen" removes the row for that item–group pair only. Since FR-9.4 the case also pins **where** a handled row is: out of *Offen*, into the *Erledigt* block, counted once on each side — and the finished state reached by handling both rows rather than by dismissing them. *(What it asserted before was the defect: that the empty state must not appear while decided rows exist.)*
-* **E2E-M14-06** `all` (FR-9.2): no flags → archiving skips the assistant with a "nothing to review" toast; opened directly, the screen shows the honest empty state; applied rows don't reappear on a later visit (resumability).
+* **E2E-M14-06** `all` (FR-9.2) — **implemented, and the first clause was written 2026-08-30**: no flags → archiving skips the assistant with a "nothing to review" toast; opened directly, the screen shows the honest empty state; applied rows don't reappear on a later visit (resumability). The case had asserted only the middle clause — it navigated straight to `/review` and never archived. It now takes the trip through *Reise starten* → the closing pass → *Fertig* and asserts that the trip **is** archived and the assistant was **not** opened, read off the archived M4's own closing card. **The trap that made this worth doing:** `review.nothingToast` and `review.empty` are character-identical in both catalogues (*„Nothing to review — no flags were set."*), so a case asserting only the toast's text would pass just as well on the screen the clause is about not reaching. The toast is also filtered by that text rather than located as *a* toast — *Reise gestartet* is still on screen seconds earlier, and two matches are a strict-mode failure that presents as a flake. **The third clause is (a): already asserted elsewhere.** Resumability is not stored state — `buildReviewProposals` recomputes from current state, and both halves of "an applied row stops appearing" are pinned in `domain/__tests__/review.spec.ts` (*yields nothing when the group position is already zeroed*, *skips items the default group already contains*), which is the arithmetic an applied proposal produces.
 
 ### M15 — Import Wizard
 * **E2E-M15-01** `all` (FR-16.1): upload/paste CSV → grid preview; mark item column, category rows, per-trip include/name/date/series.
@@ -568,10 +585,59 @@ no-flags case to E2E-M14-06.)*
 * **E2E-M15-09** `single` (FR-24.2/16.3) — **implemented**: after an import, a **second browser context** filters M9's tag axis to the imported category and finds the item under it, and a name the sheet listed twice is there once. Both halves were refused at the wire and invisible on the importing device: the tag link was enqueued before its item, and `items` is UNIQUE (name).
 
 ### M16 — Series & Destination Profile
-* **E2E-M16-01** `all` (FR-13.1): series name + default attribute chips editable (the M3 prefill source).
-* **E2E-M16-02** `all` (FR-13.3): destination notes + checklist editor on the lazily created profile.
-* **E2E-M16-03** `all` (FR-13.2): trip history with per-trip stats; detach/attach trips.
-* **E2E-M16-04** `all` (FR-13.2): "New trip in series" → M3 prefilled; trends shortcut → M12.
+
+**Audited 2026-08-30** (backlog item 6), and it is the first screen the programme met with **no
+coverage at any layer**: four unwritten ids, no `client/e2e/series.spec.ts`, no component test, and
+not one `data-testid` in `SeriesPage.vue` — the signature the M20 pass named. Nothing here was
+retired: all four ids describe behaviour that is built, every one of them a *write* (the name, the
+three FR-15.1 defaults, a destination profile created on first use, its checklist, attach and
+detach), so all four are written. **Rendering the screen for the first time found a control that
+did not work at all** — see the note below — which is the whole argument for reading a promise
+against a screen rather than against a stylesheet (G-14).
+
+* **Fixed while auditing, not a test finding — FR-13.3's checklist could not be typed into.** The
+  add-row's `ion-input` rendered at **zero width**: Ionic gives `ion-select` `width: 100%`, which as
+  a flex item is a flex-basis of the whole row, so the free space beside it is already negative and
+  the input — flex-basis 0 — grows by nothing and shrinks to nothing. The `＋` and the mode picker
+  were on screen and the field was not, so the editor UI-Spec M16 promises was unreachable. No test
+  could have caught it: the native input is in the DOM, `getByTestId` resolves it, and only
+  Playwright's *visible* check (and the screenshot beside it) says it has no box. The select is
+  content-sized now; E2E-M16-02 is the standing assertion, because it types into that field.
+* **E2E-M16-01** `all` (FR-13.1/15.1) — **implemented 2026-08-30** (`e2e/series.spec.ts`): the series
+  name and the three default selects are editable, and both are read back after leaving the screen
+  and returning rather than off the control that wrote them. The sentence used to say *chips*; the
+  screen has selects and always has, so the wording is corrected here and in UI-Spec M16. It also
+  covers the **rename refusal** UI-Spec M16 states and no test had ever exercised: renaming onto
+  another series' name is refused on the client (`trip_series.name` is UNIQUE instance-wide), the
+  toast names the holder, and the field goes back to the stored name — with a free rename after it,
+  read off the header, which renders from the series and not from the field. **The trap it found:**
+  `toContainText` on an `ion-select` matches its **options**, not its value, so
+  `toContainText('Summer')` is true of a season select nobody has ever touched. The untouched second
+  series is asserted first for exactly that reason, and the value is read from `.select-text`.
+  Red-proved twice (blanking the attribute read, dropping the field's revert).
+* **E2E-M16-02** `all` (FR-13.3) — **implemented 2026-08-30**: with no destination profile in
+  existence the checklist states its own emptiness; typing notes and adding an entry both go through
+  `ensureDestinationProfile`, and the read-back after leaving and returning is what proves the row
+  it created is real. The entry keeps its procurement mode, and removing it returns the empty state —
+  the positive signal the two absence assertions stand against. Red-proved by dropping the write.
+* **E2E-M16-03** `all` (FR-13.2) — **implemented 2026-08-30**: the history lists the series' trips
+  with their packed/total line, a trip in no series is *not* in it, and detach and attach move one
+  each way. Detach sits on a row that is itself a link to the trip, so the case asserts M16 is still
+  the rendered page afterwards — a `.stop.prevent` that stopped working would otherwise read as a
+  pass. The attach is read back on **M2**, whose series header counts the trips: the write is a
+  trip's `series_id`, not a list local to this page. Red-proved by making detach re-attach.
+* **E2E-M16-04** `all` (FR-13.2/15.1) — **implemented 2026-08-30**: *„New trip in series"* opens M3
+  carrying the series *and its defaults*, asserted on `wizard-more-summary`, which is where the
+  folded FR-2.1c step states what it is holding — and asserted **before** the default exists as well
+  as after, so a summary that only ever names the series cannot pass for a prefill. The trends
+  shortcut opens M12 on the series' most recent trip, rendered rather than routed. What the shortcut
+  is *not*: M12's trend section itself needs archived series history and is E2E-M12-03's, on both
+  halves; this case owns the edge, not the section.
+* **Checked and deliberately left untested:** a series with no trips at all (its empty history line
+  and the absent trends shortcut). It is reachable only by detaching every trip, both halves are one
+  `v-if` over the same list this case already moves, and an id invented for it would be the coverage
+  inflation this programme exists to avoid. The **clone entry** (FR-12.1, offered when the series has
+  an archived trip) is likewise left: it is a router-link to M2-04's screen, which that case owns.
 
 ### M17 — Settings & Notifications
 * **E2E-M17-01** `server` (FR-6.2) — **implemented 2026-08-30**, in `e2e/server/multi-user.spec.ts`. Four kinds rather than the three this sentence used to name: `lock_taken` joined them with FR-5.7. Bob turns *Delegations* off in his own M17, the choice survives his reload, and Alice's next hand-over produces no toast on his screen — while the same pair of pages produced one before he touched it, and a **mention** afterwards still arrives. The two positives are what make the absence assertable: a toast that has not come yet looks exactly like one that never will, and the mention rides the same connection the suppressed delegation would have. It also proves the switch is *per kind* rather than a mute. The ends were covered and the wire between them was not — Go's `TestNotificationPrefs_DisabledKindSuppressesCreation` for the rule, `composables/__tests__/settings.spec.ts` for the PUT, and nothing saying the switch the user flips is the value the server reads.
@@ -739,7 +805,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-8.1 | E2E | M4-01, M12-01 (packed and planned as two different numbers since 2026-08-30), M12-07 (the value tile) |
 | FR-8.2 | E2E+UNIT | M12-01 (all three dimensions, Gepäck over a real bag), M12-02/04/05, M12-06 (grouping handoff); analytics.ts (slice keys, bar order) |
 | FR-9.1 | E2E | M5-17, M4-04, FLOW-04 (M5-03 retired as its duplicate) |
-| FR-9.2 | E2E+UNIT | M14-01/02/03/06; review.ts, ReviewPage.spec.ts |
+| FR-9.2 | E2E+UNIT | M14-01/02/03, M14-06 (the archive that *skips* the assistant, asserted since 2026-08-30); review.ts (resumability — an applied proposal is not recomputed), ReviewPage.spec.ts (the series-history why line, both directions) |
 | FR-10.1 | E2E+UNIT | M11-01 (via M11-05/06); ContainerSheet.spec.ts (the carrier is optional — clearing it) |
 | FR-10.2 | E2E | M11-06 (03 folded in, first assignment), M5-22 (re-assignment) |
 | FR-10.3 | E2E+UNIT | M11-02/04 (at the default threshold); containers.ts — **the per-trip override has no writer, see the M11 block** |
@@ -747,13 +813,13 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-11.1–11.3 | — | removed (Repack feature dropped, Addendum §3.11) |
 | FR-12.1 | E2E | M2-04 |
 | FR-12.2 | E2E+UNIT | ClonePage toggles; clone.ts |
-| FR-13.1 | E2E+UNIT | M2-02 (**unwritten on purpose** — the series grouping it describes is the option the 2026-08-08 review rejected, see E2E-M2-15), M16-01; `composables/__tests__/nameCollision.spec.ts` (a taken series name is refused before the mutation — M3's wizard note and M16's rename have no e2e case yet, named in `e2e-tests.md`) |
-| FR-13.2 | E2E | M16-03/04, M3-02 |
-| FR-13.3 | E2E | M3-09, M16-02, M6-01 |
+| FR-13.1 | E2E+UNIT | M2-02 (**unwritten on purpose** — the series grouping it describes is the option the 2026-08-08 review rejected, see E2E-M2-15), M16-01 (name, defaults, **and the rename refusal, written 2026-08-30**), M16-03 (history, detach/attach); `composables/__tests__/nameCollision.spec.ts` (the rule: a taken series name is refused before the mutation — M3's wizard note still has no e2e case, named in `e2e-tests.md`) |
+| FR-13.2 | E2E | M16-03 (history + attach/detach) and M16-04 (both shortcuts), **written 2026-08-30 — before that the row credited two unwritten ids**; M3-02 |
+| FR-13.3 | E2E | M16-02 (**the only test of the checklist editor, written 2026-08-30 — and the field it types into rendered at zero width until that day**), M3-09 (the wizard's offer, still unwritten), M6-01 |
 | FR-14.1 | E2E | M3-08 (M5-04 retired — no history on M5, and none owed) |
 | FR-14.2 | E2E+UNIT | M3-08; suggestions.ts |
 | FR-14.3 | E2E+UNIT | M12-03 (absence half; positive half blocked on an archive path, see M12-03); analytics.ts |
-| FR-15.1 | E2E | M3-01, M16-01 |
+| FR-15.1 | E2E | M3-01, M16-01 (the defaults are stored), M16-04 (they reach M3 — the prefill chain, written 2026-08-30) |
 | FR-15.2 | E2E+UNIT | M3-06, M8-03 (chips set **and** clear, one value per axis); instantiate.ts |
 | FR-15.3 | DOC/N-A | void — retired with FR-1.3/1.5 (2026-08-08) |
 | FR-16.1 | E2E | M15-01, M15-05, M15-06, M15-07, M15-08 |
@@ -837,7 +903,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-27.2 | E2E+UNIT | M3-11, M8-08; instantiate.ts (include expansion + named merge) |
 | NFR-4.2a (id minting) | E2E+UNIT | E2E-NFR-SEC-01…04; `lib/__tests__/ids.spec.ts` (v4 shape, insecure-context fallback, version/variant bits, no-randomness refusal, and the guard that `crypto.randomUUID` is called in one file only) |
 | FR-27.14 | E2E+UNIT | M8-16 (footer opens the list, provenance, marks, read-only); `domain/__tests__/templates.spec.ts` (sources, merged, per-person, mode, conditions), `GroupPeekSheet.spec.ts` (provenance only where a composition can differ) |
-| FR-27.12 | E2E+UNIT | M3-17 (row summary + peek sheet); `domain/templates.ts` (`resolvedLines` ordering/dropping, `previewLines` truncation), `GroupPeekSheet.spec.ts` (resolved list, read-only, empty state) |
+| FR-27.12 | E2E+UNIT | M3-17 (row summary + peek sheet), M14-04 (the peek on a proposal's target group — **the sheet's M14 surface, unclaimed by any id until 2026-08-30**); `domain/templates.ts` (`resolvedLines` ordering/dropping, `previewLines` truncation), `GroupPeekSheet.spec.ts` (resolved list, read-only, empty state) |
 | FR-27.3 | E2E+UNIT | M3-12 (offered, counted, reported, removable, and on the trip); `domain/instantiate.ts` (single items resolve *after* the templates: already-there is reported, a per-person fan-out counts as present, a condition-excluded item is overridden, a double pick is one pick, a stale id is ignored); `views/trips/TripWizardPage.spec.ts` (the picker's chips, the report, the draft's null provenance) |
 | FR-27.4 | E2E+UNIT | M8-05 (warning wording), M8-09 (offered → applied → M2 log), M8-19 (refused, and not asked again), M18-08 (both answers survive a device restore), M21-03, FLOW-09; `domain/trips.ts` (`followsGroups` past/not-past), `domain/refresh.ts` (`declinePlan` per position, `proposedChangeCount` excludes bookkeeping), `composables/groupRefresh` (propose writes nothing, accept, decline), `views/trips/TripListPage.spec.ts` (both chips), `components/trips/GroupChangesProposal.spec.ts` (names every change, fold, decline note) |
 | FR-27.5 | E2E | M21-01/02/02b/03/03b/03c, M4-43, FLOW-09 |

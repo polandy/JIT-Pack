@@ -263,6 +263,23 @@ it. Item numbers stay stable even as items close, because the log refers back to
    M15" was never true (the shared thing is `findDuplicates`); „rejected before this screen is
    ever shown" misplaces a refusal that is M18's own picker step. Log: *„The branch the backup
    never took"*.
+   **M14 and M16 followed 2026-08-30**, and M16 is the first screen the programme met with
+   **no coverage at any layer** — four unwritten ids, no spec file, no unit, and not one
+   `data-testid`. Nothing was retired; all four are written, and **rendering the screen found a
+   control that did not render**: FR-13.3's checklist field had zero width, because Ionic's
+   `ion-select` is `width: 100%` and as a flex item that is a basis of the whole row, so the input
+   beside it shrank to nothing. **No assertion could have caught it** — the input is in the DOM,
+   `getByTestId` resolves it, its computed flex and height are right, and only the *visible*
+   precondition and the screenshot say the box is empty (invariant 9b from the other side). Two
+   more traps came with it: **`toContainText` on an `ion-select` matches its options, not its
+   value**, so the first draft's assertion was true of a select nobody had touched; and M14's
+   *„nothing to review"* toast and its empty state are the **same sentence** in both catalogues, so
+   asserting the text alone passes on the screen the clause is about not reaching. On M14 all six
+   ids were implemented and three clauses still had no assertion, two of them unable to fail where
+   they stood: the why line's plural branch (the trip is in no series — a *parameter* unit-tested
+   both ways whose producer was tested nowhere) and the FR-27.12 peek, which no id claimed. One
+   owner decision: UI-Spec M14's closing card *„teases the first two proposals"* and reads none.
+   Log: *„A field that was there and had no width"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).
