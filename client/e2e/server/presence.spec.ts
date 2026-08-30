@@ -1,5 +1,5 @@
 import { test, expect, createTripViaWizard, visiblePage } from '../fixtures'
-import { quickAddItem, uniq, wsSubscribed } from '../serverMode'
+import { quickAddItem, uniq, watchSubscribed } from '../serverMode'
 
 import { ACCOUNT_NAMES, loginAs, shareWith } from './fixtures'
 
@@ -36,20 +36,20 @@ test.describe('G-10 — who else is on this trip @server @g10', () => {
     await quickAddItem(alice, item)
     await shareWith(alice, tripPath, ACCOUNT_NAMES.bob)
 
-    const wsAlice = alice.waitForEvent('websocket')
+    const subscribedAlice = watchSubscribed(alice)
     await alice.goto(tripPath)
     await expect(visiblePage(alice).getByTestId(`m4-row-${item}`)).toBeVisible()
-    await wsSubscribed(alice, wsAlice)
+    await subscribedAlice
 
     // Alone on the trip there is no facepile — asserted here, on a screen
     // that has demonstrably rendered its list, so the absence is the rule
     // and not a page that had not painted yet.
     await expect(visiblePage(alice).getByTestId('presence-facepile')).toHaveCount(0)
 
-    const wsBob = bob.waitForEvent('websocket')
+    const subscribedBob = watchSubscribed(bob)
     await bob.goto(tripPath)
     await expect(visiblePage(bob).getByTestId(`m4-row-${item}`)).toBeVisible()
-    await wsSubscribed(bob, wsBob)
+    await subscribedBob
 
     // Bob subscribing is what makes the pile worth drawing, and it appears on
     // Alice's screen without her doing anything — the presence event is the
