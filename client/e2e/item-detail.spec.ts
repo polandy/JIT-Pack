@@ -2,9 +2,12 @@ import {
   test,
   expect,
   createTripViaWizard,
+  chooseInSelect,
+  createMasterItem,
   openQuickAdd,
   tripAction,
   expectTripActionOffered,
+  visiblePage as visible,
 } from './fixtures'
 
 /**
@@ -89,11 +92,16 @@ test.describe('M5 item detail @local @m5', () => {
     await expect(page.getByTestId('m5-pack-label')).toHaveText('Packing')
     await expect(page.getByTestId('m5-todo-input')).toBeVisible()
     await expect(page.getByTestId('m5-note-input')).toBeVisible()
-    // FR-25.15: the sheet confirms local capture — settled ✓ once open.
+    // FR-25.15: the sheet confirms local capture — settled ✓ once open…
     await expect(page.getByTestId('m5-sheet').getByTestId('save-indicator')).toHaveAttribute(
       'title',
       'Saved',
     )
+    // …and it is what stands *instead of* a save button, so the absence is
+    // asserted beside the thing that replaced it rather than on its own.
+    await expect(
+      page.getByTestId('m5-sheet').getByRole('button', { name: /save|commit/i }),
+    ).toHaveCount(0)
     // Folded: absent, not merely out of sight.
     await expect(page.getByTestId('m5-mode')).toHaveCount(0)
 
@@ -226,5 +234,104 @@ test.describe('M5 item detail @local @m5', () => {
     // The glance chip renders off the stored row, so it is the flag itself
     // being read back and not the toggle's own state.
     await expect(page.getByTestId('m5-glance')).toContainText('Unused')
+  })
+
+  // E2E-M5-05 (FR-7.1/7.2): a note and a preparation todo are the same
+  // record — a task-type comment (`is_task = 1`) — rendered by two
+  // sections of the same sheet. The promotion is therefore not a field
+  // changing on a row but a row *changing collection*, and the assertion
+  // that carries the case is that it left one section as it entered the
+  // other. A case that only looked for the todo would pass just as well
+  // against a build that rendered the row in both places at once.
+  //
+  // The third reader is M4: `getOpenTodos` feeds the row's prep badge, so
+  // closing the sheet is what proves the promotion is a trip-level fact
+  // rather than something the sheet remembers about itself.
+  test('E2E-M5-05: a note promoted to a task leaves the notes and joins the preparation', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await createTripViaWizard(page, TRIP)
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-input').locator('input').fill('Kamera')
+    await page.getByTestId('quick-add-confirm').click()
+    await page.keyboard.press('Escape')
+
+    // Nothing to prepare yet — the positive signal the badge is derived.
+    await expect(visible(page).getByTestId('m4-prep-section')).toHaveCount(0)
+
+    await page.getByTestId('m4-row-Kamera').getByRole('heading').click()
+    await page.getByTestId('m5-note-input').locator('input').fill('Akku laden')
+    await page.getByTestId('m5-note-add').click()
+
+    await expect(page.getByTestId('m5-note-Akku laden')).toBeVisible()
+    await expect(page.getByTestId('m5-todo-Akku laden')).toHaveCount(0)
+
+    await page.getByTestId('m5-note-flag-Akku laden').click()
+
+    // Both halves: gone from the notes, and open in the preparation.
+    await expect(page.getByTestId('m5-note-Akku laden')).toHaveCount(0)
+    await expect(page.getByTestId('m5-todo-Akku laden')).toBeVisible()
+
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+
+    await expect(visible(page).getByTestId('m4-prep-section')).toBeVisible()
+    await expect(visible(page).getByTestId('m4-prep-badge-Kamera')).toContainText('1')
+  })
+
+  // E2E-M5-23 (FR-20.1/20.4): the companion offer. FR-20.4's *required*
+  // companions join by themselves and are covered by E2E-M4-40's cascade;
+  // this is the other mode, where the app may only ask — and the sheet is
+  // the one place in the app that asks, since M3's hint is the wizard's.
+  //
+  // The section is a live derivation of what is on the list, not a hint
+  // stored on the row, and each half of the case says so: an unrelated
+  // master item is *not* offered, which is the positive signal against a
+  // section that simply lists everything; and after the tap the section is
+  // gone, because the row it offered is now on the list.
+  test('E2E-M5-23: the sheet offers the companion that is missing, and stops once it is there', async ({
+    page,
+  }) => {
+    // Builds its world through M10 and M4 (spec §2.4) rather than by
+    // injection, which is several screens' worth of navigation.
+    test.slow()
+    await page.setViewportSize({ width: 390, height: 844 })
+
+    await createMasterItem(page, 'Kamera')
+    await createMasterItem(page, 'Ersatzakku')
+    // The editor is open on the Ersatzakku: it depends on the Kamera —
+    // and only as a *suggestion*, which is this case's whole subject.
+    await visible(page).getByTestId('m10-add-dependency').click()
+    await visible(page).getByTestId('m10-dependency-main-Kamera').click()
+    await expect(visible(page).getByTestId('m10-add-dependency')).toBeVisible()
+    await chooseInSelect(page, 'm10-dependency-mode-Kamera', 'Suggested')
+    // A third item, related to nothing: the section has to leave it out.
+    await createMasterItem(page, 'Stirnlampe')
+
+    await createTripViaWizard(page, { name: 'Companions', travelers: ['Andy'] })
+    await openQuickAdd(page)
+    await page.getByTestId('quick-add-input').locator('input').fill('Kamera')
+    // The *suggestion*, not the free text: a row that carries no master
+    // item has no dependencies, so the section would have nothing to show.
+    await page.getByTestId('quick-add-suggestion').filter({ hasText: 'Kamera' }).first().click()
+    await expect(page.getByTestId('m4-row-Kamera')).toBeVisible()
+    // FR-20.4: a suggestion never joins without being asked for.
+    await expect(page.getByTestId('m4-row-Ersatzakku')).toHaveCount(0)
+    await page.keyboard.press('Escape')
+
+    await page.getByTestId('m4-row-Kamera').getByRole('heading').click()
+    await expect(page.getByTestId('m5-companions')).toBeVisible()
+    await expect(page.getByTestId('m5-companion-Ersatzakku')).toBeVisible()
+    await expect(page.getByTestId('m5-companion-Stirnlampe')).toHaveCount(0)
+
+    await page.getByTestId('m5-companion-Ersatzakku').click()
+    await page.getByTestId('m5-close').click()
+    await expect(visible(page).getByTestId('m4-row-Ersatzakku')).toBeVisible()
+
+    // FR-20.3: the offer is derived from the list, so it is spent.
+    await page.getByTestId('m4-row-Kamera').getByRole('heading').click()
+    await expect(page.getByTestId('m5-sheet')).toBeVisible()
+    await expect(page.getByTestId('m5-companions')).toHaveCount(0)
   })
 })

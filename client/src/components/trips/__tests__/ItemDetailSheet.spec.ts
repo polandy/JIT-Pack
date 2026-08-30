@@ -21,6 +21,8 @@ vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }) }))
 
 const orchestratorFake = {
   syncStatus: { state: { value: 'synced' } },
+  // FR-25.15: the indicator's own signal, deliberately not the one above.
+  capturePending: { value: false },
   setReviewFlag: vi.fn(),
   setLatePacker: vi.fn(),
   packToggle: vi.fn(),
@@ -98,6 +100,7 @@ beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
   orchestratorFake.lockHolder.mockReturnValue(null)
+  orchestratorFake.capturePending.value = false
 })
 
 describe('M5 FR-9.1 flags', () => {
@@ -193,6 +196,14 @@ describe('M5 FR-9.1 flags', () => {
  * except viewing", and it renders "the locker's avatar and name". The
  * padlock stopped at M4's row — one tap deeper the sheet handed the row
  * over in full, which is the collision G-3 exists to prevent.
+ */
+/**
+ * E2E-M5-11 (v1.0 catalogue): "item locked by the other user → read-only
+ * with lock banner". Carried here because the *rule* is the sheet's, and
+ * the rendered half is asserted with a second account in
+ * `e2e/server/multi-user.spec.ts` and `e2e/single/server-sync.spec.ts`.
+ * The ledger reported this as unwritten for months while these cases
+ * stood — the id was the only thing missing.
  */
 describe('M5 respects the G-3 lock', () => {
   function seedLocked(holder: string | null) {
@@ -317,6 +328,12 @@ describe('M5 respects the G-3 lock', () => {
  * "zuständig war …" stamp, FR-25.20's filter — and nothing set it, so the
  * delegation notification the server implements could not fire from the app.
  */
+/**
+ * Its two absence cases are E2E-M5-08 (`single/local`, FR-17.3/G-8:
+ * "delegate control hidden"). The guard is arithmetic over the roster, so
+ * a browser can only re-run what is decided here; the spec entry names
+ * this file rather than promising a case nothing would gain from.
+ */
 describe('M5 FR-25.19 assignment', () => {
   it('assigns the row to a trip member through the orchestrator', async () => {
     seedMembers(seedTrip('active'), ['u-alice', 'u-bob'])
@@ -421,5 +438,47 @@ describe('M5 FR-25.19 assignment', () => {
     })
 
     expect(orchestratorFake.setPacker).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * FR-25.15 — the indicator says whether *this* edit is captured, and that
+ * is not what G-2 says. Until 2026-08-30 the sheet handed it
+ * `syncStatus.state`, whose precedence answers `offline` before `syncing`:
+ * a write still open on a device with no network rendered as saved, which
+ * is the single case the requirement was written for. A browser cannot
+ * assert it without racing the write, so it is pinned here, where the
+ * signal is a value somebody sets.
+ */
+describe('M5 FR-25.15 save indicator', () => {
+  it('says it is saving while a write of mine is still open', async () => {
+    seedTrip('active')
+    orchestratorFake.capturePending.value = true
+    const wrapper = mountSheet()
+
+    const indicator = wrapper.get('[data-testid="save-indicator"]')
+    expect(indicator.text()).toBe('●')
+    expect(indicator.attributes('title')).toBe('Saving…')
+  })
+
+  it('says so offline too — the sync state has no vote', async () => {
+    seedTrip('active')
+    // What G-2 reports, and what used to decide this glyph.
+    orchestratorFake.syncStatus.state.value = 'offline'
+    orchestratorFake.capturePending.value = true
+    const wrapper = mountSheet()
+
+    expect(wrapper.get('[data-testid="save-indicator"]').text()).toBe('●')
+    orchestratorFake.syncStatus.state.value = 'synced'
+  })
+
+  it('settles once nothing of mine is open, whatever the sync state is', async () => {
+    seedTrip('active')
+    orchestratorFake.syncStatus.state.value = 'syncing'
+    const wrapper = mountSheet()
+
+    // A background pull is G-2's business; the sheet has nothing open.
+    expect(wrapper.get('[data-testid="save-indicator"]').text()).toBe('✓')
+    orchestratorFake.syncStatus.state.value = 'synced'
   })
 })

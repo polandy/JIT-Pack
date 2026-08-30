@@ -40,9 +40,9 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Navigation / one header bar | E2E-G9-03 … E2E-G9-08 | `local` | [`navigation.spec.ts`](../client/e2e/navigation.spec.ts) |
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05, E2E-M3-20 (FR-2.1d date bound) | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 | Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
-| M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
+| M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17, E2E-M5-05 (a note becomes a task), E2E-M5-23 (the companion offer) | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
 | M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo), E2E-M4-25 (+ E2E-M4-08, the prep lifecycle), E2E-M4-24 (the stamp's time, and that it clears), E2E-M4-11 (the shopping count), E2E-M4-19 (the shared bucket's word) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
-| FR-25.21 membership · FR-25.8 per-person quick-add | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-14 (packing one instance does not flatten the other), E2E-M4-64 (G-8: the mode is absent), E2E-M4-65 (the browse-sheet path) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
+| FR-25.21 membership · FR-25.8 per-person quick-add | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M5-21 (the state follows the numbers — implemented since 2026-08-30 and missing from this row until the M5 audit), E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-14 (packing one instance does not flatten the other), E2E-M4-64 (G-8: the mode is absent), E2E-M4-65 (the browse-sheet path) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
@@ -58,7 +58,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | FR-24.3 lifecycle delete | E2E-M10-14, E2E-M10-15, E2E-M7-11 | `local` | [`lifecycle-delete.spec.ts`](../client/e2e/lifecycle-delete.spec.ts) |
 | FR-24.3 restore (M23) | E2E-M23-01, E2E-M23-02, E2E-M23-03 | `local` | [`restore-retired.spec.ts`](../client/e2e/restore-retired.spec.ts) |
 | §3.28 the item mark | E2E-M10-11, E2E-M10-12, E2E-M9-07, E2E-M4-48, E2E-G15-01, E2E-G15-02, E2E-M5-15 | `local` | [`item-mark.spec.ts`](../client/e2e/item-mark.spec.ts) |
-| M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in), E2E-M11-07 (UX-8 empty state) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
+| M11 containers | E2E-M11-02, E2E-M11-04, E2E-M11-05 (incl. M11-01's create/edit), E2E-M11-06 (incl. M11-01's delete, M11-03 folded in), E2E-M5-22 (M5 moves an item between two of them), E2E-M11-07 (UX-8 empty state) | `local` | [`containers.spec.ts`](../client/e2e/containers.spec.ts) |
 | M12 analytics | E2E-M12-01, E2E-M12-02 (incl. the UX-11 tile absences), E2E-M12-03 (both halves since 2026-08-21), E2E-M12-04, E2E-M12-05, E2E-M12-07 | `local` | [`analytics.spec.ts`](../client/e2e/analytics.spec.ts) |
 | M2 trip list rows | E2E-M2-12 (locale dates, UX-5) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
 | M2 row actions (the slide menu) | E2E-M2-06 (no Share without a session), E2E-M2-07 (export, both branches) | `local` | [`trip-list.spec.ts`](../client/e2e/trip-list.spec.ts) |
@@ -592,7 +592,7 @@ Following spec §10, adjusted for what is now built:
 
 1. ~~Playwright scaffold + smoke per mode~~ — done.
 2. ~~A data-producing unit, so later units have a trip to work with~~ — done (M3; `createTripViaWizard` in `fixtures.ts` is the seed helper).
-3. ~~M4 packing list~~ — done for what M4 can produce on its own (see above); the `data-testid` pass on `PackingListPage.vue` landed with it. **Next: M5**, which both completes its own cases and unlocks the M4 facet cases parked above.
+3. ~~M4 packing list~~ — done; the `data-testid` pass on `PackingListPage.vue` landed with it. **Superseded by the screen audits** (2026-08-30): this list was written when the work was "write the missing cases", and it has been overtaken by reading each screen's promises against the screen — M6, then M4, then M5. The sentence that stood here, *„Next: M5, which both completes its own cases and unlocks the M4 facet cases parked above"*, was wrong in both halves by the time anyone read it again: the M4 facet cases turned out to have been covered as unit tests all along, and M5 had been worked on repeatedly without its catalogue ever being read. **An order of attack goes stale silently** — nothing fails when it does.
 4. Global patterns (§3) — they underpin every screen.
 5. Local Mode delta: persistence across reload, serverless export, M19 switching.
 6. ~~`jitpackd` harness~~ → Single-User cases (largest surface, simplest
@@ -608,6 +608,8 @@ Following spec §10, adjusted for what is now built:
 - **Seed through the app, not around it** (spec §2.4). Use `createTripViaWizard` and friends. A fast-path that writes rows directly is allowed only for `server`-mode preconditions that are not themselves under test.
 - **No sleeps, ever.** Playwright's `expect` retries on its own; assert the outcome, never wait a fixed time for it. If a case can only pass by waiting and hoping, the fault is in the production code — give it a deterministic seam. This is the same rule the Go suite follows and it is not negotiable in either.
 - **Tags:** `@smoke`, `@local`, `@single`, `@server`, plus `@mNN` per screen. Run a slice with `npm run test:e2e -- --grep @local`.
+- **A `row-*` locator is always scoped** (2026-08-30). `QuantityStepper` renders `row-check`/`row-minus`/`row-plus` and is used by M4's rows, M5's packing block and M8 alike — the ids name the *control*, not the screen, which is right, and a rename would be a breaking change across three units. While M5 is open the list behind it is still painted, so an unscoped `getByTestId('row-check')` is genuinely ambiguous. Scope to `m5-sheet` or to `m4-row-<name>`, never to the page. The suite has always done this; it was a habit rather than a rule until the M5 audit found no line saying so.
+- **A uuid in a DOM `id` is not always a missing testid** (2026-08-30). `ItemDetailSheet`'s note articles carry `id="comment-<uuid>"` because that is production's own scroll target for the G-4 `?comment=` deep link. It stays, and the addressable handle sits beside it as `m5-note-<body>`. Recorded so the next audit does not re-file it as the pattern the M4 audit named.
 - **An archived trip takes two clicks, not one** (FR-9.3, 2026-08-24). `m4-archive` no longer archives: it opens the closing pass, and **`m4-pass-finish` is what archives**. Every case that needs an archived trip — M14's, M21's, M12's trend, the backup unit — goes `m4-start` → `m4-archive` → `m4-pass-finish`. Skipping the pass without marking anything is a supported path, so a case that only wants the archived state needs no extra staging. This is written here because it is the kind of change that breaks *other* people's units: three specs kept clicking the one control and failed across three shards, and the `server` cases that were still owed when this was written — delegation, presence, M20, all landed since — will all reach for an archived trip eventually.
 
 ## M9/M10 — inventory and item editor (`e2e/inventory.spec.ts`, 2026-08-16)
@@ -2517,3 +2519,120 @@ real account:
    JIT-Pack, or revoke at Authelia; confirm which one you did and that it
    took effect. This is the single most important item here, because the
    safe-looking action is the one that does nothing.
+
+## M5 — six numbers that each meant two things (2026-08-30)
+
+The third screen through the audit of backlog item 6, after M6 and M4, and
+the first whose finding was not about a missing case at all.
+
+**M5's catalogue had two blocks that never met.** Lines 262–277 of the
+UI-Test-Spec were the set written for the §3.25 rebuild; 278–286 were the
+original v1.0 list, never renumbered. Six ids — `E2E-M5-06`, `-07`, `-09`,
+`-10`, `-11`, `-12` — carried one promise in each. The suite implements the
+rebuild's meaning of `-09`…`-12`, so **four green tests read as coverage of
+four promises nothing asserted**, and §7 pointed FR-3.3, FR-4.3, FR-6.2,
+FR-7.3, FR-20.1, FR-20.4 and FR-22.1 at the invisible half.
+
+It was not a slip anybody could have caught by reading a diff. `19d9826`
+(2026-08-09) defined `-06` and `-07` twice **inside one commit** — the new
+FR-25.14/25.15 entries were appended above the catalogue they duplicated —
+and `dd560d4` (2026-08-14) added `-09`…`-12` on top of an existing
+`-09`…`-12`. Both diffs are pure additions to a long list.
+
+**Why the shadowed entries are struck in place rather than renumbered.**
+Renumbering moves ids that eleven live artefacts already cite in their new
+sense — the suite, this ledger, the matrix, four log sections, three commit
+messages. And it destroys what the retirement convention exists for: a
+reader arriving from an old commit that says "E2E-M5-10" has to land on a
+line explaining what happened. The rule applied instead: **a number means
+what the suite implements**, the loser is struck through and re-headed
+*(v1.0 catalogue, shadowed)*, and only a promise that survives *and* has
+nowhere to live gets a fresh number. Two did: `E2E-M5-22` and `E2E-M5-23`.
+
+**It is a gate now.** `scripts/case-id-gate.mjs` fails on any id with more
+than one live definition, because nothing about this class is visible to a
+reviewer: both offending commits were pure additions to a long bulleted list,
+one of them defined the same id twice *inside a single commit*, and every
+automatic signal moved the reassuring way — the count of ids with a test rose
+each time. Writing the gate immediately found **four more**, `E2E-M3-11`,
+`-12`, `-13` and `E2E-M4-32`, all live pairs with two different promises. They
+sit in the gate's debt register, owed to those screens' own audits; a new
+collision is simply a failure.
+
+**Held against the screen, the twelve sorted the way the two earlier audits
+did** — four already asserted elsewhere (the G-3 lock banner, the delegation
+notification, the master photo, the prep lifecycle), four describing a
+screen that had moved on (the *Used by* section, *Buy now*, the per-person
+layout, a duplicate of M5-17), one never built (FR-14.1's sparkline, retired
+by the owner rather than left owed), and three real remainders.
+
+**The three, and what each cost.**
+
+*E2E-M5-05* — the note that becomes a task. One record, two sections, and
+the assertion that carries it is that the row **left** one as it entered the
+other: a case looking only for the todo passes against a build that renders
+it in both. M4's prep badge is the third reader, which is what makes the
+promotion a trip-level fact rather than sheet-local memory.
+
+*E2E-M5-22* — moving an item between containers. E2E-M11-03 had deferred
+this to M5 **in writing** ("re-assignment lives in M5's container control,
+and belongs to that screen's cases") and nothing followed; `m5-container`
+was asserted visible and never once operated. The readback is on M11 and by
+weight, because the two cards are the only surface that states where the
+thing actually is. Mutating `onContainerChange` to ignore a write onto an
+already-assigned row reddens it and leaves E2E-M11-06 green — that case only
+ever assigns out of the bucket.
+
+*E2E-M5-23* — the companion offer, which was M5-10's shadowed promise. It is
+the one entry that described something **built, visible on screen, and
+asserted nowhere**: the section had been in the sheet since the rebuild with
+no `data-testid` anywhere in it, which is the same signature the M20 audit
+named. Two traps: a free-text quick-add row carries no `source_item_id` and
+therefore no dependencies at all, so the world has to be built through the
+*suggestion*; and `addItemDependency` defaults to `required`, so reaching
+the suggested mode meant giving M10's dependency-mode select an id.
+
+**The finding underneath the collision.** FR-25.15 says the sheet's save
+indicator is *„deliberately distinct from G-2 … offline that difference is
+the entire story, so the two indicators must not be merged into one"*, and
+`SaveIndicator.vue`'s doc comment repeated it. All four sheets carrying it
+passed it `syncStatus.state` — G-2's own state. That computed answers
+`offline` **before** `syncing`, so a write still open on a device with no
+network rendered as *saved*, and a background pull on a device with one
+rendered as *saving*. The one case the requirement was written for is the
+one it got wrong, and no case had ever caught it because the indicator's own
+unit test asserted the consequence as the rule: *"reads every non-syncing
+state as settled — offline is a G-2 story, not this one"*. Offline is
+precisely this story.
+
+It is now `capturePending`, counting this device's own open writes — the
+Local Mode save, and the outbox's append to IndexedDB — and nothing else.
+`SaveIndicator` takes a boolean and no longer imports `SyncState`, which is
+what had tied the two together.
+
+**Where that is asserted, and where it deliberately is not.** Five cases in
+`composables/__tests__/captureState.spec.ts` and three in
+`ItemDetailSheet.spec.ts`, all three of which redden when the sheet is
+pointed back at `syncStatus.state`. **No e2e claims it**: the ● is transient
+by construction, so a browser case could only race it, and the ledger's own
+rule says a case that can pass by waiting-and-hoping is worse than no case.
+What the e2e does assert is the half that holds still — E2E-M5-11 now checks
+that the sheet carries no save control, beside the indicator that stands
+instead of one.
+
+**And the rule is pinned at the call sites, not on one screen.** The
+indicator is mounted by four sheets and all four carried the same wrong
+line, so a behavioural case on M5 would have proved M5 and nothing else —
+the §4.0 trap, one rule written into N templates. `saveIndicatorWiring.spec.ts`
+scans every file under `client/src` instead: no call site may be handed the
+sync state, all must take `capturePending`, and the component itself must not
+import `SyncState`. It **counts the call sites before judging them**, because
+a source scan whose glob quietly matches nothing passes every assertion it
+makes. Proved by rewiring one of the other three sheets — it reddens and
+names the file.
+
+**One promise was retired for the reverse reason.** FR-7.3 ends *"Resolution
+is restricted to the item's assignee or the trip owner"* — enforced nowhere,
+client or server, and contradicting the same FR's own sentence two lines
+earlier that todos are visible to every trip member. Struck with the owner's
+decision rather than left standing as a rule the app has never followed.

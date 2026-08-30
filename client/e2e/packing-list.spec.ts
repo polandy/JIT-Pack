@@ -1006,6 +1006,16 @@ test.describe('M4 packing list — the rendered remainder @local @m4', () => {
     // satisfy visibility and say nothing.
     await expect(row.getByTestId('m4-packed-stamp')).toContainText(/\d{1,2}[:.]\d{2}/)
 
+    // The same record on M5, which the UI-Test-Spec calls an M5 case and
+    // nothing had ever driven: read-only there, because the server stamps
+    // it and no control may pick it (invariant 3).
+    await row.getByRole('heading').click()
+    await page.getByTestId('m5-details').click()
+    await expect(page.getByTestId('m5-stamp')).toContainText(/\d{1,2}[:.]\d{2}/)
+    await expect(page.getByTestId('m5-stamp').locator('ion-select, input, button')).toHaveCount(0)
+    await page.getByTestId('m5-close').click()
+    await expect(page.getByTestId('m5-sheet')).toHaveCount(0)
+
     await row.getByTestId('row-check').click()
 
     // Back on the working list, and the stamp is gone with the state it

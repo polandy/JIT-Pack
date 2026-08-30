@@ -69,10 +69,6 @@ const isCreating = computed(() => route.name === 'item-create')
 
 const item = computed(() => (props.itemId ? masterStore.getItem(props.itemId) : undefined))
 
-// FR-25.15: the indicator reads the orchestrator's state — an open Local
-// Mode write reports as `syncing` (FR-19.2), so "settled" is observed.
-const saveState = computed(() => orchestrator.syncStatus.state.value)
-
 // --- Creation draft (FR-24.5) ---
 
 const draftName = ref('')
@@ -435,7 +431,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
         </p>
 
         <div v-else class="edit-head">
-          <SaveIndicator :state="saveState" />
+          <SaveIndicator :pending="orchestrator.capturePending.value" />
         </div>
 
         <IonList>
@@ -676,6 +672,7 @@ setHeaderTitle(() => (isCreating.value ? t('items.new') : (item.value?.name ?? t
                 :value="dep.mode"
                 interface="popover"
                 slot="end"
+                :data-testid="`m10-dependency-mode-${itemName(dep.depends_on_item_id)}`"
                 @ionChange="(e: CustomEvent) => onDependencyModeChange(dep.id, e.detail.value)"
               >
                 <IonSelectOption value="required">{{ modeLabel('required') }}</IonSelectOption>

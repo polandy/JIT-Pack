@@ -51,10 +51,6 @@ const itemName = computed(
 )
 const tasks = computed(() => masterStore.getTemplateItemTasks(props.positionId))
 
-// FR-25.15: the indicator reads the orchestrator's state — an open Local
-// Mode write reports as `syncing` (FR-19.2), so "settled" is observed.
-const saveState = computed(() => orchestrator.syncStatus.state.value)
-
 /** Folded by default: the sheet opens on what is routinely touched (FR-25.7). */
 const detailsOpen = ref(false)
 
@@ -151,7 +147,7 @@ const MODES: Array<{ value: ItemMode; label: () => string }> = [
           {{ t('templates.positionOf', { scope: scopeName, name: template?.name ?? '' }) }}
         </p>
       </div>
-      <SaveIndicator :state="saveState" />
+      <SaveIndicator :pending="orchestrator.capturePending.value" />
       <button
         class="x"
         data-testid="m8-position-close"

@@ -246,7 +246,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M4-41** `all` (FR-5.5, UI-Spec M4) — **implemented**: holding a row opens the menu **and not** the detail sheet, and cancelling the menu leaves the row's ordinary tap working. M7 paid for this once: the release of a hold usually lands on the overlay rather than on the row, so a "swallow the next click" flag goes stale and eats a later, legitimate tap. **Not asserted here:** that a G-3-locked row has no menu at all — the guard exists in `PackingListPage.vue`, but a lock needs a second user and therefore `server` mode, which this unit does not have. Recorded rather than implied.
 * **E2E-M4-42** `all` (FR-5.5, FR-25.1) — **implemented**: the same menu on a **per-person child row** inside a cluster — skipping one traveler's row leaves the other traveller's standing, and the revealed child carries the mark. The gesture is written into *two* templates, and the ordinary row keeping it says nothing about the child; a family trip is mostly child rows. Mutation-proved on its own: removing the child row's handler reddens this case alone.
 * **E2E-M5-16** `all` (FR-5.5) — **implemented** (`e2e/skip-item.spec.ts`): the M5 sheet's control reads *Nicht einpacken*, skips on tap — the sheet's own state line then says so — and flips to *Doch einpacken*, which takes it back. The findable half of the pair; a screen keeping its half says nothing about the other, which is why this is not folded into the M4 cases.
-* **E2E-M4-30** `server` (FR-25.19) — **implemented 2026-08-30** in two layers. The rule — the packing record beats the assignment, and a row carries **one** right edge — is `domain/packingView.spec.ts`'s `rowEdgeAvatar` block, five cases; it moved out of `PackingListPage.vue` to get them, having been unreachable by any test since the concept round. The rendered half rides on E2E-FLOW-02 (`e2e/server/multi-user.spec.ts`): Bob is responsible, Alice packs, the edge is Alice with the packer's tick and there is no second avatar. Two accounts are what the case needs — with one, the two columns cannot hold different people and the rule is satisfied by accident. Mutation-proved by inverting the precedence. The M5 sheet's read-only packing record is E2E-M5's. **Not asserted, and recorded rather than implied:** the same edge on a per-person *child* row. `rowEdgeAvatar` is called from two templates and the rule is now one function, so a child cannot disagree with a row about the precedence — but whether the child renders the avatar at all is a second template's business, and reaching it costs a cluster, an assignment and two accounts at once. It is the same shape as E2E-M4-42's argument for covering the child row's menu separately, and it predates this PR.
+* **E2E-M4-30** `server` (FR-25.19) — **implemented 2026-08-30** in two layers. The rule — the packing record beats the assignment, and a row carries **one** right edge — is `domain/packingView.spec.ts`'s `rowEdgeAvatar` block, five cases; it moved out of `PackingListPage.vue` to get them, having been unreachable by any test since the concept round. The rendered half rides on E2E-FLOW-02 (`e2e/server/multi-user.spec.ts`): Bob is responsible, Alice packs, the edge is Alice with the packer's tick and there is no second avatar. Two accounts are what the case needs — with one, the two columns cannot hold different people and the rule is satisfied by accident. Mutation-proved by inverting the precedence. The M5 sheet's read-only packing record is asserted inside E2E-M4-24 since 2026-08-30 (`m5-stamp` carries the time and no control) — it had been called an M5 case without an id, and nothing drove it. **Not asserted, and recorded rather than implied:** the same edge on a per-person *child* row. `rowEdgeAvatar` is called from two templates and the rule is now one function, so a child cannot disagree with a row about the precedence — but whether the child renders the avatar at all is a second template's business, and reaching it costs a cluster, an assignment and two accounts at once. It is the same shape as E2E-M4-42's argument for covering the child row's menu separately, and it predates this PR.
 * **E2E-M4-31** `server` (FR-25.20) — **implemented** (`e2e/server/multi-user.spec.ts`, inside E2E-FLOW-02): a row assigned to Bob leaves Alice's list, the reveal bar states it and names him, the empty state says so rather than blaming a filter nobody set, and one tap shows the row. **The header guard landed 2026-08-30**: the packed/total text is read while the row is hidden and asserted after the reveal, so a filtered list can never make the trip look further along than it is. The session-persistence clause is `usePackingFilter.spec.ts`'s, with the rest of FR-25.18.
 * **E2E-M4-26** `all` (FR-27.10) — **implemented** (`e2e/group-to-trip.spec.ts`, two cases): the M4 quick-add lists **groups** under *„Ganze Gruppe hinzufügen“* with their resolved position count; typing filters them — asserted in both directions against a second group in the world, since "always offers the first group" would satisfy a single query. Tapping one adds **only the positions the trip does not already carry**, reports the result ("N Positionen, M schon dabei") and materialises the positions' FR-27.7 tasks as prep todos on them. The group's **provenance on the new rows** is asserted in `composables/__tests__/groupToTrip.spec.ts` rather than here: `source_template_id` is invisible on M4, and its user-visible consequences are a year away (FR-27.5) or belong to another case (the FR-27.4 registration, M4-27). Asserts the new rows are **not** flagged *Missing* — an added group is a grown plan, not a forgotten item, and flagging it would feed M14 a false signal.
 * **E2E-M8-20** `all` (FR-27.10, added 2026-08-19) — **implemented** (`e2e/group-to-trip.spec.ts`): M8's composer is the *same component* with the group offer switched off, so M4 gaining groups could hand them to a screen where FR-27.1 forbids nesting one. The case asserts the absence beside a **positive signal** — the free-text hint, which is the line M4 hides when groups match, so a leaked prop reddens it. Mutation-proved on both browsers.
@@ -259,6 +259,36 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M4-14** `all` (FR-25.1/25.2) — **implemented 2026-08-30** (`e2e/membership.spec.ts`): packing one instance of a two-person cluster keeps the cluster intact — the packed child drops out (FR-25.2), the head still counts over the full set (`1/2`), and the remaining instance is still a **child**. The rule is unit-tested twice in `packingView.spec.ts`; what this case owns is M4's own wiring, because the screen holds a full set and a hidden-done one and handing over the wrong one flattens the survivor the instant its sibling is packed — restructuring the list under the finger that is mid-tap.
 
 ### M5 — Item Detail
+
+**How to read this section (2026-08-30, audit of backlog item 6).** M5's
+catalogue had grown two blocks that never met, and **six numbers meant two
+different things**: `E2E-M5-06`, `-07`, `-09`, `-10`, `-11` and `-12` each
+carried one promise from the original v1.0 list and a second from the §3.25
+rebuild. The suite implements the rebuild's meaning of `-09`…`-12`, so four
+green tests read as coverage of four promises nothing asserted, and §7
+pointed FR-3.3, FR-4.3, FR-6.2, FR-7.3, FR-20.1, FR-20.4 and FR-22.1 at the
+invisible half. It came about in two steps: `19d9826` (2026-08-09) defined
+`-06` and `-07` twice **inside one commit**, and `dd560d4` (2026-08-14, the
+M4/M5 rebuild) appended `-09`…`-12` on top of an existing `-09`…`-12`.
+
+The rule that resolved it: **a number means what the suite implements.** The
+shadowed entries are struck through in place, each saying where its promise
+actually went, and are marked *(v1.0 catalogue, shadowed)* so no number is
+ever ambiguous again. The two promises that survived and had nowhere to live
+got fresh numbers at the end — `E2E-M5-22` and `E2E-M5-23`. Nothing was
+renumbered, because a reader arriving from an older commit has to be able to
+find out what happened to the id it names.
+
+**And it is a gate now, because it was never catchable by eye.**
+`scripts/case-id-gate.mjs` (in `make ci` and the CI client job) fails when an
+id has more than one *live* definition; a struck entry keeps its number on
+purpose and is a tombstone, not a definition. Writing it turned up **four more
+collisions on other screens** — `E2E-M3-11`, `-12`, `-13` and `E2E-M4-32`, each
+a live pair carrying two different promises. They are listed in the gate as a
+debt register that may only shrink, owed to the M3 and M4 audits; the list is
+not a carve-out, and a *new* collision fails the build outright.
+
+
 * **E2E-M5-09** `all` (UI-Spec M5): tapping a row opens the detail **over** the list — M4 stays on screen — and the ✕ returns to the trip's own URL.
 * **E2E-M5-10** `all` (G-4): a cold boot straight onto an item URL opens the same sheet, since the route is the state. Its ✕ leads back to the trip.
 * **E2E-M5-11** `all` (UI-Spec M5 rework): packing, preparation and notes are on the first level; every attribute control is **absent** until *Details* is opened. **Extended 2026-08-27 (UX-10):** the packing block carries its eyebrow label („Einpacken" / "Packing"), the same pattern as the prep and notes sections.
@@ -266,24 +296,26 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M5-13** `all` (Navigation Concept §7 case 4) — **implemented** (`e2e/item-detail.spec.ts`, red-proved against the unguarded build): the **browser's** back with the sheet open closes the sheet and stays on the packing list — the replace-based overlay history must not let a pop skip M4 and land on the trip list. The write-side rule is unit-specified in `src/router/__tests__/overlayBackGuard.spec.ts`.
 * **E2E-M5-14** `all` (G-14/FR-21.8) — **implemented** (`e2e/item-detail.spec.ts`, red-proved against the 26 px build): the header's save indicator and ✕ share a diameter and a centre line. Measured on the rendered boxes, both read in one frame so the sheet's enter animation cannot fake a difference.
 * **E2E-M5-17** `all` (FR-9.1) — **implemented** (`e2e/item-detail.spec.ts`): the two trip-feedback flags are controls behind *Details ▾* and appear **only once the trip runs** — the same case starts the trip and marks the row *unused*, so the absence half has a positive signal beside it rather than passing on a typo. Read back from the glance chip, which renders off the stored row.
-* **E2E-M5-06** `all` (FR-25.14): opening a **per-person** item shows its total as a **read-only chip** ("0/3") with **no** +/− control on it, and one row per traveler each carrying its own check or stepper. Packing one traveler's instance raises the total and leaves the others untouched. Guards the regression where the summed quantity sat in a stepper that could not be operated.
-* **E2E-M5-07** `all` (FR-25.15): the sheet has **no Save button**; any edit flips the icon-only indicator to the amber pulsing ● and back to the green ✓ once settled — no text label (it wrapped next to long names), the meaning sits in the `title` tooltip. The *Details* toggle, which only folds the sheet open, must **not** flip it. Asserts the indicator is separate from the G-2 sync glyph.
-* **E2E-M5-01** `all` (FR-4.2): distinct *Used by* (traveler) vs *Packed by* (user) sections.
-* **E2E-M5-02** `all` (FR-3.1/10.2): mode selector PACK/BUY_BEFORE/BUY_LOCAL; container picker.
-* **E2E-M5-03** `all` (FR-9.1): Unused/Missing flags visible only on active trips.
+* ~~**E2E-M5-06** `all` (FR-25.14): opening a **per-person** item shows its total as a **read-only chip** ("0/3") with **no** +/− control on it, and one row per traveler each carrying its own check or stepper.~~ — **retired 2026-08-30 (owner): superseded by FR-25.21.** M5 no longer shows the whole set — it opens on **one instance** and names its traveler and that instance's amount (UI-Spec M5, 2026-08-29). The `0/3` head and the untouched siblings moved to M4's cluster, where **E2E-M5-18** asserts both. FR-25.14's actual rule, that a summed total is never a stepper, survives there.
+* **E2E-M5-07** `all` (FR-25.15) — **implemented 2026-08-30, and the audit's load-bearing finding.** The sheet has **no Save button** — asserted in E2E-M5-11, beside the indicator that stands instead of one — and the indicator says whether *this device* has captured the edit. It did not. All four sheets that carry it handed it `syncStatus.state`, **G-2's own state**, which is the one thing FR-25.15 says it must never be; and that state answers `offline` before `syncing`, so a write still open on a device with no network rendered as **saved** — the single case the requirement exists for — while a background pull on a device with a network rendered as *saving*. The signal is now `capturePending`, which counts this device's own open writes and nothing else. **Asserted where it can fail:** `composables/__tests__/captureState.spec.ts` (five cases, the offline one included) and three under *M5 FR-25.15 save indicator*; a browser could only race the transient ●, so no e2e claims it. **And asserted across all four sheets, not only this one** — `saveIndicatorWiring.spec.ts` scans every call site, because the defect was one wrong line copied into four templates and a behavioural case on M5 says nothing about M8, M10 or M11. It counts the call sites it found before judging them, so a scan that matched nothing cannot pass quietly. The *Details* toggle needs no case of its own — it writes nothing, so an assertion that it does not flip the indicator could not fail.
+* ~~**E2E-M5-01** `all` (FR-4.2): distinct *Used by* (traveler) vs *Packed by* (user) sections.~~ — **retired 2026-08-30 (owner), the screen reversed it.** The free-form *Used by* label was dropped on 2026-07-18 (UI-Spec M5) and replaced by *„Wer braucht das?“*: for-whom is per-person **membership**, not a caption. FR-4.2's two halves are both asserted, apart — the packing record in E2E-M4-24/-30, the traveler in E2E-M5-18/-19.
+* **E2E-M5-02** `all` (FR-3.1/10.2) — **implemented, split across three cases** (2026-08-30): both controls exist behind *Details ▾* per E2E-M5-11, the mode is actually *switched* in `e2e/shopping.spec.ts` (a row set to *Buy before* leaves M4 for M6), and the container is switched in **E2E-M5-22**. This entry describes the fold's contents; it is not a case of its own.
+* ~~**E2E-M5-03** `all` (FR-9.1): Unused/Missing flags visible only on active trips.~~ — **retired 2026-08-30 as a duplicate**: E2E-M5-17 is the same sentence, implemented, and carries the positive signal beside the absence that this one does not ask for. Same disposal as `M4-07 → M4-40`.
 * **E2E-M5-18** `all` (FR-25.21, added 2026-08-29): on a shared item, open *Wer braucht das?*, switch to *Pro Person*, check Andy/Leonardo/Mia and set 2/3/1. Asserted **in M4 on the rendered cluster**: the item is named **once**, three child rows carry three *different* amounts, and the head reads `0/3`. Deliberately not a row-count assertion — FR-25.8's own history records an implementation that created N unrelated items sharing a name and satisfied every count.
 * **E2E-M5-19** `all` (FR-25.21): from a roster of three, remove the traveler whose row has packed progress. The confirm names the count; *Abbrechen* leaves all three standing; confirming leaves exactly two and the head reads `0/2`. Then remove a third whose row carries nothing: that one is written **without** a question. The cancel half is the positive signal that a removal is a decision rather than a side effect of tapping a checkbox, and the silent half is the positive signal that the question is raised by what it would cost and not by the control.
 * **E2E-M5-20** `all` (FR-25.21b): collapse back to *Gemeinsam*. One row remains at quantity **5** — the sum, not the largest — and the preparation todo written on the surviving row before the conversion is still on it afterwards. That last clause is the one worth having: ADR-036 chose keep-and-repoint over delete-and-recreate precisely so a structural edit cannot destroy the content hanging off a row, and this is the only place that claim is asserted where it would actually be lost.
 * **E2E-M5-21** `all` (FR-25.21/FR-5.5, added 2026-08-30) — **implemented** (`e2e/membership.spec.ts`): an item added with FR-25.13f's ✕ (*„zu Hause gelassen"*, quantity 0 and state *skipped*) and then split per person, whose smallest membership is 1. The conversion **asks first**, naming the item, and cancelling is the positive signal that the question is a gate — the amount does not appear. After confirming, the assertion that carries the case is that the row is **on the list**, labelled *„Kurze Hosen · Andy"*: `isDone` reads *skipped* as done, so before this rule the row was created and hidden in the same breath, and only a visible row disproves that.
-* **E2E-M5-04** `all` (FR-14.1): history sparkline of quantities from previous series trips.
-* **E2E-M5-05** `all` (FR-7.1/7.2): comment thread; flag-as-task toggle turns a comment into an open task.
-* **E2E-M5-06** `all` (FR-7.3): prep-todo section — add/resolve/reopen; resolve restricted to assignee/owner.
-* **E2E-M5-07** `server` (FR-6.2): delegate (set Packed by → other user) triggers a notification on the recipient.
-* **E2E-M5-08** `single/local` (FR-17.3/G-8): Delegate control hidden.
-* **E2E-M5-09** `all` (FR-3.3): "Buy now" on a BUY_BEFORE item flips mode to PACK with an undo snackbar.
-* **E2E-M5-10** `all` (FR-20.1/20.4): Companions hint with one-tap Add (chains required companions).
-* **E2E-M5-11** `server` (G-3): item locked by the other user → read-only with lock banner.
-* **E2E-M5-12** `all` (FR-22.1): the source master item's photo renders when present.
+* **E2E-M5-22** `all` (FR-10.2, new 2026-08-30) — **implemented** (`e2e/containers.spec.ts`): moving an item from one container to another through M5's picker. E2E-M11-06 covers only the *first* assignment, out of the unassigned bucket; changing an existing one has only ever been possible here, and E2E-M11-03 said so in writing without the case ever following. The readback is on **M11 and by weight** — the two cards are the only surface stating where the thing actually is, and a control repainting its own value would satisfy anything asserted inside the sheet. The bucket count is the third assertion: a move that dropped the old assignment without writing the new one leaves the item nowhere, and both card assertions would still pass. Red-proved by ignoring a write onto a row that already has a container — E2E-M11-06 stays green against exactly that.
+* **E2E-M5-23** `all` (FR-20.1/20.4, new 2026-08-30, carrying M5-10's promise) — **implemented** (`e2e/item-detail.spec.ts`): the sheet offers the *suggested* companion its item is missing, an unrelated third master item is **not** offered, one tap lands the row on M4, and re-opening the sheet the section is **gone**. The last clause is what makes it a live derivation of the list rather than a stored hint, and the negative one is the positive signal against a section that simply lists everything. FR-20.4's *required* companions join without being asked and are E2E-M4-40's; this case owns the asking. Red-proved by treating `suggested` as `required`, which makes the companion join on quick-add so the section never renders.
+* ~~**E2E-M5-04** `all` (FR-14.1): history sparkline of quantities from previous series trips.~~ — **retired 2026-08-30 (owner): never built, and not owed.** No history or sparkline component exists on M5; FR-14.1's per-item history is offered where the quantity is actually decided, in M3's review step (E2E-M3-08). Writing this case would have been building a feature, not covering one.
+* **E2E-M5-05** `all` (FR-7.1/7.2) — **implemented 2026-08-30** (`e2e/item-detail.spec.ts`): a note typed into the sheet appears in its notes section; the note's flag control **moves** it — gone from the notes, open in *Vorbereitung* — and once the sheet closes, M4's row carries a prep badge of 1 where it had none. A note and a todo are one record (`is_task = 1`), so the promotion is a row changing *collection* rather than a field changing on a row: a case that only looked for the todo would pass against a build that rendered it in both sections at once. M4 is the third reader, which is what makes the promotion a trip-level fact rather than something the sheet remembers about itself. Red-proved by writing `task_state` without `is_task`.
+* ~~**E2E-M5-06 (v1.0 catalogue, shadowed)** `all` (FR-7.3): prep-todo section — add/resolve/reopen; resolve restricted to assignee/owner.~~ — **the lifecycle is E2E-M4-25**, which drives M5's own todo controls end to end. **The restriction clause is struck together with the FR** (2026-08-30, owner): nothing enforced it in the client or the server, and it contradicted FR-7.3's own promise two sentences earlier that todos are visible to every trip member — see the Addendum.
+* ~~**E2E-M5-07 (v1.0 catalogue, shadowed)** `server` (FR-6.2): delegate (set Packed by → other user) triggers a notification on the recipient.~~ — **implemented under other ids**: E2E-FLOW-02 drives the assignment and the notification it fires, and E2E-NOTIFY-01 asserts the language it arrives in.
+* **E2E-M5-08** `single/local` (FR-17.3/G-8): Delegate control hidden — **implemented at unit level**, `components/trips/__tests__/ItemDetailSheet.spec.ts` (*offers no picker where the only member is me* and *offers no picker where there is nobody to assign to (G-8)*). Deliberately not a browser case: the guard is arithmetic over the roster, and neither `local` nor `single` can render a second member at all, so a Playwright run would re-execute what is decided here and establish nothing further. Recorded 2026-08-30 — the ledger had reported this unwritten while both cases stood.
+* ~~**E2E-M5-09 (v1.0 catalogue, shadowed)** `all` (FR-3.3): "Buy now" on a BUY_BEFORE item flips mode to PACK with an undo snackbar.~~ — **retired 2026-08-30 (owner): the right behaviour on the wrong screen.** FR-3.3 is realised where the buying happens, on M6 — the check-off writes `bought_from` and moves the row (FR-25.11j) — and E2E-M6-17 asserts it, including the visit to M4 that finds the row afterwards. M5 offers no buy control and is not owed one.
+* ~~**E2E-M5-10 (v1.0 catalogue, shadowed)** `all` (FR-20.1/20.4): Companions hint with one-tap Add (chains required companions).~~ — **the promise survived and is now E2E-M5-23.** It was the one shadowed entry describing something built, visible and asserted nowhere: the section had been on M5 since the rebuild with no `data-testid` anywhere in it. The *required* half is E2E-M4-40's cascade; this half is the offer.
+* ~~**E2E-M5-11 (v1.0 catalogue, shadowed)** `server` (G-3): item locked by the other user → read-only with lock banner.~~ — **implemented under other ids**: the rendered banner in `e2e/server/multi-user.spec.ts` (which names the holder) and `e2e/single/server-sync.spec.ts` (both directions, including the banner's disappearance), and the rule itself in seven unit cases under *M5 respects the G-3 lock*, which now carry this id in the file.
+* ~~**E2E-M5-12 (v1.0 catalogue, shadowed)** `all` (FR-22.1): the source master item's photo renders when present.~~ — **implemented at component level on purpose**, as E2E-M5-15's entry already records: setting a photo through the UI needs a camera or a file upload, so the photo rung of the identity slot is asserted where the component is mounted directly.
 * **E2E-M5-15** `all` (FR-28.4) — **implemented 2026-08-22** (`item-mark.spec.ts`): the sheet's identity slot shows the mark when there is no photo, an ad-hoc row's sheet shows **no slot at all** (the header has no column to align, so the title is the first thing on the line), and the mark is **not editable here** (no picker in the sheet) — it belongs to the master item, and M10 owns it (FR-28.7). *The photo rung of the same slot is asserted in the component unit rather than here: setting one through the UI needs a camera or a file upload, which is `item-detail.spec.ts`'s subject and not the mark's.*
 
 ### M6 — Shopping Views
@@ -392,7 +424,7 @@ Each case is **Given / When / Then**, tagged with mode(s) and the requirement(s)
 * **E2E-M11-07** `all` (UX-8, 2026-08-27) — **implemented** (`e2e/containers.spec.ts`): with zero containers and nothing unassigned, the unassigned section is **absent** — "everything is assigned to a container" must not stand under "no containers yet". Creating the first container brings the section back with its (0) count and hint, which is the positive signal the absence is asserted against.
 * **E2E-M11-06** `all` (FR-10.2/25.5) — **implemented** (`e2e/containers.spec.ts`; the no-grid assertion counts `ion-select`, not `button` — Playwright CSS pierces shadow DOM, where ion-item's own tap surface is a native button): the unassigned bucket renders **one row per item** (asserts no per-container button grid); tapping a row opens the container picker with each container's current load, and choosing one assigns the item. Deleting a container **unassigns** its items — they must still be on the packing list afterwards.
 * **E2E-M11-02** `all` (FR-10.3) — **implemented** (`e2e/containers.spec.ts`; the weight arrives through the app's own paths, M10 minimal form → quick-add suggestion): weight bar goes amber at ≥90%, red beyond max.
-* **E2E-M11-03** `all` (FR-10.2) — **folded into M11-06, and narrowed to what the screen does**: unassigned bucket; assign an item **into** a container; deleting a container unassigns its items first. Moving an item *between* containers is deliberately not an M11 gesture — an assigned item leaves the bucket and the cards do not list their contents, so the screen offers no path to it. Re-assignment lives in M5's container control (`m5-container`), and belongs to that screen's cases.
+* **E2E-M11-03** `all` (FR-10.2) — **folded into M11-06, and narrowed to what the screen does**: unassigned bucket; assign an item **into** a container; deleting a container unassigns its items first. Moving an item *between* containers is deliberately not an M11 gesture — an assigned item leaves the bucket and the cards do not list their contents, so the screen offers no path to it. Re-assignment lives in M5's container control (`m5-container`), and belongs to that screen's cases — **written 2026-08-30 as E2E-M5-22**, which is where this sentence had been pointing for months with nothing at the other end.
 * **E2E-M11-04** `all` (FR-10.3) — **implemented** (`e2e/containers.spec.ts`, asserted on both cards of the pair; mutation-proved: emptying the delete path's release writes fails it): pairing control shows a live imbalance indicator against the threshold, and **deleting one side releases the other** — the survivor stops reporting an imbalance instead of weighing itself against a container that no longer exists. The skew is what makes that assertable, which is why the rule is asserted here rather than beside the pairing case.
 
 ### M12 — Analytics
@@ -579,12 +611,12 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-2.3 / 2.3a | E2E+UNIT | M3-06, M8-03; instantiate.ts |
 | FR-2.4 | E2E | M3-10, M8-05, M10-02 |
 | FR-2.5 | E2E | M3-03 |
-| FR-3.1 | E2E | M5-02 |
+| FR-3.1 | E2E | M5-02 (the control), shopping.spec.ts (the write) |
 | FR-3.2 | E2E | M6-01/04, M4-11 |
-| FR-3.3 | E2E | M6-02, M6-22, M5-09, FLOW-03 |
+| FR-3.3 | E2E | M6-02, M6-17, M6-22, FLOW-03 (M5-09 retired — the buy lives on M6) |
 | FR-4.1 | E2E | M3-04 (share on create) |
-| FR-4.2 | E2E | M5-01 |
-| FR-4.3 | E2E | M4-06, M5-07 |
+| FR-4.2 | E2E | M4-24, M4-30 (the record), M5-18, M5-19 (for whom) — M5-01 retired |
+| FR-4.3 | E2E | FLOW-02, M4-30, M4-31 (M4-06 and the shadowed M5-07 are both retired) |
 | FR-4.4 | E2E | M4-10, M1-03, FLOW-01 |
 | FR-4.5 | E2E | M2-05, M3-04, TripMembers |
 | FR-4.6 | UNIT | members.ts role model; surfaced via M3-04 |
@@ -597,17 +629,17 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-5.6 | E2E | M4-04, M6-03 |
 | FR-5.7 | E2E | G3-02 (mode gate), M4-49/50 |
 | FR-6.1 | E2E | M1-01/03 |
-| FR-6.2 | E2E | M5-07, M17-01, FLOW-02 |
+| FR-6.2 | E2E | FLOW-02, NOTIFY-01, M17-01 |
 | FR-6.3 | E2E | G4-01, M1-04, FLOW-02 |
 | FR-7.1 | E2E | M5-05 |
-| FR-7.2 | E2E | M5-05, M4-09 |
-| FR-7.3 | E2E | M1-02, M4-08, M5-06 |
+| FR-7.2 | E2E | M5-05 (M4-09 retired — FR-7.3 overrides its refusal) |
+| FR-7.3 | E2E | M1-02, M4-08, M4-25 (M5-06's shadowed half; the resolution restriction is struck) |
 | FR-8.1 | E2E | M4-01, M12-01 |
 | FR-8.2 | E2E+UNIT | M12-01/02/04/05, M12-06 (grouping handoff); analytics.ts |
-| FR-9.1 | E2E | M5-03, M4-04, FLOW-04 |
+| FR-9.1 | E2E | M5-17, M4-04, FLOW-04 (M5-03 retired as its duplicate) |
 | FR-9.2 | E2E+UNIT | M14-01/02/03/06; review.ts, ReviewPage.spec.ts |
 | FR-10.1 | E2E | M11-01 (via M11-05/06) |
-| FR-10.2 | E2E | M11-06 (03 folded in), M5-02 |
+| FR-10.2 | E2E | M11-06 (03 folded in, first assignment), M5-22 (re-assignment) |
 | FR-10.3 | E2E+UNIT | M11-02/04; containers.ts |
 | FR-10.4 | UNIT | analytics.ts (container weight); surfaced M12-01 |
 | FR-11.1–11.3 | — | removed (Repack feature dropped, Addendum §3.11) |
@@ -616,7 +648,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-13.1 | E2E+UNIT | M2-02 (**unwritten on purpose** — the series grouping it describes is the option the 2026-08-08 review rejected, see E2E-M2-15), M16-01; `composables/__tests__/nameCollision.spec.ts` (a taken series name is refused before the mutation — M3's wizard note and M16's rename have no e2e case yet, named in `e2e-tests.md`) |
 | FR-13.2 | E2E | M16-03/04, M3-02 |
 | FR-13.3 | E2E | M3-09, M16-02, M6-01 |
-| FR-14.1 | E2E | M3-08, M5-04 |
+| FR-14.1 | E2E | M3-08 (M5-04 retired — no history on M5, and none owed) |
 | FR-14.2 | E2E+UNIT | M3-08; suggestions.ts |
 | FR-14.3 | E2E+UNIT | M12-03 (absence half; positive half blocked on an archive path, see M12-03); analytics.ts |
 | FR-15.1 | E2E | M3-01, M16-01 |
@@ -626,7 +658,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-16.2 | E2E | M2-08 (**unwritten** — the *„Imported"* chip is not built; `trips.imported` has a writer and no reader), M15-04, M15-05 |
 | FR-16.3 | E2E+UNIT | M15-03, M15-09, M18-03, M9-03; spreadsheet.ts |
 | FR-17.1/17.2 | E2E | G1-01, G8-01 (Single-User surface) |
-| FR-17.3 | E2E | M2-06, M3-05, M5-08, M17-08 |
+| FR-17.3 | E2E+UNIT | M2-06, M3-05, M17-08; M5-08 in ItemDetailSheet.spec.ts |
 | FR-17.4/17.5 | E2E | M17 profile (single-user bootstrap) |
 | FR-17.6–17.10/17.12 | DOC/N-A | Demo Mode — removed in v2.10 |
 | FR-17.11 | E2E | G8-01 (feature inert in Single-User) |
@@ -645,10 +677,10 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-19.4 | E2E | G2-02 (local glyph/state) |
 | FR-19.5 | E2E | FLOW-07 |
 | FR-19.6 | E2E | G2-02, NFR-03 |
-| FR-20.1 | E2E+UNIT | M10-03, M5-10; dependencies.ts |
+| FR-20.1 | E2E+UNIT | M10-03, M5-23; dependencies.ts |
 | FR-20.2 | E2E+UNIT | M4-07; dependencies.ts |
 | FR-20.3 | E2E+UNIT | M3-07; dependencies.ts |
-| FR-20.4 | E2E+UNIT | M3-07, M5-10; dependencies.ts |
+| FR-20.4 | E2E+UNIT | M3-07, M4-40 (required), M5-23 (suggested); dependencies.ts |
 | FR-21.1/21.2 | E2E | G11-01 (Mocha default) |
 | FR-21.3 | E2E | M17-06 |
 | FR-21.4 | E2E | G11-01 (no flash before paint) |
@@ -657,7 +689,7 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-21.7 | E2E+UNIT | G11-02, G11-03, G11-04, G11-05 (brand on identity, done on progress); catppuccin.css (roles named once, primary stays blue, no hex outside the table) |
 | FR-25.2 | E2E+UNIT | M4-33, M4-34, M4-35 (the pack registers, one undo, none on un-pack); `usePackUndo` (the snapshot is taken before the pack, replaces rather than stacks, undoes once, no-ops when unarmed) |
 | FR-21.8 | E2E+UNIT+GATE | G14-01, G14-02, G14-03 (the card is a plane, casts a flavour-correct shadow, and bounds the group rather than its entries); surfaces.css (planes differ, `.jp-card` built from tokens, five radius steps, each cast written once); `scripts/design-tokens-gate.mjs` (no raw colour, radius or shadow anywhere in `client/src`) |
-| FR-22.1 | E2E | M10-04, M9-01, M5-12 |
+| FR-22.1 | E2E+UNIT | M10-04, M9-01; the M5 rung in the ItemMark component unit (M5-12 retired) |
 | FR-22.2/22.3 | E2E+UNIT | M10-04; imageResize.ts |
 | FR-22.4 | E2E | M10-04 (add/replace/remove) |
 | FR-22.5 | SERVER | 150 KB / JPEG enforced server-side; edge asserted M10-04 |
@@ -696,8 +728,8 @@ Coverage tags: **E2E** = a browser case above exercises it through the UI · **U
 | FR-25.18 | E2E | M4-28 (filter/switch/grouping survive navigation + reload, fresh session unfiltered, chips visible) |
 | FR-25.19 | E2E | M4-30 (responsibility vs. record, single right-edge avatar, record not editable) |
 | FR-25.20 | E2E | M4-31 (others' rows hidden by default, reveal bar names count + people, header unfiltered) |
-| FR-25.14 | E2E | M5-06 (read-only aggregate, per-traveler controls) |
-| FR-25.15 | E2E | M5-07 (auto-save indicator, distinct from G-2), M11-05 |
+| FR-25.14 | E2E | M5-18 (the aggregate is M4's cluster head since FR-25.21; M5-06 retired) |
+| FR-25.15 | UNIT+E2E | M5-07 → captureState.spec.ts + ItemDetailSheet.spec.ts (distinct from G-2); M5-11, M11-05 (no save button) |
 | FR-25.13b | E2E | M6-19 (autocomplete adopts the category; manual fallback) |
 | FR-27.1 | E2E+UNIT | M8-07 (two-level include rules), M7-07, M21-03; `domain/templates.ts` (one-level expansion, dedup by master item), `internal/portable` + `domain/portable.ts` (the `scope` field round-trips, an unknown scope is rejected, a scope on a trip document is an error) |
 | FR-27.2 | E2E+UNIT | M3-11, M8-08; instantiate.ts (include expansion + named merge) |

@@ -11,7 +11,7 @@
 
 import { API } from '@/api/routes'
 import { TABLE } from '@/types/tables'
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 
 import { APIClient, type TokenProvider } from '@/api/client'
 import { loadTokens, subjectOf } from '@/auth/tokens'
@@ -366,6 +366,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
   const outbox = new SyncOutbox(client, hlc, onPullChanges, {
     store: outboxStore ?? undefined,
     onParked: (entry) => syncStatus.setParked(outbox.parkedCount(), entry.reason),
+    onCaptureChanged: (uncaptured) => (outboxUncaptured.value = uncaptured),
     onConflicts: (report) => {
       syncStatus.addConflicts(report.count)
       config.onConflicts?.(report)
@@ -403,6 +404,16 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     return localWrites > 0
   }
 
+  // FR-25.15: "captured on this device" — the signal the sheets' save
+  // indicator renders. It is deliberately not `syncStatus.state`, whose
+  // job is the server: that state answers `offline` before `syncing`, so
+  // reading it made an open write offline look settled, which is the one
+  // case the requirement exists for. Two writers, one per mode: the
+  // Local Mode save below, and the outbox's own append.
+  const localUncaptured = ref(0)
+  const outboxUncaptured = ref(0)
+  const capturePending = computed(() => localUncaptured.value > 0 || outboxUncaptured.value > 0)
+
   // --- Pull change routing ---
 
   function onPullChanges(changes: PullChange[]) {
@@ -428,10 +439,14 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
     // and a reload in that window lost the row.
     if (local && changes.length > 0) {
       localWrites += 1
+      localUncaptured.value += 1
       syncStatus.setSyncing()
       local
         .save(changes)
-        .finally(() => (localWrites -= 1))
+        .finally(() => {
+          localWrites -= 1
+          localUncaptured.value -= 1
+        })
         .then(() => {
           if (!localWritesPending()) syncStatus.setLocal()
         })
@@ -1381,6 +1396,7 @@ export function useSyncOrchestrator(config: SyncOrchestratorConfig) {
 
   return {
     syncStatus,
+    capturePending,
     outbox,
     getPresence,
     fetchConflicts,
