@@ -165,7 +165,10 @@ In addition:
   screen, so they are told rather than left with an app that quietly stops syncing.
 - The account's Web Push subscriptions are deleted, so it stops receiving push notifications.
 - A **login** attempt is refused outright with the same `403 account_deactivated`, rather
-  than issuing tokens every endpoint would reject anyway.
+  than issuing tokens every endpoint would reject anyway. The person sees *"This account is
+  deactivated. Signing in again does not restore access — an instance admin has to reactivate
+  it."* on the sign-in screen, so a deactivation does not reach you as a report about a broken
+  login. Signing in at your IdP still works; it is JIT-Pack that turns them away.
 - A **refresh** attempt deletes the session row and answers `403 account_deactivated`.
 
 **No data is deleted.** Trips, memberships, templates, comments, and packing history all

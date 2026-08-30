@@ -263,6 +263,25 @@ it. Item numbers stay stable even as items close, because the log refers back to
    M15" was never true (the shared thing is `findDuplicates`); „rejected before this screen is
    ever shown" misplaces a refusal that is M18's own picker step. Log: *„The branch the backup
    never took"*.
+   **M20 and G-10 followed 2026-08-30**, the youngest coverage in the repository (both first
+   rendered two days earlier) and therefore read for the opposite error — a promise written to
+   match what was just built. Every id already had a test, so the product is three new cases and
+   an eighth shape: **a sentence declaring that a case cannot be written**, twice, each sitting
+   on a defect. G-10's *„an e2e case could only race it"* was true of *holding* a pull open and
+   false of blocking one — a device whose pull never returns never reports a cursor, so the
+   lagging state is settled (E2E-G10-02, which is also the only thing that ever said the
+   server's `in_sync` is the prop the facepile rings). M20's *„Remove avatar changes no pixel"*
+   was blamed on the fixture and was a **defect**: the row is keyed by account id, so the same
+   `<img>` keeps the same `src` and the browser never re-asks under `max-age=3600` — moderation
+   that shows the moderator nothing (E2E-M20-03b, plus M17's cache-busting query, which M20 was
+   written without). Third, a clause in *no* case at all: FR-23.3's „a re-login does not
+   resurrect a deactivated account", where the app answered the generic „The server rejected the
+   login." — the login-screen twin of the defect the FR's own 2026-08-28 amendment fixed inside
+   the app, and missed by it because the callback is the other place that 403 arrives
+   (E2E-M20-06). Also: **FR-4.6's traceability row named `members.ts`'s role model** — a
+   requirement pointed at the wrong evidence, which no gate can see either. Two clauses are kept
+   and named as unfalsifiable rather than counted (G10-01's exclusive badge, M20-05's mode half).
+   No owner decision owed. Log: *„Two premises that had closed two cases"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).

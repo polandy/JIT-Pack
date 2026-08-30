@@ -1,6 +1,17 @@
-import { test, expect, visiblePage } from '../fixtures'
+import { test, expect, seed, visiblePage } from '../fixtures'
 
 import { ACCOUNT_NAMES, loginAs } from './fixtures'
+
+/**
+ * A 1×1 JPEG, small enough to write inline and real enough to decode — the
+ * `<img>` has to actually paint, or the FR-23.4a fallback would hide the
+ * upload and E2E-M20-03b would assert the absence of something that was
+ * never there.
+ */
+const TINY_JPEG_BASE64 =
+  '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0a' +
+  'HBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAA' +
+  'AAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q=='
 
 /**
  * M20 — the instance admin surface (Addendum §3.23, FR-23.1–23.5), the last
@@ -202,6 +213,148 @@ test.describe('M20 — the instance admin surface @server @m20', () => {
     await ctxAlice.close()
     await ctxCarol.close()
     await ctxCarolAgain.close()
+  })
+
+  /**
+   * E2E-M20-03b: the avatar half of FR-23.4, which E2E-M20-03 has never
+   * covered — the ledger said so, and the reason it gave was that no fixture
+   * account has a picture. Reading it against the screen found a second
+   * reason underneath: **the removal changed nothing on M20 even when there
+   * was one.** The row is keyed by user id, so reloading the list hands the
+   * same `<img>` the same `src`, and the browser is never asked again — and
+   * the avatar response carries `max-age=3600`, so it would not be told
+   * anything if it were. M17 had carried the cache-busting query for
+   * FR-17.13 since the profile picture shipped; M20 was written without it.
+   * Moderation whose whole point is that the picture goes has to show it
+   * going on the screen that did it.
+   *
+   * The picture is put on Carol's account through the app's own endpoint
+   * rather than through M17's control: the crop modal renders into a canvas
+   * with no settled signal to wait on, which is why E2E-M17-12 is still
+   * open, and this case is about M20's row rather than about the crop.
+   */
+  test('E2E-M20-03b: a picture on the row is what Remove avatar removes', async ({ browser }) => {
+    const ctxCarol = await browser.newContext()
+    const carol = await loginAs(ctxCarol, 'carol')
+
+    // A 1×1 JPEG. `PUT /users/{id}/avatar` is `self`-guarded, so it is sent
+    // from inside Carol's own session — an admin cannot put one there, only
+    // take it away, which is FR-23.4's whole shape.
+    const uploaded = await carol.evaluate(async (jpegBase64) => {
+      const stored = localStorage.getItem('jitpack_tokens')
+      if (!stored) return 'no session'
+      const token = (JSON.parse(stored) as { access_token: string }).access_token
+      const auth = { Authorization: `Bearer ${token}` }
+      const me = (await (await fetch('/api/v1/me', { headers: auth })).json()) as {
+        user_id: string
+      }
+      const bytes = Uint8Array.from(atob(jpegBase64), (c) => c.charCodeAt(0))
+      const resp = await fetch(`/api/v1/users/${me.user_id}/avatar`, {
+        method: 'PUT',
+        headers: { ...auth, 'Content-Type': 'image/jpeg' },
+        body: bytes,
+      })
+      return resp.ok ? 'ok' : `status ${resp.status}`
+    }, TINY_JPEG_BASE64)
+    expect(uploaded).toBe('ok')
+
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+    await alice.goto('/admin')
+
+    const carolRow = visiblePage(alice)
+      .getByTestId('admin-list')
+      .getByTestId(`admin-row-${ACCOUNT_NAMES.carol}`)
+    const face = carolRow.getByTestId('user-avatar')
+    // The picture is laid over the initials (FR-23.4a), so its presence is
+    // the state this case then takes away.
+    await expect(face.getByTestId('user-avatar-picture')).toBeVisible()
+
+    await carolRow.click()
+    await alice
+      .locator('ion-action-sheet')
+      .getByRole('button', { name: /^Remove avatar$/ })
+      .click()
+
+    // Gone from the screen that removed it, and the letters are underneath
+    // where FR-23.4a says they always were — asserted together, because an
+    // avatar that stopped rendering at all would satisfy the absence alone.
+    await expect(face.getByTestId('user-avatar-picture')).toHaveCount(0)
+    await expect(face).toHaveText('CA')
+
+    await ctxAlice.close()
+    await ctxCarol.close()
+  })
+
+  /**
+   * E2E-M20-06 (FR-23.3/23.6): a deactivated account signs in again, and the
+   * IdP still vouches for it — FR-23.6 keeps provisioning open on purpose.
+   * FR-23.3's answer is that this does not bring the account back, "otherwise
+   * deactivation would be meaningless under FR-23.6".
+   *
+   * The clause had no case anywhere on the screen. `store/admin_test.go`
+   * proves the login does not clear `deactivated_at`, and `issueSession`
+   * refuses the exchange with `account_deactivated` — and the app said
+   * *„The server rejected the login."* to it, the same sentence a replayed
+   * code gets. This is the login-screen twin of the defect the FR's own
+   * 2026-08-28 amendment fixed inside the app: a person told nothing, left
+   * to read a permanent state as a glitch and try again. The callback now
+   * narrows on that one code, the way `client.ts` does.
+   */
+  test('E2E-M20-06: a deactivated account signing in again is refused, and told why', async ({
+    browser,
+  }) => {
+    const ctxCarol = await browser.newContext()
+    // Carol logs in first: it provisions her, and it re-stamps the display
+    // name the row is addressed by (FR-23.4) in case a sibling case reset it.
+    await loginAs(ctxCarol, 'carol')
+    await ctxCarol.close()
+
+    const ctxAlice = await browser.newContext()
+    const alice = await loginAs(ctxAlice, 'alice')
+    await alice.goto('/admin')
+
+    const carolRow = visiblePage(alice)
+      .getByTestId('admin-list')
+      .getByTestId(`admin-row-${ACCOUNT_NAMES.carol}`)
+    await carolRow.click()
+    await alice
+      .locator('ion-action-sheet')
+      .getByRole('button', { name: /^Deactivate$/ })
+      .click()
+    await alice
+      .locator('ion-alert')
+      .getByRole('button', { name: /^Deactivate$/ })
+      .click()
+    await expect(carolRow.getByTestId('admin-deactivated-chip')).toBeVisible()
+
+    // A fresh device, a real login, all the way through the IdP.
+    const ctxAgain = await browser.newContext()
+    const again = await ctxAgain.newPage()
+    await seed(again, { mode: 'server' })
+    await again.goto('/')
+    await expect(visiblePage(again).getByTestId('login-action')).toBeVisible()
+    await again.getByTestId('login-action').click()
+    await again.getByTestId('idp-login-carol').click()
+
+    // The sentence, not merely a refusal: "rejected the login" is what every
+    // other failed exchange says, so a regex that matched it would pass
+    // against the build this case was written for.
+    await expect(visiblePage(again).getByTestId('login-error')).toContainText(/deactivated/i)
+    // …and nothing was let through behind it.
+    expect(await again.evaluate(() => localStorage.getItem('jitpack_tokens'))).toBeNull()
+    await ctxAgain.close()
+
+    // Put the account back, because the next case in this file expects an
+    // ordinary account to administer.
+    await carolRow.click()
+    await alice
+      .locator('ion-action-sheet')
+      .getByRole('button', { name: /^Reactivate$/ })
+      .click()
+    await expect(carolRow.getByTestId('admin-deactivated-chip')).toHaveCount(0)
+
+    await ctxAlice.close()
   })
 
   /**
