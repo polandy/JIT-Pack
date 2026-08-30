@@ -44,6 +44,7 @@ One file per decision, named `ADR-00N_Short_Title.md`, numbered in the order the
 | [036](ADR-036_Membership_Rewrites_Rows.md) | Editing who needs an item **keeps the rows it can and repoints them** (ids derived per ADR-016), over delete-and-recreate (which throws away packing state) or a membership table (a schema change for a relation the rows already express) (FR-25.21) | Accepted |
 | [037](ADR-037_The_Worker_Reads_The_Language.md) | The service worker learns the language from an **IndexedDB mirror** the app writes, over posting the locale to it (gone the moment a push wakes it cold) or having the server render the text (which it cannot, and which would hold a second copy of the vocabulary) (NFR-4.12, NFR-4.6) | Accepted |
 | [038](ADR-038_A_Master_Row_Has_A_Delete_Endpoint.md) | A master row has a delete endpoint, and the app deliberately does not use it | Accepted |
+| [039](ADR-039_Unmanaged_API_Tokens.md) | An API token is an unmanaged JWT — listing and single revocation given up on purpose | Accepted |
 
 **Outbound Content Fetching** — `Vision_NorthStar` names this as the gate that must exist before any Plan-phase feature makes the server fetch external content. It had informally reserved number 007, which Session Brokering has since taken; it gets the next free number when it is written.
 

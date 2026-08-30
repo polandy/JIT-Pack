@@ -121,6 +121,48 @@ type MasterDeleteResponse struct {
 	PullHint PullHint        `json:"pull_hint"`
 }
 
+// --- API tokens (FR-23.7, ADR-039) ---
+
+// APITokenExpiry is how long a minted token lives.
+//
+// A closed vocabulary rather than a number of days, so the screen's select,
+// the CLI's flag and the handler's validation read the same four values from
+// one declaration instead of agreeing by hand (§4a).
+type APITokenExpiry string
+
+// The lifetimes on offer, shortest first. `exp` is the only thing that ever
+// ends an unmanaged token's life on its own, which is why "never" is a
+// deliberate answer here and not the absence of one — and why the short end
+// matters: a credential for one cleanup run should be able to die with it.
+const (
+	APITokenExpiry1h    APITokenExpiry = "1h"
+	APITokenExpiry1d    APITokenExpiry = "1d"
+	APITokenExpiry7d    APITokenExpiry = "7d"
+	APITokenExpiry30d   APITokenExpiry = "30d"
+	APITokenExpiry90d   APITokenExpiry = "90d"
+	APITokenExpiry365d  APITokenExpiry = "365d"
+	APITokenExpiryNever APITokenExpiry = "never"
+)
+
+// APITokenRequest asks for one token. Both fields are required: the server
+// has no default lifetime on purpose, so the choice is made rather than
+// inherited.
+type APITokenRequest struct {
+	Name   string         `json:"name"`
+	Expiry APITokenExpiry `json:"expiry"`
+}
+
+// APITokenResponse is the only response in this API that carries a
+// credential, and the only time the token is ever readable — nothing stores
+// it.
+type APITokenResponse struct {
+	Token string `json:"token"`
+	// RFC3339, or empty for a token that does not expire. Always present
+	// rather than omitted: an optional field would make every read site
+	// branch, and there is exactly one read site.
+	ExpiresAt string `json:"expires_at"`
+}
+
 // --- WebSocket (Sync-API §7) ---
 
 // WSEventType is the kind of a WebSocket frame.
@@ -437,6 +479,7 @@ const (
 	RouteMe                  = "/api/v1/me"
 	RouteMeNotificationPrefs = "/api/v1/me/notification-prefs"
 	RouteMeExport            = "/api/v1/me/export.json"
+	RouteMeTokens            = "/api/v1/me/tokens"
 
 	// User scope.
 	RouteUsers           = "/api/v1/users"
