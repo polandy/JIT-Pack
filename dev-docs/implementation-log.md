@@ -190,6 +190,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The quick-add gets a mode, and two waiting cases did not land where they waited (2026-08-29)](#the-quick-add-gets-a-mode-and-two-waiting-cases-did-not-land-where-they-waited-2026-08-29) — FR-25.8. Why the row is written *before* the membership editor opens rather than the mode collecting a draft; and the two e2e cases that had been parked on this feature since the concept round, one of which turned out to be a second run of another and the other to have lost its premise to G-8.
 - [The shop stops asking three times for one purchase (2026-08-29)](#the-shop-stops-asking-three-times-for-one-purchase-2026-08-29) — FR-25.6. The premise that made M6's aggregation invisible for three weeks, why the buy row is keyed by M4's own function rather than a second one, and the two places that had to follow the aggregation once it existed — the reveal and the tab counts.
 - [A rule that was complete and invisible (2026-08-30)](#a-rule-that-was-complete-and-invisible-2026-08-30) — E2E-G3-04. The G-3 cluster lock shipped correct and unobservable: every other G-3 surface names its holder, and the one surface that could inherit none of them said nothing at all. Why writing the two-identity case is what found it, and why the release — not the pack — is what the positive half needs.
+- [A row kept saying it was skipped after it had stopped being (2026-08-30)](#a-row-kept-saying-it-was-skipped-after-it-had-stopped-being-2026-08-30) — where FR-25.13f's ✕ meets FR-25.21's editor. Why the fix is a derivation rather than a policy, why only one of the two cases is worth a confirm, and the two fields deliberately left alone.
 - [The amount finally says what it is in (2026-08-30)](#the-amount-finally-says-what-it-is-in-2026-08-30) — FR-21.9. Why the endpoint that already existed could not carry an instance setting, why the currency is not a device preference, and the Local Mode cost that was accepted rather than designed around.
 
 ## Current state
@@ -8311,6 +8312,40 @@ an item name and built `m4-row-<name>` from it. A per-person item has no such
 row — it is a cluster head with child rows — so the helper could not address the
 row this case has to claim. Every convenience that encodes a screen's shape has
 a feature that ends it; this one lasted six days.
+## A row kept saying it was skipped after it had stopped being (2026-08-30)
+
+Two features that never met in review met in use. FR-25.13f's ✕ writes an item
+straight to *„zu Hause gelassen"* — `quantity: 0`, `state: 'skipped'`. FR-25.8's
+per-person mode then opens the membership editor on that row, and membership
+floors an amount at 1, because 0 is already FR-5.5's answer and one control must
+not carry two decisions. So the row came back with a quantity of 1 and the
+skipped state untouched, and `isDone` reads *skipped* as done: FR-25.2 took the
+row off the list at the moment it was created. The user had added an item, given
+Andy one of it, and watched nothing appear.
+
+**The fix is a derivation, which is why it is small.** Two of the states are
+descriptions of numbers — *skipped* is a quantity of nothing, *packed* means the
+count reached the amount — and a conversion rewrites exactly those numbers. So
+the rule is not "a conversion clears the state", which was the first thing
+written down and would have thrown away a collapse where every instance really
+was packed. It is: **the state falls back to *open* exactly when it has stopped
+being true.** A collapse onto a partly packed sum reopens; a collapse where the
+whole cluster was packed keeps its state; an in-progress claim describes a
+person rather than a number and is none of the rule's business.
+
+**Only one of the two cases is worth a question.** A packed row growing past its
+count loses nothing — the count was already the truth and the state was the
+thing that lagged. A *skipped* row taken along again undoes an answer somebody
+gave, as a side effect of ticking a checkbox, so it is confirmed first and the
+sentence names the item and the person. That asymmetry is the whole reason
+`unskipped` exists on the plan rather than the caller inspecting states.
+
+**Two fields are deliberately left alone.** `packed_at` and `packed_by_user_id`
+survive a reopen, even though the row is no longer *packed*: those units really
+were packed by that person and `packed_count` still says so. Clearing the
+timestamp while keeping the name would render FR-25.17's stamp half-erased —
+„gepackt von Andy" with no when — which is worse than a true stamp on a row that
+has since grown.
 
 ## The amount finally says what it is in (2026-08-30)
 

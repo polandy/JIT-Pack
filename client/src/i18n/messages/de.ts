@@ -146,6 +146,9 @@ export const de: Record<keyof typeof en, string> = {
   'membership.confirmRemoveTitle': 'Zeile entfernen?',
   'membership.confirmRemove':
     '{name} hat davon schon {packed} von {quantity} gepackt. Die Zeile verschwindet aus der Packliste, der Packfortschritt geht verloren.',
+  'membership.confirmUnskipTitle': 'Wieder mitnehmen?',
+  'membership.confirmUnskip':
+    '„{item}“ ist als weggelassen markiert. Sobald {name} eine Menge bekommt, ist es wieder dabei — die Entscheidung wird aufgehoben.',
   'membership.confirmCollapseTitle': 'Wieder gemeinsam?',
   'membership.confirmCollapse':
     'Aus {rows} Zeilen wird eine mit {quantity} Stück, davon {packed} gepackt. Notizen und Vorbereitungs-Todos von {name}s Zeile bleiben; die übrigen Zeilen werden gelöscht.',
