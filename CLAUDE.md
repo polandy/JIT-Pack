@@ -175,6 +175,22 @@ it. Item numbers stay stable even as items close, because the log refers back to
    collisions the same hour (`E2E-M3-11/-12/-13`, `E2E-M4-32`), which are a shrink-only
    debt register owed to those screens' audits. Log: *„Six numbers that each meant two
    things"*.
+   **M9 followed the same day and found a sixth shape: two ids that were simply on the wrong
+   tests.** The §3.24 rebuild wrote the spec entries and the tests in one commit and numbered
+   the tests `E2E-M9-02`/`E2E-M9-03`, whose entries describe the FAB's creation mode and a
+   multi-select merge — so for a year the two behaviours those ids promise had no test while
+   reading as covered, and the two that *were* tested (M9-05/06) read as implemented under
+   somebody else's number. **`scripts/case-id-gate.mjs`, landed one PR earlier, cannot find
+   this**: each id is used exactly once, so the duplicate check is green, and the totals are
+   identical either way — a swap is not a collision. Renumbered, and the two
+   ids it freed sorted the usual way — **M9-02 retired** (E2E-M10-01 asserts the creation mode
+   and reaches it through `m9-fab`), **M9-03 is an unbuilt promise** (there is no multi-select
+   and no merge on M9; FR-16.3 is deduplication *on import* and M15/M18 discharge it — owner
+   decision, and note PRD FR-27.5 argues against fuzzy matching partly *because* M9 can merge).
+   Two real remainders written: **E2E-M9-04**, whose state no test had ever rendered
+   (`m9-empty` existed in the suite only as an *absence* assertion), and **E2E-M9-10**, the
+   word „searchable" in M9-01's sentence that nothing typed into. Log: *„Two ids on the wrong
+   tests"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).

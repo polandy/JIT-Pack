@@ -199,6 +199,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The amount finally says what it is in (2026-08-30)](#the-amount-finally-says-what-it-is-in-2026-08-30) — FR-21.9. Why the endpoint that already existed could not carry an instance setting, why the currency is not a device preference, and the Local Mode cost that was accepted rather than designed around.
 - [A credential that nothing remembers (2026-08-30)](#a-credential-that-nothing-remembers-2026-08-30) — FR-23.7/ADR-039. How checking one sentence about refresh tokens deleted a table, a schema change and a whole screen; the hole a ninety-day credential made reachable in `authed`; and why refusing a token the right to mint another is not the scope the concept rejected.
 - [Six numbers that each meant two things (2026-08-30)](#six-numbers-that-each-meant-two-things-2026-08-30) — backlog item 6, M5. How one screen's catalogue came to define six ids twice, why the suite's meaning wins and the loser is struck rather than renumbered, and the requirement that was quoted verbatim in the code violating it.
+- [Two ids on the wrong tests (2026-08-30)](#two-ids-on-the-wrong-tests-2026-08-30) — backlog item 6, M9. Two case ids sitting on tests that implement two other promises, wrong since the commit that wrote both; why no gate can see a swap; the merge M9 never had, and the argument that leans on it.
 
 ## Current state
 
@@ -8935,3 +8936,87 @@ lines earlier that the todos are visible to every trip member. It was struck
 rather than built: the trip is already membership-gated, and a list where
 anyone may read a preparation task but only two people may tick it is
 friction with nothing behind it.
+
+
+## Two ids on the wrong tests (2026-08-30)
+
+Backlog item 6, fifth screen: **M9**. The read is the same as the four
+before it — take each unwritten case id as a promise and check it against
+the built screen — and it stopped at the first step, because two of M9's
+"unwritten" ids turned out to be sitting on tests that implement something
+else entirely.
+
+`E2E-M9-02` promises *FAB → M10 in creation mode*. `E2E-M9-03` promises
+*multi-select merge of duplicates*. The two tests carrying those names in
+`inventory.spec.ts` assert the **tag axis filtering wider than it groups**
+and the **lean row until the properties sheet says otherwise** — which are
+`E2E-M9-06` and `E2E-M9-05`, both of which the spec file marked
+*implemented* on the strength of those very tests.
+
+It was never drift. `git log -S` puts both halves in one commit, `6ea6577`,
+the §3.24 tag rebuild: the spec entries and the tests were written together
+and mis-numbered against each other on the first day. The ledger's own
+promise table in `e2e-tests.md` has always named 05 and 06 correctly, which
+is the part worth noticing — the file that describes what the tests *do* was
+right, and the file that names them was wrong, and neither one is read while
+looking at the other.
+
+**Nothing mechanical could have caught this.** Each id occurs exactly once,
+so the case-id gate that came out of the M5 audit — which finds duplicates —
+is green on it. The coverage total is identical either way: two ids covered,
+two uncovered, before and after. A swap is invisible to every check that
+counts, and visible to exactly one that does not: reading an id's sentence
+against the body of the test underneath it.
+
+**What the freed ids turned out to be.** Both sorted into shapes this backlog item has met before.
+
+**E2E-M9-02 is retired**, not owed. `E2E-M10-01` asserts precisely what it
+promises — it clicks `m9-fab` and then asserts the minimal creation form —
+and twenty other cases enter the editor through that same FAB. A second id
+over one behaviour is a second place for it to read covered.
+
+**E2E-M9-03 is an unbuilt promise.** M9 has no multi-select and the client
+has no merge. The id came from the UI-Spec's *Actions* line, written
+2026-07; FR-16.3 is *Deduplication on **Import*** and is discharged by M15
+and M18, so nothing was lost when the clause went unimplemented. It is left
+untested on purpose, the same call as M2's three: a case written now leaves
+a red suite pointing at unscheduled work.
+
+What makes it worth an owner decision rather than a quiet deletion is that
+the clause has a **second reader**. PRD FR-27.5 rejects fuzzy name matching
+in M21 partly on the grounds that the two failure modes are asymmetric — *"a
+duplicate master item is visible in M9 **and can be merged**, while a wrong
+link silently hands the position somebody else's weight"*. The conclusion
+still holds on the first half alone (the duplicate is visible, and each row
+is deletable), but an argument resting on a capability nobody built is worth
+knowing about before the next one leans on it too. Both documents now say so.
+
+**Two real remainders.** **E2E-M9-04** — the empty inventory offering the spreadsheet import — had
+never been rendered by anything. `m9-empty` appears once in the whole suite
+before this case: in `E2E-G9-13`, as a `toHaveCount(0)` standing in for
+"not the inventory screen". A test id that exists only to be *absent* is a
+good marker for a state nobody has looked at.
+
+**E2E-M9-10** is the word *searchable* in M9-01's own sentence. `E2E-G12-02`
+asserts the magnifier opens this screen's field and no other screen's, and
+then stops; the trip list's twin case types into it, M9's never did. The new
+case types, and pins two things beyond the row count: the emptied group's
+**heading** goes with its rows (the filter runs before the grouping, so a
+heading over nothing is what a naive fix produces), and a term that matches
+nothing raises the no-match state rather than G-7's empty one — which would
+offer to import an inventory that already exists.
+
+Two clauses of `E2E-M9-05` were unasserted and went in with the renumbering:
+*exactly those* (enabling the weight must leave the tags off the row, which
+is the whole reason FR-24.4 is three switches and not one) and the eye's
+count **badge**, asserted from both sides, since "the badge reads 1" is
+equally satisfied by a badge that always reads 1.
+
+**One finding that belongs to another screen.** `E2E-G7-01` reads *"Each list screen (Trips/Templates/Items/Dashboard) shows
+its empty state with the single primary CTA"* and asserts the **Dashboard**.
+Templates is covered in `template-list.spec.ts`, Items is now M9-04, and
+**M2's empty state is asserted nowhere and carries no test id at all** — its
+G-7 CTA is the always-present `trips-new` FAB rather than anything the empty
+state itself offers. One sentence naming four screens counted as four, which
+is the same shape as the review rule about one rule written into N
+templates. Recorded against the id; owed to M2's next pass, not built here.
