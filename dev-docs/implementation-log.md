@@ -189,6 +189,7 @@ Newest at the bottom; the parenthesised note says what you would come looking fo
 - [The sheet learns two verbs (2026-08-29)](#the-sheet-learns-two-verbs-2026-08-29) — FR-25.13f. The decision made in front of the wardrobe — *already packed* / *staying home* — cost three screens per item. Two variants were rendered and rejected before one was built, and the case that mattered most is the one no failing test asked for: which signal wins when the run's own verb and FR-25.13e's derived *added* describe the same line.
 - [The quick-add gets a mode, and two waiting cases did not land where they waited (2026-08-29)](#the-quick-add-gets-a-mode-and-two-waiting-cases-did-not-land-where-they-waited-2026-08-29) — FR-25.8. Why the row is written *before* the membership editor opens rather than the mode collecting a draft; and the two e2e cases that had been parked on this feature since the concept round, one of which turned out to be a second run of another and the other to have lost its premise to G-8.
 - [The shop stops asking three times for one purchase (2026-08-29)](#the-shop-stops-asking-three-times-for-one-purchase-2026-08-29) — FR-25.6. The premise that made M6's aggregation invisible for three weeks, why the buy row is keyed by M4's own function rather than a second one, and the two places that had to follow the aggregation once it existed — the reveal and the tab counts.
+- [A row gets a door of its own, and the app keeps its old one (2026-08-30)](#a-row-gets-a-door-of-its-own-and-the-app-keeps-its-old-one-2026-08-30) — FR-24.4/ADR-038. Why "the frontend should use the same API" cannot be honoured by an offline-first client, the error code that nothing could emit and the test that replaced it, and a test whose two failures were both correct behaviour.
 
 ## Current state
 
@@ -8273,3 +8274,55 @@ for the whole cluster in one act. Left as it is, deliberately — M5 opens on on
 instance by construction (the route is `trip/{id}/item/{id}`), and a mode
 control that silently reached five rows would be the FR-25.21 problem in
 reverse.
+
+## A row gets a door of its own, and the app keeps its old one (2026-08-30)
+
+FR-24.4, ADR-038. The request was "a clean API I can use, and clean up with" —
+and, a message later, "the API should also be used between frontend and backend".
+The second half is the part worth recording, because it is a reasonable sentence
+that the architecture cannot honour, and saying so was the whole design work.
+
+**The frontend cannot use a REST delete as its write path.** Not a preference:
+every client write goes into the outbox as a clocked mutation
+(`enqueueAndDrain`), which is what lets it survive being offline, and Local Mode
+has no server at all — deletion there runs entirely in the browser. A route the
+client depended on would remove the feature from a supported mode (invariant 5).
+Having it call the route when online and the outbox when not would leave *three*
+write paths for one act, with the online one exercised in development and the
+offline one — the one an offline-first app most needs confidence in — not. So
+the two callers differ in transport and share the rule: `DeleteMasterRow` mints
+the `mutation_id` and the HLC and hands an ordinary delete to the same
+`ApplyMasterMutation` the push calls. The handler holds no decision at all,
+which is the property that keeps the doors from drifting (ADR-025's lesson).
+
+**An error code that nothing could emit, caught before it shipped.** The first
+version had a `still_referenced` code and a 409 branch, copied from the shape of
+the refusal the push can produce. It is unreachable for this endpoint's four
+tables, and only checking made that visible: `items` and `templates` are
+lifecycle tables, so a reference *retires* them (FR-24.3) instead of refusing;
+`tags` and `template_items` appear in `blockingReferences` not at all. Both
+branches were deleted, and the claim underneath them became
+`TestDeletableTables_CannotBeRefusedAsStillReferenced_FR24_3` — a comment
+asserting reachability rots, a test asserting it fails the day someone widens the
+allowlist to a table that can be refused. The refusal path is still there, as
+*one* branch: what it must never do is fall through to 200, because a refusal
+reported as a deletion tells a cleanup script the row is gone while it is not.
+
+**A test that asked three questions read as two defects.** The API test driving
+all four routes seeded them the way the app would have the data — the position
+pointing at both the item and the Vorlage — and then two subtests failed. Both
+"failures" were correct behaviour: the item was *retired* because the position
+referenced it, and the Vorlage's position was gone because the FK cascades. The
+test had conflated routing, FR-24.3 and the cascade, and the fix was in the
+seed, not in the code: every target is now a row nothing references, so the test
+answers only the question it asks — *does each route delete from its own table* —
+which is the copy-paste defect four near-identical registrations invite. The
+retire and the cascade keep their own named tests. A failing test that turns out
+to describe correct behaviour is a test that was measuring more than one thing.
+
+**`retired` is read back, not inferred.** The response distinguishes FR-24.3's
+two deletions by asking what became of the row after the mutation, rather than by
+having the merge report it. That is not a second decision — the decision ran once,
+inside the mutation — and it is the field the status code cannot carry: a 200 on a
+retired row does not mean the row is gone, and without it a caller cleaning up
+would have to pull the whole partition back down to find out what it had done.
