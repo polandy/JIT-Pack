@@ -120,7 +120,16 @@ it. Item numbers stay stable even as items close, because the log refers back to
    deliberately reversed, and eight described a screen nobody built. Retired that day
    (owner): M6's filter bar, search field, composer fields and per-item note; **owed and
    decided to be built:** FR-25.12's row sheet. Log: *„Seventeen unwritten cases, two worth
-   writing"*.
+   writing"*. **M4 followed 2026-08-30**, and its 17 unwritten ids sorted differently again:
+   four were already asserted with no id on them — three of those as *unit* tests, which is
+   why grepping the id confirmed a gap that reading the suite refuted — four described a
+   removed gesture or a reversed rule, and eight were real, small remainders now written.
+   The rule the two screens agree on: **a coverage count says how many promises have no
+   test, never how many deserve one**, and the order is promise → screen → test. Two owner
+   decisions are open (M4's container chip, the amber prep cast on M4); worth carrying
+   forward: **`rowEdgeAvatar` had been a rule inside a component since the concept round**,
+   so its case could not be written at all until it moved. Log: *„A blocked case that had
+   quietly unblocked, and one that had quietly been covered"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).
