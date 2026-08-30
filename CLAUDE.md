@@ -120,7 +120,20 @@ it. Item numbers stay stable even as items close, because the log refers back to
    deliberately reversed, and eight described a screen nobody built. Retired that day
    (owner): M6's filter bar, search field, composer fields and per-item note; **owed and
    decided to be built:** FR-25.12's row sheet. Log: *„Seventeen unwritten cases, two worth
-   writing"*.
+   writing"*. **M4 followed 2026-08-30**, and its 17 unwritten ids sorted differently again:
+   four were already asserted with no id on them — three of those as *unit* tests, which is
+   why grepping the id confirmed a gap that reading the suite refuted — four described a
+   removed gesture or a reversed rule, and eight were real, small remainders now written.
+   The rule the two screens agree on: **a coverage count says how many promises have no
+   test, never how many deserve one**, and the order is promise → screen → test. **Do not
+   re-derive the headline number to compare against it** — a second grep is a second
+   *method*, not a second measurement (a broader id pattern turns 250/370 into 272/383 on the
+   same tree), and a retired entry stays in the file struck through, so it goes on being
+   counted as a gap forever. Measure a screen, not the repository. Two owner decisions are
+   open (M4's container chip, the amber prep cast on M4); worth carrying forward:
+   **`rowEdgeAvatar` had been a rule inside a component since the concept round**, so its
+   case could not be written at all until it moved. Log: *„A blocked case that had quietly
+   unblocked, and one that had quietly been covered"*.
 7. ~~**Looking inside a group**~~ — **done** (2026-08-16, FR-27.12): a group names its first
    items and a chevron opens the resolved peek sheet. M8's picker chips still offer names
    alone — deliberate, revisit trigger in FR-27.12 (which item 8 is now firing).
@@ -232,8 +245,13 @@ it. Item numbers stay stable even as items close, because the log refers back to
    E2E-FLOW-01. The three areas it named as owed are all closed: delegation (E2E-FLOW-02)
    2026-08-25 with item 20's control, presence (G-10) and the admin surface (M20) 2026-08-28 —
    the last two found a facepile initialling a random key, a group-sync badge whose state was
-   unreachable, and a deactivated account whose app looked offline instead of saying so. Only
-   real-provider coverage is still open. Log: *„A second account arrives…"*, *„Two screens
+   unreachable, and a deactivated account whose app looked offline instead of saying so.
+   **Real-provider coverage closed it 2026-08-30**, split by what each half can establish: the
+   metadata half is `internal/api/realprovider_test.go` (opt in with `JITPACK_REAL_IDP_ISSUER`,
+   skipped everywhere else, read-only so it is safe against production), and the half that needs
+   a person — the login, the second factor, the refresh grant, the disabled-account asymmetry —
+   is a written procedure in `dev-docs/e2e-tests.md` rather than an intention. **Item 18 owes
+   nothing further.** Log: *„A second account arrives…"*, *„Two screens
    nobody had ever rendered"*.
 
 19. ~~**NFR-4.12 — notifications were the one surface still written in English**~~ — **done**

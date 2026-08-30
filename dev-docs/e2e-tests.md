@@ -41,8 +41,8 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M3 trip creation | E2E-M3-01, E2E-M3-03, E2E-M3-14 (incl. the FR-25.9 absence check), E2E-M3-05, E2E-M3-10, E2E-M3-19, E2E-M1-05, E2E-M3-20 (FR-2.1d date bound) | `local` | [`trip-creation.spec.ts`](../client/e2e/trip-creation.spec.ts) |
 | Global navigation & app bar | E2E-G9-09, E2E-G9-10, E2E-G9-11, E2E-G9-12, E2E-G9-13, E2E-G9-14, E2E-G9-15, E2E-G9-16 (UX-17 content column), E2E-G1-01 (partial), E2E-G1-02, E2E-G1-03, E2E-G1-04, E2E-G1-05, E2E-G12-01 (partial), E2E-G12-02, E2E-G8-02, E2E-G2-02, E2E-G2-03, E2E-G2-08, E2E-G2-09, E2E-M3-15, E2E-M3-16, E2E-M4-32 | `local` | [`global-nav.spec.ts`](../client/e2e/global-nav.spec.ts) |
 | M5 item detail | E2E-M5-09 … E2E-M5-14, E2E-M5-17 | `local` | [`item-detail.spec.ts`](../client/e2e/item-detail.spec.ts) |
-| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
-| FR-25.21 membership · FR-25.8 per-person quick-add | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-64 (G-8: the mode is absent), E2E-M4-65 (the browse-sheet path) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
+| M4 packing list | E2E-M12-06, E2E-M4-01, E2E-M4-04, E2E-M4-36, E2E-G6-02, E2E-M4-18 (both directions), E2E-M4-20, E2E-M4-21, E2E-M4-22, E2E-M4-23, E2E-M4-44, E2E-M4-45, E2E-M4-46, E2E-M4-47, E2E-M4-15 (partial), E2E-M4-02 (partial), E2E-M4-28 (partial), E2E-M4-56 (UX-9 name column), E2E-M4-57 (UX-13 bar overflow), E2E-M4-59 (FR-25.13e hide-carried), E2E-M4-60 … E2E-M4-63 (FR-25.13f: the browse-sheet's two verbs, on a free line and a carried one, and the line's own undo), E2E-M4-25 (+ E2E-M4-08, the prep lifecycle), E2E-M4-24 (the stamp's time, and that it clears), E2E-M4-11 (the shopping count), E2E-M4-19 (the shared bucket's word) | `local` | [`packing-list.spec.ts`](../client/e2e/packing-list.spec.ts) |
+| FR-25.21 membership · FR-25.8 per-person quick-add | E2E-M5-18, E2E-M5-19, E2E-M5-20, E2E-M4-12/E2E-M4-58 (one cluster, not N items), E2E-M4-14 (packing one instance does not flatten the other), E2E-M4-64 (G-8: the mode is absent), E2E-M4-65 (the browse-sheet path) | `local` | [`membership.spec.ts`](../client/e2e/membership.spec.ts) |
 | G-3 packing claim | E2E-M4-49, E2E-M4-50 | `local` | [`lock-claim.spec.ts`](../client/e2e/lock-claim.spec.ts) |
 | FR-9.3 judging a trip | E2E-M4-51 … E2E-M4-55 | `local` | [`closing-pass.spec.ts`](../client/e2e/closing-pass.spec.ts) |
 | Typography | E2E-G13-01, E2E-G13-02, E2E-G13-03, E2E-G13-04 | `local` | [`typography.spec.ts`](../client/e2e/typography.spec.ts) |
@@ -77,7 +77,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | M21 template from trip | E2E-M21-01, E2E-M21-02 (+02b), E2E-M21-03 (+03b, +03c), E2E-M4-43 | `local` | [`template-from-trip.spec.ts`](../client/e2e/template-from-trip.spec.ts) |
 | M22 trip properties | E2E-M22-01, E2E-M22-02, E2E-M22-03, E2E-M22-04, E2E-M22-05, E2E-M22-07, E2E-M22-08, E2E-M22-09 (toast geometry), E2E-M22-06 (in `global-nav.spec.ts`) | `local` | [`trip-properties.spec.ts`](../client/e2e/trip-properties.spec.ts) |
 | App shell offline (NFR-4.13) | E2E-PWA-01, E2E-PWA-02, E2E-PWA-03 | `local` | [`pwa-offline.spec.ts`](../client/e2e/pwa-offline.spec.ts) |
-| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
+| Two accounts on one instance | E2E-FLOW-01 (server half: convergence, membership, attribution), E2E-G3-01 (identity half) + E2E-G3-03 (identity half), E2E-G3-02 (takeover half), E2E-G3-04 (membership lock), E2E-FLOW-02 (delegation, and with it E2E-M4-30 + E2E-M4-31's header guard), E2E-M4-10 / E2E-M4-24 (attribution, inside FLOW-01) | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | Notifications speak the recipient's language (NFR-4.12) | E2E-NOTIFY-01 | `server` | [`server/multi-user.spec.ts`](../client/e2e/server/multi-user.spec.ts) |
 | M17 API tokens (FR-23.7) | E2E-M17-13, E2E-M17-13b | `server` | [`server/api-token.spec.ts`](../client/e2e/server/api-token.spec.ts) |
 | M20 instance administration | E2E-M17-09, E2E-M20-01, E2E-M20-02, E2E-M20-03 (name half), E2E-M20-04, E2E-M20-05 | `server` | [`server/admin.spec.ts`](../client/e2e/server/admin.spec.ts) |
@@ -436,15 +436,33 @@ the baselines that make "looks right" assertable are the fifth step of
 `design-foundation-plan.md`, and until they land the eyeball pass is the
 gate.
 
-**What the M4 unit deliberately leaves out, and why.** Every facet case
-beyond the panel's own structure — E2E-M4-16 (OR-within/AND-across),
--17 (counts), -19 (the *Gemeinsam* bucket) — needs rows carrying a
-category, a traveler or a buy mode, and **none of those can be set from
-M4**: the quick-add produces uncategorised, unassigned `pack` rows. Spec
-§2.4 forbids injecting such rows around the app, so these cases arrive
-with the screens that can produce them (M5, and the M9/M10 rebuild).
-Likewise E2E-M4-26/-27 need FR-27.10's group add, and -24/-30/-31 need a
-second account: `server`-only today. **E2E-M4-12/-13 arrived 2026-08-29**
+**What the M4 unit deliberately leaves out, and why — rewritten
+2026-08-30.** The paragraph that stood here said the facet cases
+E2E-M4-16/-17/-19 were waiting for a screen that could produce
+categorised, assigned rows, and that -24/-30/-31 were waiting for a
+second account. Both waits ended without anybody noticing, in two
+different ways, and the audit of item 6 is what found it.
+
+The facet cases had **already been written** — as unit tests in
+`domain/__tests__/packingView.spec.ts`, where the arithmetic lives.
+OR-within/AND-across, the counts taken against the other facets, the
+dead-end rule, the selected-at-zero rule, the shared bucket leading its
+facet: all nine of them, none carrying an E2E id, so the ledger went on
+reporting a gap that a `git grep` of the id could confirm and a reading
+of the suite could not. **The blocked entry outlived its blocker and
+nothing connected them**, which is a different failure from the one
+recorded under E2E-M4-12/-13 — there, the case unblocked and had to be
+re-read; here, it was covered and had to be re-*found*.
+
+The second-account cases were genuinely blocked and are now written
+(ADR-029's `server` project). E2E-M4-24 split rather than moved: its
+*name* half is FLOW-01's, its *time and clearing* half needs no account
+at all and is Local Mode's. E2E-M4-30 needed the rule to leave
+`PackingListPage.vue` first — see the entry below. E2E-M4-26/-27 landed
+with FR-27.10 in 2026-08-19.
+
+What is left out of the M4 unit on purpose is now one line: the
+`server`-only cases, which live in `e2e/server/`. **E2E-M4-12/-13 arrived 2026-08-29**
 with FR-25.8's per-person quick-add, and neither landed where it was
 waiting: -12 is one case with -58, because the two entries describe one
 rendered outcome and the second would only re-run it, and -13's premise —
@@ -1626,6 +1644,9 @@ as more than it is:
   cases do not.
 - **A real provider.** ADR-029 accepts this outright: an Authelia-specific
   defect still ships green, and Track H's deployment is where it gets paid.
+  **Half of that bill is now mechanical** (2026-08-30) — see the section at
+  the end of this file — and the half that is not has a written procedure
+  instead of an intention.
 
 ## FR-9.3/9.4 — the closing pass, and what its cases had to be careful about (2026-08-24)
 
@@ -2419,3 +2440,77 @@ a screen nobody built, and two more would have frozen a rule the app had already
 reversed on purpose. **Reading the promise against the screen has to come before
 reading it against the test** — the id existing means somebody once meant it,
 not that anything answers to it.
+
+## The real provider — what a machine checks, and what a person must (2026-08-30)
+
+ADR-029 kept a real Authelia out of the Playwright suite and wrote down the
+cost: *„an Authelia-specific defect still ships green"*, to be paid by a
+manual pre-release check against the family instance. That check existed as
+an intention. This is it, split by what each half can actually establish.
+
+### The mechanical half
+
+`internal/api/realprovider_test.go`, opted into with an issuer:
+
+```bash
+JITPACK_REAL_IDP_ISSUER=https://auth.example.com go test ./internal/api/ -run RealProvider -v
+```
+
+Four read-only GETs against published metadata — no client secret, no
+account, nothing written — so it is safe to point at production, which is
+the only place the real answers are. Skipped without the variable, so `make
+ci` and the pipeline are untouched: neither can reach a homelab, and a check
+that needs the network must never be why a build goes red.
+
+**It runs the shipped resolver, not a second reading of it.** The discovery
+case calls `api.FetchDiscovery`, so the issuer-equality rule is asserted by
+the code that runs at start-up.
+
+**What it protects, and why each one is worth a case.** A provider does not
+refuse an unsupported capability loudly; it grants less, and the failure
+surfaces much later wearing a different costume. `offline_access` missing is
+a session that stops renewing days after anyone would connect the two. A
+missing `name`/`preferred_username` is an account provisioned with a blank
+display name. An unpublished `email_verified` is an instance admin who
+silently never gets the role, because an unasserted flag reads as false
+(FR-23.1). Each failure names that consequence rather than only the gap.
+
+**Falsified, not assumed.** Green against the real instance proves nothing
+on its own, so the check was run twice more: against the same issuer with a
+trailing slash, which is the trap `docs/authentication.md` names and which
+fails with the mismatch printed; and against a locally served copy of the
+real document degraded in three places (no `offline_access`, `plain`
+instead of `S256`, `claims_supported` cut to `sub` and `email`, a JWKS
+holding one non-signing key). Every assertion failed, each naming its
+consequence. A conformance check that has never been red is a green light
+wired to nothing.
+
+**First run against the family instance** (2026-08-30, `https://auth.1-0.io`):
+all four cases pass. The endpoints resolve under `/api/oidc/`, the signing
+key is `kid=b4108f-rs256`, and every scope the client asks for is advertised.
+
+### The half that needs a person
+
+These are behind a real user session and no metadata document describes
+them. Run them by hand against the family instance before a release, with a
+real account:
+
+1. **The login itself** — password page, the second factor Authelia's
+   `family_two_factor` policy requires, and any consent screen. The mock IdP
+   models none of this: it renders an account chooser and grants
+   immediately.
+2. **The round trip lands back in the app** — `/auth/callback` on the app's
+   origin, the dashboard greeting carrying the display name UserInfo
+   supplied. Authelia sets `authorization_response_iss_parameter_supported`,
+   so the callback carries an `iss` parameter the mock never sends; what is
+   being checked is that it is ignored rather than tripped over.
+3. **The session renews** — leave the app open past the access token's
+   lifetime, or clear it, and confirm the refresh grant works. This is the
+   one `offline_access` buys, and the metadata check only proves it was
+   *offered*.
+4. **A deactivated account loses access** — the asymmetry the MVP plan
+   records (ADR1): marking a user disabled in Authelia blocks new logins
+   and **keeps honouring refresh tokens already issued**. Deactivate in
+   JIT-Pack, or revoke at Authelia; confirm which one you did and that it
+   took effect. This is the single most important item here, because the
+   safe-looking action is the one that does nothing.

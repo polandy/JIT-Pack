@@ -18,12 +18,20 @@ import (
 // lets every case below state its expectation exactly instead of racing one.
 
 // claimsOf verifies the signature with secret and returns the payload.
+//
+// It inspects the claims rather than judging them: validation is switched off
+// because these cases mint at a *fixed* time and then assert what `exp` says.
+// Leaving it on would check that stamp against the real clock, so an hour-long
+// token from a fixture in the past is "expired" before it is read — and every
+// longer lifetime would join it as the fixture date recedes. Whether the
+// server accepts a token is asserted by asking the server, further down.
 func claimsOf(t *testing.T, tokenStr string, secret []byte) jwt.MapClaims {
 	t.Helper()
 	claims := jwt.MapClaims{}
 	if _, err := jwt.ParseWithClaims(tokenStr, claims,
 		func(*jwt.Token) (any, error) { return secret, nil },
-		jwt.WithValidMethods([]string{"HS256"})); err != nil {
+		jwt.WithValidMethods([]string{"HS256"}),
+		jwt.WithoutClaimsValidation()); err != nil {
 		t.Fatalf("parse minted token: %v", err)
 	}
 	return claims
