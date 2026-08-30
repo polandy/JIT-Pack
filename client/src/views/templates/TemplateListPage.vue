@@ -374,6 +374,7 @@ async function handleRefresh(event: CustomEvent) {
             fill="clear"
             size="small"
             :aria-label="t('templates.import')"
+            data-testid="m7-portable-import"
             router-link="/portable-import"
           >
             <IonIcon slot="icon-only" :icon="documentTextOutline" />
