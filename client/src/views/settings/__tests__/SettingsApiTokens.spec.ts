@@ -29,7 +29,9 @@ vi.mock('@/notifications/push', () => ({
 
 // Whether a session exists is what separates Server Mode from Single-User
 // Mode on this screen, so the mock has to be switchable per test.
-const session = vi.hoisted(() => ({ value: { access_token: 'a' } as { access_token: string } | null }))
+const session = vi.hoisted(() => ({
+  value: { access_token: 'a' } as { access_token: string } | null,
+}))
 vi.mock('@/auth/tokens', () => ({ loadTokens: () => session.value }))
 
 const orchestratorFake = {
@@ -85,9 +87,7 @@ describe('M17 API tokens', () => {
     const w = mountSettings()
     await flushPromises()
 
-    await w
-      .get('[data-testid="token-name"]')
-      .trigger('ionInput', { detail: { value: 'cleanup' } })
+    await w.get('[data-testid="token-name"]').trigger('ionInput', { detail: { value: 'cleanup' } })
     await w.find('[data-testid="token-create"]').trigger('click')
     await flushPromises()
 
@@ -102,9 +102,7 @@ describe('M17 API tokens', () => {
     const w = mountSettings()
     await flushPromises()
 
-    await w
-      .get('[data-testid="token-name"]')
-      .trigger('ionInput', { detail: { value: 'cleanup' } })
+    await w.get('[data-testid="token-name"]').trigger('ionInput', { detail: { value: 'cleanup' } })
     await w.find('[data-testid="token-create"]').trigger('click')
     await flushPromises()
 
@@ -122,9 +120,7 @@ describe('M17 API tokens', () => {
     })
     const w = mountSettings()
     await flushPromises()
-    await w
-      .get('[data-testid="token-name"]')
-      .trigger('ionInput', { detail: { value: 'cleanup' } })
+    await w.get('[data-testid="token-name"]').trigger('ionInput', { detail: { value: 'cleanup' } })
     await w.find('[data-testid="token-create"]').trigger('click')
     await flushPromises()
 
@@ -141,9 +137,7 @@ describe('M17 API tokens', () => {
     const w = mountSettings()
     await flushPromises()
 
-    await w
-      .get('[data-testid="token-name"]')
-      .trigger('ionInput', { detail: { value: 'cleanup' } })
+    await w.get('[data-testid="token-name"]').trigger('ionInput', { detail: { value: 'cleanup' } })
     await w.find('[data-testid="token-create"]').trigger('click')
     await flushPromises()
 

@@ -692,7 +692,11 @@ async function exportTripCSV() {
               :value="tokenExpiry"
               @ionChange="(e: CustomEvent) => (tokenExpiry = e.detail.value)"
             >
-              <IonSelectOption v-for="opt in tokenExpiryOptions" :key="opt.value" :value="opt.value">
+              <IonSelectOption
+                v-for="opt in tokenExpiryOptions"
+                :key="opt.value"
+                :value="opt.value"
+              >
                 {{ opt.label }}
               </IonSelectOption>
             </IonSelect>
@@ -755,14 +759,13 @@ async function exportTripCSV() {
           </IonLabel>
         </IonItem>
       </IonList>
-    
+
       <ApiTokenSheet
         :open="tokenSheetOpen"
         :token="mintedToken"
         :expires-at="mintedExpiresAt"
         @close="closeTokenSheet"
       />
-
     </IonContent>
   </IonPage>
 </template>
