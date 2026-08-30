@@ -33,9 +33,11 @@ test.describe('API tokens @server', () => {
     await screen.getByTestId('token-name').locator('input').fill('e2e cleanup')
     await screen.getByTestId('token-create').click()
 
-    // The reveal, and the value in it.
-    await expect(screen.getByTestId('token-sheet')).toBeVisible()
-    const token = (await screen.getByTestId('token-value').textContent())?.trim() ?? ''
+    // The reveal is an Ionic modal, so it renders *outside* the router
+    // outlet: its contents are addressed on the page, never through
+    // visiblePage(), which can only ever see what is inside the outlet.
+    await expect(page.getByTestId('token-sheet')).toBeVisible()
+    const token = (await page.getByTestId('token-value').textContent())?.trim() ?? ''
     expect(token, 'the reveal showed no token').toMatch(/^[\w-]+\.[\w-]+\.[\w-]+$/)
 
     // A fresh context holds no session, so nothing but the header can be
@@ -72,13 +74,14 @@ test.describe('API tokens @server', () => {
     const screen = visiblePage(page)
     await screen.getByTestId('token-name').locator('input').fill('e2e once')
     await screen.getByTestId('token-create').click()
-    await expect(screen.getByTestId('token-value')).toBeVisible()
+    await expect(page.getByTestId('token-value')).toBeVisible()
 
-    await screen.getByTestId('token-done').click()
+    await page.getByTestId('token-done').click()
 
-    // "Shown exactly once" is a promise about the second look.
-    await expect(screen.getByTestId('token-value')).toHaveCount(0)
-    await expect(screen.getByTestId('token-sheet')).toHaveCount(0)
+    // "Shown exactly once" is a promise about the second look. The modal is
+    // outside the outlet, so both assertions are page-scoped.
+    await expect(page.getByTestId('token-value')).toHaveCount(0)
+    await expect(page.getByTestId('token-sheet')).toHaveCount(0)
 
     await context.close()
   })
