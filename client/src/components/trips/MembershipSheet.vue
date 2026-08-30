@@ -159,7 +159,10 @@ function apply(target: MembershipTarget) {
   // the largest — is the thing worth reading before it is written (FR-25.21b).
   // A single traveler leaving asks only when their row carries something.
   const collapsing = target.kind === 'shared' && plan.delete.length > 0
-  if (collapsing || plan.destructive.length > 0) {
+  // FR-5.5: taking a *weggelassen* row along again undoes somebody's answer,
+  // and it happens as a side effect of the first checkbox — so it is asked,
+  // the same way the two conversions above are.
+  if (collapsing || plan.destructive.length > 0 || plan.unskipped !== null) {
     pending.value = { target, plan }
     return
   }
@@ -200,10 +203,26 @@ function toShared() {
   apply({ kind: 'shared' })
 }
 
+/** Which question is being asked — the plan decides, never the control. */
+const confirmTitle = computed(() => {
+  const p = pending.value
+  if (!p) return ''
+  if (p.plan.unskipped && p.target.kind === 'perPerson') return t('membership.confirmUnskipTitle')
+  return p.target.kind === 'shared'
+    ? t('membership.confirmCollapseTitle')
+    : t('membership.confirmRemoveTitle')
+})
+
 /** The sentence the confirm asks, built from the plan rather than from the control. */
 const confirmMessage = computed(() => {
   const p = pending.value
   if (!p) return ''
+  if (p.plan.unskipped && p.target.kind === 'perPerson') {
+    return t('membership.confirmUnskip', {
+      item: item.value?.name ?? '',
+      name: p.plan.unskipped.travelerName,
+    })
+  }
   if (p.target.kind === 'shared') {
     return t('membership.confirmCollapse', {
       rows: p.plan.delete.length + p.plan.update.length,
@@ -317,11 +336,7 @@ const confirmMessage = computed(() => {
 
     <IonAlert
       :is-open="pending !== null"
-      :header="
-        pending?.target.kind === 'shared'
-          ? t('membership.confirmCollapseTitle')
-          : t('membership.confirmRemoveTitle')
-      "
+      :header="confirmTitle"
       :message="confirmMessage"
       :buttons="[
         { text: t('common.cancel'), role: 'cancel' },
