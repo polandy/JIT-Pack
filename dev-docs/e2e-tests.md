@@ -52,7 +52,7 @@ Keeping it to one unit per PR is not a style preference: two PRs that each add c
 | Deliberately not packed | E2E-M4-37 … E2E-M4-42, E2E-M5-16 | `local` | [`skip-item.spec.ts`](../client/e2e/skip-item.spec.ts) |
 | Surfaces | E2E-G14-01, E2E-G14-02, E2E-G14-03 | `local` | [`surfaces.spec.ts`](../client/e2e/surfaces.spec.ts) |
 | M7 template scopes | E2E-M7-04, E2E-M7-05 (the header icon into M18), E2E-M7-06 (both empty states), E2E-M7-07 (three tests here plus the include half in the M8 unit), E2E-M7-08, E2E-M7-09, E2E-M7-10 (two tests) | `local` | [`template-list.spec.ts`](../client/e2e/template-list.spec.ts) |
-| M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (as amended), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-15, E2E-M8-16, E2E-M8-17, E2E-M8-21, E2E-M8-22, E2E-M8-23 (two tests), E2E-M8-18, E2E-M8-24 (two tests) | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
+| M8 template editor | E2E-M8-01, E2E-M8-02, E2E-M8-03, E2E-M8-04, E2E-M8-05, E2E-M8-06 (its own test only since the 2026-08-30 audit), E2E-M8-07 (incl. E2E-M7-07's include half), E2E-M8-08, E2E-M8-10, E2E-M8-11 (editor half), E2E-M8-12, E2E-M8-13, E2E-M8-14, E2E-M8-15, E2E-M8-16, E2E-M8-17, E2E-M8-21, E2E-M8-22, E2E-M8-23 (two tests), E2E-M8-18, E2E-M8-24 (two tests) | `local` | [`template-editor.spec.ts`](../client/e2e/template-editor.spec.ts) |
 | M6 shopping (composer wiring, FR-25.11j reveal, FR-25.6 aggregation) | E2E-M6-21, E2E-M6-17, E2E-M6-22, E2E-M6-05, E2E-M6-06 | `local` | [`shopping.spec.ts`](../client/e2e/shopping.spec.ts) |
 | M9/M10 inventory & item editor | E2E-M9-01, E2E-M9-06, E2E-M9-05, E2E-M9-08 (tag-axis clearance, UX-4), E2E-M9-10 (search filters), E2E-M9-04 (empty state → M15), E2E-M10-01 … E2E-M10-05 (this row was owed since the unit landed), E2E-M10-13 (German-seeded) | `local` | [`inventory.spec.ts`](../client/e2e/inventory.spec.ts) |
 | FR-24.3 lifecycle delete | E2E-M10-14, E2E-M10-15, E2E-M7-11 | `local` | [`lifecycle-delete.spec.ts`](../client/e2e/lifecycle-delete.spec.ts) |
@@ -2740,6 +2740,73 @@ is restricted to the item's assignee or the trip owner"* — enforced nowhere,
 client or server, and contradicting the same FR's own sentence two lines
 earlier that todos are visible to every trip member. Struck with the owner's
 decision rather than left standing as a rule the app has never followed.
+
+## M8 — twenty-four ids, and a control nothing had ever clicked (2026-08-30)
+
+Backlog item 6, sixth screen. M8 was the first with **no unwritten ids at
+all**: every one of its twenty-four numbers already carried a test, so the
+read was clause by clause rather than id by id — and that is the only reading
+that could have found what it found.
+
+**E2E-M8-06 has read *implemented* since `8dc89d8`, and nothing in the suite
+ever removed a position.** `m8-position-remove-*` occurs in no test; the page
+has no component test either, so the ✕ on a position row — a destructive
+control — had never been clicked by anything. The name sort beside it was in
+the same state.
+
+Why it survived a year is worth keeping. The ✕ was a **decision** that same
+commit made: the M7 variant pass had just rejected the swipe panel, and the
+replacement went into UI-Spec M8, into this id's amendment note and into the
+ledger row on the day it was chosen. The entry then reads *"add/remove
+positions — remove via the row's ✕ (amended 2026-08-15: …)"*, and everything
+after the bracket is news. **A clause that arrives as news is not checked the
+way a clause that arrives as a requirement is** — the amendment was reviewed,
+the sentence it amended was not.
+
+| Case | What it drives | File |
+|---|---|---|
+| E2E-M8-06 | positions render name-sorted, the row's ✕ takes that row alone, the removal survives reopening, and the last removal reaches the empty state | `template-editor.spec.ts` |
+
+Written out of alphabetical order on purpose: `template_items` has no order
+column, which is *why* the clause says name-sorted, and an insertion-ordered
+list would satisfy any check made on one or two rows.
+
+**Four clauses of other ids were unasserted and went in with it**, each folded
+into the case that already owns its world rather than starting a case of its
+own:
+
+- **E2E-M8-12's „nothing auto-opens"** — the rest of that sentence was
+  covered; this half is the whole of "one tap", since an editor presenting
+  itself after every commit makes the FR-25.7 defaults a suggestion.
+- **E2E-M8-13's „autocomplete after two characters"** — `MIN_SEARCH_LENGTH`
+  had no assertion anywhere, e2e or unit, and it is shared with M3 step 3.
+  The gate is asserted with the **free-text hint absent alongside the
+  suggestions**: that hint renders exactly when a long-enough query matches
+  nothing, so without it "nothing offered" is equally true of an empty result.
+- **E2E-M8-03's clear-on-retap** — FR-15.2 gives each axis one value, so the
+  active chip is also the way to clear it, and that `delete` was the only
+  branch of `toggleCondition` nothing reached.
+- **E2E-M8-05's sentence itself was the defect**, the M17 shape: it promised
+  that a followed trip *updates immediately* and that running trips are never
+  touched, which is the model FR-27.4 replaced on 2026-08-18. The screen has
+  said *proposed* since, and the test asserted that word; only the case
+  sentence still specified the old behaviour.
+
+**Three clauses were checked and left alone**, which is the other half of the
+job. *Trip-Global* (M8-02) is the FR-25.7 default and E2E-M8-12 asserts it as
+the state a fresh row is in. *„scrim tap closes"* (M8-14) named Ionic's
+`backdropDismiss`, not this screen — both user-reachable dismissals of the one
+`@did-dismiss` handler are already asserted — and the clause was struck rather
+than tested. And M8-15 drives the item-name hit only because the **group-name**
+match and the diacritics fold are `searchGroups`' rules, asserted exhaustively
+in `domain/__tests__/templates.spec.ts` down to the `föhn`/`fohn` pair.
+
+**Filing note found while reading:** E2E-M8-20, E2E-M8-21 and E2E-M8-22 are
+defined in the UI-Test-Spec's **M4** block, beside the M4 twins they were
+written with. They are M8's ids on M8's tests; moving them would define a
+number twice for the length of a merge, so the M8 block carries a pointer
+instead.
+
 
 ## The four inherited id collisions, read against their screens (2026-08-30)
 

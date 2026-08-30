@@ -47,6 +47,22 @@ async function createTaggedItem(page: Page, name: string, tag: string) {
   await expect(visible(page).getByTestId('m10-tag-search')).toHaveCount(0)
 }
 
+/** Every position row of the open editor, in the order the screen renders them. */
+function positionRows(page: Page) {
+  return visible(page).locator('ion-item[data-testid^="m8-position-"] h2')
+}
+
+/**
+ * One position row, addressed by its heading rather than by `hasText`: a row
+ * carries its deviation chips too, and „Kamera" would match a chip line that
+ * merely mentions it.
+ */
+function positionRow(page: Page, name: string) {
+  return visible(page)
+    .locator('ion-item[data-testid^="m8-position-"]')
+    .filter({ has: page.getByRole('heading', { name, exact: true }) })
+}
+
 /**
  * M8 — Template Editor, scope-shaped (§3.27, FR-27.6/27.7).
  *
@@ -101,6 +117,12 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     await expect(row).toContainText('Standard')
     await expect(row).toContainText('1×')
 
+    // …and nothing opens on top of it. "One tap" is the whole of FR-25.7:
+    // an editor presenting itself after every add would make the defaults
+    // a suggestion rather than an answer (E2E-M8-12, clause added
+    // 2026-08-30 — it was the one part of that sentence nothing asserted).
+    await expect(page.getByTestId('m8-position-sheet')).toHaveCount(0)
+
     // The field stays open and empty for the next position (FR-25.13).
     await expect(input).toHaveValue('')
     await expect(input).toBeVisible()
@@ -150,6 +172,44 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
     ).toBeVisible()
   })
 
+  test('E2E-M8-06: the row’s ✕ removes exactly that position, and the list is name-sorted (FR-1.2)', async ({
+    page,
+  }) => {
+    await createTemplate(page, 'group', 'Makro')
+
+    // Written out of alphabetical order on purpose: `template_items` has no
+    // order column (which is why the case says name-sorted at all), so an
+    // insertion-ordered list would render Stativ first and pass nothing.
+    await addPosition(page, 'Stativ')
+    await addPosition(page, 'Kamera')
+    await addPosition(page, 'Ringlicht')
+    await expect(positionRows(page)).toHaveText(['Kamera', 'Ringlicht', 'Stativ'])
+    await expect(visible(page).getByTestId('m8-positions-head')).toContainText('3')
+
+    // The ✕ takes its own row and no other — the two that stay are the
+    // positive signal, and the section count is the model's own answer
+    // rather than a second reading of the same list.
+    await positionRow(page, 'Ringlicht')
+      .locator('[data-testid^="m8-position-remove-"]')
+      .click()
+    await expect(positionRows(page)).toHaveText(['Kamera', 'Stativ'])
+    await expect(visible(page).getByTestId('m8-positions-head')).toContainText('2')
+
+    // A write, not a rendering: leaving and coming back re-derives the
+    // editor from the store, so a removal held in the view would return.
+    await backToList(page)
+    await visible(page).locator('ion-item').filter({ hasText: 'Makro' }).first().click()
+    await expect(page.getByTestId('header-title')).toHaveText('Makro')
+    await expect(positionRows(page)).toHaveText(['Kamera', 'Stativ'])
+
+    // Removing the rest reaches the empty state, which nothing had rendered
+    // before this case — `m8-positions-empty` existed in no test at all.
+    await positionRow(page, 'Kamera').locator('[data-testid^="m8-position-remove-"]').click()
+    await positionRow(page, 'Stativ').locator('[data-testid^="m8-position-remove-"]').click()
+    await expect(positionRows(page)).toHaveCount(0)
+    await expect(visible(page).getByTestId('m8-positions-empty')).toBeVisible()
+  })
+
   test('E2E-M8-21: the empty composer offers chips, never the already chosen, and a chip lands a row (FR-25.13c)', async ({
     page,
   }) => {
@@ -169,6 +229,20 @@ test.describe('M8 template editor — scope shape and quick-add (FR-27.6/25.13)'
 
     // First position via the typed autocomplete — this also feeds the trail.
     const input = visible(page).getByTestId('quick-add-input').locator('input')
+
+    // E2E-M8-13's "autocomplete after two characters" (clause asserted from
+    // 2026-08-30; `MIN_SEARCH_LENGTH` had no test in the suite or the units).
+    // The free-text hint has to be absent *with* the suggestions: it renders
+    // exactly when a query of two characters or more matches nothing, so its
+    // absence is what separates the gate from an empty result.
+    await input.fill('Z')
+    await expect(visible(page).getByTestId('quick-add-suggestion')).toHaveCount(0)
+    await expect(visible(page).locator('.no-match')).toHaveCount(0)
+    await input.fill('Za')
+    await expect(
+      visible(page).getByTestId('quick-add-suggestion').filter({ hasText: 'Zahnbürste' }),
+    ).toBeVisible()
+
     await input.fill('Zahn')
     await visible(page)
       .getByTestId('quick-add-suggestion')
@@ -399,6 +473,16 @@ test.describe('M8 position sheet — the M5 pattern (FR-25.7, FR-27.7)', () => {
     // The glance row now carries all three (FR-25.14 idiom).
     const glance = page.getByTestId('m8-position-sheet').locator('.glance')
     await expect(glance).toContainText('Per person')
+    await expect(glance).toContainText('Summer')
+
+    // FR-15.2 gives each axis one value, so the active chip is also the way
+    // to clear it — the only branch of `toggleCondition` that deletes, and
+    // untested anywhere until 2026-08-30. The per-person chip beside it is
+    // the positive signal that the glance itself did not simply go away.
+    await page.getByTestId('m8-cond-summer').click()
+    await expect(glance).not.toContainText('Summer')
+    await expect(glance).toContainText('Per person')
+    await page.getByTestId('m8-cond-summer').click()
     await expect(glance).toContainText('Summer')
 
     // FR-25.15: the sheet's indicator has settled back to ✓ — the transient
